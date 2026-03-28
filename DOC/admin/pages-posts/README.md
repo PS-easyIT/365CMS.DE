@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Überblick über die Content-Module im Admin-Bereich und ihre aktuelle Aufgabenverteilung.
 
-Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
+Letzte Aktualisierung: 2026-03-28 · Version 2.8.0 RC
 
 Der Content-Bereich ist auf mehrere spezialisierte Bereiche verteilt:
 
@@ -46,6 +46,6 @@ Die SEO-spezifischen Global-Einstellungen liegen nicht mehr in einem alten Monol
 
 ## Aktuelle Hinweise
 
-- Lösch-Workflows für Seiten und Beiträge wurden in 2.1.2 stabilisiert.
+- Lösch-Workflows für Seiten und Beiträge folgen im aktuellen Stand dem konsolidierten Admin-Flow mit Redirects, Alerts und serverseitiger Validierung.
 - Featured Images, Slugs und Redaktionshilfen sind stärker mit SEO und Medienverwaltung verzahnt.
 - Historische Verweise auf `/admin/seo.php` oder alte Monolith-Seiten sind in diesem Bereich nicht mehr korrekt.

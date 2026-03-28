@@ -2,11 +2,11 @@
 
 Kurzbeschreibung: Ordnet die Plugin-bezogene Update-Verwaltung in die zentrale Seite `/admin/updates` ein und beschreibt die aktuellen Aktionen für Core- und Plugin-Updates.
 
-Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
+Letzte Aktualisierung: 2026-03-28 · Version 2.8.0 RC
 
 ## Überblick
 
-Plugin-Updates werden nicht über eine separate Plugin-Sonderseite gepflegt, sondern im zentralen Update-Manager unter `/admin/updates`. Der Entry-Point `CMS/admin/updates.php` arbeitet mit `UpdatesModule` und bündelt Core-, Plugin- und Theme-Informationen.
+Plugin-Updates werden nicht über eine separate Plugin-Sonderseite gepflegt, sondern im zentralen Update-Manager unter `/admin/updates`. Der Entry-Point `CMS/admin/updates.php` arbeitet mit `UpdatesModule` und bündelt Core-, Plugin- und Theme-Informationen inklusive Staging-/Rollback-orientiertem Update-Flow.
 
 ## Unterstützte Aktionen
 

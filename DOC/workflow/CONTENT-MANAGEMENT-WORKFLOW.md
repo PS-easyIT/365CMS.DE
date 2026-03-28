@@ -1,13 +1,15 @@
 # Content-Management Workflow – 365CMS
 
-> **Stand:** 2026-03-08 | **Version:** 2.5.4 | **Status:** Aktuell
+> **Stand:** 2026-03-28 | **Version:** 2.8.0 RC | **Status:** Referenz / teilweise konzeptionell
 >
-> **Bereich:** Inhalte · **Version:** 2.5.4  
+> **Bereich:** Inhalte · **Version:** 2.8.0 RC  
 > **Services:** `EditorService`, `SEOService`, `MediaService`  
-> **Admin-Seiten:** `admin/editor.php`, `admin/pages.php`, `admin/landing-page.php`
+> **Admin-Seiten:** `admin/pages.php`, `admin/posts.php`, `admin/landing-page.php`, `admin/media.php`
 
 ---
-<!-- UPDATED: 2026-03-08 -->
+<!-- UPDATED: 2026-03-28 -->
+
+> Hinweis: Die Datei beschreibt den redaktionellen Gesamtfluss. Konkrete technische Details einzelner Admin-Seiten können inzwischen von diesem High-Level-Workflow abweichen.
 
 ## Übersicht: Content-Typen
 
@@ -200,8 +202,8 @@ TECHNISCH:
 
 ## Referenzen
 
-- [admin/editor.php](../../CMS/admin/editor.php) – WYSIWYG-Editor
 - [admin/pages.php](../../CMS/admin/pages.php) – Seitenverwaltung
+- [admin/posts.php](../../CMS/admin/posts.php) – Beitragsverwaltung
 - [core/Services/EditorService.php](../../CMS/core/Services/EditorService.php) – Editor-Service
 - [core/Services/SEOService.php](../../CMS/core/Services/SEOService.php) – SEO-Service
 - [AUDIT_FACHBEREICHE.md](../audit/AUDIT_FACHBEREICHE.md) – Konsolidierte Content-/Feature-Anforderungen

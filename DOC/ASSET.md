@@ -1,5 +1,5 @@
 # ASSET-Übersicht 365CMS
-> **Stand:** 2026-03-08 | **Version:** 2.5.4 | **Status:** Aktuell
+> **Stand:** 2026-03-28 | **Version:** 2.8.0 RC | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - <a>Übersicht aller Libraries</a>
@@ -11,16 +11,16 @@
 
 ---
 
-## Übersicht aller Libraries <!-- UPDATED: 2026-03-08 -->
-Gesamtliste aller 24 Bibliotheken (aktiv) plus 1 Referenz-Bundle. Quelle: `CMS/assets/` (Produktivpfad, Autoload) – **nicht** `ASSETS/` (Staging).
+## Übersicht aller Libraries <!-- UPDATED: 2026-03-28 -->
+Gesamtliste der relevanten Runtime- und Legacy-Bundles. Quelle: `CMS/assets/` (Produktivpfad, Autoload) – **nicht** `ASSETS/` (Staging).
 
 | Library | Version | Zweck | Pfad (CMS/assets) | CDN/Lokal | Eingebunden in |
 |---|---|---|---|---|---|
-| tabler | 1.0.x | Admin UI Framework | `tabler/` | lokal | Admin |
+| tabler | 1.4.0 | Admin-/Member-UI | `tabler/` | lokal | Admin, Member |
 | editorjs | 2.x | Block-Editor | `editorjs/` | lokal | Admin/Frontend |
 | suneditor | 2.x | Legacy WYSIWYG | `suneditor/` | lokal | Admin |
-| elfinder | 2.1.x | ehem. Dateimanager | `elfinder/` | lokal | Legacy-Bestand, aktuell nicht aktiv |
-| filepond | 4.x | ehem. Upload-Komponente | `filepond/` | lokal | Legacy-Bestand, aktuell nicht aktiv |
+| elfinder | 2.1.x | ehem. Dateimanager | `elfinder/` | lokal | Legacy-Bestand |
+| filepond | 4.x | ehem. Upload-Komponente | `filepond/` | lokal | Legacy-Bestand |
 | gridjs | 6.x | Tabellen | `gridjs/` | lokal | Admin |
 | photoswipe | 5.x | Lightbox | `photoswipe/` | lokal | Frontend |
 | php-jwt | 6.x | JWT Tokens | `php-jwt/` | lokal | API/Auth |
@@ -44,29 +44,29 @@ Gesamtliste aller 24 Bibliotheken (aktiv) plus 1 Referenz-Bundle. Quelle: `CMS/a
 
 ---
 
-## CSS-Architektur <!-- UPDATED: 2026-03-08 -->
+## CSS-Architektur <!-- UPDATED: 2026-03-28 -->
 - **Basis:** Tabler CSS (Admin) + eigene Overrides in `CMS/assets/css/`.
 - **Variablen:** Farbe, Spacing, Typography zentral in `CMS/assets/css/variables.css` (falls vorhanden); Admin-spezifische Variablen in `tabler/`.
-- **Theming:** Admin lädt Tabler + Custom CSS via `CMS/admin/partials/header.php`. Frontend-Themes liefern eigenes CSS im Theme-Ordner; globale Assets nur für gemeinsam genutzte Komponenten (z. B. PhotoSwipe und native 365CMS-Komponenten).
+- **Theming:** Admin lädt Tabler + Custom CSS via `CMS/admin/partials/header.php`. Frontend-Themes liefern eigenes CSS im Theme-Ordner; globale Assets nur für gemeinsam genutzte Komponenten.
 - **Legacy:** SunEditor bringt eigenes CSS; sollte nur auf Seiten geladen werden, die ihn nutzen.
 
 ---
 
-## JavaScript-Architektur <!-- UPDATED: 2026-03-08 -->
-- **Module:** Lokale JS-Utilities unter `CMS/assets/js/` (Init-Skripte für PhotoSwipe, CookieConsent, Admin-Medien).
+## JavaScript-Architektur <!-- UPDATED: 2026-03-28 -->
+- **Module:** Lokale JS-Utilities unter `CMS/assets/js/` (u. a. `admin.js`, `admin-media-integrations.js`, `member-dashboard.js`, `cookieconsent-init.js`, `photoswipe-init.js`).
 - **Global Objects:** `window.cms` (Admin/Frontend-Hilfen), `window.EditorJS`, `window.CMSCookieConsent`.
 - **Event-Bus:** Hooks laufen serverseitig; JS-seitig werden Events über DOM/Custom Events und modulare Initialisierer gekapselt.
 - **Admin-Assets:** Werden in `CMS/admin/partials/header.php/footer.php` basierend auf `$pageAssets` injiziert.
 
 ---
 
-## Versionierung & Cache-Busting <!-- UPDATED: 2026-03-08 -->
+## Versionierung & Cache-Busting <!-- UPDATED: 2026-03-28 -->
 - **Strategie:** Query-Parameter mit Versionsstring aus `CMS_VERSION` oder Asset-Build-Timestamp (manuell gepflegt in Templates).
-- **Empfehlung:** Bei Updates von Bibliotheken `?v=2.5.x` erhöhen; statische Dateien mit Hash im Dateinamen bevorzugen, wenn neu gebaut.
+- **Empfehlung:** Bei Updates von Bibliotheken und nativen Assets `filemtime()` oder konsistente Versionsparameter nutzen; statische Dateien mit Hash im Dateinamen bevorzugen, wenn neu gebaut.
 
 ---
 
-## Build-Workflow <!-- UPDATED: 2026-03-08 -->
+## Build-Workflow <!-- UPDATED: 2026-03-28 -->
 - Kein Vite/Webpack im Repo. Assets werden manuell verwaltet.
 - Minimale Schritte beim Aktualisieren:
   1) Neue Version nach `CMS/assets/<lib>/` kopieren.
@@ -76,30 +76,18 @@ Gesamtliste aller 24 Bibliotheken (aktiv) plus 1 Referenz-Bundle. Quelle: `CMS/a
 
 ---
 
-## Synchronisation <!-- UPDATED: 2026-03-08 -->
+## Synchronisation <!-- UPDATED: 2026-03-28 -->
 - Quelle der Wahrheiten: `CMS/assets/` (Runtime) + `DOC/assets/README.md`.
 - **Excel-Abgleich:** `DOC/assets/365CMS_Asset_Uebersicht.xlsx` regelmäßig mit obiger Tabelle synchron halten.
 - **Staging vs. Prod:** `ASSETS/` nur als Ablage; produktiver Autoload ausschließlich `CMS/assets/autoload.php`.
-- `DOC/assets/ldaprecord/README.md` – LDAP-Authentifizierung und Admin-Erstsynchronisierung
-- `DOC/assets/mailer/README.md` – lokaler Symfony-Mailer inkl. Queue-/XOAUTH2-Kontext
-- `DOC/assets/melbahja-seo/README.md` – geplanter/fehlender Schema-/Sitemap-Ersatz, derzeit nicht im Runtime-Baum vorhanden
-- `DOC/assets/mime/README.md` – MIME-Erzeugung für Mail-Nachrichten
-- `DOC/assets/php-jwt/README.md` – JWT-Erzeugung und -Validierung
-- `DOC/assets/photoswipe/README.md` – Frontend-Lightbox
-- `DOC/assets/psr/README.md` – lokale Minimal-Kompatibilität für `Psr\\Log` und `Psr\\EventDispatcher`
-- `DOC/assets/simplepie/README.md` – gemeinsame Doku für `simplepielibrary/` und `simplepiesrc/`
-- `DOC/assets/tabler/README.md` – Admin-UI-Framework
-- `DOC/assets/tntsearch/README.md` – gemeinsame Doku für `tntsearchhelper/` und `tntsearchsrc/`
-- `DOC/assets/translation/README.md` – Übersetzung / I18n
-- `DOC/assets/twofactorauth/README.md` – TOTP / MFA
-- `DOC/assets/webauthn/README.md` – Passkeys / WebAuthn
+- führende Detaildoku: `DOC/assets/README.md` plus die jeweiligen Einzel-READMEs
 
 ---
 
-## Audit-Notiz zur Runtime-Integration <!-- UPDATED: 2026-03-09 -->
+## Audit-Notiz zur Runtime-Integration <!-- UPDATED: 2026-03-28 -->
 - Die produktive PHP-Dependency-Ladung erfolgt überwiegend über `CMS/assets/autoload.php`.
 - Aktuelle Ausnahme: PDF-Erzeugung lädt Dompdf separat aus `CMS/vendor/dompdf/autoload.php`.
 - Admin-, Member- und Frontend-nahe Komponenten verwenden aktuell mehrere Pfadmuster parallel: `ASSETS_URL`, `SITE_URL . '/assets'`, feste Versionsstrings und `filemtime()`.
-- Besonders update-sensibel sind tiefe Referenzen auf Drittanbieter-Unterstrukturen wie `CMS/assets/elfinder/vendor/jquery*` und `CMS/assets/elfinder/vendor/jquery-ui*`.
+- Besonders update-sensibel sind verbliebene Altbestände und ihre Doku-/Monitoring-Verweise, insbesondere bei `elfinder/`, `simplepie/` und `cookieconsent/`.
 - Für künftige Pflege ist eine zentrale Asset-/Versionierungs-Registry empfehlenswert, damit Pfadlogik, Existenzprüfung und Cache-Busting nicht über viele Dateien verstreut bleiben.
 - Wichtig für die aktuelle Runtime: Die gebündelten Symfony-Komponenten unter `CMS/assets/mailer`, `CMS/assets/mime` und `CMS/assets/translation` deklarieren in ihren Composer-Metadaten `PHP >= 8.4`; 365CMS hat seine offizielle Mindestplattform deshalb auf PHP 8.4 angehoben und validiert diese Manifeste nun zentral im Bootstrap vor dem regulären Service-Start.

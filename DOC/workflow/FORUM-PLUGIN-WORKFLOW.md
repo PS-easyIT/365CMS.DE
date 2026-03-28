@@ -1,13 +1,13 @@
 # Forum-Plugin Workflow – cms-forum
 
-> **Stand:** 2026-03-08 | **Version:** 2.5.4 | **Status:** Aktuell
+> **Stand:** 2026-03-28 | **Version:** 2.8.0 RC | **Status:** Konzept (nicht implementiert)
 >
 > **Bereich:** Neues Plugin-Konzept · **Status:** Konzept (nicht implementiert)  
 > **Referenz:** [NEW-PLUGIN-CONCEPTS.md](../feature/NEW-PLUGIN-CONCEPTS.md)  
 > **Entwicklungs-Workflow:** [PLUGIN-DEVELOPMENT-WORKFLOW.md](PLUGIN-DEVELOPMENT-WORKFLOW.md)
 
 ---
-<!-- UPDATED: 2026-03-08 -->
+<!-- UPDATED: 2026-03-28 -->
 
 ## Übersicht: Feature-Set
 

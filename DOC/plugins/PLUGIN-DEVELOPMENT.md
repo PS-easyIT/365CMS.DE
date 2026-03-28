@@ -1,5 +1,5 @@
 # 365CMS – Plugin-Entwicklung
-> **Stand:** 2026-03-08 | **Version:** 2.5.4 | **Status:** Aktuell
+> **Stand:** 2026-03-28 | **Version:** 2.8.0 RC | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Grundprinzipien](#grundprinzipien)
@@ -17,7 +17,7 @@
 - [Verwandte Dokumente](#verwandte-dokumente)
 
 ---
-<!-- UPDATED: 2026-03-08 -->
+<!-- UPDATED: 2026-03-28 -->
 
 ## Grundprinzipien
 

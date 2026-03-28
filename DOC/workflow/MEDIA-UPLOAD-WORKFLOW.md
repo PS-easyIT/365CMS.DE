@@ -1,256 +1,121 @@
 # Medien-Upload Workflow – 365CMS
 
-> **Stand:** 2026-03-08 | **Version:** 2.5.4 | **Status:** Aktuell
+> **Stand:** 2026-03-28 | **Version:** 2.8.0 RC | **Status:** Aktuell
 >
-> **Bereich:** Medien-Verwaltung · **Version:** 2.5.4  
-> **Service:** `core/Services/MediaService.php`  
-> **Admin-Seite:** `admin/media.php`
+> **Bereich:** Medien-Verwaltung · **Version:** 2.8.0 RC  
+> **Services:** `core/Services/MediaService.php`, `core/Services/Media/UploadHandler.php`, `core/Services/Media/MediaRepository.php`  
+> **Admin-Seite:** `admin/media.php`  
+> **Member-Seite:** `member/media.php`
 
 ---
-<!-- UPDATED: 2026-03-08 -->
+<!-- UPDATED: 2026-03-28 -->
 
-## Übersicht: Medien-Pipeline
+## Übersicht: aktuelle Medien-Pipeline
 
-```
-Upload → Validierung → Virencheck* → EXIF-Strip → WebP-Konvertierung → Speichern → Thumbnail-Generierung → CDN-Sync*
-                                                                                    (* = zukünftig)
-```
-
----
-
-## Workflow 1: Datei-Upload (Frontend / Admin)
-
-### Sicherheits-Validierung (PFLICHT – in dieser Reihenfolge)
-
-```php
-class MediaUploadHandler {
-
-    private const ALLOWED_TYPES = [
-        'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml',
-        'application/pdf',
-        'text/plain',
-    ];
-
-    private const DANGEROUS_EXTENSIONS = [
-        'php', 'php3', 'php4', 'php5', 'phtml', 'phar',
-        'exe', 'bat', 'sh', 'cmd', 'jar',
-        'js', 'html', 'htm', 'xml',
-    ];
-
-    public function handle(array $file): string {
-
-        // 1. PHP-Upload-Fehler prüfen
-        if ($file['error'] !== UPLOAD_ERR_OK) {
-            throw new \RuntimeException('Upload-Fehler: ' . $file['error']);
-        }
-
-        // 2. Dateigröße prüfen (max. 20 MB)
-        $maxBytes = 20 * 1024 * 1024;
-        if ($file['size'] > $maxBytes) {
-            throw new \RuntimeException('Datei zu groß (max. 20 MB)');
-        }
-
-        // 3. MIME-Typ via finfo (NICHT $_FILES['type'] – leicht fälschbar!)
-        $finfo    = new \finfo(FILEINFO_MIME_TYPE);
-        $mimeType = $finfo->file($file['tmp_name']);
-        if (!in_array($mimeType, self::ALLOWED_TYPES, true)) {
-            throw new \RuntimeException('Dateityp nicht erlaubt: ' . $mimeType);
-        }
-
-        // 4. Dateiendung prüfen
-        $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-        if (in_array($ext, self::DANGEROUS_EXTENSIONS, true)) {
-            throw new \RuntimeException('Dateiendung verboten: .' . $ext);
-        }
-
-        // 5. PHP-Tags in Bildern suchen (GIFAR-Angriff)
-        $content = file_get_contents($file['tmp_name']);
-        if (preg_match('/<\?php|<\?=/i', $content)) {
-            throw new \RuntimeException('Datei enthält PHP-Code – Upload verweigert');
-        }
-
-        // 6. Dateinamen sanitieren
-        $safeName = $this->sanitizeFilename($file['name']);
-        $destPath = $this->getUploadPath($safeName);
-
-        // 7. Datei verschieben
-        if (!move_uploaded_file($file['tmp_name'], $destPath)) {
-            throw new \RuntimeException('Temporäre Datei konnte nicht verschoben werden');
-        }
-
-        // 8. EXIF-Daten entfernen (bei Bildern)
-        if (str_starts_with($mimeType, 'image/') && $mimeType !== 'image/svg+xml') {
-            $this->stripExifData($destPath, $mimeType);
-        }
-
-        return $destPath;
-    }
-
-    private function sanitizeFilename(string $name): string {
-        // Pfad-Traversal entfernen
-        $name = basename($name);
-        // Sonderzeichen ersetzen
-        $name = preg_replace('/[^a-zA-Z0-9._-]/', '-', $name);
-        // Doppelte Bindestriche reduzieren
-        $name = preg_replace('/-+/', '-', $name);
-        // Dateinamen-Kollision verhindern
-        return uniqid('', true) . '_' . $name;
-    }
-}
+```text
+Native Upload-Form
+    → CSRF / Request-Validierung
+    → Upload- und Typ-Grenzen aus Media-Settings
+    → Dateinamen-Sanitisierung / Unique-Filename-Logik
+    → sichere Speicherung unter uploads/
+    → optionale EXIF-Bereinigung / WebP / Thumbnails
+    → Metadatenpflege in media-meta.json
+    → Anzeige in Admin-/Member-Bibliothek
 ```
 
 ---
 
-## Workflow 2: EXIF-Daten entfernen
+## Workflow 1: Admin-Upload
 
-**Warum:** EXIF-Daten enthalten GPS-Koordinaten, Kameramodell, Seriennummern.
+Der Admin lädt Dateien über das Upload-Modal der Bibliothek hoch. Die UI ist bewusst nativ gehalten; die frühere aktive FilePond-Runtime ist kein Produktivpfad mehr.
 
-```php
-private function stripExifData(string $filePath, string $mimeType): void {
-    if (!function_exists('imagecreatefromjpeg')) return; // GD nicht verfügbar
+Wichtige Eckpunkte:
 
-    match($mimeType) {
-        'image/jpeg' => $this->reEncodeJpeg($filePath),
-        'image/png'  => $this->reEncodePng($filePath),
-        default      => null, // GIF, WebP: keine EXIF
-    };
-}
-
-private function reEncodeJpeg(string $path): void {
-    $img = @imagecreatefromjpeg($path);
-    if ($img === false) return;
-    imagejpeg($img, $path, 85); // Qualität 85%, keine EXIF
-    imagedestroy($img);
-}
-```
+- Einstieg: `/admin/media`
+- Upload-Feld: Mehrfachauswahl über natives `<input type="file" multiple>`
+- Zielpfad: aktueller Bibliothekspfad
+- Token-Scope: `media_action`
+- Grenzen: durch Modul vorbereitete Constraints und `config/media-settings.json`
 
 ---
 
-## Workflow 3: WebP-Konvertierung (Performance)
+## Workflow 2: Member-Upload
 
-```php
-// Bei JPEG/PNG automatisch WebP-Kopie erstellen:
-private function createWebpVariant(string $sourcePath): ?string {
-    if (!function_exists('imagewebp')) return null;
+Member-Uploads laufen ebenfalls nativ und sind streng an den persönlichen Root-Pfad gebunden.
 
-    $ext   = strtolower(pathinfo($sourcePath, PATHINFO_EXTENSION));
-    $img   = match($ext) {
-        'jpg', 'jpeg' => @imagecreatefromjpeg($sourcePath),
-        'png'         => @imagecreatefrompng($sourcePath),
-        default       => false,
-    };
+Grundprinzip:
 
-    if ($img === false) return null;
-
-    $webpPath = preg_replace('/\.(jpe?g|png)$/i', '.webp', $sourcePath);
-    imagewebp($img, $webpPath, 80); // Qualität 80%
-    imagedestroy($img);
-
-    return $webpPath;
-}
-```
-
-**Ausgabe im Template:**
-```html
-<picture>
-    <source srcset="<?= esc_url($media->getWebpUrl()) ?>" type="image/webp">
-    <img src="<?= esc_url($media->getUrl()) ?>" 
-         alt="<?= esc_attr($media->getAlt()) ?>"
-         loading="lazy"
-         width="<?= (int)$media->getWidth() ?>"
-         height="<?= (int)$media->getHeight() ?>">
-</picture>
-```
+- persönlicher Root: `member/user-<id>`
+- Uploads verlassen diesen Root nie
+- Redirects und Breadcrumbs bleiben im aktuellen Ordnerkontext
+- Member-spezifische Limits und erlaubte Typen kommen aus den Medien-Settings
 
 ---
 
-## Workflow 4: Thumbnails generieren
+## Workflow 3: Rename / Move
 
-```php
-$media = \CMS\Services\MediaService::instance();
+Sowohl Admin als auch Member nutzen in 2.8.0 RC kompakte Dropdown-Aktionen mit zentralen Modalen.
 
-// Thumbnails für Standard-Größen:
-$media->generateThumbnails($destPath, [
-    'small'  => [150, 150, 'crop'],   // Quadrat, beschnitten
-    'medium' => [300, 300, 'fit'],    // Max-Breite/Höhe, proportional
-    'large'  => [800, 600, 'fit'],    // Großes Format
-    'thumb'  => [80,  80,  'crop'],   // Admin-Vorschau
-]);
-```
+Technischer Vertrag:
+
+- Trigger-Buttons liefern `data-media-path`, `data-media-name` und optional `data-media-target`
+- das Modal wird per `show.bs.modal` befüllt
+- ein Pending-Trigger-Fallback sorgt dafür, dass auch Trigger aus schließenden Dropdown-Menüs zuverlässig den richtigen Pfad an das Modal liefern
+- serverseitig werden Pfade erneut normalisiert und validiert
 
 ---
 
-## Workflow 5: Uploads-Verzeichnis absichern
+## Workflow 4: Bulk-Aktionen im Admin
 
-```apache
-# /cms/uploads/.htaccess – PHP-Ausführung DEAKTIVIEREN
-<Files "*.php">
-    Require all denied
-</Files>
+Die Admin-Bibliothek unterstützt Bulk-Löschen und Bulk-Verschieben.
 
-# PHP-Datei-Ausführung via FastCGI unterbinden (LiteSpeed/Apache)
-Options -ExecCGI
-RemoveHandler .php .php3 .php4 .php5 .phtml .phar
+Wesentliche Regeln:
 
-# SVG-Direktabruf absichern (XSS via SVG)
-<FilesMatch "\.svg$">
-    Header set Content-Security-Policy "default-src 'none'; style-src 'unsafe-inline'"
-    Header set Content-Type "image/svg+xml"
-</FilesMatch>
-```
+- Auswahl über native Checkboxen mit Formularbindung
+- Aktion wird serverseitig nochmals validiert
+- Zielordner kommen aus vorbereiteten Move-Targets statt aus freiem Texteingabefeld
+- Pfadlisten werden serverseitig normalisiert und dedupliziert
 
 ---
 
-## Workflow 6: Medien löschen
+## Workflow 5: Schutzlogik für Systempfade
 
-**⚠️ Nicht gelöschte Dateien = Speicherplatz-Verlust + potenzielle Datenlecks**
+Die Bibliothek kennt geschützte Systempfade.
 
-```php
-$media = \CMS\Services\MediaService::instance();
+Aktueller Stand:
 
-// Löscht Datei + alle Thumbnails + DB-Eintrag:
-$result = $media->deleteMedia($mediaId);
-if (!$result) {
-    // DB-Eintrag trotzdem löschen (Orphan-Cleanup):
-    $media->deleteMediaRecord($mediaId);
-}
+- Root-Systemordner bleiben geschützt
+- unter `member/` bleibt die direkte User-Root geschützt
+- Member-Unterordner darunter sind reguläre Inhalte und nicht mehr pauschal als Systempfad markiert
 
-// Orphan-Check starten (Medien ohne Content-Referenz):
-// Admin → admin/media.php → "Nicht verwendete Medien"
-$orphans = $media->findOrphans();
-// → Zeigt Dateien an, die in keinem Inhalt referenziert werden
-```
+Das verhindert einerseits ungewollte Mutationen an Infrastrukturpfaden und vermeidet andererseits, dass echte Member-Ordner fälschlich ihre Aktionen verlieren.
 
 ---
 
-## Checkliste: Medien-Sicherheit
+## Sicherheits-Checkliste
 
-```
+```text
 UPLOAD-SICHERHEIT:
-[ ] finfo()-MIME-Check aktiv (NICHT $_FILES['type'])
-[ ] PHP-Tag-Scan in Bilddaten aktiv
-[ ] Dateiname sanitiert (keine Pfad-Traversal-Zeichen)
-[ ] move_uploaded_file() verwendet (NICHT copy/rename)
+[ ] CSRF-Scope korrekt gesetzt (`media_action`)
+[ ] Dateityp-/Größenprüfung kommt aus Media-Settings bzw. Validierungsregeln
+[ ] Pfade werden serverseitig normalisiert
+[ ] Upload-Ziel bleibt innerhalb des erlaubten Root-Pfads
 
-SPEICHER-SICHERHEIT:
-[ ] uploads/.htaccess: PHP-Ausführung deaktiviert
-[ ] uploads/ nicht über Repository getrackt (.gitignore)
-[ ] Backup: uploads/ wöchentlich gesichert
+MUTATIONS-SICHERHEIT:
+[ ] Rename-/Move-/Delete-Pfade werden nicht aus dem Frontend vertraut übernommen
+[ ] Member-Pfade bleiben innerhalb `member/user-<id>`
+[ ] Bulk-Aktionen validieren Auswahl und Zielordner erneut
 
-EXIF-DATENSCHUTZ:
-[ ] EXIF wird bei JPEG/PNG entfernt
-[ ] Keine GPS-Daten in veröffentlichten Bildern
-
-PERFORMANCE:
-[ ] WebP-Variante bei JPEG/PNG erstellt
-[ ] Thumbnails on-demand oder beim Upload generiert
-[ ] Lazy-Loading im Template: loading="lazy"
+ASSET-ARCHITEKTUR:
+[ ] keine aktive Abhängigkeit von FilePond/elFinder im Produktivpfad
+[ ] Feed- und Consent-Laufzeiten hängen an nativen Services/Assets
 ```
 
 ---
 
 ## Referenzen
 
-- [core/Services/MediaService.php](../../CMS/core/Services/MediaService.php) – Service-Klasse
-- [admin/media.php](../../CMS/admin/media.php) – Admin-UI
-- [AUDIT_FACHBEREICHE.md](../audit/AUDIT_FACHBEREICHE.md) – Konsolidierter Upload-, Delivery- und WebP-Auditstand
+- [../admin/media/README.md](../admin/media/README.md)
+- [../admin/media/MEDIA.md](../admin/media/MEDIA.md)
+- [../member/README.md](../member/README.md)
+- [../core/SERVICES.md](../core/SERVICES.md)

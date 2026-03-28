@@ -2,19 +2,20 @@
 
 Kurzbeschreibung: Dokumentiert das Performance-Center mit seinen sechs Unterseiten für Cache, Medien, Datenbank, Settings und Sessions.
 
-Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
+Letzte Aktualisierung: 2026-03-28 · Version 2.8.0 RC
 
 ---
 
 ## Überblick
 
-Performance ist seit 2.2.0 ein eigenständiger Hauptbereich mit sechs Unterseiten. Alle teilen sich das `PerformanceModule` und den CSRF-Kontext `admin_performance`.
+Performance ist ein eigenständiger Hauptbereich mit sechs Unterseiten. Die Navigation läuft über eigene Admin-Slugs und eine gemeinsame Subnavigation unter `CMS/admin/views/performance/subnav.php`; Aktionen verwenden weiterhin den CSRF-Kontext `admin_performance`.
 
 | Baustein | Datei |
 |---|---|
-| Shared Entry Point | `CMS/admin/performance-page.php` |
-| Modul | `CMS/admin/modules/seo/PerformanceModule.php` |
+| Admin-Slugs | `performance`, `performance-cache`, `performance-media`, `performance-database`, `performance-settings`, `performance-sessions` |
+| Routing | `CMS/core/Routing/AdminRouter.php` |
 | Subnav | `CMS/admin/views/performance/subnav.php` |
+| Views | `CMS/admin/views/performance/*.php` |
 
 ---
 
@@ -22,7 +23,7 @@ Performance ist seit 2.2.0 ein eigenständiger Hauptbereich mit sechs Unterseite
 
 | Route | View | Zweck |
 |---|---|---|
-| `/admin/performance` | `views/seo/performance.php` | Gesamtübersicht mit Health-Score und KPIs |
+| `/admin/performance` | `views/performance/performance.php` | Gesamtübersicht mit Health-Score und KPIs |
 | `/admin/performance-cache` | `views/performance/cache.php` | Cache-Statistiken, Bereinigung und Invalidierung |
 | `/admin/performance-media` | `views/performance/media.php` | WebP-Konvertierung, Bildoptimierung und Größenanalyse |
 | `/admin/performance-database` | `views/performance/database.php` | Revisionen bereinigen, Tabellen-Cleanup, Wartung |
@@ -46,7 +47,7 @@ Die Seite `/admin/performance-cache` steuert die CMS-internen Caches:
 
 Die Seite `/admin/performance-media` bündelt bildspezifische Optimierungen:
 
-- **WebP-Massenkonvertierung** (seit 2.3.1): Geeignete Bilder in `uploads/` als WebP konvertieren und Referenzen in Medien-, Seiten-, Beitrags- und SEO-Daten automatisch aktualisieren
+- **WebP-Massenkonvertierung:** Geeignete Bilder in `uploads/` als WebP konvertieren und zugehörige Referenzen im CMS-Bestand nachziehen
 - Bildgrößen-Analyse
 - Thumbnail-Regenerierung
 
@@ -97,7 +98,7 @@ Alle Performance-Seiten folgen dem Admin-Standardmuster:
 
 ## Dokumentationshinweis
 
-Ältere Dokumentation mit nur einer Route `/admin/performance.php` ist unvollständig. Für aktuelle Arbeit immer die jeweilige Unterseite benennen.
+Ältere Dokumentation mit nur einer Route `/admin/performance.php`, einem separaten `performance-page.php` oder `views/seo/performance.php` ist veraltet. Für aktuelle Arbeit immer die jeweilige Unterseite bzw. den zugehörigen Admin-Slug benennen.
 
 ---
 

@@ -1,6 +1,6 @@
-<!-- UPDATED: 2026-03-16 -->
+<!-- UPDATED: 2026-03-28 -->
 # 365CMS – Hooks-Referenz
-> **Stand:** 2026-03-16 | **Version:** 2.6.0 | **Status:** Aktuell
+> **Stand:** 2026-03-28 | **Version:** 2.8.0 RC | **Status:** Aktuell
 
 Vollständige Referenz des Action-/Filter-Systems (`CMS\Hooks`) für Plugins und Themes.
 Das Hook-System ermöglicht die Erweiterung des CMS **ohne Core-Dateien zu verändern**.

@@ -2,13 +2,15 @@
 
 Kurzbeschreibung: Core-, Theme- und Plugin-Updates via GitHub-basierter Update-Logik.
 
-Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
+Letzte Aktualisierung: 2026-03-28 · Version 2.8.0 RC
 
 ---
 
 ## Überblick
 
-Das Update-Center nutzt standardmäßig GitHub als Quelle.
+Das Update-Center bündelt Core-, Theme- und Plugin-Updates zentral unter `/admin/updates`.
+
+Standardmäßig werden GitHub- und Metadaten-basierte Quellen genutzt; die konkrete Ausführung läuft über `UpdatesModule` und den integrierten Update-/Staging-Workflow.
 
 - Repository: `PS-easyIT/365CMS.DE`
 - API: `https://api.github.com`

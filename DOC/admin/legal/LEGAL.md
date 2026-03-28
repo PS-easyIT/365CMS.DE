@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Dokumentiert die aktuelle Verwaltung von Impressum, Datenschutzerklärung, AGB und Widerrufsbelehrung über `/admin/legal-sites` inklusive Vorlagen-Generator und Seitensynchronisation.
 
-Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
+Letzte Aktualisierung: 2026-03-28 · Version 2.8.0 RC
 
 Die Verwaltung der Rechtstexte erfolgt über `/admin/legal-sites`. Der Entry-Point `CMS/admin/legal-sites.php` delegiert alle inhaltlichen und generatorbezogenen Aufgaben an `LegalSitesModule`.
 

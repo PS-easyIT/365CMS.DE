@@ -1,5 +1,5 @@
 # 365CMS – Datenbankschema
-> **Stand:** 2026-03-16 | **Version:** 2.6.0 | **Status:** Aktuell
+> **Stand:** 2026-03-28 | **Version:** 2.8.0 RC | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Überblick](#überblick)
@@ -17,10 +17,12 @@
 
 ---
 
-## Überblick <!-- UPDATED: 2026-03-16 -->
+## Überblick <!-- UPDATED: 2026-03-28 -->
 
 365CMS nutzt ein relationales Schema auf **MySQL / MariaDB** (Engine: InnoDB, Charset: `utf8mb4`).
 Alle Tabellen verwenden einen konfigurierbaren Präfix (Standard: `cms_`), definiert in `CMS/config/app.php` als `DB_PREFIX`.
+
+Wichtig für den Stand `2.8.0 RC`: Nicht jede Laufzeitfunktion hängt heute primär an SQL-Tabellen. Die Medienbibliothek nutzt für Kategorien und Datei-Metadaten inzwischen vor allem `CMS/config/media-meta.json` plus Dateisystem-Repository; ältere Tabellenreferenzen sind daher als Legacy-/Migrationskontext zu lesen.
 
 | Eigenschaft | Wert |
 |---|---|
@@ -40,17 +42,19 @@ Zusätzlich existiert eine separate Tabellenliste in `CMS/install.php` (`createD
 
 ---
 
-## Schema-Übersicht nach Bereichen <!-- UPDATED: 2026-03-08 -->
+## Schema-Übersicht nach Bereichen <!-- UPDATED: 2026-03-28 -->
 
 | Bereich | Tabellen |
 |---|---|
 | **Core** | `settings`, `cache`, `sessions` |
-| **Content** | `pages`, `page_revisions`, `landing_sections`, `posts`, `post_categories`, `comments`, `media`, `custom_fonts`, `messages` |
+| **Content** | `pages`, `page_revisions`, `landing_sections`, `posts`, `post_categories`, `comments`, `custom_fonts`, `messages` |
 | **User** | `users`, `user_meta`, `roles`, `passkey_credentials` |
 | **Plugin / Theme** | `plugins`, `plugin_meta`, `theme_customizations` |
 | **Subscription** | `subscription_plans`, `user_subscriptions`, `user_groups`, `user_group_members`, `subscription_usage`, `orders` |
 | **Log / Security** | `activity_log`, `audit_log`, `login_attempts`, `failed_logins`, `blocked_ips`, `page_views`, `mail_log`, `mail_queue` |
 | **Modul-Tabellen** *(Service-erzeugt)* | `seo_meta`, `redirect_rules`, `not_found_logs`, `cookie_categories`, `cookie_services`, `privacy_requests`, `firewall_rules`, `spam_blacklist`, `role_permissions`, `menus`, `menu_items` |
+
+> Hinweis: Die aktuelle Medienbibliothek ist dateisystem- und JSON-basiert. Eine eventuelle Tabelle `cms_media` ist nicht mehr der führende Persistenzpfad für die Bibliotheksansicht.
 
 ---
 
@@ -242,9 +246,9 @@ Kommentarsystem für Blog-Beiträge mit Moderationsstatus.
 
 **Indizes:** `idx_post_id`, `idx_status`, `idx_post_date`, `idx_user_id`
 
-### `cms_media` – Medienbibliothek
+### `cms_media` – Legacy-Medienindex
 
-Verwaltung hochgeladener Dateien (Bilder, Dokumente, Assets).
+Historische bzw. optionale Tabellenstruktur für hochgeladene Dateien. Im aktuellen Stand `2.8.0 RC` arbeitet die produktive Medienbibliothek jedoch primär über `CMS/core/Services/MediaService.php`, `CMS/core/Services/Media/MediaRepository.php`, das Dateisystem unter `uploads/` und `CMS/config/media-meta.json`.
 
 | Feldname | Typ | Nullable | Default | Beschreibung |
 |---|---|---|---|---|

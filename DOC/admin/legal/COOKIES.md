@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Verwaltung von Cookie-Kategorien, Diensten, Banner-Texten und der öffentlichen Einwilligungsseite.
 
-Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
+Letzte Aktualisierung: 2026-03-28 · Version 2.8.0 RC
 
 ---
 
@@ -24,7 +24,7 @@ Wichtige Aufgaben:
 
 Die öffentliche Seite für Besucher lautet `/cookie-einstellungen`.
 
-Sie wird nicht als normale CMS-Seite gepflegt, sondern vom Cookie-Consent-Service bereitgestellt und clientseitig hydratisiert. Dadurch bleiben Consent-Status, Kategorien und UI konsistent zwischen Banner, Einstellungen und Protokollierung.
+Sie wird nicht als normale CMS-Seite gepflegt, sondern vom `CookieConsentService` bereitgestellt und mit nativen 365CMS-Assets hydratisiert. Eine aktive Vendor-Runtime aus `CMS/assets/cookieconsent/` ist dafür nicht mehr nötig.
 
 ---
 
@@ -59,7 +59,12 @@ Konfigurierbar sind unter anderem Banner-Texte, Button-Beschriftungen, Standardz
 
 ## Technische Grundlage
 
-Der Admin-Einstieg lädt `CMS/admin/modules/legal/CookieManagerModule.php`.
+Wichtige Bausteine im aktuellen Stand:
+
+- Admin-Einstieg: `CMS/admin/cookie-manager.php`
+- Modul: `CMS/admin/modules/legal/CookieManagerModule.php`
+- Frontend/Runtime: `CMS/core/Services/CookieConsentService.php`
+- Initialisierung: `CMS/assets/js/cookieconsent-init.js`
 
 Im Datenmodell spielen insbesondere diese Tabellen eine Rolle:
 
@@ -79,3 +84,11 @@ Im Datenmodell spielen insbesondere diese Tabellen eine Rolle:
 | `delete_service` | Dienst löschen |
 | `import_curated_service` | vordefinierten Dienst importieren |
 | `run_scan` | Cookie-Scanner starten |
+
+---
+
+## Verwandte Dokumente
+
+- [README.md](README.md)
+- [../../assets/cookieconsent/README.md](../../assets/cookieconsent/README.md)
+- [../../core/SERVICES.md](../../core/SERVICES.md)

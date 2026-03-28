@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Beschreibt die aktuelle Anti-Spam-Verwaltung im Admin, die konfigurierbaren Schutzmechanismen und die serverseitige Speicherung der Blacklist- und CAPTCHA-Einstellungen.
 
-Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
+Letzte Aktualisierung: 2026-03-28 · Version 2.8.0 RC
 
 ## Überblick
 

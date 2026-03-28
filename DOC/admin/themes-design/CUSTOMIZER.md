@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Aktueller Einstieg für visuelle Theme-Anpassungen, Customizer-Werte und Export/Import von Design-Einstellungen.
 
-Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
+Letzte Aktualisierung: 2026-03-28 · Version 2.8.0 RC
 
 ---
 
@@ -35,7 +35,7 @@ Der Theme-Bereich umfasst derzeit vor allem:
 
 ## Datenmodell
 
-Theme-Anpassungen werden in `theme_customizations` gespeichert. Relevante Felder sind `theme_slug`, `setting_category`, `setting_key`, `setting_value` und `user_id`.
+Theme-Anpassungen werden weiterhin über Theme- und Core-Pfade gespeichert; je nach Funktion spielen dabei `theme_customizations` sowie ergänzende Settings-/Exportpfade zusammen.
 
 ---
 

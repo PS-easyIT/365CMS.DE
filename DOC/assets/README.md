@@ -1,5 +1,5 @@
 # 365CMS Asset-Dokumentation
-> **Stand:** 2026-03-08 | **Version:** 2.5.4 | **Status:** Aktuell
+> **Stand:** 2026-03-28 | **Version:** 2.8.0 RC | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - <a>Tabellarische Übersicht</a>
@@ -9,16 +9,16 @@
 
 ---
 
-## Tabellarische Übersicht <!-- UPDATED: 2026-03-08 -->
+## Tabellarische Übersicht <!-- UPDATED: 2026-03-28 -->
 | Kategorie | Library | Version | Zweck | Eingebunden in |
 |---|---|---|---|---|
-| UI | tabler | 1.0.x | Admin UI Framework | Admin |
+| UI | tabler | 1.4.0 | Admin-UI-Framework | Admin / Member |
 | UI | gridjs | 6.x | Tabellen | Admin |
 | UI | photoswipe | 5.x | Lightbox | Frontend |
 | Editor | editorjs | 2.x | Block-Editor | Admin/Frontend |
 | Editor | suneditor | 2.x | Legacy WYSIWYG | Admin |
-| Media (Legacy-Bestand) | elfinder | 2.1.x | ehem. Dateimanager, aktuell nicht aktiv verdrahtet | Altbestand |
-| Media (Legacy-Bestand) | filepond | 4.x | ehem. Upload-UI, aktuell nicht aktiv verdrahtet | Altbestand |
+| Media (Legacy-Bestand) | elfinder | 2.1.x | ehem. Dateimanager, nicht mehr aktiv verdrahtet | Altbestand |
+| Media (Legacy-Bestand) | filepond | 4.x | ehem. Upload-UI, nicht mehr aktiv verdrahtet | Altbestand |
 | Auth | php-jwt | 6.x | JWT | API/Auth |
 | Auth | ldaprecord | 4.x | LDAP/AD | Auth |
 | Auth | twofactorauth | 1.x | TOTP | Auth |
@@ -40,29 +40,31 @@
 
 ---
 
-## Detail-Einträge <!-- UPDATED: 2026-03-08 -->
-Jede Unterdatei `DOC/assets/<lib>/README.md` beschreibt:
-- **Version** (lokaler Stand), **Zweck**, **Eingebunden in** (Admin/Frontend/Beide), **Konfiguration** (Pfad zur Config/Service), **Verwendung** (Code-Beispiel), **Besonderheiten**, **Offizielle Doku**.
+## Detail-Einträge <!-- UPDATED: 2026-03-28 -->
+Jede Unterdatei `DOC/assets/<lib>/README.md` beschreibt den aktuellen Dokumentationsstand, aktive Nutzung, Altbestände und besondere Integrationshinweise.
 
-Aktuelle Unterordner:
-- carbon/, cookieconsent/, css/, editorjs/, elfinder/, filepond/, gridjs/, htmlpurifier/, images/, js/, ldaprecord/, mailer/, melbahja-seo/, mime/, photoswipe/, php-jwt/, psr/, simplepie/, suneditor/, tabler/, tntsearch/, translation/, twofactorauth/, webauthn/
+Wichtig im Stand 2.8.0 RC:
+
+- `cookieconsent/`, `filepond/`, `elfinder/` und `simplepie/` bleiben im Repository dokumentiert, sind aber keine aktiven Laufzeitpfade mehr
+- Medien-, Picker-, Consent- und Feed-Logik hängt an nativen 365CMS-Services und JS-Dateien
+- aktive JS-Hotspots sind insbesondere `admin.js`, `admin-media-integrations.js`, `member-dashboard.js`, `cookieconsent-init.js` und `photoswipe-init.js`
 
 ---
 
-## Pfad & Autoload <!-- UPDATED: 2026-03-08 -->
+## Pfad & Autoload <!-- UPDATED: 2026-03-28 -->
 - Runtime-Pfad: `CMS/assets/` (wird deployt).
-- Autoloader: `CMS/assets/autoload.php` (primär) – lädt PHP-Libs wie HTMLPurifier, TNTSearch, Carbon, Translation, JWT und WebAuthn; SimplePie/elFinder sind dort nicht mehr aktiv eingebunden.
+- Autoloader: `CMS/assets/autoload.php` (primär) – lädt PHP-Libs wie HTMLPurifier, TNTSearch, Carbon, Translation, JWT und WebAuthn
+- `SimplePie` und `elFinder` sind dort nicht mehr aktiv eingebunden
 - Staging: `ASSETS/` nur als Quelle/Entwicklung, nicht produktiv.
 - JS/CSS: Werden manuell über Admin-Partials oder Theme-Templates referenziert; keine zentrale Bundling-Pipeline.
 
 ---
 
-## Hinweise & Besonderheiten <!-- UPDATED: 2026-03-08 -->
-- Cookie-Consent rendert per `CMS/core/Services/CookieConsentService.php` + `CMS/assets/js/cookieconsent-init.js`, nutzt native 365CMS-CSS/JS und Hooks `head`/`body_end`.
-- PhotoSwipe v5 wird über `CMS/assets/js/photoswipe-init.js` initialisiert; CSS/JS lokal.
-- Mail-Stack: `mailer/` + `mime/` + `psr/`; Queue/Log über `MailQueueService`/`MailLogService`.
-- Search: TNTSearch nutzt lokale PHP-Libs; Indizes liegen außerhalb der DB (Filesystem).
-- Legacy/Reserve: `msgraph/` nur Doku/Notizen, kein Autoload; `mailer (legacy)` nur Fallback.
+## Hinweise & Besonderheiten <!-- UPDATED: 2026-03-28 -->
+- Cookie-Consent rendert nativ per `CMS/core/Services/CookieConsentService.php` + `CMS/assets/js/cookieconsent-init.js`
+- Admin- und Member-Medien setzen auf native Bibliotheks- und Upload-Flows statt auf aktive FilePond-/elFinder-Integration
+- Feed-Verarbeitung läuft nativ über `CMS/core/Services/FeedService.php`; die SimplePie-Bundles sind nur noch Altbestand
+- Die produktiv eingebundenen Symfony-Bundles `mailer`, `mime` und `translation` deklarieren `PHP >= 8.4`; das Projekt dokumentiert und prüft diese Mindestplattform zentral
 
 ---
 

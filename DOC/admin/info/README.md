@@ -1,12 +1,12 @@
 # 365CMS – Systeminfo & Dokumentation
-> **Stand:** 2026-03-08 | **Version:** 2.5.4 | **Status:** Aktuell
+> **Stand:** 2026-03-28 | **Version:** 2.8.0 RC | **Status:** Aktuell
 
-<!-- ADDED: 2026-03-08 -->
+<!-- UPDATED: 2026-03-28 -->
 
 ## Überblick
 
 Der Bereich **Info** bündelt Seiten für Betriebsinformationen und die integrierte Dokumentation.
-Beide Seiten nutzen `SystemInfoModule` und den CSRF-Kontext `admin_system_info`.
+Die Seiten folgen dem üblichen Admin-Muster mit geschütztem Zugriff, serverseitiger Aufbereitung und eigener Diagnose-/Info-Darstellung.
 
 | Route | Zweck |
 |---|---|
@@ -24,7 +24,7 @@ Beide Seiten nutzen `SystemInfoModule` und den CSRF-Kontext `admin_system_info`.
 ## Benötigte Rechte
 
 - Rolle **Admin** erforderlich
-- CSRF-Kontext: `admin_system_info`
+- CSRF-Kontext: abhängig von der jeweiligen Admin-Aktion
 
 ## Verwandte Dokumente
 

@@ -2,13 +2,13 @@
 
 Kurzbeschreibung: Bearbeitung von Datenschutzanfragen nach Art. 15 und Art. 17 DSGVO im aktuellen Admin-Workflow.
 
-Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
+Letzte Aktualisierung: 2026-03-28 · Version 2.8.0 RC
 
 ---
 
 ## Überblick
 
-Die frühere Aufteilung auf separate Seiten für Datenauskunft und Datenlöschung ist im aktuellen Stand in einer Sammelseite zusammengeführt.
+Die Bearbeitung von Datenschutzanfragen ist im aktuellen Stand auf die zentrale Sammelseite `/admin/data-requests` fokussiert; ergänzend existieren weiterhin route-nahe Privacy-/Deletion-Einstiege für spezifische Verwaltungsfälle.
 
 Der Entry-Point `CMS/admin/data-requests.php` lädt dafür zwei Module:
 
@@ -61,7 +61,7 @@ Je nach Benutzer und aktivierten Modulen können unter anderem folgende Bereiche
 | Aktivitätsprotokolle | `activity_log`, ggf. `audit_log` |
 | Bestellungen und Abos | `orders`, `user_subscriptions`, `subscription_plans` |
 | Nachrichten | `messages` |
-| Medien | `media` |
+| Medien | dateisystem- und JSON-basierte Medienpfade plus zugehörige Metadaten |
 | Datenschutzanfragen | `privacy_requests` |
 
 ---

@@ -2,18 +2,18 @@
 
 Kurzbeschreibung: Dokumentiert die vollständige SEO-Suite mit Dashboard, Analytics, Audit, Meta-Daten, Social Media, Schema, Sitemap, technischem SEO und Redirect-Manager.
 
-Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
+Letzte Aktualisierung: 2026-03-28 · Version 2.8.0 RC
 
 ---
 
 ## Überblick
 
-SEO ist in 365CMS seit 2.3.0 ein mehrteiliges SEO-Center mit neun spezialisierten Unterseiten. Die Fachlogik liegt im `SeoSuiteModule` (für Meta, Social, Schema, Sitemap, Technical) sowie in spezialisierten Modulen für Dashboard, Analytics, Audit und Redirects.
+SEO ist in 365CMS als mehrteiliges SEO-Center mit spezialisierten Unterseiten organisiert. Die Fachlogik verteilt sich auf spezialisierte Admin-Einstiege und Module für Dashboard, Analytics, Audit, Meta, Social, Schema, Sitemap, Technical und Redirects.
 
 | Baustein | Datei |
 |---|---|
-| Shared Entry Point | `CMS/admin/seo-page.php` |
-| Suite-Modul | `CMS/admin/modules/seo/SeoSuiteModule.php` |
+| Spezialisierte Entry Points | `CMS/admin/seo-dashboard.php`, `CMS/admin/seo-meta.php`, `CMS/admin/seo-social.php`, `CMS/admin/seo-schema.php`, `CMS/admin/seo-sitemap.php`, `CMS/admin/seo-technical.php`, `CMS/admin/seo-audit.php`, `CMS/admin/analytics.php`, `CMS/admin/redirect-manager.php` |
+| Module | spezialisierte SEO-Module im Admin-/Service-Stack |
 | Dashboard-Modul | `CMS/admin/modules/seo/SeoDashboardModule.php` |
 | Analytics-Modul | `CMS/admin/modules/seo/AnalyticsModule.php` |
 | Redirect-Modul | `CMS/admin/modules/seo/RedirectManagerModule.php` |
@@ -57,7 +57,7 @@ Siehe [ANALYTICS.md](ANALYTICS.md) für die detaillierte Dokumentation der Track
 
 ## SEO-Audit
 
-Der SEO-Audit prüft Seiten und Beiträge auf typische Optimierungspotenziale. Seit 2.3.1 werden fehlende Scores und Issue-Daten robuster normalisiert, sodass Notices und Warnings bei unvollständigen Datensätzen vermieden werden.
+Der SEO-Audit prüft Seiten und Beiträge auf typische Optimierungspotenziale. Die aktuelle Implementierung arbeitet robuster mit unvollständigen Score- und Issue-Daten als ältere Dokumentationsstände.
 
 ---
 

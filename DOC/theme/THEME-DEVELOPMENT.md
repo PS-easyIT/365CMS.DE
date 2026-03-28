@@ -1,5 +1,5 @@
 # 365CMS – Theme-Entwicklung
-> **Stand:** 2026-03-08 | **Version:** 2.5.4 | **Status:** Aktuell
+> **Stand:** 2026-03-28 | **Version:** 2.8.0 RC | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [1. Voraussetzungen](#1-voraussetzungen)
@@ -12,10 +12,10 @@
 - [8. Theme testen](#8-theme-testen)
 - [9. Best Practices](#9-best-practices)
 
-Dieser Guide führt euch durch die Erstellung eines einfachen Themes auf Basis der aktuellen 2.5.4-Architektur.
+Dieser Guide führt euch durch die Erstellung eines einfachen Themes auf Basis der aktuellen 2.8.0-RC-Architektur.
 
 ---
-<!-- UPDATED: 2026-03-08 -->
+<!-- UPDATED: 2026-03-28 -->
 
 ---
 

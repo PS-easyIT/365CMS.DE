@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Aktuelle Betriebs-, Monitoring- und Diagnoseoberflächen im Admin-Bereich.
 
-Letzte Aktualisierung: 2026-03-08 · Version 2.3.1
+Letzte Aktualisierung: 2026-03-28 · Version 2.8.0 RC
 
 Die systemnahen Werkzeuge sind heute auf mehrere Oberflächen verteilt statt in einer einzigen Seite gebündelt.
 

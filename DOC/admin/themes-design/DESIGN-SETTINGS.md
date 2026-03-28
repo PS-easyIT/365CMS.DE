@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Globale Design-Tokens (Farben, Layout, Header, Footer) unabhängig vom aktiven Theme.
 
-Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
+Letzte Aktualisierung: 2026-03-28 · Version 2.8.0 RC
 
 ---
 
@@ -10,7 +10,7 @@ Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
 
 | Eigenschaft | Wert |
 |---|---|
-| Route | `/admin/design-settings` |
+| Route | `/admin/design-settings` *(Legacy-/Übergangspfad)* |
 | Modul | `CMS/admin/modules/themes/DesignSettingsModule.php` |
 | CSRF-Kontext | `admin_design_settings` |
 
@@ -28,7 +28,7 @@ Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
 - **Footer**: Footer-Layout, Spaltenanzahl, Copyright
 - **Performance**: Lazy Loading, Asset-Optimierung
 
-Die Design-Einstellungen wirken systemweit und können vom Theme-Customizer theme-spezifisch überschrieben werden.
+Die Design-Einstellungen wirken systemweit und können vom Theme-Editor bzw. theme-spezifischen Customizer-Pfaden überschrieben oder ergänzt werden.
 
 ---
 
@@ -37,7 +37,7 @@ Die Design-Einstellungen wirken systemweit und können vom Theme-Customizer them
 | Aspekt | Design-Einstellungen | Theme-Editor |
 |---|---|---|
 | Scope | Global / systemweit | Theme-spezifisch |
-| Route | `/admin/design-settings` | `/admin/theme-editor` |
+| Route | `/admin/design-settings` *(Legacy/Übergang)* | `/admin/theme-editor` |
 | Modul | `DesignSettingsModule` | Theme-eigene `customizer.php` |
 
 ---

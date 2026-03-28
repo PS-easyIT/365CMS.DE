@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Verwaltung lokal gehosteter Schriftarten inklusive Import, Upload und CSS-Bereitstellung.
 
-Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
+Letzte Aktualisierung: 2026-03-28 · Version 2.8.0 RC
 
 ---
 
@@ -21,7 +21,7 @@ Mögliche Anwendungsfälle:
 
 ## Datenmodell
 
-Der Kernspeicher liegt in der Tabelle `custom_fonts` mit Feldern wie `name`, `slug`, `format`, `file_path`, `css_path` und `source`.
+Die aktuelle Implementierung kombiniert lokale Theme-Scans, Download-/Import-Pfade und persistente Konfigurationsdaten wie `CMS/config/fonts.json` bzw. passende Settings. Ältere Dokumentationsstände, die ausschließlich von einer einzelnen DB-Tabelle ausgehen, greifen zu kurz.
 
 ---
 

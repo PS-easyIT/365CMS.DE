@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Verwaltung von Navigationsmenüs, Zuordnungen und Menüeinträgen im aktuellen Theme-/Design-Bereich.
 
-Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
+Letzte Aktualisierung: 2026-03-28 · Version 2.8.0 RC
 
 ---
 
@@ -46,7 +46,7 @@ Ein Menü kann über die Löschaktion vollständig entfernt werden.
 
 ## Datenmodell
 
-Für die Menüverwaltung sind in 365CMS 2.3.1 insbesondere relevant:
+Für die Menüverwaltung sind im aktuellen Stand insbesondere relevant:
 
 - `menus`
 - `menu_items`

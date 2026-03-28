@@ -1,13 +1,12 @@
 # 365CMS – SEO-Center
-> **Stand:** 2026-03-08 | **Version:** 2.5.4 | **Status:** Aktuell
+> **Stand:** 2026-03-28 | **Version:** 2.8.0 RC | **Status:** Aktuell
 
-<!-- ADDED: 2026-03-08 -->
+<!-- UPDATED: 2026-03-28 -->
 
 ## Überblick
 
-Das SEO-Center ist seit 2.3.0 eine mehrteilige Suite mit spezialisierten Unterseiten.
-Die Fachlogik verteilt sich auf `SeoSuiteModule` (Meta, Social, Schema, Sitemap, Technical)
-sowie dedizierte Module für Dashboard, Analytics, Audit und Redirects.
+Das SEO-Center ist eine mehrteilige Suite mit spezialisierten Unterseiten.
+Die Fachlogik verteilt sich auf mehrere Admin- und Service-Pfade für Dashboard, Analytics, Audit, Redirects und klassische SEO-Konfiguration.
 
 Der Einstieg erfolgt über `/admin/seo`.
 

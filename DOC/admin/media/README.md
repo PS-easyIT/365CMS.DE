@@ -1,19 +1,10 @@
 # 365CMS – Medienverwaltung
 
-Kurzbeschreibung: Überblick über Medienbibliothek, Upload-Workflows, Schutzbereiche und zugehörige Dokumente.
+Kurzbeschreibung: Überblick über Medienbibliothek, Upload-Workflows, Schutzbereiche, Admin-Tabs und verknüpfte Member-/Asset-Dokumentation.
 
-Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
+Letzte Aktualisierung: 2026-03-28 · Version 2.8.0 RC
 
-Die Medienverwaltung ist unter `/admin/media` erreichbar und steuert Upload, Suche, Filter, Dateioperationen und Vorschaulogik für den globalen Medienbestand.
-
-Wesentliche Merkmale im aktuellen Stand:
-
-- Standardmäßig **Listenansicht**
-- Such- und Kategorien-Filter
-- Datei- und Ordnerlöschung
-- robusterer Redirect nach Aktionen
-- URL-sichere Vorschaulinks auch bei Leerzeichen und Umlauten
-- geschützter `member`-Ordner mit zusätzlicher Bestätigung
+Die Medienverwaltung ist unter `/admin/media` erreichbar und bündelt Bibliothek, Kategorien und Einstellungen über Query-Tabs statt über getrennte Legacy-Routen.
 
 ---
 
@@ -21,9 +12,48 @@ Wesentliche Merkmale im aktuellen Stand:
 
 | Route | Zweck |
 |---|---|
-| `/admin/media` | Dateibrowser, Upload, Suche und Vorschau |
-| `/admin/media-categories` | Medien-Kategorien anlegen und pflegen |
-| `/admin/media-settings` | Upload-Limits, erlaubte Typen und globale Medienoptionen |
+| `/admin/media` | Bibliothek mit Listen-/Grid-Ansicht, Upload, Suche, Rename/Move/Delete |
+| `/admin/media?tab=categories` | Medien-Kategorien anlegen und pflegen |
+| `/admin/media?tab=settings` | Upload-Limits, erlaubte Typen und globale Medienoptionen |
+
+---
+
+## Kernfunktionen in 2.8.0 RC
+
+- Listen- **und** Grid-Ansicht
+- Such- und Kategorien-Filter
+- native Upload-Modalstrecke statt aktiver FilePond-Runtime
+- kompakte Dropdown-Aktionen für Dateien und Ordner
+- zentrale Rename-/Move-Modale mit vorbereiteten Zielordnern
+- Admin-Bulk-Aktionen für Löschen und Verschieben
+- serverseitig normalisierte Pfade, CSRF-geschützte POST-Flows und PRG-Redirects
+- geschützte Systempfade mit zusätzlicher Member-Bestätigung am `member`-Bereich
+
+---
+
+## Schutzbereiche und Member-Kontext
+
+Der Bereich `member` bleibt im Admin ein geschützter Sonderpfad.
+
+Wichtig im aktuellen Stand:
+
+- der Root `member` und direkte User-Roots wie `member/user-42` gelten als geschützte Systempfade
+- Member-Unterordner darunter (z. B. `member/user-42/rechnungen`) sind reguläre Inhalte und werden nicht mehr fälschlich als Systemordner behandelt
+- das Öffnen des Member-Bereichs erfordert im Admin weiterhin eine zusätzliche Bestätigung
+
+---
+
+## Upload und Grenzwerte
+
+Uploads laufen über native Formulare und interne APIs. Die konkrete Laufzeit-Validierung orientiert sich an `config/media-settings.json` und den vom Modul vorbereiteten Constraints.
+
+Typische Stellschrauben:
+
+- maximale Upload-Größe
+- erlaubte Typgruppen für Admin und Member
+- Dateinamen-Sanitisierung / Eindeutigkeit
+- Auto-WebP / EXIF-Strip
+- Thumbnail-Generierung
 
 ---
 
@@ -40,9 +70,9 @@ Wesentliche Merkmale im aktuellen Stand:
 | Bereich | Bezug |
 |---|---|
 | Seiten & Beiträge | Featured Images und Einbettungen |
-| Media-Proxy | kontrollierte Auslieferung |
 | Performance | Bildgrößen, WebP und Medienoptimierung |
-| Member-Bereich | geschützter Medienordner |
+| Member-Bereich | persönliche Upload-Wurzelpfade, Breadcrumbs, Rename/Move/Delete |
+| Assets | Altbestände von FilePond/elFinder und native Upload-/Picker-Ablösung |
 
 ---
 
@@ -67,7 +97,7 @@ Die Bibliotheksansicht zeigt pro Eintrag:
 
 Dateien können per Drag & Drop oder über den klassischen Datei-Dialog hochgeladen werden. Mehrfachauswahl ist möglich.
 
-Upload-Grenzen sind über `/admin/media-settings` konfigurierbar:
+Upload-Grenzen sind über den Settings-Tab unter `/admin/media?tab=settings` konfigurierbar:
 
 - maximale Dateigröße (Standard: 10 MB)
 - maximale Bildbreite mit Auto-Resize
@@ -88,6 +118,7 @@ Pro Datei pflegbar: Titel, Alt-Text, Beschreibung und Bildunterschrift. Alt-Text
 ## Verwandte Dokumente
 
 - [MEDIA.md](MEDIA.md)
-- [../pages-posts/README.md](../pages-posts/README.md)
 - [../performance/PERFORMANCE.md](../performance/PERFORMANCE.md)
+- [../../member/README.md](../../member/README.md)
 - [../../workflow/MEDIA-UPLOAD-WORKFLOW.md](../../workflow/MEDIA-UPLOAD-WORKFLOW.md)
+- [../../assets/README.md](../../assets/README.md)

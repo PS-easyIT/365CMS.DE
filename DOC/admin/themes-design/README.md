@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Übersicht über die aktuellen Design-, Theme- und Frontend-Werkzeuge im Admin-Bereich.
 
-Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
+Letzte Aktualisierung: 2026-03-28 · Version 2.8.0 RC
 
 ---
 
@@ -80,7 +80,7 @@ Neben den Standardpunkten existieren weitere themennahe Routen, darunter:
 - `/admin/theme-marketplace`
 - Legacy-Weiterleitungen wie `/admin/design-settings` → `/admin/theme-editor`
 
-Solche Seiten sind funktional vorhanden, aber nicht zwingend Teil des Standard-Navigationsflusses.
+Solche Seiten sind funktional vorhanden, aber nicht zwingend Teil des Standard-Navigationsflusses in `2.8.0 RC`.
 
 ---
 

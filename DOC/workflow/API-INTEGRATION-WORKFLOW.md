@@ -1,13 +1,15 @@
 # API-Integration Workflow – 365CMS
 
-> **Stand:** 2026-03-08 | **Version:** 2.5.4 | **Status:** Aktuell
+> **Stand:** 2026-03-28 | **Version:** 2.8.0 RC | **Status:** Referenz / konzeptionell
 >
-> **Bereich:** REST-API & externe Integrationen · **Version:** 2.5.4  
+> **Bereich:** REST-API & externe Integrationen · **Version:** 2.8.0 RC  
 > **Core-Klasse:** `core/Api.php`  
 > **Base-URL:** `https://domain.de/api/v1/`
 
 ---
-<!-- UPDATED: 2026-03-08 -->
+<!-- UPDATED: 2026-03-28 -->
+
+> Hinweis: Diese Datei beschreibt primär Muster und Integrationsideen. Für den aktuell implementierten Endpunktbestand ist zusätzlich `../core/API-REFERENCE.md` maßgeblich.
 
 ## Übersicht: API-Architektur
 

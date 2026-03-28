@@ -2,13 +2,13 @@
 
 Kurzbeschreibung: Dokumentiert die Konfiguration der Dashboard-Widgets im **Member Dashboard** aus Admin-Sicht.
 
-Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
+Letzte Aktualisierung: 2026-03-28 · Version 2.8.0 RC
 
 ---
 
 ## Überblick
 
-Die frühere Route `/admin/design-dashboard-widgets.php` ist veraltet. Seit 2.3.x wird die Widget-Konfiguration im Bereich **Member Dashboard** gepflegt:
+Die frühere Route `/admin/design-dashboard-widgets.php` ist veraltet. Die Widget-Konfiguration wird heute im Bereich **Member Dashboard** gepflegt:
 
 - Übersicht: `/admin/member-dashboard`
 - Widget-Konfiguration: `/admin/member-dashboard-widgets`

@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Dokumentiert den aktuellen Theme-Editor als Einstieg in den theme-spezifischen Customizer des aktiven Themes.
 
-Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
+Letzte Aktualisierung: 2026-03-28 · Version 2.8.0 RC
 
 ---
 
@@ -15,7 +15,7 @@ Der Theme-Editor ist kein generischer Roh-Dateieditor, sondern lädt bevorzugt d
 
 - `admin/customizer.php`
 
-Existiert diese Datei nicht, wird stattdessen eine Fallback-Seite mit Hinweisen angezeigt.
+Existiert diese Datei nicht oder schlägt die Prüfung fehl, wird stattdessen eine strukturierte Fallback-Seite mit Hinweisen angezeigt.
 
 ---
 
@@ -25,9 +25,9 @@ Beim Aufruf werden folgende Schritte ausgeführt:
 
 1. Admin-Berechtigung prüfen
 2. Aktives Theme über `CMS\ThemeManager::instance()` bestimmen
-3. `admin/customizer.php` des aktiven Themes suchen
-4. Falls vorhanden: direkt laden
-5. Falls nicht vorhanden: Fallback-Ansicht mit Links zu
+3. `admin/customizer.php` des aktiven Themes suchen und Theme-Pfade prüfen
+4. Falls vorhanden: über den Theme-Editor-Flow laden
+5. Falls nicht vorhanden oder ungültig: Fallback-Ansicht mit Links zu
 	- `/admin/themes`
 	- `/admin/theme-explorer`
 

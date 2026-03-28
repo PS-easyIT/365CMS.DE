@@ -1,8 +1,10 @@
 # elFinder
 
+> **Stand:** 2026-03-28 | **Version:** 2.8.0 RC | **Status:** Legacy-Bestand
+
 ## Kurzbeschreibung
 
-`elFinder` ist ein verbliebener Legacy-Bestand des früheren browserbasierten Dateimanagers; die aktive 365CMS-Medienverwaltung nutzt inzwischen native Listen-/Grid- und API-Flows.
+`elFinder` ist ein dokumentierter Legacy-Bestand des früheren browserbasierten Dateimanagers; die aktive 365CMS-Medienverwaltung nutzt native Listen-/Grid-, Modal- und API-Flows.
 
 ## Quellordner
 
@@ -13,12 +15,12 @@
 ## Verwendung in 365CMS
 
 - keine aktive Laufzeitverdrahtung mehr seit Folge-Batch 454
-- verbliebene Dateien dienen aktuell nur als Altbestand im Repository
+- verbliebene Dateien dienen als Altbestand und werden über die Vendor-/Netzwerkpfad-Doku separat beobachtet
 
 ## Besondere Hinweise
 
-- Historische Thumbnail-Pfade unter `UPLOAD_PATH/.elfinder/` können weiterhin als Altbestand vorkommen und werden von der Auslieferung separat behandelt.
-- Vor einem physischen Entfernen sollte geprüft werden, ob noch alte Uploads oder Dokumentationen auf diese Dateien verweisen.
+- historische Thumbnail-Pfade unter `UPLOAD_PATH/.elfinder/` können weiterhin als Altbestand vorkommen
+- vor einem physischen Entfernen sollten Alt-Uploads, externe Referenzen und `DOC/assets/VENDOR-NETWORK-PATHS.md` mitgeprüft werden
 
 ## Website / GitHub
 

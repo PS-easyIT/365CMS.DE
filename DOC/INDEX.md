@@ -1,18 +1,17 @@
 # 365CMS – Dokumentationsindex
-> **Stand:** 2026-03-16 | **Version:** 2.6.0 | **Status:** Aktuell
+> **Stand:** 2026-03-28 | **Version:** 2.8.0 RC | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Schnellstart](#schnellstart)
 - [Kernsystem](#kernsystem)
 - [Admin-Bereich](#admin-bereich)
 - [Mitgliederbereich](#mitgliederbereich)
-- [Theme- und Plugin-Entwicklung](#theme-und-plugin-entwicklung)
-- [Audits, Feature-Dokumente und Workflows](#audits-feature-dokumente-und-workflows)
-- [workflow/ – Operative Workflows](#workflow-operative-workflows)
+- [Themes und Plugins](#themes-und-plugins)
+- [Assets, Workflows und Audits](#assets-workflows-und-audits)
 - [Direktlinks für häufige Aufgaben](#direktlinks-für-häufige-aufgaben)
 
 ---
-<!-- UPDATED: 2026-03-16 -->
+<!-- UPDATED: 2026-03-28 -->
 
 ## Schnellstart
 
@@ -22,6 +21,7 @@
 | Installation | [INSTALLATION.md](INSTALLATION.md) |
 | Root-README | [../README.md](../README.md) |
 | Changelog | [../Changelog.md](../Changelog.md) |
+| Audit-Stand | [audit/BEWERTUNG.md](audit/BEWERTUNG.md) |
 
 ---
 
@@ -77,15 +77,13 @@
 
 | Dokument | Zweck |
 |---|---|
-| [member/README.md](member/README.md) | Gesamtüberblick über `/member` |
-| [member/CONTROLLERS.md](member/CONTROLLERS.md) | Controller und Einstiegspunkte |
-| [member/VIEWS.md](member/VIEWS.md) | Views, Partials und View-Daten |
-| [member/HOOKS.md](member/HOOKS.md) | Member-Hooks für Plugins |
-| [member/SECURITY.md](member/SECURITY.md) | Zugriff, Datenschutz, Sessions |
+| [member/README.md](member/README.md) | Gesamtüberblick über `/member` inklusive Medien-, Sicherheits- und Datenschutzpfade |
+
+> Hinweis: Die Member-Dokumentation ist im aktuellen Stand bewusst in `member/README.md` gebündelt. Veraltete Verweise auf nicht mehr vorhandene Teil-Dokumente gelten nicht mehr als führend.
 
 ---
 
-## Theme- und Plugin-Entwicklung
+## Themes und Plugins
 
 | Dokument | Zweck |
 |---|---|
@@ -96,30 +94,22 @@
 
 ---
 
-## Audits, Feature-Dokumente und Workflows
+## Assets, Workflows und Audits
 
 | Bereich | Dokumente |
 |---|---|
-| Audits | `DOC/audit/*.md` |
-| Feature-Konzepte | `DOC/feature/*.md` |
+| Assets | [ASSET.md](ASSET.md), [assets/README.md](assets/README.md) |
+| Audits | [audit/BEWERTUNG.md](audit/BEWERTUNG.md), [audit/PRÜFUNG.MD](audit/PRÜFUNG.MD), [audit/ToDoPrüfung.md](audit/ToDoPrüfung.md) |
 | Workflows | `DOC/workflow/*.md` |
 
-Diese Dokumente enthalten teils Planungs- oder Bewertungsstände. Für aktuelle technische Aussagen haben Core-, Admin- und Member-Dokumente Vorrang.
+Diese Dokumente enthalten teils Live-Stände, Auditfortschritte oder operative Rezepte. Für aktuelle technische Aussagen haben Core-, Admin-, Member- und Asset-Dokumente Vorrang.
 
-| Dokument | Inhalt |
-|----------|--------|
-| [AUDIT_FACHBEREICHE.md](audit/AUDIT_FACHBEREICHE.md) | Konsolidierter Fachbericht für Core, Feature-Reife, Performance und Sicherheit |
-| [GESAMT-AUDIT_TODO.md](audit/GESAMT-AUDIT_TODO.md) | Zentrale ToDo-Sammelliste für Core- und Plugin-Auditpunkte (Stand: 15.03.2026) |
-| [NACHARBEIT_AUDIT_ToDo.md](audit/NACHARBEIT_AUDIT_ToDo.md) | Konsolidierte Nacharbeiten aus bestehenden CMS-/Theme-Audits |
-
----
-
-## workflow/ – Operative Workflows
+### Wichtige Workflows
 
 | Datei | Beschreibung |
 |-------|-------------|
 | [CONTENT-MANAGEMENT-WORKFLOW.md](workflow/CONTENT-MANAGEMENT-WORKFLOW.md) | Inhalte erstellen, SEO, Publish-Prozess |
-| [MEDIA-UPLOAD-WORKFLOW.md](workflow/MEDIA-UPLOAD-WORKFLOW.md) | Upload-Pipeline: MIME, EXIF, WebP |
+| [MEDIA-UPLOAD-WORKFLOW.md](workflow/MEDIA-UPLOAD-WORKFLOW.md) | native Upload-Pipeline, Member-Root, Bulk-/Rename-/Move-Kontext |
 | [UPDATE-DEPLOYMENT-WORKFLOW.md](workflow/UPDATE-DEPLOYMENT-WORKFLOW.md) | CMS-Update, SHA-256-Verifikation, Deployment und Beta-Smoke-Abnahme |
 | [MARKETPLACE-WORKFLOW.md](workflow/MARKETPLACE-WORKFLOW.md) | Plugin/Theme aus Marketplace installieren |
 | [API-INTEGRATION-WORKFLOW.md](workflow/API-INTEGRATION-WORKFLOW.md) | REST-API, Webhooks, externe Integrationen |
@@ -134,18 +124,14 @@ Diese Dokumente enthalten teils Planungs- oder Bewertungsstände. Für aktuelle 
 | Aufgabe | Dokument |
 |---------|----------|
 | Erstinstallation | [INSTALLATION.md](INSTALLATION.md) |
-| Admin-Login | [admin/README.md#1-zugang--login](admin/README.md) |
-| Neuen User anlegen | [admin/GUIDE.md](admin/GUIDE.md) |
-| Plugin 10min Quickstart | [plugins/GUIDE.md](plugins/GUIDE.md) |
-| Plugin entwickeln (vollständig) | [plugins/PLUGIN-DEVELOPMENT.md](plugins/PLUGIN-DEVELOPMENT.md) |
-| Theme erstellen | [theme/THEME-DEVELOPMENT.md](theme/THEME-DEVELOPMENT.md) |
+| Admin-Überblick | [admin/README.md](admin/README.md) |
+| Medienverwaltung verstehen | [admin/media/README.md](admin/media/README.md) |
+| Member-Medien prüfen | [member/README.md](member/README.md) |
+| Sichere Uploads nachvollziehen | [workflow/MEDIA-UPLOAD-WORKFLOW.md](workflow/MEDIA-UPLOAD-WORKFLOW.md) |
+| Plugin entwickeln | [plugins/PLUGIN-DEVELOPMENT.md](plugins/PLUGIN-DEVELOPMENT.md) |
+| Theme entwickeln | [theme/THEME-DEVELOPMENT.md](theme/THEME-DEVELOPMENT.md) |
 | Hooks nutzen | [core/HOOKS-REFERENCE.md](core/HOOKS-REFERENCE.md) |
-| DB-Queries schreiben | [core/CORE-CLASSES.md](core/CORE-CLASSES.md#2-database) |
 | Sicherheit (CSRF/XSS) | [core/SECURITY.md](core/SECURITY.md) |
-| CMS updaten | [workflow/UPDATE-DEPLOYMENT-WORKFLOW.md](workflow/UPDATE-DEPLOYMENT-WORKFLOW.md) |
-| Medien hochladen (sicher) | [workflow/MEDIA-UPLOAD-WORKFLOW.md](workflow/MEDIA-UPLOAD-WORKFLOW.md) |
-| Benutzer verwalten | [admin/users-groups/README.md](admin/users-groups/README.md) |
-| Plugin aus Marketplace | [workflow/MARKETPLACE-WORKFLOW.md](workflow/MARKETPLACE-WORKFLOW.md) |
-| API-Endpunkt registrieren | [workflow/API-INTEGRATION-WORKFLOW.md](workflow/API-INTEGRATION-WORKFLOW.md) |
-| Neue Plugin-Ideen | [feature/NEW-PLUGIN-CONCEPTS.md](feature/NEW-PLUGIN-CONCEPTS.md) |
+| Asset-Stand prüfen | [assets/README.md](assets/README.md) |
+| Audit-Stand prüfen | [audit/BEWERTUNG.md](audit/BEWERTUNG.md) |
 | Systemstatus prüfen | [core/STATUS.md](core/STATUS.md) |

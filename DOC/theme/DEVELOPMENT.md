@@ -1,5 +1,5 @@
 # 365CMS – Theme-Entwicklungsumgebung
-> **Stand:** 2026-03-08 | **Version:** 2.5.4 | **Status:** Aktuell
+> **Stand:** 2026-03-28 | **Version:** 2.8.0 RC | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Grundstruktur](#grundstruktur)
@@ -11,12 +11,12 @@
 - [Best Practices](#best-practices)
 - [Theme-Anpassungen](#theme-anpassungen)
 - [Beispiel: Minimales Theme](#beispiel-minimales-theme)
-- [🎨 Theme-Customization-API (2.3.1)](#theme-customization-api-231)
+- [🎨 Theme-Customization-API](#-theme-customization-api)
 - [Checkliste für Theme-Release](#checkliste-für-theme-release)
 - [Verfügbare Helper](#verfügbare-helper)
 
 ---
-<!-- UPDATED: 2026-03-08 -->
+<!-- UPDATED: 2026-03-28 -->
 
 ## 📋 Inhaltsverzeichnis
 
@@ -592,7 +592,7 @@ body {
 </html>
 ```
 
-## 🎨 Theme-Customization-API (2.3.1)
+## 🎨 Theme-Customization-API
 
 ### Übersicht
 
@@ -837,7 +837,7 @@ if (!empty($customJS)) {
 ?>
 ```
 
-> **Hinweis:** Die Theme-Customization-API ist seit v2.3.1 stabil. Änderungen am Customizer werden in der Tabelle `cms_theme_customizations` gespeichert.
+> **Hinweis:** Die Theme-Customization-API gehört auch in `2.8.0 RC` zum stabilen Kernbestand. Änderungen am Customizer werden in der Tabelle `cms_theme_customizations` gespeichert.
 
 ```php
 <?php

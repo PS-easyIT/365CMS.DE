@@ -1,12 +1,12 @@
 # CMS Core – Übersicht
-> **Stand:** 2026-03-16 | **Version:** 2.6.0 | **Status:** Aktuell
+> **Stand:** 2026-03-28 | **Version:** 2.8.0 RC | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Verzeichnisstruktur](#verzeichnisstruktur)
 - [Wichtige Muster](#wichtige-muster)
 - [Dokumentation](#dokumentation)
 
-<!-- UPDATED: 2026-03-16 -->
+<!-- UPDATED: 2026-03-28 -->
 
 Das `core/`-Verzeichnis enthält alle Kernklassen des 365CMS.  
 Die meisten Klassen folgen dem **Singleton-Pattern** und sind über PSR-4 autogeladen.
@@ -96,7 +96,7 @@ core/
     └── UserService.php            Benutzer-CRUD für Admin
 ```
 
-Seit `2.6.0` dokumentiert [STRUCTURE.md](STRUCTURE.md) zusätzlich den Release-Snapshot des Core-/Admin-Scopes mit neuen und entfernten Dateien seit `2.5.30`.
+Im Stand `2.8.0 RC` dokumentiert [STRUCTURE.md](STRUCTURE.md) zusätzlich den aktuellen Release-Snapshot des Core-/Admin-Scopes inklusive neuer Service- und Admin-Einstiege.
 
 ---
 

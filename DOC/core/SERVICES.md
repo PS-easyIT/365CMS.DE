@@ -1,11 +1,11 @@
 # 365CMS – Services-Referenz
-> **Stand:** 2026-03-16 | **Version:** 2.6.0 | **Status:** Aktuell
+> **Stand:** 2026-03-28 | **Version:** 2.8.0 RC | **Status:** Aktuell
 
 Vollständige Dokumentation des Service-Layers. Alle Service-Klassen liegen im Namespace `CMS\Services` unter `core/Services/`. Der `CacheManager` befindet sich im Root-Namespace `CMS` unter `core/CacheManager.php`.
 
 ---
 
-<!-- UPDATED: 2026-03-16 -->
+<!-- UPDATED: 2026-03-28 -->
 ## 1 · Übersicht
 
 | Klasse | Datei | Aufgabe |
@@ -248,37 +248,43 @@ Wenn Symfony Translation nicht verfügbar ist (Shared Hosting), wird automatisch
 **Datei:** `core/Services/MediaService.php`
 **Pattern:** Multi-Instance via `getInstance(string $customRoot = '')`
 
-Verwaltet die Medienbibliothek mit Upload, Kategorien und geschützten System-Ordnern.
+Verwaltet die Medienbibliothek mit Upload, Ordnern, Kategorien, Metadaten, geschützten System-Ordnern und kontrollierter Dateiauslieferung über Repository-/Handler-Komponenten.
 
-### System-Ordner (nicht löschbar)
+### Geschützte System-Pfade
 
-`themes`, `plugins`, `assets`, `fonts`, `dl-manager`, `form-uploads`, `member`
+Top-Level-Systemordner bleiben geschützt: `themes`, `plugins`, `assets`, `fonts`, `dl-manager`, `form-uploads`, `member`.
+
+Zusätzlich bleibt unter `member/` die direkte User-Root (z. B. `member/user-42`) geschützt. Unterordner darunter (`member/user-42/fotos`) sind dagegen reguläre Member-Inhalte und nicht automatisch Systempfade.
 
 ### Datei hochladen
 
 ```php
 $media = CMS\Services\MediaService::getInstance();
 
-// Upload mit Validierung
-$result = $media->upload($_FILES['file'], [
-    'allowed_types' => ['image/jpeg', 'image/png', 'image/webp'],
-    'max_size'      => 5 * 1024 * 1024, // 5 MB
+// Upload mit Validierung und Media-Settings
+$result = $media->uploadFile($_FILES['file'], 'member/user-42', [
+    'allowed_types' => ['image', 'document'],
+    'max_upload_size' => '5M',
 ]);
-// $result enthält Dateipfad, URL, Metadaten
 ```
 
 ### Medienbibliothek
 
 ```php
-// Dateien auflisten (paginiert, filterbar)
-$files = $media->getMediaLibrary([
-    'type'  => 'image',
-    'page'  => 1,
-    'limit' => 20,
-]);
+// Dateien und Ordner eines Pfads auflisten
+$items = $media->getItems('member/user-42');
 
-// Datei löschen
-$media->delete($mediaId);
+// Ordner anlegen
+$media->createFolder('Rechnungen', 'member/user-42');
+
+// Element umbenennen
+$media->renameItem('member/user-42/rechnung.pdf', 'rechnung-2026.pdf');
+
+// Element verschieben
+$media->moveFile('member/user-42/rechnung-2026.pdf', 'member/user-42/archiv/rechnung-2026.pdf');
+
+// Element löschen
+$media->deleteItem('member/user-42/archiv/rechnung-2026.pdf');
 ```
 
 ### Bildverarbeitung (ImageService)
@@ -511,6 +517,8 @@ $list = $comments->getComments($pageId, ['status' => 'approved', 'limit' => 20])
 
 Cookie-Consent-Banner und Einwilligungsverwaltung (DSGVO-konform).
 
+Die aktive Consent-Ausgabe nutzt keine externe Vendor-Runtime mehr, sondern serverseitige Datenaufbereitung plus native Frontend-Assets (`CMS/assets/js/cookieconsent-init.js` und zugehörige Styles/Markup-Hooks).
+
 ### DashboardService
 
 **Datei:** `core/Services/DashboardService.php`
@@ -555,6 +563,8 @@ SunEditor-Integration für den Inhalts-Editor.
 **Datei:** `core/Services/FeedService.php`
 
 RSS- und Atom-Feeds werden nativ per DOM/XML geladen, abgesichert validiert und dateibasiert gecacht.
+
+`FeedService` ersetzt die frühere aktive SimplePie-Laufzeit im Core. Der Legacy-Bestand unter `CMS/assets/simplepie*` bleibt dokumentiert, ist aber nicht mehr produktiv verdrahtet.
 
 ### PermalinkService
 

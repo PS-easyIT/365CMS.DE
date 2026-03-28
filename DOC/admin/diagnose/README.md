@@ -1,13 +1,12 @@
 # 365CMS – Diagnose & Monitoring
-> **Stand:** 2026-03-08 | **Version:** 2.5.4 | **Status:** Aktuell
+> **Stand:** 2026-03-28 | **Version:** 2.8.0 RC | **Status:** Aktuell
 
-<!-- ADDED: 2026-03-08 -->
+<!-- UPDATED: 2026-03-28 -->
 
 ## Überblick
 
 Der Diagnosebereich stellt systemnahe Monitoring-Werkzeuge für den laufenden Betrieb bereit.
-Alle Unterseiten nutzen `SystemInfoModule` als gemeinsames Modul und teilen sich den
-CSRF-Kontext `admin_system_info`. Der Einstieg erfolgt über `/admin/system-monitor`.
+Die Monitor-Seiten folgen dem üblichen Admin-Flow mit geschütztem Zugriff und serverseitiger Datenaufbereitung. Der zentrale Einstieg erfolgt über `/admin/diagnose`; ergänzend existieren dedizierte Monitor-Unterseiten.
 
 ## Verfügbare Funktionen
 
@@ -23,7 +22,7 @@ CSRF-Kontext `admin_system_info`. Der Einstieg erfolgt über `/admin/system-moni
 ## Benötigte Rechte
 
 - Rolle **Admin** erforderlich
-- CSRF-Kontext: `admin_system_info`
+- CSRF-Kontext: abhängig von der jeweiligen Diagnose-Aktion
 
 ## Verwandte Dokumente
 

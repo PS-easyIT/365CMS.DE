@@ -1,7 +1,7 @@
 # 365CMS – Plugin-Verwaltung
-> **Stand:** 2026-03-08 | **Version:** 2.5.4 | **Status:** Aktuell
+> **Stand:** 2026-03-28 | **Version:** 2.8.0 RC | **Status:** Aktuell
 
-<!-- ADDED: 2026-03-08 -->
+<!-- UPDATED: 2026-03-28 -->
 
 ## Überblick
 
@@ -17,7 +17,7 @@ zentrales Update-System.
 | Funktion | Route | Beschreibung |
 |---|---|---|
 | Plugin-Liste | `/admin/plugins` | Installierte Plugins verwalten, aktivieren, deaktivieren |
-| Marketplace | `/admin/marketplace` | Neue Erweiterungen aus dem Plugin-Katalog installieren |
+| Marketplace | `/admin/plugin-marketplace` | Neue Erweiterungen aus dem Plugin-Katalog installieren |
 | Updates | `/admin/updates` | Verfügbare Updates prüfen und einspielen |
 
 ## Benötigte Rechte

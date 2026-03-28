@@ -1,13 +1,15 @@
 # Marketplace Workflow – 365CMS
 
-> **Stand:** 2026-03-08 | **Version:** 2.5.4 | **Status:** Aktuell
+> **Stand:** 2026-03-28 | **Version:** 2.8.0 RC | **Status:** Referenz / teilweise konzeptionell
 >
-> **Bereich:** Plugin & Theme Marketplace · **Version:** 2.5.4  
-> **Admin-Seiten:** `admin/marketplace.php`, `admin/plugins.php`, `admin/themes.php`  
+> **Bereich:** Plugin & Theme Marketplace · **Version:** 2.8.0 RC  
+> **Admin-Seiten:** `admin/plugin-marketplace.php`, `admin/plugins.php`, `admin/themes.php`  
 > **Geplantes Feature:** Offizieller Marketplace-Dienst
 
 ---
-<!-- UPDATED: 2026-03-08 -->
+<!-- UPDATED: 2026-03-28 -->
+
+> Hinweis: Diese Datei mischt aktuellen Ablauf und Konzeptbestand. Für die produktive Plugin-Verwaltung sind `../admin/plugins/README.md` und die Admin-Doku zum Marketplace führend.
 
 ## Übersicht: Marketplace-Typen
 
@@ -15,7 +17,7 @@
 |---|---|---|
 | **Plugins** | PLUGINS/ lokal + Remote | `admin/plugins.php` |
 | **Themes** | THEMES/ lokal + Remote | `admin/themes.php` |
-| **Marketplace** | Remote + Lizenzserver | `admin/marketplace.php` |
+| **Marketplace** | Remote + Lizenzserver | `admin/plugin-marketplace.php` |
 
 ---
 
@@ -24,7 +26,7 @@
 ### Via Admin-UI
 
 ```
-Admin → admin/marketplace.php
+Admin → admin/plugin-marketplace.php
     ↓
 Plugin suchen / durchsuchen (Kategorie, Schlagwort)
     ↓
@@ -227,7 +229,7 @@ BEIM DEINSTALLIEREN:
 ## Referenzen
 
 - [admin/plugins.php](../../CMS/admin/plugins.php) – Plugin-Management
-- [admin/marketplace.php](../../CMS/admin/marketplace.php) – Marketplace
+- [admin/plugin-marketplace.php](../../CMS/admin/plugin-marketplace.php) – Marketplace
 - [PLUGIN-DEVELOPMENT-WORKFLOW.md](PLUGIN-DEVELOPMENT-WORKFLOW.md) – Plugin entwickeln
 - [PLUGIN-AUDIT.md](../audits/PLUGIN-AUDIT.md) – Sicherheitsanforderungen
 - [ROADMAP_FEB2026.md](../feature/ROADMAP_FEB2026.md) – C-11: update.json SHA-256

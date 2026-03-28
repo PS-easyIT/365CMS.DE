@@ -1,11 +1,11 @@
 # 365CMS – API-Referenz
-> **Stand:** 2026-03-16 | **Version:** 2.6.0 | **Status:** Aktuell
+> **Stand:** 2026-03-28 | **Version:** 2.8.0 RC | **Status:** Aktuell
 
 Dokumentation der REST-API (`/api/v1/`) mit Authentifizierung, Endpunkten, Fehlerbehandlung und Beispielen.
 
 ---
 
-<!-- UPDATED: 2026-03-16 -->
+<!-- UPDATED: 2026-03-28 -->
 ## 1 · Übersicht
 
 Die 365CMS REST-API folgt dem Muster `/api/v1/{endpoint}/{id}`. Alle Antworten werden als `Content-Type: application/json` zurückgegeben.
@@ -37,7 +37,7 @@ Die 365CMS REST-API folgt dem Muster `/api/v1/{endpoint}/{id}`. Alle Antworten w
 
 ---
 
-<!-- UPDATED: 2026-03-16 -->
+<!-- UPDATED: 2026-03-28 -->
 ## 2 · Authentifizierung
 
 Die API unterstützt drei Authentifizierungsmethoden:
@@ -83,12 +83,12 @@ X-API-Key: dein-api-key-hier
 
 ---
 
-<!-- UPDATED: 2026-03-16 -->
+<!-- UPDATED: 2026-03-28 -->
 ## 3 · Endpunkte
 
 | Methode | Route | Auth | Parameter | Response | Beschreibung |
 |---------|-------|------|-----------|----------|-------------|
-| `GET` | `/api/v1/status` | Keine | – | `{"data":{"status":"ok","version":"2.6.0"}}` | System-Status |
+| `GET` | `/api/v1/status` | Keine | – | `{"data":{"status":"ok","version":"2.8.0"}}` | System-Status |
 | `GET` | `/api/v1/pages` | Session/JWT | `?q=suchbegriff` | `{"data":[...]}` | Seiten durchsuchen |
 | `GET` | `/api/v1/pages/{slug}` | Session/JWT | – | `{"data":{...}}` | Einzelne Seite per Slug |
 | `GET` | `/api/v1/users` | Admin | – | `{"data":[...]}` | Benutzer auflisten (max. 50) |
@@ -112,7 +112,7 @@ X-API-Key: dein-api-key-hier
 
 ---
 
-<!-- UPDATED: 2026-03-16 -->
+<!-- UPDATED: 2026-03-28 -->
 ## 4 · Error-Codes und Error-Response-Format
 
 Alle Fehler werden als JSON mit passendem HTTP-Statuscode zurückgegeben:
@@ -142,7 +142,7 @@ Alle Fehler werden als JSON mit passendem HTTP-Statuscode zurückgegeben:
 
 ---
 
-<!-- UPDATED: 2026-03-16 -->
+<!-- UPDATED: 2026-03-28 -->
 ## 5 · Rate Limiting
 
 Die API verwendet DB-basiertes Rate-Limiting über `Security::checkDbRateLimit()`:
@@ -212,7 +212,7 @@ curl -s -X POST https://example.com/api/v1/webauthn/login/verify \
 
 ---
 
-<!-- UPDATED: 2026-03-16 -->
+<!-- UPDATED: 2026-03-28 -->
 ## 7 · curl-Beispiele
 
 ### System-Status abfragen
@@ -225,7 +225,7 @@ curl -s https://example.com/api/v1/status | jq
 {
     "data": {
         "status": "ok",
-      "version": "2.6.0"
+      "version": "2.8.0"
     }
 }
 ```

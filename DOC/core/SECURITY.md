@@ -1,6 +1,6 @@
-<!-- UPDATED: 2026-03-17 -->
+<!-- UPDATED: 2026-03-28 -->
 # 365CMS – Sicherheitsarchitektur
-> **Stand:** 2026-03-17 | **Version:** 2.6.1 | **Status:** Aktuell
+> **Stand:** 2026-03-28 | **Version:** 2.8.0 RC | **Status:** Aktuell
 
 Umfassende Dokumentation der Sicherheitsmechanismen, Authentifizierungsverfahren und
 Secure-Coding-Grundsätze im 365CMS.

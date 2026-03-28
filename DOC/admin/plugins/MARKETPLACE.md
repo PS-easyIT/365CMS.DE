@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Beschreibt den aktuellen Plugin-Marketplace unter `/admin/plugin-marketplace`, seine Datenquellen und den Installationsablauf für katalogisierte Plugins.
 
-Letzte Aktualisierung: 2026-03-07 · Version 2.3.1
+Letzte Aktualisierung: 2026-03-28 · Version 2.8.0 RC
 
 ## Überblick
 
@@ -18,7 +18,7 @@ Der Marketplace kann Einträge aus mehreren Quellen laden:
 - lokalen oder eingebauten Katalogdaten
 - ergänzenden Plugin-Metadaten aus den gelisteten Einträgen
 
-Zusätzlich erkennt das Modul, welche Slugs bereits installiert sind, damit der Marketplace verfügbare und bereits vorhandene Plugins unterscheiden kann.
+Zusätzlich erkennt das Modul, welche Slugs bereits installiert sind, arbeitet mit Registry-/Cache-Fallbacks und trennt so verfügbare von bereits vorhandenen Plugins robuster als ältere Dokumentationsstände.
 
 ## Unterstützte Aktion
 
@@ -34,9 +34,10 @@ Der Marketplace installiert Plugins auf Basis ihres Slugs. Vereinfacht läuft de
 
 1. Katalogeintrag zum Slug ermitteln
 2. Download-URL validieren
-3. Plugin-Paket als ZIP laden
-4. Archiv entpacken und in den Plugin-Pfad übernehmen
-5. Ergebnis als Admin-Meldung zurückgeben
+3. Kompatibilität wie `requires_cms` prüfen
+4. Plugin-Paket als ZIP laden
+5. Installation über den zentralen Update-/Installationspfad ausführen
+6. Ergebnis als Admin-Meldung zurückgeben
 
 Die Download-Quelle muss HTTPS-basiert sein. Dadurch wird verhindert, dass Erweiterungen aus unsicheren Quellen still installiert werden.
 

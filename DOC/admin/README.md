@@ -1,5 +1,5 @@
 # 365CMS – Admin-Bereich
-> **Stand:** 2026-03-08 | **Version:** 2.5.4 | **Status:** Aktuell
+> **Stand:** 2026-03-28 | **Version:** 2.8.0 RC | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Überblick](#überblick)
@@ -11,11 +11,11 @@
 Die Struktur folgt der aktuellen Sidebar-Konfiguration aus `CMS/admin/partials/sidebar.php`. Öffentliche Admin-Routen werden in der Dokumentation bewusst ohne `.php` beschrieben.
 
 ---
-<!-- UPDATED: 2026-03-08 -->
+<!-- UPDATED: 2026-03-28 -->
 
 ## Überblick
 
-Der Admin-Bereich ist seit 2.3.x deutlich stärker modularisiert. Früher monolithische Seiten wie „SEO“, „System“ oder „Backup“ wurden in mehrere spezialisierte Einstiege aufgeteilt.
+Der Admin-Bereich ist modular aufgebaut. Entry-Dateien unter `CMS/admin/` sind schlanke Routen, während Fachlogik überwiegend in `CMS/admin/modules/` und Views in `CMS/admin/views/` liegen.
 
 Wichtige Grundsätze:
 
@@ -23,7 +23,9 @@ Wichtige Grundsätze:
 - Menüpunkte werden gruppiert in der Sidebar definiert
 - Fachlogik liegt überwiegend in `admin/modules/`
 - Views liegen unter `admin/views/`
-- Legacy-Einstiege werden, wenn vorhanden, auf neue Seiten umgeleitet
+- Views und Actions hängen an kleinen Request-/CSRF-Verträgen
+- Redirects folgen möglichst dem PRG-Muster (Post/Redirect/Get)
+- Legacy-Einstiege werden nur noch dokumentiert, wenn sie aktiv umleiten oder Rücksicht auf Altbestände erfordern
 
 ---
 
@@ -33,7 +35,7 @@ Wichtige Grundsätze:
 |---|---|---|
 | Dashboard | `/admin` | Gesamtüberblick, KPIs, Schnellzugriffe |
 | Seiten & Beiträge | `/admin/pages`, `/admin/posts`, `/admin/comments`, `/admin/table-of-contents`, `/admin/site-tables` | Content-Management |
-| Medienverwaltung | `/admin/media` | Dateien, Kategorien, Medieneinstellungen |
+| Medienverwaltung | `/admin/media`, `/admin/media?tab=categories`, `/admin/media?tab=settings` | Bibliothek, Kategorien, Medieneinstellungen |
 | Benutzer & Gruppen | `/admin/users`, `/admin/groups`, `/admin/roles`, `/admin/user-settings` | Benutzer, Teams, Rechte und Auth-Einstellungen |
 | Member Dashboard | `/admin/member-dashboard` und Folgeseiten | Konfiguration des Mitgliederbereichs |
 | Aboverwaltung | `/admin/packages`, `/admin/orders`, `/admin/subscription-settings` | Pakete, Bestellungen, Zuweisungen |
@@ -89,6 +91,7 @@ Einige ältere Einstiege tauchen noch in Alt-Dokumentation oder Redirects auf. D
 - nicht mehr `backup.php`, sondern `/admin/backups`
 - nicht mehr `cookies.php`, sondern `/admin/cookie-manager`
 - nicht mehr `system-info.php` als Zielseite; die Legacy-Route leitet auf `/admin/info` um
+- nicht mehr eigene Medien-Unterseiten wie `media-categories.php` oder `media-settings.php`, sondern Query-Tabs unter `/admin/media?tab=...`
 
 ---
 
@@ -98,9 +101,10 @@ Alle Einstiege folgen demselben Grundmuster:
 
 1. `ABSPATH`-Schutz
 2. Admin-Authentifizierung via `CMS\Auth`
-3. CSRF-Prüfung via `CMS\Security`
-4. Verarbeitung der Aktion im Modul
-5. Redirect mit Session-Alert statt direkter POST-Antwort
+3. Capability- und/oder RBAC-Prüfung pro Bereich
+4. CSRF-Prüfung via `CMS\Security`
+5. Verarbeitung der Aktion im Modul oder Service
+6. Redirect mit Session-Alert statt direkter POST-Antwort
 
 Das ist wichtig für konsistente Fehlerbehandlung, PRG-Flow und nachvollziehbare Audit-Einträge.
 
