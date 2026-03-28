@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.8.1",
+  "version": "2.8.0",
   "min_php": "8.4",
   "released": "2026-03-28",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Patch-Release 2.8.1: Der neue SEO-/IndexNow-Workflow wurde fail-closed nachgeschärft, Release-Metadaten auf 2.8.1 synchronisiert und README/Changelog an den aktuellen Patch-Stand angepasst.",
+  "notes": "Release-Stand 2.8.0: Der neue SEO-/IndexNow-Workflow wurde fail-closed nachgeschärft, Release-Metadaten auf 2.8.0 harmonisiert und README/Changelog auf denselben dokumentierten Stand gezogen.",
   "critical": false
 }
