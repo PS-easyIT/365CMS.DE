@@ -1,5 +1,5 @@
 # CMS Core – Übersicht
-> **Stand:** 2026-03-28 | **Version:** 2.8.0 RC | **Status:** Aktuell
+> **Stand:** 2026-03-28 | **Version:** 2.8.0 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Verzeichnisstruktur](#verzeichnisstruktur)
@@ -96,7 +96,7 @@ core/
     └── UserService.php            Benutzer-CRUD für Admin
 ```
 
-Im Stand `2.8.0 RC` dokumentiert [STRUCTURE.md](STRUCTURE.md) zusätzlich den aktuellen Release-Snapshot des Core-/Admin-Scopes inklusive neuer Service- und Admin-Einstiege.
+Im Stand `2.8.0` dokumentiert [STRUCTURE.md](STRUCTURE.md) zusätzlich den aktuellen Release-Snapshot des Core-/Admin-Scopes inklusive neuer Service- und Admin-Einstiege.
 
 ---
 

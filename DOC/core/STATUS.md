@@ -1,5 +1,5 @@
 # 365CMS – Systemstatus
-> **Stand:** 2026-03-28 | **Version:** 2.8.0 RC | **Status:** Aktuell
+> **Stand:** 2026-03-28 | **Version:** 2.8.0 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Versionsstand](#versionsstand)
@@ -18,7 +18,7 @@
 
 | Eigenschaft | Wert |
 |---|---|
-| CMS-Version | `2.8.0 RC` |
+| CMS-Version | `2.8.0` |
 | Code-Referenz | `CMS/core/Version.php` |
 | Update-Metadaten | `CMS/update.json` |
 | Release-Datum | `2026-03-28` |
@@ -82,7 +82,7 @@ Maßgebliche Referenz: `CMS/admin/partials/sidebar.php`
 
 ---
 
-## Wichtige Feature-Stände in 2.8.0 RC <!-- UPDATED: 2026-03-28 -->
+## Wichtige Feature-Stände in 2.8.0 <!-- UPDATED: 2026-03-28 -->
 
 | Bereich | Stand |
 |---|---|
@@ -120,7 +120,7 @@ Maßgebliche Referenz: `CMS/admin/partials/sidebar.php`
 - Hintergrund sind die produktiv gebündelten Symfony-Komponenten in `CMS/assets/mailer`, `CMS/assets/mime` und `CMS/assets/translation`, deren Composer-Metadaten PHP 8.4 voraussetzen.
 - Diese Vorgabe wird nicht nur dokumentiert, sondern zur Laufzeit auch über `CMS/config.php`, `CMS/core/Bootstrap.php`, `CMS/core/Services/StatusService.php`, `CMS/core/Services/UpdateService.php` und `CMS/install.php` aktiv geprüft bzw. signalisiert.
 
-## Release-Notiz 2.8.0 RC <!-- ADDED: 2026-03-28 -->
+## Release-Notiz 2.8.0 <!-- ADDED: 2026-03-28 -->
 
 - Der Medienbereich wurde UX-seitig deutlich verdichtet: Dropdown-Aktionen, zentrale Rename-/Move-Modale und vorbereitete Zielordner-Optionen ersetzen breite Inline-Formulare.
 - Admin-Medien unterstützen Bulk-Löschen und Bulk-Verschieben über native Mehrfachauswahl und serverseitig normalisierte Pfadlisten.

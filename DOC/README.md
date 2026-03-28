@@ -1,9 +1,9 @@
 # 365CMS – Projektdokumentation
-> **Stand:** 2026-03-28 | **Version:** 2.8.0 RC | **Status:** Aktuell
+> **Stand:** 2026-03-28 | **Version:** 2.8.0 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Womit ihr anfangen solltet](#womit-ihr-anfangen-solltet)
-- [Release-Fokus 2.8.0 RC](#release-fokus-280-rc)
+- [Release-Fokus 2.8.0](#release-fokus-280)
 - [Dokumentationsbereiche](#dokumentationsbereiche)
 - [Wichtige Hinweise](#wichtige-hinweise)
 - [Verwandte Einstiege](#verwandte-einstiege)
@@ -28,7 +28,7 @@
 
 ---
 
-## Release-Fokus 2.8.0 RC
+## Release-Fokus 2.8.0
 
 Die Dokumentation ist jetzt auf den Release-Candidate-Stand `2.8.0` nachgezogen. Der Schwerpunkt liegt auf den Änderungen der jüngsten Folge-Batches:
 

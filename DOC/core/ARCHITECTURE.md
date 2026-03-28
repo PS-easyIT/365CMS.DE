@@ -1,5 +1,5 @@
 # 365CMS – Architektur
-> **Stand:** 2026-03-28 | **Version:** 2.8.0 RC | **Status:** Aktuell
+> **Stand:** 2026-03-28 | **Version:** 2.8.0 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Überblick](#überblick)
@@ -28,7 +28,7 @@
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────┐
-│                      365CMS v2.8.0 RC                               │
+│                      365CMS v2.8.0                                  │
 │                                                                     │
 │  Presentation     → Themes (Frontend), Admin-Views, Member-Templates│
 │  Application      → Router, Hooks, PluginManager, ThemeManager      │
@@ -463,7 +463,7 @@ defined('ASSETS_PATH')   || define('ASSETS_PATH',   ABSPATH . 'assets/');
 |---|---|---|
 | `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASS` | MySQL/MariaDB-Verbindung | `localhost`, `cms_db` |
 | `SITE_URL` | Basis-URL der Installation | `https://example.com` |
-| `CMS_VERSION` | Aktuelle Version | `2.8.0 RC` |
+| `CMS_VERSION` | Aktuelle Version | `2.8.0` |
 | `LOG_PATH` | Verzeichnis für Log-Dateien | `ABSPATH . 'logs/'` |
 | `LOG_LEVEL` | Minimaler Log-Level | `WARNING` (oder `DEBUG` bei `CMS_DEBUG=true`) |
 | `CMS_DEBUG` | Debug-Modus | `false` |

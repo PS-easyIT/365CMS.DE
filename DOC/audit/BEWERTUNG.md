@@ -5,13 +5,19 @@
 Diese Sektion dokumentiert bereits umgesetzte Teilfortschritte aus `DOC/audit/PRÜFUNG.MD`,
 ohne die große Bewertungsmatrix bei jedem einzelnen Batch vollständig neu auszurechnen.
 
-### Gesamtstand nach Batch 463
+### Gesamtstand nach Batch 464
 
 | Dateien | Ø Security | Ø Speed | Ø PHP/BP | Ø Gesamt |
 |---:|---:|---:|---:|---:|
-| 463 | 95,12 | 92,74 | 96,22 | 96,35 |
+| 464 | 95,12 | 92,74 | 96,22 | 96,35 |
 
-Der aktuelle Nachpflege-Stand umfasst damit **463 umgesetzte Batches**, davon weiterhin **444 von 444 Prüfplan-Punkten** im ursprünglichen Auditplan und zusätzlich neunzehn Folge-Batches darüber hinaus. Zuletzt wurde der native Feed-Abruf weiter gegen SSRF-/Redirect-Restkanten gestaffelt: Redirects werden je Hop neu validiert, und cURL-Fetches pinnen sich an zuvor geprüfte DNS-Ziele statt Redirect- oder Resolver-Wechsel blind zu vertrauen. Die Kennzahlen bleiben dabei stabil.
+Der aktuelle Nachpflege-Stand umfasst damit **464 umgesetzte Batches**, davon weiterhin **444 von 444 Prüfplan-Punkten** im ursprünglichen Auditplan und zusätzlich zwanzig Folge-Batches darüber hinaus. Zuletzt wurden die zentralen Dokumentationsdateien bewusst auf einen konsistenten `2.8.0`-Snapshot harmonisiert: Basis-Doku und Release-Snapshot verwenden jetzt denselben Stand ohne `RC`-Suffix, während Folge-Härtungen weiterhin separat im Audit und Changelog nachlaufen. Die Kennzahlen bleiben dabei stabil.
+
+### Delta Folge-Batch 464
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `DOC/README.md`, `DOC/INDEX.md`, `DOC/INSTALLATION.md`, `DOC/core/README.md`, `DOC/core/STATUS.md`, `DOC/core/ARCHITECTURE.md`, `DOC/core/STRUCTURE.md`, `README.md` | umgesetzt | Die zentrale Projektdokumentation wurde gesammelt auf einen konsistenten `2.8.0`-Stand ohne `RC`-Suffix harmonisiert; das Root-README erklärt zusätzlich, dass Folge-Härtungen separat dokumentiert werden und den Basis-Doku-Snapshot nicht unnötig auf Patch-Etiketten umziehen. | Die führende Basis-Doku bleibt leichter lesbar und widerspruchsärmer, weil zentrale Einstiegs- und Core-Snapshot-Dateien nun denselben Release-Stand transportieren, ohne Audit-Folge-Batches mit dem Grundsnapshot zu vermischen. |
 
 ### Delta Folge-Batch 463
 

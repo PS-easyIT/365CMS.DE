@@ -1,5 +1,5 @@
 # 365CMS – Core-/Admin-Struktur-Snapshot
-> **Stand:** 2026-03-28 | **Version:** 2.8.0 RC | **Status:** Release-Snapshot
+> **Stand:** 2026-03-28 | **Version:** 2.8.0 | **Status:** Release-Snapshot
 
 Dieser Snapshot umfasst `CMS/core/`, `CMS/admin/`, `CMS/config/` sowie versionsrelevante Core-Metadaten. Nicht enthalten sind `/plugins/`, `/themes/` und `/CMS/assets/`.
 
