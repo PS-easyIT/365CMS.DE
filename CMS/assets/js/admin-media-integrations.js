@@ -633,9 +633,25 @@
             });
         });
 
+        // Fallback: store the triggering button on click, in case Bootstrap's
+        // show.bs.modal event.relatedTarget is null (can happen when trigger is
+        // inside a closing dropdown menu).
+        var pendingRenameTrigger = null;
+        var pendingMoveTrigger = null;
+
+        document.querySelectorAll('.js-media-open-rename').forEach(function (btn) {
+            btn.addEventListener('click', function () { pendingRenameTrigger = btn; });
+        });
+
+        document.querySelectorAll('.js-media-open-move').forEach(function (btn) {
+            btn.addEventListener('click', function () { pendingMoveTrigger = btn; });
+        });
+
         if (renameModalElement) {
             renameModalElement.addEventListener('show.bs.modal', function (event) {
-                populateRenameModal(event.relatedTarget);
+                var trigger = event.relatedTarget || pendingRenameTrigger;
+                pendingRenameTrigger = null;
+                populateRenameModal(trigger);
             });
 
             renameModalElement.addEventListener('shown.bs.modal', function () {
@@ -652,7 +668,9 @@
 
         if (moveModalElement) {
             moveModalElement.addEventListener('show.bs.modal', function (event) {
-                populateMoveModal(event.relatedTarget);
+                var trigger = event.relatedTarget || pendingMoveTrigger;
+                pendingMoveTrigger = null;
+                populateMoveModal(trigger);
             });
         }
 

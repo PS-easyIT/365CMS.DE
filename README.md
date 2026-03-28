@@ -20,7 +20,7 @@
 
 ## 📈 Audit-Stand März 2026
 
-Der laufende Härtungs- und Qualitätsdurchgang ist bis **Audit-Batch 458** nachgezogen. Im eigentlichen Prüfplan bleiben damit weiterhin **444 von 444 Prüfplan-Punkten** geschafft; zusätzlich läuft bereits die Folge-Runde über den ursprünglichen Plan hinaus. Der aktuelle dokumentierte Gesamtstand über **458 bewertete Dateien** liegt bei:
+Der laufende Härtungs- und Qualitätsdurchgang ist bis **Audit-Batch 459** nachgezogen. Im eigentlichen Prüfplan bleiben damit weiterhin **444 von 444 Prüfplan-Punkten** geschafft; zusätzlich läuft bereits die Folge-Runde über den ursprünglichen Plan hinaus. Der aktuelle dokumentierte Gesamtstand über **459 bewertete Dateien** liegt bei:
 
 | Metrik | Stand |
 |---|---:|
@@ -29,7 +29,7 @@ Der laufende Härtungs- und Qualitätsdurchgang ist bis **Audit-Batch 458** nach
 | **PHP / Best Practices** | **96,22** |
 | **Gesamt** | **96,35** |
 
-Zuletzt wurde der Medienbereich nach einem sauberen Fehler-/Security-/Best-Practice-Review auf kompakte Dropdowns, zentrale Modale und Bulk-Aktionen nachgezogen. `CMS/admin/media.php`, `CMS/admin/modules/media/MediaModule.php`, `CMS/admin/views/media/library.php`, `CMS/assets/js/admin-media-integrations.js`, `CMS/member/includes/class-member-controller.php`, `CMS/member/media.php` und `CMS/assets/js/member-dashboard.js` bündeln Rename-/Move-Flows jetzt sichtbar kompakter und gleichzeitig robuster an serverseitigen Request-/CSRF-Verträgen.
+Zuletzt wurden zwei Bugs im Medienbereich behoben: `CMS/core/Services/Media/MediaRepository::isSystemPath()` klassifiziert Member-erstellte Unterordner (z. B. `member/user-1/fotos`) nicht mehr fälschlicherweise als Systemordner, und `CMS/assets/js/admin-media-integrations.js` sowie `CMS/assets/js/member-dashboard.js` nutzen jetzt einen Pending-Trigger-Fallback für Bootstrap-Dropdown-Modals, sodass Umbenennen/Verschieben das Modal zuverlässig mit dem richtigen Pfad befüllen.
 
 | Bereich | Highlights |
 |---|---|

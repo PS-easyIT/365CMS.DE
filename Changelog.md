@@ -20,6 +20,17 @@
 
 ---
 
+### v2.8.0 RC — 28. März 2026 · Folge-Batch 459, Medien-Systemordner-Klassifikation und Modal-Trigger-Fallback korrigiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.8.0 RC** | 🔴 fix | Core/Media | **`CMS/core/Services/Media/MediaRepository::isSystemPath()` klassifiziert Member-erstellte Unterordner nicht mehr fälschlicherweise als Systemordner**: Bisher galten alle Pfade unterhalb von `member/` (z. B. `member/user-1/fotos`) als System-Pfad und erhielten deshalb kein Aktions-Dropdown. Die neue Logik schützt nur die Root-Ordner selbst (Ebene 1) und die direkten User-Roots `member/user-X` (Ebene 2); Unterordner von Usern (Ebene 3+) sind nicht mehr geschützt und zeigen korrekt Umbenennen/Verschieben/Löschen an. |
+| **2.8.0 RC** | 🔴 fix | Admin/Media JS | **`CMS/assets/js/admin-media-integrations.js` ergänzt einen Pending-Trigger-Fallback für Bootstrap-Modals**: Bootstrap 5 setzt `event.relatedTarget` nicht immer, wenn ein Modal-Trigger innerhalb eines sich schließenden Dropdown-Menüs liegt. Der neue Click-Listener auf `.js-media-open-rename` und `.js-media-open-move` speichert den auslösenden Button synchron und reicht ihn an `show.bs.modal` weiter, falls `event.relatedTarget` `null` ist. Umbenennen und Verschieben befüllen das Modal damit zuverlässig mit dem richtigen Pfad. |
+| **2.8.0 RC** | 🔴 fix | Member/Media JS | **`CMS/assets/js/member-dashboard.js` erhält denselben Pending-Trigger-Fallback für Member-Medien**: `.js-member-media-open-rename` und `.js-member-media-open-move` setzen den gespeicherten Trigger nach dem Konsumieren auf `null` zurück, um Überbleibsel zwischen aufeinanderfolgenden Modal-Öffnungen zu verhindern. |
+| **2.8.0 RC** | 🔴 fix | Review | **Alle drei Änderungen wurden auf Fehler, Best Practice und Security geprüft**: Keine neuen Editorfehler; die Pfad-Normalisierung in `isSystemPath` baut korrekt auf der vorgelagerten Normalisierung (Admin: `MediaModule::normalizePath`, Member: `normalizeMemberMediaPath`) auf; der Pending-Trigger-Wert wird nach Konsum genullt und enthält ausschließlich DOM-Element-Referenzen ohne Serialisierungsrisiko. |
+
+---
+
 ### v2.8.0 RC — 27. März 2026 · Folge-Batch 458, Medienbereich wird kompakter und erhält Bulk-Aktionen
 
 | Version | Typ | Bereich | Beschreibung |

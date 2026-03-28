@@ -5,13 +5,19 @@
 Diese Sektion dokumentiert bereits umgesetzte Teilfortschritte aus `DOC/audit/PRÜFUNG.MD`,
 ohne die große Bewertungsmatrix bei jedem einzelnen Batch vollständig neu auszurechnen.
 
-### Gesamtstand nach Batch 458
+### Gesamtstand nach Batch 459
 
 | Dateien | Ø Security | Ø Speed | Ø PHP/BP | Ø Gesamt |
 |---:|---:|---:|---:|---:|
-| 458 | 95,12 | 92,74 | 96,22 | 96,35 |
+| 459 | 95,12 | 92,74 | 96,22 | 96,35 |
 
-Der aktuelle Nachpflege-Stand umfasst damit **458 umgesetzte Batches**, davon weiterhin **444 von 444 Prüfplan-Punkten** im ursprünglichen Auditplan und zusätzlich vierzehn Folge-Batches darüber hinaus. Zuletzt wurde der Medienbereich nach einem fehlerfreien Review UI-seitig verdichtet: Dropdowns, zentrale Modale, vorbereitete Zielordner-Auswahlen und Bulk-Aktionen reduzieren die Oberfläche, ohne die zuvor gehärteten POST-/CSRF- und Pfadverträge wieder aufzuweichen. Die Kennzahlen bleiben dabei stabil.
+Der aktuelle Nachpflege-Stand umfasst damit **459 umgesetzte Batches**, davon weiterhin **444 von 444 Prüfplan-Punkten** im ursprünglichen Auditplan und zusätzlich fünfzehn Folge-Batches darüber hinaus. Zuletzt wurden zwei Regressions-Bugs im Medienbereich behoben: die fehlerhafte Systemordner-Klassifikation für Member-Unterordner und der Bootstrap-Modal-Trigger-Fallback für Dropdown-Aktionen. Die Kennzahlen bleiben dabei stabil.
+
+### Delta Folge-Batch 459
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/core/Services/Media/MediaRepository.php`, `CMS/assets/js/admin-media-integrations.js`, `CMS/assets/js/member-dashboard.js` | umgesetzt | `isSystemPath()` schützt jetzt nur Ebene 1 (Root-Systemordner) und Ebene 2 unter `member/` (User-Roots); Dropdown-Modal-Trigger nutzen einen Click-Pending-Fallback, damit `event.relatedTarget` nicht leer bleibt, wenn Buttons innerhalb schließender Bootstrap-Dropdowns ausgelöst werden. | Member-erstellte Unterordner erhalten wieder sichtbare Aktions-Dropdowns; Umbenennen und Verschieben befüllen das Modal zuverlässig mit dem richtigen Pfad, unabhängig vom Bootstrap-internen Dropdown-Close-Timing. |
 
 ### Delta Folge-Batch 458
 

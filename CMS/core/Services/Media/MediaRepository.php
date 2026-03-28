@@ -198,8 +198,24 @@ final class MediaRepository
 
     public function isSystemPath(string $relativePath): bool
     {
-        $parts = explode('/', $relativePath);
-        return $parts !== [] && in_array($parts[0], $this->systemFolders, true);
+        $normalized = trim(str_replace('\\', '/', $relativePath), '/');
+        $parts = array_values(array_filter(explode('/', $normalized)));
+
+        if ($parts === []) {
+            return false;
+        }
+
+        // Top-level system folders (e.g. 'member', 'themes', 'plugins')
+        if (count($parts) === 1 && in_array($parts[0], $this->systemFolders, true)) {
+            return true;
+        }
+
+        // Direct children of 'member' (member/user-X) are also protected
+        if (count($parts) === 2 && $parts[0] === 'member') {
+            return true;
+        }
+
+        return false;
     }
 
     public function getItems(string $path = ''): array|WP_Error
