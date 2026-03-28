@@ -212,14 +212,24 @@ $actionClass = static function (string $variant): string {
                                                     $actionType = (string) ($action['type'] ?? 'status');
                                                     $buttonClass = $actionClass((string) ($action['variant'] ?? 'default'));
                                                     $iconName = (string) ($action['icon'] ?? 'check');
+                                                    $actionCommentId = (int) ($action['comment_id'] ?? $cId);
+                                                    $actionStatus = (string) ($action['status'] ?? '');
+                                                    $isDeleteAction = $actionType === 'delete';
                                                     ?>
-                                                    <button type="button"
-                                                            class="<?php echo htmlspecialchars($buttonClass); ?> <?php echo $actionType === 'delete' ? 'js-comment-delete' : 'js-comment-action'; ?>"
-                                                            data-comment-id="<?php echo (int) ($action['comment_id'] ?? $cId); ?>"
-                                                            <?php if ($actionType !== 'delete'): ?>data-comment-action="status" data-comment-status="<?php echo htmlspecialchars((string) ($action['status'] ?? '')); ?>"<?php endif; ?>>
-                                                        <svg xmlns="http://www.w3.org/2000/svg" class="icon dropdown-item-icon<?php echo str_contains($buttonClass, 'text-') ? ' ' . trim(str_replace('dropdown-item', '', $buttonClass)) : ''; ?>" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><?php echo $renderCommentIcon($iconName); ?></svg>
-                                                        <?php echo htmlspecialchars((string) ($action['label'] ?? 'Aktion')); ?>
-                                                    </button>
+                                                    <form method="post"
+                                                          class="m-0"
+                                                          <?php if ($isDeleteAction): ?>data-confirm-title="Kommentar löschen" data-confirm-message="Kommentar wirklich löschen? Dies kann nicht rückgängig gemacht werden." data-confirm-text="Löschen" data-confirm-class="btn-danger" data-confirm-status-class="bg-danger"<?php endif; ?>>
+                                                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
+                                                        <input type="hidden" name="action" value="<?php echo $isDeleteAction ? 'delete' : 'status'; ?>">
+                                                        <input type="hidden" name="id" value="<?php echo $actionCommentId; ?>">
+                                                        <?php if (!$isDeleteAction): ?>
+                                                            <input type="hidden" name="new_status" value="<?php echo htmlspecialchars($actionStatus); ?>">
+                                                        <?php endif; ?>
+                                                        <button type="submit" class="<?php echo htmlspecialchars($buttonClass); ?> w-100 text-start">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" class="icon dropdown-item-icon<?php echo str_contains($buttonClass, 'text-') ? ' ' . trim(str_replace('dropdown-item', '', $buttonClass)) : ''; ?>" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><?php echo $renderCommentIcon($iconName); ?></svg>
+                                                            <?php echo htmlspecialchars((string) ($action['label'] ?? 'Aktion')); ?>
+                                                        </button>
+                                                    </form>
                                                 <?php endforeach; ?>
                                             </div>
                                         </div>
@@ -236,10 +246,3 @@ $actionClass = static function (string $variant): string {
     </div>
 </div>
 
-<!-- Aktions-Formular (hidden) -->
-<form id="actionForm" method="post" class="d-none">
-    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
-    <input type="hidden" name="action" id="actionType" value="">
-    <input type="hidden" name="id" id="actionId" value="">
-    <input type="hidden" name="new_status" id="actionStatus" value="">
-</form>

@@ -98,8 +98,9 @@ final class DocumentationModule
 
     public function __construct()
     {
-        $this->repoRoot = rtrim((string) dirname((string) ABSPATH), '\\/');
-        $this->docsRoot = $this->repoRoot . DIRECTORY_SEPARATOR . 'DOC';
+        $resolvedRoots = $this->resolveDocumentationRoots();
+        $this->repoRoot = $resolvedRoots['repo_root'];
+        $this->docsRoot = $resolvedRoots['docs_root'];
         $this->logger = Logger::instance()->withChannel('admin.documentation');
         $siteUrl = defined('SITE_URL') ? (string) SITE_URL : '';
 
@@ -176,8 +177,8 @@ final class DocumentationModule
             ]);
         }
 
-        if (!is_dir($resolvedRepoRoot . DIRECTORY_SEPARATOR . 'CMS')) {
-            return $this->logInvalidRepositoryLayout('Dokumentationsmodul: Repository-Layout ungültig.', [
+        if (!$this->isSupportedDocumentationRootLayout($resolvedRepoRoot)) {
+            return $this->logInvalidRepositoryLayout('Dokumentationsmodul: Hosting-/Repository-Layout ungültig.', [
                 'repo_root' => $resolvedRepoRoot,
             ]);
         }
@@ -385,10 +386,74 @@ final class DocumentationModule
         }
 
         if (!is_dir($this->docsRoot)) {
-            return $this->errorData('Das Dokumentationsverzeichnis /DOC wurde im Repository nicht gefunden.');
+            return $this->errorData('Das Dokumentationsverzeichnis /DOC wurde im Hosting-Stamm nicht gefunden.');
         }
 
         return null;
+    }
+
+    /**
+     * @return array{repo_root:string,docs_root:string}
+     */
+    private function resolveDocumentationRoots(): array
+    {
+        $candidates = [
+            rtrim((string) ABSPATH, '\\/'),
+            rtrim((string) dirname((string) ABSPATH), '\\/'),
+        ];
+
+        $normalizedCandidates = [];
+        foreach ($candidates as $candidate) {
+            $normalized = $this->normalizePath($candidate);
+            if ($normalized === '' || in_array($normalized, $normalizedCandidates, true)) {
+                continue;
+            }
+
+            $normalizedCandidates[] = $normalized;
+        }
+
+        foreach ($normalizedCandidates as $candidate) {
+            $docsRoot = $candidate . DIRECTORY_SEPARATOR . 'DOC';
+            if (is_dir($docsRoot)) {
+                return [
+                    'repo_root' => $candidate,
+                    'docs_root' => $docsRoot,
+                ];
+            }
+        }
+
+        $preferredRoot = $normalizedCandidates[0] ?? $this->normalizePath((string) ABSPATH);
+
+        return [
+            'repo_root' => $preferredRoot,
+            'docs_root' => $preferredRoot . DIRECTORY_SEPARATOR . 'DOC',
+        ];
+    }
+
+    private function isSupportedDocumentationRootLayout(string $resolvedRepoRoot): bool
+    {
+        if (is_dir($resolvedRepoRoot . DIRECTORY_SEPARATOR . 'CMS')) {
+            return true;
+        }
+
+        return is_file($resolvedRepoRoot . DIRECTORY_SEPARATOR . 'index.php')
+            && is_file($resolvedRepoRoot . DIRECTORY_SEPARATOR . 'config.php')
+            && is_dir($resolvedRepoRoot . DIRECTORY_SEPARATOR . 'core');
+    }
+
+    private function normalizePath(string $path): string
+    {
+        $path = trim($path);
+        if ($path === '') {
+            return '';
+        }
+
+        $resolved = realpath($path);
+        if ($resolved !== false) {
+            return rtrim((string) $resolved, '\\/');
+        }
+
+        return rtrim($path, '\\/');
     }
 
     private function errorData(string $message): DocumentationViewData

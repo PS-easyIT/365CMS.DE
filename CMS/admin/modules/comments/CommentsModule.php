@@ -470,11 +470,11 @@ class CommentsModule
             }
         }
 
-        if ($this->canDelete() && $status === 'trash') {
+        if ($this->canDelete()) {
             $actions[] = [
                 'type' => 'delete',
                 'comment_id' => $commentId,
-                'label' => 'Endgültig löschen',
+                'label' => $status === 'trash' ? 'Endgültig löschen' : 'Löschen',
                 'icon' => 'trash',
                 'variant' => 'danger',
             ];

@@ -66,7 +66,8 @@ function cms_admin_cookie_manager_handle_action(CookieManagerModule $module, arr
         'delete_service' => $module->deleteService($payload['id']),
         'import_curated_service' => $module->importCuratedService(
             $payload['service_slug'],
-            $payload['self_hosted']
+            $payload['self_hosted'],
+            $payload['post']
         ),
         'run_scan' => $module->runScanner(),
         default => ['success' => false, 'error' => 'Aktion konnte nicht verarbeitet werden.'],

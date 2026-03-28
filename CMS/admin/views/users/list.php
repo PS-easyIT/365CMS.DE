@@ -143,13 +143,79 @@ $getRoleColor = static function (string $role) use ($roleColors): string {
                 </div>
             </div>
 
-            <div class="card-body">
-                <div id="usersGrid"></div>
+            <div class="table-responsive">
+                <table class="table table-vcenter card-table">
+                    <thead>
+                        <tr>
+                            <th>Benutzer</th>
+                            <th>E-Mail</th>
+                            <th>Rolle</th>
+                            <th>Status</th>
+                            <th>Registriert</th>
+                            <th class="w-1"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    <?php if (empty($users)): ?>
+                        <?php
+                        $emptyStateColspan = 6;
+                        $emptyStateMessage = 'Keine Benutzer gefunden.';
+                        $emptyStateSubtitle = 'Prüfen Sie Filter oder Suche – die serverseitige Liste liefert aktuell keine Einträge.';
+                        $emptyStateIcon = 'users';
+                        require __DIR__ . '/../partials/empty-table-row.php';
+                        ?>
+                    <?php else: ?>
+                        <?php foreach ($users as $user): ?>
+                            <?php
+                            $userId = (int)($user->id ?? 0);
+                            $username = trim((string)($user->username ?? ''));
+                            $displayName = trim((string)($user->display_name ?? ''));
+                            $email = trim((string)($user->email ?? ''));
+                            $role = trim((string)($user->role ?? 'member'));
+                            $status = trim((string)($user->status ?? 'inactive'));
+                            $createdAt = trim((string)($user->created_at ?? ''));
+                            $roleLabel = (string)($availableRoles[$role] ?? ucfirst($role));
+                            $statusLabel = match ($status) {
+                                'active' => 'Aktiv',
+                                'inactive' => 'Inaktiv',
+                                'banned' => 'Gesperrt',
+                                default => $status !== '' ? ucfirst($status) : '–',
+                            };
+                            $statusClass = match ($status) {
+                                'active' => 'bg-green-lt text-green',
+                                'inactive' => 'bg-yellow-lt text-yellow',
+                                'banned' => 'bg-red-lt text-red',
+                                default => 'bg-secondary-lt text-secondary',
+                            };
+                            $initials = strtoupper(substr($username !== '' ? $username : 'U', 0, 2));
+                            ?>
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <span class="avatar avatar-sm me-2 bg-<?php echo htmlspecialchars($getRoleColor($role)); ?> text-white"><?php echo htmlspecialchars($initials); ?></span>
+                                        <div>
+                                            <a href="<?php echo htmlspecialchars($siteUrl); ?>/admin/users?action=edit&id=<?php echo $userId; ?>" class="text-reset fw-medium"><?php echo htmlspecialchars($username !== '' ? $username : 'Unbekannt'); ?></a>
+                                            <?php if ($displayName !== ''): ?>
+                                                <div class="text-secondary small"><?php echo htmlspecialchars($displayName); ?></div>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td><?php echo htmlspecialchars($email !== '' ? $email : '–'); ?></td>
+                                <td><span class="badge bg-azure-lt"><?php echo htmlspecialchars($roleLabel); ?></span></td>
+                                <td><span class="badge <?php echo htmlspecialchars($statusClass); ?>"><?php echo htmlspecialchars($statusLabel); ?></span></td>
+                                <td class="text-secondary"><?php echo htmlspecialchars($createdAt !== '' ? substr($createdAt, 0, 10) : '–'); ?></td>
+                                <td>
+                                    <a href="<?php echo htmlspecialchars($siteUrl); ?>/admin/users?action=edit&id=<?php echo $userId; ?>" class="btn btn-sm btn-outline-primary">Bearbeiten</a>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                    </tbody>
+                </table>
             </div>
         </div>
 
     </div>
 </div>
-
-<script type="application/json" id="users-grid-config"><?php echo json_encode($usersGridConfig ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?></script>
 

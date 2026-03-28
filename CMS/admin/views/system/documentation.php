@@ -324,8 +324,8 @@ if (!function_exists('cms_admin_documentation_view_source_text')) {
     function cms_admin_documentation_view_source_text(string $docsRoot): string
     {
         return $docsRoot !== ''
-            ? 'Quelle: lokale Repository-Dokumentation unter ' . $docsRoot . '. Inhalt entspricht dem GitHub-Bereich /DOC des Projekts.'
-            : 'Quelle: lokale Repository-Dokumentation. Inhalt entspricht dem GitHub-Bereich /DOC des Projekts.';
+            ? 'Quelle: lokales /DOC-Verzeichnis im Hosting-Stamm bzw. Projektpfad unter ' . $docsRoot . '. Inhalt entspricht dem GitHub-Bereich /DOC des Projekts.'
+            : 'Quelle: lokales /DOC-Verzeichnis im Hosting-Stamm bzw. Projektpfad. Inhalt entspricht dem GitHub-Bereich /DOC des Projekts.';
     }
 }
 
@@ -355,7 +355,7 @@ $metricCards = cms_admin_documentation_view_metric_cards($docCount, $sectionCoun
             <div class="col">
                 <div class="page-pretitle">Info &amp; Diagnose</div>
                 <h2 class="page-title">Dokumentation</h2>
-                <div class="text-secondary mt-1">Live-Ansicht der Repository-Dokumentation aus <code>/DOC</code> – strukturiert wie im GitHub-Bereich, aber direkt im Admin verfügbar.</div>
+                <div class="text-secondary mt-1">Live-Ansicht der lokalen Dokumentation aus <code>/DOC</code> – bevorzugt direkt neben der öffentlichen <code>index.php</code> im Hosting-Stamm, alternativ aus dem Projekt-Layout.</div>
             </div>
             <div class="col-auto d-flex gap-2 flex-wrap">
                 <form method="post" class="d-inline">

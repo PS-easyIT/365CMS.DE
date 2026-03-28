@@ -207,6 +207,8 @@ class CommentService
         if (in_array($status, ['pending', 'approved', 'spam', 'trash'], true)) {
             $where = 'WHERE c.status = ?';
             $params[] = $status;
+        } elseif ($status === 'all') {
+            $where = "WHERE c.status <> 'spam'";
         }
 
         $params[] = $limit;
@@ -247,7 +249,9 @@ class CommentService
             if (isset($counts[$status])) {
                 $counts[$status] = $cnt;
             }
-            $counts['all'] += $cnt;
+            if ($status !== 'spam') {
+                $counts['all'] += $cnt;
+            }
         }
 
         return $counts;

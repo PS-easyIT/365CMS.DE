@@ -237,6 +237,9 @@ $cookieManagerConfig = [
                                                 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>">
                                                 <input type="hidden" name="action" value="import_curated_service">
                                                 <input type="hidden" name="service_slug" value="<?php echo htmlspecialchars((string)($scan['slug'] ?? '')); ?>">
+                                                <input type="hidden" name="service_name" value="<?php echo htmlspecialchars((string)($scan['name'] ?? '')); ?>">
+                                                <input type="hidden" name="service_provider" value="<?php echo htmlspecialchars((string)($scan['provider'] ?? '')); ?>">
+                                                <input type="hidden" name="category_slug" value="<?php echo htmlspecialchars((string)($scan['category_slug'] ?? 'necessary')); ?>">
                                                 <button type="submit" class="btn btn-outline-primary btn-sm">Übernehmen</button>
                                             </form>
                                             <?php if (!empty($scan['self_hostable']) && ($scan['slug'] ?? '') === 'matomo'): ?>
@@ -244,6 +247,9 @@ $cookieManagerConfig = [
                                                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>">
                                                     <input type="hidden" name="action" value="import_curated_service">
                                                     <input type="hidden" name="service_slug" value="matomo">
+                                                    <input type="hidden" name="service_name" value="<?php echo htmlspecialchars((string)($scan['name'] ?? 'Matomo')); ?>">
+                                                    <input type="hidden" name="service_provider" value="<?php echo htmlspecialchars((string)($scan['provider'] ?? 'Matomo')); ?>">
+                                                    <input type="hidden" name="category_slug" value="<?php echo htmlspecialchars((string)($scan['category_slug'] ?? 'analytics')); ?>">
                                                     <input type="hidden" name="self_hosted" value="1">
                                                     <button type="submit" class="btn btn-outline-success btn-sm">Self-Hosted → essenziell</button>
                                                 </form>

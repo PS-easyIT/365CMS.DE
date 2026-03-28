@@ -155,19 +155,21 @@ final class IndexingService
      */
     public function getIndexNowRootTxtFiles(): array
     {
-        $files = glob(ABSPATH . '*.txt');
-        if (!is_array($files) || $files === []) {
-            return [];
-        }
-
         $result = [];
-        foreach ($files as $file) {
-            $basename = basename((string) $file);
-            if ($basename === '' || !is_file($file)) {
+        foreach ($this->getIndexNowRootDirectories() as $directory) {
+            $files = glob($directory . DIRECTORY_SEPARATOR . '*.txt');
+            if (!is_array($files) || $files === []) {
                 continue;
             }
 
-            $result[] = $basename;
+            foreach ($files as $file) {
+                $basename = basename((string) $file);
+                if ($basename === '' || !is_file($file)) {
+                    continue;
+                }
+
+                $result[] = $basename;
+            }
         }
 
         natcasesort($result);
@@ -198,8 +200,9 @@ final class IndexingService
     {
         $key = $this->resolveIndexNowKey();
         $selectedFile = $this->resolveIndexNowSelectedRootFile();
+        $rootDirectories = $this->getIndexNowRootDirectories();
         $rootTxtFiles = $this->getIndexNowRootTxtFiles();
-        $rootDirectory = rtrim(str_replace(['/', '\\'], DIRECTORY_SEPARATOR, ABSPATH), DIRECTORY_SEPARATOR);
+        $rootDirectory = implode(' | ', $rootDirectories);
         $dynamicKeyFileUrl = $key !== ''
             ? rtrim((string) SITE_URL, '/') . '/' . rawurlencode($key) . '.txt'
             : '';
@@ -220,8 +223,8 @@ final class IndexingService
 
         if ($selectedFile !== '') {
             $selectedFileUrl = rtrim((string) SITE_URL, '/') . '/' . rawurlencode($selectedFile);
-            $selectedFilePath = ABSPATH . $selectedFile;
-            $selectedFileExists = is_file($selectedFilePath) && in_array($selectedFile, $rootTxtFiles, true);
+            $selectedFilePath = $this->findIndexNowRootFilePath($selectedFile);
+            $selectedFileExists = $selectedFilePath !== null && in_array($selectedFile, $rootTxtFiles, true);
 
             if (!$selectedFileExists) {
                 $validationErrors[] = 'Die ausgewählte Root-TXT-Datei wurde nicht gefunden.';
@@ -290,6 +293,66 @@ final class IndexingService
             'validation_errors' => $validationErrors,
             'validation_notes' => $validationNotes,
         ];
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function getIndexNowRootDirectories(): array
+    {
+        $candidates = [
+            dirname(rtrim((string) ABSPATH, DIRECTORY_SEPARATOR)),
+            rtrim((string) ABSPATH, DIRECTORY_SEPARATOR),
+        ];
+
+        $documentRoot = trim((string) ($_SERVER['DOCUMENT_ROOT'] ?? ''));
+        if ($documentRoot !== '') {
+            $candidates[] = $documentRoot;
+        }
+
+        $scriptFilename = trim((string) ($_SERVER['SCRIPT_FILENAME'] ?? ''));
+        if ($scriptFilename !== '') {
+            $candidates[] = dirname($scriptFilename);
+        }
+
+        $normalized = [];
+        foreach ($candidates as $candidate) {
+            $resolved = $this->normalizeDirectoryPath($candidate);
+            if ($resolved === '' || !is_dir($resolved)) {
+                continue;
+            }
+
+            $normalized[] = $resolved;
+        }
+
+        return array_values(array_unique($normalized));
+    }
+
+    private function findIndexNowRootFilePath(string $selectedFile): ?string
+    {
+        foreach ($this->getIndexNowRootDirectories() as $directory) {
+            $path = $directory . DIRECTORY_SEPARATOR . $selectedFile;
+            if (is_file($path)) {
+                return $path;
+            }
+        }
+
+        return null;
+    }
+
+    private function normalizeDirectoryPath(string $path): string
+    {
+        $trimmed = trim($path);
+        if ($trimmed === '') {
+            return '';
+        }
+
+        $realPath = realpath($trimmed);
+        if ($realPath !== false) {
+            return rtrim(str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $realPath), DIRECTORY_SEPARATOR);
+        }
+
+        return rtrim(str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $trimmed), DIRECTORY_SEPARATOR);
     }
 
     private function resolveIndexNowKey(): string

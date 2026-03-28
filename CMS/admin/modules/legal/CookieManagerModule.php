@@ -290,9 +290,12 @@ class CookieManagerModule
             return ['success' => false, 'error' => 'Die Matomo-URL muss als gültige http(s)-URL ohne Zugangsdaten angegeben werden.'];
         }
 
+        $consentEnabled = isset($post['cookie_banner_enabled'])
+            || (isset($post['cookie_consent_enabled']) && (string)$post['cookie_consent_enabled'] === '1');
+
         $keys = [
-            'cookie_banner_enabled'  => isset($post['cookie_banner_enabled']) ? '1' : '0',
-            'cookie_consent_enabled' => isset($post['cookie_banner_enabled']) ? '1' : '0',
+            'cookie_banner_enabled'  => $consentEnabled ? '1' : '0',
+            'cookie_consent_enabled' => $consentEnabled ? '1' : '0',
             'cookie_banner_position' => in_array($post['cookie_banner_position'] ?? '', ['bottom', 'top', 'center'], true)
                 ? $post['cookie_banner_position'] : 'bottom',
             'cookie_banner_text'     => $this->sanitizeLimitedHtml((string)($post['cookie_banner_text'] ?? ''), self::MAX_SETTING_HTML_LENGTH, '<p><a><strong><em><br>'),
@@ -564,7 +567,7 @@ class CookieManagerModule
         return ['success' => true, 'message' => 'Service gelöscht.'];
     }
 
-    public function importCuratedService(string $slug, bool $selfHosted = false): array
+    public function importCuratedService(string $slug, bool $selfHosted = false, array $post = []): array
     {
         if (!$this->canAccess()) {
             return ['success' => false, 'error' => 'Zugriff verweigert.'];
@@ -585,22 +588,34 @@ class CookieManagerModule
 
         $service = self::CURATED_SERVICES[$slug];
         $data = [
-            'name' => $service['name'],
+            'name' => $this->sanitizeText((string)($post['service_name'] ?? $service['name']), self::MAX_SERVICE_NAME_LENGTH, (string)$service['name']),
             'slug' => $slug,
-            'provider' => $service['provider'],
-            'category_slug' => $service['is_essential'] ?? false ? 'necessary' : $service['category_slug'],
-            'description' => $service['description'],
+            'provider' => $this->sanitizeText((string)($post['service_provider'] ?? $service['provider']), self::MAX_PROVIDER_LENGTH, (string)$service['provider']),
+            'category_slug' => $this->sanitizeSlug((string)($post['category_slug'] ?? ($service['is_essential'] ?? false ? 'necessary' : $service['category_slug'])), $service['category_slug'], 'necessary'),
+            'description' => $this->sanitizeText((string)($post['service_description'] ?? $service['description']), self::MAX_SERVICE_DESCRIPTION_LENGTH, (string)$service['description']),
             'cookie_names' => '',
             'code_snippet' => '',
             'is_essential' => !empty($service['is_essential']) ? 1 : 0,
             'is_active' => 1,
         ];
 
+        $categoryExists = (int)$this->db->get_var(
+            "SELECT COUNT(*) FROM {$this->prefix}cookie_categories WHERE slug = ?",
+            [$data['category_slug']]
+        );
+        if ($categoryExists === 0) {
+            $data['category_slug'] = !empty($service['is_essential']) ? 'necessary' : (string)$service['category_slug'];
+        }
+
         if ($slug === 'matomo' && $selfHosted) {
             $data['name'] = 'Matomo (Self-Hosted)';
             $data['provider'] = 'Matomo Self-Hosted';
             $data['category_slug'] = 'necessary';
-            $data['description'] = 'Self-hosted Matomo-Instanz. Kann bei berechtigtem berechtigtem Interesse bzw. DSGVO-konformer Eigenhosting-Konfiguration als essenzieller Dienst behandelt werden.';
+            $data['description'] = $this->sanitizeText(
+                (string)($post['service_description'] ?? 'Self-hosted Matomo-Instanz. Kann bei berechtigtem Interesse bzw. DSGVO-konformer Eigenhosting-Konfiguration als essenzieller Dienst behandelt werden.'),
+                self::MAX_SERVICE_DESCRIPTION_LENGTH,
+                'Self-hosted Matomo-Instanz. Kann bei berechtigtem Interesse bzw. DSGVO-konformer Eigenhosting-Konfiguration als essenzieller Dienst behandelt werden.'
+            );
             $data['is_essential'] = 1;
             $data['is_active'] = 1;
         }

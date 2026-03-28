@@ -128,11 +128,11 @@ $statusLabels = [
                 </div>
             </div>
 
-            <div class="card-body py-2 d-none" id="bulkBarPages">
+            <div class="card-body border-bottom py-2" id="bulkBarPages">
                 <form method="post" id="bulkFormPages" class="d-flex flex-wrap align-items-center gap-2">
                     <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
                     <input type="hidden" name="action" value="bulk">
-                    <span class="text-secondary"><strong id="selectedCountPages">0</strong> ausgewählt</span>
+                    <span class="text-secondary">Markierte Seiten bearbeiten</span>
                     <select name="bulk_action" class="form-select form-select-sm w-auto">
                         <option value="">Aktion wählen…</option>
                         <option value="publish">Veröffentlichen</option>
@@ -151,13 +151,115 @@ $statusLabels = [
                 </form>
             </div>
 
-            <div class="card-body">
-                <div id="pagesGrid"></div>
+            <div class="table-responsive">
+                <table class="table table-vcenter card-table">
+                    <thead>
+                        <tr>
+                            <th class="w-1">
+                                <input class="form-check-input" type="checkbox" id="pagesSelectAll" aria-label="Alle Seiten auswählen">
+                            </th>
+                            <th>Titel</th>
+                            <th>Slug</th>
+                            <th>Kategorie</th>
+                            <th>Status</th>
+                            <th>Autor</th>
+                            <th>Aktualisiert</th>
+                            <th class="w-1"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    <?php if (empty($pages)): ?>
+                        <?php
+                        $emptyStateColspan = 8;
+                        $emptyStateMessage = 'Keine Seiten gefunden.';
+                        $emptyStateSubtitle = 'Prüfen Sie Filter oder Suche – die serverseitige Liste liefert aktuell keine Einträge.';
+                        $emptyStateIcon = 'file-text';
+                        require __DIR__ . '/../partials/empty-table-row.php';
+                        ?>
+                    <?php else: ?>
+                        <?php foreach ($pages as $page): ?>
+                            <?php
+                            $pageId = (int)($page->id ?? 0);
+                            $pageTitle = trim((string)($page->title ?? ''));
+                            $pageSlug = trim((string)($page->slug ?? ''));
+                            $pageStatus = (string)($page->status ?? 'draft');
+                            [$pageStatusLabel, $pageStatusClass] = $statusLabels[$pageStatus] ?? [$pageStatus, 'bg-secondary'];
+                            $pageCategory = trim((string)($page->category_name ?? ''));
+                            $pageAuthor = trim((string)($page->author ?? ''));
+                            $pageUpdatedAt = trim((string)($page->updated_at ?? $page->created_at ?? ''));
+                            ?>
+                            <tr>
+                                <td>
+                                    <input class="form-check-input" type="checkbox" name="ids[]" value="<?= $pageId ?>" form="bulkFormPages">
+                                </td>
+                                <td>
+                                    <a href="<?= $siteUrl ?>/admin/pages?action=edit&id=<?= $pageId ?>" class="text-reset fw-medium">
+                                        <?= htmlspecialchars($pageTitle !== '' ? $pageTitle : 'Ohne Titel') ?>
+                                    </a>
+                                </td>
+                                <td class="text-secondary">/<?= htmlspecialchars($pageSlug) ?></td>
+                                <td>
+                                    <?php if ($pageCategory !== ''): ?>
+                                        <span class="badge bg-azure-lt"><?= htmlspecialchars($pageCategory) ?></span>
+                                    <?php else: ?>
+                                        <span class="text-secondary">–</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td>
+                                    <span class="badge <?= htmlspecialchars($pageStatusClass) ?>"><?= htmlspecialchars($pageStatusLabel) ?></span>
+                                </td>
+                                <td><?= htmlspecialchars($pageAuthor !== '' ? $pageAuthor : '–') ?></td>
+                                <td class="text-secondary"><?= htmlspecialchars($pageUpdatedAt !== '' ? $pageUpdatedAt : '–') ?></td>
+                                <td>
+                                    <a href="<?= $siteUrl ?>/admin/pages?action=edit&id=<?= $pageId ?>" class="btn btn-sm btn-outline-primary">Bearbeiten</a>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                    </tbody>
+                </table>
             </div>
         </div>
 
     </div><!-- /.container-xl -->
 </div><!-- /.page-body -->
 
-<script type="application/json" id="pages-grid-config"><?php echo json_encode($pagesGridConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var selectAll = document.getElementById('pagesSelectAll');
+    var bulkAction = document.querySelector('#bulkFormPages [name="bulk_action"]');
+    var bulkCategory = document.getElementById('bulkCategoryPages');
+
+    function syncBulkCategoryVisibility() {
+        if (!bulkAction || !bulkCategory) {
+            return;
+        }
+
+        var requiresCategory = bulkAction.value === 'set_category';
+        bulkCategory.classList.toggle('d-none', !requiresCategory);
+        bulkCategory.required = requiresCategory;
+
+        if (!requiresCategory) {
+            bulkCategory.value = '0';
+        }
+    }
+
+    if (!selectAll) {
+        syncBulkCategoryVisibility();
+        return;
+    }
+
+    selectAll.addEventListener('change', function () {
+        document.querySelectorAll('input[name="ids[]"][form="bulkFormPages"]').forEach(function (checkbox) {
+            checkbox.checked = selectAll.checked;
+        });
+    });
+
+    if (bulkAction) {
+        bulkAction.addEventListener('change', syncBulkCategoryVisibility);
+    }
+
+    syncBulkCategoryVisibility();
+});
+</script>
 

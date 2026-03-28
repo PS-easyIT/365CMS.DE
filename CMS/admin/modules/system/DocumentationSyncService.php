@@ -181,10 +181,10 @@ final class DocumentationSyncService
             );
         }
 
-        if (!is_dir($resolvedRepoRoot . DIRECTORY_SEPARATOR . 'CMS')) {
+        if (!$this->isSupportedDocumentationRootLayout($resolvedRepoRoot)) {
             return $this->createConfigurationFailure(
                 'documentation.sync.invalid_repo_layout',
-                'Repository-Layout für den Doku-Sync ist ungültig.',
+                'Hosting-/Repository-Layout für den Doku-Sync ist ungültig.',
                 [
                     'repo_root' => $resolvedRepoRoot,
                 ]
@@ -257,6 +257,17 @@ final class DocumentationSyncService
         }
 
         return null;
+    }
+
+    private function isSupportedDocumentationRootLayout(string $resolvedRepoRoot): bool
+    {
+        if (is_dir($resolvedRepoRoot . DIRECTORY_SEPARATOR . 'CMS')) {
+            return true;
+        }
+
+        return is_file($resolvedRepoRoot . DIRECTORY_SEPARATOR . 'index.php')
+            && is_file($resolvedRepoRoot . DIRECTORY_SEPARATOR . 'config.php')
+            && is_dir($resolvedRepoRoot . DIRECTORY_SEPARATOR . 'core');
     }
 
     private function normalizeCapabilities(DocumentationSyncCapabilities $capabilities): DocumentationSyncCapabilities
