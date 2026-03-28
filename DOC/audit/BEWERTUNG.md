@@ -29,7 +29,7 @@ Der aktuelle Nachpflege-Stand umfasst damit **464 umgesetzte Batches**, davon we
 
 | Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
 |---|---|---|---|
-| `CMS/core/Version.php`, `CMS/update.json`, `README.md`, `Changelog.md` | umgesetzt | Release-Metadaten und zentrale Projektdoku wurden auf `2.8.1` synchronisiert und nennen den fail-closed gehärteten IndexNow-Guard jetzt konsistent im öffentlichen Überblick. | Der Patch-Stand bleibt als kleiner, überprüfbarer Release-Snapshot dokumentiert, statt dass Versionsdateien und Hauptdoku auseinanderlaufen. |
+| `CMS/core/Version.php`, `CMS/update.json`, `README.md`, `Changelog.md` | umgesetzt | Release-Metadaten und zentrale Projektdoku wurden auf den dokumentierten Stand `2.8.0` synchronisiert und nennen den fail-closed gehärteten IndexNow-Guard jetzt konsistent im öffentlichen Überblick. | Der Release-Snapshot bleibt als kleiner, überprüfbarer Stand dokumentiert, statt dass Versionsdateien und Hauptdoku auseinanderlaufen. |
 
 ### Delta Folge-Batch 461
 

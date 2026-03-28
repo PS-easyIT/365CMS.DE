@@ -77,8 +77,6 @@ Die folgenden Screens zeigen zentrale Bereiche von 365CMS – vom Dashboard übe
 Der dokumentierte Qualitätsstand liegt auf einem stabil hohen Niveau. 
 Die Audits wurden mit OWASP-nahen Prüfwerkzeugen & AI Audit Tools von Snyk, Refactor! und weiteren durchgeführt und schrittweise abgearbeitet. Offene Punkte betreffen vor allem verbleibende Fremd-Assets, die nach und nach durch eigene 365CMS-Lösungen oder saubere Wrapper ersetzt werden.
 
-Die zentrale Projektdokumentation unter `DOC/` bleibt dabei bewusst auf einem konsistenten **`2.8.0`-Snapshot** harmonisiert. Folge-Härtungen darüber hinaus werden im Audit-Log und Changelog nachgeführt, ohne den Basis-Doku-Stand unnötig auf Patch-Etiketten umzuziehen.
-
 | Metrik | Bewertung |
 |---|---:|
 | **Security** | **95,12** |
@@ -232,8 +230,6 @@ Die Prüfung liest ausgewählte Dateien außerdem nur dann aus, wenn sie lesbar 
 The documented quality level is already strong. Intentionally kept compact here: overall scores only – no batch history, no deep audit details.
 
 The audits were carried out using OWASP-oriented tooling, Snyk, refactoring passes and additional quality checks, and have been worked through step by step. Remaining open items mainly concern third-party assets that will gradually be replaced by native 365CMS solutions or clean wrapper layers.
-
-The central project documentation under `DOC/` intentionally stays aligned to a consistent **`2.8.0` snapshot**. Follow-up hardening batches are tracked through the audit log and changelog without needlessly relabeling the baseline documentation with patch-level tags.
 
 | Metric | Score |
 |---|---:|
