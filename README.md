@@ -9,18 +9,7 @@
 ![MySQL](https://img.shields.io/badge/MySQL-5.7%2B-4479A1?logo=mysql&logoColor=white)
 ![MariaDB](https://img.shields.io/badge/MariaDB-10.3%2B-003545?logo=mariadb&logoColor=white)
 
-![Self-Hosted](https://img.shields.io/badge/self--hosted-yes-2ea44f)
-![Monitoring](https://img.shields.io/badge/monitoring-built--in-475569)
-![OOP](https://img.shields.io/badge/architecture-OOP%20%2B%20Services-1d4ed8)
-![Hooks](https://img.shields.io/badge/extensibility-hooks%20%26%20filters-9333ea)
-![PDO](https://img.shields.io/badge/database-PDO%20Prepared%20Statements-0f766e)
-![Security](https://img.shields.io/badge/security-CSRF%20%7C%20XSS%20%7C%20Rate%20Limits-b91c1c)
-![Auth](https://img.shields.io/badge/auth-LDAP%20%7C%20TOTP%20%7C%20WebAuthn-7c3aed)
-![Mail](https://img.shields.io/badge/mail-Symfony%20Mailer%20%2B%20Mime-4f46e5)
-![Search](https://img.shields.io/badge/search-fulltext%20ready-0369a1)
-![WebP](https://img.shields.io/badge/media-WebP%20workflows-16a34a)
 ![Audit](https://img.shields.io/badge/quality-audited-111827)
-
 ![Security Score](https://img.shields.io/badge/Security-95.12-15803d)
 ![Speed Score](https://img.shields.io/badge/Speed-92.74-2563eb)
 ![PHP Score](https://img.shields.io/badge/PHP%20%2F%20Best%20Practices-96.22-7c3aed)
