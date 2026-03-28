@@ -16,8 +16,10 @@
 ![PHP Score](https://img.shields.io/badge/PHP%20%2F%20Best%20Practices-96.22-7c3aed)
 ![Overall Score](https://img.shields.io/badge/Overall-96.35-0f766e)
 
-### 365CMS ist ein sicheres, modulares und selbst hostbares Content-Management-System mit Theme-System, Plugin-Ökosystem, nativer Medienverwaltung sowie integrierten Werkzeugen für SEO, Performance, Security und Legal – ergänzt durch eine umfassende lokale Projektdokumentation.
+---
 
+### 365CMS ist ein sicheres, modulares und selbst hostbares Content-Management-System mit Theme-System, Plugin-Ökosystem, nativer Medienverwaltung sowie integrierten Werkzeugen für SEO, Performance, Security und Legal – ergänzt durch eine umfassende lokale Projektdokumentation.
+---
 [Website](https://365cms.de) • [Dokumentationsindex](DOC/INDEX.md) • [Changelog](Changelog.md) • [Theme-Doku](DOC/theme/README.md) • [Plugin-Doku](DOC/plugins/GUIDE.md)
 
 </div>
