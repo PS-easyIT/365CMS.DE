@@ -3,22 +3,14 @@
 <div align="center">
 
 [![Version](https://img.shields.io/badge/version-2.8.0--RC-blue.svg)](Changelog.md)
+![Status](https://img.shields.io/badge/status-release--candidate-orange)
+
 ![PHP](https://img.shields.io/badge/PHP-8.4%2B-777BB4?logo=php&logoColor=white)
 ![MySQL](https://img.shields.io/badge/MySQL-5.7%2B-4479A1?logo=mysql&logoColor=white)
 ![MariaDB](https://img.shields.io/badge/MariaDB-10.3%2B-003545?logo=mariadb&logoColor=white)
-![Status](https://img.shields.io/badge/status-release--candidate-orange)
 
 ![Self-Hosted](https://img.shields.io/badge/self--hosted-yes-2ea44f)
-![Admin Center](https://img.shields.io/badge/admin-center-available-0a7ea4)
-![Theme System](https://img.shields.io/badge/theme-system-modular-7b61ff)
-![Plugins](https://img.shields.io/badge/plugin-marketplace-ready-8a2be2)
-![SEO Suite](https://img.shields.io/badge/SEO-suite-integrated-0f766e)
-![Media Library](https://img.shields.io/badge/media-library-native-2563eb)
-![RBAC](https://img.shields.io/badge/RBAC-dynamic-b91c1c)
-![DSGVO](https://img.shields.io/badge/DSGVO-tools-included-15803d)
 ![Monitoring](https://img.shields.io/badge/monitoring-built--in-475569)
-![Updates](https://img.shields.io/badge/update-workflows-documented-f59e0b)
-
 ![OOP](https://img.shields.io/badge/architecture-OOP%20%2B%20Services-1d4ed8)
 ![Hooks](https://img.shields.io/badge/extensibility-hooks%20%26%20filters-9333ea)
 ![PDO](https://img.shields.io/badge/database-PDO%20Prepared%20Statements-0f766e)
@@ -225,6 +217,8 @@ Die vollständige Asset-Dokumentation liegt in [`DOC/ASSET.md`](DOC/ASSET.md) so
 **Kurz gesagt:** `365CMS.DE` ist die Core- und Betriebszentrale, `365CMS.DE-THEME` liefert das Design, `365CMS.DE-PLUGINS` die Module – zusammen ergibt das eine angenehm modulare CMS-Werkbank. 🛠️
 
 **Theme- und Plugin-Zugänge** sollen zum `01.04.2026` im Marketplace bereitgestellt werden. Spezielle Plugins aus dem `phin.network`-Umfeld bleiben kostenpflichtig; gängige Plugins wie Contact oder Forum sind kostenfrei geplant.
+
+---
 
 ## 🇬🇧 English
 
