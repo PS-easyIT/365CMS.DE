@@ -20,21 +20,16 @@
 
 ---
 
-### v2.8.1 — 28. März 2026 · Folge-Batch 462, Release-Metadaten und SEO-Guard auf Patch-Stand synchronisiert
-
-| Version | Typ | Bereich | Beschreibung |
-|---------|-----|---------|-------------|
-| **2.8.1** | ⬜ chore | Version | **`CMS/core/Version.php` und `CMS/update.json` wurden auf den Patch-Stand `2.8.1` synchronisiert**: Versionsnummer, Release-Datum und Update-Hinweis spiegeln jetzt denselben dokumentierten Stand wie README und Changelog. |
-| **2.8.1** | 🔴 fix | SEO/Security | **`CMS/core/Services/IndexingService.php` hält die IndexNow-Dateiprüfung jetzt explizit fail-closed**: Sobald Lesbarkeit oder Dateigröße fehlschlagen oder sich die Größe nicht sicher bestimmen lässt, bleibt der eigentliche Dateilesepfad geschlossen und liefert stattdessen einen klaren Validierungsfehler zurück. |
-| **2.8.1** | 🔴 fix | Review | **Die nachgezogenen Patch-Änderungen wurden erneut auf Fehler, Best Practice und Security geprüft**: keine neuen Editorfehler; PHP-Lint blieb für die geänderten PHP-Dateien ohne Beanstandung; die Release-Metadaten laufen jetzt konsistent zu README, Changelog und Audit-Protokoll. |
-
----
-
-### v2.8.0 RC — 28. März 2026
+### v2.8.1 — 28. März 2026
 
 | Version | Typ | Bereich | Beschreibung |
 |---------|-----|---------|-------------|
 | **2.8.0 RC** | 🟢 feat | Version | **Stand auf Release Candidate `2.8.0` angehoben** |
+| **2.8.0 RC** | ⬜ chore | Version | **`CMS/core/Version.php` und `CMS/update.json` wurden auf den Patch-Stand `2.8.1` synchronisiert**: Versionsnummer, Release-Datum und Update-Hinweis spiegeln jetzt denselben dokumentierten Stand wie README und Changelog. |
+| **2.8.0 RC** | 🔴 fix | SEO/Security | **`CMS/core/Services/IndexingService.php` hält die IndexNow-Dateiprüfung jetzt explizit fail-closed**: Sobald Lesbarkeit oder Dateigröße fehlschlagen oder sich die Größe nicht sicher bestimmen lässt, bleibt der eigentliche Dateilesepfad geschlossen und liefert stattdessen einen klaren Validierungsfehler zurück. |
+| **2.8.0 RC** | 🔴 fix | Core/Feeds | **`CMS/core/Services/FeedService.php` folgt Redirects beim nativen Feed-Abruf jetzt nur noch manuell und mit erneuter URL-/Host-Prüfung pro Hop**: 30x-Ziele werden relativ oder absolut sauber aufgelöst, erneut durch `normalizeFeedUrl()` geprüft und bei unzulässigen Hosts, fehlender `Location` oder zu vielen Redirects verworfen. |
+| **2.8.0 RC** | 🔴 fix | Security/SSRF | **cURL-basierte Feed-Fetches pinnen Verbindungen jetzt an zuvor geprüfte DNS-Ziele**: Der Feed-Service nutzt pro Request ein geprüftes `CURLOPT_RESOLVE`-Target und reduziert damit Redirect-/DNS-Rebinding-Restkanten deutlich gegenüber implizitem Auto-Following. |
+| **2.8.0 RC** | 🔴 fix | Review | **Die nachgezogenen Patch-Änderungen wurden erneut auf Fehler, Best Practice und Security geprüft**: keine neuen Editorfehler; PHP-Lint blieb für die geänderten PHP-Dateien ohne Beanstandung; die Release-Metadaten laufen jetzt konsistent zu README, Changelog und Audit-Protokoll. |
 | **2.8.0 RC** | 🔴 fix | Core/Media | **`CMS/core/Services/Media/MediaRepository::isSystemPath()` klassifiziert Member-erstellte Unterordner nicht mehr fälschlicherweise als Systemordner**: Bisher galten alle Pfade unterhalb von `member/` (z. B. `member/user-1/fotos`) als System-Pfad und erhielten deshalb kein Aktions-Dropdown. Die neue Logik schützt nur die Root-Ordner selbst (Ebene 1) und die direkten User-Roots `member/user-X` (Ebene 2); Unterordner von Usern (Ebene 3+) sind nicht mehr geschützt und zeigen korrekt Umbenennen/Verschieben/Löschen an. |
 | **2.8.0 RC** | 🔴 fix | Admin/Media JS | **`CMS/assets/js/admin-media-integrations.js` ergänzt einen Pending-Trigger-Fallback für Bootstrap-Modals**: Bootstrap 5 setzt `event.relatedTarget` nicht immer, wenn ein Modal-Trigger innerhalb eines sich schließenden Dropdown-Menüs liegt. Der neue Click-Listener auf `.js-media-open-rename` und `.js-media-open-move` speichert den auslösenden Button synchron und reicht ihn an `show.bs.modal` weiter, falls `event.relatedTarget` `null` ist. Umbenennen und Verschieben befüllen das Modal damit zuverlässig mit dem richtigen Pfad. |
 | **2.8.0 RC** | 🔴 fix | Member/Media JS | **`CMS/assets/js/member-dashboard.js` erhält denselben Pending-Trigger-Fallback für Member-Medien**: `.js-member-media-open-rename` und `.js-member-media-open-move` setzen den gespeicherten Trigger nach dem Konsumieren auf `null` zurück, um Überbleibsel zwischen aufeinanderfolgenden Modal-Öffnungen zu verhindern. |

@@ -5,13 +5,19 @@
 Diese Sektion dokumentiert bereits umgesetzte Teilfortschritte aus `DOC/audit/PRÜFUNG.MD`,
 ohne die große Bewertungsmatrix bei jedem einzelnen Batch vollständig neu auszurechnen.
 
-### Gesamtstand nach Batch 462
+### Gesamtstand nach Batch 463
 
 | Dateien | Ø Security | Ø Speed | Ø PHP/BP | Ø Gesamt |
 |---:|---:|---:|---:|---:|
-| 462 | 95,12 | 92,74 | 96,22 | 96,35 |
+| 463 | 95,12 | 92,74 | 96,22 | 96,35 |
 
-Der aktuelle Nachpflege-Stand umfasst damit **462 umgesetzte Batches**, davon weiterhin **444 von 444 Prüfplan-Punkten** im ursprünglichen Auditplan und zusätzlich achtzehn Folge-Batches darüber hinaus. Zuletzt wurde der dokumentierte Release-Stand auf `2.8.1` synchronisiert: Version, Update-Metadaten, README und Changelog laufen jetzt konsistent zum fail-closed gehärteten SEO-/IndexNow-Pfad. Die Kennzahlen bleiben dabei stabil.
+Der aktuelle Nachpflege-Stand umfasst damit **463 umgesetzte Batches**, davon weiterhin **444 von 444 Prüfplan-Punkten** im ursprünglichen Auditplan und zusätzlich neunzehn Folge-Batches darüber hinaus. Zuletzt wurde der native Feed-Abruf weiter gegen SSRF-/Redirect-Restkanten gestaffelt: Redirects werden je Hop neu validiert, und cURL-Fetches pinnen sich an zuvor geprüfte DNS-Ziele statt Redirect- oder Resolver-Wechsel blind zu vertrauen. Die Kennzahlen bleiben dabei stabil.
+
+### Delta Folge-Batch 463
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/core/Services/FeedService.php`, `README.md`, `Changelog.md` | umgesetzt | Der Feed-Service folgt Redirects jetzt nur noch kontrolliert und validiert jedes Ziel erneut; cURL-Fetches nutzen zusätzlich ein geprüftes `CURLOPT_RESOLVE`-Target, um DNS-/Redirect-Restkanten weiter zu verkleinern; README und Changelog spiegeln die Härtung. | Native Feed-Imports bleiben näher an einem kleinen, nachvollziehbaren SSRF-Vertrag statt auf implizite Redirect-Defaults und spätere Resolver-Entscheidungen zu vertrauen. |
 
 ### Delta Folge-Batch 462
 

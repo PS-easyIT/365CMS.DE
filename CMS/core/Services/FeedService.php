@@ -30,6 +30,7 @@ final class FeedService
     private const MAX_GUID_LENGTH = 255;
     private const MAX_ERROR_LENGTH = 180;
     private const MAX_FEED_BYTES = 2097152;
+    private const MAX_REMOTE_REDIRECTS = 5;
 
     private static ?self $instance = null;
 
@@ -301,52 +302,146 @@ final class FeedService
 
     private function fetchRemoteFeed(string $url): ?string
     {
-        if (function_exists('curl_init')) {
-            $ch = curl_init($url);
-            if ($ch === false) {
+        $currentUrl = $this->normalizeFeedUrl($url);
+        if ($currentUrl === '') {
+            return null;
+        }
+
+        for ($redirectCount = 0; $redirectCount <= self::MAX_REMOTE_REDIRECTS; $redirectCount++) {
+            $response = function_exists('curl_init')
+                ? $this->fetchRemoteFeedWithCurl($currentUrl)
+                : $this->fetchRemoteFeedWithStream($currentUrl);
+
+            if ($response === null) {
                 return null;
             }
 
-            curl_setopt_array($ch, [
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_FOLLOWLOCATION => true,
-                CURLOPT_MAXREDIRS => 5,
-                CURLOPT_CONNECTTIMEOUT => min(10, $this->fetchTimeout),
-                CURLOPT_TIMEOUT => $this->fetchTimeout,
-                CURLOPT_USERAGENT => $this->userAgent,
-                CURLOPT_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS,
-                CURLOPT_REDIR_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS,
-                CURLOPT_HTTPHEADER => ['Accept: application/rss+xml, application/atom+xml, application/xml, text/xml;q=0.9, */*;q=0.8'],
-            ]);
+            $status = $response['status'];
+            $location = $response['location'];
+            $body = $response['body'];
 
-            $body = curl_exec($ch);
-            $status = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            curl_close($ch);
+            if ($status >= 300 && $status < 400) {
+                if ($location === null || $location === '' || $redirectCount >= self::MAX_REMOTE_REDIRECTS) {
+                    $this->logger->warning('Feed-Redirect wurde verworfen.', [
+                        'url' => $currentUrl,
+                        'status' => $status,
+                        'has_location' => $location !== null && $location !== '',
+                    ]);
+                    return null;
+                }
 
-            if (!is_string($body) || $body === '' || $status < 200 || $status >= 400 || strlen($body) > self::MAX_FEED_BYTES) {
+                $redirectUrl = $this->resolveRedirectUrl($currentUrl, $location);
+                if ($redirectUrl === '') {
+                    $this->logger->warning('Feed-Redirect zielte auf eine unzulässige URL.', [
+                        'url' => $currentUrl,
+                        'location' => $this->sanitizeErrorMessage($location),
+                    ]);
+                    return null;
+                }
+
+                $currentUrl = $redirectUrl;
+                continue;
+            }
+
+            if ($status < 200 || $status >= 400 || $body === '' || strlen($body) > self::MAX_FEED_BYTES) {
                 return null;
             }
 
             return $body;
         }
 
+        return null;
+    }
+
+    /**
+     * @return array{status:int,body:string,location:?string}|null
+     */
+    private function fetchRemoteFeedWithCurl(string $url): ?array
+    {
+        $requestTarget = $this->buildRemoteRequestTarget($url);
+        if ($requestTarget === null) {
+            return null;
+        }
+
+        $ch = curl_init($url);
+        if ($ch === false) {
+            return null;
+        }
+
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_FOLLOWLOCATION => false,
+            CURLOPT_MAXREDIRS => 0,
+            CURLOPT_HEADER => true,
+            CURLOPT_CONNECTTIMEOUT => min(10, $this->fetchTimeout),
+            CURLOPT_TIMEOUT => $this->fetchTimeout,
+            CURLOPT_USERAGENT => $this->userAgent,
+            CURLOPT_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS,
+            CURLOPT_REDIR_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS,
+            CURLOPT_SSL_VERIFYHOST => 2,
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_HTTPHEADER => ['Accept: application/rss+xml, application/atom+xml, application/xml, text/xml;q=0.9, */*;q=0.8'],
+            CURLOPT_RESOLVE => [$this->buildCurlResolveEntry($requestTarget['host'], $requestTarget['port'], $requestTarget['ip'])],
+        ]);
+
+        $rawResponse = curl_exec($ch);
+        $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $headerSize = (int) curl_getinfo($ch, CURLINFO_HEADER_SIZE);
+
+        if (!is_string($rawResponse)) {
+            $error = curl_error($ch);
+            curl_close($ch);
+            if ($error !== '') {
+                $this->logger->warning('Feed-Abruf via cURL ist fehlgeschlagen.', [
+                    'url' => $url,
+                    'error' => $this->sanitizeErrorMessage($error),
+                ]);
+            }
+            return null;
+        }
+
+        curl_close($ch);
+
+        $headerBlock = $headerSize > 0 ? substr($rawResponse, 0, $headerSize) : '';
+        $body = $headerSize > 0 ? (string) substr($rawResponse, $headerSize) : $rawResponse;
+
+        return [
+            'status' => $status,
+            'body' => $body,
+            'location' => $this->extractRedirectLocationFromHeaderString($headerBlock),
+        ];
+    }
+
+    /**
+     * @return array{status:int,body:string,location:?string}|null
+     */
+    private function fetchRemoteFeedWithStream(string $url): ?array
+    {
         $context = stream_context_create([
             'http' => [
                 'method' => 'GET',
                 'timeout' => $this->fetchTimeout,
                 'header' => "User-Agent: {$this->userAgent}\r\nAccept: application/rss+xml, application/atom+xml, application/xml, text/xml;q=0.9, */*;q=0.8\r\n",
-                'follow_location' => 1,
-                'max_redirects' => 5,
+                'follow_location' => 0,
+                'max_redirects' => 0,
                 'ignore_errors' => true,
             ],
         ]);
 
         $body = @file_get_contents($url, false, $context);
-        if (!is_string($body) || $body === '' || strlen($body) > self::MAX_FEED_BYTES) {
+        $responseHeaders = isset($http_response_header) && is_array($http_response_header)
+            ? $http_response_header
+            : [];
+        $meta = $this->extractRedirectMetaFromHeaderLines($responseHeaders);
+        if ($meta['status'] === 0) {
             return null;
         }
 
-        return $body;
+        return [
+            'status' => $meta['status'],
+            'body' => is_string($body) ? $body : '',
+            'location' => $meta['location'],
+        ];
     }
 
     private function parseFeedXml(string $xml, string $url): ?array
@@ -642,7 +737,13 @@ final class FeedService
 
         $scheme = strtolower((string)($parts['scheme'] ?? ''));
         $host = trim((string)($parts['host'] ?? ''));
-        if (!in_array($scheme, ['http', 'https'], true) || $host === '' || isset($parts['user']) || isset($parts['pass'])) {
+        $port = $parts['port'] ?? null;
+        if (!in_array($scheme, ['http', 'https'], true)
+            || $host === ''
+            || isset($parts['user'])
+            || isset($parts['pass'])
+            || ($port !== null && (!is_int($port) || $port < 1 || $port > 65535))
+        ) {
             return '';
         }
 
@@ -722,7 +823,7 @@ final class FeedService
 
     private function normalizeHost(string $host): string
     {
-        $host = strtolower(trim($host));
+        $host = strtolower(trim(rtrim($host, '.')));
         if ($host === '') {
             return '';
         }
@@ -814,6 +915,179 @@ final class FeedService
         }
 
         return $url;
+    }
+
+    /**
+     * @return array{host:string,port:int,ip:string}|null
+     */
+    private function buildRemoteRequestTarget(string $url): ?array
+    {
+        $parts = parse_url($url);
+        if (!is_array($parts)) {
+            return null;
+        }
+
+        $scheme = strtolower((string) ($parts['scheme'] ?? ''));
+        $host = $this->normalizeHost((string) ($parts['host'] ?? ''));
+        if ($host === '' || !in_array($scheme, ['http', 'https'], true)) {
+            return null;
+        }
+
+        $port = isset($parts['port']) && is_int($parts['port'])
+            ? $parts['port']
+            : ($scheme === 'https' ? 443 : 80);
+
+        if ($port < 1 || $port > 65535) {
+            return null;
+        }
+
+        foreach ($this->resolveHostIps($host) as $ip) {
+            if ($ip !== '' && !$this->isPrivateOrReservedIp($ip)) {
+                return [
+                    'host' => $host,
+                    'port' => $port,
+                    'ip' => $ip,
+                ];
+            }
+        }
+
+        return null;
+    }
+
+    private function buildCurlResolveEntry(string $host, int $port, string $ip): string
+    {
+        $targetIp = str_contains($ip, ':') ? '[' . $ip . ']' : $ip;
+        return $host . ':' . $port . ':' . $targetIp;
+    }
+
+    private function extractRedirectLocationFromHeaderString(string $headerBlock): ?string
+    {
+        $headerLines = preg_split('/\r\n|\r|\n/', $headerBlock) ?: [];
+        $meta = $this->extractRedirectMetaFromHeaderLines($headerLines);
+        return $meta['location'];
+    }
+
+    /**
+     * @param array<int, string> $headerLines
+     * @return array{status:int,location:?string}
+     */
+    private function extractRedirectMetaFromHeaderLines(array $headerLines): array
+    {
+        $blocks = [];
+        $currentBlock = [];
+
+        foreach ($headerLines as $line) {
+            $line = trim((string) $line);
+            if ($line === '') {
+                continue;
+            }
+
+            if (preg_match('/^HTTP\//i', $line) === 1 && $currentBlock !== []) {
+                $blocks[] = $currentBlock;
+                $currentBlock = [];
+            }
+
+            $currentBlock[] = $line;
+        }
+
+        if ($currentBlock !== []) {
+            $blocks[] = $currentBlock;
+        }
+
+        $lastBlock = $blocks !== [] ? $blocks[array_key_last($blocks)] : [];
+        if ($lastBlock === []) {
+            return ['status' => 0, 'location' => null];
+        }
+
+        $status = 0;
+        $location = null;
+
+        if (preg_match('/^HTTP\/\S+\s+(\d{3})\b/i', $lastBlock[0], $matches) === 1) {
+            $status = (int) $matches[1];
+        }
+
+        foreach ($lastBlock as $line) {
+            if (stripos($line, 'Location:') === 0) {
+                $candidate = trim(substr($line, 9));
+                if ($candidate !== '') {
+                    $location = $candidate;
+                }
+            }
+        }
+
+        return [
+            'status' => $status,
+            'location' => $location,
+        ];
+    }
+
+    private function resolveRedirectUrl(string $currentUrl, string $location): string
+    {
+        $location = trim($location);
+        if ($location === '') {
+            return '';
+        }
+
+        if (filter_var($location, FILTER_VALIDATE_URL)) {
+            return $this->normalizeFeedUrl($location);
+        }
+
+        $base = parse_url($currentUrl);
+        if (!is_array($base)) {
+            return '';
+        }
+
+        $scheme = strtolower((string) ($base['scheme'] ?? 'https'));
+        $host = $this->normalizeHost((string) ($base['host'] ?? ''));
+        if ($host === '') {
+            return '';
+        }
+
+        $port = isset($base['port']) && is_int($base['port']) ? ':' . $base['port'] : '';
+
+        if (str_starts_with($location, '//')) {
+            return $this->normalizeFeedUrl($scheme . ':' . $location);
+        }
+
+        if (str_starts_with($location, '/')) {
+            return $this->normalizeFeedUrl($scheme . '://' . $host . $port . $location);
+        }
+
+        $basePath = (string) ($base['path'] ?? '/');
+        $baseDirectory = preg_replace('~/[^/]*$~', '/', $basePath) ?? '/';
+        if ($baseDirectory === '') {
+            $baseDirectory = '/';
+        }
+
+        return $this->normalizeFeedUrl($scheme . '://' . $host . $port . $this->normalizeRelativePath($baseDirectory . $location));
+    }
+
+    private function normalizeRelativePath(string $path): string
+    {
+        $query = '';
+        $queryPos = strpos($path, '?');
+        if ($queryPos !== false) {
+            $query = substr($path, $queryPos);
+            $path = substr($path, 0, $queryPos);
+        }
+
+        $segments = explode('/', str_replace('\\', '/', $path));
+        $normalizedSegments = [];
+
+        foreach ($segments as $segment) {
+            if ($segment === '' || $segment === '.') {
+                continue;
+            }
+
+            if ($segment === '..') {
+                array_pop($normalizedSegments);
+                continue;
+            }
+
+            $normalizedSegments[] = $segment;
+        }
+
+        return '/' . implode('/', $normalizedSegments) . $query;
     }
 
     private function truncate(string $value, int $maxLength): string
