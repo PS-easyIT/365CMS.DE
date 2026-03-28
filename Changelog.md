@@ -20,12 +20,12 @@
 
 ---
 
-### v2.8.1 — 28. März 2026
+### v2.8.0 RC — 28. März 2026
 
 | Version | Typ | Bereich | Beschreibung |
 |---------|-----|---------|-------------|
 | **2.8.0 RC** | 🟢 feat | Version | **Stand auf Release Candidate `2.8.0` angehoben** |
-| **2.8.0 RC** | ⬜ chore | Version | **`CMS/core/Version.php` und `CMS/update.json` wurden auf den Patch-Stand `2.8.1` synchronisiert**: Versionsnummer, Release-Datum und Update-Hinweis spiegeln jetzt denselben dokumentierten Stand wie README und Changelog. |
+| **2.8.0 RC** | ⬜ chore | Version | **`CMS/core/Version.php` und `CMS/update.json` wurden auf den Patch-Stand `2.8.0` synchronisiert**: Versionsnummer, Release-Datum und Update-Hinweis spiegeln jetzt denselben dokumentierten Stand wie README und Changelog. |
 | **2.8.0 RC** | 🔴 fix | SEO/Security | **`CMS/core/Services/IndexingService.php` hält die IndexNow-Dateiprüfung jetzt explizit fail-closed**: Sobald Lesbarkeit oder Dateigröße fehlschlagen oder sich die Größe nicht sicher bestimmen lässt, bleibt der eigentliche Dateilesepfad geschlossen und liefert stattdessen einen klaren Validierungsfehler zurück. |
 | **2.8.0 RC** | 🔴 fix | Core/Feeds | **`CMS/core/Services/FeedService.php` folgt Redirects beim nativen Feed-Abruf jetzt nur noch manuell und mit erneuter URL-/Host-Prüfung pro Hop**: 30x-Ziele werden relativ oder absolut sauber aufgelöst, erneut durch `normalizeFeedUrl()` geprüft und bei unzulässigen Hosts, fehlender `Location` oder zu vielen Redirects verworfen. |
 | **2.8.0 RC** | 🔴 fix | Security/SSRF | **cURL-basierte Feed-Fetches pinnen Verbindungen jetzt an zuvor geprüfte DNS-Ziele**: Der Feed-Service nutzt pro Request ein geprüftes `CURLOPT_RESOLVE`-Target und reduziert damit Redirect-/DNS-Rebinding-Restkanten deutlich gegenüber implizitem Auto-Following. |
