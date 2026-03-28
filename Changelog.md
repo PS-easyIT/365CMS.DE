@@ -20,7 +20,7 @@
 
 ---
 
-### v2.8.0 RC — 28. März 2026 · Folge-Batch 459, Medien-Systemordner-Klassifikation und Modal-Trigger-Fallback korrigiert
+### v2.8.0 RC — 28. März 2026
 
 | Version | Typ | Bereich | Beschreibung |
 |---------|-----|---------|-------------|
@@ -28,13 +28,6 @@
 | **2.8.0 RC** | 🔴 fix | Admin/Media JS | **`CMS/assets/js/admin-media-integrations.js` ergänzt einen Pending-Trigger-Fallback für Bootstrap-Modals**: Bootstrap 5 setzt `event.relatedTarget` nicht immer, wenn ein Modal-Trigger innerhalb eines sich schließenden Dropdown-Menüs liegt. Der neue Click-Listener auf `.js-media-open-rename` und `.js-media-open-move` speichert den auslösenden Button synchron und reicht ihn an `show.bs.modal` weiter, falls `event.relatedTarget` `null` ist. Umbenennen und Verschieben befüllen das Modal damit zuverlässig mit dem richtigen Pfad. |
 | **2.8.0 RC** | 🔴 fix | Member/Media JS | **`CMS/assets/js/member-dashboard.js` erhält denselben Pending-Trigger-Fallback für Member-Medien**: `.js-member-media-open-rename` und `.js-member-media-open-move` setzen den gespeicherten Trigger nach dem Konsumieren auf `null` zurück, um Überbleibsel zwischen aufeinanderfolgenden Modal-Öffnungen zu verhindern. |
 | **2.8.0 RC** | 🔴 fix | Review | **Alle drei Änderungen wurden auf Fehler, Best Practice und Security geprüft**: Keine neuen Editorfehler; die Pfad-Normalisierung in `isSystemPath` baut korrekt auf der vorgelagerten Normalisierung (Admin: `MediaModule::normalizePath`, Member: `normalizeMemberMediaPath`) auf; der Pending-Trigger-Wert wird nach Konsum genullt und enthält ausschließlich DOM-Element-Referenzen ohne Serialisierungsrisiko. |
-
----
-
-### v2.8.0 RC — 27. März 2026 · Folge-Batch 458, Medienbereich wird kompakter und erhält Bulk-Aktionen
-
-| Version | Typ | Bereich | Beschreibung |
-|---------|-----|---------|-------------|
 | **2.8.0 RC** | 🎨 style | Admin/Media | **`CMS/admin/views/media/library.php` ersetzt die platzfressenden Inline-Formulare durch kompakte Aktions-Dropdowns und zentrale Rename-/Move-Modale**: Die Medienbibliothek bleibt dadurch übersichtlicher, ohne Delete-, Rename- oder Move-Verträge wieder an fragile UI-Sonderpfade zu hängen. |
 | **2.8.0 RC** | 🟢 feat | Admin/Media | **`CMS/admin/media.php`, `CMS/admin/modules/media/MediaModule.php` und `CMS/assets/js/admin-media-integrations.js` ergänzen Bulk-Löschen und Bulk-Verschieben inklusive Mehrfachauswahl, Zielordner-Select und serverseitiger Pfad-Deduplikation**: Mehrere Medien lassen sich damit in einem Durchlauf bearbeiten, ohne doppelte Kind-/Ordneroperationen oder rohe Freitext-Zielpfade zu riskieren. |
 | **2.8.0 RC** | 🎨 style | Member/Media | **`CMS/member/includes/class-member-controller.php`, `CMS/member/media.php` und `CMS/assets/js/member-dashboard.js` ziehen die Member-Medienaktionen ebenfalls in kompakte Dropdowns und Modale mit vorbereiteten Zielordnern**: Der persönliche Upload-Bereich bleibt damit schlanker bedienbar und behält trotzdem seine sauberen Root-/CSRF-Grenzen. |

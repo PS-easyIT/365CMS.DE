@@ -2,46 +2,47 @@
 
 ## Überblick
 
-Dieses Dokument ist die **kanonische Scope-Liste** für die Vollprüfung des CMS-Stands vom **23.03.2026**.
+Dieses Dokument ist die **kanonische Scope-Liste** für die Vollprüfung des CMS-Stands vom **28.03.2026**.
 
 - **Scope:** `365CMS.DE/CMS`
 - **Ausgeschlossen:** `CMS/vendor/`, `CMS/themes/`
 - **Aus `CMS/assets/` berücksichtigt:** nur `assets/css/` und `assets/js/`
-- **Verifizierter Gesamtbestand:** `419` Dateien
+- **Verifizierter Gesamtbestand:** `467` Dateien
+- **Verifizierte Quelle:** `DOC/_cms_inventory_current.txt`
 
 ## Verifizierte Bestandszahlen
 
 | Bereich | Dateien |
 |---|---:|
 | Root-Entrypoints | 7 |
-| `assets/css/` | 8 |
-| `assets/js/` | 15 |
-| `admin/` | 231 |
+| `assets/css/` | 9 |
+| `assets/js/` | 30 |
+| `admin/` | 243 |
 | `config/` | 4 |
-| `core/` | 117 |
-| `includes/` | 2 |
+| `core/` | 118 |
+| `includes/` | 10 |
 | `lang/` | 2 |
 | `logs/` | 2 |
 | `member/` | 17 |
-| `plugins/` | 11 |
-| `uploads/` | 3 |
+| `plugins/` | 14 |
+| `uploads/` | 2 |
 
 ## Kurzbeschreibung der Bereiche
 
 | Bereich | Zweck |
 |---|---|
 | `CMS/` | Root-Entrypoints, Bootstrap, Installer, Laufzeit-Metadaten |
-| `CMS/assets/css/` | Stylesheets für Admin, Hub, Frontend und Member-Bereich |
-| `CMS/assets/js/` | JavaScript für Admin-Workflows, Editoren, Consent und Performance |
+| `CMS/assets/css/` | Stylesheets für Admin, Hub, Frontend, Consent und Member-Bereich |
+| `CMS/assets/js/` | JavaScript für Admin-Workflows, Editoren, Consent, Marketplace, Hub, SEO, Users und Member-Bereich |
 | `CMS/admin/` | Backend-Einstiegsseiten, Module, Partials und Views |
 | `CMS/config/` | Laufzeit- und Medienkonfiguration |
 | `CMS/core/` | Kernklassen, Routing, Services, Auth, SEO, Media und Infrastruktur |
-| `CMS/includes/` | Globale Hilfsfunktionen |
+| `CMS/includes/` | Globale Hilfsfunktionen und Runtime-Helper |
 | `CMS/lang/` | Sprachdateien |
 | `CMS/logs/` | Schutz-/Platzhalterdateien für Logging |
-| `CMS/member/` | Member-Dashboard, Profile, Nachrichten und Privatsphäre |
+| `CMS/member/` | Member-Dashboard, Profile, Medien, Nachrichten und Privatsphäre |
 | `CMS/plugins/` | Eingebettete CMS-Plugins, aktuell insbesondere `cms-importer` |
-| `CMS/uploads/` | Schutz- und Beispiel-/Test-Uploads |
+| `CMS/uploads/` | Schutz-/Platzhalterdateien im Upload-Baum |
 
 ## Vollständige Dateiliste im Prüfscope
 
@@ -62,20 +63,36 @@ Dieses Dokument ist die **kanonische Scope-Liste** für die Vollprüfung des CMS
 - `assets/css/admin-hub-template-editor.css`
 - `assets/css/admin-tabler.css`
 - `assets/css/admin.css`
+- `assets/css/cms-cookie-consent.css`
 - `assets/css/hub-sites.css`
 - `assets/css/main.css`
 - `assets/css/member-dashboard.css`
 
 ### Assets – JavaScript
 
+- `assets/js/admin-comments.js`
 - `assets/js/admin-content-editor.js`
+- `assets/js/admin-cookie-manager.js`
+- `assets/js/admin-data-requests.js`
+- `assets/js/admin-font-manager.js`
 - `assets/js/admin-grid.js`
 - `assets/js/admin-hub-site-edit.js`
+- `assets/js/admin-hub-sites.js`
 - `assets/js/admin-hub-template-edit.js`
 - `assets/js/admin-hub-template-editor.js`
+- `assets/js/admin-legal-sites.js`
 - `assets/js/admin-media-integrations.js`
+- `assets/js/admin-menu-editor.js`
+- `assets/js/admin-pages.js`
+- `assets/js/admin-plugin-marketplace.js`
+- `assets/js/admin-plugins.js`
 - `assets/js/admin-seo-editor.js`
 - `assets/js/admin-seo-redirects.js`
+- `assets/js/admin-site-tables.js`
+- `assets/js/admin-theme-explorer.js`
+- `assets/js/admin-theme-marketplace.js`
+- `assets/js/admin-user-groups.js`
+- `assets/js/admin-users.js`
 - `assets/js/admin.js`
 - `assets/js/cookieconsent-init.js`
 - `assets/js/editor-init.js`
@@ -118,9 +135,11 @@ Dieses Dokument ist die **kanonische Scope-Liste** für die Vollprüfung des CMS
 - `admin/member-dashboard-widgets.php`
 - `admin/member-dashboard.php`
 - `admin/menu-editor.php`
+- `admin/modules.php`
 - `admin/modules/comments/CommentsModule.php`
 - `admin/modules/dashboard/DashboardModule.php`
 - `admin/modules/hub/HubSitesModule.php`
+- `admin/modules/hub/HubTemplateProfileCatalog.php`
 - `admin/modules/hub/HubTemplateProfileManager.php`
 - `admin/modules/landing/LandingPageModule.php`
 - `admin/modules/legal/CookieManagerModule.php`
@@ -133,6 +152,7 @@ Dieses Dokument ist die **kanonische Scope-Liste** für die Vollprüfung des CMS
 - `admin/modules/pages/PagesModule.php`
 - `admin/modules/plugins/PluginMarketplaceModule.php`
 - `admin/modules/plugins/PluginsModule.php`
+- `admin/modules/posts/PostsCategoryViewModelBuilder.php`
 - `admin/modules/posts/PostsModule.php`
 - `admin/modules/security/AntispamModule.php`
 - `admin/modules/security/FirewallModule.php`
@@ -157,6 +177,7 @@ Dieses Dokument ist die **kanonische Scope-Liste** für die Vollprüfung des CMS
 - `admin/modules/system/DocumentationSyncFilesystem.php`
 - `admin/modules/system/DocumentationSyncService.php`
 - `admin/modules/system/MailSettingsModule.php`
+- `admin/modules/system/ModulesModule.php`
 - `admin/modules/system/SupportModule.php`
 - `admin/modules/system/SystemInfoModule.php`
 - `admin/modules/system/UpdatesModule.php`
@@ -183,6 +204,8 @@ Dieses Dokument ist die **kanonische Scope-Liste** für die Vollprüfung des CMS
 - `admin/pages.php`
 - `admin/partials/footer.php`
 - `admin/partials/header.php`
+- `admin/partials/post-action-shell.php`
+- `admin/partials/redirect-alias-shell.php`
 - `admin/partials/section-page-shell.php`
 - `admin/partials/sidebar.php`
 - `admin/performance-cache.php`
@@ -254,6 +277,10 @@ Dieses Dokument ist die **kanonische Scope-Liste** für die Vollprüfung des CMS
 - `admin/views/menus/editor.php`
 - `admin/views/pages/edit.php`
 - `admin/views/pages/list.php`
+- `admin/views/partials/content-advanced-seo-panel.php`
+- `admin/views/partials/content-preview-card.php`
+- `admin/views/partials/content-readability-card.php`
+- `admin/views/partials/content-seo-score-panel.php`
 - `admin/views/partials/empty-table-row.php`
 - `admin/views/partials/featured-image-picker.php`
 - `admin/views/partials/flash-alert.php`
@@ -298,6 +325,7 @@ Dieses Dokument ist die **kanonische Scope-Liste** für die Vollprüfung des CMS
 - `admin/views/system/health-check.php`
 - `admin/views/system/info.php`
 - `admin/views/system/mail-settings.php`
+- `admin/views/system/modules.php`
 - `admin/views/system/response-time.php`
 - `admin/views/system/scheduled-tasks.php`
 - `admin/views/system/subnav.php`
@@ -306,6 +334,7 @@ Dieses Dokument ist die **kanonische Scope-Liste** für die Vollprüfung des CMS
 - `admin/views/tables/edit.php`
 - `admin/views/tables/list.php`
 - `admin/views/tables/settings.php`
+- `admin/views/themes/customizer-missing.php`
 - `admin/views/themes/editor.php`
 - `admin/views/themes/fonts.php`
 - `admin/views/themes/list.php`
@@ -357,6 +386,7 @@ Dieses Dokument ist die **kanonische Scope-Liste** für die Vollprüfung des CMS
 - `core/Routing/ApiRouter.php`
 - `core/Routing/MemberRouter.php`
 - `core/Routing/PublicRouter.php`
+- `core/Routing/ThemeArchiveRepository.php`
 - `core/Routing/ThemeRouter.php`
 - `core/SchemaManager.php`
 - `core/Security.php`
@@ -366,6 +396,7 @@ Dieses Dokument ist die **kanonische Scope-Liste** für die Vollprüfung des CMS
 - `core/Services/CommentService.php`
 - `core/Services/ContentLocalizationService.php`
 - `core/Services/CookieConsentService.php`
+- `core/Services/CoreModuleService.php`
 - `core/Services/CoreWebVitalsService.php`
 - `core/Services/DashboardService.php`
 - `core/Services/EditorJs/EditorJsAssetService.php`
@@ -447,6 +478,14 @@ Dieses Dokument ist die **kanonische Scope-Liste** für die Vollprüfung des CMS
 ### Includes
 
 - `includes/functions.php`
+- `includes/functions/admin-menu.php`
+- `includes/functions/escaping.php`
+- `includes/functions/mail.php`
+- `includes/functions/options-runtime.php`
+- `includes/functions/redirects-auth.php`
+- `includes/functions/roles.php`
+- `includes/functions/translation.php`
+- `includes/functions/wordpress-compat.php`
 - `includes/subscription-helpers.php`
 
 ### Lang
@@ -489,15 +528,17 @@ Dieses Dokument ist die **kanonische Scope-Liste** für die Vollprüfung des CMS
 - `plugins/cms-importer/includes/class-admin.php`
 - `plugins/cms-importer/includes/class-importer.php`
 - `plugins/cms-importer/includes/class-xml-parser.php`
+- `plugins/cms-importer/includes/trait-admin-cleanup.php`
+- `plugins/cms-importer/includes/trait-importer-preview.php`
+- `plugins/cms-importer/includes/trait-importer-reporting.php`
 - `plugins/cms-importer/readme.txt`
 - `plugins/cms-importer/reports/EXAMPLE_meta-report.md`
 - `plugins/cms-importer/update.json`
 
 ### Uploads
 
-- `uploads/.htaccess`
 - `uploads/.gitkeep`
-- `uploads/SidebarRahmenThumnail_V5_CopilotLizenzen.png`
+- `uploads/.htaccess`
 
 ## Hinweis zur Pflege
 
