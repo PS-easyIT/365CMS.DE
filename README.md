@@ -209,8 +209,6 @@ Die vollständige Asset-Dokumentation liegt in [`DOC/ASSET.md`](DOC/ASSET.md) so
 
 **Kurz gesagt:** `365CMS.DE` ist die Core- und Betriebszentrale, `365CMS.DE-THEME` liefert das Design, `365CMS.DE-PLUGINS` die Module – zusammen ergibt das eine angenehm modulare CMS-Werkbank. 🛠️
 
-**Theme- und Plugin-Zugänge** sollen zum `01.04.2026` im Marketplace bereitgestellt werden. Spezielle Plugins aus dem `phin.network`-Umfeld bleiben kostenpflichtig; gängige Plugins wie Contact oder Forum sind kostenfrei geplant.
-
 ---
 
 ## 🇬🇧 English
