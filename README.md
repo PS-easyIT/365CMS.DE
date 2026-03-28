@@ -15,9 +15,9 @@
 ![Speed Score](https://img.shields.io/badge/Speed-92.74-2563eb)
 ![PHP Score](https://img.shields.io/badge/PHP%20%2F%20Best%20Practices-96.22-7c3aed)
 ![Overall Score](https://img.shields.io/badge/Overall-96.35-0f766e)
----
-### 365CMS ist ein sicheres, modulares und selbst hostbares Content-Management-System mit eigenem Admin-Center, Theme-System, Plugin-Ökosystem, nativer Medienverwaltung, SEO-/Performance-Werkzeugen und umfassender lokaler Projektdokumentation.
----
+
+### 365CMS ist ein sicheres, modulares und selbst hostbares Content-Management-System mit Theme-System, Plugin-Ökosystem, nativer Medienverwaltung sowie integrierten Werkzeugen für SEO, Performance, Security und Legal – ergänzt durch eine umfassende lokale Projektdokumentation.
+
 [Website](https://365cms.de) • [Dokumentationsindex](DOC/INDEX.md) • [Changelog](Changelog.md) • [Theme-Doku](DOC/theme/README.md) • [Plugin-Doku](DOC/plugins/GUIDE.md)
 
 </div>
@@ -72,7 +72,8 @@ Die folgenden Screens zeigen zentrale Bereiche von 365CMS – vom Dashboard übe
 
 ### 📈 Audit-Bewertung
 
-Der dokumentierte Qualitätsstand liegt auf einem stabil hohen Niveau. Hier bewusst nur die Gesamtbewertung – ohne Audit-Einzeldetails, Batch-Historie oder Prüfplan-Tiefenbohrung:
+Der dokumentierte Qualitätsstand liegt auf einem stabil hohen Niveau. 
+Die Audits wurden mit OWASP-nahen Prüfwerkzeugen & AI Audit Tools von Snyk, Refactor! und weiteren durchgeführt und schrittweise abgearbeitet. Offene Punkte betreffen vor allem verbleibende Fremd-Assets, die nach und nach durch eigene 365CMS-Lösungen oder saubere Wrapper ersetzt werden.
 
 | Metrik | Bewertung |
 |---|---:|
@@ -219,6 +220,8 @@ Die vollständige Asset-Dokumentation liegt in [`DOC/ASSET.md`](DOC/ASSET.md) so
 ### 📈 Audit Rating
 
 The documented quality level is already strong. Intentionally kept compact here: overall scores only – no batch history, no deep audit details.
+
+The audits were carried out using OWASP-oriented tooling, Snyk, refactoring passes and additional quality checks, and have been worked through step by step. Remaining open items mainly concern third-party assets that will gradually be replaced by native 365CMS solutions or clean wrapper layers.
 
 | Metric | Score |
 |---|---:|
