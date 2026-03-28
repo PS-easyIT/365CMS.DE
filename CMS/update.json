@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.8.0",
+  "version": "2.8.1",
   "min_php": "8.4",
-  "released": "2026-03-27",
+  "released": "2026-03-28",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release Candidate 2.8.0: Der Medienbereich wurde nach Review ohne neue Fehler auf kompakte Dropdown-/Modal-Aktionen umgestellt, Admin-Bulk-Aktionen für Löschen und Verschieben ergänzt und Member-Zielordner als sichere Auswahl bereitgestellt.",
+  "notes": "Patch-Release 2.8.1: Der neue SEO-/IndexNow-Workflow wurde fail-closed nachgeschärft, Release-Metadaten auf 2.8.1 synchronisiert und README/Changelog an den aktuellen Patch-Stand angepasst.",
   "critical": false
 }

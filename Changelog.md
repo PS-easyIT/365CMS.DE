@@ -1,4 +1,4 @@
-﻿﻿﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.8.0--RC-blue.svg)](https://shields.io/)
+﻿﻿﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.8.1-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -17,6 +17,16 @@
 ---
 
 ## 📜 Vollständige Versionshistorie
+
+---
+
+### v2.8.1 — 28. März 2026 · Folge-Batch 462, Release-Metadaten und SEO-Guard auf Patch-Stand synchronisiert
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.8.1** | ⬜ chore | Version | **`CMS/core/Version.php` und `CMS/update.json` wurden auf den Patch-Stand `2.8.1` synchronisiert**: Versionsnummer, Release-Datum und Update-Hinweis spiegeln jetzt denselben dokumentierten Stand wie README und Changelog. |
+| **2.8.1** | 🔴 fix | SEO/Security | **`CMS/core/Services/IndexingService.php` hält die IndexNow-Dateiprüfung jetzt explizit fail-closed**: Sobald Lesbarkeit oder Dateigröße fehlschlagen oder sich die Größe nicht sicher bestimmen lässt, bleibt der eigentliche Dateilesepfad geschlossen und liefert stattdessen einen klaren Validierungsfehler zurück. |
+| **2.8.1** | 🔴 fix | Review | **Die nachgezogenen Patch-Änderungen wurden erneut auf Fehler, Best Practice und Security geprüft**: keine neuen Editorfehler; PHP-Lint blieb für die geänderten PHP-Dateien ohne Beanstandung; die Release-Metadaten laufen jetzt konsistent zu README, Changelog und Audit-Protokoll. |
 
 ---
 

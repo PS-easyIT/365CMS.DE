@@ -2,8 +2,8 @@
 
 <div align="center">
 
-[![Version](https://img.shields.io/badge/version-2.8.0--RC-blue.svg)](Changelog.md)
-![Status](https://img.shields.io/badge/status-release--candidate-orange)
+[![Version](https://img.shields.io/badge/version-2.8.1-blue.svg)](Changelog.md)
+![Status](https://img.shields.io/badge/status-stable-16a34a)
 ![PHP](https://img.shields.io/badge/PHP-8.4%2B-777BB4?logo=php&logoColor=white)
 ![MySQL](https://img.shields.io/badge/MySQL-5.7%2B-4479A1?logo=mysql&logoColor=white)
 ![MariaDB](https://img.shields.io/badge/MariaDB-10.3%2B-003545?logo=mariadb&logoColor=white)
@@ -18,6 +18,7 @@
 ---
 
 ### 365CMS ist ein sicheres, modulares und selbst hostbares Content-Management-System mit Theme-System, Plugin-Ökosystem, nativer Medienverwaltung sowie integrierten Werkzeugen für SEO, Performance, Security und Legal – ergänzt durch eine umfassende lokale Projektdokumentation.
+
 ---
 [Website](https://365cms.de) • [Dokumentationsindex](DOC/INDEX.md) • [Changelog](Changelog.md) • [Theme-Doku](DOC/theme/README.md) • [Plugin-Doku](DOC/plugins/GUIDE.md)
 

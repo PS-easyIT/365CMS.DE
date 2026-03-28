@@ -5,13 +5,19 @@
 Diese Sektion dokumentiert bereits umgesetzte Teilfortschritte aus `DOC/audit/PRÜFUNG.MD`,
 ohne die große Bewertungsmatrix bei jedem einzelnen Batch vollständig neu auszurechnen.
 
-### Gesamtstand nach Batch 461
+### Gesamtstand nach Batch 462
 
 | Dateien | Ø Security | Ø Speed | Ø PHP/BP | Ø Gesamt |
 |---:|---:|---:|---:|---:|
-| 461 | 95,12 | 92,74 | 96,22 | 96,35 |
+| 462 | 95,12 | 92,74 | 96,22 | 96,35 |
 
-Der aktuelle Nachpflege-Stand umfasst damit **461 umgesetzte Batches**, davon weiterhin **444 von 444 Prüfplan-Punkten** im ursprünglichen Auditplan und zusätzlich siebzehn Folge-Batches darüber hinaus. Zuletzt wurde der neue SEO-/IndexNow-Vertrag nochmals an einer Restkante nachgeschärft: Root-`.txt`-Dateien werden nach Guard-Fehlern nicht mehr vorsorglich weiter eingelesen, sondern sauber mit strukturierten Validierungsfehlern abgelehnt. Die Kennzahlen bleiben dabei stabil.
+Der aktuelle Nachpflege-Stand umfasst damit **462 umgesetzte Batches**, davon weiterhin **444 von 444 Prüfplan-Punkten** im ursprünglichen Auditplan und zusätzlich achtzehn Folge-Batches darüber hinaus. Zuletzt wurde der dokumentierte Release-Stand auf `2.8.1` synchronisiert: Version, Update-Metadaten, README und Changelog laufen jetzt konsistent zum fail-closed gehärteten SEO-/IndexNow-Pfad. Die Kennzahlen bleiben dabei stabil.
+
+### Delta Folge-Batch 462
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/core/Version.php`, `CMS/update.json`, `README.md`, `Changelog.md` | umgesetzt | Release-Metadaten und zentrale Projektdoku wurden auf `2.8.1` synchronisiert und nennen den fail-closed gehärteten IndexNow-Guard jetzt konsistent im öffentlichen Überblick. | Der Patch-Stand bleibt als kleiner, überprüfbarer Release-Snapshot dokumentiert, statt dass Versionsdateien und Hauptdoku auseinanderlaufen. |
 
 ### Delta Folge-Batch 461
 
