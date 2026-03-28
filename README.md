@@ -115,7 +115,7 @@ Die aktuelle Arbeitsumgebung ist auf drei Repositories verteilt:
 ├── CMS/                 # Laufzeit-Core, Admin, Services, Assets, Routing
 ├── DOC/                 # Zentrale lokale Projektdokumentation
 ├── ASSETS/              # Staging-/Quell-Assets
-├── TEST/                # Test- und Audit-Artefakte
+├── tests/               # Test- und Audit-Artefakte
 ├── README.md            # Projektüberblick
 └── Changelog.md         # Release-Historie
 ```
@@ -203,6 +203,8 @@ Die vollständige Asset-Dokumentation liegt in [`DOC/ASSET.md`](DOC/ASSET.md) so
 ### 🔎 SEO-Workflow-Highlight
 
 Der SEO-Bereich unterstützt in `Technisches SEO` jetzt auch die Pflege eines **IndexNow API-Keys** inklusive Auswahl und Prüfung einer vorhandenen **Root-`.txt`-Datei**. Damit lässt sich direkt im Admin nachvollziehen, ob Dateiname, Inhalt und öffentliche Bereitstellung zur erwarteten IndexNow-Keydatei passen.
+
+Die Prüfung liest ausgewählte Dateien außerdem nur dann aus, wenn sie lesbar sind und innerhalb eines kleinen Plausibilitätslimits bleiben. So werden Fehlkonfigurationen oder kaputte Root-Dateien früher sichtbar, statt still in einen halbgültigen Status zu rutschen.
 
 ### 👨‍💻 Maintainer, Support & Lizenz
 

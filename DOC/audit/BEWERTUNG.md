@@ -5,13 +5,19 @@
 Diese Sektion dokumentiert bereits umgesetzte Teilfortschritte aus `DOC/audit/PRÜFUNG.MD`,
 ohne die große Bewertungsmatrix bei jedem einzelnen Batch vollständig neu auszurechnen.
 
-### Gesamtstand nach Batch 460
+### Gesamtstand nach Batch 461
 
 | Dateien | Ø Security | Ø Speed | Ø PHP/BP | Ø Gesamt |
 |---:|---:|---:|---:|---:|
-| 460 | 95,12 | 92,74 | 96,22 | 96,35 |
+| 461 | 95,12 | 92,74 | 96,22 | 96,35 |
 
-Der aktuelle Nachpflege-Stand umfasst damit **460 umgesetzte Batches**, davon weiterhin **444 von 444 Prüfplan-Punkten** im ursprünglichen Auditplan und zusätzlich sechzehn Folge-Batches darüber hinaus. Zuletzt wurde der SEO-Bereich um eine prüfbare IndexNow-Konfiguration erweitert: API-Key, Auswahl vorhandener Root-`.txt`-Dateien und die Validierung von Dateiname, Inhalt, Lesbarkeit und öffentlicher Bereitstellung laufen jetzt konsistent über denselben Admin-/Core-Vertrag. Die Kennzahlen bleiben dabei stabil.
+Der aktuelle Nachpflege-Stand umfasst damit **461 umgesetzte Batches**, davon weiterhin **444 von 444 Prüfplan-Punkten** im ursprünglichen Auditplan und zusätzlich siebzehn Folge-Batches darüber hinaus. Zuletzt wurde der neue SEO-/IndexNow-Vertrag nochmals an einer Restkante nachgeschärft: Root-`.txt`-Dateien werden nach Guard-Fehlern nicht mehr vorsorglich weiter eingelesen, sondern sauber mit strukturierten Validierungsfehlern abgelehnt. Die Kennzahlen bleiben dabei stabil.
+
+### Delta Folge-Batch 461
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/core/Services/IndexingService.php`, `README.md`, `Changelog.md` | umgesetzt | Die IndexNow-Validierung schließt den eigentlichen Dateilesepfad jetzt konsequent, sobald Lesbarkeit oder Dateigröße fehlschlagen oder sich die Dateigröße nicht sicher bestimmen lässt; README und Changelog spiegeln die Guard-Logik sowie den korrigierten `tests/`-Pfad wider. | Der SEO-Workflow bleibt näher an einem fail-closed-Vertrag: problematische Root-Dateien erzeugen klare Admin-Hinweise, statt trotz früher Guard-Fehler noch in einen Dateileseversuch zu laufen. |
 
 ### Delta Folge-Batch 460
 

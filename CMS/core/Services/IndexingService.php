@@ -229,15 +229,29 @@ final class IndexingService
                 $expectedFileName = $key !== '' ? $key . '.txt' : '';
                 $selectedFileMatchesKey = $key !== '' && $selectedFile === $expectedFileName;
 
+                $selectedFileCanBeRead = true;
                 if (!is_readable($selectedFilePath)) {
                     $validationErrors[] = 'Die ausgewählte Root-TXT-Datei ist nicht lesbar.';
-                } elseif (($fileSize = filesize($selectedFilePath)) !== false && (int) $fileSize > self::MAX_INDEXNOW_KEY_FILE_SIZE) {
-                    $validationErrors[] = 'Die ausgewählte Root-TXT-Datei ist für eine IndexNow-Keydatei ungewöhnlich groß.';
+                    $selectedFileCanBeRead = false;
+                } else {
+                    $fileSize = filesize($selectedFilePath);
+                    if ($fileSize === false) {
+                        $validationErrors[] = 'Die Größe der ausgewählten Root-TXT-Datei konnte nicht ermittelt werden.';
+                        $selectedFileCanBeRead = false;
+                    } elseif ((int) $fileSize > self::MAX_INDEXNOW_KEY_FILE_SIZE) {
+                        $validationErrors[] = 'Die ausgewählte Root-TXT-Datei ist für eine IndexNow-Keydatei ungewöhnlich groß.';
+                        $selectedFileCanBeRead = false;
+                    }
                 }
 
                 $selectedContent = '';
-                if ($validationErrors === [] || $selectedFileMatchesKey) {
-                    $selectedContent = trim((string) file_get_contents($selectedFilePath));
+                if ($selectedFileCanBeRead) {
+                    $selectedContentRaw = file_get_contents($selectedFilePath);
+                    if ($selectedContentRaw === false) {
+                        $validationErrors[] = 'Die ausgewählte Root-TXT-Datei konnte nicht gelesen werden.';
+                    } else {
+                        $selectedContent = trim($selectedContentRaw);
+                    }
                 }
 
                 $selectedFileContentMatchesKey = $key !== '' && $selectedContent === $key;
