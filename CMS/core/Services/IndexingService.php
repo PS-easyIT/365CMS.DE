@@ -186,6 +186,7 @@ final class IndexingService
      *     selected_root_file:string,
      *     selected_root_file_url:string,
      *     selected_root_file_exists:bool,
+     *     selected_root_file_path:string,
      *     selected_root_file_matches_key:bool,
      *     selected_root_file_content_matches_key:bool,
      *     selected_root_file_valid:bool,
@@ -193,14 +194,35 @@ final class IndexingService
      *     root_directory:string,
      *     root_txt_files:list<string>,
      *     validation_errors:list<string>,
-     *     validation_notes:list<string>
+     *     validation_notes:list<string>,
+     *     debug:array{
+     *         root_candidates:list<array{
+     *             source:string,
+     *             original_path:string,
+     *             normalized_path:string,
+     *             usable:bool,
+     *             reason:string,
+     *             txt_files:list<string>,
+     *             selected_file_path:string,
+     *             selected_file_exists:bool
+     *         }>,
+     *         selected_file_reason:string,
+     *         selected_file_resolved_from:string
+     *     }
      * }
      */
     public function getIndexNowConfigurationStatus(): array
     {
         $key = $this->resolveIndexNowKey();
         $selectedFile = $this->resolveIndexNowSelectedRootFile();
-        $rootDirectories = $this->getIndexNowRootDirectories();
+        $rootDebugCandidates = $this->getIndexNowRootDebugCandidates($selectedFile);
+        $rootDirectories = array_values(array_map(
+            static fn(array $candidate): string => (string) $candidate['normalized_path'],
+            array_values(array_filter(
+                $rootDebugCandidates,
+                static fn(array $candidate): bool => !empty($candidate['usable']) && (string) ($candidate['normalized_path'] ?? '') !== ''
+            ))
+        ));
         $rootTxtFiles = $this->getIndexNowRootTxtFiles();
         $rootDirectory = implode(' | ', $rootDirectories);
         $dynamicKeyFileUrl = $key !== ''
@@ -212,8 +234,13 @@ final class IndexingService
         $selectedFileContentMatchesKey = false;
         $selectedFileValid = false;
         $selectedFileUrl = '';
+        $selectedFilePath = '';
         $validationErrors = [];
         $validationNotes = [];
+        $selectedFileReason = $selectedFile === ''
+            ? 'Keine physische Root-TXT-Datei ausgewählt.'
+            : 'Die ausgewählte Root-TXT-Datei wurde noch nicht geprüft.';
+        $selectedFileResolvedFrom = '';
 
         if ($key === '') {
             $validationNotes[] = 'Kein IndexNow-API-Key gespeichert.';
@@ -225,25 +252,38 @@ final class IndexingService
             $selectedFileUrl = rtrim((string) SITE_URL, '/') . '/' . rawurlencode($selectedFile);
             $selectedFilePath = $this->findIndexNowRootFilePath($selectedFile);
             $selectedFileExists = $selectedFilePath !== null && in_array($selectedFile, $rootTxtFiles, true);
+            $selectedFilePath = $selectedFilePath ?? '';
+
+            foreach ($rootDebugCandidates as $candidate) {
+                if (!empty($candidate['selected_file_exists'])) {
+                    $selectedFileResolvedFrom = (string) ($candidate['normalized_path'] ?? '');
+                    break;
+                }
+            }
 
             if (!$selectedFileExists) {
                 $validationErrors[] = 'Die ausgewählte Root-TXT-Datei wurde nicht gefunden.';
+                $selectedFileReason = 'Die Datei wurde in keinem der geprüften Root-Pfade gefunden.';
             } else {
                 $expectedFileName = $key !== '' ? $key . '.txt' : '';
                 $selectedFileMatchesKey = $key !== '' && $selectedFile === $expectedFileName;
+                $selectedFileReason = 'Die Datei wurde gefunden und wird jetzt gegen Name und Inhalt geprüft.';
 
                 $selectedFileCanBeRead = true;
                 if (!is_readable($selectedFilePath)) {
                     $validationErrors[] = 'Die ausgewählte Root-TXT-Datei ist nicht lesbar.';
                     $selectedFileCanBeRead = false;
+                    $selectedFileReason = 'Die Datei existiert, ist aber nicht lesbar.';
                 } else {
                     $fileSize = filesize($selectedFilePath);
                     if ($fileSize === false) {
                         $validationErrors[] = 'Die Größe der ausgewählten Root-TXT-Datei konnte nicht ermittelt werden.';
                         $selectedFileCanBeRead = false;
+                        $selectedFileReason = 'Die Datei existiert, aber ihre Größe konnte nicht ermittelt werden.';
                     } elseif ((int) $fileSize > self::MAX_INDEXNOW_KEY_FILE_SIZE) {
                         $validationErrors[] = 'Die ausgewählte Root-TXT-Datei ist für eine IndexNow-Keydatei ungewöhnlich groß.';
                         $selectedFileCanBeRead = false;
+                        $selectedFileReason = 'Die Datei ist größer als für eine IndexNow-Keydatei erwartet.';
                     }
                 }
 
@@ -252,6 +292,7 @@ final class IndexingService
                     $selectedContentRaw = file_get_contents($selectedFilePath);
                     if ($selectedContentRaw === false) {
                         $validationErrors[] = 'Die ausgewählte Root-TXT-Datei konnte nicht gelesen werden.';
+                        $selectedFileReason = 'Die Datei wurde gefunden, konnte aber nicht ausgelesen werden.';
                     } else {
                         $selectedContent = trim($selectedContentRaw);
                     }
@@ -262,14 +303,17 @@ final class IndexingService
 
                 if (!$selectedFileMatchesKey && $key !== '') {
                     $validationErrors[] = 'Der Dateiname der ausgewählten TXT-Datei entspricht nicht dem API-Key.';
+                    $selectedFileReason = 'Der Dateiname passt nicht exakt zum gespeicherten API-Key.';
                 }
 
                 if (!$selectedFileContentMatchesKey && $key !== '') {
                     $validationErrors[] = 'Der Inhalt der ausgewählten TXT-Datei entspricht nicht dem API-Key.';
+                    $selectedFileReason = 'Der Dateiinhalt passt nicht exakt zum gespeicherten API-Key.';
                 }
 
                 if ($selectedFileValid) {
                     $validationNotes[] = 'Die ausgewählte Root-TXT-Datei wurde erfolgreich gegen den API-Key geprüft.';
+                    $selectedFileReason = 'Die Datei ist gültig: Dateiname und Inhalt entsprechen dem API-Key.';
                 }
             }
         } else {
@@ -284,6 +328,7 @@ final class IndexingService
             'selected_root_file' => $selectedFile,
             'selected_root_file_url' => $selectedFileUrl,
             'selected_root_file_exists' => $selectedFileExists,
+            'selected_root_file_path' => $selectedFilePath,
             'selected_root_file_matches_key' => $selectedFileMatchesKey,
             'selected_root_file_content_matches_key' => $selectedFileContentMatchesKey,
             'selected_root_file_valid' => $selectedFileValid,
@@ -292,6 +337,11 @@ final class IndexingService
             'root_txt_files' => $rootTxtFiles,
             'validation_errors' => $validationErrors,
             'validation_notes' => $validationNotes,
+            'debug' => [
+                'root_candidates' => $rootDebugCandidates,
+                'selected_file_reason' => $selectedFileReason,
+                'selected_file_resolved_from' => $selectedFileResolvedFrom,
+            ],
         ];
     }
 
@@ -300,32 +350,21 @@ final class IndexingService
      */
     private function getIndexNowRootDirectories(): array
     {
-        $candidates = [
-            dirname(rtrim((string) ABSPATH, DIRECTORY_SEPARATOR)),
-            rtrim((string) ABSPATH, DIRECTORY_SEPARATOR),
-        ];
-
-        $documentRoot = trim((string) ($_SERVER['DOCUMENT_ROOT'] ?? ''));
-        if ($documentRoot !== '') {
-            $candidates[] = $documentRoot;
-        }
-
-        $scriptFilename = trim((string) ($_SERVER['SCRIPT_FILENAME'] ?? ''));
-        if ($scriptFilename !== '') {
-            $candidates[] = dirname($scriptFilename);
-        }
-
-        $normalized = [];
-        foreach ($candidates as $candidate) {
-            $resolved = $this->normalizeDirectoryPath($candidate);
-            if ($resolved === '' || !is_dir($resolved)) {
+        $directories = [];
+        foreach ($this->getIndexNowRootDebugCandidates('') as $candidate) {
+            if (empty($candidate['usable'])) {
                 continue;
             }
 
-            $normalized[] = $resolved;
+            $normalizedPath = (string) ($candidate['normalized_path'] ?? '');
+            if ($normalizedPath === '') {
+                continue;
+            }
+
+            $directories[] = $normalizedPath;
         }
 
-        return array_values(array_unique($normalized));
+        return array_values(array_unique($directories));
     }
 
     private function findIndexNowRootFilePath(string $selectedFile): ?string
@@ -353,6 +392,125 @@ final class IndexingService
         }
 
         return rtrim(str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $trimmed), DIRECTORY_SEPARATOR);
+    }
+
+    /**
+     * @return list<array{
+     *     source:string,
+     *     original_path:string,
+     *     normalized_path:string,
+     *     usable:bool,
+     *     reason:string,
+     *     txt_files:list<string>,
+     *     selected_file_path:string,
+     *     selected_file_exists:bool
+     * }>
+     */
+    private function getIndexNowRootDebugCandidates(string $selectedFile): array
+    {
+        $candidates = $this->getIndexNowRootDirectoryCandidates();
+        $result = [];
+        $seen = [];
+
+        foreach ($candidates as $candidate) {
+            $originalPath = (string) ($candidate['path'] ?? '');
+            $normalizedPath = $this->normalizeDirectoryPath($originalPath);
+            $usable = true;
+            $reason = 'Pfad wird geprüft.';
+            $txtFiles = [];
+            $selectedFilePath = '';
+            $selectedFileExists = false;
+
+            if ($normalizedPath === '') {
+                $usable = false;
+                $reason = 'Pfad ist leer und kann nicht geprüft werden.';
+            } elseif (!is_dir($normalizedPath)) {
+                $usable = false;
+                $reason = 'Pfad existiert nicht als Verzeichnis.';
+            } elseif (!is_readable($normalizedPath)) {
+                $usable = false;
+                $reason = 'Pfad ist nicht lesbar.';
+            } else {
+                $files = glob($normalizedPath . DIRECTORY_SEPARATOR . '*.txt');
+                if (is_array($files) && $files !== []) {
+                    foreach ($files as $file) {
+                        if (!is_file($file)) {
+                            continue;
+                        }
+
+                        $txtFiles[] = basename((string) $file);
+                    }
+                }
+
+                sort($txtFiles, SORT_NATURAL | SORT_FLAG_CASE);
+
+                if ($selectedFile !== '') {
+                    $selectedCandidatePath = $normalizedPath . DIRECTORY_SEPARATOR . $selectedFile;
+                    if (is_file($selectedCandidatePath)) {
+                        $selectedFileExists = true;
+                        $selectedFilePath = $selectedCandidatePath;
+                    }
+                }
+
+                $reason = $txtFiles === []
+                    ? 'Pfad geprüft, aber keine .txt-Dateien gefunden.'
+                    : 'Pfad geprüft, .txt-Dateien gefunden: ' . count($txtFiles);
+            }
+
+            $uniqueKey = ($candidate['source'] ?? 'unknown') . '|' . $normalizedPath;
+            if (isset($seen[$uniqueKey])) {
+                continue;
+            }
+            $seen[$uniqueKey] = true;
+
+            $result[] = [
+                'source' => (string) ($candidate['source'] ?? 'unbekannt'),
+                'original_path' => $originalPath,
+                'normalized_path' => $normalizedPath,
+                'usable' => $usable,
+                'reason' => $reason,
+                'txt_files' => $txtFiles,
+                'selected_file_path' => $selectedFilePath,
+                'selected_file_exists' => $selectedFileExists,
+            ];
+        }
+
+        return $result;
+    }
+
+    /**
+     * @return list<array{source:string, path:string}>
+     */
+    private function getIndexNowRootDirectoryCandidates(): array
+    {
+        $candidates = [
+            [
+                'source' => 'dirname(ABSPATH)',
+                'path' => dirname(rtrim((string) ABSPATH, DIRECTORY_SEPARATOR)),
+            ],
+            [
+                'source' => 'ABSPATH',
+                'path' => rtrim((string) ABSPATH, DIRECTORY_SEPARATOR),
+            ],
+        ];
+
+        $documentRoot = trim((string) ($_SERVER['DOCUMENT_ROOT'] ?? ''));
+        if ($documentRoot !== '') {
+            $candidates[] = [
+                'source' => '$_SERVER[DOCUMENT_ROOT]',
+                'path' => $documentRoot,
+            ];
+        }
+
+        $scriptFilename = trim((string) ($_SERVER['SCRIPT_FILENAME'] ?? ''));
+        if ($scriptFilename !== '') {
+            $candidates[] = [
+                'source' => 'dirname($_SERVER[SCRIPT_FILENAME])',
+                'path' => dirname($scriptFilename),
+            ];
+        }
+
+        return $candidates;
     }
 
     private function resolveIndexNowKey(): string

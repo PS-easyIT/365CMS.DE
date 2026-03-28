@@ -20,6 +20,10 @@ $indexNow = $technical['indexnow'] ?? [];
 $indexNowRootTxtFiles = $indexNow['root_txt_files'] ?? [];
 $indexNowValidationErrors = $indexNow['validation_errors'] ?? [];
 $indexNowValidationNotes = $indexNow['validation_notes'] ?? [];
+$indexNowDebug = $indexNow['debug'] ?? [];
+$indexNowDebugCandidates = is_array($indexNowDebug['root_candidates'] ?? null) ? $indexNowDebug['root_candidates'] : [];
+$indexNowSelectedFileReason = (string)($indexNowDebug['selected_file_reason'] ?? '');
+$indexNowSelectedFileResolvedFrom = (string)($indexNowDebug['selected_file_resolved_from'] ?? '');
 ?>
 <div class="page-header d-print-none">
     <div class="container-xl">
@@ -262,6 +266,80 @@ $indexNowValidationNotes = $indexNow['validation_notes'] ?? [];
                             <?php endforeach; ?>
                         </div>
                     <?php endif; ?>
+
+                    <hr class="my-4">
+
+                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                        <div>
+                            <div class="fw-semibold">Debug: geprüfte Root-Pfade</div>
+                            <div class="text-secondary small">Hier siehst du exakt, welche Kandidaten aktuell geprüft wurden und woran die ausgewählte TXT-Datei scheitert.</div>
+                        </div>
+                        <span class="badge bg-info-lt text-info"><?= count($indexNowDebugCandidates) ?> Pfad<?= count($indexNowDebugCandidates) === 1 ? '' : 'e' ?></span>
+                    </div>
+
+                    <div class="alert alert-info" role="alert">
+                        <div class="fw-semibold mb-1">Prüf-Ergebnis für die ausgewählte TXT-Datei</div>
+                        <div><?= htmlspecialchars($indexNowSelectedFileReason !== '' ? $indexNowSelectedFileReason : 'Noch keine Detailinformationen vorhanden.') ?></div>
+                        <?php if (!empty($indexNow['selected_root_file_path'])): ?>
+                            <div class="small mt-2">Aufgelöster Dateipfad: <code><?= htmlspecialchars((string) $indexNow['selected_root_file_path']) ?></code></div>
+                        <?php elseif ($indexNowSelectedFileResolvedFrom !== ''): ?>
+                            <div class="small mt-2">Gefunden unter: <code><?= htmlspecialchars($indexNowSelectedFileResolvedFrom) ?></code></div>
+                        <?php endif; ?>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Quelle</th>
+                                    <th>Geprüfter Pfad</th>
+                                    <th>Status</th>
+                                    <th>Details</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php if (empty($indexNowDebugCandidates)): ?>
+                                    <tr>
+                                        <td colspan="4" class="text-center text-secondary py-3">Noch keine Root-Debugdaten verfügbar.</td>
+                                    </tr>
+                                <?php else: ?>
+                                    <?php foreach ($indexNowDebugCandidates as $candidate): ?>
+                                        <?php
+                                        $candidateSource = (string)($candidate['source'] ?? 'unbekannt');
+                                        $candidatePath = (string)($candidate['normalized_path'] ?? $candidate['original_path'] ?? '');
+                                        $candidateUsable = !empty($candidate['usable']);
+                                        $candidateReason = (string)($candidate['reason'] ?? '');
+                                        $candidateTxtFiles = is_array($candidate['txt_files'] ?? null) ? $candidate['txt_files'] : [];
+                                        $candidateSelectedExists = !empty($candidate['selected_file_exists']);
+                                        $candidateSelectedPath = (string)($candidate['selected_file_path'] ?? '');
+                                        ?>
+                                        <tr>
+                                            <td><code><?= htmlspecialchars($candidateSource) ?></code></td>
+                                            <td>
+                                                <code><?= htmlspecialchars($candidatePath !== '' ? $candidatePath : '—') ?></code>
+                                                <?php if ($candidateSelectedExists && $candidateSelectedPath !== ''): ?>
+                                                    <div class="small text-success mt-1">Ausgewählte Datei gefunden: <code><?= htmlspecialchars($candidateSelectedPath) ?></code></div>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td>
+                                                <span class="badge <?= $candidateUsable ? 'bg-success-lt text-success' : 'bg-danger-lt text-danger' ?>">
+                                                    <?= $candidateUsable ? 'geprüft' : 'übersprungen' ?>
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <div><?= htmlspecialchars($candidateReason !== '' ? $candidateReason : 'Keine Details vorhanden.') ?></div>
+                                                <?php if (!empty($candidateTxtFiles)): ?>
+                                                    <div class="small text-secondary mt-1">
+                                                        TXT-Dateien: <?= htmlspecialchars(implode(', ', array_map(static fn($file): string => (string) $file, $candidateTxtFiles))) ?>
+                                                    </div>
+                                                <?php endif; ?>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
 
