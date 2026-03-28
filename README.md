@@ -9,7 +9,6 @@
 ![MariaDB](https://img.shields.io/badge/MariaDB-10.3%2B-003545?logo=mariadb&logoColor=white)
 
 ![Audit](https://img.shields.io/badge/Audit-Snyk-111827)
-![Audit](https://img.shields.io/badge/Audit-Refact!-111827)
 ![Audit](https://img.shields.io/badge/Audit-OWASP-111827)
 ![Security Score](https://img.shields.io/badge/Security-95.12-15803d)
 ![Speed Score](https://img.shields.io/badge/Speed-92.74-2563eb)
@@ -204,7 +203,8 @@ Die vollständige Asset-Dokumentation liegt in [`DOC/ASSET.md`](DOC/ASSET.md) so
 
 - **Entwicklung:** Andreas Hepp
 - **Web:** [365CMS.DE](https://365cms.de) · [PhinIT.DE](https://phinit.de)
-- **Support:** GitHub Issues / projektspezifische Dokumentation im `DOC/`-Baum
+- **Support:** GitHub Issues / Kontaktformular auf [www.365cms.de](https://365cms.de) / projektspezifische Dokumentation im `DOC/`-Baum
+- **Wichtig:** Support- oder Anfrage-Mails werden vollständig ignoriert. Dafür sind ausschließlich das Kontaktformular auf [www.365cms.de](https://365cms.de) oder GitHub Issues vorgesehen.
 - **Lizenz:** Freie Verwendung für private und geschäftliche Projekte
 
 **Kurz gesagt:** `365CMS.DE` ist die Core- und Betriebszentrale, `365CMS.DE-THEME` liefert das Design, `365CMS.DE-PLUGINS` die Module – zusammen ergibt das eine angenehm modulare CMS-Werkbank. 🛠️
@@ -352,7 +352,8 @@ Full asset documentation is available in [`DOC/ASSET.md`](DOC/ASSET.md) and insi
 
 - **Development:** Andreas Hepp
 - **Web:** [365CMS.DE](https://365cms.de) · [PhinIT.DE](https://phinit.de)
-- **Support:** GitHub Issues / project documentation inside the `DOC/` tree
+- **Support:** GitHub Issues / contact form on [www.365cms.de](https://365cms.de) / project documentation inside the `DOC/` tree
+- **Important:** Support or inquiry emails will be completely ignored. Please use the contact form on [www.365cms.de](https://365cms.de) or GitHub Issues instead.
 - **License:** Free for private and commercial use
 
 **In short:** `365CMS.DE` is the operational and core center, `365CMS.DE-THEME` delivers the design layer, and `365CMS.DE-PLUGINS` provides the modular feature layer – together they form a nicely modular CMS workbench.
