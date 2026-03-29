@@ -114,6 +114,23 @@ $search     = $data['search'] ?? '';
                     </div>
                 </div>
             </div>
+            <div class="col-sm-6 col-lg-3">
+                <div class="card card-sm">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-auto">
+                                <span class="bg-purple text-white avatar">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 13m0 2a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"/><path d="M13 13m0 2a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"/><path d="M11 15h2"/><path d="M7 15h4"/><path d="M7 15v-6a5 5 0 0 1 10 0v6"/></svg>
+                                </span>
+                            </div>
+                            <div class="col">
+                                <div class="font-weight-medium"><?php echo (int)($counts['private'] ?? 0); ?></div>
+                                <div class="text-secondary">Privat</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Toolbar -->
@@ -126,6 +143,7 @@ $search     = $data['search'] ?? '';
                             <option value="published" <?php if ($filter === 'published') echo 'selected'; ?>>Veröffentlicht</option>
                             <option value="scheduled" <?php if ($filter === 'scheduled') echo 'selected'; ?>>Geplant</option>
                             <option value="draft" <?php if ($filter === 'draft') echo 'selected'; ?>>Entwurf</option>
+                            <option value="private" <?php if ($filter === 'private') echo 'selected'; ?>>Privat</option>
                         </select>
                     </div>
                     <div class="col-auto">

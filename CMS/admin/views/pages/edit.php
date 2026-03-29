@@ -145,8 +145,9 @@ if (!in_array($pageDefaultStatus, ['draft', 'published', 'private'], true)) {
                                 <select name="status" class="form-select" id="pageStatusSelect">
                                     <option value="draft"<?= $pageStatusValue === 'draft' ? ' selected' : '' ?>>Entwurf</option>
                                     <option value="published"<?= $pageStatusValue === 'published' ? ' selected' : '' ?>>Veröffentlicht</option>
-                                    <option value="private"<?= $pageStatusValue === 'private' ? ' selected' : '' ?>>Privat</option>
+                                    <option value="private"<?= $pageStatusValue === 'private' ? ' selected' : '' ?>>Privat (nur Mitglieder)</option>
                                 </select>
+                                <div class="form-hint mt-2">Private Seiten sind nicht öffentlich erreichbar und nur für eingeloggte Mitglieder bzw. Administratoren sichtbar.</div>
                             </div>
                             <div class="mb-0">
                                 <label class="form-label" for="pageCategoryId">Kategorie</label>
@@ -336,7 +337,7 @@ if (!in_array($pageDefaultStatus, ['draft', 'published', 'private'], true)) {
                         'summaryCards' => [
                             ['width' => 'col-md-3', 'label' => 'Titel', 'valueId' => 'pageTitleCount', 'suffix' => 'Zeichen'],
                             ['width' => 'col-md-3', 'label' => 'Slug', 'valueId' => 'pageSlugCount', 'suffix' => 'Zeichen'],
-                            ['width' => 'col-md-3', 'label' => 'Status', 'badgeId' => 'pageStatusBadge', 'badgeText' => 'Entwurf', 'badgeClass' => 'badge bg-azure-lt text-azure'],
+                            ['width' => 'col-md-3', 'label' => 'Status', 'badgeId' => 'pageStatusBadge', 'badgeText' => 'Entwurf', 'badgeClass' => 'badge bg-yellow-lt text-yellow'],
                             ['width' => 'col-md-3', 'label' => 'Hinweis', 'bodyText' => 'Slug, Meta, Lesbarkeit und Social-Preview live.'],
                         ],
                     ];
@@ -417,7 +418,7 @@ if (!in_array($pageDefaultStatus, ['draft', 'published', 'private'], true)) {
             'statusMap' => [
                 'draft' => ['label' => 'Entwurf', 'className' => 'badge bg-yellow-lt text-yellow'],
                 'published' => ['label' => 'Veröffentlicht', 'className' => 'badge bg-green-lt text-green'],
-                'private' => ['label' => 'Privat', 'className' => 'badge bg-azure-lt text-azure'],
+                'private' => ['label' => 'Privat', 'className' => 'badge bg-purple-lt text-purple'],
             ],
             'languageToggleSelector' => '[data-lang-toggle]',
             'languagePaneSelector' => '[data-page-lang-pane]',

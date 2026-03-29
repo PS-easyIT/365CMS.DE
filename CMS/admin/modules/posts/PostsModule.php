@@ -60,7 +60,7 @@ class PostsModule
     ];
 
     /** @var string[] */
-    private const ALLOWED_LIST_STATUSES = ['published', 'scheduled', 'draft'];
+    private const ALLOWED_LIST_STATUSES = ['published', 'scheduled', 'draft', 'private'];
 
     /** @var string[] */
     private const ALLOWED_BULK_ACTIONS = [
@@ -224,10 +224,12 @@ class PostsModule
      */
     public function getListData(): array
     {
+        $currentDateTime = date('Y-m-d H:i:s');
         $total     = (int)$this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}posts");
         $published = (int)$this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}posts p WHERE " . cms_post_publication_where('p'));
-        $scheduled = (int)$this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}posts WHERE status = 'published' AND published_at IS NOT NULL AND published_at > NOW()");
+        $scheduled = (int)$this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}posts WHERE status = 'published' AND published_at IS NOT NULL AND published_at > ?", [$currentDateTime]);
         $drafts    = (int)$this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}posts WHERE status = 'draft'");
+        $private   = (int)$this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}posts WHERE status = 'private'");
 
         $statusFilter   = $this->normalizeListStatus((string)($_GET['status'] ?? ''));
         $categoryFilter = $this->normalizeExistingCategoryId((int)($_GET['category'] ?? 0));
@@ -240,8 +242,12 @@ class PostsModule
             if ($statusFilter === 'published') {
                 $where[] = cms_post_publication_where('p');
             } elseif ($statusFilter === 'scheduled') {
-                $where[] = "p.status = 'published' AND p.published_at IS NOT NULL AND p.published_at > NOW()";
+                $where[] = "p.status = 'published' AND p.published_at IS NOT NULL AND p.published_at > ?";
+                $params[] = $currentDateTime;
             } elseif ($statusFilter === 'draft') {
+                $where[]  = 'p.status = ?';
+                $params[] = $statusFilter;
+            } elseif ($statusFilter === 'private') {
                 $where[]  = 'p.status = ?';
                 $params[] = $statusFilter;
             }
@@ -285,6 +291,7 @@ class PostsModule
             'posts'      => array_map(fn($p) => (array)$p, $posts),
             'categories' => $categories,
             'counts'     => compact('total', 'published', 'scheduled', 'drafts'),
+                        'counts'     => compact('total', 'published', 'scheduled', 'drafts', 'private'),
             'filter'     => $statusFilter,
             'catFilter'  => $categoryFilter,
             'search'     => $search,
@@ -354,7 +361,7 @@ class PostsModule
     {
         $categories = $this->db->get_results(
             "SELECT c.id, c.name, c.slug, c.parent_id, c.sort_order, c.alias_domains_json, c.replacement_category_id,
-                    COUNT(p.id) AS post_count,
+                        'counts'     => compact('total', 'published', 'scheduled', 'drafts', 'private'),
                     (
                         SELECT COUNT(DISTINCT p2.id)
                         FROM {$this->prefix}posts p2
@@ -412,11 +419,11 @@ class PostsModule
         $slug       = trim((string)($post['slug'] ?? ''));
         $slugEn     = trim((string)($post['slug_en'] ?? ''));
         $defaultStatus = function_exists('get_option') ? (string)get_option('setting_post_default_status', 'draft') : 'draft';
-        if (!in_array($defaultStatus, ['published', 'draft'], true)) {
+        if (!in_array($defaultStatus, ['published', 'draft', 'private'], true)) {
             $defaultStatus = 'draft';
         }
 
-        $status     = in_array((string)($post['status'] ?? ''), ['published', 'draft'], true) ? (string)$post['status'] : $defaultStatus;
+        $status     = in_array((string)($post['status'] ?? ''), ['published', 'draft', 'private'], true) ? (string)$post['status'] : $defaultStatus;
         $content    = $post['content'] ?? '';
         $titleEn    = $this->sanitizePlainText((string)($post['title_en'] ?? ''), 255);
         $contentEn  = $post['content_en'] ?? '';
@@ -645,6 +652,7 @@ class PostsModule
                     $this->db->execute("UPDATE {$this->prefix}posts SET status = 'published', published_at = COALESCE(published_at, NOW()), updated_at = NOW() WHERE id IN ({$placeholders})", $ids);
                     return ['success' => true, 'message' => count($ids) . ' Beitrag/Beiträge veröffentlicht.'];
 
+                case 'draft':
                 case 'draft':
                     $this->db->execute("UPDATE {$this->prefix}posts SET status = 'draft', updated_at = NOW() WHERE id IN ({$placeholders})", $ids);
                     return ['success' => true, 'message' => count($ids) . ' Beitrag/Beiträge als Entwurf gesetzt.'];
@@ -1311,7 +1319,7 @@ class PostsModule
             ? trim((string) $existing->published_at)
             : null;
 
-        if ($status === 'draft') {
+        if ($status === 'draft' || $status === 'private') {
             return $requestedPublishedAt;
         }
 

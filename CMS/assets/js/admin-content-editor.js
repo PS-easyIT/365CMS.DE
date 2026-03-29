@@ -50,6 +50,11 @@
         var languagePanes = document.querySelectorAll(config.languagePaneSelector || '');
         var statusMap = config.statusMap || {};
         var countBindings = Array.isArray(config.countBindings) ? config.countBindings : [];
+        var serverTimestamp = Number(config.currentTimestamp || 0);
+        var perfStart = typeof window.performance !== 'undefined' && typeof window.performance.now === 'function'
+            ? window.performance.now()
+            : null;
+        var clientStart = Date.now();
 
         if (!form) {
             return;
@@ -66,6 +71,18 @@
             return new Date(dateValue + 'T' + (timeValue !== '' ? timeValue : '00:00'));
         }
 
+        function getReferenceNow() {
+            if (!Number.isFinite(serverTimestamp) || serverTimestamp <= 0) {
+                return Date.now();
+            }
+
+            if (perfStart !== null) {
+                return serverTimestamp + Math.max(0, window.performance.now() - perfStart);
+            }
+
+            return serverTimestamp + Math.max(0, Date.now() - clientStart);
+        }
+
         function isScheduledPublication() {
             var publishAt;
 
@@ -74,7 +91,7 @@
             }
 
             publishAt = resolvePublishDate();
-            return publishAt instanceof Date && !Number.isNaN(publishAt.getTime()) && publishAt.getTime() > Date.now();
+            return publishAt instanceof Date && !Number.isNaN(publishAt.getTime()) && publishAt.getTime() > getReferenceNow();
         }
 
         function switchLanguage(lang) {

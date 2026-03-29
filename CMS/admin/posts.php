@@ -216,6 +216,9 @@ function cms_admin_posts_view_config(PostsModule $module, string $view): array
                             } else if (effective === 'published') {
                                 cls = 'success';
                                 label = 'Veröffentlicht';
+                            } else if (effective === 'private') {
+                                cls = 'purple';
+                                label = 'Privat';
                             }
 
                             return gridjs.html('<span class=\"badge bg-' + cls + '-lt\">' + label + '</span>');

@@ -22,7 +22,7 @@ $postTagsData  = $data['postTags'] ?? [];
 $postEditorWidth = function_exists('get_option') ? (int)get_option('setting_post_editor_width', 750) : 750;
 $postEditorWidth = max(320, min(1600, $postEditorWidth));
 $postDefaultStatus = function_exists('get_option') ? (string)get_option('setting_post_default_status', 'draft') : 'draft';
-if (!in_array($postDefaultStatus, ['draft', 'published'], true)) {
+if (!in_array($postDefaultStatus, ['draft', 'published', 'private'], true)) {
     $postDefaultStatus = 'draft';
 }
 
@@ -50,7 +50,7 @@ if ($publishedAtValue !== '') {
     $publishDate = date('Y-m-d');
     $publishTime = date('H:i');
 }
-$isScheduledPost = $status === 'published' && $publishedAtValue !== '' && strtotime($publishedAtValue) > time();
+$isScheduledPost = $post !== null && \cms_post_is_scheduled($post);
 $metaTitle  = htmlspecialchars($post['meta_title'] ?? '');
 $metaDesc   = htmlspecialchars($post['meta_description'] ?? '');
 $authorDisplayName = htmlspecialchars($post['author_display_name'] ?? '', ENT_QUOTES);
@@ -197,7 +197,9 @@ $defaultContentLanguage = $isEnglishOnlyPost ? 'en' : 'de';
                                 <select class="form-select" id="status" name="status">
                                     <option value="draft" <?php if ($postStatusValue === 'draft') echo 'selected'; ?>>Entwurf</option>
                                     <option value="published" <?php if ($postStatusValue === 'published') echo 'selected'; ?>>Veröffentlicht</option>
+                                    <option value="private" <?php if ($postStatusValue === 'private') echo 'selected'; ?>>Privat (nur Mitglieder)</option>
                                 </select>
+                                                        <div class="form-hint mt-2">Wenn der Status auf <strong>Veröffentlicht</strong> steht und Datum/Uhrzeit in der Zukunft liegen, wird der Beitrag automatisch erst zu diesem Zeitpunkt öffentlich sichtbar. <strong>Privat</strong> ist nur für eingeloggte Mitglieder sichtbar.</div>
                             </div>
                             <div class="mb-0">
                                 <label class="form-label" for="categoryId">Kategorie</label>
@@ -496,6 +498,7 @@ $defaultContentLanguage = $isEnglishOnlyPost ? 'en' : 'de';
             'imageInputId' => 'featuredInput',
             'previewContainerId' => 'featuredPreview',
             'emptyStateId' => 'featuredEmpty',
+            'currentTimestamp' => (int) round(microtime(true) * 1000),
             'slugInputId' => 'slug',
             'previewUrlId' => 'postPreviewUrl',
             'previewBaseUrl' => rtrim((string)SITE_URL, '/') . '/blog/',
@@ -511,6 +514,7 @@ $defaultContentLanguage = $isEnglishOnlyPost ? 'en' : 'de';
             'statusMap' => [
                 'draft' => ['label' => 'Entwurf', 'className' => 'badge bg-yellow-lt text-yellow'],
                 'published' => ['label' => 'Veröffentlicht', 'className' => 'badge bg-green-lt text-green'],
+                'private' => ['label' => 'Privat', 'className' => 'badge bg-purple-lt text-purple'],
                 'scheduled' => ['label' => 'Geplant', 'className' => 'badge bg-azure-lt text-azure'],
             ],
             'languageToggleSelector' => '[data-post-lang-toggle]',

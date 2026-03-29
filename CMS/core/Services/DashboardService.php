@@ -48,6 +48,7 @@ class DashboardService {
         $this->cachedAllStats = [
             'users' => $this->getUserStats(),
             'pages' => $this->getPageStats(),
+            'posts' => $this->getPostStats(),
             'media' => $this->getMediaStats(),
             'sessions' => $this->getSessionStats(),
             'security' => $this->getSecurityStats(),
@@ -151,17 +152,9 @@ class DashboardService {
         $published = (int)$this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}pages WHERE status = 'published'") ?: 0;
         $drafts = (int)$this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}pages WHERE status = 'draft'") ?: 0;
         $private = (int)$this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}pages WHERE status = 'private'") ?: 0;
-        
-        // Seiten mit zukünftigem Veröffentlichungsdatum (optional - Spalte existiert möglicherweise nicht)
+
+        // Seiten haben derzeit keinen Scheduling-Workflow.
         $scheduled = 0;
-        try {
-            $scheduled = (int)$this->db->get_var(
-                "SELECT COUNT(*) FROM {$this->prefix}pages WHERE published_at IS NOT NULL AND published_at > NOW()"
-            ) ?: 0;
-        } catch (\Throwable $e) {
-            // Spalte published_at existiert nicht - ignorieren
-            error_log('DashboardService: published_at column not found - ' . $e->getMessage());
-        }
         
         return [
             'total' => $total,
@@ -169,6 +162,32 @@ class DashboardService {
             'drafts' => $drafts,
             'private' => $private,
             'scheduled' => $scheduled
+        ];
+    }
+
+    /**
+     * Beitrags-Statistiken.
+     */
+    public function getPostStats(): array {
+        $currentDateTime = date('Y-m-d H:i:s');
+        $total = (int)$this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}posts") ?: 0;
+        $published = (int)$this->db->get_var(
+            "SELECT COUNT(*) FROM {$this->prefix}posts WHERE status = 'published' AND (published_at IS NULL OR published_at <= ?)",
+            [$currentDateTime]
+        ) ?: 0;
+        $drafts = (int)$this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}posts WHERE status = 'draft'") ?: 0;
+        $private = (int)$this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}posts WHERE status = 'private'") ?: 0;
+        $scheduled = (int)$this->db->get_var(
+            "SELECT COUNT(*) FROM {$this->prefix}posts WHERE status = 'published' AND published_at IS NOT NULL AND published_at > ?",
+            [$currentDateTime]
+        ) ?: 0;
+
+        return [
+            'total' => $total,
+            'published' => $published,
+            'drafts' => $drafts,
+            'private' => $private,
+            'scheduled' => $scheduled,
         ];
     }
     

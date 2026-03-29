@@ -703,6 +703,21 @@ final class SeoSuiteModule
 		$settings = array_merge($this->seoService->getSitemapSettings(), $this->loadSettings(self::SITEMAP_EXTRA_DEFAULTS));
 		$indexNowStatus = $this->indexingService->getIndexNowConfigurationStatus();
 
+		$eligibleRows = array_values(array_filter($auditRows, static function (array $row): bool {
+			$type = (string) ($row['type'] ?? '');
+			$status = (string) ($row['status'] ?? '');
+
+			if ($type === 'page') {
+				return $status === 'published';
+			}
+
+			if ($type === 'post') {
+				return \cms_post_is_publicly_visible($row);
+			}
+
+			return false;
+		}));
+
 		return [
 			'settings' => $settings,
 			'files' => $this->getSitemapFilesStatus(),
@@ -725,10 +740,10 @@ final class SeoSuiteModule
 				],
 			],
 			'counts' => [
-				'pages' => count(array_filter($auditRows, static fn(array $row): bool => ($row['type'] ?? '') === 'page')),
-				'posts' => count(array_filter($auditRows, static fn(array $row): bool => ($row['type'] ?? '') === 'post')),
-				'images' => count(array_filter($auditRows, static fn(array $row): bool => trim((string)($row['og_image'] ?? '')) !== '' || trim((string)($row['featured_image'] ?? '')) !== '')),
-				'news_candidates' => count(array_filter($auditRows, static fn(array $row): bool => ($row['type'] ?? '') === 'post' && ($row['status'] ?? '') === 'published')),
+				'pages' => count(array_filter($eligibleRows, static fn(array $row): bool => ($row['type'] ?? '') === 'page')),
+				'posts' => count(array_filter($eligibleRows, static fn(array $row): bool => ($row['type'] ?? '') === 'post')),
+				'images' => count(array_filter($eligibleRows, static fn(array $row): bool => trim((string)($row['og_image'] ?? '')) !== '' || trim((string)($row['featured_image'] ?? '')) !== '')),
+				'news_candidates' => count(array_filter($eligibleRows, static fn(array $row): bool => ($row['type'] ?? '') === 'post')),
 			],
 		];
 	}

@@ -106,7 +106,6 @@ final class ThemeRouter
         $pluginMgr = PluginManager::instance();
         $db = Database::instance();
         $prefix = $db->getPrefix();
-
         $searchService = Services\SearchService::getInstance();
         $useTNT = $searchService->isAvailable() && $query !== '';
 
@@ -127,6 +126,7 @@ final class ThemeRouter
                         if (!isset($byId[$id])) {
                             continue;
                         }
+
                         $byId[$id]['_type'] = 'page';
                         $byId[$id]['_type_label'] = 'Seite';
                         $results[] = $byId[$id];
@@ -428,6 +428,17 @@ final class ThemeRouter
             return;
         }
 
+        $postStatus = (string) ($postRow->status ?? '');
+        if ($postStatus === 'private') {
+            if (!\CMS\Auth::instance()->isLoggedIn()) {
+                $this->router->redirect('/login?redirect=' . urlencode((string) ($_SERVER['REQUEST_URI'] ?? '/')), 302);
+                return;
+            }
+        } elseif (!\cms_post_is_publicly_visible($postRow)) {
+            $this->router->render404();
+            return;
+        }
+
         $db = Database::instance();
         $prefix = $db->getPrefix();
         $locale = $this->getResolvedContentLocale();
@@ -545,7 +556,7 @@ final class ThemeRouter
         }
 
         $db = Database::instance();
-        $prefix = $db->getPrefix();
+                                $stmt = $db->prepare("SELECT * FROM {$prefix}posts WHERE id IN ({$ph}) AND " . \cms_post_publication_where());
         $locale = $this->getResolvedContentLocale();
         $query = trim((string) ($_GET['q'] ?? ''));
         $page = max(1, (int) ($_GET['page'] ?? $_GET['p'] ?? 1));
@@ -856,7 +867,7 @@ final class ThemeRouter
              FROM {$prefix}posts p
              LEFT JOIN {$prefix}users u ON u.id = p.author_id
              LEFT JOIN {$prefix}post_categories c ON c.id = p.category_id
-             WHERE {$slugField} AND " . \cms_post_publication_where('p') . " AND {$localeAvailability}",
+             WHERE {$slugField} AND {$localeAvailability}",
             $slugParams
         );
 
@@ -868,11 +879,11 @@ final class ThemeRouter
                      FROM {$prefix}posts p
                      LEFT JOIN {$prefix}users u ON u.id = p.author_id
                      LEFT JOIN {$prefix}post_categories c ON c.id = p.category_id
-                     WHERE (p.slug_en = ? OR p.slug = ?) AND " . \cms_post_publication_where('p') . " AND {$englishAvailability}",
+                     WHERE (p.slug_en = ? OR p.slug = ?) AND {$englishAvailability}",
                     [$slug, $slug]
                 );
 
-                if ($englishRow) {
+                if ($englishRow && ((string) ($englishRow->status ?? '') === 'private' || \cms_post_is_publicly_visible($englishRow))) {
                     $englishPost = Services\ContentLocalizationService::getInstance()->localizePost((array) $englishRow, 'en');
                     $this->router->redirect(Services\PermalinkService::getInstance()->buildPostPath($englishPost, 'en'), 301);
                     return;
@@ -883,6 +894,17 @@ final class ThemeRouter
                 return;
             }
 
+            $this->router->render404();
+            return;
+        }
+
+        $postStatus = (string) ($postRow->status ?? '');
+        if ($postStatus === 'private') {
+            if (!\CMS\Auth::instance()->isLoggedIn()) {
+                $this->router->redirect('/login?redirect=' . urlencode((string) ($_SERVER['REQUEST_URI'] ?? '/')), 302);
+                return;
+            }
+        } elseif (!\cms_post_is_publicly_visible($postRow)) {
             $this->router->render404();
             return;
         }
@@ -1066,7 +1088,17 @@ final class ThemeRouter
         }
 
         $page = PageManager::instance()->getPageBySlug($slug, $this->router->getRequestLocale());
-        if ($page !== null && ($page['status'] ?? '') === 'published') {
+        if ($page !== null) {
+            $pageStatus = (string) ($page['status'] ?? '');
+            if ($pageStatus === 'private') {
+                if (!\CMS\Auth::instance()->isLoggedIn()) {
+                    $this->router->redirect('/login?redirect=' . urlencode((string) ($_SERVER['REQUEST_URI'] ?? '/')), 302);
+                    return true;
+                }
+            } elseif ($pageStatus !== 'published') {
+                return false;
+            }
+
             $locale = $this->router->getRequestLocale();
             $page = Services\ContentLocalizationService::getInstance()->localizePage($page, $locale);
             if (!empty($page['content'])) {

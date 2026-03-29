@@ -386,7 +386,9 @@ function cms_post_publication_where(string $alias = ''): string {
         $normalizedAlias = rtrim($normalizedAlias, '.') . '.';
     }
 
-    return "({$normalizedAlias}status = 'published' AND ({$normalizedAlias}published_at IS NULL OR {$normalizedAlias}published_at <= NOW()))";
+    $currentDateTime = date('Y-m-d H:i:s');
+
+    return "({$normalizedAlias}status = 'published' AND ({$normalizedAlias}published_at IS NULL OR {$normalizedAlias}published_at <= '{$currentDateTime}'))";
 }
 
 /**

@@ -45,6 +45,7 @@ class DashboardModule
         $orders = $stats['orders'] ?? [];
         $users = $stats['users'] ?? [];
         $pages = $stats['pages'] ?? [];
+        $posts = $stats['posts'] ?? [];
         $media = $stats['media'] ?? [];
 
         return [
@@ -72,6 +73,12 @@ class DashboardModule
                     'value' => (string) (($pages['drafts'] ?? 0) + ($pages['private'] ?? 0)),
                     'hint' => (string) (($pages['published'] ?? 0) . ' Seiten sind veröffentlicht'),
                     'url' => '/admin/pages',
+                ],
+                [
+                    'label' => 'Geplante & private Beiträge',
+                    'value' => (string) (($posts['scheduled'] ?? 0) + ($posts['private'] ?? 0)),
+                    'hint' => (string) (($posts['published'] ?? 0) . ' Beiträge sind öffentlich sichtbar'),
+                    'url' => '/admin/posts',
                 ],
                 [
                     'label' => 'Uploads gesamt',
@@ -134,6 +141,7 @@ class DashboardModule
     {
         $users = $stats['users'] ?? [];
         $pages = $stats['pages'] ?? [];
+        $posts = $stats['posts'] ?? [];
         $media = $stats['media'] ?? [];
         $orders = $stats['orders'] ?? [];
 
@@ -153,6 +161,14 @@ class DashboardModule
                 'color'  => 'green',
                 'icon'   => 'file-text',
                 'url'    => '/admin/pages',
+            ],
+            [
+                'label'  => 'Beiträge',
+                'value'  => $posts['total'] ?? 0,
+                'sub'    => ($posts['published'] ?? 0) . ' sichtbar · ' . ($posts['scheduled'] ?? 0) . ' geplant',
+                'color'  => 'azure',
+                'icon'   => 'article',
+                'url'    => '/admin/posts',
             ],
             [
                 'label'  => 'Medien',

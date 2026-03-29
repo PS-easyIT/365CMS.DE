@@ -76,7 +76,7 @@ class AnalyticsModule
         // Content-Stats
         $contentStats = [
             'pages'    => (int)$this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}pages WHERE status = 'published'"),
-            'posts'    => (int)$this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}posts WHERE status = 'published'"),
+            'posts'    => (int)$this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}posts p WHERE " . \cms_post_publication_where('p')),
             'comments' => (int)$this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}comments") ?: 0,
             'users'    => (int)$this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}users"),
         ];

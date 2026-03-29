@@ -29,9 +29,9 @@ $search  = $listData['search'];
 $pagesGridConfig = is_array($pagesGridConfig ?? null) ? $pagesGridConfig : [];
 
 $statusLabels = [
-    'published' => ['Veröffentlicht', 'bg-green'],
-    'draft'     => ['Entwurf',        'bg-yellow'],
-    'private'   => ['Privat',         'bg-purple'],
+    'published' => ['Veröffentlicht', 'bg-green-lt text-green'],
+    'draft'     => ['Entwurf',        'bg-yellow-lt text-yellow'],
+    'private'   => ['Privat',         'bg-purple-lt text-purple'],
 ];
 ?>
 
@@ -183,7 +183,7 @@ $statusLabels = [
                             $pageTitle = trim((string)($page->title ?? ''));
                             $pageSlug = trim((string)($page->slug ?? ''));
                             $pageStatus = (string)($page->status ?? 'draft');
-                            [$pageStatusLabel, $pageStatusClass] = $statusLabels[$pageStatus] ?? [$pageStatus, 'bg-secondary'];
+                            [$pageStatusLabel, $pageStatusClass] = $statusLabels[$pageStatus] ?? [$pageStatus, 'bg-secondary-lt text-secondary'];
                             $pageCategory = trim((string)($page->category_name ?? ''));
                             $pageAuthor = trim((string)($page->author ?? ''));
                             $pageUpdatedAt = trim((string)($page->updated_at ?? $page->created_at ?? ''));
