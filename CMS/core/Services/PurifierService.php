@@ -46,7 +46,7 @@ class PurifierService
     private const PROFILES = [
         'default' => [
             'elements'   => 'p,a,strong,b,em,i,u,ul,ol,li,br,h1,h2,h3,h4,h5,h6,blockquote,pre,code,img,table,thead,tbody,tfoot,tr,th,td,hr,span,div,figure,figcaption,dl,dt,dd,sub,sup,abbr,mark,del,ins,details,summary,video,source,audio',
-            'attributes' => 'a.href,a.title,a.target,a.rel,img.src,img.alt,img.width,img.height,img.loading,td.colspan,td.rowspan,th.colspan,th.rowspan,span.class,div.class,pre.class,code.class,video.src,video.controls,video.width,video.height,source.src,source.type,audio.src,audio.controls,details.open',
+            'attributes' => 'a.href,a.title,a.target,a.rel,img.src,img.alt,img.width,img.height,img.loading,img.fetchpriority,img.decoding,td.colspan,td.rowspan,th.colspan,th.rowspan,span.class,div.class,pre.class,code.class,h1.id,h2.id,h3.id,h4.id,h5.id,h6.id,video.src,video.controls,video.width,video.height,source.src,source.type,audio.src,audio.controls,details.open',
         ],
         'table' => [
             'elements'   => 'p,a,strong,b,em,i,u,ul,ol,li,br,blockquote,pre,code,img,span,div,small,mark,sub,sup,table,thead,tbody,tfoot,tr,th,td,caption',

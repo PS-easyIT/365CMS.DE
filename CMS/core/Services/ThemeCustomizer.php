@@ -113,19 +113,36 @@ class ThemeCustomizer
      */
     private function loadThemeConfig(): void
     {
-        $configPath = ABSPATH . 'themes/' . $this->currentTheme . '/theme.json';
-        
-        if (!file_exists($configPath)) {
-            error_log("Theme config not found: {$configPath}");
+        $themeSlug = trim((string) $this->currentTheme);
+        if ($themeSlug === '' || preg_match('/^[a-z0-9][a-z0-9\-]*$/i', $themeSlug) !== 1) {
+            error_log('ThemeCustomizer::loadThemeConfig() invalid theme slug: ' . $themeSlug);
             $this->themeConfig = [];
             return;
         }
-        
-        $json = file_get_contents($configPath);
+
+        $themesBase = defined('ABSPATH') ? ABSPATH . 'themes' . DIRECTORY_SEPARATOR : '';
+        $realThemesBase = $themesBase !== '' ? realpath($themesBase) : false;
+        if ($realThemesBase === false || !is_dir($realThemesBase)) {
+            error_log('ThemeCustomizer::loadThemeConfig() theme base path unavailable: ' . $themesBase);
+            $this->themeConfig = [];
+            return;
+        }
+
+        $candidatePath = $realThemesBase . DIRECTORY_SEPARATOR . $themeSlug . DIRECTORY_SEPARATOR . 'theme.json';
+        $realConfigPath = realpath($candidatePath);
+        $realThemesBasePrefix = rtrim($realThemesBase, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+
+        if ($realConfigPath === false || !is_file($realConfigPath) || !str_starts_with($realConfigPath, $realThemesBasePrefix)) {
+            error_log("Theme config not found: {$candidatePath}");
+            $this->themeConfig = [];
+            return;
+        }
+
+        $json = file_get_contents($realConfigPath);
         $config = Json::decodeArray($json, []);
 
         if ($config === []) {
-            error_log("Invalid or empty theme.json: {$configPath}");
+            error_log("Invalid or empty theme.json: {$realConfigPath}");
             $this->themeConfig = [];
             return;
         }
@@ -167,6 +184,67 @@ class ThemeCustomizer
         $config = $this->getThemeConfig();
         return $config['customization'] ?? [];
     }
+
+    /**
+     * @return array{sql:string, params:array<int, mixed>}
+     */
+    private function buildUserScopeClause(?int $userId, bool $includeGlobalFallback = false): array
+    {
+        if ($userId !== null) {
+            if ($includeGlobalFallback) {
+                return [
+                    'sql' => ' AND (user_id = ? OR user_id IS NULL)',
+                    'params' => [$userId],
+                ];
+            }
+
+            return [
+                'sql' => ' AND user_id = ?',
+                'params' => [$userId],
+            ];
+        }
+
+        return [
+            'sql' => ' AND user_id IS NULL',
+            'params' => [],
+        ];
+    }
+
+    private function cleanupDuplicateSettingRows(string $category, string $key, ?int $userId = null): void
+    {
+        try {
+            $scope = $this->buildUserScopeClause($userId);
+            $params = array_merge([$this->currentTheme, $category, $key], $scope['params']);
+
+            $sql = "SELECT id
+                    FROM {$this->db->getPrefix()}theme_customizations
+                    WHERE theme_slug = ? AND setting_category = ? AND setting_key = ?" . $scope['sql'] . "
+                    ORDER BY updated_at DESC, id DESC";
+
+            $stmt = $this->db->execute($sql, $params);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            if (!is_array($rows) || count($rows) <= 1) {
+                return;
+            }
+
+            $duplicateIds = array_values(array_filter(array_map(
+                static fn(array $row): int => (int) ($row['id'] ?? 0),
+                array_slice($rows, 1)
+            )));
+
+            if ($duplicateIds === []) {
+                return;
+            }
+
+            $placeholders = implode(', ', array_fill(0, count($duplicateIds), '?'));
+            $this->db->execute(
+                "DELETE FROM {$this->db->getPrefix()}theme_customizations WHERE id IN ({$placeholders})",
+                $duplicateIds
+            );
+        } catch (\Throwable $e) {
+            error_log('ThemeCustomizer::cleanupDuplicateSettingRows() failed: ' . $e->getMessage());
+        }
+    }
     
     /**
      * Load customizations from database
@@ -178,23 +256,30 @@ class ThemeCustomizer
                     FROM {$this->db->getPrefix()}theme_customizations 
                     WHERE theme_slug = ?";
             $params = [$this->currentTheme];
-            
-            if ($userId !== null) {
-                $sql .= " AND (user_id = ? OR user_id IS NULL)";
-                $params[] = $userId;
-            } else {
-                $sql .= " AND user_id IS NULL";
-            }
+            $scope = $this->buildUserScopeClause($userId, $userId !== null);
+            $sql .= $scope['sql'];
+            $params = array_merge($params, $scope['params']);
+            $sql .= " ORDER BY updated_at DESC, id DESC";
             
             $stmt    = $this->db->execute($sql, $params);
             $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
             
             $this->customizations = [];
             foreach ($results as $row) {
-                if (!isset($this->customizations[$row['setting_category']])) {
-                    $this->customizations[$row['setting_category']] = [];
+                $category = (string) ($row['setting_category'] ?? '');
+                $settingKey = (string) ($row['setting_key'] ?? '');
+                if ($category === '' || $settingKey === '') {
+                    continue;
                 }
-                $this->customizations[$row['setting_category']][$row['setting_key']] = $row['setting_value'];
+
+                if (isset($this->customizations[$category][$settingKey])) {
+                    continue;
+                }
+
+                if (!isset($this->customizations[$category])) {
+                    $this->customizations[$category] = [];
+                }
+                $this->customizations[$category][$settingKey] = $row['setting_value'];
             }
             
         } catch (\Throwable $e) {
@@ -289,6 +374,7 @@ class ThemeCustomizer
 
             // Ensure the table exists (idempotent, runs once per request)
             $this->ensureTable();
+            $this->cleanupDuplicateSettingRows($category, $key, $userId);
 
             // Check if record exists
             // Database::execute() nutzen statt prepare()+execute() direkt –
@@ -298,13 +384,10 @@ class ThemeCustomizer
             $sql = "SELECT id FROM {$this->db->getPrefix()}theme_customizations 
                     WHERE theme_slug = ? AND setting_category = ? AND setting_key = ?";
             $params = [$this->currentTheme, $category, $key];
-            
-            if ($userId !== null) {
-                $sql .= " AND user_id = ?";
-                $params[] = $userId;
-            } else {
-                $sql .= " AND user_id IS NULL";
-            }
+            $scope = $this->buildUserScopeClause($userId);
+            $sql .= $scope['sql'];
+            $params = array_merge($params, $scope['params']);
+            $sql .= " ORDER BY updated_at DESC, id DESC LIMIT 1";
             
             $stmt    = $this->db->execute($sql, $params);
             $existing = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -328,6 +411,8 @@ class ThemeCustomizer
                     $userId
                 ]);
             }
+
+            $this->cleanupDuplicateSettingRows($category, $key, $userId);
             
             // Reload customizations
             $this->loadCustomizations($userId);

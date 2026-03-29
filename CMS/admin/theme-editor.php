@@ -136,6 +136,21 @@ function cms_admin_theme_editor_runtime_context(ThemeManager $themeManager): arr
     ];
 }
 
+/**
+ * Der Theme-Customizer verarbeitet POST-Requests im eingebundenen Theme-Fragment selbst.
+ * Die Section-Shell darf daher nicht vorab redirecten oder eine Unknown-Action erzwingen.
+ *
+ * @return array{success: bool, render_inline: bool, message: string}
+ */
+function cms_admin_theme_editor_inline_post_handler(): array
+{
+    return [
+        'success' => true,
+        'render_inline' => true,
+        'message' => '',
+    ];
+}
+
 $sectionPageConfig = [
     'route_path' => CMS_ADMIN_THEME_EDITOR_ROUTE_PATH,
     'view_file' => CMS_ADMIN_THEME_EDITOR_FALLBACK_VIEW,
@@ -146,6 +161,7 @@ $sectionPageConfig = [
     'module_factory' => static fn (): ThemeManager => ThemeManager::instance(),
     'data_loader' => static fn (ThemeManager $themeManager): array => cms_admin_theme_editor_resolve_state($themeManager),
     'request_context_resolver' => static fn (ThemeManager $themeManager): array => cms_admin_theme_editor_runtime_context($themeManager),
+    'post_handler' => static fn (): array => cms_admin_theme_editor_inline_post_handler(),
     'access_checker' => static fn (): bool => cms_admin_theme_editor_can_access(),
     'access_denied_route' => '/',
 ];

@@ -1,4 +1,4 @@
-﻿﻿﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.8.0-blue.svg)](https://shields.io/)
+﻿﻿﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.8.1-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -17,6 +17,20 @@
 ---
 
 ## 📜 Vollständige Versionshistorie
+
+---
+
+### v2.8.1 — 29. März 2026
+
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.8.1** | 🔴 fix | Admin/Posts | **`CMS/admin/posts.php` repariert die GridJS-Initialisierung der Beitragsliste nach dem Status-Refactoring**: Ein verrutschter `private`-Zweig im Inline-JavaScript konnte die Listenansicht vollständig leeren; das Status-Badge-Rendering für `draft`, `published`, `scheduled` und `private` ist jetzt wieder stabil verdrahtet. |
+| **2.8.1** | 🔴 fix | Core/API | **`CMS/core/Routing/ApiRouter.php`, `CMS/admin/views/posts/edit.php` und `CMS/assets/js/admin-content-editor.js` vereinheitlichen die Beitrags-Statusermittlung auf eine gemeinsame serverseitige Zeitbasis**: Bereits veröffentlichte Beiträge erscheinen im Admin nicht länger fälschlich als „geplant“, nur weil SQL-`NOW()`, PHP-Zeit und lokale Browser-Uhr voneinander abweichen. |
+| **2.8.1** | 🔴 fix | Core/Content | **Private, veröffentlichte und geplante Beiträge folgen jetzt konsistenter derselben Sichtbarkeitslogik in Admin und öffentlichem Routing**: Listenfilter, Badge-Status, Edit-Hinweise und effektiver Status hängen damit enger an `cms_post_publication_where()` und `cms_post_is_scheduled()` statt an mehreren Schattenpfaden. |
+| **2.8.1** | 🔴 fix | SEO/Analytics | **`CMS/admin/modules/seo/AnalyticsModule.php` und `CMS/admin/modules/seo/SeoSuiteModule.php` zählen Beiträge für Analytics-, Sitemap- und News-KPIs jetzt nach öffentlicher Sichtbarkeit statt bloßem Rohstatus `published`**: Geplante Beiträge rutschen dadurch nicht mehr vorzeitig in veröffentlichte SEO-Kennzahlen. |
+| **2.8.1** | 🟠 perf | Search/Archive | **Archive, Suche und Post-Sitemaps bleiben auf dem zentralen Veröffentlichungsvertrag konsolidiert**: Die aktuelle Prüfung bestätigt, dass Blog-Archive, Tag-/Kategoriepfade, TNTSearch-Postindex und Post-/News-Sitemaps weiter über `cms_post_publication_where()` laufen und keine abweichende Statuslogik nachziehen mussten. |
+| **2.8.1** | 🔵 docs | Release | **`README.md`, `Changelog.md`, `CMS/core/Version.php` und `CMS/update.json` wurden auf den Release-Stand `2.8.1` synchronisiert**: Dokumentation, sichtbare Core-Version und Update-Metadaten zeigen damit denselben Stand für die Status- und Admin-Konsistenzkorrekturen. |
 
 ---
 
