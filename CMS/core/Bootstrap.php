@@ -642,11 +642,13 @@ class Bootstrap
             }, 30);
 
             Hooks::addAction('head', static function (): void {
-                $requestUri = (string) ($_SERVER['REQUEST_URI'] ?? '/');
-                if (!SiteTableHubRenderer::isHubRequestUri($requestUri)) {
+                static $hubStylesRendered = false;
+
+                if ($hubStylesRendered) {
                     return;
                 }
 
+                $hubStylesRendered = true;
                 $href = htmlspecialchars(cms_asset_url('css/hub-sites.css'), ENT_QUOTES, 'UTF-8');
                 echo '<link rel="stylesheet" href="' . $href . '">' . "\n";
             }, 12);

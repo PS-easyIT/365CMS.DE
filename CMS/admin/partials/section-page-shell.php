@@ -89,6 +89,20 @@ function cms_admin_section_shell_redirect(string $routePath): never
     exit;
 }
 
+function cms_admin_section_shell_mark_csrf_verified(string $csrfAction): void
+{
+    if (!isset($GLOBALS['cms_admin_verified_csrf_actions']) || !is_array($GLOBALS['cms_admin_verified_csrf_actions'])) {
+        $GLOBALS['cms_admin_verified_csrf_actions'] = [];
+    }
+
+    $GLOBALS['cms_admin_verified_csrf_actions'][$csrfAction] = true;
+}
+
+function cms_admin_section_shell_was_csrf_verified(string $csrfAction): bool
+{
+    return !empty($GLOBALS['cms_admin_verified_csrf_actions'][$csrfAction]);
+}
+
 function cms_admin_section_shell_normalize_page_assets(mixed $pageAssets): array
 {
     $resolvedPageAssets = is_array($pageAssets) ? $pageAssets : [];
@@ -189,6 +203,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         cms_admin_section_shell_flash($alertSessionKey, ['type' => 'danger', 'message' => $invalidTokenMessage]);
         cms_admin_section_shell_redirect($redirectTarget);
     }
+
+    cms_admin_section_shell_mark_csrf_verified($csrfAction);
 
     $result = is_callable($postHandler)
         ? $postHandler($module, $section, $_POST)
