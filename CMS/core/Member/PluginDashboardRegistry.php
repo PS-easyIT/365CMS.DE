@@ -295,8 +295,8 @@ class PluginDashboardRegistry
         foreach ($this->getAll() as $section) {
             $items[] = [
                 'slug'        => 'plugin_' . $section['slug'],
-                'label'       => $section['label'],
-                'icon'        => $section['icon'],
+                'label'       => $this->sanitizeWidgetText((string) ($section['label'] ?? $section['slug'] ?? 'Plugin'), 120, 'Plugin'),
+                'icon'        => $this->sanitizeWidgetText((string) ($section['icon'] ?? '🔌'), 16, '🔌'),
                 'url'         => '/member/plugin/' . $section['slug'],
                 'active'      => $currentSlug === $section['slug'],
                 'category'    => $section['category'],
@@ -327,6 +327,8 @@ class PluginDashboardRegistry
             }
             $wConfig = $section['dashboard_widget'] ?? [];
             $metaOverride = $this->getWidgetMetaOverride((string) ($section['plugin'] ?? $section['slug'] ?? ''));
+            $pluginSlug = (string) ($section['plugin'] ?? $section['slug'] ?? '');
+            $sectionSlug = (string) ($section['slug'] ?? '');
 
             // Stats via Callback ermitteln
             $stats = null;
@@ -338,19 +340,24 @@ class PluginDashboardRegistry
                 }
             }
 
+            $stats = is_array($stats) ? [
+                'count' => (int) ($stats['count'] ?? 0),
+                'label' => $this->sanitizeWidgetText((string) ($stats['label'] ?? 'Einträge'), 80, 'Einträge'),
+            ] : null;
+
             $widgets[] = [
-                'plugin'      => $section['plugin'],
-                'slug'        => $section['slug'],
-                'icon'        => $metaOverride['icon'] ?? $wConfig['icon'] ?? $section['icon'],
-                'title'       => $metaOverride['title'] ?? $wConfig['title'] ?? $section['label'],
-                'description' => $metaOverride['description'] ?? $wConfig['description'] ?? '',
-                'color'       => $metaOverride['color'] ?? $wConfig['color'] ?? '#4f46e5',
-                'link'        => '/member/plugin/' . $section['slug'],
-                'link_label'  => $wConfig['link_label'] ?? 'Öffnen',
-                'admin_link'  => $isAdmin && !empty($wConfig['admin_url']) ? $wConfig['admin_url'] : null,
-                'admin_label' => $wConfig['admin_label'] ?? '⚙️ Verwalten',
+                'plugin'      => $this->sanitizeWidgetText($pluginSlug, 120, $sectionSlug !== '' ? $sectionSlug : 'plugin'),
+                'slug'        => $this->sanitizeWidgetText($sectionSlug, 120, 'plugin'),
+                'icon'        => $this->sanitizeWidgetText((string) ($metaOverride['icon'] ?? $wConfig['icon'] ?? $section['icon'] ?? '🔌'), 16, '🔌'),
+                'title'       => $this->sanitizeWidgetText((string) ($metaOverride['title'] ?? $wConfig['title'] ?? $section['label'] ?? 'Plugin'), 160, 'Plugin'),
+                'description' => $this->sanitizeWidgetText((string) ($metaOverride['description'] ?? $wConfig['description'] ?? ''), 255),
+                'color'       => $this->sanitizeWidgetColor((string) ($metaOverride['color'] ?? $wConfig['color'] ?? '#4f46e5')),
+                'link'        => '/member/plugin/' . $sectionSlug,
+                'link_label'  => $this->sanitizeWidgetText((string) ($wConfig['link_label'] ?? 'Öffnen'), 80, 'Öffnen'),
+                'admin_link'  => $isAdmin && !empty($wConfig['admin_url']) ? $this->sanitizeWidgetLink((string) $wConfig['admin_url']) : null,
+                'admin_label' => $this->sanitizeWidgetText((string) ($wConfig['admin_label'] ?? '⚙️ Verwalten'), 80, '⚙️ Verwalten'),
                 'stats'       => $stats,  // null oder ['count'=>int, 'label'=>string]
-                'badge'       => $wConfig['badge'] ?? null,   // z.B. 'Neu' oder '3'
+                'badge'       => isset($wConfig['badge']) ? $this->sanitizeWidgetText((string) $wConfig['badge'], 40) : null,   // z.B. 'Neu' oder '3'
             ];
         }
 
@@ -419,5 +426,39 @@ class PluginDashboardRegistry
         }
         // Erweiterbar für weitere Rollen
         return true;
+    }
+
+    private function sanitizeWidgetColor(string $value, string $fallback = '#4f46e5'): string
+    {
+        $color = trim($value);
+        return preg_match('/^#[0-9a-f]{6}$/i', $color) === 1 ? $color : $fallback;
+    }
+
+    private function sanitizeWidgetLink(string $value): ?string
+    {
+        $href = trim($value);
+        if ($href === '') {
+            return null;
+        }
+
+        if (str_starts_with($href, '/')) {
+            return str_starts_with($href, '//') ? null : $href;
+        }
+
+        if (preg_match('#^https?://#i', $href) === 1) {
+            return filter_var($href, FILTER_VALIDATE_URL) ? $href : null;
+        }
+
+        return null;
+    }
+
+    private function sanitizeWidgetText(string $value, int $maxLength = 160, string $fallback = ''): string
+    {
+        $text = trim(strip_tags($value));
+        if ($text === '') {
+            return $fallback;
+        }
+
+        return function_exists('mb_substr') ? mb_substr($text, 0, $maxLength) : substr($text, 0, $maxLength);
     }
 }

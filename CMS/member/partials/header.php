@@ -13,6 +13,16 @@ $settings = $settings ?? $controller->getSettings();
 $siteUrl = defined('SITE_URL') ? SITE_URL : '';
 $siteName = function_exists('cms_get_site_name') ? cms_get_site_name() : (defined('SITE_NAME') ? SITE_NAME : '365CMS');
 $design = is_array($settings['design'] ?? null) ? $settings['design'] : [];
+$sanitizeDesignColor = static function (mixed $value, string $fallback): string {
+    $color = trim((string) $value);
+    return preg_match('/^#[0-9a-f]{6}$/i', $color) === 1 ? $color : $fallback;
+};
+$memberPrimary = $sanitizeDesignColor($design['primary'] ?? '#6366f1', '#6366f1');
+$memberAccent = $sanitizeDesignColor($design['accent'] ?? '#8b5cf6', '#8b5cf6');
+$memberBg = $sanitizeDesignColor($design['bg'] ?? '#f1f5f9', '#f1f5f9');
+$memberCardBg = $sanitizeDesignColor($design['card_bg'] ?? '#ffffff', '#ffffff');
+$memberText = $sanitizeDesignColor($design['text'] ?? '#1e293b', '#1e293b');
+$memberBorder = $sanitizeDesignColor($design['border'] ?? '#e2e8f0', '#e2e8f0');
 $bodyClass = 'member-shell member-page-' . preg_replace('/[^a-z0-9\-]+/i', '-', $pageKey);
 $displayName = $controller->getDisplayName();
 $avatar = $controller->getAvatarUrl();
@@ -38,12 +48,12 @@ $showAdminHeaderLink = \CMS\Auth::isAdmin();
     <?php endif; ?>
     <style>
         :root {
-            --member-primary: <?= htmlspecialchars((string)($design['primary'] ?? '#6366f1')) ?>;
-            --member-accent: <?= htmlspecialchars((string)($design['accent'] ?? '#8b5cf6')) ?>;
-            --member-bg: <?= htmlspecialchars((string)($design['bg'] ?? '#f1f5f9')) ?>;
-            --member-card-bg: <?= htmlspecialchars((string)($design['card_bg'] ?? '#ffffff')) ?>;
-            --member-text: <?= htmlspecialchars((string)($design['text'] ?? '#1e293b')) ?>;
-            --member-border: <?= htmlspecialchars((string)($design['border'] ?? '#e2e8f0')) ?>;
+            --member-primary: <?= htmlspecialchars($memberPrimary, ENT_QUOTES) ?>;
+            --member-accent: <?= htmlspecialchars($memberAccent, ENT_QUOTES) ?>;
+            --member-bg: <?= htmlspecialchars($memberBg, ENT_QUOTES) ?>;
+            --member-card-bg: <?= htmlspecialchars($memberCardBg, ENT_QUOTES) ?>;
+            --member-text: <?= htmlspecialchars($memberText, ENT_QUOTES) ?>;
+            --member-border: <?= htmlspecialchars($memberBorder, ENT_QUOTES) ?>;
         }
     </style>
     <?php \CMS\Hooks::doAction('head'); ?>

@@ -398,7 +398,21 @@ final class MemberController
             return $aPos <=> $bPos;
         });
 
-        return Hooks::applyFilters('member_dashboard_widgets', $widgets, $this->getCurrentUser(), $settings);
+        $widgets = Hooks::applyFilters('member_dashboard_widgets', $widgets, $this->getCurrentUser(), $settings);
+        if (!is_array($widgets)) {
+            return [];
+        }
+
+        $normalizedWidgets = [];
+        foreach ($widgets as $widget) {
+            if (!is_array($widget)) {
+                continue;
+            }
+
+            $normalizedWidgets[] = $this->sanitizeDashboardWidget($widget);
+        }
+
+        return $normalizedWidgets;
     }
 
     /**
@@ -412,9 +426,9 @@ final class MemberController
                 continue;
             }
             $widgets[] = [
-                'title' => trim((string)($widget['title'] ?? '')),
-                'content' => trim((string)($widget['content'] ?? '')),
-                'icon' => trim((string)($widget['icon'] ?? '✨')),
+                'title' => $this->sanitizeDashboardText((string)($widget['title'] ?? ''), 120),
+                'content' => $this->sanitizeDashboardText((string)($widget['content'] ?? ''), 2000),
+                'icon' => $this->sanitizeDashboardText((string)($widget['icon'] ?? '✨'), 16, '✨'),
             ];
         }
 
@@ -1183,6 +1197,92 @@ final class MemberController
         }
 
         return $siteBase !== '' ? $siteBase . '/' . $relativePath : '/' . $relativePath;
+    }
+
+    /**
+     * @param array<string,mixed> $widget
+     * @return array<string,mixed>
+     */
+    private function sanitizeDashboardWidget(array $widget): array
+    {
+        $stats = is_array($widget['stats'] ?? null) ? $widget['stats'] : null;
+
+        return [
+            'plugin' => $this->sanitizeDashboardText((string)($widget['plugin'] ?? ''), 120),
+            'slug' => $this->sanitizeDashboardText((string)($widget['slug'] ?? ''), 120),
+            'icon' => $this->sanitizeDashboardText((string)($widget['icon'] ?? '🔌'), 16, '🔌'),
+            'title' => $this->sanitizeDashboardText((string)($widget['title'] ?? 'Plugin'), 160, 'Plugin'),
+            'description' => $this->sanitizeDashboardText((string)($widget['description'] ?? ''), 400),
+            'color' => $this->sanitizeDashboardColor((string)($widget['color'] ?? '#4f46e5')),
+            'link' => $this->sanitizeDashboardLink($widget['link'] ?? '/member/dashboard', '/member/dashboard'),
+            'link_label' => $this->sanitizeDashboardText((string)($widget['link_label'] ?? 'Öffnen'), 80, 'Öffnen'),
+            'admin_link' => $this->sanitizeDashboardNullableLink($widget['admin_link'] ?? null),
+            'admin_label' => $this->sanitizeDashboardText((string)($widget['admin_label'] ?? '⚙️ Verwalten'), 80, '⚙️ Verwalten'),
+            'badge' => $this->sanitizeDashboardNullableText($widget['badge'] ?? null, 40),
+            'stats' => $stats === null ? null : [
+                'count' => (int)($stats['count'] ?? 0),
+                'label' => $this->sanitizeDashboardText((string)($stats['label'] ?? 'Einträge'), 80, 'Einträge'),
+            ],
+        ];
+    }
+
+    private function sanitizeDashboardColor(string $value, string $fallback = '#4f46e5'): string
+    {
+        $color = trim($value);
+        return preg_match('/^#[0-9a-f]{6}$/i', $color) === 1 ? $color : $fallback;
+    }
+
+    private function sanitizeDashboardLink(mixed $value, string $fallback = '/member/dashboard'): string
+    {
+        $href = trim((string) $value);
+        if ($href === '') {
+            return $fallback;
+        }
+
+        if (str_starts_with($href, '/')) {
+            return str_starts_with($href, '//') ? $fallback : $href;
+        }
+
+        if (preg_match('#^https?://#i', $href) === 1) {
+            return filter_var($href, FILTER_VALIDATE_URL) ? $href : $fallback;
+        }
+
+        return $fallback;
+    }
+
+    private function sanitizeDashboardNullableLink(mixed $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $href = trim((string) $value);
+        if ($href === '') {
+            return null;
+        }
+
+        $sanitized = $this->sanitizeDashboardLink($href, '');
+        return $sanitized !== '' ? $sanitized : null;
+    }
+
+    private function sanitizeDashboardText(string $value, int $maxLength = 160, string $fallback = ''): string
+    {
+        $text = trim(strip_tags($value));
+        if ($text === '') {
+            return $fallback;
+        }
+
+        return function_exists('mb_substr') ? mb_substr($text, 0, $maxLength) : substr($text, 0, $maxLength);
+    }
+
+    private function sanitizeDashboardNullableText(mixed $value, int $maxLength = 80): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $text = $this->sanitizeDashboardText((string) $value, $maxLength);
+        return $text !== '' ? $text : null;
     }
 
     private function base64UrlDecode(string $value): string

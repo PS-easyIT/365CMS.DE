@@ -28,6 +28,28 @@ $showNotificationsPanel = !array_key_exists('show_notifications_panel', $fronten
 $showOnboarding = !array_key_exists('show_onboarding_panel', $frontendModules) || !empty($frontendModules['show_onboarding_panel']);
 $onboarding = is_array($settings['onboarding'] ?? null) ? $settings['onboarding'] : [];
 $profileMissing = is_array($profileCompletion['missing'] ?? null) ? $profileCompletion['missing'] : [];
+$sanitizeMemberColor = static function (mixed $value, string $fallback = '#4f46e5'): string {
+    $color = trim((string) $value);
+    return preg_match('/^#[0-9a-f]{6}$/i', $color) === 1 ? $color : $fallback;
+};
+$normalizeMemberHref = static function (mixed $value, string $fallback = '/member/dashboard'): string {
+    $href = trim((string) $value);
+    if ($href === '') {
+        return $fallback;
+    }
+
+    if (str_starts_with($href, '/')) {
+        return str_starts_with($href, '//') ? $fallback : $href;
+    }
+
+    if (preg_match('#^https?://#i', $href) === 1) {
+        return filter_var($href, FILTER_VALIDATE_URL) ? $href : $fallback;
+    }
+
+    return $fallback;
+};
+$onboardingCtaPath = $normalizeMemberHref($onboarding['cta_url'] ?? '/member/profile', '/member/profile');
+$onboardingCtaHref = str_starts_with($onboardingCtaPath, 'http') ? $onboardingCtaPath : SITE_URL . $onboardingCtaPath;
 
 include __DIR__ . '/partials/header.php';
 ?>
@@ -161,7 +183,7 @@ include __DIR__ . '/partials/header.php';
                                     <?php endforeach; ?>
                                 </ol>
                             <?php endif; ?>
-                            <a href="<?= htmlspecialchars((string)(SITE_URL . ($onboarding['cta_url'] ?? '/member/profile'))) ?>" class="btn btn-outline-primary">
+                            <a href="<?= htmlspecialchars($onboardingCtaHref, ENT_QUOTES) ?>" class="btn btn-outline-primary">
                                 <?= htmlspecialchars((string)($onboarding['cta_label'] ?? 'Jetzt starten')) ?>
                             </a>
                         </div>
@@ -187,6 +209,9 @@ include __DIR__ . '/partials/header.php';
 
             <?php if ($showPluginWidgets && $pluginWidgets !== []): ?>
                 <?php foreach ($pluginWidgets as $widget): ?>
+                    <?php $pluginWidgetColor = $sanitizeMemberColor($widget['color'] ?? '#4f46e5'); ?>
+                    <?php $pluginWidgetHref = $normalizeMemberHref($widget['link'] ?? '/member/dashboard'); ?>
+                    <?php $pluginWidgetHref = str_starts_with($pluginWidgetHref, 'http') ? $pluginWidgetHref : SITE_URL . $pluginWidgetHref; ?>
                     <div class="col-md-6">
                         <div class="card h-100 member-plugin-widget">
                             <div class="card-body">
@@ -196,7 +221,7 @@ include __DIR__ . '/partials/header.php';
                                         <h3 class="card-title mb-1"><?= htmlspecialchars((string)($widget['title'] ?? 'Plugin')) ?></h3>
                                         <p class="text-secondary mb-0"><?= htmlspecialchars((string)($widget['description'] ?? '')) ?></p>
                                     </div>
-                                    <span class="avatar" style="background: <?= htmlspecialchars((string)($widget['color'] ?? '#4f46e5')) ?>; color: #fff;">
+                                    <span class="avatar" style="background: <?= htmlspecialchars($pluginWidgetColor, ENT_QUOTES) ?>; color: #fff;">
                                         <?= htmlspecialchars((string)($widget['icon'] ?? '🔌')) ?>
                                     </span>
                                 </div>
@@ -204,7 +229,7 @@ include __DIR__ . '/partials/header.php';
                                     <div class="h2 mb-1"><?= (int)($widget['stats']['count'] ?? 0) ?></div>
                                     <div class="text-secondary mb-3"><?= htmlspecialchars((string)($widget['stats']['label'] ?? 'Einträge')) ?></div>
                                 <?php endif; ?>
-                                <a href="<?= htmlspecialchars((string)($widget['link'] ?? '/member/dashboard')) ?>" class="btn btn-outline-primary btn-sm">
+                                <a href="<?= htmlspecialchars($pluginWidgetHref, ENT_QUOTES) ?>" class="btn btn-outline-primary btn-sm">
                                     <?= htmlspecialchars((string)($widget['link_label'] ?? 'Öffnen')) ?>
                                 </a>
                             </div>

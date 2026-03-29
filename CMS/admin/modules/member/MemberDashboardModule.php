@@ -706,12 +706,12 @@ class MemberDashboardModule
                 $supportsFrontendWidget = ($section['dashboard_widget'] ?? null) !== false;
 
                 $widgets[] = [
-                    'plugin' => $plugin,
-                    'slug' => (string)($section['slug'] ?? $plugin),
-                    'label' => (string)($meta['title'] ?? $config['title'] ?? $section['label'] ?? $plugin),
-                    'description' => (string)($meta['description'] ?? $config['description'] ?? ''),
-                    'icon' => (string)($meta['icon'] ?? $config['icon'] ?? $section['icon'] ?? '🔌'),
-                    'color' => (string)($meta['color'] ?? $config['color'] ?? '#4f46e5'),
+                    'plugin' => $this->sanitizeTextSetting($plugin, 120),
+                    'slug' => $this->sanitizeTextSetting((string)($section['slug'] ?? $plugin), 120),
+                    'label' => $this->sanitizeTextSetting((string)($meta['title'] ?? $config['title'] ?? $section['label'] ?? $plugin), 120),
+                    'description' => $this->sanitizeTextSetting((string)($meta['description'] ?? $config['description'] ?? ''), 255),
+                    'icon' => $this->sanitizeTextSetting((string)($meta['icon'] ?? $config['icon'] ?? $section['icon'] ?? '🔌'), 16),
+                    'color' => $this->sanitizeColor((string)($meta['color'] ?? $config['color'] ?? '#4f46e5'), '#4f46e5'),
                     'priority' => (int)($section['priority'] ?? 50),
                     'supports_frontend_widget' => $supportsFrontendWidget,
                     'admin_note' => !$supportsFrontendWidget
