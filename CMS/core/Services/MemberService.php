@@ -96,6 +96,15 @@ class MemberService
             );
         }
 
+        if (array_key_exists('website', $data)) {
+            $website = $this->sanitizePublicUrl((string) ($data['website'] ?? ''));
+            if (trim((string) ($data['website'] ?? '')) !== '' && $website === '') {
+                return 'Ungültige Website-URL.';
+            }
+
+            $data['website'] = $website;
+        }
+
         // Meta-Felder
         $metaFields = ['first_name', 'last_name', 'bio', 'website', 'phone', 'position', 'company', 'birth_date'];
         foreach ($metaFields as $field) {
@@ -381,6 +390,13 @@ class MemberService
                 continue;
             }
 
+            if (($fieldDefinitions[$fieldKey]['type'] ?? 'text') === 'url') {
+                $value = $this->sanitizePublicUrl($value);
+                if ($value === '') {
+                    continue;
+                }
+            }
+
             $details[] = [
                 'key' => $fieldKey,
                 'label' => $fieldDefinitions[$fieldKey]['label'],
@@ -398,7 +414,9 @@ class MemberService
             ];
         }
 
-        $avatarUrl = in_array('avatar', $allowedFields, true) ? trim((string)($meta['avatar'] ?? '')) : '';
+        $avatarUrl = in_array('avatar', $allowedFields, true)
+            ? $this->normalizePublicMediaUrl((string)($meta['avatar'] ?? ''))
+            : '';
         $bio = in_array('bio', $allowedFields, true) ? trim((string)($meta['bio'] ?? '')) : '';
 
         return [
@@ -762,5 +780,64 @@ class MemberService
              ON DUPLICATE KEY UPDATE meta_value = VALUES(meta_value)",
             [$userId, $key, $value]
         );
+    }
+
+    private function sanitizePublicUrl(string $value, array $allowedSchemes = ['http', 'https']): string
+    {
+        $url = trim($value);
+        if ($url === '') {
+            return '';
+        }
+
+        if (str_starts_with($url, '/')) {
+            return str_starts_with($url, '//') ? '' : $url;
+        }
+
+        $scheme = strtolower((string) parse_url($url, PHP_URL_SCHEME));
+        if ($scheme === '' || !in_array($scheme, $allowedSchemes, true)) {
+            return '';
+        }
+
+        return filter_var($url, FILTER_VALIDATE_URL) ? $url : '';
+    }
+
+    private function normalizePublicMediaUrl(string $value): string
+    {
+        $url = trim($value);
+        if ($url === '') {
+            return '';
+        }
+
+        if (preg_match('/^[A-Za-z]:[\\\\\/]/', $url) === 1) {
+            return '';
+        }
+
+        $siteBase = rtrim((string) SITE_URL, '/');
+        $normalizedUrl = str_replace('\\', '/', $url);
+
+        if (str_starts_with($normalizedUrl, '//')) {
+            return '';
+        }
+
+        if (preg_match('#^https?://#i', $normalizedUrl) === 1) {
+            return filter_var($normalizedUrl, FILTER_VALIDATE_URL) ? $normalizedUrl : '';
+        }
+
+        if (str_starts_with($normalizedUrl, '/')) {
+            return $siteBase !== '' ? $siteBase . $normalizedUrl : $normalizedUrl;
+        }
+
+        $relativePath = preg_replace('#^(?:\./)+#', '', $normalizedUrl) ?? '';
+        $relativePath = ltrim($relativePath, '/');
+
+        if ($relativePath === '' || str_contains($relativePath, '..')) {
+            return '';
+        }
+
+        if (preg_match('#^[a-z][a-z0-9+.-]*:#i', $relativePath) === 1) {
+            return '';
+        }
+
+        return $siteBase !== '' ? $siteBase . '/' . $relativePath : '/' . $relativePath;
     }
 }

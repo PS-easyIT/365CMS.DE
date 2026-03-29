@@ -17,7 +17,7 @@ include __DIR__ . '/partials/header.php';
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h3 class="card-title">Gespeicherte Elemente</h3>
-        <span class="badge bg-primary-lt"><?= count($favorites) ?></span>
+        <span class="badge bg-primary-lt"><?= (int) count($favorites) ?></span>
     </div>
     <div class="list-group list-group-flush list-group-hoverable">
         <?php if ($favorites === []): ?>

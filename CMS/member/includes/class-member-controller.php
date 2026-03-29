@@ -244,7 +244,7 @@ final class MemberController
     public function getAvatarUrl(): string
     {
         $meta = $this->memberService->getUserMeta($this->getUserId());
-        $avatar = trim((string)($meta['avatar'] ?? ''));
+        $avatar = $this->normalizeProfileMediaUrl((string)($meta['avatar'] ?? ''));
 
         if ($avatar !== '') {
             return $avatar;
@@ -474,9 +474,10 @@ final class MemberController
             ) ?: [];
 
             foreach ($rows as $row) {
+                $favoriteUrl = $this->sanitizeProfileUrl((string)($row->url ?? '#'));
                 $favorites[] = [
                     'title' => (string)($row->title ?? $row->name ?? ('Eintrag #' . (int)($row->id ?? 0))),
-                    'url' => (string)($row->url ?? '#'),
+                    'url' => $favoriteUrl !== '' ? $favoriteUrl : '#',
                     'type' => (string)($row->type ?? 'Favorit'),
                     'created_at' => (string)($row->created_at ?? ''),
                 ];
@@ -489,9 +490,11 @@ final class MemberController
                     if (!is_array($item)) {
                         continue;
                     }
+
+                    $favoriteUrl = $this->sanitizeProfileUrl((string)($item['url'] ?? '#'));
                     $favorites[] = [
                         'title' => (string)($item['title'] ?? 'Gespeicherter Eintrag'),
-                        'url' => (string)($item['url'] ?? '#'),
+                        'url' => $favoriteUrl !== '' ? $favoriteUrl : '#',
                         'type' => (string)($item['type'] ?? 'Favorit'),
                         'created_at' => (string)($item['created_at'] ?? ''),
                     ];
@@ -702,17 +705,34 @@ final class MemberController
             'last_name' => trim((string)($_POST['last_name'] ?? '')),
             'email' => trim((string)($_POST['email'] ?? '')),
             'bio' => trim((string)($_POST['bio'] ?? '')),
-            'website' => trim((string)($_POST['website'] ?? '')),
+            'website' => $this->sanitizeProfileUrl((string)($_POST['website'] ?? '')),
             'phone' => trim((string)($_POST['phone'] ?? '')),
             'company' => trim((string)($_POST['company'] ?? '')),
             'position' => trim((string)($_POST['position'] ?? '')),
             'birth_date' => trim((string)($_POST['birth_date'] ?? '')),
         ];
 
+        if (trim((string)($_POST['website'] ?? '')) !== '' && $data['website'] === '') {
+            $this->flash('danger', 'Bitte eine gültige Website-URL mit http:// oder https:// angeben.');
+            $this->redirect('/member/profile');
+        }
+
+        $social = $this->sanitizeProfileUrl((string)($_POST['social'] ?? ''));
+        if (trim((string)($_POST['social'] ?? '')) !== '' && $social === '') {
+            $this->flash('danger', 'Bitte einen gültigen Social-/Profil-Link mit http:// oder https:// angeben.');
+            $this->redirect('/member/profile');
+        }
+
+        $avatar = $this->normalizeProfileMediaUrl((string)($_POST['avatar'] ?? ''));
+        if (trim((string)($_POST['avatar'] ?? '')) !== '' && $avatar === '') {
+            $this->flash('danger', 'Bitte eine gültige Avatar-URL oder einen erlaubten relativen Medienpfad angeben.');
+            $this->redirect('/member/profile');
+        }
+
         $result = $this->memberService->updateProfile($this->getUserId(), $data);
         $this->upsertUserMeta('location', trim((string)($_POST['location'] ?? '')));
-        $this->upsertUserMeta('social', trim((string)($_POST['social'] ?? '')));
-        $this->upsertUserMeta('avatar', trim((string)($_POST['avatar'] ?? '')));
+        $this->upsertUserMeta('social', $social);
+        $this->upsertUserMeta('avatar', $avatar);
 
         if ($result === true) {
             $this->flash('success', 'Dein Profil wurde aktualisiert.');
@@ -1104,6 +1124,65 @@ final class MemberController
              ON DUPLICATE KEY UPDATE meta_value = VALUES(meta_value)",
             [$this->getUserId(), $key, $value]
         );
+    }
+
+    private function sanitizeProfileUrl(string $value, array $allowedSchemes = ['http', 'https']): string
+    {
+        $url = trim($value);
+        if ($url === '') {
+            return '';
+        }
+
+        if (str_starts_with($url, '/')) {
+            return str_starts_with($url, '//') ? '' : $url;
+        }
+
+        $scheme = strtolower((string) parse_url($url, PHP_URL_SCHEME));
+        if ($scheme === '' || !in_array($scheme, $allowedSchemes, true)) {
+            return '';
+        }
+
+        return filter_var($url, FILTER_VALIDATE_URL) ? $url : '';
+    }
+
+    private function normalizeProfileMediaUrl(string $value): string
+    {
+        $url = trim($value);
+        if ($url === '') {
+            return '';
+        }
+
+        if (preg_match('/^[A-Za-z]:[\\\\\/]/', $url) === 1) {
+            return '';
+        }
+
+        $siteBase = rtrim((string) SITE_URL, '/');
+        $normalizedUrl = str_replace('\\', '/', $url);
+
+        if (str_starts_with($normalizedUrl, '//')) {
+            return '';
+        }
+
+        if (preg_match('#^https?://#i', $normalizedUrl) === 1) {
+            return filter_var($normalizedUrl, FILTER_VALIDATE_URL) ? $normalizedUrl : '';
+        }
+
+        if (str_starts_with($normalizedUrl, '/')) {
+            return $siteBase !== '' ? $siteBase . $normalizedUrl : $normalizedUrl;
+        }
+
+        $relativePath = preg_replace('#^(?:\./)+#', '', $normalizedUrl) ?? '';
+        $relativePath = ltrim($relativePath, '/');
+
+        if ($relativePath === '' || str_contains($relativePath, '..')) {
+            return '';
+        }
+
+        if (preg_match('#^[a-z][a-z0-9+.-]*:#i', $relativePath) === 1) {
+            return '';
+        }
+
+        return $siteBase !== '' ? $siteBase . '/' . $relativePath : '/' . $relativePath;
     }
 
     private function base64UrlDecode(string $value): string
