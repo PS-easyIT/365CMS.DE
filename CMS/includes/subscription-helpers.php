@@ -14,6 +14,37 @@ if (!defined('ABSPATH')) {
 }
 
 /**
+ * Prüft, ob Abo-/Limit-Durchsetzung systemweit aktiv ist.
+ *
+ * Wenn das Core-Modul `subscriptions` oder `subscription_limits` deaktiviert ist,
+ * dürfen Plugin-Helfer keine Upgrade-/Limit-Warnungen ausgeben und keine Limits
+ * erzwingen.
+ */
+function subscription_limit_enforcement_active(): bool
+{
+    try {
+        if (class_exists('\CMS\Services\CoreModuleService')) {
+            $coreModules = \CMS\Services\CoreModuleService::getInstance();
+            if (!$coreModules->isModuleEnabled('subscriptions')) {
+                return false;
+            }
+
+            if (!$coreModules->isModuleEnabled('subscription_limits')) {
+                return false;
+            }
+        }
+
+        if (class_exists('\CMS\SubscriptionManager')) {
+            return \CMS\SubscriptionManager::instance()->isLimitEnforcementEnabled();
+        }
+    } catch (\Throwable $e) {
+        return false;
+    }
+
+    return false;
+}
+
+/**
  * Prüft ob aktueller Benutzer Zugriff auf Plugin hat (für Erstellen/Bearbeiten).
  *
  * Wichtig: Öffentliche ANSICHTEN (Archive, Detail-Seiten) sind für alle
@@ -54,6 +85,10 @@ function user_can_access_plugin(string $pluginSlug): bool
  */
 function user_can_create_resource(string $resourceType, ?int $userId = null): bool
 {
+    if (!subscription_limit_enforcement_active()) {
+        return true;
+    }
+
     if ($userId === null) {
         $user = current_user();
         if (!$user) {
@@ -80,6 +115,10 @@ function user_can_create_resource(string $resourceType, ?int $userId = null): bo
  */
 function get_user_resource_limit(string $resourceType, ?int $userId = null): int
 {
+    if (!subscription_limit_enforcement_active()) {
+        return -1;
+    }
+
     if ($userId === null) {
         $user = current_user();
         if (!$user) {
@@ -108,6 +147,10 @@ function get_user_resource_limit(string $resourceType, ?int $userId = null): int
  */
 function get_user_resource_usage(string $resourceType, ?int $userId = null): int
 {
+    if (!subscription_limit_enforcement_active()) {
+        return 0;
+    }
+
     if ($userId === null) {
         $user = current_user();
         if (!$user) {
@@ -129,6 +172,10 @@ function get_user_resource_usage(string $resourceType, ?int $userId = null): int
  */
 function display_resource_limit_warning(string $resourceType, string $resourceLabel): void
 {
+    if (!subscription_limit_enforcement_active()) {
+        return;
+    }
+
     $limit = get_user_resource_limit($resourceType);
     $usage = get_user_resource_usage($resourceType);
     

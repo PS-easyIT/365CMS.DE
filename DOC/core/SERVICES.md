@@ -477,8 +477,14 @@ $backup->cleanup(keepDays: 30);
 ### Cron-Integration
 
 ```bash
-# Tägliches Datenbank-Backup via Cron
-0 2 * * * php /var/www/html/cron.php --task=backup_database
+# Zentrale 365CMS-Cron-Schnittstelle (hoster-/CLI-tauglich, standardmäßig still)
+*/5 * * * * php /var/www/html/cron.php --task=all --quiet
+
+# Optional: gezielter Mail-Queue-Lauf
+*/5 * * * * php /var/www/html/cron.php --task=mail-queue --limit=25 --quiet
+
+# Optional per URL-Cron des Hosters
+*/5 * * * * wget -q -O - "https://example.com/cron.php?task=all&quiet=1&token=CRON_TOKEN" >/dev/null 2>&1
 ```
 
 ---

@@ -5,13 +5,19 @@
 Diese Sektion dokumentiert bereits umgesetzte Teilfortschritte aus `DOC/audit/PRÜFUNG.MD`,
 ohne die große Bewertungsmatrix bei jedem einzelnen Batch vollständig neu auszurechnen.
 
-### Gesamtstand nach Batch 464
+### Gesamtstand nach Batch 465
 
 | Dateien | Ø Security | Ø Speed | Ø PHP/BP | Ø Gesamt |
 |---:|---:|---:|---:|---:|
-| 464 | 95,12 | 92,74 | 96,22 | 96,35 |
+| 465 | 95,12 | 92,74 | 96,22 | 96,35 |
 
-Der aktuelle Nachpflege-Stand umfasst damit **464 umgesetzte Batches**, davon weiterhin **444 von 444 Prüfplan-Punkten** im ursprünglichen Auditplan und zusätzlich zwanzig Folge-Batches darüber hinaus. Zuletzt wurden die zentralen Dokumentationsdateien bewusst auf einen konsistenten `2.8.0`-Snapshot harmonisiert: Basis-Doku und Release-Snapshot verwenden jetzt denselben Stand ohne `RC`-Suffix, während Folge-Härtungen weiterhin separat im Audit und Changelog nachlaufen. Die Kennzahlen bleiben dabei stabil.
+Der aktuelle Nachpflege-Stand umfasst damit **465 umgesetzte Batches**, davon weiterhin **444 von 444 Prüfplan-Punkten** im ursprünglichen Auditplan und zusätzlich einundzwanzig Folge-Batches darüber hinaus. Zuletzt wurde der Theme-Editor-Vertrag zwischen Admin-Shell und eingebetteten Theme-Customizern nachgezogen: Der POST-/CSRF-Flow läuft nun über denselben `theme_customizer`-Kontext wie die eigentlichen Theme-Formulare, während README und Changelog den Runtime-Hinweis für deployte Themes unter `CMS/themes/` explizit spiegeln. Die Kennzahlen bleiben dabei stabil.
+
+### Delta Folge-Batch 465
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/theme-editor.php`, `README.md`, `Changelog.md` | umgesetzt | Der Theme-Editor verwendet für eingebettete Customizer jetzt denselben CSRF-Vertrag wie die Theme-Formulare selbst und reicht `embedInAdminLayout` an das aktive Theme weiter; parallel dokumentiert die Basis-Doku klarer, dass Admin-Customizer nur gegen deployte Laufzeit-Themes unter `CMS/themes/` arbeiten. | Theme-Customizer-Saves werden im Admin nicht länger vom Shell-Guard vorzeitig verworfen, und Theme-Arbeit im separaten Repository lässt sich sauberer vom tatsächlich aktiven Runtime-Theme abgrenzen. |
 
 ### Delta Folge-Batch 464
 

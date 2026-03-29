@@ -12,7 +12,16 @@ $truncateForLog = static function (string $value, int $limit = 400): string {
 
 $normalizeCronTask = static function (mixed $task): string {
     $task = strtolower(trim((string) $task));
-    return $task !== '' ? $task : 'mail-queue';
+    if ($task === '' || $task === 'default') {
+        return 'all';
+    }
+
+    if (str_starts_with($task, 'hook:')) {
+        $task = substr($task, 5);
+    }
+
+    $task = preg_replace('/[^a-z0-9_-]+/', '', $task) ?? '';
+    return $task !== '' ? $task : 'all';
 };
 
 $normalizeCronLimit = static function (mixed $limit): ?int {
@@ -64,10 +73,18 @@ $isHttpsRequest = static function (): bool {
     return in_array($frontEndHttps, ['on', '1'], true);
 };
 
-if (PHP_SAPI !== 'cli' && !headers_sent()) {
-    header('Content-Type: application/json; charset=UTF-8');
-    header('X-Robots-Tag: noindex, nofollow, noarchive');
-}
+$normalizeOutputMode = static function (mixed $mode, bool $isCli): string {
+    $mode = strtolower(trim((string) $mode));
+
+    return match ($mode) {
+        'json', 'application/json' => 'json',
+        'text', 'plain', 'txt' => 'text',
+        'quiet', 'silent', 'none' => 'quiet',
+        default => $isCli ? 'quiet' : 'quiet',
+    };
+};
+
+ob_start();
 
 require_once __DIR__ . '/config.php';
 
@@ -92,18 +109,58 @@ if (PHP_SAPI !== 'cli') {
     \CMS\CacheManager::instance()->sendResponseHeaders('private');
 }
 
-$respond = static function (array $payload, int $statusCode = 200): void {
+$outputMode = 'quiet';
+
+$respond = static function (array $payload, int $statusCode = 200) use (&$outputMode): void {
+    $capturedOutput = trim((string) ob_get_clean());
+
+    if ($capturedOutput !== '' && $outputMode !== 'quiet') {
+        $payload['captured_output'] = $capturedOutput;
+    }
+
     if (PHP_SAPI !== 'cli' && !headers_sent()) {
-        http_response_code($statusCode);
+        http_response_code($outputMode === 'quiet' && $statusCode >= 200 && $statusCode < 300 ? 204 : $statusCode);
+        header('X-Robots-Tag: noindex, nofollow, noarchive');
+    }
+
+    if (PHP_SAPI !== 'cli' && strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET')) === 'HEAD') {
+        exit($statusCode === 200 ? 0 : 1);
+    }
+
+    if ($outputMode === 'quiet') {
+        exit($statusCode === 200 ? 0 : 1);
+    }
+
+    if ($outputMode === 'text') {
+        if (PHP_SAPI !== 'cli' && !headers_sent()) {
+            header('Content-Type: text/plain; charset=UTF-8');
+        }
+
+        $lines = [
+            'success=' . (!empty($payload['success']) ? '1' : '0'),
+            'task=' . (string) ($payload['task'] ?? ''),
+            'mode=' . (string) ($payload['mode'] ?? (PHP_SAPI === 'cli' ? 'cli' : 'web')),
+        ];
+
+        if (!empty($payload['error'])) {
+            $lines[] = 'error=' . (string) $payload['error'];
+        }
+
+        if (!empty($payload['captured_output'])) {
+            $lines[] = 'captured_output=' . (string) $payload['captured_output'];
+        }
+
+        echo implode(PHP_EOL, $lines) . PHP_EOL;
+        exit($statusCode === 200 ? 0 : 1);
+    }
+
+    if (PHP_SAPI !== 'cli' && !headers_sent()) {
+        header('Content-Type: application/json; charset=UTF-8');
     }
 
     $json = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
     if (!is_string($json)) {
         $json = '{"success":false,"error":"JSON-Ausgabe fehlgeschlagen."}';
-    }
-
-    if (PHP_SAPI !== 'cli' && strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET')) === 'HEAD') {
-        exit($statusCode === 200 ? 0 : 1);
     }
 
     echo $json . PHP_EOL;
@@ -113,10 +170,11 @@ $respond = static function (array $payload, int $statusCode = 200): void {
 $cronLockHandle = null;
 
 try {
-    $task = 'mail-queue';
+    $task = 'all';
     $limit = null;
     $force = false;
     $token = '';
+    $outputMode = $normalizeOutputMode(null, PHP_SAPI === 'cli');
 
     if (PHP_SAPI === 'cli') {
         foreach (array_slice($_SERVER['argv'] ?? [], 1) as $argument) {
@@ -130,6 +188,18 @@ try {
             }
             if ($argument === '--force=1' || $argument === '--force' || $argument === '--force=true') {
                 $force = true;
+                continue;
+            }
+            if (in_array($argument, ['--json', '--verbose'], true)) {
+                $outputMode = 'json';
+                continue;
+            }
+            if ($argument === '--text') {
+                $outputMode = 'text';
+                continue;
+            }
+            if ($argument === '--quiet' || $argument === '--silent') {
+                $outputMode = 'quiet';
             }
         }
     } else {
@@ -141,17 +211,28 @@ try {
             ], 405);
         }
 
-        $task = $normalizeCronTask($_GET['task'] ?? 'mail-queue');
+        $task = $normalizeCronTask($_GET['task'] ?? 'all');
         $limit = $normalizeCronLimit($_GET['limit'] ?? null);
         $force = !empty($_GET['force']);
         $token = $getWebCronToken();
+
+        if (!empty($_GET['verbose'])) {
+            $outputMode = 'json';
+        } elseif (!empty($_GET['text'])) {
+            $outputMode = 'text';
+        } elseif (!empty($_GET['quiet'])) {
+            $outputMode = 'quiet';
+        } else {
+            $outputMode = $normalizeOutputMode($_GET['format'] ?? null, false);
+        }
     }
 
-    $supportedTasks = ['mail-queue', 'hourly', 'all'];
-    if (!in_array($task, $supportedTasks, true)) {
+    $supportedTasks = ['mail-queue', 'hourly', 'all', 'cms_cron_mail_queue', 'cms_cron_hourly'];
+    $isGenericCronHook = str_starts_with($task, 'cms_cron_');
+    if (!$isGenericCronHook && !in_array($task, $supportedTasks, true)) {
         $respond([
             'success' => false,
-            'error' => 'Unbekannte Cron-Task. Unterstützt werden aktuell "mail-queue", "hourly" und "all".',
+            'error' => 'Unbekannte Cron-Task. Unterstützt werden aktuell "all", "mail-queue", "hourly" und generische "cms_cron_*"-Hooks.',
         ], 400);
     }
 
@@ -213,20 +294,40 @@ try {
         ];
     };
 
+    $runGenericHook = static function (string $hookName, ?int $limit, bool $forceRun): array {
+        CMS\Hooks::doAction($hookName, [
+            'limit' => $limit,
+            'force' => $forceRun,
+            'source' => 'cron.php',
+            'mode' => PHP_SAPI === 'cli' ? 'cli' : 'web',
+        ]);
+
+        return [
+            'success' => true,
+            'executed' => true,
+            'hook' => $hookName,
+        ];
+    };
+
     $result = [
         'mail_queue' => null,
         'hourly' => null,
+        'hook' => null,
     ];
 
-    if ($task === 'mail-queue' || $task === 'all') {
+    if ($task === 'mail-queue' || $task === 'cms_cron_mail_queue' || $task === 'all') {
         $result['mail_queue'] = $queue->handleCronHook([
             'limit' => $limit,
             'force' => $force,
         ]);
     }
 
-    if ($task === 'hourly' || $task === 'all' || $task === 'mail-queue') {
+    if ($task === 'hourly' || $task === 'cms_cron_hourly' || $task === 'all' || $task === 'mail-queue' || $task === 'cms_cron_mail_queue') {
         $result['hourly'] = $runHourlyHooks($force);
+    }
+
+    if ($isGenericCronHook && !in_array($task, ['cms_cron_mail_queue', 'cms_cron_hourly'], true)) {
+        $result['hook'] = $runGenericHook($task, $limit, $force);
     }
 
     $success = true;
@@ -235,6 +336,9 @@ try {
     }
     if (is_array($result['hourly']) && array_key_exists('success', $result['hourly'])) {
         $success = $success && !empty($result['hourly']['success']);
+    }
+    if (is_array($result['hook']) && array_key_exists('success', $result['hook'])) {
+        $success = $success && !empty($result['hook']['success']);
     }
 
     $respond([

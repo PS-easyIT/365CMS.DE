@@ -521,6 +521,7 @@ class SystemInfoModule
             ABSPATH,
             dirname(ABSPATH) . '-PLUGINS',
         ];
+        $cronFilePath = ABSPATH . 'cron.php';
         $hooks = [];
 
         foreach ($scanRoots as $root) {
@@ -565,10 +566,32 @@ class SystemInfoModule
             ];
         }
 
+        $queueConfig = MailQueueService::getInstance()->getConfiguration();
+        $cronToken = (string) ($queueConfig['cron_token'] ?? '');
+        $cronUrl = defined('SITE_URL')
+            ? rtrim((string) SITE_URL, '/') . '/cron.php?task=all&quiet=1&token=' . rawurlencode($cronToken)
+            : '';
+        $mailQueueUrl = defined('SITE_URL')
+            ? rtrim((string) SITE_URL, '/') . '/cron.php?task=mail-queue&quiet=1&token=' . rawurlencode($cronToken)
+            : '';
+        $defaultCliCommand = 'php ' . escapeshellarg($cronFilePath) . ' --task=all --quiet';
+        $mailQueueCliCommand = 'php ' . escapeshellarg($cronFilePath) . ' --task=mail-queue --limit=' . (int) ($queueConfig['batch_size'] ?? 10) . ' --quiet';
+
         return [
-            'cron_file_exists' => file_exists(ABSPATH . 'cron.php'),
+            'cron_file_exists' => file_exists($cronFilePath),
+            'cron_file_path' => $this->normalizeDisplayedPath($cronFilePath),
             'hooks' => $mappedHooks,
             'hook_count' => count($mappedHooks),
+            'commands' => [
+                'cli_all' => $defaultCliCommand,
+                'cli_mail_queue' => $mailQueueCliCommand,
+                'web_all' => $cronUrl,
+                'web_mail_queue' => $mailQueueUrl,
+            ],
+            'mail_queue' => [
+                'batch_size' => (int) ($queueConfig['batch_size'] ?? 10),
+                'enabled' => !empty($queueConfig['enabled']),
+            ],
         ];
     }
 
