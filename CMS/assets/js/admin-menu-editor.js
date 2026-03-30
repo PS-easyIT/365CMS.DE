@@ -65,8 +65,52 @@
             return String(value || '').trim();
         }
 
-        function isValidMenuUrl(value) {
+        function isNoOpMenuUrl(value) {
+            return /^javascript:\s*(?:void\(0\)|;?)\s*;?$/i.test(normalizeUrl(value));
+        }
+
+        function itemHasChildren(itemId) {
+            var normalizedId = String(itemId || '');
+
+            if (normalizedId === '') {
+                return false;
+            }
+
+            return menuItems.some(function (candidate) {
+                return normalizeParentId(candidate.parent_id) === normalizedId;
+            });
+        }
+
+        function normalizeMenuUrlForStorage(value, allowEmptyPlaceholder) {
             var normalized = normalizeUrl(value);
+            var parser;
+
+            if (normalized === '') {
+                return allowEmptyPlaceholder ? '#' : '';
+            }
+
+            if (isNoOpMenuUrl(normalized)) {
+                return '#';
+            }
+
+            if (/^(?:\/(?!\/)|#|\?|mailto:|tel:|https?:\/\/)/i.test(normalized)) {
+                return normalized;
+            }
+
+            if (/^(?!\/\/)(?![a-z][a-z0-9+\-.]*:)/i.test(normalized)) {
+                parser = document.createElement('a');
+                parser.href = 'https://menu-editor.local/' + normalized.replace(/^\/+/, '');
+
+                if (parser.pathname && parser.pathname !== '/') {
+                    return parser.pathname + (parser.search || '') + (parser.hash || '');
+                }
+            }
+
+            return normalized;
+        }
+
+        function isValidMenuUrl(value) {
+            var normalized = normalizeMenuUrlForStorage(value, false);
 
             if (normalized === '') {
                 return false;
@@ -92,14 +136,25 @@
             field.setCustomValidity('');
         }
 
-        function validateItemData(item) {
+        function validateItemData(item, options) {
+            options = options || {};
+            var normalizedUrl;
+
             if (!item || String(item.title || '').trim() === '') {
                 return 'Bitte einen Titel angeben.';
             }
 
-            if (!isValidMenuUrl(item.url)) {
+            normalizedUrl = normalizeMenuUrlForStorage(item.url, itemHasChildren(item.id));
+            if (normalizedUrl === '' && options.allowEmptyUrl === true) {
+                item.url = '';
+                return '';
+            }
+
+            if (!isValidMenuUrl(normalizedUrl)) {
                 return 'Bitte eine gültige URL, einen internen Pfad oder mailto:/tel: verwenden.';
             }
+
+            item.url = normalizedUrl;
 
             return '';
         }
@@ -160,6 +215,16 @@
             if (jsonInput) {
                 jsonInput.value = JSON.stringify(menuItems);
             }
+        }
+
+        function prepareMenuItemsForSubmit() {
+            menuItems.forEach(function (item) {
+                if (!item) {
+                    return;
+                }
+
+                item.url = normalizeMenuUrlForStorage(item.url, itemHasChildren(item.id));
+            });
         }
 
         function validateMenuItems() {
@@ -353,7 +418,7 @@
                 }
                 html += '<div class="row g-2">';
                 html += '<div class="col-md-4"><label class="form-label small text-muted mb-1">Text</label><input type="text" class="form-control form-control-sm item-title" data-index="' + idx + '" value="' + escapeHtml(item.title) + '" placeholder="Menütext"></div>';
-                html += '<div class="col-md-5"><label class="form-label small text-muted mb-1">URL</label><input type="text" class="form-control form-control-sm item-url" data-index="' + idx + '" value="' + escapeHtml(item.url) + '" placeholder="/seite oder https://..."></div>';
+                html += '<div class="col-md-5"><label class="form-label small text-muted mb-1">URL</label><input type="text" class="form-control form-control-sm item-url" data-index="' + idx + '" value="' + escapeHtml(item.url) + '" placeholder="slug, /pfad oder https://..."></div>';
                 html += '<div class="col-md-3"><label class="form-label small text-muted mb-1">Ziel</label><select class="form-select form-select-sm item-target" data-index="' + idx + '"><option value="_self"' + (item.target === '_self' ? ' selected' : '') + '>Gleiches Fenster</option><option value="_blank"' + (item.target === '_blank' ? ' selected' : '') + '>Neuer Tab</option></select></div>';
                 html += '</div>';
                 html += '<div class="mt-2"><label class="form-label small text-muted mb-1">Unterpunkt von</label><select class="form-select form-select-sm item-parent" data-index="' + idx + '">' + buildParentOptions(item.id, item.parent_id) + '</select></div>';
@@ -389,7 +454,7 @@
         if (addItemButton) {
             addItemButton.addEventListener('click', function () {
                 var title = newItemTitle ? newItemTitle.value.trim() : '';
-                var url = newItemUrl ? normalizeUrl(newItemUrl.value) : '';
+                var url = newItemUrl ? normalizeMenuUrlForStorage(newItemUrl.value, false) : '';
                 var target = newItemTarget ? newItemTarget.value : '_self';
                 var parentId = newItemParent ? normalizeParentId(newItemParent.value) : '0';
                 var validationError;
@@ -397,7 +462,7 @@
                 clearFieldError(newItemTitle);
                 clearFieldError(newItemUrl);
 
-                validationError = validateItemData({ title: title, url: url });
+                validationError = validateItemData({ title: title, url: url }, { allowEmptyUrl: true });
                 if (validationError !== '') {
                     if (title === '') {
                         setFieldError(newItemTitle, validationError);
@@ -493,8 +558,9 @@
                 if (urlInput) {
                     var urlIndex = parseInt(urlInput.dataset.index || '', 10);
                     if (!Number.isNaN(urlIndex) && menuItems[urlIndex]) {
-                        menuItems[urlIndex].url = normalizeUrl(urlInput.value);
+                        menuItems[urlIndex].url = normalizeMenuUrlForStorage(urlInput.value, itemHasChildren(menuItems[urlIndex].id));
                         clearFieldError(urlInput);
+                        urlInput.value = menuItems[urlIndex].url;
                         syncJsonInput();
                     }
                 }
@@ -547,6 +613,7 @@
 
         if (saveItemsForm) {
             saveItemsForm.addEventListener('submit', function (event) {
+                prepareMenuItemsForSubmit();
                 var validation = validateMenuItems();
                 var itemNode;
                 var titleField;

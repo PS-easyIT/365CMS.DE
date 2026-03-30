@@ -168,7 +168,8 @@ $siteUrl = $escape(SITE_URL);
                                 <input type="text" id="newItemTitle" class="form-control" placeholder="Titel" maxlength="255">
                             </div>
                             <div class="col-md-4">
-                                <input type="text" id="newItemUrl" class="form-control" placeholder="URL (z.B. /seite oder https://...)">
+                                <input type="text" id="newItemUrl" class="form-control" placeholder="URL oder Slug (z.B. kontakt, /kontakt oder https://...)">
+                                <div class="form-hint mt-1">Für reine Elternpunkte kann das Feld zunächst leer bleiben; beim Speichern wird daraus automatisch ein Platzhalter.</div>
                             </div>
                             <div class="col-md-2">
                                 <select id="newItemParent" class="form-select">

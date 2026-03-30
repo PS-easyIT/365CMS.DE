@@ -349,9 +349,18 @@ class MenuEditorModule
                 continue;
             }
 
+            $segments = array_values(array_filter(
+                explode('/', str_replace('\\', '/', $slug)),
+                static fn (string $segment): bool => $segment !== ''
+            ));
+
+            if ($segments === []) {
+                continue;
+            }
+
             $options[] = [
                 'title' => $title,
-                'url' => '/' . rawurlencode($slug),
+                'url' => '/' . implode('/', array_map('rawurlencode', $segments)),
             ];
         }
 
@@ -560,13 +569,6 @@ class MenuEditorModule
             }
 
             $url = $this->normalizeMenuItemUrl($item['url'] ?? '');
-            if ($url === '') {
-                return [
-                    'items' => [],
-                    'error' => 'Jedes Menü-Item benötigt eine gültige URL oder einen gültigen internen Pfad.',
-                ];
-            }
-
             $id = trim((string)($item['id'] ?? 'item-' . ($index + 1)));
             $id = preg_replace('/[^a-zA-Z0-9_-]/', '', $id) ?? '';
             if ($id === '') {
@@ -598,15 +600,32 @@ class MenuEditorModule
                 'target' => ((string)($item['target'] ?? '_self')) === '_blank' ? '_blank' : '_self',
                 'icon' => $this->normalizeMenuItemIcon($item['icon'] ?? ''),
                 'parent_id' => $parentId,
+                '_row' => $index + 1,
             ];
         }
 
         $itemsById = [];
+        $parentIds = [];
         foreach ($normalized as $item) {
             $itemsById[$item['id']] = $item;
+
+            if (($item['parent_id'] ?? '0') !== '0') {
+                $parentIds[(string) $item['parent_id']] = true;
+            }
         }
 
         foreach ($normalized as $index => $item) {
+            if (($item['url'] ?? '') === '') {
+                if (isset($parentIds[$item['id']])) {
+                    $normalized[$index]['url'] = '#';
+                } else {
+                    return [
+                        'items' => [],
+                        'error' => 'Menü-Item „' . $item['title'] . '“ in Zeile ' . (int) ($item['_row'] ?? ($index + 1)) . ' benötigt eine gültige URL oder einen gültigen internen Pfad.',
+                    ];
+                }
+            }
+
             $parentId = $item['parent_id'];
             if ($parentId === '0') {
                 continue;
@@ -634,6 +653,10 @@ class MenuEditorModule
             }
 
             $normalized[$index]['parent_id'] = $parentId;
+        }
+
+        foreach ($normalized as $index => $item) {
+            unset($normalized[$index]['_row']);
         }
 
         return [
@@ -675,6 +698,10 @@ class MenuEditorModule
             return '';
         }
 
+        if ($this->isNoOpMenuItemUrl($url)) {
+            return '#';
+        }
+
         $sanitized = filter_var($url, FILTER_SANITIZE_URL);
         if (!is_string($sanitized) || $sanitized === '') {
             return '';
@@ -682,6 +709,27 @@ class MenuEditorModule
 
         if (preg_match('#^(?:/(?!/)|#|\?|mailto:|tel:)#i', $sanitized) === 1) {
             return $sanitized;
+        }
+
+        if (preg_match('#^(?!//)(?![a-z][a-z0-9+\-.]*:)#i', $sanitized) === 1) {
+            $parts = parse_url('https://menu-editor.local/' . ltrim($sanitized, '/'));
+            if (is_array($parts)) {
+                $path = trim((string) ($parts['path'] ?? ''), '/');
+                $query = (string) ($parts['query'] ?? '');
+                $fragment = (string) ($parts['fragment'] ?? '');
+
+                if ($path !== '') {
+                    $normalizedPath = '/' . $path;
+                    if ($query !== '') {
+                        $normalizedPath .= '?' . $query;
+                    }
+                    if ($fragment !== '') {
+                        $normalizedPath .= '#' . $fragment;
+                    }
+
+                    return $normalizedPath;
+                }
+            }
         }
 
         $validated = filter_var($sanitized, FILTER_VALIDATE_URL);
@@ -692,6 +740,11 @@ class MenuEditorModule
         $scheme = strtolower((string) parse_url($validated, PHP_URL_SCHEME));
 
         return in_array($scheme, ['http', 'https'], true) ? $validated : '';
+    }
+
+    private function isNoOpMenuItemUrl(string $url): bool
+    {
+        return preg_match('/^javascript:\s*(?:void\(0\)|;?)\s*;?$/i', trim($url)) === 1;
     }
 
     private function buildEditorTree(array $items): array

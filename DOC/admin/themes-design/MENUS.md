@@ -38,6 +38,14 @@ Nach erfolgreicher Verarbeitung wird per Redirect zurück auf `/admin/menu-edito
 
 Je nach Modul- und Theme-Stand können Einträge aus Seiten, Beiträgen oder als freie Links angelegt werden. Die konkrete Oberfläche rendert die View `views/menus/editor.php`.
 
+Aktueller URL-Vertrag im Editor:
+
+- interne Ziele dürfen als Slug oder Pfad eingegeben werden, z. B. `kontakt`, `unternehmen/team` oder `/kontakt`
+- absolute Links bleiben auf `http`/`https` begrenzt
+- neue Container-/Elternpunkte dürfen im Editor zunächst ohne URL angelegt werden; erst beim finalen Speichern müssen echte Ziel-Items eine valide URL haben
+- Elternpunkte ohne echte Ziel-URL werden beim Speichern fail-safe auf `#` normalisiert, statt den kompletten Save-Vorgang mit einem generischen URL-Fehler zu blockieren
+- echte Fehler nennen im aktuellen Stand zusätzlich Titel und Zeile des betroffenen Menü-Items
+
 ### Menü löschen
 
 Ein Menü kann über die Löschaktion vollständig entfernt werden.

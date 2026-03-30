@@ -95,7 +95,7 @@ Die Audits wurden mit OWASP-nahen Prüfwerkzeugen & AI Audit Tools von Snyk, Ref
 | **Security** | RBAC, CSRF, XSS-Escaping, Rate Limits, Firewall, AntiSpam, Passkeys, 2FA |
 | **SEO** | Sitemap, Schema, Canonicals, Redirects, Robots, Audit-Übersichten, IndexNow-Key- & Root-TXT-Prüfung |
 | **Business** | Aboverwaltung, Orders, Checkout, Gruppen, Legal-Sites, DSGVO-Prozesse |
-| **Themes** | Theme-System, Customizer, Code-Editor, lokale Fonts, Marketplace-Anbindung |
+| **Themes** | Theme-System, Customizer, Code-Editor, Menü-Editor mit Slug-/Pfad-Unterstützung, lokale Fonts, Marketplace-Anbindung |
 | **Plugins** | Hook-basierte Erweiterbarkeit, Plugin-Repo, Marketplace, dokumentierte Integrationen |
 | **Operations** | Cron-Checks, Health-Check, Disk-Usage, Backups, Audit-Log, Update-Workflows |
 
