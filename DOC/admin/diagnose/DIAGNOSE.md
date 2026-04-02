@@ -54,7 +54,7 @@ Misst und protokolliert Antwortzeiten des Systems, um Engpässe frühzeitig zu e
 
 Zeigt den aktuellen Status von Cron-Jobs, letzte Ausführung und eventuelle Fehler.
 
-Zusätzlich wird geprüft, ob eine zentrale Datei `CMS/cron.php` vorhanden ist. Darüber kann u. a. der Hook `cms_cron_mail_queue` für die Mail-Queue-Verarbeitung per Web-Cron oder CLI ausgelöst werden.
+Zusätzlich wird geprüft, ob eine zentrale Datei `cron.php` im CMS-Webroot vorhanden ist. Darüber kann u. a. der Hook `cms_cron_mail_queue` für die Mail-Queue-Verarbeitung per Web-Cron oder CLI ausgelöst werden.
 
 ### Disk-Usage
 

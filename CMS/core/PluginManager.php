@@ -59,6 +59,28 @@ class PluginManager
         foreach ($this->activePlugins as $plugin) {
             $pluginFile = PLUGIN_PATH . $plugin . '/' . $plugin . '.php';
             if (!file_exists($pluginFile)) {
+                $context = [
+                    'plugin' => $plugin,
+                    'expected_file' => $pluginFile,
+                    'plugin_path' => defined('PLUGIN_PATH') ? (string) PLUGIN_PATH : null,
+                ];
+                error_log(sprintf(
+                    'PluginManager [C-07/H-25]: Aktives Plugin "%s" wurde unter "%s" nicht gefunden – Plugin wird deaktiviert.',
+                    $plugin,
+                    $pluginFile
+                ));
+                if (class_exists(AuditLogger::class)) {
+                    AuditLogger::instance()->log(
+                        'plugin',
+                        'plugin.missing_file',
+                        sprintf('Aktives Plugin "%s" fehlt im Laufzeitordner und wurde automatisch deaktiviert.', $plugin),
+                        'plugin',
+                        null,
+                        $context,
+                        'critical'
+                    );
+                }
+                $disabledPlugins[] = $plugin;
                 continue;
             }
             try {

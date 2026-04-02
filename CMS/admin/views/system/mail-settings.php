@@ -487,7 +487,7 @@ $queueLastRunText = !empty($queueLastRun['executed_at'])
                             <?php $renderReadonlyField($field['label'], $field['value']); ?>
                         <?php endforeach; ?>
                         <div class="mb-3 small text-secondary">
-                            Der Worker verarbeitet <code>cms_mail_queue</code> über <code>/cron.php</code> und nutzt abgestufte Retries für Netzwerk-, SMTP- und OAuth2-Transientfehler.
+                            Der Worker verarbeitet <code>cms_mail_queue</code> über die zentrale Datei <code>cron.php</code> im CMS-Webroot. In FTP-/Shared-Hosting-Setups liegt das System typischerweise direkt unter <code>public_html</code>, sodass der Cronjob auf <code>/cron.php</code> zeigt und weiterhin abgestufte Retries für Netzwerk-, SMTP- und OAuth2-Transientfehler nutzt.
                         </div>
                         <hr>
                         <form method="post" class="row g-3 align-items-end">

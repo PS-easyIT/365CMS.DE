@@ -2728,7 +2728,7 @@ Der aktuelle Nachpflege-Stand umfasst damit **465 umgesetzte Batches**, davon we
 
 | Datei/Bereich | Status | Nachgezogener Punkt aus `PRÜFUNG.MD` | Wirkung |
 |---|---|---|---|
-| `CMS/cron.php` | umgesetzt | Web-Methoden begrenzt, Task-/Limit-Input normalisiert, Header-Token erlaubt, Parallel-Lock und generische Fehlerpfade ergänzt. | Der Root-Cron-Endpunkt akzeptiert im Web nur noch erwartete Aufrufarten, verhindert parallele Läufe per Lockfile und gibt bei Fehlern keine rohen technischen Details mehr preis; gleichzeitig wurden unnötiger Session-Start und Body-Ausgabe für `HEAD`-Checks vermieden. |
+| `CMS/cron.php` | umgesetzt | Web-Methoden begrenzt, Task-/Limit-Input normalisiert, Header-Token erlaubt, Parallel-Lock und generische Fehlerpfade ergänzt. | Der öffentliche Cron-Endpunkt (im Repo `CMS/cron.php`, in typischen FTP-Deployments als `cron.php` im Webroot) akzeptiert im Web nur noch erwartete Aufrufarten, verhindert parallele Läufe per Lockfile und gibt bei Fehlern keine rohen technischen Details mehr preis; gleichzeitig wurden unnötiger Session-Start und Body-Ausgabe für `HEAD`-Checks vermieden. |
 
 ### Delta Batch 037
 

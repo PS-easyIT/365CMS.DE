@@ -568,11 +568,12 @@ class SystemInfoModule
 
         $queueConfig = MailQueueService::getInstance()->getConfiguration();
         $cronToken = (string) ($queueConfig['cron_token'] ?? '');
+        $cronWebPath = '/cron.php';
         $cronUrl = defined('SITE_URL')
-            ? rtrim((string) SITE_URL, '/') . '/cron.php?task=all&quiet=1&token=' . rawurlencode($cronToken)
+            ? rtrim((string) SITE_URL, '/') . $cronWebPath . '?task=all&quiet=1&token=' . rawurlencode($cronToken)
             : '';
         $mailQueueUrl = defined('SITE_URL')
-            ? rtrim((string) SITE_URL, '/') . '/cron.php?task=mail-queue&quiet=1&token=' . rawurlencode($cronToken)
+            ? rtrim((string) SITE_URL, '/') . $cronWebPath . '?task=mail-queue&quiet=1&token=' . rawurlencode($cronToken)
             : '';
         $defaultCliCommand = 'php ' . escapeshellarg($cronFilePath) . ' --task=all --quiet';
         $mailQueueCliCommand = 'php ' . escapeshellarg($cronFilePath) . ' --task=mail-queue --limit=' . (int) ($queueConfig['batch_size'] ?? 10) . ' --quiet';

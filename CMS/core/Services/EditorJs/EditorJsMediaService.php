@@ -32,13 +32,13 @@ final class EditorJsMediaService
 
     public function handleMediaApiRequest(): void
     {
-        $this->requestGuard->ensureEditorAccess();
-        $this->requestGuard->verifyMediaToken();
-
-        $action = (string) ($_REQUEST['action'] ?? '');
-        $payload = $this->getJsonInput();
-
         try {
+            $this->requestGuard->ensureEditorAccess();
+            $this->requestGuard->verifyMediaToken();
+
+            $action = (string) ($_REQUEST['action'] ?? '');
+            $payload = $this->getJsonInput();
+
             switch ($action) {
                 case 'list_images':
                     $this->json($this->imageLibraryService->listImages());

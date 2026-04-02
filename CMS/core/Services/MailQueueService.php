@@ -60,7 +60,9 @@ class MailQueueService
         $throttleDelay = min(86400, max(60, $this->settings->getInt(self::GROUP, 'queue_throttle_delay_seconds', 900)));
         $lockTimeout = min(86400, max(60, $this->settings->getInt(self::GROUP, 'queue_lock_timeout_seconds', 900)));
         $lastRun = $this->settings->get(self::GROUP, self::SETTINGS_LAST_RUN, []);
-        $cronUrl = (defined('SITE_URL') ? rtrim((string) SITE_URL, '/') : '') . '/cron.php?task=mail-queue&quiet=1&token=' . rawurlencode($token);
+        $cronFilePath = ABSPATH . 'cron.php';
+        $cronWebPath = '/cron.php';
+        $cronUrl = (defined('SITE_URL') ? rtrim((string) SITE_URL, '/') : '') . $cronWebPath . '?task=mail-queue&quiet=1&token=' . rawurlencode($token);
 
         return [
             'enabled' => $this->settings->getBool(self::GROUP, 'queue_enabled', true),
@@ -71,7 +73,7 @@ class MailQueueService
             'lock_timeout_seconds' => $lockTimeout,
             'cron_token' => $token,
             'cron_url' => $cronUrl,
-            'cli_command' => 'php ' . escapeshellarg(ABSPATH . 'cron.php') . ' --task=mail-queue --limit=' . $batchSize . ' --quiet',
+            'cli_command' => 'php ' . escapeshellarg($cronFilePath) . ' --task=mail-queue --limit=' . $batchSize . ' --quiet',
             'last_run' => is_array($lastRun) ? $lastRun : [],
         ];
     }

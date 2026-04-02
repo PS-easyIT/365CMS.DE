@@ -109,6 +109,8 @@ Die aktuelle Arbeitsumgebung ist auf drei Repositories verteilt:
 | `365CMS.DE-THEME/` | Theme-Repository mit ausgelieferten Themes und Theme-Dokumentation *(aktuell noch privat)* |
 | `365CMS.DE-PLUGINS/` | Plugin-Repository mit eigenständigen Plugins und Plugin-Dokumentation *(aktuell noch privat)* |
 
+> Wichtig: Zur Laufzeit lädt der Core Plugins ausschließlich aus dem deployten Webroot-Ordner `plugins/` (intern über `PLUGIN_PATH = ABSPATH . 'plugins/'`). Das separate Repository `365CMS.DE-PLUGINS/` ist die Quellbasis für Entwicklung, Marketplace und Deployment – ein Plugin wie `cms-feed` dockt im Cron also erst an, wenn es physisch unter `/plugins/cms-feed/` liegt.
+
 #### Hauptstruktur des Kern-Repositories
 
 ```text
@@ -262,6 +264,8 @@ The current workspace is split into three repositories:
 | `365CMS.DE/` | Main repository with core, admin, member area, runtime assets and central documentation |
 | `365CMS.DE-THEME/` | Theme repository with shipped themes and theme documentation *(currently private)* |
 | `365CMS.DE-PLUGINS/` | Plugin repository with standalone plugins and plugin documentation *(currently private)* |
+
+> Important: At runtime, the core only loads plugins from the deployed webroot directory `plugins/` (internally via `PLUGIN_PATH = ABSPATH . 'plugins/'`). The separate `365CMS.DE-PLUGINS/` repository is the source repository for development, marketplace publishing and deployment – a plugin such as `cms-feed` will only attach to cron once it physically exists under `/plugins/cms-feed/`.
 
 #### Main repository structure
 

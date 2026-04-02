@@ -1,4 +1,6 @@
-﻿﻿﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.8.1-blue.svg)](https://shields.io/)
+﻿﻿| **2.8.1** | 🔴 fix | Core/Cron | **Cron-Kommandos und Admin-Hinweise orientieren sich wieder am echten CMS-Webroot statt an einem Repo-Unterordner**: In FTP-/Shared-Hosting-Deployments, bei denen der Inhalt von `CMS/` direkt nach `public_html` hochgeladen wird, erzeugen Mail-Queue, Systemmonitor und Service-Doku damit wieder korrekt `/public_html/cron.php` bzw. `/cron.php` statt irreführender `/CMS/cron.php`-Pfade. |
+| **2.8.1** | 🔴 fix | Core/Plugins | **`CMS/core/PluginManager.php` behandelt fehlende aktive Plugin-Dateien nicht länger still als No-op**: Wenn ein in `active_plugins` eingetragenes Plugin wie `cms-feed` im Laufzeitordner `/plugins/` fehlt, protokolliert der Core jetzt den erwarteten Pfad, schreibt einen Audit-Log-Eintrag und deaktiviert den verwaisten Eintrag automatisch, statt Cron-Läufe scheinbar erfolgreich ohne angedockte Plugin-Hooks durchlaufen zu lassen. |
+﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.8.1-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 

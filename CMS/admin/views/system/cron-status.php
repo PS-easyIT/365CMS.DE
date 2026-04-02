@@ -64,7 +64,7 @@ $mailQueue = $cron['mail_queue'] ?? [];
 				<h3 class="card-title">Zentrale Cron-Schnittstelle</h3>
 			</div>
 			<div class="card-body">
-				<p class="text-secondary mb-3">Die zentrale <code>cron.php</code> läuft standardmäßig still und eignet sich für Webhosting-Cronjobs ohne störenden Output. Verwende bevorzugt <code>task=all</code>.</p>
+				<p class="text-secondary mb-3">Die zentrale Cron-Datei ist <code>cron.php</code> im CMS-Webroot, läuft standardmäßig still und eignet sich für Webhosting-Cronjobs ohne störenden Output. Verwende bevorzugt <code>task=all</code>.</p>
 				<div class="row g-3">
 					<div class="col-lg-6">
 						<label class="form-label">CLI – kompletter Lauf</label>
