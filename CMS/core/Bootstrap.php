@@ -713,6 +713,11 @@ class Bootstrap
 
         // Initialize hooks
         Hooks::addAction('cms_cron_mail_queue', static function (...$args): void {
+            $context = $args[0] ?? null;
+            if (is_array($context) && !empty($context['mail_queue_already_handled'])) {
+                return;
+            }
+
             Services\MailQueueService::getInstance()->handleCronHook(...$args);
         }, 10);
 

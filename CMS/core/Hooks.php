@@ -46,6 +46,42 @@ class Hooks
             }
         }
     }
+
+    /**
+     * Prüft, ob für einen Action-Tag bereits Callbacks registriert sind.
+     *
+     * Wird ein Callback angegeben, erfolgt ein exakter Abgleich auf Prioritätsebene.
+     */
+    public static function hasAction(string $tag, ?callable $callback = null, ?int $priority = null): bool
+    {
+        if (!isset(self::$actions[$tag])) {
+            return false;
+        }
+
+        if ($callback === null) {
+            if ($priority === null) {
+                return self::$actions[$tag] !== [];
+            }
+
+            return !empty(self::$actions[$tag][$priority]);
+        }
+
+        if ($priority !== null) {
+            if (!isset(self::$actions[$tag][$priority])) {
+                return false;
+            }
+
+            return in_array($callback, self::$actions[$tag][$priority], true);
+        }
+
+        foreach (self::$actions[$tag] as $callbacks) {
+            if (in_array($callback, $callbacks, true)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
     
     /**
      * Add filter hook

@@ -14,6 +14,7 @@ if (!defined('ABSPATH')) {
 use CMS\Database;
 use CMS\Http\Client as HttpClient;
 use CMS\SchemaManager;
+use CMS\Services\CronRunnerService;
 use CMS\Services\MailQueueService;
 use CMS\Services\MailService;
 use CMS\Services\ErrorReportService;
@@ -126,7 +127,20 @@ class SystemInfoModule
             'repair_tables' => $this->repairTables(),
             'save_monitoring_alerts' => $this->saveMonitoringSettings($post),
             'send_monitoring_test_email' => $this->sendMonitoringTestEmail($post),
+            'run_cron_direct' => $this->runCronDirect($post),
+            'run_cron_loopback' => $this->runCronLoopback($post),
             default => ['success' => false, 'error' => 'Unbekannte Aktion.'],
+        };
+    }
+
+    public function handleCronRunnerRequest(array $post): array
+    {
+        $action = trim((string) ($post['action'] ?? 'run_cron_direct'));
+
+        return match ($action) {
+            'run_cron_direct' => $this->runCronDirect($post, true),
+            'run_cron_loopback' => $this->runCronLoopback($post, true),
+            default => ['success' => false, 'http_status' => 400, 'error' => 'Unbekannte Cron-Runner-Aktion.'],
         };
     }
 
@@ -569,6 +583,7 @@ class SystemInfoModule
         $queueConfig = MailQueueService::getInstance()->getConfiguration();
         $cronToken = (string) ($queueConfig['cron_token'] ?? '');
         $cronWebPath = '/cron.php';
+        $cronBaseUrl = defined('SITE_URL') ? rtrim((string) SITE_URL, '/') . $cronWebPath : '';
         $cronUrl = defined('SITE_URL')
             ? rtrim((string) SITE_URL, '/') . $cronWebPath . '?task=all&quiet=1&token=' . rawurlencode($cronToken)
             : '';
@@ -577,6 +592,12 @@ class SystemInfoModule
             : '';
         $defaultCliCommand = 'php ' . escapeshellarg($cronFilePath) . ' --task=all --quiet';
         $mailQueueCliCommand = 'php ' . escapeshellarg($cronFilePath) . ' --task=mail-queue --limit=' . (int) ($queueConfig['batch_size'] ?? 10) . ' --quiet';
+        $curlCommand = $cronBaseUrl !== ''
+            ? 'curl -fsS ' . escapeshellarg($cronBaseUrl . '?task=all&format=json&token=' . rawurlencode($cronToken))
+            : '';
+        $powershellCommand = $cronBaseUrl !== ''
+            ? 'Invoke-WebRequest -Uri ' . escapeshellarg($cronBaseUrl . '?task=all&format=json&token=' . rawurlencode($cronToken)) . ' -UseBasicParsing'
+            : '';
 
         return [
             'cron_file_exists' => file_exists($cronFilePath),
@@ -588,12 +609,222 @@ class SystemInfoModule
                 'cli_mail_queue' => $mailQueueCliCommand,
                 'web_all' => $cronUrl,
                 'web_mail_queue' => $mailQueueUrl,
+                'curl_all' => $curlCommand,
+                'powershell_all' => $powershellCommand,
             ],
             'mail_queue' => [
                 'batch_size' => (int) ($queueConfig['batch_size'] ?? 10),
                 'enabled' => !empty($queueConfig['enabled']),
             ],
+            'runner' => [
+                'tasks' => ['all', 'mail-queue', 'hourly'],
+                'default_task' => 'all',
+                'default_limit' => (int) ($queueConfig['batch_size'] ?? 10),
+                'loopback_url' => $cronBaseUrl,
+            ],
         ];
+    }
+
+    private function runCronDirect(array $post, bool $forJson = false): array
+    {
+        $request = $this->normalizeCronRequest($post);
+        $result = CronRunnerService::getInstance()->run([
+            'task' => $request['task'],
+            'limit' => $request['limit'],
+            'force' => $request['force'],
+            'mode' => $forJson ? 'admin-ajax' : 'admin',
+            'source' => $forJson ? 'admin-ajax-direct' : 'admin-system-direct',
+        ]);
+
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_SYSTEM,
+            'system.cron.run_direct',
+            !empty($result['success']) ? 'Cron direkt im CMS ausgeführt' : 'Direkter CMS-Cron-Lauf fehlgeschlagen',
+            'system',
+            null,
+            [
+                'task' => $request['task'],
+                'limit' => $request['limit'],
+                'force' => $request['force'],
+                'mode' => $result['mode'] ?? 'admin',
+                'success' => !empty($result['success']),
+            ],
+            !empty($result['success']) ? 'warning' : 'error'
+        );
+
+        return $this->buildCronActionResponse(
+            $result,
+            'Cron wurde direkt im Core ausgeführt.',
+            'Direkter Cron-Lauf im Core fehlgeschlagen.',
+            $forJson,
+            'direct'
+        );
+    }
+
+    private function runCronLoopback(array $post, bool $forJson = false): array
+    {
+        $request = $this->normalizeCronRequest($post);
+        $queueConfig = MailQueueService::getInstance()->getConfiguration();
+        $cronToken = trim((string) ($queueConfig['cron_token'] ?? ''));
+        if ($cronToken === '') {
+            return $this->buildCronActionResponse(
+                ['success' => false, 'error' => 'Cron-Token fehlt in der Queue-Konfiguration.'],
+                'Loopback-Cron erfolgreich ausgeführt.',
+                'Loopback-Cron konnte nicht gestartet werden.',
+                $forJson,
+                'loopback',
+                500
+            );
+        }
+
+        $query = [
+            'task' => $request['task'],
+            'format' => 'json',
+            'token' => $cronToken,
+        ];
+        if ($request['limit'] !== null) {
+            $query['limit'] = $request['limit'];
+        }
+        if ($request['force']) {
+            $query['force'] = 1;
+        }
+
+        $loopbackUrl = rtrim((string) SITE_URL, '/') . '/cron.php?' . http_build_query($query, '', '&', PHP_QUERY_RFC3986);
+        $response = HttpClient::getInstance()->get($loopbackUrl, [
+            'userAgent' => '365CMS-System-CronLoopback/1.0',
+            'timeout' => 30,
+            'connectTimeout' => 5,
+            'allowPrivateHosts' => true,
+            'allowUnresolvedHosts' => true,
+            'allowedContentTypes' => ['application/json'],
+        ]);
+
+        if (!$response['success']) {
+            AuditLogger::instance()->log(
+                AuditLogger::CAT_SYSTEM,
+                'system.cron.run_loopback_failed',
+                'Cron-Loopback im Systembereich fehlgeschlagen',
+                'system',
+                null,
+                [
+                    'task' => $request['task'],
+                    'url' => $this->sanitizeAuditString($loopbackUrl),
+                    'error' => $this->sanitizeAuditString((string) ($response['error'] ?? 'HTTP-Fehler')),
+                ],
+                'error'
+            );
+
+            return $this->buildCronActionResponse(
+                [
+                    'success' => false,
+                    'error' => (string) ($response['error'] ?? 'Loopback-Anfrage fehlgeschlagen.'),
+                    'http_status' => (int) ($response['status'] ?? 500),
+                    'response' => $response,
+                ],
+                'Loopback-Cron erfolgreich ausgeführt.',
+                'Loopback-Cron konnte nicht gestartet werden.',
+                $forJson,
+                'loopback',
+                (int) ($response['status'] ?? 500)
+            );
+        }
+
+        $payload = json_decode((string) ($response['body'] ?? ''), true);
+        if (!is_array($payload)) {
+            return $this->buildCronActionResponse(
+                [
+                    'success' => false,
+                    'error' => 'Loopback-Cron lieferte keine gültige JSON-Antwort.',
+                    'response' => $response,
+                ],
+                'Loopback-Cron erfolgreich ausgeführt.',
+                'Loopback-Cron lieferte keine gültige Antwort.',
+                $forJson,
+                'loopback',
+                502
+            );
+        }
+
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_SYSTEM,
+            'system.cron.run_loopback',
+            !empty($payload['success']) ? 'Cron per HTTP-Loopback ausgeführt' : 'HTTP-Loopback-Cron fehlgeschlagen',
+            'system',
+            null,
+            [
+                'task' => $request['task'],
+                'url' => $this->sanitizeAuditString($loopbackUrl),
+                'success' => !empty($payload['success']),
+            ],
+            !empty($payload['success']) ? 'warning' : 'error'
+        );
+
+        return $this->buildCronActionResponse(
+            $payload,
+            'Cron wurde per HTTP-Loopback gegen /cron.php ausgeführt.',
+            'HTTP-Loopback gegen /cron.php ist fehlgeschlagen.',
+            $forJson,
+            'loopback',
+            !empty($payload['success']) ? 200 : 500
+        );
+    }
+
+    /**
+     * @param array<string,mixed> $post
+     * @return array{task:string,limit:?int,force:bool}
+     */
+    private function normalizeCronRequest(array $post): array
+    {
+        $task = trim((string) ($post['cron_task'] ?? 'all'));
+        $availableTasks = ['all', 'mail-queue', 'hourly'];
+        if (!in_array($task, $availableTasks, true)) {
+            $task = 'all';
+        }
+
+        $limit = filter_var($post['cron_limit'] ?? null, FILTER_VALIDATE_INT);
+        $limit = $limit === false ? null : max(1, min(100, (int) $limit));
+
+        return [
+            'task' => $task,
+            'limit' => $limit,
+            'force' => !empty($post['cron_force']),
+        ];
+    }
+
+    /**
+     * @param array<string,mixed> $payload
+     * @return array<string,mixed>
+     */
+    private function buildCronActionResponse(array $payload, string $successMessage, string $errorMessage, bool $forJson, string $mechanism, int $httpStatus = 200): array
+    {
+        $success = !empty($payload['success']);
+        $details = [
+            'Mechanismus' => $mechanism,
+            'Task' => (string) ($payload['task'] ?? 'all'),
+            'Modus' => (string) ($payload['mode'] ?? 'admin'),
+            'Quelle' => (string) ($payload['source'] ?? 'system'),
+        ];
+
+        if (is_array($payload['result'] ?? null)) {
+            $details['Ergebnis'] = json_encode($payload['result'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) ?: '{}';
+        }
+        if (!empty($payload['error'])) {
+            $details['Fehler'] = (string) $payload['error'];
+        }
+
+        $response = [
+            'success' => $success,
+            'type' => $success ? 'success' : 'danger',
+            'message' => $success ? $successMessage : ($payload['error'] ?? $errorMessage),
+            'details' => $details,
+            'cron_run' => $payload,
+        ];
+
+        if ($forJson) {
+            $response['http_status'] = $success ? 200 : $httpStatus;
+        }
+
+        return $response;
     }
 
     private function getDiskUsageData(): array

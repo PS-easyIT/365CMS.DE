@@ -167,8 +167,6 @@ $respond = static function (array $payload, int $statusCode = 200) use (&$output
     exit($statusCode === 200 ? 0 : 1);
 };
 
-$cronLockHandle = null;
-
 try {
     $task = 'all';
     $limit = null;
@@ -226,36 +224,8 @@ try {
             $outputMode = $normalizeOutputMode($_GET['format'] ?? null, false);
         }
     }
-
-    $supportedTasks = ['mail-queue', 'hourly', 'all', 'cms_cron_mail_queue', 'cms_cron_hourly'];
-    $isGenericCronHook = str_starts_with($task, 'cms_cron_');
-    if (!$isGenericCronHook && !in_array($task, $supportedTasks, true)) {
-        $respond([
-            'success' => false,
-            'error' => 'Unbekannte Cron-Task. Unterstützt werden aktuell "all", "mail-queue", "hourly" und generische "cms_cron_*"-Hooks.',
-        ], 400);
-    }
-
-    $app = CMS\Bootstrap::instance();
-    $queue = CMS\Services\MailQueueService::getInstance();
-    $settings = CMS\Services\SettingsService::getInstance();
-
-    $lockFile = rtrim((string) sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . '365cms-cron-' . md5(ABSPATH) . '.lock';
-    $cronLockHandle = @fopen($lockFile, 'c+');
-    if (!is_resource($cronLockHandle) || !@flock($cronLockHandle, LOCK_EX | LOCK_NB)) {
-        if (is_resource($cronLockHandle)) {
-            @fclose($cronLockHandle);
-            $cronLockHandle = null;
-        }
-
-        $respond([
-            'success' => false,
-            'error' => 'Cron-Lauf bereits aktiv.',
-        ], 429);
-    }
-
     if (PHP_SAPI !== 'cli') {
-        $config = $queue->getConfiguration();
+        $config = CMS\Services\MailQueueService::getInstance()->getConfiguration();
         $expectedToken = (string) ($config['cron_token'] ?? '');
         if ($expectedToken === '' || !hash_equals($expectedToken, $token)) {
             $respond([
@@ -265,104 +235,24 @@ try {
         }
     }
 
-    $runHourlyHooks = static function (bool $forceRun) use ($settings): array {
-        $lastRunRaw = $settings->getString('cron', 'hourly_last_run', '');
-        $lastRunTs = $lastRunRaw !== '' ? strtotime($lastRunRaw) : false;
-        $isDue = $forceRun || $lastRunTs === false || (time() - $lastRunTs) >= 3600;
-
-        if (!$isDue) {
-            return [
-                'success' => true,
-                'executed' => false,
-                'skipped' => true,
-                'reason' => 'Stündlicher Hook ist noch nicht fällig.',
-                'last_run' => $lastRunRaw,
-                'next_due_in_seconds' => max(0, 3600 - (time() - (int) $lastRunTs)),
-            ];
-        }
-
-        CMS\Hooks::doAction('cms_cron_hourly');
-
-        $executedAt = date('Y-m-d H:i:s');
-        $settings->set('cron', 'hourly_last_run', $executedAt, false, 0);
-
-        return [
-            'success' => true,
-            'executed' => true,
-            'skipped' => false,
-            'executed_at' => $executedAt,
-        ];
-    };
-
-    $runGenericHook = static function (string $hookName, ?int $limit, bool $forceRun): array {
-        CMS\Hooks::doAction($hookName, [
-            'limit' => $limit,
-            'force' => $forceRun,
-            'source' => 'cron.php',
-            'mode' => PHP_SAPI === 'cli' ? 'cli' : 'web',
-        ]);
-
-        return [
-            'success' => true,
-            'executed' => true,
-            'hook' => $hookName,
-        ];
-    };
-
-    $result = [
-        'mail_queue' => null,
-        'hourly' => null,
-        'hook' => null,
-    ];
-
-    if ($task === 'mail-queue' || $task === 'cms_cron_mail_queue' || $task === 'all') {
-        $result['mail_queue'] = $queue->handleCronHook([
-            'limit' => $limit,
-            'force' => $force,
-        ]);
-    }
-
-    if ($task === 'hourly' || $task === 'cms_cron_hourly' || $task === 'all' || $task === 'mail-queue' || $task === 'cms_cron_mail_queue') {
-        $result['hourly'] = $runHourlyHooks($force);
-    }
-
-    if ($isGenericCronHook && !in_array($task, ['cms_cron_mail_queue', 'cms_cron_hourly'], true)) {
-        $result['hook'] = $runGenericHook($task, $limit, $force);
-    }
-
-    $success = true;
-    if (is_array($result['mail_queue']) && array_key_exists('success', $result['mail_queue'])) {
-        $success = $success && !empty($result['mail_queue']['success']);
-    }
-    if (is_array($result['hourly']) && array_key_exists('success', $result['hourly'])) {
-        $success = $success && !empty($result['hourly']['success']);
-    }
-    if (is_array($result['hook']) && array_key_exists('success', $result['hook'])) {
-        $success = $success && !empty($result['hook']['success']);
-    }
-
-    $respond([
-        'success' => $success,
+    $runnerResult = CMS\Services\CronRunnerService::getInstance()->run([
         'task' => $task,
+        'limit' => $limit,
+        'force' => $force,
         'mode' => PHP_SAPI === 'cli' ? 'cli' : 'web',
-        'result' => $result,
-    ], $success ? 200 : 500);
+        'source' => 'cron.php',
+    ]);
+
+    $statusCode = match ((string) ($runnerResult['error_code'] ?? '')) {
+        'invalid_task' => 400,
+        'lock_active' => 429,
+        default => !empty($runnerResult['success']) ? 200 : 500,
+    };
+
+    $respond($runnerResult, $statusCode);
 } catch (Throwable $e) {
-    error_log(
-        'CMS Cron Error [' . get_class($e) . ']: '
-        . $truncateForLog($e->getMessage())
-        . ' in '
-        . $truncateForLog($e->getFile(), 220)
-        . ':'
-        . (int) $e->getLine()
-    );
     $respond([
         'success' => false,
         'error' => 'Cron-Lauf fehlgeschlagen. Details wurden intern protokolliert.',
     ], 500);
-} finally {
-    if (is_resource($cronLockHandle)) {
-        @flock($cronLockHandle, LOCK_UN);
-        @fclose($cronLockHandle);
-    }
 }

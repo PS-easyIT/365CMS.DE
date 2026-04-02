@@ -13,7 +13,7 @@ const CMS_ADMIN_SYSTEM_MONITOR_SECTION_ACTIONS = [
     'scheduled-tasks' => [],
     'health-check' => [],
     'email-alerts' => ['save_monitoring_alerts', 'send_monitoring_test_email'],
-    'cron' => [],
+    'cron' => ['run_cron_direct', 'run_cron_loopback'],
 ];
 
 const CMS_ADMIN_SYSTEM_MONITOR_PAGE_CONFIGS = [
@@ -171,6 +171,21 @@ function cms_admin_system_monitor_build_section_page_config(array $systemMonitor
             return $module instanceof SystemInfoModule
                 ? $module->getSectionData((string) ($systemMonitorPageConfig['section'] ?? 'info'))
                 : [];
+        },
+        'request_context_resolver' => static function ($module, string $section): array {
+            if (cms_admin_system_monitor_normalize_section($section) !== 'cron') {
+                return [];
+            }
+
+            return [
+                'page_assets' => [
+                    'js' => [cms_asset_url('js/admin-system-cron.js')],
+                ],
+                'template_vars' => [
+                    'cronRunnerEndpoint' => '/admin/monitor-cron-runner',
+                    'cronRunnerToken' => \CMS\Security::instance()->generateToken('admin_system_cron_runner'),
+                ],
+            ];
         },
     ];
 }
