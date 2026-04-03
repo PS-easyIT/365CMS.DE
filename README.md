@@ -84,23 +84,6 @@ Die Audits wurden mit OWASP-nahen Prüfwerkzeugen & AI Audit Tools von Snyk, Ref
 | **PHP / Best Practices** | **96,22** |
 | **Gesamt** | **96,35** |
 
-Zusätzlich wurde am **03.04.2026** ein separater Produktions-Snapshot der live via FTP deployten Site `https://phinit.de/` dokumentiert. Dieser Snapshot bewertet **nicht den Core-Code im Repository**, sondern den tatsächlich ausgelieferten öffentlichen Stand.
-
-| Live-Snapshot `phinit.de` | Bewertung |
-|---|---:|
-| **Localization** | **38,00** |
-| **Routing / SEO** | **52,00** |
-| **Search Relevance** | **64,00** |
-| **UI / Content** | **46,00** |
-| **EN Legal / Contact** | **28,00** |
-| **Gesamt** | **45,60** |
-
-Die Detailberichte liegen unter:
-
-- [`DOC/audit/PHINIT-LIVE-AUDIT-2026-04-03.md`](DOC/audit/PHINIT-LIVE-AUDIT-2026-04-03.md)
-- [`DOC/audit/PHINIT-LIVE-LOCALIZATION-2026-04-03.md`](DOC/audit/PHINIT-LIVE-LOCALIZATION-2026-04-03.md)
-- [`DOC/audit/PHINIT-LIVE-SEARCH-ARCHIVE-2026-04-03.md`](DOC/audit/PHINIT-LIVE-SEARCH-ARCHIVE-2026-04-03.md)
-
 ### 🧩 Kernfunktionen im Überblick
 
 | Bereich | Highlights |
