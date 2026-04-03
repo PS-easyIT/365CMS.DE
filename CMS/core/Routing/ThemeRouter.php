@@ -428,17 +428,6 @@ final class ThemeRouter
             return;
         }
 
-        $postStatus = (string) ($postRow->status ?? '');
-        if ($postStatus === 'private') {
-            if (!\CMS\Auth::instance()->isLoggedIn()) {
-                $this->router->redirect('/login?redirect=' . urlencode((string) ($_SERVER['REQUEST_URI'] ?? '/')), 302);
-                return;
-            }
-        } elseif (!\cms_post_is_publicly_visible($postRow)) {
-            $this->router->render404();
-            return;
-        }
-
         $db = Database::instance();
         $prefix = $db->getPrefix();
         $locale = $this->getResolvedContentLocale();
@@ -556,7 +545,7 @@ final class ThemeRouter
         }
 
         $db = Database::instance();
-                                $stmt = $db->prepare("SELECT * FROM {$prefix}posts WHERE id IN ({$ph}) AND " . \cms_post_publication_where());
+        $prefix = $db->getPrefix();
         $locale = $this->getResolvedContentLocale();
         $query = trim((string) ($_GET['q'] ?? ''));
         $page = max(1, (int) ($_GET['page'] ?? $_GET['p'] ?? 1));
