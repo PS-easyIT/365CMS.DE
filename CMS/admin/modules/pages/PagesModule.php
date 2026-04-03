@@ -390,6 +390,8 @@ class PagesModule
                 );
             }
 
+            Hooks::doAction('page_deleted', $id);
+
             return ['success' => true, 'message' => 'Seite gelöscht.'];
         } catch (\Throwable $e) {
             return $this->failResult('pages.delete.failed', 'Seite konnte nicht gelöscht werden.', $e, ['page_id' => $id]);
@@ -421,6 +423,11 @@ class PagesModule
                         "DELETE FROM {$this->prefix}pages WHERE id IN ({$placeholders})",
                         $ids
                     );
+
+                    foreach ($ids as $pageId) {
+                        Hooks::doAction('page_deleted', (int) $pageId);
+                    }
+
                     return ['success' => true, 'message' => count($ids) . ' Seite(n) gelöscht.'];
 
                 case 'publish':

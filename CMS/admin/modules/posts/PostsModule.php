@@ -618,6 +618,8 @@ class PostsModule
                 );
             }
 
+            Hooks::doAction('post_deleted', $id);
+
             return ['success' => true, 'message' => 'Beitrag gelöscht.'];
         } catch (\Throwable $e) {
             return $this->failResult('posts.delete.failed', 'Beitrag konnte nicht gelöscht werden.', $e, ['post_id' => $id]);
@@ -646,6 +648,11 @@ class PostsModule
             switch ($action) {
                 case 'delete':
                     $this->db->execute("DELETE FROM {$this->prefix}posts WHERE id IN ({$placeholders})", $ids);
+
+                    foreach ($ids as $postId) {
+                        Hooks::doAction('post_deleted', (int) $postId);
+                    }
+
                     return ['success' => true, 'message' => count($ids) . ' Beitrag/Beiträge gelöscht.'];
 
                 case 'publish':

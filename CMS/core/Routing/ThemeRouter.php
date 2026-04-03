@@ -111,7 +111,7 @@ final class ThemeRouter
 
         if ($type === '' || $type === 'pages') {
             if ($useTNT) {
-                $tntResult = $searchService->search($query, 'pages', 20, true);
+                $tntResult = $searchService->search($query, 'pages', 20, false);
                 if (!empty($tntResult['ids'])) {
                     $ids = array_map('intval', $tntResult['ids']);
                     $ph = implode(',', array_fill(0, count($ids), '?'));
@@ -131,6 +131,15 @@ final class ThemeRouter
                         $byId[$id]['_type_label'] = 'Seite';
                         $results[] = $byId[$id];
                     }
+                } else {
+                    $pageManager = PageManager::instance();
+                    $pageResults = $pageManager->search($query);
+                    foreach ($pageResults as $row) {
+                        $item = (array)$row;
+                        $item['_type'] = 'page';
+                        $item['_type_label'] = 'Seite';
+                        $results[] = $item;
+                    }
                 }
             } else {
                 $pageManager = PageManager::instance();
@@ -146,7 +155,7 @@ final class ThemeRouter
 
         if ($type === '' || $type === 'posts') {
             if ($useTNT) {
-                $tntResult = $searchService->search($query, 'posts', 20, true);
+                $tntResult = $searchService->search($query, 'posts', 20, false);
                 if (!empty($tntResult['ids'])) {
                     $ids = array_map('intval', $tntResult['ids']);
                     $ph = implode(',', array_fill(0, count($ids), '?'));
@@ -167,6 +176,38 @@ final class ThemeRouter
                         $byId[$id]['_type'] = 'post';
                         $byId[$id]['_type_label'] = 'Beitrag';
                         $results[] = $byId[$id];
+                    }
+                } elseif ($query !== '') {
+                    $like = '%' . $query . '%';
+                    $localeFilter = $this->buildPostLocaleAvailabilityExpression('p', $contentLocale);
+                    if ($contentLocale === 'en') {
+                        $stmt = $db->prepare(
+                            "SELECT * FROM {$prefix}posts p
+                                                 WHERE " . \cms_post_publication_where('p') . "
+                           AND {$localeFilter}
+                           AND (
+                               COALESCE(NULLIF(p.title_en, ''), p.title) LIKE ?
+                               OR COALESCE(NULLIF(p.content_en, ''), p.content) LIKE ?
+                               OR COALESCE(NULLIF(p.excerpt_en, ''), p.excerpt) LIKE ?
+                           )
+                         ORDER BY created_at DESC LIMIT 20"
+                        );
+                        $stmt->execute([$like, $like, $like]);
+                    } else {
+                        $stmt = $db->prepare(
+                            "SELECT * FROM {$prefix}posts p
+                                                 WHERE " . \cms_post_publication_where('p') . "
+                           AND {$localeFilter}
+                           AND (p.title LIKE ? OR p.content LIKE ? OR p.excerpt LIKE ?)
+                         ORDER BY created_at DESC LIMIT 20"
+                        );
+                        $stmt->execute([$like, $like, $like]);
+                    }
+                    $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+                    foreach ($rows as $row) {
+                        $row['_type'] = 'post';
+                        $row['_type_label'] = 'Beitrag';
+                        $results[] = $row;
                     }
                 }
             } elseif ($query !== '') {

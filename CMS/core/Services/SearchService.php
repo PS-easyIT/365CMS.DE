@@ -181,13 +181,13 @@ final class SearchService
     {
         // Pages-Index
         $this->indexDefinitions['pages'] = [
-            'query'      => "SELECT id, title, content, excerpt, slug FROM {$this->prefix}pages WHERE status = 'published'",
+            'query'      => "SELECT id, title, title_en, content, content_en, excerpt, slug, slug_en FROM {$this->prefix}pages WHERE status = 'published'",
             'primaryKey' => 'id',
         ];
 
         // Posts-Index (Blog)
         $this->indexDefinitions['posts'] = [
-            'query'      => "SELECT id, title, content, excerpt, slug FROM {$this->prefix}posts WHERE " . \cms_post_publication_where(),
+            'query'      => "SELECT id, title, title_en, content, content_en, excerpt, excerpt_en, slug, slug_en FROM {$this->prefix}posts WHERE " . \cms_post_publication_where(),
             'primaryKey' => 'id',
         ];
     }
@@ -198,8 +198,10 @@ final class SearchService
     private function initHooks(): void
     {
         // Index-Rebuild bei Page/Post-Speichern
+        Hooks::addAction('cms_after_page_save', [$this, 'onPageSaved'], 50);
         Hooks::addAction('page_saved', [$this, 'onPageSaved'], 50);
         Hooks::addAction('page_deleted', [$this, 'onPageDeleted'], 50);
+        Hooks::addAction('cms_after_post_save', [$this, 'onPostSaved'], 50);
         Hooks::addAction('post_saved', [$this, 'onPostSaved'], 50);
         Hooks::addAction('post_deleted', [$this, 'onPostDeleted'], 50);
 
@@ -212,7 +214,6 @@ final class SearchService
     // ──────────────────────────────────────────────────────────
     //  Öffentliche API
     // ──────────────────────────────────────────────────────────
-
     /**
      * Prüft, ob die Volltextsuche verfügbar ist.
      */
@@ -429,10 +430,10 @@ final class SearchService
     /**
      * Page gespeichert → Index aktualisieren.
      */
-    public function onPageSaved(int $pageId): void
+    public function onPageSaved(int $pageId, array $savePayload = [], array $originalPayload = []): void
     {
         $this->updateDocument('pages', $pageId, "{$this->prefix}pages", [
-            'title', 'content', 'meta_description', 'slug',
+            'title', 'title_en', 'content', 'content_en', 'meta_description', 'slug', 'slug_en',
         ]);
     }
 
@@ -447,10 +448,10 @@ final class SearchService
     /**
      * Post gespeichert → Index aktualisieren.
      */
-    public function onPostSaved(int $postId): void
+    public function onPostSaved(int $postId, array $savePayload = [], array $originalPayload = []): void
     {
         $this->updateDocument('posts', $postId, "{$this->prefix}posts", [
-            'title', 'content', 'excerpt', 'slug',
+            'title', 'title_en', 'content', 'content_en', 'excerpt', 'excerpt_en', 'slug', 'slug_en',
         ]);
     }
 
