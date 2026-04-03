@@ -84,6 +84,12 @@ Die Audits wurden mit OWASP-nahen Prüfwerkzeugen & AI Audit Tools von Snyk, Ref
 | **PHP / Best Practices** | **96,22** |
 | **Gesamt** | **96,35** |
 
+### 🆕 Aktuelle 2.8.x-Highlights
+
+- **Cron-Runner im Admin:** Cron-Tasks lassen sich direkt im Systemmonitor auslösen – inklusive Direktlauf, HTTP-Loopback und Ajax-Runner für schnellere Diagnose ohne externen Host-Cron.
+- **Suche & Routing robuster:** Der Suchindex berücksichtigt mehrsprachige Felder sauberer, und Löschvorgänge bei Seiten/Beiträgen stoßen gezielt Hooks zur Suchindex-Aktualisierung an.
+- **IndexNow mit Debug-Sicht:** Die technische SEO-Prüfung zeigt Root-`.txt`-Kandidaten jetzt mit Quelle, Status und Validierungsgründen an, statt nur ein knappes Ja/Nein zu liefern.
+
 ### 🧩 Kernfunktionen im Überblick
 
 | Bereich | Highlights |
@@ -92,12 +98,13 @@ Die Audits wurden mit OWASP-nahen Prüfwerkzeugen & AI Audit Tools von Snyk, Ref
 | **Admin** | Dashboard, Benutzer & Rollen, Inhalte, Medien, SEO, Performance, System, Updates |
 | **Content** | Seiten, Beiträge, Kategorien, Tags, Landing-Pages, TOC, Featured Images, Revisionen |
 | **Media** | Native Medienbibliothek, Uploads, Kategorien, Grid-/Listenansicht, WebP-Workflows |
+| **Search** | Volltextsuche, TNTSearch-Index, mehrsprachige Suchfelder, Hook-basierte Index-Aktualisierung bei Löschvorgängen |
 | **Security** | RBAC, CSRF, XSS-Escaping, Rate Limits, Firewall, AntiSpam, Passkeys, 2FA |
-| **SEO** | Sitemap, Schema, Canonicals, Redirects, Robots, Audit-Übersichten, IndexNow-Key- & Root-TXT-Prüfung |
+| **SEO** | Sitemap, Schema, Canonicals, Redirects, Robots, Audit-Übersichten, IndexNow-Key-, Root-TXT- und Root-Pfad-Debug-Prüfung |
 | **Business** | Aboverwaltung, Orders, Checkout, Gruppen, Legal-Sites, DSGVO-Prozesse |
 | **Themes** | Theme-System, Customizer, Code-Editor, Menü-Editor mit Slug-/Pfad-Unterstützung, lokale Fonts, Marketplace-Anbindung |
 | **Plugins** | Hook-basierte Erweiterbarkeit, Plugin-Repo, Marketplace, dokumentierte Integrationen |
-| **Operations** | Cron-Checks, Health-Check, Disk-Usage, Backups, Audit-Log, Update-Workflows |
+| **Operations** | Cron-Checks, Cron-Direktlauf, HTTP-Loopback, Ajax-Runner, Health-Check, Disk-Usage, Backups, Audit-Log, Update-Workflows |
 
 ### 🏗️ Architektur & Workspace
 
@@ -243,6 +250,12 @@ The audits were carried out using OWASP-oriented tooling, Snyk, refactoring pass
 | **PHP / Best Practices** | **96.22** |
 | **Overall** | **96.35** |
 
+### 🆕 Current 2.8.x highlights
+
+- **Admin cron runner:** Cron tasks can now be triggered directly from system monitoring, including direct execution, HTTP loopback checks and an AJAX runner for faster diagnosis without relying on an external host cron.
+- **Search & routing hardened:** The search index now handles multilingual fields more reliably, and page/post deletions trigger targeted hooks so search data stays fresher.
+- **IndexNow with debug visibility:** Technical SEO now exposes root `.txt` candidates with source, status and validation reasons instead of only a minimal pass/fail signal.
+
 ### 🧩 Key Capabilities
 
 | Area | Highlights |
@@ -251,12 +264,13 @@ The audits were carried out using OWASP-oriented tooling, Snyk, refactoring pass
 | **Admin** | Dashboard, users & roles, content, media, SEO, performance, system, updates |
 | **Content** | Pages, posts, categories, tags, landing pages, TOC, featured images, revisions |
 | **Media** | Native media library, uploads, categories, grid/list views, WebP workflows |
+| **Search** | Full-text search, TNTSearch index, multilingual search fields, hook-based index refresh on delete actions |
 | **Security** | RBAC, CSRF, XSS escaping, rate limits, firewall, anti-spam, passkeys, 2FA |
-| **SEO** | Sitemap, schema, canonicals, redirects, robots, audit overviews, IndexNow key and root TXT validation |
+| **SEO** | Sitemap, schema, canonicals, redirects, robots, audit overviews, IndexNow key, root TXT and root-path debug validation |
 | **Business** | Subscriptions, orders, checkout, groups, legal pages, GDPR workflows |
 | **Themes** | Theme system, customizer, code editor, local fonts, marketplace integration |
 | **Plugins** | Hook-based extensibility, plugin repository, marketplace, documented integrations |
-| **Operations** | Cron checks, health checks, disk usage, backups, audit logging, update workflows |
+| **Operations** | Cron checks, direct cron execution, HTTP loopback, AJAX runner, health checks, disk usage, backups, audit logging, update workflows |
 
 ### 🏗️ Architecture & Workspace
 
