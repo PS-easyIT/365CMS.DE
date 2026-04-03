@@ -1,5 +1,29 @@
 # BEWERTUNG
 
+## Live-Site-Audit — 3. April 2026
+
+Diese Sektion dokumentiert **keinen neuen Core-Code-Batch**, sondern einen Produktions-Snapshot der via FTP deployten Live-Site `https://phinit.de/`.
+Die hier genannten Werte ergänzen deshalb die bestehenden Repo-/Code-Auditwerte um einen separaten Blick auf die **tatsächlich ausgelieferte Website**.
+
+### Live-Snapshot `phinit.de`
+
+| Scope | Localization | Routing/SEO | Search | UI/Content | EN Legal/Contact | Gesamt |
+|---|---:|---:|---:|---:|---:|---:|
+| `https://phinit.de/` | 38,00 | 52,00 | 64,00 | 46,00 | 28,00 | 45,60 |
+
+Die Produktionsprüfung zeigt damit eine klare Lücke zwischen dem bereits hoch bewerteten Core-/Repo-Stand und dem real ausgelieferten Frontend-Snapshot von `phinit.de`. Besonders die englischen Pflichtseiten, Sprachwechsler, Archivlisten und die Live-Suche benötigen Nachpflege, bevor der öffentliche Stand dieselbe Qualität wie der dokumentierte Code-Snapshot erreicht.
+
+### Delta Live-Audit 03.04.2026
+
+| Bereich | Status | Befund | Wirkung |
+|---|---|---|---|
+| EN-Pflichtseiten | offen | `/en/impressum`, `/en/datenschutz`, `/en/contact/kontakt` und `/en/datenschutzerklaerung` liefern weiterhin deutschsprachige Inhalte. | Die englische Site ist rechtlich und UX-seitig nicht konsistent ausgeliefert. |
+| Sprachrouting | offen | Sprachwechsel auf Artikelbasis zeigen teils auf falsche oder nicht existierende Gegenslugs; ein nachgewiesenes EN-Ziel läuft in 404. | Nutzer und Suchmaschinen erhalten inkonsistente Sprachrelationen statt stabiler Gegenstücke. |
+| Archive | offen | `/blog?page=2` und `/en/blog?page=3` listen DE-/EN-Varianten desselben Themas parallel. | Sprachtrennung, Archivklarheit und Duplicate-Content-Signal bleiben geschwächt. |
+| EN-Layout/UI | offen | EN-Homepage und EN-Artikel mischen englische Inhalte mit deutschen Bereichstiteln, CTA-Texten, Kommentarstrings und Footer-Bausteinen. | Die englische Auslieferung wirkt unfertig und untergräbt die Sprachkonsistenz des Frontends. |
+| Suche & Rechtsrouten | offen | Die Suche für `Browser Protection` streut live noch breit; zusätzlich existieren doppelte Datenschutz-Routen (`/datenschutz` und `/datenschutzerklaerung`). | Relevanz, Kanonisierung und öffentliche Content-Integrität bleiben unter Produktionsniveau. |
+| Dokumentation | dokumentiert | Die Detailbefunde wurden in `PHINIT-LIVE-AUDIT-2026-04-03.md`, `PHINIT-LIVE-LOCALIZATION-2026-04-03.md` und `PHINIT-LIVE-SEARCH-ARCHIVE-2026-04-03.md` abgelegt. | Der Live-Stand ist jetzt reproduzierbar dokumentiert und kann gezielt gegen konkrete URLs abgearbeitet werden. |
+
 ## Inkrementelle Nachpflege — 25. März 2026
 
 Diese Sektion dokumentiert bereits umgesetzte Teilfortschritte aus `DOC/audit/PRÜFUNG.MD`,
