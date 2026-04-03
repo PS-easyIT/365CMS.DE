@@ -1,4 +1,4 @@
-﻿﻿# 365CMS.DE  [![Generic badge](https://img.shields.io/badge/VERSION-2.8.1-blue.svg)](https://shields.io/)
+﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.8.1-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
