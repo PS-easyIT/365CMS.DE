@@ -2,7 +2,7 @@
 
 <div align="center">
 
-[![Version](https://img.shields.io/badge/version-2.8.2-blue.svg)](Changelog.md)
+[![Version](https://img.shields.io/badge/version-2.8.3-blue.svg)](Changelog.md)
 ![Status](https://img.shields.io/badge/status-stable-16a34a)
 ![PHP](https://img.shields.io/badge/PHP-8.4%2B-777BB4?logo=php&logoColor=white)
 ![MySQL](https://img.shields.io/badge/MySQL-5.7%2B-4479A1?logo=mysql&logoColor=white)
@@ -91,12 +91,13 @@ Die Audits wurden mit OWASP-nahen Prüfwerkzeugen & AI Audit Tools von Snyk, Ref
 | **PHP / Best Practices** | **96,22** |
 | **Gesamt** | **96,35** |
 
-### 🆕 Aktuelle 2.8.x-Highlights
+### 🆕 Aktuelle 2.8.3-Highlights
 
 - **Security-Hardening für First-Party-Highs:** Kontaktformular, Feed-Service, Cache-Signaturen, EditorJs-Remote-Medien sowie Plugin-/Theme-Marketplace wurden nach gezielter High-Triage fail-closed nachgeschärft; die zuletzt geprüften First-Party-Hotspots liefen dabei ohne verbleibende High-Funde durch die gezielten Code-Scans.
 - **Editor.js für Tech-Blogs ausgebaut:** Der Core-Editor unterstützt jetzt einen dedizierten **`Medien + Text`**-Block mit fixer 30/70-Struktur sowie eine **CMS-gestützte Gallery** mit 2, 3, 4 oder 6 Spalten, Mediathek-Anbindung und Mehrfach-Upload.
 - **Editor.js jetzt direkt sichtbar & technischer:** Die Live-Editoren für Seiten und Beiträge zeigen die neuen Blöcke jetzt direkt über eine sichtbare Schnell-Toolbar; zusätzlich gibt es Tech-Blog-Blöcke für **Callouts**, **Terminal/Command**, **Code Tabs**, **Mermaid**, **API Endpoints**, **Changelog/Version-Hinweise** und **Pros / Cons**.
 - **Landing Page modernisiert:** Der Landing-Page-Footer lässt sich jetzt zuverlässig deaktivieren, der Text-Modus bleibt im Frontend nicht mehr still leer, und die Standard-Karten wurden auf den aktuellen 365CMS-Funktionsumfang inklusive weiterer Highlights erweitert.
+- **Posts-Admin nachgezogen:** Die Beitragsverwaltung wurde nach dem letzten Feature-Batch zusätzlich gegen versehentliche Copy/Paste-Artefakte im Kategorien- und Bulk-Pfad bereinigt, sodass Kategorien-Übersicht und Status-Massenaktionen wieder sauber auf demselben Modulvertrag laufen.
 - **Cron-Runner im Admin:** Cron-Tasks lassen sich direkt im Systemmonitor auslösen – inklusive Direktlauf, HTTP-Loopback und Ajax-Runner für schnellere Diagnose ohne externen Host-Cron.
 - **Suche & Routing robuster:** Der Suchindex berücksichtigt mehrsprachige Felder sauberer, und Löschvorgänge bei Seiten/Beiträgen stoßen gezielt Hooks zur Suchindex-Aktualisierung an.
 - **IndexNow mit Debug-Sicht:** Die technische SEO-Prüfung zeigt Root-`.txt`-Kandidaten jetzt mit Quelle, Status und Validierungsgründen an, statt nur ein knappes Ja/Nein zu liefern.
@@ -107,7 +108,7 @@ Die Audits wurden mit OWASP-nahen Prüfwerkzeugen & AI Audit Tools von Snyk, Ref
 |---|---|
 | **Core** | OOP-/Service-Architektur, Hook-System, Router, Settings, Logging, API-nahe Bausteine |
 | **Admin** | Dashboard, Benutzer & Rollen, Inhalte, Medien, SEO, Performance, System, Updates |
-| **Content** | Seiten, Beiträge, Kategorien, Tags, Landing-Pages, TOC, Featured Images, Revisionen |
+| **Content** | Seiten, Beiträge, Kategorien, Tags, Landing-Pages, TOC, Featured Images, Revisionen, Editor.js-Tech-Blöcke und stabilisierte Bulk-/Kategorien-Workflows |
 | **Media** | Native Medienbibliothek, Uploads, Kategorien, Grid-/Listenansicht, WebP-Workflows |
 | **Search** | Volltextsuche, TNTSearch-Index, mehrsprachige Suchfelder, Hook-basierte Index-Aktualisierung bei Löschvorgängen |
 | **Security** | RBAC, CSRF, XSS-Escaping, Rate Limits, Firewall, AntiSpam, Passkeys, 2FA |
@@ -261,12 +262,13 @@ The audits were carried out using OWASP-oriented tooling, Snyk, refactoring pass
 | **PHP / Best Practices** | **96.22** |
 | **Overall** | **96.35** |
 
-### 🆕 Current 2.8.x highlights
+### 🆕 Current 2.8.3 highlights
 
 - **First-party security hardening:** The contact form, feed service, cache signatures, EditorJs remote media flow, and the plugin/theme marketplaces were tightened after targeted High triage; the latest targeted code scans for those first-party hotspots completed without remaining High findings.
 - **Editor.js upgraded for tech content:** The core editor now includes a dedicated **`Media + Text`** block with a fixed 30/70 layout and a **CMS-backed gallery** with 2, 3, 4, or 6 columns, media-library selection and multi-upload support.
 - **Editor.js is now easier to discover in real edit flows:** The live editors for posts and pages now expose the new blocks through a visible quick toolbar and add dedicated tech-content blocks for **callouts**, **terminal/command snippets**, **code tabs**, **Mermaid diagrams**, **API endpoints**, **changelog/version notes**, and **pros/cons comparisons**.
 - **Landing page refreshed:** The landing footer can now be reliably disabled, text-mode no longer stays silently empty in the frontend, and the default cards reflect the current 365CMS feature set with several additional highlights.
+- **Posts admin stabilized after the feature batch:** The posts module was additionally cleaned up for accidental copy/paste artifacts in category admin and bulk-action paths, so taxonomy management and status mass actions are back on the same predictable module contract.
 - **Admin cron runner:** Cron tasks can now be triggered directly from system monitoring, including direct execution, HTTP loopback checks and an AJAX runner for faster diagnosis without relying on an external host cron.
 - **Search & routing hardened:** The search index now handles multilingual fields more reliably, and page/post deletions trigger targeted hooks so search data stays fresher.
 - **IndexNow with debug visibility:** Technical SEO now exposes root `.txt` candidates with source, status and validation reasons instead of only a minimal pass/fail signal.
@@ -277,7 +279,7 @@ The audits were carried out using OWASP-oriented tooling, Snyk, refactoring pass
 |---|---|
 | **Core** | OOP/service architecture, hook system, router, settings, logging, API-oriented building blocks |
 | **Admin** | Dashboard, users & roles, content, media, SEO, performance, system, updates |
-| **Content** | Pages, posts, categories, tags, landing pages, TOC, featured images, revisions |
+| **Content** | Pages, posts, categories, tags, landing pages, TOC, featured images, revisions, Editor.js tech blocks, and stabilized bulk/category workflows |
 | **Media** | Native media library, uploads, categories, grid/list views, WebP workflows |
 | **Search** | Full-text search, TNTSearch index, multilingual search fields, hook-based index refresh on delete actions |
 | **Security** | RBAC, CSRF, XSS escaping, rate limits, firewall, anti-spam, passkeys, 2FA |
@@ -306,7 +308,7 @@ The current workspace is split into three repositories:
 ├── CMS/                 # Runtime core, admin, services, assets, routing
 ├── DOC/                 # Central local documentation
 ├── ASSETS/              # Staging/source assets
-├── TEST/                # Test and audit artifacts
+├── tests/               # Test and audit artifacts
 ├── README.md            # Project overview
 └── Changelog.md         # Release history
 ```

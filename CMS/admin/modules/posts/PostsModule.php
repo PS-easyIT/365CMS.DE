@@ -658,7 +658,6 @@ class PostsModule
                     return ['success' => true, 'message' => count($ids) . ' Beitrag/Beiträge veröffentlicht.'];
 
                 case 'draft':
-                case 'draft':
                     $this->db->execute("UPDATE {$this->prefix}posts SET status = 'draft', updated_at = NOW() WHERE id IN ({$placeholders})", $ids);
                     return ['success' => true, 'message' => count($ids) . ' Beitrag/Beiträge als Entwurf gesetzt.'];
 
