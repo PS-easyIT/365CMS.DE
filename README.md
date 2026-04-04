@@ -64,6 +64,13 @@ Die folgenden Screens zeigen zentrale Bereiche von 365CMS – vom Dashboard übe
 		<td><img src="https://365cms.de/DOC/img/screen24.jpg" alt="365CMS Screenshot 24" width="220"></td>
 		<td><img src="https://365cms.de/DOC/img/screen25.jpg" alt="365CMS Screenshot 25" width="220"></td>
 	</tr>
+	<tr>
+		<td><img src="https://365cms.de/DOC/img/screen26.jpg" alt="365CMS Screenshot 21" width="220"></td>
+		<td><img src="https://365cms.de/DOC/img/screen27.jpg" alt="365CMS Screenshot 22" width="220"></td>
+		<td><img src="https://365cms.de/DOC/img/screen28.jpg" alt="365CMS Screenshot 23" width="220"></td>
+		<td><img src="https://365cms.de/DOC/img/screen29.jpg" alt="365CMS Screenshot 24" width="220"></td>
+		<td><img src="https://365cms.de/DOC/img/screen30.jpg" alt="365CMS Screenshot 25" width="220"></td>
+	</tr>
 </table>
 
 ## 🇩🇪 Deutsch
