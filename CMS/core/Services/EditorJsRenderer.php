@@ -729,7 +729,7 @@ final class EditorJsRenderer
         if ($items !== []) {
             $html .= '<ul class="changelog-list" style="padding:0;margin:0;">';
             foreach ($items as $item) {
-                $itemText = $this->sanitizeInline((string) $item);
+                $itemText = $this->renderMarkdownInline((string) $item);
                 if ($itemText === '') {
                     continue;
                 }
@@ -882,6 +882,49 @@ final class EditorJsRenderer
             '<span class="tg-spoiler" style="background:#111827;color:transparent;border-radius:0.25rem;padding:0 0.2rem;">$1</span>',
             $sanitized
         ) ?? $sanitized;
+    }
+
+    private function renderMarkdownInline(string $markdown): string
+    {
+        $markdown = trim($markdown);
+        if ($markdown === '') {
+            return '';
+        }
+
+        $escaped = htmlspecialchars($markdown, ENT_QUOTES, 'UTF-8');
+        $placeholders = [];
+        $placeholderIndex = 0;
+
+        $escaped = preg_replace_callback(
+            '/\[([^\]]+)\]\((https?:\/\/[^\s\)]+)\)/i',
+            function (array $matches) use (&$placeholders, &$placeholderIndex): string {
+                $label = $matches[1];
+                $href = html_entity_decode($matches[2], ENT_QUOTES, 'UTF-8');
+                if (!filter_var($href, FILTER_VALIDATE_URL)) {
+                    return $matches[0];
+                }
+
+                $key = '@@MDLINK' . $placeholderIndex++ . '@@';
+                $placeholders[$key] = '<a href="' . htmlspecialchars($href, ENT_QUOTES, 'UTF-8') . '" target="_blank" rel="noopener noreferrer">'
+                    . $label
+                    . '</a>';
+
+                return $key;
+            },
+            $escaped
+        ) ?? $escaped;
+
+        $escaped = preg_replace('/`([^`]+)`/', '<code>$1</code>', $escaped) ?? $escaped;
+        $escaped = preg_replace('/\*\*([^*]+)\*\*/', '<strong>$1</strong>', $escaped) ?? $escaped;
+        $escaped = preg_replace('/__([^_]+)__/', '<strong>$1</strong>', $escaped) ?? $escaped;
+        $escaped = preg_replace('/(?<!\*)\*([^*]+)\*(?!\*)/', '<em>$1</em>', $escaped) ?? $escaped;
+        $escaped = preg_replace('/(?<!_)_([^_]+)_(?!_)/', '<em>$1</em>', $escaped) ?? $escaped;
+
+        if ($placeholders !== []) {
+            $escaped = strtr($escaped, $placeholders);
+        }
+
+        return $escaped;
     }
 
     private function renderPlainTextContent(string $text): string

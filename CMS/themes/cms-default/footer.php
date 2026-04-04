@@ -13,12 +13,12 @@ if (!defined('ABSPATH')) {
 
 $logoText       = meridian_setting('header', 'logo_text', defined('SITE_NAME') ? SITE_NAME : '365CMS');
 $footerDesc     = meridian_setting('footer', 'footer_description', 'Aktuelle Themen, fundierte Analysen und persönliche Geschichten – täglich neu.');
+$showFooterMenuArea = (bool) meridian_setting('footer', 'show_footer_menu_area', true);
 $showSocial     = (bool) meridian_setting('footer', 'show_social_icons', true);
 $col1Title      = meridian_setting('footer', 'col1_title', 'Rubriken');
 $col2Title      = meridian_setting('footer', 'col2_title', 'Ressourcen');
 $col3Title      = meridian_setting('footer', 'col3_title', 'Über');
 $copyrightText  = meridian_copyright(meridian_setting('footer', 'copyright_text', ''));
-$aboutLinks     = function_exists('meridian_footer_about_links') ? meridian_footer_about_links() : [];
 
 $socialLinks = [
     'twitter'   => meridian_setting('footer', 'social_twitter', ''),
@@ -26,17 +26,43 @@ $socialLinks = [
     'linkedin'  => meridian_setting('footer', 'social_linkedin', ''),
     'rss'       => SITE_URL . '/feed',
 ];
+
+$footerTopicsMenu = function_exists('theme_get_menu') ? theme_get_menu('footer_topics') : [];
+$footerResourcesMenu = function_exists('theme_get_menu') ? theme_get_menu('footer_resources') : [];
+$footerAboutMenu = function_exists('theme_get_menu') ? theme_get_menu('footer_about') : [];
+$footerLegalMenu = function_exists('theme_get_menu') ? theme_get_menu('footer_legal') : [];
+$footerGenericMenu = function_exists('theme_get_menu') ? theme_get_menu('footer') : [];
+
+if (empty($footerTopicsMenu) && !empty($footerGenericMenu)) {
+  $footerTopicsMenu = $footerGenericMenu;
+}
+
+$renderFooterMenuLinks = static function (array $items): void {
+  foreach ($items as $item) {
+    if (!is_array($item)) {
+      continue;
+    }
+
+    $href = (string) ($item['href'] ?? $item['url'] ?? '#');
+    $label = trim((string) ($item['label'] ?? $item['title'] ?? ''));
+    if ($label === '') {
+      continue;
+    }
+
+    $target = ((string) ($item['target'] ?? '_self')) === '_blank'
+      ? ' target="_blank" rel="noopener noreferrer"'
+      : '';
+
+    echo '<a href="' . htmlspecialchars($href, ENT_QUOTES, 'UTF-8') . '"' . $target . '>'
+      . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '</a>';
+  }
+};
 ?>
 
 </main><!-- Main Content Wrapper endet hier -->
 
-<?php
-if (class_exists('\\CMS\\Hooks')) {
-  \CMS\Hooks::doAction('before_footer');
-}
-?>
-
-<footer class="site-footer">
+<footer>
+  <?php if ($showFooterMenuArea): ?>
   <div class="footer-top-rule"></div>
   <div class="footer-main">
 
@@ -83,50 +109,69 @@ if (class_exists('\\CMS\\Hooks')) {
     <!-- Themes Column -->
     <div class="ft-col">
       <h4><?php echo htmlspecialchars($col1Title); ?></h4>
-      <?php
-        $cats = function_exists('meridian_get_categories') ? meridian_get_categories(6) : [];
-        if (!empty($cats)) {
-            foreach ($cats as $cat) {
-                 echo '<a href="'. SITE_URL .'/blog?category='. urlencode($cat['slug'] ?? '') .'">'. htmlspecialchars($cat['name'] ?? '') .'</a>';
-            }
-        } else {
-            echo '<a href="'. SITE_URL .'/blog">Alle Artikel</a>';
-        }
-      ?>
+      <?php if (!empty($footerTopicsMenu)): ?>
+        <?php $renderFooterMenuLinks($footerTopicsMenu); ?>
+      <?php else: ?>
+        <?php
+          $cats = function_exists('meridian_get_categories') ? meridian_get_categories(6) : [];
+          if (!empty($cats)) {
+              foreach ($cats as $cat) {
+                   echo '<a href="'. SITE_URL .'/blog?category='. urlencode($cat['slug'] ?? '') .'">'. htmlspecialchars($cat['name'] ?? '') .'</a>';
+              }
+          } else {
+              echo '<a href="'. SITE_URL .'/blog">Alle Artikel</a>';
+          }
+        ?>
+      <?php endif; ?>
     </div>
 
     <!-- Resources Column -->
     <div class="ft-col">
       <h4><?php echo htmlspecialchars($col2Title); ?></h4>
-      <a href="<?php echo SITE_URL; ?>/blog">Script-Bibliothek</a>
-      <a href="<?php echo SITE_URL; ?>/blog">Tutorials</a>
-      <a href="<?php echo SITE_URL; ?>/search">Suche</a>
-      <a href="<?php echo SITE_URL; ?>/register">Newsletter</a>
+      <?php if (!empty($footerResourcesMenu)): ?>
+        <?php $renderFooterMenuLinks($footerResourcesMenu); ?>
+      <?php else: ?>
+        <a href="<?php echo SITE_URL; ?>/blog">Script-Bibliothek</a>
+        <a href="<?php echo SITE_URL; ?>/blog">Tutorials</a>
+        <a href="<?php echo SITE_URL; ?>/search">Suche</a>
+        <a href="<?php echo SITE_URL; ?>/register">Newsletter</a>
+      <?php endif; ?>
     </div>
 
     <!-- About Column -->
     <div class="ft-col">
       <h4><?php echo htmlspecialchars($col3Title); ?></h4>
-      <?php foreach ($aboutLinks as $link): ?>
-      <a href="<?php echo htmlspecialchars(rtrim((string)SITE_URL, '/') . '/' . ltrim((string)($link['url'] ?? ''), '/'), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars((string)($link['label'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></a>
-      <?php endforeach; ?>
+      <?php if (!empty($footerAboutMenu)): ?>
+        <?php $renderFooterMenuLinks($footerAboutMenu); ?>
+      <?php else: ?>
+        <a href="<?php echo SITE_URL; ?>/about">Über uns</a>
+        <a href="<?php echo SITE_URL; ?>/contact">Kontakt</a>
+        <a href="<?php echo SITE_URL; ?>/impressum">Impressum</a>
+        <a href="<?php echo SITE_URL; ?>/datenschutz">Datenschutz</a>
+      <?php endif; ?>
     </div>
 
   </div>
+  <?php endif; ?>
 
   <div class="footer-bottom">
     <span class="copy"><?php echo $copyrightText; ?></span>
     <div class="footer-legal">
-      <a href="<?php echo SITE_URL; ?>/impressum">Impressum</a>
-      <a href="<?php echo SITE_URL; ?>/datenschutz">Datenschutz</a>
+      <?php if (!empty($footerLegalMenu)): ?>
+        <?php $renderFooterMenuLinks($footerLegalMenu); ?>
+      <?php else: ?>
+        <a href="<?php echo SITE_URL; ?>/impressum">Impressum</a>
+        <a href="<?php echo SITE_URL; ?>/datenschutz">Datenschutz</a>
+      <?php endif; ?>
     </div>
   </div>
 </footer>
 
+<script src="<?php echo SITE_URL; ?>/themes/cms-default/js/theme.js?v=<?php echo defined('MERIDIAN_THEME_VERSION') ? MERIDIAN_THEME_VERSION : '1.0.3'; ?>" defer></script>
 <?php
+// Scripts, Cookie-Banner und Custom Footer Code via Hook ausgeben
 if (class_exists('\\CMS\\Hooks')) {
-  \CMS\Hooks::doAction('footer');
-  \CMS\Hooks::doAction('body_end');
+    \CMS\Hooks::doAction('before_footer');
 }
 ?>
 

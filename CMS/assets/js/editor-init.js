@@ -1653,9 +1653,9 @@
                 this.dateInput = createStructuredToolInput('text', this.data.date, '2026-04-04', this.readOnly);
                 dateField.appendChild(this.dateInput);
 
-                const itemsField = createStructuredToolField('Änderungen (eine Zeile = ein Punkt)');
+                const itemsField = createStructuredToolField('Änderungen (eine Zeile = ein Punkt, Markdown inline unterstützt)');
                 itemsField.classList.add('editorjs-structured-tool__field--full');
-                this.itemsInput = createStructuredToolTextarea(this.data.items.join('\n'), 'Editor.js-Toolbar erweitert\nNeue Tech-Blöcke ergänzt', this.readOnly);
+                this.itemsInput = createStructuredToolTextarea(this.data.items.join('\n'), 'Editor.js-Toolbar um **Inline-Markdown** erweitert\nNeue Tech-Blöcke mit `code` und [Link](https://example.com) ergänzt', this.readOnly);
                 itemsField.appendChild(this.itemsInput);
 
                 grid.appendChild(titleField);

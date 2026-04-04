@@ -40,7 +40,7 @@ $sidebarCats   = meridian_get_categories(8);
 $tagCloud      = [];
 try {
     $pdo = \CMS\Database::instance()->getConnection();
-    $stmt = $pdo->query("SELECT tags FROM posts WHERE " . \cms_post_publication_where() . " AND tags IS NOT NULL AND tags != ''");
+    $stmt = $pdo->query("SELECT tags FROM posts WHERE status = 'published' AND tags IS NOT NULL AND tags != ''");
     $tagRows = $stmt->fetchAll(\PDO::FETCH_COLUMN);
     $tagCounts = [];
     foreach ($tagRows as $row) {
@@ -187,7 +187,7 @@ try {
                     <div class="rcat"><?php echo htmlspecialchars($rArr['category_name']); ?></div>
                     <?php endif; ?>
                     <a href="<?php echo SITE_URL; ?>/blog/<?php echo htmlspecialchars($rArr['slug']); ?>"><?php echo htmlspecialchars($rArr['title']); ?></a>
-                    <time><?php echo meridian_format_date($rArr['published_at'] ?? $rArr['created_at'] ?? '', true); ?></time>
+                    <time><?php echo time_ago($rArr['published_at'] ?? $rArr['created_at'] ?? ''); ?></time>
                 </div>
             </div>
             <?php endforeach; ?>

@@ -15,18 +15,18 @@ if (!defined('ABSPATH')) {
 }
 
 // ── Daten laden ──────────────────────────────────────────────────────────────
-$db  = \CMS\Database::instance();
-$pdo = $db->getConnection();
+$db   = \CMS\Database::instance();
+$pdo  = $db->getConnection();
 
 // Hero-Post (neuester veröffentlichter Beitrag mit Bild, falls vorhanden)
 $heroPost = null;
 try {
     $stmt = $pdo->prepare(
-        "SELECT p.*, COALESCE(NULLIF(p.author_display_name, ''), NULLIF(u.display_name, ''), NULLIF(u.username, ''), 'Autor') AS author_name, c.name AS category_name, c.slug AS category_slug
+        "SELECT p.*, u.username AS author_name, c.name AS category_name, c.slug AS category_slug
          FROM posts p
          LEFT JOIN users u ON p.author_id = u.id
          LEFT JOIN post_categories c ON p.category_id = c.id
-         WHERE " . cms_post_publication_where('p') . "
+         WHERE p.status = 'published'
          ORDER BY p.published_at DESC
          LIMIT 1"
     );
@@ -39,13 +39,13 @@ try {
 // Artikel-Liste (nächste 5 Beiträge)
 $articleList = [];
 try {
-    $excludeId = $heroPost ? (int) $heroPost->id : 0;
+    $excludeId = $heroPost ? (int)$heroPost->id : 0;
     $stmt = $pdo->prepare(
-        "SELECT p.*, COALESCE(NULLIF(p.author_display_name, ''), NULLIF(u.display_name, ''), NULLIF(u.username, ''), 'Autor') AS author_name, c.name AS category_name, c.slug AS category_slug
+        "SELECT p.*, u.username AS author_name, c.name AS category_name, c.slug AS category_slug
          FROM posts p
          LEFT JOIN users u ON p.author_id = u.id
          LEFT JOIN post_categories c ON p.category_id = c.id
-         WHERE " . cms_post_publication_where('p') . " AND p.id != :exclude
+         WHERE p.status = 'published' AND p.id != :exclude
          ORDER BY p.published_at DESC
          LIMIT 5"
     );
@@ -59,16 +59,16 @@ try {
 $cardPosts = [];
 try {
     $excludeIds = array_merge(
-        $heroPost ? [(int) $heroPost->id] : [],
-        array_map(fn($post) => (int) $post->id, $articleList)
+        $heroPost ? [(int)$heroPost->id] : [],
+        array_map(fn($p) => (int)$p->id, $articleList)
     );
     $placeholders = $excludeIds ? implode(',', array_fill(0, count($excludeIds), '?')) : '0';
     $stmt = $pdo->prepare(
-        "SELECT p.*, COALESCE(NULLIF(p.author_display_name, ''), NULLIF(u.display_name, ''), NULLIF(u.username, ''), 'Autor') AS author_name, c.name AS category_name, c.slug AS category_slug
+        "SELECT p.*, u.username AS author_name, c.name AS category_name, c.slug AS category_slug
          FROM posts p
          LEFT JOIN users u ON p.author_id = u.id
          LEFT JOIN post_categories c ON p.category_id = c.id
-         WHERE " . cms_post_publication_where('p') . " AND p.id NOT IN ($placeholders)
+         WHERE p.status = 'published' AND p.id NOT IN ($placeholders)
          ORDER BY p.views DESC
          LIMIT 3"
     );
@@ -82,17 +82,17 @@ try {
 $featurePosts = [];
 try {
     $allExclude = array_merge(
-        $heroPost ? [(int) $heroPost->id] : [],
-        array_map(fn($post) => (int) $post->id, $articleList),
-        array_map(fn($post) => (int) $post->id, $cardPosts)
+        $heroPost ? [(int)$heroPost->id] : [],
+        array_map(fn($p) => (int)$p->id, $articleList),
+        array_map(fn($p) => (int)$p->id, $cardPosts)
     );
     $placeholders = implode(',', array_fill(0, count($allExclude), '?'));
     $stmt = $pdo->prepare(
-        "SELECT p.*, COALESCE(NULLIF(p.author_display_name, ''), NULLIF(u.display_name, ''), NULLIF(u.username, ''), 'Autor') AS author_name, c.name AS category_name, c.slug AS category_slug
+        "SELECT p.*, u.username AS author_name, c.name AS category_name, c.slug AS category_slug
          FROM posts p
          LEFT JOIN users u ON p.author_id = u.id
          LEFT JOIN post_categories c ON p.category_id = c.id
-         WHERE " . cms_post_publication_where('p') . " AND p.id NOT IN ($placeholders)
+         WHERE p.status = 'published' AND p.id NOT IN ($placeholders)
          ORDER BY p.published_at DESC
          LIMIT 2"
     );
@@ -103,7 +103,7 @@ try {
 }
 
 // Sidebar: aktuelle Beiträge
-$recentSidebar = meridian_get_recent_posts(5, $heroPost ? (int) $heroPost->id : 0);
+$recentSidebar = meridian_get_recent_posts(5, $heroPost ? (int)$heroPost->id : 0);
 
 // Sidebar: Kategorien
 $sidebarCats = meridian_get_categories(8);
@@ -111,10 +111,9 @@ $sidebarCats = meridian_get_categories(8);
 // Sidebar: Tags sammeln
 $tagCloud = [];
 try {
-    $stmt = $pdo->query("SELECT tags FROM posts WHERE " . cms_post_publication_where() . " AND tags IS NOT NULL AND tags != ''");
+    $stmt = $pdo->query("SELECT tags FROM posts WHERE status = 'published' AND tags IS NOT NULL AND tags != ''");
     $tagRows = $stmt->fetchAll(\PDO::FETCH_COLUMN);
     $tagCounts = [];
-
     foreach ($tagRows as $row) {
         foreach (array_map('trim', explode(',', $row)) as $tag) {
             if ($tag) {
@@ -122,25 +121,592 @@ try {
             }
         }
     }
-
     arsort($tagCounts);
     $tagCloud = array_keys(array_slice($tagCounts, 0, 20));
 } catch (\Exception $e) {
     $tagCloud = [];
 }
 
-$showSidebar       = (bool) meridian_setting('layout', 'show_sidebar', true);
-$showHero          = (bool) meridian_setting('blog', 'show_hero_post', true)
-                  && (bool) meridian_setting('homepage', 'homepage_show_hero', true);
-$homepageMode      = (string) meridian_setting('homepage', 'homepage_mode', 'posts');
-$heroTitleOverride = (string) meridian_setting('homepage', 'homepage_hero_title', '');
-$ctaText           = (string) meridian_setting('homepage', 'homepage_cta_text', '');
-$ctaUrl            = (string) meridian_setting('homepage', 'homepage_cta_url', '');
-$numRecent         = count($recentSidebar);
+$showSidebar      = (bool) meridian_setting('layout',   'show_sidebar',        true);
+$showHero         = (bool) meridian_setting('blog',     'show_hero_post',      true)
+                  && (bool) meridian_setting('homepage', 'homepage_show_hero',  true);
+$homepageMode     = (string) meridian_setting('homepage', 'homepage_mode',        'posts');
+$heroTitleOverride = (string) meridian_setting('homepage', 'homepage_hero_title',  '');
+$ctaText          = (string) meridian_setting('homepage', 'homepage_cta_text',    '');
+$ctaUrl           = (string) meridian_setting('homepage', 'homepage_cta_url',     '');
+$numRecent        = count($recentSidebar);
+?>
+<?php if ($homepageMode === 'landing'): ?>
+<!-- ══════════════════════════════════════════════════════════
+     LANDING PAGE MODUS  –  Inhalte via LandingPageService
+══════════════════════════════════════════════════════════ -->
+<?php
+// ── Landing Page Daten laden ──────────────────────────────
+$lpHeader      = [];
+$lpFeatures    = [];
+$lpColors      = [];
+$lpContentSets = ['content_type' => 'features', 'posts_count' => 6];
 
-if ($homepageMode === 'landing') {
-    require __DIR__ . '/partials/home-landing.php';
-    return;
+try {
+    $landingSvc    = \CMS\Services\LandingPageService::getInstance();
+    $lpHeader      = $landingSvc->getHeader();
+    $lpFeatures    = $landingSvc->getFeatures();
+    $lpColors      = $lpHeader['colors'] ?? [];
+    $lpContentSets = $landingSvc->getContentSettings();
+    $lpDesign      = $landingSvc->getDesign();
+} catch (\Throwable $lpEx) {
+    error_log('cms-default home.php LandingPageService: ' . $lpEx->getMessage());
+    $lpDesign = [];
 }
 
-require __DIR__ . '/partials/home-blog.php';
+// ── Titel: Customizer-Override → LP-Titel → SITE_NAME ────
+$lpTitle    = $heroTitleOverride
+            ?: ($lpHeader['title'] ?? (defined('SITE_NAME') ? SITE_NAME : ''));
+$lpSubtitle = $lpHeader['subtitle']    ?? '';
+$lpDesc     = $lpHeader['description'] ?? '';
+$lpLogo     = $lpHeader['logo']        ?? '';
+
+// ── CTA: LP-Buttons aus Admin ──────────────────────────
+$lpBtns = $lpHeader['header_buttons'] ?? [];
+if (is_string($lpBtns)) {
+    $lpBtns = @json_decode($lpBtns, true) ?? [];
+}
+if (!is_array($lpBtns)) {
+    $lpBtns = [];
+}
+// Customizer-Override: falls gesetzt, Slot 0 überschreiben
+if (!empty($ctaText) && !empty($ctaUrl)) {
+    $lpBtns = array_merge(
+        [['text' => $ctaText, 'url' => $ctaUrl, 'icon' => '', 'target' => '_self', 'outline' => false]],
+        array_slice($lpBtns, 0)
+    );
+}
+// Buttons filtern: nur vollständige Einträge (text + url)
+$lpBtns = array_values(array_filter($lpBtns, fn($b) => !empty($b['text']) && !empty($b['url'])));
+
+// ── Farben mit Defaults ───────────────────────────────────
+$safe = fn(string $v): string => htmlspecialchars($v, ENT_QUOTES, 'UTF-8');
+
+$heroGradStart  = $safe($lpColors['hero_gradient_start'] ?? '#1a2744');
+$heroGradEnd    = $safe($lpColors['hero_gradient_end']   ?? '#0c1526');
+$heroBorderCol  = $safe($lpColors['hero_border']          ?? '#3b82f6');
+$heroTextColor  = $safe($lpColors['hero_text']            ?? '#ffffff');
+$featuresBgCol  = $safe($lpColors['features_bg']          ?? '#f8fafc');
+$featCardBg     = $safe($lpColors['feature_card_bg']      ?? '#ffffff');
+$featCardHover  = $safe($lpColors['feature_card_hover']   ?? '#3b82f6');
+$btnPrimary     = $safe($lpColors['primary_button']       ?? '#3b82f6');
+
+// ── Design-Tokens aus LP-Admin ────────────────────────────
+$dCardBr     = max(0, min(48, (int)($lpDesign['card_border_radius']   ?? 12)));
+$dBtnBr      = max(0, min(50, (int)($lpDesign['button_border_radius'] ?? 8)));
+$dIconLayout = $lpDesign['card_icon_layout']  ?? 'top';   // 'top' | 'left'
+$dBorderCol  = $safe($lpDesign['card_border_color']  ?? '#e2e8f0');
+$dBorderW    = $safe($lpDesign['card_border_width']  ?? '1px');
+$dShadow     = $lpDesign['card_shadow']       ?? 'sm';   // none|sm|md|lg
+$dColumns    = $lpDesign['feature_columns']   ?? 'auto'; // auto|2|3|4
+$dContentBg  = $safe($lpDesign['content_section_bg'] ?? '#ffffff');
+
+$shadowMap = [
+    'none' => 'none',
+    'sm'   => '0 1px 4px rgba(0,0,0,.08)',
+    'md'   => '0 4px 12px rgba(0,0,0,.12)',
+    'lg'   => '0 8px 24px rgba(0,0,0,.18)',
+];
+$dShadowVal = $shadowMap[$dShadow] ?? $shadowMap['sm'];
+
+$columnMap = [
+    'auto' => 'repeat(auto-fill,minmax(240px,1fr))',
+    '2'    => 'repeat(2,1fr)',
+    '3'    => 'repeat(3,1fr)',
+    '4'    => 'repeat(4,1fr)',
+];
+$dColumnsVal = $columnMap[$dColumns] ?? $columnMap['auto'];
+
+// ── Layout: compact vs. standard ─────────────────────────
+$lpLayout    = $lpHeader['header_layout'] ?? 'standard';
+$lpVersion   = $lpHeader['version']       ?? '';
+$lpIsCompact = ($lpLayout === 'compact');
+$heroPadding = $lpIsCompact ? '1.75rem 1.5rem' : '5rem 2rem';
+$heroTitleSz = $lpIsCompact ? '1.75rem'        : 'clamp(1.8rem,4vw,3rem)';
+$logoMaxH    = $lpIsCompact ? '50px'           : '90px';
+$logoMarginB = $lpIsCompact ? '0.75rem'        : '1.75rem';
+$subFontSz   = $lpIsCompact ? '1rem'           : '1.25rem';
+?>
+<style>
+/* Landing Page: Abstände reset */
+.category-bar        { display: none !important; }
+footer, .site-footer { margin-top: 0 !important; }
+main.site-main       { padding: 0 !important; margin: 0 !important; }
+#lp-content          { margin: 0; }
+
+/* Farb-Custom-Properties aus LP-Admin */
+.lp-hero {
+    --lp-grad-start: <?php echo $heroGradStart; ?>;
+    --lp-grad-end:   <?php echo $heroGradEnd; ?>;
+    --lp-border:     <?php echo $heroBorderCol; ?>;
+    --lp-text:       <?php echo $heroTextColor; ?>;
+    --lp-btn:        <?php echo $btnPrimary; ?>;
+}
+.lp-features {
+    --lp-features-bg:  <?php echo $featuresBgCol; ?>;
+    --lp-card-bg:      <?php echo $featCardBg; ?>;
+    --lp-card-hover:   <?php echo $featCardHover; ?>;
+    --lp-card-br:      <?php echo $dCardBr; ?>px;
+    --lp-card-border:  <?php echo $dBorderW; ?> solid <?php echo $dBorderCol; ?>;
+    --lp-card-shadow:  <?php echo $dShadowVal; ?>;
+    --lp-columns:      <?php echo $dColumnsVal; ?>;
+    --lp-content-bg:   <?php echo $dContentBg; ?>;
+}
+.lp-features .lp-card-grid {
+    display: grid;
+    grid-template-columns: var(--lp-columns);
+    gap: 1.5rem;
+}
+.lp-features .lp-feat-card {
+    background:    var(--lp-card-bg);
+    border:        var(--lp-card-border);
+    border-radius: var(--lp-card-br);
+    box-shadow:    var(--lp-card-shadow);
+    padding:       1.5rem;
+    transition:    border-color .2s, box-shadow .2s;
+}
+.lp-features .lp-feat-card:hover {
+    border-color: var(--lp-card-hover) !important;
+    box-shadow: 0 6px 20px rgba(0,0,0,.13);
+}
+.lp-feat-card:not(.lp-feat-card--icon-left) {
+    text-align: center;
+}
+.lp-feat-card:not(.lp-feat-card--icon-left) .lp-feat-card__icon {
+    display: block;
+    margin: 0 auto .75rem;
+}
+.lp-feat-card--icon-left {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+}
+.lp-feat-card__icon  { font-size: 2rem; line-height: 1; flex-shrink: 0; }
+.lp-feat-card__body  { flex: 1; }
+.lp-feat-card__title { font-size: 1rem; font-weight: 700; margin: 0 0 .4rem; color: #1e293b; }
+.lp-feat-card__desc  { font-size: .9rem; color: #64748b; margin: 0; line-height: 1.5; }
+</style>
+
+<div class="landing-page">
+<div id="lp-content">
+
+    <!-- ── Hero ──────────────────────────────────────────── -->
+    <section class="lp-hero" style="
+        margin-top:0;
+        padding:<?php echo $heroPadding;?>;
+        background:linear-gradient(135deg,var(--lp-grad-start) 0%,var(--lp-grad-end) 100%);
+        border-bottom:3px solid var(--lp-border);">
+        <div class="lp-hero__inner">
+
+            <?php if (!empty($lpLogo)): ?>
+            <img src="<?php echo $safe($lpLogo); ?>"
+                 alt="<?php echo $safe($lpTitle); ?>"
+                 style="max-height:<?php echo $logoMaxH;?>;margin:0 auto <?php echo $logoMarginB;?>;display:block;">
+            <?php endif; ?>
+
+            <div style="position:relative;display:inline-block;max-width:100%;">
+                <h1 class="lp-hero__title" style="color:var(--lp-text);font-size:<?php echo $heroTitleSz;?>;">
+                    <?php echo $safe($lpTitle); ?>
+                </h1>
+                <?php if ($lpVersion && $lpIsCompact): ?>
+                <span style="
+                    position:absolute;top:-.35rem;right:-4rem;
+                    background:<?php echo $btnPrimary;?>;color:#fff;
+                    border-radius:4px;padding:.15rem .55rem;
+                    font-size:.75rem;font-weight:700;line-height:1.2;
+                    white-space:nowrap;letter-spacing:.02em;
+                    box-shadow:0 1px 4px rgba(0,0,0,.25);">v<?php echo $safe($lpVersion); ?></span>
+                <?php elseif ($lpVersion): ?>
+                <div style="margin:.6rem 0 .25rem;">
+                    <span style="
+                        display:inline-block;
+                        background:<?php echo $btnPrimary;?>;color:#fff;
+                        border-radius:6px;padding:.3rem 1rem;
+                        font-size:.85rem;font-weight:700;
+                        letter-spacing:.03em;
+                        box-shadow:0 1px 6px rgba(0,0,0,.2);">v<?php echo $safe($lpVersion); ?></span>
+                </div>
+                <?php endif; ?>
+            </div>
+
+            <?php if ($lpSubtitle): ?>
+            <p style="color:var(--lp-text);opacity:.85;font-size:<?php echo $subFontSz;?>;max-width:600px;margin:<?php echo $lpIsCompact ? '.5rem' : '1rem';?> auto <?php echo $lpIsCompact ? '.75rem' : '1rem';?>;">
+                <?php echo $safe($lpSubtitle); ?>
+            </p>
+            <?php endif; ?>
+
+            <?php if ($lpDesc && $lpDesc !== $lpTitle && $lpDesc !== $lpSubtitle): ?>
+            <p style="color:var(--lp-text);opacity:.75;max-width:680px;margin:0 auto <?php echo $lpIsCompact ? '1rem' : '1.5rem';?>;font-size:<?php echo $lpIsCompact ? '.95rem' : '1rem';?>;">
+                <?php echo $safe($lpDesc); ?>
+            </p>
+            <?php endif; ?>
+
+            <?php if (!empty($lpBtns)): ?>
+            <div class="lp-hero__actions" style="margin-top:<?php echo $lpIsCompact ? '1rem' : '2rem';?>;display:flex;flex-wrap:wrap;gap:.75rem;justify-content:center;align-items:center;">
+                <?php foreach ($lpBtns as $btn):
+                    $btnText    = $safe($btn['text']   ?? '');
+                    $btnHref    = $safe($btn['url']    ?? '#');
+                    $btnIcon    = $safe($btn['icon']   ?? '');
+                    $btnTarget  = in_array($btn['target'] ?? '', ['_blank','_self']) ? $btn['target'] : '_self';
+                    $btnOutline = !empty($btn['outline']);
+                ?>
+                <a href="<?php echo $btnHref; ?>"
+                   class="btn-hero<?php echo $btnOutline ? ' btn-hero--outline' : ''; ?>"
+                   target="<?php echo $btnTarget; ?>"
+                   <?php echo $btnTarget === '_blank' ? 'rel="noopener noreferrer"' : ''; ?>
+                   style="<?php echo !$btnOutline ? 'background:var(--lp-btn);' : ''; ?>">
+                    <?php if ($btnIcon): ?><span style="margin-right:.35em;"><?php echo $btnIcon; ?></span><?php endif; ?><?php echo $btnText; ?>
+                </a>
+                <?php endforeach; ?>
+            </div>
+            <?php endif; ?>
+
+        </div>
+    </section>
+
+    <!-- ── Hauptinhalt (Features / Artikel / Text) ────────── -->
+    <?php
+    $lpContentType = $lpContentSets['content_type'] ?? 'features';
+    $lpPostsCount  = max(1, (int)($lpContentSets['posts_count'] ?? 5));
+    ?>
+
+    <?php if ($lpContentType === 'features' && !empty($lpFeatures)): ?>
+    <!-- Feature-Karten aus dem Landing-Page-Admin -->
+    <section class="lp-features" style="padding:3rem 0;background:var(--lp-features-bg);">
+        <div style="max-width:1140px;margin:0 auto;padding:0 1.5rem;">
+            <div class="lp-card-grid">
+                <?php foreach ($lpFeatures as $feat):
+                    $fTitle = $feat['title']       ?? '';
+                    $fText  = $feat['description'] ?? '';
+                    $fIcon  = $feat['icon']        ?? '';
+                    if (empty($fTitle) && empty($fText)) continue;
+                    $isIconLeft = ($dIconLayout === 'left');
+                ?>
+                <div class="lp-feat-card<?php echo $isIconLeft ? ' lp-feat-card--icon-left' : ''; ?>">
+                    <?php if ($fIcon): ?>
+                    <div class="lp-feat-card__icon"><?php echo $safe($fIcon); ?></div>
+                    <?php endif; ?>
+                    <div class="lp-feat-card__body">
+                        <?php if ($fTitle): ?>
+                        <p class="lp-feat-card__title"><?php echo $safe($fTitle); ?></p>
+                        <?php endif; ?>
+                        <?php if ($fText): ?>
+                        <p class="lp-feat-card__desc"><?php echo $safe($fText); ?></p>
+                        <?php endif; ?>
+                    </div>
+                </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+    </section>
+
+    <?php elseif ($lpContentType === 'posts'): ?>
+    <!-- Neueste Artikel (Anzahl aus Landing-Page-Admin) -->
+    <?php
+    $lpPosts = [];
+    try {
+        $stmtLp = $pdo->prepare(
+            "SELECT p.*, u.username AS author_name, c.name AS category_name, c.slug AS category_slug
+             FROM posts p
+             LEFT JOIN users u ON p.author_id = u.id
+             LEFT JOIN post_categories c ON p.category_id = c.id
+             WHERE p.status = 'published'
+             ORDER BY p.published_at DESC
+             LIMIT " . $lpPostsCount
+        );
+        $stmtLp->execute();
+        $lpPosts = $stmtLp->fetchAll(\PDO::FETCH_OBJ);
+    } catch (\Exception $e) { $lpPosts = []; }
+    ?>
+    <?php if (!empty($lpPosts)): ?>
+    <div class="lp-posts-section">
+        <div class="section-label"><h3>Aktuelle Beiträge</h3></div>
+        <div class="card-grid">
+            <?php foreach ($lpPosts as $post): ?>
+            <div class="card">
+                <div class="card-thumb" style="background:<?php echo meridian_cat_gradient($post->category_name ?? ''); ?>">
+                    <?php if ($post->featured_image): ?>
+                    <img src="<?php echo htmlspecialchars($post->featured_image); ?>"
+                         alt="<?php echo htmlspecialchars($post->title); ?>"
+                         loading="lazy">
+                    <?php endif; ?>
+                    <?php if ($post->category_name): ?>
+                    <span class="card-cat"><?php echo htmlspecialchars($post->category_name); ?></span>
+                    <?php endif; ?>
+                </div>
+                <div class="card-body">
+                    <h4><a href="<?php echo SITE_URL; ?>/blog/<?php echo htmlspecialchars($post->slug); ?>"><?php echo htmlspecialchars($post->title); ?></a></h4>
+                    <p><?php echo htmlspecialchars(meridian_excerpt($post->excerpt ?: $post->content, 100)); ?></p>
+                    <div class="card-footer">
+                        <time><?php echo meridian_format_date($post->published_at ?? $post->created_at, true); ?></time>
+                        <a href="<?php echo SITE_URL; ?>/blog/<?php echo htmlspecialchars($post->slug); ?>" class="read-link">Lesen →</a>
+                    </div>
+                </div>
+            </div>
+            <?php endforeach; ?>
+        </div>
+    </div>
+    <?php else: ?>
+    <div class="empty-state" style="padding:3rem 0;">
+        <p style="font-size:3rem;margin:0">📰</p>
+        <p><strong>Noch keine Artikel veröffentlicht</strong></p>
+    </div>
+    <?php endif; ?>
+
+    <?php elseif ($lpContentType === 'text'): ?>
+    <!-- Freitext aus der Landing Page -->
+    <?php $lpContentText = $lpContentSets['content_text'] ?? ''; ?>
+    <?php if ($lpContentText): ?>
+    <section style="max-width:860px;margin:3rem auto;padding:0 1.5rem;background:var(--lp-content-bg,#fff);">
+        <div style="font-size:1.05rem;line-height:1.75;color:#1e293b;">
+            <?php echo nl2br(htmlspecialchars(strip_tags($lpContentText, '<p><a><strong><em><ul><ol><li><h2><h3><h4><br><hr><img>'))); ?>
+        </div>
+    </section>
+    <?php endif; ?>
+
+    <?php elseif (empty($lpFeatures)): ?>
+    <!-- Fallback: Keine LP-Inhalte konfiguriert -->
+    <div class="empty-state" style="padding:3rem 0;">
+        <p style="font-size:3rem;margin:0">🏗️</p>
+        <p><strong>Startseite noch nicht konfiguriert</strong></p>
+        <p class="text-muted">Richte die Landing Page unter <a href="<?php echo SITE_URL; ?>/admin/landing-page.php">Admin → Landing Page</a> ein.</p>
+    </div>
+    <?php endif; ?>
+
+</div><!-- /#lp-content -->
+</div><!-- /.landing-page -->
+
+<?php else: /* ── BLOG MODUS (Standard) ── */ ?>
+<div class="page-wrap<?php echo !$showSidebar ? ' page-wrap--full' : ''; ?>">
+
+<main id="main-content">
+
+<!-- ── Hero Post ──────────────────────────────────────────────────────────── -->
+<?php if ($showHero && $heroPost): ?>
+<div class="hero-post">
+    <div class="hero-image">
+        <?php if ($heroPost->featured_image): ?>
+        <img src="<?php echo htmlspecialchars($heroPost->featured_image); ?>"
+             alt="<?php echo htmlspecialchars($heroPost->title); ?>"
+             loading="eager">
+        <?php endif; ?>
+        <?php if ($heroPost->category_slug): ?>
+        <div class="hero-cat-badge"><?php echo htmlspecialchars(strtoupper($heroPost->category_slug ?? '')); ?></div>
+        <?php endif; ?>
+    </div>
+    <div class="hero-body">
+        <?php if ($heroPost->category_name): ?>
+        <div class="post-cat"><?php echo htmlspecialchars($heroPost->category_name); ?></div>
+        <?php endif; ?>
+        <h2>
+            <a href="<?php echo SITE_URL; ?>/blog/<?php echo htmlspecialchars($heroPost->slug); ?>">
+                <?php echo htmlspecialchars($heroTitleOverride ?: $heroPost->title); ?>
+            </a>
+        </h2>
+        <?php if ($heroPost->excerpt): ?>
+        <p class="excerpt"><?php echo htmlspecialchars(meridian_excerpt($heroPost->excerpt, 200)); ?></p>
+        <?php endif; ?>
+        <div class="post-meta">
+            <?php if ($heroPost->author_name): ?>
+            <div class="meta-author">
+                <div class="avatar-xs"><?php echo htmlspecialchars(meridian_author_initials($heroPost->author_name)); ?></div>
+                <?php echo htmlspecialchars($heroPost->author_name); ?>
+            </div>
+            <span class="meta-sep">·</span>
+            <?php endif; ?>
+            <time class="meta-date"><?php echo meridian_format_date($heroPost->published_at ?? $heroPost->created_at); ?></time>
+            <?php if (meridian_setting('blog', 'show_reading_time', true)): ?>
+            <span class="meta-sep">·</span>
+            <span class="meta-read"><?php echo meridian_reading_time($heroPost->content); ?></span>
+            <?php endif; ?>
+        </div>
+    </div>
+    <?php if ($ctaText && $ctaUrl): ?>
+        <div class="hero-cta">
+            <a href="<?php echo htmlspecialchars($ctaUrl); ?>" class="btn-hero"><?php echo htmlspecialchars($ctaText); ?></a>
+        </div>
+    <?php endif; ?>
+</div>
+<?php endif; ?>
+
+<!-- ── Artikel-Liste ──────────────────────────────────────────────────────── -->
+<?php if (!empty($articleList)): ?>
+<div class="section-label"><h3>Aktuelle Artikel</h3></div>
+<div class="article-list">
+    <?php foreach ($articleList as $post): ?>
+    <div class="article-row">
+        <div class="art-thumb">
+            <?php if ($post->featured_image): ?>
+            <img src="<?php echo htmlspecialchars($post->featured_image); ?>"
+                 alt="<?php echo htmlspecialchars($post->title); ?>"
+                 loading="lazy">
+            <?php endif; ?>
+        </div>
+        <div class="art-body">
+            <?php if ($post->category_name): ?>
+            <div class="art-cat"><?php echo htmlspecialchars($post->category_name); ?></div>
+            <?php endif; ?>
+            <div class="art-title">
+                <a href="<?php echo SITE_URL; ?>/blog/<?php echo htmlspecialchars($post->slug); ?>">
+                    <?php echo htmlspecialchars($post->title); ?>
+                </a>
+            </div>
+            <?php $artExcerpt = $post->excerpt ?: meridian_excerpt($post->content, 120); ?>
+            <?php if ($artExcerpt): ?>
+            <div class="art-excerpt"><?php echo htmlspecialchars($artExcerpt); ?></div>
+            <?php endif; ?>
+            <div class="art-meta">
+                <time><?php echo meridian_format_date($post->published_at ?? $post->created_at); ?></time>
+                <?php if (meridian_setting('blog', 'show_reading_time', true)): ?>
+                <span class="dot"></span>
+                <span class="read-t"><?php echo meridian_reading_time($post->content); ?></span>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+    <?php endforeach; ?>
+</div>
+<?php endif; ?>
+
+<!-- ── Card-Grid ────────────────────────────────────────────────────────── -->
+<?php if (!empty($cardPosts)): ?>
+<div class="section-label"><h3>Weitere Artikel</h3></div>
+<div class="card-grid">
+    <?php foreach ($cardPosts as $post): ?>
+    <div class="card">
+        <div class="card-thumb" style="background:<?php echo meridian_cat_gradient($post->category_name ?? ''); ?>">
+            <?php if ($post->featured_image): ?>
+            <img src="<?php echo htmlspecialchars($post->featured_image); ?>"
+                 alt="<?php echo htmlspecialchars($post->title); ?>"
+                 loading="lazy">
+            <?php endif; ?>
+            <?php if ($post->category_name): ?>
+            <span class="card-cat"><?php echo htmlspecialchars($post->category_name); ?></span>
+            <?php endif; ?>
+        </div>
+        <div class="card-body">
+            <h4>
+                <a href="<?php echo SITE_URL; ?>/blog/<?php echo htmlspecialchars($post->slug); ?>">
+                    <?php echo htmlspecialchars($post->title); ?>
+                </a>
+            </h4>
+            <p><?php echo htmlspecialchars(meridian_excerpt($post->excerpt ?: $post->content, 100)); ?></p>
+            <div class="card-footer">
+                <time><?php echo meridian_format_date($post->published_at ?? $post->created_at, true); ?></time>
+                <a href="<?php echo SITE_URL; ?>/blog/<?php echo htmlspecialchars($post->slug); ?>" class="read-link">Lesen →</a>
+            </div>
+        </div>
+    </div>
+    <?php endforeach; ?>
+</div>
+<?php endif; ?>
+
+<!-- ── Feature-Row ───────────────────────────────────────────────────────── -->
+<?php if (!empty($featurePosts)): ?>
+<div class="section-label"><h3>Schwerpunkte</h3></div>
+<div class="feature-row">
+    <?php foreach ($featurePosts as $post): ?>
+    <div class="feature-box">
+        <h3>
+            <a href="<?php echo SITE_URL; ?>/blog/<?php echo htmlspecialchars($post->slug); ?>">
+                <?php echo htmlspecialchars($post->title); ?>
+            </a>
+        </h3>
+        <p><?php echo htmlspecialchars(meridian_excerpt($post->excerpt ?: $post->content, 120)); ?></p>
+        <a href="<?php echo SITE_URL; ?>/blog/<?php echo htmlspecialchars($post->slug); ?>" class="feature-link">
+            <?php echo htmlspecialchars($post->category_name ?: 'Weiterlesen'); ?> →
+        </a>
+    </div>
+    <?php endforeach; ?>
+</div>
+<?php endif; ?>
+
+<?php if (!$heroPost && empty($articleList)): ?>
+<div class="empty-state">
+    <p style="font-size:3rem;margin:0">📰</p>
+    <p><strong>Noch keine Artikel veröffentlicht</strong></p>
+    <p>Die ersten Artikel erscheinen hier, sobald sie veröffentlicht werden.</p>
+</div>
+<?php endif; ?>
+
+</main>
+
+<!-- ── Sidebar ────────────────────────────────────────────────────────────── -->
+<?php if ($showSidebar): ?>
+<aside class="sidebar" aria-label="Sidebar">
+
+    <!-- Newsletter Widget -->
+    <div class="newsletter-widget">
+        <div class="widget-title">Newsletter</div>
+        <h3>Kein Artikel verpassen</h3>
+        <p>Die besten Artikel direkt in dein Postfach – kostenlos.</p>
+        <form action="<?php echo SITE_URL; ?>/register" method="GET">
+            <input type="email" name="email" placeholder="deine@email.de" required autocomplete="email">
+            <button type="submit">Jetzt abonnieren →</button>
+        </form>
+    </div>
+
+    <!-- Kategorien -->
+    <?php if (!empty($sidebarCats)): ?>
+    <div>
+        <div class="widget-title">Kategorien</div>
+        <?php foreach ($sidebarCats as $cat): ?>
+        <div class="cat-row">
+            <a href="<?php echo SITE_URL . '/blog?category=' . urlencode($cat['slug'] ?? ''); ?>">
+                <?php echo htmlspecialchars($cat['name']); ?>
+            </a>
+            <?php if (!empty($cat['post_count'])): ?>
+            <span class="cat-count"><?php echo (int)$cat['post_count']; ?></span>
+            <?php endif; ?>
+        </div>
+        <?php endforeach; ?>
+    </div>
+    <?php endif; ?>
+
+    <!-- Zuletzt erschienen -->
+    <?php if (!empty($recentSidebar)): ?>
+    <div>
+        <div class="widget-title">Zuletzt erschienen</div>
+        <?php foreach ($recentSidebar as $i => $recent):
+            $rArr = is_object($recent) ? (array)$recent : (array)$recent;
+        ?>
+        <div class="recent-item">
+            <div class="recent-num"><?php echo str_pad((string)($i + 1), 2, '0', STR_PAD_LEFT); ?></div>
+            <div class="recent-body">
+                <?php if (!empty($rArr['category_name'])): ?>
+                <div class="rcat"><?php echo htmlspecialchars($rArr['category_name']); ?></div>
+                <?php endif; ?>
+                <a href="<?php echo SITE_URL; ?>/blog/<?php echo htmlspecialchars($rArr['slug'] ?? ''); ?>">
+                    <?php echo htmlspecialchars($rArr['title'] ?? ''); ?>
+                </a>
+                <time><?php echo meridian_format_date($rArr['published_at'] ?? $rArr['created_at'] ?? '', true); ?></time>
+            </div>
+        </div>
+        <?php endforeach; ?>
+    </div>
+    <?php endif; ?>
+
+    <!-- Tag Cloud -->
+    <?php if (!empty($tagCloud)): ?>
+    <div>
+        <div class="widget-title">Tags</div>
+        <div class="tag-cloud">
+            <?php foreach ($tagCloud as $tag): ?>
+            <a href="<?php echo SITE_URL . '/search?q=' . urlencode($tag); ?>">
+                <?php echo htmlspecialchars($tag); ?>
+            </a>
+            <?php endforeach; ?>
+        </div>
+    </div>
+    <?php endif; ?>
+
+</aside>
+<?php endif; ?>
+
+</div><!-- /.page-wrap -->
+<?php endif; /* Ende: homepage mode */ ?>

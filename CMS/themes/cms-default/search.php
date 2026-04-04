@@ -81,9 +81,9 @@ $totalPages  = $totalPages  ?? 1;
                         <?php echo htmlspecialchars($post->title ?? ''); ?>
                     </a>
                 </h2>
-                <?php $excerpt = meridian_excerpt((string)($post->excerpt ?? $post->content ?? ''), 200); ?>
+                <?php $excerpt = !empty($post->excerpt) ? $post->excerpt : meridian_excerpt($post->content ?? '', 200); ?>
                 <?php if ($excerpt): ?>
-                <p class="art-excerpt"><?php echo $excerpt; ?></p>
+                <p class="art-excerpt"><?php echo htmlspecialchars($excerpt ?? ''); ?></p>
                 <?php endif; ?>
                 <div class="art-meta">
                     <?php if (!empty($post->author_name)): ?>

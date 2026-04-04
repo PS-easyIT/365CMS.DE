@@ -11,9 +11,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-if (!headers_sent()) {
-    http_response_code(404);
-}
+http_response_code(404);
 
 $recentPosts = meridian_get_recent_posts(3);
 ?>
@@ -41,16 +39,16 @@ $recentPosts = meridian_get_recent_posts(3);
             <?php foreach ($recentPosts as $post): ?>
             <article class="card">
                 <?php if (!empty($post['featured_image'])): ?>
-                <a href="<?php echo SITE_URL; ?>/blog/<?php echo htmlspecialchars((string) ($post['slug'] ?? '')); ?>" class="card-img">
-                    <img src="<?php echo htmlspecialchars((string) ($post['featured_image'] ?? '')); ?>"
-                         alt="<?php echo htmlspecialchars((string) ($post['title'] ?? '')); ?>"
+                <a href="<?php echo SITE_URL; ?>/blog/<?php echo htmlspecialchars($post['slug']); ?>" class="card-img">
+                    <img src="<?php echo htmlspecialchars($post['featured_image']); ?>"
+                         alt="<?php echo htmlspecialchars($post['title']); ?>"
                          loading="lazy">
                 </a>
                 <?php endif; ?>
                 <div class="card-body">
                     <h3 class="card-title">
-                        <a href="<?php echo SITE_URL; ?>/blog/<?php echo htmlspecialchars((string) ($post['slug'] ?? '')); ?>">
-                            <?php echo htmlspecialchars((string) ($post['title'] ?? '')); ?>
+                        <a href="<?php echo SITE_URL; ?>/blog/<?php echo htmlspecialchars($post['slug']); ?>">
+                            <?php echo htmlspecialchars($post['title']); ?>
                         </a>
                     </h3>
                     <div class="art-meta">

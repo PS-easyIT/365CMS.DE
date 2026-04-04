@@ -288,7 +288,7 @@ final class EditorJsSanitizer
                     'title' => strip_tags((string) ($data['title'] ?? ''), $inlineAllowed),
                     'version' => strip_tags((string) ($data['version'] ?? ''), ''),
                     'date' => strip_tags((string) ($data['date'] ?? ''), ''),
-                    'items' => array_values(array_filter(array_map(static fn($item) => trim(strip_tags((string) $item, $inlineAllowed)), is_array($data['items'] ?? null) ? $data['items'] : []))),
+                    'items' => array_values(array_filter(array_map(static fn($item) => trim(strip_tags((string) $item, '')), is_array($data['items'] ?? null) ? $data['items'] : []))),
                 ];
                 break;
 

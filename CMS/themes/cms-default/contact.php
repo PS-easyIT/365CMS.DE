@@ -20,17 +20,6 @@ $contactSuccess = '';
 $contactError   = '';
 $formData       = ['name' => '', 'email' => '', 'subject' => '', 'message' => ''];
 
-if (!function_exists('cms_theme_contact_input')) {
-    function cms_theme_contact_input(string $value, int $maxLength = 5000): string
-    {
-        $value = trim($value);
-        $value = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]+/u', ' ', $value) ?? '';
-        $value = preg_replace('/\s+/u', ' ', $value) ?? '';
-
-        return mb_substr(strip_tags($value), 0, $maxLength);
-    }
-}
-
 // Empfänger-E-Mail aus Settings
 $recipientEmail = '';
 try {
@@ -45,8 +34,6 @@ try {
 if (empty($recipientEmail) && defined('ADMIN_EMAIL')) {
     $recipientEmail = ADMIN_EMAIL;
 }
-
-$recipientEmail = filter_var(trim((string) $recipientEmail), FILTER_VALIDATE_EMAIL) ?: '';
 
 // CSRF-Token
 $csrfToken = '';
@@ -72,30 +59,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['contact_submit'])) {
         // Stiller Spam-Abbruch (Honeypot gefüllt → Bot)
         $contactSuccess = 'Deine Nachricht wurde gesendet. Wir melden uns bald!';
     } else {
-        $formData['name']    = cms_theme_contact_input((string) ($_POST['contact_name'] ?? ''), 100);
+        $formData['name']    = htmlspecialchars(trim($_POST['contact_name'] ?? ''), ENT_QUOTES, 'UTF-8');
         $formData['email']   = filter_var(trim($_POST['contact_email'] ?? ''), FILTER_VALIDATE_EMAIL) ?: '';
-        $formData['subject'] = cms_theme_contact_input((string) ($_POST['contact_subject'] ?? ''), 200);
-        $formData['message'] = trim((string) ($_POST['contact_message'] ?? ''));
-        $formData['message'] = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]+/u', ' ', $formData['message']) ?? '';
-        $formData['message'] = mb_substr($formData['message'], 0, 5000);
+        $formData['subject'] = htmlspecialchars(trim($_POST['contact_subject'] ?? ''), ENT_QUOTES, 'UTF-8');
+        $formData['message'] = htmlspecialchars(trim($_POST['contact_message'] ?? ''), ENT_QUOTES, 'UTF-8');
 
         if (empty($formData['name'])) {
             $contactError = 'Bitte gib deinen Namen an.';
         } elseif (empty($formData['email'])) {
             $contactError = 'Bitte gib eine gültige E-Mail-Adresse an.';
-        } elseif (mb_strlen(trim($formData['message'])) < 20) {
+        } elseif (strlen($formData['message']) < 20) {
             $contactError = 'Bitte gib eine ausführlichere Nachricht ein (min. 20 Zeichen).';
         } elseif (!empty($recipientEmail)) {
             // E-Mail senden
             $subject  = '[Kontakt] ' . ($formData['subject'] ?: $formData['name']);
             $body     = "Name: {$formData['name']}\n"
                       . "E-Mail: {$formData['email']}\n\n"
-                      . "Nachricht:\n" . trim($formData['message']);
-            $headers  = ['Reply-To' => $formData['email']];
+                      . "Nachricht:\n{$formData['message']}";
+            $headers  = "From: {$formData['email']}\r\nReply-To: {$formData['email']}\r\nContent-Type: text/plain; charset=UTF-8";
 
-            if (!class_exists('\CMS\Services\MailService')) {
-                $contactError = 'Mail-Service ist momentan nicht verfügbar. Bitte versuche es später erneut.';
-            } elseif (\CMS\Services\MailService::getInstance()->sendPlain($recipientEmail, $subject, $body, $headers)) {
+            $sent = @mail($recipientEmail, $subject, $body, $headers);
+            if ($sent) {
                 $contactSuccess = 'Deine Nachricht wurde gesendet. Wir melden uns in Kürze!';
                 $formData = ['name' => '', 'email' => '', 'subject' => '', 'message' => ''];
             } else {
@@ -116,7 +100,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['contact_submit'])) {
 
     <!-- Breadcrumb -->
     <nav class="breadcrumb" aria-label="Breadcrumb" style="font-size:.8rem;color:var(--ink-muted);margin-bottom:2rem;">
-        <a href="<?php echo htmlspecialchars((string) SITE_URL, ENT_QUOTES, 'UTF-8'); ?>/" style="color:var(--ink-muted);text-decoration:none;">Startseite</a>
+        <a href="<?php echo SITE_URL; ?>/" style="color:var(--ink-muted);text-decoration:none;">Startseite</a>
         <span style="margin:0 .4rem;">›</span>
         <span aria-current="page" style="color:var(--ink);">Kontakt</span>
     </nav>
@@ -155,7 +139,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['contact_submit'])) {
                             Name <span style="color:#ef4444;">*</span>
                         </label>
                         <input type="text" id="contactName" name="contact_name" class="form-control"
-                               value="<?php echo htmlspecialchars($formData['name'], ENT_QUOTES, 'UTF-8'); ?>"
+                               value="<?php echo $formData['name']; ?>"
                                required maxlength="100" autocomplete="name"
                                placeholder="Dein Name">
                     </div>
@@ -164,7 +148,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['contact_submit'])) {
                             E-Mail <span style="color:#ef4444;">*</span>
                         </label>
                         <input type="email" id="contactEmail" name="contact_email" class="form-control"
-                               value="<?php echo htmlspecialchars($formData['email'], ENT_QUOTES, 'UTF-8'); ?>"
+                               value="<?php echo $formData['email']; ?>"
                                required maxlength="200" autocomplete="email"
                                placeholder="deine@email.de">
                     </div>
@@ -173,7 +157,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['contact_submit'])) {
                 <div class="form-group">
                     <label class="form-label" for="contactSubject">Betreff</label>
                     <input type="text" id="contactSubject" name="contact_subject" class="form-control"
-                           value="<?php echo htmlspecialchars($formData['subject'], ENT_QUOTES, 'UTF-8'); ?>"
+                           value="<?php echo $formData['subject']; ?>"
                            maxlength="200"
                            placeholder="Worum geht es?">
                 </div>
@@ -186,11 +170,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['contact_submit'])) {
                               required minlength="20" maxlength="5000"
                               rows="6"
                               style="resize:vertical;min-height:140px;"
-                              placeholder="Deine Nachricht …"><?php echo htmlspecialchars($formData['message'], ENT_QUOTES, 'UTF-8'); ?></textarea>
+                              placeholder="Deine Nachricht …"><?php echo $formData['message']; ?></textarea>
                 </div>
 
                 <div class="form-group" style="font-size:.78rem;color:var(--ink-muted);margin-top:-.5rem;">
-                    <span>Mit dem Absenden stimmst du unserer <a href="<?php echo htmlspecialchars((string) SITE_URL, ENT_QUOTES, 'UTF-8'); ?>/datenschutz" style="color:var(--accent);">Datenschutzerklärung</a> zu.</span>
+                    <span>Mit dem Absenden stimmst du unserer <a href="<?php echo SITE_URL; ?>/datenschutz" style="color:var(--accent);">Datenschutzerklärung</a> zu.</span>
                 </div>
 
                 <button type="submit" class="btn-solid btn-solid--full" style="margin-top:.5rem;">
@@ -253,9 +237,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['contact_submit'])) {
             <!-- Rechtliche Links -->
             <hr style="border:none;border-top:1px solid var(--rule);margin:1.5rem 0 1rem;">
             <p style="font-size:.78rem;color:var(--ink-ghost);margin:0;">
-                <a href="<?php echo htmlspecialchars((string) SITE_URL, ENT_QUOTES, 'UTF-8'); ?>/impressum" style="color:var(--ink-muted);text-decoration:none;">Impressum</a>
+                <a href="<?php echo SITE_URL; ?>/impressum" style="color:var(--ink-muted);text-decoration:none;">Impressum</a>
                 &nbsp;·&nbsp;
-                <a href="<?php echo htmlspecialchars((string) SITE_URL, ENT_QUOTES, 'UTF-8'); ?>/datenschutz" style="color:var(--ink-muted);text-decoration:none;">Datenschutz</a>
+                <a href="<?php echo SITE_URL; ?>/datenschutz" style="color:var(--ink-muted);text-decoration:none;">Datenschutz</a>
             </p>
         </aside>
 

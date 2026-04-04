@@ -11,33 +11,21 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-$runtimeSiteName = (string) (function_exists('cms_get_site_name') ? cms_get_site_name() : (defined('SITE_NAME') ? SITE_NAME : '365CMS'));
-$logoUrl       = trim((string) meridian_setting('header', 'logo_url', ''));
-$logoText      = trim((string) meridian_setting('header', 'logo_text', $runtimeSiteName));
-$logoType      = (string) meridian_setting('header', 'logo_type', 'text');
-$logoTagline   = trim((string) meridian_setting('header', 'logo_tagline', ''));
+$logoUrl       = meridian_setting('header', 'logo_url', '');
+$logoText      = meridian_setting('header', 'logo_text', defined('SITE_NAME') ? SITE_NAME : '365CMS');
+$logoType      = meridian_setting('header', 'logo_type', 'text');
+$logoTagline   = meridian_setting('header', 'logo_tagline', '');
 $logoHeight    = max(20, (int)meridian_setting('header', 'logo_height', 40));
-$headerTitle   = trim((string) meridian_setting('header', 'header_title', ''));
+$headerTitle   = meridian_setting('header', 'header_title', '');
 $showSearch    = (bool)meridian_setting('header', 'show_search_btn', true);
 $showLoginBtn  = (bool)meridian_setting('header', 'show_login_btn', true);
 $showRegBtn    = (bool)meridian_setting('header', 'show_register_btn', true);
-$headerBarMode = (string) meridian_setting('navigation', 'header_bar_mode', 'categories');
-$showCategoryBar = (bool)meridian_setting('layout', 'show_category_bar', true);
-$mobileMenuEnabled = (bool)meridian_setting('navigation', 'mobile_menu_enabled', true);
+$headerBarMode = meridian_setting('navigation', 'header_bar_mode', 'categories');
 $stickyHeader  = (bool)meridian_setting('layout', 'sticky_header', true);
-
-if ($logoText === '') {
-  $logoText = $runtimeSiteName;
-}
 
 $currentPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
 $isLoggedIn  = meridian_is_logged_in();
 $flashMsg    = meridian_get_flash();
-$memberAreaUrl = (string) meridian_member_area_url();
-
-if (!$showCategoryBar) {
-  $headerBarMode = 'none';
-}
 
 ?>
 <!DOCTYPE html>
@@ -46,14 +34,10 @@ if (!$showCategoryBar) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <?php
-    // Seitentitel ermitteln (Priorität: SEO → ThemeManager → SITE_NAME)
-    $siteTitle = function_exists('cms_get_site_title') ? cms_get_site_title() : $runtimeSiteName;
+    // Seitentitel ermitteln
+    $siteTitle = defined('SITE_NAME') ? SITE_NAME : '365CMS';
     try {
-        $seo = \CMS\Services\SEOService::getInstance();
-        $seoTitle = $seo->getHomepageTitle();
-        if (!empty($seoTitle)) {
-            $siteTitle = $seoTitle;
-        } elseif (class_exists('\CMS\ThemeManager')) {
+        if (class_exists('\CMS\ThemeManager')) {
             $tm = \CMS\ThemeManager::instance()->getSiteTitle();
             if (!empty($tm)) { $siteTitle = $tm; }
         }
@@ -61,6 +45,18 @@ if (!$showCategoryBar) {
     ?>
     <title><?php echo htmlspecialchars($siteTitle, ENT_QUOTES, 'UTF-8'); ?></title>
     <?php
+    // Preconnect + Fonts: Local Fonts werden automatisch priorisiert wenn aktiviert
+    if (function_exists('meridian_output_fonts')) {
+        meridian_output_fonts();
+    }
+    ?>
+    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/themes/cms-default/style.css?v=<?php echo defined('MERIDIAN_THEME_VERSION') ? MERIDIAN_THEME_VERSION : '1.0.3'; ?>">
+    <?php
+    // Theme-Customizer CSS-Variablen direkt nach style.css ausgeben
+    if (function_exists('meridian_output_custom_styles')) {
+        meridian_output_custom_styles();
+    }
+    // SEO meta tags + Custom Head Code via Hooks
     if (class_exists('\CMS\Hooks')) {
         \CMS\Hooks::doAction('head');
     }
@@ -68,66 +64,59 @@ if (!$showCategoryBar) {
 </head>
 <body class="meridian-theme">
 
-  <?php if (class_exists('\CMS\Hooks')) {
-    \CMS\Hooks::doAction('body_start');
-  } ?>
-
 <?php if ($flashMsg): ?>
-  <div class="alert alert-<?php echo htmlspecialchars((string) ($flashMsg['type'] ?? 'info')); ?> flash-banner" role="status">
-    <?php echo htmlspecialchars((string) ($flashMsg['message'] ?? '')); ?>
+<div class="alert alert-<?php echo htmlspecialchars($flashMsg['type'] ?? 'info'); ?>" style="border-radius:0;margin:0;">
+    <?php echo htmlspecialchars($flashMsg['message'] ?? ''); ?>
 </div>
 <?php endif; ?>
 
 <!-- ════════════════════════════════════════
      HEADER
 ════════════════════════════════════════ -->
-<header id="site-header" class="site-header<?php echo !$stickyHeader ? ' site-header--static' : ''; ?>">
+<header class="site-header<?php echo !$stickyHeader ? ' site-header--static' : ''; ?>">
   <div class="header-inner">
 
     <!-- Logo + optionaler Titel daneben -->
     <div class="site-logo-group">
-      <a href="<?php echo SITE_URL; ?>/" class="site-logo" aria-label="<?php echo htmlspecialchars((string) $logoText); ?> – Startseite">
+      <a href="<?php echo SITE_URL; ?>/" class="site-logo" aria-label="<?php echo htmlspecialchars($logoText); ?> – Startseite">
         <?php if ($logoType === 'image' && $logoUrl): ?>
-        <img src="<?php echo htmlspecialchars((string) $logoUrl); ?>" alt="<?php echo htmlspecialchars((string) $logoText); ?>" height="<?php echo $logoHeight; ?>" class="site-logo-image" onerror="this.style.display='none';var fallback=this.nextElementSibling;if(fallback){fallback.style.display='inline-flex';}">
-        <span class="site-logo-fallback">
-          <span class="logo-word"><?php echo htmlspecialchars((string) $logoText); ?></span>
-          <span class="logo-dot"></span>
-          <?php if ($logoTagline): ?>
-          <span class="logo-tagline"><?php echo htmlspecialchars((string) $logoTagline); ?></span>
-          <?php endif; ?>
-        </span>
+            <img src="<?php echo htmlspecialchars($logoUrl); ?>" alt="<?php echo htmlspecialchars($logoText); ?>" height="<?php echo $logoHeight; ?>" style="max-height:<?php echo $logoHeight; ?>px;display:block;width:auto;">
         <?php else: ?>
-            <span class="logo-word"><?php echo htmlspecialchars((string) $logoText); ?></span>
+            <span class="logo-word"><?php echo htmlspecialchars($logoText); ?></span>
             <span class="logo-dot"></span>
             <?php if ($logoTagline): ?>
-            <span class="logo-tagline"><?php echo htmlspecialchars((string) $logoTagline); ?></span>
+            <span class="logo-tagline"><?php echo htmlspecialchars($logoTagline); ?></span>
             <?php endif; ?>
         <?php endif; ?>
       </a>
       <?php if ($headerTitle): ?>
-      <span class="header-site-title"><?php echo htmlspecialchars((string) $headerTitle); ?></span>
+      <span class="header-site-title"><?php echo htmlspecialchars($headerTitle); ?></span>
       <?php endif; ?>
     </div>
 
     <!-- Primary Nav -->
     <nav class="primary-nav">
         <?php
-      $defaultNavItems = [
+        $navItems = [
             ['label' => 'Startseite', 'href' => SITE_URL . '/'],
             ['label' => 'Blog',        'href' => SITE_URL . '/blog'],
         ];
-      $navItems = $defaultNavItems;
+        $mobileNavItems = [];
         if (class_exists('\CMS\ThemeManager')) {
             $primaryMenu = \CMS\ThemeManager::instance()->getMenu('primary');
             if (!empty($primaryMenu)) {
                 $navItems = $primaryMenu;
             }
+
+          $mobileMenu = \CMS\ThemeManager::instance()->getMenu('mobile');
+          if (!empty($mobileMenu)) {
+            $mobileNavItems = $mobileMenu;
+          }
         }
 
-      $navItems = meridian_filter_navigation_items($navItems);
-      if (empty($navItems)) {
-        $navItems = meridian_filter_navigation_items($defaultNavItems);
-      }
+        if (empty($mobileNavItems)) {
+          $mobileNavItems = $navItems;
+        }
 
         foreach ($navItems as $item):
             $href    = is_array($item) ? ($item['href'] ?? $item['url'] ?? '#') : '#';
@@ -169,7 +158,7 @@ if (!$showCategoryBar) {
       <?php endif; ?>
 
       <?php if ($isLoggedIn): ?>
-          <a href="<?php echo htmlspecialchars($memberAreaUrl); ?>" class="btn-ghost">Mein Bereich</a>
+          <a href="<?php echo SITE_URL; ?>/member/profile" class="btn-ghost">Mein Bereich</a>
           <a href="<?php echo SITE_URL; ?>/logout" class="btn-ghost">Logout</a>
       <?php else: ?>
           <?php if ($showLoginBtn): ?>
@@ -181,30 +170,14 @@ if (!$showCategoryBar) {
       <?php endif; ?>
 
       <!-- Hamburger (nur mobil sichtbar via CSS) -->
-      <?php if ($mobileMenuEnabled): ?>
       <button class="nav-toggle" id="navToggle" aria-label="Menü öffnen" aria-expanded="false" aria-controls="mobileNavPanel">
         <span class="nav-toggle-bar"></span>
         <span class="nav-toggle-bar"></span>
         <span class="nav-toggle-bar"></span>
       </button>
-      <?php endif; ?>
     </div>
   </div>
 </header>
-
-<?php if ($showSearch): ?>
-<div id="headerSearch" class="header-search" aria-hidden="true">
-  <form action="<?php echo SITE_URL; ?>/search" method="GET" role="search" class="header-search-form">
-    <input type="search" name="q" placeholder="Suchen…" class="form-control header-search-input" aria-label="Suche">
-    <button type="submit" class="btn-submit">Suchen</button>
-    <button type="button" id="searchClose" class="btn-ghost">Schließen</button>
-  </form>
-</div>
-<?php endif; ?>
-
-<?php if (class_exists('\CMS\Hooks')) {
-    \CMS\Hooks::doAction('after_header');
-} ?>
 
 <!-- Kategorie/Menü-Leiste -->
 <?php if ($headerBarMode !== 'none'): ?>
@@ -231,7 +204,6 @@ if (!$showCategoryBar) {
         try {
             $secMenu = \CMS\ThemeManager::instance()->getMenu('secondary') ?? [];
         } catch (\Throwable $e) {}
-        $secMenu = meridian_filter_navigation_items($secMenu);
         if (!empty($secMenu)):
             foreach ($secMenu as $item):
                 $mUrl   = $item['url'] ?? '#';
@@ -239,7 +211,7 @@ if (!$showCategoryBar) {
         ?>
             <a href="<?php echo htmlspecialchars($mUrl); ?>"><?php echo htmlspecialchars($mLabel); ?></a>
         <?php endforeach; else: ?>
-          <span class="category-bar-empty">Kein Menü für Position „Sekundär“ zugewiesen.</span>
+            <span style="font-size:0.8rem;color:var(--ink-muted);">Kein Menü für Position "Sekundär" zugewiesen.</span>
         <?php endif; ?>
     <?php endif; ?>
 
@@ -247,32 +219,27 @@ if (!$showCategoryBar) {
 </div>
 <?php endif; ?>
 
-<?php if ($mobileMenuEnabled): ?>
 <!-- Mobile Nav Overlay -->
 <div id="mobileNavOverlay" class="mobile-nav-overlay" aria-hidden="true"></div>
 
 <!-- Mobile Nav Panel (Slide-in von rechts) -->
 <nav id="mobileNavPanel" class="mobile-nav-panel" aria-hidden="true" inert aria-label="Mobile Navigation">
   <div class="mobile-nav-header">
-    <a href="<?php echo SITE_URL; ?>/" class="site-logo site-logo--mobile" aria-label="<?php echo htmlspecialchars((string) $logoText); ?> – Startseite">
+    <a href="<?php echo SITE_URL; ?>/" class="site-logo" aria-label="<?php echo htmlspecialchars($logoText); ?> – Startseite" style="text-decoration:none;">
       <?php if ($logoType === 'image' && $logoUrl): ?>
-        <img src="<?php echo htmlspecialchars((string) $logoUrl); ?>" alt="<?php echo htmlspecialchars((string) $logoText); ?>" height="32" class="site-logo-image site-logo-image--mobile" onerror="this.style.display='none';var fallback=this.nextElementSibling;if(fallback){fallback.style.display='inline-flex';}">
-        <span class="site-logo-fallback site-logo-fallback--mobile">
-          <span class="logo-word logo-word--mobile"><?php echo htmlspecialchars((string) $logoText); ?></span>
-          <span class="logo-dot"></span>
-        </span>
+        <img src="<?php echo htmlspecialchars($logoUrl); ?>" alt="<?php echo htmlspecialchars($logoText); ?>" height="32" style="max-height:32px;width:auto;">
       <?php else: ?>
-        <span class="logo-word logo-word--mobile"><?php echo htmlspecialchars((string) $logoText); ?></span>
+        <span class="logo-word" style="font-size:1rem;"><?php echo htmlspecialchars($logoText); ?></span>
         <span class="logo-dot"></span>
       <?php endif; ?>
     </a>
-    <button id="mobileNavClose" class="btn-icon mobile-nav-close" aria-label="Menü schließen">
+    <button id="mobileNavClose" class="btn-icon" aria-label="Menü schließen" style="margin-left:auto;">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
     </button>
   </div>
 
   <div class="mobile-nav-body">
-    <?php foreach ($navItems as $item):
+    <?php foreach ($mobileNavItems as $item):
         $mHref    = is_array($item) ? ($item['href'] ?? $item['url'] ?? '#') : '#';
         $mLabel   = is_array($item) ? ($item['label'] ?? $item['title'] ?? '') : $item;
         $mActive  = rtrim($currentPath, '/') === rtrim(parse_url($mHref, PHP_URL_PATH) ?? '/', '/');
@@ -287,37 +254,37 @@ if (!$showCategoryBar) {
         $cLabel = is_array($child) ? ($child['label'] ?? $child['title'] ?? '') : $child;
     ?>
     <a href="<?php echo htmlspecialchars($cHref); ?>"
-       class="mobile-nav-link mobile-nav-link--child">
+       class="mobile-nav-link"
+       style="padding-left:2.5rem;font-size:.83rem;opacity:.8;">
       <?php echo htmlspecialchars($cLabel); ?>
     </a>
     <?php endforeach; ?>
     <?php endforeach; ?>
 
-    <div class="mobile-nav-divider"></div>
+    <div style="height:1px;background:var(--rule);margin:.5rem 1.25rem;"></div>
 
     <?php if ($isLoggedIn): ?>
-      <a href="<?php echo htmlspecialchars($memberAreaUrl); ?>" class="mobile-nav-link">👤 Mein Bereich</a>
+      <a href="<?php echo SITE_URL; ?>/member/profile" class="mobile-nav-link">👤 Mein Bereich</a>
       <a href="<?php echo SITE_URL; ?>/logout" class="mobile-nav-link">⬡ Logout</a>
     <?php else: ?>
       <?php if ($showLoginBtn): ?>
       <a href="<?php echo SITE_URL; ?>/login" class="mobile-nav-link">🔑 Anmelden</a>
       <?php endif; ?>
       <?php if ($showRegBtn): ?>
-      <a href="<?php echo SITE_URL; ?>/register" class="mobile-nav-link mobile-nav-link--highlight">✨ Registrieren</a>
+      <a href="<?php echo SITE_URL; ?>/register" class="mobile-nav-link" style="color:var(--accent);font-weight:600;">✨ Registrieren</a>
       <?php endif; ?>
     <?php endif; ?>
   </div>
 
   <?php if ($showSearch): ?>
   <div class="mobile-nav-search">
-    <form action="<?php echo SITE_URL; ?>/search" method="GET" role="search" class="mobile-nav-search-form">
-      <input type="search" name="q" placeholder="Suchen…" class="form-control form-control--sm mobile-nav-search-input" aria-label="Suche">
-      <button type="submit" class="btn-submit" aria-label="Suche absenden">→</button>
+    <form action="<?php echo SITE_URL; ?>/search" method="GET" role="search" style="display:flex;gap:.5rem;">
+      <input type="search" name="q" placeholder="Suchen…" class="form-control form-control--sm" aria-label="Suche" style="flex:1;">
+      <button type="submit" class="btn-submit" aria-label="Suche absenden" style="padding:.35rem .85rem;font-size:.82rem;">→</button>
     </form>
   </div>
   <?php endif; ?>
 </nav>
-<?php endif; ?>
 
 <!-- Main Content Wrapper startet hier -->
 <main class="site-main">

@@ -35,6 +35,17 @@ function cms_default_theme_customizer_normalize_default_value(mixed $default): s
     return (string) $default;
 }
 
+function cms_default_theme_customizer_verify_csrf(): bool
+{
+    if (function_exists('cms_admin_section_shell_was_csrf_verified')
+        && cms_admin_section_shell_was_csrf_verified('theme_customizer')
+    ) {
+        return true;
+    }
+
+    return Security::instance()->verifyToken((string) ($_POST['csrf_token'] ?? ''), 'theme_customizer');
+}
+
 /**
  * @return array{success:?string,error:?string,activeTab:string}
  */
@@ -73,7 +84,7 @@ function cms_default_theme_customizer_handle_post(ThemeCustomizer $customizer, a
  */
 function cms_default_theme_customizer_handle_reset(ThemeCustomizer $customizer, array $config, string $activeTab): array
 {
-    if (!Security::instance()->verifyToken($_POST['csrf_token'] ?? '', 'theme_customizer')) {
+    if (!cms_default_theme_customizer_verify_csrf()) {
         return [
             'success' => null,
             'error' => 'Sicherheitscheck fehlgeschlagen. Bitte erneut versuchen.',
@@ -104,7 +115,7 @@ function cms_default_theme_customizer_handle_reset(ThemeCustomizer $customizer, 
  */
 function cms_default_theme_customizer_handle_save(ThemeCustomizer $customizer, array $config, string $activeTab): array
 {
-    if (!Security::instance()->verifyToken($_POST['csrf_token'] ?? '', 'theme_customizer')) {
+    if (!cms_default_theme_customizer_verify_csrf()) {
         return [
             'success' => null,
             'error' => 'Sicherheitscheck fehlgeschlagen. Bitte erneut versuchen.',

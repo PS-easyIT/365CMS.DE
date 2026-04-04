@@ -1,17 +1,21 @@
 {
   "name": "Meridian CMS Default",
   "slug": "cms-default",
-  "version": "1.1.0",
+  "version": "1.0.3",
   "author": "PHINIT.DE / Andreas Hepp",
   "description": "Das offizielle CMS-Default Theme – editorial, klar, charakterstark. Warm Off-White + Near-Black + Deep Amber. Ideal für Blogs, Magazine und Wissensportale.",
   "tags": ["editorial", "magazine", "blog", "responsive", "cms", "default"],
-  "supports": ["custom-logo", "sticky-header", "custom-css", "categories", "member-area", "theme-customizer-hooks"],
+  "supports": ["custom-logo", "sticky-header", "custom-css", "categories"],
 
   "menus": {
     "primary":   "Hauptmenü (Header)",
     "secondary": "Sekundäres Menü (unter Header)",
     "mobile":    "Mobiles Menü (Hamburger)",
-    "footer":    "Footer-Navigation"
+    "footer":    "Footer-Navigation (allgemein)",
+    "footer_topics": "Footer – Spalte Rubriken",
+    "footer_resources": "Footer – Spalte Ressourcen",
+    "footer_about": "Footer – Spalte Über",
+    "footer_legal": "Footer – Legal-Leiste unten"
   },
 
   "templates": {
@@ -396,6 +400,12 @@
       "label": "Footer",
       "description": "Footer-Inhalt, Spalten, Social Icons und Copyright.",
       "settings": {
+        "show_footer_menu_area": {
+          "label": "Oberen Footer-Menübereich anzeigen",
+          "type": "checkbox",
+          "default": true,
+          "description": "Blendet den oberen Footer-Bereich mit Brand-Spalte, Social-Icons und Footer-Menüspalten ein oder aus"
+        },
         "footer_description": {
           "label": "Footer-Beschreibung",
           "type": "textarea",
