@@ -1087,6 +1087,689 @@
         };
     }
 
+    function createStructuredToolField(labelText) {
+        const field = document.createElement('label');
+        field.className = 'editorjs-structured-tool__field';
+
+        const label = document.createElement('span');
+        label.textContent = labelText;
+        field.appendChild(label);
+
+        return field;
+    }
+
+    function createStructuredToolInput(type, value, placeholder, readOnly) {
+        const input = document.createElement('input');
+        input.type = type;
+        input.className = 'editorjs-structured-tool__input';
+        input.value = value || '';
+        input.placeholder = placeholder || '';
+        input.disabled = Boolean(readOnly);
+        return input;
+    }
+
+    function createStructuredToolTextarea(value, placeholder, readOnly) {
+        const textarea = document.createElement('textarea');
+        textarea.className = 'editorjs-structured-tool__textarea';
+        textarea.value = value || '';
+        textarea.placeholder = placeholder || '';
+        textarea.disabled = Boolean(readOnly);
+        return textarea;
+    }
+
+    function createStructuredToolSelect(options, selectedValue, readOnly) {
+        const select = document.createElement('select');
+        select.className = 'editorjs-structured-tool__select';
+        select.disabled = Boolean(readOnly);
+
+        options.forEach((optionConfig) => {
+            const option = document.createElement('option');
+            option.value = optionConfig.value;
+            option.textContent = optionConfig.label;
+            option.selected = optionConfig.value === selectedValue;
+            select.appendChild(option);
+        });
+
+        return select;
+    }
+
+    function createStructuredToolButton(text, variant) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'editorjs-structured-tool__button' + (variant ? ' editorjs-structured-tool__button--' + variant : '');
+        button.textContent = text;
+        return button;
+    }
+
+    function createCalloutToolClass() {
+        const calloutIcon = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.29 3.86l-7.5 13A2 2 0 004.53 20h14.94a2 2 0 001.74-3.14l-7.5-13a2 2 0 00-3.46 0z"/></svg>';
+        const variantOptions = [
+            { value: 'info', label: 'Info' },
+            { value: 'warning', label: 'Warning' },
+            { value: 'success', label: 'Success' },
+        ];
+
+        return class CalloutTool {
+            static get toolbox() {
+                return {
+                    title: 'Callout',
+                    icon: calloutIcon,
+                };
+            }
+
+            static get isReadOnlySupported() {
+                return true;
+            }
+
+            constructor({ data, readOnly }) {
+                this.readOnly = readOnly;
+                this.data = {
+                    variant: variantOptions.some((option) => option.value === (data && data.variant)) ? data.variant : 'info',
+                    title: typeof (data && data.title) === 'string' ? data.title : '',
+                    message: typeof (data && data.message) === 'string' ? data.message : '',
+                };
+                this.variantSelect = null;
+                this.titleInput = null;
+                this.messageInput = null;
+            }
+
+            render() {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'editorjs-structured-tool editorjs-callout-tool';
+
+                const grid = document.createElement('div');
+                grid.className = 'editorjs-structured-tool__grid editorjs-structured-tool__grid--two';
+
+                const variantField = createStructuredToolField('Typ');
+                this.variantSelect = createStructuredToolSelect(variantOptions, this.data.variant, this.readOnly);
+                variantField.appendChild(this.variantSelect);
+
+                const titleField = createStructuredToolField('Titel');
+                this.titleInput = createStructuredToolInput('text', this.data.title, 'z. B. Wichtig für den Rollout', this.readOnly);
+                titleField.appendChild(this.titleInput);
+
+                const messageField = createStructuredToolField('Inhalt');
+                this.messageInput = createStructuredToolTextarea(this.data.message, 'Hinweistext, Warnung oder Erfolgsnotiz …', this.readOnly);
+                messageField.classList.add('editorjs-structured-tool__field--full');
+                messageField.appendChild(this.messageInput);
+
+                grid.appendChild(variantField);
+                grid.appendChild(titleField);
+                grid.appendChild(messageField);
+                wrapper.appendChild(grid);
+
+                return wrapper;
+            }
+
+            save() {
+                return {
+                    variant: this.variantSelect ? this.variantSelect.value : this.data.variant,
+                    title: this.titleInput ? this.titleInput.value.trim() : this.data.title,
+                    message: this.messageInput ? this.messageInput.value.trim() : this.data.message,
+                };
+            }
+
+            validate(savedData) {
+                return Boolean((savedData && savedData.title) || (savedData && savedData.message));
+            }
+        };
+    }
+
+    function createTerminalToolClass() {
+        const terminalIcon = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 17l6-5-6-5"/><path d="M12 19h8"/></svg>';
+        const shellOptions = [
+            { value: 'bash', label: 'Bash' },
+            { value: 'zsh', label: 'Zsh' },
+            { value: 'powershell', label: 'PowerShell' },
+            { value: 'cmd', label: 'CMD' },
+        ];
+
+        return class TerminalTool {
+            static get toolbox() {
+                return {
+                    title: 'Terminal',
+                    icon: terminalIcon,
+                };
+            }
+
+            static get isReadOnlySupported() {
+                return true;
+            }
+
+            constructor({ data, readOnly }) {
+                this.readOnly = readOnly;
+                this.data = {
+                    shell: shellOptions.some((option) => option.value === (data && data.shell)) ? data.shell : 'bash',
+                    title: typeof (data && data.title) === 'string' ? data.title : '',
+                    command: typeof (data && data.command) === 'string' ? data.command : '',
+                    output: typeof (data && data.output) === 'string' ? data.output : '',
+                };
+                this.shellSelect = null;
+                this.titleInput = null;
+                this.commandInput = null;
+                this.outputInput = null;
+            }
+
+            render() {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'editorjs-structured-tool editorjs-terminal-tool';
+
+                const grid = document.createElement('div');
+                grid.className = 'editorjs-structured-tool__grid editorjs-structured-tool__grid--two';
+
+                const shellField = createStructuredToolField('Shell');
+                this.shellSelect = createStructuredToolSelect(shellOptions, this.data.shell, this.readOnly);
+                shellField.appendChild(this.shellSelect);
+
+                const titleField = createStructuredToolField('Label');
+                this.titleInput = createStructuredToolInput('text', this.data.title, 'z. B. Deployment in Azure', this.readOnly);
+                titleField.appendChild(this.titleInput);
+
+                const commandField = createStructuredToolField('Befehl');
+                commandField.classList.add('editorjs-structured-tool__field--full');
+                this.commandInput = createStructuredToolTextarea(this.data.command, 'az login\naz account show', this.readOnly);
+                commandField.appendChild(this.commandInput);
+
+                const outputField = createStructuredToolField('Ausgabe / Erklärung');
+                outputField.classList.add('editorjs-structured-tool__field--full');
+                this.outputInput = createStructuredToolTextarea(this.data.output, 'Optionale Ausgabe oder erklärender Kontext …', this.readOnly);
+                outputField.appendChild(this.outputInput);
+
+                grid.appendChild(shellField);
+                grid.appendChild(titleField);
+                grid.appendChild(commandField);
+                grid.appendChild(outputField);
+                wrapper.appendChild(grid);
+
+                return wrapper;
+            }
+
+            save() {
+                return {
+                    shell: this.shellSelect ? this.shellSelect.value : this.data.shell,
+                    title: this.titleInput ? this.titleInput.value.trim() : this.data.title,
+                    command: this.commandInput ? this.commandInput.value : this.data.command,
+                    output: this.outputInput ? this.outputInput.value : this.data.output,
+                };
+            }
+
+            validate(savedData) {
+                return Boolean(savedData && typeof savedData.command === 'string' && savedData.command.trim() !== '');
+            }
+        };
+    }
+
+    function createCodeTabsToolClass() {
+        const codeTabsIcon = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/><path d="M8 5v5"/></svg>';
+
+        return class CodeTabsTool {
+            static get toolbox() {
+                return {
+                    title: 'Code Tabs',
+                    icon: codeTabsIcon,
+                };
+            }
+
+            static get isReadOnlySupported() {
+                return true;
+            }
+
+            constructor({ data, readOnly }) {
+                this.readOnly = readOnly;
+                this.data = {
+                    title: typeof (data && data.title) === 'string' ? data.title : '',
+                    tabs: Array.isArray(data && data.tabs) && data.tabs.length > 0
+                        ? data.tabs.map((tab, index) => ({
+                            label: typeof (tab && tab.label) === 'string' && tab.label.trim() !== '' ? tab.label : 'Tab ' + (index + 1),
+                            language: typeof (tab && tab.language) === 'string' ? tab.language : '',
+                            code: typeof (tab && tab.code) === 'string' ? tab.code : '',
+                        }))
+                        : [{ label: 'Beispiel', language: 'bash', code: '' }],
+                };
+                this.titleInput = null;
+                this.tabsContainer = null;
+            }
+
+            renderTab(tab, index) {
+                const item = document.createElement('div');
+                item.className = 'editorjs-code-tabs-tool__tab';
+
+                const metaGrid = document.createElement('div');
+                metaGrid.className = 'editorjs-structured-tool__grid editorjs-structured-tool__grid--two';
+
+                const labelField = createStructuredToolField('Tab-Titel');
+                const labelInput = createStructuredToolInput('text', tab.label, 'z. B. Bash', this.readOnly);
+                labelInput.addEventListener('input', () => {
+                    this.data.tabs[index].label = labelInput.value;
+                });
+                labelField.appendChild(labelInput);
+
+                const languageField = createStructuredToolField('Sprache');
+                const languageInput = createStructuredToolInput('text', tab.language, 'bash, powershell, json …', this.readOnly);
+                languageInput.addEventListener('input', () => {
+                    this.data.tabs[index].language = languageInput.value;
+                });
+                languageField.appendChild(languageInput);
+
+                metaGrid.appendChild(labelField);
+                metaGrid.appendChild(languageField);
+
+                const codeField = createStructuredToolField('Code');
+                const codeInput = createStructuredToolTextarea(tab.code, 'Code für diesen Tab …', this.readOnly);
+                codeInput.addEventListener('input', () => {
+                    this.data.tabs[index].code = codeInput.value;
+                });
+                codeField.appendChild(codeInput);
+
+                item.appendChild(metaGrid);
+                item.appendChild(codeField);
+
+                if (!this.readOnly) {
+                    const removeButton = createStructuredToolButton('Tab entfernen', 'danger');
+                    removeButton.addEventListener('click', (event) => {
+                        event.preventDefault();
+                        this.data.tabs.splice(index, 1);
+                        if (this.data.tabs.length === 0) {
+                            this.data.tabs.push({ label: 'Beispiel', language: 'bash', code: '' });
+                        }
+                        this.renderTabs();
+                    });
+                    item.appendChild(removeButton);
+                }
+
+                return item;
+            }
+
+            renderTabs() {
+                if (!this.tabsContainer) {
+                    return;
+                }
+
+                this.tabsContainer.innerHTML = '';
+                this.data.tabs.forEach((tab, index) => {
+                    this.tabsContainer.appendChild(this.renderTab(tab, index));
+                });
+            }
+
+            render() {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'editorjs-structured-tool editorjs-code-tabs-tool';
+
+                const titleField = createStructuredToolField('Block-Titel');
+                this.titleInput = createStructuredToolInput('text', this.data.title, 'Optionaler Titel über den Tabs', this.readOnly);
+                titleField.appendChild(this.titleInput);
+
+                const tabsContainer = document.createElement('div');
+                tabsContainer.className = 'editorjs-code-tabs-tool__tabs';
+                this.tabsContainer = tabsContainer;
+
+                wrapper.appendChild(titleField);
+                wrapper.appendChild(tabsContainer);
+
+                if (!this.readOnly) {
+                    const addButton = createStructuredToolButton('Tab hinzufügen', 'primary');
+                    addButton.addEventListener('click', (event) => {
+                        event.preventDefault();
+                        this.data.tabs.push({
+                            label: 'Tab ' + (this.data.tabs.length + 1),
+                            language: '',
+                            code: '',
+                        });
+                        this.renderTabs();
+                    });
+                    wrapper.appendChild(addButton);
+                }
+
+                this.renderTabs();
+                return wrapper;
+            }
+
+            save() {
+                return {
+                    title: this.titleInput ? this.titleInput.value.trim() : this.data.title,
+                    tabs: this.data.tabs.map((tab, index) => ({
+                        label: String(tab.label || '').trim() || ('Tab ' + (index + 1)),
+                        language: String(tab.language || '').trim(),
+                        code: String(tab.code || ''),
+                    })).filter((tab) => tab.code.trim() !== '' || tab.label.trim() !== ''),
+                };
+            }
+
+            validate(savedData) {
+                return Array.isArray(savedData && savedData.tabs)
+                    && savedData.tabs.some((tab) => typeof tab.code === 'string' && tab.code.trim() !== '');
+            }
+        };
+    }
+
+    function createMermaidToolClass() {
+        const mermaidIcon = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h10"/><path d="M10 12h10"/><path d="M4 18h10"/><circle cx="17" cy="6" r="2"/><circle cx="7" cy="12" r="2"/><circle cx="17" cy="18" r="2"/></svg>';
+
+        return class MermaidTool {
+            static get toolbox() {
+                return {
+                    title: 'Mermaid',
+                    icon: mermaidIcon,
+                };
+            }
+
+            static get isReadOnlySupported() {
+                return true;
+            }
+
+            constructor({ data, readOnly }) {
+                this.readOnly = readOnly;
+                this.data = {
+                    title: typeof (data && data.title) === 'string' ? data.title : '',
+                    code: typeof (data && data.code) === 'string' ? data.code : 'flowchart LR\n    A[Client] --> B[API]\n    B --> C[DB]',
+                    caption: typeof (data && data.caption) === 'string' ? data.caption : '',
+                };
+                this.titleInput = null;
+                this.codeInput = null;
+                this.captionInput = null;
+            }
+
+            render() {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'editorjs-structured-tool editorjs-mermaid-tool';
+
+                const grid = document.createElement('div');
+                grid.className = 'editorjs-structured-tool__grid';
+
+                const titleField = createStructuredToolField('Diagramm-Titel');
+                this.titleInput = createStructuredToolInput('text', this.data.title, 'Optionaler Titel', this.readOnly);
+                titleField.appendChild(this.titleInput);
+
+                const codeField = createStructuredToolField('Mermaid-Syntax');
+                this.codeInput = createStructuredToolTextarea(this.data.code, 'flowchart LR\n    A --> B', this.readOnly);
+                codeField.appendChild(this.codeInput);
+
+                const captionField = createStructuredToolField('Caption');
+                this.captionInput = createStructuredToolInput('text', this.data.caption, 'Kurzer Hinweis unter dem Diagramm', this.readOnly);
+                captionField.appendChild(this.captionInput);
+
+                grid.appendChild(titleField);
+                grid.appendChild(codeField);
+                grid.appendChild(captionField);
+                wrapper.appendChild(grid);
+
+                return wrapper;
+            }
+
+            save() {
+                return {
+                    title: this.titleInput ? this.titleInput.value.trim() : this.data.title,
+                    code: this.codeInput ? this.codeInput.value : this.data.code,
+                    caption: this.captionInput ? this.captionInput.value.trim() : this.data.caption,
+                };
+            }
+
+            validate(savedData) {
+                return Boolean(savedData && typeof savedData.code === 'string' && savedData.code.trim() !== '');
+            }
+        };
+    }
+
+    function createApiEndpointToolClass() {
+        const apiIcon = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 12h8"/><path d="M12 8v8"/><rect x="4" y="4" width="16" height="16" rx="3"/></svg>';
+        const methods = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'];
+
+        return class ApiEndpointTool {
+            static get toolbox() {
+                return {
+                    title: 'API Endpoint',
+                    icon: apiIcon,
+                };
+            }
+
+            static get isReadOnlySupported() {
+                return true;
+            }
+
+            constructor({ data, readOnly }) {
+                this.readOnly = readOnly;
+                this.data = {
+                    method: methods.includes(data && data.method) ? data.method : 'GET',
+                    path: typeof (data && data.path) === 'string' ? data.path : '/api/v1/resource',
+                    summary: typeof (data && data.summary) === 'string' ? data.summary : '',
+                    auth: typeof (data && data.auth) === 'string' ? data.auth : '',
+                    requestExample: typeof (data && data.requestExample) === 'string' ? data.requestExample : '',
+                    responseExample: typeof (data && data.responseExample) === 'string' ? data.responseExample : '',
+                };
+                this.methodSelect = null;
+                this.pathInput = null;
+                this.summaryInput = null;
+                this.authInput = null;
+                this.requestInput = null;
+                this.responseInput = null;
+            }
+
+            render() {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'editorjs-structured-tool editorjs-api-endpoint-tool';
+
+                const grid = document.createElement('div');
+                grid.className = 'editorjs-structured-tool__grid editorjs-structured-tool__grid--two';
+
+                const methodField = createStructuredToolField('Methode');
+                this.methodSelect = createStructuredToolSelect(methods.map((method) => ({ value: method, label: method })), this.data.method, this.readOnly);
+                methodField.appendChild(this.methodSelect);
+
+                const pathField = createStructuredToolField('Pfad');
+                this.pathInput = createStructuredToolInput('text', this.data.path, '/api/v1/users/{id}', this.readOnly);
+                pathField.appendChild(this.pathInput);
+
+                const summaryField = createStructuredToolField('Kurzbeschreibung');
+                summaryField.classList.add('editorjs-structured-tool__field--full');
+                this.summaryInput = createStructuredToolTextarea(this.data.summary, 'Was macht der Endpoint?', this.readOnly);
+                summaryField.appendChild(this.summaryInput);
+
+                const authField = createStructuredToolField('Auth / Scope');
+                this.authInput = createStructuredToolInput('text', this.data.auth, 'z. B. Bearer Token, Admin-Role', this.readOnly);
+                authField.appendChild(this.authInput);
+
+                const requestField = createStructuredToolField('Request-Beispiel');
+                this.requestInput = createStructuredToolTextarea(this.data.requestExample, '{"name":"Ada"}', this.readOnly);
+                requestField.appendChild(this.requestInput);
+
+                const responseField = createStructuredToolField('Response-Beispiel');
+                responseField.classList.add('editorjs-structured-tool__field--full');
+                this.responseInput = createStructuredToolTextarea(this.data.responseExample, '{"id":1,"name":"Ada"}', this.readOnly);
+                responseField.appendChild(this.responseInput);
+
+                grid.appendChild(methodField);
+                grid.appendChild(pathField);
+                grid.appendChild(summaryField);
+                grid.appendChild(authField);
+                grid.appendChild(requestField);
+                grid.appendChild(responseField);
+                wrapper.appendChild(grid);
+
+                return wrapper;
+            }
+
+            save() {
+                return {
+                    method: this.methodSelect ? this.methodSelect.value : this.data.method,
+                    path: this.pathInput ? this.pathInput.value.trim() : this.data.path,
+                    summary: this.summaryInput ? this.summaryInput.value.trim() : this.data.summary,
+                    auth: this.authInput ? this.authInput.value.trim() : this.data.auth,
+                    requestExample: this.requestInput ? this.requestInput.value : this.data.requestExample,
+                    responseExample: this.responseInput ? this.responseInput.value : this.data.responseExample,
+                };
+            }
+
+            validate(savedData) {
+                return Boolean(savedData && typeof savedData.path === 'string' && savedData.path.trim() !== '');
+            }
+        };
+    }
+
+    function createChangelogToolClass() {
+        const changelogIcon = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 6h12"/><path d="M8 12h12"/><path d="M8 18h12"/><path d="M4 6h.01"/><path d="M4 12h.01"/><path d="M4 18h.01"/></svg>';
+
+        return class ChangelogTool {
+            static get toolbox() {
+                return {
+                    title: 'Changelog',
+                    icon: changelogIcon,
+                };
+            }
+
+            static get isReadOnlySupported() {
+                return true;
+            }
+
+            constructor({ data, readOnly }) {
+                this.readOnly = readOnly;
+                this.data = {
+                    title: typeof (data && data.title) === 'string' ? data.title : '',
+                    version: typeof (data && data.version) === 'string' ? data.version : 'v1.0.0',
+                    date: typeof (data && data.date) === 'string' ? data.date : '',
+                    items: Array.isArray(data && data.items) ? data.items.map((item) => String(item || '')) : [],
+                };
+                this.titleInput = null;
+                this.versionInput = null;
+                this.dateInput = null;
+                this.itemsInput = null;
+            }
+
+            render() {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'editorjs-structured-tool editorjs-changelog-tool';
+
+                const grid = document.createElement('div');
+                grid.className = 'editorjs-structured-tool__grid editorjs-structured-tool__grid--two';
+
+                const titleField = createStructuredToolField('Titel');
+                this.titleInput = createStructuredToolInput('text', this.data.title, 'z. B. Release Notes', this.readOnly);
+                titleField.appendChild(this.titleInput);
+
+                const versionField = createStructuredToolField('Version');
+                this.versionInput = createStructuredToolInput('text', this.data.version, 'v2.9.0', this.readOnly);
+                versionField.appendChild(this.versionInput);
+
+                const dateField = createStructuredToolField('Datum');
+                this.dateInput = createStructuredToolInput('text', this.data.date, '2026-04-04', this.readOnly);
+                dateField.appendChild(this.dateInput);
+
+                const itemsField = createStructuredToolField('Änderungen (eine Zeile = ein Punkt)');
+                itemsField.classList.add('editorjs-structured-tool__field--full');
+                this.itemsInput = createStructuredToolTextarea(this.data.items.join('\n'), 'Editor.js-Toolbar erweitert\nNeue Tech-Blöcke ergänzt', this.readOnly);
+                itemsField.appendChild(this.itemsInput);
+
+                grid.appendChild(titleField);
+                grid.appendChild(versionField);
+                grid.appendChild(dateField);
+                grid.appendChild(itemsField);
+                wrapper.appendChild(grid);
+
+                return wrapper;
+            }
+
+            save() {
+                return {
+                    title: this.titleInput ? this.titleInput.value.trim() : this.data.title,
+                    version: this.versionInput ? this.versionInput.value.trim() : this.data.version,
+                    date: this.dateInput ? this.dateInput.value.trim() : this.data.date,
+                    items: this.itemsInput
+                        ? this.itemsInput.value.split(/\r?\n/).map((item) => item.trim()).filter(Boolean)
+                        : this.data.items,
+                };
+            }
+
+            validate(savedData) {
+                return Boolean((savedData && savedData.version) || (savedData && Array.isArray(savedData.items) && savedData.items.length > 0));
+            }
+        };
+    }
+
+    function createProsConsToolClass() {
+        const prosConsIcon = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 7h10"/><path d="M8 12h10"/><path d="M8 17h10"/><path d="M4 7h.01"/><path d="M4 12h.01"/><path d="M4 17h.01"/></svg>';
+
+        return class ProsConsTool {
+            static get toolbox() {
+                return {
+                    title: 'Pros / Cons',
+                    icon: prosConsIcon,
+                };
+            }
+
+            static get isReadOnlySupported() {
+                return true;
+            }
+
+            constructor({ data, readOnly }) {
+                this.readOnly = readOnly;
+                this.data = {
+                    title: typeof (data && data.title) === 'string' ? data.title : '',
+                    prosTitle: typeof (data && data.prosTitle) === 'string' ? data.prosTitle : 'Vorteile',
+                    consTitle: typeof (data && data.consTitle) === 'string' ? data.consTitle : 'Nachteile',
+                    pros: Array.isArray(data && data.pros) ? data.pros.map((item) => String(item || '')) : [],
+                    cons: Array.isArray(data && data.cons) ? data.cons.map((item) => String(item || '')) : [],
+                };
+                this.titleInput = null;
+                this.prosTitleInput = null;
+                this.consTitleInput = null;
+                this.prosInput = null;
+                this.consInput = null;
+            }
+
+            render() {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'editorjs-structured-tool editorjs-pros-cons-tool';
+
+                const grid = document.createElement('div');
+                grid.className = 'editorjs-structured-tool__grid editorjs-structured-tool__grid--two';
+
+                const titleField = createStructuredToolField('Titel');
+                titleField.classList.add('editorjs-structured-tool__field--full');
+                this.titleInput = createStructuredToolInput('text', this.data.title, 'z. B. SaaS vs. Self-Hosting', this.readOnly);
+                titleField.appendChild(this.titleInput);
+
+                const prosTitleField = createStructuredToolField('Linke Spalte');
+                this.prosTitleInput = createStructuredToolInput('text', this.data.prosTitle, 'Vorteile', this.readOnly);
+                prosTitleField.appendChild(this.prosTitleInput);
+
+                const consTitleField = createStructuredToolField('Rechte Spalte');
+                this.consTitleInput = createStructuredToolInput('text', this.data.consTitle, 'Nachteile', this.readOnly);
+                consTitleField.appendChild(this.consTitleInput);
+
+                const prosField = createStructuredToolField('Vorteile (eine Zeile = ein Punkt)');
+                this.prosInput = createStructuredToolTextarea(this.data.pros.join('\n'), 'Schneller Start\nWeniger Betriebsaufwand', this.readOnly);
+                prosField.appendChild(this.prosInput);
+
+                const consField = createStructuredToolField('Nachteile (eine Zeile = ein Punkt)');
+                this.consInput = createStructuredToolTextarea(this.data.cons.join('\n'), 'Weniger Kontrolle\nMonatliche Kosten', this.readOnly);
+                consField.appendChild(this.consInput);
+
+                grid.appendChild(titleField);
+                grid.appendChild(prosTitleField);
+                grid.appendChild(consTitleField);
+                grid.appendChild(prosField);
+                grid.appendChild(consField);
+                wrapper.appendChild(grid);
+
+                return wrapper;
+            }
+
+            save() {
+                return {
+                    title: this.titleInput ? this.titleInput.value.trim() : this.data.title,
+                    prosTitle: this.prosTitleInput ? this.prosTitleInput.value.trim() : this.data.prosTitle,
+                    consTitle: this.consTitleInput ? this.consTitleInput.value.trim() : this.data.consTitle,
+                    pros: this.prosInput ? this.prosInput.value.split(/\r?\n/).map((item) => item.trim()).filter(Boolean) : this.data.pros,
+                    cons: this.consInput ? this.consInput.value.split(/\r?\n/).map((item) => item.trim()).filter(Boolean) : this.data.cons,
+                };
+            }
+
+            validate(savedData) {
+                return (Array.isArray(savedData && savedData.pros) && savedData.pros.length > 0)
+                    || (Array.isArray(savedData && savedData.cons) && savedData.cons.length > 0);
+            }
+        };
+    }
+
     function createSpacerToolClass() {
         const presetOptions = [15, 25, 40, 60, 75, 100];
         const spacerIcon = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4v16"/><path d="M8 8l4-4l4 4"/><path d="M8 16l4 4l4-4"/></svg>';
@@ -1515,6 +2198,13 @@
         const resolved = buildResolvedRegistry();
         const spacerToolClass = createSpacerToolClass();
         const mediaTextToolClass = createMediaTextToolClass(uploadUrl, csrfToken);
+        const calloutToolClass = createCalloutToolClass();
+        const terminalToolClass = createTerminalToolClass();
+        const codeTabsToolClass = createCodeTabsToolClass();
+        const mermaidToolClass = createMermaidToolClass();
+        const apiEndpointToolClass = createApiEndpointToolClass();
+        const changelogToolClass = createChangelogToolClass();
+        const prosConsToolClass = createProsConsToolClass();
 
         if (!holder || typeof resolved.editorjs !== 'function') {
             throw new Error('EditorJS core ist nicht geladen oder Holder fehlt.');
@@ -1597,6 +2287,27 @@
                 class: mediaTextToolClass,
             },
             imageGallery: createImageGalleryConfig(resolved.imageGallery, uploadUrl, csrfToken),
+            callout: {
+                class: calloutToolClass,
+            },
+            terminal: {
+                class: terminalToolClass,
+            },
+            codeTabs: {
+                class: codeTabsToolClass,
+            },
+            mermaid: {
+                class: mermaidToolClass,
+            },
+            apiEndpoint: {
+                class: apiEndpointToolClass,
+            },
+            changelog: {
+                class: changelogToolClass,
+            },
+            prosCons: {
+                class: prosConsToolClass,
+            },
             drawingTool: createDrawingConfig(resolved.drawingTool),
         });
 
