@@ -18,6 +18,7 @@ if (!defined('ABSPATH')) {
 
 final class EditorJsRemoteMediaService
 {
+    private const TMP_FILE_PREFIX = 'cms_ejs_';
     private const MAX_REMOTE_URL_LENGTH = 2048;
     private const MAX_METADATA_HTML_BYTES = 1048576;
     private const MAX_METADATA_TITLE_LENGTH = 180;
@@ -70,9 +71,7 @@ final class EditorJsRemoteMediaService
         try {
             return $this->uploadService->storeUploadedFile($uploadPayload, true, 'editorjs');
         } finally {
-            if (file_exists($tmpFile)) {
-                unlink($tmpFile);
-            }
+            $this->cleanupTemporaryFile($tmpFile);
         }
     }
 
@@ -156,8 +155,8 @@ final class EditorJsRemoteMediaService
             };
         }
 
-        $tmpFile = tempnam(sys_get_temp_dir(), 'cms_ejs_');
-        if ($tmpFile === false || file_put_contents($tmpFile, $content) === false) {
+        $tmpFile = $this->createTemporaryFile($content);
+        if ($tmpFile === null) {
             return [
                 'success' => false,
                 'message' => 'Temporäre Datei konnte nicht geschrieben werden.',
@@ -378,5 +377,57 @@ final class EditorJsRemoteMediaService
         $maskedPath = $path !== '' ? '/' . ltrim(basename($path), '/') : '';
 
         return (($parts['scheme'] ?? 'https')) . '://' . $host . $maskedPath;
+    }
+
+    private function createTemporaryFile(string $content): ?string
+    {
+        $tempDir = realpath(sys_get_temp_dir());
+        if ($tempDir === false || !is_dir($tempDir)) {
+            return null;
+        }
+
+        $tmpFile = tempnam($tempDir, self::TMP_FILE_PREFIX);
+        if ($tmpFile === false) {
+            return null;
+        }
+
+        $resolvedTmpFile = realpath($tmpFile);
+        if ($resolvedTmpFile === false || is_link($resolvedTmpFile) || !str_starts_with($resolvedTmpFile, rtrim($tempDir, '\\/') . DIRECTORY_SEPARATOR)) {
+            if (is_file($tmpFile)) {
+                @unlink($tmpFile);
+            }
+
+            return null;
+        }
+
+        if (file_put_contents($resolvedTmpFile, $content, LOCK_EX) === false) {
+            @unlink($resolvedTmpFile);
+            return null;
+        }
+
+        return $resolvedTmpFile;
+    }
+
+    private function cleanupTemporaryFile(string $tmpFile): void
+    {
+        if ($tmpFile === '' || !is_file($tmpFile)) {
+            return;
+        }
+
+        $tempDir = realpath(sys_get_temp_dir());
+        $resolvedTmpFile = realpath($tmpFile);
+        if ($tempDir === false || $resolvedTmpFile === false || is_link($resolvedTmpFile)) {
+            return;
+        }
+
+        if (!str_starts_with($resolvedTmpFile, rtrim($tempDir, '\\/') . DIRECTORY_SEPARATOR)) {
+            return;
+        }
+
+        if (!str_starts_with(basename($resolvedTmpFile), self::TMP_FILE_PREFIX)) {
+            return;
+        }
+
+        @unlink($resolvedTmpFile);
     }
 }

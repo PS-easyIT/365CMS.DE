@@ -4074,6 +4074,246 @@ input:checked + .slider:before { transform: translateX(22px); }
     outline: none;
 }
 
+.editorjs-holder .editorjs-media-text-tool,
+.editorjs-holder .editorjs-gallery-tool {
+    max-width: 100%;
+    border: 1px solid rgba(203, 213, 225, 0.88);
+    border-radius: 16px;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.05);
+    padding: 1rem;
+}
+
+.editorjs-holder .editorjs-media-text-tool__layout {
+    display: grid;
+    grid-template-columns: minmax(220px, 30%) minmax(0, 1fr);
+    gap: 1rem;
+    align-items: start;
+}
+
+.editorjs-holder .editorjs-media-text-tool__media,
+.editorjs-holder .editorjs-media-text-tool__text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+}
+
+.editorjs-holder .editorjs-media-text-tool__preview {
+    position: relative;
+    min-height: 220px;
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1px dashed rgba(148, 163, 184, 0.7);
+    background: linear-gradient(135deg, rgba(241, 245, 249, 0.95), rgba(248, 250, 252, 0.98));
+}
+
+.editorjs-holder .editorjs-media-text-tool__image {
+    display: block;
+    width: 100%;
+    height: 100%;
+    min-height: 220px;
+    object-fit: cover;
+}
+
+.editorjs-holder .editorjs-media-text-tool__placeholder {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    padding: 1rem;
+    text-align: center;
+    color: #64748b;
+}
+
+.editorjs-holder .editorjs-media-text-tool__placeholder strong {
+    color: #334155;
+    font-size: 0.92rem;
+}
+
+.editorjs-holder .editorjs-media-text-tool__controls,
+.editorjs-holder .editorjs-gallery-tool__actions,
+.editorjs-holder .editorjs-gallery-tool__toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.editorjs-holder .editorjs-media-text-tool__button,
+.editorjs-holder .editorjs-gallery-tool__button,
+.editorjs-holder .editorjs-gallery-tool__remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    padding: 0.52rem 0.85rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 999px;
+    background: #f8fafc;
+    color: #334155;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.editorjs-holder .editorjs-media-text-tool__button:hover,
+.editorjs-holder .editorjs-gallery-tool__button:hover,
+.editorjs-holder .editorjs-gallery-tool__remove:hover,
+.editorjs-holder .editorjs-media-text-tool__button:focus,
+.editorjs-holder .editorjs-gallery-tool__button:focus,
+.editorjs-holder .editorjs-gallery-tool__remove:focus {
+    outline: none;
+    border-color: var(--tblr-primary, #3b82f6);
+    background: #eff6ff;
+    color: var(--tblr-primary, #2563eb);
+}
+
+.editorjs-holder .editorjs-media-text-tool__button--primary,
+.editorjs-holder .editorjs-gallery-tool__button--primary {
+    background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%);
+    border-color: #1d4ed8;
+    color: #fff;
+}
+
+.editorjs-holder .editorjs-media-text-tool__button--primary:hover,
+.editorjs-holder .editorjs-gallery-tool__button--primary:hover,
+.editorjs-holder .editorjs-media-text-tool__button--primary:focus,
+.editorjs-holder .editorjs-gallery-tool__button--primary:focus {
+    background: linear-gradient(180deg, #1d4ed8 0%, #1e40af 100%);
+    color: #fff;
+}
+
+.editorjs-holder .editorjs-media-text-tool__button--danger {
+    color: #b91c1c;
+    background: #fff5f5;
+    border-color: rgba(248, 113, 113, 0.45);
+}
+
+.editorjs-holder .editorjs-media-text-tool__field,
+.editorjs-holder .editorjs-gallery-tool__caption-wrap,
+.editorjs-holder .editorjs-gallery-tool__settings {
+    display: flex;
+    flex-direction: column;
+    gap: 0.42rem;
+    min-width: 0;
+}
+
+.editorjs-holder .editorjs-media-text-tool__field > span,
+.editorjs-holder .editorjs-gallery-tool__caption-wrap > span,
+.editorjs-holder .editorjs-gallery-tool__settings > span {
+    font-size: 0.76rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: #64748b;
+    text-transform: uppercase;
+}
+
+.editorjs-holder .editorjs-media-text-tool__input,
+.editorjs-holder .editorjs-media-text-tool__textarea,
+.editorjs-holder .editorjs-gallery-tool__caption,
+.editorjs-holder .editorjs-gallery-tool__select {
+    width: 100%;
+    border: 1px solid #dbe4f0;
+    border-radius: 12px;
+    background: #fff;
+    color: #1e293b;
+    font: inherit;
+    box-sizing: border-box;
+}
+
+.editorjs-holder .editorjs-media-text-tool__input,
+.editorjs-holder .editorjs-gallery-tool__caption,
+.editorjs-holder .editorjs-gallery-tool__select {
+    min-height: 42px;
+    padding: 0.7rem 0.85rem;
+}
+
+.editorjs-holder .editorjs-media-text-tool__textarea {
+    min-height: 220px;
+    padding: 0.9rem 1rem;
+    resize: vertical;
+    line-height: 1.6;
+}
+
+.editorjs-holder .editorjs-media-text-tool__input:focus,
+.editorjs-holder .editorjs-media-text-tool__textarea:focus,
+.editorjs-holder .editorjs-gallery-tool__caption:focus,
+.editorjs-holder .editorjs-gallery-tool__select:focus {
+    outline: none;
+    border-color: rgba(37, 99, 235, 0.5);
+    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+}
+
+.editorjs-holder .editorjs-gallery-tool__grid {
+    display: grid;
+    grid-template-columns: repeat(var(--editorjs-gallery-columns, 3), minmax(0, 1fr));
+    gap: 0.95rem;
+    margin-top: 1rem;
+}
+
+.editorjs-holder .editorjs-gallery-tool__item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    min-width: 0;
+    padding: 0.75rem;
+    border-radius: 14px;
+    background: #fff;
+    border: 1px solid #e5edf8;
+    box-shadow: 0 8px 22px rgba(15, 23, 42, 0.04);
+}
+
+.editorjs-holder .editorjs-gallery-tool__preview {
+    display: block;
+    aspect-ratio: 4 / 3;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+}
+
+.editorjs-holder .editorjs-gallery-tool__image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.editorjs-holder .editorjs-gallery-tool__item-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.editorjs-holder .editorjs-gallery-tool__index {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2.25rem;
+    min-height: 2rem;
+    padding: 0 0.65rem;
+    border-radius: 999px;
+    background: #eff6ff;
+    color: #2563eb;
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+.editorjs-holder .editorjs-gallery-tool__empty {
+    grid-column: 1 / -1;
+    padding: 1rem 1.1rem;
+    border-radius: 14px;
+    border: 1px dashed rgba(148, 163, 184, 0.75);
+    background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+    color: #64748b;
+}
+
 .cms-editor-image-picker {
     position: fixed;
     inset: 0;
@@ -4466,6 +4706,20 @@ input:checked + .slider:before { transform: translateX(22px); }
 
     .editorjs-holder .editorjs-spacer-tool__badge {
         align-self: flex-start;
+    }
+
+    .editorjs-holder .editorjs-media-text-tool__layout {
+        grid-template-columns: 1fr;
+    }
+
+    .editorjs-holder .editorjs-gallery-tool__grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 560px) {
+    .editorjs-holder .editorjs-gallery-tool__grid {
+        grid-template-columns: 1fr;
     }
 }
 

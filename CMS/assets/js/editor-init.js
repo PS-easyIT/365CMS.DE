@@ -198,6 +198,36 @@
             .replace(/'/g, '&#039;');
     }
 
+    function normalizeEditorFileInfo(file) {
+        const nextFile = file && typeof file === 'object' ? file : {};
+        const numericSize = Number.parseInt(nextFile.size, 10);
+
+        return {
+            url: typeof nextFile.url === 'string' ? nextFile.url : '',
+            name: typeof nextFile.name === 'string' ? nextFile.name : '',
+            size: Number.isFinite(numericSize) && numericSize > 0 ? numericSize : 0,
+            extension: typeof nextFile.extension === 'string'
+                ? nextFile.extension.replace(/[^a-z0-9]/gi, '')
+                : '',
+        };
+    }
+
+    function normalizeEditorFilePayload(payload) {
+        const file = normalizeEditorFileInfo(payload && payload.file ? payload.file : payload);
+        return file.url ? file : null;
+    }
+
+    function notifyEditor(api, message, style) {
+        if (!api || !api.notifier || typeof api.notifier.show !== 'function') {
+            return;
+        }
+
+        api.notifier.show({
+            message: String(message || ''),
+            style: style || 'info',
+        });
+    }
+
     function buildQueryUrl(uploadUrl, action) {
         const separator = uploadUrl.includes('?') ? '&' : '?';
         return `${uploadUrl}${separator}action=${encodeURIComponent(action)}`;
@@ -521,6 +551,542 @@
         return picker;
     }
 
+    function createMediaTextToolClass(uploadUrl, csrfToken) {
+        const picker = uploadUrl ? createEditorImagePicker(uploadUrl, csrfToken) : null;
+        const mediaIcon = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="6.5" height="14" rx="1.5"/><path d="M13 7h8"/><path d="M13 12h8"/><path d="M13 17h6"/></svg>';
+
+        return class MediaTextTool {
+            static get toolbox() {
+                return {
+                    title: 'Medien + Text',
+                    icon: mediaIcon,
+                };
+            }
+
+            static get isReadOnlySupported() {
+                return true;
+            }
+
+            constructor({ data, api, readOnly }) {
+                this.api = api;
+                this.readOnly = readOnly;
+                this.picker = picker;
+                this.data = this.normalizeData(data);
+                this.wrapper = null;
+                this.previewImage = null;
+                this.placeholder = null;
+                this.altInput = null;
+                this.textarea = null;
+                this.removeButton = null;
+                this.uploadInput = null;
+            }
+
+            normalizeData(data) {
+                return {
+                    file: normalizeEditorFileInfo(data && data.file ? data.file : {}),
+                    alt: typeof (data && data.alt) === 'string' ? data.alt : '',
+                    text: typeof (data && data.text) === 'string' ? data.text : '',
+                };
+            }
+
+            render() {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'editorjs-media-text-tool';
+
+                const layout = document.createElement('div');
+                layout.className = 'editorjs-media-text-tool__layout';
+
+                const mediaColumn = document.createElement('div');
+                mediaColumn.className = 'editorjs-media-text-tool__media';
+
+                const preview = document.createElement('div');
+                preview.className = 'editorjs-media-text-tool__preview';
+
+                const image = document.createElement('img');
+                image.className = 'editorjs-media-text-tool__image';
+                image.alt = '';
+                image.hidden = true;
+                this.previewImage = image;
+
+                const placeholder = document.createElement('div');
+                placeholder.className = 'editorjs-media-text-tool__placeholder';
+                placeholder.innerHTML = '<strong>Bild links</strong><span>Das Medium belegt später automatisch ca. 30&nbsp;% Breite.</span>';
+                this.placeholder = placeholder;
+
+                preview.appendChild(image);
+                preview.appendChild(placeholder);
+
+                const controls = document.createElement('div');
+                controls.className = 'editorjs-media-text-tool__controls';
+
+                const libraryButton = document.createElement('button');
+                libraryButton.type = 'button';
+                libraryButton.className = 'editorjs-media-text-tool__button';
+                libraryButton.textContent = 'Mediathek';
+                libraryButton.disabled = this.readOnly || !this.picker;
+                libraryButton.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    if (!this.picker) {
+                        return;
+                    }
+
+                    this.picker.open().then((payload) => {
+                        this.applyFilePayload(payload);
+                    }).catch((error) => {
+                        if (!error || error.message !== 'Bildauswahl abgebrochen.') {
+                            console.error('Editor.js media-text picker error:', error);
+                        }
+                    });
+                });
+
+                const uploadButton = document.createElement('button');
+                uploadButton.type = 'button';
+                uploadButton.className = 'editorjs-media-text-tool__button editorjs-media-text-tool__button--primary';
+                uploadButton.textContent = 'Bild hochladen';
+                uploadButton.disabled = this.readOnly || !uploadUrl;
+
+                const removeButton = document.createElement('button');
+                removeButton.type = 'button';
+                removeButton.className = 'editorjs-media-text-tool__button editorjs-media-text-tool__button--danger';
+                removeButton.textContent = 'Entfernen';
+                removeButton.disabled = this.readOnly;
+                removeButton.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    this.data.file = normalizeEditorFileInfo({});
+                    this.updatePreview();
+                });
+                this.removeButton = removeButton;
+
+                const uploadInput = document.createElement('input');
+                uploadInput.type = 'file';
+                uploadInput.accept = 'image/*';
+                uploadInput.hidden = true;
+                uploadInput.disabled = this.readOnly || !uploadUrl;
+                uploadInput.addEventListener('change', () => {
+                    const file = uploadInput.files && uploadInput.files[0] ? uploadInput.files[0] : null;
+                    if (!file || !uploadUrl) {
+                        return;
+                    }
+
+                    uploadEditorImageFile(uploadUrl, csrfToken, file).then((payload) => {
+                        this.applyFilePayload(payload);
+                        notifyEditor(this.api, 'Bild erfolgreich hochgeladen.', 'success');
+                    }).catch((error) => {
+                        console.error('Editor.js media-text upload error:', error);
+                        notifyEditor(this.api, error && error.message ? error.message : 'Upload fehlgeschlagen.', 'error');
+                    }).finally(() => {
+                        uploadInput.value = '';
+                    });
+                });
+                this.uploadInput = uploadInput;
+
+                uploadButton.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    if (this.uploadInput) {
+                        this.uploadInput.click();
+                    }
+                });
+
+                controls.appendChild(libraryButton);
+                controls.appendChild(uploadButton);
+                controls.appendChild(removeButton);
+                controls.appendChild(uploadInput);
+
+                const meta = document.createElement('div');
+                meta.className = 'editorjs-media-text-tool__meta';
+
+                const altLabel = document.createElement('label');
+                altLabel.className = 'editorjs-media-text-tool__field';
+                altLabel.innerHTML = '<span>Alt-Text</span>';
+
+                const altInput = document.createElement('input');
+                altInput.type = 'text';
+                altInput.className = 'editorjs-media-text-tool__input';
+                altInput.placeholder = 'Kurze Bildbeschreibung für Accessibility';
+                altInput.value = this.data.alt;
+                altInput.disabled = this.readOnly;
+                this.altInput = altInput;
+
+                altLabel.appendChild(altInput);
+                meta.appendChild(altLabel);
+
+                mediaColumn.appendChild(preview);
+                mediaColumn.appendChild(controls);
+                mediaColumn.appendChild(meta);
+
+                const textColumn = document.createElement('div');
+                textColumn.className = 'editorjs-media-text-tool__text';
+
+                const textLabel = document.createElement('label');
+                textLabel.className = 'editorjs-media-text-tool__field';
+                textLabel.innerHTML = '<span>Textinhalt</span>';
+
+                const textarea = document.createElement('textarea');
+                textarea.className = 'editorjs-media-text-tool__textarea';
+                textarea.placeholder = 'Text rechts neben dem Bild eingeben …';
+                textarea.value = this.data.text;
+                textarea.disabled = this.readOnly;
+                this.textarea = textarea;
+
+                textLabel.appendChild(textarea);
+                textColumn.appendChild(textLabel);
+
+                layout.appendChild(mediaColumn);
+                layout.appendChild(textColumn);
+                wrapper.appendChild(layout);
+
+                this.wrapper = wrapper;
+                this.updatePreview();
+
+                return wrapper;
+            }
+
+            applyFilePayload(payload) {
+                const file = normalizeEditorFilePayload(payload);
+                if (!file) {
+                    return;
+                }
+
+                this.data.file = file;
+                this.updatePreview();
+            }
+
+            updatePreview() {
+                if (!this.previewImage || !this.placeholder) {
+                    return;
+                }
+
+                const hasImage = Boolean(this.data.file && this.data.file.url);
+
+                this.previewImage.hidden = !hasImage;
+                this.placeholder.hidden = hasImage;
+
+                if (hasImage) {
+                    this.previewImage.src = this.data.file.url;
+                    this.previewImage.alt = this.data.alt || this.data.file.name || 'Ausgewähltes Bild';
+                } else {
+                    this.previewImage.removeAttribute('src');
+                    this.previewImage.alt = '';
+                }
+
+                if (this.removeButton) {
+                    this.removeButton.disabled = this.readOnly || !hasImage;
+                }
+            }
+
+            save() {
+                if (this.altInput) {
+                    this.data.alt = this.altInput.value.trim();
+                }
+
+                if (this.textarea) {
+                    this.data.text = this.textarea.value;
+                }
+
+                return {
+                    file: normalizeEditorFileInfo(this.data.file),
+                    alt: this.data.alt,
+                    text: this.data.text,
+                };
+            }
+
+            validate(savedData) {
+                const file = normalizeEditorFileInfo(savedData && savedData.file ? savedData.file : {});
+                const text = typeof (savedData && savedData.text) === 'string' ? savedData.text.trim() : '';
+                return Boolean(file.url || text);
+            }
+        };
+    }
+
+    function createImageGalleryConfig(_galleryClass, uploadUrl, csrfToken) {
+        const picker = uploadUrl ? createEditorImagePicker(uploadUrl, csrfToken) : null;
+        const allowedColumns = [2, 3, 4, 6];
+        const galleryIcon = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 9h.01"/><path d="M21 15l-4.5-4.5a1.5 1.5 0 00-2.12 0L9 15.88"/><path d="M3 17l4.5-4.5a1.5 1.5 0 012.12 0L13 16"/></svg>';
+
+        class CmsGalleryTool {
+            static get toolbox() {
+                return {
+                    title: 'Gallery',
+                    icon: galleryIcon,
+                };
+            }
+
+            static get isReadOnlySupported() {
+                return true;
+            }
+
+            constructor({ data, api, readOnly }) {
+                this.api = api;
+                this.readOnly = readOnly;
+                this.picker = picker;
+                this.data = this.normalizeData(data);
+                this.wrapper = null;
+                this.grid = null;
+                this.columnSelect = null;
+                this.uploadInput = null;
+            }
+
+            normalizeData(data) {
+                const rawColumns = Number.parseInt(data && data.columns, 10);
+                const columns = allowedColumns.includes(rawColumns) ? rawColumns : 3;
+                const rawImages = Array.isArray(data && data.images)
+                    ? data.images
+                    : Array.isArray(data && data.urls)
+                        ? data.urls.map((url) => ({ file: { url } }))
+                        : [];
+
+                return {
+                    columns,
+                    images: rawImages.map((item) => {
+                        const file = normalizeEditorFileInfo(item && item.file ? item.file : item);
+                        return {
+                            file,
+                            caption: item && typeof item.caption === 'string' ? item.caption : '',
+                        };
+                    }).filter((item) => item.file.url),
+                };
+            }
+
+            render() {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'editorjs-gallery-tool';
+
+                const toolbar = document.createElement('div');
+                toolbar.className = 'editorjs-gallery-tool__toolbar';
+
+                const settings = document.createElement('label');
+                settings.className = 'editorjs-gallery-tool__settings';
+                settings.innerHTML = '<span>Spalten</span>';
+
+                const columnSelect = document.createElement('select');
+                columnSelect.className = 'editorjs-gallery-tool__select';
+                allowedColumns.forEach((columns) => {
+                    const option = document.createElement('option');
+                    option.value = String(columns);
+                    option.textContent = String(columns);
+                    option.selected = this.data.columns === columns;
+                    columnSelect.appendChild(option);
+                });
+                columnSelect.disabled = this.readOnly;
+                columnSelect.addEventListener('change', () => {
+                    const nextColumns = Number.parseInt(columnSelect.value, 10);
+                    this.data.columns = allowedColumns.includes(nextColumns) ? nextColumns : 3;
+                    this.updateGridColumns();
+                });
+                this.columnSelect = columnSelect;
+                settings.appendChild(columnSelect);
+
+                const actions = document.createElement('div');
+                actions.className = 'editorjs-gallery-tool__actions';
+
+                const libraryButton = document.createElement('button');
+                libraryButton.type = 'button';
+                libraryButton.className = 'editorjs-gallery-tool__button';
+                libraryButton.textContent = 'Aus Mediathek';
+                libraryButton.disabled = this.readOnly || !this.picker;
+                libraryButton.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    if (!this.picker) {
+                        return;
+                    }
+
+                    this.picker.open().then((payload) => {
+                        this.addImageFromPayload(payload);
+                    }).catch((error) => {
+                        if (!error || error.message !== 'Bildauswahl abgebrochen.') {
+                            console.error('Editor.js gallery picker error:', error);
+                        }
+                    });
+                });
+
+                const uploadButton = document.createElement('button');
+                uploadButton.type = 'button';
+                uploadButton.className = 'editorjs-gallery-tool__button editorjs-gallery-tool__button--primary';
+                uploadButton.textContent = 'Bilder hochladen';
+                uploadButton.disabled = this.readOnly || !uploadUrl;
+
+                const uploadInput = document.createElement('input');
+                uploadInput.type = 'file';
+                uploadInput.accept = 'image/*';
+                uploadInput.multiple = true;
+                uploadInput.hidden = true;
+                uploadInput.disabled = this.readOnly || !uploadUrl;
+                uploadInput.addEventListener('change', () => {
+                    const files = uploadInput.files ? Array.from(uploadInput.files) : [];
+                    if (!uploadUrl || files.length === 0) {
+                        return;
+                    }
+
+                    Promise.all(files.map((file) => uploadEditorImageFile(uploadUrl, csrfToken, file))).then((payloads) => {
+                        payloads.forEach((payload) => this.addImageFromPayload(payload));
+                        notifyEditor(this.api, files.length === 1 ? 'Bild hochgeladen.' : files.length + ' Bilder hochgeladen.', 'success');
+                    }).catch((error) => {
+                        console.error('Editor.js gallery upload error:', error);
+                        notifyEditor(this.api, error && error.message ? error.message : 'Gallery-Upload fehlgeschlagen.', 'error');
+                    }).finally(() => {
+                        uploadInput.value = '';
+                    });
+                });
+                this.uploadInput = uploadInput;
+
+                uploadButton.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    if (this.uploadInput) {
+                        this.uploadInput.click();
+                    }
+                });
+
+                actions.appendChild(libraryButton);
+                actions.appendChild(uploadButton);
+                actions.appendChild(uploadInput);
+
+                toolbar.appendChild(settings);
+                toolbar.appendChild(actions);
+
+                const grid = document.createElement('div');
+                grid.className = 'editorjs-gallery-tool__grid';
+                this.grid = grid;
+
+                wrapper.appendChild(toolbar);
+                wrapper.appendChild(grid);
+                this.wrapper = wrapper;
+
+                this.updateGridColumns();
+                this.renderItems();
+
+                return wrapper;
+            }
+
+            renderSettings() {
+                return allowedColumns.map((columns) => ({
+                    icon: galleryIcon,
+                    label: columns + ' Spalten',
+                    closeOnActivate: true,
+                    isActive: this.data.columns === columns,
+                    onActivate: () => {
+                        this.data.columns = columns;
+                        if (this.columnSelect) {
+                            this.columnSelect.value = String(columns);
+                        }
+                        this.updateGridColumns();
+                    },
+                }));
+            }
+
+            addImageFromPayload(payload) {
+                const file = normalizeEditorFilePayload(payload);
+                if (!file) {
+                    return;
+                }
+
+                this.data.images.push({
+                    file,
+                    caption: '',
+                });
+                this.renderItems();
+            }
+
+            updateGridColumns() {
+                if (!this.wrapper) {
+                    return;
+                }
+
+                this.wrapper.style.setProperty('--editorjs-gallery-columns', String(this.data.columns));
+            }
+
+            renderItems() {
+                if (!this.grid) {
+                    return;
+                }
+
+                if (this.data.images.length === 0) {
+                    this.grid.innerHTML = '<div class="editorjs-gallery-tool__empty">Noch keine Bilder ausgewählt. Füge Bilder aus der Mediathek hinzu oder lade neue Dateien hoch.</div>';
+                    return;
+                }
+
+                this.grid.innerHTML = '';
+
+                this.data.images.forEach((item, index) => {
+                    const card = document.createElement('article');
+                    card.className = 'editorjs-gallery-tool__item';
+
+                    const preview = document.createElement('div');
+                    preview.className = 'editorjs-gallery-tool__preview';
+
+                    const image = document.createElement('img');
+                    image.className = 'editorjs-gallery-tool__image';
+                    image.src = item.file.url;
+                    image.alt = item.caption || item.file.name || ('Galeriebild ' + (index + 1));
+                    preview.appendChild(image);
+
+                    const footer = document.createElement('div');
+                    footer.className = 'editorjs-gallery-tool__item-footer';
+
+                    const badge = document.createElement('span');
+                    badge.className = 'editorjs-gallery-tool__index';
+                    badge.textContent = '#' + (index + 1);
+
+                    const removeButton = document.createElement('button');
+                    removeButton.type = 'button';
+                    removeButton.className = 'editorjs-gallery-tool__remove';
+                    removeButton.textContent = 'Entfernen';
+                    removeButton.disabled = this.readOnly;
+                    removeButton.addEventListener('click', (event) => {
+                        event.preventDefault();
+                        this.data.images.splice(index, 1);
+                        this.renderItems();
+                    });
+
+                    footer.appendChild(badge);
+                    footer.appendChild(removeButton);
+
+                    const captionLabel = document.createElement('label');
+                    captionLabel.className = 'editorjs-gallery-tool__caption-wrap';
+                    captionLabel.innerHTML = '<span>Bildunterschrift</span>';
+
+                    const captionInput = document.createElement('input');
+                    captionInput.type = 'text';
+                    captionInput.className = 'editorjs-gallery-tool__caption';
+                    captionInput.placeholder = 'Optionaler Caption-Text';
+                    captionInput.value = item.caption;
+                    captionInput.disabled = this.readOnly;
+                    captionInput.addEventListener('input', () => {
+                        this.data.images[index].caption = captionInput.value;
+                    });
+
+                    captionLabel.appendChild(captionInput);
+
+                    card.appendChild(preview);
+                    card.appendChild(captionLabel);
+                    card.appendChild(footer);
+                    this.grid.appendChild(card);
+                });
+            }
+
+            save() {
+                return {
+                    columns: this.data.columns,
+                    images: this.data.images.map((item) => ({
+                        file: normalizeEditorFileInfo(item.file),
+                        caption: typeof item.caption === 'string' ? item.caption.trim() : '',
+                    })).filter((item) => item.file.url),
+                    urls: this.data.images
+                        .map((item) => normalizeEditorFileInfo(item.file).url)
+                        .filter(Boolean),
+                };
+            }
+
+            validate(savedData) {
+                return Array.isArray(savedData && savedData.images)
+                    && savedData.images.some((item) => normalizeEditorFileInfo(item && item.file ? item.file : {}).url);
+            }
+        }
+
+        return {
+            class: CmsGalleryTool,
+        };
+    }
+
     function createSpacerToolClass() {
         const presetOptions = [15, 25, 40, 60, 75, 100];
         const spacerIcon = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4v16"/><path d="M8 8l4-4l4 4"/><path d="M8 16l4 4l4-4"/></svg>';
@@ -837,17 +1403,6 @@
         return config;
     }
 
-    function createImageGalleryConfig(galleryClass) {
-        if (!galleryClass) {
-            return null;
-        }
-
-        return {
-            class: galleryClass,
-            inlineToolbar: true,
-        };
-    }
-
     function createDrawingConfig(drawingClass) {
         if (!drawingClass) {
             return null;
@@ -959,6 +1514,7 @@
         const holder = document.getElementById(holderId);
         const resolved = buildResolvedRegistry();
         const spacerToolClass = createSpacerToolClass();
+        const mediaTextToolClass = createMediaTextToolClass(uploadUrl, csrfToken);
 
         if (!holder || typeof resolved.editorjs !== 'function') {
             throw new Error('EditorJS core ist nicht geladen oder Holder fehlt.');
@@ -1037,7 +1593,10 @@
             columns: createColumnsConfig(resolved.columns, resolved.editorjs, childTools),
             accordion: createAccordionConfig(resolved.accordion),
             carousel: createCarouselConfig(resolved.carousel, uploadUrl, csrfToken),
-            imageGallery: createImageGalleryConfig(resolved.imageGallery),
+            mediaText: {
+                class: mediaTextToolClass,
+            },
+            imageGallery: createImageGalleryConfig(resolved.imageGallery, uploadUrl, csrfToken),
             drawingTool: createDrawingConfig(resolved.drawingTool),
         });
 

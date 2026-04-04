@@ -488,28 +488,12 @@ class ThemeMarketplaceModule
             return [];
         }
 
-        $manifestPath = rtrim($sourceBase, '/\\') . DIRECTORY_SEPARATOR . str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $relativeManifestPath);
-        if (!is_file($manifestPath)) {
+        $manifestPath = $this->resolveSafeLocalCatalogFile($sourceBase, $relativeManifestPath);
+        if ($manifestPath === '') {
             return [];
         }
 
-        $resolvedSourceBase = realpath($sourceBase);
-        $resolvedManifestPath = realpath($manifestPath);
-        if ($resolvedSourceBase === false || $resolvedManifestPath === false || !str_starts_with(str_replace('\\', '/', $resolvedManifestPath), rtrim(str_replace('\\', '/', $resolvedSourceBase), '/') . '/')) {
-            return [];
-        }
-
-        if (filesize($resolvedManifestPath) > self::MAX_MANIFEST_BYTES) {
-            return [];
-        }
-
-        $content = file_get_contents($resolvedManifestPath);
-        if ($content === false) {
-            return [];
-        }
-
-        $data = \CMS\Json::decodeArray($content, []);
-        return is_array($data) ? $data : [];
+        return $this->readLocalCatalogJsonFile($manifestPath);
     }
 
     private function fetchRemoteJson(string $url): array
@@ -733,7 +717,7 @@ class ThemeMarketplaceModule
         }
 
         $path = $path === '' ? '/' : $path;
-        if (preg_match('/[\x00-\x1F\x7F]/', $path) === 1 || preg_match('/[\x00-\x1F\x7F]/', $query) === 1) {
+        if ($this->containsDisallowedUrlSegments($path) || preg_match('/[\x00-\x1F\x7F]/', $query) === 1) {
             return '';
         }
 
@@ -1018,6 +1002,70 @@ class ThemeMarketplaceModule
         }
 
         return implode('/', $segments);
+    }
+
+    private function containsDisallowedUrlSegments(string $path): bool
+    {
+        if (preg_match('/[\x00-\x1F\x7F]/', $path) === 1) {
+            return true;
+        }
+
+        $segments = explode('/', str_replace('\\', '/', $path));
+        foreach ($segments as $segment) {
+            $decodedSegment = rawurldecode($segment);
+            if ($decodedSegment === '.' || $decodedSegment === '..') {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function resolveSafeLocalCatalogFile(string $sourceBase, string $relativePath): string
+    {
+        $resolvedSourceBase = realpath($sourceBase);
+        if ($resolvedSourceBase === false || !is_dir($resolvedSourceBase) || is_link($resolvedSourceBase)) {
+            return '';
+        }
+
+        $manifestPath = $resolvedSourceBase . DIRECTORY_SEPARATOR . str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $relativePath);
+        $resolvedManifestPath = realpath($manifestPath);
+        if ($resolvedManifestPath === false || !is_file($resolvedManifestPath) || is_link($resolvedManifestPath)) {
+            return '';
+        }
+
+        $normalizedSourceBase = rtrim(str_replace('\\', '/', $resolvedSourceBase), '/') . '/';
+        $normalizedManifestPath = str_replace('\\', '/', $resolvedManifestPath);
+
+        return str_starts_with($normalizedManifestPath, $normalizedSourceBase) ? $resolvedManifestPath : '';
+    }
+
+    private function readLocalCatalogJsonFile(string $filePath): array
+    {
+        if (filesize($filePath) > self::MAX_MANIFEST_BYTES) {
+            return [];
+        }
+
+        try {
+            $file = new \SplFileObject($filePath, 'rb');
+        } catch (\RuntimeException) {
+            return [];
+        }
+
+        $content = '';
+        while (!$file->eof()) {
+            $content .= (string) $file->fgets();
+            if (strlen($content) > self::MAX_MANIFEST_BYTES) {
+                return [];
+            }
+        }
+
+        if ($content === '') {
+            return [];
+        }
+
+        $data = \CMS\Json::decodeArray($content, []);
+        return is_array($data) ? $data : [];
     }
 
     private function resolveAllowedRelativeMarketplaceUrl(string $sourceBase, string $path): string

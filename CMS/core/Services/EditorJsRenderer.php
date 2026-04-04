@@ -118,6 +118,7 @@ final class EditorJsRenderer
             'carousel' => $this->renderCarousel($data),
             'columns' => $this->renderColumns($data),
             'drawingTool' => $this->renderDrawingTool($data),
+            'mediaText' => $this->renderMediaText($data),
             default => '',
         };
     }
@@ -443,18 +444,95 @@ final class EditorJsRenderer
     /** @param array<string,mixed> $data */
     private function renderImageGallery(array $data): string
     {
-        $urls = is_array($data['urls'] ?? null) ? $data['urls'] : [];
-        $urls = array_values(array_filter($urls, static fn($url) => filter_var((string)$url, FILTER_VALIDATE_URL)));
+        $columns = (int)($data['columns'] ?? 3);
+        if (!in_array($columns, [2, 3, 4, 6], true)) {
+            $columns = 3;
+        }
 
-        if ($urls === []) {
+        $images = [];
+        foreach ((is_array($data['images'] ?? null) ? $data['images'] : []) as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+
+            $file = is_array($item['file'] ?? null) ? $item['file'] : [];
+            $url = \CMS\Services\MediaDeliveryService::getInstance()->normalizeUrl((string)($file['url'] ?? ''), true);
+            if (!filter_var($url, FILTER_VALIDATE_URL)) {
+                continue;
+            }
+
+            $images[] = [
+                'url' => $url,
+                'caption' => $this->sanitizeInline((string)($item['caption'] ?? '')),
+                'alt' => htmlspecialchars((string)($item['caption'] ?? ''), ENT_QUOTES, 'UTF-8'),
+            ];
+        }
+
+        if ($images === []) {
+            $urls = is_array($data['urls'] ?? null) ? $data['urls'] : [];
+            foreach ($urls as $url) {
+                $normalizedUrl = \CMS\Services\MediaDeliveryService::getInstance()->normalizeUrl((string)$url, true);
+                if (!filter_var($normalizedUrl, FILTER_VALIDATE_URL)) {
+                    continue;
+                }
+
+                $images[] = [
+                    'url' => $normalizedUrl,
+                    'caption' => '',
+                    'alt' => '',
+                ];
+            }
+        }
+
+        if ($images === []) {
             return '';
         }
 
-        $html = '<div class="editorjs-block editorjs-gallery" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;align-items:start;">';
-        foreach ($urls as $url) {
-            $html .= '<figure class="editorjs-gallery__item" style="margin:0;"><img src="' . htmlspecialchars((string)$url, ENT_QUOTES, 'UTF-8') . '" alt="" loading="lazy" style="display:block;width:100%;height:auto;"></figure>';
+        $gap = 16;
+        $maxWidth = 'calc((100% - ' . max(0, ($columns - 1) * $gap) . 'px) / ' . $columns . ')';
+
+        $html = '<div class="editorjs-block editorjs-gallery" style="display:flex;flex-wrap:wrap;gap:' . $gap . 'px;align-items:flex-start;">';
+        foreach ($images as $image) {
+            $html .= '<figure class="editorjs-gallery__item" style="margin:0;flex:1 1 ' . $maxWidth . ';max-width:' . $maxWidth . ';min-width:140px;">';
+            $html .= '<img src="' . htmlspecialchars($image['url'], ENT_QUOTES, 'UTF-8') . '" alt="' . $image['alt'] . '" loading="lazy" style="display:block;width:100%;height:auto;aspect-ratio:4/3;object-fit:cover;border-radius:12px;">';
+            if ($image['caption'] !== '') {
+                $html .= '<figcaption style="margin-top:0.6rem;font-size:0.92rem;color:#475569;">' . $image['caption'] . '</figcaption>';
+            }
+            $html .= '</figure>';
         }
         $html .= '</div>';
+
+        return $html;
+    }
+
+    /** @param array<string,mixed> $data */
+    private function renderMediaText(array $data): string
+    {
+        $file = is_array($data['file'] ?? null) ? $data['file'] : [];
+        $imageUrl = \CMS\Services\MediaDeliveryService::getInstance()->normalizeUrl((string)($file['url'] ?? ''), true);
+        if (!filter_var($imageUrl, FILTER_VALIDATE_URL)) {
+            $imageUrl = '';
+        }
+
+        $textHtml = $this->renderPlainTextContent((string)($data['text'] ?? ''));
+        if ($imageUrl === '' && $textHtml === '') {
+            return '';
+        }
+
+        $altText = trim((string)($data['alt'] ?? ''));
+        $alt = htmlspecialchars($altText, ENT_QUOTES, 'UTF-8');
+
+        $html = '<section class="editorjs-block editorjs-media-text" style="display:flex;flex-wrap:wrap;align-items:flex-start;gap:24px;">';
+        if ($imageUrl !== '') {
+            $html .= '<figure class="editorjs-media-text__media" style="margin:0;flex:0 1 30%;min-width:220px;max-width:360px;">';
+            $html .= '<img src="' . htmlspecialchars($imageUrl, ENT_QUOTES, 'UTF-8') . '" alt="' . $alt . '" loading="lazy" style="display:block;width:100%;height:auto;aspect-ratio:4/3;object-fit:cover;border-radius:14px;">';
+            $html .= '</figure>';
+        }
+
+        $html .= '<div class="editorjs-media-text__content" style="flex:1 1 360px;min-width:260px;">';
+        $html .= $textHtml !== '' ? $textHtml : '<p></p>';
+        $html .= '</div>';
+        $html .= '</section>';
 
         return $html;
     }
@@ -560,6 +638,28 @@ final class EditorJsRenderer
             '<span class="tg-spoiler" style="background:#111827;color:transparent;border-radius:0.25rem;padding:0 0.2rem;">$1</span>',
             $sanitized
         ) ?? $sanitized;
+    }
+
+    private function renderPlainTextContent(string $text): string
+    {
+        $normalized = trim((string) preg_replace('/\r\n?/', "\n", $text));
+        if ($normalized === '') {
+            return '';
+        }
+
+        $paragraphs = preg_split('/\n{2,}/', $normalized) ?: [];
+        $html = '';
+
+        foreach ($paragraphs as $paragraph) {
+            $paragraph = trim($paragraph);
+            if ($paragraph === '') {
+                continue;
+            }
+
+            $html .= '<p>' . nl2br(htmlspecialchars($paragraph, ENT_QUOTES, 'UTF-8')) . '</p>';
+        }
+
+        return $html;
     }
 
     private function formatFileSize(int $bytes): string

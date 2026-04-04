@@ -64,7 +64,20 @@ class CacheManager implements CacheInterface
      */
     private function getHmacKey(): string
     {
-        return defined('NONCE_KEY') ? NONCE_KEY : 'cms-cache-hmac-fallback-key';
+        foreach (['NONCE_KEY', 'SECURE_AUTH_KEY', 'AUTH_KEY', 'JWT_SECRET'] as $constant) {
+            if (!defined($constant)) {
+                continue;
+            }
+
+            $value = trim((string) constant($constant));
+            if ($value === '' || str_contains($value, 'REPLACE_VIA_INSTALLER')) {
+                continue;
+            }
+
+            return $value;
+        }
+
+        return hash('sha256', ABSPATH . '|' . __FILE__ . '|' . PHP_VERSION);
     }
 
     /**

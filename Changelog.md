@@ -1,4 +1,4 @@
-﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.8.1-blue.svg)](https://shields.io/)
+﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.8.2-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -17,6 +17,28 @@
 ---
 
 ## 📜 Vollständige Versionshistorie
+
+---
+
+### Unreleased
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **next** | 🟢 feat | Editor.js | **`CMS/assets/js/editor-init.js`, `CMS/core/Services/EditorJsRenderer.php`, `CMS/core/Services/EditorJs/EditorJsSanitizer.php`, `CMS/core/Services/EditorJs/EditorJsAssetService.php` und `CMS/assets/css/admin.css` ergänzen jetzt einen eigenen Block `Medien + Text` mit festem 30/70-Layout sowie eine CMS-gestützte `Gallery` mit 2/3/4/6 Spalten, Mediathek-Auswahl, Mehrfach-Upload und Bildunterschriften**: Redakteure können Tech- und Produktartikel damit deutlich strukturierter direkt im Editor.js-Workflow bauen, ohne Bilder nur über URL-Paste oder generische Spaltenblöcke zusammensetzen zu müssen. |
+
+---
+
+### v2.8.2 — 03. April 2026
+
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.8.2** | 🔴 fix | Security/Contact | **`CMS/themes/cms-default/contact.php` trennt Request-Normalisierung jetzt sauber von Ausgabe-Escaping und versendet Kontaktanfragen nur noch über `MailService` statt über einen rohen `mail()`-Fallback**: Formularwerte landen dadurch nicht mehr ungefiltert in Antwort-HTML oder Mail-Headern, und ohne konfigurierten Mail-Service bleibt der Versandpfad ausdrücklich fail-closed. |
+| **2.8.2** | 🔴 fix | Security/Cache | **`CMS/core/CacheManager.php` ersetzt den fest verdrahteten Fallback-HMAC-Key durch Installations- und Laufzeit-Secrets mit sicherem Fingerprint-Fallback**: Cache-Signaturen hängen damit nicht mehr an einem global bekannten Standardwert. |
+| **2.8.2** | 🔴 fix | Security/Feeds | **`CMS/core/Services/FeedService.php` liest und schreibt Feed-Caches jetzt nur noch über streng begrenzte Cache-Pfade und nutzt für Remote-Feeds den zentralen `CMS\Http\Client`**: SSRF-, Redirect- und Cache-Dateizugriffe folgen dadurch demselben kleinen Sicherheitsvertrag wie andere Core-Downloads. |
+| **2.8.2** | 🔴 fix | Security/EditorJs | **`CMS/core/Services/EditorJs/EditorJsRemoteMediaService.php` kapselt temporäre Download-Dateien jetzt über einen geprüften Temp-Root und bereinigt nur noch eigene Prefix-Dateien**: Remote-Medienimporte vermeiden damit unsaubere Temp-Datei-Pfade und riskantere Cleanup-Kanten. |
+| **2.8.2** | 🔴 fix | Security/Marketplace | **`CMS/admin/modules/plugins/PluginMarketplaceModule.php` und `CMS/admin/modules/themes/ThemeMarketplaceModule.php` verwerfen URL-Dot-Segmente, lösen lokale Registry-/Manifest-Pfade nur noch innerhalb des vertrauenswürdigen Katalog-Roots auf und lesen lokale JSON-Dateien begrenzt ein**: Plugin- und Theme-Kataloge bleiben damit enger an einem fail-closed Manifest-Vertrag statt an frei zusammengesetzten Dateipfaden. |
+| **2.8.2** | 🔵 docs | Release | **`README.md`, `Changelog.md`, `CMS/core/Version.php` und `CMS/update.json` wurden auf den Release-Stand `2.8.2` synchronisiert**: Dokumentation und Update-Metadaten spiegeln damit denselben Security-Batch wie der Core selbst. |
 
 ---
 

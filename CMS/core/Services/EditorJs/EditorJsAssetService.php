@@ -101,6 +101,14 @@ final class EditorJsAssetService
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="1.5"/><path d="M3 16l5-5c1-.9 2.1-.9 3 0l5 5"/><path d="M14 14l1-1c1-.9 2.1-.9 3 0l3 3"/></svg>
                     <span>Bild</span>
                 </button>
+                <button type="button" data-block="mediaText" title="Medien + Text">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="6" height="14" rx="1"/><path d="M12 7h8"/><path d="M12 12h8"/><path d="M12 17h6"/></svg>
+                    <span>Medien+Text</span>
+                </button>
+                <button type="button" data-block="imageGallery" data-columns="3" title="Gallery">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 9h.01"/><path d="M21 15l-4.5-4.5a1.5 1.5 0 00-2.12 0L9 15.88"/><path d="M3 17l4.5-4.5a1.5 1.5 0 012.12 0L13 16"/></svg>
+                    <span>Gallery</span>
+                </button>
                 <button type="button" data-block="embed" title="Embed">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 9l-3 3l3 3"/><path d="M16 9l3 3l-3 3"/><path d="M14 5l-4 14"/></svg>
                     <span>Embed</span>
@@ -175,12 +183,16 @@ final class EditorJsAssetService
                         var blockData = {};
                         var level = btn.getAttribute('data-level');
                         var height = btn.getAttribute('data-height');
+                        var columns = btn.getAttribute('data-columns');
                         if (level) {
                             blockData.level = parseInt(level, 10);
                         }
                         if (height) {
                             blockData.height = parseInt(height, 10);
                             blockData.preset = height + 'px';
+                        }
+                        if (columns) {
+                            blockData.columns = parseInt(columns, 10);
                         }
 
                         editor.blocks.insert(blockType, blockData);

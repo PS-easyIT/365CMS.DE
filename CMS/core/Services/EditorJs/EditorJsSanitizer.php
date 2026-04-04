@@ -51,7 +51,7 @@ final class EditorJsSanitizer
         $allowedTypes = [
             'paragraph', 'header', 'list', 'checklist', 'quote', 'warning',
             'code', 'raw', 'table', 'image', 'attaches', 'linkTool', 'delimiter',
-            'embed', 'imageGallery', 'carousel', 'columns', 'accordion', 'drawingTool', 'spacer',
+            'embed', 'imageGallery', 'carousel', 'columns', 'accordion', 'drawingTool', 'spacer', 'mediaText',
         ];
 
         $type = (string) ($block['type'] ?? '');
@@ -168,14 +168,52 @@ final class EditorJsSanitizer
                 break;
 
             case 'imageGallery':
-                $data['urls'] = $this->sanitizeUrlList(is_array($data['urls'] ?? null) ? $data['urls'] : []);
-                $data['editImages'] = !empty($data['editImages']);
-                $data['bkgMode'] = !empty($data['bkgMode']);
-                $data['layoutDefault'] = !empty($data['layoutDefault']);
-                $data['layoutHorizontal'] = !empty($data['layoutHorizontal']);
-                $data['layoutSquare'] = !empty($data['layoutSquare']);
-                $data['layoutWithGap'] = !empty($data['layoutWithGap']);
-                $data['layoutWithFixedSize'] = !empty($data['layoutWithFixedSize']);
+                $columns = (int) ($data['columns'] ?? 3);
+                if (!in_array($columns, [2, 3, 4, 6], true)) {
+                    $columns = 3;
+                }
+
+                $images = array_values(array_filter(array_map(function ($item) use ($inlineAllowed) {
+                    if (!is_array($item)) {
+                        return null;
+                    }
+
+                    $file = $this->sanitizeFileInfo(is_array($item['file'] ?? null) ? $item['file'] : $item);
+                    if ($file['url'] === '') {
+                        return null;
+                    }
+
+                    return [
+                        'file' => $file,
+                        'caption' => strip_tags((string) ($item['caption'] ?? ''), $inlineAllowed),
+                    ];
+                }, is_array($data['images'] ?? null) ? $data['images'] : [])));
+
+                if ($images === []) {
+                    $images = array_values(array_map(function (string $url): array {
+                        return [
+                            'file' => [
+                                'url' => $url,
+                                'name' => '',
+                                'size' => 0,
+                                'extension' => '',
+                            ],
+                            'caption' => '',
+                        ];
+                    }, $this->sanitizeUrlList(is_array($data['urls'] ?? null) ? $data['urls'] : [])));
+                }
+
+                $data = [
+                    'columns' => $columns,
+                    'images' => $images,
+                    'urls' => array_values(array_map(static fn(array $item): string => (string) ($item['file']['url'] ?? ''), $images)),
+                ];
+                break;
+
+            case 'mediaText':
+                $data['file'] = $this->sanitizeFileInfo(is_array($data['file'] ?? null) ? $data['file'] : []);
+                $data['alt'] = strip_tags((string) ($data['alt'] ?? ''), '');
+                $data['text'] = trim((string) ($data['text'] ?? ''));
                 break;
 
             case 'carousel':

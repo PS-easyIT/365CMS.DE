@@ -12,6 +12,7 @@ declare(strict_types=1);
 
 namespace CMS\Services;
 
+use CMS\Http\Client as HttpClient;
 use CMS\Logger;
 
 if (!defined('ABSPATH')) {
@@ -247,7 +248,7 @@ final class FeedService
     private function loadFeedData(string $url): ?array
     {
         $cacheFile = $this->buildCacheFilePath($url);
-        if ($this->cacheEnabled && $this->cacheDuration > 0 && is_file($cacheFile)) {
+        if ($this->cacheEnabled && $this->cacheDuration > 0 && $cacheFile !== null && is_file($cacheFile)) {
             $cached = $this->readCacheFile($cacheFile);
             if ($cached !== null) {
                 return $cached;
@@ -264,21 +265,61 @@ final class FeedService
             return null;
         }
 
-        if ($this->cacheEnabled && $this->cacheDuration > 0) {
+        if ($this->cacheEnabled && $this->cacheDuration > 0 && $cacheFile !== null) {
             $this->writeCacheFile($cacheFile, $parsed);
         }
 
         return $parsed;
     }
 
-    private function buildCacheFilePath(string $url): string
+    private function buildCacheFilePath(string $url): ?string
     {
-        return $this->cachePath . hash('sha256', $url) . '.json';
+        $cacheRoot = $this->getCacheRoot();
+        if ($cacheRoot === null) {
+            return null;
+        }
+
+        $fileName = hash('sha256', $url) . '.json';
+        if (preg_match('/^[a-f0-9]{64}\.json$/', $fileName) !== 1) {
+            return null;
+        }
+
+        return $cacheRoot . DIRECTORY_SEPARATOR . $fileName;
+    }
+
+    private function getCacheRoot(): ?string
+    {
+        if (!$this->cacheEnabled || !is_dir($this->cachePath)) {
+            return null;
+        }
+
+        $cacheRoot = realpath($this->cachePath);
+        if ($cacheRoot === false || is_link($cacheRoot)) {
+            return null;
+        }
+
+        return rtrim($cacheRoot, '\\/');
+    }
+
+    private function resolveExistingCacheFilePath(string $cacheFile): ?string
+    {
+        $cacheRoot = $this->getCacheRoot();
+        if ($cacheRoot === null) {
+            return null;
+        }
+
+        $resolvedPath = realpath($cacheFile);
+        if ($resolvedPath === false || is_link($resolvedPath)) {
+            return null;
+        }
+
+        return str_starts_with($resolvedPath, $cacheRoot . DIRECTORY_SEPARATOR) ? $resolvedPath : null;
     }
 
     private function readCacheFile(string $cacheFile): ?array
     {
-        if (!is_file($cacheFile)) {
+        $cacheFile = $this->resolveExistingCacheFilePath($cacheFile);
+        if ($cacheFile === null || !is_file($cacheFile)) {
             return null;
         }
 
@@ -286,7 +327,7 @@ final class FeedService
             return null;
         }
 
-        $payload = @file_get_contents($cacheFile);
+        $payload = $this->readBoundedCacheFile($cacheFile);
         if (!is_string($payload) || trim($payload) === '') {
             return null;
         }
@@ -297,7 +338,49 @@ final class FeedService
 
     private function writeCacheFile(string $cacheFile, array $payload): void
     {
-        @file_put_contents($cacheFile, json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+        $cacheRoot = $this->getCacheRoot();
+        if ($cacheRoot === null || !str_starts_with($cacheFile, $cacheRoot . DIRECTORY_SEPARATOR)) {
+            return;
+        }
+
+        $this->writeBoundedCacheFile($cacheFile, json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+    }
+
+    private function readBoundedCacheFile(string $cacheFile): ?string
+    {
+        if (@filesize($cacheFile) > self::MAX_FEED_BYTES) {
+            return null;
+        }
+
+        try {
+            $file = new \SplFileObject($cacheFile, 'rb');
+        } catch (\RuntimeException) {
+            return null;
+        }
+
+        $content = '';
+        while (!$file->eof()) {
+            $content .= (string) $file->fgets();
+            if (strlen($content) > self::MAX_FEED_BYTES) {
+                return null;
+            }
+        }
+
+        return $content;
+    }
+
+    private function writeBoundedCacheFile(string $cacheFile, string|false $payload): void
+    {
+        if (!is_string($payload) || $payload === '' || strlen($payload) > self::MAX_FEED_BYTES) {
+            return;
+        }
+
+        try {
+            $file = new \SplFileObject($cacheFile, 'wb');
+            $file->fwrite($payload);
+        } catch (\RuntimeException) {
+            return;
+        }
     }
 
     private function fetchRemoteFeed(string $url): ?string
@@ -308,10 +391,7 @@ final class FeedService
         }
 
         for ($redirectCount = 0; $redirectCount <= self::MAX_REMOTE_REDIRECTS; $redirectCount++) {
-            $response = function_exists('curl_init')
-                ? $this->fetchRemoteFeedWithCurl($currentUrl)
-                : $this->fetchRemoteFeedWithStream($currentUrl);
-
+            $response = $this->fetchRemoteFeedResponse($currentUrl);
             if ($response === null) {
                 return null;
             }
@@ -356,91 +436,32 @@ final class FeedService
     /**
      * @return array{status:int,body:string,location:?string}|null
      */
-    private function fetchRemoteFeedWithCurl(string $url): ?array
+    private function fetchRemoteFeedResponse(string $url): ?array
     {
-        $requestTarget = $this->buildRemoteRequestTarget($url);
-        if ($requestTarget === null) {
-            return null;
-        }
-
-        $ch = curl_init($url);
-        if ($ch === false) {
-            return null;
-        }
-
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_FOLLOWLOCATION => false,
-            CURLOPT_MAXREDIRS => 0,
-            CURLOPT_HEADER => true,
-            CURLOPT_CONNECTTIMEOUT => min(10, $this->fetchTimeout),
-            CURLOPT_TIMEOUT => $this->fetchTimeout,
-            CURLOPT_USERAGENT => $this->userAgent,
-            CURLOPT_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS,
-            CURLOPT_REDIR_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS,
-            CURLOPT_SSL_VERIFYHOST => 2,
-            CURLOPT_SSL_VERIFYPEER => true,
-            CURLOPT_HTTPHEADER => ['Accept: application/rss+xml, application/atom+xml, application/xml, text/xml;q=0.9, */*;q=0.8'],
-            CURLOPT_RESOLVE => [$this->buildCurlResolveEntry($requestTarget['host'], $requestTarget['port'], $requestTarget['ip'])],
+        $response = HttpClient::getInstance()->get($url, [
+            'userAgent' => $this->userAgent,
+            'timeout' => $this->fetchTimeout,
+            'connectTimeout' => min(10, $this->fetchTimeout),
+            'maxBytes' => self::MAX_FEED_BYTES,
+            'allowedContentTypes' => ['application/rss+xml', 'application/atom+xml', 'application/xml', 'text/xml', 'text/plain'],
         ]);
 
-        $rawResponse = curl_exec($ch);
-        $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $headerSize = (int) curl_getinfo($ch, CURLINFO_HEADER_SIZE);
-
-        if (!is_string($rawResponse)) {
-            $error = curl_error($ch);
-            curl_close($ch);
-            if ($error !== '') {
-                $this->logger->warning('Feed-Abruf via cURL ist fehlgeschlagen.', [
+        $status = (int) ($response['status'] ?? 0);
+        if ($status === 0) {
+            if (!empty($response['error'])) {
+                $this->logger->warning('Feed-Abruf ist fehlgeschlagen.', [
                     'url' => $url,
-                    'error' => $this->sanitizeErrorMessage($error),
+                    'error' => $this->sanitizeErrorMessage((string) $response['error']),
                 ]);
             }
+
             return null;
         }
-
-        curl_close($ch);
-
-        $headerBlock = $headerSize > 0 ? substr($rawResponse, 0, $headerSize) : '';
-        $body = $headerSize > 0 ? (string) substr($rawResponse, $headerSize) : $rawResponse;
 
         return [
             'status' => $status,
-            'body' => $body,
-            'location' => $this->extractRedirectLocationFromHeaderString($headerBlock),
-        ];
-    }
-
-    /**
-     * @return array{status:int,body:string,location:?string}|null
-     */
-    private function fetchRemoteFeedWithStream(string $url): ?array
-    {
-        $context = stream_context_create([
-            'http' => [
-                'method' => 'GET',
-                'timeout' => $this->fetchTimeout,
-                'header' => "User-Agent: {$this->userAgent}\r\nAccept: application/rss+xml, application/atom+xml, application/xml, text/xml;q=0.9, */*;q=0.8\r\n",
-                'follow_location' => 0,
-                'max_redirects' => 0,
-                'ignore_errors' => true,
-            ],
-        ]);
-
-        $body = @file_get_contents($url, false, $context);
-        $responseHeaders = isset($http_response_header) && is_array($http_response_header)
-            ? $http_response_header
-            : [];
-        $meta = $this->extractRedirectMetaFromHeaderLines($responseHeaders);
-        if ($meta['status'] === 0) {
-            return null;
-        }
-
-        return [
-            'status' => $meta['status'],
-            'body' => is_string($body) ? $body : '',
-            'location' => $meta['location'],
+            'body' => (string) ($response['body'] ?? ''),
+            'location' => trim((string) (($response['headers']['location'] ?? '') ?: '')) ?: null,
         ];
     }
 
