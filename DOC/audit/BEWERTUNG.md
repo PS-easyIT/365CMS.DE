@@ -41,7 +41,7 @@ Der aktuelle Nachpflege-Stand umfasst damit **465 umgesetzte Batches**, davon we
 
 | Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
 |---|---|---|---|
-| `CMS/admin/theme-editor.php`, `README.md`, `Changelog.md` | umgesetzt | Der Theme-Editor verwendet für eingebettete Customizer jetzt denselben CSRF-Vertrag wie die Theme-Formulare selbst und reicht `embedInAdminLayout` an das aktive Theme weiter; parallel dokumentiert die Basis-Doku klarer, dass Admin-Customizer nur gegen deployte Laufzeit-Themes unter `CMS/themes/` arbeiten. | Theme-Customizer-Saves werden im Admin nicht länger vom Shell-Guard vorzeitig verworfen, und Theme-Arbeit im separaten Repository lässt sich sauberer vom tatsächlich aktiven Runtime-Theme abgrenzen. |
+| `CMS/admin/theme-editor.php`, `README.md`, `Changelog.md` | umgesetzt | Der Theme-Editor verwendet für eingebettete Customizer jetzt denselben CSRF-Vertrag wie die Theme-Formulare selbst und reicht `embedInAdminLayout` an das aktive Theme weiter; parallel dokumentiert die Basis-Doku klarer, dass Admin-Customizer nur gegen deployte Laufzeit-Themes unter `CMS/themes/` arbeiten. | Theme-Customizer-Saves werden im Admin nicht länger vom Shell-Guard vorzeitig verworfen, und Theme-Arbeit außerhalb von `CMS/themes/` lässt sich sauberer vom tatsächlich aktiven Runtime-Theme abgrenzen. |
 
 ### Delta Folge-Batch 464
 

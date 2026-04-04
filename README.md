@@ -124,11 +124,13 @@ Die aktuelle Arbeitsumgebung ist auf drei Repositories verteilt:
 
 | Repository | Zweck |
 |---|---|
-| `365CMS.DE/` | Haupt-Repository mit Core, Admin, Member, Runtime-Assets und zentraler Dokumentation |
-| `365CMS.DE-THEME/` | Theme-Repository mit ausgelieferten Themes und Theme-Dokumentation *(aktuell noch privat)* |
+| `365CMS.DE/` | Haupt-Repository mit Core, Admin, Member, Runtime-Assets, zentraler Dokumentation und den kanonischen Laufzeit-Themes unter `CMS/themes/` |
+| `365CMS.DE-THEME/` | Separates Theme-Arbeitsrepository für zusätzliche Theme-Quellen und Theme-Dokumentation; nicht der kanonische Laufzeitort für `cms-default` |
 | `365CMS.DE-PLUGINS/` | Plugin-Repository mit eigenständigen Plugins und Plugin-Dokumentation *(aktuell noch privat)* |
 
 > Wichtig: Zur Laufzeit lädt der Core Plugins ausschließlich aus dem deployten Webroot-Ordner `plugins/` (intern über `PLUGIN_PATH = ABSPATH . 'plugins/'`). Das separate Repository `365CMS.DE-PLUGINS/` ist die Quellbasis für Entwicklung, Marketplace und Deployment – ein Plugin wie `cms-feed` dockt im Cron also erst an, wenn es physisch unter `/plugins/cms-feed/` liegt.
+
+> Wichtig für Themes: Das Standard-Theme `cms-default` liegt und läuft unter `CMS/themes/cms-default/`. Hinweise auf `365CMS.DE-THEME/` beziehen sich nur noch auf separate Theme-Quellen oder Dokumentation, nicht auf den aktiven Runtime-Pfad dieses Themes.
 
 #### Hauptstruktur des Kern-Repositories
 
@@ -239,7 +241,7 @@ Die Prüfung liest ausgewählte Dateien außerdem nur dann aus, wenn sie lesbar 
 - **Wichtig:** Support- oder Anfrage-Mails werden vollständig ignoriert. Dafür sind ausschließlich das Kontaktformular auf [www.365cms.de](https://365cms.de) oder GitHub Issues vorgesehen.
 - **Lizenz:** Freie Verwendung für private und geschäftliche Projekte
 
-**Kurz gesagt:** `365CMS.DE` ist die Core- und Betriebszentrale, `365CMS.DE-THEME` liefert das Design, `365CMS.DE-PLUGINS` die Module – zusammen ergibt das eine angenehm modulare CMS-Werkbank. 🛠️
+**Kurz gesagt:** `365CMS.DE` ist die Core-, Betriebs- und aktuelle Theme-Zentrale mit den aktiven Laufzeit-Themes unter `CMS/themes/`, `365CMS.DE-THEME` dient nur noch als separates Theme-Arbeits-/Doku-Repo, und `365CMS.DE-PLUGINS` liefert die Module – zusammen ergibt das eine angenehm modulare CMS-Werkbank. 🛠️
 
 ---
 
@@ -295,11 +297,13 @@ The current workspace is split into three repositories:
 
 | Repository | Purpose |
 |---|---|
-| `365CMS.DE/` | Main repository with core, admin, member area, runtime assets and central documentation |
-| `365CMS.DE-THEME/` | Theme repository with shipped themes and theme documentation *(currently private)* |
+| `365CMS.DE/` | Main repository with core, admin, member area, runtime assets, central documentation and the canonical runtime themes under `CMS/themes/` |
+| `365CMS.DE-THEME/` | Separate theme working repository for additional theme sources and theme documentation; not the canonical runtime location for `cms-default` |
 | `365CMS.DE-PLUGINS/` | Plugin repository with standalone plugins and plugin documentation *(currently private)* |
 
 > Important: At runtime, the core only loads plugins from the deployed webroot directory `plugins/` (internally via `PLUGIN_PATH = ABSPATH . 'plugins/'`). The separate `365CMS.DE-PLUGINS/` repository is the source repository for development, marketplace publishing and deployment – a plugin such as `cms-feed` will only attach to cron once it physically exists under `/plugins/cms-feed/`.
+
+> Important for themes: The default theme `cms-default` now lives and runs from `CMS/themes/cms-default/`. References to `365CMS.DE-THEME/` only describe separate theme sources or documentation, not the active runtime path of that theme.
 
 #### Main repository structure
 
@@ -405,4 +409,4 @@ The `Technical SEO` area now supports managing an **IndexNow API key** together 
 - **Important:** Support or inquiry emails will be completely ignored. Please use the contact form on [www.365cms.de](https://365cms.de) or GitHub Issues instead.
 - **License:** Free for private and commercial use
 
-**In short:** `365CMS.DE` is the operational and core center, `365CMS.DE-THEME` delivers the design layer, and `365CMS.DE-PLUGINS` provides the modular feature layer – together they form a nicely modular CMS workbench.
+**In short:** `365CMS.DE` is the operational, core and current theme center with the active runtime themes under `CMS/themes/`, `365CMS.DE-THEME` is only a separate theme working/documentation repository, and `365CMS.DE-PLUGINS` provides the modular feature layer – together they form a nicely modular CMS workbench.

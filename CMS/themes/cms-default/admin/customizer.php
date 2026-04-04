@@ -825,16 +825,19 @@ $coreAdminJsUrl = function_exists('cms_asset_url')
                         </div>
                     </div>
 
-                    <!-- Reset-Formular (versteckt, wird per JS gesendet) -->
-                    <form id="reset-form" method="POST" action="?tab=<?php echo htmlspecialchars($activeTab); ?>" style="display:none;">
-                        <input type="hidden" name="action" value="reset_theme_tab">
-                        <input type="hidden" name="active_section" value="<?php echo htmlspecialchars($activeTab); ?>">
-                        <input type="hidden" name="csrf_token" value="<?php echo Security::instance()->generateToken('theme_customizer'); ?>">
-                    </form>
                     <?php endif; ?>
                 </div>
             </div>
         </form>
+
+        <?php if (isset($config[$activeTab])): ?>
+        <!-- Reset-Formular (versteckt, wird per JS gesendet) -->
+        <form id="reset-form" method="POST" action="?tab=<?php echo htmlspecialchars($activeTab); ?>" style="display:none;">
+            <input type="hidden" name="action" value="reset_theme_tab">
+            <input type="hidden" name="active_section" value="<?php echo htmlspecialchars($activeTab); ?>">
+            <input type="hidden" name="csrf_token" value="<?php echo Security::instance()->generateToken('theme_customizer'); ?>">
+        </form>
+        <?php endif; ?>
 
     </div>
 
