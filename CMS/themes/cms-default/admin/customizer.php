@@ -612,7 +612,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             }
             $customizer->set($resetTab, $fieldKey, (string)$default);
         }
-        $success = 'Einstellungen für &bdquo;' . htmlspecialchars($config[$resetTab]['title']) . '&ldquo; auf Standardwerte zurückgesetzt.';
+        $success = 'Einstellungen für „' . (string) $config[$resetTab]['title'] . '“ auf Standardwerte zurückgesetzt.';
     }
 }
 
@@ -664,7 +664,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 }
                 $customizer->set($sectionKey, $fieldKey, $value);
             }
-            $success = 'Einstellungen für &bdquo;' . htmlspecialchars($config[$saveTab]['title']) . '&ldquo; gespeichert.';
+            $success = 'Einstellungen für „' . (string) $config[$saveTab]['title'] . '“ gespeichert.';
         }
     }
 }
