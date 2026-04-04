@@ -41,6 +41,7 @@ Je nach Modul- und Theme-Stand können Einträge aus Seiten, Beiträgen oder als
 Aktueller URL-Vertrag im Editor:
 
 - interne Ziele dürfen als Slug oder Pfad eingegeben werden, z. B. `kontakt`, `unternehmen/team` oder `/kontakt`
+- Startseiten-Ziele werden zusätzlich robuster auf `/` normalisiert, auch wenn im Editor Aliasformen wie `index.php`, `home` oder `startseite` auftauchen oder ein Home-Eintrag ohne explizite URL gespeichert wird
 - absolute Links bleiben auf `http`/`https` begrenzt
 - neue Container-/Elternpunkte dürfen im Editor zunächst ohne URL angelegt werden; erst beim finalen Speichern müssen echte Ziel-Items eine valide URL haben
 - Elternpunkte ohne echte Ziel-URL werden beim Speichern fail-safe auf `#` normalisiert, statt den kompletten Save-Vorgang mit einem generischen URL-Fehler zu blockieren

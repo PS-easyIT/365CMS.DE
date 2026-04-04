@@ -7,9 +7,86 @@ if (!defined('ABSPATH')) {
 ?>
 <script>
 (function() {
+    var modal = document.getElementById('confirm-reset-modal');
+    var resetForm = document.getElementById('reset-form');
     var liveStyle = document.createElement('style');
     liveStyle.id = 'customizer-live-preview';
     document.head.appendChild(liveStyle);
+
+    function setPreviewStatus(uploadRoot, message, isError) {
+        var status = uploadRoot ? uploadRoot.querySelector('[data-preview-status]') : null;
+        if (!status) {
+            return;
+        }
+
+        status.textContent = message || '';
+        status.classList.toggle('customizer-preview-error', Boolean(isError));
+    }
+
+    function renderPreviewImage(uploadRoot, src) {
+        var previewWrap = uploadRoot ? uploadRoot.querySelector('[data-preview-wrap]') : null;
+        var previewImage = uploadRoot ? uploadRoot.querySelector('[data-preview-image]') : null;
+        var placeholder = uploadRoot ? uploadRoot.querySelector('[data-preview-placeholder]') : null;
+
+        if (!previewWrap) {
+            return;
+        }
+
+        if (previewImage) {
+            previewImage.src = src;
+        } else {
+            previewWrap.innerHTML = '';
+            previewImage = document.createElement('img');
+            previewImage.alt = 'Logo';
+            previewImage.className = 'customizer-logo-preview-img';
+            previewImage.setAttribute('data-preview-image', '');
+            previewImage.src = src;
+            previewWrap.appendChild(previewImage);
+        }
+
+        if (placeholder) {
+            placeholder.remove();
+        }
+    }
+
+    function renderPreviewError(uploadRoot, message) {
+        var previewWrap = uploadRoot ? uploadRoot.querySelector('[data-preview-wrap]') : null;
+        if (!previewWrap) {
+            return;
+        }
+
+        previewWrap.innerHTML = '';
+        var errorNode = document.createElement('span');
+        errorNode.className = 'customizer-logo-preview-empty customizer-preview-error';
+        errorNode.setAttribute('data-preview-placeholder', '');
+        errorNode.textContent = message;
+        previewWrap.appendChild(errorNode);
+    }
+
+    function getUploadRoot(element) {
+        return element ? element.closest('[data-customizer-image-upload]') : null;
+    }
+
+    function openResetModal() {
+        if (modal) {
+            modal.style.display = 'flex';
+            modal.classList.remove('customizer-modal-hidden');
+        }
+    }
+
+    function closeResetModal() {
+        if (modal) {
+            modal.style.display = 'none';
+            modal.classList.add('customizer-modal-hidden');
+        }
+    }
+
+    function confirmReset() {
+        closeResetModal();
+        if (resetForm) {
+            resetForm.submit();
+        }
+    }
 
     function updateLivePreview() {
         var rules = ':root {\n';
@@ -66,7 +143,7 @@ if (!defined('ABSPATH')) {
     if (colorSection && document.querySelector('input[name="colors_accent_color"]')) {
         var palette = document.createElement('div');
         palette.id = 'color-palette-preview';
-        palette.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;padding:1rem 0 0;';
+        palette.className = 'customizer-palette';
 
         [
             { name: 'colors_accent_color', label: 'Akzent' },
@@ -83,11 +160,12 @@ if (!defined('ABSPATH')) {
             }
 
             var swatch = document.createElement('div');
-            swatch.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:2px;';
+            swatch.className = 'customizer-swatch';
             var dot = document.createElement('div');
-            dot.style.cssText = 'width:32px;height:32px;border-radius:50%;border:2px solid rgba(0,0,0,.1);background:' + input.value + ';';
+            dot.className = 'customizer-swatch-dot';
+            dot.style.background = input.value;
             var label = document.createElement('span');
-            label.style.cssText = 'font-size:0.68rem;color:#64748b;max-width:48px;text-align:center;line-height:1.2;';
+            label.className = 'customizer-swatch-label';
             label.textContent = colorField.label;
             swatch.appendChild(dot);
             swatch.appendChild(label);
@@ -121,61 +199,65 @@ if (!defined('ABSPATH')) {
         }
     });
 
+    document.querySelectorAll('[data-customizer-image-file]').forEach(function(fileInput) {
+        fileInput.addEventListener('change', function() {
+            var uploadRoot = getUploadRoot(fileInput);
+            if (!fileInput.files || !fileInput.files[0]) {
+                return;
+            }
+
+            var reader = new FileReader();
+            reader.onload = function(event) {
+                renderPreviewImage(uploadRoot, String(event.target && event.target.result ? event.target.result : ''));
+                var urlField = uploadRoot ? uploadRoot.querySelector('[data-customizer-image-url]') : null;
+                if (urlField) {
+                    urlField.value = '';
+                }
+                setPreviewStatus(uploadRoot, 'Lokale Datei ausgewählt.', false);
+            };
+            reader.readAsDataURL(fileInput.files[0]);
+        });
+    });
+
+    document.querySelectorAll('[data-customizer-image-url]').forEach(function(urlField) {
+        urlField.addEventListener('input', function() {
+            var uploadRoot = getUploadRoot(urlField);
+            var url = urlField.value.trim();
+
+            if (url === '') {
+                setPreviewStatus(uploadRoot, '', false);
+                return;
+            }
+
+            if (!/^https?:\/\//i.test(url)) {
+                setPreviewStatus(uploadRoot, 'Bitte eine vollständige http(s)-URL eingeben.', true);
+                return;
+            }
+
+            setPreviewStatus(uploadRoot, '', false);
+            renderPreviewImage(uploadRoot, url);
+            var previewImage = uploadRoot ? uploadRoot.querySelector('[data-preview-image]') : null;
+            if (previewImage) {
+                previewImage.onerror = function() {
+                    renderPreviewError(uploadRoot, 'Bild konnte nicht geladen werden');
+                    setPreviewStatus(uploadRoot, 'Die Bild-URL konnte nicht geladen werden.', true);
+                };
+            }
+        });
+    });
+
+    document.querySelectorAll('[data-customizer-reset-open]').forEach(function(button) {
+        button.addEventListener('click', openResetModal);
+    });
+
+    document.querySelectorAll('[data-customizer-reset-close]').forEach(function(button) {
+        button.addEventListener('click', closeResetModal);
+    });
+
+    document.querySelectorAll('[data-customizer-reset-confirm]').forEach(function(button) {
+        button.addEventListener('click', confirmReset);
+    });
+
     updateLivePreview();
 })();
-
-function previewLogoUpload(input) {
-    if (!input.files || !input.files[0]) {
-        return;
-    }
-
-    var reader = new FileReader();
-    reader.onload = function(event) {
-        var wrap = document.getElementById('logo-preview-wrap');
-        var image = document.getElementById('logo-preview-img');
-        if (image && image.tagName === 'IMG') {
-            image.src = event.target.result;
-        } else if (wrap) {
-            wrap.innerHTML = '<img id="logo-preview-img" src="' + event.target.result + '" alt="Logo" class="customizer-logo-preview-img">';
-        }
-        var urlField = document.querySelector('input[name="header_logo_url"]');
-        if (urlField) {
-            urlField.value = '';
-        }
-    };
-    reader.readAsDataURL(input.files[0]);
-}
-
-function syncLogoUrlPreview(url) {
-    var wrap = document.getElementById('logo-preview-wrap');
-    if (!wrap) {
-        return;
-    }
-
-    if (url && /^https?:\/\//.test(url)) {
-        wrap.innerHTML = '<img id="logo-preview-img" src="' + url + '" alt="Logo" class="customizer-logo-preview-img" onerror="this.parentElement.innerHTML=\'<span class=&quot;customizer-logo-preview-empty&quot; style=&quot;color:#ef4444&quot;>Bild konnte nicht geladen werden</span>\'">';
-    }
-}
-
-function showResetConfirm() {
-    var modal = document.getElementById('confirm-reset-modal');
-    if (modal) {
-        modal.style.display = 'flex';
-    }
-}
-
-function closeResetModal() {
-    var modal = document.getElementById('confirm-reset-modal');
-    if (modal) {
-        modal.style.display = 'none';
-    }
-}
-
-function confirmReset() {
-    closeResetModal();
-    var form = document.getElementById('reset-form');
-    if (form) {
-        form.submit();
-    }
-}
 </script>

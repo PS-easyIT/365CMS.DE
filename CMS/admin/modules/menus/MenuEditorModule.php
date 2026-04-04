@@ -21,6 +21,7 @@ class MenuEditorModule
     private const MAX_MENU_NAME_LENGTH = 255;
     private const MAX_ITEM_TITLE_LENGTH = 255;
     private const MAX_ITEM_ICON_LENGTH = 100;
+    private const HOMEPAGE_TITLES = ['startseite', 'home', 'homepage'];
 
     private Database $db;
     private Logger $logger;
@@ -616,6 +617,11 @@ class MenuEditorModule
 
         foreach ($normalized as $index => $item) {
             if (($item['url'] ?? '') === '') {
+                if ($this->isHomepageMenuTitle((string) ($item['title'] ?? ''))) {
+                    $normalized[$index]['url'] = '/';
+                    continue;
+                }
+
                 if (isset($parentIds[$item['id']])) {
                     $normalized[$index]['url'] = '#';
                 } else {
@@ -698,6 +704,10 @@ class MenuEditorModule
             return '';
         }
 
+        if ($this->isHomepageMenuAlias($url)) {
+            return '/';
+        }
+
         if ($this->isNoOpMenuItemUrl($url)) {
             return '#';
         }
@@ -709,6 +719,15 @@ class MenuEditorModule
 
         if (preg_match('#^(?:/(?!/)|#|\?|mailto:|tel:)#i', $sanitized) === 1) {
             return $sanitized;
+        }
+
+        if (defined('SITE_URL') && is_string(SITE_URL) && SITE_URL !== '') {
+            $siteUrl = rtrim((string) SITE_URL, '/');
+            if ($siteUrl !== '' && str_starts_with($sanitized, $siteUrl)) {
+                $relative = substr($sanitized, strlen($siteUrl));
+
+                return $relative === '' ? '/' : $this->normalizeMenuItemUrl($relative);
+            }
         }
 
         if (preg_match('#^(?!//)(?![a-z][a-z0-9+\-.]*:)#i', $sanitized) === 1) {
@@ -740,6 +759,24 @@ class MenuEditorModule
         $scheme = strtolower((string) parse_url($validated, PHP_URL_SCHEME));
 
         return in_array($scheme, ['http', 'https'], true) ? $validated : '';
+    }
+
+    private function isHomepageMenuTitle(string $title): bool
+    {
+        $normalizedTitle = function_exists('mb_strtolower')
+            ? mb_strtolower(trim($title))
+            : strtolower(trim($title));
+
+        return in_array($normalizedTitle, self::HOMEPAGE_TITLES, true);
+    }
+
+    private function isHomepageMenuAlias(string $url): bool
+    {
+        $normalizedUrl = function_exists('mb_strtolower')
+            ? mb_strtolower(trim($url))
+            : strtolower(trim($url));
+
+        return in_array($normalizedUrl, ['/', 'index.php', './', 'home', 'homepage', 'startseite'], true);
     }
 
     private function isNoOpMenuItemUrl(string $url): bool

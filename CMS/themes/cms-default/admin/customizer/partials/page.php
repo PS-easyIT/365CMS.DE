@@ -68,7 +68,7 @@ if (!defined('ABSPATH')) {
                         <div class="admin-card form-actions-card">
                             <div class="form-actions customizer-form-actions">
                                 <button type="submit" class="btn btn-primary">💾 Einstellungen speichern</button>
-                                <button type="button" class="btn btn-secondary" onclick="showResetConfirm()" title="Alle Einstellungen dieses Tabs auf die Standard-Designwerte zurücksetzen">
+                                <button type="button" class="btn btn-secondary" data-customizer-reset-open title="Alle Einstellungen dieses Tabs auf die Standard-Designwerte zurücksetzen">
                                     ↺ Auf Standardwerte zurücksetzen
                                 </button>
                             </div>
@@ -79,7 +79,7 @@ if (!defined('ABSPATH')) {
         </form>
 
         <?php if (isset($config[$activeTab])): ?>
-            <form id="reset-form" method="POST" action="?tab=<?php echo htmlspecialchars($activeTab, ENT_QUOTES); ?>" style="display:none;">
+            <form id="reset-form" method="POST" action="?tab=<?php echo htmlspecialchars($activeTab, ENT_QUOTES); ?>" class="customizer-hidden-form">
                 <input type="hidden" name="action" value="reset_theme_tab">
                 <input type="hidden" name="active_section" value="<?php echo htmlspecialchars($activeTab, ENT_QUOTES); ?>">
                 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($customizerCsrfToken, ENT_QUOTES); ?>">

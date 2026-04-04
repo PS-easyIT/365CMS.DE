@@ -1,6 +1,8 @@
 (function () {
     'use strict';
 
+    var HOMEPAGE_TITLES = ['startseite', 'home', 'homepage'];
+
     function parseConfig(id) {
         var element = document.getElementById(id);
         if (!element) {
@@ -65,6 +67,19 @@
             return String(value || '').trim();
         }
 
+        function normalizeTitle(value) {
+            return String(value || '').trim().toLowerCase();
+        }
+
+        function isHomepageTitle(value) {
+            return HOMEPAGE_TITLES.indexOf(normalizeTitle(value)) !== -1;
+        }
+
+        function isHomepageAlias(value) {
+            var normalized = normalizeUrl(value).toLowerCase();
+            return ['', '/', 'index.php', './', 'home', 'homepage', 'startseite'].indexOf(normalized) !== -1;
+        }
+
         function isNoOpMenuUrl(value) {
             return /^javascript:\s*(?:void\(0\)|;?)\s*;?$/i.test(normalizeUrl(value));
         }
@@ -84,6 +99,10 @@
         function normalizeMenuUrlForStorage(value, allowEmptyPlaceholder) {
             var normalized = normalizeUrl(value);
             var parser;
+
+            if (isHomepageAlias(normalized)) {
+                return normalized === '' && allowEmptyPlaceholder ? '#' : '/';
+            }
 
             if (normalized === '') {
                 return allowEmptyPlaceholder ? '#' : '';
@@ -145,6 +164,11 @@
             }
 
             normalizedUrl = normalizeMenuUrlForStorage(item.url, itemHasChildren(item.id));
+            if ((normalizedUrl === '' || normalizedUrl === '#') && isHomepageTitle(item.title)) {
+                item.url = '/';
+                return '';
+            }
+
             if (normalizedUrl === '' && options.allowEmptyUrl === true) {
                 item.url = '';
                 return '';
@@ -470,6 +494,10 @@
                         setFieldError(newItemUrl, validationError);
                     }
                     return;
+                }
+
+                if ((url === '' || url === '#') && isHomepageTitle(title)) {
+                    url = '/';
                 }
 
                 menuItems.push({ id: nextTempId(), title: title, url: url, target: target, icon: '', parent_id: parentId });
