@@ -290,8 +290,7 @@ class PostsModule
         return [
             'posts'      => array_map(fn($p) => (array)$p, $posts),
             'categories' => $categories,
-            'counts'     => compact('total', 'published', 'scheduled', 'drafts'),
-                        'counts'     => compact('total', 'published', 'scheduled', 'drafts', 'private'),
+            'counts'     => compact('total', 'published', 'scheduled', 'drafts', 'private'),
             'filter'     => $statusFilter,
             'catFilter'  => $categoryFilter,
             'search'     => $search,
@@ -361,7 +360,6 @@ class PostsModule
     {
         $categories = $this->db->get_results(
             "SELECT c.id, c.name, c.slug, c.parent_id, c.sort_order, c.alias_domains_json, c.replacement_category_id,
-                        'counts'     => compact('total', 'published', 'scheduled', 'drafts', 'private'),
                     (
                         SELECT COUNT(DISTINCT p2.id)
                         FROM {$this->prefix}posts p2
