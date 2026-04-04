@@ -1,6 +1,29 @@
 (function () {
     'use strict';
 
+    var editorToolbarButtons = [
+        { block: 'header', label: 'H2', title: 'Überschrift H2', level: 2 },
+        { block: 'paragraph', label: 'Text', title: 'Textabsatz' },
+        { block: 'list', label: 'Liste', title: 'Liste' },
+        { block: 'image', label: 'Bild', title: 'Bild' },
+        { block: 'mediaText', label: 'Medien+Text', title: 'Medien + Text' },
+        { block: 'imageGallery', label: 'Gallery', title: 'Gallery', columns: 3 },
+        { block: 'callout', label: 'Callout', title: 'Callout / Hinweisbox' },
+        { block: 'terminal', label: 'Terminal', title: 'Terminal / Command Block' },
+        { block: 'codeTabs', label: 'Code Tabs', title: 'Code Tabs' },
+        { block: 'mermaid', label: 'Mermaid', title: 'Mermaid / Diagramm' },
+        { block: 'apiEndpoint', label: 'API', title: 'API Endpoint Block' },
+        { block: 'changelog', label: 'Changelog', title: 'Changelog / Version' },
+        { block: 'prosCons', label: 'Pros/Cons', title: 'Pros / Cons' },
+        { block: 'embed', label: 'Embed', title: 'Embed' },
+        { block: 'columns', label: 'Spalten', title: 'Spalten' },
+        { block: 'accordion', label: 'Akk.', title: 'Accordion' },
+        { block: 'table', label: 'Tabelle', title: 'Tabelle' },
+        { block: 'quote', label: 'Zitat', title: 'Zitat' },
+        { block: 'delimiter', label: 'Trenner', title: 'Trennlinie' },
+        { block: 'spacer', label: 'Abstand', title: 'Leerraum / Abstand', height: 15 }
+    ];
+
     function parseJsonInput(id, fallback) {
         var input = document.getElementById(id);
         if (!input || !input.value) {
@@ -16,6 +39,114 @@
 
     function getElement(id) {
         return id ? document.getElementById(id) : null;
+    }
+
+    function buildToolbarButtonMarkup(config) {
+        var attrs = [
+            'type="button"',
+            'data-block="' + String(config.block || '') + '"',
+            'title="' + String(config.title || config.label || '') + '"'
+        ];
+
+        if (config.level) {
+            attrs.push('data-level="' + String(config.level) + '"');
+        }
+        if (config.height) {
+            attrs.push('data-height="' + String(config.height) + '"');
+        }
+        if (config.columns) {
+            attrs.push('data-columns="' + String(config.columns) + '"');
+        }
+
+        return '<button ' + attrs.join(' ') + '><span>' + String(config.label || config.block || '') + '</span></button>';
+    }
+
+    function ensureLiveEditorChrome(holder, editor) {
+        var wrap = holder ? holder.closest('.editorjs-wrap') : null;
+        var toolbar;
+        var statusbar;
+        var countEl;
+
+        if (!wrap || !editor || !editor.blocks) {
+            return;
+        }
+
+        toolbar = wrap.querySelector('.editorjs-toolbar');
+        if (!toolbar) {
+            toolbar = document.createElement('div');
+            toolbar.className = 'editorjs-toolbar';
+            toolbar.innerHTML = editorToolbarButtons.map(buildToolbarButtonMarkup).join('');
+            wrap.insertBefore(toolbar, holder);
+        }
+
+        statusbar = wrap.querySelector('.editorjs-statusbar');
+        if (!statusbar) {
+            statusbar = document.createElement('div');
+            statusbar.className = 'editorjs-statusbar';
+            statusbar.innerHTML = '<span class="editorjs-statusbar__hint">Tippe <kbd>/</kbd> oder nutze die Schnellbuttons für die Tech-Blöcke.</span><span class="editorjs-statusbar__count"></span>';
+            if (holder.nextSibling) {
+                wrap.insertBefore(statusbar, holder.nextSibling);
+            } else {
+                wrap.appendChild(statusbar);
+            }
+        }
+
+        countEl = statusbar.querySelector('.editorjs-statusbar__count');
+
+        toolbar.addEventListener('click', function (event) {
+            var btn = event.target.closest('button[data-block]');
+            var blockType;
+            var blockData = {};
+            var level;
+            var height;
+            var columns;
+            var lastIndex;
+
+            if (!btn || !editor || !editor.blocks) {
+                return;
+            }
+
+            blockType = btn.getAttribute('data-block');
+            level = btn.getAttribute('data-level');
+            height = btn.getAttribute('data-height');
+            columns = btn.getAttribute('data-columns');
+
+            if (level) {
+                blockData.level = parseInt(level, 10);
+            }
+            if (height) {
+                blockData.height = parseInt(height, 10);
+                blockData.preset = height + 'px';
+            }
+            if (columns) {
+                blockData.columns = parseInt(columns, 10);
+            }
+
+            editor.blocks.insert(blockType, blockData);
+
+            lastIndex = editor.blocks.getBlocksCount() - 1;
+            if (editor.caret && typeof editor.caret.setToBlock === 'function') {
+                editor.caret.setToBlock(lastIndex, 'start');
+            }
+        });
+
+        function updateBlockCount() {
+            if (!countEl || !editor || !editor.blocks) {
+                return;
+            }
+
+            var count = editor.blocks.getBlocksCount();
+            countEl.textContent = count + (count === 1 ? ' Block' : ' Blöcke');
+        }
+
+        editor.isReady.then(function () {
+            updateBlockCount();
+        });
+
+        var intervalId = window.setInterval(updateBlockCount, 2000);
+        window.setTimeout(function () {
+            window.clearInterval(intervalId);
+        }, 300000);
     }
 
     function buildPreviewUrl(base, slug, template, placeholderSlug) {
@@ -234,14 +365,18 @@
         function bindEditor(definition) {
             var holder = getElement(definition.holderId);
             var input = getElement(definition.inputId);
+            var editorInstance;
 
             if (!definition || !holder || !input || editors[definition.key]) {
                 return;
             }
 
+            editorInstance = window.createCmsEditor(definition.holderId, input.value || '', config.mediaUploadUrl, config.csrfToken);
+            ensureLiveEditorChrome(holder, editorInstance);
+
             editors[definition.key] = {
                 input: input,
-                instance: window.createCmsEditor(definition.holderId, input.value || '', config.mediaUploadUrl, config.csrfToken)
+                instance: editorInstance
             };
         }
 

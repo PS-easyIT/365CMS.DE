@@ -4075,7 +4075,8 @@ input:checked + .slider:before { transform: translateX(22px); }
 }
 
 .editorjs-holder .editorjs-media-text-tool,
-.editorjs-holder .editorjs-gallery-tool {
+.editorjs-holder .editorjs-gallery-tool,
+.editorjs-holder .editorjs-structured-tool {
     max-width: 100%;
     border: 1px solid rgba(203, 213, 225, 0.88);
     border-radius: 16px;
@@ -4216,7 +4217,10 @@ input:checked + .slider:before { transform: translateX(22px); }
 .editorjs-holder .editorjs-media-text-tool__input,
 .editorjs-holder .editorjs-media-text-tool__textarea,
 .editorjs-holder .editorjs-gallery-tool__caption,
-.editorjs-holder .editorjs-gallery-tool__select {
+.editorjs-holder .editorjs-gallery-tool__select,
+.editorjs-holder .editorjs-structured-tool__input,
+.editorjs-holder .editorjs-structured-tool__textarea,
+.editorjs-holder .editorjs-structured-tool__select {
     width: 100%;
     border: 1px solid #dbe4f0;
     border-radius: 12px;
@@ -4228,12 +4232,15 @@ input:checked + .slider:before { transform: translateX(22px); }
 
 .editorjs-holder .editorjs-media-text-tool__input,
 .editorjs-holder .editorjs-gallery-tool__caption,
-.editorjs-holder .editorjs-gallery-tool__select {
+.editorjs-holder .editorjs-gallery-tool__select,
+.editorjs-holder .editorjs-structured-tool__input,
+.editorjs-holder .editorjs-structured-tool__select {
     min-height: 42px;
     padding: 0.7rem 0.85rem;
 }
 
-.editorjs-holder .editorjs-media-text-tool__textarea {
+.editorjs-holder .editorjs-media-text-tool__textarea,
+.editorjs-holder .editorjs-structured-tool__textarea {
     min-height: 220px;
     padding: 0.9rem 1rem;
     resize: vertical;
@@ -4243,10 +4250,101 @@ input:checked + .slider:before { transform: translateX(22px); }
 .editorjs-holder .editorjs-media-text-tool__input:focus,
 .editorjs-holder .editorjs-media-text-tool__textarea:focus,
 .editorjs-holder .editorjs-gallery-tool__caption:focus,
-.editorjs-holder .editorjs-gallery-tool__select:focus {
+.editorjs-holder .editorjs-gallery-tool__select:focus,
+.editorjs-holder .editorjs-structured-tool__input:focus,
+.editorjs-holder .editorjs-structured-tool__textarea:focus,
+.editorjs-holder .editorjs-structured-tool__select:focus {
     outline: none;
     border-color: rgba(37, 99, 235, 0.5);
     box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+}
+
+.editorjs-holder .editorjs-structured-tool__grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.9rem;
+}
+
+.editorjs-holder .editorjs-structured-tool__grid--two {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.editorjs-holder .editorjs-structured-tool__field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.42rem;
+    min-width: 0;
+}
+
+.editorjs-holder .editorjs-structured-tool__field--full {
+    grid-column: 1 / -1;
+}
+
+.editorjs-holder .editorjs-structured-tool__field > span {
+    font-size: 0.76rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: #64748b;
+    text-transform: uppercase;
+}
+
+.editorjs-holder .editorjs-structured-tool__button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    width: fit-content;
+    padding: 0.52rem 0.85rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 999px;
+    background: #f8fafc;
+    color: #334155;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.editorjs-holder .editorjs-structured-tool__button:hover,
+.editorjs-holder .editorjs-structured-tool__button:focus {
+    outline: none;
+    border-color: var(--tblr-primary, #3b82f6);
+    background: #eff6ff;
+    color: var(--tblr-primary, #2563eb);
+}
+
+.editorjs-holder .editorjs-structured-tool__button--primary {
+    background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%);
+    border-color: #1d4ed8;
+    color: #fff;
+}
+
+.editorjs-holder .editorjs-structured-tool__button--primary:hover,
+.editorjs-holder .editorjs-structured-tool__button--primary:focus {
+    background: linear-gradient(180deg, #1d4ed8 0%, #1e40af 100%);
+    color: #fff;
+}
+
+.editorjs-holder .editorjs-structured-tool__button--danger {
+    color: #b91c1c;
+    background: #fff5f5;
+    border-color: rgba(248, 113, 113, 0.45);
+}
+
+.editorjs-holder .editorjs-code-tabs-tool__tabs {
+    display: grid;
+    gap: 0.9rem;
+    margin-top: 0.9rem;
+}
+
+.editorjs-holder .editorjs-code-tabs-tool__tab {
+    display: grid;
+    gap: 0.8rem;
+    padding: 0.9rem;
+    border-radius: 14px;
+    background: #fff;
+    border: 1px solid #e5edf8;
+    box-shadow: 0 8px 22px rgba(15, 23, 42, 0.04);
 }
 
 .editorjs-holder .editorjs-gallery-tool__grid {
@@ -4709,6 +4807,10 @@ input:checked + .slider:before { transform: translateX(22px); }
     }
 
     .editorjs-holder .editorjs-media-text-tool__layout {
+        grid-template-columns: 1fr;
+    }
+
+    .editorjs-holder .editorjs-structured-tool__grid--two {
         grid-template-columns: 1fr;
     }
 

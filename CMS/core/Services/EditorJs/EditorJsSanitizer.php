@@ -52,6 +52,7 @@ final class EditorJsSanitizer
             'paragraph', 'header', 'list', 'checklist', 'quote', 'warning',
             'code', 'raw', 'table', 'image', 'attaches', 'linkTool', 'delimiter',
             'embed', 'imageGallery', 'carousel', 'columns', 'accordion', 'drawingTool', 'spacer', 'mediaText',
+            'callout', 'terminal', 'codeTabs', 'mermaid', 'apiEndpoint', 'changelog', 'prosCons',
         ];
 
         $type = (string) ($block['type'] ?? '');
@@ -214,6 +215,91 @@ final class EditorJsSanitizer
                 $data['file'] = $this->sanitizeFileInfo(is_array($data['file'] ?? null) ? $data['file'] : []);
                 $data['alt'] = strip_tags((string) ($data['alt'] ?? ''), '');
                 $data['text'] = trim((string) ($data['text'] ?? ''));
+                break;
+
+            case 'callout':
+                $variant = (string) ($data['variant'] ?? 'info');
+                $data = [
+                    'variant' => in_array($variant, ['info', 'warning', 'success'], true) ? $variant : 'info',
+                    'title' => strip_tags((string) ($data['title'] ?? ''), $inlineAllowed),
+                    'message' => strip_tags((string) ($data['message'] ?? ''), $inlineAllowed),
+                ];
+                break;
+
+            case 'terminal':
+                $shell = (string) ($data['shell'] ?? 'bash');
+                $data = [
+                    'shell' => in_array($shell, ['bash', 'sh', 'zsh', 'powershell', 'cmd'], true) ? $shell : 'bash',
+                    'title' => strip_tags((string) ($data['title'] ?? ''), $inlineAllowed),
+                    'command' => (string) ($data['command'] ?? ''),
+                    'output' => (string) ($data['output'] ?? ''),
+                ];
+                break;
+
+            case 'codeTabs':
+                $tabs = array_values(array_filter(array_map(static function ($tab) {
+                    if (!is_array($tab)) {
+                        return null;
+                    }
+
+                    $label = strip_tags((string) ($tab['label'] ?? ''), '');
+                    $language = preg_replace('/[^a-z0-9_\-+#]/i', '', (string) ($tab['language'] ?? ''));
+                    $code = (string) ($tab['code'] ?? '');
+
+                    if ($label === '' && trim($code) === '') {
+                        return null;
+                    }
+
+                    return [
+                        'label' => $label !== '' ? $label : 'Tab',
+                        'language' => $language,
+                        'code' => $code,
+                    ];
+                }, is_array($data['tabs'] ?? null) ? $data['tabs'] : [])));
+
+                $data = [
+                    'title' => strip_tags((string) ($data['title'] ?? ''), $inlineAllowed),
+                    'tabs' => array_slice($tabs, 0, 8),
+                ];
+                break;
+
+            case 'mermaid':
+                $data = [
+                    'title' => strip_tags((string) ($data['title'] ?? ''), $inlineAllowed),
+                    'code' => (string) ($data['code'] ?? ''),
+                    'caption' => strip_tags((string) ($data['caption'] ?? ''), $inlineAllowed),
+                ];
+                break;
+
+            case 'apiEndpoint':
+                $method = strtoupper((string) ($data['method'] ?? 'GET'));
+                $data = [
+                    'method' => in_array($method, ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'], true) ? $method : 'GET',
+                    'path' => strip_tags((string) ($data['path'] ?? ''), ''),
+                    'summary' => strip_tags((string) ($data['summary'] ?? ''), $inlineAllowed),
+                    'auth' => strip_tags((string) ($data['auth'] ?? ''), $inlineAllowed),
+                    'requestExample' => (string) ($data['requestExample'] ?? ''),
+                    'responseExample' => (string) ($data['responseExample'] ?? ''),
+                ];
+                break;
+
+            case 'changelog':
+                $data = [
+                    'title' => strip_tags((string) ($data['title'] ?? ''), $inlineAllowed),
+                    'version' => strip_tags((string) ($data['version'] ?? ''), ''),
+                    'date' => strip_tags((string) ($data['date'] ?? ''), ''),
+                    'items' => array_values(array_filter(array_map(static fn($item) => trim(strip_tags((string) $item, $inlineAllowed)), is_array($data['items'] ?? null) ? $data['items'] : []))),
+                ];
+                break;
+
+            case 'prosCons':
+                $data = [
+                    'title' => strip_tags((string) ($data['title'] ?? ''), $inlineAllowed),
+                    'prosTitle' => strip_tags((string) ($data['prosTitle'] ?? 'Vorteile'), $inlineAllowed),
+                    'consTitle' => strip_tags((string) ($data['consTitle'] ?? 'Nachteile'), $inlineAllowed),
+                    'pros' => array_values(array_filter(array_map(static fn($item) => trim(strip_tags((string) $item, $inlineAllowed)), is_array($data['pros'] ?? null) ? $data['pros'] : []))),
+                    'cons' => array_values(array_filter(array_map(static fn($item) => trim(strip_tags((string) $item, $inlineAllowed)), is_array($data['cons'] ?? null) ? $data['cons'] : []))),
+                ];
                 break;
 
             case 'carousel':

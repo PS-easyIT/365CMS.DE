@@ -109,6 +109,34 @@ final class EditorJsAssetService
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 9h.01"/><path d="M21 15l-4.5-4.5a1.5 1.5 0 00-2.12 0L9 15.88"/><path d="M3 17l4.5-4.5a1.5 1.5 0 012.12 0L13 16"/></svg>
                     <span>Gallery</span>
                 </button>
+                <button type="button" data-block="callout" title="Callout / Hinweisbox">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.29 3.86l-7.5 13A2 2 0 004.53 20h14.94a2 2 0 001.74-3.14l-7.5-13a2 2 0 00-3.46 0z"/></svg>
+                    <span>Callout</span>
+                </button>
+                <button type="button" data-block="terminal" title="Terminal / Command Block">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 17l6-5-6-5"/><path d="M12 19h8"/></svg>
+                    <span>Terminal</span>
+                </button>
+                <button type="button" data-block="codeTabs" title="Code Tabs">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/><path d="M8 5v5"/></svg>
+                    <span>Code Tabs</span>
+                </button>
+                <button type="button" data-block="mermaid" title="Mermaid / Diagramm">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h10"/><path d="M10 12h10"/><path d="M4 18h10"/><circle cx="17" cy="6" r="2"/><circle cx="7" cy="12" r="2"/><circle cx="17" cy="18" r="2"/></svg>
+                    <span>Mermaid</span>
+                </button>
+                <button type="button" data-block="apiEndpoint" title="API Endpoint Block">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 12h8"/><path d="M12 8v8"/><rect x="4" y="4" width="16" height="16" rx="3"/></svg>
+                    <span>API</span>
+                </button>
+                <button type="button" data-block="changelog" title="Changelog / Version-Hinweis">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h12"/><path d="M8 12h12"/><path d="M8 18h12"/><path d="M4 6h.01"/><path d="M4 12h.01"/><path d="M4 18h.01"/></svg>
+                    <span>Changelog</span>
+                </button>
+                <button type="button" data-block="prosCons" title="Pros / Cons oder Vergleichsblock">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 7h10"/><path d="M8 12h10"/><path d="M8 17h10"/><path d="M4 7h.01"/><path d="M4 12h.01"/><path d="M4 17h.01"/></svg>
+                    <span>Pros/Cons</span>
+                </button>
                 <button type="button" data-block="embed" title="Embed">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 9l-3 3l3 3"/><path d="M16 9l3 3l-3 3"/><path d="M14 5l-4 14"/></svg>
                     <span>Embed</span>
