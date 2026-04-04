@@ -76,19 +76,6 @@ try {
         CMS\CacheManager::instance()->sendResponseHeaders('private');
     }
     
-    if (CMS_DEBUG) {
-        echo '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>CMS Error</title>';
-        echo '<style>body{font-family:monospace;padding:2rem;background:#1e293b;color:#e2e8f0;}';
-        echo 'h1{color:#ef4444;margin-bottom:1rem;}pre{background:#0f172a;padding:1.5rem;border-radius:8px;overflow:auto;white-space:pre-wrap;}';
-        echo '.trace{color:#94a3b8;font-size:0.875rem;}</style></head><body>';
-        echo '<h1>⚠️ CMS Fatal Error</h1>';
-        echo '<pre><strong>Error:</strong> ' . htmlspecialchars($e->getMessage()) . "\n\n";
-        echo '<strong>File:</strong> ' . htmlspecialchars($e->getFile()) . ':' . $e->getLine() . "\n\n";
-        echo '<strong>Stack Trace:</strong></pre>';
-        echo '<pre class="trace">' . htmlspecialchars($e->getTraceAsString()) . '</pre>';
-        echo '</body></html>';
-    } else {
-        http_response_code(500);
-        include __DIR__ . '/themes/default/error.php';
-    }
+    http_response_code(500);
+    include __DIR__ . '/themes/default/error.php';
 }

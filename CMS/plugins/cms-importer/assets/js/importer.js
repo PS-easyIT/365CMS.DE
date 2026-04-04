@@ -439,8 +439,10 @@
         if (!noticeEl) {
             return;
         }
-        noticeEl.className = 'ci-notice ci-notice--' + type;
-        noticeEl.innerHTML = buildNoticeHtml(msg, reportUrl, markdownUrl);
+        var safeType = normalizeNoticeType(type);
+        noticeEl.className = 'ci-notice ci-notice--' + safeType;
+        renderNoticeContent(noticeEl, getSafeNoticeMessage(safeType));
+        logNoticeDebug(msg, safeType, reportUrl, markdownUrl);
         noticeEl.hidden = false;
         noticeEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
@@ -449,8 +451,10 @@
         if (!element) {
             return;
         }
-        element.className = 'ci-notice ci-notice--' + type;
-        element.innerHTML = buildNoticeHtml(msg, reportUrl, markdownUrl);
+        var safeType = normalizeNoticeType(type);
+        element.className = 'ci-notice ci-notice--' + safeType;
+        renderNoticeContent(element, getSafeNoticeMessage(safeType));
+        logNoticeDebug(msg, safeType, reportUrl, markdownUrl);
         element.hidden = false;
     }
 
@@ -463,15 +467,54 @@
         showFolderNotice(msg, type, target, reportUrl, markdownUrl);
     }
 
-    function buildNoticeHtml(msg, reportUrl, markdownUrl) {
-        var html = escapeHtml(msg || '');
-        if (reportUrl) {
-            html += ' <a class="ci-notice__link" href="' + escapeHtml(reportUrl) + '">📄 Bericht öffnen</a>';
+    function renderNoticeContent(element, msg) {
+        if (!element) {
+            return;
         }
-        if (markdownUrl) {
-            html += ' <a class="ci-notice__link" href="' + escapeHtml(markdownUrl) + '">📝 Markdown (.md)</a>';
+
+        element.replaceChildren();
+        element.appendChild(document.createTextNode(String(msg || '')));
+    }
+
+    function getSafeNoticeMessage(type) {
+        switch (String(type || '')) {
+            case 'success':
+                return 'Vorgang erfolgreich abgeschlossen.';
+            case 'warning':
+                return 'Vorgang abgeschlossen, aber mit Hinweisen.';
+            case 'error':
+                return 'Der Vorgang konnte nicht abgeschlossen werden.';
+            default:
+                return 'Status aktualisiert.';
         }
-        return html;
+    }
+
+    function normalizeNoticeType(type) {
+        switch (String(type || '')) {
+            case 'success':
+            case 'warning':
+            case 'error':
+                return String(type);
+            default:
+                return 'success';
+        }
+    }
+
+    function logNoticeDebug(msg, type, reportUrl, markdownUrl) {
+        var text = String(msg || '').trim();
+        var report = String(reportUrl || '').trim();
+        var markdown = String(markdownUrl || '').trim();
+        if (!text && !report && !markdown) {
+            return;
+        }
+
+        if (window.console && typeof window.console.warn === 'function') {
+            window.console.warn('[cms-importer][' + String(type || 'info') + ']', {
+                message: text,
+                reportUrl: report,
+                markdownUrl: markdown
+            });
+        }
     }
 
     function updateStats(result) {
@@ -666,8 +709,8 @@
         document.querySelectorAll('.js-cleanup-trigger').forEach(function (trigger) {
             trigger.addEventListener('click', function () {
                 cleanupActionInput.value = trigger.getAttribute('data-cleanup-action') || '';
-                cleanupModalTitle.innerHTML = trigger.getAttribute('data-cleanup-title') || 'Bereinigung bestätigen';
-                cleanupModalText.innerHTML = trigger.getAttribute('data-cleanup-body') || 'Diese Aktion kann nicht rückgängig gemacht werden.';
+                cleanupModalTitle.textContent = trigger.getAttribute('data-cleanup-title') || 'Bereinigung bestätigen';
+                cleanupModalText.textContent = trigger.getAttribute('data-cleanup-body') || 'Diese Aktion kann nicht rückgängig gemacht werden.';
                 if (cleanupResetCheckbox) {
                     cleanupResetCheckbox.checked = false;
                 }

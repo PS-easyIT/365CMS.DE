@@ -18,6 +18,8 @@ if (!defined('ABSPATH')) {
 class Api
 {
     private static ?self $instance = null;
+
+    private const GENERIC_SERVER_ERROR_MESSAGE = 'Internal server error';
     
     public static function instance(): self
     {
@@ -72,8 +74,9 @@ class Api
                 default:
                     $this->sendError('Endpoint not found', 404);
             }
-        } catch (\Exception $e) {
-            $this->sendError($e->getMessage(), 500);
+        } catch (\Throwable $e) {
+            error_log('API request failed for endpoint "' . $endpoint . '": ' . $e->getMessage());
+            $this->sendError(self::GENERIC_SERVER_ERROR_MESSAGE, 500);
         }
     }
     

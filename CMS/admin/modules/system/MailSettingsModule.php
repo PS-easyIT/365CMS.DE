@@ -60,6 +60,8 @@ final class MailSettingsActionResult
 
 class MailSettingsModule
 {
+    private const string AUTH_MODE_CREDENTIALS = 'credentials';
+    private const string AUTH_MODE_OAUTH2 = 'oauth2';
     private const int MAX_TEXT_LENGTH = 190;
     private const int MAX_HOST_LENGTH = 190;
     private const int MAX_NAME_LENGTH = 120;
@@ -140,7 +142,7 @@ class MailSettingsModule
         }
 
         $driver = ($post['driver'] ?? 'mail') === 'smtp' ? 'smtp' : 'mail';
-        $authMode = ($post['auth_mode'] ?? 'password') === 'oauth2' ? 'oauth2' : 'password';
+        $authMode = $this->normalizeAuthMode((string) ($post['auth_mode'] ?? self::AUTH_MODE_CREDENTIALS));
         $smtpEncryption = (string) ($post['smtp_encryption'] ?? 'tls');
         if (!in_array($smtpEncryption, ['tls', 'ssl', ''], true)) {
             $smtpEncryption = 'tls';
@@ -607,9 +609,11 @@ class MailSettingsModule
     /** @param array<string, mixed> $transportInfo */
     private function buildTransportData(array $mail, array $transportInfo): array
     {
+        $authMode = $this->normalizeAuthMode((string) ($mail['auth_mode'] ?? ($transportInfo['auth_mode'] ?? self::AUTH_MODE_CREDENTIALS)));
+
         return [
             'driver' => (string) ($mail['driver'] ?? (!empty($transportInfo['uses_smtp']) ? 'smtp' : 'mail')),
-            'auth_mode' => (string) ($mail['auth_mode'] ?? ($transportInfo['auth_mode'] ?? 'password')),
+            'auth_mode' => $authMode,
             'smtp_host' => (string) ($mail['smtp_host'] ?? ($transportInfo['host'] ?? '')),
             'smtp_port' => (int) ($mail['smtp_port'] ?? ($transportInfo['port'] ?? 587)),
             'smtp_encryption' => (string) ($mail['smtp_encryption'] ?? ($transportInfo['encryption_raw'] ?? 'tls')),
@@ -734,6 +738,13 @@ class MailSettingsModule
         }
 
         return $normalized;
+    }
+
+    private function normalizeAuthMode(string $value): string
+    {
+        $value = strtolower(trim($value));
+
+        return $value === self::AUTH_MODE_OAUTH2 ? self::AUTH_MODE_OAUTH2 : self::AUTH_MODE_CREDENTIALS;
     }
 
     private function maskEmail(string $email): string

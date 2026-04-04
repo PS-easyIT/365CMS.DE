@@ -30,6 +30,8 @@ if (!defined('ABSPATH')) {
 
 class MailService
 {
+    private const AUTH_MODE_CREDENTIALS = 'credentials';
+    private const AUTH_MODE_OAUTH2 = 'oauth2';
     private const MAX_SUBJECT_LENGTH = 255;
     private const MAX_BODY_LENGTH = 200000;
     private const MAX_ERROR_LENGTH = 500;
@@ -85,7 +87,7 @@ class MailService
             'from_email' => $config['from_email'],
             'from_name' => $config['from_name'],
             'auth_mode' => $config['auth_mode'],
-            'auth_mode_label' => $config['auth_mode'] === 'oauth2' ? 'Azure OAuth2 / XOAUTH2' : 'Benutzername + Passwort',
+            'auth_mode_label' => $config['auth_mode'] === self::AUTH_MODE_OAUTH2 ? 'Azure OAuth2 / XOAUTH2' : 'Benutzername + Passwort',
         ];
     }
 
@@ -801,7 +803,7 @@ class MailService
             $messageId,
             null,
             [
-                'auth_mode' => $config['auth_mode'] ?? 'password',
+                'auth_mode' => $config['auth_mode'] ?? self::AUTH_MODE_CREDENTIALS,
                 'host' => $config['smtp_host'] ?? '',
                 'port' => $config['smtp_port'] ?? 0,
                 'header_keys' => array_keys($this->normalizeHeaders($headers)),
@@ -835,7 +837,7 @@ class MailService
             null,
             $safeError,
             [
-                'auth_mode' => $config['auth_mode'] ?? 'password',
+                'auth_mode' => $config['auth_mode'] ?? self::AUTH_MODE_CREDENTIALS,
                 'host' => $config['smtp_host'] ?? '',
                 'port' => $config['smtp_port'] ?? 0,
                 'header_keys' => array_keys($this->normalizeHeaders($headers)),
@@ -944,8 +946,7 @@ class MailService
         $driver = $this->settings->getString('mail', 'driver', defined('SMTP_HOST') && (string) SMTP_HOST !== '' ? 'smtp' : 'mail');
         $driver = $driver === 'smtp' ? 'smtp' : 'mail';
 
-        $authMode = $this->settings->getString('mail', 'auth_mode', 'password');
-        $authMode = $authMode === 'oauth2' ? 'oauth2' : 'password';
+        $authMode = $this->normalizeAuthMode($this->settings->getString('mail', 'auth_mode', self::AUTH_MODE_CREDENTIALS));
 
         $smtpHost = $this->normalizeSmtpHost($this->settings->getString(
             'mail',
@@ -954,7 +955,7 @@ class MailService
                 ? 'smtp.office365.com'
                 : (defined('SMTP_HOST') ? (string) SMTP_HOST : '')
         ));
-        if ($authMode === 'oauth2' && $smtpHost === '') {
+        if ($authMode === self::AUTH_MODE_OAUTH2 && $smtpHost === '') {
             $smtpHost = 'smtp.office365.com';
         }
 
@@ -963,7 +964,7 @@ class MailService
 
         $oauthMailbox = $this->settings->getString('mail', 'azure_mailbox');
         $smtpUsername = $this->sanitizeHeaderValue($this->settings->getString('mail', 'smtp_username', defined('SMTP_USER') ? (string) SMTP_USER : ''));
-        if ($authMode === 'oauth2' && $oauthMailbox !== '') {
+        if ($authMode === self::AUTH_MODE_OAUTH2 && $oauthMailbox !== '') {
             $smtpUsername = $this->sanitizeRequiredEmail($oauthMailbox, 'Azure-Mailbox ist ungültig.');
         }
 
@@ -999,6 +1000,13 @@ class MailService
             'from_email' => $fromEmail,
             'from_name' => $fromName,
         ];
+    }
+
+    private function normalizeAuthMode(string $value): string
+    {
+        $value = strtolower(trim($value));
+
+        return $value === self::AUTH_MODE_OAUTH2 ? self::AUTH_MODE_OAUTH2 : self::AUTH_MODE_CREDENTIALS;
     }
 
     private function normalizeBody(string $body): string

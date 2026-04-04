@@ -54,41 +54,44 @@ class PluginManager
     public function loadPlugins(): void
     {
         $this->activePlugins = $this->getActivePlugins();
-        $disabledPlugins = [];
+        $availableBootstrapFiles = $this->getPluginBootstrapMap();
+        $disabledPlugins = array_values(array_diff($this->activePlugins, array_keys($availableBootstrapFiles)));
 
-        foreach ($this->activePlugins as $plugin) {
-            $pluginFile = PLUGIN_PATH . $plugin . '/' . $plugin . '.php';
-            if (!file_exists($pluginFile)) {
-                $context = [
-                    'plugin' => $plugin,
-                    'expected_file' => $pluginFile,
-                    'plugin_path' => defined('PLUGIN_PATH') ? (string) PLUGIN_PATH : null,
-                ];
-                error_log(sprintf(
-                    'PluginManager [C-07/H-25]: Aktives Plugin "%s" wurde unter "%s" nicht gefunden – Plugin wird deaktiviert.',
-                    $plugin,
-                    $pluginFile
-                ));
-                if (class_exists(AuditLogger::class)) {
-                    AuditLogger::instance()->log(
-                        'plugin',
-                        'plugin.missing_file',
-                        sprintf('Aktives Plugin "%s" fehlt im Laufzeitordner und wurde automatisch deaktiviert.', $plugin),
-                        'plugin',
-                        null,
-                        $context,
-                        'critical'
-                    );
-                }
-                $disabledPlugins[] = $plugin;
+        foreach ($disabledPlugins as $pluginSlug) {
+            $context = [
+                'plugin' => $pluginSlug,
+                'expected_file' => (string) PLUGIN_PATH . $pluginSlug . '/' . $pluginSlug . '.php',
+                'plugin_path' => defined('PLUGIN_PATH') ? (string) PLUGIN_PATH : null,
+            ];
+            error_log(sprintf(
+                'PluginManager [C-07/H-25]: Aktives Plugin "%s" wurde unter "%s" nicht gefunden – Plugin wird deaktiviert.',
+                $pluginSlug,
+                (string) PLUGIN_PATH . $pluginSlug . '/' . $pluginSlug . '.php'
+            ));
+            if (class_exists(AuditLogger::class)) {
+                AuditLogger::instance()->log(
+                    'plugin',
+                    'plugin.missing_file',
+                    sprintf('Aktives Plugin "%s" fehlt im Laufzeitordner und wurde automatisch deaktiviert.', $pluginSlug),
+                    'plugin',
+                    null,
+                    $context,
+                    'critical'
+                );
+            }
+        }
+
+        foreach ($availableBootstrapFiles as $pluginSlug => $pluginFile) {
+            if (!in_array($pluginSlug, $this->activePlugins, true)) {
                 continue;
             }
+
             try {
                 require_once $pluginFile;
-                Hooks::doAction('plugin_loaded', $plugin);
+                Hooks::doAction('plugin_loaded', $pluginSlug);
             } catch (\Throwable $e) {
                 $context = [
-                    'plugin'    => $plugin,
+                    'plugin'    => $pluginSlug,
                     'error'     => $e->getMessage(),
                     'file'      => $e->getFile(),
                     'line'      => $e->getLine(),
@@ -96,16 +99,16 @@ class PluginManager
                 ];
                 error_log(sprintf(
                     'PluginManager [C-07/H-25]: Fatal-Error beim Laden von "%s" – Plugin deaktiviert. Fehler: %s in %s:%d',
-                    $plugin, $e->getMessage(), $e->getFile(), $e->getLine()
+                    $pluginSlug, $e->getMessage(), $e->getFile(), $e->getLine()
                 ));
                 if (class_exists(AuditLogger::class)) {
                     AuditLogger::instance()->log(
                         'plugin', 'plugin.load_error',
-                        sprintf('Plugin "%s" verursachte einen Fatal-Error und wurde automatisch deaktiviert.', $plugin),
+                        sprintf('Plugin "%s" verursachte einen Fatal-Error und wurde automatisch deaktiviert.', $pluginSlug),
                         'plugin', null, $context, 'critical'
                     );
                 }
-                $disabledPlugins[] = $plugin;
+                $disabledPlugins[] = $pluginSlug;
             }
         }
 
@@ -219,8 +222,8 @@ class PluginManager
      */
     public function activatePlugin(string $plugin): bool|string
     {
-        $pluginFile = PLUGIN_PATH . $plugin . '/' . $plugin . '.php';
-        if (!file_exists($pluginFile)) {
+        $pluginFile = $this->resolvePluginBootstrapFile($plugin);
+        if ($pluginFile === '' || !file_exists($pluginFile)) {
             return 'Plugin-Datei nicht gefunden.';
         }
 
@@ -299,7 +302,12 @@ class PluginManager
      */
     private function getPluginUpdateData(string $plugin): array
     {
-        $updateFile = PLUGIN_PATH . $plugin . '/update.json';
+        $pluginDir = $this->resolvePluginDirectory($plugin);
+        if ($pluginDir === '') {
+            return [];
+        }
+
+        $updateFile = $pluginDir . DIRECTORY_SEPARATOR . 'update.json';
         if (!file_exists($updateFile)) {
             return [];
         }
@@ -404,8 +412,8 @@ class PluginManager
      */
     private function securityScanPlugin(string $plugin): bool|string
     {
-        $pluginDir = PLUGIN_PATH . $plugin . '/';
-        if (!is_dir($pluginDir)) {
+        $pluginDir = $this->resolvePluginDirectory($plugin);
+        if ($pluginDir === '' || !is_dir($pluginDir)) {
             return 'Plugin-Verzeichnis nicht gefunden.';
         }
 
@@ -499,8 +507,8 @@ class PluginManager
             return 'Plugin muss zuerst deaktiviert werden.';
         }
 
-        $pluginDir  = PLUGIN_PATH . $plugin;
-        if (!is_dir($pluginDir)) {
+        $pluginDir  = $this->resolvePluginDirectory($plugin);
+        if ($pluginDir === '' || !is_dir($pluginDir)) {
             return 'Plugin-Verzeichnis nicht gefunden.';
         }
 
@@ -661,5 +669,95 @@ class PluginManager
         } catch (\Exception $e) {
             error_log('PluginManager::saveActivePlugins() Error: ' . $e->getMessage());
         }
+    }
+
+    private function isValidPluginSlug(string $plugin): bool
+    {
+        return preg_match('/^[a-z0-9][a-z0-9_-]*$/', strtolower(trim($plugin))) === 1;
+    }
+
+    private function resolvePluginDirectory(string $plugin): string
+    {
+        $plugin = strtolower(trim($plugin));
+        if (!$this->isValidPluginSlug($plugin)) {
+            return '';
+        }
+
+        $pluginRoot = realpath((string) PLUGIN_PATH);
+        if ($pluginRoot === false || !is_dir($pluginRoot)) {
+            return '';
+        }
+
+        $pluginDir = $pluginRoot . DIRECTORY_SEPARATOR . $plugin;
+        $realPluginDir = realpath($pluginDir);
+        $normalizedRoot = rtrim($pluginRoot, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+
+        if ($realPluginDir === false || !is_dir($realPluginDir) || !str_starts_with($realPluginDir . DIRECTORY_SEPARATOR, $normalizedRoot)) {
+            return '';
+        }
+
+        return $realPluginDir;
+    }
+
+    private function resolvePluginBootstrapFile(string $plugin): string
+    {
+        $plugin = strtolower(trim($plugin));
+        if (!$this->isValidPluginSlug($plugin)) {
+            return '';
+        }
+
+        $pluginDir = $this->resolvePluginDirectory($plugin);
+        if ($pluginDir === '') {
+            return '';
+        }
+
+        $pluginFile = $pluginDir . DIRECTORY_SEPARATOR . $plugin . '.php';
+        $realPluginFile = realpath($pluginFile);
+        if ($realPluginFile === false || !is_file($realPluginFile)) {
+            return $pluginFile;
+        }
+
+        $pluginRoot = realpath((string) PLUGIN_PATH);
+        if ($pluginRoot === false) {
+            return '';
+        }
+
+        $normalizedRoot = rtrim($pluginRoot, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+        if (!str_starts_with($realPluginFile, $normalizedRoot)) {
+            return '';
+        }
+
+        return $realPluginFile;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function getPluginBootstrapMap(): array
+    {
+        $pluginRoot = realpath((string) PLUGIN_PATH);
+        if ($pluginRoot === false || !is_dir($pluginRoot)) {
+            return [];
+        }
+
+        $map = [];
+        $entries = scandir($pluginRoot);
+        if (!is_array($entries)) {
+            return [];
+        }
+
+        foreach ($entries as $entry) {
+            $slug = strtolower(trim((string) $entry));
+            if ($slug === '.' || $slug === '..' || $slug === '.gitkeep' || !$this->isValidPluginSlug($slug)) {
+                continue;
+            }
+
+            $bootstrap = $this->resolvePluginBootstrapFile($slug);
+            if ($bootstrap !== '' && is_file($bootstrap)) {
+                $map[$slug] = $bootstrap;
+            }
+        }
+
+        return $map;
     }
 }

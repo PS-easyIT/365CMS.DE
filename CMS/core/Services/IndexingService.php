@@ -289,7 +289,7 @@ final class IndexingService
 
                 $selectedContent = '';
                 if ($selectedFileCanBeRead) {
-                    $selectedContentRaw = file_get_contents($selectedFilePath);
+                    $selectedContentRaw = $this->readSafeIndexNowRootFile($selectedFilePath);
                     if ($selectedContentRaw === false) {
                         $validationErrors[] = 'Die ausgewählte Root-TXT-Datei konnte nicht gelesen werden.';
                         $selectedFileReason = 'Die Datei wurde gefunden, konnte aber nicht ausgelesen werden.';
@@ -371,7 +371,7 @@ final class IndexingService
     {
         foreach ($this->getIndexNowRootDirectories() as $directory) {
             $path = $directory . DIRECTORY_SEPARATOR . $selectedFile;
-            if (is_file($path)) {
+            if ($this->isSafeIndexNowRootFilePath($path, $directory)) {
                 return $path;
             }
         }
@@ -600,5 +600,43 @@ final class IndexingService
         }
 
         return array_values(array_unique($normalized));
+    }
+
+    private function isSafeIndexNowRootFilePath(string $path, string $rootDirectory): bool
+    {
+        $realRoot = realpath($rootDirectory);
+        $realPath = realpath($path);
+        if ($realRoot === false || $realPath === false || !is_file($realPath) || !is_readable($realPath)) {
+            return false;
+        }
+
+        $normalizedRoot = rtrim(str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $realRoot), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+        $normalizedPath = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $realPath);
+
+        return str_starts_with($normalizedPath, $normalizedRoot)
+            && strtolower((string) pathinfo($normalizedPath, PATHINFO_EXTENSION)) === 'txt';
+    }
+
+    private function readSafeIndexNowRootFile(string $selectedFilePath): string|false
+    {
+        foreach ($this->getIndexNowRootDirectories() as $rootDirectory) {
+            if (!$this->isSafeIndexNowRootFilePath($selectedFilePath, $rootDirectory)) {
+                continue;
+            }
+
+            $realPath = realpath($selectedFilePath);
+            if ($realPath === false) {
+                return false;
+            }
+
+            $size = filesize($realPath);
+            if ($size === false || $size < 0 || $size > self::MAX_INDEXNOW_KEY_FILE_SIZE) {
+                return false;
+            }
+
+            return file_get_contents($realPath);
+        }
+
+        return false;
     }
 }

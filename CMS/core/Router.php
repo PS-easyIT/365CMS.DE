@@ -610,26 +610,53 @@ class Router
 
     public function redirect(string $url, int $status = 302): void
     {
-        $targetUrl = $this->resolveRedirectUrl($url);
+        $targetPath = $this->resolveRedirectPath($url);
 
         if (!headers_sent()) {
             http_response_code($status);
-            header('Location: ' . $targetUrl, true, $status);
+            header('Location: ' . $targetPath, true, $status);
             exit;
         }
 
         http_response_code($status);
-        echo $this->buildRedirectFallbackPage($targetUrl, $status);
+        echo $this->buildRedirectFallbackPage(SITE_URL . $targetPath, $status);
         exit;
     }
 
-    private function resolveRedirectUrl(string $url): string
+    private function resolveRedirectPath(string $url): string
     {
-        if (preg_match('#^https?://#i', $url) === 1) {
-            return $url;
+        $normalizedPath = $this->normalizeInternalRedirectPath($url);
+        if ($normalizedPath === '') {
+            return '/';
         }
 
-        return SITE_URL . (str_starts_with($url, '/') ? $url : '/' . ltrim($url, '/'));
+        return $normalizedPath;
+    }
+
+    private function normalizeInternalRedirectPath(string $url): string
+    {
+        $url = trim($url);
+        if ($url === '' || preg_match('/[\x00-\x1F\x7F]/', $url) === 1) {
+            return '';
+        }
+
+        if (preg_match('#^[a-z][a-z0-9+.-]*:#i', $url) === 1 || str_starts_with($url, '//')) {
+            return '';
+        }
+
+        if (!str_starts_with($url, '/')) {
+            $url = '/' . ltrim($url, '/');
+        }
+
+        if (preg_match('#^/(?:[A-Za-z0-9\-._~%!$&()*+,;=:@/]*)?(?:\?[A-Za-z0-9\-._~%!$&()*+,;=:@/?]*)?(?:#[A-Za-z0-9\-._~%!$&()*+,;=:@/?]*)?$#', $url) !== 1) {
+            return '';
+        }
+
+        if (str_contains($url, '/../') || str_contains($url, '/./') || str_ends_with($url, '/..') || str_ends_with($url, '/.')) {
+            return '';
+        }
+
+        return $url;
     }
 
     private function normalizeHost(string $value): string

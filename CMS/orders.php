@@ -33,6 +33,7 @@ require_once CORE_PATH . 'autoload.php';
 use CMS\Auth;
 use CMS\CacheManager;
 use CMS\Database;
+use CMS\Logger;
 use CMS\Security;
 use CMS\SubscriptionManager;
 use CMS\ThemeManager;
@@ -130,8 +131,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 // Here you would send an email
                 
-            } catch (\Exception $e) {
-                $error = 'Fehler bei der Bestellung: ' . $e->getMessage();
+            } catch (\Throwable $e) {
+                Logger::instance()->withChannel('orders.checkout')->error('Bestellung konnte nicht erstellt werden.', [
+                    'plan_id' => (int) ($plan['id'] ?? 0),
+                    'billing_cycle' => $billing,
+                    'exception' => $e::class,
+                ]);
+
+                $error = 'Die Bestellung konnte gerade nicht abgeschlossen werden. Bitte versuchen Sie es erneut.';
             }
         }
     }

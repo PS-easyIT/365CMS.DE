@@ -512,33 +512,9 @@ final class PublicRouter
 
     private function getSafePostLoginRedirect(mixed $candidate): string
     {
-        $candidate = is_string($candidate) ? trim($candidate) : '';
-        if ($candidate === '') {
-            return '/member';
-        }
+        unset($candidate);
 
-        $parts = parse_url($candidate);
-        if ($parts === false) {
-            return '/member';
-        }
-
-        $siteHost = (string)(parse_url(SITE_URL, PHP_URL_HOST) ?? '');
-        $targetHost = (string)($parts['host'] ?? '');
-        if ($targetHost !== '' && $siteHost !== '' && strcasecmp($targetHost, $siteHost) !== 0) {
-            return '/member';
-        }
-
-        $path = (string)($parts['path'] ?? '/member');
-        if ($path === '' || !str_starts_with($path, '/')) {
-            $path = '/' . ltrim($path, '/');
-        }
-
-        if (in_array($path, ['/login', '/logout', '/mfa-challenge'], true)) {
-            return '/member';
-        }
-
-        $query = isset($parts['query']) && $parts['query'] !== '' ? '?' . $parts['query'] : '';
-        return $path . $query;
+        return '/member';
     }
 
     private function consumePostLoginRedirect(): string
@@ -550,18 +526,6 @@ final class PublicRouter
 
     private function resolveCommentRedirect(int $postId): string
     {
-        $referer = (string)($_SERVER['HTTP_REFERER'] ?? '');
-        if ($referer !== '') {
-            $parts = parse_url($referer);
-            $siteHost = (string)(parse_url(SITE_URL, PHP_URL_HOST) ?? '');
-            $refererHost = (string)($parts['host'] ?? '');
-            if ($refererHost === '' || $siteHost === '' || strcasecmp($refererHost, $siteHost) === 0) {
-                $path = (string)($parts['path'] ?? '/blog');
-                $query = isset($parts['query']) && $parts['query'] !== '' ? '?' . $parts['query'] : '';
-                return $path . $query . '#comments';
-            }
-        }
-
         if ($postId > 0) {
             $db = Database::instance();
             $post = $db->get_row("SELECT slug, published_at, created_at FROM {$db->getPrefix()}posts WHERE id = ? LIMIT 1", [$postId]);

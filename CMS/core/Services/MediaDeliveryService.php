@@ -482,6 +482,12 @@ final class MediaDeliveryService
             $this->deny(500, 'Die Datei konnte nicht gelesen werden.');
         }
 
+        $output = fopen('php://output', 'wb');
+        if (!is_resource($output)) {
+            fclose($handle);
+            $this->deny(500, 'Die Datei konnte nicht gelesen werden.');
+        }
+
         try {
             if ($start > 0 && fseek($handle, $start) !== 0) {
                 $this->deny(500, 'Die Datei konnte nicht gelesen werden.');
@@ -499,11 +505,15 @@ final class MediaDeliveryService
                     break;
                 }
 
-                echo $buffer;
+                if (fwrite($output, $buffer) === false) {
+                    $this->deny(500, 'Die Datei konnte nicht gelesen werden.');
+                }
+
                 flush();
                 $bytesRemaining -= strlen($buffer);
             }
         } finally {
+            fclose($output);
             fclose($handle);
         }
     }
@@ -524,7 +534,18 @@ final class MediaDeliveryService
 
         http_response_code($status);
         header('Content-Type: text/plain; charset=utf-8');
-        echo $message;
+        echo $this->buildPublicErrorMessage($status);
         exit;
+    }
+
+    private function buildPublicErrorMessage(int $status): string
+    {
+        return match ($status) {
+            400 => 'Ungültige Medienanfrage.',
+            403 => 'Kein Zugriff auf diese Datei.',
+            404 => 'Die angeforderte Datei wurde nicht gefunden.',
+            416 => 'Die angeforderte Byte-Range ist nicht verfügbar.',
+            default => 'Die Medienanfrage konnte nicht verarbeitet werden.',
+        };
     }
 }

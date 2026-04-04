@@ -208,8 +208,8 @@ $queueLastRunText = !empty($queueLastRun['executed_at'])
                             <div class="col-md-4">
                                 <label class="form-label">Authentifizierung</label>
                                 <select name="auth_mode" class="form-select">
-                                    <option value="password" <?php echo $isSelected((string) ($transport['auth_mode'] ?? 'password'), 'password'); ?>>Benutzername + Passwort</option>
-                                    <option value="oauth2" <?php echo $isSelected((string) ($transport['auth_mode'] ?? 'password'), 'oauth2'); ?>>Azure OAuth2 / XOAUTH2</option>
+                                    <option value="credentials" <?php echo $isSelected((string) ($transport['auth_mode'] ?? 'credentials'), 'credentials'); ?>>Benutzername + Passwort</option>
+                                    <option value="oauth2" <?php echo $isSelected((string) ($transport['auth_mode'] ?? 'credentials'), 'oauth2'); ?>>Azure OAuth2 / XOAUTH2</option>
                                 </select>
                             </div>
                             <div class="col-md-4">

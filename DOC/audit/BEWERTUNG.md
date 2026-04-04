@@ -1,5 +1,54 @@
 # BEWERTUNG
 
+## Snyk-Audit — 4. April 2026
+
+Diese Sektion dokumentiert den aktuellen **Snyk-Snapshot** des Repositories `365CMS.DE`.
+Geprüft wurden dabei sowohl **Code-Funde (SAST / Snyk Code)** als auch die lokal erkennbaren **Manifest-/Abhängigkeitsquellen (SCA)**.
+
+### Snyk-Snapshot `365CMS.DE`
+
+| Bereich | Score | Kurzbegründung |
+|---|---:|---|
+| First-Party Code | 100,00 | Nach dem aktuellen Follow-up-Scan bleiben keine Nicht-Vendor-/Runtime-Funde mehr übrig; First-Party-`High`s sind im Snapshot weiterhin verschwunden |
+| Gebündelte Vendor-Fläche | 42,00 | 34 Funde liegen weiterhin in mit ausgelieferten Drittanbieter-Bundles wie `dompdf`, `translation-status` und weiteren Bundle-Artefakten |
+| Dependency Manifests (SCA) | 100,00 | Snyk Open Source meldet für die erkannten Composer-Manifeste aktuell 0 verwertbare Funde |
+| Abarbeitbarkeit | 99,00 | Die Restliste liegt jetzt vollständig in Vendor-/Bundle-Fläche; First-Party-Hotspots sind im aktuellen Snapshot abgearbeitet |
+| **Gesamt** | **85,25** | SCA bleibt sauber; der First-Party-Block ist im aktuellen Snapshot leer, während die Hauptlast nun klar sichtbar in Bundles/Vendor-Fläche liegt |
+
+### Delta Snyk-Snapshot 04.04.2026
+
+| Bereich | Status | Befund | Wirkung |
+|---|---|---|---|
+| Snyk Code gesamt | verbessert | Der nächste Follow-up-Scan nach Router-/Theme-Follow-up meldet noch 36 Funde (`27 High`, `9 Medium`) statt zuvor 47. | Der Gesamtblock schrumpft weiter; zusätzliche Mediums verschwinden aus dem eigenen Code und der Rest konzentriert sich jetzt vollständig auf Bundle-/Vendor-Fläche. |
+| First-Party-Hotspots | bereinigt | Im aktuellen Nicht-Vendor-/Runtime-Block bleiben keine Funde mehr übrig; `Router.php` und `ThemeCustomizer.php` sind aus der Restliste verschwunden. | Die weitere Abarbeitung kann sich jetzt vollständig auf Vendor-/Bundle-Fläche wie `dompdf` und `translation-status` konzentrieren. |
+| Vendor-Bundles | offen | Ein großer Teil der Funde liegt in mit ausgelieferten Fremdkomponenten, vor allem `dompdf`. | Die Runtime-Oberfläche enthält weiterhin Drittcode, der separat gekapselt, aktualisiert oder ersetzt werden sollte. |
+| SCA | gut | Der Open-Source-Abhängigkeitsscan über erkannte Composer-Manifeste meldet aktuell 0 Issues. | Supply-Chain-Risiken über Manifeste sind im Snapshot unauffällig; Schwerpunkt bleibt Code- und Bundle-Härtung. |
+| Importer-DOM-XSS | umgesetzt | `CMS/plugins/cms-importer/assets/js/importer.js` rendert Notices und Cleanup-Dialog-Texte jetzt ohne `innerHTML`. | Die zuvor gemeldeten DOM-XSS-Befunde im Importer sind aus dem aktuellen Scan verschwunden. |
+| Dokumentation | aktualisiert | Detailbericht liegt aktualisiert in `DOC/audit/Snyk_Audit_04042026.md`, README und Changelog spiegeln den neuen Stand als `2.8.5`. | Der neue Snyk-Stand ist für Folge-Batches direkt referenzierbar und konsistent im Release-Snapshot verankert. |
+
+## Live-Site-Audit — 4. April 2026
+
+Diese Sektion dokumentiert **keinen neuen Core-Code-Batch**, sondern einen Produktions-Snapshot der öffentlich erreichbaren Website `https://365cms.de/`.
+`404`-Seiten wurden **nicht pauschal negativ bewertet**; berücksichtigt wurden nur 404-Fälle bei **aktiv verlinkten Kernzielen** wie Footer- oder Formularlinks.
+
+### Live-Snapshot `365cms.de`
+
+| Scope | Routing & Erreichbarkeit | Auth-/Form-Flows | Legal & Trust | Content-/Release-Konsistenz | Navigation/Footer | Gesamt |
+|---|---:|---:|---:|---:|---:|---:|
+| `https://365cms.de/` | 71,00 | 84,00 | 24,00 | 58,00 | 44,00 | **56,20** |
+
+Die Live-Prüfung zeigt damit einen funktionierenden öffentlichen Grundstand mit klaren Schwächen bei **rechtlich relevanten Linkzielen** und bei der **Release-Konsistenz zwischen Live-Site und lokalem Repo-Stand**.
+
+### Delta Live-Audit 04.04.2026
+
+| Bereich | Status | Befund | Wirkung |
+|---|---|---|---|
+| Homepage | geprüft | Startseite lädt stabil und zeigt Produkt-/Feature-Highlights; sichtbare Live-Version ist `2.8.2`. | Öffentliche Produktseite ist erreichbar, spiegelt aber nicht den lokalen Repo-Stand `2.8.5`. |
+| Login / Register / Reset | geprüft | `/login`, `/register` und `/forgot-password` sind öffentlich erreichbar und strukturiert. | Auth-Flows sind grundsätzlich vorhanden und für Nutzer zugänglich. |
+| Blog | geprüft | `/blog` liefert einen sauberen Empty-State statt Fehlerseite. | Content-Leerstand ist UX-seitig abgefedert. |
+| Legal Links | offen | Die aktiv verlinkten Ziele `/impressum`, `/datenschutz` und `/agb` laufen live in 404. | Footer- und Formular-Vertrauenssignale brechen auf Kernzielen sichtbar weg. |
+| Dokumentation | dokumentiert | Detailbericht liegt in `DOC/audit/LiveAudit_365CMS.md`. | Der Produktions-Snapshot ist jetzt reproduzierbar dokumentiert und gegen konkrete URLs abarbeitbar. |
+
 ## Live-Site-Audit — 3. April 2026
 
 Diese Sektion dokumentiert **keinen neuen Core-Code-Batch**, sondern einen Produktions-Snapshot der via FTP deployten Live-Site `https://phinit.de/`.

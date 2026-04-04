@@ -19,6 +19,7 @@ if (!defined('ABSPATH')) {
 $contactSuccess = '';
 $contactError   = '';
 $formData       = ['name' => '', 'email' => '', 'subject' => '', 'message' => ''];
+$formViewData   = ['name' => '', 'email' => '', 'subject' => '', 'message' => ''];
 
 // Empfänger-E-Mail aus Settings
 $recipientEmail = '';
@@ -26,13 +27,19 @@ try {
     $db  = \CMS\Database::instance();
     $row = $db->execute("SELECT option_value FROM {$db->getPrefix()}settings WHERE option_name = 'contact_email' LIMIT 1")->fetch();
     if ($row && $row->option_value) {
-        $recipientEmail = $row->option_value;
+        $recipientCandidate = filter_var(trim((string) $row->option_value), FILTER_VALIDATE_EMAIL);
+        if (is_string($recipientCandidate) && $recipientCandidate !== '') {
+            $recipientEmail = $recipientCandidate;
+        }
     }
 } catch (\Throwable $e) {
     // Fallback: Admin-Mail aus Config
 }
 if (empty($recipientEmail) && defined('ADMIN_EMAIL')) {
-    $recipientEmail = ADMIN_EMAIL;
+    $recipientCandidate = filter_var(trim((string) ADMIN_EMAIL), FILTER_VALIDATE_EMAIL);
+    if (is_string($recipientCandidate) && $recipientCandidate !== '') {
+        $recipientEmail = $recipientCandidate;
+    }
 }
 
 // CSRF-Token
@@ -59,10 +66,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['contact_submit'])) {
         // Stiller Spam-Abbruch (Honeypot gefüllt → Bot)
         $contactSuccess = 'Deine Nachricht wurde gesendet. Wir melden uns bald!';
     } else {
-        $formData['name']    = htmlspecialchars(trim($_POST['contact_name'] ?? ''), ENT_QUOTES, 'UTF-8');
-        $formData['email']   = filter_var(trim($_POST['contact_email'] ?? ''), FILTER_VALIDATE_EMAIL) ?: '';
-        $formData['subject'] = htmlspecialchars(trim($_POST['contact_subject'] ?? ''), ENT_QUOTES, 'UTF-8');
-        $formData['message'] = htmlspecialchars(trim($_POST['contact_message'] ?? ''), ENT_QUOTES, 'UTF-8');
+        $formData['name'] = trim(strip_tags((string) ($_POST['contact_name'] ?? '')));
+        $formData['email'] = filter_var(trim((string) ($_POST['contact_email'] ?? '')), FILTER_VALIDATE_EMAIL) ?: '';
+        $formData['subject'] = trim(strip_tags((string) ($_POST['contact_subject'] ?? '')));
+        $formData['message'] = trim(strip_tags((string) ($_POST['contact_message'] ?? '')));
+        $formData['message'] = preg_replace("/\r\n?|\r/", "\n", $formData['message']) ?? $formData['message'];
 
         if (empty($formData['name'])) {
             $contactError = 'Bitte gib deinen Namen an.';
@@ -71,18 +79,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['contact_submit'])) {
         } elseif (strlen($formData['message']) < 20) {
             $contactError = 'Bitte gib eine ausführlichere Nachricht ein (min. 20 Zeichen).';
         } elseif (!empty($recipientEmail)) {
-            // E-Mail senden
-            $subject  = '[Kontakt] ' . ($formData['subject'] ?: $formData['name']);
+            $subject  = '[Kontaktformular] Neue Nachricht';
             $body     = "Name: {$formData['name']}\n"
+                      . 'Betreff: ' . ($formData['subject'] !== '' ? $formData['subject'] : '—') . "\n"
                       . "E-Mail: {$formData['email']}\n\n"
                       . "Nachricht:\n{$formData['message']}";
-            $headers  = "From: {$formData['email']}\r\nReply-To: {$formData['email']}\r\nContent-Type: text/plain; charset=UTF-8";
 
-            $sent = @mail($recipientEmail, $subject, $body, $headers);
-            if ($sent) {
+            $sent = false;
+            if (class_exists('\\CMS\\Services\\MailService')) {
+                $sent = \CMS\Services\MailService::getInstance()->sendPlain(
+                    $recipientEmail,
+                    $subject,
+                    $body,
+                    [
+                        'X-365CMS-Contact-Form' => '1',
+                    ]
+                );
+            } else {
+                $contactError = 'Kontaktformular ist momentan nicht verfügbar. Bitte kontaktiere uns direkt per E-Mail.';
+            }
+
+            if ($contactError === '' && $sent) {
                 $contactSuccess = 'Deine Nachricht wurde gesendet. Wir melden uns in Kürze!';
                 $formData = ['name' => '', 'email' => '', 'subject' => '', 'message' => ''];
-            } else {
+            } elseif ($contactError === '') {
                 $contactError = 'Beim Senden ist ein Fehler aufgetreten. Bitte versuche es erneut oder kontaktiere uns direkt per E-Mail.';
             }
         } else {
@@ -93,6 +113,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['contact_submit'])) {
     if (class_exists('\CMS\Security')) {
         $csrfToken = \CMS\Security::instance()->generateToken('contact_form');
     }
+}
+
+if ($contactSuccess === '') {
+    $formViewData = [
+        'name' => htmlspecialchars($formData['name'], ENT_QUOTES, 'UTF-8'),
+        'email' => htmlspecialchars($formData['email'], ENT_QUOTES, 'UTF-8'),
+        'subject' => htmlspecialchars($formData['subject'], ENT_QUOTES, 'UTF-8'),
+        'message' => htmlspecialchars($formData['message'], ENT_QUOTES, 'UTF-8'),
+    ];
 }
 ?>
 
@@ -139,7 +168,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['contact_submit'])) {
                             Name <span style="color:#ef4444;">*</span>
                         </label>
                         <input type="text" id="contactName" name="contact_name" class="form-control"
-                               value="<?php echo $formData['name']; ?>"
+                               value="<?php echo $formViewData['name']; ?>"
                                required maxlength="100" autocomplete="name"
                                placeholder="Dein Name">
                     </div>
@@ -148,7 +177,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['contact_submit'])) {
                             E-Mail <span style="color:#ef4444;">*</span>
                         </label>
                         <input type="email" id="contactEmail" name="contact_email" class="form-control"
-                               value="<?php echo $formData['email']; ?>"
+                               value="<?php echo $formViewData['email']; ?>"
                                required maxlength="200" autocomplete="email"
                                placeholder="deine@email.de">
                     </div>
@@ -157,7 +186,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['contact_submit'])) {
                 <div class="form-group">
                     <label class="form-label" for="contactSubject">Betreff</label>
                     <input type="text" id="contactSubject" name="contact_subject" class="form-control"
-                           value="<?php echo $formData['subject']; ?>"
+                           value="<?php echo $formViewData['subject']; ?>"
                            maxlength="200"
                            placeholder="Worum geht es?">
                 </div>
@@ -170,7 +199,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['contact_submit'])) {
                               required minlength="20" maxlength="5000"
                               rows="6"
                               style="resize:vertical;min-height:140px;"
-                              placeholder="Deine Nachricht …"><?php echo $formData['message']; ?></textarea>
+                              placeholder="Deine Nachricht …"><?php echo $formViewData['message']; ?></textarea>
                 </div>
 
                 <div class="form-group" style="font-size:.78rem;color:var(--ink-muted);margin-top:-.5rem;">

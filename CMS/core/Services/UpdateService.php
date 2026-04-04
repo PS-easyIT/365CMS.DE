@@ -199,7 +199,7 @@ class UpdateService
         foreach ($plugins as $folder => $plugin) {
             $currentVersion = $plugin['version'] ?? '1.0.0';
 
-            $localUpdateData = $this->loadLocalJsonFile(PLUGIN_PATH . $folder . '/update.json');
+            $localUpdateData = [];
             $catalogEntry = $catalog[$folder] ?? [];
 
             $updateInfo = array_replace($plugin, $localUpdateData, $catalogEntry);
@@ -256,7 +256,7 @@ class UpdateService
         $themeData = Json::decodeArray((string) file_get_contents($themeJsonFile), []);
         $currentVersion = $themeData['version'] ?? '1.0.0';
 
-        $localUpdateData = $this->loadLocalJsonFile($themeDir . DIRECTORY_SEPARATOR . 'update.json');
+        $localUpdateData = [];
         $catalog = $this->loadThemeMarketplaceCatalog();
         $catalogEntry = $catalog[$themeSlug] ?? [];
 
@@ -329,20 +329,6 @@ class UpdateService
         $data = Json::decode((string) ($response['body'] ?? ''), true, null);
 
         return is_array($data) ? $data : null;
-    }
-
-    private function loadLocalJsonFile(string $filePath): array
-    {
-        if (!is_file($filePath)) {
-            return [];
-        }
-
-        $raw = file_get_contents($filePath);
-        if ($raw === false || $raw === '') {
-            return [];
-        }
-
-        return Json::decodeArray($raw, []);
     }
 
     private function loadPluginMarketplaceCatalog(): array
@@ -453,8 +439,7 @@ class UpdateService
             return $this->fetchMarketplaceJson($manifestUrl, 512 * 1024) ?? [];
         }
 
-        $manifestPath = rtrim($sourceBase, '/\\') . DIRECTORY_SEPARATOR . str_replace(['/', '\\'], DIRECTORY_SEPARATOR, ltrim($manifest, '/\\'));
-        return $this->loadLocalJsonFile($manifestPath);
+        return [];
     }
 
     private function resolveAllowedUpdateUrl(string $value, string $baseUrl = ''): string

@@ -22,6 +22,8 @@ if (!defined('ABSPATH')) {
 class ThemeCustomizer
 {
     private static ?ThemeCustomizer $instance = null;
+    /** @var array<string, string>|null */
+    private ?array $availableThemeConfigMap = null;
     private Database $db;
     private string $currentTheme = 'default';
     private ?array $themeConfig = null;
@@ -70,24 +72,63 @@ class ThemeCustomizer
             error_log('ThemeCustomizer::detectActiveTheme() Error: ' . $e->getMessage());
         }
 
-        // Verify theme folder + theme.json actually exist; fallback to first available theme
-        $themePath = defined('ABSPATH') ? ABSPATH . 'themes/' . $slug . '/theme.json' : '';
-        if (!file_exists($themePath)) {
-            $base = defined('ABSPATH') ? ABSPATH . 'themes/' : '';
-            if ($base && is_dir($base)) {
-                foreach (scandir($base) as $dir) {
-                    if ($dir === '.' || $dir === '..') {
-                        continue;
-                    }
-                    if (file_exists($base . $dir . '/theme.json')) {
-                        $slug = $dir;
-                        break;
-                    }
-                }
+        $availableThemes = $this->getAvailableThemeConfigMap();
+        if (!isset($availableThemes[$slug])) {
+            $fallbackSlug = array_key_first($availableThemes);
+            if (is_string($fallbackSlug) && $fallbackSlug !== '') {
+                $slug = $fallbackSlug;
             }
         }
 
         return $slug;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function getAvailableThemeConfigMap(): array
+    {
+        if ($this->availableThemeConfigMap !== null) {
+            return $this->availableThemeConfigMap;
+        }
+
+        $map = [];
+        $themesBase = defined('ABSPATH') ? ABSPATH . 'themes' . DIRECTORY_SEPARATOR : '';
+        $realThemesBase = $themesBase !== '' ? realpath($themesBase) : false;
+        if ($realThemesBase === false || !is_dir($realThemesBase)) {
+            return $this->availableThemeConfigMap = [];
+        }
+
+        $entries = scandir($realThemesBase);
+        if (!is_array($entries)) {
+            return $this->availableThemeConfigMap = [];
+        }
+
+        $normalizedBase = rtrim($realThemesBase, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+
+        foreach ($entries as $entry) {
+            if (!is_string($entry) || $entry === '.' || $entry === '..') {
+                continue;
+            }
+
+            if (preg_match('/^[a-z0-9][a-z0-9\-]*$/i', $entry) !== 1) {
+                continue;
+            }
+
+            $themeDir = realpath($realThemesBase . DIRECTORY_SEPARATOR . $entry);
+            if ($themeDir === false || !is_dir($themeDir) || !str_starts_with($themeDir, $normalizedBase)) {
+                continue;
+            }
+
+            $configPath = realpath($themeDir . DIRECTORY_SEPARATOR . 'theme.json');
+            if ($configPath === false || !is_file($configPath) || !str_starts_with($configPath, $normalizedBase)) {
+                continue;
+            }
+
+            $map[$entry] = $configPath;
+        }
+
+        return $this->availableThemeConfigMap = $map;
     }
     
     /**
@@ -106,6 +147,39 @@ class ThemeCustomizer
     public function getTheme(): string
     {
         return $this->currentTheme;
+    }
+
+    private function readThemeConfigJson(string $realConfigPath, string $realThemesBase): string
+    {
+        $resolvedConfigPath = realpath($realConfigPath);
+        $normalizedBase = rtrim($realThemesBase, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+        if ($resolvedConfigPath === false
+            || !str_starts_with($resolvedConfigPath, $normalizedBase)
+            || !is_file($resolvedConfigPath)
+            || !is_readable($resolvedConfigPath)
+            || strtolower((string) pathinfo($resolvedConfigPath, PATHINFO_EXTENSION)) !== 'json'
+            || basename($resolvedConfigPath) !== 'theme.json'
+        ) {
+            return '';
+        }
+
+        $size = filesize($resolvedConfigPath);
+        if ($size === false || $size < 0 || $size > 1024 * 1024) {
+            return '';
+        }
+
+        $handle = fopen($resolvedConfigPath, 'rb');
+        if (!is_resource($handle)) {
+            return '';
+        }
+
+        try {
+            $content = stream_get_contents($handle);
+        } finally {
+            fclose($handle);
+        }
+
+        return is_string($content) ? $content : '';
     }
     
     /**
@@ -128,17 +202,22 @@ class ThemeCustomizer
             return;
         }
 
-        $candidatePath = $realThemesBase . DIRECTORY_SEPARATOR . $themeSlug . DIRECTORY_SEPARATOR . 'theme.json';
-        $realConfigPath = realpath($candidatePath);
-        $realThemesBasePrefix = rtrim($realThemesBase, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+        $availableThemes = $this->getAvailableThemeConfigMap();
+        $realConfigPath = $availableThemes[$themeSlug] ?? '';
 
-        if ($realConfigPath === false || !is_file($realConfigPath) || !str_starts_with($realConfigPath, $realThemesBasePrefix)) {
-            error_log("Theme config not found: {$candidatePath}");
+        if ($realConfigPath === '') {
+            error_log("Theme config not found for slug: {$themeSlug}");
             $this->themeConfig = [];
             return;
         }
 
-        $json = file_get_contents($realConfigPath);
+        $json = $this->readThemeConfigJson($realConfigPath, $realThemesBase);
+        if ($json === '') {
+            error_log("Theme config unreadable or blocked: {$realConfigPath}");
+            $this->themeConfig = [];
+            return;
+        }
+
         $config = Json::decodeArray($json, []);
 
         if ($config === []) {
