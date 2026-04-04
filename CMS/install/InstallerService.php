@@ -432,18 +432,24 @@ PHP;
             $stmt->execute([$headerData]);
 
             $features = [
-                ['icon' => '🧩', 'title' => 'Seiten & Content', 'description' => 'Erstelle Seiten, Beiträge, Landing Pages und strukturierte Inhalte zentral im CMS.'],
-                ['icon' => '🎨', 'title' => 'Design Editor', 'description' => 'Farben, Layouts, Header, Footer und Theme-Bereiche ohne Code anpassen.'],
-                ['icon' => '🔌', 'title' => 'Plugin-Ökosystem', 'description' => 'Unternehmen, Events, Experten, Jobs, Feeds und weitere Module flexibel ergänzen.'],
-                ['icon' => '👤', 'title' => 'Mitgliederbereich', 'description' => 'Dashboard, Profil, Sicherheit, Benachrichtigungen und persönliche Bereiche integriert.'],
-                ['icon' => '🛡️', 'title' => 'Rollen & Sicherheit', 'description' => 'Granulare Rechte, CSRF-Schutz, sichere Authentifizierung und moderne Security-Bausteine.'],
-                ['icon' => '🖼️', 'title' => 'Medienverwaltung', 'description' => 'Bilder, Dokumente, Uploads und Assets komfortabel organisieren und bereitstellen.'],
-                ['icon' => '✉️', 'title' => 'Mail & Zustellung', 'description' => 'SMTP, MIME, OAuth/XOAuth2 und Systemmails für zuverlässige Kommunikation.'],
-                ['icon' => '🌐', 'title' => 'SEO & Sichtbarkeit', 'description' => 'Meta-Daten, Redirects, saubere URLs und Suchmaschinenfreundlichkeit ab Werk.'],
-                ['icon' => '📣', 'title' => 'Kontakt & Leads', 'description' => 'Formulare, Newsletter, Anfragen und automatisierte Benachrichtigungen bündeln.'],
-                ['icon' => '⚙️', 'title' => 'Cron & Automationen', 'description' => 'Hintergrundjobs, Worker und geplante Aufgaben für wiederkehrende Prozesse.'],
-                ['icon' => '🚀', 'title' => 'Performance', 'description' => 'Saubere Assets, optimierte Auslieferung und schnelle Oberflächen für den Alltag.'],
-                ['icon' => '🧠', 'title' => 'Themes & Hooks', 'description' => 'Customizer, Hooks und Erweiterungspunkte für individuelle 365CMS-Lösungen.'],
+                ['icon' => '🧩', 'title' => 'Seiten, Beiträge & Landing Pages', 'description' => 'Verwalte klassische Seiten, Blogbeiträge, Hero-Bereiche und eigenständige Landing Pages in einem durchgängigen Workflow.'],
+                ['icon' => '🧱', 'title' => 'Editor.js & Content-Blöcke', 'description' => 'Nutze strukturierte Inhalte mit modernen Blöcken wie Medien+Text, Galerien, Tabellen, Accordions und weiteren Editor.js-Tools.'],
+                ['icon' => '🎨', 'title' => 'Theme-Customizer & Design', 'description' => 'Passe Farben, Layouts, Header, Footer, Kartenstile und Theme-Bereiche ohne Code direkt im Admin an.'],
+                ['icon' => '🖼️', 'title' => 'Medienbibliothek & Uploads', 'description' => 'Organisiere Bilder, Dateien, WebP-Assets und Uploads zentral mit komfortabler Bibliothek und Picker-Workflows.'],
+                ['icon' => '🔌', 'title' => 'Plugin-Ökosystem', 'description' => 'Erweitere 365CMS flexibel um Unternehmen, Events, Experten, Jobs, Feeds, Formulare und weitere Business-Module.'],
+                ['icon' => '👤', 'title' => 'Mitgliederbereich', 'description' => 'Biete Dashboard, Profile, Favoriten, Benachrichtigungen und persönliche Bereiche für registrierte Nutzer direkt im System an.'],
+                ['icon' => '🔐', 'title' => 'Rollen, Passkeys & 2FA', 'description' => 'Arbeite mit granularen Rechten, sicherer Authentifizierung, Passkeys, TOTP und zusätzlicher Zugriffshärtung.'],
+                ['icon' => '🌐', 'title' => 'SEO, Sitemap & IndexNow', 'description' => 'Steuere Meta-Daten, Redirects, Sitemaps, technische SEO-Prüfungen und IndexNow direkt im Core.'],
+                ['icon' => '🔎', 'title' => 'Suche & Indizierung', 'description' => 'Nutze Volltextsuche, TNTSearch-Indizes und aktualisierte Suchdaten für Seiten, Beiträge und mehrsprachige Inhalte.'],
+                ['icon' => '✉️', 'title' => 'Mail Queue & Zustellung', 'description' => 'Versende System- und Projektmails zuverlässig über Queue, SMTP, MIME sowie moderne OAuth- und Retry-Pfade.'],
+                ['icon' => '📣', 'title' => 'Formulare, Leads & Kontakt', 'description' => 'Bündele Kontaktanfragen, Newsletter-Workflows, Lead-Erfassung und automatische Benachrichtigungen an einer Stelle.'],
+                ['icon' => '⚙️', 'title' => 'Cron Runner & Automationen', 'description' => 'Starte Cron-Aufgaben, Worker und geplante Prozesse direkt aus dem Admin oder automatisiert im Hintergrund.'],
+                ['icon' => '🚀', 'title' => 'Performance & Cache', 'description' => 'Verbessere Auslieferung, Assets, Medien, Cache-Verhalten und Reaktionszeiten für schnelle Frontends.'],
+                ['icon' => '📊', 'title' => 'Monitoring & Health Checks', 'description' => 'Überwache Cron, Antwortzeiten, Speicher, Disk-Usage, Health-Checks und Systemzustände direkt im Dashboard.'],
+                ['icon' => '♻️', 'title' => 'Updates & Backups', 'description' => 'Halte Core, Themes und Plugins aktuell und kombiniere das mit Backup- und Wiederherstellungsprozessen.'],
+                ['icon' => '🧾', 'title' => 'DSGVO & Legal Sites', 'description' => 'Pflege Datenschutz- und Rechtsseiten, Consent, Datenexporte sowie Löschprozesse systemweit nachvollziehbar.'],
+                ['icon' => '🧭', 'title' => 'Menüs, Redirects & Navigation', 'description' => 'Verwalte Menüpositionen, slugbasierte Links, Weiterleitungen und Navigationsstrukturen zentral im Admin.'],
+                ['icon' => '🧠', 'title' => 'Themes, Hooks & APIs', 'description' => 'Setze auf Customizer, Hooks, Services und dokumentierte Erweiterungspunkte für individuelle 365CMS-Lösungen.'],
             ];
             $stmt = $pdo->prepare("INSERT INTO {$prefix}landing_sections (type, data, sort_order, created_at, updated_at) VALUES ('feature', ?, ?, NOW(), NOW())");
             foreach ($features as $index => $feature) {

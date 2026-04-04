@@ -11,7 +11,7 @@ $lpFeatures    = [];
 $lpFooter      = [];
 $lpColors      = [];
 $lpSettings    = ['show_footer_section' => true];
-$lpContentSets = ['content_type' => 'features', 'posts_count' => 6];
+$lpContentSets = ['content_type' => 'features', 'posts_count' => 5];
 
 try {
     $landingSvc    = \CMS\Services\LandingPageService::getInstance();
@@ -298,7 +298,10 @@ main.site-main       { padding: 0 !important; margin: 0 !important; }
 
     <!-- ── Hauptinhalt (Features / Artikel / Text) ────────── -->
     <?php
-    $lpContentType = $lpContentSets['content_type'] ?? 'features';
+    $lpContentType = (string)($lpContentSets['content_type'] ?? 'features');
+    if (!in_array($lpContentType, ['features', 'text', 'posts'], true)) {
+        $lpContentType = 'features';
+    }
     $lpPostsCount  = max(1, (int)($lpContentSets['posts_count'] ?? 5));
     ?>
 
@@ -394,6 +397,12 @@ main.site-main       { padding: 0 !important; margin: 0 !important; }
             <?php echo $renderLandingHtml((string)$lpContentText); ?>
         </div>
     </section>
+    <?php else: ?>
+    <div class="empty-state" style="padding:3rem 0;">
+        <p style="font-size:3rem;margin:0">📝</p>
+        <p><strong>Freitext-Bereich ist aktiv</strong></p>
+        <p class="text-muted">Trage im Admin unter <a href="<?php echo SITE_URL; ?>/admin/landing-page?tab=content">Landing Page → Content</a> einen Text ein, damit dieser Bereich im Frontend ausgegeben wird.</p>
+    </div>
     <?php endif; ?>
 
     <?php elseif (empty($lpFeatures)): ?>

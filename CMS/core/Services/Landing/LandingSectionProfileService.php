@@ -69,7 +69,7 @@ final class LandingSectionProfileService
             'button_text' => $this->sanitizer->sanitizePlainText((string)($data['footer_button_text'] ?? ''), 60),
             'button_url' => $this->sanitizer->sanitizeUrl((string)($data['footer_button_url'] ?? '')),
             'copyright' => $this->sanitizer->sanitizeCopyright((string)($data['footer_copyright'] ?? '')),
-            'show_footer' => isset($data['show_footer']),
+            'show_footer' => !empty($data['show_footer']),
         ];
 
         try {
