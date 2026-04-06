@@ -60,7 +60,7 @@ class Auth
         }
 
         $userId = (int)($_SESSION['user_id'] ?? 0);
-        if ($userId <= 0 || !$this->hasValidDeviceCookie($userId)) {
+        if ($userId <= 0) {
             $this->forceExpireSession();
             return;
         }
@@ -79,7 +79,14 @@ class Auth
             return;
         }
 
+        if (!$this->hasValidDeviceCookie($userId)) {
+            $this->bindCurrentSessionToDeviceCookie($userId);
+        }
+
         $this->currentUser = $this->getUserById((int)$_SESSION['user_id']);
+        if ($this->currentUser === null) {
+            $this->forceExpireSession();
+        }
     }
 
     /**
@@ -649,10 +656,11 @@ class Auth
     private function setDeviceCookie(string $value, int $expiresAt): void
     {
         $params = session_get_cookie_params();
+        $cookieDomain = $this->resolveCookieDomain((string)($params['domain'] ?? ''));
         setcookie(self::DEVICE_COOKIE_NAME, $value, [
             'expires' => $expiresAt,
             'path' => $params['path'] ?? '/',
-            'domain' => $params['domain'] ?? '',
+            'domain' => $cookieDomain,
             'secure' => (bool)($params['secure'] ?? false),
             'httponly' => true,
             'samesite' => (string)($params['samesite'] ?? 'Lax'),
@@ -663,14 +671,38 @@ class Auth
     private function clearDeviceCookie(): void
     {
         $params = session_get_cookie_params();
+        $cookieDomain = $this->resolveCookieDomain((string)($params['domain'] ?? ''));
         setcookie(self::DEVICE_COOKIE_NAME, '', [
             'expires' => time() - 42000,
             'path' => $params['path'] ?? '/',
-            'domain' => $params['domain'] ?? '',
+            'domain' => $cookieDomain,
             'secure' => (bool)($params['secure'] ?? false),
             'httponly' => true,
             'samesite' => (string)($params['samesite'] ?? 'Lax'),
         ]);
         unset($_COOKIE[self::DEVICE_COOKIE_NAME]);
+    }
+
+    private function resolveCookieDomain(string $configuredDomain = ''): string
+    {
+        $domain = strtolower(trim($configuredDomain));
+        if ($domain !== '') {
+            return ltrim($domain, '.');
+        }
+
+        $host = strtolower(trim((string)($_SERVER['HTTP_HOST'] ?? '')));
+        if ($host === '') {
+            return '';
+        }
+
+        if (str_contains($host, ':')) {
+            $host = explode(':', $host, 2)[0];
+        }
+
+        if ($host === '' || $host === 'localhost' || filter_var($host, FILTER_VALIDATE_IP)) {
+            return '';
+        }
+
+        return preg_replace('/^www\./i', '', $host) ?? '';
     }
 }

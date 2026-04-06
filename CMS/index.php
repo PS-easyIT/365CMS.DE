@@ -33,6 +33,25 @@ $isHttpsRequest = static function (): bool {
     return in_array($frontEndHttps, ['on', '1'], true);
 };
 
+$resolveSessionCookieDomain = static function (): string {
+    $host = strtolower(trim((string) ($_SERVER['HTTP_HOST'] ?? '')));
+    if ($host === '') {
+        return '';
+    }
+
+    if (str_contains($host, ':')) {
+        $host = explode(':', $host, 2)[0];
+    }
+
+    if ($host === '' || $host === 'localhost' || filter_var($host, FILTER_VALIDATE_IP)) {
+        return '';
+    }
+
+    return preg_replace('/^www\./i', '', $host) ?? '';
+};
+
+$sessionCookieDomain = $resolveSessionCookieDomain();
+
 // Start session with secure settings
 // Alle ini_set MÜSSEN vor session_start() gesetzt werden (Security::startSession() prüft nur ob Session noch nicht gestartet ist)
 ini_set('session.cookie_httponly', '1');
@@ -40,6 +59,9 @@ ini_set('session.cookie_secure', $isHttpsRequest() ? '1' : '0');
 ini_set('session.use_only_cookies', '1');
 ini_set('session.use_strict_mode', '1');  // Verhindert Session-Fixation (H-03-Ergänzung)
 ini_set('session.cookie_samesite', 'Strict');  // CSRF-Zusatzschutz
+if ($sessionCookieDomain !== '') {
+    ini_set('session.cookie_domain', $sessionCookieDomain);
+}
 session_start();
 
 // Load configuration

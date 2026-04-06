@@ -17,15 +17,13 @@ if (!defined('ABSPATH')) {
 
 // Bereits eingeloggt → weiterleiten
 if (function_exists('theme_is_logged_in') && theme_is_logged_in()) {
-    header('Location: ' . SITE_URL . '/member');
+    header('Location: /member');
     exit;
 }
 
-// Flash-Messages vom CMS Router lesen
-// theme_get_flash() gibt ?array zurück: ['type' => 'error'|'success', 'message' => '...']
-$_flash       = function_exists('theme_get_flash') ? theme_get_flash() : null;
-$loginError   = ($_flash && $_flash['type'] === 'error')   ? $_flash['message'] : ($_SESSION['error']   ?? '');
-$loginSuccess = ($_flash && $_flash['type'] === 'success') ? $_flash['message'] : ($_SESSION['success'] ?? '');
+// Flash-Messages direkt aus der Session lesen
+$loginError   = trim((string)($_SESSION['error'] ?? ''));
+$loginSuccess = trim((string)($_SESSION['success'] ?? ''));
 unset($_SESSION['error'], $_SESSION['success']);
 
 // CSRF-Token für das Formular
@@ -36,6 +34,12 @@ if (class_exists('\CMS\Security')) {
 
 $siteUrl   = SITE_URL;
 $siteTitle = defined('SITE_NAME') ? SITE_NAME : '365CMS';
+$loginAction = '/login';
+$forgotPasswordUrl = '/forgot-password';
+$registerUrl = '/register';
+$homeUrl = '/';
+$loginRedirect = trim((string)($login_redirect ?? ''));
+$loginValue = trim((string)($_POST['username'] ?? $_POST['email'] ?? ''));
 ?>
 
 <main id="main" role="main" style="background:linear-gradient(135deg,#e3f2fd 0%,#f5f9fc 100%);min-height:calc(100vh - 200px);display:flex;align-items:center;padding:2rem 1.5rem;">
@@ -76,8 +80,11 @@ $siteTitle = defined('SITE_NAME') ? SITE_NAME : '365CMS';
             <?php endif; ?>
 
             <!-- Login Form – Verarbeitung durch CMS Router POST /login -->
-            <form method="POST" action="<?php echo htmlspecialchars($siteUrl, ENT_QUOTES, 'UTF-8'); ?>/login" novalidate>
+            <form method="POST" action="<?php echo htmlspecialchars($loginAction, ENT_QUOTES, 'UTF-8'); ?>" novalidate>
                 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>">
+                <?php if ($loginRedirect !== '') : ?>
+                    <input type="hidden" name="redirect" value="<?php echo htmlspecialchars($loginRedirect, ENT_QUOTES, 'UTF-8'); ?>">
+                <?php endif; ?>
 
                 <div class="form-group">
                     <label class="form-label" for="username">Benutzername oder E-Mail</label>
@@ -87,13 +94,14 @@ $siteTitle = defined('SITE_NAME') ? SITE_NAME : '365CMS';
                            name="username"
                            autocomplete="username"
                            required
-                           autofocus>
+                           autofocus
+                           value="<?php echo htmlspecialchars($loginValue, ENT_QUOTES, 'UTF-8'); ?>">
                 </div>
 
                 <div class="form-group">
                     <label class="form-label" for="password">
                         Passwort
-                        <a href="<?php echo htmlspecialchars($siteUrl, ENT_QUOTES, 'UTF-8'); ?>/forgot-password" class="form-label-link">Vergessen?</a>
+                        <a href="<?php echo htmlspecialchars($forgotPasswordUrl, ENT_QUOTES, 'UTF-8'); ?>" class="form-label-link">Vergessen?</a>
                     </label>
                     <div class="form-control-wrap form-control-wrap--password">
                         <input class="form-control"
@@ -124,10 +132,10 @@ $siteTitle = defined('SITE_NAME') ? SITE_NAME : '365CMS';
             <!-- Footer Links -->
             <div class="auth-footer">
                 <p>Noch kein Konto?
-                    <a href="<?php echo htmlspecialchars($siteUrl, ENT_QUOTES, 'UTF-8'); ?>/register">Jetzt registrieren</a>
+                    <a href="<?php echo htmlspecialchars($registerUrl, ENT_QUOTES, 'UTF-8'); ?>">Jetzt registrieren</a>
                 </p>
                 <p style="margin-top:0.5rem;">
-                    <a href="<?php echo htmlspecialchars($siteUrl, ENT_QUOTES, 'UTF-8'); ?>/">← Zurück zur Startseite</a>
+                    <a href="<?php echo htmlspecialchars($homeUrl, ENT_QUOTES, 'UTF-8'); ?>">← Zurück zur Startseite</a>
                 </p>
             </div>
 
