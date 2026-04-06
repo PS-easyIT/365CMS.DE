@@ -26,6 +26,7 @@ $stickyHeader  = (bool)meridian_setting('layout', 'sticky_header', true);
 $currentPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
 $isLoggedIn  = meridian_is_logged_in();
 $flashMsg    = meridian_get_flash();
+$accountPath = function_exists('meridian_account_path') ? meridian_account_path() : '/member/profile';
 
 ?>
 <!DOCTYPE html>
@@ -158,7 +159,7 @@ $flashMsg    = meridian_get_flash();
       <?php endif; ?>
 
       <?php if ($isLoggedIn): ?>
-          <a href="<?php echo SITE_URL; ?>/member/profile" class="btn-ghost">Mein Bereich</a>
+          <a href="<?php echo htmlspecialchars(rtrim((string) SITE_URL, '/') . $accountPath, ENT_QUOTES, 'UTF-8'); ?>" class="btn-ghost">Mein Bereich</a>
           <a href="<?php echo SITE_URL; ?>/logout" class="btn-ghost">Logout</a>
       <?php else: ?>
           <?php if ($showLoginBtn): ?>
@@ -264,7 +265,7 @@ $flashMsg    = meridian_get_flash();
     <div style="height:1px;background:var(--rule);margin:.5rem 1.25rem;"></div>
 
     <?php if ($isLoggedIn): ?>
-      <a href="<?php echo SITE_URL; ?>/member/profile" class="mobile-nav-link">👤 Mein Bereich</a>
+      <a href="<?php echo htmlspecialchars(rtrim((string) SITE_URL, '/') . $accountPath, ENT_QUOTES, 'UTF-8'); ?>" class="mobile-nav-link">👤 Mein Bereich</a>
       <a href="<?php echo SITE_URL; ?>/logout" class="mobile-nav-link">⬡ Logout</a>
     <?php else: ?>
       <?php if ($showLoginBtn): ?>

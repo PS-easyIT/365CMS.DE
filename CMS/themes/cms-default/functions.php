@@ -710,6 +710,42 @@ function meridian_get_flash(): ?array
     return null;
 }
 
+/**
+ * Zielpfad für bereits eingeloggte Benutzer bestimmen.
+ */
+function meridian_logged_in_redirect_path(): string
+{
+    try {
+        $user = \CMS\Auth::instance()->getCurrentUser();
+        $role = strtolower((string)($user->role ?? $user['role'] ?? ''));
+
+        if ($role === 'admin') {
+            return '/admin';
+        }
+    } catch (\Throwable $e) {
+    }
+
+    return '/member';
+}
+
+/**
+ * Account-Zielpfad für Header-/Navigation-Links bestimmen.
+ */
+function meridian_account_path(): string
+{
+    try {
+        $user = \CMS\Auth::instance()->getCurrentUser();
+        $role = strtolower((string)($user->role ?? $user['role'] ?? ''));
+
+        if ($role === 'admin') {
+            return '/admin';
+        }
+    } catch (\Throwable $e) {
+    }
+
+    return '/member/profile';
+}
+
 
 /**
  * ThemeCustomizer-Wert sicher auslesen
@@ -918,6 +954,22 @@ function theme_is_logged_in(): bool
 function theme_get_flash(): ?array
 {
     return meridian_get_flash();
+}
+
+/**
+ * Alias: Zielpfad für eingeloggte Benutzer.
+ */
+function theme_logged_in_redirect_path(): string
+{
+    return meridian_logged_in_redirect_path();
+}
+
+/**
+ * Alias: Konto-/Bereichs-Link für eingeloggte Benutzer.
+ */
+function theme_account_path(): string
+{
+    return meridian_account_path();
 }
 
 /**
