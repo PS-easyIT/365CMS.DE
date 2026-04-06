@@ -162,7 +162,7 @@ final class PublicRouter
 
             if ($result === true) {
                 unset($_SESSION['auth_redirect_after_login']);
-                $this->router->redirect($redirectTarget);
+                $this->router->redirect($this->resolveSuccessfulLoginRedirect($redirectTarget));
                 return;
             }
 
@@ -176,9 +176,9 @@ final class PublicRouter
 
         if ($result === true) {
             unset($_SESSION['auth_redirect_after_login']);
-            $this->router->redirect($redirectTarget);
+            $this->router->redirect($this->resolveSuccessfulLoginRedirect($redirectTarget));
         } elseif ($result === 'MFA_REQUIRED') {
-            $_SESSION['auth_redirect_after_login'] = $redirectTarget;
+            $_SESSION['auth_redirect_after_login'] = $this->resolvePendingLoginRedirect($redirectTarget, $loginInput);
             $this->router->redirect('/mfa-challenge');
         } else {
             $_SESSION['error'] = $result;
@@ -512,9 +512,94 @@ final class PublicRouter
 
     private function getSafePostLoginRedirect(mixed $candidate): string
     {
-        unset($candidate);
+        $value = trim((string)$candidate);
+        if ($value === '') {
+            return '/member';
+        }
+
+        if (preg_match('#^[a-z][a-z0-9+.-]*://#i', $value) === 1) {
+            $siteParts = parse_url((string)SITE_URL);
+            $targetParts = parse_url($value);
+            if (!is_array($siteParts) || !is_array($targetParts)) {
+                return '/member';
+            }
+
+            $siteScheme = strtolower((string)($siteParts['scheme'] ?? ''));
+            $siteHost = strtolower((string)($siteParts['host'] ?? ''));
+            $targetScheme = strtolower((string)($targetParts['scheme'] ?? ''));
+            $targetHost = strtolower((string)($targetParts['host'] ?? ''));
+
+            if ($siteScheme !== $targetScheme || $siteHost !== $targetHost) {
+                return '/member';
+            }
+
+            $value = (string)($targetParts['path'] ?? '/');
+            $query = isset($targetParts['query']) && $targetParts['query'] !== '' ? '?' . $targetParts['query'] : '';
+            $value .= $query;
+        }
+
+        if (!str_starts_with($value, '/')) {
+            $value = '/' . ltrim($value, '/');
+        }
+
+        if (preg_match('/[\x00-\x1F\x7F]/', $value) === 1 || str_starts_with($value, '//')) {
+            return '/member';
+        }
+
+        $path = (string)parse_url($value, PHP_URL_PATH);
+        if ($path === '') {
+            return '/member';
+        }
+
+        foreach (['/admin', '/member', '/dashboard'] as $allowedPrefix) {
+            if ($path === $allowedPrefix || str_starts_with($path, $allowedPrefix . '/')) {
+                return $value;
+            }
+        }
 
         return '/member';
+    }
+
+    private function resolveSuccessfulLoginRedirect(string $redirectTarget): string
+    {
+        if ($redirectTarget !== '/member') {
+            return $redirectTarget;
+        }
+
+        return Auth::instance()->isAdmin() ? '/admin' : '/member';
+    }
+
+    private function resolvePendingLoginRedirect(string $redirectTarget, string $loginInput): string
+    {
+        if ($redirectTarget !== '/member') {
+            return $redirectTarget;
+        }
+
+        $user = $this->findUserForLoginInput($loginInput);
+        if ($user !== null && (string)($user->role ?? '') === 'admin') {
+            return '/admin';
+        }
+
+        return '/member';
+    }
+
+    private function findUserForLoginInput(string $loginInput): ?object
+    {
+        $loginInput = trim($loginInput);
+        if ($loginInput === '') {
+            return null;
+        }
+
+        try {
+            $db = Database::instance();
+            $stmt = $db->prepare("SELECT id, role FROM {$db->getPrefix()}users WHERE username = ? OR email = ? LIMIT 1");
+            $stmt->execute([$loginInput, $loginInput]);
+            $user = $stmt->fetch();
+
+            return is_object($user) ? $user : null;
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     private function consumePostLoginRedirect(): string

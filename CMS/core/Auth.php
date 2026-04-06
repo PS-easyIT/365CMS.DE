@@ -175,10 +175,10 @@ class Auth
             return 'MFA_REQUIRED';
         }
 
-        $_SESSION['user_id']          = $user->id;
-        $_SESSION['user_role']         = $user->role;
-        $_SESSION['session_start_time'] = time(); // M-17: Startzeitstempel für Lifetime-Prüfung
         session_regenerate_id(true); // Prevent Fixation
+        $_SESSION['user_id'] = $user->id;
+        $_SESSION['user_role'] = $user->role;
+        $_SESSION['session_start_time'] = time(); // M-17: Startzeitstempel für Lifetime-Prüfung
         $this->bindCurrentSessionToDeviceCookie((int)$user->id);
         
         $db->update('users', ['last_login' => date('Y-m-d H:i:s')], ['id' => $user->id]);

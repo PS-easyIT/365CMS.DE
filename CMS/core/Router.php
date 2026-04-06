@@ -165,7 +165,7 @@ class Router
         }
 
         $csrfBypassPrefixes = ['/api/', '/admin/', '/member/', '/contact/'];
-        $csrfBypassExact = ['/login', '/register', '/logout', '/contact', '/comments/post', '/mfa-challenge', '/mfa-setup', '/mfa-disable'];
+        $csrfBypassExact = ['/login', '/register', '/forgot-password', '/logout', '/contact', '/comments/post', '/mfa-challenge', '/mfa-setup', '/mfa-disable'];
             $isThemeFavoriteToggle = $method === 'POST'
                 && (string) ($_POST['phinit_toggle_favorite'] ?? '') === '1'
                 && in_array((string) ($_POST['favorite_content_type'] ?? ''), ['post', 'page'], true)
@@ -640,8 +640,17 @@ class Router
             return '';
         }
 
-        if (preg_match('#^[a-z][a-z0-9+.-]*:#i', $url) === 1 || str_starts_with($url, '//')) {
+        if (str_starts_with($url, '//')) {
             return '';
+        }
+
+        if (preg_match('#^[a-z][a-z0-9+.-]*:#i', $url) === 1) {
+            $absolutePath = $this->normalizeSameOriginAbsoluteRedirectPath($url);
+            if ($absolutePath === null) {
+                return '';
+            }
+
+            $url = $absolutePath;
         }
 
         if (!str_starts_with($url, '/')) {
@@ -657,6 +666,56 @@ class Router
         }
 
         return $url;
+    }
+
+    private function normalizeSameOriginAbsoluteRedirectPath(string $url): ?string
+    {
+        $parts = parse_url($url);
+        if (!is_array($parts)) {
+            return null;
+        }
+
+        $scheme = strtolower((string) ($parts['scheme'] ?? ''));
+        $host = strtolower((string) ($parts['host'] ?? ''));
+        if ($scheme === '' || $host === '') {
+            return null;
+        }
+
+        if (!in_array($scheme, ['http', 'https'], true)) {
+            return null;
+        }
+
+        $siteParts = parse_url((string) SITE_URL);
+        if (!is_array($siteParts)) {
+            return null;
+        }
+
+        $siteScheme = strtolower((string) ($siteParts['scheme'] ?? ''));
+        $siteHost = strtolower((string) ($siteParts['host'] ?? ''));
+        $sitePort = isset($siteParts['port']) ? (int) $siteParts['port'] : null;
+        $targetPort = isset($parts['port']) ? (int) $parts['port'] : null;
+
+        if ($siteScheme === '' || $siteHost === '') {
+            return null;
+        }
+
+        if ($scheme !== $siteScheme || $host !== $siteHost || $targetPort !== $sitePort) {
+            return null;
+        }
+
+        $path = (string) ($parts['path'] ?? '/');
+        if ($path === '') {
+            $path = '/';
+        }
+
+        if (!str_starts_with($path, '/')) {
+            $path = '/' . ltrim($path, '/');
+        }
+
+        $query = isset($parts['query']) && $parts['query'] !== '' ? '?' . $parts['query'] : '';
+        $fragment = isset($parts['fragment']) && $parts['fragment'] !== '' ? '#' . $parts['fragment'] : '';
+
+        return $path . $query . $fragment;
     }
 
     private function normalizeHost(string $value): string

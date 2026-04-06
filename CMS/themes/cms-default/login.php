@@ -21,10 +21,19 @@ if (function_exists('theme_is_logged_in') && theme_is_logged_in()) {
     exit;
 }
 
-// Flash-Messages direkt aus der Session lesen
-$loginError   = trim((string)($_SESSION['error'] ?? ''));
-$loginSuccess = trim((string)($_SESSION['success'] ?? ''));
-unset($_SESSION['error'], $_SESSION['success']);
+// Flash-Messages analog zum funktionierenden 365Network-Theme beziehen
+$themeGetFlashAvailable = function_exists('theme_get_flash');
+$themeFlash = $themeGetFlashAvailable ? (theme_get_flash() ?? []) : [];
+$loginError = $themeGetFlashAvailable
+    ? (trim((string) ($themeFlash['type'] ?? '')) === 'error' ? trim((string) ($themeFlash['message'] ?? '')) : '')
+    : trim((string) ($_SESSION['error'] ?? ''));
+$loginSuccess = $themeGetFlashAvailable
+    ? (trim((string) ($themeFlash['type'] ?? '')) === 'success' ? trim((string) ($themeFlash['message'] ?? '')) : '')
+    : trim((string) ($_SESSION['success'] ?? ''));
+
+if (!$themeGetFlashAvailable) {
+    unset($_SESSION['error'], $_SESSION['success']);
+}
 
 // CSRF-Token für das Formular
 $csrfToken = '';
@@ -34,10 +43,11 @@ if (class_exists('\CMS\Security')) {
 
 $siteUrl   = SITE_URL;
 $siteTitle = defined('SITE_NAME') ? SITE_NAME : '365CMS';
-$loginAction = '/login';
-$forgotPasswordUrl = '/forgot-password';
-$registerUrl = '/register';
-$homeUrl = '/';
+$siteBase = rtrim((string) $siteUrl, '/');
+$loginAction = $siteBase !== '' ? $siteBase . '/login' : '/login';
+$forgotPasswordUrl = $siteBase !== '' ? $siteBase . '/forgot-password' : '/forgot-password';
+$registerUrl = $siteBase !== '' ? $siteBase . '/register' : '/register';
+$homeUrl = $siteBase !== '' ? $siteBase . '/' : '/';
 $loginRedirect = trim((string)($login_redirect ?? ''));
 $loginValue = trim((string)($_POST['username'] ?? $_POST['email'] ?? ''));
 ?>
