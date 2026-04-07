@@ -122,6 +122,18 @@ Für dieses Projekt gilt organisatorisch und praktisch:
 
 Das ist Teil der technischen Realität und muss bei Doku, Review und Fehlersuche immer mitgedacht werden.
 
+### 0.7 Minimale Betriebs-Checkliste für einen plausiblen Produktivzustand
+
+Ein 365CMS-System ist betrieblich erst dann in einem glaubwürdigen Grundzustand, wenn mindestens diese Fragen positiv beantwortbar sind:
+
+- startet der Bootstrap ohne Fallback- oder Kompatibilitätsfehler?
+- sind Datenbank, Sessions und Security-Header aktiv?
+- sind Schreibpfade für Logs, Uploads, Cache und temporäre Dateien korrekt gesetzt?
+- funktionieren Routing, Auth-Einstieg und mindestens eine zentrale Public-Seite?
+- stimmen Runtime-Dateien, hochgeladener Stand und Repo bewusst überein?
+
+Diese Liste ersetzt keinen vollständigen Audit- oder Release-Check, ist aber die kleinste sinnvolle Realitätsschranke gegen „läuft doch irgendwie“.
+
 ---
 
 ## 1. Systembild in einem Satz
@@ -162,6 +174,16 @@ Jede Änderung sollte mindestens gegen diese fünf Fragen geprüft werden:
 - Diagnose-/Cron-/Betriebslogik
 
 Viele Fehler entstehen genau dann, wenn nur ein Teilbereich betrachtet wird, obwohl der eigentliche Vertrag über mehrere dieser Schichten läuft.
+
+### 1.4 Folgen dieser Sichtweise für Reviews und Änderungen
+
+Wer an 365CMS arbeitet, sollte bei jeder Änderung automatisch zwischen drei Ebenen unterscheiden:
+
+- **lokale Ursache** – die Datei oder Funktion, die direkt geändert wird
+- **systemische Wirkung** – die betroffene Kette aus Routing, Service, View, Asset, Auth oder Hook
+- **betriebliche Wirkung** – Live-Pfade, Deployment, Doku, Logs, Audit und Support-Fähigkeit
+
+Je größer die Differenz zwischen lokaler Ursache und systemischer Wirkung ist, desto höher ist die Regressiongefahr. Genau deshalb brauchen scheinbar kleine Änderungen in 365CMS oft erstaunlich viel Kontext.
 
 ---
 
@@ -226,6 +248,17 @@ Gerade bei Theme- und Plugin-Arbeit verhindert diese Denkweise die klassische Ve
 - „Im Quellrepo geändert = automatisch live“ → falsch
 - „Im Plugin-Repo vorhanden = automatisch geladen“ → falsch
 - „Repo sieht richtig aus = Runtime ist sicher identisch“ → nur dann richtig, wenn die aktive Datei unter `CMS/` gemeint ist und der FTP-Upload erfolgt ist
+
+### 2.7 Praktische Regel für jede Fehlersuche
+
+Vor tieferem Debugging immer zuerst eindeutig bestimmen:
+
+1. welcher Request-Pfad betroffen ist,
+2. welche Runtime-Datei ihn tatsächlich bedient,
+3. welche Daten-/Setting-Quelle dafür maßgeblich ist,
+4. ob genau diese Runtime-Datei bereits dem per FTP hochgeladenen Stand entspricht.
+
+Diese Viererprüfung spart regelmäßig mehr Zeit als jede frühe Hypothese über Framework, Browser oder „mystisches Cache-Verhalten“.
 
 ---
 
@@ -310,6 +343,18 @@ Schon kleine Anpassungen im Bootstrap können gleichzeitig beeinflussen:
 
 Bootstrap-Arbeit ist deshalb fast nie eine lokale Änderung, sondern immer eine Änderung mit hoher Reichweite.
 
+### 3.8 Typische Bootstrap-Warnsignale
+
+Alarmzeichen bei Bootstrap-nahen Änderungen sind insbesondere:
+
+- zusätzliche Datei- oder Verzeichnis-Scans ohne Modusbegrenzung
+- Service-Erzeugung mit sofortigem Remote-I/O
+- stille Catch-Blöcke, die nur Fehler verschlucken
+- fachliche Spezialfälle, die eigentlich in Router, Modul oder Service gehören
+- neue globale Zustände, die später außerhalb des Bootstrap kaum noch nachvollziehbar sind
+
+Wenn eine Änderung eines dieser Muster einführt, ist sie fast immer zu breit angesetzt.
+
 ---
 
 ## 4. Konfiguration, Konstanten und feste Werte
@@ -390,6 +435,17 @@ Neue Konfigschlüssel sollten:
 - nicht still bestehende Schlüssel semantisch umdeuten
 - in Doku, UI und Runtime möglichst dieselbe Sprache sprechen
 
+### 4.7 Konfigurationen brauchen Eigentümer
+
+Jeder relevante Konfigwert sollte gedanklich einen klaren Eigentümer haben:
+
+- Core-Sicherheitsparameter → Core
+- Theme-nahe Darstellung → Theme/Customizer
+- modulbezogene UI-Einstellungen → betroffener Admin-/Modulbereich
+- Betriebsparameter wie Mail, Cron, Logging → System-/Betriebskontext
+
+Fehlt dieser Eigentümer, endet die Einstellung oft als schwer wartbarer Mischwert zwischen UI, Settings-Tabelle und stiller Runtime-Annahme.
+
 ---
 
 ## 5. Dependency Injection und zentrale Core-Komponenten
@@ -455,6 +511,17 @@ Ungünstig sind:
 ### 5.6 Kandidaten für weitere Trennung
 
 Sobald eine Klasse gleichzeitig Request-Normalisierung, Fachlogik, Persistenz, Alert-Aufbereitung und ViewModel-Bau übernimmt, ist sie ein guter Kandidat für spätere Aufteilung.
+
+### 5.7 Gute Container-Nutzung im Alltag
+
+Im Alltag heißt gute Container-Nutzung vor allem:
+
+- Abhängigkeiten möglichst explizit statt heimlich aus globalem Zustand beziehen
+- Services so bauen, dass sie in Admin, Cron und Public gleichermaßen verständlich funktionieren
+- Views nicht zu versteckten Service-Locator-Kunden machen
+- neue Service-Aliase nur anlegen, wenn sie auch fachlich sinnvoll und langfristig verständlich sind
+
+Der Container soll Komplexität ordnen, nicht sie hübscher verstecken.
 
 ---
 
@@ -633,6 +700,19 @@ Diese Stellen sollten grundsätzlich mit höherem Misstrauen behandelt werden al
 
 Admin-Pfade sind oft gefährlicher als Public-Pfade, weil sie Mutationen, Dateisystemzugriff, privilegierte Rollen und Remote-Integration kombinieren. Deshalb dürfen Admin-XSS, schwache Redirects oder Upload-/Marketplace-Probleme nie als „nur intern“ verharmlost werden.
 
+### 6.16 Sicherheitsdenken für neue Features
+
+Neue Features sollten immer mindestens gegen diese Angriffsklassen durchdacht werden:
+
+- Eingabemissbrauch
+- Rollen-/Capability-Umgehung
+- Pfad- oder Dateisystemmissbrauch
+- unkontrollierte Remote-Inhalte
+- offene Redirects oder Hostwechsel
+- Informationsleck über Fehlermeldungen, JSON oder Debugpfade
+
+Wenn ein Feature zu keiner dieser Klassen Stellung nehmen kann, ist die Sicherheitsbetrachtung fast sicher noch zu oberflächlich.
+
 ---
 
 ## 7. Authentifizierung, MFA, Passkeys, LDAP, JWT
@@ -726,6 +806,17 @@ Auth-Pfade gehören zu den Bereichen, die nach Änderungen und Uploads besonders
 - bleibt MFA/Passkey im selben Session-Vertrag?
 - leaken Fehlertexte nicht?
 
+### 7.10 Auth-Änderungen haben Vertrauenseffekt
+
+Fehler in Auth-Pfaden sind nicht nur technische Defekte, sondern Vertrauensschäden:
+
+- Nutzer verlieren Sitzungen oder gelangen in Loops
+- MFA wirkt unzuverlässig
+- Passwort-Reset erscheint unsicher
+- Login-Routen verhalten sich inkonsistent je nach Theme, Sprache oder Host
+
+Darum gehören Änderungen an Auth, MFA, Passkeys, LDAP oder Session-Handling zu den Bereichen, die besonders konservativ entwickelt und besonders direkt live geprüft werden sollten.
+
 ---
 
 ## 8. Datenbank, Schema und Migrationen
@@ -811,6 +902,17 @@ Häufige Fehlerquellen im 365CMS-Datenmodell sind:
 
 Tabellen- und Migrationsänderungen wirken nie nur auf SQL, sondern auch auf Installer, Updates, Diagnose, Backup/Restore, Suchindex und bestehende Produktivdaten.
 
+### 8.10 Datenbanksicherheit und Datenqualität zusammen denken
+
+Sauberes Schema-Design dient nicht nur Performance oder Schönheit, sondern auch Sicherheit und Diagnose:
+
+- eindeutige Constraints reduzieren Schattenzustände
+- sinnvolle Indizes stabilisieren produktive Listen- und Admin-Pfade
+- explizite Datentypen begrenzen implizite Fehlinterpretationen
+- klar benannte Tabellen und FKs verbessern Support, Logs und Migrationsfehleranalyse
+
+Ein schwer lesbares Schema erzeugt fast immer irgendwann auch schwer lesbare Betriebsprobleme.
+
 ---
 
 ## 9. Content-Modell und Mehrsprachigkeit
@@ -883,6 +985,17 @@ Gespeicherter Inhalt ist erst dann wirklich korrekt integriert, wenn er auch:
 - sprachlich sauber bleibt
 - in Archiven, Sitemaps und Gegenpfaden sinnvoll erscheint
 
+### 9.9 Content-Arbeit ist immer auch Redaktions-UX
+
+Selbst fachlich korrekter Content-Code ist unvollständig, wenn Redakteure ihn nicht zuverlässig bedienen können. Deshalb immer mitdenken:
+
+- bleibt der Editor nachvollziehbar?
+- sind Block- oder Feldzustände sichtbar und konsistent?
+- bleiben Vorschau, Speichern, Rücksprung und Statuswechsel verständlich?
+- verhält sich DE/EN im Bearbeitungsfluss konsistent?
+
+Viele spätere Inhaltsfehler beginnen nicht im Renderer, sondern in einem unklaren Bearbeitungsfluss.
+
 ---
 
 ## 10. Routing und Request-Fluss
@@ -952,6 +1065,18 @@ Routing entscheidet in 365CMS nicht nur über URL-Auflösung, sondern auch über
 - Locale-Verhalten
 - Theme-/Template-Pfade
 - Live-Erreichbarkeit produktionskritischer Seiten
+
+### 10.10 Routing-Änderungen brauchen Gegenprüfung in Nachbarbereichen
+
+Nach Routing-Anpassungen sollten nie nur die direkt betroffenen URLs geprüft werden, sondern mindestens auch:
+
+- Auth-Rücksprünge
+- Footer- und Pflichtseitenlinks
+- Sprachwechsel und Gegenpfade
+- Sitemaps, Redirects und 404-Verhalten
+- Admin-Links, falls Hosts, Basispfade oder Rewrite-Regeln berührt wurden
+
+Routing ist die Art von Änderung, die ihren Schaden gern an ganz anderer Stelle sichtbar macht.
 
 ---
 
@@ -1044,6 +1169,18 @@ Erfahrungsgemäß besonders sensibel sind Services mit mindestens einem dieser M
 
 Solche Services brauchen stärkere Guards, klarere Fehlerverträge und häufiger Regressionstests.
 
+### 11.5 Service-Verträge explizit halten
+
+Ein Service sollte nach außen möglichst klar erkennen lassen:
+
+- welche Eingaben er erwartet,
+- welche Seiteneffekte er haben kann,
+- welche Fehlerarten entstehen können,
+- ob er für Admin, Public, Cron und API gleichermaßen geeignet ist,
+- ob er Dateien, Netzwerk, Settings oder Datenbankzustand verändert.
+
+Je expliziter dieser Vertrag ist, desto leichter lassen sich spätere Module, Hooks und Views stabil darauf aufbauen.
+
 ---
 
 ## 12. SEO, Redirects, 404 und Sichtbarkeit
@@ -1108,6 +1245,19 @@ Vor Releases oder größeren Routing-/Content-Änderungen sinnvoll prüfen:
 - bleiben Weiterleitungen intern, eindeutig und loopfrei?
 - sind Sitemap, Robots und IndexNow-Keydatei konsistent?
 - funktionieren 404-Übernahme und Redirect-Anlage im Admin weiter robust?
+
+### 12.9 Sichtbarkeit als systemweiter Vertrag
+
+Sichtbarkeit entsteht in 365CMS nie nur durch einen einzelnen Schalter. Sie hängt gleichzeitig an:
+
+- Content-Status
+- Routing
+- Theme-Ausgabe
+- SEO-Metadaten
+- Sitemap-/Robots-Regeln
+- Redirects und historischen Fehlpfaden
+
+Deshalb sind SEO-Bugs oft in Wahrheit Konsistenzbugs zwischen mehreren Schichten.
 
 ---
 
@@ -1176,6 +1326,17 @@ Bei neuen oder überarbeiteten Plugins immer beachten:
 - Admin-Pfade, Assets und Hooks klar dokumentieren
 - Dateisystem- und ZIP-Pfade streng begrenzen
 - Install-/Update-/Delete-Verhalten auditierbar halten
+
+### 13.11 Plugins als Laufzeitbürger behandeln
+
+Ein gutes Plugin verhält sich wie ein sauberer Laufzeitbürger:
+
+- es erweitert bestehende Verträge statt sie heimlich zu überschreiben
+- es respektiert Hook-, Routing- und Capability-Grenzen des Core
+- es kann bei Fehlern sauber deaktiviert, ignoriert oder diagnostiziert werden
+- es macht seine Abhängigkeiten sichtbar, statt sie still vorauszusetzen
+
+Plugins sollen das System ergänzen, nicht die Grundannahmen des Systems heimlich austauschen.
 
 ---
 
@@ -1253,6 +1414,18 @@ Besonders wichtig:
 - Theme-Editor und Customizer arbeiten gegen deployte Runtime-Themes
 - beim Debuggen immer zuerst prüfen, welche Theme-Datei tatsächlich aus `CMS/themes/` gerendert wird
 
+### 14.10 Themes sind auch Integrationsflächen
+
+Themes integrieren in 365CMS nicht nur HTML und CSS, sondern auch:
+
+- Menü- und Navigationsverträge
+- rechtliche Pflichtlinks
+- Lokalisierungssichtbarkeit
+- Hook-Ausgabepunkte
+- Login- und Vertrauenspfade
+
+Darum können Theme-Änderungen reale Betriebs- und Compliance-Auswirkungen haben, selbst wenn der Core unverändert bleibt.
+
 ---
 
 ## 15. Admin-Architektur
@@ -1324,6 +1497,18 @@ Historisch problematisch waren besonders:
 - Formulare mit mehreren potenziellen Submit-Zielen
 
 Genau dort lohnt sich immer eine zusätzliche Runde Skepsis und Gegenprüfung.
+
+### 15.7 Admin heißt Orchestrierung, nicht Dateien sammeln
+
+Der Admin-Bereich ist in 365CMS im Idealfall eine Orchestrierungsschicht:
+
+- Entries schützen und normalisieren
+- Module kapseln Fachlogik
+- Views rendern vorbereitete Zustände
+- Assets übernehmen wiederverwendbare Interaktion
+- Partials halten Alerts, Shells und Rückmeldeverträge konsistent
+
+Sobald diese Trennung aufweicht, steigen Supportaufwand, Regressionen und Audit-Risiken spürbar an.
 
 ---
 
