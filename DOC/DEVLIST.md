@@ -8,6 +8,122 @@ Diese Datei ist die zentrale technische Entwicklerreferenz für das laufende 365
 
 ---
 
+## Inhaltsverzeichnis
+
+- [0. Abhängigkeiten, Plattformen und Betriebsgrundlagen](#0-abhängigkeiten-plattformen-und-betriebsgrundlagen)
+- [1. Systembild in einem Satz](#1-systembild-in-einem-satz)
+- [2. Repository- und Laufzeitmodell](#2-repository--und-laufzeitmodell)
+- [3. Bootstrap, Betriebsmodi und Startpfad](#3-bootstrap-betriebsmodi-und-startpfad)
+- [4. Konfiguration, Konstanten und feste Werte](#4-konfiguration-konstanten-und-feste-werte)
+- [5. Dependency Injection und zentrale Core-Komponenten](#5-dependency-injection-und-zentrale-core-komponenten)
+- [6. Sicherheitsarchitektur](#6-sicherheitsarchitektur)
+- [7. Authentifizierung, MFA, Passkeys, LDAP, JWT](#7-authentifizierung-mfa-passkeys-ldap-jwt)
+- [8. Datenbank, Schema und Migrationen](#8-datenbank-schema-und-migrationen)
+- [9. Content-Modell und Mehrsprachigkeit](#9-content-modell-und-mehrsprachigkeit)
+- [10. Routing und Request-Fluss](#10-routing-und-request-fluss)
+- [11. Service-Layer](#11-service-layer)
+- [12. SEO, Redirects, 404 und Sichtbarkeit](#12-seo-redirects-404-und-sichtbarkeit)
+- [13. Plugin-System](#13-plugin-system)
+- [14. Theme-System](#14-theme-system)
+- [15. Admin-Architektur](#15-admin-architektur)
+- [16. Member-Bereich](#16-member-bereich)
+- [17. Hooks- und Event-System](#17-hooks--und-event-system)
+- [18. Performance, Cache und Monitoring](#18-performance-cache-und-monitoring)
+- [19. Cron, Hintergrundjobs und Betriebsautomation](#19-cron-hintergrundjobs-und-betriebsautomation)
+- [20. Medien, Dateien und Assets](#20-medien-dateien-und-assets)
+- [21. Logging, Fehlerbehandlung und Diagnose](#21-logging-fehlerbehandlung-und-diagnose)
+- [22. Best Practices für Entwicklung im 365CMS](#22-best-practices-für-entwicklung-im-365cms)
+- [23. Audit-Erkenntnisse, die nicht wieder verloren gehen dürfen](#23-audit-erkenntnisse-die-nicht-wieder-verloren-gehen-dürfen)
+- [24. Konkrete Regressionen aus dem Changelog, die nie wieder auftauchen dürfen](#24-konkrete-regressionen-aus-dem-changelog-die-nie-wieder-auftauchen-dürfen)
+- [25. Audit-Fokuszonen mit dauerhaft erhöhter Aufmerksamkeit](#25-audit-fokuszonen-mit-dauerhaft-erhöhter-aufmerksamkeit)
+- [26. Live-Betrieb und Audit-Readiness](#26-live-betrieb-und-audit-readiness)
+- [27. Erweiterte Nicht-wieder-tun-Liste](#27-erweiterte-nicht-wieder-tun-liste)
+- [28. Häufige Stolperfallen](#28-häufige-stolperfallen)
+- [29. Technische Checkliste vor Änderungen](#29-technische-checkliste-vor-änderungen)
+- [30. Abschlussbild](#30-abschlussbild)
+
+---
+
+## 0. Abhängigkeiten, Plattformen und Betriebsgrundlagen
+
+### 0.1 Primäre Plattformanforderungen
+
+365CMS basiert im aktuellen Stand im Kern auf:
+
+- **PHP 8.4+** als Zielplattform
+- **MySQL oder MariaDB** als relationale Datenbankbasis
+- **Apache 2.4+** mit Rewrite-Unterstützung als typischer Webserver-Kontext
+- **PDO** für Datenbankzugriffe
+- **Sessions, Cookies, Security Headers, CSP und HSTS** als Sicherheitsgrundlage
+
+### 0.2 Relevante PHP-Fähigkeiten und typische Extensions
+
+Für den vollständigen Produktivbetrieb sind je nach Featurepfad insbesondere diese Laufzeitfähigkeiten relevant:
+
+- `pdo_mysql`
+- `mbstring`
+- `json`
+- `openssl`
+- `curl`
+- `fileinfo`
+- `zip`
+- Bildverarbeitung wie `gd` bzw. äquivalente unterstützte Kontexte
+- Session-/Cookie-Support
+
+### 0.3 Funktionsbezogene optionale Integrationen
+
+Je nach aktivem Umfang kommen zusätzlich zum Tragen:
+
+- SMTP / Mail-Credentials / OAuth2
+- Microsoft-Graph- oder Azure-nahe Mail-/Tokenpfade
+- LDAP
+- Passkeys / WebAuthn
+- Cron-Ausführung
+- Dateisystem-Schreibrechte für Cache, Logs, Uploads, Temp- und Updatepfade
+
+### 0.4 Bibliotheks- und Bundle-Kontext
+
+Im Projektkontext relevant sind unter anderem:
+
+- Editor.js
+- SunEditor
+- Grid.js
+- PhotoSwipe
+- HTMLPurifier
+- Dompdf / TCPDF
+- JWT-Komponenten
+- WebAuthn-Komponenten
+- Mail-/Mime-/Translation-Komponenten
+
+Wichtig ist die Unterscheidung zwischen:
+
+- aktiv genutzter Runtime-Fläche
+- gebündelter Vendor-Fläche
+- optionalen oder featureabhängigen Integrationen
+
+### 0.5 Betriebsgrundlagen für Entwicklung und Produktion
+
+Mindestens sauber funktionieren müssen:
+
+- Rewrite- und Routing-Verhalten
+- Session-Cookies
+- Datenbankverbindung
+- Schreibrechte für Runtime-Verzeichnisse
+- Mail- und Queue-Pfade, sofern genutzt
+- Cron oder eine funktional äquivalente Ausführungsschicht
+
+### 0.6 Projektkonkreter Deployment-Kontext
+
+Für dieses Projekt gilt organisatorisch und praktisch:
+
+- Änderungen werden unmittelbar nach Anpassungen per FTP hochgeladen
+- das Repository soll den hochgeladenen Stand widerspiegeln
+- das Live-System wird nicht aus einer separaten externen Sync-Quelle gespeist
+
+Das ist Teil der technischen Realität und muss bei Doku, Review und Fehlersuche immer mitgedacht werden.
+
+---
+
 ## 1. Systembild in einem Satz
 
 365CMS ist ein modulbasiertes PHP-CMS mit klarer Trennung zwischen Core, Admin, Member-Bereich, Theme-Laufzeit, Plugin-Laufzeit, Service-Layer, Routing, Audit/Security, SEO sowie Performance-/Monitoring-Funktionen; die produktive Laufzeit wird aus dem Verzeichnis `CMS/` gebootet.
@@ -32,6 +148,20 @@ Jede Änderung sollte mindestens gegen diese fünf Fragen geprüft werden:
 3. Welche gemeinsamen Assets, Hooks oder Wrapper hängen mit dran?
 4. Welche Sicherheits- oder Audit-Grenzen werden berührt?
 5. Hat die Änderung Auswirkungen auf Live-Betrieb, Doku oder Deployment?
+
+### 1.3 365CMS als Plattform statt Einzelfile-System
+
+365CMS sollte gedanklich als Plattform mit mehreren gleichzeitig aktiven Teilsystemen gelesen werden:
+
+- Core
+- Admin
+- Public Frontend
+- Member-Bereich
+- Theme-Runtime
+- Plugin-Runtime
+- Diagnose-/Cron-/Betriebslogik
+
+Viele Fehler entstehen genau dann, wenn nur ein Teilbereich betrachtet wird, obwohl der eigentliche Vertrag über mehrere dieser Schichten läuft.
 
 ---
 
@@ -90,6 +220,12 @@ Bei Änderungen immer unterscheiden zwischen:
 - **Deployment-Realität**: Ist die geänderte Runtime-Datei bereits hochgeladen worden oder steht der Upload noch aus?
 
 Gerade bei Theme- und Plugin-Arbeit verhindert diese Denkweise die klassische Verwechslung „im Repo geändert“ versus „im Live-System wirksam“.
+
+### 2.6 Typische Irrtümer im Arbeitsalltag
+
+- „Im Quellrepo geändert = automatisch live“ → falsch
+- „Im Plugin-Repo vorhanden = automatisch geladen“ → falsch
+- „Repo sieht richtig aus = Runtime ist sicher identisch“ → nur dann richtig, wenn die aktive Datei unter `CMS/` gemeint ist und der FTP-Upload erfolgt ist
 
 ---
 
@@ -159,6 +295,20 @@ Nicht in den Bootstrap gehören:
 - lose Debug-Helfer oder Betriebs-Workarounds, die nur für einen Sonderfall gedacht sind
 
 Wenn eine Änderung nur für einen einzelnen Admin-Bereich relevant ist, ist der Bootstrap fast nie der richtige erste Angriffspunkt.
+
+### 3.7 Bootstrap-Änderungen sind fast immer systemweit
+
+Schon kleine Anpassungen im Bootstrap können gleichzeitig beeinflussen:
+
+- CLI-Pfade
+- API-Pfade
+- Admin
+- Frontend
+- Theme-Laden
+- Plugin-Hooks
+- Fehlerverhalten
+
+Bootstrap-Arbeit ist deshalb fast nie eine lokale Änderung, sondern immer eine Änderung mit hoher Reichweite.
 
 ---
 
@@ -231,6 +381,15 @@ Ein Konfigwechsel kann Folgearbeiten auslösen, z. B.:
 
 Konfigänderungen sind daher nie nur „Wert speichern“, sondern oft Systemzustandsänderungen.
 
+### 4.6 Konfigurationshygiene
+
+Neue Konfigschlüssel sollten:
+
+- klar benannt sein
+- genau einer Schicht gehören
+- nicht still bestehende Schlüssel semantisch umdeuten
+- in Doku, UI und Runtime möglichst dieselbe Sprache sprechen
+
 ---
 
 ## 5. Dependency Injection und zentrale Core-Komponenten
@@ -292,6 +451,10 @@ Ungünstig sind:
 - globale Singleton-Aufrufe für reine View-Helfer ohne klare Notwendigkeit
 - Klassen, die gleichzeitig Daten laden, rendern, loggen und redirecten
 - Container-Einträge, die beim ersten Zugriff bereits teure Remote- oder Dateisystemarbeit starten, obwohl nur ein kleiner Aspekt gebraucht wird
+
+### 5.6 Kandidaten für weitere Trennung
+
+Sobald eine Klasse gleichzeitig Request-Normalisierung, Fachlogik, Persistenz, Alert-Aufbereitung und ViewModel-Bau übernimmt, ist sie ein guter Kandidat für spätere Aufteilung.
 
 ---
 
@@ -466,6 +629,10 @@ Besonders sensibel sind:
 
 Diese Stellen sollten grundsätzlich mit höherem Misstrauen behandelt werden als reine Read-only-Views.
 
+### 6.15 Admin-Security ist keine Nebenklasse
+
+Admin-Pfade sind oft gefährlicher als Public-Pfade, weil sie Mutationen, Dateisystemzugriff, privilegierte Rollen und Remote-Integration kombinieren. Deshalb dürfen Admin-XSS, schwache Redirects oder Upload-/Marketplace-Probleme nie als „nur intern“ verharmlost werden.
+
 ---
 
 ## 7. Authentifizierung, MFA, Passkeys, LDAP, JWT
@@ -549,6 +716,16 @@ Der gefährlichste Denkfehler ist, Auth nur als Seitenformular zu sehen. In Wahr
 
 Wenn nur ein Teil davon geändert wird, ohne die Kette zu prüfen, entstehen klassische „Login klappt irgendwie, aber am Ende landet man falsch oder fliegt wieder raus“-Fehler.
 
+### 7.9 Auth immer live-nah prüfen
+
+Auth-Pfade gehören zu den Bereichen, die nach Änderungen und Uploads besonders konservativ gegengeprüft werden sollten:
+
+- lädt die Seite?
+- funktioniert POST?
+- bleibt der Rücksprung intern?
+- bleibt MFA/Passkey im selben Session-Vertrag?
+- leaken Fehlertexte nicht?
+
 ---
 
 ## 8. Datenbank, Schema und Migrationen
@@ -630,6 +807,10 @@ Häufige Fehlerquellen im 365CMS-Datenmodell sind:
 - Foreign-Key-Namen, die lokal harmlos wirken, aber schemaweit kollidieren
 - Löschpfade, die Suchindex, Caches oder Beziehungstabellen nicht nachziehen
 
+### 8.9 Schemaarbeit ist auch Betriebsarbeit
+
+Tabellen- und Migrationsänderungen wirken nie nur auf SQL, sondern auch auf Installer, Updates, Diagnose, Backup/Restore, Suchindex und bestehende Produktivdaten.
+
 ---
 
 ## 9. Content-Modell und Mehrsprachigkeit
@@ -692,6 +873,16 @@ Die Zweisprachigkeit verlangt bei Änderungen an Content-Pfaden immer zusätzlic
 
 Gerade in Live-Systemen werden diese Fehler oft erst sichtbar, wenn Nutzer die englische Seite tatsächlich benutzen.
 
+### 9.8 Content gilt erst als fertig, wenn die ganze Kette stimmt
+
+Gespeicherter Inhalt ist erst dann wirklich korrekt integriert, wenn er auch:
+
+- im richtigen Status sichtbar ist
+- korrekt rendert
+- in Suche und SEO konsistent auftaucht
+- sprachlich sauber bleibt
+- in Archiven, Sitemaps und Gegenpfaden sinnvoll erscheint
+
 ---
 
 ## 10. Routing und Request-Fluss
@@ -751,6 +942,16 @@ Bei Änderungen an Router, Redirects oder URL-Generierung sollte mindestens gepr
 - bleiben Redirects intern?
 - bleiben Query und Sprache konsistent?
 - landen Fehlerzustände auf kontrollierten Zielen statt in Loops oder Fremdhosts?
+
+### 10.9 Routing ist auch Sicherheits- und Betriebslogik
+
+Routing entscheidet in 365CMS nicht nur über URL-Auflösung, sondern auch über:
+
+- Capability- und Kontextgrenzen
+- Redirect-Sicherheit
+- Locale-Verhalten
+- Theme-/Template-Pfade
+- Live-Erreichbarkeit produktionskritischer Seiten
 
 ---
 
