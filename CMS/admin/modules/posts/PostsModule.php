@@ -30,33 +30,56 @@ class PostsModule
     private string $prefix;
     private PostsCategoryViewModelBuilder $categoryViewModelBuilder;
 
-    private const DEFAULT_MS365_ROOT = [
-        'slug' => 'microsoft-365',
-        'name' => 'Microsoft 365',
-    ];
-
-    /** @var array<string,string> */
-    private const DEFAULT_MS365_CHILD_CATEGORIES = [
-        'microsoft-cloud-services' => 'Microsoft Cloud Services',
-        'microsoft-copilot' => 'Microsoft Copilot',
-        'microsoft-teams' => 'Microsoft Teams',
-        'exchange-online' => 'Exchange Online',
-        'outlook' => 'Outlook',
-        'sharepoint-online' => 'SharePoint Online',
-        'onedrive-for-business' => 'OneDrive for Business',
-        'microsoft-entra-id' => 'Microsoft Entra ID',
-        'microsoft-intune' => 'Microsoft Intune',
-        'microsoft-defender' => 'Microsoft Defender',
-        'microsoft-purview' => 'Microsoft Purview',
-        'power-platform' => 'Power Platform',
-        'power-automate' => 'Power Automate',
-        'power-apps' => 'Power Apps',
-        'power-bi' => 'Power BI',
-        'planner-to-do' => 'Planner & To Do',
-        'microsoft-viva' => 'Microsoft Viva',
-        'microsoft-forms' => 'Microsoft Forms',
-        'microsoft-loop' => 'Microsoft Loop',
-        'windows-365' => 'Windows 365',
+    /**
+     * @var array<int,array{root: array{slug:string,name:string,sort_order:int}, children: array<string,string>}>
+     */
+    private const DEFAULT_CATEGORY_TREES = [
+        [
+            'root' => [
+                'slug' => 'microsoft-365',
+                'name' => 'Microsoft 365',
+                'sort_order' => 10,
+            ],
+            'children' => [
+                'microsoft-cloud-services' => 'Microsoft Cloud Services',
+                'microsoft-copilot' => 'Microsoft Copilot',
+                'microsoft-teams' => 'Microsoft Teams',
+                'exchange-online' => 'Exchange Online',
+                'outlook' => 'Outlook',
+                'sharepoint-online' => 'SharePoint Online',
+                'onedrive-for-business' => 'OneDrive for Business',
+                'microsoft-entra-id' => 'Microsoft Entra ID',
+                'microsoft-intune' => 'Microsoft Intune',
+                'microsoft-defender' => 'Microsoft Defender',
+                'microsoft-purview' => 'Microsoft Purview',
+                'power-platform' => 'Power Platform',
+                'power-automate' => 'Power Automate',
+                'power-apps' => 'Power Apps',
+                'power-bi' => 'Power BI',
+                'planner-to-do' => 'Planner & To Do',
+                'microsoft-viva' => 'Microsoft Viva',
+                'microsoft-forms' => 'Microsoft Forms',
+                'microsoft-loop' => 'Microsoft Loop',
+                'windows-365' => 'Windows 365',
+            ],
+        ],
+        [
+            'root' => [
+                'slug' => 'technik-it',
+                'name' => 'Technik & IT',
+                'sort_order' => 200,
+            ],
+            'children' => [
+                'it-infrastruktur' => 'IT-Infrastruktur',
+                'cyber-security' => 'Cyber Security',
+                'netzwerk-systeme' => 'Netzwerk & Systeme',
+                'cloud-devops' => 'Cloud & DevOps',
+                'softwareentwicklung' => 'Softwareentwicklung',
+                'ki-automatisierung' => 'KI & Automatisierung',
+                'hardware-devices' => 'Hardware & Devices',
+                'open-source-tools' => 'Open Source & Tools',
+            ],
+        ],
     ];
 
     /** @var string[] */
@@ -156,43 +179,49 @@ class PostsModule
     private function ensureDefaultCategories(): void
     {
         try {
-            $rootId = $this->getCategoryIdBySlug((string) self::DEFAULT_MS365_ROOT['slug']);
+            foreach (self::DEFAULT_CATEGORY_TREES as $tree) {
+                $root = (array) ($tree['root'] ?? []);
+                $rootSlug = (string) ($root['slug'] ?? '');
+                $rootName = (string) ($root['name'] ?? '');
+                $rootSortOrder = (int) ($root['sort_order'] ?? 0);
 
-            if ($rootId <= 0) {
-                $this->db->execute(
-                    "INSERT INTO {$this->prefix}post_categories (name, slug, parent_id, sort_order, alias_domains_json) VALUES (?, ?, NULL, ?, ?)",
-                    [
-                        (string) self::DEFAULT_MS365_ROOT['name'],
-                        (string) self::DEFAULT_MS365_ROOT['slug'],
-                        10,
-                        '[]',
-                    ]
-                );
-                $rootId = (int) $this->db->lastInsertId();
-            } else {
-                $this->db->execute(
-                    "UPDATE {$this->prefix}post_categories SET name = ?, parent_id = NULL, sort_order = ? WHERE id = ?",
-                    [(string) self::DEFAULT_MS365_ROOT['name'], 10, $rootId]
-                );
-            }
+                if ($rootSlug === '' || $rootName === '') {
+                    continue;
+                }
 
-            $sortOrder = 20;
-            foreach (self::DEFAULT_MS365_CHILD_CATEGORIES as $slug => $name) {
-                $categoryId = $this->getCategoryIdBySlug($slug);
+                $rootId = $this->getCategoryIdBySlug($rootSlug);
 
-                if ($categoryId <= 0) {
+                if ($rootId <= 0) {
                     $this->db->execute(
-                        "INSERT INTO {$this->prefix}post_categories (name, slug, parent_id, sort_order, alias_domains_json) VALUES (?, ?, ?, ?, ?)",
-                        [$name, $slug, $rootId, $sortOrder, '[]']
+                        "INSERT INTO {$this->prefix}post_categories (name, slug, parent_id, sort_order, alias_domains_json) VALUES (?, ?, NULL, ?, ?)",
+                        [$rootName, $rootSlug, $rootSortOrder, '[]']
                     );
+                    $rootId = (int) $this->db->lastInsertId();
                 } else {
                     $this->db->execute(
-                        "UPDATE {$this->prefix}post_categories SET name = ?, parent_id = ?, sort_order = ? WHERE id = ?",
-                        [$name, $rootId, $sortOrder, $categoryId]
+                        "UPDATE {$this->prefix}post_categories SET name = ?, parent_id = NULL, sort_order = ? WHERE id = ?",
+                        [$rootName, $rootSortOrder, $rootId]
                     );
                 }
 
-                $sortOrder += 10;
+                $sortOrder = $rootSortOrder + 10;
+                foreach ((array) ($tree['children'] ?? []) as $slug => $name) {
+                    $categoryId = $this->getCategoryIdBySlug((string) $slug);
+
+                    if ($categoryId <= 0) {
+                        $this->db->execute(
+                            "INSERT INTO {$this->prefix}post_categories (name, slug, parent_id, sort_order, alias_domains_json) VALUES (?, ?, ?, ?, ?)",
+                            [(string) $name, (string) $slug, $rootId, $sortOrder, '[]']
+                        );
+                    } else {
+                        $this->db->execute(
+                            "UPDATE {$this->prefix}post_categories SET name = ?, parent_id = ?, sort_order = ? WHERE id = ?",
+                            [(string) $name, $rootId, $sortOrder, $categoryId]
+                        );
+                    }
+
+                    $sortOrder += 10;
+                }
             }
         } catch (\Throwable $e) {
             error_log(sprintf('PostsModule::ensureDefaultCategories warning: %s', $e->getMessage()));
