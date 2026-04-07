@@ -26,8 +26,6 @@ use CMS\Auth\MFA\BackupCodesManager;
 use CMS\Auth\Passkey\WebAuthnAdapter;
 use CMS\Auth\LDAP\LdapAuthProvider;
 use CMS\AuditLogger;
-use CMS\Database;
-use CMS\Hooks;
 
 final class AuthManager
 {
@@ -151,7 +149,9 @@ final class AuthManager
         }
 
         // Session starten (ohne Passwort-Check, da Passkey verifiziert)
-        $this->startSessionForUser((int)$credential['user_id']);
+        if (!$this->sessionAuth->completeLoginForUserId((int)$credential['user_id'])) {
+            return 'Passkey-Anmeldung konnte nicht abgeschlossen werden.';
+        }
 
         AuditLogger::instance()->log(
             AuditLogger::CAT_SECURITY,
@@ -201,10 +201,13 @@ final class AuthManager
         // MFA-Check
         if ($this->sessionAuth->isMfaEnabled($userId)) {
             $_SESSION['mfa_pending_user_id'] = $userId;
+            $_SESSION['mfa_pending_remember'] = '0';
             return 'MFA_REQUIRED';
         }
 
-        $this->startSessionForUser($userId);
+        if (!$this->sessionAuth->completeLoginForUserId($userId)) {
+            return 'LDAP-Anmeldung konnte nicht abgeschlossen werden.';
+        }
 
         AuditLogger::instance()->log(
             AuditLogger::CAT_SECURITY,
@@ -234,15 +237,22 @@ final class AuthManager
 
         // Zuerst TOTP prüfen
         if ($this->totp()->verifyCode($userId, $code)) {
-            unset($_SESSION['mfa_pending_user_id']);
-            $this->startSessionForUser($userId);
-            return true;
+            $remember = (string)($_SESSION['mfa_pending_remember'] ?? '') === '1';
+            if ($this->sessionAuth->completeLoginForUserId($userId, $remember)) {
+                return true;
+            }
+
+            unset($_SESSION['mfa_pending_user_id'], $_SESSION['mfa_pending_remember']);
+            return 'Anmeldung konnte nicht abgeschlossen werden.';
         }
 
         // Dann Backup-Code prüfen
         if ($this->backupCodes()->verify($userId, $code)) {
-            unset($_SESSION['mfa_pending_user_id']);
-            $this->startSessionForUser($userId);
+            $remember = (string)($_SESSION['mfa_pending_remember'] ?? '') === '1';
+            if (!$this->sessionAuth->completeLoginForUserId($userId, $remember)) {
+                unset($_SESSION['mfa_pending_user_id'], $_SESSION['mfa_pending_remember']);
+                return 'Anmeldung konnte nicht abgeschlossen werden.';
+            }
 
             AuditLogger::instance()->log(
                 AuditLogger::CAT_SECURITY,
@@ -303,32 +313,4 @@ final class AuthManager
             && extension_loaded('ldap');
     }
 
-    // ── Hilfsmethoden ────────────────────────────────────────────────────────
-
-    /**
-     * Session für einen User starten (nach erfolgreicher Auth-Prüfung).
-     */
-    private function startSessionForUser(int $userId): void
-    {
-        $db = Database::instance();
-        $stmt = $db->prepare(
-            "SELECT id, role, status FROM {$db->getPrefix()}users WHERE id = ? AND status = 'active' LIMIT 1"
-        );
-        $stmt->execute([$userId]);
-        $user = $stmt->fetch();
-
-        if (!$user) {
-            return;
-        }
-
-        $_SESSION['user_id']            = $user->id;
-        $_SESSION['user_role']          = $user->role;
-        $_SESSION['session_start_time'] = time();
-        session_regenerate_id(true);
-        \CMS\Auth::instance()->bindCurrentSessionToDeviceCookie((int)$user->id);
-
-        $db->update('users', ['last_login' => date('Y-m-d H:i:s')], ['id' => $userId]);
-
-        Hooks::doAction('user_logged_in', $userId);
-    }
 }

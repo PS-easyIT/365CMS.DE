@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace CMS\Routing;
 
 use CMS\Api;
+use CMS\Services\CmsAuthPageService;
 use CMS\Database;
 use CMS\Json;
 use CMS\PageManager;
@@ -931,7 +932,7 @@ final class ThemeRouter
         $postStatus = (string) ($postRow->status ?? '');
         if ($postStatus === 'private') {
             if (!\CMS\Auth::instance()->isLoggedIn()) {
-                $this->router->redirect('/login?redirect=' . urlencode((string) ($_SERVER['REQUEST_URI'] ?? '/')), 302);
+                    $this->router->redirect(CmsAuthPageService::getInstance()->getPath('login') . '?redirect=' . urlencode((string) ($_SERVER['REQUEST_URI'] ?? '/')), 302);
                 return;
             }
         } elseif (!\cms_post_is_publicly_visible($postRow)) {
@@ -1122,7 +1123,7 @@ final class ThemeRouter
             $pageStatus = (string) ($page['status'] ?? '');
             if ($pageStatus === 'private') {
                 if (!\CMS\Auth::instance()->isLoggedIn()) {
-                    $this->router->redirect('/login?redirect=' . urlencode((string) ($_SERVER['REQUEST_URI'] ?? '/')), 302);
+                    $this->router->redirect(CmsAuthPageService::getInstance()->getPath('login') . '?redirect=' . urlencode((string) ($_SERVER['REQUEST_URI'] ?? '/')), 302);
                     return true;
                 }
             } elseif ($pageStatus !== 'published') {

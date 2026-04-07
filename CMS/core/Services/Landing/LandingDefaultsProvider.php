@@ -84,7 +84,7 @@ final class LandingDefaultsProvider
             'id' => null,
             'content' => '<p><strong>365CMS</strong> verbindet Content-Management, Design Editor, Mitgliederbereich und modulare Business-Features in einer modernen Plattform.</p><p>Ideal für Unternehmensseiten, Portale, Netzwerke, Events und redaktionelle Websites mit Wachstumspotenzial.</p>',
             'button_text' => 'Zum Login',
-            'button_url' => '/login',
+            'button_url' => '/cms-login',
             'copyright' => '&copy; ' . date('Y') . ' 365CMS',
             'show_footer' => true,
         ];

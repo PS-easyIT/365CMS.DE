@@ -11,6 +11,7 @@ namespace CMS\Routing;
 
 use CMS\Auth;
 use CMS\Router;
+use CMS\Services\CmsAuthPageService;
 use CMS\Services\FeatureUsageService;
 use CMS\ThemeManager;
 
@@ -46,7 +47,7 @@ final class MemberRouter
     public function renderDashboard(): void
     {
         if (!Auth::instance()->isLoggedIn()) {
-            $this->router->redirect('/login');
+            $this->redirectToLogin();
             return;
         }
 
@@ -63,7 +64,7 @@ final class MemberRouter
     public function renderMember(): void
     {
         if (!Auth::instance()->isLoggedIn()) {
-            $this->router->redirect('/login');
+            $this->redirectToLogin();
             return;
         }
 
@@ -73,7 +74,7 @@ final class MemberRouter
     public function renderMemberPage(string $page): void
     {
         if (!Auth::instance()->isLoggedIn()) {
-            $this->router->redirect('/login');
+            $this->redirectToLogin();
             return;
         }
 
@@ -103,7 +104,7 @@ final class MemberRouter
     public function renderMemberPluginSection(string $slug, string $action = '', string $id = ''): void
     {
         if (!Auth::instance()->isLoggedIn()) {
-            $this->router->redirect('/login');
+            $this->redirectToLogin();
             return;
         }
 
@@ -150,5 +151,12 @@ final class MemberRouter
         $label = preg_replace('/\s+/', ' ', $label) ?? $slug;
 
         return ucwords(trim($label));
+    }
+
+    private function redirectToLogin(): void
+    {
+        $requestUri = (string) ($_SERVER['REQUEST_URI'] ?? '/member');
+        $path = CmsAuthPageService::getInstance()->getPath('login') . '?redirect=' . urlencode($requestUri);
+        $this->router->redirect($path);
     }
 }

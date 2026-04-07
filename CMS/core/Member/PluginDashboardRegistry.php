@@ -42,6 +42,7 @@ namespace CMS\Member;
 
 use CMS\Auth;
 use CMS\Hooks;
+use CMS\Services\CmsAuthPageService;
 use CMS\ThemeManager;
 
 if (!defined('ABSPATH')) {
@@ -376,7 +377,9 @@ class PluginDashboardRegistry
     {
         // Auth-Check (Member muss eingeloggt sein)
         if (!Auth::instance()->isLoggedIn()) {
-            header('Location: ' . (defined('SITE_URL') ? SITE_URL : '') . '/login');
+            $loginPath = CmsAuthPageService::getInstance()->getPath('login');
+            $redirect = (string) ($_SERVER['REQUEST_URI'] ?? '/member');
+            header('Location: ' . (defined('SITE_URL') ? SITE_URL : '') . $loginPath . '?redirect=' . rawurlencode($redirect));
             exit;
         }
 

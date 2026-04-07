@@ -79,7 +79,7 @@ final class SiteTableHubRenderer
 
     private static function isExcludedRequestPath(string $path): bool
     {
-        return in_array($path, ['/login', '/register', '/search', '/404', '/error', '/blog'], true)
+        return in_array($path, ['/login', '/register', '/cms-login', '/cms-register', '/cms-password-forgot', '/search', '/404', '/error', '/blog'], true)
             || str_starts_with($path, '/member')
             || str_starts_with($path, '/dashboard')
             || \cms_is_archive_request_path($path, 'category')

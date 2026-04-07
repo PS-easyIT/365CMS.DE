@@ -47,9 +47,9 @@ if (class_exists('\CMS\Security')) {
 $siteUrl   = SITE_URL;
 $siteTitle = defined('SITE_NAME') ? SITE_NAME : '365CMS';
 $siteBase = rtrim((string) $siteUrl, '/');
-$loginAction = $siteBase !== '' ? $siteBase . '/login' : '/login';
-$forgotPasswordUrl = $siteBase !== '' ? $siteBase . '/forgot-password' : '/forgot-password';
-$registerUrl = $siteBase !== '' ? $siteBase . '/register' : '/register';
+$loginAction = $siteBase !== '' ? $siteBase . '/cms-login' : '/cms-login';
+$forgotPasswordUrl = $siteBase !== '' ? $siteBase . '/cms-password-forgot' : '/cms-password-forgot';
+$registerUrl = $siteBase !== '' ? $siteBase . '/cms-register' : '/cms-register';
 $homeUrl = $siteBase !== '' ? $siteBase . '/' : '/';
 $loginRedirect = trim((string)($login_redirect ?? ''));
 $loginValue = trim((string)($_POST['username'] ?? $_POST['email'] ?? ''));

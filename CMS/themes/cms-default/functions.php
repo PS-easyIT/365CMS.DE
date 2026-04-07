@@ -475,7 +475,7 @@ HTML;
             'mobile'  => [
                 ['label' => 'Startseite',  'url' => '/',          'target' => '_self'],
                 ['label' => 'Blog',        'url' => '/blog',      'target' => '_self'],
-                ['label' => 'Anmelden',    'url' => '/login',     'target' => '_self'],
+                ['label' => 'Anmelden',    'url' => '/cms-login', 'target' => '_self'],
             ],
             'footer'  => [
                 ['label' => 'Impressum',   'url' => '/impressum',   'target' => '_self'],

@@ -571,7 +571,7 @@ class Bootstrap
                 }
 
                 if (
-                    in_array($path, ['/', '/blog', '/search', '/404', '/error', '/login', '/register'], true)
+                    in_array($path, ['/', '/blog', '/search', '/404', '/error', '/login', '/register', '/cms-login', '/cms-register', '/cms-password-forgot'], true)
                     || str_starts_with($path, '/member')
                     || str_starts_with($path, '/dashboard')
                     || \cms_is_archive_request_path($path, 'category')

@@ -120,7 +120,7 @@ class Auth
     /**
      * Login user
      */
-    public function login(string $username, string $password): bool|string
+    public function login(string $username, string $password, bool $remember = false): bool|string
     {
         $security = Security::instance();
         $db = Database::instance();
@@ -172,17 +172,11 @@ class Auth
         // H-02: MFA-Check – wenn TOTP aktiv, Pending-Session setzen statt direkt einloggen
         if ($this->isMfaEnabled((int)$user->id)) {
             $_SESSION['mfa_pending_user_id'] = (int)$user->id;
+            $_SESSION['mfa_pending_remember'] = $remember ? '1' : '0';
             return 'MFA_REQUIRED';
         }
 
-        session_regenerate_id(true); // Prevent Fixation
-        $_SESSION['user_id'] = $user->id;
-        $_SESSION['user_role'] = $user->role;
-        $_SESSION['session_start_time'] = time(); // M-17: Startzeitstempel für Lifetime-Prüfung
-        $this->bindCurrentSessionToDeviceCookie((int)$user->id);
-        
-        $db->update('users', ['last_login' => date('Y-m-d H:i:s')], ['id' => $user->id]);
-        $this->currentUser = $user;
+        $this->completeAuthenticatedSession($user, $remember);
 
         // H-01: Erfolgreichen Login protokollieren
         AuditLogger::instance()->loginSuccess($username);
@@ -235,6 +229,17 @@ class Auth
     public function currentUser(): ?object
     {
         return $this->currentUser;
+    }
+
+    public function completeLoginForUserId(int $userId, bool $remember = false): bool
+    {
+        $user = $this->getUserById($userId);
+        if ($user === null) {
+            return false;
+        }
+
+        $this->completeAuthenticatedSession($user, $remember);
+        return true;
     }
     
     /**
@@ -704,5 +709,45 @@ class Auth
         }
 
         return preg_replace('/^www\./i', '', $host) ?? '';
+    }
+
+    private function refreshSessionCookie(string $role, bool $remember): void
+    {
+        if (session_status() !== PHP_SESSION_ACTIVE || ini_get('session.use_cookies') === '0') {
+            return;
+        }
+
+        $params = session_get_cookie_params();
+        $cookieLifetime = 0;
+
+        if ($remember) {
+            $cookieLifetime = $role === 'admin'
+                ? self::SESSION_LIFETIME_ADMIN
+                : self::SESSION_LIFETIME_MEMBER;
+        }
+
+        setcookie(session_name(), session_id(), [
+            'expires' => $cookieLifetime > 0 ? time() + $cookieLifetime : 0,
+            'path' => $params['path'] ?? '/',
+            'domain' => $params['domain'] ?? '',
+            'secure' => (bool) ($params['secure'] ?? false),
+            'httponly' => (bool) ($params['httponly'] ?? true),
+            'samesite' => (string) ($params['samesite'] ?? 'Lax'),
+        ]);
+    }
+
+    private function completeAuthenticatedSession(object $user, bool $remember): void
+    {
+        session_regenerate_id(true);
+        $_SESSION['user_id'] = $user->id;
+        $_SESSION['user_role'] = $user->role;
+        $_SESSION['session_start_time'] = time();
+        unset($_SESSION['mfa_pending_user_id'], $_SESSION['mfa_pending_remember']);
+
+        $this->refreshSessionCookie((string) ($user->role ?? 'member'), $remember);
+        $this->bindCurrentSessionToDeviceCookie((int)$user->id);
+
+        Database::instance()->update('users', ['last_login' => date('Y-m-d H:i:s')], ['id' => $user->id]);
+        $this->currentUser = $user;
     }
 }

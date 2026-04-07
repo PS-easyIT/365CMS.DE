@@ -165,7 +165,7 @@ class Router
         }
 
         $csrfBypassPrefixes = ['/api/', '/admin/', '/member/', '/contact/'];
-        $csrfBypassExact = ['/login', '/register', '/forgot-password', '/logout', '/contact', '/comments/post', '/mfa-challenge', '/mfa-setup', '/mfa-disable'];
+        $csrfBypassExact = ['/login', '/register', '/forgot-password', '/cms-login', '/cms-register', '/cms-password-forgot', '/logout', '/contact', '/comments/post', '/mfa-challenge', '/mfa-setup', '/mfa-disable'];
             $isThemeFavoriteToggle = $method === 'POST'
                 && (string) ($_POST['phinit_toggle_favorite'] ?? '') === '1'
                 && in_array((string) ($_POST['favorite_content_type'] ?? ''), ['post', 'page'], true)
@@ -467,7 +467,7 @@ class Router
             }
         }
 
-        if (in_array($routingUri, ['/login', '/register', '/forgot-password', '/logout', '/mfa-challenge', '/mfa-setup', '/order'], true)) {
+        if (in_array($routingUri, ['/login', '/register', '/forgot-password', '/cms-login', '/cms-register', '/cms-password-forgot', '/logout', '/mfa-challenge', '/mfa-setup', '/order'], true)) {
             $cache->sendResponseHeaders('private');
             return;
         }
