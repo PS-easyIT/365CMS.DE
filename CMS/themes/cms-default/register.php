@@ -30,6 +30,10 @@ $csrfToken = '';
 if (class_exists('\CMS\Security')) {
     $csrfToken = \CMS\Security::instance()->generateToken('register');
 }
+
+$registerAction = function_exists('meridian_auth_url') ? meridian_auth_url('register') : rtrim((string) SITE_URL, '/') . '/register';
+$loginUrl = function_exists('meridian_auth_url') ? meridian_auth_url('login') : rtrim((string) SITE_URL, '/') . '/login';
+$homeUrl = rtrim((string) SITE_URL, '/') . '/';
 ?>
 
 <main id="main" role="main" style="background:linear-gradient(135deg,#e3f2fd 0%,#f5f9fc 100%);min-height:calc(100vh - 200px);display:flex;align-items:center;padding:2rem 1.5rem;">
@@ -61,7 +65,7 @@ if (class_exists('\CMS\Security')) {
             <?php endif; ?>
 
             <!-- Register Form – wird vom CMS Router (POST /register) verarbeitet -->
-            <form class="auth-form" method="POST" action="<?php echo htmlspecialchars(SITE_URL, ENT_QUOTES, 'UTF-8'); ?>/register" novalidate>
+            <form class="auth-form" method="POST" action="<?php echo htmlspecialchars($registerAction, ENT_QUOTES, 'UTF-8'); ?>" novalidate>
                 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>">
 
                 <div class="form-group">
@@ -120,10 +124,10 @@ if (class_exists('\CMS\Security')) {
             <!-- Footer Links -->
             <div class="auth-footer">
                 <p>Bereits registriert?
-                    <a href="<?php echo SITE_URL; ?>/login">Jetzt anmelden</a>
+                    <a href="<?php echo htmlspecialchars($loginUrl, ENT_QUOTES, 'UTF-8'); ?>">Jetzt anmelden</a>
                 </p>
                 <p style="margin-top:0.5rem;">
-                    <a href="<?php echo SITE_URL; ?>/">← Zurück zur Startseite</a>
+                    <a href="<?php echo htmlspecialchars($homeUrl, ENT_QUOTES, 'UTF-8'); ?>">← Zurück zur Startseite</a>
                 </p>
             </div>
 

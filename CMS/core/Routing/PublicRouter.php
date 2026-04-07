@@ -424,7 +424,7 @@ final class PublicRouter
         $security = Security::instance();
         if (!$security->verifyToken($_POST['csrf_token'] ?? '', 'forgot_password')) {
             $_SESSION['error'] = 'Sicherheitsüberprüfung fehlgeschlagen.';
-            $this->router->redirect($this->getCmsAuthPath('forgot-password'));
+            $this->router->redirect($this->getPublicAuthPath('forgot-password'));
             return;
         }
 
@@ -441,12 +441,12 @@ final class PublicRouter
 
             if ($result['success'] ?? false) {
                 $_SESSION['success'] = (string)($result['message'] ?? 'Dein Passwort wurde erfolgreich geändert.');
-                $this->router->redirect($this->getCmsAuthPath('forgot-password') . '?step=done');
+                $this->router->redirect($this->getPublicAuthPath('forgot-password') . '?step=done');
                 return;
             }
 
             $_SESSION['error'] = (string)($result['message'] ?? 'Das Passwort konnte nicht geändert werden.');
-            $this->router->redirect($this->getCmsAuthPath('forgot-password') . '?step=reset&token=' . urlencode($token));
+            $this->router->redirect($this->getPublicAuthPath('forgot-password') . '?step=reset&token=' . urlencode($token));
             return;
         }
 
@@ -459,7 +459,7 @@ final class PublicRouter
             $this->setAuthFormOldValues('forgot-password', ['email' => $email]);
         }
 
-        $this->router->redirect($this->getCmsAuthPath('forgot-password'));
+        $this->router->redirect($this->getPublicAuthPath('forgot-password'));
     }
 
     public function handleRegister(): void
@@ -469,13 +469,13 @@ final class PublicRouter
 
         if (!$security->verifyToken($_POST['csrf_token'] ?? '', 'register')) {
             $_SESSION['error'] = 'Sicherheitsüberprüfung fehlgeschlagen.';
-            $this->router->redirect($this->getCmsAuthPath('register'));
+            $this->router->redirect($this->getPublicAuthPath('register'));
             return;
         }
 
         if (!$authPageService->isRegistrationEnabled()) {
             $_SESSION['error'] = (string) ($authPageService->getSettings()['register_disabled_message'] ?? 'Die Registrierung ist aktuell deaktiviert.');
-            $this->router->redirect($this->getCmsAuthPath('register'));
+            $this->router->redirect($this->getPublicAuthPath('register'));
             return;
         }
 
@@ -488,7 +488,7 @@ final class PublicRouter
                 'username' => (string)($_POST['username'] ?? ''),
                 'terms' => !empty($_POST['terms']) ? '1' : '0',
             ]);
-            $this->router->redirect($this->getCmsAuthPath('register'));
+            $this->router->redirect($this->getPublicAuthPath('register'));
             return;
         }
 
@@ -499,7 +499,7 @@ final class PublicRouter
                 'username' => (string)($_POST['username'] ?? ''),
                 'terms' => !empty($_POST['terms']) ? '1' : '0',
             ]);
-            $this->router->redirect($this->getCmsAuthPath('register'));
+            $this->router->redirect($this->getPublicAuthPath('register'));
             return;
         }
 
@@ -507,7 +507,7 @@ final class PublicRouter
 
         if ($result === true) {
             $_SESSION['success'] = 'Registrierung erfolgreich! Sie können sich nun anmelden.';
-            $this->router->redirect($this->getCmsAuthPath('login'));
+            $this->router->redirect($this->getPublicAuthPath('login'));
         } else {
             $_SESSION['error'] = $result;
             $this->setAuthFormOldValues('register', [
@@ -515,22 +515,42 @@ final class PublicRouter
                 'username' => (string)($_POST['username'] ?? ''),
                 'terms' => !empty($_POST['terms']) ? '1' : '0',
             ]);
-            $this->router->redirect($this->getCmsAuthPath('register'));
+            $this->router->redirect($this->getPublicAuthPath('register'));
         }
     }
 
     public function redirectLegacyLogin(): void
     {
+        if ($this->shouldRenderLegacyThemeAuthPage()) {
+            $safeRedirectParts = $this->resolveAllowedRedirectParts($_GET['redirect'] ?? null);
+            $safeRedirectTarget = $this->buildAllowedRedirectTarget($safeRedirectParts);
+
+            ThemeManager::instance()->render('login', [
+                'login_redirect' => $safeRedirectTarget,
+            ]);
+            return;
+        }
+
         $this->redirectLegacyAuthPath('login');
     }
 
     public function redirectLegacyRegister(): void
     {
+        if ($this->shouldRenderLegacyThemeAuthPage()) {
+            ThemeManager::instance()->render('register');
+            return;
+        }
+
         $this->redirectLegacyAuthPath('register');
     }
 
     public function redirectLegacyForgotPassword(): void
     {
+        if ($this->shouldRenderLegacyThemeAuthPage()) {
+            ThemeManager::instance()->render('forgot-password');
+            return;
+        }
+
         $this->redirectLegacyAuthPath('forgot-password');
     }
 
@@ -645,7 +665,7 @@ final class PublicRouter
 
     private function buildLoginPagePath(?string $redirectTarget = null): string
     {
-        $path = $this->getCmsAuthPath('login');
+        $path = $this->getPublicAuthPath('login');
         $safeRedirect = $this->normalizeAllowedRedirectTarget($redirectTarget);
 
         if ($safeRedirect === '/member') {
@@ -653,6 +673,11 @@ final class PublicRouter
         }
 
         return $path . '?redirect=' . urlencode($safeRedirect);
+    }
+
+    private function getPublicAuthPath(string $page): string
+    {
+        return Services\CmsAuthPageService::getInstance()->getPublicPath($page, $this->router->getRequestLocale());
     }
 
     private function redirectLegacyAuthPath(string $page): void
@@ -667,6 +692,13 @@ final class PublicRouter
         }
 
         $this->router->redirect($target, 302);
+    }
+
+    private function shouldRenderLegacyThemeAuthPage(): bool
+    {
+        $settings = Services\CmsAuthPageService::getInstance()->getSettings();
+
+        return (($settings['auth_slug_mode'] ?? 'cms') === 'legacy');
     }
 
     private function setAuthFormOldValues(string $page, array $values): void

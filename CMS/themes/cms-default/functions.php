@@ -475,7 +475,7 @@ HTML;
             'mobile'  => [
                 ['label' => 'Startseite',  'url' => '/',          'target' => '_self'],
                 ['label' => 'Blog',        'url' => '/blog',      'target' => '_self'],
-                ['label' => 'Anmelden',    'url' => '/cms-login', 'target' => '_self'],
+                ['label' => 'Anmelden',    'url' => meridian_auth_path('login'), 'target' => '_self'],
             ],
             'footer'  => [
                 ['label' => 'Impressum',   'url' => '/impressum',   'target' => '_self'],
@@ -486,7 +486,7 @@ HTML;
                 ['label' => 'Script-Bibliothek', 'url' => '/blog', 'target' => '_self'],
                 ['label' => 'Tutorials', 'url' => '/blog', 'target' => '_self'],
                 ['label' => 'Suche', 'url' => '/search', 'target' => '_self'],
-                ['label' => 'Newsletter', 'url' => '/register', 'target' => '_self'],
+                ['label' => 'Newsletter', 'url' => meridian_auth_path('register'), 'target' => '_self'],
             ],
             'footer_about' => [
                 ['label' => 'Über uns', 'url' => '/about', 'target' => '_self'],
@@ -677,6 +677,44 @@ function meridian_nav_menu(string $location, string $currentPath = ''): void
     };
 
     $renderItems($items);
+}
+
+function meridian_current_request_locale(): string
+{
+    try {
+        $requestPath = (string) (parse_url((string) ($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_PATH) ?? '/');
+        $context = \CMS\Services\ContentLocalizationService::getInstance()->resolveRequestContext($requestPath);
+
+        return (string) ($context['locale'] ?? 'de');
+    } catch (\Throwable $e) {
+        return 'de';
+    }
+}
+
+function meridian_auth_path(string $page = 'login', ?string $locale = null): string
+{
+    try {
+        if (class_exists('\CMS\Services\CmsAuthPageService')) {
+            return \CMS\Services\CmsAuthPageService::getInstance()->getPublicPath($page, $locale ?? meridian_current_request_locale());
+        }
+    } catch (\Throwable $e) {
+    }
+
+    return match (strtolower(trim($page))) {
+        'register' => '/cms-register',
+        'forgot-password' => '/cms-password-forgot',
+        default => '/cms-login',
+    };
+}
+
+function meridian_auth_url(string $page = 'login', array $query = [], ?string $locale = null): string
+{
+    $path = meridian_auth_path($page, $locale);
+    if ($query !== []) {
+        $path .= '?' . http_build_query($query, '', '&', PHP_QUERY_RFC3986);
+    }
+
+    return rtrim((string) SITE_URL, '/') . $path;
 }
 
 /**

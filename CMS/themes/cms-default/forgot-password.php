@@ -26,9 +26,22 @@ if (function_exists('theme_is_logged_in') && theme_is_logged_in()) {
 
 $step         = ($_GET['step'] ?? 'request') === 'reset' ? 'reset' : 'request';
 $resetToken   = htmlspecialchars($_GET['token'] ?? '', ENT_QUOTES, 'UTF-8');
-$fpError      = '';
-$fpSuccess    = '';
+$themeFlashAvailable = function_exists('meridian_get_flash');
+$themeFlash = $themeFlashAvailable ? (meridian_get_flash() ?? []) : [];
+$fpError      = $themeFlashAvailable
+    ? (trim((string) ($themeFlash['type'] ?? '')) === 'error' ? trim((string) ($themeFlash['message'] ?? '')) : '')
+    : trim((string) ($_SESSION['error'] ?? ''));
+$fpSuccess    = $themeFlashAvailable
+    ? (trim((string) ($themeFlash['type'] ?? '')) === 'success' ? trim((string) ($themeFlash['message'] ?? '')) : '')
+    : trim((string) ($_SESSION['success'] ?? ''));
 $fpEmail      = '';
+$forgotPasswordUrl = function_exists('meridian_auth_url') ? meridian_auth_url('forgot-password') : rtrim((string) SITE_URL, '/') . '/forgot-password';
+$loginUrl = function_exists('meridian_auth_url') ? meridian_auth_url('login') : rtrim((string) SITE_URL, '/') . '/login';
+$homeUrl = rtrim((string) SITE_URL, '/') . '/';
+
+if (!$themeFlashAvailable) {
+    unset($_SESSION['error'], $_SESSION['success']);
+}
 
 // CSRF-Token
 $csrfToken = '';
@@ -64,7 +77,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['fp_submit'])) {
                         [$fpEmail, hash('sha256', $token), $expires]
                     );
                     // Reset-Mail senden
-                    $resetUrl = SITE_URL . '/forgot-password?step=reset&token=' . $token;
+                    $resetUrl = $forgotPasswordUrl . '?step=reset&token=' . $token;
                     $siteName = defined('SITE_NAME') ? SITE_NAME : '365CMS';
                     $subject  = "[$siteName] Passwort zurücksetzen";
                     $body     = "Hallo,\n\ndu hast eine Anfrage zum Zurücksetzen deines Passworts gestellt.\n\n"
@@ -164,7 +177,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['reset_submit'])) {
             <?php if ($fpSuccess): ?>
             <div class="alert alert-success" role="alert"><?php echo htmlspecialchars($fpSuccess, ENT_QUOTES, 'UTF-8'); ?></div>
             <?php endif; ?>
-            <a href="<?php echo SITE_URL; ?>/login" class="btn-solid btn-solid--full">Jetzt anmelden</a>
+            <a href="<?php echo htmlspecialchars($loginUrl, ENT_QUOTES, 'UTF-8'); ?>" class="btn-solid btn-solid--full">Jetzt anmelden</a>
 
         <?php elseif ($step === 'reset' && !empty($resetToken)): ?>
             <!-- Schritt 2: Neues Passwort festlegen -->
@@ -236,8 +249,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['reset_submit'])) {
 
             <!-- Footer Links -->
             <div class="auth-footer">
-                <p><a href="<?php echo SITE_URL; ?>/login">← Zurück zur Anmeldung</a></p>
-                <p style="margin-top:0.5rem;"><a href="<?php echo SITE_URL; ?>/">← Zurück zur Startseite</a></p>
+                <p><a href="<?php echo htmlspecialchars($loginUrl, ENT_QUOTES, 'UTF-8'); ?>">← Zurück zur Anmeldung</a></p>
+                <p style="margin-top:0.5rem;"><a href="<?php echo htmlspecialchars($homeUrl, ENT_QUOTES, 'UTF-8'); ?>">← Zurück zur Startseite</a></p>
             </div>
 
         </div><!-- /.auth-card -->

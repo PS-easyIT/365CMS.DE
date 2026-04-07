@@ -168,7 +168,7 @@ if (!defined('ABSPATH')) {
         <div class="widget-title">Newsletter</div>
         <h3>Kein Artikel verpassen</h3>
         <p>Die besten Artikel direkt in dein Postfach – kostenlos.</p>
-        <form action="<?php echo SITE_URL; ?>/register" method="GET">
+        <form action="<?php echo htmlspecialchars(meridian_auth_url('register'), ENT_QUOTES, 'UTF-8'); ?>" method="GET">
             <input type="email" name="email" placeholder="deine@email.de" required autocomplete="email">
             <button type="submit">Jetzt abonnieren →</button>
         </form>

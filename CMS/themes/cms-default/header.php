@@ -163,10 +163,10 @@ $accountPath = function_exists('meridian_account_path') ? meridian_account_path(
           <a href="<?php echo SITE_URL; ?>/logout" class="btn-ghost">Logout</a>
       <?php else: ?>
           <?php if ($showLoginBtn): ?>
-          <a href="<?php echo SITE_URL; ?>/login" class="btn-ghost">Anmelden</a>
+          <a href="<?php echo htmlspecialchars(meridian_auth_url('login'), ENT_QUOTES, 'UTF-8'); ?>" class="btn-ghost">Anmelden</a>
           <?php endif; ?>
           <?php if ($showRegBtn): ?>
-          <a href="<?php echo SITE_URL; ?>/register" class="btn-solid">Registrieren</a>
+          <a href="<?php echo htmlspecialchars(meridian_auth_url('register'), ENT_QUOTES, 'UTF-8'); ?>" class="btn-solid">Registrieren</a>
           <?php endif; ?>
       <?php endif; ?>
 
@@ -269,10 +269,10 @@ $accountPath = function_exists('meridian_account_path') ? meridian_account_path(
       <a href="<?php echo SITE_URL; ?>/logout" class="mobile-nav-link">⬡ Logout</a>
     <?php else: ?>
       <?php if ($showLoginBtn): ?>
-      <a href="<?php echo SITE_URL; ?>/login" class="mobile-nav-link">🔑 Anmelden</a>
+      <a href="<?php echo htmlspecialchars(meridian_auth_url('login'), ENT_QUOTES, 'UTF-8'); ?>" class="mobile-nav-link">🔑 Anmelden</a>
       <?php endif; ?>
       <?php if ($showRegBtn): ?>
-      <a href="<?php echo SITE_URL; ?>/register" class="mobile-nav-link" style="color:var(--accent);font-weight:600;">✨ Registrieren</a>
+      <a href="<?php echo htmlspecialchars(meridian_auth_url('register'), ENT_QUOTES, 'UTF-8'); ?>" class="mobile-nav-link" style="color:var(--accent);font-weight:600;">✨ Registrieren</a>
       <?php endif; ?>
     <?php endif; ?>
   </div>

@@ -134,7 +134,7 @@ $renderFooterMenuLinks = static function (array $items): void {
         <a href="<?php echo SITE_URL; ?>/blog">Script-Bibliothek</a>
         <a href="<?php echo SITE_URL; ?>/blog">Tutorials</a>
         <a href="<?php echo SITE_URL; ?>/search">Suche</a>
-        <a href="<?php echo SITE_URL; ?>/register">Newsletter</a>
+        <a href="<?php echo htmlspecialchars(meridian_auth_url('register'), ENT_QUOTES, 'UTF-8'); ?>">Newsletter</a>
       <?php endif; ?>
     </div>
 

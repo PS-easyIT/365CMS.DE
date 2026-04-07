@@ -46,11 +46,10 @@ if (class_exists('\CMS\Security')) {
 
 $siteUrl   = SITE_URL;
 $siteTitle = defined('SITE_NAME') ? SITE_NAME : '365CMS';
-$siteBase = rtrim((string) $siteUrl, '/');
-$loginAction = $siteBase !== '' ? $siteBase . '/cms-login' : '/cms-login';
-$forgotPasswordUrl = $siteBase !== '' ? $siteBase . '/cms-password-forgot' : '/cms-password-forgot';
-$registerUrl = $siteBase !== '' ? $siteBase . '/cms-register' : '/cms-register';
-$homeUrl = $siteBase !== '' ? $siteBase . '/' : '/';
+$loginAction = function_exists('meridian_auth_url') ? meridian_auth_url('login') : rtrim((string) $siteUrl, '/') . '/cms-login';
+$forgotPasswordUrl = function_exists('meridian_auth_url') ? meridian_auth_url('forgot-password') : rtrim((string) $siteUrl, '/') . '/cms-password-forgot';
+$registerUrl = function_exists('meridian_auth_url') ? meridian_auth_url('register') : rtrim((string) $siteUrl, '/') . '/cms-register';
+$homeUrl = rtrim((string) $siteUrl, '/') . '/';
 $loginRedirect = trim((string)($login_redirect ?? ''));
 $loginValue = trim((string)($_POST['username'] ?? $_POST['email'] ?? ''));
 ?>
