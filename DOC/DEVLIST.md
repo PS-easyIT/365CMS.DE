@@ -12,6 +12,27 @@ Diese Datei ist die zentrale technische Entwicklerreferenz für das laufende 365
 
 365CMS ist ein modulbasiertes PHP-CMS mit klarer Trennung zwischen Core, Admin, Member-Bereich, Theme-Laufzeit, Plugin-Laufzeit, Service-Layer, Routing, Audit/Security, SEO sowie Performance-/Monitoring-Funktionen; die produktive Laufzeit wird aus dem Verzeichnis `CMS/` gebootet.
 
+### 1.1 Was das praktisch bedeutet
+
+Für die tägliche Entwicklung heißt das:
+
+- fast jede sichtbare Änderung hat mehr als nur eine Dateiebene
+- UI-Probleme sind oft Verträge zwischen Entry, Modul, View und Asset
+- Security-Themen sitzen nicht isoliert in `Security.php`, sondern quer über Routing, Services, Templates und Betriebslogik
+- Releases sind nicht nur Codeänderungen, sondern auch Doku-, Routing-, Rechte-, Asset- und Betriebsänderungen
+
+365CMS sollte daher eher wie eine kleine Anwendungsplattform behandelt werden als wie ein klassisches „Template plus ein paar PHP-Dateien“-System.
+
+### 1.2 Denkschema für Änderungen
+
+Jede Änderung sollte mindestens gegen diese fünf Fragen geprüft werden:
+
+1. Wo liegt die kanonische Runtime?
+2. Welcher Entry oder Service ist die eigentliche Wahrheit?
+3. Welche gemeinsamen Assets, Hooks oder Wrapper hängen mit dran?
+4. Welche Sicherheits- oder Audit-Grenzen werden berührt?
+5. Hat die Änderung Auswirkungen auf Live-Betrieb, Doku oder Deployment?
+
 ---
 
 ## 2. Repository- und Laufzeitmodell
@@ -48,6 +69,27 @@ Die Systemlogik ist grob in folgende Schichten gegliedert:
 5. **Themes** – Template-Rendering, Menüs, Customizer-nahe Ausgabe
 6. **Plugins** – zusätzliche, aktivierbare Erweiterungen
 7. **Member & Public UI** – Frontend- und Benutzerfunktionen
+
+### 2.4 Tatsächlicher Deployment-Vertrag in diesem Projekt
+
+Wichtig für dieses konkrete Projektsetup:
+
+- das Quellrepo ist hier nicht bloß Dokumentation oder Zwischenspeicher, sondern soll immer dem real hochgeladenen Stand entsprechen
+- Änderungen werden nach Anpassungen unmittelbar per FTP ausgerollt
+- es gibt **keinen** separaten externen Live-Sync, der unabhängig vom Repo einen anderen Stand „nachzieht“
+- daraus folgt: Das Repository soll den tatsächlichen FTP-Upload-Zustand widerspiegeln, nicht einen hypothetischen Soll-Zustand
+
+Das ist für Fehlersuche wichtig, weil dadurch Repo-Stand und deployter Stand bewusst eng gekoppelt sind. Wenn es Unterschiede gibt, sind diese ein Sonderfall und nicht der Normalbetrieb.
+
+### 2.5 Konsequenz für Wartung und Review
+
+Bei Änderungen immer unterscheiden zwischen:
+
+- **Quellpflege**: Was wurde im Repo geändert?
+- **Runtime-Wirkung**: Welche konkrete Datei unter `CMS/` ist wirklich aktiv?
+- **Deployment-Realität**: Ist die geänderte Runtime-Datei bereits hochgeladen worden oder steht der Upload noch aus?
+
+Gerade bei Theme- und Plugin-Arbeit verhindert diese Denkweise die klassische Verwechslung „im Repo geändert“ versus „im Live-System wirksam“.
 
 ---
 
@@ -94,6 +136,30 @@ Beim Booten wird geprüft, ob gebündelte Libraries eine höhere PHP-Version ver
 
 Das schützt vor halb startenden Installationen mit „läuft irgendwie, bis es knallt“-Charakter.
 
+### 3.5 Boot-Reihenfolge mit Seiteneffekten
+
+Die Reihenfolge des Bootstraps ist fachlich relevant. Fehler entstehen häufig dann, wenn Code zwar „irgendwo“ funktioniert, aber zu früh oder im falschen Modus ausgeführt wird.
+
+Kritische Reihenfolgen sind insbesondere:
+
+- Config vor Service-Instanziierung
+- Security/Auth vor Admin- oder Member-Mutationen
+- Plugin-Laden vor Hook-abhängigen Erweiterungen
+- Theme-Laden nur dort, wo Template-Rendering tatsächlich vorgesehen ist
+- Router-Dispatch erst nach sauberer Initialisierung der registrierenden Komponenten
+
+### 3.6 Was nicht in den Bootstrap gehört
+
+Nicht in den Bootstrap gehören:
+
+- teure Vollscans ohne klaren Modusbezug
+- UI-nahe Logik
+- große, nicht lazy geladene Servicebäume ohne tatsächlichen Bedarf
+- fachliche Speziallogik einzelner Module
+- lose Debug-Helfer oder Betriebs-Workarounds, die nur für einen Sonderfall gedacht sind
+
+Wenn eine Änderung nur für einen einzelnen Admin-Bereich relevant ist, ist der Bootstrap fast nie der richtige erste Angriffspunkt.
+
 ---
 
 ## 4. Konfiguration, Konstanten und feste Werte
@@ -138,6 +204,33 @@ Die zentrale Konfiguration liegt in `CMS/config/app.php`.
 - CSP läuft im Debug-Modus in `Report-Only` statt enforced.
 - HSTS wird im Debug-Modus nicht aggressiv erzwungen.
 
+### 4.4 Konfigurationsquellen und Vertrauensebenen
+
+Im System existieren mehrere Arten von Konfiguration:
+
+- **statische Grundkonfiguration** in `config/app.php`
+- **persistierte Laufzeitkonfiguration** in `cms_settings`
+- **situative Request-Konfiguration** durch Routing, Query, Session und Modus
+- **Theme-/Plugin-nahe Konfiguration** in `theme.json`, Plugin-Metadaten oder Modulsettings
+
+Diese Ebenen dürfen nicht beliebig vermischt werden. Besonders wichtig:
+
+- globale Sicherheits- und Pfadparameter gehören nicht in Theme- oder UI-Settings
+- Admin-Formulare dürfen Konfigwerte nicht stillschweigend in andere Schichten „übersetzen“, ohne den Vertrag zu dokumentieren
+- bei Schlüsselwerten wie Theme, Plugin-Status, Mail, SEO, Auth und Cron immer prüfen, welche Quelle die kanonische Wahrheit ist
+
+### 4.5 Konfigänderungen mit Seiteneffekt
+
+Ein Konfigwechsel kann Folgearbeiten auslösen, z. B.:
+
+- Cache-Invalidierung
+- Redirect-/Routing-Änderungen
+- Reindexing
+- andere Theme-/Plugin-Ladepfade
+- neue Sicherheitsheader oder Auth-Verhalten
+
+Konfigänderungen sind daher nie nur „Wert speichern“, sondern oft Systemzustandsänderungen.
+
 ---
 
 ## 5. Dependency Injection und zentrale Core-Komponenten
@@ -181,6 +274,24 @@ Beispiele:
 - `SEOService`
 - `ThemeCustomizer`
 - `PdfService`
+
+### 5.4 Container-Regeln für spätere Erweiterungen
+
+Wenn neue Services hinzukommen, sollten sie möglichst:
+
+- eine klare Fachverantwortung haben
+- lazy registriert werden, wenn sie nicht immer pro Request nötig sind
+- keine versteckten Seiteneffekte im Konstruktor auslösen
+- keine implizite Abhängigkeit von globalen Zuständen haben, die außerhalb des Containers nicht sichtbar ist
+
+### 5.5 Typische Anti-Patterns
+
+Ungünstig sind:
+
+- Service-Locator-Missbrauch aus tiefen Views heraus
+- globale Singleton-Aufrufe für reine View-Helfer ohne klare Notwendigkeit
+- Klassen, die gleichzeitig Daten laden, rendern, loggen und redirecten
+- Container-Einträge, die beim ersten Zugriff bereits teure Remote- oder Dateisystemarbeit starten, obwohl nur ein kleiner Aspekt gebraucht wird
 
 ---
 
@@ -332,6 +443,29 @@ Typische Kategorien:
 
 Das Audit Log ist essenziell für Fehleranalyse, Compliance und Incident Review.
 
+### 6.13 Sicherheitsfolgefragen bei jeder Änderung
+
+Bei jeder nicht-trivialen Änderung sollten diese Fragen beantwortbar sein:
+
+- kann Benutzereingabe hier in HTML, SQL, Dateipfade, Header, JSON oder Redirect-Ziele gelangen?
+- wird eine Mutation durch Capability und CSRF geschützt?
+- entsteht eine neue Remote-Abhängigkeit oder Downloadkante?
+- wird ein bestehender Schutzvertrag geschwächt, z. B. durch Fallbacks oder stillere Fehlerbehandlung?
+- landen technische Details in UI-Ausgaben statt in Logs?
+
+### 6.14 Typische Security-Hotspots in 365CMS
+
+Besonders sensibel sind:
+
+- Marketplace- und Update-Pfade
+- Theme-Editor und Theme-Explorer
+- Media-Upload, Member-Medien und Dateiauslieferung
+- Redirect- und Auth-Weiterleitungen
+- HTML- oder Editor-basierte Content-Senken
+- Mail-, Feed- und andere Remote-Integrationen
+
+Diese Stellen sollten grundsätzlich mit höherem Misstrauen behandelt werden als reine Read-only-Views.
+
 ---
 
 ## 7. Authentifizierung, MFA, Passkeys, LDAP, JWT
@@ -388,6 +522,32 @@ JWT-Konstanten:
 - `JWT_ISSUER`
 
 Wenn `JWT_SECRET` leer ist, kann ein Fallback auf `AUTH_KEY` erfolgen. Für produktive API-Nutzung ist ein dediziertes Secret sauberer.
+
+### 7.7 Auth-Regressionen, gegen die immer geprüft werden sollte
+
+Bei Änderungen an Login-, Register-, MFA-, Passkey-, LDAP- oder Sessionpfaden immer testen:
+
+- erfolgreicher Login ohne MFA
+- erfolgreicher Login mit MFA
+- Remember-Me-Verhalten
+- Rücksprungpfade nach Auth
+- Passwort-Reset-Ende-zu-Ende
+- sprachabhängige Auth-Pfade
+- Verhalten ohne aktives Theme-Spezialtemplate
+
+### 7.8 Auth ist Prozess, nicht nur Formular
+
+Der gefährlichste Denkfehler ist, Auth nur als Seitenformular zu sehen. In Wahrheit besteht der Vertrag aus:
+
+- Routing
+- Formular-/POST-Handling
+- Session-Abschluss
+- MFA-/Passkey-Zwischenschritten
+- Redirect-Regeln
+- Rate-Limits
+- UI- und Doku-Konsistenz
+
+Wenn nur ein Teil davon geändert wird, ohne die Kette zu prüfen, entstehen klassische „Login klappt irgendwie, aber am Ende landet man falsch oder fliegt wieder raus“-Fehler.
 
 ---
 
@@ -450,6 +610,26 @@ Das ist bequem, aber auch ein Grund, Änderungen an Settings mit Respekt zu beha
 
 Bei Plugin- oder Modultabellen müssen Foreign-Key-Namen schemaweit eindeutig sein. Generische Constraint-Namen sind fehleranfällig, speziell bei frischen Installationen oder mehrfachen Deployments.
 
+### 8.7 Migrationsregeln für künftige Änderungen
+
+Migrationen sollten:
+
+- idempotent sein
+- bestehende Daten respektieren
+- neue Spalten oder Indizes explizit prüfen, bevor sie angelegt werden
+- keine Annahmen über bereits perfekte Altzustände machen
+- Fehler so loggen, dass produktive Probleme nachvollziehbar bleiben
+
+### 8.8 Datenmodell-Fallen im Alltag
+
+Häufige Fehlerquellen im 365CMS-Datenmodell sind:
+
+- Settings als Schatten-Datenbank für zu viele fachliche Zustände
+- implizite String- statt Bool-/Int-Verträge
+- Alt- und Neuinstallationslogik, die auseinanderdriften
+- Foreign-Key-Namen, die lokal harmlos wirken, aber schemaweit kollidieren
+- Löschpfade, die Suchindex, Caches oder Beziehungstabellen nicht nachziehen
+
 ---
 
 ## 9. Content-Modell und Mehrsprachigkeit
@@ -488,6 +668,30 @@ Wichtig:
 - sichtbare Block-Buttons im Live-Admin-Editor müssen nicht nur in Asset-Services, sondern auch im Live-Admin-JavaScript gepflegt werden
 - Editor-UI und Render-Logik sind nicht automatisch dasselbe
 
+### 9.6 Publikations- und Sichtbarkeitslogik
+
+Content ist nicht nur „gespeichert oder nicht gespeichert“, sondern hat Sichtbarkeitszustände.
+
+Besonders relevant:
+
+- `draft`
+- `published`
+- `scheduled`
+- `private`
+
+Diese Zustände müssen in Admin, Routing, SEO, Suche, Archive, Sitemap und Analytics gleich gedacht werden. Sobald unterschiedliche Schattenlogik entsteht, tauchen typische Inkonsistenzen auf.
+
+### 9.7 Mehrsprachige Content-Pflege praktisch gedacht
+
+Die Zweisprachigkeit verlangt bei Änderungen an Content-Pfaden immer zusätzliche Kontrolle:
+
+- Werden `_en`-Felder korrekt mitgeladen?
+- Wird bei Save, Delete oder Reindexing beide Sprachseiten mitgedacht?
+- Ist das Frontend wirklich sprachkonsistent oder mischt es Strings, Labels oder Links?
+- Sind EN-Pflichtseiten und Gegenpfade real vorhanden?
+
+Gerade in Live-Systemen werden diese Fehler oft erst sichtbar, wenn Nutzer die englische Seite tatsächlich benutzen.
+
 ---
 
 ## 10. Routing und Request-Fluss
@@ -525,6 +729,28 @@ Member-Funktionalität liegt unter `/member/*`.
 ### 10.6 API-Pfade
 
 API-Pfade hängen unter `/api/*`.
+
+### 10.7 Routing-Prioritäten und Fallstricke
+
+Routingfehler wirken oft wie Inhalts- oder UI-Fehler, sind aber strukturell tiefer.
+
+Typische Fallstricke:
+
+- Redirects, die aus rohen Request-Parametern entstehen
+- Theme-Templates, die Core-Routen überschreiben oder implizit nachbilden
+- Sprachpfade, die nicht deterministisch normalisiert werden
+- Admin-Links, die intern absolute Hosts statt relative Pfade benutzen
+- Such-, Archiv- und Spezialpfade, die andere Sichtbarkeitsregeln anwenden als Listen oder Sitemaps
+
+### 10.8 Routing-Testdenken
+
+Bei Änderungen an Router, Redirects oder URL-Generierung sollte mindestens geprüft werden:
+
+- funktioniert der Happy Path?
+- funktioniert derselbe Pfad unter anderem Host/Proxy/Rewrite-Setup?
+- bleiben Redirects intern?
+- bleiben Query und Sprache konsistent?
+- landen Fehlerzustände auf kontrollierten Zielen statt in Loops oder Fremdhosts?
 
 ---
 
@@ -594,6 +820,29 @@ Der Service-Layer in `CMS/core/Services/` ist einer der wichtigsten Stabilitäts
 - zentrale Verwendung über Container oder `getInstance()`-Muster
 - wiederverwendbar zwischen Admin, Public, Member und Plugins
 
+### 11.3 Service-Design-Regeln
+
+Ein guter 365CMS-Service:
+
+- kapselt genau einen fachlichen Verantwortungsbereich oder einen klaren Teil davon
+- nimmt normalisierte Daten entgegen statt rohe `$_POST`-/`$_GET`-Strukturen
+- produziert nachvollziehbare, geloggte Fehlerzustände
+- trennt Read-, Write- und Render-nahen Zustand möglichst sauber
+- bleibt auch dann brauchbar, wenn er aus Admin, Cron, API oder Frontend aufgerufen wird
+
+### 11.4 Service-Hotspots
+
+Erfahrungsgemäß besonders sensibel sind Services mit mindestens einem dieser Merkmale:
+
+- Remote-I/O
+- Dateisystem-I/O
+- große Payloads
+- HTML- oder Binary-Ausgabe
+- Auth-/Redirect-/Mail-/Indexing-Verhalten
+- implizite Zustandsänderung nach Save/Delete
+
+Solche Services brauchen stärkere Guards, klarere Fehlerverträge und häufiger Regressionstests.
+
 ---
 
 ## 12. SEO, Redirects, 404 und Sichtbarkeit
@@ -633,6 +882,31 @@ Die Robots-/Sitemap-Logik ist systemweit relevant. Änderungen an URL-Regeln, Pu
 ### 12.6 Suchindex
 
 Die interne Suche muss bei mehrsprachigem Content sowohl Standard- als auch `_en`-Felder berücksichtigen. Außerdem müssen die korrekten Save-Hooks verwendet werden, damit der Index nach Änderungen aktuell bleibt.
+
+### 12.7 SEO ist kein isoliertes Modul
+
+SEO hängt in 365CMS an vielen Querschnittsstellen:
+
+- Content-Sichtbarkeit
+- Routing
+- Redirects
+- 404-Monitoring
+- Sitemap
+- Suchindex
+- Head-Rendering
+- Rechtliche und vertrauensbildende Seiten
+
+Eine vermeintlich kleine Änderung an Permalinks, Sprachen, Status oder Theme-Templates kann deshalb unerwartet SEO-Nebenwirkungen haben.
+
+### 12.8 SEO-Release-Checks
+
+Vor Releases oder größeren Routing-/Content-Änderungen sinnvoll prüfen:
+
+- liefern wichtige Seiten saubere Statuscodes?
+- werden keine geplanten oder privaten Inhalte versehentlich öffentlich gezählt oder indexiert?
+- bleiben Weiterleitungen intern, eindeutig und loopfrei?
+- sind Sitemap, Robots und IndexNow-Keydatei konsistent?
+- funktionieren 404-Übernahme und Redirect-Anlage im Admin weiter robust?
 
 ---
 
@@ -681,6 +955,26 @@ Installationen berücksichtigen:
 ### 13.8 Konsequenz für Entwicklung
 
 Ein Plugin im Quellrepo `365CMS.DE-PLUGINS/` ist **nicht** automatisch live. Es muss in die Runtime `CMS/plugins/` gelangen, bevor der Core es bootet.
+
+### 13.9 Plugin-Lifecycle praktisch
+
+Ein Plugin sollte idealerweise diese Stationen sauber bestehen:
+
+1. Metadaten und Bootstrap-Datei sind vorhanden
+2. Sicherheits- und Abhängigkeitsprüfung bestehen
+3. Aktivierung trägt sich konsistent in die Settings ein
+4. Hooks und optionale Installer laufen deterministisch
+5. Deaktivierung und ggf. Entfernen hinterlassen keinen kaputten aktiven Zustand
+
+### 13.10 Plugin-Qualitätsregeln
+
+Bei neuen oder überarbeiteten Plugins immer beachten:
+
+- keine Annahme, dass das Plugin-Quellrepo bereits Runtime ist
+- keine stillen Fallbacks, wenn Abhängigkeiten fehlen
+- Admin-Pfade, Assets und Hooks klar dokumentieren
+- Dateisystem- und ZIP-Pfade streng begrenzen
+- Install-/Update-/Delete-Verhalten auditierbar halten
 
 ---
 
@@ -737,6 +1031,27 @@ Theme-nahe Einstellungen werden lazy geladen. Menüs kommen aus Settings und tei
 
 Der ThemeManager rendert globale Favicons und Customizer-nahe CSS-Variablen auf Basis gespeicherter Optionen.
 
+### 14.8 Theme-Entwicklung in der Praxis
+
+Themes sind in 365CMS nicht nur Optik, sondern Laufzeitpartner für:
+
+- Template-Auswahl
+- Hook-Ausgabe
+- Menüs
+- Login-/Public-UX
+- rechtliche und strukturelle Seiten
+- Customizer-nahe Styles und Branding
+
+Ein Theme kann daher funktionale Fehler sichtbar machen oder verstecken, auch wenn der Core fachlich korrekt arbeitet.
+
+### 14.9 Theme-Arbeit ohne Runtime-Verwechslung
+
+Besonders wichtig:
+
+- Änderungen im Theme-Quellrepo sind erst nach Übernahme in die Runtime plus FTP-Upload live wirksam
+- Theme-Editor und Customizer arbeiten gegen deployte Runtime-Themes
+- beim Debuggen immer zuerst prüfen, welche Theme-Datei tatsächlich aus `CMS/themes/` gerendert wird
+
 ---
 
 ## 15. Admin-Architektur
@@ -784,6 +1099,31 @@ Diese Shells kapseln wiederkehrende Logik wie Routing, Form-Handling, CSRF-Verif
 
 Neue Admin-Funktionalität sollte möglichst als Modul plus View sauber integriert werden, nicht als monolithische Einzeldatei mit Inline-Komplettlogik.
 
+### 15.5 Qualitätsvertrag für Admin-Seiten
+
+Eine gute Admin-Seite in 365CMS erfüllt idealerweise diese Punkte:
+
+- Einstieg über kanonischen Entry oder gemeinsamen Wrapper
+- klare Capability-Gates
+- normalisierte Actions und IDs
+- definierter PRG- oder Inline-Fehlerpfad
+- View mit vorbereiteten Daten statt Controller-Logik
+- dediziertes Asset statt großem Inline-JS
+- Alerts und Hinweise über gemeinsame Partials
+
+### 15.6 Besonders regressionsanfällige Admin-Muster
+
+Historisch problematisch waren besonders:
+
+- große Multi-Tab-Seiten
+- Asset-getriebene Modale mit Dropdown-Triggern
+- Bulk-Aktionen
+- Marketplace-/Update-Pfade
+- Medien- und Theme-Dateiverwaltung
+- Formulare mit mehreren potenziellen Submit-Zielen
+
+Genau dort lohnt sich immer eine zusätzliche Runde Skepsis und Gegenprüfung.
+
 ---
 
 ## 16. Member-Bereich
@@ -809,6 +1149,28 @@ Persönliche Medien leben benutzerbezogen und sind relevant für Datenschutz, Sp
 ### 16.3 Member-Sicherheit
 
 Der Member-Bereich ist nicht nur „Profilseite mit netter Farbe“, sondern enthält sicherheitsrelevante Funktionen wie Passwort, MFA, Sessions und Privatsphäreoptionen.
+
+### 16.4 Datenschutz- und Vertrauensvertrag im Member-Bereich
+
+Der Member-Bereich verarbeitet typischerweise besonders sensible Daten:
+
+- Identität
+- Profilfelder
+- Sicherheitsoptionen
+- private Medien
+- Nachrichten
+- Favoriten und Präferenzen
+
+Deshalb müssen dort Eingabevalidierung, URL-/Pfadgrenzen, Ausgabe-Escaping und Rechteprüfung besonders konsequent sein.
+
+### 16.5 Member-Regressionsdenken
+
+Bei Änderungen an Member-Pfaden immer mitdenken:
+
+- bleibt der Nutzer sicher innerhalb seines erlaubten Datenraums?
+- werden fremde Medien, Ordner oder Links zuverlässig ausgeschlossen?
+- bleiben gespeicherte URLs, Farben, Widgetdaten oder Profilwerte sauber normalisiert?
+- werden private Zustände nicht versehentlich in öffentliche Views gespiegelt?
 
 ---
 
@@ -846,6 +1208,24 @@ Der Member-Bereich ist nicht nur „Profilseite mit netter Farbe“, sondern ent
 ### 17.4 Entwicklungsregel
 
 Wenn Folgefunktionen an Content- oder Auth-Vorgänge gekoppelt sind, müssen exakt die real ausgelösten Hooks verwendet werden. Falsche Hook-Namen führen gern zu „funktioniert lokal nicht reproduzierbar, aber fühlt sich kaputt an“.
+
+### 17.5 Hook-Disziplin
+
+Bei Hook-basierter Erweiterung gelten diese Regeln:
+
+- nur auf echte, im Code belegte Hooks aufsetzen
+- keine fachkritische Logik an experimentelle oder zufällig mitlaufende Stellen hängen
+- Hook-Namen dokumentieren, wenn neue öffentliche Verträge entstehen
+- Seiteneffekte klar halten: Save-Hook ist nicht gleich Render-Hook ist nicht gleich Cron-Hook
+
+### 17.6 Hook-Fehlersuche praktisch
+
+Wenn etwas „nicht reagiert“, zuerst prüfen:
+
+- wird der erwartete Hook wirklich ausgelöst?
+- läuft der Code im richtigen Modus?
+- ist das Plugin/Theme/Modul zur Hook-Zeit schon geladen?
+- wurde eventuell der falsche Save- oder Routing-Hook verwendet?
 
 ---
 
@@ -892,6 +1272,25 @@ Die Mailqueue ist asynchron gedacht und wird über Cron-/Hook-Logik verarbeitet.
 - große UI- oder Editor-Skripte zentral pflegen
 - Caches nach strukturellen Änderungen sauber invalidieren
 
+### 18.7 Typische Performance-Fallen im Projekt
+
+Besonders häufig kritisch:
+
+- Vollscans im Dateisystem für Themes, Fonts, Medien oder Updates
+- komplette Datensätze in Admin-GET-Pfaden, obwohl nur Teilmengen gebraucht werden
+- doppelte Aggregationen im selben Request
+- Inline-Initialisierung großer JS-Konfigurationen direkt im Template
+- Remote-Checks im synchronen Seitenaufbau ohne Cache/Fallback
+
+### 18.8 Performance-Vertrag für neue Features
+
+Neue Features sollten idealerweise beantworten können:
+
+- was wird pro Request garantiert gebraucht?
+- was kann lazy oder gecacht sein?
+- was ist Remote und darf den Request nicht unnötig blockieren?
+- welche Daten können vorbereitet statt im Template berechnet werden?
+
 ---
 
 ## 19. Cron, Hintergrundjobs und Betriebsautomation
@@ -914,6 +1313,24 @@ Cron-Logik muss idempotent und fehlertolerant sein. Hintergrundjobs dürfen bei 
 ### 19.4 Beobachtbarkeit
 
 Cron-Status und verwandte Systemzustände sollten immer über Audit/Logs/Admin-Diagnose nachvollziehbar bleiben.
+
+### 19.5 Cron-Vertrag für neue Jobs
+
+Neue Hintergrundjobs sollten:
+
+- idempotent sein
+- mit Timeouts oder Teilfehlern kontrolliert umgehen
+- keine UI-spezifischen Annahmen treffen
+- klare Logs/Auditspuren hinterlassen
+- bei Bedarf auch manuell oder diagnostisch auslösbar sein
+
+### 19.6 Cron und Deployment
+
+Weil das Projekt unmittelbar per FTP aktualisiert wird, ist bei Cron-Jobs wichtig:
+
+- keine Annahmen über externe Live-Sync-Layer
+- Jobs müssen mit dem tatsächlich hochgeladenen Codezustand konsistent laufen
+- nach Deployments mit Strukturänderungen prüfen, ob Cron-Pfade, Queue-Worker und Dateipfade weiter passen
 
 ---
 
@@ -948,6 +1365,27 @@ Im Projektkontext tauchen u. a. Bibliotheken auf für:
 
 `CMS/assets/` ist die Runtime-Basis. Das Top-Level-`ASSETS/` außerhalb von `CMS/` ist Entwicklungs-/Quellkontext und wird im Bootstrap nur als Fallback-Autoloader berücksichtigt, wenn `CMS/assets/autoload.php` fehlt.
 
+### 20.4 Asset-Regeln für Änderungen
+
+Bei Asset-Änderungen immer mitdenken:
+
+- läuft das Skript wirklich auf der echten Zielseite?
+- gibt es ein gemeinsames Asset, das mehrere Views beeinflusst?
+- braucht die Aktion einen Pending-State oder Fallback?
+- werden Daten per `data-*`/JSON sauber vorbereitet statt im Script zusammengeraten?
+- bleibt die UI auch ohne optimistische Browser-Sonderlogik funktionsfähig?
+
+### 20.5 Umgang mit gebündelten Fremdbibliotheken
+
+Gebündelte Bibliotheken sind praktisch, aber auditrelevant.
+
+Darum:
+
+- Vendor-Code klar vom First-Party-Code gedanklich trennen
+- aktive Runtime-Fläche klein halten
+- wenn möglich Sicherheits- oder Laufzeitkritisches kapseln statt tief im Projekt zu verteilen
+- bei Problemen zuerst prüfen, ob ein eigener Wrapper oder die Bibliothek selbst verantwortlich ist
+
 ---
 
 ## 21. Logging, Fehlerbehandlung und Diagnose
@@ -967,6 +1405,27 @@ Der AuditLogger dokumentiert sicherheits- und betriebsrelevante Aktionen unabhä
 ### 21.4 Diagnose im Admin
 
 Der Admin-Bereich bietet eigene Diagnose-/Support-/Systeminfo-Seiten. Diese sind für Betrieb und Fehlersuche relevant und sollten nicht als optionaler Deko-Bereich betrachtet werden.
+
+### 21.5 Fehlerklassen sauber trennen
+
+Für saubere Analyse ist hilfreich, zwischen diesen Fehlerarten zu unterscheiden:
+
+- **Benutzerfehler**: valide erklärbar, UI-tauglich rückmeldbar
+- **Validierungsfehler**: Eingabe fachlich oder technisch unzulässig
+- **Betriebsfehler**: Remote, Dateisystem, Datenbank, Timeout, fehlende Ressource
+- **Programmierfehler**: unerwartete Exceptions, kaputte Zustände, unvollständige Verträge
+
+Jede Klasse braucht andere Behandlung. Was in Logs wertvoll ist, ist oft in der UI zu viel.
+
+### 21.6 Diagnosefähigkeit als Qualitätsmerkmal
+
+Eine Änderung ist nicht nur dann gut, wenn sie „funktioniert“, sondern auch dann, wenn sie bei Problemen:
+
+- nachvollziehbar fehlschlägt
+- nicht still hängt
+- klar loggt
+- im Admin sichtbar einen sinnvollen Zustand hinterlässt
+- keinen falschen Erfolg suggeriert
 
 ---
 
@@ -1068,6 +1527,21 @@ Das gilt besonders für:
 
 Wenn Lesbarkeit, Host, Größe, Zielpfad, Dateityp oder Capability nicht eindeutig passen, wird der Pfad geschlossen statt erraten.
 
+### 22.15 Repo- und FTP-Stand bewusst synchron halten
+
+Für dieses Projekt gilt zusätzlich als Arbeitsregel:
+
+- das Quellrepo soll dem Stand des FTP-Uploads entsprechen
+- Änderungen werden unmittelbar nach Anpassungen hochgeladen
+- das Live-System wird **nicht** aus einer dritten, externen Synchronisationsquelle gespeist
+- Repo und deployter Stand sollen also absichtlich deckungsgleich bleiben
+
+Für Entwicklung und Review bedeutet das:
+
+- Wenn eine Runtime-Datei geändert wurde, ist sie auch als reale Live-Änderung zu denken
+- „Das ist nur lokal im Repo“ ist hier normalerweise **kein** gültiger Denkrahmen
+- Abweichungen zwischen Repo und FTP-Stand sind Sonderfälle und sollten explizit benannt werden
+
 ---
 
 ## 23. Audit-Erkenntnisse, die nicht wieder verloren gehen dürfen
@@ -1161,6 +1635,18 @@ Reihenfolge für Mutationen:
 5. Modul/Service aufrufen
 
 Nicht umgekehrt. Erst recht nicht „erst mal handeln, später schauen“.
+
+### 23.8 Gemeinsame Frontend-/Admin-Verträge sichtbar halten
+
+Viele reale Fehler entstanden dort, wo zwei Seiten oder Module denselben technischen Vertrag teilten, ohne dass das beim Bearbeiten sofort sichtbar war.
+
+Typische Beispiele:
+
+- Redirect-Manager und 404-Monitor teilen JS und Modal-Logik
+- Live-Editor und Asset-Service teilen Editor.js-Kontrakte
+- Wrapper, Flash-Partials und Alias-Entrys teilen Redirect- und Fehlermuster
+
+Deshalb sollten gemeinsame Verträge entweder dokumentiert oder im Code klar erkennbar gebündelt werden.
 
 ---
 
@@ -1284,6 +1770,35 @@ Deshalb gelten Rechtsseiten als Release-Blocker:
 - DE/EN-Pflichtseiten dürfen nicht sprachlich inkonsistent sein
 - Footer-, Login-, Register- und Kontaktpfade immer gegen Live-Routing prüfen
 
+### 24.11 Marketplace- und Update-Pfade dürfen nicht „schnell mal direkt entpacken“
+
+Historisch war ein großes Thema, dass Remote-Pakete und Archive besonders kontrolliert behandelt werden müssen.
+
+Nie wieder:
+
+- Direkt-Extraktion in Zielverzeichnisse ohne klare Vorprüfung
+- lose Slug- oder Manifest-Vertrauensannahmen
+- unklare Host- oder Redirect-Herkunft
+- fehlende Größen- oder Strukturgrenzen im Archiv
+
+Bevorzugt:
+
+- Staging-/Swap-Logik
+- Hash-/Integritätskontext
+- klarer Quellenstatus (`remote`, `cache`, `local`, `none`)
+- explizit sichtbare Sperrgründe für Auto-Installationen
+
+### 24.12 Alerts, Modale und Pending-States sind keine Kosmetik
+
+Viele Bugfixes drehten sich am Ende darum, dass UI-Zustände fachlich falsch oder unzuverlässig waren.
+
+Darum nie als „nur UI“ abtun:
+
+- Pending-State fehlt → Doppel-Submit
+- falscher Modal-Trigger → Aktion läuft leer
+- falscher Rücksprung-Tab → Save wirkt kaputt
+- uneinheitlicher Alert-Vertrag → Fehler wird missverständlich oder gar nicht sichtbar
+
 ---
 
 ## 25. Audit-Fokuszonen mit dauerhaft erhöhter Aufmerksamkeit
@@ -1335,18 +1850,71 @@ Diese Bereiche vereinen oft mehrere Risiken gleichzeitig:
 - Hostneutralität und Same-Origin
 - Bulk- und Parallelaufrufe
 
+### 25.4 Hotspot-Arbeitsmodus
+
+Für Hotspots empfiehlt sich ein strengeres Vorgehen als für normale Doku- oder Read-only-Anpassungen:
+
+- zuerst Vertrag und Seiteneffekte klären
+- dann klein und inkrementell ändern
+- direkt danach prüfen, ob gemeinsame Assets/Wrapper mit betroffen sind
+- anschließend gezielt Regressionen testen statt nur Syntax oder happy path zu prüfen
+
+Hotspots bestrafen große blinde Umbauten zuverlässig.
+
 ---
 
 ## 26. Live-Betrieb und Audit-Readiness
 
-### 26.1 Live-Audits sollen reale Nutzerpfade bewerten
+### 26.1 Repo-Qualität ist nicht automatisch Live-Qualität
+
+Ein sauberer Core-Snapshot garantiert nicht automatisch, dass jede öffentliche Seite denselben Qualitätsgrad transportiert.
+
+Trotzdem gilt in diesem Projekt organisatorisch:
+
+- das Repo soll dem unmittelbar per FTP ausgerollten Stand entsprechen
+- es gibt keinen separaten Upstream-Live-Sync außerhalb dieser Arbeitsweise
+- Live-Abweichungen sind deshalb eher durch Routing, Content, Daten oder fehlende Runtime-Übernahme erklärbar als durch einen „anderen geheimen Deploy-Stand“
+
+### 26.2 FTP-Realität als Teil der Systemdoku
+
+Für künftige Entwickler und Auditoren wichtig:
+
+- Änderungen werden nach Anpassung unmittelbar per FTP hochgeladen
+- die Quelle der Wahrheit für Codeänderungen bleibt das Repo in Verbindung mit dem hochgeladenen Runtime-Stand
+- der Produktivstand wird hier also nicht periodisch aus einer externen CI/CD- oder Mirror-Quelle nachgezogen
+- wenn live etwas anders aussieht als im Repo, sollte zuerst nach Runtime-Pfad, Cache, Datenzustand oder Host-/Rewrite-Kontext gesucht werden
+
+### 26.3 Live-Audits sollen reale Nutzerpfade bewerten
 
 Nicht jede 404 ist schlimm. Kritisch sind:
 
 - aktiv verlinkte Footer-Ziele
+- Formular-Weiterleitungen
+- Hauptnavigation
 - Sprachumschalter
+- Trust- und Compliance-Seiten
 
 ---
+
+### 26.4 Live-Check nach FTP-Upload
+
+Da Deployments direkt per FTP erfolgen, ist nach Änderungen besonders sinnvoll:
+
+- genau die geänderten Pfade live aufzurufen
+- Pflichtseiten, Redirects und Auth-Flows kurz gegenzuprüfen
+- bei Asset-Änderungen Browser-/Server-Cache mitzudenken
+- bei Theme-/Plugin-Änderungen die aktive Runtime-Datei zu verifizieren
+
+### 26.5 Audit-Readiness bedeutet mehr als „Scan war grün“
+
+Ein wirklich auditfähiger Zustand bedeutet:
+
+- Codepfade sind nachvollziehbar
+- Runtime-Pfade sind klar
+- Live-Ziele funktionieren
+- Fehlermeldungen leaken nicht
+- Doku beschreibt reale Verträge statt Wunschbilder
+- Deploymentpraxis ist explizit und nicht implizit erraten
 
 ## 27. Erweiterte Nicht-wieder-tun-Liste
 
@@ -1360,6 +1928,16 @@ Nicht jede 404 ist schlimm. Kritisch sind:
 - keine Installation von Plugin-/Theme-Paketen per Direkt-Entpacken ohne klaren Staging-/Prüfpfad
 - keine Annahme, dass ein Asset-Fix ohne Prüfung der echten Live-Initialisierung reicht
 - keine Release-Freigabe mit defekten Pflichtlinks im Footer oder in Auth-/Kontaktpfaden
+- keine Annahme, dass ein Live-Unterschied automatisch von einem externen Sync stammt
+- keine Repo-Änderung als „nur theoretisch“ behandeln, wenn sie direkt per FTP ausgeliefert wird
+
+### 27.1 Ergänzende Anti-Pattern-Sammlung
+
+- keine UI-Limits pflegen, die serverseitig anders sind
+- keine breite Sammelpayload an Module geben, wenn nur drei Felder gebraucht werden
+- keine View mit eigener Status-, Filter- und Routinglogik überladen
+- keine Save- oder Delete-Aktion ohne klaren Rücksprungpfad bauen
+- keine Erfolgsmeldung ausgeben, wenn fachlich nur „nichts geändert“ oder „nicht ausgeführt“ vorliegt
 
 ---
 
@@ -1393,6 +1971,21 @@ Home-/Startseitenpfade müssen als Root logisch behandelt werden. Sonst erzeugt 
 
 Constraint-Namen müssen schemaweit eindeutig sein, sonst scheitern Installer/Migrationen auf realen Datenbanken.
 
+### 28.8 Repo-Stand mit Runtime verwechselt
+
+Auch wenn in diesem Projekt Repo und FTP-Stand bewusst eng gekoppelt sind, bleibt die Runtime-Datei unter `CMS/` entscheidend. Wer nur eine Quellkopie anfasst, aber nicht die echte aktive Datei im Blick hat, debuggt schnell den falschen Ort.
+
+### 28.9 Live-Probleme nur als Codeproblem gelesen
+
+Nicht jeder Live-Fehler ist ein reiner Codefehler. Häufige Alternativen sind:
+
+- falscher Runtime-Pfad
+- nicht übernommene Theme-/Plugin-Datei
+- Cache
+- Datenzustand
+- Rewrite-/Proxy-/Host-Effekt
+- nicht geprüfte Pflichtseite oder Navigation nach FTP-Upload
+
 ---
 
 ## 29. Technische Checkliste vor Änderungen
@@ -1416,6 +2009,12 @@ Zusätzlich bei historisch regressionsanfälligen Änderungen:
 - Verliert die UI bei Fehlern den Tab-, Filter- oder Edit-Kontext?
 - Braucht die Änderung ein sichtbares Limit, Warning oder Pending-State im UI?
 
+Zusätzlich für dieses Projektsetup:
+
+- Ist die geänderte Runtime-Datei auch die Datei, die per FTP hochgeladen wird?
+- Entspricht der Repo-Stand nach der Änderung dem beabsichtigten Live-Stand?
+- Muss nach dem FTP-Upload ein konkreter Live-Pfad direkt gegengeprüft werden?
+
 ---
 
 ## 30. Abschlussbild
@@ -1425,3 +2024,9 @@ Zusätzlich bei historisch regressionsanfälligen Änderungen:
 **Konfiguration → Bootstrap → Security/Auth → Hooks → Services → Router → Module/Theme/Plugin → Logging/Audit → Betrieb**
 
 Wenn diese Kette sauber bleibt, bleibt das System stabil. Wenn man irgendwo quer schneidet, rächt sich das meist später, nachts oder kurz vor einem Demo-Termin — also zu den traditionellen Öffnungszeiten des Chaos.
+
+Zusätzlich gilt für dieses Projekt ganz praktisch:
+
+**Repo-Stand ↔ Runtime-Datei ↔ FTP-Upload ↔ Live-Prüfung**
+
+Diese vier Ebenen sollen hier bewusst nah beieinander bleiben. Das ist kein Nebenhinweis, sondern Teil des Arbeitsmodells. Wer 365CMS in diesem Projekt pflegt, pflegt nicht einen abstrakten Codebestand, sondern einen Codebestand, der nach Änderungen unmittelbar in denselben Zustand hochgeladen wird. Genau deshalb muss die Doku nicht nur erklären, wie 365CMS technisch aufgebaut ist, sondern auch, wie dieser Aufbau real betrieben und kontrolliert wird.
