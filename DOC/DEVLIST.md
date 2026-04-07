@@ -1558,6 +1558,17 @@ Bei Änderungen an Member-Pfaden immer mitdenken:
 - bleiben gespeicherte URLs, Farben, Widgetdaten oder Profilwerte sauber normalisiert?
 - werden private Zustände nicht versehentlich in öffentliche Views gespiegelt?
 
+### 16.6 Member-UX ist Sicherheitsoberfläche
+
+Im Member-Bereich ist die Oberfläche nicht bloß Komfort, sondern Teil der Sicherheitswirkung:
+
+- unklare Formulare erzeugen riskante Fehlbedienung
+- unsichtbare Limits führen zu widersprüchlichen Erwartungen
+- unpräzise Rückmeldungen untergraben Vertrauen bei Passwort-, Sicherheits- oder Medienaktionen
+- fehlende Trennung zwischen privat und öffentlich führt schnell zu Datenpannen
+
+Gerade deshalb sollten Member-Views fachlich zurückhaltend, sprachlich klar und technisch strikt gebaut sein.
+
 ---
 
 ## 17. Hooks- und Event-System
@@ -1612,6 +1623,17 @@ Wenn etwas „nicht reagiert“, zuerst prüfen:
 - läuft der Code im richtigen Modus?
 - ist das Plugin/Theme/Modul zur Hook-Zeit schon geladen?
 - wurde eventuell der falsche Save- oder Routing-Hook verwendet?
+
+### 17.7 Hook-Architektur braucht Ereignisdisziplin
+
+Hooks sind stark, aber nur dann, wenn sie diszipliniert benutzt werden:
+
+- Ereignisnamen müssen fachlich verständlich bleiben
+- Hooks sollten keine versteckten Pflichtpfade sein, die nirgends dokumentiert sind
+- Seiteneffekte müssen zur Ereignisart passen
+- Hook-Reihenfolge darf nicht stillschweigend zum einzigen Integrationsmechanismus mutieren
+
+Anders gesagt: Hooks sollen Erweiterung ermöglichen, nicht die eigentliche Geschäftslogik unlesbar machen.
 
 ---
 
@@ -1677,6 +1699,16 @@ Neue Features sollten idealerweise beantworten können:
 - was ist Remote und darf den Request nicht unnötig blockieren?
 - welche Daten können vorbereitet statt im Template berechnet werden?
 
+### 18.9 Performance ist auch Vorhersagbarkeit
+
+Neben reiner Geschwindigkeit ist in 365CMS besonders wichtig, dass Verhalten vorhersagbar bleibt:
+
+- keine zufälligen Laufzeitspitzen durch Hintergrund-Scans im Seitenaufbau
+- keine Modulpfade, die bei kleiner Datenmenge schnell und bei echter Datenlast unbenutzbar werden
+- keine Caches, die nur funktionieren, solange niemand Inhalte, Menüs oder Einstellungen ändert
+
+Eine stabile, vorhersagbare Antwortzeit ist im Betrieb oft wertvoller als ein einzelner Benchmark-Traumwert.
+
 ---
 
 ## 19. Cron, Hintergrundjobs und Betriebsautomation
@@ -1717,6 +1749,17 @@ Weil das Projekt unmittelbar per FTP aktualisiert wird, ist bei Cron-Jobs wichti
 - keine Annahmen über externe Live-Sync-Layer
 - Jobs müssen mit dem tatsächlich hochgeladenen Codezustand konsistent laufen
 - nach Deployments mit Strukturänderungen prüfen, ob Cron-Pfade, Queue-Worker und Dateipfade weiter passen
+
+### 19.7 Hintergrundjobs brauchen fachliche Grenzen
+
+Cron- und Queue-Logik sollte fachlich klar begrenzt sein:
+
+- keine UI-spezifischen Nachrichten- oder Redirect-Annahmen
+- keine Abhängigkeit von Browserzustand, Tabs oder Formularresten
+- keine stillen Massenoperationen ohne Logging oder Begrenzung
+- keine „nur nachts klappt das schon“-Logik ohne Diagnoseweg
+
+Hintergrundjobs müssen auch dann verständlich bleiben, wenn sie isoliert über Logs oder Diagnose-Seiten betrachtet werden.
 
 ---
 
@@ -1772,6 +1815,19 @@ Darum:
 - wenn möglich Sicherheits- oder Laufzeitkritisches kapseln statt tief im Projekt zu verteilen
 - bei Problemen zuerst prüfen, ob ein eigener Wrapper oder die Bibliothek selbst verantwortlich ist
 
+### 20.6 Asset- und Medienarbeit hat immer Seiteneffekte
+
+Änderungen an Medien- oder Asset-Pfaden betreffen oft gleichzeitig:
+
+- Browser-Caching
+- Admin-Interaktion
+- Theme-Ausgabe
+- Upload- und Delivery-Regeln
+- Dateisystemgrenzen
+- Performance und Sichtbarkeit
+
+Deshalb sollten Asset- oder Medienfixes nie nur optisch bewertet werden, sondern auch gegen Delivery, Sicherheit und echte Bedienpfade geprüft werden.
+
 ---
 
 ## 21. Logging, Fehlerbehandlung und Diagnose
@@ -1812,6 +1868,17 @@ Eine Änderung ist nicht nur dann gut, wenn sie „funktioniert“, sondern auch
 - klar loggt
 - im Admin sichtbar einen sinnvollen Zustand hinterlässt
 - keinen falschen Erfolg suggeriert
+
+### 21.7 Gute Fehlerbilder schlagen stilles Scheitern
+
+Ein gutes Fehlerbild in 365CMS erfüllt idealerweise vier Eigenschaften:
+
+- der Nutzer bekommt eine verständliche Reaktion,
+- der Admin bzw. Betreiber bekommt einen prüfbaren Hinweis,
+- das Log enthält technische Tiefe,
+- der Systemzustand bleibt kontrolliert statt halb kaputt.
+
+Still geschluckte Fehler wirken kurzfristig freundlich, machen aber Support, Audit und spätere Ursachenanalyse erheblich teurer.
 
 ---
 
@@ -1928,6 +1995,17 @@ Für Entwicklung und Review bedeutet das:
 - „Das ist nur lokal im Repo“ ist hier normalerweise **kein** gültiger Denkrahmen
 - Abweichungen zwischen Repo und FTP-Stand sind Sonderfälle und sollten explizit benannt werden
 
+### 22.16 Änderungen immer als Kette statt als Punkt denken
+
+Eine belastbare 365CMS-Änderung beantwortet am Ende nicht nur „welche Datei wurde geändert?“, sondern auch:
+
+- welcher Vertrag wurde angepasst?
+- welche Nachbarsysteme sind mitbetroffen?
+- wie wurde die Runtime-Wirkung gegengeprüft?
+- welche Doku, Logs oder Release-Hinweise müssen mitziehen?
+
+Diese Denkweise ist die beste Versicherung gegen die typische Falle, einen lokalen Fix für eine systemische Aufgabe zu halten.
+
 ---
 
 ## 23. Audit-Erkenntnisse, die nicht wieder verloren gehen dürfen
@@ -2033,6 +2111,17 @@ Typische Beispiele:
 - Wrapper, Flash-Partials und Alias-Entrys teilen Redirect- und Fehlermuster
 
 Deshalb sollten gemeinsame Verträge entweder dokumentiert oder im Code klar erkennbar gebündelt werden.
+
+### 23.9 Audit-Learnings sind Betriebsregeln, nicht Randnotizen
+
+Audit-Erkenntnisse sollten nicht als temporäre Nacharbeit behandelt werden. In 365CMS sind sie praktisch:
+
+- Architekturhinweise,
+- Priorisierungswerkzeuge,
+- Release-Filter,
+- und Lernspeicher für reale Fehlermuster.
+
+Wenn Audit-Ergebnisse nicht in Doku, Codevertrag und Review-Denke einwandern, kommen dieselben Fehler mit erstaunlicher Treue zurück.
 
 ---
 
@@ -2185,6 +2274,17 @@ Darum nie als „nur UI“ abtun:
 - falscher Rücksprung-Tab → Save wirkt kaputt
 - uneinheitlicher Alert-Vertrag → Fehler wird missverständlich oder gar nicht sichtbar
 
+### 24.13 Wiederkehrendes Muster hinter fast allen Regressionen
+
+Hinter vielen Changelog-Regressionsfällen steckt immer wieder dieselbe Grundform:
+
+- zwei Stellen teilen sich einen Vertrag, aber nur eine wurde geändert,
+- UI und Server erwarten unterschiedliche Wahrheiten,
+- Runtime- und Quellpfad wurden verwechselt,
+- oder ein Randfall wurde als „wird schon passen“ behandelt.
+
+Wer diese vier Muster aktiv sucht, findet zukünftige Regressionen oft, bevor sie live sichtbar werden.
+
 ---
 
 ## 25. Audit-Fokuszonen mit dauerhaft erhöhter Aufmerksamkeit
@@ -2247,6 +2347,16 @@ Für Hotspots empfiehlt sich ein strengeres Vorgehen als für normale Doku- oder
 
 Hotspots bestrafen große blinde Umbauten zuverlässig.
 
+### 25.5 Hotspots brauchen dokumentierte Vorsicht
+
+Je kritischer ein Hotspot ist, desto wichtiger ist es, dass die Vorsicht nicht nur im Kopf einzelner Entwickler existiert. Gute Praxis ist daher:
+
+- Hotspot-Regeln in Doku und Review-Kommentaren festhalten
+- Seiteneffekte im Code erkennbar machen
+- riskante Pfade durch Wrapper, Shells oder dedizierte Services sichtbar kapseln
+
+So bleibt das Wissen nicht an Personen gebunden, sondern im System erhalten.
+
 ---
 
 ## 26. Live-Betrieb und Audit-Readiness
@@ -2304,6 +2414,17 @@ Ein wirklich auditfähiger Zustand bedeutet:
 
 Audit-Readiness ist damit nicht nur ein Sicherheitslabel, sondern die Kombination aus belastbarer Runtime, nachvollziehbarer Änderungskette, verständlicher Diagnose und realitätsnaher Dokumentation.
 
+### 26.6 Live-Betrieb ist die härteste Wahrheitsschicht
+
+Das Repo kann sauber sein, die Doku kann gut aussehen und ein lokaler Test kann grün sein — trotzdem entscheidet am Ende der echte Live-Pfad. Für 365CMS heißt das:
+
+- reale Zielseiten schlagen Theorie
+- echte Redirects schlagen angenommene Routinglogik
+- tatsächlich hochgeladene Runtime-Dateien schlagen bloße Quellannahmen
+- beobachtbare Nutzerpfade schlagen abstrakte Vollständigkeitsgefühle
+
+Diese Nüchternheit ist kein Pessimismus, sondern professioneller Betrieb.
+
 ---
 
 ## 27. Erweiterte Nicht-wieder-tun-Liste
@@ -2328,6 +2449,13 @@ Audit-Readiness ist damit nicht nur ein Sicherheitslabel, sondern die Kombinatio
 - keine View mit eigener Status-, Filter- und Routinglogik überladen
 - keine Save- oder Delete-Aktion ohne klaren Rücksprungpfad bauen
 - keine Erfolgsmeldung ausgeben, wenn fachlich nur „nichts geändert“ oder „nicht ausgeführt“ vorliegt
+
+### 27.2 Weitere Dinge, die man sich aktiv abgewöhnen sollte
+
+- keine implizite Abhängigkeit von Tab-Reihenfolge oder DOM-Zufällen aufbauen
+- keine technische Fehlersprache 1:1 an Redakteure oder Mitglieder weiterreichen
+- keine stillen Fallbacks einbauen, die echte Betriebsprobleme nur verzögern
+- keine Admin-Sonderlogik erfinden, wenn bereits Shell-, Partial- oder Alert-Verträge existieren
 
 ---
 
@@ -2376,6 +2504,19 @@ Nicht jeder Live-Fehler ist ein reiner Codefehler. Häufige Alternativen sind:
 - Rewrite-/Proxy-/Host-Effekt
 - nicht geprüfte Pflichtseite oder Navigation nach FTP-Upload
 
+### 28.10 Stolperfallen entstehen oft an Übergängen
+
+Die meisten harten Fehler sitzen nicht mitten in einer klar abgegrenzten Fachfunktion, sondern an Übergängen zwischen:
+
+- Entry und Modul
+- Modul und View
+- View und Asset
+- Save und Folgeprozess
+- Quellrepo und Runtime
+- Doku und realem Betrieb
+
+Wer Übergänge prüft, findet oft die Fehler, die man in der Einzeldatei stundenlang übersieht.
+
 ---
 
 ## 29. Technische Checkliste vor Änderungen
@@ -2405,6 +2546,17 @@ Zusätzlich für dieses Projektsetup:
 - Entspricht der Repo-Stand nach der Änderung dem beabsichtigten Live-Stand?
 - Muss nach dem FTP-Upload ein konkreter Live-Pfad direkt gegengeprüft werden?
 
+### 29.1 Checklisten sind Mindestmaß, nicht Ersatz für Denken
+
+Die Checkliste schützt gegen bekannte Versäumnisse. Sie ersetzt aber nicht:
+
+- Architekturverständnis,
+- Lesen gemeinsamer Verträge,
+- gezielte Regressionstests,
+- und die ehrliche Prüfung, ob eine Änderung systemisch größer ist als sie lokal wirkt.
+
+Gerade in 365CMS beginnt Qualität oft genau dort, wo man nach der Checkliste noch einmal kurz misstrauisch wird.
+
 ---
 
 ## 30. Abschlussbild
@@ -2420,3 +2572,14 @@ Zusätzlich gilt für dieses Projekt ganz praktisch:
 **Repo-Stand ↔ Runtime-Datei ↔ FTP-Upload ↔ Live-Prüfung**
 
 Diese vier Ebenen sollen hier bewusst nah beieinander bleiben. Das ist kein Nebenhinweis, sondern Teil des Arbeitsmodells. Wer 365CMS in diesem Projekt pflegt, pflegt nicht einen abstrakten Codebestand, sondern einen Codebestand, der nach Änderungen unmittelbar in denselben Zustand hochgeladen wird. Genau deshalb muss die Doku nicht nur erklären, wie 365CMS technisch aufgebaut ist, sondern auch, wie dieser Aufbau real betrieben und kontrolliert wird.
+
+### 30.1 Das eigentliche Leitmotiv dieser DEVLIST
+
+Die DEVLIST soll deshalb nicht nur Wissen sammeln, sondern Denkfehler verhindern. Ihr Kernmotiv lautet:
+
+- Runtime vor Annahme,
+- Vertrag vor Zufall,
+- Diagnose vor Bauchgefühl,
+- und Live-Realität vor Papierwahrheit.
+
+Wenn diese vier Prioritäten erhalten bleiben, bleibt 365CMS auch dann wartbar, wenn Umfang, Module und Betriebsdruck weiter wachsen.
