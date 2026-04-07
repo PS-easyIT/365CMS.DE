@@ -99,7 +99,6 @@ Die Audits wurden mit OWASP-nahen Prüfwerkzeugen & AI Audit Tools von Snyk, Ref
 - **Remember-Me ist kein Deko-Checkbox-Fossil mehr:** Der „Angemeldet bleiben“-Schalter schreibt jetzt echte Persistenz in den Auth-Flow durch, statt nur nett auszusehen und im Zweifel höflich zu nicken.
 - **Redirect- und MFA-Pfade weiter fail-closed gehärtet:** `CMS/core/Routing/PublicRouter.php` nutzt jetzt einen streng allowlist-basierten Redirect-Aufbau, locale-aware MFA-Pfade und scannerfreundliche interne Zielteile statt lose zusammengesetzter Redirect-Strings.
 - **Beitrags-Editor neu sortiert und entschlackt:** Im Admin unter `/admin/posts` sitzen Kategorie und Tags jetzt direkt unter dem Slug, die frühere Mehrfachauswahl „Zusätzliche Kategorien“ ist entfernt, und unter dem Beitragsbild bündelt eine eigene Aktions-Card Speichern plus öffentliche DE-/EN-Vorschau.
-- **Erster EN-Wechsel kopiert den DE-Inhalt intelligent vor:** Wechselt eine Redaktion erstmals auf den noch leeren englischen Beitrags-Editor, übernimmt 365CMS den aktuellen deutschen Inhalt genau einmal als Startpunkt, ohne späteren EN-Content wieder zu überschreiben.
 - **Dokumentation und Release-Stand nachgezogen:** `README.md`, `Changelog.md`, `CMS/core/Version.php`, `CMS/update.json` und die Auth-/Theme-/Member-Doku sind jetzt konsistent auf **`2.9.0`** synchronisiert.
 
 ### 🧩 Kernfunktionen im Überblick
