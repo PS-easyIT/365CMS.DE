@@ -85,7 +85,7 @@ function cms_admin_section_shell_require_view_file(mixed $viewFile): string
 
 function cms_admin_section_shell_redirect(string $routePath): never
 {
-    header('Location: ' . SITE_URL . $routePath);
+    header('Location: ' . $routePath);
     exit;
 }
 

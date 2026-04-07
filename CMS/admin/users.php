@@ -101,11 +101,11 @@ function cms_admin_users_normalize_bulk_ids(mixed $ids): array
 function cms_admin_users_grid_config(array $data): array
 {
     return [
-        'apiUrl' => SITE_URL . '/api/v1/admin/users',
+        'apiUrl' => '/api/v1/admin/users',
         'role' => (string) ($data['filter']['role'] ?? ''),
         'status' => (string) ($data['filter']['status'] ?? ''),
         'search' => (string) ($data['filter']['search'] ?? ''),
-        'siteUrl' => (string) SITE_URL,
+        'siteUrl' => '',
     ];
 }
 

@@ -19,7 +19,9 @@ $filter  = $data['filter'] ?? [];
 $total   = $data['total'] ?? 0;
 $curPage = $data['page'] ?? 1;
 $pages   = $data['pages'] ?? 1;
-$siteUrl = defined('SITE_URL') ? SITE_URL : '';
+$usersAdminPath = '/admin/users';
+$currentRequestUri = (string) ($_SERVER['REQUEST_URI'] ?? $usersAdminPath);
+$currentRequestUri = $currentRequestUri !== '' ? $currentRequestUri : $usersAdminPath;
 
 $roleColors = [
     'admin' => 'red',
@@ -41,7 +43,7 @@ $getRoleColor = static function (string $role) use ($roleColors): string {
                 <h2 class="page-title">Benutzer</h2>
             </div>
             <div class="col-auto ms-auto">
-                <a href="<?php echo htmlspecialchars($siteUrl); ?>/admin/users?action=edit" class="btn btn-primary">
+                <a href="<?php echo htmlspecialchars($usersAdminPath); ?>?action=edit" class="btn btn-primary">
                     <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 5l0 14"/><path d="M5 12l14 0"/></svg>
                     Neuer Benutzer
                 </a>
@@ -114,7 +116,7 @@ $getRoleColor = static function (string $role) use ($roleColors): string {
             <div class="card-header">
                 <div class="row w-100 g-2 align-items-center">
                     <div class="col-auto">
-                        <select class="form-select form-select-sm js-users-filter-role" data-users-base-url="<?php echo htmlspecialchars($siteUrl . '/admin/users', ENT_QUOTES); ?>">
+                        <select class="form-select form-select-sm js-users-filter-role" data-users-base-url="<?php echo htmlspecialchars($usersAdminPath, ENT_QUOTES); ?>">
                             <option value="">Alle Rollen</option>
                             <?php foreach ($availableRoles as $role => $label): ?>
                                 <option value="<?php echo htmlspecialchars((string)$role); ?>" <?php if (($filter['role'] ?? '') === $role) echo 'selected'; ?>><?php echo htmlspecialchars((string)$label); ?></option>
@@ -122,7 +124,7 @@ $getRoleColor = static function (string $role) use ($roleColors): string {
                         </select>
                     </div>
                     <div class="col-auto">
-                        <select class="form-select form-select-sm js-users-filter-status" data-users-base-url="<?php echo htmlspecialchars($siteUrl . '/admin/users', ENT_QUOTES); ?>">
+                        <select class="form-select form-select-sm js-users-filter-status" data-users-base-url="<?php echo htmlspecialchars($usersAdminPath, ENT_QUOTES); ?>">
                             <option value="">Alle Status</option>
                             <?php foreach ($availableStatuses as $status => $label): ?>
                                 <option value="<?php echo htmlspecialchars((string)$status); ?>" <?php if (($filter['status'] ?? '') === $status) echo 'selected'; ?>><?php echo htmlspecialchars((string)$label); ?></option>
@@ -130,7 +132,7 @@ $getRoleColor = static function (string $role) use ($roleColors): string {
                         </select>
                     </div>
                     <div class="col">
-                        <form method="get" action="<?php echo htmlspecialchars($siteUrl); ?>/admin/users" class="d-flex gap-2 js-users-search-form" data-users-base-url="<?php echo htmlspecialchars($siteUrl . '/admin/users', ENT_QUOTES); ?>">
+                        <form method="get" action="<?php echo htmlspecialchars($usersAdminPath); ?>" class="d-flex gap-2 js-users-search-form" data-users-base-url="<?php echo htmlspecialchars($usersAdminPath, ENT_QUOTES); ?>">
                             <input type="hidden" name="role" value="<?php echo htmlspecialchars($filter['role']); ?>">
                             <input type="hidden" name="status" value="<?php echo htmlspecialchars($filter['status']); ?>">
                             <input type="text" class="form-control form-control-sm js-users-search-input" name="q" value="<?php echo htmlspecialchars($filter['search']); ?>" placeholder="Suchen…">
@@ -194,7 +196,7 @@ $getRoleColor = static function (string $role) use ($roleColors): string {
                                     <div class="d-flex align-items-center">
                                         <span class="avatar avatar-sm me-2 bg-<?php echo htmlspecialchars($getRoleColor($role)); ?> text-white"><?php echo htmlspecialchars($initials); ?></span>
                                         <div>
-                                            <a href="<?php echo htmlspecialchars($siteUrl); ?>/admin/users?action=edit&id=<?php echo $userId; ?>" class="text-reset fw-medium"><?php echo htmlspecialchars($username !== '' ? $username : 'Unbekannt'); ?></a>
+                                            <a href="<?php echo htmlspecialchars($usersAdminPath); ?>?action=edit&amp;id=<?php echo $userId; ?>" class="text-reset fw-medium"><?php echo htmlspecialchars($username !== '' ? $username : 'Unbekannt'); ?></a>
                                             <?php if ($displayName !== ''): ?>
                                                 <div class="text-secondary small"><?php echo htmlspecialchars($displayName); ?></div>
                                             <?php endif; ?>
@@ -207,10 +209,10 @@ $getRoleColor = static function (string $role) use ($roleColors): string {
                                 <td class="text-secondary"><?php echo htmlspecialchars($createdAt !== '' ? substr($createdAt, 0, 10) : '–'); ?></td>
                                 <td>
                                     <div class="d-flex gap-2 justify-content-end">
-                                        <a href="<?php echo htmlspecialchars($siteUrl); ?>/admin/users?action=edit&id=<?php echo $userId; ?>" class="btn btn-sm btn-outline-primary">Bearbeiten</a>
+                                        <a href="<?php echo htmlspecialchars($usersAdminPath); ?>?action=edit&amp;id=<?php echo $userId; ?>" class="btn btn-sm btn-outline-primary">Bearbeiten</a>
                                         <form
                                             method="post"
-                                            action="<?php echo htmlspecialchars($siteUrl); ?>/admin/users"
+                                            action="<?php echo htmlspecialchars($currentRequestUri, ENT_QUOTES); ?>"
                                             class="d-inline"
                                             data-confirm-title="Benutzer deaktivieren?"
                                             data-confirm-message="Der Benutzer wird auf inaktiv gesetzt und kann sich nicht mehr normal anmelden. Wirklich fortfahren?"

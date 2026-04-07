@@ -334,34 +334,6 @@ function initConfirmForms() {
     });
 }
 
-function initExplicitFormSubmitButtons() {
-    var submitButtons = document.querySelectorAll('[data-submit-form]');
-
-    if (!submitButtons.length) {
-        return;
-    }
-
-    submitButtons.forEach(function(button) {
-        button.addEventListener('click', function(event) {
-            var formId = button.getAttribute('data-submit-form') || '';
-            var form = formId !== '' ? document.getElementById(formId) : null;
-
-            if (!form) {
-                return;
-            }
-
-            event.preventDefault();
-
-            if (typeof form.requestSubmit === 'function') {
-                form.requestSubmit();
-                return;
-            }
-
-            form.submit();
-        });
-    });
-}
-
 document.addEventListener('DOMContentLoaded', function() {
     
     // Confirmation for destructive actions
@@ -398,6 +370,5 @@ document.addEventListener('DOMContentLoaded', function() {
     initPostTagDeleteFlow();
     initReplacementCategoryBulkDeleteFlow();
     initConfirmForms();
-    initExplicitFormSubmitButtons();
     
 });

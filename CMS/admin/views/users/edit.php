@@ -15,7 +15,9 @@ $user  = $data['user'] ?? null;
 $isNew = $data['isNew'] ?? true;
 $availableRoles = $data['availableRoles'] ?? [];
 $availableStatuses = $data['availableStatuses'] ?? [];
-$siteUrl = defined('SITE_URL') ? SITE_URL : '';
+$usersAdminPath = '/admin/users';
+$currentRequestUri = (string) ($_SERVER['REQUEST_URI'] ?? $usersAdminPath);
+$currentRequestUri = $currentRequestUri !== '' ? $currentRequestUri : $usersAdminPath;
 
 $roleColors = [
     'admin' => 'red',
@@ -29,7 +31,7 @@ $roleColors = [
     <div class="container-xl">
         <div class="row align-items-center">
             <div class="col-auto">
-                <a href="<?php echo htmlspecialchars($siteUrl); ?>/admin/users" class="btn btn-ghost-secondary btn-sm me-2">
+                <a href="<?php echo htmlspecialchars($usersAdminPath); ?>" class="btn btn-ghost-secondary btn-sm me-2">
                     <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M15 6l-6 6l6 6"/></svg>
                     Zurück
                 </a>
@@ -49,9 +51,8 @@ $roleColors = [
             <?php $alertData = $alert; $alertMarginClass = 'mb-4'; require __DIR__ . '/../partials/flash-alert.php'; ?>
         <?php endif; ?>
 
-        <form method="post" action="<?php echo htmlspecialchars($siteUrl); ?>/admin/users" id="userForm">
+        <form method="post" action="<?php echo htmlspecialchars($currentRequestUri, ENT_QUOTES); ?>" id="userForm">
             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
-            <input type="hidden" name="action" value="save">
             <?php if (!$isNew): ?>
                 <input type="hidden" name="id" value="<?php echo (int)$user->id; ?>">
             <?php endif; ?>
@@ -130,7 +131,7 @@ $roleColors = [
                         </div>
                         <div class="card-footer">
                             <div class="d-grid gap-2">
-                                <button type="submit" class="btn btn-primary w-100">
+                                <button type="submit" name="action" value="save" class="btn btn-primary w-100">
                                     <?php echo $isNew ? 'Benutzer erstellen' : 'Speichern'; ?>
                                 </button>
                             </div>
@@ -155,21 +156,15 @@ $roleColors = [
                         <div class="card-header"><h3 class="card-title text-danger mb-0">Benutzer deaktivieren</h3></div>
                         <div class="card-body">
                             <p class="text-secondary mb-3">Der Benutzer wird auf <strong>inaktiv</strong> gesetzt und kann sich danach nicht mehr normal anmelden.</p>
-                            <form
-                                method="post"
-                                action="<?php echo htmlspecialchars($siteUrl); ?>/admin/users"
-                                id="userDeleteForm"
-                                data-confirm-title="Benutzer deaktivieren?"
-                                data-confirm-message="Der Benutzer wird auf inaktiv gesetzt und kann sich nicht mehr normal anmelden. Wirklich fortfahren?"
-                                data-confirm-text="Benutzer deaktivieren"
-                                data-confirm-class="btn-danger"
-                                data-confirm-status-class="bg-danger"
-                            >
-                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
-                                <input type="hidden" name="action" value="delete">
-                                <input type="hidden" name="id" value="<?php echo (int)$user->id; ?>">
-                                <button type="submit" class="btn btn-danger w-100">Benutzer löschen</button>
-                            </form>
+                            <button
+                                type="submit"
+                                name="action"
+                                value="delete"
+                                class="btn btn-danger w-100"
+                                form="userForm"
+                                formnovalidate
+                                data-confirm="Der Benutzer wird auf inaktiv gesetzt und kann sich danach nicht mehr normal anmelden. Wirklich fortfahren?"
+                            >Benutzer löschen</button>
                         </div>
                     </div>
                     <?php endif; ?>

@@ -26,6 +26,7 @@
 
     function initUsersGrid() {
         var config = parseConfig('users-grid-config');
+        var adminBasePath = '/admin/users';
         if (!config || typeof cmsGrid !== 'function') {
             return;
         }
@@ -58,7 +59,7 @@
                             '<div class="d-flex align-items-center">' +
                                 '<span class="avatar avatar-sm me-2 bg-azure">' + window.cmsEsc(initials) + '</span>' +
                                 '<div>' +
-                                    '<a href="' + config.siteUrl + '/admin/users?action=edit&id=' + encodeURIComponent(cell.id) + '" class="text-reset">' + window.cmsEsc(cell.username || '') + '</a>' +
+                                    '<a href="' + adminBasePath + '?action=edit&id=' + encodeURIComponent(cell.id) + '" class="text-reset">' + window.cmsEsc(cell.username || '') + '</a>' +
                                     (cell.display_name ? '<div class="text-secondary small">' + window.cmsEsc(cell.display_name) + '</div>' : '') +
                                 '</div>' +
                             '</div>'
@@ -96,7 +97,7 @@
                     name: '',
                     sort: false,
                     formatter: function (cell) {
-                        return gridjs.html('<a href="' + config.siteUrl + '/admin/users?action=edit&id=' + encodeURIComponent(cell) + '" class="btn btn-ghost-primary btn-icon btn-sm" title="Bearbeiten">✎</a>');
+                        return gridjs.html('<a href="' + adminBasePath + '?action=edit&id=' + encodeURIComponent(cell) + '" class="btn btn-ghost-primary btn-icon btn-sm" title="Bearbeiten">✎</a>');
                     },
                 },
             ],
