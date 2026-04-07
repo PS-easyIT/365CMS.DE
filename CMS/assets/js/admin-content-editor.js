@@ -413,6 +413,19 @@
             return input ? String(input.value || '') : '';
         }
 
+        function normalizeEditorDataForCopy(rawValue) {
+            var normalizer = typeof window.cmsNormalizeEditorJsData === 'function'
+                ? window.cmsNormalizeEditorJsData
+                : null;
+            var normalized = normalizer ? normalizer(rawValue) : null;
+
+            if (!normalized || typeof normalized !== 'object') {
+                normalized = { blocks: [] };
+            }
+
+            return JSON.parse(JSON.stringify(normalized));
+        }
+
         function syncEditorInputFromInstance(key) {
             var editorState = editors[key];
             var editorInstance;
@@ -435,6 +448,35 @@
                 return serialized;
             }).catch(function () {
                 return getEditorInputValue(key);
+            });
+        }
+
+        function renderEditorFromSerializedInput(key, serializedValue) {
+            var editorState = editors[key];
+            var editorInstance;
+            var readyPromise;
+            var nextData;
+
+            if (!editorState || !editorState.instance || !editorState.input) {
+                return Promise.resolve();
+            }
+
+            editorInstance = editorState.instance;
+            nextData = normalizeEditorDataForCopy(serializedValue);
+            editorState.input.value = JSON.stringify(nextData);
+
+            if (!editorInstance.blocks || typeof editorInstance.blocks.render !== 'function') {
+                return Promise.resolve();
+            }
+
+            readyPromise = editorInstance.isReady && typeof editorInstance.isReady.then === 'function'
+                ? editorInstance.isReady
+                : Promise.resolve();
+
+            return readyPromise.then(function () {
+                return editorInstance.blocks.render(nextData);
+            }).catch(function () {
+                return null;
             });
         }
 
@@ -467,6 +509,63 @@
                 }
 
                 targetInput.value = sourceValue;
+            });
+        }
+
+        function copyLocalizedFieldValue(sourceId, targetId) {
+            var source = getElement(sourceId);
+            var target = getElement(targetId);
+
+            if (!source || !target) {
+                return;
+            }
+
+            target.value = source.value || '';
+            target.dispatchEvent(new Event('input', { bubbles: true }));
+            target.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+
+        function initCopyAction() {
+            var copyConfig = config.copyAction || null;
+            var copyButton = copyConfig ? getElement(copyConfig.buttonId) : null;
+            var targetDefinition = copyConfig ? getEditorDefinition(copyConfig.targetEditorKey) : null;
+
+            if (!copyConfig || !copyButton) {
+                return;
+            }
+
+            copyButton.addEventListener('click', function () {
+                var targetInput = targetDefinition ? getElement(targetDefinition.inputId) : null;
+
+                copyButton.disabled = true;
+
+                syncEditorInputFromInstance(copyConfig.sourceEditorKey).then(function (sourceValue) {
+                    var normalizedData = normalizeEditorDataForCopy(sourceValue);
+                    var serialized = JSON.stringify(normalizedData);
+
+                    copyLocalizedFieldValue(copyConfig.sourceTitleId, copyConfig.targetTitleId);
+                    copyLocalizedFieldValue(copyConfig.sourceSlugId, copyConfig.targetSlugId);
+                    copyLocalizedFieldValue(copyConfig.sourceExcerptId, copyConfig.targetExcerptId);
+
+                    if (targetInput) {
+                        targetInput.value = serialized;
+                    }
+
+                    if (targetDefinition && !editors[targetDefinition.key]) {
+                        bindEditor(targetDefinition);
+                    }
+
+                    return renderEditorFromSerializedInput(copyConfig.targetEditorKey, serialized);
+                }).finally(function () {
+                    if (copyConfig.targetPaneButtonId) {
+                        var targetPaneButton = getElement(copyConfig.targetPaneButtonId);
+                        if (targetPaneButton) {
+                            targetPaneButton.click();
+                        }
+                    }
+
+                    copyButton.disabled = false;
+                });
             });
         }
 
@@ -504,6 +603,8 @@
                 }
             }
         });
+
+        initCopyAction();
 
         form.addEventListener('submit', function (event) {
             var keys = Object.keys(editors);

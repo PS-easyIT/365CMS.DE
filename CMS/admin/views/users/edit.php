@@ -129,9 +129,18 @@ $roleColors = [
                             </div>
                         </div>
                         <div class="card-footer">
-                            <button type="submit" class="btn btn-primary w-100">
-                                <?php echo $isNew ? 'Benutzer erstellen' : 'Speichern'; ?>
-                            </button>
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <?php echo $isNew ? 'Benutzer erstellen' : 'Speichern'; ?>
+                                </button>
+                                <?php if (!$isNew): ?>
+                                <button
+                                    type="submit"
+                                    class="btn btn-outline-danger w-100"
+                                    form="userDeleteForm"
+                                >Benutzer löschen</button>
+                                <?php endif; ?>
+                            </div>
                         </div>
                     </div>
 
@@ -152,6 +161,23 @@ $roleColors = [
                 </div>
             </div>
         </form>
+
+        <?php if (!$isNew): ?>
+        <form
+            method="post"
+            action="<?php echo htmlspecialchars($siteUrl); ?>/admin/users"
+            id="userDeleteForm"
+            data-confirm-title="Benutzer deaktivieren?"
+            data-confirm-message="Der Benutzer wird auf inaktiv gesetzt und kann sich nicht mehr normal anmelden. Wirklich fortfahren?"
+            data-confirm-text="Benutzer deaktivieren"
+            data-confirm-class="btn-danger"
+            data-confirm-status-class="bg-danger"
+        >
+            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
+            <input type="hidden" name="action" value="delete">
+            <input type="hidden" name="id" value="<?php echo (int)$user->id; ?>">
+        </form>
+        <?php endif; ?>
 
     </div>
 </div>

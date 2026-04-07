@@ -236,7 +236,12 @@ $sectionPageConfig = [
                 return ['success' => false, 'error' => 'Ungültige Benutzer-ID.'];
             }
 
-            return $module->deleteUser($payload['id']);
+            $result = $module->deleteUser($payload['id']);
+            if (!empty($result['success'])) {
+                $result['redirect_path'] = cms_admin_users_target_url();
+            }
+
+            return $result;
         }
 
         if ($payload['bulk_action'] === '') {
@@ -247,7 +252,10 @@ $sectionPageConfig = [
             return ['success' => false, 'error' => 'Bitte mindestens einen gültigen Benutzer auswählen.'];
         }
 
-        return $module->bulkAction($payload['bulk_action'], $payload['ids']);
+        $result = $module->bulkAction($payload['bulk_action'], $payload['ids']);
+        $result['redirect_path'] = cms_admin_users_target_url();
+
+        return $result;
     },
 ];
 

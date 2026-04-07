@@ -206,7 +206,24 @@ $getRoleColor = static function (string $role) use ($roleColors): string {
                                 <td><span class="badge <?php echo htmlspecialchars($statusClass); ?>"><?php echo htmlspecialchars($statusLabel); ?></span></td>
                                 <td class="text-secondary"><?php echo htmlspecialchars($createdAt !== '' ? substr($createdAt, 0, 10) : '–'); ?></td>
                                 <td>
-                                    <a href="<?php echo htmlspecialchars($siteUrl); ?>/admin/users?action=edit&id=<?php echo $userId; ?>" class="btn btn-sm btn-outline-primary">Bearbeiten</a>
+                                    <div class="d-flex gap-2 justify-content-end">
+                                        <a href="<?php echo htmlspecialchars($siteUrl); ?>/admin/users?action=edit&id=<?php echo $userId; ?>" class="btn btn-sm btn-outline-primary">Bearbeiten</a>
+                                        <form
+                                            method="post"
+                                            action="<?php echo htmlspecialchars($siteUrl); ?>/admin/users"
+                                            class="d-inline"
+                                            data-confirm-title="Benutzer deaktivieren?"
+                                            data-confirm-message="Der Benutzer wird auf inaktiv gesetzt und kann sich nicht mehr normal anmelden. Wirklich fortfahren?"
+                                            data-confirm-text="Benutzer deaktivieren"
+                                            data-confirm-class="btn-danger"
+                                            data-confirm-status-class="bg-danger"
+                                        >
+                                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>">
+                                            <input type="hidden" name="action" value="delete">
+                                            <input type="hidden" name="id" value="<?php echo $userId; ?>">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">Löschen</button>
+                                        </form>
+                                    </div>
                                 </td>
                             </tr>
                         <?php endforeach; ?>

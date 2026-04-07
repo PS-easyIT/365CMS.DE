@@ -299,6 +299,10 @@ $defaultContentLanguage = $isEnglishOnlyPost ? 'en' : 'de';
                                 <?php endif; ?>
                             </div>
                             <div id="postLanguagePaneEn" data-post-lang-pane="en" class="d-none">
+                                <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap mb-3">
+                                    <div class="text-secondary small">Die englische Version ist unter <code><?php echo htmlspecialchars($postPreviewUrlEn); ?></code> erreichbar.</div>
+                                    <button type="button" class="btn btn-outline-primary btn-sm" id="copyPostDeToEnButton">Alles aus DE nach EN kopieren</button>
+                                </div>
                                 <div class="row g-3 mb-3">
                                     <div class="col-lg-7">
                                         <label class="form-label" for="titleEn">Englischer Titel</label>
@@ -314,7 +318,7 @@ $defaultContentLanguage = $isEnglishOnlyPost ? 'en' : 'de';
                                         <textarea class="form-control" id="excerptEn" name="excerpt_en" rows="2" placeholder="Short English summary"><?php echo htmlspecialchars($postExcerptEnValue); ?></textarea>
                                     </div>
                                 </div>
-                                <div class="mb-3 text-secondary small">Die englische Version ist unter <code><?php echo htmlspecialchars($postPreviewUrlEn); ?></code> erreichbar.</div>
+                                <div class="mb-3 text-secondary small">Der Kopier-Button übernimmt Titel, Slug, Kurzfassung und alle Editor.js-Blöcke aus der DE-Version. Vorhandene Medien werden dabei nur referenziert und nicht erneut hochgeladen.</div>
                                 <?php if (!empty($useEditorJs)): ?>
                                 <div class="editorjs-wrap editorjs-wrap--post cms-editor-live-wrap"
                                      style="--editorjs-content-width:<?php echo (int)$postEditorWidth; ?>px; --editorjs-content-padding-x:50px; --editorjs-content-width-expanded:1100px;">
@@ -589,6 +593,18 @@ $defaultContentLanguage = $isEnglishOnlyPost ? 'en' : 'de';
             'initialCopyOnFirstActivate' => [
                 'sourceKey' => 'de',
                 'targetKey' => 'en',
+            ],
+            'copyAction' => [
+                'buttonId' => 'copyPostDeToEnButton',
+                'sourceEditorKey' => 'de',
+                'targetEditorKey' => 'en',
+                'sourceTitleId' => 'title',
+                'targetTitleId' => 'titleEn',
+                'sourceSlugId' => 'slug',
+                'targetSlugId' => 'slugEn',
+                'sourceExcerptId' => 'excerpt',
+                'targetExcerptId' => 'excerptEn',
+                'targetPaneButtonId' => 'postLangToggleEn',
             ],
             'editors' => [
                 ['key' => 'de', 'holderId' => 'editorjs', 'inputId' => 'contentInput', 'lazy' => false],
