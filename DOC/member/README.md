@@ -1,7 +1,7 @@
 # 365CMS – Member-Bereich
-> **Stand:** 2026-03-28 | **Version:** 2.8.0 RC | **Status:** Aktuell
+> **Stand:** 2026-04-07 | **Version:** 2.9.0 | **Status:** Aktuell
 
-<!-- UPDATED: 2026-03-28 -->
+<!-- UPDATED: 2026-04-07 -->
 
 ## Überblick
 
@@ -29,6 +29,20 @@ Die Implementierung liegt in `CMS/member/` mit eigenem Partial-System für Sideb
 - Rolle **Member** (eingeloggter Benutzer) erforderlich
 - Einzelne Funktionen können durch Paket-Limits eingeschränkt sein
 
+## Authentifizierung im Stand 2.9.0
+
+Der Member-Bereich hängt loginseitig nicht mehr am aktiven Frontend-Theme, sondern an der CMS-eigenen Auth-Strecke:
+
+- Login: `/cms-login`
+- Registrierung: `/cms-register`
+- Passwort-Reset: `/cms-password-forgot`
+
+Wichtige Auswirkungen:
+
+- MFA-/TOTP-Benutzer, Passkey-Logins, Backup-Codes und LDAP-Logins finalisieren jetzt denselben Session-Vertrag wie normale Passwort-Logins.
+- Der Schalter **„Angemeldet bleiben“** ist seit `2.9.0` ein echter Persistenzpfad.
+- Theme-Wechsel beeinflussen die Member-Anmeldung nicht mehr direkt, weil die Auth-Seiten aus dem Core gerendert werden.
+
 ## Member-Medien im Stand 2.8.0 RC
 
 Die Medienseite unter `/member/media` arbeitet vollständig root-scoped auf dem persönlichen Pfad `member/user-<id>`.
@@ -47,6 +61,8 @@ Aktueller Funktionsumfang:
 Die Member-Dokumentation ist aktuell bewusst in dieser Datei gebündelt. Für Medien- und Upload-Details sind ergänzend die Admin-/Workflow-Dokumente maßgeblich:
 
 - [../admin/media/README.md](../admin/media/README.md)
+- [../admin/users-groups/AUTH-SETTINGS.md](../admin/users-groups/AUTH-SETTINGS.md)
+- [../admin/themes-design/CMS-LOGINPAGE.md](../admin/themes-design/CMS-LOGINPAGE.md)
 - [../workflow/MEDIA-UPLOAD-WORKFLOW.md](../workflow/MEDIA-UPLOAD-WORKFLOW.md)
 - [../core/SERVICES.md](../core/SERVICES.md)
 

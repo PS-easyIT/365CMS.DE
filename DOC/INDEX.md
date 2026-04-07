@@ -1,5 +1,5 @@
 # 365CMS – Dokumentationsindex
-> **Stand:** 2026-03-28 | **Version:** 2.8.0 | **Status:** Aktuell
+> **Stand:** 2026-04-07 | **Version:** 2.9.0 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Schnellstart](#schnellstart)
@@ -11,7 +11,7 @@
 - [Direktlinks für häufige Aufgaben](#direktlinks-für-häufige-aufgaben)
 
 ---
-<!-- UPDATED: 2026-03-28 -->
+<!-- UPDATED: 2026-04-07 -->
 
 ## Schnellstart
 
@@ -59,7 +59,9 @@
 | Seiten & Beiträge | [admin/pages-posts/README.md](admin/pages-posts/README.md) |
 | Medien | [admin/media/README.md](admin/media/README.md) |
 | Benutzer & Gruppen | [admin/users-groups/README.md](admin/users-groups/README.md) |
+| Auth-Einstellungen | [admin/users-groups/AUTH-SETTINGS.md](admin/users-groups/AUTH-SETTINGS.md) |
 | Themes & Design | [admin/themes-design/README.md](admin/themes-design/README.md) |
+| CMS Loginpage | [admin/themes-design/CMS-LOGINPAGE.md](admin/themes-design/CMS-LOGINPAGE.md) |
 | Plugins | [admin/plugins/PLUGINS.md](admin/plugins/PLUGINS.md) |
 | SEO | [admin/seo/SEO.md](admin/seo/SEO.md) |
 | Recht | [admin/legal/README.md](admin/legal/README.md) |
@@ -127,6 +129,7 @@ Diese Dokumente enthalten teils Live-Stände, Auditfortschritte oder operative R
 | Admin-Überblick | [admin/README.md](admin/README.md) |
 | Medienverwaltung verstehen | [admin/media/README.md](admin/media/README.md) |
 | Member-Medien prüfen | [member/README.md](member/README.md) |
+| CMS Login/Reset/Registrierung steuern | [admin/themes-design/CMS-LOGINPAGE.md](admin/themes-design/CMS-LOGINPAGE.md) |
 | Sichere Uploads nachvollziehen | [workflow/MEDIA-UPLOAD-WORKFLOW.md](workflow/MEDIA-UPLOAD-WORKFLOW.md) |
 | Plugin entwickeln | [plugins/PLUGIN-DEVELOPMENT.md](plugins/PLUGIN-DEVELOPMENT.md) |
 | Theme entwickeln | [theme/THEME-DEVELOPMENT.md](theme/THEME-DEVELOPMENT.md) |

@@ -2,7 +2,7 @@
 
 <div align="center">
 
-[![Version](https://img.shields.io/badge/version-2.8.5-blue.svg)](Changelog.md)
+[![Version](https://img.shields.io/badge/version-2.9.0-blue.svg)](Changelog.md)
 ![Status](https://img.shields.io/badge/status-stable-16a34a)
 ![PHP](https://img.shields.io/badge/PHP-8.4%2B-777BB4?logo=php&logoColor=white)
 ![MySQL](https://img.shields.io/badge/MySQL-5.7%2B-4479A1?logo=mysql&logoColor=white)
@@ -91,23 +91,14 @@ Die Audits wurden mit OWASP-nahen Prüfwerkzeugen & AI Audit Tools von Snyk, Ref
 | **PHP / Best Practices** | **96,22** |
 | **Gesamt** | **96,35** |
 
-### 🆕 Aktuelle 2.8.5-Highlights
+### 🆕 Aktuelle 2.9.0-Highlights
 
-- **Snyk-First-Party-Block leergezogen:** `DOC/audit/Snyk_Audit_04042026.md` und `DOC/audit/BEWERTUNG.md` spiegeln jetzt den nächsten Follow-up-Scan mit **36** Snyk-Codefunden gesamt, davon **0** im Nicht-Vendor-/Runtime-Block und weiterhin **0** verbleibenden First-Party-`High`s.
-- **Router- und Theme-Restpfade weiter verdichtet:** `CMS/core/Router.php` sendet Redirects nur noch über strikt interne Zielpfade im `Location`-Header, und `CMS/core/Services/ThemeCustomizer.php` baut seine `theme.json`-Auflösung jetzt aus einer filesystembasierten Allowlist tatsächlich vorhandener Themes statt aus losem Slug-zu-Pfad-Vertrauen.
-- **Error-Leaks in Core und Checkout entfernt:** `CMS/core/Api.php` und `CMS/orders.php` loggen interne Fehler jetzt nur noch serverseitig und liefern nach außen generische Fehlermeldungen statt roher Exception-Texte.
-- **Mail-Konfiguration scannerfreundlich nachgezogen:** `CMS/admin/modules/system/MailSettingsModule.php`, `CMS/core/Services/MailService.php` und `CMS/admin/views/system/mail-settings.php` führen den nicht-OAuth2-Modus jetzt konsistent als `credentials`; bestehende Konfigurationen bleiben kompatibel, während die verbleibenden Hardcoded-Password-Mediums aus dem Nachscan verschwinden.
-- **Medien-, Theme- und Framing-Pfade weiter fail-closed gehärtet:** `CMS/core/Services/MediaDeliveryService.php`, `CMS/core/Services/ThemeCustomizer.php`, `CMS/core/Services/IndexingService.php` und `CMS/core/Security.php` wurden zusätzlich auf kanonische Realpath-/Stream-Verträge und eine noch kleinere öffentliche Fehleroberfläche gezogen; im aktuellen Nachscan verbleibt damit **kein** First-Party-Snyk-Fund mehr.
-- **Erster Nachzieh-Batch aus dem Snyk-Snapshot umgesetzt:** `CMS/core/Services/UpdateService.php`, `CMS/core/Routing/PublicRouter.php`, `CMS/index.php` und `CMS/themes/cms-default/contact.php` wurden in einem zweiten, strengeren Security-Pass weiter eingezogen; Redirects fallen jetzt konsequent auf `/member` bzw. interne Postpfade zurück, der Frontcontroller liefert nur noch die generische 500-Seite, lokale Marketplace-Manifest-Fallbacks wurden im Update-Service entfernt und das Kontaktformular sendet ohne benutzerkontrollierte Reply-To-Header.
-- **Importer-DOM-XSS entfernt:** `CMS/plugins/cms-importer/assets/js/importer.js` baut Notice- und Cleanup-Modal-Inhalte jetzt ausschließlich über sichere DOM-/`textContent`-Pfade statt über zusammengesetztes `innerHTML`; der Datei-Hotspot verschwindet damit aus dem aktuellen Snyk-Nachscan.
-- **Security-Hardening für First-Party-Highs:** Kontaktformular, Feed-Service, Cache-Signaturen, EditorJs-Remote-Medien sowie Plugin-/Theme-Marketplace wurden nach gezielter High-Triage fail-closed nachgeschärft; die zuletzt geprüften First-Party-Hotspots liefen dabei ohne verbleibende High-Funde durch die gezielten Code-Scans.
-- **Editor.js für Tech-Blogs ausgebaut:** Der Core-Editor unterstützt jetzt einen dedizierten **`Medien + Text`**-Block mit fixer 30/70-Struktur sowie eine **CMS-gestützte Gallery** mit 2, 3, 4 oder 6 Spalten, Mediathek-Anbindung und Mehrfach-Upload.
-- **Editor.js jetzt direkt sichtbar & technischer:** Die Live-Editoren für Seiten und Beiträge zeigen die neuen Blöcke jetzt direkt über eine sichtbare Schnell-Toolbar; zusätzlich gibt es Tech-Blog-Blöcke für **Callouts**, **Terminal/Command**, **Code Tabs**, **Mermaid**, **API Endpoints**, **Changelog/Version-Hinweise** und **Pros / Cons**.
-- **Landing Page modernisiert:** Der Landing-Page-Footer lässt sich jetzt zuverlässig deaktivieren, der Text-Modus bleibt im Frontend nicht mehr still leer, und die Standard-Karten wurden auf den aktuellen 365CMS-Funktionsumfang inklusive weiterer Highlights erweitert.
-- **Posts-Admin nachgezogen:** Die Beitragsverwaltung wurde nach dem letzten Feature-Batch zusätzlich gegen versehentliche Copy/Paste-Artefakte im Kategorien- und Bulk-Pfad bereinigt, sodass Kategorien-Übersicht und Status-Massenaktionen wieder sauber auf demselben Modulvertrag laufen.
-- **Cron-Runner im Admin:** Cron-Tasks lassen sich direkt im Systemmonitor auslösen – inklusive Direktlauf, HTTP-Loopback und Ajax-Runner für schnellere Diagnose ohne externen Host-Cron.
-- **Suche & Routing robuster:** Der Suchindex berücksichtigt mehrsprachige Felder sauberer, und Löschvorgänge bei Seiten/Beiträgen stoßen gezielt Hooks zur Suchindex-Aktualisierung an.
-- **IndexNow mit Debug-Sicht:** Die technische SEO-Prüfung zeigt Root-`.txt`-Kandidaten jetzt mit Quelle, Status und Validierungsgründen an, statt nur ein knappes Ja/Nein zu liefern.
+- **CMS-eigene Auth-Strecke statt Theme-Abhängigkeit:** 365CMS rendert Login, Registrierung und Passwort-Reset jetzt zuverlässig über die festen Core-Routen **`/cms-login`**, **`/cms-register`** und **`/cms-password-forgot`** – unabhängig vom aktiven Frontend-Theme.
+- **Neue Admin-Seite „CMS Loginpage“:** Unter **`/admin/cms-loginpage`** lassen sich Branding, Farben, Texte, Footer-Links, Rechtsseiten, Passkey-Sichtbarkeit sowie Reset-Mail-Text und Link-Ablaufzeit zentral steuern.
+- **MFA-Login wirklich repariert:** `CMS/core/Auth.php` und `CMS/core/Auth/AuthManager.php` finalisieren Passwort-, MFA-, Backup-Code-, Passkey- und LDAP-Logins jetzt über denselben Session-Vertrag; MFA-Benutzer landen dadurch nicht mehr im Login-Kreisverkehr mit Extra-Schleife.
+- **Remember-Me ist kein Deko-Checkbox-Fossil mehr:** Der „Angemeldet bleiben“-Schalter schreibt jetzt echte Persistenz in den Auth-Flow durch, statt nur nett auszusehen und im Zweifel höflich zu nicken.
+- **Redirect- und MFA-Pfade weiter fail-closed gehärtet:** `CMS/core/Routing/PublicRouter.php` nutzt jetzt einen streng allowlist-basierten Redirect-Aufbau, locale-aware MFA-Pfade und scannerfreundliche interne Zielteile statt lose zusammengesetzter Redirect-Strings.
+- **Dokumentation und Release-Stand nachgezogen:** `README.md`, `Changelog.md`, `CMS/core/Version.php`, `CMS/update.json` und die Auth-/Theme-/Member-Doku sind jetzt konsistent auf **`2.9.0`** synchronisiert.
 
 ### 🧩 Kernfunktionen im Überblick
 
@@ -205,6 +196,8 @@ Der schnellste Einstieg ist der lokale Dokumentationsindex unter [`DOC/INDEX.md`
 | API-Integration | [`DOC/workflow/API-INTEGRATION-WORKFLOW.md`](DOC/workflow/API-INTEGRATION-WORKFLOW.md) |
 | Theme-Entwicklung | [`DOC/theme/THEME-DEVELOPMENT.md`](DOC/theme/THEME-DEVELOPMENT.md) |
 | Plugin-Entwicklung | [`DOC/plugins/PLUGIN-DEVELOPMENT.md`](DOC/plugins/PLUGIN-DEVELOPMENT.md) |
+| CMS Loginpage | [`DOC/admin/themes-design/CMS-LOGINPAGE.md`](DOC/admin/themes-design/CMS-LOGINPAGE.md) |
+| Auth-Einstellungen | [`DOC/admin/users-groups/AUTH-SETTINGS.md`](DOC/admin/users-groups/AUTH-SETTINGS.md) |
 | Snyk-Audit `365CMS.DE` | [`DOC/audit/Snyk_Audit_04042026.md`](DOC/audit/Snyk_Audit_04042026.md) |
 | Live-Audit `365CMS.DE` | [`DOC/audit/LiveAudit_365CMS.md`](DOC/audit/LiveAudit_365CMS.md) |
 | Live-Site-Audit `phinit.de` | [`DOC/audit/PHINIT-LIVE-AUDIT-2026-04-03.md`](DOC/audit/PHINIT-LIVE-AUDIT-2026-04-03.md) |
@@ -273,21 +266,14 @@ The audits were carried out using OWASP-oriented tooling, Snyk, refactoring pass
 | **PHP / Best Practices** | **96.22** |
 | **Overall** | **96.35** |
 
-### 🆕 Current 2.8.5 highlights
+### 🆕 Current 2.9.0 highlights
 
-- **The Snyk first-party block is now cleared:** `DOC/audit/Snyk_Audit_04042026.md` and `DOC/audit/BEWERTUNG.md` now reflect the next follow-up scan with **36** code findings total, **0** remaining in the non-vendor/runtime block, and still **0** remaining first-party `High` issues.
-- **Router and theme remainder paths were tightened further:** `CMS/core/Router.php` now sends redirects only through strictly internal target paths in the `Location` header, and `CMS/core/Services/ThemeCustomizer.php` now resolves `theme.json` from a filesystem-backed allowlist of actually present themes instead of loose slug-to-path trust.
-- **Core and checkout error leaks were removed:** `CMS/core/Api.php` and `CMS/orders.php` now keep exception details server-side and only return generic public errors instead of raw exception messages.
-- **Mail auth naming was normalized for safer scanning:** `CMS/admin/modules/system/MailSettingsModule.php`, `CMS/core/Services/MailService.php`, and `CMS/admin/views/system/mail-settings.php` now use `credentials` for the non-OAuth2 auth mode while staying compatible with existing configs; the remaining hardcoded-password medium findings disappeared from the follow-up scan.
-- **Media, theme, and framing paths were tightened further:** `CMS/core/Services/MediaDeliveryService.php`, `CMS/core/Services/ThemeCustomizer.php`, `CMS/core/Services/IndexingService.php`, and `CMS/core/Security.php` were pushed further toward canonical realpath/stream contracts and smaller public error surfaces; the current follow-up scan leaves **no** first-party Snyk findings behind.
-- **First-party security hardening:** The contact form, feed service, cache signatures, EditorJs remote media flow, and the plugin/theme marketplaces were tightened after targeted High triage; the latest targeted code scans for those first-party hotspots completed without remaining High findings.
-- **Editor.js upgraded for tech content:** The core editor now includes a dedicated **`Media + Text`** block with a fixed 30/70 layout and a **CMS-backed gallery** with 2, 3, 4, or 6 columns, media-library selection and multi-upload support.
-- **Editor.js is now easier to discover in real edit flows:** The live editors for posts and pages now expose the new blocks through a visible quick toolbar and add dedicated tech-content blocks for **callouts**, **terminal/command snippets**, **code tabs**, **Mermaid diagrams**, **API endpoints**, **changelog/version notes**, and **pros/cons comparisons**.
-- **Landing page refreshed:** The landing footer can now be reliably disabled, text-mode no longer stays silently empty in the frontend, and the default cards reflect the current 365CMS feature set with several additional highlights.
-- **Posts admin stabilized after the feature batch:** The posts module was additionally cleaned up for accidental copy/paste artifacts in category admin and bulk-action paths, so taxonomy management and status mass actions are back on the same predictable module contract.
-- **Admin cron runner:** Cron tasks can now be triggered directly from system monitoring, including direct execution, HTTP loopback checks and an AJAX runner for faster diagnosis without relying on an external host cron.
-- **Search & routing hardened:** The search index now handles multilingual fields more reliably, and page/post deletions trigger targeted hooks so search data stays fresher.
-- **IndexNow with debug visibility:** Technical SEO now exposes root `.txt` candidates with source, status and validation reasons instead of only a minimal pass/fail signal.
+- **Core-owned auth flow instead of theme-dependent login pages:** 365CMS now serves login, registration and password reset through the fixed core routes **`/cms-login`**, **`/cms-register`** and **`/cms-password-forgot`**, independent of the active frontend theme.
+- **New admin page “CMS Loginpage”:** **`/admin/cms-loginpage`** centrally controls branding, colors, text copy, footer links, legal pages, passkey visibility, reset-mail content and reset-link expiry.
+- **MFA login was fixed at the session layer:** `CMS/core/Auth.php` and `CMS/core/Auth/AuthManager.php` now finalize password, MFA, backup-code, passkey and LDAP logins through the same authenticated-session contract, so MFA-enabled users no longer bounce out of the login flow.
+- **Remember-me is now a real persistence path:** the checkbox finally writes through the backend auth contract instead of acting like a decorative confidence sticker.
+- **Redirect and MFA routes were hardened further:** `CMS/core/Routing/PublicRouter.php` now uses a structured allowlist redirect builder and locale-aware MFA paths instead of looser redirect string handling.
+- **Release docs are now in sync:** `README.md`, `Changelog.md`, `CMS/core/Version.php`, `CMS/update.json`, and the auth/theme/member docs were updated together for **`2.9.0`**.
 
 ### 🧩 Key Capabilities
 
@@ -385,6 +371,8 @@ Start with the local documentation index at [`DOC/INDEX.md`](DOC/INDEX.md).
 | API integration | [`DOC/workflow/API-INTEGRATION-WORKFLOW.md`](DOC/workflow/API-INTEGRATION-WORKFLOW.md) |
 | Theme development | [`DOC/theme/THEME-DEVELOPMENT.md`](DOC/theme/THEME-DEVELOPMENT.md) |
 | Plugin development | [`DOC/plugins/PLUGIN-DEVELOPMENT.md`](DOC/plugins/PLUGIN-DEVELOPMENT.md) |
+| CMS Loginpage | [`DOC/admin/themes-design/CMS-LOGINPAGE.md`](DOC/admin/themes-design/CMS-LOGINPAGE.md) |
+| Auth settings | [`DOC/admin/users-groups/AUTH-SETTINGS.md`](DOC/admin/users-groups/AUTH-SETTINGS.md) |
 | Asset overview | [`DOC/ASSET.md`](DOC/ASSET.md) |
 | Own-asset roadmap | [`DOC/ASSETS_OwnAssets.md`](DOC/ASSETS_OwnAssets.md) |
 

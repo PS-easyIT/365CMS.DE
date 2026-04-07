@@ -1,15 +1,15 @@
 # 365CMS – Projektdokumentation
-> **Stand:** 2026-03-28 | **Version:** 2.8.0 | **Status:** Aktuell
+> **Stand:** 2026-04-07 | **Version:** 2.9.0 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Womit ihr anfangen solltet](#womit-ihr-anfangen-solltet)
-- [Release-Fokus 2.8.0](#release-fokus-280)
+- [Release-Fokus 2.9.0](#release-fokus-290)
 - [Dokumentationsbereiche](#dokumentationsbereiche)
 - [Wichtige Hinweise](#wichtige-hinweise)
 - [Verwandte Einstiege](#verwandte-einstiege)
 
 ---
-<!-- UPDATED: 2026-03-28 -->
+<!-- UPDATED: 2026-04-07 -->
 
 ## Womit ihr anfangen solltet
 
@@ -19,6 +19,7 @@
 | die Projektstruktur verstehen wollt | [core/ARCHITECTURE.md](core/ARCHITECTURE.md) |
 | einen Release-Snapshot des Core wollt | [core/STATUS.md](core/STATUS.md) |
 | das Admin-Panel nutzt | [admin/README.md](admin/README.md) |
+| die neue CMS-Loginpage steuern wollt | [admin/themes-design/CMS-LOGINPAGE.md](admin/themes-design/CMS-LOGINPAGE.md) |
 | den Member-Bereich betreut | [member/README.md](member/README.md) |
 | den Medienbereich nachvollziehen wollt | [admin/media/README.md](admin/media/README.md) |
 | Asset-/Vendor-Stände prüfen wollt | [assets/README.md](assets/README.md) |
@@ -28,14 +29,14 @@
 
 ---
 
-## Release-Fokus 2.8.0
+## Release-Fokus 2.9.0
 
-Die Dokumentation ist jetzt auf den dokumentierten Stand `2.8.0` nachgezogen. Der Schwerpunkt liegt auf den Änderungen der jüngsten Folge-Batches:
+Die Dokumentation ist jetzt auf den dokumentierten Stand `2.9.0` nachgezogen. Der Schwerpunkt liegt auf der neuen CMS-eigenen Auth-Strecke und den dazugehörigen Security-Fixes:
 
-- native Consent-, Upload-, Picker- und Feed-Laufzeitpfade statt aktiver FilePond-/elFinder-/CookieConsent-/SimplePie-Runtime
-- kompaktere Medienverwaltung im Admin mit Dropdowns, zentralen Modalen und Bulk-Aktionen
-- robusterer Member-Medienbereich mit Breadcrumbs, Root-Scoping, Rename/Move und optionalem Delete
-- korrigierte Schutzlogik für Systempfade: `member` und direkte User-Roots bleiben geschützt, Member-Unterordner sind wieder regulär verwaltbar
+- themeunabhängige Core-Routen für Login, Registrierung und Passwort-Reset: `/cms-login`, `/cms-register`, `/cms-password-forgot`
+- neue Admin-Seite `/admin/cms-loginpage` für Branding, Farben, Texte, Rechtsseiten, Footer-Links, Passkey-Sichtbarkeit und Reset-Mail-Vorlagen
+- zentralisierte Session-Finalisierung für Passwort-, MFA-, Backup-Code-, Passkey- und LDAP-Login
+- weiter gehärtete Redirect- und MFA-Pfade mit allowlist-basiertem Same-Origin-Vertrag statt losem Redirect-String-Zirkus
 
 ---
 
@@ -48,6 +49,7 @@ Die Kernsystem-Dokumente unter [`core/`](core/) beschreiben Bootstrap, Routing, 
 ### Admin
 
 Die Admin-Dokumente unter [`admin/`](admin/) orientieren sich an der aktuellen Sidebar- und Modulstruktur aus `CMS/admin/`.
+Dazu gehört jetzt auch die **CMS Loginpage** unter `/admin/cms-loginpage`, die bewusst neben Theme-Editor und Theme-Explorer als eigener Core-Auth-Bereich dokumentiert wird.
 
 ### Member
 

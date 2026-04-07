@@ -1,4 +1,4 @@
-﻿﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.8.3-blue.svg)](https://shields.io/)
+﻿﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.0-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -17,6 +17,19 @@
 ---
 
 ## 📜 Vollständige Versionshistorie
+
+---
+
+### v2.9.0 — 07. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.0** | 🟢 feat | Core/Auth | **`CMS/core/Services/CmsAuthPageService.php`, `CMS/views/auth/cms-auth.php` sowie die öffentlichen Routerpfade führen eine CMS-eigene Auth-Strecke für Login, Registrierung und Passwort-Reset ein**: Die festen Core-Routen `/cms-login`, `/cms-register` und `/cms-password-forgot` funktionieren damit unabhängig vom aktiven Frontend-Theme. |
+| **2.9.0** | 🟢 feat | Admin/Themes | **`CMS/admin/cms-loginpage.php`, `CMS/admin/modules/themes/CmsLoginPageModule.php` und `CMS/admin/views/themes/cms-loginpage.php` ergänzen eine neue Admin-Oberfläche für die CMS Loginpage**: Branding, Farben, Formtexte, Footer-Links, Rechtsseiten, Passkey-Sichtbarkeit sowie Reset-Mail-Vorlagen und Link-Ablaufzeit lassen sich damit zentral im Admin steuern. |
+| **2.9.0** | 🔴 fix | Core/Auth | **`CMS/core/Auth.php` und `CMS/core/Auth/AuthManager.php` finalisieren Passwort-, MFA-, Backup-Code-, Passkey- und LDAP-Logins jetzt über denselben Session-Vertrag**: MFA-Benutzer werden dadurch nach erfolgreicher Bestätigung nicht mehr aus der Login-Strecke herausgeworfen, und der Remember-Me-Status bleibt über den kompletten Auth-Flow erhalten. |
+| **2.9.0** | 🔴 fix | Core/Routing | **`CMS/core/Routing/PublicRouter.php` nutzt jetzt strukturierte allowlist-basierte Redirect-Teile und locale-aware MFA-Pfade statt loser Redirect-Strings**: offene Redirect-Kanten und theme-/sprachabhängige MFA-Sprünge hängen dadurch enger an einem fail-closed Same-Origin-Vertrag. |
+| **2.9.0** | 🔵 docs | Auth | **`DOC/admin/themes-design/CMS-LOGINPAGE.md`, `DOC/admin/users-groups/AUTH-SETTINGS.md`, `DOC/member/README.md`, `DOC/README.md` und `DOC/INDEX.md` dokumentieren jetzt die neue Core-Auth-Strecke und ihre Admin-Aufteilung**: Betriebs- und Support-Doku folgen damit dem tatsächlichen Login-/MFA-Vertrag statt älteren themeabhängigen Pfaden. |
+| **2.9.0** | 🔵 docs | Release | **`README.md`, `Changelog.md`, `CMS/core/Version.php` und `CMS/update.json` wurden auf den Release-Stand `2.9.0` synchronisiert**: sichtbare Versionsnummer, Highlights und Update-Metadaten zeigen damit denselben aktuellen Auth-/MFA-Stand. |
 
 ---
 

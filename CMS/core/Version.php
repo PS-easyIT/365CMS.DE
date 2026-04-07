@@ -9,8 +9,8 @@ if (!defined('ABSPATH')) {
 
 final class Version
 {
-    public const CURRENT = '2.8.5';
-    public const RELEASE_DATE = '2026-04-04';
+    public const CURRENT = '2.9.0';
+    public const RELEASE_DATE = '2026-04-07';
     public const STATUS = 'stable';
 
     public static function current(): string

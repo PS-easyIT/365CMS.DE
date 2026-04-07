@@ -1,8 +1,8 @@
 # Themes & Design
 
-Kurzbeschreibung: Übersicht über die aktuellen Design-, Theme- und Frontend-Werkzeuge im Admin-Bereich.
+Kurzbeschreibung: Übersicht über die aktuellen Design-, Theme- und Frontend-Werkzeuge im Admin-Bereich – inklusive der neuen CMS-eigenen Loginpage, die trotz eigenem Core-Rendering organisatorisch unter „Themes & Design“ geführt wird.
 
-Letzte Aktualisierung: 2026-03-28 · Version 2.8.0 RC
+Letzte Aktualisierung: 2026-04-07 · Version 2.9.0
 
 ---
 
@@ -15,6 +15,7 @@ Die Standardnavigation in `CMS/admin/partials/sidebar.php` führt aktuell auf fo
 - `/admin/themes`
 - `/admin/theme-editor`
 - `/admin/theme-explorer`
+- `/admin/cms-loginpage`
 - `/admin/menu-editor`
 - `/admin/landing-page`
 - `/admin/font-manager`
@@ -40,6 +41,12 @@ Ein separater Theme-Marketplace (`/admin/theme-marketplace`) existiert ebenfalls
 
 - Route: `/admin/theme-explorer`
 - Zweck: Dateien, Struktur und Assets eines Themes kontrolliert durchsuchen.
+
+### CMS Loginpage
+
+- Route: `/admin/cms-loginpage`
+- Zweck: Die CMS-eigene Auth-Strecke für Login, Registrierung und Passwort-Reset design- und textseitig konfigurieren.
+- Besonderheit: Die Seite rendert **Core-Auth-Ansichten**, nicht Theme-Templates. Sie sitzt hier im Navigationsbereich, weil Branding, Farben und UX-Texte dort fachlich am besten aufgehoben sind.
 
 ### Menü-Editor
 
@@ -92,6 +99,7 @@ Solche Seiten sind funktional vorhanden, aber nicht zwingend Teil des Standard-N
 - [Menü-Editor](MENUS.md)
 - [Member-Dashboard-Widgets](DASHBOARD-WIDGETS.md)
 - [Theme Customizer](CUSTOMIZER.md)
+- [CMS Loginpage](CMS-LOGINPAGE.md)
 - [Font Manager](FONTS.md)
 
 ---

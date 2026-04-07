@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.8.5",
+  "version": "2.9.0",
   "min_php": "8.4",
-  "released": "2026-04-04",
+  "released": "2026-04-07",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 2.8.5: Der aktuelle Snyk-Nachscan liegt bei 36 Code-Funden, davon 0 im Nicht-Vendor-/Runtime-Block; Router und ThemeCustomizer wurden weiter auf interne Pfad-/Redirect-Verträge verdichtet, und README, Changelog sowie Audit-Doku sind auf 2.8.5 synchronisiert.",
+  "notes": "Release-Stand 2.9.0: 365CMS liefert jetzt CMS-eigene Auth-Seiten unter /cms-login, /cms-register und /cms-password-forgot inklusive Admin-Steuerung über /admin/cms-loginpage; Redirects und MFA-Pfade wurden weiter fail-closed gehärtet, Remember-Me ist echt persistent, und MFA-/Passkey-/LDAP-Logins finalisieren dieselbe Session wie der klassische Passwort-Login.",
   "critical": false
 }
