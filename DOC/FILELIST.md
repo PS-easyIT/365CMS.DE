@@ -7,7 +7,6 @@ Diese Datei ist die **lesbare Strukturkarte** von 365CMS. Sie ergänzt:
 
 - `DOC/DEVLIST.md` als technische Tiefenreferenz
 - `DOC/CMSFILESTRUCTUR.md` als ausführlichere Struktur-/Audit-Dokumentation
-- `DOC/_cms_inventory_current.txt` als verifizierte Inventarquelle für den dokumentierten Prüfscope
 
 Der Fokus dieser Datei liegt auf drei Dingen:
 
