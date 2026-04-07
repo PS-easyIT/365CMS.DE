@@ -40,7 +40,7 @@ final class AdminRouter
     public function renderAdmin(): void
     {
         if (!Auth::instance()->isAdmin()) {
-            $this->router->redirect('/');
+            $this->redirectUnauthorized();
             return;
         }
 
@@ -64,7 +64,7 @@ final class AdminRouter
     public function renderAdminPage(string $page): void
     {
         if (!Auth::instance()->isAdmin()) {
-            $this->router->redirect('/');
+            $this->redirectUnauthorized();
             return;
         }
 
@@ -93,7 +93,7 @@ final class AdminRouter
     public function renderPluginPage(string $plugin, string $page): void
     {
         if (!Auth::instance()->isAdmin()) {
-            $this->router->redirect('/');
+            $this->redirectUnauthorized();
             return;
         }
 
@@ -188,5 +188,17 @@ final class AdminRouter
         $label = preg_replace('/\s+/', ' ', $label) ?? $slug;
 
         return ucwords(trim($label));
+    }
+
+    private function redirectUnauthorized(): void
+    {
+        if (!Auth::instance()->isLoggedIn()) {
+            $requestUri = (string) ($_SERVER['REQUEST_URI'] ?? '/admin');
+            $requestUri = $requestUri !== '' ? $requestUri : '/admin';
+            $this->router->redirect('/login?redirect=' . urlencode($requestUri));
+            return;
+        }
+
+        $this->router->redirect('/member');
     }
 }

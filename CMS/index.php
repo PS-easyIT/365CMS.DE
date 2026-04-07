@@ -47,7 +47,29 @@ $resolveSessionCookieDomain = static function (): string {
         return '';
     }
 
-    return preg_replace('/^www\./i', '', $host) ?? '';
+    $normalizedHost = preg_replace('/^www\./i', '', $host) ?? '';
+    if ($normalizedHost === '') {
+        return '';
+    }
+
+    $siteHost = strtolower(trim((string) (parse_url((string) (defined('SITE_URL') ? SITE_URL : ''), PHP_URL_HOST) ?? '')));
+    if ($siteHost !== '') {
+        $siteHost = preg_replace('/^www\./i', '', $siteHost) ?? '';
+        if ($siteHost === '') {
+            return '';
+        }
+
+        if ($normalizedHost === $siteHost) {
+            return $siteHost;
+        }
+
+        // Für alternative Hostnamen (z. B. Hub-/Alias-Domains) kein erzwungenes
+        // cookie_domain setzen: Host-only Cookies sind dort stabiler und verhindern,
+        // dass die Session beim Redirect auf einen anderen Host verloren geht.
+        return '';
+    }
+
+    return $normalizedHost;
 };
 
 $sessionCookieDomain = $resolveSessionCookieDomain();
