@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Überblick über die Content-Module im Admin-Bereich und ihre aktuelle Aufgabenverteilung.
 
-Letzte Aktualisierung: 2026-03-28 · Version 2.8.0 RC
+Letzte Aktualisierung: 2026-04-07 · Version 2.9.0
 
 Der Content-Bereich ist auf mehrere spezialisierte Bereiche verteilt:
 
@@ -25,6 +25,7 @@ Im aktuellen Stand nutzt 365CMS im Content-Bereich mehrere Editorkomponenten:
 - **SunEditor** für klassische Rich-Text-Bearbeitung
 - **Editor.js** für blockbasierte Inhalte
 - **SEO-Karten** unter Seiten und Beiträgen für Meta-Daten, Lesbarkeit und Vorschau
+- **Lazy Language Switching** im Beitrags-Editor mit einmaliger DE→EN-Initialkopie bei leerer englischer Fassung
 
 Die SEO-spezifischen Global-Einstellungen liegen nicht mehr in einem alten Monolithen `seo.php`, sondern im [SEO-Center](../seo/SEO.md).
 
@@ -48,4 +49,6 @@ Die SEO-spezifischen Global-Einstellungen liegen nicht mehr in einem alten Monol
 
 - Lösch-Workflows für Seiten und Beiträge folgen im aktuellen Stand dem konsolidierten Admin-Flow mit Redirects, Alerts und serverseitiger Validierung.
 - Featured Images, Slugs und Redaktionshilfen sind stärker mit SEO und Medienverwaltung verzahnt.
+- Der Beitrags-Editor nutzt im Top-Bereich jetzt eine kompaktere Kartenverteilung: Kategorie und Tags sitzen direkt beim Slug, während Speichern und öffentliche DE-/EN-Vorschau in einer eigenen Aktions-Card unter dem Beitragsbild liegen.
+- Beiträge arbeiten im Editor aktuell mit **einer primären Kategorie**; die frühere UI für zusätzliche Kategorien wird nicht mehr angeboten.
 - Historische Verweise auf `/admin/seo.php` oder alte Monolith-Seiten sind in diesem Bereich nicht mehr korrekt.

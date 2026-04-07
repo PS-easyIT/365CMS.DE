@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Verwaltung chronologischer Inhalte wie News und Blog-Beiträge im Admin-Bereich.
 
-Letzte Aktualisierung: 2026-03-28 · Version 2.8.0 RC
+Letzte Aktualisierung: 2026-04-07 · Version 2.9.0
 
 ---
 
@@ -35,6 +35,34 @@ Im aktuellen Redaktionsfluss greifen mehrere Systeme zusammen:
 - Featured-Image-Picker aus der Medienbibliothek
 - SEO-Karten unter dem Editor
 - Listen- und Einzellöschung mit stabilisiertem Delete-Flow
+- kompakter Top-Bereich mit separater Aktions-Card unter dem Beitragsbild
+- Einzel-Kategorie statt zusätzlicher Mehrfach-Kategorien im Editor
+- einmalige Initialkopie DE → EN beim ersten Wechsel in den noch leeren englischen Editor
+
+---
+
+## Editor-Aufbau im aktuellen Stand
+
+Die obere Editor-Zone ist in drei Bereiche gegliedert:
+
+| Bereich | Inhalt |
+|---|---|
+| Card 1 | Titel, Slug, Kategorie, Tags |
+| Card 2 | Beitragsbild |
+| Card 2b | Aktionen mit `Erstellen/Aktualisieren` sowie öffentlicher DE-/EN-Vorschau |
+| Card 3 | Status, Veröffentlichungsdatum/-zeit und Autoren-Anzeigename |
+
+Wichtig: Für Beiträge gibt es im Editor aktuell **nur noch eine primäre Kategorie**. Die frühere UI für „Zusätzliche Kategorien“ wird nicht mehr angezeigt.
+
+---
+
+## Mehrsprachiger Editor-Flow
+
+Der englische Beitrags-Editor wird lazy beim Umschalten geladen. Wenn die EN-Fassung beim **ersten Wechsel** noch leer ist, übernimmt 365CMS automatisch den aktuellen deutschen Inhalt als Ausgangspunkt.
+
+- Die Kopie erfolgt **nicht** bereits beim Laden der Seite.
+- Die Kopie läuft **nur einmal** beim ersten Wechsel auf die EN-Ansicht.
+- Bereits vorhandener oder später bearbeiteter EN-Inhalt wird **nicht** automatisch überschrieben.
 
 ---
 
