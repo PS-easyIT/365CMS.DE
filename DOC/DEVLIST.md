@@ -2117,6 +2117,10 @@ Ein wirklich auditfähiger Zustand bedeutet:
 - Doku beschreibt reale Verträge statt Wunschbilder
 - Deploymentpraxis ist explizit und nicht implizit erraten
 
+Audit-Readiness ist damit nicht nur ein Sicherheitslabel, sondern die Kombination aus belastbarer Runtime, nachvollziehbarer Änderungskette, verständlicher Diagnose und realitätsnaher Dokumentation.
+
+---
+
 ## 27. Erweiterte Nicht-wieder-tun-Liste
 
 - keine verschachtelten Formulare in Admin-Views
