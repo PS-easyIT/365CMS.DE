@@ -20,8 +20,13 @@ $total   = $data['total'] ?? 0;
 $curPage = $data['page'] ?? 1;
 $pages   = $data['pages'] ?? 1;
 $usersAdminPath = '/admin/users';
-$currentRequestUri = (string) ($_SERVER['REQUEST_URI'] ?? $usersAdminPath);
-$currentRequestUri = $currentRequestUri !== '' ? $currentRequestUri : $usersAdminPath;
+$requestUriRaw = (string) ($_SERVER['REQUEST_URI'] ?? '');
+$requestPath = (string) parse_url($requestUriRaw, PHP_URL_PATH);
+$requestQuery = (string) parse_url($requestUriRaw, PHP_URL_QUERY);
+if ($requestPath === '') {
+    $requestPath = $usersAdminPath;
+}
+$currentRequestUri = $requestPath . ($requestQuery !== '' ? '?' . $requestQuery : '');
 
 $roleColors = [
     'admin' => 'red',

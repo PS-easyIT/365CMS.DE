@@ -18,6 +18,8 @@
 | Ziel | Dokument |
 |---|---|
 | Projektüberblick | [README.md](README.md) |
+| Entwickler-Referenz | [DEVLIST.md](DEVLIST.md) |
+| Datei- & Strukturübersicht | [FILELIST.md](FILELIST.md) |
 | Installation | [INSTALLATION.md](INSTALLATION.md) |
 | Root-README | [../README.md](../README.md) |
 | Changelog | [../Changelog.md](../Changelog.md) |

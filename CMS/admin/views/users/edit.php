@@ -16,8 +16,13 @@ $isNew = $data['isNew'] ?? true;
 $availableRoles = $data['availableRoles'] ?? [];
 $availableStatuses = $data['availableStatuses'] ?? [];
 $usersAdminPath = '/admin/users';
-$currentRequestUri = (string) ($_SERVER['REQUEST_URI'] ?? $usersAdminPath);
-$currentRequestUri = $currentRequestUri !== '' ? $currentRequestUri : $usersAdminPath;
+$requestUriRaw = (string) ($_SERVER['REQUEST_URI'] ?? '');
+$requestPath = (string) parse_url($requestUriRaw, PHP_URL_PATH);
+$requestQuery = (string) parse_url($requestUriRaw, PHP_URL_QUERY);
+if ($requestPath === '') {
+    $requestPath = $usersAdminPath;
+}
+$currentRequestUri = $requestPath . ($requestQuery !== '' ? '?' . $requestQuery : '');
 
 $roleColors = [
     'admin' => 'red',
