@@ -26,9 +26,9 @@ final class CmsLoginPageModule
             'registration_enabled' => $this->service->isRegistrationEnabled($settings),
             'passkey_enabled' => $this->service->isPasskeyLoginEnabled($settings),
             'preview_urls' => [
-                'login' => $this->service->getPath('login'),
-                'register' => $this->service->getPath('register'),
-                'forgot_password' => $this->service->getPath('forgot-password'),
+                'login' => $this->service->getPublicPath('login', null, $settings),
+                'register' => $this->service->getPublicPath('register', null, $settings),
+                'forgot_password' => $this->service->getPublicPath('forgot-password', null, $settings),
             ],
         ];
     }

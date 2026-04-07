@@ -55,11 +55,26 @@ $renderSelect = static function (string $name, string $label, array $options, st
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label" for="logo_url">Logo-URL</label>
-                                <input class="form-control" id="logo_url" name="logo_url" type="url" value="<?php echo htmlspecialchars((string) ($settings['logo_url'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
+                                <input class="form-control" id="logo_url" name="logo_url" type="text" value="<?php echo htmlspecialchars((string) ($settings['logo_url'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" placeholder="https://example.com/logo.svg oder /uploads/theme/logo.svg">
+                                <div class="form-hint">Erlaubt sind absolute HTTP(S)-URLs sowie interne Pfade wie <code>/uploads/...</code>.</div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label" for="layout_variant">Layout</label>
+                                <select class="form-select" id="layout_variant" name="layout_variant">
+                                    <option value="centered" <?php echo ($settings['layout_variant'] ?? 'centered') === 'centered' ? 'selected' : ''; ?>>Centered Card</option>
+                                    <option value="split" <?php echo ($settings['layout_variant'] ?? 'centered') === 'split' ? 'selected' : ''; ?>>Split Layout</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label" for="auth_slug_mode">Öffentliche Auth-Slugs</label>
+                                <select class="form-select" id="auth_slug_mode" name="auth_slug_mode">
+                                    <option value="cms" <?php echo ($settings['auth_slug_mode'] ?? 'cms') === 'cms' ? 'selected' : ''; ?>>CMS-Slugs (/cms-login, /cms-register, ...)</option>
+                                    <option value="legacy" <?php echo ($settings['auth_slug_mode'] ?? 'cms') === 'legacy' ? 'selected' : ''; ?>>Legacy-Slugs (/login, /register, ...)</option>
+                                </select>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label" for="card_width">Kartenbreite (px)</label>
-                                <input class="form-control" id="card_width" name="card_width" type="number" min="380" max="720" value="<?php echo htmlspecialchars((string) ($settings['card_width'] ?? '480'), ENT_QUOTES, 'UTF-8'); ?>">
+                                <input class="form-control" id="card_width" name="card_width" type="number" min="380" max="960" value="<?php echo htmlspecialchars((string) ($settings['card_width'] ?? '520'), ENT_QUOTES, 'UTF-8'); ?>">
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label" for="footer_note">Footer-Hinweis</label>
@@ -350,8 +365,9 @@ $renderSelect = static function (string $name, string $label, array $options, st
                 <div class="card-body text-secondary">
                     <ul class="mb-0 ps-3">
                         <li>Die Auth-Seiten laufen unabhängig vom aktiven Frontend-Theme.</li>
-                        <li>Die festen Slugs sind <code>/cms-login</code>, <code>/cms-register</code> und <code>/cms-password-forgot</code>.</li>
-                        <li>Bestehende alte Pfade werden intern auf die neue CMS-Loginpage umgeleitet.</li>
+                        <li>Die kanonischen Core-Slugs bleiben <code>/cms-login</code>, <code>/cms-register</code> und <code>/cms-password-forgot</code>.</li>
+                        <li>Per Auswahl oben kannst du entscheiden, ob Themes bevorzugt die CMS-Slugs oder die Legacy-Slugs <code>/login</code>, <code>/register</code> und <code>/forgot-password</code> verlinken sollen.</li>
+                        <li>Bestehende alte Pfade bleiben als Alias funktionsfähig und leiten intern sicher weiter.</li>
                         <li>Die Register-Freigabe nutzt bewusst die vorhandenen globalen CMS-Einstellungen statt eines zweiten parallelen Schalters.</li>
                         <li>„Angemeldet bleiben“ ist jetzt ein echter Persistenz-Schalter für die Session – keine UI-Attrappe mehr.</li>
                     </ul>

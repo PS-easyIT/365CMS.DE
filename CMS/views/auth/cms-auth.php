@@ -9,7 +9,10 @@ $brandName = trim((string) ($settings['brand_name'] ?? '')) !== ''
     ? (string) $settings['brand_name']
     : (defined('SITE_NAME') ? (string) SITE_NAME : '365CMS');
 $logoUrl = trim((string) ($settings['logo_url'] ?? ''));
-$cardWidth = max(380, min(720, (int) ($settings['card_width'] ?? 480)));
+$cardWidth = max(380, min(960, (int) ($settings['card_width'] ?? 520)));
+$layoutVariant = in_array((string) ($settings['layout_variant'] ?? 'centered'), ['centered', 'split'], true)
+    ? (string) ($settings['layout_variant'] ?? 'centered')
+    : 'centered';
 $headline = match ($pageType) {
     'register' => (string) ($settings['headline_register'] ?? 'Neues Konto erstellen'),
     'forgot-password' => (string) ($settings['headline_forgot'] ?? 'Passwort zurücksetzen'),
@@ -94,6 +97,66 @@ $footerHomeText = (string) ($settings['footer_link_home'] ?? 'Zur Startseite');
         .cms-auth-shell {
             width: 100%;
             max-width: var(--cms-auth-card-width);
+        }
+        .cms-auth-shell--split {
+            max-width: min(1180px, calc(var(--cms-auth-card-width) + 360px));
+            display: grid;
+            gap: 1.5rem;
+            align-items: stretch;
+        }
+        @media (min-width: 960px) {
+            .cms-auth-shell--split {
+                grid-template-columns: minmax(280px, 1fr) minmax(380px, var(--cms-auth-card-width));
+            }
+        }
+        .cms-auth-panel {
+            position: relative;
+            overflow: hidden;
+            border-radius: 24px;
+            padding: 2rem;
+            color: #fff;
+            background: linear-gradient(160deg, rgba(15, 23, 42, 0.92) 0%, rgba(29, 78, 216, 0.78) 100%);
+            box-shadow: 0 30px 80px rgba(15, 23, 42, 0.22);
+        }
+        .cms-auth-panel::after {
+            content: '';
+            position: absolute;
+            inset: auto -10% -20% auto;
+            width: 240px;
+            height: 240px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.12);
+            filter: blur(10px);
+            pointer-events: none;
+        }
+        .cms-auth-panel .cms-auth-brand {
+            position: relative;
+            z-index: 1;
+            text-align: left;
+            margin-bottom: 0;
+        }
+        .cms-auth-panel .cms-auth-logo {
+            margin: 0 0 1rem;
+            background: rgba(255,255,255,0.12);
+        }
+        .cms-auth-panel .cms-auth-logo-fallback,
+        .cms-auth-panel .cms-auth-brand p,
+        .cms-auth-panel .cms-auth-brand h1,
+        .cms-auth-panel a {
+            color: inherit;
+        }
+        .cms-auth-panel-links {
+            margin-top: 2rem;
+            display: grid;
+            gap: 0.75rem;
+            font-size: 0.95rem;
+        }
+        .cms-auth-panel-links a {
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .cms-auth-panel-links a:hover {
+            text-decoration: underline;
         }
         .cms-auth-card {
             background: var(--cms-auth-card-bg);
@@ -269,22 +332,53 @@ $footerHomeText = (string) ($settings['footer_link_home'] ?? 'Zur Startseite');
     </style>
 </head>
 <body>
-    <main class="cms-auth-shell" aria-labelledby="cms-auth-title">
+    <main class="cms-auth-shell cms-auth-shell--<?php echo htmlspecialchars($layoutVariant, ENT_QUOTES, 'UTF-8'); ?>" aria-labelledby="cms-auth-title">
+        <?php if ($layoutVariant === 'split'): ?>
+            <aside class="cms-auth-panel" aria-hidden="true">
+                <div class="cms-auth-brand">
+                    <div class="cms-auth-logo">
+                        <?php if ($logoUrl !== ''): ?>
+                            <img src="<?php echo htmlspecialchars($logoUrl, ENT_QUOTES, 'UTF-8'); ?>" alt="">
+                        <?php else: ?>
+                            <span class="cms-auth-logo-fallback"><?php echo htmlspecialchars((string) substr($brandName, 0, 2), ENT_QUOTES, 'UTF-8'); ?></span>
+                        <?php endif; ?>
+                    </div>
+                    <p><?php echo htmlspecialchars($brandName, ENT_QUOTES, 'UTF-8'); ?></p>
+                    <h1><?php echo htmlspecialchars($headline, ENT_QUOTES, 'UTF-8'); ?></h1>
+                    <?php if ($subheadline !== ''): ?>
+                        <p><?php echo htmlspecialchars($subheadline, ENT_QUOTES, 'UTF-8'); ?></p>
+                    <?php endif; ?>
+                    <div class="cms-auth-panel-links">
+                        <a href="<?php echo htmlspecialchars($homeUrl, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($footerHomeText, ENT_QUOTES, 'UTF-8'); ?></a>
+                        <?php if ($footerNote !== ''): ?>
+                            <span><?php echo htmlspecialchars($footerNote, ENT_QUOTES, 'UTF-8'); ?></span>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </aside>
+        <?php endif; ?>
         <section class="cms-auth-card">
-            <div class="cms-auth-brand">
-                <div class="cms-auth-logo" aria-hidden="true">
-                    <?php if ($logoUrl !== ''): ?>
-                        <img src="<?php echo htmlspecialchars($logoUrl, ENT_QUOTES, 'UTF-8'); ?>" alt="">
-                    <?php else: ?>
-                        <span class="cms-auth-logo-fallback"><?php echo htmlspecialchars((string) substr($brandName, 0, 2), ENT_QUOTES, 'UTF-8'); ?></span>
+            <?php if ($layoutVariant !== 'split'): ?>
+                <div class="cms-auth-brand">
+                    <div class="cms-auth-logo" aria-hidden="true">
+                        <?php if ($logoUrl !== ''): ?>
+                            <img src="<?php echo htmlspecialchars($logoUrl, ENT_QUOTES, 'UTF-8'); ?>" alt="">
+                        <?php else: ?>
+                            <span class="cms-auth-logo-fallback"><?php echo htmlspecialchars((string) substr($brandName, 0, 2), ENT_QUOTES, 'UTF-8'); ?></span>
+                        <?php endif; ?>
+                    </div>
+                    <p><?php echo htmlspecialchars($brandName, ENT_QUOTES, 'UTF-8'); ?></p>
+                    <h1 id="cms-auth-title"><?php echo htmlspecialchars($headline, ENT_QUOTES, 'UTF-8'); ?></h1>
+                    <?php if ($subheadline !== ''): ?>
+                        <p><?php echo htmlspecialchars($subheadline, ENT_QUOTES, 'UTF-8'); ?></p>
                     <?php endif; ?>
                 </div>
-                <p><?php echo htmlspecialchars($brandName, ENT_QUOTES, 'UTF-8'); ?></p>
-                <h1 id="cms-auth-title"><?php echo htmlspecialchars($headline, ENT_QUOTES, 'UTF-8'); ?></h1>
+            <?php else: ?>
+                <h1 id="cms-auth-title" style="margin-top:0;"><?php echo htmlspecialchars($headline, ENT_QUOTES, 'UTF-8'); ?></h1>
                 <?php if ($subheadline !== ''): ?>
-                    <p><?php echo htmlspecialchars($subheadline, ENT_QUOTES, 'UTF-8'); ?></p>
+                    <p style="margin-top:-0.2rem;color:var(--cms-auth-muted);line-height:1.5;"><?php echo htmlspecialchars($subheadline, ENT_QUOTES, 'UTF-8'); ?></p>
                 <?php endif; ?>
-            </div>
+            <?php endif; ?>
 
             <?php if ($flashError !== ''): ?>
                 <div class="cms-auth-alert cms-auth-alert--error" role="alert"><?php echo htmlspecialchars($flashError, ENT_QUOTES, 'UTF-8'); ?></div>

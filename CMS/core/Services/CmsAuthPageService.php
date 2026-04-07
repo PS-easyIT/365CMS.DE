@@ -14,6 +14,18 @@ if (!defined('ABSPATH')) {
 final class CmsAuthPageService
 {
     private const SETTING_PREFIX = 'cms_loginpage_';
+    private const AUTH_CANONICAL_PATHS = [
+        'login' => '/cms-login',
+        'register' => '/cms-register',
+        'forgot-password' => '/cms-password-forgot',
+    ];
+    private const AUTH_LEGACY_PATHS = [
+        'login' => '/login',
+        'register' => '/register',
+        'forgot-password' => '/forgot-password',
+    ];
+    private const ALLOWED_LAYOUT_VARIANTS = ['centered', 'split'];
+    private const ALLOWED_SLUG_MODES = ['cms', 'legacy'];
 
     /** @var array<string, string> */
     private const SHARED_SETTING_DEFAULTS = [
@@ -46,12 +58,53 @@ final class CmsAuthPageService
 
     public function getPath(string $page): string
     {
-        return match ($page) {
-            'login' => '/cms-login',
-            'register' => '/cms-register',
-            'forgot-password' => '/cms-password-forgot',
-            default => '/cms-login',
-        };
+        $normalizedPage = $this->normalizePageKey($page);
+
+        return self::AUTH_CANONICAL_PATHS[$normalizedPage] ?? self::AUTH_CANONICAL_PATHS['login'];
+    }
+
+    public function getLegacyPath(string $page): string
+    {
+        $normalizedPage = $this->normalizePageKey($page);
+
+        return self::AUTH_LEGACY_PATHS[$normalizedPage] ?? self::AUTH_LEGACY_PATHS['login'];
+    }
+
+    public function getPublicPath(string $page, ?string $locale = null, ?array $settings = null): string
+    {
+        $settings ??= $this->getSettings();
+        $normalizedPage = $this->normalizePageKey($page);
+        $slugMode = $this->sanitizeEnum((string) ($settings['auth_slug_mode'] ?? 'cms'), self::ALLOWED_SLUG_MODES, 'cms');
+        $path = $slugMode === 'legacy'
+            ? $this->getLegacyPath($normalizedPage)
+            : $this->getPath($normalizedPage);
+
+        $resolvedLocale = trim((string) $locale);
+        if ($resolvedLocale === '') {
+            return $path;
+        }
+
+        try {
+            return ContentLocalizationService::getInstance()->buildLocalizedPath($path, $resolvedLocale);
+        } catch (\Throwable) {
+            return $path;
+        }
+    }
+
+    public function getPublicUrl(string $page, ?string $locale = null, array $query = []): string
+    {
+        $path = $this->getPublicPath($page, $locale);
+
+        if ($query !== []) {
+            $path .= '?' . http_build_query($query, '', '&', PHP_QUERY_RFC3986);
+        }
+
+        $siteUrl = rtrim((string) (defined('SITE_URL') ? SITE_URL : ''), '/');
+        if ($siteUrl === '') {
+            return $path;
+        }
+
+        return $siteUrl . $path;
     }
 
     public function buildPath(string $page, array $query = []): string
@@ -203,10 +256,23 @@ final class CmsAuthPageService
         };
         $csrfToken = Security::instance()->generateToken($csrfAction);
 
-        $loginUrl = $this->getPath('login');
-        $registerUrl = $this->getPath('register');
-        $forgotUrl = $this->getPath('forgot-password');
-        $homeUrl = '/';
+        $requestPath = (string) (parse_url((string) ($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_PATH) ?? '/');
+        $requestLocale = 'de';
+        try {
+            $requestContext = ContentLocalizationService::getInstance()->resolveRequestContext($requestPath);
+            $requestLocale = (string) ($requestContext['locale'] ?? 'de');
+        } catch (\Throwable) {
+            $requestLocale = 'de';
+        }
+
+        $loginUrl = $this->getPublicPath('login', $requestLocale, $settings);
+        $registerUrl = $this->getPublicPath('register', $requestLocale, $settings);
+        $forgotUrl = $this->getPublicPath('forgot-password', $requestLocale, $settings);
+        try {
+            $homeUrl = ContentLocalizationService::getInstance()->buildLocalizedPath('/', $requestLocale);
+        } catch (\Throwable) {
+            $homeUrl = '/';
+        }
         $loginRedirect = trim((string) ($context['login_redirect'] ?? ($_GET['redirect'] ?? '')));
         $forgotStep = (string) ($context['forgot_step'] ?? ($_GET['step'] ?? 'request'));
         $forgotStep = in_array($forgotStep, ['request', 'reset', 'done'], true) ? $forgotStep : 'request';
@@ -345,7 +411,9 @@ final class CmsAuthPageService
         return [
             'brand_name' => defined('SITE_NAME') ? (string) SITE_NAME : '365CMS',
             'logo_url' => '',
-            'card_width' => '480',
+            'card_width' => '520',
+            'layout_variant' => 'centered',
+            'auth_slug_mode' => 'cms',
             'background_start' => '#0f172a',
             'background_end' => '#1d4ed8',
             'card_background' => '#ffffff',
@@ -408,7 +476,9 @@ final class CmsAuthPageService
         return [
             'brand_name' => $this->sanitizeText($input['brand_name'] ?? $this->getDefaultSettings()['brand_name'], 80),
             'logo_url' => $this->sanitizeUrl($input['logo_url'] ?? ''),
-            'card_width' => (string) max(380, min(720, (int) ($input['card_width'] ?? 480))),
+            'card_width' => (string) max(380, min(960, (int) ($input['card_width'] ?? 520))),
+            'layout_variant' => $this->sanitizeEnum((string) ($input['layout_variant'] ?? 'centered'), self::ALLOWED_LAYOUT_VARIANTS, 'centered'),
+            'auth_slug_mode' => $this->sanitizeEnum((string) ($input['auth_slug_mode'] ?? 'cms'), self::ALLOWED_SLUG_MODES, 'cms'),
             'background_start' => $this->sanitizeColor($input['background_start'] ?? '#0f172a', '#0f172a'),
             'background_end' => $this->sanitizeColor($input['background_end'] ?? '#1d4ed8', '#1d4ed8'),
             'card_background' => $this->sanitizeColor($input['card_background'] ?? '#ffffff', '#ffffff'),
@@ -589,6 +659,30 @@ final class CmsAuthPageService
             return '';
         }
 
+        if (preg_match('/^[A-Za-z]:[\\\\\/]/', $url) === 1 || preg_match('#^(?:javascript|data|vbscript):#i', $url) === 1) {
+            return '';
+        }
+
+        if (str_starts_with($url, '//')) {
+            return '';
+        }
+
+        $siteUrl = rtrim((string) (defined('SITE_URL') ? SITE_URL : ''), '/');
+
+        if (str_starts_with($url, '/')) {
+            return $siteUrl !== '' ? $siteUrl . $url : $url;
+        }
+
+        if (!preg_match('#^[a-z][a-z0-9+.-]*:#i', $url)) {
+            $relativePath = preg_replace('#^(?:\./)+#', '', str_replace('\\', '/', $url)) ?? '';
+            $relativePath = ltrim($relativePath, '/');
+            if ($relativePath === '' || str_contains($relativePath, '..')) {
+                return '';
+            }
+
+            return $siteUrl !== '' ? $siteUrl . '/' . $relativePath : '/' . $relativePath;
+        }
+
         if (filter_var($url, FILTER_VALIDATE_URL) === false) {
             return '';
         }
@@ -607,5 +701,17 @@ final class CmsAuthPageService
         }
 
         return $fallback;
+    }
+
+    private function sanitizeEnum(string $value, array $allowedValues, string $fallback): string
+    {
+        return in_array($value, $allowedValues, true) ? $value : $fallback;
+    }
+
+    private function normalizePageKey(string $page): string
+    {
+        $normalizedPage = trim(strtolower(str_replace('_', '-', $page)));
+
+        return array_key_exists($normalizedPage, self::AUTH_CANONICAL_PATHS) ? $normalizedPage : 'login';
     }
 }
