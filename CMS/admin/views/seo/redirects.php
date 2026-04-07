@@ -179,7 +179,7 @@ $alertDetails = is_array($alert['details'] ?? null) ? $alert['details'] : [];
                                                 <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 12m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M12 19m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M12 5m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/></svg>
                                             </button>
                                             <div class="dropdown-menu dropdown-menu-end">
-                                                <button type="button" class="dropdown-item js-edit-redirect" data-redirect="<?= htmlspecialchars(json_encode($redirect, JSON_HEX_APOS | JSON_HEX_QUOT), ENT_QUOTES) ?>">Bearbeiten</button>
+                                                <button type="button" class="dropdown-item js-edit-redirect" data-redirect="<?= htmlspecialchars((string) json_encode($redirect, JSON_HEX_APOS | JSON_HEX_QUOT | JSON_INVALID_UTF8_SUBSTITUTE), ENT_QUOTES) ?>">Bearbeiten</button>
                                                 <form
                                                     method="post"
                                                     class="d-inline"
@@ -216,7 +216,7 @@ $alertDetails = is_array($alert['details'] ?? null) ? $alert['details'] : [];
 <script type="application/json" id="seo-redirect-manager-config"><?php echo json_encode([
     'targets' => $targets,
     'sites' => $sites,
-], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?></script>
+], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_INVALID_UTF8_SUBSTITUTE); ?></script>
 
 <div class="modal modal-blur fade" id="redirectModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">

@@ -133,7 +133,7 @@ $alertDetails = is_array($alert['details'] ?? null) ? $alert['details'] : [];
                                         <button
                                             type="button"
                                             class="btn btn-sm <?= $resolved ? 'btn-outline-secondary' : 'btn-outline-primary' ?> js-takeover-log"
-                                            data-log="<?= htmlspecialchars(json_encode($log, JSON_HEX_APOS | JSON_HEX_QUOT), ENT_QUOTES) ?>"
+                                            data-log="<?= htmlspecialchars((string) json_encode($log, JSON_HEX_APOS | JSON_HEX_QUOT | JSON_INVALID_UTF8_SUBSTITUTE), ENT_QUOTES) ?>"
                                         ><?= $resolved ? 'Bearbeiten' : 'Übernehmen' ?></button>
                                     </td>
                                 </tr>
@@ -149,7 +149,7 @@ $alertDetails = is_array($alert['details'] ?? null) ? $alert['details'] : [];
 <script type="application/json" id="seo-not-found-config"><?php echo json_encode([
     'targets' => $targets,
     'sites' => $sites,
-], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?></script>
+], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_INVALID_UTF8_SUBSTITUTE); ?></script>
 
 <div class="modal modal-blur fade" id="notFoundRedirectModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
