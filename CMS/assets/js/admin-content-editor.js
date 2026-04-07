@@ -362,6 +362,103 @@
             return;
         }
 
+        function isMeaningfulEditorData(rawValue) {
+            var parsed;
+            var blocks;
+
+            if (typeof rawValue !== 'string' || rawValue.trim() === '') {
+                return false;
+            }
+
+            try {
+                parsed = JSON.parse(rawValue);
+            } catch (_error) {
+                return rawValue.trim() !== '';
+            }
+
+            blocks = Array.isArray(parsed && parsed.blocks) ? parsed.blocks : [];
+            if (blocks.length === 0) {
+                return false;
+            }
+
+            return blocks.some(function (block) {
+                var dataString;
+
+                if (!block || typeof block !== 'object') {
+                    return false;
+                }
+
+                dataString = JSON.stringify(block.data || {});
+                if (typeof dataString !== 'string' || dataString === '{}') {
+                    return false;
+                }
+
+                return dataString
+                    .replace(/<[^>]*>/g, '')
+                    .replace(/&nbsp;/gi, ' ')
+                    .replace(/[\s\u00a0_\-.,:;!?()[\]{}"'`~|\\/]+/g, '')
+                    .length > 0;
+            });
+        }
+
+        function getEditorDefinition(key) {
+            return (Array.isArray(config.editors) ? config.editors : []).find(function (definition) {
+                return definition && definition.key === key;
+            }) || null;
+        }
+
+        function getEditorInputValue(key) {
+            var definition = getEditorDefinition(key);
+            var input = definition ? getElement(definition.inputId) : null;
+            return input ? String(input.value || '') : '';
+        }
+
+        function syncEditorInputFromInstance(key) {
+            if (!editors[key] || !editors[key].instance || typeof editors[key].instance.save !== 'function') {
+                return Promise.resolve(getEditorInputValue(key));
+            }
+
+            return editors[key].instance.save().then(function (output) {
+                var serialized = JSON.stringify(output || {});
+                editors[key].input.value = serialized;
+                return serialized;
+            }).catch(function () {
+                return getEditorInputValue(key);
+            });
+        }
+
+        function maybePrimeLazyEditor(definition) {
+            var initialCopy = config.initialCopyOnFirstActivate || null;
+            var sourceKey;
+            var targetKey;
+            var targetInput;
+
+            if (!initialCopy || !definition || definition._initialCopyHandled) {
+                return Promise.resolve();
+            }
+
+            sourceKey = String(initialCopy.sourceKey || '');
+            targetKey = String(initialCopy.targetKey || '');
+
+            if (definition.key !== targetKey) {
+                return Promise.resolve();
+            }
+
+            definition._initialCopyHandled = true;
+            targetInput = getElement(definition.inputId);
+            if (!targetInput || isMeaningfulEditorData(targetInput.value || '')) {
+                return Promise.resolve();
+            }
+
+            return syncEditorInputFromInstance(sourceKey).then(function (sourceValue) {
+                if (!isMeaningfulEditorData(sourceValue)) {
+                    return;
+                }
+
+                targetInput.value = sourceValue;
+            });
+        }
+
         function bindEditor(definition) {
             var holder = getElement(definition.holderId);
             var input = getElement(definition.inputId);
@@ -389,7 +486,9 @@
                 var trigger = getElement(definition.activateButtonId);
                 if (trigger) {
                     trigger.addEventListener('click', function () {
-                        bindEditor(definition);
+                        maybePrimeLazyEditor(definition).finally(function () {
+                            bindEditor(definition);
+                        });
                     });
                 }
             }

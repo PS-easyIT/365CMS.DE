@@ -321,8 +321,6 @@ class PostsModule
         ) ?: [];
 
         $postTags = [];
-        $postCategoryIds = [];
-        $additionalCategoryIds = [];
         if ($postData !== null) {
             $postTags = $this->db->get_results(
                 "SELECT t.id, t.name, t.slug
@@ -332,13 +330,6 @@ class PostsModule
                  ORDER BY t.name ASC",
                 [(int)($postData['id'] ?? 0)]
             ) ?: [];
-
-            $postCategoryIds = $this->getPostCategoryIds((int) ($postData['id'] ?? 0));
-            $primaryCategoryId = (int) ($postData['category_id'] ?? 0);
-            $additionalCategoryIds = array_values(array_filter(
-                $postCategoryIds,
-                static fn(int $categoryId): bool => $categoryId > 0 && $categoryId !== $primaryCategoryId
-            ));
         }
 
         return [
@@ -347,8 +338,6 @@ class PostsModule
             'categories' => $this->categoryViewModelBuilder->buildOrderedCategoryOptions(array_map(fn($c) => (array)$c, $categories)),
             'tags'       => array_map(fn($t) => (array)$t, $tags),
             'postTags'   => array_map(fn($t) => (array)$t, $postTags),
-            'postCategoryIds' => $postCategoryIds,
-            'additionalCategoryIds' => $additionalCategoryIds,
             'seoMeta'    => $id !== null ? SEOService::getInstance()->getContentMeta('post', $id) : SEOService::getInstance()->getContentMeta('post', 0),
         ];
     }

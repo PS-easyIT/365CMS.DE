@@ -55,7 +55,6 @@ $metaTitle  = htmlspecialchars($post['meta_title'] ?? '');
 $metaDesc   = htmlspecialchars($post['meta_description'] ?? '');
 $authorDisplayName = htmlspecialchars($post['author_display_name'] ?? '', ENT_QUOTES);
 $tagString  = htmlspecialchars(implode(', ', array_map(static fn(array $tag): string => (string)($tag['name'] ?? ''), $postTagsData)), ENT_QUOTES);
-$additionalCategoryIds = array_values(array_filter(array_map('intval', (array)($data['additionalCategoryIds'] ?? [])), static fn(int $id): bool => $id > 0));
 $seoMeta = $data['seoMeta'] ?? [];
 $seoTemplateSettings = \CMS\Services\SeoAnalysisService::getInstance()->getSettings();
 $permalinkService = class_exists('\CMS\Services\PermalinkService') ? \CMS\Services\PermalinkService::getInstance() : null;
@@ -159,28 +158,78 @@ $defaultContentLanguage = $isEnglishOnlyPost ? 'en' : 'de';
                                 <div class="form-hint">Dieser Beitrag enthält aktuell nur englische Inhalte. Die Bearbeitung startet deshalb direkt in der EN-Ansicht; deutsche Felder bleiben optional.</div>
                                 <?php endif; ?>
                             </div>
-                            <div class="mb-0">
+                            <div class="mb-3">
                                 <label class="form-label" for="slug"><?php echo $isEnglishOnlyPost ? 'Standard-Slug' : 'Slug'; ?></label>
                                 <input type="text" class="form-control" id="slug" name="slug" value="<?php echo htmlspecialchars($postSlugValue); ?>" placeholder="wird automatisch generiert">
                                 <div class="form-hint">Aktive Struktur: <code><?php echo htmlspecialchars($postPermalinkHint); ?></code></div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label" for="categoryId">Kategorie</label>
+                                <select class="form-select" id="categoryId" name="category_id">
+                                    <option value="0">Keine Kategorie</option>
+                                    <?php foreach ($categories as $cat): ?>
+                                        <option value="<?php echo (int)$cat['id']; ?>" <?php if ($categoryId === (int)$cat['id']) echo 'selected'; ?>>
+                                            <?php echo htmlspecialchars((string) ($cat['option_label'] ?? $cat['name'] ?? '')); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <div class="form-hint">Primäre Kategorie für Listen, Archive und Vorschau.</div>
+                            </div>
+                            <div class="mb-0">
+                                <label class="form-label" for="postTags">Tags</label>
+                                <input type="text" class="form-control" id="postTags" name="tags" value="<?php echo $tagString; ?>" list="postTagsSuggestions" placeholder="z. B. Microsoft 365, PowerShell, Security">
+                                <div class="form-hint">Mehrere Tags mit Komma trennen.</div>
+                                <?php if (!empty($availableTags)): ?>
+                                <datalist id="postTagsSuggestions">
+                                    <?php foreach ($availableTags as $tag): ?>
+                                    <option value="<?php echo htmlspecialchars((string)($tag['name'] ?? ''), ENT_QUOTES); ?>"></option>
+                                    <?php endforeach; ?>
+                                </datalist>
+                                <?php endif; ?>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="col-lg-4 d-flex">
-                    <div class="card cms-edit-card cms-edit-top-card h-100 w-100">
-                        <div class="card-header"><h3 class="card-title">Beitragsbild</h3></div>
-                        <div class="card-body d-flex flex-column gap-2">
-                            <div id="featuredPreview" class="<?php echo $postFeaturedImageValue !== '' ? '' : 'd-none'; ?>">
-                                <img src="<?php echo htmlspecialchars(\CMS\Services\MediaDeliveryService::getInstance()->normalizeUrl($postFeaturedImageValue, true)); ?>" class="rounded" id="featuredImg" alt="Beitragsbild" style="max-width:100%;max-height:120px;object-fit:cover;display:block;">
+                <div class="col-lg-4">
+                    <div class="row g-3 h-100">
+                        <div class="col-12 d-flex">
+                            <div class="card cms-edit-card cms-edit-top-card w-100">
+                                <div class="card-header"><h3 class="card-title">Beitragsbild</h3></div>
+                                <div class="card-body d-flex flex-column gap-2">
+                                    <div id="featuredPreview" class="<?php echo $postFeaturedImageValue !== '' ? '' : 'd-none'; ?>">
+                                        <img src="<?php echo htmlspecialchars(\CMS\Services\MediaDeliveryService::getInstance()->normalizeUrl($postFeaturedImageValue, true)); ?>" class="rounded" id="featuredImg" alt="Beitragsbild" style="max-width:100%;max-height:120px;object-fit:cover;display:block;">
+                                    </div>
+                                    <div id="featuredEmpty" class="text-secondary small <?php echo $postFeaturedImageValue !== '' ? 'd-none' : ''; ?>">Noch kein Beitragsbild ausgewählt.</div>
+                                    <input type="hidden" name="featured_image" id="featuredInput" value="<?php echo htmlspecialchars($postFeaturedImageValue); ?>">
+                                    <input type="hidden" name="featured_image_temp_path" id="featuredInput_temp_path" value="">
+                                    <div class="d-flex gap-2 mt-auto">
+                                        <button type="button" class="btn btn-outline-primary btn-sm w-100" id="btnSelectImage">Bild auswählen</button>
+                                        <button type="button" class="btn btn-outline-secondary btn-sm <?php echo $postFeaturedImageValue !== '' ? '' : 'd-none'; ?>" id="btnRemoveImage">Entfernen</button>
+                                    </div>
+                                </div>
                             </div>
-                            <div id="featuredEmpty" class="text-secondary small <?php echo $postFeaturedImageValue !== '' ? 'd-none' : ''; ?>">Noch kein Beitragsbild ausgewählt.</div>
-                            <input type="hidden" name="featured_image" id="featuredInput" value="<?php echo htmlspecialchars($postFeaturedImageValue); ?>">
-                            <input type="hidden" name="featured_image_temp_path" id="featuredInput_temp_path" value="">
-                            <div class="d-flex gap-2 mt-auto">
-                                <button type="button" class="btn btn-outline-primary btn-sm w-100" id="btnSelectImage">Bild auswählen</button>
-                                <button type="button" class="btn btn-outline-secondary btn-sm <?php echo $postFeaturedImageValue !== '' ? '' : 'd-none'; ?>" id="btnRemoveImage">Entfernen</button>
+                        </div>
+                        <div class="col-12 d-flex">
+                            <div class="card cms-edit-card cms-edit-top-card w-100">
+                                <div class="card-header">
+                                    <h3 class="card-title">Aktionen</h3>
+                                </div>
+                                <div class="card-body d-flex flex-column gap-2">
+                                    <button type="submit" class="btn btn-primary w-100">
+                                        <?php echo $isNew ? 'Erstellen' : 'Aktualisieren'; ?>
+                                    </button>
+                                    <?php if (!$isNew): ?>
+                                    <div class="d-flex gap-2">
+                                        <a href="<?php echo $postPreviewUrl; ?>" class="btn btn-outline-secondary w-100" target="_blank" rel="noopener noreferrer" title="Vorschau Deutsch">
+                                            Public View DE
+                                        </a>
+                                        <a href="<?php echo htmlspecialchars($postPreviewUrlEn); ?>" class="btn btn-outline-secondary w-100" target="_blank" rel="noopener noreferrer" title="English public preview">
+                                            Public View EN
+                                        </a>
+                                    </div>
+                                    <?php endif; ?>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -201,18 +250,6 @@ $defaultContentLanguage = $isEnglishOnlyPost ? 'en' : 'de';
                                 </select>
                                                         <div class="form-hint mt-2">Wenn der Status auf <strong>Veröffentlicht</strong> steht und Datum/Uhrzeit in der Zukunft liegen, wird der Beitrag automatisch erst zu diesem Zeitpunkt öffentlich sichtbar. <strong>Privat</strong> ist nur für eingeloggte Mitglieder sichtbar.</div>
                             </div>
-                            <div class="mb-0">
-                                <label class="form-label" for="categoryId">Kategorie</label>
-                                <select class="form-select" id="categoryId" name="category_id">
-                                    <option value="0">Keine Kategorie</option>
-                                    <?php foreach ($categories as $cat): ?>
-                                        <option value="<?php echo (int)$cat['id']; ?>" <?php if ($categoryId === (int)$cat['id']) echo 'selected'; ?>>
-                                            <?php echo htmlspecialchars((string) ($cat['option_label'] ?? $cat['name'] ?? '')); ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                                <div class="form-hint">Primäre Kategorie für Listen, Archive und Vorschau.</div>
-                            </div>
                             <div class="row g-2 mt-1">
                                 <div class="col-sm-7">
                                     <label class="form-label" for="publishDate">Veröffentlichungsdatum</label>
@@ -225,47 +262,10 @@ $defaultContentLanguage = $isEnglishOnlyPost ? 'en' : 'de';
                             </div>
                             <div class="form-hint mt-2">Wenn der Status auf <strong>Veröffentlicht</strong> steht und Datum/Uhrzeit in der Zukunft liegen, wird der Beitrag automatisch erst zu diesem Zeitpunkt öffentlich sichtbar.</div>
                             <div class="mt-3">
-                                <label class="form-label" for="additionalCategoryIds">Zusätzliche Kategorien</label>
-                                <select class="form-select" id="additionalCategoryIds" name="additional_category_ids[]" multiple size="7">
-                                    <?php foreach ($categories as $cat): ?>
-                                        <?php $catIdValue = (int)($cat['id'] ?? 0); ?>
-                                        <option value="<?php echo $catIdValue; ?>" <?php echo in_array($catIdValue, $additionalCategoryIds, true) ? 'selected' : ''; ?>>
-                                            <?php echo htmlspecialchars((string) ($cat['option_label'] ?? $cat['name'] ?? '')); ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                                <div class="form-hint">Mehrfachauswahl mit <kbd>Strg</kbd>/<kbd>Cmd</kbd>. Die primäre Kategorie oben bleibt führend.</div>
-                            </div>
-                            <div class="mt-3">
-                                <label class="form-label" for="postTags">Tags</label>
-                                <input type="text" class="form-control" id="postTags" name="tags" value="<?php echo $tagString; ?>" list="postTagsSuggestions" placeholder="z. B. Microsoft 365, PowerShell, Security">
-                                <div class="form-hint">Mehrere Tags mit Komma trennen.</div>
-                                <?php if (!empty($availableTags)): ?>
-                                <datalist id="postTagsSuggestions">
-                                    <?php foreach ($availableTags as $tag): ?>
-                                    <option value="<?php echo htmlspecialchars((string)($tag['name'] ?? ''), ENT_QUOTES); ?>"></option>
-                                    <?php endforeach; ?>
-                                </datalist>
-                                <?php endif; ?>
-                            </div>
-                            <div class="mt-3">
                                 <label class="form-label" for="authorDisplayName">Autoren-Anzeigename im Artikel</label>
                                 <input type="text" class="form-control" id="authorDisplayName" name="author_display_name" value="<?php echo $authorDisplayName; ?>" maxlength="150" placeholder="Leer lassen = normaler 365CMS-Anzeigename des Autors">
                                 <div class="form-hint">Optionaler Override nur für diesen Beitrag. Wenn leer, wird automatisch der Anzeigename des zugewiesenen 365CMS-Autors verwendet.</div>
                             </div>
-                        </div>
-                        <div class="card-footer d-flex gap-2">
-                            <button type="submit" class="btn btn-primary w-100">
-                                <?php echo $isNew ? 'Erstellen' : 'Aktualisieren'; ?>
-                            </button>
-                            <?php if (!$isNew): ?>
-                                <a href="<?php echo $postPreviewUrl; ?>" class="btn btn-outline-secondary" target="_blank" rel="noopener noreferrer" title="Vorschau">
-                                    DE
-                                </a>
-                                <a href="<?php echo htmlspecialchars($postPreviewUrlEn); ?>" class="btn btn-outline-secondary" target="_blank" rel="noopener noreferrer" title="English preview">
-                                    EN
-                                </a>
-                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
@@ -586,6 +586,10 @@ $defaultContentLanguage = $isEnglishOnlyPost ? 'en' : 'de';
             'formId' => 'postForm',
             'mediaUploadUrl' => rtrim((defined('SITE_URL') ? SITE_URL : ''), '/') . '/api/media',
             'csrfToken' => $editorMediaToken ?? '',
+            'initialCopyOnFirstActivate' => [
+                'sourceKey' => 'de',
+                'targetKey' => 'en',
+            ],
             'editors' => [
                 ['key' => 'de', 'holderId' => 'editorjs', 'inputId' => 'contentInput', 'lazy' => false],
                 ['key' => 'en', 'holderId' => 'editorjsEn', 'inputId' => 'contentInputEn', 'lazy' => $defaultContentLanguage !== 'en', 'activateButtonId' => 'postLangToggleEn'],
