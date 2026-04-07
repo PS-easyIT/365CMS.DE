@@ -1019,41 +1019,383 @@ Interne Redirects und Formularziele sollten sauber auf die tatsächliche Admin-R
 - niemals ZIP-Inhalte blind entpacken
 - niemals annehmen, dass Theme-/Plugin-Code harmlos ist, nur weil er hübsch kommentiert wurde
 
+### 22.11 Release- und Doku-Synchronität als Pflicht
+
+Historisch traten mehrfach Zustände auf, in denen README, Changelog, `Version.php`, `update.json` oder Live-Auslieferung nicht denselben Stand kommunizierten.
+
+Deshalb gilt:
+
+- Release-Stand immer gleichzeitig in sichtbarer Version, Update-Metadaten und Doku synchronisieren
+- neue Core-Auth-, Routing- oder Admin-Verträge immer auch in der technischen Doku nachziehen
+- sichtbare Live-Version nicht als Wahrheit behandeln, wenn Repo und Deployment auseinanderlaufen können
+- bei Änderungen an Produkt- oder Rechtspfaden immer auch öffentliche Navigation, Footer und Vertrauensseiten mitprüfen
+
+### 22.12 UI-Hinweise gehören an dieselben Verträge wie die Logik
+
+Viele Audit-Batches zeigen, dass Probleme nicht nur in der Fachlogik, sondern in unklaren UI-Verträgen steckten.
+
+Darum:
+
+- Grenzwerte, Limits, erlaubte Endungen, Hostregeln und Sperrgründe nicht nur serverseitig verstecken, sondern im UI sichtbar machen
+- Erfolg, Warnung und Fehler möglichst über gemeinsame Partials/Alert-Verträge rendern
+- Formulare, Tabs, Modale und Redirect-Ziele so bauen, dass nach Fehlern derselbe Bedienkontext erhalten bleibt
+- keine Sonderlogik pro View erfinden, wenn bereits ein gemeinsamer Shell-, Flash- oder Asset-Vertrag existiert
+
+### 22.13 JS darf niemals die einzige Wahrheit sein
+
+Mehrere frühere Fehler betrafen Buttons, Modale oder Confirm-Flows, die optisch da waren, aber funktional nicht feuerten.
+
+Deshalb:
+
+- kritische Mutationen bevorzugt über echte POST-Formulare absichern
+- JavaScript als Komfortschicht sehen, nicht als einzigen Auslöser fachkritischer Aktionen
+- Delete-, Install-, Save- und Bulk-Aktionen gegen Doppel-Submits absichern
+- bei Dropdown-/Modal-Interaktionen Fallbacks für Timing-Probleme und fehlende Trigger mitdenken
+
+### 22.14 Fail-closed vor bequem
+
+Die erfolgreichsten Härtungen der letzten Releases folgten fast immer demselben Muster: lieber sauber blockieren als „irgendwie versuchen“.
+
+Das gilt besonders für:
+
+- Redirect-Ziele
+- Dateisystemzugriffe
+- ZIP-/Marketplace-Installationen
+- Root-Dateien wie SEO-Keydateien
+- Remote-Downloads
+- Auth-Weiterleitungen
+- Theme-/Plugin-Laufzeitpfade
+
+Wenn Lesbarkeit, Host, Größe, Zielpfad, Dateityp oder Capability nicht eindeutig passen, wird der Pfad geschlossen statt erraten.
+
 ---
 
-## 23. Häufige Stolperfallen
+## 23. Audit-Erkenntnisse, die nicht wieder verloren gehen dürfen
 
-### 23.1 Theme-Pfad-Verwechslung
+Die folgenden Punkte sind nicht theoretisch, sondern aus realen Fixes, Audit-Batches und regressionsanfälligen Stellen abgeleitet.
+
+### 23.1 Admin-Entries müssen dünn bleiben
+
+Viele Admin-Dateien wurden schrittweise auf gemeinsame Shells und kleine Action-Verträge umgebaut.
+
+Nicht wieder einreißen:
+
+- Entry-Dateien normalisieren Request-Daten, prüfen Capability/CSRF und dispatchen gezielt
+- Fachlogik gehört in Module/Services, nicht in lange `if/elseif`-Ketten im Entry
+- Redirects, Flash-Meldungen und Asset-Einbindung sollen über gemeinsame Wrapper laufen
+- Inline-Sonderpfade pro Entry erhöhen Regressionen massiv
+
+Kurzform:
+
+**Entry = Guard + Normalisierung + Dispatch + definierter Rückweg**
+
+### 23.2 Shared Shells und Partials sind Stabilitätsgewinn, kein Overhead
+
+Die Einführung bzw. Nutzung gemeinsamer Admin-Shells, Flash-Partials und Redirect-Wrapper war einer der größten Stabilisierungshebel.
+
+Darum künftig:
+
+- `section-page-shell` nicht umgehen, wenn eine Seite denselben Musterfall hat
+- `flash-alert` für Status-/Fehleranzeigen bevorzugen
+- Alias-Entrys möglichst als kleine Redirect-Wrapper halten
+- neue Sonderlayouts nur dann einführen, wenn der bestehende Shell-Vertrag fachlich wirklich nicht reicht
+
+### 23.3 View-Templates dürfen keine heimlichen Controller sein
+
+Ein wiederkehrendes Audit-Muster war zu viel Laufzeit- und Zustandscode direkt im Template.
+
+Nicht wiederholen:
+
+- keine großen Inline-Skripte in Views, wenn es ein dediziertes Asset geben kann
+- keine komplexen Status-, Rechte- oder Mapping-Entscheidungen verstreut im Markup
+- vorbereitete ViewModels bevorzugen statt lose Array-Mischungen und Hilfsfunktionen im Template
+- Confirm-Texte, Status-Badges, Grenzen und Hilfetexte serverseitig sauber vorbereiten
+
+### 23.4 Remote-Funktionen sind Premium-Risiko
+
+Marketplace, Feed-Verarbeitung, Git-/ZIP-Sync, Mail-/Graph-Anbindungen und andere Remote-Pfade sind historisch die riskantesten Stellen.
+
+Pflichtregeln:
+
+- Hosts allowlisten
+- Redirects neu validieren
+- Dateigrößen und Content-Typen begrenzen
+- Timeouts und Retry-Verhalten bewusst definieren
+- Antworten cachen, aber Fallbacks klar kennzeichnen
+- keine blinden Downloads oder Extraktionen in Live-Zielverzeichnisse
+- wenn möglich Staging-/Swap-Modell statt Direkt-Overwrite
+
+### 23.5 Dateisystem-Pfade sind immer Feindgebiet
+
+Theme-Explorer, Font-Manager, Indexing, Media, Marketplace, Customizer und Download-Pfade zeigten immer wieder, wie schnell Dateizugriffe unsauber werden.
+
+Deshalb:
+
+- nur kanonische Realpaths verwenden
+- Root-Verzeichnisse strikt begrenzen
+- Skip-Segmente wie `vendor`, `node_modules`, `dist` und ähnliche Hotspots bewusst aussparen, wenn Bearbeitung dort nicht nötig ist
+- Größen-, Tiefen- und Dateianzahl-Limits setzen
+- schreibgeschützte oder unzulässige Dateien im UI früh sichtbar sperren
+
+### 23.6 Logs ja, Leaks nein
+
+Mehrere Fixes entfernten rohe Exception-Texte aus öffentlichen oder Admin-nahen Antworten.
+
+Faustregel:
+
+- technische Details ins Log oder Audit-Log
+- UI zeigt verständliche, aber generische Fehlermeldungen
+- keine Stacktraces, Pfade, SQL-Fragmente oder Remote-Fehler roh an Nutzer oder Admin-Views durchreichen
+- Debug-Ausgaben nur lokal bzw. kontrolliert
+
+### 23.7 Capability vor Route vor Aktion
+
+Viele spätere Audit-Batches bestanden im Grunde darin, lose Admin-Zugriffe wieder enger an Capabilities zu binden.
+
+Reihenfolge für Mutationen:
+
+1. Capability prüfen
+2. Aktion allowlisten
+3. IDs/Slugs/Parameter normalisieren
+4. CSRF prüfen
+5. Modul/Service aufrufen
+
+Nicht umgekehrt. Erst recht nicht „erst mal handeln, später schauen“.
+
+---
+
+## 24. Konkrete Regressionen aus dem Changelog, die nie wieder auftauchen dürfen
+
+### 24.1 Auth darf nicht themeabhängig werden
+
+Die Einführung der CMS-eigenen Auth-Strecke hat klargestellt:
+
+- Login, Registrierung und Passwort-Reset sind Core-Funktionalität
+- Theme-Templates dürfen die UX gestalten, aber nicht den kanonischen Auth-Pfad definieren
+- MFA, Passkey, LDAP und klassische Passwort-Logins müssen denselben Session-Vertrag abschließen
+- Remember-Me darf nicht auf Teilpfaden verloren gehen
+
+Wenn neue Auth-Features entstehen, müssen sie gegen denselben Abschlussvertrag geprüft werden.
+
+### 24.2 Redirects müssen same-origin und locale-aware bleiben
+
+Mehrere Fixes zielten auf offene Redirect-Kanten, falsche MFA-Sprünge oder Hostwechsel.
+
+Dauerregel:
+
+- Redirects nur auf interne, normalisierte Zielpfade
+- keine Host-/Schema-Sprünge aus Benutzerinput übernehmen
+- `//`-Ziele, `..`-Segmente und Auth-Loops blockieren
+- Sprach-/Locale-Pfade explizit und deterministisch behandeln
+
+### 24.3 User-Delete-Flows dürfen nicht an UI-Tricks hängen
+
+Der Benutzer-Löschpfad war ein Paradebeispiel für fragile Admin-Interaktion.
+
+Nie wieder:
+
+- nested Forms
+- Delete-Buttons, die nur über indirekte HTML-/Browser-Sonderlogik feuern
+- Form-Targets, die hart auf `SITE_URL` oder fremde Hosts zeigen
+- `REQUEST_URI` blind als absolute URL vertrauen
+
+Stattdessen:
+
+- native POST-Formulare
+- hostneutrale interne Admin-Pfade
+- sauber normalisierte Rückleitungen
+- sichtbarer Danger-Bereich mit echtem Submit-Vertrag
+
+### 24.4 Editor.js braucht Live-Admin-Parität
+
+Historisch wurden Features oder Fixes an Editor.js teils nur an einer Stelle nachgezogen.
+
+Deshalb bei jeder Editor-Änderung prüfen:
+
+- Asset-Service-Konfiguration
+- Live-Admin-Editor-Skript
+- Renderer
+- Sanitizer
+- Toolbar-/Block-Sichtbarkeit im echten Edit-Flow
+
+Sonst entstehen „Feature existiert, aber Redakteur sieht es nicht“-Fehler.
+
+### 24.5 Mehrsprachigkeit ist kein Nachgedanke
+
+Mehrere Fehler betrafen DE/EN-Sync, `_en`-Felder, falsche Sprachpfade oder gemischte Ausgabe.
+
+Nicht wiederholen:
+
+- EN-Editor nicht leer oder kaputt initialisieren
+- Suchindex nur auf DE-Felder hören lassen
+- falsche Save-Hooks für Reindexing nutzen
+- Sprachwechsel oder Gegenpfade lose aus Slugs erraten
+- englische Pflichtseiten, Footer oder UI-Strings halb deutsch ausliefern
+
+### 24.6 404- und Redirect-Tools müssen schmutzige Daten aushalten
+
+UTF-8-Probleme, Referrer-/User-Agent-Müll und fragile Modal-Initialisierung führten bereits zu stillen No-ops.
+
+Daher:
+
+- JSON-Übergaben robust gegen ungültige Zeichen machen
+- Modale über delegierte Events und Fallbacks initialisieren
+- 404-Übernahmefunktionen gegen kaputte Logdaten härten
+- gemeinsame SEO-JS-Pfade immer als zentrale Quelle behandeln
+
+### 24.7 Menüs brauchen semantische Root-Logik
+
+Die Startseite ist kein exotischer Sonderfall, sondern das häufigste Ziel.
+
+Darum:
+
+- `home`, `homepage`, `startseite`, `index.php` und ähnliche Aliasse konsistent auf `/` normalisieren
+- leere Home-Einträge fachlich sinnvoll als Root interpretieren, wenn Titel und Struktur klar sind
+- slugbasierte interne Pfade ohne unnötige Strenge akzeptieren, wenn sie gültig normalisierbar sind
+
+### 24.8 Theme-Customizer und Shell-CSRF dürfen sich nicht gegenseitig erschießen
+
+Ein klassischer Fehler war der doppelte Verbrauch eines One-shot-Tokens.
+
+Merksatz:
+
+- wenn die Admin-Shell einen CSRF-Kontext bereits sicher geprüft hat, darf die eingebettete Komponente denselben Einweg-Token nicht erneut verbrauchen
+- eingebettete Customizer brauchen einen klar dokumentierten CSRF-Vertrag mit der Shell
+
+### 24.9 Medienaktionen müssen auch ohne Magie belastbar sein
+
+Löschen, Umbenennen, Verschieben, Bulk-Aktionen und Member-Medien waren mehrfach regressionsanfällig.
+
+Regeln:
+
+- Aktionen serverseitig vollständig unterstützen
+- Dropdown-/Modal-UI nur als Bedienoberfläche, nicht als Fachlogik
+- Ordnerpfade strikt auf erlaubte Roots begrenzen
+- Member-Unterordner nicht fälschlich als Systempfade behandeln
+- Bulk-Aktionen müssen doppelte Unterpfad-Operationen vermeiden
+
+### 24.10 Legal-/Trust-Pfade sind produktionskritisch
+
+Live-Audits zeigten, dass Footer- oder Formularlinks zu `Impressum`, `Datenschutz` oder `AGB` real in 404 laufen können.
+
+Deshalb gelten Rechtsseiten als Release-Blocker:
+
+- aktiv verlinkte Pflichtseiten müssen erreichbar sein
+- DE/EN-Pflichtseiten dürfen nicht sprachlich inkonsistent sein
+- Footer-, Login-, Register- und Kontaktpfade immer gegen Live-Routing prüfen
+
+---
+
+## 25. Audit-Fokuszonen mit dauerhaft erhöhter Aufmerksamkeit
+
+Bestimmte Bereiche haben sich als strukturelle Hotspots gezeigt. Änderungen dort brauchen automatisch mehr Skepsis, mehr Gegenprüfungen und meistens mehr Regressionstests.
+
+### 25.1 Kritische Hotspots
+
+- `CMS/admin/theme-editor.php`
+- `CMS/admin/theme-marketplace.php`
+- `CMS/admin/plugin-marketplace.php`
+- `CMS/admin/media.php`
+- `CMS/admin/views/posts/edit.php`
+- `CMS/assets/js/admin-content-editor.js`
+- `CMS/assets/js/admin-media-integrations.js`
+- `CMS/core/Services/BackupService.php`
+- `CMS/core/Services/UpdateService.php`
+- `CMS/core/Services/FileUploadService.php`
+- `CMS/core/Services/PdfService.php`
+- `CMS/member/includes/class-member-controller.php`
+
+Diese Bereiche vereinen oft mehrere Risiken gleichzeitig:
+
+- Dateisystem
+- Remote-I/O
+- große Payloads
+- Rollen-/Berechtigungslogik
+- komplexe UI
+- hohe Seiteneffekte
+
+### 25.2 Typische Audit-Muster in Hotspots
+
+- zu breite Request-Payloads
+- zu viele Verantwortlichkeiten in einer Klasse/Datei
+- doppelte oder divergierende View-/JS-/Service-Verträge
+- unklare Redirect- und Rücksprungziele
+- leaky Fehlermeldungen
+- fehlende Pending-/Submit-Guards
+- teure Vollscans oder unnötige Komplettdaten in GET-Pfaden
+
+### 25.3 Was bei Hotspots immer mitgedacht werden muss
+
+- Capability und CSRF
+- Datei-/Pfadgrenzen
+- Größenlimits
+- dedizierte Fehlermeldungen im Log statt in der UI
+- PRG- oder klarer Rücksprungpfad
+- DE/EN-/Locale-Verhalten
+- Hostneutralität und Same-Origin
+- Bulk- und Parallelaufrufe
+
+---
+
+## 26. Live-Betrieb und Audit-Readiness
+
+### 26.1 Live-Audits sollen reale Nutzerpfade bewerten
+
+Nicht jede 404 ist schlimm. Kritisch sind:
+
+- aktiv verlinkte Footer-Ziele
+- Sprachumschalter
+
+---
+
+## 27. Erweiterte Nicht-wieder-tun-Liste
+
+- keine verschachtelten Formulare in Admin-Views
+- keine absoluten Fremd-Hosts in internen Admin-Posts/Redirects
+- keine Inline-Event-Handler als primären Interaktionsvertrag
+- keine stillen Leer-Arrays als Fehlerersatz für Remote-Failures
+- keine zweite Wahrheit für Limits in View und Modul
+- keine rohen Exceptions in JSON-, Checkout-, Media- oder Admin-Antworten
+- keine Dateilese- oder Downloadpfade ohne Realpath-/Root-Vertrag
+- keine Installation von Plugin-/Theme-Paketen per Direkt-Entpacken ohne klaren Staging-/Prüfpfad
+- keine Annahme, dass ein Asset-Fix ohne Prüfung der echten Live-Initialisierung reicht
+- keine Release-Freigabe mit defekten Pflichtlinks im Footer oder in Auth-/Kontaktpfaden
+
+---
+
+## 28. Häufige Stolperfallen
+
+### 28.1 Theme-Pfad-Verwechslung
 
 Änderungen im Theme-Quellrepo wirken nicht automatisch auf das laufende CMS. Live zählt der Pfad `CMS/themes/<slug>/`.
 
-### 23.2 Plugin-Pfad-Verwechslung
+### 28.2 Plugin-Pfad-Verwechslung
 
 Ein Plugin im Repo `365CMS.DE-PLUGINS/` ist noch nicht aktiv, solange es nicht im Runtime-Ordner liegt.
 
-### 23.3 Redirect-/404-UI nur halb gefixt
+### 28.3 Redirect-/404-UI nur halb gefixt
 
 Wenn Redirect- und 404-Dialoge auf gemeinsames JavaScript setzen, muss der Fix dort ansetzen, nicht nur in einer einzelnen View.
 
-### 23.4 Editor.js nur an einer Stelle geändert
+### 28.4 Editor.js nur an einer Stelle geändert
 
 Die sichtbare Live-Editor-Konfiguration kann an anderer Stelle sitzen als der Asset-Service. Beides muss bei Bedarf angepasst werden.
 
-### 23.5 Suche hört auf falsche Hooks
+### 28.5 Suche hört auf falsche Hooks
 
 Wenn Suchindexierung an falschen Events hängt, bleibt Content unsichtbar oder veraltet, besonders bei mehrsprachigen Feldern.
 
-### 23.6 Menü-Startseite nicht normalisiert
+### 28.6 Menü-Startseite nicht normalisiert
 
 Home-/Startseitenpfade müssen als Root logisch behandelt werden. Sonst erzeugt ein eigentlich korrekter Menüeintrag unnötige Validierungsfehler.
 
-### 23.7 Fremdschlüssel generisch benannt
+### 28.7 Fremdschlüssel generisch benannt
 
 Constraint-Namen müssen schemaweit eindeutig sein, sonst scheitern Installer/Migrationen auf realen Datenbanken.
 
 ---
 
-## 24. Technische Checkliste vor Änderungen
+## 29. Technische Checkliste vor Änderungen
 
 Vor größeren Eingriffen prüfen:
 
@@ -1066,9 +1408,17 @@ Vor größeren Eingriffen prüfen:
 - Sind Theme-/Plugin-Laufzeitverträge weiterhin erfüllt?
 - Entsteht zusätzlicher Audit- oder Logging-Bedarf?
 
+Zusätzlich bei historisch regressionsanfälligen Änderungen:
+
+- Ändere ich einen Pfad, der auch in gemeinsamem Admin-JavaScript verwendet wird?
+- Greift ein Shell-/Wrapper-/Partial-Vertrag, den ich nicht versehentlich umgehe?
+- Könnte die Änderung DE/EN, Auth, Redirects oder Live-Pflichtseiten indirekt beeinflussen?
+- Verliert die UI bei Fehlern den Tab-, Filter- oder Edit-Kontext?
+- Braucht die Änderung ein sichtbares Limit, Warning oder Pending-State im UI?
+
 ---
 
-## 25. Abschlussbild
+## 30. Abschlussbild
 
 365CMS ist kein kleines Ein-Datei-CMS mehr, sondern ein verteiltes Anwendungssystem mit Security-, Service-, Routing-, Theme-, Plugin-, SEO-, Monitoring- und Member-Schichten. Wer daran entwickelt, sollte nicht nur „die betroffene Datei“ sehen, sondern immer die Laufzeitkette mitdenken:
 
