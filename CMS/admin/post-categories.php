@@ -33,7 +33,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $result = $module->saveCategory($_POST);
             break;
         case 'delete_category':
-            $result = $module->deleteCategory((int) ($_POST['cat_id'] ?? 0));
+            $result = $module->deleteCategory(
+                (int) ($_POST['cat_id'] ?? 0),
+                (int) ($_POST['replacement_category_id'] ?? 0)
+            );
             break;
         case 'delete_categories_with_replacement':
             $result = $module->deleteCategoriesWithStoredReplacement();

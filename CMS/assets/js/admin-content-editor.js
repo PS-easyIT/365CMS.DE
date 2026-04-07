@@ -414,13 +414,24 @@
         }
 
         function syncEditorInputFromInstance(key) {
-            if (!editors[key] || !editors[key].instance || typeof editors[key].instance.save !== 'function') {
+            var editorState = editors[key];
+            var editorInstance;
+            var readyPromise;
+
+            if (!editorState || !editorState.instance || typeof editorState.instance.save !== 'function') {
                 return Promise.resolve(getEditorInputValue(key));
             }
 
-            return editors[key].instance.save().then(function (output) {
+            editorInstance = editorState.instance;
+            readyPromise = editorInstance.isReady && typeof editorInstance.isReady.then === 'function'
+                ? editorInstance.isReady
+                : Promise.resolve();
+
+            return readyPromise.then(function () {
+                return editorInstance.save();
+            }).then(function (output) {
                 var serialized = JSON.stringify(output || {});
-                editors[key].input.value = serialized;
+                editorState.input.value = serialized;
                 return serialized;
             }).catch(function () {
                 return getEditorInputValue(key);

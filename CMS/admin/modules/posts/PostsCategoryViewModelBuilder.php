@@ -45,7 +45,7 @@ final class PostsCategoryViewModelBuilder
             $row['parent_id'] = (int) ($row['parent_id'] ?? 0);
             $row['sort_order'] = (int) ($row['sort_order'] ?? 0);
             $row['replacement_category_id'] = (int) ($row['replacement_category_id'] ?? 0);
-            $row['post_count_direct'] = (int) ($row['post_count'] ?? 0);
+            $row['post_count_direct'] = (int) ($row['assigned_post_count'] ?? $row['post_count'] ?? 0);
             $row['domains'] = $this->decodeCategoryDomains((string) ($row['alias_domains_json'] ?? ''));
             $byId[$id] = $row;
         }
