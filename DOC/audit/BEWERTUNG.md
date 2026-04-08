@@ -92,6 +92,12 @@ Der aktuelle Nachpflege-Stand umfasst damit **465 umgesetzte Batches**, davon we
 |---|---|---|---|
 | `CMS/core/Services/DashboardService.php`, `DOC/audit/AdminAudit-*.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Für den neu gestarteten Admin-Gesamtaudit wurde eine vollständige Arbeitsmappe unter `DOC/audit/AdminAudit-*.md` angelegt; parallel verweist der Dashboard-Hinweis `HTTPS nicht aktiv` jetzt nicht länger auf die tote Schattenroute `/admin/system`, sondern auf den realen Prüfpfad `/admin/security-audit`. | Die weitere Admin-Prüfung kann jetzt top-down auf einer sauberen Dokumentationsbasis weiterlaufen, und der erste Dashboard-Attention-Fund endet nicht mehr in einer ungültigen Admin-Zielroute. Die zuletzt ausgewiesenen Aggregate aus Batch 465 bleiben für diesen kleinen Routing-/Dokubatch unverändert belastbar. |
 
+### Delta Folge-Batch 467
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/posts.php`, `CMS/core/Routing/ApiRouter.php`, `DOC/audit/AdminAudit-Beitraege.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Der Beiträge-Bereich verlangt jetzt bereits am Entry und am Grid-JSON-Endpoint dieselbe Capability `edit_all_posts`, statt Admin-Nutzer erst nach sichtbarem Listen-/Edit-Kontext an späteren Action- oder AI-Guards scheitern zu lassen. | Beitragsverwaltung verhält sich konsistenter zu Seiten und zu den vorhandenen Write-/AI-Verträgen: Benutzer ohne passende Capability landen nicht mehr in einer halboffenen Oberfläche mit nachgelagerten Berechtigungsabbrüchen. Die Gesamtkennzahlen bleiben für diesen kleinen RBAC-Batch praktisch stabil. |
+
 ### Delta Folge-Batch 465
 
 | Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |

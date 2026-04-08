@@ -153,7 +153,7 @@ final class ApiRouter
 
     public function jsonAdminPosts(): void
     {
-        $this->requireAdmin();
+        $this->requireAdminCapability('edit_all_posts', 'Zugriff auf die Beitragsliste verweigert');
         header('Content-Type: application/json; charset=utf-8');
         $db = Database::instance();
         $prefix = $db->getPrefix();
@@ -381,6 +381,16 @@ final class ApiRouter
             http_response_code(403);
             header('Content-Type: application/json');
             echo json_encode(['error' => 'Zugriff verweigert']);
+            exit;
+        }
+    }
+
+    private function requireAdminCapability(string $capability, string $message = 'Zugriff verweigert'): void
+    {
+        if (!Auth::instance()->isAdmin() || !Auth::instance()->hasCapability($capability)) {
+            http_response_code(403);
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode(['error' => $message], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
             exit;
         }
     }

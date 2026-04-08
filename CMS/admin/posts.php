@@ -30,7 +30,7 @@ const CMS_ADMIN_POSTS_WRITE_CAPABILITY = 'edit_all_posts';
 
 function cms_admin_posts_can_access(): bool
 {
-    return Auth::instance()->isAdmin();
+    return Auth::instance()->isAdmin() && Auth::instance()->hasCapability(CMS_ADMIN_POSTS_WRITE_CAPABILITY);
 }
 
 function cms_admin_posts_target_url(?int $id = null): string
