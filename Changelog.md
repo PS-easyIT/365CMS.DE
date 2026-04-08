@@ -1,4 +1,4 @@
-﻿﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.2-blue.svg)](https://shields.io/)
+﻿﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.10-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -17,6 +17,78 @@
 ---
 
 ## 📜 Vollständige Versionshistorie
+
+---
+
+### v2.9.10 — 08. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.10** | 🔴 fix | Assets/Design | **`CMS/assets/js/admin-font-manager.js` nutzt `requestSubmit(submitter)` jetzt nur noch mit echten Submit-Buttons**: Bestätigte Font-Löschungen scheitern damit in modernen Browsern nicht mehr daran, dass der sichtbare Delete-Trigger bewusst `type="button"` trägt und als unzulässiger Submitter an die Formular-API gereicht wurde. |
+| **2.9.10** | 🔵 docs | Audit/Design | **`DOC/audit/AdminAudit-Design.md` und `DOC/audit/AssetAudit-Design.md` dokumentieren den Font-Manager-Delete-Fund jetzt direkt im Design- und Asset-Audit**: Der Submitter-Bruch zwischen Confirm-Dialog und Delete-Formular ist damit nicht nur behoben, sondern auch belastbar verankert. |
+| **2.9.10** | 🔵 docs | Release | **`README.md`, `Changelog.md`, `CMS/core/Version.php` und `CMS/update.json` wurden auf den Release-Stand `2.9.10` synchronisiert**: Versionsbadge, aktuelle Highlights und Update-Metadaten spiegeln damit denselben Font-Manager-Asset-Fix-Batch. |
+
+---
+
+### v2.9.9 — 08. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.9** | 🔴 fix | Assets/EditorJS | **`CMS/assets/js/admin-content-editor.js` leert beim manuellen `DE → EN`-Kopierflow jetzt eine noch offene AI-Preview-/Diff-Karte sofort mit**: Veraltete `Übernehmen`-/`Verwerfen`-Aktionen bleiben damit nicht länger sichtbar, nachdem die EN-Bearbeitung bereits per Direktkopie überschrieben wurde. |
+| **2.9.9** | 🔵 docs | Audit/Assets | **`DOC/audit/AssetAudit-EditorJS.md` dokumentiert den Shared-Asset-Fund im Editor.js-Flow jetzt explizit**: Der Zustandsbruch zwischen AI-Preview und manueller Kopie ist damit im neuen Asset-Audit-Strang direkt nachvollziehbar festgehalten. |
+| **2.9.9** | 🔵 docs | Release | **`README.md`, `Changelog.md`, `CMS/core/Version.php` und `CMS/update.json` wurden auf den Release-Stand `2.9.9` synchronisiert**: Versionsbadge, aktuelle Highlights und Update-Metadaten spiegeln damit denselben EditorJS-Asset-Fix-Batch. |
+
+---
+
+### v2.9.8 — 08. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.8** | 🔴 fix | Assets/Design | **`CMS/assets/js/admin-menu-editor.js` validiert Menüziele jetzt wieder konsistent zum `MenuEditorModule`**: slug-basierte interne Pfade ohne führenden Slash sowie leere URLs für `Startseite`-/`Home`-Einträge und echte Elternpunkte blockieren damit nicht länger schon im Browser, obwohl das Backend diese Fälle gezielt auf interne Pfade, `/` oder `#` normalisiert. |
+| **2.9.8** | 🔵 docs | Audit/Assets | **`DOC/audit/AssetAudit-INDEX.md`, `DOC/audit/AssetAudit-Design.md` und `DOC/audit/AssetAudit-EditorJS.md` legen jetzt eine eigene Asset-Audit-Arbeitsmappe an**: Design-Assets, Menü-/Theme-Explorer-/Font-Manager-JS sowie Editor.js-DE→EN-/AI-Flows sind damit analog zu den `AdminAudit*.md`-Dateien separat dokumentiert und fortführbar. |
+| **2.9.8** | 🔵 docs | Audit/Design | **`DOC/audit/AdminAudit-Design.md` und `DOC/audit/BEWERTUNG.md` dokumentieren den Menü-Editor-Asset-Fund jetzt direkt im laufenden Audit**: Der clientseitige Validierungsbruch zwischen Design-Asset und Backend-Vertrag ist damit nicht nur behoben, sondern auch im Design- und Bewertungsstrang nachvollziehbar festgehalten. |
+| **2.9.8** | 🔵 docs | Release | **`README.md`, `Changelog.md`, `CMS/core/Version.php` und `CMS/update.json` wurden auf den Release-Stand `2.9.8` synchronisiert**: Versionsbadge, aktuelle Highlights und Update-Metadaten spiegeln damit denselben Design-/Asset-Fix-Batch. |
+
+---
+
+### v2.9.7 — 08. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.7** | 🔴 fix | Admin/Themes | **`CMS/admin/theme-settings.php` nutzt jetzt den gemeinsamen `redirect-alias-shell.php`-Vertrag statt eines harten Sofort-Redirects mit totem Legacy-Restcode**: Der Theme-Settings-Querpfad prüft damit wieder sauber `manage_settings` und leitet kontrolliert auf `/admin/settings` weiter, statt als inkonsistenter Sonderfall neben dem restlichen Admin-Alias-Muster zu hängen. |
+| **2.9.7** | 🔵 docs | Audit/Admin | **`DOC/audit/AdminAudit-Themes.md` dokumentiert den kaputten Theme-Settings-Sonderroutenvertrag jetzt direkt im Themes-Audit**: Der bis dahin stille Dead-Code-/Redirect-Fund ist damit sowohl behoben als auch nachvollziehbar festgehalten. |
+| **2.9.7** | 🔵 docs | Release | **`README.md`, `Changelog.md`, `CMS/core/Version.php` und `CMS/update.json` wurden auf den Release-Stand `2.9.7` synchronisiert**: Versionsbadge, aktuelle Highlights und Update-Metadaten spiegeln damit denselben Themes-Fix-Batch. |
+
+---
+
+### v2.9.6 — 08. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.6** | 🔴 fix | Admin/Member | **`CMS/admin/member-dashboard.php` akzeptiert im Legacy-Redirect den von `redirect-alias-shell.php` übergebenen Konfigurationsparameter jetzt kompatibel**: Aufrufe von Member-Subsektionen wie `general`, `widgets`, `profile-fields` oder `notifications` scheitern damit nicht mehr mit `ArgumentCountError`, sondern leiten wieder sauber auf ihre jeweilige Legacy-Route weiter. |
+| **2.9.6** | 🔵 docs | Audit/Admin | **`DOC/audit/AdminAudit-Member.md` dokumentiert den Redirect-/Closure-Vertragsfehler jetzt direkt im Member-Audit**: Die bisher stille Inkompatibilität zwischen Alias-Wrapper und Closure-Signatur ist damit sowohl behoben als auch belastbar dokumentiert. |
+| **2.9.6** | 🔵 docs | Release | **`README.md`, `Changelog.md`, `CMS/core/Version.php` und `CMS/update.json` wurden auf den Release-Stand `2.9.6` synchronisiert**: Versionsbadge, aktuelle Highlights und Update-Metadaten spiegeln damit denselben Member-Fix-Batch. |
+
+---
+
+### v2.9.5 — 08. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.5** | 🔴 fix | Admin/Media | **`CMS/core/Services/Media/UploadHandler.php` normalisiert beim Umbenennen von Root-Dateien und Root-Ordnern den Elternpfad jetzt korrekt**: Statt Meta-Ziele über `dirname($path)` auf `.` aufzubauen, bleiben Kategorien, Uploader-Zuordnung und weitere Medien-Metadaten nach Root-Renames jetzt auf dem echten Zielpfad und driften nicht mehr auf kaputte Schlüssel wie `./datei.jpg` ab. |
+| **2.9.5** | 🔵 docs | Audit/Admin | **`DOC/audit/AdminAudit-Medien.md` dokumentiert den Root-/Parent-Handling-Fund in der Medienbibliothek jetzt explizit**: Der stille Meta-Drift nach Upload-Root-Renames ist damit nicht nur behoben, sondern direkt im Admin-Audit verankert. |
+| **2.9.5** | 🔵 docs | Release | **`README.md`, `Changelog.md`, `CMS/core/Version.php` und `CMS/update.json` wurden auf den Release-Stand `2.9.5` synchronisiert**: Versionsbadge, Hotfix-Highlights und Update-Metadaten spiegeln damit denselben Medien-Fix-Batch. |
+
+---
+
+### v2.9.4 — 08. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.4** | 🔴 fix | Admin/Users | **`CMS/admin/users.php`, `CMS/admin/views/users/list.php` und `CMS/assets/js/admin-users.js` entfernen den toten `usersGridConfig`-/GridJS-Restvertrag aus der Benutzerliste und aktivieren die bestehende Bulk-Logik wieder im UI**: Auswahl-Checkboxen, Select-all und `ids[]`-Versand machen `activate`, `deactivate` und `hard_delete` in der serverseitig gerenderten Tabelle wieder tatsächlich bedienbar. |
+| **2.9.4** | 🔴 fix | Admin/RBAC | **`CMS/admin/user-settings.php`, `CMS/admin/groups.php` und `CMS/admin/roles.php` erzwingen jetzt denselben `manage_users`-Vertrag wie `/admin/users`**: Benutzernahe Konfiguration, Gruppen- und Rollenverwaltung bleiben damit nicht länger lockerer geschützt als die eigentliche Benutzerverwaltung. |
+| **2.9.4** | 🔵 docs | Audit/Admin | **`DOC/audit/AdminAudit-Benutzer.md` und `DOC/audit/AdminAudit-Gruppen.md` dokumentieren die jetzt nachgezogenen Verdrahtungsfunde direkt am Bereich**: tote Users-Grid-Assets, fehlende Bulk-Erreichbarkeit und das inkonsistente Capability-Gating sind dort belastbar festgehalten. |
+| **2.9.4** | 🔵 docs | Release | **`README.md`, `Changelog.md`, `CMS/core/Version.php` und `CMS/update.json` wurden auf den Release-Stand `2.9.4` synchronisiert**: Versionsbadge, Hotfix-Highlights und Update-Metadaten zeigen damit denselben aktuellen Audit-Batch. |
 
 ---
 
@@ -41,6 +113,17 @@
 | **2.9.2** | 🔵 docs | AI/Settings | **`DOC/ai/AI-SERVICES.md`, `DOC/admin/system-settings/AI-SERVICES.md`, `DOC/admin/system-settings/README.md`, `README.md` und `Changelog.md` dokumentieren jetzt die konkrete 365CMS-Datenstruktur für `ai.providers`, `ai.features`, `ai.translation`, `ai.logging` und `ai.quotas`**: Die Doku trennt nun klar zwischen bereits vorhandener Settings-/Admin-Hülle und noch fehlender Provider-Ausführung, Editor.js-Integration sowie produktivem Preview-Workflow. |
 | **2.9.2** | 🔵 docs | AI/Runtime | **`DOC/ai/AI-SERVICES.md`, `DOC/admin/system-settings/AI-SERVICES.md`, `README.md` und `Changelog.md` dokumentieren jetzt zusätzlich Provider-Gateway, eingebauten `mock`-Provider, den Endpoint `/admin/ai-translate-editorjs`, die Editor.js-DE→EN-Mock-Pipeline und den neuen Preview-/Diff-Schritt**: Die Doku trennt nun klar zwischen vorhandener Mock-Runtime mit Review-Schritt und weiterhin fehlenden externen Live-Provider-Requests. |
 | **2.9.2** | 🔵 docs | Release | **`README.md`, `Changelog.md`, `CMS/core/Version.php` und `CMS/update.json` wurden auf den Release-Stand `2.9.2` synchronisiert**: sichtbare Versionsnummer, Asset-Highlights und Update-Metadaten zeigen damit denselben aktuellen Runtime-Refresh-Stand. |
+
+---
+
+### v2.9.3 — 08. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.3** | 🔴 fix | Admin/Pages | **`CMS/admin/pages.php` und `CMS/admin/views/pages/list.php` entfernen den toten `pagesGridConfig`-/GridJS-Restvertrag aus der Seitenliste**: Die serverseitig gerenderte Tabellenansicht lädt damit keine ungenutzten Grid-Assets oder wirkungslosen Konfigurationsballast mehr nach. |
+| **2.9.3** | 🔴 fix | Admin/Posts | **`CMS/admin/modules/posts/PostsModule.php` und `CMS/admin/views/posts/edit.php` laden und speichern zusätzliche Beitrags-Kategorien jetzt wieder explizit über `additional_category_ids[]`**: Vorhandene Mehrfachzuordnungen aus `post_category_rel` gehen damit beim erneuten Bearbeiten nicht länger still verloren. |
+| **2.9.3** | 🔵 docs | Audit/Admin | **`DOC/audit/AdminAudit-Beitraege.md` und `DOC/audit/AdminAudit-Seiten.md` dokumentieren die ersten konkret nachgezogenen Verdrahtungsfehler jetzt direkt am Bereich**: Tag-Reassignment, Beitrags-RBAC, Mehrfach-Kategorien und der tote Seiten-Grid-Vertrag sind damit nicht nur gefixt, sondern auch als belastbare Audit-Funde verankert. |
+| **2.9.3** | 🔵 docs | Release | **`README.md`, `Changelog.md`, `CMS/core/Version.php` und `CMS/update.json` wurden auf den Release-Stand `2.9.3` synchronisiert**: sichtbare Versionsnummer, Hotfix-Highlights und Update-Metadaten zeigen damit denselben aktuellen Admin-Audit-Batch. |
 
 ---
 

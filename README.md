@@ -2,7 +2,7 @@
 
 <div align="center">
 
-[![Version](https://img.shields.io/badge/version-2.9.2-blue.svg)](Changelog.md)
+[![Version](https://img.shields.io/badge/version-2.9.10-blue.svg)](Changelog.md)
 ![Status](https://img.shields.io/badge/status-stable-16a34a)
 ![PHP](https://img.shields.io/badge/PHP-8.4%2B-777BB4?logo=php&logoColor=white)
 ![MySQL](https://img.shields.io/badge/MySQL-5.7%2B-4479A1?logo=mysql&logoColor=white)
@@ -91,19 +91,12 @@ Die Audits wurden mit OWASP-nahen Prüfwerkzeugen & AI Audit Tools von Snyk, Ref
 | **PHP / Best Practices** | **96,22** |
 | **Gesamt** | **96,35** |
 
-### 🆕 Aktuelle 2.9.2-Highlights
+### 🆕 Aktuelle 2.9.10-Highlights
 
-- **Runtime-Assets erneut mit frischem `/ASSETS`-Stand abgeglichen:** `Carbon 3.11.4`, `LdapRecord 4.0.3`, `Symfony Mailer/Mime/Translation 8.0.8`, `TNTSearch 5.0.3` und `dompdf 3.1.5` liegen damit produktiv wieder auf dem aktuellen verifizierten Snapshot.
-- **Editor.js-Stack gezielt nachgezogen:** Der Core wurde auf den aktuellen `2.31.6`-Stand synchronisiert, und das produktiv erwartete `delimiter.umd.js` wurde aus `editorjs-delimiter-version1.0.2` neu gebaut, statt auf eine zufällige Altdatei zu hoffen. Hoffen ist kein Deployment-Plan.
-- **SunEditor-Runtime sauber aktualisiert:** `suneditor.min.js`, `suneditor.min.css`, `suneditor-contents.min.css` und `lang/de.js` wurden erneut aus dem gebauten Runtime-Satz übernommen.
-- **Google-Translate-Staging bewusst entfernt:** Das inoffizielle Paket `google-translate-php` wurde aus `/ASSETS` entfernt und wird nicht weiter als Basis für produktive Übersetzungen geführt.
-- **AI Services jetzt auf der nächsten echten Runtime-Stufe:** Unter **`/admin/ai-services`** gibt es die Admin-Steuerung für `ai.providers`, `ai.features`, `ai.translation`, `ai.logging` und `ai.quotas`; zusätzlich laufen Post- und Page-Editoren jetzt bereits über ein Provider-Gateway samt lokalem `mock`-Provider, echter Editor.js-DE→EN-Mock-Translation ohne externen Live-Call und einem Preview-/Diff-Workflow vor der EN-Übernahme.
-- **Admin-Menü konsistenter verdrahtet:** Die Sidebar zeigt den `Theme Marketplace` jetzt korrekt unter `Themes & Design`, und Legacy-/Alias-Routen wie `system-info` oder DSGVO-Unterpfade werden intern auf ihre kanonischen Admin-Ziele normalisiert, statt als halb sichtbare Schattenseiten zu enden.
-- **Admin-Audit-Arbeitsmappe für alle Hauptbereiche angelegt:** Unter **`DOC/audit/AdminAudit-*.md`** existiert jetzt ein vollständiger Prüfindex für Dashboard, Content, Benutzer, Medien, Member, Themes/Design, SEO, Sicherheit, Performance, Recht, Plugins, System, Info und Diagnose, damit die weitere Admin-Härtung bereichsweise und nachvollziehbar abgearbeitet werden kann.
-- **Erster Dashboard-Fund direkt mitgezogen:** Der Attention-Hinweis für fehlendes HTTPS landet jetzt auf dem realen Prüfziel **`/admin/security-audit`** statt auf der nicht existierenden Schattenroute `/admin/system`.
-- **Beiträge-Zugriff folgt jetzt sauber demselben RBAC-Vertrag wie seine Schreibpfade:** `CMS/admin/posts.php` und der JSON-Endpoint `/api/v1/admin/posts` verlangen beide `edit_all_posts`, damit eingeschränkte Admins nicht erst in einer sichtbaren Beitragsoberfläche auf spätere Berechtigungsabbrüche laufen.
-- **Nur aktiv genutzte Pakete landen in der Runtime:** Unreferenzierte Kandidaten wie `cache-8.0.8`, `guzzle-7.10.0`, `php-jwt_yuliyan_1.1.3` oder `tabler-icons-3.41.1` wurden bewusst **nicht** blind in `CMS/assets/` verdrahtet.
-- **Release- und Asset-Doku nachgezogen:** `README.md`, `Changelog.md`, `CMS/core/Version.php`, `CMS/update.json`, `DOC/ASSET.md`, `DOC/assets/README.md` und `DOC/README.md` sind jetzt konsistent auf **`2.9.2`** synchronisiert.
+- **Font-Manager-Löschungen laufen in modernen Browsern wieder belastbar:** `CMS/assets/js/admin-font-manager.js` übergibt an `requestSubmit()` keinen sichtbaren Delete-Trigger vom Typ `button` mehr als unzulässigen Submitter.
+- **Confirm-Dialog und Formular-Submit sprechen wieder dieselbe Sprache:** Der Delete-Flow nutzt nach Bestätigung sauber den nativen Formular-Submit, statt an einem reinen Trigger-/Submitter-Vertragsbruch zu scheitern.
+- **Design- und Asset-Audit direkt ergänzt:** `DOC/audit/AdminAudit-Design.md` und `DOC/audit/AssetAudit-Design.md` dokumentieren den Font-Manager-Delete-Fund jetzt explizit.
+- **Release- und Bewertungsdoku mitgezogen:** `README.md`, `Changelog.md`, `CMS/core/Version.php`, `CMS/update.json` und `DOC/audit/BEWERTUNG.md` sind konsistent auf **`2.9.10`** synchronisiert.
 
 ### 🧩 Kernfunktionen im Überblick
 
@@ -207,6 +200,7 @@ Der schnellste Einstieg ist der lokale Dokumentationsindex unter [`DOC/INDEX.md`
 | Snyk-Audit `365CMS.DE` | [`DOC/audit/Snyk_Audit_04042026.md`](DOC/audit/Snyk_Audit_04042026.md) |
 | Live-Audit `365CMS.DE` | [`DOC/audit/LiveAudit_365CMS.md`](DOC/audit/LiveAudit_365CMS.md) |
 | Admin-Audit-Index | [`DOC/audit/AdminAudit-INDEX.md`](DOC/audit/AdminAudit-INDEX.md) |
+| Asset-Audit-Index | [`DOC/audit/AssetAudit-INDEX.md`](DOC/audit/AssetAudit-INDEX.md) |
 | Live-Site-Audit `phinit.de` | [`DOC/audit/PHINIT-LIVE-AUDIT-2026-04-03.md`](DOC/audit/PHINIT-LIVE-AUDIT-2026-04-03.md) |
 | Live-Audit: Localization | [`DOC/audit/PHINIT-LIVE-LOCALIZATION-2026-04-03.md`](DOC/audit/PHINIT-LIVE-LOCALIZATION-2026-04-03.md) |
 | Live-Audit: Search & Archive | [`DOC/audit/PHINIT-LIVE-SEARCH-ARCHIVE-2026-04-03.md`](DOC/audit/PHINIT-LIVE-SEARCH-ARCHIVE-2026-04-03.md) |
@@ -274,19 +268,12 @@ The audits were carried out using OWASP-oriented tooling, Snyk, refactoring pass
 | **PHP / Best Practices** | **96.22** |
 | **Overall** | **96.35** |
 
-### 🆕 Current 2.9.2 highlights
+### 🆕 Current 2.9.7 highlights
 
-- **Runtime assets were refreshed from the latest staged `/ASSETS` snapshot:** `Carbon 3.11.4`, `LdapRecord 4.0.3`, `Symfony Mailer/Mime/Translation 8.0.8`, `TNTSearch 5.0.3`, and `dompdf 3.1.5` were resynced into the live runtime paths.
-- **The Editor.js stack was updated deliberately, not magically:** core `2.31.6` files were refreshed and the required runtime `delimiter.umd.js` was rebuilt from `editorjs-delimiter-version1.0.2` so the production asset contract stays intact.
-- **SunEditor runtime files were refreshed again from the built artifact set:** `suneditor.min.js`, `suneditor.min.css`, `suneditor-contents.min.css`, and `lang/de.js` are in sync with the current staged package.
-- **The Google-Translate staging asset was intentionally removed:** the unofficial `google-translate-php` package is no longer kept inside `/ASSETS` as a baseline for production translation features.
-- **AI Services now reached the next real runtime stage inside the core:** **`/admin/ai-services`** manages `ai.providers`, `ai.features`, `ai.translation`, `ai.logging`, and `ai.quotas`, while post/page editors already use a provider gateway with a built-in local `mock` provider for real Editor.js DE→EN mock translation plus a reviewable preview/diff step before EN content is applied.
-- **Admin navigation is now more coherent:** the sidebar exposes `Theme Marketplace` correctly under `Themes & Design`, and legacy alias routes are normalized to their canonical admin targets instead of behaving like half-visible shadow pages.
-- **A full admin audit workbench now exists under `DOC/audit/AdminAudit-*.md`:** every major admin area is mapped to its entries, modules, views, sub-sections and current hotspots so the next hardening passes can be worked through top-down instead of guessing in the dark.
-- **The first dashboard audit finding was fixed immediately:** the “HTTPS not active” attention item now opens the real security review page at `/admin/security-audit` instead of the dead shadow route `/admin/system`.
-- **Post administration now follows one consistent RBAC contract:** both `CMS/admin/posts.php` and `/api/v1/admin/posts` require `edit_all_posts`, so restricted admins no longer land in a visible posts UI only to fail later on write or AI actions.
-- **Only actually used packages were wired into runtime:** unreferenced candidates such as `cache-8.0.8`, `guzzle-7.10.0`, `php-jwt_yuliyan_1.1.3`, and `tabler-icons-3.41.1` were intentionally not copied into active runtime loading paths.
-- **Release and asset docs were updated together:** `README.md`, `Changelog.md`, `CMS/core/Version.php`, `CMS/update.json`, `DOC/ASSET.md`, `DOC/assets/README.md`, and `DOC/README.md` now consistently reflect **`2.9.2`**.
+- **`theme-settings.php` now follows the real alias contract:** instead of using a hard immediate redirect with dead code underneath, the theme settings shortcut now uses the same `redirect-alias-shell.php` flow as other admin alias pages.
+- **Theme settings now checks the correct permissions again:** the alias only forwards admins with `manage_settings` and then redirects cleanly to `/admin/settings` instead of relying on a loose inline header jump.
+- **The themes audit now records this runtime finding explicitly:** `DOC/audit/AdminAudit-Themes.md` documents the broken special-route/redirect contract of the theme settings path directly.
+- **Release documentation was synchronized as well:** `README.md`, `Changelog.md`, `CMS/core/Version.php`, and `CMS/update.json` now consistently reflect **`2.9.7`**.
 
 ### 🧩 Key Capabilities
 

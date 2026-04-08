@@ -67,20 +67,6 @@ function cms_admin_pages_normalize_bulk_action(mixed $bulkAction): string
 }
 
 /**
- * @return array{apiUrl:string,status:string,category:int,search:string,siteUrl:string}
- */
-function cms_admin_pages_grid_config(array $listData): array
-{
-    return [
-        'apiUrl' => SITE_URL . '/api/v1/admin/pages',
-        'status' => (string) ($listData['filter'] ?? ''),
-        'category' => (int) ($listData['catFilter'] ?? 0),
-        'search' => (string) ($listData['search'] ?? ''),
-        'siteUrl' => (string) SITE_URL,
-    ];
-}
-
-/**
  * @return array<int,int>
  */
 function cms_admin_pages_normalize_bulk_ids(mixed $ids, mixed $csvIds = ''): array
@@ -155,18 +141,11 @@ function cms_admin_pages_view_config(PagesModule $module, string $view): array
         'page_title' => 'Seiten',
         'active_page' => 'pages',
         'page_assets' => [
-            'css' => [
-                cms_asset_url('gridjs/mermaid.min.css'),
-            ],
-            'js' => [
-                cms_asset_url('gridjs/gridjs.umd.js'),
-                cms_asset_url('js/gridjs-init.js'),
-                cms_asset_url('js/admin-pages.js'),
-            ],
+            'css' => [],
+            'js' => [],
         ],
         'template_vars' => $baseTemplateVars + [
             'listData' => $listData,
-            'pagesGridConfig' => cms_admin_pages_grid_config($listData),
         ],
         'data' => $listData,
     ];

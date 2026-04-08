@@ -227,8 +227,13 @@ final class UploadHandler
             return new WP_Error('rename_failed', 'Element konnte nicht umbenannt werden');
         }
 
-        $newRelativePath = trim(dirname($path), '/\\');
-        $newRelativePath = ($newRelativePath !== '' ? $newRelativePath . '/' : '') . $newName;
+        $normalizedPath = str_replace('\\', '/', $path);
+        $parentRelativePath = trim(dirname($normalizedPath), '/');
+        if ($parentRelativePath === '.' || $parentRelativePath === '') {
+            $parentRelativePath = '';
+        }
+
+        $newRelativePath = ($parentRelativePath !== '' ? $parentRelativePath . '/' : '') . $newName;
         $this->repository->renameMetaPath($path, $newRelativePath);
 
         return true;

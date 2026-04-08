@@ -365,6 +365,7 @@ class PostsModule
             'post'       => $postData,
             'isNew'      => $post === null,
             'categories' => $this->categoryViewModelBuilder->buildOrderedCategoryOptions(array_map(fn($c) => (array)$c, $categories)),
+            'assignedCategoryIds' => $postData !== null ? $this->getPostCategoryIds((int) ($postData['id'] ?? 0)) : [],
             'tags'       => array_map(fn($t) => (array)$t, $tags),
             'postTags'   => array_map(fn($t) => (array)$t, $postTags),
             'seoMeta'    => $id !== null ? SEOService::getInstance()->getContentMeta('post', $id) : SEOService::getInstance()->getContentMeta('post', 0),

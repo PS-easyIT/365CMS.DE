@@ -13,7 +13,9 @@ if (!defined('ABSPATH')) {
 use CMS\Auth;
 use CMS\Security;
 
-if (!Auth::instance()->isAdmin()) {
+const CMS_ADMIN_USER_SETTINGS_WRITE_CAPABILITY = 'manage_users';
+
+if (!Auth::instance()->isAdmin() || !Auth::instance()->hasCapability(CMS_ADMIN_USER_SETTINGS_WRITE_CAPABILITY)) {
     header('Location: ' . SITE_URL);
     exit;
 }

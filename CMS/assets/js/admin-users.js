@@ -1,20 +1,6 @@
 (function () {
     'use strict';
 
-    function parseConfig(id) {
-        var element = document.getElementById(id);
-        if (!element) {
-            return null;
-        }
-
-        try {
-            return JSON.parse(element.textContent || '{}');
-        } catch (error) {
-            console.error('admin-users: Konfiguration konnte nicht gelesen werden.', error);
-            return null;
-        }
-    }
-
     function openModal(modalId) {
         var modalElement = document.getElementById(modalId);
         if (!modalElement || typeof bootstrap === 'undefined' || !bootstrap.Modal) {
@@ -22,85 +8,6 @@
         }
 
         return bootstrap.Modal.getOrCreateInstance(modalElement);
-    }
-
-    function initUsersGrid() {
-        var config = parseConfig('users-grid-config');
-        if (!config || typeof cmsGrid !== 'function') {
-            return;
-        }
-
-        cmsGrid('#usersGrid', {
-            url: config.apiUrl,
-            search: false,
-            limit: 20,
-            extraParams: {
-                role: config.role || '',
-                status: config.status || '',
-                search: config.search || '',
-            },
-            sortMap: { 0: 'username', 1: 'email', 2: 'role', 3: 'status', 4: 'created_at' },
-            columns: [
-                {
-                    id: 'username',
-                    name: 'Benutzer',
-                    data: function (row) {
-                        return {
-                            id: row.id,
-                            username: row.username,
-                            display_name: row.display_name,
-                            role: row.role,
-                        };
-                    },
-                    formatter: function (cell) {
-                        var initials = (cell.username || '').substring(0, 2).toUpperCase();
-                        return gridjs.html(
-                            '<div class="d-flex align-items-center">' +
-                                '<span class="avatar avatar-sm me-2 bg-azure">' + window.cmsEsc(initials) + '</span>' +
-                                '<div>' +
-                                    '<a href="' + config.siteUrl + '/admin/users?action=edit&id=' + encodeURIComponent(cell.id) + '" class="text-reset">' + window.cmsEsc(cell.username || '') + '</a>' +
-                                    (cell.display_name ? '<div class="text-secondary small">' + window.cmsEsc(cell.display_name) + '</div>' : '') +
-                                '</div>' +
-                            '</div>'
-                        );
-                    },
-                },
-                { id: 'email', name: 'E-Mail' },
-                {
-                    id: 'role',
-                    name: 'Rolle',
-                    formatter: function (cell) {
-                        return gridjs.html('<span class="badge bg-azure-lt">' + window.cmsEsc(cell || '') + '</span>');
-                    },
-                },
-                {
-                    id: 'status',
-                    name: 'Status',
-                    formatter: function (cell) {
-                        var map = { active: 'green', inactive: 'yellow', banned: 'red' };
-                        var labelMap = { active: 'Aktiv', inactive: 'Inaktiv', banned: 'Gesperrt' };
-                        var cls = map[cell] || 'secondary';
-                        var label = labelMap[cell] || cell || '';
-                        return gridjs.html('<span class="badge bg-' + cls + '-lt">' + window.cmsEsc(label) + '</span>');
-                    },
-                },
-                {
-                    id: 'created_at',
-                    name: 'Registriert',
-                    formatter: function (cell) {
-                        return cell ? window.cmsEsc(String(cell).substring(0, 10).split('-').reverse().join('.')) : '–';
-                    },
-                },
-                {
-                    id: 'id',
-                    name: '',
-                    sort: false,
-                    formatter: function (cell) {
-                        return gridjs.html('<a href="' + config.siteUrl + '/admin/users?action=edit&id=' + encodeURIComponent(cell) + '" class="btn btn-ghost-primary btn-icon btn-sm" title="Bearbeiten">✎</a>');
-                    },
-                },
-            ],
-        });
     }
 
     function initUsersFilters() {
@@ -133,6 +40,101 @@
 
         roleSelect.addEventListener('change', submitFilters);
         statusSelect.addEventListener('change', submitFilters);
+    }
+
+    function initUsersBulkActions() {
+        var root = document.getElementById('usersListRoot');
+        var bulkBar = document.getElementById('bulkBarUsers');
+        var bulkForm = document.getElementById('bulkFormUsers');
+        var countElement = document.getElementById('selectedCountUsers');
+        var bulkActionSelect = bulkForm ? bulkForm.querySelector('[name="bulk_action"]') : null;
+        var selectedIds = new Set();
+
+        if (!root || !bulkBar || !bulkForm || !countElement || !bulkActionSelect) {
+            return;
+        }
+
+        function syncCheckboxes() {
+            root.querySelectorAll('.bulk-row-check').forEach(function (checkbox) {
+                checkbox.checked = selectedIds.has(String(checkbox.value));
+            });
+
+            var rowCheckboxes = Array.prototype.slice.call(root.querySelectorAll('.bulk-row-check'));
+            var allSelected = rowCheckboxes.length > 0 && rowCheckboxes.every(function (checkbox) {
+                return checkbox.checked;
+            });
+
+            root.querySelectorAll('.bulk-select-all').forEach(function (checkbox) {
+                checkbox.checked = allSelected;
+            });
+        }
+
+        function updateState() {
+            countElement.textContent = String(selectedIds.size);
+            bulkBar.classList.toggle('d-none', selectedIds.size === 0);
+            syncCheckboxes();
+        }
+
+        root.addEventListener('change', function (event) {
+            var target = event.target;
+            if (!(target instanceof HTMLInputElement)) {
+                return;
+            }
+
+            if (target.classList.contains('bulk-row-check')) {
+                if (target.checked) {
+                    selectedIds.add(String(target.value));
+                } else {
+                    selectedIds.delete(String(target.value));
+                }
+                updateState();
+                return;
+            }
+
+            if (target.classList.contains('bulk-select-all')) {
+                root.querySelectorAll('.bulk-row-check').forEach(function (checkbox) {
+                    checkbox.checked = target.checked;
+                    if (target.checked) {
+                        selectedIds.add(String(checkbox.value));
+                    } else {
+                        selectedIds.delete(String(checkbox.value));
+                    }
+                });
+                updateState();
+            }
+        });
+
+        bulkForm.addEventListener('submit', function (event) {
+            bulkForm.querySelectorAll('input[name="ids[]"]').forEach(function (input) {
+                input.remove();
+            });
+
+            if (selectedIds.size === 0) {
+                event.preventDefault();
+                return;
+            }
+
+            if (bulkActionSelect.value === '') {
+                event.preventDefault();
+                bulkActionSelect.focus();
+                return;
+            }
+
+            if (bulkActionSelect.value === 'hard_delete' && !window.confirm('Die ausgewählten Benutzer wirklich dauerhaft löschen?')) {
+                event.preventDefault();
+                return;
+            }
+
+            selectedIds.forEach(function (id) {
+                var input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'ids[]';
+                input.value = id;
+                bulkForm.appendChild(input);
+            });
+        });
+
+        updateState();
     }
 
     function initRolesUi() {
@@ -213,8 +215,8 @@
     }
 
     document.addEventListener('DOMContentLoaded', function () {
-        initUsersGrid();
         initUsersFilters();
+        initUsersBulkActions();
         initRolesUi();
     });
 })();

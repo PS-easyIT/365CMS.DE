@@ -914,6 +914,7 @@
             if (button) {
                 button.addEventListener('click', function () {
                     clearNotice();
+                    clearPreviewPanel();
                     setButtonBusy(button, true, 'Kopiere …');
 
                     ensureEditorSaved(copyAction.sourceEditorKey).then(function (sourceData) {

@@ -93,7 +93,9 @@
         setPendingButtonState(submitButton, pendingText);
 
         if (typeof form.requestSubmit === 'function') {
-            if (submitButton && submitButton.tagName === 'BUTTON') {
+            if (submitButton
+                && submitButton.tagName === 'BUTTON'
+                && String(submitButton.getAttribute('type') || submitButton.type || '').toLowerCase() === 'submit') {
                 form.requestSubmit(submitButton);
                 return;
             }

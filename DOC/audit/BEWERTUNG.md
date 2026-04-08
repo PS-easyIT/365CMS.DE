@@ -98,6 +98,24 @@ Der aktuelle Nachpflege-Stand umfasst damit **465 umgesetzte Batches**, davon we
 |---|---|---|---|
 | `CMS/admin/posts.php`, `CMS/core/Routing/ApiRouter.php`, `DOC/audit/AdminAudit-Beitraege.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Der Beiträge-Bereich verlangt jetzt bereits am Entry und am Grid-JSON-Endpoint dieselbe Capability `edit_all_posts`, statt Admin-Nutzer erst nach sichtbarem Listen-/Edit-Kontext an späteren Action- oder AI-Guards scheitern zu lassen. | Beitragsverwaltung verhält sich konsistenter zu Seiten und zu den vorhandenen Write-/AI-Verträgen: Benutzer ohne passende Capability landen nicht mehr in einer halboffenen Oberfläche mit nachgelagerten Berechtigungsabbrüchen. Die Gesamtkennzahlen bleiben für diesen kleinen RBAC-Batch praktisch stabil. |
 
+### Delta Folge-Batch 468
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/assets/js/admin-menu-editor.js`, `DOC/audit/AdminAudit-Design.md`, `DOC/audit/AssetAudit-INDEX.md`, `DOC/audit/AssetAudit-Design.md`, `DOC/audit/AssetAudit-EditorJS.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Der Design-/Asset-Audit zieht jetzt eine erste eigene `AssetAudit*.md`-Arbeitsmappe auf und harmonisiert den Menü-Editor-Client mit dem Backend-Vertrag: slug-basierte interne Pfade ohne führenden Slash sowie leere Home-/Parent-URLs werden im Browser nicht länger fälschlich blockiert. | Der Menü-Editor verliert einen echten UI-Blocker für Container-Menüs, Home-Aliasse und interne Slug-Ziele; parallel ist die Asset-Prüfung für Design-Assets und Editor.js-Flows jetzt separat dokumentiert und kann wie die Admin-Audits fortlaufend weitergeführt werden. Die Aggregate bleiben für diesen kleinen JS-/Doku-Batch stabil. |
+
+### Delta Folge-Batch 469
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/assets/js/admin-content-editor.js`, `DOC/audit/AssetAudit-EditorJS.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Der gemeinsame Editor.js-Admin-Client räumt beim manuellen `DE → EN`-Kopierflow jetzt eine bestehende AI-Preview-/Diff-Karte sofort weg, statt veraltete `Übernehmen`-/`Verwerfen`-Aktionen neben bereits frisch kopiertem EN-Inhalt stehen zu lassen. | Page- und Post-Editoren verlieren damit einen stillen Zustandsbruch zwischen AI-Preview und manueller Kopie: Redakteure können die EN-Fassung nicht mehr versehentlich über einen stale Vorschlagszustand zurücküberschreiben. Die Aggregate bleiben für diesen kleinen Shared-Asset-Batch stabil. |
+
+### Delta Folge-Batch 470
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/assets/js/admin-font-manager.js`, `DOC/audit/AdminAudit-Design.md`, `DOC/audit/AssetAudit-Design.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Der Font-Manager-Delete-Flow übergibt an `requestSubmit()` keinen Nicht-Submit-Button mehr als fehlerhaften Submitter, sondern nutzt für Confirm-Löschungen sauber den nativen Formular-Submit ohne unzulässigen Trigger. | Lokale Font-Löschungen scheitern damit in modernen Browsern nicht mehr an einem reinen Asset-/Submitter-Vertragsbruch zwischen Confirm-Dialog, `type="button"` und `requestSubmit()`. Die Aggregate bleiben für diesen kleinen Design-/Asset-Batch stabil. |
+
 ### Delta Folge-Batch 465
 
 | Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |

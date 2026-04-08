@@ -143,10 +143,30 @@ $getRoleColor = static function (string $role) use ($roleColors): string {
                 </div>
             </div>
 
-            <div class="table-responsive">
+            <div class="card-body py-2 d-none" id="bulkBarUsers">
+                <form method="post" id="bulkFormUsers" class="d-flex flex-wrap align-items-center gap-2">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
+                    <input type="hidden" name="action" value="bulk">
+                    <span class="text-secondary"><strong id="selectedCountUsers">0</strong> ausgewählt</span>
+                    <select name="bulk_action" class="form-select form-select-sm w-auto">
+                        <option value="">Aktion wählen…</option>
+                        <option value="activate">Aktivieren</option>
+                        <option value="deactivate">Deaktivieren</option>
+                        <option value="hard_delete">Dauerhaft löschen</option>
+                    </select>
+                    <button type="submit" class="btn btn-sm btn-primary">Anwenden</button>
+                </form>
+            </div>
+
+            <div class="table-responsive" id="usersListRoot">
                 <table class="table table-vcenter card-table">
                     <thead>
                         <tr>
+                            <th class="w-1">
+                                <label class="form-check m-0">
+                                    <input type="checkbox" class="form-check-input bulk-select-all" aria-label="Alle sichtbaren Benutzer auswählen">
+                                </label>
+                            </th>
                             <th>Benutzer</th>
                             <th>E-Mail</th>
                             <th>Rolle</th>
@@ -158,7 +178,7 @@ $getRoleColor = static function (string $role) use ($roleColors): string {
                     <tbody>
                     <?php if (empty($users)): ?>
                         <?php
-                        $emptyStateColspan = 6;
+                        $emptyStateColspan = 7;
                         $emptyStateMessage = 'Keine Benutzer gefunden.';
                         $emptyStateSubtitle = 'Prüfen Sie Filter oder Suche – die serverseitige Liste liefert aktuell keine Einträge.';
                         $emptyStateIcon = 'users';
@@ -190,6 +210,11 @@ $getRoleColor = static function (string $role) use ($roleColors): string {
                             $initials = strtoupper(substr($username !== '' ? $username : 'U', 0, 2));
                             ?>
                             <tr>
+                                <td>
+                                    <label class="form-check m-0">
+                                        <input class="form-check-input bulk-row-check" type="checkbox" value="<?php echo $userId; ?>" aria-label="Benutzer <?php echo htmlspecialchars($username !== '' ? $username : 'Unbekannt', ENT_QUOTES); ?> auswählen">
+                                    </label>
+                                </td>
                                 <td>
                                     <div class="d-flex align-items-center">
                                         <span class="avatar avatar-sm me-2 bg-<?php echo htmlspecialchars($getRoleColor($role)); ?> text-white"><?php echo htmlspecialchars($initials); ?></span>

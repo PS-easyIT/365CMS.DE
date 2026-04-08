@@ -13,6 +13,8 @@ if (!defined('ABSPATH')) {
 use CMS\Auth;
 use CMS\Security;
 
+const CMS_ADMIN_ROLES_WRITE_CAPABILITY = 'manage_users';
+
 const CMS_ADMIN_ROLES_ALLOWED_ACTIONS = [
     'save_permissions',
     'add_role',
@@ -55,7 +57,7 @@ function cms_admin_roles_handle_action(RolesModule $module, array $payload): arr
     };
 }
 
-if (!Auth::instance()->isAdmin()) {
+if (!Auth::instance()->isAdmin() || !Auth::instance()->hasCapability(CMS_ADMIN_ROLES_WRITE_CAPABILITY)) {
     header('Location: ' . SITE_URL);
     exit;
 }

@@ -8,7 +8,9 @@ if (!defined('ABSPATH')) {
 use CMS\Auth;
 use CMS\Security;
 
-if (!Auth::instance()->isAdmin()) {
+const CMS_ADMIN_POST_CATEGORIES_WRITE_CAPABILITY = 'edit_all_posts';
+
+if (!Auth::instance()->isAdmin() || !Auth::instance()->hasCapability(CMS_ADMIN_POST_CATEGORIES_WRITE_CAPABILITY)) {
     header('Location: ' . SITE_URL);
     exit;
 }

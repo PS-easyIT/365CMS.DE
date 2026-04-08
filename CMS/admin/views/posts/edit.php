@@ -17,6 +17,7 @@ use CMS\Services\EditorService;
 $post       = $data['post'] ?? null;
 $isNew      = $data['isNew'] ?? true;
 $categories = $data['categories'] ?? [];
+$assignedCategoryIds = array_values(array_unique(array_map('intval', (array) ($data['assignedCategoryIds'] ?? []))));
 $availableTags = $data['tags'] ?? [];
 $postTagsData  = $data['postTags'] ?? [];
 $postEditorWidth = function_exists('get_option') ? (int)get_option('setting_post_editor_width', 750) : 750;
@@ -82,6 +83,10 @@ $hasEnglishVariant = trim((string)($post['title_en'] ?? '')) !== ''
     || trim((string)($post['slug_en'] ?? '')) !== '';
 $isEnglishOnlyPost = !$hasGermanVariant && $hasEnglishVariant;
 $defaultContentLanguage = $isEnglishOnlyPost ? 'en' : 'de';
+$additionalCategoryIds = array_values(array_filter(
+    $assignedCategoryIds,
+    static fn (int $assignedId): bool => $assignedId > 0 && $assignedId !== $categoryId
+));
 ?>
 
 <div class="page-header d-print-none">
@@ -174,6 +179,19 @@ $defaultContentLanguage = $isEnglishOnlyPost ? 'en' : 'de';
                                     <?php endforeach; ?>
                                 </select>
                                 <div class="form-hint">Primäre Kategorie für Listen, Archive und Vorschau.</div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label" for="additionalCategoryIds">Weitere Kategorien</label>
+                                <select class="form-select" id="additionalCategoryIds" name="additional_category_ids[]" multiple size="6">
+                                    <?php foreach ($categories as $cat): ?>
+                                        <?php $catId = (int) ($cat['id'] ?? 0); ?>
+                                        <?php if ($catId <= 0) { continue; } ?>
+                                        <option value="<?php echo $catId; ?>" <?php echo in_array($catId, $additionalCategoryIds, true) ? 'selected' : ''; ?>>
+                                            <?php echo htmlspecialchars((string) ($cat['option_label'] ?? $cat['name'] ?? '')); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <div class="form-hint">Optional zusätzliche Kategorien für Archive, Taxonomie-Zuordnungen und Routing. Die Primärkategorie oben bleibt führend für Listen und Standard-Vorschau.</div>
                             </div>
                             <div class="mb-0">
                                 <label class="form-label" for="postTags">Tags</label>

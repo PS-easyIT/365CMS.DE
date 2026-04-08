@@ -14,6 +14,8 @@ use CMS\Auth;
 
 require_once __DIR__ . '/modules/users/GroupsModule.php';
 
+const CMS_ADMIN_GROUPS_WRITE_CAPABILITY = 'manage_users';
+
 /** @return array<string, true> */
 function cms_admin_groups_allowed_actions(): array
 {
@@ -72,7 +74,7 @@ $sectionPageConfig = [
     'module_file' => __DIR__ . '/modules/users/GroupsModule.php',
     'module_factory' => static fn (): GroupsModule => new GroupsModule(),
     'data_loader' => static fn (GroupsModule $module): array => $module->getData(),
-    'access_checker' => static fn (): bool => Auth::instance()->isAdmin(),
+    'access_checker' => static fn (): bool => Auth::instance()->isAdmin() && Auth::instance()->hasCapability(CMS_ADMIN_GROUPS_WRITE_CAPABILITY),
     'access_denied_route' => '/',
     'unknown_action_message' => 'Unbekannte Aktion.',
     'post_handler' => static function (GroupsModule $module, string $section, array $post): array {

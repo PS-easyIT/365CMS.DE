@@ -21,6 +21,10 @@
         return div.innerHTML;
     }
 
+    function normalizeTitle(value) {
+        return String(value || '').trim().toLowerCase();
+    }
+
     function getModalInstance(modalElement) {
         if (!modalElement || typeof bootstrap === 'undefined' || !bootstrap.Modal) {
             return null;
@@ -32,6 +36,7 @@
     document.addEventListener('DOMContentLoaded', function () {
         var config = parseConfig('menu-editor-config') || { items: [] };
         var menuItems = Array.isArray(config.items) ? config.items.slice() : [];
+        var homepageTitles = ['startseite', 'home', 'homepage'];
         var listElement = document.getElementById('menuItemsList');
         var jsonInput = document.getElementById('menuItemsJson');
         var newItemTitle = document.getElementById('newItemTitle');
@@ -72,7 +77,44 @@
                 return false;
             }
 
-            return /^(?:\/(?!\/)|#|\?|mailto:|tel:|https?:\/\/)/i.test(normalized);
+            if (/^(?:\/(?!\/)|#|\?|mailto:|tel:|https?:\/\/)/i.test(normalized)) {
+                return true;
+            }
+
+            if (/^javascript:\s*(?:void\(0\)|;?)\s*;?$/i.test(normalized)) {
+                return true;
+            }
+
+            if (/^\/\//.test(normalized) || /^[a-z][a-z0-9+\-.]*:/i.test(normalized)) {
+                return false;
+            }
+
+            return !/\s/.test(normalized);
+        }
+
+        function isHomepageTitle(value) {
+            return homepageTitles.indexOf(normalizeTitle(value)) !== -1;
+        }
+
+        function itemHasChildren(item) {
+            var itemId = item && item.id ? String(item.id) : '';
+
+            if (itemId === '') {
+                return false;
+            }
+
+            return menuItems.some(function (candidate) {
+                return normalizeParentId(candidate.parent_id) === itemId;
+            });
+        }
+
+        function canUsePlaceholderUrl(item, options) {
+            if (options && options.allowEmptyUrl) {
+                return true;
+            }
+
+            return isHomepageTitle(item && item.title)
+                || itemHasChildren(item);
         }
 
         function setFieldError(field, message) {
@@ -92,12 +134,20 @@
             field.setCustomValidity('');
         }
 
-        function validateItemData(item) {
+        function validateItemData(item, options) {
+            var normalizedUrl;
+
             if (!item || String(item.title || '').trim() === '') {
                 return 'Bitte einen Titel angeben.';
             }
 
-            if (!isValidMenuUrl(item.url)) {
+            normalizedUrl = normalizeUrl(item.url);
+
+            if (normalizedUrl === '' && canUsePlaceholderUrl(item, options || null)) {
+                return '';
+            }
+
+            if (!isValidMenuUrl(normalizedUrl)) {
                 return 'Bitte eine gültige URL, einen internen Pfad oder mailto:/tel: verwenden.';
             }
 
@@ -397,7 +447,7 @@
                 clearFieldError(newItemTitle);
                 clearFieldError(newItemUrl);
 
-                validationError = validateItemData({ title: title, url: url });
+                validationError = validateItemData({ title: title, url: url }, { allowEmptyUrl: true });
                 if (validationError !== '') {
                     if (title === '') {
                         setFieldError(newItemTitle, validationError);

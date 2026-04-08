@@ -26,7 +26,6 @@ $categories = $listData['categories'] ?? [];
 $filter  = $listData['filter'];
 $catFilter = (int)($listData['catFilter'] ?? 0);
 $search  = $listData['search'];
-$pagesGridConfig = is_array($pagesGridConfig ?? null) ? $pagesGridConfig : [];
 
 $statusLabels = [
     'published' => ['Veröffentlicht', 'bg-green-lt text-green'],

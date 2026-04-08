@@ -8,7 +8,9 @@ if (!defined('ABSPATH')) {
 use CMS\Auth;
 use CMS\Security;
 
-if (!Auth::instance()->isAdmin()) {
+const CMS_ADMIN_POST_TAGS_WRITE_CAPABILITY = 'edit_all_posts';
+
+if (!Auth::instance()->isAdmin() || !Auth::instance()->hasCapability(CMS_ADMIN_POST_TAGS_WRITE_CAPABILITY)) {
     header('Location: ' . SITE_URL);
     exit;
 }
@@ -33,7 +35,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $result = $module->saveTag($_POST);
             break;
         case 'delete_tag':
-            $result = $module->deleteTag((int) ($_POST['tag_id'] ?? 0));
+            $result = $module->deleteTag(
+                (int) ($_POST['tag_id'] ?? 0),
+                (int) ($_POST['replacement_tag_id'] ?? 0)
+            );
             break;
         default:
             $result = ['success' => false, 'error' => 'Unbekannte Aktion.'];

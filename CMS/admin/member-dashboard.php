@@ -56,7 +56,7 @@ $legacySection = cms_admin_member_dashboard_normalize_legacy_section($_GET['sect
 
 if ($legacySection !== '' && $legacySection !== 'overview') {
     $adminRedirectAliasConfig = [
-        'access_checker' => static fn (): bool => cms_admin_member_dashboard_can_access_overview(),
+        'access_checker' => static fn (array $config = []): bool => cms_admin_member_dashboard_can_access_overview(),
         'target_url' => CMS_ADMIN_MEMBER_DASHBOARD_LEGACY_ROUTES[$legacySection] ?? '/admin/member-dashboard',
         'fallback_url' => '/',
     ];

@@ -95,21 +95,6 @@ function cms_admin_users_normalize_bulk_ids(mixed $ids): array
 }
 
 /**
- * @param array<string,mixed> $data
- * @return array<string,mixed>
- */
-function cms_admin_users_grid_config(array $data): array
-{
-    return [
-        'apiUrl' => '/api/v1/admin/users',
-        'role' => (string) ($data['filter']['role'] ?? ''),
-        'status' => (string) ($data['filter']['status'] ?? ''),
-        'search' => (string) ($data['filter']['search'] ?? ''),
-        'siteUrl' => '',
-    ];
-}
-
-/**
  * @param array<string,mixed>|null $formData
  * @return array<string,mixed>
  */
@@ -158,17 +143,9 @@ function cms_admin_users_view_config(UsersModule $module, string $view, ?int $ed
         'page_title' => 'Benutzer',
         'active_page' => 'users',
         'page_assets' => [
-            'css' => [
-                cms_asset_url('gridjs/mermaid.min.css'),
-            ],
             'js' => [
-                cms_asset_url('gridjs/gridjs.umd.js'),
-                cms_asset_url('js/gridjs-init.js'),
                 cms_asset_url('js/admin-users.js'),
             ],
-        ],
-        'template_vars' => [
-            'usersGridConfig' => cms_admin_users_grid_config($data),
         ],
         'data' => $data,
     ];
