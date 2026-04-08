@@ -29,8 +29,11 @@ final class DocumentationGithubZipSync
         'github.com',
         'raw.githubusercontent.com',
     ];
+    private const GITHUB_API_HOST = 'api.github.com';
     private const MAX_ZIP_ENTRIES = 2500;
     private const MAX_ARCHIVE_BYTES = 50 * 1024 * 1024;
+    private const MAX_TREE_RESPONSE_BYTES = 8 * 1024 * 1024;
+    private const MAX_DOC_FILE_BYTES = 5 * 1024 * 1024;
     private const MAX_LOG_VALUE_LENGTH = 240;
 
     public function __construct(
@@ -61,21 +64,7 @@ final class DocumentationGithubZipSync
             $this->assertApprovedBundleConfiguration();
             $this->assertWorkingPaths($workspace);
 
-            $download = $this->downloader->downloadFile($this->githubZipUrl, $workspace->zipFile);
-            if (!$download->isSuccess()) {
-                throw new RuntimeException((string) ($download->error() ?? 'ZIP-Datei konnte nicht geladen werden.'));
-            }
-
-            $this->assertDownloadedArchive($workspace->zipFile, $download);
-            $this->extractArchive($workspace);
-
-            $sourceDocs = $this->filesystem->findDocDirectory($workspace->extractDir);
-            if ($sourceDocs === null || !is_dir($sourceDocs)) {
-                throw new RuntimeException('Der Ordner /DOC wurde im heruntergeladenen Archiv nicht gefunden.');
-            }
-
-            $this->assertApprovedDocsBundle($sourceDocs);
-            $this->stageDocsSnapshot($sourceDocs, $workspace);
+            $sourceDocs = $this->prepareDocsSnapshot($workspace);
             $this->activateDocsSnapshot($workspace);
 
             $documentCount = $this->filesystem->countSupportedDocuments($this->docsRoot);
@@ -98,6 +87,31 @@ final class DocumentationGithubZipSync
         } finally {
             $this->cleanupWorkspace($workspace);
         }
+    }
+
+    private function prepareDocsSnapshot(DocumentationGithubZipWorkspace $workspace): string
+    {
+        $download = $this->downloader->downloadFile($this->githubZipUrl, $workspace->zipFile);
+        if ($download->isSuccess()) {
+            $this->assertDownloadedArchive($workspace->zipFile, $download);
+            $this->extractArchive($workspace);
+
+            $sourceDocs = $this->filesystem->findDocDirectory($workspace->extractDir);
+            if ($sourceDocs === null || !is_dir($sourceDocs)) {
+                throw new RuntimeException('Der Ordner /DOC wurde im heruntergeladenen Archiv nicht gefunden.');
+            }
+
+            $this->assertApprovedDocsBundle($sourceDocs);
+            $this->stageDocsSnapshot($sourceDocs, $workspace);
+
+            return $workspace->stagingDir;
+        }
+
+        $this->logFallbackAttempt((string) ($download->error() ?? 'ZIP-Datei konnte nicht geladen werden.'));
+        $this->downloadDocsViaGithubApi($workspace);
+        $this->assertApprovedDocsBundle($workspace->stagingDir);
+
+        return $workspace->stagingDir;
     }
 
     private function createWorkspace(): DocumentationGithubZipWorkspace
@@ -185,6 +199,158 @@ final class DocumentationGithubZipSync
         if (is_dir($workspace->backupDir) && is_dir($this->docsRoot)) {
             $this->filesystem->deleteDirectory($workspace->backupDir);
         }
+    }
+
+    private function downloadDocsViaGithubApi(DocumentationGithubZipWorkspace $workspace): void
+    {
+        $descriptor = $this->parseGithubRepositoryDescriptor();
+        $docEntries = $this->fetchGithubDocEntries($descriptor['owner'], $descriptor['repo'], $descriptor['ref']);
+
+        if ($docEntries === []) {
+            throw new RuntimeException('Die GitHub-API liefert keine DOC-Dateien für den Doku-Sync zurück.');
+        }
+
+        if (is_dir($workspace->stagingDir)) {
+            $this->filesystem->deleteDirectory($workspace->stagingDir);
+        }
+
+        if (!$this->filesystem->ensureDirectory($workspace->stagingDir)) {
+            throw new RuntimeException('Staging-Verzeichnis für den Doku-Sync konnte nicht erstellt werden.');
+        }
+
+        foreach ($docEntries as $entry) {
+            $relativePath = substr($entry['path'], 4);
+            if (!is_string($relativePath) || $relativePath === '') {
+                continue;
+            }
+
+            $targetPath = $workspace->stagingDir . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relativePath);
+            $fileBody = $this->downloadGithubRawFile($descriptor['owner'], $descriptor['repo'], $descriptor['ref'], $entry['path']);
+
+            if (!$this->filesystem->writeFile($targetPath, $fileBody)) {
+                throw new RuntimeException('Eine DOC-Datei aus GitHub konnte nicht lokal geschrieben werden.');
+            }
+        }
+    }
+
+    /**
+     * @return array{owner: string, repo: string, ref: string}
+     */
+    private function parseGithubRepositoryDescriptor(): array
+    {
+        $parts = parse_url($this->githubZipUrl);
+        if (!is_array($parts)) {
+            throw new RuntimeException('Die GitHub-ZIP-Quelle für den Doku-Sync ist ungültig konfiguriert.');
+        }
+
+        $host = strtolower((string) ($parts['host'] ?? ''));
+        $path = trim((string) ($parts['path'] ?? ''), '/');
+        $segments = $path !== '' ? array_values(array_filter(explode('/', $path), static fn(string $segment): bool => $segment !== '')) : [];
+
+        if ($host === 'codeload.github.com' && count($segments) >= 5 && $segments[2] === 'zip' && $segments[3] === 'refs' && $segments[4] === 'heads') {
+            $owner = $segments[0];
+            $repo = $segments[1];
+            $ref = $segments[5] ?? '';
+        } elseif ($host === 'github.com' && count($segments) >= 4 && ($segments[2] === 'zipball' || $segments[2] === 'archive')) {
+            $owner = $segments[0];
+            $repo = $segments[1];
+            $ref = $segments[3] ?? '';
+        } else {
+            throw new RuntimeException('Die GitHub-ZIP-Quelle für den Doku-Sync ist ungültig konfiguriert.');
+        }
+
+        if ($owner === '' || $repo === '' || $ref === '' || preg_match('/^[A-Za-z0-9._-]+$/', $owner) !== 1 || preg_match('/^[A-Za-z0-9._-]+$/', $repo) !== 1 || preg_match('/^[A-Za-z0-9._\/-]+$/', $ref) !== 1) {
+            throw new RuntimeException('Repository-Metadaten für den GitHub-Doku-Sync sind ungültig.');
+        }
+
+        return [
+            'owner' => $owner,
+            'repo' => $repo,
+            'ref' => $ref,
+        ];
+    }
+
+    /**
+     * @return list<array{path: string, size: int}>
+     */
+    private function fetchGithubDocEntries(string $owner, string $repo, string $ref): array
+    {
+        $apiUrl = 'https://' . self::GITHUB_API_HOST . '/repos/' . rawurlencode($owner) . '/' . rawurlencode($repo) . '/git/trees/' . rawurlencode($ref) . '?recursive=1';
+        $response = \CMS\Http\Client::getInstance()->get($apiUrl, [
+            'userAgent' => '365CMS-DocumentationSync/1.0',
+            'timeout' => 60,
+            'connectTimeout' => 10,
+            'maxBytes' => self::MAX_TREE_RESPONSE_BYTES,
+            'allowedContentTypes' => ['application/json'],
+            'headers' => [
+                'Accept: application/vnd.github+json',
+                'X-GitHub-Api-Version: 2022-11-28',
+            ],
+        ]);
+
+        if (($response['success'] ?? false) !== true) {
+            throw new RuntimeException('Die GitHub-API konnte die DOC-Dateiliste nicht laden.');
+        }
+
+        $payload = json_decode((string) ($response['body'] ?? ''), true);
+        $tree = is_array($payload) && is_array($payload['tree'] ?? null) ? $payload['tree'] : null;
+        if (!is_array($tree)) {
+            throw new RuntimeException('Die GitHub-API liefert keine gültige DOC-Dateiliste zurück.');
+        }
+
+        $entries = [];
+        foreach ($tree as $entry) {
+            if (!is_array($entry)) {
+                continue;
+            }
+
+            $path = (string) ($entry['path'] ?? '');
+            $type = (string) ($entry['type'] ?? '');
+            $size = (int) ($entry['size'] ?? 0);
+
+            if ($type !== 'blob' || !str_starts_with($path, 'DOC/')) {
+                continue;
+            }
+
+            if ($path === 'DOC/' || str_contains($path, '..') || preg_match('/[\x00-\x1F\x7F]/', $path) === 1 || $size < 0 || $size > self::MAX_DOC_FILE_BYTES) {
+                throw new RuntimeException('Die GitHub-API liefert unsichere oder zu große DOC-Dateipfade.');
+            }
+
+            $entries[] = ['path' => $path, 'size' => $size];
+        }
+
+        usort($entries, static fn(array $left, array $right): int => strcmp($left['path'], $right['path']));
+
+        return $entries;
+    }
+
+    private function downloadGithubRawFile(string $owner, string $repo, string $ref, string $path): string
+    {
+        $segments = array_map(static fn(string $segment): string => rawurlencode($segment), explode('/', $path));
+        $rawUrl = 'https://raw.githubusercontent.com/' . rawurlencode($owner) . '/' . rawurlencode($repo) . '/' . rawurlencode($ref) . '/' . implode('/', $segments);
+        $response = \CMS\Http\Client::getInstance()->get($rawUrl, [
+            'userAgent' => '365CMS-DocumentationSync/1.0',
+            'timeout' => 30,
+            'connectTimeout' => 10,
+            'maxBytes' => self::MAX_DOC_FILE_BYTES,
+        ]);
+
+        if (($response['success'] ?? false) !== true) {
+            throw new RuntimeException('Eine DOC-Datei konnte nicht direkt von GitHub geladen werden.');
+        }
+
+        return (string) ($response['body'] ?? '');
+    }
+
+    private function logFallbackAttempt(string $reason): void
+    {
+        \CMS\Logger::instance()->withChannel('admin.documentation')->warning(
+            'GitHub-ZIP-Download war nicht nutzbar; /DOC wird direkt über GitHub-API und Raw-Dateien synchronisiert.',
+            [
+                'zip_url' => $this->sanitizeUrlForLog($this->githubZipUrl),
+                'reason' => $this->sanitizeLogString($reason, self::MAX_LOG_VALUE_LENGTH),
+            ]
+        );
     }
 
     private function validateZipEntries(ZipArchive $zip): bool

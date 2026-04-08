@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.9.0",
+  "version": "2.9.1",
   "min_php": "8.4",
-  "released": "2026-04-07",
+  "released": "2026-04-08",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 2.9.0: 365CMS liefert jetzt CMS-eigene Auth-Seiten unter /cms-login, /cms-register und /cms-password-forgot inklusive Admin-Steuerung über /admin/cms-loginpage; Redirects und MFA-Pfade wurden weiter fail-closed gehärtet, Remember-Me ist echt persistent, und MFA-/Passkey-/LDAP-Logins finalisieren dieselbe Session wie der klassische Passwort-Login.",
+  "notes": "Release-Stand 2.9.1: 365CMS trennt Admin-Hard-Delete und 30-Tage-Self-Delete-Anträge sauber, bündelt Runtime-Diagnose unter /admin/cms-logs, schreibt Logs jetzt konsequent nach ABSPATH/logs, migriert bestehende config/app.php-Dateien bei Updates vollständiger und zieht /DOC bei zu großen Monorepo-ZIPs direkt über GitHub-Tree-API plus Raw-Dateien nach.",
   "critical": false
 }

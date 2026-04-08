@@ -1,5 +1,5 @@
 # 365CMS – Admin-Bereich
-> **Stand:** 2026-04-07 | **Version:** 2.9.0 | **Status:** Aktuell
+> **Stand:** 2026-04-08 | **Version:** 2.9.1 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Überblick](#überblick)
@@ -10,10 +10,10 @@
 
 Die Struktur folgt der aktuellen Sidebar-Konfiguration aus `CMS/admin/partials/sidebar.php`. Öffentliche Admin-Routen werden in der Dokumentation bewusst ohne `.php` beschrieben.
 
-Für Detailfragen gilt die reale Sidebar- und Routing-Laufzeit als führend; diese Datei ist die verdichtete 2.9.0-Übersicht, nicht der einzige Wahrheitsspeicher.
+Für Detailfragen gilt die reale Sidebar- und Routing-Laufzeit als führend; diese Datei ist die verdichtete 2.9.1-Übersicht, nicht der einzige Wahrheitsspeicher.
 
 ---
-<!-- UPDATED: 2026-04-07 -->
+<!-- UPDATED: 2026-04-08 -->
 
 ## Überblick
 
@@ -47,7 +47,7 @@ Wichtige Grundsätze:
 | Recht | `/admin/legal-sites`, `/admin/cookie-manager`, `/admin/data-requests` | Legal Sites, Cookie-Management, DSGVO-Anfragen |
 | Sicherheit | `/admin/antispam`, `/admin/firewall`, `/admin/security-audit` | Schutzmaßnahmen und Auditing |
 | Plugins | `/admin/plugins`, `/admin/plugin-marketplace` sowie Plugin-Unterseiten | Plugin-Lifecycle |
-| System | `/admin/settings`, `/admin/backups`, `/admin/updates` | Konfiguration, Backups, Updates |
+| System | `/admin/settings`, `/admin/backups`, `/admin/updates`, `/admin/cms-logs` | Konfiguration, Backups, Updates, zentrale CMS-Logs |
 | Info | `/admin/info`, `/admin/documentation` | Systeminfo und lokale Dokuansicht |
 | Diagnose | `/admin/diagnose` sowie Monitoring-Seiten | technische Prüfungen und Monitoring |
 

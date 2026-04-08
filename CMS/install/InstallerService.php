@@ -13,6 +13,64 @@ if (!defined('ABSPATH')) {
 
 final class InstallerService
 {
+    /**
+     * @var array<string, string>
+     */
+    private const CONFIG_STRING_KEYS = [
+        'created_at' => 'created_at',
+        'db_host' => 'db_host',
+        'db_name' => 'db_name',
+        'db_user' => 'db_user',
+        'db_pass' => 'db_pass',
+        'db_charset' => 'db_charset',
+        'db_prefix' => 'db_prefix',
+        'auth_key' => 'auth_key',
+        'secure_auth_key' => 'secure_auth_key',
+        'nonce_key' => 'nonce_key',
+        'site_name' => 'site_name',
+        'site_url' => 'site_url',
+        'admin_email' => 'admin_email',
+        'default_theme' => 'default_theme',
+        'cms_https_redirect_strategy' => 'cms_https_redirect_strategy',
+        'cms_hsts_mode' => 'cms_hsts_mode',
+        'ldap_host' => 'ldap_host',
+        'ldap_base_dn' => 'ldap_base_dn',
+        'ldap_username' => 'ldap_username',
+        'ldap_password' => 'ldap_password',
+        'ldap_filter' => 'ldap_filter',
+        'ldap_default_role' => 'ldap_default_role',
+        'jwt_secret' => 'jwt_secret',
+        'jwt_issuer' => 'jwt_issuer',
+        'smtp_host' => 'smtp_host',
+        'smtp_user' => 'smtp_user',
+        'smtp_pass' => 'smtp_pass',
+        'smtp_encryption' => 'smtp_encryption',
+        'smtp_from_email' => 'smtp_from_email',
+        'smtp_from_name' => 'smtp_from_name',
+    ];
+
+    /**
+     * @var array<string, string>
+     */
+    private const CONFIG_INT_KEYS = [
+        'ldap_port' => 'ldap_port',
+        'jwt_ttl' => 'jwt_ttl',
+        'smtp_port' => 'smtp_port',
+        'sessions_lifetime' => 'sessions_lifetime',
+        'max_login_attempts' => 'max_login_attempts',
+        'login_timeout' => 'login_timeout',
+        'cms_hsts_max_age' => 'cms_hsts_max_age',
+    ];
+
+    /**
+     * @var array<string, string>
+     */
+    private const CONFIG_BOOL_KEYS = [
+        'debug_mode' => 'debug_mode',
+        'ldap_use_ssl' => 'ldap_use_ssl',
+        'ldap_use_tls' => 'ldap_use_tls',
+    ];
+
     public function __construct(private readonly string $rootDir)
     {
     }
@@ -115,41 +173,89 @@ final class InstallerService
             return $val;
         };
 
-        if (preg_match("/define\('DB_HOST',\s*'([^']+)'\);/", $content, $m)) {
-            $config['db_host'] = $m[1];
+        $stringConstants = [
+            'DB_HOST' => 'db_host',
+            'DB_NAME' => 'db_name',
+            'DB_USER' => 'db_user',
+            'DB_PASS' => 'db_pass',
+            'DB_CHARSET' => 'db_charset',
+            'DB_PREFIX' => 'db_prefix',
+            'SITE_NAME' => 'site_name',
+            'ADMIN_EMAIL' => 'admin_email',
+            'SITE_URL' => 'site_url',
+            'AUTH_KEY' => 'auth_key',
+            'SECURE_AUTH_KEY' => 'secure_auth_key',
+            'NONCE_KEY' => 'nonce_key',
+            'DEFAULT_THEME' => 'default_theme',
+            'CMS_HTTPS_REDIRECT_STRATEGY' => 'cms_https_redirect_strategy',
+            'CMS_HSTS_MODE' => 'cms_hsts_mode',
+            'LDAP_HOST' => 'ldap_host',
+            'LDAP_BASE_DN' => 'ldap_base_dn',
+            'LDAP_USERNAME' => 'ldap_username',
+            'LDAP_PASSWORD' => 'ldap_password',
+            'LDAP_FILTER' => 'ldap_filter',
+            'LDAP_DEFAULT_ROLE' => 'ldap_default_role',
+            'JWT_SECRET' => 'jwt_secret',
+            'JWT_ISSUER' => 'jwt_issuer',
+            'SMTP_HOST' => 'smtp_host',
+            'SMTP_USER' => 'smtp_user',
+            'SMTP_PASS' => 'smtp_pass',
+            'SMTP_ENCRYPTION' => 'smtp_encryption',
+            'SMTP_FROM_EMAIL' => 'smtp_from_email',
+            'SMTP_FROM_NAME' => 'smtp_from_name',
+        ];
+
+        foreach ($stringConstants as $constant => $key) {
+            $value = $this->extractDefinedValue($content, $constant);
+            if (!is_string($value)) {
+                continue;
+            }
+
+            if ($key === 'db_host') {
+                $config[$key] = $value;
+                continue;
+            }
+
+            if ($key === 'db_pass') {
+                $config[$key] = str_contains($value, 'YOUR_') ? '' : $value;
+                continue;
+            }
+
+            if (in_array($key, ['auth_key', 'secure_auth_key', 'nonce_key'], true)) {
+                $config[$key] = str_contains($value, 'REPLACE_VIA_INSTALLER') ? '' : $value;
+                continue;
+            }
+
+            $cleanedValue = $clean($value);
+            if ($cleanedValue !== '') {
+                $config[$key] = $cleanedValue;
+            }
         }
-        if (preg_match("/define\('DB_NAME',\s*'([^']+)'\);/", $content, $m)) {
-            $config['db_name'] = $clean($m[1]);
+
+        foreach (['CMS_DEBUG' => 'debug_mode', 'LDAP_USE_SSL' => 'ldap_use_ssl', 'LDAP_USE_TLS' => 'ldap_use_tls'] as $constant => $key) {
+            $value = $this->extractDefinedValue($content, $constant);
+            if (is_bool($value)) {
+                $config[$key] = $value;
+            }
         }
-        if (preg_match("/define\('DB_USER',\s*'([^']+)'\);/", $content, $m)) {
-            $config['db_user'] = $clean($m[1]);
+
+        foreach ([
+            'LDAP_PORT' => 'ldap_port',
+            'JWT_TTL' => 'jwt_ttl',
+            'SMTP_PORT' => 'smtp_port',
+            'SESSIONS_LIFETIME' => 'sessions_lifetime',
+            'MAX_LOGIN_ATTEMPTS' => 'max_login_attempts',
+            'LOGIN_TIMEOUT' => 'login_timeout',
+            'CMS_HSTS_MAX_AGE' => 'cms_hsts_max_age',
+        ] as $constant => $key) {
+            $value = $this->extractDefinedValue($content, $constant);
+            if (is_int($value)) {
+                $config[$key] = $value;
+            }
         }
-        if (preg_match("/define\('DB_PASS',\s*'([^']+)'\);/", $content, $m)) {
-            $config['db_pass'] = str_contains($m[1], 'YOUR_') ? '' : $m[1];
-        }
-        if (preg_match("/define\('DB_PREFIX',\s*'([^']+)'\);/", $content, $m)) {
-            $config['db_prefix'] = $m[1] !== '' ? $m[1] : 'cms_';
-        }
-        if (preg_match("/define\('SITE_NAME',\s*'([^']+)'\);/", $content, $m)) {
-            $config['site_name'] = $clean($m[1]);
-        }
-        if (preg_match("/define\('ADMIN_EMAIL',\s*'([^']+)'\);/", $content, $m)) {
-            $config['admin_email'] = $clean($m[1]);
-        }
-        if (preg_match("/define\('SITE_URL',\s*'([^']+)'\);/", $content, $m)) {
-            $config['site_url'] = $clean($m[1]);
-        }
-        if (preg_match("/define\('CMS_DEBUG',\s*(true|false)\);/", $content, $m)) {
-            $config['debug_mode'] = $m[1];
-        }
-        if (preg_match("/define\('AUTH_KEY',\s*'([^']+)'\);/", $content, $m)) {
-            $config['auth_key'] = str_contains($m[1], 'REPLACE_VIA_INSTALLER') ? '' : $m[1];
-        }
-        if (preg_match("/define\('SECURE_AUTH_KEY',\s*'([^']+)'\);/", $content, $m)) {
-            $config['secure_auth_key'] = str_contains($m[1], 'REPLACE_VIA_INSTALLER') ? '' : $m[1];
-        }
-        if (preg_match("/define\('NONCE_KEY',\s*'([^']+)'\);/", $content, $m)) {
-            $config['nonce_key'] = str_contains($m[1], 'REPLACE_VIA_INSTALLER') ? '' : $m[1];
+
+        if (!isset($config['db_prefix']) || $config['db_prefix'] === '') {
+            $config['db_prefix'] = 'cms_';
         }
 
         return (!empty($config['db_user']) && !empty($config['db_name'])) ? $config : false;
@@ -215,77 +321,7 @@ final class InstallerService
             copy($configPath, $backupPath);
         }
 
-        $content = <<<PHP
-<?php
-/**
- * CMS Application Configuration
- *
- * Automatisch erstellt am {$data['created_at']}
- * C-01: Security-Keys via random_bytes() generiert – NICHT in VCS einchecken!
- * C-02: Konfiguration in config/ isoliert (via .htaccess geschützt)
- *
- * @package 365CMS
- */
-
-declare(strict_types=1);
-
-if (!defined('ABSPATH')) {
-    define('ABSPATH', dirname(__DIR__) . DIRECTORY_SEPARATOR);
-}
-
-define('CMS_DEBUG', {$data['debug_mode']});
-define('DB_HOST',    '{$data['db_host']}');
-define('DB_NAME',    '{$data['db_name']}');
-define('DB_USER',    '{$data['db_user']}');
-define('DB_PASS',    '{$data['db_pass']}');
-define('DB_CHARSET', 'utf8mb4');
-define('DB_PREFIX',  '{$data['db_prefix']}');
-define('AUTH_KEY',        '{$data['auth_key']}');
-define('SECURE_AUTH_KEY', '{$data['secure_auth_key']}');
-define('NONCE_KEY',       '{$data['nonce_key']}');
-define('SITE_NAME',   '{$data['site_name']}');
-define('SITE_URL',    '{$data['site_url']}');
-define('ADMIN_EMAIL', '{$data['admin_email']}');
-
-require_once ABSPATH . 'core/Version.php';
-define('CMS_VERSION', \CMS\Version::CURRENT);
-define('CORE_PATH',   ABSPATH . 'core/');
-define('THEME_PATH',  ABSPATH . 'themes/');
-define('PLUGIN_PATH', ABSPATH . 'plugins/');
-define('UPLOAD_PATH', ABSPATH . 'uploads/');
-define('ASSETS_PATH', ABSPATH . 'assets/');
-
-\$cmsLogDir = ABSPATH . 'logs' . DIRECTORY_SEPARATOR;
-if (!is_dir(\$cmsLogDir)) {
-    @mkdir(\$cmsLogDir, 0755, true);
-}
-
-defined('LOG_PATH') || define('LOG_PATH', \$cmsLogDir);
-defined('CMS_ERROR_LOG') || define('CMS_ERROR_LOG', rtrim(LOG_PATH, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'error.log');
-define('SITE_URL_PATH', '/');
-define('ASSETS_URL',    SITE_URL . '/assets');
-define('UPLOAD_URL',    SITE_URL . '/uploads');
-define('DEFAULT_THEME',      'cms-default');
-define('SESSIONS_LIFETIME',  3600 * 2);
-define('MAX_LOGIN_ATTEMPTS', 5);
-define('LOGIN_TIMEOUT',      300);
-defined('CMS_HTTPS_REDIRECT_STRATEGY') || define('CMS_HTTPS_REDIRECT_STRATEGY', 'upstream');
-defined('CMS_HSTS_MODE') || define('CMS_HSTS_MODE', 'https-only');
-defined('CMS_HSTS_MAX_AGE') || define('CMS_HSTS_MAX_AGE', 31536000);
-
-if (CMS_DEBUG) {
-    error_reporting(E_ALL);
-    ini_set('display_errors', '1');
-    ini_set('log_errors', '1');
-    ini_set('error_log', CMS_ERROR_LOG);
-} else {
-    error_reporting(0);
-    ini_set('display_errors', '0');
-    ini_set('log_errors', '0');
-}
-
-date_default_timezone_set('Europe/Berlin');
-PHP;
+        $content = $this->buildConfigContent($data);
 
         if (file_put_contents($configPath, $content) === false) {
             return 'Fehler beim Schreiben von config/app.php';
@@ -299,23 +335,350 @@ PHP;
 
     public function updateConfigFile(array $existing, array $updates): bool|string
     {
-        $data = [
+        $data = array_merge($existing, $updates, [
             'created_at' => date('Y-m-d H:i:s'),
-            'debug_mode' => $updates['debug_mode'] ?? $existing['debug_mode'] ?? 'false',
-            'db_host' => $existing['db_host'],
-            'db_name' => $existing['db_name'],
-            'db_user' => $existing['db_user'],
-            'db_pass' => $existing['db_pass'],
+            'db_host' => $existing['db_host'] ?? '',
+            'db_name' => $existing['db_name'] ?? '',
+            'db_user' => $existing['db_user'] ?? '',
+            'db_pass' => $existing['db_pass'] ?? '',
             'db_prefix' => $existing['db_prefix'] ?? 'cms_',
-            'auth_key' => $existing['auth_key'] ?? $this->generateSecurityKey(),
-            'secure_auth_key' => $existing['secure_auth_key'] ?? $this->generateSecurityKey(),
-            'nonce_key' => $existing['nonce_key'] ?? $this->generateSecurityKey(),
+            'auth_key' => $existing['auth_key'] ?? '',
+            'secure_auth_key' => $existing['secure_auth_key'] ?? '',
+            'nonce_key' => $existing['nonce_key'] ?? '',
             'site_name' => $updates['site_name'] ?? $existing['site_name'] ?? 'IT Expert Network',
             'site_url' => $updates['site_url'] ?? $existing['site_url'] ?? '',
             'admin_email' => $updates['admin_email'] ?? $existing['admin_email'] ?? '',
-        ];
+        ]);
 
         return $this->createConfigFile($data);
+    }
+
+    /**
+     * @param mixed $value
+     */
+    private function normalizeBoolean(mixed $value, bool $default): bool
+    {
+        if (is_bool($value)) {
+            return $value;
+        }
+
+        if (is_string($value)) {
+            $normalized = strtolower(trim($value));
+            if (in_array($normalized, ['1', 'true', 'on', 'yes'], true)) {
+                return true;
+            }
+
+            if (in_array($normalized, ['0', 'false', 'off', 'no'], true)) {
+                return false;
+            }
+        }
+
+        if (is_int($value)) {
+            return $value !== 0;
+        }
+
+        return $default;
+    }
+
+    /**
+     * @param mixed $value
+     */
+    private function normalizeInteger(mixed $value, int $default): int
+    {
+        if (is_int($value)) {
+            return $value;
+        }
+
+        if (is_string($value) && preg_match('/^-?\d+$/', trim($value)) === 1) {
+            return (int) trim($value);
+        }
+
+        return $default;
+    }
+
+    /**
+     * @param mixed $value
+     */
+    private function normalizeString(mixed $value, string $default = ''): string
+    {
+        if (!is_scalar($value)) {
+            return $default;
+        }
+
+        $normalized = trim((string) $value);
+
+        return $normalized !== '' ? $normalized : $default;
+    }
+
+    /**
+     * @param mixed $value
+     */
+    private function exportPhpValue(mixed $value): string
+    {
+        if (is_bool($value)) {
+            return $value ? 'true' : 'false';
+        }
+
+        if (is_int($value) || is_float($value)) {
+            return (string) $value;
+        }
+
+        return "'" . str_replace(['\\', "'"], ['\\\\', "\\'"], (string) $value) . "'";
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function getConfigDefaults(): array
+    {
+        return [
+            'created_at' => date('Y-m-d H:i:s'),
+            'debug_mode' => false,
+            'db_host' => 'localhost',
+            'db_name' => '',
+            'db_user' => '',
+            'db_pass' => '',
+            'db_charset' => 'utf8mb4',
+            'db_prefix' => 'cms_',
+            'auth_key' => '',
+            'secure_auth_key' => '',
+            'nonce_key' => '',
+            'site_name' => 'IT Expert Network',
+            'site_url' => '',
+            'admin_email' => '',
+            'default_theme' => 'cms-default',
+            'sessions_lifetime' => 3600 * 2,
+            'max_login_attempts' => 5,
+            'login_timeout' => 300,
+            'cms_https_redirect_strategy' => 'upstream',
+            'cms_hsts_mode' => 'https-only',
+            'cms_hsts_max_age' => 31536000,
+            'ldap_host' => '',
+            'ldap_port' => 389,
+            'ldap_base_dn' => '',
+            'ldap_username' => '',
+            'ldap_password' => '',
+            'ldap_use_ssl' => false,
+            'ldap_use_tls' => true,
+            'ldap_filter' => '',
+            'ldap_default_role' => 'member',
+            'jwt_secret' => '',
+            'jwt_ttl' => 3600,
+            'jwt_issuer' => '',
+            'smtp_host' => '',
+            'smtp_port' => 587,
+            'smtp_user' => '',
+            'smtp_pass' => '',
+            'smtp_encryption' => 'tls',
+            'smtp_from_email' => '',
+            'smtp_from_name' => '',
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
+     */
+    private function normalizeConfigData(array $data): array
+    {
+        $normalized = $this->getConfigDefaults();
+
+        foreach (self::CONFIG_STRING_KEYS as $key => $defaultKey) {
+            $normalized[$key] = $this->normalizeString($data[$key] ?? null, (string) $normalized[$defaultKey]);
+        }
+
+        foreach (self::CONFIG_INT_KEYS as $key => $defaultKey) {
+            $normalized[$key] = $this->normalizeInteger($data[$key] ?? null, (int) $normalized[$defaultKey]);
+        }
+
+        foreach (self::CONFIG_BOOL_KEYS as $key => $defaultKey) {
+            $normalized[$key] = $this->normalizeBoolean($data[$key] ?? null, (bool) $normalized[$defaultKey]);
+        }
+
+        $normalized['auth_key'] = $normalized['auth_key'] !== '' ? $normalized['auth_key'] : $this->generateSecurityKey();
+        $normalized['secure_auth_key'] = $normalized['secure_auth_key'] !== '' ? $normalized['secure_auth_key'] : $this->generateSecurityKey();
+        $normalized['nonce_key'] = $normalized['nonce_key'] !== '' ? $normalized['nonce_key'] : $this->generateSecurityKey();
+        $normalized['jwt_issuer'] = $this->normalizeString($data['jwt_issuer'] ?? null, $normalized['site_url']);
+        $normalized['smtp_from_email'] = $this->normalizeString($data['smtp_from_email'] ?? null, $normalized['admin_email']);
+        $normalized['smtp_from_name'] = $this->normalizeString($data['smtp_from_name'] ?? null, $normalized['site_name']);
+
+        return $normalized;
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     */
+    private function buildConfigContent(array $data): string
+    {
+        $data = $this->normalizeConfigData($data);
+        $jwtIssuerValue = $data['jwt_issuer'] === $data['site_url'] ? 'SITE_URL' : $this->exportPhpValue($data['jwt_issuer']);
+        $smtpFromEmailValue = $data['smtp_from_email'] === $data['admin_email'] ? 'ADMIN_EMAIL' : $this->exportPhpValue($data['smtp_from_email']);
+        $smtpFromNameValue = $data['smtp_from_name'] === $data['site_name'] ? 'SITE_NAME' : $this->exportPhpValue($data['smtp_from_name']);
+
+        $lines = [
+            '<?php',
+            '/**',
+            ' * CMS Application Configuration',
+            ' *',
+            ' * Automatisch erstellt am ' . $data['created_at'],
+            ' * C-01: Security-Keys via random_bytes() generiert – NICHT in VCS einchecken!',
+            ' * C-02: Konfiguration in config/ isoliert (via .htaccess geschützt)',
+            ' *',
+            ' * @package 365CMS',
+            ' */',
+            '',
+            'declare(strict_types=1);',
+            '',
+            'if (!defined(\'ABSPATH\')) {',
+            '    define(\'ABSPATH\', dirname(__DIR__) . DIRECTORY_SEPARATOR);',
+            '}',
+            '',
+            '// ─── Debug-Modus (in Produktion auf false setzen!) ─────────────────────────',
+            'define(\'CMS_DEBUG\', ' . $this->exportPhpValue($data['debug_mode']) . ');',
+            '',
+            '// ─── Datenbank-Konfiguration ───────────────────────────────────────────────',
+            'define(\'DB_HOST\',    ' . $this->exportPhpValue($data['db_host']) . ');',
+            'define(\'DB_NAME\',    ' . $this->exportPhpValue($data['db_name']) . ');',
+            'define(\'DB_USER\',    ' . $this->exportPhpValue($data['db_user']) . ');',
+            'define(\'DB_PASS\',    ' . $this->exportPhpValue($data['db_pass']) . ');',
+            'define(\'DB_CHARSET\', ' . $this->exportPhpValue($data['db_charset']) . ');',
+            'define(\'DB_PREFIX\',  ' . $this->exportPhpValue($data['db_prefix']) . ');',
+            '',
+            '// ─── Security-Keys (via random_bytes – NICHT manuell setzen!) ─────────────',
+            'define(\'AUTH_KEY\',        ' . $this->exportPhpValue($data['auth_key']) . ');',
+            'define(\'SECURE_AUTH_KEY\', ' . $this->exportPhpValue($data['secure_auth_key']) . ');',
+            'define(\'NONCE_KEY\',       ' . $this->exportPhpValue($data['nonce_key']) . ');',
+            '',
+            '// ─── Site-Konfiguration ────────────────────────────────────────────────────',
+            'define(\'SITE_NAME\',    ' . $this->exportPhpValue($data['site_name']) . ');',
+            'define(\'SITE_URL\',     ' . $this->exportPhpValue($data['site_url']) . ');',
+            'define(\'ADMIN_EMAIL\',  ' . $this->exportPhpValue($data['admin_email']) . ');',
+            '',
+            'require_once ABSPATH . \'core/Version.php\';',
+            'define(\'CMS_VERSION\',  \\CMS\\Version::CURRENT);',
+            '',
+            '// ─── Pfade ─────────────────────────────────────────────────────────────────',
+            'define(\'CORE_PATH\',   ABSPATH . \'core/\');',
+            'define(\'THEME_PATH\',  ABSPATH . \'themes/\');',
+            'define(\'PLUGIN_PATH\', ABSPATH . \'plugins/\');',
+            'define(\'UPLOAD_PATH\', ABSPATH . \'uploads/\');',
+            'define(\'ASSETS_PATH\', ABSPATH . \'assets/\');',
+            '',
+            '$cmsLogDir = ABSPATH . \'logs\' . DIRECTORY_SEPARATOR;',
+            'if (!is_dir($cmsLogDir)) {',
+            '    @mkdir($cmsLogDir, 0755, true);',
+            '}',
+            '',
+            'defined(\'LOG_PATH\') || define(\'LOG_PATH\', $cmsLogDir);',
+            'defined(\'CMS_ERROR_LOG\') || define(\'CMS_ERROR_LOG\', rtrim(LOG_PATH, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . \'error.log\');',
+            '',
+            '// ─── URLs ──────────────────────────────────────────────────────────────────',
+            'define(\'SITE_URL_PATH\', \'/\');',
+            'define(\'ASSETS_URL\',    SITE_URL . \'/assets\');',
+            'define(\'UPLOAD_URL\',    SITE_URL . \'/uploads\');',
+            '',
+            '// ─── System-Einstellungen ──────────────────────────────────────────────────',
+            'define(\'DEFAULT_THEME\',      ' . $this->exportPhpValue($data['default_theme']) . ');',
+            'define(\'SESSIONS_LIFETIME\',  ' . $this->exportPhpValue($data['sessions_lifetime']) . ');',
+            'define(\'MAX_LOGIN_ATTEMPTS\', ' . $this->exportPhpValue($data['max_login_attempts']) . ');',
+            'define(\'LOGIN_TIMEOUT\',      ' . $this->exportPhpValue($data['login_timeout']) . ');',
+            'defined(\'CMS_HTTPS_REDIRECT_STRATEGY\') || define(\'CMS_HTTPS_REDIRECT_STRATEGY\', ' . $this->exportPhpValue($data['cms_https_redirect_strategy']) . ');',
+            'defined(\'CMS_HSTS_MODE\') || define(\'CMS_HSTS_MODE\', ' . $this->exportPhpValue($data['cms_hsts_mode']) . ');',
+            'defined(\'CMS_HSTS_MAX_AGE\') || define(\'CMS_HSTS_MAX_AGE\', ' . $this->exportPhpValue($data['cms_hsts_max_age']) . ');',
+            '',
+            '// ─── Fehler-Reporting ──────────────────────────────────────────────────────',
+            'if (CMS_DEBUG) {',
+            '    error_reporting(E_ALL);',
+            '    ini_set(\'display_errors\', \'1\');',
+            '    ini_set(\'log_errors\', \'1\');',
+            '    ini_set(\'error_log\', CMS_ERROR_LOG);',
+            '} else {',
+            '    error_reporting(0);',
+            '    ini_set(\'display_errors\', \'0\');',
+            '    ini_set(\'log_errors\', \'0\');',
+            '}',
+            '',
+            '// ─── Zeitzone ──────────────────────────────────────────────────────────────',
+            'date_default_timezone_set(\'Europe/Berlin\');',
+            '',
+            '// ─── LDAP-Konfiguration (optional) ─────────────────────────────────────────',
+            'defined(\'LDAP_HOST\')         || define(\'LDAP_HOST\',         ' . $this->exportPhpValue($data['ldap_host']) . ');',
+            'defined(\'LDAP_PORT\')         || define(\'LDAP_PORT\',         ' . $this->exportPhpValue($data['ldap_port']) . ');',
+            'defined(\'LDAP_BASE_DN\')      || define(\'LDAP_BASE_DN\',      ' . $this->exportPhpValue($data['ldap_base_dn']) . ');',
+            'defined(\'LDAP_USERNAME\')     || define(\'LDAP_USERNAME\',     ' . $this->exportPhpValue($data['ldap_username']) . ');',
+            'defined(\'LDAP_PASSWORD\')     || define(\'LDAP_PASSWORD\',     ' . $this->exportPhpValue($data['ldap_password']) . ');',
+            'defined(\'LDAP_USE_SSL\')      || define(\'LDAP_USE_SSL\',      ' . $this->exportPhpValue($data['ldap_use_ssl']) . ');',
+            'defined(\'LDAP_USE_TLS\')      || define(\'LDAP_USE_TLS\',      ' . $this->exportPhpValue($data['ldap_use_tls']) . ');',
+            'defined(\'LDAP_FILTER\')       || define(\'LDAP_FILTER\',       ' . $this->exportPhpValue($data['ldap_filter']) . ');',
+            'defined(\'LDAP_DEFAULT_ROLE\') || define(\'LDAP_DEFAULT_ROLE\', ' . $this->exportPhpValue($data['ldap_default_role']) . ');',
+            '',
+            '// ─── JWT-Konfiguration (API-Authentifizierung) ────────────────────────────',
+            'defined(\'JWT_SECRET\')        || define(\'JWT_SECRET\',  ' . $this->exportPhpValue($data['jwt_secret']) . ');',
+            'defined(\'JWT_TTL\')           || define(\'JWT_TTL\',     ' . $this->exportPhpValue($data['jwt_ttl']) . ');',
+            'defined(\'JWT_ISSUER\')        || define(\'JWT_ISSUER\',  ' . $jwtIssuerValue . ');',
+            '',
+            '// ─── E-Mail / SMTP-Konfiguration ──────────────────────────────────────────',
+            'defined(\'SMTP_HOST\')       || define(\'SMTP_HOST\',       ' . $this->exportPhpValue($data['smtp_host']) . ');',
+            'defined(\'SMTP_PORT\')       || define(\'SMTP_PORT\',       ' . $this->exportPhpValue($data['smtp_port']) . ');',
+            'defined(\'SMTP_USER\')       || define(\'SMTP_USER\',       ' . $this->exportPhpValue($data['smtp_user']) . ');',
+            'defined(\'SMTP_PASS\')       || define(\'SMTP_PASS\',       ' . $this->exportPhpValue($data['smtp_pass']) . ');',
+            'defined(\'SMTP_ENCRYPTION\') || define(\'SMTP_ENCRYPTION\', ' . $this->exportPhpValue($data['smtp_encryption']) . ');',
+            'defined(\'SMTP_FROM_EMAIL\') || define(\'SMTP_FROM_EMAIL\', ' . $smtpFromEmailValue . ');',
+            'defined(\'SMTP_FROM_NAME\')  || define(\'SMTP_FROM_NAME\',  ' . $smtpFromNameValue . ');',
+        ];
+
+        return implode("\n", $lines) . "\n";
+    }
+
+    /**
+     * @return mixed
+     */
+    private function extractDefinedValue(string $content, string $constant): mixed
+    {
+        $pattern = '~(?:defined\(\s*[\'\"]' . preg_quote($constant, '~') . '[\'\"]\s*\)\s*\|\|\s*)?define\(\s*[\'\"]' . preg_quote($constant, '~') . '[\'\"]\s*,\s*(.+?)\s*\);\s*(?://.*)?$~m';
+
+        if (preg_match($pattern, $content, $matches) !== 1) {
+            return null;
+        }
+
+        return $this->parsePhpLiteral(trim($matches[1]));
+    }
+
+    /**
+     * @return mixed
+     */
+    private function parsePhpLiteral(string $expression): mixed
+    {
+        if ($expression === '') {
+            return null;
+        }
+
+        $firstChar = $expression[0];
+        $lastChar = $expression[strlen($expression) - 1];
+
+        if ($firstChar === '\'' && $lastChar === '\'') {
+            $inner = substr($expression, 1, -1);
+
+            return str_replace(['\\\\', '\\' . '\''], ['\\', '\''], $inner);
+        }
+
+        if ($firstChar === '"' && $lastChar === '"') {
+            return stripcslashes(substr($expression, 1, -1));
+        }
+
+        if ($expression === 'true') {
+            return true;
+        }
+
+        if ($expression === 'false') {
+            return false;
+        }
+
+        if (preg_match('/^-?\d+$/', $expression) === 1) {
+            return (int) $expression;
+        }
+
+        return null;
     }
 
     public function clearSchemaManagerFlagFile(): void

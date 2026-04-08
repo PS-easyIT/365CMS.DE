@@ -1,4 +1,4 @@
-﻿﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.0-blue.svg)](https://shields.io/)
+﻿﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.1-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -17,6 +17,19 @@
 ---
 
 ## 📜 Vollständige Versionshistorie
+
+---
+
+### v2.9.1 — 08. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.1** | 🔴 fix | Admin/Users | **`CMS/admin/modules/users/UsersModule.php`, `CMS/core/Services/UserService.php`, `CMS/core/Services/MemberService.php` sowie die Legal-Admin-Module trennen Admin-Löschung und Self-Service-Löschung jetzt sauber**: Admins löschen Benutzer im Backend wieder hart und direkt, während eine Selbstlöschung im Member-Bereich stattdessen einen 30-Tage-Löschantrag mit `execute_after` erzeugt, der im Admin sichtbar und nachvollziehbar bleibt. |
+| **2.9.1** | 🔴 fix | Admin/System | **`CMS/admin/cms-logs.php`, `CMS/admin/views/system/cms-logs.php`, `CMS/core/Services/SystemService.php`, `CMS/admin/modules/system/SystemInfoModule.php` und die Dokumentationsansicht bündeln Diagnose und Laufzeitlogs jetzt sichtbar unter `CMS Logs`**: Admins sehen damit konfigurierte Logdateien, Kanal-Einträge und Doku-Sync-Hinweise direkt im Systembereich statt im Blindflug zwischen Dateisystem und Einzelansichten zu suchen. |
+| **2.9.1** | 🔴 fix | Core/Logging | **`CMS/config/app.php`, `CMS/admin/modules/settings/SettingsModule.php` und `CMS/install/InstallerService.php` normalisieren den Logpfad jetzt konsequent auf `ABSPATH . 'logs/'`**: Runtime-, Installer- und Konfig-Generatoren schreiben Logs damit unter dem FTP-/Webroot neben `index.php` statt in verstreute `var/logs`- oder Temp-Fallbacks. |
+| **2.9.1** | 🔴 fix | Installer/Updates | **`CMS/install/InstallerService.php` migriert bestehende `config/app.php`-Dateien beim Update jetzt deutlich vollständiger**: Vorhandene Konfigurationen werden weiterhin zuerst gesichert, anschließend aber mit aktueller Struktur für LDAP, JWT, SMTP, HSTS, Session-/Login-Limits und den neuen `logs/`-Pfad neu geschrieben, ohne dass Bestandswerte aus Legacy-Installationen still verloren gehen. |
+| **2.9.1** | 🔴 fix | Admin/Documentation | **`CMS/admin/modules/system/DocumentationGithubZipSync.php` und `DocumentationSyncFilesystem.php` ergänzen für den Doku-Sync einen GitHub-API-/Raw-Fallback nur für `DOC/**`**: Wenn das komplette Repository-ZIP auf `codeload.github.com` für dieses große Monorepo zu groß wird, synchronisiert 365CMS die Dokumentation jetzt stattdessen direkt über die GitHub-Tree-API und einzelne Raw-Dateien, statt den Sync komplett abzubrechen. |
+| **2.9.1** | 🔵 docs | Release | **`README.md`, `Changelog.md`, `CMS/core/Version.php` und `CMS/update.json` wurden auf den Release-Stand `2.9.1` synchronisiert**: sichtbare Versionsnummer, Hotfix-Highlights und Update-Metadaten zeigen damit denselben Stand für Lösch-Workflow, Logs und Installer-Migration. |
 
 ---
 

@@ -205,6 +205,63 @@ final class DocumentationSyncFilesystem
         return $count;
     }
 
+    public function ensureDirectory(string $dir): bool
+    {
+        if (!$this->isManagedPath($dir, file_exists($dir))) {
+            $this->logFilesystemFailure('mkdir_preflight', 'Verzeichnis liegt außerhalb der erlaubten Sync-Roots.', ['path' => $dir]);
+            return false;
+        }
+
+        if (is_link($dir)) {
+            $this->logFilesystemFailure('mkdir_preflight', 'Verzeichnis darf kein symbolischer Link sein.', ['path' => $dir]);
+            return false;
+        }
+
+        if (is_dir($dir)) {
+            return true;
+        }
+
+        $parentDir = dirname($dir);
+        if ($parentDir === '' || !is_dir($parentDir) && !mkdir($parentDir, 0755, true) && !is_dir($parentDir)) {
+            $this->logFilesystemFailure('mkdir_preflight', 'Elternverzeichnis konnte nicht erstellt werden.', ['path' => $dir]);
+            return false;
+        }
+
+        if (!is_writable($parentDir)) {
+            $this->logFilesystemFailure('mkdir_preflight', 'Elternverzeichnis ist nicht beschreibbar.', ['path' => $dir]);
+            return false;
+        }
+
+        return $this->runFilesystemOperation('mkdir', 'Verzeichnis konnte nicht erstellt werden.', ['path' => $dir], static fn (): bool => mkdir($dir, 0755, true) || is_dir($dir)) === true;
+    }
+
+    public function writeFile(string $path, string $contents): bool
+    {
+        if (!$this->isManagedPath($path, file_exists($path))) {
+            $this->logFilesystemFailure('write_preflight', 'Datei liegt außerhalb der erlaubten Sync-Roots.', ['path' => $path]);
+            return false;
+        }
+
+        if (is_link($path)) {
+            $this->logFilesystemFailure('write_preflight', 'Datei darf kein symbolischer Link sein.', ['path' => $path]);
+            return false;
+        }
+
+        $parentDir = dirname($path);
+        if (!$this->ensureDirectory($parentDir)) {
+            return false;
+        }
+
+        if (!is_writable($parentDir)) {
+            $this->logFilesystemFailure('write_preflight', 'Zielverzeichnis ist nicht beschreibbar.', ['path' => $path]);
+            return false;
+        }
+
+        $written = $this->runFilesystemOperation('write', 'Datei konnte nicht geschrieben werden.', ['path' => $path], static fn (): int|false => file_put_contents($path, $contents, LOCK_EX));
+
+        return is_int($written) && $written === strlen($contents);
+    }
+
     public function deleteDirectory(string $dir): bool
     {
         if (!$this->isManagedPath($dir, file_exists($dir))) {

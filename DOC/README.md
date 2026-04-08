@@ -1,15 +1,15 @@
 # 365CMS – Projektdokumentation
-> **Stand:** 2026-04-07 | **Version:** 2.9.0 | **Status:** Aktuell
+> **Stand:** 2026-04-08 | **Version:** 2.9.1 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Womit ihr anfangen solltet](#womit-ihr-anfangen-solltet)
-- [Release-Fokus 2.9.0](#release-fokus-290)
+- [Release-Fokus 2.9.1](#release-fokus-291)
 - [Dokumentationsbereiche](#dokumentationsbereiche)
 - [Wichtige Hinweise](#wichtige-hinweise)
 - [Verwandte Einstiege](#verwandte-einstiege)
 
 ---
-<!-- UPDATED: 2026-04-07 -->
+<!-- UPDATED: 2026-04-08 -->
 
 ## Womit ihr anfangen solltet
 
@@ -31,14 +31,14 @@
 
 ---
 
-## Release-Fokus 2.9.0
+## Release-Fokus 2.9.1
 
-Die Dokumentation ist jetzt auf den dokumentierten Stand `2.9.0` nachgezogen. Der Schwerpunkt liegt auf der neuen CMS-eigenen Auth-Strecke und den dazugehörigen Security-Fixes:
+Die Dokumentation ist jetzt auf den dokumentierten Stand `2.9.1` nachgezogen. Der Schwerpunkt liegt auf den jüngsten Hotfixes für Benutzerlöschung, Logs, Diagnose und Installer-Migration:
 
-- themeunabhängige Core-Routen für Login, Registrierung und Passwort-Reset: `/cms-login`, `/cms-register`, `/cms-password-forgot`
-- neue Admin-Seite `/admin/cms-loginpage` für Branding, Farben, Texte, Rechtsseiten, Footer-Links, Passkey-Sichtbarkeit und Reset-Mail-Vorlagen
-- zentralisierte Session-Finalisierung für Passwort-, MFA-, Backup-Code-, Passkey- und LDAP-Login
-- weiter gehärtete Redirect- und MFA-Pfade mit allowlist-basiertem Same-Origin-Vertrag statt losem Redirect-String-Zirkus
+- klare Trennung zwischen Admin-Hard-Delete und 30-Tage-Self-Delete-Anträgen im Member-Bereich
+- neue Admin-Seite `/admin/cms-logs` für konfigurierte Runtime-Logs, Kanal-Einträge und Diagnosezugriff
+- konsistenter Logpfad unter `ABSPATH . 'logs/'` statt verstreuter Fallback-Pfade
+- Installer-Updates schreiben bestehende `config/app.php` nach Sicherung jetzt auf die aktuelle Konfigstruktur hoch, statt neue Bereiche still zu verlieren
 
 ---
 
@@ -51,7 +51,7 @@ Die Kernsystem-Dokumente unter [`core/`](core/) beschreiben Bootstrap, Routing, 
 ### Admin
 
 Die Admin-Dokumente unter [`admin/`](admin/) orientieren sich an der aktuellen Sidebar- und Modulstruktur aus `CMS/admin/`.
-Dazu gehört jetzt auch die **CMS Loginpage** unter `/admin/cms-loginpage`, die bewusst neben Theme-Editor und Theme-Explorer als eigener Core-Auth-Bereich dokumentiert wird.
+Dazu gehören jetzt auch die **CMS Loginpage** unter `/admin/cms-loginpage` und **CMS Logs** unter `/admin/cms-logs`, die bewusst als eigene Core-Bereiche für Auth-Branding bzw. Laufzeitdiagnose dokumentiert werden.
 
 ### Member
 

@@ -2,11 +2,11 @@
 
 Kurzbeschreibung: Überblick über Konfiguration, Updates, Backups, Info-Ansichten und Diagnose im Admin-Bereich.
 
-Letzte Aktualisierung: 2026-04-07 · Version 2.9.0
+Letzte Aktualisierung: 2026-04-08 · Version 2.9.1
 
 Der Bereich „System" wurde in mehrere klar getrennte Einstiege aufgeteilt.
 
-Die Übersicht bezieht sich auf die aktuelle 2.9.0-Bedienstruktur. Für Runtime-Fragen zu Konfiguration, Bootstrap, Logs oder Dateisystempfaden ergänzen `DOC/INSTALLATION.md`, `DOC/core/ARCHITECTURE.md` und `DOC/FILELIST.md` diese Seite.
+Die Übersicht bezieht sich auf die aktuelle 2.9.1-Bedienstruktur. Für Runtime-Fragen zu Konfiguration, Bootstrap, Logs oder Dateisystempfaden ergänzen `DOC/INSTALLATION.md`, `DOC/core/ARCHITECTURE.md` und `DOC/FILELIST.md` diese Seite.
 
 ### System-Gruppe
 
@@ -15,13 +15,14 @@ Die Übersicht bezieht sich auf die aktuelle 2.9.0-Bedienstruktur. Für Runtime-
 | `/admin/settings` | allgemeine Systemeinstellungen inkl. SMTP-/Mail-Status und Testversand |
 | `/admin/backups` | Backups erstellen, auflisten und löschen |
 | `/admin/updates` | Core-, Theme- und Plugin-Updates |
+| `/admin/cms-logs` | konfigurierte CMS-Logdateien, Kanal-Einträge und schnelle Laufzeitdiagnose |
 
 ### Info-Gruppe
 
 | Route | Zweck |
 |---|---|
 | `/admin/info` | Systeminformationen und Betriebsübersicht |
-| `/admin/documentation` | lokale Dokumentationsansicht im Admin |
+| `/admin/documentation` | lokale Dokumentationsansicht im Admin inklusive Logpfad- und Sync-Kontext |
 
 ### Diagnose-Gruppe
 
