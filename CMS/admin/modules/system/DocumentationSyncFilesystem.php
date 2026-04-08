@@ -528,8 +528,31 @@ final class DocumentationSyncFilesystem
             return '';
         }
 
-        $parent = dirname($path);
-        $resolvedParent = realpath($parent);
+        $segments = [];
+        $candidate = $path;
+
+        while (true) {
+            $resolvedCandidate = realpath($candidate);
+            if (is_string($resolvedCandidate) && $resolvedCandidate !== '') {
+                $normalized = rtrim($resolvedCandidate, '\\/');
+                while ($segments !== []) {
+                    $normalized .= DIRECTORY_SEPARATOR . array_pop($segments);
+                }
+
+                return $normalized;
+            }
+
+            $basename = basename($candidate);
+            $parent = dirname($candidate);
+            if ($parent === $candidate || $parent === '' || $basename === '') {
+                break;
+            }
+
+            $segments[] = $basename;
+            $candidate = $parent;
+        }
+
+        $resolvedParent = realpath(dirname($path));
         if (!is_string($resolvedParent) || $resolvedParent === '') {
             return '';
         }

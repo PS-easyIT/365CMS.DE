@@ -29,6 +29,16 @@ $performance = is_array($data['performance'] ?? null) ? $data['performance'] : [
 $system = is_array($data['system'] ?? null) ? $data['system'] : [];
 $subscriptionEnabled = (bool) ($data['subscription_enabled'] ?? true);
 $quickLinks = is_array($data['quickLinks'] ?? null) ? $data['quickLinks'] : [];
+$dashboardAlerts = array_values(array_filter(
+    is_array($data['alerts'] ?? null) ? $data['alerts'] : [],
+    static function ($alert): bool {
+        if (!is_array($alert)) {
+            return false;
+        }
+
+        return in_array((string) ($alert['type'] ?? ''), ['warning', 'danger'], true);
+    }
+));
 $headerQuickLinks = array_values(array_filter($quickLinks, static function (array $link): bool {
     return !in_array((string) ($link['label'] ?? ''), ['Neue Seite', 'Neuer Beitrag'], true);
 }));
@@ -174,8 +184,8 @@ function dashboardStatusBadge(string $status): string {
 
         <?php
         // ─── Warnungen / Hinweise ─────────────────────────────────
-        if (!empty($data['alerts'])):
-            foreach ($data['alerts'] as $alert): ?>
+        if ($dashboardAlerts !== []):
+            foreach ($dashboardAlerts as $alert): ?>
                 <div class="alert alert-<?= htmlspecialchars((string) ($alert['type'] ?? 'info')) ?> alert-dismissible" role="alert">
                     <div class="d-flex">
                         <div><?= dashIcon('alert-triangle') ?></div>

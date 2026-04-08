@@ -541,17 +541,6 @@ class DashboardService {
             ];
         }
 
-        if (($stats['users']['new_today'] ?? 0) > 0) {
-            $items[] = [
-                'type' => 'info',
-                'icon' => '👤',
-                'label' => 'Neue Benutzer heute',
-                'value' => (string)$stats['users']['new_today'],
-                'hint' => 'Neue Registrierungen prüfen',
-                'url' => SITE_URL . '/admin/users',
-            ];
-        }
-
         if (($stats['security']['https_enabled'] ?? false) === false) {
             $items[] = [
                 'type' => 'danger',

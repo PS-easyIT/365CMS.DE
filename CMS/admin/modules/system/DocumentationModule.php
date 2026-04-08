@@ -265,7 +265,6 @@ final class DocumentationModule
             'sync_capabilities' => $syncCapabilities,
             'log_path' => $this->systemService->getConfiguredLogDirectory(),
             'logs_url' => SITE_URL . '/admin/cms-logs',
-            'sync_log_entries' => $this->systemService->getRecentLogEntriesByChannel('admin.documentation', 10),
             'error' => null,
         ]));
     }
@@ -293,7 +292,6 @@ final class DocumentationModule
             'sync_capabilities' => [],
             'log_path' => $this->systemService->getConfiguredLogDirectory(),
             'logs_url' => SITE_URL . '/admin/cms-logs',
-            'sync_log_entries' => [],
             'error' => null,
         ], $overrides);
     }

@@ -35,7 +35,6 @@ $syncClass        = $syncAvailable ? 'text-success' : 'text-warning';
 $syncAlertClass   = $syncAvailable ? 'success' : 'warning';
 $logPath          = (string) ($data['log_path'] ?? '');
 $logsUrl          = (string) ($data['logs_url'] ?? (SITE_URL . '/admin/cms-logs'));
-$syncLogEntries   = is_array($data['sync_log_entries'] ?? null) ? $data['sync_log_entries'] : [];
 $selectedPath     = is_array($selectedDocument) ? (string) ($selectedDocument['relative_path'] ?? '') : '';
 $selectedTitle    = is_array($selectedDocument) ? (string) ($selectedDocument['title'] ?? 'Dokument auswählen') : 'Dokument auswählen';
 $selectedExcerpt  = is_array($selectedDocument) ? (string) ($selectedDocument['excerpt'] ?? '') : '';
@@ -432,32 +431,15 @@ $metricCards = cms_admin_documentation_view_metric_cards($docCount, $sectionCoun
                 </div>
                 <div class="col-12 col-xl-7">
                     <div class="card h-100">
-                        <div class="card-header"><h3 class="card-title">Letzte Doku-Sync-Logs</h3></div>
-                        <div class="table-responsive">
-                            <table class="table table-vcenter card-table table-striped mb-0">
-                                <thead>
-                                    <tr>
-                                        <th>Zeit</th>
-                                        <th>Level</th>
-                                        <th>Datei</th>
-                                        <th>Meldung</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php if ($syncLogEntries === []): ?>
-                                        <tr><td colspan="4" class="text-center text-secondary py-4">Noch keine Doku-Sync-Logs gefunden. Wenn der Sync fehlschlägt, prüfe bitte den Pfad <code><?php echo htmlspecialchars($logPath, ENT_QUOTES, 'UTF-8'); ?></code>.</td></tr>
-                                    <?php else: ?>
-                                        <?php foreach ($syncLogEntries as $logEntry): ?>
-                                            <tr>
-                                                <td class="text-nowrap"><?php echo htmlspecialchars((string)($logEntry['timestamp'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
-                                                <td><span class="badge bg-secondary-lt"><?php echo htmlspecialchars((string)($logEntry['level'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></span></td>
-                                                <td><code><?php echo htmlspecialchars((string)($logEntry['file'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></code></td>
-                                                <td class="small"><?php echo htmlspecialchars((string)($logEntry['message'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
-                                            </tr>
-                                        <?php endforeach; ?>
-                                    <?php endif; ?>
-                                </tbody>
-                            </table>
+                        <div class="card-header"><h3 class="card-title">Logs &amp; Verlauf</h3></div>
+                        <div class="card-body">
+                            <p class="text-secondary mb-3">Ausführliche Doku-Sync-Logs werden bewusst nur zentral unter <strong>System &gt; CMS Logs</strong> angezeigt. Dadurch bleiben Dokumentation, Dashboard und Diagnose frei von Info-Lograuschen.</p>
+                            <div class="d-flex flex-wrap gap-2">
+                                <a href="<?php echo htmlspecialchars($logsUrl, ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-primary btn-sm">Doku-Sync-Logs in CMS Logs öffnen</a>
+                                <?php if ($logPath !== ''): ?>
+                                    <span class="badge bg-secondary-lt text-break"><code><?php echo htmlspecialchars($logPath, ENT_QUOTES, 'UTF-8'); ?></code></span>
+                                <?php endif; ?>
+                            </div>
                         </div>
                     </div>
                 </div>

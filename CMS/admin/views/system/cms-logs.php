@@ -30,6 +30,11 @@ $documentationEntries = is_array($logsData['documentation_entries'] ?? null) ? $
                 <div class="text-secondary mt-1">Gebündelte Sicht auf die konfigurierten CMS-Logdateien aus <code>LOG_PATH</code> inklusive Doku-Sync-Channel.</div>
             </div>
             <div class="col-auto d-flex gap-2 flex-wrap">
+                <form method="post" class="d-inline" data-confirm-message="PHP Error-Log wirklich leeren?" data-confirm-title="PHP Error-Log leeren" data-confirm-text="Leeren" data-confirm-class="btn-warning" data-confirm-status-class="bg-warning">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? '', ENT_QUOTES, 'UTF-8'); ?>">
+                    <input type="hidden" name="action" value="clear_logs">
+                    <button type="submit" class="btn btn-outline-warning"<?php echo !$errorLogExists ? ' disabled' : ''; ?>>PHP Error-Log leeren</button>
+                </form>
                 <form method="post" class="d-inline" data-confirm-message="Wirklich alle CMS-Logdateien löschen?" data-confirm-title="Alle Logs löschen" data-confirm-text="Löschen" data-confirm-class="btn-danger" data-confirm-status-class="bg-danger">
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? '', ENT_QUOTES, 'UTF-8'); ?>">
                     <input type="hidden" name="action" value="clear_all_cms_logs">

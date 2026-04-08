@@ -59,11 +59,7 @@ foreach ($tables as $tableInfo) {
                     <input type="hidden" name="action" value="optimize_db">
                     <button type="submit" class="btn btn-outline-primary">DB optimieren</button>
                 </form>
-                <form method="post" class="d-inline">
-                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>">
-                    <input type="hidden" name="action" value="clear_logs">
-                    <button type="submit" class="btn btn-outline-danger">Logs leeren</button>
-                </form>
+                <a href="<?php echo htmlspecialchars(SITE_URL . '/admin/cms-logs', ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-outline-secondary">CMS Logs öffnen</a>
             </div>
         </div>
     </div>

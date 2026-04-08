@@ -7,7 +7,7 @@ if (!defined('ABSPATH')) {
 
 const CMS_ADMIN_SYSTEM_MONITOR_SECTION_ACTIONS = [
     'info' => [],
-    'diagnose' => ['clear_cache', 'optimize_db', 'clear_logs', 'create_tables', 'repair_tables'],
+    'diagnose' => ['clear_cache', 'optimize_db', 'create_tables', 'repair_tables'],
     'logs' => ['clear_logs', 'clear_cms_log', 'clear_all_cms_logs'],
     'response-time' => [],
     'disk' => [],

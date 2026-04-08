@@ -250,10 +250,10 @@ class DashboardModule
 
         // Security-Warnungen
         $security = $stats['security'] ?? [];
-        if (!empty($security['failed_logins_today']) && $security['failed_logins_today'] > 10) {
+        if (!empty($security['failed_logins_24h']) && $security['failed_logins_24h'] > 10) {
             $alerts[] = [
                 'type'    => 'danger',
-                'message' => $security['failed_logins_today'] . ' fehlgeschlagene Logins heute',
+                'message' => $security['failed_logins_24h'] . ' fehlgeschlagene Logins in den letzten 24 Stunden',
                 'url'     => '/admin/security-audit',
             ];
         }
