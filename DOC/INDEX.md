@@ -20,6 +20,7 @@
 | Projektüberblick | [README.md](README.md) |
 | Entwickler-Referenz | [DEVLIST.md](DEVLIST.md) |
 | Datei- & Strukturübersicht | [FILELIST.md](FILELIST.md) |
+| Historischer Scope-Snapshot | [CMSFILESTRUCTUR.md](CMSFILESTRUCTUR.md) |
 | Installation | [INSTALLATION.md](INSTALLATION.md) |
 | Root-README | [../README.md](../README.md) |
 | Changelog | [../Changelog.md](../Changelog.md) |
@@ -106,7 +107,7 @@
 | Audits | [audit/BEWERTUNG.md](audit/BEWERTUNG.md), [audit/PRÜFUNG.MD](audit/PRÜFUNG.MD), [audit/ToDoPrüfung.md](audit/ToDoPrüfung.md) |
 | Workflows | `DOC/workflow/*.md` |
 
-Diese Dokumente enthalten teils Live-Stände, Auditfortschritte oder operative Rezepte. Für aktuelle technische Aussagen haben Core-, Admin-, Member- und Asset-Dokumente Vorrang.
+Diese Dokumente enthalten teils Live-Stände, Auditfortschritte oder operative Rezepte. Für aktuelle technische Aussagen haben `DEVLIST.md`, `FILELIST.md` und die jeweils bereichsnahen Core-/Admin-/Asset-Dokumente Vorrang. `CMSFILESTRUCTUR.md` bleibt bewusst ein engerer, historisch verifizierter Snapshot- und Prüfscope-Kontext.
 
 ### Wichtige Workflows
 

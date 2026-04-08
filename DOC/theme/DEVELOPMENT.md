@@ -1,5 +1,5 @@
 # 365CMS – Theme-Entwicklungsumgebung
-> **Stand:** 2026-03-28 | **Version:** 2.8.0 RC | **Status:** Aktuell
+> **Stand:** 2026-04-07 | **Version:** 2.9.0 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Grundstruktur](#grundstruktur)
@@ -16,7 +16,9 @@
 - [Verfügbare Helper](#verfügbare-helper)
 
 ---
-<!-- UPDATED: 2026-03-28 -->
+<!-- UPDATED: 2026-04-07 -->
+
+Die produktive Theme-Laufzeit liegt unter `CMS/themes/`. Inhalte oder Beispiele aus `365CMS.DE-THEME/` sind Entwicklungsquelle und müssen vor Einsatz in die Runtime-Struktur übernommen bzw. ausgerollt werden.
 
 ## 📋 Inhaltsverzeichnis
 
@@ -837,7 +839,7 @@ if (!empty($customJS)) {
 ?>
 ```
 
-> **Hinweis:** Die Theme-Customization-API gehört auch in `2.8.0 RC` zum stabilen Kernbestand. Änderungen am Customizer werden in der Tabelle `cms_theme_customizations` gespeichert.
+> **Hinweis:** Die Theme-Customization-API gehört auch in `2.9.0` zum stabilen Kernbestand. Änderungen am Customizer werden in der Tabelle `cms_theme_customizations` gespeichert.
 
 ```php
 <?php

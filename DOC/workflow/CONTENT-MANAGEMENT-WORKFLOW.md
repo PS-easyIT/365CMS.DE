@@ -1,15 +1,15 @@
 # Content-Management Workflow – 365CMS
 
-> **Stand:** 2026-03-28 | **Version:** 2.8.0 RC | **Status:** Referenz / teilweise konzeptionell
+> **Stand:** 2026-04-07 | **Version:** 2.9.0 | **Status:** Referenz / teilweise konzeptionell
 >
-> **Bereich:** Inhalte · **Version:** 2.8.0 RC  
+> **Bereich:** Inhalte · **Version:** 2.9.0  
 > **Services:** `EditorService`, `SEOService`, `MediaService`  
 > **Admin-Seiten:** `admin/pages.php`, `admin/posts.php`, `admin/landing-page.php`, `admin/media.php`
 
 ---
-<!-- UPDATED: 2026-03-28 -->
+<!-- UPDATED: 2026-04-07 -->
 
-> Hinweis: Die Datei beschreibt den redaktionellen Gesamtfluss. Konkrete technische Details einzelner Admin-Seiten können inzwischen von diesem High-Level-Workflow abweichen.
+> Hinweis: Die Datei beschreibt den redaktionellen Gesamtfluss der 2.9.0-Linie. Konkrete technische Details einzelner Admin-Seiten können inzwischen von diesem High-Level-Workflow abweichen; für Feldnamen, Routen und Speziallogik bleiben die realen Admin-Handler und Views führend.
 
 ## Übersicht: Content-Typen
 

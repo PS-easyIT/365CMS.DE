@@ -1,7 +1,7 @@
 # 365CMS – Performance-Center
-> **Stand:** 2026-03-28 | **Version:** 2.8.0 RC | **Status:** Aktuell
+> **Stand:** 2026-04-07 | **Version:** 2.9.0 | **Status:** Aktuell
 
-<!-- UPDATED: 2026-03-28 -->
+<!-- UPDATED: 2026-04-07 -->
 
 ## Überblick
 
@@ -10,6 +10,8 @@ Unterseiten für Cache, Medien, Datenbank, Settings und Sessions. Alle Seiten te
 das `PerformanceModule` und den CSRF-Kontext `admin_performance`.
 
 Der Einstieg erfolgt über `/admin/performance`.
+
+Im aktuellen Stand ist der Bereich zugleich Diagnose- und Tuning-Zentrale für Cache, Medien, DB, Sessions und Laufzeit-Snapshots.
 
 ## Verfügbare Funktionen
 

@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Einstellungen für die automatische Inhaltsverzeichnis-Generierung in Seiten und Beiträgen.
 
-Letzte Aktualisierung: 2026-03-28 · Version 2.8.0 RC
+Letzte Aktualisierung: 2026-04-07 · Version 2.9.0
 
 ---
 
@@ -10,7 +10,8 @@ Letzte Aktualisierung: 2026-03-28 · Version 2.8.0 RC
 
 | Eigenschaft | Wert |
 |---|---|
-| Route | `/admin/content-settings` (Tab: TOC) |
+| Route | `/admin/table-of-contents` |
+| Entry Point | `CMS/admin/table-of-contents.php` |
 | Modul | `CMS/admin/modules/toc/TocModule.php` |
 | CSRF-Kontext | `admin_toc` |
 
@@ -25,10 +26,12 @@ Letzte Aktualisierung: 2026-03-28 · Version 2.8.0 RC
 Typische Optionen:
 
 - TOC aktivieren/deaktivieren
-- Minimale Überschriftenebene
-- Maximale Überschriftenebene
+- Mindestanzahl Überschriften
+- aktivierte Überschriftenebenen (`h2` bis `h6`)
 - Position (vor Inhalt, nach Einleitung, etc.)
-- Darstellungsstil
+- Darstellungsstil, Breite, Theme und Ausrichtung
+- Scroll-Verhalten, Offsets und Anker-Präfix
+- Ausnahmeslugs und Pfadbegrenzung
 
 ### Speichern
 

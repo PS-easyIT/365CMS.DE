@@ -1,7 +1,7 @@
 # 365CMS – Core-Klassen-Referenz
-<!-- UPDATED: 2026-03-28 -->
+<!-- UPDATED: 2026-04-07 -->
 
-> **Stand:** 2026-03-28 | **Version:** 2.8.0 RC | **Status:** Aktuell
+> **Stand:** 2026-04-07 | **Version:** 2.9.0 | **Status:** Aktuell
 
 Dieses Dokument beschreibt die zentralen PHP-Klassen des 365CMS-Kerns. Alle Klassen
 befinden sich im Namespace `CMS\` (Kern) bzw. `CMS\Services\` (Service-Schicht) und
@@ -1533,7 +1533,7 @@ PSR-3-kompatibles Interface mit allen acht Log-Level-Methoden.
 Zentrale, leichtgewichtige Quelle für die aktuelle Release-Version, das Release-Datum und den Release-Status des Core. Die Datei ergänzt die Konstante `CMS_VERSION` um eine explizite Klassenreferenz für Fallbacks in Bootstrap-, API- und Update-Pfaden.
 
 ```php
-CMS\Version::CURRENT;       // '2.8.0'
+CMS\Version::CURRENT;       // '2.9.0'
 CMS\Version::RELEASE_DATE;  // '2026-03-16'
 CMS\Version::STATUS;        // 'stable'
 ```
@@ -1591,5 +1591,5 @@ Funktionalität:
 
 ---
 
-*Generiert am 2026-03-16 – Diese Dokumentation basiert auf dem aktuellen Stand des
-365CMS-Quellcodes (Version 2.8.0 RC).*
+*Generiert am 2026-04-07 – Diese Dokumentation basiert auf dem aktuellen Stand des
+365CMS-Quellcodes (Version 2.9.0).*

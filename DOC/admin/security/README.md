@@ -2,9 +2,11 @@
 
 Kurzbeschreibung: Überblick über die aktuellen Sicherheitswerkzeuge im Admin-Bereich mit AntiSpam, Firewall und Security-Audit.
 
-Letzte Aktualisierung: 2026-03-28 · Version 2.8.0 RC
+Letzte Aktualisierung: 2026-04-07 · Version 2.9.0
 
 Der Bereich bündelt die anwendungsnahen Schutzmechanismen des aktuellen 365CMS-Kerns. Maßgeblich ist die Sidebar-Gruppe **Sicherheit** aus `CMS/admin/partials/sidebar.php`.
+
+Diese Übersicht beschreibt die 2.9.0-Adminoberfläche; für tiefe Verträge rund um CSRF, Session-Härtung, Auth und Sanitizing sind zusätzlich die Core-Dokumente unter `DOC/core/` führend.
 
 ## Aktuelle Routen
 

@@ -1,5 +1,5 @@
 # 365CMS – Architektur
-> **Stand:** 2026-03-28 | **Version:** 2.8.0 | **Status:** Aktuell
+> **Stand:** 2026-04-07 | **Version:** 2.9.0 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Überblick](#überblick)
@@ -12,7 +12,7 @@
 
 ---
 
-## Überblick <!-- UPDATED: 2026-03-16 -->
+## Überblick <!-- UPDATED: 2026-04-07 -->
 
 365CMS ist ein modular aufgebautes Content-Management-System, das auf **PHP 8.4+** basiert und für den Betrieb auf Shared- und Managed-Hosting optimiert ist. Die Architektur trennt sechs Schichten klar voneinander: Core, Services, Plugins, Themes, Admin und Member/API.
 
@@ -28,7 +28,7 @@
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────┐
-│                      365CMS v2.8.0                                  │
+│                      365CMS v2.9.0                                  │
 │                                                                     │
 │  Presentation     → Themes (Frontend), Admin-Views, Member-Templates│
 │  Application      → Router, Hooks, PluginManager, ThemeManager      │
@@ -345,6 +345,8 @@ Jeder Service wird unter seinem FQCN **und** einem Kurzalias registriert, sodass
 
 365CMS verwendet **keinen globalen Composer-Autoloader**. Stattdessen werden Vendor-Libraries entpackt unter `CMS/assets/` gepflegt und über einen eigenen Autoloader geladen.
 
+Für den produktiven Betrieb sind außerdem die Runtime-Pfade maßgeblich: aktive Themes werden aus `CMS/themes/<slug>/`, aktive Plugins aus `CMS/plugins/<slug>/` geladen. Separate Quell-Repositories wie `365CMS.DE-THEME/` oder `365CMS.DE-PLUGINS/` sind Entwicklungs- bzw. Quellbestände und nicht automatisch Teil der Live-Laufzeit.
+
 Da dieser Ansatz keine Composer-Installationsprüfung ausführt, übernimmt `Bootstrap` zusätzlich eine Fail-Fast-Validierung für die produktiv eingebundenen Symfony-Bundles (`mailer`, `mime`, `translation`). Stimmen Runtime oder offizielle CMS-Mindestplattform nicht mit den deklarierten Composer-Anforderungen überein, wird der Start kontrolliert mit 503/CLI-Fehler abgebrochen.
 
 ### Autoloader-Hierarchie
@@ -463,7 +465,7 @@ defined('ASSETS_PATH')   || define('ASSETS_PATH',   ABSPATH . 'assets/');
 |---|---|---|
 | `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASS` | MySQL/MariaDB-Verbindung | `localhost`, `cms_db` |
 | `SITE_URL` | Basis-URL der Installation | `https://example.com` |
-| `CMS_VERSION` | Aktuelle Version | `2.8.0` |
+| `CMS_VERSION` | Aktuelle Version | `2.9.0` |
 | `LOG_PATH` | Verzeichnis für Log-Dateien | `ABSPATH . 'logs/'` |
 | `LOG_LEVEL` | Minimaler Log-Level | `WARNING` (oder `DEBUG` bei `CMS_DEBUG=true`) |
 | `CMS_DEBUG` | Debug-Modus | `false` |

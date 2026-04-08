@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Core-, Theme- und Plugin-Updates via GitHub-basierter Update-Logik.
 
-Letzte Aktualisierung: 2026-03-28 · Version 2.8.0 RC
+Letzte Aktualisierung: 2026-04-07 · Version 2.9.0
 
 ---
 

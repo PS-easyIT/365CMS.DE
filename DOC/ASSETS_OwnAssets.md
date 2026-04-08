@@ -1,5 +1,5 @@
 # ASSETS OwnAssets – Roadmap für Eigenersatz
-> **Stand:** 2026-03-28 | **Version:** 2.8.0 RC | **Status:** Arbeitsliste / Strategiepapier
+> **Stand:** 2026-04-07 | **Version:** 2.9.0 | **Status:** Arbeitsliste / Strategiepapier
 
 ## Zielbild
 
@@ -7,7 +7,7 @@ Diese Liste beschreibt, **welche aktiven Fremd-Assets 365CMS schrittweise durch 
 
 Wichtig: Nicht jede Drittbibliothek sollte ersetzt werden. Bei sicherheitskritischen, standardnahen oder komplexen Bibliotheken ist **Kapselung statt Eigenbau** die bessere Strategie.
 
-Bereits entfernte Legacy-Assets aus früheren Laufzeitpfaden sind **nicht mehr Teil dieser Ersatzliste**. Der Fokus liegt auf dem aktuell relevanten Restbestand unter `CMS/assets/`.
+Bereits entfernte oder nicht mehr führende Legacy-Assets aus früheren Laufzeitpfaden sind **nicht mehr Teil dieser Ersatzliste**. Der Fokus liegt auf dem aktuell relevanten Restbestand unter `CMS/assets/`.
 
 ---
 
@@ -24,7 +24,7 @@ Bereits entfernte Legacy-Assets aus früheren Laufzeitpfaden sind **nicht mehr T
 
 ## Aktive Kandidaten für Eigenersatz
 
-| Asset | Status in 2.8.0 RC | Rolle heute | Empfehlung | Priorität | Ziel für Eigenlösung |
+| Asset | Status in 2.9.0 | Rolle heute | Empfehlung | Priorität | Ziel für Eigenlösung |
 |---|---|---|---|---|---|
 | `gridjs` | aktiv | Tabellen-/Grid-Darstellung im Admin | durch eigenes Grid-Wrapper-Modul ersetzen | P1 | `cms-grid.js` + serverseitige Config-Helper |
 | `photoswipe` | aktiv | Frontend-Lightbox | durch eigene Lightbox-Komponente ablösen | P2 | `cms-lightbox.js` + schlanke CSS-Komponente |
@@ -130,3 +130,5 @@ Die beste Reihenfolge lautet daher:
 1. kleine UI-Bibliotheken wie `gridjs` und `photoswipe` durch 365CMS-eigene Module ersetzen
 2. `melbahja-seo` funktional in kleinere Core-Services aufteilen
 3. komplexe Sicherheits- und Infrastruktur-Bibliotheken bewusst behalten und nur abstrahieren
+
+Wichtig für den aktuellen Dokumentationsstand: Die führende Runtime- und Strukturreferenz für aktive Asset-Pfade liegt jetzt zusätzlich in `DOC/FILELIST.md` und `DOC/assets/README.md`.

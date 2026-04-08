@@ -1,5 +1,5 @@
 # 365CMS – Plugin-Schnellstart
-> **Stand:** 2026-03-28 | **Version:** 2.8.0 RC | **Status:** Aktuell
+> **Stand:** 2026-04-07 | **Version:** 2.9.0 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Ziel](#ziel)
@@ -12,7 +12,7 @@
 - [Weiterführende Dokumente](#weiterführende-dokumente)
 
 ---
-<!-- UPDATED: 2026-03-28 -->
+<!-- UPDATED: 2026-04-07 -->
 
 ## Ziel
 
@@ -131,6 +131,8 @@ final class HalloWelt
 3. aktivieren
 
 Danach erscheint das Banner im Frontend und – falls registriert – der Plugin-Einstieg im Plugin-Bereich der Admin-Sidebar.
+
+Wichtig für den aktuellen Projektstand: Die Plugin-Runtime ist ausschließlich `CMS/plugins/`. Das separate Repository `365CMS.DE-PLUGINS/` bleibt Quell- und Pflegekontext, ist aber nicht automatisch der aktive Ladepfad.
 
 ---
 

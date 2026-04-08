@@ -1,12 +1,14 @@
 # 365CMS – Services-Referenz
-> **Stand:** 2026-03-28 | **Version:** 2.8.0 RC | **Status:** Aktuell
+> **Stand:** 2026-04-07 | **Version:** 2.9.0 | **Status:** Aktuell
 
 Vollständige Dokumentation des Service-Layers. Alle Service-Klassen liegen im Namespace `CMS\Services` unter `core/Services/`. Der `CacheManager` befindet sich im Root-Namespace `CMS` unter `core/CacheManager.php`.
 
 ---
 
-<!-- UPDATED: 2026-03-28 -->
+<!-- UPDATED: 2026-04-07 -->
 ## 1 · Übersicht
+
+Die Übersicht folgt der produktiven 2.9.0-Laufzeit. Einzelne Services greifen direkt auf Dateien unter `CMS/assets/`, `CMS/config/`, `CMS/cache/`, `CMS/uploads/` und `CMS/logs/` zu; die Kombination aus Service-Klasse plus realem Runtime-Pfad ist für Fehlersuche und Betrieb immer gemeinsam zu betrachten.
 
 | Klasse | Datei | Aufgabe |
 |--------|-------|---------|

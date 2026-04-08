@@ -1,14 +1,14 @@
 # Medien-Upload Workflow – 365CMS
 
-> **Stand:** 2026-03-28 | **Version:** 2.8.0 RC | **Status:** Aktuell
+> **Stand:** 2026-04-07 | **Version:** 2.9.0 | **Status:** Aktuell
 >
-> **Bereich:** Medien-Verwaltung · **Version:** 2.8.0 RC  
+> **Bereich:** Medien-Verwaltung · **Version:** 2.9.0  
 > **Services:** `core/Services/MediaService.php`, `core/Services/Media/UploadHandler.php`, `core/Services/Media/MediaRepository.php`  
 > **Admin-Seite:** `admin/media.php`  
 > **Member-Seite:** `member/media.php`
 
 ---
-<!-- UPDATED: 2026-03-28 -->
+<!-- UPDATED: 2026-04-07 -->
 
 ## Übersicht: aktuelle Medien-Pipeline
 
@@ -54,7 +54,7 @@ Grundprinzip:
 
 ## Workflow 3: Rename / Move
 
-Sowohl Admin als auch Member nutzen in 2.8.0 RC kompakte Dropdown-Aktionen mit zentralen Modalen.
+Sowohl Admin als auch Member nutzen in 2.9.0 kompakte Dropdown-Aktionen mit zentralen Modalen.
 
 Technischer Vertrag:
 

@@ -1,5 +1,5 @@
 # 365CMS – Template-Komponenten
-> **Stand:** 2026-03-28 | **Version:** 2.8.0 RC | **Status:** Aktuell
+> **Stand:** 2026-04-07 | **Version:** 2.9.0 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Header](#header)
@@ -17,7 +17,9 @@
 - [Scroll Animations](#scroll-animations)
 
 ---
-<!-- UPDATED: 2026-03-28 -->
+<!-- UPDATED: 2026-04-07 -->
+
+Die Komponentenbeispiele beschreiben den gewünschten Runtime-Zielzustand installierter Themes unter `CMS/themes/<slug>/`. Quellbeispiele aus `365CMS.DE-THEME/` sind Entwicklungsbestand und müssen vor produktiver Nutzung in die Runtime überführt werden.
 
 ## Header
 

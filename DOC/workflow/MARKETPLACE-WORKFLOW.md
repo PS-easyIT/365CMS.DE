@@ -1,13 +1,13 @@
 # Marketplace Workflow – 365CMS
 
-> **Stand:** 2026-03-28 | **Version:** 2.8.0 RC | **Status:** Referenz / teilweise konzeptionell
+> **Stand:** 2026-04-07 | **Version:** 2.9.0 | **Status:** Referenz / teilweise konzeptionell
 >
-> **Bereich:** Plugin & Theme Marketplace · **Version:** 2.8.0 RC  
+> **Bereich:** Plugin & Theme Marketplace · **Version:** 2.9.0  
 > **Admin-Seiten:** `admin/plugin-marketplace.php`, `admin/plugins.php`, `admin/themes.php`  
 > **Geplantes Feature:** Offizieller Marketplace-Dienst
 
 ---
-<!-- UPDATED: 2026-03-28 -->
+<!-- UPDATED: 2026-04-07 -->
 
 > Hinweis: Diese Datei mischt aktuellen Ablauf und Konzeptbestand. Für die produktive Plugin-Verwaltung sind `../admin/plugins/README.md` und die Admin-Doku zum Marketplace führend.
 

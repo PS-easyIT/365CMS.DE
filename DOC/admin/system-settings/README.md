@@ -2,9 +2,11 @@
 
 Kurzbeschreibung: Überblick über Konfiguration, Updates, Backups, Info-Ansichten und Diagnose im Admin-Bereich.
 
-Letzte Aktualisierung: 2026-03-28 · Version 2.8.0 RC
+Letzte Aktualisierung: 2026-04-07 · Version 2.9.0
 
 Der Bereich „System" wurde in mehrere klar getrennte Einstiege aufgeteilt.
+
+Die Übersicht bezieht sich auf die aktuelle 2.9.0-Bedienstruktur. Für Runtime-Fragen zu Konfiguration, Bootstrap, Logs oder Dateisystempfaden ergänzen `DOC/INSTALLATION.md`, `DOC/core/ARCHITECTURE.md` und `DOC/FILELIST.md` diese Seite.
 
 ### System-Gruppe
 

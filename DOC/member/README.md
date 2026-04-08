@@ -43,7 +43,7 @@ Wichtige Auswirkungen:
 - Der Schalter **„Angemeldet bleiben“** ist seit `2.9.0` ein echter Persistenzpfad.
 - Theme-Wechsel beeinflussen die Member-Anmeldung nicht mehr direkt, weil die Auth-Seiten aus dem Core gerendert werden.
 
-## Member-Medien im Stand 2.8.0 RC
+## Member-Medien im Stand 2.9.0
 
 Die Medienseite unter `/member/media` arbeitet vollständig root-scoped auf dem persönlichen Pfad `member/user-<id>`.
 

@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Verwaltung wiederverwendbarer Datentabellen für Seiten und Beiträge über `/admin/site-tables`.
 
-Letzte Aktualisierung: 2026-03-28 · Version 2.8.0 RC
+Letzte Aktualisierung: 2026-04-07 · Version 2.9.0
 
 ---
 
@@ -30,6 +30,14 @@ Zeigt alle angelegten Site-Tabellen mit Name, Status und Aktionsmenü.
 
 `save(array $post)` speichert neue oder bestehende Tabellen.
 
+Im aktuellen Stand umfasst die Bearbeitungsoberfläche u. a.:
+
+- Tabellenname und Beschreibung
+- dynamische Spalten- und Datenzeilenbearbeitung
+- Stilvorgaben und Anzeigeoptionen
+- Such-, Sortier-, Paginierungs- und Responsive-Schalter
+- Exportoptionen wie CSV/JSON/Excel
+
 ### Weitere Aktionen
 
 | Aktion | Methode |
@@ -44,6 +52,7 @@ Zeigt alle angelegten Site-Tabellen mit Name, Status und Aktionsmenü.
 - Admin-Zugriffsschutz
 - CSRF-Prüfung
 - Redirect nach Schreibvorgängen
+- serverseitige Begrenzung von Spalten-, Zeilen- und Feldgrößen
 
 ---
 

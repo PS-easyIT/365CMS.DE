@@ -1,5 +1,5 @@
 # 365CMS – Theme-Entwicklung
-> **Stand:** 2026-03-28 | **Version:** 2.8.0 RC | **Status:** Aktuell
+> **Stand:** 2026-04-07 | **Version:** 2.9.0 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [1. Voraussetzungen](#1-voraussetzungen)
@@ -12,10 +12,12 @@
 - [8. Theme testen](#8-theme-testen)
 - [9. Best Practices](#9-best-practices)
 
-Dieser Guide führt euch durch die Erstellung eines einfachen Themes auf Basis der aktuellen 2.8.0-RC-Architektur.
+Dieser Guide führt euch durch die Erstellung eines einfachen Themes auf Basis der aktuellen 2.9.0-Architektur.
+
+Wichtig: Für die produktive Laufzeit zählt das installierte Theme unter `CMS/themes/<slug>/`. Das separate Repository `365CMS.DE-THEME/` ist Quellbestand und dient nicht automatisch als aktiver Runtime-Pfad.
 
 ---
-<!-- UPDATED: 2026-03-28 -->
+<!-- UPDATED: 2026-04-07 -->
 
 ---
 

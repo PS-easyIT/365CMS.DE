@@ -1,5 +1,5 @@
 # 365CMS – Theme-System
-> **Stand:** 2026-03-28 | **Version:** 2.8.0 RC | **Status:** Aktuell
+> **Stand:** 2026-04-07 | **Version:** 2.9.0 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Überblick](#überblick)
@@ -11,7 +11,7 @@
 - [Einstieg in die Entwicklung](#einstieg-in-die-entwicklung)
 
 ---
-<!-- UPDATED: 2026-03-28 -->
+<!-- UPDATED: 2026-04-07 -->
 
 ## Überblick
 
@@ -21,6 +21,8 @@ Themes steuern das visuelle Rendering des Frontends. Der aktuelle Stand basiert 
 - Metadaten in `theme.json`
 - Theme-Rendering über `CMS\ThemeManager`
 - optionaler Theme-spezifischer Admin-Oberfläche über `admin/customizer.php`
+
+Wichtig für die aktuelle Runtime: Führend ist `CMS/themes/<slug>/`. Das separate Repository `365CMS.DE-THEME/` bleibt Entwicklungs- und Pflegekontext, ist aber nicht automatisch der aktive Renderpfad.
 
 ---
 

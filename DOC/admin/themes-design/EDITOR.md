@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Dokumentiert den aktuellen Theme-Editor als Einstieg in den theme-spezifischen Customizer des aktiven Themes.
 
-Letzte Aktualisierung: 2026-03-28 · Version 2.8.0 RC
+Letzte Aktualisierung: 2026-04-07 · Version 2.9.0
 
 ---
 

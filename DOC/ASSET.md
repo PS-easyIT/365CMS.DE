@@ -1,5 +1,5 @@
 # ASSET-Übersicht 365CMS
-> **Stand:** 2026-03-28 | **Version:** 2.8.0 RC | **Status:** Aktuell
+> **Stand:** 2026-04-07 | **Version:** 2.9.0 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - <a>Übersicht aller Libraries</a>
@@ -11,8 +11,8 @@
 
 ---
 
-## Übersicht aller Libraries <!-- UPDATED: 2026-03-28 -->
-Gesamtliste der relevanten Runtime- und Legacy-Bundles. Quelle: `CMS/assets/` (Produktivpfad, Autoload) – **nicht** `ASSETS/` (Staging).
+## Übersicht aller Libraries <!-- UPDATED: 2026-04-07 -->
+Gesamtliste der relevanten Runtime- und Legacy-Bundles. Führende Quelle für aktive Runtime-Pfade ist `CMS/assets/` – **nicht** das Root-Verzeichnis `ASSETS/`.
 
 | Library | Version | Zweck | Pfad (CMS/assets) | CDN/Lokal | Eingebunden in |
 |---|---|---|---|---|---|
@@ -37,31 +37,46 @@ Gesamtliste der relevanten Runtime- und Legacy-Bundles. Quelle: `CMS/assets/` (P
 | misc intern | – | css/js/images | `css/`, `js/`, `images/` | lokal | Intern |
 | referenz: msgraph | – | SDK-Notizen | `msgraph/` | lokal | Referenz, nicht aktiv |
 
+Zusätzlich aktuell sichtbar unter `CMS/assets/`:
+
+- `images/` als produktiver Bild-/Branding-Bestand
+- `autoload.php` als Asset-/Runtime-Autoloader
+- tiefere Bibliotheksstrukturen wie `editorjs/`, `suneditor/`, `tabler/`, `htmlpurifier/`, `photoswipe/`
+
 ---
 
-## CSS-Architektur <!-- UPDATED: 2026-03-28 -->
+## CSS-Architektur <!-- UPDATED: 2026-04-07 -->
 - **Basis:** Tabler CSS (Admin) + eigene Overrides in `CMS/assets/css/`.
-- **Variablen:** Farbe, Spacing, Typography zentral in `CMS/assets/css/variables.css` (falls vorhanden); Admin-spezifische Variablen in `tabler/`.
+- **Produktive CSS-Dateien:** `admin.css`, `admin-tabler.css`, `admin-hub-*`, `hub-sites.css`, `main.css`, `member-dashboard.css`, `cms-cookie-consent.css`.
 - **Theming:** Admin lädt Tabler + Custom CSS via `CMS/admin/partials/header.php`. Frontend-Themes liefern eigenes CSS im Theme-Ordner; globale Assets nur für gemeinsam genutzte Komponenten.
 - **Legacy:** SunEditor bringt eigenes CSS; sollte nur auf Seiten geladen werden, die ihn nutzen.
 
 ---
 
-## JavaScript-Architektur <!-- UPDATED: 2026-03-28 -->
-- **Module:** Lokale JS-Utilities unter `CMS/assets/js/` (u. a. `admin.js`, `admin-media-integrations.js`, `member-dashboard.js`, `cookieconsent-init.js`, `photoswipe-init.js`).
+## JavaScript-Architektur <!-- UPDATED: 2026-04-07 -->
+- **Module:** Lokale JS-Utilities unter `CMS/assets/js/` (u. a. `admin.js`, `admin-media-integrations.js`, `member-dashboard.js`, `cookieconsent-init.js`, `photoswipe-init.js`, `admin-system-cron.js`).
 - **Global Objects:** `window.cms` (Admin/Frontend-Hilfen), `window.EditorJS`, `window.CMSCookieConsent`.
 - **Event-Bus:** Hooks laufen serverseitig; JS-seitig werden Events über DOM/Custom Events und modulare Initialisierer gekapselt.
 - **Admin-Assets:** Werden in `CMS/admin/partials/header.php/footer.php` basierend auf `$pageAssets` injiziert.
 
+Wichtige produktive JS-Zonen:
+
+- globale Admin-Basis
+- Content-/Editor-Fläche
+- SEO-/Redirect-Fläche
+- Theme-/Plugin-Fläche
+- Member-/Frontend-Ergänzungen
+- Monitoring-/Betriebsinteraktion
+
 ---
 
-## Versionierung & Cache-Busting <!-- UPDATED: 2026-03-28 -->
+## Versionierung & Cache-Busting <!-- UPDATED: 2026-04-07 -->
 - **Strategie:** Query-Parameter mit Versionsstring aus `CMS_VERSION` oder Asset-Build-Timestamp (manuell gepflegt in Templates).
 - **Empfehlung:** Bei Updates von Bibliotheken und nativen Assets `filemtime()` oder konsistente Versionsparameter nutzen; statische Dateien mit Hash im Dateinamen bevorzugen, wenn neu gebaut.
 
 ---
 
-## Build-Workflow <!-- UPDATED: 2026-03-28 -->
+## Build-Workflow <!-- UPDATED: 2026-04-07 -->
 - Kein Vite/Webpack im Repo. Assets werden manuell verwaltet.
 - Minimale Schritte beim Aktualisieren:
   1) Neue Version nach `CMS/assets/<lib>/` kopieren.
@@ -72,8 +87,8 @@ Gesamtliste der relevanten Runtime- und Legacy-Bundles. Quelle: `CMS/assets/` (P
 
 ---
 
-## Synchronisation <!-- UPDATED: 2026-03-28 -->
-- Quelle der Wahrheiten: `CMS/assets/` (Runtime) + `DOC/assets/README.md`.
+## Synchronisation <!-- UPDATED: 2026-04-07 -->
+- Quelle der Wahrheiten: `CMS/assets/` (Runtime) + `DOC/assets/README.md` + `DOC/FILELIST.md`.
 - **Excel-Abgleich:** `DOC/assets/365CMS_Asset_Uebersicht.xlsx` regelmäßig mit obiger Tabelle synchron halten.
 - **Staging vs. Prod:** `ASSETS/` nur als Ablage für Quell-/Importstände; produktiver Autoload ausschließlich `CMS/assets/autoload.php`.
 - führende Detaildoku: `DOC/assets/README.md` plus die jeweiligen Einzel-READMEs
@@ -81,10 +96,10 @@ Gesamtliste der relevanten Runtime- und Legacy-Bundles. Quelle: `CMS/assets/` (P
 
 ---
 
-## Audit-Notiz zur Runtime-Integration <!-- UPDATED: 2026-03-28 -->
+## Audit-Notiz zur Runtime-Integration <!-- UPDATED: 2026-04-07 -->
 - Die produktive PHP-Dependency-Ladung erfolgt überwiegend über `CMS/assets/autoload.php`.
 - Aktuelle Ausnahme: PDF-Erzeugung lädt Dompdf separat aus `CMS/vendor/dompdf/autoload.php`.
 - Admin-, Member- und Frontend-nahe Komponenten verwenden aktuell mehrere Pfadmuster parallel: `ASSETS_URL`, `SITE_URL . '/assets'`, feste Versionsstrings und `filemtime()`.
-- Besonders update-sensibel sind verbliebene Altbestände und ihre Doku-/Monitoring-Verweise, insbesondere bei `elfinder/`, `simplepie/` und `cookieconsent/`.
+- Besonders update-sensibel sind verbliebene Altbestände und ihre Doku-/Monitoring-Verweise, insbesondere bei `elfinder/`, `simplepie/` und den dokumentierten, aber nicht mehr führenden Legacy-Pfaden unter `DOC/assets/`.
 - Für künftige Pflege ist eine zentrale Asset-/Versionierungs-Registry empfehlenswert, damit Pfadlogik, Existenzprüfung und Cache-Busting nicht über viele Dateien verstreut bleiben.
 - Wichtig für die aktuelle Runtime: Die gebündelten Symfony-Komponenten unter `CMS/assets/mailer`, `CMS/assets/mime` und `CMS/assets/translation` deklarieren in ihren Composer-Metadaten `PHP >= 8.4`; 365CMS hat seine offizielle Mindestplattform deshalb auf PHP 8.4 angehoben und validiert diese Manifeste nun zentral im Bootstrap vor dem regulären Service-Start.

@@ -1,7 +1,7 @@
 # 365CMS – Landing Page Builder
-> **Stand:** 2026-03-28 | **Version:** 2.8.0 RC | **Status:** Aktuell
+> **Stand:** 2026-04-07 | **Version:** 2.9.0 | **Status:** Aktuell
 
-<!-- UPDATED: 2026-03-28 -->
+<!-- UPDATED: 2026-04-07 -->
 
 ## Überblick
 
@@ -10,6 +10,8 @@ sektionenbasierte Admin-Oberfläche unter `/admin/landing-page`. Die Speicher- u
 Validierungslogik liegt im `LandingPageService`, Inhalte werden in `cms_landing_sections` persistiert.
 
 Plugin-Overrides können einzelne Bereiche der Startseite ersetzen oder erweitern.
+
+Die Oberfläche ist im aktuellen Stand eng mit Theme-, Header-, Hero- und Plugin-Sections verzahnt und sollte immer zusammen mit `Landing*`-Services und Theme-Ausgabe gedacht werden.
 
 ## Verfügbare Funktionen
 

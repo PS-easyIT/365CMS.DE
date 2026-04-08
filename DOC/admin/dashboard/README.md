@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Überblick über die Startseite des Admin-Bereichs mit KPI-Karten, Statushinweisen und Schnellzugriffen.
 
-Letzte Aktualisierung: 2026-03-28 · Version 2.8.0 RC
+Letzte Aktualisierung: 2026-04-07 · Version 2.9.0
 
 **Admin-Route:** `/admin`
 
@@ -13,6 +13,13 @@ Letzte Aktualisierung: 2026-03-28 · Version 2.8.0 RC
 Das Dashboard ist der Standard-Einstieg nach dem Login und fasst Kerninformationen aus Inhalt, Benutzern, Technik und Verwaltung zusammen.
 
 Die konkrete Ausprägung kann sich mit neuen Modulen und Widgets verändern; für die Navigation bleibt die Sidebar maßgeblich.
+
+Im aktuellen Stand bildet das Dashboard vor allem den Überblick über:
+
+- KPI-Karten für Kernzahlen
+- Statusblöcke für System und Sicherheit
+- Aktivitätslisten/Audit-nahe Ereignisse
+- Schnellzugriffe in häufig genutzte Admin-Bereiche
 
 ---
 

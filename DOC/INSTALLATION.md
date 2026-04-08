@@ -1,5 +1,5 @@
 # 365CMS – Installation
-> **Stand:** 2026-03-28 | **Version:** 2.8.0 | **Status:** Aktuell
+> **Stand:** 2026-04-07 | **Version:** 2.9.0 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Überblick](#überblick)
@@ -14,7 +14,7 @@
 - [Troubleshooting](#troubleshooting)
 
 ---
-<!-- UPDATED: 2026-03-28 -->
+<!-- UPDATED: 2026-04-07 -->
 
 ## Überblick
 
@@ -26,6 +26,8 @@ Für neue Installationen gibt es aktuell zwei praktikable Wege:
    Einige Deployment-Pakete oder Build-Artefakte enthalten zusätzlich einen Installer, der `CMS/config/app.php` beschreibt. Im reinen Repository-Checkout ist dieser Installer nicht zwingend enthalten.
 
 Wenn ihr direkt aus diesem Repository deployt, ist der **manuelle Weg über `CMS/config/app.php` der verlässlich dokumentierte Pfad**.
+
+Wichtig für Betrieb und Doku: Das Repository soll den tatsächlich per FTP bzw. Deployment ausgerollten Runtime-Zustand widerspiegeln. Produktiv maßgeblich ist also immer die installierte Struktur unter `CMS/`.
 
 ---
 

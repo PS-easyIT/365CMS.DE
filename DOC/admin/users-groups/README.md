@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Überblick über die aktuelle Benutzerverwaltung mit dynamischen Rollen, Gruppen und Rechtezuordnung.
 
-Letzte Aktualisierung: 2026-03-28 · Version 2.8.0 RC
+Letzte Aktualisierung: 2026-04-07 · Version 2.9.0
 
 Der Bereich ist im aktuellen Stand auf vier Hauptbereiche verteilt:
 
@@ -32,4 +32,5 @@ Der Bereich ist im aktuellen Stand auf vier Hauptbereiche verteilt:
 - `Auth::hasCapability()` berücksichtigt gespeicherte Rollenrechte aus `role_permissions`.
 - Filter- und Dropdown-Logik der Benutzerverwaltung nutzt dieselbe Rollenquelle wie die Rechteverwaltung.
 - Benutzer- und Authentifizierungseinstellungen sind jetzt unter `/admin/user-settings` zentralisiert.
+- Passkeys/WebAuthn, MFA/TOTP, Backup-Codes, LDAP und Session-/Registrierungsparameter werden im aktuellen Stand als zusammenhängender Auth-/Provider-Kontext gelesen.
 

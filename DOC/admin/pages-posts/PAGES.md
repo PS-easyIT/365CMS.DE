@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Verwaltung statischer CMS-Seiten im Admin inklusive Editor, SEO-Feldern, Slugs und Revisionsbezug.
 
-Letzte Aktualisierung: 2026-03-28 · Version 2.8.0 RC
+Letzte Aktualisierung: 2026-04-07 · Version 2.9.0
 
 ---
 

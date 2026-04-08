@@ -16,6 +16,8 @@
 | Wenn ihr ... | dann startet hier |
 |---|---|
 | das System neu aufsetzt | [INSTALLATION.md](INSTALLATION.md) |
+| die Runtime-Struktur aktuell verstehen wollt | [FILELIST.md](FILELIST.md) |
+| die technische Gesamtsicht braucht | [DEVLIST.md](DEVLIST.md) |
 | die Projektstruktur verstehen wollt | [core/ARCHITECTURE.md](core/ARCHITECTURE.md) |
 | einen Release-Snapshot des Core wollt | [core/STATUS.md](core/STATUS.md) |
 | das Admin-Panel nutzt | [admin/README.md](admin/README.md) |
@@ -73,6 +75,8 @@ Die Ordner [`workflow/`](workflow/) und [`audit/`](audit/) dokumentieren operati
 - Für **Release-Änderungen** ist [../Changelog.md](../Changelog.md) die führende Datei.
 - Für **Medien- und Upload-Aussagen** gelten [admin/media/README.md](admin/media/README.md), [admin/media/MEDIA.md](admin/media/MEDIA.md) und [workflow/MEDIA-UPLOAD-WORKFLOW.md](workflow/MEDIA-UPLOAD-WORKFLOW.md).
 - Für **laufende Qualitätsstände** ist der Bereich [`audit/`](audit/) die erste Anlaufstelle.
+- Für **aktuelle Strukturfragen** ist [FILELIST.md](FILELIST.md) die führende lesbare Strukturkarte.
+- Für **historisch verifizierte Vollprüfscopes** bleibt [CMSFILESTRUCTUR.md](CMSFILESTRUCTUR.md) relevant, auch wenn es bewusst nicht jede aktuelle Runtime-Unterfläche vollständig ausrollt.
 
 ---
 

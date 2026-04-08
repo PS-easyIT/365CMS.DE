@@ -1,7 +1,12 @@
 # 365CMS – Core-/Admin-Struktur-Snapshot
-> **Stand:** 2026-03-28 | **Version:** 2.8.0 | **Status:** Release-Snapshot
+> **Stand:** 2026-04-07 | **Version:** 2.9.0 | **Status:** Release-Snapshot / enger Strukturscope
 
-Dieser Snapshot umfasst `CMS/core/`, `CMS/admin/`, `CMS/config/` sowie versionsrelevante Core-Metadaten. Nicht enthalten sind `/plugins/`, `/themes/` und `/CMS/assets/`.
+Dieser Snapshot umfasst `CMS/core/`, `CMS/admin/`, `CMS/config/` sowie versionsrelevante Core-Metadaten. Nicht vollständig enthalten sind `/plugins/`, `/themes/` und die tiefe Struktur von `/CMS/assets/`.
+
+Für die aktuelle lesbare Vollstruktur gelten zusätzlich:
+
+- `DOC/FILELIST.md` für den gesamten Runtime-Baum
+- `DOC/ASSET.md` und `DOC/assets/README.md` für die Asset-Fläche
 
 ---
 
@@ -182,3 +187,7 @@ Im ausgewerteten Scope wurden seit `2.5.30` **keine Dateien entfernt**.
 - **SemVer-Treiber:** ausschließlich additive Features und Erweiterungen → `MINOR`.
 - **Architektur-Richtung:** neue Services kapseln Permalinks, Fehlerreports und Tabellen-Defaults, statt diese Logik weiter in bestehenden Großmodulen zu belassen.
 - **Admin-Richtung:** Beitrags-Taxonomien und Fehlerreporting haben nun eigene, klar erkennbare Einstiege statt versteckter Nebenpfade.
+
+## Einordnung dieses Dokuments im Doku-System
+
+`core/STRUCTURE.md` ist bewusst **kein Ersatz** für die allgemeine Strukturkarte. Seine Aufgabe ist ein enger, releasesensibler Struktur-Snapshot des Core-/Admin-/Config-Kontexts. Für Runtime-Wahrheit außerhalb dieses engeren Scopes gelten die aktualisierten Querreferenzen in `FILELIST.md`.

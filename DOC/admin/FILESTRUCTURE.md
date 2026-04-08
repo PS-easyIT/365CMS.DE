@@ -1,5 +1,5 @@
 # 365CMS – Admin-Dateistruktur
-> **Stand:** 2026-03-28 | **Version:** 2.8.0 RC | **Status:** Aktuell
+> **Stand:** 2026-04-07 | **Version:** 2.9.0 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Hauptstruktur](#hauptstruktur)
@@ -18,7 +18,7 @@ Der Admin-Bereich ist in 365CMS kein flaches Sammelbecken einzelner „Alles-in-
 - **Partials** wie Header, Sidebar und Footer
 
 ---
-<!-- UPDATED: 2026-03-28 -->
+<!-- UPDATED: 2026-04-07 -->
 
 ## Hauptstruktur
 
@@ -32,12 +32,18 @@ CMS/admin/
 ├── groups.php
 ├── roles.php
 ├── member-dashboard*.php
+├── hub-sites.php
+├── table-of-contents.php
+├── post-categories.php
+├── post-tags.php
 ├── packages.php
 ├── orders.php
 ├── subscription-settings.php
 ├── themes.php
 ├── theme-editor.php
 ├── theme-explorer.php
+├── theme-marketplace.php
+├── theme-settings.php
 ├── menu-editor.php
 ├── landing-page.php
 ├── font-manager.php
@@ -60,6 +66,7 @@ CMS/admin/
 ├── plugins.php
 ├── plugin-marketplace.php
 ├── settings.php
+├── media.php
 ├── backups.php
 ├── updates.php
 ├── info.php
@@ -87,7 +94,7 @@ Hier liegt die Fachlogik je Bereich, zum Beispiel für Legal, Security, System, 
 
 Dieses Verzeichnis enthält die eigentliche Ausgabe. Typische Unterordner sind `views/legal/`, `views/seo/`, `views/system/` und `views/performance/`.
 
-Die Dateien in diesen Unterordnern sind **keine eigenständigen Entry-Points**. Sie werden ausschließlich über ihre Eltern-Wrapper wie `seo-page.php`, `performance-page.php`, `member-dashboard-page.php` oder `system-monitor-page.php` geladen.
+Die Dateien in diesen Unterordnern sind **keine eigenständigen Entry-Points**. Sie werden ausschließlich über ihre Eltern-Wrapper, Section-Shells oder Modul-Entrys geladen.
 
 ### `CMS/admin/partials/`
 
@@ -101,10 +108,15 @@ Für die Dokumentation sind die aktiven Slugs entscheidend, nicht alte Dateiname
 
 | Bereich | Aktueller Slug / Route |
 |---|---|
+| Hub-Sites | `/admin/hub-sites` |
+| Inhaltsverzeichnis | `/admin/table-of-contents` |
+| Beitrags-Kategorien | `/admin/post-categories` |
+| Beitrags-Tags | `/admin/post-tags` |
 | Fonts | `/admin/font-manager` |
 | Backups | `/admin/backups` |
 | Cookie-Management | `/admin/cookie-manager` |
 | SEO-Start | `/admin/seo-dashboard` |
+| Theme-Marketplace | `/admin/theme-marketplace` |
 | SEO-Meta | `/admin/seo-meta` |
 | Diagnose | `/admin/diagnose` |
 | Systeminfo | `/admin/info` |
@@ -138,7 +150,7 @@ Der Admin-Bereich nutzt zentral:
 
 **Menüstruktur mit Children (Sub-Menü):**
 - Das `children`-Array ermöglicht verschachtelte Menüpunkte
-- Aktuell nutzt `settings` → `updates` als Sub-Menüpunkt
+- In der aktuellen Sidebar-Struktur existieren mehrere gruppierte Navigationsbereiche mit Unterpunkten, z. B. Seiten & Beiträge, Benutzer & Gruppen, Member Dashboard, Themes & Design, SEO, Performance, Recht, Sicherheit, Plugins und System.
 
 **Hooks:**
 - `admin_menu_items` (Filter) – Erlaubt Plugins eigene Menüpunkte hinzuzufügen
@@ -220,18 +232,19 @@ $csrfToken = Security::instance()->generateToken('my_action');
 
 ```
 📊 Dashboard          /admin
-📄 Seiten             /admin/pages
-👥 Benutzer           /admin/users
+📄 Seiten & Beiträge  /admin/pages, /admin/posts, /admin/post-categories, /admin/post-tags, /admin/comments, /admin/hub-sites, /admin/table-of-contents
+👥 Benutzer & Gruppen /admin/users, /admin/groups, /admin/roles, /admin/user-settings
+🧑 Mitglieder         /admin/member-dashboard*
+🎨 Themes & Design    /admin/themes, /admin/theme-editor, /admin/theme-explorer, /admin/theme-marketplace, /admin/font-manager
+🖼 Medien              /admin/media
 💳 Abos               /admin/packages, /admin/orders, /admin/subscription-settings
 🔌 Plugins            /admin/plugins
-🎨 Design             /admin/theme-editor
 🔍 SEO                /admin/seo-dashboard
 ⚡ Performance         /admin/performance
-📈 Analytics          /admin/analytics
-💾 Backups            /admin/backups
-⚙️ Einstellungen      /admin/settings
-    └ 🔄 Updates       /admin/updates
-🔧 System & Diagnose  /admin/info, /admin/diagnose
+⚖️ Recht              /admin/legal-sites, /admin/cookie-manager, /admin/data-requests
+🛡 Sicherheit         /admin/security-audit, /admin/firewall, /admin/antispam
+🔧 System             /admin/settings, /admin/backups, /admin/updates, /admin/documentation, /admin/support
+ℹ️ Info & Diagnose    /admin/info, /admin/diagnose, /admin/monitor-*
 ── Zur Website        /
 🚪 Abmelden           /logout
 ```

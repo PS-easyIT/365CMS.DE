@@ -1,5 +1,5 @@
 # 365CMS – Plugin-Entwicklung
-> **Stand:** 2026-03-28 | **Version:** 2.8.0 RC | **Status:** Aktuell
+> **Stand:** 2026-04-07 | **Version:** 2.9.0 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Grundprinzipien](#grundprinzipien)
@@ -17,7 +17,7 @@
 - [Verwandte Dokumente](#verwandte-dokumente)
 
 ---
-<!-- UPDATED: 2026-03-28 -->
+<!-- UPDATED: 2026-04-07 -->
 
 ## Grundprinzipien
 
@@ -27,6 +27,7 @@
 - Hooks über `CMS\Hooks`
 - Datenbankzugriffe mit vorbereiteten Statements oder Core-Helpern
 - Admin- und Member-Ausgaben konsequent escapen
+- Runtime immer unter `CMS/plugins/<slug>/` denken, nicht nur im separaten Plugin-Quellrepo
 
 ---
 

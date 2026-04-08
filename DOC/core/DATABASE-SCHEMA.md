@@ -1,5 +1,5 @@
 # 365CMS – Datenbankschema
-> **Stand:** 2026-03-28 | **Version:** 2.8.0 RC | **Status:** Aktuell
+> **Stand:** 2026-04-07 | **Version:** 2.9.0 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Überblick](#überblick)
@@ -17,12 +17,12 @@
 
 ---
 
-## Überblick <!-- UPDATED: 2026-03-28 -->
+## Überblick <!-- UPDATED: 2026-04-07 -->
 
 365CMS nutzt ein relationales Schema auf **MySQL / MariaDB** (Engine: InnoDB, Charset: `utf8mb4`).
 Alle Tabellen verwenden einen konfigurierbaren Präfix (Standard: `cms_`), definiert in `CMS/config/app.php` als `DB_PREFIX`.
 
-Wichtig für den Stand `2.8.0 RC`: Nicht jede Laufzeitfunktion hängt heute primär an SQL-Tabellen. Die Medienbibliothek nutzt für Kategorien und Datei-Metadaten inzwischen vor allem `CMS/config/media-meta.json` plus Dateisystem-Repository; ältere Tabellenreferenzen sind daher als Legacy-/Migrationskontext zu lesen.
+Wichtig für den Stand `2.9.0`: Nicht jede Laufzeitfunktion hängt heute primär an SQL-Tabellen. Die Medienbibliothek nutzt für Kategorien und Datei-Metadaten inzwischen vor allem `CMS/config/media-meta.json` plus Dateisystem-Repository; ältere Tabellenreferenzen sind daher als Legacy-/Migrationskontext zu lesen.
 
 | Eigenschaft | Wert |
 |---|---|
@@ -42,7 +42,7 @@ Zusätzlich existiert eine separate Tabellenliste in `CMS/install.php` (`createD
 
 ---
 
-## Schema-Übersicht nach Bereichen <!-- UPDATED: 2026-03-28 -->
+## Schema-Übersicht nach Bereichen <!-- UPDATED: 2026-04-07 -->
 
 | Bereich | Tabellen |
 |---|---|
@@ -248,7 +248,7 @@ Kommentarsystem für Blog-Beiträge mit Moderationsstatus.
 
 ### `cms_media` – Legacy-Medienindex
 
-Historische bzw. optionale Tabellenstruktur für hochgeladene Dateien. Im aktuellen Stand `2.8.0 RC` arbeitet die produktive Medienbibliothek jedoch primär über `CMS/core/Services/MediaService.php`, `CMS/core/Services/Media/MediaRepository.php`, das Dateisystem unter `uploads/` und `CMS/config/media-meta.json`.
+Historische bzw. optionale Tabellenstruktur für hochgeladene Dateien. Im aktuellen Stand `2.9.0` arbeitet die produktive Medienbibliothek jedoch primär über `CMS/core/Services/MediaService.php`, `CMS/core/Services/Media/MediaRepository.php`, das Dateisystem unter `uploads/` und `CMS/config/media-meta.json`.
 
 | Feldname | Typ | Nullable | Default | Beschreibung |
 |---|---|---|---|---|

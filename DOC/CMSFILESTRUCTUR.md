@@ -2,13 +2,18 @@
 
 ## Überblick
 
-Dieses Dokument ist die **kanonische Scope-Liste** für die Vollprüfung des CMS-Stands vom **28.03.2026**.
+Dieses Dokument ist die **kanonische Scope-Liste** für einen verifizierten Prüfscope des CMS-Stands vom **28.03.2026**.
 
 - **Scope:** `365CMS.DE/CMS`
-- **Ausgeschlossen:** `CMS/vendor/`, `CMS/themes/`
+- **Ausgeschlossen:** `CMS/vendor/`, `CMS/themes/` sowie tiefe Bibliotheksunterbäume außerhalb des damaligen Prüffokus
 - **Aus `CMS/assets/` berücksichtigt:** nur `assets/css/` und `assets/js/`
 - **Verifizierter Gesamtbestand:** `467` Dateien
-- **Verifizierte Quelle:** `DOC/_cms_inventory_current.txt`
+
+Wichtig: Dieses Dokument ist **kein vollständiger Live-Strukturabzug des aktuellen 2.9.0-Runtime-Baums**. Für die aktuelle lesbare Strukturkarte und die tiefere `CMS/assets/`-Abdeckung gelten heute vor allem:
+
+- [`FILELIST.md`](FILELIST.md)
+- [`ASSET.md`](ASSET.md)
+- [`assets/README.md`](assets/README.md)
 
 ## Verifizierte Bestandszahlen
 
@@ -543,3 +548,9 @@ Dieses Dokument ist die **kanonische Scope-Liste** für die Vollprüfung des CMS
 ## Hinweis zur Pflege
 
 Wenn sich der Prüfscope ändert, müssen **Zählung**, **Bereichstabelle** und **Dateiliste** gemeinsam aktualisiert werden. Audit- und ToDo-Dokumente sollten diese Liste nur referenzieren oder aus derselben verifizierten Quelle ableiten.
+
+Für aktuelle Strukturpflege gilt zusätzlich:
+
+- `FILELIST.md` = aktuelle lesbare Runtime-Struktur
+- `CMSFILESTRUCTUR.md` = verifizierter enger Scope-Snapshot
+- `_cms_inventory_current.txt` = maschinennahe Quelle des Snapshot-Scope

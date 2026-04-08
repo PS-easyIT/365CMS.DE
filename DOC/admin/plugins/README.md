@@ -1,7 +1,7 @@
 # 365CMS – Plugin-Verwaltung
-> **Stand:** 2026-03-28 | **Version:** 2.8.0 RC | **Status:** Aktuell
+> **Stand:** 2026-04-07 | **Version:** 2.9.0 | **Status:** Aktuell
 
-<!-- UPDATED: 2026-03-28 -->
+<!-- UPDATED: 2026-04-07 -->
 
 ## Überblick
 
@@ -11,6 +11,8 @@ delegiert an `PluginsModule`, das installierte Plugins erkennt und Verwaltungsak
 
 Ergänzt wird der Bereich durch den Marketplace für neue Erweiterungen und ein
 zentrales Update-System.
+
+Maßgeblich für den Live-Betrieb ist dabei immer `CMS/plugins/`. Ein Plugin, das nur im separaten Repository `365CMS.DE-PLUGINS/` existiert, taucht in dieser Verwaltung erst nach realer Installation bzw. Deployment in die Runtime-Struktur auf.
 
 ## Verfügbare Funktionen
 

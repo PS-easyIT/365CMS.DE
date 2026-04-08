@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Überblick über Medienbibliothek, Upload-Workflows, Schutzbereiche, Admin-Tabs und verknüpfte Member-/Asset-Dokumentation.
 
-Letzte Aktualisierung: 2026-03-28 · Version 2.8.0 RC
+Letzte Aktualisierung: 2026-04-07 · Version 2.9.0
 
 Die Medienverwaltung ist unter `/admin/media` erreichbar und bündelt Bibliothek, Kategorien und Einstellungen über Query-Tabs statt über getrennte Legacy-Routen.
 
@@ -18,7 +18,7 @@ Die Medienverwaltung ist unter `/admin/media` erreichbar und bündelt Bibliothek
 
 ---
 
-## Kernfunktionen in 2.8.0 RC
+## Kernfunktionen in 2.9.0
 
 - Listen- **und** Grid-Ansicht
 - Such- und Kategorien-Filter

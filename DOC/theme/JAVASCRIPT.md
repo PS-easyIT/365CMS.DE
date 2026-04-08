@@ -1,5 +1,5 @@
 # 365CMS – Theme-JavaScript
-> **Stand:** 2026-03-28 | **Version:** 2.8.0 RC | **Status:** Aktuell
+> **Stand:** 2026-04-07 | **Version:** 2.9.0 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Module-Übersicht](#module-übersicht)
@@ -10,7 +10,7 @@
 **Ladeweise:** `<script defer>` im Footer
 
 ---
-<!-- UPDATED: 2026-03-28 -->
+<!-- UPDATED: 2026-04-07 -->
 
 ## Module-Übersicht
 
@@ -128,7 +128,7 @@ Nach `delay` ms: Fade-out + maximale Höhe auf 0, dann `.remove()`.
 
 ## Custom Events
 
-Eigene Module können auf Theme-Events lauschen (noch nicht implementiert – geplant für eine zukünftige Version):
+Eigene Module können auf Theme-Events lauschen (konzeptionelle Erweiterungsfläche; je Theme konkret zu prüfen):
 
 ```js
 // Burger-Menü geöffnet
