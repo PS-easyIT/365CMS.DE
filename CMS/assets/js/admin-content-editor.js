@@ -351,6 +351,7 @@
     function initEditorJs(config) {
         var form;
         var editors = {};
+        var bindingPromises = {};
         var submitLocked = false;
 
         if (!config || typeof window.createCmsEditor !== 'function') {
@@ -413,6 +414,10 @@
             return input ? String(input.value || '') : '';
         }
 
+        function serializeEditorOutput(output) {
+            return JSON.stringify(output || { blocks: [] });
+        }
+
         function normalizeEditorDataForCopy(rawValue) {
             var normalizer = typeof window.cmsNormalizeEditorJsData === 'function'
                 ? window.cmsNormalizeEditorJsData
@@ -443,7 +448,7 @@
             return readyPromise.then(function () {
                 return editorInstance.save();
             }).then(function (output) {
-                var serialized = JSON.stringify(output || {});
+                var serialized = serializeEditorOutput(output);
                 editorState.input.value = serialized;
                 return serialized;
             }).catch(function () {
@@ -536,12 +541,21 @@
 
             copyButton.addEventListener('click', function () {
                 var targetInput = targetDefinition ? getElement(targetDefinition.inputId) : null;
+                var targetPaneButton = copyConfig.targetPaneButtonId ? getElement(copyConfig.targetPaneButtonId) : null;
 
                 copyButton.disabled = true;
 
-                syncEditorInputFromInstance(copyConfig.sourceEditorKey).then(function (sourceValue) {
+                Promise.resolve().then(function () {
+                    if (targetPaneButton) {
+                        targetPaneButton.click();
+                    }
+
+                    return targetDefinition ? bindEditor(targetDefinition) : null;
+                }).then(function () {
+                    return syncEditorInputFromInstance(copyConfig.sourceEditorKey);
+                }).then(function (sourceValue) {
                     var normalizedData = normalizeEditorDataForCopy(sourceValue);
-                    var serialized = JSON.stringify(normalizedData);
+                    var serialized = serializeEditorOutput(normalizedData);
 
                     copyLocalizedFieldValue(copyConfig.sourceTitleId, copyConfig.targetTitleId);
                     copyLocalizedFieldValue(copyConfig.sourceSlugId, copyConfig.targetSlugId);
@@ -551,19 +565,8 @@
                         targetInput.value = serialized;
                     }
 
-                    if (targetDefinition && !editors[targetDefinition.key]) {
-                        bindEditor(targetDefinition);
-                    }
-
                     return renderEditorFromSerializedInput(copyConfig.targetEditorKey, serialized);
                 }).finally(function () {
-                    if (copyConfig.targetPaneButtonId) {
-                        var targetPaneButton = getElement(copyConfig.targetPaneButtonId);
-                        if (targetPaneButton) {
-                            targetPaneButton.click();
-                        }
-                    }
-
                     copyButton.disabled = false;
                 });
             });
@@ -573,18 +576,45 @@
             var holder = getElement(definition.holderId);
             var input = getElement(definition.inputId);
             var editorInstance;
+            var readyPromise;
 
-            if (!definition || !holder || !input || editors[definition.key]) {
-                return;
+            if (!definition || !holder || !input) {
+                return Promise.resolve(null);
             }
 
-            editorInstance = window.createCmsEditor(definition.holderId, input.value || '', config.mediaUploadUrl, config.csrfToken);
+            if (editors[definition.key]) {
+                return Promise.resolve(editors[definition.key]);
+            }
+
+            if (bindingPromises[definition.key]) {
+                return bindingPromises[definition.key];
+            }
+
+            editorInstance = window.createCmsEditor(definition.holderId, input.value || '', config.mediaUploadUrl, config.csrfToken, {
+                onChange: function (instance) {
+                    return instance.save().then(function (output) {
+                        input.value = serializeEditorOutput(output);
+                    });
+                }
+            });
             ensureLiveEditorChrome(holder, editorInstance);
 
             editors[definition.key] = {
                 input: input,
                 instance: editorInstance
             };
+
+            readyPromise = editorInstance.isReady && typeof editorInstance.isReady.then === 'function'
+                ? editorInstance.isReady
+                : Promise.resolve();
+
+            bindingPromises[definition.key] = readyPromise.then(function () {
+                return editors[definition.key];
+            }).finally(function () {
+                delete bindingPromises[definition.key];
+            });
+
+            return bindingPromises[definition.key];
         }
 
         (Array.isArray(config.editors) ? config.editors : []).forEach(function (definition) {
@@ -607,19 +637,25 @@
         initCopyAction();
 
         form.addEventListener('submit', function (event) {
-            var keys = Object.keys(editors);
+            var definitions = Array.isArray(config.editors) ? config.editors : [];
 
-            if (submitLocked || keys.length === 0) {
+            if (submitLocked || definitions.length === 0) {
                 return;
             }
 
             submitLocked = true;
             event.preventDefault();
 
-            Promise.all(keys.map(function (key) {
-                return editors[key].instance.save().then(function (output) {
-                    editors[key].input.value = JSON.stringify(output);
-                }).catch(function () {
+            Promise.all(definitions.map(function (definition) {
+                if (!definition || !definition.key) {
+                    return Promise.resolve();
+                }
+
+                if (!editors[definition.key]) {
+                    return Promise.resolve();
+                }
+
+                return syncEditorInputFromInstance(definition.key).then(function () {
                     return null;
                 });
             })).finally(function () {

@@ -8,6 +8,7 @@ if (!defined('ABSPATH')) {
 }
 
 use CMS\Database;
+use CMS\Logger;
 use CMS\Security;
 use CMS\WP_Error;
 
@@ -259,6 +260,15 @@ class UserService {
             if (!$result) {
                 return new WP_Error('db_error', 'Fehler beim Löschen', ['status' => 500]);
             }
+
+            try {
+                $this->db->execute(
+                    "DELETE FROM {$this->prefix}privacy_requests WHERE user_id = ? AND type = ?",
+                    [$user_id, 'deletion']
+                );
+            } catch (\Throwable) {
+                // Altinstallationen können die Tabelle noch nicht haben.
+            }
             
             // Meta-Daten werden durch CASCADE gelöscht
             $this->logAction('user_deleted', $user_id, ['hard_delete' => true]);
@@ -393,7 +403,7 @@ class UserService {
             $result = match($action) {
                 'activate' => $this->db->update('users', ['status' => 'active'], ['id' => $user_id]),
                 'deactivate' => $this->db->update('users', ['status' => 'inactive'], ['id' => $user_id]),
-                'delete' => $this->deleteUser($user_id, false),
+                'delete' => $this->deleteUser($user_id, true),
                 'hard_delete' => $this->deleteUser($user_id, true),
                 'change_role' => !empty($data['role']) && $this->normalizeRole((string)$data['role']) !== ''
                     ? $this->db->update('users', ['role' => $this->normalizeRole((string)$data['role'])], ['id' => $user_id])
@@ -570,15 +580,40 @@ class UserService {
      * @return bool
      */
     private function logAction(string $action, int $user_id, array $details = []): bool {
-        return $this->db->insert('activity_log', [
-            'user_id' => $_SESSION['user_id'] ?? 0,
-            'action' => $action,
-            'object_type' => 'user',
-            'object_id' => $user_id,
-            'details' => json_encode($details),
-            'ip_address' => $_SERVER['REMOTE_ADDR'] ?? '',
-            'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? ''
-        ]);
+        try {
+            $actorId = isset($_SESSION['user_id']) ? (int) $_SESSION['user_id'] : 0;
+            $normalizedDetails = is_array($details) ? $details : [];
+            $description = 'Benutzeraktion: ' . $action;
+
+            if (isset($normalizedDetails['username']) && is_scalar($normalizedDetails['username'])) {
+                $description .= ' · ' . (string) $normalizedDetails['username'];
+            } elseif ($user_id > 0) {
+                $description .= ' · Benutzer-ID ' . $user_id;
+            }
+
+            $result = $this->db->insert('activity_log', [
+                'user_id' => $actorId > 0 ? $actorId : null,
+                'action' => $action,
+                'entity_type' => 'user',
+                'entity_id' => $user_id > 0 ? $user_id : null,
+                'description' => $description,
+                'ip_address' => (string) ($_SERVER['REMOTE_ADDR'] ?? ''),
+                'user_agent' => (string) ($_SERVER['HTTP_USER_AGENT'] ?? ''),
+                'metadata' => !empty($normalizedDetails)
+                    ? json_encode($normalizedDetails, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+                    : null,
+            ]);
+
+            return $result !== false;
+        } catch (\Throwable $e) {
+            Logger::instance()->withChannel('user.service')->warning('Aktivitätslog für Benutzeraktion konnte nicht gespeichert werden.', [
+                'action' => $action,
+                'user_id' => $user_id,
+                'exception' => $e,
+            ]);
+
+            return false;
+        }
     }
     
     /**

@@ -2193,7 +2193,7 @@
         };
     }
 
-    function createCmsEditor(holderId, initialData, uploadUrl, csrfToken) {
+    function createCmsEditor(holderId, initialData, uploadUrl, csrfToken, options) {
         const holder = document.getElementById(holderId);
         const resolved = buildResolvedRegistry();
         const spacerToolClass = createSpacerToolClass();
@@ -2205,6 +2205,8 @@
         const apiEndpointToolClass = createApiEndpointToolClass();
         const changelogToolClass = createChangelogToolClass();
         const prosConsToolClass = createProsConsToolClass();
+        const editorOptions = options && typeof options === 'object' ? options : {};
+        let changeDebounceId = null;
 
         if (!holder || typeof resolved.editorjs !== 'function') {
             throw new Error('EditorJS core ist nicht geladen oder Holder fehlt.');
@@ -2322,6 +2324,23 @@
             tools,
             onReady: function () {
                 addReadyEnhancers(editor, resolved);
+            },
+            onChange: function () {
+                if (typeof editorOptions.onChange !== 'function') {
+                    return;
+                }
+
+                if (changeDebounceId !== null) {
+                    window.clearTimeout(changeDebounceId);
+                }
+
+                changeDebounceId = window.setTimeout(function () {
+                    changeDebounceId = null;
+
+                    Promise.resolve(editorOptions.onChange(editor)).catch(function (error) {
+                        console.warn('Editor.js onChange konnte nicht synchronisiert werden.', error);
+                    });
+                }, 250);
             },
         });
 

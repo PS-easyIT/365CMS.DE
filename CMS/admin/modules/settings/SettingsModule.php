@@ -711,12 +711,9 @@ define('UPLOAD_PATH', ABSPATH . 'uploads/');
 define('ASSETS_PATH', ABSPATH . 'assets/');
 
 
-\$cmsLogDir = dirname(ABSPATH) . DIRECTORY_SEPARATOR . 'var' . DIRECTORY_SEPARATOR . 'logs' . DIRECTORY_SEPARATOR;
-if (!is_dir(\$cmsLogDir) && !@mkdir(\$cmsLogDir, 0755, true) && !is_dir(\$cmsLogDir)) {
-    \$cmsLogDir = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . '365cms-logs' . DIRECTORY_SEPARATOR;
-    if (!is_dir(\$cmsLogDir)) {
-        @mkdir(\$cmsLogDir, 0755, true);
-    }
+\$cmsLogDir = ABSPATH . 'logs' . DIRECTORY_SEPARATOR;
+if (!is_dir(\$cmsLogDir)) {
+    @mkdir(\$cmsLogDir, 0755, true);
 }
 
 defined('LOG_PATH') || define('LOG_PATH', \$cmsLogDir);

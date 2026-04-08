@@ -8,6 +8,7 @@ if (!defined('ABSPATH')) {
 const CMS_ADMIN_SYSTEM_MONITOR_SECTION_ACTIONS = [
     'info' => [],
     'diagnose' => ['clear_cache', 'optimize_db', 'clear_logs', 'create_tables', 'repair_tables'],
+    'logs' => ['clear_logs', 'clear_cms_log', 'clear_all_cms_logs'],
     'response-time' => [],
     'disk' => [],
     'scheduled-tasks' => [],
@@ -28,6 +29,12 @@ const CMS_ADMIN_SYSTEM_MONITOR_PAGE_CONFIGS = [
         'view_file' => __DIR__ . '/views/system/diagnose.php',
         'page_title' => 'Diagnose',
         'active_page' => 'diagnose',
+    ],
+    'logs' => [
+        'route_path' => '/admin/cms-logs',
+        'view_file' => __DIR__ . '/views/system/cms-logs.php',
+        'page_title' => 'CMS Logs',
+        'active_page' => 'cms-logs',
     ],
     'response-time' => [
         'route_path' => '/admin/monitor-response-time',

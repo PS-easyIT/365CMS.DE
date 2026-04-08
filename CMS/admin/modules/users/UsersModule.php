@@ -224,17 +224,45 @@ class UsersModule
      */
     public function deleteUser(int $id): array
     {
-        $result = $this->userService->deleteUser($id, false);
-        if ($result instanceof \CMS\WP_Error) {
-            return ErrorReportService::buildFailureResultFromWpError($result, [
-                'title' => 'Benutzer konnte nicht deaktiviert werden',
-                'source' => '/admin/users',
-                'module' => 'users',
-                'operation' => 'delete',
+        try {
+            $result = $this->userService->deleteUser($id, true);
+            if ($result instanceof \CMS\WP_Error) {
+                return ErrorReportService::buildFailureResultFromWpError($result, [
+                    'title' => 'Benutzer konnte nicht gelöscht werden',
+                    'source' => '/admin/users',
+                    'module' => 'users',
+                    'operation' => 'delete',
+                    'user_id' => $id,
+                ]);
+            }
+
+            return ['success' => true, 'message' => 'Benutzer dauerhaft gelöscht.'];
+        } catch (\Throwable $e) {
+            Logger::instance()->withChannel('admin.users')->error('Benutzer konnte nicht gelöscht werden.', [
+                'exception' => $e->getMessage(),
                 'user_id' => $id,
             ]);
+
+            return [
+                'success' => false,
+                'error' => 'Benutzer konnte nicht gelöscht werden.',
+                'error_details' => [
+                    'Die Benutzerverwaltung hat den Löschvorgang wegen eines internen Fehlers abgebrochen.',
+                    'Technischer Hinweis: ' . $this->normalizeScalarText($e->getMessage(), 250),
+                ],
+                'report_payload' => [
+                    'title' => 'Benutzer konnte nicht gelöscht werden',
+                    'message' => $this->normalizeScalarText($e->getMessage(), 500),
+                    'error_code' => 'users_delete_exception',
+                    'source_url' => SITE_URL . '/admin/users',
+                    'context' => [
+                        'module' => 'users',
+                        'operation' => 'delete',
+                        'user_id' => $id,
+                    ],
+                ],
+            ];
         }
-        return ['success' => true, 'message' => 'Benutzer deaktiviert.'];
     }
 
     /**

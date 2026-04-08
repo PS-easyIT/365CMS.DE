@@ -101,7 +101,7 @@ class PageManager
         $values = [];
         
         foreach ($data as $key => $value) {
-            if (in_array($key, ['title', 'title_en', 'content', 'content_en', 'status', 'slug', 'hide_title', 'featured_image', 'meta_title', 'meta_description', 'category_id'], true)) {
+            if (in_array($key, ['title', 'title_en', 'content', 'content_en', 'status', 'slug', 'slug_en', 'hide_title', 'featured_image', 'meta_title', 'meta_description', 'category_id'], true)) {
                 $fields[] = "$key = ?";
                 $values[] = $value;
             }

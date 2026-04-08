@@ -22,6 +22,7 @@ $sectionNavGroups = [
         'label' => 'Diagnose',
         'items' => [
             ['slug' => 'diagnose', 'label' => 'Diagnose Datenbank', 'url' => SITE_URL . '/admin/diagnose'],
+            ['slug' => 'cms-logs', 'label' => 'CMS Logs', 'url' => SITE_URL . '/admin/cms-logs'],
             ['slug' => 'monitor-response-time', 'label' => 'Response-Time', 'url' => SITE_URL . '/admin/monitor-response-time'],
             ['slug' => 'monitor-cron-status', 'label' => 'Cron-Status', 'url' => SITE_URL . '/admin/monitor-cron-status'],
             ['slug' => 'monitor-disk-usage', 'label' => 'Disk-Usage', 'url' => SITE_URL . '/admin/monitor-disk-usage'],

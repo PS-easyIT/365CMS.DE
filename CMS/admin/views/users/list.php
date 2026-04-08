@@ -20,13 +20,6 @@ $total   = $data['total'] ?? 0;
 $curPage = $data['page'] ?? 1;
 $pages   = $data['pages'] ?? 1;
 $usersAdminPath = '/admin/users';
-$requestUriRaw = (string) ($_SERVER['REQUEST_URI'] ?? '');
-$requestPath = (string) parse_url($requestUriRaw, PHP_URL_PATH);
-$requestQuery = (string) parse_url($requestUriRaw, PHP_URL_QUERY);
-if ($requestPath === '') {
-    $requestPath = $usersAdminPath;
-}
-$currentRequestUri = $requestPath . ($requestQuery !== '' ? '?' . $requestQuery : '');
 
 $roleColors = [
     'admin' => 'red',
@@ -215,21 +208,6 @@ $getRoleColor = static function (string $role) use ($roleColors): string {
                                 <td>
                                     <div class="d-flex gap-2 justify-content-end">
                                         <a href="<?php echo htmlspecialchars($usersAdminPath); ?>?action=edit&amp;id=<?php echo $userId; ?>" class="btn btn-sm btn-outline-primary">Bearbeiten</a>
-                                        <form
-                                            method="post"
-                                            action="<?php echo htmlspecialchars($currentRequestUri, ENT_QUOTES); ?>"
-                                            class="d-inline"
-                                            data-confirm-title="Benutzer deaktivieren?"
-                                            data-confirm-message="Der Benutzer wird auf inaktiv gesetzt und kann sich nicht mehr normal anmelden. Wirklich fortfahren?"
-                                            data-confirm-text="Benutzer deaktivieren"
-                                            data-confirm-class="btn-danger"
-                                            data-confirm-status-class="bg-danger"
-                                        >
-                                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>">
-                                            <input type="hidden" name="action" value="delete">
-                                            <input type="hidden" name="id" value="<?php echo $userId; ?>">
-                                            <button type="submit" class="btn btn-sm btn-outline-danger">Löschen</button>
-                                        </form>
                                     </div>
                                 </td>
                             </tr>

@@ -477,6 +477,17 @@ class MemberService
      */
     public function requestAccountDeletion(int $userId): bool
     {
+        $user = $this->db->get_row(
+            "SELECT id, username, email, display_name FROM {$this->prefix}users WHERE id = ? LIMIT 1",
+            [$userId]
+        );
+
+        if (!$user) {
+            return false;
+        }
+
+        $this->ensurePrivacyRequestSchema();
+
         $deletionAt = date('Y-m-d H:i:s', strtotime('+30 days'));
         $this->setUserMeta($userId, 'deletion_requested_at', date('c'));
         $this->setUserMeta($userId, 'deletion_scheduled_at', $deletionAt);
@@ -484,6 +495,40 @@ class MemberService
             "UPDATE {$this->prefix}users SET status = 'pending_deletion' WHERE id = ?",
             [$userId]
         );
+
+        $displayName = trim((string)($user->display_name ?? ''));
+        if ($displayName === '') {
+            $displayName = trim((string)($user->username ?? ''));
+        }
+
+        $existingRequest = $this->db->get_row(
+            "SELECT id, status
+             FROM {$this->prefix}privacy_requests
+             WHERE type = 'deletion' AND user_id = ?
+             ORDER BY id DESC
+             LIMIT 1",
+            [$userId]
+        );
+
+        $requestPayload = [
+            'email' => (string)($user->email ?? ''),
+            'name' => $displayName !== '' ? $displayName : (string)($user->username ?? ''),
+            'status' => 'pending',
+            'reject_reason' => null,
+            'processed_at' => null,
+            'completed_at' => null,
+            'execute_after' => $deletionAt,
+        ];
+
+        if (is_object($existingRequest) && (int)($existingRequest->id ?? 0) > 0) {
+            $this->db->update('privacy_requests', $requestPayload, ['id' => (int)$existingRequest->id]);
+        } else {
+            $this->db->insert('privacy_requests', array_merge($requestPayload, [
+                'type' => 'deletion',
+                'user_id' => $userId,
+            ]));
+        }
+
         return true;
     }
 
@@ -780,6 +825,47 @@ class MemberService
              ON DUPLICATE KEY UPDATE meta_value = VALUES(meta_value)",
             [$userId, $key, $value]
         );
+    }
+
+    private function ensurePrivacyRequestSchema(): void
+    {
+        $this->db->getPdo()->exec(
+            "CREATE TABLE IF NOT EXISTS {$this->prefix}privacy_requests (
+                id            INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                type          VARCHAR(20) NOT NULL DEFAULT 'export',
+                user_id       INT UNSIGNED DEFAULT NULL,
+                email         VARCHAR(255) NOT NULL,
+                name          VARCHAR(255) DEFAULT NULL,
+                status        VARCHAR(20) NOT NULL DEFAULT 'pending',
+                reject_reason TEXT DEFAULT NULL,
+                processed_at  DATETIME DEFAULT NULL,
+                completed_at  DATETIME DEFAULT NULL,
+                execute_after DATETIME DEFAULT NULL,
+                created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX idx_status (status),
+                INDEX idx_type   (type),
+                INDEX idx_execute_after (execute_after)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+        );
+
+        try {
+            $column = $this->db->get_row(
+                "SHOW COLUMNS FROM {$this->prefix}privacy_requests LIKE ?",
+                ['execute_after']
+            );
+
+            if (!$column) {
+                $this->db->getPdo()->exec(
+                    "ALTER TABLE {$this->prefix}privacy_requests ADD COLUMN execute_after DATETIME DEFAULT NULL AFTER completed_at"
+                );
+                $this->db->getPdo()->exec(
+                    "ALTER TABLE {$this->prefix}privacy_requests ADD INDEX idx_execute_after (execute_after)"
+                );
+            }
+        } catch (\Throwable) {
+            // Best effort – die Tabelle wird in Altinstallationen ansonsten durch die Admin-Module ergänzt.
+        }
     }
 
     private function sanitizePublicUrl(string $value, array $allowedSchemes = ['http', 'https']): string

@@ -80,6 +80,7 @@ class SystemInfoModule
         return match ($section) {
             'info' => $this->getInfoData(),
             'diagnose' => $this->getDiagnosticsData(),
+            'logs' => $this->getLogsData($_GET['log_file'] ?? null),
             'response-time' => [
                 'monitoring' => [
                     'response_time' => $this->measureResponseTime(SITE_URL),
@@ -117,12 +118,37 @@ class SystemInfoModule
         ];
     }
 
+    public function getLogsData(mixed $selectedFile = null): array
+    {
+        $logDirectory = $this->service->getConfiguredLogDirectory();
+        $logFiles = $this->service->getCmsLogFiles();
+        $selectedFilename = $this->normalizeLogFilename($selectedFile);
+
+        if ($selectedFilename === '' && $logFiles !== []) {
+            $selectedFilename = (string) ($logFiles[0]['filename'] ?? '');
+        }
+
+        return [
+            'log_directory' => $logDirectory,
+            'log_directory_exists' => is_dir($logDirectory),
+            'log_directory_writable' => is_dir($logDirectory) && is_writable($logDirectory),
+            'error_log_file' => $this->service->getConfiguredErrorLogFile(),
+            'error_log_exists' => file_exists($this->service->getConfiguredErrorLogFile()),
+            'files' => $logFiles,
+            'selected_file' => $selectedFilename,
+            'selected_entries' => $selectedFilename !== '' ? $this->service->getCmsLogEntries($selectedFilename, 300) : [],
+            'documentation_entries' => $this->service->getRecentLogEntriesByChannel('admin.documentation', 40),
+        ];
+    }
+
     public function handleAction(string $section, string $action, array $post): array
     {
         return match ($action) {
             'clear_cache' => $this->clearCache(),
             'optimize_db' => $this->optimizeDatabase(),
             'clear_logs' => $this->clearLogs(),
+            'clear_cms_log' => $this->clearCmsLog($post),
+            'clear_all_cms_logs' => $this->clearAllCmsLogs(),
             'create_tables' => $this->createMissingTables(),
             'repair_tables' => $this->repairTables(),
             'save_monitoring_alerts' => $this->saveMonitoringSettings($post),
@@ -223,6 +249,64 @@ class SystemInfoModule
             return $this->buildActionFailureResponse(
                 'system.logs.clear_failed',
                 'Die Fehlerlogs konnten nicht gelöscht werden.',
+                $e,
+                'log'
+            );
+        }
+    }
+
+    private function clearCmsLog(array $post): array
+    {
+        $filename = $this->normalizeLogFilename($post['log_file'] ?? null);
+        if ($filename === '') {
+            return ['success' => false, 'error' => 'Keine gültige Logdatei ausgewählt.'];
+        }
+
+        try {
+            if (!$this->service->clearCmsLogFile($filename)) {
+                return ['success' => false, 'error' => 'Die Logdatei konnte nicht gelöscht werden.'];
+            }
+
+            AuditLogger::instance()->log(
+                AuditLogger::CAT_SYSTEM,
+                'system.logs.clear_file',
+                'Einzelne CMS-Logdatei gelöscht',
+                'log',
+                null,
+                ['file' => $filename],
+                'warning'
+            );
+
+            return ['success' => true, 'message' => 'Logdatei gelöscht: ' . $filename];
+        } catch (\Throwable $e) {
+            return $this->buildActionFailureResponse(
+                'system.logs.clear_file_failed',
+                'Die Logdatei konnte nicht gelöscht werden.',
+                $e,
+                'log'
+            );
+        }
+    }
+
+    private function clearAllCmsLogs(): array
+    {
+        try {
+            $deleted = $this->service->clearAllCmsLogFiles();
+            AuditLogger::instance()->log(
+                AuditLogger::CAT_SYSTEM,
+                'system.logs.clear_all',
+                'Alle CMS-Logdateien gelöscht',
+                'log',
+                null,
+                ['deleted' => $deleted],
+                'warning'
+            );
+
+            return ['success' => true, 'message' => $deleted . ' Logdatei(en) gelöscht.'];
+        } catch (\Throwable $e) {
+            return $this->buildActionFailureResponse(
+                'system.logs.clear_all_failed',
+                'Die CMS-Logdateien konnten nicht vollständig gelöscht werden.',
                 $e,
                 'log'
             );
@@ -869,7 +953,7 @@ class SystemInfoModule
         $db = $this->getDatabaseStatusSafe();
         $cacheWritable = is_writable(ABSPATH . 'cache');
         $uploadsWritable = is_writable(ABSPATH . 'uploads');
-        $logsWritable = is_writable(ABSPATH . 'logs');
+        $logsWritable = is_dir($this->service->getConfiguredLogDirectory()) && is_writable($this->service->getConfiguredLogDirectory());
 
         $checks = [
             ['label' => 'Datenbank', 'passed' => !empty($db['connected']), 'detail' => !empty($db['connected']) ? 'Verbunden' : 'Nicht erreichbar'],
@@ -964,5 +1048,12 @@ class SystemInfoModule
         $value = preg_replace('/[\x00-\x1F\x7F]+/u', ' ', trim($value)) ?? '';
 
         return function_exists('mb_substr') ? mb_substr($value, 0, $maxLength) : substr($value, 0, $maxLength);
+    }
+
+    private function normalizeLogFilename(mixed $value): string
+    {
+        $filename = trim((string) $value);
+
+        return preg_match('/^[A-Za-z0-9._-]+\.log$/', $filename) === 1 ? $filename : '';
     }
 }

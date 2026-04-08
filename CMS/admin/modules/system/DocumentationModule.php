@@ -16,6 +16,7 @@ if (!defined('ABSPATH')) {
 
 use CMS\Auth;
 use CMS\Logger;
+use CMS\Services\SystemService;
 
 require_once __DIR__ . '/DocumentationCatalog.php';
 require_once __DIR__ . '/DocumentationRenderer.php';
@@ -82,8 +83,8 @@ final class DocumentationModule
     private const GITHUB_DOC_BASE = 'https://github.com/PS-easyIT/365CMS.DE/blob/main/DOC/';
     private const GITHUB_DOC_TREE = 'https://github.com/PS-easyIT/365CMS.DE/tree/main/DOC';
     private const GITHUB_DOC_ZIP = 'https://codeload.github.com/PS-easyIT/365CMS.DE/zip/refs/heads/main';
-    private const APPROVED_DOC_BUNDLE_SHA256 = '284c5860b90e059019ba7eac1035b5777d78ca16b263aacc99066d1b47f52dcb';
-    private const APPROVED_DOC_BUNDLE_FILE_COUNT = 121;
+    private const APPROVED_DOC_BUNDLE_SHA256 = 'fb1b0c32c41fd7f76b3d3aeced053093c0c6a982672f4afb39b5565b85aaade9';
+    private const APPROVED_DOC_BUNDLE_FILE_COUNT = 132;
     private const DEFAULT_REMOTE = 'origin';
     private const DEFAULT_BRANCH = 'main';
     private const MAX_SELECTED_DOC_LENGTH = 240;
@@ -95,6 +96,7 @@ final class DocumentationModule
     private readonly DocumentationRenderer $renderer;
     private readonly DocumentationSyncService $syncService;
     private readonly Logger $logger;
+    private readonly SystemService $systemService;
 
     public function __construct()
     {
@@ -102,6 +104,7 @@ final class DocumentationModule
         $this->repoRoot = $resolvedRoots['repo_root'];
         $this->docsRoot = $resolvedRoots['docs_root'];
         $this->logger = Logger::instance()->withChannel('admin.documentation');
+        $this->systemService = SystemService::instance();
         $siteUrl = defined('SITE_URL') ? (string) SITE_URL : '';
 
         $this->catalog = new DocumentationCatalog(
@@ -260,6 +263,9 @@ final class DocumentationModule
             'is_selected_csv' => $selectedPayload['is_selected_csv'],
             'git_available' => (bool) ($syncCapabilities['git'] ?? false),
             'sync_capabilities' => $syncCapabilities,
+            'log_path' => $this->systemService->getConfiguredLogDirectory(),
+            'logs_url' => SITE_URL . '/admin/cms-logs',
+            'sync_log_entries' => $this->systemService->getRecentLogEntriesByChannel('admin.documentation', 10),
             'error' => null,
         ]));
     }
@@ -285,6 +291,9 @@ final class DocumentationModule
             'is_selected_csv' => false,
             'git_available' => false,
             'sync_capabilities' => [],
+            'log_path' => $this->systemService->getConfiguredLogDirectory(),
+            'logs_url' => SITE_URL . '/admin/cms-logs',
+            'sync_log_entries' => [],
             'error' => null,
         ], $overrides);
     }

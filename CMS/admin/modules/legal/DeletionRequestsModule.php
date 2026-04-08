@@ -37,12 +37,31 @@ class DeletionRequestsModule
                 reject_reason TEXT DEFAULT NULL,
                 processed_at  DATETIME DEFAULT NULL,
                 completed_at  DATETIME DEFAULT NULL,
+                execute_after DATETIME DEFAULT NULL,
                 created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 INDEX idx_status (status),
-                INDEX idx_type   (type)
+                INDEX idx_type   (type),
+                INDEX idx_execute_after (execute_after)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
         );
+
+        try {
+            $column = $this->db->get_row(
+                "SHOW COLUMNS FROM {$this->prefix}privacy_requests LIKE ?",
+                ['execute_after']
+            );
+
+            if (!$column) {
+                $this->db->getPdo()->exec(
+                    "ALTER TABLE {$this->prefix}privacy_requests ADD COLUMN execute_after DATETIME DEFAULT NULL AFTER completed_at"
+                );
+                $this->db->getPdo()->exec(
+                    "ALTER TABLE {$this->prefix}privacy_requests ADD INDEX idx_execute_after (execute_after)"
+                );
+            }
+        } catch (\Throwable) {
+        }
     }
 
     public function getData(): array
@@ -97,25 +116,34 @@ class DeletionRequestsModule
             return ['success' => false, 'error' => 'Löschantrag nicht gefunden.'];
         }
 
+        $executeAfter = trim((string)($request->execute_after ?? ''));
+        if ($executeAfter !== '') {
+            $executeTimestamp = strtotime($executeAfter);
+            if ($executeTimestamp !== false && $executeTimestamp > time()) {
+                return [
+                    'success' => false,
+                    'error' => 'Die Löschfrist ist noch nicht abgelaufen. Früheste Ausführung ab ' . date('d.m.Y H:i', $executeTimestamp) . '.',
+                ];
+            }
+        }
+
         // Trigger DSGVO delete hook
         if (class_exists('\CMS\Hooks')) {
             \CMS\Hooks::doAction('dsgvo_delete_data', $request->user_id, $request->email);
         }
 
-        // Benutzer anonymisieren wenn vorhanden
+        // Benutzerkonto vollständig löschen wenn vorhanden
         if ($request->user_id) {
             try {
-                $this->db->update('users', [
-                    'email'    => 'deleted_' . $request->user_id . '@anonymized.local',
-                    'username' => 'deleted_user_' . $request->user_id,
-                    'name'     => 'Gelöschter Benutzer',
-                    'status'   => 'deleted',
-                ], ['id' => $request->user_id]);
-            } catch (\Exception $e) {
-                if (class_exists('\CMS\Logger')) {
-                    \CMS\Logger::instance()->log('error', 'DSGVO-Anonymisierung fehlgeschlagen für User ' . $request->user_id . ': ' . $e->getMessage());
+                $deleteResult = \CMS\Services\UserService::getInstance()->deleteUser((int)$request->user_id, true);
+                if ($deleteResult instanceof \CMS\WP_Error) {
+                    return ['success' => false, 'error' => $deleteResult->get_error_message()];
                 }
-                return ['success' => false, 'error' => 'Anonymisierung fehlgeschlagen: ' . $e->getMessage()];
+            } catch (\Throwable $e) {
+                if (class_exists('\CMS\Logger')) {
+                    \CMS\Logger::instance()->log('error', 'DSGVO-Löschung fehlgeschlagen für User ' . $request->user_id . ': ' . $e->getMessage());
+                }
+                return ['success' => false, 'error' => 'Löschung fehlgeschlagen: ' . $e->getMessage()];
             }
         }
 
@@ -124,7 +152,7 @@ class DeletionRequestsModule
             'completed_at' => date('Y-m-d H:i:s'),
         ], ['id' => $id]);
 
-        return ['success' => true, 'message' => 'Löschung durchgeführt. Benutzerdaten anonymisiert.'];
+        return ['success' => true, 'message' => 'Löschung durchgeführt. Das Benutzerkonto wurde entfernt.'];
     }
 
     public function rejectRequest(int $id, string $reason): array

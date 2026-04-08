@@ -93,6 +93,9 @@ $dataRequestsConfig = [
                                             <td>
                                                 <div><?php echo htmlspecialchars((string)($row['name'] ?? '-')); ?></div>
                                                 <div class="text-secondary small"><?php echo htmlspecialchars((string)($row['email'] ?? '')); ?></div>
+                                                <?php if (!empty($row['execute_after'])): ?>
+                                                    <div class="text-warning small">Früheste Löschung: <?php echo htmlspecialchars((string)$row['execute_after']); ?></div>
+                                                <?php endif; ?>
                                             </td>
                                             <td><span class="badge <?php echo htmlspecialchars($statusBadges[$row['status'] ?? ''] ?? 'bg-secondary'); ?>"><?php echo htmlspecialchars($statusLabels[$row['status'] ?? ''] ?? (string)($row['status'] ?? '')); ?></span></td>
                                             <td class="text-secondary small"><?php echo htmlspecialchars((string)($row['created_at'] ?? '')); ?></td>
@@ -170,7 +173,7 @@ $dataRequestsConfig = [
                                                             <form method="post"><input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>"><input type="hidden" name="scope" value="deletion"><input type="hidden" name="action" value="process"><input type="hidden" name="id" value="<?php echo (int)($row['id'] ?? 0); ?>"><button class="dropdown-item">Prüfung starten</button></form>
                                                         <?php endif; ?>
                                                         <?php if (($row['status'] ?? '') === 'processing'): ?>
-                                                            <form method="post" data-confirm-message="Benutzerdaten werden anonymisiert. Fortfahren?" data-confirm-title="Löschung durchführen" data-confirm-text="Anonymisieren" data-confirm-class="btn-danger" data-confirm-status-class="bg-danger"><input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>"><input type="hidden" name="scope" value="deletion"><input type="hidden" name="action" value="execute"><input type="hidden" name="id" value="<?php echo (int)($row['id'] ?? 0); ?>"><button class="dropdown-item text-danger">Löschung durchführen</button></form>
+                                                            <form method="post" data-confirm-message="Das Benutzerkonto wird endgültig gelöscht, sobald die Frist abgelaufen ist. Fortfahren?" data-confirm-title="Löschung durchführen" data-confirm-text="Endgültig löschen" data-confirm-class="btn-danger" data-confirm-status-class="bg-danger"><input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>"><input type="hidden" name="scope" value="deletion"><input type="hidden" name="action" value="execute"><input type="hidden" name="id" value="<?php echo (int)($row['id'] ?? 0); ?>"><button class="dropdown-item text-danger">Löschung durchführen</button></form>
                                                         <?php endif; ?>
                                                         <?php if (in_array(($row['status'] ?? ''), ['pending', 'processing'], true)): ?>
                                                             <button type="button" class="dropdown-item text-warning js-open-data-request-reject-modal" data-request-scope="deletion" data-request-id="<?php echo (int)($row['id'] ?? 0); ?>" data-request-title="Löschantrag ablehnen">Ablehnen</button>

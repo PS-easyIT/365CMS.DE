@@ -38,6 +38,20 @@ class SystemService {
     private function __construct() {
         $this->db = Database::instance();
     }
+
+    public function getConfiguredLogDirectory(): string {
+        $logDir = defined('LOG_PATH') ? (string) LOG_PATH : (ABSPATH . 'logs' . DIRECTORY_SEPARATOR);
+
+        return rtrim($logDir, DIRECTORY_SEPARATOR . '/\\') . DIRECTORY_SEPARATOR;
+    }
+
+    public function getConfiguredErrorLogFile(): string {
+        if (defined('CMS_ERROR_LOG')) {
+            return (string) CMS_ERROR_LOG;
+        }
+
+        return $this->getConfiguredLogDirectory() . 'error.log';
+    }
     
     /**
      * Get system information
@@ -254,11 +268,12 @@ class SystemService {
      */
     public function checkFilePermissions(): array {
         $base_path = dirname(dirname(__DIR__));
+        $logPath = rtrim($this->getConfiguredLogDirectory(), DIRECTORY_SEPARATOR);
         
         $paths = [
             'uploads' => $base_path . '/uploads',
             'cache' => $base_path . '/cache',
-            'logs' => $base_path . '/logs',
+            'logs' => $logPath,
             'config' => $base_path . '/config',
             'assets/css' => $base_path . '/assets/css',
             'assets/js' => $base_path . '/assets/js',
@@ -306,11 +321,12 @@ class SystemService {
      */
     public function getDirectorySizes(): array {
         $base_path = dirname(dirname(__DIR__));
+        $logPath = rtrim($this->getConfiguredLogDirectory(), DIRECTORY_SEPARATOR);
         
         $directories = [
             'uploads' => $base_path . '/uploads',
             'cache' => $base_path . '/cache',
-            'logs' => $base_path . '/logs',
+            'logs' => $logPath,
             'assets' => $base_path . '/assets'
         ];
         
@@ -583,7 +599,7 @@ class SystemService {
      * Get recent error logs
      */
     public function getErrorLogs(int $limit = 100): array {
-        $log_file = defined('CMS_ERROR_LOG') ? CMS_ERROR_LOG : (rtrim((defined('LOG_PATH') ? LOG_PATH : (ABSPATH . 'logs/')), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'error.log');
+        $log_file = $this->getConfiguredErrorLogFile();
         $logs = [];
         
         if (!file_exists($log_file)) {
@@ -628,7 +644,7 @@ class SystemService {
      * Clear error logs
      */
     public function clearErrorLogs(): bool {
-        $log_file = defined('CMS_ERROR_LOG') ? CMS_ERROR_LOG : (rtrim((defined('LOG_PATH') ? LOG_PATH : (ABSPATH . 'logs/')), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'error.log');
+        $log_file = $this->getConfiguredErrorLogFile();
         
         try {
             if (file_exists($log_file)) {
@@ -641,29 +657,47 @@ class SystemService {
     }
 
     /**
-     * Get available CMS log files (daily rotation pattern cms-YYYY-MM-DD.log)
+     * Get available CMS log files from the configured LOG_PATH.
      *
-     * @return array<string, string> Filename => full path, sorted newest first
+     * @return array<int, array{filename:string,path:string,size:int,formatted_size:string,modified_at:string,channel:string}>
      */
     public function getCmsLogFiles(): array
     {
-        $logDir = defined('LOG_PATH') ? LOG_PATH : (ABSPATH . 'logs/');
+        $logDir = $this->getConfiguredLogDirectory();
         $files  = [];
 
         if (!is_dir($logDir)) {
             return $files;
         }
 
-        $globResult = glob($logDir . 'cms-*.log');
+        $globResult = glob($logDir . '*.log');
         if ($globResult === false) {
             return $files;
         }
 
         foreach ($globResult as $path) {
-            $files[basename($path)] = $path;
+            if (!is_file($path)) {
+                continue;
+            }
+
+            $filename = basename($path);
+            $size = filesize($path);
+            $modifiedAt = filemtime($path);
+            $channel = preg_replace('/-\d{4}-\d{2}-\d{2}\.log$/', '', $filename) ?? $filename;
+
+            $files[] = [
+                'filename' => $filename,
+                'path' => $path,
+                'size' => $size === false ? 0 : (int) $size,
+                'formatted_size' => $this->formatBytes($size === false ? 0 : (int) $size),
+                'modified_at' => $modifiedAt !== false ? date('Y-m-d H:i:s', $modifiedAt) : '',
+                'channel' => $channel,
+            ];
         }
 
-        krsort($files); // newest date first
+        usort($files, static function (array $left, array $right): int {
+            return strcmp((string) ($right['modified_at'] ?? ''), (string) ($left['modified_at'] ?? ''));
+        });
 
         return $files;
     }
@@ -671,18 +705,17 @@ class SystemService {
     /**
      * Read CMS log entries from a specific log file.
      *
-     * @param string $filename Log filename (must match cms-YYYY-MM-DD.log pattern)
+     * @param string $filename Log filename (only basename, no traversal)
      * @param int    $limit    Max number of entries
      * @return array<int, array{timestamp: string, level: string, channel: string, message: string}>
      */
     public function getCmsLogEntries(string $filename, int $limit = 200): array
     {
-        // Validate filename to prevent path traversal
-        if (!preg_match('/^cms-\d{4}-\d{2}-\d{2}\.log$/', $filename)) {
+        if (!$this->isSafeLogFilename($filename)) {
             return [];
         }
 
-        $logDir  = defined('LOG_PATH') ? LOG_PATH : (ABSPATH . 'logs/');
+        $logDir  = $this->getConfiguredLogDirectory();
         $logFile = $logDir . $filename;
 
         if (!file_exists($logFile)) {
@@ -721,15 +754,44 @@ class SystemService {
     }
 
     /**
+     * @return array<int, array{timestamp: string, level: string, channel: string, message: string, file: string}>
+     */
+    public function getRecentLogEntriesByChannel(string $channel, int $limit = 50): array
+    {
+        $channel = trim($channel);
+        if ($channel === '') {
+            return [];
+        }
+
+        $entries = [];
+        foreach ($this->getCmsLogFiles() as $fileInfo) {
+            $filename = (string) ($fileInfo['filename'] ?? '');
+            foreach ($this->getCmsLogEntries($filename, $limit) as $entry) {
+                if (($entry['channel'] ?? '') !== $channel) {
+                    continue;
+                }
+
+                $entry['file'] = $filename;
+                $entries[] = $entry;
+                if (count($entries) >= $limit) {
+                    return $entries;
+                }
+            }
+        }
+
+        return $entries;
+    }
+
+    /**
      * Delete a CMS log file.
      */
     public function clearCmsLogFile(string $filename): bool
     {
-        if (!preg_match('/^cms-\d{4}-\d{2}-\d{2}\.log$/', $filename)) {
+        if (!$this->isSafeLogFilename($filename)) {
             return false;
         }
 
-        $logDir  = defined('LOG_PATH') ? LOG_PATH : (ABSPATH . 'logs/');
+        $logDir  = $this->getConfiguredLogDirectory();
         $logFile = $logDir . $filename;
 
         if (file_exists($logFile)) {
@@ -737,6 +799,25 @@ class SystemService {
         }
 
         return true;
+    }
+
+    public function clearAllCmsLogFiles(): int
+    {
+        $deleted = 0;
+        foreach ($this->getCmsLogFiles() as $fileInfo) {
+            $filename = (string) ($fileInfo['filename'] ?? '');
+            if ($filename !== '' && $this->clearCmsLogFile($filename)) {
+                $deleted++;
+            }
+        }
+
+        return $deleted;
+    }
+
+    private function isSafeLogFilename(string $filename): bool {
+        return preg_match('/^[A-Za-z0-9._-]+\.log$/', $filename) === 1
+            && basename($filename) === $filename
+            && !str_contains($filename, '..');
     }
     
     /**

@@ -33,6 +33,9 @@ $syncMessage      = (string) ($syncCapabilities['message'] ?? '');
 $syncMode         = (string) ($syncCapabilities['mode'] ?? ($gitAvailable ? 'git' : 'none'));
 $syncClass        = $syncAvailable ? 'text-success' : 'text-warning';
 $syncAlertClass   = $syncAvailable ? 'success' : 'warning';
+$logPath          = (string) ($data['log_path'] ?? '');
+$logsUrl          = (string) ($data['logs_url'] ?? (SITE_URL . '/admin/cms-logs'));
+$syncLogEntries   = is_array($data['sync_log_entries'] ?? null) ? $data['sync_log_entries'] : [];
 $selectedPath     = is_array($selectedDocument) ? (string) ($selectedDocument['relative_path'] ?? '') : '';
 $selectedTitle    = is_array($selectedDocument) ? (string) ($selectedDocument['title'] ?? 'Dokument auswählen') : 'Dokument auswählen';
 $selectedExcerpt  = is_array($selectedDocument) ? (string) ($selectedDocument['excerpt'] ?? '') : '';
@@ -399,13 +402,66 @@ $metricCards = cms_admin_documentation_view_metric_cards($docCount, $sectionCoun
                 $alertData = [
                     'type' => $syncAlertClass,
                     'message' => $syncMessage,
-                    'details' => ['Synchronisationsmodus: ' . $syncMode],
+                    'details' => array_values(array_filter([
+                        'Synchronisationsmodus: ' . $syncMode,
+                        $logPath !== '' ? 'Logpfad: ' . $logPath : '',
+                    ])),
                 ];
                 $alertDismissible = false;
                 $alertMarginClass = 'mb-4';
                 require __DIR__ . '/../partials/flash-alert.php';
                 ?>
             <?php endif; ?>
+
+            <div class="row row-cards mb-4">
+                <div class="col-12 col-xl-5">
+                    <div class="card h-100">
+                        <div class="card-header"><h3 class="card-title">Lokale Quelle &amp; Sync-Diagnose</h3></div>
+                        <div class="card-body">
+                            <dl class="row mb-3">
+                                <dt class="col-sm-4 text-secondary">DOC-Pfad</dt>
+                                <dd class="col-sm-8"><code><?php echo htmlspecialchars($docsRoot, ENT_QUOTES, 'UTF-8'); ?></code></dd>
+                                <dt class="col-sm-4 text-secondary">Repo-Pfad</dt>
+                                <dd class="col-sm-8"><code><?php echo htmlspecialchars($repoRoot, ENT_QUOTES, 'UTF-8'); ?></code></dd>
+                                <dt class="col-sm-4 text-secondary">Log-Pfad</dt>
+                                <dd class="col-sm-8"><code><?php echo htmlspecialchars($logPath, ENT_QUOTES, 'UTF-8'); ?></code></dd>
+                            </dl>
+                            <a href="<?php echo htmlspecialchars($logsUrl, ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-outline-secondary btn-sm">CMS Logs öffnen</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12 col-xl-7">
+                    <div class="card h-100">
+                        <div class="card-header"><h3 class="card-title">Letzte Doku-Sync-Logs</h3></div>
+                        <div class="table-responsive">
+                            <table class="table table-vcenter card-table table-striped mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Zeit</th>
+                                        <th>Level</th>
+                                        <th>Datei</th>
+                                        <th>Meldung</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php if ($syncLogEntries === []): ?>
+                                        <tr><td colspan="4" class="text-center text-secondary py-4">Noch keine Doku-Sync-Logs gefunden. Wenn der Sync fehlschlägt, prüfe bitte den Pfad <code><?php echo htmlspecialchars($logPath, ENT_QUOTES, 'UTF-8'); ?></code>.</td></tr>
+                                    <?php else: ?>
+                                        <?php foreach ($syncLogEntries as $logEntry): ?>
+                                            <tr>
+                                                <td class="text-nowrap"><?php echo htmlspecialchars((string)($logEntry['timestamp'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
+                                                <td><span class="badge bg-secondary-lt"><?php echo htmlspecialchars((string)($logEntry['level'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></span></td>
+                                                <td><code><?php echo htmlspecialchars((string)($logEntry['file'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></code></td>
+                                                <td class="small"><?php echo htmlspecialchars((string)($logEntry['message'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             <div class="row row-cards">
                 <div class="col-12 col-xl-4">

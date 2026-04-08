@@ -158,9 +158,9 @@ $roleColors = [
                     </div>
 
                     <div class="card border-danger-subtle mt-3">
-                        <div class="card-header"><h3 class="card-title text-danger mb-0">Benutzer deaktivieren</h3></div>
+                        <div class="card-header"><h3 class="card-title text-danger mb-0">Benutzer dauerhaft löschen</h3></div>
                         <div class="card-body">
-                            <p class="text-secondary mb-3">Der Benutzer wird auf <strong>inaktiv</strong> gesetzt und kann sich danach nicht mehr normal anmelden.</p>
+                            <p class="text-secondary mb-3">Der Benutzer wird <strong>vollständig entfernt</strong>. Diese Aktion ist dauerhaft und kann nicht rückgängig gemacht werden.</p>
                             <button
                                 type="submit"
                                 name="action"
@@ -168,7 +168,7 @@ $roleColors = [
                                 class="btn btn-danger w-100"
                                 form="userForm"
                                 formnovalidate
-                                data-confirm="Der Benutzer wird auf inaktiv gesetzt und kann sich danach nicht mehr normal anmelden. Wirklich fortfahren?"
+                                data-confirm="Der Benutzer wird dauerhaft gelöscht. Wirklich fortfahren?"
                             >Benutzer löschen</button>
                         </div>
                     </div>

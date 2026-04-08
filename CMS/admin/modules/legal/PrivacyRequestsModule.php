@@ -36,12 +36,31 @@ class PrivacyRequestsModule
                 reject_reason TEXT DEFAULT NULL,
                 processed_at  DATETIME DEFAULT NULL,
                 completed_at  DATETIME DEFAULT NULL,
+                execute_after DATETIME DEFAULT NULL,
                 created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 INDEX idx_status (status),
-                INDEX idx_type   (type)
+                INDEX idx_type   (type),
+                INDEX idx_execute_after (execute_after)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
         );
+
+        try {
+            $column = $this->db->get_row(
+                "SHOW COLUMNS FROM {$this->prefix}privacy_requests LIKE ?",
+                ['execute_after']
+            );
+
+            if (!$column) {
+                $this->db->getPdo()->exec(
+                    "ALTER TABLE {$this->prefix}privacy_requests ADD COLUMN execute_after DATETIME DEFAULT NULL AFTER completed_at"
+                );
+                $this->db->getPdo()->exec(
+                    "ALTER TABLE {$this->prefix}privacy_requests ADD INDEX idx_execute_after (execute_after)"
+                );
+            }
+        } catch (\Throwable) {
+        }
     }
 
     public function getData(): array

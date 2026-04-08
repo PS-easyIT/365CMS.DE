@@ -254,6 +254,7 @@ class PagesModule
         $id     = (int)($post['id'] ?? 0);
         $title  = $this->sanitizePlainText((string)($post['title'] ?? ''), 255);
         $slug   = trim($post['slug'] ?? '');
+        $slugEn = trim((string)($post['slug_en'] ?? ''));
         $defaultStatus = function_exists('get_option') ? (string)get_option('setting_page_default_status', 'draft') : 'draft';
         if (!in_array($defaultStatus, ['published', 'draft', 'private'], true)) {
             $defaultStatus = 'draft';
@@ -272,6 +273,7 @@ class PagesModule
         $metaTitle  = $this->sanitizePlainText((string)($post['meta_title'] ?? ''), 255);
         $metaDesc   = $this->sanitizePlainText((string)($post['meta_description'] ?? ''), 2000);
         $slug       = $this->normalizeSlug($slug !== '' ? $slug : $this->pageManager->generateSlug($title));
+        $slugEn     = $this->normalizeSlug($slugEn);
 
         // Move temp upload to slug subfolder (pages/{slug}/{filename})
         if ($featuredImageTempPath !== '' && str_contains($featuredImageTempPath, '/temp/')) {
@@ -302,10 +304,15 @@ class PagesModule
             return ['success' => false, 'error' => 'Dieser Slug ist bereits vergeben.'];
         }
 
+        if ($slugEn !== '' && $this->isLocalizedSlugTaken($slugEn, $id)) {
+            return ['success' => false, 'error' => 'Dieser englische Slug ist bereits vergeben.'];
+        }
+
         $savePayload = [
             'title' => $title,
             'title_en' => $titleEn,
             'slug' => $slug,
+            'slug_en' => $slugEn !== '' ? $slugEn : null,
             'status' => $status,
             'content' => $content,
             'content_en' => $contentEn,
@@ -323,14 +330,19 @@ class PagesModule
 
         try {
             if ($id > 0) {
-                $existing = $this->db->get_row("SELECT slug FROM {$this->prefix}pages WHERE id = ? LIMIT 1", [$id]);
+                $existing = $this->db->get_row("SELECT slug, slug_en FROM {$this->prefix}pages WHERE id = ? LIMIT 1", [$id]);
                 // Update
                 $updated = $this->pageManager->updatePage($id, $savePayload);
                 if (!$updated) {
                     return ['success' => false, 'error' => 'Seite konnte nicht aktualisiert werden.'];
                 }
                 SEOService::getInstance()->saveContentMeta('page', $id, $post);
-                $this->createSlugRedirectIfNeeded((string)($existing->slug ?? ''), $slug);
+                $this->createSlugRedirectIfNeeded(
+                    (string)($existing->slug ?? ''),
+                    $slug,
+                    (string)($existing->slug_en ?? ''),
+                    (string)($savePayload['slug_en'] ?? '')
+                );
                 Hooks::doAction('cms_after_page_save', $id, $savePayload, $post);
                 return ['success' => true, 'id' => $id, 'message' => 'Seite aktualisiert.'];
             } else {
@@ -340,10 +352,11 @@ class PagesModule
                     // Update meta fields
                     $this->db->execute(
                         "UPDATE {$this->prefix}pages 
-                             SET slug = ?, title_en = ?, content_en = ?, category_id = ?, featured_image = ?, meta_title = ?, meta_description = ?
+                             SET slug = ?, slug_en = ?, title_en = ?, content_en = ?, category_id = ?, featured_image = ?, meta_title = ?, meta_description = ?
                          WHERE id = ?",
                         [
                             (string)$savePayload['slug'],
+                            $savePayload['slug_en'],
                             (string)($savePayload['title_en'] ?? ''),
                             (string)($savePayload['content_en'] ?? ''),
                                 $savePayload['category_id'],
@@ -572,6 +585,19 @@ class PagesModule
         return (int)$this->db->get_var($sql, $params) > 0;
     }
 
+    private function isLocalizedSlugTaken(string $slug, int $ignoreId = 0): bool
+    {
+        $params = [$slug, $slug];
+        $sql = "SELECT COUNT(*) FROM {$this->prefix}pages WHERE (slug_en = ? OR slug = ?)";
+
+        if ($ignoreId > 0) {
+            $sql .= " AND id != ?";
+            $params[] = $ignoreId;
+        }
+
+        return (int)$this->db->get_var($sql, $params) > 0;
+    }
+
     /**
      * @param array<int,array<string,mixed>> $rows
      * @return array<int,array<string,mixed>>
@@ -619,25 +645,34 @@ class PagesModule
         return $flat;
     }
 
-    private function createSlugRedirectIfNeeded(string $oldSlug, string $newSlug): void
+    private function createSlugRedirectIfNeeded(string $oldSlug, string $newSlug, string $oldLocalizedSlug = '', string $newLocalizedSlug = ''): void
     {
         $oldSlug = trim($oldSlug);
         $newSlug = trim($newSlug);
+        $oldLocalizedSlug = trim($oldLocalizedSlug);
+        $newLocalizedSlug = trim($newLocalizedSlug);
 
         if ($oldSlug === '' || $newSlug === '' || $oldSlug === $newSlug) {
-            return;
+            // lokalisierte Redirects ggf. trotzdem weiter prüfen
+        } else {
+            RedirectService::getInstance()->createAutomaticRedirect(
+                '/' . $oldSlug,
+                '/' . $newSlug,
+                'Automatisch bei Seiten-Slug-Änderung angelegt'
+            );
         }
 
-        RedirectService::getInstance()->createAutomaticRedirect(
-            '/' . $oldSlug,
-            '/' . $newSlug,
-            'Automatisch bei Seiten-Slug-Änderung angelegt'
-        );
-
         foreach (ContentLocalizationService::getInstance()->getContentLocales() as $locale) {
+            $sourceSlug = $locale === 'en' && $oldLocalizedSlug !== '' ? $oldLocalizedSlug : $oldSlug;
+            $targetSlug = $locale === 'en' && $newLocalizedSlug !== '' ? $newLocalizedSlug : $newSlug;
+
+            if ($sourceSlug === '' || $targetSlug === '' || $sourceSlug === $targetSlug) {
+                continue;
+            }
+
             RedirectService::getInstance()->createAutomaticRedirect(
-                '/' . $oldSlug . '/' . $locale,
-                '/' . $newSlug . '/' . $locale,
+                '/' . $sourceSlug . '/' . $locale,
+                '/' . $targetSlug . '/' . $locale,
                 'Automatisch bei lokalisiertem Seiten-Slug angelegt'
             );
         }

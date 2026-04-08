@@ -70,6 +70,7 @@ if (!in_array($pageDefaultStatus, ['draft', 'published', 'private'], true)) {
             <?php
             $pageTitleValue = (string)($page->title ?? '');
             $pageSlugValue = (string)($page->slug ?? '');
+            $pageSlugEnValue = (string)($page->slug_en ?? '');
             $pageStatusValue = (string)($page->status ?? $pageDefaultStatus);
             $pageContentValue = (string)($page->content ?? '');
             $pageTitleEnValue = (string)($page->title_en ?? '');
@@ -80,7 +81,7 @@ if (!in_array($pageDefaultStatus, ['draft', 'published', 'private'], true)) {
             $pageMetaDescriptionValue = (string)($page->meta_description ?? '');
             $pageFeaturedImageValue = (string)($page->featured_image ?? '');
             $pagePreviewUrl = $siteUrl . '/' . ltrim($pageSlugValue, '/');
-            $pagePreviewUrlEn = rtrim($pagePreviewUrl, '/') . '/en';
+            $pagePreviewUrlEn = $siteUrl . '/' . ltrim($pageSlugEnValue !== '' ? $pageSlugEnValue : $pageSlugValue, '/') . '/en';
             $pageFocusKeyphraseValue = (string)($seoMeta['focus_keyphrase'] ?? '');
             $pageCanonicalUrlValue = (string)($seoMeta['canonical_url'] ?? '');
             $pageRobotsIndexValue = !array_key_exists('robots_index', $seoMeta) || !empty($seoMeta['robots_index']);
@@ -232,11 +233,22 @@ if (!in_array($pageDefaultStatus, ['draft', 'published', 'private'], true)) {
                                 <?php endif; ?>
                             </div>
                             <div id="pageLanguagePaneEn" data-page-lang-pane="en" class="d-none">
-                                <div class="mb-3">
-                                    <label class="form-label" for="pageTitleEn">Englischer Titel</label>
-                                    <input type="text" name="title_en" id="pageTitleEn" class="form-control" value="<?= htmlspecialchars($pageTitleEnValue) ?>" placeholder="English page title">
-                                    <div class="form-hint">Die englische Version ist unter <code><?= htmlspecialchars($pagePreviewUrlEn) ?></code> erreichbar.</div>
+                                <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap mb-3">
+                                    <div class="text-secondary small">Die englische Version ist unter <code><?= htmlspecialchars($pagePreviewUrlEn) ?></code> erreichbar.</div>
+                                    <button type="button" class="btn btn-outline-primary btn-sm" id="copyPageDeToEnButton">Alles aus DE nach EN kopieren</button>
                                 </div>
+                                <div class="row g-3 mb-3">
+                                    <div class="col-lg-7">
+                                        <label class="form-label" for="pageTitleEn">Englischer Titel</label>
+                                        <input type="text" name="title_en" id="pageTitleEn" class="form-control" value="<?= htmlspecialchars($pageTitleEnValue) ?>" placeholder="English page title">
+                                    </div>
+                                    <div class="col-lg-5">
+                                        <label class="form-label" for="pageSlugEn">Englischer Slug</label>
+                                        <input type="text" name="slug_en" id="pageSlugEn" class="form-control" value="<?= htmlspecialchars($pageSlugEnValue) ?>" placeholder="optional: english-page-slug">
+                                        <div class="form-hint">Wenn leer, nutzt die EN-URL weiterhin den Standardslug.</div>
+                                    </div>
+                                </div>
+                                <div class="mb-3 text-secondary small">Der Kopier-Button übernimmt Titel und alle Editor.js-Blöcke aus der DE-Version in die englische Bearbeitung.</div>
                                 <?php if (!empty($useEditorJs)): ?>
                                 <div class="editorjs-wrap editorjs-wrap--page cms-editor-live-wrap"
                                        style="--editorjs-content-width:<?= (int)$pageEditorWidth ?>px; --editorjs-content-padding-x:50px;">
@@ -486,6 +498,20 @@ if (!in_array($pageDefaultStatus, ['draft', 'published', 'private'], true)) {
             'formId' => 'pageForm',
             'mediaUploadUrl' => rtrim((defined('SITE_URL') ? SITE_URL : ''), '/') . '/api/media',
             'csrfToken' => $editorMediaToken ?? '',
+            'initialCopyOnFirstActivate' => [
+                'sourceKey' => 'de',
+                'targetKey' => 'en',
+            ],
+            'copyAction' => [
+                'buttonId' => 'copyPageDeToEnButton',
+                'sourceEditorKey' => 'de',
+                'targetEditorKey' => 'en',
+                'sourceTitleId' => 'pageTitle',
+                'targetTitleId' => 'pageTitleEn',
+                'sourceSlugId' => 'pageSlug',
+                'targetSlugId' => 'pageSlugEn',
+                'targetPaneButtonId' => 'pageLangToggleEn',
+            ],
             'editors' => [
                 ['key' => 'de', 'holderId' => 'editorjs', 'inputId' => 'editorContent', 'lazy' => false],
                 ['key' => 'en', 'holderId' => 'editorjsEn', 'inputId' => 'editorContentEn', 'lazy' => true, 'activateButtonId' => 'pageLangToggleEn'],
