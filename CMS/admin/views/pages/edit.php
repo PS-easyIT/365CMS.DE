@@ -235,7 +235,10 @@ if (!in_array($pageDefaultStatus, ['draft', 'published', 'private'], true)) {
                             <div id="pageLanguagePaneEn" data-page-lang-pane="en" class="d-none">
                                 <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap mb-3">
                                     <div class="text-secondary small">Die englische Version ist unter <code><?= htmlspecialchars($pagePreviewUrlEn) ?></code> erreichbar.</div>
-                                    <button type="button" class="btn btn-outline-primary btn-sm" id="copyPageDeToEnButton">Alles aus DE nach EN kopieren</button>
+                                    <div class="btn-list">
+                                        <button type="button" class="btn btn-outline-primary btn-sm" id="copyPageDeToEnButton">Alles aus DE nach EN kopieren</button>
+                                        <button type="button" class="btn btn-primary btn-sm" id="translatePageDeToEnButton">Mit AI nach EN übersetzen</button>
+                                    </div>
                                 </div>
                                 <div class="row g-3 mb-3">
                                     <div class="col-lg-7">
@@ -504,6 +507,21 @@ if (!in_array($pageDefaultStatus, ['draft', 'published', 'private'], true)) {
             ],
             'copyAction' => [
                 'buttonId' => 'copyPageDeToEnButton',
+                'sourceEditorKey' => 'de',
+                'targetEditorKey' => 'en',
+                'sourceTitleId' => 'pageTitle',
+                'targetTitleId' => 'pageTitleEn',
+                'sourceSlugId' => 'pageSlug',
+                'targetSlugId' => 'pageSlugEn',
+                'targetPaneButtonId' => 'pageLangToggleEn',
+            ],
+            'aiTranslation' => [
+                'buttonId' => 'translatePageDeToEnButton',
+                'endpointUrl' => (string) ($aiTranslationUrl ?? ((defined('SITE_URL') ? SITE_URL : '') . '/admin/ai-translate-editorjs')),
+                'csrfToken' => (string) ($aiTranslationToken ?? ''),
+                'contentType' => 'page',
+                'sourceLocale' => 'de',
+                'targetLocale' => 'en',
                 'sourceEditorKey' => 'de',
                 'targetEditorKey' => 'en',
                 'sourceTitleId' => 'pageTitle',

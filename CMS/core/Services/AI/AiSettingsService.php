@@ -1,0 +1,507 @@
+<?php
+declare(strict_types=1);
+
+namespace CMS\Services\AI;
+
+use CMS\Services\SettingsService;
+
+if (!defined('ABSPATH')) {
+    exit;
+}
+
+final class AiSettingsService
+{
+    public const GROUP_PROVIDERS = 'ai.providers';
+    public const GROUP_FEATURES = 'ai.features';
+    public const GROUP_TRANSLATION = 'ai.translation';
+    public const GROUP_LOGGING = 'ai.logging';
+    public const GROUP_QUOTAS = 'ai.quotas';
+
+    /** @var list<string> */
+    public const PROVIDER_SLUGS = ['mock', 'openai', 'azure_openai', 'ollama', 'openrouter'];
+
+    private const PROVIDER_SECRET_KEYS = [
+        'openai_api_key',
+        'azure_openai_api_key',
+        'openrouter_api_key',
+    ];
+
+    private static ?self $instance = null;
+
+    private SettingsService $settings;
+
+    public static function getInstance(): self
+    {
+        return self::$instance ??= new self();
+    }
+
+    private function __construct()
+    {
+        $this->settings = SettingsService::getInstance();
+    }
+
+    /** @return array<string, mixed> */
+    public function getConfiguration(): array
+    {
+        $providers = $this->normalizeProviders($this->settings->getGroup(self::GROUP_PROVIDERS));
+        $features = $this->normalizeFeatures($this->settings->getGroup(self::GROUP_FEATURES));
+        $translation = $this->normalizeTranslation($this->settings->getGroup(self::GROUP_TRANSLATION));
+        $logging = $this->normalizeLogging($this->settings->getGroup(self::GROUP_LOGGING));
+        $quotas = $this->normalizeQuotas($this->settings->getGroup(self::GROUP_QUOTAS));
+
+        return [
+            'providers' => $providers,
+            'features' => $features,
+            'translation' => $translation,
+            'logging' => $logging,
+            'quotas' => $quotas,
+            'summary' => $this->buildSummary($providers, $features, $translation, $logging, $quotas),
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $meta
+     * @param array<string, array<string, mixed>> $providers
+     * @param array<string, string> $secretValues
+     * @param list<string> $clearSecrets
+     */
+    public function saveProviders(array $meta, array $providers, array $secretValues = [], array $clearSecrets = []): bool
+    {
+        $payload = [];
+
+        foreach ($meta as $key => $value) {
+            $payload[(string) $key] = $value;
+        }
+
+        foreach (self::PROVIDER_SLUGS as $providerSlug) {
+            $payload[$providerSlug] = $providers[$providerSlug] ?? $this->defaultProviderConfig($providerSlug);
+        }
+
+        if (!$this->settings->setMany(self::GROUP_PROVIDERS, $payload, [], 0)) {
+            return false;
+        }
+
+        foreach ($secretValues as $secretKey => $secretValue) {
+            $secretValue = trim($secretValue);
+            if ($secretValue === '' || !in_array($secretKey, self::PROVIDER_SECRET_KEYS, true)) {
+                continue;
+            }
+
+            if (!$this->settings->set(self::GROUP_PROVIDERS, $secretKey, $secretValue, true, 0)) {
+                return false;
+            }
+        }
+
+        foreach ($clearSecrets as $secretKey) {
+            if (!in_array($secretKey, self::PROVIDER_SECRET_KEYS, true)) {
+                continue;
+            }
+
+            if (!$this->settings->forget(self::GROUP_PROVIDERS, $secretKey)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /** @param array<string, mixed> $values */
+    public function saveFeatures(array $values): bool
+    {
+        return $this->settings->setMany(self::GROUP_FEATURES, $values, [], 0);
+    }
+
+    /** @param array<string, mixed> $values */
+    public function saveTranslation(array $values): bool
+    {
+        return $this->settings->setMany(self::GROUP_TRANSLATION, $values, [], 0);
+    }
+
+    /** @param array<string, mixed> $values */
+    public function saveLogging(array $values): bool
+    {
+        return $this->settings->setMany(self::GROUP_LOGGING, $values, [], 0);
+    }
+
+    /** @param array<string, mixed> $values */
+    public function saveQuotas(array $values): bool
+    {
+        return $this->settings->setMany(self::GROUP_QUOTAS, $values, [], 0);
+    }
+
+    /** @return array<string, mixed> */
+    private function normalizeProviders(array $stored): array
+    {
+        $defaults = $this->defaultProviders();
+        $activeProvider = (string) ($stored['active_provider'] ?? $defaults['active_provider']);
+        $fallbackProvider = (string) ($stored['fallback_provider'] ?? $defaults['fallback_provider']);
+
+        if (!in_array($activeProvider, self::PROVIDER_SLUGS, true)) {
+            $activeProvider = (string) $defaults['active_provider'];
+        }
+
+        if (!in_array($fallbackProvider, self::PROVIDER_SLUGS, true)) {
+            $fallbackProvider = (string) $defaults['fallback_provider'];
+        }
+
+        $providers = [];
+        foreach (self::PROVIDER_SLUGS as $providerSlug) {
+            $providers[$providerSlug] = $this->normalizeProviderConfig(
+                is_array($stored[$providerSlug] ?? null) ? $stored[$providerSlug] : [],
+                $this->defaultProviderConfig($providerSlug),
+                $providerSlug
+            );
+        }
+
+        return [
+            'active_provider' => $activeProvider,
+            'fallback_provider' => $fallbackProvider,
+            'providers' => $providers,
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function normalizeProviderConfig(array $stored, array $defaults, string $providerSlug): array
+    {
+        $profile = (string) ($stored['profile'] ?? $defaults['profile']);
+        if (!in_array($profile, ['disabled', 'beta', 'editor-translation', 'content-assist', 'seo-assist'], true)) {
+            $profile = (string) $defaults['profile'];
+        }
+
+        return [
+            'label' => (string) ($defaults['label'] ?? ucfirst(str_replace('_', ' ', $providerSlug))),
+            'enabled' => (bool) ($stored['enabled'] ?? $defaults['enabled']),
+            'profile' => $profile,
+            'default_model' => trim((string) ($stored['default_model'] ?? $defaults['default_model'])),
+            'endpoint' => trim((string) ($stored['endpoint'] ?? $defaults['endpoint'])),
+            'translation_enabled' => (bool) ($stored['translation_enabled'] ?? $defaults['translation_enabled']),
+            'rewrite_enabled' => (bool) ($stored['rewrite_enabled'] ?? $defaults['rewrite_enabled']),
+            'summary_enabled' => (bool) ($stored['summary_enabled'] ?? $defaults['summary_enabled']),
+            'seo_meta_enabled' => (bool) ($stored['seo_meta_enabled'] ?? $defaults['seo_meta_enabled']),
+            'editorjs_enabled' => (bool) ($stored['editorjs_enabled'] ?? $defaults['editorjs_enabled']),
+            'allowed_locales' => $this->normalizeStringList($stored['allowed_locales'] ?? $defaults['allowed_locales'], ['en']),
+            'beta_only' => (bool) ($stored['beta_only'] ?? $defaults['beta_only']),
+            'secret_configured' => $this->isProviderSecretConfigured($providerSlug),
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function normalizeFeatures(array $stored): array
+    {
+        $defaults = $this->defaultFeatures();
+
+        return [
+            'ai_services_enabled' => (bool) ($stored['ai_services_enabled'] ?? $defaults['ai_services_enabled']),
+            'ai_translation_enabled' => (bool) ($stored['ai_translation_enabled'] ?? $defaults['ai_translation_enabled']),
+            'ai_rewrite_enabled' => (bool) ($stored['ai_rewrite_enabled'] ?? $defaults['ai_rewrite_enabled']),
+            'ai_summary_enabled' => (bool) ($stored['ai_summary_enabled'] ?? $defaults['ai_summary_enabled']),
+            'ai_seo_meta_enabled' => (bool) ($stored['ai_seo_meta_enabled'] ?? $defaults['ai_seo_meta_enabled']),
+            'ai_editorjs_enabled' => (bool) ($stored['ai_editorjs_enabled'] ?? $defaults['ai_editorjs_enabled']),
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function normalizeTranslation(array $stored): array
+    {
+        $defaults = $this->defaultTranslation();
+        $resultMode = (string) ($stored['result_mode'] ?? $defaults['result_mode']);
+        if (!in_array($resultMode, ['preview', 'localized-field', 'overwrite-current-draft'], true)) {
+            $resultMode = (string) $defaults['result_mode'];
+        }
+
+        return [
+            'default_source_locale' => $this->normalizeLocale((string) ($stored['default_source_locale'] ?? $defaults['default_source_locale']), (string) $defaults['default_source_locale']),
+            'default_target_locale' => $this->normalizeLocale((string) ($stored['default_target_locale'] ?? $defaults['default_target_locale']), (string) $defaults['default_target_locale']),
+            'allowed_target_locales' => $this->normalizeStringList($stored['allowed_target_locales'] ?? $defaults['allowed_target_locales'], ['en']),
+            'supported_block_types' => $this->normalizeStringList($stored['supported_block_types'] ?? $defaults['supported_block_types'], (array) $defaults['supported_block_types']),
+            'preview_required' => (bool) ($stored['preview_required'] ?? $defaults['preview_required']),
+            'preserve_unsupported_blocks' => (bool) ($stored['preserve_unsupported_blocks'] ?? $defaults['preserve_unsupported_blocks']),
+            'skip_html_blocks' => (bool) ($stored['skip_html_blocks'] ?? $defaults['skip_html_blocks']),
+            'result_mode' => $resultMode,
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function normalizeLogging(array $stored): array
+    {
+        $defaults = $this->defaultLogging();
+        $mode = (string) ($stored['logging_mode'] ?? $defaults['logging_mode']);
+        if (!in_array($mode, ['minimal', 'technical', 'debug-no-content'], true)) {
+            $mode = (string) $defaults['logging_mode'];
+        }
+
+        return [
+            'logging_mode' => $mode,
+            'retention_days' => max(1, (int) ($stored['retention_days'] ?? $defaults['retention_days'])),
+            'store_content_hashes' => (bool) ($stored['store_content_hashes'] ?? $defaults['store_content_hashes']),
+            'store_request_metrics' => (bool) ($stored['store_request_metrics'] ?? $defaults['store_request_metrics']),
+            'store_error_context' => (bool) ($stored['store_error_context'] ?? $defaults['store_error_context']),
+            'store_prompt_preview' => (bool) ($stored['store_prompt_preview'] ?? $defaults['store_prompt_preview']),
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function normalizeQuotas(array $stored): array
+    {
+        $defaults = $this->defaultQuotas();
+
+        return [
+            'max_chars_per_request' => max(250, (int) ($stored['max_chars_per_request'] ?? $defaults['max_chars_per_request'])),
+            'max_blocks_per_request' => max(1, (int) ($stored['max_blocks_per_request'] ?? $defaults['max_blocks_per_request'])),
+            'timeout_seconds' => max(5, (int) ($stored['timeout_seconds'] ?? $defaults['timeout_seconds'])),
+            'retry_count' => max(0, (int) ($stored['retry_count'] ?? $defaults['retry_count'])),
+            'daily_requests_per_user' => max(1, (int) ($stored['daily_requests_per_user'] ?? $defaults['daily_requests_per_user'])),
+            'daily_chars_per_user' => max(500, (int) ($stored['daily_chars_per_user'] ?? $defaults['daily_chars_per_user'])),
+            'monthly_requests_per_provider' => max(10, (int) ($stored['monthly_requests_per_provider'] ?? $defaults['monthly_requests_per_provider'])),
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function buildSummary(array $providers, array $features, array $translation, array $logging, array $quotas): array
+    {
+        $providerConfigs = is_array($providers['providers'] ?? null) ? $providers['providers'] : [];
+        $enabledProviders = 0;
+        $translationReadyProviders = 0;
+
+        foreach ($providerConfigs as $provider) {
+            if (!is_array($provider)) {
+                continue;
+            }
+
+            if (!empty($provider['enabled'])) {
+                $enabledProviders++;
+            }
+
+            if (!empty($provider['enabled']) && !empty($provider['translation_enabled']) && !empty($provider['editorjs_enabled'])) {
+                $translationReadyProviders++;
+            }
+        }
+
+        $enabledFeatures = 0;
+        foreach ($features as $value) {
+            if ($value === true) {
+                $enabledFeatures++;
+            }
+        }
+
+        return [
+            'provider_total' => count(self::PROVIDER_SLUGS),
+            'provider_enabled' => $enabledProviders,
+            'feature_enabled' => $enabledFeatures,
+            'translation_ready' => !empty($features['ai_services_enabled'])
+                && !empty($features['ai_translation_enabled'])
+                && !empty($features['ai_editorjs_enabled'])
+                && $translationReadyProviders > 0,
+            'translation_ready_provider_count' => $translationReadyProviders,
+            'target_locale_count' => count((array) ($translation['allowed_target_locales'] ?? [])),
+            'logging_mode' => (string) ($logging['logging_mode'] ?? 'minimal'),
+            'quota_chars' => (int) ($quotas['max_chars_per_request'] ?? 0),
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function defaultProviders(): array
+    {
+        return [
+            'active_provider' => 'mock',
+            'fallback_provider' => 'openai',
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function defaultProviderConfig(string $providerSlug): array
+    {
+        return match ($providerSlug) {
+            'mock' => [
+                'label' => 'Mock Provider',
+                'enabled' => true,
+                'profile' => 'editor-translation',
+                'default_model' => 'mock-local-v1',
+                'endpoint' => 'internal://mock',
+                'translation_enabled' => true,
+                'rewrite_enabled' => false,
+                'summary_enabled' => false,
+                'seo_meta_enabled' => false,
+                'editorjs_enabled' => true,
+                'allowed_locales' => ['en'],
+                'beta_only' => false,
+            ],
+            'openai' => [
+                'label' => 'OpenAI',
+                'enabled' => false,
+                'profile' => 'editor-translation',
+                'default_model' => 'gpt-5-mini',
+                'endpoint' => 'https://api.openai.com/v1',
+                'translation_enabled' => true,
+                'rewrite_enabled' => true,
+                'summary_enabled' => true,
+                'seo_meta_enabled' => true,
+                'editorjs_enabled' => true,
+                'allowed_locales' => ['en'],
+                'beta_only' => true,
+            ],
+            'azure_openai' => [
+                'label' => 'Azure OpenAI',
+                'enabled' => false,
+                'profile' => 'editor-translation',
+                'default_model' => 'gpt-4.1-mini',
+                'endpoint' => '',
+                'translation_enabled' => true,
+                'rewrite_enabled' => true,
+                'summary_enabled' => true,
+                'seo_meta_enabled' => true,
+                'editorjs_enabled' => true,
+                'allowed_locales' => ['en'],
+                'beta_only' => true,
+            ],
+            'ollama' => [
+                'label' => 'Ollama',
+                'enabled' => false,
+                'profile' => 'beta',
+                'default_model' => 'llama3.1:8b',
+                'endpoint' => 'http://127.0.0.1:11434',
+                'translation_enabled' => true,
+                'rewrite_enabled' => true,
+                'summary_enabled' => true,
+                'seo_meta_enabled' => false,
+                'editorjs_enabled' => true,
+                'allowed_locales' => ['en'],
+                'beta_only' => true,
+            ],
+            'openrouter' => [
+                'label' => 'OpenRouter',
+                'enabled' => false,
+                'profile' => 'beta',
+                'default_model' => 'openai/gpt-4.1-mini',
+                'endpoint' => 'https://openrouter.ai/api/v1',
+                'translation_enabled' => true,
+                'rewrite_enabled' => true,
+                'summary_enabled' => true,
+                'seo_meta_enabled' => true,
+                'editorjs_enabled' => true,
+                'allowed_locales' => ['en'],
+                'beta_only' => true,
+            ],
+            default => [
+                'label' => ucfirst(str_replace('_', ' ', $providerSlug)),
+                'enabled' => false,
+                'profile' => 'disabled',
+                'default_model' => '',
+                'endpoint' => '',
+                'translation_enabled' => false,
+                'rewrite_enabled' => false,
+                'summary_enabled' => false,
+                'seo_meta_enabled' => false,
+                'editorjs_enabled' => false,
+                'allowed_locales' => ['en'],
+                'beta_only' => true,
+            ],
+        };
+    }
+
+    /** @return array<string, bool> */
+    private function defaultFeatures(): array
+    {
+        return [
+            'ai_services_enabled' => true,
+            'ai_translation_enabled' => true,
+            'ai_rewrite_enabled' => false,
+            'ai_summary_enabled' => false,
+            'ai_seo_meta_enabled' => false,
+            'ai_editorjs_enabled' => true,
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function defaultTranslation(): array
+    {
+        return [
+            'default_source_locale' => 'de',
+            'default_target_locale' => 'en',
+            'allowed_target_locales' => ['en'],
+            'supported_block_types' => ['paragraph', 'header', 'list', 'checklist', 'quote', 'callout'],
+            'preview_required' => true,
+            'preserve_unsupported_blocks' => true,
+            'skip_html_blocks' => true,
+            'result_mode' => 'localized-field',
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function defaultLogging(): array
+    {
+        return [
+            'logging_mode' => 'technical',
+            'retention_days' => 30,
+            'store_content_hashes' => true,
+            'store_request_metrics' => true,
+            'store_error_context' => true,
+            'store_prompt_preview' => false,
+        ];
+    }
+
+    /** @return array<string, int> */
+    private function defaultQuotas(): array
+    {
+        return [
+            'max_chars_per_request' => 12000,
+            'max_blocks_per_request' => 40,
+            'timeout_seconds' => 25,
+            'retry_count' => 1,
+            'daily_requests_per_user' => 40,
+            'daily_chars_per_user' => 120000,
+            'monthly_requests_per_provider' => 5000,
+        ];
+    }
+
+    /** @param mixed $value
+     *  @param list<string> $fallback
+     *  @return list<string>
+     */
+    private function normalizeStringList(mixed $value, array $fallback): array
+    {
+        $source = [];
+        if (is_array($value)) {
+            $source = $value;
+        } elseif (is_string($value) && trim($value) !== '') {
+            $source = preg_split('/\s*,\s*/', trim($value)) ?: [];
+        }
+
+        $normalized = [];
+        foreach ($source as $item) {
+            $item = strtolower(trim((string) $item));
+            $item = preg_replace('/[^a-z0-9._-]+/', '', $item) ?? '';
+            if ($item === '') {
+                continue;
+            }
+
+            $normalized[$item] = $item;
+        }
+
+        return $normalized !== [] ? array_values($normalized) : $fallback;
+    }
+
+    private function normalizeLocale(string $value, string $fallback): string
+    {
+        $value = strtolower(trim($value));
+        $value = preg_replace('/[^a-z0-9_-]+/', '', $value) ?? '';
+
+        return $value !== '' ? $value : $fallback;
+    }
+
+    private function isProviderSecretConfigured(string $providerSlug): bool
+    {
+        $secretKey = match ($providerSlug) {
+            'openai' => 'openai_api_key',
+            'azure_openai' => 'azure_openai_api_key',
+            'openrouter' => 'openrouter_api_key',
+            default => '',
+        };
+
+        if ($secretKey === '') {
+            return false;
+        }
+
+        return $this->settings->getString(self::GROUP_PROVIDERS, $secretKey) !== '';
+    }
+}

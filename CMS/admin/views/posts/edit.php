@@ -301,7 +301,10 @@ $defaultContentLanguage = $isEnglishOnlyPost ? 'en' : 'de';
                             <div id="postLanguagePaneEn" data-post-lang-pane="en" class="d-none">
                                 <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap mb-3">
                                     <div class="text-secondary small">Die englische Version ist unter <code><?php echo htmlspecialchars($postPreviewUrlEn); ?></code> erreichbar.</div>
-                                    <button type="button" class="btn btn-outline-primary btn-sm" id="copyPostDeToEnButton">Alles aus DE nach EN kopieren</button>
+                                    <div class="btn-list">
+                                        <button type="button" class="btn btn-outline-primary btn-sm" id="copyPostDeToEnButton">Alles aus DE nach EN kopieren</button>
+                                        <button type="button" class="btn btn-primary btn-sm" id="translatePostDeToEnButton">Mit AI nach EN übersetzen</button>
+                                    </div>
                                 </div>
                                 <div class="row g-3 mb-3">
                                     <div class="col-lg-7">
@@ -596,6 +599,23 @@ $defaultContentLanguage = $isEnglishOnlyPost ? 'en' : 'de';
             ],
             'copyAction' => [
                 'buttonId' => 'copyPostDeToEnButton',
+                'sourceEditorKey' => 'de',
+                'targetEditorKey' => 'en',
+                'sourceTitleId' => 'title',
+                'targetTitleId' => 'titleEn',
+                'sourceSlugId' => 'slug',
+                'targetSlugId' => 'slugEn',
+                'sourceExcerptId' => 'excerpt',
+                'targetExcerptId' => 'excerptEn',
+                'targetPaneButtonId' => 'postLangToggleEn',
+            ],
+            'aiTranslation' => [
+                'buttonId' => 'translatePostDeToEnButton',
+                'endpointUrl' => (string) ($aiTranslationUrl ?? ((defined('SITE_URL') ? SITE_URL : '') . '/admin/ai-translate-editorjs')),
+                'csrfToken' => (string) ($aiTranslationToken ?? ''),
+                'contentType' => 'post',
+                'sourceLocale' => 'de',
+                'targetLocale' => 'en',
                 'sourceEditorKey' => 'de',
                 'targetEditorKey' => 'en',
                 'sourceTitleId' => 'title',

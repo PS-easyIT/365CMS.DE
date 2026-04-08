@@ -14,6 +14,18 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+if (!function_exists('cmsNormalizeSidebarActivePage')) {
+    function cmsNormalizeSidebarActivePage(string $activePage): string {
+        return match (trim($activePage)) {
+            'theme-settings' => 'settings',
+            'system-info' => 'info',
+            'support' => 'documentation',
+            'privacy-requests', 'deletion-requests' => 'data-requests',
+            default => trim($activePage),
+        };
+    }
+}
+
 if (!function_exists('buildSidebarPluginIcon')) {
     function buildSidebarPluginIcon(string $icon, string $fallback): string {
         $icon = trim($icon);
@@ -34,7 +46,7 @@ if (!function_exists('buildSidebarPluginIcon')) {
     }
 }
 
-$activePage = $activePage ?? '';
+$activePage = cmsNormalizeSidebarActivePage((string) ($activePage ?? ''));
 $siteUrl    = defined('SITE_URL') ? SITE_URL : '';
 $sidebarLogoUrl = cms_asset_url('images/LOGO_365CMS-75px.png', false);
 $sidebarLogoFallbackUrl = $sidebarLogoUrl;
@@ -165,6 +177,29 @@ $subscriptionSidebarSlugs = array_values(array_map(
     $subscriptionSidebarChildren
 ));
 
+$themeSidebarChildren = [
+    ['label' => 'Theme - Verwaltung', 'slug' => 'themes', 'url' => $siteUrl . '/admin/themes'],
+    ['label' => 'Theme - Editor', 'slug' => 'theme-editor', 'url' => $siteUrl . '/admin/theme-editor'],
+    ['label' => 'Theme - Explorer', 'slug' => 'theme-explorer', 'url' => $siteUrl . '/admin/theme-explorer'],
+    ['label' => 'Theme - Menü', 'slug' => 'menu-editor', 'url' => $siteUrl . '/admin/menu-editor'],
+    ['label' => 'Landing Page', 'slug' => 'landing-page', 'url' => $siteUrl . '/admin/landing-page'],
+    ['label' => 'Font Manager', 'slug' => 'font-manager', 'url' => $siteUrl . '/admin/font-manager'],
+    ['label' => 'CMS Loginpage', 'slug' => 'cms-loginpage', 'url' => $siteUrl . '/admin/cms-loginpage'],
+];
+
+if ($_marketplaceEnabled) {
+    $themeSidebarChildren[] = ['label' => 'Theme - Marketplace', 'slug' => 'theme-marketplace', 'url' => $siteUrl . '/admin/theme-marketplace'];
+}
+
+if ($coreModuleService instanceof \CMS\Services\CoreModuleService) {
+    $themeSidebarChildren = $coreModuleService->filterSidebarChildren('themes', $themeSidebarChildren);
+}
+
+$themeSidebarSlugs = array_values(array_map(
+    static fn (array $item): string => (string) ($item['slug'] ?? ''),
+    $themeSidebarChildren
+));
+
 
 /**
  * Menü-Struktur: Hauptpunkte mit Icons, Unterpunkte ohne Icons
@@ -258,16 +293,8 @@ $menuGroups = [
         'type'     => 'group',
         'label'    => 'Themes & Design',
         'icon'     => '<svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 21a9 9 0 0 1 0 -18c4.97 0 9 3.582 9 8c0 1.06 -.474 2.078 -1.318 2.828c-.844 .75 -1.989 1.172 -3.182 1.172h-2.5a2 2 0 0 0 -1 3.75a1.3 1.3 0 0 1 -1 2.25"/><path d="M8.5 10.5m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M12.5 7.5m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M16.5 10.5m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/></svg>',
-        'slugs'    => ['themes', 'theme-editor', 'theme-explorer', 'menu-editor', 'landing-page', 'font-manager', 'cms-loginpage'],
-        'children' => [
-            ['label' => 'Theme - Verwaltung', 'slug' => 'themes',         'url' => $siteUrl . '/admin/themes'],
-            ['label' => 'Theme - Editor',     'slug' => 'theme-editor',   'url' => $siteUrl . '/admin/theme-editor'],
-            ['label' => 'Theme - Explorer',   'slug' => 'theme-explorer', 'url' => $siteUrl . '/admin/theme-explorer'],
-            ['label' => 'Theme - Menü',       'slug' => 'menu-editor',    'url' => $siteUrl . '/admin/menu-editor'],
-            ['label' => 'Landing Page',       'slug' => 'landing-page',   'url' => $siteUrl . '/admin/landing-page'],
-            ['label' => 'Font Manager',       'slug' => 'font-manager',   'url' => $siteUrl . '/admin/font-manager'],
-            ['label' => 'CMS Loginpage',      'slug' => 'cms-loginpage',  'url' => $siteUrl . '/admin/cms-loginpage'],
-        ],
+        'slugs'    => $themeSidebarSlugs,
+        'children' => $themeSidebarChildren,
     ],
 
     // ─── SEO ─────────────────────────
@@ -346,10 +373,11 @@ $menuGroups = [
         'type'     => 'group',
         'label'    => 'System',
         'icon'     => '<svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10.325 4.317c.426 -1.756 2.924 -1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543 -.94 3.31 .826 2.37 2.37a1.724 1.724 0 0 0 1.066 2.573c1.756 .426 1.756 2.924 0 3.35a1.724 1.724 0 0 0 -1.066 2.573c.94 1.543 -.826 3.31 -2.37 2.37a1.724 1.724 0 0 0 -2.573 1.066c-.426 1.756 -2.924 1.756 -3.35 0a1.724 1.724 0 0 0 -2.573 -1.066c-1.543 .94 -3.31 -.826 -2.37 -2.37a1.724 1.724 0 0 0 -1.066 -2.573c-1.756 -.426 -1.756 -2.924 0 -3.35a1.724 1.724 0 0 0 1.066 -2.573c-.94 -1.543 .826 -3.31 2.37 -2.37c1 .608 2.296 .07 2.572 -1.065z"/><path d="M9 12a3 3 0 1 0 6 0a3 3 0 0 0 -6 0"/></svg>',
-        'slugs'    => ['settings', 'mail-settings', 'theme-settings', 'backups', 'updates', 'modules', 'cms-logs'],
+        'slugs'    => ['settings', 'mail-settings', 'ai-services', 'theme-settings', 'backups', 'updates', 'modules', 'cms-logs'],
         'children' => [
             ['label' => 'Einstellungen',      'slug' => 'settings', 'url' => $siteUrl . '/admin/settings'],
             ['label' => 'Mail & Azure OAuth2', 'slug' => 'mail-settings', 'url' => $siteUrl . '/admin/mail-settings'],
+            ['label' => 'AI Services',        'slug' => 'ai-services', 'url' => $siteUrl . '/admin/ai-services'],
             ['label' => 'Module',             'slug' => 'modules', 'url' => $siteUrl . '/admin/modules'],
             ['label' => 'CMS Logs',           'slug' => 'cms-logs', 'url' => $siteUrl . '/admin/cms-logs'],
             ['label' => 'Backup & Restore',   'slug' => 'backups',  'url' => $siteUrl . '/admin/backups'],

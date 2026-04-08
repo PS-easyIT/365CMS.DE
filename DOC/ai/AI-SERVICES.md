@@ -1,10 +1,10 @@
 # 365CMS – AI Services
 
-Kurzbeschreibung: Kanonische Konzept- und Architektur-Dokumentation für einen geplanten Bereich **AI Services** in 365CMS. Der Fokus liegt auf Provider-Scope, Feature-Gates, Admin-Steuerung, Editor.js-Übersetzung und einem kontrollierten, ausbaufähigen KI-Betriebsmodell.
+Kurzbeschreibung: Kanonische Konzept- und Architektur-Dokumentation für den Bereich **AI Services** in 365CMS. Der Fokus liegt auf Provider-Scope, Feature-Gates, Admin-Steuerung, Editor.js-Übersetzung und einem kontrollierten, ausbaufähigen KI-Betriebsmodell.
 
 Letzte Aktualisierung: 2026-04-08 · Version 2.9.2
 
-> **Wichtig:** Diese Datei beschreibt bewusst den **geplanten Zielzustand**. `AI Services` ist im aktuellen Stand **noch nicht runtime-aktiv**. Die Datei dient als führende Fach- und Architekturreferenz für spätere Umsetzungsschritte.
+> **Wichtig:** Diese Datei bleibt die führende Fach- und Architekturreferenz. Seit `2.9.2` existieren bereits eine **runtime-seitige Settings- und Admin-Hülle** unter `/admin/ai-services`, ein **Provider-Gateway**, ein integrierter **`mock`-Provider**, der geschützte Endpoint **`/admin/ai-translate-editorjs`**, eine erste **Mock-Translation-Pipeline für Editor.js** in Post-/Page-Editoren sowie ein **bewusster Preview-/Diff-Workflow vor der EN-Übernahme**. **Noch nicht umgesetzt** sind echte externe Live-Provider-Requests und produktive Daily-Quota-Erzwingung.
 
 ## Inhaltsverzeichnis
 - [Ziel und Abgrenzung](#ziel-und-abgrenzung)
@@ -18,6 +18,8 @@ Letzte Aktualisierung: 2026-04-08 · Version 2.9.2
 - [Provider-Matrix und Betriebsprofile](#provider-matrix-und-betriebsprofile)
 - [Sicherheits-, Datenschutz- und Audit-Regeln](#sicherheits-datenschutz--und-audit-regeln)
 - [Empfohlene Zielarchitektur](#empfohlene-zielarchitektur)
+- [Konkrete Settings-Datenstruktur in 365CMS](#konkrete-settings-datenstruktur-in-365cms)
+- [Aktueller Implementierungsstand im CoreAdmin](#aktueller-implementierungsstand-im-coreadmin)
 - [Empfohlene Admin-UI](#empfohlene-admin-ui)
 - [Spätere Ausbaustufen](#spätere-ausbaustufen)
 - [Nicht-Ziele im ersten Schritt](#nicht-ziele-im-ersten-schritt)
@@ -71,7 +73,7 @@ Ein eigener Bereich **„AI Services“** bündelt genau diese Querschnittstheme
 
 ---
 
-## Geplante Einordnung im Admin
+## Aktuelle Einordnung im Admin
 
 ### Zielposition
 
@@ -80,7 +82,7 @@ Empfohlene Einordnung unter dem bestehenden System-Umfeld:
 - `System`
   - `Einstellungen`
   - `Mail & Azure OAuth2`
-  - `AI Services` *(geplant)*
+  - `AI Services`
   - `Module`
   - `CMS Logs`
   - `Backups`
@@ -341,6 +343,7 @@ Sinnvoll wäre ein technischer Rückgabetyp mit:
 
 | Klasse | Beispiel | Einsatz |
 |---|---|---|
+| Built-in Mock | 365CMS `mock` | lokale Runtime- und UI-Tests ohne externen Live-Call |
 | Cloud-Provider | OpenAI, Azure OpenAI, Gemini | produktiv denkbar, aber secret-/quota-gebunden |
 | lokale Provider | Ollama, LM Studio | interessant für datensensible Testumgebungen |
 | Bridge-/Router-Provider | OpenRouter | flexibel, aber komplexer in Governance |
@@ -416,17 +419,16 @@ Sinnvoll sind:
 ### Core
 
 - `CMS/core/Services/AI/AiProviderInterface.php`
-- `CMS/core/Services/AI/AiGatewayService.php`
-- `CMS/core/Services/AI/AiProviderRegistry.php`
-- `CMS/core/Services/AI/AiFeaturePolicy.php`
-- `CMS/core/Services/AI/AiRequestContext.php`
-- `CMS/core/Services/AI/AiResult.php`
-- `CMS/core/Services/AI/EditorJsTranslationService.php`
+- `CMS/core/Services/AI/AiProviderGateway.php`
+- `CMS/core/Services/AI/Providers/MockAiProvider.php`
+- `CMS/core/Services/AI/EditorJsTranslationPipeline.php`
 
 ### Admin
 
 - `CMS/admin/ai-services.php`
+- `CMS/admin/ai-translate-editorjs.php`
 - `CMS/admin/modules/system/AiServicesModule.php`
+- `CMS/admin/modules/system/AiEditorJsTranslationModule.php`
 - `CMS/admin/views/system/ai-services.php`
 - optional später `CMS/assets/js/admin-ai-services.js`
 
@@ -446,6 +448,157 @@ Sinnvolle logische Gruppen:
 - Admin-Logik bleibt von Providerdetails getrennt
 - Editor.js-spezifische Übersetzung bleibt eigener Service statt generischem Gemischtwarenladen
 - spätere Features können dieselbe Scope-/Policy-Schicht wiederverwenden
+
+---
+
+## Konkrete Settings-Datenstruktur in 365CMS
+
+Seit `2.9.2` ist die Settings-Struktur im Core bereits **konkret als persistierbare Gruppen** angelegt. Die Daten landen über `CMS\Services\SettingsService` in der vorhandenen Settings-Tabelle und werden logisch in fünf Gruppen getrennt.
+
+### 1. `ai.providers`
+
+Zweck:
+
+- Provider-Auswahl
+- Fallback-Logik
+- providerbezogene Scopes
+- verschlüsselte Secrets
+
+Gespeicherte Top-Level-Werte:
+
+| Key | Typ | Zweck |
+|---|---|---|
+| `active_provider` | `string` | Standard-Provider |
+| `fallback_provider` | `string` | Fallback bei Fehlern/Deaktivierung |
+| `mock` | `array` | eingebauter lokaler Mock-Provider für Runtime-/UI-Tests |
+| `openai` | `array` | Provider-Profil für OpenAI |
+| `azure_openai` | `array` | Provider-Profil für Azure OpenAI |
+| `ollama` | `array` | Provider-Profil für lokale Modelle |
+| `openrouter` | `array` | Provider-Profil für Router-/Bridge-Betrieb |
+
+Zusätzliche verschlüsselte Secret-Keys:
+
+| Key | Typ | Schutz |
+|---|---|---|
+| `openai_api_key` | `string` | verschlüsselt |
+| `azure_openai_api_key` | `string` | verschlüsselt |
+| `openrouter_api_key` | `string` | verschlüsselt |
+
+Provider-Profilstruktur pro Provider:
+
+| Feld | Typ | Zweck |
+|---|---|---|
+| `enabled` | `bool` | Provider grundsätzlich aktiv |
+| `profile` | `string` | Betriebsprofil wie `beta` oder `editor-translation` |
+| `default_model` | `string` | bevorzugtes Modell |
+| `endpoint` | `string` | Basis-Endpoint |
+| `translation_enabled` | `bool` | Provider darf Übersetzungen |
+| `rewrite_enabled` | `bool` | Provider darf Rewrite |
+| `summary_enabled` | `bool` | Provider darf Zusammenfassungen |
+| `seo_meta_enabled` | `bool` | Provider darf SEO-/Meta-Helfer |
+| `editorjs_enabled` | `bool` | Provider darf Editor.js-Kontexte |
+| `allowed_locales` | `array<string>` | erlaubte Zielsprachen |
+| `beta_only` | `bool` | nur Pilot-/Beta-Betrieb |
+
+### 2. `ai.features`
+
+Zweck:
+
+- globale Master- und Feature-Schalter
+
+| Key | Typ | Zweck |
+|---|---|---|
+| `ai_services_enabled` | `bool` | Master-Schalter |
+| `ai_translation_enabled` | `bool` | Übersetzung global erlauben |
+| `ai_rewrite_enabled` | `bool` | Rewrite global erlauben |
+| `ai_summary_enabled` | `bool` | Zusammenfassungen global erlauben |
+| `ai_seo_meta_enabled` | `bool` | SEO-/Meta-Helfer global erlauben |
+| `ai_editorjs_enabled` | `bool` | Editor.js-Anbindung global erlauben |
+
+### 3. `ai.translation`
+
+Zweck:
+
+- Editor.js-Translation-Regeln
+- zulässige Sprachziele
+- Ergebnisstrategie
+
+| Key | Typ | Zweck |
+|---|---|---|
+| `default_source_locale` | `string` | Standardsprache der Quelle |
+| `default_target_locale` | `string` | Standardziel wie `en` |
+| `allowed_target_locales` | `array<string>` | erlaubte Zielsprachen |
+| `supported_block_types` | `array<string>` | unterstützte Editor.js-Blocktypen |
+| `preview_required` | `bool` | Bestätigung vor Übernahme |
+| `preserve_unsupported_blocks` | `bool` | nicht unterstützte Blöcke unverändert belassen |
+| `skip_html_blocks` | `bool` | HTML-/Raw-Blöcke grundsätzlich ausnehmen |
+| `result_mode` | `string` | z. B. `preview`, `localized-field`, `overwrite-current-draft` |
+
+### 4. `ai.logging`
+
+Zweck:
+
+- Audit- und Diagnoseverhalten
+- Balance zwischen Nachvollziehbarkeit und Datenschutz
+
+| Key | Typ | Zweck |
+|---|---|---|
+| `logging_mode` | `string` | `minimal`, `technical`, `debug-no-content` |
+| `retention_days` | `int` | Aufbewahrungstage |
+| `store_content_hashes` | `bool` | Hashes statt Rohinhalt speichern |
+| `store_request_metrics` | `bool` | Laufzeit-/Metrikdaten protokollieren |
+| `store_error_context` | `bool` | technischen Fehlerkontext speichern |
+| `store_prompt_preview` | `bool` | bewusst restriktive Prompt-Vorschau |
+
+### 5. `ai.quotas`
+
+Zweck:
+
+- harte technische Grenzen
+- erste Kosten- und Missbrauchsschutzbasis
+
+| Key | Typ | Zweck |
+|---|---|---|
+| `max_chars_per_request` | `int` | Zeichenobergrenze pro Lauf |
+| `max_blocks_per_request` | `int` | Blockobergrenze pro Lauf |
+| `timeout_seconds` | `int` | Request-Timeout |
+| `retry_count` | `int` | kontrollierte Wiederholungen |
+| `daily_requests_per_user` | `int` | Tagesbudget pro Benutzer |
+| `daily_chars_per_user` | `int` | Zeichenbudget pro Benutzer/Tag |
+| `monthly_requests_per_provider` | `int` | monatliches Budget pro Provider |
+
+### Beispielhafte Persistenzsicht
+
+Die Gruppen werden **nicht** als separate Tabellen eingeführt, sondern als logische Bereiche in der vorhandenen Settings-Infrastruktur. Dadurch bleibt die erste Umsetzung klein, migrationsarm und gut in bestehende Admin-Konfigurationen integriert.
+
+---
+
+## Aktueller Implementierungsstand im Core/Admin
+
+Bereits umgesetzt:
+
+- `CMS/core/Services/AI/AiSettingsService.php`
+- `CMS/core/Services/AI/AiProviderGateway.php`
+- `CMS/core/Services/AI/Providers/MockAiProvider.php`
+- `CMS/core/Services/AI/EditorJsTranslationPipeline.php`
+- `CMS/admin/ai-services.php`
+- `CMS/admin/ai-translate-editorjs.php`
+- `CMS/admin/modules/system/AiServicesModule.php`
+- `CMS/admin/modules/system/AiEditorJsTranslationModule.php`
+- `CMS/admin/views/system/ai-services.php`
+- `CMS/assets/js/admin-content-editor.js` mit DE→EN-Mock-Translation für Post-/Page-Editoren
+- Preview-/Diff-Review vor der bewussten Übernahme in EN-Felder direkt im Editor
+- Sidebar-Einhängung unter `System`
+- vorbereitete Default-Capabilities für AI-Verwaltung/Nutzung in `CMS/includes/functions/roles.php`
+
+Der aktuelle Scope dieser Umsetzung ist bewusst:
+
+- **Settings-, Gateway- und Mock-Runtime-Implementierung**
+- **Editor.js-Translation zur Laufzeit über lokalen Mock-Datenfluss**
+- **Rückführung in lokalisierte EN-Felder von Posts/Pages**
+- **keine** externen produktiven Provider-Requests
+
+Damit steht jetzt der **betriebliche Rahmen plus eine erste echte Runtime-Stufe**, auf der echte AI-Funktionen später sauber aufsetzen können.
 
 ---
 
@@ -521,20 +674,16 @@ Was `AI Services` am Anfang **nicht** sein soll:
 
 ## Offene Punkte / Was noch fehlt
 
-Folgende Punkte sind **noch nicht umgesetzt** und müssten für eine echte Runtime-Einführung später ergänzt werden:
+Folgende Punkte sind **trotz der neuen Mock-Runtime-Stufe noch nicht umgesetzt** und müssten für eine echte produktive AI-Einführung ergänzt werden:
 
-1. **Admin-Route und Menüpunkt** für `/admin/ai-services`
-2. **Modul- und View-Struktur** im Core/Admin
-3. **Settings-Persistenz** für Provider, Feature-Gates und Limits
-4. **Capability-Modell** für Nutzung vs. Verwaltung
-5. **mindestens ein echter Provider-Adapter**
-6. **Editor.js-Extraktions- und Rückführlogik** für Textblöcke
-7. **Preview-/Übernahme-Workflow** im Editor
-8. **Fehler- und Statusmodell** für Teilfehler pro Block/Batches
-9. **Datenschutz- und Logging-Konzept** für produktiven Betrieb
-10. **Tests / Smoke-Checks** für Scope, Limits und Blockerhaltung
+1. **feingranulares Capability-Modell** für Nutzung vs. Verwaltung im echten Workflow
+2. **mindestens ein echter externer Provider-Adapter** inklusive Request-/Response-Vertrag
+3. **Provider-spezifische Policies** für Live-Modelle, Secrets und Datenschutzfreigaben
+4. **Fehler- und Statusmodell** für Teilfehler pro Block/Batches inklusive Retry-/Review-UX
+5. **produktive Datenschutz- und Audit-Integration** mit sauberer Daily-/Monthly-Quota-Erzwingung
+6. **Tests / Smoke-Checks** für Scope, Limits, Provider-Fallback, Preview-Übernahme und Blockerhaltung
 
-Kurz gesagt: **Die Architektur ist jetzt dokumentiert, die eigentliche Runtime-Integration fehlt noch vollständig.**
+Kurz gesagt: **Struktur, Persistenz, Gateway, Mock-Editor.js-Flow und Preview-/Diff-Übernahme stehen jetzt – die externe Live-Ausführung fehlt noch.**
 
 ---
 

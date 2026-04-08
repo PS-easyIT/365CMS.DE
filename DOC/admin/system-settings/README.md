@@ -1,6 +1,6 @@
 # 365CMS – System, Betrieb & Wartung
 
-Kurzbeschreibung: Überblick über Konfiguration, Updates, Backups, Info-Ansichten, Diagnose und geplante AI-Steuerung im Admin-Bereich.
+Kurzbeschreibung: Überblick über Konfiguration, Updates, Backups, Info-Ansichten, Diagnose und die inzwischen eingehängte AI-Steuerung im Admin-Bereich.
 
 Letzte Aktualisierung: 2026-04-08 · Version 2.9.2
 
@@ -13,17 +13,12 @@ Die Übersicht bezieht sich auf die aktuelle 2.9.2-Bedienstruktur. Für Runtime-
 | Route | Zweck |
 |---|---|
 | `/admin/settings` | allgemeine Systemeinstellungen inkl. SMTP-/Mail-Status und Testversand |
+| `/admin/ai-services` | zentrale AI-Settings für Provider, Feature-Gates, Translation, Logging und Quotas |
 | `/admin/backups` | Backups erstellen, auflisten und löschen |
 | `/admin/updates` | Core-, Theme- und Plugin-Updates |
 | `/admin/cms-logs` | konfigurierte CMS-Logdateien, Kanal-Einträge und schnelle Laufzeitdiagnose |
 
-### Geplante Erweiterung (noch nicht runtime-aktiv)
-
-| Zielroute | Zweck |
-|---|---|
-| `/admin/ai-services` | zentrale Provider-, Feature- und Scope-Steuerung für künftige AI-Funktionen im Admin |
-
-Wichtig: Der Bereich **AI Services** ist im aktuellen Stand **dokumentiert, aber noch nicht implementiert**. Geplant ist eine Einordnung unter **System / Einstellungen**, damit Provider-Scope, Limits, Datenschutz und redaktionelle KI-Helfer nicht über mehrere Fachmodule verteilt werden.
+Wichtig: Der Bereich **AI Services** ist jetzt als **Admin- und Settings-Shell implementiert**. Dokumentiert und noch offen bleiben echte Provider-Adapter, Editor.js-Übersetzung, Preview-Workflows und produktive Laufzeitaktionen.
 
 ### Info-Gruppe
 

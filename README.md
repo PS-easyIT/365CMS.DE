@@ -97,7 +97,8 @@ Die Audits wurden mit OWASP-nahen Prüfwerkzeugen & AI Audit Tools von Snyk, Ref
 - **Editor.js-Stack gezielt nachgezogen:** Der Core wurde auf den aktuellen `2.31.6`-Stand synchronisiert, und das produktiv erwartete `delimiter.umd.js` wurde aus `editorjs-delimiter-version1.0.2` neu gebaut, statt auf eine zufällige Altdatei zu hoffen. Hoffen ist kein Deployment-Plan.
 - **SunEditor-Runtime sauber aktualisiert:** `suneditor.min.js`, `suneditor.min.css`, `suneditor-contents.min.css` und `lang/de.js` wurden erneut aus dem gebauten Runtime-Satz übernommen.
 - **Google-Translate-Staging bewusst entfernt:** Das inoffizielle Paket `google-translate-php` wurde aus `/ASSETS` entfernt und wird nicht weiter als Basis für produktive Übersetzungen geführt.
-- **AI-Services-Zielbild weiter ausgebaut:** Die Doku beschreibt jetzt einen geplanten Bereich **„AI Services“** unter **System / Einstellungen** inklusive Provider-Scope, Feature-Gates, Provider-Matrix, Editor.js-Datenfluss, Admin-Kontext und einer ersten Phase für Übersetzung nach Englisch.
+- **AI Services jetzt auf der nächsten echten Runtime-Stufe:** Unter **`/admin/ai-services`** gibt es die Admin-Steuerung für `ai.providers`, `ai.features`, `ai.translation`, `ai.logging` und `ai.quotas`; zusätzlich laufen Post- und Page-Editoren jetzt bereits über ein Provider-Gateway samt lokalem `mock`-Provider, echter Editor.js-DE→EN-Mock-Translation ohne externen Live-Call und einem Preview-/Diff-Workflow vor der EN-Übernahme.
+- **Admin-Menü konsistenter verdrahtet:** Die Sidebar zeigt den `Theme Marketplace` jetzt korrekt unter `Themes & Design`, und Legacy-/Alias-Routen wie `system-info` oder DSGVO-Unterpfade werden intern auf ihre kanonischen Admin-Ziele normalisiert, statt als halb sichtbare Schattenseiten zu enden.
 - **Nur aktiv genutzte Pakete landen in der Runtime:** Unreferenzierte Kandidaten wie `cache-8.0.8`, `guzzle-7.10.0`, `php-jwt_yuliyan_1.1.3` oder `tabler-icons-3.41.1` wurden bewusst **nicht** blind in `CMS/assets/` verdrahtet.
 - **Release- und Asset-Doku nachgezogen:** `README.md`, `Changelog.md`, `CMS/core/Version.php`, `CMS/update.json`, `DOC/ASSET.md`, `DOC/assets/README.md` und `DOC/README.md` sind jetzt konsistent auf **`2.9.2`** synchronisiert.
 
@@ -107,7 +108,7 @@ Die Audits wurden mit OWASP-nahen Prüfwerkzeugen & AI Audit Tools von Snyk, Ref
 |---|---|
 | **Core** | OOP-/Service-Architektur, Hook-System, Router, Settings, Logging, API-nahe Bausteine |
 | **Admin** | Dashboard, Benutzer & Rollen, Inhalte, Medien, SEO, Performance, System, Updates |
-| **Content** | Seiten, Beiträge, Landing-Pages, TOC, Featured Images, Revisionen, Editor.js-Tech-Blöcke, kompaktere Post-Editor-Workflows mit Einzel-Kategorie sowie mehrsprachige DE→EN-Initialkopie beim ersten Wechsel |
+| **Content** | Seiten, Beiträge, Landing-Pages, TOC, Featured Images, Revisionen, Editor.js-Tech-Blöcke, kompaktere Post-Editor-Workflows mit Einzel-Kategorie sowie mehrsprachige DE→EN-Initialkopie, AI-Mock-Übersetzung und Preview-/Diff-Übernahme im Editor |
 | **Media** | Native Medienbibliothek, Uploads, Kategorien, Grid-/Listenansicht, WebP-Workflows |
 | **Search** | Volltextsuche, TNTSearch-Index, mehrsprachige Suchfelder, Hook-basierte Index-Aktualisierung bei Löschvorgängen |
 | **Security** | RBAC, CSRF, XSS-Escaping, Rate Limits, Firewall, AntiSpam, Passkeys, 2FA |
@@ -275,7 +276,8 @@ The audits were carried out using OWASP-oriented tooling, Snyk, refactoring pass
 - **The Editor.js stack was updated deliberately, not magically:** core `2.31.6` files were refreshed and the required runtime `delimiter.umd.js` was rebuilt from `editorjs-delimiter-version1.0.2` so the production asset contract stays intact.
 - **SunEditor runtime files were refreshed again from the built artifact set:** `suneditor.min.js`, `suneditor.min.css`, `suneditor-contents.min.css`, and `lang/de.js` are in sync with the current staged package.
 - **The Google-Translate staging asset was intentionally removed:** the unofficial `google-translate-php` package is no longer kept inside `/ASSETS` as a baseline for production translation features.
-- **The AI Services target architecture was expanded further:** the docs now describe a planned **AI Services** area under **System / Settings**, including provider scope, feature gates, provider classes, Editor.js data flow, admin context, and a first-phase translation workflow to English.
+- **AI Services now reached the next real runtime stage inside the core:** **`/admin/ai-services`** manages `ai.providers`, `ai.features`, `ai.translation`, `ai.logging`, and `ai.quotas`, while post/page editors already use a provider gateway with a built-in local `mock` provider for real Editor.js DE→EN mock translation plus a reviewable preview/diff step before EN content is applied.
+- **Admin navigation is now more coherent:** the sidebar exposes `Theme Marketplace` correctly under `Themes & Design`, and legacy alias routes are normalized to their canonical admin targets instead of behaving like half-visible shadow pages.
 - **Only actually used packages were wired into runtime:** unreferenced candidates such as `cache-8.0.8`, `guzzle-7.10.0`, `php-jwt_yuliyan_1.1.3`, and `tabler-icons-3.41.1` were intentionally not copied into active runtime loading paths.
 - **Release and asset docs were updated together:** `README.md`, `Changelog.md`, `CMS/core/Version.php`, `CMS/update.json`, `DOC/ASSET.md`, `DOC/assets/README.md`, and `DOC/README.md` now consistently reflect **`2.9.2`**.
 
