@@ -1,4 +1,4 @@
-﻿﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.1-blue.svg)](https://shields.io/)
+﻿﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.2-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -17,6 +17,18 @@
 ---
 
 ## 📜 Vollständige Versionshistorie
+
+---
+
+### v2.9.2 — 08. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.2** | ⬜ chore | Assets/Runtime | **`CMS/assets/` und `CMS/vendor/dompdf/` wurden erneut selektiv gegen den frisch heruntergeladenen `/ASSETS`-Stand nachgezogen**: Der produktive Runtime-Satz ist damit für `Carbon 3.11.4`, `LdapRecord 4.0.3`, `mailer 8.0.8`, `mime 8.0.8`, `translation 8.0.8`, `tntsearch 5.0.3`, `suneditor 3.0.5` und `dompdf 3.1.5` wieder auf dem aktuellen verifizierten Snapshot. |
+| **2.9.2** | 🔴 fix | Editor/Assets | **`CMS/assets/editorjs/editorjs.umd.js`, `CMS/assets/editorjs/editorjs.mjs` und `CMS/assets/editorjs/delimiter.umd.js` wurden auf den aktuellen Editor.js-Stand gehoben; das Delimiter-Bundle wurde dabei aus `ASSETS/editor.js-2.31.6/plugins/editorjs-delimiter-version1.0.2.zip` neu gebaut**: Der von `EditorJsAssetService` erwartete Runtime-Vertrag bleibt damit vollständig, statt sich auf eine zufällig liegengebliebene Altdatei zu verlassen. |
+| **2.9.2** | ⬜ chore | Assets/Scope | **Die frisch heruntergeladenen Pakete `cache-8.0.8`, `guzzle-7.10.0`, `google-translate-php-5.3.0`, `php-jwt_yuliyan_1.1.3` und `tabler-icons-3.41.1` wurden bewusst nicht produktiv verdrahtet**: Code- und Runtime-Prüfung zeigen dafür aktuell keine aktiven Referenzen in `CMS/**`, sodass 365CMS weiterhin nur tatsächlich genutzte Bundles übernimmt statt Staging-Pakete blind in die Live-Laufzeit zu tragen. |
+| **2.9.2** | 🔵 docs | Assets | **`DOC/ASSET.md`, `DOC/assets/README.md` und `DOC/README.md` dokumentieren den Asset-Refresh jetzt als `2.9.2`-Stand**: Die Doku trennt damit den aktiven Runtime-Refresh sauber von unverknüpften Kandidatenpaketen und hält Editor.js-/SunEditor-Sonderfälle explizit fest. |
+| **2.9.2** | 🔵 docs | Release | **`README.md`, `Changelog.md`, `CMS/core/Version.php` und `CMS/update.json` wurden auf den Release-Stand `2.9.2` synchronisiert**: sichtbare Versionsnummer, Asset-Highlights und Update-Metadaten zeigen damit denselben aktuellen Runtime-Refresh-Stand. |
 
 ---
 

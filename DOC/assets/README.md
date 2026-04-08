@@ -1,5 +1,5 @@
 # 365CMS Asset-Dokumentation
-> **Stand:** 2026-04-08 | **Version:** 2.9.1 | **Status:** Aktuell
+> **Stand:** 2026-04-08 | **Version:** 2.9.2 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - <a>Tabellarische Übersicht</a>
@@ -43,6 +43,7 @@ Wichtig im aktuellen Stand:
 
 - `ASSETS/` ist Quell- und Staging-Bereich, **nicht** der direkte Webroot-Assetpfad
 - `editorjs` und `suneditor` sind keine simplen Ordnerkopien, sondern kuratierte bzw. gebaute Runtime-Sets
+- `editorjs` benötigt für das produktive `delimiter.umd.js` bei neuen Plugin-Ständen einen gezielten Build-/Refresh-Pfad
 - `tabler`, `gridjs` und `PhotoSwipe` werden nur mit ihren auslieferbaren Dateien übernommen
 - `tntsearch` liegt produktiv bewusst aufgeteilt in `tntsearchsrc/` und `tntsearchhelper/`
 - `images/` enthält produktive Dashboard-, Logo- und Branding-Bestände
@@ -55,8 +56,8 @@ Wichtig im aktuellen Stand:
 - **Runtime-Pfad:** `CMS/assets/`
 - **Zentraler Autoloader:** `CMS/assets/autoload.php`
 - **Vendor-Sonderfall:** `CMS/vendor/dompdf/` wird separat über `CMS/vendor/dompdf/autoload.php` geladen
-- **SunEditor-Sonderfall:** Das Paket unter `ASSETS/suneditor-3.0.5/` enthält im Snapshot keinen fertigen `dist/`-Stand; für die Runtime müssen `suneditor.min.js` und `suneditor.min.css` zuerst lokal gebaut werden
-- **Editor.js-Sonderfall:** Der Runtime-Vertrag folgt `CMS/core/Services/EditorJs/EditorJsAssetService.php`, nicht dem kompletten Plugin-Baum
+- **SunEditor-Sonderfall:** Die Runtime wird aus `dist/` plus `src/langs/de.js` übernommen; fehlt `dist/` nach einem frischen Upstream-Download, müssen die Build-Artefakte zuerst lokal erzeugt werden
+- **Editor.js-Sonderfall:** Der Runtime-Vertrag folgt `CMS/core/Services/EditorJs/EditorJsAssetService.php`, nicht dem kompletten Plugin-Baum; `delimiter.umd.js` wurde für den aktuellen Stand gezielt aus `editorjs-delimiter-version1.0.2` neu gebaut
 - **JS/CSS-Ladung:** erfolgt weiterhin manuell über Admin-Partials, Theme-Templates und Service-spezifische Loader; es gibt keine zentrale Bundling-Pipeline
 
 Zusätzliche Hinweise:
@@ -72,7 +73,13 @@ Zusätzliche Hinweise:
 Neu dokumentierte, aber noch nicht produktiv integrierte Pakete:
 
 - `symfony/ai-platform` unter `ASSETS/ai-platform-0.6.0/`
+- `symfony/cache` unter `ASSETS/cache-8.0.8/`
+- `guzzlehttp/guzzle` unter `ASSETS/guzzle-7.10.0/`
 - `stichoza/google-translate-php` unter `ASSETS/google-translate-php-5.3.0/`
+- `adhocore/jwt` unter `ASSETS/php-jwt_yuliyan_1.1.3/`
+- `tabler-icons-3.41.1` unter `ASSETS/tabler-core-1.4.0/tabler-icons-3.41.1/`
+
+Diese Kandidaten sind im aktuellen Core **nicht aktiv verdrahtet**. Die Code- und Laufzeitprüfung zeigte hierfür keine produktiven Referenzen in `CMS/**`; deshalb wurden sie beim Refresh nach `2.9.2` bewusst nicht in die aktive Runtime übernommen.
 
 Diese Kandidaten benötigen vor einer Aufnahme:
 

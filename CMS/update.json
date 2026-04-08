@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.9.1",
+  "version": "2.9.2",
   "min_php": "8.4",
   "released": "2026-04-08",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 2.9.1: 365CMS trennt Admin-Hard-Delete und 30-Tage-Self-Delete-Anträge sauber, bündelt Runtime-Diagnose unter /admin/cms-logs, schreibt Logs jetzt konsequent nach ABSPATH/logs, migriert bestehende config/app.php-Dateien bei Updates vollständiger und zieht /DOC bei zu großen Monorepo-ZIPs direkt über GitHub-Tree-API plus Raw-Dateien nach.",
+  "notes": "Release-Stand 2.9.2: 365CMS zieht die aktiven Runtime-Bundles aus /ASSETS erneut nach, aktualisiert Carbon, LdapRecord, Symfony Mailer/Mime/Translation, TNTSearch, Dompdf, SunEditor und Editor.js-Core, baut das produktiv erwartete Delimiter-Plugin neu und verdrahtet nur weiterhin tatsächlich genutzte Runtime-Pakete statt unreferenzierte Kandidaten wie Guzzle, Cache oder Google-Translate blind zu übernehmen.",
   "critical": false
 }

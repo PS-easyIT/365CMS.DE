@@ -2,7 +2,7 @@
 
 <div align="center">
 
-[![Version](https://img.shields.io/badge/version-2.9.1-blue.svg)](Changelog.md)
+[![Version](https://img.shields.io/badge/version-2.9.2-blue.svg)](Changelog.md)
 ![Status](https://img.shields.io/badge/status-stable-16a34a)
 ![PHP](https://img.shields.io/badge/PHP-8.4%2B-777BB4?logo=php&logoColor=white)
 ![MySQL](https://img.shields.io/badge/MySQL-5.7%2B-4479A1?logo=mysql&logoColor=white)
@@ -91,15 +91,13 @@ Die Audits wurden mit OWASP-nahen Prüfwerkzeugen & AI Audit Tools von Snyk, Ref
 | **PHP / Best Practices** | **96,22** |
 | **Gesamt** | **96,35** |
 
-### 🆕 Aktuelle 2.9.1-Highlights
+### 🆕 Aktuelle 2.9.2-Highlights
 
-- **Benutzerlöschung sauber getrennt:** Admins löschen Benutzer im Backend jetzt wieder direkt und hart, während eine Selbstlöschung im Member-Bereich einen nachvollziehbaren 30-Tage-Löschantrag erzeugt, statt denselben Pfad halbgar mitzubenutzen.
-- **Neue Admin-Seite „CMS Logs“:** Unter **`/admin/cms-logs`** bündelt 365CMS konfigurierte Runtime-Logs, Kanal-Einträge und Diagnosezugriffe zentral – weniger Dateisystem-Detektivarbeit, mehr tatsächliche Transparenz.
-- **Dokumentation zeigt Log- und Diagnosekontext:** Die Doku-Ansicht im Admin zeigt jetzt Local-DOC-Pfade, Logpfad und jüngste `admin.documentation`-Einträge direkt im Systemkontext an.
-- **Logs liegen jetzt konsistent unter dem Webroot:** `CMS/config/app.php`, Settings-Generator und Installer verwenden für Laufzeit- und Fehlerlogs jetzt konsequent **`ABSPATH . 'logs/'`** – also den `logs/`-Ordner neben `index.php`.
-- **Installer migriert alte `app.php` sauberer:** Updates sichern bestehende `config/app.php` weiter vorher weg und schreiben danach die aktuelle Konfigstruktur inklusive LDAP-, JWT-, SMTP-, HSTS- und Login-/Session-Werten wieder auf den neuesten Stand.
-- **DOC-Sync bricht bei großen Repo-ZIPs nicht mehr stumpf ab:** Wenn `codeload.github.com` für das komplette Monorepo-ZIP zu groß wird, zieht der Doku-Sync `DOC/**` jetzt direkt über GitHub-Tree-API plus Raw-Dateien nach.
-- **Dokumentation und Release-Stand nachgezogen:** `README.md`, `Changelog.md`, `CMS/core/Version.php` und `CMS/update.json` sind jetzt konsistent auf **`2.9.1`** synchronisiert.
+- **Runtime-Assets erneut mit frischem `/ASSETS`-Stand abgeglichen:** `Carbon 3.11.4`, `LdapRecord 4.0.3`, `Symfony Mailer/Mime/Translation 8.0.8`, `TNTSearch 5.0.3` und `dompdf 3.1.5` liegen damit produktiv wieder auf dem aktuellen verifizierten Snapshot.
+- **Editor.js-Stack gezielt nachgezogen:** Der Core wurde auf den aktuellen `2.31.6`-Stand synchronisiert, und das produktiv erwartete `delimiter.umd.js` wurde aus `editorjs-delimiter-version1.0.2` neu gebaut, statt auf eine zufällige Altdatei zu hoffen. Hoffen ist kein Deployment-Plan.
+- **SunEditor-Runtime sauber aktualisiert:** `suneditor.min.js`, `suneditor.min.css`, `suneditor-contents.min.css` und `lang/de.js` wurden erneut aus dem gebauten Runtime-Satz übernommen.
+- **Nur aktiv genutzte Pakete landen in der Runtime:** Unreferenzierte Kandidaten wie `cache-8.0.8`, `guzzle-7.10.0`, `google-translate-php-5.3.0`, `php-jwt_yuliyan_1.1.3` oder `tabler-icons-3.41.1` wurden bewusst **nicht** blind in `CMS/assets/` verdrahtet.
+- **Release- und Asset-Doku nachgezogen:** `README.md`, `Changelog.md`, `CMS/core/Version.php`, `CMS/update.json`, `DOC/ASSET.md`, `DOC/assets/README.md` und `DOC/README.md` sind jetzt konsistent auf **`2.9.2`** synchronisiert.
 
 ### 🧩 Kernfunktionen im Überblick
 
@@ -268,15 +266,13 @@ The audits were carried out using OWASP-oriented tooling, Snyk, refactoring pass
 | **PHP / Best Practices** | **96.22** |
 | **Overall** | **96.35** |
 
-### 🆕 Current 2.9.1 highlights
+### 🆕 Current 2.9.2 highlights
 
-- **User deletion paths are now clearly separated:** admins hard-delete users from the backend again, while member self-deletion creates a visible 30-day deletion request instead of reusing the same backend path in a muddled way.
-- **New admin page “CMS Logs”:** **`/admin/cms-logs`** centralizes configured runtime logs, channel-based entries and diagnostics so operators can inspect the system without spelunking through the filesystem like it is an archeology minigame.
-- **Documentation now surfaces log and diagnostics context:** the admin documentation page shows local DOC paths, the configured log path and recent `admin.documentation` log entries directly inside the system workflow.
-- **Logs now live consistently under the webroot:** `CMS/config/app.php`, the settings generator and the installer all use **`ABSPATH . 'logs/'`** for runtime and error logs – the `logs/` folder beside `index.php`.
-- **The installer now migrates legacy `app.php` files more completely:** update runs still back up existing `config/app.php` first, then rewrite the current config structure including LDAP, JWT, SMTP, HSTS and login/session settings without silently dropping older installation values.
-- **DOC sync no longer dies just because the full repo ZIP is huge:** if the monorepo archive on `codeload.github.com` becomes too large, the documentation sync now falls back to GitHub tree metadata plus direct raw `DOC/**` file downloads.
-- **Release docs are now in sync:** `README.md`, `Changelog.md`, `CMS/core/Version.php` and `CMS/update.json` were updated together for **`2.9.1`**.
+- **Runtime assets were refreshed from the latest staged `/ASSETS` snapshot:** `Carbon 3.11.4`, `LdapRecord 4.0.3`, `Symfony Mailer/Mime/Translation 8.0.8`, `TNTSearch 5.0.3`, and `dompdf 3.1.5` were resynced into the live runtime paths.
+- **The Editor.js stack was updated deliberately, not magically:** core `2.31.6` files were refreshed and the required runtime `delimiter.umd.js` was rebuilt from `editorjs-delimiter-version1.0.2` so the production asset contract stays intact.
+- **SunEditor runtime files were refreshed again from the built artifact set:** `suneditor.min.js`, `suneditor.min.css`, `suneditor-contents.min.css`, and `lang/de.js` are in sync with the current staged package.
+- **Only actually used packages were wired into runtime:** unreferenced candidates such as `cache-8.0.8`, `guzzle-7.10.0`, `google-translate-php-5.3.0`, `php-jwt_yuliyan_1.1.3`, and `tabler-icons-3.41.1` were intentionally not copied into active runtime loading paths.
+- **Release and asset docs were updated together:** `README.md`, `Changelog.md`, `CMS/core/Version.php`, `CMS/update.json`, `DOC/ASSET.md`, `DOC/assets/README.md`, and `DOC/README.md` now consistently reflect **`2.9.2`**.
 
 ### 🧩 Key Capabilities
 

@@ -88,3 +88,8 @@ CMS/tmp-hub-template-dump.php
 /tests/*
 /DOC/audit/
 /STAGING/
+*/Test/*
+CMS/assets/translation/Test/
+CMS/assets/mime/Test/
+CMS/assets/mailer/Test/
+CMS/assets/ldaprecord/Testing/

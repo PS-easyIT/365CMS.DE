@@ -1,5 +1,5 @@
 # ASSET-Übersicht 365CMS
-> **Stand:** 2026-04-08 | **Version:** 2.9.1 | **Status:** Aktuell
+> **Stand:** 2026-04-08 | **Version:** 2.9.2 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - <a>Aktive Runtime-Bundles</a>
@@ -16,8 +16,8 @@ Führende Quelle für **aktive Laufzeitpfade** ist `CMS/assets/` sowie der dokum
 | Library | Runtime-Stand | Zweck | Produktiver Pfad | Quelle in `/ASSETS` | Hinweis |
 |---|---|---|---|---|---|
 | `tabler` | `1.4.0` | Admin-/Member-UI | `CMS/assets/tabler/` | `ASSETS/tabler-core-1.4.0/core/dist/` | nur gebaute `css/`, `js/`, `img/` übernehmen |
-| `editorjs` | `2.31.6` | Block-Editor | `CMS/assets/editorjs/` | `ASSETS/editor.js-2.31.6/` | kuratierter Runtime-Satz aus Core- und Plugin-Builds |
-| `suneditor` | `3.0.5` | Legacy-WYSIWYG | `CMS/assets/suneditor/` | `ASSETS/suneditor-3.0.5/` | Runtime entsteht aus lokal gebautem `dist/` + `src/langs/de.js` |
+| `editorjs` | `2.31.6` | Block-Editor | `CMS/assets/editorjs/` | `ASSETS/editor.js-2.31.6/` | kuratierter Runtime-Satz aus Core-Dateien und gezielt gebauten Plugin-Artefakten wie `delimiter.umd.js` |
+| `suneditor` | `3.0.5` | Legacy-WYSIWYG | `CMS/assets/suneditor/` | `ASSETS/suneditor-3.0.5/` | Runtime wird aus `dist/` + `src/langs/de.js` übernommen; fehlt `dist/` nach Upstream-Download, muss lokal gebaut werden |
 | `gridjs` | gebündelter Snapshot | Tabellen / Grids | `CMS/assets/gridjs/` | `ASSETS/gridjs/` | nur auslieferbare Build-Dateien übernehmen |
 | `photoswipe` | `5.x`-Build | Lightbox | `CMS/assets/photoswipe/` | `ASSETS/PhotoSwipe/` | nur produktive Frontend-Dateien übernehmen |
 | `Carbon` | `3.11.4` | Datum / Zeit | `CMS/assets/Carbon/` | `ASSETS/Carbon-3.11.4/src/Carbon/` | PSR-4-Verzeichnis direkt gespiegelt |
@@ -52,10 +52,10 @@ Wichtige Regeln im aktuellen Stand:
 
 1. **`ASSETS/` ist Staging, `CMS/assets/` ist Runtime.**
 2. **Frontend-Bundles nur als Build-Artefakte übernehmen.** Das gilt insbesondere für `tabler`, `gridjs`, `PhotoSwipe`, `editor.js` und `suneditor`.
-3. **`editorjs` bleibt kuratiert.** Die Runtime orientiert sich an `CMS/core/Services/EditorJs/EditorJsAssetService.php`, nicht am gesamten Plugin-Baum.
-4. **`suneditor` ist ein Sonderfall.** Das aktuelle Source-Paket unter `ASSETS/suneditor-3.0.5/` enthält keinen fertigen `dist/`-Stand im Snapshot. Für die Runtime müssen daher `suneditor.min.js` und `suneditor.min.css` zuerst lokal gebaut und anschließend nach `CMS/assets/suneditor/` kopiert werden; die Sprachdatei `de.js` kommt direkt aus `src/langs/`.
-5. **`dompdf` bleibt außerhalb von `CMS/assets/`.** Der produktive Pfad ist `CMS/vendor/dompdf/`, geladen über `CMS/vendor/dompdf/autoload.php`.
-6. **Sicherheits- und Standard-Bibliotheken nicht umstrukturieren, solange der Autoload-Vertrag stabil bleiben muss.** Das betrifft u. a. `htmlpurifier`, `php-jwt`, `webauthn`, `twofactorauth`, `ldaprecord`, `mailer`, `mime` und `translation`.
+3. **`editorjs` bleibt kuratiert.** Die Runtime orientiert sich an `CMS/core/Services/EditorJs/EditorJsAssetService.php`, nicht am gesamten Plugin-Baum; Zusatzartefakte wie `delimiter.umd.js` müssen bei neuen Plugin-Ständen gezielt gebaut oder aktualisiert werden.
+4. **`suneditor` ist ein Sonderfall.** Für die Runtime werden `suneditor.min.js`, `suneditor.min.css`, `suneditor-contents.min.css` und `src/langs/de.js` aus dem gebauten Paketstand übernommen; fehlt `dist/` nach einem frischen Upstream-Download, muss SunEditor zuerst lokal gebaut werden.
+6. **`dompdf` bleibt außerhalb von `CMS/assets/`.** Der produktive Pfad ist `CMS/vendor/dompdf/`, geladen über `CMS/vendor/dompdf/autoload.php`.
+7. **Sicherheits- und Standard-Bibliotheken nicht umstrukturieren, solange der Autoload-Vertrag stabil bleiben muss.** Das betrifft u. a. `htmlpurifier`, `php-jwt`, `webauthn`, `twofactorauth`, `ldaprecord`, `mailer`, `mime` und `translation`.
 
 ---
 
@@ -102,8 +102,12 @@ Empfohlener Ablauf pro Update:
 Folgende Pakete liegen unter `/ASSETS`, sind aber **nicht** produktiv in `CMS/assets/` bzw. `CMS/vendor/` integriert:
 
 - `symfony/ai-platform` (`ASSETS/ai-platform-0.6.0/`)
+- `symfony/cache` (`ASSETS/cache-8.0.8/`)
+- `guzzlehttp/guzzle` (`ASSETS/guzzle-7.10.0/`)
 - `stichoza/google-translate-php` (`ASSETS/google-translate-php-5.3.0/`)
-- weitere Beobachtungskandidaten wie `cache-8.0.8`, `monolog-bundle-4.0.2`, `msgraph-sdk-php-2.56.0`
+- `adhocore/jwt` (`ASSETS/php-jwt_yuliyan_1.1.3/`)
+- `tabler-icons-3.41.1` (`ASSETS/tabler-core-1.4.0/tabler-icons-3.41.1/`)
+- weitere Beobachtungskandidaten wie `monolog-bundle-4.0.2`, `msgraph-sdk-php-2.56.0`
 
 Für diese Kandidaten gilt:
 

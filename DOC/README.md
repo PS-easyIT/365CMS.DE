@@ -1,9 +1,9 @@
 # 365CMS – Projektdokumentation
-> **Stand:** 2026-04-08 | **Version:** 2.9.1 | **Status:** Aktuell
+> **Stand:** 2026-04-08 | **Version:** 2.9.2 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Womit ihr anfangen solltet](#womit-ihr-anfangen-solltet)
-- [Release-Fokus 2.9.1](#release-fokus-291)
+- [Release-Fokus 2.9.2](#release-fokus-292)
 - [Dokumentationsbereiche](#dokumentationsbereiche)
 - [Wichtige Hinweise](#wichtige-hinweise)
 - [Verwandte Einstiege](#verwandte-einstiege)
@@ -32,15 +32,15 @@
 
 ---
 
-## Release-Fokus 2.9.1
+## Release-Fokus 2.9.2
 
-Die Dokumentation ist jetzt auf den dokumentierten Stand `2.9.1` nachgezogen. Der Schwerpunkt liegt auf den jüngsten Hotfixes für Benutzerlöschung, Logs, Diagnose und Installer-Migration:
+Die Dokumentation ist jetzt auf den dokumentierten Stand `2.9.2` nachgezogen. Der Schwerpunkt liegt auf dem jüngsten Runtime-Asset-Refresh und der sauberen Trennung zwischen aktiv genutzten Bundles und nur beobachteten Kandidaten:
 
-- klare Trennung zwischen Admin-Hard-Delete und 30-Tage-Self-Delete-Anträgen im Member-Bereich
-- neue Admin-Seite `/admin/cms-logs` für konfigurierte Runtime-Logs, Kanal-Einträge und Diagnosezugriff
-- konsistenter Logpfad unter `ABSPATH . 'logs/'` statt verstreuter Fallback-Pfade
-- Installer-Updates schreiben bestehende `config/app.php` nach Sicherung jetzt auf die aktuelle Konfigstruktur hoch, statt neue Bereiche still zu verlieren
-- Asset-Dokumentation trennt `/ASSETS` jetzt sauber von der produktiven Runtime unter `CMS/assets/` bzw. `CMS/vendor/dompdf/` und ergänzt eine eigene Bewertungsdoku für `symfony/ai-platform` und `google-translate-php`
+- selektiver Runtime-Refresh für `Carbon`, `LdapRecord`, `mailer`, `mime`, `translation`, `tntsearch`, `suneditor`, `editorjs` und `dompdf`
+- gezielter Neu-Build des produktiv erwarteten `Editor.js`-Delimiter-Bundles statt Übernahme einer unklaren Altdatei
+- aktualisierte Asset-Doku mit präziserem Sonderfall-Hinweis für `SunEditor` und `Editor.js`
+- bewusste Nicht-Integration aktuell unreferenzierter Kandidaten wie `cache`, `guzzle`, `google-translate`, `php-jwt_yuliyan` und `tabler-icons`
+- synchronisierte Release-Spur über `README.md`, `Changelog.md`, `CMS/core/Version.php`, `CMS/update.json`, `DOC/ASSET.md` und `DOC/assets/README.md`
 
 ---
 
