@@ -78,7 +78,8 @@ Wichtige Grundsätze:
 | Fonts | [themes-design/FONTS.md](themes-design/FONTS.md) |
 | Plugins | [plugins/PLUGINS.md](plugins/PLUGINS.md) |
 | System & Betrieb | [system-settings/README.md](system-settings/README.md) |
-| AI Services (Konzept) | [system-settings/AI-SERVICES.md](system-settings/AI-SERVICES.md) |
+| AI Services (Admin-Kontext) | [system-settings/AI-SERVICES.md](system-settings/AI-SERVICES.md) |
+| AI Services (kanonische Konzeptdoku) | [../ai/AI-SERVICES.md](../ai/AI-SERVICES.md) |
 | Info | [info/INFO.md](info/INFO.md) |
 | Diagnose & Monitoring | [diagnose/DIAGNOSE.md](diagnose/DIAGNOSE.md) |
 

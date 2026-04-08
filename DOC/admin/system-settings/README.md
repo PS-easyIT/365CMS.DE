@@ -57,7 +57,8 @@ Siehe [../performance/PERFORMANCE.md](../performance/PERFORMANCE.md) für die vo
 | [BACKUP.md](BACKUP.md) | Backup & Restore |
 | [SYSTEM.md](SYSTEM.md) | Systeminfo & Diagnose-Übersicht |
 | [UPDATES.md](UPDATES.md) | Core-, Theme- und Plugin-Updates |
-| [AI-SERVICES.md](AI-SERVICES.md) | geplantes AI-Services-Konzept mit Provider-Scope und Translate-Service |
+| [AI-SERVICES.md](AI-SERVICES.md) | Admin-Einordnung und Routing-Kontext für den geplanten Bereich `AI Services` |
+| [../../ai/AI-SERVICES.md](../../ai/AI-SERVICES.md) | kanonische Fach- und Architektur-Doku zu Provider-Scope, Editor.js-Translation und offenen Punkten |
 | [../info/INFO.md](../info/INFO.md) | Systeminfo und Dokumentation |
 | [../diagnose/DIAGNOSE.md](../diagnose/DIAGNOSE.md) | Diagnose & Monitoring |
 | [../performance/PERFORMANCE.md](../performance/PERFORMANCE.md) | Performance-Center |

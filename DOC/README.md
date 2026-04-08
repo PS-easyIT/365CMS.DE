@@ -26,7 +26,7 @@
 | den Medienbereich nachvollziehen wollt | [admin/media/README.md](admin/media/README.md) |
 | Asset-/Vendor-Stände prüfen wollt | [assets/README.md](assets/README.md) |
 | neue Asset-Kandidaten bewerten wollt | [ASSETS_NEW.md](ASSETS_NEW.md) |
-| das geplante AI-/Translate-Zielbild prüfen wollt | [admin/system-settings/AI-SERVICES.md](admin/system-settings/AI-SERVICES.md) |
+| das geplante AI-/Translate-Zielbild prüfen wollt | [ai/AI-SERVICES.md](ai/AI-SERVICES.md) |
 | Fremd-Assets schrittweise ersetzen wollt | [ASSETS_OwnAssets.md](ASSETS_OwnAssets.md) |
 | Plugins entwickelt | [plugins/PLUGIN-DEVELOPMENT.md](plugins/PLUGIN-DEVELOPMENT.md) |
 | Themes entwickelt | [theme/THEME-DEVELOPMENT.md](theme/THEME-DEVELOPMENT.md) |
@@ -42,7 +42,7 @@ Die Dokumentation ist jetzt auf den dokumentierten Stand `2.9.2` nachgezogen. De
 - aktualisierte Asset-Doku mit präziserem Sonderfall-Hinweis für `SunEditor` und `Editor.js`
 - bewusste Nicht-Integration aktuell unreferenzierter Kandidaten wie `cache`, `guzzle`, `php-jwt_yuliyan` und `tabler-icons`
 - Entfernung des inoffiziellen `google-translate-php`-Staging-Assets aus `/ASSETS` zugunsten eines providerbasierten AI-Services-Zielbilds
-- neue Konzeptdoku für **AI Services** unter System/Einstellungen mit Provider-Scope, Feature-Gates und einer ersten Phase für Editor.js-Übersetzung nach Englisch
+- neue kanonische Konzeptdoku für **AI Services** unter `DOC/ai/AI-SERVICES.md` mit Provider-Scope, Feature-Gates, Provider-Matrix, Editor.js-Datenfluss und einer ersten Phase für Übersetzung nach Englisch
 - synchronisierte Release-Spur über `README.md`, `Changelog.md`, `CMS/core/Version.php`, `CMS/update.json`, `DOC/ASSET.md` und `DOC/assets/README.md`
 
 ---

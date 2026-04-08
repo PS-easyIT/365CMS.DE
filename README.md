@@ -97,7 +97,7 @@ Die Audits wurden mit OWASP-nahen Prüfwerkzeugen & AI Audit Tools von Snyk, Ref
 - **Editor.js-Stack gezielt nachgezogen:** Der Core wurde auf den aktuellen `2.31.6`-Stand synchronisiert, und das produktiv erwartete `delimiter.umd.js` wurde aus `editorjs-delimiter-version1.0.2` neu gebaut, statt auf eine zufällige Altdatei zu hoffen. Hoffen ist kein Deployment-Plan.
 - **SunEditor-Runtime sauber aktualisiert:** `suneditor.min.js`, `suneditor.min.css`, `suneditor-contents.min.css` und `lang/de.js` wurden erneut aus dem gebauten Runtime-Satz übernommen.
 - **Google-Translate-Staging bewusst entfernt:** Das inoffizielle Paket `google-translate-php` wurde aus `/ASSETS` entfernt und wird nicht weiter als Basis für produktive Übersetzungen geführt.
-- **AI-Services-Zielbild dokumentiert:** Die Doku beschreibt jetzt einen geplanten Bereich **„AI Services“** unter **System / Einstellungen** inklusive Provider-Scope, Feature-Gates und einer ersten Phase für Editor.js-Übersetzung nach Englisch.
+- **AI-Services-Zielbild weiter ausgebaut:** Die Doku beschreibt jetzt einen geplanten Bereich **„AI Services“** unter **System / Einstellungen** inklusive Provider-Scope, Feature-Gates, Provider-Matrix, Editor.js-Datenfluss, Admin-Kontext und einer ersten Phase für Übersetzung nach Englisch.
 - **Nur aktiv genutzte Pakete landen in der Runtime:** Unreferenzierte Kandidaten wie `cache-8.0.8`, `guzzle-7.10.0`, `php-jwt_yuliyan_1.1.3` oder `tabler-icons-3.41.1` wurden bewusst **nicht** blind in `CMS/assets/` verdrahtet.
 - **Release- und Asset-Doku nachgezogen:** `README.md`, `Changelog.md`, `CMS/core/Version.php`, `CMS/update.json`, `DOC/ASSET.md`, `DOC/assets/README.md` und `DOC/README.md` sind jetzt konsistent auf **`2.9.2`** synchronisiert.
 
@@ -197,7 +197,7 @@ Der schnellste Einstieg ist der lokale Dokumentationsindex unter [`DOC/INDEX.md`
 | API-Integration | [`DOC/workflow/API-INTEGRATION-WORKFLOW.md`](DOC/workflow/API-INTEGRATION-WORKFLOW.md) |
 | Theme-Entwicklung | [`DOC/theme/THEME-DEVELOPMENT.md`](DOC/theme/THEME-DEVELOPMENT.md) |
 | Plugin-Entwicklung | [`DOC/plugins/PLUGIN-DEVELOPMENT.md`](DOC/plugins/PLUGIN-DEVELOPMENT.md) |
-| AI Services (Konzept) | [`DOC/admin/system-settings/AI-SERVICES.md`](DOC/admin/system-settings/AI-SERVICES.md) |
+| AI Services (Konzept) | [`DOC/ai/AI-SERVICES.md`](DOC/ai/AI-SERVICES.md) |
 | CMS Loginpage | [`DOC/admin/themes-design/CMS-LOGINPAGE.md`](DOC/admin/themes-design/CMS-LOGINPAGE.md) |
 | Auth-Einstellungen | [`DOC/admin/users-groups/AUTH-SETTINGS.md`](DOC/admin/users-groups/AUTH-SETTINGS.md) |
 | Snyk-Audit `365CMS.DE` | [`DOC/audit/Snyk_Audit_04042026.md`](DOC/audit/Snyk_Audit_04042026.md) |
@@ -275,7 +275,7 @@ The audits were carried out using OWASP-oriented tooling, Snyk, refactoring pass
 - **The Editor.js stack was updated deliberately, not magically:** core `2.31.6` files were refreshed and the required runtime `delimiter.umd.js` was rebuilt from `editorjs-delimiter-version1.0.2` so the production asset contract stays intact.
 - **SunEditor runtime files were refreshed again from the built artifact set:** `suneditor.min.js`, `suneditor.min.css`, `suneditor-contents.min.css`, and `lang/de.js` are in sync with the current staged package.
 - **The Google-Translate staging asset was intentionally removed:** the unofficial `google-translate-php` package is no longer kept inside `/ASSETS` as a baseline for production translation features.
-- **An AI Services target architecture is now documented:** the docs describe a planned **AI Services** area under **System / Settings**, including provider scope, feature gates, and a first-phase Editor.js translation workflow to English.
+- **The AI Services target architecture was expanded further:** the docs now describe a planned **AI Services** area under **System / Settings**, including provider scope, feature gates, provider classes, Editor.js data flow, admin context, and a first-phase translation workflow to English.
 - **Only actually used packages were wired into runtime:** unreferenced candidates such as `cache-8.0.8`, `guzzle-7.10.0`, `php-jwt_yuliyan_1.1.3`, and `tabler-icons-3.41.1` were intentionally not copied into active runtime loading paths.
 - **Release and asset docs were updated together:** `README.md`, `Changelog.md`, `CMS/core/Version.php`, `CMS/update.json`, `DOC/ASSET.md`, `DOC/assets/README.md`, and `DOC/README.md` now consistently reflect **`2.9.2`**.
 
@@ -375,7 +375,7 @@ Start with the local documentation index at [`DOC/INDEX.md`](DOC/INDEX.md).
 | API integration | [`DOC/workflow/API-INTEGRATION-WORKFLOW.md`](DOC/workflow/API-INTEGRATION-WORKFLOW.md) |
 | Theme development | [`DOC/theme/THEME-DEVELOPMENT.md`](DOC/theme/THEME-DEVELOPMENT.md) |
 | Plugin development | [`DOC/plugins/PLUGIN-DEVELOPMENT.md`](DOC/plugins/PLUGIN-DEVELOPMENT.md) |
-| AI Services concept | [`DOC/admin/system-settings/AI-SERVICES.md`](DOC/admin/system-settings/AI-SERVICES.md) |
+| AI Services concept | [`DOC/ai/AI-SERVICES.md`](DOC/ai/AI-SERVICES.md) |
 | CMS Loginpage | [`DOC/admin/themes-design/CMS-LOGINPAGE.md`](DOC/admin/themes-design/CMS-LOGINPAGE.md) |
 | Auth settings | [`DOC/admin/users-groups/AUTH-SETTINGS.md`](DOC/admin/users-groups/AUTH-SETTINGS.md) |
 | Asset overview | [`DOC/ASSET.md`](DOC/ASSET.md) |

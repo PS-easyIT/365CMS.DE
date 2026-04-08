@@ -195,7 +195,7 @@ AI Services sollen in 365CMS **keine unkontrollierte Freitext-Blackbox** sein. J
 - strukturierte Fehlermeldungen liefern
 - keine Secrets oder Roh-Prompts unkontrolliert loggen
 
-Für die Admin-Perspektive ist die ausführlichere Fachbeschreibung zusätzlich in [admin/system-settings/AI-SERVICES.md](admin/system-settings/AI-SERVICES.md) vorgesehen.
+Für die ausführlichere Fach- und Architekturbeschreibung ist die kanonische Dokumentation unter [ai/AI-SERVICES.md](ai/AI-SERVICES.md) vorgesehen. Der Admin-Kontext bleibt zusätzlich unter [admin/system-settings/AI-SERVICES.md](admin/system-settings/AI-SERVICES.md) verlinkt.
 
 ---
 
@@ -390,7 +390,7 @@ Für neue Pakete aus `/ASSETS` sollte künftig dieselbe Checkliste gelten:
 4. **Provider-/Security-/Quota-Risiken dokumentieren**
 5. **Nur den echten Runtime-Scope übernehmen** – nicht die komplette Upstream-Struktur
 6. **Admin- und Doku-Zielbild früh festhalten** – Menüpunkt, Capability-Modell, Feature-Gates, Operator-Sicht
-7. **Dokumentation synchron halten** – `DOC/ASSET.md`, `DOC/assets/README.md`, `DOC/ASSETS_OwnAssets.md`, `DOC/admin/system-settings/AI-SERVICES.md`, `README.md`, `Changelog.md`
+7. **Dokumentation synchron halten** – `DOC/ASSET.md`, `DOC/assets/README.md`, `DOC/ASSETS_OwnAssets.md`, `DOC/ai/AI-SERVICES.md`, `DOC/admin/system-settings/AI-SERVICES.md`, `README.md`, `Changelog.md`
 
 Kurzform für Entscheidungen:
 
