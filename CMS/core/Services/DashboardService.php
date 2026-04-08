@@ -548,7 +548,7 @@ class DashboardService {
                 'label' => 'HTTPS nicht aktiv',
                 'value' => 'Check',
                 'hint' => 'Produktivbetrieb ohne TLS ist riskant',
-                'url' => SITE_URL . '/admin/system',
+                'url' => SITE_URL . '/admin/security-audit',
             ];
         }
 

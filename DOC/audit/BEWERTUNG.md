@@ -86,6 +86,12 @@ ohne die große Bewertungsmatrix bei jedem einzelnen Batch vollständig neu ausz
 
 Der aktuelle Nachpflege-Stand umfasst damit **465 umgesetzte Batches**, davon weiterhin **444 von 444 Prüfplan-Punkten** im ursprünglichen Auditplan und zusätzlich einundzwanzig Folge-Batches darüber hinaus. Zuletzt wurde der Theme-Editor-Vertrag zwischen Admin-Shell und eingebetteten Theme-Customizern nachgezogen: Der POST-/CSRF-Flow läuft nun über denselben `theme_customizer`-Kontext wie die eigentlichen Theme-Formulare, während README und Changelog den Runtime-Hinweis für deployte Themes unter `CMS/themes/` explizit spiegeln. Die Kennzahlen bleiben dabei stabil.
 
+### Delta Folge-Batch 466
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/core/Services/DashboardService.php`, `DOC/audit/AdminAudit-*.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Für den neu gestarteten Admin-Gesamtaudit wurde eine vollständige Arbeitsmappe unter `DOC/audit/AdminAudit-*.md` angelegt; parallel verweist der Dashboard-Hinweis `HTTPS nicht aktiv` jetzt nicht länger auf die tote Schattenroute `/admin/system`, sondern auf den realen Prüfpfad `/admin/security-audit`. | Die weitere Admin-Prüfung kann jetzt top-down auf einer sauberen Dokumentationsbasis weiterlaufen, und der erste Dashboard-Attention-Fund endet nicht mehr in einer ungültigen Admin-Zielroute. Die zuletzt ausgewiesenen Aggregate aus Batch 465 bleiben für diesen kleinen Routing-/Dokubatch unverändert belastbar. |
+
 ### Delta Folge-Batch 465
 
 | Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
