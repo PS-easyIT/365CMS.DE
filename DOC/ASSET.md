@@ -104,7 +104,6 @@ Folgende Pakete liegen unter `/ASSETS`, sind aber **nicht** produktiv in `CMS/as
 - `symfony/ai-platform` (`ASSETS/ai-platform-0.6.0/`)
 - `symfony/cache` (`ASSETS/cache-8.0.8/`)
 - `guzzlehttp/guzzle` (`ASSETS/guzzle-7.10.0/`)
-- `stichoza/google-translate-php` (`ASSETS/google-translate-php-5.3.0/`)
 - `adhocore/jwt` (`ASSETS/php-jwt_yuliyan_1.1.3/`)
 - `tabler-icons-3.41.1` (`ASSETS/tabler-core-1.4.0/tabler-icons-3.41.1/`)
 - weitere Beobachtungskandidaten wie `monolog-bundle-4.0.2`, `msgraph-sdk-php-2.56.0`
@@ -115,6 +114,11 @@ Für diese Kandidaten gilt:
 - zunächst Service-/Adapter-Schnittstellen im Core definieren
 - transitive Abhängigkeiten vollständig bewerten
 - Betriebsrisiken, Provider-Abhängigkeiten und Secrets-/Rate-Limits vor Integration dokumentieren
+
+Zusätzlich wichtig im aktuellen Stand:
+
+- Das zuvor mitgeführte Paket `stichoza/google-translate-php` wurde **bewusst aus `/ASSETS` entfernt** und wird nicht weiter als aktiver Integrationskandidat geführt.
+- Für Übersetzungs- und Rewrite-Funktionen ist stattdessen ein **providerbasierter AI-Services-Ansatz** vorgesehen; Details siehe [ASSETS_NEW.md](ASSETS_NEW.md) und [admin/system-settings/AI-SERVICES.md](admin/system-settings/AI-SERVICES.md).
 
 Die ausführliche Bewertungs- und Integrationsdoku dazu liegt in [ASSETS_NEW.md](ASSETS_NEW.md).
 

@@ -1,5 +1,5 @@
 # 365CMS – Admin-Bereich
-> **Stand:** 2026-04-08 | **Version:** 2.9.1 | **Status:** Aktuell
+> **Stand:** 2026-04-08 | **Version:** 2.9.2 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Überblick](#überblick)
@@ -10,7 +10,7 @@
 
 Die Struktur folgt der aktuellen Sidebar-Konfiguration aus `CMS/admin/partials/sidebar.php`. Öffentliche Admin-Routen werden in der Dokumentation bewusst ohne `.php` beschrieben.
 
-Für Detailfragen gilt die reale Sidebar- und Routing-Laufzeit als führend; diese Datei ist die verdichtete 2.9.1-Übersicht, nicht der einzige Wahrheitsspeicher.
+Für Detailfragen gilt die reale Sidebar- und Routing-Laufzeit als führend; diese Datei ist die verdichtete 2.9.2-Übersicht, nicht der einzige Wahrheitsspeicher.
 
 ---
 <!-- UPDATED: 2026-04-08 -->
@@ -78,6 +78,7 @@ Wichtige Grundsätze:
 | Fonts | [themes-design/FONTS.md](themes-design/FONTS.md) |
 | Plugins | [plugins/PLUGINS.md](plugins/PLUGINS.md) |
 | System & Betrieb | [system-settings/README.md](system-settings/README.md) |
+| AI Services (Konzept) | [system-settings/AI-SERVICES.md](system-settings/AI-SERVICES.md) |
 | Info | [info/INFO.md](info/INFO.md) |
 | Diagnose & Monitoring | [diagnose/DIAGNOSE.md](diagnose/DIAGNOSE.md) |
 

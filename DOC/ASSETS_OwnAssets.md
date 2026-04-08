@@ -1,5 +1,5 @@
 # ASSETS OwnAssets – Roadmap für Eigenersatz
-> **Stand:** 2026-04-08 | **Version:** 2.9.1 | **Status:** Arbeitsliste / Strategiepapier
+> **Stand:** 2026-04-08 | **Version:** 2.9.2 | **Status:** Arbeitsliste / Strategiepapier
 
 ## Zielbild
 
@@ -39,13 +39,12 @@ Diese Pakete liegen bereits im Staging-Bereich, sind aber **nicht** automatisch 
 | Asset | Status heute | Empfehlung | Priorität | Warum |
 |---|---|---|---|---|
 | `symfony/ai-platform` | nur in `/ASSETS`, nicht runtime-aktiv | **nicht selbst nachbauen**, sondern nur über klaren Core-Adapter einführen | P4 | experimentelles Framework, viele zusätzliche Symfony-Abhängigkeiten, provider- und bridge-lastig |
-| `google-translate-php` | nur in `/ASSETS`, nicht runtime-aktiv | **nicht selbst nachbauen**, höchstens als optionalen Fallback-Adapter integrieren | P4 | basiert auf Website-Crawling, CAPTCHAs, IP-Bans, Rate-Limits und instabilem externem Verhalten |
 | `msgraph-sdk-php` | Referenz-/Staging-Bestand | nur über isolierte Services einführen | P4 | große Provider-SDK-Fläche, hoher Update- und Token-/Permission-Aufwand |
 
 ### Was das für 365CMS bedeutet
 
 - **AI-Funktionen** sollten nicht als unkontrolliertes Vendor-Paket in `CMS/assets/` landen, sondern nur über `CMS/core/Services/AI/*` plus provider-spezifische Adapter.
-- **Automatische Übersetzung** sollte nicht an einer einzelnen inoffiziellen Bibliothek als Kernfunktion hängen. Wenn überhaupt, dann optional, gedrosselt, cachebar und mit sauberem Fallback.
+- **Automatische Übersetzung** sollte nicht an einer einzelnen inoffiziellen Bibliothek als Kernfunktion hängen. Das früher mitgeführte `google-translate-php` wurde deshalb aus `/ASSETS` entfernt. Wenn 365CMS Übersetzung anbietet, dann nur providerbasiert, optional, gedrosselt, cachebar und mit sauberem Fallback.
 - **Große Provider-SDKs** wie `msgraph-sdk-php` gehören hinter einen kleinen Service-Vertrag, nicht als quer ins System gestreute Direktabhängigkeit.
 
 ---
@@ -81,7 +80,7 @@ Neue Pakete aus `/ASSETS` sollten künftig zuerst in eine von drei Klassen einso
 2. **Bibliothek, kapselbar** → hinter internen Service / Adapter stellen
 3. **Provider-/Security-/SDK-Komplexität** → bewusst behalten, aber niemals Eigenbau
 
-`symfony/ai-platform`, `google-translate-php` und `msgraph-sdk-php` liegen im aktuellen Stand klar in Klasse 2 bis 3.
+`symfony/ai-platform` und `msgraph-sdk-php` liegen im aktuellen Stand klar in Klasse 2 bis 3. Inoffizielle Crawling-basierte Übersetzungslibraries sollen dagegen gar nicht erst weiter als Staging-Basis gepflegt werden.
 
 ---
 
@@ -128,7 +127,6 @@ Diese Bibliotheken lieber **hinter Services kapseln**, aber **nicht selbst neu i
 - `mime`
 - `twofactorauth`
 - `symfony/ai-platform`
-- `google-translate-php`
 - `msgraph-sdk-php`
 
 ### Warum nicht?
@@ -182,4 +180,4 @@ Die beste Reihenfolge lautet daher:
 2. `melbahja-seo` funktional in kleinere Core-Services aufteilen
 3. komplexe Sicherheits-, AI-, Übersetzungs- und Infrastruktur-Bibliotheken bewusst behalten und nur abstrahieren
 
-Wichtig für den aktuellen Dokumentationsstand: Die führende Runtime- und Strukturreferenz für aktive Asset-Pfade liegt jetzt zusätzlich in `DOC/FILELIST.md` und `DOC/assets/README.md`. Neue Integrationskandidaten außerhalb der Runtime werden in `DOC/ASSETS_NEW.md` separat bewertet, damit Roadmap, Runtime und Integrationsplanung nicht in einer Liste vermischt werden.
+Wichtig für den aktuellen Dokumentationsstand: Die führende Runtime- und Strukturreferenz für aktive Asset-Pfade liegt jetzt zusätzlich in `DOC/FILELIST.md` und `DOC/assets/README.md`. Neue Integrationskandidaten außerhalb der Runtime werden in `DOC/ASSETS_NEW.md` separat bewertet, damit Roadmap, Runtime und Integrationsplanung nicht in einer Liste vermischt werden. Das AI-Admin-Zielbild liegt ergänzend in `DOC/admin/system-settings/AI-SERVICES.md`.

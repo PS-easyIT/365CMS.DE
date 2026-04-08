@@ -75,11 +75,15 @@ Neu dokumentierte, aber noch nicht produktiv integrierte Pakete:
 - `symfony/ai-platform` unter `ASSETS/ai-platform-0.6.0/`
 - `symfony/cache` unter `ASSETS/cache-8.0.8/`
 - `guzzlehttp/guzzle` unter `ASSETS/guzzle-7.10.0/`
-- `stichoza/google-translate-php` unter `ASSETS/google-translate-php-5.3.0/`
 - `adhocore/jwt` unter `ASSETS/php-jwt_yuliyan_1.1.3/`
 - `tabler-icons-3.41.1` unter `ASSETS/tabler-core-1.4.0/tabler-icons-3.41.1/`
 
 Diese Kandidaten sind im aktuellen Core **nicht aktiv verdrahtet**. Die Code- und Laufzeitprüfung zeigte hierfür keine produktiven Referenzen in `CMS/**`; deshalb wurden sie beim Refresh nach `2.9.2` bewusst nicht in die aktive Runtime übernommen.
+
+Hinweis zum jüngsten Bereinigungsschritt:
+
+- `stichoza/google-translate-php` wird **nicht mehr** als Staging-Kandidat mitgeführt und wurde aus `/ASSETS` entfernt.
+- Für Übersetzungsfunktionen soll 365CMS stattdessen auf einen **AI-Services-Bereich mit Provider-Scope** setzen, nicht auf eine einzelne inoffizielle Crawling-Bibliothek.
 
 Diese Kandidaten benötigen vor einer Aufnahme:
 
@@ -88,4 +92,4 @@ Diese Kandidaten benötigen vor einer Aufnahme:
 3. Security-/Rate-Limit-/Provider-Konzept
 4. dokumentierte Entscheidung, ob lokales Bundling überhaupt sinnvoll ist
 
-Die ausführliche Bewertungsdoku steht in [../ASSETS_NEW.md](../ASSETS_NEW.md). Die Roadmap für Eigenersatz und Wrapper-Strategien steht in [../ASSETS_OwnAssets.md](../ASSETS_OwnAssets.md).
+Die ausführliche Bewertungsdoku steht in [../ASSETS_NEW.md](../ASSETS_NEW.md). Die AI-Admin-Konzeption liegt zusätzlich in [../admin/system-settings/AI-SERVICES.md](../admin/system-settings/AI-SERVICES.md). Die Roadmap für Eigenersatz und Wrapper-Strategien steht in [../ASSETS_OwnAssets.md](../ASSETS_OwnAssets.md).

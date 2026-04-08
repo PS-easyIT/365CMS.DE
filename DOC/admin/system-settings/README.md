@@ -1,12 +1,12 @@
 # 365CMS – System, Betrieb & Wartung
 
-Kurzbeschreibung: Überblick über Konfiguration, Updates, Backups, Info-Ansichten und Diagnose im Admin-Bereich.
+Kurzbeschreibung: Überblick über Konfiguration, Updates, Backups, Info-Ansichten, Diagnose und geplante AI-Steuerung im Admin-Bereich.
 
-Letzte Aktualisierung: 2026-04-08 · Version 2.9.1
+Letzte Aktualisierung: 2026-04-08 · Version 2.9.2
 
 Der Bereich „System" wurde in mehrere klar getrennte Einstiege aufgeteilt.
 
-Die Übersicht bezieht sich auf die aktuelle 2.9.1-Bedienstruktur. Für Runtime-Fragen zu Konfiguration, Bootstrap, Logs oder Dateisystempfaden ergänzen `DOC/INSTALLATION.md`, `DOC/core/ARCHITECTURE.md` und `DOC/FILELIST.md` diese Seite.
+Die Übersicht bezieht sich auf die aktuelle 2.9.2-Bedienstruktur. Für Runtime-Fragen zu Konfiguration, Bootstrap, Logs oder Dateisystempfaden ergänzen `DOC/INSTALLATION.md`, `DOC/core/ARCHITECTURE.md` und `DOC/FILELIST.md` diese Seite.
 
 ### System-Gruppe
 
@@ -16,6 +16,14 @@ Die Übersicht bezieht sich auf die aktuelle 2.9.1-Bedienstruktur. Für Runtime-
 | `/admin/backups` | Backups erstellen, auflisten und löschen |
 | `/admin/updates` | Core-, Theme- und Plugin-Updates |
 | `/admin/cms-logs` | konfigurierte CMS-Logdateien, Kanal-Einträge und schnelle Laufzeitdiagnose |
+
+### Geplante Erweiterung (noch nicht runtime-aktiv)
+
+| Zielroute | Zweck |
+|---|---|
+| `/admin/ai-services` | zentrale Provider-, Feature- und Scope-Steuerung für künftige AI-Funktionen im Admin |
+
+Wichtig: Der Bereich **AI Services** ist im aktuellen Stand **dokumentiert, aber noch nicht implementiert**. Geplant ist eine Einordnung unter **System / Einstellungen**, damit Provider-Scope, Limits, Datenschutz und redaktionelle KI-Helfer nicht über mehrere Fachmodule verteilt werden.
 
 ### Info-Gruppe
 
@@ -49,6 +57,7 @@ Siehe [../performance/PERFORMANCE.md](../performance/PERFORMANCE.md) für die vo
 | [BACKUP.md](BACKUP.md) | Backup & Restore |
 | [SYSTEM.md](SYSTEM.md) | Systeminfo & Diagnose-Übersicht |
 | [UPDATES.md](UPDATES.md) | Core-, Theme- und Plugin-Updates |
+| [AI-SERVICES.md](AI-SERVICES.md) | geplantes AI-Services-Konzept mit Provider-Scope und Translate-Service |
 | [../info/INFO.md](../info/INFO.md) | Systeminfo und Dokumentation |
 | [../diagnose/DIAGNOSE.md](../diagnose/DIAGNOSE.md) | Diagnose & Monitoring |
 | [../performance/PERFORMANCE.md](../performance/PERFORMANCE.md) | Performance-Center |

@@ -1,5 +1,5 @@
 # 365CMS – Dokumentationsindex
-> **Stand:** 2026-04-07 | **Version:** 2.9.0 | **Status:** Aktuell
+> **Stand:** 2026-04-08 | **Version:** 2.9.2 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Schnellstart](#schnellstart)
@@ -11,7 +11,7 @@
 - [Direktlinks für häufige Aufgaben](#direktlinks-für-häufige-aufgaben)
 
 ---
-<!-- UPDATED: 2026-04-07 -->
+<!-- UPDATED: 2026-04-08 -->
 
 ## Schnellstart
 
@@ -71,6 +71,7 @@
 | Sicherheit | [admin/security/README.md](admin/security/README.md) |
 | Performance | [admin/performance/PERFORMANCE.md](admin/performance/PERFORMANCE.md) |
 | System, Betrieb & Wartung | [admin/system-settings/README.md](admin/system-settings/README.md) |
+| AI Services (Konzept) | [admin/system-settings/AI-SERVICES.md](admin/system-settings/AI-SERVICES.md) |
 | Diagnose & Monitoring | [admin/diagnose/DIAGNOSE.md](admin/diagnose/DIAGNOSE.md) |
 | Systeminformationen | [admin/info/INFO.md](admin/info/INFO.md) |
 | Landing-Pages | [admin/landing-page/LANDING-PAGE.md](admin/landing-page/LANDING-PAGE.md) |
@@ -140,6 +141,7 @@ Diese Dokumente enthalten teils Live-Stände, Auditfortschritte oder operative R
 | Sicherheit (CSRF/XSS) | [core/SECURITY.md](core/SECURITY.md) |
 | Asset-Stand prüfen | [assets/README.md](assets/README.md) |
 | Neue Asset-Kandidaten bewerten | [ASSETS_NEW.md](ASSETS_NEW.md) |
+| AI-Services-Konzept prüfen | [admin/system-settings/AI-SERVICES.md](admin/system-settings/AI-SERVICES.md) |
 | Vendor-Assets ersetzen | [ASSETS_OwnAssets.md](ASSETS_OwnAssets.md) |
 | Audit-Stand prüfen | [audit/BEWERTUNG.md](audit/BEWERTUNG.md) |
 | Systemstatus prüfen | [core/STATUS.md](core/STATUS.md) |
