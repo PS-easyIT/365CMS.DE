@@ -121,7 +121,7 @@ function Ie(n, e, t = "log", o, i = "color: inherit") {
       break;
   }
   o && r.push(o);
-  const a = "Editor.js 2.31.4", l = `line-height: 1em;
+  const a = "Editor.js 2.31.6", l = `line-height: 1em;
             color: #006FEA;
             display: inline-block;
             font-size: 11px;
@@ -673,6 +673,15 @@ class u {
    */
   static isAnchor(e) {
     return e.tagName.toLowerCase() === "a";
+  }
+  /**
+   * Returns the closest ancestor anchor (A tag) of the given element (including itself)
+   * 
+   * @param element - element to check
+   * @returns {HTMLAnchorElement | null}
+   */
+  static getClosestAnchor(e) {
+    return e.closest("a");
   }
   /**
    * Return element's offset related to the document
@@ -6682,10 +6691,9 @@ function Yr(n, e) {
     var s = document.createRange(), r = window.getSelection();
     if (!r)
       return;
-    var a = function(p, g) {
-      g === void 0 && (g = !1);
-      var f = document.createTextNode("");
-      g ? p.insertBefore(f, p.firstChild) : p.appendChild(f), s.setStart(f, 0), s.setEnd(f, 0);
+    var a = function(p) {
+      var g = document.createTextNode("");
+      p.appendChild(g), s.setStart(g, 0), s.setEnd(g, 0);
     }, l = function(p) {
       return p != null;
     }, c = n.childNodes, d = e ? c[0] : c[c.length - 1];
@@ -6696,7 +6704,7 @@ function Yr(n, e) {
         var h = (o = (t = d.textContent) === null || t === void 0 ? void 0 : t.length) !== null && o !== void 0 ? o : 0, i = e ? 0 : h;
         s.setStart(d, i), s.setEnd(d, i);
       } else
-        a(n, e);
+        a(n);
     } else
       a(n);
     r.removeAllRanges(), r.addRange(s);
@@ -9432,7 +9440,7 @@ class ma extends E {
     }), {
       time: +/* @__PURE__ */ new Date(),
       blocks: t,
-      version: "2.31.4"
+      version: "2.31.6"
     };
   }
 }
@@ -10903,11 +10911,11 @@ class Ia extends E {
   redactorClicked(e) {
     if (!b.isCollapsed)
       return;
-    const t = e.target, o = e.metaKey || e.ctrlKey;
-    if (u.isAnchor(t) && o) {
+    const t = e.target, o = e.metaKey || e.ctrlKey, i = u.getClosestAnchor(t);
+    if (i && o) {
       e.stopImmediatePropagation(), e.stopPropagation();
-      const i = t.getAttribute("href"), s = oi(i);
-      ii(s);
+      const s = i.getAttribute("href"), r = oi(s);
+      ii(r);
       return;
     }
     this.processBottomZoneClick(e);
@@ -11151,7 +11159,7 @@ class _a {
 class Aa {
   /** Editor version */
   static get version() {
-    return "2.31.4";
+    return "2.31.6";
   }
   /**
    * @param {EditorConfig|string|undefined} [configuration] - user configuration

@@ -205,6 +205,7 @@ Der schnellste Einstieg ist der lokale Dokumentationsindex unter [`DOC/INDEX.md`
 | Live-Audit: Localization | [`DOC/audit/PHINIT-LIVE-LOCALIZATION-2026-04-03.md`](DOC/audit/PHINIT-LIVE-LOCALIZATION-2026-04-03.md) |
 | Live-Audit: Search & Archive | [`DOC/audit/PHINIT-LIVE-SEARCH-ARCHIVE-2026-04-03.md`](DOC/audit/PHINIT-LIVE-SEARCH-ARCHIVE-2026-04-03.md) |
 | Asset-Übersicht | [`DOC/ASSET.md`](DOC/ASSET.md) |
+| Neue Asset-Kandidaten | [`DOC/ASSETS_NEW.md`](DOC/ASSETS_NEW.md) |
 | Eigene Asset-Roadmap | [`DOC/ASSETS_OwnAssets.md`](DOC/ASSETS_OwnAssets.md) |
 
 ### 🛡️ Security, Betrieb & Wartung
@@ -228,7 +229,7 @@ Der schnellste Einstieg ist der lokale Dokumentationsindex unter [`DOC/INDEX.md`
 | **Media** | Interne Upload-/Picker-APIs, PhotoSwipe, WebP-Workflows |
 | **SEO & Content** | Sitemap, Schema, Canonicals, Robots, TOC, Analytics-Bausteine |
 
-Die vollständige Asset-Dokumentation liegt in [`DOC/ASSET.md`](DOC/ASSET.md) sowie unter [`DOC/assets/`](DOC/assets/).
+Die vollständige Asset-Dokumentation liegt in [`DOC/ASSET.md`](DOC/ASSET.md), unter [`DOC/assets/`](DOC/assets/) sowie für neue Integrationskandidaten in [`DOC/ASSETS_NEW.md`](DOC/ASSETS_NEW.md).
 
 ### 🔎 SEO-Workflow-Highlight
 

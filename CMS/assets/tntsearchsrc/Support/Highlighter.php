@@ -21,7 +21,7 @@ class Highlighter
 
     protected TokenizerInterface $tokenizer;
 
-    public function __construct(TokenizerInterface $tokenizer = null)
+    public function __construct(?TokenizerInterface $tokenizer = null)
     {
         $this->tokenizer = $tokenizer ?? new Tokenizer();
     }

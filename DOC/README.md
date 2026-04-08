@@ -25,6 +25,7 @@
 | den Member-Bereich betreut | [member/README.md](member/README.md) |
 | den Medienbereich nachvollziehen wollt | [admin/media/README.md](admin/media/README.md) |
 | Asset-/Vendor-Stände prüfen wollt | [assets/README.md](assets/README.md) |
+| neue Asset-Kandidaten bewerten wollt | [ASSETS_NEW.md](ASSETS_NEW.md) |
 | Fremd-Assets schrittweise ersetzen wollt | [ASSETS_OwnAssets.md](ASSETS_OwnAssets.md) |
 | Plugins entwickelt | [plugins/PLUGIN-DEVELOPMENT.md](plugins/PLUGIN-DEVELOPMENT.md) |
 | Themes entwickelt | [theme/THEME-DEVELOPMENT.md](theme/THEME-DEVELOPMENT.md) |
@@ -39,6 +40,7 @@ Die Dokumentation ist jetzt auf den dokumentierten Stand `2.9.1` nachgezogen. De
 - neue Admin-Seite `/admin/cms-logs` für konfigurierte Runtime-Logs, Kanal-Einträge und Diagnosezugriff
 - konsistenter Logpfad unter `ABSPATH . 'logs/'` statt verstreuter Fallback-Pfade
 - Installer-Updates schreiben bestehende `config/app.php` nach Sicherung jetzt auf die aktuelle Konfigstruktur hoch, statt neue Bereiche still zu verlieren
+- Asset-Dokumentation trennt `/ASSETS` jetzt sauber von der produktiven Runtime unter `CMS/assets/` bzw. `CMS/vendor/dompdf/` und ergänzt eine eigene Bewertungsdoku für `symfony/ai-platform` und `google-translate-php`
 
 ---
 

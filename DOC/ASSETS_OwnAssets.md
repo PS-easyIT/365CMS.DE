@@ -1,5 +1,5 @@
 # ASSETS OwnAssets – Roadmap für Eigenersatz
-> **Stand:** 2026-04-07 | **Version:** 2.9.0 | **Status:** Arbeitsliste / Strategiepapier
+> **Stand:** 2026-04-08 | **Version:** 2.9.1 | **Status:** Arbeitsliste / Strategiepapier
 
 ## Zielbild
 
@@ -7,7 +7,7 @@ Diese Liste beschreibt, **welche aktiven Fremd-Assets 365CMS schrittweise durch 
 
 Wichtig: Nicht jede Drittbibliothek sollte ersetzt werden. Bei sicherheitskritischen, standardnahen oder komplexen Bibliotheken ist **Kapselung statt Eigenbau** die bessere Strategie.
 
-Bereits entfernte oder nicht mehr führende Legacy-Assets aus früheren Laufzeitpfaden sind **nicht mehr Teil dieser Ersatzliste**. Der Fokus liegt auf dem aktuell relevanten Restbestand unter `CMS/assets/`.
+Bereits entfernte oder nicht mehr führende Legacy-Assets aus früheren Laufzeitpfaden sind **nicht mehr Teil dieser Ersatzliste**. Der Fokus liegt auf dem aktuell relevanten Restbestand unter `CMS/assets/` sowie auf neuen Kandidaten aus `/ASSETS`, die bewusst **noch nicht** produktiv verdrahtet wurden.
 
 ---
 
@@ -24,11 +24,29 @@ Bereits entfernte oder nicht mehr führende Legacy-Assets aus früheren Laufzeit
 
 ## Aktive Kandidaten für Eigenersatz
 
-| Asset | Status in 2.9.0 | Rolle heute | Empfehlung | Priorität | Ziel für Eigenlösung |
+| Asset | Status in 2.9.1 | Rolle heute | Empfehlung | Priorität | Ziel für Eigenlösung |
 |---|---|---|---|---|---|
 | `gridjs` | aktiv | Tabellen-/Grid-Darstellung im Admin | durch eigenes Grid-Wrapper-Modul ersetzen | P1 | `cms-grid.js` + serverseitige Config-Helper |
 | `photoswipe` | aktiv | Frontend-Lightbox | durch eigene Lightbox-Komponente ablösen | P2 | `cms-lightbox.js` + schlanke CSS-Komponente |
 | `melbahja-seo` | aktiv | Schema, Sitemap, SEO-Helfer | Funktionen schrittweise in Core-Services überführen | P2 | eigene `Seo*Service`-/`Sitemap*Service`-Bausteine |
+
+---
+
+## Neue Bewertungsgruppe aus `/ASSETS`
+
+Diese Pakete liegen bereits im Staging-Bereich, sind aber **nicht** automatisch Kandidaten für einen direkten Runtime-Import und schon gar nicht für Eigenbau im engeren Sinn.
+
+| Asset | Status heute | Empfehlung | Priorität | Warum |
+|---|---|---|---|---|
+| `symfony/ai-platform` | nur in `/ASSETS`, nicht runtime-aktiv | **nicht selbst nachbauen**, sondern nur über klaren Core-Adapter einführen | P4 | experimentelles Framework, viele zusätzliche Symfony-Abhängigkeiten, provider- und bridge-lastig |
+| `google-translate-php` | nur in `/ASSETS`, nicht runtime-aktiv | **nicht selbst nachbauen**, höchstens als optionalen Fallback-Adapter integrieren | P4 | basiert auf Website-Crawling, CAPTCHAs, IP-Bans, Rate-Limits und instabilem externem Verhalten |
+| `msgraph-sdk-php` | Referenz-/Staging-Bestand | nur über isolierte Services einführen | P4 | große Provider-SDK-Fläche, hoher Update- und Token-/Permission-Aufwand |
+
+### Was das für 365CMS bedeutet
+
+- **AI-Funktionen** sollten nicht als unkontrolliertes Vendor-Paket in `CMS/assets/` landen, sondern nur über `CMS/core/Services/AI/*` plus provider-spezifische Adapter.
+- **Automatische Übersetzung** sollte nicht an einer einzelnen inoffiziellen Bibliothek als Kernfunktion hängen. Wenn überhaupt, dann optional, gedrosselt, cachebar und mit sauberem Fallback.
+- **Große Provider-SDKs** wie `msgraph-sdk-php` gehören hinter einen kleinen Service-Vertrag, nicht als quer ins System gestreute Direktabhängigkeit.
 
 ---
 
@@ -54,6 +72,16 @@ Diese Bibliotheken sind aktiv, aber funktional gut durch 365CMS-eigene UI-Bauste
 - Sitemap-Erzeugung in einen eigenen Sitemap-Service verschieben
 - Schema-Aufbau in eigene `Seo`-/`Schema`-Bausteine überführen
 - IndexNow sauber als isolierten Service oder Adapter pflegen
+
+### Phase 3 – Neue externe Kandidaten nur über Adapter bewerten
+
+Neue Pakete aus `/ASSETS` sollten künftig zuerst in eine von drei Klassen einsortiert werden:
+
+1. **UI-Asset, ersetzbar** → Kandidat für Eigenlösung
+2. **Bibliothek, kapselbar** → hinter internen Service / Adapter stellen
+3. **Provider-/Security-/SDK-Komplexität** → bewusst behalten, aber niemals Eigenbau
+
+`symfony/ai-platform`, `google-translate-php` und `msgraph-sdk-php` liegen im aktuellen Stand klar in Klasse 2 bis 3.
 
 ---
 
@@ -99,6 +127,9 @@ Diese Bibliotheken lieber **hinter Services kapseln**, aber **nicht selbst neu i
 - `mailer`
 - `mime`
 - `twofactorauth`
+- `symfony/ai-platform`
+- `google-translate-php`
+- `msgraph-sdk-php`
 
 ### Warum nicht?
 
@@ -106,6 +137,26 @@ Diese Bibliotheken lieber **hinter Services kapseln**, aber **nicht selbst neu i
 - schwer korrekt und vollständig nachzubauen
 - hoher Pflege-, Test- und Kompatibilitätsaufwand
 - Fehler in diesen Bereichen wären teurer als der Nutzen eines Eigenbaus
+- bei AI-/Provider-Stacks zusätzlich starke Abhängigkeit von externen APIs, Bridges, Token-Handling, Rate-Limits und veränderlicher Plattformpolitik
+
+---
+
+## Was 365CMS eher selbst bauen sollte – und was nicht
+
+### Gute Eigenbau-Ziele
+
+- kleine Admin-Grid-Helfer
+- Frontend-Lightbox-Komponenten
+- schmale SEO-Services mit klarer fachlicher Verantwortung
+- interne Wrapper für Asset-Ladung, Cache-Busting und Fallback-Verhalten
+
+### Schlechte Eigenbau-Ziele
+
+- komplette WYSIWYG- oder Block-Editor-Engines
+- Auth-/JWT-/Passkey-/LDAP-Standards
+- HTML-Sanitizer
+- AI-Plattform-Abstraktionen mit Provider-Bridges
+- inoffizielle Web-Crawling-Translation-Layer
 
 ---
 
@@ -117,18 +168,18 @@ Jeder künftige Ersatz sollte in derselben Reihenfolge umgesetzt werden:
 2. **Nativen Ersatz parallel einführen** – zunächst nur in klar abgegrenzten Pfaden
 3. **Feature-Lücken schließen** – UX, Accessibility und Edge-Cases angleichen
 4. **Altpfad entkoppeln** – alte Bibliothek nur noch fallback-artig halten
-5. **Dokumentation aktualisieren** – `DOC/ASSET.md`, `DOC/assets/README.md`, Changelog und diese Datei synchron halten
+5. **Dokumentation aktualisieren** – `DOC/ASSET.md`, `DOC/assets/README.md`, `DOC/ASSETS_NEW.md`, Changelog und diese Datei synchron halten
 
 ---
 
 ## Kurzfazit
 
-Der schnellste Gewinn liegt **nicht** im Ersetzen aller Drittbibliotheken, sondern im gezielten Abbau kleiner UI-Abhängigkeiten und in der sauberen Kapselung komplexer Sicherheits- oder Standardbibliotheken.
+Der schnellste Gewinn liegt **nicht** im Ersetzen aller Drittbibliotheken, sondern im gezielten Abbau kleiner UI-Abhängigkeiten und in der sauberen Kapselung komplexer Sicherheits-, Provider- oder Standardbibliotheken.
 
 Die beste Reihenfolge lautet daher:
 
 1. kleine UI-Bibliotheken wie `gridjs` und `photoswipe` durch 365CMS-eigene Module ersetzen
 2. `melbahja-seo` funktional in kleinere Core-Services aufteilen
-3. komplexe Sicherheits- und Infrastruktur-Bibliotheken bewusst behalten und nur abstrahieren
+3. komplexe Sicherheits-, AI-, Übersetzungs- und Infrastruktur-Bibliotheken bewusst behalten und nur abstrahieren
 
-Wichtig für den aktuellen Dokumentationsstand: Die führende Runtime- und Strukturreferenz für aktive Asset-Pfade liegt jetzt zusätzlich in `DOC/FILELIST.md` und `DOC/assets/README.md`.
+Wichtig für den aktuellen Dokumentationsstand: Die führende Runtime- und Strukturreferenz für aktive Asset-Pfade liegt jetzt zusätzlich in `DOC/FILELIST.md` und `DOC/assets/README.md`. Neue Integrationskandidaten außerhalb der Runtime werden in `DOC/ASSETS_NEW.md` separat bewertet, damit Roadmap, Runtime und Integrationsplanung nicht in einer Liste vermischt werden.

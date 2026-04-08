@@ -1,29 +1,6 @@
 (function () {
     'use strict';
 
-    var editorToolbarButtons = [
-        { block: 'header', label: 'H2', title: 'Überschrift H2', level: 2 },
-        { block: 'paragraph', label: 'Text', title: 'Textabsatz' },
-        { block: 'list', label: 'Liste', title: 'Liste' },
-        { block: 'image', label: 'Bild', title: 'Bild' },
-        { block: 'mediaText', label: 'Medien+Text', title: 'Medien + Text' },
-        { block: 'imageGallery', label: 'Gallery', title: 'Gallery', columns: 3 },
-        { block: 'callout', label: 'Callout', title: 'Callout / Hinweisbox' },
-        { block: 'terminal', label: 'Terminal', title: 'Terminal / Command Block' },
-        { block: 'codeTabs', label: 'Code Tabs', title: 'Code Tabs' },
-        { block: 'mermaid', label: 'Mermaid', title: 'Mermaid / Diagramm' },
-        { block: 'apiEndpoint', label: 'API', title: 'API Endpoint Block' },
-        { block: 'changelog', label: 'Changelog', title: 'Changelog / Version' },
-        { block: 'prosCons', label: 'Pros/Cons', title: 'Pros / Cons' },
-        { block: 'embed', label: 'Embed', title: 'Embed' },
-        { block: 'columns', label: 'Spalten', title: 'Spalten' },
-        { block: 'accordion', label: 'Akk.', title: 'Accordion' },
-        { block: 'table', label: 'Tabelle', title: 'Tabelle' },
-        { block: 'quote', label: 'Zitat', title: 'Zitat' },
-        { block: 'delimiter', label: 'Trenner', title: 'Trennlinie' },
-        { block: 'spacer', label: 'Abstand', title: 'Leerraum / Abstand', height: 15 }
-    ];
-
     function parseJsonInput(id, fallback) {
         var input = document.getElementById(id);
         if (!input || !input.value) {
@@ -39,114 +16,6 @@
 
     function getElement(id) {
         return id ? document.getElementById(id) : null;
-    }
-
-    function buildToolbarButtonMarkup(config) {
-        var attrs = [
-            'type="button"',
-            'data-block="' + String(config.block || '') + '"',
-            'title="' + String(config.title || config.label || '') + '"'
-        ];
-
-        if (config.level) {
-            attrs.push('data-level="' + String(config.level) + '"');
-        }
-        if (config.height) {
-            attrs.push('data-height="' + String(config.height) + '"');
-        }
-        if (config.columns) {
-            attrs.push('data-columns="' + String(config.columns) + '"');
-        }
-
-        return '<button ' + attrs.join(' ') + '><span>' + String(config.label || config.block || '') + '</span></button>';
-    }
-
-    function ensureLiveEditorChrome(holder, editor) {
-        var wrap = holder ? holder.closest('.editorjs-wrap') : null;
-        var toolbar;
-        var statusbar;
-        var countEl;
-
-        if (!wrap || !editor || !editor.blocks) {
-            return;
-        }
-
-        toolbar = wrap.querySelector('.editorjs-toolbar');
-        if (!toolbar) {
-            toolbar = document.createElement('div');
-            toolbar.className = 'editorjs-toolbar';
-            toolbar.innerHTML = editorToolbarButtons.map(buildToolbarButtonMarkup).join('');
-            wrap.insertBefore(toolbar, holder);
-        }
-
-        statusbar = wrap.querySelector('.editorjs-statusbar');
-        if (!statusbar) {
-            statusbar = document.createElement('div');
-            statusbar.className = 'editorjs-statusbar';
-            statusbar.innerHTML = '<span class="editorjs-statusbar__hint">Tippe <kbd>/</kbd> oder nutze die Schnellbuttons für die Tech-Blöcke.</span><span class="editorjs-statusbar__count"></span>';
-            if (holder.nextSibling) {
-                wrap.insertBefore(statusbar, holder.nextSibling);
-            } else {
-                wrap.appendChild(statusbar);
-            }
-        }
-
-        countEl = statusbar.querySelector('.editorjs-statusbar__count');
-
-        toolbar.addEventListener('click', function (event) {
-            var btn = event.target.closest('button[data-block]');
-            var blockType;
-            var blockData = {};
-            var level;
-            var height;
-            var columns;
-            var lastIndex;
-
-            if (!btn || !editor || !editor.blocks) {
-                return;
-            }
-
-            blockType = btn.getAttribute('data-block');
-            level = btn.getAttribute('data-level');
-            height = btn.getAttribute('data-height');
-            columns = btn.getAttribute('data-columns');
-
-            if (level) {
-                blockData.level = parseInt(level, 10);
-            }
-            if (height) {
-                blockData.height = parseInt(height, 10);
-                blockData.preset = height + 'px';
-            }
-            if (columns) {
-                blockData.columns = parseInt(columns, 10);
-            }
-
-            editor.blocks.insert(blockType, blockData);
-
-            lastIndex = editor.blocks.getBlocksCount() - 1;
-            if (editor.caret && typeof editor.caret.setToBlock === 'function') {
-                editor.caret.setToBlock(lastIndex, 'start');
-            }
-        });
-
-        function updateBlockCount() {
-            if (!countEl || !editor || !editor.blocks) {
-                return;
-            }
-
-            var count = editor.blocks.getBlocksCount();
-            countEl.textContent = count + (count === 1 ? ' Block' : ' Blöcke');
-        }
-
-        editor.isReady.then(function () {
-            updateBlockCount();
-        });
-
-        var intervalId = window.setInterval(updateBlockCount, 2000);
-        window.setTimeout(function () {
-            window.clearInterval(intervalId);
-        }, 300000);
     }
 
     function buildPreviewUrl(base, slug, template, placeholderSlug) {
@@ -181,11 +50,6 @@
         var languagePanes = document.querySelectorAll(config.languagePaneSelector || '');
         var statusMap = config.statusMap || {};
         var countBindings = Array.isArray(config.countBindings) ? config.countBindings : [];
-        var serverTimestamp = Number(config.currentTimestamp || 0);
-        var perfStart = typeof window.performance !== 'undefined' && typeof window.performance.now === 'function'
-            ? window.performance.now()
-            : null;
-        var clientStart = Date.now();
 
         if (!form) {
             return;
@@ -202,18 +66,6 @@
             return new Date(dateValue + 'T' + (timeValue !== '' ? timeValue : '00:00'));
         }
 
-        function getReferenceNow() {
-            if (!Number.isFinite(serverTimestamp) || serverTimestamp <= 0) {
-                return Date.now();
-            }
-
-            if (perfStart !== null) {
-                return serverTimestamp + Math.max(0, window.performance.now() - perfStart);
-            }
-
-            return serverTimestamp + Math.max(0, Date.now() - clientStart);
-        }
-
         function isScheduledPublication() {
             var publishAt;
 
@@ -222,7 +74,7 @@
             }
 
             publishAt = resolvePublishDate();
-            return publishAt instanceof Date && !Number.isNaN(publishAt.getTime()) && publishAt.getTime() > getReferenceNow();
+            return publishAt instanceof Date && !Number.isNaN(publishAt.getTime()) && publishAt.getTime() > Date.now();
         }
 
         function switchLanguage(lang) {
@@ -351,7 +203,6 @@
     function initEditorJs(config) {
         var form;
         var editors = {};
-        var bindingPromises = {};
         var submitLocked = false;
 
         if (!config || typeof window.createCmsEditor !== 'function') {
@@ -363,258 +214,18 @@
             return;
         }
 
-        function isMeaningfulEditorData(rawValue) {
-            var parsed;
-            var blocks;
-
-            if (typeof rawValue !== 'string' || rawValue.trim() === '') {
-                return false;
-            }
-
-            try {
-                parsed = JSON.parse(rawValue);
-            } catch (_error) {
-                return rawValue.trim() !== '';
-            }
-
-            blocks = Array.isArray(parsed && parsed.blocks) ? parsed.blocks : [];
-            if (blocks.length === 0) {
-                return false;
-            }
-
-            return blocks.some(function (block) {
-                var dataString;
-
-                if (!block || typeof block !== 'object') {
-                    return false;
-                }
-
-                dataString = JSON.stringify(block.data || {});
-                if (typeof dataString !== 'string' || dataString === '{}') {
-                    return false;
-                }
-
-                return dataString
-                    .replace(/<[^>]*>/g, '')
-                    .replace(/&nbsp;/gi, ' ')
-                    .replace(/[\s\u00a0_\-.,:;!?()[\]{}"'`~|\\/]+/g, '')
-                    .length > 0;
-            });
-        }
-
-        function getEditorDefinition(key) {
-            return (Array.isArray(config.editors) ? config.editors : []).find(function (definition) {
-                return definition && definition.key === key;
-            }) || null;
-        }
-
-        function getEditorInputValue(key) {
-            var definition = getEditorDefinition(key);
-            var input = definition ? getElement(definition.inputId) : null;
-            return input ? String(input.value || '') : '';
-        }
-
-        function serializeEditorOutput(output) {
-            return JSON.stringify(output || { blocks: [] });
-        }
-
-        function normalizeEditorDataForCopy(rawValue) {
-            var normalizer = typeof window.cmsNormalizeEditorJsData === 'function'
-                ? window.cmsNormalizeEditorJsData
-                : null;
-            var normalized = normalizer ? normalizer(rawValue) : null;
-
-            if (!normalized || typeof normalized !== 'object') {
-                normalized = { blocks: [] };
-            }
-
-            return JSON.parse(JSON.stringify(normalized));
-        }
-
-        function syncEditorInputFromInstance(key) {
-            var editorState = editors[key];
-            var editorInstance;
-            var readyPromise;
-
-            if (!editorState || !editorState.instance || typeof editorState.instance.save !== 'function') {
-                return Promise.resolve(getEditorInputValue(key));
-            }
-
-            editorInstance = editorState.instance;
-            readyPromise = editorInstance.isReady && typeof editorInstance.isReady.then === 'function'
-                ? editorInstance.isReady
-                : Promise.resolve();
-
-            return readyPromise.then(function () {
-                return editorInstance.save();
-            }).then(function (output) {
-                var serialized = serializeEditorOutput(output);
-                editorState.input.value = serialized;
-                return serialized;
-            }).catch(function () {
-                return getEditorInputValue(key);
-            });
-        }
-
-        function renderEditorFromSerializedInput(key, serializedValue) {
-            var editorState = editors[key];
-            var editorInstance;
-            var readyPromise;
-            var nextData;
-
-            if (!editorState || !editorState.instance || !editorState.input) {
-                return Promise.resolve();
-            }
-
-            editorInstance = editorState.instance;
-            nextData = normalizeEditorDataForCopy(serializedValue);
-            editorState.input.value = JSON.stringify(nextData);
-
-            if (!editorInstance.blocks || typeof editorInstance.blocks.render !== 'function') {
-                return Promise.resolve();
-            }
-
-            readyPromise = editorInstance.isReady && typeof editorInstance.isReady.then === 'function'
-                ? editorInstance.isReady
-                : Promise.resolve();
-
-            return readyPromise.then(function () {
-                return editorInstance.blocks.render(nextData);
-            }).catch(function () {
-                return null;
-            });
-        }
-
-        function maybePrimeLazyEditor(definition) {
-            var initialCopy = config.initialCopyOnFirstActivate || null;
-            var sourceKey;
-            var targetKey;
-            var targetInput;
-
-            if (!initialCopy || !definition || definition._initialCopyHandled) {
-                return Promise.resolve();
-            }
-
-            sourceKey = String(initialCopy.sourceKey || '');
-            targetKey = String(initialCopy.targetKey || '');
-
-            if (definition.key !== targetKey) {
-                return Promise.resolve();
-            }
-
-            definition._initialCopyHandled = true;
-            targetInput = getElement(definition.inputId);
-            if (!targetInput || isMeaningfulEditorData(targetInput.value || '')) {
-                return Promise.resolve();
-            }
-
-            return syncEditorInputFromInstance(sourceKey).then(function (sourceValue) {
-                if (!isMeaningfulEditorData(sourceValue)) {
-                    return;
-                }
-
-                targetInput.value = sourceValue;
-            });
-        }
-
-        function copyLocalizedFieldValue(sourceId, targetId) {
-            var source = getElement(sourceId);
-            var target = getElement(targetId);
-
-            if (!source || !target) {
-                return;
-            }
-
-            target.value = source.value || '';
-            target.dispatchEvent(new Event('input', { bubbles: true }));
-            target.dispatchEvent(new Event('change', { bubbles: true }));
-        }
-
-        function initCopyAction() {
-            var copyConfig = config.copyAction || null;
-            var copyButton = copyConfig ? getElement(copyConfig.buttonId) : null;
-            var targetDefinition = copyConfig ? getEditorDefinition(copyConfig.targetEditorKey) : null;
-
-            if (!copyConfig || !copyButton) {
-                return;
-            }
-
-            copyButton.addEventListener('click', function () {
-                var targetInput = targetDefinition ? getElement(targetDefinition.inputId) : null;
-                var targetPaneButton = copyConfig.targetPaneButtonId ? getElement(copyConfig.targetPaneButtonId) : null;
-
-                copyButton.disabled = true;
-
-                Promise.resolve().then(function () {
-                    if (targetPaneButton) {
-                        targetPaneButton.click();
-                    }
-
-                    return targetDefinition ? bindEditor(targetDefinition) : null;
-                }).then(function () {
-                    return syncEditorInputFromInstance(copyConfig.sourceEditorKey);
-                }).then(function (sourceValue) {
-                    var normalizedData = normalizeEditorDataForCopy(sourceValue);
-                    var serialized = serializeEditorOutput(normalizedData);
-
-                    copyLocalizedFieldValue(copyConfig.sourceTitleId, copyConfig.targetTitleId);
-                    copyLocalizedFieldValue(copyConfig.sourceSlugId, copyConfig.targetSlugId);
-                    copyLocalizedFieldValue(copyConfig.sourceExcerptId, copyConfig.targetExcerptId);
-
-                    if (targetInput) {
-                        targetInput.value = serialized;
-                    }
-
-                    return renderEditorFromSerializedInput(copyConfig.targetEditorKey, serialized);
-                }).finally(function () {
-                    copyButton.disabled = false;
-                });
-            });
-        }
-
         function bindEditor(definition) {
             var holder = getElement(definition.holderId);
             var input = getElement(definition.inputId);
-            var editorInstance;
-            var readyPromise;
 
-            if (!definition || !holder || !input) {
-                return Promise.resolve(null);
+            if (!definition || !holder || !input || editors[definition.key]) {
+                return;
             }
-
-            if (editors[definition.key]) {
-                return Promise.resolve(editors[definition.key]);
-            }
-
-            if (bindingPromises[definition.key]) {
-                return bindingPromises[definition.key];
-            }
-
-            editorInstance = window.createCmsEditor(definition.holderId, input.value || '', config.mediaUploadUrl, config.csrfToken, {
-                onChange: function (instance) {
-                    return instance.save().then(function (output) {
-                        input.value = serializeEditorOutput(output);
-                    });
-                }
-            });
-            ensureLiveEditorChrome(holder, editorInstance);
 
             editors[definition.key] = {
                 input: input,
-                instance: editorInstance
+                instance: window.createCmsEditor(definition.holderId, input.value || '', config.mediaUploadUrl, config.csrfToken)
             };
-
-            readyPromise = editorInstance.isReady && typeof editorInstance.isReady.then === 'function'
-                ? editorInstance.isReady
-                : Promise.resolve();
-
-            bindingPromises[definition.key] = readyPromise.then(function () {
-                return editors[definition.key];
-            }).finally(function () {
-                delete bindingPromises[definition.key];
-            });
-
-            return bindingPromises[definition.key];
         }
 
         (Array.isArray(config.editors) ? config.editors : []).forEach(function (definition) {
@@ -626,36 +237,26 @@
                 var trigger = getElement(definition.activateButtonId);
                 if (trigger) {
                     trigger.addEventListener('click', function () {
-                        maybePrimeLazyEditor(definition).finally(function () {
-                            bindEditor(definition);
-                        });
+                        bindEditor(definition);
                     });
                 }
             }
         });
 
-        initCopyAction();
-
         form.addEventListener('submit', function (event) {
-            var definitions = Array.isArray(config.editors) ? config.editors : [];
+            var keys = Object.keys(editors);
 
-            if (submitLocked || definitions.length === 0) {
+            if (submitLocked || keys.length === 0) {
                 return;
             }
 
             submitLocked = true;
             event.preventDefault();
 
-            Promise.all(definitions.map(function (definition) {
-                if (!definition || !definition.key) {
-                    return Promise.resolve();
-                }
-
-                if (!editors[definition.key]) {
-                    return Promise.resolve();
-                }
-
-                return syncEditorInputFromInstance(definition.key).then(function () {
+            Promise.all(keys.map(function (key) {
+                return editors[key].instance.save().then(function (output) {
+                    editors[key].input.value = JSON.stringify(output);
+                }).catch(function () {
                     return null;
                 });
             })).finally(function () {

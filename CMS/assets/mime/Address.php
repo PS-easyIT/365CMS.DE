@@ -41,20 +41,16 @@ final class Address
 
     public function __construct(string $address, string $name = '')
     {
+        if (!class_exists(EmailValidator::class)) {
+            throw new LogicException(\sprintf('The "%s" class cannot be used as it needs "%s". Try running "composer require egulias/email-validator".', __CLASS__, EmailValidator::class));
+        }
+
+        self::$validator ??= new EmailValidator();
+
         $this->address = trim($address);
         $this->name = trim(str_replace(["\n", "\r"], '', $name));
 
-        if (class_exists(EmailValidator::class)) {
-            self::$validator ??= new EmailValidator();
-            $isValid = self::$validator->isValid(
-                $this->address,
-                class_exists(MessageIDValidation::class) ? new MessageIDValidation() : new RFCValidation()
-            );
-        } else {
-            $isValid = filter_var($this->address, FILTER_VALIDATE_EMAIL) !== false;
-        }
-
-        if (!$isValid) {
+        if (!self::$validator->isValid($this->address, class_exists(MessageIDValidation::class) ? new MessageIDValidation() : new RFCValidation())) {
             throw new RfcComplianceException(\sprintf('Email "%s" does not comply with addr-spec of RFC 2822.', $address));
         }
     }

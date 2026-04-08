@@ -1,74 +1,6 @@
 (function () {
     'use strict';
 
-    function getBootstrapModalApi() {
-        return window.bootstrap && window.bootstrap.Modal ? window.bootstrap.Modal : null;
-    }
-
-    function showModalElement(modalElement) {
-        const modalApi = getBootstrapModalApi();
-        if (modalApi) {
-            window.setTimeout(function () {
-                modalApi.getOrCreateInstance(modalElement).show();
-            }, 0);
-            return true;
-        }
-
-        modalElement.classList.add('show');
-        modalElement.style.display = 'block';
-        modalElement.removeAttribute('aria-hidden');
-        modalElement.setAttribute('aria-modal', 'true');
-        document.body.classList.add('modal-open');
-
-        let backdrop = document.querySelector('.modal-backdrop[data-seo-redirect-fallback="1"]');
-        if (!backdrop) {
-            backdrop = document.createElement('div');
-            backdrop.className = 'modal-backdrop fade show';
-            backdrop.dataset.seoRedirectFallback = '1';
-            document.body.appendChild(backdrop);
-        }
-
-        return true;
-    }
-
-    function hideModalElement(modalElement) {
-        const modalApi = getBootstrapModalApi();
-        if (modalApi) {
-            const instance = modalApi.getInstance(modalElement);
-            if (instance) {
-                instance.hide();
-            }
-            return;
-        }
-
-        modalElement.classList.remove('show');
-        modalElement.style.display = 'none';
-        modalElement.setAttribute('aria-hidden', 'true');
-        modalElement.removeAttribute('aria-modal');
-        document.body.classList.remove('modal-open');
-
-        const backdrop = document.querySelector('.modal-backdrop[data-seo-redirect-fallback="1"]');
-        if (backdrop) {
-            backdrop.remove();
-        }
-    }
-
-    function getStorageValue(key) {
-        try {
-            return window.localStorage.getItem(key);
-        } catch (_) {
-            return null;
-        }
-    }
-
-    function setStorageValue(key, value) {
-        try {
-            window.localStorage.setItem(key, value);
-        } catch (_) {
-            // Ignore storage write errors in restricted environments.
-        }
-    }
-
     function parseConfig(id) {
         const element = document.getElementById(id);
         if (!element) {
@@ -112,19 +44,6 @@
         }
 
         return normalized || '/';
-    }
-
-    function parseButtonPayload(rawValue) {
-        if (typeof rawValue !== 'string' || rawValue.trim() === '') {
-            return null;
-        }
-
-        try {
-            const parsed = JSON.parse(rawValue);
-            return parsed && typeof parsed === 'object' ? parsed : null;
-        } catch (error) {
-            return null;
-        }
     }
 
     function bindConfirmForms(root) {
@@ -179,11 +98,10 @@
         const siteCatalog = options.sites || [];
 
         function getModalInstance() {
-            const modalApi = getBootstrapModalApi();
-            if (!modalApi) {
+            if (typeof bootstrap === 'undefined' || !bootstrap.Modal) {
                 return null;
             }
-            return modalApi.getOrCreateInstance(modalElement);
+            return bootstrap.Modal.getOrCreateInstance(modalElement);
         }
 
         function updateTargetFieldVisibility() {
@@ -279,16 +197,19 @@
         }
 
         function openCreateModal() {
-            if (!showModalElement(modalElement)) {
+            const modal = getModalInstance();
+            if (!modal) {
                 return;
             }
 
             resetForm();
+            modal.show();
             window.setTimeout(() => sourceField.focus(), 120);
         }
 
         function openEditModal(payload) {
-            if (!payload || typeof payload !== 'object') {
+            const modal = getModalInstance();
+            if (!modal) {
                 return;
             }
 
@@ -324,20 +245,9 @@
                 activeField.checked = String(payload.is_active || '0') === '1' || payload.is_active === 1;
             }
 
-            if (!showModalElement(modalElement)) {
-                return;
-            }
-
+            modal.show();
             window.setTimeout(() => sourceField.focus(), 120);
         }
-
-        modalElement.querySelectorAll('[data-bs-dismiss="modal"]').forEach((button) => {
-            button.addEventListener('click', function () {
-                if (!getModalInstance()) {
-                    hideModalElement(modalElement);
-                }
-            });
-        });
 
         targetKindField.addEventListener('change', function () {
             resetSelectors();
@@ -357,33 +267,15 @@
         updateTargetFieldVisibility();
 
         if (options.mode === 'redirect-manager') {
-            document.addEventListener('click', function (event) {
-                const createButton = event.target.closest('.js-create-redirect');
-                if (createButton) {
-                    event.preventDefault();
-                    openCreateModal();
-                    return;
-                }
-
-                const editButton = event.target.closest('.js-edit-redirect');
-                if (!editButton) {
-                    return;
-                }
-
-                event.preventDefault();
-                event.stopPropagation();
-
-                const payload = parseButtonPayload(editButton.dataset.redirect || '');
-                if (!payload) {
-                    console.error('Weiterleitung konnte nicht geladen werden. Ungültige Button-Daten.');
-                    return;
-                }
-
-                try {
-                    openEditModal(payload);
-                } catch (error) {
-                    console.error('Weiterleitung konnte nicht geladen werden.', error);
-                }
+            document.querySelectorAll('.js-create-redirect').forEach((button) => button.addEventListener('click', openCreateModal));
+            document.querySelectorAll('.js-edit-redirect').forEach((button) => {
+                button.addEventListener('click', function () {
+                    try {
+                        openEditModal(JSON.parse(button.dataset.redirect || '{}'));
+                    } catch (error) {
+                        console.error('Weiterleitung konnte nicht geladen werden.', error);
+                    }
+                });
             });
         }
 
@@ -410,34 +302,23 @@
             }
 
             if (hideResolvedToggle) {
-                hideResolvedToggle.checked = getStorageValue(hideResolvedStorageKey) === '1';
+                hideResolvedToggle.checked = window.localStorage.getItem(hideResolvedStorageKey) === '1';
                 applyResolvedFilter(hideResolvedToggle.checked);
                 hideResolvedToggle.addEventListener('change', function () {
                     const hideResolved = hideResolvedToggle.checked;
-                    setStorageValue(hideResolvedStorageKey, hideResolved ? '1' : '0');
+                    window.localStorage.setItem(hideResolvedStorageKey, hideResolved ? '1' : '0');
                     applyResolvedFilter(hideResolved);
                 });
             }
 
-            document.addEventListener('click', function (event) {
-                const takeoverButton = event.target.closest('.js-takeover-log');
-                if (!takeoverButton) {
-                    return;
-                }
-
-                event.preventDefault();
-
-                const payload = parseButtonPayload(takeoverButton.dataset.log || '');
-                if (!payload) {
-                    console.error('404-Eintrag konnte nicht geladen werden. Ungültige Button-Daten.');
-                    return;
-                }
-
-                try {
-                    openEditModal(payload);
-                } catch (error) {
-                    console.error('404-Eintrag konnte nicht geladen werden.', error);
-                }
+            document.querySelectorAll('.js-takeover-log').forEach((button) => {
+                button.addEventListener('click', function () {
+                    try {
+                        openEditModal(JSON.parse(button.dataset.log || '{}'));
+                    } catch (error) {
+                        console.error('404-Eintrag konnte nicht geladen werden.', error);
+                    }
+                });
             });
         }
     }

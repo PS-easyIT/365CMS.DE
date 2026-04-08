@@ -1,105 +1,125 @@
 # ASSET-Übersicht 365CMS
-> **Stand:** 2026-04-07 | **Version:** 2.9.0 | **Status:** Aktuell
+> **Stand:** 2026-04-08 | **Version:** 2.9.1 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
-- <a>Übersicht aller Libraries</a>
-- <a>CSS-Architektur</a>
-- <a>JavaScript-Architektur</a>
-- <a>Versionierung & Cache-Busting</a>
-- <a>Build-Workflow</a>
-- <a>Synchronisation</a>
+- <a>Aktive Runtime-Bundles</a>
+- <a>Synchronisationsregeln</a>
+- <a>CSS- und JavaScript-Architektur</a>
+- <a>Build- und Update-Workflow</a>
+- <a>Neue Kandidaten außerhalb der Runtime</a>
 
 ---
 
-## Übersicht aller Libraries <!-- UPDATED: 2026-04-07 -->
-Gesamtliste der relevanten Runtime- und Legacy-Bundles. Führende Quelle für aktive Runtime-Pfade ist `CMS/assets/` – **nicht** das Root-Verzeichnis `ASSETS/`.
+## Aktive Runtime-Bundles <!-- UPDATED: 2026-04-08 -->
+Führende Quelle für **aktive Laufzeitpfade** ist `CMS/assets/` sowie der dokumentierte Sonderfall `CMS/vendor/dompdf/`. Das Root-Verzeichnis `ASSETS/` ist **Staging-/Quellmaterial**, nicht die produktive Wahrheit.
 
-| Library | Version | Zweck | Pfad (CMS/assets) | CDN/Lokal | Eingebunden in |
+| Library | Runtime-Stand | Zweck | Produktiver Pfad | Quelle in `/ASSETS` | Hinweis |
 |---|---|---|---|---|---|
-| tabler | 1.4.0 | Admin-/Member-UI | `tabler/` | lokal | Admin, Member |
-| editorjs | 2.x | Block-Editor | `editorjs/` | lokal | Admin/Frontend |
-| suneditor | 2.x | Legacy WYSIWYG | `suneditor/` | lokal | Admin |
-| gridjs | 6.x | Tabellen | `gridjs/` | lokal | Admin |
-| photoswipe | 5.x | Lightbox | `photoswipe/` | lokal | Frontend |
-| php-jwt | 6.x | JWT Tokens | `php-jwt/` | lokal | API/Auth |
-| ldaprecord | 4.x | LDAP/AD | `ldaprecord/` | lokal | Auth |
-| mailer | Symfony Mailer | Mail-Versand | `mailer/` | lokal | System |
-| tntsearch | 5.x | Volltextsuche | `tntsearchsrc/`, `tntsearchhelper/` | lokal | Suche |
-| translation | 6.x | i18n | `translation/` | lokal | System |
-| twofactorauth | 1.x | TOTP | `twofactorauth/` | lokal | Auth |
-| webauthn | 3.x | Passkeys | `webauthn/` | lokal | Auth |
-| htmlpurifier | 4.x | XSS-Schutz | `htmlpurifier/` | lokal | System |
-| melbahja-seo | 1.x | SEO-Helfer | `melbahja-seo/` | lokal | SEO |
-| carbon | 2.x | Datum/Zeit | `Carbon/` | lokal | System |
-| mime | 6.x | MIME-Erkennung | `mime/` | lokal | Mail/Upload |
-| psr | 3.x | PSR-Interfaces | `psr/` | lokal | Transitiv |
-| translation deps |  | PSR/EventDispatcher | `psr/` | lokal | Transitiv |
-| misc intern | – | css/js/images | `css/`, `js/`, `images/` | lokal | Intern |
-| referenz: msgraph | – | SDK-Notizen | `msgraph/` | lokal | Referenz, nicht aktiv |
+| `tabler` | `1.4.0` | Admin-/Member-UI | `CMS/assets/tabler/` | `ASSETS/tabler-core-1.4.0/core/dist/` | nur gebaute `css/`, `js/`, `img/` übernehmen |
+| `editorjs` | `2.31.6` | Block-Editor | `CMS/assets/editorjs/` | `ASSETS/editor.js-2.31.6/` | kuratierter Runtime-Satz aus Core- und Plugin-Builds |
+| `suneditor` | `3.0.5` | Legacy-WYSIWYG | `CMS/assets/suneditor/` | `ASSETS/suneditor-3.0.5/` | Runtime entsteht aus lokal gebautem `dist/` + `src/langs/de.js` |
+| `gridjs` | gebündelter Snapshot | Tabellen / Grids | `CMS/assets/gridjs/` | `ASSETS/gridjs/` | nur auslieferbare Build-Dateien übernehmen |
+| `photoswipe` | `5.x`-Build | Lightbox | `CMS/assets/photoswipe/` | `ASSETS/PhotoSwipe/` | nur produktive Frontend-Dateien übernehmen |
+| `Carbon` | `3.11.4` | Datum / Zeit | `CMS/assets/Carbon/` | `ASSETS/Carbon-3.11.4/src/Carbon/` | PSR-4-Verzeichnis direkt gespiegelt |
+| `ldaprecord` | `4.0.3` | LDAP / Active Directory | `CMS/assets/ldaprecord/` | `ASSETS/LdapRecord-4.0.3/src/` | kompletter Source-Ordner für PSR-4 |
+| `mailer` | `8.0.8` | Mailversand | `CMS/assets/mailer/` | `ASSETS/mailer-8.0.8/` | Symfony-Komponente |
+| `mime` | `8.0.8` | MIME / Anhänge | `CMS/assets/mime/` | `ASSETS/mime-8.0.8/` | Symfony-Komponente |
+| `translation` | `8.0.8` | i18n | `CMS/assets/translation/` | `ASSETS/translation-8.0.8/` | Symfony-Komponente |
+| `tntsearch` | `5.0.3` | Volltextsuche | `CMS/assets/tntsearchsrc/`, `CMS/assets/tntsearchhelper/` | `ASSETS/tntsearch-5.0.3/` | `src/` und `helper/helpers.php` getrennt gespiegelt |
+| `php-jwt` | gebündelter Snapshot | JWT | `CMS/assets/php-jwt/` | `ASSETS/php-jwt/` | produktiv lokal gebündelt |
+| `twofactorauth` | gebündelter Snapshot | TOTP / 2FA | `CMS/assets/twofactorauth/` | `ASSETS/twofactorauth/` | sicherheitskritisch, nur kapseln |
+| `webauthn` | gebündelter Snapshot | Passkeys / WebAuthn | `CMS/assets/webauthn/` | `ASSETS/webauthn/` | sicherheitskritisch, nur kapseln |
+| `htmlpurifier` | gebündelter Snapshot | XSS-Schutz | `CMS/assets/htmlpurifier/` | `ASSETS/htmlpurifier/` | produktive Sanitizer-Basis |
+| `melbahja-seo` | gebündelter Snapshot | SEO-Helfer | `CMS/assets/melbahja-seo/` | `ASSETS/melbahja-seo/` | mittelfristig in Core-Services zerlegbar |
+| `psr` | gebündelter Snapshot | PSR-Interfaces | `CMS/assets/psr/` | `ASSETS/psr/` | transitive Basisschnittstellen |
+| `dompdf` | `3.1.5` | PDF-Erzeugung | `CMS/vendor/dompdf/` | `ASSETS/dompdf-3.1.5/dompdf/vendor/` | **kein** `CMS/assets`-Bundle, sondern Vendor-Sonderfall |
+| `css/js/images` | intern | 365CMS-eigene Runtime-Assets | `CMS/assets/css/`, `CMS/assets/js/`, `CMS/assets/images/` | `ASSETS/css/`, `ASSETS/js/`, `ASSETS/images/` | kein Third-Party-Bundle, aber Teil der Asset-Synchronisation |
+| `msgraph` | Referenzbestand | SDK-Ablage | `CMS/assets/msgraph/` | `ASSETS/msgraph-sdk-php-2.56.0/` | aktuell nicht als aktive Runtime-Integration dokumentiert |
 
-Zusätzlich aktuell sichtbar unter `CMS/assets/`:
+Zusätzlich produktiv relevant:
 
-- `images/` als produktiver Bild-/Branding-Bestand
-- `autoload.php` als Asset-/Runtime-Autoloader
-- tiefere Bibliotheksstrukturen wie `editorjs/`, `suneditor/`, `tabler/`, `htmlpurifier/`, `photoswipe/`
-
----
-
-## CSS-Architektur <!-- UPDATED: 2026-04-07 -->
-- **Basis:** Tabler CSS (Admin) + eigene Overrides in `CMS/assets/css/`.
-- **Produktive CSS-Dateien:** `admin.css`, `admin-tabler.css`, `admin-hub-*`, `hub-sites.css`, `main.css`, `member-dashboard.css`, `cms-cookie-consent.css`.
-- **Theming:** Admin lädt Tabler + Custom CSS via `CMS/admin/partials/header.php`. Frontend-Themes liefern eigenes CSS im Theme-Ordner; globale Assets nur für gemeinsam genutzte Komponenten.
-- **Legacy:** SunEditor bringt eigenes CSS; sollte nur auf Seiten geladen werden, die ihn nutzen.
+- `CMS/assets/autoload.php` als zentraler PHP-Asset-Autoloader
+- `CMS/core/VendorRegistry.php` als Diagnose-/Ladevertrag für gebündelte Libraries
+- `CMS/core/Services/PdfService.php` als dokumentierter Dompdf-Einstieg
 
 ---
 
-## JavaScript-Architektur <!-- UPDATED: 2026-04-07 -->
-- **Module:** Lokale JS-Utilities unter `CMS/assets/js/` (u. a. `admin.js`, `admin-media-integrations.js`, `member-dashboard.js`, `cookieconsent-init.js`, `photoswipe-init.js`, `admin-system-cron.js`).
-- **Global Objects:** `window.cms` (Admin/Frontend-Hilfen), `window.EditorJS`, `window.CMSCookieConsent`.
-- **Event-Bus:** Hooks laufen serverseitig; JS-seitig werden Events über DOM/Custom Events und modulare Initialisierer gekapselt.
-- **Admin-Assets:** Werden in `CMS/admin/partials/header.php/footer.php` basierend auf `$pageAssets` injiziert.
+## Synchronisationsregeln <!-- UPDATED: 2026-04-08 -->
 
-Wichtige produktive JS-Zonen:
+Die Synchronisation von `/ASSETS` nach `/CMS/assets` ist **selektiv**, nicht spiegelnd. Ein vollständiges Rekursiv-Kopieren ganzer Upstream-Repositories würde Tests, Build-Tooling, `node_modules`, Dokumentation oder falsche Laufzeitpfade mit in die Runtime tragen.
 
-- globale Admin-Basis
-- Content-/Editor-Fläche
-- SEO-/Redirect-Fläche
-- Theme-/Plugin-Fläche
-- Member-/Frontend-Ergänzungen
-- Monitoring-/Betriebsinteraktion
+Wichtige Regeln im aktuellen Stand:
+
+1. **`ASSETS/` ist Staging, `CMS/assets/` ist Runtime.**
+2. **Frontend-Bundles nur als Build-Artefakte übernehmen.** Das gilt insbesondere für `tabler`, `gridjs`, `PhotoSwipe`, `editor.js` und `suneditor`.
+3. **`editorjs` bleibt kuratiert.** Die Runtime orientiert sich an `CMS/core/Services/EditorJs/EditorJsAssetService.php`, nicht am gesamten Plugin-Baum.
+4. **`suneditor` ist ein Sonderfall.** Das aktuelle Source-Paket unter `ASSETS/suneditor-3.0.5/` enthält keinen fertigen `dist/`-Stand im Snapshot. Für die Runtime müssen daher `suneditor.min.js` und `suneditor.min.css` zuerst lokal gebaut und anschließend nach `CMS/assets/suneditor/` kopiert werden; die Sprachdatei `de.js` kommt direkt aus `src/langs/`.
+5. **`dompdf` bleibt außerhalb von `CMS/assets/`.** Der produktive Pfad ist `CMS/vendor/dompdf/`, geladen über `CMS/vendor/dompdf/autoload.php`.
+6. **Sicherheits- und Standard-Bibliotheken nicht umstrukturieren, solange der Autoload-Vertrag stabil bleiben muss.** Das betrifft u. a. `htmlpurifier`, `php-jwt`, `webauthn`, `twofactorauth`, `ldaprecord`, `mailer`, `mime` und `translation`.
 
 ---
 
-## Versionierung & Cache-Busting <!-- UPDATED: 2026-04-07 -->
-- **Strategie:** Query-Parameter mit Versionsstring aus `CMS_VERSION` oder Asset-Build-Timestamp (manuell gepflegt in Templates).
-- **Empfehlung:** Bei Updates von Bibliotheken und nativen Assets `filemtime()` oder konsistente Versionsparameter nutzen; statische Dateien mit Hash im Dateinamen bevorzugen, wenn neu gebaut.
+## CSS- und JavaScript-Architektur <!-- UPDATED: 2026-04-08 -->
+
+### CSS
+
+- **Basis:** `Tabler` plus 365CMS-spezifische Overrides in `CMS/assets/css/`
+- **Produktive Styles:** `admin.css`, `admin-tabler.css`, `admin-hub-*`, `hub-sites.css`, `main.css`, `member-dashboard.css`, `cms-cookie-consent.css`
+- **Editor-Sonderfälle:** `SunEditor` bringt eigenes CSS mit; `Editor.js` nutzt eigene Tool-/Block-Assets
+- **Theme-Trennung:** Themes liefern zusätzliches Frontend-CSS in `CMS/themes/<theme>/`; globale Runtime-Assets bleiben davon getrennt
+
+### JavaScript
+
+- **Zentrale Runtime-Zone:** `CMS/assets/js/`
+- **Wichtige produktive Dateien:** `admin.js`, `admin-content-editor.js`, `admin-media-integrations.js`, `admin-seo-redirects.js`, `admin-system-cron.js`, `member-dashboard.js`, `photoswipe-init.js`, `cookieconsent-init.js`
+- **Editor-Zonen:**
+  - `Editor.js` = kuratierter Block-Editor mit mehreren Plugin-Builds
+  - `SunEditor` = Legacy-WYSIWYG für HTML-Eingabe
+- **Ladeverträge:** Admin-/Frontend-Templates referenzieren Assets weiterhin manuell über `ASSETS_URL`, `SITE_URL . '/assets'`, `cms_asset_url()` oder `filemtime()`-basierte Varianten
 
 ---
 
-## Build-Workflow <!-- UPDATED: 2026-04-07 -->
-- Kein Vite/Webpack im Repo. Assets werden manuell verwaltet.
-- Minimale Schritte beim Aktualisieren:
-  1) Neue Version nach `CMS/assets/<lib>/` kopieren.
-  2) `CMS/assets/autoload.php` prüfen, ob Pfade gleich bleiben.
-  3) In Admin-/Frontend-Templates Versionsparameter anpassen.
-  4) Falls JS/CSS gebündelt werden muss: extern bauen und minifizierte Artefakte ablegen (Hash im Namen bevorzugt).
-- Falls ein Vendor-Asset perspektivisch ersetzt werden soll: zuerst [ASSETS_OwnAssets.md](ASSETS_OwnAssets.md) als Migrations-Checkliste aktualisieren, dann Wrapper/Fallbacks im Core einziehen.
+## Build- und Update-Workflow <!-- UPDATED: 2026-04-08 -->
+
+Es gibt **keine zentrale Repo-weite Bundling-Pipeline**. Asset-Updates sind weiterhin ein dokumentierter manueller bzw. teilmanueller Pfad.
+
+Empfohlener Ablauf pro Update:
+
+1. Quellstand in `/ASSETS` prüfen
+2. Nur den tatsächlich produktiven Runtime-Scope nach `CMS/assets/` bzw. `CMS/vendor/` übernehmen
+3. `CMS/assets/autoload.php` sowie Core-Verträge (`VendorRegistry`, `PdfService`, Editor-Services) gegen Pfadänderungen prüfen
+4. Falls ein Upstream nur Source-Dateien enthält, den Build lokal erzeugen und **erst dann** die Artefakte übernehmen
+5. Doku synchron halten:
+   - `DOC/ASSET.md`
+   - `DOC/assets/README.md`
+   - `DOC/ASSETS_OwnAssets.md`
+   - `DOC/ASSETS_NEW.md` für neue Kandidaten außerhalb der Runtime
 
 ---
 
-## Synchronisation <!-- UPDATED: 2026-04-07 -->
-- Quelle der Wahrheiten: `CMS/assets/` (Runtime) + `DOC/assets/README.md` + `DOC/FILELIST.md`.
-- **Excel-Abgleich:** `DOC/assets/365CMS_Asset_Uebersicht.xlsx` regelmäßig mit obiger Tabelle synchron halten.
-- **Staging vs. Prod:** `ASSETS/` nur als Ablage für Quell-/Importstände; produktiver Autoload ausschließlich `CMS/assets/autoload.php`.
-- führende Detaildoku: `DOC/assets/README.md` plus die jeweiligen Einzel-READMEs
-- Roadmap für Eigenersatz: `DOC/ASSETS_OwnAssets.md`
+## Neue Kandidaten außerhalb der Runtime <!-- UPDATED: 2026-04-08 -->
+
+Folgende Pakete liegen unter `/ASSETS`, sind aber **nicht** produktiv in `CMS/assets/` bzw. `CMS/vendor/` integriert:
+
+- `symfony/ai-platform` (`ASSETS/ai-platform-0.6.0/`)
+- `stichoza/google-translate-php` (`ASSETS/google-translate-php-5.3.0/`)
+- weitere Beobachtungskandidaten wie `cache-8.0.8`, `monolog-bundle-4.0.2`, `msgraph-sdk-php-2.56.0`
+
+Für diese Kandidaten gilt:
+
+- **nicht blind in die Runtime kopieren**
+- zunächst Service-/Adapter-Schnittstellen im Core definieren
+- transitive Abhängigkeiten vollständig bewerten
+- Betriebsrisiken, Provider-Abhängigkeiten und Secrets-/Rate-Limits vor Integration dokumentieren
+
+Die ausführliche Bewertungs- und Integrationsdoku dazu liegt in [ASSETS_NEW.md](ASSETS_NEW.md).
 
 ---
 
-## Audit-Notiz zur Runtime-Integration <!-- UPDATED: 2026-04-07 -->
+## Audit-Notiz zur Runtime-Integration <!-- UPDATED: 2026-04-08 -->
+
 - Die produktive PHP-Dependency-Ladung erfolgt überwiegend über `CMS/assets/autoload.php`.
-- Aktuelle Ausnahme: PDF-Erzeugung lädt Dompdf separat aus `CMS/vendor/dompdf/autoload.php`.
-- Admin-, Member- und Frontend-nahe Komponenten verwenden aktuell mehrere Pfadmuster parallel: `ASSETS_URL`, `SITE_URL . '/assets'`, feste Versionsstrings und `filemtime()`.
-- Besonders update-sensibel sind verbliebene Altbestände und ihre Doku-/Monitoring-Verweise, insbesondere bei `elfinder/`, `simplepie/` und den dokumentierten, aber nicht mehr führenden Legacy-Pfaden unter `DOC/assets/`.
-- Für künftige Pflege ist eine zentrale Asset-/Versionierungs-Registry empfehlenswert, damit Pfadlogik, Existenzprüfung und Cache-Busting nicht über viele Dateien verstreut bleiben.
-- Wichtig für die aktuelle Runtime: Die gebündelten Symfony-Komponenten unter `CMS/assets/mailer`, `CMS/assets/mime` und `CMS/assets/translation` deklarieren in ihren Composer-Metadaten `PHP >= 8.4`; 365CMS hat seine offizielle Mindestplattform deshalb auf PHP 8.4 angehoben und validiert diese Manifeste nun zentral im Bootstrap vor dem regulären Service-Start.
+- Die dokumentierte Ausnahme bleibt `CMS/vendor/dompdf/autoload.php`.
+- Die produktiv eingebundenen Symfony-Bundles `mailer`, `mime` und `translation` deklarieren `PHP >= 8.4`; diese Mindestplattform ist deshalb Teil des offiziellen Runtime-Vertrags.
+- Besonders update-sensibel bleiben Editor- und UI-Bundles mit Build-Artefakten (`editorjs`, `suneditor`, `tabler`, `photoswipe`, `gridjs`).
+- Für künftige Pflege wäre eine kleine zentrale Asset-/Versionierungs-Registry sinnvoll, damit Pfadlogik, Existenzprüfung und Cache-Busting nicht über viele Dateien verstreut bleiben.
