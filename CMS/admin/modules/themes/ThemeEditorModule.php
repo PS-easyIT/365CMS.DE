@@ -72,6 +72,7 @@ class ThemeEditorModule
                     if (str_contains($fileContent, "\0")) {
                         $fileContent = '';
                         $fileWarning = 'Die ausgewählte Datei enthält Binärdaten und kann hier nicht sicher bearbeitet werden.';
+                        $fileMeta = $this->markFileMetaAsReadOnly($fileMeta, $fileWarning);
                     }
                 }
 
@@ -394,6 +395,19 @@ class ThemeEditorModule
             'is_editable' => $isEditable,
             'save_disabled_reason' => $reason,
         ];
+    }
+
+    /**
+     * @param array<string, mixed>|null $fileMeta
+     * @return array<string, mixed>
+     */
+    private function markFileMetaAsReadOnly(?array $fileMeta, string $reason): array
+    {
+        $fileMeta = is_array($fileMeta) ? $fileMeta : [];
+        $fileMeta['is_editable'] = false;
+        $fileMeta['save_disabled_reason'] = trim($reason);
+
+        return $fileMeta;
     }
 
     private function formatBytes(int $bytes): string

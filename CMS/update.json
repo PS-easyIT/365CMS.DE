@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.9.10",
+  "version": "2.9.19",
   "min_php": "8.4",
   "released": "2026-04-08",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 2.9.10: 365CMS korrigiert im Font-Manager-Asset den Delete-Submitter-Vertrag für moderne Browser, sodass Bestätigungs-Löschungen nicht mehr an `requestSubmit()` mit einem Nicht-Submit-Button scheitern, und dokumentiert den Fund in Design-, Asset- und Bewertungs-Audit sowie in der Release-Doku.",
+  "notes": "Release-Stand 2.9.19: 365CMS navigiert im Theme-Explorer Dateiklicks jetzt hostneutral über eine relative Admin-Basis-Route statt über an `SITE_URL` gehängte Explorer-Links, damit Dateiwechsel unter Proxy-, Alternativhost- und lokaler Dev-Umgebung nicht auf eine falsche Origin springen, und dokumentiert den Fund im Design- und Bewertungs-Audit sowie in der Release-Doku.",
   "critical": false
 }

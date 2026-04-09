@@ -2,7 +2,7 @@
 
 <div align="center">
 
-[![Version](https://img.shields.io/badge/version-2.9.10-blue.svg)](Changelog.md)
+[![Version](https://img.shields.io/badge/version-2.9.19-blue.svg)](Changelog.md)
 ![Status](https://img.shields.io/badge/status-stable-16a34a)
 ![PHP](https://img.shields.io/badge/PHP-8.4%2B-777BB4?logo=php&logoColor=white)
 ![MySQL](https://img.shields.io/badge/MySQL-5.7%2B-4479A1?logo=mysql&logoColor=white)
@@ -91,12 +91,12 @@ Die Audits wurden mit OWASP-nahen Prüfwerkzeugen & AI Audit Tools von Snyk, Ref
 | **PHP / Best Practices** | **96,22** |
 | **Gesamt** | **96,35** |
 
-### 🆕 Aktuelle 2.9.10-Highlights
+### 🆕 Aktuelle 2.9.19-Highlights
 
-- **Font-Manager-Löschungen laufen in modernen Browsern wieder belastbar:** `CMS/assets/js/admin-font-manager.js` übergibt an `requestSubmit()` keinen sichtbaren Delete-Trigger vom Typ `button` mehr als unzulässigen Submitter.
-- **Confirm-Dialog und Formular-Submit sprechen wieder dieselbe Sprache:** Der Delete-Flow nutzt nach Bestätigung sauber den nativen Formular-Submit, statt an einem reinen Trigger-/Submitter-Vertragsbruch zu scheitern.
-- **Design- und Asset-Audit direkt ergänzt:** `DOC/audit/AdminAudit-Design.md` und `DOC/audit/AssetAudit-Design.md` dokumentieren den Font-Manager-Delete-Fund jetzt explizit.
-- **Release- und Bewertungsdoku mitgezogen:** `README.md`, `Changelog.md`, `CMS/core/Version.php`, `CMS/update.json` und `DOC/audit/BEWERTUNG.md` sind konsistent auf **`2.9.10`** synchronisiert.
+- **Theme-Explorer-Dateiklicks bleiben hostneutral:** `CMS/admin/views/themes/editor.php` verwendet für den Dateibaum jetzt eine relative Explorer-Basis-Route statt einer an `SITE_URL` gehängten URL.
+- **Kein Origin-Sprung mehr beim Dateiwechsel:** Unter Proxy-, Alternativhost- oder lokaler Dev-Umgebung bleibt das Öffnen von Theme-Dateien im aktuellen Admin-Kontext statt auf eine abweichende Basis-URL zu springen.
+- **Design-Audit direkt ergänzt:** `DOC/audit/AdminAudit-Design.md` dokumentiert den hostneutralen Theme-Explorer-Linkvertrag jetzt explizit.
+- **Release- und Bewertungsdoku mitgezogen:** `README.md`, `Changelog.md`, `CMS/core/Version.php`, `CMS/update.json` und `DOC/audit/BEWERTUNG.md` sind konsistent auf **`2.9.19`** synchronisiert.
 
 ### 🧩 Kernfunktionen im Überblick
 

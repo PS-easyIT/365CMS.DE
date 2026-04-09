@@ -1,4 +1,4 @@
-﻿﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.10-blue.svg)](https://shields.io/)
+﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.19-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -17,6 +17,96 @@
 ---
 
 ## 📜 Vollständige Versionshistorie
+
+---
+
+### v2.9.19 — 08. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.19** | 🔴 fix | Admin/Design | **`CMS/admin/views/themes/editor.php` nutzt für Theme-Explorer-Dateiklicks jetzt eine hostneutrale relative Explorer-Basis statt einer `SITE_URL`-verketteten Route**: Dateiwechsel bleiben damit auch unter Proxy-, Alternativhost- und lokalen Umgebungen im aktuellen Admin-Kontext. |
+| **2.9.19** | 🔵 docs | Audit/Design | **`DOC/audit/AdminAudit-Design.md` und `DOC/audit/BEWERTUNG.md` dokumentieren den hostneutralen Theme-Explorer-Linkvertrag jetzt direkt im laufenden Audit**: Der Explorer-/Origin-Bruch ist damit nicht nur behoben, sondern auch nachvollziehbar in der Audit-Spur verankert. |
+| **2.9.19** | 🔵 docs | Release | **`README.md`, `Changelog.md`, `CMS/core/Version.php` und `CMS/update.json` wurden auf den Release-Stand `2.9.19` synchronisiert**: Versionsbadge, aktuelle Highlights und Update-Metadaten spiegeln damit denselben Theme-Explorer-Fix-Batch. |
+
+---
+
+### v2.9.18 — 08. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.18** | 🔴 fix | Admin/Auth | **`CMS/core/Services/CmsAuthPageService.php` speichert interne Loginpage-Logo-Pfade jetzt hostneutral statt sie auf `SITE_URL` zu verabsolutieren**: Auth-Logos bleiben damit auch unter Proxy-, Alternativhost- und lokalen Umgebungen auf der aktuellen Origin erreichbar. |
+| **2.9.18** | 🔵 docs | Audit/Design | **`DOC/audit/AdminAudit-Design.md` und `DOC/audit/BEWERTUNG.md` dokumentieren den hostneutralen Logo-Pfadvertrag der CMS Loginpage jetzt direkt im laufenden Audit**: Der Pfad-/Origin-Bruch ist damit nicht nur behoben, sondern auch nachvollziehbar im Audit-Verlauf verankert. |
+| **2.9.18** | 🔵 docs | Release | **`README.md`, `Changelog.md`, `CMS/core/Version.php` und `CMS/update.json` wurden auf den Release-Stand `2.9.18` synchronisiert**: Versionsbadge, aktuelle Highlights und Update-Metadaten spiegeln damit denselben Loginpage-Logo-Fix-Batch. |
+
+---
+
+### v2.9.17 — 08. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.17** | 🔴 fix | Admin/Landing | **`CMS/admin/views/landing/page.php` nutzt für die Landing-Tab-Navigation jetzt die vorbereiteten relativen Admin-Routen direkt statt `SITE_URL`-verketteter Links**: Header-, Content-, Footer-, Design- und Plugin-Tabs bleiben damit auch unter Proxy-, Alternativhost- und lokalen Umgebungen im aktuellen Admin-Kontext. |
+| **2.9.17** | 🔵 docs | Audit/Design | **`DOC/audit/AdminAudit-Design.md` und `DOC/audit/BEWERTUNG.md` dokumentieren den hostneutralen Landing-Navigationsvertrag jetzt direkt im laufenden Audit**: Der Tab-/Host-Bruch ist damit nicht nur behoben, sondern auch nachvollziehbar in der Audit-Spur verankert. |
+| **2.9.17** | 🔵 docs | Release | **`README.md`, `Changelog.md`, `CMS/core/Version.php` und `CMS/update.json` wurden auf den Release-Stand `2.9.17` synchronisiert**: Versionsbadge, aktuelle Highlights und Update-Metadaten spiegeln damit denselben Landing-Navigations-Fix-Batch. |
+
+---
+
+### v2.9.16 — 08. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.16** | 🔴 fix | Admin/Landing | **`CMS/admin/modules/landing/LandingPageModule.php` reicht im Design-Tab wieder sowohl `design` als auch `colors` an die View durch**: Gespeicherte Landing-Farbwerte erscheinen damit nach Reload im Admin wieder korrekt, statt fälschlich auf die Fallback-Defaults zu kippen. |
+| **2.9.16** | 🔵 docs | Audit/Design | **`DOC/audit/AdminAudit-Design.md` und `DOC/audit/BEWERTUNG.md` dokumentieren den wiederhergestellten Landing-Design-Datenvertrag jetzt direkt im laufenden Audit**: Der Reload-/Fallback-Bruch ist damit nicht nur behoben, sondern auch sauber im Audit-Verlauf verankert. |
+| **2.9.16** | 🔵 docs | Release | **`README.md`, `Changelog.md`, `CMS/core/Version.php` und `CMS/update.json` wurden auf den Release-Stand `2.9.16` synchronisiert**: Versionsbadge, aktuelle Highlights und Update-Metadaten spiegeln damit denselben Landing-Design-Fix-Batch. |
+
+---
+
+### v2.9.15 — 08. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.15** | 🔴 fix | Admin/Design | **`CMS/admin/views/themes/cms-loginpage.php` nutzt für das Admin-Formular der CMS Loginpage jetzt einen hostneutralen Same-Route-POST statt eines harten `SITE_URL`-Ziels**: Save-Requests bleiben damit auch unter Proxy-, Alternativhost- und lokalen Umgebungen im aktuellen Admin-Kontext, statt auf einen abweichenden Host zu springen. |
+| **2.9.15** | 🔵 docs | Audit/Design | **`DOC/audit/AdminAudit-Design.md` und `DOC/audit/BEWERTUNG.md` dokumentieren den harten CMS-Loginpage-Form-Action-Vertrag jetzt direkt im laufenden Audit**: Der Host-/Formular-Bruch ist damit nicht nur behoben, sondern auch belastbar im Design-Strang festgehalten. |
+| **2.9.15** | 🔵 docs | Release | **`README.md`, `Changelog.md`, `CMS/core/Version.php` und `CMS/update.json` wurden auf den Release-Stand `2.9.15` synchronisiert**: Versionsbadge, aktuelle Highlights und Update-Metadaten spiegeln damit denselben Loginpage-Formular-Fix-Batch. |
+
+---
+
+### v2.9.14 — 08. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.14** | 🔴 fix | Admin/Design | **`CMS/admin/views/themes/cms-loginpage.php` rendert Shell-basierte Flash- und Fehlermeldungen jetzt wieder sichtbar**: Save-Erfolge, CSRF-Ablehnungen und Validierungsfehler der CMS Loginpage verschwinden damit nach dem Redirect nicht länger stumm, sondern landen wieder direkt am Formular. |
+| **2.9.14** | 🔵 docs | Audit/Design | **`DOC/audit/AdminAudit-Design.md` und `DOC/audit/BEWERTUNG.md` dokumentieren den stummen CMS-Loginpage-Formularvertrag jetzt direkt im laufenden Audit**: Der View-/Shell-Bruch ist damit nicht nur behoben, sondern auch belastbar im Design-Strang festgehalten. |
+| **2.9.14** | 🔵 docs | Release | **`README.md`, `Changelog.md`, `CMS/core/Version.php` und `CMS/update.json` wurden auf den Release-Stand `2.9.14` synchronisiert**: Versionsbadge, aktuelle Highlights und Update-Metadaten spiegeln damit denselben Loginpage-Fix-Batch. |
+
+---
+
+### v2.9.13 — 08. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.13** | 🔴 fix | Assets/EditorJS | **`CMS/assets/js/admin-content-editor.js` blockt doppelte Submit-Auslöser in den Page- und Post-Editoren jetzt explizit**: Während die laufende Editor.js-Serialisierung noch aktiv ist, fallen weitere Save-Auslöser nicht mehr ohne `preventDefault()` in einen zusätzlichen nativen Browser-POST zurück. |
+| **2.9.13** | 🔵 docs | Audit/EditorJS | **`DOC/audit/AssetAudit-EditorJS.md`, `DOC/audit/AdminAudit-Seiten.md`, `DOC/audit/AdminAudit-Beitraege.md` und `DOC/audit/BEWERTUNG.md` dokumentieren den Shared-Submit-Fund jetzt direkt im laufenden Audit**: Der Race-Condition-Pfad zwischen Shared-Asset und Content-Editoren ist damit nicht nur behoben, sondern auch belastbar im Audit-Strang verankert. |
+| **2.9.13** | 🔵 docs | Release | **`README.md`, `Changelog.md`, `CMS/core/Version.php` und `CMS/update.json` wurden auf den Release-Stand `2.9.13` synchronisiert**: Versionsbadge, aktuelle Highlights und Update-Metadaten spiegeln damit denselben EditorJS-Fix-Batch. |
+
+---
+
+### v2.9.12 — 08. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.12** | 🔴 fix | Admin/Design | **`CMS/admin/modules/landing/LandingPageModule.php` liefert Design- und Farbdaten für den Landing-Page-Tab `design` jetzt wieder im von der View erwarteten Format aus**: Gespeicherte Hero-, Karten-, Footer- und Content-Designwerte erscheinen damit nach dem Reload im Admin wieder korrekt, statt fälschlich wie verlorene Defaults auszusehen. |
+| **2.9.12** | 🔵 docs | Audit/Design | **`DOC/audit/AdminAudit-Design.md` und `DOC/audit/BEWERTUNG.md` dokumentieren den Landing-Design-Datenvertragsbruch jetzt direkt im laufenden Audit**: Der Reload-Fehler zwischen Modul und View ist damit nicht nur behoben, sondern auch belastbar im Design-Strang festgehalten. |
+| **2.9.12** | 🔵 docs | Release | **`README.md`, `Changelog.md`, `CMS/core/Version.php` und `CMS/update.json` wurden auf den Release-Stand `2.9.12` synchronisiert**: Versionsbadge, aktuelle Highlights und Update-Metadaten spiegeln damit denselben Landing-Design-Fix-Batch. |
+
+---
+
+### v2.9.11 — 08. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.11** | 🔴 fix | Admin/Design | **`CMS/admin/modules/themes/ThemeEditorModule.php` sperrt erkannte Binärdateien im Theme-Explorer jetzt konsequent als read-only**: Kleine Dateien mit erlaubter Endung, deren Inhalt Binärdaten enthält, zeigen damit nicht länger einen leeren Sicherheits-Editor mit weiter aktivem Save-Pfad, der den Originalinhalt versehentlich überschreiben könnte. |
+| **2.9.11** | 🔵 docs | Audit/Design | **`DOC/audit/AdminAudit-Design.md`, `DOC/audit/AssetAudit-Design.md` und `DOC/audit/BEWERTUNG.md` dokumentieren den Theme-Explorer-Binärdatei-Fund jetzt direkt im laufenden Audit**: Der Zustandsbruch zwischen Modul, View und Asset ist damit nicht nur behoben, sondern auch belastbar im Design-/Asset-Strang festgehalten. |
+| **2.9.11** | 🔵 docs | Release | **`README.md`, `Changelog.md`, `CMS/core/Version.php` und `CMS/update.json` wurden auf den Release-Stand `2.9.11` synchronisiert**: Versionsbadge, aktuelle Highlights und Update-Metadaten spiegeln damit denselben Theme-Explorer-Fix-Batch. |
 
 ---
 

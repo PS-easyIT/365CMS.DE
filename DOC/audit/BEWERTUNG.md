@@ -116,6 +116,60 @@ Der aktuelle Nachpflege-Stand umfasst damit **465 umgesetzte Batches**, davon we
 |---|---|---|---|
 | `CMS/assets/js/admin-font-manager.js`, `DOC/audit/AdminAudit-Design.md`, `DOC/audit/AssetAudit-Design.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Der Font-Manager-Delete-Flow übergibt an `requestSubmit()` keinen Nicht-Submit-Button mehr als fehlerhaften Submitter, sondern nutzt für Confirm-Löschungen sauber den nativen Formular-Submit ohne unzulässigen Trigger. | Lokale Font-Löschungen scheitern damit in modernen Browsern nicht mehr an einem reinen Asset-/Submitter-Vertragsbruch zwischen Confirm-Dialog, `type="button"` und `requestSubmit()`. Die Aggregate bleiben für diesen kleinen Design-/Asset-Batch stabil. |
 
+### Delta Folge-Batch 471
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/themes/ThemeEditorModule.php`, `DOC/audit/AdminAudit-Design.md`, `DOC/audit/AssetAudit-Design.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Der Theme-Explorer zieht erkannte Binärdateien jetzt konsequent auf denselben Readonly-Vertrag wie andere unsicher bearbeitbare Dateien: Sobald ein erlaubter Dateityp Binärdaten enthält, sperrt das Modul den Save-Zustand statt nur eine Warnung über leerem Editor-Inhalt anzuzeigen. | Der Explorer verliert damit einen stillen Überschreibungsfehler zwischen Modul, View und Asset: Binäre Theme-Dateien mit erlaubter Endung können nach dem Laden nicht mehr versehentlich leer zurückgespeichert werden, nur weil der Editor den Inhalt aus Sicherheitsgründen zuvor entfernt hat. Die Aggregate bleiben für diesen kleinen Design-/Explorer-Batch stabil. |
+
+### Delta Folge-Batch 472
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/landing/LandingPageModule.php`, `DOC/audit/AdminAudit-Design.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Der Landing-Page-Tab `design` liefert gespeicherte Farb- und Layoutwerte jetzt wieder in derselben flachen Struktur aus, die `CMS/admin/views/landing/page.php` beim Rendern erwartet, statt `design` und `colors` noch einmal unter `design` zu verschachteln. | Landing-Farben und Layoutoptionen wirken im Admin damit nicht länger wie „gespeichert, aber verschwunden“: Nach einem erfolgreichen Save zeigt der Design-Tab beim Reload wieder die tatsächlich persistierten Werte statt fälschlicher Defaults. Die Aggregate bleiben für diesen kleinen Design-Batch stabil. |
+
+### Delta Folge-Batch 473
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/assets/js/admin-content-editor.js`, `DOC/audit/AssetAudit-EditorJS.md`, `DOC/audit/AdminAudit-Seiten.md`, `DOC/audit/AdminAudit-Beitraege.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Der gemeinsame Editor.js-Submit-Handler blockt Folge-Submits jetzt explizit, sobald bereits eine Save-Serialisierung läuft, statt bei aktivem `submitLocked` ohne `preventDefault()` aus dem Event zurückzufallen. | Seiten- und Beitragseditoren verlieren damit einen echten Race-Condition-Pfad im Shared-Asset: Hektische Doppelklicks oder doppelte Submit-Auslöser schicken nicht mehr parallel einen zweiten nativen POST los, während der erste Request noch die Editor.js-Daten einsammelt. Die Aggregate bleiben für diesen kleinen Shared-Asset-Batch stabil. |
+
+### Delta Folge-Batch 474
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/themes/cms-loginpage.php`, `DOC/audit/AdminAudit-Design.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Die CMS-Loginpage-View rendert Shell-basierte Flash-/Fehlerhinweise jetzt wieder sichtbar über das gemeinsame `flash-alert.php`, statt Save-Erfolge, CSRF-Ablehnungen und Validierungsfehler nach dem PRG-Flow still ins Leere laufen zu lassen. | Der Loginpage-Admin verliert damit einen echten UX-/Runtime-Bruch: Einstellungen wirken nach dem Speichern nicht mehr wie kommentarlos „nichts passiert“, sondern melden Erfolg oder Fehler wieder belastbar direkt am Formular. Die Aggregate bleiben für diesen kleinen Design-/View-Batch stabil. |
+
+### Delta Folge-Batch 475
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/themes/cms-loginpage.php`, `DOC/audit/AdminAudit-Design.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Das CMS-Loginpage-Formular postet jetzt hostneutral an dieselbe Admin-Route, statt per hart verdrahtetem `SITE_URL`-Action-Ziel von der aktuellen Laufzeit-URL wegzuspringen. | Loginpage-Saves bleiben damit auch unter Proxy-, Alternativhost- und lokaler Dev-Umgebung im aktuellen Admin-Kontext, statt versehentlich auf einen abweichenden Host oder eine falsche Basis-URL zu kippen. Die Aggregate bleiben für diesen kleinen Design-/Formular-Batch stabil. |
+
+### Delta Folge-Batch 476
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/landing/LandingPageModule.php`, `DOC/audit/AdminAudit-Design.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Der Landing-Design-Tab liefert an die View wieder gemeinsam `design`- und `colors`-Daten aus, statt im Live-Stand nur das Layout-Array zu reichen und alle Farbfelder implizit in ihre Fallback-Defaults laufen zu lassen. | Gespeicherte Landing-Farbwerte bleiben nach Reload und PRG-Redirect jetzt wieder sichtbar im Admin, statt wie „nicht gespeichert“ zu wirken. Die Aggregate bleiben für diesen kleinen Design-/Landing-Batch stabil. |
+
+### Delta Folge-Batch 477
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/landing/page.php`, `DOC/audit/AdminAudit-Design.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Die Landing-Tab-Navigation verwendet jetzt die bereits vorbereiteten relativen Admin-Routen direkt, statt sie erneut an `SITE_URL` zu hängen und damit den aktuellen Host zu verhärten. | Tab-Wechsel innerhalb des Landing-Admins bleiben damit auch unter Proxy-, Alternativhost- und lokaler Dev-Umgebung auf dem aktuellen Host, statt unbeabsichtigt auf eine andere Basis-URL zu springen. Die Aggregate bleiben für diesen kleinen Design-/Navigation-Batch stabil. |
+
+### Delta Folge-Batch 478
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/core/Services/CmsAuthPageService.php`, `DOC/audit/AdminAudit-Design.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Die CMS-Loginpage speichert interne Logo-Pfade jetzt hostneutral, statt `/uploads/...` beim Persistieren in eine feste `SITE_URL`-Absolute umzuschreiben. | Auth-Logos bleiben damit auch unter Proxy-, Alternativhost- und lokaler Dev-Umgebung auf der aktuellen Origin erreichbar, statt unnötig auf einen abweichenden Host verdrahtet zu werden. Die Aggregate bleiben für diesen kleinen Design-/Auth-Batch stabil. |
+
+### Delta Folge-Batch 479
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/themes/editor.php`, `DOC/audit/AdminAudit-Design.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Der Theme-Explorer nutzt für Dateibaum-Links jetzt eine hostneutrale relative Admin-Basis, statt Dateiklicks über eine an `SITE_URL` gehängte Explorer-URL zu routen. | Dateiwechsel im Theme-Explorer bleiben damit auch unter Proxy-, Alternativhost- und lokaler Dev-Umgebung im aktiven Admin-Kontext, statt auf eine abweichende Origin zu springen. Die Aggregate bleiben für diesen kleinen Design-/Explorer-Batch stabil. |
+
 ### Delta Folge-Batch 465
 
 | Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |

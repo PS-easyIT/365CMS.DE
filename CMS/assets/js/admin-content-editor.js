@@ -1105,12 +1105,18 @@
         form.addEventListener('submit', function (event) {
             var keys = Object.keys(editors);
 
-            if (submitLocked || keys.length === 0) {
+            event.preventDefault();
+
+            if (submitLocked) {
+                return;
+            }
+
+            if (keys.length === 0) {
+                form.submit();
                 return;
             }
 
             submitLocked = true;
-            event.preventDefault();
 
             Promise.all(keys.map(function (key) {
                 return editors[key].instance.save().then(function (output) {

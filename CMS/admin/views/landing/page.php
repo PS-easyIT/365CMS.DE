@@ -44,7 +44,7 @@ $escape = static fn (mixed $value): string => htmlspecialchars((string) $value, 
                     ?>
                     <li class="nav-item">
                         <a class="nav-link<?php echo $activeTab === $tabKey ? ' active' : ''; ?>"
-                           href="<?php echo htmlspecialchars(SITE_URL . $tabUrl); ?>">
+                           href="<?php echo htmlspecialchars($tabUrl, ENT_QUOTES, 'UTF-8'); ?>">
                             <?php echo htmlspecialchars($tabLabel); ?>
                         </a>
                     </li>

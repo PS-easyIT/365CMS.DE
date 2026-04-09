@@ -54,8 +54,8 @@ class LandingPageModule
             ],
             'footer'  => ['footer'   => $this->service->getFooter()],
             'design'  => [
-                'design'   => $this->service->getDesign(),
-                'colors'   => $this->service->getColors(),
+                'design' => $this->service->getDesign(),
+                'colors' => $this->service->getColors(),
             ],
             'plugins' => [
                 'pluginCards' => $this->buildPluginCards(

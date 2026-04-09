@@ -36,6 +36,10 @@ $renderSelect = static function (string $name, string $label, array $options, st
                     <h2 class="card-title mb-0">CMS Loginpage</h2>
                 </div>
                 <div class="card-body">
+                    <?php if (!empty($alert)): ?>
+                        <?php $alertData = $alert; $alertMarginClass = 'mb-4'; require __DIR__ . '/../partials/flash-alert.php'; ?>
+                    <?php endif; ?>
+
                     <p class="text-secondary mb-4">Diese Einstellungen steuern die neue CMS-eigene Authentifizierungsstrecke für <code>/cms-login</code>, <code>/cms-register</code> und <code>/cms-password-forgot</code> – komplett unabhängig vom aktiven Frontend-Theme.</p>
 
                     <div class="alert alert-info mb-4" role="alert">
@@ -44,7 +48,7 @@ $renderSelect = static function (string $name, string $label, array $options, st
                         Passkey-Login ist <strong><?php echo $passkeyEnabled ? 'sichtbar' : 'ausgeblendet'; ?></strong>.
                     </div>
 
-                    <form method="POST" action="<?php echo htmlspecialchars((string) SITE_URL . '/admin/cms-loginpage', ENT_QUOTES, 'UTF-8'); ?>">
+                    <form method="POST">
                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars((string) $csrfToken, ENT_QUOTES, 'UTF-8'); ?>">
 
                         <h3 class="h5 mb-3">Grundlayout</h3>

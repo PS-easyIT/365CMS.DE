@@ -667,10 +667,8 @@ final class CmsAuthPageService
             return '';
         }
 
-        $siteUrl = rtrim((string) (defined('SITE_URL') ? SITE_URL : ''), '/');
-
         if (str_starts_with($url, '/')) {
-            return $siteUrl !== '' ? $siteUrl . $url : $url;
+            return $url;
         }
 
         if (!preg_match('#^[a-z][a-z0-9+.-]*:#i', $url)) {
@@ -680,7 +678,7 @@ final class CmsAuthPageService
                 return '';
             }
 
-            return $siteUrl !== '' ? $siteUrl . '/' . $relativePath : '/' . $relativePath;
+            return '/' . $relativePath;
         }
 
         if (filter_var($url, FILTER_VALIDATE_URL) === false) {
