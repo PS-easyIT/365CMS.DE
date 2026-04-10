@@ -428,6 +428,12 @@ Der aktuelle Nachpflege-Stand umfasst damit **465 umgesetzte Batches**, davon we
 |---|---|---|---|
 | `CMS/admin/views/system/updates.php`, `DOC/audit/AdminAudit-System.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Die Update-Ansicht kürzt den Core-Changelog im Hinweis auf verfügbare Updates jetzt über `cms_truncate_text()` statt über einen rohen `mb_substr()`-Aufruf. | Der System-/Updates-Admin bleibt damit auch auf PHP-Setups ohne geladene `mbstring`-Extension renderbar, statt schon beim Anzeigen eines verfügbaren Core-Updates mit Fatal Error auszusteigen. Die Aggregate bleiben für diesen kleinen System-/Kompatibilitäts-Batch stabil. |
 
+### Delta Folge-Batch 527
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/error-report.php`, `DOC/audit/AdminAudit-Diagnose.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Der Error-Report-Endpunkt begrenzt Titel, Nachricht, Fehlercode und JSON-Schlüssel jetzt über `cms_truncate_text()` statt über rohe `mb_substr()`-Aufrufe. | Der Diagnose-/Error-Reporting-Pfad bleibt damit auch auf PHP-Setups ohne geladene `mbstring`-Extension verarbeitbar, statt schon beim Normalisieren eines Fehlerreports mit Fatal Error auszusteigen. Die Aggregate bleiben für diesen kleinen Diagnose-/Kompatibilitäts-Batch stabil. |
+
 ### Delta Folge-Batch 513
 
 | Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |

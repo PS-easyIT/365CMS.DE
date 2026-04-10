@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.9.66",
+  "version": "2.9.67",
   "min_php": "8.4",
   "released": "2026-04-10",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 2.9.66: Die Update-Ansicht kürzt Core-Changelog-Auszüge jetzt über cms_truncate_text(); verfügbare Core-Updates bleiben dadurch auch ohne geladene mbstring-Extension renderbar.",
+  "notes": "Release-Stand 2.9.67: Der Error-Report-Endpunkt begrenzt Titel, Nachricht, Fehlercode und JSON-Schlüssel jetzt über cms_truncate_text(); eingehende Fehlerreports bleiben dadurch auch ohne geladene mbstring-Extension verarbeitbar.",
   "critical": false
 }

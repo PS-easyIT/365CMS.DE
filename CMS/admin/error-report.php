@@ -32,7 +32,7 @@ function cms_admin_error_report_strip_control_chars(mixed $value, bool $preserve
 
 function cms_admin_error_report_limit_string(mixed $value, int $length): string
 {
-    return mb_substr(trim((string) $value), 0, $length);
+    return cms_truncate_text(trim((string) $value), $length, '');
 }
 
 function cms_admin_error_report_normalize_text(mixed $value, int $length, bool $preserveNewlines = false): string
@@ -93,7 +93,7 @@ function cms_admin_error_report_normalize_json_key(mixed $value): string
     $key = preg_replace('/[^a-zA-Z0-9_:\-.]/', '_', trim((string) $value));
     $key = $key !== null ? $key : '';
 
-    return mb_substr($key, 0, 80);
+    return cms_truncate_text($key, 80, '');
 }
 
 function cms_admin_error_report_normalize_json_scalar(mixed $value): mixed
