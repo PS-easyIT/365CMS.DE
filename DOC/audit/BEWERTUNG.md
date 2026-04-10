@@ -500,6 +500,24 @@ Der aktuelle Nachpflege-Stand umfasst damit **465 umgesetzte Batches**, davon we
 |---|---|---|---|
 | `CMS/admin/modules/media/MediaModule.php`, `DOC/audit/AssetAudit-Medien.md`, `DOC/audit/AdminAudit-Medien.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Die Medienbibliothek baut den Root-Breadcrumb `Uploads` jetzt ohne den aktuellen Unterordnerpfad auf, statt den laufenden `path` still in `root_url` mitzuschleppen und damit einen Pseudo-Root-Link auf denselben Ordner zu erzeugen. | Die Bibliotheksnavigation funktioniert damit in verschachtelten Medienordnern wieder korrekt: Ein Klick auf `Uploads` springt tatsächlich an den Bibliotheksanfang zurück, während View-, Kategorie- und Suchzustand erhalten bleiben. |
 
+### Delta Folge-Batch 539
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/assets/js/admin-media-integrations.js`, `CMS/assets/js/member-dashboard.js`, `DOC/audit/AssetAudit-Medien.md`, `DOC/audit/AdminAudit-Medien.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Admin- und Member-Medienuploads übernehmen das vom Server gelieferte Ersatz-`new_token` jetzt nicht mehr nur nach erfolgreichen Uploads, sondern auch nach Fehlerantworten aus `FileUploadService`, obwohl `Security::verifyToken()` das gerade verwendete `media_action`-Token bereits verbraucht hat. | Mehrfach-Uploads im Medien-Admin und im Member-Bereich laufen damit nach einer fehlgeschlagenen Datei nicht mehr vermeidbar in nachgelagerte CSRF-Fehler, sondern bleiben innerhalb desselben Batches auf dem aktuellen Token-Vertrag synchron. |
+
+### Delta Folge-Batch 540
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/posts/PostsModule.php`, `DOC/audit/AdminAudit-Beitraege.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Die Slug- und Tag-Normalisierung des Beiträge-Moduls nutzt für `generateSlug()`, `normalizeSlug()` und `normalizeTagInput()` jetzt explizite `mb_strtolower()`-/`strtolower()`- und `mb_substr()`-/`substr()`-Fallbacks statt roher `mb_*`-Aufrufe im Live-Save-Pfad. | Der Beiträge-Admin bleibt damit auch auf PHP-Setups ohne geladene `mbstring`-Extension beim Speichern, Slug-Aufbereiten und Tag-Normalisieren funktionsfähig, statt schon im normalen Save-Flow mit Fatal Error auszusteigen. Die Aggregate bleiben für diesen kleinen Beiträge-/Kompatibilitäts-Batch stabil. |
+
+### Delta Folge-Batch 541
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/settings/SettingsModule.php`, `DOC/audit/AdminAudit-System.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Die allgemeinen Systemeinstellungen nutzen für `normalizeRouteBase()`, `sanitizeAuditString()` und `maskEmailAddress()` jetzt explizite `mb_strtolower()`-/`strtolower()`, `mb_substr()`-/`substr()`- und `mb_strlen()`-/`strlen()`-Fallbacks statt roher `mb_*`-Aufrufe in Save-, Audit- und Testmail-Pfaden. | Der Systembereich bleibt damit auch auf PHP-Setups ohne geladene `mbstring`-Extension beim Speichern, beim Audit-/Migrations-Logging und beim Testmail-Flow funktionsfähig, statt in diesen Live-Pfaden schon an optionalen String-Helfern fatal auszusteigen. Die Aggregate bleiben für diesen kleinen System-/Kompatibilitäts-Batch stabil. |
+
 ### Delta Folge-Batch 513
 
 | Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |

@@ -1287,7 +1287,7 @@ class PostsModule
      */
     private function generateSlug(string $text): string
     {
-        $slug = mb_strtolower($text);
+        $slug = $this->toLowercase($text);
         $slug = preg_replace('/[^a-z0-9\-]/', '-', $slug) ?? $slug;
         $slug = preg_replace('/-+/', '-', $slug) ?? $slug;
         return trim($slug, '-');
@@ -1295,10 +1295,24 @@ class PostsModule
 
     private function normalizeSlug(string $slug): string
     {
-        $slug = mb_strtolower(trim($slug));
+        $slug = $this->toLowercase(trim($slug));
         $slug = preg_replace('/[^a-z0-9\-]/', '-', $slug) ?? $slug;
         $slug = preg_replace('/-+/', '-', $slug) ?? $slug;
         return trim($slug, '-');
+    }
+
+    private function toLowercase(string $value): string
+    {
+        return function_exists('mb_strtolower')
+            ? mb_strtolower($value)
+            : strtolower($value);
+    }
+
+    private function truncateText(string $value, int $maxLength): string
+    {
+        return function_exists('mb_substr')
+            ? mb_substr($value, 0, $maxLength)
+            : substr($value, 0, $maxLength);
     }
 
     /**
@@ -1691,8 +1705,8 @@ class PostsModule
 
             $seen[$slug] = true;
             $normalized[] = [
-                'name' => mb_substr($name, 0, 120),
-                'slug' => mb_substr($slug, 0, 160),
+                'name' => $this->truncateText($name, 120),
+                'slug' => $this->truncateText($slug, 160),
             ];
         }
 

@@ -236,6 +236,11 @@
                             detail: payload && payload.path ? payload.path : 'Datei erfolgreich hochgeladen.'
                         });
                     }).catch(function (error) {
+                        if (error && error.payload && error.payload.new_token) {
+                            csrfToken = String(error.payload.new_token);
+                            input.dataset.csrfToken = csrfToken;
+                        }
+
                         errorCount += 1;
                         renderUploadResult(resultsElement, 'danger', {
                             title: file.name,

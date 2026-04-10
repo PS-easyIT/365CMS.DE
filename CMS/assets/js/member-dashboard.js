@@ -134,7 +134,9 @@
         });
 
         if (!response.ok || payload.success === false) {
-            throw new Error(payload.error || 'Upload fehlgeschlagen.');
+            const error = new Error(payload.error || 'Upload fehlgeschlagen.');
+            error.payload = payload;
+            throw error;
         }
 
         return payload;
@@ -196,6 +198,11 @@
                             form.setAttribute('data-upload-token', payload.new_token);
                         }
                     } catch (error) {
+                        if (error && error.payload && error.payload.new_token) {
+                            currentToken = error.payload.new_token;
+                            form.setAttribute('data-upload-token', error.payload.new_token);
+                        }
+
                         hadError = true;
                         const item = document.createElement('div');
                         item.className = 'alert alert-danger py-2 mb-0';

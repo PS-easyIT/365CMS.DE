@@ -1385,7 +1385,7 @@ PHP;
 
     private function normalizeRouteBase(string $value, string $fallback): string
     {
-        $normalized = trim(mb_strtolower($value, 'UTF-8'));
+        $normalized = trim($this->lowercaseUtf8($value));
         $normalized = str_replace(['ä', 'ö', 'ü', 'ß'], ['ae', 'oe', 'ue', 'ss'], $normalized);
         $normalized = preg_replace('/[^a-z0-9]+/u', '-', $normalized) ?? '';
         $normalized = trim($normalized, '-');
@@ -1580,7 +1580,7 @@ PHP;
             return 'n/a';
         }
 
-        return mb_substr($value, 0, self::MAX_AUDIT_STRING_LENGTH, 'UTF-8');
+        return $this->substringUtf8($value, 0, self::MAX_AUDIT_STRING_LENGTH);
     }
 
     private function maskEmailAddress(string $email): string
@@ -1591,15 +1591,47 @@ PHP;
         }
 
         [$local, $domain] = explode('@', $email, 2);
-        $localLength = mb_strlen($local, 'UTF-8');
+        $localLength = $this->lengthUtf8($local);
         if ($localLength <= 2) {
-            $maskedLocal = mb_substr($local, 0, 1, 'UTF-8') . '*';
+            $maskedLocal = $this->substringUtf8($local, 0, 1) . '*';
         } else {
-            $maskedLocal = mb_substr($local, 0, 1, 'UTF-8')
+            $maskedLocal = $this->substringUtf8($local, 0, 1)
                 . str_repeat('*', max(1, $localLength - 2))
-                . mb_substr($local, -1, 1, 'UTF-8');
+                . $this->substringUtf8($local, -1, 1);
         }
 
         return $maskedLocal . '@' . strtolower($domain);
+    }
+
+    private function lowercaseUtf8(string $value): string
+    {
+        if (function_exists('mb_strtolower')) {
+            return mb_strtolower($value, 'UTF-8');
+        }
+
+        return strtolower(strtr($value, [
+            'Ä' => 'ä',
+            'Ö' => 'ö',
+            'Ü' => 'ü',
+            'ẞ' => 'ß',
+        ]));
+    }
+
+    private function substringUtf8(string $value, int $start, int $length): string
+    {
+        if (function_exists('mb_substr')) {
+            return mb_substr($value, $start, $length, 'UTF-8');
+        }
+
+        return substr($value, $start, $length);
+    }
+
+    private function lengthUtf8(string $value): int
+    {
+        if (function_exists('mb_strlen')) {
+            return mb_strlen($value, 'UTF-8');
+        }
+
+        return strlen($value);
     }
 }

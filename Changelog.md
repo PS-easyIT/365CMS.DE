@@ -1,4 +1,4 @@
-﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.78-blue.svg)](https://shields.io/)
+﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.81-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -17,6 +17,30 @@
 ---
 
 ## 📜 Vollständige Versionshistorie
+
+---
+
+### v2.9.81 — 10. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.81** | 🔴 fix | Admin/System | **`CMS/admin/modules/settings/SettingsModule.php` nutzt für Route-Basen, Audit-String-Kürzung und Testmail-Maskierung jetzt explizite `mb_strtolower()`-/`strtolower()`, `mb_substr()`-/`substr()`- und `mb_strlen()`-/`strlen()`-Fallbacks**: Die allgemeinen Systemeinstellungen hängen damit beim Speichern, beim URL-Migrations-/Audit-Logging und beim Testmail-Flow nicht mehr still an der optionalen `mbstring`-Extension. |
+
+---
+
+### v2.9.80 — 10. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.80** | 🔴 fix | Admin/Beiträge | **`CMS/admin/modules/posts/PostsModule.php` nutzt für Slug-Generierung, Slug-Normalisierung und Tag-Kürzungen jetzt explizite `mb_strtolower()`-/`strtolower()`- sowie `mb_substr()`-/`substr()`-Fallbacks**: Der Beiträge-Admin hängt damit beim Speichern, Slug-Aufbereiten und Tag-Normalisieren nicht mehr still an der optionalen `mbstring`-Extension. |
+
+---
+
+### v2.9.79 — 10. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.79** | 🔴 fix | Assets/Medien | **`CMS/assets/js/admin-media-integrations.js` und `CMS/assets/js/member-dashboard.js` übernehmen bei fehlgeschlagenen Uploads jetzt ebenfalls das vom Server gelieferte `new_token`**: Schlägt in Admin- oder Member-Medien ein Datei-Upload innerhalb eines Mehrfach-Batches fehl, bleiben Folge-Uploads damit nicht mehr auf einem bereits verbrauchten CSRF-Token hängen. |
 
 ---
 
