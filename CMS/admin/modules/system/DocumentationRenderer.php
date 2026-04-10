@@ -381,22 +381,14 @@ final class DocumentationRenderer
     {
         $text = trim($text);
 
-        if (mb_strlen($text) > self::MAX_CELL_LENGTH) {
-            $text = rtrim(mb_substr($text, 0, self::MAX_CELL_LENGTH - 1)) . '…';
-        }
-
-        return $text;
+        return cms_truncate_text($text, self::MAX_CELL_LENGTH);
     }
 
     private function limitLinkTarget(string $target): string
     {
         $target = trim($target);
 
-        if (mb_strlen($target) > self::MAX_LINK_TARGET_LENGTH) {
-            $target = mb_substr($target, 0, self::MAX_LINK_TARGET_LENGTH);
-        }
-
-        return $target;
+        return cms_truncate_text($target, self::MAX_LINK_TARGET_LENGTH, '');
     }
 
     private function sanitizeHref(string $href): string

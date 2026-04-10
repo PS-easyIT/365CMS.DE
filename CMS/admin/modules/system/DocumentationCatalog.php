@@ -312,11 +312,7 @@ final class DocumentationCatalog
             return 'Dokumentation aus dem Repository-Bereich /DOC.';
         }
 
-        if (mb_strlen($text) > 180) {
-            $text = rtrim(mb_substr($text, 0, 177)) . '…';
-        }
-
-        return $text;
+        return cms_truncate_text($text, 180);
     }
 
     private function stripMarkdown(string $text): string

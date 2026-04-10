@@ -473,22 +473,22 @@ final class HubTemplateProfileManager
         $templateOptions = HubTemplateProfileCatalog::getTemplateOptions();
 
         return [
-            'label' => mb_substr(trim(strip_tags((string)($profile['label'] ?? $fallback['label']))), 0, 120),
+            'label' => $this->sanitizePlainText((string)($profile['label'] ?? $fallback['label']), 120),
             'base_template' => $this->normalizeSetting((string)($profile['base_template'] ?? $fallback['base_template']), array_keys($templateOptions), 'general-it'),
-            'summary' => mb_substr(trim((string)($profile['summary'] ?? $fallback['summary'])), 0, 600),
+            'summary' => $this->truncateText((string)($profile['summary'] ?? $fallback['summary']), 600),
             'meta' => [
-                'audience' => mb_substr(trim(strip_tags((string)($profile['meta']['audience'] ?? $fallback['meta']['audience'] ?? ''))), 0, 120),
-                'owner' => mb_substr(trim(strip_tags((string)($profile['meta']['owner'] ?? $fallback['meta']['owner'] ?? ''))), 0, 120),
-                'update_cycle' => mb_substr(trim(strip_tags((string)($profile['meta']['update_cycle'] ?? $fallback['meta']['update_cycle'] ?? ''))), 0, 120),
-                'focus' => mb_substr(trim(strip_tags((string)($profile['meta']['focus'] ?? $fallback['meta']['focus'] ?? ''))), 0, 160),
-                'kpi' => mb_substr(trim(strip_tags((string)($profile['meta']['kpi'] ?? $fallback['meta']['kpi'] ?? ''))), 0, 120),
+                'audience' => $this->sanitizePlainText((string)($profile['meta']['audience'] ?? $fallback['meta']['audience'] ?? ''), 120),
+                'owner' => $this->sanitizePlainText((string)($profile['meta']['owner'] ?? $fallback['meta']['owner'] ?? ''), 120),
+                'update_cycle' => $this->sanitizePlainText((string)($profile['meta']['update_cycle'] ?? $fallback['meta']['update_cycle'] ?? ''), 120),
+                'focus' => $this->sanitizePlainText((string)($profile['meta']['focus'] ?? $fallback['meta']['focus'] ?? ''), 160),
+                'kpi' => $this->sanitizePlainText((string)($profile['meta']['kpi'] ?? $fallback['meta']['kpi'] ?? ''), 120),
             ],
             'meta_labels' => [
-                'audience' => mb_substr(trim(strip_tags((string)($profile['meta_labels']['audience'] ?? $fallback['meta_labels']['audience'] ?? 'Zielgruppe'))), 0, 80),
-                'owner' => mb_substr(trim(strip_tags((string)($profile['meta_labels']['owner'] ?? $fallback['meta_labels']['owner'] ?? 'Verantwortlich'))), 0, 80),
-                'update_cycle' => mb_substr(trim(strip_tags((string)($profile['meta_labels']['update_cycle'] ?? $fallback['meta_labels']['update_cycle'] ?? 'Update-Zyklus'))), 0, 80),
-                'focus' => mb_substr(trim(strip_tags((string)($profile['meta_labels']['focus'] ?? $fallback['meta_labels']['focus'] ?? 'Fokus'))), 0, 80),
-                'kpi' => mb_substr(trim(strip_tags((string)($profile['meta_labels']['kpi'] ?? $fallback['meta_labels']['kpi'] ?? 'KPI'))), 0, 80),
+                'audience' => $this->sanitizePlainText((string)($profile['meta_labels']['audience'] ?? $fallback['meta_labels']['audience'] ?? 'Zielgruppe'), 80),
+                'owner' => $this->sanitizePlainText((string)($profile['meta_labels']['owner'] ?? $fallback['meta_labels']['owner'] ?? 'Verantwortlich'), 80),
+                'update_cycle' => $this->sanitizePlainText((string)($profile['meta_labels']['update_cycle'] ?? $fallback['meta_labels']['update_cycle'] ?? 'Update-Zyklus'), 80),
+                'focus' => $this->sanitizePlainText((string)($profile['meta_labels']['focus'] ?? $fallback['meta_labels']['focus'] ?? 'Fokus'), 80),
+                'kpi' => $this->sanitizePlainText((string)($profile['meta_labels']['kpi'] ?? $fallback['meta_labels']['kpi'] ?? 'KPI'), 80),
             ],
             'navigation' => [
                 'toc_enabled' => !empty($profile['navigation']['toc_enabled'] ?? $fallback['navigation']['toc_enabled'] ?? false),
@@ -510,15 +510,15 @@ final class HubTemplateProfileManager
                 'columns' => $this->normalizeNumber((int)($profile['card_schema']['columns'] ?? $fallback['card_schema']['columns'] ?? 2), 1, 3, 2),
                 'min_cards' => 1,
                 'max_cards' => 3,
-                'title_label' => mb_substr(trim(strip_tags((string)($profile['card_schema']['title_label'] ?? $fallback['card_schema']['title_label'] ?? 'Titel'))), 0, 80),
-                'summary_label' => mb_substr(trim(strip_tags((string)($profile['card_schema']['summary_label'] ?? $fallback['card_schema']['summary_label'] ?? 'Kurzbeschreibung'))), 0, 80),
-                'badge_label' => mb_substr(trim(strip_tags((string)($profile['card_schema']['badge_label'] ?? $fallback['card_schema']['badge_label'] ?? 'Badge'))), 0, 80),
-                'meta_left_label' => mb_substr(trim(strip_tags((string)($profile['card_schema']['meta_left_label'] ?? $fallback['card_schema']['meta_left_label'] ?? 'Meta links'))), 0, 80),
-                'meta_right_label' => mb_substr(trim(strip_tags((string)($profile['card_schema']['meta_right_label'] ?? $fallback['card_schema']['meta_right_label'] ?? 'Meta rechts'))), 0, 80),
-                'image_label' => mb_substr(trim(strip_tags((string)($profile['card_schema']['image_label'] ?? $fallback['card_schema']['image_label'] ?? 'Bild-URL'))), 0, 80),
-                'image_alt_label' => mb_substr(trim(strip_tags((string)($profile['card_schema']['image_alt_label'] ?? $fallback['card_schema']['image_alt_label'] ?? 'Bild-Alt'))), 0, 80),
-                'button_text_label' => mb_substr(trim(strip_tags((string)($profile['card_schema']['button_text_label'] ?? $fallback['card_schema']['button_text_label'] ?? 'Button-Text'))), 0, 80),
-                'button_link_label' => mb_substr(trim(strip_tags((string)($profile['card_schema']['button_link_label'] ?? $fallback['card_schema']['button_link_label'] ?? 'Button-Link'))), 0, 80),
+                'title_label' => $this->sanitizePlainText((string)($profile['card_schema']['title_label'] ?? $fallback['card_schema']['title_label'] ?? 'Titel'), 80),
+                'summary_label' => $this->sanitizePlainText((string)($profile['card_schema']['summary_label'] ?? $fallback['card_schema']['summary_label'] ?? 'Kurzbeschreibung'), 80),
+                'badge_label' => $this->sanitizePlainText((string)($profile['card_schema']['badge_label'] ?? $fallback['card_schema']['badge_label'] ?? 'Badge'), 80),
+                'meta_left_label' => $this->sanitizePlainText((string)($profile['card_schema']['meta_left_label'] ?? $fallback['card_schema']['meta_left_label'] ?? 'Meta links'), 80),
+                'meta_right_label' => $this->sanitizePlainText((string)($profile['card_schema']['meta_right_label'] ?? $fallback['card_schema']['meta_right_label'] ?? 'Meta rechts'), 80),
+                'image_label' => $this->sanitizePlainText((string)($profile['card_schema']['image_label'] ?? $fallback['card_schema']['image_label'] ?? 'Bild-URL'), 80),
+                'image_alt_label' => $this->sanitizePlainText((string)($profile['card_schema']['image_alt_label'] ?? $fallback['card_schema']['image_alt_label'] ?? 'Bild-Alt'), 80),
+                'button_text_label' => $this->sanitizePlainText((string)($profile['card_schema']['button_text_label'] ?? $fallback['card_schema']['button_text_label'] ?? 'Button-Text'), 80),
+                'button_link_label' => $this->sanitizePlainText((string)($profile['card_schema']['button_link_label'] ?? $fallback['card_schema']['button_link_label'] ?? 'Button-Link'), 80),
             ],
             'card_design' => [
                 'layout' => $this->normalizeSetting((string)($profile['card_design']['layout'] ?? $fallback['card_design']['layout'] ?? 'standard'), ['standard', 'feature', 'compact'], 'standard'),
@@ -748,7 +748,7 @@ final class HubTemplateProfileManager
             return '';
         }
 
-        $value = function_exists('mb_substr') ? mb_substr($value, 0, $maxLength) : substr($value, 0, $maxLength);
+        $value = $this->truncateText($value, $maxLength);
 
         if ($value === '#') {
             return '#';
@@ -770,12 +770,22 @@ final class HubTemplateProfileManager
         return filter_var($value, FILTER_SANITIZE_URL) ?: '#';
     }
 
+    private function truncateText(string $value, int $maxLength): string
+    {
+        $value = trim($value);
+        if ($value === '') {
+            return '';
+        }
+
+        return cms_truncate_text($value, $maxLength, '');
+    }
+
     private function sanitizePlainText(string $value, int $maxLength): string
     {
         $value = trim(strip_tags($value));
         $value = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]+/u', ' ', $value) ?? '';
 
-        return function_exists('mb_substr') ? mb_substr($value, 0, $maxLength) : substr($value, 0, $maxLength);
+        return $this->truncateText($value, $maxLength);
     }
 
     private function failResult(string $action, string $message, ?\Throwable $exception = null, array $context = []): array
@@ -829,8 +839,8 @@ final class HubTemplateProfileManager
                 continue;
             }
 
-            $label = mb_substr(trim(strip_tags((string) ($link['label'] ?? ''))), 0, 80);
-            $url = mb_substr(trim((string) ($link['url'] ?? '#')), 0, 240);
+            $label = $this->sanitizePlainText((string) ($link['label'] ?? ''), 80);
+            $url = $this->truncateText((string) ($link['url'] ?? '#'), 240);
             if ($label === '') {
                 continue;
             }
@@ -857,16 +867,16 @@ final class HubTemplateProfileManager
             }
 
             $normalized[] = [
-                'title' => mb_substr(trim(strip_tags((string) ($card['title'] ?? ''))), 0, 160),
-                'summary' => mb_substr(trim((string) ($card['summary'] ?? '')), 0, 600),
-                'badge' => mb_substr(trim(strip_tags((string) ($card['badge'] ?? ''))), 0, 80),
-                'meta_left' => mb_substr(trim(strip_tags((string) ($card['meta_left'] ?? ''))), 0, 120),
-                'meta_right' => mb_substr(trim(strip_tags((string) ($card['meta_right'] ?? ''))), 0, 120),
-                'image_url' => mb_substr(trim((string) ($card['image_url'] ?? '')), 0, 500),
-                'image_alt' => mb_substr(trim(strip_tags((string) ($card['image_alt'] ?? ''))), 0, 160),
-                'button_text' => mb_substr(trim(strip_tags((string) ($card['button_text'] ?? ''))), 0, 80),
-                'button_link' => mb_substr(trim((string) ($card['button_link'] ?? '')), 0, 500),
-                'url' => mb_substr(trim((string) ($card['url'] ?? '#')), 0, 500),
+                'title' => $this->sanitizePlainText((string) ($card['title'] ?? ''), 160),
+                'summary' => $this->truncateText((string) ($card['summary'] ?? ''), 600),
+                'badge' => $this->sanitizePlainText((string) ($card['badge'] ?? ''), 80),
+                'meta_left' => $this->sanitizePlainText((string) ($card['meta_left'] ?? ''), 120),
+                'meta_right' => $this->sanitizePlainText((string) ($card['meta_right'] ?? ''), 120),
+                'image_url' => $this->truncateText((string) ($card['image_url'] ?? ''), 500),
+                'image_alt' => $this->sanitizePlainText((string) ($card['image_alt'] ?? ''), 160),
+                'button_text' => $this->sanitizePlainText((string) ($card['button_text'] ?? ''), 80),
+                'button_link' => $this->truncateText((string) ($card['button_link'] ?? ''), 500),
+                'url' => $this->truncateText((string) ($card['url'] ?? '#'), 500),
             ];
         }
 
@@ -886,16 +896,16 @@ final class HubTemplateProfileManager
             }
 
             $normalized[] = [
-                'title' => mb_substr(trim(strip_tags((string) ($row['title'] ?? ''))), 0, 160),
-                'summary' => mb_substr(trim((string) ($row['summary'] ?? '')), 0, 600),
-                'badge' => mb_substr(trim(strip_tags((string) ($row['badge'] ?? ''))), 0, 80),
-                'meta_left' => mb_substr(trim(strip_tags((string) ($row['meta_left'] ?? ''))), 0, 120),
-                'meta_right' => mb_substr(trim(strip_tags((string) ($row['meta_right'] ?? ''))), 0, 120),
-                'image_url' => mb_substr(trim((string) ($row['image_url'] ?? '')), 0, 500),
-                'image_alt' => mb_substr(trim(strip_tags((string) ($row['image_alt'] ?? ''))), 0, 160),
-                'button_text' => mb_substr(trim(strip_tags((string) ($row['button_text'] ?? ''))), 0, 80),
-                'button_link' => mb_substr(trim((string) ($row['button_link'] ?? '')), 0, 500),
-                'url' => mb_substr(trim((string) ($row['url'] ?? '#')), 0, 500),
+                'title' => $this->sanitizePlainText((string) ($row['title'] ?? ''), 160),
+                'summary' => $this->truncateText((string) ($row['summary'] ?? ''), 600),
+                'badge' => $this->sanitizePlainText((string) ($row['badge'] ?? ''), 80),
+                'meta_left' => $this->sanitizePlainText((string) ($row['meta_left'] ?? ''), 120),
+                'meta_right' => $this->sanitizePlainText((string) ($row['meta_right'] ?? ''), 120),
+                'image_url' => $this->truncateText((string) ($row['image_url'] ?? ''), 500),
+                'image_alt' => $this->sanitizePlainText((string) ($row['image_alt'] ?? ''), 160),
+                'button_text' => $this->sanitizePlainText((string) ($row['button_text'] ?? ''), 80),
+                'button_link' => $this->truncateText((string) ($row['button_link'] ?? ''), 500),
+                'url' => $this->truncateText((string) ($row['url'] ?? '#'), 500),
             ];
         }
 

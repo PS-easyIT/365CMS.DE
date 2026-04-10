@@ -153,7 +153,7 @@ class FirewallModule
                 return ['success' => false, 'error' => 'Ungültiger Ländercode. Erwartet wird ein ISO-3166-Code wie DE oder AT.'];
             }
         }
-        if ($type === 'block_ua' && mb_strlen($value) < 3) {
+        if ($type === 'block_ua' && (function_exists('mb_strlen') ? mb_strlen($value) : strlen($value)) < 3) {
             return ['success' => false, 'error' => 'User-Agent-Regeln müssen mindestens 3 Zeichen lang sein.'];
         }
 

@@ -434,6 +434,48 @@ Der aktuelle Nachpflege-Stand umfasst damit **465 umgesetzte Batches**, davon we
 |---|---|---|---|
 | `CMS/admin/error-report.php`, `DOC/audit/AdminAudit-Diagnose.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Der Error-Report-Endpunkt begrenzt Titel, Nachricht, Fehlercode und JSON-Schlüssel jetzt über `cms_truncate_text()` statt über rohe `mb_substr()`-Aufrufe. | Der Diagnose-/Error-Reporting-Pfad bleibt damit auch auf PHP-Setups ohne geladene `mbstring`-Extension verarbeitbar, statt schon beim Normalisieren eines Fehlerreports mit Fatal Error auszusteigen. Die Aggregate bleiben für diesen kleinen Diagnose-/Kompatibilitäts-Batch stabil. |
 
+### Delta Folge-Batch 528
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/system/DocumentationCatalog.php`, `CMS/admin/modules/system/DocumentationRenderer.php`, `DOC/audit/AdminAudit-Info.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Der Dokumentationsbrowser nutzt für Excerpts, Tabellenzellen und Link-Ziellimits jetzt `cms_truncate_text()` statt roher `mb_strlen()`-/`mb_substr()`-Aufrufe. | Der Info-/Doku-Admin bleibt damit auch auf PHP-Setups ohne geladene `mbstring`-Extension renderbar, statt schon beim Aufbereiten längerer Dokumente, Tabellen oder Link-Ziele mit Fatal Error auszusteigen. Die Aggregate bleiben für diesen kleinen Info-/Kompatibilitäts-Batch stabil. |
+
+### Delta Folge-Batch 529
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/tables/TablesModule.php`, `DOC/audit/AdminAudit-Tabellen.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Die Tabellenliste nutzt für Beschreibungs-Excerpts jetzt `cms_truncate_text()` statt eines rohen `mb_substr()`-Aufrufs. | Der Tabellen-Admin bleibt damit auch auf PHP-Setups ohne geladene `mbstring`-Extension renderbar, statt schon beim Aufbau der Listenübersicht mit Fatal Error auszusteigen. Die Aggregate bleiben für diesen kleinen Tabellen-/Kompatibilitäts-Batch stabil. |
+
+### Delta Folge-Batch 530
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/security/SecurityAuditModule.php`, `DOC/audit/AdminAudit-Sicherheit.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Das Security-Audit nutzt für gekürzte Check-, Detail- und Audit-Log-Texte jetzt `cms_truncate_text()` statt einer zentralen Routine mit rohen `mb_strlen()`-/`mb_substr()`-Aufrufen. | Der Security-Admin bleibt damit auch auf PHP-Setups ohne geladene `mbstring`-Extension renderbar, statt schon beim Aufbau von Checklisten, Audit-Logs oder IP-Fallbacks mit Fatal Error auszusteigen. Die Aggregate bleiben für diesen kleinen Security-/Kompatibilitäts-Batch stabil. |
+
+### Delta Folge-Batch 531
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/security/FirewallModule.php`, `DOC/audit/AdminAudit-Sicherheit.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Die Firewall validiert `block_ua`-Regeln bei der Mindestlänge jetzt mit explizitem `mb_strlen()`-/`strlen()`-Fallback statt über ein rohes `mb_strlen()`. | Der Firewall-Admin bleibt damit auch auf PHP-Setups ohne geladene `mbstring`-Extension beim Anlegen von User-Agent-Blockregeln funktionsfähig, statt schon im Validierungspfad mit Fatal Error auszusteigen. Die Aggregate bleiben für diesen kleinen Security-/Kompatibilitäts-Batch stabil. |
+
+### Delta Folge-Batch 532
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/hub/HubSitesModule.php`, `DOC/audit/AdminAudit-Hub.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Der Hub-Admin nutzt für Hub-Site-, Karten-, Link- und Feature-Card-Normalisierung jetzt zentrale Kürzungshelper statt zahlreicher roher `mb_substr()`-Aufrufe im Save-Pfad. | Der Hub-Admin bleibt damit auch auf PHP-Setups ohne geladene `mbstring`-Extension beim Speichern von Hub-Sites render- und speicherfähig, statt schon beim Normalisieren von Badge-, Titel-, Meta- oder Textfeldern mit Fatal Error auszusteigen. Die Aggregate bleiben für diesen kleinen Hub-/Kompatibilitäts-Batch stabil. |
+
+### Delta Folge-Batch 533
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/hub/HubTemplateProfileManager.php`, `DOC/audit/AdminAudit-Hub.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Der Hub-Template-Manager nutzt für Template-Labels, Metadaten, Vergleichs-Arrays und Starter-Karten jetzt zentrale Kürzungshelper statt roher `mb_substr()`-Aufrufe in Load-/Save-/Sync-Pfaden. | Der Hub-Template-Editor bleibt damit auch auf PHP-Setups ohne geladene `mbstring`-Extension beim Laden, Speichern, Kopieren und Vererben von Templates funktionsfähig, statt schon im Profil-Normalisierungs- oder Sync-Pfad mit Fatal Error auszusteigen. Die Aggregate bleiben für diesen kleinen Hub-/Kompatibilitäts-Batch stabil. |
+
+### Delta Folge-Batch 534
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/assets/js/admin-hub-site-edit.js`, `CMS/assets/js/admin-hub-sites.js`, `DOC/audit/AssetAudit-Hub.md`, `DOC/audit/AdminAudit-Hub.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Die geladene Hub-Asset-Schicht nutzt den Shared-Alert-Helfer jetzt wieder mit dem echten Vertrag `cmsAlert(type, message)` statt mit vertauschter Argument-Reihenfolge. | Copy-/Clipboard-Feedback, Browser-Warnungen und Erfolgsbestätigungen im Hub-Editor sowie in der Hub-Liste bleiben damit im Live-Admin sichtbar und korrekt gestylt, statt nur noch den Typ-String anzuzeigen oder mit defekten Alert-Klassen zu rendern. Die Aggregate bleiben für diesen kleinen Hub-/Asset-Batch stabil. |
+
 ### Delta Folge-Batch 513
 
 | Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |

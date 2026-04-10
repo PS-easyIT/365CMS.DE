@@ -433,11 +433,11 @@ class SecurityAuditModule
     private function truncateText(string $text, int $maxLength): string
     {
         $text = trim(preg_replace('/\s+/u', ' ', $text) ?? $text);
-        if ($text === '' || mb_strlen($text) <= $maxLength) {
+        if ($text === '') {
             return $text;
         }
 
-        return rtrim(mb_substr($text, 0, max(1, $maxLength - 1))) . '…';
+        return cms_truncate_text($text, $maxLength);
     }
 
     /**

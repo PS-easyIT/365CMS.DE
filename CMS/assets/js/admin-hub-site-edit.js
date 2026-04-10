@@ -22,7 +22,7 @@
 
     function showAlert(type, message) {
         if (typeof window.cmsAlert === 'function') {
-            window.cmsAlert(message, type);
+            window.cmsAlert(type, message);
             return;
         }
 

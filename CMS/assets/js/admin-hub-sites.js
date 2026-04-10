@@ -63,18 +63,18 @@
                 var publicUrl = absoluteUrlFromPath(button.getAttribute('data-hub-public-path') || '');
                 if (!navigator.clipboard || typeof navigator.clipboard.writeText !== 'function') {
                     if (typeof cmsAlert === 'function') {
-                        cmsAlert('Kopieren wird von diesem Browser leider nicht unterstützt.', 'warning');
+                        cmsAlert('warning', 'Kopieren wird von diesem Browser leider nicht unterstützt.');
                     }
                     return;
                 }
 
                 navigator.clipboard.writeText(publicUrl).then(function () {
                     if (typeof cmsAlert === 'function') {
-                        cmsAlert('Public URL wurde in die Zwischenablage kopiert.', 'success');
+                        cmsAlert('success', 'Public URL wurde in die Zwischenablage kopiert.');
                     }
                 }).catch(function () {
                     if (typeof cmsAlert === 'function') {
-                        cmsAlert('Public URL konnte nicht kopiert werden.', 'danger');
+                        cmsAlert('danger', 'Public URL konnte nicht kopiert werden.');
                     }
                 });
             });

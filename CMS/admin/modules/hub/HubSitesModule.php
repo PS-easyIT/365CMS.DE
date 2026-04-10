@@ -206,25 +206,25 @@ class HubSitesModule
             'hub_feature_cards_json' => array_key_exists('hub_feature_cards_json', $post)
                 ? $this->normalizeFeatureCardsJson((string)$post['hub_feature_cards_json'])
                 : '[]',
-            'hub_badge' => mb_substr(trim(strip_tags((string)($post['hub_badge'] ?? ''))), 0, 80),
-            'hub_badge_en' => mb_substr(trim(strip_tags((string)($post['hub_badge_en'] ?? ''))), 0, 80),
-            'hub_hero_title' => mb_substr(trim(strip_tags((string)($post['hub_hero_title'] ?? ''))), 0, 160),
-            'hub_hero_title_en' => mb_substr(trim(strip_tags((string)($post['hub_hero_title_en'] ?? ''))), 0, 160),
+            'hub_badge' => $this->sanitizePlainText((string)($post['hub_badge'] ?? ''), 80),
+            'hub_badge_en' => $this->sanitizePlainText((string)($post['hub_badge_en'] ?? ''), 80),
+            'hub_hero_title' => $this->sanitizePlainText((string)($post['hub_hero_title'] ?? ''), 160),
+            'hub_hero_title_en' => $this->sanitizePlainText((string)($post['hub_hero_title_en'] ?? ''), 160),
             'hub_hero_text' => $this->sanitizeRichText((string)($post['hub_hero_text'] ?? ''), 4000),
             'hub_hero_text_en' => $this->sanitizeRichText((string)($post['hub_hero_text_en'] ?? ''), 4000),
-            'hub_cta_label' => mb_substr(trim(strip_tags((string)($post['hub_cta_label'] ?? ''))), 0, 60),
-            'hub_cta_label_en' => mb_substr(trim(strip_tags((string)($post['hub_cta_label_en'] ?? ''))), 0, 60),
+            'hub_cta_label' => $this->sanitizePlainText((string)($post['hub_cta_label'] ?? ''), 60),
+            'hub_cta_label_en' => $this->sanitizePlainText((string)($post['hub_cta_label_en'] ?? ''), 60),
             'hub_cta_url' => $this->normalizeUrlValue((string)($post['hub_cta_url'] ?? ''), 500),
-            'hub_meta_audience' => mb_substr(trim(strip_tags((string)($post['hub_meta_audience'] ?? ''))), 0, 120),
-            'hub_meta_audience_en' => mb_substr(trim(strip_tags((string)($post['hub_meta_audience_en'] ?? ''))), 0, 120),
-            'hub_meta_owner' => mb_substr(trim(strip_tags((string)($post['hub_meta_owner'] ?? ''))), 0, 120),
-            'hub_meta_owner_en' => mb_substr(trim(strip_tags((string)($post['hub_meta_owner_en'] ?? ''))), 0, 120),
-            'hub_meta_update_cycle' => mb_substr(trim(strip_tags((string)($post['hub_meta_update_cycle'] ?? ''))), 0, 120),
-            'hub_meta_update_cycle_en' => mb_substr(trim(strip_tags((string)($post['hub_meta_update_cycle_en'] ?? ''))), 0, 120),
-            'hub_meta_focus' => mb_substr(trim(strip_tags((string)($post['hub_meta_focus'] ?? ''))), 0, 160),
-            'hub_meta_focus_en' => mb_substr(trim(strip_tags((string)($post['hub_meta_focus_en'] ?? ''))), 0, 160),
-            'hub_meta_kpi' => mb_substr(trim(strip_tags((string)($post['hub_meta_kpi'] ?? ''))), 0, 120),
-            'hub_meta_kpi_en' => mb_substr(trim(strip_tags((string)($post['hub_meta_kpi_en'] ?? ''))), 0, 120),
+            'hub_meta_audience' => $this->sanitizePlainText((string)($post['hub_meta_audience'] ?? ''), 120),
+            'hub_meta_audience_en' => $this->sanitizePlainText((string)($post['hub_meta_audience_en'] ?? ''), 120),
+            'hub_meta_owner' => $this->sanitizePlainText((string)($post['hub_meta_owner'] ?? ''), 120),
+            'hub_meta_owner_en' => $this->sanitizePlainText((string)($post['hub_meta_owner_en'] ?? ''), 120),
+            'hub_meta_update_cycle' => $this->sanitizePlainText((string)($post['hub_meta_update_cycle'] ?? ''), 120),
+            'hub_meta_update_cycle_en' => $this->sanitizePlainText((string)($post['hub_meta_update_cycle_en'] ?? ''), 120),
+            'hub_meta_focus' => $this->sanitizePlainText((string)($post['hub_meta_focus'] ?? ''), 160),
+            'hub_meta_focus_en' => $this->sanitizePlainText((string)($post['hub_meta_focus_en'] ?? ''), 160),
+            'hub_meta_kpi' => $this->sanitizePlainText((string)($post['hub_meta_kpi'] ?? ''), 120),
+            'hub_meta_kpi_en' => $this->sanitizePlainText((string)($post['hub_meta_kpi_en'] ?? ''), 120),
             'hub_links_json' => array_key_exists('hub_links_json', $post)
                 ? $this->normalizeJsonArray((string)$post['hub_links_json'], 'link')
                 : '[]',
@@ -259,7 +259,7 @@ class HubSitesModule
                 continue;
             }
 
-            $title = mb_substr(trim(strip_tags((string)($card['title'] ?? ''))), 0, 160);
+            $title = $this->sanitizePlainText((string)($card['title'] ?? ''), 160);
             $url = $this->normalizeUrlValue((string)($card['url'] ?? ''), 500);
             if ($title === '') {
                 continue;
@@ -269,23 +269,23 @@ class HubSitesModule
                 'is_feature' => $this->normalizeBoolean($card['is_feature'] ?? false),
                 'feature_spacing_top' => $this->normalizeNumber((int)($card['feature_spacing_top'] ?? 0), 0, 240, 0),
                 'title' => $title,
-                'title_en' => mb_substr(trim(strip_tags((string)($card['title_en'] ?? ''))), 0, 160),
+                'title_en' => $this->sanitizePlainText((string)($card['title_en'] ?? ''), 160),
                 'url' => $url !== '' ? $url : '#',
-                'summary' => mb_substr(trim((string)($card['summary'] ?? '')), 0, 4000),
-                'summary_en' => mb_substr(trim((string)($card['summary_en'] ?? '')), 0, 4000),
-                'badge' => mb_substr(trim(strip_tags((string)($card['badge'] ?? ''))), 0, 80),
-                'badge_en' => mb_substr(trim(strip_tags((string)($card['badge_en'] ?? ''))), 0, 80),
-                'meta' => mb_substr(trim(strip_tags((string)($card['meta'] ?? ''))), 0, 120),
-                'meta_en' => mb_substr(trim(strip_tags((string)($card['meta_en'] ?? ''))), 0, 120),
-                'meta_left' => mb_substr(trim(strip_tags((string)($card['meta_left'] ?? ''))), 0, 120),
-                'meta_left_en' => mb_substr(trim(strip_tags((string)($card['meta_left_en'] ?? ''))), 0, 120),
-                'meta_right' => mb_substr(trim(strip_tags((string)($card['meta_right'] ?? ''))), 0, 120),
-                'meta_right_en' => mb_substr(trim(strip_tags((string)($card['meta_right_en'] ?? ''))), 0, 120),
+                'summary' => $this->truncateText((string)($card['summary'] ?? ''), 4000),
+                'summary_en' => $this->truncateText((string)($card['summary_en'] ?? ''), 4000),
+                'badge' => $this->sanitizePlainText((string)($card['badge'] ?? ''), 80),
+                'badge_en' => $this->sanitizePlainText((string)($card['badge_en'] ?? ''), 80),
+                'meta' => $this->sanitizePlainText((string)($card['meta'] ?? ''), 120),
+                'meta_en' => $this->sanitizePlainText((string)($card['meta_en'] ?? ''), 120),
+                'meta_left' => $this->sanitizePlainText((string)($card['meta_left'] ?? ''), 120),
+                'meta_left_en' => $this->sanitizePlainText((string)($card['meta_left_en'] ?? ''), 120),
+                'meta_right' => $this->sanitizePlainText((string)($card['meta_right'] ?? ''), 120),
+                'meta_right_en' => $this->sanitizePlainText((string)($card['meta_right_en'] ?? ''), 120),
                 'image_url' => $this->normalizeUrlValue((string)($card['image_url'] ?? ''), 500),
-                'image_alt' => mb_substr(trim(strip_tags((string)($card['image_alt'] ?? ''))), 0, 160),
-                'image_alt_en' => mb_substr(trim(strip_tags((string)($card['image_alt_en'] ?? ''))), 0, 160),
-                'button_text' => mb_substr(trim(strip_tags((string)($card['button_text'] ?? ''))), 0, 80),
-                'button_text_en' => mb_substr(trim(strip_tags((string)($card['button_text_en'] ?? ''))), 0, 80),
+                'image_alt' => $this->sanitizePlainText((string)($card['image_alt'] ?? ''), 160),
+                'image_alt_en' => $this->sanitizePlainText((string)($card['image_alt_en'] ?? ''), 160),
+                'button_text' => $this->sanitizePlainText((string)($card['button_text'] ?? ''), 80),
+                'button_text_en' => $this->sanitizePlainText((string)($card['button_text_en'] ?? ''), 80),
                 'button_link' => $this->normalizeUrlValue((string)($card['button_link'] ?? ''), 500),
             ];
         }
@@ -522,7 +522,7 @@ class HubSitesModule
             }
 
             if ($mode === 'link') {
-                $label = mb_substr(trim(strip_tags((string)($item['label'] ?? ''))), 0, 80);
+                $label = $this->sanitizePlainText((string)($item['label'] ?? ''), 80);
                 $url = $this->normalizeUrlValue((string)($item['url'] ?? ''), 240);
                 if ($label === '') {
                     continue;
@@ -534,9 +534,9 @@ class HubSitesModule
                 continue;
             }
 
-            $title = mb_substr(trim(strip_tags((string)($item['title'] ?? ''))), 0, 120);
-            $text = mb_substr(trim((string)($item['text'] ?? '')), 0, 600);
-            $actionLabel = mb_substr(trim(strip_tags((string)($item['actionLabel'] ?? ''))), 0, 80);
+            $title = $this->sanitizePlainText((string)($item['title'] ?? ''), 120);
+            $text = $this->truncateText((string)($item['text'] ?? ''), 600);
+            $actionLabel = $this->sanitizePlainText((string)($item['actionLabel'] ?? ''), 80);
             $actionUrl = $this->normalizeUrlValue((string)($item['actionUrl'] ?? ''), 240);
 
             if ($title === '' && $text === '') {
@@ -598,13 +598,13 @@ class HubSitesModule
                 continue;
             }
 
-            $title = mb_substr(trim(strip_tags((string)($item['title'] ?? ''))), 0, 160);
-            $titleEn = mb_substr(trim(strip_tags((string)($item['title_en'] ?? ''))), 0, 160);
-            $text = mb_substr(trim((string)($item['text'] ?? '')), 0, 4000);
-            $textEn = mb_substr(trim((string)($item['text_en'] ?? '')), 0, 4000);
+            $title = $this->sanitizePlainText((string)($item['title'] ?? ''), 160);
+            $titleEn = $this->sanitizePlainText((string)($item['title_en'] ?? ''), 160);
+            $text = $this->truncateText((string)($item['text'] ?? ''), 4000);
+            $textEn = $this->truncateText((string)($item['text_en'] ?? ''), 4000);
             $imageUrl = $this->normalizeUrlValue((string)($item['image_url'] ?? ''), 500);
-            $imageAlt = mb_substr(trim(strip_tags((string)($item['image_alt'] ?? ''))), 0, 160);
-            $imageAltEn = mb_substr(trim(strip_tags((string)($item['image_alt_en'] ?? ''))), 0, 160);
+            $imageAlt = $this->sanitizePlainText((string)($item['image_alt'] ?? ''), 160);
+            $imageAltEn = $this->sanitizePlainText((string)($item['image_alt_en'] ?? ''), 160);
             $insertAfter = $this->normalizeNumber((int)($item['insert_after'] ?? 0), 0, 999, 0);
             $featureSpacingTop = $this->normalizeNumber((int)($item['feature_spacing_top'] ?? 0), 0, 240, 0);
 
@@ -637,7 +637,17 @@ class HubSitesModule
 
         $sanitized = \CMS\Services\PurifierService::getInstance()->purify($value, 'table');
 
-        return mb_substr(trim($sanitized), 0, $maxLength);
+        return $this->truncateText($sanitized, $maxLength);
+    }
+
+    private function truncateText(string $value, int $maxLength): string
+    {
+        $value = trim($value);
+        if ($value === '') {
+            return '';
+        }
+
+        return cms_truncate_text($value, $maxLength, '');
     }
 
     private function sanitizePlainText(string $value, int $maxLength): string
@@ -645,7 +655,7 @@ class HubSitesModule
         $value = trim(strip_tags($value));
         $value = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]+/u', ' ', $value) ?? '';
 
-        return function_exists('mb_substr') ? mb_substr($value, 0, $maxLength) : substr($value, 0, $maxLength);
+        return $this->truncateText($value, $maxLength);
     }
 
     private function sanitizeSearchTerm(string $value): string

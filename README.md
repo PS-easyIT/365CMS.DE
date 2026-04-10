@@ -2,7 +2,7 @@
 
 <div align="center">
 
-[![Version](https://img.shields.io/badge/version-2.9.67-blue.svg)](Changelog.md)
+[![Version](https://img.shields.io/badge/version-2.9.74-blue.svg)](Changelog.md)
 ![Status](https://img.shields.io/badge/status-stable-16a34a)
 ![PHP](https://img.shields.io/badge/PHP-8.4%2B-777BB4?logo=php&logoColor=white)
 ![MySQL](https://img.shields.io/badge/MySQL-5.7%2B-4479A1?logo=mysql&logoColor=white)
@@ -91,12 +91,12 @@ Die Audits wurden mit OWASP-nahen Prüfwerkzeugen & AI Audit Tools von Snyk, Ref
 | **PHP / Best Practices** | **96,22** |
 | **Gesamt** | **96,35** |
 
-### 🆕 Aktuelle 2.9.67-Highlights
+### 🆕 Aktuelle 2.9.74-Highlights
 
-- **Der Error-Report-Endpunkt hängt bei Textbegrenzungen nicht länger hart an `mbstring`:** `CMS/admin/error-report.php` nutzt für Titel, Nachricht, Fehlercode und JSON-Schlüssel jetzt `cms_truncate_text()` statt roher `mb_substr()`-Aufrufe.
-- **Damit bleibt auch der Diagnose-/Error-Reporting-Pfad auf kleineren/shared PHP-Setups stabil:** Eingehende Fehlerreports können jetzt ohne optionale `mbstring`-Extension normalisiert werden, statt schon im Wrapper fatal auszusteigen.
-- **Die Audit-Spur wurde direkt im Diagnose-Cluster nachgezogen:** `DOC/audit/AdminAudit-Diagnose.md` und `DOC/audit/BEWERTUNG.md` dokumentieren den nachgezogenen `mbstring`-/Error-Report-Vertrag jetzt unmittelbar im laufenden Admin-Audit.
-- **Bewertung und Release-Metadaten wurden auf `2.9.67` synchronisiert:** `README.md`, `Changelog.md`, `CMS/core/Version.php` und `CMS/update.json` spiegeln diesen kleinen Diagnose-/Kompatibilitäts-Batch jetzt konsistent im Release-Stand.
+- **Der Hub-Cluster zeigt Copy- und Warnhinweise wieder korrekt an:** `CMS/assets/js/admin-hub-site-edit.js` und `CMS/assets/js/admin-hub-sites.js` nutzen den globalen Alert-Helfer jetzt wieder mit dem echten Vertrag `cmsAlert(type, message)` statt mit vertauschter Argument-Reihenfolge.
+- **Damit bleibt das Asset-Feedback im Live-Admin wieder belastbar:** Clipboard-Erfolge, Browser-Warnungen und Fehlerhinweise rendern im Hub-Editor und in der Hub-Liste nicht länger nur den Typ-String oder kaputte Alert-Klassen.
+- **Die Audit-Spur wurde jetzt auch im Asset-Zweig des Hub-Clusters nachgezogen:** `DOC/audit/AssetAudit-Hub.md`, `DOC/audit/AdminAudit-Hub.md` und `DOC/audit/BEWERTUNG.md` dokumentieren den korrigierten Alert-Vertrag unmittelbar im laufenden Audit.
+- **Bewertung und Release-Metadaten wurden auf `2.9.74` synchronisiert:** `README.md`, `Changelog.md`, `CMS/core/Version.php` und `CMS/update.json` spiegeln diesen kleinen Hub-/Asset-Batch jetzt konsistent im Release-Stand.
 
 ### 🧩 Kernfunktionen im Überblick
 

@@ -522,7 +522,7 @@ class TablesModule
         $table['id'] = (int) ($table['id'] ?? 0);
         $table['table_name'] = trim((string) ($table['table_name'] ?? ''));
         $table['description'] = trim((string) ($table['description'] ?? ''));
-        $table['description_excerpt'] = mb_substr($table['description'], 0, 160);
+        $table['description_excerpt'] = cms_truncate_text($table['description'], 160);
         $table['col_count'] = (int) ($table['col_count'] ?? 0);
         $table['row_count'] = (int) ($table['row_count'] ?? 0);
         $table['updated_label'] = $this->formatDateLabel($updatedAt);

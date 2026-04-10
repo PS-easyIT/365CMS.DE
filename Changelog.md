@@ -1,4 +1,4 @@
-﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.67-blue.svg)](https://shields.io/)
+﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.74-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -17,6 +17,62 @@
 ---
 
 ## 📜 Vollständige Versionshistorie
+
+---
+
+### v2.9.74 — 10. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.74** | 🔴 fix | Admin/Hub Assets | **`CMS/assets/js/admin-hub-site-edit.js` und `CMS/assets/js/admin-hub-sites.js` rufen `cmsAlert()` jetzt wieder mit dem echten Vertrag `type, message` auf**: Copy-/Clipboard-Feedback und Browser-Warnungen im Hub-Cluster rendern damit wieder mit korrekter Meldung und Alert-Klasse statt nur mit vertauschten Typ-/Textwerten. |
+
+---
+
+### v2.9.73 — 10. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.73** | 🔴 fix | Admin/Hub | **`CMS/admin/modules/hub/HubTemplateProfileManager.php` nutzt für Template-Labels, Metadaten, Vergleichs-Arrays und Starter-Karten jetzt zentrale Kürzungshelper statt roher `mb_substr()`-Aufrufe**: Der Hub-Template-Editor hängt damit beim Laden, Speichern, Kopieren und Vererben von Templates nicht mehr stillschweigend an der optionalen `mbstring`-Extension. |
+
+---
+
+### v2.9.72 — 10. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.72** | 🔴 fix | Admin/Hub | **`CMS/admin/modules/hub/HubSitesModule.php` nutzt für Badge-, Titel-, Meta-, Link-, Karten- und Feature-Card-Normalisierung jetzt zentrale Kürzungshelper statt roher `mb_substr()`-Aufrufe**: Der Hub-Admin hängt damit beim Speichern von Hub-Sites und Karten nicht mehr stillschweigend an der optionalen `mbstring`-Extension. |
+
+---
+
+### v2.9.71 — 10. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.71** | 🔴 fix | Admin/Sicherheit | **`CMS/admin/modules/security/FirewallModule.php` validiert `block_ua`-Regeln jetzt mit explizitem `mb_strlen()`-/`strlen()`-Fallback statt über ein rohes `mb_strlen()`**: Der Firewall-Admin hängt damit beim Anlegen von User-Agent-Blockregeln nicht mehr stillschweigend an der optionalen `mbstring`-Extension. |
+
+---
+
+### v2.9.70 — 10. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.70** | 🔴 fix | Admin/Sicherheit | **`CMS/admin/modules/security/SecurityAuditModule.php` begrenzt Check-, Detail- und Audit-Log-Texte jetzt über `cms_truncate_text()` statt über eine zentrale Routine mit rohen `mb_strlen()`-/`mb_substr()`-Aufrufen**: Das Security-Audit hängt damit beim Rendern längerer Security-Checks und Audit-Logs nicht mehr stillschweigend an der optionalen `mbstring`-Extension. |
+
+---
+
+### v2.9.69 — 10. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.69** | 🔴 fix | Admin/Tabellen | **`CMS/admin/modules/tables/TablesModule.php` begrenzt Tabellenbeschreibungen für die Listenansicht jetzt über `cms_truncate_text()` statt über einen rohen `mb_substr()`-Aufruf**: Der Tabellen-Admin hängt damit beim Aufbereiten längerer Beschreibungen nicht mehr stillschweigend an der optionalen `mbstring`-Extension. |
+
+---
+
+### v2.9.68 — 10. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.68** | 🔴 fix | Admin/Info | **`CMS/admin/modules/system/DocumentationCatalog.php` und `CMS/admin/modules/system/DocumentationRenderer.php` begrenzen Excerpts, Tabellenzellen und Link-Ziele jetzt über `cms_truncate_text()` statt über rohe `mb_strlen()`-/`mb_substr()`-Aufrufe**: Der Dokumentationsbrowser hängt damit beim Rendern längerer Doku-Inhalte nicht mehr stillschweigend an der optionalen `mbstring`-Extension. |
 
 ---
 
