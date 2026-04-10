@@ -882,7 +882,23 @@
             return editors[definition.key];
         }
 
-        function ensureEditorSaved(key) {
+        function getEditorSaveLabel(definition) {
+            if (!definition || !definition.key) {
+                return 'Editor-Inhalt';
+            }
+
+            if (definition.key === 'de') {
+                return 'DE-Inhalt';
+            }
+
+            if (definition.key === 'en') {
+                return 'EN-Inhalt';
+            }
+
+            return String(definition.key).toUpperCase() + '-Inhalt';
+        }
+
+        function saveEditorContent(key, allowFallback) {
             var entry = editors[key];
             var definition = getDefinition(key);
             var input = definition ? getElement(definition.inputId) : null;
@@ -898,9 +914,22 @@
                 }
 
                 return normalizeEditorData(output);
-            }).catch(function () {
-                return normalizeEditorData(safeParseEditorInput(input));
+            }).catch(function (error) {
+                if (allowFallback) {
+                    return normalizeEditorData(safeParseEditorInput(input));
+                }
+
+                var saveError = new Error(getEditorSaveLabel(definition) + ' konnte vor dem Speichern nicht zuverlässig aus Editor.js serialisiert werden. Bitte problematische Blöcke prüfen und erneut speichern.');
+
+                saveError.editorDefinition = definition || null;
+                saveError.originalError = error || null;
+
+                throw saveError;
             });
+        }
+
+        function ensureEditorSaved(key) {
+            return saveEditorContent(key, true);
         }
 
         function applyEditorData(key, data) {
@@ -1170,6 +1199,8 @@
                 return;
             }
 
+            clearNotice();
+
             if (keys.length === 0) {
                 form.submit();
                 return;
@@ -1178,13 +1209,25 @@
             submitLocked = true;
 
             Promise.all(keys.map(function (key) {
-                return editors[key].instance.save().then(function (output) {
-                    editors[key].input.value = JSON.stringify(output);
-                }).catch(function () {
-                    return null;
-                });
-            })).finally(function () {
+                return saveEditorContent(key, false);
+            })).then(function () {
                 form.submit();
+            }).catch(function (error) {
+                var failedDefinition = error && error.editorDefinition ? error.editorDefinition : null;
+                var message = error && error.message
+                    ? error.message
+                    : 'Der Editor-Inhalt konnte nicht gespeichert werden. Bitte Eingaben prüfen und erneut versuchen.';
+
+                if (failedDefinition && failedDefinition.activateButtonId) {
+                    activateTargetPane(failedDefinition.activateButtonId);
+                }
+
+                if (typeof console !== 'undefined' && typeof console.error === 'function') {
+                    console.error('Editor.js-Speichern vor Formular-Submit fehlgeschlagen.', error);
+                }
+
+                submitLocked = false;
+                showNotice('danger', message);
             });
         });
     }

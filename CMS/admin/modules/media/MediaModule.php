@@ -269,6 +269,7 @@ class MediaModule
         $categories = $this->getCategories();
         $diskUsage  = $this->service->getDiskUsage();
         $stateParams = $this->buildLibraryStateParams($path, $view, $category, $search, $confirmMember);
+        $rootStateParams = $this->buildLibraryStateParams('', $view, $category, $search, $confirmMember);
 
         return [
             'folders'    => $this->buildFolderViewModels($items['folders'] ?? [], $path, $view, $category, $search, $confirmMember),
@@ -285,7 +286,7 @@ class MediaModule
             'base_url' => $this->buildAdminUrl(),
             'list_url' => $this->buildAdminUrl($this->buildLibraryStateParams($path, 'list', $category, $search, $confirmMember)),
             'grid_url' => $this->buildAdminUrl($this->buildLibraryStateParams($path, 'grid', $category, $search, $confirmMember)),
-            'root_url' => $this->buildAdminUrl($stateParams),
+            'root_url' => $this->buildAdminUrl($rootStateParams),
             'filter_state' => [
                 'path' => $path,
                 'view' => $view,

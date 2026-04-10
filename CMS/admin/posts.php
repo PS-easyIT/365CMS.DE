@@ -190,7 +190,7 @@ function cms_admin_posts_view_config(PostsModule $module, string $view): array
                                 : '';
                             return gridjs.html(
                                 '<div>' +
-                                    '<a href=\"' + %s + '/admin/posts?action=edit&id=' + encodeURIComponent(cell.id) + '\" class=\"text-reset\">' + window.cmsEsc(title) + '</a>' + localeBadge +
+                                    '<a href=\"/admin/posts?action=edit&id=' + encodeURIComponent(cell.id) + '\" class=\"text-reset\">' + window.cmsEsc(title) + '</a>' + localeBadge +
                                     '<div class=\"text-secondary small\">' + slugLine + '</div>' +
                                     englishSlugLine +
                                 '</div>'
@@ -233,18 +233,16 @@ function cms_admin_posts_view_config(PostsModule $module, string $view): array
                         name: '',
                         sort: false,
                         formatter: function(cell){
-                            return gridjs.html('<a href=\"' + %s + '/admin/posts?action=edit&id=' + encodeURIComponent(cell) + '\" class=\"btn btn-ghost-primary btn-icon btn-sm\" title=\"Bearbeiten\">✎</a>');
+                            return gridjs.html('<a href=\"/admin/posts?action=edit&id=' + encodeURIComponent(cell) + '\" class=\"btn btn-ghost-primary btn-icon btn-sm\" title=\"Bearbeiten\">✎</a>');
                         }
                     }
                 ]
             });
         })();",
-        json_encode(SITE_URL . '/api/v1/admin/posts'),
+        json_encode('/api/v1/admin/posts'),
         json_encode((string) ($listData['filter'] ?? '')),
         json_encode((int) ($listData['catFilter'] ?? 0)),
-        json_encode((string) ($listData['search'] ?? '')),
-        json_encode(SITE_URL),
-        json_encode(SITE_URL)
+        json_encode((string) ($listData['search'] ?? ''))
     );
 
     return [
@@ -270,7 +268,7 @@ function cms_admin_posts_view_config(PostsModule $module, string $view): array
 }
 
 if (!cms_admin_posts_can_access()) {
-    header('Location: ' . SITE_URL);
+    header('Location: /');
     exit;
 }
 

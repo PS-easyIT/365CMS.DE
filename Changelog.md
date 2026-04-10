@@ -1,4 +1,4 @@
-﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.74-blue.svg)](https://shields.io/)
+﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.78-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -17,6 +17,38 @@
 ---
 
 ## 📜 Vollständige Versionshistorie
+
+---
+
+### v2.9.78 — 10. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.78** | 🔴 fix | Admin/Medien | **`CMS/admin/modules/media/MediaModule.php` baut den Root-Breadcrumb `Uploads` der Medienbibliothek jetzt ohne den aktuellen Unterordnerpfad auf**: In verschachtelten Medienordnern springt der erste Breadcrumb damit wieder tatsächlich auf die Bibliothekswurzel zurück, statt nur denselben Unterordner erneut zu laden. |
+
+---
+
+### v2.9.77 — 10. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.77** | 🔴 fix | Admin/Beiträge & Grid-Bridge | **`CMS/admin/posts.php` reicht die aktive Beitragslisten-Konfiguration für `cmsGrid()` jetzt hostneutral über `/api/v1/admin/posts` und relative Edit-Links weiter und nutzt für den Guard-Fallback keinen festen `SITE_URL`-Sprung mehr**: Die geladene Post-Liste bleibt damit auch unter Proxy-, Alternativhost- oder lokaler Dev-Umgebung im aktuellen Admin-Kontext. |
+
+---
+
+### v2.9.76 — 10. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.76** | 🔴 fix | Assets/Editor.js | **`CMS/assets/js/editor-init.js` sanitisiert den Legacy-HTML→Editor.js-Fallback jetzt vor der Initialisierung auf einen kleinen, URL-geprüften Inline-Subset und verwirft gefährliche Root-Tags**: Bestehende HTML-Inhalte gelangen damit beim Öffnen von Seiten- und Beitragseditoren nicht mehr blind als rohes `innerHTML` in den initialen Editorzustand. |
+
+---
+
+### v2.9.75 — 10. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.75** | 🔴 fix | Assets/Editor.js | **`CMS/assets/js/admin-content-editor.js` submitet Seiten- und Beitragsformulare jetzt nur noch nach vollständig erfolgreicher Serialisierung aller aktiven Editor.js-Instanzen**: Scheitert `instance.save()` in einem aktiven DE-/EN-Editor, wird der POST jetzt fail-closed gestoppt und nicht mehr still mit veralteten Hidden-JSON-Daten weitergesendet. |
 
 ---
 

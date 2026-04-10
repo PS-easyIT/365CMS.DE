@@ -476,6 +476,30 @@ Der aktuelle Nachpflege-Stand umfasst damit **465 umgesetzte Batches**, davon we
 |---|---|---|---|
 | `CMS/assets/js/admin-hub-site-edit.js`, `CMS/assets/js/admin-hub-sites.js`, `DOC/audit/AssetAudit-Hub.md`, `DOC/audit/AdminAudit-Hub.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Die geladene Hub-Asset-Schicht nutzt den Shared-Alert-Helfer jetzt wieder mit dem echten Vertrag `cmsAlert(type, message)` statt mit vertauschter Argument-Reihenfolge. | Copy-/Clipboard-Feedback, Browser-Warnungen und Erfolgsbestätigungen im Hub-Editor sowie in der Hub-Liste bleiben damit im Live-Admin sichtbar und korrekt gestylt, statt nur noch den Typ-String anzuzeigen oder mit defekten Alert-Klassen zu rendern. Die Aggregate bleiben für diesen kleinen Hub-/Asset-Batch stabil. |
 
+### Delta Folge-Batch 535
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/assets/js/admin-content-editor.js`, `DOC/audit/AssetAudit-EditorJS.md`, `DOC/audit/AdminAudit-Seiten.md`, `DOC/audit/AdminAudit-Beitraege.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Der gemeinsame Editor.js-Submitpfad submitet Seiten- und Beitragsformulare jetzt nur noch nach vollständig erfolgreicher Serialisierung aller aktiven Editor-Instanzen, statt Save-Fehler still zu schlucken und trotzdem mit veralteten Hidden-JSON-Werten weiterzuposten. | Page- und Post-Editoren verlieren damit einen echten Datenverlustpfad im Shared-Asset: Defekte Blockzustände oder fehlgeschlagene `instance.save()`-Aufrufe führen nicht mehr zu einem scheinbar erfolgreichen Save mit altem Inhalt, sondern stoppen den POST fail-closed mit sichtbarer Fehlermeldung im betroffenen Editor-Kontext. |
+
+### Delta Folge-Batch 536
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/assets/js/editor-init.js`, `DOC/audit/AssetAudit-EditorJS.md`, `DOC/audit/AdminAudit-Seiten.md`, `DOC/audit/AdminAudit-Beitraege.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Der gemeinsame Legacy-HTML→Editor.js-Fallback parsed bestehende HTML-Inhalte jetzt inert über ein `<template>`, verwirft gefährliche Root-Tags und sanitisiert Inline-Markup auf einen kleinen, URL-geprüften Safe-Subset, statt rohe `innerHTML`-Fragmente direkt in Blockdaten zu übernehmen. | Seiten- und Beitragseditoren verlieren damit einen echten Admin-XSS-/Markup-Einschleuspfad beim Öffnen älterer HTML-Inhalte: problematische Inline-Tags oder Event-Attribute landen nicht mehr blind im initialen Editorzustand, sondern werden vor der Editor.js-Initialisierung konsequent reduziert. |
+
+### Delta Folge-Batch 537
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/posts.php`, `DOC/audit/AssetAudit-Grid.md`, `DOC/audit/AdminAudit-Beitraege.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Die aktive Grid.js-Brücke der Beitragsliste nutzt für API-Basis, Edit-Links und den Access-Denied-Fallback jetzt hostneutrale relative interne Ziele statt an `SITE_URL` gebundener Pfade im Entry-Setup. | Die Beitragsliste bleibt damit auch unter Proxy-, Alternativhost- und lokaler Dev-Umgebung im aktuellen Admin-/Origin-Kontext: Suche, Paging, Edit-Sprünge und Guard-Fallback kippen nicht mehr auf eine feste Hostbasis, obwohl der geladene Grid-Laufzeitpfad nur dieselbe interne Origin braucht. |
+
+### Delta Folge-Batch 538
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/media/MediaModule.php`, `DOC/audit/AssetAudit-Medien.md`, `DOC/audit/AdminAudit-Medien.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Die Medienbibliothek baut den Root-Breadcrumb `Uploads` jetzt ohne den aktuellen Unterordnerpfad auf, statt den laufenden `path` still in `root_url` mitzuschleppen und damit einen Pseudo-Root-Link auf denselben Ordner zu erzeugen. | Die Bibliotheksnavigation funktioniert damit in verschachtelten Medienordnern wieder korrekt: Ein Klick auf `Uploads` springt tatsächlich an den Bibliotheksanfang zurück, während View-, Kategorie- und Suchzustand erhalten bleiben. |
+
 ### Delta Folge-Batch 513
 
 | Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
