@@ -44,6 +44,40 @@ final class PerformanceModule
         'perf_auto_clear_content_cache',
     ];
 
+    private const SETTING_KEYS_BY_ACTION = [
+        'save_settings' => [
+            'perf_lazy_loading',
+            'perf_minify_css',
+            'perf_minify_js',
+            'perf_gzip',
+            'perf_browser_cache',
+            'perf_page_cache',
+            'perf_browser_cache_ttl',
+            'perf_html_cache_ttl',
+            'perf_webp_uploads',
+            'perf_strip_exif',
+            'perf_auto_clear_content_cache',
+            'perf_session_timeout_admin',
+            'perf_session_timeout_member',
+        ],
+        'save_cache_settings' => [
+            'perf_page_cache',
+            'perf_browser_cache',
+            'perf_browser_cache_ttl',
+            'perf_html_cache_ttl',
+            'perf_auto_clear_content_cache',
+        ],
+        'save_media_settings' => [
+            'perf_lazy_loading',
+            'perf_webp_uploads',
+            'perf_strip_exif',
+        ],
+        'save_session_settings' => [
+            'perf_session_timeout_admin',
+            'perf_session_timeout_member',
+        ],
+    ];
+
     private const MAX_AUDIT_STRING_LENGTH = 240;
 
     private readonly \CMS\Database $db;
@@ -126,7 +160,7 @@ final class PerformanceModule
             'repair_tables' => $this->repairDatabase(),
             'clear_expired_sessions' => $this->clearExpiredSessions(),
             'convert_media_to_webp' => $this->convertMediaLibraryToWebp(),
-            'save_settings', 'save_cache_settings', 'save_media_settings', 'save_session_settings' => $this->saveSettings($post),
+            'save_settings', 'save_cache_settings', 'save_media_settings', 'save_session_settings' => $this->saveSettings($post, $action),
             default => ['success' => false, 'error' => 'Unbekannte Aktion.'],
         };
     }
@@ -764,17 +798,20 @@ final class PerformanceModule
         ];
     }
 
-    private function saveSettings(array $post): array
+    private function saveSettings(array $post, string $action = 'save_settings'): array
     {
         $settings = $this->getSettings();
+        $settingKeys = self::SETTING_KEYS_BY_ACTION[$action] ?? self::SETTING_KEYS_BY_ACTION['save_settings'];
+        $settingsToSave = [];
 
-        foreach ($settings as $key => $default) {
+        foreach ($settingKeys as $key) {
+            $default = $settings[$key] ?? self::DEFAULT_SETTINGS[$key] ?? '0';
             if (in_array($key, self::BOOLEAN_SETTING_KEYS, true)) {
-                $settings[$key] = !empty($post[$key]) ? '1' : '0';
+                $settingsToSave[$key] = !empty($post[$key]) ? '1' : '0';
                 continue;
             }
 
-            $settings[$key] = match ($key) {
+            $settingsToSave[$key] = match ($key) {
                 'perf_browser_cache_ttl' => (string)max(0, min(31536000, (int)($post[$key] ?? $default))),
                 'perf_html_cache_ttl' => (string)max(0, min(86400, (int)($post[$key] ?? $default))),
                 'perf_session_timeout_admin' => (string)max(300, min(604800, (int)($post[$key] ?? $default))),
@@ -784,9 +821,9 @@ final class PerformanceModule
         }
 
         try {
-            $existing = $this->loadExistingSettingNames(array_keys($settings));
+            $existing = $this->loadExistingSettingNames(array_keys($settingsToSave));
 
-            foreach ($settings as $key => $value) {
+            foreach ($settingsToSave as $key => $value) {
                 if (isset($existing[$key])) {
                     $this->db->update('settings', ['option_value' => $value], ['option_name' => $key]);
                 } else {
@@ -813,7 +850,7 @@ final class PerformanceModule
             'Performance-Einstellungen gespeichert',
             'setting',
             null,
-            $settings,
+            $settingsToSave,
             'warning'
         );
 

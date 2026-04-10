@@ -84,7 +84,7 @@ $sectionPageConfig = [
         return $module instanceof AntispamModule ? $module->getData() : [];
     },
     'access_checker' => static function (): bool {
-        return Auth::instance()->isAdmin();
+        return Auth::instance()->isAdmin() && Auth::instance()->hasCapability('manage_settings');
     },
     'access_denied_route' => '/',
     'post_handler' => static function ($module, string $section, array $postData): array {

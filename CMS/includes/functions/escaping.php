@@ -61,6 +61,47 @@ function esc_js(string $text): string {
 }
 
 /**
+ * UTF-8-sicherer Text-Kürzer mit Fallback ohne mbstring.
+ */
+function cms_truncate_text(string $text, int $width, string $trimMarker = '…'): string {
+    if ($width <= 0 || $text === '') {
+        return '';
+    }
+
+    if (function_exists('mb_strimwidth')) {
+        return (string) mb_strimwidth($text, 0, $width, $trimMarker, 'UTF-8');
+    }
+
+    $characters = preg_split('//u', $text, -1, PREG_SPLIT_NO_EMPTY);
+    if (is_array($characters)) {
+        if (count($characters) <= $width) {
+            return $text;
+        }
+
+        $markerCharacters = preg_split('//u', $trimMarker, -1, PREG_SPLIT_NO_EMPTY);
+        $markerLength = is_array($markerCharacters) ? count($markerCharacters) : strlen($trimMarker);
+
+        if ($markerLength >= $width) {
+            return is_array($markerCharacters)
+                ? implode('', array_slice($markerCharacters, 0, $width))
+                : substr($trimMarker, 0, $width);
+        }
+
+        return implode('', array_slice($characters, 0, $width - $markerLength)) . $trimMarker;
+    }
+
+    if (strlen($text) <= $width) {
+        return $text;
+    }
+
+    if (strlen($trimMarker) >= $width) {
+        return substr($trimMarker, 0, $width);
+    }
+
+    return substr($text, 0, $width - strlen($trimMarker)) . $trimMarker;
+}
+
+/**
  * WordPress-style date formatting with timezone support
  */
 function wp_date(string $format, ?int $timestamp = null, mixed $timezone = null): string|false {

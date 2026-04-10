@@ -380,6 +380,54 @@ Der aktuelle Nachpflege-Stand umfasst damit **465 umgesetzte Batches**, davon we
 |---|---|---|---|
 | `CMS/core/Services/Landing/LandingHeaderService.php`, `CMS/core/Services/Landing/LandingDefaultsProvider.php`, `CMS/themes/cms-default/home.php`, `CMS/themes/cms-default/partials/home-landing.php`, `DOC/audit/AdminAudit-Design.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Der Landing-Header verliert das im Admin gepflegte Hero-Hintergrundbild nicht mehr zwischen Service und Frontend: `bg_image` wird wieder aus dem Header-Vertrag geladen, über die aktuelle Runtime-URL aufgelöst und in beiden Landing-Templates als echter Hero-Hintergrund gerendert; parallel nutzen die Frontend-Hinweise zur Landing-Konfiguration keine an `SITE_URL` oder `/admin/landing-page.php` gebundenen Admin-Links mehr. | Landing-Hintergrundbilder wirken damit im Live-Frontend wieder tatsächlich statt still in der Datenbank zu verschwinden, und interne Admin-Hinweislinks aus den Public-Leerzuständen bleiben auch unter Proxy-, Alternativhost- oder lokaler Dev-Umgebung auf der aktuellen Origin statt auf einer veralteten Host-/Legacy-Route zu landen. Die Aggregate bleiben für diesen kleinen Design-/Landing-Frontend-Batch stabil. |
 
+### Delta Folge-Batch 519
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/themes/cms-default/home.php`, `CMS/themes/cms-default/partials/home-landing.php`, `DOC/audit/AdminAudit-Design.md`, `DOC/audit/AssetAudit-Design.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Die Landing-Templates rendern Hero-Hintergrund und Logo jetzt über vorab escapte URL-Variablen, explizite Boolean-Guards und ein eigenes Bild-Layer statt über ein dynamisches CSS-`url(...)`-Fragment mit roh ausgewerteten Pfaden; parallel ist der Design-/Template-Vertrag jetzt auch im Asset-Audit nachgezogen. | Landing-Hero und Branding bleiben damit bei internen hostneutralen Assetpfaden ebenso wie bei externen Bild-URLs sauber im Fail-closed-Renderpfad, und die Sicherheits-/Diagnostikspur für beide Frontend-Templates bleibt ohne Sonderwarnungen nachvollziehbar. Die Aggregate bleiben für diesen kleinen Design-/Template-Follow-up stabil. |
+
+### Delta Folge-Batch 520
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/redirect-manager.php`, `CMS/admin/not-found-monitor.php`, `DOC/audit/AdminAudit-SEO.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Redirect-Manager und 404-Monitor nutzen für Access-Denied-Fallbacks am Entry jetzt denselben hostneutralen Root-Redirect `/` statt eines an `SITE_URL` gebundenen Sprungs. | Fehlende Berechtigungen im SEO-Cluster kippen damit auch unter Proxy-, Alternativhost- oder lokaler Dev-Umgebung nicht mehr auf eine potenziell falsche Origin, sondern bleiben auf der aktuellen Site-Basis. Die Aggregate bleiben für diesen kleinen SEO-/Guard-Batch stabil. |
+
+### Delta Folge-Batch 521
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/antispam.php`, `CMS/admin/firewall.php`, `DOC/audit/AdminAudit-Sicherheit.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | AntiSpam- und Firewall-Entry prüfen schon für das Laden der Oberfläche jetzt dieselbe Capability `manage_settings`, die ihre Save-/Blacklist-/Regel-Aktionen intern ohnehin bereits verlangen. | Sicherheitskonfiguration wird damit nicht mehr als halb offene Admin-Oberfläche sichtbar, bei der Nutzer erst nach geladenen Daten und Formularen auf Berechtigungsfehler laufen. Die Aggregate bleiben für diesen kleinen Security-/RBAC-Batch stabil. |
+
+### Delta Folge-Batch 522
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/security-audit.php`, `DOC/audit/AdminAudit-Sicherheit.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Der Security-Audit-Entry verlangt jetzt ebenfalls `manage_settings` statt nur generischer Admin-Rechte und bleibt damit capability-seitig konsistent zu AntiSpam und Firewall. | Sensible Audit-Läufe und Log-Bereinigungen werden damit nicht mehr für Admin-Nutzer ohne passenden Security-/Settings-Kontext sichtbar oder ausführbar, nur um erst später auf halboffene Zustände zu treffen. Die Aggregate bleiben für diesen kleinen Security-Audit-/RBAC-Follow-up stabil. |
+
+### Delta Folge-Batch 523
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/seo/PerformanceModule.php`, `DOC/audit/AdminAudit-Performance.md`, `DOC/audit/AssetAudit-INDEX.md`, `DOC/audit/AssetAudit-Performance.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Performance-Teilformulare speichern jetzt nur noch die zu ihrem sichtbaren Formular gehörenden Setting-Keys, statt beim Speichern von Session- oder Medien-Optionen implizit fremde Boolean-Schalter wie Page-Cache, Browser-Cache oder Auto-Clear auf `0` zu ziehen; parallel ist dafür ein eigener Performance-Asset-Audit-Strang angelegt. | Session- und Medien-Roundtrips im Performance-Admin verhalten sich damit wieder konsistent zum sichtbaren Formularumfang: Teilbereichs-Saves löschen keine fremden Performance-Schalter mehr still im Hintergrund. Die Aggregate bleiben für diesen kleinen Performance-/Settings-Batch stabil. |
+
+### Delta Folge-Batch 524
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/includes/functions/escaping.php`, `CMS/admin/views/performance/sessions.php`, `CMS/admin/views/dashboard/index.php`, `DOC/audit/AdminAudit-Performance.md`, `DOC/audit/AdminAudit-Dashboard.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Dashboard und Performance-Session-View nutzen für Anzeige-Kürzungen jetzt den zentralen UTF-8-sicheren Helfer `cms_truncate_text()` statt rohe `mb_strimwidth()`-Aufrufe, die auf PHP-Setups ohne geladene `mbstring`-Extension fatal abbrechen konnten. | Aktivitätsliste und Session-Tabelle bleiben damit auch auf kleineren/shared PHP-Installationen renderbar, statt schon an einer optionalen Kürzungsfunktion die komplette Admin-Ansicht zu verlieren. Die Aggregate bleiben für diesen kleinen Kompatibilitäts-/Robustheits-Batch stabil. |
+
+### Delta Folge-Batch 525
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/comments/CommentsModule.php`, `DOC/audit/AdminAudit-Kommentare.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Die Kommentar-Moderation nutzt für Kommentar-Excerpts jetzt den zentralen Helfer `cms_truncate_text()` und zieht Author-Initialen nicht länger über rohe `mb_substr()`-Aufrufe, sondern mit explizitem `mb_strtoupper()`-/`strtoupper()`-Fallback hoch. | Die Moderationsliste bleibt damit auch auf PHP-Setups ohne geladene `mbstring`-Extension renderbar, statt schon beim Kürzen von Kommentartexten oder Initialen mit einem Fatal Error auszusteigen. Die Aggregate bleiben für diesen kleinen Kommentare-/Kompatibilitäts-Batch stabil. |
+
+### Delta Folge-Batch 526
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/system/updates.php`, `DOC/audit/AdminAudit-System.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Die Update-Ansicht kürzt den Core-Changelog im Hinweis auf verfügbare Updates jetzt über `cms_truncate_text()` statt über einen rohen `mb_substr()`-Aufruf. | Der System-/Updates-Admin bleibt damit auch auf PHP-Setups ohne geladene `mbstring`-Extension renderbar, statt schon beim Anzeigen eines verfügbaren Core-Updates mit Fatal Error auszusteigen. Die Aggregate bleiben für diesen kleinen System-/Kompatibilitäts-Batch stabil. |
+
 ### Delta Folge-Batch 513
 
 | Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |

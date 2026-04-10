@@ -428,7 +428,7 @@ function dashboardUrl(string $url, string $fallback = '/admin'): string {
                                     <td>
                                         <span class="badge bg-blue-lt"><?= htmlspecialchars((string) ($entry->action ?? '')) ?></span>
                                     </td>
-                                    <td class="text-secondary"><?= htmlspecialchars(mb_strimwidth((string) ($entry->details ?? ''), 0, 60, '…')) ?></td>
+                                    <td class="text-secondary"><?= htmlspecialchars(cms_truncate_text((string) ($entry->details ?? ''), 60)) ?></td>
                                     <td class="text-secondary">
                                         <?= htmlspecialchars((string) ($entry->created_at ?? '')) ?>
                                     </td>

@@ -13,7 +13,7 @@ if (!defined('ABSPATH')) {
 use CMS\Auth;
 use CMS\Security;
 
-if (!Auth::instance()->isAdmin()) {
+if (!Auth::instance()->isAdmin() || !Auth::instance()->hasCapability('manage_settings')) {
     header('Location: /');
     exit;
 }

@@ -100,7 +100,7 @@ function cms_admin_redirect_manager_can_run_action(string $action): bool
 }
 
 if (!cms_admin_redirect_manager_can_access()) {
-    header('Location: ' . SITE_URL);
+    header('Location: /');
     exit;
 }
 

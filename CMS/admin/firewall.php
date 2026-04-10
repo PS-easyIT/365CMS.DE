@@ -72,7 +72,7 @@ $sectionPageConfig = [
     'module_file' => __DIR__ . '/modules/security/FirewallModule.php',
     'module_factory' => static fn (): FirewallModule => new FirewallModule(),
     'data_loader' => static fn (FirewallModule $module): array => $module->getData(),
-    'access_checker' => static fn (): bool => Auth::instance()->isAdmin(),
+    'access_checker' => static fn (): bool => Auth::instance()->isAdmin() && Auth::instance()->hasCapability('manage_settings'),
     'invalid_token_message' => 'Sicherheitstoken ungültig.',
     'unknown_action_message' => 'Firewall-Aktion konnte nicht verarbeitet werden.',
     'post_handler' => static function (FirewallModule $module, string $section, array $post): array {

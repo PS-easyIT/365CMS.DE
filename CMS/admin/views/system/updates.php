@@ -65,7 +65,7 @@ $hasUpdates = $data['has_updates'];
                 <?php
                 $coreUpdateDetails = [];
                 if (!empty($core['changelog'])) {
-                    $coreUpdateDetails[] = (string) mb_substr((string) $core['changelog'], 0, 200);
+                    $coreUpdateDetails[] = cms_truncate_text((string) $core['changelog'], 200, '');
                 }
                 $alertData = [
                     'type' => 'warning',

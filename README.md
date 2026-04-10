@@ -2,7 +2,7 @@
 
 <div align="center">
 
-[![Version](https://img.shields.io/badge/version-2.9.58-blue.svg)](Changelog.md)
+[![Version](https://img.shields.io/badge/version-2.9.66-blue.svg)](Changelog.md)
 ![Status](https://img.shields.io/badge/status-stable-16a34a)
 ![PHP](https://img.shields.io/badge/PHP-8.4%2B-777BB4?logo=php&logoColor=white)
 ![MySQL](https://img.shields.io/badge/MySQL-5.7%2B-4479A1?logo=mysql&logoColor=white)
@@ -91,13 +91,12 @@ Die Audits wurden mit OWASP-nahen Prüfwerkzeugen & AI Audit Tools von Snyk, Ref
 | **PHP / Best Practices** | **96,22** |
 | **Gesamt** | **96,35** |
 
-### 🆕 Aktuelle 2.9.58-Highlights
+### 🆕 Aktuelle 2.9.66-Highlights
 
-- **Das Landing-Hero verliert sein Admin-Hintergrundbild nicht mehr still im Runtime-Pfad:** `CMS/core/Services/Landing/LandingHeaderService.php` reicht `bg_image` jetzt wieder sauber aus dem gespeicherten Header-Vertrag an das Frontend durch.
-- **Beide Landing-Templates rendern das konfigurierte Hero-Bild jetzt wirklich im Live-Frontend:** `CMS/themes/cms-default/home.php` und `CMS/themes/cms-default/partials/home-landing.php` lösen gespeicherte interne oder externe Bildpfade runtime-sicher auf und setzen sie als echten Hero-Hintergrund.
-- **Frontend-Leerzustände verweisen die Landing-Konfiguration jetzt hostneutral auf die reale Admin-Route:** Die Hinweise nutzen `/admin/landing-page` bzw. `/admin/landing-page?tab=content` statt `SITE_URL`-gebundener oder veralteter `/admin/landing-page.php`-Links.
-- **Das Design-Audit wurde nachgezogen:** `DOC/audit/AdminAudit-Design.md` und `DOC/audit/BEWERTUNG.md` dokumentieren den wiederhergestellten Landing-Frontendvertrag jetzt direkt im laufenden Audit.
-- **Bewertung und Release-Metadaten wurden synchronisiert:** `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md`, `CMS/core/Version.php` und `CMS/update.json` spiegeln diesen Design-/Landing-Batch jetzt konsistent als **`2.9.58`**.
+- **Die Update-Ansicht hängt bei Core-Changelog-Vorschauen nicht länger hart an `mbstring`:** `CMS/admin/views/system/updates.php` nutzt für den kurzen Update-Hinweis jetzt `cms_truncate_text()` statt eines rohen `mb_substr()`-Aufrufs.
+- **Damit bleibt auch der System-/Updates-Admin auf kleineren/shared PHP-Setups stabil:** Verfügbare Core-Updates rendern ihren Changelog-Auszug jetzt ohne optionale `mbstring`-Extension, statt die Ansicht schon beim Warnhinweis fatal zu verlieren.
+- **Die Audit-Spur wurde direkt im System-Cluster nachgezogen:** `DOC/audit/AdminAudit-System.md` und `DOC/audit/BEWERTUNG.md` dokumentieren den nachgezogenen `mbstring`-/Updates-Vertrag jetzt unmittelbar im laufenden Admin-Audit.
+- **Bewertung und Release-Metadaten wurden auf `2.9.66` synchronisiert:** `README.md`, `Changelog.md`, `CMS/core/Version.php` und `CMS/update.json` spiegeln diesen kleinen System-/Kompatibilitäts-Batch jetzt konsistent im Release-Stand.
 
 ### 🧩 Kernfunktionen im Überblick
 

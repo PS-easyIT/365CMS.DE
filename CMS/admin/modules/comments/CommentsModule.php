@@ -429,12 +429,15 @@ class CommentsModule
     {
         $plainText = trim(preg_replace('/\s+/u', ' ', strip_tags($content)) ?? '');
 
-        return mb_substr($plainText, 0, 120);
+        return cms_truncate_text($plainText, 120, '');
     }
 
     private function buildAuthorInitials(string $author): string
     {
-        $initials = strtoupper(mb_substr(trim($author), 0, 2));
+        $initialsSource = cms_truncate_text(trim($author), 2, '');
+        $initials = function_exists('mb_strtoupper')
+            ? mb_strtoupper($initialsSource, 'UTF-8')
+            : strtoupper($initialsSource);
 
         return $initials !== '' ? $initials : 'KO';
     }

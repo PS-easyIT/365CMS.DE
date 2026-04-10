@@ -1,4 +1,4 @@
-﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.58-blue.svg)](https://shields.io/)
+﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.66-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -17,6 +17,93 @@
 ---
 
 ## 📜 Vollständige Versionshistorie
+
+---
+
+### v2.9.66 — 10. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.66** | 🔴 fix | Admin/System | **`CMS/admin/views/system/updates.php` kürzt den Core-Changelog im Update-Hinweis jetzt über `cms_truncate_text()` statt über einen rohen `mb_substr()`-Aufruf**: Die Update-Ansicht hängt damit beim Rendern verfügbarer Core-Updates nicht mehr stillschweigend an der optionalen `mbstring`-Extension. |
+| **2.9.66** | 🔵 docs | Audit/System | **`DOC/audit/AdminAudit-System.md` und `DOC/audit/BEWERTUNG.md` dokumentieren den nachgezogenen Updates-/`mbstring`-Vertrag jetzt direkt im laufenden Audit**: Der Fix bleibt damit nicht nur in der View, sondern auch im Audit-Strang nachvollziehbar. |
+| **2.9.66** | 🔵 docs | Release | **`README.md`, `Changelog.md`, `CMS/core/Version.php` und `CMS/update.json` wurden auf den Release-Stand `2.9.66` synchronisiert**: Versionsbadge, Highlights und Update-Metadaten zeigen damit denselben System-/Kompatibilitäts-Batch. |
+
+---
+
+### v2.9.65 — 10. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.65** | 🔴 fix | Admin/Kommentare | **`CMS/admin/modules/comments/CommentsModule.php` nutzt für Kommentar-Excerpts jetzt `cms_truncate_text()` statt eines rohen `mb_substr()`-Aufrufs**: Die Kommentar-Moderation hängt damit beim Rendern langer Kommentartexte nicht mehr stillschweigend an der optionalen `mbstring`-Extension. |
+| **2.9.65** | 🔴 fix | Admin/Kommentare | **Auch die Author-Initialen der Kommentar-Liste ziehen jetzt über einen expliziten `mb_strtoupper()`-/`strtoupper()`-Fallback hoch**: Avatar-Kürzel bleiben damit auch auf kleineren/shared PHP-Setups ohne geladene `mbstring`-Extension renderbar, statt schon im Listenaufbau fatal auszusteigen. |
+| **2.9.65** | 🔵 docs | Audit/Kommentare | **`DOC/audit/AdminAudit-Kommentare.md` und `DOC/audit/BEWERTUNG.md` dokumentieren den nachgezogenen Kommentare-/`mbstring`-Vertrag jetzt direkt im laufenden Audit**: Der Fix bleibt damit nicht nur im Modul, sondern auch im Audit-Strang nachvollziehbar. |
+| **2.9.65** | 🔵 docs | Release | **`README.md`, `Changelog.md`, `CMS/core/Version.php` und `CMS/update.json` wurden auf den Release-Stand `2.9.65` synchronisiert**: Versionsbadge, Highlights und Update-Metadaten zeigen damit denselben Kommentare-/Kompatibilitäts-Batch. |
+
+---
+
+### v2.9.64 — 10. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.64** | 🔴 fix | Admin/Dashboard & Performance | **`CMS/admin/views/dashboard/index.php` und `CMS/admin/views/performance/sessions.php` kürzen Aktivitätsdetails bzw. Session-User-Agents jetzt nicht mehr direkt über `mb_strimwidth()`**: Die beiden Admin-Views hängen damit nicht länger an der optionalen `mbstring`-Extension, obwohl sie nur Anzeige-Kürzungen brauchen. |
+| **2.9.64** | 🔴 fix | Core/Helpers | **`CMS/includes/functions/escaping.php` ergänzt dafür mit `cms_truncate_text()` einen zentralen UTF-8-sicheren Kürzungshelfer mit `mb_strimwidth()`-Fallback**: Bei vorhandener `mbstring` bleibt das Verhalten präzise, auf kleineren/shared Setups ohne Extension rendern die betroffenen Admin-Tabellen aber trotzdem robust weiter. |
+| **2.9.64** | 🔵 docs | Audit/Dashboard & Performance | **`DOC/audit/AdminAudit-Dashboard.md`, `DOC/audit/AdminAudit-Performance.md` und `DOC/audit/BEWERTUNG.md` dokumentieren den nachgezogenen `mbstring`-/Truncate-Vertrag jetzt direkt im laufenden Audit**: Der Kompatibilitäts-Fix bleibt damit nicht nur in den Views und Helfern, sondern auch im Audit-Strang nachvollziehbar. |
+| **2.9.64** | 🔵 docs | Release | **`README.md`, `Changelog.md`, `CMS/core/Version.php` und `CMS/update.json` wurden auf den Release-Stand `2.9.64` synchronisiert**: Versionsbadge, Highlights und Update-Metadaten zeigen damit denselben Robustheits-Follow-up. |
+
+---
+
+### v2.9.63 — 10. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.63** | 🔴 fix | Performance/Settings | **`CMS/admin/modules/seo/PerformanceModule.php` speichert bei `save_media_settings` und `save_session_settings` jetzt nur noch die zum jeweiligen Teilformular gehörenden Setting-Keys**: Session- oder Medien-Saves ziehen damit nicht mehr implizit fremde Boolean-Schalter wie `perf_page_cache`, `perf_browser_cache` oder `perf_auto_clear_content_cache` auf `0`. |
+| **2.9.63** | 🔴 fix | Performance/Admin UX | **Teilbereichs-Saves bleiben damit wieder konsistent zum sichtbaren Formularumfang**: Wer nur Medien- oder Session-Einstellungen speichert, verliert keine anderen Performance-Toggles mehr still im Hintergrund. |
+| **2.9.63** | 🔵 docs | Audit/Performance & Assets | **`DOC/audit/AdminAudit-Performance.md`, `DOC/audit/AssetAudit-INDEX.md`, `DOC/audit/AssetAudit-Performance.md` und `DOC/audit/BEWERTUNG.md` dokumentieren den nachgezogenen Teilformular-Vertrag jetzt direkt im laufenden Audit**: Der Fix bleibt damit nicht nur im Modul, sondern auch im Admin-/Asset-Audit nachvollziehbar. |
+| **2.9.63** | 🔵 docs | Release | **`README.md`, `Changelog.md`, `CMS/core/Version.php` und `CMS/update.json` wurden auf den Release-Stand `2.9.63` synchronisiert**: Versionsbadge, Highlights und Update-Metadaten zeigen damit denselben Performance-/Settings-Follow-up. |
+
+---
+
+### v2.9.62 — 10. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.62** | 🔴 fix | Security/RBAC | **`CMS/admin/security-audit.php` verlangt jetzt ebenfalls `manage_settings` statt nur generischer Admin-Rechte**: Der sensible Audit-Entry folgt damit wieder demselben Capability-Vertrag wie AntiSpam und Firewall. |
+| **2.9.62** | 🔴 fix | Security/Admin UX | **Audit-Läufe und Log-Bereinigung geraten damit nicht mehr in halb offene Zustände für zu breit berechtigte Admin-Rollen**: Nutzer ohne passenden Settings-/Security-Kontext landen gar nicht erst im sichtbaren Security-Audit. |
+| **2.9.62** | 🔵 docs | Audit/Sicherheit | **`DOC/audit/AdminAudit-Sicherheit.md` und `DOC/audit/BEWERTUNG.md` dokumentieren den nachgezogenen Security-Audit-RBAC-Vertrag jetzt direkt im laufenden Audit**: Der Fix bleibt damit nicht nur im Entry, sondern auch im Audit-Strang nachvollziehbar. |
+| **2.9.62** | 🔵 docs | Release | **`README.md`, `Changelog.md`, `CMS/core/Version.php` und `CMS/update.json` wurden auf den Release-Stand `2.9.62` synchronisiert**: Versionsbadge, Highlights und Update-Metadaten zeigen damit denselben Security-Audit-/RBAC-Follow-up. |
+
+---
+
+### v2.9.61 — 10. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.61** | 🔴 fix | Security/RBAC | **`CMS/admin/antispam.php` und `CMS/admin/firewall.php` prüfen schon am Entry auf `manage_settings` statt nur auf `isAdmin()`**: Die Security-Oberflächen folgen damit wieder demselben Capability-Vertrag wie ihre eigentlichen Mutationspfade. |
+| **2.9.61** | 🔴 fix | Security/Admin UX | **AntiSpam- und Firewall-Konfiguration geraten dadurch nicht mehr in halb offene Zustände mit späteren Berechtigungsabbrüchen beim Speichern, Löschen oder Regeln-Togglen**: Nutzer ohne passende Capability landen gar nicht erst in sichtbaren Security-Admins mit schreibgesperrten Folgeroutinen. |
+| **2.9.61** | 🔵 docs | Audit/Sicherheit | **`DOC/audit/AdminAudit-Sicherheit.md` und `DOC/audit/BEWERTUNG.md` dokumentieren den nachgezogenen Security-RBAC-Vertrag jetzt direkt im laufenden Audit**: Der Fix bleibt damit nicht nur in den Entries, sondern auch im Audit-Strang nachvollziehbar. |
+| **2.9.61** | 🔵 docs | Release | **`README.md`, `Changelog.md`, `CMS/core/Version.php` und `CMS/update.json` wurden auf den Release-Stand `2.9.61` synchronisiert**: Versionsbadge, Highlights und Update-Metadaten zeigen damit denselben Security-/RBAC-Batch. |
+
+---
+
+### v2.9.60 — 10. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.60** | 🔴 fix | SEO/Admin Guards | **`CMS/admin/redirect-manager.php` und `CMS/admin/not-found-monitor.php` nutzen für Access-Denied-Fallbacks jetzt den hostneutralen Root-Pfad `/` statt eines an `SITE_URL` gebundenen Redirects**: Guard-Abbrüche bleiben damit auf der aktuellen Origin, obwohl kein externer Zielhost nötig ist. |
+| **2.9.60** | 🔴 fix | SEO/Routing | **Fehlende Berechtigungen im Redirect- und 404-Admin springen dadurch auch unter Proxy-, Alternativhost- oder lokalen Dev-URLs nicht mehr auf eine falsche Hostbasis**: Die SEO-Entries folgen damit auch im Guard-Fallback demselben hostneutralen Redirect-Muster wie andere nachgezogene Admin-Bereiche. |
+| **2.9.60** | 🔵 docs | Audit/SEO | **`DOC/audit/AdminAudit-SEO.md` und `DOC/audit/BEWERTUNG.md` dokumentieren den nachgezogenen SEO-Guard-Vertrag jetzt direkt im laufenden Audit**: Der Fix bleibt damit nicht nur in den Entries, sondern auch im Audit-Strang nachvollziehbar. |
+| **2.9.60** | 🔵 docs | Release | **`README.md`, `Changelog.md`, `CMS/core/Version.php` und `CMS/update.json` wurden auf den Release-Stand `2.9.60` synchronisiert**: Versionsbadge, Highlights und Update-Metadaten zeigen damit denselben SEO-/Guard-Batch. |
+
+---
+
+### v2.9.59 — 10. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.59** | 🔴 fix | Frontend/Landing | **`CMS/themes/cms-default/home.php` und `CMS/themes/cms-default/partials/home-landing.php` rendern Landing-Hintergrund und Logo jetzt über explizite Safe-URL-Variablen und separate Bild-Layer statt über dynamisch zusammengesetzte CSS-`url(...)`-Fragmente**: Der Hero-/Branding-Pfad bleibt damit robuster zwischen Template, Runtime und Sicherheitsprüfung. |
+| **2.9.59** | 🔴 fix | Frontend/Asset-Pfade | **Interne Landing-Bildpfade bleiben in beiden Templates hostneutral root-relativ, während absolute Bild-URLs weiterhin über die gemeinsamen Escape-Helfer sanitisiert werden**: Landing-Hintergründe und Logos bleiben damit same-origin-freundlich, ohne externe Bildziele ungefiltert zu übernehmen. |
+| **2.9.59** | 🔵 docs | Audit/Design & Assets | **`DOC/audit/AdminAudit-Design.md`, `DOC/audit/AssetAudit-Design.md` und `DOC/audit/BEWERTUNG.md` dokumentieren den nachgezogenen Landing-Template-Vertrag jetzt gemeinsam**: Der Follow-up bleibt damit nicht nur im Theme-Code, sondern auch in Admin- und Asset-Audit nachvollziehbar. |
+| **2.9.59** | 🔵 docs | Release | **`README.md`, `Changelog.md`, `CMS/core/Version.php` und `CMS/update.json` wurden auf den Release-Stand `2.9.59` synchronisiert**: Versionsbadge, Highlights und Update-Metadaten zeigen damit denselben Design-/Landing-Follow-up. |
 
 ---
 

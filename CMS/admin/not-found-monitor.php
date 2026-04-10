@@ -41,7 +41,7 @@ function cms_admin_not_found_monitor_can_run_action(string $action): bool
 }
 
 if (!cms_admin_not_found_monitor_can_access()) {
-    header('Location: ' . SITE_URL);
+    header('Location: /');
     exit;
 }
 
