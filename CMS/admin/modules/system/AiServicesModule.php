@@ -13,6 +13,17 @@ final class AiServicesModule
 {
     private const int MAX_TEXT_LENGTH = 120;
     private const int MAX_URL_LENGTH = 255;
+    /** @var array<string, string> */
+    private const SUPPORTED_EDITORJS_BLOCK_TYPES = [
+        'paragraph' => 'paragraph',
+        'header' => 'header',
+        'list' => 'list',
+        'checklist' => 'checklist',
+        'quote' => 'quote',
+        'callout' => 'callout',
+        'warning' => 'warning',
+        'mediatext' => 'mediaText',
+    ];
 
     private AiSettingsService $settings;
 
@@ -159,7 +170,7 @@ final class AiServicesModule
                 'default_source_locale' => $this->sanitizeLocale((string) ($post['default_source_locale'] ?? 'de'), 'de'),
                 'default_target_locale' => $this->sanitizeLocale((string) ($post['default_target_locale'] ?? 'en'), 'en'),
                 'allowed_target_locales' => $this->sanitizeCsvList((string) ($post['allowed_target_locales'] ?? 'en'), ['en']),
-                'supported_block_types' => $this->sanitizeCsvList((string) ($post['supported_block_types'] ?? 'paragraph,header,list,checklist,quote,callout'), ['paragraph', 'header', 'list', 'checklist', 'quote', 'callout']),
+                'supported_block_types' => $this->sanitizeSupportedBlockTypes((string) ($post['supported_block_types'] ?? 'paragraph,header,list,checklist,quote,callout,warning,mediaText'), ['paragraph', 'header', 'list', 'checklist', 'quote', 'callout', 'warning', 'mediaText']),
                 'preview_required' => !empty($post['preview_required']),
                 'preserve_unsupported_blocks' => !empty($post['preserve_unsupported_blocks']),
                 'skip_html_blocks' => !empty($post['skip_html_blocks']),
@@ -311,6 +322,41 @@ final class AiServicesModule
         }
 
         return $normalized !== [] ? array_values($normalized) : array_values(array_unique($fallback));
+    }
+
+    /** @return list<string> */
+    private function sanitizeSupportedBlockTypes(string $value, array $fallback): array
+    {
+        $parts = preg_split('/\s*,\s*/', trim($value)) ?: [];
+        $normalized = [];
+
+        foreach ($parts as $part) {
+            $part = strtolower(trim($part));
+            $part = preg_replace('/[^a-z0-9._-]+/', '', $part) ?? '';
+            if ($part === '' || !isset(self::SUPPORTED_EDITORJS_BLOCK_TYPES[$part])) {
+                continue;
+            }
+
+            $canonical = self::SUPPORTED_EDITORJS_BLOCK_TYPES[$part];
+            $normalized[$canonical] = $canonical;
+        }
+
+        if ($normalized !== []) {
+            return array_values($normalized);
+        }
+
+        $resolvedFallback = [];
+        foreach ($fallback as $entry) {
+            $key = strtolower(trim((string) $entry));
+            if ($key === '' || !isset(self::SUPPORTED_EDITORJS_BLOCK_TYPES[$key])) {
+                continue;
+            }
+
+            $canonical = self::SUPPORTED_EDITORJS_BLOCK_TYPES[$key];
+            $resolvedFallback[$canonical] = $canonical;
+        }
+
+        return $resolvedFallback !== [] ? array_values($resolvedFallback) : array_values(self::SUPPORTED_EDITORJS_BLOCK_TYPES);
     }
 
     private function sanitizeLocale(string $value, string $fallback): string

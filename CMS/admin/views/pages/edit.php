@@ -19,7 +19,7 @@ if (!defined('ABSPATH')) {
 
 use CMS\Services\EditorService;
 
-$siteUrl = defined('SITE_URL') ? SITE_URL : '';
+$pageAdminBaseUrl = '/admin/pages';
 $page    = $editData['page'] ?? null;
 $isNew   = $editData['isNew'] ?? true;
 $categories = $editData['categories'] ?? [];
@@ -42,7 +42,7 @@ if (!in_array($pageDefaultStatus, ['draft', 'published', 'private'], true)) {
                 <h2 class="page-title"><?= $isNew ? 'Neue Seite' : 'Seite bearbeiten' ?></h2>
             </div>
             <div class="col-auto ms-auto">
-                <a href="<?= $siteUrl ?>/admin/pages" class="btn btn-outline-secondary">
+                <a href="<?= $pageAdminBaseUrl ?>" class="btn btn-outline-secondary">
                     ← Zurück zur Liste
                 </a>
             </div>
@@ -80,8 +80,10 @@ if (!in_array($pageDefaultStatus, ['draft', 'published', 'private'], true)) {
             $pageMetaTitleValue = (string)($page->meta_title ?? '');
             $pageMetaDescriptionValue = (string)($page->meta_description ?? '');
             $pageFeaturedImageValue = (string)($page->featured_image ?? '');
-            $pagePreviewUrl = $siteUrl . '/' . ltrim($pageSlugValue, '/');
-            $pagePreviewUrlEn = $siteUrl . '/' . ltrim($pageSlugEnValue !== '' ? $pageSlugEnValue : $pageSlugValue, '/') . '/en';
+            $pagePreviewSlug = ltrim($pageSlugValue, '/');
+            $pagePreviewSlugEn = ltrim($pageSlugEnValue !== '' ? $pageSlugEnValue : $pageSlugValue, '/');
+            $pagePreviewUrl = $pagePreviewSlug !== '' ? '/' . $pagePreviewSlug : '/';
+            $pagePreviewUrlEn = $pagePreviewSlugEn !== '' ? '/' . $pagePreviewSlugEn . '/en' : '/en';
             $pageFocusKeyphraseValue = (string)($seoMeta['focus_keyphrase'] ?? '');
             $pageCanonicalUrlValue = (string)($seoMeta['canonical_url'] ?? '');
             $pageRobotsIndexValue = !array_key_exists('robots_index', $seoMeta) || !empty($seoMeta['robots_index']);
@@ -427,7 +429,7 @@ if (!in_array($pageDefaultStatus, ['draft', 'published', 'private'], true)) {
             'emptyStateId' => 'featuredImageEmpty',
             'slugInputId' => 'pageSlug',
             'previewUrlId' => 'pagePreviewUrl',
-            'previewBaseUrl' => rtrim($siteUrl, '/') . '/',
+            'previewBaseUrl' => '/',
             'statusSelectId' => 'pageStatusSelect',
             'statusBadgeId' => 'pageStatusBadge',
             'statusMap' => [
@@ -487,7 +489,7 @@ if (!in_array($pageDefaultStatus, ['draft', 'published', 'private'], true)) {
             'missingAltId' => 'pageMissingAlt',
             'readabilityBadgeId' => 'pageReadabilityBadge',
             'readabilitySummaryId' => 'pageReadabilitySummary',
-            'previewBaseUrl' => rtrim($siteUrl, '/') . '/',
+            'previewBaseUrl' => '/',
             'siteName' => (string)SITE_NAME,
             'siteTitleFormat' => (string)($seoTemplateSettings['site_title_format'] ?? '%%title%% %%sep%% %%sitename%%'),
             'titleSeparator' => (string)($seoTemplateSettings['title_separator'] ?? '|'),
@@ -499,7 +501,7 @@ if (!in_array($pageDefaultStatus, ['draft', 'published', 'private'], true)) {
 
         $pageContentEditorJsConfig = !empty($useEditorJs) ? [
             'formId' => 'pageForm',
-            'mediaUploadUrl' => rtrim((defined('SITE_URL') ? SITE_URL : ''), '/') . '/api/media',
+            'mediaUploadUrl' => '/api/media',
             'csrfToken' => $editorMediaToken ?? '',
             'initialCopyOnFirstActivate' => [
                 'sourceKey' => 'de',
@@ -517,7 +519,7 @@ if (!in_array($pageDefaultStatus, ['draft', 'published', 'private'], true)) {
             ],
             'aiTranslation' => [
                 'buttonId' => 'translatePageDeToEnButton',
-                'endpointUrl' => (string) ($aiTranslationUrl ?? ((defined('SITE_URL') ? SITE_URL : '') . '/admin/ai-translate-editorjs')),
+                'endpointUrl' => (string) ($aiTranslationUrl ?? '/admin/ai-translate-editorjs'),
                 'csrfToken' => (string) ($aiTranslationToken ?? ''),
                 'contentType' => 'page',
                 'sourceLocale' => 'de',

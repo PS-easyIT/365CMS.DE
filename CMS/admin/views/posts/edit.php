@@ -93,7 +93,7 @@ $additionalCategoryIds = array_values(array_filter(
     <div class="container-xl">
         <div class="row align-items-center">
             <div class="col-auto">
-                <a href="<?php echo htmlspecialchars(SITE_URL); ?>/admin/posts" class="btn btn-ghost-secondary btn-sm me-2">
+                <a href="/admin/posts" class="btn btn-ghost-secondary btn-sm me-2">
                     <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M15 6l-6 6l6 6"/></svg>
                     Zurück
                 </a>
@@ -112,7 +112,7 @@ $additionalCategoryIds = array_values(array_filter(
             <?php $alertData = $alert; $alertMarginClass = 'mb-3'; require __DIR__ . '/../partials/flash-alert.php'; ?>
         <?php endif; ?>
 
-        <form method="post" action="<?php echo htmlspecialchars(SITE_URL); ?>/admin/posts" id="postForm">
+        <form method="post" id="postForm">
             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
             <input type="hidden" name="action" value="save">
             <?php if (!$isNew): ?>
@@ -134,10 +134,10 @@ $additionalCategoryIds = array_values(array_filter(
             $postFeaturedImageValue = (string)($post['featured_image'] ?? '');
             $postPreviewUrlTemplate = $permalinkService !== null
                 ? $permalinkService->buildPostUrlTemplate((string)($post['published_at'] ?? ''), (string)($post['created_at'] ?? ''))
-                : rtrim((string)SITE_URL, '/') . '/blog/{slug}';
+                : '/blog/{slug}';
             $postPreviewUrlTemplateEn = $permalinkService !== null
                 ? $permalinkService->buildPostUrlTemplate((string)($post['published_at'] ?? ''), (string)($post['created_at'] ?? ''), 'en')
-                : rtrim((string)SITE_URL, '/') . '/blog/{slug}/en';
+                : '/blog/{slug}/en';
             $postPreviewUrl = str_replace('{slug}', ltrim($postSlugValue !== '' ? $postSlugValue : 'beitrag', '/'), $postPreviewUrlTemplate);
             $postPreviewUrlEn = str_replace('{slug}', ltrim($postSlugEnValue !== '' ? $postSlugEnValue : ($postSlugValue !== '' ? $postSlugValue : 'beitrag'), '/'), $postPreviewUrlTemplateEn);
             $postPermalinkHint = $permalinkService !== null
@@ -526,7 +526,7 @@ $additionalCategoryIds = array_values(array_filter(
             'currentTimestamp' => (int) round(microtime(true) * 1000),
             'slugInputId' => 'slug',
             'previewUrlId' => 'postPreviewUrl',
-            'previewBaseUrl' => rtrim((string)SITE_URL, '/') . '/blog/',
+            'previewBaseUrl' => '/blog/',
             'previewUrlTemplate' => $postPreviewUrlTemplate,
             'previewPlaceholderSlug' => 'beitrag',
             'statusSelectId' => 'status',
@@ -595,7 +595,7 @@ $additionalCategoryIds = array_values(array_filter(
             'missingAltId' => 'postMissingAlt',
             'readabilityBadgeId' => 'postReadabilityBadge',
             'readabilitySummaryId' => 'postReadabilitySummary',
-            'previewBaseUrl' => rtrim((string)SITE_URL, '/') . '/blog/',
+            'previewBaseUrl' => '/blog/',
             'previewUrlTemplate' => $postPreviewUrlTemplate,
             'previewPlaceholderSlug' => 'beitrag',
             'siteName' => (string)SITE_NAME,
@@ -609,7 +609,7 @@ $additionalCategoryIds = array_values(array_filter(
 
         $postContentEditorJsConfig = !empty($useEditorJs) ? [
             'formId' => 'postForm',
-            'mediaUploadUrl' => rtrim((defined('SITE_URL') ? SITE_URL : ''), '/') . '/api/media',
+            'mediaUploadUrl' => '/api/media',
             'csrfToken' => $editorMediaToken ?? '',
             'initialCopyOnFirstActivate' => [
                 'sourceKey' => 'de',
@@ -629,7 +629,7 @@ $additionalCategoryIds = array_values(array_filter(
             ],
             'aiTranslation' => [
                 'buttonId' => 'translatePostDeToEnButton',
-                'endpointUrl' => (string) ($aiTranslationUrl ?? ((defined('SITE_URL') ? SITE_URL : '') . '/admin/ai-translate-editorjs')),
+                'endpointUrl' => (string) ($aiTranslationUrl ?? '/admin/ai-translate-editorjs'),
                 'csrfToken' => (string) ($aiTranslationToken ?? ''),
                 'contentType' => 'post',
                 'sourceLocale' => 'de',

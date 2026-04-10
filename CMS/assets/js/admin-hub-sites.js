@@ -21,6 +21,20 @@
         }
     }
 
+    function absoluteUrlFromPath(path) {
+        var normalizedPath = String(path || '').trim();
+
+        if (normalizedPath === '') {
+            return '';
+        }
+
+        try {
+            return new URL(normalizedPath, window.location.origin + '/').toString();
+        } catch (_error) {
+            return normalizedPath;
+        }
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
         var deleteIdInput = document.getElementById('deleteId');
         var deleteForm = document.getElementById('deleteForm');
@@ -46,7 +60,7 @@
 
         document.querySelectorAll('.js-copy-hub-url').forEach(function (button) {
             button.addEventListener('click', function () {
-                var publicUrl = button.getAttribute('data-hub-public-url') || '';
+                var publicUrl = absoluteUrlFromPath(button.getAttribute('data-hub-public-path') || '');
                 if (!navigator.clipboard || typeof navigator.clipboard.writeText !== 'function') {
                     if (typeof cmsAlert === 'function') {
                         cmsAlert('Kopieren wird von diesem Browser leider nicht unterstützt.', 'warning');

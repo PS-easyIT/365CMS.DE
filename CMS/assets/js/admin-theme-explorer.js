@@ -86,9 +86,10 @@
         editor.addEventListener('input', syncDirtyState);
         syncDirtyState();
 
-        form.addEventListener('submit', function () {
+        form.addEventListener('submit', function (event) {
             if (form.dataset.submitting === '1') {
-                return false;
+                event.preventDefault();
+                return;
             }
 
             markSubmitting();

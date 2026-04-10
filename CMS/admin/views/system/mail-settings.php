@@ -21,7 +21,7 @@ $queueConfig = $queue['config'] ?? [];
 $queueRecentJobs = $queue['recent_jobs'] ?? [];
 $queueLastRun = $queue['last_run'] ?? [];
 $currentTab = $currentTab ?? 'transport';
-$mailBaseUrl = (defined('SITE_URL') ? SITE_URL : '') . '/admin/mail-settings';
+$mailBaseUrl = '/admin/mail-settings';
 $mailTabs = [
     'transport' => 'Transport',
     'azure' => 'Azure OAuth2',
@@ -30,7 +30,7 @@ $mailTabs = [
     'queue' => 'Queue',
 ];
 $alertData = is_array($alert ?? null) ? $alert : [];
-$mailLogsApiUrl = (defined('SITE_URL') ? SITE_URL : '') . '/api/v1/admin/mail/logs';
+$mailLogsApiUrl = '/api/v1/admin/mail/logs';
 $isCurrentTab = static fn (string $tab): bool => $currentTab === $tab;
 $isSelected = static fn (string $value, string $expected): string => $value === $expected ? 'selected' : '';
 $isChecked = static fn (bool $condition): string => $condition ? 'checked' : '';

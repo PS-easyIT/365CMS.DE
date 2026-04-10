@@ -16,7 +16,7 @@ use CMS\Security;
 const CMS_ADMIN_USER_SETTINGS_WRITE_CAPABILITY = 'manage_users';
 
 if (!Auth::instance()->isAdmin() || !Auth::instance()->hasCapability(CMS_ADMIN_USER_SETTINGS_WRITE_CAPABILITY)) {
-    header('Location: ' . SITE_URL);
+    header('Location: /');
     exit;
 }
 
@@ -28,7 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $postToken = $_POST['csrf_token'] ?? '';
     if (!Security::instance()->verifyToken($postToken, 'admin_user_settings')) {
         $_SESSION['admin_alert'] = ['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.'];
-        header('Location: ' . SITE_URL . '/admin/user-settings');
+        header('Location: /admin/user-settings');
         exit;
     }
 
@@ -44,7 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'message' => $result['message'] ?? $result['error'] ?? '',
     ];
 
-    header('Location: ' . SITE_URL . '/admin/user-settings');
+    header('Location: /admin/user-settings');
     exit;
 }
 

@@ -205,6 +205,8 @@
         var editors = {};
         var editorDefinitions = {};
         var submitLocked = false;
+        var translationPreviewActive = false;
+        var translationPreviewSuppressClear = false;
 
         if (!config || typeof window.createCmsEditor !== 'function') {
             return;
@@ -334,12 +336,33 @@
 
         function clearPreviewPanel() {
             var panel = getElement('cmsContentEditorTranslationPreview');
+
+            translationPreviewActive = false;
             if (!panel) {
                 return;
             }
 
             panel.innerHTML = '';
             panel.className = 'card border-primary mb-3 d-none';
+        }
+
+        function withSuppressedPreviewClear(callback) {
+            translationPreviewSuppressClear = true;
+
+            try {
+                return callback();
+            } finally {
+                translationPreviewSuppressClear = false;
+            }
+        }
+
+        function invalidateTranslationPreview(message) {
+            if (!translationPreviewActive || translationPreviewSuppressClear) {
+                return;
+            }
+
+            clearPreviewPanel();
+            showNotice('info', message || 'Der AI-Vorschlag wurde verworfen, weil sich die EN-Bearbeitung seit der Vorschau geändert hat.');
         }
 
         function stripHtmlPreview(value) {
@@ -598,6 +621,7 @@
 
             panel.innerHTML = '';
             panel.className = 'card border-primary mb-3';
+            translationPreviewActive = true;
 
             if (aiTranslation.targetTitleId
                 && normalizePreviewText(targetDraft.title) !== normalizePreviewText(resolvedOutput.title)) {
@@ -989,22 +1013,56 @@
         }
 
         function applyResolvedTranslation(aiTranslation, resolvedOutput) {
-            activateTargetPane(aiTranslation.targetPaneButtonId);
+            withSuppressedPreviewClear(function () {
+                activateTargetPane(aiTranslation.targetPaneButtonId);
 
-            if (aiTranslation.targetTitleId) {
-                setFieldValue(aiTranslation.targetTitleId, resolvedOutput.title);
+                if (aiTranslation.targetTitleId) {
+                    setFieldValue(aiTranslation.targetTitleId, resolvedOutput.title);
+                }
+
+                if (aiTranslation.targetSlugId) {
+                    setFieldValue(aiTranslation.targetSlugId, resolvedOutput.slug);
+                }
+
+                if (aiTranslation.targetExcerptId) {
+                    setFieldValue(aiTranslation.targetExcerptId, resolvedOutput.excerpt);
+                }
+
+                applyEditorData(aiTranslation.targetEditorKey, resolvedOutput.contentData || { blocks: [] });
+                clearPreviewPanel();
+            });
+        }
+
+        function registerPreviewInvalidation(aiTranslation) {
+            var targetEditorDefinition = getDefinition(aiTranslation.targetEditorKey);
+            var targetFieldIds = [aiTranslation.targetTitleId, aiTranslation.targetSlugId, aiTranslation.targetExcerptId]
+                .filter(function (fieldId) {
+                    return !!fieldId;
+                });
+
+            targetFieldIds.forEach(function (fieldId) {
+                var field = getElement(fieldId);
+
+                if (!field || field.dataset.translationPreviewInvalidateBound === '1') {
+                    return;
+                }
+
+                field.dataset.translationPreviewInvalidateBound = '1';
+                field.addEventListener('input', function () {
+                    invalidateTranslationPreview('Der AI-Vorschlag wurde verworfen, weil sich Titel, Slug oder Kurzfassung der EN-Bearbeitung seit der Vorschau geändert haben.');
+                });
+            });
+
+            if (targetEditorDefinition) {
+                var targetHolder = getElement(targetEditorDefinition.holderId);
+
+                if (targetHolder && targetHolder.dataset.translationPreviewInvalidateBound !== '1') {
+                    targetHolder.dataset.translationPreviewInvalidateBound = '1';
+                    targetHolder.addEventListener('input', function () {
+                        invalidateTranslationPreview('Der AI-Vorschlag wurde verworfen, weil sich der EN-Editorinhalt seit der Vorschau geändert hat.');
+                    });
+                }
             }
-
-            if (aiTranslation.targetSlugId) {
-                setFieldValue(aiTranslation.targetSlugId, resolvedOutput.slug);
-            }
-
-            if (aiTranslation.targetExcerptId) {
-                setFieldValue(aiTranslation.targetExcerptId, resolvedOutput.excerpt);
-            }
-
-            applyEditorData(aiTranslation.targetEditorKey, resolvedOutput.contentData || { blocks: [] });
-            clearPreviewPanel();
         }
 
         function handleAiTranslation(aiTranslation) {
@@ -1099,6 +1157,7 @@
         }
 
         if (config.aiTranslation) {
+            registerPreviewInvalidation(config.aiTranslation);
             handleAiTranslation(config.aiTranslation);
         }
 

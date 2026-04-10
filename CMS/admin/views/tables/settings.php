@@ -8,13 +8,15 @@ if (!defined('ABSPATH')) {
 $settings = $data['settings'] ?? [];
 $styleOptions = $data['styleOptions'] ?? [];
 $stats = $data['stats'] ?? [];
+$siteTablesBaseUrl = '/admin/site-tables';
+$siteTablesCreateUrl = $siteTablesBaseUrl . '?action=edit';
 ?>
 
 <div class="page-header d-print-none">
     <div class="container-xl">
         <div class="row align-items-center">
             <div class="col-auto">
-                <a href="<?php echo htmlspecialchars(SITE_URL); ?>/admin/site-tables" class="btn btn-ghost-secondary btn-sm me-2">
+                <a href="<?php echo htmlspecialchars($siteTablesBaseUrl); ?>" class="btn btn-ghost-secondary btn-sm me-2">
                     <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M15 6l-6 6l6 6"/></svg>
                     Zurück
                 </a>
@@ -24,7 +26,7 @@ $stats = $data['stats'] ?? [];
                 <h2 class="page-title">Tabellen-Einstellungen</h2>
             </div>
             <div class="col-auto">
-                <a href="<?php echo htmlspecialchars(SITE_URL); ?>/admin/site-tables?action=edit" class="btn btn-primary btn-sm">Neue Tabelle</a>
+                <a href="<?php echo htmlspecialchars($siteTablesCreateUrl); ?>" class="btn btn-primary btn-sm">Neue Tabelle</a>
             </div>
         </div>
     </div>
@@ -39,7 +41,7 @@ $stats = $data['stats'] ?? [];
         require __DIR__ . '/../partials/flash-alert.php';
         ?>
 
-        <form method="post" action="<?php echo htmlspecialchars(SITE_URL); ?>/admin/site-tables">
+        <form method="post">
             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
             <input type="hidden" name="action" value="save_settings">
 

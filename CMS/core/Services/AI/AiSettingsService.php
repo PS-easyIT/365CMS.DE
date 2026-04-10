@@ -20,6 +20,18 @@ final class AiSettingsService
     /** @var list<string> */
     public const PROVIDER_SLUGS = ['mock', 'openai', 'azure_openai', 'ollama', 'openrouter'];
 
+    /** @var array<string, string> */
+    private const SUPPORTED_EDITORJS_BLOCK_TYPES = [
+        'paragraph' => 'paragraph',
+        'header' => 'header',
+        'list' => 'list',
+        'checklist' => 'checklist',
+        'quote' => 'quote',
+        'callout' => 'callout',
+        'warning' => 'warning',
+        'mediatext' => 'mediaText',
+    ];
+
     private const PROVIDER_SECRET_KEYS = [
         'openai_api_key',
         'azure_openai_api_key',
@@ -213,7 +225,7 @@ final class AiSettingsService
             'default_source_locale' => $this->normalizeLocale((string) ($stored['default_source_locale'] ?? $defaults['default_source_locale']), (string) $defaults['default_source_locale']),
             'default_target_locale' => $this->normalizeLocale((string) ($stored['default_target_locale'] ?? $defaults['default_target_locale']), (string) $defaults['default_target_locale']),
             'allowed_target_locales' => $this->normalizeStringList($stored['allowed_target_locales'] ?? $defaults['allowed_target_locales'], ['en']),
-            'supported_block_types' => $this->normalizeStringList($stored['supported_block_types'] ?? $defaults['supported_block_types'], (array) $defaults['supported_block_types']),
+            'supported_block_types' => $this->normalizeSupportedBlockTypes($stored['supported_block_types'] ?? $defaults['supported_block_types'], (array) $defaults['supported_block_types']),
             'preview_required' => (bool) ($stored['preview_required'] ?? $defaults['preview_required']),
             'preserve_unsupported_blocks' => (bool) ($stored['preserve_unsupported_blocks'] ?? $defaults['preserve_unsupported_blocks']),
             'skip_html_blocks' => (bool) ($stored['skip_html_blocks'] ?? $defaults['skip_html_blocks']),
@@ -419,7 +431,7 @@ final class AiSettingsService
             'default_source_locale' => 'de',
             'default_target_locale' => 'en',
             'allowed_target_locales' => ['en'],
-            'supported_block_types' => ['paragraph', 'header', 'list', 'checklist', 'quote', 'callout'],
+            'supported_block_types' => ['paragraph', 'header', 'list', 'checklist', 'quote', 'callout', 'warning', 'mediaText'],
             'preview_required' => true,
             'preserve_unsupported_blocks' => true,
             'skip_html_blocks' => true,
@@ -479,6 +491,49 @@ final class AiSettingsService
         }
 
         return $normalized !== [] ? array_values($normalized) : $fallback;
+    }
+
+    /** @param mixed $value
+     *  @param list<string> $fallback
+     *  @return list<string>
+     */
+    private function normalizeSupportedBlockTypes(mixed $value, array $fallback): array
+    {
+        $source = [];
+        if (is_array($value)) {
+            $source = $value;
+        } elseif (is_string($value) && trim($value) !== '') {
+            $source = preg_split('/\s*,\s*/', trim($value)) ?: [];
+        }
+
+        $normalized = [];
+        foreach ($source as $item) {
+            $item = strtolower(trim((string) $item));
+            $item = preg_replace('/[^a-z0-9._-]+/', '', $item) ?? '';
+            if ($item === '' || !isset(self::SUPPORTED_EDITORJS_BLOCK_TYPES[$item])) {
+                continue;
+            }
+
+            $canonical = self::SUPPORTED_EDITORJS_BLOCK_TYPES[$item];
+            $normalized[$canonical] = $canonical;
+        }
+
+        if ($normalized !== []) {
+            return array_values($normalized);
+        }
+
+        $resolvedFallback = [];
+        foreach ($fallback as $item) {
+            $key = strtolower(trim((string) $item));
+            if ($key === '' || !isset(self::SUPPORTED_EDITORJS_BLOCK_TYPES[$key])) {
+                continue;
+            }
+
+            $canonical = self::SUPPORTED_EDITORJS_BLOCK_TYPES[$key];
+            $resolvedFallback[$canonical] = $canonical;
+        }
+
+        return $resolvedFallback !== [] ? array_values($resolvedFallback) : array_values(self::SUPPORTED_EDITORJS_BLOCK_TYPES);
     }
 
     private function normalizeLocale(string $value, string $fallback): string

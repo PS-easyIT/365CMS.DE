@@ -18,8 +18,6 @@ declare(strict_types=1);
 if (!defined('ABSPATH')) {
     exit;
 }
-
-$siteUrl = defined('SITE_URL') ? SITE_URL : '';
 $welcome = is_array($data['welcome'] ?? null) ? $data['welcome'] : [];
 $attentionItems = is_array($data['attention'] ?? null) ? $data['attention'] : [];
 $recentOrders = is_array($data['recent_orders'] ?? null) ? $data['recent_orders'] : [];
@@ -71,6 +69,16 @@ function dashboardStatusBadge(string $status): string {
         'critical' => 'danger',
         default => 'secondary',
     };
+}
+
+function dashboardUrl(string $url, string $fallback = '/admin'): string {
+    $normalized = trim($url);
+
+    if ($normalized === '') {
+        return $fallback;
+    }
+
+    return $normalized;
 }
 ?>
 
@@ -159,16 +167,16 @@ function dashboardStatusBadge(string $status): string {
             <div class="col-auto ms-auto d-print-none">
                 <div class="btn-list">
                     <?php foreach ($headerQuickLinks as $link): ?>
-                        <a href="<?= htmlspecialchars($siteUrl . (string) ($link['url'] ?? '/admin')) ?>" class="btn btn-outline-secondary d-none d-xl-inline-flex">
+                        <a href="<?= htmlspecialchars(dashboardUrl((string) ($link['url'] ?? ''), '/admin')) ?>" class="btn btn-outline-secondary d-none d-xl-inline-flex">
                             <?= dashIcon((string) ($link['icon'] ?? 'settings')) ?>
                             <?= htmlspecialchars((string) ($link['label'] ?? 'Aktion')) ?>
                         </a>
                     <?php endforeach; ?>
-                    <a href="<?= $siteUrl ?>/admin/pages?action=new" class="btn btn-primary d-none d-sm-inline-block">
+                    <a href="/admin/pages?action=new" class="btn btn-primary d-none d-sm-inline-block">
                         <?= dashIcon('file-plus') ?>
                         Neue Seite
                     </a>
-                    <a href="<?= $siteUrl ?>/admin/posts?action=new" class="btn btn-outline-primary d-none d-sm-inline-block">
+                    <a href="/admin/posts?action=new" class="btn btn-outline-primary d-none d-sm-inline-block">
                         <?= dashIcon('pencil-plus') ?>
                         Neuer Beitrag
                     </a>
@@ -192,7 +200,7 @@ function dashboardStatusBadge(string $status): string {
                         <div class="ms-2">
                             <?= htmlspecialchars((string) ($alert['message'] ?? 'Hinweis')) ?>
                             <?php if (!empty($alert['url'])): ?>
-                                <a href="<?= htmlspecialchars($siteUrl . (string) ($alert['url'] ?? '')) ?>" class="alert-link ms-1">Anzeigen →</a>
+                                <a href="<?= htmlspecialchars(dashboardUrl((string) ($alert['url'] ?? ''), '/admin')) ?>" class="alert-link ms-1">Anzeigen →</a>
                             <?php endif; ?>
                         </div>
                     </div>
@@ -215,7 +223,7 @@ function dashboardStatusBadge(string $status): string {
 
                 <div class="dashboard-kpi-grid mt-4">
                     <?php foreach ($data['kpis'] as $kpi): ?>
-                        <a href="<?= htmlspecialchars($siteUrl . (string) ($kpi['url'] ?? '/admin')) ?>" class="dashboard-kpi-tile text-reset text-decoration-none">
+                        <a href="<?= htmlspecialchars(dashboardUrl((string) ($kpi['url'] ?? ''), '/admin')) ?>" class="dashboard-kpi-tile text-reset text-decoration-none">
                             <div class="d-flex align-items-center justify-content-between gap-3 mb-3">
                                 <div class="subheader mb-0"><?= htmlspecialchars((string) ($kpi['label'] ?? 'KPI')) ?></div>
                                 <span class="dashboard-kpi-icon"><?= dashIcon((string) ($kpi['icon'] ?? 'activity')) ?></span>
@@ -227,7 +235,7 @@ function dashboardStatusBadge(string $status): string {
                     <?php endforeach; ?>
 
                     <?php foreach (array_slice($highlights, 0, 4) as $highlight): ?>
-                        <a href="<?= htmlspecialchars($siteUrl . (string) ($highlight['url'] ?? '/admin')) ?>" class="dashboard-kpi-tile text-reset text-decoration-none">
+                        <a href="<?= htmlspecialchars(dashboardUrl((string) ($highlight['url'] ?? ''), '/admin')) ?>" class="dashboard-kpi-tile text-reset text-decoration-none">
                             <div class="d-flex align-items-center justify-content-between gap-3 mb-3">
                                 <div class="subheader mb-0"><?= htmlspecialchars((string) ($highlight['label'] ?? 'Hinweis')) ?></div>
                                 <span class="dashboard-kpi-icon"><?= dashIcon('activity') ?></span>
@@ -250,7 +258,7 @@ function dashboardStatusBadge(string $status): string {
                     <div class="list-group list-group-flush">
                         <?php if ($attentionItems !== []): ?>
                             <?php foreach ($attentionItems as $item): ?>
-                                <a href="<?= htmlspecialchars((string) ($item['url'] ?? ($siteUrl . '/admin'))) ?>" class="list-group-item list-group-item-action">
+                                <a href="<?= htmlspecialchars(dashboardUrl((string) ($item['url'] ?? ''), '/admin')) ?>" class="list-group-item list-group-item-action">
                                     <div class="d-flex align-items-start justify-content-between gap-3">
                                         <div>
                                             <div class="fw-semibold mb-1"><?= htmlspecialchars((string) ($item['label'] ?? 'Hinweis')) ?></div>
@@ -386,7 +394,7 @@ function dashboardStatusBadge(string $status): string {
                                 <?php endforeach; ?>
                             </div>
                             <div class="card-footer">
-                                <a href="<?= htmlspecialchars($siteUrl . '/admin/orders') ?>" class="btn btn-outline-primary w-100">
+                                <a href="/admin/orders" class="btn btn-outline-primary w-100">
                                     <?= dashIcon('shopping-cart') ?>
                                     Bestellungen öffnen
                                 </a>

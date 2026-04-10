@@ -13,7 +13,7 @@ if (!defined('ABSPATH')) {
 use CMS\Auth;
 
 if (!Auth::instance()->isAdmin()) {
-    header('Location: ' . SITE_URL);
+    header('Location: /');
     exit;
 }
 

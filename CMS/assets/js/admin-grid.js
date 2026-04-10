@@ -20,7 +20,7 @@
 (function () {
     'use strict';
 
-    const SITE_URL = (window.CMS_SITE_URL || '').replace(/\/$/, '');
+    const ADMIN_API_BASE = '/api/v1/admin/';
 
     /**
      * Erstellt eine Grid.js-Instanz für einen Container.
@@ -76,7 +76,7 @@
         var grid = new gridjs.Grid({
             columns: gridColumns,
             server: {
-                url: SITE_URL + '/api/v1/admin/' + endpoint,
+                url: ADMIN_API_BASE + endpoint,
                 then: function (data) { return data.data; },
                 total: function (data) { return data.total; },
             },

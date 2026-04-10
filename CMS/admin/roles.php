@@ -58,7 +58,7 @@ function cms_admin_roles_handle_action(RolesModule $module, array $payload): arr
 }
 
 if (!Auth::instance()->isAdmin() || !Auth::instance()->hasCapability(CMS_ADMIN_ROLES_WRITE_CAPABILITY)) {
-    header('Location: ' . SITE_URL);
+    header('Location: /');
     exit;
 }
 
@@ -70,7 +70,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $postToken = $_POST['csrf_token'] ?? '';
     if (!Security::instance()->verifyToken($postToken, 'admin_roles')) {
         $_SESSION['admin_alert'] = ['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.'];
-        header('Location: ' . SITE_URL . '/admin/roles');
+        header('Location: /admin/roles');
         exit;
     }
 
@@ -82,7 +82,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'message' => $result['message'] ?? $result['error'] ?? '',
     ];
 
-    header('Location: ' . SITE_URL . '/admin/roles');
+    header('Location: /admin/roles');
     exit;
 }
 

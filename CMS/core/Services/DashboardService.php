@@ -526,7 +526,7 @@ class DashboardService {
                 'label' => 'Offene Bestellungen',
                 'value' => (string)$stats['orders']['pending'],
                 'hint' => 'Warten auf Prüfung oder Bestätigung',
-                'url' => SITE_URL . '/admin/orders',
+                'url' => '/admin/orders',
             ];
         }
 
@@ -537,7 +537,7 @@ class DashboardService {
                 'label' => 'Fehlgeschlagene Logins (24h)',
                 'value' => (string)$stats['security']['failed_logins_24h'],
                 'hint' => 'Sicherheitslage im Blick behalten',
-                'url' => SITE_URL . '/admin/security-audit',
+                'url' => '/admin/security-audit',
             ];
         }
 
@@ -548,7 +548,7 @@ class DashboardService {
                 'label' => 'HTTPS nicht aktiv',
                 'value' => 'Check',
                 'hint' => 'Produktivbetrieb ohne TLS ist riskant',
-                'url' => SITE_URL . '/admin/security-audit',
+                'url' => '/admin/security-audit',
             ];
         }
 

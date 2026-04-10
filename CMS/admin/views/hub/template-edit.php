@@ -17,6 +17,8 @@ $cardSchema = $template['card_schema'] ?? [];
 $cardDesign = $template['card_design'] ?? [];
 $starterCards = $template['starter_cards'] ?? [];
 $baseTemplateDefaults = $data['baseTemplateDefaults'] ?? [];
+$hubBaseUrl = '/admin/hub-sites';
+$hubTemplatesUrl = $hubBaseUrl . '?action=templates';
 
 $sanitizeColor = static function (mixed $value, string $fallback): string {
     $color = trim((string)$value);
@@ -53,7 +55,7 @@ if ($editorPayload === false) {
     <div class="container-xl">
         <div class="row align-items-center">
             <div class="col-auto">
-                <a href="<?php echo htmlspecialchars(SITE_URL); ?>/admin/hub-sites?action=templates" class="btn btn-ghost-secondary btn-sm me-2">
+                <a href="<?php echo htmlspecialchars($hubTemplatesUrl); ?>" class="btn btn-ghost-secondary btn-sm me-2">
                     <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M15 6l-6 6l6 6"/></svg>
                     Zurück zu Templates
                 </a>
@@ -69,15 +71,15 @@ if ($editorPayload === false) {
 <div class="page-body">
     <div class="container-xl">
         <ul class="nav nav-tabs mb-4">
-            <li class="nav-item"><a class="nav-link" href="<?php echo htmlspecialchars(SITE_URL); ?>/admin/hub-sites">Content</a></li>
-            <li class="nav-item"><a class="nav-link active" href="<?php echo htmlspecialchars(SITE_URL); ?>/admin/hub-sites?action=templates">Templates</a></li>
+            <li class="nav-item"><a class="nav-link" href="<?php echo htmlspecialchars($hubBaseUrl); ?>">Content</a></li>
+            <li class="nav-item"><a class="nav-link active" href="<?php echo htmlspecialchars($hubTemplatesUrl); ?>">Templates</a></li>
         </ul>
 
         <?php if (!empty($alert)): ?>
             <?php $alertData = $alert; $alertMarginClass = 'mb-3'; require __DIR__ . '/../partials/flash-alert.php'; ?>
         <?php endif; ?>
 
-        <form method="post" action="<?php echo htmlspecialchars(SITE_URL); ?>/admin/hub-sites" id="hubTemplateForm">
+        <form method="post" id="hubTemplateForm">
             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
             <input type="hidden" name="action" value="save-template">
             <input type="hidden" name="template_key" value="<?php echo htmlspecialchars((string)($template['key'] ?? '')); ?>">

@@ -24,6 +24,8 @@ $description = htmlspecialchars($table['description'] ?? '');
 $columns     = $table['columns'] ?? [];
 $rows        = $table['rows'] ?? [];
 $settings    = $table['settings'] ?? $defaults;
+$siteTablesBaseUrl = '/admin/site-tables';
+$siteTablesSettingsUrl = $siteTablesBaseUrl . '?action=settings';
 $encodeTableJson = static function (mixed $value): string {
     return (string) json_encode(
         $value,
@@ -36,7 +38,7 @@ $encodeTableJson = static function (mixed $value): string {
     <div class="container-xl">
         <div class="row align-items-center">
             <div class="col-auto">
-                <a href="<?php echo htmlspecialchars(SITE_URL); ?>/admin/site-tables" class="btn btn-ghost-secondary btn-sm me-2">
+                <a href="<?php echo htmlspecialchars($siteTablesBaseUrl); ?>" class="btn btn-ghost-secondary btn-sm me-2">
                     <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M15 6l-6 6l6 6"/></svg>
                     Zurück
                 </a>
@@ -46,7 +48,7 @@ $encodeTableJson = static function (mixed $value): string {
                 <h2 class="page-title"><?php echo $isNew ? 'Neue Tabelle' : 'Tabelle bearbeiten'; ?></h2>
             </div>
             <div class="col-auto">
-                <a href="<?php echo htmlspecialchars(SITE_URL); ?>/admin/site-tables?action=settings" class="btn btn-outline-secondary btn-sm">
+                <a href="<?php echo htmlspecialchars($siteTablesSettingsUrl); ?>" class="btn btn-outline-secondary btn-sm">
                     Einstellungen
                 </a>
             </div>
@@ -61,7 +63,7 @@ $encodeTableJson = static function (mixed $value): string {
 
 <div class="page-body">
     <div class="container-xl">
-        <form method="post" action="<?php echo htmlspecialchars(SITE_URL); ?>/admin/site-tables" id="tableForm">
+        <form method="post" id="tableForm">
             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
             <input type="hidden" name="action" value="save">
             <?php if (!$isNew): ?>

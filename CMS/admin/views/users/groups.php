@@ -12,7 +12,6 @@ if (!defined('ABSPATH')) {
  */
 
 $groups  = $data['groups'] ?? [];
-$siteUrl = defined('SITE_URL') ? SITE_URL : '';
 
 /** @param object|array<string,mixed> $group */
 $groupField = static function (mixed $group, string $key, mixed $default = ''): mixed {
@@ -117,7 +116,7 @@ $groupField = static function (mixed $group, string $key, mixed $default = ''): 
 <!-- Gruppe erstellen/bearbeiten Modal -->
 <div class="modal modal-blur fade" id="groupModal" tabindex="-1">
     <div class="modal-dialog modal-sm">
-        <form method="post" action="<?php echo htmlspecialchars($siteUrl); ?>/admin/groups" class="modal-content" id="groupForm">
+        <form method="post" class="modal-content" id="groupForm">
             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
             <input type="hidden" name="action" value="save">
             <input type="hidden" name="id" id="groupId">
@@ -144,7 +143,7 @@ $groupField = static function (mixed $group, string $key, mixed $default = ''): 
 </div>
 
 <!-- Delete Form -->
-<form id="deleteGroupForm" method="post" action="<?php echo htmlspecialchars($siteUrl); ?>/admin/groups" class="d-none">
+<form id="deleteGroupForm" method="post" class="d-none">
     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
     <input type="hidden" name="action" value="delete">
     <input type="hidden" name="id" id="deleteGroupId">

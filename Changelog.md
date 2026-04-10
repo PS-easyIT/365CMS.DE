@@ -1,4 +1,4 @@
-﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.38-blue.svg)](https://shields.io/)
+﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.52-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -17,6 +17,159 @@
 ---
 
 ## 📜 Vollständige Versionshistorie
+
+---
+
+### v2.9.52 — 10. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.52** | 🔴 fix | Admin/Theme Marketplace | **`CMS/admin/modules/themes/ThemeMarketplaceModule.php` validiert installierte Marketplace-Pakete jetzt wieder themespezifisch nach dem generischen Download-/Install-Schritt**: Erfolgsrückmeldungen bleiben damit nicht mehr auf ZIPs sitzen, die nur einen Repo-Wrapper oder keine direkt aktivierbare Theme-Struktur in `CMS/themes/<slug>/` hinterlassen. |
+| **2.9.52** | 🔴 fix | Themes/Runtime | **Verschachtelte gültige Theme-Wurzeln werden nach der Installation in den echten Laufzeitordner hochgezogen**: Enthält ein Marketplace-Archiv das Theme nicht direkt an der Paketwurzel, wird die gültige Theme-Struktur jetzt nach `CMS/themes/<slug>/` promoted, statt als unbrauchbarer Wrapper installiert zu bleiben. |
+| **2.9.52** | 🔵 docs | Audit/Themes & Marketplace | **`DOC/audit/AdminAudit-Themes.md`, `DOC/audit/AssetAudit-Marketplace.md` und `DOC/audit/BEWERTUNG.md` dokumentieren den nachgezogenen Theme-Marketplace-Installationsvertrag jetzt direkt im laufenden Audit**: Der Fix bleibt damit nicht nur in der Runtime, sondern auch im Audit-Strang klar nachvollziehbar. |
+| **2.9.52** | 🔵 docs | Release | **`README.md`, `Changelog.md`, `CMS/core/Version.php` und `CMS/update.json` wurden auf den Release-Stand `2.9.52` synchronisiert**: Versionsbadge, Highlights und Update-Metadaten zeigen damit denselben Theme-/Marketplace-Batch. |
+
+---
+
+### v2.9.51 — 10. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.51** | 🔴 fix | System/AI Services | **`CMS/core/Services/AI/AiSettingsService.php` kanonisiert Editor.js-Blocktypen für AI-Übersetzungen jetzt explizit auf die Runtime-Namen der Pipeline**: Gespeicherte oder per CSV geladene Werte wie `mediatext` landen damit wieder korrekt auf `mediaText`, statt trotz erweitertem Default still aus dem exakten Block-Match zu fallen. |
+| **2.9.51** | 🔴 fix | Admin/AI-Translate-EditorJS | **`CMS/admin/modules/system/AiServicesModule.php` nutzt für `supported_block_types` denselben kanonischen Save-Pfad statt generischer Kleinschreibung**: Leere oder manuell gepflegte Translation-Settings halten damit den realen Editor.js-Vertrag inklusive `mediaText` auch nach dem Speichern stabil ein. |
+| **2.9.51** | 🔵 docs | Audit/System, Seiten, Beiträge & EditorJS | **`DOC/audit/AdminAudit-System.md`, `DOC/audit/AdminAudit-Seiten.md`, `DOC/audit/AdminAudit-Beitraege.md`, `DOC/audit/AssetAudit-EditorJS.md` und `DOC/audit/BEWERTUNG.md` dokumentieren jetzt auch den Kanonisierungs-Follow-up des AI-Translate-EditorJS-Vertrags**: Der nachgezogene Runtime-Fix bleibt damit direkt im Audit-Strang nachvollziehbar. |
+| **2.9.51** | 🔵 docs | Release | **`README.md`, `Changelog.md`, `CMS/core/Version.php` und `CMS/update.json` wurden auf den Release-Stand `2.9.51` synchronisiert**: Versionsbadge, Highlights und Update-Metadaten zeigen damit denselben Kanonisierungs-Batch. |
+
+---
+
+### v2.9.50 — 10. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.50** | 🔴 fix | System/AI Services | **`CMS/core/Services/AI/AiSettingsService.php` erweitert den Default-Vertrag für Editor.js-AI-Übersetzungen jetzt um `warning` und `mediaText` und kanonisiert gespeicherte Blocktypen pipeline-kompatibel**: Frische oder zurückgesetzte Translation-Profile starten damit nicht länger mit einem zu kleinen Blocktyp-Satz, und `mediaText` kippt im Settings-Pfad nicht mehr still zu `mediatext`. |
+| **2.9.50** | 🔴 fix | Admin/AI-Translate-EditorJS | **`CMS/admin/modules/system/AiServicesModule.php` zieht denselben erweiterten Fallback auch im Save-Pfad für leere `supported_block_types` nach**: Nach leer gespeicherten Translation-Einstellungen fallen Warnboxen und Medien-Text-Blöcke damit nicht mehr still aus dem DE→EN-/AI-Flow heraus oder scheitern an einer unpassenden Blocktyp-Schreibweise. |
+| **2.9.50** | 🔵 docs | Audit/System, Seiten, Beiträge & EditorJS | **`DOC/audit/AdminAudit-System.md`, `DOC/audit/AdminAudit-Seiten.md`, `DOC/audit/AdminAudit-Beitraege.md`, `DOC/audit/AssetAudit-EditorJS.md` und `DOC/audit/BEWERTUNG.md` dokumentieren den erweiterten AI-Translate-EditorJS-Vertrag jetzt direkt im laufenden Audit**: Der Fix ist damit nicht nur implementiert, sondern auch sauber im System-, Admin- und Asset-Audit verankert. |
+| **2.9.50** | 🔵 docs | Release | **`README.md`, `Changelog.md`, `CMS/core/Version.php` und `CMS/update.json` wurden auf den Release-Stand `2.9.50` synchronisiert**: Versionsbadge, aktuelle Highlights und Update-Metadaten spiegeln damit denselben System-/Editor.js-Batch. |
+
+---
+
+### v2.9.49 — 10. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.49** | 🔴 fix | Assets/Editor.js | **`CMS/assets/js/admin-content-editor.js` invalidiert offene AI-Preview-/Diff-Karten jetzt automatisch, sobald sich der EN-Zielzustand manuell ändert**: Stale Vorschläge können damit nicht mehr später per `Übernehmen` frisch bearbeitete EN-Felder oder EN-Editorinhalte wieder überschreiben. |
+| **2.9.49** | 🔵 docs | Audit/Seiten, Beiträge & EditorJS | **`DOC/audit/AdminAudit-Seiten.md`, `DOC/audit/AdminAudit-Beitraege.md`, `DOC/audit/AssetAudit-EditorJS.md` und `DOC/audit/BEWERTUNG.md` dokumentieren den neuen DE→EN-/AI-Vertrag jetzt direkt im laufenden Audit**: Der Fix ist damit nicht nur implementiert, sondern auch sauber im Admin-/Asset-Audit verankert. |
+| **2.9.49** | 🔵 docs | Release | **`README.md`, `Changelog.md`, `CMS/core/Version.php` und `CMS/update.json` wurden auf den Release-Stand `2.9.49` synchronisiert**: Versionsbadge, aktuelle Highlights und Update-Metadaten spiegeln damit denselben Editor.js-/Content-Robustheits-Batch. |
+
+---
+
+### v2.9.48 — 10. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.48** | 🔴 fix | Assets/Theme Explorer | **`CMS/assets/js/admin-theme-explorer.js` verhindert Wiederholungs-Submits des Explorer-Formulars jetzt explizit via `event.preventDefault()`**: Theme-Dateisaves bleiben damit auch bei schnellen Mehrfachauslösern fail-closed auf genau einen Request begrenzt, statt trotz laufendem Pending-State noch einen zweiten nativen POST auszulösen. |
+| **2.9.48** | 🔵 docs | Audit/Design | **`DOC/audit/AdminAudit-Design.md`, `DOC/audit/AssetAudit-Design.md` und `DOC/audit/BEWERTUNG.md` dokumentieren den neuen Theme-Explorer-Save-Vertrag jetzt direkt im laufenden Audit**: Der Fix ist damit nicht nur implementiert, sondern auch sauber im Design-/Asset-Audit verankert. |
+| **2.9.48** | 🔵 docs | Release | **`README.md`, `Changelog.md`, `CMS/core/Version.php` und `CMS/update.json` wurden auf den Release-Stand `2.9.48` synchronisiert**: Versionsbadge, aktuelle Highlights und Update-Metadaten spiegeln damit denselben Theme-Explorer-Robustheits-Batch. |
+
+---
+
+### v2.9.47 — 10. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.47** | 🔴 fix | Admin/Theme Marketplace | **`CMS/admin/modules/themes/ThemeMarketplaceModule.php` prüft in `normalizeCatalogString()` jetzt erst auf `mb_substr()` und fällt andernfalls auf `substr()` zurück**: Theme-Katalog und Manifest-Felder lassen sich damit auch auf PHP-Setups ohne geladene `mbstring`-Extension weiter normalisieren, statt den Theme-Marketplace fatal abbrechen zu lassen. |
+| **2.9.47** | 🔴 fix | Assets/Marketplace | **`CMS/admin/views/themes/marketplace.php` baut den suchbaren `data-name`-Vertrag für `CMS/assets/js/admin-theme-marketplace.js` jetzt mit `mb_strtolower()`-Prüfung und `strtolower()`-Fallback**: Kartenrendering und Suchfilter bleiben damit auch ohne `mbstring` lauffähig, statt schon beim Rendern des Filterdatensatzes auszufallen. |
+| **2.9.47** | 🔵 docs | Audit/Themes & Marketplace | **`DOC/audit/AdminAudit-Themes.md`, `DOC/audit/AssetAudit-Marketplace.md` und `DOC/audit/BEWERTUNG.md` dokumentieren den neuen Theme-Marketplace-Kompatibilitätsvertrag jetzt direkt im laufenden Audit**: Der Fix ist damit nicht nur implementiert, sondern auch sauber im Admin-/Asset-Audit verankert. |
+| **2.9.47** | 🔵 docs | Release | **`README.md`, `Changelog.md`, `CMS/core/Version.php` und `CMS/update.json` wurden auf den Release-Stand `2.9.47` synchronisiert**: Versionsbadge, aktuelle Highlights und Update-Metadaten spiegeln damit denselben Theme-Marketplace-Robustheits-Batch. |
+
+---
+
+### v2.9.46 — 10. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.46** | 🔴 fix | Admin/Plugin Marketplace | **`CMS/admin/modules/plugins/PluginMarketplaceModule.php` prüft in `normalizeCatalogString()` jetzt erst auf `mb_substr()` und fällt andernfalls auf `substr()` zurück**: Registry- und Manifest-Felder lassen sich damit auch auf PHP-Setups ohne geladene `mbstring`-Extension weiter normalisieren, statt den Marketplace-Katalog fatal abzubrechen. |
+| **2.9.46** | 🔵 docs | Audit/Plugins | **`DOC/audit/AdminAudit-Plugins.md` und `DOC/audit/BEWERTUNG.md` dokumentieren den neuen Marketplace-Fallback jetzt direkt im laufenden Audit**: Der Robustheitsgewinn ist damit nicht nur implementiert, sondern auch sauber im Audit-Strang verankert. |
+| **2.9.46** | 🔵 docs | Release | **`README.md`, `Changelog.md`, `CMS/core/Version.php` und `CMS/update.json` wurden auf den Release-Stand `2.9.46` synchronisiert**: Versionsbadge, aktuelle Highlights und Update-Metadaten spiegeln damit denselben Plugin-Marketplace-Robustheits-Batch. |
+
+---
+
+### v2.9.45 — 10. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.45** | 🔴 fix | Admin/Kommentare | **`CMS/admin/modules/comments/CommentsModule.php` und `CMS/admin/views/comments/list.php` nutzen für Status-Tabs jetzt hostneutrale relative Admin-Pfade**: Kommentar-Moderation bleibt damit auch unter Proxy-, Alternativhost- und lokalen Dev-URLs im aktuellen Admin-Kontext, statt auf eine an `SITE_URL` gebundene Origin zu springen. |
+| **2.9.45** | 🔴 fix | Admin/Plugins | **`CMS/admin/views/plugins/list.php` nutzt für den internen Sprung `Plugin installieren` jetzt die hostneutrale relative Admin-Route `/admin/plugin-marketplace`**: Die Plugin-Liste wechselt damit auch in alternativen Host-Setups sauber im aktuellen Admin-Kontext in den Marketplace. |
+| **2.9.45** | 🔴 fix | Assets/Grid | **`CMS/assets/js/admin-grid.js` nutzt für generische Grid.js-Requests jetzt die hostneutrale relative Basis `/api/v1/admin/` statt `CMS_SITE_URL`/`SITE_URL`**: Search-, Sortier- und Paging-Requests bleiben damit auch unter Proxy-, Alternativhost- und lokalen Dev-URLs auf derselben Origin. |
+| **2.9.45** | 🔵 docs | Audit/Kommentare, Plugins & Grid | **`DOC/audit/AdminAudit-Kommentare.md`, `DOC/audit/AdminAudit-Plugins.md`, `DOC/audit/AssetAudit-Grid.md`, `DOC/audit/AdminAudit-INDEX.md`, `DOC/audit/AssetAudit-INDEX.md` und `DOC/audit/BEWERTUNG.md` verankern den neuen Kommentar-/Plugin-/Grid-Vertrag jetzt direkt im laufenden Audit**: Die Rest-Hotspots sind damit nicht nur korrigiert, sondern auch sauber im Audit-Strang nachgezogen. |
+| **2.9.45** | 🔵 docs | Release | **`README.md`, `Changelog.md`, `CMS/core/Version.php` und `CMS/update.json` wurden auf den Release-Stand `2.9.45` synchronisiert**: Versionsbadge, aktuelle Highlights und Update-Metadaten spiegeln damit denselben Routing-/Asset-Fix-Batch. |
+
+---
+
+### v2.9.44 — 10. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.44** | 🔴 fix | Admin/Tabellen | **`CMS/admin/site-tables.php` sowie `CMS/admin/views/tables/list.php`, `edit.php` und `settings.php` nutzen für Guard-/PRG-Redirects, interne Listen-/Edit-/Settings-Wechsel und Form-Roundtrips jetzt hostneutrale relative Admin-Pfade**: Tabellenliste, Editor und Einstellungen bleiben damit auch unter Proxy-, Alternativhost- und lokalen Dev-URLs im aktuellen Admin-Kontext. |
+| **2.9.44** | 🔴 fix | Assets/Tabellen | **`CMS/admin/views/tables/list.php` reicht die Such-Basis für `CMS/assets/js/admin-site-tables.js` jetzt hostneutral über `/admin/site-tables` weiter**: Die Search-Bridge übernimmt damit keine falsche `SITE_URL`-Basis mehr, obwohl das Asset selbst nur den DOM-Vertrag konsumiert. |
+| **2.9.44** | 🔵 docs | Audit/Tabellen | **`DOC/audit/AdminAudit-Tabellen.md`, `DOC/audit/AssetAudit-Tabellen.md`, `DOC/audit/AdminAudit-INDEX.md`, `DOC/audit/AssetAudit-INDEX.md` und `DOC/audit/BEWERTUNG.md` verankern den Tabellen-Admin-/Asset-Vertrag jetzt direkt im laufenden Audit**: Der Tabellen-Cluster ist damit nicht nur korrigiert, sondern auch sauber im Audit-Strang verortet. |
+| **2.9.44** | 🔵 docs | Release | **`README.md`, `Changelog.md`, `CMS/core/Version.php` und `CMS/update.json` wurden auf den Release-Stand `2.9.44` synchronisiert**: Versionsbadge, aktuelle Highlights und Update-Metadaten spiegeln damit denselben Tabellen-/Routing-Batch. |
+
+---
+
+### v2.9.43 — 10. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.43** | 🔴 fix | Admin/Hub | **`CMS/admin/hub-sites.php` sowie `CMS/admin/views/hub/list.php`, `edit.php`, `templates.php` und `template-edit.php` nutzen für Access-Fallback, interne Admin-Wechsel und Form-Roundtrips jetzt hostneutrale relative Admin-Pfade**: Hub-Liste, Template-Wechsel und Editor-Saves bleiben damit auch unter Proxy-, Alternativhost- und lokalen Dev-URLs im aktuellen Admin-Kontext. |
+| **2.9.43** | 🔴 fix | Assets/Hub | **`CMS/assets/js/admin-hub-sites.js` und `CMS/assets/js/admin-hub-site-edit.js` lösen Public-Pfade jetzt gegen die aktuelle Browser-Origin auf und schicken `Speichern & Public Site öffnen` wieder über den vorbereiteten Submit-Pfad**: Clipboard-/Open-Flows übernehmen damit keine falsche `SITE_URL`-Basis mehr, und Rich-Text-/Kachel-Inhalte gehen vor dem Spezial-Save nicht mehr verloren. |
+| **2.9.43** | 🔵 docs | Audit/Hub | **`DOC/audit/AdminAudit-Hub.md`, `DOC/audit/AssetAudit-Hub.md`, `DOC/audit/AdminAudit-INDEX.md`, `DOC/audit/AssetAudit-INDEX.md` und `DOC/audit/BEWERTUNG.md` verankern den Hub-Admin-/Asset-Vertrag jetzt direkt im laufenden Audit**: Der Hub-Cluster ist damit nicht nur korrigiert, sondern endlich auch sauber im Audit-Strang verortet. |
+| **2.9.43** | 🔵 docs | Release | **`README.md`, `Changelog.md`, `CMS/core/Version.php` und `CMS/update.json` wurden auf den Release-Stand `2.9.43` synchronisiert**: Versionsbadge, aktuelle Highlights und Update-Metadaten spiegeln damit denselben Hub-/Asset-Fix-Batch. |
+
+---
+
+### v2.9.42 — 10. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.42** | 🔴 fix | Admin/System | **`CMS/admin/views/system/mail-settings.php` und `CMS/admin/views/system/ai-services.php` nutzen für interne Tab-Basen jetzt hostneutrale relative Admin-Pfade**: System-Tabs bleiben damit auch unter Proxy-, Alternativhost- und lokalen Dev-URLs im aktuellen Admin-Kontext, statt auf eine an `SITE_URL` gebundene Origin zu springen. |
+| **2.9.42** | 🔴 fix | Admin/System API | **`CMS/admin/views/system/mail-settings.php` reicht die interne Mail-Logs-API jetzt hostneutral über `/api/v1/admin/mail/logs` weiter**: Der Mail-Logs-Vertrag bleibt damit auch in alternativen Host-Setups auf derselben Origin. |
+| **2.9.42** | 🔵 docs | Audit/System | **`DOC/audit/AdminAudit-System.md` und `DOC/audit/BEWERTUNG.md` dokumentieren den hostneutralen System-/Routing-Vertrag jetzt direkt im laufenden Audit**: Der System-Cluster ist damit nicht nur korrigiert, sondern auch sauber im Audit-Strang verankert. |
+| **2.9.42** | 🔵 docs | Release | **`README.md`, `Changelog.md`, `CMS/core/Version.php` und `CMS/update.json` wurden auf den Release-Stand `2.9.42` synchronisiert**: Versionsbadge, aktuelle Highlights und Update-Metadaten spiegeln damit denselben System-Fix-Batch. |
+
+---
+
+### v2.9.41 — 10. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.41** | 🔴 fix | Admin/Dashboard | **`CMS/core/Services/DashboardService.php` und `CMS/admin/views/dashboard/index.php` nutzen für Quicklinks, KPI-/Highlight-Karten, Attention-Items und Warnungs-Sprünge jetzt hostneutrale relative Admin-Pfade**: Dashboard-Sprünge bleiben damit auch unter Proxy-, Alternativhost- und lokalen Dev-URLs im aktuellen Admin-Kontext, statt auf eine an `SITE_URL` gebundene Origin zu springen. |
+| **2.9.41** | 🔴 fix | Admin/Sicherheit | **`CMS/admin/security-audit.php` nutzt für Guard-Fallback und PRG-Roundtrip jetzt hostneutrale relative Redirect-Ziele**: Der Security-Audit-Entry bleibt damit auch unter Proxy-, Alternativhost- und lokalen Dev-URLs im aktuellen Admin-Kontext. |
+| **2.9.41** | 🔴 fix | Admin/Recht | **`CMS/admin/views/legal/cookies.php` öffnet die öffentliche Consent-Seite jetzt hostneutral über `/cookie-einstellungen` statt über eine an `SITE_URL` gebundene Host-Basis**: Der Cookie-Manager-Querlink bleibt damit auch in alternativen Host-Setups auf dem aktuellen Kontext. |
+| **2.9.41** | 🔵 docs | Audit/Dashboard, Sicherheit & Recht | **`DOC/audit/AdminAudit-Dashboard.md`, `DOC/audit/AdminAudit-Sicherheit.md`, `DOC/audit/AdminAudit-Recht.md` und `DOC/audit/BEWERTUNG.md` dokumentieren den hostneutralen Navigationsvertrag jetzt direkt im laufenden Audit**: Die drei Cluster sind damit nicht nur korrigiert, sondern auch sauber im Audit-Strang verankert. |
+| **2.9.41** | 🔵 docs | Release | **`README.md`, `Changelog.md`, `CMS/core/Version.php` und `CMS/update.json` wurden auf den Release-Stand `2.9.41` synchronisiert**: Versionsbadge, aktuelle Highlights und Update-Metadaten spiegeln damit denselben Dashboard-/Security-/Recht-Fix-Batch. |
+
+---
+
+### v2.9.40 — 10. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.40** | 🔴 fix | Admin/Users | **`CMS/admin/user-settings.php`, `CMS/admin/roles.php` und `CMS/admin/views/users/settings.php` nutzen für Guard-/PRG-Redirects sowie den internen Member-Dashboard-Querlink jetzt hostneutrale relative Admin-Pfade**: User-Settings, Rollen-POSTs und interne Benutzer-Querlinks bleiben damit auch unter Proxy-, Alternativhost- und lokalen Dev-URLs im aktuellen Admin-Kontext, statt auf eine an `SITE_URL` gebundene Origin zu springen. |
+| **2.9.40** | 🔴 fix | Admin/Groups | **`CMS/admin/views/users/groups.php` nutzt für Modal- und Delete-Mutationen jetzt Same-Route-POSTs statt eines harten `SITE_URL`-Action-Ziels**: Gruppen-Erstellen, Bearbeiten und Löschen bleiben damit im aktuellen Admin-Kontext, statt in alternativen Host-Setups auf eine falsche Origin zu kippen. |
+| **2.9.40** | 🔵 docs | Audit/Users & RBAC | **`DOC/audit/AdminAudit-Benutzer.md`, `DOC/audit/AdminAudit-Gruppen.md` und `DOC/audit/BEWERTUNG.md` dokumentieren den hostneutralen Benutzer-/RBAC-Navigationsvertrag jetzt direkt im laufenden Audit**: Der Benutzer-Cluster ist damit nicht nur korrigiert, sondern auch sauber im Audit-Strang verankert. |
+| **2.9.40** | 🔵 docs | Release | **`README.md`, `Changelog.md`, `CMS/core/Version.php` und `CMS/update.json` wurden auf den Release-Stand `2.9.40` synchronisiert**: Versionsbadge, aktuelle Highlights und Update-Metadaten spiegeln damit denselben Benutzer-/RBAC-Fix-Batch. |
+
+---
+
+### v2.9.39 — 10. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.39** | 🔴 fix | Admin/Content | **`CMS/admin/views/pages/list.php`, `CMS/admin/views/pages/edit.php`, `CMS/admin/views/posts/list.php`, `CMS/admin/views/posts/edit.php` und `CMS/admin/views/posts/categories.php` nutzen für interne Listen-, Edit-, Kategorie- und Zurück-Wechsel jetzt hostneutrale relative Admin-Routen**: Content-Wechsel bleiben damit auch unter Proxy-, Alternativhost- und lokalen Dev-URLs im aktuellen Admin-Kontext, statt auf eine an `SITE_URL` gebundene Origin zu springen. |
+| **2.9.39** | 🔴 fix | Assets/EditorJS | **`CMS/admin/views/pages/edit.php` und `CMS/admin/views/posts/edit.php` reichen die Editor.js-Preview-, Media- und AI-Fallback-Ziele jetzt hostneutral relativ an `CMS/assets/js/admin-content-editor.js` weiter**: Die Editor-Brücke bleibt damit auch bei Fallback-Konfigurationen im aktuellen Kontext, statt auf eine feste Host-Basis zu kippen. |
+| **2.9.39** | 🔵 docs | Audit/Content & EditorJS | **`DOC/audit/AdminAudit-Seiten.md`, `DOC/audit/AdminAudit-Beitraege.md`, `DOC/audit/AssetAudit-EditorJS.md` und `DOC/audit/BEWERTUNG.md` dokumentieren den hostneutralen Content-/EditorJS-Vertrag jetzt direkt im laufenden Audit**: Der Content-Cluster ist damit nicht nur korrigiert, sondern auch sauber im Admin- und Asset-Strang verankert. |
+| **2.9.39** | 🔵 docs | Release | **`README.md`, `Changelog.md`, `CMS/core/Version.php` und `CMS/update.json` wurden auf den Release-Stand `2.9.39` synchronisiert**: Versionsbadge, aktuelle Highlights und Update-Metadaten spiegeln damit denselben Content-/EditorJS-Fix-Batch. |
 
 ---
 

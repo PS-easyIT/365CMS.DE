@@ -19,7 +19,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-$siteUrl = defined('SITE_URL') ? SITE_URL : '';
+$pagesAdminBaseUrl = '/admin/pages';
 $counts  = $listData['counts'];
 $pages   = $listData['pages'];
 $categories = $listData['categories'] ?? [];
@@ -43,7 +43,7 @@ $statusLabels = [
                 <h2 class="page-title">Seiten</h2>
             </div>
             <div class="col-auto ms-auto d-print-none">
-                <a href="<?= $siteUrl ?>/admin/pages?action=edit" class="btn btn-primary">
+                <a href="<?= $pagesAdminBaseUrl ?>?action=edit" class="btn btn-primary">
                     <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 5l0 14"/><path d="M5 12l14 0"/></svg>
                     Neue Seite
                 </a>
@@ -103,7 +103,7 @@ $statusLabels = [
             <div class="card-header">
                 <h3 class="card-title">Alle Seiten</h3>
                 <div class="card-actions">
-                    <form method="get" action="<?= $siteUrl ?>/admin/pages" class="d-flex gap-2 js-pages-filter-form">
+                    <form method="get" action="<?= $pagesAdminBaseUrl ?>" class="d-flex gap-2 js-pages-filter-form">
                         <select name="status" class="form-select form-select-sm js-pages-filter-submit" style="width: auto;">
                             <option value="">Alle Status</option>
                             <option value="published"<?= $filter === 'published' ? ' selected' : '' ?>>Veröffentlicht</option>
@@ -192,7 +192,7 @@ $statusLabels = [
                                     <input class="form-check-input" type="checkbox" name="ids[]" value="<?= $pageId ?>" form="bulkFormPages">
                                 </td>
                                 <td>
-                                    <a href="<?= $siteUrl ?>/admin/pages?action=edit&id=<?= $pageId ?>" class="text-reset fw-medium">
+                                    <a href="<?= $pagesAdminBaseUrl ?>?action=edit&id=<?= $pageId ?>" class="text-reset fw-medium">
                                         <?= htmlspecialchars($pageTitle !== '' ? $pageTitle : 'Ohne Titel') ?>
                                     </a>
                                 </td>
@@ -210,7 +210,7 @@ $statusLabels = [
                                 <td><?= htmlspecialchars($pageAuthor !== '' ? $pageAuthor : '–') ?></td>
                                 <td class="text-secondary"><?= htmlspecialchars($pageUpdatedAt !== '' ? $pageUpdatedAt : '–') ?></td>
                                 <td>
-                                    <a href="<?= $siteUrl ?>/admin/pages?action=edit&id=<?= $pageId ?>" class="btn btn-sm btn-outline-primary">Bearbeiten</a>
+                                    <a href="<?= $pagesAdminBaseUrl ?>?action=edit&id=<?= $pageId ?>" class="btn btn-sm btn-outline-primary">Bearbeiten</a>
                                 </td>
                             </tr>
                         <?php endforeach; ?>

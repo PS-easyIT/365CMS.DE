@@ -9,6 +9,7 @@ $services        = $d['services'] ?? [];
 $settings        = $d['settings'] ?? [];
 $scanResults     = $d['scan_results'] ?? [];
 $curatedServices = $d['curated_services'] ?? [];
+$cookieSettingsPublicUrl = '/cookie-einstellungen';
 $cookieManagerConfig = [
     'categoryModalId' => 'categoryModal',
     'serviceModalId' => 'serviceModal',
@@ -114,11 +115,11 @@ $cookieManagerConfig = [
                                                 <div class="fw-bold mb-1">Öffentliche Consent-Seite</div>
                                                 <div class="small">
                                                     Nutzer können ihre Einwilligung öffentlich unter
-                                                    <a href="<?php echo htmlspecialchars(SITE_URL . '/cookie-einstellungen'); ?>" target="_blank" rel="noopener noreferrer"><?php echo htmlspecialchars(SITE_URL . '/cookie-einstellungen'); ?></a>
+                                                    <a href="<?php echo htmlspecialchars($cookieSettingsPublicUrl, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer"><?php echo htmlspecialchars($cookieSettingsPublicUrl, ENT_QUOTES, 'UTF-8'); ?></a>
                                                     einsehen und anpassen.
                                                 </div>
                                             </div>
-                                            <a href="<?php echo htmlspecialchars(SITE_URL . '/cookie-einstellungen'); ?>" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary btn-sm">
+                                            <a href="<?php echo htmlspecialchars($cookieSettingsPublicUrl, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary btn-sm">
                                                 Public Bereich öffnen
                                             </a>
                                         </div>

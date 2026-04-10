@@ -9,6 +9,11 @@ $sites = $data['sites'] ?? [];
 $total = (int)($data['total'] ?? 0);
 $search = (string)($data['search'] ?? '');
 $templateOptions = $data['templateOptions'] ?? [];
+$hubBaseUrl = '/admin/hub-sites';
+$hubTemplatesUrl = $hubBaseUrl . '?action=templates';
+$hubCreateUrl = $hubBaseUrl . '?action=edit';
+$buildHubEditUrl = static fn (int $id): string => $hubBaseUrl . '?action=edit&id=' . $id;
+$buildHubPublicPath = static fn (string $slug): string => '/' . ltrim($slug, '/');
 ?>
 
 <div class="page-header d-print-none">
@@ -19,7 +24,7 @@ $templateOptions = $data['templateOptions'] ?? [];
                 <h2 class="page-title">Hub-Sites</h2>
             </div>
             <div class="col-auto ms-auto">
-                <a href="<?php echo htmlspecialchars(SITE_URL); ?>/admin/hub-sites?action=edit" class="btn btn-primary">
+                <a href="<?php echo htmlspecialchars($hubCreateUrl); ?>" class="btn btn-primary">
                     <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 5l0 14"/><path d="M5 12l14 0"/></svg>
                     Neue Hub Site
                 </a>
@@ -31,8 +36,8 @@ $templateOptions = $data['templateOptions'] ?? [];
 <div class="page-body">
     <div class="container-xl">
         <ul class="nav nav-tabs mb-4">
-            <li class="nav-item"><a class="nav-link active" href="<?php echo htmlspecialchars(SITE_URL); ?>/admin/hub-sites">Content</a></li>
-            <li class="nav-item"><a class="nav-link" href="<?php echo htmlspecialchars(SITE_URL); ?>/admin/hub-sites?action=templates">Templates</a></li>
+            <li class="nav-item"><a class="nav-link active" href="<?php echo htmlspecialchars($hubBaseUrl); ?>">Content</a></li>
+            <li class="nav-item"><a class="nav-link" href="<?php echo htmlspecialchars($hubTemplatesUrl); ?>">Templates</a></li>
         </ul>
 
         <?php
@@ -61,7 +66,7 @@ $templateOptions = $data['templateOptions'] ?? [];
                     </div>
                     <div class="col-auto">
                         <input type="text" class="form-control form-control-sm js-hub-sites-search-input" value="<?php echo htmlspecialchars($search); ?>" placeholder="Suchen…"
-                               data-search-url="<?php echo htmlspecialchars(SITE_URL . '/admin/hub-sites', ENT_QUOTES); ?>">
+                               data-search-url="<?php echo htmlspecialchars($hubBaseUrl, ENT_QUOTES); ?>">
                     </div>
                 </div>
             </div>
@@ -88,23 +93,24 @@ $templateOptions = $data['templateOptions'] ?? [];
                         ?>
                     <?php else: ?>
                         <?php foreach ($sites as $site): ?>
+                            <?php $publicPath = !empty($site['hub_slug']) ? $buildHubPublicPath((string)$site['hub_slug']) : ''; ?>
                             <tr>
                                 <td class="text-secondary"><?php echo (int)$site['id']; ?></td>
                                 <td>
-                                    <a href="<?php echo htmlspecialchars(SITE_URL); ?>/admin/hub-sites?action=edit&id=<?php echo (int)$site['id']; ?>" class="text-reset font-weight-medium">
+                                    <a href="<?php echo htmlspecialchars($buildHubEditUrl((int)$site['id'])); ?>" class="text-reset font-weight-medium">
                                         <?php echo htmlspecialchars((string)$site['table_name']); ?>
                                     </a>
                                     <div class="text-secondary small">
                                         <code>/<?php echo htmlspecialchars((string)($site['hub_slug'] ?? '')); ?></code>
                                     </div>
-                                    <?php if (!empty($site['hub_slug'])): ?>
+                                    <?php if ($publicPath !== ''): ?>
                                         <div class="mt-2">
                                             <button type="button"
                                                     class="btn btn-outline-secondary btn-sm me-1 js-copy-hub-url"
-                                                    data-hub-public-url="<?php echo htmlspecialchars(SITE_URL . '/' . ltrim((string)$site['hub_slug'], '/'), ENT_QUOTES); ?>">
+                                                    data-hub-public-path="<?php echo htmlspecialchars($publicPath, ENT_QUOTES); ?>">
                                                 Slug kopieren
                                             </button>
-                                            <a href="<?php echo htmlspecialchars(SITE_URL . '/' . ltrim((string)$site['hub_slug'], '/')); ?>" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary btn-sm">
+                                            <a href="<?php echo htmlspecialchars($publicPath); ?>" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary btn-sm">
                                                 Public Site öffnen
                                             </a>
                                         </div>
@@ -119,9 +125,9 @@ $templateOptions = $data['templateOptions'] ?? [];
                                             <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/><circle cx="12" cy="5" r="1"/></svg>
                                         </button>
                                         <div class="dropdown-menu dropdown-menu-end">
-                                            <a class="dropdown-item" href="<?php echo htmlspecialchars(SITE_URL); ?>/admin/hub-sites?action=edit&id=<?php echo (int)$site['id']; ?>">Bearbeiten</a>
-                                            <?php if (!empty($site['hub_slug'])): ?>
-                                                <a class="dropdown-item" href="<?php echo htmlspecialchars(SITE_URL . '/' . ltrim((string)$site['hub_slug'], '/')); ?>" target="_blank" rel="noopener noreferrer">Public Site öffnen</a>
+                                            <a class="dropdown-item" href="<?php echo htmlspecialchars($buildHubEditUrl((int)$site['id'])); ?>">Bearbeiten</a>
+                                            <?php if ($publicPath !== ''): ?>
+                                                <a class="dropdown-item" href="<?php echo htmlspecialchars($publicPath); ?>" target="_blank" rel="noopener noreferrer">Public Site öffnen</a>
                                             <?php endif; ?>
                                             <button type="button" class="dropdown-item js-duplicate-hub-site" data-hub-site-id="<?php echo (int)$site['id']; ?>">Duplizieren</button>
                                             <div class="dropdown-divider"></div>

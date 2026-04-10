@@ -199,6 +199,11 @@ class ThemeMarketplaceModule
             return ['success' => false, 'error' => (string) ($result['message'] ?? 'Theme konnte nicht installiert werden.')];
         }
 
+        $finalizationError = $this->finalizeInstalledThemePackage($targetDir, $targetFolder);
+        if ($finalizationError !== '') {
+            return ['success' => false, 'error' => $finalizationError];
+        }
+
         return ['success' => true, 'message' => 'Theme „' . ((string) ($theme['name'] ?? $slug)) . '“ wurde installiert. Du kannst es jetzt in der Theme-Verwaltung aktivieren.'];
     }
 
@@ -437,7 +442,13 @@ class ThemeMarketplaceModule
     {
         $string = preg_replace('/[\x00-\x1F\x7F]/u', '', trim((string) $value));
 
-        return mb_substr($string ?? '', 0, $length);
+        $normalized = $string ?? '';
+
+        if (function_exists('mb_substr')) {
+            return (string) mb_substr($normalized, 0, $length);
+        }
+
+        return substr($normalized, 0, $length);
     }
 
     private function resolveCatalogUrl(array $theme, array $keys, string $sourceBase): string
@@ -571,6 +582,39 @@ class ThemeMarketplaceModule
         }
 
         return '';
+    }
+
+    private function finalizeInstalledThemePackage(string $targetDir, string $expectedSlug): string
+    {
+        $targetDir = rtrim($targetDir, '/\\');
+        if ($targetDir === '' || !is_dir($targetDir)) {
+            return 'Installiertes Theme-Zielverzeichnis fehlt nach dem Marketplace-Download.';
+        }
+
+        if ($this->isValidThemeDirectory($targetDir)) {
+            return '';
+        }
+
+        $detectedThemeDirectory = $this->detectThemeDirectory($targetDir, $expectedSlug);
+        if ($detectedThemeDirectory === '') {
+            $this->removeDirectory($targetDir);
+
+            return 'Installationspaket enthält kein gültiges Theme-Verzeichnis mit style.css, theme.json und functions.php.';
+        }
+
+        if (!$this->promoteNestedThemeDirectory($targetDir, $detectedThemeDirectory)) {
+            $this->removeDirectory($targetDir);
+
+            return 'Installiertes Theme-Paket konnte nicht in ein gültiges Laufzeit-Theme überführt werden.';
+        }
+
+        if ($this->isValidThemeDirectory($targetDir)) {
+            return '';
+        }
+
+        $this->removeDirectory($targetDir);
+
+        return 'Installiertes Theme-Paket blieb auch nach der Paketbereinigung unvollständig.';
     }
 
     private function canAutoInstall(array $theme): bool
@@ -822,6 +866,46 @@ class ThemeMarketplaceModule
         return $candidates[0];
     }
 
+    private function promoteNestedThemeDirectory(string $targetDir, string $detectedThemeDirectory): bool
+    {
+        $targetDir = rtrim($targetDir, '/\\');
+        $detectedThemeDirectory = rtrim($detectedThemeDirectory, '/\\');
+
+        if ($targetDir === '' || $detectedThemeDirectory === '' || $detectedThemeDirectory === $targetDir) {
+            return false;
+        }
+
+        $normalizedTargetDir = rtrim(str_replace('\\', '/', $targetDir), '/') . '/';
+        $normalizedDetectedThemeDirectory = rtrim(str_replace('\\', '/', $detectedThemeDirectory), '/') . '/';
+        if (!str_starts_with($normalizedDetectedThemeDirectory, $normalizedTargetDir)) {
+            return false;
+        }
+
+        $targetParentDir = dirname($targetDir);
+        $promotedThemeDirectory = $this->buildTemporaryThemePath($targetParentDir, '365cms_theme_promote_');
+
+        if (!$this->moveDirectory($detectedThemeDirectory, $promotedThemeDirectory)) {
+            return false;
+        }
+
+        $this->removeDirectory($targetDir);
+
+        if (@rename($promotedThemeDirectory, $targetDir)) {
+            return true;
+        }
+
+        if ($this->copyDirectory($promotedThemeDirectory, $targetDir)) {
+            $this->removeDirectory($promotedThemeDirectory);
+            return true;
+        }
+
+        if (is_dir($promotedThemeDirectory)) {
+            $this->removeDirectory($promotedThemeDirectory);
+        }
+
+        return false;
+    }
+
     private function isValidThemeDirectory(string $path): bool
     {
         return is_dir($path)
@@ -834,6 +918,17 @@ class ThemeMarketplaceModule
     {
         $folder = $this->normalizeThemeKey(basename($sourceDir));
         return $folder !== '' ? $folder : $slug;
+    }
+
+    private function buildTemporaryThemePath(string $parentDir, string $prefix): string
+    {
+        $parentDir = rtrim($parentDir, '/\\');
+
+        do {
+            $candidate = $parentDir . DIRECTORY_SEPARATOR . $prefix . bin2hex(random_bytes(8));
+        } while (file_exists($candidate));
+
+        return $candidate;
     }
 
     private function moveDirectory(string $sourceDir, string $targetDir): bool

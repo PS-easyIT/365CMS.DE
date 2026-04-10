@@ -22,11 +22,25 @@
 
     function showAlert(type, message) {
         if (typeof window.cmsAlert === 'function') {
-            window.cmsAlert(type, message);
+            window.cmsAlert(message, type);
             return;
         }
 
         console[type === 'danger' ? 'error' : 'log'](message);
+    }
+
+    function absoluteUrlFromPath(path) {
+        var normalizedPath = String(path || '').trim();
+
+        if (normalizedPath === '') {
+            return '';
+        }
+
+        try {
+            return new URL(normalizedPath, window.location.origin + '/').toString();
+        } catch (_error) {
+            return normalizedPath;
+        }
     }
 
     document.addEventListener('DOMContentLoaded', function () {
@@ -374,9 +388,34 @@
         }
 
         function currentPublicUrl() {
-            var slugValue = (slugPreviewInput.value || '').replace(/^\//, '').trim();
-            return String(siteConfig.siteUrl || '').replace(/\/+$/, '') + '/' + slugValue;
+            var slugValue = String(slugPreviewInput.value || '').trim();
+            var publicPath = slugValue === '' ? '/' : (slugValue.charAt(0) === '/' ? slugValue : '/' + slugValue);
+
+            return absoluteUrlFromPath(publicPath);
         }
+        function prepareFormSubmission(resetOpenPublicAfterSave) {
+            summaryEditors.forEach(function (editor, key) {
+                var textarea = document.getElementById(key);
+                if (editor && textarea && typeof editor.getContents === 'function') {
+                    var source = textarea.dataset.source || 'cards';
+                    var index = parseInt(textarea.dataset.index || '-1', 10);
+                    textarea.value = editor.getContents();
+
+                    if (source !== 'form') {
+                        var collection = source === 'feature' ? featureCards : cards;
+                        if (index >= 0 && collection[index] && textarea.dataset.key) {
+                            collection[index][textarea.dataset.key] = textarea.value;
+                        }
+                    }
+                }
+            });
+            sync();
+
+            if (resetOpenPublicAfterSave && document.activeElement !== saveAndOpenPublicButton) {
+                openPublicAfterSaveInput.value = '0';
+            }
+        }
+
 
         function copyHubUrl(url) {
             if (!navigator.clipboard || typeof navigator.clipboard.writeText !== 'function') {
@@ -520,40 +559,27 @@
             });
         }
 
-        document.querySelectorAll('[data-copy-hub-url]').forEach(function (button) {
+        document.querySelectorAll('[data-copy-hub-path]').forEach(function (button) {
             button.addEventListener('click', function () {
-                copyHubUrl(button.getAttribute('data-copy-hub-url') || currentPublicUrl());
+                copyHubUrl(absoluteUrlFromPath(button.getAttribute('data-copy-hub-path') || '') || currentPublicUrl());
             });
         });
 
         if (saveAndOpenPublicButton) {
             saveAndOpenPublicButton.addEventListener('click', function () {
                 openPublicAfterSaveInput.value = '1';
+                if (typeof form.requestSubmit === 'function') {
+                    form.requestSubmit();
+                    return;
+                }
+
+                prepareFormSubmission(false);
                 form.submit();
             });
         }
 
         form.addEventListener('submit', function () {
-            summaryEditors.forEach(function (editor, key) {
-                var textarea = document.getElementById(key);
-                if (editor && textarea && typeof editor.getContents === 'function') {
-                    var source = textarea.dataset.source || 'cards';
-                    var index = parseInt(textarea.dataset.index || '-1', 10);
-                    textarea.value = editor.getContents();
-
-                    if (source !== 'form') {
-                        var collection = source === 'feature' ? featureCards : cards;
-                        if (index >= 0 && collection[index] && textarea.dataset.key) {
-                            collection[index][textarea.dataset.key] = textarea.value;
-                        }
-                    }
-                }
-            });
-            sync();
-
-            if (document.activeElement !== saveAndOpenPublicButton) {
-                openPublicAfterSaveInput.value = '0';
-            }
+            prepareFormSubmission(true);
         });
 
         container.addEventListener('input', function (event) {

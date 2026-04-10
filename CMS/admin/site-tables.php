@@ -23,7 +23,7 @@ function cms_admin_site_tables_can_access(): bool
 }
 
 if (!cms_admin_site_tables_can_access()) {
-    header('Location: ' . SITE_URL);
+    header('Location: /');
     exit;
 }
 
@@ -58,7 +58,7 @@ function cms_admin_site_tables_allowed_views(): array
 
 function cms_admin_site_tables_redirect(string $path = '/admin/site-tables'): never
 {
-    header('Location: ' . SITE_URL . $path);
+    header('Location: ' . $path);
     exit;
 }
 

@@ -13,7 +13,7 @@ $ldap = $data['ldap'] ?? [];
 $jwt = $data['jwt'] ?? [];
 $passkey = $data['passkey'] ?? [];
 $security = $data['security'] ?? [];
-$siteUrl = defined('SITE_URL') ? (string)SITE_URL : '';
+$memberDashboardGeneralUrl = '/admin/member-dashboard-general';
 
 $providerLabels = [
     'session' => 'Session-Login',
@@ -151,7 +151,7 @@ $renderStatusBadge = static function (bool $enabled, string $enabledLabel = 'Akt
                                         </option>
                                     <?php endforeach; ?>
                                 </select>
-                                <div class="form-hint">Willkommens- und Dashboard-Texte bleiben weiterhin unter <a href="<?php echo htmlspecialchars($siteUrl . '/admin/member-dashboard-general'); ?>">Member Dashboard → Allgemein</a>.</div>
+                                <div class="form-hint">Willkommens- und Dashboard-Texte bleiben weiterhin unter <a href="<?php echo htmlspecialchars($memberDashboardGeneralUrl, ENT_QUOTES, 'UTF-8'); ?>">Member Dashboard → Allgemein</a>.</div>
                             </div>
                         </div>
                     </div>
@@ -314,7 +314,7 @@ $renderStatusBadge = static function (bool $enabled, string $enabledLabel = 'Akt
                             <div class="text-secondary small mb-3">Der LDAP-Erstsync nutzt die aktuelle LDAP-Konfiguration und legt fehlende lokale Konten automatisch mit der konfigurierten Standardrolle an.</div>
 
                             <button type="submit" class="btn btn-primary w-100 mb-2">Einstellungen speichern</button>
-                            <a href="<?php echo htmlspecialchars($siteUrl . '/admin/member-dashboard-general'); ?>" class="btn btn-outline-secondary w-100">Member-Dashboard öffnen</a>
+                            <a href="<?php echo htmlspecialchars($memberDashboardGeneralUrl, ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-outline-secondary w-100">Member-Dashboard öffnen</a>
                         </div>
                     </div>
                 </div>

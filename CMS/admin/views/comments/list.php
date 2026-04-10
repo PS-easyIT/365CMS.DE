@@ -21,6 +21,7 @@ $canModerate = (bool)($data['canModerate'] ?? false);
 $canDelete = (bool)($data['canDelete'] ?? false);
 $canBulkActions = $canModerate || $canDelete;
 $showActionColumn = $canModerate || $canDelete;
+$commentsBaseUrl = '/admin/comments';
 
 $renderCommentIcon = static function (string $icon): string {
     return match ($icon) {
@@ -89,7 +90,7 @@ $actionClass = static function (string $variant): string {
                         <?php
                         $tabStatus = (string)($tab['status'] ?? 'all');
                         $tabCount = (int)($tab['count'] ?? 0);
-                        $tabUrl = (string)($tab['url'] ?? (htmlspecialchars(SITE_URL) . '/admin/comments'));
+                        $tabUrl = (string)($tab['url'] ?? $commentsBaseUrl);
                         $tabBadgeClass = (string)($tab['badge_class'] ?? 'bg-secondary');
                         ?>
                         <li class="nav-item">

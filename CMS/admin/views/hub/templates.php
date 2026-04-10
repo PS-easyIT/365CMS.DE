@@ -7,6 +7,10 @@ if (!defined('ABSPATH')) {
 
 $templates = $data['templates'] ?? [];
 $baseTemplateOptions = $data['baseTemplateOptions'] ?? [];
+$hubBaseUrl = '/admin/hub-sites';
+$hubTemplatesUrl = $hubBaseUrl . '?action=templates';
+$hubTemplateCreateUrl = $hubBaseUrl . '?action=template-edit';
+$buildHubTemplateEditUrl = static fn (string $key): string => $hubBaseUrl . '?action=template-edit&key=' . rawurlencode($key);
 ?>
 
 <div class="page-header d-print-none">
@@ -17,7 +21,7 @@ $baseTemplateOptions = $data['baseTemplateOptions'] ?? [];
                 <h2 class="page-title">Templates</h2>
             </div>
             <div class="col-auto ms-auto">
-                <a href="<?php echo htmlspecialchars(SITE_URL); ?>/admin/hub-sites?action=template-edit" class="btn btn-primary">
+                <a href="<?php echo htmlspecialchars($hubTemplateCreateUrl); ?>" class="btn btn-primary">
                     <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 5l0 14"/><path d="M5 12l14 0"/></svg>
                     Neues Template
                 </a>
@@ -29,8 +33,8 @@ $baseTemplateOptions = $data['baseTemplateOptions'] ?? [];
 <div class="page-body">
     <div class="container-xl">
         <ul class="nav nav-tabs mb-4">
-            <li class="nav-item"><a class="nav-link" href="<?php echo htmlspecialchars(SITE_URL); ?>/admin/hub-sites">Content</a></li>
-            <li class="nav-item"><a class="nav-link active" href="<?php echo htmlspecialchars(SITE_URL); ?>/admin/hub-sites?action=templates">Templates</a></li>
+            <li class="nav-item"><a class="nav-link" href="<?php echo htmlspecialchars($hubBaseUrl); ?>">Content</a></li>
+            <li class="nav-item"><a class="nav-link active" href="<?php echo htmlspecialchars($hubTemplatesUrl); ?>">Templates</a></li>
         </ul>
 
         <?php if (!empty($alert)): ?>
@@ -61,7 +65,7 @@ $baseTemplateOptions = $data['baseTemplateOptions'] ?? [];
                         <?php foreach ($templates as $template): ?>
                             <tr>
                                 <td>
-                                    <a href="<?php echo htmlspecialchars(SITE_URL); ?>/admin/hub-sites?action=template-edit&key=<?php echo rawurlencode((string)$template['key']); ?>" class="text-reset font-weight-medium">
+                                    <a href="<?php echo htmlspecialchars($buildHubTemplateEditUrl((string)$template['key'])); ?>" class="text-reset font-weight-medium">
                                         <?php echo htmlspecialchars((string)$template['label']); ?>
                                     </a>
                                     <div class="text-secondary small"><code><?php echo htmlspecialchars((string)$template['key']); ?></code></div>
@@ -77,7 +81,7 @@ $baseTemplateOptions = $data['baseTemplateOptions'] ?? [];
                                             <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/><circle cx="12" cy="5" r="1"/></svg>
                                         </button>
                                         <div class="dropdown-menu dropdown-menu-end">
-                                            <a class="dropdown-item" href="<?php echo htmlspecialchars(SITE_URL); ?>/admin/hub-sites?action=template-edit&key=<?php echo rawurlencode((string)$template['key']); ?>">Bearbeiten / umbenennen</a>
+                                            <a class="dropdown-item" href="<?php echo htmlspecialchars($buildHubTemplateEditUrl((string)$template['key'])); ?>">Bearbeiten / umbenennen</a>
                                             <button type="button" class="dropdown-item js-duplicate-hub-template" data-hub-template-key="<?php echo htmlspecialchars((string)$template['key'], ENT_QUOTES); ?>">Kopieren</button>
                                             <div class="dropdown-divider"></div>
                                             <button type="button" class="dropdown-item text-danger js-delete-hub-template"

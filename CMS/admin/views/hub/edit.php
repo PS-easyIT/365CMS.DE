@@ -14,13 +14,17 @@ $settings = $site['settings'] ?? $defaults;
 $cards = $site['cards'] ?? [];
 $hubDomains = is_array($settings['hub_domains'] ?? null) ? $settings['hub_domains'] : [];
 $mainDomainHost = trim((string)(parse_url((string) SITE_URL, PHP_URL_HOST) ?? ''));
+$hubBaseUrl = '/admin/hub-sites';
+$hubTemplatesUrl = $hubBaseUrl . '?action=templates';
+$hubPublicPath = !empty($settings['hub_slug']) ? '/' . ltrim((string)$settings['hub_slug'], '/') : '';
+$hubPublicEnPath = $hubPublicPath !== '' ? rtrim($hubPublicPath, '/') . '/en' : '';
 ?>
 
 <div class="page-header d-print-none">
     <div class="container-xl">
         <div class="row align-items-center">
             <div class="col-auto">
-                <a href="<?php echo htmlspecialchars(SITE_URL); ?>/admin/hub-sites" class="btn btn-ghost-secondary btn-sm me-2">
+                <a href="<?php echo htmlspecialchars($hubBaseUrl); ?>" class="btn btn-ghost-secondary btn-sm me-2">
                     <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M15 6l-6 6l6 6"/></svg>
                     Zurück
                 </a>
@@ -34,16 +38,16 @@ $mainDomainHost = trim((string)(parse_url((string) SITE_URL, PHP_URL_HOST) ?? ''
                     <div class="d-flex align-items-center gap-2">
                         <span class="badge bg-azure-lt">Public URL: /<?php echo htmlspecialchars((string)($settings['hub_slug'] ?? '')); ?></span>
                         <span class="badge bg-indigo-lt">EN: /<?php echo htmlspecialchars((string)($settings['hub_slug'] ?? '')); ?>/en</span>
-                        <?php if (!empty($settings['hub_slug'])): ?>
+                        <?php if ($hubPublicPath !== ''): ?>
                             <button type="button"
                                     class="btn btn-outline-secondary btn-sm"
-                                    data-copy-hub-url="<?php echo htmlspecialchars(SITE_URL . '/' . ltrim((string)$settings['hub_slug'], '/'), ENT_QUOTES); ?>">
+                                    data-copy-hub-path="<?php echo htmlspecialchars($hubPublicPath, ENT_QUOTES); ?>">
                                 Slug kopieren
                             </button>
-                            <a href="<?php echo htmlspecialchars(SITE_URL . '/' . ltrim((string)$settings['hub_slug'], '/')); ?>" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary btn-sm">
+                            <a href="<?php echo htmlspecialchars($hubPublicPath); ?>" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary btn-sm">
                                 DE öffnen
                             </a>
-                            <a href="<?php echo htmlspecialchars(rtrim(SITE_URL . '/' . ltrim((string)$settings['hub_slug'], '/'), '/') . '/en'); ?>" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary btn-sm">
+                            <a href="<?php echo htmlspecialchars($hubPublicEnPath); ?>" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary btn-sm">
                                 EN öffnen
                             </a>
                         <?php endif; ?>
@@ -57,15 +61,15 @@ $mainDomainHost = trim((string)(parse_url((string) SITE_URL, PHP_URL_HOST) ?? ''
 <div class="page-body">
     <div class="container-xl">
         <ul class="nav nav-tabs mb-4">
-            <li class="nav-item"><a class="nav-link active" href="<?php echo htmlspecialchars(SITE_URL); ?>/admin/hub-sites">Content</a></li>
-            <li class="nav-item"><a class="nav-link" href="<?php echo htmlspecialchars(SITE_URL); ?>/admin/hub-sites?action=templates">Templates</a></li>
+            <li class="nav-item"><a class="nav-link active" href="<?php echo htmlspecialchars($hubBaseUrl); ?>">Content</a></li>
+            <li class="nav-item"><a class="nav-link" href="<?php echo htmlspecialchars($hubTemplatesUrl); ?>">Templates</a></li>
         </ul>
 
         <?php if (!empty($alert)): ?>
             <?php $alertData = $alert; $alertMarginClass = 'mb-3'; require __DIR__ . '/../partials/flash-alert.php'; ?>
         <?php endif; ?>
 
-        <form method="post" action="<?php echo htmlspecialchars(SITE_URL); ?>/admin/hub-sites" id="hubSiteForm">
+        <form method="post" id="hubSiteForm">
             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
             <input type="hidden" name="action" value="save">
             <?php if (!$isNew): ?>
@@ -78,7 +82,6 @@ $mainDomainHost = trim((string)(parse_url((string) SITE_URL, PHP_URL_HOST) ?? ''
             <input type="hidden" id="hubTemplateProfilesInput" value="<?php echo htmlspecialchars((string) json_encode($templateProfiles, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), ENT_QUOTES); ?>">
             <input type="hidden" id="hubSiteConfigInput" value="<?php echo htmlspecialchars((string) json_encode([
                 'isNew' => $isNew,
-                'siteUrl' => rtrim((string) SITE_URL, '/'),
                 'storedSlug' => (string) ($settings['hub_slug'] ?? ''),
                 'legacyFeatureCardInterval' => (int) ($settings['hub_feature_card_interval'] ?? 0),
             ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), ENT_QUOTES); ?>">
@@ -262,11 +265,11 @@ $mainDomainHost = trim((string)(parse_url((string) SITE_URL, PHP_URL_HOST) ?? ''
 
                     <div class="card">
                         <div class="card-body">
-                            <?php if (!$isNew && !empty($settings['hub_slug'])): ?>
-                                <a href="<?php echo htmlspecialchars(SITE_URL . '/' . ltrim((string)$settings['hub_slug'], '/')); ?>" target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary w-100 mb-2">
+                            <?php if (!$isNew && $hubPublicPath !== ''): ?>
+                                <a href="<?php echo htmlspecialchars($hubPublicPath); ?>" target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary w-100 mb-2">
                                     DE im neuen Tab öffnen
                                 </a>
-                                <a href="<?php echo htmlspecialchars(rtrim(SITE_URL . '/' . ltrim((string)$settings['hub_slug'], '/'), '/') . '/en'); ?>" target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary w-100 mb-2">
+                                <a href="<?php echo htmlspecialchars($hubPublicEnPath); ?>" target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary w-100 mb-2">
                                     EN im neuen Tab öffnen
                                 </a>
                             <?php endif; ?>

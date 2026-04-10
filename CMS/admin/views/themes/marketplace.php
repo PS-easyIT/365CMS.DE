@@ -27,6 +27,15 @@ $themeMarketplaceConfig = [
     'installFormSelector' => 'form[data-theme-marketplace-install-form]',
 ];
 $escape = static fn (mixed $value): string => htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
+$normalizeSearchName = static function (mixed $value): string {
+    $string = (string) $value;
+
+    if (function_exists('mb_strtolower')) {
+        return (string) mb_strtolower($string, 'UTF-8');
+    }
+
+    return strtolower($string);
+};
 ?>
 
 <div class="container-xl">
@@ -137,7 +146,7 @@ $escape = static fn (mixed $value): string => htmlspecialchars((string) $value, 
                         : (!empty($theme['install_supported']) ? 'installable' : 'manual'));
             ?>
                 <div class="col-sm-6 col-lg-4 theme-marketplace-card"
-                     data-name="<?php echo $escape(mb_strtolower((string) $name)); ?>"
+                     data-name="<?php echo $escape($normalizeSearchName($name)); ?>"
                      data-status="<?php echo $escape($status); ?>">
                     <div class="card">
                         <div class="card-img-top" style="height: 180px; background: var(--tblr-bg-surface-secondary); display: flex; align-items: center; justify-content: center;">

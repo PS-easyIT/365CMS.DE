@@ -284,6 +284,90 @@ Der aktuelle Nachpflege-Stand umfasst damit **465 umgesetzte Batches**, davon we
 |---|---|---|---|
 | `CMS/admin/member-dashboard-page.php`, `CMS/admin/views/member/subnav.php`, `CMS/admin/views/member/general.php`, `DOC/audit/AdminAudit-Member.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Der Member-Cluster nutzt für Übersicht, Subtabs, den Querhinweis zu `Benutzer & Gruppen → Einstellungen` und den Wrapper-Fallback jetzt hostneutrale relative Admin-Pfade statt an `SITE_URL` gebundener Ziele. | Member-Navigation und interne Settings-Wechsel bleiben damit auch unter Proxy-, Alternativhost- und lokaler Dev-Umgebung im aktuellen Admin-Kontext, statt auf eine falsche Origin oder Basis-URL zu springen. Die Aggregate bleiben für diesen kleinen Member-/Navigation-Batch stabil. |
 
+### Delta Folge-Batch 499
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/pages/edit.php`, `CMS/admin/views/pages/list.php`, `CMS/admin/views/posts/edit.php`, `CMS/admin/views/posts/list.php`, `CMS/admin/views/posts/categories.php`, `DOC/audit/AdminAudit-Seiten.md`, `DOC/audit/AdminAudit-Beitraege.md`, `DOC/audit/AssetAudit-EditorJS.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Seiten- und Beiträge-Views nutzen für interne Listen-/Edit-/Kategorie-Wechsel sowie für Editor.js-Preview-, Media- und AI-Fallback-Ziele jetzt hostneutrale relative Admin-/API-Pfade statt an `SITE_URL` gebundener Ziele. | Seitenliste, Beitragseditor, Kategoriesprünge und die Editor.js-Brücke bleiben damit auch unter Proxy-, Alternativhost- und lokaler Dev-Umgebung im aktuellen Admin-Kontext, statt auf eine falsche Origin oder Basis-URL zu springen. Die Aggregate bleiben für diesen kleinen Content-/EditorJS-Batch stabil. |
+
+### Delta Folge-Batch 500
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/user-settings.php`, `CMS/admin/roles.php`, `CMS/admin/views/users/settings.php`, `CMS/admin/views/users/groups.php`, `DOC/audit/AdminAudit-Benutzer.md`, `DOC/audit/AdminAudit-Gruppen.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Benutzer-/RBAC-Settings nutzen für Guard-/PRG-Redirects, den internen Member-Dashboard-Querlink und Gruppen-Mutationsformulare jetzt hostneutrale relative Admin-Pfade bzw. Same-Route-POSTs statt an `SITE_URL` gebundener Ziele. | User-Settings, Rollen-POSTs und Gruppen-Mutationen bleiben damit auch unter Proxy-, Alternativhost- und lokaler Dev-Umgebung im aktuellen Admin-Kontext, statt auf eine falsche Origin oder Basis-URL zu springen. Die Aggregate bleiben für diesen kleinen Benutzer-/RBAC-Navigationsbatch stabil. |
+
+### Delta Folge-Batch 501
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/core/Services/DashboardService.php`, `CMS/admin/views/dashboard/index.php`, `CMS/admin/security-audit.php`, `CMS/admin/views/legal/cookies.php`, `DOC/audit/AdminAudit-Dashboard.md`, `DOC/audit/AdminAudit-Sicherheit.md`, `DOC/audit/AdminAudit-Recht.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Dashboard-Schnellzugriffe, Security-Audit-Redirects und der öffentliche Cookie-Manager-Querlink nutzen jetzt hostneutrale relative Admin-/Public-Pfade statt an `SITE_URL` gebundener Ziele. | Dashboard, Security-Audit und Cookie-Manager bleiben damit auch unter Proxy-, Alternativhost- und lokaler Dev-Umgebung im aktuellen Kontext, statt auf eine falsche Origin oder Basis-URL zu springen. Die Aggregate bleiben für diesen kleinen Navigationsbatch stabil. |
+
+### Delta Folge-Batch 502
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/system/mail-settings.php`, `CMS/admin/views/system/ai-services.php`, `DOC/audit/AdminAudit-System.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | System-Tabs und die interne Mail-Logs-API nutzen jetzt hostneutrale relative Admin-/API-Pfade statt an `SITE_URL` gebundener Basen. | Mail-Settings, AI-Services und der Mail-Logs-Vertrag bleiben damit auch unter Proxy-, Alternativhost- und lokaler Dev-Umgebung im aktuellen Admin-Kontext, statt auf eine falsche Origin oder API-Basis zu springen. Die Aggregate bleiben für diesen kleinen System-/Routing-Batch stabil. |
+
+### Delta Folge-Batch 503
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/hub-sites.php`, `CMS/admin/views/hub/list.php`, `CMS/admin/views/hub/edit.php`, `CMS/admin/views/hub/templates.php`, `CMS/admin/views/hub/template-edit.php`, `CMS/assets/js/admin-hub-sites.js`, `CMS/assets/js/admin-hub-site-edit.js`, `DOC/audit/AdminAudit-INDEX.md`, `DOC/audit/AdminAudit-Hub.md`, `DOC/audit/AssetAudit-INDEX.md`, `DOC/audit/AssetAudit-Hub.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Der Hub-Cluster nutzt für Access-Fallback, interne Admin-Wechsel, Template-/Edit-Roundtrips, Public-Sprünge, Clipboard-Pfade und den Spezial-Button `Speichern & Public Site öffnen` jetzt hostneutrale relative Admin-/Public-Pfade statt an `SITE_URL` gebundener URLs; zusätzlich folgt der Edit-Asset wieder demselben Submit-/Alert-Vertrag wie der restliche Admin. | Hub-Sites, Template-Verwaltung, Public-Öffnen und Slug-Kopie bleiben damit auch unter Proxy-, Alternativhost- und lokaler Dev-Umgebung auf der aktuellen Origin, statt auf eine falsche Basis-URL zu springen. Gleichzeitig serialisiert der Spezial-Save die Rich-Text-/Kachel-Inhalte wieder zuverlässig vor dem POST. Die Aggregate bleiben für diesen kleinen Hub-/Asset-Batch stabil. |
+
+### Delta Folge-Batch 504
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/site-tables.php`, `CMS/admin/views/tables/list.php`, `CMS/admin/views/tables/edit.php`, `CMS/admin/views/tables/settings.php`, `DOC/audit/AdminAudit-INDEX.md`, `DOC/audit/AdminAudit-Tabellen.md`, `DOC/audit/AssetAudit-INDEX.md`, `DOC/audit/AssetAudit-Tabellen.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Der Tabellen-Cluster nutzt für Guard-/PRG-Redirects, interne Listen-/Edit-/Settings-Wechsel, die Such-Basis für das Tabellen-Asset und Formular-Roundtrips jetzt hostneutrale relative Admin-Pfade bzw. Same-Route-POSTs statt an `SITE_URL` gebundener Ziele. | Tabellenliste, Editor, Settings und die Search-Bridge bleiben damit auch unter Proxy-, Alternativhost- und lokaler Dev-Umgebung im aktuellen Admin-Kontext, statt auf eine falsche Origin oder Basis-URL zu springen. Die Aggregate bleiben für diesen kleinen Tabellen-/Routing-Batch stabil. |
+
+### Delta Folge-Batch 505
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/comments/CommentsModule.php`, `CMS/admin/views/comments/list.php`, `CMS/admin/views/plugins/list.php`, `CMS/assets/js/admin-grid.js`, `DOC/audit/AdminAudit-INDEX.md`, `DOC/audit/AdminAudit-Kommentare.md`, `DOC/audit/AdminAudit-Plugins.md`, `DOC/audit/AssetAudit-INDEX.md`, `DOC/audit/AssetAudit-Grid.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Kommentare, Plugin-Liste und das gemeinsame Grid-Asset nutzen für Status-Tabs, den Plugin-Marketplace-Sprung sowie die generische Admin-API-Basis jetzt hostneutrale relative Admin-/API-Pfade statt an `SITE_URL` oder `CMS_SITE_URL` gebundener Ziele. | Kommentar-Moderation, Plugin-Übergang in den Marketplace und Grid.js-basierte Admin-Listen bleiben damit auch unter Proxy-, Alternativhost- und lokaler Dev-Umgebung auf derselben Origin, statt bei internen Admin-Wechseln oder API-Requests auf eine falsche Basis-URL zu kippen. Die Aggregate bleiben für diesen kleinen Kommentar-/Plugin-/Grid-Batch stabil. |
+
+### Delta Folge-Batch 506
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/plugins/PluginMarketplaceModule.php`, `DOC/audit/AdminAudit-Plugins.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Der Plugin-Marketplace-String-Normalizer prüft vor dem Zuschneiden von Registry-/Manifestfeldern jetzt auf `mb_substr()` und fällt sonst robust auf `substr()` zurück, statt die `mbstring`-Extension stillschweigend vorauszusetzen. | Der Marketplace-Katalog und Manifest-Fallbacks bleiben damit auch auf PHP-Setups ohne geladene `mbstring`-Extension lauffähig, statt beim ersten Remote- oder lokalen Registry-Eintrag mit einem Fatal Error abzubrechen. Die Aggregate bleiben für diesen kleinen Robustheits-Batch stabil. |
+
+### Delta Folge-Batch 507
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/themes/ThemeMarketplaceModule.php`, `CMS/admin/views/themes/marketplace.php`, `DOC/audit/AdminAudit-Themes.md`, `DOC/audit/AssetAudit-Marketplace.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Theme-Marketplace-Modul und -View prüfen `mb_substr()` bzw. `mb_strtolower()` jetzt explizit und fallen andernfalls robust auf `substr()`/`strtolower()` zurück, statt die `mbstring`-Extension stillschweigend vorauszusetzen. | Theme-Katalog, Kartenrendering und der Such-/Filter-Vertrag des Marketplace-Assets bleiben damit auch auf PHP-Setups ohne geladene `mbstring`-Extension lauffähig, statt bereits beim Laden oder Filtern des Marketplace mit einem Fatal Error auszusteigen. Die Aggregate bleiben für diesen kleinen Theme-/Marketplace-Batch stabil. |
+
+### Delta Folge-Batch 508
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/assets/js/admin-theme-explorer.js`, `DOC/audit/AdminAudit-Design.md`, `DOC/audit/AssetAudit-Design.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Der Theme-Explorer blockiert Wiederholungs-Submits jetzt nicht nur optisch über den Pending-State, sondern verhindert bei bereits laufendem Submit explizit den nativen Browser-POST via `event.preventDefault()`. | Theme-Explorer-Saves bleiben damit auch bei schnellen Mehrfachklicks oder erneuten Submit-Auslösern fail-closed auf genau einen Request begrenzt, statt trotz laufendem Pending-State noch einen zweiten Save-Roundtrip absetzen zu können. Die Aggregate bleiben für diesen kleinen Design-/Asset-Batch stabil. |
+
+### Delta Folge-Batch 509
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/assets/js/admin-content-editor.js`, `DOC/audit/AssetAudit-EditorJS.md`, `DOC/audit/AdminAudit-Seiten.md`, `DOC/audit/AdminAudit-Beitraege.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Offene AI-Preview-/Diff-Karten werden jetzt invalidiert, sobald sich der EN-Zielzustand im Content-Editor manuell ändert, statt veraltete Vorschläge weiter mit aktivem `Übernehmen`-/`Verwerfen`-Pfad sichtbar zu lassen. | Seiten- und Beitragseditoren können damit nach manuellen EN-Änderungen keinen stale AI-Vorschlag mehr erneut über frisch bearbeitete Inhalte legen. Der gemeinsame DE→EN-/AI-Flow bleibt damit auch in Misch-Workflows aus Vorschau und Handarbeit fail-closed konsistent. Die Aggregate bleiben für diesen kleinen Editor.js-/Content-Batch stabil. |
+
+### Delta Folge-Batch 512
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/themes/ThemeMarketplaceModule.php`, `DOC/audit/AdminAudit-Themes.md`, `DOC/audit/AssetAudit-Marketplace.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Der Theme-Marketplace validiert nach dem generischen Update-Install jetzt themespezifisch, ob im Zielordner wirklich ein aktivierbares Theme liegt, zieht verschachtelte Theme-Wurzeln bei Bedarf nach oben und verwirft unvollständige Paket-Wrapper fail-closed. | Marketplace-Installationen enden damit nicht mehr in einem Schein-Erfolg, bei dem der Button sauber sperrt und der Server Erfolg meldet, unter `CMS/themes/<slug>/` aber nur ein Repo-Wrapper statt eines echten Laufzeit-Themes landet. Die Aggregate bleiben für diesen kleinen Theme-/Marketplace-Batch stabil. |
+
+### Delta Folge-Batch 511
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/core/Services/AI/AiSettingsService.php`, `CMS/admin/modules/system/AiServicesModule.php`, `DOC/audit/AdminAudit-System.md`, `DOC/audit/AssetAudit-EditorJS.md`, `DOC/audit/AdminAudit-Seiten.md`, `DOC/audit/AdminAudit-Beitraege.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Der AI-Translate-EditorJS-Settings-Pfad kanonisiert `supported_block_types` jetzt explizit auf die echten Pipeline-/Runtime-Namen, statt gemischt geschriebene Editor.js-Blocktypen wie `mediaText` per generischer Kleinschreibung in einen stillen Nicht-Match zu verwandeln. | Seiten- und Beitragseditoren behalten damit Warnboxen und Medien-Text-Blöcke nicht nur im Default-Vertrag, sondern auch nach Save-/Load-Roundtrips belastbar im DE→EN-Flow. Die Aggregate bleiben für diesen kleinen System-/EditorJS-Follow-up stabil. |
+
+### Delta Folge-Batch 510
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/core/Services/AI/AiSettingsService.php`, `CMS/admin/modules/system/AiServicesModule.php`, `DOC/audit/AdminAudit-System.md`, `DOC/audit/AssetAudit-EditorJS.md`, `DOC/audit/AdminAudit-Seiten.md`, `DOC/audit/AdminAudit-Beitraege.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Der AI-Translate-EditorJS-Standardvertrag, der Save-Fallback für leere Translation-Settings und die Blocktyp-Kanonisierung folgen jetzt gemeinsam dem realen Pipeline-Satz inklusive `warning` und `mediaText`, statt nach Reset oder generischer Kleinschreibung still auf einen zu kleinen bzw. falsch geschriebenen Blocktyp-Satz zurückzufallen. | Seiten- und Beitragseditoren übersetzen damit Warnboxen und Medien-Text-Blöcke auch nach frischen System-Settings wieder belastbar nach EN, statt im scheinbar erfolgreichen AI-Roundtrip genau diese Editor.js-Segmente unangetastet in der DE-Fassung stehen zu lassen. Die Aggregate bleiben für diesen kleinen System-/EditorJS-Batch stabil. |
+
 ### Delta Folge-Batch 465
 
 | Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |

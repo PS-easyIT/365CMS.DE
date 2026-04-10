@@ -15,6 +15,10 @@ if (!defined('ABSPATH')) {
 $tables = $data['tables'] ?? [];
 $total  = $data['total'] ?? 0;
 $search = $data['search'] ?? '';
+$siteTablesBaseUrl = '/admin/site-tables';
+$siteTablesSettingsUrl = $siteTablesBaseUrl . '?action=settings';
+$siteTablesCreateUrl = $siteTablesBaseUrl . '?action=edit';
+$buildSiteTablesEditUrl = static fn (int $id): string => $siteTablesBaseUrl . '?action=edit&id=' . $id;
 ?>
 
 <div class="page-header d-print-none">
@@ -26,11 +30,11 @@ $search = $data['search'] ?? '';
             </div>
             <div class="col-auto ms-auto">
                 <div class="btn-list">
-                    <a href="<?php echo htmlspecialchars(SITE_URL); ?>/admin/site-tables?action=settings" class="btn btn-outline-secondary">
+                    <a href="<?php echo htmlspecialchars($siteTablesSettingsUrl); ?>" class="btn btn-outline-secondary">
                         <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.757.426 1.757 2.924 0 3.35a1.724 1.724 0 0 0 -1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 0 0 -2.572 1.065c-.426 1.757-2.924 1.757-3.35 0a1.724 1.724 0 0 0 -2.573-1.066c-1.543 .94-3.31-.826-2.37-2.37a1.724 1.724 0 0 0 -1.065-2.572c-1.757-.426-1.757-2.924 0-3.35a1.724 1.724 0 0 0 1.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path d="M12 12m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0"/></svg>
                         Einstellungen
                     </a>
-                    <a href="<?php echo htmlspecialchars(SITE_URL); ?>/admin/site-tables?action=edit" class="btn btn-primary">
+                    <a href="<?php echo htmlspecialchars($siteTablesCreateUrl); ?>" class="btn btn-primary">
                         <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 5l0 14"/><path d="M5 12l14 0"/></svg>
                         Neue Tabelle
                     </a>
@@ -85,7 +89,7 @@ $search = $data['search'] ?? '';
                             </span>
                             <input type="text" class="form-control form-control-sm js-site-tables-search-input" id="searchInput" placeholder="Suchen…"
                                    value="<?php echo htmlspecialchars($search); ?>"
-                                   data-search-url="<?php echo htmlspecialchars(SITE_URL . '/admin/site-tables', ENT_QUOTES); ?>">
+                                   data-search-url="<?php echo htmlspecialchars($siteTablesBaseUrl, ENT_QUOTES); ?>">
                         </div>
                     </div>
                 </div>
@@ -118,7 +122,7 @@ $search = $data['search'] ?? '';
                             <tr>
                                 <td class="text-secondary"><?php echo (int)$t['id']; ?></td>
                                 <td>
-                                    <a href="<?php echo htmlspecialchars(SITE_URL); ?>/admin/site-tables?action=edit&id=<?php echo (int)$t['id']; ?>" class="text-reset font-weight-medium">
+                                    <a href="<?php echo htmlspecialchars($buildSiteTablesEditUrl((int)$t['id'])); ?>" class="text-reset font-weight-medium">
                                         <?php echo htmlspecialchars($t['table_name']); ?>
                                     </a>
                                     <div class="text-secondary small">
@@ -137,7 +141,7 @@ $search = $data['search'] ?? '';
                                             <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/><circle cx="12" cy="5" r="1"/></svg>
                                         </button>
                                         <div class="dropdown-menu dropdown-menu-end">
-                                            <a class="dropdown-item" href="<?php echo htmlspecialchars(SITE_URL); ?>/admin/site-tables?action=edit&id=<?php echo (int)$t['id']; ?>">
+                                            <a class="dropdown-item" href="<?php echo htmlspecialchars($buildSiteTablesEditUrl((int)$t['id'])); ?>">
                                                 Bearbeiten
                                             </a>
                                             <button type="button" class="dropdown-item js-site-table-duplicate" data-table-id="<?php echo (int)$t['id']; ?>">Duplizieren</button>

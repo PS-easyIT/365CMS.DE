@@ -138,7 +138,7 @@ $replacementCategoryDeletePreview = array_slice($replacementCategoryDeletePrevie
                             <div class="d-flex gap-2">
                                 <button type="submit" class="btn btn-primary flex-fill"><?php echo $isEditing ? 'Kategorie aktualisieren' : 'Kategorie speichern'; ?></button>
                                 <?php if ($isEditing): ?>
-                                    <a href="<?php echo htmlspecialchars(SITE_URL . '/admin/post-categories', ENT_QUOTES); ?>" class="btn btn-outline-secondary">Abbrechen</a>
+                                    <a href="/admin/post-categories" class="btn btn-outline-secondary">Abbrechen</a>
                                 <?php endif; ?>
                             </div>
                         </form>
@@ -220,7 +220,7 @@ $replacementCategoryDeletePreview = array_slice($replacementCategoryDeletePrevie
                                         </td>
                                         <td>
                                             <div class="d-flex gap-2">
-                                                <a href="<?php echo htmlspecialchars(SITE_URL . '/admin/post-categories?edit=' . (int) ($category['id'] ?? 0), ENT_QUOTES); ?>" class="btn btn-outline-primary btn-sm">Bearbeiten</a>
+                                                <a href="<?php echo htmlspecialchars('/admin/post-categories?edit=' . (int) ($category['id'] ?? 0), ENT_QUOTES); ?>" class="btn btn-outline-primary btn-sm">Bearbeiten</a>
                                                 <form method="post" class="js-delete-category-form"
                                                       data-category-id="<?php echo (int) ($category['id'] ?? 0); ?>"
                                                       data-category-name="<?php echo htmlspecialchars((string) ($category['name'] ?? ''), ENT_QUOTES); ?>"

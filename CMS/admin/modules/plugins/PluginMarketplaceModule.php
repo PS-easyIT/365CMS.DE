@@ -676,7 +676,13 @@ class PluginMarketplaceModule
     {
         $string = preg_replace('/[\x00-\x1F\x7F]/u', '', trim((string) $value));
 
-        return mb_substr($string ?? '', 0, $length);
+        $normalized = $string ?? '';
+
+        if (function_exists('mb_substr')) {
+            return (string) mb_substr($normalized, 0, $length);
+        }
+
+        return substr($normalized, 0, $length);
     }
 
     private function loadManifestData(array $entry, string $sourceBase): array

@@ -92,10 +92,10 @@ class CommentsModule
     {
         $status = $this->normalizeStatusFilter($status);
         if ($status === 'all') {
-            return SITE_URL . '/admin/comments';
+            return '/admin/comments';
         }
 
-        return SITE_URL . '/admin/comments?status=' . rawurlencode($status);
+        return '/admin/comments?status=' . rawurlencode($status);
     }
 
     /**

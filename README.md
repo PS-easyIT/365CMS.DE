@@ -2,7 +2,7 @@
 
 <div align="center">
 
-[![Version](https://img.shields.io/badge/version-2.9.38-blue.svg)](Changelog.md)
+[![Version](https://img.shields.io/badge/version-2.9.52-blue.svg)](Changelog.md)
 ![Status](https://img.shields.io/badge/status-stable-16a34a)
 ![PHP](https://img.shields.io/badge/PHP-8.4%2B-777BB4?logo=php&logoColor=white)
 ![MySQL](https://img.shields.io/badge/MySQL-5.7%2B-4479A1?logo=mysql&logoColor=white)
@@ -91,13 +91,13 @@ Die Audits wurden mit OWASP-nahen Prüfwerkzeugen & AI Audit Tools von Snyk, Ref
 | **PHP / Best Practices** | **96,22** |
 | **Gesamt** | **96,35** |
 
-### 🆕 Aktuelle 2.9.38-Highlights
+### 🆕 Aktuelle 2.9.52-Highlights
 
-- **Member-Subnav bleibt intern hostneutral:** `CMS/admin/views/member/subnav.php` nutzt für Übersicht, Allgemein, Design, Frontend-Module, Widgets, Profilfelder, Benachrichtigungen und Onboarding jetzt relative Admin-Routen statt an `SITE_URL` gebundener Ziele.
-- **General-Tab verweist intern sauber auf die User-Settings:** Der Hinweis in `CMS/admin/views/member/general.php` zeigt jetzt hostneutral auf `/admin/user-settings`, statt eine feste Host-Basis vorzugeben.
-- **Shared-Member-Wrapper fällt ohne harte Host-Bindung zurück:** `CMS/admin/member-dashboard-page.php` leitet Zugriffsfehler jetzt hostneutral auf `/` zurück, statt über eine an `SITE_URL` gebundene Origin zu springen.
-- **Member-Audit-Strang weiter nachgezogen:** `DOC/audit/AdminAudit-Member.md` und `DOC/audit/BEWERTUNG.md` dokumentieren den Member-Navigationsvertrag jetzt direkt im laufenden Audit.
-- **Release- und Bewertungsdoku mitgezogen:** `README.md`, `Changelog.md`, `CMS/core/Version.php` und `CMS/update.json` sind konsistent auf **`2.9.38`** synchronisiert; die dokumentierten Aggregate bleiben für diesen kleinen Batch stabil bei **95,12 / 92,74 / 96,22 / 96,35**.
+- **Theme-Marketplace validiert installierte Pakete jetzt themespezifisch nach:** `CMS/admin/modules/themes/ThemeMarketplaceModule.php` meldet einen Download nicht mehr blind als Erfolg, wenn im Ziel nur ein Repo-Wrapper oder ein verschachteltes Paket landet, sondern verlangt ein echtes Laufzeit-Theme mit `style.css`, `theme.json` und `functions.php`.
+- **Verschachtelte Theme-Archive werden in den echten Runtime-Ordner hochgezogen:** Wenn ein Marketplace-ZIP das gültige Theme nicht direkt an der Paketwurzel, sondern eine Ebene tiefer enthält, zieht der Runtime-Pfad dieses Theme jetzt nach `CMS/themes/<slug>/` hoch, statt einen unbrauchbaren Wrapper als installiert stehen zu lassen.
+- **Themes- und Marketplace-Audits wurden gemeinsam nachgezogen:** `DOC/audit/AdminAudit-Themes.md`, `DOC/audit/AssetAudit-Marketplace.md` und `DOC/audit/BEWERTUNG.md` dokumentieren den neuen Theme-Marketplace-Installationsvertrag jetzt direkt im laufenden Audit.
+- **Bewertung und Release-Metadaten wurden synchronisiert:** `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md`, `CMS/core/Version.php` und `CMS/update.json` spiegeln diesen Theme-/Marketplace-Batch jetzt konsistent als **`2.9.52`**.
+- **Die Aggregate bleiben stabil:** Auch dieser kleine Theme-/Marketplace-Batch hält die zuletzt dokumentierten Gesamtwerte bei **95,12 / 92,74 / 96,22 / 96,35**.
 
 ### 🧩 Kernfunktionen im Überblick
 

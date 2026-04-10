@@ -14,7 +14,7 @@ use CMS\Auth;
 use CMS\Security;
 
 if (!Auth::instance()->isAdmin()) {
-    header('Location: ' . SITE_URL);
+    header('Location: /');
     exit;
 }
 
@@ -38,7 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $result = ['success' => false, 'error' => 'Unbekannte Aktion.'];
         }
         $_SESSION['admin_alert'] = ['type' => $result['success'] ? 'success' : 'danger', 'message' => $result['message'] ?? $result['error'] ?? ''];
-        header('Location: ' . SITE_URL . '/admin/security-audit');
+        header('Location: /admin/security-audit');
         exit;
     }
     $csrfToken = Security::instance()->generateToken('admin_sec_audit');
