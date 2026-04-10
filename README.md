@@ -2,7 +2,7 @@
 
 <div align="center">
 
-[![Version](https://img.shields.io/badge/version-2.9.19-blue.svg)](Changelog.md)
+[![Version](https://img.shields.io/badge/version-2.9.38-blue.svg)](Changelog.md)
 ![Status](https://img.shields.io/badge/status-stable-16a34a)
 ![PHP](https://img.shields.io/badge/PHP-8.4%2B-777BB4?logo=php&logoColor=white)
 ![MySQL](https://img.shields.io/badge/MySQL-5.7%2B-4479A1?logo=mysql&logoColor=white)
@@ -91,12 +91,13 @@ Die Audits wurden mit OWASP-nahen Prüfwerkzeugen & AI Audit Tools von Snyk, Ref
 | **PHP / Best Practices** | **96,22** |
 | **Gesamt** | **96,35** |
 
-### 🆕 Aktuelle 2.9.19-Highlights
+### 🆕 Aktuelle 2.9.38-Highlights
 
-- **Theme-Explorer-Dateiklicks bleiben hostneutral:** `CMS/admin/views/themes/editor.php` verwendet für den Dateibaum jetzt eine relative Explorer-Basis-Route statt einer an `SITE_URL` gehängten URL.
-- **Kein Origin-Sprung mehr beim Dateiwechsel:** Unter Proxy-, Alternativhost- oder lokaler Dev-Umgebung bleibt das Öffnen von Theme-Dateien im aktuellen Admin-Kontext statt auf eine abweichende Basis-URL zu springen.
-- **Design-Audit direkt ergänzt:** `DOC/audit/AdminAudit-Design.md` dokumentiert den hostneutralen Theme-Explorer-Linkvertrag jetzt explizit.
-- **Release- und Bewertungsdoku mitgezogen:** `README.md`, `Changelog.md`, `CMS/core/Version.php`, `CMS/update.json` und `DOC/audit/BEWERTUNG.md` sind konsistent auf **`2.9.19`** synchronisiert.
+- **Member-Subnav bleibt intern hostneutral:** `CMS/admin/views/member/subnav.php` nutzt für Übersicht, Allgemein, Design, Frontend-Module, Widgets, Profilfelder, Benachrichtigungen und Onboarding jetzt relative Admin-Routen statt an `SITE_URL` gebundener Ziele.
+- **General-Tab verweist intern sauber auf die User-Settings:** Der Hinweis in `CMS/admin/views/member/general.php` zeigt jetzt hostneutral auf `/admin/user-settings`, statt eine feste Host-Basis vorzugeben.
+- **Shared-Member-Wrapper fällt ohne harte Host-Bindung zurück:** `CMS/admin/member-dashboard-page.php` leitet Zugriffsfehler jetzt hostneutral auf `/` zurück, statt über eine an `SITE_URL` gebundene Origin zu springen.
+- **Member-Audit-Strang weiter nachgezogen:** `DOC/audit/AdminAudit-Member.md` und `DOC/audit/BEWERTUNG.md` dokumentieren den Member-Navigationsvertrag jetzt direkt im laufenden Audit.
+- **Release- und Bewertungsdoku mitgezogen:** `README.md`, `Changelog.md`, `CMS/core/Version.php` und `CMS/update.json` sind konsistent auf **`2.9.38`** synchronisiert; die dokumentierten Aggregate bleiben für diesen kleinen Batch stabil bei **95,12 / 92,74 / 96,22 / 96,35**.
 
 ### 🧩 Kernfunktionen im Überblick
 

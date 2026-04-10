@@ -19,9 +19,15 @@ class Auth
 {
     private const DEVICE_COOKIE_NAME = 'cms_device';
     private const DEVICE_COOKIE_TTL = 7200;
+    private const SESSION_LIFETIME_OPTION_ADMIN = 'perf_session_timeout_admin';
+    private const SESSION_LIFETIME_OPTION_MEMBER = 'perf_session_timeout_member';
+    private const DEFAULT_SESSION_LIFETIME_ADMIN = 28_800;
+    private const DEFAULT_SESSION_LIFETIME_MEMBER = 2_592_000;
 
     private static ?self $instance = null;
     private ?object $currentUser = null;
+    /** @var array{admin:int,member:int}|null */
+    private ?array $sessionLifetimes = null;
     
     /**
      * Singleton instance
@@ -43,13 +49,6 @@ class Auth
     }
     
     /**
-     * M-17: Session-Lifetime-Limits.
-     * Admin: 8 Stunden, Member: 30 Tage.
-     */
-    private const SESSION_LIFETIME_ADMIN  = 28_800;   // 8 h
-    private const SESSION_LIFETIME_MEMBER = 2_592_000; // 30 Tage
-
-    /**
      * Check if user is logged in via session
      * M-17: Session-Lifetime nach Rolle prüfen.
      */
@@ -66,10 +65,8 @@ class Auth
         }
 
         // M-17: Maximale Lebensdauer je Rolle
-        $role        = (string)($_SESSION['user_role'] ?? 'member');
-        $maxLifetime = ($role === 'admin')
-            ? self::SESSION_LIFETIME_ADMIN
-            : self::SESSION_LIFETIME_MEMBER;
+        $role = (string)($_SESSION['user_role'] ?? 'member');
+        $maxLifetime = $this->getConfiguredSessionLifetime($role);
 
         $sessionStart = (int)($_SESSION['session_start_time'] ?? 0);
 
@@ -721,9 +718,7 @@ class Auth
         $cookieLifetime = 0;
 
         if ($remember) {
-            $cookieLifetime = $role === 'admin'
-                ? self::SESSION_LIFETIME_ADMIN
-                : self::SESSION_LIFETIME_MEMBER;
+            $cookieLifetime = $this->getConfiguredSessionLifetime($role);
         }
 
         setcookie(session_name(), session_id(), [
@@ -749,5 +744,54 @@ class Auth
 
         Database::instance()->update('users', ['last_login' => date('Y-m-d H:i:s')], ['id' => $user->id]);
         $this->currentUser = $user;
+    }
+
+    private function getConfiguredSessionLifetime(string $role): int
+    {
+        $lifetimes = $this->getConfiguredSessionLifetimes();
+
+        return $role === 'admin'
+            ? $lifetimes['admin']
+            : $lifetimes['member'];
+    }
+
+    /** @return array{admin:int,member:int} */
+    private function getConfiguredSessionLifetimes(): array
+    {
+        if ($this->sessionLifetimes !== null) {
+            return $this->sessionLifetimes;
+        }
+
+        $lifetimes = [
+            'admin' => self::DEFAULT_SESSION_LIFETIME_ADMIN,
+            'member' => self::DEFAULT_SESSION_LIFETIME_MEMBER,
+        ];
+
+        try {
+            $db = Database::instance();
+            $rows = $db->get_results(
+                "SELECT option_name, option_value FROM {$db->getPrefix()}settings WHERE option_name IN (?, ?)",
+                [self::SESSION_LIFETIME_OPTION_ADMIN, self::SESSION_LIFETIME_OPTION_MEMBER]
+            );
+
+            foreach ($rows as $row) {
+                $optionName = (string)($row->option_name ?? '');
+                $optionValue = (int)($row->option_value ?? 0);
+
+                if ($optionName === self::SESSION_LIFETIME_OPTION_ADMIN) {
+                    $lifetimes['admin'] = max(300, min(604800, $optionValue));
+                    continue;
+                }
+
+                if ($optionName === self::SESSION_LIFETIME_OPTION_MEMBER) {
+                    $lifetimes['member'] = max(300, min(31536000, $optionValue));
+                }
+            }
+        } catch (\Throwable) {
+        }
+
+        $this->sessionLifetimes = $lifetimes;
+
+        return $this->sessionLifetimes;
     }
 }

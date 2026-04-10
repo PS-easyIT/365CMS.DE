@@ -59,7 +59,7 @@ $settings = $data['settings'] ?? [];
                                     <div class="alert alert-info mb-0">
                                         <div class="fw-semibold mb-1">Fonts & DSGVO</div>
                                         <div class="text-secondary">
-                                            Schriftarten werden separat im <a href="<?php echo htmlspecialchars(SITE_URL . '/admin/font-manager'); ?>">Font Manager</a> verwaltet. Dort kannst du externe Theme-Fonts scannen und lokal self-hosten.
+                                            Schriftarten werden separat im <a href="<?php echo htmlspecialchars('/admin/font-manager'); ?>">Font Manager</a> verwaltet. Dort kannst du externe Theme-Fonts scannen und lokal self-hosten.
                                         </div>
                                     </div>
                                     <div class="form-text mt-3">
@@ -111,11 +111,11 @@ $settings = $data['settings'] ?? [];
 
                             <div class="mb-3">
                                 <label class="form-label">Browser-Cache TTL (Sekunden)</label>
-                                <input type="number" min="0" class="form-control" name="perf_browser_cache_ttl" value="<?php echo htmlspecialchars((string)($settings['perf_browser_cache_ttl'] ?? '604800')); ?>">
+                                <input type="number" min="0" max="31536000" step="1" class="form-control" name="perf_browser_cache_ttl" value="<?php echo htmlspecialchars((string)($settings['perf_browser_cache_ttl'] ?? '604800')); ?>">
                             </div>
                             <div class="mb-0">
                                 <label class="form-label">HTML-/Seiten-Cache TTL (Sekunden)</label>
-                                <input type="number" min="0" class="form-control" name="perf_html_cache_ttl" value="<?php echo htmlspecialchars((string)($settings['perf_html_cache_ttl'] ?? '300')); ?>">
+                                <input type="number" min="0" max="86400" step="1" class="form-control" name="perf_html_cache_ttl" value="<?php echo htmlspecialchars((string)($settings['perf_html_cache_ttl'] ?? '300')); ?>">
                             </div>
                         </div>
                     </div>
@@ -129,11 +129,11 @@ $settings = $data['settings'] ?? [];
                         <div class="card-body">
                             <div class="mb-3">
                                 <label class="form-label">Admin-Session Timeout (Sekunden)</label>
-                                <input type="number" min="0" class="form-control" name="perf_session_timeout_admin" value="<?php echo htmlspecialchars((string)($settings['perf_session_timeout_admin'] ?? '28800')); ?>">
+                                <input type="number" min="300" max="604800" step="1" class="form-control" name="perf_session_timeout_admin" value="<?php echo htmlspecialchars((string)($settings['perf_session_timeout_admin'] ?? '28800')); ?>">
                             </div>
                             <div class="mb-0">
                                 <label class="form-label">Member-Session Timeout (Sekunden)</label>
-                                <input type="number" min="0" class="form-control" name="perf_session_timeout_member" value="<?php echo htmlspecialchars((string)($settings['perf_session_timeout_member'] ?? '2592000')); ?>">
+                                <input type="number" min="300" max="31536000" step="1" class="form-control" name="perf_session_timeout_member" value="<?php echo htmlspecialchars((string)($settings['perf_session_timeout_member'] ?? '2592000')); ?>">
                             </div>
                         </div>
                     </div>

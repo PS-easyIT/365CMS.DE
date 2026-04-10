@@ -81,7 +81,7 @@ $documentationEntries = is_array($logsData['documentation_entries'] ?? null) ? $
                                         <?php $filename = (string) ($file['filename'] ?? ''); ?>
                                         <tr>
                                             <td>
-                                                <a href="<?php echo htmlspecialchars(SITE_URL . '/admin/cms-logs?log_file=' . rawurlencode($filename), ENT_QUOTES, 'UTF-8'); ?>" class="fw-semibold<?php echo $selectedFile === $filename ? ' text-primary' : ''; ?>"><?php echo htmlspecialchars($filename, ENT_QUOTES, 'UTF-8'); ?></a>
+                                                <a href="<?php echo htmlspecialchars('/admin/cms-logs?log_file=' . rawurlencode($filename), ENT_QUOTES, 'UTF-8'); ?>" class="fw-semibold<?php echo $selectedFile === $filename ? ' text-primary' : ''; ?>"><?php echo htmlspecialchars($filename, ENT_QUOTES, 'UTF-8'); ?></a>
                                             </td>
                                             <td><code><?php echo htmlspecialchars((string)($file['channel'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></code></td>
                                             <td><?php echo htmlspecialchars((string)($file['formatted_size'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>

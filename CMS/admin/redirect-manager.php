@@ -36,7 +36,7 @@ function cms_admin_redirect_manager_can_access(): bool
 
 function cms_admin_redirect_manager_target_url(): string
 {
-    return SITE_URL . '/admin/redirect-manager';
+    return '/admin/redirect-manager';
 }
 
 function cms_admin_redirect_manager_redirect(string $redirectUrl): never

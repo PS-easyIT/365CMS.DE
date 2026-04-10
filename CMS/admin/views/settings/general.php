@@ -15,7 +15,10 @@ $mail       = $data['mail'] ?? [];
 $timezones  = $data['timezones'];
 $languages  = $data['languages'];
 $currentTab = ($currentTab ?? 'general') === 'content' ? 'content' : 'general';
-$settingsBaseUrl = (defined('SITE_URL') ? SITE_URL : '') . '/admin/settings';
+$settingsBaseUrl = '/admin/settings';
+$mailSettingsUrl = '/admin/mail-settings';
+$userSettingsUrl = '/admin/user-settings';
+$mediaApiUrl = '/api/media';
 $hideSettingsTabs = $hideSettingsTabs ?? false;
 $editorMediaToken = $editorMediaToken ?? '';
 $defaultPluginRegistryUrl = 'https://365cms.de/marketplace/plugins/index.json';
@@ -265,12 +268,12 @@ $usesDefaultCoreUpdate = (($s['core_update_url'] ?? $defaultCoreUpdateUrl) === $
 
                         <div class="alert alert-info mb-3" role="alert">
                             Mail-Transport, Azure OAuth2, Microsoft Graph und Versand-Logs werden jetzt zentral unter
-                            <a href="<?php echo htmlspecialchars((defined('SITE_URL') ? SITE_URL : '') . '/admin/mail-settings'); ?>" class="alert-link">System → Mail &amp; Azure OAuth2</a>
+                            <a href="<?php echo htmlspecialchars($mailSettingsUrl); ?>" class="alert-link">System → Mail &amp; Azure OAuth2</a>
                             verwaltet.
                         </div>
 
                         <div class="d-flex flex-wrap gap-2 align-items-center">
-                            <a href="<?php echo htmlspecialchars((defined('SITE_URL') ? SITE_URL : '') . '/admin/mail-settings'); ?>" class="btn btn-outline-primary">Mail-System öffnen</a>
+                            <a href="<?php echo htmlspecialchars($mailSettingsUrl); ?>" class="btn btn-outline-primary">Mail-System öffnen</a>
                             <span class="text-secondary small">Hier siehst du nur den aktiven Laufzeitstatus.</span>
                         </div>
                     </div>
@@ -289,7 +292,7 @@ $usesDefaultCoreUpdate = (($s['core_update_url'] ?? $defaultCoreUpdateUrl) === $
                         <div class="mb-3">
                             <div class="alert alert-info mb-0" role="alert">
                                 Benutzer-, Registrierungs- und Authentifizierungsoptionen werden jetzt unter
-                                <a href="<?php echo htmlspecialchars((defined('SITE_URL') ? SITE_URL : '') . '/admin/user-settings'); ?>" class="alert-link">Benutzer &amp; Gruppen → Einstellungen</a>
+                                <a href="<?php echo htmlspecialchars($userSettingsUrl); ?>" class="alert-link">Benutzer &amp; Gruppen → Einstellungen</a>
                                 verwaltet.
                             </div>
                         </div>
@@ -561,7 +564,7 @@ $usesDefaultCoreUpdate = (($s['core_update_url'] ?? $defaultCoreUpdateUrl) === $
                     <div class="modal-body">
                         <div
                             data-media-picker-modal
-                            data-api-url="<?php echo htmlspecialchars(SITE_URL . '/api/media', ENT_QUOTES); ?>"
+                            data-api-url="<?php echo htmlspecialchars($mediaApiUrl, ENT_QUOTES); ?>"
                             data-csrf-token="<?php echo htmlspecialchars($editorMediaToken, ENT_QUOTES); ?>">
                             <p class="text-secondary small mb-3">Ein Klick übernimmt eine Datei direkt in das aktuell gewählte Feld. Angezeigt werden interne Bilddateien, Logos und Favicons.</p>
                             <div class="row g-2 align-items-center mb-3">

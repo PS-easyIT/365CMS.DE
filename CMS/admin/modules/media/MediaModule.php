@@ -1236,7 +1236,7 @@ class MediaModule
 
     private function buildAdminUrl(array $params = []): string
     {
-        $baseUrl = SITE_URL . '/admin/media';
+        $baseUrl = '/admin/media';
         if ($params === []) {
             return $baseUrl;
         }

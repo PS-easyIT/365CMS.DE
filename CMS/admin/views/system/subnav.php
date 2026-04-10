@@ -14,21 +14,21 @@ $sectionNavGroups = [
     [
         'label' => 'Info',
         'items' => [
-            ['slug' => 'info', 'label' => 'Info CMS', 'url' => SITE_URL . '/admin/info'],
-            ['slug' => 'documentation', 'label' => 'Dokumentation', 'url' => SITE_URL . '/admin/documentation'],
+            ['slug' => 'info', 'label' => 'Info CMS', 'url' => '/admin/info'],
+            ['slug' => 'documentation', 'label' => 'Dokumentation', 'url' => '/admin/documentation'],
         ],
     ],
     [
         'label' => 'Diagnose',
         'items' => [
-            ['slug' => 'diagnose', 'label' => 'Diagnose Datenbank', 'url' => SITE_URL . '/admin/diagnose'],
-            ['slug' => 'cms-logs', 'label' => 'CMS Logs', 'url' => SITE_URL . '/admin/cms-logs'],
-            ['slug' => 'monitor-response-time', 'label' => 'Response-Time', 'url' => SITE_URL . '/admin/monitor-response-time'],
-            ['slug' => 'monitor-cron-status', 'label' => 'Cron-Status', 'url' => SITE_URL . '/admin/monitor-cron-status'],
-            ['slug' => 'monitor-disk-usage', 'label' => 'Disk-Usage', 'url' => SITE_URL . '/admin/monitor-disk-usage'],
-            ['slug' => 'monitor-scheduled-tasks', 'label' => 'Scheduled Tasks', 'url' => SITE_URL . '/admin/monitor-scheduled-tasks'],
-            ['slug' => 'monitor-health-check', 'label' => 'Health-Check', 'url' => SITE_URL . '/admin/monitor-health-check'],
-            ['slug' => 'monitor-email-alerts', 'label' => 'E-Mail-Benachrichtigungen', 'url' => SITE_URL . '/admin/monitor-email-alerts'],
+            ['slug' => 'diagnose', 'label' => 'Diagnose Datenbank', 'url' => '/admin/diagnose'],
+            ['slug' => 'cms-logs', 'label' => 'CMS Logs', 'url' => '/admin/cms-logs'],
+            ['slug' => 'monitor-response-time', 'label' => 'Response-Time', 'url' => '/admin/monitor-response-time'],
+            ['slug' => 'monitor-cron-status', 'label' => 'Cron-Status', 'url' => '/admin/monitor-cron-status'],
+            ['slug' => 'monitor-disk-usage', 'label' => 'Disk-Usage', 'url' => '/admin/monitor-disk-usage'],
+            ['slug' => 'monitor-scheduled-tasks', 'label' => 'Scheduled Tasks', 'url' => '/admin/monitor-scheduled-tasks'],
+            ['slug' => 'monitor-health-check', 'label' => 'Health-Check', 'url' => '/admin/monitor-health-check'],
+            ['slug' => 'monitor-email-alerts', 'label' => 'E-Mail-Benachrichtigungen', 'url' => '/admin/monitor-email-alerts'],
         ],
     ],
 ];

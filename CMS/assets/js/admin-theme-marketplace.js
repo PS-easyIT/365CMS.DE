@@ -69,8 +69,8 @@
         }
 
         forms.forEach(function (form) {
-            form.addEventListener('submit', function () {
-                if (form.dataset.confirmAccepted !== '1') {
+            form.addEventListener('submit', function (event) {
+                if (event.defaultPrevented || form.dataset.themeMarketplaceSubmitting === '1') {
                     return;
                 }
 
@@ -79,8 +79,11 @@
                     return;
                 }
 
+                form.dataset.themeMarketplaceSubmitting = '1';
                 button.dataset.themeMarketplaceSubmitting = '1';
+                button.dataset.originalHtml = button.innerHTML;
                 button.disabled = true;
+                button.setAttribute('aria-disabled', 'true');
                 button.innerHTML = button.dataset.submittingText || 'Installiere…';
             });
         });

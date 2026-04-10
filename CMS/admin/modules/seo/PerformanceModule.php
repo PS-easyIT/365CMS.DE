@@ -730,7 +730,13 @@ final class PerformanceModule
         $sessionDir = ABSPATH . 'sessions/';
         $fileCount = 0;
         if (is_dir($sessionDir)) {
-            $threshold = time() - 86400;
+            $settings = $this->getSettings();
+            $sessionLifetime = max(
+                300,
+                (int)($settings['perf_session_timeout_admin'] ?? self::DEFAULT_SETTINGS['perf_session_timeout_admin']),
+                (int)($settings['perf_session_timeout_member'] ?? self::DEFAULT_SETTINGS['perf_session_timeout_member'])
+            );
+            $threshold = time() - $sessionLifetime;
             foreach (glob($sessionDir . '*') ?: [] as $file) {
                 if (is_link($file)) {
                     continue;
@@ -748,7 +754,7 @@ final class PerformanceModule
             'Abgelaufene Sessions bereinigt',
             'session',
             null,
-            ['db_deleted' => $dbDeleted, 'file_deleted' => $fileCount],
+            ['db_deleted' => $dbDeleted, 'file_deleted' => $fileCount, 'file_lifetime_seconds' => $sessionLifetime ?? null],
             'warning'
         );
 

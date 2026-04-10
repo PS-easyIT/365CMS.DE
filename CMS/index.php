@@ -74,6 +74,66 @@ $resolveSessionCookieDomain = static function (): string {
 
 $sessionCookieDomain = $resolveSessionCookieDomain();
 
+$earlyAppConfig = __DIR__ . '/config/app.php';
+if (file_exists($earlyAppConfig)) {
+    require_once $earlyAppConfig;
+}
+
+$resolveConfiguredSessionGcLifetime = static function (): int {
+    $adminLifetime = 28_800;
+    $memberLifetime = 2_592_000;
+
+    if (!defined('DB_HOST') || !defined('DB_NAME') || !defined('DB_USER') || !defined('DB_PASS') || !defined('DB_CHARSET') || !defined('DB_PREFIX')) {
+        return max($adminLifetime, $memberLifetime);
+    }
+
+    if (str_contains((string) DB_USER, 'YOUR_') || str_contains((string) DB_NAME, 'YOUR_')) {
+        return max($adminLifetime, $memberLifetime);
+    }
+
+    $prefix = (string) DB_PREFIX;
+    if (!preg_match('/^[a-zA-Z0-9_]+$/', $prefix)) {
+        return max($adminLifetime, $memberLifetime);
+    }
+
+    try {
+        $pdo = new \PDO(
+            sprintf('mysql:host=%s;dbname=%s;charset=%s', DB_HOST, DB_NAME, DB_CHARSET),
+            DB_USER,
+            DB_PASS,
+            [
+                \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
+                \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC,
+                \PDO::ATTR_EMULATE_PREPARES => false,
+            ]
+        );
+
+        $table = $prefix . 'settings';
+        $stmt = $pdo->prepare("SELECT option_name, option_value FROM `{$table}` WHERE option_name IN (?, ?)");
+        $stmt->execute(['perf_session_timeout_admin', 'perf_session_timeout_member']);
+
+        foreach ($stmt->fetchAll() as $row) {
+            $optionName = (string) ($row['option_name'] ?? '');
+            $optionValue = (int) ($row['option_value'] ?? 0);
+
+            if ($optionName === 'perf_session_timeout_admin') {
+                $adminLifetime = max(300, min(604800, $optionValue));
+                continue;
+            }
+
+            if ($optionName === 'perf_session_timeout_member') {
+                $memberLifetime = max(300, min(31536000, $optionValue));
+            }
+        }
+    } catch (\Throwable) {
+        return max($adminLifetime, $memberLifetime);
+    }
+
+    return max(300, $adminLifetime, $memberLifetime);
+};
+
+$sessionGcMaxLifetime = $resolveConfiguredSessionGcLifetime();
+
 // Start session with secure settings
 // Alle ini_set MÜSSEN vor session_start() gesetzt werden (Security::startSession() prüft nur ob Session noch nicht gestartet ist)
 ini_set('session.cookie_httponly', '1');
@@ -81,6 +141,7 @@ ini_set('session.cookie_secure', $isHttpsRequest() ? '1' : '0');
 ini_set('session.use_only_cookies', '1');
 ini_set('session.use_strict_mode', '1');  // Verhindert Session-Fixation (H-03-Ergänzung)
 ini_set('session.cookie_samesite', 'Strict');  // CSRF-Zusatzschutz
+ini_set('session.gc_maxlifetime', (string) $sessionGcMaxLifetime);
 if ($sessionCookieDomain !== '') {
     ini_set('session.cookie_domain', $sessionCookieDomain);
 }

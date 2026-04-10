@@ -109,7 +109,7 @@ $activePage      = $memberDashboardPageConfig['active_page'];
 $pageAssets      = $memberDashboardPageConfig['page_assets'];
 
 if (!cms_admin_member_dashboard_can_access_section($memberSection)) {
-    header('Location: ' . SITE_URL);
+    header('Location: /');
     exit;
 }
 

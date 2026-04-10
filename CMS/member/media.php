@@ -41,7 +41,7 @@ include __DIR__ . '/partials/header.php';
             <div class="card-header"><h3 class="card-title">Dateien hochladen</h3></div>
             <div class="card-body">
                 <?php if (!empty($mediaSettings['member_uploads_enabled'])): ?>
-                    <form method="post" action="" class="vstack gap-3" data-member-upload-form data-upload-endpoint="<?= htmlspecialchars(SITE_URL) ?>/api/upload" data-upload-token="<?= htmlspecialchars($controller->csrfToken('media_action'), ENT_QUOTES) ?>" data-upload-path="<?= htmlspecialchars($memberPath, ENT_QUOTES) ?>">
+                    <form method="post" action="" class="vstack gap-3" data-member-upload-form data-upload-endpoint="<?= htmlspecialchars('/api/upload', ENT_QUOTES) ?>" data-upload-token="<?= htmlspecialchars($controller->csrfToken('media_action'), ENT_QUOTES) ?>" data-upload-path="<?= htmlspecialchars($memberPath, ENT_QUOTES) ?>">
                         <input type="file" class="form-control" name="member_upload_files[]" multiple>
                         <div class="text-secondary small" data-member-upload-status hidden></div>
                         <div class="vstack gap-2" data-member-upload-results hidden></div>
@@ -82,7 +82,7 @@ include __DIR__ . '/partials/header.php';
                             <?php if ($isLast): ?>
                                 <li class="breadcrumb-item active"><?= htmlspecialchars((string)($breadcrumb['label'] ?? '')) ?></li>
                             <?php else: ?>
-                                <li class="breadcrumb-item"><a href="<?= htmlspecialchars(SITE_URL . (string)($breadcrumb['url'] ?? '/member/media')) ?>"><?= htmlspecialchars((string)($breadcrumb['label'] ?? '')) ?></a></li>
+                                <li class="breadcrumb-item"><a href="<?= htmlspecialchars((string)($breadcrumb['url'] ?? '/member/media'), ENT_QUOTES) ?>"><?= htmlspecialchars((string)($breadcrumb['label'] ?? '')) ?></a></li>
                             <?php endif; ?>
                         <?php endforeach; ?>
                     </ol>
@@ -97,7 +97,7 @@ include __DIR__ . '/partials/header.php';
                         <div class="list-group-item d-flex justify-content-between align-items-center">
                             <div>
                                 <div class="fw-medium">
-                                    <a href="<?= htmlspecialchars(SITE_URL . '/member/media?path=' . rawurlencode($folderPath), ENT_QUOTES) ?>" class="text-reset text-decoration-none">📁 <?= htmlspecialchars((string)($folder['name'] ?? 'Ordner')) ?></a>
+                                    <a href="<?= htmlspecialchars('/member/media?path=' . rawurlencode($folderPath), ENT_QUOTES) ?>" class="text-reset text-decoration-none">📁 <?= htmlspecialchars((string)($folder['name'] ?? 'Ordner')) ?></a>
                                 </div>
                                 <div class="text-secondary small"><?= htmlspecialchars($folderPath) ?></div>
                             </div>

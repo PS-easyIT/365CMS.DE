@@ -10,20 +10,20 @@ if (!defined('CMS_ADMIN_SEO_VIEW')) {
 }
 
 $seoActionToken = (string) ($csrfToken ?? '');
-$seoActionEndpoint = SITE_URL . '/admin/seo-sitemap';
+$seoActionEndpoint = '/admin/seo-sitemap';
 $seoReturnTo = (string) ($_SERVER['REQUEST_URI'] ?? '/admin/seo-sitemap');
 
 $seoSubnavItems = [
-    ['slug' => 'seo-dashboard', 'label' => 'Dashboard', 'url' => SITE_URL . '/admin/seo-dashboard'],
-    ['slug' => 'analytics', 'label' => 'Analytics', 'url' => SITE_URL . '/admin/analytics'],
-    ['slug' => 'seo-audit', 'label' => 'Audit', 'url' => SITE_URL . '/admin/seo-audit'],
-    ['slug' => 'seo-meta', 'label' => 'Meta-Daten', 'url' => SITE_URL . '/admin/seo-meta'],
-    ['slug' => 'seo-social', 'label' => 'Social', 'url' => SITE_URL . '/admin/seo-social'],
-    ['slug' => 'seo-schema', 'label' => 'Strukturierte Daten', 'url' => SITE_URL . '/admin/seo-schema'],
-    ['slug' => 'seo-sitemap', 'label' => 'Sitemap', 'url' => SITE_URL . '/admin/seo-sitemap'],
-    ['slug' => 'seo-technical', 'label' => 'Technisches SEO', 'url' => SITE_URL . '/admin/seo-technical'],
-    ['slug' => 'redirect-manager', 'label' => 'Weiterleitungen', 'url' => SITE_URL . '/admin/redirect-manager'],
-    ['slug' => 'not-found-monitor', 'label' => '404-Monitor', 'url' => SITE_URL . '/admin/not-found-monitor'],
+    ['slug' => 'seo-dashboard', 'label' => 'Dashboard', 'url' => '/admin/seo-dashboard'],
+    ['slug' => 'analytics', 'label' => 'Analytics', 'url' => '/admin/analytics'],
+    ['slug' => 'seo-audit', 'label' => 'Audit', 'url' => '/admin/seo-audit'],
+    ['slug' => 'seo-meta', 'label' => 'Meta-Daten', 'url' => '/admin/seo-meta'],
+    ['slug' => 'seo-social', 'label' => 'Social', 'url' => '/admin/seo-social'],
+    ['slug' => 'seo-schema', 'label' => 'Strukturierte Daten', 'url' => '/admin/seo-schema'],
+    ['slug' => 'seo-sitemap', 'label' => 'Sitemap', 'url' => '/admin/seo-sitemap'],
+    ['slug' => 'seo-technical', 'label' => 'Technisches SEO', 'url' => '/admin/seo-technical'],
+    ['slug' => 'redirect-manager', 'label' => 'Weiterleitungen', 'url' => '/admin/redirect-manager'],
+    ['slug' => 'not-found-monitor', 'label' => '404-Monitor', 'url' => '/admin/not-found-monitor'],
 ];
 
 $sectionNavGroups = [[

@@ -40,7 +40,7 @@ function cms_admin_documentation_normalize_selected_doc($value): ?string
 
 function cms_admin_documentation_redirect_url(?string $selectedDoc): string
 {
-    $redirect = SITE_URL . '/admin/documentation';
+    $redirect = '/admin/documentation';
     if ($selectedDoc !== null) {
         $redirect .= '?doc=' . rawurlencode($selectedDoc);
     }

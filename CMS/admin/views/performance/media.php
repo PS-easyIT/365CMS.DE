@@ -36,7 +36,7 @@ $formatBytes = static function (int $bytes): string {
                 <h3 class="card-title">WebP-Massenkonvertierung</h3>
                 <div class="text-secondary small">Konvertiert alle geeigneten Bilder, zeigt die Ersparnis und ersetzt bekannte Referenzen automatisch.</div>
             </div>
-            <form method="post" class="m-0">
+            <form method="post" class="m-0" data-confirm-title="WebP-Massenkonvertierung starten" data-confirm-message="Wirklich alle geeigneten Bilder in WebP konvertieren? Erfolgreich umgewandelte Originaldateien werden ersetzt und bekannte Referenzen automatisch angepasst." data-confirm-text="Konvertierung starten" data-confirm-class="btn-success" data-confirm-status-class="bg-success">
                 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>">
                 <input type="hidden" name="action" value="convert_media_to_webp">
                 <button type="submit" class="btn btn-success" <?php echo empty($conversion['supported']) || empty($conversion['convertible_files']) ? 'disabled' : ''; ?>>Alle Bilder zu WebP konvertieren</button>

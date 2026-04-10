@@ -80,7 +80,7 @@ function cms_admin_media_can_access(): bool
 }
 
 if (!cms_admin_media_can_access()) {
-    header('Location: ' . SITE_URL);
+    header('Location: /');
     exit;
 }
 
@@ -602,7 +602,7 @@ function cms_admin_media_flash(array $payload): void
 
 function cms_admin_media_redirect(string $routePath): never
 {
-    header('Location: ' . SITE_URL . $routePath);
+    header('Location: ' . $routePath);
     exit;
 }
 

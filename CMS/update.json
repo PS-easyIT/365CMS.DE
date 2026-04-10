@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.9.19",
+  "version": "2.9.38",
   "min_php": "8.4",
-  "released": "2026-04-08",
+  "released": "2026-04-10",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 2.9.19: 365CMS navigiert im Theme-Explorer Dateiklicks jetzt hostneutral über eine relative Admin-Basis-Route statt über an `SITE_URL` gehängte Explorer-Links, damit Dateiwechsel unter Proxy-, Alternativhost- und lokaler Dev-Umgebung nicht auf eine falsche Origin springen, und dokumentiert den Fund im Design- und Bewertungs-Audit sowie in der Release-Doku.",
+  "notes": "Release-Stand 2.9.38: 365CMS stellt Member-Dashboard-Subnav, General-Tab-Querhinweis und den Wrapper-Fallback auf hostneutrale relative Admin-Pfade um, sodass interne Member-Wechsel auch unter Proxy-, Alternativhost- und lokalen Dev-URLs im aktuellen Admin-Kontext bleiben.",
   "critical": false
 }

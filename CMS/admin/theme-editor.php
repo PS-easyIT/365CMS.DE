@@ -41,8 +41,8 @@ function cms_admin_theme_editor_reason_hint(string $reasonCode): string
 function cms_admin_theme_editor_fallback_links(): array
 {
     return [
-        'themes' => SITE_URL . '/admin/themes',
-        'explorer' => SITE_URL . '/admin/theme-explorer',
+        'themes' => '/admin/themes',
+        'explorer' => '/admin/theme-explorer',
     ];
 }
 

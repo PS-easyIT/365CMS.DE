@@ -170,6 +170,120 @@ Der aktuelle Nachpflege-Stand umfasst damit **465 umgesetzte Batches**, davon we
 |---|---|---|---|
 | `CMS/admin/views/themes/editor.php`, `DOC/audit/AdminAudit-Design.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Der Theme-Explorer nutzt für Dateibaum-Links jetzt eine hostneutrale relative Admin-Basis, statt Dateiklicks über eine an `SITE_URL` gehängte Explorer-URL zu routen. | Dateiwechsel im Theme-Explorer bleiben damit auch unter Proxy-, Alternativhost- und lokaler Dev-Umgebung im aktiven Admin-Kontext, statt auf eine abweichende Origin zu springen. Die Aggregate bleiben für diesen kleinen Design-/Explorer-Batch stabil. |
 
+### Delta Folge-Batch 480
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/themes/list.php`, `DOC/audit/AdminAudit-Themes.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Die Theme-Verwaltung nutzt für die Buttons `Editor` und `Explorer` des aktiven Themes jetzt hostneutrale relative Admin-Routen statt an `SITE_URL` gebundener Links. | Der Sprung aus der Theme-Liste in Editor und Explorer bleibt damit auch unter Proxy-, Alternativhost- und lokaler Dev-Umgebung im aktuellen Admin-Kontext, statt auf eine falsche Origin zu kippen. Die Aggregate bleiben für diesen kleinen Themes-/Navigation-Batch stabil. |
+
+### Delta Folge-Batch 481
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/theme-editor.php`, `CMS/admin/views/themes/customizer-missing.php`, `DOC/audit/AdminAudit-Design.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Der sichere Theme-Editor-Fallback nutzt für Theme-Verwaltung und Theme-Explorer jetzt hostneutrale relative Admin-Routen statt eines erneuten `SITE_URL`-Hardcodings im Schutzpfad. | Auch wenn ein Theme keinen sicheren Customizer bereitstellt, bleiben die Ausweichlinks im aktuellen Admin-Kontext und springen unter Proxy-, Alternativhost- oder lokaler Dev-Umgebung nicht mehr auf eine falsche Origin. Die Aggregate bleiben für diesen kleinen Design-/Fallback-Batch stabil. |
+
+### Delta Folge-Batch 482
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/assets/js/admin-theme-marketplace.js`, `CMS/assets/js/admin-plugin-marketplace.js`, `DOC/audit/AssetAudit-INDEX.md`, `DOC/audit/AssetAudit-Marketplace.md`, `DOC/audit/AdminAudit-Themes.md`, `DOC/audit/AdminAudit-Plugins.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Theme- und Plugin-Marketplace erkennen bestätigte Install-Submits jetzt über den real freigegebenen Browser-Submit statt über das vom globalen Confirm-Handler bereits zurückgesetzte `confirmAccepted`-Flag; parallel zieht das Asset-Audit dafür einen eigenen Marketplace-Strang nach. | Bestätigte Installationen sperren ihre Buttons im Theme- und Plugin-Marketplace wieder zuverlässig gegen Doppel-Submits und zeigen den Pending-Zustand belastbar an, statt nach dem Confirm optisch in einen erneuten Klickpfad zurückzufallen. Die Aggregate bleiben für diesen kleinen Marketplace-/Asset-Batch stabil. |
+
+### Delta Folge-Batch 483
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/plugins/marketplace.php`, `DOC/audit/AdminAudit-Plugins.md`, `DOC/audit/AssetAudit-Marketplace.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Der Plugin-Marketplace nutzt für den Rücksprung `Installierte Plugins` jetzt eine hostneutrale relative Admin-Route statt eines an `SITE_URL` gebundenen Links. | Der Wechsel aus dem Plugin-Marketplace zurück in die Plugin-Liste bleibt damit auch unter Proxy-, Alternativhost- und lokaler Dev-Umgebung im aktuellen Admin-Kontext, statt auf eine falsche Origin zu springen. Die Aggregate bleiben für diesen kleinen Plugins-/Marketplace-Batch stabil. |
+
+### Delta Folge-Batch 484
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/assets/js/admin-seo-redirects.js`, `DOC/audit/AssetAudit-INDEX.md`, `DOC/audit/AssetAudit-SEO.md`, `DOC/audit/AdminAudit-SEO.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Der SEO-Redirect-/404-Client entfernt seinen lokalen Confirm-Submit-Doppelpfad und nutzt für `form[data-confirm-message]` wieder ausschließlich den gemeinsamen Confirm-Vertrag aus `admin.js`; parallel zieht das Asset-Audit dafür einen eigenen SEO-Strang nach. | Redirect-Löschungen und 404-Cleanup-Formulare geraten damit nicht länger in doppelte Confirm-/Re-Submit-Pfade zwischen Shared- und SEO-Asset, sondern laufen wieder über genau einen gemeinsamen Admin-Confirm-Flow. Die Aggregate bleiben für diesen kleinen SEO-/Asset-Batch stabil. |
+
+### Delta Folge-Batch 485
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/redirect-manager.php`, `CMS/admin/not-found-monitor.php`, `CMS/admin/views/seo/redirects.php`, `CMS/admin/views/seo/not-found.php`, `CMS/admin/views/seo/subnav.php`, `DOC/audit/AssetAudit-SEO.md`, `DOC/audit/AdminAudit-SEO.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Redirect-Manager und 404-Monitor hängen ihre internen SEO-Admin-Wechsel, Subnav-Ziele, Quick-Actions und PRG-Rücksprünge nicht länger an `SITE_URL`; parallel liegen die globalen Confirm-Metadaten in `redirects.php` wieder auf den echten Löschpfaden statt versehentlich auf Quick-Save oder Toggle. | SEO-Navigation und Save-/Delete-Roundtrips bleiben damit auch unter Proxy-, Alternativhost- und lokaler Dev-Umgebung sauber im aktuellen Admin-Kontext, während Redirect-Erstellung nicht mehr fälschlich einen Löschdialog zeigt und destruktive Löschpfade wieder konsistent bestätigt werden. Die Aggregate bleiben für diesen kleinen SEO-/Admin-Batch stabil. |
+
+### Delta Folge-Batch 486
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/seo/dashboard.php`, `DOC/audit/AdminAudit-SEO.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Das SEO-Dashboard nutzt für seine Schnellzugriffe auf Audit-, Meta-, Social-, Schema-, Sitemap- und Technical-SEO jetzt hostneutrale relative Admin-Routen statt an `SITE_URL` gebundener Links. | Die zentralen SEO-Dashboard-Wechsel bleiben damit auch unter Proxy-, Alternativhost- und lokaler Dev-Umgebung im aktuellen Admin-Kontext, statt ausgerechnet vom Übersichts-Einstieg aus auf eine falsche Origin zu kippen. Die Aggregate bleiben für diesen kleinen SEO-Dashboard-Batch stabil. |
+
+### Delta Folge-Batch 487
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/seo/performance.php`, `CMS/admin/views/performance/subnav.php`, `DOC/audit/AdminAudit-Performance.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Performance-Übersicht und Performance-Subnav nutzen für Cache-, Medien-, Datenbank-, Settings- und Session-Unterbereiche jetzt hostneutrale relative Admin-Routen statt an `SITE_URL` gebundener Links. | Der Wechsel innerhalb des Performance-Clusters bleibt damit auch unter Proxy-, Alternativhost- und lokaler Dev-Umgebung sauber im aktuellen Admin-Kontext, statt von Übersicht oder Subnav aus auf eine falsche Origin zu springen. Die Aggregate bleiben für diesen kleinen Performance-Navigations-Batch stabil. |
+
+### Delta Folge-Batch 488
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/performance/settings.php`, `DOC/audit/AdminAudit-Performance.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Der interne Querbezug vom Performance-Settings-Hinweis zum `Font Manager` nutzt jetzt eine hostneutrale relative Admin-Route statt eines an `SITE_URL` gebundenen Links. | Der Wechsel aus den Performance-Einstellungen in den Font-Manager bleibt damit auch unter Proxy-, Alternativhost- und lokaler Dev-Umgebung im aktuellen Admin-Kontext, statt über einen kleinen Hilfelink auf eine falsche Origin zu springen. Die Aggregate bleiben für diesen kleinen Performance-/Design-Querbezug stabil. |
+
+### Delta Folge-Batch 489
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/performance/cache.php`, `CMS/admin/views/performance/database.php`, `CMS/admin/views/performance/media.php`, `CMS/admin/views/performance/sessions.php`, `DOC/audit/AdminAudit-Performance.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Destruktive Wartungsaktionen im Performance-Cluster hängen jetzt wieder am gemeinsamen Confirm-Vertrag aus `CMS/assets/js/admin.js`, statt Cache-Leeren, OPcache-Reset, Tabellenwartung, WebP-Massenkonvertierung und Session-Bereinigung ohne vorgeschaltete Bestätigung direkt auszuführen. | Der Performance-Admin reduziert damit einen echten Shared-Contract-Bruch zwischen vorhandener Confirm-Infrastruktur und mutierenden Wartungsaktionen: schwere Cache-, DB-, Medien- und Session-Eingriffe laufen nicht mehr mit einem einzelnen Fehlklick sofort auf dem Live-Bestand an. Die Aggregate bleiben für diesen kleinen Performance-/Confirm-Batch stabil. |
+
+### Delta Folge-Batch 490
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/performance/settings.php`, `CMS/admin/views/performance/sessions.php`, `DOC/audit/AdminAudit-Performance.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Die Performance-Formulare spiegeln die serverseitigen Min-/Max-Grenzen für Browser-/HTML-TTL und Session-Timeouts jetzt direkt im UI, statt Werte unterhalb oder oberhalb der von `PerformanceModule::saveSettings()` erzwungenen Bereiche zuzulassen. | Performance-Einstellungen laufen damit nicht mehr still zwischen Browser-Formular und Backend-Validierung auseinander: Redakteure sehen die echten Schutzgrenzen sofort im Admin, statt erst nach dem Speichern implizit auf einen anderen Wert geklemmt zu werden. Die Aggregate bleiben für diesen kleinen Performance-Settings-Batch stabil. |
+
+### Delta Folge-Batch 491
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/seo/PerformanceModule.php`, `DOC/audit/AdminAudit-Performance.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Die Dateisession-Bereinigung im Performance-Modul richtet sich jetzt nach den konfigurierten Admin-/Member-Timeouts statt nach einem starren 24h-Schwellenwert. | Session-Cleanup und Session-Einstellungen laufen damit nicht mehr gegeneinander: aktive Dateisessions werden bei längeren konfigurierten Laufzeiten nicht mehr zu früh gelöscht, nur weil der Wartungspfad noch mit einem festen Tageswert arbeitet. Die Aggregate bleiben für diesen kleinen Performance-/Session-Batch stabil. |
+
+### Delta Folge-Batch 492
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/core/Auth.php`, `CMS/index.php`, `DOC/audit/AdminAudit-Performance.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Die echten Laufzeit-Sessionpfade hängen Admin-/Member-Lifetimes jetzt an die konfigurierten Performance-Timeouts statt an fest eingebaute 8h/30-Tage-Werte und einen serverseitigen PHP-GC-Default. | Session-Settings sind damit nicht länger bloß Admin-Dekoration plus Cleanup-Hinweis: Login-Prüfung, Remember-Me-Cookie und `session.gc_maxlifetime` folgen jetzt demselben Performance-Vertrag, sodass konfigurierte Laufzeiten auch im realen Auth-Betrieb wirken. Die Aggregate bleiben für diesen kleinen Performance-/Runtime-Batch stabil. |
+
+### Delta Folge-Batch 493
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/settings/SettingsModule.php`, `CMS/install/InstallerService.php`, `CMS/config/app.php`, `DOC/audit/AdminAudit-System.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | System-Settings, Installer und Config-Template schreiben den veralteten Schattenwert `SESSIONS_LIFETIME` nicht länger in neue oder aktualisierte `config/app.php`-Dateien, nachdem die echte Session-Laufzeit bereits auf die Performance-Timeouts umgestellt wurde. | 365CMS pflegt damit nicht länger zwei konkurrierende Session-Wahrheiten, von denen eine wirkungslos ist: neue Konfigurationen spiegeln nur noch die tatsächlich genutzten Auth-/Performance-Verträge, statt Admins bei Session-Themen durch tote Altkonstanten fehlzuleiten. Die Aggregate bleiben für diesen kleinen System-/Konfig-Batch stabil. |
+
+### Delta Folge-Batch 494
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/settings/general.php`, `DOC/audit/AdminAudit-System.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Die allgemeinen System-Einstellungen nutzen für interne Querlinks zu Mail-/Benutzer-Settings sowie für den Media-Picker-Endpunkt jetzt hostneutrale relative `/admin/...`- und `/api/...`-Pfade statt an `SITE_URL` gebundener Ziele. | Navigation und Media-Picker bleiben damit auch unter Proxy-, Alternativhost- und lokaler Dev-Umgebung im aktuellen Admin-Kontext, statt ausgerechnet im zentralen Settings-Screen auf eine abweichende Origin oder Basis-URL zu kippen. Die Aggregate bleiben für diesen kleinen System-/Navigation-Batch stabil. |
+
+### Delta Folge-Batch 495
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/partials/redirect-alias-shell.php`, `CMS/admin/support.php`, `CMS/admin/system-info.php`, `CMS/admin/documentation.php`, `CMS/admin/modules/system/DocumentationModule.php`, `CMS/admin/views/system/documentation.php`, `CMS/admin/pages.php`, `CMS/admin/posts.php`, `DOC/audit/AdminAudit-Info.md`, `DOC/audit/AssetAudit-INDEX.md`, `DOC/audit/AssetAudit-EditorJS.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Der Info-/Dokublock und die Editor.js-AI-Bridge nutzen ihre internen Alias-, Dokument-, PRG-, Logs- und Übersetzungsziele jetzt hostneutral über relative Admin-Pfade statt an `SITE_URL` gebundener Redirects oder Endpoint-URLs. | Support-/Info-Aliasrouten, Dokumentwechsel, CMS-Logs-Sprünge und der geschützte DE→EN-/AI-Übersetzungsflow bleiben damit auch unter Proxy-, Alternativhost- und lokaler Dev-Umgebung im aktuellen Admin-Kontext, statt auf eine falsche Origin oder Basis-URL zu kippen. Die Aggregate bleiben für diesen kleinen Info-/Asset-Batch stabil. |
+
+### Delta Folge-Batch 496
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/system/subnav.php`, `CMS/admin/views/system/diagnose.php`, `CMS/admin/views/system/cms-logs.php`, `DOC/audit/AdminAudit-Diagnose.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Die gemeinsame System-Subnav sowie die internen Diagnose-/Log-Sprünge nutzen für Info, Dokumentation, Diagnose, Monitoring und Log-Dateiauswahl jetzt hostneutrale relative Admin-Routen statt an `SITE_URL` gebundener Links. | System-/Diagnose-Navigation und die Auswahl einzelner CMS-Logdateien bleiben damit auch unter Proxy-, Alternativhost- und lokaler Dev-Umgebung im aktuellen Admin-Kontext, statt aus dem Monitoring-Cluster auf eine falsche Origin zu springen. Die Aggregate bleiben für diesen kleinen Diagnose-/Navigation-Batch stabil. |
+
+### Delta Folge-Batch 497
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/media.php`, `CMS/admin/modules/media/MediaModule.php`, `CMS/admin/views/media/library.php`, `CMS/member/media.php`, `DOC/audit/AdminAudit-Medien.md`, `DOC/audit/AssetAudit-INDEX.md`, `DOC/audit/AssetAudit-Medien.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Der Medien-Cluster nutzt für interne Bibliotheks-Redirects, Browse-Links sowie für die nativen Upload-Endpunkte in Admin und Member jetzt hostneutrale relative `/admin/media`, `/member/media` und `/api/upload`-Pfade statt an `SITE_URL` gebundener Ziele. | Mediennavigation, Upload-Queue und Member-Dateiwechsel bleiben damit auch unter Proxy-, Alternativhost- und lokaler Dev-Umgebung im aktuellen Kontext, statt auf eine falsche Origin oder Basis-URL zu springen. Die Aggregate bleiben für diesen kleinen Medien-/Asset-Batch stabil. |
+
+### Delta Folge-Batch 498
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/member-dashboard-page.php`, `CMS/admin/views/member/subnav.php`, `CMS/admin/views/member/general.php`, `DOC/audit/AdminAudit-Member.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Der Member-Cluster nutzt für Übersicht, Subtabs, den Querhinweis zu `Benutzer & Gruppen → Einstellungen` und den Wrapper-Fallback jetzt hostneutrale relative Admin-Pfade statt an `SITE_URL` gebundener Ziele. | Member-Navigation und interne Settings-Wechsel bleiben damit auch unter Proxy-, Alternativhost- und lokaler Dev-Umgebung im aktuellen Admin-Kontext, statt auf eine falsche Origin oder Basis-URL zu springen. Die Aggregate bleiben für diesen kleinen Member-/Navigation-Batch stabil. |
+
 ### Delta Folge-Batch 465
 
 | Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |

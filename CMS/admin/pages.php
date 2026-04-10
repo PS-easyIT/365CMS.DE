@@ -97,7 +97,7 @@ function cms_admin_pages_view_config(PagesModule $module, string $view): array
     $baseTemplateVars = [
         'editorMediaToken' => Security::instance()->generateToken('editorjs_media'),
         'aiTranslationToken' => Security::instance()->generateToken('admin_ai_editorjs_translation'),
-        'aiTranslationUrl' => SITE_URL . '/admin/ai-translate-editorjs',
+        'aiTranslationUrl' => '/admin/ai-translate-editorjs',
         'useEditorJs' => false,
     ];
 

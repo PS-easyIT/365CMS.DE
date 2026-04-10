@@ -26,7 +26,7 @@ $breadcrumbs = is_array($data['breadcrumbs'] ?? null) ? $data['breadcrumbs'] : [
 $stats = is_array($data['stats'] ?? null) ? $data['stats'] : [];
 $categoryOptions = is_array($data['category_options'] ?? null) ? $data['category_options'] : [];
 $filterState = is_array($data['filter_state'] ?? null) ? $data['filter_state'] : [];
-$baseUrl = (string)($data['base_url'] ?? (SITE_URL . '/admin/media'));
+$baseUrl = (string)($data['base_url'] ?? '/admin/media');
 $listUrl = (string)($data['list_url'] ?? $baseUrl);
 $gridUrl = (string)($data['grid_url'] ?? $baseUrl);
 $rootUrl = (string)($data['root_url'] ?? $baseUrl);
@@ -498,7 +498,7 @@ function renderMoveTargetOptions(array $targets, string $selectedPath = ''): str
                         name="files[]"
                         multiple
                         required
-                        data-upload-url="<?php echo htmlspecialchars(SITE_URL . '/api/upload', ENT_QUOTES); ?>"
+                        data-upload-url="<?php echo htmlspecialchars('/api/upload', ENT_QUOTES); ?>"
                         data-upload-path="<?php echo htmlspecialchars($path, ENT_QUOTES); ?>"
                         data-csrf-token="<?php echo htmlspecialchars($mediaActionToken, ENT_QUOTES); ?>">
                 </div>

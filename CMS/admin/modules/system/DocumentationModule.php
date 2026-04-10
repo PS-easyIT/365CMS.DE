@@ -105,13 +105,12 @@ final class DocumentationModule
         $this->docsRoot = $resolvedRoots['docs_root'];
         $this->logger = Logger::instance()->withChannel('admin.documentation');
         $this->systemService = SystemService::instance();
-        $siteUrl = defined('SITE_URL') ? (string) SITE_URL : '';
 
         $this->catalog = new DocumentationCatalog(
             $this->docsRoot,
             self::GITHUB_DOC_BASE,
             self::GITHUB_DOC_TREE,
-            $siteUrl
+            ''
         );
         $this->renderer = new DocumentationRenderer([$this->catalog, 'resolveLink']);
         $this->syncService = new DocumentationSyncService(
@@ -264,7 +263,7 @@ final class DocumentationModule
             'git_available' => (bool) ($syncCapabilities['git'] ?? false),
             'sync_capabilities' => $syncCapabilities,
             'log_path' => $this->systemService->getConfiguredLogDirectory(),
-            'logs_url' => SITE_URL . '/admin/cms-logs',
+            'logs_url' => '/admin/cms-logs',
             'error' => null,
         ]));
     }
@@ -291,7 +290,7 @@ final class DocumentationModule
             'git_available' => false,
             'sync_capabilities' => [],
             'log_path' => $this->systemService->getConfiguredLogDirectory(),
-            'logs_url' => SITE_URL . '/admin/cms-logs',
+            'logs_url' => '/admin/cms-logs',
             'error' => null,
         ], $overrides);
     }

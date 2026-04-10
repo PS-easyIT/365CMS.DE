@@ -37,7 +37,7 @@ $alertDetails = is_array($alert['details'] ?? null) ? $alert['details'] : [];
                     <input type="hidden" name="action" value="clear_logs">
                     <button type="submit" class="btn btn-outline-danger">404-Protokoll leeren</button>
                 </form>
-                <a href="<?= htmlspecialchars(SITE_URL . '/admin/redirect-manager') ?>" class="btn btn-primary">Zu den Weiterleitungen</a>
+                <a href="<?= htmlspecialchars('/admin/redirect-manager') ?>" class="btn btn-primary">Zu den Weiterleitungen</a>
             </div>
         </div>
     </div>

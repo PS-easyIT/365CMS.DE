@@ -74,7 +74,6 @@ define('UPLOAD_URL',    SITE_URL . '/uploads');
 
 // ─── System-Einstellungen ──────────────────────────────────────────────────
 define('DEFAULT_THEME',      'cms-default');
-define('SESSIONS_LIFETIME',  3600 * 2); // 2 Stunden
 define('MAX_LOGIN_ATTEMPTS', 5);
 define('LOGIN_TIMEOUT',      300); // 5 Minuten
 defined('CMS_HTTPS_REDIRECT_STRATEGY') || define('CMS_HTTPS_REDIRECT_STRATEGY', 'upstream');

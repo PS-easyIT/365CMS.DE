@@ -57,7 +57,7 @@ function cms_admin_not_found_monitor_redirect(string $redirectUrl): never
 
 function cms_admin_not_found_monitor_default_redirect(): string
 {
-    return SITE_URL . '/admin/not-found-monitor';
+    return '/admin/not-found-monitor';
 }
 
 function cms_admin_not_found_monitor_flash(array $payload): void

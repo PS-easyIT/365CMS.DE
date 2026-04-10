@@ -52,7 +52,7 @@ $settings = $data['settings'] ?? [];
                             $alertData = [
                                 'type' => 'info',
                                 'message' => 'Öffentliche Registrierung, Standardrolle und Authentifizierungsoptionen werden zentral unter Benutzer & Gruppen → Einstellungen verwaltet.',
-                                'details' => [(defined('SITE_URL') ? SITE_URL : '') . '/admin/user-settings'],
+                                'details' => ['/admin/user-settings'],
                             ];
                             $alertDismissible = false;
                             $alertMarginClass = 'mb-0';

@@ -46,30 +46,6 @@
         return normalized || '/';
     }
 
-    function bindConfirmForms(root) {
-        root.querySelectorAll('form[data-confirm-message]').forEach((form) => {
-            form.addEventListener('submit', function (event) {
-                if (form.dataset.confirmAccepted === '1') {
-                    form.dataset.confirmAccepted = '0';
-                    return;
-                }
-
-                event.preventDefault();
-                cmsConfirm({
-                    title: form.dataset.confirmTitle || 'Bitte bestätigen',
-                    message: form.dataset.confirmMessage || '',
-                    confirmText: form.dataset.confirmText || 'Bestätigen',
-                    confirmClass: form.dataset.confirmClass || 'btn-danger',
-                    statusClass: form.dataset.confirmStatusClass || 'bg-danger',
-                    onConfirm: function () {
-                        form.dataset.confirmAccepted = '1';
-                        form.requestSubmit();
-                    }
-                });
-            });
-        });
-    }
-
     function initRedirectEditor(options) {
         const modalElement = document.getElementById(options.modalId);
         if (!modalElement) {
@@ -324,8 +300,6 @@
     }
 
     function init() {
-        bindConfirmForms(document);
-
         const redirectConfig = parseConfig('seo-redirect-manager-config');
         if (redirectConfig) {
             initRedirectEditor({

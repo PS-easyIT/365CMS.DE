@@ -19,8 +19,8 @@ $reasonHint = (string) ($state['reasonHint'] ?? '');
 $links = is_array($state['links'] ?? null) ? $state['links'] : [];
 $constraints = is_array($state['constraints'] ?? null) ? $state['constraints'] : [];
 $expectedCustomizerPath = (string) ($state['expectedCustomizerPath'] ?? ($constraints['expected_relative_path'] ?? 'admin/customizer.php'));
-$themesLink = (string) ($links['themes'] ?? (SITE_URL . '/admin/themes'));
-$explorerLink = (string) ($links['explorer'] ?? (SITE_URL . '/admin/theme-explorer'));
+$themesLink = (string) ($links['themes'] ?? '/admin/themes');
+$explorerLink = (string) ($links['explorer'] ?? '/admin/theme-explorer');
 ?>
 <div class="container-xl">
     <div class="page-header d-flex align-items-center mb-4">

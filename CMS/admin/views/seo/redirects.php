@@ -24,7 +24,7 @@ $alertDetails = is_array($alert['details'] ?? null) ? $alert['details'] : [];
                 <h2 class="page-title">Weiterleitungen</h2>
             </div>
             <div class="col-auto ms-auto d-flex gap-2">
-                <a href="<?= htmlspecialchars(SITE_URL . '/admin/not-found-monitor') ?>" class="btn btn-outline-primary">Zum 404-Monitor</a>
+                <a href="<?= htmlspecialchars('/admin/not-found-monitor') ?>" class="btn btn-outline-primary">Zum 404-Monitor</a>
                 <button type="button" class="btn btn-primary js-create-redirect">Erweitert anlegen</button>
             </div>
         </div>
@@ -68,15 +68,7 @@ $alertDetails = is_array($alert['details'] ?? null) ? $alert['details'] : [];
                 </div>
             </div>
             <div class="card-body">
-                <form
-                    method="post"
-                    class="row g-3 align-items-end"
-                    data-confirm-title="Slug-Regeln löschen?"
-                    data-confirm-message="Passende Weiterleitungen für diesen Slug wirklich löschen?"
-                    data-confirm-text="Jetzt löschen"
-                    data-confirm-class="btn-danger"
-                    data-confirm-status-class="bg-danger"
-                >
+                <form method="post" class="row g-3 align-items-end">
                     <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken ?? '') ?>">
                     <input type="hidden" name="action" value="save_redirect">
                     <input type="hidden" name="redirect_id" value="0">
@@ -115,7 +107,15 @@ $alertDetails = is_array($alert['details'] ?? null) ? $alert['details'] : [];
                 <h3 class="card-title">Weiterleitungen per Slug löschen</h3>
             </div>
             <div class="card-body">
-                <form method="post" class="row g-3 align-items-end">
+                <form
+                    method="post"
+                    class="row g-3 align-items-end"
+                    data-confirm-title="Slug-Regeln löschen?"
+                    data-confirm-message="Passende Weiterleitungen für diesen Slug wirklich löschen?"
+                    data-confirm-text="Jetzt löschen"
+                    data-confirm-class="btn-danger"
+                    data-confirm-status-class="bg-danger"
+                >
                     <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken ?? '') ?>">
                     <input type="hidden" name="action" value="delete_redirects_by_slug">
                     <div class="col-md-8 col-lg-6">
@@ -146,7 +146,7 @@ $alertDetails = is_array($alert['details'] ?? null) ? $alert['details'] : [];
                     <h3 class="card-title mb-1">Aktive Regeln</h3>
                     <div class="text-secondary small">Site-spezifische Regeln werden zuerst geprüft, globale Regeln dienen als Fallback.</div>
                 </div>
-                <a href="<?= htmlspecialchars(SITE_URL . '/admin/not-found-monitor') ?>" class="btn btn-outline-secondary btn-sm">404-Einträge prüfen</a>
+                <a href="<?= htmlspecialchars('/admin/not-found-monitor') ?>" class="btn btn-outline-secondary btn-sm">404-Einträge prüfen</a>
             </div>
             <div class="table-responsive">
                 <table class="table table-vcenter card-table">
@@ -180,6 +180,12 @@ $alertDetails = is_array($alert['details'] ?? null) ? $alert['details'] : [];
                                             </button>
                                             <div class="dropdown-menu dropdown-menu-end">
                                                 <button type="button" class="dropdown-item js-edit-redirect" data-redirect="<?= htmlspecialchars((string) json_encode($redirect, JSON_HEX_APOS | JSON_HEX_QUOT | JSON_INVALID_UTF8_SUBSTITUTE), ENT_QUOTES) ?>">Bearbeiten</button>
+                                                <form method="post" class="d-inline">
+                                                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken ?? '') ?>">
+                                                    <input type="hidden" name="action" value="toggle_redirect">
+                                                    <input type="hidden" name="id" value="<?= (int)$redirect['id'] ?>">
+                                                    <button type="submit" class="dropdown-item"><?= (int)$redirect['is_active'] === 1 ? 'Deaktivieren' : 'Aktivieren' ?></button>
+                                                </form>
                                                 <form
                                                     method="post"
                                                     class="d-inline"
@@ -189,12 +195,6 @@ $alertDetails = is_array($alert['details'] ?? null) ? $alert['details'] : [];
                                                     data-confirm-class="btn-danger"
                                                     data-confirm-status-class="bg-danger"
                                                 >
-                                                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken ?? '') ?>">
-                                                    <input type="hidden" name="action" value="toggle_redirect">
-                                                    <input type="hidden" name="id" value="<?= (int)$redirect['id'] ?>">
-                                                    <button type="submit" class="dropdown-item"><?= (int)$redirect['is_active'] === 1 ? 'Deaktivieren' : 'Aktivieren' ?></button>
-                                                </form>
-                                                <form method="post" class="d-inline">
                                                     <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken ?? '') ?>">
                                                     <input type="hidden" name="action" value="delete_redirect">
                                                     <input type="hidden" name="id" value="<?= (int)$redirect['id'] ?>">

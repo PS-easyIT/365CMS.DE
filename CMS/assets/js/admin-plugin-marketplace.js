@@ -75,8 +75,8 @@
         }
 
         forms.forEach(function (form) {
-            form.addEventListener('submit', function () {
-                if (form.dataset.confirmAccepted !== '1' || form.dataset.submitting === '1') {
+            form.addEventListener('submit', function (event) {
+                if (event.defaultPrevented || form.dataset.submitting === '1') {
                     return;
                 }
 

@@ -12,10 +12,10 @@ if (!defined('ABSPATH')) {
 
 use CMS\Auth;
 
-if (!Auth::instance()->isAdmin()) {
-    header('Location: ' . SITE_URL);
-    exit;
-}
+$adminRedirectAliasConfig = [
+    'access_checker' => static fn (array $_config = []): bool => Auth::instance()->isAdmin(),
+    'target_url' => '/admin/documentation',
+    'fallback_url' => '/',
+];
 
-header('Location: ' . SITE_URL . '/admin/documentation');
-exit;
+require __DIR__ . '/partials/redirect-alias-shell.php';

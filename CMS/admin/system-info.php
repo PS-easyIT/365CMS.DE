@@ -12,11 +12,10 @@ if (!defined('ABSPATH')) {
 
 use CMS\Auth;
 
-if (!Auth::instance()->isAdmin()) {
-    header('Location: ' . SITE_URL);
-    exit;
-}
+$adminRedirectAliasConfig = [
+    'access_checker' => static fn (array $_config = []): bool => Auth::instance()->isAdmin(),
+    'target_url' => '/admin/info',
+    'fallback_url' => '/',
+];
 
-// FIX: Legacy-Route sauber auf die neue Info-Seite umleiten, statt unerreichbaren Alt-Code mitzuführen.
-header('Location: ' . SITE_URL . '/admin/info');
-exit;
+require __DIR__ . '/partials/redirect-alias-shell.php';

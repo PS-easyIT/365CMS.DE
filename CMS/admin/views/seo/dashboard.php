@@ -176,12 +176,12 @@ $recentCritical = $dashboard['recent_critical'] ?? [];
                 <div class="card h-100">
                     <div class="card-header"><h3 class="card-title">Schnellzugriffe</h3></div>
                     <div class="list-group list-group-flush">
-                        <a class="list-group-item list-group-item-action" href="<?= htmlspecialchars(SITE_URL) ?>/admin/seo-audit">SEO Audit & Bulk-Editor</a>
-                        <a class="list-group-item list-group-item-action" href="<?= htmlspecialchars(SITE_URL) ?>/admin/seo-meta">Meta-Templates & Variablen</a>
-                        <a class="list-group-item list-group-item-action" href="<?= htmlspecialchars(SITE_URL) ?>/admin/seo-social">OG, X/Twitter & Pinterest</a>
-                        <a class="list-group-item list-group-item-action" href="<?= htmlspecialchars(SITE_URL) ?>/admin/seo-schema">Schema.org & Typ-Verteilung</a>
-                        <a class="list-group-item list-group-item-action" href="<?= htmlspecialchars(SITE_URL) ?>/admin/seo-sitemap">Sitemaps & robots.txt</a>
-                        <a class="list-group-item list-group-item-action" href="<?= htmlspecialchars(SITE_URL) ?>/admin/seo-technical">Broken Links, hreflang & Bild-SEO</a>
+                        <a class="list-group-item list-group-item-action" href="<?= htmlspecialchars('/admin/seo-audit') ?>">SEO Audit & Bulk-Editor</a>
+                        <a class="list-group-item list-group-item-action" href="<?= htmlspecialchars('/admin/seo-meta') ?>">Meta-Templates & Variablen</a>
+                        <a class="list-group-item list-group-item-action" href="<?= htmlspecialchars('/admin/seo-social') ?>">OG, X/Twitter & Pinterest</a>
+                        <a class="list-group-item list-group-item-action" href="<?= htmlspecialchars('/admin/seo-schema') ?>">Schema.org & Typ-Verteilung</a>
+                        <a class="list-group-item list-group-item-action" href="<?= htmlspecialchars('/admin/seo-sitemap') ?>">Sitemaps & robots.txt</a>
+                        <a class="list-group-item list-group-item-action" href="<?= htmlspecialchars('/admin/seo-technical') ?>">Broken Links, hreflang & Bild-SEO</a>
                     </div>
                 </div>
             </div>
