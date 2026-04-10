@@ -91,12 +91,6 @@ Die Audits wurden mit OWASP-nahen Prüfwerkzeugen & AI Audit Tools von Snyk, Ref
 | **PHP / Best Practices** | **96,22** |
 | **Gesamt** | **96,35** |
 
-### 🆕 Aktuelle 2.9.74-Highlights
-
-- **Der Hub-Cluster zeigt Copy- und Warnhinweise wieder korrekt an:** `CMS/assets/js/admin-hub-site-edit.js` und `CMS/assets/js/admin-hub-sites.js` nutzen den globalen Alert-Helfer jetzt wieder mit dem echten Vertrag `cmsAlert(type, message)` statt mit vertauschter Argument-Reihenfolge.
-- **Damit bleibt das Asset-Feedback im Live-Admin wieder belastbar:** Clipboard-Erfolge, Browser-Warnungen und Fehlerhinweise rendern im Hub-Editor und in der Hub-Liste nicht länger nur den Typ-String oder kaputte Alert-Klassen.
-- **Die Audit-Spur wurde jetzt auch im Asset-Zweig des Hub-Clusters nachgezogen:** `DOC/audit/AssetAudit-Hub.md`, `DOC/audit/AdminAudit-Hub.md` und `DOC/audit/BEWERTUNG.md` dokumentieren den korrigierten Alert-Vertrag unmittelbar im laufenden Audit.
-- **Bewertung und Release-Metadaten wurden auf `2.9.74` synchronisiert:** `README.md`, `Changelog.md`, `CMS/core/Version.php` und `CMS/update.json` spiegeln diesen kleinen Hub-/Asset-Batch jetzt konsistent im Release-Stand.
 
 ### 🧩 Kernfunktionen im Überblick
 
@@ -267,14 +261,6 @@ The audits were carried out using OWASP-oriented tooling, Snyk, refactoring pass
 | **Speed** | **92.74** |
 | **PHP / Best Practices** | **96.22** |
 | **Overall** | **96.35** |
-
-### 🆕 Current 2.9.58 highlights
-
-- **The landing hero no longer drops its configured background image between admin and frontend runtime:** `CMS/core/Services/Landing/LandingHeaderService.php` now exposes `bg_image` again as part of the persisted landing header contract.
-- **Both landing templates now render the configured hero background for the live site:** `CMS/themes/cms-default/home.php` and `CMS/themes/cms-default/partials/home-landing.php` resolve stored internal or external image paths against the current runtime URL before using them as the hero background.
-- **Landing empty-state hints now point host-neutrally to the real admin route:** frontend guidance uses `/admin/landing-page` and `/admin/landing-page?tab=content` instead of `SITE_URL`-bound or stale `/admin/landing-page.php` links.
-- **The design audit was updated as well:** `DOC/audit/AdminAudit-Design.md` and `DOC/audit/BEWERTUNG.md` now document the restored landing frontend contract directly in the active audit trail.
-- **Release metadata was synchronized too:** `README.md`, `Changelog.md`, `CMS/core/Version.php`, and `CMS/update.json` now consistently reflect **`2.9.58`**.
 
 ### 🧩 Key Capabilities
 
