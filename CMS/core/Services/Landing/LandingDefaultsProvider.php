@@ -22,6 +22,7 @@ final class LandingDefaultsProvider
             'subtitle' => 'Landing Pages, Redaktion, Plugins, Member Area und Design Editor in einem System',
             'badge_text' => defined('CMS_VERSION') ? CMS_VERSION : Version::CURRENT,
             'description' => '365CMS vereint Content-Management, Design-Anpassung, Mitgliederfunktionen, System-Mails und modulare Business-Features in einer flexiblen Plattform für professionelle Websites und Portale.',
+            'bg_image' => '',
             'github_url' => 'https://github.com/PS-easyIT/WordPress-365network',
             'github_text' => '💻 GitHub Projekt',
             'gitlab_url' => '',

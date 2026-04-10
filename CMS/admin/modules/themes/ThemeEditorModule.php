@@ -249,18 +249,65 @@ class ThemeEditorModule
             return null;
         }
 
-        $fullPath = $realBase . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relativePath);
+        $realBase = rtrim($realBase, DIRECTORY_SEPARATOR);
+        $basePrefix = $realBase . DIRECTORY_SEPARATOR;
+
+        $fullPath = $basePrefix . str_replace('/', DIRECTORY_SEPARATOR, $relativePath);
+        if ($this->pathContainsSymlink($fullPath, $realBase)) {
+            return null;
+        }
+
         $realFile = realpath($fullPath);
         if ($realFile === false) {
             return null;
         }
 
-        $realBase = rtrim($realBase, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
-        if (!str_starts_with($realFile, $realBase)) {
+        if (!str_starts_with($realFile, $basePrefix)) {
+            return null;
+        }
+
+        $resolvedRelativePath = $this->buildRelativePathFromBase($realFile, $realBase);
+        if ($resolvedRelativePath === null || !$this->isAllowedRelativePath($resolvedRelativePath) || $this->containsHiddenSegment($resolvedRelativePath) || $this->containsSkippedSegment($resolvedRelativePath)) {
             return null;
         }
 
         return $realFile;
+    }
+
+    private function pathContainsSymlink(string $fullPath, string $realBase): bool
+    {
+        $realBase = rtrim($realBase, DIRECTORY_SEPARATOR);
+        $relativePath = ltrim(substr($fullPath, strlen($realBase)), DIRECTORY_SEPARATOR);
+        if ($relativePath === '') {
+            return false;
+        }
+
+        $segments = array_values(array_filter(explode(DIRECTORY_SEPARATOR, $relativePath), static fn (string $segment): bool => $segment !== ''));
+        $currentPath = $realBase;
+
+        foreach ($segments as $segment) {
+            $currentPath .= DIRECTORY_SEPARATOR . $segment;
+            if (is_link($currentPath)) {
+                return true;
+            }
+
+            if (!file_exists($currentPath)) {
+                break;
+            }
+        }
+
+        return false;
+    }
+
+    private function buildRelativePathFromBase(string $realPath, string $realBase): ?string
+    {
+        $realBase = rtrim($realBase, DIRECTORY_SEPARATOR);
+        $basePrefix = $realBase . DIRECTORY_SEPARATOR;
+        if (!str_starts_with($realPath, $basePrefix)) {
+            return null;
+        }
+
+        return $this->normalizeRelativePath(str_replace(DIRECTORY_SEPARATOR, '/', substr($realPath, strlen($basePrefix))));
     }
 
     /**

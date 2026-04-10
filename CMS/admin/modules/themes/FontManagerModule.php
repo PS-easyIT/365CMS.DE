@@ -627,9 +627,8 @@ class FontManagerModule
                 $downloadedFiles[] = $fileName;
                 $downloadedPaths[] = $localPath;
 
-                // URL im CSS ersetzen
-                $relUrl = SITE_URL . '/uploads/fonts/' . $fileName;
-                $localCss = str_replace($remoteUrl, $relUrl, $localCss);
+                // URL im CSS hostneutral relativ zur lokalen CSS-Datei ersetzen
+                $localCss = str_replace($remoteUrl, $fileName, $localCss);
             }
         }
 

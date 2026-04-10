@@ -1,4 +1,4 @@
-﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.52-blue.svg)](https://shields.io/)
+﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.58-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -17,6 +17,73 @@
 ---
 
 ## 📜 Vollständige Versionshistorie
+
+---
+
+### v2.9.58 — 10. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.58** | 🔴 fix | Landing/Frontend Runtime | **`CMS/core/Services/Landing/LandingHeaderService.php` und `CMS/core/Services/Landing/LandingDefaultsProvider.php` führen `bg_image` wieder als echten Header-Vertragswert**: Das im Landing-Admin gespeicherte Hero-Hintergrundbild fällt damit nicht länger still aus dem Service-/Frontend-Pfad heraus. |
+| **2.9.58** | 🔴 fix | Frontend/Landing | **`CMS/themes/cms-default/home.php` und `CMS/themes/cms-default/partials/home-landing.php` rendern das konfigurierte Landing-Hintergrundbild jetzt als echten Hero-Hintergrund über die aktuelle Runtime-URL**: Interne Assetpfade und externe Bilder wirken damit im Live-Frontend wieder tatsächlich statt nur in der Datenbank zu landen. |
+| **2.9.58** | 🔴 fix | Frontend/Admin-Hinweise | **Die Landing-Leerzustände verlinken die Konfiguration jetzt hostneutral auf `/admin/landing-page` bzw. `/admin/landing-page?tab=content` statt auf `SITE_URL`-gebundene oder veraltete `/admin/landing-page.php`-Pfade**: Interne Admin-Hinweise bleiben damit auch unter Proxy-, Alternativhost- und lokalen Dev-URLs auf der aktuellen Origin. |
+| **2.9.58** | 🔵 docs | Audit/Design | **`DOC/audit/AdminAudit-Design.md` und `DOC/audit/BEWERTUNG.md` dokumentieren den wiederhergestellten Landing-Frontendvertrag jetzt direkt im laufenden Audit**: Der Fix bleibt damit nicht nur in Service und Theme, sondern auch im Audit-Strang nachvollziehbar. |
+| **2.9.58** | 🔵 docs | Release | **`README.md`, `Changelog.md`, `CMS/core/Version.php` und `CMS/update.json` wurden auf den Release-Stand `2.9.58` synchronisiert**: Versionsbadge, Highlights und Update-Metadaten zeigen damit denselben Design-/Landing-Batch. |
+
+---
+
+### v2.9.57 — 10. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.57** | 🔴 fix | Admin/Font Manager | **`CMS/admin/modules/themes/FontManagerModule.php` und `CMS/core/Bootstrap.php` leiten lokal gespeicherte Font-Slugs jetzt auch ohne externen Hook-Provider direkt aus den gespeicherten Font-Manager-Settings in den Frontend-Ladepfad durch**: Aktivierte lokale Fonts verlassen sich damit nicht mehr auf einen leeren `local_font_slugs`-Filter. |
+| **2.9.57** | 🔴 fix | Frontend/Typografie | **`CMS/core/ThemeManager.php` setzt `font_body`, `font_heading`, `font_size_base` und `font_line_height` aus dem Font Manager jetzt als echte Runtime-CSS um**: Die gewählten Schriftfamilien, Größen und Zeilenhöhen wirken damit im Live-Frontend statt nur als gespeicherte Admin-Einstellung. |
+| **2.9.57** | 🔵 docs | Audit/Design | **`DOC/audit/AdminAudit-Design.md` und `DOC/audit/BEWERTUNG.md` dokumentieren den neuen Font-Manager-Frontendvertrag jetzt direkt im laufenden Audit**: Der Fix bleibt damit nicht nur in Admin und Runtime, sondern auch im Audit-Strang nachvollziehbar. |
+| **2.9.57** | 🔵 docs | Release | **`README.md`, `Changelog.md`, `CMS/core/Version.php` und `CMS/update.json` wurden auf den Release-Stand `2.9.57` synchronisiert**: Versionsbadge, Highlights und Update-Metadaten zeigen damit denselben Design-/Font-Runtime-Batch. |
+
+---
+
+### v2.9.56 — 10. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.56** | 🔴 fix | Admin/Font Manager | **`CMS/admin/modules/themes/FontManagerModule.php` schreibt ersetzte `url(...)`-Ziele im lokal generierten Google-Font-CSS jetzt hostneutral relativ statt als `SITE_URL`-absolute Upload-Pfade**: Self-hosted Font-Dateien bleiben damit direkt an ihrer lokalen CSS-Datei ausgerichtet, statt einen festen Host zu konservieren. |
+| **2.9.56** | 🔴 fix | Frontend/Fonts Runtime | **`CMS/core/Bootstrap.php` löst gespeicherte lokale Font-CSS-Dateien jetzt zur aktuellen Runtime-URL auf statt starr über `SITE_URL`**: Proxy-, Alternativhost- und lokale Dev-Umgebungen laden den Self-Hosting-Fontpfad damit nicht mehr versehentlich von einer falschen Origin. |
+| **2.9.56** | 🔵 docs | Audit/Design | **`DOC/audit/AdminAudit-Design.md` und `DOC/audit/BEWERTUNG.md` dokumentieren den neuen Font-Manager-Runtime-Vertrag jetzt direkt im laufenden Audit**: Der Fix bleibt damit nicht nur in Runtime und Admin, sondern auch im Audit-Strang nachvollziehbar. |
+| **2.9.56** | 🔵 docs | Release | **`README.md`, `Changelog.md`, `CMS/core/Version.php` und `CMS/update.json` wurden auf den Release-Stand `2.9.56` synchronisiert**: Versionsbadge, Highlights und Update-Metadaten zeigen damit denselben Design-/Font-Manager-Batch. |
+
+---
+
+### v2.9.55 — 10. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.55** | 🔴 fix | Admin/Menü Editor | **`CMS/admin/views/menus/editor.php` nutzt für interne Menüwechsel und den Bearbeiten-Sprung aus der Theme-Positionsliste jetzt hostneutrale relative Admin-Pfade**: Die View koppelt reine Admin-Navigation damit nicht länger an `SITE_URL`. |
+| **2.9.55** | 🔴 fix | Admin/Routing | **Menülisten- und Theme-Positions-Klicks bleiben dadurch auch unter Proxy-, Alternativhost- oder lokalen Dev-URLs im aktiven Admin-Kontext**: Interne Wechsel springen nicht mehr auf eine potenziell falsche Origin, obwohl keine externe Navigation nötig ist. |
+| **2.9.55** | 🔵 docs | Audit/Design | **`DOC/audit/AdminAudit-Design.md` und `DOC/audit/BEWERTUNG.md` dokumentieren den neuen Menü-Editor-Routenvertrag jetzt direkt im laufenden Audit**: Der Fix bleibt damit nicht nur in der Runtime, sondern auch im Audit-Strang nachvollziehbar. |
+| **2.9.55** | 🔵 docs | Release | **`README.md`, `Changelog.md`, `CMS/core/Version.php` und `CMS/update.json` wurden auf den Release-Stand `2.9.55` synchronisiert**: Versionsbadge, Highlights und Update-Metadaten zeigen damit denselben Design-/Menü-Editor-Batch. |
+
+---
+
+### v2.9.54 — 10. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.54** | 🔴 fix | Admin/Theme Explorer | **`CMS/admin/modules/themes/ThemeEditorModule.php` blockiert Explorer-Dateien jetzt auch dann fail-closed, wenn der angefragte Pfad intern über einen Symlink läuft**: Formal saubere `?file=`-Aliase können damit nicht mehr auf andere Theme-Ziele auflösen, die der Explorer bewusst nicht direkt freigibt. |
+| **2.9.54** | 🔴 fix | Themes/Sicherheitsgrenzen | **Aufgelöste Theme-Explorer-Ziele werden nach `realpath()` erneut gegen Hidden- und Skip-Segmente geprüft**: Aliaspfade können intern ausgeschlossene Bereiche wie `vendor/` damit nicht mehr indirekt les- oder speicherbar machen, obwohl Dateibaum und Warnhinweise diese Segmente bewusst überspringen. |
+| **2.9.54** | 🔵 docs | Audit/Design | **`DOC/audit/AdminAudit-Design.md` und `DOC/audit/BEWERTUNG.md` dokumentieren den neuen Theme-Explorer-Symlinkvertrag jetzt direkt im laufenden Audit**: Der Fix bleibt damit nicht nur in der Runtime, sondern auch im Audit-Strang nachvollziehbar. |
+| **2.9.54** | 🔵 docs | Release | **`README.md`, `Changelog.md`, `CMS/core/Version.php` und `CMS/update.json` wurden auf den Release-Stand `2.9.54` synchronisiert**: Versionsbadge, Highlights und Update-Metadaten zeigen damit denselben Design-/Theme-Explorer-Batch. |
+
+---
+
+### v2.9.53 — 10. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.53** | 🔴 fix | Admin/Theme Editor | **`CMS/admin/theme-editor.php` prüft eingebettete Theme-Customizer jetzt vor dem Laden auf parsebare PHP-Syntax und blockierte Risko-Funktionen**: Ein bloßer Pfadtreffer genügt damit nicht mehr, um einen defekten oder riskanten `admin/customizer.php` direkt im Admin-Kontext auszuführen. |
+| **2.9.53** | 🔴 fix | Design/Safety Fallback | **Der Theme-Editor fällt bei fehlerhaften oder unsicheren Customizer-Dateien gezielt auf die sichere Fallback-View zurück**: Parse-Fehler oder Funktionsaufrufe wie `eval`, `exec` oder `shell_exec` reißen die Route damit nicht mehr fatal aus dem Admin. |
+| **2.9.53** | 🔵 docs | Audit/Design | **`DOC/audit/AdminAudit-Design.md` und `DOC/audit/BEWERTUNG.md` dokumentieren den neuen Theme-Editor-Sicherheitsvertrag jetzt direkt im laufenden Audit**: Der Fix bleibt damit nicht nur in der Runtime, sondern auch im Audit-Strang nachvollziehbar. |
+| **2.9.53** | 🔵 docs | Release | **`README.md`, `Changelog.md`, `CMS/core/Version.php` und `CMS/update.json` wurden auf den Release-Stand `2.9.53` synchronisiert**: Versionsbadge, Highlights und Update-Metadaten zeigen damit denselben Design-/Theme-Editor-Batch. |
 
 ---
 

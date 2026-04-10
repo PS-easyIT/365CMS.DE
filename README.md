@@ -2,7 +2,7 @@
 
 <div align="center">
 
-[![Version](https://img.shields.io/badge/version-2.9.52-blue.svg)](Changelog.md)
+[![Version](https://img.shields.io/badge/version-2.9.58-blue.svg)](Changelog.md)
 ![Status](https://img.shields.io/badge/status-stable-16a34a)
 ![PHP](https://img.shields.io/badge/PHP-8.4%2B-777BB4?logo=php&logoColor=white)
 ![MySQL](https://img.shields.io/badge/MySQL-5.7%2B-4479A1?logo=mysql&logoColor=white)
@@ -91,13 +91,13 @@ Die Audits wurden mit OWASP-nahen Prüfwerkzeugen & AI Audit Tools von Snyk, Ref
 | **PHP / Best Practices** | **96,22** |
 | **Gesamt** | **96,35** |
 
-### 🆕 Aktuelle 2.9.52-Highlights
+### 🆕 Aktuelle 2.9.58-Highlights
 
-- **Theme-Marketplace validiert installierte Pakete jetzt themespezifisch nach:** `CMS/admin/modules/themes/ThemeMarketplaceModule.php` meldet einen Download nicht mehr blind als Erfolg, wenn im Ziel nur ein Repo-Wrapper oder ein verschachteltes Paket landet, sondern verlangt ein echtes Laufzeit-Theme mit `style.css`, `theme.json` und `functions.php`.
-- **Verschachtelte Theme-Archive werden in den echten Runtime-Ordner hochgezogen:** Wenn ein Marketplace-ZIP das gültige Theme nicht direkt an der Paketwurzel, sondern eine Ebene tiefer enthält, zieht der Runtime-Pfad dieses Theme jetzt nach `CMS/themes/<slug>/` hoch, statt einen unbrauchbaren Wrapper als installiert stehen zu lassen.
-- **Themes- und Marketplace-Audits wurden gemeinsam nachgezogen:** `DOC/audit/AdminAudit-Themes.md`, `DOC/audit/AssetAudit-Marketplace.md` und `DOC/audit/BEWERTUNG.md` dokumentieren den neuen Theme-Marketplace-Installationsvertrag jetzt direkt im laufenden Audit.
-- **Bewertung und Release-Metadaten wurden synchronisiert:** `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md`, `CMS/core/Version.php` und `CMS/update.json` spiegeln diesen Theme-/Marketplace-Batch jetzt konsistent als **`2.9.52`**.
-- **Die Aggregate bleiben stabil:** Auch dieser kleine Theme-/Marketplace-Batch hält die zuletzt dokumentierten Gesamtwerte bei **95,12 / 92,74 / 96,22 / 96,35**.
+- **Das Landing-Hero verliert sein Admin-Hintergrundbild nicht mehr still im Runtime-Pfad:** `CMS/core/Services/Landing/LandingHeaderService.php` reicht `bg_image` jetzt wieder sauber aus dem gespeicherten Header-Vertrag an das Frontend durch.
+- **Beide Landing-Templates rendern das konfigurierte Hero-Bild jetzt wirklich im Live-Frontend:** `CMS/themes/cms-default/home.php` und `CMS/themes/cms-default/partials/home-landing.php` lösen gespeicherte interne oder externe Bildpfade runtime-sicher auf und setzen sie als echten Hero-Hintergrund.
+- **Frontend-Leerzustände verweisen die Landing-Konfiguration jetzt hostneutral auf die reale Admin-Route:** Die Hinweise nutzen `/admin/landing-page` bzw. `/admin/landing-page?tab=content` statt `SITE_URL`-gebundener oder veralteter `/admin/landing-page.php`-Links.
+- **Das Design-Audit wurde nachgezogen:** `DOC/audit/AdminAudit-Design.md` und `DOC/audit/BEWERTUNG.md` dokumentieren den wiederhergestellten Landing-Frontendvertrag jetzt direkt im laufenden Audit.
+- **Bewertung und Release-Metadaten wurden synchronisiert:** `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md`, `CMS/core/Version.php` und `CMS/update.json` spiegeln diesen Design-/Landing-Batch jetzt konsistent als **`2.9.58`**.
 
 ### 🧩 Kernfunktionen im Überblick
 
@@ -269,12 +269,13 @@ The audits were carried out using OWASP-oriented tooling, Snyk, refactoring pass
 | **PHP / Best Practices** | **96.22** |
 | **Overall** | **96.35** |
 
-### 🆕 Current 2.9.7 highlights
+### 🆕 Current 2.9.58 highlights
 
-- **`theme-settings.php` now follows the real alias contract:** instead of using a hard immediate redirect with dead code underneath, the theme settings shortcut now uses the same `redirect-alias-shell.php` flow as other admin alias pages.
-- **Theme settings now checks the correct permissions again:** the alias only forwards admins with `manage_settings` and then redirects cleanly to `/admin/settings` instead of relying on a loose inline header jump.
-- **The themes audit now records this runtime finding explicitly:** `DOC/audit/AdminAudit-Themes.md` documents the broken special-route/redirect contract of the theme settings path directly.
-- **Release documentation was synchronized as well:** `README.md`, `Changelog.md`, `CMS/core/Version.php`, and `CMS/update.json` now consistently reflect **`2.9.7`**.
+- **The landing hero no longer drops its configured background image between admin and frontend runtime:** `CMS/core/Services/Landing/LandingHeaderService.php` now exposes `bg_image` again as part of the persisted landing header contract.
+- **Both landing templates now render the configured hero background for the live site:** `CMS/themes/cms-default/home.php` and `CMS/themes/cms-default/partials/home-landing.php` resolve stored internal or external image paths against the current runtime URL before using them as the hero background.
+- **Landing empty-state hints now point host-neutrally to the real admin route:** frontend guidance uses `/admin/landing-page` and `/admin/landing-page?tab=content` instead of `SITE_URL`-bound or stale `/admin/landing-page.php` links.
+- **The design audit was updated as well:** `DOC/audit/AdminAudit-Design.md` and `DOC/audit/BEWERTUNG.md` now document the restored landing frontend contract directly in the active audit trail.
+- **Release metadata was synchronized too:** `README.md`, `Changelog.md`, `CMS/core/Version.php`, and `CMS/update.json` now consistently reflect **`2.9.58`**.
 
 ### 🧩 Key Capabilities
 

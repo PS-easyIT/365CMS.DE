@@ -21,7 +21,7 @@ $menuItems = $data['menuItems'] ?? [];
 $pagePickerOptions = $data['pagePickerOptions'] ?? [];
 $menuEditorConfigJson = (string) ($data['editorConfigJson'] ?? '{"items":[]}');
 $escape = static fn (?string $value): string => htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
-$siteUrl = $escape(SITE_URL);
+$menuEditorBaseUrl = '/admin/menu-editor';
 ?>
 
 <div class="page-header d-print-none text-start">
@@ -63,7 +63,7 @@ $siteUrl = $escape(SITE_URL);
                 </div>
                 <div class="list-group list-group-flush">
                     <?php foreach ($menus as $menu): ?>
-                        <a href="<?php echo $siteUrl; ?>/admin/menu-editor?menu=<?php echo (int)$menu->id; ?>"
+                        <a href="<?php echo $menuEditorBaseUrl; ?>?menu=<?php echo (int)$menu->id; ?>"
                            class="list-group-item list-group-item-action d-flex justify-content-between align-items-center<?php echo ($currentMenu && (int)$currentMenu->id === (int)$menu->id) ? ' active' : ''; ?>">
                             <div>
                                 <div><?php echo htmlspecialchars($menu->name); ?></div>
@@ -110,7 +110,7 @@ $siteUrl = $escape(SITE_URL);
                                     </div>
                                 </div>
                                 <?php if ($assignedMenu): ?>
-                                    <a href="<?php echo $siteUrl; ?>/admin/menu-editor?menu=<?php echo $assignedMenuId; ?>"
+                                    <a href="<?php echo $menuEditorBaseUrl; ?>?menu=<?php echo $assignedMenuId; ?>"
                                        class="btn btn-sm <?php echo $isActiveLocation ? 'btn-light' : 'btn-outline-primary'; ?>">
                                         Bearbeiten
                                     </a>

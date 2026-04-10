@@ -672,6 +672,21 @@ class Bootstrap
                     ))));
 
                     if ($requestedFontSlugs === []) {
+                        $fontSettingRows = $db->get_results(
+                            "SELECT option_name, option_value FROM {$db->getPrefix()}settings WHERE option_name IN ('font_heading', 'font_body')"
+                        ) ?: [];
+
+                        foreach ($fontSettingRows as $fontSettingRow) {
+                            $slug = preg_replace('/[^a-z0-9_-]/i', '', (string) ($fontSettingRow->option_value ?? ''));
+                            if ($slug !== '') {
+                                $requestedFontSlugs[] = $slug;
+                            }
+                        }
+
+                        $requestedFontSlugs = array_values(array_unique($requestedFontSlugs));
+                    }
+
+                    if ($requestedFontSlugs === []) {
                         return;
                     }
 
@@ -695,7 +710,11 @@ class Bootstrap
 
                         $cssFile = ABSPATH . ltrim($fontMap[$slug], '/');
                         if (is_file($cssFile)) {
-                            echo '<link rel="stylesheet" href="' . SITE_URL . '/' . htmlspecialchars($fontMap[$slug], ENT_QUOTES, 'UTF-8') . '">' . "\n";
+                            $cssHref = function_exists('cms_runtime_base_url')
+                                ? cms_runtime_base_url(ltrim((string) $fontMap[$slug], '/'))
+                                : rtrim((string) SITE_URL, '/') . '/' . ltrim((string) $fontMap[$slug], '/');
+
+                            echo '<link rel="stylesheet" href="' . htmlspecialchars($cssHref, ENT_QUOTES, 'UTF-8') . '">' . "\n";
                         }
                     }
                 } catch (\Throwable $e) {

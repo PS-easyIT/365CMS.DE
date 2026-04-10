@@ -56,6 +56,18 @@ $lpBtns = array_values(array_filter($lpBtns, fn($b) => !empty($b['text']) && !em
 
 // ── Farben mit Defaults ───────────────────────────────────
 $safe = fn(string $v): string => htmlspecialchars($v, ENT_QUOTES, 'UTF-8');
+$resolveLandingAssetUrl = static function (string $path): string {
+    $path = trim($path);
+    if ($path === '') {
+        return '';
+    }
+
+    if (preg_match('#^(?:[a-z][a-z0-9+.-]*:)?//#i', $path) === 1) {
+        return function_exists('esc_url') ? esc_url($path) : $path;
+    }
+
+    return '/' . ltrim($path, '/');
+};
 $renderLandingHtml = static function (string $html): string {
     $allowedTags = '<p><a><strong><em><ul><ol><li><h2><h3><h4><br><hr><img><blockquote><code>';
     $html = html_entity_decode($html, ENT_QUOTES | ENT_HTML5, 'UTF-8');
@@ -79,6 +91,12 @@ $featuresBgCol  = $safe($lpColors['features_bg']          ?? '#f8fafc');
 $featCardBg     = $safe($lpColors['feature_card_bg']      ?? '#ffffff');
 $featCardHover  = $safe($lpColors['feature_card_hover']   ?? '#3b82f6');
 $btnPrimary     = $safe($lpColors['primary_button']       ?? '#3b82f6');
+$lpLogoUrl      = $resolveLandingAssetUrl((string)$lpLogo);
+$lpBgImageUrl   = $resolveLandingAssetUrl((string)($lpHeader['bg_image'] ?? ''));
+$lpLogoUrlEscaped = function_exists('esc_url') ? esc_url($lpLogoUrl) : $safe($lpLogoUrl);
+$lpBgImageUrlEscaped = function_exists('esc_url') ? esc_url($lpBgImageUrl) : $safe($lpBgImageUrl);
+$lpHasLogoImage = $lpLogoUrlEscaped !== '';
+$lpHasBgImage = $lpBgImageUrlEscaped !== '';
 
 // ── Design-Tokens aus LP-Admin ────────────────────────────
 $dCardBr     = max(0, min(48, (int)($lpDesign['card_border_radius']   ?? 12)));
@@ -226,12 +244,26 @@ main.site-main       { padding: 0 !important; margin: 0 !important; }
     <section class="lp-hero" style="
         margin-top:0;
         padding:<?php echo $heroPadding;?>;
-        background:linear-gradient(135deg,var(--lp-grad-start) 0%,var(--lp-grad-end) 100%);
-        border-bottom:3px solid var(--lp-border);">
-        <div class="lp-hero__inner">
+        background-color:var(--lp-grad-end);
+        background-image:linear-gradient(135deg,var(--lp-grad-start) 0%,var(--lp-grad-end) 100%);
+        background-position:center;
+        background-repeat:no-repeat;
+        background-size:cover;
+        border-bottom:3px solid var(--lp-border);
+        position:relative;
+        overflow:hidden;">
+        <?php if ($lpHasBgImage): ?>
+        <div aria-hidden="true" style="position:absolute;inset:0;opacity:.32;pointer-events:none;">
+            <img src="<?php echo $lpBgImageUrlEscaped; ?>"
+                 alt=""
+                 loading="eager"
+                 style="width:100%;height:100%;object-fit:cover;display:block;">
+        </div>
+        <?php endif; ?>
+        <div class="lp-hero__inner" style="position:relative;z-index:1;">
 
-            <?php if (!empty($lpLogo)): ?>
-            <img src="<?php echo $safe($lpLogo); ?>"
+            <?php if ($lpHasLogoImage): ?>
+            <img src="<?php echo $lpLogoUrlEscaped; ?>"
                  alt="<?php echo $safe($lpTitle); ?>"
                  style="max-height:<?php echo $logoMaxH;?>;margin:0 auto <?php echo $logoMarginB;?>;display:block;">
             <?php endif; ?>
@@ -401,7 +433,7 @@ main.site-main       { padding: 0 !important; margin: 0 !important; }
     <div class="empty-state" style="padding:3rem 0;">
         <p style="font-size:3rem;margin:0">📝</p>
         <p><strong>Freitext-Bereich ist aktiv</strong></p>
-        <p class="text-muted">Trage im Admin unter <a href="<?php echo SITE_URL; ?>/admin/landing-page?tab=content">Landing Page → Content</a> einen Text ein, damit dieser Bereich im Frontend ausgegeben wird.</p>
+        <p class="text-muted">Trage im Admin unter <a href="/admin/landing-page?tab=content">Landing Page → Content</a> einen Text ein, damit dieser Bereich im Frontend ausgegeben wird.</p>
     </div>
     <?php endif; ?>
 
@@ -410,7 +442,7 @@ main.site-main       { padding: 0 !important; margin: 0 !important; }
     <div class="empty-state" style="padding:3rem 0;">
         <p style="font-size:3rem;margin:0">🏗️</p>
         <p><strong>Startseite noch nicht konfiguriert</strong></p>
-        <p class="text-muted">Richte die Landing Page unter <a href="<?php echo SITE_URL; ?>/admin/landing-page.php">Admin → Landing Page</a> ein.</p>
+        <p class="text-muted">Richte die Landing Page unter <a href="/admin/landing-page">Admin → Landing Page</a> ein.</p>
     </div>
     <?php endif; ?>
 

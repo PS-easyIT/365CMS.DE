@@ -47,6 +47,7 @@ final class LandingHeaderService
                 'header_layout' => $data['header_layout'] ?? 'standard',
                 'description' => $data['description'] ?? 'Ein leistungsstarkes, sicheres und erweiterbares CMS.',
                 'header_buttons' => is_array($data['header_buttons'] ?? null) ? $data['header_buttons'] : [],
+                'bg_image' => (string)($data['bg_image'] ?? ''),
                 'github_url' => $data['github_url'] ?? '',
                 'github_text' => $data['github_text'] ?? '💻 GitHub Projekt',
                 'gitlab_url' => $data['gitlab_url'] ?? '',
@@ -86,6 +87,9 @@ final class LandingHeaderService
             'header_layout' => $this->sanitizer->sanitizeEnum((string)($data['header_layout'] ?? $existing['header_layout'] ?? 'standard'), self::ALLOWED_HEADER_LAYOUTS, 'standard'),
             'description' => $this->sanitizer->normalizeHtml($data['description'] ?? $existing['description']),
             'header_buttons' => $this->sanitizer->sanitizeHeaderButtons($data['header_buttons'] ?? $existing['header_buttons'] ?? []),
+            'bg_image' => isset($data['bg_image'])
+                ? $this->normalizeAssetPath((string)$data['bg_image'])
+                : (string)($existing['bg_image'] ?? ''),
             'github_url' => $this->sanitizer->sanitizeUrl((string)($data['github_url'] ?? $existing['github_url'] ?? '')),
             'github_text' => $this->sanitizer->sanitizePlainText((string)($data['github_text'] ?? $existing['github_text'] ?? '💻 GitHub Projekt'), 40),
             'gitlab_url' => $this->sanitizer->sanitizeUrl((string)($data['gitlab_url'] ?? $existing['gitlab_url'] ?? '')),
@@ -134,5 +138,20 @@ final class LandingHeaderService
         }
 
         return $this->updateHeader($merged);
+    }
+
+    private function normalizeAssetPath(string $value): string
+    {
+        $value = trim($value);
+        if ($value === '') {
+            return '';
+        }
+
+        $url = $this->sanitizer->sanitizeUrl($value);
+        if ($url !== '') {
+            return $url;
+        }
+
+        return $this->sanitizer->sanitizeRelativeAssetPath($value);
     }
 }

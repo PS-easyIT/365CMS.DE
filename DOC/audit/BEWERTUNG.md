@@ -350,6 +350,42 @@ Der aktuelle Nachpflege-Stand umfasst damit **465 umgesetzte Batches**, davon we
 |---|---|---|---|
 | `CMS/assets/js/admin-content-editor.js`, `DOC/audit/AssetAudit-EditorJS.md`, `DOC/audit/AdminAudit-Seiten.md`, `DOC/audit/AdminAudit-Beitraege.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Offene AI-Preview-/Diff-Karten werden jetzt invalidiert, sobald sich der EN-Zielzustand im Content-Editor manuell ändert, statt veraltete Vorschläge weiter mit aktivem `Übernehmen`-/`Verwerfen`-Pfad sichtbar zu lassen. | Seiten- und Beitragseditoren können damit nach manuellen EN-Änderungen keinen stale AI-Vorschlag mehr erneut über frisch bearbeitete Inhalte legen. Der gemeinsame DE→EN-/AI-Flow bleibt damit auch in Misch-Workflows aus Vorschau und Handarbeit fail-closed konsistent. Die Aggregate bleiben für diesen kleinen Editor.js-/Content-Batch stabil. |
 
+### Delta Folge-Batch 514
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/themes/ThemeEditorModule.php`, `DOC/audit/AdminAudit-Design.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Der Theme-Explorer lehnt angeforderte Dateien jetzt auch dann fail-closed ab, wenn der angegebene Pfad zwar formal sauber aussieht, intern aber über einen Symlink auf eigentlich übersprungene Ziele wie `vendor/...` oder andere verborgene Teilpfade zeigt. | Manuell gesetzte `?file=`-Aliase können damit die Symlink-/Skip-Segment-Grenzen des Explorers nicht mehr indirekt aushebeln; Lese- und Save-Pfade bleiben wieder deckungsgleich zu Dateibaum, Warnhinweisen und dem dokumentierten Sicherheitsvertrag. Die Aggregate bleiben für diesen kleinen Design-/Theme-Explorer-Batch stabil. |
+
+### Delta Folge-Batch 515
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/views/menus/editor.php`, `DOC/audit/AdminAudit-Design.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Der Menü-Editor nutzt für interne Menüwechsel und Theme-Positions-Sprünge jetzt dieselbe hostneutrale relative Admin-Basis `/admin/menu-editor` statt an `SITE_URL` gehängter Links. | Menüwechsel bleiben damit auch unter Proxy-, Alternativhost- oder lokaler Dev-Umgebung im aktiven Admin-Kontext, statt beim einfachen Klick auf eine Menüliste oder Positionskarte auf eine falsche Origin zu springen. Die Aggregate bleiben für diesen kleinen Design-/Menü-Editor-Batch stabil. |
+
+### Delta Folge-Batch 516
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/themes/FontManagerModule.php`, `CMS/core/Bootstrap.php`, `DOC/audit/AdminAudit-Design.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Der Font-Manager schreibt lokal gespeicherte Font-Dateien im generierten Self-Hosting-CSS jetzt nur noch hostneutral relativ und der Frontend-Bootstrap löst die gespeicherten CSS-Dateien gegen die aktuelle Runtime-URL statt hart gegen `SITE_URL` auf. | Self-hosted Fonts bleiben damit auch unter Proxy-, Alternativhost- oder lokaler Dev-Umgebung wirklich same-origin und hostneutral; lokal gespiegeltete WOFF-/CSS-Pfade kippen nicht mehr still auf eine falsche Origin, obwohl der Font-Manager gerade externe CDN-Abhängigkeiten abbauen soll. Die Aggregate bleiben für diesen kleinen Design-/Font-Manager-Batch stabil. |
+
+### Delta Folge-Batch 517
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/themes/FontManagerModule.php`, `CMS/core/Bootstrap.php`, `CMS/core/ThemeManager.php`, `DOC/audit/AdminAudit-Design.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Der Font-Manager hängt seine gespeicherten Typografie-Zuordnungen jetzt nicht mehr nur an den Admin-Save, sondern reicht lokale Font-Slugs, Größen und Zeilenhöhe auch in die Frontend-Runtime durch, statt auf einen leeren `local_font_slugs`-Filter und ungenutzte `font_*`-Settings zu vertrauen. | Aktivierte lokale Fonts wirken damit im Live-Frontend wieder tatsächlich auf Schriftfamilien, Font-Größe und Zeilenhöhe, statt Google Fonts nur abzuschalten und die vom Font Manager gespeicherten Zuweisungen ansonsten folgenlos in der DB liegen zu lassen. Die Aggregate bleiben für diesen kleinen Design-/Font-Runtime-Batch stabil. |
+
+### Delta Folge-Batch 518
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/core/Services/Landing/LandingHeaderService.php`, `CMS/core/Services/Landing/LandingDefaultsProvider.php`, `CMS/themes/cms-default/home.php`, `CMS/themes/cms-default/partials/home-landing.php`, `DOC/audit/AdminAudit-Design.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Der Landing-Header verliert das im Admin gepflegte Hero-Hintergrundbild nicht mehr zwischen Service und Frontend: `bg_image` wird wieder aus dem Header-Vertrag geladen, über die aktuelle Runtime-URL aufgelöst und in beiden Landing-Templates als echter Hero-Hintergrund gerendert; parallel nutzen die Frontend-Hinweise zur Landing-Konfiguration keine an `SITE_URL` oder `/admin/landing-page.php` gebundenen Admin-Links mehr. | Landing-Hintergrundbilder wirken damit im Live-Frontend wieder tatsächlich statt still in der Datenbank zu verschwinden, und interne Admin-Hinweislinks aus den Public-Leerzuständen bleiben auch unter Proxy-, Alternativhost- oder lokaler Dev-Umgebung auf der aktuellen Origin statt auf einer veralteten Host-/Legacy-Route zu landen. Die Aggregate bleiben für diesen kleinen Design-/Landing-Frontend-Batch stabil. |
+
+### Delta Folge-Batch 513
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/theme-editor.php`, `DOC/audit/AdminAudit-Design.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Der Theme-Editor bindet `admin/customizer.php` des aktiven Themes jetzt nur noch ein, wenn die Datei im Theme-Pfad liegt, syntaktisch parsebar ist und keine blockierten Risko-Funktionen wie `eval`, `exec` oder `shell_exec` enthält. | Defekte oder riskante Theme-Customizer reißen den Admin damit nicht mehr direkt beim Öffnen des Theme Editors aus der Kurve, sondern landen fail-closed auf der sicheren Fallback-View mit nachvollziehbarem Hinweis. Die Aggregate bleiben für diesen kleinen Design-/Theme-Editor-Batch stabil. |
+
 ### Delta Folge-Batch 512
 
 | Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |

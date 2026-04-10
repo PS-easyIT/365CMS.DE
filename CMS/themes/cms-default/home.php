@@ -186,7 +186,18 @@ $lpBtns = array_values(array_filter($lpBtns, fn($b) => !empty($b['text']) && !em
 
 // ── Farben mit Defaults ───────────────────────────────────
 $safe = fn(string $v): string => htmlspecialchars($v, ENT_QUOTES, 'UTF-8');
+$resolveLandingAssetUrl = static function (string $path): string {
+    $path = trim($path);
+    if ($path === '') {
+        return '';
+    }
 
+    if (preg_match('#^(?:[a-z][a-z0-9+.-]*:)?//#i', $path) === 1) {
+        return function_exists('esc_url') ? esc_url($path) : $path;
+    }
+
+    return '/' . ltrim($path, '/');
+};
 $heroGradStart  = $safe($lpColors['hero_gradient_start'] ?? '#1a2744');
 $heroGradEnd    = $safe($lpColors['hero_gradient_end']   ?? '#0c1526');
 $heroBorderCol  = $safe($lpColors['hero_border']          ?? '#3b82f6');
@@ -195,6 +206,8 @@ $featuresBgCol  = $safe($lpColors['features_bg']          ?? '#f8fafc');
 $featCardBg     = $safe($lpColors['feature_card_bg']      ?? '#ffffff');
 $featCardHover  = $safe($lpColors['feature_card_hover']   ?? '#3b82f6');
 $btnPrimary     = $safe($lpColors['primary_button']       ?? '#3b82f6');
+$lpLogoUrl      = $resolveLandingAssetUrl((string)$lpLogo);
+$lpBgImageUrl   = $resolveLandingAssetUrl((string)($lpHeader['bg_image'] ?? ''));
 
 // ── Design-Tokens aus LP-Admin ────────────────────────────
 $dCardBr     = max(0, min(48, (int)($lpDesign['card_border_radius']   ?? 12)));
@@ -299,12 +312,26 @@ main.site-main       { padding: 0 !important; margin: 0 !important; }
     <section class="lp-hero" style="
         margin-top:0;
         padding:<?php echo $heroPadding;?>;
-        background:linear-gradient(135deg,var(--lp-grad-start) 0%,var(--lp-grad-end) 100%);
-        border-bottom:3px solid var(--lp-border);">
-        <div class="lp-hero__inner">
+        background-color:var(--lp-grad-end);
+        background-image:linear-gradient(135deg,var(--lp-grad-start) 0%,var(--lp-grad-end) 100%);
+        background-position:center;
+        background-repeat:no-repeat;
+        background-size:cover;
+        border-bottom:3px solid var(--lp-border);
+        position:relative;
+        overflow:hidden;">
+        <?php if ($lpBgImageUrl !== ''): ?>
+        <div aria-hidden="true" style="position:absolute;inset:0;opacity:.32;pointer-events:none;">
+            <img src="<?php echo function_exists('esc_url') ? esc_url($lpBgImageUrl) : $safe($lpBgImageUrl); ?>"
+                 alt=""
+                 loading="eager"
+                 style="width:100%;height:100%;object-fit:cover;display:block;">
+        </div>
+        <?php endif; ?>
+        <div class="lp-hero__inner" style="position:relative;z-index:1;">
 
-            <?php if (!empty($lpLogo)): ?>
-            <img src="<?php echo $safe($lpLogo); ?>"
+            <?php if ($lpLogoUrl !== ''): ?>
+            <img src="<?php echo function_exists('esc_url') ? esc_url($lpLogoUrl) : $safe($lpLogoUrl); ?>"
                  alt="<?php echo $safe($lpTitle); ?>"
                  style="max-height:<?php echo $logoMaxH;?>;margin:0 auto <?php echo $logoMarginB;?>;display:block;">
             <?php endif; ?>
@@ -474,7 +501,7 @@ main.site-main       { padding: 0 !important; margin: 0 !important; }
     <div class="empty-state" style="padding:3rem 0;">
         <p style="font-size:3rem;margin:0">🏗️</p>
         <p><strong>Startseite noch nicht konfiguriert</strong></p>
-        <p class="text-muted">Richte die Landing Page unter <a href="<?php echo SITE_URL; ?>/admin/landing-page.php">Admin → Landing Page</a> ein.</p>
+        <p class="text-muted">Richte die Landing Page unter <a href="/admin/landing-page">Admin → Landing Page</a> ein.</p>
     </div>
     <?php endif; ?>
 

@@ -952,17 +952,101 @@ class ThemeManager
         if (isset($s['color_secondary'])) echo "    --secondary-color: " . htmlspecialchars($s['color_secondary']) . ";\n";
         if (isset($s['color_bg'])) echo "    --bg-secondary: " . htmlspecialchars($s['color_bg']) . ";\n";
         if (isset($s['color_text'])) echo "    --text-primary: " . htmlspecialchars($s['color_text']) . ";\n";
+
+        $bodyFontStack = $this->resolveConfiguredFontStack((string) ($s['font_body'] ?? ''));
+        $headingFontStack = $this->resolveConfiguredFontStack((string) ($s['font_heading'] ?? ''));
+        $bodyFontSize = $this->normalizeFontSizeCssValue($s['font_size_base'] ?? $s['font_size'] ?? null);
+        $bodyLineHeight = $this->normalizeLineHeightCssValue($s['font_line_height'] ?? null);
+
+        if ($bodyFontStack !== '') echo "    --font-body: " . htmlspecialchars($bodyFontStack, ENT_QUOTES, 'UTF-8') . ";\n";
+        if ($bodyFontStack !== '') echo "    --font-sans: " . htmlspecialchars($bodyFontStack, ENT_QUOTES, 'UTF-8') . ";\n";
+        if ($bodyFontStack !== '') echo "    --font-family-base: " . htmlspecialchars($bodyFontStack, ENT_QUOTES, 'UTF-8') . ";\n";
+        if ($headingFontStack !== '') echo "    --font-heading: " . htmlspecialchars($headingFontStack, ENT_QUOTES, 'UTF-8') . ";\n";
+        if ($headingFontStack !== '') echo "    --font-serif: " . htmlspecialchars($headingFontStack, ENT_QUOTES, 'UTF-8') . ";\n";
+        if ($headingFontStack !== '') echo "    --font-family-heading: " . htmlspecialchars($headingFontStack, ENT_QUOTES, 'UTF-8') . ";\n";
+        if ($bodyFontSize !== '') echo "    --font-size-base: " . htmlspecialchars($bodyFontSize, ENT_QUOTES, 'UTF-8') . ";\n";
+        if ($bodyLineHeight !== '') echo "    --line-height-base: " . htmlspecialchars($bodyLineHeight, ENT_QUOTES, 'UTF-8') . ";\n";
         
         echo "}\n";
         
-        if (isset($s['font_family']) || isset($s['font_size'])) {
+        if ($bodyFontStack !== '' || isset($s['font_family']) || $bodyFontSize !== '' || $bodyLineHeight !== '') {
             echo "body {\n";
+            if ($bodyFontStack !== '') echo "    font-family: " . htmlspecialchars($bodyFontStack, ENT_QUOTES, 'UTF-8') . ";\n";
             if (isset($s['font_family'])) echo "    font-family: " . htmlspecialchars($s['font_family'], ENT_QUOTES, 'UTF-8') . ";\n";
-            if (isset($s['font_size'])) echo "    font-size: " . htmlspecialchars($s['font_size']) . ";\n";
+            if ($bodyFontSize !== '') echo "    font-size: " . htmlspecialchars($bodyFontSize, ENT_QUOTES, 'UTF-8') . ";\n";
+            if ($bodyLineHeight !== '') echo "    line-height: " . htmlspecialchars($bodyLineHeight, ENT_QUOTES, 'UTF-8') . ";\n";
+            if (isset($s['font_size']) && $bodyFontSize === '') echo "    font-size: " . htmlspecialchars($s['font_size']) . ";\n";
+            echo "}\n";
+        }
+
+        if ($headingFontStack !== '') {
+            echo "h1, h2, h3, h4, h5, h6 {\n";
+            echo "    font-family: " . htmlspecialchars($headingFontStack, ENT_QUOTES, 'UTF-8') . ";\n";
             echo "}\n";
         }
         
         echo "</style>\n";
+    }
+
+    private function resolveConfiguredFontStack(string $fontKey): string
+    {
+        $fontKey = strtolower(trim($fontKey));
+        if ($fontKey === '') {
+            return '';
+        }
+
+        $customStackKey = 'font_stack_' . $fontKey;
+        $customStack = trim((string) ($this->settings[$customStackKey] ?? ''));
+        if ($customStack !== '') {
+            return $customStack;
+        }
+
+        return match ($fontKey) {
+            'system-ui' => 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+            'arial' => 'Arial, "Helvetica Neue", Helvetica, sans-serif',
+            'georgia' => 'Georgia, "Times New Roman", Times, serif',
+            'times-new-roman' => '"Times New Roman", Times, serif',
+            'courier-new' => '"Courier New", Courier, monospace',
+            'verdana' => 'Verdana, Geneva, sans-serif',
+            'trebuchet-ms' => '"Trebuchet MS", "Lucida Grande", sans-serif',
+            default => '',
+        };
+    }
+
+    private function normalizeFontSizeCssValue(mixed $value): string
+    {
+        if (!is_scalar($value)) {
+            return '';
+        }
+
+        $normalized = trim((string) $value);
+        if ($normalized === '') {
+            return '';
+        }
+
+        if (is_numeric($normalized)) {
+            $size = max(10, min(72, (int) round((float) $normalized)));
+
+            return $size . 'px';
+        }
+
+        return $normalized;
+    }
+
+    private function normalizeLineHeightCssValue(mixed $value): string
+    {
+        if (!is_scalar($value)) {
+            return '';
+        }
+
+        $normalized = trim(str_replace(',', '.', (string) $value));
+        if ($normalized === '' || !is_numeric($normalized)) {
+            return '';
+        }
+
+        $lineHeight = max(1.0, min(3.0, (float) $normalized));
+
+        return number_format($lineHeight, 1, '.', '');
     }
 
     /**
