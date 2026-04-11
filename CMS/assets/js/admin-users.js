@@ -1,6 +1,20 @@
 (function () {
     'use strict';
 
+    function setSubmittingState(form, isSubmitting) {
+        if (!form) {
+            return;
+        }
+
+        form.dataset.submitting = isSubmitting ? '1' : '0';
+
+        var submitButton = form.querySelector('button[type="submit"]');
+        if (submitButton) {
+            submitButton.disabled = isSubmitting;
+            submitButton.setAttribute('aria-disabled', isSubmitting ? 'true' : 'false');
+        }
+    }
+
     function openModal(modalId) {
         var modalElement = document.getElementById(modalId);
         if (!modalElement || typeof bootstrap === 'undefined' || !bootstrap.Modal) {
@@ -54,6 +68,8 @@
             return;
         }
 
+        setSubmittingState(bulkForm, false);
+
         function syncCheckboxes() {
             root.querySelectorAll('.bulk-row-check').forEach(function (checkbox) {
                 checkbox.checked = selectedIds.has(String(checkbox.value));
@@ -105,23 +121,31 @@
         });
 
         bulkForm.addEventListener('submit', function (event) {
+            if (bulkForm.dataset.submitting === '1') {
+                event.preventDefault();
+                return;
+            }
+
             bulkForm.querySelectorAll('input[name="ids[]"]').forEach(function (input) {
                 input.remove();
             });
 
             if (selectedIds.size === 0) {
                 event.preventDefault();
+                setSubmittingState(bulkForm, false);
                 return;
             }
 
             if (bulkActionSelect.value === '') {
                 event.preventDefault();
+                setSubmittingState(bulkForm, false);
                 bulkActionSelect.focus();
                 return;
             }
 
             if (bulkActionSelect.value === 'hard_delete' && !window.confirm('Die ausgewählten Benutzer wirklich dauerhaft löschen?')) {
                 event.preventDefault();
+                setSubmittingState(bulkForm, false);
                 return;
             }
 
@@ -132,6 +156,8 @@
                 input.value = id;
                 bulkForm.appendChild(input);
             });
+
+            setSubmittingState(bulkForm, true);
         });
 
         updateState();

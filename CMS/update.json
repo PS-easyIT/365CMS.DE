@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.9.116",
+  "version": "2.9.190",
   "min_php": "8.4",
   "released": "2026-04-11",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 2.9.116: Der SEO-Admin normalisiert Audit-Enums jetzt fail-closed, behandelt Same-Site-Indexing-, Broken-Link- und Backlink-Pfade runtime-aware über konfigurierte und aktuelle Host-Autoritäten und baut öffentliche Sitemap-/IndexNow-/SERP-Beispiel-URLs im Admin ohne starre SITE_URL-Bindung auf.",
+  "notes": "Release-Stand 2.9.190: Der Design-Cluster zieht Legacy-Fallbacks in Theme-Explorer, Menü-Editor und Font-Manager auf native temporäre Submitter zusammen, validiert stale `?menu=`-Ziele im Menü-Editor vor dem Rendern fail-closed gegen den Live-Bestand und hängt Landing-/CMS-Auth-Servicefehler samt mbstring-kritischer Legacy-Feature-Normalisierung enger an strukturierte Logger- und Fallback-Verträge.",
   "critical": false
 }

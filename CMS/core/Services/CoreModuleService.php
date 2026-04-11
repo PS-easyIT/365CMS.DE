@@ -172,11 +172,7 @@ final class CoreModuleService
             return true;
         }
 
-        $storedEnabled = $this->settings->getBool(
-            self::SETTINGS_GROUP,
-            $slug,
-            (bool) ($definition['default_enabled'] ?? true)
-        );
+        $storedEnabled = $this->resolveStoredEnabledState($slug, $definition);
 
         if (!$storedEnabled || !$resolveDependencies) {
             return $storedEnabled;
@@ -331,11 +327,7 @@ final class CoreModuleService
     /** @param array<string, mixed> $definition */
     private function buildAdminModulePayload(string $slug, array $definition): array
     {
-        $storedEnabled = $this->settings->getBool(
-            self::SETTINGS_GROUP,
-            $slug,
-            (bool) ($definition['default_enabled'] ?? true)
-        );
+        $storedEnabled = $this->resolveStoredEnabledState($slug, $definition);
         $effectiveEnabled = $this->isModuleEnabled($slug, true);
 
         $dependencyLabels = [];
@@ -370,6 +362,63 @@ final class CoreModuleService
             'legacy_setting' => (string) ($definition['legacy_setting'] ?? ''),
             'status_reason' => $statusReason,
         ];
+    }
+
+    /** @param array<string, mixed> $definition */
+    private function resolveStoredEnabledState(string $slug, array $definition): bool
+    {
+        $default = (bool) ($definition['default_enabled'] ?? true);
+        $storedValue = $this->settings->get(self::SETTINGS_GROUP, $slug, null);
+        if ($storedValue !== null) {
+            return $this->normalizeStoredEnabledValue($storedValue, $default);
+        }
+
+        $legacySetting = trim((string) ($definition['legacy_setting'] ?? ''));
+        if ($legacySetting !== '') {
+            return $this->readLegacyEnabledSetting($legacySetting, $default);
+        }
+
+        return $default;
+    }
+
+    private function readLegacyEnabledSetting(string $settingKey, bool $default): bool
+    {
+        try {
+            $value = $this->db->get_var(
+                "SELECT option_value FROM {$this->prefix}settings WHERE option_name = ? LIMIT 1",
+                [$settingKey]
+            );
+        } catch (\Throwable) {
+            return $default;
+        }
+
+        if ($value === null) {
+            return $default;
+        }
+
+        return $this->normalizeStoredEnabledValue($value, $default);
+    }
+
+    private function normalizeStoredEnabledValue(mixed $value, bool $default): bool
+    {
+        if (is_bool($value)) {
+            return $value;
+        }
+
+        if (is_numeric($value)) {
+            return (int) $value === 1;
+        }
+
+        if (is_string($value)) {
+            $normalized = strtolower(trim($value));
+            if ($normalized === '') {
+                return $default;
+            }
+
+            return in_array($normalized, ['1', 'true', 'yes', 'on'], true);
+        }
+
+        return $default;
     }
 
     private function pageBelongsToSidebarGroup(string $pageSlug, string $sidebarGroup): bool

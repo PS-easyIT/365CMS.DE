@@ -366,6 +366,10 @@ class MediaModule
             return ['success' => false, 'error' => 'Upload-Datei ist ungültig.'];
         }
 
+        if ($normalizedTargetPath !== '' && !$this->directoryExists($normalizedTargetPath)) {
+            return ['success' => false, 'error' => 'Der Zielordner für den Upload existiert nicht mehr.'];
+        }
+
         $result = $this->service->uploadFile($normalizedFile, $normalizedTargetPath);
         if ($result instanceof WP_Error) {
             return $this->buildGenericFailureFromWpError($result, [
@@ -397,6 +401,14 @@ class MediaModule
             return ['success' => false, 'error' => 'Elementpfad ist ungültig.'];
         }
 
+        if ($this->isProtectedPath($normalizedPath)) {
+            return ['success' => false, 'error' => 'Geschützte Systemordner können nicht gelöscht werden.'];
+        }
+
+        if (!$this->hasItem($normalizedPath)) {
+            return ['success' => false, 'error' => 'Das gewählte Element existiert nicht mehr.'];
+        }
+
         $result = $this->service->deleteItem($normalizedPath);
         if ($result instanceof WP_Error) {
             return $this->buildGenericFailureFromWpError($result, [
@@ -423,6 +435,14 @@ class MediaModule
         $sanitizedName = $this->sanitizeItemName($newName);
         if ($normalizedPath === '' || $sanitizedName === '') {
             return ['success' => false, 'error' => 'Umbenennen mit diesen Angaben ist nicht möglich.'];
+        }
+
+        if ($this->isProtectedPath($normalizedPath)) {
+            return ['success' => false, 'error' => 'Geschützte Systemordner können nicht umbenannt werden.'];
+        }
+
+        if (!$this->hasItem($normalizedPath)) {
+            return ['success' => false, 'error' => 'Das gewählte Element existiert nicht mehr.'];
         }
 
         $result = $this->service->renameItem($normalizedPath, $sanitizedName);
@@ -456,6 +476,18 @@ class MediaModule
 
         if ($normalizedPath === '') {
             return ['success' => false, 'error' => 'Verschieben mit diesen Angaben ist nicht möglich.'];
+        }
+
+        if ($this->isProtectedPath($normalizedPath)) {
+            return ['success' => false, 'error' => 'Geschützte Systemordner können nicht verschoben werden.'];
+        }
+
+        if (!$this->hasItem($normalizedPath)) {
+            return ['success' => false, 'error' => 'Das gewählte Element existiert nicht mehr.'];
+        }
+
+        if ($normalizedTargetParentPath !== '' && !$this->directoryExists($normalizedTargetParentPath)) {
+            return ['success' => false, 'error' => 'Der gewählte Zielordner existiert nicht mehr.'];
         }
 
         $currentParentPath = $this->resolveParentPathFromActionPath($normalizedPath);
@@ -522,6 +554,29 @@ class MediaModule
         }
 
         $normalizedTargetParentPath = $this->normalizeRelativePath($targetParentPath);
+
+        $missingPaths = $this->collectMissingPaths($selectedPaths);
+        if ($missingPaths !== []) {
+            return [
+                'success' => false,
+                'error' => 'Die Auswahl enthält veraltete oder bereits gelöschte Medien. Bitte die Liste aktualisieren.',
+                'details' => array_map(static fn (string $path): string => 'Fehlend: ' . $path, array_slice($missingPaths, 0, 8)),
+            ];
+        }
+
+        $protectedPaths = $this->collectProtectedPaths($selectedPaths);
+        if ($protectedPaths !== []) {
+            return [
+                'success' => false,
+                'error' => 'Geschützte Systemordner dürfen nicht per Bulk-Aktion verändert werden.',
+                'details' => array_map(static fn (string $path): string => 'Geschützt: ' . $path, array_slice($protectedPaths, 0, 8)),
+            ];
+        }
+
+        if ($normalizedBulkAction === 'move' && $normalizedTargetParentPath !== '' && !$this->directoryExists($normalizedTargetParentPath)) {
+            return ['success' => false, 'error' => 'Der gewählte Zielordner existiert nicht mehr.'];
+        }
+
         $successCount = 0;
         $skippedCount = 0;
         $details = [];
@@ -702,6 +757,10 @@ class MediaModule
         $normalizedSlug = $this->normalizeCategorySlug($slug);
         if ($normalizedSlug === '' || in_array($normalizedSlug, self::SYSTEM_CATEGORY_SLUGS, true)) {
             return ['success' => false, 'error' => 'Kategorie kann nicht gelöscht werden.'];
+        }
+
+        if (!$this->categoryExists($normalizedSlug)) {
+            return ['success' => false, 'error' => 'Die gewählte Kategorie existiert nicht mehr.'];
         }
 
         $result = $this->service->deleteCategory($normalizedSlug);
@@ -909,6 +968,70 @@ class MediaModule
         return self::MEMBER_FOLDER_CONFIRM_MESSAGE;
     }
 
+    public function hasItem(string $path): bool
+    {
+        $normalizedPath = $this->normalizeRelativePath($path);
+        if ($normalizedPath === '') {
+            return false;
+        }
+
+        return $this->service->pathExists($normalizedPath);
+    }
+
+    public function directoryExists(string $path): bool
+    {
+        $normalizedPath = $this->normalizeRelativePath($path);
+        if ($normalizedPath === '') {
+            return trim($path) === '' && $this->service->directoryExists('');
+        }
+
+        return $this->service->directoryExists($normalizedPath);
+    }
+
+    private function isProtectedPath(string $path): bool
+    {
+        $normalizedPath = $this->normalizeRelativePath($path);
+        if ($normalizedPath === '') {
+            return false;
+        }
+
+        return $this->service->isProtectedPath($normalizedPath);
+    }
+
+    /**
+     * @param array<int, string> $paths
+     * @return list<string>
+     */
+    private function collectMissingPaths(array $paths): array
+    {
+        $missing = [];
+
+        foreach ($paths as $path) {
+            if (!$this->hasItem($path)) {
+                $missing[] = $path;
+            }
+        }
+
+        return $missing;
+    }
+
+    /**
+     * @param array<int, string> $paths
+     * @return list<string>
+     */
+    private function collectProtectedPaths(array $paths): array
+    {
+        $protected = [];
+
+        foreach ($paths as $path) {
+            if ($this->isProtectedPath($path)) {
+                $protected[] = $path;
+            }
+        }
+
+        return $protected;
+    }
+
     private function normalizeRelativePath(string $path): string
     {
         $path = trim(str_replace('\\', '/', $path));
@@ -1010,6 +1133,27 @@ class MediaModule
      */
     private function executeBulkMove(string $selectedPath, string $targetParentPath): array
     {
+        if ($this->isProtectedPath($selectedPath)) {
+            return [
+                'status' => 'error',
+                'detail' => $selectedPath . ': Geschützte Systemordner können nicht verschoben werden.',
+            ];
+        }
+
+        if (!$this->hasItem($selectedPath)) {
+            return [
+                'status' => 'error',
+                'detail' => $selectedPath . ': Das Element existiert nicht mehr.',
+            ];
+        }
+
+        if ($targetParentPath !== '' && !$this->directoryExists($targetParentPath)) {
+            return [
+                'status' => 'error',
+                'detail' => $selectedPath . ': Der Zielordner existiert nicht mehr.',
+            ];
+        }
+
         $currentParentPath = $this->resolveParentPathFromActionPath($selectedPath);
 
         if ($targetParentPath === $currentParentPath) {

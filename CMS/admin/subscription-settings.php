@@ -14,6 +14,8 @@ use CMS\Auth;
 use CMS\Security;
 use CMS\Services\CoreModuleService;
 
+const CMS_ADMIN_SUBSCRIPTION_SETTINGS_CAPABILITY = 'manage_settings';
+
 /** @return array<string, string> */
 function cms_admin_subscription_settings_allowed_actions(): array
 {
@@ -46,7 +48,9 @@ function cms_admin_subscription_settings_flash_result(SubscriptionSettingsAction
     ]);
 }
 
-if (!Auth::instance()->isAdmin() || !CoreModuleService::getInstance()->isAdminPageEnabled('subscription-settings')) {
+if (!Auth::instance()->isAdmin()
+    || !Auth::instance()->hasCapability(CMS_ADMIN_SUBSCRIPTION_SETTINGS_CAPABILITY)
+    || !CoreModuleService::getInstance()->isAdminPageEnabled('subscription-settings')) {
     header('Location: /');
     exit;
 }

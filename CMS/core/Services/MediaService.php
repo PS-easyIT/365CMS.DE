@@ -740,6 +740,21 @@ class MediaService {
         return $result instanceof WP_Error ? $result : trim(str_replace('\\', '/', $relativeNewPath), '/');
     }
 
+    public function pathExists(string $relativePath): bool
+    {
+        return $this->repository->pathExists($relativePath);
+    }
+
+    public function directoryExists(string $relativePath): bool
+    {
+        return $this->repository->isDirectory($relativePath);
+    }
+
+    public function isProtectedPath(string $relativePath): bool
+    {
+        return $this->repository->isSystemPath($relativePath);
+    }
+
     /**
      * Delete an item (file or folder)
      */

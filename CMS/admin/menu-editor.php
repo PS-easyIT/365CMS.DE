@@ -20,6 +20,7 @@ const CMS_ADMIN_MENU_EDITOR_ALLOWED_ACTIONS = [
 
 const CMS_ADMIN_MENU_EDITOR_WRITE_CAPABILITY = 'manage_settings';
 const CMS_ADMIN_MENU_EDITOR_MAX_ITEMS_JSON_LENGTH = 250000;
+const CMS_ADMIN_MENU_EDITOR_ALERT_SESSION_KEY = 'admin_menu_editor_alert';
 
 function cms_admin_menu_editor_can_access(): bool
 {
@@ -38,6 +39,17 @@ function cms_admin_menu_editor_normalize_menu_id(mixed $menuId): int
     $normalizedMenuId = filter_var($menuId, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
 
     return $normalizedMenuId === false ? 0 : (int) $normalizedMenuId;
+}
+
+function cms_admin_menu_editor_flash(string $type, string $message, array $details = []): void
+{
+    $_SESSION[CMS_ADMIN_MENU_EDITOR_ALERT_SESSION_KEY] = [
+        'type' => $type,
+        'message' => trim($message),
+        'details' => $details,
+        'error_details' => [],
+        'report_payload' => [],
+    ];
 }
 
 /**
@@ -73,6 +85,20 @@ if (!cms_admin_menu_editor_can_access()) {
 }
 
 require_once __DIR__ . '/modules/menus/MenuEditorModule.php';
+
+$currentRequestedMenuId = cms_admin_menu_editor_normalize_menu_id($_GET['menu'] ?? 0);
+if ($currentRequestedMenuId > 0) {
+    $menuValidationModule = new MenuEditorModule();
+    if (!$menuValidationModule->menuExists($currentRequestedMenuId)) {
+        cms_admin_menu_editor_flash(
+            'warning',
+            'Das angeforderte Menü ist nicht mehr verfügbar.',
+            ['Menü-ID: ' . $currentRequestedMenuId]
+        );
+        header('Location: /admin/menu-editor');
+        exit;
+    }
+}
 
 function cms_admin_menu_editor_redirect_path(int $menuId = 0): string
 {
@@ -110,6 +136,7 @@ $sectionPageConfig = [
         ],
     ],
     'csrf_action' => 'admin_menu_editor',
+    'alert_session_key' => CMS_ADMIN_MENU_EDITOR_ALERT_SESSION_KEY,
     'module_file' => __DIR__ . '/modules/menus/MenuEditorModule.php',
     'module_factory' => static fn (): MenuEditorModule => new MenuEditorModule(),
     'access_checker' => static fn (): bool => cms_admin_menu_editor_can_access(),

@@ -63,7 +63,7 @@ final class MemberController
     {
         if (!$this->auth->isLoggedIn()) {
             $redirect = urlencode((string)($_SERVER['REQUEST_URI'] ?? '/member/dashboard'));
-            header('Location: ' . SITE_URL . '/login?redirect=' . $redirect);
+            header('Location: /login?redirect=' . $redirect);
             exit;
         }
 
@@ -201,12 +201,45 @@ final class MemberController
 
     public function redirect(string $path): void
     {
-        if (!str_starts_with($path, 'http')) {
-            $path = SITE_URL . $path;
+        if (!preg_match('#^https?://#i', $path)) {
+            $path = '/' . ltrim($path, '/');
         }
 
         header('Location: ' . $path);
         exit;
+    }
+
+    /**
+     * @return array<string,mixed>
+     */
+    public function getNotificationCenterConfig(): array
+    {
+        $settings = $this->getSettings();
+        $notifications = is_array($settings['notifications'] ?? null) ? $settings['notifications'] : [];
+        $types = array_values(array_filter(array_map([$this, 'normalizeNotificationType'], (array)($notifications['types'] ?? []))));
+
+        return [
+            'center_enabled' => !array_key_exists('center_enabled', $notifications) || !empty($notifications['center_enabled']),
+            'empty_text' => trim((string)($notifications['empty_text'] ?? 'Aktuell gibt es keine neuen Meldungen.')),
+            'types' => array_values(array_unique($types)),
+        ];
+    }
+
+    /**
+     * @return array<int,object>
+     */
+    public function getNotificationCenterNotifications(int $limit = 20): array
+    {
+        $config = $this->getNotificationCenterConfig();
+        if (empty($config['center_enabled'])) {
+            return [];
+        }
+
+        $limit = max(1, $limit);
+        $fetchLimit = max($limit * 4, $limit);
+        $notifications = $this->memberService->getRecentNotifications($this->getUserId(), $fetchLimit);
+
+        return array_slice($this->filterNotificationFeed($notifications, (array)($config['types'] ?? [])), 0, $limit);
     }
 
     public function getDisplayName(): string
@@ -343,6 +376,8 @@ final class MemberController
         $data['favorites'] = $this->getFavorites();
         $data['plugin_widgets'] = $this->getPluginWidgets();
         $data['custom_widgets'] = $this->getCustomWidgets();
+        $data['recent_notifications'] = $this->getNotificationCenterNotifications(5);
+        $data['notification_center'] = $this->getNotificationCenterConfig();
         $data['settings'] = $settings;
         return $data;
     }
@@ -1360,6 +1395,39 @@ final class MemberController
 
         $text = $this->sanitizeDashboardText((string) $value, $maxLength);
         return $text !== '' ? $text : null;
+    }
+
+    /**
+     * @param array<int, object> $notifications
+     * @param array<int, mixed> $allowedTypes
+     * @return array<int, object>
+     */
+    private function filterNotificationFeed(array $notifications, array $allowedTypes): array
+    {
+        $normalizedTypes = array_values(array_unique(array_filter(array_map([$this, 'normalizeNotificationType'], $allowedTypes))));
+        if ($normalizedTypes === []) {
+            return [];
+        }
+
+        $allowedLookup = array_fill_keys($normalizedTypes, true);
+
+        return array_values(array_filter($notifications, function (object $notification) use ($allowedLookup): bool {
+            $type = $this->normalizeNotificationType($notification->type ?? 'system');
+            return isset($allowedLookup[$type]);
+        }));
+    }
+
+    private function normalizeNotificationType(mixed $type): string
+    {
+        $normalizedType = strtolower(trim((string) $type));
+
+        return match ($normalizedType) {
+            'message', 'messages' => 'messages',
+            'billing' => 'billing',
+            'security' => 'security',
+            'community' => 'community',
+            default => 'system',
+        };
     }
 
     private function base64UrlDecode(string $value): string

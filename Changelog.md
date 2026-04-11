@@ -1,4 +1,4 @@
-﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.116-blue.svg)](https://shields.io/)
+﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.190-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -19,6 +19,450 @@
 ## 📜 Vollständige Versionshistorie
 
 ---
+
+### v2.9.190 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.190** | 🔴 fix | CMS Auth Runtime Logging | **`CMS/core/Services/CmsAuthPageService.php` hängt Settings-, Seitenlisten- und Passwort-Reset-Fehler jetzt an einen dedizierten Logger-Channel statt an rohe `error_log()`-Pfadstücke**: Design-/Auth-Fehler bleiben damit näher am strukturierten Diagnosevertrag des restlichen Admin-/Runtime-Stacks. |
+
+### v2.9.189 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.189** | 🔴 fix | Landing Runtime Contract | **`CMS/core/Services/LandingPageService.php` normalisiert Legacy-Feature-Titel jetzt mbstring-fallsicher und meldet Servicefehler strukturiert über Logger**: Default-Upgrades und Diagnosepfade des Landing-Editors kippen damit weder auf Setups ohne `mbstring` noch in rohe PHP-Logs. |
+
+### v2.9.188 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.188** | 🔴 fix | Menü Editor Entry | **`CMS/admin/menu-editor.php` und `CMS/admin/modules/menus/MenuEditorModule.php` validieren angeforderte `?menu=`-Ziele jetzt vor dem Rendern gegen den Live-Bestand und brechen stale Menülinks mit Warn-Redirect fail-closed ab**: Veraltete Menü-URLs landen damit nicht mehr kommentarlos in derselben Leerauswahl wie ein absichtlich ungewähltes Menü. |
+
+### v2.9.187 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.187** | 🔴 fix | Assets/Fonts | **`CMS/assets/js/admin-font-manager.js` nutzt auch ohne `requestSubmit()` nur noch native temporäre Submitter statt direkter `form.submit()`-Bypässe**: Delete-, Download- und Settings-Aktionen bleiben damit auch im Browser-Fallback am Pending-/Submitter-Vertrag des Font-Managers. |
+
+### v2.9.186 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.186** | 🔴 fix | Assets/Menüs | **`CMS/assets/js/admin-menu-editor.js` stößt bestätigte Menü-Deletes jetzt auch im Fallback über native temporäre Submitter statt über `form.submit()` an**: Der Menü-Editor verliert damit einen weiteren Legacy-Bypass außerhalb des gemeinsamen Submit-Lock-Vertrags. |
+
+### v2.9.185 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.185** | 🔴 fix | Assets/Theme Explorer | **`CMS/assets/js/admin-theme-explorer.js` nutzt für `Ctrl+S` jetzt auch ohne `requestSubmit()` nur noch einen nativen temporären Submitter statt eines direkten `form.submit()`-Fallbacks**: Explorer-Saves umgehen damit weder Validation noch Submit-Lock im Browser-Legacy-Pfad. |
+
+### v2.9.184 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.184** | 🔴 fix | Assets/Design Submitters | **Theme-Explorer-, Menü- und Font-Assets ziehen ihre letzten direkten Fallback-Submits jetzt auf native Submitter-Verträge zusammen**: Browser ohne `requestSubmit()` laufen damit in denselben Submit-/Pending-/Listener-Pfad wie moderne Laufzeitumgebungen. |
+
+### v2.9.183 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.183** | 🔴 fix | Theme Marketplace Filesystem | **`CMS/admin/modules/themes/ThemeMarketplaceModule.php` behandelt Symlinks in Paket-Promotion, Copy und Cleanup jetzt fail-closed und reserviert Theme-Zielordner per Install-Lock**: Parallele Theme-Installationen und symlinkartige Archiv-Sonderpfade kippen damit nicht mehr in unklare Finalisierungs- oder Cleanup-Zustände. |
+
+### v2.9.182 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.182** | 🔴 fix | Theme Marketplace Install | **`CMS/admin/modules/themes/ThemeMarketplaceModule.php` serialisiert Marketplace-Installationen jetzt pro Theme-Zielordner**: Gleichzeitige Installationen desselben Themes laufen damit nicht mehr parallel bis in Download-, Update- und Finalisierungspfade hinein. |
+
+### v2.9.181 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.181** | 🔴 fix | Theme Core Delete Contract | **`CMS/core/ThemeManager.php` löscht Themes jetzt nur noch symlink-sicher innerhalb validierter Managed-Theme-Roots**: Rekursive Theme-Deletes geraten damit nicht mehr über Nicht-Theme-Verzeichnisse oder Link-Sonderpfade außerhalb von `THEME_PATH` in gefährliche Zustände. |
+
+### v2.9.180 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.180** | 🔴 fix | Theme Core Mutations | **`CMS/core/ThemeManager.php` serialisiert Activate-/Delete-Aktionen jetzt über kleine Theme-Mutations-Locks**: Gleichzeitige Theme-Wechsel oder Theme-Löschungen kippen damit nicht mehr in konkurrierende Admin-Mutationen. |
+
+### v2.9.179 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.179** | 🔴 fix | Theme Core Discovery | **`CMS/core/ThemeManager.php` enumeriert verwaltete Themes jetzt nur noch über validierte Nicht-Symlink-Verzeichnisse innerhalb von `THEME_PATH`**: Theme-Liste, Health-Check und Delete-Pfade hängen damit nicht länger an zu optimistischen Verzeichnisannahmen. |
+
+### v2.9.178 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.178** | 🔴 fix | Admin/Themes Runtime | **`CMS/admin/modules/themes/ThemesModule.php` spiegelt Activate-/Delete-POSTs jetzt gegen den aktuellen Managed-Theme-Bestand**: Stale oder parallel entfernte Theme-Ziele enden damit nicht mehr tief im Runtime-Core, sondern fail-closed direkt im Modul. |
+
+### v2.9.177 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.177** | 🔴 fix | Assets/Themes | **`CMS/assets/js/admin-themes.js`, `CMS/admin/themes.php` und `CMS/admin/views/themes/list.php` ziehen Theme-Aktivierung und Theme-Löschung jetzt auf ein dediziertes Admin-Asset mit Shared-Confirm und Submit-Locks**: Die Theme-Liste nutzt damit keine Inline-Skripte oder direkten `form.submit()`-Bypässe mehr. |
+
+### v2.9.176 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.176** | 🔴 fix | Checkout/Abo-Settings | **`CMS/orders.php` macht Zahlungsarten, Steuersatz, Steuer-Inklusivlogik sowie AGB-/Widerrufsseiten jetzt wirklich runtime-wirksam**: Öffentliche Bestellungen speichern damit Netto-, Steuer- und Gesamtbetrag plus gewählte Zahlungsmethode konsistent und validieren AGB-Zustimmung gegen die konfigurierten Rechtstexte statt gegen einen impliziten Rechnung-/Standardpfad. |
+
+### v2.9.175 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.175** | 🔴 fix | Checkout/Runtime | **`CMS/orders.php` lehnt deaktivierte Subscription-/Ordering-Zustände und inaktive Pakete jetzt fail-closed ab und nutzt für Login-, Fallback- und Erfolgssprünge nur noch hostneutrale relative Ziele**: Öffentliche Bestellpfade geraten damit nicht mehr in halb offene Checkout-Zustände oder an `SITE_URL` gebundene Rücksprünge. |
+
+### v2.9.174 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.174** | 🔴 fix | Abo/Runtime Contract | **`CMS/core/Services/CoreModuleService.php` löst Subscription-Module jetzt fallbacksicher über ihre Legacy-Settings wie `subscription_enabled`, `subscription_ordering_enabled` oder `subscription_public_pricing_enabled` auf**: Gespeicherte Abo-Schalter bleiben damit nicht länger dekorativ in `settings.option_name` liegen, sondern steuern Checkout-, Member- und Admin-Runtime wieder konsistent. |
+
+### v2.9.173 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.173** | 🔴 fix | Member/Abo Runtime | **`CMS/core/Services/MemberService.php` und `CMS/member/subscription.php` respektieren deaktivierte Bestellstrecken jetzt auch im Member-Bereich tatsächlich**: Buchbare Pakete verschwinden bei deaktiviertem Ordering aus der Member-Runtime, und der Rücksprung aus einem deaktivierten Abo-Bereich bleibt hostneutral auf `/member/dashboard`. |
+
+### v2.9.172 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.172** | 🔴 fix | Assets/Abos | **Das neue `CMS/assets/js/admin-subscriptions.js` bündelt Orders-, Pakete- und Settings-Flows jetzt in einem gemeinsamen First-Party-Asset mit nativen temporären Submittern und Submit-Locks**: Delete-, Assign-, Create- und Edit-Aktionen laufen damit nicht länger über view-lokale Inline-Skripte oder direkte `form.submit()`-Bypässe. |
+
+### v2.9.171 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.171** | 🔴 fix | Admin/Abos UI | **`CMS/admin/views/subscriptions/packages.php` und `CMS/admin/views/subscriptions/settings.php` entfernen die letzten Inline-`onclick`- und Hidden-Submit-Sonderwege aus dem Paket- und Settings-Admin**: Paket-Create/Edit/Delete sowie Seed-/Settings-/Modal-Saves hängen damit am gemeinsamen Asset-Vertrag statt an lokalen Inline-Handlern und ungesperrten Mehrfach-POSTs. |
+
+### v2.9.170 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.170** | 🔴 fix | Admin/Orders UI | **`CMS/admin/views/subscriptions/orders.php` zieht Statusfilter, Assign-Modal und Delete-Flow jetzt auf kanonische Statuswerte plus gemeinsames Asset um**: Doppelte Legacy-Filter wie `confirmed`/`completed` verschwinden aus der Oberfläche, und Bestell-Zuweisungen bzw. Deletes laufen nicht mehr in Inline-Skripte oder ungesperrte Folge-Submits. |
+
+### v2.9.169 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.169** | 🔴 fix | Member/Header | **`CMS/member/partials/header.php` rendert das konfigurierte `dashboard_logo` jetzt tatsächlich im Member-Branding und zieht interne Dashboard-, Profil-, Security-, Admin- und Logout-Links auf hostneutrale relative Ziele zusammen**: Gespeichertes Header-Branding und interne Member-Navigation hängen damit nicht mehr an toten Settings oder `SITE_URL`-gebundenen Links. |
+
+### v2.9.168 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.168** | 🔴 fix | Member/Benachrichtigungen | **`CMS/member/notifications.php` folgt dem Notification-Center-Vertrag jetzt direkt**: Die Member-Seite respektiert `center_enabled`, nutzt den konfigurierten Leertext und zeigt nur noch die über die Admin-Auswahl erlaubten Notification-Typen statt eines roh geladenen Standard-Feeds. |
+
+### v2.9.167 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.167** | 🔴 fix | Member/Dashboard | **`CMS/member/dashboard.php` macht `show_quickstart`, Notification-Center-Empty-State und interne Quicklinks jetzt tatsächlich runtime-wirksam**: Schnellzugriff, Dashboard-Panel und Member-interne Links folgen damit wieder denselben Frontend-Modul- und Same-Origin-Verträgen wie die gespeicherten Admin-Settings. |
+
+### v2.9.166 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.166** | 🔴 fix | Member/Core Notifications | **`CMS/member/includes/class-member-controller.php` bündelt den Notification-Center-Vertrag jetzt zentral über Konfiguration plus gefilterten Feed**: `center_enabled`, `types` und `empty_text` bleiben damit nicht länger reine Admin-Dekoration, sondern steuern Dashboard und Notification-Seite fail-closed über denselben Runtime-Pfad. |
+
+### v2.9.165 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.165** | 🔴 fix | Member/Routing | **`CMS/member/includes/class-member-controller.php` verwendet für Login-Fallback und interne Redirects jetzt hostneutrale relative Routen statt `SITE_URL`-Absoluten**: Member-Login-, PRG- und Interaktionspfade bleiben damit auch unter Proxy-, Alternativhost- und lokalen Dev-Umgebungen auf der aktuellen Origin. |
+
+### v2.9.164 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.164** | 🔴 fix | Admin/Member Assets | **`CMS/admin/views/member/plugin-widgets.php` und das neue `CMS/assets/js/admin-member-dashboard.js` ziehen die Plugin-Widget-Sortierung aus dem Inline-Skript in ein dediziertes Admin-Asset um**: Drag-&-Drop-Reihenfolge und gespeicherte Widget-Order hängen damit nicht länger an einem View-lokalen Script-Sonderpfad. |
+
+### v2.9.163 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.163** | 🔴 fix | Assets/Member Security | **`CMS/assets/js/member-dashboard.js` ersetzt den direkten `form.submit()`-Pfad der Passkey-Registrierung durch einen temporären nativen Submitter**: WebAuthn-Registrierungen umgehen damit Browser-Validierung und denselben Submit-Vertrag wie andere sichere Formulare im Member-Bereich nicht länger per Direkt-Bypass. |
+
+### v2.9.162 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.162** | 🔴 fix | Assets/Medien | **`CMS/assets/js/admin-media-integrations.js` ersetzt direkte Confirm-/Auto-Submit-Fallbacks durch temporäre native Submitter und sperrt Bulk-Submits gegen Doppel-POSTs**: Delete-, Filter- und Bulk-Roundtrips bleiben damit näher an Browser-Validierung, Submit-Events und dem gemeinsamen Admin-Formvertrag. |
+
+### v2.9.161 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.161** | 🔴 fix | Admin/Medien UI | **`CMS/admin/views/media/library.php` entfernt die letzten Inline-`this.form.submit()`-Pfade aus Bibliotheks-Filter und Datei-Kategoriezuweisung**: Select-Roundtrips hängen damit nicht mehr an View-lokalen Submit-Bypässen, sondern am dedizierten Medien-Asset. |
+
+### v2.9.160 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.160** | 🔴 fix | Admin/Medien Kategorien | **`CMS/core/Services/Media/MediaRepository.php` bestätigt Kategorie-Löschungen jetzt nur noch für tatsächlich vorhandene Slugs**: Veraltete oder parallel entfernte Medienkategorien enden damit nicht mehr in stillen Schein-Erfolgen. |
+
+### v2.9.159 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.159** | 🔴 fix | Admin/Medien Bulk | **`CMS/admin/modules/media/MediaModule.php` spiegelt Bulk-`paths[]` und Bulk-Move-Ziele jetzt vor dem Write gegen den aktuellen Medienbestand**: Gemischte stale/protected Auswahlen oder fehlende Zielordner laufen damit nicht mehr in partielle Sammelmutationen. |
+
+### v2.9.158 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.158** | 🔴 fix | Admin/Medien Mutationen | **`CMS/admin/modules/media/MediaModule.php` blockiert Delete-, Rename- und Move-Aktionen jetzt fail-closed für geschützte Systempfade sowie bereits verschwundene Quellen**: Manipulierte oder stale Medienziele wirken damit nicht länger wie legitime Mutationen. |
+
+### v2.9.157 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.157** | 🔴 fix | Admin/Medien Upload | **`CMS/admin/modules/media/MediaModule.php` akzeptiert Uploads nur noch in real vorhandene Zielordner statt fehlende Pfade implizit weiterzureichen**: Manipulierte oder veraltete Upload-Ziele kippen damit nicht mehr erst spät im Service- oder Dateisystempfad. |
+
+### v2.9.156 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.156** | 🔴 fix | Admin/Medien Bibliothek | **`CMS/admin/media.php` bricht stale `?path=...`-Ziele jetzt mit Flash-Hinweis und Root-/Fallback-Rücksprung fail-closed ab**: Veraltete Bibliothekslinks enden damit nicht mehr in leeren Pseudo-Ordneransichten. |
+
+### v2.9.155 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.155** | 🔴 fix | Admin/Medien Runtime | **`CMS/core/Services/MediaService.php` und `CMS/core/Services/Media/MediaRepository.php` reichen jetzt explizite Existenz-, Verzeichnis- und Protected-Path-Helfer an den Admin durch**: Medienmutationen können stale oder geschützte Ziele damit bereits vor dem eigentlichen Write-Vertrag fail-closed ablehnen. |
+
+### v2.9.154 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.154** | 🔴 fix | Assets/Benutzer & Gruppen | **`CMS/assets/js/admin-users.js` und `CMS/assets/js/admin-user-groups.js` ziehen Bulk- und Delete-Dispatch jetzt auf Submit-Lock bzw. temporären nativen Submitter zusammen**: Benutzer-Bulk-Aktionen laufen damit nicht mehr in Doppel-POSTs, und Gruppen-Löschungen umgehen den Browser-/Form-Vertrag nicht länger über direkten `form.submit()`-Bypass. |
+
+### v2.9.153 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.153** | 🔴 fix | Admin/Rollen & Rechte | **`CMS/admin/modules/users/RolesModule.php` behandelt Custom-Capability-Umbenennungen und -Löschungen jetzt fail-closed gegen den aktuellen Bestand statt stale Slugs mit `UPDATE`/`DELETE` still wie Erfolg wirken zu lassen**: Veraltete oder parallel entfernte Rechte enden damit nicht mehr in irreführenden Erfolgsmeldungen. |
+
+### v2.9.152 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.152** | 🔴 fix | Admin/Rollen | **`CMS/admin/modules/users/RolesModule.php` kapselt Rename-/Delete-Pfade für Custom-Rollen jetzt transaktional und bestätigt sie nur noch für tatsächlich vorhandene Ziele**: Stale Rollen-Slugs oder teilgeschriebene Mehrzeilen-Mutationen wirken damit nicht länger wie erfolgreiche RBAC-Änderungen. |
+
+### v2.9.151 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.151** | 🔴 fix | Admin/RBAC | **`CMS/admin/modules/users/RolesModule.php` legt neue Rollen und Capabilities jetzt transaktional an statt breite Fan-out-INSERTs ohne Rollback-Schutz zu schreiben**: Teilfehler lassen den Rollen-/Rechtebestand damit nicht mehr halb erweitert zurück. |
+
+### v2.9.150 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.150** | 🔴 fix | Admin/RBAC Matrix | **`CMS/admin/modules/users/RolesModule.php` speichert die Berechtigungsmatrix jetzt transaktional statt den RBAC-Bestand per `DELETE` plus Folge-INSERTs ungeschützt neu aufzubauen**: Scheitert eine Teilmutation, bleibt die Rollen-/Rechte-Matrix damit nicht mehr teilweise geleert zurück. |
+
+### v2.9.149 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.149** | 🔴 fix | Admin/Gruppen | **`CMS/admin/modules/users/GroupsModule.php` kapselt Gruppen-Löschungen jetzt transaktional und bestätigt sie nur noch für tatsächlich vorhandene Datensätze**: Stale oder parallel gelöschte Gruppen enden damit nicht mehr in stillen Erfolgszuständen. |
+
+### v2.9.148 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.148** | 🔴 fix | Admin/Gruppen | **`CMS/admin/modules/users/GroupsModule.php` behandelt stale Gruppen-IDs beim Bearbeiten jetzt fail-closed statt `UPDATE ... WHERE id = ?` mit `rowCount() === 0` indirekt wie Erfolg aussehen zu lassen**: Veraltete Gruppen-Edit-Ziele kippen damit nicht mehr in irreführende Save-Banner. |
+
+### v2.9.147 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.147** | 🔴 fix | Admin/Benutzer Bulk | **`CMS/admin/modules/users/UsersModule.php` validiert Bulk-`ids[]` jetzt explizit gegen den aktuellen Benutzerbestand und blockt Self-Targeting vor dem Sammel-Write**: Stale Bulk-Auswahlen oder Aktionen auf den eigenen Account kippen damit nicht mehr in stille Schein-Erfolge oder partielle Sammelresultate. |
+
+### v2.9.146 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.146** | 🔴 fix | Admin/Benutzer Fehlerpfade | **`CMS/admin/modules/users/UsersModule.php` stellt `buildUserEditSourceUrl()` wieder als echte Helper-Methode für Error- und Report-Payloads bereit**: Save-/Delete-Fehlerpfade laufen damit nicht mehr selbst in einen `undefined method`-Fatal, wenn sie den Diagnosekontext aufbauen. |
+
+### v2.9.145 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.145** | 🔴 fix | Admin/Benutzer | **`CMS/admin/users.php` bricht stale `?action=edit&id=...`-Ziele jetzt mit Flash-Hinweis und Listen-Rücksprung fail-closed ab statt verschwundene Benutzer in leeren oder künstlich weiterbefüllten Edit-Formularen enden zu lassen**: Veraltete Benutzer-Links oder Saves auf inzwischen gelöschte Konten wirken damit nicht mehr wie legitime Bearbeitungszustände. |
+
+### v2.9.144 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.144** | 🔴 fix | Assets/Editor.js | **`CMS/assets/js/admin-content-editor.js` ersetzt den letzten direkten Submit-Fallback im Shared-Editor durch einen temporären nativen Submitter statt `form.submit()`/Prototype-Bypass**: Auch der Altpfad der gemeinsamen Seiten-/Beiträge-Saves bleibt damit näher an Browser-Validierung, Submit-Events und dem echten Formularvertrag. |
+
+### v2.9.143 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.143** | 🔴 fix | Admin/Beiträge Tags | **`CMS/admin/modules/posts/PostsModule.php` behandelt Tag-Löschungen jetzt auch bei stale IDs fail-closed und bestätigt harte Deletes nur noch für tatsächlich vorhandene Tags**: Veraltete oder parallel gelöschte Tag-Ziele enden damit nicht mehr in stillen Erfolgsmeldungen. |
+
+### v2.9.142 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.142** | 🔴 fix | Admin/Beiträge Kategorien | **`CMS/admin/modules/posts/PostsModule.php` behandelt Kategorie-Löschungen jetzt auch bei stale IDs fail-closed und bestätigt harte Deletes nur noch für tatsächlich vorhandene Kategorien**: Veraltete oder parallel gelöschte Kategorie-Ziele wirken damit nicht mehr wie erfolgreich entfernt. |
+
+### v2.9.141 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.141** | 🔴 fix | Admin/Beiträge | **`CMS/admin/modules/posts/PostsModule.php` prüft Einzel-Delete und Bulk-`ids[]` jetzt explizit gegen den aktuellen Post-Bestand statt stale Ziele oder gemischte Auswahlmengen still als Erfolg zu behandeln**: Offene Grid-Auswahlen und parallele Löschungen kippen damit nicht mehr in irreführende Sammel- oder Delete-Banner. |
+
+### v2.9.140 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.140** | 🔴 fix | Admin/Beiträge Tags | **`CMS/admin/post-tags.php` bricht stale `?edit=`-Ziele jetzt mit Flash-Hinweis und Rücksprung in die Tag-Liste fail-closed ab statt still ein Neuformular zu rendern**: Veraltete Tag-Edit-Links wirken damit nicht mehr wie legitime Create-Kontexte. |
+
+### v2.9.139 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.139** | 🔴 fix | Admin/Beiträge Kategorien | **`CMS/admin/post-categories.php` bricht stale `?edit=`-Ziele jetzt mit Flash-Hinweis und Rücksprung in die Kategorie-Liste fail-closed ab statt still ein Neuformular zu rendern**: Veraltete Kategorie-Edit-Links kippen damit nicht mehr in irreführende Create-Zustände. |
+
+### v2.9.138 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.138** | 🔴 fix | Admin/Beiträge | **`CMS/admin/posts.php` behandelt stale `?action=edit&id=...`-Ziele jetzt nicht mehr wie `Neuer Beitrag`, sondern bricht sie mit Flash-Hinweis und Listen-Rücksprung fail-closed ab**: Veraltete Post-Edit-Links können dadurch keine versehentlichen Neu-Anlagen mehr auslösen. |
+
+### v2.9.137 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.137** | 🔴 fix | Admin/Orders UI | **`CMS/admin/views/subscriptions/orders.php` ersetzt den letzten direkten `form.submit()`-Fallback im Shared-Submit-Helper durch einen nativen temporären Submitter**: Auch Altbrowser-Fallbacks umgehen damit keine Submit-Events oder Browser-Validierung mehr über einen direkten Bypass-Aufruf. |
+
+### v2.9.136 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.136** | 🔴 fix | Admin/Abos Einstellungen | **`CMS/admin/modules/subscriptions/SubscriptionSettingsModule.php` verlangt für alle Settings-Lese-/Schreibpfade jetzt explizit `manage_settings` statt nur generischem Admin-Zugriff**: Abo-Einstellungen folgen damit derselben Capability-Kante wie der restliche mutierende Settings-Admin. |
+
+### v2.9.135 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.135** | 🔴 fix | Admin/Pakete | **`CMS/admin/modules/subscriptions/PackagesModule.php` prüft seine CRUD-/Toggle-Pfade jetzt über dieselbe explizite `manage_settings`-Capability statt nur über `isAdmin()`**: Paket-Mutationen bleiben damit auch modulseitig fail-closed an der echten Rechtekante hängen. |
+
+### v2.9.134 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.134** | 🔴 fix | Admin/Orders | **`CMS/admin/modules/subscriptions/OrdersModule.php` bindet Bestell-Assign-/Status-/Delete-Pfade jetzt ebenfalls an `manage_settings` statt nur an generische Admin-Rechte**: Der Orders-Admin fällt damit nicht mehr aus dem Capability-Vertrag des restlichen Settings-Clusters heraus. |
+
+### v2.9.133 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.133** | 🔴 fix | Admin/Abos | **`CMS/admin/packages.php` zieht Entry-Guard und Section-Shell-`access_checker` für die Pakete-Seite auf explizites `manage_settings` nach**: Rollen mit breitem Admin-Flag, aber ohne Settings-Recht, erreichen die Paketverwaltung damit nicht mehr versehentlich über die alte zu weite Kante. |
+
+### v2.9.132 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.132** | 🔴 fix | Admin/Abo-Einstellungen | **`CMS/admin/subscription-settings.php` verlangt im Entry-Guard jetzt dieselbe explizite `manage_settings`-Capability wie andere Settings-Seiten**: Die Abo-Einstellungsseite hängt damit nicht länger nur am generischen Admin-Flag. |
+
+### v2.9.131 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.131** | 🔴 fix | Admin/Orders | **`CMS/admin/orders.php` zieht Entry-Guard und Section-Shell-`access_checker` auf explizites `manage_settings` hoch**: Die Bestellverwaltung folgt damit derselben Ziel-Capability wie benachbarte mutierende Settings-/System-Admins statt einer breiteren reinen `isAdmin()`-Kante. |
+
+### v2.9.130 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.130** | 🔴 fix | Admin/Abos UI | **`CMS/admin/views/subscriptions/packages.php` blockt Paket-Saves im Modal jetzt über einen expliziten Submit-Lock und setzt ihn beim Reset/Schließen sauber zurück**: Hektische Mehrfachklicks erzeugen damit keine doppelten Paket-POSTs mehr, obwohl die Pakete-UI bisher keinen eigenen Pending-/Lock-Vertrag kannte. |
+
+### v2.9.129 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.129** | 🔴 fix | Admin/Abos UI | **`CMS/admin/views/subscriptions/packages.php` leitet bestätigte Paket-Löschungen jetzt über denselben nativen Submit-Pfad wie der restliche Admin statt über direkten Hidden-`form.submit()`-Bypass weiter**: Paket-Deletes bleiben damit näher am echten Browser-/Confirm-Vertrag statt an einem verbliebenen Inline-Sonderweg zu hängen. |
+
+### v2.9.128 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.128** | 🔴 fix | Admin/Abos & Pakete | **`CMS/admin/modules/subscriptions/PackagesModule.php` behandelt Paket-Create-/Update-/Delete-/Toggle-Pfade jetzt belastbarer fail-closed**: Fehlgeschlagene `insert()`-/`update()`-Writes, stale Deletes und konkurrierende Toggle-Wechsel enden nicht mehr als stille Erfolge, sondern melden echte Persistenz- bzw. Reload-Fehler an den Admin zurück. |
+
+### v2.9.127 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.127** | 🔴 fix | Admin/Abos Einstellungen | **`CMS/admin/modules/subscriptions/SubscriptionSettingsModule.php` behandelt fehlgeschlagene `settings`-Writes jetzt fail-closed statt `Database::insert()`-/`update()`-Fehlschläge still zu übergehen**: Abo- und Paket-Einstellungen erscheinen damit nicht länger als erfolgreich gespeichert, obwohl im Persistenzpfad tatsächlich nichts geschrieben wurde. |
+
+### v2.9.126 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.126** | 🔴 fix | Admin/Tabellen | **`CMS/admin/modules/tables/TablesModule.php` bestätigt Tabellen-Löschungen jetzt nur noch für tatsächlich existierende bzw. wirklich entfernte Datensätze**: unbekannte oder zwischenzeitlich entfernte Tabellen enden damit nicht mehr in einem stillen Schein-Erfolg, sondern sauber mit fail-closed Rückmeldung. |
+
+### v2.9.125 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.125** | 🔴 fix | Admin/Tabellen UI | **`CMS/admin/site-tables.php` und `CMS/admin/modules/tables/TablesModule.php` behandeln stale `?action=edit&id=...`-Ziele jetzt nicht mehr wie `Neue Tabelle`**: Veraltete Tabellen-Links landen damit wieder mit Fehlhinweis in der Liste statt in einem irreführenden Neuformular, das unabsichtlich als frische Tabelle gespeichert werden könnte. |
+
+### v2.9.124 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.124** | 🔴 fix | Admin/Tabellen | **`CMS/admin/modules/tables/TablesModule.php` akzeptiert beschädigte `columns_json`-/`rows_json`-Payloads aus dem Tabellen-Editor jetzt nicht länger still als leere Arrays**: Kaputte Hidden-JSON-Werte führen damit nicht mehr zu leeren Tabellen-Saves, sondern brechen den POST fail-closed mit klarem Hinweis ab. |
+
+### v2.9.123 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.123** | 🔴 fix | Admin/Abos & Orders | **`CMS/admin/modules/subscriptions/OrdersModule.php` zieht Statuswechsel jetzt fail-closed auf einen race-sicheren Update-Vertrag zusammen**: Statusänderungen werden nicht mehr nur gegen einen zuvor gelesenen Snapshot validiert, sondern per konditionalem Write auch gegen den tatsächlich noch unveränderten DB-Status abgesichert. Zwischenzeitlich geänderte Bestellungen enden damit nicht mehr in still möglichen „unmöglichen“ Transitionen, sondern sauber mit Reload-Hinweis. |
+
+### v2.9.122 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.122** | 🔴 fix | Admin/Abos UI | **Das Inline-Orders-UI in `CMS/admin/views/subscriptions/orders.php` nutzt für Delete-Resubmits jetzt den nativen `requestSubmit()`-Pfad und blockt Mehrfach-Submits im Zuweisungsmodal**: Bestell-Löschungen und Paketzuweisungen laufen damit näher am echten Browser-/Form-Vertrag statt an direktem `form.submit()`-Bypass oder hektischen Doppelklicks im Modal zu hängen. |
+
+### v2.9.121 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.121** | 🔴 fix | Assets/Tabellen | **`CMS/assets/js/admin-site-tables.js` normalisiert Spalten-, Label- und Zellenwerte jetzt codepoint-sicher über `Array.from(...).slice(...)` statt über rohe UTF-16-`.slice()`-Grenzen**: Unicode-/Emoji-haltige Tabelleninhalte driften damit im Client nicht länger leichter vom serverseitigen UTF-8-/Fallback-Vertrag ab. |
+
+### v2.9.120 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.120** | 🔴 fix | Assets/Tabellen | **`CMS/assets/js/admin-site-tables.js` schickt Hidden-Delete-/Duplicate-Formulare jetzt über `requestSubmit()` weiter und ruft den globalen Admin-Alert wieder mit dem echten Vertrag `cmsAlert(type, message)` auf**: Der Tabellen-Admin bleibt damit bei Duplicate/Delete näher am gemeinsamen Submit-/Confirm-Flow, und Validierungsfehler rendern nicht mehr an einem vertauschten Alert-Helfer vorbei. |
+
+### v2.9.119 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.119** | 🔴 fix | Admin/Kommentare | **`CMS/admin/comments.php` spiegelt Aktionsrechte jetzt bereits am Entry explizit für Status-, Delete- und Bulk-Pfade statt erst tiefer im Modul**: Die Kommentar-Moderation bleibt damit capability-seitig klarer fail-closed, bevor Mutationspfade anlaufen oder nur implizit auf Modulantworten zurückfallen. |
+
+### v2.9.118 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.118** | 🔴 fix | Assets/Kommentare | **`CMS/assets/js/admin-comments.js` hängt Bulk-`delete` jetzt an eine explizite Bestätigungsstufe und nutzt für Einzelaktionen denselben nativen Submit-Pfad wie der restliche Admin**: Kommentar-Löschungen laufen damit nicht mehr ohne zusätzliche Sicherheitsbremse oder per direktem `form.submit()`-Bypass in den POST. |
+
+### v2.9.117 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.117** | 🔴 fix | Assets/Editor.js | **`CMS/assets/js/admin-content-editor.js` reicht Seiten-/Beitrags-Saves nach erfolgreicher Editor.js-Serialisierung jetzt über einen validierungswahrenden nativen Submit-Pfad weiter statt über direkten `form.submit()`-Bypass**: Der Shared-Editor bleibt damit näher an Browser-Validierung und demselben echten Formularvertrag wie die übrigen Admin-Flows. |
 
 ### v2.9.116 — 11. April 2026
 

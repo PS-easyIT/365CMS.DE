@@ -15,6 +15,7 @@ use CMS\Logger;
 
 class PackagesModule
 {
+    private const string REQUIRED_CAPABILITY = 'manage_settings';
     private const int MAX_NAME_LENGTH = 120;
     private const int MAX_SLUG_LENGTH = 120;
     private const int MAX_DESCRIPTION_LENGTH = 2000;
@@ -178,7 +179,11 @@ class PackagesModule
             }
 
             if ($id > 0) {
-                $this->db->update('subscription_plans', $data, ['id' => $id]);
+                $updated = $this->db->update('subscription_plans', $data, ['id' => $id]);
+                if ($updated !== true) {
+                    throw new \RuntimeException('Package update failed.');
+                }
+
                 AuditLogger::instance()->log(
                     AuditLogger::CAT_SETTING,
                     'subscriptions.packages.update',
@@ -193,7 +198,11 @@ class PackagesModule
                 if ($isFeatured === 1) {
                     $this->db->execute("UPDATE {$table} SET is_featured = 0");
                 }
-                $this->db->insert('subscription_plans', $data);
+                $insertId = $this->db->insert('subscription_plans', $data);
+                if ($insertId === false) {
+                    throw new \RuntimeException('Package insert failed.');
+                }
+
                 AuditLogger::instance()->log(
                     AuditLogger::CAT_SETTING,
                     'subscriptions.packages.create',
@@ -234,7 +243,14 @@ class PackagesModule
                 return ['success' => false, 'error' => 'Das Paket ist noch aktiven Benutzern zugewiesen.'];
             }
 
-            $this->db->delete('subscription_plans', ['id' => $id]);
+            $statement = $this->db->execute(
+                "DELETE FROM {$this->prefix}subscription_plans WHERE id = ? LIMIT 1",
+                [$id]
+            );
+            if ($statement->rowCount() < 1) {
+                return ['success' => false, 'error' => 'Paket wurde zwischenzeitlich entfernt. Bitte Liste neu laden.'];
+            }
+
             AuditLogger::instance()->log(
                 AuditLogger::CAT_SETTING,
                 'subscriptions.packages.delete',
@@ -270,7 +286,13 @@ class PackagesModule
             }
 
             $newStatus = (int)$current->is_active === 1 ? 0 : 1;
-            $this->db->update('subscription_plans', ['is_active' => $newStatus], ['id' => $id]);
+            $statement = $this->db->execute(
+                "UPDATE {$table} SET is_active = ? WHERE id = ? AND is_active = ? LIMIT 1",
+                [$newStatus, $id, (int)$current->is_active]
+            );
+            if ($statement->rowCount() < 1) {
+                return ['success' => false, 'error' => 'Paket wurde zwischenzeitlich geändert. Bitte Liste neu laden und erneut versuchen.'];
+            }
 
             AuditLogger::instance()->log(
                 AuditLogger::CAT_SETTING,
@@ -290,7 +312,9 @@ class PackagesModule
 
     private function canAccess(): bool
     {
-        return class_exists(Auth::class) && Auth::instance()->isAdmin();
+        return class_exists(Auth::class)
+            && Auth::instance()->isAdmin()
+            && Auth::instance()->hasCapability(self::REQUIRED_CAPABILITY);
     }
 
     private function sanitizeText(string $value, int $maxLength): string

@@ -21,6 +21,23 @@
         }
 
         inputElement.value = value;
+
+        if (typeof formElement.requestSubmit === 'function') {
+            formElement.requestSubmit();
+            return;
+        }
+
+        if (typeof formElement.reportValidity === 'function' && !formElement.reportValidity()) {
+            return;
+        }
+
+        if (typeof HTMLFormElement !== 'undefined'
+            && HTMLFormElement.prototype
+            && typeof HTMLFormElement.prototype.submit === 'function') {
+            HTMLFormElement.prototype.submit.call(formElement);
+            return;
+        }
+
         formElement.submit();
     }
 
@@ -127,18 +144,16 @@
         }
 
         function sanitizeText(value, maxLength) {
-            return String(value || '')
+            return Array.from(String(value || '')
                 .replace(/[\x00-\x1F\x7F]/g, '')
-                .trim()
-                .slice(0, maxLength);
+                .trim())
+                .slice(0, maxLength)
+                .join('');
         }
 
         function showValidationMessage(message) {
             if (typeof cmsAlert === 'function') {
-                cmsAlert({
-                    type: 'danger',
-                    message: message,
-                });
+                cmsAlert('danger', message);
                 return;
             }
 

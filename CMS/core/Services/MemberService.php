@@ -676,7 +676,8 @@ class MemberService
     public function getAvailablePackages(): array
     {
         if (!CoreModuleService::getInstance()->isModuleEnabled('subscriptions')
-            || !CoreModuleService::getInstance()->isModuleEnabled('subscription_public_pricing')) {
+            || !CoreModuleService::getInstance()->isModuleEnabled('subscription_public_pricing')
+            || !CoreModuleService::getInstance()->isModuleEnabled('subscription_ordering')) {
             return [];
         }
 

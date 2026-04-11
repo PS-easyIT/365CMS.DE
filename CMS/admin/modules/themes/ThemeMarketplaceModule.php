@@ -253,6 +253,7 @@ class ThemeMarketplaceModule
 
         $targetFolder = $this->determineThemeTargetFolder($theme, $slug);
         $targetDir = rtrim(THEME_PATH, '/\\') . DIRECTORY_SEPARATOR . $targetFolder . DIRECTORY_SEPARATOR;
+        $targetParentDir = dirname(rtrim($targetDir, '/\\'));
         $normalizedThemeBase = rtrim(str_replace('\\', '/', (string) THEME_PATH), '/') . '/';
         $normalizedTargetDir = rtrim(str_replace('\\', '/', $targetDir), '/') . '/';
 
@@ -265,57 +266,73 @@ class ThemeMarketplaceModule
             );
         }
 
-        if (is_dir(rtrim($targetDir, '/\\'))) {
+        $installLockPath = $this->acquireThemeInstallLock($targetParentDir, $targetFolder);
+        if ($installLockPath === '') {
             return $this->buildInstallFailureResult(
-                'Theme ist bereits installiert.',
-                'theme_marketplace_target_exists',
+                'Für dieses Theme läuft bereits eine Installation oder Bereinigung. Bitte kurz warten und anschließend erneut versuchen.',
+                'theme_marketplace_install_locked',
                 ['Theme-Slug: ' . $slug],
                 ['slug' => $slug, 'target_dir' => $normalizedTargetDir]
             );
         }
 
-        $result = $this->updateService->downloadAndInstallUpdate(
-            $downloadUrl,
-            $integrityHash,
-            $targetDir,
-            'theme',
-            (string) ($theme['name'] ?? $slug),
-            (string) ($theme['version'] ?? 'Marketplace')
-        );
+        try {
+            clearstatcache(true, rtrim($targetDir, '/\\'));
 
-        if (($result['success'] ?? false) !== true) {
-            return $this->buildInstallFailureResult(
-                (string) ($result['message'] ?? 'Theme konnte nicht installiert werden.'),
-                'theme_marketplace_install_failed',
-                $this->buildInstallContextDetails($slug, $downloadUrl, $integrityHash, $theme),
-                array_merge(
-                    $this->buildInstallErrorData($slug, $downloadUrl, $integrityHash, $theme),
-                    ['installer_result' => is_array($result) ? array_intersect_key($result, array_flip(['message', 'status', 'code', 'sha256_verified'])) : []]
-                )
+            if (is_dir(rtrim($targetDir, '/\\'))) {
+                return $this->buildInstallFailureResult(
+                    'Theme ist bereits installiert.',
+                    'theme_marketplace_target_exists',
+                    ['Theme-Slug: ' . $slug],
+                    ['slug' => $slug, 'target_dir' => $normalizedTargetDir]
+                );
+            }
+
+            $result = $this->updateService->downloadAndInstallUpdate(
+                $downloadUrl,
+                $integrityHash,
+                $targetDir,
+                'theme',
+                (string) ($theme['name'] ?? $slug),
+                (string) ($theme['version'] ?? 'Marketplace')
             );
-        }
 
-        $finalizationError = $this->finalizeInstalledThemePackage($targetDir, $targetFolder);
-        if ($finalizationError !== '') {
-            return $this->buildInstallFailureResult(
-                $finalizationError,
-                'theme_marketplace_finalization_failed',
-                $this->buildInstallContextDetails($slug, $downloadUrl, $integrityHash, $theme),
-                $this->buildInstallErrorData($slug, $downloadUrl, $integrityHash, $theme)
-            );
-        }
+            if (($result['success'] ?? false) !== true) {
+                return $this->buildInstallFailureResult(
+                    (string) ($result['message'] ?? 'Theme konnte nicht installiert werden.'),
+                    'theme_marketplace_install_failed',
+                    $this->buildInstallContextDetails($slug, $downloadUrl, $integrityHash, $theme),
+                    array_merge(
+                        $this->buildInstallErrorData($slug, $downloadUrl, $integrityHash, $theme),
+                        ['installer_result' => is_array($result) ? array_intersect_key($result, array_flip(['message', 'status', 'code', 'sha256_verified'])) : []]
+                    )
+                );
+            }
 
-        return [
-            'success' => true,
-            'message' => 'Theme „' . ((string) ($theme['name'] ?? $slug)) . '“ wurde installiert. Du kannst es jetzt in der Theme-Verwaltung aktivieren.',
-            'details' => array_merge(
-                $this->buildInstallContextDetails($slug, $downloadUrl, $integrityHash, $theme),
-                [
-                    'Zielpfad: ' . $normalizedTargetDir,
-                    'SHA-256 verifiziert: ' . (!empty($result['sha256_verified']) ? 'ja' : 'nein'),
-                ]
-            ),
-        ];
+            $finalizationError = $this->finalizeInstalledThemePackage($targetDir, $targetFolder);
+            if ($finalizationError !== '') {
+                return $this->buildInstallFailureResult(
+                    $finalizationError,
+                    'theme_marketplace_finalization_failed',
+                    $this->buildInstallContextDetails($slug, $downloadUrl, $integrityHash, $theme),
+                    $this->buildInstallErrorData($slug, $downloadUrl, $integrityHash, $theme)
+                );
+            }
+
+            return [
+                'success' => true,
+                'message' => 'Theme „' . ((string) ($theme['name'] ?? $slug)) . '“ wurde installiert. Du kannst es jetzt in der Theme-Verwaltung aktivieren.',
+                'details' => array_merge(
+                    $this->buildInstallContextDetails($slug, $downloadUrl, $integrityHash, $theme),
+                    [
+                        'Zielpfad: ' . $normalizedTargetDir,
+                        'SHA-256 verifiziert: ' . (!empty($result['sha256_verified']) ? 'ja' : 'nein'),
+                    ]
+                ),
+            ];
+        } finally {
+            $this->releaseThemeInstallLock($installLockPath);
+        }
     }
 
     /**
@@ -1257,6 +1274,10 @@ class ThemeMarketplaceModule
 
     private function moveDirectory(string $sourceDir, string $targetDir): bool
     {
+        if (is_link($sourceDir) || is_link($targetDir)) {
+            return false;
+        }
+
         $targetBase = dirname($targetDir);
         if (!is_dir($targetBase) && !mkdir($targetBase, 0775, true) && !is_dir($targetBase)) {
             return false;
@@ -1276,6 +1297,10 @@ class ThemeMarketplaceModule
 
     private function copyDirectory(string $sourceDir, string $targetDir): bool
     {
+        if (is_link($sourceDir) || is_link($targetDir)) {
+            return false;
+        }
+
         if (!is_dir($targetDir) && !mkdir($targetDir, 0775, true) && !is_dir($targetDir)) {
             return false;
         }
@@ -1288,6 +1313,10 @@ class ThemeMarketplaceModule
 
             $sourcePath = $item->getPathname();
             $targetPath = $targetDir . DIRECTORY_SEPARATOR . $item->getFilename();
+
+            if ($item->isLink()) {
+                return false;
+            }
 
             if ($item->isDir()) {
                 if (!$this->copyDirectory($sourcePath, $targetPath)) {
@@ -1306,6 +1335,11 @@ class ThemeMarketplaceModule
 
     private function removeDirectory(string $path): void
     {
+        if (is_link($path)) {
+            unlink($path);
+            return;
+        }
+
         if (!is_dir($path)) {
             return;
         }
@@ -1325,6 +1359,27 @@ class ThemeMarketplaceModule
         }
 
         rmdir($path);
+    }
+
+    private function acquireThemeInstallLock(string $targetParentDir, string $targetFolder): string
+    {
+        $normalizedFolder = $this->normalizeThemeKey($targetFolder);
+        if ($normalizedFolder === '') {
+            return '';
+        }
+
+        $lockPath = rtrim($targetParentDir, '/\\') . DIRECTORY_SEPARATOR . '.cms-theme-install-' . $normalizedFolder;
+
+        return @mkdir($lockPath, 0700) ? $lockPath : '';
+    }
+
+    private function releaseThemeInstallLock(string $lockPath): void
+    {
+        if ($lockPath === '' || !is_dir($lockPath)) {
+            return;
+        }
+
+        @rmdir($lockPath);
     }
 
     private function validateZipEntries(\ZipArchive $zip, string $expectedSlug): bool

@@ -103,6 +103,42 @@
         }
     }
 
+    function setSubmittingState(form, isSubmitting) {
+        if (!form) {
+            return;
+        }
+
+        form.dataset.submitting = isSubmitting ? '1' : '0';
+        form.querySelectorAll('button, input[type="submit"]').forEach(function (element) {
+            element.disabled = isSubmitting;
+            element.setAttribute('aria-disabled', isSubmitting ? 'true' : 'false');
+        });
+    }
+
+    function submitWithTemporarySubmitter(form) {
+        var submitter;
+
+        if (!form) {
+            return false;
+        }
+
+        if (typeof form.requestSubmit === 'function') {
+            form.requestSubmit();
+            return true;
+        }
+
+        submitter = document.createElement('button');
+        submitter.type = 'submit';
+        submitter.hidden = true;
+        submitter.tabIndex = -1;
+        submitter.setAttribute('aria-hidden', 'true');
+        form.appendChild(submitter);
+        submitter.click();
+        form.removeChild(submitter);
+
+        return true;
+    }
+
     function clearElement(element) {
         if (!element) {
             return;
@@ -692,13 +728,7 @@
         if (deleteForm && deletePathField) {
             function submitDelete(path) {
                 deletePathField.value = path;
-
-                if (typeof deleteForm.requestSubmit === 'function') {
-                    deleteForm.requestSubmit();
-                    return;
-                }
-
-                deleteForm.submit();
+                submitWithTemporarySubmitter(deleteForm);
             }
 
             document.querySelectorAll('.js-media-delete').forEach(function (button) {
@@ -810,26 +840,59 @@
             bulkActionField.addEventListener('change', updateBulkActionUi);
         }
 
+        document.querySelectorAll('[data-media-auto-submit-select="1"]').forEach(function (select) {
+            select.addEventListener('change', function () {
+                var form = select.form;
+
+                if (!form || form.dataset.submitting === '1') {
+                    return;
+                }
+
+                setSubmittingState(form, true);
+                if (!submitWithTemporarySubmitter(form)) {
+                    setSubmittingState(form, false);
+                }
+            });
+        });
+
         if (bulkForm) {
             bulkForm.addEventListener('submit', function (event) {
+                if (bulkForm.dataset.submitting === '1') {
+                    event.preventDefault();
+                    return;
+                }
+
                 selectedPaths = collectSelectedPaths();
 
                 if (selectedPaths.size === 0) {
                     event.preventDefault();
+                    setSubmittingState(bulkForm, false);
                     return;
                 }
 
                 if (!bulkActionField || !bulkActionField.value) {
                     event.preventDefault();
+                    setSubmittingState(bulkForm, false);
                     if (bulkActionField) {
                         bulkActionField.focus();
                     }
                     return;
                 }
 
+                if (bulkActionField.value === 'move' && bulkMoveTargetField && !bulkMoveTargetField.value) {
+                    event.preventDefault();
+                    setSubmittingState(bulkForm, false);
+                    bulkMoveTargetField.focus();
+                    return;
+                }
+
                 if (bulkActionField.value === 'delete' && !window.confirm('Die ausgewählten Medien wirklich löschen?')) {
                     event.preventDefault();
+                    setSubmittingState(bulkForm, false);
+                    return;
                 }
+
+                setSubmittingState(bulkForm, true);
             });
         }
 
@@ -853,13 +916,7 @@
 
         function submitDelete(slug) {
             deleteSlugField.value = slug;
-
-            if (typeof deleteForm.requestSubmit === 'function') {
-                deleteForm.requestSubmit();
-                return;
-            }
-
-            deleteForm.submit();
+            submitWithTemporarySubmitter(deleteForm);
         }
 
         document.querySelectorAll('.js-media-category-delete').forEach(function (button) {

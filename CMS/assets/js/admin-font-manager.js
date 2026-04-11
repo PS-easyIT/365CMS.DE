@@ -75,6 +75,41 @@
         return form ? form.querySelector('button[type="submit"], input[type="submit"]') : null;
     }
 
+    function isSubmitControl(element, form) {
+        if (!element || !form || element.form !== form) {
+            return false;
+        }
+
+        if (element.tagName === 'BUTTON') {
+            return String(element.getAttribute('type') || element.type || 'submit').toLowerCase() === 'submit';
+        }
+
+        return element.tagName === 'INPUT'
+            && String(element.getAttribute('type') || element.type || '').toLowerCase() === 'submit';
+    }
+
+    function triggerNativeSubmit(form, submitter) {
+        var temporarySubmitter;
+
+        if (!form) {
+            return;
+        }
+
+        if (isSubmitControl(submitter, form) && typeof submitter.click === 'function') {
+            submitter.click();
+            return;
+        }
+
+        temporarySubmitter = document.createElement('button');
+        temporarySubmitter.type = 'submit';
+        temporarySubmitter.hidden = true;
+        temporarySubmitter.tabIndex = -1;
+        temporarySubmitter.setAttribute('aria-hidden', 'true');
+        form.appendChild(temporarySubmitter);
+        temporarySubmitter.click();
+        form.removeChild(temporarySubmitter);
+    }
+
     function markFormSubmitting(form, submitter) {
         var pendingText;
 
@@ -118,11 +153,7 @@
             return;
         }
 
-        if (!markFormSubmitting(form, submitButton)) {
-            return;
-        }
-
-        form.submit();
+        triggerNativeSubmit(form, submitButton);
     }
 
     function bindActionForms() {

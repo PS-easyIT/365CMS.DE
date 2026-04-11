@@ -16,6 +16,7 @@ if (!defined('ABSPATH')) {
 $themes      = $data['themes'] ?? [];
 $activeSlug  = $data['activeSlug'] ?? '';
 $totalThemes = $data['totalThemes'] ?? 0;
+$escape = static fn (mixed $value): string => htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
 ?>
 
 <div class="container-xl">
@@ -23,7 +24,7 @@ $totalThemes = $data['totalThemes'] ?? 0;
     <div class="page-header d-flex align-items-center mb-4">
         <div>
             <h2 class="page-title">Themes</h2>
-            <div class="text-muted mt-1"><?php echo $totalThemes; ?> Theme<?php echo $totalThemes !== 1 ? 's' : ''; ?> installiert</div>
+            <div class="text-muted mt-1"><?php echo (int) $totalThemes; ?> Theme<?php echo (int) $totalThemes !== 1 ? 's' : ''; ?> installiert</div>
         </div>
     </div>
 
@@ -49,37 +50,43 @@ $totalThemes = $data['totalThemes'] ?? 0;
                     </div>
                     <div class="card-body">
                         <div class="d-flex align-items-center mb-2">
-                            <h3 class="card-title mb-0"><?php echo htmlspecialchars($theme['name'] ?? $slug); ?></h3>
+                            <h3 class="card-title mb-0"><?php echo $escape($theme['name'] ?? $slug); ?></h3>
                             <?php if (!empty($theme['isActive'])): ?>
                                 <span class="badge bg-primary ms-2">Aktiv</span>
                             <?php endif; ?>
                         </div>
                         <?php if (!empty($theme['description'])): ?>
-                            <p class="text-muted mb-2"><?php echo htmlspecialchars($theme['description']); ?></p>
+                            <p class="text-muted mb-2"><?php echo $escape($theme['description']); ?></p>
                         <?php endif; ?>
                         <div class="text-muted small">
                             <?php if (!empty($theme['version'])): ?>
-                                <span class="me-3">v<?php echo htmlspecialchars($theme['version']); ?></span>
+                                <span class="me-3">v<?php echo $escape($theme['version']); ?></span>
                             <?php endif; ?>
                             <?php if (!empty($theme['author'])): ?>
-                                <span><?php echo htmlspecialchars($theme['author']); ?></span>
+                                <span><?php echo $escape($theme['author']); ?></span>
                             <?php endif; ?>
                         </div>
                     </div>
                     <div class="card-footer d-flex gap-2">
                         <?php if (empty($theme['isActive'])): ?>
-                            <form method="post" class="d-inline">
-                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
+                            <form method="post" class="d-inline" data-theme-submit-lock="1">
+                                <input type="hidden" name="csrf_token" value="<?php echo $escape($csrfToken); ?>">
                                 <input type="hidden" name="action" value="activate">
-                                <input type="hidden" name="theme" value="<?php echo htmlspecialchars($slug); ?>">
-                                <button type="submit" class="btn btn-primary btn-sm">Aktivieren</button>
+                                <input type="hidden" name="theme" value="<?php echo $escape($slug); ?>">
+                                <button type="submit" class="btn btn-primary btn-sm" data-submitting-text="Aktiviere…">Aktivieren</button>
                             </form>
-                            <form method="post" class="d-inline delete-theme-form">
-                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
+                            <form method="post"
+                                  class="d-inline"
+                                  data-theme-submit-lock="1"
+                                  data-confirm-message="Soll das Theme &quot;<?php echo $escape($theme['name'] ?? $slug); ?>&quot; wirklich gelöscht werden? Diese Aktion kann nicht rückgängig gemacht werden."
+                                  data-confirm-title="Theme löschen"
+                                  data-confirm-text="Löschen"
+                                  data-confirm-class="btn-danger"
+                                  data-confirm-status-class="bg-danger">
+                                <input type="hidden" name="csrf_token" value="<?php echo $escape($csrfToken); ?>">
                                 <input type="hidden" name="action" value="delete">
-                                <input type="hidden" name="theme" value="<?php echo htmlspecialchars($slug); ?>">
-                                <button type="button" class="btn btn-outline-danger btn-sm btn-delete-theme"
-                                        data-name="<?php echo htmlspecialchars($theme['name'] ?? $slug); ?>">
+                                <input type="hidden" name="theme" value="<?php echo $escape($slug); ?>">
+                                <button type="submit" class="btn btn-outline-danger btn-sm" data-submitting-text="Lösche…">
                                     Löschen
                                 </button>
                             </form>
@@ -93,21 +100,3 @@ $totalThemes = $data['totalThemes'] ?? 0;
         <?php endforeach; ?>
     </div>
 </div>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('.btn-delete-theme').forEach(function(btn) {
-        btn.addEventListener('click', function() {
-            var name = this.dataset.name;
-            var form = this.closest('form');
-            cmsConfirm({
-                title: 'Theme löschen',
-                message: 'Soll das Theme "' + name + '" wirklich gelöscht werden? Diese Aktion kann nicht rückgängig gemacht werden.',
-                confirmText: 'Löschen',
-                confirmClass: 'btn-danger',
-                onConfirm: function() { form.submit(); }
-            });
-        });
-    });
-});
-</script>

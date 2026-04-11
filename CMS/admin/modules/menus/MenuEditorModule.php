@@ -63,6 +63,13 @@ class MenuEditorModule
         ];
     }
 
+    public function menuExists(int $menuId): bool
+    {
+        $this->ensureBootstrapped();
+
+        return $menuId > 0 && $this->getMenuById($menuId) !== null;
+    }
+
     /**
      * Menü erstellen/bearbeiten
      */

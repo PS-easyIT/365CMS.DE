@@ -15,6 +15,21 @@
         }
     }
 
+    function submitWithTemporarySubmitter(form) {
+        if (!form) {
+            return;
+        }
+
+        var submitter = document.createElement('button');
+        submitter.type = 'submit';
+        submitter.hidden = true;
+        submitter.tabIndex = -1;
+        submitter.setAttribute('aria-hidden', 'true');
+        form.appendChild(submitter);
+        submitter.click();
+        submitter.remove();
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
         var modalElement = document.getElementById('groupModal');
         var groupForm = document.getElementById('groupForm');
@@ -81,7 +96,7 @@
 
                     deleteGroupForm.dataset.submitting = '1';
                     deleteGroupIdInput.value = groupId;
-                    deleteGroupForm.submit();
+                    submitWithTemporarySubmitter(deleteGroupForm);
                 };
 
                 if (typeof cmsConfirm === 'function') {

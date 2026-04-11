@@ -62,6 +62,7 @@ final class SubscriptionSettingsActionResult
 
 class SubscriptionSettingsModule
 {
+    private const string REQUIRED_CAPABILITY = 'manage_settings';
     private readonly \CMS\Database $db;
     private readonly string $prefix;
     /** @var array<string, true> */
@@ -256,11 +257,19 @@ class SubscriptionSettingsModule
         $this->warmSettingNamesCache(array_keys($values));
         foreach ($values as $key => $value) {
             if (isset($this->existingSettingNamesCache[$key])) {
-                $this->db->update('settings', ['option_value' => $value], ['option_name' => $key]);
+                $updated = $this->db->update('settings', ['option_value' => $value], ['option_name' => $key]);
+                if ($updated !== true) {
+                    throw new \RuntimeException('Setting update failed for key: ' . $key);
+                }
+
                 continue;
             }
 
-            $this->db->insert('settings', ['option_name' => $key, 'option_value' => $value]);
+            $insertId = $this->db->insert('settings', ['option_name' => $key, 'option_value' => $value]);
+            if ($insertId === false) {
+                throw new \RuntimeException('Setting insert failed for key: ' . $key);
+            }
+
             $this->existingSettingNamesCache[$key] = true;
         }
     }
@@ -391,7 +400,7 @@ class SubscriptionSettingsModule
 
     private function canAccess(): bool
     {
-        return Auth::instance()->isAdmin();
+        return Auth::instance()->isAdmin() && Auth::instance()->hasCapability(self::REQUIRED_CAPABILITY);
     }
 
     private function denyResult(): SubscriptionSettingsActionResult

@@ -72,10 +72,15 @@ class RolesModule
     {
         try {
             $this->ensureTable();
+            $pdo = $this->db->getPdo();
+            $startedTransaction = !$pdo->inTransaction();
+            if ($startedTransaction) {
+                $pdo->beginTransaction();
+            }
 
             $roles        = $this->getKnownRoles();
             $capabilities = $this->getKnownCapabilities();
-            $this->db->query("DELETE FROM {$this->prefix}role_permissions");
+            $this->db->execute("DELETE FROM {$this->prefix}role_permissions");
 
             $perms = $post['permissions'] ?? [];
             foreach ($roles as $role) {
@@ -90,8 +95,17 @@ class RolesModule
                 }
             }
 
+            if ($startedTransaction && $pdo->inTransaction()) {
+                $pdo->commit();
+            }
+
             return ['success' => true, 'message' => 'Berechtigungen gespeichert.'];
         } catch (\Throwable $e) {
+            $pdo = $this->db->getPdo();
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+
             return ['success' => false, 'error' => 'Fehler: ' . $e->getMessage()];
         }
     }
@@ -113,9 +127,17 @@ class RolesModule
 
         try {
             $this->ensureTable();
+            $pdo = $this->db->getPdo();
+            $startedTransaction = !$pdo->inTransaction();
+            if ($startedTransaction) {
+                $pdo->beginTransaction();
+            }
 
             $capabilities = $this->getKnownCapabilities();
             $templateRole = $this->sanitizeRoleSlug((string)($post['copy_role'] ?? 'member'));
+            if (!in_array($templateRole, $roles, true)) {
+                $templateRole = 'member';
+            }
             $defaults     = $this->getPermissionsMatrix(array_merge($roles, [$slug]), $capabilities);
 
             foreach ($capabilities as $caps) {
@@ -128,8 +150,17 @@ class RolesModule
                 }
             }
 
+            if ($startedTransaction && $pdo->inTransaction()) {
+                $pdo->commit();
+            }
+
             return ['success' => true, 'message' => 'Neue Rolle wurde angelegt.'];
         } catch (\Throwable $e) {
+            $pdo = $this->db->getPdo();
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+
             return ['success' => false, 'error' => 'Fehler beim Anlegen der Rolle: ' . $e->getMessage()];
         }
     }
@@ -147,25 +178,51 @@ class RolesModule
             return ['success' => false, 'error' => 'Systemrollen können nicht umbenannt werden.'];
         }
 
+        if (!$this->roleExists($currentRole)) {
+            return ['success' => false, 'error' => 'Die ausgewählte Rolle existiert nicht mehr.'];
+        }
+
+        if ($currentRole === $newRole) {
+            return ['success' => true, 'message' => 'Rolle bleibt unverändert.'];
+        }
+
         if ($currentRole !== $newRole && in_array($newRole, $this->getKnownRoles(), true)) {
             return ['success' => false, 'error' => 'Die Zielrolle existiert bereits.'];
         }
 
         try {
             $this->ensureTable();
+            $pdo = $this->db->getPdo();
+            $startedTransaction = !$pdo->inTransaction();
+            if ($startedTransaction) {
+                $pdo->beginTransaction();
+            }
 
-            $this->db->execute(
+            $permissionStatement = $this->db->execute(
                 "UPDATE {$this->prefix}role_permissions SET role = ? WHERE role = ?",
                 [$newRole, $currentRole]
             );
 
-            $this->db->execute(
+            $userStatement = $this->db->execute(
                 "UPDATE {$this->prefix}users SET role = ? WHERE role = ?",
                 [$newRole, $currentRole]
             );
 
+            if ($permissionStatement->rowCount() < 1 && $userStatement->rowCount() < 1) {
+                throw new \RuntimeException('Die Rollen-Umbenennung konnte nicht bestätigt werden.');
+            }
+
+            if ($startedTransaction && $pdo->inTransaction()) {
+                $pdo->commit();
+            }
+
             return ['success' => true, 'message' => 'Rolle wurde aktualisiert.'];
         } catch (\Throwable $e) {
+            $pdo = $this->db->getPdo();
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+
             return ['success' => false, 'error' => 'Fehler beim Bearbeiten der Rolle: ' . $e->getMessage()];
         }
     }
@@ -183,25 +240,51 @@ class RolesModule
             return ['success' => false, 'error' => 'Systemrollen können nicht gelöscht werden.'];
         }
 
+        if (!$this->roleExists($role)) {
+            return ['success' => false, 'error' => 'Die ausgewählte Rolle existiert nicht mehr.'];
+        }
+
         if ($fallbackRole === '' || $fallbackRole === $role) {
+            $fallbackRole = 'member';
+        }
+
+        if (!$this->roleExists($fallbackRole)) {
             $fallbackRole = 'member';
         }
 
         try {
             $this->ensureTable();
+            $pdo = $this->db->getPdo();
+            $startedTransaction = !$pdo->inTransaction();
+            if ($startedTransaction) {
+                $pdo->beginTransaction();
+            }
 
-            $this->db->execute(
+            $usersStatement = $this->db->execute(
                 "UPDATE {$this->prefix}users SET role = ? WHERE role = ?",
                 [$fallbackRole, $role]
             );
 
-            $this->db->execute(
+            $permissionStatement = $this->db->execute(
                 "DELETE FROM {$this->prefix}role_permissions WHERE role = ?",
                 [$role]
             );
 
+            if ($usersStatement->rowCount() < 1 && $permissionStatement->rowCount() < 1) {
+                throw new \RuntimeException('Die Rollen-Löschung konnte nicht bestätigt werden.');
+            }
+
+            if ($startedTransaction && $pdo->inTransaction()) {
+                $pdo->commit();
+            }
+
             return ['success' => true, 'message' => 'Rolle wurde gelöscht.'];
         } catch (\Throwable $e) {
+            $pdo = $this->db->getPdo();
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+
             return ['success' => false, 'error' => 'Fehler beim Löschen der Rolle: ' . $e->getMessage()];
         }
     }
@@ -229,6 +312,11 @@ class RolesModule
 
         try {
             $this->ensureTable();
+            $pdo = $this->db->getPdo();
+            $startedTransaction = !$pdo->inTransaction();
+            if ($startedTransaction) {
+                $pdo->beginTransaction();
+            }
 
             foreach ($this->getKnownRoles() as $role) {
                 $granted = $role === 'admin' ? 1 : 0;
@@ -238,8 +326,17 @@ class RolesModule
                 );
             }
 
+            if ($startedTransaction && $pdo->inTransaction()) {
+                $pdo->commit();
+            }
+
             return ['success' => true, 'message' => 'Neue Berechtigung wurde angelegt: ' . $capability];
         } catch (\Throwable $e) {
+            $pdo = $this->db->getPdo();
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+
             return ['success' => false, 'error' => 'Fehler beim Anlegen der Berechtigung: ' . $e->getMessage()];
         }
     }
@@ -257,16 +354,28 @@ class RolesModule
             return ['success' => false, 'error' => 'Systemrechte können nicht umbenannt werden.'];
         }
 
+        if (!$this->capabilityExists($currentCapability)) {
+            return ['success' => false, 'error' => 'Die ausgewählte Berechtigung existiert nicht mehr.'];
+        }
+
+        if ($currentCapability === $newCapability) {
+            return ['success' => true, 'message' => 'Berechtigung bleibt unverändert.'];
+        }
+
         if ($currentCapability !== $newCapability && $this->capabilityExists($newCapability)) {
             return ['success' => false, 'error' => 'Diese Ziel-Berechtigung existiert bereits.'];
         }
 
         try {
             $this->ensureTable();
-            $this->db->execute(
+            $statement = $this->db->execute(
                 "UPDATE {$this->prefix}role_permissions SET capability = ? WHERE capability = ?",
                 [$newCapability, $currentCapability]
             );
+
+            if ($statement->rowCount() < 1) {
+                return ['success' => false, 'error' => 'Die ausgewählte Berechtigung existiert nicht mehr.'];
+            }
 
             return ['success' => true, 'message' => 'Berechtigung wurde aktualisiert.'];
         } catch (\Throwable $e) {
@@ -286,12 +395,20 @@ class RolesModule
             return ['success' => false, 'error' => 'Systemrechte können nicht gelöscht werden.'];
         }
 
+        if (!$this->capabilityExists($capability)) {
+            return ['success' => false, 'error' => 'Die ausgewählte Berechtigung existiert nicht mehr.'];
+        }
+
         try {
             $this->ensureTable();
-            $this->db->execute(
+            $statement = $this->db->execute(
                 "DELETE FROM {$this->prefix}role_permissions WHERE capability = ?",
                 [$capability]
             );
+
+            if ($statement->rowCount() < 1) {
+                return ['success' => false, 'error' => 'Die ausgewählte Berechtigung existiert nicht mehr.'];
+            }
 
             return ['success' => true, 'message' => 'Berechtigung wurde gelöscht.'];
         } catch (\Throwable $e) {
@@ -473,6 +590,11 @@ class RolesModule
     private function getCustomRoles(array $roles): array
     {
         return array_values(array_filter($roles, fn (string $role): bool => !in_array($role, self::ROLES, true)));
+    }
+
+    private function roleExists(string $role): bool
+    {
+        return $role !== '' && in_array($role, $this->getKnownRoles(), true);
     }
 
     private function getCustomCapabilities(array $capabilities): array

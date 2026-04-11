@@ -8,8 +8,33 @@
         var actionStatusInput = document.getElementById('actionStatus');
         var selectAll = document.getElementById('selectAll');
         var bulkBar = document.getElementById('bulkBar');
+        var bulkForm = document.getElementById('bulkForm');
         var countElement = document.getElementById('selectedCount');
         var tableWrap = document.querySelector('.comments-table-responsive');
+
+        function submitForm(form) {
+            if (!form) {
+                return;
+            }
+
+            if (typeof form.requestSubmit === 'function') {
+                form.requestSubmit();
+                return;
+            }
+
+            if (typeof form.reportValidity === 'function' && !form.reportValidity()) {
+                return;
+            }
+
+            if (typeof HTMLFormElement !== 'undefined'
+                && HTMLFormElement.prototype
+                && typeof HTMLFormElement.prototype.submit === 'function') {
+                HTMLFormElement.prototype.submit.call(form);
+                return;
+            }
+
+            form.submit();
+        }
 
         function submitAction(action, commentId, newStatus) {
             if (!actionForm || !actionTypeInput || !actionIdInput || !actionStatusInput) {
@@ -19,7 +44,7 @@
             actionTypeInput.value = action;
             actionIdInput.value = commentId;
             actionStatusInput.value = newStatus || '';
-            actionForm.submit();
+            submitForm(actionForm);
         }
 
         document.querySelectorAll('.js-comment-action').forEach(function (button) {
@@ -80,6 +105,49 @@
                     checkbox.checked = selectAll.checked;
                 });
                 updateBulkBar();
+            });
+        }
+
+        if (bulkForm) {
+            bulkForm.addEventListener('submit', function (event) {
+                var bulkAction = bulkForm.querySelector('select[name="bulk_action"]');
+                var selectedAction = bulkAction ? String(bulkAction.value || '').trim() : '';
+                var checkedCount = document.querySelectorAll('.row-check:checked').length;
+
+                if (selectedAction !== 'delete') {
+                    return;
+                }
+
+                if (bulkForm.dataset.confirmAccepted === '1') {
+                    bulkForm.dataset.confirmAccepted = '0';
+                    return;
+                }
+
+                event.preventDefault();
+
+                var message = checkedCount > 1
+                    ? String(checkedCount) + ' Kommentare endgültig löschen? Dies kann nicht rückgängig gemacht werden.'
+                    : 'Kommentar endgültig löschen? Dies kann nicht rückgängig gemacht werden.';
+                var confirmDelete = function () {
+                    bulkForm.dataset.confirmAccepted = '1';
+                    submitForm(bulkForm);
+                };
+
+                if (typeof cmsConfirm === 'function') {
+                    cmsConfirm({
+                        title: 'Kommentare löschen',
+                        message: message,
+                        confirmText: 'Löschen',
+                        confirmClass: 'btn-danger',
+                        statusClass: 'bg-danger',
+                        onConfirm: confirmDelete,
+                    });
+                    return;
+                }
+
+                if (window.confirm(message)) {
+                    confirmDelete();
+                }
             });
         }
 

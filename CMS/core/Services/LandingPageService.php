@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace CMS\Services;
 
 use CMS\Database;
+use CMS\Logger;
 use CMS\Services\Landing\LandingPluginService;
 use CMS\Services\Landing\LandingRepository;
 use CMS\Services\Landing\LandingSanitizer;
@@ -26,6 +27,7 @@ class LandingPageService
     private static ?self $instance = null;
     private readonly LandingSectionService $sectionService;
     private readonly LandingPluginService $pluginService;
+    private readonly Logger $logger;
     
     public static function getInstance(): self
     {
@@ -42,6 +44,7 @@ class LandingPageService
 
         $this->sectionService = new LandingSectionService($repository, $sanitizer);
         $this->pluginService = new LandingPluginService($repository, $sanitizer);
+        $this->logger = Logger::instance()->withChannel('service.landing-page');
     }
 
     /**
@@ -227,7 +230,10 @@ class LandingPageService
 
             return (int)$stmt->fetchColumn();
         } catch (\Throwable $e) {
-            error_log('LandingPageService::countSectionsByType() Error: ' . $e->getMessage());
+            $this->logger->error('Landing-Sektionsanzahl konnte nicht geladen werden.', [
+                'type' => $type,
+                'exception' => $e->getMessage(),
+            ]);
             return 0;
         }
     }
@@ -302,7 +308,7 @@ class LandingPageService
         foreach ($existingFeatures as $feature) {
             $title = trim((string)($feature['title'] ?? ''));
             if ($title !== '') {
-                $existingTitles[] = mb_strtolower($title);
+                $existingTitles[] = $this->normalizeLowercase($title);
             }
 
             $sortOrder = (int)($feature['sort_order'] ?? 0);
@@ -312,7 +318,7 @@ class LandingPageService
         }
 
         foreach ($defaultFeatures as $feature) {
-            $defaultTitle = mb_strtolower(trim((string)($feature['title'] ?? '')));
+            $defaultTitle = $this->normalizeLowercase(trim((string)($feature['title'] ?? '')));
             $defaultSortOrder = (int)($feature['sort_order'] ?? 0);
 
             if (
@@ -342,7 +348,7 @@ class LandingPageService
         foreach ($features as $feature) {
             $title = trim((string)($feature['title'] ?? ''));
             if ($title !== '') {
-                $existingTitles[] = mb_strtolower($title);
+                $existingTitles[] = $this->normalizeLowercase($title);
             }
 
             $sortOrder = (int)($feature['sort_order'] ?? 0);
@@ -352,7 +358,7 @@ class LandingPageService
         }
 
         foreach ($defaultFeatures as $feature) {
-            $defaultTitle = mb_strtolower(trim((string)($feature['title'] ?? '')));
+            $defaultTitle = $this->normalizeLowercase(trim((string)($feature['title'] ?? '')));
             $defaultSortOrder = (int)($feature['sort_order'] ?? 0);
 
             if (
@@ -438,5 +444,14 @@ class LandingPageService
     public function getPluginSettings(string $pluginId): array
     {
         return $this->pluginService->getPluginSettings($pluginId);
+    }
+
+    private function normalizeLowercase(string $value): string
+    {
+        if (function_exists('mb_strtolower')) {
+            return (string) mb_strtolower($value, 'UTF-8');
+        }
+
+        return strtolower($value);
     }
 }

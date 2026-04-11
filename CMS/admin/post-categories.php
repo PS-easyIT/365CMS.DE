@@ -78,6 +78,11 @@ if ($editCategoryId > 0) {
             break;
         }
     }
+
+    if ($editCategory === null) {
+        $_SESSION['admin_alert'] = ['type' => 'danger', 'message' => 'Die angeforderte Kategorie existiert nicht mehr. Bitte Liste neu laden.'];
+        cms_admin_post_categories_redirect();
+    }
 }
 
 $pageTitle = 'Beitrags-Kategorien';

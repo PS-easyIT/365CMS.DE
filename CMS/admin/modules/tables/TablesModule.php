@@ -119,6 +119,7 @@ class TablesModule
         );
 
         $table = null;
+        $missing = false;
         if ($id !== null) {
             $table = $this->db->get_row(
                 "SELECT * FROM {$this->prefix}site_tables WHERE id = ?",
@@ -139,6 +140,8 @@ class TablesModule
                 if (!isset($styleOptions[$selectedStyle])) {
                     $table['settings']['style_theme'] = $displaySettings['default_style'];
                 }
+            } else {
+                $missing = true;
             }
         }
 
@@ -148,6 +151,7 @@ class TablesModule
         return [
             'table'            => $table,
             'isNew'            => $table === null,
+            'missing'          => $missing,
             'defaults'         => self::DEFAULT_SETTINGS,
             'displaySettings'  => $displaySettings,
             'styleOptions'     => $styleOptions,
@@ -218,15 +222,14 @@ class TablesModule
         }
 
         // Spalten & Zeilen aus JSON-Feldern
-        $columns = \CMS\Json::decodeArray($post['columns_json'] ?? null, []);
-        $rows    = \CMS\Json::decodeArray($post['rows_json'] ?? null, []);
-
-        if (!is_array($columns)) {
-            $columns = [];
+        $columns = $this->decodeEditorArrayPayload($post['columns_json'] ?? null);
+        if ($columns === null) {
+            return ['success' => false, 'error' => 'Ungültige Spalten-Konfiguration. Bitte Editor neu laden und erneut versuchen.'];
         }
 
-        if (!is_array($rows)) {
-            $rows = [];
+        $rows = $this->decodeEditorArrayPayload($post['rows_json'] ?? null);
+        if ($rows === null) {
+            return ['success' => false, 'error' => 'Ungültige Zeilen-Konfiguration. Bitte Editor neu laden und erneut versuchen.'];
         }
 
         $normalizedColumns = $this->normalizeColumns($columns);
@@ -308,8 +311,25 @@ class TablesModule
      */
     public function delete(int $id): array
     {
+        if ($id <= 0) {
+            return ['success' => false, 'error' => 'Ungültige Tabellen-ID.'];
+        }
+
+        $existingId = $this->db->get_var(
+            "SELECT id FROM {$this->prefix}site_tables WHERE id = ? LIMIT 1",
+            [$id]
+        );
+
+        if ($existingId === null) {
+            return ['success' => false, 'error' => 'Tabelle wurde nicht gefunden.'];
+        }
+
         try {
-            $this->db->execute("DELETE FROM {$this->prefix}site_tables WHERE id = ?", [$id]);
+            $statement = $this->db->execute("DELETE FROM {$this->prefix}site_tables WHERE id = ? LIMIT 1", [$id]);
+            if ($statement->rowCount() < 1) {
+                return ['success' => false, 'error' => 'Tabelle wurde zwischenzeitlich entfernt. Bitte Liste neu laden.'];
+            }
+
             return ['success' => true, 'message' => 'Tabelle gelöscht.'];
         } catch (\Throwable $e) {
             return $this->failResult('Tabelle konnte nicht gelöscht werden.', $e, [
@@ -371,6 +391,36 @@ class TablesModule
         $search = preg_replace('/[\x00-\x1F\x7F]/u', '', $search) ?? '';
 
         return trim($search);
+    }
+
+    /**
+     * @return array<int, mixed>|null
+     */
+    private function decodeEditorArrayPayload(mixed $payload): ?array
+    {
+        if ($payload === null) {
+            return [];
+        }
+
+        if (is_string($payload)) {
+            $payload = trim($payload);
+        } elseif (is_scalar($payload)) {
+            $payload = trim((string) $payload);
+        } else {
+            return null;
+        }
+
+        if ($payload === '') {
+            return [];
+        }
+
+        try {
+            $decoded = json_decode($payload, true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException) {
+            return null;
+        }
+
+        return is_array($decoded) ? $decoded : null;
     }
 
     private function sanitizeText(string $value, int $maxLength): string

@@ -64,6 +64,11 @@ $sectionPageConfig = [
     'view_file' => __DIR__ . '/views/themes/list.php',
     'page_title' => 'Themes',
     'active_page' => 'themes',
+    'page_assets' => [
+        'js' => [
+            cms_asset_url('js/admin-themes.js'),
+        ],
+    ],
     'csrf_action' => 'admin_themes',
     'module_file' => __DIR__ . '/modules/themes/ThemesModule.php',
     'module_factory' => static fn (): ThemesModule => new ThemesModule(),

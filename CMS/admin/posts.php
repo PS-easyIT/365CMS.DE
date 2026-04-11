@@ -42,6 +42,20 @@ function cms_admin_posts_target_url(?int $id = null): string
     return '/admin/posts';
 }
 
+function cms_admin_posts_flash(string $type, string $message): void
+{
+    $_SESSION['admin_alert'] = [
+        'type' => $type === 'success' ? 'success' : 'danger',
+        'message' => trim($message),
+    ];
+}
+
+function cms_admin_posts_redirect(?int $id = null): never
+{
+    header('Location: ' . cms_admin_posts_target_url($id));
+    exit;
+}
+
 function cms_admin_posts_normalize_action(mixed $action): string
 {
     $normalizedAction = trim((string) $action);
@@ -109,6 +123,12 @@ function cms_admin_posts_view_config(PostsModule $module, string $view): array
     if ($normalizedView === 'edit') {
         $id = cms_admin_posts_normalize_positive_id($_GET['id'] ?? 0);
         $editData = $module->getEditData($id);
+
+        if ($id > 0 && !empty($editData['isNew'])) {
+            cms_admin_posts_flash('danger', 'Der angeforderte Beitrag existiert nicht mehr. Bitte Liste neu laden.');
+            cms_admin_posts_redirect();
+        }
+
         $useEditorJs = EditorService::isEditorJs();
         $pageAssets = [];
 

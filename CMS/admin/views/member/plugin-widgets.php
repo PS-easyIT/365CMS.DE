@@ -9,6 +9,10 @@ if (!defined('CMS_ADMIN_MEMBER_VIEW')) {
     exit;
 }
 
+$pageAssets = $pageAssets ?? [];
+$pageAssets['js'] = is_array($pageAssets['js'] ?? null) ? $pageAssets['js'] : [];
+$pageAssets['js'][] = cms_asset_url('js/admin-member-dashboard.js');
+
 $settings = $data['settings'] ?? [];
 $pluginWidgets = $data['pluginWidgets'] ?? [];
 $order = $settings['plugin_widget_order'] ?? [];
@@ -56,7 +60,7 @@ if ($order !== []) {
                     <?php if ($pluginWidgets === []): ?>
                         <div class="text-muted">Aktuell sind keine registrierten Plugin-Widgets vorhanden.</div>
                     <?php else: ?>
-                        <div class="row row-cards" id="pluginWidgetList">
+                        <div class="row row-cards" id="pluginWidgetList" data-member-plugin-widget-list="1" data-order-input="plugin_widget_order">
                             <?php foreach ($pluginWidgets as $widget):
                                 $pluginSlug = (string)($widget['plugin'] ?? '');
                                 $visible = ($settings['member_dashboard_plugin_' . $pluginSlug] ?? '1') === '1';
@@ -117,58 +121,3 @@ if ($order !== []) {
         </form>
     </div>
 </div>
-
-<script>
-(function () {
-    var list = document.getElementById('pluginWidgetList');
-    var orderInput = document.getElementById('plugin_widget_order');
-    if (!list || !orderInput) {
-        return;
-    }
-
-    var dragItem = null;
-
-    var syncOrder = function () {
-        var values = [];
-        list.querySelectorAll('[data-plugin]').forEach(function (item) {
-            values.push(item.getAttribute('data-plugin') || '');
-        });
-        orderInput.value = values.filter(Boolean).join(',');
-    };
-
-    list.querySelectorAll('[data-plugin]').forEach(function (item) {
-        item.addEventListener('dragstart', function () {
-            dragItem = item;
-            item.classList.add('opacity-50');
-        });
-
-        item.addEventListener('dragend', function () {
-            item.classList.remove('opacity-50');
-            dragItem = null;
-            syncOrder();
-        });
-
-        item.addEventListener('dragover', function (event) {
-            event.preventDefault();
-        });
-
-        item.addEventListener('drop', function (event) {
-            event.preventDefault();
-            if (!dragItem || dragItem === item) {
-                return;
-            }
-            var nodes = Array.prototype.slice.call(list.children);
-            var dragIndex = nodes.indexOf(dragItem);
-            var dropIndex = nodes.indexOf(item);
-            if (dragIndex < dropIndex) {
-                list.insertBefore(dragItem, item.nextSibling);
-            } else {
-                list.insertBefore(dragItem, item);
-            }
-            syncOrder();
-        });
-    });
-
-    syncOrder();
-})();
-</script>

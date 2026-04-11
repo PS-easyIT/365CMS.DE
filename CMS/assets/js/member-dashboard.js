@@ -35,6 +35,26 @@
         return bytes;
     }
 
+    function submitFormWithTemporarySubmitter(form) {
+        if (!form) {
+            return;
+        }
+
+        if (typeof form.requestSubmit === 'function') {
+            const submitter = document.createElement('button');
+            submitter.type = 'submit';
+            submitter.hidden = true;
+            submitter.tabIndex = -1;
+            submitter.setAttribute('aria-hidden', 'true');
+            form.appendChild(submitter);
+            form.requestSubmit(submitter);
+            form.removeChild(submitter);
+            return;
+        }
+
+        form.submit();
+    }
+
     function normalizePublicKeyOptions(options) {
         if (!options || typeof options !== 'object') {
             return options;
@@ -95,7 +115,7 @@
 
                 form.querySelector('input[name="client_data_json"]').value = toBase64UrlFromBufferSource(credential.response.clientDataJSON);
                 form.querySelector('input[name="attestation_object"]').value = toBase64UrlFromBufferSource(credential.response.attestationObject);
-                form.submit();
+                submitFormWithTemporarySubmitter(form);
             } catch (error) {
                 window.alert(error && error.message ? error.message : 'Passkey-Registrierung wurde abgebrochen.');
             } finally {

@@ -40,17 +40,49 @@ class GroupsModule
         return ['groups' => $groups];
     }
 
+    private function normalizeScalarText(mixed $value, int $maxLength): string
+    {
+        if (is_array($value) || is_object($value)) {
+            return '';
+        }
+
+        $normalized = trim((string) $value);
+        $normalized = preg_replace('/[\x00-\x1F\x7F]+/u', '', $normalized) ?? '';
+
+        return function_exists('mb_substr')
+            ? mb_substr($normalized, 0, $maxLength)
+            : substr($normalized, 0, $maxLength);
+    }
+
+    private function groupExists(int $id): bool
+    {
+        if ($id <= 0) {
+            return false;
+        }
+
+        $count = $this->db->get_var(
+            "SELECT COUNT(*) FROM {$this->prefix}user_groups WHERE id = ?",
+            [$id]
+        );
+
+        return $count !== null && (int) $count > 0;
+    }
+
     /**
      * Gruppe erstellen oder aktualisieren
      */
     public function save(array $post): array
     {
         $id          = (int)($post['id'] ?? 0);
-        $name        = trim($post['name'] ?? '');
-        $description = trim($post['description'] ?? '');
+        $name        = $this->normalizeScalarText($post['name'] ?? '', 120);
+        $description = $this->normalizeScalarText($post['description'] ?? '', 500);
 
         if ($name === '') {
             return ['success' => false, 'error' => 'Gruppenname darf nicht leer sein.'];
+        }
+
+        if ($id > 0 && !$this->groupExists($id)) {
+            return ['success' => false, 'error' => 'Die angeforderte Gruppe existiert nicht mehr.'];
         }
 
         try {
@@ -81,11 +113,35 @@ class GroupsModule
             return ['success' => false, 'error' => 'Ungültige Gruppen-ID.'];
         }
 
+        if (!$this->groupExists($id)) {
+            return ['success' => false, 'error' => 'Die angeforderte Gruppe existiert nicht mehr.'];
+        }
+
         try {
+            $pdo = $this->db->getPdo();
+            $startedTransaction = !$pdo->inTransaction();
+            if ($startedTransaction) {
+                $pdo->beginTransaction();
+            }
+
             $this->db->execute("DELETE FROM {$this->prefix}user_group_members WHERE group_id = ?", [$id]);
-            $this->db->execute("DELETE FROM {$this->prefix}user_groups WHERE id = ?", [$id]);
+            $deleteGroupStatement = $this->db->execute("DELETE FROM {$this->prefix}user_groups WHERE id = ? LIMIT 1", [$id]);
+
+            if ($deleteGroupStatement->rowCount() < 1) {
+                throw new \RuntimeException('Die Gruppen-Löschung konnte nicht bestätigt werden.');
+            }
+
+            if ($startedTransaction && $pdo->inTransaction()) {
+                $pdo->commit();
+            }
+
             return ['success' => true, 'message' => 'Gruppe gelöscht.'];
         } catch (\Throwable $e) {
+            $pdo = $this->db->getPdo();
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+
             return ['success' => false, 'error' => 'Fehler: ' . $e->getMessage()];
         }
     }

@@ -10,12 +10,47 @@ $pageKey = $pageKey ?? 'dashboard';
 $pageAssets = $pageAssets ?? [];
 $controller = $controller ?? \CMS\MemberArea\MemberController::instance();
 $settings = $settings ?? $controller->getSettings();
-$siteUrl = defined('SITE_URL') ? SITE_URL : '';
 $siteName = function_exists('cms_get_site_name') ? cms_get_site_name() : (defined('SITE_NAME') ? SITE_NAME : '365CMS');
 $design = is_array($settings['design'] ?? null) ? $settings['design'] : [];
 $sanitizeDesignColor = static function (mixed $value, string $fallback): string {
     $color = trim((string) $value);
     return preg_match('/^#[0-9a-f]{6}$/i', $color) === 1 ? $color : $fallback;
+};
+$sanitizeMemberHeaderHref = static function (mixed $value, string $fallback): string {
+    $href = trim((string) $value);
+    if ($href === '') {
+        return $fallback;
+    }
+
+    if (str_starts_with($href, '/')) {
+        return str_starts_with($href, '//') ? $fallback : $href;
+    }
+
+    if (preg_match('#^https?://#i', $href) === 1) {
+        return filter_var($href, FILTER_VALIDATE_URL) ? $href : $fallback;
+    }
+
+    return $fallback;
+};
+$sanitizeMemberHeaderAsset = static function (mixed $value): string {
+    $asset = trim((string) $value);
+    if ($asset === '') {
+        return '';
+    }
+
+    if (preg_match('/^[A-Za-z]:[\\\/]/', $asset) === 1 || str_starts_with($asset, '//')) {
+        return '';
+    }
+
+    if (str_starts_with($asset, '/')) {
+        return $asset;
+    }
+
+    if (preg_match('#^https?://#i', $asset) === 1) {
+        return filter_var($asset, FILTER_VALIDATE_URL) ? $asset : '';
+    }
+
+    return '';
 };
 $memberPrimary = $sanitizeDesignColor($design['primary'] ?? '#6366f1', '#6366f1');
 $memberAccent = $sanitizeDesignColor($design['accent'] ?? '#8b5cf6', '#8b5cf6');
@@ -30,6 +65,12 @@ $memberMenu = $controller->getMenuItems($pageKey);
 $canAccessAdminPortal = $controller->canAccessAdminPortal();
 $adminPortalUrl = $controller->getAdminPortalUrl();
 $showAdminHeaderLink = \CMS\Auth::isAdmin();
+$dashboardHref = $sanitizeMemberHeaderHref('/member/dashboard', '/member/dashboard');
+$profileHref = $sanitizeMemberHeaderHref('/member/profile', '/member/profile');
+$securityHref = $sanitizeMemberHeaderHref('/member/security', '/member/security');
+$logoutHref = $sanitizeMemberHeaderHref('/logout', '/logout');
+$adminHref = $sanitizeMemberHeaderHref($adminPortalUrl, '/admin');
+$dashboardLogo = $sanitizeMemberHeaderAsset($settings['dashboard_logo'] ?? '');
 ?>
 <!doctype html>
 <html lang="de">
@@ -68,8 +109,14 @@ $showAdminHeaderLink = \CMS\Auth::isAdmin();
                 <span class="navbar-toggler-icon"></span>
             </button>
             <h1 class="navbar-brand navbar-brand-autodark">
-                <a href="<?= htmlspecialchars($siteUrl) ?>/member/dashboard" class="text-reset text-decoration-none d-flex align-items-center gap-2">
-                    <span class="avatar avatar-sm member-brand-avatar"><?= htmlspecialchars($controller->getInitials()) ?></span>
+                <a href="<?= htmlspecialchars($dashboardHref, ENT_QUOTES) ?>" class="text-reset text-decoration-none d-flex align-items-center gap-2">
+                    <?php if ($dashboardLogo !== ''): ?>
+                        <span class="d-inline-flex align-items-center justify-content-center rounded bg-white border p-1" style="width: 2.5rem; height: 2.5rem;">
+                            <img src="<?= htmlspecialchars($dashboardLogo, ENT_QUOTES) ?>" alt="<?= htmlspecialchars($siteName) ?>" style="max-width: 100%; max-height: 100%; object-fit: contain;">
+                        </span>
+                    <?php else: ?>
+                        <span class="avatar avatar-sm member-brand-avatar"><?= htmlspecialchars($controller->getInitials()) ?></span>
+                    <?php endif; ?>
                     <span>
                         <span class="d-block"><?= htmlspecialchars($siteName) ?></span>
                         <small class="text-secondary">Member Hub</small>
@@ -101,13 +148,13 @@ $showAdminHeaderLink = \CMS\Auth::isAdmin();
                             </div>
                         </a>
                         <div class="dropdown-menu dropdown-menu-end dropdown-menu-arrow">
-                            <a href="<?= htmlspecialchars($siteUrl) ?>/member/profile" class="dropdown-item">Profil</a>
-                            <a href="<?= htmlspecialchars($siteUrl) ?>/member/security" class="dropdown-item">Sicherheit</a>
+                            <a href="<?= htmlspecialchars($profileHref, ENT_QUOTES) ?>" class="dropdown-item">Profil</a>
+                            <a href="<?= htmlspecialchars($securityHref, ENT_QUOTES) ?>" class="dropdown-item">Sicherheit</a>
                             <?php if ($canAccessAdminPortal): ?>
-                                <a href="<?= htmlspecialchars($siteUrl . $adminPortalUrl) ?>" class="dropdown-item">Adminmenü</a>
+                                <a href="<?= htmlspecialchars($adminHref, ENT_QUOTES) ?>" class="dropdown-item">Adminmenü</a>
                             <?php endif; ?>
                             <div class="dropdown-divider"></div>
-                            <a href="<?= htmlspecialchars($siteUrl) ?>/logout" class="dropdown-item">Abmelden</a>
+                            <a href="<?= htmlspecialchars($logoutHref, ENT_QUOTES) ?>" class="dropdown-item">Abmelden</a>
                         </div>
                     </div>
                 </div>
@@ -117,7 +164,7 @@ $showAdminHeaderLink = \CMS\Auth::isAdmin();
                         <h2 class="page-title mb-0"><?= htmlspecialchars($pageTitle) ?></h2>
                     </div>
                     <?php if ($showAdminHeaderLink): ?>
-                        <a href="<?= htmlspecialchars($siteUrl . $adminPortalUrl, ENT_QUOTES) ?>" class="btn btn-outline-primary btn-sm">
+                        <a href="<?= htmlspecialchars($adminHref, ENT_QUOTES) ?>" class="btn btn-outline-primary btn-sm">
                             ⚙️ Admin
                         </a>
                     <?php endif; ?>

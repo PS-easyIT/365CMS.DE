@@ -19,15 +19,18 @@ $customWidgets = is_array($data['custom_widgets'] ?? null) ? $data['custom_widge
 $profileCompletion = is_array($data['profile_completion'] ?? null) ? $data['profile_completion'] : ['percentage' => 0, 'missing' => []];
 $subscription = $data['subscription'] ?? null;
 $frontendModules = is_array($settings['frontend_modules'] ?? null) ? $settings['frontend_modules'] : [];
+$notificationCenter = is_array($data['notification_center'] ?? null) ? $data['notification_center'] : (is_array($settings['notifications'] ?? null) ? $settings['notifications'] : []);
 $showWelcome = !empty($settings['show_welcome']);
 $showQuickstart = !array_key_exists('show_quickstart', $frontendModules) || !empty($frontendModules['show_quickstart']);
 $showStats = !array_key_exists('show_stats', $frontendModules) || !empty($frontendModules['show_stats']);
 $showCustomWidgets = !array_key_exists('show_custom_widgets', $frontendModules) || !empty($frontendModules['show_custom_widgets']);
 $showPluginWidgets = !array_key_exists('show_plugin_widgets', $frontendModules) || !empty($frontendModules['show_plugin_widgets']);
 $showNotificationsPanel = !array_key_exists('show_notifications_panel', $frontendModules) || !empty($frontendModules['show_notifications_panel']);
+$showNotificationsCenter = !array_key_exists('center_enabled', $notificationCenter) || !empty($notificationCenter['center_enabled']);
 $showOnboarding = !array_key_exists('show_onboarding_panel', $frontendModules) || !empty($frontendModules['show_onboarding_panel']);
 $onboarding = is_array($settings['onboarding'] ?? null) ? $settings['onboarding'] : [];
 $profileMissing = is_array($profileCompletion['missing'] ?? null) ? $profileCompletion['missing'] : [];
+$notificationEmptyText = trim((string)($notificationCenter['empty_text'] ?? 'Aktuell gibt es keine neuen Meldungen.'));
 $sanitizeMemberColor = static function (mixed $value, string $fallback = '#4f46e5'): string {
     $color = trim((string) $value);
     return preg_match('/^#[0-9a-f]{6}$/i', $color) === 1 ? $color : $fallback;
@@ -48,8 +51,11 @@ $normalizeMemberHref = static function (mixed $value, string $fallback = '/membe
 
     return $fallback;
 };
-$onboardingCtaPath = $normalizeMemberHref($onboarding['cta_url'] ?? '/member/profile', '/member/profile');
-$onboardingCtaHref = str_starts_with($onboardingCtaPath, 'http') ? $onboardingCtaPath : SITE_URL . $onboardingCtaPath;
+$profileHref = '/member/profile';
+$securityHref = '/member/security';
+$mediaHref = '/member/media';
+$notificationsHref = '/member/notifications';
+$onboardingCtaHref = $normalizeMemberHref($onboarding['cta_url'] ?? $profileHref, $profileHref);
 
 include __DIR__ . '/partials/header.php';
 ?>
@@ -67,7 +73,7 @@ include __DIR__ . '/partials/header.php';
                             </p>
                         </div>
                         <div class="col-lg-4 text-lg-end">
-                            <a href="<?= htmlspecialchars(SITE_URL) ?>/member/profile" class="btn btn-primary">Profil vervollständigen</a>
+                            <a href="<?= htmlspecialchars($profileHref, ENT_QUOTES) ?>" class="btn btn-primary">Profil vervollständigen</a>
                         </div>
                     </div>
                 </div>
@@ -132,41 +138,43 @@ include __DIR__ . '/partials/header.php';
 
     <div class="col-12 col-xl-8">
         <div class="row g-4">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title">Schnellzugriff</h3>
-                    </div>
-                    <div class="card-body">
-                        <div class="row row-cards">
-                            <div class="col-sm-6 col-lg-4">
-                                <a class="card card-link card-link-pop" href="<?= htmlspecialchars(SITE_URL) ?>/member/profile">
-                                    <div class="card-body">
-                                        <div class="h3 mb-1">Profil</div>
-                                        <div class="text-secondary">Persönliche Daten und Sichtbarkeit verwalten</div>
-                                    </div>
-                                </a>
-                            </div>
-                            <div class="col-sm-6 col-lg-4">
-                                <a class="card card-link card-link-pop" href="<?= htmlspecialchars(SITE_URL) ?>/member/security">
-                                    <div class="card-body">
-                                        <div class="h3 mb-1">Sicherheit</div>
-                                        <div class="text-secondary">MFA, Passkeys und Passwort-Einstellungen</div>
-                                    </div>
-                                </a>
-                            </div>
-                            <div class="col-sm-6 col-lg-4">
-                                <a class="card card-link card-link-pop" href="<?= htmlspecialchars(SITE_URL) ?>/member/media">
-                                    <div class="card-body">
-                                        <div class="h3 mb-1">Dateien</div>
-                                        <div class="text-secondary">Medien hochladen, Ordner erstellen, Dateien verwalten</div>
-                                    </div>
-                                </a>
+            <?php if ($showQuickstart): ?>
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Schnellzugriff</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="row row-cards">
+                                <div class="col-sm-6 col-lg-4">
+                                    <a class="card card-link card-link-pop" href="<?= htmlspecialchars($profileHref, ENT_QUOTES) ?>">
+                                        <div class="card-body">
+                                            <div class="h3 mb-1">Profil</div>
+                                            <div class="text-secondary">Persönliche Daten und Sichtbarkeit verwalten</div>
+                                        </div>
+                                    </a>
+                                </div>
+                                <div class="col-sm-6 col-lg-4">
+                                    <a class="card card-link card-link-pop" href="<?= htmlspecialchars($securityHref, ENT_QUOTES) ?>">
+                                        <div class="card-body">
+                                            <div class="h3 mb-1">Sicherheit</div>
+                                            <div class="text-secondary">MFA, Passkeys und Passwort-Einstellungen</div>
+                                        </div>
+                                    </a>
+                                </div>
+                                <div class="col-sm-6 col-lg-4">
+                                    <a class="card card-link card-link-pop" href="<?= htmlspecialchars($mediaHref, ENT_QUOTES) ?>">
+                                        <div class="card-body">
+                                            <div class="h3 mb-1">Dateien</div>
+                                            <div class="text-secondary">Medien hochladen, Ordner erstellen, Dateien verwalten</div>
+                                        </div>
+                                    </a>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            <?php endif; ?>
 
             <?php if ($showOnboarding && !empty($onboarding['enabled'])): ?>
                 <div class="col-12">
@@ -211,7 +219,6 @@ include __DIR__ . '/partials/header.php';
                 <?php foreach ($pluginWidgets as $widget): ?>
                     <?php $pluginWidgetColor = $sanitizeMemberColor($widget['color'] ?? '#4f46e5'); ?>
                     <?php $pluginWidgetHref = $normalizeMemberHref($widget['link'] ?? '/member/dashboard'); ?>
-                    <?php $pluginWidgetHref = str_starts_with($pluginWidgetHref, 'http') ? $pluginWidgetHref : SITE_URL . $pluginWidgetHref; ?>
                     <div class="col-md-6">
                         <div class="card h-100 member-plugin-widget">
                             <div class="card-body">
@@ -266,16 +273,16 @@ include __DIR__ . '/partials/header.php';
                 </div>
             </div>
 
-            <?php if ($showNotificationsPanel): ?>
+            <?php if ($showNotificationsPanel && $showNotificationsCenter): ?>
                 <div class="col-12">
                     <div class="card">
                         <div class="card-header d-flex justify-content-between align-items-center">
                             <h3 class="card-title">Letzte Benachrichtigungen</h3>
-                            <a href="<?= htmlspecialchars(SITE_URL) ?>/member/notifications" class="btn btn-sm btn-outline-primary">Verwalten</a>
+                            <a href="<?= htmlspecialchars($notificationsHref, ENT_QUOTES) ?>" class="btn btn-sm btn-outline-primary">Verwalten</a>
                         </div>
                         <div class="list-group list-group-flush list-group-hoverable">
                             <?php if ($notifications === []): ?>
-                                <div class="card-body text-secondary">Aktuell gibt es keine neuen Benachrichtigungen.</div>
+                                <div class="card-body text-secondary"><?= htmlspecialchars($notificationEmptyText !== '' ? $notificationEmptyText : 'Aktuell gibt es keine neuen Benachrichtigungen.') ?></div>
                             <?php else: ?>
                                 <?php foreach ($notifications as $notification): ?>
                                     <div class="list-group-item">

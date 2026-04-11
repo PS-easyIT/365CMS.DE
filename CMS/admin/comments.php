@@ -150,6 +150,24 @@ $sectionPageConfig = [
             return ['success' => false, 'error' => 'Ungültige Bulk-Aktion.'];
         }
 
+        if ($payload['action'] === 'status' && !$module->canModerate()) {
+            return ['success' => false, 'error' => 'Sie dürfen Kommentare nicht moderieren.'];
+        }
+
+        if ($payload['action'] === 'delete' && !$module->canDelete()) {
+            return ['success' => false, 'error' => 'Sie dürfen Kommentare nicht löschen.'];
+        }
+
+        if ($payload['action'] === 'bulk') {
+            if ($payload['bulk_action'] === 'delete' && !$module->canDelete()) {
+                return ['success' => false, 'error' => 'Sie dürfen Kommentare nicht löschen.'];
+            }
+
+            if ($payload['bulk_action'] !== 'delete' && !$module->canModerate()) {
+                return ['success' => false, 'error' => 'Sie dürfen Kommentare nicht moderieren.'];
+            }
+        }
+
         return cms_admin_comments_handle_action($module, $payload);
     },
 ];

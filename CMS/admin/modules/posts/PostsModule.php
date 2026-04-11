@@ -248,6 +248,46 @@ class PostsModule
         ) > 0;
     }
 
+    private function postExists(int $postId): bool
+    {
+        if ($postId <= 0) {
+            return false;
+        }
+
+        return (int) ($this->db->get_var(
+            "SELECT COUNT(*) FROM {$this->prefix}posts WHERE id = ?",
+            [$postId]
+        ) ?: 0) > 0;
+    }
+
+    /**
+     * @param array<int,int> $ids
+     * @return array<int,int>
+     */
+    private function getExistingPostIds(array $ids): array
+    {
+        $ids = array_values(array_unique(array_filter(array_map('intval', $ids), static fn (int $id): bool => $id > 0)));
+        if ($ids === []) {
+            return [];
+        }
+
+        $placeholders = implode(', ', array_fill(0, count($ids), '?'));
+        $rows = $this->db->get_results(
+            "SELECT id FROM {$this->prefix}posts WHERE id IN ({$placeholders})",
+            $ids
+        ) ?: [];
+
+        $existingIds = [];
+        foreach ($rows as $row) {
+            $postId = (int) ($row->id ?? 0);
+            if ($postId > 0) {
+                $existingIds[$postId] = $postId;
+            }
+        }
+
+        return array_values($existingIds);
+    }
+
     /**
      * Daten für die Listenansicht
      */
@@ -636,10 +676,21 @@ class PostsModule
             return ['success' => false, 'error' => 'Ungültige Beitrags-ID.'];
         }
 
-        try {
-            $success = $this->db->delete('posts', ['id' => $id]);
+        if (!$this->postExists($id)) {
+            return ['success' => false, 'error' => 'Beitrag wurde nicht gefunden oder bereits gelöscht.'];
+        }
 
-            if (!$success) {
+        try {
+            $statement = $this->db->execute(
+                "DELETE FROM {$this->prefix}posts WHERE id = ? LIMIT 1",
+                [$id]
+            );
+
+            if ($statement->rowCount() < 1) {
+                return ['success' => false, 'error' => 'Beitrag wurde nicht gefunden oder bereits gelöscht.'];
+            }
+
+            if (!$statement) {
                 return $this->failResult(
                     'posts.delete.failed',
                     'Beitrag konnte nicht gelöscht werden.',
@@ -671,6 +722,17 @@ class PostsModule
         if ($ids === []) {
             return ['success' => false, 'error' => 'Keine gültigen Beitrags-IDs ausgewählt.'];
         }
+
+        $existingIds = $this->getExistingPostIds($ids);
+        if ($existingIds === []) {
+            return ['success' => false, 'error' => 'Die ausgewählten Beiträge existieren nicht mehr. Bitte Liste neu laden.'];
+        }
+
+        if (count($existingIds) !== count($ids)) {
+            return ['success' => false, 'error' => 'Mindestens ein ausgewählter Beitrag existiert nicht mehr. Bitte Liste neu laden und Aktion erneut ausführen.'];
+        }
+
+        $ids = $existingIds;
 
         $placeholders = implode(',', array_fill(0, count($ids), '?'));
 
@@ -988,6 +1050,10 @@ class PostsModule
             return ['success' => false, 'error' => 'Ungültige Kategorie.'];
         }
 
+        if (!$this->categoryExists($id)) {
+            return ['success' => false, 'error' => 'Kategorie wurde nicht gefunden oder bereits gelöscht.'];
+        }
+
         $assignedPostCount = $this->countAssignedPostsForCategory($id);
 
         if ($assignedPostCount > 0) {
@@ -1018,7 +1084,10 @@ class PostsModule
 
             $this->db->execute("UPDATE {$this->prefix}post_categories SET parent_id = NULL WHERE parent_id = ?", [$id]);
             $this->db->execute("UPDATE {$this->prefix}post_categories SET replacement_category_id = NULL WHERE replacement_category_id = ?", [$id]);
-            $this->db->execute("DELETE FROM {$this->prefix}post_categories WHERE id = ?", [$id]);
+            $deleteStatement = $this->db->execute("DELETE FROM {$this->prefix}post_categories WHERE id = ? LIMIT 1", [$id]);
+            if ($deleteStatement->rowCount() < 1) {
+                return ['success' => false, 'error' => 'Kategorie wurde nicht gefunden oder bereits gelöscht.'];
+            }
 
             return ['success' => true, 'message' => 'Kategorie gelöscht.'];
         } catch (\Throwable $e) {
@@ -1194,6 +1263,10 @@ class PostsModule
             return ['success' => false, 'error' => 'Ungültiger Tag.'];
         }
 
+        if (!$this->tagExists($id)) {
+            return ['success' => false, 'error' => 'Tag wurde nicht gefunden oder bereits gelöscht.'];
+        }
+
         $assignedPostCount = $this->countAssignedPostsForTag($id);
 
         if ($assignedPostCount > 0) {
@@ -1221,7 +1294,10 @@ class PostsModule
                 $this->db->execute("DELETE FROM {$this->prefix}post_tag_rel WHERE tag_id = ?", [$id]);
             }
 
-            $this->db->execute("DELETE FROM {$this->prefix}post_tags WHERE id = ?", [$id]);
+            $deleteStatement = $this->db->execute("DELETE FROM {$this->prefix}post_tags WHERE id = ? LIMIT 1", [$id]);
+            if ($deleteStatement->rowCount() < 1) {
+                return ['success' => false, 'error' => 'Tag wurde nicht gefunden oder bereits gelöscht.'];
+            }
 
             return ['success' => true, 'message' => 'Tag gelöscht.'];
         } catch (\Throwable $e) {

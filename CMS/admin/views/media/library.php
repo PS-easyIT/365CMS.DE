@@ -203,7 +203,7 @@ function renderMoveTargetOptions(array $targets, string $selectedPath = ''): str
                                 <?php if ($confirmMember): ?>
                                     <input type="hidden" name="confirm_member" value="1">
                                 <?php endif; ?>
-                                <select class="form-select form-select-sm media-filter-category" name="category" onchange="this.form.submit()">
+                                <select class="form-select form-select-sm media-filter-category" name="category" data-media-auto-submit-select="1">
                                     <option value="">Alle Kategorien</option>
                                     <?php foreach ($categoryOptions as $cat): ?>
                                         <option value="<?php echo htmlspecialchars((string)($cat['slug'] ?? '')); ?>" <?php echo $category === ($cat['slug'] ?? '') ? 'selected' : ''; ?>>
@@ -418,7 +418,7 @@ function renderMoveTargetOptions(array $targets, string $selectedPath = ''): str
                                                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
                                                     <input type="hidden" name="action" value="assign_category">
                                                     <input type="hidden" name="file_path" value="<?php echo htmlspecialchars((string)($file['path'] ?? '')); ?>">
-                                                    <select class="form-select form-select-sm" name="category_slug" onchange="this.form.submit()">
+                                                    <select class="form-select form-select-sm" name="category_slug" data-media-auto-submit-select="1">
                                                         <option value="">Ohne Kategorie</option>
                                                         <?php foreach ($categoryOptions as $cat): ?>
                                                             <option value="<?php echo htmlspecialchars((string)($cat['slug'] ?? '')); ?>" <?php echo (($file['category'] ?? '') === ($cat['slug'] ?? '')) ? 'selected' : ''; ?>>

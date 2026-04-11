@@ -5,10 +5,15 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+$pageAssets = $pageAssets ?? [];
+$pageAssets['js'] = is_array($pageAssets['js'] ?? null) ? $pageAssets['js'] : [];
+$pageAssets['js'][] = cms_asset_url('js/admin-subscriptions.js');
+
 $packages = $data['packages'] ?? [];
 $stats    = $data['stats'] ?? [];
 $settings = $data['settings'] ?? [];
 $pages    = $data['pages'] ?? [];
+$packagePayload = static fn (array $package): string => htmlspecialchars((string) json_encode($package, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8');
 ?>
 
 <div class="page-header d-print-none">
@@ -19,14 +24,14 @@ $pages    = $data['pages'] ?? [];
                 <h2 class="page-title">Pakete &amp; Abo-Einstellungen</h2>
             </div>
             <div class="col-auto ms-auto d-flex gap-2">
-                <form method="post" class="d-inline">
+                <form method="post" class="d-inline" data-subscription-submit-lock="1">
                     <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
                     <input type="hidden" name="action" value="seed_defaults">
                     <button type="submit" class="btn btn-outline-primary">
                         6 Standardpakete hinterlegen
                     </button>
                 </form>
-                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#packageModal" onclick="resetPackageForm()">
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#packageModal" data-package-create="true">
                     <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 5l0 14"/><path d="M5 12l14 0"/></svg>
                     Neues Paket
                 </button>
@@ -115,14 +120,19 @@ $pages    = $data['pages'] ?? [];
                                     <div class="dropdown">
                                         <a href="#" class="btn-action" data-bs-toggle="dropdown"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 12m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M12 19m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M12 5m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/></svg></a>
                                         <div class="dropdown-menu dropdown-menu-end">
-                                            <a class="dropdown-item" href="#" onclick="editPackage(<?= htmlspecialchars(json_encode($pkg)) ?>)">Bearbeiten</a>
+                                            <button type="button" class="dropdown-item" data-package-edit="<?= $packagePayload($pkg) ?>">Bearbeiten</button>
                                             <form method="post" class="d-inline">
                                                 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
                                                 <input type="hidden" name="action" value="toggle">
                                                 <input type="hidden" name="id" value="<?= (int)$pkg['id'] ?>">
                                                 <button type="submit" class="dropdown-item"><?= (int)$pkg['is_active'] ? 'Deaktivieren' : 'Aktivieren' ?></button>
                                             </form>
-                                            <button class="dropdown-item text-danger" onclick="cmsConfirm({title:'Paket löschen?',message:'Dieses Paket wird unwiderruflich gelöscht.',onConfirm:function(){document.getElementById('deleteForm-<?= (int)$pkg['id'] ?>').submit();}})">Löschen</button>
+                                            <button
+                                                type="button"
+                                                class="dropdown-item text-danger js-package-delete"
+                                                data-delete-form-id="deleteForm-<?= (int)$pkg['id'] ?>"
+                                                data-package-name="<?= htmlspecialchars((string)($pkg['name'] ?? 'Paket')) ?>"
+                                            >Löschen</button>
                                         </div>
                                     </div>
                                 </div>
@@ -175,7 +185,7 @@ $pages    = $data['pages'] ?? [];
                         <h3 class="card-title">Abo-Einstellungen für Pakete & Prozesse</h3>
                     </div>
                     <div class="card-body">
-                        <form method="post">
+                        <form method="post" data-subscription-submit-lock="1">
                             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
                             <input type="hidden" name="action" value="save_package_settings">
 
@@ -298,7 +308,7 @@ $pages    = $data['pages'] ?? [];
 <div class="modal modal-blur fade" id="packageModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
-            <form method="post" id="packageForm">
+            <form method="post" id="packageForm" data-subscription-submit-lock="1">
                 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
                 <input type="hidden" name="action" value="save">
                 <input type="hidden" name="id" id="pkg-id" value="0">
@@ -412,56 +422,3 @@ $pages    = $data['pages'] ?? [];
         </div>
     </div>
 </div>
-
-<script>
-function resetPackageForm() {
-    document.getElementById('packageModalTitle').textContent = 'Neues Paket';
-    document.getElementById('pkg-id').value = '0';
-    document.getElementById('pkg-name').value = '';
-    document.getElementById('pkg-slug').value = '';
-    document.getElementById('pkg-price_monthly').value = '';
-    document.getElementById('pkg-price_yearly').value = '';
-    document.getElementById('pkg-description').value = '';
-    document.getElementById('pkg-limit_experts').value = '-1';
-    document.getElementById('pkg-limit_companies').value = '-1';
-    document.getElementById('pkg-limit_events').value = '-1';
-    document.getElementById('pkg-limit_speakers').value = '-1';
-    document.getElementById('pkg-limit_storage_mb').value = '1000';
-    document.getElementById('pkg-sort_order').value = '0';
-    document.getElementById('pkg-is_active').checked = true;
-    document.getElementById('pkg-is_featured').checked = false;
-    ['experts','companies','events','speakers'].forEach(function (field) {
-        document.getElementById('pkg-plugin_' + field).checked = true;
-    });
-    ['analytics','advanced_search','api_access','custom_branding','priority_support','export_data','integrations','custom_domains'].forEach(function (field) {
-        document.getElementById('pkg-feature_' + field).checked = false;
-    });
-}
-
-function editPackage(pkg) {
-    document.getElementById('packageModalTitle').textContent = 'Paket bearbeiten';
-    const monthlyPrice = pkg.price_monthly ?? pkg.price ?? '';
-    const yearlyPrice = pkg.price_yearly ?? ((pkg.price ?? null) !== null ? Number(pkg.price || 0) * 12 : '');
-    document.getElementById('pkg-id').value = pkg.id || 0;
-    document.getElementById('pkg-name').value = pkg.name || '';
-    document.getElementById('pkg-slug').value = pkg.slug || '';
-    document.getElementById('pkg-price_monthly').value = monthlyPrice;
-    document.getElementById('pkg-price_yearly').value = yearlyPrice;
-    document.getElementById('pkg-description').value = pkg.description || '';
-    document.getElementById('pkg-limit_experts').value = pkg.limit_experts ?? -1;
-    document.getElementById('pkg-limit_companies').value = pkg.limit_companies ?? -1;
-    document.getElementById('pkg-limit_events').value = pkg.limit_events ?? -1;
-    document.getElementById('pkg-limit_speakers').value = pkg.limit_speakers ?? -1;
-    document.getElementById('pkg-limit_storage_mb').value = pkg.limit_storage_mb ?? 1000;
-    document.getElementById('pkg-sort_order').value = pkg.sort_order || 0;
-    document.getElementById('pkg-is_active').checked = !!parseInt(pkg.is_active);
-    document.getElementById('pkg-is_featured').checked = !!parseInt(pkg.is_featured);
-    ['experts','companies','events','speakers'].forEach(function (field) {
-        document.getElementById('pkg-plugin_' + field).checked = !!parseInt(pkg['plugin_' + field]);
-    });
-    ['analytics','advanced_search','api_access','custom_branding','priority_support','export_data','integrations','custom_domains'].forEach(function (field) {
-        document.getElementById('pkg-feature_' + field).checked = !!parseInt(pkg['feature_' + field]);
-    });
-    new bootstrap.Modal(document.getElementById('packageModal')).show();
-}
-</script>

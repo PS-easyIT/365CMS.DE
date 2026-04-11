@@ -66,6 +66,7 @@ final class OrdersActionResult
 
 class OrdersModule
 {
+    private const string REQUIRED_CAPABILITY = 'manage_settings';
     private const array ALLOWED_STATUSES = ['pending', 'paid', 'cancelled', 'refunded', 'failed'];
     private const array STATUS_ALIASES = [
         'confirmed' => 'paid',
@@ -286,6 +287,8 @@ class OrdersModule
                 return $order;
             }
 
+            $currentStatusRaw = strtolower(trim((string) ($order['status_raw'] ?? $order['status'] ?? '')));
+
             if (($order['status'] ?? '') === $status) {
                 return OrdersActionResult::success('Status war bereits gesetzt.');
             }
@@ -294,8 +297,16 @@ class OrdersModule
                 return OrdersActionResult::failure('Dieser Statuswechsel ist für die Bestellung nicht zulässig.');
             }
 
-            $updated = $this->db->update('orders', ['status' => $status], ['id' => $id]);
-            if (!$updated) {
+            $statement = $this->db->execute(
+                "UPDATE {$this->prefix}orders SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND LOWER(TRIM(status)) = ? LIMIT 1",
+                [$status, $id, $currentStatusRaw]
+            );
+
+            if ($statement->rowCount() < 1) {
+                return OrdersActionResult::failure('Bestellung wurde zwischenzeitlich geändert. Bitte Liste neu laden und erneut versuchen.');
+            }
+
+            if (!$statement) {
                 return OrdersActionResult::failure('Status konnte nicht aktualisiert werden.');
             }
 
@@ -488,7 +499,9 @@ class OrdersModule
 
     private function canAccess(): bool
     {
-        return class_exists(Auth::class) && Auth::instance()->isAdmin();
+        return class_exists(Auth::class)
+            && Auth::instance()->isAdmin()
+            && Auth::instance()->hasCapability(self::REQUIRED_CAPABILITY);
     }
 
     private function failResult(string $action, string $message, \Throwable $e, array $context = []): OrdersActionResult
@@ -629,6 +642,7 @@ class OrdersModule
         $linkedPlanId = (int) ($order['linked_plan_id'] ?? $order['plan_id'] ?? $order['package_id'] ?? 0);
 
         $order['status'] = $resolvedStatus !== '' ? $resolvedStatus : 'pending';
+        $order['status_raw'] = $rawStatus !== '' ? $rawStatus : 'pending';
         $order['customer_email'] = $customerEmail;
         $order['customer_name'] = $customerName;
         $order['amount'] = $amount;

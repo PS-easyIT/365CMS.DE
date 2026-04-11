@@ -29,6 +29,92 @@ class ThemeManager
     private ?array $settings = null;
     /** @var array<string, array<string, mixed>>|null */
     private ?array $availableThemesCache = null;
+
+    private function sanitizeThemeSlug(string $value): string
+    {
+        return preg_replace('/[^a-zA-Z0-9_-]/', '', basename(trim($value))) ?? '';
+    }
+
+    private function getThemeRootPath(): string
+    {
+        return rtrim((string) THEME_PATH, '/\\');
+    }
+
+    private function buildThemeMutationLockPath(string $slug): string
+    {
+        return $this->getThemeRootPath() . DIRECTORY_SEPARATOR . '.cms-theme-lock-' . $this->sanitizeThemeSlug($slug);
+    }
+
+    private function acquireThemeMutationLock(string $slug): string|false
+    {
+        $lockPath = $this->buildThemeMutationLockPath($slug);
+
+        if (@mkdir($lockPath, 0700)) {
+            return $lockPath;
+        }
+
+        return false;
+    }
+
+    private function releaseThemeMutationLock(string|false $lockPath): void
+    {
+        if (!is_string($lockPath) || $lockPath === '' || !is_dir($lockPath)) {
+            return;
+        }
+
+        @rmdir($lockPath);
+    }
+
+    private function resolveManagedThemeDirectory(string $folder, bool $requireStyleSheet = true): ?string
+    {
+        $slug = $this->sanitizeThemeSlug($folder);
+        if ($slug === '') {
+            return null;
+        }
+
+        $themeRoot = realpath($this->getThemeRootPath());
+        if ($themeRoot === false) {
+            return null;
+        }
+
+        $candidate = $this->getThemeRootPath() . DIRECTORY_SEPARATOR . $slug;
+        if (!is_dir($candidate) || is_link($candidate)) {
+            return null;
+        }
+
+        $resolvedPath = realpath($candidate);
+        if ($resolvedPath === false) {
+            return null;
+        }
+
+        $normalizedThemeRoot = rtrim(str_replace('\\', '/', $themeRoot), '/') . '/';
+        $normalizedResolvedPath = rtrim(str_replace('\\', '/', $resolvedPath), '/') . '/';
+
+        if (!str_starts_with($normalizedResolvedPath, $normalizedThemeRoot)) {
+            return null;
+        }
+
+        if ($requireStyleSheet && !is_file($resolvedPath . DIRECTORY_SEPARATOR . 'style.css')) {
+            return null;
+        }
+
+        return rtrim($resolvedPath, '/\\');
+    }
+
+    private function isPathInsideThemeRoot(string $path): bool
+    {
+        $themeRoot = realpath($this->getThemeRootPath());
+        $resolvedPath = realpath($path);
+
+        if ($themeRoot === false || $resolvedPath === false) {
+            return false;
+        }
+
+        $normalizedThemeRoot = rtrim(str_replace('\\', '/', $themeRoot), '/') . '/';
+        $normalizedResolvedPath = rtrim(str_replace('\\', '/', $resolvedPath), '/') . '/';
+
+        return str_starts_with($normalizedResolvedPath, $normalizedThemeRoot);
+    }
     
     /**
      * Singleton instance
@@ -454,17 +540,21 @@ class ThemeManager
             if ($dir === '.' || $dir === '..') {
                 continue;
             }
-            
-            $themeFile = $themeDir . $dir . '/style.css';
-            
-            if (file_exists($themeFile)) {
-                $data = $this->getThemeData($themeFile);
-                if ($data) {
-                    $data = $this->enrichAvailableThemeData($dir, $data);
-                    $data['folder'] = $dir;
-                    $data['active'] = ($dir === $this->activeTheme);
-                    $themes[$dir] = $data;
-                }
+
+            $resolvedThemeDirectory = $this->resolveManagedThemeDirectory((string) $dir);
+            if ($resolvedThemeDirectory === null) {
+                continue;
+            }
+
+            $folder = basename($resolvedThemeDirectory);
+            $themeFile = $resolvedThemeDirectory . DIRECTORY_SEPARATOR . 'style.css';
+
+            $data = $this->getThemeData($themeFile);
+            if ($data) {
+                $data = $this->enrichAvailableThemeData($folder, $data);
+                $data['folder'] = $folder;
+                $data['active'] = ($folder === $this->activeTheme);
+                $themes[$folder] = $data;
             }
         }
         
@@ -535,20 +625,29 @@ class ThemeManager
      */
     public function switchTheme(string $theme): bool|string
     {
-        $themeFile = THEME_PATH . $theme . '/style.css';
-
-        if (!file_exists($themeFile)) {
+        $resolvedThemeDirectory = $this->resolveManagedThemeDirectory($theme);
+        if ($resolvedThemeDirectory === null) {
             return 'Theme nicht gefunden.';
         }
 
-        // H-20: Gesundheitscheck (Pflichtdateien + Syntax aller PHP-Dateien)
-        $healthResult = $this->healthCheckTheme($theme);
-        if ($healthResult !== true) {
-            error_log('ThemeManager::switchTheme() Health-Check fehlgeschlagen für "' . $theme . '": ' . $healthResult);
-            return 'Theme-Gesundheitscheck fehlgeschlagen: ' . $healthResult;
+        $themeFolder = basename($resolvedThemeDirectory);
+        $lockPath = $this->acquireThemeMutationLock($themeFolder);
+        if ($lockPath === false) {
+            return 'Für dieses Theme läuft bereits eine andere Verwaltungsaktion.';
         }
 
         try {
+            if ($this->resolveManagedThemeDirectory($themeFolder) === null) {
+                return 'Theme ist nicht mehr verfügbar.';
+            }
+
+            // H-20: Gesundheitscheck (Pflichtdateien + Syntax aller PHP-Dateien)
+            $healthResult = $this->healthCheckTheme($themeFolder);
+            if ($healthResult !== true) {
+                error_log('ThemeManager::switchTheme() Health-Check fehlgeschlagen für "' . $themeFolder . '": ' . $healthResult);
+                return 'Theme-Gesundheitscheck fehlgeschlagen: ' . $healthResult;
+            }
+
             $db = Database::instance();
 
             $check = $db->prepare("SELECT COUNT(*) AS cnt FROM {$db->getPrefix()}settings WHERE option_name = 'active_theme'");
@@ -558,20 +657,20 @@ class ThemeManager
             if ($result && (int)$result->cnt > 0) {
                 $db->execute(
                     "UPDATE {$db->getPrefix()}settings SET option_value = ? WHERE option_name = 'active_theme'",
-                    [$theme]
+                    [$themeFolder]
                 );
             } else {
                 $db->execute(
                     "INSERT INTO {$db->getPrefix()}settings (option_name, option_value) VALUES ('active_theme', ?)",
-                    [$theme]
+                    [$themeFolder]
                 );
             }
 
             // C-15: Theme-Wechsel protokollieren
-            AuditLogger::instance()->themeSwitch($this->activeTheme, $theme);
+            AuditLogger::instance()->themeSwitch($this->activeTheme, $themeFolder);
 
-            $this->activeTheme = $theme;
-            $this->themePath = THEME_PATH . $theme . '/';
+            $this->activeTheme = $themeFolder;
+            $this->themePath = $resolvedThemeDirectory . '/';
             $this->loadedThemeSlug = null;
             $this->resetAvailableThemesCache();
 
@@ -579,6 +678,8 @@ class ThemeManager
         } catch (\Exception $e) {
             error_log('ThemeManager::switchTheme() Error: ' . $e->getMessage());
             return 'Fehler beim Wechseln des Themes.';
+        } finally {
+            $this->releaseThemeMutationLock($lockPath);
         }
     }
 
@@ -594,7 +695,12 @@ class ThemeManager
      */
     public function healthCheckTheme(string $theme): bool|string
     {
-        $themeDir = THEME_PATH . basename($theme) . '/';
+        $resolvedThemeDirectory = $this->resolveManagedThemeDirectory($theme);
+        if ($resolvedThemeDirectory === null) {
+            return 'Theme-Verzeichnis nicht gefunden.';
+        }
+
+        $themeDir = rtrim($resolvedThemeDirectory, '/\\') . '/';
 
         // 1. style.css Pflicht
         if (!file_exists($themeDir . 'style.css')) {
@@ -605,11 +711,6 @@ class ThemeManager
         $hasTemplate = file_exists($themeDir . 'index.php') || file_exists($themeDir . 'functions.php');
         if (!$hasTemplate) {
             return 'Keine Template-Datei gefunden (index.php oder functions.php erforderlich).';
-        }
-
-        // 3. PHP-Syntaxprüfung aller .php-Dateien
-        if (!is_dir($themeDir)) {
-            return 'Theme-Verzeichnis nicht gefunden.';
         }
 
         $iterator = new \RecursiveIteratorIterator(
@@ -655,22 +756,40 @@ class ThemeManager
      */
     public function deleteTheme(string $folder): bool|string
     {
-        $folder = basename($folder); // prevent path traversal
+        $folder = $this->sanitizeThemeSlug($folder);
+        if ($folder === '') {
+            return 'Theme nicht gefunden.';
+        }
 
         if ($folder === $this->activeTheme) {
             return 'Das aktive Theme kann nicht gelöscht werden.';
         }
 
-        $themeDir = THEME_PATH . $folder;
-        if (!is_dir($themeDir)) {
-            return 'Theme-Verzeichnis nicht gefunden.';
+        $themeDir = $this->resolveManagedThemeDirectory($folder);
+        if ($themeDir === null) {
+            return 'Theme nicht gefunden.';
         }
 
-        if (count($this->getAvailableThemes()) <= 1) {
+        $availableThemes = $this->getAvailableThemes();
+        if (!isset($availableThemes[$folder])) {
+            return 'Theme ist nicht mehr verfügbar.';
+        }
+
+        if (count($availableThemes) <= 1) {
             return 'Das letzte verfügbare Theme kann nicht gelöscht werden.';
         }
 
+        $lockPath = $this->acquireThemeMutationLock($folder);
+        if ($lockPath === false) {
+            return 'Für dieses Theme läuft bereits eine andere Verwaltungsaktion.';
+        }
+
         try {
+            clearstatcache(true, $themeDir);
+            if ($this->resolveManagedThemeDirectory($folder) === null) {
+                return 'Theme ist nicht mehr verfügbar.';
+            }
+
             $this->deleteDirectory($themeDir);
             $this->resetAvailableThemesCache();
 
@@ -681,6 +800,8 @@ class ThemeManager
         } catch (\Throwable $e) {
             error_log('ThemeManager::deleteTheme() Error: ' . $e->getMessage());
             return 'Fehler beim Löschen: ' . $e->getMessage();
+        } finally {
+            $this->releaseThemeMutationLock($lockPath);
         }
     }
 
@@ -733,18 +854,29 @@ class ThemeManager
      */
     private function deleteDirectory(string $dir): void
     {
-        foreach (scandir($dir) as $item) {
+        $resolvedDirectory = realpath($dir);
+        if ($resolvedDirectory === false || !is_dir($resolvedDirectory) || is_link($resolvedDirectory) || !$this->isPathInsideThemeRoot($resolvedDirectory)) {
+            return;
+        }
+
+        foreach (scandir($resolvedDirectory) as $item) {
             if ($item === '.' || $item === '..') {
                 continue;
             }
-            $path = $dir . DIRECTORY_SEPARATOR . $item;
+            $path = $resolvedDirectory . DIRECTORY_SEPARATOR . $item;
+
+            if (is_link($path)) {
+                unlink($path);
+                continue;
+            }
+
             if (is_dir($path)) {
                 $this->deleteDirectory($path);
             } else {
                 unlink($path);
             }
         }
-        rmdir($dir);
+        rmdir($resolvedDirectory);
     }
     
     /**

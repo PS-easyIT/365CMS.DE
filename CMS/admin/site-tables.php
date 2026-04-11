@@ -234,6 +234,12 @@ if ($viewAction === 'settings') {
     $normalizedId = cms_admin_site_tables_normalize_positive_id($_GET['id'] ?? 0);
     $id        = $normalizedId > 0 ? $normalizedId : null;
     $data      = $module->getEditData($id);
+
+    if (!empty($data['missing'])) {
+        cms_admin_site_tables_flash(['success' => false, 'error' => 'Angeforderte Tabelle wurde nicht gefunden.']);
+        cms_admin_site_tables_redirect();
+    }
+
     $pageTitle = $data['isNew'] ? 'Neue Tabelle' : 'Tabelle bearbeiten';
     $activePage = 'site-tables';
     $pageAssets = cms_admin_site_tables_page_assets($viewAction);

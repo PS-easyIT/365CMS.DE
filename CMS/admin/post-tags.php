@@ -78,6 +78,12 @@ $csrfToken = Security::instance()->generateToken('admin_post_tags');
 $editTagId = max(0, (int) ($_GET['edit'] ?? 0));
 $data = $module->getTagAdminData($editTagId);
 $editTag = $data['editTag'] ?? null;
+
+if ($editTagId > 0 && !is_array($editTag)) {
+    $_SESSION['admin_alert'] = ['type' => 'danger', 'message' => 'Der angeforderte Tag existiert nicht mehr. Bitte Liste neu laden.'];
+    cms_admin_post_tags_redirect();
+}
+
 $pageTitle = 'Beitrags-Tags';
 $activePage = 'post-tags';
 

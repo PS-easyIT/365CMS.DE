@@ -125,10 +125,21 @@ final class MediaRepository
             return new WP_Error('missing_slug', 'Kategorie-Slug fehlt');
         }
 
+        $categoryFound = false;
+
         foreach (($meta['categories'] ?? []) as $category) {
-            if (($category['slug'] ?? '') === $slug && !empty($category['is_system'])) {
+            if (($category['slug'] ?? '') !== $slug) {
+                continue;
+            }
+
+            $categoryFound = true;
+            if (!empty($category['is_system'])) {
                 return new WP_Error('system_category', 'System-Kategorien können nicht gelöscht werden');
             }
+        }
+
+        if (!$categoryFound) {
+            return new WP_Error('missing_category', 'Kategorie nicht gefunden');
         }
 
         $meta['categories'] = array_values(array_filter(
@@ -258,6 +269,36 @@ final class MediaRepository
         }
 
         return false;
+    }
+
+    public function pathExists(string $relativePath): bool
+    {
+        $normalizedPath = $this->normalizeRelativePath($relativePath);
+        if ($relativePath === '' || $normalizedPath === '') {
+            return trim((string) $relativePath) === '' ? is_dir($this->uploadPath) : false;
+        }
+
+        $fullPath = $this->resolvePath($normalizedPath);
+        if ($fullPath instanceof WP_Error) {
+            return false;
+        }
+
+        return file_exists($fullPath);
+    }
+
+    public function isDirectory(string $relativePath): bool
+    {
+        $normalizedPath = $this->normalizeRelativePath($relativePath);
+        if ($relativePath === '' || $normalizedPath === '') {
+            return trim((string) $relativePath) === '' ? is_dir($this->uploadPath) : false;
+        }
+
+        $fullPath = $this->resolvePath($normalizedPath);
+        if ($fullPath instanceof WP_Error) {
+            return false;
+        }
+
+        return is_dir($fullPath);
     }
 
     public function getItems(string $path = ''): array|WP_Error

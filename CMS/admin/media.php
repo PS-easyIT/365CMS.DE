@@ -654,6 +654,19 @@ if ($requestedTab === 'library') {
     $requestedPath = $mediaPreflightModule->normalizePath((string)($_GET['path'] ?? ''));
     $memberConfirmed = (string)($_GET['confirm_member'] ?? '') === '1';
 
+    if ($requestedPath !== '' && !$mediaPreflightModule->directoryExists($requestedPath)) {
+        $fallbackPath = $mediaPreflightModule->resolveParentPathFromActionPath($requestedPath);
+        if ($fallbackPath !== '' && !$mediaPreflightModule->directoryExists($fallbackPath)) {
+            $fallbackPath = '';
+        }
+
+        cms_admin_media_flash([
+            'type' => 'danger',
+            'message' => 'Der angeforderte Medienordner existiert nicht mehr.',
+        ]);
+        cms_admin_media_redirect(cms_admin_media_build_redirect_url($mediaPreflightModule, 'library', $fallbackPath));
+    }
+
     if ($mediaPreflightModule->requiresMemberConfirmation($requestedPath) && !$memberConfirmed) {
         cms_admin_media_flash([
             'type' => 'danger',

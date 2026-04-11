@@ -14,7 +14,10 @@ $pageKey = 'notifications';
 $pageAssets = [];
 $memberService = \CMS\Services\MemberService::getInstance();
 $preferences = $memberService->getNotificationPreferences($controller->getUserId());
-$recentNotifications = $memberService->getRecentNotifications($controller->getUserId(), 20);
+$notificationCenter = $controller->getNotificationCenterConfig();
+$notificationCenterEnabled = !array_key_exists('center_enabled', $notificationCenter) || !empty($notificationCenter['center_enabled']);
+$notificationEmptyText = trim((string)($notificationCenter['empty_text'] ?? 'Zurzeit liegen keine Benachrichtigungen vor.'));
+$recentNotifications = $controller->getNotificationCenterNotifications(20);
 
 include __DIR__ . '/partials/header.php';
 ?>
@@ -65,8 +68,10 @@ include __DIR__ . '/partials/header.php';
         <div class="card">
             <div class="card-header"><h3 class="card-title">Letzte Meldungen</h3></div>
             <div class="list-group list-group-flush list-group-hoverable">
-                <?php if ($recentNotifications === []): ?>
-                    <div class="card-body text-secondary">Zurzeit liegen keine Benachrichtigungen vor.</div>
+                <?php if (!$notificationCenterEnabled): ?>
+                    <div class="card-body text-secondary">Das In-App Notification Center ist derzeit deaktiviert.</div>
+                <?php elseif ($recentNotifications === []): ?>
+                    <div class="card-body text-secondary"><?= htmlspecialchars($notificationEmptyText !== '' ? $notificationEmptyText : 'Zurzeit liegen keine Benachrichtigungen vor.') ?></div>
                 <?php else: ?>
                     <?php foreach ($recentNotifications as $notification): ?>
                         <div class="list-group-item">

@@ -35,8 +35,139 @@ use CMS\CacheManager;
 use CMS\Database;
 use CMS\Logger;
 use CMS\Security;
+use CMS\Services\CoreModuleService;
 use CMS\SubscriptionManager;
 use CMS\ThemeManager;
+
+/** @return array<string, string> */
+function cms_checkout_load_settings(Database $db, array $keys): array
+{
+    if ($keys === []) {
+        return [];
+    }
+
+    $placeholders = implode(',', array_fill(0, count($keys), '?'));
+    $rows = $db->get_results(
+        "SELECT option_name, option_value FROM {$db->getPrefix()}settings WHERE option_name IN ({$placeholders})",
+        $keys
+    ) ?: [];
+
+    $settings = [];
+    foreach ($rows as $row) {
+        $settings[(string) ($row->option_name ?? '')] = (string) ($row->option_value ?? '');
+    }
+
+    return $settings;
+}
+
+function cms_checkout_bool_setting(array $settings, string $key, string $default = '0'): bool
+{
+    $value = strtolower(trim((string) ($settings[$key] ?? $default)));
+
+    return in_array($value, ['1', 'true', 'yes', 'on'], true);
+}
+
+/** @return list<string> */
+function cms_checkout_available_payment_methods(string $setting): array
+{
+    return match (strtolower(trim($setting))) {
+        'stripe' => ['stripe'],
+        'paypal' => ['paypal'],
+        'all' => ['invoice', 'stripe', 'paypal'],
+        default => ['invoice'],
+    };
+}
+
+function cms_checkout_normalize_payment_method(mixed $value, array $allowedMethods, string $fallback): string
+{
+    $method = is_string($value) ? strtolower(trim($value)) : '';
+
+    return in_array($method, $allowedMethods, true) ? $method : $fallback;
+}
+
+function cms_checkout_payment_method_label(string $method): string
+{
+    return match ($method) {
+        'stripe' => 'Stripe',
+        'paypal' => 'PayPal',
+        default => 'Rechnung',
+    };
+}
+
+/** @return array{net_amount:float,tax_amount:float,total_amount:float} */
+function cms_checkout_calculate_totals(float $basePrice, float $taxRate, bool $taxIncluded): array
+{
+    $basePrice = max(0.0, round($basePrice, 2));
+    $taxRate = max(0.0, min(100.0, $taxRate));
+
+    if ($taxRate <= 0.0) {
+        return [
+            'net_amount' => $basePrice,
+            'tax_amount' => 0.0,
+            'total_amount' => $basePrice,
+        ];
+    }
+
+    if ($taxIncluded) {
+        $totalAmount = $basePrice;
+        $netAmount = round($totalAmount / (1 + ($taxRate / 100)), 2);
+        $taxAmount = max(0.0, round($totalAmount - $netAmount, 2));
+
+        return [
+            'net_amount' => $netAmount,
+            'tax_amount' => $taxAmount,
+            'total_amount' => $totalAmount,
+        ];
+    }
+
+    $netAmount = $basePrice;
+    $taxAmount = round($netAmount * ($taxRate / 100), 2);
+    $totalAmount = round($netAmount + $taxAmount, 2);
+
+    return [
+        'net_amount' => $netAmount,
+        'tax_amount' => $taxAmount,
+        'total_amount' => $totalAmount,
+    ];
+}
+
+/** @return array{url:string,title:string} */
+function cms_checkout_resolve_page_link(Database $db, int $pageId, string $fallbackTitle): array
+{
+    if ($pageId <= 0) {
+        return ['url' => '', 'title' => $fallbackTitle];
+    }
+
+    try {
+        $page = $db->get_row(
+            "SELECT slug, title FROM {$db->getPrefix()}pages WHERE id = ? AND status = 'published' LIMIT 1",
+            [$pageId]
+        );
+    } catch (\Throwable) {
+        return ['url' => '', 'title' => $fallbackTitle];
+    }
+
+    $slug = trim((string) ($page->slug ?? ''));
+    if ($slug === '') {
+        return ['url' => '', 'title' => $fallbackTitle];
+    }
+
+    $title = trim((string) ($page->title ?? ''));
+
+    return [
+        'url' => '/' . ltrim($slug, '/'),
+        'title' => $title !== '' ? $title : $fallbackTitle,
+    ];
+}
+
+function cms_checkout_fallback_path(bool $isLoggedIn, bool $publicPricingEnabled): string
+{
+    if ($isLoggedIn) {
+        return '/member/subscription';
+    }
+
+    return $publicPricingEnabled ? '/#pricing' : '/';
+}
 
 CacheManager::instance()->sendResponseHeaders('private');
 
@@ -49,18 +180,45 @@ $billing = in_array($billing, ['monthly', 'yearly', 'lifetime'], true) ? $billin
 $db = Database::instance();
 $auth = Auth::instance();
 $subManager = SubscriptionManager::instance();
+$coreModuleService = CoreModuleService::getInstance();
+$checkoutSettings = cms_checkout_load_settings($db, [
+    'payment_methods',
+    'tax_rate',
+    'tax_included',
+    'terms_page_id',
+    'cancellation_page_id',
+]);
+$subscriptionsEnabled = $coreModuleService->isModuleEnabled('subscriptions');
+$orderingEnabled = $coreModuleService->isModuleEnabled('subscription_ordering');
+$publicPricingEnabled = $coreModuleService->isModuleEnabled('subscription_public_pricing');
+$paymentMethods = cms_checkout_available_payment_methods((string) ($checkoutSettings['payment_methods'] ?? 'invoice'));
+$defaultPaymentMethod = $paymentMethods[0] ?? 'invoice';
+$taxRate = max(0.0, min(100.0, (float) ($checkoutSettings['tax_rate'] ?? '19')));
+$taxIncluded = cms_checkout_bool_setting($checkoutSettings, 'tax_included', '1');
+$termsLink = cms_checkout_resolve_page_link($db, (int) ($checkoutSettings['terms_page_id'] ?? 0), 'AGB');
+$cancellationLink = cms_checkout_resolve_page_link($db, (int) ($checkoutSettings['cancellation_page_id'] ?? 0), 'Widerruf');
 
-// Fetch Plan
-$plan = $db->execute("SELECT * FROM {$db->getPrefix()}subscription_plans WHERE id = ?", [$planId])->fetch(\PDO::FETCH_ASSOC);
-
-if (!$plan) {
-    // Redirect to packages if no plan selected
-    // Assuming there is a packages page, or back to home
-    header('Location: ' . SITE_URL . '/#pricing');
+if (!$subscriptionsEnabled || !$orderingEnabled) {
+    header('Location: /');
     exit;
 }
 
+// Fetch Plan
+$plan = $db->execute("SELECT * FROM {$db->getPrefix()}subscription_plans WHERE id = ? AND is_active = 1", [$planId])->fetch(\PDO::FETCH_ASSOC);
+
 $user = $auth->isLoggedIn() ? $auth->currentUser() : null;
+$checkoutFallbackPath = cms_checkout_fallback_path($user !== null, $publicPricingEnabled);
+
+if (!$plan) {
+    header('Location: ' . $checkoutFallbackPath);
+    exit;
+}
+
+$planBasePrice = (float) (($billing === 'yearly') ? ($plan['price_yearly'] ?? 0) : ($plan['price_monthly'] ?? 0));
+$pricingTotals = cms_checkout_calculate_totals($planBasePrice, $taxRate, $taxIncluded);
+$selectedPaymentMethod = cms_checkout_normalize_payment_method($_POST['payment_method'] ?? $defaultPaymentMethod, $paymentMethods, $defaultPaymentMethod);
+$selectedCountry = (string) ($_POST['country'] ?? 'DE');
+$countryOptions = ['DE' => 'Deutschland', 'AT' => 'Österreich', 'CH' => 'Schweiz'];
 
 // Handle Form Submission
 $error = '';
@@ -88,6 +246,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = 'Bitte füllen Sie alle Pflichtfelder aus (*).';
         } elseif (!filter_var($contactData['email'], FILTER_VALIDATE_EMAIL)) {
             $error = 'Bitte geben Sie eine gültige E-Mail-Adresse ein.';
+        } elseif ($termsLink['url'] !== '' && empty($_POST['accept_terms'])) {
+            $error = 'Bitte akzeptieren Sie die AGB, um die Bestellung abzuschließen.';
+        } elseif (!in_array($selectedPaymentMethod, $paymentMethods, true)) {
+            $error = 'Bitte wählen Sie eine gültige Zahlungsmethode.';
         } else {
             // Generate Order Number
             // Fetch format from settings or default
@@ -113,7 +275,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $orderNumber = str_replace(array_keys($placeholders), array_values($placeholders), $format);
 
             // Price calculation
-            $price = ($billing === 'yearly') ? $plan['price_yearly'] : $plan['price_monthly'];
+            $totals = cms_checkout_calculate_totals($planBasePrice, $taxRate, $taxIncluded);
             $customerName = trim($contactData['first_name'] . ' ' . $contactData['last_name']);
             
             // Insert Order
@@ -125,9 +287,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'billing_cycle' => $billing,
                     'customer_name' => $customerName !== '' ? $customerName : null,
                     'customer_email' => $contactData['email'],
-                    'amount' => $price,
-                    'tax_amount' => 0,
-                    'total_amount' => $price,
+                    'amount' => $totals['net_amount'],
+                    'tax_amount' => $totals['tax_amount'],
+                    'total_amount' => $totals['total_amount'],
                     'currency' => 'EUR',
                     'status' => 'pending',
                     'forename' => $contactData['first_name'],
@@ -140,7 +302,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'city' => $contactData['city'],
                     'country' => $contactData['country'],
                     'contact_data' => json_encode($contactData),
-                    'payment_method' => 'invoice', // Default for now
+                    'payment_method' => $selectedPaymentMethod,
                     'created_at' => date('Y-m-d H:i:s')
                 ]);
                 
@@ -179,7 +341,7 @@ ob_start();
             </div>
             
             <div style="margin-top: 40px;">
-                <a href="<?php echo SITE_URL; ?>" class="btn btn-primary">Zurück zur Startseite</a>
+                <a href="/" class="btn btn-primary">Zurück zur Startseite</a>
             </div>
         </div>
     <?php else: ?>
@@ -201,7 +363,7 @@ ob_start();
                 
                 <?php if (!$user): ?>
                     <div class="alert alert-info" style="background: #eff6ff; color: #1e40af; padding: 10px; border-radius: 6px; margin-bottom: 20px; font-size: 0.9rem;">
-                        <a href="<?php echo SITE_URL; ?>/login?redirect=<?php echo urlencode($_SERVER['REQUEST_URI']); ?>" style="color: inherit; font-weight: bold;">Melden Sie sich an</a>, um Ihre gespeicherten Daten zu verwenden.
+                        <a href="/login?redirect=<?php echo urlencode((string) ($_SERVER['REQUEST_URI'] ?? '/orders.php')); ?>" style="color: inherit; font-weight: bold;">Melden Sie sich an</a>, um Ihre gespeicherten Daten zu verwenden.
                     </div>
                 <?php endif; ?>
 
@@ -243,9 +405,9 @@ ob_start();
                     <div class="form-group" style="margin-bottom: 15px;">
                         <label style="display: block; margin-bottom: 5px; font-weight: 500;">Land</label>
                         <select name="country" class="form-control" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px;">
-                            <option value="DE">Deutschland</option>
-                            <option value="AT">Österreich</option>
-                            <option value="CH">Schweiz</option>
+                            <?php foreach ($countryOptions as $countryCode => $countryLabel): ?>
+                                <option value="<?php echo htmlspecialchars($countryCode); ?>" <?php echo $selectedCountry === $countryCode ? 'selected' : ''; ?>><?php echo htmlspecialchars($countryLabel); ?></option>
+                            <?php endforeach; ?>
                         </select>
                     </div>
 
@@ -253,6 +415,31 @@ ob_start();
                         <label style="display: block; margin-bottom: 5px; font-weight: 500;">E-Mail Adresse *</label>
                         <input type="email" name="email" class="form-control" required value="<?php echo htmlspecialchars($_POST['email'] ?? ($user->email ?? '')); ?>" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px;">
                     </div>
+
+                    <div class="form-group" style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 500;">Zahlungsmethode</label>
+                        <?php if (count($paymentMethods) > 1): ?>
+                            <select name="payment_method" class="form-control" style="width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px;">
+                                <?php foreach ($paymentMethods as $paymentMethod): ?>
+                                    <option value="<?php echo htmlspecialchars($paymentMethod); ?>" <?php echo $selectedPaymentMethod === $paymentMethod ? 'selected' : ''; ?>><?php echo htmlspecialchars(cms_checkout_payment_method_label($paymentMethod)); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        <?php else: ?>
+                            <input type="hidden" name="payment_method" value="<?php echo htmlspecialchars($defaultPaymentMethod); ?>">
+                            <div class="form-control" style="background: #f8fafc;"><?php echo htmlspecialchars(cms_checkout_payment_method_label($defaultPaymentMethod)); ?></div>
+                        <?php endif; ?>
+                    </div>
+
+                    <?php if ($termsLink['url'] !== ''): ?>
+                        <div class="form-group" style="margin-bottom: 15px;">
+                            <label style="display: flex; gap: 10px; align-items: flex-start; font-size: 0.95rem;">
+                                <input type="checkbox" name="accept_terms" value="1" required <?php echo !empty($_POST['accept_terms']) ? 'checked' : ''; ?> style="margin-top: 3px;">
+                                <span>
+                                    Ich akzeptiere die <a href="<?php echo htmlspecialchars($termsLink['url']); ?>" target="_blank" rel="noopener">&nbsp;<?php echo htmlspecialchars($termsLink['title']); ?>&nbsp;</a>.
+                                </span>
+                            </label>
+                        </div>
+                    <?php endif; ?>
                     
                     <div style="margin-top: 30px;">
                         <button type="submit" class="btn btn-primary" style="background: #2563eb; color: white; border: none; padding: 12px 24px; border-radius: 6px; font-size: 1rem; font-weight: 600; cursor: pointer; width: 100%;">Zahlungspflichtig bestellen</button>
@@ -273,20 +460,49 @@ ob_start();
 
                 <div class="summary-item" style="margin-bottom: 15px;">
                     <strong style="display: block; color: #64748b; font-size: 0.9rem;">Abrechnungszeitraum</strong>
-                    <div><?php echo $billing === 'yearly' ? 'Jährlich' : 'Monatlich'; ?></div>
+                    <div><?php echo $billing === 'yearly' ? 'Jährlich' : ($billing === 'lifetime' ? 'Lifetime' : 'Monatlich'); ?></div>
+                </div>
+
+                <div class="summary-item" style="margin-bottom: 15px;">
+                    <strong style="display: block; color: #64748b; font-size: 0.9rem;">Zahlungsmethode</strong>
+                    <div><?php echo htmlspecialchars(cms_checkout_payment_method_label($selectedPaymentMethod)); ?></div>
                 </div>
 
                 <hr style="border-color: #cbd5e1; margin: 20px 0;">
 
+                <div class="total" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; color: #64748b;">
+                    <span>Netto:</span>
+                    <span><?php echo number_format($pricingTotals['net_amount'], 2, ',', '.'); ?> €</span>
+                </div>
+
+                <?php if ($pricingTotals['tax_amount'] > 0): ?>
+                    <div class="total" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; color: #64748b;">
+                        <span>MwSt. (<?php echo number_format($taxRate, 0, ',', '.'); ?> %):</span>
+                        <span><?php echo number_format($pricingTotals['tax_amount'], 2, ',', '.'); ?> €</span>
+                    </div>
+                <?php endif; ?>
+
                 <div class="total" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
                     <span style="font-weight: 600;">Gesamtbetrag:</span>
                     <span style="font-size: 1.5rem; font-weight: bold; color: #2563eb;">
-                        <?php echo number_format(($billing === 'yearly' ? $plan['price_yearly'] : $plan['price_monthly']), 2, ',', '.'); ?> €
+                        <?php echo number_format($pricingTotals['total_amount'], 2, ',', '.'); ?> €
                     </span>
                 </div>
                 <div style="text-align: right; color: #64748b; font-size: 0.85rem;">
-                    inkl. MwSt.
+                    <?php echo $taxIncluded ? 'inkl.' : 'zzgl.'; ?> MwSt.
                 </div>
+
+                <?php if ($termsLink['url'] !== '' || $cancellationLink['url'] !== ''): ?>
+                    <hr style="border-color: #cbd5e1; margin: 20px 0;">
+                    <div style="font-size: 0.9rem; color: #64748b; display: grid; gap: 6px;">
+                        <?php if ($termsLink['url'] !== ''): ?>
+                            <a href="<?php echo htmlspecialchars($termsLink['url']); ?>" target="_blank" rel="noopener"><?php echo htmlspecialchars($termsLink['title']); ?></a>
+                        <?php endif; ?>
+                        <?php if ($cancellationLink['url'] !== ''): ?>
+                            <a href="<?php echo htmlspecialchars($cancellationLink['url']); ?>" target="_blank" rel="noopener"><?php echo htmlspecialchars($cancellationLink['title']); ?></a>
+                        <?php endif; ?>
+                    </div>
+                <?php endif; ?>
             </div>
         </div>
 

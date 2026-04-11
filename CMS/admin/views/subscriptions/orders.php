@@ -5,6 +5,10 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+$pageAssets = $pageAssets ?? [];
+$pageAssets['js'] = is_array($pageAssets['js'] ?? null) ? $pageAssets['js'] : [];
+$pageAssets['js'][] = cms_asset_url('js/admin-subscriptions.js');
+
 $ordersBaseUrl = '/admin/orders';
 $orders       = $data['orders'] ?? [];
 $stats        = $data['stats'] ?? [];
@@ -19,8 +23,6 @@ $statusLabels = [
     'cancelled' => ['label' => 'Storniert',   'class' => 'bg-secondary'],
     'refunded'  => ['label' => 'Erstattet',   'class' => 'bg-info'],
     'failed'    => ['label' => 'Fehlgeschl.',  'class' => 'bg-danger'],
-    'confirmed' => ['label' => 'Bezahlt',     'class' => 'bg-success'],
-    'completed' => ['label' => 'Bezahlt',     'class' => 'bg-success'],
 ];
 
 $resolveStatusMeta = static function (string $status) use ($statusLabels): array {
@@ -184,6 +186,7 @@ $billingCycleOptions = [
     'yearly' => 'Jährlich',
     'lifetime' => 'Lifetime',
 ];
+$filterStatuses = ['pending', 'paid', 'cancelled', 'refunded', 'failed'];
 
 $metricCards = [
     ['label' => 'Gesamt', 'value' => (string) ((int) ($stats['total'] ?? 0)), 'class' => ''],
@@ -251,7 +254,8 @@ $assignCycleOptions = array_map(
             <div class="card-body py-2">
                 <div class="d-flex gap-2 flex-wrap">
                     <a href="<?= htmlspecialchars($ordersBaseUrl, ENT_QUOTES, 'UTF-8') ?>" class="btn btn-sm <?= $filterButtonClass('') ?>">Alle</a>
-                    <?php foreach ($statusLabels as $key => $s): ?>
+                    <?php foreach ($filterStatuses as $key): ?>
+                        <?php $s = $statusLabels[$key] ?? ['label' => $key, 'class' => 'bg-secondary']; ?>
                         <a href="<?= htmlspecialchars($ordersBaseUrl . '?status=' . rawurlencode($key), ENT_QUOTES, 'UTF-8') ?>" class="btn btn-sm <?= $filterButtonClass($key) ?>">
                             <?= htmlspecialchars($s['label'], ENT_QUOTES, 'UTF-8') ?>
                         </a>
@@ -365,7 +369,7 @@ $assignCycleOptions = array_map(
 <div class="modal modal-blur fade" id="assignModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-            <form method="post">
+            <form method="post" id="assignForm" data-subscription-submit-lock="1">
                 <?php $renderOrderFormContext($csrfToken, 'assign_subscription'); ?>
                 <div class="modal-header">
                     <h5 class="modal-title">Paket zuweisen</h5>
@@ -384,79 +388,3 @@ $assignCycleOptions = array_map(
         </div>
     </div>
 </div>
-
-<script>
-(function () {
-    const assignUser = document.getElementById('assign-user');
-    const assignPlan = document.getElementById('assign-plan');
-    const assignCycle = document.getElementById('assign-cycle');
-    const assignModalElement = document.getElementById('assignModal');
-
-    const resetAssignForm = function () {
-        if (assignUser) {
-            assignUser.value = '';
-        }
-        if (assignPlan) {
-            assignPlan.value = '';
-        }
-        if (assignCycle) {
-            assignCycle.value = 'monthly';
-        }
-    };
-
-    const openAssignFromOrder = function (order) {
-        resetAssignForm();
-
-        if (assignUser && order.user_id) {
-            assignUser.value = String(order.user_id);
-        }
-
-        const linkedPlanId = order.plan_id || order.package_id || order.linked_plan_id || '';
-        if (assignPlan && linkedPlanId) {
-            assignPlan.value = String(linkedPlanId);
-        }
-
-        if (assignModalElement && typeof bootstrap !== 'undefined') {
-            new bootstrap.Modal(assignModalElement).show();
-        }
-    };
-
-    document.querySelectorAll('[data-assign-reset="true"]').forEach(function (button) {
-        button.addEventListener('click', function () {
-            resetAssignForm();
-        });
-    });
-
-    document.querySelectorAll('[data-assign-order]').forEach(function (button) {
-        button.addEventListener('click', function () {
-            const payload = button.getAttribute('data-assign-order') || '{}';
-
-            try {
-                openAssignFromOrder(JSON.parse(payload));
-            } catch (error) {
-                resetAssignForm();
-            }
-        });
-    });
-
-    document.querySelectorAll('[data-delete-order-form]').forEach(function (button) {
-        button.addEventListener('click', function () {
-            const formId = button.getAttribute('data-delete-order-form') || '';
-            const orderNumber = button.getAttribute('data-delete-order-number') || '#';
-            const targetForm = formId !== '' ? document.getElementById(formId) : null;
-
-            if (!targetForm || typeof cmsConfirm !== 'function') {
-                return;
-            }
-
-            cmsConfirm({
-                title: 'Bestellung löschen?',
-                message: orderNumber,
-                onConfirm: function () {
-                    targetForm.submit();
-                }
-            });
-        });
-    });
-})();
-</script>

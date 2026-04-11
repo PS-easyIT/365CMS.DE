@@ -2,7 +2,7 @@
 
 <div align="center">
 
-[![Version](https://img.shields.io/badge/version-2.9.116-blue.svg)](Changelog.md)
+[![Version](https://img.shields.io/badge/version-2.9.190-blue.svg)](Changelog.md)
 ![Status](https://img.shields.io/badge/status-stable-16a34a)
 ![PHP](https://img.shields.io/badge/PHP-8.4%2B-777BB4?logo=php&logoColor=white)
 ![MySQL](https://img.shields.io/badge/MySQL-5.7%2B-4479A1?logo=mysql&logoColor=white)
@@ -10,10 +10,10 @@
 
 ![Audit](https://img.shields.io/badge/Audit-Snyk-111827)
 ![Audit](https://img.shields.io/badge/Audit-OWASP-111827)
-![Security Score](https://img.shields.io/badge/Security-95.48-15803d)
-![Speed Score](https://img.shields.io/badge/Speed-92.91-2563eb)
-![PHP Score](https://img.shields.io/badge/PHP%20%2F%20Best%20Practices-96.66-7c3aed)
-![Overall Score](https://img.shields.io/badge/Overall-96.77-0f766e)
+![Security Score](https://img.shields.io/badge/Security-96.20-15803d)
+![Speed Score](https://img.shields.io/badge/Speed-93.26-2563eb)
+![PHP Score](https://img.shields.io/badge/PHP%20%2F%20Best%20Practices-97.52-7c3aed)
+![Overall Score](https://img.shields.io/badge/Overall-97.61-0f766e)
 
 ---
 
@@ -86,28 +86,29 @@ Die Audits wurden mit OWASP-nahen Prüfwerkzeugen & AI Audit Tools von Snyk, Ref
 
 | Metrik | Bewertung |
 |---|---:|
-| **Security** | **95,48** |
-| **Speed** | **92,91** |
-| **PHP / Best Practices** | **96,66** |
-| **Gesamt** | **96,77** |
+| **Security** | **96,20** |
+| **Speed** | **93,26** |
+| **PHP / Best Practices** | **97,52** |
+| **Gesamt** | **97,61** |
 
 
 ### 🧩 Kernfunktionen im Überblick
 
 | Bereich | Highlights |
 |---|---|
-| **Core** | OOP-/Service-Architektur, Hook-System, Router, Settings, Logging, API-nahe Bausteine |
-| **Admin** | Dashboard, Benutzer & Rollen, Inhalte, Medien, SEO, Performance, System, Updates inklusive hostneutraler interner Admin-Roundtrips, hostneutralem Fehlerreport-Flow, capability-gehärteten Legal-/Info-/System-/Hub-Entrys, strikteren Remote-Geländern für Marketplace-/Update-Quellen, cachegestützt staffelbaren Theme-Marketplace-Katalogquellen, strukturiertem Install-/Report-Feedback, atomisch SHA-512-verifizierten Theme-Explorer-Saves, expliziten Größen-/Binärgrenzen für eingebettete Theme-Customizer sowie weiter entschärften DOM-Renderpfaden in First-Party-Admin-Assets bis hinein in Hub-/Template-Editoren |
-| **Content** | Seiten, Beiträge, Landing-Pages, TOC, Featured Images, Revisionen, Editor.js-Tech-Blöcke, kompaktere Post-Editor-Workflows mit Mehrfach-Kategorien, editierbarer Tag-Verwaltung, fail-closed Taxonomie-Slug-Verträgen sowie mehrsprachiger DE→EN-Initialkopie, overwrite-sicheren DE→EN-/AI-Flows, hostneutralem Featured-Image-Picker, DOM-basierten Preview-/Diff-Zuständen, DOM-basierten Mediathek-Pickern und DOMParser-basiertem Legacy-HTML-Import im Editor |
-| **Media** | Native Medienbibliothek, Uploads, Kategorien, Grid-/Listenansicht, WebP-Workflows, DOM-basierte Picker-/Upload-Zustände sowie atomisch SHA-512-verifizierte Settings-/Metadaten-Schreibpfade mit fail-closed Rename-/Kategorie-Geländern |
-| **Search** | Volltextsuche, TNTSearch-Index, mehrsprachige Suchfelder, Hook-basierte Index-Aktualisierung bei Löschvorgängen |
-| **Security** | RBAC, CSRF, XSS-Escaping, Rate Limits, Firewall, AntiSpam, Passkeys, 2FA sowie script-sicher encodete Passkey-Payloads und locale-aware Auth-/Reset-Roundtrips |
-| **SEO** | Sitemap, Schema, Canonicals, Redirects, Robots, Audit-Übersichten, IndexNow-Key-, Root-TXT- und Root-Pfad-Debug-Prüfung sowie strukturierte SEO-Editor-Analyse mit stringärmeren Preview-/Regelpfaden, runtime-aware Public-URLs für SERP-/Sitemap-/IndexNow-Hinweise, same-site-normalisierte Broken-Link-/Indexing-Pfade und backlink-bereinigte Referrer-Domains |
-| **Business** | Aboverwaltung, Orders, Checkout, Gruppen, Legal-Sites, DSGVO-Prozesse sowie konsistente Bestell-/Statusverträge über Admin, Dashboard und Member-Bereich |
-| **Legal** | Cookie-Manager, Consent-Dialog, Legal-Sites und Datenschutz-Prozesse mit hostneutralen Public-Pfaden und DOM-basiertem Banner-/Modal-Vertrag für Consent-Einstellungen |
-| **Themes** | Theme-System, Customizer, Code-Editor, Menü-Editor mit Slug-/Pfad-Unterstützung, fail-closed JSON-/Delete-Verträgen und Submit-Locks gegen Doppelaktionen, Landing-Page-Editor mit fail-closed Save-/Delete-Verträgen, typgesicherten Feature-Mutationen und bestätigten Feature-Löschungen, CMS-Loginpage mit fail-closed Settings-Vertrag sowie locale-aware Public-Auth-Roundtrips, Theme-Explorer mit atomischem Save-/Rollback-Vertrag, explizitem Path-Length-/Readonly-/Unreadable-File-Vertrag und sicherem eingebettetem Customizer-Fallback, lokale Fonts mit atomisch verifizierten Self-Hosting-Assets, belastbarem Theme-Scan-Cache, fail-closed Delete-Verträgen und robusterem Submit-Handling sowie Marketplace-Anbindung mit cachegestützten Katalog-Fallbacks, strukturiertem Install-/Report-Feedback, transparenterem Host-/Hash-/Kompatibilitätskontext und ZIP-/Paketgrößen-Geländern für Auto-Installationen |
-| **Plugins** | Hook-basierte Erweiterbarkeit, Plugin-Repo, Marketplace, dokumentierte Integrationen, gehärtete Install-Pending-States und strikter staffelte Remote-Registry-/Manifest-/Download-Ziele |
-| **Operations** | Cron-Checks, Cron-Direktlauf, HTTP-Loopback, Ajax-Runner, Health-Check, Disk-Usage, Backups, Audit-Log und Update-Workflows mit strikterer Remote-URL-Normalisierung |
+| **Core** | Modulare PHP-Architektur, Service-Layer, Routing, Hook-System, Konfiguration, Logging und zentrale Systembausteine |
+| **Admin** | Zentrales Dashboard sowie Verwaltungsbereiche für Inhalte, Benutzer, Medien, SEO, Performance, Recht, System, Diagnose und Updates |
+| **Content** | Seiten, Beiträge, Landing-Pages, Kategorien, Tags, Revisionen, Featured Images, TOC und mehrsprachige Inhalte mit Editor.js-Unterstützung |
+| **Medien** | Medienbibliothek mit Uploads, Ordnern, Kategorien, Bild-/Dateiverwaltung, Grid-/Listenansicht und WebP-Workflows |
+| **Mitgliederbereich** | Member-Dashboard, Profile, Widgets, Benachrichtigungen, Onboarding, Profilfelder und Frontend-Module |
+| **Suche** | Volltextsuche mit TNTSearch, Indexierung zentraler Inhalte und mehrsprachigen Suchfeldern |
+| **Security & Auth** | Rollen und Rechte, CSRF-/XSS-Schutz, Rate Limits, Firewall, AntiSpam, Passkeys, 2FA, LDAP und sichere Login-/Reset-Flows |
+| **SEO** | Meta-Daten, Social-Media-Daten, strukturierte Daten, Sitemap, Robots, Redirects, 404-Monitor, Analytics und IndexNow |
+| **Business** | Aboverwaltung, Pakete, Bestellungen, Checkout, Gruppen, Mitgliederfunktionen und geschäftsnahe CMS-Prozesse |
+| **Legal & DSGVO** | Legal-Sites, Cookie-Manager, Consent-Dialog, Datenschutzprozesse, Datenexporte und Löschanfragen |
+| **Themes & Design** | Theme-System, Customizer, Theme-Explorer, Code-Editor, Menü-Editor, Landing-Page-Editor, Font-Manager, CMS-Loginpage und Theme-Marketplace |
+| **Plugins** | Erweiterbares Plugin-System mit Hooks, Plugin-Verwaltung, Marketplace und modularen Integrationen |
+| **Betrieb & Wartung** | Cache- und Performance-Werkzeuge, Cron, Monitoring, Health-Checks, Backups, Mail-Queue, Logs und Update-Management |
 
 ### 🏗️ Architektur & Workspace
 
@@ -260,26 +261,28 @@ The audits were carried out using OWASP-oriented tooling, Snyk, refactoring pass
 
 | Metric | Score |
 |---|---:|
-| **Security** | **95.48** |
-| **Speed** | **92.91** |
-| **PHP / Best Practices** | **96.66** |
-| **Overall** | **96.77** |
+| **Security** | **95.98** |
+| **Speed** | **93.22** |
+| **PHP / Best Practices** | **97.20** |
+| **Overall** | **97.31** |
 
 ### 🧩 Key Capabilities
 
 | Area | Highlights |
 |---|---|
-| **Core** | OOP/service architecture, hook system, router, settings, logging, API-oriented building blocks |
-| **Admin** | Dashboard, users & roles, content, media, SEO, performance, system, updates including host-neutral internal admin roundtrips, a host-neutral error-report flow, capability-hardened legal/info/system/hub entries, stricter remote guards for marketplace/update sources, atomically SHA-512-verified theme explorer saves, explicit size/binary guardrails for embedded theme customizers and further de-risked DOM rendering in first-party admin assets |
-| **Content** | Pages, posts, categories, tags, landing pages, TOC, featured images, revisions, Editor.js tech blocks, edit-capable post-tag management, fail-closed taxonomy slug contracts, overwrite-safe DE→EN/AI flows, a host-neutral featured-image picker, and stabilized live SEO/readability analysis for Editor.js content |
-| **Media** | Native media library, uploads, categories, grid/list views, WebP workflows plus DOM-based picker/upload states and atomically SHA-512-verified settings/meta writes with fail-closed rename/category guardrails |
-| **Search** | Full-text search, TNTSearch index, multilingual search fields, hook-based index refresh on delete actions |
-| **Security** | RBAC, CSRF, XSS escaping, rate limits, firewall, anti-spam, passkeys, 2FA plus script-safe passkey payload encoding and locale-aware auth/reset roundtrips |
-| **SEO** | Sitemap, schema, canonicals, redirects, robots, audit overviews, IndexNow key, root TXT and root-path debug validation plus runtime-aware public admin URLs for SERP/sitemap/indexing hints, same-site normalization for broken-link and indexing paths, and backlink summaries that no longer treat internal referrers as external domains |
-| **Business** | Subscriptions, orders, checkout, groups, legal pages, GDPR workflows plus consistent order/status contracts across admin, dashboard and member flows |
-| **Themes** | Theme system, customizer, code editor, a menu editor with slug/path support, fail-closed JSON/delete contracts and submit locks against duplicate actions, a landing-page editor with fail-closed save/delete contracts, type-safe feature mutations and confirmed feature deletes, a CMS login page with fail-closed settings persistence and locale-aware public auth roundtrips, a theme explorer with atomic save/rollback semantics plus explicit path-length/read-only/unreadable-file guardrails, a safer embedded customizer fallback, local fonts with atomically verified self-hosted assets, reliable theme-scan caching, fail-closed delete contracts and sturdier submit handling, plus marketplace integration with ZIP-extension and package-size guardrails for auto-installs |
-| **Plugins** | Hook-based extensibility, plugin repository, marketplace, documented integrations and stricter remote registry/manifest/download handling |
-| **Operations** | Cron checks, direct cron execution, HTTP loopback, AJAX runner, health checks, disk usage, backups, audit logging and update workflows with stricter remote URL normalization |
+| **Core** | Modular PHP architecture, service layer, routing, hook system, configuration, logging and central system building blocks |
+| **Admin** | Central dashboard plus management areas for content, users, media, SEO, performance, legal, system, diagnostics and updates |
+| **Content** | Pages, posts, landing pages, categories, tags, revisions, featured images, TOC and multilingual content with Editor.js support |
+| **Media** | Media library with uploads, folders, categories, image/file management, grid/list views and WebP workflows |
+| **Member Area** | Member dashboard, profiles, widgets, notifications, onboarding, profile fields and frontend modules |
+| **Search** | Full-text search with TNTSearch, indexing of core content and multilingual search fields |
+| **Security & Auth** | Roles and permissions, CSRF/XSS protection, rate limits, firewall, anti-spam, passkeys, 2FA, LDAP and secure login/reset flows |
+| **SEO** | Meta data, social media data, structured data, sitemap, robots, redirects, 404 monitor, analytics and IndexNow |
+| **Business** | Subscription management, packages, orders, checkout, groups, member features and business-oriented CMS workflows |
+| **Legal & GDPR** | Legal pages, cookie manager, consent dialog, privacy workflows, data exports and deletion requests |
+| **Themes & Design** | Theme system, customizer, theme explorer, code editor, menu editor, landing page editor, font manager, CMS login page and theme marketplace |
+| **Plugins** | Extensible plugin system with hooks, plugin management, marketplace and modular integrations |
+| **Operations & Maintenance** | Cache and performance tools, cron, monitoring, health checks, backups, mail queue, logs and update management |
 
 ### 🏗️ Architecture & Workspace
 

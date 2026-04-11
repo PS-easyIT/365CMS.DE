@@ -5,6 +5,7 @@ namespace CMS\Services;
 
 use CMS\Auth;
 use CMS\Database;
+use CMS\Logger;
 use CMS\Security;
 
 if (!defined('ABSPATH')) {
@@ -39,11 +40,13 @@ final class CmsAuthPageService
     private static ?self $instance = null;
 
     private Database $db;
+    private Logger $logger;
     private string $prefix;
 
     private function __construct()
     {
         $this->db = Database::instance();
+        $this->logger = Logger::instance()->withChannel('service.cms-auth-page');
         $this->prefix = $this->db->getPrefix();
     }
 
@@ -158,7 +161,9 @@ final class CmsAuthPageService
                 $settings[$optionName] = (string) ($row->option_value ?? '');
             }
         } catch (\Throwable $e) {
-            error_log('CmsAuthPageService::getSettings() failed: ' . $e->getMessage());
+            $this->logger->error('CMS-Auth-Settings konnten nicht geladen werden.', [
+                'exception' => $e->getMessage(),
+            ]);
         }
 
         return $settings;
@@ -190,7 +195,9 @@ final class CmsAuthPageService
 
             return $options;
         } catch (\Throwable $e) {
-            error_log('CmsAuthPageService::getPageOptions() failed: ' . $e->getMessage());
+            $this->logger->error('CMS-Auth-Seitenoptionen konnten nicht geladen werden.', [
+                'exception' => $e->getMessage(),
+            ]);
             return [];
         }
     }
@@ -359,7 +366,10 @@ final class CmsAuthPageService
                 'message' => (string) ($settings['forgot_request_success_message'] ?? 'Falls ein Konto mit dieser E-Mail-Adresse existiert, haben wir einen Reset-Link versendet.'),
             ];
         } catch (\Throwable $e) {
-            error_log('CmsAuthPageService::requestPasswordReset() failed: ' . $e->getMessage());
+            $this->logger->error('Passwort-Reset-Anfrage konnte nicht verarbeitet werden.', [
+                'email' => $email,
+                'exception' => $e->getMessage(),
+            ]);
             return ['success' => false, 'message' => 'Die Passwort-Zurücksetzung konnte gerade nicht verarbeitet werden.'];
         }
     }
@@ -403,7 +413,9 @@ final class CmsAuthPageService
 
             return ['success' => true, 'message' => (string) ($settings['forgot_reset_success_message'] ?? 'Dein Passwort wurde erfolgreich geändert.')];
         } catch (\Throwable $e) {
-            error_log('CmsAuthPageService::resetPassword() failed: ' . $e->getMessage());
+            $this->logger->error('Passwort konnte nicht zurückgesetzt werden.', [
+                'exception' => $e->getMessage(),
+            ]);
             return ['success' => false, 'message' => 'Das Passwort konnte nicht zurückgesetzt werden.'];
         }
     }

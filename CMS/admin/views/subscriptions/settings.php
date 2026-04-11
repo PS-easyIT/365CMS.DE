@@ -5,6 +5,10 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+$pageAssets = $pageAssets ?? [];
+$pageAssets['js'] = is_array($pageAssets['js'] ?? null) ? $pageAssets['js'] : [];
+$pageAssets['js'][] = cms_asset_url('js/admin-subscriptions.js');
+
 $settings = $data['settings'] ?? [];
 $plans    = $data['plans'] ?? [];
 $alertData = is_array($alert ?? null) ? $alert : [];
@@ -31,7 +35,7 @@ $isSelectedPlan = static fn (int $planId): string => $defaultPlanId === $planId 
 
         <?php require __DIR__ . '/../partials/flash-alert.php'; ?>
 
-        <form method="post">
+        <form method="post" data-subscription-submit-lock="1">
             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
             <input type="hidden" name="action" value="save_settings">
 

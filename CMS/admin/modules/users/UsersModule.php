@@ -83,6 +83,11 @@ class UsersModule
         ];
     }
 
+    public function hasUser(int $id): bool
+    {
+        return $id > 0 && $this->userService->getUserById($id) !== null;
+    }
+
     /**
      * Benutzer speichern
      */
@@ -236,6 +241,28 @@ class UsersModule
                 ]);
             }
 
+            if ($result !== true) {
+                return [
+                    'success' => false,
+                    'error' => 'Benutzer konnte nicht gelöscht werden.',
+                    'error_details' => [
+                        'Die Benutzerverwaltung hat keine erfolgreiche Löschbestätigung erhalten.',
+                        'Bitte Benutzerbestand und Datenbank-Logs prüfen.',
+                    ],
+                    'report_payload' => [
+                        'title' => 'Benutzer-Löschung ohne Erfolgsmeldung',
+                        'message' => 'Die Benutzer-Löschung lieferte kein `true`-Ergebnis zurück.',
+                        'error_code' => 'users_delete_unconfirmed',
+                        'source_url' => '/admin/users',
+                        'context' => [
+                            'module' => 'users',
+                            'operation' => 'delete',
+                            'user_id' => $id,
+                        ],
+                    ],
+                ];
+            }
+
             return ['success' => true, 'message' => 'Benutzer dauerhaft gelöscht.'];
         } catch (\Throwable $e) {
             Logger::instance()->withChannel('admin.users')->error('Benutzer konnte nicht gelöscht werden.', [
@@ -265,11 +292,42 @@ class UsersModule
         }
     }
 
+    private function buildUserEditSourceUrl(int $id = 0): string
+    {
+        return '/admin/users?action=' . ($id > 0 ? 'edit&id=' . $id : 'edit');
+    }
+
     /**
-        private function buildUserEditSourceUrl(int $id = 0): string
-        {
-            return '/admin/users?action=' . ($id > 0 ? 'edit&id=' . $id : 'edit');
+     * @param array<int,int> $ids
+     * @return array<int,int>
+     */
+    private function getExistingUserIds(array $ids): array
+    {
+        $normalizedIds = [];
+        foreach ($ids as $id) {
+            $normalizedId = (int) $id;
+            if ($normalizedId > 0) {
+                $normalizedIds[$normalizedId] = $normalizedId;
+            }
         }
+
+        if ($normalizedIds === []) {
+            return [];
+        }
+
+        $placeholders = implode(', ', array_fill(0, count($normalizedIds), '?'));
+        $rows = $this->db->get_col(
+            "SELECT id FROM {$this->prefix}users WHERE id IN ({$placeholders})",
+            array_values($normalizedIds)
+        );
+
+        $existingIds = array_map('intval', $rows);
+        sort($existingIds, SORT_NUMERIC);
+
+        return array_values(array_unique(array_filter($existingIds, static fn (int $id): bool => $id > 0)));
+    }
+
+    /**
      * Bulk-Aktionen
      */
     public function bulkAction(string $action, array $ids): array
@@ -277,10 +335,47 @@ class UsersModule
         if (empty($ids)) {
             return ['success' => false, 'message' => 'Keine Benutzer ausgewählt.'];
         }
-        $result = $this->userService->bulkAction($action, $ids);
+
+        $normalizedIds = array_values(array_unique(array_filter(
+            array_map('intval', $ids),
+            static fn (int $id): bool => $id > 0
+        )));
+
+        if ($normalizedIds === []) {
+            return ['success' => false, 'message' => 'Keine Benutzer ausgewählt.'];
+        }
+
+        $existingIds = $this->getExistingUserIds($normalizedIds);
+        if ($existingIds === []) {
+            return ['success' => false, 'message' => 'Die ausgewählten Benutzer existieren nicht mehr.'];
+        }
+
+        if (count($existingIds) !== count($normalizedIds)) {
+            return [
+                'success' => false,
+                'message' => 'Mindestens ein ausgewählter Benutzer existiert nicht mehr.',
+            ];
+        }
+
+        $currentUserId = (int) ($_SESSION['user_id'] ?? 0);
+        if ($currentUserId > 0 && in_array($currentUserId, $existingIds, true)) {
+            return [
+                'success' => false,
+                'message' => 'Der eigene Benutzer darf nicht per Bulk-Aktion verändert werden.',
+            ];
+        }
+
+        $result = $this->userService->bulkAction($action, $existingIds);
+        $successCount = (int) ($result['success'] ?? 0);
+        $failedCount = (int) ($result['failed'] ?? 0);
+        $message = $successCount . ' Benutzer verarbeitet.' . ($failedCount > 0 ? ' ' . $failedCount . ' fehlgeschlagen.' : '');
+
         return [
-            'success' => $result['success'] > 0,
-            'message' => $result['success'] . ' Benutzer verarbeitet.' . ($result['failed'] > 0 ? ' ' . $result['failed'] . ' fehlgeschlagen.' : ''),
+            'success' => $failedCount === 0 && $successCount > 0,
+            'message' => $message,
+            'error_details' => $failedCount > 0 && is_array($result['errors'] ?? null)
+                ? array_values($result['errors'])
+                : [],
         ];
     }
 }

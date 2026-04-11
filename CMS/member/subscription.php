@@ -9,7 +9,7 @@ require_once __DIR__ . '/includes/bootstrap.php';
 
 if (class_exists('\CMS\Services\CoreModuleService')
     && !\CMS\Services\CoreModuleService::getInstance()->isModuleEnabled('subscription_member_area')) {
-    header('Location: ' . SITE_URL . '/member/dashboard');
+    header('Location: /member/dashboard');
     exit;
 }
 

@@ -229,6 +229,7 @@
         var editors = {};
         var editorDefinitions = {};
         var submitLocked = false;
+        var nativeSubmitPending = false;
         var translationPreviewActive = false;
         var translationPreviewSuppressClear = false;
 
@@ -1118,6 +1119,31 @@
             });
         }
 
+        function dispatchValidatedSubmit() {
+            if (typeof form.requestSubmit === 'function') {
+                nativeSubmitPending = true;
+                form.requestSubmit();
+                nativeSubmitPending = false;
+                return;
+            }
+
+            if (typeof form.reportValidity === 'function' && !form.reportValidity()) {
+                return;
+            }
+
+            var fallbackButton = document.createElement('button');
+            fallbackButton.type = 'submit';
+            fallbackButton.hidden = true;
+            fallbackButton.tabIndex = -1;
+            fallbackButton.setAttribute('aria-hidden', 'true');
+
+            nativeSubmitPending = true;
+            form.appendChild(fallbackButton);
+            fallbackButton.click();
+            fallbackButton.remove();
+            nativeSubmitPending = false;
+        }
+
         function registerPreviewInvalidation(aiTranslation) {
             var targetEditorDefinition = getDefinition(aiTranslation.targetEditorKey);
             var targetFieldIds = [aiTranslation.targetTitleId, aiTranslation.targetSlugId, aiTranslation.targetExcerptId]
@@ -1253,6 +1279,10 @@
         form.addEventListener('submit', function (event) {
             var keys = Object.keys(editors);
 
+            if (nativeSubmitPending) {
+                return;
+            }
+
             event.preventDefault();
 
             if (submitLocked) {
@@ -1262,7 +1292,7 @@
             clearNotice();
 
             if (keys.length === 0) {
-                form.submit();
+                dispatchValidatedSubmit();
                 return;
             }
 
@@ -1271,7 +1301,8 @@
             Promise.all(keys.map(function (key) {
                 return saveEditorContent(key, false);
             })).then(function () {
-                form.submit();
+                submitLocked = false;
+                dispatchValidatedSubmit();
             }).catch(function (error) {
                 var failedDefinition = error && error.editorDefinition ? error.editorDefinition : null;
                 var message = error && error.message

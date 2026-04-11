@@ -13,6 +13,7 @@ if (!defined('ABSPATH')) {
 use CMS\Auth;
 use CMS\Services\CoreModuleService;
 
+const CMS_ADMIN_ORDERS_CAPABILITY = 'manage_settings';
 const CMS_ADMIN_ORDERS_ALLOWED_STATUSES = ['pending', 'paid', 'cancelled', 'refunded', 'failed'];
 const CMS_ADMIN_ORDERS_STATUS_ALIASES = ['confirmed' => 'paid', 'completed' => 'paid'];
 const CMS_ADMIN_ORDERS_ALLOWED_BILLING_CYCLES = ['monthly', 'yearly', 'lifetime'];
@@ -101,7 +102,9 @@ function cms_admin_orders_handle_action(OrdersModule $module, string $action, ar
     };
 }
 
-if (!Auth::instance()->isAdmin() || !CoreModuleService::getInstance()->isAdminPageEnabled('orders')) {
+if (!Auth::instance()->isAdmin()
+    || !Auth::instance()->hasCapability(CMS_ADMIN_ORDERS_CAPABILITY)
+    || !CoreModuleService::getInstance()->isAdminPageEnabled('orders')) {
     header('Location: /');
     exit;
 }
@@ -116,7 +119,9 @@ $sectionPageConfig = [
     'csrf_action' => 'admin_orders',
     'module_file' => __DIR__ . '/modules/subscriptions/OrdersModule.php',
     'module_factory' => static fn (): OrdersModule => new OrdersModule(),
-    'access_checker' => static fn (): bool => Auth::instance()->isAdmin() && CoreModuleService::getInstance()->isAdminPageEnabled('orders'),
+    'access_checker' => static fn (): bool => Auth::instance()->isAdmin()
+        && Auth::instance()->hasCapability(CMS_ADMIN_ORDERS_CAPABILITY)
+        && CoreModuleService::getInstance()->isAdminPageEnabled('orders'),
     'request_context_resolver' => static function (OrdersModule $module): array {
         $statusFilter = cms_admin_orders_normalize_status_filter((string) ($_GET['status'] ?? ''));
 

@@ -31,6 +31,20 @@ function cms_admin_users_target_url(?int $id = null): string
     return '/admin/users';
 }
 
+function cms_admin_users_flash(string $type, string $message): void
+{
+    $_SESSION['admin_alert'] = [
+        'type' => $type,
+        'message' => $message,
+    ];
+}
+
+function cms_admin_users_redirect(?int $id = null): never
+{
+    header('Location: ' . cms_admin_users_target_url($id));
+    exit;
+}
+
 function cms_admin_users_normalize_action(mixed $action): string
 {
     $normalizedAction = trim((string) $action);
@@ -164,6 +178,11 @@ $sectionPageConfig = [
         $view = cms_admin_users_normalize_view($_GET['action'] ?? 'list');
         $id = cms_admin_users_normalize_positive_id($_GET['id'] ?? 0);
 
+        if ($view === 'edit' && $id > 0 && !$module->hasUser($id)) {
+            cms_admin_users_flash('danger', 'Der angeforderte Benutzer existiert nicht mehr.');
+            cms_admin_users_redirect();
+        }
+
         return cms_admin_users_view_config($module, $view, $id > 0 ? $id : null);
     },
     'redirect_path_resolver' => static function (UsersModule $module, string $section, ?array $result = null): string {
@@ -193,6 +212,14 @@ $sectionPageConfig = [
 
             if (!empty($result['success']) && $savedId > 0) {
                 $result['redirect_path'] = cms_admin_users_target_url($savedId);
+
+                return $result;
+            }
+
+            if ($savedId > 0 && !$module->hasUser($savedId)) {
+                $result['error'] = $result['error'] ?? 'Der angeforderte Benutzer existiert nicht mehr.';
+                $result['redirect_path'] = cms_admin_users_target_url();
+                unset($result['render_inline'], $result['runtime_context']);
 
                 return $result;
             }
