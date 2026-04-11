@@ -17,13 +17,13 @@
 
 ---
 
-### **Die self-hosted CMS-Plattform für Content, Mitgliederbereiche, SEO, Datenschutz und Betrieb**
+### **Content. Mitglieder. SEO. Betrieb. Eine self-hosted Plattform.**
 
-#### 365CMS verbindet Publishing, Member-Features, Design, Compliance und operative Kontrolle in einer Plattform – für Teams, die professionell wachsen wollen, ohne in Plugin-Chaos und Tool-Flickenteppich zu versinken.
+#### 365CMS vereint Publishing, Member-Features, Design, Compliance und operative Kontrolle in einem klaren System – für Teams, die wachsen wollen, ohne sich in Plugins, Workarounds und Tool-Ketten zu verlieren.
 
-### **The self-hosted CMS platform for content, member areas, SEO, privacy and operations**
+### **Content. Members. SEO. Operations. One self-hosted platform.**
 
-#### 365CMS connects publishing, member features, design, compliance and operational control in one platform – for teams that want to grow professionally without drowning in plugin chaos and stitched-together tools.
+#### 365CMS brings publishing, member features, design, compliance and operational control into one clear system — for teams that want to grow without getting buried under plugins, workarounds and tool chains.
 
 ---
 
@@ -35,17 +35,17 @@
 
 </div>
 
-## ⚡ Kernvorteile direkt oben
+## ⚡ Warum Teams 365CMS wählen
 
 | Vorteil | Kurz gesagt |
 |---|---|
-| **Alles in einer Plattform** | Inhalte, SEO, Mitgliederbereich, Datenschutz, Design und Betrieb greifen direkt ineinander |
-| **Self-hosted mit Kontrolle** | Daten, Hosting, Erweiterungen und Betriebsprozesse bleiben in der eigenen Hand |
-| **Mehr als nur ein Website-CMS** | 365CMS deckt Publishing, Member-Funktionen, Business-Logik und operative Administration gemeinsam ab |
-| **Direkt anpassbar** | Themes, Menüs, Landing-Pages, Fonts und Login-Erlebnis lassen sich projektgerecht gestalten |
-| **Bereit für Wachstum** | Plugins, Hooks und integrierte Betriebsfunktionen schaffen Spielraum ohne Tool-Flickenteppich |
+| **Alles aus einem Guss** | Inhalte, SEO, Mitgliederbereich, Datenschutz, Design und Betrieb arbeiten in einem zusammenhängenden System |
+| **Self-hosted ohne Abstriche** | Daten, Hosting, Erweiterungen und Betriebsprozesse bleiben in der eigenen Hand |
+| **Vom CMS zur Plattform** | 365CMS verbindet Publishing, Member-Funktionen, Business-Logik und operative Administration |
+| **Branding mit System** | Themes, Menüs, Landing-Pages, Fonts und Login-Erlebnis lassen sich gezielt anpassen |
+| **Wachstum ohne Wildwuchs** | Plugins, Hooks und integrierte Betriebsfunktionen schaffen Spielraum ohne Tool-Flickenteppich |
 
-## 🧱 Feature-Grid
+## 🧱 Feature Snapshot
 
 | Bereich | Was direkt drin steckt |
 |---|---|
@@ -58,9 +58,9 @@
 
 ## 🖼️ Screenshots
 
-Die folgenden Screens zeigen zentrale Bereiche von 365CMS – vom Dashboard über Content-, Medien- und SEO-Workflows bis zu System-, Theme- und Plugin-Funktionen. Die Galerie referenziert die öffentliche Doku-Bildablage unter `/DOC/img/`.
+Die folgenden Screens zeigen, wie 365CMS im Alltag aussieht – vom Dashboard über Content-, Medien- und SEO-Workflows bis zu Theme-, Plugin- und Systembereichen. Die Galerie referenziert die öffentliche Doku-Bildablage unter `/DOC/img/`.
 
-Zu sehen sind nicht nur Einzelansichten, sondern typische Arbeitsoberflächen aus dem Alltag: Redaktionsseiten, Medienverwaltung, SEO-Bereiche, Theme- und Design-Werkzeuge, Systemseiten sowie plugin- und mitgliedernahe Oberflächen. Damit lässt sich schnell einordnen, ob 365CMS eher zu einem klassischen Website-Projekt, einem Portal oder einem erweiterten Mitglieder-Setup passt.
+Zu sehen sind keine isolierten Demo-Ansichten, sondern typische Arbeitsoberflächen aus echten Projektabläufen: Redaktion, Medienverwaltung, SEO, Design, Systempflege sowie plugin- und mitgliedernahe Bereiche. So wird schnell greifbar, ob 365CMS zu einer klassischen Website, einem Portal oder einem erweiterten Mitglieder-Setup passt.
 
 <table>
 	<tr>
@@ -111,24 +111,24 @@ Zu sehen sind nicht nur Einzelansichten, sondern typische Arbeitsoberflächen au
 
 ### ✨ Warum 365CMS?
 
-365CMS bündelt **Redaktion**, **Mitgliederfunktionen**, **Design-Anpassung**, **SEO**, **Betrieb**, **Security** und **Erweiterbarkeit** in einem einzigen System. Statt viele Einzellösungen zusammenzukleben, bietet 365CMS einen klar strukturierten Admin-Bereich mit zusammenhängenden Workflows für Content, Medien, Recht, Performance und Betrieb.
+365CMS bündelt **Redaktion**, **Mitgliederfunktionen**, **Design**, **SEO**, **Datenschutz**, **Security** und **Betrieb** in einem einzigen, klar strukturierten System. Wo andere Projekte mehrere Plugins, Zusatztools und Workarounds stapeln, hält 365CMS zentrale Aufgaben unter einer Oberfläche zusammen.
 
-Das Ergebnis: weniger Reibung im Tagesgeschäft, bessere Kontrolle über Self-Hosting und deutlich mehr Spielraum für individuelle Projekte, Portale und kundenspezifische Erweiterungen.
+Das schafft weniger Reibung im Alltag, mehr Kontrolle im Self-Hosting und mehr Spielraum für Portale, Kundenprojekte und wachsende Plattformen.
 
-Besonders stark ist 365CMS überall dort, wo nicht nur Inhalte gepflegt, sondern auch Prozesse gesteuert werden sollen: Benutzerrollen, Paketlogik, Theme-Anpassungen, Datenschutzabläufe, Sichtbarkeit in Suchmaschinen und operative Wartung sitzen nicht in verstreuten Zusatztools, sondern unter einer gemeinsamen Oberfläche.
+Besonders stark ist 365CMS überall dort, wo nicht nur Inhalte gepflegt, sondern Prozesse gesteuert werden: Benutzerrollen, Paketlogik, Theme-Anpassungen, Datenschutzabläufe, Suchsichtbarkeit und operative Wartung greifen direkt ineinander.
 
 ### 💎 USP auf einen Blick
 
-- **Ein System statt Tool-Flickenteppich:** Content, SEO, Mitgliederbereich, Datenschutz, Design und Betrieb greifen direkt ineinander.
+- **Ein System statt Flickenteppich:** Content, SEO, Mitgliederbereich, Datenschutz, Design und Betrieb greifen direkt ineinander.
 - **Self-hosted ohne Komfortverlust:** Volle Kontrolle über Hosting, Daten und Erweiterungen – ohne auf moderne Admin-Workflows zu verzichten.
-- **Mehr als nur Website-Pflege:** 365CMS verbindet Publishing, Business-Logik, Mitgliederfunktionen und operative Steuerung.
-- **Marken- und projektfähig:** Themes, Menüs, Landing-Pages, Fonts und Login-Erlebnis lassen sich gezielt anpassen.
-- **Erweiterbar ohne Core-Chaos:** Plugins und Hooks schaffen Spielraum für individuelle Lösungen, ohne jede Installation zu verbiegen.
-- **Betrieb direkt mitgedacht:** Performance, Logs, Backups, Updates und Monitoring sind Teil des Produkts – nicht nur Nachgedanken.
+- **Mehr als Seitenpflege:** 365CMS verbindet Publishing, Business-Logik, Mitgliederfunktionen und operative Steuerung.
+- **Markenfähig ab Werk:** Themes, Menüs, Landing-Pages, Fonts und Login-Erlebnis lassen sich gezielt anpassen.
+- **Erweiterbar ohne Core-Chaos:** Plugins und Hooks schaffen Raum für individuelle Lösungen, ohne jedes Projekt zu verbiegen.
+- **Betrieb mitgedacht:** Performance, Logs, Backups, Updates und Monitoring sind Teil des Produkts – nicht nur Nachgedanken.
 
 ### 🎯 Ideal für
 
-365CMS eignet sich besonders für Projekte, die über eine reine „Seiten pflegen“-Logik hinausgehen und dauerhaft betrieben werden sollen:
+365CMS passt besonders gut zu Projekten, die über reine Seitenpflege hinausgehen und langfristig sauber betrieben werden sollen:
 
 - **Unternehmenswebsites** mit eigenem Admin-Team, klaren Rollen und wiederkehrenden Redaktionsabläufen
 - **Content-Plattformen** mit Seiten, Beiträgen, Landing-Pages, Kategorien, Tags und SEO-gestützter Sichtbarkeit
@@ -148,7 +148,7 @@ Besonders stark ist 365CMS überall dort, wo nicht nur Inhalte gepflegt, sondern
 
 ### 🏢 Use Cases / Trusted For
 
-365CMS passt besonders gut zu Projekten, die nicht nur „online gehen“, sondern langfristig sauber betrieben, erweitert und vermarktet werden sollen:
+365CMS passt besonders gut zu Projekten, die nicht nur online gehen, sondern langfristig sauber betrieben, erweitert und vermarktet werden sollen:
 
 - **Corporate Websites mit Redaktion und SEO-Fokus**
 - **Mitglieder- und Kundenportale mit geschützten Bereichen**
@@ -159,7 +159,7 @@ Besonders stark ist 365CMS überall dort, wo nicht nur Inhalte gepflegt, sondern
 
 ### ⚖️ Warum 365CMS statt „CMS + fünf Zusatztools“?
 
-Viele Projekte starten mit einem Basissystem und wachsen dann über SEO-Plugins, Member-Add-ons, Consent-Lösungen, Theme-Hacks und externe Betriebswerkzeuge zu einer schwer wartbaren Tool-Kette zusammen. 365CMS verfolgt bewusst einen anderen Ansatz: wichtige Kernbereiche sind bereits als zusammenhängende Plattform angelegt.
+Viele Projekte starten mit einem Basissystem und wachsen dann über SEO-Plugins, Member-Add-ons, Consent-Lösungen, Theme-Hacks und externe Betriebswerkzeuge zu einer schwer wartbaren Tool-Kette. 365CMS verfolgt bewusst den Gegenentwurf: wichtige Kernbereiche sind bereits als zusammenhängende Plattform angelegt.
 
 | Typischer Flickenteppich | 365CMS |
 |---|---|
@@ -169,11 +169,11 @@ Viele Projekte starten mit einem Basissystem und wachsen dann über SEO-Plugins,
 | Rollen, Sicherheit und Login-Prozesse wachsen oft uneinheitlich | Rollen, Rechte, Passkeys, 2FA, LDAP, Reset-Flows und Schutzmechanismen sind im Produktkontext gedacht |
 | Erweiterungen machen Projekte schnell unübersichtlich | Hooks, Plugins und Marketplace-Pfade erlauben Ausbau mit klareren Integrationspunkten |
 
-Kurz gesagt: 365CMS ist für Teams gedacht, die lieber auf einer konsistenten Plattform arbeiten als auf einem zusammengeklebten Verbund aus Einzelbausteinen.
+Kurz gesagt: 365CMS ist für Teams gemacht, die lieber auf einer konsistenten Plattform arbeiten als auf einem zusammengeklebten Verbund aus Einzelbausteinen.
 
-### 🧩 Produkt-Highlights
+### 🧩 Was 365CMS besonders stark macht
 
-Die folgenden Bereiche bilden das Kern-Feature-Set von 365CMS und zeigen, wie breit das System ohne Plugin-Zwang bereits ab Werk aufgestellt ist:
+Die folgenden Bereiche zeigen, wie breit 365CMS bereits ohne Plugin-Zwang aufgestellt ist:
 
 | Bereich | Enthaltene Funktionen | Nutzen |
 |---|---|---|
@@ -189,7 +189,7 @@ Die folgenden Bereiche bilden das Kern-Feature-Set von 365CMS und zeigen, wie br
 | **Legal & DSGVO** | Legal-Sites, Cookie-Manager, Consent-Dialog, Datenexporte, Löschanfragen, Datenschutzpfade | Unterstützt Datenschutz- und Compliance-Prozesse dort, wo sie im Alltag gebraucht werden: direkt im CMS |
 | **Betrieb & Wartung** | Cache, Performance-Werkzeuge, Cron, Monitoring, Health-Checks, Backups, Mail-Queue, Logs, Updates | Macht den Betrieb sichtbar, steuerbar und langfristig beherrschbar – nicht nur am Launch-Tag |
 
-### 🚀 Positionierung in einem Satz
+### 🚀 Kurz positioniert
 
 365CMS positioniert sich zwischen klassischem CMS, Portal-Lösung und betriebsfähiger Content-Plattform: stärker integriert als ein reines Publishing-System, aber deutlich fokussierter und kontrollierbarer als ein zusammengebauter Tool-Stack.
 
@@ -242,7 +242,7 @@ Der Admin-Bereich ist so aufgebaut, dass inhaltliche, technische und betrieblich
 
 ### 🚀 Schnellstart
 
-Der Einstieg ist bewusst unkompliziert gehalten: 365CMS kann klassisch aufgesetzt und danach Schritt für Schritt erweitert, gestaltet und konfiguriert werden.
+Der Einstieg bleibt bewusst unkompliziert: 365CMS lässt sich klassisch aufsetzen und danach Schritt für Schritt erweitern, gestalten und konfigurieren.
 
 #### Voraussetzungen
 
@@ -273,9 +273,9 @@ Schon nach der Grundinstallation stehen die Kernbereiche für Inhalte, Medien, B
 
 ### 📚 Doku & nächste Schritte
 
-Wenn du tiefer einsteigen willst, ist die Detaildokumentation bereits sauber getrennt vorhanden:
+Wenn du tiefer einsteigen willst, ist die Detaildokumentation bereits sauber getrennt vorhanden.
 
-Für Interessenten, Administratoren, Redakteure und Entwickler bedeutet das: Die README zeigt den Funktionsrahmen, während die Fachdokumente Installation, Betrieb, Erweiterung und Teilbereiche einzeln vertiefen.
+Die README zeigt den Produktrahmen; die Fachdokumente vertiefen Installation, Betrieb, Erweiterung und einzelne Teilbereiche.
 
 | Thema | Dokument |
 |---|---|
@@ -294,14 +294,14 @@ Für Interessenten, Administratoren, Redakteure und Entwickler bedeutet das: Die
 
 ### 👨‍💻 Support & Lizenz
 
-365CMS ist für langfristige Projekte gedacht. Entsprechend wichtig sind klare Kontaktwege, nachvollziehbare Dokumentation und eine Lizenz, die den produktiven Einsatz nicht unnötig verkompliziert.
+365CMS ist für langfristige Projekte gedacht. Entsprechend wichtig sind klare Kontaktwege, nachvollziehbare Dokumentation und eine Lizenz, die produktiven Einsatz nicht unnötig verkompliziert.
 
 - **Entwicklung:** Andreas Hepp
 - **Web:** [365CMS.DE](https://365cms.de) · [PhinIT.DE](https://phinit.de)
 - **Support:** GitHub Issues, Kontaktformular auf [365cms.de](https://365cms.de) und die lokale Projektdokumentation im `DOC/`-Baum
 - **Lizenz:** Freie Verwendung für private und geschäftliche Projekte
 
-Für Funktionsfragen, Fehlermeldungen, Projektkontext und Dokumentationspfade sind GitHub Issues und die vorhandene Projektdokumentation die sinnvollsten Einstiege. So bleiben Rückfragen nachvollziehbar und nicht in Mail-Postfächern verschollen.
+Für Funktionsfragen, Fehlermeldungen, Projektkontext und Dokumentationspfade sind GitHub Issues und die vorhandene Projektdokumentation die sinnvollsten Einstiege. So bleiben Rückfragen nachvollziehbar statt in Mail-Postfächern zu verschwinden.
 
 **Kurz gesagt:** 365CMS richtet sich an Projekte, die mehr wollen als nur Seitenpflege: Inhalte, Mitglieder, Design, SEO, Recht, Sicherheit und Betrieb greifen hier als zusammenhängendes CMS-System ineinander. 🛠️
 
@@ -311,18 +311,18 @@ Für Funktionsfragen, Fehlermeldungen, Projektkontext und Dokumentationspfade si
 
 ### ✨ Why 365CMS?
 
-365CMS brings together **publishing**, **member features**, **design customization**, **SEO**, **operations**, **security** and **extensibility** in one coherent system. Instead of stitching multiple tools together, it provides a structured admin experience with connected workflows for content, media, legal requirements, performance and day-to-day operations.
+365CMS brings together **publishing**, **member features**, **design**, **SEO**, **privacy**, **security** and **operations** in one coherent system. Where other projects pile up plugins, side tools and workarounds, 365CMS keeps the core workflows under one roof.
 
-The result is a more maintainable self-hosted platform, clearer editorial processes and far more room for custom projects, portals and client-specific extensions.
+That means less friction in daily work, more control in self-hosted environments and more room for portals, client projects and growing content platforms.
 
-365CMS becomes especially valuable when a project needs more than just page editing: role-based administration, package logic, theme customization, privacy workflows, search visibility and operational maintenance live in one place instead of being scattered across unrelated tools.
+365CMS becomes especially valuable when a project needs more than page editing: roles, package logic, theme customization, privacy workflows, search visibility and operational maintenance live in one place instead of being scattered across unrelated tools.
 
 ### 💎 Core USP at a glance
 
 - **One platform instead of a patchwork stack:** content, SEO, membership, privacy, design and operations are designed to work together.
 - **Self-hosted without giving up convenience:** full control over hosting, data and extensions without sacrificing a modern admin experience.
 - **More than page editing:** 365CMS connects publishing, business logic, member features and operational control.
-- **Ready for real branding:** themes, menus, landing pages, fonts and the login experience can be tailored to the project.
+- **Brand-ready out of the box:** themes, menus, landing pages, fonts and the login experience can be tailored to the project.
 - **Extensible without core chaos:** plugins and hooks create room for custom solutions without turning every install into a maintenance trap.
 - **Operations built in:** performance, logs, backups, updates and monitoring are part of the product, not afterthoughts.
 
@@ -348,7 +348,7 @@ The result is a more maintainable self-hosted platform, clearer editorial proces
 
 ### 🏢 Use Cases / Trusted For
 
-365CMS is especially well suited for projects that should not just “go live”, but remain cleanly operated, extended and marketed over time:
+365CMS is especially well suited for projects that should not just go live, but remain cleanly operated, extended and marketed over time:
 
 - **corporate websites with editorial teams and SEO focus**
 - **member and customer portals with protected areas**
@@ -359,7 +359,7 @@ The result is a more maintainable self-hosted platform, clearer editorial proces
 
 ### ⚖️ Why 365CMS instead of “a CMS plus five extra tools”?
 
-Many projects start with a base CMS and slowly grow into a maintenance-heavy chain of SEO plugins, membership add-ons, consent tools, theme workarounds and external operations helpers. 365CMS takes a more integrated route: key areas are already designed as one connected platform.
+Many projects start with a base CMS and slowly grow into a maintenance-heavy chain of SEO plugins, membership add-ons, consent tools, theme workarounds and external operations helpers. 365CMS takes the opposite route: key areas are already designed as one connected platform.
 
 | Typical patchwork setup | 365CMS |
 |---|---|
@@ -371,9 +371,9 @@ Many projects start with a base CMS and slowly grow into a maintenance-heavy cha
 
 In short: 365CMS is built for teams that would rather work on one coherent platform than on a glued-together collection of disconnected building blocks.
 
-### 🧩 Product Highlights
+### 🧩 What 365CMS does especially well
 
-The following areas form the core 365CMS feature set and show how much the platform already covers out of the box before any project-specific add-ons are introduced:
+The following areas show how much 365CMS already covers out of the box before any project-specific add-ons are introduced:
 
 | Area | Included capabilities | Benefit |
 |---|---|---|
@@ -389,7 +389,7 @@ The following areas form the core 365CMS feature set and show how much the platf
 | **Legal & GDPR** | Legal pages, cookie manager, consent dialog, privacy workflows, data exports and deletion requests | Supports privacy and compliance processes exactly where teams need them: inside the CMS |
 | **Operations & Maintenance** | Cache tools, performance tuning, cron, monitoring, health checks, backups, mail queue, logs and updates | Makes operations visible, controllable and sustainable beyond launch day |
 
-### 🚀 Positioning in one sentence
+### 🚀 Positioned in one sentence
 
 365CMS sits between a classic CMS, a portal solution and an operations-ready content platform: more integrated than a pure publishing system, yet more focused and controllable than a stitched-together stack of separate tools.
 
@@ -473,9 +473,9 @@ After the basic installation, the core areas for content, media, users, SEO, leg
 
 ### 📚 Documentation & next steps
 
-If you want the deeper technical or operational details, they already live in dedicated docs:
+If you want the deeper technical or operational details, they already live in dedicated docs.
 
-That means the README stays focused on product value, while administrators, editors and developers can jump straight into the specialized documents that match their role and task.
+The README stays focused on product value; the specialized documents cover installation, operations, extension points and functional deep dives.
 
 | Topic | Document |
 |---|---|
@@ -494,7 +494,7 @@ That means the README stays focused on product value, while administrators, edit
 
 ### 👨‍💻 Support & license
 
-365CMS is built for long-lived projects. Clear support paths, accessible documentation and a practical license model therefore matter just as much as the feature set itself.
+365CMS is built for long-lived projects. Clear support paths, accessible documentation and a practical license model matter just as much as the feature set itself.
 
 - **Development:** Andreas Hepp
 - **Web:** [365CMS.DE](https://365cms.de) · [PhinIT.DE](https://phinit.de)
@@ -509,9 +509,9 @@ For feature questions, bug reports, project context and documentation references
 
 ## 🚀 Bereit für den nächsten Schritt? / Ready for the next step?
 
-**Starte mit 365CMS, wenn du eine Plattform willst, die Content, Mitglieder, SEO, Datenschutz, Design und Betrieb in einem System zusammenführt.**
+**Starte mit 365CMS, wenn du eine Plattform willst, die Content, Mitglieder, SEO, Datenschutz, Design und Betrieb in einem klaren System zusammenführt.**
 
-**Start with 365CMS if you want one platform that brings together content, members, SEO, privacy, design and operations.**
+**Start with 365CMS if you want one platform that brings together content, members, SEO, privacy, design and operations in one clear system.**
 
 [🚀 Installation starten](DOC/INSTALLATION.md) • [📚 Dokumentation öffnen](DOC/INDEX.md) • [🎨 Themes erkunden](DOC/theme/README.md) • [🔌 Plugins ansehen](DOC/plugins/GUIDE.md)
 
