@@ -17,15 +17,44 @@
 
 ---
 
-### 365CMS ist ein selbst hostbares CMS für Websites, Portale, Mitgliederbereiche und contentgetriebene Plattformen – mit starker Admin-Oberfläche, Theme-System, Plugin-Erweiterbarkeit, nativer Medienverwaltung, SEO-Werkzeugen und integrierten Betriebsfunktionen.
+### **Die self-hosted CMS-Plattform für Content, Mitgliederbereiche, SEO, Datenschutz und Betrieb**
 
-### 365CMS is a self-hostable CMS for websites, portals, member areas and content-driven platforms – with a strong admin experience, theme system, plugin extensibility, native media management, SEO tooling and built-in operations features.
+#### 365CMS verbindet Publishing, Member-Features, Design, Compliance und operative Kontrolle in einer Plattform – für Teams, die professionell wachsen wollen, ohne in Plugin-Chaos und Tool-Flickenteppich zu versinken.
+
+### **The self-hosted CMS platform for content, member areas, SEO, privacy and operations**
+
+#### 365CMS connects publishing, member features, design, compliance and operational control in one platform – for teams that want to grow professionally without drowning in plugin chaos and stitched-together tools.
 
 ---
 
 [Website](https://365cms.de) • [Dokumentationsindex](DOC/INDEX.md) • [Installation](DOC/INSTALLATION.md) • [Theme-Doku](DOC/theme/README.md) • [Plugin-Doku](DOC/plugins/GUIDE.md) • [Changelog](Changelog.md)
 
+**Jetzt loslegen:** [🚀 Installation](DOC/INSTALLATION.md) • [📚 Dokumentation](DOC/INDEX.md) • [🎨 Themes](DOC/theme/README.md) • [🔌 Plugins](DOC/plugins/GUIDE.md)
+
+**Start here:** [🚀 Installation](DOC/INSTALLATION.md) • [📚 Documentation](DOC/INDEX.md) • [🎨 Themes](DOC/theme/README.md) • [🔌 Plugins](DOC/plugins/GUIDE.md)
+
 </div>
+
+## ⚡ Kernvorteile direkt oben
+
+| Vorteil | Kurz gesagt |
+|---|---|
+| **Alles in einer Plattform** | Inhalte, SEO, Mitgliederbereich, Datenschutz, Design und Betrieb greifen direkt ineinander |
+| **Self-hosted mit Kontrolle** | Daten, Hosting, Erweiterungen und Betriebsprozesse bleiben in der eigenen Hand |
+| **Mehr als nur ein Website-CMS** | 365CMS deckt Publishing, Member-Funktionen, Business-Logik und operative Administration gemeinsam ab |
+| **Direkt anpassbar** | Themes, Menüs, Landing-Pages, Fonts und Login-Erlebnis lassen sich projektgerecht gestalten |
+| **Bereit für Wachstum** | Plugins, Hooks und integrierte Betriebsfunktionen schaffen Spielraum ohne Tool-Flickenteppich |
+
+## 🧱 Feature-Grid
+
+| Bereich | Was direkt drin steckt |
+|---|---|
+| **Publishing** | Seiten, Beiträge, Landing-Pages, Kategorien, Tags, Revisionen, Featured Images, TOC |
+| **SEO** | Meta-Daten, Redirects, Sitemap, Schema, 404-Monitor, Analytics, IndexNow |
+| **Mitglieder & Zugriff** | Profile, Benachrichtigungen, Member-Bereich, Pakete, Rollen, Rechte, sichere Logins |
+| **Design** | Themes, Theme-Editor, Theme-Explorer, Menüs, Fonts, CMS-Loginpage |
+| **Betrieb** | Cache, Performance, Logs, Updates, Backups, Monitoring, Diagnose |
+| **Erweiterung** | Plugins, Hooks, Marketplace-Pfade, modulare Integrationen |
 
 ## 🖼️ Screenshots
 
@@ -107,6 +136,26 @@ Besonders stark ist 365CMS überall dort, wo nicht nur Inhalte gepflegt, sondern
 - **Agentur- und Kundenprojekte** mit Theme-Anpassungen, individueller Navigation und modularem Ausbau per Plugins
 - **Self-hosted Setups** für Organisationen, die Datenschutz, Kontrolle, Wartbarkeit und eigene Betriebsprozesse ernst nehmen
 - **Portale und hybride Projekte**, die Website, Mitgliederlogik, Business-Funktionen und operative Administration in einem System bündeln möchten
+
+### 🧭 Für wen – und für wen eher nicht?
+
+| Gute Wahl für | Eher nicht ideal für |
+|---|---|
+| Teams, die Inhalte, Mitgliederlogik, SEO und Betrieb in einem System bündeln wollen | Projekte, die nur eine sehr kleine One-Pager-Website ohne Ausbauperspektive brauchen |
+| Self-hosted Setups mit Fokus auf Kontrolle, Datenschutz und Wartbarkeit | Setups, die komplett von externen SaaS-Baukästen abhängig bleiben sollen |
+| Agentur- und Kundenprojekte mit Branding-, Theme- und Erweiterungsbedarf | Projekte, die bewusst keinerlei Individualisierung oder Erweiterung wollen |
+| Plattformen mit Rollen, Paketen, Member-Funktionen oder geschützten Bereichen | Microsites, für die ein ultraleichtes reines Static-Setup völlig ausreicht |
+
+### 🏢 Use Cases / Trusted For
+
+365CMS passt besonders gut zu Projekten, die nicht nur „online gehen“, sondern langfristig sauber betrieben, erweitert und vermarktet werden sollen:
+
+- **Corporate Websites mit Redaktion und SEO-Fokus**
+- **Mitglieder- und Kundenportale mit geschützten Bereichen**
+- **Content-Hubs und Themenportale mit wachsendem Medienbestand**
+- **Abo- und paketbasierte Plattformmodelle**
+- **Agentur-Projekte mit Branding-, Theme- und Integrationsbedarf**
+- **Self-hosted Umgebungen mit Compliance-, Datenschutz- und Betriebsanforderungen**
 
 ### ⚖️ Warum 365CMS statt „CMS + fünf Zusatztools“?
 
@@ -288,6 +337,26 @@ The result is a more maintainable self-hosted platform, clearer editorial proces
 - **self-hosted setups** for organizations that care about privacy, control, maintainability and predictable operations
 - **portal-style projects** that combine website content, member logic, business features and admin tooling in one platform
 
+### 🧭 Who it fits – and who it does not
+
+| A strong fit for | Probably not ideal for |
+|---|---|
+| Teams that want content, member logic, SEO and operations in one connected system | Projects that only need a tiny one-page site with no growth plans |
+| Self-hosted setups that care about control, privacy and maintainability | Setups that should remain fully dependent on external SaaS site builders |
+| Agency and client projects that need branding, themes and extensibility | Projects that intentionally do not want customization or expansion |
+| Platforms with roles, packages, member features or protected areas | Microsites where an ultra-light static setup is fully sufficient |
+
+### 🏢 Use Cases / Trusted For
+
+365CMS is especially well suited for projects that should not just “go live”, but remain cleanly operated, extended and marketed over time:
+
+- **corporate websites with editorial teams and SEO focus**
+- **member and customer portals with protected areas**
+- **content hubs and topic platforms with growing media libraries**
+- **subscription- and package-based platform models**
+- **agency projects with branding, theme and integration requirements**
+- **self-hosted environments with compliance, privacy and operational demands**
+
 ### ⚖️ Why 365CMS instead of “a CMS plus five extra tools”?
 
 Many projects start with a base CMS and slowly grow into a maintenance-heavy chain of SEO plugins, membership add-ons, consent tools, theme workarounds and external operations helpers. 365CMS takes a more integrated route: key areas are already designed as one connected platform.
@@ -435,3 +504,15 @@ That means the README stays focused on product value, while administrators, edit
 For feature questions, bug reports, project context and documentation references, GitHub Issues and the existing docs are the most useful starting points. That keeps communication transparent and prevents important information from disappearing into email black holes.
 
 **In short:** 365CMS is aimed at projects that need more than just page editing. Content, members, design, SEO, compliance, security and operations work together here as one connected CMS platform.
+
+---
+
+## 🚀 Bereit für den nächsten Schritt? / Ready for the next step?
+
+**Starte mit 365CMS, wenn du eine Plattform willst, die Content, Mitglieder, SEO, Datenschutz, Design und Betrieb in einem System zusammenführt.**
+
+**Start with 365CMS if you want one platform that brings together content, members, SEO, privacy, design and operations.**
+
+[🚀 Installation starten](DOC/INSTALLATION.md) • [📚 Dokumentation öffnen](DOC/INDEX.md) • [🎨 Themes erkunden](DOC/theme/README.md) • [🔌 Plugins ansehen](DOC/plugins/GUIDE.md)
+
+[🚀 Start installation](DOC/INSTALLATION.md) • [📚 Open documentation](DOC/INDEX.md) • [🎨 Explore themes](DOC/theme/README.md) • [🔌 Browse plugins](DOC/plugins/GUIDE.md)
