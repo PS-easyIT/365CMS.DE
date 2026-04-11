@@ -4,16 +4,16 @@
 
 [![Version](https://img.shields.io/badge/version-2.9.190-blue.svg)](Changelog.md)
 ![Status](https://img.shields.io/badge/status-stable-16a34a)
-![PHP](https://img.shields.io/badge/PHP-8.4%2B-777BB4?logo=php&logoColor=white)
-![MySQL](https://img.shields.io/badge/MySQL-5.7%2B-4479A1?logo=mysql&logoColor=white)
-![MariaDB](https://img.shields.io/badge/MariaDB-10.3%2B-003545?logo=mariadb&logoColor=white)
-
 ![Self Hosted](https://img.shields.io/badge/self--hosted-yes-15803d)
+![Member Area](https://img.shields.io/badge/member%20area-included-0f766e)
 ![Themes](https://img.shields.io/badge/themes-built--in-2563eb)
 ![Plugins](https://img.shields.io/badge/plugins-extensible-7c3aed)
 ![SEO](https://img.shields.io/badge/SEO-integrated-f59e0b)
-![Member Area](https://img.shields.io/badge/member%20area-included-0f766e)
 ![GDPR](https://img.shields.io/badge/GDPR-ready-334155)
+
+![PHP](https://img.shields.io/badge/PHP-8.4%2B-777BB4?logo=php&logoColor=white)
+![MySQL](https://img.shields.io/badge/MySQL-5.7%2B-4479A1?logo=mysql&logoColor=white)
+![MariaDB](https://img.shields.io/badge/MariaDB-10.3%2B-003545?logo=mariadb&logoColor=white)
 
 ---
 
@@ -27,7 +27,7 @@
 
 ---
 
-[Website](https://365cms.de) • [Dokumentationsindex](DOC/INDEX.md) • [Installation](DOC/INSTALLATION.md) • [Theme-Doku](DOC/theme/README.md) • [Plugin-Doku](DOC/plugins/GUIDE.md) • [Changelog](Changelog.md)
+[🌐 Website](https://365cms.de) • [🚀 Installation](DOC/INSTALLATION.md) • [📚 Doku](DOC/INDEX.md) • [🎨 Themes](DOC/theme/README.md) • [🔌 Plugins](DOC/plugins/GUIDE.md) • [📝 Changelog](Changelog.md)
 
 **Jetzt loslegen:** [🚀 Installation](DOC/INSTALLATION.md) • [📚 Dokumentation](DOC/INDEX.md) • [🎨 Themes](DOC/theme/README.md) • [🔌 Plugins](DOC/plugins/GUIDE.md)
 
