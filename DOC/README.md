@@ -1,5 +1,5 @@
 # 365CMS – Projektdokumentation
-> **Stand:** 2026-04-08 | **Version:** 2.9.2 | **Status:** Aktuell
+> **Stand:** 2026-04-11 | **Version:** 2.9.191 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Womit ihr anfangen solltet](#womit-ihr-anfangen-solltet)
@@ -9,7 +9,7 @@
 - [Verwandte Einstiege](#verwandte-einstiege)
 
 ---
-<!-- UPDATED: 2026-04-08 -->
+<!-- UPDATED: 2026-04-11 -->
 
 ## Womit ihr anfangen solltet
 
@@ -68,7 +68,7 @@ Die Bereiche [`theme/`](theme/) und [`plugins/`](plugins/) enthalten Entwicklung
 
 ### Workflows und Audits
 
-Die Ordner [`workflow/`](workflow/) und [`audit/`](audit/) dokumentieren operative Abläufe, Live-Audits und technische Bewertungen.
+Die Ordner [`workflow/`](workflow/) und [`audit/`](audit/) dokumentieren operative Abläufe, Live-Audits und technische Bewertungen. Der Audit-Bereich ist jetzt bewusst auf **sechs Sammelaudits plus `ToDoPrüfung.md` und `BEWERTUNG.md`** verdichtet, damit die Pflege nicht mehr über dutzende Einzeldateien zerfällt.
 
 ---
 

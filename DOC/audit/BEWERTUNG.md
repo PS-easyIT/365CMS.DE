@@ -1,5 +1,7 @@
 # BEWERTUNG
 
+> Strukturhinweis: Die frühere Verteilung auf `AdminAudit-*.md`, `AssetAudit-*.md`, `PRÜFUNG.MD` sowie einzelne Snyk-/Live-Audit-Dateien wurde in sechs Sammelaudits unter `DOC/audit/Audit-*.md` konsolidiert. Diese Datei bleibt die führende Bewertungs- und Delta-Referenz.
+
 ## Snyk-Audit — 4. April 2026
 
 Diese Sektion dokumentiert den aktuellen **Snyk-Snapshot** des Repositories `365CMS.DE`.

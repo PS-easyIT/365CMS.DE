@@ -1,4 +1,4 @@
-﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.190-blue.svg)](https://shields.io/)
+﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.191-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -19,6 +19,12 @@
 ## 📜 Vollständige Versionshistorie
 
 ---
+
+### v2.9.191 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.191** | 🔵 docs | Audit-Konsolidierung | **`DOC/audit/` bündelt die frühere Einzelteil-Landschaft aus `AdminAudit-*.md`, `AssetAudit-*.md`, `PRÜFUNG.MD` sowie separaten Snyk-/Live-Berichten jetzt in sechs logisch gruppierten Sammeldateien plus `ToDoPrüfung.md` und `BEWERTUNG.md`**: Audit-Backlog, Content-/Commerce-/Design-/System- und externe Snapshot-Sichten bleiben damit nachvollziehbar, ohne weiter über dutzende Parallel-Dokumente zu zerfasern. |
 
 ### v2.9.190 — 11. April 2026
 

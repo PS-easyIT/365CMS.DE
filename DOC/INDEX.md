@@ -1,5 +1,5 @@
 # 365CMS – Dokumentationsindex
-> **Stand:** 2026-04-08 | **Version:** 2.9.2 | **Status:** Aktuell
+> **Stand:** 2026-04-11 | **Version:** 2.9.191 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Schnellstart](#schnellstart)
@@ -11,7 +11,7 @@
 - [Direktlinks für häufige Aufgaben](#direktlinks-für-häufige-aufgaben)
 
 ---
-<!-- UPDATED: 2026-04-08 -->
+<!-- UPDATED: 2026-04-11 -->
 
 ## Schnellstart
 
@@ -111,7 +111,7 @@
 | Bereich | Dokumente |
 |---|---|
 | Assets | [ASSET.md](ASSET.md), [assets/README.md](assets/README.md), [ASSETS_NEW.md](ASSETS_NEW.md), [ASSETS_OwnAssets.md](ASSETS_OwnAssets.md) |
-| Audits | [audit/BEWERTUNG.md](audit/BEWERTUNG.md), [audit/PRÜFUNG.MD](audit/PRÜFUNG.MD), [audit/ToDoPrüfung.md](audit/ToDoPrüfung.md) |
+| Audits | [audit/BEWERTUNG.md](audit/BEWERTUNG.md), [audit/ToDoPrüfung.md](audit/ToDoPrüfung.md), [audit/Audit-Backlog.md](audit/Audit-Backlog.md), [audit/Audit-Content-Platform.md](audit/Audit-Content-Platform.md), [audit/Audit-Users-Commerce.md](audit/Audit-Users-Commerce.md), [audit/Audit-Design-Media.md](audit/Audit-Design-Media.md), [audit/Audit-System-Security.md](audit/Audit-System-Security.md), [audit/Audit-Live-External.md](audit/Audit-Live-External.md) |
 | Workflows | `DOC/workflow/*.md` |
 
 Diese Dokumente enthalten teils Live-Stände, Auditfortschritte oder operative Rezepte. Für aktuelle technische Aussagen haben `DEVLIST.md`, `FILELIST.md` und die jeweils bereichsnahen Core-/Admin-/Asset-Dokumente Vorrang. `CMSFILESTRUCTUR.md` bleibt bewusst ein engerer, historisch verifizierter Snapshot- und Prüfscope-Kontext.

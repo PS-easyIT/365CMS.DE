@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.9.190",
+  "version": "2.9.191",
   "min_php": "8.4",
   "released": "2026-04-11",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 2.9.190: Der Design-Cluster zieht Legacy-Fallbacks in Theme-Explorer, Menü-Editor und Font-Manager auf native temporäre Submitter zusammen, validiert stale `?menu=`-Ziele im Menü-Editor vor dem Rendern fail-closed gegen den Live-Bestand und hängt Landing-/CMS-Auth-Servicefehler samt mbstring-kritischer Legacy-Feature-Normalisierung enger an strukturierte Logger- und Fallback-Verträge.",
+  "notes": "Release-Stand 2.9.191: Die Audit-Dokumentation unter `DOC/audit/` ist jetzt auf sechs Sammeldateien plus `ToDoPrüfung.md` und `BEWERTUNG.md` konsolidiert; Backlog-, Content-, Commerce-, Design-, System- und externe Snapshot-Sichten bleiben damit strukturiert pflegbar, ohne über viele Einzelaudits zu zerfasern.",
   "critical": false
 }
