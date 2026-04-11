@@ -18,9 +18,9 @@
 
 ---
 
-### **Content. Mitglieder. SEO. Betrieb. Eine self-hosted Plattform.**
+### **Inhalte. Mitglieder. SEO. Betrieb. Eine self-hosted Plattform.**
 
-#### 365CMS vereint Publishing, Member-Features, Design, Compliance und operative Kontrolle in einem klaren System – für Teams, die wachsen wollen, ohne sich in Plugins, Workarounds und Tool-Ketten zu verlieren.
+#### 365CMS vereint Publishing, Mitgliederfunktionen, Design, Compliance und operative Kontrolle in einem klaren System – für Teams, die wachsen wollen, ohne sich in Plugins, Workarounds und Tool-Ketten zu verlieren.
 
 ### **Content. Members. SEO. Operations. One self-hosted platform.**
 
@@ -28,11 +28,11 @@
 
 ---
 
-[🌐 Website](https://365cms.de) • [🚀 Installation](DOC/INSTALLATION.md) • [📚 Doku](DOC/INDEX.md) • [🎨 Themes](DOC/theme/README.md) • [🔌 Plugins](DOC/plugins/GUIDE.md) • [📝 Changelog](Changelog.md)
+[🌐 Website](https://365cms.de) • [🚀 Installation](DOC/INSTALLATION.md) • [📚 Dokumentation](DOC/INDEX.md) • [🎨 Themes](DOC/theme/README.md) • [🔌 Plugins](DOC/plugins/GUIDE.md) • [📝 Changelog](Changelog.md)
 
-**Jetzt loslegen:** [🚀 Installation](DOC/INSTALLATION.md) • [📚 Dokumentation](DOC/INDEX.md) • [🎨 Themes](DOC/theme/README.md) • [🔌 Plugins](DOC/plugins/GUIDE.md)
+**Schnellzugriff:** [🚀 Installation](DOC/INSTALLATION.md) • [📚 Dokumentation](DOC/INDEX.md) • [🎨 Themes](DOC/theme/README.md) • [🔌 Plugins](DOC/plugins/GUIDE.md)
 
-**Start here:** [🚀 Installation](DOC/INSTALLATION.md) • [📚 Documentation](DOC/INDEX.md) • [🎨 Themes](DOC/theme/README.md) • [🔌 Plugins](DOC/plugins/GUIDE.md)
+**Quick links:** [🚀 Installation](DOC/INSTALLATION.md) • [📚 Documentation](DOC/INDEX.md) • [🎨 Themes](DOC/theme/README.md) • [🔌 Plugins](DOC/plugins/GUIDE.md)
 
 </div>
 
