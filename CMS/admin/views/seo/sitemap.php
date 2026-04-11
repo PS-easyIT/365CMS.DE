@@ -14,6 +14,10 @@ $settings = $sitemap['settings'] ?? [];
 $files = $sitemap['files'] ?? [];
 $counts = $sitemap['counts'] ?? [];
 $indexing = $sitemap['indexing'] ?? [];
+$runtimeBaseUrl = function_exists('home_url') ? rtrim((string) home_url(), '/') : rtrim((string) SITE_URL, '/');
+$buildRuntimePublicUrl = static function (string $path) use ($runtimeBaseUrl): string {
+    return $runtimeBaseUrl . '/' . ltrim($path, '/');
+};
 ?>
 <div class="page-header d-print-none">
     <div class="container-xl">
@@ -62,12 +66,13 @@ $indexing = $sitemap['indexing'] ?? [];
                             </thead>
                             <tbody>
                                 <?php foreach ($files as $name => $file): ?>
+                                    <?php $publicFileUrl = $buildRuntimePublicUrl((string) $name); ?>
                                     <tr>
                                         <td>
                                             <div><code><?= htmlspecialchars((string) $name) ?></code></div>
                                             <div class="text-secondary small">
-                                                <a href="<?= htmlspecialchars(rtrim(SITE_URL, '/') . '/' . $name) ?>" target="_blank" rel="noopener noreferrer">
-                                                    <?= htmlspecialchars(rtrim(SITE_URL, '/') . '/' . $name) ?>
+                                                <a href="<?= htmlspecialchars($publicFileUrl) ?>" target="_blank" rel="noopener noreferrer">
+                                                    <?= htmlspecialchars($publicFileUrl) ?>
                                                 </a>
                                             </div>
                                         </td>
@@ -221,7 +226,7 @@ $indexing = $sitemap['indexing'] ?? [];
                             <input type="hidden" name="action" value="submit_indexing_urls">
                             <div class="col-12">
                                 <label class="form-label">URLs zur Übermittlung</label>
-                                <textarea class="form-control" name="urls" rows="6" placeholder="<?= htmlspecialchars(SITE_URL) ?>/&#10;<?= htmlspecialchars(SITE_URL) ?>/blog/beispiel-artikel"></textarea>
+                                <textarea class="form-control" name="urls" rows="6" placeholder="<?= htmlspecialchars($runtimeBaseUrl) ?>/&#10;<?= htmlspecialchars($runtimeBaseUrl) ?>/blog/beispiel-artikel"></textarea>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-check">
@@ -257,7 +262,7 @@ $indexing = $sitemap['indexing'] ?? [];
                             <input type="hidden" name="action" value="delete_google_url">
                             <div class="col-md-7">
                                 <label class="form-label">URL</label>
-                                <input class="form-control" type="url" name="google_delete_url" placeholder="<?= htmlspecialchars(SITE_URL) ?>/veraltete-seite">
+                                <input class="form-control" type="url" name="google_delete_url" placeholder="<?= htmlspecialchars($runtimeBaseUrl) ?>/veraltete-seite">
                             </div>
                             <div class="col-md-5">
                                 <label class="form-label">Google Access-Token</label>

@@ -1,4 +1,4 @@
-﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.115-blue.svg)](https://shields.io/)
+﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.116-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -19,6 +19,13 @@
 ## 📜 Vollständige Versionshistorie
 
 ---
+
+### v2.9.116 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.116** | 🔴 fix | Admin/SEO & Analytics | **`CMS/admin/modules/seo/SeoSuiteModule.php` behandelt SEO-Audit-, Broken-Link-, Indexing- und Backlink-Pfade jetzt konsistenter fail-closed**: `schema_type` und `twitter_card` werden beim Inline-Save auf erlaubte Verträge zurückgeführt, Same-Site-Absolute-URLs werden für Broken-Link- und IndexNow-Pfade nicht länger nur gegen die konfigurierte `SITE_URL` geprüft, und interne Referrer tauchen in der Backlink-Domain-Übersicht nicht mehr als scheinbare externe Herkunft auf. |
+| **2.9.116** | 🔴 fix | Admin/SEO UI & Core/IndexNow | **`CMS/admin/views/seo/meta.php`, `CMS/admin/views/seo/sitemap.php`, `CMS/admin/views/seo/audit.php` und `CMS/core/Services/IndexingService.php` ziehen öffentliche SEO-Beispiel-, Sitemap- und IndexNow-Status-URLs auf runtime-aware Public-Basen und typgesicherte Audit-Eingaben zusammen**: SERP-Vorschauen, Sitemap-/robots-/Keyfile-Hinweise und Inline-Audits bleiben damit auch unter Proxy-, Alternativhost- oder lokaler Dev-Umgebung auf der aktuellen Public-Origin, statt an starren `SITE_URL`-Resten oder freien Enum-Textfeldern zu hängen. |
 
 ### v2.9.115 — 11. April 2026
 

@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.9.115",
+  "version": "2.9.116",
   "min_php": "8.4",
   "released": "2026-04-11",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 2.9.115: Die CMS-Loginpage- und Auth-Route behandelt fehlgeschlagene Settings-Saves jetzt fail-closed, erzeugt locale-aware Passwort-Reset-Links, härtet Passkey-Payloads script-sicher und blockt doppelte Passkey-Submits über den nativen Request-Submit-Vertrag.",
+  "notes": "Release-Stand 2.9.116: Der SEO-Admin normalisiert Audit-Enums jetzt fail-closed, behandelt Same-Site-Indexing-, Broken-Link- und Backlink-Pfade runtime-aware über konfigurierte und aktuelle Host-Autoritäten und baut öffentliche Sitemap-/IndexNow-/SERP-Beispiel-URLs im Admin ohne starre SITE_URL-Bindung auf.",
   "critical": false
 }

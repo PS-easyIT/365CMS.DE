@@ -90,6 +90,7 @@ final class SeoSuiteModule
 	private const ALLOWED_SUBMISSION_TARGETS = ['indexnow', 'google'];
 	private const ALLOWED_OG_TYPES = ['website', 'article', 'profile'];
 	private const ALLOWED_TWITTER_CARDS = ['summary', 'summary_large_image'];
+	private const ALLOWED_SCHEMA_TYPES = ['Article', 'BlogPosting', 'NewsArticle', 'WebPage', 'FAQPage', 'HowTo', 'Person', 'Event', 'BreadcrumbList', 'Organization'];
 
 	private const ALLOWED_CHANGEFREQ = [
 		'always',
@@ -108,6 +109,7 @@ final class SeoSuiteModule
 	private AnalyticsService $analyticsService;
 	private IndexingService $indexingService;
 	private RedirectService $redirectService;
+	private ?array $knownSiteAuthorities = null;
 
 	public function __construct()
 	{
@@ -480,8 +482,8 @@ final class SeoSuiteModule
 			'twitter_title' => (string)($post['twitter_title'] ?? ''),
 			'twitter_description' => (string)($post['twitter_description'] ?? ''),
 			'twitter_image' => $this->normalizeOptionalUrl((string)($post['twitter_image'] ?? ''), true),
-			'twitter_card' => (string)($post['twitter_card'] ?? ''),
-			'schema_type' => (string)($post['schema_type'] ?? ''),
+			'twitter_card' => $this->normalizeAllowedValue((string)($post['twitter_card'] ?? ''), self::ALLOWED_TWITTER_CARDS, 'summary_large_image'),
+			'schema_type' => $this->normalizeAllowedValue((string)($post['schema_type'] ?? ''), self::ALLOWED_SCHEMA_TYPES, $contentType === 'post' ? 'Article' : 'WebPage'),
 			'sitemap_priority' => $this->normalizeSitemapPriority((string)($post['sitemap_priority'] ?? ''), ''),
 			'sitemap_changefreq' => $this->normalizeSitemapChangefreq((string)($post['sitemap_changefreq'] ?? ''), ''),
 			'hreflang_group' => (string)($post['hreflang_group'] ?? ''),
@@ -549,6 +551,7 @@ final class SeoSuiteModule
 		$topPages = [];
 		$referrers = [];
 		$backlinks = [];
+		$knownSiteAuthorities = $this->getKnownSiteAuthorities();
 
 		if ($hasPageViews) {
 			$dailyTraffic = array_map(static fn(object $row): array => [
@@ -589,7 +592,13 @@ final class SeoSuiteModule
 
 			$domains = [];
 			foreach ($referrers as $row) {
-				$host = (string)parse_url((string)$row['referrer'], PHP_URL_HOST);
+				$referrer = trim((string)($row['referrer'] ?? ''));
+				$authority = $this->normalizeComparableAuthority($referrer);
+				if ($authority === '' || in_array($authority, $knownSiteAuthorities, true)) {
+					continue;
+				}
+
+				$host = strtolower((string)parse_url($referrer, PHP_URL_HOST));
 				if ($host === '') {
 					continue;
 				}
@@ -961,8 +970,10 @@ final class SeoSuiteModule
 				if ($href === '' || str_starts_with($href, '#') || str_starts_with($href, 'mailto:') || str_starts_with($href, 'tel:')) {
 					continue;
 				}
-				if (str_starts_with($href, SITE_URL)) {
-					$href = (string)parse_url($href, PHP_URL_PATH);
+
+				$sameSitePath = $this->extractSameSitePathFromUrl($href);
+				if ($sameSitePath !== '') {
+					$href = $sameSitePath;
 				}
 				if (!str_starts_with($href, '/')) {
 					continue;
@@ -1102,13 +1113,77 @@ final class SeoSuiteModule
 			return '';
 		}
 
-		$siteHost = strtolower((string)parse_url((string)SITE_URL, PHP_URL_HOST));
-		$urlHost = strtolower((string)parse_url($url, PHP_URL_HOST));
-		if ($siteHost === '' || $urlHost === '' || $siteHost !== $urlHost) {
+		$urlAuthority = $this->normalizeComparableAuthority($url);
+		if ($urlAuthority === '' || !in_array($urlAuthority, $this->getKnownSiteAuthorities(), true)) {
 			return '';
 		}
 
 		return $url;
+	}
+
+	/**
+	 * @return list<string>
+	 */
+	private function getKnownSiteAuthorities(): array
+	{
+		if ($this->knownSiteAuthorities !== null) {
+			return $this->knownSiteAuthorities;
+		}
+
+		$authorities = [];
+		$candidates = [];
+
+		if (defined('SITE_URL')) {
+			$candidates[] = (string)SITE_URL;
+		}
+
+		if (function_exists('cms_runtime_base_url')) {
+			try {
+				$candidates[] = (string)cms_runtime_base_url();
+			} catch (\Throwable) {
+				// Runtime-Basis-URL ist optional; SITE_URL bleibt Fallback.
+			}
+		}
+
+		foreach ($candidates as $candidate) {
+			$authority = $this->normalizeComparableAuthority($candidate);
+			if ($authority === '') {
+				continue;
+			}
+
+			$authorities[$authority] = true;
+		}
+
+		$this->knownSiteAuthorities = array_keys($authorities);
+
+		return $this->knownSiteAuthorities;
+	}
+
+	private function normalizeComparableAuthority(string $url): string
+	{
+		$parts = parse_url(trim($url));
+		if (!is_array($parts) || empty($parts['host'])) {
+			return '';
+		}
+
+		$authority = strtolower((string)$parts['host']);
+		$port = isset($parts['port']) ? (int)$parts['port'] : 0;
+		if ($port > 0) {
+			$authority .= ':' . $port;
+		}
+
+		return $authority;
+	}
+
+	private function extractSameSitePathFromUrl(string $url): string
+	{
+		$authority = $this->normalizeComparableAuthority($url);
+		if ($authority === '' || !in_array($authority, $this->getKnownSiteAuthorities(), true)) {
+			return '';
+		}
+
+		$path = (string)parse_url($url, PHP_URL_PATH);
+		return trim($path) !== '' ? $path : '/';
 	}
 
 	private function normalizeAuditRows(array $auditRows): array

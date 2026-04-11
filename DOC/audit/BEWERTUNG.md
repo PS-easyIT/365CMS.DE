@@ -78,13 +78,19 @@ Die Produktionsprüfung zeigt damit eine klare Lücke zwischen dem bereits hoch 
 Diese Sektion dokumentiert bereits umgesetzte Teilfortschritte aus `DOC/audit/PRÜFUNG.MD`,
 ohne die große Bewertungsmatrix bei jedem einzelnen Batch vollständig neu auszurechnen.
 
-### Gesamtstand nach Batch 575
+### Gesamtstand nach Batch 576
 
 | Dateien | Ø Security | Ø Speed | Ø PHP/BP | Ø Gesamt |
 |---:|---:|---:|---:|---:|
-| 575 | 95,44 | 92,90 | 96,62 | 96,73 |
+| 576 | 95,48 | 92,91 | 96,66 | 96,77 |
 
-Der aktuelle Nachpflege-Stand umfasst damit **575 umgesetzte Batches**, davon weiterhin **444 von 444 Prüfplan-Punkten** im ursprünglichen Auditplan und zusätzlich **131 Folge-Batches** darüber hinaus. Zuletzt wurde der Design-/Auth-Cluster rund um die CMS Loginpage weiter nachgezogen: fehlgeschlagene Loginpage-Settings-Saves enden jetzt fail-closed statt als Schein-Erfolg, Passwort-Reset-Links folgen dem locale-aware Public-Auth-Vertrag, öffentliche Passkey- und MFA-Runtime ziehen hostneutrale Asset- sowie Dokumentsprachen nach und inline serialisierte Passkey-Payloads laufen script-sicherer in Login- und Member-Kontexten. Security, Speed und PHP/BP steigen dadurch erneut in kleinen Schritten gleichzeitig.
+Der aktuelle Nachpflege-Stand umfasst damit **576 umgesetzte Batches**, davon weiterhin **444 von 444 Prüfplan-Punkten** im ursprünglichen Auditplan und zusätzlich **132 Folge-Batches** darüber hinaus. Zuletzt wurde der SEO-Cluster rund um Audit, Meta, Sitemap und IndexNow weiter nachgezogen: SEO-Audit-Enums laufen jetzt fail-closed über feste Allowlists statt freie Texteingaben, Broken-Link- und Manual-Indexing-Pfade erkennen Same-Site-Absolute-URLs über konfigurierte und aktuelle Runtime-Hosts, Backlink-Domains trennen interne Referrer sauberer aus und SERP-/Sitemap-/IndexNow-Hinweise bauen ihre öffentlichen Kontroll-URLs nicht länger an starrer `SITE_URL` fest. Security, Speed und PHP/BP steigen dadurch erneut in kleinen Schritten gleichzeitig.
+
+### Delta Folge-Batch 576
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/seo/SeoSuiteModule.php`, `CMS/admin/views/seo/meta.php`, `CMS/admin/views/seo/sitemap.php`, `CMS/admin/views/seo/audit.php`, `CMS/core/Services/IndexingService.php`, `DOC/audit/AdminAudit-SEO.md`, `DOC/audit/AssetAudit-SEO.md`, `DOC/audit/AdminAudit-INDEX.md`, `DOC/audit/AssetAudit-INDEX.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md`, `CMS/update.json`, `CMS/core/Version.php` | umgesetzt | Der SEO-Cluster staffelt Audit-, Broken-Link-, Indexing- und Diagnosepfade jetzt über robustere Runtime-Verträge: `SeoSuiteModule` normalisiert `schema_type` und `twitter_card` fail-closed auf erlaubte Werte, erkennt Same-Site-Absolute-URLs über konfigurierte plus aktuelle Runtime-Autoritäten für Broken-Link-Scan und Manual-Indexing, bereinigt interne Referrer aus der Backlink-Domain-Übersicht und die Views für Meta/Sitemap sowie `IndexingService` bauen öffentliche SERP-, Sitemap- und IndexNow-Status-URLs runtime-aware statt an starrer `SITE_URL`-Basis. | SEO-Audit-Edits verlieren damit freie Enum-Schattenwerte, Proxy-/Alternativhost-Setups kippen interne Public-URLs nicht mehr in falsche Broken-Link- oder Indexing-Ablehnungen, und Analytics-/Backlink-Zahlen zählen eigene Referrer nicht länger als scheinbar externe Domains mit. Gleichzeitig bleiben SERP-, Sitemap-, robots- und Keyfile-Hinweise im Admin näher an der tatsächlichen Public-Origin der laufenden Installation. Die Aggregate steigen damit leicht auf **95,48 / 92,91 / 96,66 / 96,77**. |
 
 ### Delta Folge-Batch 575
 

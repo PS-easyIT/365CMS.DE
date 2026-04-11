@@ -2,7 +2,7 @@
 
 <div align="center">
 
-[![Version](https://img.shields.io/badge/version-2.9.115-blue.svg)](Changelog.md)
+[![Version](https://img.shields.io/badge/version-2.9.116-blue.svg)](Changelog.md)
 ![Status](https://img.shields.io/badge/status-stable-16a34a)
 ![PHP](https://img.shields.io/badge/PHP-8.4%2B-777BB4?logo=php&logoColor=white)
 ![MySQL](https://img.shields.io/badge/MySQL-5.7%2B-4479A1?logo=mysql&logoColor=white)
@@ -10,10 +10,10 @@
 
 ![Audit](https://img.shields.io/badge/Audit-Snyk-111827)
 ![Audit](https://img.shields.io/badge/Audit-OWASP-111827)
-![Security Score](https://img.shields.io/badge/Security-95.44-15803d)
-![Speed Score](https://img.shields.io/badge/Speed-92.90-2563eb)
-![PHP Score](https://img.shields.io/badge/PHP%20%2F%20Best%20Practices-96.62-7c3aed)
-![Overall Score](https://img.shields.io/badge/Overall-96.73-0f766e)
+![Security Score](https://img.shields.io/badge/Security-95.48-15803d)
+![Speed Score](https://img.shields.io/badge/Speed-92.91-2563eb)
+![PHP Score](https://img.shields.io/badge/PHP%20%2F%20Best%20Practices-96.66-7c3aed)
+![Overall Score](https://img.shields.io/badge/Overall-96.77-0f766e)
 
 ---
 
@@ -86,10 +86,10 @@ Die Audits wurden mit OWASP-nahen Prüfwerkzeugen & AI Audit Tools von Snyk, Ref
 
 | Metrik | Bewertung |
 |---|---:|
-| **Security** | **95,44** |
-| **Speed** | **92,90** |
-| **PHP / Best Practices** | **96,62** |
-| **Gesamt** | **96,73** |
+| **Security** | **95,48** |
+| **Speed** | **92,91** |
+| **PHP / Best Practices** | **96,66** |
+| **Gesamt** | **96,77** |
 
 
 ### 🧩 Kernfunktionen im Überblick
@@ -102,7 +102,7 @@ Die Audits wurden mit OWASP-nahen Prüfwerkzeugen & AI Audit Tools von Snyk, Ref
 | **Media** | Native Medienbibliothek, Uploads, Kategorien, Grid-/Listenansicht, WebP-Workflows, DOM-basierte Picker-/Upload-Zustände sowie atomisch SHA-512-verifizierte Settings-/Metadaten-Schreibpfade mit fail-closed Rename-/Kategorie-Geländern |
 | **Search** | Volltextsuche, TNTSearch-Index, mehrsprachige Suchfelder, Hook-basierte Index-Aktualisierung bei Löschvorgängen |
 | **Security** | RBAC, CSRF, XSS-Escaping, Rate Limits, Firewall, AntiSpam, Passkeys, 2FA sowie script-sicher encodete Passkey-Payloads und locale-aware Auth-/Reset-Roundtrips |
-| **SEO** | Sitemap, Schema, Canonicals, Redirects, Robots, Audit-Übersichten, IndexNow-Key-, Root-TXT- und Root-Pfad-Debug-Prüfung sowie strukturierte SEO-Editor-Analyse mit stringärmeren Preview-/Regelpfaden |
+| **SEO** | Sitemap, Schema, Canonicals, Redirects, Robots, Audit-Übersichten, IndexNow-Key-, Root-TXT- und Root-Pfad-Debug-Prüfung sowie strukturierte SEO-Editor-Analyse mit stringärmeren Preview-/Regelpfaden, runtime-aware Public-URLs für SERP-/Sitemap-/IndexNow-Hinweise, same-site-normalisierte Broken-Link-/Indexing-Pfade und backlink-bereinigte Referrer-Domains |
 | **Business** | Aboverwaltung, Orders, Checkout, Gruppen, Legal-Sites, DSGVO-Prozesse sowie konsistente Bestell-/Statusverträge über Admin, Dashboard und Member-Bereich |
 | **Legal** | Cookie-Manager, Consent-Dialog, Legal-Sites und Datenschutz-Prozesse mit hostneutralen Public-Pfaden und DOM-basiertem Banner-/Modal-Vertrag für Consent-Einstellungen |
 | **Themes** | Theme-System, Customizer, Code-Editor, Menü-Editor mit Slug-/Pfad-Unterstützung, fail-closed JSON-/Delete-Verträgen und Submit-Locks gegen Doppelaktionen, Landing-Page-Editor mit fail-closed Save-/Delete-Verträgen, typgesicherten Feature-Mutationen und bestätigten Feature-Löschungen, CMS-Loginpage mit fail-closed Settings-Vertrag sowie locale-aware Public-Auth-Roundtrips, Theme-Explorer mit atomischem Save-/Rollback-Vertrag, explizitem Path-Length-/Readonly-/Unreadable-File-Vertrag und sicherem eingebettetem Customizer-Fallback, lokale Fonts mit atomisch verifizierten Self-Hosting-Assets, belastbarem Theme-Scan-Cache, fail-closed Delete-Verträgen und robusterem Submit-Handling sowie Marketplace-Anbindung mit cachegestützten Katalog-Fallbacks, strukturiertem Install-/Report-Feedback, transparenterem Host-/Hash-/Kompatibilitätskontext und ZIP-/Paketgrößen-Geländern für Auto-Installationen |
@@ -232,6 +232,8 @@ Der SEO-Bereich unterstützt in `Technisches SEO` jetzt auch die Pflege eines **
 
 Die Prüfung liest ausgewählte Dateien außerdem nur dann aus, wenn sie lesbar sind und innerhalb eines kleinen Plausibilitätslimits bleiben. So werden Fehlkonfigurationen oder kaputte Root-Dateien früher sichtbar, statt still in einen halbgültigen Status zu rutschen.
 
+Zusätzlich bauen SERP-, Sitemap- und IndexNow-Hinweise ihre öffentlichen Beispiel- und Status-URLs inzwischen runtime-aware auf: Proxy-, Alternativhost- und lokale Dev-Umgebungen sehen damit dieselbe aktuelle Public-Origin wie der laufende Request, statt auf an `SITE_URL` festgeklebte SEO-Hilfsziele zu kippen.
+
 ### 👨‍💻 Maintainer, Support & Lizenz
 
 - **Entwicklung:** Andreas Hepp
@@ -258,10 +260,10 @@ The audits were carried out using OWASP-oriented tooling, Snyk, refactoring pass
 
 | Metric | Score |
 |---|---:|
-| **Security** | **95.44** |
-| **Speed** | **92.90** |
-| **PHP / Best Practices** | **96.62** |
-| **Overall** | **96.73** |
+| **Security** | **95.48** |
+| **Speed** | **92.91** |
+| **PHP / Best Practices** | **96.66** |
+| **Overall** | **96.77** |
 
 ### 🧩 Key Capabilities
 
@@ -273,7 +275,7 @@ The audits were carried out using OWASP-oriented tooling, Snyk, refactoring pass
 | **Media** | Native media library, uploads, categories, grid/list views, WebP workflows plus DOM-based picker/upload states and atomically SHA-512-verified settings/meta writes with fail-closed rename/category guardrails |
 | **Search** | Full-text search, TNTSearch index, multilingual search fields, hook-based index refresh on delete actions |
 | **Security** | RBAC, CSRF, XSS escaping, rate limits, firewall, anti-spam, passkeys, 2FA plus script-safe passkey payload encoding and locale-aware auth/reset roundtrips |
-| **SEO** | Sitemap, schema, canonicals, redirects, robots, audit overviews, IndexNow key, root TXT and root-path debug validation |
+| **SEO** | Sitemap, schema, canonicals, redirects, robots, audit overviews, IndexNow key, root TXT and root-path debug validation plus runtime-aware public admin URLs for SERP/sitemap/indexing hints, same-site normalization for broken-link and indexing paths, and backlink summaries that no longer treat internal referrers as external domains |
 | **Business** | Subscriptions, orders, checkout, groups, legal pages, GDPR workflows plus consistent order/status contracts across admin, dashboard and member flows |
 | **Themes** | Theme system, customizer, code editor, a menu editor with slug/path support, fail-closed JSON/delete contracts and submit locks against duplicate actions, a landing-page editor with fail-closed save/delete contracts, type-safe feature mutations and confirmed feature deletes, a CMS login page with fail-closed settings persistence and locale-aware public auth roundtrips, a theme explorer with atomic save/rollback semantics plus explicit path-length/read-only/unreadable-file guardrails, a safer embedded customizer fallback, local fonts with atomically verified self-hosted assets, reliable theme-scan caching, fail-closed delete contracts and sturdier submit handling, plus marketplace integration with ZIP-extension and package-size guardrails for auto-installs |
 | **Plugins** | Hook-based extensibility, plugin repository, marketplace, documented integrations and stricter remote registry/manifest/download handling |
@@ -392,6 +394,8 @@ Full asset documentation is available in [`DOC/ASSET.md`](DOC/ASSET.md) and insi
 ### 🔎 SEO workflow highlight
 
 The `Technical SEO` area now supports managing an **IndexNow API key** together with selecting and validating an existing **root `.txt` file**. This makes it easy to verify inside the admin UI whether filename, file content and public delivery all match the expected IndexNow key file.
+
+SERP previews, sitemap hints and IndexNow status links are also resolved against the current public runtime base now, so admin diagnostics stay on the active public origin even behind proxies, alternate hosts or local development URLs.
 
 ### 👨‍💻 Maintainer, Support & License
 

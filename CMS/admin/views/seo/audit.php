@@ -14,6 +14,8 @@ $audit = $data['audit'] ?? [];
 $content = $audit['rows'] ?? [];
 $scoreColors = ['good' => 'success', 'warning' => 'warning', 'bad' => 'danger'];
 $scoreLabels = ['good' => 'Gut', 'warning' => 'Warnung', 'bad' => 'Kritisch'];
+$schemaTypeOptions = ['Article', 'BlogPosting', 'NewsArticle', 'WebPage', 'FAQPage', 'HowTo', 'Person', 'Event', 'BreadcrumbList', 'Organization'];
+$twitterCardOptions = ['summary_large_image', 'summary'];
 ?>
 <div class="page-header d-print-none">
     <div class="container-xl">
@@ -103,8 +105,22 @@ $scoreLabels = ['good' => 'Gut', 'warning' => 'Warnung', 'bad' => 'Kritisch'];
                                                 <div class="col-12"><label class="form-label small">Meta-Beschreibung</label><textarea class="form-control form-control-sm" name="meta_description" rows="3"><?= htmlspecialchars((string)($item['meta_description'] ?? '')) ?></textarea></div>
                                                 <div class="col-12"><label class="form-label small">Fokus-Keyphrase</label><input class="form-control form-control-sm" type="text" name="focus_keyphrase" value="<?= htmlspecialchars((string)($item['focus_keyphrase'] ?? '')) ?>"></div>
                                                 <div class="col-12"><label class="form-label small">Canonical</label><input class="form-control form-control-sm" type="text" name="canonical_url" value="<?= htmlspecialchars((string)($item['canonical_url'] ?? '')) ?>"></div>
-                                                <div class="col-6"><label class="form-label small">Schema</label><input class="form-control form-control-sm" type="text" name="schema_type" value="<?= htmlspecialchars((string)($item['schema_type'] ?? '')) ?>"></div>
-                                                <div class="col-6"><label class="form-label small">Twitter Card</label><input class="form-control form-control-sm" type="text" name="twitter_card" value="<?= htmlspecialchars((string)($item['twitter_card'] ?? '')) ?>"></div>
+                                                <div class="col-6">
+                                                    <label class="form-label small">Schema</label>
+                                                    <select class="form-select form-select-sm" name="schema_type">
+                                                        <?php foreach ($schemaTypeOptions as $schemaTypeOption): ?>
+                                                            <option value="<?= htmlspecialchars($schemaTypeOption) ?>" <?= ((string)($item['schema_type'] ?? '') === $schemaTypeOption) ? 'selected' : '' ?>><?= htmlspecialchars($schemaTypeOption) ?></option>
+                                                        <?php endforeach; ?>
+                                                    </select>
+                                                </div>
+                                                <div class="col-6">
+                                                    <label class="form-label small">Twitter Card</label>
+                                                    <select class="form-select form-select-sm" name="twitter_card">
+                                                        <?php foreach ($twitterCardOptions as $twitterCardOption): ?>
+                                                            <option value="<?= htmlspecialchars($twitterCardOption) ?>" <?= ((string)($item['twitter_card'] ?? 'summary_large_image') === $twitterCardOption) ? 'selected' : '' ?>><?= htmlspecialchars($twitterCardOption) ?></option>
+                                                        <?php endforeach; ?>
+                                                    </select>
+                                                </div>
                                                 <div class="col-6"><label class="form-check mt-4"><input class="form-check-input" type="checkbox" name="robots_index" value="1" <?= !empty($item['robots_index']) ? 'checked' : '' ?>><span class="form-check-label">index</span></label></div>
                                                 <div class="col-6"><label class="form-check mt-4"><input class="form-check-input" type="checkbox" name="robots_follow" value="1" <?= !empty($item['robots_follow']) ? 'checked' : '' ?>><span class="form-check-label">follow</span></label></div>
                                                 <div class="col-12"><button type="submit" class="btn btn-primary btn-sm w-100">Speichern</button></div>

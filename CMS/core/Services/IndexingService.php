@@ -215,6 +215,7 @@ final class IndexingService
     {
         $key = $this->resolveIndexNowKey();
         $selectedFile = $this->resolveIndexNowSelectedRootFile();
+        $publicBaseUrl = $this->resolvePublicBaseUrl();
         $rootDebugCandidates = $this->getIndexNowRootDebugCandidates($selectedFile);
         $rootDirectories = array_values(array_map(
             static fn(array $candidate): string => (string) $candidate['normalized_path'],
@@ -226,7 +227,7 @@ final class IndexingService
         $rootTxtFiles = $this->getIndexNowRootTxtFiles();
         $rootDirectory = implode(' | ', $rootDirectories);
         $dynamicKeyFileUrl = $key !== ''
-            ? rtrim((string) SITE_URL, '/') . '/' . rawurlencode($key) . '.txt'
+            ? $publicBaseUrl . '/' . rawurlencode($key) . '.txt'
             : '';
 
         $selectedFileExists = false;
@@ -249,7 +250,7 @@ final class IndexingService
         }
 
         if ($selectedFile !== '') {
-            $selectedFileUrl = rtrim((string) SITE_URL, '/') . '/' . rawurlencode($selectedFile);
+            $selectedFileUrl = $publicBaseUrl . '/' . rawurlencode($selectedFile);
             $selectedFilePath = $this->findIndexNowRootFilePath($selectedFile);
             $selectedFileExists = $selectedFilePath !== null && in_array($selectedFile, $rootTxtFiles, true);
             $selectedFilePath = $selectedFilePath ?? '';
@@ -579,6 +580,22 @@ final class IndexingService
         } catch (\Throwable) {
             return '';
         }
+    }
+
+    private function resolvePublicBaseUrl(): string
+    {
+        if (function_exists('cms_runtime_base_url')) {
+            try {
+                $runtimeBaseUrl = rtrim((string) cms_runtime_base_url(), '/');
+                if ($runtimeBaseUrl !== '') {
+                    return $runtimeBaseUrl;
+                }
+            } catch (\Throwable) {
+                // Fallback auf SITE_URL, wenn die Runtime-Basis nicht verfügbar ist.
+            }
+        }
+
+        return rtrim((string) SITE_URL, '/');
     }
 
     /**
