@@ -2,15 +2,15 @@
 
 <div align="center">
 
-[![Version](https://img.shields.io/badge/version-2.9.190-blue.svg)](Changelog.md)
-![Status](https://img.shields.io/badge/status-stable-16a34a)
-![Self Hosted](https://img.shields.io/badge/self--hosted-yes-15803d)
+[![Version](https://img.shields.io/badge/Version-2.9.190-blue.svg)](Changelog.md)
+![Status](https://img.shields.io/badge/Status-Stable-16a34a)
+![Self-Hosted](https://img.shields.io/badge/Self--Hosted-Ready-15803d)
 
-![Member Area](https://img.shields.io/badge/member%20area-included-0f766e)
-![Themes](https://img.shields.io/badge/themes-built--in-2563eb)
-![Plugins](https://img.shields.io/badge/plugins-extensible-7c3aed)
-![SEO](https://img.shields.io/badge/SEO-integrated-f59e0b)
-![GDPR](https://img.shields.io/badge/GDPR-ready-334155)
+![Members](https://img.shields.io/badge/Members-Built--In-0f766e)
+![Themes](https://img.shields.io/badge/Themes-Built--In-2563eb)
+![Plugins](https://img.shields.io/badge/Plugins-Extensible-7c3aed)
+![SEO](https://img.shields.io/badge/SEO-Integrated-f59e0b)
+![GDPR](https://img.shields.io/badge/GDPR-Ready-334155)
 
 ![PHP](https://img.shields.io/badge/PHP-8.4%2B-777BB4?logo=php&logoColor=white)
 ![MySQL](https://img.shields.io/badge/MySQL-5.7%2B-4479A1?logo=mysql&logoColor=white)
