@@ -35,7 +35,7 @@
 
 </div>
 
-## ⚡ Warum Teams 365CMS wählen
+## ⚡ Warum 365CMS
 
 | Vorteil | Kurz gesagt |
 |---|---|
@@ -117,7 +117,7 @@ Das schafft weniger Reibung im Alltag, mehr Kontrolle im Self-Hosting und mehr S
 
 Besonders stark ist 365CMS überall dort, wo nicht nur Inhalte gepflegt, sondern Prozesse gesteuert werden: Benutzerrollen, Paketlogik, Theme-Anpassungen, Datenschutzabläufe, Suchsichtbarkeit und operative Wartung greifen direkt ineinander.
 
-### 💎 USP auf einen Blick
+### 💎 auf einen Blick
 
 - **Ein System statt Flickenteppich:** Content, SEO, Mitgliederbereich, Datenschutz, Design und Betrieb greifen direkt ineinander.
 - **Self-hosted ohne Komfortverlust:** Volle Kontrolle über Hosting, Daten und Erweiterungen – ohne auf moderne Admin-Workflows zu verzichten.
