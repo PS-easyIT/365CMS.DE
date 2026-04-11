@@ -88,6 +88,15 @@ Das Ergebnis: weniger Reibung im Tagesgeschäft, bessere Kontrolle über Self-Ho
 
 Besonders stark ist 365CMS überall dort, wo nicht nur Inhalte gepflegt, sondern auch Prozesse gesteuert werden sollen: Benutzerrollen, Paketlogik, Theme-Anpassungen, Datenschutzabläufe, Sichtbarkeit in Suchmaschinen und operative Wartung sitzen nicht in verstreuten Zusatztools, sondern unter einer gemeinsamen Oberfläche.
 
+### 💎 USP auf einen Blick
+
+- **Ein System statt Tool-Flickenteppich:** Content, SEO, Mitgliederbereich, Datenschutz, Design und Betrieb greifen direkt ineinander.
+- **Self-hosted ohne Komfortverlust:** Volle Kontrolle über Hosting, Daten und Erweiterungen – ohne auf moderne Admin-Workflows zu verzichten.
+- **Mehr als nur Website-Pflege:** 365CMS verbindet Publishing, Business-Logik, Mitgliederfunktionen und operative Steuerung.
+- **Marken- und projektfähig:** Themes, Menüs, Landing-Pages, Fonts und Login-Erlebnis lassen sich gezielt anpassen.
+- **Erweiterbar ohne Core-Chaos:** Plugins und Hooks schaffen Spielraum für individuelle Lösungen, ohne jede Installation zu verbiegen.
+- **Betrieb direkt mitgedacht:** Performance, Logs, Backups, Updates und Monitoring sind Teil des Produkts – nicht nur Nachgedanken.
+
 ### 🎯 Ideal für
 
 365CMS eignet sich besonders für Projekte, die über eine reine „Seiten pflegen“-Logik hinausgehen und dauerhaft betrieben werden sollen:
@@ -99,23 +108,41 @@ Besonders stark ist 365CMS überall dort, wo nicht nur Inhalte gepflegt, sondern
 - **Self-hosted Setups** für Organisationen, die Datenschutz, Kontrolle, Wartbarkeit und eigene Betriebsprozesse ernst nehmen
 - **Portale und hybride Projekte**, die Website, Mitgliederlogik, Business-Funktionen und operative Administration in einem System bündeln möchten
 
+### ⚖️ Warum 365CMS statt „CMS + fünf Zusatztools“?
+
+Viele Projekte starten mit einem Basissystem und wachsen dann über SEO-Plugins, Member-Add-ons, Consent-Lösungen, Theme-Hacks und externe Betriebswerkzeuge zu einer schwer wartbaren Tool-Kette zusammen. 365CMS verfolgt bewusst einen anderen Ansatz: wichtige Kernbereiche sind bereits als zusammenhängende Plattform angelegt.
+
+| Typischer Flickenteppich | 365CMS |
+|---|---|
+| CMS für Inhalte, Extra-Plugin für SEO, weiteres Modul für Mitglieder, zusätzliches Tool für Consent | Content, SEO, Member Area, Legal & Datenschutz sind direkt im System angelegt |
+| Theme-Anpassungen über viele Einzellösungen und verstreute Custom-Änderungen | Theme-System, Theme-Editor, Theme-Explorer, Menüs, Fonts und Login-Seiten arbeiten zusammen |
+| Betriebsaufgaben landen in Hostinger-Tools, Drittseiten oder eigenen Notlösungen | Cache, Performance, Logs, Backups, Updates, Diagnose und Monitoring sind direkt erreichbar |
+| Rollen, Sicherheit und Login-Prozesse wachsen oft uneinheitlich | Rollen, Rechte, Passkeys, 2FA, LDAP, Reset-Flows und Schutzmechanismen sind im Produktkontext gedacht |
+| Erweiterungen machen Projekte schnell unübersichtlich | Hooks, Plugins und Marketplace-Pfade erlauben Ausbau mit klareren Integrationspunkten |
+
+Kurz gesagt: 365CMS ist für Teams gedacht, die lieber auf einer konsistenten Plattform arbeiten als auf einem zusammengeklebten Verbund aus Einzelbausteinen.
+
 ### 🧩 Produkt-Highlights
 
 Die folgenden Bereiche bilden das Kern-Feature-Set von 365CMS und zeigen, wie breit das System ohne Plugin-Zwang bereits ab Werk aufgestellt ist:
 
 | Bereich | Enthaltene Funktionen | Nutzen |
 |---|---|---|
-| **Content & Publishing** | Seiten, Beiträge, Landing-Pages, Kategorien, Tags, Revisionen, Featured Images, Inhaltsstruktur und TOC | Redaktionsprozesse bleiben übersichtlich – von einzelnen Seiten bis zu komplexeren Content-Hubs mit nachvollziehbarer Struktur |
-| **Medienverwaltung** | Uploads, Ordner, Kategorien, Bild-/Dateiverwaltung, Grid-/Listenansicht, WebP-Workflows | Medien bleiben organisiert, wiederverwendbar und im Alltag schnell auffindbar – auch bei größeren Beständen |
-| **Mitgliederbereich** | Member-Dashboard, Profile, Favoriten, Benachrichtigungen, Nachrichten, Datenschutz, Medienbereich | Ideal für geschützte Bereiche, Community-Funktionen, interne Plattformen oder kundennahe Portale |
-| **Business & Abos** | Pakete, Bestellungen, Abonnements, Limits, Gruppen und zugehörige Prozesse | Unterstützt bezahlte Modelle, Feature-Freischaltungen, gestaffelte Zugriffe und strukturierte Benutzersegmente |
-| **Suche & Auffindbarkeit** | Volltextsuche, Indexierung zentraler Inhalte, Suchfelder und Inhaltserschließung | Inhalte bleiben auch in größeren Projekten schnell auffindbar und nutzbar |
-| **SEO & Sichtbarkeit** | Meta-Daten, Social-Daten, strukturierte Daten, Sitemap, Robots, Redirects, 404-Monitor, Analytics, IndexNow | Relevante SEO-Bausteine sind direkt im CMS gebündelt statt über mehrere Tools verteilt |
-| **Security & Auth** | Rollen & Rechte, CSRF-/XSS-Schutz, Rate Limits, Firewall, Anti-Spam, Passkeys, 2FA, LDAP, sichere Reset-Flows | Für Teams und produktive Installationen mit klaren Sicherheits-, Identitäts- und Zugriffsanforderungen |
-| **Themes & Design** | Theme-System, Theme-Editor, Theme-Explorer, Menü-Editor, Landing-Page-Editor, Font-Manager, CMS-Loginpage | Anpassungen an Marke, Layout, Nutzerführung und Login-Erlebnis sind direkt im System möglich |
-| **Plugins & Integrationen** | Hook-System, Plugin-Verwaltung, Plugin-Marketplace, modulare Erweiterungspunkte, API-nahe Workflows | Projekte lassen sich ohne Core-Chaos funktional ausbauen und an externe Prozesse anbinden |
-| **Legal & DSGVO** | Legal-Sites, Cookie-Manager, Consent-Dialog, Datenexporte, Löschanfragen, Datenschutzpfade | Unterstützt rechtssichere Betriebsprozesse für moderne Websites, Portale und Mitgliedersysteme |
-| **Betrieb & Wartung** | Cache, Performance-Werkzeuge, Cron, Monitoring, Health-Checks, Backups, Mail-Queue, Logs, Updates | Hilft dabei, das System auch nach dem Launch sauber, nachvollziehbar und langfristig betreibbar zu halten |
+| **Content & Publishing** | Seiten, Beiträge, Landing-Pages, Kategorien, Tags, Revisionen, Featured Images, Inhaltsstruktur und TOC | Macht aus einfacher Seitenpflege einen belastbaren Redaktions-Workflow mit Struktur, Übersicht und Wachstumsspielraum |
+| **Medienverwaltung** | Uploads, Ordner, Kategorien, Bild-/Dateiverwaltung, Grid-/Listenansicht, WebP-Workflows | Verhindert Medien-Chaos und hält Assets auch bei wachsenden Projekten schnell nutzbar |
+| **Mitgliederbereich** | Member-Dashboard, Profile, Favoriten, Benachrichtigungen, Nachrichten, Datenschutz, Medienbereich | Liefert die Basis für geschützte Bereiche, Community-Features und kundennahe Plattformlogik |
+| **Business & Abos** | Pakete, Bestellungen, Abonnements, Limits, Gruppen und zugehörige Prozesse | Bringt Geschäftslogik näher ans CMS, statt sie komplett außerhalb des Systems zu parken |
+| **Suche & Auffindbarkeit** | Volltextsuche, Indexierung zentraler Inhalte, Suchfelder und Inhaltserschließung | Hilft Nutzern und Teams, relevante Inhalte auch in großen Beständen schnell zu finden |
+| **SEO & Sichtbarkeit** | Meta-Daten, Social-Daten, strukturierte Daten, Sitemap, Robots, Redirects, 404-Monitor, Analytics, IndexNow | Sorgt für eine ernstzunehmende SEO-Basis direkt im Produkt statt in einem Sammelsurium aus Zusatzlösungen |
+| **Security & Auth** | Rollen & Rechte, CSRF-/XSS-Schutz, Rate Limits, Firewall, Anti-Spam, Passkeys, 2FA, LDAP, sichere Reset-Flows | Gibt produktiven Installationen ein Sicherheitsfundament, das nicht erst nachträglich zusammengesucht werden muss |
+| **Themes & Design** | Theme-System, Theme-Editor, Theme-Explorer, Menü-Editor, Landing-Page-Editor, Font-Manager, CMS-Loginpage | Macht Branding, Navigation und UX-Anpassung zu einem echten Projektwerkzeug statt zu einer Bastelbaustelle |
+| **Plugins & Integrationen** | Hook-System, Plugin-Verwaltung, Plugin-Marketplace, modulare Erweiterungspunkte, API-nahe Workflows | Öffnet das System für individuelle Funktionen, ohne Wartbarkeit und Struktur zu opfern |
+| **Legal & DSGVO** | Legal-Sites, Cookie-Manager, Consent-Dialog, Datenexporte, Löschanfragen, Datenschutzpfade | Unterstützt Datenschutz- und Compliance-Prozesse dort, wo sie im Alltag gebraucht werden: direkt im CMS |
+| **Betrieb & Wartung** | Cache, Performance-Werkzeuge, Cron, Monitoring, Health-Checks, Backups, Mail-Queue, Logs, Updates | Macht den Betrieb sichtbar, steuerbar und langfristig beherrschbar – nicht nur am Launch-Tag |
+
+### 🚀 Positionierung in einem Satz
+
+365CMS positioniert sich zwischen klassischem CMS, Portal-Lösung und betriebsfähiger Content-Plattform: stärker integriert als ein reines Publishing-System, aber deutlich fokussierter und kontrollierbarer als ein zusammengebauter Tool-Stack.
 
 ### ⚙️ Typische Workflows in 365CMS
 
@@ -241,6 +268,15 @@ The result is a more maintainable self-hosted platform, clearer editorial proces
 
 365CMS becomes especially valuable when a project needs more than just page editing: role-based administration, package logic, theme customization, privacy workflows, search visibility and operational maintenance live in one place instead of being scattered across unrelated tools.
 
+### 💎 Core USP at a glance
+
+- **One platform instead of a patchwork stack:** content, SEO, membership, privacy, design and operations are designed to work together.
+- **Self-hosted without giving up convenience:** full control over hosting, data and extensions without sacrificing a modern admin experience.
+- **More than page editing:** 365CMS connects publishing, business logic, member features and operational control.
+- **Ready for real branding:** themes, menus, landing pages, fonts and the login experience can be tailored to the project.
+- **Extensible without core chaos:** plugins and hooks create room for custom solutions without turning every install into a maintenance trap.
+- **Operations built in:** performance, logs, backups, updates and monitoring are part of the product, not afterthoughts.
+
 ### 🎯 Ideal for
 
 365CMS is a strong fit for projects that need long-term structure and operational control, not just a simple page editor:
@@ -252,23 +288,41 @@ The result is a more maintainable self-hosted platform, clearer editorial proces
 - **self-hosted setups** for organizations that care about privacy, control, maintainability and predictable operations
 - **portal-style projects** that combine website content, member logic, business features and admin tooling in one platform
 
+### ⚖️ Why 365CMS instead of “a CMS plus five extra tools”?
+
+Many projects start with a base CMS and slowly grow into a maintenance-heavy chain of SEO plugins, membership add-ons, consent tools, theme workarounds and external operations helpers. 365CMS takes a more integrated route: key areas are already designed as one connected platform.
+
+| Typical patchwork setup | 365CMS |
+|---|---|
+| A CMS for content, one plugin for SEO, another add-on for memberships and a separate consent tool | Content, SEO, member area, legal and privacy capabilities are already part of the system landscape |
+| Theme changes spread across custom hacks and scattered adjustments | Theme system, theme editor, theme explorer, menus, fonts and login pages work together |
+| Operational tasks live in hosting panels, third-party tools or ad-hoc scripts | Cache, performance, logs, backups, updates, diagnostics and monitoring are directly accessible |
+| Roles, security and login flows often evolve inconsistently over time | Roles, permissions, passkeys, 2FA, LDAP, reset flows and protection mechanisms are treated as product-level concerns |
+| Extensions quickly make the project harder to understand | Hooks, plugins and marketplace paths allow expansion through clearer integration points |
+
+In short: 365CMS is built for teams that would rather work on one coherent platform than on a glued-together collection of disconnected building blocks.
+
 ### 🧩 Product Highlights
 
 The following areas form the core 365CMS feature set and show how much the platform already covers out of the box before any project-specific add-ons are introduced:
 
 | Area | Included capabilities | Benefit |
 |---|---|---|
-| **Content & Publishing** | Pages, posts, landing pages, categories, tags, revisions, featured images, content structure and TOC | Editorial teams can manage anything from simple pages to richer publishing workflows with clear structure |
-| **Media Management** | Uploads, folders, categories, image/file management, grid/list views and WebP workflows | Keeps media organized, reusable and easy to manage in daily work, even in larger projects |
-| **Member Area** | Member dashboard, profiles, favorites, notifications, messages, privacy settings and media areas | A strong base for protected areas, communities, internal portals or customer-facing platforms |
-| **Business & Subscriptions** | Packages, orders, subscriptions, limits, groups and related business processes | Useful for paid features, access models, staged permissions and structured user segmentation |
-| **Search & Discovery** | Full-text search, indexing of key content, search fields and content discovery flows | Helps visitors and teams find content quickly as the project grows |
-| **SEO & Visibility** | Meta data, social data, structured data, sitemap, robots, redirects, 404 monitor, analytics and IndexNow | Core SEO building blocks live directly inside the CMS instead of being split across tools |
-| **Security & Auth** | Roles and permissions, CSRF/XSS protection, rate limits, firewall, anti-spam, passkeys, 2FA, LDAP and secure reset flows | Built for productive environments with real security, identity and access-control requirements |
-| **Themes & Design** | Theme system, theme editor, theme explorer, menu editor, landing page editor, font manager and CMS login page | Branding, layouts, navigation and the login experience can be shaped directly inside the system |
-| **Plugins & Integrations** | Hook system, plugin management, plugin marketplace, modular extension points and integration-ready workflows | Projects can grow without turning the core into spaghetti — the very technical pasta nobody asked for |
-| **Legal & GDPR** | Legal pages, cookie manager, consent dialog, privacy workflows, data exports and deletion requests | Supports compliance-sensitive websites, portals and membership projects |
-| **Operations & Maintenance** | Cache tools, performance tuning, cron, monitoring, health checks, backups, mail queue, logs and updates | Helps teams run the system cleanly, transparently and sustainably after launch |
+| **Content & Publishing** | Pages, posts, landing pages, categories, tags, revisions, featured images, content structure and TOC | Turns basic page editing into a durable editorial workflow with structure, clarity and room to grow |
+| **Media Management** | Uploads, folders, categories, image/file management, grid/list views and WebP workflows | Prevents media chaos and keeps assets ready for use even as the project scales |
+| **Member Area** | Member dashboard, profiles, favorites, notifications, messages, privacy settings and media areas | Provides the foundation for protected areas, community features and customer-facing platform logic |
+| **Business & Subscriptions** | Packages, orders, subscriptions, limits, groups and related business processes | Brings business logic closer to the CMS instead of pushing it entirely into external tooling |
+| **Search & Discovery** | Full-text search, indexing of key content, search fields and content discovery flows | Helps both visitors and internal teams reach the right content quickly |
+| **SEO & Visibility** | Meta data, social data, structured data, sitemap, robots, redirects, 404 monitor, analytics and IndexNow | Delivers serious SEO groundwork directly in the product rather than across a pile of add-ons |
+| **Security & Auth** | Roles and permissions, CSRF/XSS protection, rate limits, firewall, anti-spam, passkeys, 2FA, LDAP and secure reset flows | Gives production environments a security baseline that does not need to be assembled piece by piece |
+| **Themes & Design** | Theme system, theme editor, theme explorer, menu editor, landing page editor, font manager and CMS login page | Turns branding, navigation and UX customization into a real project tool instead of a workaround zone |
+| **Plugins & Integrations** | Hook system, plugin management, plugin marketplace, modular extension points and integration-ready workflows | Opens the platform for custom capabilities without sacrificing maintainability or structure |
+| **Legal & GDPR** | Legal pages, cookie manager, consent dialog, privacy workflows, data exports and deletion requests | Supports privacy and compliance processes exactly where teams need them: inside the CMS |
+| **Operations & Maintenance** | Cache tools, performance tuning, cron, monitoring, health checks, backups, mail queue, logs and updates | Makes operations visible, controllable and sustainable beyond launch day |
+
+### 🚀 Positioning in one sentence
+
+365CMS sits between a classic CMS, a portal solution and an operations-ready content platform: more integrated than a pure publishing system, yet more focused and controllable than a stitched-together stack of separate tools.
 
 ### ⚙️ Typical workflows in 365CMS
 
