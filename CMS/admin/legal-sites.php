@@ -91,6 +91,17 @@ const CMS_ADMIN_LEGAL_SITES_PROFILE_TEXTAREA_KEYS = [
     'legal_profile_additional_service_purpose',
 ];
 
+function cms_admin_legal_sites_substring(string $value, int $start, ?int $length = null): string
+{
+    if (function_exists('mb_substr')) {
+        return $length === null
+            ? (string) mb_substr($value, $start, null, 'UTF-8')
+            : (string) mb_substr($value, $start, $length, 'UTF-8');
+    }
+
+    return $length === null ? substr($value, $start) : substr($value, $start, $length);
+}
+
 function cms_admin_legal_sites_can_access(): bool
 {
     return Auth::instance()->isAdmin()
@@ -141,9 +152,7 @@ function cms_admin_legal_sites_normalize_text(mixed $value, int $maxLength = 400
     $normalizedValue = trim((string) $value);
     $normalizedValue = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]+/u', '', $normalizedValue) ?? '';
 
-    return function_exists('mb_substr')
-        ? mb_substr($normalizedValue, 0, $maxLength)
-        : substr($normalizedValue, 0, $maxLength);
+    return cms_admin_legal_sites_substring($normalizedValue, 0, $maxLength);
 }
 
 function cms_admin_legal_sites_normalize_html(mixed $value, int $maxLength = CMS_ADMIN_LEGAL_SITES_MAX_LEGAL_HTML_LENGTH): string
@@ -151,11 +160,7 @@ function cms_admin_legal_sites_normalize_html(mixed $value, int $maxLength = CMS
     $normalizedValue = (string) $value;
     $normalizedValue = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]+/u', '', $normalizedValue) ?? '';
 
-    if (function_exists('mb_substr')) {
-        $normalizedValue = mb_substr($normalizedValue, 0, $maxLength);
-    } else {
-        $normalizedValue = substr($normalizedValue, 0, $maxLength);
-    }
+    $normalizedValue = cms_admin_legal_sites_substring($normalizedValue, 0, $maxLength);
 
     return sanitize_html(
         strip_tags($normalizedValue, '<p><a><strong><em><ul><ol><li><br><h2><h3><h4>'),

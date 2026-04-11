@@ -81,10 +81,9 @@
 
                 form.dataset.themeMarketplaceSubmitting = '1';
                 button.dataset.themeMarketplaceSubmitting = '1';
-                button.dataset.originalHtml = button.innerHTML;
                 button.disabled = true;
                 button.setAttribute('aria-disabled', 'true');
-                button.innerHTML = button.dataset.submittingText || 'Installiere…';
+                button.textContent = button.dataset.submittingText || 'Installiere…';
             });
         });
     }

@@ -460,18 +460,92 @@ final class MemberController
         }
 
         try {
-            return $this->db->get_results(
+            $email = trim((string) ($this->getCurrentUser()->email ?? ''));
+            $emailLike = $email !== '' ? '%"email":"' . $this->escapeLikeValue($email) . '"%' : '';
+
+            $rows = $this->db->get_results(
                 "SELECT o.*, p.name AS plan_name
                  FROM {$this->prefix}orders o
                  LEFT JOIN {$this->prefix}subscription_plans p ON p.id = o.plan_id
-                 WHERE o.user_id = ? OR (o.user_id IS NULL AND o.email = ?)
+                 WHERE o.user_id = ?
+                    OR (
+                        o.user_id IS NULL
+                        AND (
+                            o.customer_email = ?
+                            OR o.email = ?
+                            OR o.contact_data LIKE ?
+                        )
+                    )
                  ORDER BY o.created_at DESC
                  LIMIT 25",
-                [$this->getUserId(), (string)($this->getCurrentUser()->email ?? '')]
+                [$this->getUserId(), $email, $email, $emailLike]
             ) ?: [];
+
+            return array_map(fn ($row) => $this->normalizeMemberOrderRow($row), $rows);
         } catch (\Throwable) {
             return [];
         }
+    }
+
+    private function normalizeMemberOrderRow(object $order): object
+    {
+        $data = (array) $order;
+        $contactData = $this->decodeMemberOrderContactData((string) ($data['contact_data'] ?? ''));
+        $status = strtolower(trim((string) ($data['status'] ?? 'pending')));
+
+        if (in_array($status, ['confirmed', 'completed'], true)) {
+            $status = 'paid';
+        }
+
+        $resolvedEmail = $this->firstNonEmptyValue([
+            (string) ($data['customer_email'] ?? ''),
+            (string) ($data['email'] ?? ''),
+            (string) ($contactData['email'] ?? ''),
+        ]);
+        $displayAmount = isset($data['total_amount']) ? (float) $data['total_amount'] : 0.0;
+        if ($displayAmount <= 0.0 && isset($data['amount'])) {
+            $displayAmount = (float) $data['amount'];
+        }
+
+        $data['normalized_status'] = $status;
+        $data['resolved_customer_email'] = $resolvedEmail;
+        $data['display_amount'] = $displayAmount;
+
+        return (object) $data;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function decodeMemberOrderContactData(string $contactData): array
+    {
+        if ($contactData === '') {
+            return [];
+        }
+
+        $decoded = Json::decodeArray($contactData, []);
+
+        return is_array($decoded) ? $decoded : [];
+    }
+
+    /**
+     * @param array<int, string> $values
+     */
+    private function firstNonEmptyValue(array $values): string
+    {
+        foreach ($values as $value) {
+            $value = trim($value);
+            if ($value !== '') {
+                return $value;
+            }
+        }
+
+        return '';
+    }
+
+    private function escapeLikeValue(string $value): string
+    {
+        return str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $value);
     }
 
     /**
@@ -1088,7 +1162,10 @@ final class MemberController
 
         return [
             'available' => true,
-            'options_json' => json_encode($options['options'] ?? new \stdClass(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            'options_json' => json_encode(
+                $options['options'] ?? new \stdClass(),
+                JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
+            ) ?: '{}',
         ];
     }
 

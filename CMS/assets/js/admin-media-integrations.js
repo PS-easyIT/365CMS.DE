@@ -28,7 +28,7 @@
 
     function createPreviewMarkup(previewElement, value) {
         var variant = previewElement.dataset.previewVariant || 'logo';
-        previewElement.innerHTML = '';
+        clearElement(previewElement);
 
         if (!value) {
             previewElement.hidden = true;
@@ -113,13 +113,25 @@
         }
     }
 
-    function escapeHtml(value) {
-        return String(value || '')
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#039;');
+    function appendStatusAlert(container, alertClass, message) {
+        var column;
+        var alert;
+
+        if (!container) {
+            return;
+        }
+
+        clearElement(container);
+
+        column = document.createElement('div');
+        column.className = 'col-12';
+
+        alert = document.createElement('div');
+        alert.className = alertClass;
+        alert.textContent = String(message || '');
+
+        column.appendChild(alert);
+        container.appendChild(column);
     }
 
     function fetchJson(url, options) {
@@ -201,7 +213,7 @@
             event.preventDefault();
 
             if (resultsElement) {
-                resultsElement.innerHTML = '';
+                clearElement(resultsElement);
                 setElementHidden(resultsElement, false);
             }
 
@@ -396,9 +408,7 @@
 
         function loadPickerItems() {
             if (!pickerContainer || !apiUrl || !csrfToken) {
-                if (gridElement) {
-                    gridElement.innerHTML = '<div class="col-12"><div class="alert alert-warning mb-0">Medienpicker konnte nicht geladen werden.</div></div>';
-                }
+                appendStatusAlert(gridElement, 'alert alert-warning mb-0', 'Medienpicker konnte nicht geladen werden.');
                 setElementText(statusElement, 'Konfiguration unvollständig');
                 return Promise.resolve();
             }

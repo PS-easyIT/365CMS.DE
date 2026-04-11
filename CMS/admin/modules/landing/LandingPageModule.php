@@ -75,7 +75,10 @@ class LandingPageModule
 
         try {
             $this->ensureDefaultsLoaded();
-            $this->service->updateHeader($this->sanitizeHeaderPayload($post));
+            if (!$this->service->updateHeader($this->sanitizeHeaderPayload($post))) {
+                return ['success' => false, 'error' => 'Header konnte nicht gespeichert werden.'];
+            }
+
             return ['success' => true, 'message' => 'Header gespeichert.'];
         } catch (\Throwable $e) {
             return $this->failResult('Header konnte nicht gespeichert werden.', 'save_header', $e);
@@ -90,7 +93,10 @@ class LandingPageModule
 
         try {
             $this->ensureDefaultsLoaded();
-            $this->service->updateContentSettings($this->sanitizeContentPayload($post));
+            if (!$this->service->updateContentSettings($this->sanitizeContentPayload($post))) {
+                return ['success' => false, 'error' => 'Content-Einstellungen konnten nicht gespeichert werden.'];
+            }
+
             return ['success' => true, 'message' => 'Content-Einstellungen gespeichert.'];
         } catch (\Throwable $e) {
             return $this->failResult('Content-Einstellungen konnten nicht gespeichert werden.', 'save_content', $e);
@@ -105,7 +111,10 @@ class LandingPageModule
 
         try {
             $this->ensureDefaultsLoaded();
-            $this->service->updateFooter($this->sanitizeFooterPayload($post));
+            if (!$this->service->updateFooter($this->sanitizeFooterPayload($post))) {
+                return ['success' => false, 'error' => 'Footer konnte nicht gespeichert werden.'];
+            }
+
             return ['success' => true, 'message' => 'Footer gespeichert.'];
         } catch (\Throwable $e) {
             return $this->failResult('Footer konnte nicht gespeichert werden.', 'save_footer', $e);
@@ -148,7 +157,10 @@ class LandingPageModule
                 return ['success' => false, 'error' => 'Feature-Titel fehlt.'];
             }
 
-            $this->service->saveFeature($id, $payload);
+            if ($this->service->saveFeature($id, $payload) <= 0) {
+                return ['success' => false, 'error' => 'Feature konnte nicht gespeichert werden.'];
+            }
+
             return ['success' => true, 'message' => 'Feature gespeichert.'];
         } catch (\Throwable $e) {
             return $this->failResult('Feature konnte nicht gespeichert werden.', 'save_feature', $e);
@@ -167,7 +179,10 @@ class LandingPageModule
 
         try {
             $this->ensureDefaultsLoaded();
-            $this->service->deleteFeature($id);
+            if (!$this->service->deleteFeature($id)) {
+                return ['success' => false, 'error' => 'Feature konnte nicht gelöscht werden.'];
+            }
+
             return ['success' => true, 'message' => 'Feature gelöscht.'];
         } catch (\Throwable $e) {
             return $this->failResult('Feature konnte nicht gelöscht werden.', 'delete_feature', $e);
@@ -188,7 +203,10 @@ class LandingPageModule
                 return ['success' => false, 'error' => 'Plugin-ID fehlt.'];
             }
 
-            $this->service->savePluginSettings($pluginId, $payload);
+            if (!$this->service->savePluginSettings($pluginId, $payload)) {
+                return ['success' => false, 'error' => 'Plugin-Einstellungen konnten nicht gespeichert werden.'];
+            }
+
             return ['success' => true, 'message' => 'Plugin-Einstellungen gespeichert.'];
         } catch (\Throwable $e) {
             return $this->failResult('Plugin-Einstellungen konnten nicht gespeichert werden.', 'save_plugin', $e);

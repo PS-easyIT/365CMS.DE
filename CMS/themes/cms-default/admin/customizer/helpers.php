@@ -35,6 +35,50 @@ function cms_default_theme_customizer_normalize_default_value(mixed $default): s
     return (string) $default;
 }
 
+function cms_default_theme_customizer_sanitize_asset_url(mixed $value): string
+{
+    $url = trim((string) $value);
+    if ($url === '') {
+        return '';
+    }
+
+    if (preg_match('/^[A-Za-z]:[\\\\\/]/', $url) === 1 || preg_match('#^(?:javascript|data|vbscript):#i', $url) === 1) {
+        return '';
+    }
+
+    if (str_starts_with($url, '//')) {
+        return '';
+    }
+
+    if (str_starts_with($url, '/')) {
+        return $url;
+    }
+
+    if (!preg_match('#^[a-z][a-z0-9+.-]*:#i', $url)) {
+        $relativePath = preg_replace('#^(?:\./)+#', '', str_replace('\\', '/', $url)) ?? '';
+        $relativePath = ltrim($relativePath, '/');
+        if ($relativePath === '' || str_contains($relativePath, '..')) {
+            return '';
+        }
+
+        return '/' . $relativePath;
+    }
+
+    if (filter_var($url, FILTER_VALIDATE_URL) === false) {
+        return '';
+    }
+
+    $parts = parse_url($url);
+    $scheme = strtolower((string) ($parts['scheme'] ?? ''));
+
+    return in_array($scheme, ['http', 'https'], true) ? $url : '';
+}
+
+function cms_default_theme_customizer_build_uploaded_logo_path(string $storedLogo): string
+{
+    return cms_default_theme_customizer_sanitize_asset_url('/uploads/theme-logos/' . ltrim($storedLogo, '/'));
+}
+
 function cms_default_theme_customizer_verify_csrf(): bool
 {
     if (function_exists('cms_admin_section_shell_was_csrf_verified')
@@ -74,7 +118,7 @@ function cms_default_theme_customizer_handle_post(ThemeCustomizer $customizer, a
 
     return [
         'success' => $success,
-        'error' => $error,
+        'error' => 'Unbekannte oder nicht erlaubte Customizer-Aktion.',
         'activeTab' => $activeTab,
     ];
 }
@@ -140,10 +184,7 @@ function cms_default_theme_customizer_handle_save(ThemeCustomizer $customizer, a
         $inputName = $sectionKey . '_' . $fieldKey;
 
         if ($sectionKey === 'header' && $fieldKey === 'logo_url') {
-            $postValue = (string) ($_POST[$inputName] ?? '');
-            if ($postValue !== '') {
-                $customizer->set($sectionKey, $fieldKey, $postValue);
-            }
+            $customizer->set($sectionKey, $fieldKey, cms_default_theme_customizer_sanitize_asset_url($_POST[$inputName] ?? ''));
             continue;
         }
 
@@ -192,7 +233,7 @@ function cms_default_theme_customizer_handle_logo_upload(ThemeCustomizer $custom
         return 'Logo-Upload fehlgeschlagen: ' . $storedLogo->get_error_message();
     }
 
-    $customizer->set('header', 'logo_url', rtrim((string) UPLOAD_URL, '/') . '/theme-logos/' . ltrim((string) $storedLogo, '/'));
+    $customizer->set('header', 'logo_url', cms_default_theme_customizer_build_uploaded_logo_path((string) $storedLogo));
 
     return null;
 }

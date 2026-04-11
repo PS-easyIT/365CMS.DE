@@ -31,7 +31,7 @@ if (!is_callable($accessChecker) || !is_callable($redirectResolver) || !is_calla
     throw new RuntimeException('Post-Action-Shell erwartet callable access_checker-, redirect_resolver- und handler-Konfigurationen.');
 }
 
-$accessDeniedUrl = trim((string) ($postActionShellConfig['access_denied_url'] ?? SITE_URL));
+$accessDeniedUrl = trim((string) ($postActionShellConfig['access_denied_url'] ?? '/'));
 $csrfAction = (string) ($postActionShellConfig['csrf_action'] ?? 'admin_post_action');
 $alertSessionKey = (string) ($postActionShellConfig['alert_session_key'] ?? 'admin_alert');
 $invalidTokenMessage = (string) ($postActionShellConfig['invalid_token_message'] ?? 'Sicherheitstoken ungültig.');
@@ -39,7 +39,7 @@ $unknownActionMessage = (string) ($postActionShellConfig['unknown_action_message
 
 $redirectUrl = trim((string) $redirectResolver($_POST ?? [], $_SERVER ?? []));
 if ($redirectUrl === '') {
-    $redirectUrl = SITE_URL;
+    $redirectUrl = '/';
 }
 
 if (!(bool) $accessChecker($postActionShellConfig, $redirectUrl)) {

@@ -110,9 +110,13 @@ final class LandingRepository
         }
 
         if ($id !== null && $id > 0) {
+            if (!$this->hasFeature($id)) {
+                return 0;
+            }
+
             try {
                 $this->db->execute(
-                    "UPDATE {$this->db->getPrefix()}landing_sections SET data = ?, sort_order = ?, updated_at = NOW() WHERE id = ?",
+                    "UPDATE {$this->db->getPrefix()}landing_sections SET data = ?, sort_order = ?, updated_at = NOW() WHERE id = ? AND type = 'feature'",
                     [$json, $sortOrder, $id]
                 );
 
@@ -142,7 +146,7 @@ final class LandingRepository
                 [$id]
             );
 
-            return true;
+            return $this->db->affected_rows() > 0;
         } catch (\Throwable) {
             return false;
         }
@@ -154,5 +158,13 @@ final class LandingRepository
             $this->db->execute("DELETE FROM {$this->db->getPrefix()}landing_sections WHERE type = 'feature'");
         } catch (\Throwable) {
         }
+    }
+
+    private function hasFeature(int $id): bool
+    {
+        return (int)($this->db->get_var(
+            "SELECT COUNT(*) FROM {$this->db->getPrefix()}landing_sections WHERE id = ? AND type = 'feature'",
+            [$id]
+        ) ?? 0) > 0;
     }
 }

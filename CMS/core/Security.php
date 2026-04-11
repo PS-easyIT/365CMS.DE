@@ -413,7 +413,7 @@ class Security
      */
     public static function checkRateLimit(string $identifier, int $maxAttempts = 5, int $timeWindow = 300): bool
     {
-        $key = 'rate_limit_' . md5($identifier);
+        $key = self::buildRateLimitSessionKey($identifier);
         
         if (!isset($_SESSION[$key])) {
             $_SESSION[$key] = [
@@ -492,8 +492,13 @@ class Security
         } catch (\Throwable $e) {
             error_log('Security::checkDbRateLimit() Fehler (Fallback auf Session): ' . $e->getMessage());
             // Fallback auf Session-basiertes Rate-Limiting wenn DB nicht verfügbar
-            return self::checkRateLimit('db_rl_' . $action . '_' . md5($ip), $maxAttempts, $timeWindow);
+            return self::checkRateLimit('db_rl_' . $action . '_' . $ip, $maxAttempts, $timeWindow);
         }
+    }
+
+    private static function buildRateLimitSessionKey(string $identifier): string
+    {
+        return 'rate_limit_' . hash('sha256', $identifier);
     }
     
     /**

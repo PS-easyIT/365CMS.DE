@@ -12,6 +12,21 @@ if (!defined('ABSPATH')) {
 
 use CMS\Auth;
 
+const CMS_ADMIN_COOKIE_MANAGER_READ_CAPABILITY = 'manage_settings';
+const CMS_ADMIN_COOKIE_MANAGER_WRITE_CAPABILITY = 'manage_settings';
+
+function cms_admin_cookie_manager_can_access(): bool
+{
+    return Auth::instance()->isAdmin()
+        && Auth::instance()->hasCapability(CMS_ADMIN_COOKIE_MANAGER_READ_CAPABILITY);
+}
+
+function cms_admin_cookie_manager_can_mutate(): bool
+{
+    return cms_admin_cookie_manager_can_access()
+        && Auth::instance()->hasCapability(CMS_ADMIN_COOKIE_MANAGER_WRITE_CAPABILITY);
+}
+
 function cms_admin_cookie_manager_normalize_action(mixed $value): ?string
 {
     $action = strtolower(trim((string) $value));
@@ -108,10 +123,14 @@ $sectionPageConfig = [
     'module_file' => __DIR__ . '/modules/legal/CookieManagerModule.php',
     'module_factory' => static fn (): CookieManagerModule => new CookieManagerModule(),
     'data_loader' => static fn (CookieManagerModule $module): array => $module->getData(),
-    'access_checker' => static fn (): bool => Auth::instance()->isAdmin(),
+    'access_checker' => static fn (): bool => cms_admin_cookie_manager_can_access(),
     'invalid_token_message' => 'Sicherheitstoken ungültig.',
     'unknown_action_message' => 'Aktion konnte nicht verarbeitet werden.',
     'post_handler' => static function (CookieManagerModule $module, string $section, array $post): array {
+        if (!cms_admin_cookie_manager_can_mutate()) {
+            return ['success' => false, 'error' => 'Keine Berechtigung für Cookie-Manager-Änderungen.'];
+        }
+
         $payload = cms_admin_cookie_manager_normalize_payload($post);
         if ($payload['action'] === null) {
             return ['success' => false, 'error' => 'Unbekannte Aktion.'];

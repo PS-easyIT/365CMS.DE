@@ -56,7 +56,7 @@ $imageStatusId = $inputId . '_status';
                 </label>
                 <span class="customizer-upload-hint">oder URL eingeben:</span>
             </div>
-            <input type="text" id="<?php echo $safeInputId; ?>" name="<?php echo $safeInputName; ?>" value="<?php echo $previewUrl; ?>" class="form-control" placeholder="https://..." inputmode="url" data-customizer-image-url>
+            <input type="text" id="<?php echo $safeInputId; ?>" name="<?php echo $safeInputName; ?>" value="<?php echo $previewUrl; ?>" class="form-control" placeholder="https://example.com/logo.svg oder /uploads/theme-logos/logo.png" inputmode="text" autocomplete="off" spellcheck="false" data-customizer-image-url>
             <div id="<?php echo htmlspecialchars($imageStatusId, ENT_QUOTES); ?>" class="customizer-upload-hint" data-preview-status aria-live="polite"></div>
         </div>
 

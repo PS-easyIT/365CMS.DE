@@ -18,6 +18,22 @@ const CMS_ADMIN_PLUGIN_MARKETPLACE_INSTALL_ACTION = 'install';
 const CMS_ADMIN_PLUGIN_MARKETPLACE_MAX_SLUG_LENGTH = 120;
 const CMS_ADMIN_PLUGIN_MARKETPLACE_ROUTE_PATH = '/admin/plugin-marketplace';
 
+function cms_admin_plugin_marketplace_substring(string $value, int $start, ?int $length = null): string
+{
+    if (function_exists('mb_substr')) {
+        return $length === null
+            ? (string) mb_substr($value, $start, null, 'UTF-8')
+            : (string) mb_substr($value, $start, $length, 'UTF-8');
+    }
+
+    return $length === null ? substr($value, $start) : substr($value, $start, $length);
+}
+
+function cms_admin_plugin_marketplace_length(string $value): int
+{
+    return function_exists('mb_strlen') ? (int) mb_strlen($value, 'UTF-8') : strlen($value);
+}
+
 function cms_admin_plugin_marketplace_slug_was_truncated(array $post, string $normalizedSlug): bool
 {
     $rawSlug = trim((string) ($post['slug'] ?? ''));
@@ -25,15 +41,9 @@ function cms_admin_plugin_marketplace_slug_was_truncated(array $post, string $no
         return false;
     }
 
-    if (function_exists('mb_strlen') && function_exists('mb_substr')) {
-        $sanitizedRawSlug = (string) preg_replace('/[^a-z0-9_-]/', '', strtolower($rawSlug));
-
-        return mb_strlen($sanitizedRawSlug) > mb_strlen($normalizedSlug);
-    }
-
     $sanitizedRawSlug = (string) preg_replace('/[^a-z0-9_-]/', '', strtolower($rawSlug));
 
-    return strlen($sanitizedRawSlug) > strlen($normalizedSlug);
+    return cms_admin_plugin_marketplace_length($sanitizedRawSlug) > cms_admin_plugin_marketplace_length($normalizedSlug);
 }
 
 function cms_admin_plugin_marketplace_can_access(): bool
@@ -52,11 +62,7 @@ function cms_admin_plugin_marketplace_normalize_slug(array $post): string
 {
     $slug = (string) preg_replace('/[^a-z0-9_-]/', '', strtolower((string) ($post['slug'] ?? '')));
 
-    if (function_exists('mb_substr')) {
-        return (string) mb_substr($slug, 0, CMS_ADMIN_PLUGIN_MARKETPLACE_MAX_SLUG_LENGTH);
-    }
-
-    return substr($slug, 0, CMS_ADMIN_PLUGIN_MARKETPLACE_MAX_SLUG_LENGTH);
+    return cms_admin_plugin_marketplace_substring($slug, 0, CMS_ADMIN_PLUGIN_MARKETPLACE_MAX_SLUG_LENGTH);
 }
 
 function cms_admin_plugin_marketplace_normalize_action(mixed $action): string

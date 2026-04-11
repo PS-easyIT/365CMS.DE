@@ -153,7 +153,7 @@ function cms_admin_pages_view_config(PagesModule $module, string $view): array
 
 // ─── Auth-Check ────────────────────────────────────────────────────────────
 if (!cms_admin_pages_can_access()) {
-    header('Location: ' . SITE_URL);
+    header('Location: /');
     exit;
 }
 

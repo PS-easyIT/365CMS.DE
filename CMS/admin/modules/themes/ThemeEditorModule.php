@@ -30,6 +30,7 @@ class ThemeEditorModule
     private const ALLOWED_EXTENSIONS = ['php', 'css', 'js', 'json', 'html', 'txt', 'md'];
     private const MAX_EDITABLE_BYTES = 1048576;
     private const MAX_ERROR_CONTEXT_LENGTH = 180;
+    private const TEMP_FILE_PREFIX = 'cmstheme_';
 
     public function __construct()
     {
@@ -63,16 +64,23 @@ class ThemeEditorModule
             if ($safePath && is_file($safePath)) {
                 $fileMeta = $this->buildFileMeta($safePath, $currentFile);
                 $fileSize = filesize($safePath);
-                if ($fileSize === false || $fileSize > self::MAX_EDITABLE_BYTES) {
+                if (!($fileMeta['is_readable'] ?? false)) {
+                    $fileWarning = (string) ($fileMeta['save_disabled_reason'] ?? 'Die ausgewählte Datei konnte nicht sicher gelesen werden.');
+                } elseif ($fileSize === false || $fileSize > self::MAX_EDITABLE_BYTES) {
                     $fileWarning = 'Die ausgewählte Datei ist zu groß für die sichere Browser-Bearbeitung.';
                 } else {
                     $contents = file_get_contents($safePath);
-                    $fileContent = is_string($contents) ? $contents : '';
-
-                    if (str_contains($fileContent, "\0")) {
-                        $fileContent = '';
-                        $fileWarning = 'Die ausgewählte Datei enthält Binärdaten und kann hier nicht sicher bearbeitet werden.';
+                    if (!is_string($contents)) {
+                        $fileWarning = 'Die ausgewählte Datei konnte nicht sicher gelesen werden.';
                         $fileMeta = $this->markFileMetaAsReadOnly($fileMeta, $fileWarning);
+                    } else {
+                        $fileContent = $contents;
+
+                        if (str_contains($fileContent, "\0")) {
+                            $fileContent = '';
+                            $fileWarning = 'Die ausgewählte Datei enthält Binärdaten und kann hier nicht sicher bearbeitet werden.';
+                            $fileMeta = $this->markFileMetaAsReadOnly($fileMeta, $fileWarning);
+                        }
                     }
                 }
 
@@ -169,6 +177,34 @@ class ThemeEditorModule
             );
         }
 
+        if (!is_readable($safePath)) {
+            return $this->buildValidationFailureResult(
+                'Datei ist nicht lesbar und kann nicht sicher überschrieben werden.',
+                'themes.editor.file_not_readable',
+                ['Datei: ' . $relativePath],
+                ['file' => $relativePath]
+            );
+        }
+
+        $currentContent = file_get_contents($safePath);
+        if (!is_string($currentContent)) {
+            return $this->buildValidationFailureResult(
+                'Datei konnte vor dem Speichern nicht sicher gelesen werden.',
+                'themes.editor.file_read_failed',
+                ['Datei: ' . $relativePath],
+                ['file' => $relativePath]
+            );
+        }
+
+        if (str_contains($currentContent, "\0")) {
+            return $this->buildValidationFailureResult(
+                'Datei enthält Binärdaten und kann nicht sicher im Browser überschrieben werden.',
+                'themes.editor.binary_target_file',
+                ['Datei: ' . $relativePath],
+                ['file' => $relativePath]
+            );
+        }
+
         if (str_contains($content, "\0")) {
             return $this->buildValidationFailureResult(
                 'Dateiinhalt enthält ungültige Binärdaten.',
@@ -202,10 +238,15 @@ class ThemeEditorModule
         }
 
         try {
-            if (file_put_contents($safePath, $content, LOCK_EX) === false) {
+            $writeError = $this->writeFileAtomically($safePath, $content);
+            if ($writeError !== null) {
+                $message = $writeError === 'themes.editor.integrity_check_failed'
+                    ? 'Datei konnte nach dem Speichern nicht per SHA-512 bestätigt werden.'
+                    : 'Datei konnte nicht gespeichert werden.';
+
                 return $this->failResult(
-                    'themes.editor.write.failed',
-                    'Datei konnte nicht gespeichert werden.',
+                    $writeError,
+                    $message,
                     null,
                     ['file' => $relativePath]
                 );
@@ -372,6 +413,12 @@ class ThemeEditorModule
                 $ext = strtolower(pathinfo($item, PATHINFO_EXTENSION));
                 $fileSize = filesize($path);
                 if (in_array($ext, self::ALLOWED_EXTENSIONS, true) && $fileSize !== false && $fileSize <= self::MAX_EDITABLE_BYTES) {
+                    if (!is_readable($path)) {
+                        $summary['skipped_items'] = (int) ($summary['skipped_items'] ?? 0) + 1;
+                        $this->pushTreeWarning($summary, 'Nicht lesbare Theme-Dateien werden im Explorer aus Sicherheitsgründen übersprungen.');
+                        continue;
+                    }
+
                     $summary['items'] = (int) ($summary['items'] ?? 0) + 1;
                     $files[] = [
                         'name' => $item,
@@ -420,12 +467,15 @@ class ThemeEditorModule
     {
         $fileSize = filesize($safePath);
         $extension = strtolower(pathinfo($safePath, PATHINFO_EXTENSION));
+        $isReadable = is_readable($safePath);
         $isWritable = is_writable($safePath);
         $isEditableSize = $fileSize !== false && $fileSize <= self::MAX_EDITABLE_BYTES;
-        $isEditable = $isWritable && $isEditableSize && in_array($extension, self::ALLOWED_EXTENSIONS, true);
+        $isEditable = $isReadable && $isWritable && $isEditableSize && in_array($extension, self::ALLOWED_EXTENSIONS, true);
 
         $reason = '';
-        if (!$isWritable) {
+        if (!$isReadable) {
+            $reason = 'Datei ist nicht lesbar oder für PHP nicht sicher zugänglich.';
+        } elseif (!$isWritable) {
             $reason = 'Datei ist schreibgeschützt oder für PHP nicht beschreibbar.';
         } elseif (!$isEditableSize) {
             $reason = 'Datei überschreitet das sichere Browser-Limit von 1 MB.';
@@ -438,6 +488,7 @@ class ThemeEditorModule
             'extension' => $extension !== '' ? $extension : 'txt',
             'size_bytes' => $fileSize !== false ? (int) $fileSize : 0,
             'size_label' => $this->formatBytes($fileSize !== false ? (int) $fileSize : 0),
+            'is_readable' => $isReadable,
             'is_writable' => $isWritable,
             'is_editable' => $isEditable,
             'save_disabled_reason' => $reason,
@@ -455,6 +506,67 @@ class ThemeEditorModule
         $fileMeta['save_disabled_reason'] = trim($reason);
 
         return $fileMeta;
+    }
+
+    private function writeFileAtomically(string $path, string $content): ?string
+    {
+        $directory = dirname($path);
+        if (!is_dir($directory) || !is_writable($directory)) {
+            return 'themes.editor.write.failed';
+        }
+
+        $tempPath = tempnam($directory, self::TEMP_FILE_PREFIX);
+        if ($tempPath === false) {
+            return 'themes.editor.write.failed';
+        }
+
+        if (file_put_contents($tempPath, $content, LOCK_EX) === false) {
+            @unlink($tempPath);
+
+            return 'themes.editor.write.failed';
+        }
+
+        $originalPerms = is_file($path) ? @fileperms($path) : false;
+        $backupPath = null;
+        if (is_file($path)) {
+            $backupPath = $path . '.swap.' . str_replace('.', '', uniqid('', true));
+            if (!@rename($path, $backupPath)) {
+                @unlink($tempPath);
+
+                return 'themes.editor.write.failed';
+            }
+        }
+
+        if (!@rename($tempPath, $path)) {
+            if ($backupPath !== null && is_file($backupPath)) {
+                @rename($backupPath, $path);
+            }
+
+            @unlink($tempPath);
+
+            return 'themes.editor.write.failed';
+        }
+
+        @chmod($path, $originalPerms !== false ? ($originalPerms & 0777) : 0640);
+
+        $savedHash = @hash_file('sha512', $path);
+        $expectedHash = hash('sha512', $content);
+        if (!is_string($savedHash) || !hash_equals($expectedHash, $savedHash)) {
+            @unlink($path);
+
+            if ($backupPath !== null && is_file($backupPath)) {
+                @rename($backupPath, $path);
+                @chmod($path, $originalPerms !== false ? ($originalPerms & 0777) : 0640);
+            }
+
+            return 'themes.editor.integrity_check_failed';
+        }
+
+        if ($backupPath !== null && is_file($backupPath)) {
+            @unlink($backupPath);
+        }
+
+        return null;
     }
 
     private function formatBytes(int $bytes): string

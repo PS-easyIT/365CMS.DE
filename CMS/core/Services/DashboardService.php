@@ -74,10 +74,12 @@ class DashboardService {
         }
 
         try {
-            $total = (int)$this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}orders") ?: 0;
-            $pending = (int)$this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}orders WHERE status = 'pending'") ?: 0;
+            $orderTable = $this->prefix . 'orders';
+            $amountExpression = $this->buildOrderAmountExpression();
+            $total = (int)$this->db->get_var("SELECT COUNT(*) FROM {$orderTable}") ?: 0;
+            $pending = (int)$this->db->get_var("SELECT COUNT(*) FROM {$orderTable} WHERE LOWER(TRIM(status)) = 'pending'") ?: 0;
             $monthRevenue = (float)$this->db->get_var(
-                "SELECT COALESCE(SUM(total_amount), 0) FROM {$this->prefix}orders WHERE status IN ('confirmed', 'completed') AND created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)"
+                "SELECT COALESCE(SUM({$amountExpression}), 0) FROM {$orderTable} WHERE LOWER(TRIM(status)) IN ('paid', 'confirmed', 'completed') AND created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)"
             );
 
             return [
@@ -496,15 +498,16 @@ class DashboardService {
         }
 
         try {
-            return $this->db->get_results(
-                "SELECT o.order_number, o.total_amount, o.currency, o.status, o.created_at,
-                        COALESCE(NULLIF(CONCAT(COALESCE(o.forename, ''), ' ', COALESCE(o.lastname, '')), ' '), u.display_name, u.username, o.email, 'Gast') AS customer_name
+            $rows = $this->db->get_results(
+                "SELECT o.*, u.display_name, u.username
                  FROM {$this->prefix}orders o
                  LEFT JOIN {$this->prefix}users u ON o.user_id = u.id
                  ORDER BY o.created_at DESC
                  LIMIT ?",
                 [$limit]
             ) ?: [];
+
+            return array_map(fn ($row) => $this->normalizeRecentOrderRow($row), $rows);
         } catch (\Throwable $e) {
             error_log('DashboardService: Recent orders error - ' . $e->getMessage());
             return [];
@@ -596,5 +599,98 @@ class DashboardService {
         }
         
         return $size;
+    }
+
+    private function hasColumn(string $table, string $column): bool
+    {
+        try {
+            return $this->db->get_var("SHOW COLUMNS FROM {$table} LIKE ?", [$column]) !== null;
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    private function buildOrderAmountExpression(string $alias = ''): string
+    {
+        $table = $this->prefix . 'orders';
+        $qualifier = $alias !== '' ? $alias . '.' : '';
+        $hasTotalAmount = $this->hasColumn($table, 'total_amount');
+        $hasAmount = $this->hasColumn($table, 'amount');
+
+        return match (true) {
+            $hasTotalAmount && $hasAmount => "COALESCE(NULLIF({$qualifier}total_amount, 0), {$qualifier}amount, 0)",
+            $hasTotalAmount => "COALESCE({$qualifier}total_amount, 0)",
+            $hasAmount => "COALESCE({$qualifier}amount, 0)",
+            default => '0',
+        };
+    }
+
+    private function normalizeRecentOrderRow(object $row): object
+    {
+        $data = (array) $row;
+        $contactData = $this->decodeOrderContactData((string) ($data['contact_data'] ?? ''));
+        $customerEmail = $this->firstNonEmpty([
+            (string) ($data['customer_email'] ?? ''),
+            (string) ($data['email'] ?? ''),
+            (string) ($contactData['email'] ?? ''),
+        ]);
+        $contactName = trim(((string) ($contactData['first_name'] ?? '')) . ' ' . ((string) ($contactData['last_name'] ?? '')));
+        $legacyName = trim(((string) ($data['forename'] ?? '')) . ' ' . ((string) ($data['lastname'] ?? '')));
+        $customerName = $this->firstNonEmpty([
+            (string) ($data['customer_name'] ?? ''),
+            $contactName,
+            $legacyName,
+            (string) ($data['display_name'] ?? ''),
+            (string) ($data['username'] ?? ''),
+            $customerEmail,
+            'Gast',
+        ]);
+        $status = strtolower(trim((string) ($data['status'] ?? 'pending')));
+        if (in_array($status, ['confirmed', 'completed'], true)) {
+            $status = 'paid';
+        }
+
+        $amount = isset($data['total_amount']) ? (float) $data['total_amount'] : 0.0;
+        if ($amount <= 0.0 && isset($data['amount'])) {
+            $amount = (float) $data['amount'];
+        }
+
+        return (object) [
+            'order_number' => (string) ($data['order_number'] ?? ''),
+            'total_amount' => $amount,
+            'currency' => (string) ($data['currency'] ?? 'EUR'),
+            'status' => $status,
+            'created_at' => (string) ($data['created_at'] ?? ''),
+            'customer_name' => $customerName,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function decodeOrderContactData(string $contactData): array
+    {
+        if ($contactData === '') {
+            return [];
+        }
+
+        $decoded = json_decode($contactData, true);
+
+        return is_array($decoded) ? $decoded : [];
+    }
+
+    /**
+     * @param array<int, string> $values
+     */
+    private function firstNonEmpty(array $values): string
+    {
+        foreach ($values as $value) {
+            $value = trim($value);
+            if ($value !== '') {
+                return $value;
+            }
+        }
+
+        return '';
     }
 }

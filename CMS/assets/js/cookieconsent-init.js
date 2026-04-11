@@ -14,6 +14,64 @@
             .replace(/'/g, '&#39;');
     }
 
+    function createElement(tagName, options, children) {
+        var element = document.createElement(tagName);
+        var config = options && typeof options === 'object' ? options : {};
+        var childList = Array.isArray(children) ? children : (typeof children === 'undefined' ? [] : [children]);
+
+        if (config.className) {
+            element.className = config.className;
+        }
+
+        if (config.text) {
+            element.textContent = config.text;
+        }
+
+        if (config.attributes && typeof config.attributes === 'object') {
+            Object.keys(config.attributes).forEach(function (key) {
+                var value = config.attributes[key];
+
+                if (value === null || typeof value === 'undefined') {
+                    return;
+                }
+
+                if (value === true) {
+                    element.setAttribute(key, '');
+                    return;
+                }
+
+                element.setAttribute(key, String(value));
+            });
+        }
+
+        if (config.dataset && typeof config.dataset === 'object') {
+            Object.keys(config.dataset).forEach(function (key) {
+                var value = config.dataset[key];
+
+                if (value === null || typeof value === 'undefined') {
+                    return;
+                }
+
+                element.dataset[key] = String(value);
+            });
+        }
+
+        childList.forEach(function (child) {
+            if (child === null || typeof child === 'undefined') {
+                return;
+            }
+
+            if (typeof child === 'string') {
+                element.appendChild(document.createTextNode(child));
+                return;
+            }
+
+            element.appendChild(child);
+        });
+
+        return element;
+    }
+
     var consentApi = null;
     var lastFeedConsentState = null;
     var modalOpen = false;
@@ -227,32 +285,45 @@
     }
 
     function renderServices(services) {
+        var fragment = document.createDocumentFragment();
+
         if (!services.length) {
-            return '<div class="cmp-cookie-service"><div class="cmp-cookie-service__meta">Für diese Kategorie sind aktuell keine Einzelservices hinterlegt.</div></div>';
+            fragment.appendChild(createElement('div', { className: 'cmp-cookie-service' }, [
+                createElement('div', {
+                    className: 'cmp-cookie-service__meta',
+                    text: 'Für diese Kategorie sind aktuell keine Einzelservices hinterlegt.'
+                })
+            ]));
+            return fragment;
         }
 
-        return services.map(function (service) {
+        services.forEach(function (service) {
             var label = '';
             if (service && typeof service === 'object' && service.label) {
                 label = String(service.label);
             }
 
-            return ''
-                + '<div class="cmp-cookie-service">'
-                + '  <div class="cmp-cookie-service__title">'
-                + '    <span>' + escapeHtml(label || 'Service') + '</span>'
-                + '  </div>'
-                + '  <div class="cmp-cookie-service__meta">Wird mit dieser Kategorie gemeinsam freigegeben.</div>'
-                + '</div>';
-        }).join('');
+            fragment.appendChild(createElement('div', { className: 'cmp-cookie-service' }, [
+                createElement('div', { className: 'cmp-cookie-service__title' }, [
+                    createElement('span', { text: label || 'Service' })
+                ]),
+                createElement('div', {
+                    className: 'cmp-cookie-service__meta',
+                    text: 'Wird mit dieser Kategorie gemeinsam freigegeben.'
+                })
+            ]));
+        });
+
+        return fragment;
     }
 
     function renderPreferenceSections() {
         var cfg = getConfig();
         var categories = getConfiguredCategories();
         var sections = Array.isArray(cfg.sections) ? cfg.sections : [];
+        var fragment = document.createDocumentFragment();
 
-        return sections.map(function (section) {
+        sections.forEach(function (section) {
             var linkedCategory = section && typeof section === 'object' ? String(section.linkedCategory || '') : '';
             var categoryConfig = linkedCategory && categories[linkedCategory] ? categories[linkedCategory] : null;
             var services = categoryConfig && categoryConfig.services && typeof categoryConfig.services === 'object'
@@ -262,23 +333,52 @@
                 : [];
             var required = linkedCategory === '' || !categoryConfig || categoryConfig.readOnly === true;
 
-            return ''
-                + '<section class="cmp-cookie-section">'
-                + '  <div class="cmp-cookie-section__top">'
-                + '    <div>'
-                + '      <h3 class="cmp-cookie-section__title">' + escapeHtml(section && section.title ? section.title : 'Kategorie') + '</h3>'
-                + '      <p class="cmp-cookie-section__description">' + escapeHtml(section && section.description ? section.description : '') + '</p>'
-                + '    </div>'
-                + '    ' + (linkedCategory
-                    ? '<label class="cmp-cookie-toggle">'
-                        + '<input type="checkbox" data-cms-consent-checkbox="' + escapeHtml(linkedCategory) + '" ' + (required ? 'checked disabled' : '') + '>'
-                        + '<span class="cmp-cookie-section__badge">' + (required ? 'Immer aktiv' : 'Optional') + '</span>'
-                      + '</label>'
-                    : '<span class="cmp-cookie-section__badge">Info</span>')
-                + '  </div>'
-                + (linkedCategory ? '<div class="cmp-cookie-services">' + renderServices(services) + '</div>' : '')
-                + '</section>';
-        }).join('');
+            var titleBlock = createElement('div', {}, [
+                createElement('h3', {
+                    className: 'cmp-cookie-section__title',
+                    text: section && section.title ? section.title : 'Kategorie'
+                }),
+                createElement('p', {
+                    className: 'cmp-cookie-section__description',
+                    text: section && section.description ? section.description : ''
+                })
+            ]);
+            var topChildren = [titleBlock];
+
+            if (linkedCategory) {
+                topChildren.push(createElement('label', { className: 'cmp-cookie-toggle' }, [
+                    createElement('input', {
+                        attributes: {
+                            type: 'checkbox',
+                            checked: required,
+                            disabled: required
+                        },
+                        dataset: { cmsConsentCheckbox: linkedCategory }
+                    }),
+                    createElement('span', {
+                        className: 'cmp-cookie-section__badge',
+                        text: required ? 'Immer aktiv' : 'Optional'
+                    })
+                ]));
+            } else {
+                topChildren.push(createElement('span', {
+                    className: 'cmp-cookie-section__badge',
+                    text: 'Info'
+                }));
+            }
+
+            var sectionElement = createElement('section', { className: 'cmp-cookie-section' }, [
+                createElement('div', { className: 'cmp-cookie-section__top' }, topChildren)
+            ]);
+
+            if (linkedCategory) {
+                sectionElement.appendChild(createElement('div', { className: 'cmp-cookie-services' }, [renderServices(services)]));
+            }
+
+            fragment.appendChild(sectionElement);
+        });
+
+        return fragment;
     }
 
     function ensureUi() {
@@ -292,42 +392,113 @@
         var overlay = document.createElement('div');
         var policyUrl = cfg.policyUrl || '/datenschutz';
         var primaryColor = cfg.primaryColor || '#3b82f6';
+        var policyLink = createElement('a', {
+            text: 'Datenschutz',
+            attributes: { href: policyUrl }
+        });
+        var modalPolicyLink = createElement('a', {
+            text: 'Datenschutzerklärung',
+            attributes: { href: policyUrl }
+        });
+        var bannerText = createElement('p', { className: 'cmp-cookie-banner__text' }, [
+            document.createTextNode(cfg.bannerText || 'Wir nutzen Cookies für eine optimale Website-Erfahrung.'),
+            document.createTextNode(' '),
+            policyLink
+        ]);
+        var modalBody = createElement('div', { className: 'cmp-cookie-modal__body' }, [renderPreferenceSections()]);
+        var closeButton = createElement('button', {
+            className: 'cmp-cookie-modal__close',
+            text: '×',
+            attributes: { type: 'button', 'aria-label': 'Schließen' },
+            dataset: { cmsConsentClose: '1' }
+        });
+        var essentialText = cfg.essentialText || cfg.rejectText || 'Nur Essenzielle';
+        var banner = document.createElement('div');
+        var overlay = document.createElement('div');
 
         root.id = 'cms-cookie-consent-root';
         root.style.setProperty('--cms-cc-primary', primaryColor);
 
         banner.className = 'cmp-cookie-banner' + (cfg.position === 'center' ? ' cmp-cookie-banner--center' : '');
-        banner.innerHTML = ''
-            + '<h2 class="cmp-cookie-banner__title">🍪 Cookie-Einstellungen</h2>'
-            + '<p class="cmp-cookie-banner__text">' + escapeHtml(cfg.bannerText || 'Wir nutzen Cookies für eine optimale Website-Erfahrung.')
-            + ' <a href="' + escapeHtml(policyUrl) + '">Datenschutz</a></p>'
-            + '<div class="cmp-cookie-banner__actions">'
-            + '  <button type="button" class="cmp-cookie-button cmp-cookie-button--primary" data-cms-consent-button="accept-all">' + escapeHtml(cfg.acceptText || 'Akzeptieren') + '</button>'
-            + '  <button type="button" class="cmp-cookie-button cmp-cookie-button--secondary" data-cms-consent-button="essential">' + escapeHtml(cfg.essentialText || cfg.rejectText || 'Nur Essenzielle') + '</button>'
-            + '  <button type="button" class="cmp-cookie-button cmp-cookie-button--ghost" data-cms-consent-button="preferences">Einstellungen</button>'
-            + '</div>';
+        banner.appendChild(createElement('h2', {
+            className: 'cmp-cookie-banner__title',
+            text: '🍪 Cookie-Einstellungen'
+        }));
+        banner.appendChild(bannerText);
+        banner.appendChild(createElement('div', { className: 'cmp-cookie-banner__actions' }, [
+            createElement('button', {
+                className: 'cmp-cookie-button cmp-cookie-button--primary',
+                text: cfg.acceptText || 'Akzeptieren',
+                attributes: { type: 'button' },
+                dataset: { cmsConsentButton: 'accept-all' }
+            }),
+            createElement('button', {
+                className: 'cmp-cookie-button cmp-cookie-button--secondary',
+                text: essentialText,
+                attributes: { type: 'button' },
+                dataset: { cmsConsentButton: 'essential' }
+            }),
+            createElement('button', {
+                className: 'cmp-cookie-button cmp-cookie-button--ghost',
+                text: 'Einstellungen',
+                attributes: { type: 'button' },
+                dataset: { cmsConsentButton: 'preferences' }
+            })
+        ]));
 
         overlay.className = 'cmp-cookie-overlay';
         overlay.hidden = true;
-        overlay.innerHTML = ''
-            + '<div class="cmp-cookie-modal" role="dialog" aria-modal="true" aria-labelledby="cmp-cookie-modal-title">'
-            + '  <div class="cmp-cookie-modal__header">'
-            + '    <div>'
-            + '      <h2 id="cmp-cookie-modal-title" class="cmp-cookie-banner__title">Cookie-Präferenzen</h2>'
-            + '      <p class="cmp-cookie-banner__text">Wähle aus, welche optionalen Kategorien auf dieser Website aktiviert werden dürfen.</p>'
-            + '    </div>'
-            + '    <button type="button" class="cmp-cookie-modal__close" aria-label="Schließen" data-cms-consent-close="1">×</button>'
-            + '  </div>'
-            + '  <div class="cmp-cookie-modal__body">' + renderPreferenceSections() + '</div>'
-            + '  <div class="cmp-cookie-modal__footer">'
-            + '    <div class="cmp-cookie-modal__meta text-secondary small">Mehr Details findest du in der <a href="' + escapeHtml(policyUrl) + '">Datenschutzerklärung</a>.</div>'
-            + '    <div class="cmp-cookie-modal__actions">'
-            + '      <button type="button" class="cmp-cookie-button cmp-cookie-button--secondary" data-cms-consent-button="essential">' + escapeHtml(cfg.essentialText || 'Nur Essenzielle') + '</button>'
-            + '      <button type="button" class="cmp-cookie-button cmp-cookie-button--ghost" data-cms-consent-button="save">Auswahl speichern</button>'
-            + '      <button type="button" class="cmp-cookie-button cmp-cookie-button--primary" data-cms-consent-button="accept-all">' + escapeHtml(cfg.acceptText || 'Akzeptieren') + '</button>'
-            + '    </div>'
-            + '  </div>'
-            + '</div>';
+        overlay.appendChild(createElement('div', {
+            className: 'cmp-cookie-modal',
+            attributes: {
+                role: 'dialog',
+                'aria-modal': 'true',
+                'aria-labelledby': 'cmp-cookie-modal-title'
+            }
+        }, [
+            createElement('div', { className: 'cmp-cookie-modal__header' }, [
+                createElement('div', {}, [
+                    createElement('h2', {
+                        className: 'cmp-cookie-banner__title',
+                        text: 'Cookie-Präferenzen',
+                        attributes: { id: 'cmp-cookie-modal-title' }
+                    }),
+                    createElement('p', {
+                        className: 'cmp-cookie-banner__text',
+                        text: 'Wähle aus, welche optionalen Kategorien auf dieser Website aktiviert werden dürfen.'
+                    })
+                ]),
+                closeButton
+            ]),
+            modalBody,
+            createElement('div', { className: 'cmp-cookie-modal__footer' }, [
+                createElement('div', { className: 'cmp-cookie-modal__meta text-secondary small' }, [
+                    document.createTextNode('Mehr Details findest du in der '),
+                    modalPolicyLink,
+                    document.createTextNode('.')
+                ]),
+                createElement('div', { className: 'cmp-cookie-modal__actions' }, [
+                    createElement('button', {
+                        className: 'cmp-cookie-button cmp-cookie-button--secondary',
+                        text: cfg.essentialText || 'Nur Essenzielle',
+                        attributes: { type: 'button' },
+                        dataset: { cmsConsentButton: 'essential' }
+                    }),
+                    createElement('button', {
+                        className: 'cmp-cookie-button cmp-cookie-button--ghost',
+                        text: 'Auswahl speichern',
+                        attributes: { type: 'button' },
+                        dataset: { cmsConsentButton: 'save' }
+                    }),
+                    createElement('button', {
+                        className: 'cmp-cookie-button cmp-cookie-button--primary',
+                        text: cfg.acceptText || 'Akzeptieren',
+                        attributes: { type: 'button' },
+                        dataset: { cmsConsentButton: 'accept-all' }
+                    })
+                ])
+            ])
+        ]));
 
         root.appendChild(banner);
         root.appendChild(overlay);

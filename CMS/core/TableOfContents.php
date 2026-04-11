@@ -358,7 +358,7 @@ class TableOfContents
         $alignment    = htmlspecialchars((string)($this->settings['alignment']  ?? 'none'),  ENT_QUOTES, 'UTF-8');
         $widthSetting = (string)($this->settings['width'] ?? 'auto');
 
-        $uid     = 'toc-' . substr(md5((string)microtime(true) . random_int(0, 9999)), 0, 8);
+        $uid     = 'toc-' . $this->generateUidSuffix();
         $classes = ['cms-toc', 'cms-toc--' . $theme];
         if ($alignment !== 'none') {
             $classes[] = 'cms-toc--align-' . $alignment;
@@ -509,5 +509,13 @@ class TableOfContents
 
         $html .= '</' . $tag . '>';
         return $html;
+    }
+    private function generateUidSuffix(): string
+    {
+        try {
+            return substr(bin2hex(random_bytes(4)), 0, 8);
+        } catch (\Throwable) {
+            return substr(hash('sha256', (string) microtime(true) . '|' . random_int(0, PHP_INT_MAX)), 0, 8);
+        }
     }
 }

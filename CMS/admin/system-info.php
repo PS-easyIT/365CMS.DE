@@ -12,8 +12,16 @@ if (!defined('ABSPATH')) {
 
 use CMS\Auth;
 
+const CMS_ADMIN_SYSTEM_INFO_READ_CAPABILITY = 'manage_settings';
+
+function cms_admin_system_info_can_access(): bool
+{
+    return Auth::instance()->isAdmin()
+        && Auth::instance()->hasCapability(CMS_ADMIN_SYSTEM_INFO_READ_CAPABILITY);
+}
+
 $adminRedirectAliasConfig = [
-    'access_checker' => static fn (array $_config = []): bool => Auth::instance()->isAdmin(),
+    'access_checker' => static fn (array $_config = []): bool => cms_admin_system_info_can_access(),
     'target_url' => '/admin/info',
     'fallback_url' => '/',
 ];

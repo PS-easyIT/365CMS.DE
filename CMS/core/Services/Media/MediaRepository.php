@@ -4,7 +4,9 @@ declare(strict_types=1);
 namespace CMS\Services\Media;
 
 use CMS\Auth;
+use CMS\Contracts\LoggerInterface;
 use CMS\Json;
+use CMS\Logger;
 use CMS\Services\MediaDeliveryService;
 use CMS\WP_Error;
 
@@ -14,12 +16,21 @@ if (!defined('ABSPATH')) {
 
 final class MediaRepository
 {
+    private const CATEGORY_NAME_MAX_LENGTH = 80;
+    private const MAX_UPLOADED_BY_LENGTH = 120;
+    private const MAX_ORIGINAL_NAME_LENGTH = 180;
+    private const ATOMIC_FILE_MODE = 0640;
+
+    private LoggerInterface $logger;
+
     public function __construct(
         private readonly string $uploadPath,
         private readonly string $uploadUrl,
         private readonly string $metaFile,
-        private readonly array $systemFolders
+        private readonly array $systemFolders,
+        ?LoggerInterface $logger = null
     ) {
+        $this->logger = $logger ?? Logger::instance()->withChannel('media.repository');
         $this->ensureSystemCategories();
     }
 
@@ -79,11 +90,15 @@ final class MediaRepository
     public function addCategory(string $name, string $slug = ''): bool|WP_Error
     {
         $meta = $this->loadMeta();
-        $slug = $slug ?: strtolower(trim((string)preg_replace('/[^A-Za-z0-9-]+/', '-', $name), '-'));
-        $name = trim($name);
+        $name = $this->normalizeCategoryName($name);
+        $slug = $this->normalizeCategorySlug($slug !== '' ? $slug : $name);
 
         if ($name === '' || $slug === '') {
             return new WP_Error('invalid_category', 'Name und Slug sind erforderlich');
+        }
+
+        if (in_array($slug, $this->systemFolders, true)) {
+            return new WP_Error('system_category', 'System-Kategorien können nicht überschrieben werden');
         }
 
         foreach (($meta['categories'] ?? []) as $cat) {
@@ -104,7 +119,7 @@ final class MediaRepository
     public function deleteCategory(string $slug): bool|WP_Error
     {
         $meta = $this->loadMeta();
-        $slug = trim($slug);
+        $slug = $this->normalizeCategorySlug($slug);
 
         if ($slug === '') {
             return new WP_Error('missing_slug', 'Kategorie-Slug fehlt');
@@ -134,7 +149,22 @@ final class MediaRepository
     public function assignCategory(string $filePath, string $categorySlug): bool|WP_Error
     {
         $meta = $this->loadMeta();
-        $filePath = str_replace('\\', '/', $filePath);
+        $filePath = $this->normalizeRelativePath($filePath);
+
+        if ($filePath === '') {
+            return new WP_Error('invalid_path', 'Dateipfad ist ungültig');
+        }
+
+        $fullPath = $this->resolvePath($filePath);
+        if ($fullPath instanceof WP_Error) {
+            return $fullPath;
+        }
+
+        if (!is_file($fullPath)) {
+            return new WP_Error('missing_file', 'Kategorie kann nur bestehenden Dateien zugewiesen werden');
+        }
+
+        $categorySlug = $this->normalizeCategorySlug($categorySlug);
 
         if ($categorySlug !== '') {
             $validSlugs = array_column($meta['categories'] ?? [], 'slug');
@@ -159,21 +189,33 @@ final class MediaRepository
     public function loadMeta(): array
     {
         if (!file_exists($this->metaFile)) {
-            return ['categories' => [], 'files' => []];
+            return $this->emptyMetaState();
         }
 
         $content = file_get_contents($this->metaFile);
-        $data = Json::decodeArray($content ?: '', []);
+        if ($content === false) {
+            $this->logger->warning('Media-Metadaten konnten nicht gelesen werden.', [
+                'path' => $this->metaFile,
+            ]);
 
-        return [
-            'categories' => $data['categories'] ?? [],
-            'files' => $data['files'] ?? [],
-        ];
+            return $this->emptyMetaState();
+        }
+
+        $data = Json::decodeArray($content, []);
+
+        return $this->normalizeMetaState(is_array($data) ? $data : []);
     }
 
     public function saveMeta(array $data): bool
     {
-        return file_put_contents($this->metaFile, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)) !== false;
+        $normalized = $this->normalizeMetaState($data);
+        $json = json_encode($normalized, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+
+        if ($json === false) {
+            return false;
+        }
+
+        return $this->writeFileAtomically($this->metaFile, $json . "\n");
     }
 
     public function buildPublicUrl(string $relativePath): string
@@ -278,7 +320,12 @@ final class MediaRepository
                 ];
             }
         } catch (\Throwable $e) {
-            return new WP_Error('scan_error', $e->getMessage());
+            $this->logger->warning('Medienverzeichnis konnte nicht vollständig gelesen werden.', [
+                'path' => $fullPath,
+                'exception' => $e->getMessage(),
+            ]);
+
+            return new WP_Error('scan_error', 'Verzeichnis konnte nicht gelesen werden');
         }
 
         return $items;
@@ -287,6 +334,13 @@ final class MediaRepository
     public function ensureCategory(string $name, string $slug): string
     {
         $meta = $this->loadMeta();
+        $name = $this->normalizeCategoryName($name);
+        $slug = $this->normalizeCategorySlug($slug);
+
+        if ($name === '' || $slug === '') {
+            return '';
+        }
+
         $existingSlugs = array_column($meta['categories'] ?? [], 'slug');
         if (!in_array($slug, $existingSlugs, true)) {
             $meta['categories'][] = [
@@ -340,13 +394,34 @@ final class MediaRepository
         $size = 0;
         $count = 0;
 
-        $iterator = new \RecursiveIteratorIterator(
-            new \RecursiveDirectoryIterator($this->uploadPath, \RecursiveDirectoryIterator::SKIP_DOTS)
-        );
+        if (!is_dir($this->uploadPath)) {
+            return [
+                'size' => 0,
+                'count' => 0,
+                'formatted' => $this->formatSize(0),
+            ];
+        }
 
-        foreach ($iterator as $file) {
-            $size += $file->getSize();
-            $count++;
+        try {
+            $iterator = new \RecursiveIteratorIterator(
+                new \RecursiveDirectoryIterator($this->uploadPath, \RecursiveDirectoryIterator::SKIP_DOTS),
+                \RecursiveIteratorIterator::LEAVES_ONLY,
+                \RecursiveIteratorIterator::CATCH_GET_CHILD
+            );
+
+            foreach ($iterator as $file) {
+                if (!$file instanceof \SplFileInfo || !$file->isFile()) {
+                    continue;
+                }
+
+                $size += max(0, (int) $file->getSize());
+                $count++;
+            }
+        } catch (\Throwable $e) {
+            $this->logger->warning('Medien-Disk-Usage konnte nicht vollständig berechnet werden.', [
+                'path' => $this->uploadPath,
+                'exception' => $e->getMessage(),
+            ]);
         }
 
         return [
@@ -383,5 +458,181 @@ final class MediaRepository
         }
 
         return $fullPath;
+    }
+
+    private function emptyMetaState(): array
+    {
+        return ['categories' => [], 'files' => []];
+    }
+
+    private function normalizeMetaState(array $data): array
+    {
+        $categories = [];
+        $categoryLookup = [];
+
+        foreach ((array) ($data['categories'] ?? []) as $category) {
+            if (!is_array($category)) {
+                continue;
+            }
+
+            $slug = $this->normalizeCategorySlug((string) ($category['slug'] ?? ''));
+            $name = $this->normalizeCategoryName((string) ($category['name'] ?? ''));
+
+            if ($slug === '' || $name === '') {
+                continue;
+            }
+
+            if (isset($categoryLookup[$slug])) {
+                continue;
+            }
+
+            $categoryLookup[$slug] = true;
+            $categories[] = [
+                'name' => $name,
+                'slug' => $slug,
+                'count' => max(0, (int) ($category['count'] ?? 0)),
+                'is_system' => !empty($category['is_system']),
+            ];
+        }
+
+        $files = [];
+        foreach ((array) ($data['files'] ?? []) as $path => $fileMeta) {
+            if (!is_array($fileMeta)) {
+                continue;
+            }
+
+            $normalizedPath = $this->normalizeRelativePath((string) $path);
+            if ($normalizedPath === '') {
+                continue;
+            }
+
+            $normalizedMeta = [];
+            $uploadedAt = trim((string) ($fileMeta['uploaded_at'] ?? ''));
+            if ($uploadedAt !== '') {
+                $normalizedMeta['uploaded_at'] = $uploadedAt;
+            }
+
+            $uploadedBy = trim((string) ($fileMeta['uploaded_by'] ?? ''));
+            if ($uploadedBy !== '') {
+                $normalizedMeta['uploaded_by'] = function_exists('mb_substr')
+                    ? mb_substr($uploadedBy, 0, self::MAX_UPLOADED_BY_LENGTH, 'UTF-8')
+                    : substr($uploadedBy, 0, self::MAX_UPLOADED_BY_LENGTH);
+            }
+
+            $uploaderId = $fileMeta['uploader_id'] ?? null;
+            if ($uploaderId !== null && $uploaderId !== '') {
+                $normalizedMeta['uploader_id'] = max(0, (int) $uploaderId);
+            }
+
+            $originalName = trim((string) ($fileMeta['original_name'] ?? ''));
+            if ($originalName !== '') {
+                $normalizedMeta['original_name'] = function_exists('mb_substr')
+                    ? mb_substr($originalName, 0, self::MAX_ORIGINAL_NAME_LENGTH, 'UTF-8')
+                    : substr($originalName, 0, self::MAX_ORIGINAL_NAME_LENGTH);
+            }
+
+            $category = $this->normalizeCategorySlug((string) ($fileMeta['category'] ?? ''));
+            if ($category !== '' && isset($categoryLookup[$category])) {
+                $normalizedMeta['category'] = $category;
+            }
+
+            $files[$normalizedPath] = $normalizedMeta;
+        }
+
+        return [
+            'categories' => array_values($categories),
+            'files' => $files,
+        ];
+    }
+
+    private function normalizeCategorySlug(string $slug): string
+    {
+        $slug = strtolower(trim($slug));
+        $slug = preg_replace('/[^a-z0-9-]+/', '-', $slug) ?? '';
+        $slug = preg_replace('/-+/', '-', $slug) ?? '';
+
+        return trim($slug, '-');
+    }
+
+    private function normalizeCategoryName(string $name): string
+    {
+        $name = trim(strip_tags($name));
+
+        return function_exists('mb_substr')
+            ? mb_substr($name, 0, self::CATEGORY_NAME_MAX_LENGTH, 'UTF-8')
+            : substr($name, 0, self::CATEGORY_NAME_MAX_LENGTH);
+    }
+
+    private function normalizeRelativePath(string $path): string
+    {
+        $path = trim(str_replace('\\', '/', $path));
+        $path = preg_replace('#/+#', '/', $path) ?? '';
+        $path = trim($path, '/');
+
+        if ($path === '' || str_contains($path, '..') || preg_match('/[\x00-\x1F\x7F]/', $path) === 1) {
+            return '';
+        }
+
+        return preg_match('#^[A-Za-z0-9._\-/]+$#', $path) === 1 ? $path : '';
+    }
+
+    private function writeFileAtomically(string $path, string $content): bool
+    {
+        $directory = dirname($path);
+        if (!is_dir($directory) && !@mkdir($directory, 0755, true) && !is_dir($directory)) {
+            return false;
+        }
+
+        $tempPath = tempnam($directory, 'cmsmeta_');
+        if ($tempPath === false) {
+            return false;
+        }
+
+        $expectedHash = hash('sha512', $content);
+
+        if (file_put_contents($tempPath, $content, LOCK_EX) === false) {
+            @unlink($tempPath);
+            return false;
+        }
+
+        $tempHash = @hash_file('sha512', $tempPath);
+        if ($tempHash === false || !hash_equals($expectedHash, $tempHash)) {
+            @unlink($tempPath);
+            return false;
+        }
+
+        if (@rename($tempPath, $path)) {
+            @chmod($path, self::ATOMIC_FILE_MODE);
+            $finalHash = @hash_file('sha512', $path);
+
+            return $finalHash !== false && hash_equals($expectedHash, $finalHash);
+        }
+
+        $backupPath = null;
+        if (is_file($path)) {
+            $backupPath = $path . '.swap.' . str_replace('.', '', uniqid('', true));
+            if (!@rename($path, $backupPath)) {
+                @unlink($tempPath);
+                return false;
+            }
+        }
+
+        if (!@rename($tempPath, $path)) {
+            if ($backupPath !== null && is_file($backupPath)) {
+                @rename($backupPath, $path);
+            }
+
+            @unlink($tempPath);
+            return false;
+        }
+
+        if ($backupPath !== null && is_file($backupPath)) {
+            @unlink($backupPath);
+        }
+
+        @chmod($path, self::ATOMIC_FILE_MODE);
+        $finalHash = @hash_file('sha512', $path);
+
+        return $finalHash !== false && hash_equals($expectedHash, $finalHash);
     }
 }

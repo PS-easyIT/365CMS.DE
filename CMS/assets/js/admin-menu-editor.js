@@ -15,10 +15,14 @@
         }
     }
 
-    function escapeHtml(value) {
-        var div = document.createElement('div');
-        div.appendChild(document.createTextNode(String(value || '')));
-        return div.innerHTML;
+    function clearElement(element) {
+        if (!element) {
+            return;
+        }
+
+        while (element.firstChild) {
+            element.removeChild(element.firstChild);
+        }
     }
 
     function normalizeTitle(value) {
@@ -31,6 +35,19 @@
         }
 
         return bootstrap.Modal.getOrCreateInstance(modalElement);
+    }
+
+    function requestFormSubmit(form) {
+        if (!form) {
+            return;
+        }
+
+        if (typeof form.requestSubmit === 'function') {
+            form.requestSubmit();
+            return;
+        }
+
+        form.submit();
     }
 
     document.addEventListener('DOMContentLoaded', function () {
@@ -55,6 +72,7 @@
         var editMenuId = document.getElementById('editMenuId');
         var editMenuName = document.getElementById('editMenuName');
         var editMenuLocation = document.getElementById('editMenuLocation');
+        var menuModalForm = menuModal ? menuModal.querySelector('form') : null;
         var tempIdCounter = 0;
 
         function nextTempId() {
@@ -187,29 +205,76 @@
             return bucket;
         }
 
-        function buildParentOptions(currentId, selectedParentId) {
+        function appendParentOptions(select, currentId, selectedParentId) {
             var descendants = currentId ? collectDescendantIds(currentId, []) : [];
-            var options = '<option value="0">Hauptebene</option>';
+            var rootOption;
+
+            if (!select) {
+                return;
+            }
+
+            clearElement(select);
+
+            rootOption = document.createElement('option');
+            rootOption.value = '0';
+            rootOption.textContent = 'Hauptebene';
+            rootOption.selected = normalizeParentId(selectedParentId) === '0';
+            select.appendChild(rootOption);
 
             menuItems.forEach(function (candidate) {
                 var candidateId = String(candidate.id);
+                var option;
                 if (currentId && (candidateId === String(currentId) || descendants.indexOf(candidateId) !== -1)) {
                     return;
                 }
 
                 var depth = getItemDepth(candidate);
                 var prefix = depth > 0 ? Array(depth + 1).join('↳ ') : '';
-                var selected = normalizeParentId(selectedParentId) === candidateId ? ' selected' : '';
-                options += '<option value="' + escapeHtml(candidateId) + '"' + selected + '>' + escapeHtml(prefix + candidate.title) + '</option>';
-            });
 
-            return options;
+                option = document.createElement('option');
+                option.value = candidateId;
+                option.textContent = prefix + String(candidate.title || '');
+                option.selected = normalizeParentId(selectedParentId) === candidateId;
+                select.appendChild(option);
+            });
         }
 
         function syncJsonInput() {
             if (jsonInput) {
                 jsonInput.value = JSON.stringify(menuItems);
             }
+        }
+
+        function setFormSubmitting(form, isSubmitting) {
+            if (!form) {
+                return;
+            }
+
+            form.dataset.submitting = isSubmitting ? '1' : '0';
+            form.querySelectorAll('button[type="submit"], input[type="submit"]').forEach(function (element) {
+                element.disabled = isSubmitting;
+            });
+        }
+
+        function installSingleSubmitGuard(form) {
+            if (!form) {
+                return;
+            }
+
+            form.dataset.submitting = '0';
+            form.addEventListener('submit', function (event) {
+                if (event.defaultPrevented) {
+                    setFormSubmitting(form, false);
+                    return;
+                }
+
+                if (form.dataset.submitting === '1') {
+                    event.preventDefault();
+                    return;
+                }
+
+                setFormSubmitting(form, true);
+            });
         }
 
         function validateMenuItems() {
@@ -235,7 +300,7 @@
 
         function refreshParentSelects() {
             if (newItemParent) {
-                newItemParent.innerHTML = buildParentOptions(null, '0');
+                appendParentOptions(newItemParent, null, '0');
             }
 
             if (!listElement) {
@@ -249,7 +314,7 @@
                     return;
                 }
 
-                select.innerHTML = buildParentOptions(item.id, item.parent_id);
+                appendParentOptions(select, item.id, item.parent_id);
             });
         }
 
@@ -377,41 +442,160 @@
             });
         }
 
+        function createFieldLabel(text) {
+            var label = document.createElement('label');
+            label.className = 'form-label small text-muted mb-1';
+            label.textContent = text;
+            return label;
+        }
+
+        function createTextInput(className, index, value, placeholder) {
+            var input = document.createElement('input');
+            input.type = 'text';
+            input.className = className;
+            input.dataset.index = String(index);
+            input.value = String(value || '');
+            input.placeholder = placeholder;
+            return input;
+        }
+
+        function createTargetSelect(index, target) {
+            var select = document.createElement('select');
+            var selfOption = document.createElement('option');
+            var blankOption = document.createElement('option');
+
+            select.className = 'form-select form-select-sm item-target';
+            select.dataset.index = String(index);
+
+            selfOption.value = '_self';
+            selfOption.textContent = 'Gleiches Fenster';
+            selfOption.selected = target !== '_blank';
+
+            blankOption.value = '_blank';
+            blankOption.textContent = 'Neuer Tab';
+            blankOption.selected = target === '_blank';
+
+            select.appendChild(selfOption);
+            select.appendChild(blankOption);
+
+            return select;
+        }
+
+        function createColumn(className) {
+            var column = document.createElement('div');
+            column.className = className;
+            return column;
+        }
+
+        function createActionButton(className, index, label, ariaLabel) {
+            var button = document.createElement('button');
+            button.type = 'button';
+            button.className = className;
+            button.dataset.index = String(index);
+            button.textContent = label;
+
+            if (ariaLabel) {
+                button.setAttribute('aria-label', ariaLabel);
+            }
+
+            return button;
+        }
+
+        function createMenuItemNode(item, idx) {
+            var depth = getItemDepth(item);
+            var prefix = depth > 0 ? Array(depth + 1).join('↳ ') : '';
+            var itemNode = document.createElement('div');
+            var dragHandle = document.createElement('span');
+            var content = document.createElement('div');
+            var hint = null;
+            var row = document.createElement('div');
+            var textColumn = createColumn('col-md-4');
+            var urlColumn = createColumn('col-md-5');
+            var targetColumn = createColumn('col-md-3');
+            var parentWrap = document.createElement('div');
+            var parentSelect = document.createElement('select');
+            var actions = document.createElement('div');
+
+            itemNode.className = 'list-group-item d-flex align-items-start gap-3';
+            itemNode.dataset.index = String(idx);
+
+            dragHandle.className = 'cursor-grab text-muted';
+            dragHandle.textContent = '☰';
+
+            content.className = 'flex-fill';
+
+            if (depth > 0) {
+                hint = document.createElement('div');
+                hint.className = 'small text-muted mb-2';
+                hint.textContent = prefix + 'Unterpunkt';
+                content.appendChild(hint);
+            }
+
+            row.className = 'row g-2';
+
+            textColumn.appendChild(createFieldLabel('Text'));
+            textColumn.appendChild(createTextInput('form-control form-control-sm item-title', idx, item.title, 'Menütext'));
+
+            urlColumn.appendChild(createFieldLabel('URL'));
+            urlColumn.appendChild(createTextInput('form-control form-control-sm item-url', idx, item.url, '/seite oder https://...'));
+
+            targetColumn.appendChild(createFieldLabel('Ziel'));
+            targetColumn.appendChild(createTargetSelect(idx, item.target));
+
+            row.appendChild(textColumn);
+            row.appendChild(urlColumn);
+            row.appendChild(targetColumn);
+
+            parentWrap.className = 'mt-2';
+            parentWrap.appendChild(createFieldLabel('Unterpunkt von'));
+
+            parentSelect.className = 'form-select form-select-sm item-parent';
+            parentSelect.dataset.index = String(idx);
+            appendParentOptions(parentSelect, item.id, item.parent_id);
+            parentWrap.appendChild(parentSelect);
+
+            content.appendChild(row);
+            content.appendChild(parentWrap);
+
+            actions.className = 'd-flex flex-column gap-2';
+            actions.appendChild(createActionButton('btn btn-sm btn-outline-secondary move-item-up', idx, '↑', 'Item nach oben verschieben'));
+            actions.appendChild(createActionButton('btn btn-sm btn-outline-secondary move-item-down', idx, '↓', 'Item nach unten verschieben'));
+            actions.appendChild(createActionButton('btn btn-sm btn-outline-danger remove-item', idx, '×'));
+
+            itemNode.appendChild(dragHandle);
+            itemNode.appendChild(content);
+            itemNode.appendChild(actions);
+
+            return itemNode;
+        }
+
+        function renderEmptyState() {
+            var emptyState = document.createElement('div');
+            emptyState.className = 'list-group-item text-center text-muted py-5';
+            emptyState.id = 'emptyState';
+            emptyState.textContent = 'Noch keine Items. Füge oben ein Item hinzu.';
+            listElement.appendChild(emptyState);
+        }
+
         function renderItems() {
             if (!listElement) {
                 return;
             }
 
             sortMenuItemsByTree();
+            clearElement(listElement);
 
             if (menuItems.length === 0) {
-                listElement.innerHTML = '<div class="list-group-item text-center text-muted py-5" id="emptyState">Noch keine Items. Füge oben ein Item hinzu.</div>';
+                renderEmptyState();
                 syncJsonInput();
                 refreshParentSelects();
                 return;
             }
 
-            var html = '';
             menuItems.forEach(function (item, idx) {
-                var depth = getItemDepth(item);
-                var prefix = depth > 0 ? Array(depth + 1).join('↳ ') : '';
-                html += '<div class="list-group-item d-flex align-items-start gap-3" data-index="' + idx + '">';
-                html += '<span class="cursor-grab text-muted">☰</span>';
-                html += '<div class="flex-fill">';
-                if (depth > 0) {
-                    html += '<div class="small text-muted mb-2">' + escapeHtml(prefix + 'Unterpunkt') + '</div>';
-                }
-                html += '<div class="row g-2">';
-                html += '<div class="col-md-4"><label class="form-label small text-muted mb-1">Text</label><input type="text" class="form-control form-control-sm item-title" data-index="' + idx + '" value="' + escapeHtml(item.title) + '" placeholder="Menütext"></div>';
-                html += '<div class="col-md-5"><label class="form-label small text-muted mb-1">URL</label><input type="text" class="form-control form-control-sm item-url" data-index="' + idx + '" value="' + escapeHtml(item.url) + '" placeholder="/seite oder https://..."></div>';
-                html += '<div class="col-md-3"><label class="form-label small text-muted mb-1">Ziel</label><select class="form-select form-select-sm item-target" data-index="' + idx + '"><option value="_self"' + (item.target === '_self' ? ' selected' : '') + '>Gleiches Fenster</option><option value="_blank"' + (item.target === '_blank' ? ' selected' : '') + '>Neuer Tab</option></select></div>';
-                html += '</div>';
-                html += '<div class="mt-2"><label class="form-label small text-muted mb-1">Unterpunkt von</label><select class="form-select form-select-sm item-parent" data-index="' + idx + '">' + buildParentOptions(item.id, item.parent_id) + '</select></div>';
-                html += '</div>';
-                html += '<div class="d-flex flex-column gap-2"><button type="button" class="btn btn-sm btn-outline-secondary move-item-up" data-index="' + idx + '" aria-label="Item nach oben verschieben">↑</button><button type="button" class="btn btn-sm btn-outline-secondary move-item-down" data-index="' + idx + '" aria-label="Item nach unten verschieben">↓</button><button type="button" class="btn btn-sm btn-outline-danger remove-item" data-index="' + idx + '">×</button></div>';
-                html += '</div>';
+                listElement.appendChild(createMenuItemNode(item, idx));
             });
-            listElement.innerHTML = html;
+
             syncJsonInput();
             refreshParentSelects();
         }
@@ -575,7 +759,7 @@
         if (deleteMenuButton && deleteMenuForm) {
             deleteMenuButton.addEventListener('click', function () {
                 var submitDelete = function () {
-                    deleteMenuForm.submit();
+                    requestFormSubmit(deleteMenuForm);
                 };
 
                 if (typeof cmsConfirm === 'function') {
@@ -626,6 +810,10 @@
                 syncJsonInput();
             });
         }
+
+        installSingleSubmitGuard(saveItemsForm);
+        installSingleSubmitGuard(deleteMenuForm);
+        installSingleSubmitGuard(menuModalForm);
 
         renderItems();
     });

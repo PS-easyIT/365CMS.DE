@@ -30,11 +30,14 @@ class FontManagerModule
     private const MAX_REMOTE_FONT_TOTAL_BYTES = 15728640;
     private const MAX_REMOTE_FONT_FILE_BYTES = 5242880;
     private const MAX_FONT_FILENAME_LENGTH = 180;
+    private const MAX_ERROR_CONTEXT_LENGTH = 180;
     private const MAX_SCANNED_THEME_FILES = 300;
     private const MAX_SCANNED_THEME_FILE_BYTES = 262144;
     private const MAX_SCANNED_TOTAL_BYTES = 10485760;
     private const SCAN_ALLOWED_EXTENSIONS = ['css', 'php', 'js', 'json', 'txt', 'md'];
     private const SCAN_SKIPPED_SEGMENTS = ['vendor', 'node_modules', 'cache', '.git'];
+    private const MANAGED_FONT_FILE_EXTENSIONS = ['woff', 'woff2', 'ttf', 'otf'];
+    private const TEMP_FONT_FILE_PREFIX = 'cmsfont_';
 
     private const SYSTEM_FONTS = [
         'system-ui'       => 'System UI (Standard)',
@@ -255,7 +258,9 @@ class FontManagerModule
                 continue;
             }
 
-            if (in_array(mb_strtolower($fontName), $installed, true)) {
+            $fontLookupKey = $this->normalizeFontLookupKey($fontName);
+
+            if (in_array($fontLookupKey, $installed, true)) {
                 $skipped++;
                 continue;
             }
@@ -263,14 +268,14 @@ class FontManagerModule
             $result = $this->downloadGoogleFont($fontName);
             if (!empty($result['success'])) {
                 $downloaded++;
-                $installed[] = mb_strtolower($fontName);
+                $installed[] = $fontLookupKey;
                 continue;
             }
 
             $message = (string)($result['error'] ?? 'Unbekannter Fehler');
             if (str_contains($message, 'bereits vorhanden')) {
                 $skipped++;
-                $installed[] = mb_strtolower($fontName);
+                $installed[] = $fontLookupKey;
                 continue;
             }
 
@@ -395,7 +400,7 @@ class FontManagerModule
                     'heading_font' => (string) ($post['heading_font'] ?? ''),
                     'body_font' => (string) ($post['body_font'] ?? ''),
                     'use_local_fonts' => isset($post['use_local_fonts']),
-                    'exception' => $e->getMessage(),
+                    'exception' => $this->sanitizeErrorContext($e->getMessage()),
                 ]
             );
         }
@@ -433,18 +438,37 @@ class FontManagerModule
                 [$fontId]
             );
 
+            if (!$font) {
+                return $this->buildFontFailureResult(
+                    'Die angeforderte Schriftart wurde nicht gefunden.',
+                    'font_manager_font_not_found',
+                    ['Font-ID: ' . $fontId],
+                    ['font_id' => $fontId]
+                );
+            }
+
+            $linkedFontAssets = [];
+
             $fontFilePath = $this->resolveManagedFontPath((string) ($font->file_path ?? ''));
             if ($fontFilePath !== null) {
-                $this->deleteFileIfExists($fontFilePath, $warnings);
+                $linkedFontAssets[$fontFilePath] = $fontFilePath;
             } elseif (!empty($font->file_path)) {
                 $warnings[] = 'Dateipfad liegt außerhalb des verwalteten Fonts-Verzeichnisses.';
             }
 
             $cssFilePath = $this->resolveManagedFontPath((string) ($font->css_path ?? ''));
             if ($cssFilePath !== null) {
+                foreach ($this->extractManagedFontAssetPathsFromCss($cssFilePath) as $assetPath) {
+                    $linkedFontAssets[$assetPath] = $assetPath;
+                }
+
                 $this->deleteFileIfExists($cssFilePath, $warnings);
             } elseif (!empty($font->css_path)) {
                 $warnings[] = 'CSS-Pfad liegt außerhalb des verwalteten Fonts-Verzeichnisses.';
+            }
+
+            foreach ($linkedFontAssets as $assetPath) {
+                $this->deleteFileIfExists($assetPath, $warnings);
             }
 
             $this->db->execute(
@@ -477,6 +501,7 @@ class FontManagerModule
                     'Font-ID: ' . $fontId,
                     !empty($font->file_path) ? 'Datei: ' . (string) $font->file_path : '',
                     !empty($font->css_path) ? 'CSS: ' . (string) $font->css_path : '',
+                    $linkedFontAssets !== [] ? 'Verknüpfte Assets: ' . count($linkedFontAssets) : '',
                     !empty($warnings) ? 'Hinweise: ' . implode(' | ', array_slice($warnings, 0, 2)) : '',
                 ])),
             ];
@@ -490,7 +515,7 @@ class FontManagerModule
                 'Schriftart konnte nicht gelöscht werden.',
                 'font_manager_delete_failed',
                 ['Font-ID: ' . $fontId],
-                ['font_id' => $fontId, 'exception' => $e->getMessage()]
+                ['font_id' => $fontId, 'exception' => $this->sanitizeErrorContext($e->getMessage())]
             );
         }
     }
@@ -553,6 +578,7 @@ class FontManagerModule
         $downloadedPaths = [];
         $downloadWarnings = [];
         $downloadedBytes = 0;
+        $primaryFormat = '';
 
         if (preg_match_all('/url\(([^)]+?\.(woff2?|ttf|otf)[^)]*)\)/i', $css, $matches)) {
             $remoteUrls = array_values(array_unique(array_map(
@@ -618,7 +644,7 @@ class FontManagerModule
                     break;
                 }
 
-                if (file_put_contents($localPath, $fontData) === false) {
+                if (!$this->writeManagedFontFileAtomically($localPath, $fontData, 0644)) {
                     $downloadWarnings[] = 'Remote-Datei konnte nicht lokal gespeichert werden: ' . basename($localPath);
                     continue;
                 }
@@ -626,6 +652,9 @@ class FontManagerModule
                 $downloadedBytes += $fileBytes;
                 $downloadedFiles[] = $fileName;
                 $downloadedPaths[] = $localPath;
+                if ($primaryFormat === '') {
+                    $primaryFormat = $extension;
+                }
 
                 // URL im CSS hostneutral relativ zur lokalen CSS-Datei ersetzen
                 $localCss = str_replace($remoteUrl, $fileName, $localCss);
@@ -643,7 +672,7 @@ class FontManagerModule
 
         // Lokales CSS speichern
         $cssFile = $fontsDir . DIRECTORY_SEPARATOR . $slug . '.css';
-        if (file_put_contents($cssFile, $localCss) === false) {
+        if (!$this->writeManagedFontFileAtomically($cssFile, $localCss, 0644)) {
             $this->cleanupDownloadedFontFiles($downloadedPaths);
 
             return $this->buildFontFailureResult(
@@ -660,8 +689,8 @@ class FontManagerModule
             // In DB speichern
             $this->db->execute(
                 "INSERT INTO {$this->prefix}custom_fonts (name, slug, format, file_path, css_path, source, created_at)
-                 VALUES (?, ?, 'woff2', ?, ?, 'google-fonts-local', NOW())",
-                [$fontFamily, $slug, 'uploads/fonts/' . $downloadedFiles[0], 'uploads/fonts/' . $slug . '.css']
+                 VALUES (?, ?, ?, ?, ?, 'google-fonts-local', NOW())",
+                [$fontFamily, $slug, $primaryFormat !== '' ? $primaryFormat : 'woff2', 'uploads/fonts/' . $downloadedFiles[0], 'uploads/fonts/' . $slug . '.css']
             );
 
             // Font-Stack registrieren
@@ -683,7 +712,7 @@ class FontManagerModule
                 'Die heruntergeladene Schrift konnte nicht persistiert werden.',
                 'font_manager_persist_failed',
                 ['Temporär geladene Dateien wurden wieder entfernt.'],
-                ['font_family' => $fontFamily, 'slug' => $slug, 'exception' => $e->getMessage()]
+                ['font_family' => $fontFamily, 'slug' => $slug, 'exception' => $this->sanitizeErrorContext($e->getMessage())]
             );
         }
 
@@ -937,7 +966,7 @@ class FontManagerModule
             $relativePath = str_replace(['\\', THEME_PATH], ['/', ''], $pathName);
 
             foreach ($this->extractGoogleFontFamilies($content) as $family) {
-                $fontKey = mb_strtolower($family);
+                $fontKey = $this->normalizeFontLookupKey($family);
                 $meta = $knownFonts[$fontKey] ?? ['style' => 'Google Font', 'reason' => 'Im Theme via Google Fonts importiert'];
                 if (!isset($detected[$fontKey])) {
                     $detected[$fontKey] = [
@@ -1035,8 +1064,8 @@ class FontManagerModule
         $catalog   = [];
 
         foreach (self::CURATED_FONT_LIBRARY as $category => $fonts) {
-            $catalog[$category] = array_map(static function (array $font) use ($installed): array {
-                $font['installed'] = in_array(mb_strtolower($font['name']), $installed, true);
+            $catalog[$category] = array_map(function (array $font) use ($installed): array {
+                $font['installed'] = in_array($this->normalizeFontLookupKey((string) ($font['name'] ?? '')), $installed, true);
                 return $font;
             }, $fonts);
         }
@@ -1049,7 +1078,7 @@ class FontManagerModule
         $fonts = [];
         foreach (self::CURATED_FONT_LIBRARY as $category => $items) {
             foreach ($items as $item) {
-                $fonts[mb_strtolower($item['name'])] = $item;
+                $fonts[$this->normalizeFontLookupKey((string) ($item['name'] ?? ''))] = $item;
             }
         }
 
@@ -1062,7 +1091,7 @@ class FontManagerModule
         foreach ($customFonts as $font) {
             $name = trim((string)($font->name ?? ''));
             if ($name !== '') {
-                $installed[] = mb_strtolower($name);
+                $installed[] = $this->normalizeFontLookupKey($name);
             }
         }
 
@@ -1153,7 +1182,7 @@ class FontManagerModule
 
         $fileName = $slug . '-' . $baseName;
         if (strlen($fileName) > self::MAX_FONT_FILENAME_LENGTH) {
-            $suffix = '-' . substr(sha1($fileName), 0, 12) . $expectedSuffix;
+            $suffix = '-' . substr(hash('sha256', $fileName), 0, 12) . $expectedSuffix;
             $maxBaseLength = self::MAX_FONT_FILENAME_LENGTH - strlen($suffix);
             if ($maxBaseLength <= 0) {
                 return null;
@@ -1192,7 +1221,133 @@ class FontManagerModule
             return null;
         }
 
+        if (!is_writable($resolvedFontsDir)) {
+            return null;
+        }
+
         return $resolvedFontsDir;
+    }
+
+    private function writeManagedFontFileAtomically(string $path, string $content, int $chmod = 0644): bool
+    {
+        $directory = dirname($path);
+        if (!is_dir($directory) || !is_writable($directory)) {
+            return false;
+        }
+
+        $tempPath = tempnam($directory, self::TEMP_FONT_FILE_PREFIX);
+        if ($tempPath === false) {
+            return false;
+        }
+
+        if (file_put_contents($tempPath, $content, LOCK_EX) === false) {
+            @unlink($tempPath);
+
+            return false;
+        }
+
+        $backupPath = null;
+        if (is_file($path)) {
+            $backupPath = $path . '.swap.' . str_replace('.', '', uniqid('', true));
+            if (!@rename($path, $backupPath)) {
+                @unlink($tempPath);
+
+                return false;
+            }
+        }
+
+        if (!@rename($tempPath, $path)) {
+            if ($backupPath !== null && is_file($backupPath)) {
+                @rename($backupPath, $path);
+            }
+
+            @unlink($tempPath);
+
+            return false;
+        }
+
+        @chmod($path, $chmod);
+
+        $savedHash = @hash_file('sha512', $path);
+        $expectedHash = hash('sha512', $content);
+        if (!is_string($savedHash) || !hash_equals($expectedHash, $savedHash)) {
+            @unlink($path);
+
+            if ($backupPath !== null && is_file($backupPath)) {
+                @rename($backupPath, $path);
+                @chmod($path, $chmod);
+            }
+
+            return false;
+        }
+
+        if ($backupPath !== null && is_file($backupPath)) {
+            @unlink($backupPath);
+        }
+
+        return true;
+    }
+
+    /** @return array<int, string> */
+    private function extractManagedFontAssetPathsFromCss(string $cssFilePath): array
+    {
+        $content = $this->readFileContents($cssFilePath, self::MAX_SCANNED_THEME_FILE_BYTES);
+        if (!is_string($content) || $content === '') {
+            return [];
+        }
+
+        if (preg_match_all('/url\(([^)]+)\)/i', $content, $matches) !== 1) {
+            return [];
+        }
+
+        $assets = [];
+        $cssDirectory = dirname($cssFilePath);
+
+        foreach ($matches[1] as $rawAssetPath) {
+            $resolvedPath = $this->resolveManagedFontCssAssetPath($cssDirectory, (string) $rawAssetPath);
+            if ($resolvedPath !== null) {
+                $assets[$resolvedPath] = $resolvedPath;
+            }
+        }
+
+        return array_values($assets);
+    }
+
+    private function resolveManagedFontCssAssetPath(string $cssDirectory, string $rawAssetPath): ?string
+    {
+        $assetPath = trim($rawAssetPath, " \t\n\r\0\x0B'\"");
+        if ($assetPath === '' || str_starts_with(strtolower($assetPath), 'data:') || preg_match('/^[a-z][a-z0-9+.-]*:/i', $assetPath) === 1) {
+            return null;
+        }
+
+        $assetPath = preg_replace('/[#?].*$/', '', str_replace('\\', '/', $assetPath)) ?? '';
+        if ($assetPath === '' || str_contains($assetPath, '..')) {
+            return null;
+        }
+
+        $extension = strtolower((string) pathinfo($assetPath, PATHINFO_EXTENSION));
+        if (!in_array($extension, self::MANAGED_FONT_FILE_EXTENSIONS, true)) {
+            return null;
+        }
+
+        $managedFontsDir = $this->getManagedFontsDirectory();
+        if ($managedFontsDir === null) {
+            return null;
+        }
+
+        $candidatePath = $cssDirectory . DIRECTORY_SEPARATOR . ltrim(str_replace('/', DIRECTORY_SEPARATOR, $assetPath), DIRECTORY_SEPARATOR);
+        $resolvedCandidate = realpath($candidatePath);
+        $normalizedManagedDir = str_replace('\\', '/', rtrim($managedFontsDir, '/\\'));
+
+        if ($resolvedCandidate !== false) {
+            $normalizedResolvedPath = str_replace('\\', '/', $resolvedCandidate);
+
+            return str_starts_with($normalizedResolvedPath, $normalizedManagedDir . '/') ? $resolvedCandidate : null;
+        }
+
+        $normalizedCandidatePath = str_replace('\\', '/', $candidatePath);
+
+        return str_starts_with($normalizedCandidatePath, $normalizedManagedDir . '/') ? $candidatePath : null;
     }
 
     private function normalizeFontSlug(string $fontFamily): string
@@ -1258,6 +1413,14 @@ class FontManagerModule
             $fileExists = $resolvedFilePath !== null && is_file($resolvedFilePath);
             $cssExists = $resolvedCssPath !== null && is_file($resolvedCssPath);
             $fileSize = $fileExists ? (int) (filesize($resolvedFilePath) ?: 0) : 0;
+            $linkedFontAssets = $cssExists && $resolvedCssPath !== null ? $this->extractManagedFontAssetPathsFromCss($resolvedCssPath) : [];
+            $missingLinkedAssets = 0;
+            foreach ($linkedFontAssets as $linkedAssetPath) {
+                if (!is_file($linkedAssetPath)) {
+                    $missingLinkedAssets++;
+                }
+            }
+            $assetStatus = $fileExists && ($cssPath === '' || ($cssExists && $missingLinkedAssets === 0)) ? 'complete' : 'warning';
 
             $rows[] = [
                 'id' => (int) ($font->id ?? 0),
@@ -1269,7 +1432,9 @@ class FontManagerModule
                 'file_exists' => $fileExists,
                 'css_exists' => $cssExists,
                 'file_size_label' => $fileSize > 0 ? $this->formatBytesLabel($fileSize) : '',
-                'asset_status' => $fileExists && ($cssPath === '' || $cssExists) ? 'complete' : 'warning',
+                'linked_asset_count' => count($linkedFontAssets),
+                'missing_linked_asset_count' => $missingLinkedAssets,
+                'asset_status' => $assetStatus,
             ];
         }
 
@@ -1346,7 +1511,7 @@ class FontManagerModule
         $installed = $this->getInstalledFontNames($customFonts);
         $detectedFonts = is_array($results['detectedFonts'] ?? null) ? $results['detectedFonts'] : [];
         foreach ($detectedFonts as &$font) {
-            $font['installed'] = in_array(mb_strtolower((string) ($font['name'] ?? '')), $installed, true);
+            $font['installed'] = in_array($this->normalizeFontLookupKey((string) ($font['name'] ?? '')), $installed, true);
         }
         unset($font);
 
@@ -1432,16 +1597,32 @@ class FontManagerModule
 
     private function upsertSetting(string $key, string $value): void
     {
-        $updated = $this->db->execute(
-            "UPDATE {$this->prefix}settings SET option_value = ? WHERE option_name = ?",
-            [$value, $key]
+        $this->db->execute(
+            "INSERT INTO {$this->prefix}settings (option_name, option_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE option_value = VALUES(option_value)",
+            [$key, $value]
         );
+    }
 
-        if ($updated === 0) {
-            $this->db->execute(
-                "INSERT INTO {$this->prefix}settings (option_name, option_value) VALUES (?, ?)",
-                [$key, $value]
-            );
+    private function normalizeFontLookupKey(string $value): string
+    {
+        $value = trim($value);
+
+        if (function_exists('mb_strtolower')) {
+            return mb_strtolower($value);
         }
+
+        return strtolower($value);
+    }
+
+    private function sanitizeErrorContext(string $value): string
+    {
+        $value = preg_replace('/[\x00-\x1F\x7F]+/u', ' ', trim($value)) ?? '';
+        $value = preg_replace('/\s+/u', ' ', $value) ?? '';
+
+        if (function_exists('mb_substr')) {
+            return (string) mb_substr($value, 0, self::MAX_ERROR_CONTEXT_LENGTH, 'UTF-8');
+        }
+
+        return substr($value, 0, self::MAX_ERROR_CONTEXT_LENGTH);
     }
 }

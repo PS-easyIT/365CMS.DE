@@ -114,7 +114,10 @@ final class PublicRouter
                 $_SESSION['login_passkey_challenge'] = (string)($options['challenge'] ?? '');
                 $passkeyPayload = [
                     'available' => true,
-                    'options_json' => json_encode($options['options'] ?? new \stdClass(), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                    'options_json' => json_encode(
+                        $options['options'] ?? new \stdClass(),
+                        JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
+                    ) ?: '{}',
                 ];
             }
         } catch (\Throwable $e) {
@@ -215,13 +218,15 @@ final class PublicRouter
         $security = Security::instance();
         $csrfToken = $security->generateToken('mfa_challenge');
         $mfaChallengePath = $this->getLocalizedPublicPath('/mfa-challenge');
+        $loginPath = $this->getPublicAuthPath('login');
+        $documentLang = htmlspecialchars($this->getCurrentDocumentLang(), ENT_QUOTES, 'UTF-8');
         $error = $_SESSION['error'] ?? null;
         unset($_SESSION['error']);
 
-        echo '<!DOCTYPE html><html lang="de"><head>'
+        echo '<!DOCTYPE html><html lang="' . $documentLang . '"><head>'
             . '<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
             . '<title>Zwei-Faktor-Authentifizierung – ' . htmlspecialchars(SITE_NAME) . '</title>'
-            . '<link rel="stylesheet" href="' . SITE_URL . '/assets/css/main.css">'
+            . '<link rel="stylesheet" href="/assets/css/main.css">'
             . '</head><body style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:#f1f5f9;">'
             . '<div style="background:#fff;padding:2.5rem;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,.1);width:100%;max-width:400px;">'
             . '<h2 style="margin:0 0 0.5rem;font-size:1.375rem;color:#1e293b;">🔐 Zwei-Faktor-Authentifizierung</h2>'
@@ -242,7 +247,7 @@ final class PublicRouter
             . '</div>'
             . '<button type="submit" style="width:100%;padding:.875rem;background:#3b82f6;color:#fff;border:none;border-radius:8px;font-size:1rem;font-weight:600;cursor:pointer;">✅ Bestätigen</button>'
             . '</form>'
-                . '<p style="text-align:center;margin-top:1.25rem;"><a href="' . htmlspecialchars($this->getCmsAuthPath('login'), ENT_QUOTES, 'UTF-8') . '" style="color:#64748b;font-size:.875rem;">← Zurück zum Login</a></p>'
+                . '<p style="text-align:center;margin-top:1.25rem;"><a href="' . htmlspecialchars($loginPath, ENT_QUOTES, 'UTF-8') . '" style="color:#64748b;font-size:.875rem;">← Zurück zum Login</a></p>'
             . '</div></body></html>';
     }
 
@@ -304,14 +309,15 @@ final class PublicRouter
         $setup = $auth->setupMfaSecret($userId);
         $csrfToken = $security->generateToken('mfa_setup');
         $mfaSetupPath = $this->getLocalizedPublicPath('/mfa-setup');
+        $documentLang = htmlspecialchars($this->getCurrentDocumentLang(), ENT_QUOTES, 'UTF-8');
         $error = $_SESSION['error'] ?? null;
         $success = $_SESSION['success'] ?? null;
         unset($_SESSION['error'], $_SESSION['success']);
 
-        echo '<!DOCTYPE html><html lang="de"><head>'
+        echo '<!DOCTYPE html><html lang="' . $documentLang . '"><head>'
             . '<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
             . '<title>2FA einrichten – ' . htmlspecialchars(SITE_NAME) . '</title>'
-            . '<link rel="stylesheet" href="' . SITE_URL . '/assets/css/main.css">'
+            . '<link rel="stylesheet" href="/assets/css/main.css">'
             . '</head><body style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:#f1f5f9;">'
             . '<div style="background:#fff;padding:2.5rem;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,.1);width:100%;max-width:480px;">'
             . '<h2 style="margin:0 0 0.5rem;font-size:1.375rem;color:#1e293b;">🔐 Zwei-Faktor-Authentifizierung einrichten</h2>'
@@ -451,7 +457,7 @@ final class PublicRouter
         }
 
         $email = trim((string)($_POST['email'] ?? ''));
-        $result = $authPageService->requestPasswordReset($email);
+        $result = $authPageService->requestPasswordReset($email, $this->router->getRequestLocale());
         if ($result['success'] ?? false) {
             $_SESSION['success'] = (string)($result['message'] ?? 'Falls das Konto existiert, wurde ein Reset-Link versendet.');
         } else {
@@ -661,6 +667,18 @@ final class PublicRouter
             $path,
             $this->router->getRequestLocale()
         );
+    }
+
+    private function getCurrentDocumentLang(): string
+    {
+        $locale = strtolower(str_replace('_', '-', trim($this->router->getRequestLocale())));
+        if ($locale === '') {
+            return 'de';
+        }
+
+        return preg_match('/^[a-z]{2,3}(?:-[a-z0-9]{2,8})*$/i', $locale) === 1
+            ? $locale
+            : 'de';
     }
 
     private function buildLoginPagePath(?string $redirectTarget = null): string

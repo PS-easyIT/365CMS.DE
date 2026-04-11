@@ -50,7 +50,7 @@ function cms_admin_packages_action_handlers(PackagesModule $module, Subscription
 }
 
 if (!Auth::instance()->isAdmin() || !CoreModuleService::getInstance()->isAdminPageEnabled('packages')) {
-    header('Location: ' . SITE_URL);
+    header('Location: /');
     exit;
 }
 

@@ -107,27 +107,56 @@
     }
 
     function bindSearch(config) {
+        var linkSelector = config.treeLinkSelector || '[data-theme-explorer-path]';
+        var folderSelector = config.treeFolderSelector || '[data-theme-explorer-folder]';
         var input = document.querySelector(config.searchInputSelector || '#themeExplorerSearch');
-        var links = Array.prototype.slice.call(document.querySelectorAll(config.treeLinkSelector || '[data-theme-explorer-path]'));
-        var folders = Array.prototype.slice.call(document.querySelectorAll(config.treeFolderSelector || '[data-theme-explorer-folder]'));
+        var links = Array.prototype.slice.call(document.querySelectorAll(linkSelector));
+        var folders = Array.prototype.slice.call(document.querySelectorAll(folderSelector));
 
-        if (!input || !links.length) {
+        if (!input || (!links.length && !folders.length)) {
             return;
         }
 
-        function syncFolderVisibility() {
+        function showBranch(listItem) {
+            Array.prototype.slice.call(listItem.querySelectorAll(linkSelector + ', ' + folderSelector)).forEach(function (node) {
+                var branchItem = node.closest('li');
+                if (branchItem) {
+                    branchItem.style.display = '';
+                }
+            });
+        }
+
+        function syncFolderVisibility(query) {
             folders.slice().reverse().forEach(function (folder) {
                 var listItem = folder.closest('li');
                 if (!listItem) {
                     return;
                 }
 
-                var hasVisibleFile = Array.prototype.slice.call(listItem.querySelectorAll(config.treeLinkSelector || '[data-theme-explorer-path]')).some(function (link) {
+                var folderText = String(folder.textContent || '').trim().toLowerCase();
+                var folderMatches = query !== '' && folderText.indexOf(query) !== -1;
+
+                if (folderMatches) {
+                    listItem.style.display = '';
+                    showBranch(listItem);
+                    return;
+                }
+
+                var hasVisibleFile = Array.prototype.slice.call(listItem.querySelectorAll(linkSelector)).some(function (link) {
                     var linkItem = link.closest('li');
                     return !!linkItem && linkItem.style.display !== 'none';
                 });
 
-                listItem.style.display = hasVisibleFile ? '' : 'none';
+                var hasVisibleFolder = Array.prototype.slice.call(listItem.querySelectorAll(folderSelector)).some(function (childFolder) {
+                    if (childFolder === folder) {
+                        return false;
+                    }
+
+                    var childItem = childFolder.closest('li');
+                    return !!childItem && childItem.style.display !== 'none';
+                });
+
+                listItem.style.display = query === '' || hasVisibleFile || hasVisibleFolder ? '' : 'none';
             });
         }
 
@@ -144,10 +173,10 @@
                 listItem.style.display = query === '' || text.indexOf(query) !== -1 ? '' : 'none';
             });
 
-            syncFolderVisibility();
+            syncFolderVisibility(query);
         });
 
-        syncFolderVisibility();
+        syncFolderVisibility('');
     }
 
     document.addEventListener('DOMContentLoaded', function () {

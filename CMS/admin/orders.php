@@ -14,6 +14,7 @@ use CMS\Auth;
 use CMS\Services\CoreModuleService;
 
 const CMS_ADMIN_ORDERS_ALLOWED_STATUSES = ['pending', 'paid', 'cancelled', 'refunded', 'failed'];
+const CMS_ADMIN_ORDERS_STATUS_ALIASES = ['confirmed' => 'paid', 'completed' => 'paid'];
 const CMS_ADMIN_ORDERS_ALLOWED_BILLING_CYCLES = ['monthly', 'yearly', 'lifetime'];
 
 /**
@@ -58,6 +59,10 @@ function cms_admin_orders_normalize_status_value(mixed $status): string
 {
     $status = is_string($status) ? strtolower(trim($status)) : '';
 
+    if (isset(CMS_ADMIN_ORDERS_STATUS_ALIASES[$status])) {
+        $status = CMS_ADMIN_ORDERS_STATUS_ALIASES[$status];
+    }
+
     return in_array($status, CMS_ADMIN_ORDERS_ALLOWED_STATUSES, true) ? $status : '';
 }
 
@@ -70,7 +75,7 @@ function cms_admin_orders_normalize_billing_cycle(mixed $billingCycle): string
 
 function cms_admin_orders_redirect(): never
 {
-    header('Location: ' . SITE_URL . '/admin/orders');
+    header('Location: /admin/orders');
     exit;
 }
 
@@ -97,7 +102,7 @@ function cms_admin_orders_handle_action(OrdersModule $module, string $action, ar
 }
 
 if (!Auth::instance()->isAdmin() || !CoreModuleService::getInstance()->isAdminPageEnabled('orders')) {
-    header('Location: ' . SITE_URL);
+    header('Location: /');
     exit;
 }
 

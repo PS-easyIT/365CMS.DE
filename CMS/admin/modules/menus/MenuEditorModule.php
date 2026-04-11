@@ -12,6 +12,7 @@ if (!defined('ABSPATH')) {
 }
 
 use CMS\Database;
+use CMS\Json;
 use CMS\Logger;
 use CMS\ThemeManager;
 
@@ -146,6 +147,7 @@ class MenuEditorModule
         }
 
         try {
+            $pdo = $this->db->getPdo();
             $menu = $this->db->get_row(
                 "SELECT * FROM {$this->prefix}menus WHERE id = ? LIMIT 1",
                 [$menuId]
@@ -159,10 +161,18 @@ class MenuEditorModule
                 ThemeManager::instance()->saveMenu((string)$menu->location, []);
             }
 
-            $this->db->query("DELETE FROM {$this->prefix}menu_items WHERE menu_id = ?", [$menuId]);
-            $this->db->query("DELETE FROM {$this->prefix}menus WHERE id = ?", [$menuId]);
+            $pdo->beginTransaction();
+            $this->db->execute("DELETE FROM {$this->prefix}menu_items WHERE menu_id = ?", [$menuId]);
+            $this->db->execute("DELETE FROM {$this->prefix}menus WHERE id = ?", [$menuId]);
+            $pdo->commit();
+
             return ['success' => true, 'message' => 'Menü gelöscht.'];
         } catch (\Throwable $e) {
+            $pdo = $this->db->getPdo();
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+
             $this->logger->error('Menü konnte nicht gelöscht werden.', [
                 'menu_id' => $menuId,
                 'exception' => $e->getMessage(),
@@ -185,12 +195,13 @@ class MenuEditorModule
             return ['success' => false, 'error' => 'Ungültige Menü-ID.'];
         }
 
-        $items = \CMS\Json::decodeArray($itemsJson, []);
-        if (!is_array($items)) {
+        $decodedItems = Json::decode($itemsJson, true, null);
+        if (!is_array($decodedItems)) {
             return ['success' => false, 'error' => 'Ungültiges JSON-Format.'];
         }
 
         try {
+            $pdo = $this->db->getPdo();
             $menu = $this->db->get_row(
                 "SELECT * FROM {$this->prefix}menus WHERE id = ? LIMIT 1",
                 [$menuId]
@@ -200,12 +211,12 @@ class MenuEditorModule
                 return ['success' => false, 'error' => 'Menü wurde nicht gefunden.'];
             }
 
-            $normalizedItems = $this->normalizeEditorItems($items);
+            $normalizedItems = $this->normalizeEditorItems($decodedItems);
             if ($normalizedItems['error'] !== '') {
                 return ['success' => false, 'error' => $normalizedItems['error']];
             }
 
-            // Alle bestehenden Items löschen
+            $pdo->beginTransaction();
             $this->db->execute("DELETE FROM {$this->prefix}menu_items WHERE menu_id = ?", [$menuId]);
 
             $position = 0;
@@ -216,8 +227,15 @@ class MenuEditorModule
                 ThemeManager::instance()->saveMenu((string)$menu->location, $this->normalizeThemeItems($normalizedItems['items']));
             }
 
+            $pdo->commit();
+
             return ['success' => true, 'message' => 'Menü-Items gespeichert.'];
         } catch (\Throwable $e) {
+            $pdo = $this->db->getPdo();
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+
             $this->logger->error('Menü-Items konnten nicht gespeichert werden.', [
                 'menu_id' => $menuId,
                 'exception' => $e->getMessage(),
@@ -296,9 +314,7 @@ class MenuEditorModule
             return '';
         }
 
-        return function_exists('mb_substr')
-            ? mb_substr($normalized, 0, self::MAX_MENU_NAME_LENGTH)
-            : substr($normalized, 0, self::MAX_MENU_NAME_LENGTH);
+        return $this->truncateText($normalized, self::MAX_MENU_NAME_LENGTH);
     }
 
     private function normalizeMenuLocation(mixed $value): string
@@ -679,9 +695,7 @@ class MenuEditorModule
             return '';
         }
 
-        return function_exists('mb_substr')
-            ? mb_substr($normalized, 0, self::MAX_ITEM_TITLE_LENGTH)
-            : substr($normalized, 0, self::MAX_ITEM_TITLE_LENGTH);
+        return $this->truncateText($normalized, self::MAX_ITEM_TITLE_LENGTH);
     }
 
     private function normalizeMenuItemIcon(mixed $value): string
@@ -692,9 +706,7 @@ class MenuEditorModule
             return '';
         }
 
-        return function_exists('mb_substr')
-            ? mb_substr($normalized, 0, self::MAX_ITEM_ICON_LENGTH)
-            : substr($normalized, 0, self::MAX_ITEM_ICON_LENGTH);
+        return $this->truncateText($normalized, self::MAX_ITEM_ICON_LENGTH);
     }
 
     private function normalizeMenuItemUrl(mixed $value): string
@@ -763,20 +775,30 @@ class MenuEditorModule
 
     private function isHomepageMenuTitle(string $title): bool
     {
-        $normalizedTitle = function_exists('mb_strtolower')
-            ? mb_strtolower(trim($title))
-            : strtolower(trim($title));
+        $normalizedTitle = $this->normalizeLowercase(trim($title));
 
         return in_array($normalizedTitle, self::HOMEPAGE_TITLES, true);
     }
 
     private function isHomepageMenuAlias(string $url): bool
     {
-        $normalizedUrl = function_exists('mb_strtolower')
-            ? mb_strtolower(trim($url))
-            : strtolower(trim($url));
+        $normalizedUrl = $this->normalizeLowercase(trim($url));
 
         return in_array($normalizedUrl, ['/', 'index.php', './', 'home', 'homepage', 'startseite'], true);
+    }
+
+    private function truncateText(string $value, int $maxLength): string
+    {
+        return function_exists('mb_substr')
+            ? (string) mb_substr($value, 0, $maxLength, 'UTF-8')
+            : substr($value, 0, $maxLength);
+    }
+
+    private function normalizeLowercase(string $value): string
+    {
+        return function_exists('mb_strtolower')
+            ? (string) mb_strtolower($value, 'UTF-8')
+            : strtolower($value);
     }
 
     private function isNoOpMenuItemUrl(string $url): bool

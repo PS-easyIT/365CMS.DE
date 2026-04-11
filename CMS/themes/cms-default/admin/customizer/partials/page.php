@@ -15,7 +15,7 @@ if (!defined('ABSPATH')) {
             </div>
             <div class="col-auto ms-auto d-print-none">
                 <div class="btn-list">
-                    <a href="<?php echo htmlspecialchars(SITE_URL . '/', ENT_QUOTES); ?>" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary">🌐 Seite ansehen</a>
+                    <a href="/" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary">🌐 Seite ansehen</a>
                 </div>
             </div>
         </div>

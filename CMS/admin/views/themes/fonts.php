@@ -315,6 +315,12 @@ $fontManagerConfig = [
                                             <?php if (($font['asset_status'] ?? '') === 'warning'): ?>
                                                 <span class="badge bg-warning-lt">Assets prüfen</span>
                                             <?php endif; ?>
+                                            <?php if (!empty($font['linked_asset_count'])): ?>
+                                                <span class="badge bg-azure-lt"><?php echo (int) ($font['linked_asset_count'] ?? 0); ?> verknüpft</span>
+                                            <?php endif; ?>
+                                            <?php if (!empty($font['missing_linked_asset_count'])): ?>
+                                                <span class="badge bg-danger-lt"><?php echo (int) ($font['missing_linked_asset_count'] ?? 0); ?> fehlen</span>
+                                            <?php endif; ?>
                                         </td>
                                         <td class="text-muted small">
                                             <div><?php echo htmlspecialchars((string) ($font['file_path'] ?? '')); ?></div>
@@ -325,6 +331,12 @@ $fontManagerConfig = [
                                                 Datei <?php echo !empty($font['file_exists']) ? 'vorhanden' : 'fehlt'; ?>
                                                 <?php if (($font['css_path'] ?? '') !== ''): ?>
                                                     · CSS <?php echo !empty($font['css_exists']) ? 'vorhanden' : 'fehlt'; ?>
+                                                <?php endif; ?>
+                                                <?php if (!empty($font['linked_asset_count'])): ?>
+                                                    · Verknüpfte Dateien <?php echo (int) ($font['linked_asset_count'] ?? 0); ?>
+                                                <?php endif; ?>
+                                                <?php if (!empty($font['missing_linked_asset_count'])): ?>
+                                                    · Fehlend <?php echo (int) ($font['missing_linked_asset_count'] ?? 0); ?>
                                                 <?php endif; ?>
                                             </div>
                                         </td>

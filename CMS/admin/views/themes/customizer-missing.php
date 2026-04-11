@@ -19,6 +19,7 @@ $reasonHint = (string) ($state['reasonHint'] ?? '');
 $links = is_array($state['links'] ?? null) ? $state['links'] : [];
 $constraints = is_array($state['constraints'] ?? null) ? $state['constraints'] : [];
 $expectedCustomizerPath = (string) ($state['expectedCustomizerPath'] ?? ($constraints['expected_relative_path'] ?? 'admin/customizer.php'));
+$blockedFunctions = array_values(array_filter(array_map('strval', is_array($constraints['blocked_functions'] ?? null) ? $constraints['blocked_functions'] : [])));
 $themesLink = (string) ($links['themes'] ?? '/admin/themes');
 $explorerLink = (string) ($links['explorer'] ?? '/admin/theme-explorer');
 ?>
@@ -52,6 +53,8 @@ $explorerLink = (string) ($links['explorer'] ?? '/admin/theme-explorer');
         'details' => array_values(array_filter([
             !empty($constraints['fallback_view']) ? 'Fallback-View: ' . (string) $constraints['fallback_view'] : '',
             'Nächster sicherer Pfad: ' . $expectedCustomizerPath,
+            !empty($constraints['max_customizer_label']) ? 'Inline-Limit: ' . (string) $constraints['max_customizer_label'] : '',
+            $blockedFunctions !== [] ? 'Blockierte Funktionen: ' . implode(', ', $blockedFunctions) : '',
         ])),
     ];
     $alertDismissible = false;

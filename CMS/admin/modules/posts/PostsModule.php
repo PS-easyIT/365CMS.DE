@@ -406,7 +406,7 @@ class PostsModule
     /**
      * Daten für die Admin-Ansicht der Beitrags-Tags.
      */
-    public function getTagAdminData(): array
+    public function getTagAdminData(int $editTagId = 0): array
     {
         $tags = $this->db->get_results(
             "SELECT t.id, t.name, t.slug, COUNT(ptr.post_id) AS post_count
@@ -416,9 +416,22 @@ class PostsModule
              ORDER BY t.name ASC"
         ) ?: [];
 
+        $tagRows = array_map(fn($tag) => (array) $tag, $tags);
+        $editTag = null;
+
+        if ($editTagId > 0) {
+            foreach ($tagRows as $tagRow) {
+                if ((int) ($tagRow['id'] ?? 0) === $editTagId) {
+                    $editTag = $tagRow;
+                    break;
+                }
+            }
+        }
+
         return [
-            'tags' => array_map(fn($tag) => (array) $tag, $tags),
-            'tagOptions' => array_map(fn($tag) => (array) $tag, $tags),
+            'tags' => $tagRows,
+            'tagOptions' => $tagRows,
+            'editTag' => $editTag,
             'counts' => [
                 'total' => count($tags),
                 'assigned_posts' => array_sum(array_map(static fn($tag): int => (int) ($tag->post_count ?? 0), $tags)),
@@ -746,7 +759,7 @@ class PostsModule
     {
         $id   = (int)($post['cat_id'] ?? 0);
         $name = $this->sanitizePlainText((string)($post['cat_name'] ?? ''), 255);
-        $slug = trim((string)($post['cat_slug'] ?? ''));
+        $slug = $this->normalizeSlug((string)($post['cat_slug'] ?? ''));
         $parentId = (int) ($post['parent_id'] ?? 0);
         $replacementCategoryId = (int) ($post['replacement_category_id'] ?? 0);
         $normalizedDomains = $this->normalizeCategoryDomains((string) ($post['cat_domains'] ?? ''));
@@ -755,7 +768,15 @@ class PostsModule
             return ['success' => false, 'error' => 'Kategoriename darf nicht leer sein.'];
         }
         if ($slug === '') {
-            $slug = $this->generateSlug($name);
+            $slug = $this->normalizeSlug($this->generateSlug($name));
+        }
+
+        if ($slug === '') {
+            return ['success' => false, 'error' => 'Bitte einen gültigen Kategorie-Slug angeben.'];
+        }
+
+        if ($id > 0 && !$this->categoryExists($id)) {
+            return ['success' => false, 'error' => 'Die zu bearbeitende Kategorie existiert nicht mehr.'];
         }
 
         if ($this->isCategorySlugTaken($slug, $id)) {
@@ -1124,15 +1145,23 @@ class PostsModule
     {
         $id = (int) ($post['tag_id'] ?? 0);
         $name = $this->sanitizePlainText((string) ($post['tag_name'] ?? ''), 120);
-        $slug = trim((string) ($post['tag_slug'] ?? ''));
+        $slug = $this->normalizeSlug((string) ($post['tag_slug'] ?? ''));
 
         if ($name === '') {
             return ['success' => false, 'error' => 'Tag-Name darf nicht leer sein.'];
         }
 
-        $slug = $this->normalizeSlug($slug !== '' ? $slug : $this->generateSlug($name));
+        $slug = $slug !== '' ? $slug : $this->normalizeSlug($this->generateSlug($name));
         if ($slug === '') {
             return ['success' => false, 'error' => 'Bitte einen gültigen Tag-Slug angeben.'];
+        }
+
+        if ($id > 0 && !$this->tagExists($id)) {
+            return ['success' => false, 'error' => 'Der zu bearbeitende Tag existiert nicht mehr.'];
+        }
+
+        if ($this->isTagSlugTaken($slug, $id)) {
+            return ['success' => false, 'error' => 'Dieser Tag-Slug ist bereits vergeben.'];
         }
 
         try {
@@ -1406,6 +1435,19 @@ class PostsModule
     {
         $params = [$slug];
         $sql = "SELECT COUNT(*) FROM {$this->prefix}post_categories WHERE slug = ?";
+
+        if ($ignoreId > 0) {
+            $sql .= " AND id != ?";
+            $params[] = $ignoreId;
+        }
+
+        return (int) $this->db->get_var($sql, $params) > 0;
+    }
+
+    private function isTagSlugTaken(string $slug, int $ignoreId = 0): bool
+    {
+        $params = [$slug];
+        $sql = "SELECT COUNT(*) FROM {$this->prefix}post_tags WHERE slug = ?";
 
         if ($ignoreId > 0) {
             $sql .= " AND id != ?";

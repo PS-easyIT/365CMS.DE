@@ -68,7 +68,7 @@ function cms_admin_menu_editor_normalize_payload(array $post): array
 }
 
 if (!cms_admin_menu_editor_can_access()) {
-    header('Location: ' . SITE_URL);
+    header('Location: /');
     exit;
 }
 

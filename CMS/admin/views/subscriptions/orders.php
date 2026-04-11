@@ -5,8 +5,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-$siteUrl      = defined('SITE_URL') ? SITE_URL : '';
-$ordersBaseUrl = $siteUrl . '/admin/orders';
+$ordersBaseUrl = '/admin/orders';
 $orders       = $data['orders'] ?? [];
 $stats        = $data['stats'] ?? [];
 $statusFilter = $data['filter'] ?? '';
@@ -14,14 +13,14 @@ $assignments  = $data['assignments'] ?? [];
 $plans        = $data['plans'] ?? [];
 $users        = $data['users'] ?? [];
 $alertData    = is_array($alert ?? null) ? $alert : [];
-$statusTransitions = ['pending', 'paid', 'cancelled', 'refunded'];
-
 $statusLabels = [
     'pending'   => ['label' => 'Offen',       'class' => 'bg-warning'],
     'paid'      => ['label' => 'Bezahlt',     'class' => 'bg-success'],
     'cancelled' => ['label' => 'Storniert',   'class' => 'bg-secondary'],
     'refunded'  => ['label' => 'Erstattet',   'class' => 'bg-info'],
     'failed'    => ['label' => 'Fehlgeschl.',  'class' => 'bg-danger'],
+    'confirmed' => ['label' => 'Bezahlt',     'class' => 'bg-success'],
+    'completed' => ['label' => 'Bezahlt',     'class' => 'bg-success'],
 ];
 
 $resolveStatusMeta = static function (string $status) use ($statusLabels): array {
@@ -141,12 +140,16 @@ $renderOrderActionsMenu = static function (
     </div>
     <?php
 };
-$statusOptions = static function (array $currentOrder) use ($statusTransitions, $statusLabels): array {
-    $currentStatus = (string) ($currentOrder['status'] ?? '');
+$statusOptions = static function (array $currentOrder) use ($statusLabels): array {
+    $transitions = $currentOrder['available_transitions'] ?? [];
+
+    if (!is_array($transitions)) {
+        return [];
+    }
 
     return array_values(array_filter(
-        $statusTransitions,
-        static fn (string $candidate): bool => $candidate !== $currentStatus && isset($statusLabels[$candidate])
+        array_map('strval', $transitions),
+        static fn (string $candidate): bool => isset($statusLabels[$candidate])
     ));
 };
 $assignmentUserLabel = static fn (array $assignment): string => (string) ($assignment['username'] ?? $assignment['email'] ?? '–');

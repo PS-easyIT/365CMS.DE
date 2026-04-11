@@ -15,16 +15,23 @@ if (!defined('ABSPATH')) {
 }
 
 use CMS\Http\Client as HttpClient;
-use CMS\ThemeManager;
 use CMS\Database;
+use CMS\Services\ErrorReportService;
 use CMS\Services\UpdateService;
+use CMS\ThemeManager;
 
 class ThemeMarketplaceModule
 {
+    private const MAX_CATALOG_BYTES = 1048576;
     private const MAX_MANIFEST_BYTES = 524288;
+    private const CATALOG_CACHE_TTL = 900;
+    private const CATALOG_CACHE_OPTION = 'theme_marketplace_catalog_cache';
+    private const CATALOG_CACHE_META_OPTION = 'theme_marketplace_catalog_cache_meta';
     private const MAX_ARCHIVE_ENTRIES = 2000;
     private const MAX_ARCHIVE_UNCOMPRESSED_BYTES = 52428800;
     private const MAX_CATALOG_STRING_LENGTH = 500;
+    private const MAX_PACKAGE_SIZE_BYTES = 104857600;
+    private const ALLOWED_ARCHIVE_EXTENSIONS = ['zip'];
     private const MANIFEST_ALLOWED_KEYS = [
         'slug',
         'name',
@@ -45,6 +52,7 @@ class ThemeMarketplaceModule
         'price',
         'sha256',
         'checksum_sha256',
+        'package_size',
         'homepage_url',
         'docs_url',
         'changelog_url',
@@ -73,12 +81,14 @@ class ThemeMarketplaceModule
 
     private const DEFAULT_MARKETPLACE_URL = 'https://365cms.de/marketplace/themes';
 
+    private readonly Database $db;
+    private readonly string $prefix;
     private ThemeManager $themeManager;
     private HttpClient $httpClient;
     private UpdateService $updateService;
     /** @var array<int, array<string, mixed>>|null */
     private ?array $catalogCache = null;
-    /** @var array<string, string> */
+    /** @var array<string, mixed> */
     private array $catalogSource = [
         'type' => 'none',
         'status' => 'warning',
@@ -87,6 +97,8 @@ class ThemeMarketplaceModule
 
     public function __construct()
     {
+        $this->db = Database::instance();
+        $this->prefix = $this->db->getPrefix();
         $this->themeManager = ThemeManager::instance();
         $this->httpClient = HttpClient::getInstance();
         $this->updateService = UpdateService::getInstance();
@@ -106,6 +118,9 @@ class ThemeMarketplaceModule
         foreach ($catalog as &$theme) {
             $slugKey = $this->normalizeThemeKey((string) ($theme['slug'] ?? ''));
             $localTheme = $installedMap[$slugKey] ?? null;
+            $downloadUrl = trim((string) ($theme['download_url'] ?? ''));
+            $integrityHash = $this->resolveIntegrityHash($theme);
+            $packageSizeBytes = $this->normalizePackageSize($theme['package_size'] ?? null);
 
             $theme['installed'] = $localTheme !== null;
             $theme['active']    = $slugKey !== '' && $slugKey === $activeTheme;
@@ -118,8 +133,17 @@ class ThemeMarketplaceModule
                 $theme['updateAvailable'] = false;
             }
 
-            $theme['integrity_hash'] = $this->resolveIntegrityHash($theme);
-            $theme['integrity_hash_present'] = $theme['integrity_hash'] !== '';
+            $theme['package_size_bytes'] = $packageSizeBytes;
+            $theme['package_size_label'] = $packageSizeBytes > 0 ? $this->formatBytesLabel($packageSizeBytes) : '';
+            $theme['download_host'] = strtolower((string) parse_url($downloadUrl, PHP_URL_HOST));
+            $theme['download_host_allowed'] = $downloadUrl !== '' && $this->isAllowedMarketplaceUrl($downloadUrl);
+            $theme['download_extension_allowed'] = $downloadUrl !== '' && $this->hasAllowedArchiveExtension($downloadUrl);
+            $theme['package_size_allowed'] = $this->isAllowedPackageSize($theme);
+            $theme['integrity_hash'] = $integrityHash;
+            $theme['integrity_hash_short'] = $integrityHash !== '' ? substr($integrityHash, 0, 12) . '…' : '';
+            $theme['integrity_hash_present'] = $integrityHash !== '';
+            $theme['compatibility_reason'] = $this->getCompatibilityFailureReason($theme);
+            $theme['compatible'] = $theme['compatibility_reason'] === '';
             $theme['install_supported'] = $this->canAutoInstall($theme);
             $theme['manual_install_only'] = !$theme['install_supported'];
             $theme['install_reason'] = $theme['install_supported']
@@ -134,10 +158,30 @@ class ThemeMarketplaceModule
             'total'     => count($catalog),
             'stats'     => $this->buildStats($catalog),
             'source'    => $this->catalogSource,
+            'constraints' => [
+                'catalog_cache_ttl' => self::CATALOG_CACHE_TTL,
+                'catalog_max_bytes' => self::MAX_CATALOG_BYTES,
+                'catalog_max_bytes_label' => $this->formatBytesLabel(self::MAX_CATALOG_BYTES),
+                'manifest_max_bytes' => self::MAX_MANIFEST_BYTES,
+                'manifest_max_bytes_label' => $this->formatBytesLabel(self::MAX_MANIFEST_BYTES),
+                'package_size_limit_bytes' => self::MAX_PACKAGE_SIZE_BYTES,
+                'package_size_limit_label' => $this->formatBytesLabel(self::MAX_PACKAGE_SIZE_BYTES),
+                'archive_entries_limit' => self::MAX_ARCHIVE_ENTRIES,
+                'archive_uncompressed_limit_bytes' => self::MAX_ARCHIVE_UNCOMPRESSED_BYTES,
+                'archive_uncompressed_limit_label' => $this->formatBytesLabel(self::MAX_ARCHIVE_UNCOMPRESSED_BYTES),
+                'allowed_marketplace_hosts' => self::ALLOWED_MARKETPLACE_HOSTS,
+                'allowed_archive_extensions' => self::ALLOWED_ARCHIVE_EXTENSIONS,
+                'allowed_archive_extensions_label' => implode(', ', self::ALLOWED_ARCHIVE_EXTENSIONS),
+            ],
             'filters'   => [
                 'statuses' => $this->buildStatusFilters(),
             ],
         ];
+    }
+
+    public function hasCatalogThemeSlug(string $slug): bool
+    {
+        return $this->findCatalogTheme($this->normalizeThemeKey($slug)) !== null;
     }
 
     /**
@@ -147,30 +191,64 @@ class ThemeMarketplaceModule
     {
         $slug = $this->normalizeThemeKey($slug);
         if ($slug === '') {
-            return ['success' => false, 'error' => 'Kein Theme angegeben.'];
+            return $this->buildInstallFailureResult('Kein Theme angegeben.', 'theme_marketplace_invalid_slug');
         }
 
         $theme = $this->findCatalogTheme($slug);
         if ($theme === null) {
-            return ['success' => false, 'error' => 'Theme nicht im Marketplace gefunden.'];
+            return $this->buildInstallFailureResult('Theme nicht im Marketplace gefunden.', 'theme_marketplace_missing_catalog_entry', [
+                'Theme-Slug: ' . $slug,
+            ], [
+                'slug' => $slug,
+            ]);
         }
 
-        if (!empty($theme['installed'])) {
-            return ['success' => false, 'error' => 'Theme ist bereits installiert.'];
+        $installedThemeMap = $this->getInstalledThemeMap($this->themeManager->getAvailableThemes());
+        if (isset($installedThemeMap[$slug])) {
+            return $this->buildInstallFailureResult('Theme ist bereits installiert.', 'theme_marketplace_already_installed', [
+                'Theme-Slug: ' . $slug,
+            ], [
+                'slug' => $slug,
+            ]);
         }
 
         $downloadUrl = trim((string) ($theme['download_url'] ?? ''));
         $integrityHash = $this->resolveIntegrityHash($theme);
 
         if (!$this->canAutoInstall($theme)) {
-            return [
-                'success' => false,
-                'error' => $this->getManualInstallReason($theme),
-            ];
+            return $this->buildInstallFailureResult(
+                $this->getManualInstallReason($theme),
+                'theme_marketplace_manual_install_required',
+                $this->buildInstallContextDetails($slug, $downloadUrl, $integrityHash, $theme),
+                $this->buildInstallErrorData($slug, $downloadUrl, $integrityHash, $theme)
+            );
         }
 
         if (!$this->isAllowedMarketplaceUrl($downloadUrl)) {
-            return ['success' => false, 'error' => 'Download-URL liegt außerhalb der erlaubten Marketplace-Hosts.'];
+            return $this->buildInstallFailureResult(
+                'Download-URL liegt außerhalb der erlaubten Marketplace-Hosts.',
+                'theme_marketplace_disallowed_download_host',
+                $this->buildInstallContextDetails($slug, $downloadUrl, $integrityHash, $theme),
+                $this->buildInstallErrorData($slug, $downloadUrl, $integrityHash, $theme)
+            );
+        }
+
+        if (!$this->isAllowedPackageSize($theme)) {
+            return $this->buildInstallFailureResult(
+                'Theme-Paket überschreitet das Auto-Install-Limit von ' . $this->formatBytesLabel(self::MAX_PACKAGE_SIZE_BYTES) . '.',
+                'theme_marketplace_package_too_large',
+                $this->buildInstallContextDetails($slug, $downloadUrl, $integrityHash, $theme),
+                $this->buildInstallErrorData($slug, $downloadUrl, $integrityHash, $theme)
+            );
+        }
+
+        if (!$this->hasAllowedArchiveExtension($downloadUrl)) {
+            return $this->buildInstallFailureResult(
+                'Download-Archiv muss eine erlaubte Endung (' . implode(', ', self::ALLOWED_ARCHIVE_EXTENSIONS) . ') besitzen.',
+                'theme_marketplace_disallowed_archive_extension',
+                $this->buildInstallContextDetails($slug, $downloadUrl, $integrityHash, $theme),
+                $this->buildInstallErrorData($slug, $downloadUrl, $integrityHash, $theme)
+            );
         }
 
         $targetFolder = $this->determineThemeTargetFolder($theme, $slug);
@@ -179,11 +257,21 @@ class ThemeMarketplaceModule
         $normalizedTargetDir = rtrim(str_replace('\\', '/', $targetDir), '/') . '/';
 
         if (!str_starts_with($normalizedTargetDir, $normalizedThemeBase)) {
-            return ['success' => false, 'error' => 'Theme-Zielverzeichnis ist ungültig.'];
+            return $this->buildInstallFailureResult(
+                'Theme-Zielverzeichnis ist ungültig.',
+                'theme_marketplace_invalid_target_dir',
+                ['Theme-Slug: ' . $slug],
+                ['slug' => $slug, 'target_dir' => $normalizedTargetDir]
+            );
         }
 
         if (is_dir(rtrim($targetDir, '/\\'))) {
-            return ['success' => false, 'error' => 'Theme ist bereits installiert.'];
+            return $this->buildInstallFailureResult(
+                'Theme ist bereits installiert.',
+                'theme_marketplace_target_exists',
+                ['Theme-Slug: ' . $slug],
+                ['slug' => $slug, 'target_dir' => $normalizedTargetDir]
+            );
         }
 
         $result = $this->updateService->downloadAndInstallUpdate(
@@ -196,15 +284,38 @@ class ThemeMarketplaceModule
         );
 
         if (($result['success'] ?? false) !== true) {
-            return ['success' => false, 'error' => (string) ($result['message'] ?? 'Theme konnte nicht installiert werden.')];
+            return $this->buildInstallFailureResult(
+                (string) ($result['message'] ?? 'Theme konnte nicht installiert werden.'),
+                'theme_marketplace_install_failed',
+                $this->buildInstallContextDetails($slug, $downloadUrl, $integrityHash, $theme),
+                array_merge(
+                    $this->buildInstallErrorData($slug, $downloadUrl, $integrityHash, $theme),
+                    ['installer_result' => is_array($result) ? array_intersect_key($result, array_flip(['message', 'status', 'code', 'sha256_verified'])) : []]
+                )
+            );
         }
 
         $finalizationError = $this->finalizeInstalledThemePackage($targetDir, $targetFolder);
         if ($finalizationError !== '') {
-            return ['success' => false, 'error' => $finalizationError];
+            return $this->buildInstallFailureResult(
+                $finalizationError,
+                'theme_marketplace_finalization_failed',
+                $this->buildInstallContextDetails($slug, $downloadUrl, $integrityHash, $theme),
+                $this->buildInstallErrorData($slug, $downloadUrl, $integrityHash, $theme)
+            );
         }
 
-        return ['success' => true, 'message' => 'Theme „' . ((string) ($theme['name'] ?? $slug)) . '“ wurde installiert. Du kannst es jetzt in der Theme-Verwaltung aktivieren.'];
+        return [
+            'success' => true,
+            'message' => 'Theme „' . ((string) ($theme['name'] ?? $slug)) . '“ wurde installiert. Du kannst es jetzt in der Theme-Verwaltung aktivieren.',
+            'details' => array_merge(
+                $this->buildInstallContextDetails($slug, $downloadUrl, $integrityHash, $theme),
+                [
+                    'Zielpfad: ' . $normalizedTargetDir,
+                    'SHA-256 verifiziert: ' . (!empty($result['sha256_verified']) ? 'ja' : 'nein'),
+                ]
+            ),
+        ];
     }
 
     /**
@@ -216,33 +327,86 @@ class ThemeMarketplaceModule
             return $this->catalogCache;
         }
 
-        $remoteCatalog = $this->loadRemoteCatalog();
-        if ($remoteCatalog !== []) {
+        $marketplaceUrl = $this->getMarketplaceUrl();
+        $cachedCatalog = $this->loadCachedCatalog($marketplaceUrl);
+        if ($cachedCatalog !== null) {
+            $this->catalogSource = [
+                'type' => 'cache',
+                'status' => 'info',
+                'message' => 'Theme-Katalog aus lokalem Cache geladen.',
+                'url' => $marketplaceUrl,
+                'details' => array_values(array_filter([
+                    !empty($cachedCatalog['cached_at_label']) ? 'Stand: ' . $cachedCatalog['cached_at_label'] : '',
+                    isset($cachedCatalog['age_seconds']) ? 'Cache-Alter: ' . (int) $cachedCatalog['age_seconds'] . ' Sekunden' : '',
+                ])),
+            ];
+
+            return $this->catalogCache = $cachedCatalog['catalog'];
+        }
+
+        $remoteCatalog = $this->loadRemoteCatalog($marketplaceUrl);
+        $remoteThemes = is_array($remoteCatalog['catalog'] ?? null) ? $remoteCatalog['catalog'] : [];
+        if ($remoteThemes !== []) {
+            $this->persistCatalogCache($marketplaceUrl, $remoteThemes);
             $this->catalogSource = [
                 'type' => 'remote',
                 'status' => 'success',
                 'message' => 'Theme-Katalog erfolgreich aus der Remote-Quelle geladen.',
-                'url' => $this->getMarketplaceUrl(),
+                'url' => $marketplaceUrl,
+                'details' => array_values(array_filter([
+                    !empty($remoteCatalog['details']) && is_array($remoteCatalog['details']) ? implode(' · ', array_map('strval', $remoteCatalog['details'])) : '',
+                ])),
             ];
-            return $this->catalogCache = $remoteCatalog;
+
+            return $this->catalogCache = $remoteThemes;
+        }
+
+        $staleCatalog = $this->loadCachedCatalog($marketplaceUrl, true);
+        if ($staleCatalog !== null) {
+            $this->catalogSource = [
+                'type' => 'cache',
+                'status' => 'warning',
+                'message' => 'Remote-Katalog derzeit nicht verfügbar; letzter bekannter Cache wird als Fallback genutzt.',
+                'url' => $marketplaceUrl,
+                'details' => array_values(array_filter([
+                    !empty($staleCatalog['cached_at_label']) ? 'Cache-Stand: ' . $staleCatalog['cached_at_label'] : '',
+                    isset($staleCatalog['age_seconds']) ? 'Cache-Alter: ' . (int) $staleCatalog['age_seconds'] . ' Sekunden' : '',
+                    !empty($remoteCatalog['error']) ? 'Remote-Fehler: ' . (string) $remoteCatalog['error'] : '',
+                    !empty($remoteCatalog['details']) && is_array($remoteCatalog['details']) ? implode(' · ', array_map('strval', $remoteCatalog['details'])) : '',
+                ])),
+            ];
+
+            return $this->catalogCache = $staleCatalog['catalog'];
         }
 
         $localCatalog = $this->loadLocalCatalog();
-        if ($localCatalog !== []) {
+        $localThemes = is_array($localCatalog['catalog'] ?? null) ? $localCatalog['catalog'] : [];
+        if ($localThemes !== []) {
             $this->catalogSource = [
                 'type' => 'local',
-                'status' => 'warning',
-                'message' => 'Remote-Katalog derzeit nicht verfügbar; lokaler Theme-Index wird als Fallback genutzt.',
-                'url' => 'index.json',
+                'status' => $marketplaceUrl !== '' ? 'warning' : 'info',
+                'message' => $marketplaceUrl !== ''
+                    ? 'Remote-Katalog derzeit nicht verfügbar; lokaler Theme-Index wird als Fallback genutzt.'
+                    : 'Lokaler Theme-Index wird verwendet.',
+                'url' => (string) ($localCatalog['index_path'] ?? 'index.json'),
+                'details' => array_values(array_filter([
+                    !empty($remoteCatalog['error']) ? 'Remote-Fehler: ' . (string) $remoteCatalog['error'] : '',
+                    !empty($remoteCatalog['details']) && is_array($remoteCatalog['details']) ? implode(' · ', array_map('strval', $remoteCatalog['details'])) : '',
+                ])),
             ];
-            return $this->catalogCache = $localCatalog;
+
+            return $this->catalogCache = $localThemes;
         }
 
         $this->catalogSource = [
             'type' => 'none',
             'status' => 'warning',
             'message' => 'Es konnte weder ein Remote-Katalog noch ein lokaler Theme-Index geladen werden.',
-            'url' => $this->getMarketplaceUrl(),
+            'url' => $marketplaceUrl,
+            'details' => array_values(array_filter([
+                !empty($remoteCatalog['error']) ? 'Remote-Fehler: ' . (string) $remoteCatalog['error'] : '',
+                !empty($remoteCatalog['details']) && is_array($remoteCatalog['details']) ? implode(' · ', array_map('strval', $remoteCatalog['details'])) : '',
+            ])),
         ];
 
         return $this->catalogCache = [];
@@ -254,9 +418,8 @@ class ThemeMarketplaceModule
     private function getMarketplaceUrl(): string
     {
         try {
-            $db   = Database::instance();
-            $row  = $db->get_row(
-                "SELECT option_value FROM {$db->getPrefix()}settings WHERE option_name = 'theme_marketplace_url'"
+            $row  = $this->db->get_row(
+                "SELECT option_value FROM {$this->prefix}settings WHERE option_name = 'theme_marketplace_url'"
             );
             $value = $this->normalizeMarketplaceUrl((string) ($row->option_value ?? ''));
 
@@ -266,6 +429,71 @@ class ThemeMarketplaceModule
         }
     }
 
+    /**
+     * @return array{catalog:array<int, array<string, mixed>>, age_seconds:int, cached_at_label:string}|null
+     */
+    private function loadCachedCatalog(string $marketplaceUrl, bool $allowExpired = false): ?array
+    {
+        $payload = $this->db->get_var(
+            "SELECT option_value FROM {$this->prefix}settings WHERE option_name = ? LIMIT 1",
+            [self::CATALOG_CACHE_OPTION]
+        );
+        $metaPayload = $this->db->get_var(
+            "SELECT option_value FROM {$this->prefix}settings WHERE option_name = ? LIMIT 1",
+            [self::CATALOG_CACHE_META_OPTION]
+        );
+
+        $cacheData = \CMS\Json::decodeArray((string) $payload, []);
+        $cacheMeta = \CMS\Json::decodeArray((string) $metaPayload, []);
+        if (!is_array($cacheData) || !is_array($cacheMeta)) {
+            return null;
+        }
+
+        $cachedUrl = $this->normalizeMarketplaceUrl((string) ($cacheMeta['marketplace_url'] ?? ''));
+        $normalizedMarketplaceUrl = $this->normalizeMarketplaceUrl($marketplaceUrl);
+        if ($cachedUrl === '' || $normalizedMarketplaceUrl === '' || $cachedUrl !== $normalizedMarketplaceUrl) {
+            return null;
+        }
+
+        $cachedAt = (int) ($cacheMeta['cached_at'] ?? 0);
+        if ($cachedAt <= 0) {
+            return null;
+        }
+
+        $ageSeconds = max(0, time() - $cachedAt);
+        if (!$allowExpired && $ageSeconds > self::CATALOG_CACHE_TTL) {
+            return null;
+        }
+
+        $catalog = is_array($cacheData['catalog'] ?? null) ? $cacheData['catalog'] : [];
+
+        return [
+            'catalog' => $catalog,
+            'age_seconds' => $ageSeconds,
+            'cached_at_label' => date('d.m.Y H:i:s', $cachedAt),
+        ];
+    }
+
+    /** @param array<int, array<string, mixed>> $catalog */
+    private function persistCatalogCache(string $marketplaceUrl, array $catalog): void
+    {
+        $payload = json_encode(['catalog' => $catalog], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        $meta = json_encode([
+            'marketplace_url' => $marketplaceUrl,
+            'cached_at' => time(),
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
+        if (!is_string($payload) || !is_string($meta)) {
+            return;
+        }
+
+        $this->upsertSetting(self::CATALOG_CACHE_OPTION, $payload);
+        $this->upsertSetting(self::CATALOG_CACHE_META_OPTION, $meta);
+    }
+
+    /**
+     * @return array{catalog:array<int, array<string, mixed>>, index_path:string}
+     */
     private function loadLocalCatalog(): array
     {
         $themeBase = rtrim(THEME_PATH, '/\\');
@@ -291,40 +519,80 @@ class ThemeMarketplaceModule
 
             $catalog = $this->normalizeCatalogEntries($data, dirname($indexPath));
             if ($catalog !== []) {
-                return $catalog;
+                return [
+                    'catalog' => $catalog,
+                    'index_path' => $indexPath,
+                ];
             }
         }
 
-        return [];
+        return [
+            'catalog' => [],
+            'index_path' => '',
+        ];
     }
 
-    private function loadRemoteCatalog(): array
+    /**
+     * @return array{catalog:array<int, array<string, mixed>>, error?:string, details?:list<string>}
+     */
+    private function loadRemoteCatalog(string $marketplaceUrl): array
     {
-        $repoUrl = $this->getMarketplaceUrl();
-        $catalogUrl = $this->resolveCatalogIndexUrl($repoUrl);
+        $catalogUrl = $this->resolveCatalogIndexUrl($marketplaceUrl);
         if ($catalogUrl === '') {
-            return [];
+            return [
+                'catalog' => [],
+                'error' => 'Marketplace-URL ist ungültig oder nicht freigegeben.',
+            ];
         }
 
         $response = $this->httpClient->get($catalogUrl, [
             'timeout' => 10,
             'connectTimeout' => 5,
-            'maxBytes' => 1024 * 1024,
+            'maxBytes' => self::MAX_CATALOG_BYTES,
             'allowedContentTypes' => ['application/json', 'text/plain'],
             'userAgent' => '365CMS Theme Marketplace',
         ]);
 
         $content = (string) ($response['body'] ?? '');
         if (($response['success'] ?? false) !== true || $content === '') {
-            return [];
+            return [
+                'catalog' => [],
+                'error' => (string) ($response['error'] ?? 'Remote-Katalog konnte nicht geladen werden.'),
+                'details' => array_values(array_filter([
+                    !empty($response['status']) ? 'HTTP-Status: ' . (int) $response['status'] : '',
+                    !empty($response['contentType']) ? 'Content-Type: ' . (string) $response['contentType'] : '',
+                ])),
+            ];
         }
 
         $data = \CMS\Json::decodeArray($content, []);
         if (!is_array($data)) {
-            return [];
+            return [
+                'catalog' => [],
+                'error' => 'Remote-Katalog enthält kein gültiges JSON.',
+                'details' => ['Quelle: ' . $catalogUrl],
+            ];
         }
 
-        return $this->normalizeCatalogEntries($data, $this->resolveBasePath($catalogUrl));
+        $catalog = $this->normalizeCatalogEntries($data, $this->resolveBasePath($catalogUrl));
+        if ($catalog === []) {
+            return [
+                'catalog' => [],
+                'error' => 'Remote-Katalog enthielt keine verwertbaren Theme-Einträge.',
+                'details' => [
+                    'Quelle: ' . $catalogUrl,
+                    'Rohdaten vorhanden: ' . (($data !== []) ? 'ja' : 'nein'),
+                ],
+            ];
+        }
+
+        return [
+            'catalog' => $catalog,
+            'details' => [
+                'Quelle: ' . $catalogUrl,
+                'Einträge: ' . count($catalog),
+            ],
+        ];
     }
 
     private function normalizeCatalogEntries(array $data, string $sourceBase): array
@@ -625,7 +893,9 @@ class ThemeMarketplaceModule
         return $downloadUrl !== ''
             && $integrityHash !== ''
             && $this->meetsEnvironmentRequirements($theme)
-            && $this->isAllowedMarketplaceUrl($downloadUrl);
+            && $this->isAllowedPackageSize($theme)
+            && $this->isAllowedMarketplaceUrl($downloadUrl)
+            && $this->hasAllowedArchiveExtension($downloadUrl);
     }
 
     private function getManualInstallReason(array $theme): string
@@ -647,6 +917,14 @@ class ThemeMarketplaceModule
 
         if (!$this->isAllowedMarketplaceUrl($downloadUrl)) {
             return 'Download-URL liegt außerhalb der erlaubten Marketplace-Hosts.';
+        }
+
+        if (!$this->isAllowedPackageSize($theme)) {
+            return 'Theme-Paket überschreitet das Auto-Install-Limit von ' . $this->formatBytesLabel(self::MAX_PACKAGE_SIZE_BYTES) . '.';
+        }
+
+        if (!$this->hasAllowedArchiveExtension($downloadUrl)) {
+            return 'Download-Archiv muss eine erlaubte Endung (' . implode(', ', self::ALLOWED_ARCHIVE_EXTENSIONS) . ') besitzen.';
         }
 
         return 'Für die automatische Installation fehlt eine gültige SHA-256-Prüfsumme. Bitte Paket manuell prüfen und installieren.';
@@ -714,6 +992,52 @@ class ThemeMarketplaceModule
         $normalized = strtolower(trim((string) $value));
 
         return in_array($normalized, ['1', 'true', 'yes', 'ja', 'paid'], true);
+    }
+
+    private function normalizePackageSize(mixed $value): int
+    {
+        if (is_int($value) || is_float($value) || (is_string($value) && preg_match('/^\d+$/', trim($value)) === 1)) {
+            return max(0, (int) $value);
+        }
+
+        return 0;
+    }
+
+    private function isAllowedPackageSize(array $theme): bool
+    {
+        $packageSize = $this->normalizePackageSize($theme['package_size'] ?? null);
+
+        return $packageSize === 0 || $packageSize <= self::MAX_PACKAGE_SIZE_BYTES;
+    }
+
+    private function hasAllowedArchiveExtension(string $url): bool
+    {
+        $normalizedUrl = $this->normalizeMarketplaceUrl($url);
+        if ($normalizedUrl === '') {
+            return false;
+        }
+
+        $path = strtolower((string) parse_url($normalizedUrl, PHP_URL_PATH));
+        if ($path === '') {
+            return false;
+        }
+
+        $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+
+        return $extension !== '' && in_array($extension, self::ALLOWED_ARCHIVE_EXTENSIONS, true);
+    }
+
+    private function formatBytesLabel(int $bytes): string
+    {
+        if ($bytes >= 1048576) {
+            return round($bytes / 1048576, 1) . ' MB';
+        }
+
+        if ($bytes >= 1024) {
+            return round($bytes / 1024, 1) . ' KB';
+        }
+
+        return $bytes . ' B';
     }
 
     private function isHttpsUrl(string $url): bool
@@ -1198,5 +1522,72 @@ class ThemeMarketplaceModule
         }
 
         return '';
+    }
+
+    /** @return array<int, string> */
+    private function buildInstallContextDetails(string $slug, string $downloadUrl, string $integrityHash, array $theme): array
+    {
+        return array_values(array_filter([
+            'Theme-Slug: ' . $slug,
+            $downloadUrl !== '' ? 'Quelle: ' . $downloadUrl : '',
+            !empty($theme['package_size']) ? 'Paketgröße: ' . $this->formatBytesLabel($this->normalizePackageSize($theme['package_size'])) : '',
+            $downloadUrl !== '' ? 'Archiv-Endung erlaubt: ' . ($this->hasAllowedArchiveExtension($downloadUrl) ? 'ja' : 'nein') : '',
+            $integrityHash !== '' ? 'SHA-256: ' . substr($integrityHash, 0, 12) . '…' : '',
+            !empty($theme['requires_cms']) ? '365CMS ab: ' . (string) $theme['requires_cms'] : '',
+            !empty($theme['requires_php']) ? 'PHP ab: ' . (string) $theme['requires_php'] : '',
+        ]));
+    }
+
+    /** @return array<string, mixed> */
+    private function buildInstallErrorData(string $slug, string $downloadUrl, string $integrityHash, array $theme): array
+    {
+        return [
+            'slug' => $slug,
+            'download_url' => $downloadUrl,
+            'download_host' => strtolower((string) parse_url($downloadUrl, PHP_URL_HOST)),
+            'archive_extension' => strtolower((string) pathinfo((string) parse_url($downloadUrl, PHP_URL_PATH), PATHINFO_EXTENSION)),
+            'sha256' => $integrityHash,
+            'package_size_bytes' => $this->normalizePackageSize($theme['package_size'] ?? null),
+            'requires_cms' => (string) ($theme['requires_cms'] ?? ''),
+            'requires_php' => (string) ($theme['requires_php'] ?? ''),
+        ];
+    }
+
+    private function buildInstallFailureResult(string $message, string $errorCode, array $details = [], array $errorData = []): array
+    {
+        $context = [
+            'source' => '/admin/theme-marketplace',
+            'title' => 'Theme Marketplace',
+        ];
+
+        return [
+            'success' => false,
+            'error' => $message,
+            'details' => array_values(array_filter(array_map(static fn (mixed $detail): string => trim((string) $detail), $details), static fn (string $detail): bool => $detail !== '')),
+            'error_details' => [
+                'code' => $errorCode,
+                'data' => $errorData,
+                'context' => $context,
+            ],
+            'report_payload' => ErrorReportService::buildReportPayloadFromWpError(
+                new \CMS\WP_Error($errorCode, $message, $errorData),
+                $context
+            ),
+        ];
+    }
+
+    private function upsertSetting(string $key, string $value): void
+    {
+        $updated = $this->db->execute(
+            "UPDATE {$this->prefix}settings SET option_value = ? WHERE option_name = ?",
+            [$value, $key]
+        );
+
+        if ($updated === 0) {
+            $this->db->execute(
+                "INSERT INTO {$this->prefix}settings (option_name, option_value) VALUES (?, ?)",
+                [$key, $value]
+            );
+        }
     }
 }

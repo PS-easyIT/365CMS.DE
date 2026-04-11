@@ -47,8 +47,8 @@ if (!is_callable($accessChecker)) {
     throw new RuntimeException('Redirect-Alias-Shell erwartet eine callable access_checker-Konfiguration.');
 }
 
-$targetUrl = cms_admin_redirect_alias_shell_normalize_target($adminRedirectAliasConfig['target_url'] ?? SITE_URL);
-$fallbackUrl = cms_admin_redirect_alias_shell_normalize_target($adminRedirectAliasConfig['fallback_url'] ?? SITE_URL);
+$targetUrl = cms_admin_redirect_alias_shell_normalize_target($adminRedirectAliasConfig['target_url'] ?? '/');
+$fallbackUrl = cms_admin_redirect_alias_shell_normalize_target($adminRedirectAliasConfig['fallback_url'] ?? '/');
 $redirectUrl = (bool) $accessChecker($adminRedirectAliasConfig) ? $targetUrl : $fallbackUrl;
 
 header('Location: ' . $redirectUrl);

@@ -8,6 +8,11 @@ if (!defined('ABSPATH')) {
 $tags = $data['tags'] ?? [];
 $tagOptions = $data['tagOptions'] ?? [];
 $counts = $data['counts'] ?? [];
+$editTag = $editTag ?? ($data['editTag'] ?? null);
+$editTagId = (int) ($editTag['id'] ?? 0);
+$editTagName = (string) ($editTag['name'] ?? '');
+$editTagSlug = (string) ($editTag['slug'] ?? '');
+$isEditing = $editTagId > 0;
 $deleteTagOptions = array_values(array_filter(
     $tagOptions,
     static fn(array $tagOption): bool => (int) ($tagOption['id'] ?? 0) > 0
@@ -64,21 +69,26 @@ $deleteTagSubmitDisabled = count($deleteTagOptions) <= 1;
         <div class="row row-cards">
             <div class="col-lg-4">
                 <div class="card">
-                    <div class="card-header"><h3 class="card-title">Neuen Tag anlegen</h3></div>
+                    <div class="card-header"><h3 class="card-title"><?php echo $isEditing ? 'Tag bearbeiten' : 'Neuen Tag anlegen'; ?></h3></div>
                     <div class="card-body">
                         <form method="post">
                             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES); ?>">
                             <input type="hidden" name="action" value="save_tag">
-                            <input type="hidden" name="tag_id" value="0">
+                            <input type="hidden" name="tag_id" value="<?php echo $editTagId; ?>">
                             <div class="mb-3">
                                 <label class="form-label" for="postTagName">Name</label>
-                                <input type="text" class="form-control" id="postTagName" name="tag_name" required>
+                                <input type="text" class="form-control" id="postTagName" name="tag_name" value="<?php echo htmlspecialchars($editTagName, ENT_QUOTES); ?>" required>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label" for="postTagSlug">Slug</label>
-                                <input type="text" class="form-control" id="postTagSlug" name="tag_slug" placeholder="wird automatisch generiert">
+                                <input type="text" class="form-control" id="postTagSlug" name="tag_slug" value="<?php echo htmlspecialchars($editTagSlug, ENT_QUOTES); ?>" placeholder="wird automatisch generiert">
                             </div>
-                            <button type="submit" class="btn btn-primary w-100">Tag speichern</button>
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-primary flex-fill"><?php echo $isEditing ? 'Tag aktualisieren' : 'Tag speichern'; ?></button>
+                                <?php if ($isEditing): ?>
+                                    <a href="/admin/post-tags" class="btn btn-outline-secondary">Abbrechen</a>
+                                <?php endif; ?>
+                            </div>
                         </form>
                     </div>
                 </div>
@@ -106,15 +116,18 @@ $deleteTagSubmitDisabled = count($deleteTagOptions) <= 1;
                                         <td><code><?php echo htmlspecialchars((string) ($tag['slug'] ?? ''), ENT_QUOTES); ?></code></td>
                                         <td><?php echo (int) ($tag['post_count'] ?? 0); ?></td>
                                         <td>
-                                            <form method="post" class="js-delete-tag-form"
-                                                  data-tag-id="<?php echo (int) ($tag['id'] ?? 0); ?>"
-                                                  data-tag-name="<?php echo htmlspecialchars((string) ($tag['name'] ?? ''), ENT_QUOTES); ?>"
-                                                  data-assigned-posts="<?php echo (int) ($tag['post_count'] ?? 0); ?>">
-                                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES); ?>">
-                                                <input type="hidden" name="action" value="delete_tag">
-                                                <input type="hidden" name="tag_id" value="<?php echo (int) ($tag['id'] ?? 0); ?>">
-                                                <button type="submit" class="btn btn-ghost-danger btn-sm">Löschen</button>
-                                            </form>
+                                            <div class="d-flex gap-2">
+                                                <a href="<?php echo htmlspecialchars('/admin/post-tags?edit=' . (int) ($tag['id'] ?? 0), ENT_QUOTES); ?>" class="btn btn-outline-primary btn-sm">Bearbeiten</a>
+                                                <form method="post" class="js-delete-tag-form"
+                                                      data-tag-id="<?php echo (int) ($tag['id'] ?? 0); ?>"
+                                                      data-tag-name="<?php echo htmlspecialchars((string) ($tag['name'] ?? ''), ENT_QUOTES); ?>"
+                                                      data-assigned-posts="<?php echo (int) ($tag['post_count'] ?? 0); ?>">
+                                                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES); ?>">
+                                                    <input type="hidden" name="action" value="delete_tag">
+                                                    <input type="hidden" name="tag_id" value="<?php echo (int) ($tag['id'] ?? 0); ?>">
+                                                    <button type="submit" class="btn btn-ghost-danger btn-sm">Löschen</button>
+                                                </form>
+                                            </div>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>

@@ -121,7 +121,7 @@ final class LandingPluginService
         }
 
         $plugins = $this->getRegisteredPlugins();
-        if (!isset($plugins[$pluginId]) || !is_callable($plugins[$pluginId]['settings_callback'] ?? null)) {
+        if (!isset($plugins[$pluginId])) {
             return false;
         }
 

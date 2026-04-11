@@ -339,7 +339,7 @@ class Debug {
             return '';
         }
 
-        $reportTarget = defined('SITE_URL') ? SITE_URL . '/admin/error-report' : '/admin/error-report';
+        $reportTarget = '/admin/error-report';
         $reportToken = class_exists('\\CMS\\Security') ? \CMS\Security::instance()->generateToken('admin_error_report') : '';
         $backTo = (string)($_SERVER['REQUEST_URI'] ?? '/admin/diagnose');
         

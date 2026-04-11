@@ -12,10 +12,17 @@ const CMS_ADMIN_ERROR_REPORT_MAX_TITLE_LENGTH = 255;
 const CMS_ADMIN_ERROR_REPORT_MAX_MESSAGE_LENGTH = 2000;
 const CMS_ADMIN_ERROR_REPORT_MAX_ERROR_CODE_LENGTH = 120;
 const CMS_ADMIN_ERROR_REPORT_MAX_URL_LENGTH = 500;
+const CMS_ADMIN_ERROR_REPORT_CAPABILITY = 'manage_settings';
+
+function cms_admin_error_report_can_access(): bool
+{
+    return Auth::instance()->isAdmin()
+        && Auth::instance()->hasCapability(CMS_ADMIN_ERROR_REPORT_CAPABILITY);
+}
 
 function cms_admin_error_report_default_url(): string
 {
-    return SITE_URL . '/admin/diagnose';
+    return '/admin/diagnose';
 }
 
 function cms_admin_error_report_strip_control_chars(mixed $value, bool $preserveNewlines = false): string
@@ -68,7 +75,7 @@ function cms_normalize_admin_report_redirect(string $target): string
 
     $query = isset($parts['query']) && $parts['query'] !== '' ? '?' . $parts['query'] : '';
 
-    return SITE_URL . $path . $query;
+    return $path . $query;
 }
 
 function cms_admin_error_report_resolve_redirect_url(array $post, array $server): string
@@ -144,12 +151,14 @@ function cms_admin_error_report_normalize_source_url(mixed $value, string $fallb
     }
 
     if (str_starts_with($source, '/')) {
-        return SITE_URL . $source;
+        return $source;
     }
 
     $siteUrl = (string) SITE_URL;
     if (str_starts_with($source, $siteUrl)) {
-        return $source;
+        $relative = (string) substr($source, strlen($siteUrl));
+
+        return str_starts_with($relative, '/') ? $relative : $fallback;
     }
 
     return $fallback;
@@ -173,8 +182,8 @@ function cms_admin_error_report_handle_request(array $payload): array
 }
 
 $postActionShellConfig = [
-    'access_checker' => static fn (): bool => Auth::instance()->isAdmin(),
-    'access_denied_url' => SITE_URL,
+    'access_checker' => static fn (): bool => cms_admin_error_report_can_access(),
+    'access_denied_url' => '/',
     'csrf_action' => 'admin_error_report',
     'invalid_token_message' => 'Sicherheitstoken für den Fehlerreport ist ungültig.',
     'unknown_action_message' => 'Fehlerreport konnte nicht verarbeitet werden.',

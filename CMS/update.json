@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.9.81",
+  "version": "2.9.115",
   "min_php": "8.4",
-  "released": "2026-04-10",
+  "released": "2026-04-11",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 2.9.81: Die allgemeinen Systemeinstellungen nutzen für Route-Basen, Audit-String-Kürzung und Testmail-Maskierung jetzt explizite `mb_strtolower()`-/`strtolower()`, `mb_substr()`-/`substr()`- und `mb_strlen()`-/`strlen()`-Fallbacks, sodass Save-, Audit- und Testmail-Pfade auch ohne geladene `mbstring`-Extension nicht mehr fatal abbrechen.",
+  "notes": "Release-Stand 2.9.115: Die CMS-Loginpage- und Auth-Route behandelt fehlgeschlagene Settings-Saves jetzt fail-closed, erzeugt locale-aware Passwort-Reset-Links, härtet Passkey-Payloads script-sicher und blockt doppelte Passkey-Submits über den nativen Request-Submit-Vertrag.",
   "critical": false
 }

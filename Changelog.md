@@ -1,4 +1,4 @@
-﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.81-blue.svg)](https://shields.io/)
+﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.115-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -17,6 +17,298 @@
 ---
 
 ## 📜 Vollständige Versionshistorie
+
+---
+
+### v2.9.115 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.115** | 🔴 fix | Admin/Auth & Core/Loginpage | **`CMS/core/Services/CmsAuthPageService.php` behandelt Settings-Saves der CMS Loginpage jetzt fail-closed statt stille Schreibfehler als Erfolg zu melden und erzeugt Passwort-Reset-Links locale- sowie Public-Route-konsistent über `getPublicUrl(...)`**: Loginpage-Branding, Reset-Mail-Templates und Reset-Roundtrips laufen damit nicht mehr in Schein-Erfolge oder auf hart verdrahtete Auth-URLs, sobald Persistenz- oder Locale-/Slug-Pfade vom Default abweichen. |
+| **2.9.115** | 🔴 fix | Public/Auth UI & Member-Security | **`CMS/views/auth/cms-auth.php`, `CMS/core/Routing/PublicRouter.php` und `CMS/member/includes/class-member-controller.php` ziehen Passkey- und MFA-Runtime jetzt auf locale-aware Dokumentsprachen, hostneutrale Asset-Pfade, script-sicher hex-encodete Passkey-Payloads und einen request-submit-basierten Submit-Lock gegen Doppelaktionen**: Öffentliche Login-/MFA-Seiten und der Member-Passkey-Vertrag bleiben damit näher an derselben sicheren Runtime-Basis statt an harten `lang="de"`-/`SITE_URL`-Resten, direktem `form.submit()`-Bypass und unnötig rohen Inline-JSON-Payloads zu hängen. |
+
+---
+
+### v2.9.114 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.114** | 🔴 fix | Admin/Design & Landing Page | **`CMS/admin/modules/landing/LandingPageModule.php` behandelt fehlgeschlagene Header-, Content-, Footer-, Feature- und Plugin-Saves jetzt fail-closed statt trotz `false`-/`0`-Rückgaben Erfolg zu melden**: Persistenzfehler oder abgewiesene Schreibpfade laufen damit nicht mehr in stille Erfolgs-Alerts, obwohl im Landing-Admin nichts gespeichert wurde. |
+| **2.9.114** | 🔴 fix | Core/Landing & Design-UI | **`CMS/core/Services/Landing/LandingRepository.php`, `CMS/core/Services/Landing/LandingPluginService.php` und `CMS/admin/views/landing/page.php` begrenzen Feature-Mutationen jetzt strikt auf echte `feature`-Datensätze, melden unbekannte Feature-Deletes fail-closed, erlauben Plugin-Overrides auch ohne plugin-spezifischen Settings-Callback und hängen Feature-Löschungen an den gemeinsamen Confirm-Vertrag**: Manipulierte `feature_id`-POSTs können damit keine fremden Landing-Sektionen mehr überschreiben, stale Feature-Deletes wirken nicht länger wie erfolgreich und destruktive Feature-Löschungen laufen sichtbar über denselben Bestätigungsfluss wie andere Admin-Gefahrenzonen. |
+
+---
+
+### v2.9.113 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.113** | 🔴 fix | Admin/Design & Font Manager | **`CMS/admin/modules/themes/FontManagerModule.php` persistiert Theme-Scan-Caches jetzt wirklich belastbar per Upsert statt über einen wirkungslosen `UPDATE`-Scheinpfad und meldet unbekannte Font-IDs im Delete-Flow explizit fail-closed statt als stillen Erfolg**: Theme-Scans können damit ihren Cache tatsächlich wiederverwenden, und Löschanfragen auf stale oder manipulierte IDs wirken nicht mehr wie erfolgreich entfernte Fonts. |
+| **2.9.113** | 🔴 fix | Assets/Design & Font Manager | **`CMS/assets/js/admin-font-manager.js` blockt Delete- und Submit-Flows jetzt ohne Selbstsperre im `requestSubmit()`-Pfad**: Bestätigte Löschungen oder Folge-Submits geraten damit nicht mehr in einen Zustand, in dem das Asset den eigenen Formular-POST schon vor dem echten Browser-Submit wieder abfängt. |
+
+---
+
+### v2.9.112 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.112** | 🔴 fix | Admin/Design & Menü-Editor | **`CMS/admin/modules/menus/MenuEditorModule.php` behandelt fehlerhaftes `items`-JSON jetzt fail-closed statt still auf ein leeres Array zurückzufallen, nutzt für Menülöschungen korrekt parametrisierte Deletes und kapselt Delete-/Save-Pfade transaktional**: Defekte oder manipulierte Menü-Payloads löschen damit nicht mehr versehentlich bestehende Menüs, und der Delete-Flow scheitert nicht länger an einem ungebundenen Placeholder-Query. |
+| **2.9.112** | 🔴 fix | Assets/Design & Menü-Editor | **`CMS/assets/js/admin-menu-editor.js` schützt Save-, Delete- und Modal-Formulare jetzt über einen gemeinsamen Submit-Lock und nutzt für bestätigte Delete-POSTs den nativen Request-Submit-Pfad statt eines direkten `form.submit()`-Sonderwegs**: Hektische Mehrfachklicks erzeugen damit keine doppelten Menü-Requests mehr, und der Menü-Editor bleibt näher am tatsächlichen Browser-/Form-Vertrag. |
+
+---
+
+### v2.9.111 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.111** | 🔴 fix | Admin/Design & Theme Editor | **`CMS/admin/theme-editor.php` und `CMS/admin/views/themes/customizer-missing.php` härten eingebettete Theme-Customizer jetzt über explizite Größen- und Binärgrenzen sowie klarer gespiegelte Fallback-Constraints**: Oversize- oder binäre `admin/customizer.php`-Dateien werden damit nicht mehr still inline geladen, sondern fail-closed mit nachvollziehbarem Hinweis auf die sichere Fallback-Ansicht abgefangen. |
+| **2.9.111** | 🔴 fix | Admin/Design & Theme Explorer | **`CMS/admin/theme-explorer.php` und `CMS/admin/modules/themes/ThemeEditorModule.php` blocken überlange Explorer-Dateipfade jetzt explizit, behandeln nicht lesbare Theme-Dateien konsistent als read-only bzw. überspringen sie im Baum und verhindern damit stille Dateipfad-Kürzungen oder irreführend editierbare Leerzustände**: Explorer-Auswahl, Dateibaum und Save-Vertrag bleiben dadurch näher an einem fail-closed Runtime-Zustand. |
+| **2.9.111** | 🔴 fix | Themes/Customizer Runtime | **`CMS/themes/cms-default/admin/customizer/helpers.php`, `partials/page.php`, `partials/field.php` und `partials/scripts.php` ziehen den eingebetteten `cms-default`-Customizer auf hostneutrale Logo-/Seitenpfade, sichere Asset-URL-Sanitierung und DOM-basierte Preview-Resets zusammen**: Interne `/uploads/...`-Logo-Pfade bleiben damit konsistent speicher- und renderbar, unbekannte Aktionen enden explizit mit Fehler, und leere oder zurückgesetzte Bildzustände lassen keine stale Vorschau mehr im Customizer stehen. |
+
+---
+
+### v2.9.110 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.110** | 🔴 fix | Admin/Themes & Marketplace | **`CMS/admin/theme-marketplace.php` und `CMS/admin/modules/themes/ThemeMarketplaceModule.php` staffeln Theme-Katalogquellen jetzt über Cache-/Remote-/Local-Fallbacks, prüfen bereits installierte Themes explizit gegen den echten lokalen Bestand und liefern Installations- bzw. Constraint-Fehler strukturiert an den Shared-Flash-/Report-Vertrag zurück**: Theme-Installationen kippen damit nicht mehr in schwer nachvollziehbare Remote- oder Zielzustände, sondern bleiben mit Detail-, Hash-, Host- und Zielkontext nachvollziehbar im Admin. |
+| **2.9.110** | 🔴 fix | Admin/Themes UI | **`CMS/admin/views/themes/marketplace.php` spiegelt Hosts, Paket-, Manifest- und Archivgrenzen, SHA-256-Kurzstatus, Host-/Archiv-Blocker und Kompatibilität jetzt deutlich transparenter direkt in Suche, Karten und Alert-Kontext**: Der Theme-Marketplace bleibt damit im UI näher an seinem tatsächlichen Runtime-Vertrag und zeigt schneller, warum ein Theme automatisch installierbar ist oder bewusst nur manuell behandelt werden darf. |
+
+---
+
+### v2.9.109 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.109** | 🔴 fix | Admin/Beiträge & Taxonomien | **`CMS/admin/modules/posts/PostsModule.php` normalisiert Kategorie- und Tag-Slugs jetzt vor Persistenz konsistent fail-closed, blockt stale Edit-IDs und meldet doppelte Tag-Slugs sauber vor dem DB-Write**: Kategorien und Tags laufen damit nicht mehr in stille Erfolgszustände oder nachträgliche Unique-Constraint-Kollisionen, wenn veraltete Datensätze oder unsaubere Slugs im Posts-Cluster ankommen. |
+| **2.9.109** | 🔴 fix | Admin/Beiträge UI | **`CMS/admin/post-tags.php` und `CMS/admin/views/posts/tags.php` ziehen die Tag-Verwaltung auf einen vollständigen Create-/Edit-/Delete-Roundtrip zusammen, während `CMS/admin/views/posts/list.php` destruktive Bulk-Löschungen jetzt explizit bestätigt**: Der Beiträge-Admin bietet damit endlich eine echte Tag-Bearbeitung statt nur Neu/Löschen, und Sammellöschungen springen nicht mehr ohne Sicherheitsbremse direkt in den POST. |
+
+---
+
+### v2.9.108 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.108** | 🔴 fix | Admin/Medien & Services | **`CMS/core/Services/MediaService.php` und `CMS/core/Services/Media/MediaRepository.php` schreiben Media-Settings, Upload-`.htaccess` und Medien-Metadaten jetzt atomisch mit SHA-512-Integritätscheck statt über rohe Direktwrites**: Medien-Konfiguration und Kategoriemeta kippen damit bei Write-/Swap-Fehlern nicht mehr halbfertig in JSON- oder Schutzdateien, und beschädigte Meta-Strukturen werden beim Laden defensiver normalisiert. |
+| **2.9.108** | 🔴 fix | Admin/Medien & Upload-Handling | **`CMS/core/Services/Media/UploadHandler.php` schließt Hidden-Name- und Rename-Bypässe jetzt fail-closed**: Versteckte Datei-/Ordnernamen wie `.htaccess` werden für neue Uploadziele und Renames blockiert, Dateiendungen lassen sich beim Umbenennen nicht mehr in andere Typen umbiegen, und nicht hochgeladene Tempdateien fallen bei Cross-Device-Moves auf einen sicheren Copy-/Cleanup-Pfad zurück. |
+
+---
+
+### v2.9.107 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.107** | 🔴 fix | Admin/Design & Theme Explorer | **`CMS/admin/modules/themes/ThemeEditorModule.php`, `CMS/admin/views/themes/editor.php` und `CMS/assets/js/admin-theme-explorer.js` härten den Theme-Explorer-Save-Vertrag jetzt auf atomische Datei-Swaps mit SHA-512-Integritätscheck, direkte Binary-Overwrite-Blockaden und einen robusteren Tree-/Search-Vertrag**: Erlaubte Dateiendungen mit Binärinhalt können nicht mehr per direktem POST leer überschrieben werden, und der Explorer rendert seine Such-/Tree-Datenattribute ohne nachgelagerten String-Umbau. |
+| **2.9.107** | 🔴 fix | Admin/Design & Fonts | **`CMS/admin/modules/themes/FontManagerModule.php` und `CMS/admin/views/themes/fonts.php` sichern lokale Font-Downloads und -Bereinigung jetzt vollständiger ab**: Self-hosted Font-Binaries und CSS werden atomisch mit SHA-512 verifiziert geschrieben, das gespeicherte Primärformat entspricht wieder der tatsächlich geladenen Datei, und Löschungen räumen auch aus der CSS referenzierte WOFF-/TTF-Dateien auf, statt stille Reste im `uploads/fonts`-Pfad zu hinterlassen. |
+
+---
+
+### v2.9.106 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.106** | 🔴 fix | Admin/System & Marketplace | **`CMS/core/Services/UpdateService.php` normalisiert absolute und relative Marketplace-/Update-URLs jetzt über denselben strikten HTTPS-/Host-/Port-/Pfad-Vertrag**: Core-, Plugin- und Theme-Updates akzeptieren damit weder Credentials, Fremdports, Fragmente noch Traversal-artige Remote-Pfade still, und Katalog-/Manifest-/Download-Ziele werden fail-closed nur noch aus erlaubten Hosts bzw. sauberen relativen Pfaden zusammengesetzt. |
+| **2.9.106** | 🔴 fix | Admin/Themes | **`CMS/admin/theme-marketplace.php` und `CMS/admin/modules/themes/ThemeMarketplaceModule.php` ziehen den Theme-Marketplace auf denselben Installationsvertrag wie der Plugin-Marketplace**: Theme-Slugs werden am Entry jetzt längenbegrenzt und gegen den aktuellen Katalog gespiegelt, während Auto-Installationen zusätzlich eine erlaubte ZIP-Endung und eine zulässige Paketgröße verlangen, statt halboffene Theme-Downloads bis in den Installer durchzureichen. |
+
+---
+
+### v2.9.105 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.105** | 🔴 fix | Admin/Recht & Info | **`CMS/admin/cookie-manager.php`, `CMS/admin/data-requests.php`, `CMS/admin/privacy-requests.php`, `CMS/admin/deletion-requests.php`, `CMS/admin/documentation.php`, `CMS/admin/support.php` und `CMS/admin/system-info.php` ziehen verbleibende generische `isAdmin()`-Guards jetzt auf explizite Capability-Helfer zusammen**: Cookie-Manager, DSGVO-Anfragen, Doku-Sync und Legacy-Aliasrouten spiegeln damit denselben Zielvertrag wie ihre Rechts-/Info-Seiten statt halboffene Admin-Oberflächen oder zu breite Alias-Sprünge zuzulassen. |
+| **2.9.105** | 🔴 fix | Admin/System, Diagnose & Hub | **`CMS/admin/error-report.php`, `CMS/admin/hub-sites.php`, `CMS/admin/settings.php`, `CMS/admin/table-of-contents.php` und `CMS/admin/updates.php` verlangen jetzt konkrete Settings-Capabilities und fail-closed Mutation-Gates statt bloßer Admin-Rollenchecks**: Fehlerreport-POSTs, Hub-Site-Saves, globale Einstellungen, TOC-Konfiguration und Update-Läufe bleiben damit capability-seitig konsistent zu ihren Zielmodulen, statt erst nach geladenem Screen oder im Write-Pfad an Berechtigungen zu scheitern. |
+
+---
+
+### v2.9.104 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.104** | 🔴 fix | Assets/Editor.js | **`CMS/assets/js/editor-init.js` ersetzt verbleibende `innerHTML`-Pfade in Legacy-HTML-Sanitizing, `htmlToBlocks()` und dem gemeinsamen Editor.js-Bildpicker durch `DOMParser`, explizite Node-Serialisierung sowie DOM-basierten Overlay-/Grid-Aufbau**: Seiten- und Beitragseditor importieren Legacy-HTML, rendern Mediathek-Auswahl und synchronisieren Bildauswahl damit ohne stringbasierten First-Party-Markup-Pfad. |
+| **2.9.104** | 🔴 fix | Assets/Recht | **`CMS/assets/js/cookieconsent-init.js` baut Consent-Banner, Präferenz-Modal, Kategorien und Services jetzt vollständig über echte DOM-Knoten statt über zusammengesetzte `innerHTML`-Strings**: Der öffentliche Consent-Dialog hält Banner-, Modal- und Kategorie-States damit stringfrei und näher an einem fail-closed Legal-/Frontend-Vertrag. |
+| **2.9.104** | 🔴 fix | Assets/Grid | **`CMS/assets/js/gridjs-init.js` escaped Zellinhalte jetzt direkt über einen String-Escape-Helfer statt über einen temporären DOM-Container mit anschließendem `innerHTML`-Readback**: Die Shared-Grid-Bridge behält ihr Escaping damit ohne verbleibenden Markup-Sonderpfad im First-Party-Formatter. |
+
+---
+
+### v2.9.103 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.103** | 🔴 fix | Assets/SEO | **`CMS/assets/js/admin-seo-editor.js` analysiert HTML-Fallbacks jetzt über `DOMParser` und leert die Regelübersicht via DOM-Clear-Helper statt über `template.innerHTML` bzw. `rulesList.innerHTML = ''`**: Der Shared-SEO-Editor hält damit Score-, Readability- und Vorschaupfade stringärmer, selbst wenn Raw-/Caption-/Link-Fragmente aus bearbeitbaren Inhalten analysiert werden. |
+| **2.9.103** | 🔴 fix | Assets/Marketplace | **`CMS/assets/js/admin-plugin-marketplace.js` und `CMS/assets/js/admin-theme-marketplace.js` schalten Install-Pending-Texte jetzt über `textContent` statt über gespeichertes bzw. überschriebenes `innerHTML` um**: Plugin- und Theme-Marketplace behalten damit ihren gesperrten Submit-Zustand ohne unnötigen Markup-Sonderpfad in First-Party-Buttons. |
+
+---
+
+### v2.9.102 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.102** | 🔴 fix | Assets/Hub | **`CMS/assets/js/admin-hub-site-edit.js`, `CMS/assets/js/admin-hub-template-edit.js` und `CMS/assets/js/admin-hub-template-editor.js` bauen Hub-Karten, Template-Quicklinks, TOC-, Section- und Starter-Card-Vorschauen sowie die zugehörigen Editor-Listen jetzt ausschließlich über echte DOM-Knoten statt über zusammengesetzte `innerHTML`-/`insertAdjacentHTML`-Strings**: Der Hub-Cluster hält damit Site- und Template-Editor-Renderpfade stringfrei und näher an einem fail-closed DOM-Vertrag. |
+| **2.9.102** | 🔴 fix | Assets/Editor.js | **`CMS/assets/js/admin-content-editor.js` räumt Preview-/Holder-Zustände jetzt per DOM-Clear-Helper auf und extrahiert Vorschautext aus HTML via `DOMParser` statt über rohe `innerHTML`-Parse-Helfer**: Shared-Preview-, Diff- und Cleanup-Pfade in Seiten-/Beitragseditoren tragen damit keine verbliebenen stringbasierten Renderreste mehr mit. |
+
+---
+
+### v2.9.101 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.101** | 🔴 fix | Assets/Design | **`CMS/assets/js/admin-menu-editor.js` baut Parent-Selects, leere Zustände und die komplette Menü-Item-Liste jetzt ausschließlich über echte DOM-Knoten statt über zusammengesetzte `innerHTML`-Strings**: Der Menü-Editor hält damit Titel-, URL-, Parent- und Button-Renderpfade stringfrei und näher an einem fail-closed DOM-Vertrag. |
+| **2.9.101** | 🔴 fix | Assets/Medien & Member | **`CMS/assets/js/admin-media-integrations.js` und `CMS/assets/js/member-dashboard.js` räumen Preview-, Upload-, Picker- und Statuszustände jetzt ebenfalls DOM-basiert auf und nach, statt verbleibende `innerHTML`-Fallbacks mitzuschleppen**: Medienbibliothek, interne Picker und Member-Uploads behalten damit auch in Fehler-, Leer- und Mehrfach-Upload-Zuständen sichere First-Party-Renderpfade. |
+| **2.9.101** | 🔴 fix | Assets/Tabellen | **`CMS/assets/js/admin-site-tables.js` leert Header-, Zeilen- und Spaltenbereiche des Tabellen-Editors jetzt über einen gemeinsamen DOM-Clear-Helper statt über direkte `innerHTML`-Resets**: Der Tabellen-Editor bleibt damit auch im Rebuild-Pfad konsistent bei node-basiertem Rendering. |
+
+---
+
+### v2.9.100 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.100** | 🔴 fix | Admin/Users & Content | **`CMS/admin/modules/users/UsersModule.php` und `CMS/admin/views/partials/featured-image-picker.php` halten Fehlerreport-Quellen sowie den gemeinsamen Featured-Image-Picker jetzt hostneutral auf relativen `/admin/...`- bzw. `/api/media`-Pfaden und rendern Picker-Vorschau/Grid nicht mehr per `innerHTML`**: Benutzer-Reports, Page-/Post-Featured-Image-Auswahl und interne Media-Picker-Roundtrips springen damit auch unter Proxy-, Alternativhost- und lokalen Dev-URLs nicht mehr auf feste Host-Basen oder stringbasiertes DOM-Markup zurück. |
+| **2.9.100** | 🔴 fix | Admin/Design & Core | **`CMS/admin/modules/menus/MenuEditorModule.php`, `CMS/core/TableOfContents.php` und `CMS/core/CacheManager.php` nutzen für Menü-Normalisierung, TOC-ID-Erzeugung sowie Cache-Datei-/ETag-Bildung jetzt explizite `mb_*`-/Core-PHP-Fallbacks, `random_bytes()` mit sicherem Hash-Fallback und moderne `hash('sha512', ...)`-/`hash('sha256', ...)`-Pfade statt roher `mbstring`-Abhängigkeiten oder Legacy-`md5()`/`sha1()`**: Menü-Saves bleiben damit auch ohne geladene `mbstring`-Extension stabil, TOC-Navigationsanker hängen nicht mehr an `md5(microtime...)`, und der First-Party-Cachepfad schleppt keine veralteten Hashfunktionen mehr mit. |
+
+---
+
+### v2.9.99 — 11. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.99** | 🔴 fix | Admin/Diagnose & Info | **`CMS/admin/error-report.php`, `CMS/admin/partials/post-action-shell.php`, `CMS/admin/partials/redirect-alias-shell.php`, `CMS/admin/views/partials/flash-alert.php`, `CMS/core/Debug.php`, `CMS/core/Services/ErrorReportService.php` und `CMS/admin/views/system/info.php` halten Fehlerreport-POSTs, Diagnose-Rücksprünge, Report-Buttons und gespeicherte `source_url`-Werte jetzt hostneutral relativ und ziehen fehlende `mbstring`-Fallbacks nach**: Fehlerreports und Debug-/Flash-Trigger springen damit auch unter Proxy-, Alternativhost- und lokalen Dev-URLs nicht mehr unnötig auf feste `SITE_URL`-Hosts, während Diagnose- und Info-Routinen auf kleineren PHP-Setups ohne geladene `mbstring`-Extension nicht mehr schon an einfachen String-Kürzungen oder Badge-Klassifizierungen fatal aussteigen. |
+| **2.9.99** | 🔴 fix | Admin/Design | **`CMS/admin/modules/themes/FontManagerModule.php` nutzt für erkannte, installierte und katalogisierte Font-Namen jetzt explizite `mb_strtolower()`-/`strtolower()`-Fallbacks statt roher `mbstring`-Abhängigkeiten**: Theme-Scans, Sammeldownloads und Font-Katalogzustände bleiben damit auch ohne `mbstring` im Font Manager belastbar, statt nach dem bereits gehärteten Entry an späteren Modulpfaden doch noch fatal abzubrechen. |
+
+---
+
+### v2.9.98 — 10. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.98** | 🔴 fix | Admin/Routing | **`CMS/admin/post-categories.php`, `CMS/admin/post-tags.php`, `CMS/admin/table-of-contents.php`, `CMS/admin/updates.php`, `CMS/admin/subscription-settings.php`, `CMS/admin/settings.php`, `CMS/admin/packages.php`, `CMS/admin/menu-editor.php`, `CMS/admin/pages.php` und `CMS/admin/views/toc/settings.php` nutzen für Guard-, PRG- und Formularziele jetzt hostneutrale relative Admin-Pfade**: Kategorien-, Tags-, TOC-, System-, Abo-, Menü- und Seiten-Entrys bleiben damit auch unter Proxy-, Alternativhost- und lokalen Dev-URLs im aktuellen Admin-Kontext, statt bei internen Redirects oder dem TOC-Save auf eine feste `SITE_URL`-Origin zu springen. |
+
+---
+
+### v2.9.97 — 10. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.97** | 🔴 fix | Admin/Abo & Checkout | **`CMS/admin/modules/subscriptions/OrdersModule.php`, `CMS/core/Services/DashboardService.php`, `CMS/core/SchemaManager.php`, `CMS/admin/orders.php`, `CMS/orders.php`, `CMS/member/includes/class-member-controller.php` und `CMS/member/subscription.php` ziehen den Orders-Vertrag jetzt auf kanonische Status-, Kunden- und Betragssichten zusammen**: Admin-Statuswechsel, Dashboard-KPIs, Checkout-Anlagen, Schema-Nachpflege und Member-Bestellhistorie laufen damit auch auf älteren Installationen mit gemischtem Orders-Schema wieder auf demselben Datenmodell statt zwischen `confirmed/completed`, `total_amount/amount` und `email/customer_email` auseinanderzufallen. |
+
+---
+
+### v2.9.96 — 10. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.96** | 🔴 fix | Assets/SEO | **`CMS/assets/js/admin-seo-editor.js` analysiert Page-/Post-Inhalte jetzt bevorzugt strukturiert aus live synchronisiertem Editor.js-JSON statt aus rohem DOM-/String-Fallback und zählt Keyphrases sowie Transition-Wörter Unicode-sicher**: SEO-/Readability-Scores, Absatzlogik, Link- und Bildsignale bleiben damit näher am tatsächlich bearbeiteten Editor.js-Inhalt statt an technischen JSON-Resten oder brüchigen Regex-Grenzen zu hängen. |
+
+---
+
+### v2.9.95 — 10. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.95** | 🔴 fix | Assets/SEO | **`CMS/assets/js/admin-seo-editor.js` rendert Score-Regeln jetzt über echte DOM-Knoten statt über `innerHTML` mit aus Slug, Focus-Phrase und Regel-Details zusammengesetzten Strings**: Der gemeinsame SEO-Editor trägt damit im Page-/Post-Admin keinen vermeidbaren DOM-XSS-/Markup-Pfad mehr im Regel-Rendering. |
+
+---
+
+### v2.9.94 — 10. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.94** | 🔴 fix | Assets/Editor.js | **`CMS/assets/js/admin-content-editor.js` verdrahtet die gemeinsamen DE-/EN-Editoren jetzt an eine Live-Synchronisierung der Hidden-JSON-Felder**: SEO-/Readability-Panels, Preview-Bridge und Folgeaktionen arbeiten damit im Page-/Post-Admin nicht mehr auf veralteten Editor.js-Daten, solange der sichtbare Editorzustand bereits weiterbearbeitet wurde. |
+
+---
+
+### v2.9.93 — 10. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.93** | 🔴 fix | Assets/Editor.js | **`CMS/assets/js/admin-content-editor.js` serialisiert vor `Alles aus DE nach EN kopieren` jetzt auch den EN-Zieleditor und verlangt bei vorhandenem EN-Entwurf eine explizite Bestätigung**: Manuelle DE→EN-Kopien überschreiben damit im Page-/Post-Editor keine bereits bearbeiteten EN-Entwürfe mehr still im Hintergrund. |
+
+---
+
+### v2.9.92 — 10. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.92** | 🔴 fix | Assets/Editor.js & AI | **`CMS/assets/js/admin-content-editor.js` serialisiert vor AI-Übersetzungen jetzt ebenfalls den EN-Zielzustand und prüft den Preview-/Overwrite-Pfad gegen den echten aktuellen Entwurf**: Unsichtbare, noch nicht in Hidden-Feldern stehende EN-Änderungen geraten damit nicht mehr in einen scheinbar leeren Zielzustand. |
+
+---
+
+### v2.9.91 — 10. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.91** | 🔴 fix | Assets/Editor.js | **`CMS/assets/js/editor-init.js` ergänzt für gemeinsame Editor.js-Instanzen einen debounced `onChange`-Synchronisationspfad**: Shared-Assets können sichtbare Blockänderungen damit direkt in ihren Hidden-/JSON-Vertrag zurückspiegeln, statt erst auf den nächsten Formular-Submit angewiesen zu sein. |
+
+---
+
+### v2.9.90 — 10. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.90** | 🔴 fix | Diagnose/Cron | **`CMS/core/Services/CronRunnerService.php` nutzt in `truncateForLog()` jetzt einen expliziten `mb_substr()`-/`substr()`-Fallback**: Cron- und Monitoring-Logs hängen damit beim Kürzen von Lauftexten nicht mehr still an der optionalen `mbstring`-Extension. |
+
+---
+
+### v2.9.89 — 10. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.89** | 🔴 fix | Kommentare/Core | **`CMS/core/Services/CommentService.php` nutzt für die E-Mail-Grenze in `createPendingComment()` jetzt ebenfalls den internen UTF-8-Fallback-Helfer statt eines rohen `mb_substr()`-Aufrufs**: Der öffentliche Kommentar-Create-Pfad ist damit in seiner gesamten String-Normalisierung ohne harte `mbstring`-Abhängigkeit konsistent gehärtet. |
+
+---
+
+### v2.9.88 — 10. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.88** | 🔴 fix | Admin/Recht | **`CMS/admin/legal-sites.php` nutzt für Profil- und HTML-Grenzen jetzt explizite `mb_substr()`-/`substr()`-Fallbacks**: Der Legal-Sites-Entry hängt damit beim Speichern von Profilen und generierten Rechtstexten nicht mehr still an der optionalen `mbstring`-Extension. |
+
+---
+
+### v2.9.87 — 10. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.87** | 🔴 fix | Admin/Info | **`CMS/admin/documentation.php` begrenzt den ausgewählten Dokumentpfad jetzt über einen expliziten `mb_substr()`-/`substr()`-Fallback**: Der Dokumentations-Entry bleibt damit auch auf PHP-Setups ohne geladene `mbstring`-Extension beim normalen Dokumentwechsel lauffähig. |
+
+---
+
+### v2.9.86 — 10. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.86** | 🔴 fix | Admin/Design | **`CMS/admin/theme-explorer.php` nutzt für den aktiven Dateipfad jetzt einen `mb_substr()`-/`substr()`-Fallback und leitet Guard-Fälle hostneutral auf `/` zurück**: Theme-Explorer-Dateiwechsel hängen damit nicht mehr still an `mbstring`, und Access-Denied-Fallbacks kippen nicht mehr auf eine feste Origin. |
+
+---
+
+### v2.9.85 — 10. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.85** | 🔴 fix | Admin/Plugins | **`CMS/admin/plugin-marketplace.php` nutzt für Install-Slug-Grenzen und Längenprüfungen jetzt explizite `mb_*`-/Core-PHP-Fallbacks**: Der Plugin-Marketplace-Entry bricht damit auf PHP-Setups ohne geladene `mbstring`-Extension nicht mehr schon vor dem eigentlichen Install-Flow fatal ab. |
+
+---
+
+### v2.9.84 — 10. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.84** | 🔴 fix | Admin/Design | **`CMS/admin/font-manager.php` nutzt für Google-Font-Familien, Font-Keys und Truncation-Checks jetzt explizite `mb_*`-/Core-PHP-Fallbacks**: Der Font-Manager-Entry hängt damit beim Speichern und beim Google-Font-Download nicht mehr still an der optionalen `mbstring`-Extension. |
+
+---
+
+### v2.9.83 — 10. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.83** | 🔴 fix | Admin/Design & Diagnose | **`CMS/admin/modules/themes/FontManagerModule.php` und `CMS/core/Services/CronRunnerService.php` ersetzen ihre verbleibenden Legacy-`sha1()`-/`md5()`-Suffixe jetzt durch `hash('sha256', ...)`**: Self-Hosted-Font-Dateinamen und der Cron-Lock-Namespace hängen damit nicht mehr an veralteten Hashfunktionen. |
+
+---
+
+### v2.9.82 — 10. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.82** | 🔴 fix | Security/Kommentare | **`CMS/core/Security.php` ersetzt Legacy-`md5()` im Session-Fallback des Login-/API-Rate-Limits durch `hash('sha256', ...)`, und `CMS/core/Services/CommentService.php` nutzt für den öffentlichen Kommentarpfad jetzt `mb_*`-/Core-PHP-Fallbacks sowie nur noch maskierte E-Mail-Werte statt eines rohen `sha1(email)` im Flood-Log**: Security- und Kommentarpfade hängen damit nicht mehr an veralteten Hashes oder optionaler `mbstring`-Verfügbarkeit. |
 
 ---
 

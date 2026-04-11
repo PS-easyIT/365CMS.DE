@@ -13,6 +13,40 @@ if (!defined('ABSPATH')) {
     liveStyle.id = 'customizer-live-preview';
     document.head.appendChild(liveStyle);
 
+    function clearNode(node) {
+        while (node && node.firstChild) {
+            node.removeChild(node.firstChild);
+        }
+    }
+
+    function normalizePreviewUrl(value) {
+        var url = String(value || '').trim();
+        var normalizedRelative = '';
+
+        if (url === '' || /^(?:javascript|data|vbscript):/i.test(url) || /^\/\//.test(url) || /^[A-Za-z]:[\\/]/.test(url)) {
+            return '';
+        }
+
+        if (/^https?:\/\//i.test(url)) {
+            return url;
+        }
+
+        if (url.charAt(0) === '/') {
+            return url;
+        }
+
+        if (/^[a-z][a-z0-9+.-]*:/i.test(url)) {
+            return '';
+        }
+
+        normalizedRelative = url.replace(/\\/g, '/').replace(/^(?:\.\/)+/, '').replace(/^\/+/, '');
+        if (!normalizedRelative || normalizedRelative.indexOf('..') !== -1) {
+            return '';
+        }
+
+        return '/' + normalizedRelative;
+    }
+
     function setPreviewStatus(uploadRoot, message, isError) {
         var status = uploadRoot ? uploadRoot.querySelector('[data-preview-status]') : null;
         if (!status) {
@@ -35,7 +69,7 @@ if (!defined('ABSPATH')) {
         if (previewImage) {
             previewImage.src = src;
         } else {
-            previewWrap.innerHTML = '';
+            clearNode(previewWrap);
             previewImage = document.createElement('img');
             previewImage.alt = 'Logo';
             previewImage.className = 'customizer-logo-preview-img';
@@ -55,12 +89,26 @@ if (!defined('ABSPATH')) {
             return;
         }
 
-        previewWrap.innerHTML = '';
+        clearNode(previewWrap);
         var errorNode = document.createElement('span');
         errorNode.className = 'customizer-logo-preview-empty customizer-preview-error';
         errorNode.setAttribute('data-preview-placeholder', '');
         errorNode.textContent = message;
         previewWrap.appendChild(errorNode);
+    }
+
+    function renderPreviewEmpty(uploadRoot) {
+        var previewWrap = uploadRoot ? uploadRoot.querySelector('[data-preview-wrap]') : null;
+        if (!previewWrap) {
+            return;
+        }
+
+        clearNode(previewWrap);
+        var placeholder = document.createElement('span');
+        placeholder.className = 'customizer-logo-preview-empty';
+        placeholder.setAttribute('data-preview-placeholder', '');
+        placeholder.textContent = '🖼️ Noch kein Logo ausgewählt';
+        previewWrap.appendChild(placeholder);
     }
 
     function getUploadRoot(element) {
@@ -223,19 +271,25 @@ if (!defined('ABSPATH')) {
         urlField.addEventListener('input', function() {
             var uploadRoot = getUploadRoot(urlField);
             var url = urlField.value.trim();
+            var previewUrl = normalizePreviewUrl(url);
+            var fileInput = uploadRoot ? uploadRoot.querySelector('[data-customizer-image-file]') : null;
+            var hasLocalSelection = !!(fileInput && fileInput.files && fileInput.files.length > 0);
 
             if (url === '') {
+                if (!hasLocalSelection) {
+                    renderPreviewEmpty(uploadRoot);
+                }
                 setPreviewStatus(uploadRoot, '', false);
                 return;
             }
 
-            if (!/^https?:\/\//i.test(url)) {
-                setPreviewStatus(uploadRoot, 'Bitte eine vollständige http(s)-URL eingeben.', true);
+            if (previewUrl === '') {
+                setPreviewStatus(uploadRoot, 'Bitte eine gültige http(s)-URL oder einen internen Pfad wie /uploads/... eingeben.', true);
                 return;
             }
 
             setPreviewStatus(uploadRoot, '', false);
-            renderPreviewImage(uploadRoot, url);
+            renderPreviewImage(uploadRoot, previewUrl);
             var previewImage = uploadRoot ? uploadRoot.querySelector('[data-preview-image]') : null;
             if (previewImage) {
                 previewImage.onerror = function() {
@@ -256,6 +310,20 @@ if (!defined('ABSPATH')) {
 
     document.querySelectorAll('[data-customizer-reset-confirm]').forEach(function(button) {
         button.addEventListener('click', confirmReset);
+    });
+
+    if (modal) {
+        modal.addEventListener('click', function(event) {
+            if (event.target === modal) {
+                closeResetModal();
+            }
+        });
+    }
+
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape' && modal && !modal.classList.contains('customizer-modal-hidden')) {
+            closeResetModal();
+        }
     });
 
     updateLivePreview();

@@ -24,7 +24,7 @@ function cms_admin_subscription_settings_allowed_actions(): array
 
 function cms_admin_subscription_settings_redirect(): never
 {
-    header('Location: ' . SITE_URL . '/admin/subscription-settings');
+    header('Location: /admin/subscription-settings');
     exit;
 }
 
@@ -47,7 +47,7 @@ function cms_admin_subscription_settings_flash_result(SubscriptionSettingsAction
 }
 
 if (!Auth::instance()->isAdmin() || !CoreModuleService::getInstance()->isAdminPageEnabled('subscription-settings')) {
-    header('Location: ' . SITE_URL);
+    header('Location: /');
     exit;
 }
 

@@ -323,6 +323,17 @@ function applyFilters() {
             return;
         }
 
+        if (bulkActionSelect && bulkActionSelect.value === 'delete') {
+            var deleteMessage = selectedIds.size === 1
+                ? 'Soll der ausgewählte Beitrag wirklich gelöscht werden?'
+                : 'Sollen die ' + selectedIds.size + ' ausgewählten Beiträge wirklich gelöscht werden?';
+
+            if (!window.confirm(deleteMessage)) {
+                event.preventDefault();
+                return;
+            }
+        }
+
         selectedIds.forEach(function(id) {
             var input = document.createElement('input');
             input.type = 'hidden';

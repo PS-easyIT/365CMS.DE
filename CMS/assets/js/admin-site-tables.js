@@ -24,6 +24,16 @@
         formElement.submit();
     }
 
+    function clearElement(element) {
+        if (!element) {
+            return;
+        }
+
+        while (element.firstChild) {
+            element.removeChild(element.firstChild);
+        }
+    }
+
     function initListInteractions() {
         var deleteIdInput = document.getElementById('deleteId');
         var deleteForm = document.getElementById('deleteForm');
@@ -136,7 +146,7 @@
         }
 
         function renderRowsHead() {
-            rowsHeadContainer.innerHTML = '';
+            clearElement(rowsHeadContainer);
             columns.forEach(function (column) {
                 var th = document.createElement('th');
                 th.textContent = column.label || '—';
@@ -148,7 +158,7 @@
         }
 
         function renderRows() {
-            rowsBody.innerHTML = '';
+            clearElement(rowsBody);
             if (columns.length === 0 || rows.length === 0) {
                 if (noRowsHint) {
                     noRowsHint.classList.toggle('d-none', rows.length > 0);
@@ -194,7 +204,7 @@
         }
 
         function renderColumns() {
-            columnsBody.innerHTML = '';
+            clearElement(columnsBody);
             columns.forEach(function (column, columnIndex) {
                 var tr = document.createElement('tr');
                 var labelTd = document.createElement('td');

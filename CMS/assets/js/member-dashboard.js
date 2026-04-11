@@ -104,13 +104,14 @@
         });
     }
 
-    function escapeHtml(value) {
-        return String(value || '')
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#39;');
+    function clearElement(element) {
+        if (!element) {
+            return;
+        }
+
+        while (element.firstChild) {
+            element.removeChild(element.firstChild);
+        }
     }
 
     async function uploadMemberFile(endpoint, token, path, file) {
@@ -163,7 +164,7 @@
                     status.hidden = false;
                     status.textContent = 'Bitte mindestens eine Datei auswählen.';
                     results.hidden = true;
-                    results.innerHTML = '';
+                    clearElement(results);
                     return;
                 }
 
@@ -175,7 +176,7 @@
                 status.hidden = false;
                 status.textContent = 'Upload läuft…';
                 results.hidden = false;
-                results.innerHTML = '';
+                clearElement(results);
 
                 let hadError = false;
 

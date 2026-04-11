@@ -89,7 +89,7 @@ class CommentService
 
         $authorName = $this->sanitizeAuthorName($resolvedAuthorName);
 
-        $authorEmail = mb_substr(trim($resolvedAuthorEmail), 0, self::MAX_EMAIL_LENGTH);
+        $authorEmail = $this->substringUtf8(trim($resolvedAuthorEmail), 0, self::MAX_EMAIL_LENGTH);
         $validatedEmail = filter_var($authorEmail, FILTER_VALIDATE_EMAIL);
 
         $cleanContent = $this->sanitizeCommentContent($content);
@@ -118,7 +118,7 @@ class CommentService
             $this->logFailure('comments.create.rate_limited', 'Kommentar wegen Kommentar-Flood-Limit verworfen.', [
                 'post_id' => $postId,
                 'user_id' => $userId,
-                'email_hash' => sha1(strtolower((string) $validatedEmail)),
+                'email_masked' => $this->maskEmailForAudit((string) $validatedEmail),
                 'ip' => $normalizedIp,
             ]);
             return false;
@@ -280,7 +280,7 @@ class CommentService
         $authorName = trim(strip_tags($authorName));
         $authorName = preg_replace('/\s+/u', ' ', $authorName) ?? '';
 
-        return mb_substr($authorName, 0, self::MAX_AUTHOR_LENGTH);
+        return $this->substringUtf8($authorName, 0, self::MAX_AUTHOR_LENGTH);
     }
 
     private function sanitizeCommentContent(string $content): string
@@ -290,7 +290,7 @@ class CommentService
             return '';
         }
 
-        if (mb_strlen($cleanContent) > self::MAX_CONTENT_LENGTH) {
+        if ($this->lengthUtf8($cleanContent) > self::MAX_CONTENT_LENGTH) {
             return '';
         }
 
@@ -304,7 +304,50 @@ class CommentService
             return '';
         }
 
-        return filter_var($authorIp, FILTER_VALIDATE_IP) ? mb_substr($authorIp, 0, 45) : '';
+        return filter_var($authorIp, FILTER_VALIDATE_IP) ? $this->substringUtf8($authorIp, 0, 45) : '';
+    }
+
+    private function maskEmailForAudit(string $email): string
+    {
+        $email = trim($email);
+        if ($email === '' || filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
+            return '';
+        }
+
+        [$local, $domain] = explode('@', $email, 2);
+        $localLength = $this->lengthUtf8($local);
+
+        if ($localLength <= 2) {
+            $maskedLocal = $this->substringUtf8($local, 0, 1) . '*';
+        } else {
+            $maskedLocal = $this->substringUtf8($local, 0, 1)
+                . str_repeat('*', max(1, $localLength - 2))
+                . $this->substringUtf8($local, -1, 1);
+        }
+
+        return $maskedLocal . '@' . strtolower($domain);
+    }
+
+    private function substringUtf8(string $value, int $start, ?int $length = null): string
+    {
+        if (function_exists('mb_substr')) {
+            return $length === null
+                ? mb_substr($value, $start, null, 'UTF-8')
+                : mb_substr($value, $start, $length, 'UTF-8');
+        }
+
+        return $length === null
+            ? substr($value, $start)
+            : substr($value, $start, $length);
+    }
+
+    private function lengthUtf8(string $value): int
+    {
+        if (function_exists('mb_strlen')) {
+            return mb_strlen($value, 'UTF-8');
+        }
+
+        return strlen($value);
     }
 
     private function isCommentablePost(int $postId): bool

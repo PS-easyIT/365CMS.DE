@@ -12,7 +12,22 @@ if (!defined('ABSPATH')) {
 
 use CMS\Auth;
 
-if (!Auth::instance()->isAdmin()) {
+const CMS_ADMIN_HUB_SITES_READ_CAPABILITY = 'manage_settings';
+const CMS_ADMIN_HUB_SITES_WRITE_CAPABILITY = 'manage_settings';
+
+function cms_admin_hub_sites_can_access(): bool
+{
+    return Auth::instance()->isAdmin()
+        && Auth::instance()->hasCapability(CMS_ADMIN_HUB_SITES_READ_CAPABILITY);
+}
+
+function cms_admin_hub_sites_can_mutate(): bool
+{
+    return cms_admin_hub_sites_can_access()
+        && Auth::instance()->hasCapability(CMS_ADMIN_HUB_SITES_WRITE_CAPABILITY);
+}
+
+if (!cms_admin_hub_sites_can_access()) {
     header('Location: /');
     exit;
 }
@@ -237,7 +252,7 @@ $sectionPageConfig = [
     'csrf_action' => 'admin_hub_sites',
     'module_file' => __DIR__ . '/modules/hub/HubSitesModule.php',
     'module_factory' => static fn (): HubSitesModule => new HubSitesModule(),
-    'access_checker' => static fn (): bool => Auth::instance()->isAdmin(),
+    'access_checker' => static fn (): bool => cms_admin_hub_sites_can_access(),
     'access_denied_route' => '/',
     'request_context_resolver' => static function (HubSitesModule $module): array {
         $viewAction = cms_admin_hub_sites_normalize_view((string) ($_GET['action'] ?? 'list'));
@@ -269,6 +284,10 @@ $sectionPageConfig = [
     },
     'unknown_action_message' => 'Unbekannte Hub-Sites-Aktion.',
     'post_handler' => static function (HubSitesModule $module, string $section, array $post): array {
+        if (!cms_admin_hub_sites_can_mutate()) {
+            return ['success' => false, 'error' => 'Keine Berechtigung für Hub-Sites-Änderungen.'];
+        }
+
         $payload = cms_admin_hub_sites_normalize_payload($post);
 
         if ($payload['action'] === '') {

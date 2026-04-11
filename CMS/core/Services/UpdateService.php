@@ -174,7 +174,7 @@ class UpdateService
             'release_date' => isset($release['published_at']) 
                 ? date('Y-m-d', strtotime($release['published_at'])) 
                 : '',
-            'download_url' => $release['zipball_url'] ?? '',
+            'download_url' => $this->resolveAllowedUpdateUrl((string) ($release['zipball_url'] ?? '')),
             'sha256' => $this->resolveIntegrityHashValue($release),
             'release_notes' => $release['body'] ?? '',
         ];
@@ -384,13 +384,17 @@ class UpdateService
             $baseUrl = self::DEFAULT_THEME_MARKETPLACE_URL;
         }
 
-        $catalogUrl = rtrim($baseUrl, '/') . '/index.json';
+        $catalogUrl = $this->resolveCatalogIndexUrl($baseUrl);
+        if ($catalogUrl === '') {
+            return [];
+        }
+
         $data = $this->fetchMarketplaceJson($catalogUrl);
         if (!is_array($data)) {
             return [];
         }
 
-        return $this->normalizeThemeCatalogEntries($data, rtrim($baseUrl, '/'));
+        return $this->normalizeThemeCatalogEntries($data, $this->resolveBaseUrl($catalogUrl));
     }
 
     private function normalizeThemeCatalogEntries(array $data, string $sourceBase): array
@@ -449,21 +453,54 @@ class UpdateService
             return '';
         }
 
-        if ($this->isAllowedSensitiveRemoteUrl($value)) {
-            return $value;
+        $normalizedAbsoluteUrl = $this->normalizeSensitiveRemoteUrl($value);
+        if ($normalizedAbsoluteUrl !== '') {
+            return $normalizedAbsoluteUrl;
         }
 
-        if ($baseUrl !== '' && $this->isAllowedSensitiveRemoteUrl($baseUrl)) {
-            $resolved = rtrim($baseUrl, '/') . '/' . ltrim($value, '/');
-
-            return $this->isAllowedSensitiveRemoteUrl($resolved) ? $resolved : '';
+        if ($baseUrl !== '') {
+            return $this->resolveAllowedRelativeUpdateUrl($baseUrl, $value);
         }
 
         return '';
     }
 
+    private function resolveAllowedRelativeUpdateUrl(string $baseUrl, string $relativePath): string
+    {
+        $normalizedBaseUrl = $this->normalizeSensitiveRemoteUrl($baseUrl);
+        $normalizedRelativePath = $this->normalizeRelativeUpdatePath($relativePath);
+
+        if ($normalizedBaseUrl === '' || $normalizedRelativePath === '') {
+            return '';
+        }
+
+        $resolved = rtrim($normalizedBaseUrl, '/') . '/' . $normalizedRelativePath;
+
+        return $this->normalizeSensitiveRemoteUrl($resolved);
+    }
+
+    private function resolveCatalogIndexUrl(string $baseUrl): string
+    {
+        $normalizedBaseUrl = $this->normalizeSensitiveRemoteUrl($baseUrl);
+        if ($normalizedBaseUrl === '') {
+            return '';
+        }
+
+        $path = (string) parse_url($normalizedBaseUrl, PHP_URL_PATH);
+        if (str_ends_with(strtolower($path), '.json')) {
+            return $normalizedBaseUrl;
+        }
+
+        return $this->normalizeSensitiveRemoteUrl(rtrim($normalizedBaseUrl, '/') . '/index.json');
+    }
+
     private function resolveBaseUrl(string $url): string
     {
+        $url = $this->normalizeSensitiveRemoteUrl($url);
+        if ($url === '') {
+            return '';
+        }
+
         $parts = parse_url($url);
         if (!is_array($parts)) {
             return '';
@@ -479,6 +516,93 @@ class UpdateService
         $directory = preg_replace('~/[^/]+$~', '', $path) ?? '';
 
         return $scheme . '://' . $host . $directory;
+    }
+
+    private function normalizeSensitiveRemoteUrl(string $url): string
+    {
+        $url = trim($url);
+        if ($url === '' || !filter_var($url, FILTER_VALIDATE_URL)) {
+            return '';
+        }
+
+        $parts = parse_url($url);
+        if (!is_array($parts)) {
+            return '';
+        }
+
+        $scheme = strtolower((string) ($parts['scheme'] ?? ''));
+        $host = strtolower((string) ($parts['host'] ?? ''));
+        $port = isset($parts['port']) ? (int) $parts['port'] : null;
+        $path = (string) ($parts['path'] ?? '/');
+        $query = (string) ($parts['query'] ?? '');
+
+        if ($scheme !== 'https' || $host === '') {
+            return '';
+        }
+
+        if (isset($parts['user']) || isset($parts['pass']) || isset($parts['fragment'])) {
+            return '';
+        }
+
+        if ($port !== null && $port !== 443) {
+            return '';
+        }
+
+        if (!$this->isAllowedSensitiveRemoteHost($host)) {
+            return '';
+        }
+
+        $path = $path === '' ? '/' : $path;
+        if ($this->containsDisallowedUrlSegments($path) || preg_match('/[\x00-\x1F\x7F]/', $query) === 1) {
+            return '';
+        }
+
+        $normalizedUrl = $scheme . '://' . $host . $path;
+        if ($query !== '') {
+            $normalizedUrl .= '?' . $query;
+        }
+
+        return $normalizedUrl;
+    }
+
+    private function normalizeRelativeUpdatePath(string $path): string
+    {
+        $path = str_replace('\\', '/', trim($path));
+        $path = ltrim($path, '/');
+
+        if ($path === '' || strlen($path) > 255 || preg_match('/[\x00-\x1F\x7F]/', $path) === 1) {
+            return '';
+        }
+
+        $segments = array_values(array_filter(explode('/', $path), static fn (string $segment): bool => $segment !== ''));
+        if ($segments === []) {
+            return '';
+        }
+
+        foreach ($segments as $segment) {
+            if ($segment === '.' || $segment === '..') {
+                return '';
+            }
+        }
+
+        return implode('/', $segments);
+    }
+
+    private function containsDisallowedUrlSegments(string $path): bool
+    {
+        if (preg_match('/[\x00-\x1F\x7F]/', $path) === 1) {
+            return true;
+        }
+
+        $segments = explode('/', str_replace('\\', '/', $path));
+        foreach ($segments as $segment) {
+            $decodedSegment = rawurldecode($segment);
+            if ($decodedSegment === '.' || $decodedSegment === '..') {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function resolveIntegrityHashValue(array $data): string
@@ -1501,15 +1625,11 @@ class UpdateService
 
     private function isAllowedSensitiveRemoteUrl(string $url): bool
     {
-        if (!filter_var($url, FILTER_VALIDATE_URL) || !str_starts_with($url, 'https://')) {
-            return false;
-        }
+        return $this->normalizeSensitiveRemoteUrl($url) !== '';
+    }
 
-        $host = strtolower((string) parse_url($url, PHP_URL_HOST));
-        if ($host === '') {
-            return false;
-        }
-
+    private function isAllowedSensitiveRemoteHost(string $host): bool
+    {
         if (in_array($host, self::ALLOWED_UPDATE_HOSTS, true)) {
             return true;
         }

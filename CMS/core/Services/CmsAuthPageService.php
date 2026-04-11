@@ -205,7 +205,9 @@ final class CmsAuthPageService
                 $optionName = array_key_exists($key, self::SHARED_SETTING_DEFAULTS)
                     ? $key
                     : self::SETTING_PREFIX . $key;
-                $this->upsertSetting($optionName, $value);
+                if (!$this->upsertSetting($optionName, $value)) {
+                    throw new \RuntimeException('Einstellung „' . $optionName . '“ konnte nicht persistiert werden.');
+                }
             }
 
             return ['success' => true, 'message' => 'CMS Loginpage gespeichert.'];
@@ -264,6 +266,7 @@ final class CmsAuthPageService
         } catch (\Throwable) {
             $requestLocale = 'de';
         }
+        $documentLanguage = $this->normalizeHtmlLang($requestLocale);
 
         $loginUrl = $this->getPublicPath('login', $requestLocale, $settings);
         $registerUrl = $this->getPublicPath('register', $requestLocale, $settings);
@@ -295,7 +298,7 @@ final class CmsAuthPageService
     }
 
     /** @return array{success:bool,message:string} */
-    public function requestPasswordReset(string $email): array
+    public function requestPasswordReset(string $email, ?string $locale = null): array
     {
         $email = trim($email);
         if ($email === '' || !Security::validateEmail($email)) {
@@ -322,7 +325,7 @@ final class CmsAuthPageService
                     [$email, $hashedToken, $expiresAt]
                 );
 
-                $resetUrl = rtrim((string) SITE_URL, '/') . $this->buildPath('forgot-password', [
+                $resetUrl = $this->getPublicUrl('forgot-password', $locale, [
                     'step' => 'reset',
                     'token' => $token,
                 ]);
@@ -604,7 +607,7 @@ final class CmsAuthPageService
         return isset($allowedIds[$id]) ? (string) $id : '0';
     }
 
-    private function upsertSetting(string $key, string $value): void
+    private function upsertSetting(string $key, string $value): bool
     {
         $exists = (int) ($this->db->get_var(
             "SELECT COUNT(*) FROM {$this->prefix}settings WHERE option_name = ?",
@@ -612,11 +615,12 @@ final class CmsAuthPageService
         ) ?? 0);
 
         if ($exists > 0) {
-            $this->db->update('settings', ['option_value' => $value], ['option_name' => $key]);
-            return;
+            return $this->db->update('settings', ['option_value' => $value], ['option_name' => $key]);
         }
 
-        $this->db->insert('settings', ['option_name' => $key, 'option_value' => $value]);
+        $insertId = $this->db->insert('settings', ['option_name' => $key, 'option_value' => $value]);
+
+        return is_int($insertId) && $insertId > 0;
     }
 
     private function sanitizeText(mixed $value, int $maxLength): string
@@ -704,6 +708,18 @@ final class CmsAuthPageService
     private function sanitizeEnum(string $value, array $allowedValues, string $fallback): string
     {
         return in_array($value, $allowedValues, true) ? $value : $fallback;
+    }
+
+    private function normalizeHtmlLang(string $locale): string
+    {
+        $normalizedLocale = strtolower(str_replace('_', '-', trim($locale)));
+        if ($normalizedLocale === '') {
+            return 'de';
+        }
+
+        return preg_match('/^[a-z]{2,3}(?:-[a-z0-9]{2,8})*$/i', $normalizedLocale) === 1
+            ? $normalizedLocale
+            : 'de';
     }
 
     private function normalizePageKey(string $page): string

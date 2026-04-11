@@ -15,9 +15,7 @@
     }
 
     function escapeHtml(value) {
-        var div = document.createElement('div');
-        div.appendChild(document.createTextNode(value || ''));
-        return div.innerHTML;
+        return String(value || '');
     }
 
     function showAlert(type, message) {
@@ -41,6 +39,196 @@
         } catch (_error) {
             return normalizedPath;
         }
+    }
+
+    function clearElement(element) {
+        if (!element) {
+            return;
+        }
+
+        while (element.firstChild) {
+            element.removeChild(element.firstChild);
+        }
+    }
+
+    function createElement(tag, className, text) {
+        var element = document.createElement(tag);
+
+        if (className) {
+            element.className = className;
+        }
+
+        if (text !== undefined) {
+            element.textContent = String(text);
+        }
+
+        return element;
+    }
+
+    function setDataAttributes(element, data) {
+        Object.keys(data || {}).forEach(function (key) {
+            var value = data[key];
+            if (value === undefined || value === null) {
+                return;
+            }
+
+            element.dataset[key] = String(value);
+        });
+
+        return element;
+    }
+
+    function createFieldLabel(text) {
+        return createElement('label', 'form-label small', text);
+    }
+
+    function createFormHint(text) {
+        return createElement('div', 'form-hint', text);
+    }
+
+    function createInput(value, data, options) {
+        var input = createElement('input', 'form-control form-control-sm');
+        var settings = options || {};
+
+        input.type = settings.type || 'text';
+        input.value = String(value || '');
+        setDataAttributes(input, data);
+
+        if (settings.placeholder) {
+            input.placeholder = settings.placeholder;
+        }
+        if (settings.min !== undefined) {
+            input.min = String(settings.min);
+        }
+        if (settings.max !== undefined) {
+            input.max = String(settings.max);
+        }
+        if (settings.step !== undefined) {
+            input.step = String(settings.step);
+        }
+        if (settings.disabled) {
+            input.disabled = true;
+        }
+
+        return input;
+    }
+
+    function createTextarea(id, value, data, options) {
+        var textarea = createElement('textarea', 'form-control form-control-sm');
+        var settings = options || {};
+
+        if (id) {
+            textarea.id = id;
+        }
+
+        textarea.rows = String(settings.rows || 3);
+        textarea.value = String(value || '');
+        setDataAttributes(textarea, data);
+
+        if (settings.editor) {
+            textarea.dataset.editor = settings.editor;
+        }
+        if (settings.source) {
+            textarea.dataset.source = settings.source;
+        }
+
+        return textarea;
+    }
+
+    function createFieldColumn(columnClass, labelText, control, hintText) {
+        var column = createElement('div', columnClass);
+
+        if (labelText) {
+            column.appendChild(createFieldLabel(labelText));
+        }
+
+        column.appendChild(control);
+
+        if (hintText) {
+            column.appendChild(createFormHint(hintText));
+        }
+
+        return column;
+    }
+
+    function createFeatureToggleColumn(index, card, featureSupported) {
+        var column = createElement('div', 'col-12');
+        var label = createElement('label', 'form-check form-switch mb-0');
+        var input = createElement('input', 'form-check-input');
+        var caption = createElement('span', 'form-check-label', 'Als Feature-Kachel in voller Breite darstellen');
+        var hint = createFormHint(featureSupported
+            ? 'Die Kachel bleibt an ihrer Position und wird im Frontend als breite Feature-Kachel gerendert.'
+            : 'Dieses Template unterstützt aktuell keine separate Feature-Darstellung; die Markierung wird deshalb deaktiviert.');
+
+        input.type = 'checkbox';
+        input.checked = card.is_feature === true;
+        input.disabled = !featureSupported;
+        setDataAttributes(input, { index: index, key: 'is_feature' });
+
+        label.appendChild(input);
+        label.appendChild(caption);
+        column.appendChild(label);
+        column.appendChild(hint);
+
+        return column;
+    }
+
+    function createRemoveButtonColumn(index) {
+        var column = createElement('div', 'col-12 text-end');
+        var button = createElement('button', 'btn btn-outline-danger btn-sm remove-card', 'Entfernen');
+
+        button.type = 'button';
+        button.dataset.index = String(index);
+        column.appendChild(button);
+
+        return column;
+    }
+
+    function createCardItemNode(card, index, options) {
+        var wrapper = createElement('div', 'border-bottom p-3');
+        var row = createElement('div', 'row g-2');
+        var suffix = options.activeLanguage === 'en' ? ' (EN)' : '';
+
+        row.appendChild(createFeatureToggleColumn(index, card, options.featureSupported));
+        row.appendChild(createFieldColumn(
+            'col-md-4',
+            'Abstand nach oben (px)',
+            createInput(String(card.feature_spacing_top || 0), { index: index, key: 'feature_spacing_top' }, {
+                type: 'number',
+                min: 0,
+                max: 240,
+                step: 4,
+                disabled: !card.is_feature
+            }),
+            'Zusätzlicher Abstand vor dieser Feature-Kachel.'
+        ));
+        row.appendChild(createFieldColumn('col-md-6', options.schema.title_label + suffix, createInput(card[options.titleKey] || '', { index: index, key: options.titleKey })));
+        row.appendChild(createFieldColumn('col-md-8', 'URL', createInput(card.url || '', { index: index, key: 'url' })));
+        row.appendChild(createFieldColumn('col-md-6', options.schema.badge_label + suffix, createInput(card[options.badgeKey] || '', { index: index, key: options.badgeKey })));
+        row.appendChild(createFieldColumn('col-md-6', 'Legacy Meta' + suffix, createInput(card[options.metaKey] || '', { index: index, key: options.metaKey })));
+        row.appendChild(createFieldColumn('col-md-6', options.schema.meta_left_label + suffix, createInput(card[options.metaLeftKey] || '', { index: index, key: options.metaLeftKey })));
+        row.appendChild(createFieldColumn('col-md-6', options.schema.meta_right_label + suffix, createInput(card[options.metaRightKey] || '', { index: index, key: options.metaRightKey })));
+        row.appendChild(createFieldColumn('col-md-6', options.schema.button_text_label + suffix, createInput(card[options.buttonTextKey] || '', { index: index, key: options.buttonTextKey })));
+        row.appendChild(createFieldColumn('col-md-6', options.schema.button_link_label, createInput(card.button_link || '', { index: index, key: 'button_link' })));
+        row.appendChild(createFieldColumn('col-md-8', options.schema.image_label, createInput(card.image_url || '', { index: index, key: 'image_url' }, { placeholder: 'https://… oder /uploads/...' })));
+        row.appendChild(createFieldColumn('col-md-4', options.schema.image_alt_label + suffix, createInput(card[options.imageAltKey] || '', { index: index, key: options.imageAltKey })));
+        row.appendChild(createFieldColumn(
+            'col-12',
+            options.schema.summary_label + suffix,
+            createTextarea('hub-card-summary-' + options.activeLanguage + '-' + index, card[options.summaryKey] || '', {
+                index: index,
+                key: options.summaryKey
+            }, {
+                rows: 6,
+                editor: 'hub-richtext',
+                source: 'cards'
+            })
+        ));
+        row.appendChild(createRemoveButtonColumn(index));
+
+        wrapper.appendChild(row);
+
+        return wrapper;
     }
 
     document.addEventListener('DOMContentLoaded', function () {
@@ -485,46 +673,34 @@
             var imageAltKey = activeLanguage === 'en' ? 'image_alt_en' : 'image_alt';
             var summaryKey = activeLanguage === 'en' ? 'summary_en' : 'summary';
             var buttonTextKey = activeLanguage === 'en' ? 'button_text_en' : 'button_text';
-            var featureTextKey = activeLanguage === 'en' ? 'text_en' : 'text';
-            var suffix = activeLanguage === 'en' ? ' (EN)' : '';
+            var renderOptions;
 
             destroySummaryEditors();
-            container.innerHTML = '';
+            clearElement(container);
             emptyState.classList.toggle('d-none', cards.length !== 0);
 
             if (cardSchemaHint) {
                 cardSchemaHint.textContent = 'Template-Vorgabe: ' + schema.columns + ' Kachel' + (schema.columns === 1 ? '' : 'n') + ' pro Reihe. Aktive Sprachansicht: ' + (activeLanguage === 'en' ? 'English' : 'Deutsch') + '. ' + (featureSupported ? 'Per Schalter kannst du jede Kachel als Feature-Kachel in Vollbreite markieren.' : 'Dieses Template rendert markierte Feature-Kacheln aktuell wie normale Kacheln.');
             }
 
+            renderOptions = {
+                activeLanguage: activeLanguage,
+                featureSupported: featureSupported,
+                schema: schema,
+                titleKey: titleKey,
+                badgeKey: badgeKey,
+                metaKey: metaKey,
+                metaLeftKey: metaLeftKey,
+                metaRightKey: metaRightKey,
+                imageAltKey: imageAltKey,
+                summaryKey: summaryKey,
+                buttonTextKey: buttonTextKey
+            };
+
             cards.forEach(function (card, index) {
-                var html = '';
                 card = normalizeCard(card);
                 cards[index] = card;
-                html += '<div class="border-bottom p-3">';
-                html += '  <div class="row g-2">';
-                html += '    <div class="col-12">';
-                html += '      <label class="form-check form-switch mb-0">';
-                html += '        <input class="form-check-input" type="checkbox" data-index="' + index + '" data-key="is_feature"' + (card.is_feature ? ' checked' : '') + (featureSupported ? '' : ' disabled') + '>';
-                html += '        <span class="form-check-label">Als Feature-Kachel in voller Breite darstellen</span>';
-                html += '      </label>';
-                html += '      <div class="form-hint">' + escapeHtml(featureSupported ? 'Die Kachel bleibt an ihrer Position und wird im Frontend als breite Feature-Kachel gerendert.' : 'Dieses Template unterstützt aktuell keine separate Feature-Darstellung; die Markierung wird deshalb deaktiviert.') + '</div>';
-                html += '    </div>';
-                html += '    <div class="col-md-4"><label class="form-label small">Abstand nach oben (px)</label><input type="number" class="form-control form-control-sm" min="0" max="240" step="4" value="' + escapeHtml(String(card.feature_spacing_top || 0)) + '" data-index="' + index + '" data-key="feature_spacing_top"' + (card.is_feature ? '' : ' disabled') + '><div class="form-hint">Zusätzlicher Abstand vor dieser Feature-Kachel.</div></div>';
-                html += '    <div class="col-md-6"><label class="form-label small">' + escapeHtml(schema.title_label + suffix) + '</label><input type="text" class="form-control form-control-sm" value="' + escapeHtml(card[titleKey] || '') + '" data-index="' + index + '" data-key="' + titleKey + '"></div>';
-                html += '    <div class="col-md-8"><label class="form-label small">URL</label><input type="text" class="form-control form-control-sm" value="' + escapeHtml(card.url || '') + '" data-index="' + index + '" data-key="url"></div>';
-                html += '    <div class="col-md-6"><label class="form-label small">' + escapeHtml(schema.badge_label + suffix) + '</label><input type="text" class="form-control form-control-sm" value="' + escapeHtml(card[badgeKey] || '') + '" data-index="' + index + '" data-key="' + badgeKey + '"></div>';
-                html += '    <div class="col-md-6"><label class="form-label small">Legacy Meta' + escapeHtml(suffix) + '</label><input type="text" class="form-control form-control-sm" value="' + escapeHtml(card[metaKey] || '') + '" data-index="' + index + '" data-key="' + metaKey + '"></div>';
-                html += '    <div class="col-md-6"><label class="form-label small">' + escapeHtml(schema.meta_left_label + suffix) + '</label><input type="text" class="form-control form-control-sm" value="' + escapeHtml(card[metaLeftKey] || '') + '" data-index="' + index + '" data-key="' + metaLeftKey + '"></div>';
-                html += '    <div class="col-md-6"><label class="form-label small">' + escapeHtml(schema.meta_right_label + suffix) + '</label><input type="text" class="form-control form-control-sm" value="' + escapeHtml(card[metaRightKey] || '') + '" data-index="' + index + '" data-key="' + metaRightKey + '"></div>';
-                html += '    <div class="col-md-6"><label class="form-label small">' + escapeHtml(schema.button_text_label + suffix) + '</label><input type="text" class="form-control form-control-sm" value="' + escapeHtml(card[buttonTextKey] || '') + '" data-index="' + index + '" data-key="' + buttonTextKey + '"></div>';
-                html += '    <div class="col-md-6"><label class="form-label small">' + escapeHtml(schema.button_link_label) + '</label><input type="text" class="form-control form-control-sm" value="' + escapeHtml(card.button_link || '') + '" data-index="' + index + '" data-key="button_link"></div>';
-                html += '    <div class="col-md-8"><label class="form-label small">' + escapeHtml(schema.image_label) + '</label><input type="text" class="form-control form-control-sm" value="' + escapeHtml(card.image_url || '') + '" data-index="' + index + '" data-key="image_url" placeholder="https://… oder /uploads/..."></div>';
-                html += '    <div class="col-md-4"><label class="form-label small">' + escapeHtml(schema.image_alt_label + suffix) + '</label><input type="text" class="form-control form-control-sm" value="' + escapeHtml(card[imageAltKey] || '') + '" data-index="' + index + '" data-key="' + imageAltKey + '"></div>';
-                html += '    <div class="col-12"><label class="form-label small">' + escapeHtml(schema.summary_label + suffix) + '</label><textarea id="hub-card-summary-' + activeLanguage + '-' + index + '" class="form-control form-control-sm" rows="6" data-editor="hub-richtext" data-source="cards" data-index="' + index + '" data-key="' + summaryKey + '">' + escapeHtml(card[summaryKey] || '') + '</textarea></div>';
-                html += '    <div class="col-12 text-end"><button type="button" class="btn btn-outline-danger btn-sm remove-card" data-index="' + index + '">Entfernen</button></div>';
-                html += '  </div>';
-                html += '</div>';
-                container.insertAdjacentHTML('beforeend', html);
+                container.appendChild(createCardItemNode(card, index, renderOptions));
             });
 
             sync();

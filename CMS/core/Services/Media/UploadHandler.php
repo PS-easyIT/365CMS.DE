@@ -33,7 +33,7 @@ final class UploadHandler
         $path = trim($path, '/\\');
         $name = trim($name);
 
-        if ($name === '' || preg_match('/[\\\/\:\*\?"<>\|]/', $name)) {
+        if ($name === '' || $name === '.' || $name === '..' || str_starts_with($name, '.') || preg_match('/[\\\/\:\*\?"<>\|]/', $name)) {
             return new WP_Error('invalid_folder_name', 'Ungültiger Ordnername');
         }
 
@@ -106,6 +106,8 @@ final class UploadHandler
 
             return new WP_Error('upload_move_failed', 'Datei konnte nicht verschoben werden');
         }
+
+        @chmod($targetPath, 0640);
 
         $relativePath = trim(($path !== '' ? trim($path, '/\\') . '/' : '') . basename($targetPath), '/');
         $category = $this->repository->detectSystemCategory($relativePath);
@@ -203,12 +205,12 @@ final class UploadHandler
             return new WP_Error('not_found', 'Element nicht gefunden');
         }
 
-        $newName = trim($newName);
-        if ($newName === '' || preg_match('/[\\\/\:\*\?"<>\|]/', $newName)) {
-            return new WP_Error('invalid_name', 'Ungültiger Name');
+        $normalizedTargetName = $this->normalizeRenameTargetName($fullPath, $newName);
+        if ($normalizedTargetName instanceof WP_Error) {
+            return $normalizedTargetName;
         }
 
-        $targetPath = dirname($fullPath) . DIRECTORY_SEPARATOR . $newName;
+        $targetPath = dirname($fullPath) . DIRECTORY_SEPARATOR . $normalizedTargetName;
         if (file_exists($targetPath)) {
             return new WP_Error('target_exists', 'Ziel existiert bereits');
         }
@@ -233,7 +235,7 @@ final class UploadHandler
             $parentRelativePath = '';
         }
 
-        $newRelativePath = ($parentRelativePath !== '' ? $parentRelativePath . '/' : '') . $newName;
+        $newRelativePath = ($parentRelativePath !== '' ? $parentRelativePath . '/' : '') . $normalizedTargetName;
         $this->repository->renameMetaPath($path, $newRelativePath);
 
         return true;
@@ -285,7 +287,10 @@ final class UploadHandler
     private function sanitizeFileName(string $fileName): string
     {
         $fileName = preg_replace('/[^A-Za-z0-9._-]+/', '-', $fileName) ?: 'upload';
-        return trim($fileName, '-');
+        $fileName = trim($fileName, '-');
+        $fileName = ltrim($fileName, '.');
+
+        return $fileName !== '' ? $fileName : 'upload';
     }
 
     private function createUniqueTargetPath(string $directory, string $fileName): string
@@ -405,7 +410,20 @@ final class UploadHandler
             return false;
         }
 
-        return rename($sourcePath, $targetPath);
+        if (@rename($sourcePath, $targetPath)) {
+            return true;
+        }
+
+        if (!@copy($sourcePath, $targetPath)) {
+            return false;
+        }
+
+        if (!@unlink($sourcePath)) {
+            @unlink($targetPath);
+            return false;
+        }
+
+        return true;
     }
 
     private function deleteFile(string $filePath): bool
@@ -438,5 +456,43 @@ final class UploadHandler
     private function logFilesystemFailure(string $operation, string $message, array $context = []): void
     {
         $this->logger->warning($message, array_merge(['operation' => $operation], $context));
+    }
+
+    private function normalizeRenameTargetName(string $existingPath, string $newName): string|WP_Error
+    {
+        $newName = trim($newName);
+        if ($newName === '' || $newName === '.' || $newName === '..' || str_starts_with($newName, '.') || preg_match('/[\\\/\:\*\?"<>\|]/', $newName)) {
+            return new WP_Error('invalid_name', 'Ungültiger Name');
+        }
+
+        $newName = trim($newName, " \t\n\r\0\x0B.");
+        if ($newName === '') {
+            return new WP_Error('invalid_name', 'Ungültiger Name');
+        }
+
+        if (is_dir($existingPath)) {
+            return $newName;
+        }
+
+        $currentExtension = strtolower((string) pathinfo($existingPath, PATHINFO_EXTENSION));
+        $requestedExtension = strtolower((string) pathinfo($newName, PATHINFO_EXTENSION));
+        $requestedBaseName = $requestedExtension !== ''
+            ? (string) pathinfo($newName, PATHINFO_FILENAME)
+            : $newName;
+        $requestedBaseName = trim($requestedBaseName, " \t\n\r\0\x0B.");
+
+        if ($requestedBaseName === '') {
+            return new WP_Error('invalid_name', 'Ungültiger Name');
+        }
+
+        if ($currentExtension !== '' && $requestedExtension !== '' && $requestedExtension !== $currentExtension) {
+            return new WP_Error('extension_change_forbidden', 'Die Dateiendung kann beim Umbenennen nicht geändert werden');
+        }
+
+        if ($currentExtension === '' && $requestedExtension !== '') {
+            return new WP_Error('extension_change_forbidden', 'Dateien ohne Endung dürfen nicht in einen anderen Dateityp umbenannt werden');
+        }
+
+        return $requestedBaseName . ($currentExtension !== '' ? '.' . $currentExtension : '');
     }
 }

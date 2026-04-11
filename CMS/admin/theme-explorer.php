@@ -30,7 +30,7 @@ function cms_admin_theme_explorer_can_mutate(): bool
 }
 
 if (!cms_admin_theme_explorer_can_access()) {
-    header('Location: ' . SITE_URL);
+    header('Location: /');
     exit;
 }
 
@@ -48,19 +48,47 @@ function cms_admin_theme_explorer_normalize_action(mixed $action): string
     return in_array($action, cms_admin_theme_explorer_allowed_actions(), true) ? $action : '';
 }
 
-function cms_admin_theme_explorer_normalize_file(mixed $file): string
+function cms_admin_theme_explorer_substring(string $value, int $start, ?int $length = null): string
+{
+    if (function_exists('mb_substr')) {
+        return $length === null
+            ? (string) mb_substr($value, $start, null, 'UTF-8')
+            : (string) mb_substr($value, $start, $length, 'UTF-8');
+    }
+
+    return $length === null ? substr($value, $start) : substr($value, $start, $length);
+}
+
+function cms_admin_theme_explorer_string_length(string $value): int
+{
+    if (function_exists('mb_strlen')) {
+        return (int) mb_strlen($value, 'UTF-8');
+    }
+
+    return strlen($value);
+}
+
+/** @return array{file:string,truncated:bool,raw_length:int} */
+function cms_admin_theme_explorer_prepare_file(mixed $file): array
 {
     $file = is_scalar($file) ? (string) $file : '';
     $file = preg_replace('/[\x00-\x1F\x7F]/u', '', $file) ?? '';
     $file = str_replace('\\', '/', $file);
     $file = preg_replace('#/+#', '/', $file) ?? '';
     $file = ltrim(trim($file), '/');
+    $rawLength = cms_admin_theme_explorer_string_length($file);
+    $normalizedFile = trim(cms_admin_theme_explorer_substring($file, 0, CMS_ADMIN_THEME_EXPLORER_MAX_FILE_LENGTH));
 
-    if (function_exists('mb_substr')) {
-        return trim((string) mb_substr($file, 0, CMS_ADMIN_THEME_EXPLORER_MAX_FILE_LENGTH));
-    }
+    return [
+        'file' => $normalizedFile,
+        'truncated' => $rawLength > CMS_ADMIN_THEME_EXPLORER_MAX_FILE_LENGTH,
+        'raw_length' => $rawLength,
+    ];
+}
 
-    return trim(substr($file, 0, CMS_ADMIN_THEME_EXPLORER_MAX_FILE_LENGTH));
+function cms_admin_theme_explorer_normalize_file(mixed $file): string
+{
+    return cms_admin_theme_explorer_prepare_file($file)['file'];
 }
 
 function cms_admin_theme_explorer_normalize_content(mixed $content): string
@@ -75,13 +103,41 @@ function cms_admin_theme_explorer_current_file(): string
     return cms_admin_theme_explorer_normalize_file($_GET['file'] ?? '');
 }
 
+/** @return array{file:string,warning:string} */
+function cms_admin_theme_explorer_current_file_context(): array
+{
+    $preparedFile = cms_admin_theme_explorer_prepare_file($_GET['file'] ?? '');
+    if (!empty($preparedFile['truncated'])) {
+        return [
+            'file' => '',
+            'warning' => 'Der angeforderte Dateipfad überschreitet das sichere Limit von ' . CMS_ADMIN_THEME_EXPLORER_MAX_FILE_LENGTH . ' Zeichen und wurde nicht geladen.',
+        ];
+    }
+
+    return [
+        'file' => (string) ($preparedFile['file'] ?? ''),
+        'warning' => '',
+    ];
+}
+
+function cms_admin_theme_explorer_apply_current_file_context(array $data, array $context): array
+{
+    $warning = trim((string) ($context['warning'] ?? ''));
+    if ($warning !== '' && trim((string) ($data['fileWarning'] ?? '')) === '') {
+        $data['fileWarning'] = $warning;
+    }
+
+    return $data;
+}
+
 /**
  * @return array{action:string,file:string,content:string,error:string,errorCode:string,details:list<string>,context:array<string,mixed>}
  */
 function cms_admin_theme_explorer_normalize_payload(array $post): array
 {
     $action = cms_admin_theme_explorer_normalize_action($post['action'] ?? '');
-    $file = cms_admin_theme_explorer_normalize_file($post['file'] ?? '');
+    $preparedFile = cms_admin_theme_explorer_prepare_file($post['file'] ?? '');
+    $file = (string) ($preparedFile['file'] ?? '');
     $content = cms_admin_theme_explorer_normalize_content($post['content'] ?? '');
     $error = '';
     $errorCode = '';
@@ -95,6 +151,11 @@ function cms_admin_theme_explorer_normalize_payload(array $post): array
         $error = 'Unbekannte oder nicht erlaubte Aktion.';
         $errorCode = 'theme_explorer_invalid_action';
         $details[] = 'Aktion: (leer/ungültig)';
+    } elseif (!empty($preparedFile['truncated'])) {
+        $error = 'Der Dateipfad überschreitet das sichere Limit und wurde nicht verarbeitet.';
+        $errorCode = 'theme_explorer_file_too_long';
+        $details[] = 'Browser-Limit: ' . CMS_ADMIN_THEME_EXPLORER_MAX_FILE_LENGTH . ' Zeichen';
+        $context['raw_length'] = (int) ($preparedFile['raw_length'] ?? 0);
     } elseif ($file === '') {
         $error = 'Kein gültiger Dateipfad angegeben.';
         $errorCode = 'theme_explorer_missing_file';
@@ -193,15 +254,16 @@ $sectionPageConfig = [
     'module_file' => __DIR__ . '/modules/themes/ThemeEditorModule.php',
     'module_factory' => static fn (): ThemeEditorModule => new ThemeEditorModule(),
     'data_loader' => static function (ThemeEditorModule $module): array {
-        $currentFile = cms_admin_theme_explorer_current_file();
+        $currentFileContext = cms_admin_theme_explorer_current_file_context();
+        $data = $module->getData((string) ($currentFileContext['file'] ?? ''));
 
-        return $module->getData($currentFile);
+        return cms_admin_theme_explorer_apply_current_file_context($data, $currentFileContext);
     },
     'request_context_resolver' => static function (ThemeEditorModule $module): array {
-        $currentFile = cms_admin_theme_explorer_current_file();
+        $currentFileContext = cms_admin_theme_explorer_current_file_context();
 
         return [
-            'data' => $module->getData($currentFile),
+            'data' => cms_admin_theme_explorer_apply_current_file_context($module->getData((string) ($currentFileContext['file'] ?? '')), $currentFileContext),
         ];
     },
     'post_handler' => static function (ThemeEditorModule $module, string $section, array $post): array {

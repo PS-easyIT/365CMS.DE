@@ -232,10 +232,17 @@ final class ErrorReportService
         }
 
         if (str_starts_with($source, '/')) {
-            return SITE_URL . $source;
+            return $source;
         }
 
-        return str_starts_with($source, (string) SITE_URL) ? $source : '';
+        $siteUrl = rtrim((string) SITE_URL, '/');
+        if ($siteUrl !== '' && str_starts_with($source, $siteUrl)) {
+            $relative = (string) substr($source, strlen($siteUrl));
+
+            return str_starts_with($relative, '/') ? $relative : '';
+        }
+
+        return '';
     }
 
     private function normalizeArrayPayload(array $payload, int $depth = 0): array
@@ -264,7 +271,7 @@ final class ErrorReportService
     {
         $key = preg_replace('/[^a-zA-Z0-9_:\-.]/', '_', trim((string) $value));
 
-        return mb_substr($key ?? '', 0, self::MAX_JSON_KEY_LENGTH);
+        return $this->substring($key ?? '', self::MAX_JSON_KEY_LENGTH);
     }
 
     private function normalizeScalarValue(mixed $value): mixed
@@ -293,6 +300,15 @@ final class ErrorReportService
 
     private function limit(string $value, int $length): string
     {
-        return mb_substr(trim($value), 0, $length);
+        return $this->substring(trim($value), $length);
+    }
+
+    private function substring(string $value, int $length): string
+    {
+        if (function_exists('mb_substr')) {
+            return mb_substr($value, 0, $length);
+        }
+
+        return substr($value, 0, $length);
     }
 }

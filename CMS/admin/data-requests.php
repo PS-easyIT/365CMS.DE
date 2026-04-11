@@ -12,6 +12,21 @@ if (!defined('ABSPATH')) {
 
 use CMS\Auth;
 
+const CMS_ADMIN_DATA_REQUESTS_READ_CAPABILITY = 'manage_settings';
+const CMS_ADMIN_DATA_REQUESTS_WRITE_CAPABILITY = 'manage_settings';
+
+function cms_admin_data_requests_can_access(): bool
+{
+    return Auth::instance()->isAdmin()
+        && Auth::instance()->hasCapability(CMS_ADMIN_DATA_REQUESTS_READ_CAPABILITY);
+}
+
+function cms_admin_data_requests_can_mutate(): bool
+{
+    return cms_admin_data_requests_can_access()
+        && Auth::instance()->hasCapability(CMS_ADMIN_DATA_REQUESTS_WRITE_CAPABILITY);
+}
+
 /** @return array<string, array<string, true>> */
 function cms_admin_data_requests_allowed_actions_by_scope(): array
 {
@@ -135,10 +150,14 @@ $sectionPageConfig = [
             'deletion' => $modules['deletion']->getData(),
         ];
     },
-    'access_checker' => static fn (): bool => Auth::instance()->isAdmin(),
+    'access_checker' => static fn (): bool => cms_admin_data_requests_can_access(),
     'invalid_token_message' => 'Sicherheitstoken ungültig.',
     'unknown_action_message' => 'Unbekannte oder nicht erlaubte Aktion.',
     'post_handler' => static function (array $modules, string $section, array $post): array {
+        if (!cms_admin_data_requests_can_mutate()) {
+            return ['success' => false, 'error' => 'Keine Berechtigung für Datenschutzanfragen.'];
+        }
+
         $scope = cms_admin_data_requests_normalize_scope($post['scope'] ?? null);
         $action = cms_admin_data_requests_normalize_action($scope, $post['action'] ?? null);
 

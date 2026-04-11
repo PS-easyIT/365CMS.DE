@@ -128,7 +128,7 @@ class UsersModule
                             'title' => 'Benutzer-Update ohne Erfolgsmeldung',
                             'message' => 'Die Aktualisierung lieferte kein `true`-Ergebnis zurück.',
                             'error_code' => 'users_update_unconfirmed',
-                            'source_url' => SITE_URL . '/admin/users?action=edit&id=' . $id,
+                            'source_url' => $this->buildUserEditSourceUrl($id),
                             'context' => [
                                 'module' => 'users',
                                 'operation' => 'update',
@@ -163,7 +163,7 @@ class UsersModule
                             'title' => 'Benutzer-Erstellung ohne ID',
                             'message' => 'Die Benutzer-Erstellung lieferte keine gültige Benutzer-ID zurück.',
                             'error_code' => 'users_create_missing_id',
-                            'source_url' => SITE_URL . '/admin/users?action=edit',
+                            'source_url' => $this->buildUserEditSourceUrl(),
                             'context' => [
                                 'module' => 'users',
                                 'operation' => 'create',
@@ -193,7 +193,7 @@ class UsersModule
                     'title' => 'Benutzer konnte nicht gespeichert werden',
                     'message' => $this->normalizeScalarText($e->getMessage(), 500),
                     'error_code' => 'users_save_exception',
-                    'source_url' => SITE_URL . '/admin/users?action=' . ($id > 0 ? 'edit&id=' . $id : 'edit'),
+                    'source_url' => $this->buildUserEditSourceUrl($id),
                     'context' => [
                         'module' => 'users',
                         'operation' => $id > 0 ? 'update' : 'create',
@@ -254,7 +254,7 @@ class UsersModule
                     'title' => 'Benutzer konnte nicht gelöscht werden',
                     'message' => $this->normalizeScalarText($e->getMessage(), 500),
                     'error_code' => 'users_delete_exception',
-                    'source_url' => SITE_URL . '/admin/users',
+                    'source_url' => '/admin/users',
                     'context' => [
                         'module' => 'users',
                         'operation' => 'delete',
@@ -266,6 +266,10 @@ class UsersModule
     }
 
     /**
+        private function buildUserEditSourceUrl(int $id = 0): string
+        {
+            return '/admin/users?action=' . ($id > 0 ? 'edit&id=' . $id : 'edit');
+        }
      * Bulk-Aktionen
      */
     public function bulkAction(string $action, array $ids): array

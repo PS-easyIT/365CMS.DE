@@ -147,7 +147,11 @@ $escape = static fn (mixed $value): string => htmlspecialchars((string) $value, 
                                         </div>
                                     </div>
                                     <div class="card-footer d-flex gap-2">
-                                        <form method="post" class="d-inline">
+                                            <form method="post" class="d-inline"
+                                                data-confirm-message="Feature wirklich löschen?"
+                                                data-confirm-title="Feature löschen"
+                                                data-confirm-confirm="Löschen"
+                                                data-confirm-cancel="Abbrechen">
                                             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
                                             <input type="hidden" name="action" value="delete_feature">
                                             <input type="hidden" name="active_tab" value="content">

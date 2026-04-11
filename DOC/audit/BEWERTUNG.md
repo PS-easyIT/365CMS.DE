@@ -78,13 +78,127 @@ Die Produktionsprüfung zeigt damit eine klare Lücke zwischen dem bereits hoch 
 Diese Sektion dokumentiert bereits umgesetzte Teilfortschritte aus `DOC/audit/PRÜFUNG.MD`,
 ohne die große Bewertungsmatrix bei jedem einzelnen Batch vollständig neu auszurechnen.
 
-### Gesamtstand nach Batch 465
+### Gesamtstand nach Batch 575
 
 | Dateien | Ø Security | Ø Speed | Ø PHP/BP | Ø Gesamt |
 |---:|---:|---:|---:|---:|
-| 465 | 95,12 | 92,74 | 96,22 | 96,35 |
+| 575 | 95,44 | 92,90 | 96,62 | 96,73 |
 
-Der aktuelle Nachpflege-Stand umfasst damit **465 umgesetzte Batches**, davon weiterhin **444 von 444 Prüfplan-Punkten** im ursprünglichen Auditplan und zusätzlich einundzwanzig Folge-Batches darüber hinaus. Zuletzt wurde der Theme-Editor-Vertrag zwischen Admin-Shell und eingebetteten Theme-Customizern nachgezogen: Der POST-/CSRF-Flow läuft nun über denselben `theme_customizer`-Kontext wie die eigentlichen Theme-Formulare, während README und Changelog den Runtime-Hinweis für deployte Themes unter `CMS/themes/` explizit spiegeln. Die Kennzahlen bleiben dabei stabil.
+Der aktuelle Nachpflege-Stand umfasst damit **575 umgesetzte Batches**, davon weiterhin **444 von 444 Prüfplan-Punkten** im ursprünglichen Auditplan und zusätzlich **131 Folge-Batches** darüber hinaus. Zuletzt wurde der Design-/Auth-Cluster rund um die CMS Loginpage weiter nachgezogen: fehlgeschlagene Loginpage-Settings-Saves enden jetzt fail-closed statt als Schein-Erfolg, Passwort-Reset-Links folgen dem locale-aware Public-Auth-Vertrag, öffentliche Passkey- und MFA-Runtime ziehen hostneutrale Asset- sowie Dokumentsprachen nach und inline serialisierte Passkey-Payloads laufen script-sicherer in Login- und Member-Kontexten. Security, Speed und PHP/BP steigen dadurch erneut in kleinen Schritten gleichzeitig.
+
+### Delta Folge-Batch 575
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/core/Services/CmsAuthPageService.php`, `CMS/views/auth/cms-auth.php`, `CMS/core/Routing/PublicRouter.php`, `CMS/member/includes/class-member-controller.php`, `DOC/audit/AdminAudit-Design.md`, `DOC/audit/AssetAudit-Design.md`, `DOC/audit/AdminAudit-INDEX.md`, `DOC/audit/AssetAudit-INDEX.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md`, `CMS/update.json`, `CMS/core/Version.php` | umgesetzt | Der Design-/Auth-Cluster staffelt CMS-Loginpage-, Public-Auth- und Member-Passkey-Pfade jetzt über robustere Runtime-Verträge: `CmsAuthPageService` behandelt fehlgeschlagene Settings-Writes fail-closed und erzeugt Passwort-Reset-Links locale-aware über `getPublicUrl(...)`, die öffentliche Auth-View nutzt für Passkey-Login einen request-submit-basierten Submit-Lock statt direkten `form.submit()`-Bypass, `PublicRouter` zieht MFA-Markup auf hostneutrale CSS-Pfade und locale-aware Dokumentsprachen zusammen und Public-/Member-Passkey-Payloads werden mit zusätzlichen JSON-HEX-Flags script-sicher encodiert. | Loginpage-Saves verlieren damit stille Persistenzfehler und Passwort-Reset-/MFA-Roundtrips bleiben konsistent zu Locale-, Slug- und Same-Origin-Verträgen, statt an harten Public-Pfaden, `SITE_URL`-Assets oder `lang=de`-Resten zu hängen. Parallel blockt der Passkey-Login Doppel-Submits näher am nativen Browser-Submit und Inline-/Datenattribut-Payloads schleppen keine unnötig rohen Script-Zeichenkonstellationen mehr mit. Die Aggregate steigen damit leicht auf **95,44 / 92,90 / 96,62 / 96,73**. |
+
+### Delta Folge-Batch 574
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/landing/LandingPageModule.php`, `CMS/core/Services/Landing/LandingRepository.php`, `CMS/core/Services/Landing/LandingPluginService.php`, `CMS/admin/views/landing/page.php`, `DOC/audit/AdminAudit-Design.md`, `DOC/audit/AssetAudit-Design.md`, `DOC/audit/AdminAudit-INDEX.md`, `DOC/audit/AssetAudit-INDEX.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md`, `CMS/update.json`, `CMS/core/Version.php` | umgesetzt | Der Landing-Page-Cluster staffelt Save-, Feature- und Plugin-Pfade jetzt über robustere Runtime-Verträge: `LandingPageModule` meldet fehlgeschlagene Header-/Content-/Footer-/Feature-/Plugin-Saves nicht länger als Erfolg, `LandingRepository` bindet Feature-Updates strikt an echte `feature`-Datensätze und unbekannte Feature-Deletes an betroffene Zeilen, `LandingPluginService` erlaubt core-seitige Plugin-Overrides auch ohne optionalen `settings_callback` und die Landing-View hängt destruktive Feature-Löschungen an den gemeinsamen Confirm-Vertrag aus `admin.js`. | Landing-Saves verlieren damit mehrere stille Schein-Erfolgs- und Mutationsbrüche zugleich: Persistenzfehler bleiben im Admin sichtbar fail-closed, manipulierte `feature_id`-POSTs können keine fremden Landing-Sektionen mehr überschreiben, registrierte Landing-Plugins behalten ihre `enabled`-/`sort_order`-Overrides auch ohne Zusatz-Settings-UI und Feature-Deletes laufen nicht mehr ohne vorgeschaltete Bestätigung direkt in den POST. Die Aggregate steigen damit leicht auf **95,40 / 92,89 / 96,58 / 96,69**. |
+
+### Delta Folge-Batch 573
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/themes/FontManagerModule.php`, `CMS/assets/js/admin-font-manager.js`, `DOC/audit/AdminAudit-Design.md`, `DOC/audit/AssetAudit-Design.md`, `DOC/audit/AdminAudit-INDEX.md`, `DOC/audit/AssetAudit-INDEX.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md`, `CMS/update.json`, `CMS/core/Version.php` | umgesetzt | Der Font-Manager staffelt Scan-, Delete- und Submit-Pfade jetzt über robustere Runtime-Verträge: Theme-Scan-Caches werden per echtem Upsert persistiert statt über einen wirkungslosen `UPDATE`-Scheinpfad verloren zu gehen, unbekannte `font_id`-Löschungen liefern explizite Fehler statt stiller Erfolge und das Design-Asset trennt Pending-State und `requestSubmit()`-Flow so, dass Confirm-Löschungen nicht mehr vom eigenen Submit-Guard abgefangen werden. | Theme-Scans können damit ihren Cache tatsächlich wiederverwenden, stale oder manipulierte Delete-IDs wirken nicht mehr wie erfolgreich entfernte Fonts und Delete-/Save-Aktionen bleiben auch im Confirm-Pfad belastbar gegen Selbstblockaden und Doppelaktionen. Der Design-Cluster gewinnt dadurch zugleich an Performance, Datenintegrität und UI-Robustheit; die Aggregate steigen leicht auf **95,36 / 92,88 / 96,55 / 96,65**. |
+
+### Delta Folge-Batch 572
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/menus/MenuEditorModule.php`, `CMS/assets/js/admin-menu-editor.js`, `DOC/audit/AdminAudit-Design.md`, `DOC/audit/AssetAudit-Design.md`, `DOC/audit/AdminAudit-INDEX.md`, `DOC/audit/AssetAudit-INDEX.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md`, `CMS/update.json`, `CMS/core/Version.php` | umgesetzt | Der Menü-Editor staffelt Save- und Delete-Pfade jetzt über robustere Runtime-Verträge: fehlerhaftes `items`-JSON wird fail-closed mit explizitem Fehler statt als leeres Array behandelt, Menü-Löschungen laufen über korrekt parametrisierte Prepared-Statement-Deletes in einer Transaktion und das Design-Asset zieht für Save-, Delete- und Modal-Formulare einen gemeinsamen Submit-Lock mit nativer `requestSubmit()`-Weiterleitung nach. | Menü-Items können damit nicht mehr durch kaputte oder manipulierte JSON-Payloads still geleert werden, der Delete-Flow scheitert nicht länger an ungebundenen Placeholder-Queries und hektische Mehrfachklicks erzeugen keine doppelten Menü-Requests mehr. Der Design-Cluster gewinnt damit zugleich an Datenintegrität, Admin-Robustheit und UI-Stabilität; die Aggregate steigen leicht auf **95,33 / 92,85 / 96,50 / 96,60**. |
+
+### Delta Folge-Batch 571
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/theme-editor.php`, `CMS/admin/views/themes/customizer-missing.php`, `CMS/admin/theme-explorer.php`, `CMS/admin/modules/themes/ThemeEditorModule.php`, `CMS/themes/cms-default/admin/customizer/helpers.php`, `CMS/themes/cms-default/admin/customizer/partials/page.php`, `CMS/themes/cms-default/admin/customizer/partials/field.php`, `CMS/themes/cms-default/admin/customizer/partials/scripts.php`, `DOC/audit/AdminAudit-Design.md`, `DOC/audit/AssetAudit-Design.md`, `DOC/audit/AdminAudit-INDEX.md`, `DOC/audit/AssetAudit-INDEX.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md`, `CMS/update.json`, `CMS/core/Version.php` | umgesetzt | Der Design-Cluster staffelt Theme-Editor, Explorer und den eingebetteten `cms-default`-Customizer jetzt über engere Runtime-Verträge: eingebettete Customizer-Dateien werden zusätzlich über Byte-Limit und Binärcheck fail-closed validiert, der Explorer meldet überlange Dateipfade explizit statt sie still zu kürzen und behandelt nicht lesbare Theme-Dateien konsistent als read-only/übersprungen, während der Runtime-Customizer interne Logo-Assets hostneutral relativ speichert, sichere `/uploads/...`-Pfade bis in die Preview akzeptiert und Bild-Reset-/Leerzustände DOM-basiert statt über verbleibende Stringpfade rendert. | Theme-Editor und Explorer verlieren damit mehrere stille Fehlzustände zugleich: unsichere oder unrealistisch große Customizer-Dateien laden nicht mehr inline, Dateiauswahl kippt nicht mehr per Truncation auf ein anderes Ziel, und nicht lesbare Theme-Dateien wirken weder im Baum noch im Editor fälschlich bearbeitbar. Parallel bleibt der eingebettete Theme-Customizer auch bei internen Logo-Pfaden, Bild-Reset und Preview-Empty-State näher an denselben hostneutralen und DOM-basierten Verträgen wie der restliche gehärtete Design-Admin; die Aggregate steigen leicht auf **95,28 / 92,84 / 96,42 / 96,54**. |
+
+### Delta Folge-Batch 570
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/theme-marketplace.php`, `CMS/admin/modules/themes/ThemeMarketplaceModule.php`, `CMS/admin/views/themes/marketplace.php`, die neue `DOC/audit/AssetAudit-Marketplace.md`, `DOC/audit/AdminAudit-Themes.md`, `DOC/audit/AdminAudit-INDEX.md`, `DOC/audit/AssetAudit-INDEX.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md`, `CMS/update.json`, `CMS/core/Version.php` | umgesetzt | Der Theme-Marketplace staffelt Katalogquellen jetzt über frischen Cache, Remote-Lookup, stale Cache und lokalen Index statt jeden Aufruf ungefedert direkt ins Netz zu schicken; Installationen prüfen bereits installierte Themes explizit gegen den echten lokalen Bestand und geben Fehler samt Detail-/Report-Payload über den Shared-Flash-Vertrag strukturiert zurück. Parallel spiegelt die View Hosts, Paket-, Manifest- und Archivgrenzen, SHA-256-Kurzstatus, Host-/Archiv-Blocker und Kompatibilität deutlich direkter, und die bislang nur im Index referenzierte Marketplace-Asset-Arbeitsmappe liegt nun real vor. | Theme-Install- und Fallback-Pfade kippen damit nicht mehr still in schwer nachvollziehbare Remote- oder Zielzustände: Admins sehen sofort, ob Cache, Remote oder lokaler Index greift, warum ein Theme nur manuell installierbar ist und mit welchem Ziel-/Hash-/Constraint-Kontext ein Fehler auftritt. Der Cluster gewinnt dadurch sowohl an Betriebsrobustheit als auch an Diagnose- und UI-Transparenz; die Aggregate steigen leicht auf **95,24 / 92,79 / 96,37 / 96,49**. |
+
+### Delta Folge-Batch 569
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/posts/PostsModule.php`, `CMS/admin/post-tags.php`, `CMS/admin/views/posts/tags.php`, `CMS/admin/views/posts/list.php`, `CMS/admin/views/posts/edit.php`, `DOC/audit/AdminAudit-Beitraege.md`, `DOC/audit/AssetAudit-Beitraege.md`, `DOC/audit/AdminAudit-INDEX.md`, `DOC/audit/AssetAudit-INDEX.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md`, `CMS/update.json`, `CMS/core/Version.php` | umgesetzt | Der Beiträge-Cluster staffelt Taxonomie- und Listenpfade jetzt auf konsistentere Runtime-Verträge: Kategorie- und Tag-Slugs werden vor Persistenz fail-closed normalisiert und gegen stale Edit-IDs bzw. Duplicate-Slugs geprüft, der Tag-Admin spiegelt seinen vorhandenen Modul-Updatepfad jetzt als echten Edit-Roundtrip im UI und destruktive Bulk-Löschungen der Beitragsliste laufen nicht mehr ohne explizite Bestätigung an den Server. Parallel liegt mit `AssetAudit-Beitraege.md` erstmals eine eigene Asset-Arbeitsmappe für postspezifische Grid-/Modal-/Editor-Integrationen vor. | Der Beiträge-Admin verliert damit gleich mehrere stille Bruchstellen zwischen Modul, View und UX-Vertrag: Taxonomie-Edits kippen nicht mehr in späte DB-Kollisionen oder falsche Erfolgsmeldungen, Tags lassen sich im Admin sauber bearbeiten statt nur indirekt ersetzen, und Bulk-Deletes springen nicht mehr ohne Sicherheitsbremse direkt in den POST. Die Aggregate steigen für diesen kleinen Beiträge-/Runtime-Batch leicht auf **95,20 / 92,74 / 96,33 / 96,44**. |
+
+### Delta Folge-Batch 568
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/core/Services/MediaService.php`, `CMS/core/Services/Media/MediaRepository.php`, `CMS/core/Services/Media/UploadHandler.php`, `DOC/audit/AdminAudit-Medien.md`, `DOC/audit/AssetAudit-Medien.md`, `DOC/audit/AdminAudit-INDEX.md`, `DOC/audit/AssetAudit-INDEX.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md`, `CMS/update.json`, `CMS/core/Version.php` | umgesetzt | Der Medien-Cluster staffelt Settings-, Meta-, Upload- und Rename-Pfade jetzt auf robustere Datei- und Integritätsverträge: Media-Settings, Upload-`.htaccess` und `media-meta.json` laufen über atomische Same-Directory-Swaps mit SHA-512-Integritätscheck, beschädigte Meta-Strukturen werden defensiver normalisiert, Kategoriezuweisungen an reale Dateien gebunden und Hidden-Namen sowie Dateiendungswechsel beim Rename fail-closed blockiert. | Medien-Konfiguration und Bibliotheks-Meta kippen damit nicht mehr still auf halbfertige Dateistände, während Upload-/Rename-Flows keine nachträglichen Hidden-File- oder Extension-Bypässe mehr öffnen. Admin- und Asset-Audit halten den neuen Medien-Vertrag jetzt konsistent fest; die Aggregate steigen für diesen sicherheits- und robustheitslastigen Follow-up leicht auf **95,18 / 92,74 / 96,30 / 96,42**. |
+
+### Delta Folge-Batch 567
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/themes/ThemeEditorModule.php`, `CMS/admin/views/themes/editor.php`, `CMS/assets/js/admin-theme-explorer.js`, `CMS/admin/modules/themes/FontManagerModule.php`, `CMS/admin/views/themes/fonts.php`, `DOC/audit/AdminAudit-INDEX.md`, `DOC/audit/AdminAudit-Design.md`, `DOC/audit/AssetAudit-INDEX.md`, `DOC/audit/AssetAudit-Design.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md`, `CMS/update.json`, `CMS/core/Version.php` | umgesetzt | Der Design-Cluster staffelt Theme-Explorer- und Font-Manager-Pfade jetzt auf robustere Datei- und Asset-Verträge: Theme-Dateien werden atomisch mit SHA-512-Check gespeichert, Binary-Ziele lassen sich nicht mehr per direktem POST überschreiben, Explorer-Tree-Datenattribute werden direkt gerendert und der Font-Manager schreibt Self-Hosting-Assets ebenfalls atomisch, speichert das reale Primärformat und räumt CSS-verknüpfte Font-Dateien beim Delete mit auf. | Theme-Dateiänderungen verlieren damit einen stillen Korruptions- und Direct-POST-Overwrite-Pfad, während lokale Google-Font-Familien nicht mehr mit falschem Format-Metadatum oder liegengebliebenen WOFF-/TTF-Resten enden. Parallel bleibt der Explorer-Suchvertrag im Asset näher am echten DOM statt an String-Umbauten zu hängen. Die Aggregate bleiben für diesen kleinen Design-/Asset-Batch stabil. |
+
+### Delta Folge-Batch 566
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/core/Services/UpdateService.php`, `CMS/admin/theme-marketplace.php`, `CMS/admin/modules/themes/ThemeMarketplaceModule.php`, `DOC/audit/AdminAudit-INDEX.md`, `DOC/audit/AdminAudit-Plugins.md`, `DOC/audit/AdminAudit-Themes.md`, `DOC/audit/AdminAudit-System.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Der Update-/Marketplace-Cluster staffelt absolute und relative Remote-Ziele jetzt über denselben strikten HTTPS-/Host-/Port-/Pfad-Vertrag, statt relative Katalog-/Manifest-/Download-Pfade im UpdateService noch lockerer an erlaubte Hosts zu hängen. Parallel zieht der Theme-Marketplace Slug-Längenlimit, Katalog-Spiegel, erlaubte ZIP-Endungen und Paketgrößen für Auto-Installationen nach. | Core-, Plugin- und Theme-Updates akzeptieren damit keine halboffenen Remote-Ziele mit Credentials, Fremdports, Fragmenten oder Traversal-artigen Pfaden mehr; Theme-Installationen bleiben zusätzlich auf plausible Slugs und Pakete begrenzt, statt problematische Archive still bis in den Installer durchzureichen. Die Aggregate bleiben für diesen kleinen Remote-/Marketplace-Batch stabil. |
+
+### Delta Folge-Batch 565
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/cookie-manager.php`, `CMS/admin/data-requests.php`, `CMS/admin/privacy-requests.php`, `CMS/admin/deletion-requests.php`, `CMS/admin/documentation.php`, `CMS/admin/support.php`, `CMS/admin/system-info.php`, `CMS/admin/error-report.php`, `CMS/admin/hub-sites.php`, `CMS/admin/settings.php`, `CMS/admin/table-of-contents.php`, `CMS/admin/updates.php`, `DOC/audit/AdminAudit-INDEX.md`, `DOC/audit/AdminAudit-Recht.md`, `DOC/audit/AdminAudit-Info.md`, `DOC/audit/AdminAudit-Diagnose.md`, `DOC/audit/AdminAudit-System.md`, `DOC/audit/AdminAudit-Hub.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Mehrere Legacy-Admin-Entrys im Rechts-, Info-, Diagnose-, System- und Hub-Cluster verließen sich noch auf generische `isAdmin()`-Guards, obwohl Zielseiten, Aliasrouten und Mutationspfade bereits enger an `manage_settings` bzw. `manage_system` hängen. Der Batch zieht diese Entrys jetzt auf explizite Capability-Helfer samt fail-closed Post-Handlern und Alias-Checks zusammen. | Cookie-Manager, DSGVO-Anfragen, Doku-/Info-Aliasse, Fehlerreport, Hub-Sites, globale Einstellungen, TOC-Konfiguration und Updates geraten damit nicht mehr in halboffene Admin-Oberflächen oder aliasbasierte Umgehungswege. Lese- und Mutationspfade spiegeln jetzt denselben Capability-Vertrag wie ihre Zielmodule; die Aggregate bleiben für diesen kleinen RBAC-/Access-Control-Batch stabil. |
+
+### Delta Folge-Batch 564
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/assets/js/editor-init.js`, `CMS/assets/js/cookieconsent-init.js`, `CMS/assets/js/gridjs-init.js`, `DOC/audit/AdminAudit-INDEX.md`, `DOC/audit/AdminAudit-Recht.md`, `DOC/audit/AdminAudit-Seiten.md`, `DOC/audit/AdminAudit-Beitraege.md`, `DOC/audit/AssetAudit-INDEX.md`, `DOC/audit/AssetAudit-EditorJS.md`, `DOC/audit/AssetAudit-Grid.md`, `DOC/audit/AssetAudit-Recht.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Die gemeinsame Editor.js-Brücke ersetzt verbleibende Stringpfade in Legacy-HTML-Import und Bildpicker durch `DOMParser` und DOM-Knoten; der Consent-Dialog baut Banner, Modal und Kategorien jetzt DOM-basiert; der Grid-Helfer escaped Zelltexte ohne `innerHTML`-Roundtrip. | Shared-Editor, Public-Consent und Grid-Formatter bleiben damit stringfrei und näher an einem fail-closed First-Party-DOM-Vertrag. Parallel ist der Legal-/Consent-Asset-Strang jetzt als eigene `AssetAudit-Recht.md` dokumentiert. Die Aggregate bleiben für diesen kleinen Editor-/Legal-/Grid-Batch stabil. |
+
+### Delta Folge-Batch 563
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/assets/js/admin-seo-editor.js`, `CMS/assets/js/admin-plugin-marketplace.js`, `CMS/assets/js/admin-theme-marketplace.js`, `DOC/audit/AdminAudit-INDEX.md`, `DOC/audit/AdminAudit-SEO.md`, `DOC/audit/AdminAudit-Plugins.md`, `DOC/audit/AdminAudit-Themes.md`, `DOC/audit/AssetAudit-INDEX.md`, `DOC/audit/AssetAudit-SEO.md`, `DOC/audit/AssetAudit-Marketplace.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Der Shared-SEO-Editor ersetzt verbleibende HTML-Fallback- und Resetpfade durch `DOMParser` und DOM-Clear-Helper; Plugin- und Theme-Marketplace schalten Pending-Texte jetzt textbasiert statt über `innerHTML`. | SEO-Regellisten, HTML-Analyse und Marketplace-Install-Buttons bleiben damit stringärmer und näher an einem fail-closed First-Party-DOM-Vertrag. Die Aggregate bleiben für diesen kleinen SEO-/Marketplace-Batch stabil. |
+
+### Delta Folge-Batch 562
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/assets/js/admin-hub-site-edit.js`, `CMS/assets/js/admin-hub-template-edit.js`, `CMS/assets/js/admin-hub-template-editor.js`, `CMS/assets/js/admin-content-editor.js`, `DOC/audit/AdminAudit-INDEX.md`, `DOC/audit/AdminAudit-Hub.md`, `DOC/audit/AdminAudit-Seiten.md`, `DOC/audit/AdminAudit-Beitraege.md`, `DOC/audit/AssetAudit-INDEX.md`, `DOC/audit/AssetAudit-Hub.md`, `DOC/audit/AssetAudit-EditorJS.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Hub-Site-/Template-Editoren und der gemeinsame Content-Editor ersetzen verbleibende First-Party-`innerHTML`-/`insertAdjacentHTML`-Render- und Resetpfade durch DOM-Clear-Helper, echte Knoten und `DOMParser`-basierte Vorschautext-Extraktion. | Hub-Karten, Template-Quicklinks, TOC-, Section- und Starter-Card-Vorschauen sowie Preview-/Diff-/Holder-Zustände im Shared-Editor bleiben damit stringfrei und näher an einem fail-closed DOM-Vertrag. Die Aggregate bleiben für diesen kleinen Hub-/EditorJS-Batch stabil. |
+
+### Delta Folge-Batch 561
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/assets/js/admin-menu-editor.js`, `CMS/assets/js/admin-media-integrations.js`, `CMS/assets/js/member-dashboard.js`, `CMS/assets/js/admin-site-tables.js`, `DOC/audit/AdminAudit-INDEX.md`, `DOC/audit/AdminAudit-Design.md`, `DOC/audit/AdminAudit-Medien.md`, `DOC/audit/AdminAudit-Member.md`, `DOC/audit/AdminAudit-Tabellen.md`, `DOC/audit/AssetAudit-INDEX.md`, `DOC/audit/AssetAudit-Design.md`, `DOC/audit/AssetAudit-Medien.md`, `DOC/audit/AssetAudit-Tabellen.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Menü-Editor, Medienbibliothek, Member-Upload und Tabellen-Editor ersetzen verbleibende First-Party-`innerHTML`-Render- bzw. Resetpfade durch DOM-Clear-Helper und echte Knoten für Listen-, Preview-, Alert-, Select- und Empty-State-Rendering. | First-Party-Admin-Assets halten ihre Renderpfade damit konsistenter fail-closed und stringfrei: Menülisten, Picker-/Upload-Zustände, Member-Ergebnislisten und Tabellen-Rebuilds hängen nicht mehr an verbleibenden `innerHTML`-Sonderpfaden. Die Aggregate bleiben für diesen kleinen Asset-/DOM-Batch stabil. |
+
+### Delta Folge-Batch 560
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/users/UsersModule.php`, `CMS/admin/views/partials/featured-image-picker.php`, `CMS/admin/modules/menus/MenuEditorModule.php`, `CMS/core/TableOfContents.php`, `CMS/core/CacheManager.php`, `DOC/audit/AdminAudit-INDEX.md`, `DOC/audit/AdminAudit-Benutzer.md`, `DOC/audit/AdminAudit-Seiten.md`, `DOC/audit/AdminAudit-Beitraege.md`, `DOC/audit/AdminAudit-Design.md`, `DOC/audit/AdminAudit-Performance.md`, `DOC/audit/AssetAudit-INDEX.md`, `DOC/audit/AssetAudit-Medien.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Benutzer-Report-Quellen und der gemeinsame Featured-Image-Picker nutzen für interne Admin-/Media-Ziele jetzt hostneutrale relative `/admin/...`- bzw. `/api/media`-Pfade statt `SITE_URL`-gebundener Ziele; parallel baut der Picker Preview/Grid nur noch über DOM-Knoten auf, `MenuEditorModule` zieht explizite `mb_*`-/Core-PHP-Fallbacks nach und `TableOfContents` sowie `CacheManager` ersetzen verbleibende Legacy-`md5()`-/`sha1()`-Pfadreste durch sichere Random-/`hash(...)`-Varianten. | Benutzer-Reports, Page-/Post-Featured-Image-Auswahl, Menü-Saves, TOC-Navigationsanker und Cache-Datei-/ETag-Pfade bleiben damit auch unter Proxy-, Alternativhost- und lokaler Dev-Umgebung bzw. auf PHP-Setups ohne geladene `mbstring`-Extension belastbar, ohne feste Host-Basen, stringbasiertes DOM-Markup oder veraltete Hashfunktionen mitzuschleppen. Die Aggregate bleiben für diesen kleinen Shared-Follow-up stabil. |
+
+### Delta Folge-Batch 559
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/error-report.php`, `CMS/admin/partials/post-action-shell.php`, `CMS/admin/partials/redirect-alias-shell.php`, `CMS/admin/views/partials/flash-alert.php`, `CMS/core/Debug.php`, `CMS/core/Services/ErrorReportService.php`, `CMS/admin/views/system/info.php`, `CMS/admin/modules/themes/FontManagerModule.php`, `DOC/audit/AdminAudit-INDEX.md`, `DOC/audit/AdminAudit-Design.md`, `DOC/audit/AdminAudit-Info.md`, `DOC/audit/AdminAudit-Diagnose.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Der gemeinsame Fehlerreport-/Diagnose-Flow nutzt für Report-Buttons, POST-Ziele, Default-Redirects und gespeicherte `source_url`-Werte jetzt hostneutrale relative `/admin/...`-Pfade statt an `SITE_URL` gebundener Ziele; parallel ziehen `ErrorReportService`, `FontManagerModule` und `CMS/admin/views/system/info.php` explizite `mb_*`-/Core-PHP-Fallbacks nach. | Fehlerreports, Debug-Reports, Info-Badges und Font-Scans bleiben damit auch unter Proxy-, Alternativhost- und lokaler Dev-Umgebung im aktuellen Admin-Kontext und auf PHP-Setups ohne geladene `mbstring`-Extension belastbar, statt auf eine feste Origin zu springen oder an optionalen String-Helfern fatal auszusteigen. Die Aggregate bleiben für diesen kleinen Diagnose-/Info-/Design-Batch stabil. |
+
+### Delta Folge-Batch 558
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/post-categories.php`, `CMS/admin/post-tags.php`, `CMS/admin/table-of-contents.php`, `CMS/admin/updates.php`, `CMS/admin/subscription-settings.php`, `CMS/admin/settings.php`, `CMS/admin/packages.php`, `CMS/admin/menu-editor.php`, `CMS/admin/pages.php`, `CMS/admin/views/toc/settings.php`, `DOC/audit/AdminAudit-INDEX.md`, `DOC/audit/AdminAudit-Seiten.md`, `DOC/audit/AdminAudit-Beitraege.md`, `DOC/audit/AdminAudit-Abos.md`, `DOC/audit/AdminAudit-Design.md`, `DOC/audit/AdminAudit-System.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Mehrere verbliebene Admin-Entrys und der TOC-Save-Pfad nutzen für Access-Denied-Fallbacks, PRG-Redirects und interne Formularziele jetzt hostneutrale relative `/`- bzw. `/admin/...`-Routen statt an `SITE_URL` gebundener Ziele; parallel ist der Routing-Nachzug in den Bereichsaudits und der Release-Doku festgehalten. | Kategorien-, Tags-, Inhaltsverzeichnis-, Settings-, Updates-, Pakete-, Abo-Settings-, Menü- und Seiten-Roundtrips bleiben damit auch unter Proxy-, Alternativhost- und lokaler Dev-Umgebung auf derselben Origin, statt bei Guard- oder Save-Pfaden ausgerechnet auf eine feste Hostbasis zu kippen. Die Aggregate bleiben für diesen kleinen Routing-/Doku-Batch stabil. |
+
+### Delta Folge-Batch 557
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/subscriptions/OrdersModule.php`, `CMS/core/Services/DashboardService.php`, `CMS/core/SchemaManager.php`, `CMS/admin/orders.php`, `CMS/admin/views/subscriptions/orders.php`, `CMS/orders.php`, `CMS/member/includes/class-member-controller.php`, `CMS/member/subscription.php`, `DOC/audit/AdminAudit-Abos.md`, `DOC/audit/AdminAudit-INDEX.md`, `DOC/audit/AdminAudit-Dashboard.md`, `DOC/audit/AdminAudit-Member.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Der Abo-/Orders-Cluster nutzt jetzt einen kanonischen Bestellvertrag mit Statusaliasen (`confirmed/completed` → `paid`), fail-closed Statuswechseln, runtime-sicherer Schema-Nachpflege und normalisierten Kunden-/Betragsfeldern über Admin, Checkout, Dashboard und Member-Historie hinweg; parallel liegt dafür erstmals eine eigene Admin-Audit-Datei vor. | Bestelllisten, Umsatz-KPIs, Checkout-Anlagen, manuelle Zuweisungen und Member-Bestellhistorien laufen damit auch auf älteren Installationen mit gemischtem Orders-Schema wieder auf demselben Datenmodell, statt zwischen `total_amount/amount`, `email/customer_email` und Legacy-Statuswerten auseinanderzufallen. Die Aggregate bleiben für diesen größeren Runtime-/Dokubatch stabil. |
 
 ### Delta Folge-Batch 466
 
@@ -517,6 +631,96 @@ Der aktuelle Nachpflege-Stand umfasst damit **465 umgesetzte Batches**, davon we
 | Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
 |---|---|---|---|
 | `CMS/admin/modules/settings/SettingsModule.php`, `DOC/audit/AdminAudit-System.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Die allgemeinen Systemeinstellungen nutzen für `normalizeRouteBase()`, `sanitizeAuditString()` und `maskEmailAddress()` jetzt explizite `mb_strtolower()`-/`strtolower()`, `mb_substr()`-/`substr()`- und `mb_strlen()`-/`strlen()`-Fallbacks statt roher `mb_*`-Aufrufe in Save-, Audit- und Testmail-Pfaden. | Der Systembereich bleibt damit auch auf PHP-Setups ohne geladene `mbstring`-Extension beim Speichern, beim Audit-/Migrations-Logging und beim Testmail-Flow funktionsfähig, statt in diesen Live-Pfaden schon an optionalen String-Helfern fatal auszusteigen. Die Aggregate bleiben für diesen kleinen System-/Kompatibilitäts-Batch stabil. |
+
+### Delta Folge-Batch 542
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/core/Security.php`, `CMS/core/Services/CommentService.php`, `DOC/audit/AdminAudit-Sicherheit.md`, `DOC/audit/AdminAudit-Kommentare.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Der Session-Fallback des Login-/API-Rate-Limits nutzt für seine Bucket-Keys jetzt `hash('sha256', ...)` statt Legacy-`md5()`, und der öffentliche Kommentarpfad ersetzt den rohen `sha1(email)`-Fingerprint im Flood-Log durch eine maskierte Adresse und zieht seine String-Grenzen über explizite `mb_*`-/Core-PHP-Fallbacks. | Security- und Kommentarpfade bleiben damit auch bei DB-Fallback, Kommentar-Flood-Schutz und auf PHP-Setups ohne geladene `mbstring`-Extension belastbar, ohne veraltete Hashes oder unnötig rückrechenbare E-Mail-Fingerprints weiter mitzuschleppen. Die Aggregate bleiben für diesen kleinen Security-/Kommentar-Batch stabil. |
+
+### Delta Folge-Batch 543
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/modules/themes/FontManagerModule.php`, `CMS/core/Services/CronRunnerService.php`, `DOC/audit/AdminAudit-Design.md`, `DOC/audit/AdminAudit-Diagnose.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Font-Manager und Cron-Runner ersetzen ihre verbleibenden Legacy-`sha1()`-/`md5()`-Suffixe jetzt durch `hash('sha256', ...)`, statt überlange verwaltete Font-Dateinamen oder den globalen Cron-Lock-Namespace weiter an veralteten Hashfunktionen aufzuhängen. | Self-Hosted-Fontdownloads und der Runtime-Cron-Lock bleiben damit funktional unverändert, tragen im First-Party-Core aber keine Legacy-Hashfunktionen mehr in aktiven Admin-/Monitoring-Pfaden mit. Die Aggregate bleiben für diesen kleinen Design-/Diagnose-Batch stabil. |
+
+### Delta Folge-Batch 556
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/assets/js/admin-seo-editor.js`, `DOC/audit/AssetAudit-SEO.md`, `DOC/audit/AdminAudit-SEO.md`, `DOC/audit/AdminAudit-Seiten.md`, `DOC/audit/AdminAudit-Beitraege.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Der gemeinsame SEO-Editor analysiert Page-/Post-Inhalte jetzt blockstrukturiert aus live synchronisiertem Editor.js-JSON und zählt Keyphrases sowie Transition-Wörter Unicode-sicher statt primär über rohe String-Sammlung, DOM-Fallbacks und brüchige Wortgrenzen. | SEO-/Readability-Panels bleiben damit näher am tatsächlich bearbeiteten Editor.js-Inhalt, statt technische JSON-Reste mitzuzählen oder strukturierte Link-/Bildsignale zu verlieren. Die Aggregate bleiben für diesen kleinen Shared-SEO-/EditorJS-Batch stabil. |
+
+### Delta Folge-Batch 555
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/assets/js/admin-seo-editor.js`, `DOC/audit/AssetAudit-SEO.md`, `DOC/audit/AdminAudit-SEO.md`, `DOC/audit/AdminAudit-Seiten.md`, `DOC/audit/AdminAudit-Beitraege.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Die Regel-/Score-Liste des gemeinsamen SEO-Editors rendert bearbeitbare Slug-, Focus-Phrase- und Detailwerte jetzt über echte DOM-Knoten statt über `innerHTML`. | Page-/Post-Editoren verlieren damit einen unnötigen DOM-XSS-/Markup-Pfad im Shared-SEO-Asset; Regeltexte bleiben auf reine Textknoten begrenzt. Die Aggregate bleiben für diesen kleinen Shared-SEO-Batch stabil. |
+
+### Delta Folge-Batch 554
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/assets/js/admin-content-editor.js`, `DOC/audit/AssetAudit-EditorJS.md`, `DOC/audit/AdminAudit-Seiten.md`, `DOC/audit/AdminAudit-Beitraege.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Der gemeinsame AI-Übersetzungsflow serialisiert den EN-Zielzustand jetzt vor Preview-/Overwrite-Entscheidungen explizit mit und prüft Draft-Inhalte gegen den echten aktuellen Editorstand statt gegen potenziell veraltete Hidden-Felder. | Noch nicht gespeicherte EN-Änderungen geraten damit im DE→EN-/AI-Flow nicht mehr in einen scheinbar leeren Zielzustand und werden nicht still von frischen AI-Vorschlägen überfahren. Die Aggregate bleiben für diesen kleinen Shared-EditorJS-/AI-Batch stabil. |
+
+### Delta Folge-Batch 553
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/assets/js/admin-content-editor.js`, `DOC/audit/AssetAudit-EditorJS.md`, `DOC/audit/AdminAudit-Seiten.md`, `DOC/audit/AdminAudit-Beitraege.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Der manuelle `Alles aus DE nach EN kopieren`-Flow serialisiert Source und Target jetzt vorab und verlangt bei vorhandenem EN-Entwurf eine explizite Bestätigung statt stiller Überschreibung. | Bereits bearbeitete EN-Fassungen von Seiten und Beiträgen werden damit nicht mehr versehentlich durch eine erneute Direktkopie aus DE überschrieben. Die Aggregate bleiben für diesen kleinen Shared-EditorJS-Batch stabil. |
+
+### Delta Folge-Batch 552
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/assets/js/admin-content-editor.js`, `DOC/audit/AssetAudit-EditorJS.md`, `DOC/audit/AdminAudit-Seiten.md`, `DOC/audit/AdminAudit-Beitraege.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Die Page-/Post-Editoren spiegeln aktive Editor.js-Änderungen jetzt live in ihre Hidden-JSON-Felder zurück, statt den Hidden-Vertrag erst beim Formular-Submit zu aktualisieren. | SEO-/Readability-Panels, Preview-Bridge und Folgeaktionen arbeiten damit nicht mehr auf veralteten Editor-Inhalten, solange Redakteure bereits weitergeschrieben haben. Die Aggregate bleiben für diesen kleinen Shared-EditorJS-Batch stabil. |
+
+### Delta Folge-Batch 551
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/assets/js/editor-init.js`, `DOC/audit/AssetAudit-EditorJS.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Die gemeinsame Editor.js-Brücke stellt jetzt einen debounced `onChange`-Synchronisationspfad bereit, über den Shared-Assets sichtbare Blockänderungen direkt in ihren Hidden-/JSON-Vertrag zurückspiegeln können. | Shared-Editor-Integrationen hängen damit nicht mehr ausschließlich am nächsten Save-Submit, sondern können Live-Zustände für Folge-Assets und UI-Verträge belastbar nachziehen. Die Aggregate bleiben für diesen kleinen EditorJS-Basis-Batch stabil. |
+
+### Delta Folge-Batch 550
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/core/Services/CronRunnerService.php`, `DOC/audit/AdminAudit-Diagnose.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Der Cron-Runner nutzt für `truncateForLog()` jetzt einen expliziten `mb_substr()`-/`substr()`-Fallback statt eines rohen `mb_substr()`-Aufrufs im Diagnose-/Monitoring-Pfad. | Cron-Läufe und Monitoring-Logs bleiben damit auch auf PHP-Setups ohne geladene `mbstring`-Extension beim Kürzen von Ergebnis- und Fehlertexten funktionsfähig, statt im reinen Logging-Pfad fatal auszusteigen. Die Aggregate bleiben für diesen kleinen Diagnose-/Cron-Batch stabil. |
+
+### Delta Folge-Batch 549
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/core/Services/CommentService.php`, `DOC/audit/AdminAudit-Kommentare.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Die Kommentar-Erstellung nutzt für die aufgelöste Autor-E-Mail in `createPendingComment()` jetzt ebenfalls den internen UTF-8-Fallback-Helfer statt eines verbliebenen rohen `mb_substr()`-Aufrufs. | Der öffentliche Kommentar-Create-Pfad ist damit in seiner gesamten String-Normalisierung konsistent ohne harte `mbstring`-Abhängigkeit gehärtet, statt an einer einzelnen E-Mail-Grenze noch auf einen Fatal Error laufen zu können. Die Aggregate bleiben für diesen kleinen Kommentar-/Core-Follow-up stabil. |
+
+### Delta Folge-Batch 548
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/legal-sites.php`, `DOC/audit/AdminAudit-Recht.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Der Legal-Sites-Entry nutzt für Profil- und HTML-Grenzen jetzt explizite `mb_substr()`-/`substr()`-Fallback-Helfer statt roher `mb_substr()`-Aufrufe in der Request-Normalisierung. | Profil-Saves und Rechtstext-Generierung bleiben damit auch auf PHP-Setups ohne geladene `mbstring`-Extension funktionsfähig, statt bereits im Entry vor dem eigentlichen Modulaufruf fatal abzubrechen. Die Aggregate bleiben für diesen kleinen Recht-/Entry-Batch stabil. |
+
+### Delta Folge-Batch 547
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/documentation.php`, `DOC/audit/AdminAudit-Info.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Der Dokumentations-Entry begrenzt den ausgewählten Dokumentpfad jetzt über einen expliziten `mb_substr()`-/`substr()`-Fallback statt über einen rohen `mb_substr()`-Aufruf. | Dokumentwechsel und PRG-Roundtrips im Doku-Browser bleiben damit auch auf PHP-Setups ohne geladene `mbstring`-Extension lauffähig, statt bereits beim `?doc=`-Pfad fatal abzubrechen. Die Aggregate bleiben für diesen kleinen Info-/Dokubatch stabil. |
+
+### Delta Folge-Batch 546
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/theme-explorer.php`, `DOC/audit/AdminAudit-Design.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Der Theme-Explorer-Entry nutzt für den aktiven Dateipfad jetzt einen expliziten `mb_substr()`-/`substr()`-Fallback und leitet Guard-Fallbacks hostneutral auf `/` statt an `SITE_URL` gebunden weiter. | Dateiwechsel im Theme-Explorer bleiben damit auch ohne geladene `mbstring`-Extension funktionsfähig, und Access-Denied-Fälle springen unter Proxy-, Alternativhost- oder lokaler Dev-Umgebung nicht mehr auf eine falsche Origin. Die Aggregate bleiben für diesen kleinen Design-/Theme-Explorer-Batch stabil. |
+
+### Delta Folge-Batch 545
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/plugin-marketplace.php`, `DOC/audit/AdminAudit-Plugins.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Der Plugin-Marketplace-Entry nutzt für Install-Slug-Grenzen und Truncation-Checks jetzt explizite `mb_*`-/Core-PHP-Fallback-Helfer statt roher `mb_substr()`-/`mb_strlen()`-Aufrufe. | Plugin-Installationen bleiben damit auch auf PHP-Setups ohne geladene `mbstring`-Extension schon im Entry-Vertrag lauffähig, statt vor dem eigentlichen Marketplace-Modul an einem Fatal Error zu scheitern. Die Aggregate bleiben für diesen kleinen Plugin-/Entry-Batch stabil. |
+
+### Delta Folge-Batch 544
+
+| Datei/Bereich | Status | Folge-Härtung über `PRÜFUNG.MD` hinaus | Wirkung |
+|---|---|---|---|
+| `CMS/admin/font-manager.php`, `DOC/audit/AdminAudit-Design.md`, `DOC/audit/BEWERTUNG.md`, `README.md`, `Changelog.md` | umgesetzt | Der Font-Manager-Entry nutzt für Google-Font-Familien, Font-Keys und Längenprüfungen jetzt explizite `mb_*`-/Core-PHP-Fallback-Helfer statt roher `mb_substr()`-/`mb_strlen()`-Aufrufe. | Speichern und Google-Font-Downloads im Design-Admin bleiben damit auch auf PHP-Setups ohne geladene `mbstring`-Extension funktionsfähig, statt schon in der Entry-Normalisierung fatal abzubrechen. Die Aggregate bleiben für diesen kleinen Design-/Font-Manager-Batch stabil. |
 
 ### Delta Folge-Batch 513
 

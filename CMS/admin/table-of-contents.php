@@ -13,8 +13,22 @@ if (!defined('ABSPATH')) {
 use CMS\Auth;
 use CMS\Security;
 
-if (!Auth::instance()->isAdmin()) {
-    header('Location: ' . SITE_URL);
+const CMS_ADMIN_TOC_CAPABILITY = 'manage_settings';
+
+function cms_admin_toc_can_access(): bool
+{
+    return Auth::instance()->isAdmin()
+        && Auth::instance()->hasCapability(CMS_ADMIN_TOC_CAPABILITY);
+}
+
+function cms_admin_toc_redirect(): never
+{
+    header('Location: /admin/table-of-contents');
+    exit;
+}
+
+if (!cms_admin_toc_can_access()) {
+    header('Location: /');
     exit;
 }
 
@@ -29,8 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (!Security::instance()->verifyToken($postToken, 'admin_toc')) {
         $_SESSION['admin_alert'] = ['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.'];
-        header('Location: ' . SITE_URL . '/admin/table-of-contents');
-        exit;
+        cms_admin_toc_redirect();
     }
 
     if ($action === 'save') {
@@ -39,8 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'type'    => $result['success'] ? 'success' : 'danger',
             'message' => $result['message'] ?? $result['error'] ?? '',
         ];
-        header('Location: ' . SITE_URL . '/admin/table-of-contents');
-        exit;
+        cms_admin_toc_redirect();
     }
 }
 

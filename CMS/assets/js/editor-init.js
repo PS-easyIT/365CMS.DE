@@ -11,12 +11,108 @@
         return /^(https?:|mailto:|tel:|\/|#|\.\/|\.\.\/)/i.test(value);
     }
 
+    function parseHtmlDocument(html) {
+        return new DOMParser().parseFromString(String(html || ''), 'text/html');
+    }
+
+    function serializeNode(node) {
+        if (!node) {
+            return '';
+        }
+
+        if (node.nodeType === Node.TEXT_NODE) {
+            return escapeHtml(node.textContent || '');
+        }
+
+        if (node.nodeType !== Node.ELEMENT_NODE) {
+            return '';
+        }
+
+        const element = /** @type {HTMLElement} */ (node);
+        const tagName = element.tagName.toLowerCase();
+        const attributes = Array.from(element.attributes).map((attribute) => ` ${attribute.name}="${escapeHtml(attribute.value)}"`).join('');
+
+        if (tagName === 'br') {
+            return `<br${attributes}>`;
+        }
+
+        return `<${tagName}${attributes}>${serializeChildNodes(element)}</${tagName}>`;
+    }
+
+    function serializeChildNodes(node) {
+        return Array.from(node.childNodes || []).map((child) => serializeNode(child)).join('');
+    }
+
+    function clearElement(element) {
+        if (!element) {
+            return;
+        }
+
+        while (element.firstChild) {
+            element.removeChild(element.firstChild);
+        }
+    }
+
+    function createElement(tagName, options, children) {
+        const element = document.createElement(tagName);
+        const config = options && typeof options === 'object' ? options : {};
+        const childList = Array.isArray(children) ? children : (typeof children === 'undefined' ? [] : [children]);
+
+        if (config.className) {
+            element.className = config.className;
+        }
+
+        if (config.text) {
+            element.textContent = config.text;
+        }
+
+        if (config.attributes && typeof config.attributes === 'object') {
+            Object.entries(config.attributes).forEach(([key, value]) => {
+                if (value === null || typeof value === 'undefined') {
+                    return;
+                }
+
+                if (value === true) {
+                    element.setAttribute(key, '');
+                    return;
+                }
+
+                element.setAttribute(key, String(value));
+            });
+        }
+
+        if (config.dataset && typeof config.dataset === 'object') {
+            Object.entries(config.dataset).forEach(([key, value]) => {
+                if (value === null || typeof value === 'undefined') {
+                    return;
+                }
+
+                element.dataset[key] = String(value);
+            });
+        }
+
+        childList.forEach((child) => {
+            if (child === null || typeof child === 'undefined') {
+                return;
+            }
+
+            if (typeof child === 'string') {
+                element.appendChild(document.createTextNode(child));
+                return;
+            }
+
+            element.appendChild(child);
+        });
+
+        return element;
+    }
+
     function sanitizeInlineHtml(html) {
         if (!html || typeof html !== 'string') {
             return '';
         }
 
-        const template = document.createElement('template');
+        const root = parseHtmlDocument(html).body;
         const allowedTags = new Set(['A', 'B', 'STRONG', 'I', 'EM', 'U', 'S', 'MARK', 'CODE', 'BR', 'SUB', 'SUP', 'SPAN']);
         const blockedTags = new Set(['SCRIPT', 'STYLE', 'IFRAME', 'OBJECT', 'EMBED', 'FORM', 'INPUT', 'BUTTON', 'TEXTAREA', 'SELECT', 'OPTION', 'NOSCRIPT', 'SVG', 'MATH']);
 
@@ -77,10 +173,9 @@
             }
         }
 
-        template.innerHTML = html;
-        Array.from(template.content.childNodes).forEach(sanitizeNode);
+        Array.from(root.childNodes).forEach(sanitizeNode);
 
-        return template.innerHTML;
+        return serializeChildNodes(root);
     }
 
     function htmlToBlocks(html) {
@@ -89,11 +184,10 @@
         }
 
         const blockedRootTags = new Set(['script', 'style', 'iframe', 'object', 'embed', 'form', 'input', 'button', 'textarea', 'select', 'option', 'noscript', 'svg', 'math']);
-        const template = document.createElement('template');
-        template.innerHTML = html;
+        const root = parseHtmlDocument(html).body;
         const blocks = [];
 
-        Array.from(template.content.childNodes).forEach((node) => {
+        Array.from(root.childNodes).forEach((node) => {
             if (node.nodeType === Node.TEXT_NODE) {
                 const text = node.textContent ? node.textContent.trim() : '';
                 if (text) {
@@ -120,7 +214,7 @@
                 blocks.push({
                     type: 'header',
                     data: {
-                        text: sanitizeInlineHtml(element.innerHTML),
+                        text: sanitizeInlineHtml(serializeChildNodes(element)),
                         level: Number.parseInt(tag.substring(1), 10),
                     },
                 });
@@ -128,7 +222,7 @@
             }
 
             if (tag === 'p') {
-                const text = sanitizeInlineHtml(element.innerHTML).trim();
+                const text = sanitizeInlineHtml(serializeChildNodes(element)).trim();
                 if (text) {
                     blocks.push({ type: 'paragraph', data: { text } });
                 }
@@ -139,7 +233,7 @@
                 blocks.push({
                     type: 'quote',
                     data: {
-                        text: sanitizeInlineHtml(element.innerHTML),
+                        text: sanitizeInlineHtml(serializeChildNodes(element)),
                         caption: '',
                         alignment: 'left',
                     },
@@ -191,7 +285,7 @@
                 return;
             }
 
-            const fallback = sanitizeInlineHtml(element.innerHTML).trim();
+            const fallback = sanitizeInlineHtml(serializeChildNodes(element)).trim();
             if (fallback) {
                 blocks.push({ type: 'paragraph', data: { text: fallback } });
             }
@@ -216,7 +310,7 @@
         });
 
         return {
-            content: sanitizeInlineHtml(clone.innerHTML).trim(),
+            content: sanitizeInlineHtml(serializeChildNodes(clone)).trim(),
             meta: style === 'checklist' ? { checked: false } : {},
             items: children,
         };
@@ -385,36 +479,76 @@
         const overlay = document.createElement('div');
         overlay.className = 'cms-editor-image-picker';
         overlay.hidden = true;
-        overlay.innerHTML = ''
-            + '<div class="cms-editor-image-picker__dialog" role="dialog" aria-modal="true" aria-labelledby="cms-editor-image-picker-title">'
-            + '  <div class="cms-editor-image-picker__header">'
-            + '      <div>'
-            + '          <h3 class="cms-editor-image-picker__title" id="cms-editor-image-picker-title">Bild auswählen</h3>'
-            + '          <p class="cms-editor-image-picker__subtitle">Bestehende Uploads nutzen oder direkt ein neues Bild hochladen.</p>'
-            + '      </div>'
-            + '      <button type="button" class="cms-editor-image-picker__close" aria-label="Schließen">×</button>'
-            + '  </div>'
-            + '  <div class="cms-editor-image-picker__toolbar">'
-            + '      <input type="search" class="cms-editor-image-picker__search" placeholder="Bilder durchsuchen …" aria-label="Bilder durchsuchen">'
-            + '      <button type="button" class="cms-editor-image-picker__upload">Bild hochladen</button>'
-            + '      <input type="file" class="cms-editor-image-picker__upload-input" accept="image/*" hidden>'
-            + '  </div>'
-            + '  <div class="cms-editor-image-picker__status" aria-live="polite">Lade Bilder …</div>'
-            + '  <div class="cms-editor-image-picker__grid"></div>'
-            + '  <div class="cms-editor-image-picker__footer">'
-            + '      <button type="button" class="cms-editor-image-picker__cancel">Abbrechen</button>'
-            + '  </div>'
-            + '</div>';
+
+        const title = createElement('h3', {
+            className: 'cms-editor-image-picker__title',
+            text: 'Bild auswählen',
+            attributes: { id: 'cms-editor-image-picker-title' },
+        });
+        const subtitle = createElement('p', {
+            className: 'cms-editor-image-picker__subtitle',
+            text: 'Bestehende Uploads nutzen oder direkt ein neues Bild hochladen.',
+        });
+        const closeButton = createElement('button', {
+            className: 'cms-editor-image-picker__close',
+            text: '×',
+            attributes: { type: 'button', 'aria-label': 'Schließen' },
+        });
+        const searchEl = createElement('input', {
+            className: 'cms-editor-image-picker__search',
+            attributes: {
+                type: 'search',
+                placeholder: 'Bilder durchsuchen …',
+                'aria-label': 'Bilder durchsuchen',
+            },
+        });
+        const uploadButton = createElement('button', {
+            className: 'cms-editor-image-picker__upload',
+            text: 'Bild hochladen',
+            attributes: { type: 'button' },
+        });
+        const uploadInput = createElement('input', {
+            className: 'cms-editor-image-picker__upload-input',
+            attributes: { type: 'file', accept: 'image/*', hidden: true },
+        });
+        const statusEl = createElement('div', {
+            className: 'cms-editor-image-picker__status',
+            text: 'Lade Bilder …',
+            attributes: { 'aria-live': 'polite' },
+        });
+        const gridEl = createElement('div', { className: 'cms-editor-image-picker__grid' });
+        const cancelButton = createElement('button', {
+            className: 'cms-editor-image-picker__cancel',
+            text: 'Abbrechen',
+            attributes: { type: 'button' },
+        });
+        const dialog = createElement('div', {
+            className: 'cms-editor-image-picker__dialog',
+            attributes: {
+                role: 'dialog',
+                'aria-modal': 'true',
+                'aria-labelledby': 'cms-editor-image-picker-title',
+            },
+        }, [
+            createElement('div', { className: 'cms-editor-image-picker__header' }, [
+                createElement('div', {}, [title, subtitle]),
+                closeButton,
+            ]),
+            createElement('div', { className: 'cms-editor-image-picker__toolbar' }, [
+                searchEl,
+                uploadButton,
+                uploadInput,
+            ]),
+            statusEl,
+            gridEl,
+            createElement('div', { className: 'cms-editor-image-picker__footer' }, [cancelButton]),
+        ]);
+
+        overlay.appendChild(dialog);
 
         document.body.appendChild(overlay);
 
-        const dialog = overlay.querySelector('.cms-editor-image-picker__dialog');
-        const statusEl = overlay.querySelector('.cms-editor-image-picker__status');
-        const gridEl = overlay.querySelector('.cms-editor-image-picker__grid');
-        const searchEl = overlay.querySelector('.cms-editor-image-picker__search');
-        const uploadButton = overlay.querySelector('.cms-editor-image-picker__upload');
-        const uploadInput = overlay.querySelector('.cms-editor-image-picker__upload-input');
-        const closeButtons = overlay.querySelectorAll('.cms-editor-image-picker__close, .cms-editor-image-picker__cancel');
+        const closeButtons = [closeButton, cancelButton];
 
         function closePicker() {
             overlay.hidden = true;
@@ -463,26 +597,36 @@
                 return;
             }
 
+            clearElement(gridEl);
+
             if (filteredItems.length === 0) {
-                gridEl.innerHTML = '';
                 setStatus('Keine Bilder gefunden.', false);
                 return;
             }
 
             setStatus(filteredItems.length + (filteredItems.length === 1 ? ' Bild gefunden' : ' Bilder gefunden'), false);
-            gridEl.innerHTML = filteredItems.map(function (item) {
-                const url = escapeHtml(item.url || '');
-                const name = escapeHtml(item.name || 'Bild');
-                const path = escapeHtml(item.path || '');
-                return ''
-                    + '<button type="button" class="cms-editor-image-picker__item" data-url="' + url + '" data-name="' + name + '" data-path="' + path + '">'
-                    + '  <span class="cms-editor-image-picker__thumb"><img src="' + url + '" alt="' + name + '" loading="lazy"></span>'
-                    + '  <span class="cms-editor-image-picker__meta">'
-                    + '      <span class="cms-editor-image-picker__name">' + name + '</span>'
-                    + '      <span class="cms-editor-image-picker__path">' + path + '</span>'
-                    + '  </span>'
-                    + '</button>';
-            }).join('');
+
+            filteredItems.forEach(function (item) {
+                const url = String(item.url || '');
+                const name = String(item.name || 'Bild');
+                const path = String(item.path || '');
+                const image = createElement('img', {
+                    attributes: { src: url, alt: name, loading: 'lazy' },
+                });
+                const button = createElement('button', {
+                    className: 'cms-editor-image-picker__item',
+                    attributes: { type: 'button' },
+                    dataset: { url: url, name: name, path: path },
+                }, [
+                    createElement('span', { className: 'cms-editor-image-picker__thumb' }, [image]),
+                    createElement('span', { className: 'cms-editor-image-picker__meta' }, [
+                        createElement('span', { className: 'cms-editor-image-picker__name', text: name }),
+                        createElement('span', { className: 'cms-editor-image-picker__path', text: path }),
+                    ]),
+                ]);
+
+                gridEl.appendChild(button);
+            });
         }
 
         function applySearch() {
@@ -1042,10 +1186,12 @@
         };
     }
 
-    function createCmsEditor(holderId, initialData, uploadUrl, csrfToken) {
+    function createCmsEditor(holderId, initialData, uploadUrl, csrfToken, options) {
         const holder = document.getElementById(holderId);
         const resolved = buildResolvedRegistry();
         const spacerToolClass = createSpacerToolClass();
+        const editorOptions = options && typeof options === 'object' ? options : {};
+        let autosaveTimer = null;
 
         if (!holder || typeof resolved.editorjs !== 'function') {
             throw new Error('EditorJS core ist nicht geladen oder Holder fehlt.');
@@ -1139,6 +1285,25 @@
             tools,
             onReady: function () {
                 addReadyEnhancers(editor, resolved);
+            },
+            onChange: function () {
+                if (typeof editorOptions.onChange !== 'function') {
+                    return;
+                }
+
+                if (autosaveTimer !== null) {
+                    window.clearTimeout(autosaveTimer);
+                }
+
+                autosaveTimer = window.setTimeout(function () {
+                    editor.save().then(function (data) {
+                        editorOptions.onChange(normalizeInitialData(data));
+                    }).catch(function (error) {
+                        if (typeof console !== 'undefined' && typeof console.warn === 'function') {
+                            console.warn('Editor.js change sync fehlgeschlagen.', error);
+                        }
+                    });
+                }, 180);
             },
         });
 

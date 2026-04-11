@@ -20,6 +20,7 @@ class MediaService {
     private const BLOCKED_UPLOAD_EXTENSIONS = ['svg'];
 
     private static array $instances = [];
+    private const ATOMIC_FILE_MODE = 0640;
 
     private string $uploadPath;
     private string $uploadUrl;
@@ -71,7 +72,7 @@ class MediaService {
         $this->metaFile = dirname(dirname(__DIR__)) . '/config/media-meta.json';
         $this->logger = Logger::instance()->withChannel('media.service');
 
-        $this->repository = new MediaRepository($this->uploadPath, $this->uploadUrl, $this->metaFile, $this->systemFolders);
+        $this->repository = new MediaRepository($this->uploadPath, $this->uploadUrl, $this->metaFile, $this->systemFolders, $this->logger);
         $this->imageProcessor = new ImageProcessor();
         $this->uploadHandler = new UploadHandler(
             $this->uploadPath,
@@ -82,7 +83,13 @@ class MediaService {
         );
 
         $settings = $this->getSettings();
-        $this->syncUploadsProtection((bool) ($settings['protect_uploads_dir'] ?? true));
+        $protectionResult = $this->syncUploadsProtection((bool) ($settings['protect_uploads_dir'] ?? true));
+        if ($protectionResult instanceof WP_Error) {
+            $this->logger->warning('Upload-Verzeichnis-Schutz konnte beim Initialisieren nicht synchronisiert werden.', [
+                'error_code' => $protectionResult->get_error_code(),
+                'error_message' => $protectionResult->get_error_message(),
+            ]);
+        }
     }
 
     /**
@@ -546,7 +553,7 @@ class MediaService {
             . "    Require all denied\n"
             . "</FilesMatch>\n"
             . "Options -ExecCGI\n";
-        if (file_put_contents($htaccessPath, $content) === false) {
+        if (!$this->writeFileAtomically($htaccessPath, $content)) {
             return new WP_Error('protection_write_failed', 'Upload-Verzeichnis-Schutz konnte nicht geschrieben werden.');
         }
 
@@ -666,12 +673,12 @@ class MediaService {
             return $protectionResult;
         }
         
-        $json = json_encode($settings, JSON_PRETTY_PRINT);
+        $json = json_encode($settings, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
         if ($json === false) {
             return new WP_Error('json_error', 'Invalid settings data');
         }
 
-        if (file_put_contents($this->settingsFile, $json) === false) {
+        if (!$this->writeFileAtomically($this->settingsFile, $json . "\n")) {
             return new WP_Error('write_error', 'Could not write settings file');
         }
 
@@ -778,5 +785,65 @@ class MediaService {
 
         $webpPath = preg_replace('/\.' . preg_quote($ext, '/') . '$/i', '.webp', $sourcePath);
         return is_string($webpPath) ? $webpPath : null;
+    }
+
+    private function writeFileAtomically(string $path, string $content): bool
+    {
+        $directory = dirname($path);
+        if (!is_dir($directory) && !@mkdir($directory, 0755, true) && !is_dir($directory)) {
+            return false;
+        }
+
+        $tempPath = tempnam($directory, 'cmsmedia_');
+        if ($tempPath === false) {
+            return false;
+        }
+
+        $expectedHash = hash('sha512', $content);
+
+        if (file_put_contents($tempPath, $content, LOCK_EX) === false) {
+            @unlink($tempPath);
+            return false;
+        }
+
+        $tempHash = @hash_file('sha512', $tempPath);
+        if ($tempHash === false || !hash_equals($expectedHash, $tempHash)) {
+            @unlink($tempPath);
+            return false;
+        }
+
+        if (@rename($tempPath, $path)) {
+            @chmod($path, self::ATOMIC_FILE_MODE);
+            $finalHash = @hash_file('sha512', $path);
+
+            return $finalHash !== false && hash_equals($expectedHash, $finalHash);
+        }
+
+        $backupPath = null;
+        if (is_file($path)) {
+            $backupPath = $path . '.swap.' . str_replace('.', '', uniqid('', true));
+            if (!@rename($path, $backupPath)) {
+                @unlink($tempPath);
+                return false;
+            }
+        }
+
+        if (!@rename($tempPath, $path)) {
+            if ($backupPath !== null && is_file($backupPath)) {
+                @rename($backupPath, $path);
+            }
+
+            @unlink($tempPath);
+            return false;
+        }
+
+        if ($backupPath !== null && is_file($backupPath)) {
+            @unlink($backupPath);
+        }
+
+        @chmod($path, self::ATOMIC_FILE_MODE);
+        $finalHash = @hash_file('sha512', $path);
+
+        return $finalHash !== false && hash_equals($expectedHash, $finalHash);
     }
 }

@@ -32,7 +32,7 @@ define('CMS_SCHEMA_MANAGER_LOADED', true);
 class SchemaManager
 {
     /** Flag-Datei-Version – erhöhen wenn Schema geändert wird */
-    public const SCHEMA_VERSION = 'v18';
+    public const SCHEMA_VERSION = 'v19';
 
     private Database $db;
     private string $prefix;
@@ -390,21 +390,28 @@ class SchemaManager
                 id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 order_number VARCHAR(64) NOT NULL UNIQUE,
                 user_id INT UNSIGNED NULL,
-                plan_id INT NOT NULL,
-                status ENUM('pending','confirmed','cancelled','refunded') DEFAULT 'pending',
+                plan_id INT UNSIGNED NULL,
+                customer_name VARCHAR(200) DEFAULT NULL,
+                customer_email VARCHAR(200) DEFAULT NULL,
+                amount DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+                tax_amount DECIMAL(10,2) NOT NULL DEFAULT 0.00,
                 total_amount DECIMAL(10,2) NOT NULL DEFAULT 0.00,
-                currency VARCHAR(3) DEFAULT 'EUR',
+                currency VARCHAR(3) NOT NULL DEFAULT 'EUR',
+                status VARCHAR(20) NOT NULL DEFAULT 'pending',
                 payment_method VARCHAR(50) DEFAULT NULL,
-                billing_cycle ENUM('monthly','yearly','lifetime') DEFAULT 'monthly',
-                forename VARCHAR(100),
-                lastname VARCHAR(100),
-                company VARCHAR(100),
-                email VARCHAR(150),
-                phone VARCHAR(50),
-                street VARCHAR(255),
-                zip VARCHAR(20),
-                city VARCHAR(100),
-                country VARCHAR(100),
+                billing_cycle VARCHAR(20) NOT NULL DEFAULT 'monthly',
+                payment_ref VARCHAR(200) DEFAULT NULL,
+                notes TEXT DEFAULT NULL,
+                contact_data LONGTEXT DEFAULT NULL,
+                forename VARCHAR(100) DEFAULT NULL,
+                lastname VARCHAR(100) DEFAULT NULL,
+                company VARCHAR(100) DEFAULT NULL,
+                email VARCHAR(150) DEFAULT NULL,
+                phone VARCHAR(50) DEFAULT NULL,
+                street VARCHAR(255) DEFAULT NULL,
+                zip VARCHAR(20) DEFAULT NULL,
+                city VARCHAR(100) DEFAULT NULL,
+                country VARCHAR(100) DEFAULT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 INDEX idx_order_number (order_number),
@@ -875,6 +882,134 @@ class SchemaManager
             'table_slug',
             "ALTER TABLE {$this->prefix}site_tables ADD COLUMN table_slug VARCHAR(191) DEFAULT NULL AFTER table_name"
         );
+
+        $ordersSql = self::getSchemaQueries($this->prefix, $this->charset)['orders'] ?? '';
+        if ($ordersSql !== '') {
+            try {
+                $this->db->getPdo()->exec($ordersSql);
+            } catch (\Throwable $e) {
+                error_log('SchemaManager::ensureRuntimeSchema() orders failed: ' . $e->getMessage());
+            }
+        }
+
+        $this->ensureOrdersRuntimeSchema();
+    }
+
+    private function ensureOrdersRuntimeSchema(): void
+    {
+        $table = $this->prefix . 'orders';
+
+        $this->ensureColumnExists(
+            $table,
+            'plan_id',
+            "ALTER TABLE {$table} ADD COLUMN plan_id INT UNSIGNED DEFAULT NULL AFTER user_id"
+        );
+        $this->ensureColumnExists(
+            $table,
+            'customer_name',
+            "ALTER TABLE {$table} ADD COLUMN customer_name VARCHAR(200) DEFAULT NULL AFTER plan_id"
+        );
+        $this->ensureColumnExists(
+            $table,
+            'customer_email',
+            "ALTER TABLE {$table} ADD COLUMN customer_email VARCHAR(200) DEFAULT NULL AFTER customer_name"
+        );
+        $this->ensureColumnExists(
+            $table,
+            'amount',
+            "ALTER TABLE {$table} ADD COLUMN amount DECIMAL(10,2) NOT NULL DEFAULT 0.00 AFTER customer_email"
+        );
+        $this->ensureColumnExists(
+            $table,
+            'tax_amount',
+            "ALTER TABLE {$table} ADD COLUMN tax_amount DECIMAL(10,2) NOT NULL DEFAULT 0.00 AFTER amount"
+        );
+        $this->ensureColumnExists(
+            $table,
+            'total_amount',
+            "ALTER TABLE {$table} ADD COLUMN total_amount DECIMAL(10,2) NOT NULL DEFAULT 0.00 AFTER tax_amount"
+        );
+        $this->ensureColumnExists(
+            $table,
+            'currency',
+            "ALTER TABLE {$table} ADD COLUMN currency VARCHAR(3) NOT NULL DEFAULT 'EUR' AFTER total_amount"
+        );
+        $this->ensureColumnExists(
+            $table,
+            'payment_method',
+            "ALTER TABLE {$table} ADD COLUMN payment_method VARCHAR(50) DEFAULT NULL AFTER status"
+        );
+        $this->ensureColumnExists(
+            $table,
+            'billing_cycle',
+            "ALTER TABLE {$table} ADD COLUMN billing_cycle VARCHAR(20) NOT NULL DEFAULT 'monthly' AFTER payment_method"
+        );
+        $this->ensureColumnExists(
+            $table,
+            'payment_ref',
+            "ALTER TABLE {$table} ADD COLUMN payment_ref VARCHAR(200) DEFAULT NULL AFTER billing_cycle"
+        );
+        $this->ensureColumnExists(
+            $table,
+            'notes',
+            "ALTER TABLE {$table} ADD COLUMN notes TEXT DEFAULT NULL AFTER payment_ref"
+        );
+        $this->ensureColumnExists(
+            $table,
+            'contact_data',
+            "ALTER TABLE {$table} ADD COLUMN contact_data LONGTEXT DEFAULT NULL AFTER notes"
+        );
+        $this->ensureColumnExists(
+            $table,
+            'forename',
+            "ALTER TABLE {$table} ADD COLUMN forename VARCHAR(100) DEFAULT NULL AFTER contact_data"
+        );
+        $this->ensureColumnExists(
+            $table,
+            'lastname',
+            "ALTER TABLE {$table} ADD COLUMN lastname VARCHAR(100) DEFAULT NULL AFTER forename"
+        );
+        $this->ensureColumnExists(
+            $table,
+            'company',
+            "ALTER TABLE {$table} ADD COLUMN company VARCHAR(100) DEFAULT NULL AFTER lastname"
+        );
+        $this->ensureColumnExists(
+            $table,
+            'email',
+            "ALTER TABLE {$table} ADD COLUMN email VARCHAR(150) DEFAULT NULL AFTER company"
+        );
+        $this->ensureColumnExists(
+            $table,
+            'phone',
+            "ALTER TABLE {$table} ADD COLUMN phone VARCHAR(50) DEFAULT NULL AFTER email"
+        );
+        $this->ensureColumnExists(
+            $table,
+            'street',
+            "ALTER TABLE {$table} ADD COLUMN street VARCHAR(255) DEFAULT NULL AFTER phone"
+        );
+        $this->ensureColumnExists(
+            $table,
+            'zip',
+            "ALTER TABLE {$table} ADD COLUMN zip VARCHAR(20) DEFAULT NULL AFTER street"
+        );
+        $this->ensureColumnExists(
+            $table,
+            'city',
+            "ALTER TABLE {$table} ADD COLUMN city VARCHAR(100) DEFAULT NULL AFTER zip"
+        );
+        $this->ensureColumnExists(
+            $table,
+            'country',
+            "ALTER TABLE {$table} ADD COLUMN country VARCHAR(100) DEFAULT NULL AFTER city"
+        );
+
+        try {
+            $this->db->query("ALTER TABLE {$table} MODIFY COLUMN status VARCHAR(20) NOT NULL DEFAULT 'pending'");
+        } catch (\Throwable $e) {
+            error_log('SchemaManager::ensureOrdersRuntimeSchema() status failed: ' . $e->getMessage());
+        }
     }
 
     /**

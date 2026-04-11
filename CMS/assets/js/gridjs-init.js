@@ -56,9 +56,12 @@
     /* ── Escape HTML to prevent XSS in cell formatters ───── */
     window.cmsEsc = function (str) {
         if (!str) return '';
-        var d = document.createElement('div');
-        d.appendChild(document.createTextNode(str));
-        return d.innerHTML;
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
     };
 
     /**

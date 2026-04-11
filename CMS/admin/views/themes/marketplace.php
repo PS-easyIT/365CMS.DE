@@ -19,6 +19,9 @@ $stats = is_array($data['stats'] ?? null) ? $data['stats'] : [];
 $filters = is_array($data['filters'] ?? null) ? $data['filters'] : [];
 $statusOptions = is_array($filters['statuses'] ?? null) ? $filters['statuses'] : [];
 $source = is_array($data['source'] ?? null) ? $data['source'] : [];
+$constraints = is_array($data['constraints'] ?? null) ? $data['constraints'] : [];
+$allowedHosts = is_array($constraints['allowed_marketplace_hosts'] ?? null) ? $constraints['allowed_marketplace_hosts'] : [];
+$allowedArchiveExtensions = is_array($constraints['allowed_archive_extensions'] ?? null) ? $constraints['allowed_archive_extensions'] : [];
 $themeMarketplaceConfig = [
     'searchInputId' => 'themeMarketplaceSearch',
     'statusFilterId' => 'themeMarketplaceStatusFilter',
@@ -45,6 +48,11 @@ $normalizeSearchName = static function (mixed $value): string {
             <h2 class="page-title">Theme Marketplace</h2>
             <div class="text-muted mt-1"><?php echo $total; ?> Theme<?php echo $total !== 1 ? 's' : ''; ?> verfügbar</div>
         </div>
+        <div class="ms-auto">
+            <a href="/admin/themes" class="btn btn-outline-primary">
+                Zur Theme-Verwaltung
+            </a>
+        </div>
     </div>
 
     <?php if (!empty($alert)): ?>
@@ -59,7 +67,10 @@ $normalizeSearchName = static function (mixed $value): string {
         $alertData = [
             'type' => ($source['status'] ?? 'info') === 'success' ? 'success' : (($source['status'] ?? 'info') === 'warning' ? 'warning' : 'info'),
             'message' => (string) ($source['message'] ?? ''),
-            'details' => !empty($source['url']) ? ['Quelle: ' . (string) $source['url']] : [],
+            'details' => array_values(array_filter(array_merge(
+                !empty($source['url']) ? ['Quelle: ' . (string) $source['url']] : [],
+                is_array($source['details'] ?? null) ? array_map(static fn (mixed $detail): string => (string) $detail, $source['details']) : []
+            ))),
         ];
         $alertMarginClass = 'mb-3';
         require dirname(__DIR__) . '/partials/flash-alert.php';
@@ -112,6 +123,53 @@ $normalizeSearchName = static function (mixed $value): string {
 
         <div class="card mb-4">
             <div class="card-body">
+                <?php if (!empty($constraints['package_size_limit_label']) || !empty($constraints['catalog_cache_ttl'])): ?>
+                    <div class="small text-muted mb-3">
+                        <?php if (!empty($constraints['package_size_limit_label'])): ?>
+                            Auto-Install bis <?php echo $escape((string) ($constraints['package_size_limit_label'] ?? '')); ?> Paketgröße
+                        <?php endif; ?>
+                        <?php if (!empty($constraints['package_size_limit_label']) && !empty($constraints['catalog_cache_ttl'])): ?>
+                            ·
+                        <?php endif; ?>
+                        <?php if (!empty($constraints['catalog_cache_ttl'])): ?>
+                            Katalog-Cache: <?php echo (int) ($constraints['catalog_cache_ttl'] ?? 0); ?> Sekunden TTL
+                        <?php endif; ?>
+                    </div>
+                <?php endif; ?>
+                <?php if ($allowedHosts !== [] || !empty($constraints['catalog_max_bytes_label']) || !empty($constraints['archive_uncompressed_limit_label'])): ?>
+                    <div class="small text-muted mb-3">
+                        <?php if ($allowedHosts !== []): ?>
+                            Erlaubte Hosts: <?php echo $escape(implode(', ', $allowedHosts)); ?>
+                        <?php endif; ?>
+                        <?php if ($allowedHosts !== [] && (!empty($constraints['catalog_max_bytes_label']) || !empty($constraints['archive_uncompressed_limit_label']))): ?>
+                            <br>
+                        <?php endif; ?>
+                        <?php if (!empty($constraints['catalog_max_bytes_label'])): ?>
+                            Katalog bis <?php echo $escape((string) ($constraints['catalog_max_bytes_label'] ?? '')); ?>
+                        <?php endif; ?>
+                        <?php if (!empty($constraints['catalog_max_bytes_label']) && !empty($constraints['manifest_max_bytes_label'])): ?>
+                            ·
+                        <?php endif; ?>
+                        <?php if (!empty($constraints['manifest_max_bytes_label'])): ?>
+                            Manifest bis <?php echo $escape((string) ($constraints['manifest_max_bytes_label'] ?? '')); ?>
+                        <?php endif; ?>
+                        <?php if ((!empty($constraints['catalog_max_bytes_label']) || !empty($constraints['manifest_max_bytes_label'])) && (!empty($constraints['archive_uncompressed_limit_label']) || !empty($constraints['archive_entries_limit']))): ?>
+                            ·
+                        <?php endif; ?>
+                        <?php if (!empty($constraints['archive_uncompressed_limit_label'])): ?>
+                            Archiv entpackt bis <?php echo $escape((string) ($constraints['archive_uncompressed_limit_label'] ?? '')); ?>
+                        <?php endif; ?>
+                        <?php if (!empty($constraints['archive_uncompressed_limit_label']) && !empty($constraints['archive_entries_limit'])): ?>
+                            ·
+                        <?php endif; ?>
+                        <?php if (!empty($constraints['archive_entries_limit'])): ?>
+                            max. <?php echo (int) ($constraints['archive_entries_limit'] ?? 0); ?> Archiveinträge
+                        <?php endif; ?>
+                        <?php if ($allowedArchiveExtensions !== []): ?>
+                            <br>Erlaubte Archiv-Endungen: <?php echo $escape(implode(', ', $allowedArchiveExtensions)); ?>
+                        <?php endif; ?>
+                    </div>
+                <?php endif; ?>
                 <div class="row g-3">
                     <div class="col-md-8">
                         <div class="input-icon">
@@ -137,8 +195,18 @@ $normalizeSearchName = static function (mixed $value): string {
             <?php foreach ($catalog as $theme):
                 $slug = $theme['slug'] ?? '';
                 $name = $theme['name'] ?? $slug;
+                $author = (string) ($theme['author'] ?? '');
                 $purchaseUrl = (string) ($theme['purchase_url'] ?? '');
                 $isPaid = !empty($theme['is_paid']);
+                $hashPresent = !empty($theme['integrity_hash_present']);
+                $hashShort = (string) ($theme['integrity_hash_short'] ?? '');
+                $packageSizeLabel = (string) ($theme['package_size_label'] ?? '');
+                $downloadHost = (string) ($theme['download_host'] ?? '');
+                $downloadHostAllowed = !empty($theme['download_host_allowed']);
+                $downloadExtensionAllowed = !empty($theme['download_extension_allowed']);
+                $packageSizeAllowed = !empty($theme['package_size_allowed']);
+                $compatibilityReason = (string) ($theme['compatibility_reason'] ?? '');
+                $searchText = trim($normalizeSearchName(implode(' ', array_filter([$name, $slug, $author]))));
                 $status = !empty($theme['active'])
                     ? 'active'
                     : (!empty($theme['installed'])
@@ -146,7 +214,7 @@ $normalizeSearchName = static function (mixed $value): string {
                         : (!empty($theme['install_supported']) ? 'installable' : 'manual'));
             ?>
                 <div class="col-sm-6 col-lg-4 theme-marketplace-card"
-                     data-name="<?php echo $escape($normalizeSearchName($name)); ?>"
+                     data-name="<?php echo $escape($searchText); ?>"
                      data-status="<?php echo $escape($status); ?>">
                     <div class="card">
                         <div class="card-img-top" style="height: 180px; background: var(--tblr-bg-surface-secondary); display: flex; align-items: center; justify-content: center;">
@@ -185,6 +253,27 @@ $normalizeSearchName = static function (mixed $value): string {
                                     <span><?php echo $escape($theme['author']); ?></span>
                                 <?php endif; ?>
                             </div>
+                            <?php if ($packageSizeLabel !== '' || $downloadHost !== ''): ?>
+                                <div class="text-muted small mt-2">
+                                    <?php if ($packageSizeLabel !== ''): ?>Paket: <?php echo $escape($packageSizeLabel); ?><?php endif; ?>
+                                    <?php if ($packageSizeLabel !== '' && $downloadHost !== ''): ?> · <?php endif; ?>
+                                    <?php if ($downloadHost !== ''): ?>Host: <?php echo $escape($downloadHost); ?><?php endif; ?>
+                                </div>
+                            <?php endif; ?>
+                            <?php if ($hashPresent): ?>
+                                <div class="mt-2"><span class="badge bg-green-lt text-success">SHA-256 <?php echo $escape($hashShort); ?></span></div>
+                            <?php else: ?>
+                                <div class="mt-2"><span class="badge bg-warning-lt text-warning">Auto-Install gesperrt</span></div>
+                            <?php endif; ?>
+                            <?php if (!$packageSizeAllowed): ?>
+                                <div class="mt-2"><span class="badge bg-warning-lt text-warning">Paket zu groß für Auto-Install</span></div>
+                            <?php endif; ?>
+                            <?php if ($downloadHost !== '' && !$downloadHostAllowed): ?>
+                                <div class="mt-2"><span class="badge bg-warning-lt text-warning">Host nicht freigegeben</span></div>
+                            <?php endif; ?>
+                            <?php if ($downloadHost !== '' && !$downloadExtensionAllowed): ?>
+                                <div class="mt-2"><span class="badge bg-warning-lt text-warning">Archiv-Endung nicht erlaubt</span></div>
+                            <?php endif; ?>
                             <?php if (!empty($theme['requires_cms']) || !empty($theme['requires_php'])): ?>
                                 <div class="text-muted small mt-2">
                                     <?php if (!empty($theme['requires_cms'])): ?>365CMS ab <?php echo $escape((string) $theme['requires_cms']); ?><?php endif; ?>
@@ -209,11 +298,17 @@ $normalizeSearchName = static function (mixed $value): string {
                                     <div class="d-flex flex-column gap-2">
                                         <span class="badge bg-orange-lt text-orange">Anfrage erforderlich</span>
                                         <a href="<?php echo $escape($purchaseUrl); ?>" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary btn-sm">Anfragen / Kaufen</a>
+                                        <?php if ($compatibilityReason !== ''): ?>
+                                            <span class="text-warning small"><?php echo $escape($compatibilityReason); ?></span>
+                                        <?php endif; ?>
                                         <span class="text-muted small"><?php echo $escape((string)($theme['install_reason'] ?? 'Dieses Theme wird über den Marketplace auf Anfrage bereitgestellt.')); ?></span>
                                     </div>
                                 <?php else: ?>
                                     <div class="d-flex flex-column gap-2">
                                         <span class="badge bg-secondary-lt text-secondary">Nur manuell</span>
+                                        <?php if ($compatibilityReason !== ''): ?>
+                                            <span class="text-warning small"><?php echo $escape($compatibilityReason); ?></span>
+                                        <?php endif; ?>
                                         <span class="text-muted small"><?php echo $escape((string)($theme['install_reason'] ?? 'Für dieses Theme ist aktuell kein Installationspaket im Marketplace hinterlegt.')); ?></span>
                                     </div>
                                 <?php endif; ?>

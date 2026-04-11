@@ -13,8 +13,16 @@ if (!defined('ABSPATH')) {
 use CMS\Auth;
 use CMS\Security;
 
-if (!Auth::instance()->isAdmin()) {
-    header('Location: ' . SITE_URL);
+const CMS_ADMIN_SETTINGS_CAPABILITY = 'manage_settings';
+
+function cms_admin_settings_can_access(): bool
+{
+    return Auth::instance()->isAdmin()
+        && Auth::instance()->hasCapability(CMS_ADMIN_SETTINGS_CAPABILITY);
+}
+
+if (!cms_admin_settings_can_access()) {
+    header('Location: /');
     exit;
 }
 
@@ -33,7 +41,7 @@ function cms_admin_settings_redirect(string $tab): never
 
 function cms_admin_settings_redirect_url(string $tab): string
 {
-    return SITE_URL . '/admin/settings?tab=' . cms_admin_settings_normalize_tab($tab);
+    return '/admin/settings?tab=' . cms_admin_settings_normalize_tab($tab);
 }
 
 function cms_admin_settings_flash(array $payload): void

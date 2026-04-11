@@ -12,8 +12,16 @@ if (!defined('ABSPATH')) {
 
 use CMS\Auth;
 
+const CMS_ADMIN_PRIVACY_REQUESTS_READ_CAPABILITY = 'manage_settings';
+
+function cms_admin_privacy_requests_can_access(): bool
+{
+    return Auth::instance()->isAdmin()
+        && Auth::instance()->hasCapability(CMS_ADMIN_PRIVACY_REQUESTS_READ_CAPABILITY);
+}
+
 $adminRedirectAliasConfig = [
-    'access_checker' => static fn (): bool => Auth::instance()->isAdmin(),
+    'access_checker' => static fn (): bool => cms_admin_privacy_requests_can_access(),
     'target_url' => '/admin/data-requests',
     'fallback_url' => '/',
 ];

@@ -15,9 +15,154 @@
     }
 
     function escapeHtml(value) {
-        const div = document.createElement('div');
-        div.appendChild(document.createTextNode(value || ''));
-        return div.innerHTML;
+        return String(value || '');
+    }
+
+    function clearElement(element) {
+        if (!element) {
+            return;
+        }
+
+        while (element.firstChild) {
+            element.removeChild(element.firstChild);
+        }
+    }
+
+    function createElement(tag, className, text) {
+        const element = document.createElement(tag);
+
+        if (className) {
+            element.className = className;
+        }
+
+        if (text !== undefined) {
+            element.textContent = String(text);
+        }
+
+        return element;
+    }
+
+    function setDataAttributes(element, data) {
+        Object.keys(data || {}).forEach(function (key) {
+            const value = data[key];
+            if (value === undefined || value === null) {
+                return;
+            }
+
+            element.dataset[key] = String(value);
+        });
+
+        return element;
+    }
+
+    function createFieldLabel(text) {
+        return createElement('label', 'form-label small', text);
+    }
+
+    function createInput(value, data, options) {
+        const input = createElement('input', 'form-control form-control-sm');
+        const settings = options || {};
+
+        input.type = settings.type || 'text';
+        input.value = String(value || '');
+        setDataAttributes(input, data);
+
+        if (settings.placeholder) {
+            input.placeholder = settings.placeholder;
+        }
+
+        return input;
+    }
+
+    function createTextarea(value, data, options) {
+        const textarea = createElement('textarea', 'form-control form-control-sm');
+        const settings = options || {};
+
+        textarea.rows = String(settings.rows || 3);
+        textarea.value = String(value || '');
+        setDataAttributes(textarea, data);
+
+        return textarea;
+    }
+
+    function createFieldColumn(columnClass, labelText, control) {
+        const column = createElement('div', columnClass);
+
+        column.appendChild(createFieldLabel(labelText));
+        column.appendChild(control);
+
+        return column;
+    }
+
+    function createRemoveButtonColumn(columnClass, buttonClass, label, data) {
+        const column = createElement('div', columnClass);
+        const button = createElement('button', buttonClass, label);
+
+        button.type = 'button';
+        setDataAttributes(button, data);
+        column.appendChild(button);
+
+        return column;
+    }
+
+    function appendMetaChip(container, icon, label, value) {
+        const chip = createElement('span', 'hub-template-preview__meta-chip');
+
+        chip.appendChild(createElement('span', 'hub-template-preview__meta-chip-icon', icon || '•'));
+        chip.appendChild(createElement('span', 'hub-template-preview__meta-chip-label', (label || '') + ':'));
+        chip.appendChild(createElement('span', 'hub-template-preview__meta-chip-value', value || ''));
+        container.appendChild(chip);
+    }
+
+    function appendQuicklink(container, icon, label) {
+        const link = createElement('span', 'hub-template-preview__quicklink');
+
+        link.appendChild(createElement('span', 'hub-template-preview__quicklink-icon', icon || '•'));
+        link.appendChild(createElement('span', '', label || ''));
+        container.appendChild(link);
+    }
+
+    function createPreviewCard(card, index, layout, imagePosition, templateProfile, getValue) {
+        const article = createElement('article', 'hub-template-preview__card hub-template-preview__card--' + layout + ' hub-template-preview__card--image-' + imagePosition);
+        const media = createElement('div', 'hub-template-preview__media', card.image_url ? templateProfile.mediaLabel : templateProfile.cardPrefix + ' ' + (index + 1));
+        const body = createElement('div', 'hub-template-preview__card-body');
+        const meta = createElement('div', 'hub-template-preview__card-meta');
+
+        meta.appendChild(createElement('span', 'hub-template-preview__meta-token', card.meta_left || getValue('template_card_meta_left_label', 'Meta links')));
+        meta.appendChild(createElement('span', 'hub-template-preview__meta-token', card.meta_right || getValue('template_card_meta_right_label', 'Meta rechts')));
+
+        body.appendChild(createElement('span', 'hub-template-preview__card-badge', card.badge || getValue('template_card_badge_label', 'Badge')));
+        body.appendChild(createElement('h5', 'hub-template-preview__card-title', card.title || ('Beispiel ' + (index + 1))));
+        body.appendChild(createElement('p', 'hub-template-preview__card-text', card.summary || 'Beispieltext für die Kachel-Vorschau im Template-Editor.'));
+        body.appendChild(meta);
+        body.appendChild(createElement('span', 'hub-template-preview__button', card.button_text || getValue('template_card_button_text_label', 'Button-Text')));
+
+        article.appendChild(media);
+        article.appendChild(body);
+
+        return article;
+    }
+
+    function createPreviewSectionCard(section, index, templateProfile, detailItems) {
+        const modifier = (templateProfile.sectionStyles || [])[index] || 'stacked';
+        const sectionCard = createElement('div', 'hub-template-preview__section-card hub-template-preview__section-card--' + modifier);
+        const head = createElement('div', 'hub-template-preview__section-head');
+        const list = createElement('ul', 'hub-template-preview__section-list');
+
+        head.appendChild(createElement('span', 'hub-template-preview__section-eyebrow', (templateProfile.sectionEyebrows || [])[index] || 'Section'));
+        head.appendChild(createElement('span', 'hub-template-preview__section-icon', (templateProfile.sectionIcons || [])[index] || '◆'));
+
+        detailItems.forEach(function (item) {
+            list.appendChild(createElement('li', '', item));
+        });
+
+        sectionCard.appendChild(head);
+        sectionCard.appendChild(createElement('h5', 'hub-template-preview__section-title', section.title || templateProfile.sectionTitle));
+        sectionCard.appendChild(createElement('p', 'hub-template-preview__section-text', section.text || templateProfile.sectionText));
+        sectionCard.appendChild(list);
+        sectionCard.appendChild(createElement('div', 'hub-template-preview__section-note', (templateProfile.sectionNotes || [])[index] || ''));
+
+        return sectionCard;
     }
 
     document.addEventListener('DOMContentLoaded', function () {
@@ -353,52 +498,25 @@
             previewSectionTitle.textContent = templateProfile.sectionTitle;
             previewSectionText.textContent = templateProfile.sectionText;
 
-            previewMeta.innerHTML = '';
+            clearElement(previewMeta);
             metaEntries.filter(function (item) { return item.value; }).forEach(function (item) {
-                const chip = document.createElement('span');
-                chip.className = 'hub-template-preview__meta-chip';
-                chip.innerHTML = ''
-                    + '<span class="hub-template-preview__meta-chip-icon">' + escapeHtml((templateProfile.metaIcons || {})[item.key] || '•') + '</span>'
-                    + '<span class="hub-template-preview__meta-chip-label">' + escapeHtml(item.label || '') + ':</span>'
-                    + '<span class="hub-template-preview__meta-chip-value">' + escapeHtml(item.value || '') + '</span>';
-                previewMeta.appendChild(chip);
+                appendMetaChip(previewMeta, (templateProfile.metaIcons || {})[item.key] || '•', item.label || '', item.value || '');
             });
 
-            previewQuicklinks.innerHTML = '';
+            clearElement(previewQuicklinks);
             getPreviewLinks(defaults).forEach(function (item, index) {
-                const link = document.createElement('span');
-                link.className = 'hub-template-preview__quicklink';
-                link.innerHTML = ''
-                    + '<span class="hub-template-preview__quicklink-icon">' + escapeHtml((templateProfile.linkIcons || [])[index] || '•') + '</span>'
-                    + '<span>' + escapeHtml(item.label || '') + '</span>';
-                previewQuicklinks.appendChild(link);
+                appendQuicklink(previewQuicklinks, (templateProfile.linkIcons || [])[index] || '•', item.label || '');
             });
 
             previewGrid.className = 'hub-template-preview__grid hub-template-preview__grid--' + columns;
-            previewGrid.innerHTML = '';
+            clearElement(previewGrid);
 
             cards.forEach(function (card, index) {
-                const article = document.createElement('article');
-                article.className = 'hub-template-preview__card hub-template-preview__card--' + layout + ' hub-template-preview__card--image-' + imagePosition;
-                article.innerHTML = ''
-                    + '<div class="hub-template-preview__media">' + escapeHtml(card.image_url ? templateProfile.mediaLabel : templateProfile.cardPrefix + ' ' + (index + 1)) + '</div>'
-                    + '<div class="hub-template-preview__card-body">'
-                    + '  <span class="hub-template-preview__card-badge">' + escapeHtml(card.badge || getValue('template_card_badge_label', 'Badge')) + '</span>'
-                    + '  <h5 class="hub-template-preview__card-title">' + escapeHtml(card.title || ('Beispiel ' + (index + 1))) + '</h5>'
-                    + '  <p class="hub-template-preview__card-text">' + escapeHtml(card.summary || 'Beispieltext für die Kachel-Vorschau im Template-Editor.') + '</p>'
-                    + '  <div class="hub-template-preview__card-meta">'
-                    + '    <span class="hub-template-preview__meta-token">' + escapeHtml(card.meta_left || getValue('template_card_meta_left_label', 'Meta links')) + '</span>'
-                    + '    <span class="hub-template-preview__meta-token">' + escapeHtml(card.meta_right || getValue('template_card_meta_right_label', 'Meta rechts')) + '</span>'
-                    + '  </div>'
-                    + '  <span class="hub-template-preview__button">' + escapeHtml(card.button_text || getValue('template_card_button_text_label', 'Button-Text')) + '</span>'
-                    + '</div>';
-                previewGrid.appendChild(article);
+                previewGrid.appendChild(createPreviewCard(card, index, layout, imagePosition, templateProfile, getValue));
             });
 
-            previewSections.innerHTML = '';
+            clearElement(previewSections);
             getPreviewSections(defaults).forEach(function (section, index) {
-                const sectionCard = document.createElement('div');
-                const modifier = (templateProfile.sectionStyles || [])[index] || 'stacked';
                 const detailItems = [];
                 if (section.actionLabel) {
                     detailItems.push(section.actionLabel);
@@ -409,71 +527,67 @@
                 if (metaEntries[index + 3] && metaEntries[index + 3].value) {
                     detailItems.push(metaEntries[index + 3].label + ': ' + metaEntries[index + 3].value);
                 }
-                sectionCard.className = 'hub-template-preview__section-card hub-template-preview__section-card--' + modifier;
-                sectionCard.innerHTML = ''
-                    + '<div class="hub-template-preview__section-head">'
-                    + '  <span class="hub-template-preview__section-eyebrow">' + escapeHtml((templateProfile.sectionEyebrows || [])[index] || 'Section') + '</span>'
-                    + '  <span class="hub-template-preview__section-icon">' + escapeHtml((templateProfile.sectionIcons || [])[index] || '◆') + '</span>'
-                    + '</div>'
-                    + '<h5 class="hub-template-preview__section-title">' + escapeHtml(section.title || templateProfile.sectionTitle) + '</h5>'
-                    + '<p class="hub-template-preview__section-text">' + escapeHtml(section.text || templateProfile.sectionText) + '</p>'
-                    + '<ul class="hub-template-preview__section-list">' + detailItems.map(function (item) { return '<li>' + escapeHtml(item) + '</li>'; }).join('') + '</ul>'
-                    + '<div class="hub-template-preview__section-note">' + escapeHtml((templateProfile.sectionNotes || [])[index] || '') + '</div>';
-                previewSections.appendChild(sectionCard);
+                previewSections.appendChild(createPreviewSectionCard(section, index, templateProfile, detailItems));
             });
         }
 
         function renderLinks() {
-            linksContainer.innerHTML = '';
+            clearElement(linksContainer);
             linksEmpty.classList.toggle('d-none', links.length !== 0);
             links.forEach(function (link, index) {
-                let html = '';
-                html += '<div class="border-bottom p-3"><div class="row g-2">';
-                html += '<div class="col-md-5"><label class="form-label small">Label</label><input type="text" class="form-control form-control-sm" value="' + escapeHtml(link.label || '') + '" data-link-index="' + index + '" data-link-key="label"></div>';
-                html += '<div class="col-md-5"><label class="form-label small">URL / Anchor</label><input type="text" class="form-control form-control-sm" value="' + escapeHtml(link.url || '') + '" data-link-index="' + index + '" data-link-key="url"></div>';
-                html += '<div class="col-md-2 d-flex align-items-end"><button type="button" class="btn btn-outline-danger btn-sm w-100 remove-template-link" data-link-index="' + index + '">Entfernen</button></div>';
-                html += '</div></div>';
-                linksContainer.insertAdjacentHTML('beforeend', html);
+                const wrapper = createElement('div', 'border-bottom p-3');
+                const row = createElement('div', 'row g-2');
+
+                row.appendChild(createFieldColumn('col-md-5', 'Label', createInput(link.label || '', { linkIndex: index, linkKey: 'label' })));
+                row.appendChild(createFieldColumn('col-md-5', 'URL / Anchor', createInput(link.url || '', { linkIndex: index, linkKey: 'url' })));
+                row.appendChild(createRemoveButtonColumn('col-md-2 d-flex align-items-end', 'btn btn-outline-danger btn-sm w-100 remove-template-link', 'Entfernen', { linkIndex: index }));
+
+                wrapper.appendChild(row);
+                linksContainer.appendChild(wrapper);
             });
             sync();
         }
 
         function renderSections() {
-            sectionsContainer.innerHTML = '';
+            clearElement(sectionsContainer);
             sectionsEmpty.classList.toggle('d-none', sections.length !== 0);
             sections.forEach(function (section, index) {
-                let html = '';
-                html += '<div class="border-bottom p-3"><div class="row g-2">';
-                html += '<div class="col-md-6"><label class="form-label small">Titel</label><input type="text" class="form-control form-control-sm" value="' + escapeHtml(section.title || '') + '" data-section-index="' + index + '" data-section-key="title"></div>';
-                html += '<div class="col-md-6"><label class="form-label small">CTA Label</label><input type="text" class="form-control form-control-sm" value="' + escapeHtml(section.actionLabel || '') + '" data-section-index="' + index + '" data-section-key="actionLabel"></div>';
-                html += '<div class="col-12"><label class="form-label small">Beschreibung</label><textarea class="form-control form-control-sm" rows="3" data-section-index="' + index + '" data-section-key="text">' + escapeHtml(section.text || '') + '</textarea></div>';
-                html += '<div class="col-md-8"><label class="form-label small">CTA URL</label><input type="text" class="form-control form-control-sm" value="' + escapeHtml(section.actionUrl || '') + '" data-section-index="' + index + '" data-section-key="actionUrl"></div>';
-                html += '<div class="col-md-4 d-flex align-items-end"><button type="button" class="btn btn-outline-danger btn-sm w-100 remove-template-section" data-section-index="' + index + '">Entfernen</button></div>';
-                html += '</div></div>';
-                sectionsContainer.insertAdjacentHTML('beforeend', html);
+                const wrapper = createElement('div', 'border-bottom p-3');
+                const row = createElement('div', 'row g-2');
+
+                row.appendChild(createFieldColumn('col-md-6', 'Titel', createInput(section.title || '', { sectionIndex: index, sectionKey: 'title' })));
+                row.appendChild(createFieldColumn('col-md-6', 'CTA Label', createInput(section.actionLabel || '', { sectionIndex: index, sectionKey: 'actionLabel' })));
+                row.appendChild(createFieldColumn('col-12', 'Beschreibung', createTextarea(section.text || '', { sectionIndex: index, sectionKey: 'text' }, { rows: 3 })));
+                row.appendChild(createFieldColumn('col-md-8', 'CTA URL', createInput(section.actionUrl || '', { sectionIndex: index, sectionKey: 'actionUrl' })));
+                row.appendChild(createRemoveButtonColumn('col-md-4 d-flex align-items-end', 'btn btn-outline-danger btn-sm w-100 remove-template-section', 'Entfernen', { sectionIndex: index }));
+
+                wrapper.appendChild(row);
+                sectionsContainer.appendChild(wrapper);
             });
             sync();
         }
 
         function renderStarterCards() {
-            starterCardsContainer.innerHTML = '';
+            clearElement(starterCardsContainer);
             starterCardsEmpty.classList.toggle('d-none', starterCards.length !== 0);
             starterCards.forEach(function (card, index) {
-                let html = '';
-                html += '<div class="border-bottom p-3"><div class="row g-2">';
-                html += '<div class="col-md-6"><label class="form-label small">Titel</label><input type="text" class="form-control form-control-sm" value="' + escapeHtml(card.title || '') + '" data-card-index="' + index + '" data-card-key="title"></div>';
-                html += '<div class="col-md-6"><label class="form-label small">Ziel-URL</label><input type="text" class="form-control form-control-sm" value="' + escapeHtml(card.url || '') + '" data-card-index="' + index + '" data-card-key="url"></div>';
-                html += '<div class="col-md-6"><label class="form-label small">Badge</label><input type="text" class="form-control form-control-sm" value="' + escapeHtml(card.badge || '') + '" data-card-index="' + index + '" data-card-key="badge"></div>';
-                html += '<div class="col-md-6"><label class="form-label small">Button-Text</label><input type="text" class="form-control form-control-sm" value="' + escapeHtml(card.button_text || '') + '" data-card-index="' + index + '" data-card-key="button_text"></div>';
-                html += '<div class="col-md-6"><label class="form-label small">Meta links</label><input type="text" class="form-control form-control-sm" value="' + escapeHtml(card.meta_left || '') + '" data-card-index="' + index + '" data-card-key="meta_left"></div>';
-                html += '<div class="col-md-6"><label class="form-label small">Meta rechts</label><input type="text" class="form-control form-control-sm" value="' + escapeHtml(card.meta_right || '') + '" data-card-index="' + index + '" data-card-key="meta_right"></div>';
-                html += '<div class="col-md-8"><label class="form-label small">Bild-URL</label><input type="text" class="form-control form-control-sm" value="' + escapeHtml(card.image_url || '') + '" data-card-index="' + index + '" data-card-key="image_url"></div>';
-                html += '<div class="col-md-4"><label class="form-label small">Bild-Alt</label><input type="text" class="form-control form-control-sm" value="' + escapeHtml(card.image_alt || '') + '" data-card-index="' + index + '" data-card-key="image_alt"></div>';
-                html += '<div class="col-md-12"><label class="form-label small">Button-Link</label><input type="text" class="form-control form-control-sm" value="' + escapeHtml(card.button_link || '') + '" data-card-index="' + index + '" data-card-key="button_link"></div>';
-                html += '<div class="col-12"><label class="form-label small">Kurzbeschreibung</label><textarea class="form-control form-control-sm" rows="3" data-card-index="' + index + '" data-card-key="summary">' + escapeHtml(card.summary || '') + '</textarea></div>';
-                html += '<div class="col-12 text-end"><button type="button" class="btn btn-outline-danger btn-sm remove-starter-card" data-card-index="' + index + '">Entfernen</button></div>';
-                html += '</div></div>';
-                starterCardsContainer.insertAdjacentHTML('beforeend', html);
+                const wrapper = createElement('div', 'border-bottom p-3');
+                const row = createElement('div', 'row g-2');
+
+                row.appendChild(createFieldColumn('col-md-6', 'Titel', createInput(card.title || '', { cardIndex: index, cardKey: 'title' })));
+                row.appendChild(createFieldColumn('col-md-6', 'Ziel-URL', createInput(card.url || '', { cardIndex: index, cardKey: 'url' })));
+                row.appendChild(createFieldColumn('col-md-6', 'Badge', createInput(card.badge || '', { cardIndex: index, cardKey: 'badge' })));
+                row.appendChild(createFieldColumn('col-md-6', 'Button-Text', createInput(card.button_text || '', { cardIndex: index, cardKey: 'button_text' })));
+                row.appendChild(createFieldColumn('col-md-6', 'Meta links', createInput(card.meta_left || '', { cardIndex: index, cardKey: 'meta_left' })));
+                row.appendChild(createFieldColumn('col-md-6', 'Meta rechts', createInput(card.meta_right || '', { cardIndex: index, cardKey: 'meta_right' })));
+                row.appendChild(createFieldColumn('col-md-8', 'Bild-URL', createInput(card.image_url || '', { cardIndex: index, cardKey: 'image_url' })));
+                row.appendChild(createFieldColumn('col-md-4', 'Bild-Alt', createInput(card.image_alt || '', { cardIndex: index, cardKey: 'image_alt' })));
+                row.appendChild(createFieldColumn('col-md-12', 'Button-Link', createInput(card.button_link || '', { cardIndex: index, cardKey: 'button_link' })));
+                row.appendChild(createFieldColumn('col-12', 'Kurzbeschreibung', createTextarea(card.summary || '', { cardIndex: index, cardKey: 'summary' }, { rows: 3 })));
+                row.appendChild(createRemoveButtonColumn('col-12 text-end', 'btn btn-outline-danger btn-sm remove-starter-card', 'Entfernen', { cardIndex: index }));
+
+                wrapper.appendChild(row);
+                starterCardsContainer.appendChild(wrapper);
             });
             sync();
         }

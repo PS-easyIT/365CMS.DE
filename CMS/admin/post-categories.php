@@ -10,8 +10,14 @@ use CMS\Security;
 
 const CMS_ADMIN_POST_CATEGORIES_WRITE_CAPABILITY = 'edit_all_posts';
 
+function cms_admin_post_categories_redirect(): never
+{
+    header('Location: /admin/post-categories');
+    exit;
+}
+
 if (!Auth::instance()->isAdmin() || !Auth::instance()->hasCapability(CMS_ADMIN_POST_CATEGORIES_WRITE_CAPABILITY)) {
-    header('Location: ' . SITE_URL);
+    header('Location: /');
     exit;
 }
 
@@ -26,8 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (!Security::instance()->verifyToken($postToken, 'admin_post_categories')) {
         $_SESSION['admin_alert'] = ['type' => 'danger', 'message' => 'Sicherheitstoken ungültig. Bitte erneut versuchen.'];
-        header('Location: ' . SITE_URL . '/admin/post-categories');
-        exit;
+        cms_admin_post_categories_redirect();
     }
 
     switch ($action) {
@@ -53,8 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'message' => (string) ($result['message'] ?? $result['error'] ?? 'Aktion abgeschlossen.'),
     ];
 
-    header('Location: ' . SITE_URL . '/admin/post-categories');
-    exit;
+    cms_admin_post_categories_redirect();
 }
 
 if (!empty($_SESSION['admin_alert'])) {

@@ -71,6 +71,16 @@ $securityHighlights = [
     'Display Errors' => (string)($security['display_errors'] ?? 'Unbekannt'),
     'Debug' => (string)($security['debug_mode'] ?? 'Unbekannt'),
 ];
+
+$normalizeSecurityValue = static function (string $value): string {
+    $value = trim($value);
+
+    if (function_exists('mb_strtolower')) {
+        return mb_strtolower($value);
+    }
+
+    return strtolower($value);
+};
 ?>
 
 <div class="page-header d-print-none">
@@ -186,7 +196,7 @@ $securityHighlights = [
                             <div class="list-group list-group-flush">
                                 <?php foreach ($securityHighlights as $label => $value): ?>
                                     <?php
-                                    $normalizedValue = mb_strtolower($value);
+                                    $normalizedValue = $normalizeSecurityValue((string) $value);
                                     $badgeClass = str_contains($normalizedValue, '✓') || str_contains($normalizedValue, 'ja') || str_contains($normalizedValue, 'deaktiviert')
                                         ? 'bg-success-lt'
                                         : (str_contains($normalizedValue, '⚠️') || str_contains($normalizedValue, 'nein') || str_contains($normalizedValue, 'nicht gesetzt') ? 'bg-warning-lt' : 'bg-secondary-lt');

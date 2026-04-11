@@ -5,7 +5,6 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-$siteUrl  = defined('SITE_URL') ? SITE_URL : '';
 $packages = $data['packages'] ?? [];
 $stats    = $data['stats'] ?? [];
 $settings = $data['settings'] ?? [];

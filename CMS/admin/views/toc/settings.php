@@ -37,7 +37,7 @@ $s = $settings;
             ?>
         <?php endif; ?>
 
-        <form method="post" action="<?php echo htmlspecialchars(SITE_URL); ?>/admin/table-of-contents">
+        <form method="post" action="<?php echo htmlspecialchars('/admin/table-of-contents'); ?>">
             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
             <input type="hidden" name="action" value="save">
 

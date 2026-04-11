@@ -87,15 +87,32 @@ include __DIR__ . '/partials/header.php';
                             <tr><td colspan="5" class="text-secondary">Noch keine Bestellungen vorhanden.</td></tr>
                         <?php else: ?>
                             <?php foreach ($orders as $order): ?>
-                                <?php $status = (string)($order->status ?? 'offen'); ?>
+                                <?php
+                                $status = strtolower(trim((string)($order->normalized_status ?? $order->status ?? 'pending')));
+                                $statusLabel = match ($status) {
+                                    'paid' => 'Bezahlt',
+                                    'pending' => 'Offen',
+                                    'cancelled' => 'Storniert',
+                                    'refunded' => 'Erstattet',
+                                    'failed' => 'Fehlgeschlagen',
+                                    default => $status !== '' ? $status : 'Unbekannt',
+                                };
+                                $statusClass = match ($status) {
+                                    'paid' => 'green',
+                                    'pending' => 'yellow',
+                                    'cancelled', 'failed' => 'red',
+                                    'refunded' => 'azure',
+                                    default => 'secondary',
+                                };
+                                ?>
                                 <tr>
                                     <td>
                                         <div class="fw-medium"><?= htmlspecialchars((string)($order->order_number ?? ('#' . (int)($order->id ?? 0)))) ?></div>
-                                        <div class="text-secondary small"><?= htmlspecialchars((string)($order->email ?? '')) ?></div>
+                                        <div class="text-secondary small"><?= htmlspecialchars((string)($order->resolved_customer_email ?? $order->customer_email ?? $order->email ?? '')) ?></div>
                                     </td>
                                     <td><?= htmlspecialchars((string)($order->plan_name ?? 'Unbekannt')) ?></td>
-                                    <td><span class="badge bg-<?= in_array($status, ['paid', 'confirmed'], true) ? 'green' : ($status === 'pending' ? 'yellow' : ($status === 'cancelled' ? 'red' : 'secondary')) ?>-lt"><?= htmlspecialchars($status) ?></span></td>
-                                    <td><?= isset($order->amount) ? '€ ' . number_format((float)$order->amount, 2, ',', '.') : '–' ?></td>
+                                    <td><span class="badge bg-<?= htmlspecialchars($statusClass) ?>-lt"><?= htmlspecialchars($statusLabel) ?></span></td>
+                                    <td><?= isset($order->display_amount) ? '€ ' . number_format((float)$order->display_amount, 2, ',', '.') : '–' ?></td>
                                     <td><?= htmlspecialchars((string)($order->created_at ?? '')) ?></td>
                                 </tr>
                             <?php endforeach; ?>

@@ -199,7 +199,7 @@ final class CronRunnerService
      */
     private function acquireLock()
     {
-        $lockFile = rtrim((string) sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . '365cms-cron-' . md5(ABSPATH) . '.lock';
+        $lockFile = rtrim((string) sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . '365cms-cron-' . hash('sha256', ABSPATH) . '.lock';
         $lockHandle = @fopen($lockFile, 'c+');
         if (!is_resource($lockHandle) || !@flock($lockHandle, LOCK_EX | LOCK_NB)) {
             if (is_resource($lockHandle)) {
@@ -346,6 +346,10 @@ final class CronRunnerService
             return '';
         }
 
-        return mb_substr($value, 0, $limit);
+        if (function_exists('mb_substr')) {
+            return (string) mb_substr($value, 0, $limit, 'UTF-8');
+        }
+
+        return substr($value, 0, $limit);
     }
 }

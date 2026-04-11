@@ -75,7 +75,26 @@
         return form ? form.querySelector('button[type="submit"], input[type="submit"]') : null;
     }
 
+    function markFormSubmitting(form, submitter) {
+        var pendingText;
+
+        if (!form || form.dataset.submitting === '1') {
+            return false;
+        }
+
+        pendingText = submitter && submitter.getAttribute('data-pending-text')
+            ? submitter.getAttribute('data-pending-text')
+            : 'Wird ausgeführt …';
+
+        form.dataset.submitting = '1';
+        setPendingButtonState(submitter, pendingText);
+
+        return true;
+    }
+
     function submitForm(form, triggerButton) {
+        var submitButton;
+
         if (!form) {
             return;
         }
@@ -84,13 +103,8 @@
             return;
         }
 
-        var submitButton = resolveSubmitButton(form, triggerButton);
-        var pendingText = submitButton && submitButton.getAttribute('data-pending-text')
-            ? submitButton.getAttribute('data-pending-text')
-            : 'Wird ausgeführt …';
-
-        form.dataset.submitting = '1';
-        setPendingButtonState(submitButton, pendingText);
+        submitButton = resolveSubmitButton(form, triggerButton);
+        form._fontManagerPendingButton = submitButton || triggerButton || null;
 
         if (typeof form.requestSubmit === 'function') {
             if (submitButton
@@ -104,24 +118,29 @@
             return;
         }
 
+        if (!markFormSubmitting(form, submitButton)) {
+            return;
+        }
+
         form.submit();
     }
 
     function bindActionForms() {
         document.querySelectorAll('[data-font-manager-form]').forEach(function (form) {
             form.addEventListener('submit', function (event) {
+                var submitter;
+
                 if (form.dataset.submitting === '1') {
                     event.preventDefault();
                     return;
                 }
 
-                form.dataset.submitting = '1';
-                var submitter = event.submitter || resolveSubmitButton(form, null);
-                var pendingText = submitter && submitter.getAttribute('data-pending-text')
-                    ? submitter.getAttribute('data-pending-text')
-                    : 'Wird ausgeführt …';
+                submitter = event.submitter || form._fontManagerPendingButton || resolveSubmitButton(form, null);
+                form._fontManagerPendingButton = null;
 
-                setPendingButtonState(submitter, pendingText);
+                if (!markFormSubmitting(form, submitter)) {
+                    event.preventDefault();
+                }
             });
         });
     }

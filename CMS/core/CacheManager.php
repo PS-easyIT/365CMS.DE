@@ -588,7 +588,7 @@ class CacheManager implements CacheInterface
             return true;
         }
 
-        $etag = '"' . sha1($resourceKey . '|' . $timestamp) . '"';
+        $etag = '"' . substr(hash('sha512', $resourceKey . '|' . $timestamp), 0, 48) . '"';
         $lastModifiedHeader = gmdate('D, d M Y H:i:s', $timestamp) . ' GMT';
 
         header('ETag: ' . $etag);
@@ -628,7 +628,7 @@ class CacheManager implements CacheInterface
 
     private function getCacheFile(string $key): string
     {
-        return $this->cacheDir . md5($key) . '.cache';
+        return $this->cacheDir . hash('sha512', $key) . '.cache';
     }
 
     /**

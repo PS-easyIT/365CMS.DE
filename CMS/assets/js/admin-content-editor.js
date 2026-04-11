@@ -2,7 +2,7 @@
     'use strict';
 
     function parseJsonInput(id, fallback) {
-        var input = document.getElementById(id);
+                    clearElement(previewContainer);
         if (!input || !input.value) {
             return fallback;
         }
@@ -13,9 +13,33 @@
             return fallback;
         }
     }
-
+            clearElement(panel);
     function getElement(id) {
         return id ? document.getElementById(id) : null;
+    }
+
+            return extractTextFromHtml(value);
+
+        while (element.firstChild) {
+            element.removeChild(element.firstChild);
+        }
+    }
+                    clearElement(holder);
+    function extractTextFromHtml(value) {
+        var parser;
+        var doc;
+            clearElement(panel);
+        if (typeof DOMParser === 'function') {
+            try {
+                parser = new DOMParser();
+                doc = parser.parseFromString(String(value || ''), 'text/html');
+                return String((doc && doc.body && doc.body.textContent) || '');
+            } catch (_error) {
+                // Fall back to a plain string below.
+            }
+        }
+
+        return String(value || '');
     }
 
     function buildPreviewUrl(base, slug, template, placeholderSlug) {
@@ -142,7 +166,7 @@
                     imageInput.value = '';
                 }
                 if (previewContainer) {
-                    previewContainer.innerHTML = '';
+                    clearElement(previewContainer);
                     previewContainer.classList.add('d-none');
                 }
                 if (emptyState) {
@@ -342,7 +366,7 @@
                 return;
             }
 
-            panel.innerHTML = '';
+            clearElement(panel);
             panel.className = 'card border-primary mb-3 d-none';
         }
 
@@ -366,10 +390,7 @@
         }
 
         function stripHtmlPreview(value) {
-            var element = document.createElement('div');
-
-            element.innerHTML = String(value || '');
-            return String(element.textContent || element.innerText || '');
+            return extractTextFromHtml(value);
         }
 
         function normalizePreviewText(value) {
@@ -619,7 +640,7 @@
             var discardButton = document.createElement('button');
             var applyButton = document.createElement('button');
 
-            panel.innerHTML = '';
+            clearElement(panel);
             panel.className = 'card border-primary mb-3';
             translationPreviewActive = true;
 
@@ -851,7 +872,7 @@
             if (definition) {
                 holder = getElement(definition.holderId);
                 if (holder) {
-                    holder.innerHTML = '';
+                    clearElement(holder);
                 }
             }
 
@@ -876,7 +897,18 @@
 
             editors[definition.key] = {
                 input: input,
-                instance: window.createCmsEditor(definition.holderId, input.value || '', config.mediaUploadUrl, config.csrfToken)
+                instance: window.createCmsEditor(definition.holderId, input.value || '', config.mediaUploadUrl, config.csrfToken, {
+                    onChange: function (output) {
+                        var currentEntry = editors[definition.key];
+
+                        if (!currentEntry || currentEntry.input !== input) {
+                            return;
+                        }
+
+                        input.value = JSON.stringify(normalizeEditorData(output));
+                        emitChangeEvents(input);
+                    }
+                })
             };
 
             return editors[definition.key];
@@ -957,6 +989,16 @@
             setFieldValue(targetId, getFieldValue(sourceId));
         }
 
+        function targetHasDraftContent(targetEditorKey, targetTitleId, targetSlugId, targetExcerptId) {
+            var targetDefinition = getDefinition(targetEditorKey);
+            var targetInput = targetDefinition ? getElement(targetDefinition.inputId) : null;
+
+            return (targetTitleId ? getFieldValue(targetTitleId) !== '' : false)
+                || (targetSlugId ? getFieldValue(targetSlugId) !== '' : false)
+                || (targetExcerptId ? getFieldValue(targetExcerptId) !== '' : false)
+                || (targetInput && !isEditorInputEmpty(targetInput));
+        }
+
         function handleCopyAction(copyAction) {
             var button = copyAction && copyAction.buttonId ? getElement(copyAction.buttonId) : null;
 
@@ -970,7 +1012,22 @@
                     clearPreviewPanel();
                     setButtonBusy(button, true, 'Kopiere …');
 
-                    ensureEditorSaved(copyAction.sourceEditorKey).then(function (sourceData) {
+                    Promise.all([
+                        ensureEditorSaved(copyAction.sourceEditorKey),
+                        ensureEditorSaved(copyAction.targetEditorKey)
+                    ]).then(function (savedStates) {
+                        var sourceData = savedStates[0];
+
+                        if (targetHasDraftContent(
+                            copyAction.targetEditorKey,
+                            copyAction.targetTitleId,
+                            copyAction.targetSlugId,
+                            copyAction.targetExcerptId
+                        ) && !window.confirm('In der EN-Bearbeitung sind bereits Inhalte vorhanden. Soll die DE-Version diese Inhalte wirklich vollständig überschreiben?')) {
+                            showNotice('info', 'DE-Inhalt wurde nicht in die EN-Bearbeitung übernommen.');
+                            return;
+                        }
+
                         copyFieldValue(copyAction.sourceTitleId, copyAction.targetTitleId);
                         copyFieldValue(copyAction.sourceSlugId, copyAction.targetSlugId);
                         copyFieldValue(copyAction.sourceExcerptId, copyAction.targetExcerptId);
@@ -1032,13 +1089,12 @@
         }
 
         function targetAlreadyHasContent(aiTranslation) {
-            var targetDefinition = getDefinition(aiTranslation.targetEditorKey);
-            var input = targetDefinition ? getElement(targetDefinition.inputId) : null;
-
-            return getFieldValue(aiTranslation.targetTitleId) !== ''
-                || getFieldValue(aiTranslation.targetSlugId) !== ''
-                || getFieldValue(aiTranslation.targetExcerptId) !== ''
-                || (input && !isEditorInputEmpty(input));
+            return targetHasDraftContent(
+                aiTranslation.targetEditorKey,
+                aiTranslation.targetTitleId,
+                aiTranslation.targetSlugId,
+                aiTranslation.targetExcerptId
+            );
         }
 
         function applyResolvedTranslation(aiTranslation, resolvedOutput) {
@@ -1106,7 +1162,11 @@
                 clearPreviewPanel();
                 setButtonBusy(button, true, 'Übersetze …');
 
-                ensureEditorSaved(aiTranslation.sourceEditorKey).then(function (sourceData) {
+                Promise.all([
+                    ensureEditorSaved(aiTranslation.sourceEditorKey),
+                    ensureEditorSaved(aiTranslation.targetEditorKey)
+                ]).then(function (savedStates) {
+                    var sourceData = savedStates[0];
                     var requestBody = buildTranslationPayload(aiTranslation, sourceData);
 
                     return requestJson(aiTranslation.endpointUrl, requestBody).then(function (response) {

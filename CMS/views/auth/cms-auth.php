@@ -61,8 +61,9 @@ $footerLoginText = (string) ($settings['footer_link_login'] ?? 'Zur Anmeldung');
 $footerRegisterText = (string) ($settings['footer_link_register'] ?? 'Registrieren');
 $footerForgotText = (string) ($settings['footer_link_forgot'] ?? 'Passwort vergessen');
 $footerHomeText = (string) ($settings['footer_link_home'] ?? 'Zur Startseite');
+$documentLanguage = trim((string) ($documentLanguage ?? $requestLocale ?? 'de'));
 ?><!DOCTYPE html>
-<html lang="de">
+<html lang="<?php echo htmlspecialchars($documentLanguage !== '' ? $documentLanguage : 'de', ENT_QUOTES, 'UTF-8'); ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -458,7 +459,24 @@ $footerHomeText = (string) ($settings['footer_link_home'] ?? 'Zur Startseite');
                                 return bytes.buffer;
                             };
 
+                            let submitting = false;
+                            const submitForm = function () {
+                                if (typeof form.requestSubmit === 'function') {
+                                    form.requestSubmit();
+                                    return;
+                                }
+
+                                form.submit();
+                            };
+
                             button.addEventListener('click', async function () {
+                                if (submitting) {
+                                    return;
+                                }
+
+                                submitting = true;
+                                button.disabled = true;
+
                                 try {
                                     const publicKey = Object.assign({}, optionsJson);
                                     if (typeof publicKey.challenge === 'string') {
@@ -486,8 +504,10 @@ $footerHomeText = (string) ($settings['footer_link_home'] ?? 'Zur Startseite');
                                     form.querySelector('[name="authenticator_data"]').value = toBase64Url(credential.response.authenticatorData);
                                     form.querySelector('[name="signature"]').value = toBase64Url(credential.response.signature);
                                     form.querySelector('[name="credential_id"]').value = credential.id || '';
-                                    form.submit();
+                                    submitForm();
                                 } catch (error) {
+                                    submitting = false;
+                                    button.disabled = false;
                                     const message = error && error.message ? error.message : 'Passkey-Anmeldung fehlgeschlagen.';
                                     window.alert(message);
                                 }

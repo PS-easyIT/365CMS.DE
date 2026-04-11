@@ -43,6 +43,7 @@ CacheManager::instance()->sendResponseHeaders('private');
 // Get parameters
 $planId = isset($_GET['plan']) ? (int)$_GET['plan'] : 0;
 $billing = isset($_GET['billing']) ? $_GET['billing'] : 'monthly';
+$billing = in_array($billing, ['monthly', 'yearly', 'lifetime'], true) ? $billing : 'monthly';
 
 // Services
 $db = Database::instance();
@@ -85,6 +86,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if (empty($contactData['last_name']) || empty($contactData['email']) || empty($contactData['address'])) {
             $error = 'Bitte füllen Sie alle Pflichtfelder aus (*).';
+        } elseif (!filter_var($contactData['email'], FILTER_VALIDATE_EMAIL)) {
+            $error = 'Bitte geben Sie eine gültige E-Mail-Adresse ein.';
         } else {
             // Generate Order Number
             // Fetch format from settings or default
@@ -111,6 +114,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             // Price calculation
             $price = ($billing === 'yearly') ? $plan['price_yearly'] : $plan['price_monthly'];
+            $customerName = trim($contactData['first_name'] . ' ' . $contactData['last_name']);
             
             // Insert Order
             try {
@@ -119,9 +123,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'user_id' => $user ? $user->id : null,
                     'plan_id' => $plan['id'],
                     'billing_cycle' => $billing,
+                    'customer_name' => $customerName !== '' ? $customerName : null,
+                    'customer_email' => $contactData['email'],
                     'amount' => $price,
+                    'tax_amount' => 0,
+                    'total_amount' => $price,
                     'currency' => 'EUR',
                     'status' => 'pending',
+                    'forename' => $contactData['first_name'],
+                    'lastname' => $contactData['last_name'],
+                    'company' => $contactData['company'],
+                    'email' => $contactData['email'],
+                    'phone' => $contactData['phone'],
+                    'street' => $contactData['address'],
+                    'zip' => $contactData['zip'],
+                    'city' => $contactData['city'],
+                    'country' => $contactData['country'],
                     'contact_data' => json_encode($contactData),
                     'payment_method' => 'invoice', // Default for now
                     'created_at' => date('Y-m-d H:i:s')

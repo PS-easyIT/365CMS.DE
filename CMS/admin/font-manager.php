@@ -55,6 +55,22 @@ function cms_admin_font_manager_normalize_action(string $action): ?string
     return in_array($action, cms_admin_font_manager_allowed_actions(), true) ? $action : null;
 }
 
+function cms_admin_font_manager_substring(string $value, int $start, ?int $length = null): string
+{
+    if (function_exists('mb_substr')) {
+        return $length === null
+            ? (string) mb_substr($value, $start, null, 'UTF-8')
+            : (string) mb_substr($value, $start, $length, 'UTF-8');
+    }
+
+    return $length === null ? substr($value, $start) : substr($value, $start, $length);
+}
+
+function cms_admin_font_manager_length(string $value): int
+{
+    return function_exists('mb_strlen') ? (int) mb_strlen($value, 'UTF-8') : strlen($value);
+}
+
 function cms_admin_font_manager_normalize_font_id(array $post): int
 {
     return max(0, (int) ($post['font_id'] ?? 0));
@@ -66,22 +82,14 @@ function cms_admin_font_manager_normalize_google_font_family(array $post): strin
     $fontFamily = preg_replace('/[\x00-\x1F\x7F]+/u', ' ', $fontFamily) ?? '';
     $fontFamily = preg_replace('/\s+/u', ' ', $fontFamily) ?? '';
 
-    if (function_exists('mb_substr')) {
-        return trim(mb_substr($fontFamily, 0, CMS_ADMIN_FONT_MANAGER_MAX_FAMILY_LENGTH));
-    }
-
-    return trim(substr($fontFamily, 0, CMS_ADMIN_FONT_MANAGER_MAX_FAMILY_LENGTH));
+    return trim(cms_admin_font_manager_substring($fontFamily, 0, CMS_ADMIN_FONT_MANAGER_MAX_FAMILY_LENGTH));
 }
 
 function cms_admin_font_manager_normalize_font_key(mixed $value): string
 {
     $normalized = (string) preg_replace('/[^a-z0-9_-]/', '', strtolower(trim((string) $value)));
 
-    if (function_exists('mb_substr')) {
-        $normalized = (string) mb_substr($normalized, 0, CMS_ADMIN_FONT_MANAGER_MAX_FONT_KEY_LENGTH);
-    } else {
-        $normalized = substr($normalized, 0, CMS_ADMIN_FONT_MANAGER_MAX_FONT_KEY_LENGTH);
-    }
+    $normalized = cms_admin_font_manager_substring($normalized, 0, CMS_ADMIN_FONT_MANAGER_MAX_FONT_KEY_LENGTH);
 
     return $normalized !== '' ? $normalized : 'system-ui';
 }
@@ -111,11 +119,7 @@ function cms_admin_font_manager_family_was_truncated(array $post, string $normal
         return false;
     }
 
-    if (function_exists('mb_strlen')) {
-        return mb_strlen($rawFamily) > mb_strlen($normalizedFamily);
-    }
-
-    return strlen($rawFamily) > strlen($normalizedFamily);
+    return cms_admin_font_manager_length($rawFamily) > cms_admin_font_manager_length($normalizedFamily);
 }
 
 /** @return array<string, string> */

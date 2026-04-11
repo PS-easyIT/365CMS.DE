@@ -13,8 +13,16 @@ if (!defined('ABSPATH')) {
 use CMS\Auth;
 use CMS\Security;
 
-if (!Auth::instance()->isAdmin()) {
-    header('Location: ' . SITE_URL);
+const CMS_ADMIN_UPDATES_CAPABILITY = 'manage_settings';
+
+function cms_admin_updates_can_access(): bool
+{
+    return Auth::instance()->isAdmin()
+        && Auth::instance()->hasCapability(CMS_ADMIN_UPDATES_CAPABILITY);
+}
+
+if (!cms_admin_updates_can_access()) {
+    header('Location: /');
     exit;
 }
 
@@ -24,7 +32,7 @@ $alert     = null;
 
 function cms_admin_updates_target_url(): string
 {
-    return SITE_URL . '/admin/updates';
+    return '/admin/updates';
 }
 
 function cms_admin_updates_redirect(): never

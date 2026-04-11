@@ -278,7 +278,6 @@ $additionalCategoryIds = array_values(array_filter(
                                     <input type="time" class="form-control" id="publishTime" name="publish_time" value="<?php echo htmlspecialchars($publishTime); ?>" step="60">
                                 </div>
                             </div>
-                            <div class="form-hint mt-2">Wenn der Status auf <strong>Veröffentlicht</strong> steht und Datum/Uhrzeit in der Zukunft liegen, wird der Beitrag automatisch erst zu diesem Zeitpunkt öffentlich sichtbar.</div>
                             <div class="mt-3">
                                 <label class="form-label" for="authorDisplayName">Autoren-Anzeigename im Artikel</label>
                                 <input type="text" class="form-control" id="authorDisplayName" name="author_display_name" value="<?php echo $authorDisplayName; ?>" maxlength="150" placeholder="Leer lassen = normaler 365CMS-Anzeigename des Autors">

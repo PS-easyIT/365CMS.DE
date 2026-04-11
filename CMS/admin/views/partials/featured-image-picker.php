@@ -15,7 +15,6 @@ $pickerTitleInputId = (string)($pickerTitleInputId ?? 'title');
 $pickerSlugInputId = (string)($pickerSlugInputId ?? 'slug');
 $pickerDialogTitle = (string)($pickerDialogTitle ?? 'Bild auswählen');
 $pickerToken = (string)($editorMediaToken ?? '');
-$pickerSiteUrl = defined('SITE_URL') ? (string)SITE_URL : '';
 $pickerIsNew = isset($pickerIsNew) ? (bool)$pickerIsNew : true;
 $pickerContentType = (string)($pickerContentType ?? 'post'); // 'post' | 'page'
 ?>
@@ -62,7 +61,7 @@ $pickerContentType = (string)($pickerContentType ?? 'post'); // 'post' | 'page'
     var titleInput = document.getElementById(<?= json_encode($pickerTitleInputId) ?>);
     var slugInput = document.getElementById(<?= json_encode($pickerSlugInputId) ?>);
     var token = <?= json_encode($pickerToken) ?>;
-    var apiUrl = <?= json_encode(rtrim($pickerSiteUrl, '/') . '/api/media') ?>;
+    var apiUrl = <?= json_encode('/api/media') ?>;
     var pickerIsNew = <?= $pickerIsNew ? 'true' : 'false' ?>;
     var pickerContentType = <?= json_encode($pickerContentType) ?>;
     var pickerTempPathInputId = <?= json_encode($pickerInputId . '_temp_path') ?>;
@@ -126,13 +125,61 @@ $pickerContentType = (string)($pickerContentType ?? 'post'); // 'post' | 'page'
         cleanupModalArtifacts();
     }
 
-    function escapeHtml(value) {
-        return String(value || '')
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#039;');
+    function clearChildren(node) {
+        if (!node) {
+            return;
+        }
+
+        while (node.firstChild) {
+            node.removeChild(node.firstChild);
+        }
+    }
+
+    function createPreviewImage(url) {
+        var image = document.createElement('img');
+        image.src = String(url || '');
+        image.alt = '';
+        image.className = 'rounded mb-2';
+        image.style.maxWidth = '100%';
+        image.style.maxHeight = '120px';
+        image.style.objectFit = 'cover';
+        image.style.display = 'block';
+
+        return image;
+    }
+
+    function createGridItem(item) {
+        var button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'featured-picker__item';
+        button.dataset.url = String(item && item.url ? item.url : '');
+
+        var thumb = document.createElement('span');
+        thumb.className = 'featured-picker__thumb';
+
+        var image = document.createElement('img');
+        image.src = String(item && item.url ? item.url : '');
+        image.alt = String(item && item.name ? item.name : 'Bild');
+        image.loading = 'lazy';
+        thumb.appendChild(image);
+
+        var meta = document.createElement('span');
+        meta.className = 'featured-picker__meta';
+
+        var name = document.createElement('span');
+        name.className = 'featured-picker__name';
+        name.textContent = String(item && item.name ? item.name : 'Bild');
+
+        var path = document.createElement('span');
+        path.className = 'featured-picker__path';
+        path.textContent = String(item && item.path ? item.path : '');
+
+        meta.appendChild(name);
+        meta.appendChild(path);
+        button.appendChild(thumb);
+        button.appendChild(meta);
+
+        return button;
     }
 
     function slugify(value) {
@@ -156,9 +203,9 @@ $pickerContentType = (string)($pickerContentType ?? 'post'); // 'post' | 'page'
     }
 
     function updatePreview(url) {
-        var safeUrl = escapeHtml(url);
-        inputEl.value = url;
-        previewEl.innerHTML = '<img src="' + safeUrl + '" alt="" class="rounded mb-2" style="max-width:100%;max-height:120px;object-fit:cover;display:block;">';
+        inputEl.value = String(url || '');
+        clearChildren(previewEl);
+        previewEl.appendChild(createPreviewImage(url));
         previewEl.classList.remove('d-none');
         if (emptyEl) {
             emptyEl.classList.add('d-none');
@@ -174,25 +221,16 @@ $pickerContentType = (string)($pickerContentType ?? 'post'); // 'post' | 'page'
         }
 
         if (!Array.isArray(items) || items.length === 0) {
-            gridEl.innerHTML = '';
+            clearChildren(gridEl);
             statusEl.textContent = 'Keine Bilder gefunden.';
             return;
         }
 
         statusEl.textContent = items.length + (items.length === 1 ? ' Bild gefunden' : ' Bilder gefunden');
-        gridEl.innerHTML = items.map(function(item) {
-            var url = escapeHtml(item.url || '');
-            var name = escapeHtml(item.name || 'Bild');
-            var path = escapeHtml(item.path || '');
-            return ''
-                + '<button type="button" class="featured-picker__item" data-url="' + url + '">'
-                + '  <span class="featured-picker__thumb"><img src="' + url + '" alt="' + name + '" loading="lazy"></span>'
-                + '  <span class="featured-picker__meta">'
-                + '      <span class="featured-picker__name">' + name + '</span>'
-                + '      <span class="featured-picker__path">' + path + '</span>'
-                + '  </span>'
-                + '</button>';
-        }).join('');
+        clearChildren(gridEl);
+        items.forEach(function(item) {
+            gridEl.appendChild(createGridItem(item || {}));
+        });
     }
 
     function filterItems() {
