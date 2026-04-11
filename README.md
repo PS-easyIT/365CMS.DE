@@ -5,6 +5,7 @@
 [![Version](https://img.shields.io/badge/version-2.9.190-blue.svg)](Changelog.md)
 ![Status](https://img.shields.io/badge/status-stable-16a34a)
 ![Self Hosted](https://img.shields.io/badge/self--hosted-yes-15803d)
+
 ![Member Area](https://img.shields.io/badge/member%20area-included-0f766e)
 ![Themes](https://img.shields.io/badge/themes-built--in-2563eb)
 ![Plugins](https://img.shields.io/badge/plugins-extensible-7c3aed)
