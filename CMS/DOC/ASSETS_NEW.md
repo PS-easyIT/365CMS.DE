@@ -1,5 +1,5 @@
 # ASSETS NEW – Integrationsdoku für neue Kandidaten
-> **Stand:** 2026-04-08 | **Version:** 2.9.2 | **Status:** Bewertet, AI-Konzept deutlich erweitert
+> **Stand:** 2026-04-12 | **Version:** 2.9.208 | **Status:** Bewertet, AI-Konzept produktiv verdrahtet
 
 ## Inhaltsverzeichnis
 - <a>Überblick</a>
@@ -16,16 +16,16 @@
 
 ## Überblick <!-- UPDATED: 2026-04-08 -->
 
-Diese Datei dokumentiert **neue Asset-Kandidaten und Architekturentscheidungen rund um noch nicht produktiv integrierte Funktionspakete**.
+Diese Datei dokumentiert **neue Asset-Kandidaten und Architekturentscheidungen rund um noch nicht oder nur teilweise produktiv integrierte Funktionspakete**.
 
 Aktueller Bewertungsstand:
 
 | Paket / Thema | Quelle | Status | Empfehlung |
 |---|---|---|---|
-| `symfony/ai-platform` | `ASSETS/ai-platform-0.6.0/` | nicht runtime-aktiv | nur über klaren Core-Adapter, Provider-Bridges und Admin-Feature-Gates einführen |
+| `symfony/ai-platform` | `CMS/assets/ai-platform/` (Quelle weiter in `ASSETS/ai-platform-0.6.0/`) | produktive Basis aktiv, Bridges weiter separat | nur über klaren Core-Adapter, Provider-Bridges und Admin-Feature-Gates einführen |
 | `stichoza/google-translate-php` | **aus `/ASSETS` entfernt am 2026-04-08** | kein aktiver Kandidat mehr | nicht weiter als Staging-Asset führen; offizielle oder austauschbare Provider-Adapter bevorzugen |
 
-Grundsatz: **Nicht jedes Paket unter `/ASSETS` gehört automatisch nach `CMS/assets/` oder `CMS/vendor/`.** Neue Kandidaten müssen fachlich, technisch, betrieblich und dokumentarisch bewertet werden.
+Grundsatz: **Nicht jedes Paket unter `/ASSETS` gehört automatisch nach `CMS/assets/` oder `CMS/vendor/`.** Neue Kandidaten müssen fachlich, technisch, betrieblich und dokumentarisch bewertet werden. Auch wenn eine Basis wie `symfony/ai-platform` jetzt produktiv gespiegelt wird, bleiben Brücken, Provider und Zusatzabhängigkeiten eigene Integrationsentscheidungen.
 
 Für den aktuellen Wunschstand ist vor allem wichtig:
 
@@ -40,7 +40,8 @@ Für den aktuellen Wunschstand ist vor allem wichtig:
 ### Paketprofil
 
 - **Paket:** `symfony/ai-platform`
-- **Quelle:** `ASSETS/ai-platform-0.6.0/`
+- **Produktiver Basispfad:** `CMS/assets/ai-platform/`
+- **Workspace-Quelle:** `ASSETS/ai-platform-0.6.0/`
 - **Version im Workspace:** `0.6.0`
 - **Pakettyp:** PHP-Library / AI-Abstraktionsschicht
 - **Status laut README:** **experimentell**
@@ -65,9 +66,9 @@ Laut README wird die eigentliche Plattformanbindung über zusätzliche Bridge-Pa
 
 Damit passt das Paket gut zu einer 365CMS-Vorstellung von **mehreren aktivierbaren Providern** statt einer fest verdrahteten Einzellösung.
 
-### Warum das Paket **nicht** direkt in die Runtime kopiert werden sollte
+### Warum die produktive Basis **nicht** mit einer vollständigen Provider-Integration verwechselt werden darf
 
-Aus `composer.json` ergibt sich, dass bereits das Basis-Paket zusätzliche Komponenten verlangt, die aktuell **nicht** Teil des produktiven 365CMS-Runtime-Vertrags unter `CMS/assets/` sind:
+Aus `composer.json` ergibt sich, dass bereits das Basis-Paket zusätzliche Komponenten verlangt, die aktuell **noch nicht vollständig** Teil des produktiven 365CMS-Runtime-Vertrags unter `CMS/assets/` sind:
 
 - `symfony/clock`
 - `symfony/event-dispatcher`
@@ -78,7 +79,7 @@ Aus `composer.json` ergibt sich, dass bereits das Basis-Paket zusätzliche Kompo
 - `symfony/uid`
 - dazu Hilfsbibliotheken wie `oskarstark/enum-helper`, `phpdocumentor/reflection-docblock` und `phpstan/phpdoc-parser`
 
-Praktische Konsequenzen:
+Praktische Konsequenzen trotz produktivem Basis-Bundle:
 
 1. Das Basis-Paket allein reicht nicht.
 2. Für echte Provider werden zusätzliche Bridges benötigt.
@@ -87,7 +88,7 @@ Praktische Konsequenzen:
 
 ### Empfehlung für 365CMS
 
-**Nicht direkt nach `CMS/assets/` kopieren.**
+**Die Basis darf unter `CMS/assets/` liegen, aber nur als kontrollierte Core-Grundplatte.**
 
 Empfohlen ist stattdessen eine interne Schicht wie:
 
@@ -405,7 +406,7 @@ Kurzform für Entscheidungen:
 
 Für 365CMS ist aktuell die saubere Linie:
 
-- `symfony/ai-platform` bleibt **ein interessanter, aber noch nicht runtime-aktiver Kandidat**
+- `symfony/ai-platform` ist jetzt **als produktive Basis unter `CMS/assets/ai-platform` registriert**, aber noch **kein fertig durchverdrahteter Multi-Provider-Stack**
 - `google-translate-php` wurde **bewusst aus `/ASSETS` entfernt** und ist **keine gewünschte Basis** mehr
 - AI-Funktionen sollen künftig über einen eigenen Bereich **„AI Services“** mit **Provider-Scope** und **Feature-Gates** eingeführt werden
 - die erste sinnvolle Ausbaustufe ist ein **Translate Service für vorhandene Editor.js-Inhalte im Admin**, zunächst gezielt **nach Englisch**

@@ -36,7 +36,7 @@ $groups = is_array($data['groups'] ?? null) ? $data['groups'] : [];
                 <div class="d-flex flex-column flex-lg-row gap-3 justify-content-between align-items-lg-center">
                     <div>
                         <h3 class="card-title mb-1">Core statt Plugin</h3>
-                        <div class="text-secondary">Wenn ein Modul hier deaktiviert wird, soll es nicht nur hübsch verschwinden – der zugehörige Bereich wird im Admin ausgeblendet und die Laufzeitfunktion im CMS abgeschaltet.</div>
+                        <div class="text-secondary">Hier sind bewusst nur die echten Root-Core-Module schaltbar. Interne Untermodule und Abhängigkeitsverträge bleiben verborgen, damit ein Root-Schalter seinen ganzen Bereich sauber, fail-closed und ohne Mikromanagement ein- oder ausschaltet.</div>
                     </div>
                     <button type="submit" class="btn btn-primary">Module speichern</button>
                 </div>

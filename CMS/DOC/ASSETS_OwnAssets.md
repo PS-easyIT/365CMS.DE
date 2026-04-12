@@ -1,5 +1,5 @@
 # ASSETS OwnAssets – Roadmap für Eigenersatz
-> **Stand:** 2026-04-08 | **Version:** 2.9.2 | **Status:** Arbeitsliste / Strategiepapier
+> **Stand:** 2026-04-12 | **Version:** 2.9.208 | **Status:** Arbeitsliste / Strategiepapier
 
 ## Zielbild
 
@@ -7,7 +7,7 @@ Diese Liste beschreibt, **welche aktiven Fremd-Assets 365CMS schrittweise durch 
 
 Wichtig: Nicht jede Drittbibliothek sollte ersetzt werden. Bei sicherheitskritischen, standardnahen oder komplexen Bibliotheken ist **Kapselung statt Eigenbau** die bessere Strategie.
 
-Bereits entfernte oder nicht mehr führende Legacy-Assets aus früheren Laufzeitpfaden sind **nicht mehr Teil dieser Ersatzliste**. Der Fokus liegt auf dem aktuell relevanten Restbestand unter `CMS/assets/` sowie auf neuen Kandidaten aus `/ASSETS`, die bewusst **noch nicht** produktiv verdrahtet wurden.
+Bereits entfernte oder nicht mehr führende Legacy-Assets aus früheren Laufzeitpfaden sind **nicht mehr Teil dieser Ersatzliste**. Der Fokus liegt auf dem aktuell relevanten Restbestand unter `CMS/assets/` sowie auf neuen Kandidaten aus `/ASSETS`, die bewusst noch **nicht vollständig** produktiv verdrahtet wurden.
 
 ---
 
@@ -38,12 +38,12 @@ Diese Pakete liegen bereits im Staging-Bereich, sind aber **nicht** automatisch 
 
 | Asset | Status heute | Empfehlung | Priorität | Warum |
 |---|---|---|---|---|
-| `symfony/ai-platform` | nur in `/ASSETS`, nicht runtime-aktiv | **nicht selbst nachbauen**, sondern nur über klaren Core-Adapter einführen | P4 | experimentelles Framework, viele zusätzliche Symfony-Abhängigkeiten, provider- und bridge-lastig |
+| `symfony/ai-platform` | Basis jetzt zusätzlich produktiv unter `CMS/assets/ai-platform`, Provider-/Bridge-Stack weiter in Bewertung | **nicht selbst nachbauen**, sondern nur über klaren Core-Adapter einführen | P4 | experimentelles Framework, viele zusätzliche Symfony-Abhängigkeiten, provider- und bridge-lastig |
 | `msgraph-sdk-php` | Referenz-/Staging-Bestand | nur über isolierte Services einführen | P4 | große Provider-SDK-Fläche, hoher Update- und Token-/Permission-Aufwand |
 
 ### Was das für 365CMS bedeutet
 
-- **AI-Funktionen** sollten nicht als unkontrolliertes Vendor-Paket in `CMS/assets/` landen, sondern nur über `CMS/core/Services/AI/*` plus provider-spezifische Adapter.
+- **AI-Funktionen** dürfen trotz der jetzt produktiv gebündelten Basis nicht als unkontrollierte Direktabhängigkeit quer durchs System landen, sondern nur über `CMS/core/Services/AI/*` plus provider-spezifische Adapter.
 - **Automatische Übersetzung** sollte nicht an einer einzelnen inoffiziellen Bibliothek als Kernfunktion hängen. Das früher mitgeführte `google-translate-php` wurde deshalb aus `/ASSETS` entfernt. Wenn 365CMS Übersetzung anbietet, dann nur providerbasiert, optional, gedrosselt, cachebar und mit sauberem Fallback.
 - **Große Provider-SDKs** wie `msgraph-sdk-php` gehören hinter einen kleinen Service-Vertrag, nicht als quer ins System gestreute Direktabhängigkeit.
 
@@ -178,6 +178,6 @@ Die beste Reihenfolge lautet daher:
 
 1. kleine UI-Bibliotheken wie `gridjs` und `photoswipe` durch 365CMS-eigene Module ersetzen
 2. `melbahja-seo` funktional in kleinere Core-Services aufteilen
-3. komplexe Sicherheits-, AI-, Übersetzungs- und Infrastruktur-Bibliotheken bewusst behalten und nur abstrahieren
+3. komplexe Sicherheits-, AI-, Übersetzungs- und Infrastruktur-Bibliotheken bewusst behalten, produktiv sauber bündeln und nur abstrahieren
 
 Wichtig für den aktuellen Dokumentationsstand: Die führende Runtime- und Strukturreferenz für aktive Asset-Pfade liegt jetzt zusätzlich in `DOC/FILELIST.md` und `DOC/assets/README.md`. Neue Integrationskandidaten außerhalb der Runtime werden in `DOC/ASSETS_NEW.md` separat bewertet, damit Roadmap, Runtime und Integrationsplanung nicht in einer Liste vermischt werden. Die kanonische AI-Zieldoku liegt ergänzend in `DOC/ai/AI-SERVICES.md`; der Admin-Kontext dazu bleibt unter `DOC/admin/system-settings/AI-SERVICES.md` beschrieben.

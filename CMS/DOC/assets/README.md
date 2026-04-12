@@ -1,5 +1,5 @@
 # 365CMS Asset-Dokumentation
-> **Stand:** 2026-04-08 | **Version:** 2.9.2 | **Status:** Aktuell
+> **Stand:** 2026-04-12 | **Version:** 2.9.208 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - <a>Tabellarische Übersicht</a>
@@ -27,6 +27,7 @@
 | SEO | `melbahja-seo` | gebündelter Snapshot | SEO-Helfer | SEO |
 | Security | `htmlpurifier` | gebündelter Snapshot | XSS-Schutz | System |
 | i18n | `translation` | `8.0.8` | Übersetzungen | System |
+| AI | `symfony/ai-platform` | `0.6.0`-Basisbundle | AI-Plattform-Grundvertrag / Core-Adapter-Basis | System / AI Services |
 | Util | `Carbon` | `3.11.4` | Datum / Zeit | System |
 | Util | `psr` | gebündelter Snapshot | PSR-Interfaces | Transitiv |
 | PDF | `dompdf` | `3.1.5` | PDF-Erzeugung | System |
@@ -47,6 +48,7 @@ Wichtig im aktuellen Stand:
 - `tabler`, `gridjs` und `PhotoSwipe` werden nur mit ihren auslieferbaren Dateien übernommen
 - `tntsearch` liegt produktiv bewusst aufgeteilt in `tntsearchsrc/` und `tntsearchhelper/`
 - `images/` enthält produktive Dashboard-, Logo- und Branding-Bestände
+- `ai-platform/` enthält die produktiv registrierte Symfony-AI-Platform-Basis; Provider-Bridges und weitere Symfony-Komponenten bleiben separat zu bewerten
 - `msgraph/` bleibt Referenzablage, solange kein eigener produktiver Core-Service diese Bibliothek verdrahtet
 
 ---
@@ -72,13 +74,14 @@ Zusätzliche Hinweise:
 
 Neu dokumentierte, aber noch nicht produktiv integrierte Pakete:
 
-- `symfony/ai-platform` unter `ASSETS/ai-platform-0.6.0/`
 - `symfony/cache` unter `ASSETS/cache-8.0.8/`
 - `guzzlehttp/guzzle` unter `ASSETS/guzzle-7.10.0/`
 - `adhocore/jwt` unter `ASSETS/php-jwt_yuliyan_1.1.3/`
 - `tabler-icons-3.41.1` unter `ASSETS/tabler-core-1.4.0/tabler-icons-3.41.1/`
 
-Diese Kandidaten sind im aktuellen Core **nicht aktiv verdrahtet**. Die Code- und Laufzeitprüfung zeigte hierfür keine produktiven Referenzen in `CMS/**`; deshalb wurden sie beim Refresh nach `2.9.2` bewusst nicht in die aktive Runtime übernommen.
+Diese Kandidaten sind im aktuellen Core **nicht aktiv verdrahtet**. Die Code- und Laufzeitprüfung zeigte hierfür keine produktiven Referenzen in `CMS/**`; deshalb wurden sie beim Refresh nach `2.9.208` bewusst nicht in die aktive Runtime übernommen.
+
+Wichtig dazu: `symfony/ai-platform` gehört **nicht mehr** in diese Liste, weil die Basis jetzt bewusst produktiv unter `CMS/assets/ai-platform/` gespiegelt, über `CMS/assets/autoload.php` auflösbar gemacht und in `Diagnose -> Assets` registriert wurde.
 
 Hinweis zum jüngsten Bereinigungsschritt:
 

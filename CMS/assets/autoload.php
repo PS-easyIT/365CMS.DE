@@ -288,3 +288,23 @@ spl_autoload_register(function (string $class): void {
         require_once $file;
     }
 });
+
+// ─── Symfony AI Platform ───────────────────────────────────────────────────
+// PSR-4: Symfony\AI\Platform\ → ai-platform/src/
+// Aktuell als Core-Basis für AI-Services-/Adapterpfade gebündelt.
+spl_autoload_register(function (string $class): void {
+    $prefix = 'Symfony\\AI\\Platform\\';
+    $baseDir = CMS_VENDOR_PATH . 'ai-platform' . DIRECTORY_SEPARATOR . 'src' . DIRECTORY_SEPARATOR;
+
+    $len = strlen($prefix);
+    if (strncmp($prefix, $class, $len) !== 0) {
+        return;
+    }
+
+    $relativeClass = substr($class, $len);
+    $file = $baseDir . str_replace('\\', DIRECTORY_SEPARATOR, $relativeClass) . '.php';
+
+    if (file_exists($file)) {
+        require_once $file;
+    }
+});

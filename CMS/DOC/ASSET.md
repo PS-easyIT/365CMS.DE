@@ -97,11 +97,10 @@ Empfohlener Ablauf pro Update:
 
 ---
 
-## Neue Kandidaten außerhalb der Runtime <!-- UPDATED: 2026-04-08 -->
+## Neue Kandidaten außerhalb der Runtime <!-- UPDATED: 2026-04-12 -->
 
 Folgende Pakete liegen unter `/ASSETS`, sind aber **nicht** produktiv in `CMS/assets/` bzw. `CMS/vendor/` integriert:
 
-- `symfony/ai-platform` (`ASSETS/ai-platform-0.6.0/`)
 - `symfony/cache` (`ASSETS/cache-8.0.8/`)
 - `guzzlehttp/guzzle` (`ASSETS/guzzle-7.10.0/`)
 - `adhocore/jwt` (`ASSETS/php-jwt_yuliyan_1.1.3/`)
@@ -114,6 +113,11 @@ Für diese Kandidaten gilt:
 - zunächst Service-/Adapter-Schnittstellen im Core definieren
 - transitive Abhängigkeiten vollständig bewerten
 - Betriebsrisiken, Provider-Abhängigkeiten und Secrets-/Rate-Limits vor Integration dokumentieren
+
+Ausnahme im aktuellen Stand:
+
+- `symfony/ai-platform` zählt nicht mehr als reiner Außenkandidat, weil die Basis jetzt produktiv unter `CMS/assets/ai-platform/` liegt, vom zentralen Assets-Autoloader aufgelöst wird und in `Diagnose -> Assets` als Produktivpaket erscheint.
+- Das ändert **nicht** den Architekturgrundsatz: weitere Provider-Bridges und Zusatzabhängigkeiten dürfen weiterhin nur kontrolliert über Core-Adapter und Feature-Gates in die Runtime wachsen.
 
 Zusätzlich wichtig im aktuellen Stand:
 

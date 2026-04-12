@@ -81,6 +81,7 @@ final class VendorRegistry
             'assets-autoload' => $this->loadAssetsAutoloader(),
             'dompdf' => $this->loadDompdf(),
             'melbahja-seo' => $this->loadMelbahjaSeo(),
+            'symfony/ai-platform' => $this->loadAssetsAutoloader(),
             'symfony-contracts' => $this->loadAssetsAutoloader(),
             default => false,
         };
@@ -283,6 +284,12 @@ final class VendorRegistry
                 'path_type' => 'dir',
                 'notes' => 'Schema-, Sitemap- und Indexing-Bundle für SEO-Funktionen.',
             ],
+            'symfony/ai-platform' => [
+                'label' => 'Symfony AI Platform',
+                'path' => ABSPATH . 'assets' . DIRECTORY_SEPARATOR . 'ai-platform',
+                'path_type' => 'dir',
+                'notes' => 'Produktiv gebündelte AI-Plattform-Basis unter CMS/assets/ai-platform für Core-Adapter und AI-Services-Pfade.',
+            ],
             'symfony-contracts' => [
                 'label' => 'Symfony Contracts (lokaler Runtime-Shim)',
                 'path' => ABSPATH . 'assets' . DIRECTORY_SEPARATOR . 'symfony-contracts',
@@ -461,20 +468,20 @@ final class VendorRegistry
                 'notes' => 'Produktive Dashboard-, Logo- und Branding-Bestände.',
             ],
             [
+                'package' => 'symfony/ai-platform',
+                'label' => 'Symfony AI Platform',
+                'paths' => [['path' => $assets . 'ai-platform', 'type' => 'dir']],
+                'symbol' => '\\Symfony\\AI\\Platform\\PlatformInterface',
+                'symbol_type' => 'interface',
+                'notes' => 'Produktiv gebündelte AI-Platform-Basis für künftige Core-Adapter, Provider-Bridges und AI-Services-Runtimepfade.',
+            ],
+            [
                 'package' => 'simplepie',
                 'label' => 'SimplePie (Legacy)',
                 'paths' => [['path' => $assets . 'simplepielibrary', 'type' => 'dir']],
                 'symbol' => $assets . 'simplepielibrary',
                 'symbol_type' => 'legacy',
                 'notes' => 'Dokumentierter Legacy-Bestand; aktuell kein aktives Runtime-Bundle.',
-            ],
-            [
-                'package' => 'symfony/ai-platform',
-                'label' => 'Symfony AI Platform (Staging)',
-                'paths' => [['path' => dirname(ABSPATH) . DIRECTORY_SEPARATOR . 'ASSETS' . DIRECTORY_SEPARATOR . 'ai-platform-0.6.0', 'type' => 'dir']],
-                'symbol' => dirname(ABSPATH) . DIRECTORY_SEPARATOR . 'ASSETS' . DIRECTORY_SEPARATOR . 'ai-platform-0.6.0',
-                'symbol_type' => 'staging',
-                'notes' => 'Außerhalb der produktiven Runtime dokumentierter Kandidat; aktuell noch nicht im Core verdrahtet.',
             ],
             [
                 'package' => 'symfony/cache',
@@ -501,6 +508,7 @@ final class VendorRegistry
     private function getBundledPlatformManifestDefinitions(): array
     {
         return [
+            'symfony/ai-platform' => ABSPATH . 'assets' . DIRECTORY_SEPARATOR . 'ai-platform' . DIRECTORY_SEPARATOR . 'composer.json',
             'symfony/mailer' => ABSPATH . 'assets' . DIRECTORY_SEPARATOR . 'mailer' . DIRECTORY_SEPARATOR . 'composer.json',
             'symfony/mime' => ABSPATH . 'assets' . DIRECTORY_SEPARATOR . 'mime' . DIRECTORY_SEPARATOR . 'composer.json',
             'symfony/translation' => ABSPATH . 'assets' . DIRECTORY_SEPARATOR . 'translation' . DIRECTORY_SEPARATOR . 'composer.json',
@@ -513,6 +521,8 @@ final class VendorRegistry
             'assets-autoload' => defined('CMS_VENDOR_PATH') || (($this->loadedPackages['assets-autoload'] ?? false) === true),
             'dompdf' => (($this->loadedPackages['dompdf'] ?? false) === true) || class_exists(\Dompdf\Dompdf::class, false),
             'melbahja-seo' => (($this->loadedPackages['melbahja-seo'] ?? false) === true) || class_exists(\Melbahja\Seo\Schema::class, true),
+            'symfony/ai-platform' => is_dir(ABSPATH . 'assets' . DIRECTORY_SEPARATOR . 'ai-platform')
+                && interface_exists(\Symfony\AI\Platform\PlatformInterface::class, true),
             'symfony-contracts' => is_dir(ABSPATH . 'assets' . DIRECTORY_SEPARATOR . 'symfony-contracts')
                 && interface_exists(\Symfony\Contracts\Translation\TranslatorInterface::class, true),
             default => false,

@@ -1,4 +1,4 @@
-﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.207-blue.svg)](https://shields.io/)
+﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.208-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -19,6 +19,12 @@
 ## 📜 Vollständige Versionshistorie
 
 ---
+
+### v2.9.208 — 12. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.208** | 🔴 fix | Assets/AI Platform & Module UI | **`CMS/assets/autoload.php`, `CMS/assets/ai-platform/`, `CMS/core/VendorRegistry.php`, `CMS/admin/views/system/modules.php` und `CMS/core/Services/CoreModuleService.php` ziehen die Symfony AI Platform jetzt vom Staging-Bestand in die produktive Asset-Runtime**: Das Paket liegt damit unter `CMS/assets/ai-platform`, wird über den zentralen Assets-Autoloader aufgelöst und erscheint unter `Diagnose -> Assets` als registriertes Produktivpaket samt Plattformprüfung; parallel erklärt die Modulverwaltung jetzt explizit, dass nur echte Root-Core-Module schaltbar sind, und der `Member Dashboard`-Schalter zeigt seine betroffenen Admin-Bereiche sichtbar im Modul-Card-Detail an. |
 
 ### v2.9.207 — 12. April 2026
 
