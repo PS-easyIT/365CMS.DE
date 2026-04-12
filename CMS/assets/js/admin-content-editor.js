@@ -2,7 +2,8 @@
     'use strict';
 
     function parseJsonInput(id, fallback) {
-                    clearElement(previewContainer);
+        var input = getElement(id);
+
         if (!input || !input.value) {
             return fallback;
         }
@@ -13,22 +14,25 @@
             return fallback;
         }
     }
-            clearElement(panel);
+
     function getElement(id) {
         return id ? document.getElementById(id) : null;
     }
 
-            return extractTextFromHtml(value);
+    function clearElement(element) {
+        if (!element) {
+            return;
+        }
 
         while (element.firstChild) {
             element.removeChild(element.firstChild);
         }
     }
-                    clearElement(holder);
+
     function extractTextFromHtml(value) {
         var parser;
         var doc;
-            clearElement(panel);
+
         if (typeof DOMParser === 'function') {
             try {
                 parser = new DOMParser();

@@ -231,6 +231,23 @@ main.site-main       { padding: 0 !important; margin: 0 !important; }
     opacity: .8;
 }
 @media (max-width: 768px) {
+    .lp-features {
+        --lp-columns: 1fr;
+    }
+
+    .lp-features .lp-card-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .lp-feat-card--icon-left {
+        flex-direction: column;
+        gap: .75rem;
+    }
+
+    .lp-feat-card--icon-left .lp-feat-card__icon {
+        margin: 0;
+    }
+
     .lp-footer-callout__inner {
         grid-template-columns: 1fr;
     }

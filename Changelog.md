@@ -1,4 +1,4 @@
-﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.192-blue.svg)](https://shields.io/)
+﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.195-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -19,6 +19,24 @@
 ## 📜 Vollständige Versionshistorie
 
 ---
+
+### v2.9.195 — 12. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.195** | 🔴 fix | Core/Site Tables | **`CMS/core/Services/SiteTable/SiteTableHubRenderer.php` prüft Hub-Slugs jetzt über den echten Site-Table-Repository-Pfad statt über eine nicht existente `content_type`-Spalte in `bs_pages`**: Ältere oder aktuelle Installationen ohne `pages.content_type` erzeugen damit keine SQL-Fatals mehr, wenn Hub-Routing oder Host-/Slug-Erkennung anspringen. |
+
+### v2.9.194 — 12. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.194** | 🔴 fix | Frontend/Landing Mobile | **`CMS/themes/cms-default/partials/home-landing.php` zwingt die Landing-Feature-Kacheln unter `768px` jetzt explizit auf eine einzelne Spalte und stapelt Icon-Left-Karten mobil sauber untereinander**: Die Landingpage zeigt ihre Kacheln in der Mobileansicht damit nicht mehr nebeneinander gequetscht, sondern lesbar als echte vertikale Kartenfolge. |
+
+### v2.9.193 — 12. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.193** | 🔴 fix | Admin/EditorJS | **`CMS/assets/js/admin-content-editor.js` stellt seine Basis-Helper `parseJsonInput()`, `clearElement()` und `extractTextFromHtml()` am Dateikopf wieder korrekt her**: Der gemeinsame Seiten-/Beiträge-Editor initialisiert dadurch wieder vollständig, sodass der Wechsel zwischen Deutsch und Englisch im Editor nicht länger ins Leere läuft. |
 
 ### v2.9.192 — 12. April 2026
 

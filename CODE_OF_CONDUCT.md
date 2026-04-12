@@ -1,128 +1,139 @@
-# Contributor Covenant Code of Conduct
+# Verhaltenskodex für 365CMS
 
-## Our Pledge
+## Unser Versprechen
 
-We as members, contributors, and leaders pledge to make participation in our
-community a harassment-free experience for everyone, regardless of age, body
-size, visible or invisible disability, ethnicity, sex characteristics, gender
-identity and expression, level of experience, education, socio-economic status,
-nationality, personal appearance, race, religion, or sexual identity
-and orientation.
+Wir als Mitglieder, Mitwirkende und Maintainer des 365CMS-Projekts verpflichten
+uns, die Teilnahme an unserer Community für alle Menschen frei von Belästigung
+zu gestalten – unabhängig von Alter, Körpergröße, sichtbarer oder unsichtbarer
+Behinderung, ethnischer Herkunft, Geschlechtsmerkmalen, Geschlechtsidentität
+oder -ausdruck, Erfahrungsstand, Bildung, sozialem Status, Nationalität,
+äußerem Erscheinungsbild, Herkunft, Religion oder sexueller Identität bzw.
+Orientierung.
 
-We pledge to act and interact in ways that contribute to an open, welcoming,
-diverse, inclusive, and healthy community.
+Wir verpflichten uns zu einem offenen, respektvollen, inklusiven und gesunden
+Miteinander, das der gesamten 365CMS-Community dient.
 
-## Our Standards
+## Unsere Standards
 
-Examples of behavior that contributes to a positive environment for our
-community include:
+Zu einem positiven und professionellen Miteinander gehören insbesondere:
 
-* Demonstrating empathy and kindness toward other people
-* Being respectful of differing opinions, viewpoints, and experiences
-* Giving and gracefully accepting constructive feedback
-* Accepting responsibility and apologizing to those affected by our mistakes,
-  and learning from the experience
-* Focusing on what is best not just for us as individuals, but for the
-  overall community
+* Freundlichkeit, Empathie und respektvoller Umgang miteinander
+* Konstruktives Feedback sowie ein fairer Umgang mit unterschiedlichen
+  Meinungen, Perspektiven und Erfahrungen
+* Verantwortung für eigenes Handeln zu übernehmen und aus Fehlern zu lernen
+* Rücksicht auf die Community und das Projekt als Ganzes statt nur auf eigene
+  Interessen
+* Sachliche, nachvollziehbare und professionelle Kommunikation in Issues,
+  Pull Requests, Commits, Diskussionen und Dokumentation
 
-Examples of unacceptable behavior include:
+Nicht akzeptabel sind insbesondere:
 
-* The use of sexualized language or imagery, and sexual attention or
-  advances of any kind
-* Trolling, insulting or derogatory comments, and personal or political attacks
-* Public or private harassment
-* Publishing others' private information, such as a physical or email
-  address, without their explicit permission
-* Other conduct which could reasonably be considered inappropriate in a
-  professional setting
+* Sexualisierte Sprache, sexualisierte Darstellungen oder unerwünschte
+  Annäherungen jeglicher Art
+* Trolling, beleidigende oder abwertende Kommentare sowie persönliche oder
+  politische Angriffe
+* Öffentliche oder private Belästigung
+* Das Veröffentlichen privater Informationen anderer Personen – etwa Adressen
+  oder E-Mail-Adressen – ohne deren ausdrückliche Zustimmung
+* Sonstiges Verhalten, das in einem professionellen Umfeld als unangemessen,
+  einschüchternd, schädlich oder diskriminierend bewertet werden kann
 
-## Enforcement Responsibilities
+## Verantwortung der Maintainer
 
-Community leaders are responsible for clarifying and enforcing our standards of
-acceptable behavior and will take appropriate and fair corrective action in
-response to any behavior that they deem inappropriate, threatening, offensive,
-or harmful.
+Die Maintainer und Projektverantwortlichen von 365CMS sind dafür zuständig,
+die Standards dieses Verhaltenskodex zu erläutern und durchzusetzen. Sie werden
+bei unangemessenem, bedrohlichem, beleidigendem oder schädlichem Verhalten fair
+und angemessen reagieren.
 
-Community leaders have the right and responsibility to remove, edit, or reject
-comments, commits, code, wiki edits, issues, and other contributions that are
-not aligned to this Code of Conduct, and will communicate reasons for moderation
-decisions when appropriate.
+Sie haben das Recht und die Verantwortung, Kommentare, Commits, Code,
+Dokumentationsänderungen, Issues, Pull Requests und andere Beiträge zu
+bearbeiten, zu entfernen, abzulehnen oder zu moderieren, wenn diese nicht mit
+diesem Verhaltenskodex vereinbar sind. Soweit sinnvoll, werden Gründe für
+Moderationsentscheidungen transparent kommuniziert.
 
-## Scope
+## Geltungsbereich
 
-This Code of Conduct applies within all community spaces, and also applies when
-an individual is officially representing the community in public spaces.
-Examples of representing our community include using an official e-mail address,
-posting via an official social media account, or acting as an appointed
-representative at an online or offline event.
+Dieser Verhaltenskodex gilt in allen Community-Räumen des 365CMS-Projekts.
+Dazu zählen insbesondere das Repository, Issues, Pull Requests, Diskussionen,
+Dokumentation, Wikis und sonstige projektbezogene Kommunikationskanäle.
 
-## Enforcement
+Er gilt außerdem immer dann, wenn jemand das Projekt öffentlich repräsentiert,
+zum Beispiel über offizielle Projektkonten, in öffentlichen Statements oder bei
+Veranstaltungen im Namen von 365CMS.
 
-Instances of abusive, harassing, or otherwise unacceptable behavior may be
-reported to the community leaders responsible for enforcement at
-GitHub Issues.
-All complaints will be reviewed and investigated promptly and fairly.
+## Meldung und Durchsetzung
 
-All community leaders are obligated to respect the privacy and security of the
-reporter of any incident.
+Fälle von missbräuchlichem, belästigendem oder anderweitig unakzeptablem
+Verhalten können über die GitHub Issues des Projekts gemeldet werden:
 
-## Enforcement Guidelines
+https://github.com/PS-easyIT/365CMS.DE/issues
 
-Community leaders will follow these Community Impact Guidelines in determining
-the consequences for any action they deem in violation of this Code of Conduct:
+Alle Meldungen werden zeitnah und fair geprüft. Die für die Durchsetzung
+verantwortlichen Maintainer respektieren dabei die Privatsphäre und Sicherheit
+der meldenden Person.
 
-### 1. Correction
+## Richtlinien zur Durchsetzung
 
-**Community Impact**: Use of inappropriate language or other behavior deemed
-unprofessional or unwelcome in the community.
+Die Maintainer orientieren sich bei Verstößen an den folgenden Eskalationsstufen:
 
-**Consequence**: A private, written warning from community leaders, providing
-clarity around the nature of the violation and an explanation of why the
-behavior was inappropriate. A public apology may be requested.
+### 1. Korrektur
 
-### 2. Warning
+**Auswirkung auf die Community:** Verwendung unangemessener Sprache oder
+anderes Verhalten, das als unprofessionell oder unerwünscht gilt.
 
-**Community Impact**: A violation through a single incident or series
-of actions.
+**Konsequenz:** Eine private schriftliche Verwarnung mit Erläuterung des
+Problems und einer Erklärung, warum das Verhalten unangemessen war.
+Gegebenenfalls kann eine öffentliche Entschuldigung verlangt werden.
 
-**Consequence**: A warning with consequences for continued behavior. No
-interaction with the people involved, including unsolicited interaction with
-those enforcing the Code of Conduct, for a specified period of time. This
-includes avoiding interactions in community spaces as well as external channels
-like social media. Violating these terms may lead to a temporary or
-permanent ban.
+### 2. Verwarnung
 
-### 3. Temporary Ban
+**Auswirkung auf die Community:** Ein einzelner Verstoß oder eine Serie von
+Verhaltensweisen, die gegen diesen Kodex verstoßen.
 
-**Community Impact**: A serious violation of community standards, including
-sustained inappropriate behavior.
+**Konsequenz:** Eine formelle Verwarnung mit klaren Folgen für weiteres
+Fehlverhalten. Kontakt zu den betroffenen Personen oder zu den für die
+Durchsetzung verantwortlichen Maintainerinnen und Maintainer kann für einen
+bestimmten Zeitraum untersagt werden. Das kann auch öffentliche oder externe
+Kanäle einschließen. Weitere Verstöße können zu einem temporären oder
+dauerhaften Ausschluss führen.
 
-**Consequence**: A temporary ban from any sort of interaction or public
-communication with the community for a specified period of time. No public or
-private interaction with the people involved, including unsolicited interaction
-with those enforcing the Code of Conduct, is allowed during this period.
-Violating these terms may lead to a permanent ban.
+### 3. Temporärer Ausschluss
 
-### 4. Permanent Ban
+**Auswirkung auf die Community:** Schwerwiegender Verstoß gegen die
+Community-Standards, insbesondere fortgesetztes unangemessenes Verhalten.
 
-**Community Impact**: Demonstrating a pattern of violation of community
-standards, including sustained inappropriate behavior,  harassment of an
-individual, or aggression toward or disparagement of classes of individuals.
+**Konsequenz:** Zeitlich begrenzter Ausschluss von jeder Interaktion oder
+öffentlichen Kommunikation innerhalb der Community. Während dieses Zeitraums
+sind weder öffentliche noch private Kontaktaufnahmen mit den betroffenen
+Personen oder den Verantwortlichen zur Durchsetzung erlaubt. Weitere Verstöße
+können in einem dauerhaften Ausschluss enden.
 
-**Consequence**: A permanent ban from any sort of public interaction within
-the community.
+### 4. Dauerhafter Ausschluss
 
-## Attribution
+**Auswirkung auf die Community:** Ein Muster schwerwiegender Verstöße gegen die
+Community-Standards, einschließlich fortgesetzten unangemessenen Verhaltens,
+Belästigung einzelner Personen oder Herabwürdigung ganzer Personengruppen.
 
-This Code of Conduct is adapted from the [Contributor Covenant][homepage],
-version 2.0, available at
-https://www.contributor-covenant.org/version/2/0/code_of_conduct.html.
+**Konsequenz:** Dauerhafter Ausschluss von jeglicher öffentlicher Interaktion
+innerhalb der 365CMS-Community.
 
-Community Impact Guidelines were inspired by [Mozilla's code of conduct
-enforcement ladder](https://github.com/mozilla/diversity).
+## Quellenangabe
+
+Dieser Verhaltenskodex basiert auf dem
+[Contributor Covenant][homepage], Version 2.0:
+
+https://www.contributor-covenant.org/version/2/0/code_of_conduct.html
+
+Die Richtlinien zur Durchsetzung sind von der
+[Mozilla Code of Conduct Enforcement Ladder](https://github.com/mozilla/diversity)
+inspiriert.
 
 [homepage]: https://www.contributor-covenant.org
 
-For answers to common questions about this code of conduct, see the FAQ at
-https://www.contributor-covenant.org/faq. Translations are available at
-https://www.contributor-covenant.org/translations.
+Antworten auf häufige Fragen finden sich in den FAQ unter:
+
+https://www.contributor-covenant.org/faq
+
+Weitere Übersetzungen sind verfügbar unter:
+
+https://www.contributor-covenant.org/translations

@@ -32,13 +32,7 @@ final class SiteTableHubRenderer
         }
 
         try {
-            $db = Database::instance();
-            $contentType = $db->get_var(
-                "SELECT content_type FROM {$db->prefix()}pages WHERE slug = ? AND status = 'published' LIMIT 1",
-                [$slug]
-            );
-
-            return (string) $contentType === 'hub';
+            return \CMS\Services\SiteTableService::getInstance()->hubExistsBySlug($slug);
         } catch (\Throwable $e) {
             return false;
         }
