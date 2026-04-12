@@ -19,35 +19,19 @@
 [🌐 Website](https://365cms.de) • [🚀 Installation](DOC/INSTALLATION.md) • [📚 Dokumentation](DOC/INDEX.md) • [🎨 Themes](DOC/theme/README.md) • [🔌 Plugins](DOC/plugins/GUIDE.md) 
 ---
 </div>
-## Navigation
-<a id="en-who-it-fits"></a>
 
-<a id="en-use-cases"></a>
-- [🖼️ Screenshots](#screenshots)
-<a id="en-why-instead-of-extra-tools"></a>
+## Navigation
 - [🇩🇪 Deutsch](#deutsch)
-<a id="en-does-especially-well"></a>
 	- [✨ Warum 365CMS?](#de-warum-365cms)
-<a id="en-positioned"></a>
 	- [💎 auf einen Blick](#de-auf-einen-blick)
-<a id="en-workflows"></a>
 	- [🎯 Ideal für](#de-ideal-fuer)
-<a id="en-admin-areas"></a>
 	- [🧭 Für wen – und für wen eher nicht?](#de-fuer-wen)
-<a id="en-extensibility"></a>
 	- [🏢 Use Cases / Trusted For](#de-use-cases)
-<a id="en-quick-start"></a>
 	- [⚖️ Warum 365CMS statt „CMS + fünf Zusatztools“?](#de-warum-statt-zusatztools)
-<a id="en-requirements"></a>
 	- [🧩 Was 365CMS besonders stark macht](#de-besonders-stark)
-<a id="en-installation"></a>
 	- [🚀 Kurz positioniert](#de-kurz-positioniert)
-<a id="en-first-steps"></a>
 	- [⚙️ Typische Workflows in 365CMS](#de-workflows)
-<a id="en-documentation"></a>
 	- [🧭 Admin-Bereiche im Überblick](#de-admin-bereiche)
-<a id="en-support"></a>
-<a id="next-step"></a>
 	- [🚀 Schnellstart](#de-schnellstart)
 		- [Voraussetzungen](#de-voraussetzungen)
 		- [Installation in Kürze](#de-installation)
