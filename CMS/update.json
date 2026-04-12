@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.9.199",
+  "version": "2.9.200",
   "min_php": "8.4",
   "released": "2026-04-12",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 2.9.199: Die Vendor-/Asset-Diagnose bleibt jetzt auch bei fehlerhaften Bundle-Symbolprüfungen sichtbar und zeigt konkrete Runtime-Hinweise an, statt komplett auf leere Tabellen zurückzufallen.",
+  "notes": "Release-Stand 2.9.200: Die Asset-Diagnose lädt lokale Symfony-Contracts für Translation/Mailer-Fälle und zeigt zusätzlich mehr aktive Runtime-Assets sowie dokumentierte Staging-Kandidaten wie AI-Platform in der Vendor-/Asset-Registry an.",
   "critical": false
 }

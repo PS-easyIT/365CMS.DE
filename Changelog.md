@@ -1,4 +1,4 @@
-﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.199-blue.svg)](https://shields.io/)
+﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.200-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -19,6 +19,12 @@
 ## 📜 Vollständige Versionshistorie
 
 ---
+
+### v2.9.200 — 12. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.200** | 🔴 fix | System/Assets & Diagnose | **`CMS/assets/autoload.php` lädt jetzt lokale `Symfony\Contracts`-Shims für die produktiv gebündelten Translation-/Mailer-Pfade und `CMS/core/VendorRegistry.php` deckt zusätzlich aktive Runtime-Assets wie `editorjs`, `gridjs`, `PhotoSwipe`, `SunEditor`, `Tabler` sowie dokumentierte Staging-Kandidaten wie `symfony/ai-platform` ab**: Die Diagnose meldet damit `symfony/translation` nicht mehr mit fehlendem `TranslatorInterface`, und die Vendor-/Asset-Registry zeigt deutlich mehr vom tatsächlichen Asset-Bestand statt nur einen schmalen PHP-Subset. |
 
 ### v2.9.199 — 12. April 2026
 

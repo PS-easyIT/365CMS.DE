@@ -1,8 +1,8 @@
-# 365CMS.DE  [![Version](https://img.shields.io/badge/Version-2.9.199-blue.svg)](Changelog.md) ![Status](https://img.shields.io/badge/Status-Stable-16a34a) ![PHP](https://img.shields.io/badge/PHP-8.4%2B-777BB4?logo=php&logoColor=white) ![MySQL](https://img.shields.io/badge/MySQL-5.7%2B-4479A1?logo=mysql&logoColor=white) ![MariaDB](https://img.shields.io/badge/MariaDB-10.3%2B-003545?logo=mariadb&logoColor=white)
+# 365CMS.DE  [![Version](https://img.shields.io/badge/Version-2.9.200-blue.svg)](Changelog.md) ![Status](https://img.shields.io/badge/Status-Stable-16a34a) ![PHP](https://img.shields.io/badge/PHP-8.4%2B-777BB4?logo=php&logoColor=white) ![MySQL](https://img.shields.io/badge/MySQL-5.7%2B-4479A1?logo=mysql&logoColor=white) ![MariaDB](https://img.shields.io/badge/MariaDB-10.3%2B-003545?logo=mariadb&logoColor=white)
 
 <div align="center">
 
-### **Content. Members. SEO. Operations. And more!**
+### **Content. Members. SEO. Operations. And more!** [🇩🇪 Deutsch](https://github.com/PS-easyIT/365CMS.DE?tab=readme-ov-file#-deutsch) | [🇬🇧 English](https://github.com/PS-easyIT/365CMS.DE?tab=readme-ov-file#-english)
 
 #### 365CMS vereint Publishing, Mitgliederfunktionen, Design, Compliance und operative Kontrolle in einem klaren System – für Teams, die wachsen wollen, ohne sich in Plugins, Workarounds und Tool-Ketten zu verlieren.
 
@@ -22,10 +22,6 @@
 ---
 
 </div>
-
-## Navigation
-- [🇩🇪 Deutsch](https://github.com/PS-easyIT/365CMS.DE?tab=readme-ov-file#-deutsch)
-- [🇬🇧 English](https://github.com/PS-easyIT/365CMS.DE?tab=readme-ov-file#-english)
 
 ## 🖼️ Screenshots
 
