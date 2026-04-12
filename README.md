@@ -1,12 +1,6 @@
-# 365CMS.DE
+# 365CMS.DE  |  [![Version](https://img.shields.io/badge/Version-2.9.198-blue.svg)](Changelog.md) ![Status](https://img.shields.io/badge/Status-Stable-16a34a) ![PHP](https://img.shields.io/badge/PHP-8.4%2B-777BB4?logo=php&logoColor=white) ![MySQL](https://img.shields.io/badge/MySQL-5.7%2B-4479A1?logo=mysql&logoColor=white) ![MariaDB](https://img.shields.io/badge/MariaDB-10.3%2B-003545?logo=mariadb&logoColor=white)
 
 <div align="center">
-
-[![Version](https://img.shields.io/badge/Version-2.9.198-blue.svg)](Changelog.md)
-![Status](https://img.shields.io/badge/Status-Stable-16a34a)
-![PHP](https://img.shields.io/badge/PHP-8.4%2B-777BB4?logo=php&logoColor=white)
-![MySQL](https://img.shields.io/badge/MySQL-5.7%2B-4479A1?logo=mysql&logoColor=white)
-![MariaDB](https://img.shields.io/badge/MariaDB-10.3%2B-003545?logo=mariadb&logoColor=white)
 
 ![Self-Hosted](https://img.shields.io/badge/Self--Hosted-Ready-15803d)
 ![Members](https://img.shields.io/badge/Members-Built--In-0f766e)

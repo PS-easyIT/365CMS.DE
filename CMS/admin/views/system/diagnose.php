@@ -274,6 +274,9 @@ foreach ($tables as $tableInfo) {
                                                             <td>
                                                                 <div class="fw-semibold"><?php echo htmlspecialchars((string)($package['label'] ?? $package['package'] ?? '')); ?></div>
                                                                 <div class="text-secondary small"><code><?php echo htmlspecialchars((string)($package['path'] ?? '')); ?></code></div>
+                                                                <?php if (!empty($package['runtime_error'])): ?>
+                                                                    <div class="text-warning small mt-1"><?php echo htmlspecialchars((string)$package['runtime_error']); ?></div>
+                                                                <?php endif; ?>
                                                             </td>
                                                             <td><span class="badge bg-<?php echo !empty($package['available']) ? 'success' : 'danger'; ?>-lt"><?php echo !empty($package['available']) ? 'Ja' : 'Nein'; ?></span></td>
                                                             <td><span class="badge bg-<?php echo !empty($package['loaded']) ? 'success' : 'secondary'; ?>-lt"><?php echo !empty($package['loaded']) ? 'Ja' : 'Nein'; ?></span></td>
@@ -308,6 +311,9 @@ foreach ($tables as $tableInfo) {
                                                             <td>
                                                                 <div class="fw-semibold"><?php echo htmlspecialchars((string)($library['label'] ?? $library['package'] ?? '')); ?></div>
                                                                 <div class="text-secondary small"><?php echo htmlspecialchars((string)($library['notes'] ?? '')); ?></div>
+                                                                <?php if (!empty($library['runtime_error'])): ?>
+                                                                    <div class="text-warning small mt-1"><?php echo htmlspecialchars((string)$library['runtime_error']); ?></div>
+                                                                <?php endif; ?>
                                                             </td>
                                                             <td><span class="badge bg-<?php echo !empty($library['available']) ? 'success' : 'danger'; ?>-lt"><?php echo !empty($library['available']) ? 'vorhanden' : 'fehlt'; ?></span></td>
                                                             <td><span class="badge bg-<?php echo !empty($library['runtime_ready']) ? 'success' : 'secondary'; ?>-lt"><?php echo !empty($library['runtime_ready']) ? 'auflösbar' : 'nicht aufgelöst'; ?></span></td>
@@ -355,7 +361,12 @@ foreach ($tables as $tableInfo) {
                                                         ?>
                                                         <tr>
                                                             <td><code><?php echo htmlspecialchars((string)($entry['package'] ?? '')); ?></code></td>
-                                                            <td><code><?php echo htmlspecialchars((string)($entry['manifest'] ?? '')); ?></code></td>
+                                                            <td>
+                                                                <code><?php echo htmlspecialchars((string)($entry['manifest'] ?? '')); ?></code>
+                                                                <?php if (!empty($entry['runtime_error'])): ?>
+                                                                    <div class="text-warning small mt-1"><?php echo htmlspecialchars((string)$entry['runtime_error']); ?></div>
+                                                                <?php endif; ?>
+                                                            </td>
                                                             <td><?php echo htmlspecialchars((string)($entry['required_php'] ?? '—')); ?></td>
                                                             <td><?php echo htmlspecialchars((string)($entry['cms_required_php'] ?? '—')); ?></td>
                                                             <td><?php echo htmlspecialchars((string)($entry['runtime_php'] ?? '—')); ?></td>

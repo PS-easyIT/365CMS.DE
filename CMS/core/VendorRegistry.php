@@ -166,13 +166,15 @@ final class VendorRegistry
         $packages = [];
 
         foreach ($this->getManagedPackageDefinitions() as $package => $definition) {
+            $loadStatus = $this->getPackageLoadStatus($package);
             $packages[] = [
                 'package' => $package,
                 'label' => $definition['label'],
                 'path' => $this->normalizeDisplayedPath($definition['path']),
                 'available' => $this->pathExists($definition['path'], $definition['path_type']),
-                'loaded' => $this->isPackageLoaded($package),
+                'loaded' => $loadStatus['loaded'],
                 'notes' => $definition['notes'],
+                'runtime_error' => $loadStatus['error'],
             ];
         }
 
@@ -195,15 +197,18 @@ final class VendorRegistry
                 }
             }
 
-            $runtimeReady = $available && $this->isRuntimeSymbolReady($definition['symbol'], $definition['symbol_type']);
+            $runtimeStatus = $available
+                ? $this->getRuntimeSymbolStatus($definition['symbol'], $definition['symbol_type'])
+                : ['ready' => false, 'error' => null];
 
             $diagnostics[] = [
                 'package' => $definition['package'],
                 'label' => $definition['label'],
                 'paths' => array_map(fn(array $path): string => $this->normalizeDisplayedPath($path['path']), $definition['paths']),
                 'available' => $available,
-                'runtime_ready' => $runtimeReady,
+                'runtime_ready' => $runtimeStatus['ready'],
                 'notes' => $definition['notes'],
+                'runtime_error' => $runtimeStatus['error'],
             ];
         }
 
@@ -219,7 +224,8 @@ final class VendorRegistry
         $diagnostics = [];
 
         foreach ($this->getBundledPlatformManifestDefinitions() as $packageName => $manifestPath) {
-            $bundlePhpVersion = $this->extractMinimumPhpVersion($manifestPath);
+            $platformStatus = $this->getPlatformManifestStatus($manifestPath);
+            $bundlePhpVersion = $platformStatus['required_php'];
             $diagnostics[] = [
                 'package' => $packageName,
                 'manifest' => $this->normalizeDisplayedPath($manifestPath),
@@ -229,6 +235,7 @@ final class VendorRegistry
                 'runtime_php' => PHP_VERSION,
                 'cms_compatible' => $bundlePhpVersion === null ? null : version_compare($requiredPhpVersion, $bundlePhpVersion, '>='),
                 'runtime_compatible' => $bundlePhpVersion === null ? null : version_compare(PHP_VERSION, $bundlePhpVersion, '>='),
+                'runtime_error' => $platformStatus['error'],
             ];
         }
 
@@ -391,6 +398,24 @@ final class VendorRegistry
         };
     }
 
+    /**
+     * @return array{loaded: bool, error: ?string}
+     */
+    private function getPackageLoadStatus(string $package): array
+    {
+        try {
+            return [
+                'loaded' => $this->isPackageLoaded($package),
+                'error' => null,
+            ];
+        } catch (\Throwable $e) {
+            return [
+                'loaded' => false,
+                'error' => $this->formatRuntimeError($e),
+            ];
+        }
+    }
+
     private function isRuntimeSymbolReady(string $symbol, string $type): bool
     {
         return match ($type) {
@@ -399,12 +424,48 @@ final class VendorRegistry
         };
     }
 
+    /**
+     * @return array{ready: bool, error: ?string}
+     */
+    private function getRuntimeSymbolStatus(string $symbol, string $type): array
+    {
+        try {
+            return [
+                'ready' => $this->isRuntimeSymbolReady($symbol, $type),
+                'error' => null,
+            ];
+        } catch (\Throwable $e) {
+            return [
+                'ready' => false,
+                'error' => $this->formatRuntimeError($e),
+            ];
+        }
+    }
+
     private function pathExists(string $path, string $type): bool
     {
         return match ($type) {
             'dir' => is_dir($path),
             default => is_file($path),
         };
+    }
+
+    /**
+     * @return array{required_php: ?string, error: ?string}
+     */
+    private function getPlatformManifestStatus(string $manifestPath): array
+    {
+        try {
+            return [
+                'required_php' => $this->extractMinimumPhpVersion($manifestPath),
+                'error' => null,
+            ];
+        } catch (\Throwable $e) {
+            return [
+                'required_php' => null,
+                'error' => $this->formatRuntimeError($e),
+            ];
+        }
     }
 
     private function normalizeDisplayedPath(string $path): string
@@ -465,6 +526,11 @@ final class VendorRegistry
         }
 
         return implode('.', array_slice($parts, 0, 3));
+    }
+
+    private function formatRuntimeError(\Throwable $e): string
+    {
+        return $e->getMessage() . ' @ ' . $this->normalizeDisplayedPath($e->getFile()) . ':' . $e->getLine();
     }
 
     /**
