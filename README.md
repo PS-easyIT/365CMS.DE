@@ -24,9 +24,9 @@
 </div>
 
 ## Navigation
-- ![🇩🇪 Deutsch](#deutsch)https://github.com/PS-easyIT/365CMS.DE?tab=readme-ov-file#-deutsch
-- ![🇬🇧 English](#english)https://github.com/PS-easyIT/365CMS.DE?tab=readme-ov-file#-englishv
-- ![🚀 Bereit für den nächsten Schritt? / Ready for the next step?](#next-step)https://github.com/PS-easyIT/365CMS.DE?tab=readme-ov-file#%E2%80%8D-support--license
+- [🇩🇪 Deutsch](https://github.com/PS-easyIT/365CMS.DE?tab=readme-ov-file#-deutsch)
+- [🇬🇧 English](https://github.com/PS-easyIT/365CMS.DE?tab=readme-ov-file#-englishv)
+- [🚀 Bereit für den nächsten Schritt? / Ready for the next step?](https://github.com/PS-easyIT/365CMS.DE?tab=readme-ov-file#%E2%80%8D-support--license)
 
 
 ## 🖼️ Screenshots

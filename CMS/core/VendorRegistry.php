@@ -490,7 +490,6 @@ final class VendorRegistry
             'symfony/mailer' => ABSPATH . 'assets' . DIRECTORY_SEPARATOR . 'mailer' . DIRECTORY_SEPARATOR . 'composer.json',
             'symfony/mime' => ABSPATH . 'assets' . DIRECTORY_SEPARATOR . 'mime' . DIRECTORY_SEPARATOR . 'composer.json',
             'symfony/translation' => ABSPATH . 'assets' . DIRECTORY_SEPARATOR . 'translation' . DIRECTORY_SEPARATOR . 'composer.json',
-            'nesbot/carbon' => ABSPATH . 'assets' . DIRECTORY_SEPARATOR . 'Carbon' . DIRECTORY_SEPARATOR . 'composer.json',
         ];
     }
 
