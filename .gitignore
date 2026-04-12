@@ -87,7 +87,7 @@ CMS/tmp*.php
 CMS/tmp-hub-template-dump.php
 /tests/*
 /DOC/audit/
-/STAGING/
+/STAGING/tests/
 */Test/*
 CMS/assets/translation/Test/
 CMS/assets/mime/Test/
