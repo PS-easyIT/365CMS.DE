@@ -1,44 +1,78 @@
 # 365CMS.DE  [![Version](https://img.shields.io/badge/Version-2.9.199-blue.svg)](Changelog.md) ![Status](https://img.shields.io/badge/Status-Stable-16a34a) ![PHP](https://img.shields.io/badge/PHP-8.4%2B-777BB4?logo=php&logoColor=white) ![MySQL](https://img.shields.io/badge/MySQL-5.7%2B-4479A1?logo=mysql&logoColor=white) ![MariaDB](https://img.shields.io/badge/MariaDB-10.3%2B-003545?logo=mariadb&logoColor=white)
 
 <div align="center">
+<a id="screenshots"></a>
+<a id="deutsch"></a>
 
-### **Inhalte. Mitglieder. SEO. Betrieb. Eine self-hosted Plattform.**
-
+<a id="de-warum-365cms"></a>
 #### 365CMS vereint Publishing, Mitgliederfunktionen, Design, Compliance und operative Kontrolle in einem klaren System – für Teams, die wachsen wollen, ohne sich in Plugins, Workarounds und Tool-Ketten zu verlieren.
+<a id="de-auf-einen-blick"></a>
 
+<a id="de-ideal-fuer"></a>
 ### **Content. Members. SEO. Operations. One self-hosted platform.**
+<a id="de-fuer-wen"></a>
 
+<a id="de-use-cases"></a>
 #### 365CMS brings publishing, member features, design, compliance and operational control into one clear system — for teams that want to grow without getting buried under plugins, workarounds and tool chains.
+<a id="de-warum-statt-zusatztools"></a>
 
+<a id="de-besonders-stark"></a>
 ---
+<a id="de-kurz-positioniert"></a>
 
+<a id="de-workflows"></a>
 ![Self-Hosted](https://img.shields.io/badge/Self--Hosted-Ready-15803d)
+<a id="de-admin-bereiche"></a>
 ![Members](https://img.shields.io/badge/Members-Built--In-0f766e)
+<a id="de-erweiterbarkeit"></a>
 ![Themes](https://img.shields.io/badge/Themes-Built--In-2563eb)
+<a id="de-schnellstart"></a>
 ![Plugins](https://img.shields.io/badge/Plugins-Extensible-7c3aed)
+<a id="de-voraussetzungen"></a>
 ![SEO](https://img.shields.io/badge/SEO-Integrated-f59e0b)
+<a id="de-installation"></a>
 ![GDPR](https://img.shields.io/badge/GDPR-Ready-334155)
+<a id="de-erste-schritte"></a>
 
+<a id="de-doku"></a>
 [🌐 Website](https://365cms.de) • [🚀 Installation](DOC/INSTALLATION.md) • [📚 Dokumentation](DOC/INDEX.md) • [🎨 Themes](DOC/theme/README.md) • [🔌 Plugins](DOC/plugins/GUIDE.md) • [📝 Changelog](Changelog.md)
-
+<a id="de-support"></a>
+<a id="english"></a>
 ---
+<a id="en-why-365cms"></a>
 </div>
+<a id="en-core-usp"></a>
 
+<a id="en-ideal-for"></a>
 ## Navigation
+<a id="en-who-it-fits"></a>
 
+<a id="en-use-cases"></a>
 - [🖼️ Screenshots](#screenshots)
+<a id="en-why-instead-of-extra-tools"></a>
 - [🇩🇪 Deutsch](#deutsch)
+<a id="en-does-especially-well"></a>
 	- [✨ Warum 365CMS?](#de-warum-365cms)
+<a id="en-positioned"></a>
 	- [💎 auf einen Blick](#de-auf-einen-blick)
+<a id="en-workflows"></a>
 	- [🎯 Ideal für](#de-ideal-fuer)
+<a id="en-admin-areas"></a>
 	- [🧭 Für wen – und für wen eher nicht?](#de-fuer-wen)
+<a id="en-extensibility"></a>
 	- [🏢 Use Cases / Trusted For](#de-use-cases)
+<a id="en-quick-start"></a>
 	- [⚖️ Warum 365CMS statt „CMS + fünf Zusatztools“?](#de-warum-statt-zusatztools)
+<a id="en-requirements"></a>
 	- [🧩 Was 365CMS besonders stark macht](#de-besonders-stark)
+<a id="en-installation"></a>
 	- [🚀 Kurz positioniert](#de-kurz-positioniert)
+<a id="en-first-steps"></a>
 	- [⚙️ Typische Workflows in 365CMS](#de-workflows)
+<a id="en-documentation"></a>
 	- [🧭 Admin-Bereiche im Überblick](#de-admin-bereiche)
-	- [🔌 Erweiterbarkeit & Ökosystem](#de-erweiterbarkeit)
+<a id="en-support"></a>
+<a id="next-step"></a>
 	- [🚀 Schnellstart](#de-schnellstart)
 		- [Voraussetzungen](#de-voraussetzungen)
 		- [Installation in Kürze](#de-installation)
