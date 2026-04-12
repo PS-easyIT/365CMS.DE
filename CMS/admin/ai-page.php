@@ -43,7 +43,7 @@ const CMS_ADMIN_AI_ALLOWED_ACTIONS_BY_SECTION = [
     'translation' => ['save_translation'],
     'content_creator' => [],
     'seo_creator' => [],
-    'settings' => ['save_providers', 'save_features', 'save_logging', 'save_quotas'],
+    'settings' => ['add_provider', 'delete_provider', 'save_providers', 'save_features', 'save_logging', 'save_quotas'],
 ];
 
 function cms_admin_ai_has_any_capability(array $capabilities): bool
@@ -131,6 +131,8 @@ function cms_admin_ai_resolve_section_for_action(string $action, string $fallbac
 function cms_admin_ai_handle_action(AiServicesModule $module, string $action, array $post): array
 {
     return match ($action) {
+        'add_provider' => $module->addProvider($post),
+        'delete_provider' => $module->deleteProvider($post),
         'save_providers' => $module->saveProviders($post),
         'save_features' => $module->saveFeatures($post),
         'save_translation' => $module->saveTranslation($post),

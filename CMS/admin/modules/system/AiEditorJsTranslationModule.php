@@ -50,8 +50,8 @@ final class AiEditorJsTranslationModule
 
             AuditLogger::instance()->log(
                 AuditLogger::CAT_CONTENT,
-                'ai.editorjs.translate.mock',
-                'Editor.js-Inhalt wurde über die AI-Mock-Pipeline verarbeitet.',
+                'ai.editorjs.translate.processed',
+                'Editor.js-Inhalt wurde über die AI-Translation-Pipeline verarbeitet.',
                 $contentType,
                 null,
                 array_filter([
@@ -70,7 +70,7 @@ final class AiEditorJsTranslationModule
 
             return [
                 'success' => true,
-                'message' => 'Mock-Übersetzung für Editor.js wurde erzeugt.',
+                'message' => 'AI-Übersetzung für Editor.js wurde erzeugt.',
             ] + $result;
         } catch (\Throwable $e) {
             Logger::instance()->withChannel('admin.ai-translate')->error('Editor.js-AI-Übersetzung konnte nicht verarbeitet werden.', [
@@ -145,7 +145,7 @@ final class AiEditorJsTranslationModule
 
         $length = function_exists('mb_strlen') ? mb_strlen($value, '8bit') : strlen($value);
         if ($length > self::MAX_EDITOR_JSON_LENGTH) {
-            throw new \InvalidArgumentException('Die Editor.js-Payload ist für die Mock-Übersetzung zu groß.');
+            throw new \InvalidArgumentException('Die Editor.js-Payload ist für die AI-Übersetzung zu groß.');
         }
 
         return $value;

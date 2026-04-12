@@ -1312,7 +1312,7 @@
                         }
 
                         return applyResolvedTranslation(aiTranslation, resolvedOutput).then(function () {
-                            showNotice('success', (result.message || 'Mock-Übersetzung wurde in die EN-Bearbeitung übernommen.') + warningText);
+                            showNotice('success', (result.message || 'AI-Übersetzung wurde in die EN-Bearbeitung übernommen.') + warningText);
                         });
                     });
                 }).catch(function (error) {

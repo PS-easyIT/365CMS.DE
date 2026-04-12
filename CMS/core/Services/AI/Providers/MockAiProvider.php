@@ -11,14 +11,25 @@ if (!defined('ABSPATH')) {
 
 final class MockAiProvider implements AiProviderInterface
 {
+    private string $providerId;
+    private string $label;
+    private string $defaultModel;
+
+    public function __construct(string $providerId = 'mock', string $label = 'Mock Provider', string $defaultModel = 'mock-local-v1')
+    {
+        $this->providerId = trim($providerId) !== '' ? trim($providerId) : 'mock';
+        $this->label = trim($label) !== '' ? trim($label) : 'Mock Provider';
+        $this->defaultModel = trim($defaultModel) !== '' ? trim($defaultModel) : 'mock-local-v1';
+    }
+
     public function getSlug(): string
     {
-        return 'mock';
+        return $this->providerId;
     }
 
     public function getLabel(): string
     {
-        return 'Mock Provider';
+        return $this->label;
     }
 
     public function isMock(): bool
@@ -28,7 +39,7 @@ final class MockAiProvider implements AiProviderInterface
 
     public function getDefaultModel(): string
     {
-        return 'mock-local-v1';
+        return $this->defaultModel;
     }
 
     /**

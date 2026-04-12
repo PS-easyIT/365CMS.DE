@@ -10,7 +10,28 @@ if (!defined('CMS_ADMIN_AI_VIEW')) {
 }
 
 $providersData = is_array($data['providers'] ?? null) ? $data['providers'] : [];
-$providers = is_array($providersData['providers'] ?? null) ? $providersData['providers'] : [];
+$providers = array_values(array_filter(
+    (array) ($providersData['entries'] ?? []),
+    static fn (mixed $entry): bool => is_array($entry)
+));
+$providerCatalog = is_array($providersData['catalog'] ?? null) ? $providersData['catalog'] : [];
+$providerCatalogAddable = array_filter(
+    $providerCatalog,
+    static fn (array $entry): bool => !empty($entry['addable'])
+);
+$providerOptions = [];
+foreach ($providers as $provider) {
+    $providerId = (string) ($provider['id'] ?? '');
+    if ($providerId === '') {
+        continue;
+    }
+
+    $providerOptions[$providerId] = $provider;
+}
+$activeProviderId = (string) ($providersData['active_provider_id'] ?? '');
+$fallbackProviderId = (string) ($providersData['fallback_provider_id'] ?? '');
+$activeProviderLabel = (string) (($providerOptions[$activeProviderId]['label'] ?? '') ?: '—');
+$fallbackProviderLabel = (string) (($providerOptions[$fallbackProviderId]['label'] ?? '') ?: '—');
 $features = is_array($data['features'] ?? null) ? $data['features'] : [];
 $translation = is_array($data['translation'] ?? null) ? $data['translation'] : [];
 $logging = is_array($data['logging'] ?? null) ? $data['logging'] : [];
@@ -81,11 +102,6 @@ $renderSwitch = static function (string $name, string $label, bool $checked, str
     </label>
     <?php
 };
-$providerSecretFields = [
-    'openai' => ['key' => 'openai_api_key', 'label' => 'API-Key'],
-    'azure_openai' => ['key' => 'azure_openai_api_key', 'label' => 'API-Key / Deployment-Secret'],
-    'openrouter' => ['key' => 'openrouter_api_key', 'label' => 'API-Key'],
-];
 $translationReadyProviders = array_values(array_filter($providers, static fn (array $provider): bool => !empty($provider['enabled']) && !empty($provider['translation_enabled'])));
 $contentAssistProviders = array_values(array_filter($providers, static fn (array $provider): bool => !empty($provider['enabled']) && (!empty($provider['rewrite_enabled']) || !empty($provider['summary_enabled']))));
 $seoAssistProviders = array_values(array_filter($providers, static fn (array $provider): bool => !empty($provider['enabled']) && !empty($provider['seo_meta_enabled'])));

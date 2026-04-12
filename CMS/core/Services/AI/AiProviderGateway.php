@@ -3,9 +3,12 @@ declare(strict_types=1);
 
 namespace CMS\Services\AI;
 
+use CMS\Http\Client;
 use CMS\Json;
 use CMS\Logger;
+use CMS\Services\AI\Providers\AzureOpenAiProvider;
 use CMS\Services\AI\Providers\MockAiProvider;
+use CMS\Services\AI\Providers\OllamaAiProvider;
 use CMS\Services\EditorJs\EditorJsSanitizer;
 
 if (!defined('ABSPATH')) {
@@ -19,6 +22,7 @@ final class AiProviderGateway
     private AiSettingsService $settings;
     private EditorJsTranslationPipeline $pipeline;
     private EditorJsSanitizer $editorJsSanitizer;
+    private Client $httpClient;
 
     public static function getInstance(): self
     {
@@ -30,6 +34,7 @@ final class AiProviderGateway
         $this->settings = AiSettingsService::getInstance();
         $this->pipeline = EditorJsTranslationPipeline::getInstance();
         $this->editorJsSanitizer = new EditorJsSanitizer();
+        $this->httpClient = Client::getInstance();
     }
 
     /**
@@ -64,7 +69,7 @@ final class AiProviderGateway
 
         $this->enforceQuotas($title, $excerpt, $sanitizedJson, count($blocks), $quotaConfig);
 
-        $providerResolution = $this->resolveProvider($providersConfig, $targetLocale);
+        $providerResolution = $this->resolveProvider($providersConfig, $targetLocale, $quotaConfig);
         /** @var AiProviderInterface $provider */
         $provider = $providerResolution['provider'];
         $providerConfig = is_array($providerResolution['config'] ?? null) ? $providerResolution['config'] : [];
@@ -87,6 +92,7 @@ final class AiProviderGateway
             'duration_ms' => (int) round((microtime(true) - $startedAt) * 1000),
             'requested_provider' => (string) ($providerResolution['requested_provider'] ?? 'mock'),
             'resolved_provider' => $provider->getSlug(),
+            'resolved_provider_type' => (string) ($providerConfig['type'] ?? 'mock'),
             'resolved_via' => (string) ($providerResolution['resolved_via'] ?? 'direct'),
             'content_type' => $contentType,
             'source_locale' => $sourceLocale,
@@ -106,6 +112,7 @@ final class AiProviderGateway
 
         Logger::instance()->withChannel('ai.gateway')->info('AI Editor.js-Übersetzung wurde verarbeitet.', [
             'provider' => $provider->getSlug(),
+            'provider_type' => (string) ($providerConfig['type'] ?? 'mock'),
             'resolved_via' => (string) ($providerResolution['resolved_via'] ?? 'direct'),
             'content_type' => $contentType,
             'target_locale' => $targetLocale,
@@ -116,6 +123,8 @@ final class AiProviderGateway
         return [
             'provider' => [
                 'slug' => $provider->getSlug(),
+                'type' => (string) ($providerConfig['type'] ?? 'mock'),
+                'id' => (string) ($providerConfig['id'] ?? $provider->getSlug()),
                 'label' => $provider->getLabel(),
                 'model' => (string) ($providerConfig['default_model'] ?? $provider->getDefaultModel()),
                 'mock' => $provider->isMock(),
@@ -199,34 +208,63 @@ final class AiProviderGateway
 
     /**
      * @param array<string, mixed> $providersConfig
+     * @param array<string, mixed> $quotaConfig
      * @return array{provider:AiProviderInterface,config:array<string,mixed>,requested_provider:string,resolved_via:string,warnings:list<string>}
      */
-    private function resolveProvider(array $providersConfig, string $targetLocale): array
+    private function resolveProvider(array $providersConfig, string $targetLocale, array $quotaConfig): array
     {
-        $providerProfiles = is_array($providersConfig['providers'] ?? null) ? $providersConfig['providers'] : [];
-        $requestedProvider = (string) ($providersConfig['active_provider'] ?? 'mock');
-        $fallbackProvider = (string) ($providersConfig['fallback_provider'] ?? 'openai');
+        $providerEntries = array_values(array_filter(
+            (array) ($providersConfig['entries'] ?? []),
+            static fn (mixed $entry): bool => is_array($entry)
+        ));
+        $requestedProvider = trim((string) ($providersConfig['active_provider_id'] ?? ''));
+        $fallbackProvider = trim((string) ($providersConfig['fallback_provider_id'] ?? ''));
         $warnings = [];
 
-        $candidates = array_values(array_unique(array_filter([$requestedProvider, $fallbackProvider, 'mock'])));
-
-        foreach ($candidates as $index => $providerSlug) {
-            $providerConfig = is_array($providerProfiles[$providerSlug] ?? null) ? $providerProfiles[$providerSlug] : [];
-            if (!$this->isProviderReady($providerSlug, $providerConfig, $targetLocale)) {
+        $entriesById = [];
+        foreach ($providerEntries as $entry) {
+            $entryId = trim((string) ($entry['id'] ?? ''));
+            if ($entryId === '') {
                 continue;
             }
 
-            $provider = $this->createProvider($providerSlug);
+            $entriesById[$entryId] = $entry;
+        }
+
+        $candidateIds = array_values(array_unique(array_filter(array_merge(
+            [$requestedProvider, $fallbackProvider],
+            array_keys($entriesById)
+        ))));
+
+        foreach ($candidateIds as $index => $providerId) {
+            $providerConfig = is_array($entriesById[$providerId] ?? null) ? $entriesById[$providerId] : [];
+            if ($providerConfig === []) {
+                continue;
+            }
+
+            $readinessIssues = $this->collectProviderReadinessIssues($providerConfig, $targetLocale);
+            if ($readinessIssues !== []) {
+                $warnings[] = 'Provider „' . (string) ($providerConfig['label'] ?? $providerId) . '“ wurde übersprungen: ' . implode(' ', $readinessIssues);
+                continue;
+            }
+
+            try {
+                $provider = $this->createProvider($providerConfig, $quotaConfig);
+            } catch (\Throwable $e) {
+                $warnings[] = 'Provider „' . (string) ($providerConfig['label'] ?? $providerId) . '“ konnte nicht initialisiert werden: ' . $e->getMessage();
+                continue;
+            }
+
             if ($provider === null) {
-                $warnings[] = 'Für den Provider „' . $providerSlug . '“ existiert noch kein Live-Adapter. Es wird der nächste verfügbare Provider geprüft.';
+                $warnings[] = 'Für den Provider „' . (string) ($providerConfig['label'] ?? $providerId) . '“ existiert aktuell noch kein Live-Adapter.';
                 continue;
             }
 
             return [
                 'provider' => $provider,
                 'config' => $providerConfig,
-                'requested_provider' => $requestedProvider,
-                'resolved_via' => $index === 0 ? 'direct' : ($providerSlug === 'mock' ? 'mock-fallback' : 'fallback'),
+                'requested_provider' => $requestedProvider !== '' ? $requestedProvider : $providerId,
+                'resolved_via' => $index === 0 ? 'direct' : ($providerId === $fallbackProvider ? 'fallback' : 'auto-fallback'),
                 'warnings' => $warnings,
             ];
         }
@@ -234,15 +272,26 @@ final class AiProviderGateway
         throw new \RuntimeException('Kein für Editor.js-Übersetzungen freigegebener Provider ist aktuell einsatzbereit.');
     }
 
-    /** @param array<string, mixed> $providerConfig */
-    private function isProviderReady(string $providerSlug, array $providerConfig, string $targetLocale): bool
+    /** @param array<string, mixed> $providerConfig
+     *  @return list<string>
+     */
+    private function collectProviderReadinessIssues(array $providerConfig, string $targetLocale): array
     {
-        if (!in_array($providerSlug, AiSettingsService::PROVIDER_SLUGS, true)) {
-            return false;
+        $issues = [];
+        $providerType = strtolower(trim((string) ($providerConfig['type'] ?? '')));
+        $providerId = trim((string) ($providerConfig['id'] ?? ''));
+
+        if ($providerId === '') {
+            $issues[] = 'Es fehlt eine interne Provider-ID.';
+        }
+
+        if (!AiSettingsService::isKnownProviderType($providerType)) {
+            $issues[] = 'Der Providertyp ist unbekannt.';
+            return $issues;
         }
 
         if (empty($providerConfig['enabled']) || empty($providerConfig['translation_enabled']) || empty($providerConfig['editorjs_enabled'])) {
-            return false;
+            $issues[] = 'Provider oder Translation-/Editor.js-Scope ist deaktiviert.';
         }
 
         $allowedLocales = array_values(array_unique(array_filter(array_map(
@@ -250,13 +299,74 @@ final class AiProviderGateway
             (array) ($providerConfig['allowed_locales'] ?? ['en'])
         ))));
 
-        return $allowedLocales === [] || in_array($targetLocale, $allowedLocales, true);
+        if ($allowedLocales !== [] && !in_array($targetLocale, $allowedLocales, true)) {
+            $issues[] = 'Zielsprache ' . strtoupper($targetLocale) . ' ist für diesen Provider nicht freigegeben.';
+        }
+
+        $definition = AiSettingsService::getProviderTypeDefinition($providerType);
+        if (!empty($definition['requires_secret']) && !$this->settings->hasProviderSecret($providerId, $providerType)) {
+            $issues[] = 'Es ist kein Secret/API-Key hinterlegt.';
+        }
+
+        if ($providerType === 'ollama') {
+            if (trim((string) ($providerConfig['endpoint'] ?? '')) === '') {
+                $issues[] = 'Der Ollama-Endpoint fehlt.';
+            }
+
+            if (trim((string) ($providerConfig['default_model'] ?? '')) === '') {
+                $issues[] = 'Das Ollama-Modell fehlt.';
+            }
+        }
+
+        if ($providerType === 'azure_openai') {
+            if (trim((string) ($providerConfig['endpoint'] ?? '')) === '') {
+                $issues[] = 'Der Azure-Endpoint fehlt.';
+            }
+
+            if (trim((string) ($providerConfig['deployment'] ?? '')) === '') {
+                $issues[] = 'Der Azure-Deployment-Name fehlt.';
+            }
+
+            if (trim((string) ($providerConfig['api_version'] ?? '')) === '') {
+                $issues[] = 'Die Azure-API-Version fehlt.';
+            }
+        }
+
+        return $issues;
     }
 
-    private function createProvider(string $providerSlug): ?AiProviderInterface
+    /** @param array<string, mixed> $providerConfig
+     *  @param array<string, mixed> $quotaConfig
+     */
+    private function createProvider(array $providerConfig, array $quotaConfig): ?AiProviderInterface
     {
-        return match ($providerSlug) {
-            'mock' => new MockAiProvider(),
+        $providerType = strtolower(trim((string) ($providerConfig['type'] ?? 'mock')));
+        $providerId = (string) ($providerConfig['id'] ?? $providerType);
+        $label = (string) ($providerConfig['label'] ?? ($providerConfig['type_label'] ?? ucfirst(str_replace('_', ' ', $providerType))));
+        $defaultModel = trim((string) ($providerConfig['default_model'] ?? ''));
+        $timeoutSeconds = max(5, (int) ($quotaConfig['timeout_seconds'] ?? 25));
+
+        return match ($providerType) {
+            'mock' => new MockAiProvider($providerId, $label, $defaultModel !== '' ? $defaultModel : 'mock-local-v1'),
+            'ollama' => new OllamaAiProvider(
+                $providerId,
+                $label,
+                $defaultModel !== '' ? $defaultModel : 'llama3.1:8b',
+                (string) ($providerConfig['endpoint'] ?? 'http://127.0.0.1:11434'),
+                $this->httpClient,
+                $timeoutSeconds
+            ),
+            'azure_openai' => new AzureOpenAiProvider(
+                $providerId,
+                $label,
+                $defaultModel !== '' ? $defaultModel : 'gpt-4.1-mini',
+                (string) ($providerConfig['endpoint'] ?? ''),
+                (string) ($providerConfig['deployment'] ?? ''),
+                (string) ($providerConfig['api_version'] ?? '2024-10-21'),
+                $this->settings->getProviderSecret($providerId, $providerType),
+                $this->httpClient,
+                $timeoutSeconds
+            ),
             default => null,
         };
     }

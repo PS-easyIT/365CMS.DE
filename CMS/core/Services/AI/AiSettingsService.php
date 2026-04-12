@@ -20,6 +20,52 @@ final class AiSettingsService
     /** @var list<string> */
     public const PROVIDER_SLUGS = ['mock', 'openai', 'azure_openai', 'ollama', 'openrouter'];
 
+    private const PROVIDER_SECRET_PREFIX = 'provider_secret_';
+
+    /** @var array<string, array<string, mixed>> */
+    private const PROVIDER_TYPE_DEFINITIONS = [
+        'mock' => [
+            'label' => 'Mock Provider',
+            'description' => 'Lokaler Testprovider ohne externen Live-Call.',
+            'requires_secret' => false,
+            'secret_label' => '',
+            'live_supported' => true,
+            'addable' => true,
+        ],
+        'ollama' => [
+            'label' => 'Ollama',
+            'description' => 'Lokaler oder interner Ollama-Endpunkt für echte Live-Übersetzungen.',
+            'requires_secret' => false,
+            'secret_label' => '',
+            'live_supported' => true,
+            'addable' => true,
+        ],
+        'azure_openai' => [
+            'label' => 'Azure AI',
+            'description' => 'Azure OpenAI / Azure AI Inference über Resource-Endpoint, Deployment und API-Key.',
+            'requires_secret' => true,
+            'secret_label' => 'API-Key',
+            'live_supported' => true,
+            'addable' => true,
+        ],
+        'openai' => [
+            'label' => 'OpenAI',
+            'description' => 'Vorbereitet für spätere Bridge-Anbindung; aktuell noch kein Live-Adapter im Gateway.',
+            'requires_secret' => true,
+            'secret_label' => 'API-Key',
+            'live_supported' => false,
+            'addable' => false,
+        ],
+        'openrouter' => [
+            'label' => 'OpenRouter',
+            'description' => 'Vorbereitet für spätere Bridge-Anbindung; aktuell noch kein Live-Adapter im Gateway.',
+            'requires_secret' => true,
+            'secret_label' => 'API-Key',
+            'live_supported' => false,
+            'addable' => false,
+        ],
+    ];
+
     /** @var array<string, string> */
     private const SUPPORTED_EDITORJS_BLOCK_TYPES = [
         'paragraph' => 'paragraph',
@@ -52,6 +98,81 @@ final class AiSettingsService
         $this->settings = SettingsService::getInstance();
     }
 
+    /** @return array<string, array<string, mixed>> */
+    public static function getProviderTypeDefinitions(bool $addableOnly = false): array
+    {
+        if (!$addableOnly) {
+            return self::PROVIDER_TYPE_DEFINITIONS;
+        }
+
+        return array_filter(
+            self::PROVIDER_TYPE_DEFINITIONS,
+            static fn (array $definition): bool => !empty($definition['addable'])
+        );
+    }
+
+    /** @return array<string, mixed> */
+    public static function getProviderTypeDefinition(string $providerType): array
+    {
+        $providerType = strtolower(trim($providerType));
+
+        return self::PROVIDER_TYPE_DEFINITIONS[$providerType] ?? self::PROVIDER_TYPE_DEFINITIONS['mock'];
+    }
+
+    public static function isKnownProviderType(string $providerType): bool
+    {
+        return array_key_exists(strtolower(trim($providerType)), self::PROVIDER_TYPE_DEFINITIONS);
+    }
+
+    public static function isAddableProviderType(string $providerType): bool
+    {
+        $definition = self::getProviderTypeDefinition($providerType);
+
+        return !empty($definition['addable']);
+    }
+
+    /** @return array<string, mixed> */
+    public function buildProviderEntry(string $providerType, ?string $providerId = null): array
+    {
+        $providerType = self::isKnownProviderType($providerType) ? strtolower(trim($providerType)) : 'mock';
+        $providerId = $this->sanitizeProviderId($providerId ?? $this->generateProviderId($providerType));
+
+        return $this->normalizeProviderEntry([
+            'id' => $providerId,
+            'type' => $providerType,
+        ], $providerType, $providerId);
+    }
+
+    public function getProviderSecret(string $providerId, string $providerType = ''): string
+    {
+        $providerId = $this->sanitizeProviderId($providerId);
+        if ($providerId === '') {
+            return '';
+        }
+
+        $secret = $this->settings->getString(self::GROUP_PROVIDERS, $this->buildProviderSecretKey($providerId));
+        if ($secret !== '') {
+            return $secret;
+        }
+
+        $providerType = strtolower(trim($providerType));
+        if ($providerType === '' && in_array($providerId, self::PROVIDER_SLUGS, true)) {
+            $providerType = $providerId;
+        }
+
+        $legacySecretKey = $this->resolveLegacySecretKey($providerType);
+        if ($legacySecretKey === '') {
+            return '';
+        }
+
+        return $this->settings->getString(self::GROUP_PROVIDERS, $legacySecretKey);
+    }
+
+    public function hasProviderSecret(string $providerId, string $providerType = ''): bool
+    {
+        return $this->getProviderSecret($providerId, $providerType) !== '';
+    }
+
     /** @return array<string, mixed> */
     public function getConfiguration(): array
     {
@@ -73,43 +194,68 @@ final class AiSettingsService
 
     /**
      * @param array<string, mixed> $meta
-     * @param array<string, array<string, mixed>> $providers
+     * @param list<array<string, mixed>> $entries
      * @param array<string, string> $secretValues
      * @param list<string> $clearSecrets
      */
-    public function saveProviders(array $meta, array $providers, array $secretValues = [], array $clearSecrets = []): bool
+    public function saveProviders(array $meta, array $entries, array $secretValues = [], array $clearSecrets = []): bool
     {
-        $payload = [];
+        $sanitizedEntries = [];
+        $knownEntryIds = [];
 
-        foreach ($meta as $key => $value) {
-            $payload[(string) $key] = $value;
+        foreach ($entries as $entry) {
+            if (!is_array($entry)) {
+                continue;
+            }
+
+            $providerType = strtolower(trim((string) ($entry['type'] ?? 'mock')));
+            if (!self::isKnownProviderType($providerType)) {
+                continue;
+            }
+
+            $providerId = $this->sanitizeProviderId((string) ($entry['id'] ?? $this->generateProviderId($providerType)));
+            if ($providerId === '' || isset($knownEntryIds[$providerId])) {
+                continue;
+            }
+
+            $sanitizedEntries[] = $this->prepareProviderEntryForStorage($entry, $providerType, $providerId);
+            $knownEntryIds[$providerId] = true;
         }
 
-        foreach (self::PROVIDER_SLUGS as $providerSlug) {
-            $payload[$providerSlug] = $providers[$providerSlug] ?? $this->defaultProviderConfig($providerSlug);
-        }
+        $entryIds = array_values(array_map(
+            static fn (array $entry): string => (string) ($entry['id'] ?? ''),
+            $sanitizedEntries
+        ));
+
+        $payload = [
+            'active_provider_id' => $this->normalizeSelectedProviderId((string) ($meta['active_provider_id'] ?? ''), $entryIds, $sanitizedEntries),
+            'fallback_provider_id' => $this->normalizeSelectedProviderId((string) ($meta['fallback_provider_id'] ?? ''), $entryIds, $sanitizedEntries, (string) ($meta['active_provider_id'] ?? '')),
+            'entries' => $sanitizedEntries,
+        ];
 
         if (!$this->settings->setMany(self::GROUP_PROVIDERS, $payload, [], 0)) {
             return false;
         }
 
-        foreach ($secretValues as $secretKey => $secretValue) {
+        foreach ($secretValues as $providerId => $secretValue) {
+            $providerId = $this->sanitizeProviderId((string) $providerId);
             $secretValue = trim($secretValue);
-            if ($secretValue === '' || !in_array($secretKey, self::PROVIDER_SECRET_KEYS, true)) {
+            if ($providerId === '' || $secretValue === '' || !isset($knownEntryIds[$providerId])) {
                 continue;
             }
 
-            if (!$this->settings->set(self::GROUP_PROVIDERS, $secretKey, $secretValue, true, 0)) {
+            if (!$this->settings->set(self::GROUP_PROVIDERS, $this->buildProviderSecretKey($providerId), $secretValue, true, 0)) {
                 return false;
             }
         }
 
-        foreach ($clearSecrets as $secretKey) {
-            if (!in_array($secretKey, self::PROVIDER_SECRET_KEYS, true)) {
+        foreach ($clearSecrets as $providerId) {
+            $providerId = $this->sanitizeProviderId((string) $providerId);
+            if ($providerId === '') {
                 continue;
             }
 
-            if (!$this->settings->forget(self::GROUP_PROVIDERS, $secretKey)) {
+            if (!$this->settings->forget(self::GROUP_PROVIDERS, $this->buildProviderSecretKey($providerId))) {
                 return false;
             }
         }
@@ -145,47 +291,89 @@ final class AiSettingsService
     private function normalizeProviders(array $stored): array
     {
         $defaults = $this->defaultProviders();
-        $activeProvider = (string) ($stored['active_provider'] ?? $defaults['active_provider']);
-        $fallbackProvider = (string) ($stored['fallback_provider'] ?? $defaults['fallback_provider']);
+        $rawEntries = $this->extractStoredProviderEntries($stored);
+        $entries = [];
+        $knownEntryIds = [];
 
-        if (!in_array($activeProvider, self::PROVIDER_SLUGS, true)) {
-            $activeProvider = (string) $defaults['active_provider'];
+        foreach ($rawEntries as $entry) {
+            if (!is_array($entry)) {
+                continue;
+            }
+
+            $providerType = strtolower(trim((string) ($entry['type'] ?? 'mock')));
+            if (!self::isKnownProviderType($providerType)) {
+                continue;
+            }
+
+            $providerId = $this->sanitizeProviderId((string) ($entry['id'] ?? $providerType));
+            if ($providerId === '' || isset($knownEntryIds[$providerId])) {
+                continue;
+            }
+
+            $entries[] = $this->normalizeProviderEntry($entry, $providerType, $providerId);
+            $knownEntryIds[$providerId] = true;
         }
 
-        if (!in_array($fallbackProvider, self::PROVIDER_SLUGS, true)) {
-            $fallbackProvider = (string) $defaults['fallback_provider'];
+        if ($entries === []) {
+            $entries[] = $this->buildProviderEntry('mock', 'mock');
         }
 
-        $providers = [];
-        foreach (self::PROVIDER_SLUGS as $providerSlug) {
-            $providers[$providerSlug] = $this->normalizeProviderConfig(
-                is_array($stored[$providerSlug] ?? null) ? $stored[$providerSlug] : [],
-                $this->defaultProviderConfig($providerSlug),
-                $providerSlug
-            );
-        }
+        $entryIds = array_values(array_map(
+            static fn (array $entry): string => (string) ($entry['id'] ?? ''),
+            $entries
+        ));
+
+        $activeProviderId = $this->normalizeSelectedProviderId(
+            (string) ($stored['active_provider_id'] ?? $stored['active_provider'] ?? $defaults['active_provider_id']),
+            $entryIds,
+            $entries
+        );
+        $fallbackProviderId = $this->normalizeSelectedProviderId(
+            (string) ($stored['fallback_provider_id'] ?? $stored['fallback_provider'] ?? $defaults['fallback_provider_id']),
+            $entryIds,
+            $entries,
+            $activeProviderId
+        );
 
         return [
-            'active_provider' => $activeProvider,
-            'fallback_provider' => $fallbackProvider,
-            'providers' => $providers,
+            'active_provider_id' => $activeProviderId,
+            'fallback_provider_id' => $fallbackProviderId,
+            'entries' => $entries,
+            'catalog' => $this->buildProviderCatalog(),
         ];
     }
 
     /** @return array<string, mixed> */
-    private function normalizeProviderConfig(array $stored, array $defaults, string $providerSlug): array
+    private function normalizeProviderEntry(array $stored, string $providerType, string $providerId): array
     {
+        $definition = self::getProviderTypeDefinition($providerType);
+        $defaults = $this->defaultProviderConfig($providerType);
         $profile = (string) ($stored['profile'] ?? $defaults['profile']);
         if (!in_array($profile, ['disabled', 'beta', 'editor-translation', 'content-assist', 'seo-assist'], true)) {
             $profile = (string) $defaults['profile'];
         }
 
+        $label = trim((string) ($stored['label'] ?? $defaults['label']));
+        if ($label === '') {
+            $label = (string) $defaults['label'];
+        }
+
         return [
-            'label' => (string) ($defaults['label'] ?? ucfirst(str_replace('_', ' ', $providerSlug))),
+            'id' => $providerId,
+            'type' => $providerType,
+            'type_label' => (string) ($definition['label'] ?? ucfirst(str_replace('_', ' ', $providerType))),
+            'description' => (string) ($definition['description'] ?? ''),
+            'live_supported' => !empty($definition['live_supported']),
+            'addable' => !empty($definition['addable']),
+            'requires_secret' => !empty($definition['requires_secret']),
+            'secret_label' => (string) ($definition['secret_label'] ?? ''),
+            'label' => $label,
             'enabled' => (bool) ($stored['enabled'] ?? $defaults['enabled']),
             'profile' => $profile,
             'default_model' => trim((string) ($stored['default_model'] ?? $defaults['default_model'])),
             'endpoint' => trim((string) ($stored['endpoint'] ?? $defaults['endpoint'])),
+            'deployment' => trim((string) ($stored['deployment'] ?? $defaults['deployment'])),
+            'api_version' => trim((string) ($stored['api_version'] ?? $defaults['api_version'])),
             'translation_enabled' => (bool) ($stored['translation_enabled'] ?? $defaults['translation_enabled']),
             'rewrite_enabled' => (bool) ($stored['rewrite_enabled'] ?? $defaults['rewrite_enabled']),
             'summary_enabled' => (bool) ($stored['summary_enabled'] ?? $defaults['summary_enabled']),
@@ -193,7 +381,7 @@ final class AiSettingsService
             'editorjs_enabled' => (bool) ($stored['editorjs_enabled'] ?? $defaults['editorjs_enabled']),
             'allowed_locales' => $this->normalizeStringList($stored['allowed_locales'] ?? $defaults['allowed_locales'], ['en']),
             'beta_only' => (bool) ($stored['beta_only'] ?? $defaults['beta_only']),
-            'secret_configured' => $this->isProviderSecretConfigured($providerSlug),
+            'secret_configured' => $this->hasProviderSecret($providerId, $providerType),
         ];
     }
 
@@ -271,7 +459,7 @@ final class AiSettingsService
     /** @return array<string, mixed> */
     private function buildSummary(array $providers, array $features, array $translation, array $logging, array $quotas): array
     {
-        $providerConfigs = is_array($providers['providers'] ?? null) ? $providers['providers'] : [];
+        $providerConfigs = is_array($providers['entries'] ?? null) ? $providers['entries'] : [];
         $enabledProviders = 0;
         $translationReadyProviders = 0;
 
@@ -297,7 +485,7 @@ final class AiSettingsService
         }
 
         return [
-            'provider_total' => count(self::PROVIDER_SLUGS),
+            'provider_total' => count($providerConfigs),
             'provider_enabled' => $enabledProviders,
             'feature_enabled' => $enabledFeatures,
             'translation_ready' => !empty($features['ai_services_enabled'])
@@ -315,8 +503,8 @@ final class AiSettingsService
     private function defaultProviders(): array
     {
         return [
-            'active_provider' => 'mock',
-            'fallback_provider' => 'openai',
+            'active_provider_id' => 'mock',
+            'fallback_provider_id' => '',
         ];
     }
 
@@ -330,6 +518,8 @@ final class AiSettingsService
                 'profile' => 'editor-translation',
                 'default_model' => 'mock-local-v1',
                 'endpoint' => 'internal://mock',
+                'deployment' => '',
+                'api_version' => '',
                 'translation_enabled' => true,
                 'rewrite_enabled' => false,
                 'summary_enabled' => false,
@@ -344,6 +534,8 @@ final class AiSettingsService
                 'profile' => 'editor-translation',
                 'default_model' => 'gpt-5-mini',
                 'endpoint' => 'https://api.openai.com/v1',
+                'deployment' => '',
+                'api_version' => '',
                 'translation_enabled' => true,
                 'rewrite_enabled' => true,
                 'summary_enabled' => true,
@@ -353,11 +545,13 @@ final class AiSettingsService
                 'beta_only' => true,
             ],
             'azure_openai' => [
-                'label' => 'Azure OpenAI',
+                'label' => 'Azure AI',
                 'enabled' => false,
                 'profile' => 'editor-translation',
                 'default_model' => 'gpt-4.1-mini',
                 'endpoint' => '',
+                'deployment' => '',
+                'api_version' => '2024-10-21',
                 'translation_enabled' => true,
                 'rewrite_enabled' => true,
                 'summary_enabled' => true,
@@ -372,6 +566,8 @@ final class AiSettingsService
                 'profile' => 'beta',
                 'default_model' => 'llama3.1:8b',
                 'endpoint' => 'http://127.0.0.1:11434',
+                'deployment' => '',
+                'api_version' => '',
                 'translation_enabled' => true,
                 'rewrite_enabled' => true,
                 'summary_enabled' => true,
@@ -386,6 +582,8 @@ final class AiSettingsService
                 'profile' => 'beta',
                 'default_model' => 'openai/gpt-4.1-mini',
                 'endpoint' => 'https://openrouter.ai/api/v1',
+                'deployment' => '',
+                'api_version' => '',
                 'translation_enabled' => true,
                 'rewrite_enabled' => true,
                 'summary_enabled' => true,
@@ -400,6 +598,8 @@ final class AiSettingsService
                 'profile' => 'disabled',
                 'default_model' => '',
                 'endpoint' => '',
+                'deployment' => '',
+                'api_version' => '',
                 'translation_enabled' => false,
                 'rewrite_enabled' => false,
                 'summary_enabled' => false,
@@ -544,19 +744,183 @@ final class AiSettingsService
         return $value !== '' ? $value : $fallback;
     }
 
-    private function isProviderSecretConfigured(string $providerSlug): bool
+    /** @return list<array<string, mixed>> */
+    private function extractStoredProviderEntries(array $stored): array
     {
-        $secretKey = match ($providerSlug) {
+        if (is_array($stored['entries'] ?? null)) {
+            return array_values(array_filter(
+                $stored['entries'],
+                static fn (mixed $entry): bool => is_array($entry)
+            ));
+        }
+
+        return $this->migrateLegacyProviders($stored);
+    }
+
+    /** @return list<array<string, mixed>> */
+    private function migrateLegacyProviders(array $stored): array
+    {
+        $entries = [];
+
+        foreach (self::PROVIDER_SLUGS as $providerSlug) {
+            $legacyConfig = is_array($stored[$providerSlug] ?? null) ? $stored[$providerSlug] : [];
+            $defaults = $this->defaultProviderConfig($providerSlug);
+            $shouldInclude = $providerSlug === 'mock'
+                || !empty($legacyConfig['enabled'])
+                || $this->legacyProviderConfigLooksCustomized($legacyConfig, $defaults)
+                || $this->hasProviderSecret($providerSlug, $providerSlug);
+
+            if (!$shouldInclude) {
+                continue;
+            }
+
+            $entries[] = array_merge($defaults, $legacyConfig, [
+                'id' => $providerSlug,
+                'type' => $providerSlug,
+            ]);
+        }
+
+        return $entries;
+    }
+
+    private function legacyProviderConfigLooksCustomized(array $legacyConfig, array $defaults): bool
+    {
+        $keysToCompare = [
+            'label',
+            'profile',
+            'default_model',
+            'endpoint',
+            'deployment',
+            'api_version',
+            'translation_enabled',
+            'rewrite_enabled',
+            'summary_enabled',
+            'seo_meta_enabled',
+            'editorjs_enabled',
+            'allowed_locales',
+            'beta_only',
+        ];
+
+        foreach ($keysToCompare as $key) {
+            if (($legacyConfig[$key] ?? $defaults[$key] ?? null) !== ($defaults[$key] ?? null)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /** @param list<string> $entryIds
+     *  @param list<array<string, mixed>> $entries
+     */
+    private function normalizeSelectedProviderId(string $candidate, array $entryIds, array $entries, string $exclude = ''): string
+    {
+        $candidate = $this->sanitizeProviderId($candidate);
+        $exclude = $this->sanitizeProviderId($exclude);
+
+        if ($candidate !== '' && in_array($candidate, $entryIds, true) && $candidate !== $exclude) {
+            return $candidate;
+        }
+
+        foreach ($entries as $entry) {
+            $entryId = $this->sanitizeProviderId((string) ($entry['id'] ?? ''));
+            if ($entryId === '' || $entryId === $exclude) {
+                continue;
+            }
+
+            if (!empty($entry['enabled'])) {
+                return $entryId;
+            }
+        }
+
+        foreach ($entryIds as $entryId) {
+            $entryId = $this->sanitizeProviderId((string) $entryId);
+            if ($entryId !== '' && $entryId !== $exclude) {
+                return $entryId;
+            }
+        }
+
+        return '';
+    }
+
+    /** @return array<string, mixed> */
+    private function prepareProviderEntryForStorage(array $entry, string $providerType, string $providerId): array
+    {
+        $defaults = $this->defaultProviderConfig($providerType);
+
+        return [
+            'id' => $providerId,
+            'type' => $providerType,
+            'label' => trim((string) ($entry['label'] ?? $defaults['label'])) !== '' ? trim((string) ($entry['label'] ?? $defaults['label'])) : (string) $defaults['label'],
+            'enabled' => (bool) ($entry['enabled'] ?? $defaults['enabled']),
+            'profile' => (string) ($entry['profile'] ?? $defaults['profile']),
+            'default_model' => trim((string) ($entry['default_model'] ?? $defaults['default_model'])),
+            'endpoint' => trim((string) ($entry['endpoint'] ?? $defaults['endpoint'])),
+            'deployment' => trim((string) ($entry['deployment'] ?? $defaults['deployment'])),
+            'api_version' => trim((string) ($entry['api_version'] ?? $defaults['api_version'])),
+            'translation_enabled' => (bool) ($entry['translation_enabled'] ?? $defaults['translation_enabled']),
+            'rewrite_enabled' => (bool) ($entry['rewrite_enabled'] ?? $defaults['rewrite_enabled']),
+            'summary_enabled' => (bool) ($entry['summary_enabled'] ?? $defaults['summary_enabled']),
+            'seo_meta_enabled' => (bool) ($entry['seo_meta_enabled'] ?? $defaults['seo_meta_enabled']),
+            'editorjs_enabled' => (bool) ($entry['editorjs_enabled'] ?? $defaults['editorjs_enabled']),
+            'allowed_locales' => $this->normalizeStringList($entry['allowed_locales'] ?? $defaults['allowed_locales'], ['en']),
+            'beta_only' => (bool) ($entry['beta_only'] ?? $defaults['beta_only']),
+        ];
+    }
+
+    /** @return array<string, array<string, mixed>> */
+    private function buildProviderCatalog(): array
+    {
+        $catalog = [];
+
+        foreach (self::PROVIDER_TYPE_DEFINITIONS as $providerType => $definition) {
+            $defaults = $this->defaultProviderConfig($providerType);
+            $catalog[$providerType] = [
+                'type' => $providerType,
+                'label' => (string) ($definition['label'] ?? ucfirst(str_replace('_', ' ', $providerType))),
+                'description' => (string) ($definition['description'] ?? ''),
+                'requires_secret' => !empty($definition['requires_secret']),
+                'secret_label' => (string) ($definition['secret_label'] ?? ''),
+                'live_supported' => !empty($definition['live_supported']),
+                'addable' => !empty($definition['addable']),
+                'default_model' => (string) ($defaults['default_model'] ?? ''),
+                'default_endpoint' => (string) ($defaults['endpoint'] ?? ''),
+            ];
+        }
+
+        return $catalog;
+    }
+
+    private function resolveLegacySecretKey(string $providerType): string
+    {
+        return match ($providerType) {
             'openai' => 'openai_api_key',
             'azure_openai' => 'azure_openai_api_key',
             'openrouter' => 'openrouter_api_key',
             default => '',
         };
+    }
 
-        if ($secretKey === '') {
-            return false;
+    private function buildProviderSecretKey(string $providerId): string
+    {
+        return self::PROVIDER_SECRET_PREFIX . $this->sanitizeProviderId($providerId);
+    }
+
+    private function sanitizeProviderId(string $providerId): string
+    {
+        $providerId = strtolower(trim($providerId));
+        $providerId = preg_replace('/[^a-z0-9._-]+/', '-', $providerId) ?? '';
+        $providerId = preg_replace('/-+/', '-', $providerId) ?? '';
+
+        return trim($providerId, '-');
+    }
+
+    private function generateProviderId(string $providerType): string
+    {
+        try {
+            return $this->sanitizeProviderId($providerType . '-' . bin2hex(random_bytes(4)));
+        } catch (\Throwable) {
+            return $this->sanitizeProviderId($providerType . '-' . uniqid('', false));
         }
-
-        return $this->settings->getString(self::GROUP_PROVIDERS, $secretKey) !== '';
     }
 }
