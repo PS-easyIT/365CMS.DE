@@ -1017,29 +1017,17 @@
                     clearPreviewPanel();
                     setButtonBusy(button, true, 'Kopiere …');
 
-                    Promise.all([
-                        ensureEditorSaved(copyAction.sourceEditorKey),
-                        ensureEditorSaved(copyAction.targetEditorKey)
-                    ]).then(function (savedStates) {
-                        var sourceData = savedStates[0];
+                    ensureEditorSaved(copyAction.sourceEditorKey).then(function (sourceData) {
+                        withSuppressedPreviewClear(function () {
+                            copyFieldValue(copyAction.sourceTitleId, copyAction.targetTitleId);
+                            copyFieldValue(copyAction.sourceSlugId, copyAction.targetSlugId);
+                            copyFieldValue(copyAction.sourceExcerptId, copyAction.targetExcerptId);
 
-                        if (targetHasDraftContent(
-                            copyAction.targetEditorKey,
-                            copyAction.targetTitleId,
-                            copyAction.targetSlugId,
-                            copyAction.targetExcerptId
-                        ) && !window.confirm('In der EN-Bearbeitung sind bereits Inhalte vorhanden. Soll die DE-Version diese Inhalte wirklich vollständig überschreiben?')) {
-                            showNotice('info', 'DE-Inhalt wurde nicht in die EN-Bearbeitung übernommen.');
-                            return;
-                        }
+                            activateTargetPane(copyAction.targetPaneButtonId);
+                            applyEditorData(copyAction.targetEditorKey, sourceData);
+                        });
 
-                        copyFieldValue(copyAction.sourceTitleId, copyAction.targetTitleId);
-                        copyFieldValue(copyAction.sourceSlugId, copyAction.targetSlugId);
-                        copyFieldValue(copyAction.sourceExcerptId, copyAction.targetExcerptId);
-
-                        activateTargetPane(copyAction.targetPaneButtonId);
-                        applyEditorData(copyAction.targetEditorKey, sourceData);
-                        showNotice('success', 'DE-Inhalt wurde in die EN-Bearbeitung übernommen.');
+                        showNotice('success', 'DE-Inhalt wurde in die EN-Bearbeitung übernommen und bestehende EN-Inhalte überschrieben.');
                     }).catch(function () {
                         showNotice('danger', 'DE-Inhalt konnte nicht in die EN-Bearbeitung kopiert werden.');
                     }).finally(function () {

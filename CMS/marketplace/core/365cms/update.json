@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.9.195",
+  "version": "2.9.196",
   "min_php": "8.4",
   "released": "2026-04-12",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 2.9.195: Hub-Slug-Erkennung läuft jetzt über den echten Site-Table-Repository-Pfad statt über `pages.content_type`; Installationen ohne diese Spalte erzeugen damit keine SQL-Fatals mehr im Hub-Routing.",
+  "notes": "Release-Stand 2.9.196: Der Button `Alles aus DE nach EN kopieren` überschreibt bestehende EN-Inhalte in Seiten- und Beiträge-Editoren jetzt direkt; die Copy-Aktion blockiert nicht länger an einer zusätzlichen Ziel-Confirm-Logik.",
   "critical": false
 }

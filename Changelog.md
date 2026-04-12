@@ -1,4 +1,4 @@
-﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.195-blue.svg)](https://shields.io/)
+﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.196-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -19,6 +19,12 @@
 ## 📜 Vollständige Versionshistorie
 
 ---
+
+### v2.9.196 — 12. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.196** | 🔴 fix | Admin/EditorJS | **`CMS/assets/js/admin-content-editor.js` kopiert bei `Alles aus DE nach EN kopieren` den deutschen Inhalt jetzt direkt und überschreibt vorhandene EN-Felder bewusst ohne zusätzliche Abbruch-Confirm-Logik**: Seiten- und Beiträge-Editoren reagieren damit wieder sofort auf den Button statt bestehende EN-Inhalte still als Blocker im Hintergrund zu behandeln. |
 
 ### v2.9.195 — 12. April 2026
 
