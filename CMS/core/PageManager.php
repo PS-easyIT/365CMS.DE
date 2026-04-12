@@ -63,7 +63,9 @@ class PageManager
                 }
             }
         } catch (\Throwable $e) {
-            error_log('PageManager::ensureColumns() warning: ' . $e->getMessage());
+            Logger::instance()->withChannel('pages')->warning('Page schema compatibility columns could not be ensured.', [
+                'exception' => $e,
+            ]);
         }
     }
     

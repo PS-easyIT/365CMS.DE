@@ -383,11 +383,16 @@ final class WebAuthnAdapter
             $this->credentialsTableAvailable = $tableExists && $this->synchronizeCredentialsSchema($table);
 
             if (!$this->credentialsTableAvailable) {
-                error_log('WebAuthnAdapter: passkey_credentials table could not be verified after createTable().');
+                \CMS\Logger::instance()->withChannel('passkey')->warning('Passkey credentials table could not be verified after creation.', [
+                    'table' => $table,
+                ]);
             }
         } catch (\Throwable $e) {
             $this->credentialsTableAvailable = false;
-            error_log('WebAuthnAdapter: passkey table unavailable: ' . $e->getMessage());
+            \CMS\Logger::instance()->withChannel('passkey')->warning('Passkey credentials table is unavailable.', [
+                'table' => $table,
+                'exception' => $e,
+            ]);
         }
 
         return $this->credentialsTableAvailable;
@@ -428,7 +433,10 @@ final class WebAuthnAdapter
 
             return isset($columns['credential_id'], $columns['public_key'], $columns['sign_count']);
         } catch (\Throwable $e) {
-            error_log('WebAuthnAdapter: passkey schema synchronization failed: ' . $e->getMessage());
+            \CMS\Logger::instance()->withChannel('passkey')->warning('Passkey credentials schema synchronization failed.', [
+                'table' => $table,
+                'exception' => $e,
+            ]);
             $this->credentialsTableColumns = null;
             return false;
         }

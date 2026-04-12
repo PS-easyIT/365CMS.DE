@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace CMS\Services\Landing;
 
 use CMS\Json;
+use CMS\Logger;
 use CMS\Version;
 
 if (!defined('ABSPATH')) {
@@ -57,7 +58,9 @@ final class LandingHeaderService
                 'colors' => is_array($data['colors'] ?? null) ? $data['colors'] : $this->defaults->getDefaultColors(),
             ];
         } catch (\Throwable $e) {
-            error_log('LandingHeaderService::getHeader() Error: ' . $e->getMessage());
+            Logger::instance()->withChannel('landing')->warning('Landing header could not be loaded.', [
+                'exception' => $e,
+            ]);
             return $this->defaults->getDefaultHeader();
         }
     }
@@ -104,7 +107,9 @@ final class LandingHeaderService
         try {
             return $this->repository->upsertSection('header', $payload, 0);
         } catch (\Throwable $e) {
-            error_log('LandingHeaderService::updateHeader() Error: ' . $e->getMessage());
+            Logger::instance()->withChannel('landing')->warning('Landing header could not be updated.', [
+                'exception' => $e,
+            ]);
             return false;
         }
     }

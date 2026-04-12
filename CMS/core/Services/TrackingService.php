@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace CMS\Services;
 
 use CMS\Database;
+use CMS\Logger;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -69,7 +70,9 @@ class TrackingService
         try {
             $this->db->query($sql);
         } catch (\Exception $e) {
-            error_log('TrackingService: Could not create page_views table: ' . $e->getMessage());
+            Logger::instance()->withChannel('tracking')->warning('Tracking table could not be created.', [
+                'exception' => $e,
+            ]);
         }
     }
     
@@ -102,7 +105,11 @@ class TrackingService
                 'referrer'   => $_SERVER['HTTP_REFERER'] ?? '',
             ]) !== false;
         } catch (\Exception $e) {
-            error_log('TrackingService::trackPageView() Error: ' . $e->getMessage());
+            Logger::instance()->withChannel('tracking')->warning('Page view could not be tracked.', [
+                'page_id' => $pageId,
+                'page_slug' => $pageSlug,
+                'exception' => $e,
+            ]);
             return false;
         }
     }
@@ -194,7 +201,10 @@ class TrackingService
             
             return $data;
         } catch (\Exception $e) {
-            error_log('TrackingService::getPageViewsByDate() Error: ' . $e->getMessage());
+            Logger::instance()->withChannel('tracking')->warning('Page views by date could not be loaded.', [
+                'days' => $days,
+                'exception' => $e,
+            ]);
             return [];
         }
     }
@@ -226,7 +236,11 @@ class TrackingService
             
             return $stmt->fetchAll(\PDO::FETCH_ASSOC);
         } catch (\Exception $e) {
-            error_log('TrackingService::getTopPages() Error: ' . $e->getMessage());
+            Logger::instance()->withChannel('tracking')->warning('Top pages could not be loaded.', [
+                'days' => $days,
+                'limit' => $limit,
+                'exception' => $e,
+            ]);
             return [];
         }
     }
@@ -252,7 +266,10 @@ class TrackingService
             
             return $result ? (int)$result->count : 0;
         } catch (\Exception $e) {
-            error_log('TrackingService::getUniqueVisitors() Error: ' . $e->getMessage());
+            Logger::instance()->withChannel('tracking')->warning('Unique visitor count could not be loaded.', [
+                'days' => $days,
+                'exception' => $e,
+            ]);
             return 0;
         }
     }

@@ -63,11 +63,7 @@ class PluginManager
                 'expected_file' => (string) PLUGIN_PATH . $pluginSlug . '/' . $pluginSlug . '.php',
                 'plugin_path' => defined('PLUGIN_PATH') ? (string) PLUGIN_PATH : null,
             ];
-            error_log(sprintf(
-                'PluginManager [C-07/H-25]: Aktives Plugin "%s" wurde unter "%s" nicht gefunden – Plugin wird deaktiviert.',
-                $pluginSlug,
-                (string) PLUGIN_PATH . $pluginSlug . '/' . $pluginSlug . '.php'
-            ));
+            Logger::instance()->withChannel('plugins')->critical('Active plugin file is missing and will be disabled.', $context);
             if (class_exists(AuditLogger::class)) {
                 AuditLogger::instance()->log(
                     'plugin',
@@ -97,10 +93,7 @@ class PluginManager
                     'line'      => $e->getLine(),
                     'exception' => get_class($e),
                 ];
-                error_log(sprintf(
-                    'PluginManager [C-07/H-25]: Fatal-Error beim Laden von "%s" – Plugin deaktiviert. Fehler: %s in %s:%d',
-                    $pluginSlug, $e->getMessage(), $e->getFile(), $e->getLine()
-                ));
+                Logger::instance()->withChannel('plugins')->critical('Plugin caused a fatal error during load and was disabled.', $context);
                 if (class_exists(AuditLogger::class)) {
                     AuditLogger::instance()->log(
                         'plugin', 'plugin.load_error',
@@ -212,7 +205,9 @@ class PluginManager
 
             return $plugins;
         } catch (\Exception $e) {
-            error_log('PluginManager::getActivePlugins() Error: ' . $e->getMessage());
+            Logger::instance()->withChannel('plugins')->warning('Active plugin list could not be loaded.', [
+                'exception' => $e,
+            ]);
             return [];
         }
     }
@@ -459,11 +454,11 @@ class PluginManager
             // 2. Dangerous function scan (regex, method-call-aware)
             foreach ($dangerousFunctions as $funcName => $pattern) {
                 if (preg_match($pattern, $content) === 1) {
-                    error_log(sprintf(
-                        'PluginManager [C-08]: Dangerous function "%s" in plugin "%s" (%s). Activation aborted.',
-                        $funcName, $plugin,
-                        str_replace($pluginDir, '', $file->getPathname())
-                    ));
+                    Logger::instance()->withChannel('plugins')->warning('Plugin activation was blocked because dangerous code was detected.', [
+                        'plugin' => $plugin,
+                        'function' => $funcName,
+                        'file' => str_replace($pluginDir, '', $file->getPathname()),
+                    ]);
                     return sprintf(
                         'Sicherheitswarnung: Plugin enthält potenziell gefährliche Funktion „%s" in %s. Aktivierung abgebrochen.',
                         $funcName,
@@ -518,7 +513,11 @@ class PluginManager
                 try {
                     include_once $pluginFile;
                 } catch (\Throwable $e) {
-                    error_log('PluginManager [M-13]: Plugin für Uninstall nicht ladbar: ' . $e->getMessage());
+                    Logger::instance()->withChannel('plugins')->warning('Plugin uninstall bootstrap could not be loaded.', [
+                        'plugin' => $plugin,
+                        'plugin_file' => $pluginFile,
+                        'exception' => $e,
+                    ]);
                 }
             }
             $this->runLifecycleCallback($plugin, 'uninstall');
@@ -549,10 +548,12 @@ class PluginManager
         try {
             $callbackName();
         } catch (\Throwable $e) {
-            error_log(sprintf(
-                'PluginManager [M-13]: Lifecycle-Callback "%s" für Plugin "%s" fehlgeschlagen: %s',
-                $callbackName, $plugin, $e->getMessage()
-            ));
+            Logger::instance()->withChannel('plugins')->warning('Plugin lifecycle callback failed.', [
+                'callback' => $callbackName,
+                'plugin' => $plugin,
+                'lifecycle' => $lifecycle,
+                'exception' => $e,
+            ]);
             if (class_exists(AuditLogger::class)) {
                 AuditLogger::instance()->log(
                     'plugin', 'plugin.lifecycle_error',
@@ -667,7 +668,9 @@ class PluginManager
                 $db->insert('settings', ['option_name' => 'active_plugins', 'option_value' => $value]);
             }
         } catch (\Exception $e) {
-            error_log('PluginManager::saveActivePlugins() Error: ' . $e->getMessage());
+            Logger::instance()->withChannel('plugins')->error('Active plugin list could not be saved.', [
+                'exception' => $e,
+            ]);
         }
     }
 

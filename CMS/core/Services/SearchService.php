@@ -72,20 +72,27 @@ final class SearchService
         // SQLite-Extension prüfen (TNTSearch speichert Indizes als SQLite-DBs)
         if (!extension_loaded('pdo_sqlite')) {
             $this->unavailableReason = 'PHP-Extension pdo_sqlite ist nicht geladen. Bitte in der php.ini aktivieren.';
-            error_log('SearchService: ' . $this->unavailableReason);
+            $this->logger->warning('Search service is unavailable because pdo_sqlite is missing.', [
+                'reason' => $this->unavailableReason,
+            ]);
             return;
         }
 
         if (!class_exists(TNTSearch::class)) {
             $this->unavailableReason = 'TNTSearch-Klasse nicht verfügbar. CMS/assets/autoload.php prüfen.';
-            error_log('SearchService: ' . $this->unavailableReason);
+            $this->logger->warning('Search service is unavailable because TNTSearch is missing.', [
+                'reason' => $this->unavailableReason,
+            ]);
             return;
         }
 
         // Storage-Verzeichnis beschreibbar?
         if (!is_dir($this->storagePath) || !is_writable($this->storagePath)) {
             $this->unavailableReason = 'Verzeichnis cache/search/ existiert nicht oder ist nicht beschreibbar.';
-            error_log('SearchService: ' . $this->unavailableReason);
+            $this->logger->warning('Search service is unavailable because the storage path is not writable.', [
+                'reason' => $this->unavailableReason,
+                'storage_path' => $this->storagePath,
+            ]);
             return;
         }
 
@@ -109,7 +116,10 @@ final class SearchService
             $this->available = true;
         } catch (\Throwable $e) {
             $this->unavailableReason = $e->getMessage();
-            error_log('SearchService: TNTSearch-Init fehlgeschlagen: ' . $e->getMessage());
+            $this->logger->error('TNTSearch could not be initialized.', [
+                'storage_path' => $this->storagePath,
+                'exception' => $e,
+            ]);
             $this->available = false;
         }
     }
@@ -265,10 +275,10 @@ final class SearchService
 
             return true;
         } catch (\Throwable $e) {
-            error_log("SearchService::buildIndex({$name}) Fehler: " . $e->getMessage());
-            if (function_exists('cms_log')) {
-                cms_log('error', "Index-Build '{$name}' fehlgeschlagen: " . $e->getMessage(), ['channel' => 'search']);
-            }
+            $this->logger->error('Search index build failed.', [
+                'index' => $name,
+                'exception' => $e,
+            ]);
             return false;
         }
     }
@@ -324,7 +334,13 @@ final class SearchService
                 'execution_time' => $result['execution_time'] ?? '0 ms',
             ];
         } catch (\Throwable $e) {
-            error_log("SearchService::search() Fehler: " . $e->getMessage());
+            $this->logger->warning('Search query failed.', [
+                'index' => $indexName,
+                'query' => mb_substr($query, 0, 120),
+                'limit' => $limit,
+                'fuzzy' => $fuzzy,
+                'exception' => $e,
+            ]);
             return ['ids' => [], 'hits' => 0, 'execution_time' => '0 ms'];
         }
     }
@@ -512,7 +528,12 @@ final class SearchService
                 }
             }
         } catch (\Throwable $e) {
-            error_log("SearchService::updateDocument({$indexName}, {$docId}) Fehler: " . $e->getMessage());
+            $this->logger->warning('Search index document update failed.', [
+                'index' => $indexName,
+                'document_id' => $docId,
+                'table' => $table,
+                'exception' => $e,
+            ]);
         }
     }
 
@@ -536,7 +557,11 @@ final class SearchService
             $this->tnt->selectIndex($indexFile);
             $this->tnt->engine->delete($docId);
         } catch (\Throwable $e) {
-            error_log("SearchService::removeDocument({$indexName}, {$docId}) Fehler: " . $e->getMessage());
+            $this->logger->warning('Search index document removal failed.', [
+                'index' => $indexName,
+                'document_id' => $docId,
+                'exception' => $e,
+            ]);
         }
     }
 

@@ -234,7 +234,9 @@ class PurifierService
             }
         }
 
-        error_log('PurifierService: Kein beschreibbares Cache-Verzeichnis für HTMLPurifier verfügbar.');
+        \CMS\Logger::instance()->withChannel('purifier')->warning('No writable cache directory is available for HTMLPurifier.', [
+            'candidates' => $candidates,
+        ]);
         return '';
     }
 

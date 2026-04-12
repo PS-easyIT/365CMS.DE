@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace CMS\Services\Landing;
 
 use CMS\Json;
+use CMS\Logger;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -57,7 +58,9 @@ final class LandingSectionProfileService
                 'show_footer' => $data['show_footer'] ?? true,
             ];
         } catch (\Throwable $e) {
-            error_log('LandingSectionProfileService::getFooter() Error: ' . $e->getMessage());
+            Logger::instance()->withChannel('landing')->warning('Landing footer profile could not be loaded.', [
+                'exception' => $e,
+            ]);
             return $this->defaults->getDefaultFooter();
         }
     }
@@ -75,7 +78,9 @@ final class LandingSectionProfileService
         try {
             return $this->repository->upsertSection('footer', $payload, 99);
         } catch (\Throwable $e) {
-            error_log('LandingSectionProfileService::updateFooter() Error: ' . $e->getMessage());
+            Logger::instance()->withChannel('landing')->warning('Landing footer profile could not be updated.', [
+                'exception' => $e,
+            ]);
             return false;
         }
     }
@@ -101,7 +106,9 @@ final class LandingSectionProfileService
                 'posts_count' => max(1, (int)($data['posts_count'] ?? 5)),
             ];
         } catch (\Throwable $e) {
-            error_log('LandingSectionProfileService::getContentSettings() Error: ' . $e->getMessage());
+            Logger::instance()->withChannel('landing')->warning('Landing content settings could not be loaded.', [
+                'exception' => $e,
+            ]);
             return $this->defaults->getDefaultContentSettings();
         }
     }
@@ -117,7 +124,9 @@ final class LandingSectionProfileService
         try {
             return $this->repository->upsertSection('content', $payload, 50);
         } catch (\Throwable $e) {
-            error_log('LandingSectionProfileService::updateContentSettings() Error: ' . $e->getMessage());
+            Logger::instance()->withChannel('landing')->warning('Landing content settings could not be updated.', [
+                'exception' => $e,
+            ]);
             return false;
         }
     }
@@ -138,7 +147,9 @@ final class LandingSectionProfileService
 
             return array_merge($this->defaults->getDefaultSettings(), $data, ['id' => (int)($result['id'] ?? 0)]);
         } catch (\Throwable $e) {
-            error_log('LandingSectionProfileService::getSettings() Error: ' . $e->getMessage());
+            Logger::instance()->withChannel('landing')->warning('Landing settings could not be loaded.', [
+                'exception' => $e,
+            ]);
             return $this->defaults->getDefaultSettings();
         }
     }
@@ -156,7 +167,9 @@ final class LandingSectionProfileService
         try {
             return $this->repository->upsertSection('settings', $payload, 100);
         } catch (\Throwable $e) {
-            error_log('LandingSectionProfileService::updateSettings() Error: ' . $e->getMessage());
+            Logger::instance()->withChannel('landing')->warning('Landing settings could not be updated.', [
+                'exception' => $e,
+            ]);
             return false;
         }
     }
@@ -178,7 +191,9 @@ final class LandingSectionProfileService
             $merged['id'] = (int)($result['id'] ?? 0);
             return $merged;
         } catch (\Throwable $e) {
-            error_log('LandingSectionProfileService::getDesign() Error: ' . $e->getMessage());
+            Logger::instance()->withChannel('landing')->warning('Landing design settings could not be loaded.', [
+                'exception' => $e,
+            ]);
             return $this->defaults->getDefaultDesign();
         }
     }
@@ -216,7 +231,9 @@ final class LandingSectionProfileService
         try {
             return $this->repository->upsertSection('design', $designData, 90);
         } catch (\Throwable $e) {
-            error_log('LandingSectionProfileService::updateDesign() Error: ' . $e->getMessage());
+            Logger::instance()->withChannel('landing')->warning('Landing design settings could not be updated.', [
+                'exception' => $e,
+            ]);
             return false;
         }
     }

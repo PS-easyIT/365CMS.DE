@@ -87,7 +87,10 @@ class Router
         if (!class_exists($className, false)) {
             $file = CORE_PATH . 'Routing/' . $moduleName . '.php';
             if (!is_file($file)) {
-                error_log('Router: Routemodul nicht gefunden: ' . $file);
+                Logger::instance()->withChannel('router')->warning('Route module file not found.', [
+                    'module' => $moduleName,
+                    'file' => $file,
+                ]);
                 return;
             }
 
@@ -95,13 +98,19 @@ class Router
         }
 
         if (!class_exists($className)) {
-            error_log('Router: Routemodul-Klasse nicht geladen: ' . $className);
+            Logger::instance()->withChannel('router')->warning('Route module class could not be loaded.', [
+                'module' => $moduleName,
+                'class' => $className,
+            ]);
             return;
         }
 
         $module = new $className($this);
         if (!method_exists($module, 'registerRoutes')) {
-            error_log('Router: Routemodul ohne registerRoutes(): ' . $className);
+            Logger::instance()->withChannel('router')->warning('Route module does not expose registerRoutes().', [
+                'module' => $moduleName,
+                'class' => $className,
+            ]);
             return;
         }
 
@@ -192,7 +201,10 @@ class Router
 
             if (!$hasValidThemeFavoriteToken && !Security::instance()->verifyToken($csrfToken, 'form_guard')) {
                 http_response_code(403);
-                error_log('Router [C-04]: CSRF-Fehlschlag für ' . $method . ' ' . $routingUri);
+                Logger::instance()->withChannel('router')->warning('CSRF validation failed.', [
+                    'method' => $method,
+                    'routing_uri' => $routingUri,
+                ]);
                 if ($this->isAjaxRequest()) {
                     header('Content-Type: application/json');
                     echo json_encode(['success' => false, 'error' => 'CSRF-Sicherheitsüberprüfung fehlgeschlagen.']);
@@ -293,18 +305,23 @@ class Router
 
             if (CMS_DEBUG) {
                 if ($page === null) {
-                    error_log(sprintf('Router [404]: Kein Seiten-Eintrag für Slug "%s" gefunden.', $slug));
+                    Logger::instance()->withChannel('router')->debug('Dynamic page lookup returned no page.', [
+                        'slug' => $slug,
+                    ]);
                 } else {
-                    error_log(sprintf(
-                        'Router [404]: Seite "%s" (ID %d) wurde gefunden, hat aber Status "%s" (erwartet: "published").',
-                        $slug,
-                        (int)($page['id'] ?? 0),
-                        $page['status'] ?? 'unbekannt'
-                    ));
+                    Logger::instance()->withChannel('router')->debug('Dynamic page lookup returned a non-published page.', [
+                        'slug' => $slug,
+                        'page_id' => (int) ($page['id'] ?? 0),
+                        'status' => (string) ($page['status'] ?? 'unbekannt'),
+                    ]);
                 }
             }
         } catch (\Throwable $e) {
-            error_log('Router Page Check Error für "' . ($slug ?? $uri) . '": ' . $e->getMessage());
+            Logger::instance()->withChannel('router')->warning('Dynamic page lookup failed.', [
+                'slug' => $slug ?? $uri,
+                'request_uri' => $uri,
+                'exception' => $e,
+            ]);
         }
 
         $this->render404();
@@ -524,7 +541,10 @@ class Router
                 ob_end_clean();
             }
 
-            error_log('Router 404 Render Error: ' . $e->getMessage());
+            Logger::instance()->withChannel('router')->error('404 page rendering failed.', [
+                'request_uri' => $this->requestUri,
+                'exception' => $e,
+            ]);
             $rendered = '';
         }
 
@@ -767,7 +787,10 @@ class Router
                 }
             }
         } catch (\Throwable $e) {
-            error_log('Router category alias lookup failed: ' . $e->getMessage());
+            Logger::instance()->withChannel('router')->warning('Category alias domain lookup failed.', [
+                'domain' => $domain,
+                'exception' => $e,
+            ]);
         }
 
         return null;

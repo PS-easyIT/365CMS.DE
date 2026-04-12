@@ -75,10 +75,15 @@ final class LdapAuthProvider
 
             return $user;
         } catch (BindException) {
-            error_log('[LdapAuthProvider] Bind fehlgeschlagen für: ' . $username);
+            \CMS\Logger::instance()->withChannel('ldap')->warning('LDAP bind failed for user.', [
+                'username' => $username,
+            ]);
             return null;
         } catch (\Throwable $e) {
-            error_log('[LdapAuthProvider] Fehler: ' . $e->getMessage());
+            \CMS\Logger::instance()->withChannel('ldap')->warning('LDAP authentication failed unexpectedly.', [
+                'username' => $username,
+                'exception' => $e,
+            ]);
             return null;
         }
     }
@@ -116,7 +121,11 @@ final class LdapAuthProvider
                     ?: $email;
 
         if ($email === '' || $username === '') {
-            error_log('[LdapAuthProvider] Sync fehlgeschlagen – kein E-Mail oder Username im LDAP-Eintrag.');
+            \CMS\Logger::instance()->withChannel('ldap')->warning('LDAP user sync skipped because required identity fields are missing.', [
+                'has_email' => $email !== '',
+                'has_username' => $username !== '',
+                'ldap_dn' => (string) ($ldapUser['dn'] ?? ''),
+            ]);
             return [
                 'success' => false,
                 'action' => 'skipped',

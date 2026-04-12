@@ -15,6 +15,7 @@ namespace CMS\Services;
 use CMS\Database;
 use CMS\Http\Client as HttpClient;
 use CMS\Json;
+use CMS\Logger;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -121,7 +122,9 @@ class BackupService
                 'manifest' => $manifest,
             ];
         } catch (\Exception $e) {
-            error_log('BackupService::createFullBackup() Error: ' . $e->getMessage());
+            Logger::instance()->withChannel('backup')->error('Full backup could not be created.', [
+                'exception' => $e,
+            ]);
             return [
                 'success' => false,
                 'error' => 'Vollständiges Backup konnte nicht erstellt werden.',
@@ -164,7 +167,10 @@ class BackupService
             
             return basename($filepath);
         } catch (\Exception $e) {
-            error_log('BackupService::createDatabaseBackup() Error: ' . $e->getMessage());
+            Logger::instance()->withChannel('backup')->error('Database backup file could not be created.', [
+                'target_dir' => $targetDir,
+                'exception' => $e,
+            ]);
             throw $e;
         }
     }
@@ -204,7 +210,9 @@ class BackupService
                 'manifest' => $manifest,
             ];
         } catch (\Throwable $e) {
-            error_log('BackupService::createStandaloneDatabaseBackup() Error: ' . $e->getMessage());
+            Logger::instance()->withChannel('backup')->error('Standalone database backup could not be created.', [
+                'exception' => $e,
+            ]);
 
             return [
                 'success' => false,
@@ -392,7 +400,10 @@ class BackupService
             
             return $sent;
         } catch (\Exception $e) {
-            error_log('BackupService::emailDatabaseBackup() Error: ' . $e->getMessage());
+            Logger::instance()->withChannel('backup')->error('Database backup email could not be sent.', [
+                'recipient' => $email,
+                'exception' => $e,
+            ]);
             return false;
         }
     }
@@ -459,7 +470,10 @@ class BackupService
                 return $this->uploadToS3WithREST($backupPath, $s3Config);
             }
         } catch (\Exception $e) {
-            error_log('BackupService::uploadToS3() Error: ' . $e->getMessage());
+            Logger::instance()->withChannel('backup')->error('Backup upload to S3 failed.', [
+                'backup_path' => $backupPath,
+                'exception' => $e,
+            ]);
             return false;
         }
     }
@@ -511,7 +525,12 @@ class BackupService
                 'maxBytes' => 1048576,
             ]);
         } catch (\Throwable $e) {
-            error_log('BackupService::uploadToS3WithREST() HTTP-Fehler: ' . $e->getMessage());
+            Logger::instance()->withChannel('backup')->error('Backup upload via S3 REST failed.', [
+                'backup_path' => $filePath,
+                'bucket' => (string) ($config['bucket'] ?? ''),
+                'endpoint' => (string) ($config['endpoint'] ?? ''),
+                'exception' => $e,
+            ]);
             $result = ['success' => false];
         }
         
@@ -547,7 +566,10 @@ class BackupService
             
             return $history;
         } catch (\Exception $e) {
-            error_log('BackupService::getBackupHistory() Error: ' . $e->getMessage());
+            Logger::instance()->withChannel('backup')->warning('Backup history could not be loaded.', [
+                'limit' => $limit,
+                'exception' => $e,
+            ]);
             return [];
         }
     }
@@ -668,7 +690,10 @@ class BackupService
 
             return $this->deleteDirectory($backupPath);
         } catch (\Throwable $e) {
-            error_log('BackupService::deleteBackup() Error: ' . $e->getMessage());
+            Logger::instance()->withChannel('backup')->warning('Backup could not be deleted.', [
+                'backup_name' => $backupName,
+                'exception' => $e,
+            ]);
             return false;
         }
     }
@@ -785,7 +810,12 @@ class BackupService
                 'autoload' => 0,
             ]) !== false;
         } catch (\Exception $e) {
-            error_log('BackupService::logBackup() Error: ' . $e->getMessage());
+            Logger::instance()->withChannel('backup')->warning('Backup metadata could not be persisted.', [
+                'type' => $type,
+                'name' => $name,
+                'size' => $size,
+                'exception' => $e,
+            ]);
             return false;
         }
     }

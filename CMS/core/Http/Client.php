@@ -273,13 +273,20 @@ final class Client
 
         $resolvedIps = $this->resolveHostIps($host);
         if ($resolvedIps === []) {
-            error_log('CMS\\Http\\Client: SSRF-Blockierung – Host "' . $host . '" konnte nicht zuverlässig aufgelöst werden.');
+            \CMS\Logger::instance()->withChannel('http-client')->warning('External HTTP request blocked because the host could not be resolved safely.', [
+                'host' => $host,
+                'url' => $url,
+            ]);
             return $allowUnresolvedHosts;
         }
 
         foreach ($resolvedIps as $ip) {
             if ($ip !== '' && $this->isPrivateOrReservedIp($ip)) {
-                error_log('CMS\\Http\\Client: SSRF-Blockierung – Host "' . $host . '" löst auf private IP auf: ' . $ip);
+                \CMS\Logger::instance()->withChannel('http-client')->warning('External HTTP request blocked because the host resolved to a private IP.', [
+                    'host' => $host,
+                    'ip' => $ip,
+                    'url' => $url,
+                ]);
                 return false;
             }
         }

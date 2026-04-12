@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace CMS\Services\Landing;
 
 use CMS\Json;
+use CMS\Logger;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -44,7 +45,9 @@ final class LandingFeatureService
 
             return $this->mergeWithDefaultFeatures($features);
         } catch (\Throwable $e) {
-            error_log('LandingFeatureService::getFeatures() Error: ' . $e->getMessage());
+            Logger::instance()->withChannel('landing')->warning('Landing feature list could not be loaded.', [
+                'exception' => $e,
+            ]);
             return $this->defaults->getDefaultFeatures();
         }
     }
@@ -62,7 +65,11 @@ final class LandingFeatureService
         try {
             return $this->repository->saveFeature($id, $payload, $sortOrder);
         } catch (\Throwable $e) {
-            error_log('LandingFeatureService::saveFeature() Error: ' . $e->getMessage());
+            Logger::instance()->withChannel('landing')->warning('Landing feature could not be saved.', [
+                'feature_id' => $id,
+                'sort_order' => $sortOrder,
+                'exception' => $e,
+            ]);
             return 0;
         }
     }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace CMS\Services\Landing;
 
 use CMS\Json;
+use CMS\Logger;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -85,7 +86,9 @@ final class LandingPluginService
 
             return $merged;
         } catch (\Throwable $e) {
-            error_log('LandingPluginService::getPluginOverrides() Error: ' . $e->getMessage());
+            Logger::instance()->withChannel('landing')->warning('Landing plugin overrides could not be loaded.', [
+                'exception' => $e,
+            ]);
             return $this->getDefaultPluginOverrides();
         }
     }
@@ -163,7 +166,9 @@ final class LandingPluginService
         try {
             return $this->repository->upsertSection('plugin_overrides', $overrides, 200);
         } catch (\Throwable $e) {
-            error_log('LandingPluginService::savePluginOverridesRecord() Error: ' . $e->getMessage());
+            Logger::instance()->withChannel('landing')->warning('Landing plugin overrides could not be saved.', [
+                'exception' => $e,
+            ]);
             return false;
         }
     }

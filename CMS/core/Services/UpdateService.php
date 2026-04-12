@@ -15,6 +15,7 @@ namespace CMS\Services;
 use CMS\Database;
 use CMS\Http\Client as HttpClient;
 use CMS\Json;
+use CMS\Logger;
 use CMS\PluginManager;
 use CMS\ThemeManager;
 use CMS\Version;
@@ -694,12 +695,16 @@ class UpdateService
     private function fetchGitHubData(string $url): ?array
     {
         if (!$this->isAllowedGitHubApiUrl($url)) {
-            error_log('UpdateService: Invalid GitHub API URL: ' . $url);
+            Logger::instance()->withChannel('updates.service')->warning('Invalid GitHub API URL rejected.', [
+                'url' => $url,
+            ]);
             return null;
         }
 
         if (!$this->isSafeExternalUrl($url)) {
-            error_log('UpdateService [L-10]: GitHub API URL blockiert (SSRF-Guard): ' . $url);
+            Logger::instance()->withChannel('updates.service')->warning('GitHub API URL was blocked by SSRF guard.', [
+                'url' => $url,
+            ]);
             return null;
         }
 
@@ -713,14 +718,19 @@ class UpdateService
         ]);
 
         if (!$response['success']) {
-            error_log('UpdateService: HTTP-Fehler bei ' . $url . ': ' . (string) ($response['error'] ?? 'unbekannt'));
+            Logger::instance()->withChannel('updates.service')->warning('GitHub API request failed.', [
+                'url' => $url,
+                'error' => (string) ($response['error'] ?? 'unbekannt'),
+            ]);
             return null;
         }
 
         $data = Json::decode((string) ($response['body'] ?? ''), true, null);
 
         if (!is_array($data)) {
-            error_log('UpdateService: Ungültiges JSON von GitHub.');
+            Logger::instance()->withChannel('updates.service')->warning('GitHub API returned invalid JSON.', [
+                'url' => $url,
+            ]);
             return null;
         }
 
@@ -816,13 +826,18 @@ class UpdateService
 
         $resolvedIps = $this->resolveHostIps($host);
         if ($resolvedIps === []) {
-            error_log('UpdateService [M-20]: SSRF-Blockierung – Host "' . $host . '" konnte nicht zuverlässig aufgelöst werden.');
+            Logger::instance()->withChannel('updates.service')->warning('External update host could not be resolved and was blocked.', [
+                'host' => $host,
+            ]);
             return false;
         }
 
         foreach ($resolvedIps as $ip) {
             if ($ip !== '' && $this->isPrivateOrReservedIp($ip)) {
-                error_log('UpdateService [M-20]: SSRF-Blockierung – Host "' . $host . '" löst auf private IP auf: ' . $ip);
+                Logger::instance()->withChannel('updates.service')->warning('External update host resolved to a private or reserved IP and was blocked.', [
+                    'host' => $host,
+                    'ip' => $ip,
+                ]);
                 return false;
             }
         }
@@ -875,13 +890,17 @@ class UpdateService
     private function fetchPluginUpdate(string $url): ?array
     {
         if (!$this->isAllowedSensitiveRemoteUrl($url)) {
-            error_log('UpdateService: fetchPluginUpdate – URL liegt außerhalb der erlaubten Update-Hosts: ' . $url);
+            Logger::instance()->withChannel('updates.service')->warning('Plugin/theme update URL is outside the allowed hosts.', [
+                'url' => $url,
+            ]);
             return null;
         }
 
         // M-20: Prüfen ob der Hostname auf eine private/reservierte IP auflöst (SSRF-Schutz)
         if (!$this->isSafeExternalUrl($url)) {
-            error_log('UpdateService [M-20]: fetchPluginUpdate – URL blockiert (SSRF-Guard): ' . $url);
+            Logger::instance()->withChannel('updates.service')->warning('Plugin/theme update URL was blocked by SSRF guard.', [
+                'url' => $url,
+            ]);
             return null;
         }
 
@@ -895,7 +914,10 @@ class UpdateService
         ]);
 
         if (!$response['success']) {
-            error_log('UpdateService: fetchPluginUpdate HTTP-Fehler: ' . (string) ($response['error'] ?? 'unbekannt'));
+            Logger::instance()->withChannel('updates.service')->warning('Plugin/theme update request failed.', [
+                'url' => $url,
+                'error' => (string) ($response['error'] ?? 'unbekannt'),
+            ]);
             return null;
         }
 
@@ -917,27 +939,36 @@ class UpdateService
     public function verifyDownloadIntegrity(string $filePath, string $expectedHash): bool
     {
         if (!file_exists($filePath) || !is_readable($filePath)) {
-            error_log('UpdateService: verifyDownloadIntegrity – Datei nicht gefunden: ' . $filePath);
+            Logger::instance()->withChannel('updates.service')->warning('Downloaded update file is missing or unreadable.', [
+                'file_path' => $filePath,
+            ]);
             return false;
         }
 
         if (!preg_match('/^[0-9a-f]{64}$/i', $expectedHash)) {
-            error_log('UpdateService: verifyDownloadIntegrity – ungültiges Hash-Format.');
+            Logger::instance()->withChannel('updates.service')->warning('Expected update hash has an invalid format.', [
+                'file_path' => $filePath,
+            ]);
             return false;
         }
 
         $actualHash = hash_file('sha256', $filePath);
 
         if ($actualHash === false) {
-            error_log('UpdateService: verifyDownloadIntegrity – hash_file() fehlgeschlagen.');
+            Logger::instance()->withChannel('updates.service')->warning('Downloaded update hash could not be calculated.', [
+                'file_path' => $filePath,
+            ]);
             return false;
         }
 
         $match = hash_equals(strtolower($expectedHash), $actualHash);
 
         if (!$match) {
-            error_log('UpdateService: SHA-256-Mismatch für ' . basename($filePath)
-                . ' – erwartet: ' . $expectedHash . ' – bekommen: ' . $actualHash);
+            Logger::instance()->withChannel('updates.service')->warning('Downloaded update hash does not match the expected checksum.', [
+                'file' => basename($filePath),
+                'expected_hash' => $expectedHash,
+                'actual_hash' => $actualHash,
+            ]);
         }
 
         return $match;
@@ -992,7 +1023,10 @@ class UpdateService
             
             return $history;
         } catch (\Exception $e) {
-            error_log('UpdateService::getUpdateHistory() Error: ' . $e->getMessage());
+            Logger::instance()->withChannel('updates.service')->warning('Update history could not be loaded.', [
+                'limit' => $limit,
+                'exception' => $e,
+            ]);
             return [];
         }
     }
@@ -1120,7 +1154,11 @@ class UpdateService
                 }
                 $sha256Verified = true;
             } else {
-                error_log("UpdateService: Kein SHA-256-Hash für {$name} – Installation ohne Verifikation.");
+                Logger::instance()->withChannel('updates.service')->warning('Update installation continues without SHA-256 verification.', [
+                    'name' => $name,
+                    'type' => $type,
+                    'version' => $version,
+                ]);
             }
 
             // ZIP extrahieren
@@ -1216,7 +1254,12 @@ class UpdateService
                 'autoload' => 0,
             ]) !== false;
         } catch (\Exception $e) {
-            error_log('UpdateService::logUpdate() Error: ' . $e->getMessage());
+            Logger::instance()->withChannel('updates.service')->warning('Update metadata could not be persisted.', [
+                'type' => $type,
+                'name' => $name,
+                'version' => $version,
+                'exception' => $e,
+            ]);
             return false;
         }
     }
@@ -1279,7 +1322,9 @@ class UpdateService
             
             return 'Unknown';
         } catch (\Exception $e) {
-            error_log('UpdateService::getMySQLVersion() Error: ' . $e->getMessage());
+            Logger::instance()->withChannel('updates.service')->warning('MySQL version could not be determined for update diagnostics.', [
+                'exception' => $e,
+            ]);
             return 'Unknown';
         }
     }
@@ -1311,7 +1356,10 @@ class UpdateService
             
             return null;
         } catch (\Exception $e) {
-            error_log('UpdateService::getCache() Error: ' . $e->getMessage());
+            Logger::instance()->withChannel('updates.service')->warning('Update cache entry could not be loaded.', [
+                'cache_key' => $key,
+                'exception' => $e,
+            ]);
             return null;
         }
     }
@@ -1337,7 +1385,10 @@ class UpdateService
                 'expires_at' => $expiresAt,
             ]) !== false;
         } catch (\Exception $e) {
-            error_log('UpdateService::setCache() Error: ' . $e->getMessage());
+            Logger::instance()->withChannel('updates.service')->warning('Update cache entry could not be stored.', [
+                'cache_key' => $key,
+                'exception' => $e,
+            ]);
             return false;
         }
     }

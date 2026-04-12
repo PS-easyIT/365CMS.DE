@@ -9,6 +9,7 @@ if (!defined('ABSPATH')) {
 
 use CMS\Database;
 use CMS\Json;
+use CMS\Logger;
 use CMS\Version;
 
 /**
@@ -89,7 +90,9 @@ class DashboardService {
                 'month_revenue_formatted' => number_format($monthRevenue, 2, ',', '.') . ' EUR',
             ];
         } catch (\Throwable $e) {
-            error_log('DashboardService: Order stats error - ' . $e->getMessage());
+            Logger::instance()->withChannel('dashboard')->warning('Order statistics could not be loaded.', [
+                'exception' => $e,
+            ]);
             return [
                 'total' => 0,
                 'pending' => 0,
@@ -308,7 +311,9 @@ class DashboardService {
                 'browsers' => $browser_stats
             ];
         } catch (\Throwable $e) {
-            error_log('DashboardService: Session stats error - ' . $e->getMessage());
+            Logger::instance()->withChannel('dashboard')->warning('Session statistics could not be loaded.', [
+                'exception' => $e,
+            ]);
             return [
                 'active' => 0,
                 'active_now' => 0,
@@ -509,7 +514,10 @@ class DashboardService {
 
             return array_map(fn ($row) => $this->normalizeRecentOrderRow($row), $rows);
         } catch (\Throwable $e) {
-            error_log('DashboardService: Recent orders error - ' . $e->getMessage());
+            Logger::instance()->withChannel('dashboard')->warning('Recent orders could not be loaded.', [
+                'limit' => $limit,
+                'exception' => $e,
+            ]);
             return [];
         }
     }

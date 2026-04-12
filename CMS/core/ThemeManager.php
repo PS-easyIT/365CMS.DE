@@ -165,7 +165,9 @@ class ThemeManager
                 $this->settings[$row->option_name] = $row->option_value;
             }
         } catch (\Exception $e) {
-            error_log('ThemeManager::loadSettings() Error: ' . $e->getMessage());
+            Logger::instance()->withChannel('theme')->warning('Theme settings could not be loaded.', [
+                'exception' => $e,
+            ]);
         }
     }
     
@@ -184,7 +186,10 @@ class ThemeManager
 
         // C-14: Pfad-Validierung
         if (!$this->validateThemePath($this->themePath)) {
-            error_log('ThemeManager: Ungültiger Theme-Pfad abgewiesen: ' . $this->themePath);
+            Logger::instance()->withChannel('theme')->warning('Invalid theme path was rejected.', [
+                'active_theme' => $this->activeTheme,
+                'theme_path' => $this->themePath,
+            ]);
             $this->rollbackToDefaultTheme('Ungültiger Theme-Pfad');
             return;
         }
@@ -199,7 +204,10 @@ class ThemeManager
         if (file_exists($functionsFile)) {
             // C-14: Gefährliche Funktionsaufrufe im Theme scannen
             if ($this->hasUnsafeCode($functionsFile)) {
-                error_log('ThemeManager: Theme "' . $this->activeTheme . '" enthält unsichere Funktionsaufrufe und wird nicht geladen.');
+                Logger::instance()->withChannel('theme')->warning('Theme functions file contains unsafe calls and was not loaded.', [
+                    'active_theme' => $this->activeTheme,
+                    'functions_file' => $functionsFile,
+                ]);
                 $this->rollbackToDefaultTheme('Unsicherer Code in functions.php');
                 return;
             }
@@ -207,7 +215,11 @@ class ThemeManager
             try {
                 require_once $functionsFile;
             } catch (\Throwable $e) {
-                error_log('ThemeManager: functions.php des Themes "' . $this->activeTheme . '" verursachte einen Fehler: ' . $e->getMessage());
+                Logger::instance()->withChannel('theme')->error('Theme functions file caused a runtime error.', [
+                    'active_theme' => $this->activeTheme,
+                    'functions_file' => $functionsFile,
+                    'exception' => $e,
+                ]);
                 $this->rollbackToDefaultTheme('Laufzeitfehler in functions.php: ' . $e->getMessage());
                 return;
             }
@@ -255,14 +267,20 @@ class ThemeManager
         try {
             $tokens = token_get_all($content, TOKEN_PARSE);
         } catch (\ParseError $e) {
-            error_log('ThemeManager::hasUnsafeCode() Parse-Fehler in ' . $file . ': ' . $e->getMessage());
+            Logger::instance()->withChannel('theme')->warning('Theme PHP file contains a parse error and was rejected.', [
+                'file' => $file,
+                'exception' => $e,
+            ]);
             return true; // Syntaxfehler = trotzdem ablehnen
         }
 
         foreach ($tokens as $token) {
             if (is_array($token) && $token[0] === T_STRING) {
                 if (in_array(strtolower($token[1]), $dangerousFunctions, true)) {
-                    error_log('ThemeManager: Gefährliche Funktion "' . $token[1] . '" in ' . $file . ' gefunden.');
+                    Logger::instance()->withChannel('theme')->warning('Dangerous PHP function detected in theme file.', [
+                        'file' => $file,
+                        'function' => (string) $token[1],
+                    ]);
                     return true;
                 }
             }
@@ -284,16 +302,18 @@ class ThemeManager
 
         // Nicht in eine Endlosschleife laufen wenn das Default-Theme selbst defekt ist
         if ($this->activeTheme === $default) {
-            error_log('ThemeManager: Rollback abgebrochen – DEFAULT_THEME "' . $default . '" ist selbst fehlerhaft. Grund: ' . $reason);
+            Logger::instance()->withChannel('theme')->error('Theme rollback was aborted because the default theme is also broken.', [
+                'default_theme' => $default,
+                'reason' => $reason,
+            ]);
             return;
         }
 
-        error_log(sprintf(
-            'ThemeManager [H-21]: Theme "%s" fehlerhaft (%s) – Rollback auf DEFAULT_THEME "%s".',
-            $this->activeTheme,
-            $reason,
-            $default
-        ));
+        Logger::instance()->withChannel('theme')->warning('Theme rollback to default theme was triggered.', [
+            'active_theme' => $this->activeTheme,
+            'default_theme' => $default,
+            'reason' => $reason,
+        ]);
 
         // Audit-Log
         if (class_exists(AuditLogger::class)) {
@@ -327,7 +347,11 @@ class ThemeManager
                 );
             }
         } catch (\Exception $e) {
-            error_log('ThemeManager::rollbackToDefaultTheme() DB-Fehler: ' . $e->getMessage());
+            Logger::instance()->withChannel('theme')->error('Theme rollback could not be persisted to settings.', [
+                'default_theme' => $default,
+                'active_theme' => $this->activeTheme,
+                'exception' => $e,
+            ]);
         }
 
         // Runtime-Zustand aktualisieren
@@ -440,7 +464,10 @@ class ThemeManager
             $tracking->trackPageView($pageId, $pageSlug, $pageTitle, $userId);
         } catch (\Throwable $e) {
             // Silently fail - tracking should never break the site
-            error_log('Tracking Error: ' . $e->getMessage());
+            Logger::instance()->withChannel('theme')->warning('Theme page view tracking failed.', [
+                'template' => $template,
+                'exception' => $e,
+            ]);
         }
     }
     
@@ -499,7 +526,9 @@ class ThemeManager
                 }
             }
         } catch (\Exception $e) {
-            error_log('ThemeManager::getActiveTheme() Error: ' . $e->getMessage());
+            Logger::instance()->withChannel('theme')->warning('Active theme could not be loaded from settings.', [
+                'exception' => $e,
+            ]);
         }
 
         // Verify theme folder exists; if not, use first folder that has a style.css
@@ -644,7 +673,10 @@ class ThemeManager
             // H-20: Gesundheitscheck (Pflichtdateien + Syntax aller PHP-Dateien)
             $healthResult = $this->healthCheckTheme($themeFolder);
             if ($healthResult !== true) {
-                error_log('ThemeManager::switchTheme() Health-Check fehlgeschlagen für "' . $themeFolder . '": ' . $healthResult);
+                Logger::instance()->withChannel('theme')->warning('Theme health check failed before activation.', [
+                    'theme' => $themeFolder,
+                    'health_result' => $healthResult,
+                ]);
                 return 'Theme-Gesundheitscheck fehlgeschlagen: ' . $healthResult;
             }
 
@@ -676,7 +708,10 @@ class ThemeManager
 
             return true;
         } catch (\Exception $e) {
-            error_log('ThemeManager::switchTheme() Error: ' . $e->getMessage());
+            Logger::instance()->withChannel('theme')->error('Theme switch failed.', [
+                'theme' => $themeFolder,
+                'exception' => $e,
+            ]);
             return 'Fehler beim Wechseln des Themes.';
         } finally {
             $this->releaseThemeMutationLock($lockPath);
@@ -798,7 +833,10 @@ class ThemeManager
 
             return true;
         } catch (\Throwable $e) {
-            error_log('ThemeManager::deleteTheme() Error: ' . $e->getMessage());
+            Logger::instance()->withChannel('theme')->error('Theme deletion failed.', [
+                'theme' => $folder,
+                'exception' => $e,
+            ]);
             return 'Fehler beim Löschen: ' . $e->getMessage();
         } finally {
             $this->releaseThemeMutationLock($lockPath);
@@ -936,7 +974,10 @@ class ThemeManager
                 return Json::decodeArray($result->option_value ?? null, []);
             }
         } catch (\Exception $e) {
-            error_log('ThemeManager::getMenu() Error: ' . $e->getMessage());
+            Logger::instance()->withChannel('theme')->warning('Theme menu could not be loaded.', [
+                'location' => $location,
+                'exception' => $e,
+            ]);
         }
 
         // Legacy fallback for primary nav
@@ -973,7 +1014,10 @@ class ThemeManager
             }
             return true;
         } catch (\Exception $e) {
-            error_log('ThemeManager::saveMenu() Error: ' . $e->getMessage());
+            Logger::instance()->withChannel('theme')->warning('Theme menu could not be saved.', [
+                'location' => $location,
+                'exception' => $e,
+            ]);
             return false;
         }
     }
@@ -1004,7 +1048,10 @@ class ThemeManager
                     }
                 }
             } catch (\Throwable $e) {
-                error_log('ThemeManager::getMenuLocations() theme.json error: ' . $e->getMessage());
+                Logger::instance()->withChannel('theme')->warning('Theme menu locations from theme.json could not be loaded.', [
+                    'theme_path' => $themeJsonFile,
+                    'exception' => $e,
+                ]);
             }
         }
 
@@ -1030,7 +1077,9 @@ class ThemeManager
                 }
             }
         } catch (\Throwable $e) {
-            error_log('ThemeManager::getMenuLocations() Error: ' . $e->getMessage());
+            Logger::instance()->withChannel('theme')->warning('Custom theme menu locations could not be loaded.', [
+                'exception' => $e,
+            ]);
         }
 
         return $locations;
@@ -1061,7 +1110,9 @@ class ThemeManager
             }
             return true;
         } catch (\Exception $e) {
-            error_log('ThemeManager::saveCustomMenuLocations() Error: ' . $e->getMessage());
+            Logger::instance()->withChannel('theme')->warning('Custom theme menu locations could not be saved.', [
+                'exception' => $e,
+            ]);
             return false;
         }
     }

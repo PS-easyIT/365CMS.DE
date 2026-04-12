@@ -141,14 +141,15 @@ final class CronRunnerService
                 'result' => $result,
             ];
         } catch (\Throwable $e) {
-            error_log(
-                'CMS Cron Error [' . get_class($e) . ']: '
-                . $this->truncateForLog($e->getMessage())
-                . ' in '
-                . $this->truncateForLog($e->getFile(), 220)
-                . ':'
-                . (int) $e->getLine()
-            );
+            \CMS\Logger::instance()->withChannel('cron')->error('Cron execution failed.', [
+                'exception_class' => get_class($e),
+                'exception_message' => $this->truncateForLog($e->getMessage()),
+                'file' => $this->truncateForLog($e->getFile(), 220),
+                'line' => (int) $e->getLine(),
+                'task' => $task,
+                'mode' => $mode,
+                'source' => $source,
+            ]);
 
             return [
                 'success' => false,
@@ -303,7 +304,9 @@ final class CronRunnerService
                 'mode' => 'core-feed-queue-recovery',
             ];
         } catch (\Throwable $e) {
-            error_log('CMS Cron Feed Queue Recovery Error: ' . $e->getMessage());
+            \CMS\Logger::instance()->withChannel('cron')->warning('Cron feed queue recovery failed.', [
+                'exception' => $e,
+            ]);
 
             return [
                 'success' => false,

@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace CMS\Services;
 
 use CMS\Database;
+use CMS\Logger;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -124,7 +125,12 @@ final class FeatureUsageService
 
             return true;
         } catch (\Throwable $e) {
-            error_log('FeatureUsageService::trackFeatureUsage() Error: ' . $e->getMessage());
+            Logger::instance()->withChannel('feature-usage')->warning('Feature usage could not be tracked.', [
+                'feature_key' => $featureKey,
+                'feature_area' => $featureArea,
+                'route_path' => $routePath,
+                'exception' => $e,
+            ]);
             return false;
         }
     }
@@ -162,7 +168,10 @@ final class FeatureUsageService
                 'unique_sessions' => (int) ($row['unique_sessions'] ?? 0),
             ];
         } catch (\Throwable $e) {
-            error_log('FeatureUsageService::getUsageTotals() Error: ' . $e->getMessage());
+            Logger::instance()->withChannel('feature-usage')->warning('Feature usage totals could not be loaded.', [
+                'days' => $days,
+                'exception' => $e,
+            ]);
             return $this->getEmptyTotals();
         }
     }
@@ -211,7 +220,11 @@ final class FeatureUsageService
                 'last_used_at' => (string) ($row['last_used_at'] ?? ''),
             ], $rows);
         } catch (\Throwable $e) {
-            error_log('FeatureUsageService::getTopFeatures() Error: ' . $e->getMessage());
+            Logger::instance()->withChannel('feature-usage')->warning('Top feature usage data could not be loaded.', [
+                'days' => $days,
+                'limit' => $limit,
+                'exception' => $e,
+            ]);
             return [];
         }
     }
@@ -249,7 +262,10 @@ final class FeatureUsageService
                 'unique_actors' => (int) ($row['unique_actors'] ?? 0),
             ], $rows);
         } catch (\Throwable $e) {
-            error_log('FeatureUsageService::getAreaBreakdown() Error: ' . $e->getMessage());
+            Logger::instance()->withChannel('feature-usage')->warning('Feature usage area breakdown could not be loaded.', [
+                'days' => $days,
+                'exception' => $e,
+            ]);
             return [];
         }
     }
@@ -283,7 +299,10 @@ final class FeatureUsageService
                 'uses' => (int) ($row['total_uses'] ?? 0),
             ], $rows);
         } catch (\Throwable $e) {
-            error_log('FeatureUsageService::getDailyUsage() Error: ' . $e->getMessage());
+            Logger::instance()->withChannel('feature-usage')->warning('Daily feature usage data could not be loaded.', [
+                'days' => $days,
+                'exception' => $e,
+            ]);
             return [];
         }
     }
@@ -315,7 +334,9 @@ final class FeatureUsageService
             $this->db->query($sql);
             $this->tableReady = true;
         } catch (\Throwable $e) {
-            error_log('FeatureUsageService: Could not create feature_usage table: ' . $e->getMessage());
+            Logger::instance()->withChannel('feature-usage')->warning('Feature usage table could not be created.', [
+                'exception' => $e,
+            ]);
             $this->tableReady = false;
         }
     }

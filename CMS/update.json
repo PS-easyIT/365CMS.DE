@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.9.202",
+  "version": "2.9.203",
   "min_php": "8.4",
   "released": "2026-04-12",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 2.9.202: Produktion hält PHP-Fehlerlogging jetzt trotz deaktivierter Anzeige aktiv und schreibt direkte error_log()-Aufrufe sowie PHP-Warnings wieder zuverlässig nach CMS/logs/error.log.",
+  "notes": "Release-Stand 2.9.203: Große Teile des Core-Runtime-Stacks schreiben Fehler- und Warnpfade jetzt strukturiert über CMS\\Logger-Channels statt über rohe direkte error_log()-Strings; direkte Fallback-Logs bleiben vor allem in Bootstrap-/DB-/Logger-Kernpfaden bewusst bestehen.",
   "critical": false
 }

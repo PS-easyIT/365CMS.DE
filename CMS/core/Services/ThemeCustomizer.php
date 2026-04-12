@@ -13,6 +13,7 @@ namespace CMS\Services;
 
 use CMS\Database;
 use CMS\Json;
+use CMS\Logger;
 use PDO;
 
 if (!defined('ABSPATH')) {
@@ -69,7 +70,9 @@ class ThemeCustomizer
                 $slug = $result->option_value;
             }
         } catch (\Throwable $e) {
-            error_log('ThemeCustomizer::detectActiveTheme() Error: ' . $e->getMessage());
+            Logger::instance()->withChannel('theme-customizer')->warning('Active theme could not be detected for the customizer.', [
+                'exception' => $e,
+            ]);
         }
 
         $availableThemes = $this->getAvailableThemeConfigMap();
@@ -189,7 +192,9 @@ class ThemeCustomizer
     {
         $themeSlug = trim((string) $this->currentTheme);
         if ($themeSlug === '' || preg_match('/^[a-z0-9][a-z0-9\-]*$/i', $themeSlug) !== 1) {
-            error_log('ThemeCustomizer::loadThemeConfig() invalid theme slug: ' . $themeSlug);
+            Logger::instance()->withChannel('theme-customizer')->warning('Theme customizer received an invalid theme slug.', [
+                'theme_slug' => $themeSlug,
+            ]);
             $this->themeConfig = [];
             return;
         }
@@ -197,7 +202,9 @@ class ThemeCustomizer
         $themesBase = defined('ABSPATH') ? ABSPATH . 'themes' . DIRECTORY_SEPARATOR : '';
         $realThemesBase = $themesBase !== '' ? realpath($themesBase) : false;
         if ($realThemesBase === false || !is_dir($realThemesBase)) {
-            error_log('ThemeCustomizer::loadThemeConfig() theme base path unavailable: ' . $themesBase);
+            Logger::instance()->withChannel('theme-customizer')->warning('Theme base path is unavailable for the customizer.', [
+                'themes_base' => $themesBase,
+            ]);
             $this->themeConfig = [];
             return;
         }
@@ -206,14 +213,19 @@ class ThemeCustomizer
         $realConfigPath = $availableThemes[$themeSlug] ?? '';
 
         if ($realConfigPath === '') {
-            error_log("Theme config not found for slug: {$themeSlug}");
+            Logger::instance()->withChannel('theme-customizer')->warning('Theme config was not found for the selected theme.', [
+                'theme_slug' => $themeSlug,
+            ]);
             $this->themeConfig = [];
             return;
         }
 
         $json = $this->readThemeConfigJson($realConfigPath, $realThemesBase);
         if ($json === '') {
-            error_log("Theme config unreadable or blocked: {$realConfigPath}");
+            Logger::instance()->withChannel('theme-customizer')->warning('Theme config is unreadable or blocked.', [
+                'theme_slug' => $themeSlug,
+                'config_path' => $realConfigPath,
+            ]);
             $this->themeConfig = [];
             return;
         }
@@ -221,7 +233,10 @@ class ThemeCustomizer
         $config = Json::decodeArray($json, []);
 
         if ($config === []) {
-            error_log("Invalid or empty theme.json: {$realConfigPath}");
+            Logger::instance()->withChannel('theme-customizer')->warning('Theme config JSON is invalid or empty.', [
+                'theme_slug' => $themeSlug,
+                'config_path' => $realConfigPath,
+            ]);
             $this->themeConfig = [];
             return;
         }
@@ -321,7 +336,13 @@ class ThemeCustomizer
                 $duplicateIds
             );
         } catch (\Throwable $e) {
-            error_log('ThemeCustomizer::cleanupDuplicateSettingRows() failed: ' . $e->getMessage());
+            Logger::instance()->withChannel('theme-customizer')->warning('Duplicate theme customization rows could not be cleaned up.', [
+                'theme' => $this->currentTheme,
+                'category' => $category,
+                'key' => $key,
+                'user_id' => $userId,
+                'exception' => $e,
+            ]);
         }
     }
     
@@ -362,7 +383,11 @@ class ThemeCustomizer
             }
             
         } catch (\Throwable $e) {
-            error_log("ThemeCustomizer::loadCustomizations() error: " . $e->getMessage());
+            Logger::instance()->withChannel('theme-customizer')->warning('Theme customizations could not be loaded.', [
+                'theme' => $this->currentTheme,
+                'user_id' => $userId,
+                'exception' => $e,
+            ]);
             $this->customizations = [];
         }
     }
@@ -436,7 +461,10 @@ class ThemeCustomizer
                 KEY idx_user_id      (user_id)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
         } catch (\Throwable $e) {
-            error_log('ThemeCustomizer::ensureTable() failed: ' . $e->getMessage());
+            Logger::instance()->withChannel('theme-customizer')->warning('Theme customization table could not be ensured.', [
+                'theme' => $this->currentTheme,
+                'exception' => $e,
+            ]);
         }
     }
 
@@ -447,7 +475,11 @@ class ThemeCustomizer
             // A hard-fail here would silently swallow all settings if theme.json is unreachable.
             $options = $this->getCustomizationOptions();
             if (!empty($options) && !isset($options[$category]['settings'][$key])) {
-                error_log("ThemeCustomizer::set() – unknown setting: {$category}.{$key} (theme: {$this->currentTheme})");
+                Logger::instance()->withChannel('theme-customizer')->warning('Unknown theme customization setting encountered; save continues.', [
+                    'theme' => $this->currentTheme,
+                    'category' => $category,
+                    'key' => $key,
+                ]);
                 // Continue – the key may have been added in the PHP config but not yet in theme.json
             }
 
@@ -499,7 +531,13 @@ class ThemeCustomizer
             return true;
             
         } catch (\Throwable $e) {
-            error_log("ThemeCustomizer::set() error [{$category}.{$key}]: " . $e->getMessage());
+            Logger::instance()->withChannel('theme-customizer')->warning('Theme customization value could not be saved.', [
+                'theme' => $this->currentTheme,
+                'category' => $category,
+                'key' => $key,
+                'user_id' => $userId,
+                'exception' => $e,
+            ]);
             return false;
         }
     }
@@ -548,7 +586,13 @@ class ThemeCustomizer
             return true;
             
         } catch (\Throwable $e) {
-            error_log("ThemeCustomizer::reset() error: " . $e->getMessage());
+            Logger::instance()->withChannel('theme-customizer')->warning('Theme customization value could not be reset.', [
+                'theme' => $this->currentTheme,
+                'category' => $category,
+                'key' => $key,
+                'user_id' => $userId,
+                'exception' => $e,
+            ]);
             return false;
         }
     }
@@ -575,7 +619,11 @@ class ThemeCustomizer
             return true;
             
         } catch (\Throwable $e) {
-            error_log("ThemeCustomizer::resetAll() error: " . $e->getMessage());
+            Logger::instance()->withChannel('theme-customizer')->warning('All theme customization values could not be reset.', [
+                'theme' => $this->currentTheme,
+                'user_id' => $userId,
+                'exception' => $e,
+            ]);
             return false;
         }
     }

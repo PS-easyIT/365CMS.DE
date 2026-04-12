@@ -121,7 +121,9 @@ final class PublicRouter
                 ];
             }
         } catch (\Throwable $e) {
-            error_log('PublicRouter::renderLogin() Passkey-Setup fehlgeschlagen: ' . $e->getMessage());
+            Logger::instance()->withChannel('public-router')->warning('Passkey login payload could not be prepared.', [
+                'exception' => $e,
+            ]);
         }
 
         Services\CmsAuthPageService::getInstance()->render('login', [

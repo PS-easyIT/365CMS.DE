@@ -1,4 +1,4 @@
-﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.202-blue.svg)](https://shields.io/)
+﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.203-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -19,6 +19,12 @@
 ## 📜 Vollständige Versionshistorie
 
 ---
+
+### v2.9.203 — 12. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.203** | 🟡 refactor | Core/Logging | **Große Teile von `CMS/core` leiten Laufzeit-, Routing-, Theme-, Update-, Search-, Backup-, Analytics-, Landing-, Plugin-, LDAP-, Passkey-, Cron- und Customizer-Fehler jetzt über strukturierte `CMS\Logger`-Channels mit Kontextdaten statt über rohe direkte `error_log()`-Strings**: Im Core verbleiben direkte `error_log()`-Aufrufe damit im Wesentlichen nur noch in bewusst primitiven Low-Level-/Fallback-Pfaden wie `Bootstrap`, `Database`, `Logger`, `AuditLogger`, `CacheManager`, `SchemaManager`, `SubscriptionManager` und ähnlichen Frühstart- bzw. Rekursions-Sonderfällen. |
 
 ### v2.9.202 — 12. April 2026
 

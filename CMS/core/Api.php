@@ -75,7 +75,11 @@ class Api
                     $this->sendError('Endpoint not found', 404);
             }
         } catch (\Throwable $e) {
-            error_log('API request failed for endpoint "' . $endpoint . '": ' . $e->getMessage());
+            Logger::instance()->withChannel('api')->error('API request failed.', [
+                'endpoint' => $endpoint,
+                'resource_id' => $id,
+                'exception' => $e,
+            ]);
             $this->sendError(self::GENERIC_SERVER_ERROR_MESSAGE, 500);
         }
     }

@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace CMS\Services\Landing;
 
+use CMS\Logger;
+
 if (!defined('ABSPATH')) {
     exit;
 }
@@ -45,7 +47,9 @@ final class LandingSectionService
 
             $this->profileService->ensureDefaultSections();
         } catch (\Throwable $e) {
-            error_log('LandingSectionService::ensureDefaults() Error: ' . $e->getMessage());
+            Logger::instance()->withChannel('landing')->warning('Landing defaults could not be ensured.', [
+                'exception' => $e,
+            ]);
         }
     }
 

@@ -10,6 +10,7 @@ declare(strict_types=1);
 namespace CMS\Routing;
 
 use CMS\Auth;
+use CMS\Logger;
 use CMS\Router;
 use CMS\Services\CmsAuthPageService;
 use CMS\Services\FeatureUsageService;
@@ -97,7 +98,10 @@ final class MemberRouter
             return;
         }
 
-        error_log('MemberRouter [renderMemberPage]: Datei nicht gefunden: ' . $file);
+        Logger::instance()->withChannel('member-router')->warning('Member page file was not found.', [
+            'page' => $page,
+            'file' => $file,
+        ]);
         $this->router->render404();
     }
 

@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace CMS\Services;
 
 use CMS\Database;
+use CMS\Logger;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -130,7 +131,10 @@ class AnalyticsService
                 'avg_session_duration' => $minutes > 0 ? "{$minutes}m {$seconds}s" : "{$seconds}s",
             ];
         } catch (\Exception $e) {
-            error_log('AnalyticsService::getVisitorStats() Error: ' . $e->getMessage());
+            Logger::instance()->withChannel('analytics')->warning('Visitor statistics could not be loaded.', [
+                'days' => $days,
+                'exception' => $e,
+            ]);
             return $this->getEmptyStats();
         }
     }
@@ -203,7 +207,10 @@ class AnalyticsService
             
             return $stmt->fetchAll(\PDO::FETCH_ASSOC);
         } catch (\Exception $e) {
-            error_log('AnalyticsService::getUserActivity() Error: ' . $e->getMessage());
+            Logger::instance()->withChannel('analytics')->warning('User activity could not be loaded.', [
+                'days' => $days,
+                'exception' => $e,
+            ]);
             return [];
         }
     }
@@ -319,7 +326,9 @@ class AnalyticsService
             
             return $result ? (float)$result->size : 0.0;
         } catch (\Exception $e) {
-            error_log('AnalyticsService::getDatabaseSize() Error: ' . $e->getMessage());
+            Logger::instance()->withChannel('analytics')->warning('Database size could not be determined.', [
+                'exception' => $e,
+            ]);
             return 0.0;
         }
     }
@@ -424,7 +433,9 @@ class AnalyticsService
                 'expired' => $expired,
             ];
         } catch (\Exception $e) {
-            error_log('AnalyticsService::getCacheStats() Error: ' . $e->getMessage());
+            Logger::instance()->withChannel('analytics')->warning('Cache statistics could not be loaded.', [
+                'exception' => $e,
+            ]);
             return $this->getEmptyCacheStats();
         }
     }
@@ -469,7 +480,10 @@ class AnalyticsService
             
             return $stmt->fetchAll(\PDO::FETCH_ASSOC);
         } catch (\Exception $e) {
-            error_log('AnalyticsService::getRecentActivity() Error: ' . $e->getMessage());
+            Logger::instance()->withChannel('analytics')->warning('Recent activity could not be loaded.', [
+                'limit' => $limit,
+                'exception' => $e,
+            ]);
             return [];
         }
     }

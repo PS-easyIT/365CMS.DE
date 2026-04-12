@@ -13,6 +13,7 @@ namespace CMS\Services;
 
 use CMS\Auth;
 use CMS\Database;
+use CMS\Logger;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -76,7 +77,9 @@ final class CoreWebVitalsService
         try {
             $this->db->query($sql);
         } catch (\Throwable $e) {
-            error_log('CoreWebVitalsService: Could not create core_web_vitals table: ' . $e->getMessage());
+            Logger::instance()->withChannel('web-vitals')->warning('Core Web Vitals table could not be created.', [
+                'exception' => $e,
+            ]);
         }
     }
 
@@ -147,7 +150,10 @@ final class CoreWebVitalsService
                 'cls' => $cls,
             ]) !== false;
         } catch (\Throwable $e) {
-            error_log('CoreWebVitalsService::storeReport() Error: ' . $e->getMessage());
+            Logger::instance()->withChannel('web-vitals')->warning('Core Web Vitals report could not be stored.', [
+                'page_path' => $pagePath,
+                'exception' => $e,
+            ]);
             return false;
         }
     }
@@ -168,7 +174,10 @@ final class CoreWebVitalsService
             );
             $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
         } catch (\Throwable $e) {
-            error_log('CoreWebVitalsService::getDashboardSummary() Error: ' . $e->getMessage());
+            Logger::instance()->withChannel('web-vitals')->warning('Core Web Vitals dashboard summary could not be loaded.', [
+                'days' => $days,
+                'exception' => $e,
+            ]);
         }
 
         $ttfbValues = [];
@@ -249,7 +258,11 @@ final class CoreWebVitalsService
                 ];
             }, $rows);
         } catch (\Throwable $e) {
-            error_log('CoreWebVitalsService::getProblemPages() Error: ' . $e->getMessage());
+            Logger::instance()->withChannel('web-vitals')->warning('Core Web Vitals problem pages could not be loaded.', [
+                'days' => $days,
+                'limit' => $limit,
+                'exception' => $e,
+            ]);
             return [];
         }
     }
@@ -483,7 +496,9 @@ final class CoreWebVitalsService
                 }
             }
         } catch (\Throwable $e) {
-            error_log('CoreWebVitalsService::getSettings() Error: ' . $e->getMessage());
+            Logger::instance()->withChannel('web-vitals')->warning('Core Web Vitals settings could not be loaded.', [
+                'exception' => $e,
+            ]);
         }
 
         return $settings;

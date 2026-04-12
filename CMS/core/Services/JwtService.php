@@ -115,7 +115,9 @@ final class JwtService
         } catch (ExpiredException | SignatureInvalidException | BeforeValidException) {
             return null;
         } catch (\Throwable $e) {
-            error_log('[JwtService] Token-Validierung fehlgeschlagen: ' . $e->getMessage());
+            \CMS\Logger::instance()->withChannel('jwt')->warning('JWT validation failed unexpectedly.', [
+                'exception' => $e,
+            ]);
             return null;
         }
     }
