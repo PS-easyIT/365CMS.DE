@@ -35,7 +35,7 @@
 <a id="de-erste-schritte"></a>
 
 <a id="de-doku"></a>
-[🌐 Website](https://365cms.de) • [🚀 Installation](DOC/INSTALLATION.md) • [📚 Dokumentation](DOC/INDEX.md) • [🎨 Themes](DOC/theme/README.md) • [🔌 Plugins](DOC/plugins/GUIDE.md) • [📝 Changelog](Changelog.md)
+[🌐 Website](https://365cms.de) • [🚀 Installation](DOC/INSTALLATION.md) • [📚 Dokumentation](DOC/INDEX.md) • [🎨 Themes](DOC/theme/README.md) • [🔌 Plugins](DOC/plugins/GUIDE.md) 
 <a id="de-support"></a>
 <a id="english"></a>
 ---
