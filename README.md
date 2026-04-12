@@ -24,42 +24,9 @@
 </div>
 
 ## Navigation
-- [🇩🇪 Deutsch](#deutsch)
-	- [✨ Warum 365CMS?](#de-warum-365cms)
-	- [💎 auf einen Blick](#de-auf-einen-blick)
-	- [🎯 Ideal für](#de-ideal-fuer)
-	- [🧭 Für wen – und für wen eher nicht?](#de-fuer-wen)
-	- [🏢 Use Cases / Trusted For](#de-use-cases)
-	- [⚖️ Warum 365CMS statt „CMS + fünf Zusatztools“?](#de-warum-statt-zusatztools)
-	- [🧩 Was 365CMS besonders stark macht](#de-besonders-stark)
-	- [🚀 Kurz positioniert](#de-kurz-positioniert)
-	- [⚙️ Typische Workflows in 365CMS](#de-workflows)
-	- [🧭 Admin-Bereiche im Überblick](#de-admin-bereiche)
-	- [🚀 Schnellstart](#de-schnellstart)
-		- [Voraussetzungen](#de-voraussetzungen)
-		- [Installation in Kürze](#de-installation)
-		- [Empfehlenswerte erste Schritte nach der Installation](#de-erste-schritte)
-	- [📚 Doku & nächste Schritte](#de-doku)
-	- [👨‍💻 Support & Lizenz](#de-support)
-- [🇬🇧 English](#english)
-	- [✨ Why 365CMS?](#en-why-365cms)
-	- [💎 Core USP at a glance](#en-core-usp)
-	- [🎯 Ideal for](#en-ideal-for)
-	- [🧭 Who it fits – and who it does not](#en-who-it-fits)
-	- [🏢 Use Cases / Trusted For](#en-use-cases)
-	- [⚖️ Why 365CMS instead of “a CMS plus five extra tools”?](#en-why-instead-of-extra-tools)
-	- [🧩 What 365CMS does especially well](#en-does-especially-well)
-	- [🚀 Positioned in one sentence](#en-positioned)
-	- [⚙️ Typical workflows in 365CMS](#en-workflows)
-	- [🧭 Admin areas at a glance](#en-admin-areas)
-	- [🔌 Extensibility & ecosystem](#en-extensibility)
-	- [🚀 Quick start](#en-quick-start)
-		- [Requirements](#en-requirements)
-		- [Installation in short](#en-installation)
-		- [Recommended first steps after installation](#en-first-steps)
-	- [📚 Documentation & next steps](#en-documentation)
-	- [👨‍💻 Support & license](#en-support)
-- [🚀 Bereit für den nächsten Schritt? / Ready for the next step?](#next-step)
+- ![🇩🇪 Deutsch](#deutsch)https://github.com/PS-easyIT/365CMS.DE?tab=readme-ov-file#-deutsch
+- ![🇬🇧 English](#english)https://github.com/PS-easyIT/365CMS.DE?tab=readme-ov-file#-englishv
+- ![🚀 Bereit für den nächsten Schritt? / Ready for the next step?](#next-step)https://github.com/PS-easyIT/365CMS.DE?tab=readme-ov-file#%E2%80%8D-support--license
 
 
 ## 🖼️ Screenshots

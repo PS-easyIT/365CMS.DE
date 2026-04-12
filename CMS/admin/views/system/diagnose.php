@@ -291,8 +291,8 @@ foreach ($tables as $tableInfo) {
 
                             <div class="col-12 col-xl-4">
                                 <div class="border rounded-3 h-100 p-3">
-                                    <div class="fw-semibold mb-2">Gebündelte Runtime-Libraries</div>
-                                    <div class="text-secondary small mb-3">Direkt aus `CMS/assets/autoload.php` abgeleitete Asset-/Vendor-Bundles mit Verfügbarkeits- und Laufzeitstatus.</div>
+                                    <div class="fw-semibold mb-2">Asset-Libraries & Kandidaten</div>
+                                    <div class="text-secondary small mb-3">Aktive Runtime-Bundles aus `CMS/assets/` plus dokumentierte Staging-, Legacy- und Referenzkandidaten außerhalb der produktiven Verdrahtung.</div>
                                     <div class="table-responsive">
                                         <table class="table table-sm table-vcenter mb-0">
                                             <thead>
@@ -316,7 +316,7 @@ foreach ($tables as $tableInfo) {
                                                                 <?php endif; ?>
                                                             </td>
                                                             <td><span class="badge bg-<?php echo !empty($library['available']) ? 'success' : 'danger'; ?>-lt"><?php echo !empty($library['available']) ? 'vorhanden' : 'fehlt'; ?></span></td>
-                                                            <td><span class="badge bg-<?php echo !empty($library['runtime_ready']) ? 'success' : 'secondary'; ?>-lt"><?php echo !empty($library['runtime_ready']) ? 'auflösbar' : 'nicht aufgelöst'; ?></span></td>
+                                                            <td><span class="badge bg-<?php echo htmlspecialchars((string)($library['runtime_class'] ?? (!empty($library['runtime_ready']) ? 'success' : 'secondary'))); ?>-lt"><?php echo htmlspecialchars((string)($library['runtime_label'] ?? (!empty($library['runtime_ready']) ? 'auflösbar' : 'nicht aufgelöst'))); ?></span></td>
                                                         </tr>
                                                     <?php endforeach; ?>
                                                 <?php endif; ?>

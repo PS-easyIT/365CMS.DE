@@ -79,6 +79,7 @@ final class VendorRegistry
             'assets-autoload' => $this->loadAssetsAutoloader(),
             'dompdf' => $this->loadDompdf(),
             'melbahja-seo' => $this->loadMelbahjaSeo(),
+            'symfony-contracts' => $this->loadAssetsAutoloader(),
             default => false,
         };
 
@@ -199,7 +200,7 @@ final class VendorRegistry
 
             $runtimeStatus = $available
                 ? $this->getRuntimeSymbolStatus($definition['symbol'], $definition['symbol_type'])
-                : ['ready' => false, 'error' => null];
+                : $this->getDefaultRuntimeStatusFallback();
 
             $diagnostics[] = [
                 'package' => $definition['package'],
@@ -209,6 +210,8 @@ final class VendorRegistry
                 'runtime_ready' => $runtimeStatus['ready'],
                 'notes' => $definition['notes'],
                 'runtime_error' => $runtimeStatus['error'],
+                'runtime_label' => $runtimeStatus['label'],
+                'runtime_class' => $runtimeStatus['class'],
             ];
         }
 
@@ -265,6 +268,12 @@ final class VendorRegistry
                 'path' => ABSPATH . 'assets' . DIRECTORY_SEPARATOR . 'melbahja-seo' . DIRECTORY_SEPARATOR . 'src',
                 'path_type' => 'dir',
                 'notes' => 'Schema-, Sitemap- und Indexing-Bundle für SEO-Funktionen.',
+            ],
+            'symfony-contracts' => [
+                'label' => 'Symfony Contracts (lokaler Runtime-Shim)',
+                'path' => ABSPATH . 'assets' . DIRECTORY_SEPARATOR . 'symfony-contracts',
+                'path_type' => 'dir',
+                'notes' => 'Lokale Minimal-Contracts für Translation/Mailer, solange kein separates Contracts-Bundle gebündelt ist.',
             ],
         ];
     }
@@ -373,6 +382,102 @@ final class VendorRegistry
                 'symbol_type' => 'interface',
                 'notes' => 'PSR-Event-Dispatcher-Kompatibilität.',
             ],
+            [
+                'package' => 'editorjs',
+                'label' => 'Editor.js',
+                'paths' => [['path' => $assets . 'editorjs', 'type' => 'dir']],
+                'symbol' => $assets . 'editorjs' . DIRECTORY_SEPARATOR . 'editorjs.umd.js',
+                'symbol_type' => 'path',
+                'notes' => 'Produktives Block-Editor-Assetset für Admin und Frontend.',
+            ],
+            [
+                'package' => 'gridjs',
+                'label' => 'Grid.js',
+                'paths' => [['path' => $assets . 'gridjs', 'type' => 'dir']],
+                'symbol' => $assets . 'gridjs' . DIRECTORY_SEPARATOR . 'gridjs.umd.js',
+                'symbol_type' => 'path',
+                'notes' => 'Tabellen- und Grid-Bundle im Admin.',
+            ],
+            [
+                'package' => 'photoswipe',
+                'label' => 'PhotoSwipe',
+                'paths' => [['path' => $assets . 'photoswipe', 'type' => 'dir']],
+                'symbol' => $assets . 'photoswipe' . DIRECTORY_SEPARATOR . 'photoswipe.esm.min.js',
+                'symbol_type' => 'path',
+                'notes' => 'Lightbox-/Galerie-Assets für Frontend-Medienansichten.',
+            ],
+            [
+                'package' => 'suneditor',
+                'label' => 'SunEditor',
+                'paths' => [['path' => $assets . 'suneditor', 'type' => 'dir']],
+                'symbol' => $assets . 'suneditor',
+                'symbol_type' => 'path',
+                'notes' => 'Legacy-WYSIWYG-Editor im Admin.',
+            ],
+            [
+                'package' => 'tabler',
+                'label' => 'Tabler',
+                'paths' => [['path' => $assets . 'tabler', 'type' => 'dir']],
+                'symbol' => $assets . 'tabler',
+                'symbol_type' => 'path',
+                'notes' => 'Primäres Admin-UI-Framework.',
+            ],
+            [
+                'package' => 'cms-css',
+                'label' => '365CMS CSS-Assets',
+                'paths' => [['path' => $assets . 'css', 'type' => 'dir']],
+                'symbol' => $assets . 'css',
+                'symbol_type' => 'path',
+                'notes' => 'Produktive Stylesheets für Admin, Frontend und Member-Bereich.',
+            ],
+            [
+                'package' => 'cms-js',
+                'label' => '365CMS JS-Assets',
+                'paths' => [['path' => $assets . 'js', 'type' => 'dir']],
+                'symbol' => $assets . 'js',
+                'symbol_type' => 'path',
+                'notes' => 'Produktive JavaScript-Helfer und Initializer.',
+            ],
+            [
+                'package' => 'cms-images',
+                'label' => '365CMS Bild-Assets',
+                'paths' => [['path' => $assets . 'images', 'type' => 'dir']],
+                'symbol' => $assets . 'images',
+                'symbol_type' => 'path',
+                'notes' => 'Produktive Dashboard-, Logo- und Branding-Bestände.',
+            ],
+            [
+                'package' => 'simplepie',
+                'label' => 'SimplePie (Legacy)',
+                'paths' => [['path' => $assets . 'simplepielibrary', 'type' => 'dir']],
+                'symbol' => $assets . 'simplepielibrary',
+                'symbol_type' => 'legacy',
+                'notes' => 'Dokumentierter Legacy-Bestand; aktuell kein aktives Runtime-Bundle.',
+            ],
+            [
+                'package' => 'symfony/ai-platform',
+                'label' => 'Symfony AI Platform (Staging)',
+                'paths' => [['path' => dirname(ABSPATH) . DIRECTORY_SEPARATOR . 'ASSETS' . DIRECTORY_SEPARATOR . 'ai-platform-0.6.0', 'type' => 'dir']],
+                'symbol' => dirname(ABSPATH) . DIRECTORY_SEPARATOR . 'ASSETS' . DIRECTORY_SEPARATOR . 'ai-platform-0.6.0',
+                'symbol_type' => 'staging',
+                'notes' => 'Außerhalb der produktiven Runtime dokumentierter Kandidat; aktuell noch nicht im Core verdrahtet.',
+            ],
+            [
+                'package' => 'symfony/cache',
+                'label' => 'Symfony Cache (Staging)',
+                'paths' => [['path' => dirname(ABSPATH) . DIRECTORY_SEPARATOR . 'ASSETS' . DIRECTORY_SEPARATOR . 'cache-8.0.8', 'type' => 'dir']],
+                'symbol' => dirname(ABSPATH) . DIRECTORY_SEPARATOR . 'ASSETS' . DIRECTORY_SEPARATOR . 'cache-8.0.8',
+                'symbol_type' => 'staging',
+                'notes' => 'Dokumentierter Kandidat außerhalb der aktiven Runtime.',
+            ],
+            [
+                'package' => 'msgraph-sdk-php',
+                'label' => 'MS Graph SDK (Referenz)',
+                'paths' => [['path' => dirname(ABSPATH) . DIRECTORY_SEPARATOR . 'ASSETS' . DIRECTORY_SEPARATOR . 'msgraph-sdk-php-2.56.0', 'type' => 'dir']],
+                'symbol' => dirname(ABSPATH) . DIRECTORY_SEPARATOR . 'ASSETS' . DIRECTORY_SEPARATOR . 'msgraph-sdk-php-2.56.0',
+                'symbol_type' => 'reference',
+                'notes' => 'Referenzablage außerhalb der aktiven produktiven Verdrahtung.',
+            ],
         ];
     }
 
@@ -385,6 +490,7 @@ final class VendorRegistry
             'symfony/mailer' => ABSPATH . 'assets' . DIRECTORY_SEPARATOR . 'mailer' . DIRECTORY_SEPARATOR . 'composer.json',
             'symfony/mime' => ABSPATH . 'assets' . DIRECTORY_SEPARATOR . 'mime' . DIRECTORY_SEPARATOR . 'composer.json',
             'symfony/translation' => ABSPATH . 'assets' . DIRECTORY_SEPARATOR . 'translation' . DIRECTORY_SEPARATOR . 'composer.json',
+            'nesbot/carbon' => ABSPATH . 'assets' . DIRECTORY_SEPARATOR . 'Carbon' . DIRECTORY_SEPARATOR . 'composer.json',
         ];
     }
 
@@ -394,6 +500,8 @@ final class VendorRegistry
             'assets-autoload' => defined('CMS_VENDOR_PATH') || (($this->loadedPackages['assets-autoload'] ?? false) === true),
             'dompdf' => (($this->loadedPackages['dompdf'] ?? false) === true) || class_exists(\Dompdf\Dompdf::class, false),
             'melbahja-seo' => (($this->loadedPackages['melbahja-seo'] ?? false) === true) || class_exists(\Melbahja\Seo\Schema::class, true),
+            'symfony-contracts' => is_dir(ABSPATH . 'assets' . DIRECTORY_SEPARATOR . 'symfony-contracts')
+                && interface_exists(\Symfony\Contracts\Translation\TranslatorInterface::class, true),
             default => false,
         };
     }
@@ -420,26 +528,85 @@ final class VendorRegistry
     {
         return match ($type) {
             'interface' => interface_exists($symbol, true),
+            'path' => file_exists($symbol),
+            'legacy', 'staging', 'reference' => false,
             default => class_exists($symbol, true),
         };
     }
 
     /**
-     * @return array{ready: bool, error: ?string}
+     * @return array{ready: bool, error: ?string, label: string, class: string}
      */
     private function getRuntimeSymbolStatus(string $symbol, string $type): array
     {
         try {
+            if ($type === 'staging') {
+                return [
+                    'ready' => false,
+                    'error' => null,
+                    'label' => 'nur Staging',
+                    'class' => 'secondary',
+                ];
+            }
+
+            if ($type === 'reference') {
+                return [
+                    'ready' => false,
+                    'error' => null,
+                    'label' => 'Referenz',
+                    'class' => 'secondary',
+                ];
+            }
+
+            if ($type === 'legacy') {
+                return [
+                    'ready' => false,
+                    'error' => null,
+                    'label' => 'Legacy',
+                    'class' => 'warning',
+                ];
+            }
+
+            if ($type === 'path') {
+                $ready = $this->isRuntimeSymbolReady($symbol, $type);
+
+                return [
+                    'ready' => $ready,
+                    'error' => null,
+                    'label' => $ready ? 'verfügbar' : 'fehlt',
+                    'class' => $ready ? 'primary' : 'secondary',
+                ];
+            }
+
+            $ready = $this->isRuntimeSymbolReady($symbol, $type);
+
             return [
-                'ready' => $this->isRuntimeSymbolReady($symbol, $type),
+                'ready' => $ready,
                 'error' => null,
+                'label' => $ready ? 'auflösbar' : 'nicht aufgelöst',
+                'class' => $ready ? 'success' : 'secondary',
             ];
         } catch (\Throwable $e) {
             return [
                 'ready' => false,
                 'error' => $this->formatRuntimeError($e),
+                'label' => 'Fehler',
+                'class' => 'warning',
             ];
         }
+    }
+
+    /**
+     * @return array{ready: bool, error: ?string, label: string, class: string}
+     */
+    private function getDefaultRuntimeStatusFallback(): array
+    {
+        return [
+            'ready' => false,
+            'error' => null,
+            'label' => 'nicht aufgelöst',
+            'class' => 'secondary',
+        ];
     }
 
     private function pathExists(string $path, string $type): bool
