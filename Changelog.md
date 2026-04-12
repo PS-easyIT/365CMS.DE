@@ -1,4 +1,4 @@
-﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.208-blue.svg)](https://shields.io/)
+﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.209-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -19,6 +19,14 @@
 ## 📜 Vollständige Versionshistorie
 
 ---
+
+### v2.9.209 — 12. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.209** | 🔴 fix | Core/Module & Admin-Navigation | **`CMS/core/Services/CoreModuleService.php`, `CMS/admin/partials/sidebar.php`, `CMS/admin/seo-page.php`, `CMS/admin/performance-page.php`, `CMS/admin/legal-sites.php`, `CMS/admin/cookie-manager.php`, `CMS/admin/data-requests.php`, `CMS/admin/antispam.php`, `CMS/admin/firewall.php`, `CMS/admin/security-audit.php`, `CMS/admin/redirect-manager.php` und `CMS/admin/not-found-monitor.php` heben `SEO`, `Sicherheit`, `Recht` und `Performance` auf echte Root-Core-Module mit fail-closed Admin-Gates und modulgefilterten Sidebar-Bereichen**: Die vier Fachbereiche sind damit standardmäßig aktiv, unter `System → Module` vollständig deaktivierbar und verschwinden bei deaktiviertem Root-Modul konsistent aus Navigation und Entry-Runtime statt nur dekorativ im Menü zu stehen. |
+| **2.9.209** | 🔴 fix | Assets/Diagnose & Frontend | **`CMS/admin/pages.php`, `CMS/admin/posts.php`, `CMS/core/Services/CookieConsentService.php`, `CMS/core/Services/CoreWebVitalsService.php`, `CMS/core/Routing/PublicRouter.php`, `CMS/core/VendorRegistry.php` und `CMS/admin/views/system/assets.php` binden modulgebundene SEO-/Legal-Assets jetzt direkt an den Core-Modulvertrag und erweitern `Diagnose → Assets` um Quellenlinks sowie eine eigene Tabelle für modulabhängige Assets**: SEO-Editor, Cookie-Consent, Cookie-Präferenzroute und Web-Vitals werden damit bei deaktivierten Root-Modulen nicht mehr geladen, während Diagnose/Assets sichtbar macht, welche Bundles aktiv, modulgebunden oder bewusst abgeschaltet sind – inklusive GitHub-/Projektlinks pro Paket. |
+| **2.9.209** | 🟡 refactor | Admin/AI Services | **`CMS/admin/ai-page.php`, `CMS/admin/ai-services.php`, `CMS/admin/ai-translation.php`, `CMS/admin/ai-content-creator.php`, `CMS/admin/ai-seo-creator.php`, `CMS/admin/ai-settings.php` und `CMS/admin/views/system/ai-services.php` ziehen AI Services aus `System` in einen eigenen Admin-Hauptbereich mit Dashboard-, Übersetzungs-, Content-Creator-, SEO-Creator- und Einstellungssektionen um**: AI Services erscheint damit als eigenständige Navigationsdomäne mit Legacy-Tab-Redirects für bestehende Links, statt weiter als einzelner Unterpunkt im Systembereich zu hängen. |
 
 ### v2.9.208 — 12. April 2026
 

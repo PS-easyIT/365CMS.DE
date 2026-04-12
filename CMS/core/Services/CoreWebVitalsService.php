@@ -345,7 +345,24 @@ final class CoreWebVitalsService
 
     private function isEnabled(): bool
     {
+        if (!$this->isSeoModuleEnabled()) {
+            return false;
+        }
+
         return ($this->getSettings()['seo_analytics_web_vitals_enabled'] ?? '1') === '1';
+    }
+
+    private function isSeoModuleEnabled(): bool
+    {
+        if (!class_exists(CoreModuleService::class)) {
+            return true;
+        }
+
+        try {
+            return CoreModuleService::getInstance()->isModuleEnabled('seo');
+        } catch (\Throwable) {
+            return true;
+        }
     }
 
     private function getSampleRate(): int

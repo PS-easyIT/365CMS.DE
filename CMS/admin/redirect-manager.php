@@ -12,6 +12,7 @@ if (!defined('ABSPATH')) {
 
 use CMS\Auth;
 use CMS\Security;
+use CMS\Services\CoreModuleService;
 
 const CMS_ADMIN_REDIRECT_MANAGER_ALLOWED_ACTIONS = [
     'save_redirect',
@@ -31,7 +32,9 @@ const CMS_ADMIN_REDIRECT_MANAGER_ACTION_CAPABILITIES = [
 
 function cms_admin_redirect_manager_can_access(): bool
 {
-    return Auth::instance()->isAdmin() && Auth::instance()->hasCapability('manage_settings');
+    return Auth::instance()->isAdmin()
+        && Auth::instance()->hasCapability('manage_settings')
+        && (!class_exists(CoreModuleService::class) || CoreModuleService::getInstance()->isAdminPageEnabled('redirect-manager'));
 }
 
 function cms_admin_redirect_manager_target_url(): string

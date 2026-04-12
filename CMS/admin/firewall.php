@@ -11,6 +11,7 @@ if (!defined('ABSPATH')) {
 }
 
 use CMS\Auth;
+use CMS\Services\CoreModuleService;
 
 const CMS_ADMIN_FIREWALL_ALLOWED_ACTIONS = [
     'save_settings',
@@ -72,7 +73,9 @@ $sectionPageConfig = [
     'module_file' => __DIR__ . '/modules/security/FirewallModule.php',
     'module_factory' => static fn (): FirewallModule => new FirewallModule(),
     'data_loader' => static fn (FirewallModule $module): array => $module->getData(),
-    'access_checker' => static fn (): bool => Auth::instance()->isAdmin() && Auth::instance()->hasCapability('manage_settings'),
+    'access_checker' => static fn (): bool => Auth::instance()->isAdmin()
+        && Auth::instance()->hasCapability('manage_settings')
+        && (!class_exists(CoreModuleService::class) || CoreModuleService::getInstance()->isAdminPageEnabled('firewall')),
     'invalid_token_message' => 'Sicherheitstoken ungültig.',
     'unknown_action_message' => 'Firewall-Aktion konnte nicht verarbeitet werden.',
     'post_handler' => static function (FirewallModule $module, string $section, array $post): array {

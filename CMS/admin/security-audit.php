@@ -12,8 +12,12 @@ if (!defined('ABSPATH')) {
 
 use CMS\Auth;
 use CMS\Security;
+use CMS\Services\CoreModuleService;
 
-if (!Auth::instance()->isAdmin() || !Auth::instance()->hasCapability('manage_settings')) {
+if (!Auth::instance()->isAdmin()
+    || !Auth::instance()->hasCapability('manage_settings')
+    || (class_exists(CoreModuleService::class) && !CoreModuleService::getInstance()->isAdminPageEnabled('security-audit'))
+) {
     header('Location: /');
     exit;
 }

@@ -637,6 +637,16 @@ final class PublicRouter
             return;
         }
 
+        if (class_exists(Services\CoreModuleService::class)) {
+            try {
+                if (!Services\CoreModuleService::getInstance()->isModuleEnabled('legal')) {
+                    $this->router->render404();
+                    return;
+                }
+            } catch (\Throwable) {
+            }
+        }
+
         ThemeManager::instance()->render('page', [
             'page' => Services\CookieConsentService::getInstance()->getPublicConsentPage(),
         ]);

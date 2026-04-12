@@ -17,6 +17,7 @@ $autoloadDiagnostics = is_array($vendorRegistry['autoload'] ?? null) ? $vendorRe
 $managedPackages = is_array($vendorRegistry['packages'] ?? null) ? $vendorRegistry['packages'] : [];
 $bundledLibraries = is_array($vendorRegistry['bundles'] ?? null) ? $vendorRegistry['bundles'] : [];
 $platformDiagnostics = is_array($vendorRegistry['platform'] ?? null) ? $vendorRegistry['platform'] : [];
+$moduleAssets = is_array($vendorRegistry['module_assets'] ?? null) ? $vendorRegistry['module_assets'] : [];
 $assetDirectory = is_array($directories['assets'] ?? null) ? $directories['assets'] : [];
 $assetPermissions = array_values(array_filter($permissions, static function ($permission): bool {
     if (!is_array($permission)) {
@@ -134,6 +135,9 @@ $assetPermissions = array_values(array_filter($permissions, static function ($pe
                                         <tr>
                                             <td>
                                                 <div class="fw-semibold"><?php echo htmlspecialchars((string) ($package['label'] ?? $package['package'] ?? '')); ?></div>
+                                                <?php if (!empty($package['source_url'])): ?>
+                                                    <div class="small mt-1"><a href="<?php echo htmlspecialchars((string) $package['source_url'], ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer"><?php echo htmlspecialchars((string) ($package['source_label'] ?? 'Quelle')); ?></a></div>
+                                                <?php endif; ?>
                                                 <?php if (!empty($package['runtime_error'])): ?>
                                                     <div class="text-warning small mt-1"><?php echo htmlspecialchars((string) $package['runtime_error']); ?></div>
                                                 <?php endif; ?>
@@ -173,6 +177,9 @@ $assetPermissions = array_values(array_filter($permissions, static function ($pe
                                             <td>
                                                 <div class="fw-semibold"><?php echo htmlspecialchars((string) ($library['label'] ?? $library['package'] ?? '')); ?></div>
                                                 <div class="text-secondary small"><?php echo htmlspecialchars((string) ($library['notes'] ?? '')); ?></div>
+                                                <?php if (!empty($library['source_url'])): ?>
+                                                    <div class="small mt-1"><a href="<?php echo htmlspecialchars((string) $library['source_url'], ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer"><?php echo htmlspecialchars((string) ($library['source_label'] ?? 'Quelle')); ?></a></div>
+                                                <?php endif; ?>
                                                 <?php if (!empty($library['runtime_error'])): ?>
                                                     <div class="text-warning small mt-1"><?php echo htmlspecialchars((string) $library['runtime_error']); ?></div>
                                                 <?php endif; ?>
@@ -232,9 +239,71 @@ $assetPermissions = array_values(array_filter($permissions, static function ($pe
                                             <td>
                                                 <code><?php echo htmlspecialchars((string) ($entry['manifest'] ?? '')); ?></code>
                                                 <div class="text-secondary small mt-1">PHP <?php echo htmlspecialchars((string) ($entry['required_php'] ?? '—')); ?> · CMS-Minimum <?php echo htmlspecialchars((string) ($entry['cms_required_php'] ?? '—')); ?></div>
+                                                <?php if (!empty($entry['source_url'])): ?>
+                                                    <div class="small mt-1"><a href="<?php echo htmlspecialchars((string) $entry['source_url'], ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer"><?php echo htmlspecialchars((string) ($entry['source_label'] ?? 'Quelle')); ?></a></div>
+                                                <?php endif; ?>
                                             </td>
                                             <td><?php echo htmlspecialchars((string) ($entry['runtime_php'] ?? '—')); ?></td>
                                             <td><span class="badge bg-<?php echo $statusClass; ?>-lt"><?php echo htmlspecialchars($statusLabel); ?></span></td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row row-cards mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header"><h3 class="card-title">Modulgebundene Assets</h3></div>
+                    <div class="table-responsive">
+                        <table class="table table-vcenter card-table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Asset</th>
+                                    <th>Modul</th>
+                                    <th>Pfad / Bestand</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php if ($moduleAssets === []): ?>
+                                    <tr><td colspan="4" class="text-center text-secondary py-4">Keine modulgebundenen Assets registriert.</td></tr>
+                                <?php else: ?>
+                                    <?php foreach ($moduleAssets as $asset): ?>
+                                        <tr>
+                                            <td>
+                                                <div class="fw-semibold"><?php echo htmlspecialchars((string) ($asset['asset'] ?? '')); ?></div>
+                                                <div class="text-secondary small"><?php echo htmlspecialchars((string) ($asset['notes'] ?? '')); ?></div>
+                                                <?php if (!empty($asset['source_url'])): ?>
+                                                    <div class="small mt-1"><a href="<?php echo htmlspecialchars((string) $asset['source_url'], ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer"><?php echo htmlspecialchars((string) ($asset['source_label'] ?? 'Quelle')); ?></a></div>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td>
+                                                <div class="fw-semibold"><?php echo htmlspecialchars((string) ($asset['module_label'] ?? $asset['module_slug'] ?? '')); ?></div>
+                                                <code><?php echo htmlspecialchars((string) ($asset['module_slug'] ?? '')); ?></code>
+                                            </td>
+                                            <td>
+                                                <?php $assetPaths = is_array($asset['paths'] ?? null) ? $asset['paths'] : []; ?>
+                                                <?php if ($assetPaths === []): ?>
+                                                    <span class="text-secondary">—</span>
+                                                <?php else: ?>
+                                                    <div class="d-flex flex-column gap-1">
+                                                        <?php foreach ($assetPaths as $assetPath): ?>
+                                                            <code class="text-break"><?php echo htmlspecialchars((string) $assetPath); ?></code>
+                                                        <?php endforeach; ?>
+                                                    </div>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td>
+                                                <div class="d-flex flex-wrap gap-2">
+                                                    <span class="badge bg-<?php echo !empty($asset['available']) ? 'success' : 'danger'; ?>-lt"><?php echo !empty($asset['available']) ? 'Datei vorhanden' : 'Datei fehlt'; ?></span>
+                                                    <span class="badge bg-<?php echo htmlspecialchars((string) ($asset['activation_class'] ?? 'secondary')); ?>-lt"><?php echo htmlspecialchars((string) ($asset['activation_label'] ?? 'Unbekannt')); ?></span>
+                                                </div>
+                                            </td>
                                         </tr>
                                     <?php endforeach; ?>
                                 <?php endif; ?>

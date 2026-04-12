@@ -117,7 +117,9 @@ function cms_admin_pages_view_config(PagesModule $module, string $view): array
 
         $pageAssets['css'] = $pageAssets['css'] ?? [];
         $pageAssets['js'] = $pageAssets['js'] ?? [];
-        $pageAssets['js'][] = cms_asset_url('js/admin-seo-editor.js');
+        if (!class_exists(CoreModuleService::class) || CoreModuleService::getInstance()->isModuleEnabled('seo')) {
+            $pageAssets['js'][] = cms_asset_url('js/admin-seo-editor.js');
+        }
         $pageAssets['js'][] = cms_asset_url('js/admin-content-editor.js');
 
         $id = cms_admin_pages_normalize_positive_id($_GET['id'] ?? 0);

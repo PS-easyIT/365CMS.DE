@@ -6,6 +6,7 @@ if (!defined('ABSPATH')) {
 }
 
 use CMS\Auth;
+use CMS\Services\CoreModuleService;
 
 /**
  * @return array<string, array{route_path: string, view_file: string, page_title: string, active_page: string, actions: list<string>}>
@@ -213,7 +214,8 @@ $sectionPageConfig = [
     'guard_constant' => 'CMS_ADMIN_SEO_VIEW',
     'module_file' => __DIR__ . '/modules/seo/SeoSuiteModule.php',
     'module_factory' => static fn (): SeoSuiteModule => new SeoSuiteModule(),
-    'access_checker' => static fn (): bool => cms_admin_seo_can_access_section($seoSection),
+    'access_checker' => static fn (): bool => cms_admin_seo_can_access_section($seoSection)
+        && (!class_exists(CoreModuleService::class) || CoreModuleService::getInstance()->isAdminPageEnabled($activePage)),
     'invalid_token_message' => 'Sicherheitstoken ungültig.',
     'unknown_action_message' => 'Unbekannte Antwort.',
     'redirect_path_resolver' => static function (SeoSuiteModule $module, string $section, ?array $result = null) use ($seoRoutePath): string {

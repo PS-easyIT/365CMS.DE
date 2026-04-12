@@ -31,12 +31,14 @@ final class VendorRegistry
         $packages = $this->getPackageDiagnostics();
         $bundles = $this->getBundledLibraryDiagnostics();
         $platform = $this->getBundledPlatformDiagnostics();
+        $moduleAssets = $this->getModuleAssetDiagnostics();
 
         return [
             'autoload' => $autoload,
             'packages' => $packages,
             'bundles' => $bundles,
             'platform' => $platform,
+            'module_assets' => $moduleAssets,
             'summary' => [
                 'managed_total' => count($packages),
                 'managed_available' => count(array_filter($packages, static fn(array $package): bool => !empty($package['available']))),
@@ -171,6 +173,7 @@ final class VendorRegistry
 
         foreach ($this->getManagedPackageDefinitions() as $package => $definition) {
             $loadStatus = $this->getPackageLoadStatus($package);
+            $source = $this->getAssetSourceLink($package);
             $packages[] = [
                 'package' => $package,
                 'label' => $definition['label'],
@@ -179,6 +182,8 @@ final class VendorRegistry
                 'loaded' => $loadStatus['loaded'],
                 'notes' => $definition['notes'],
                 'runtime_error' => $loadStatus['error'],
+                'source_url' => $source['url'],
+                'source_label' => $source['label'],
             ];
         }
 
@@ -196,6 +201,8 @@ final class VendorRegistry
             if (!$this->isRuntimeBundledLibraryDefinition($definition)) {
                 continue;
             }
+
+            $source = $this->getAssetSourceLink((string) ($definition['package'] ?? ''));
 
             $available = true;
             foreach ($definition['paths'] as $path) {
@@ -219,6 +226,8 @@ final class VendorRegistry
                 'runtime_error' => $runtimeStatus['error'],
                 'runtime_label' => $runtimeStatus['label'],
                 'runtime_class' => $runtimeStatus['class'],
+                'source_url' => $source['url'],
+                'source_label' => $source['label'],
             ];
         }
 
@@ -236,6 +245,48 @@ final class VendorRegistry
     /**
      * @return array<int, array<string, mixed>>
      */
+    private function getModuleAssetDiagnostics(): array
+    {
+        $diagnostics = [];
+
+        foreach ($this->getModuleAssetDefinitions() as $definition) {
+            $moduleSlug = (string) ($definition['module_slug'] ?? '');
+            $source = $this->getAssetSourceLink((string) ($definition['source_package'] ?? ''));
+            $available = true;
+
+            foreach ((array) ($definition['paths'] ?? []) as $path) {
+                if (!$this->pathExists((string) ($path['path'] ?? ''), (string) ($path['type'] ?? 'file'))) {
+                    $available = false;
+                    break;
+                }
+            }
+
+            $moduleEnabled = $this->isCoreModuleEnabled($moduleSlug);
+
+            $diagnostics[] = [
+                'asset' => (string) ($definition['asset'] ?? ''),
+                'module_slug' => $moduleSlug,
+                'module_label' => (string) ($definition['module_label'] ?? $moduleSlug),
+                'paths' => array_map(
+                    fn(array $path): string => $this->normalizeDisplayedPath((string) ($path['path'] ?? '')),
+                    (array) ($definition['paths'] ?? [])
+                ),
+                'available' => $available,
+                'module_enabled' => $moduleEnabled,
+                'activation_label' => $moduleEnabled ? 'Modul aktiv' : 'Modul aus',
+                'activation_class' => $moduleEnabled ? 'success' : 'secondary',
+                'notes' => (string) ($definition['notes'] ?? ''),
+                'source_url' => $source['url'],
+                'source_label' => $source['label'],
+            ];
+        }
+
+        return $diagnostics;
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     private function getBundledPlatformDiagnostics(): array
     {
         $requiredPhpVersion = defined('CMS_MIN_PHP_VERSION') ? (string)CMS_MIN_PHP_VERSION : '8.4.0';
@@ -244,6 +295,7 @@ final class VendorRegistry
         foreach ($this->getBundledPlatformManifestDefinitions() as $packageName => $manifestPath) {
             $platformStatus = $this->getPlatformManifestStatus($manifestPath);
             $bundlePhpVersion = $platformStatus['required_php'];
+            $source = $this->getAssetSourceLink($packageName);
             $diagnostics[] = [
                 'package' => $packageName,
                 'manifest' => $this->normalizeDisplayedPath($manifestPath),
@@ -254,10 +306,139 @@ final class VendorRegistry
                 'cms_compatible' => $bundlePhpVersion === null ? null : version_compare($requiredPhpVersion, $bundlePhpVersion, '>='),
                 'runtime_compatible' => $bundlePhpVersion === null ? null : version_compare(PHP_VERSION, $bundlePhpVersion, '>='),
                 'runtime_error' => $platformStatus['error'],
+                'source_url' => $source['url'],
+                'source_label' => $source['label'],
             ];
         }
 
         return $diagnostics;
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function getModuleAssetDefinitions(): array
+    {
+        $assets = ABSPATH . 'assets' . DIRECTORY_SEPARATOR;
+
+        return [
+            [
+                'asset' => 'SEO Editor',
+                'module_slug' => 'seo',
+                'module_label' => 'SEO',
+                'paths' => [['path' => $assets . 'js' . DIRECTORY_SEPARATOR . 'admin-seo-editor.js', 'type' => 'file']],
+                'notes' => 'SEO-Felder und Meta-Helfer in Seiten- und Beitragseditoren.',
+                'source_package' => 'cms-js',
+            ],
+            [
+                'asset' => 'SEO Redirect Tools',
+                'module_slug' => 'seo',
+                'module_label' => 'SEO',
+                'paths' => [['path' => $assets . 'js' . DIRECTORY_SEPARATOR . 'admin-seo-redirects.js', 'type' => 'file']],
+                'notes' => 'Admin-Helfer für Weiterleitungen und 404-Monitor.',
+                'source_package' => 'cms-js',
+            ],
+            [
+                'asset' => 'Core Web Vitals Tracker',
+                'module_slug' => 'seo',
+                'module_label' => 'SEO',
+                'paths' => [['path' => $assets . 'js' . DIRECTORY_SEPARATOR . 'web-vitals.js', 'type' => 'file']],
+                'notes' => 'Frontend-Tracking für Core Web Vitals, nur wenn SEO-Modul und Analytics-Consent aktiv sind.',
+                'source_package' => 'cms-js',
+            ],
+            [
+                'asset' => 'Legal Sites Admin',
+                'module_slug' => 'legal',
+                'module_label' => 'Recht',
+                'paths' => [['path' => $assets . 'js' . DIRECTORY_SEPARATOR . 'admin-legal-sites.js', 'type' => 'file']],
+                'notes' => 'Admin-Interaktionen für Legal Sites.',
+                'source_package' => 'cms-js',
+            ],
+            [
+                'asset' => 'Cookie Manager Admin',
+                'module_slug' => 'legal',
+                'module_label' => 'Recht',
+                'paths' => [['path' => $assets . 'js' . DIRECTORY_SEPARATOR . 'admin-cookie-manager.js', 'type' => 'file']],
+                'notes' => 'Admin-Interaktionen für Kategorien, Services und Consent-Scans.',
+                'source_package' => 'cms-js',
+            ],
+            [
+                'asset' => 'Datenschutzanfragen Admin',
+                'module_slug' => 'legal',
+                'module_label' => 'Recht',
+                'paths' => [['path' => $assets . 'js' . DIRECTORY_SEPARATOR . 'admin-data-requests.js', 'type' => 'file']],
+                'notes' => 'Admin-Interaktionen für Auskunfts- und Löschanfragen.',
+                'source_package' => 'cms-js',
+            ],
+            [
+                'asset' => 'Cookie Consent Styles',
+                'module_slug' => 'legal',
+                'module_label' => 'Recht',
+                'paths' => [['path' => $assets . 'css' . DIRECTORY_SEPARATOR . 'cms-cookie-consent.css', 'type' => 'file']],
+                'notes' => 'Frontend-Styles für Banner und Cookie-Einstellungsseite.',
+                'source_package' => 'cms-css',
+            ],
+            [
+                'asset' => 'Cookie Consent Init',
+                'module_slug' => 'legal',
+                'module_label' => 'Recht',
+                'paths' => [['path' => $assets . 'js' . DIRECTORY_SEPARATOR . 'cookieconsent-init.js', 'type' => 'file']],
+                'notes' => 'Frontend-Initialisierung für Banner und Präferenzdialog.',
+                'source_package' => 'cms-js',
+            ],
+        ];
+    }
+
+    /**
+     * @return array{url: string, label: string}
+     */
+    private function getAssetSourceLink(string $package): array
+    {
+        $links = [
+            'assets-autoload' => ['url' => 'https://github.com/PS-easyIT/365CMS.DE', 'label' => 'GitHub'],
+            'dompdf' => ['url' => 'https://github.com/dompdf/dompdf', 'label' => 'GitHub'],
+            'melbahja-seo' => ['url' => 'https://github.com/melbahja/Seo', 'label' => 'GitHub'],
+            'symfony/ai-platform' => ['url' => 'https://github.com/symfony/ai', 'label' => 'GitHub'],
+            'symfony-contracts' => ['url' => 'https://github.com/symfony/contracts', 'label' => 'GitHub'],
+            'htmlpurifier' => ['url' => 'https://github.com/ezyang/htmlpurifier', 'label' => 'GitHub'],
+            'tntsearch' => ['url' => 'https://github.com/teamtnt/tntsearch', 'label' => 'GitHub'],
+            'carbon' => ['url' => 'https://carbon.nesbot.com/', 'label' => 'Website'],
+            'symfony/translation' => ['url' => 'https://github.com/symfony/translation', 'label' => 'GitHub'],
+            'lbuchs/webauthn' => ['url' => 'https://github.com/lbuchs/WebAuthn', 'label' => 'GitHub'],
+            'robthree/twofactorauth' => ['url' => 'https://github.com/RobThree/TwoFactorAuth', 'label' => 'GitHub'],
+            'ldaprecord' => ['url' => 'https://github.com/DirectoryTree/LdapRecord', 'label' => 'GitHub'],
+            'firebase/php-jwt' => ['url' => 'https://github.com/firebase/php-jwt', 'label' => 'GitHub'],
+            'psr/log' => ['url' => 'https://www.php-fig.org/psr/psr-3/', 'label' => 'Website'],
+            'symfony/mime' => ['url' => 'https://github.com/symfony/mime', 'label' => 'GitHub'],
+            'symfony/mailer' => ['url' => 'https://github.com/symfony/mailer', 'label' => 'GitHub'],
+            'psr/event-dispatcher' => ['url' => 'https://www.php-fig.org/psr/psr-14/', 'label' => 'Website'],
+            'editorjs' => ['url' => 'https://editorjs.io/', 'label' => 'Website'],
+            'gridjs' => ['url' => 'https://gridjs.io/', 'label' => 'Website'],
+            'photoswipe' => ['url' => 'https://photoswipe.com/', 'label' => 'Website'],
+            'suneditor' => ['url' => 'https://github.com/JiHong88/suneditor', 'label' => 'GitHub'],
+            'tabler' => ['url' => 'https://tabler.io/', 'label' => 'Website'],
+            'cms-css' => ['url' => 'https://github.com/PS-easyIT/365CMS.DE', 'label' => 'GitHub'],
+            'cms-js' => ['url' => 'https://github.com/PS-easyIT/365CMS.DE', 'label' => 'GitHub'],
+            'cms-images' => ['url' => 'https://github.com/PS-easyIT/365CMS.DE', 'label' => 'GitHub'],
+            'simplepie' => ['url' => 'https://simplepie.org/', 'label' => 'Website'],
+            'symfony/cache' => ['url' => 'https://github.com/symfony/cache', 'label' => 'GitHub'],
+            'msgraph-sdk-php' => ['url' => 'https://github.com/microsoftgraph/msgraph-sdk-php', 'label' => 'GitHub'],
+        ];
+
+        return $links[$package] ?? ['url' => 'https://github.com/PS-easyIT/365CMS.DE', 'label' => 'GitHub'];
+    }
+
+    private function isCoreModuleEnabled(string $slug): bool
+    {
+        if ($slug === '' || !class_exists('\\CMS\\Services\\CoreModuleService')) {
+            return true;
+        }
+
+        try {
+            return \CMS\Services\CoreModuleService::getInstance()->isModuleEnabled($slug);
+        } catch (\Throwable) {
+            return true;
+        }
     }
 
     /**

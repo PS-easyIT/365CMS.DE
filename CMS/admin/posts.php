@@ -144,7 +144,9 @@ function cms_admin_posts_view_config(PostsModule $module, string $view): array
 
         $pageAssets['css'] = $pageAssets['css'] ?? [];
         $pageAssets['js'] = $pageAssets['js'] ?? [];
-        $pageAssets['js'][] = cms_asset_url('js/admin-seo-editor.js');
+        if (!class_exists(CoreModuleService::class) || CoreModuleService::getInstance()->isModuleEnabled('seo')) {
+            $pageAssets['js'][] = cms_asset_url('js/admin-seo-editor.js');
+        }
         $pageAssets['js'][] = cms_asset_url('js/admin-content-editor.js');
 
         return [

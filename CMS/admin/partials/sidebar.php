@@ -221,10 +221,96 @@ $memberDashboardSidebarSlugs = array_values(array_map(
     $memberDashboardSidebarChildren
 ));
 
+$aiSidebarChildren = [
+    ['label' => 'AI Dashboard', 'slug' => 'ai-services', 'url' => $siteUrl . '/admin/ai-services'],
+    ['label' => 'Übersetzung', 'slug' => 'ai-translation', 'url' => $siteUrl . '/admin/ai-translation'],
+    ['label' => 'Content Creator', 'slug' => 'ai-content-creator', 'url' => $siteUrl . '/admin/ai-content-creator'],
+    ['label' => 'SEO Creator', 'slug' => 'ai-seo-creator', 'url' => $siteUrl . '/admin/ai-seo-creator'],
+    ['label' => 'Einstellungen', 'slug' => 'ai-settings', 'url' => $siteUrl . '/admin/ai-settings'],
+];
+
+if ($coreModuleService instanceof \CMS\Services\CoreModuleService) {
+    $aiSidebarChildren = $coreModuleService->filterSidebarChildren('ai_services', $aiSidebarChildren);
+}
+
+$aiSidebarSlugs = array_values(array_map(
+    static fn (array $item): string => (string) ($item['slug'] ?? ''),
+    $aiSidebarChildren
+));
+
+$seoSidebarChildren = [
+    ['label' => 'SEO Dashboard', 'slug' => 'seo-dashboard', 'url' => $siteUrl . '/admin/seo-dashboard'],
+    ['label' => 'Analytics', 'slug' => 'analytics', 'url' => $siteUrl . '/admin/analytics'],
+    ['label' => 'SEO Audit', 'slug' => 'seo-audit', 'url' => $siteUrl . '/admin/seo-audit'],
+    ['label' => 'Meta-Daten', 'slug' => 'seo-meta', 'url' => $siteUrl . '/admin/seo-meta'],
+    ['label' => 'Social Media', 'slug' => 'seo-social', 'url' => $siteUrl . '/admin/seo-social'],
+    ['label' => 'Strukturierte Daten', 'slug' => 'seo-schema', 'url' => $siteUrl . '/admin/seo-schema'],
+    ['label' => 'Sitemap & robots.txt', 'slug' => 'seo-sitemap', 'url' => $siteUrl . '/admin/seo-sitemap'],
+    ['label' => 'Technisches SEO', 'slug' => 'seo-technical', 'url' => $siteUrl . '/admin/seo-technical'],
+    ['label' => 'Weiterleitungen', 'slug' => 'redirect-manager', 'url' => $siteUrl . '/admin/redirect-manager'],
+    ['label' => '404-Monitor', 'slug' => 'not-found-monitor', 'url' => $siteUrl . '/admin/not-found-monitor'],
+];
+
+if ($coreModuleService instanceof \CMS\Services\CoreModuleService) {
+    $seoSidebarChildren = $coreModuleService->filterSidebarChildren('seo', $seoSidebarChildren);
+}
+
+$seoSidebarSlugs = array_values(array_map(
+    static fn (array $item): string => (string) ($item['slug'] ?? ''),
+    $seoSidebarChildren
+));
+
+$performanceSidebarChildren = [
+    ['label' => 'Übersicht', 'slug' => 'performance', 'url' => $siteUrl . '/admin/performance'],
+    ['label' => 'Cache-Verwaltung', 'slug' => 'performance-cache', 'url' => $siteUrl . '/admin/performance-cache'],
+    ['label' => 'Medien-Optimierung', 'slug' => 'performance-media', 'url' => $siteUrl . '/admin/performance-media'],
+    ['label' => 'Datenbank-Wartung', 'slug' => 'performance-database', 'url' => $siteUrl . '/admin/performance-database'],
+    ['label' => 'Performance-Einstellungen', 'slug' => 'performance-settings', 'url' => $siteUrl . '/admin/performance-settings'],
+    ['label' => 'Session-Verwaltung', 'slug' => 'performance-sessions', 'url' => $siteUrl . '/admin/performance-sessions'],
+];
+
+if ($coreModuleService instanceof \CMS\Services\CoreModuleService) {
+    $performanceSidebarChildren = $coreModuleService->filterSidebarChildren('performance', $performanceSidebarChildren);
+}
+
+$performanceSidebarSlugs = array_values(array_map(
+    static fn (array $item): string => (string) ($item['slug'] ?? ''),
+    $performanceSidebarChildren
+));
+
+$legalSidebarChildren = [
+    ['label' => 'Legal Sites', 'slug' => 'legal-sites', 'url' => $siteUrl . '/admin/legal-sites'],
+    ['label' => 'Cookie-Manager', 'slug' => 'cookie-manager', 'url' => $siteUrl . '/admin/cookie-manager'],
+    ['label' => 'Auskunft & Löschen', 'slug' => 'data-requests', 'url' => $siteUrl . '/admin/data-requests'],
+];
+
+if ($coreModuleService instanceof \CMS\Services\CoreModuleService) {
+    $legalSidebarChildren = $coreModuleService->filterSidebarChildren('legal', $legalSidebarChildren);
+}
+
+$legalSidebarSlugs = array_values(array_map(
+    static fn (array $item): string => (string) ($item['slug'] ?? ''),
+    $legalSidebarChildren
+));
+
+$securitySidebarChildren = [
+    ['label' => 'AntiSpam', 'slug' => 'antispam', 'url' => $siteUrl . '/admin/antispam'],
+    ['label' => 'Firewall', 'slug' => 'firewall', 'url' => $siteUrl . '/admin/firewall'],
+    ['label' => 'Audit', 'slug' => 'security-audit', 'url' => $siteUrl . '/admin/security-audit'],
+];
+
+if ($coreModuleService instanceof \CMS\Services\CoreModuleService) {
+    $securitySidebarChildren = $coreModuleService->filterSidebarChildren('security', $securitySidebarChildren);
+}
+
+$securitySidebarSlugs = array_values(array_map(
+    static fn (array $item): string => (string) ($item['slug'] ?? ''),
+    $securitySidebarChildren
+));
+
 $systemSidebarChildren = [
     ['label' => 'Einstellungen', 'slug' => 'settings', 'url' => $siteUrl . '/admin/settings'],
     ['label' => 'Mail & Azure OAuth2', 'slug' => 'mail-settings', 'url' => $siteUrl . '/admin/mail-settings'],
-    ['label' => 'AI Services', 'slug' => 'ai-services', 'url' => $siteUrl . '/admin/ai-services'],
     ['label' => 'Module', 'slug' => 'modules', 'url' => $siteUrl . '/admin/modules'],
     ['label' => 'Backup & Restore', 'slug' => 'backups', 'url' => $siteUrl . '/admin/backups'],
     ['label' => 'Updates', 'slug' => 'updates', 'url' => $siteUrl . '/admin/updates'],
@@ -252,6 +338,15 @@ $menuGroups = [
         'slug'  => 'dashboard',
         'url'   => $siteUrl . '/admin',
         'icon'  => '<svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 12l-2 0l9 -9l9 9l-2 0"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7"/><path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6"/></svg>',
+    ],
+
+    // ─── AI Services ────────────────
+    [
+        'type'     => 'group',
+        'label'    => 'AI Services',
+        'icon'     => '<svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M8 9h8"/><path d="M9 15h6"/><path d="M11 4h2"/><path d="M12 17v4"/><path d="M7 4a2 2 0 0 0 -2 2v8a4 4 0 0 0 4 4h6a4 4 0 0 0 4 -4v-8a2 2 0 0 0 -2 -2z"/></svg>',
+        'slugs'    => $aiSidebarSlugs,
+        'children' => $aiSidebarChildren,
     ],
 
     // ─── Seiten & Beiträge ─────────────
@@ -332,19 +427,8 @@ $menuGroups = [
         'type'     => 'group',
         'label'    => 'SEO',
         'icon'     => '<svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0"/><path d="M3.6 9h16.8"/><path d="M3.6 15h16.8"/><path d="M11.5 3a17 17 0 0 0 0 18"/><path d="M12.5 3a17 17 0 0 1 0 18"/></svg>',
-        'slugs'    => ['seo-dashboard', 'analytics', 'seo-audit', 'seo-meta', 'seo-social', 'seo-schema', 'seo-sitemap', 'seo-technical', 'redirect-manager', 'not-found-monitor'],
-        'children' => [
-            ['label' => 'SEO Dashboard', 'slug' => 'seo-dashboard', 'url' => $siteUrl . '/admin/seo-dashboard'],
-            ['label' => 'Analytics', 'slug' => 'analytics', 'url' => $siteUrl . '/admin/analytics'],
-            ['label' => 'SEO Audit', 'slug' => 'seo-audit', 'url' => $siteUrl . '/admin/seo-audit'],
-            ['label' => 'Meta-Daten', 'slug' => 'seo-meta', 'url' => $siteUrl . '/admin/seo-meta'],
-            ['label' => 'Social Media', 'slug' => 'seo-social', 'url' => $siteUrl . '/admin/seo-social'],
-            ['label' => 'Strukturierte Daten', 'slug' => 'seo-schema', 'url' => $siteUrl . '/admin/seo-schema'],
-            ['label' => 'Sitemap & robots.txt', 'slug' => 'seo-sitemap', 'url' => $siteUrl . '/admin/seo-sitemap'],
-            ['label' => 'Technisches SEO', 'slug' => 'seo-technical', 'url' => $siteUrl . '/admin/seo-technical'],
-            ['label' => 'Weiterleitungen', 'slug' => 'redirect-manager', 'url' => $siteUrl . '/admin/redirect-manager'],
-            ['label' => '404-Monitor', 'slug' => 'not-found-monitor', 'url' => $siteUrl . '/admin/not-found-monitor'],
-        ],
+        'slugs'    => $seoSidebarSlugs,
+        'children' => $seoSidebarChildren,
     ],
 
     // ─── Performance ─────────────────
@@ -352,15 +436,8 @@ $menuGroups = [
         'type'     => 'group',
         'label'    => 'Performance',
         'icon'     => '<svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 3l7 4v5c0 5 -3.5 7.5 -7 9c-3.5 -1.5 -7 -4 -7 -9v-5l7 -4"/><path d="M12 8v4l2 2"/></svg>',
-        'slugs'    => ['performance', 'performance-cache', 'performance-media', 'performance-database', 'performance-settings', 'performance-sessions'],
-        'children' => [
-            ['label' => 'Übersicht', 'slug' => 'performance', 'url' => $siteUrl . '/admin/performance'],
-            ['label' => 'Cache-Verwaltung', 'slug' => 'performance-cache', 'url' => $siteUrl . '/admin/performance-cache'],
-            ['label' => 'Medien-Optimierung', 'slug' => 'performance-media', 'url' => $siteUrl . '/admin/performance-media'],
-            ['label' => 'Datenbank-Wartung', 'slug' => 'performance-database', 'url' => $siteUrl . '/admin/performance-database'],
-            ['label' => 'Performance-Einstellungen', 'slug' => 'performance-settings', 'url' => $siteUrl . '/admin/performance-settings'],
-            ['label' => 'Session-Verwaltung', 'slug' => 'performance-sessions', 'url' => $siteUrl . '/admin/performance-sessions'],
-        ],
+        'slugs'    => $performanceSidebarSlugs,
+        'children' => $performanceSidebarChildren,
     ],
 
     // ─── Recht ───────────────────────
@@ -368,12 +445,8 @@ $menuGroups = [
         'type'     => 'group',
         'label'    => 'Recht',
         'icon'     => '<svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M8 21h8"/><path d="M12 3l7 4v5c0 5 -3.5 7.5 -7 9c-3.5 -1.5 -7 -4 -7 -9v-5l7 -4"/></svg>',
-        'slugs'    => ['legal-sites', 'cookie-manager', 'data-requests', 'privacy-requests', 'deletion-requests'],
-        'children' => [
-            ['label' => 'Legal Sites',          'slug' => 'legal-sites',    'url' => $siteUrl . '/admin/legal-sites'],
-            ['label' => 'Cookie-Manager',       'slug' => 'cookie-manager', 'url' => $siteUrl . '/admin/cookie-manager'],
-            ['label' => 'Auskunft & Löschen',   'slug' => 'data-requests',  'url' => $siteUrl . '/admin/data-requests'],
-        ],
+        'slugs'    => $legalSidebarSlugs,
+        'children' => $legalSidebarChildren,
     ],
 
     // ─── Sicherheit ──────────────────
@@ -381,12 +454,8 @@ $menuGroups = [
         'type'     => 'group',
         'label'    => 'Sicherheit',
         'icon'     => '<svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 3a12 12 0 0 0 8.5 3a12 12 0 0 1 -8.5 15a12 12 0 0 1 -8.5 -15a12 12 0 0 0 8.5 -3"/><path d="M12 11m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M12 12l0 2.5"/></svg>',
-        'slugs'    => ['antispam', 'firewall', 'security-audit'],
-        'children' => [
-            ['label' => 'AntiSpam',             'slug' => 'antispam',          'url' => $siteUrl . '/admin/antispam'],
-            ['label' => 'Firewall',             'slug' => 'firewall',          'url' => $siteUrl . '/admin/firewall'],
-            ['label' => 'Audit',                'slug' => 'security-audit',    'url' => $siteUrl . '/admin/security-audit'],
-        ],
+        'slugs'    => $securitySidebarSlugs,
+        'children' => $securitySidebarChildren,
     ],
 
     // ─── Plugins ──────────────────────

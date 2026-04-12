@@ -12,6 +12,7 @@ if (!defined('ABSPATH')) {
 
 use CMS\Auth;
 use CMS\Security;
+use CMS\Services\CoreModuleService;
 
 const CMS_ADMIN_NOT_FOUND_MONITOR_ALLOWED_ACTIONS = ['save_redirect', 'clear_logs'];
 const CMS_ADMIN_NOT_FOUND_MONITOR_ACTION_CAPABILITIES = [
@@ -21,7 +22,9 @@ const CMS_ADMIN_NOT_FOUND_MONITOR_ACTION_CAPABILITIES = [
 
 function cms_admin_not_found_monitor_can_access(): bool
 {
-    return Auth::instance()->isAdmin() && Auth::instance()->hasCapability('manage_settings');
+    return Auth::instance()->isAdmin()
+        && Auth::instance()->hasCapability('manage_settings')
+        && (!class_exists(CoreModuleService::class) || CoreModuleService::getInstance()->isAdminPageEnabled('not-found-monitor'));
 }
 
 function cms_admin_not_found_monitor_normalize_action(mixed $action): string

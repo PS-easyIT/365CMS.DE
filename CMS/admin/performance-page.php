@@ -5,6 +5,8 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+use CMS\Services\CoreModuleService;
+
 const CMS_ADMIN_PERFORMANCE_SECTION_ACTIONS = [
     'overview' => [],
     'cache' => ['clear_all_cache', 'clear_file_cache', 'clear_opcache', 'warmup_opcache', 'save_settings', 'save_cache_settings'],
@@ -133,8 +135,9 @@ function cms_admin_performance_build_section_page_config(array $performancePageC
         'module_factory' => static function () {
             return new PerformanceModule();
         },
-        'access_checker' => static function (): bool {
-            return cms_admin_performance_can_access();
+        'access_checker' => static function () use ($performancePageConfig): bool {
+            return cms_admin_performance_can_access()
+                && (!class_exists(CoreModuleService::class) || CoreModuleService::getInstance()->isAdminPageEnabled((string) ($performancePageConfig['active_page'] ?? 'performance')));
         },
         'post_handler' => static function ($module, string $section, array $postData): array {
             if (!$module instanceof PerformanceModule) {

@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.9.208",
+  "version": "2.9.209",
   "min_php": "8.4",
   "released": "2026-04-12",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 2.9.208: Symfony AI Platform wurde produktiv nach CMS/assets übernommen, per Assets-Autoloader und Diagnose/Assets registriert, und die Modulverwaltung zeigt Root-Module wie Member Dashboard jetzt explizit als einzige schaltbare Core-Module.",
+  "notes": "Release-Stand 2.9.209: SEO, Sicherheit, Recht und Performance sind jetzt echte Root-Core-Module mit modulgebundenem Asset-Gating in Admin, Frontend und Diagnose/Assets; zusätzlich laufen AI Services als eigener Admin-Hauptbereich mit Unterseiten für Übersetzung, Content Creator, SEO Creator und Einstellungen.",
   "critical": false
 }

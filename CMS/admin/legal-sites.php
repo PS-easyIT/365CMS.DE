@@ -11,6 +11,7 @@ if (!defined('ABSPATH')) {
 }
 
 use CMS\Auth;
+use CMS\Services\CoreModuleService;
 
 const CMS_ADMIN_LEGAL_SITES_READ_CAPABILITY = 'manage_settings';
 const CMS_ADMIN_LEGAL_SITES_WRITE_CAPABILITY = 'manage_settings';
@@ -105,7 +106,8 @@ function cms_admin_legal_sites_substring(string $value, int $start, ?int $length
 function cms_admin_legal_sites_can_access(): bool
 {
     return Auth::instance()->isAdmin()
-        && Auth::instance()->hasCapability(CMS_ADMIN_LEGAL_SITES_READ_CAPABILITY);
+    && Auth::instance()->hasCapability(CMS_ADMIN_LEGAL_SITES_READ_CAPABILITY)
+    && (!class_exists(CoreModuleService::class) || CoreModuleService::getInstance()->isAdminPageEnabled('legal-sites'));
 }
 
 function cms_admin_legal_sites_can_mutate(): bool

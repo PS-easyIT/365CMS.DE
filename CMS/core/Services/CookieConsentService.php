@@ -37,6 +37,10 @@ final class CookieConsentService
 
     public function isEnabled(): bool
     {
+        if (!$this->isLegalModuleEnabled()) {
+            return false;
+        }
+
         return $this->getSetting('cookie_consent_enabled', $this->getSetting('cookie_banner_enabled', '0')) === '1';
     }
 
@@ -92,6 +96,19 @@ final class CookieConsentService
         return $path === '/admin'
             || str_starts_with($path, '/admin/')
             || str_starts_with($path, '/api/');
+    }
+
+    private function isLegalModuleEnabled(): bool
+    {
+        if (!class_exists(CoreModuleService::class)) {
+            return true;
+        }
+
+        try {
+            return CoreModuleService::getInstance()->isModuleEnabled('legal');
+        } catch (\Throwable) {
+            return true;
+        }
     }
 
     /**

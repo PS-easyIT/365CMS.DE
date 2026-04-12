@@ -6,7 +6,7 @@ if (!defined('ABSPATH')) {
 }
 
 $aiPageConfig = [
-    'section' => 'overview',
+    'section' => 'content_creator',
 ];
 
 require __DIR__ . '/ai-page.php';

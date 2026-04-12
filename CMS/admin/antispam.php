@@ -11,6 +11,7 @@ if (!defined('ABSPATH')) {
 }
 
 use CMS\Auth;
+use CMS\Services\CoreModuleService;
 
 require_once __DIR__ . '/modules/security/AntispamModule.php';
 
@@ -84,7 +85,9 @@ $sectionPageConfig = [
         return $module instanceof AntispamModule ? $module->getData() : [];
     },
     'access_checker' => static function (): bool {
-        return Auth::instance()->isAdmin() && Auth::instance()->hasCapability('manage_settings');
+        return Auth::instance()->isAdmin()
+            && Auth::instance()->hasCapability('manage_settings')
+            && (!class_exists(CoreModuleService::class) || CoreModuleService::getInstance()->isAdminPageEnabled('antispam'));
     },
     'access_denied_route' => '/',
     'post_handler' => static function ($module, string $section, array $postData): array {

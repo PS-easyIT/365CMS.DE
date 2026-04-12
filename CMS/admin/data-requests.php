@@ -11,6 +11,7 @@ if (!defined('ABSPATH')) {
 }
 
 use CMS\Auth;
+use CMS\Services\CoreModuleService;
 
 const CMS_ADMIN_DATA_REQUESTS_READ_CAPABILITY = 'manage_settings';
 const CMS_ADMIN_DATA_REQUESTS_WRITE_CAPABILITY = 'manage_settings';
@@ -18,7 +19,8 @@ const CMS_ADMIN_DATA_REQUESTS_WRITE_CAPABILITY = 'manage_settings';
 function cms_admin_data_requests_can_access(): bool
 {
     return Auth::instance()->isAdmin()
-        && Auth::instance()->hasCapability(CMS_ADMIN_DATA_REQUESTS_READ_CAPABILITY);
+    && Auth::instance()->hasCapability(CMS_ADMIN_DATA_REQUESTS_READ_CAPABILITY)
+    && (!class_exists(CoreModuleService::class) || CoreModuleService::getInstance()->isAdminPageEnabled('data-requests'));
 }
 
 function cms_admin_data_requests_can_mutate(): bool
