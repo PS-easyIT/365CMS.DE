@@ -8,6 +8,7 @@ if (!defined('ABSPATH')) {
 const CMS_ADMIN_SYSTEM_MONITOR_SECTION_ACTIONS = [
     'info' => [],
     'diagnose' => ['clear_cache', 'optimize_db', 'create_tables', 'repair_tables'],
+    'assets' => [],
     'logs' => ['clear_logs', 'clear_cms_log', 'clear_all_cms_logs'],
     'response-time' => [],
     'disk' => [],
@@ -21,19 +22,25 @@ const CMS_ADMIN_SYSTEM_MONITOR_PAGE_CONFIGS = [
     'info' => [
         'route_path' => '/admin/info',
         'view_file' => __DIR__ . '/views/system/info.php',
-        'page_title' => 'Info',
+        'page_title' => 'Diagnose · Übersicht',
         'active_page' => 'info',
     ],
     'diagnose' => [
         'route_path' => '/admin/diagnose',
         'view_file' => __DIR__ . '/views/system/diagnose.php',
-        'page_title' => 'Diagnose',
+        'page_title' => 'Diagnose · Datenbank',
         'active_page' => 'diagnose',
+    ],
+    'assets' => [
+        'route_path' => '/admin/monitor-assets',
+        'view_file' => __DIR__ . '/views/system/assets.php',
+        'page_title' => 'Diagnose · Assets',
+        'active_page' => 'monitor-assets',
     ],
     'logs' => [
         'route_path' => '/admin/cms-logs',
         'view_file' => __DIR__ . '/views/system/cms-logs.php',
-        'page_title' => 'CMS Logs',
+        'page_title' => 'Diagnose · Logs & Protokolle',
         'active_page' => 'cms-logs',
     ],
     'response-time' => [
@@ -122,7 +129,7 @@ function cms_admin_system_monitor_normalize_page_config(array $pageConfig): arra
         'section' => $section,
         'route_path' => (string) ($defaults['route_path'] ?? '/admin/info'),
         'view_file' => (string) ($defaults['view_file'] ?? (__DIR__ . '/views/system/info.php')),
-        'page_title' => (string) ($defaults['page_title'] ?? 'Info & Diagnose'),
+        'page_title' => (string) ($defaults['page_title'] ?? 'Diagnose · Übersicht'),
         'active_page' => (string) ($defaults['active_page'] ?? 'info'),
         'page_assets' => is_array($pageConfig['page_assets'] ?? null) ? $pageConfig['page_assets'] : [],
     ];
@@ -202,7 +209,7 @@ $systemMonitorPageConfig = cms_admin_system_monitor_normalize_page_config(array_
         'section' => $systemSection ?? 'info',
         'route_path' => $systemRoutePath ?? '/admin/info',
         'view_file' => $systemViewFile ?? (__DIR__ . '/views/system/info.php'),
-        'page_title' => $pageTitle ?? 'Info & Diagnose',
+        'page_title' => $pageTitle ?? 'Diagnose · Übersicht',
         'active_page' => $activePage ?? 'info',
         'page_assets' => $pageAssets ?? [],
     ],

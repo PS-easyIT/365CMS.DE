@@ -87,8 +87,8 @@ $normalizeSecurityValue = static function (string $value): string {
     <div class="container-xl">
         <div class="row g-2 align-items-center">
             <div class="col">
-                <div class="page-pretitle">Info &amp; Diagnose</div>
-                <h2 class="page-title">Info</h2>
+                <div class="page-pretitle">Diagnose</div>
+                <h2 class="page-title">Übersicht</h2>
                 <div class="text-secondary mt-1">Versionsstand, Infrastruktur, Sicherheitsüberblick und Systemkennzahlen auf einen Blick.</div>
             </div>
         </div>

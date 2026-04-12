@@ -19,7 +19,7 @@ $cronRunnerToken = isset($cronRunnerToken) ? (string) $cronRunnerToken : '';
 	<div class="container-xl">
 		<div class="row g-2 align-items-center">
 			<div class="col">
-				<div class="page-pretitle">Info & Diagnose</div>
+				<div class="page-pretitle">Diagnose</div>
 				<h2 class="page-title">Cron-Job Status</h2>
 				<div class="text-secondary mt-1">Erkennt registrierte Cron-Hooks im Codebestand und zeigt die zentrale 365CMS-Cron-Schnittstelle für CLI- und URL-Cronjobs.</div>
 			</div>

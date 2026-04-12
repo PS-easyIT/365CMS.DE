@@ -15,12 +15,6 @@ $permissions = $data['permissions'] ?? [];
 $runtime     = $data['runtime'] ?? [];
 $errorReports = $data['error_reports'] ?? [];
 $bootstrapProfile = is_array($runtime['bootstrap'] ?? null) ? $runtime['bootstrap'] : [];
-$vendorRegistry = $data['vendor_registry'] ?? [];
-$registrySummary = is_array($vendorRegistry['summary'] ?? null) ? $vendorRegistry['summary'] : [];
-$autoloadDiagnostics = is_array($vendorRegistry['autoload'] ?? null) ? $vendorRegistry['autoload'] : [];
-$managedPackages = is_array($vendorRegistry['packages'] ?? null) ? $vendorRegistry['packages'] : [];
-$bundledLibraries = is_array($vendorRegistry['bundles'] ?? null) ? $vendorRegistry['bundles'] : [];
-$platformDiagnostics = is_array($vendorRegistry['platform'] ?? null) ? $vendorRegistry['platform'] : [];
 
 $missingCount = 0;
 $errorCount = 0;
@@ -44,9 +38,9 @@ foreach ($tables as $tableInfo) {
     <div class="container-xl">
         <div class="row g-2 align-items-center">
             <div class="col">
-                <div class="page-pretitle">Info &amp; Diagnose</div>
-                <h2 class="page-title">Diagnose</h2>
-                <div class="text-secondary mt-1">Wartungsaktionen, Tabellenprüfung und technische Diagnosewerkzeuge für das System.</div>
+                <div class="page-pretitle">Diagnose</div>
+                <h2 class="page-title">Datenbank</h2>
+                <div class="text-secondary mt-1">Wartungsaktionen, Tabellenprüfung und technische Datenbank-/Runtime-Diagnose für das System.</div>
             </div>
             <div class="col-auto d-flex gap-2 flex-wrap">
                 <form method="post" class="d-inline">
@@ -59,7 +53,8 @@ foreach ($tables as $tableInfo) {
                     <input type="hidden" name="action" value="optimize_db">
                     <button type="submit" class="btn btn-outline-primary">DB optimieren</button>
                 </form>
-                <a href="<?php echo htmlspecialchars('/admin/cms-logs', ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-outline-secondary">CMS Logs öffnen</a>
+                <a href="<?php echo htmlspecialchars('/admin/monitor-assets', ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-outline-secondary">Assets öffnen</a>
+                <a href="<?php echo htmlspecialchars('/admin/cms-logs', ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-outline-secondary">Logs &amp; Protokolle</a>
             </div>
         </div>
     </div>
@@ -144,13 +139,6 @@ foreach ($tables as $tableInfo) {
             </div>
         </div>
 
-        <div class="row row-deck row-cards mb-4">
-            <div class="col-sm-6 col-lg-3"><div class="card"><div class="card-body"><div class="subheader">Registry-Pakete</div><div class="h1 mb-0"><?php echo htmlspecialchars((string)($registrySummary['managed_loaded'] ?? 0)); ?><span class="fs-5 text-secondary"> / <?php echo htmlspecialchars((string)($registrySummary['managed_total'] ?? 0)); ?></span></div><div class="text-secondary small mt-1">geladen via VendorRegistry</div></div></div></div>
-            <div class="col-sm-6 col-lg-3"><div class="card"><div class="card-body"><div class="subheader">Assets-Autoloader</div><div class="h1 mb-0 <?php echo !empty($autoloadDiagnostics['loaded']) ? 'text-success' : 'text-danger'; ?>"><?php echo !empty($autoloadDiagnostics['loaded']) ? 'Aktiv' : 'Inaktiv'; ?></div><div class="text-secondary small mt-1"><?php echo htmlspecialchars((string)($autoloadDiagnostics['active_path'] ?? 'Kein aktiver Pfad')); ?></div></div></div></div>
-            <div class="col-sm-6 col-lg-3"><div class="card"><div class="card-body"><div class="subheader">Runtime-Bundles</div><div class="h1 mb-0"><?php echo htmlspecialchars((string)($registrySummary['bundle_ready'] ?? 0)); ?><span class="fs-5 text-secondary"> / <?php echo htmlspecialchars((string)($registrySummary['bundle_total'] ?? 0)); ?></span></div><div class="text-secondary small mt-1">auflösbare Asset-Libraries</div></div></div></div>
-            <div class="col-sm-6 col-lg-3"><div class="card"><div class="card-body"><div class="subheader">Plattform-Warnungen</div><div class="h1 mb-0 <?php echo ((int)($registrySummary['platform_warning_count'] ?? 0) > 0) ? 'text-warning' : 'text-success'; ?>"><?php echo htmlspecialchars((string)($registrySummary['platform_warning_count'] ?? 0)); ?></div><div class="text-secondary small mt-1">Composer-Manifeste gegen CMS/PHP</div></div></div></div>
-        </div>
-
         <div class="row row-cards">
             <div class="col-12 col-xl-4">
                 <div class="card h-100">
@@ -194,171 +182,6 @@ foreach ($tables as $tableInfo) {
                                 <?php endif; ?>
                             </tbody>
                         </table>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-12">
-                <div class="card mb-4">
-                    <div class="card-header"><h3 class="card-title">Vendor- &amp; Asset-Registry</h3></div>
-                    <div class="card-body">
-                        <?php if (!empty($vendorRegistry['error'])): ?>
-                            <?php
-                            $alertData = [
-                                'type' => 'warning',
-                                'message' => (string) $vendorRegistry['error'],
-                            ];
-                            $alertDismissible = false;
-                            $alertMarginClass = 'mb-4';
-                            require __DIR__ . '/../partials/flash-alert.php';
-                            ?>
-                        <?php endif; ?>
-
-                        <div class="row g-4">
-                            <div class="col-12 col-xl-6">
-                                <div class="border rounded-3 h-100 p-3">
-                                    <div class="fw-semibold mb-2">Registrierte Produktivpakete</div>
-                                    <div class="text-secondary small mb-3">Zentrale Registry-Einträge für produktiv sichtbare Paketpfade und den Assets-Autoloader.</div>
-                                    <div class="table-responsive">
-                                        <table class="table table-sm table-vcenter mb-0">
-                                            <thead>
-                                                <tr>
-                                                    <th>Paket</th>
-                                                    <th>Verfügbar</th>
-                                                    <th>Geladen</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                <?php if ($managedPackages === []): ?>
-                                                    <tr><td colspan="3" class="text-center text-secondary py-3">Keine Registry-Pakete vorhanden.</td></tr>
-                                                <?php else: ?>
-                                                    <?php foreach ($managedPackages as $package): ?>
-                                                        <tr>
-                                                            <td>
-                                                                <div class="fw-semibold"><?php echo htmlspecialchars((string)($package['label'] ?? $package['package'] ?? '')); ?></div>
-                                                                <div class="text-secondary small"><code><?php echo htmlspecialchars((string)($package['path'] ?? '')); ?></code></div>
-                                                                <?php if (!empty($package['runtime_error'])): ?>
-                                                                    <div class="text-warning small mt-1"><?php echo htmlspecialchars((string)$package['runtime_error']); ?></div>
-                                                                <?php endif; ?>
-                                                            </td>
-                                                            <td><span class="badge bg-<?php echo !empty($package['available']) ? 'success' : 'danger'; ?>-lt"><?php echo !empty($package['available']) ? 'Ja' : 'Nein'; ?></span></td>
-                                                            <td><span class="badge bg-<?php echo !empty($package['loaded']) ? 'success' : 'secondary'; ?>-lt"><?php echo !empty($package['loaded']) ? 'Ja' : 'Nein'; ?></span></td>
-                                                        </tr>
-                                                    <?php endforeach; ?>
-                                                <?php endif; ?>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="col-12 col-xl-6">
-                                <div class="border rounded-3 h-100 p-3">
-                                    <div class="fw-semibold mb-2">Asset-Libraries</div>
-                                    <div class="text-secondary small mb-3">Aktive Runtime-Bundles aus <code>CMS/assets/</code> und produktiv relevante Asset-Bestände der aktuellen Verdrahtung.</div>
-                                    <div class="table-responsive">
-                                        <table class="table table-sm table-vcenter mb-0">
-                                            <thead>
-                                                <tr>
-                                                    <th>Library</th>
-                                                    <th>Pfad / Bestand</th>
-                                                    <th>Runtime</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                <?php if ($bundledLibraries === []): ?>
-                                                    <tr><td colspan="3" class="text-center text-secondary py-3">Keine Asset-Libraries erkannt.</td></tr>
-                                                <?php else: ?>
-                                                    <?php foreach ($bundledLibraries as $library): ?>
-                                                        <tr>
-                                                            <td>
-                                                                <div class="fw-semibold"><?php echo htmlspecialchars((string)($library['label'] ?? $library['package'] ?? '')); ?></div>
-                                                                <div class="text-secondary small"><?php echo htmlspecialchars((string)($library['notes'] ?? '')); ?></div>
-                                                                <?php if (!empty($library['runtime_error'])): ?>
-                                                                    <div class="text-warning small mt-1"><?php echo htmlspecialchars((string)$library['runtime_error']); ?></div>
-                                                                <?php endif; ?>
-                                                            </td>
-                                                            <td>
-                                                                <?php $libraryPaths = is_array($library['paths'] ?? null) ? $library['paths'] : []; ?>
-                                                                <?php if ($libraryPaths === []): ?>
-                                                                    <span class="text-secondary">—</span>
-                                                                <?php else: ?>
-                                                                    <div class="d-flex flex-column gap-1">
-                                                                        <?php foreach ($libraryPaths as $libraryPath): ?>
-                                                                            <code class="text-break"><?php echo htmlspecialchars((string)$libraryPath); ?></code>
-                                                                        <?php endforeach; ?>
-                                                                    </div>
-                                                                <?php endif; ?>
-                                                                <div class="mt-2">
-                                                                    <span class="badge bg-<?php echo !empty($library['available']) ? 'success' : 'danger'; ?>-lt"><?php echo !empty($library['available']) ? 'vorhanden' : 'fehlt'; ?></span>
-                                                                </div>
-                                                            </td>
-                                                            <td>
-                                                                <span class="badge bg-<?php echo htmlspecialchars((string)($library['runtime_class'] ?? (!empty($library['runtime_ready']) ? 'success' : 'secondary'))); ?>-lt"><?php echo htmlspecialchars((string)($library['runtime_label'] ?? (!empty($library['runtime_ready']) ? 'auflösbar' : 'nicht aufgelöst'))); ?></span>
-                                                            </td>
-                                                        </tr>
-                                                    <?php endforeach; ?>
-                                                <?php endif; ?>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="row g-4 mt-1">
-                            <div class="col-12">
-                                <div class="border rounded-3 p-3">
-                                    <div class="fw-semibold mb-2">Bundle-Plattformprüfung</div>
-                                    <div class="text-secondary small mb-3">Vergleicht die Composer-Manifeste der Symfony-Bundles mit der offiziellen CMS-Mindestplattform und der aktiven PHP-Runtime.</div>
-                                    <div class="table-responsive">
-                                        <table class="table table-vcenter table-striped mb-0">
-                                            <thead>
-                                                <tr>
-                                                    <th>Paket</th>
-                                                    <th>Manifest</th>
-                                                    <th>Bundle-PHP</th>
-                                                    <th>CMS-Minimum</th>
-                                                    <th>Runtime</th>
-                                                    <th>Status</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                <?php if ($platformDiagnostics === []): ?>
-                                                    <tr><td colspan="6" class="text-center text-secondary py-3">Keine Manifestdaten vorhanden.</td></tr>
-                                                <?php else: ?>
-                                                    <?php foreach ($platformDiagnostics as $entry): ?>
-                                                        <?php
-                                                        $cmsCompatible = $entry['cms_compatible'] ?? null;
-                                                        $runtimeCompatible = $entry['runtime_compatible'] ?? null;
-                                                        $statusClass = ($cmsCompatible === false || $runtimeCompatible === false) ? 'warning' : 'success';
-                                                        $statusLabel = ($cmsCompatible === false || $runtimeCompatible === false) ? 'Prüfen' : 'OK';
-                                                        if (empty($entry['exists'])) {
-                                                            $statusClass = 'secondary';
-                                                            $statusLabel = 'Fehlt';
-                                                        }
-                                                        ?>
-                                                        <tr>
-                                                            <td><code><?php echo htmlspecialchars((string)($entry['package'] ?? '')); ?></code></td>
-                                                            <td>
-                                                                <code><?php echo htmlspecialchars((string)($entry['manifest'] ?? '')); ?></code>
-                                                                <?php if (!empty($entry['runtime_error'])): ?>
-                                                                    <div class="text-warning small mt-1"><?php echo htmlspecialchars((string)$entry['runtime_error']); ?></div>
-                                                                <?php endif; ?>
-                                                            </td>
-                                                            <td><?php echo htmlspecialchars((string)($entry['required_php'] ?? '—')); ?></td>
-                                                            <td><?php echo htmlspecialchars((string)($entry['cms_required_php'] ?? '—')); ?></td>
-                                                            <td><?php echo htmlspecialchars((string)($entry['runtime_php'] ?? '—')); ?></td>
-                                                            <td><span class="badge bg-<?php echo $statusClass; ?>-lt"><?php echo htmlspecialchars($statusLabel); ?></span></td>
-                                                        </tr>
-                                                    <?php endforeach; ?>
-                                                <?php endif; ?>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>

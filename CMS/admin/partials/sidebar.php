@@ -371,29 +371,17 @@ $menuGroups = [
     // ─── System & Einstellungen ───────
     [
         'type'     => 'group',
-        'label'    => 'System',
+        'label'    => 'System & Doku',
         'icon'     => '<svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10.325 4.317c.426 -1.756 2.924 -1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543 -.94 3.31 .826 2.37 2.37a1.724 1.724 0 0 0 1.066 2.573c1.756 .426 1.756 2.924 0 3.35a1.724 1.724 0 0 0 -1.066 2.573c.94 1.543 -.826 3.31 -2.37 2.37a1.724 1.724 0 0 0 -2.573 1.066c-.426 1.756 -2.924 1.756 -3.35 0a1.724 1.724 0 0 0 -2.573 -1.066c-1.543 .94 -3.31 -.826 -2.37 -2.37a1.724 1.724 0 0 0 -1.066 -2.573c-1.756 -.426 -1.756 -2.924 0 -3.35a1.724 1.724 0 0 0 1.066 -2.573c-.94 -1.543 .826 -3.31 2.37 -2.37c1 .608 2.296 .07 2.572 -1.065z"/><path d="M9 12a3 3 0 1 0 6 0a3 3 0 0 0 -6 0"/></svg>',
-        'slugs'    => ['settings', 'mail-settings', 'ai-services', 'theme-settings', 'backups', 'updates', 'modules', 'cms-logs'],
+        'slugs'    => ['settings', 'mail-settings', 'ai-services', 'theme-settings', 'backups', 'updates', 'modules', 'documentation'],
         'children' => [
             ['label' => 'Einstellungen',      'slug' => 'settings', 'url' => $siteUrl . '/admin/settings'],
             ['label' => 'Mail & Azure OAuth2', 'slug' => 'mail-settings', 'url' => $siteUrl . '/admin/mail-settings'],
             ['label' => 'AI Services',        'slug' => 'ai-services', 'url' => $siteUrl . '/admin/ai-services'],
             ['label' => 'Module',             'slug' => 'modules', 'url' => $siteUrl . '/admin/modules'],
-            ['label' => 'CMS Logs',           'slug' => 'cms-logs', 'url' => $siteUrl . '/admin/cms-logs'],
             ['label' => 'Backup & Restore',   'slug' => 'backups',  'url' => $siteUrl . '/admin/backups'],
             ['label' => 'Updates',            'slug' => 'updates',  'url' => $siteUrl . '/admin/updates'],
-        ],
-    ],
-
-    // ─── Info ────────────────────────
-    [
-        'type'     => 'group',
-        'label'    => 'Info',
-        'icon'     => '<svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0"/><path d="M12 9h.01"/><path d="M11 12h1v4h1"/></svg>',
-        'slugs'    => ['info', 'documentation', 'system-info'],
-        'children' => [
-            ['label' => 'Info CMS', 'slug' => 'info', 'url' => $siteUrl . '/admin/info'],
-            ['label' => 'Dokumentation', 'slug' => 'documentation', 'url' => $siteUrl . '/admin/documentation'],
+            ['label' => 'Dokumentation',      'slug' => 'documentation', 'url' => $siteUrl . '/admin/documentation'],
         ],
     ],
 
@@ -402,15 +390,18 @@ $menuGroups = [
         'type'     => 'group',
         'label'    => 'Diagnose',
         'icon'     => '<svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0"/><path d="M12 9h.01"/><path d="M11 12h1v4h1"/></svg>',
-        'slugs'    => ['diagnose', 'monitor-response-time', 'monitor-cron-status', 'monitor-disk-usage', 'monitor-scheduled-tasks', 'monitor-health-check', 'monitor-email-alerts'],
+        'slugs'    => ['info', 'diagnose', 'monitor-assets', 'monitor-response-time', 'monitor-cron-status', 'monitor-disk-usage', 'monitor-scheduled-tasks', 'monitor-health-check', 'monitor-email-alerts', 'cms-logs'],
         'children' => [
-            ['label' => 'Diagnose Datenbank', 'slug' => 'diagnose', 'url' => $siteUrl . '/admin/diagnose'],
+            ['label' => 'Übersicht', 'slug' => 'info', 'url' => $siteUrl . '/admin/info'],
+            ['label' => 'Datenbank', 'slug' => 'diagnose', 'url' => $siteUrl . '/admin/diagnose'],
+            ['label' => 'Assets', 'slug' => 'monitor-assets', 'url' => $siteUrl . '/admin/monitor-assets'],
             ['label' => 'Response-Time Monitoring', 'slug' => 'monitor-response-time', 'url' => $siteUrl . '/admin/monitor-response-time'],
             ['label' => 'Cron-Job Status', 'slug' => 'monitor-cron-status', 'url' => $siteUrl . '/admin/monitor-cron-status'],
             ['label' => 'Disk-Usage', 'slug' => 'monitor-disk-usage', 'url' => $siteUrl . '/admin/monitor-disk-usage'],
             ['label' => 'Scheduled Tasks', 'slug' => 'monitor-scheduled-tasks', 'url' => $siteUrl . '/admin/monitor-scheduled-tasks'],
             ['label' => 'Health-Check', 'slug' => 'monitor-health-check', 'url' => $siteUrl . '/admin/monitor-health-check'],
             ['label' => 'E-Mail-Benachrichtigungen', 'slug' => 'monitor-email-alerts', 'url' => $siteUrl . '/admin/monitor-email-alerts'],
+            ['label' => 'Logs & Protokolle', 'slug' => 'cms-logs', 'url' => $siteUrl . '/admin/cms-logs'],
         ],
     ],
 ];

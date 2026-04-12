@@ -66,7 +66,7 @@ class SupportModule
         ],
         [
             'question' => 'Warum werden meine CSS-Änderungen nicht angezeigt?',
-            'answer'   => 'Leeren Sie den Browser-Cache (Strg+Shift+R) und den CMS-Cache unter System-Info & Diagnose → Cache leeren.',
+            'answer'   => 'Leeren Sie den Browser-Cache (Strg+Shift+R) und den CMS-Cache unter Diagnose → Datenbank → Cache leeren.',
         ],
         [
             'question' => 'Wie installiere ich ein neues Plugin?',

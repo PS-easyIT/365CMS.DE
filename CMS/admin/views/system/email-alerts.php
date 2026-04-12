@@ -15,7 +15,7 @@ $settings = $data['email_alerts'] ?? [];
 	<div class="container-xl">
 		<div class="row g-2 align-items-center">
 			<div class="col">
-				<div class="page-pretitle">Info &amp; Diagnose</div>
+				<div class="page-pretitle">Diagnose</div>
 				<h2 class="page-title">E-Mail-Benachrichtigungen</h2>
 				<div class="text-secondary mt-1">Konfiguriert Schwellenwerte und Empfängeradresse für künftige Performance-/Health-Warnungen.</div>
 			</div>

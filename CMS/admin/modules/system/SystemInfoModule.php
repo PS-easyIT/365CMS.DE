@@ -80,6 +80,7 @@ class SystemInfoModule
         return match ($section) {
             'info' => $this->getInfoData(),
             'diagnose' => $this->getDiagnosticsData(),
+            'assets' => $this->getAssetsData(),
             'logs' => $this->getLogsData($_GET['log_file'] ?? null),
             'response-time' => [
                 'monitoring' => [
@@ -114,6 +115,14 @@ class SystemInfoModule
             'permissions' => $this->getPermissionsSafe(),
             'runtime' => $this->getRuntimeTelemetrySafe(),
             'error_reports' => ErrorReportService::getInstance()->getRecentReports(15),
+        ];
+    }
+
+    public function getAssetsData(): array
+    {
+        return [
+            'directories' => $this->getDirectorySizesSafe(),
+            'permissions' => $this->getPermissionsSafe(),
             'vendor_registry' => $this->getVendorRegistryDiagnosticsSafe(),
         ];
     }
@@ -123,9 +132,17 @@ class SystemInfoModule
         $logDirectory = $this->service->getConfiguredLogDirectory();
         $logFiles = $this->service->getCmsLogFiles();
         $selectedFilename = $this->normalizeLogFilename($selectedFile);
+        $selectedFileInfo = null;
 
         if ($selectedFilename === '' && $logFiles !== []) {
             $selectedFilename = (string) ($logFiles[0]['filename'] ?? '');
+        }
+
+        foreach ($logFiles as $fileInfo) {
+            if ((string) ($fileInfo['filename'] ?? '') === $selectedFilename) {
+                $selectedFileInfo = $fileInfo;
+                break;
+            }
         }
 
         return [
@@ -134,8 +151,10 @@ class SystemInfoModule
             'log_directory_writable' => is_dir($logDirectory) && is_writable($logDirectory),
             'error_log_file' => $this->service->getConfiguredErrorLogFile(),
             'error_log_exists' => file_exists($this->service->getConfiguredErrorLogFile()),
+            'error_log_entries' => $this->service->getErrorLogs(120),
             'files' => $logFiles,
             'selected_file' => $selectedFilename,
+            'selected_file_info' => $selectedFileInfo,
             'selected_entries' => $selectedFilename !== '' ? $this->service->getCmsLogEntries($selectedFilename, 300) : [],
             'documentation_entries' => $this->service->getRecentLogEntriesByChannel('admin.documentation', 40),
         ];

@@ -6,7 +6,7 @@ if (!defined('ABSPATH')) {
 }
 
 /**
- * System-Info & Diagnose – Legacy-Entry-Point
+ * Diagnose-Übersicht – Legacy-Entry-Point
  * Route: /admin/system-info
  */
 
