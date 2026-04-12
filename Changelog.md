@@ -1,4 +1,4 @@
-﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.197-blue.svg)](https://shields.io/)
+﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.198-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -19,6 +19,14 @@
 ## 📜 Vollständige Versionshistorie
 
 ---
+
+### v2.9.198 — 12. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.198** | 🔴 fix | Core/Redirect Runtime | **`CMS/core/Router.php` nutzt für die interne Redirect-Pfadvalidierung jetzt ein robusteres Pattern-Delimiter-Setup**: Redirect-Prüfungen auf Live-Hosts mit prozentkodierten Pfaden laufen dadurch nicht mehr in `preg_match(): Unknown modifier '%'`. |
+| **2.9.198** | 🔴 fix | System/Dokumentation | **`CMS/admin/modules/system/DocumentationGithubZipSync.php` verifiziert GitHub-Doku-Snapshots jetzt dynamisch gegen den offiziellen GitHub-Tree inklusive Blob-Signaturen statt nur gegen einen starren freigegebenen Bundle-Hash**: ZIP- oder API-basierte DOC-Syncs brechen damit nicht mehr bei legitimen Doku-Änderungen mit einem veralteten Integritätsprofil ab. |
+| **2.9.198** | 🔴 fix | System/OPcache Warmup | **`CMS/core/Services/OpcacheWarmupService.php` wärmt nur noch verwaltete CMS-Top-Level-Pfade vor und ignoriert fremde Live-Verzeichnisse wie `ptc/`, `meridan/` oder `beta/` automatisch**: OPcache-Warmup läuft damit nicht mehr in Compile-Fehler aus Altlasten außerhalb des eigentlichen 365CMS-Kerns. |
 
 ### v2.9.197 — 12. April 2026
 

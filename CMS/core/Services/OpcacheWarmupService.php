@@ -13,6 +13,20 @@ final class OpcacheWarmupService
 {
     private const DEFAULT_LIMIT = 30;
     private const STATE_FILE = ABSPATH . 'cache/opcache-warmup.json';
+    private const ALLOWED_TOP_LEVEL_DIRECTORIES = [
+        'admin',
+        'assets',
+        'config',
+        'core',
+        'db',
+        'includes',
+        'install',
+        'lang',
+        'member',
+        'plugins',
+        'themes',
+        'views',
+    ];
     private const EXCLUDED_SEGMENTS = [
         DIRECTORY_SEPARATOR . 'assets' . DIRECTORY_SEPARATOR,
         DIRECTORY_SEPARATOR . 'vendor' . DIRECTORY_SEPARATOR,
@@ -253,6 +267,11 @@ final class OpcacheWarmupService
                 new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS),
                 function (\SplFileInfo $current): bool {
                     $normalizedPath = $this->normalizePath($current->getPathname());
+                    $relativePath = $this->toRelativePath($normalizedPath);
+
+                    if (!$this->isManagedWarmupCandidate($relativePath, $current->isDir())) {
+                        return false;
+                    }
 
                     if ($current->isDir()) {
                         foreach (self::EXCLUDED_SEGMENTS as $segment) {
@@ -276,6 +295,12 @@ final class OpcacheWarmupService
 
             $path = $file->getPathname();
             $normalizedPath = $this->normalizePath($path);
+            $relativePath = $this->toRelativePath($normalizedPath);
+
+            if (!$this->isManagedWarmupCandidate($relativePath, false)) {
+                continue;
+            }
+
             $skip = false;
             foreach (self::EXCLUDED_SEGMENTS as $segment) {
                 if (str_contains($normalizedPath, $this->normalizePath($segment))) {
@@ -353,6 +378,26 @@ final class OpcacheWarmupService
     private function normalizePath(string $path): string
     {
         return str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $path);
+    }
+
+    private function isManagedWarmupCandidate(string $relativePath, bool $isDirectory): bool
+    {
+        $relativePath = ltrim(str_replace(['/', '\\'], '/', $relativePath), '/');
+        if ($relativePath === '') {
+            return true;
+        }
+
+        $segments = explode('/', $relativePath);
+        $topLevel = strtolower((string) ($segments[0] ?? ''));
+        if ($topLevel === '') {
+            return true;
+        }
+
+        if (count($segments) === 1 && !$isDirectory) {
+            return str_ends_with($topLevel, '.php');
+        }
+
+        return in_array($topLevel, self::ALLOWED_TOP_LEVEL_DIRECTORIES, true);
     }
 
     private function toRelativePath(string $path): string

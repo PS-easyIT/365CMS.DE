@@ -91,6 +91,9 @@ final class DocumentationGithubZipSync
 
     private function prepareDocsSnapshot(DocumentationGithubZipWorkspace $workspace): string
     {
+        $descriptor = $this->parseGithubRepositoryDescriptor();
+        $docEntries = $this->fetchGithubDocEntries($descriptor['owner'], $descriptor['repo'], $descriptor['ref']);
+
         $download = $this->downloader->downloadFile($this->githubZipUrl, $workspace->zipFile);
         if ($download->isSuccess()) {
             $this->assertDownloadedArchive($workspace->zipFile, $download);
@@ -101,15 +104,15 @@ final class DocumentationGithubZipSync
                 throw new RuntimeException('Der Ordner /DOC wurde im heruntergeladenen Archiv nicht gefunden.');
             }
 
-            $this->assertApprovedDocsBundle($sourceDocs);
+            $this->assertGithubDocTreeMatches($sourceDocs, $docEntries);
             $this->stageDocsSnapshot($sourceDocs, $workspace);
 
             return $workspace->stagingDir;
         }
 
         $this->logFallbackAttempt((string) ($download->error() ?? 'ZIP-Datei konnte nicht geladen werden.'));
-        $this->downloadDocsViaGithubApi($workspace);
-        $this->assertApprovedDocsBundle($workspace->stagingDir);
+        $this->downloadDocsViaGithubApi($workspace, $docEntries);
+        $this->assertGithubDocTreeMatches($workspace->stagingDir, $docEntries);
 
         return $workspace->stagingDir;
     }
@@ -201,10 +204,12 @@ final class DocumentationGithubZipSync
         }
     }
 
-    private function downloadDocsViaGithubApi(DocumentationGithubZipWorkspace $workspace): void
+    /**
+     * @param list<array{path: string, size: int, sha: string}> $docEntries
+     */
+    private function downloadDocsViaGithubApi(DocumentationGithubZipWorkspace $workspace, array $docEntries): void
     {
         $descriptor = $this->parseGithubRepositoryDescriptor();
-        $docEntries = $this->fetchGithubDocEntries($descriptor['owner'], $descriptor['repo'], $descriptor['ref']);
 
         if ($docEntries === []) {
             throw new RuntimeException('Die GitHub-API liefert keine DOC-Dateien für den Doku-Sync zurück.');
@@ -271,7 +276,7 @@ final class DocumentationGithubZipSync
     }
 
     /**
-     * @return list<array{path: string, size: int}>
+    * @return list<array{path: string, size: int, sha: string}>
      */
     private function fetchGithubDocEntries(string $owner, string $repo, string $ref): array
     {
@@ -307,6 +312,7 @@ final class DocumentationGithubZipSync
             $path = (string) ($entry['path'] ?? '');
             $type = (string) ($entry['type'] ?? '');
             $size = (int) ($entry['size'] ?? 0);
+            $sha = strtolower((string) ($entry['sha'] ?? ''));
 
             if ($type !== 'blob' || !str_starts_with($path, 'DOC/')) {
                 continue;
@@ -316,7 +322,11 @@ final class DocumentationGithubZipSync
                 throw new RuntimeException('Die GitHub-API liefert unsichere oder zu große DOC-Dateipfade.');
             }
 
-            $entries[] = ['path' => $path, 'size' => $size];
+            if (preg_match('/^[0-9a-f]{40}$/', $sha) !== 1) {
+                throw new RuntimeException('Die GitHub-API liefert ungültige Blob-Signaturen für den Doku-Sync.');
+            }
+
+            $entries[] = ['path' => $path, 'size' => $size, 'sha' => $sha];
         }
 
         usort($entries, static fn(array $left, array $right): int => strcmp($left['path'], $right['path']));
@@ -451,15 +461,87 @@ final class DocumentationGithubZipSync
         }
     }
 
-    private function assertApprovedDocsBundle(string $sourceDocs): void
+    /**
+     * @param list<array{path: string, size: int, sha: string}> $docEntries
+     */
+    private function assertGithubDocTreeMatches(string $sourceDocs, array $docEntries): void
     {
-        $integrity = $this->filesystem->calculateDirectoryIntegrity($sourceDocs);
-        $actualHash = strtolower((string) ($integrity['hash'] ?? ''));
-        $actualFileCount = (int) ($integrity['file_count'] ?? 0);
-
-        if ($actualHash !== strtolower($this->approvedDocsBundleHash) || $actualFileCount !== $this->approvedDocsBundleFileCount) {
-            throw new RuntimeException('Der heruntergeladene /DOC-Baum entspricht nicht dem freigegebenen Dokumentations-Bundle.');
+        $resolvedRoot = realpath($sourceDocs);
+        if ($resolvedRoot === false || !is_dir($resolvedRoot)) {
+            throw new RuntimeException('Der lokale /DOC-Baum konnte für die GitHub-Verifikation nicht aufgelöst werden.');
         }
+
+        $expected = [];
+        foreach ($docEntries as $entry) {
+            $relativePath = substr((string) ($entry['path'] ?? ''), 4);
+            if (!is_string($relativePath) || $relativePath === '') {
+                continue;
+            }
+
+            $expected[str_replace('\\', '/', $relativePath)] = [
+                'size' => (int) ($entry['size'] ?? 0),
+                'sha' => strtolower((string) ($entry['sha'] ?? '')),
+            ];
+        }
+
+        if ($expected === []) {
+            throw new RuntimeException('Die GitHub-API liefert keine verifizierbaren /DOC-Dateien.');
+        }
+
+        $actual = [];
+        $iterator = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator($resolvedRoot, FilesystemIterator::SKIP_DOTS)
+        );
+
+        /** @var SplFileInfo $item */
+        foreach ($iterator as $item) {
+            if ($item->isLink()) {
+                throw new RuntimeException('Die GitHub-Dokumentationsverifikation erlaubt keine symbolischen Links im /DOC-Baum.');
+            }
+
+            if (!$item->isFile()) {
+                continue;
+            }
+
+            $path = $item->getPathname();
+            $relative = substr($path, strlen($resolvedRoot) + 1);
+            if (!is_string($relative) || $relative === '') {
+                throw new RuntimeException('Die GitHub-Dokumentationsverifikation konnte keinen relativen DOC-Pfad bestimmen.');
+            }
+
+            $relative = str_replace('\\', '/', $relative);
+            $actual[$relative] = [
+                'size' => (int) $item->getSize(),
+                'sha' => $this->calculateGitBlobSha($path),
+            ];
+        }
+
+        ksort($expected, SORT_STRING);
+        ksort($actual, SORT_STRING);
+
+        if (array_keys($expected) !== array_keys($actual)) {
+            throw new RuntimeException('Der heruntergeladene /DOC-Baum entspricht nicht dem offiziellen GitHub-Dokumentationsstand.');
+        }
+
+        foreach ($expected as $relative => $entry) {
+            $actualEntry = $actual[$relative] ?? null;
+            if (!is_array($actualEntry)
+                || (int) ($actualEntry['size'] ?? -1) !== (int) ($entry['size'] ?? -1)
+                || strtolower((string) ($actualEntry['sha'] ?? '')) !== strtolower((string) ($entry['sha'] ?? ''))
+            ) {
+                throw new RuntimeException('Der heruntergeladene /DOC-Baum entspricht nicht dem offiziellen GitHub-Dokumentationsstand.');
+            }
+        }
+    }
+
+    private function calculateGitBlobSha(string $path): string
+    {
+        $contents = file_get_contents($path);
+        if (!is_string($contents)) {
+            throw new RuntimeException('Eine DOC-Datei konnte für die GitHub-Verifikation nicht gelesen werden.');
+        }
+
+        return sha1('blob ' . strlen($contents) . "\0" . $contents);
     }
 
     private function assertGithubZipUrl(): void

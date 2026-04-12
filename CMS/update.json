@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.9.197",
+  "version": "2.9.198",
   "min_php": "8.4",
   "released": "2026-04-12",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 2.9.197: Die DE→EN-Kopie und AI-Übernahme schreiben Hidden-Inputs und laufende EN-Editorinstanzen jetzt synchron, damit die Änderungen in Seiten- und Beiträge-Editoren sofort sichtbar werden.",
+  "notes": "Release-Stand 2.9.198: Redirect-Checks vermeiden das Live-`%`-Regex-Warning, der DOC-Sync prüft GitHub-Snapshots jetzt dynamisch gegen den offiziellen Tree, und der OPcache-Warmup ignoriert Fremdpfade wie `ptc/`, `meridan/` oder `beta/`.",
   "critical": false
 }
