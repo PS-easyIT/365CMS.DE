@@ -969,21 +969,74 @@
             return saveEditorContent(key, true);
         }
 
+        function ensureEditorReady(key, forceRecreate) {
+            var definition = getDefinition(key);
+            var entry;
+
+            if (!definition) {
+                return Promise.resolve(null);
+            }
+
+            entry = bindEditor(definition, forceRecreate);
+            if (!entry || !entry.instance) {
+                return Promise.resolve(null);
+            }
+
+            if (entry.instance.isReady && typeof entry.instance.isReady.then === 'function') {
+                return entry.instance.isReady.then(function () {
+                    return entry;
+                }).catch(function () {
+                    return entry;
+                });
+            }
+
+            return Promise.resolve(entry);
+        }
+
         function applyEditorData(key, data) {
             var definition = getDefinition(key);
             var input = definition ? getElement(definition.inputId) : null;
             var normalizedData = normalizeEditorData(data);
+            var renderResult;
 
             if (!input) {
-                return;
+                return Promise.resolve();
             }
 
             input.value = JSON.stringify(normalizedData);
             emitChangeEvents(input);
 
-            if (definition) {
-                bindEditor(definition, true);
+            if (!definition) {
+                return Promise.resolve();
             }
+
+            return ensureEditorReady(key).then(function (entry) {
+                var instance = entry && entry.instance ? entry.instance : null;
+
+                if (!instance) {
+                    return null;
+                }
+
+                if (instance.blocks && typeof instance.blocks.render === 'function') {
+                    renderResult = instance.blocks.render(normalizedData);
+                    return Promise.resolve(renderResult).then(function () {
+                        return entry;
+                    });
+                }
+
+                if (typeof instance.render === 'function') {
+                    renderResult = instance.render(normalizedData);
+                    return Promise.resolve(renderResult).then(function () {
+                        return entry;
+                    });
+                }
+
+                bindEditor(definition, true);
+                return ensureEditorReady(key, false);
+            }).catch(function () {
+                bindEditor(definition, true);
+                return ensureEditorReady(key, false);
+            });
         }
 
         function copyFieldValue(sourceId, targetId) {
@@ -1018,18 +1071,22 @@
                     setButtonBusy(button, true, 'Kopiere …');
 
                     ensureEditorSaved(copyAction.sourceEditorKey).then(function (sourceData) {
-                        withSuppressedPreviewClear(function () {
+                        return withSuppressedPreviewClear(function () {
                             copyFieldValue(copyAction.sourceTitleId, copyAction.targetTitleId);
                             copyFieldValue(copyAction.sourceSlugId, copyAction.targetSlugId);
                             copyFieldValue(copyAction.sourceExcerptId, copyAction.targetExcerptId);
 
                             activateTargetPane(copyAction.targetPaneButtonId);
-                            applyEditorData(copyAction.targetEditorKey, sourceData);
+                            return applyEditorData(copyAction.targetEditorKey, sourceData);
                         });
-
+                    }).then(function () {
                         showNotice('success', 'DE-Inhalt wurde in die EN-Bearbeitung übernommen und bestehende EN-Inhalte überschrieben.');
-                    }).catch(function () {
-                        showNotice('danger', 'DE-Inhalt konnte nicht in die EN-Bearbeitung kopiert werden.');
+                    }).catch(function (error) {
+                        if (typeof console !== 'undefined' && typeof console.error === 'function') {
+                            console.error('DE→EN Copy fehlgeschlagen.', error);
+                        }
+
+                        showNotice('danger', (error && error.message) ? error.message : 'DE-Inhalt konnte nicht in die EN-Bearbeitung kopiert werden.');
                     }).finally(function () {
                         setButtonBusy(button, false);
                     });
@@ -1091,7 +1148,7 @@
         }
 
         function applyResolvedTranslation(aiTranslation, resolvedOutput) {
-            withSuppressedPreviewClear(function () {
+            return withSuppressedPreviewClear(function () {
                 activateTargetPane(aiTranslation.targetPaneButtonId);
 
                 if (aiTranslation.targetTitleId) {
@@ -1106,8 +1163,9 @@
                     setFieldValue(aiTranslation.targetExcerptId, resolvedOutput.excerpt);
                 }
 
-                applyEditorData(aiTranslation.targetEditorKey, resolvedOutput.contentData || { blocks: [] });
-                clearPreviewPanel();
+                return applyEditorData(aiTranslation.targetEditorKey, resolvedOutput.contentData || { blocks: [] }).then(function () {
+                    clearPreviewPanel();
+                });
             });
         }
 
@@ -1204,8 +1262,11 @@
                             showNotice('info', (result.message || 'AI-Übersetzung wurde erzeugt.') + ' Bitte Vorschau prüfen und Änderungen nur bei Bedarf übernehmen.' + warningText);
 
                             renderTranslationPreview(aiTranslation, result, resolvedOutput, function () {
-                                applyResolvedTranslation(aiTranslation, resolvedOutput);
-                                showNotice('success', (result.message || 'AI-Übersetzung wurde in die EN-Bearbeitung übernommen.') + warningText);
+                                applyResolvedTranslation(aiTranslation, resolvedOutput).then(function () {
+                                    showNotice('success', (result.message || 'AI-Übersetzung wurde in die EN-Bearbeitung übernommen.') + warningText);
+                                }).catch(function (error) {
+                                    showNotice('danger', (error && error.message) ? error.message : 'AI-Übersetzung konnte nicht in die EN-Bearbeitung übernommen werden.');
+                                });
                             }, function () {
                                 clearPreviewPanel();
                                 showNotice('info', 'AI-Vorschlag wurde verworfen. Die aktuelle EN-Bearbeitung blieb unverändert.' + warningText);
@@ -1214,8 +1275,9 @@
                             return;
                         }
 
-                        applyResolvedTranslation(aiTranslation, resolvedOutput);
-                        showNotice('success', (result.message || 'Mock-Übersetzung wurde in die EN-Bearbeitung übernommen.') + warningText);
+                        return applyResolvedTranslation(aiTranslation, resolvedOutput).then(function () {
+                            showNotice('success', (result.message || 'Mock-Übersetzung wurde in die EN-Bearbeitung übernommen.') + warningText);
+                        });
                     });
                 }).catch(function (error) {
                     showNotice('danger', (error && error.message) ? error.message : 'AI-Übersetzung konnte nicht verarbeitet werden.');

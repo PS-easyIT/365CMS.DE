@@ -1,4 +1,4 @@
-﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.196-blue.svg)](https://shields.io/)
+﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.197-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -19,6 +19,12 @@
 ## 📜 Vollständige Versionshistorie
 
 ---
+
+### v2.9.197 — 12. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.197** | 🔴 fix | Admin/EditorJS Runtime | **`CMS/assets/js/admin-content-editor.js` synchronisiert DE→EN-Kopie und AI-Übernahme jetzt nicht nur mit den Hidden-Inputs, sondern rendert die Zielblöcke robust in die bereits laufende EN-Editorinstanz zurück**: Seiten- und Beiträge-Editoren reagieren dadurch auch dann sichtbar auf „Alles aus DE nach EN kopieren“, wenn der EN-Editor bereits lazy initialisiert wurde oder schon offen ist. |
 
 ### v2.9.196 — 12. April 2026
 
