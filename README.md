@@ -20,6 +20,10 @@
 ---
 </div>
 ## Navigation
+<a id="en-who-it-fits"></a>
+
+<a id="en-use-cases"></a>
+- [🖼️ Screenshots](#screenshots)
 <a id="en-why-instead-of-extra-tools"></a>
 - [🇩🇪 Deutsch](#deutsch)
 <a id="en-does-especially-well"></a>
