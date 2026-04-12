@@ -101,6 +101,9 @@ if (!in_array($pageDefaultStatus, ['draft', 'published', 'private'], true)) {
             $pageSitemapPriorityValue = (string)($seoMeta['sitemap_priority'] ?? '');
             $pageSitemapChangefreqValue = (string)($seoMeta['sitemap_changefreq'] ?? 'weekly');
             $pageHreflangGroupValue = (string)($seoMeta['hreflang_group'] ?? '');
+            $pageEditorDraftKey = $isNew
+                ? substr(hash('sha256', 'page:' . ($pageTitleValue !== '' ? $pageTitleValue : microtime((bool) true)) . ':' . session_id()), 0, 12)
+                : '';
             ?>
 
             <div class="row g-3">
@@ -507,6 +510,15 @@ if (!in_array($pageDefaultStatus, ['draft', 'published', 'private'], true)) {
             'formId' => 'pageForm',
             'mediaUploadUrl' => '/api/media',
             'csrfToken' => $editorMediaToken ?? '',
+            'uploadContext' => [
+                'contentType' => 'page',
+                'isNew' => $isNew,
+                'draftKey' => $pageEditorDraftKey,
+                'slugInputId' => 'pageSlug',
+                'slugFallbackInputId' => 'pageSlugEn',
+                'titleInputId' => 'pageTitle',
+                'titleFallbackInputId' => 'pageTitleEn',
+            ],
             'initialCopyOnFirstActivate' => [
                 'sourceKey' => 'de',
                 'targetKey' => 'en',

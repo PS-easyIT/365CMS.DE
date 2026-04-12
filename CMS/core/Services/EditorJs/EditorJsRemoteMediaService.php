@@ -69,7 +69,11 @@ final class EditorJsRemoteMediaService
         ];
 
         try {
-            return $this->uploadService->storeUploadedFile($uploadPayload, true, 'editorjs');
+            return $this->uploadService->storeUploadedFile(
+                $uploadPayload,
+                true,
+                $this->uploadService->resolveRequestedTargetPath($post, 'editorjs')
+            );
         } finally {
             $this->cleanupTemporaryFile($tmpFile);
         }

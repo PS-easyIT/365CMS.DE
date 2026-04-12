@@ -392,6 +392,38 @@
         return JSON.stringify(payload);
     }
 
+    function resolveUploadContext(context) {
+        if (typeof context === 'function') {
+            try {
+                return resolveUploadContext(context());
+            } catch (_error) {
+                return {};
+            }
+        }
+
+        return context && typeof context === 'object' ? context : {};
+    }
+
+    function appendUploadContext(formData, uploadContext) {
+        const context = resolveUploadContext(uploadContext);
+
+        [
+            ['content_type', context.contentType],
+            ['content_slug', context.contentSlug],
+            ['content_slug_fallback', context.contentSlugFallback],
+            ['content_title', context.contentTitle],
+            ['content_title_fallback', context.contentTitleFallback],
+            ['draft_key', context.draftKey],
+            ['is_new', context.isNew ? '1' : '0'],
+        ].forEach(function (entry) {
+            if (typeof entry[1] === 'undefined' || entry[1] === null || entry[1] === '') {
+                return;
+            }
+
+            formData.append(entry[0], String(entry[1]));
+        });
+    }
+
     function fetchJson(url, options) {
         return fetch(url, options).then(function (response) {
             return response.text().then(function (bodyText) {
@@ -419,10 +451,11 @@
         });
     }
 
-    function uploadEditorImageFile(uploadUrl, csrfToken, file) {
+    function uploadEditorImageFile(uploadUrl, csrfToken, file, uploadContext) {
         const formData = new FormData();
         formData.append('action', 'upload_image');
         formData.append('image', file);
+        appendUploadContext(formData, uploadContext);
 
         return fetchJson(uploadUrl, {
             method: 'POST',
@@ -438,12 +471,22 @@
         });
     }
 
-    function fetchEditorImageByUrl(uploadUrl, csrfToken, remoteUrl) {
+    function fetchEditorImageByUrl(uploadUrl, csrfToken, remoteUrl, uploadContext) {
+        const context = resolveUploadContext(uploadContext);
+
         return fetchJson(buildQueryUrl(uploadUrl, 'fetch_image'), {
             method: 'POST',
             headers: Object.assign({ 'Content-Type': 'application/json; charset=utf-8' }, buildHeaders(csrfToken)),
             credentials: 'same-origin',
-            body: buildRequestPayload({ url: remoteUrl }, csrfToken),
+            body: buildRequestPayload(Object.assign({ url: remoteUrl }, {
+                content_type: context.contentType || '',
+                content_slug: context.contentSlug || '',
+                content_slug_fallback: context.contentSlugFallback || '',
+                content_title: context.contentTitle || '',
+                content_title_fallback: context.contentTitleFallback || '',
+                draft_key: context.draftKey || '',
+                is_new: context.isNew ? '1' : '0'
+            }), csrfToken),
         }).then(function (payload) {
             if (!payload || Number(payload.success) !== 1 || !payload.file || !payload.file.url) {
                 throw new Error(payload && payload.message ? payload.message : 'Bild konnte nicht geladen werden.');
@@ -465,7 +508,7 @@
 
     const editorImagePickerRegistry = new Map();
 
-    function createEditorImagePicker(uploadUrl, csrfToken) {
+    function createEditorImagePicker(uploadUrl, csrfToken, uploadContext) {
         const registryKey = uploadUrl + '::' + String(csrfToken || '');
         if (editorImagePickerRegistry.has(registryKey)) {
             return editorImagePickerRegistry.get(registryKey);
@@ -719,7 +762,7 @@
                 }
 
                 setStatus('Lade Bild hoch …', false);
-                uploadEditorImageFile(uploadUrl, csrfToken, file).then(function (payload) {
+                uploadEditorImageFile(uploadUrl, csrfToken, file, uploadContext).then(function (payload) {
                     resolveSelection(payload);
                     return refreshItems();
                 }).catch(function (error) {
@@ -857,12 +900,12 @@
         };
     }
 
-    function createImageToolConfig(imageClass, uploadUrl, csrfToken, cropperTuneKey) {
+    function createImageToolConfig(imageClass, uploadUrl, csrfToken, cropperTuneKey, uploadContext) {
         if (!imageClass || !uploadUrl) {
             return null;
         }
 
-        const imagePicker = createEditorImagePicker(uploadUrl, csrfToken);
+        const imagePicker = createEditorImagePicker(uploadUrl, csrfToken, uploadContext);
 
         class CmsImageTool extends imageClass {
             constructor(options) {
@@ -883,10 +926,10 @@
                     },
                     uploader: {
                         uploadByFile: function (file) {
-                            return uploadEditorImageFile(uploadUrl, csrfToken, file);
+                            return uploadEditorImageFile(uploadUrl, csrfToken, file, uploadContext);
                         },
                         uploadByUrl: function (remoteUrl) {
-                            return fetchEditorImageByUrl(uploadUrl, csrfToken, remoteUrl);
+                            return fetchEditorImageByUrl(uploadUrl, csrfToken, remoteUrl, uploadContext);
                         },
                     },
                 };
@@ -951,10 +994,10 @@
                 },
                 uploader: {
                     uploadByFile: function (file) {
-                        return uploadEditorImageFile(uploadUrl, csrfToken, file);
+                        return uploadEditorImageFile(uploadUrl, csrfToken, file, uploadContext);
                     },
                     uploadByUrl: function (remoteUrl) {
-                        return fetchEditorImageByUrl(uploadUrl, csrfToken, remoteUrl);
+                        return fetchEditorImageByUrl(uploadUrl, csrfToken, remoteUrl, uploadContext);
                     },
                 },
             },
@@ -1191,6 +1234,11 @@
         const resolved = buildResolvedRegistry();
         const spacerToolClass = createSpacerToolClass();
         const editorOptions = options && typeof options === 'object' ? options : {};
+        const getUploadContext = typeof editorOptions.getUploadContext === 'function'
+            ? editorOptions.getUploadContext
+            : function () {
+                return editorOptions.uploadContext || {};
+            };
         let autosaveTimer = null;
 
         if (!holder || typeof resolved.editorjs !== 'function') {
@@ -1263,7 +1311,7 @@
 
         const tools = pruneUnavailableTools({
             ...baseTools,
-            image: createImageToolConfig(resolved.image, uploadUrl, csrfToken, cropperTuneKey),
+            image: createImageToolConfig(resolved.image, uploadUrl, csrfToken, cropperTuneKey, getUploadContext),
             linkTool: createLinkToolConfig(resolved.linkTool, uploadUrl, csrfToken),
             attaches: createAttachesToolConfig(resolved.attaches, uploadUrl, csrfToken),
             embed: createEmbedConfig(resolved.embed),

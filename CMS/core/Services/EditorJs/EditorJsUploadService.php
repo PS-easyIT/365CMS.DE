@@ -19,10 +19,11 @@ if (!defined('ABSPATH')) {
 final class EditorJsUploadService
 {
     /**
+     * @param array<string,mixed> $post
      * @param array<string,mixed> $files
      * @return array{success:int,file?:array<string,mixed>,message?:string}
      */
-    public function uploadFile(string $fieldName, bool $imagesOnly, string $targetPath = 'editorjs', array $files = []): array
+    public function uploadFile(string $fieldName, bool $imagesOnly, string $targetPath = 'editorjs', array $post = [], array $files = []): array
     {
         $file = $files[$fieldName] ?? null;
         if (!is_array($file) || $file === []) {
@@ -32,7 +33,51 @@ final class EditorJsUploadService
             ];
         }
 
+        $targetPath = $this->resolveRequestedTargetPath($post, $targetPath);
+
         return $this->storeUploadedFile($file, $imagesOnly, $targetPath);
+    }
+
+    /**
+     * @param array<string,mixed> $post
+     */
+    public function resolveRequestedTargetPath(array $post = [], string $defaultTargetPath = 'editorjs'): string
+    {
+        $defaultTargetPath = trim(str_replace('\\', '/', $defaultTargetPath), '/');
+        if ($defaultTargetPath === '') {
+            $defaultTargetPath = 'editorjs';
+        }
+
+        $contentType = in_array((string) ($post['content_type'] ?? ''), ['post', 'page'], true)
+            ? (string) $post['content_type']
+            : '';
+
+        if ($contentType === '') {
+            return $defaultTargetPath;
+        }
+
+        $folderSlug = $this->sanitizeFolderSegment((string) ($post['content_slug'] ?? ''));
+        if ($folderSlug === '') {
+            $folderSlug = $this->sanitizeFolderSegment((string) ($post['content_slug_fallback'] ?? ''));
+        }
+        if ($folderSlug === '') {
+            $folderSlug = $this->sanitizeFolderSegment((string) ($post['content_title'] ?? ''));
+        }
+        if ($folderSlug === '') {
+            $folderSlug = $this->sanitizeFolderSegment((string) ($post['content_title_fallback'] ?? ''));
+        }
+
+        $baseFolder = $contentType === 'page' ? 'pages' : 'articles';
+        if ($folderSlug !== '') {
+            return $baseFolder . '/' . $folderSlug;
+        }
+
+        $draftKey = $this->sanitizeFolderSegment((string) ($post['draft_key'] ?? ''));
+        if ($draftKey !== '') {
+            return $baseFolder . '/temp/' . $draftKey;
+        }
+
+        return $defaultTargetPath;
     }
 
     /**
@@ -127,6 +172,21 @@ final class EditorJsUploadService
     private function isAllowedImageExtension(string $extension): bool
     {
         return in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'avif', 'bmp'], true);
+    }
+
+    private function sanitizeFolderSegment(string $value): string
+    {
+        $value = strtolower(trim($value));
+        $value = preg_replace('/[^a-z0-9]+/i', '-', $value) ?? '';
+        $value = trim($value, '-');
+
+        if ($value === '') {
+            return '';
+        }
+
+        return function_exists('mb_substr')
+            ? mb_substr($value, 0, 80)
+            : substr($value, 0, 80);
     }
 
     /**

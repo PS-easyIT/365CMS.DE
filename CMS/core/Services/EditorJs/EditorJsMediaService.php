@@ -45,7 +45,7 @@ final class EditorJsMediaService
                     break;
 
                 case 'upload_image':
-                    $this->json($this->uploadService->uploadFile('image', true, 'editorjs', $_FILES));
+                    $this->json($this->uploadService->uploadFile('image', true, 'editorjs', $_POST, $_FILES));
                     break;
 
                 case 'upload_featured':
@@ -53,7 +53,7 @@ final class EditorJsMediaService
                     break;
 
                 case 'upload_file':
-                    $this->json($this->uploadService->uploadFile('file', false, 'editorjs', $_FILES));
+                    $this->json($this->uploadService->uploadFile('file', false, 'editorjs', $_POST, $_FILES));
                     break;
 
                 case 'fetch_image':

@@ -152,6 +152,9 @@ $additionalCategoryIds = array_values(array_filter(
                     break;
                 }
             }
+            $postEditorDraftKey = $isNew
+                ? substr(hash('sha256', 'post:' . ($postTitleValue !== '' ? $postTitleValue : microtime((bool) true)) . ':' . session_id()), 0, 12)
+                : '';
             ?>
 
             <div class="row g-3">
@@ -614,6 +617,15 @@ $additionalCategoryIds = array_values(array_filter(
             'formId' => 'postForm',
             'mediaUploadUrl' => '/api/media',
             'csrfToken' => $editorMediaToken ?? '',
+            'uploadContext' => [
+                'contentType' => 'post',
+                'isNew' => $isNew,
+                'draftKey' => $postEditorDraftKey,
+                'slugInputId' => 'slug',
+                'slugFallbackInputId' => 'slugEn',
+                'titleInputId' => 'title',
+                'titleFallbackInputId' => 'titleEn',
+            ],
             'initialCopyOnFirstActivate' => [
                 'sourceKey' => 'de',
                 'targetKey' => 'en',

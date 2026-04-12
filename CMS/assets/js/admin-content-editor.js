@@ -271,7 +271,6 @@
                 window.setTimeout(resolve, 0);
             });
         }
-        }
 
         function safeParseEditorInput(input) {
             if (!input || !input.value) {
@@ -281,7 +280,7 @@
             try {
                 return JSON.parse(input.value);
             } catch (_error) {
-                return { blocks: [] };
+                return normalizeEditorData(String(input.value || ''));
             }
         }
 
@@ -314,6 +313,28 @@
 
             element.value = String(value || '');
             emitChangeEvents(element);
+        }
+
+        function readUploadContextField(fieldId) {
+            var element = getElement(fieldId);
+
+            return element ? String(element.value || '').trim() : '';
+        }
+
+        function buildUploadContext() {
+            var uploadContext = config.uploadContext && typeof config.uploadContext === 'object'
+                ? config.uploadContext
+                : {};
+
+            return {
+                contentType: String(uploadContext.contentType || ''),
+                isNew: !!uploadContext.isNew,
+                draftKey: String(uploadContext.draftKey || ''),
+                contentSlug: readUploadContextField(uploadContext.slugInputId),
+                contentSlugFallback: readUploadContextField(uploadContext.slugFallbackInputId),
+                contentTitle: readUploadContextField(uploadContext.titleInputId),
+                contentTitleFallback: readUploadContextField(uploadContext.titleFallbackInputId)
+            };
         }
 
         function isEditorInputEmpty(input) {
@@ -929,6 +950,7 @@
             editors[definition.key] = {
                 input: input,
                 instance: window.createCmsEditor(definition.holderId, input.value || '', config.mediaUploadUrl, config.csrfToken, {
+                    getUploadContext: buildUploadContext,
                     onChange: function (output) {
                         var currentEntry = editors[definition.key];
 
@@ -1367,7 +1389,7 @@
         }
 
         form.addEventListener('submit', function (event) {
-            var keys = Object.keys(editors);
+            var keys = Object.keys(editorDefinitions);
 
             if (nativeSubmitPending) {
                 return;
