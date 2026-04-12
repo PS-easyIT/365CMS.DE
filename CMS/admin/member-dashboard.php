@@ -11,6 +11,7 @@ if (!defined('ABSPATH')) {
  */
 
 use CMS\Auth;
+use CMS\Services\CoreModuleService;
 
 const CMS_ADMIN_MEMBER_DASHBOARD_READ_CAPABILITIES = ['manage_settings', 'manage_users'];
 const CMS_ADMIN_MEMBER_DASHBOARD_LEGACY_ROUTES = [
@@ -38,7 +39,8 @@ function cms_admin_member_dashboard_has_any_capability(array $capabilities): boo
 function cms_admin_member_dashboard_can_access_overview(): bool
 {
     return Auth::instance()->isAdmin()
-        && cms_admin_member_dashboard_has_any_capability(CMS_ADMIN_MEMBER_DASHBOARD_READ_CAPABILITIES);
+    && cms_admin_member_dashboard_has_any_capability(CMS_ADMIN_MEMBER_DASHBOARD_READ_CAPABILITIES)
+    && CoreModuleService::getInstance()->isAdminPageEnabled('member-dashboard');
 }
 
 function cms_admin_member_dashboard_normalize_legacy_section(mixed $section): string

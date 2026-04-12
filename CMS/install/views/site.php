@@ -27,6 +27,12 @@ if (!defined('ABSPATH')) {
         input[type="text"], input[type="email"], input[type="url"] { width: 100%; padding: 0.75rem; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 1rem; transition: border-color 0.2s; }
         input:focus { outline: none; border-color: #2563eb; }
         .checkbox-group { display: flex; align-items: center; gap: 0.5rem; }
+        .module-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; }
+        .module-card { border: 2px solid #e2e8f0; border-radius: 12px; padding: 1rem; background: #f8fafc; }
+        .module-card label { display: flex; align-items: flex-start; gap: 0.75rem; margin: 0; cursor: pointer; }
+        .module-card input[type="checkbox"] { width: 1.1rem; height: 1.1rem; margin-top: 0.15rem; flex: 0 0 auto; }
+        .module-title { font-weight: 700; color: #1e293b; margin-bottom: 0.25rem; }
+        .module-copy { font-size: 0.92rem; color: #64748b; line-height: 1.45; }
         .help-text { font-size: 0.875rem; color: #64748b; margin-top: 0.25rem; }
         .btn-group { display: flex; gap: 1rem; margin-top: 2rem; }
         .btn { flex: 1; padding: 1rem 2rem; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; text-decoration: none; text-align: center; transition: transform 0.2s; }
@@ -78,6 +84,38 @@ if (!defined('ABSPATH')) {
                     <label for="debug_mode" style="margin: 0;">Debug-Modus aktivieren</label>
                 </div>
                 <div class="help-text">Nur für lokale Entwicklung oder Fehlersuche aktivieren.</div>
+            </div>
+
+            <div class="form-group">
+                <label>Core-Module aktivieren</label>
+                <div class="help-text" style="margin-bottom: 0.75rem;">Nur die hier ausgewählten Core-Module werden in der neuen Installation direkt aktiviert. Nicht ausgewählte Module bleiben deaktiviert, bis sie später unter <strong>System → Module</strong> eingeschaltet werden.</div>
+                <div class="module-grid">
+                    <?php foreach (($availableCoreModules ?? []) as $module): ?>
+                        <?php
+                        $moduleSlug = (string) ($module['slug'] ?? '');
+                        if ($moduleSlug === '') {
+                            continue;
+                        }
+
+                        $moduleChecked = !empty($defaultValues['core_modules'][$moduleSlug]);
+                        ?>
+                        <div class="module-card">
+                            <label for="core_module_<?php echo $escape($moduleSlug); ?>">
+                                <input
+                                    type="checkbox"
+                                    id="core_module_<?php echo $escape($moduleSlug); ?>"
+                                    name="core_modules[<?php echo $escape($moduleSlug); ?>]"
+                                    value="1"
+                                    <?php echo $moduleChecked ? 'checked' : ''; ?>
+                                >
+                                <span>
+                                    <span class="module-title"><?php echo $escape((string) ($module['label'] ?? $moduleSlug)); ?></span>
+                                    <span class="module-copy"><?php echo $escape((string) ($module['description'] ?? '')); ?></span>
+                                </span>
+                            </label>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
             </div>
 
             <div class="btn-group">

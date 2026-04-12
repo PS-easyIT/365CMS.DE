@@ -1,4 +1,4 @@
-﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.203-blue.svg)](https://shields.io/)
+﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.207-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -19,6 +19,30 @@
 ## 📜 Vollständige Versionshistorie
 
 ---
+
+### v2.9.207 — 12. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.207** | 🔴 fix | System/Installer/Member | **`CMS/core/Services/CoreModuleService.php`, `CMS/install/InstallerService.php`, `CMS/install/InstallerController.php`, `CMS/install/views/site.php`, `CMS/admin/member-dashboard*.php`, `CMS/admin/partials/sidebar.php`, `CMS/member/includes/class-member-controller.php` und `CMS/member/dashboard.php` ziehen den Modulvertrag jetzt auf echte Root-Core-Module zusammen**: Unter `System → Module` sind damit nur noch die eigentlichen Core-Module statt interner Untermodule schaltbar, der Installer übernimmt die Auswahl direkt in neue Installationen, und das Member Dashboard hängt in Admin, Sidebar, Menü sowie Frontend-Startseite konsistent am selben Root-Schalter inklusive Legacy-Setting-Sync. |
+
+### v2.9.206 — 12. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.206** | 🔴 fix | System/AI Services | **`CMS/core/Services/CoreModuleService.php`, `CMS/admin/ai-services.php`, `CMS/admin/ai-translate-editorjs.php`, `CMS/admin/partials/sidebar.php`, `CMS/admin/pages.php`, `CMS/admin/posts.php` sowie die Seiten-/Beitrags-Edit-Views hängen AI Services jetzt an den zentralen Core-Modulvertrag**: Unter `System → Module` lässt sich `AI Services` damit wie gewünscht aktivieren/deaktivieren, der Sidebar-Eintrag verschwindet bei deaktiviertem Modul, `/admin/ai-services` wird fail-closed gesperrt und auch die Editor.js-AI-Übersetzung in Seiten- und Beitragseditoren blendet ihren Button aus bzw. lehnt Requests über den separaten Endpoint sauber ab. |
+
+### v2.9.205 — 12. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.205** | 🔴 fix | Menüs/Doku-Sync | **`CMS/admin/modules/menus/MenuEditorModule.php` und `CMS/admin/modules/system/DocumentationGithubZipSync.php` beheben zwei produktive Admin-Fehlerpfade**: Interne Hash-/Query-Ziele im Menü-Editor laufen wieder ohne `preg_match(): Unknown modifier '|'`, und der GitHub-Doku-Sync löst den `/DOC`-Baum für den API-/Raw-Fallback jetzt gezielt über das echte `DOC`-Verzeichnis statt über einen potenziell abgeschnittenen Komplett-Repo-Tree auf, sodass große Repositories den ZIP-Fallback nicht mehr wegen leerer DOC-Dateiliste verlieren. |
+
+### v2.9.204 — 12. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.204** | 🔴 fix | Admin/Editor | **`CMS/assets/js/admin-content-editor.js` fängt den manuellen `Alles aus DE nach EN kopieren`-Flow in Seiten- und Beitragseditoren jetzt robuster ab**: Der Shared-Flow serialisiert Quelle und Zielzustand vorab, verhindert versehentliche Standard-Klickfolgen, wartet den EN-Tab/Paint sauber ab und überschreibt die EN-Felder sowie den EN-Editorinhalt deterministisch auch dann, wenn die englische Editor.js-Instanz lazy initialisiert wird. |
 
 ### v2.9.203 — 12. April 2026
 

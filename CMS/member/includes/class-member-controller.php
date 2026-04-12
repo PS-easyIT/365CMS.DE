@@ -90,6 +90,9 @@ final class MemberController
             return $this->settings;
         }
 
+        $memberDashboardModuleEnabled = !class_exists(CoreModuleService::class)
+            || CoreModuleService::getInstance()->isModuleEnabled('member_dashboard');
+
         $moduleFile = ABSPATH . 'admin/modules/member/MemberDashboardModule.php';
         if (!class_exists('MemberDashboardModule') && file_exists($moduleFile)) {
             require_once $moduleFile;
@@ -101,6 +104,8 @@ final class MemberController
                 $data = $module->getData();
                 if (is_array($data['settings'] ?? null)) {
                     $this->settings = $data['settings'];
+                    $this->settings['dashboard_enabled'] = $memberDashboardModuleEnabled
+                        && !empty($this->settings['dashboard_enabled']);
                     return $this->settings;
                 }
             } catch (\Throwable) {
@@ -108,7 +113,7 @@ final class MemberController
         }
 
         $this->settings = [
-            'dashboard_enabled' => true,
+            'dashboard_enabled' => $memberDashboardModuleEnabled,
             'registration_enabled' => true,
             'email_verification' => false,
             'welcome_message' => '',
@@ -321,7 +326,6 @@ final class MemberController
     {
         $settings = $this->getSettings();
         $items = [
-            ['slug' => 'dashboard', 'label' => 'Dashboard', 'icon' => '🏠', 'url' => '/member/dashboard', 'category' => 'core'],
             ['slug' => 'profile', 'label' => 'Profil', 'icon' => '👤', 'url' => '/member/profile', 'category' => 'core'],
             ['slug' => 'security', 'label' => 'Sicherheit', 'icon' => '🛡️', 'url' => '/member/security', 'category' => 'core'],
             ['slug' => 'notifications', 'label' => 'Benachrichtigungen', 'icon' => '🔔', 'url' => '/member/notifications', 'category' => 'core'],
@@ -330,6 +334,10 @@ final class MemberController
             ['slug' => 'favorites', 'label' => 'Favoriten', 'icon' => '⭐', 'url' => '/member/favorites', 'category' => 'content'],
             ['slug' => 'privacy', 'label' => 'Datenschutz', 'icon' => '🔐', 'url' => '/member/privacy', 'category' => 'account'],
         ];
+
+        if (!empty($settings['dashboard_enabled'])) {
+            array_unshift($items, ['slug' => 'dashboard', 'label' => 'Dashboard', 'icon' => '🏠', 'url' => '/member/dashboard', 'category' => 'core']);
+        }
 
         if (!empty($settings['subscription_visible']) && CoreModuleService::getInstance()->isModuleEnabled('subscription_member_area')) {
             $items[] = ['slug' => 'subscription', 'label' => 'Abo & Bestellungen', 'icon' => '💳', 'url' => '/member/subscription', 'category' => 'account'];

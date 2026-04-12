@@ -97,6 +97,45 @@ final class InstallerService
         return \CMS\Version::CURRENT;
     }
 
+    /** @return list<array<string, mixed>> */
+    public function getInstallableCoreModules(): array
+    {
+        require_once $this->rootDir . '/core/Services/CoreModuleService.php';
+
+        return \CMS\Services\CoreModuleService::getInstallerModules();
+    }
+
+    /** @return array<string, bool> */
+    public function getDefaultInstallableCoreModuleStates(): array
+    {
+        $states = [];
+
+        foreach ($this->getInstallableCoreModules() as $module) {
+            $slug = trim((string) ($module['slug'] ?? ''));
+            if ($slug === '') {
+                continue;
+            }
+
+            $states[$slug] = !empty($module['default_enabled']);
+        }
+
+        return $states;
+    }
+
+    /** @return array<string, bool> */
+    public function normalizeInstallableCoreModuleStates(mixed $submittedStates): array
+    {
+        $defaults = $this->getDefaultInstallableCoreModuleStates();
+        $normalized = [];
+        $submittedStates = is_array($submittedStates) ? $submittedStates : [];
+
+        foreach ($defaults as $slug => $defaultEnabled) {
+            $normalized[$slug] = !empty($submittedStates[$slug]);
+        }
+
+        return $normalized;
+    }
+
     public function getInstallerLockPath(): string
     {
         return $this->rootDir . '/config/install.lock';
@@ -735,9 +774,13 @@ final class InstallerService
         }
     }
 
-    public function createDefaultSettings(PDO $pdo, string $siteName, string $adminEmail, string $prefix = 'cms_'): bool
+    public function createDefaultSettings(PDO $pdo, string $siteName, string $adminEmail, string $prefix = 'cms_', array $coreModuleStates = []): bool
     {
         try {
+            $normalizedCoreModuleStates = $coreModuleStates !== []
+                ? $this->normalizeInstallableCoreModuleStates($coreModuleStates)
+                : $this->getDefaultInstallableCoreModuleStates();
+
             $settings = [
                 ['site_title', '365CMS'],
                 ['site_tagline', 'Content Management System'],
@@ -750,6 +793,21 @@ final class InstallerService
                 ['active_plugins', '[]'],
                 ['landing_page_content', ''],
             ];
+
+            foreach ($this->getInstallableCoreModules() as $module) {
+                $slug = trim((string) ($module['slug'] ?? ''));
+                if ($slug === '') {
+                    continue;
+                }
+
+                $enabled = !empty($normalizedCoreModuleStates[$slug]);
+                $settings[] = ['core_modules.' . $slug, $enabled ? '1' : '0'];
+
+                $legacySetting = trim((string) ($module['legacy_setting'] ?? ''));
+                if ($legacySetting !== '') {
+                    $settings[] = [$legacySetting, $enabled ? '1' : '0'];
+                }
+            }
 
             $stmt = $pdo->prepare("INSERT IGNORE INTO {$prefix}settings (option_name, option_value, autoload) VALUES (?, ?, 1)");
             foreach ($settings as $setting) {

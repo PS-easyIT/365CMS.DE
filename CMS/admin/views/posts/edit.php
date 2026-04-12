@@ -7,6 +7,8 @@ if (!defined('ABSPATH')) {
 
 use CMS\Services\EditorService;
 
+$aiTranslationEnabled = !empty($aiTranslationEnabled);
+
 /**
  * Posts – Edit / Create View
  *
@@ -320,7 +322,9 @@ $additionalCategoryIds = array_values(array_filter(
                                     <div class="text-secondary small">Die englische Version ist unter <code><?php echo htmlspecialchars($postPreviewUrlEn); ?></code> erreichbar.</div>
                                     <div class="btn-list">
                                         <button type="button" class="btn btn-outline-primary btn-sm" id="copyPostDeToEnButton">Alles aus DE nach EN kopieren</button>
-                                        <button type="button" class="btn btn-primary btn-sm" id="translatePostDeToEnButton">Mit AI nach EN übersetzen</button>
+                                        <?php if ($aiTranslationEnabled): ?>
+                                            <button type="button" class="btn btn-primary btn-sm" id="translatePostDeToEnButton">Mit AI nach EN übersetzen</button>
+                                        <?php endif; ?>
                                     </div>
                                 </div>
                                 <div class="row g-3 mb-3">
@@ -626,7 +630,7 @@ $additionalCategoryIds = array_values(array_filter(
                 'targetExcerptId' => 'excerptEn',
                 'targetPaneButtonId' => 'postLangToggleEn',
             ],
-            'aiTranslation' => [
+            'aiTranslation' => $aiTranslationEnabled ? [
                 'buttonId' => 'translatePostDeToEnButton',
                 'endpointUrl' => (string) ($aiTranslationUrl ?? '/admin/ai-translate-editorjs'),
                 'csrfToken' => (string) ($aiTranslationToken ?? ''),
@@ -642,7 +646,7 @@ $additionalCategoryIds = array_values(array_filter(
                 'sourceExcerptId' => 'excerpt',
                 'targetExcerptId' => 'excerptEn',
                 'targetPaneButtonId' => 'postLangToggleEn',
-            ],
+            ] : null,
             'editors' => [
                 ['key' => 'de', 'holderId' => 'editorjs', 'inputId' => 'contentInput', 'lazy' => false],
                 ['key' => 'en', 'holderId' => 'editorjsEn', 'inputId' => 'contentInputEn', 'lazy' => $defaultContentLanguage !== 'en', 'activateButtonId' => 'postLangToggleEn'],

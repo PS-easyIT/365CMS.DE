@@ -7,6 +7,7 @@ if (!defined('ABSPATH')) {
 
 use CMS\Auth;
 use CMS\Security;
+use CMS\Services\CoreModuleService;
 
 \CMS\CacheManager::instance()->sendResponseHeaders('private');
 
@@ -18,6 +19,15 @@ if (!Auth::instance()->isAdmin()) {
     echo json_encode([
         'success' => false,
         'error' => 'Keine Berechtigung für die Editor.js-AI-Übersetzung.',
+    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    exit;
+}
+
+if (!CoreModuleService::getInstance()->isModuleEnabled('ai_services')) {
+    http_response_code(403);
+    echo json_encode([
+        'success' => false,
+        'error' => 'AI Services ist derzeit als Core-Modul deaktiviert.',
     ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     exit;
 }

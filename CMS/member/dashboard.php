@@ -12,6 +12,12 @@ $pageKey = 'dashboard';
 $pageAssets = [];
 $data = $controller->getDashboardData();
 $settings = $data['settings'] ?? $settings;
+
+if (empty($settings['dashboard_enabled'])) {
+    header('Location: /member/profile');
+    exit;
+}
+
 $notifications = is_array($data['recent_notifications'] ?? null) ? $data['recent_notifications'] : [];
 $activity = is_array($data['recent_activity'] ?? null) ? $data['recent_activity'] : [];
 $pluginWidgets = is_array($data['plugin_widgets'] ?? null) ? $data['plugin_widgets'] : [];

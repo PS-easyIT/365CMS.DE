@@ -237,7 +237,7 @@
         var translationPreviewActive = false;
         var translationPreviewSuppressClear = false;
 
-        if (!config || typeof window.createCmsEditor !== 'function') {
+        if (!config) {
             return;
         }
 
@@ -253,6 +253,24 @@
 
             element.dispatchEvent(new Event('input', { bubbles: true }));
             element.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+
+        function hasEditorFactory() {
+            return typeof window.createCmsEditor === 'function';
+        }
+
+        function waitForNextPaint() {
+            return new Promise(function (resolve) {
+                if (typeof window.requestAnimationFrame === 'function') {
+                    window.requestAnimationFrame(function () {
+                        window.requestAnimationFrame(resolve);
+                    });
+                    return;
+                }
+
+                window.setTimeout(resolve, 0);
+            });
+        }
         }
 
         function safeParseEditorInput(input) {
@@ -852,9 +870,13 @@
 
         function activateTargetPane(buttonId) {
             var button = getElement(buttonId);
-            if (button) {
+            var isActive = button && button.getAttribute('aria-pressed') === 'true';
+
+            if (button && !isActive) {
                 button.click();
             }
+
+            return waitForNextPaint();
         }
 
         function destroyEditor(key) {
@@ -889,6 +911,10 @@
             var input = getElement(definition.inputId);
 
             if (!definition || !holder || !input) {
+                return null;
+            }
+
+            if (!hasEditorFactory()) {
                 return null;
             }
 
@@ -1065,19 +1091,29 @@
             }
 
             if (button) {
-                button.addEventListener('click', function () {
+                button.addEventListener('click', function (event) {
+                    if (event) {
+                        event.preventDefault();
+                    }
+
                     clearNotice();
                     clearPreviewPanel();
                     setButtonBusy(button, true, 'Kopiere …');
 
-                    ensureEditorSaved(copyAction.sourceEditorKey).then(function (sourceData) {
+                    Promise.all([
+                        ensureEditorSaved(copyAction.sourceEditorKey),
+                        ensureEditorSaved(copyAction.targetEditorKey)
+                    ]).then(function (savedStates) {
+                        var sourceData = savedStates[0];
+
                         return withSuppressedPreviewClear(function () {
                             copyFieldValue(copyAction.sourceTitleId, copyAction.targetTitleId);
                             copyFieldValue(copyAction.sourceSlugId, copyAction.targetSlugId);
                             copyFieldValue(copyAction.sourceExcerptId, copyAction.targetExcerptId);
 
-                            activateTargetPane(copyAction.targetPaneButtonId);
-                            return applyEditorData(copyAction.targetEditorKey, sourceData);
+                            return activateTargetPane(copyAction.targetPaneButtonId).then(function () {
+                                return applyEditorData(copyAction.targetEditorKey, sourceData);
+                            });
                         });
                     }).then(function () {
                         showNotice('success', 'DE-Inhalt wurde in die EN-Bearbeitung übernommen und bestehende EN-Inhalte überschrieben.');

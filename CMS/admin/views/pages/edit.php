@@ -19,6 +19,8 @@ if (!defined('ABSPATH')) {
 
 use CMS\Services\EditorService;
 
+$aiTranslationEnabled = !empty($aiTranslationEnabled);
+
 $pageAdminBaseUrl = '/admin/pages';
 $page    = $editData['page'] ?? null;
 $isNew   = $editData['isNew'] ?? true;
@@ -239,7 +241,9 @@ if (!in_array($pageDefaultStatus, ['draft', 'published', 'private'], true)) {
                                     <div class="text-secondary small">Die englische Version ist unter <code><?= htmlspecialchars($pagePreviewUrlEn) ?></code> erreichbar.</div>
                                     <div class="btn-list">
                                         <button type="button" class="btn btn-outline-primary btn-sm" id="copyPageDeToEnButton">Alles aus DE nach EN kopieren</button>
-                                        <button type="button" class="btn btn-primary btn-sm" id="translatePageDeToEnButton">Mit AI nach EN übersetzen</button>
+                                        <?php if ($aiTranslationEnabled): ?>
+                                            <button type="button" class="btn btn-primary btn-sm" id="translatePageDeToEnButton">Mit AI nach EN übersetzen</button>
+                                        <?php endif; ?>
                                     </div>
                                 </div>
                                 <div class="row g-3 mb-3">
@@ -517,7 +521,7 @@ if (!in_array($pageDefaultStatus, ['draft', 'published', 'private'], true)) {
                 'targetSlugId' => 'pageSlugEn',
                 'targetPaneButtonId' => 'pageLangToggleEn',
             ],
-            'aiTranslation' => [
+            'aiTranslation' => $aiTranslationEnabled ? [
                 'buttonId' => 'translatePageDeToEnButton',
                 'endpointUrl' => (string) ($aiTranslationUrl ?? '/admin/ai-translate-editorjs'),
                 'csrfToken' => (string) ($aiTranslationToken ?? ''),
@@ -531,7 +535,7 @@ if (!in_array($pageDefaultStatus, ['draft', 'published', 'private'], true)) {
                 'sourceSlugId' => 'pageSlug',
                 'targetSlugId' => 'pageSlugEn',
                 'targetPaneButtonId' => 'pageLangToggleEn',
-            ],
+            ] : null,
             'editors' => [
                 ['key' => 'de', 'holderId' => 'editorjs', 'inputId' => 'editorContent', 'lazy' => false],
                 ['key' => 'en', 'holderId' => 'editorjsEn', 'inputId' => 'editorContentEn', 'lazy' => true, 'activateButtonId' => 'pageLangToggleEn'],

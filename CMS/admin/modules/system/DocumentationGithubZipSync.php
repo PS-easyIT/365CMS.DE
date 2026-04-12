@@ -33,6 +33,7 @@ final class DocumentationGithubZipSync
     private const MAX_ZIP_ENTRIES = 2500;
     private const MAX_ARCHIVE_BYTES = 50 * 1024 * 1024;
     private const MAX_TREE_RESPONSE_BYTES = 8 * 1024 * 1024;
+    private const MAX_ROOT_CONTENTS_RESPONSE_BYTES = 1024 * 1024;
     private const MAX_DOC_FILE_BYTES = 5 * 1024 * 1024;
     private const MAX_LOG_VALUE_LENGTH = 240;
 
@@ -280,27 +281,20 @@ final class DocumentationGithubZipSync
      */
     private function fetchGithubDocEntries(string $owner, string $repo, string $ref): array
     {
-        $apiUrl = 'https://' . self::GITHUB_API_HOST . '/repos/' . rawurlencode($owner) . '/' . rawurlencode($repo) . '/git/trees/' . rawurlencode($ref) . '?recursive=1';
-        $response = \CMS\Http\Client::getInstance()->get($apiUrl, [
-            'userAgent' => '365CMS-DocumentationSync/1.0',
-            'timeout' => 60,
-            'connectTimeout' => 10,
-            'maxBytes' => self::MAX_TREE_RESPONSE_BYTES,
-            'allowedContentTypes' => ['application/json'],
-            'headers' => [
-                'Accept: application/vnd.github+json',
-                'X-GitHub-Api-Version: 2022-11-28',
-            ],
-        ]);
-
-        if (($response['success'] ?? false) !== true) {
-            throw new RuntimeException('Die GitHub-API konnte die DOC-Dateiliste nicht laden.');
-        }
-
-        $payload = json_decode((string) ($response['body'] ?? ''), true);
-        $tree = is_array($payload) && is_array($payload['tree'] ?? null) ? $payload['tree'] : null;
+        $docTreeSha = $this->resolveGithubDocTreeSha($owner, $repo, $ref);
+        $apiUrl = 'https://' . self::GITHUB_API_HOST . '/repos/' . rawurlencode($owner) . '/' . rawurlencode($repo) . '/git/trees/' . rawurlencode($docTreeSha) . '?recursive=1';
+        $payload = $this->requestGithubJson(
+            $apiUrl,
+            self::MAX_TREE_RESPONSE_BYTES,
+            'Die GitHub-API konnte die DOC-Dateiliste nicht laden.'
+        );
+        $tree = is_array($payload['tree'] ?? null) ? $payload['tree'] : null;
         if (!is_array($tree)) {
             throw new RuntimeException('Die GitHub-API liefert keine gültige DOC-Dateiliste zurück.');
+        }
+
+        if (($payload['truncated'] ?? false) === true) {
+            throw new RuntimeException('Die GitHub-API liefert nur eine unvollständige DOC-Dateiliste zurück.');
         }
 
         $entries = [];
@@ -309,16 +303,16 @@ final class DocumentationGithubZipSync
                 continue;
             }
 
-            $path = (string) ($entry['path'] ?? '');
+            $path = ltrim((string) ($entry['path'] ?? ''), '/');
             $type = (string) ($entry['type'] ?? '');
             $size = (int) ($entry['size'] ?? 0);
             $sha = strtolower((string) ($entry['sha'] ?? ''));
 
-            if ($type !== 'blob' || !str_starts_with($path, 'DOC/')) {
+            if ($type !== 'blob') {
                 continue;
             }
 
-            if ($path === 'DOC/' || str_contains($path, '..') || preg_match('/[\x00-\x1F\x7F]/', $path) === 1 || $size < 0 || $size > self::MAX_DOC_FILE_BYTES) {
+            if ($path === '' || str_contains($path, '..') || preg_match('/[\x00-\x1F\x7F]/', $path) === 1 || $size < 0 || $size > self::MAX_DOC_FILE_BYTES) {
                 throw new RuntimeException('Die GitHub-API liefert unsichere oder zu große DOC-Dateipfade.');
             }
 
@@ -326,12 +320,81 @@ final class DocumentationGithubZipSync
                 throw new RuntimeException('Die GitHub-API liefert ungültige Blob-Signaturen für den Doku-Sync.');
             }
 
-            $entries[] = ['path' => $path, 'size' => $size, 'sha' => $sha];
+            $entries[] = ['path' => 'DOC/' . $path, 'size' => $size, 'sha' => $sha];
         }
 
         usort($entries, static fn(array $left, array $right): int => strcmp($left['path'], $right['path']));
 
         return $entries;
+    }
+
+    private function resolveGithubDocTreeSha(string $owner, string $repo, string $ref): string
+    {
+        $apiUrl = 'https://' . self::GITHUB_API_HOST . '/repos/' . rawurlencode($owner) . '/' . rawurlencode($repo) . '/contents?ref=' . rawurlencode($ref);
+        $payload = $this->requestGithubJson(
+            $apiUrl,
+            self::MAX_ROOT_CONTENTS_RESPONSE_BYTES,
+            'Die GitHub-API konnte das DOC-Verzeichnis nicht auflösen.'
+        );
+
+        foreach ($payload as $entry) {
+            if (!is_array($entry)) {
+                continue;
+            }
+
+            $entryPath = (string) ($entry['path'] ?? '');
+            $entryName = (string) ($entry['name'] ?? '');
+            $entryType = (string) ($entry['type'] ?? '');
+            $entrySha = strtolower((string) ($entry['sha'] ?? ''));
+
+            if ($entryType !== 'dir') {
+                continue;
+            }
+
+            if ($entryPath !== 'DOC' && $entryName !== 'DOC') {
+                continue;
+            }
+
+            if ($this->isValidGithubTreeSha($entrySha)) {
+                return $entrySha;
+            }
+
+            throw new RuntimeException('Die GitHub-API liefert einen ungültigen DOC-Baum-Hash für den Doku-Sync.');
+        }
+
+        throw new RuntimeException('Die GitHub-API liefert kein DOC-Verzeichnis für den Doku-Sync zurück.');
+    }
+
+    /** @return array<string, mixed> */
+    private function requestGithubJson(string $apiUrl, int $maxBytes, string $failureMessage): array
+    {
+        $response = \CMS\Http\Client::getInstance()->get($apiUrl, [
+            'userAgent' => '365CMS-DocumentationSync/1.0',
+            'timeout' => 60,
+            'connectTimeout' => 10,
+            'maxBytes' => $maxBytes,
+            'allowedContentTypes' => ['application/json'],
+            'headers' => [
+                'Accept: application/vnd.github+json',
+                'X-GitHub-Api-Version: 2022-11-28',
+            ],
+        ]);
+
+        if (($response['success'] ?? false) !== true) {
+            throw new RuntimeException($failureMessage);
+        }
+
+        $payload = json_decode((string) ($response['body'] ?? ''), true);
+        if (!is_array($payload)) {
+            throw new RuntimeException('Die GitHub-API liefert kein gültiges JSON für den Doku-Sync zurück.');
+        }
+
+        return $payload;
+    }
+
+    private function isValidGithubTreeSha(string $sha): bool
+    {
+        return preg_match('/^[0-9a-f]{40}$/', $sha) === 1;
     }
 
     private function downloadGithubRawFile(string $owner, string $repo, string $ref, string $path): string

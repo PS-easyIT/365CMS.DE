@@ -211,12 +211,16 @@ final class InstallerController
             $this->redirect('?step=2');
         }
 
+        $defaultCoreModules = $_SESSION['site_config']['core_modules'] ?? $this->service->getDefaultInstallableCoreModuleStates();
+        $availableCoreModules = $this->service->getInstallableCoreModules();
+
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['site_config'])) {
             $_SESSION['site_config'] = [
                 'site_name' => trim((string) ($_POST['site_name'] ?? '')),
                 'site_url' => rtrim(trim((string) ($_POST['site_url'] ?? '')), '/'),
                 'admin_email' => trim((string) ($_POST['admin_email'] ?? '')),
                 'debug_mode' => isset($_POST['debug_mode']) ? 'true' : 'false',
+                'core_modules' => $this->service->normalizeInstallableCoreModuleStates($_POST['core_modules'] ?? []),
             ];
             $this->redirect('?step=4');
         }
@@ -227,11 +231,13 @@ final class InstallerController
             'site_url' => $this->service->autoDetectUrl(),
             'admin_email' => ($isReinstall && $this->existingConfig !== false) ? ($this->existingConfig['admin_email'] ?? '') : '',
             'debug_mode' => true,
+            'core_modules' => $defaultCoreModules,
         ];
 
         $this->render('site', [
             'defaultValues' => $defaultValues,
             'dbCleaned' => $_SESSION['db_cleaned'] ?? null,
+            'availableCoreModules' => $availableCoreModules,
         ]);
     }
 
@@ -283,7 +289,13 @@ final class InstallerController
                         $_SESSION['db_cleaned'] = $this->service->cleanDatabase($pdo, $prefix);
                         $this->service->createDatabaseTables($pdo, $prefix);
                         $adminResult = $this->service->createAdminUser($pdo, $adminUsername, $adminEmail, $adminPassword, $prefix);
-                        $this->service->createDefaultSettings($pdo, $siteConfig['site_name'], $siteConfig['admin_email'], $prefix);
+                        $this->service->createDefaultSettings(
+                            $pdo,
+                            $siteConfig['site_name'],
+                            $siteConfig['admin_email'],
+                            $prefix,
+                            is_array($siteConfig['core_modules'] ?? null) ? $siteConfig['core_modules'] : []
+                        );
                         $this->service->initializeLandingPageData($pdo, $prefix);
 
                         if ($adminResult === true) {

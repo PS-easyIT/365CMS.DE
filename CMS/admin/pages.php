@@ -16,6 +16,7 @@ if (!defined('ABSPATH')) {
 
 use CMS\Auth;
 use CMS\Security;
+use CMS\Services\CoreModuleService;
 use CMS\Services\EditorJsService;
 use CMS\Services\EditorService;
 
@@ -94,10 +95,13 @@ function cms_admin_pages_normalize_bulk_ids(mixed $ids, mixed $csvIds = ''): arr
 function cms_admin_pages_view_config(PagesModule $module, string $view): array
 {
     $normalizedView = cms_admin_pages_normalize_view($view);
+    $aiTranslationEnabled = !class_exists(CoreModuleService::class)
+        || CoreModuleService::getInstance()->isModuleEnabled('ai_services');
     $baseTemplateVars = [
         'editorMediaToken' => Security::instance()->generateToken('editorjs_media'),
-        'aiTranslationToken' => Security::instance()->generateToken('admin_ai_editorjs_translation'),
-        'aiTranslationUrl' => '/admin/ai-translate-editorjs',
+        'aiTranslationEnabled' => $aiTranslationEnabled,
+        'aiTranslationToken' => $aiTranslationEnabled ? Security::instance()->generateToken('admin_ai_editorjs_translation') : '',
+        'aiTranslationUrl' => $aiTranslationEnabled ? '/admin/ai-translate-editorjs' : '',
         'useEditorJs' => false,
     ];
 

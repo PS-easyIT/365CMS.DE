@@ -21,6 +21,7 @@ final class CoreModuleService
      *     category_label:string,
      *     order:int,
      *     default_enabled:bool,
+    *     toggleable:bool,
      *     dependencies:array<int,string>,
      *     admin_pages:array<int,string>,
      *     admin_labels:array<int,string>,
@@ -29,13 +30,52 @@ final class CoreModuleService
      * }>
      */
     private const array MODULES = [
+        'ai_services' => [
+            'label' => 'AI Services',
+            'description' => 'Schaltet die zentrale AI-Services-Verwaltung im Core samt Editor.js-Übersetzungsendpunkt für Admin-Workflows ein oder aus.',
+            'category' => 'system',
+            'category_label' => 'System & Doku',
+            'order' => 10,
+            'default_enabled' => true,
+            'toggleable' => true,
+            'dependencies' => [],
+            'admin_pages' => ['ai-services'],
+            'admin_labels' => ['AI Services'],
+            'sidebar_group' => 'system',
+            'legacy_setting' => null,
+        ],
+        'member_dashboard' => [
+            'label' => 'Member Dashboard',
+            'description' => 'Schaltet die Member-Dashboard-Konfiguration im Admin sowie den eigentlichen Member-Dashboard-Startbereich zentral als Core-Modul ein oder aus.',
+            'category' => 'members',
+            'category_label' => 'Mitgliederbereich',
+            'order' => 20,
+            'default_enabled' => true,
+            'toggleable' => true,
+            'dependencies' => [],
+            'admin_pages' => [
+                'member-dashboard',
+                'member-dashboard-general',
+                'member-dashboard-design',
+                'member-dashboard-frontend-modules',
+                'member-dashboard-widgets',
+                'member-dashboard-plugin-widgets',
+                'member-dashboard-profile-fields',
+                'member-dashboard-notifications',
+                'member-dashboard-onboarding',
+            ],
+            'admin_labels' => ['Member Dashboard'],
+            'sidebar_group' => 'member_dashboard',
+            'legacy_setting' => 'member_dashboard_enabled',
+        ],
         'subscriptions' => [
             'label' => 'Aboverwaltung Core',
             'description' => 'Schaltet die integrierte Aboverwaltung als Kernmodul ein oder aus. Wenn dieses Modul deaktiviert ist, verschwinden alle zugehörigen Admin-Bereiche und abhängigen Laufzeitfunktionen.',
             'category' => 'subscriptions',
             'category_label' => 'Aboverwaltung',
-            'order' => 10,
+            'order' => 110,
             'default_enabled' => true,
+            'toggleable' => true,
             'dependencies' => [],
             'admin_pages' => [],
             'admin_labels' => [],
@@ -47,8 +87,9 @@ final class CoreModuleService
             'description' => 'Blendet den Admin-Bereich für Paketdefinitionen, Preise, Trial-Einstellungen, Steuern und Rechnungsoptionen ein oder aus.',
             'category' => 'subscriptions',
             'category_label' => 'Aboverwaltung',
-            'order' => 20,
+            'order' => 120,
             'default_enabled' => true,
+            'toggleable' => false,
             'dependencies' => ['subscriptions'],
             'admin_pages' => ['packages'],
             'admin_labels' => ['Pakete & Abo-Einstellungen'],
@@ -60,8 +101,9 @@ final class CoreModuleService
             'description' => 'Steuert den Admin-Bereich für Bestellungen, Statuspflege und manuelle Paketzuweisung.',
             'category' => 'subscriptions',
             'category_label' => 'Aboverwaltung',
-            'order' => 30,
+            'order' => 130,
             'default_enabled' => true,
+            'toggleable' => false,
             'dependencies' => ['subscriptions'],
             'admin_pages' => ['orders'],
             'admin_labels' => ['Bestellungen & Zuweisung'],
@@ -73,8 +115,9 @@ final class CoreModuleService
             'description' => 'Aktiviert die globale Einstellungsseite der Aboverwaltung im Adminbereich.',
             'category' => 'subscriptions',
             'category_label' => 'Aboverwaltung',
-            'order' => 40,
+            'order' => 140,
             'default_enabled' => true,
+            'toggleable' => false,
             'dependencies' => ['subscriptions'],
             'admin_pages' => ['subscription-settings'],
             'admin_labels' => ['Einstellungen'],
@@ -86,8 +129,9 @@ final class CoreModuleService
             'description' => 'Schaltet die Limit- und Zugriffsprüfung auf Basis der zugewiesenen Pakete systemweit an oder aus.',
             'category' => 'subscriptions',
             'category_label' => 'Aboverwaltung',
-            'order' => 50,
+            'order' => 150,
             'default_enabled' => true,
+            'toggleable' => false,
             'dependencies' => ['subscriptions'],
             'admin_pages' => [],
             'admin_labels' => [],
@@ -99,8 +143,9 @@ final class CoreModuleService
             'description' => 'Blendet den Bereich „Abo & Bestellungen“ im Member-Dashboard samt zugehöriger Seite aus oder ein.',
             'category' => 'subscriptions',
             'category_label' => 'Aboverwaltung',
-            'order' => 60,
+            'order' => 160,
             'default_enabled' => true,
+            'toggleable' => false,
             'dependencies' => ['subscriptions'],
             'admin_pages' => [],
             'admin_labels' => [],
@@ -112,8 +157,9 @@ final class CoreModuleService
             'description' => 'Reservierter Kernschalter für Bestell- und Upgrade-Prozesse der Aboverwaltung.',
             'category' => 'subscriptions',
             'category_label' => 'Aboverwaltung',
-            'order' => 70,
+            'order' => 170,
             'default_enabled' => true,
+            'toggleable' => false,
             'dependencies' => ['subscriptions'],
             'admin_pages' => [],
             'admin_labels' => [],
@@ -125,8 +171,9 @@ final class CoreModuleService
             'description' => 'Reservierter Kernschalter für öffentliche Paket- und Pricing-Darstellung.',
             'category' => 'subscriptions',
             'category_label' => 'Aboverwaltung',
-            'order' => 80,
+            'order' => 180,
             'default_enabled' => true,
+            'toggleable' => false,
             'dependencies' => ['subscriptions'],
             'admin_pages' => [],
             'admin_labels' => [],
@@ -156,7 +203,27 @@ final class CoreModuleService
     /** @return list<string> */
     public function getKnownModuleSlugs(): array
     {
-        return array_keys(self::MODULES);
+        return array_keys(self::getToggleableDefinitions());
+    }
+
+    /** @return list<array<string, mixed>> */
+    public static function getInstallerModules(): array
+    {
+        $modules = [];
+
+        foreach (self::getToggleableDefinitions() as $slug => $definition) {
+            $modules[] = [
+                'slug' => $slug,
+                'label' => (string) ($definition['label'] ?? $slug),
+                'description' => (string) ($definition['description'] ?? ''),
+                'category' => (string) ($definition['category'] ?? 'general'),
+                'category_label' => (string) ($definition['category_label'] ?? 'Allgemein'),
+                'default_enabled' => (bool) ($definition['default_enabled'] ?? true),
+                'legacy_setting' => (string) ($definition['legacy_setting'] ?? ''),
+            ];
+        }
+
+        return $modules;
     }
 
     /** @return array<string, mixed>|null */
@@ -191,7 +258,7 @@ final class CoreModuleService
     public function getModulesForAdmin(): array
     {
         $modules = [];
-        foreach ($this->getSortedDefinitions() as $slug => $definition) {
+        foreach (self::getToggleableDefinitions() as $slug => $definition) {
             $modules[] = $this->buildAdminModulePayload($slug, $definition);
         }
 
@@ -287,18 +354,20 @@ final class CoreModuleService
     public function updateModuleStates(array $requestedStates): array
     {
         $normalizedStates = [];
-        foreach (self::MODULES as $slug => $definition) {
+        $toggleableDefinitions = self::getToggleableDefinitions();
+
+        foreach ($toggleableDefinitions as $slug => $definition) {
             $normalizedStates[$slug] = !empty($requestedStates[$slug]);
         }
 
         $this->settings->setMany(self::SETTINGS_GROUP, $normalizedStates);
 
         $effectiveStates = [];
-        foreach (self::MODULES as $slug => $definition) {
+        foreach ($toggleableDefinitions as $slug => $definition) {
             $effectiveStates[$slug] = $this->isModuleEnabled($slug, true);
         }
 
-        foreach (self::MODULES as $slug => $definition) {
+        foreach ($toggleableDefinitions as $slug => $definition) {
             $legacySetting = (string) ($definition['legacy_setting'] ?? '');
             if ($legacySetting === '') {
                 continue;
@@ -311,6 +380,27 @@ final class CoreModuleService
             'stored' => $normalizedStates,
             'effective' => $effectiveStates,
         ];
+    }
+
+    /** @return array<string, array<string, mixed>> */
+    private static function getToggleableDefinitions(): array
+    {
+        $definitions = array_filter(
+            self::MODULES,
+            static fn (array $definition): bool => self::isToggleableDefinition($definition)
+        );
+
+        uasort($definitions, static function (array $left, array $right): int {
+            return ((int) ($left['order'] ?? 999)) <=> ((int) ($right['order'] ?? 999));
+        });
+
+        return $definitions;
+    }
+
+    /** @param array<string, mixed> $definition */
+    private static function isToggleableDefinition(array $definition): bool
+    {
+        return !array_key_exists('toggleable', $definition) || !empty($definition['toggleable']);
     }
 
     /** @return array<string, array<string, mixed>> */
@@ -368,9 +458,11 @@ final class CoreModuleService
     private function resolveStoredEnabledState(string $slug, array $definition): bool
     {
         $default = (bool) ($definition['default_enabled'] ?? true);
-        $storedValue = $this->settings->get(self::SETTINGS_GROUP, $slug, null);
-        if ($storedValue !== null) {
-            return $this->normalizeStoredEnabledValue($storedValue, $default);
+        if (self::isToggleableDefinition($definition)) {
+            $storedValue = $this->settings->get(self::SETTINGS_GROUP, $slug, null);
+            if ($storedValue !== null) {
+                return $this->normalizeStoredEnabledValue($storedValue, $default);
+            }
         }
 
         $legacySetting = trim((string) ($definition['legacy_setting'] ?? ''));

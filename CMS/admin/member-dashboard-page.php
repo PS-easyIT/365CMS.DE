@@ -5,6 +5,8 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+use CMS\Services\CoreModuleService;
+
 const CMS_ADMIN_MEMBER_DASHBOARD_SECTION_CAPABILITIES = [
     'overview' => ['manage_settings', 'manage_users'],
     'general' => ['manage_settings'],
@@ -108,7 +110,8 @@ $pageTitle       = $memberDashboardPageConfig['page_title'];
 $activePage      = $memberDashboardPageConfig['active_page'];
 $pageAssets      = $memberDashboardPageConfig['page_assets'];
 
-if (!cms_admin_member_dashboard_can_access_section($memberSection)) {
+if (!cms_admin_member_dashboard_can_access_section($memberSection)
+    || !CoreModuleService::getInstance()->isAdminPageEnabled($activePage)) {
     header('Location: /');
     exit;
 }
@@ -126,6 +129,8 @@ $sectionPageConfig = [
     'module_factory' => static function () {
         return new MemberDashboardModule();
     },
+    'access_checker' => static fn (): bool => cms_admin_member_dashboard_can_access_section((string) $memberSection)
+        && CoreModuleService::getInstance()->isAdminPageEnabled((string) $activePage),
     'post_handler' => static function ($module, string $section, array $postData): array {
         if (!$module instanceof MemberDashboardModule) {
             return ['success' => false, 'error' => 'Member-Dashboard-Modul konnte nicht initialisiert werden.'];
@@ -137,7 +142,8 @@ $sectionPageConfig = [
             return ['success' => false, 'error' => 'Unbekannte Aktion.'];
         }
 
-        if (!cms_admin_member_dashboard_can_access_section($normalizedSection)) {
+        if (!cms_admin_member_dashboard_can_access_section($normalizedSection)
+            || !CoreModuleService::getInstance()->isAdminPageEnabled((string) $activePage)) {
             return ['success' => false, 'error' => 'Sie dürfen diesen Einstellungsbereich nicht bearbeiten.'];
         }
 

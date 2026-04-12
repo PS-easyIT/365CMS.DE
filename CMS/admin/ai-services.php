@@ -6,6 +6,7 @@ if (!defined('ABSPATH')) {
 }
 
 use CMS\Auth;
+use CMS\Services\CoreModuleService;
 
 const CMS_ADMIN_AI_SERVICES_READ_CAPABILITIES = ['manage_settings', 'manage_system', 'manage_ai_services'];
 const CMS_ADMIN_AI_SERVICES_WRITE_CAPABILITY = 'manage_settings';
@@ -24,7 +25,8 @@ function cms_admin_ai_services_has_any_capability(array $capabilities): bool
 function cms_admin_ai_services_can_access(): bool
 {
     return Auth::instance()->isAdmin()
-        && cms_admin_ai_services_has_any_capability(CMS_ADMIN_AI_SERVICES_READ_CAPABILITIES);
+    && cms_admin_ai_services_has_any_capability(CMS_ADMIN_AI_SERVICES_READ_CAPABILITIES)
+    && CoreModuleService::getInstance()->isAdminPageEnabled('ai-services');
 }
 
 function cms_admin_ai_services_can_mutate(): bool

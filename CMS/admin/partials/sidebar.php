@@ -200,6 +200,46 @@ $themeSidebarSlugs = array_values(array_map(
     $themeSidebarChildren
 ));
 
+$memberDashboardSidebarChildren = [
+    ['label' => 'Übersicht', 'slug' => 'member-dashboard', 'url' => $siteUrl . '/admin/member-dashboard'],
+    ['label' => 'Allgemein', 'slug' => 'member-dashboard-general', 'url' => $siteUrl . '/admin/member-dashboard-general'],
+    ['label' => 'Design & Farben', 'slug' => 'member-dashboard-design', 'url' => $siteUrl . '/admin/member-dashboard-design'],
+    ['label' => 'Frontend-Module', 'slug' => 'member-dashboard-frontend-modules', 'url' => $siteUrl . '/admin/member-dashboard-frontend-modules'],
+    ['label' => 'Dashboard Widgets', 'slug' => 'member-dashboard-widgets', 'url' => $siteUrl . '/admin/member-dashboard-widgets'],
+    ['label' => 'Plugin-Widgets', 'slug' => 'member-dashboard-plugin-widgets', 'url' => $siteUrl . '/admin/member-dashboard-plugin-widgets'],
+    ['label' => 'Profil-Felder', 'slug' => 'member-dashboard-profile-fields', 'url' => $siteUrl . '/admin/member-dashboard-profile-fields'],
+    ['label' => 'Benachrichtigungen', 'slug' => 'member-dashboard-notifications', 'url' => $siteUrl . '/admin/member-dashboard-notifications'],
+    ['label' => 'Mitglieder-Onboarding', 'slug' => 'member-dashboard-onboarding', 'url' => $siteUrl . '/admin/member-dashboard-onboarding'],
+];
+
+if ($coreModuleService instanceof \CMS\Services\CoreModuleService) {
+    $memberDashboardSidebarChildren = $coreModuleService->filterSidebarChildren('member_dashboard', $memberDashboardSidebarChildren);
+}
+
+$memberDashboardSidebarSlugs = array_values(array_map(
+    static fn (array $item): string => (string) ($item['slug'] ?? ''),
+    $memberDashboardSidebarChildren
+));
+
+$systemSidebarChildren = [
+    ['label' => 'Einstellungen', 'slug' => 'settings', 'url' => $siteUrl . '/admin/settings'],
+    ['label' => 'Mail & Azure OAuth2', 'slug' => 'mail-settings', 'url' => $siteUrl . '/admin/mail-settings'],
+    ['label' => 'AI Services', 'slug' => 'ai-services', 'url' => $siteUrl . '/admin/ai-services'],
+    ['label' => 'Module', 'slug' => 'modules', 'url' => $siteUrl . '/admin/modules'],
+    ['label' => 'Backup & Restore', 'slug' => 'backups', 'url' => $siteUrl . '/admin/backups'],
+    ['label' => 'Updates', 'slug' => 'updates', 'url' => $siteUrl . '/admin/updates'],
+    ['label' => 'Dokumentation', 'slug' => 'documentation', 'url' => $siteUrl . '/admin/documentation'],
+];
+
+if ($coreModuleService instanceof \CMS\Services\CoreModuleService) {
+    $systemSidebarChildren = $coreModuleService->filterSidebarChildren('system', $systemSidebarChildren);
+}
+
+$systemSidebarSlugs = array_values(array_map(
+    static fn (array $item): string => (string) ($item['slug'] ?? ''),
+    $systemSidebarChildren
+));
+
 
 /**
  * Menü-Struktur: Hauptpunkte mit Icons, Unterpunkte ohne Icons
@@ -265,18 +305,8 @@ $menuGroups = [
         'type'     => 'group',
         'label'    => 'Member Dashboard',
         'icon'     => '<svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 5a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v14l-4 -2l-4 2l-4 -2l-4 2z"/><path d="M8 7h8"/><path d="M8 11h8"/></svg>',
-        'slugs'    => ['member-dashboard', 'member-dashboard-general', 'member-dashboard-design', 'member-dashboard-frontend-modules', 'member-dashboard-widgets', 'member-dashboard-plugin-widgets', 'member-dashboard-profile-fields', 'member-dashboard-notifications', 'member-dashboard-onboarding'],
-        'children' => [
-            ['label' => 'Übersicht',           'slug' => 'member-dashboard', 'url' => $siteUrl . '/admin/member-dashboard'],
-            ['label' => 'Allgemein',           'slug' => 'member-dashboard-general', 'url' => $siteUrl . '/admin/member-dashboard-general'],
-            ['label' => 'Design & Farben',     'slug' => 'member-dashboard-design', 'url' => $siteUrl . '/admin/member-dashboard-design'],
-            ['label' => 'Frontend-Module',     'slug' => 'member-dashboard-frontend-modules', 'url' => $siteUrl . '/admin/member-dashboard-frontend-modules'],
-            ['label' => 'Dashboard Widgets',   'slug' => 'member-dashboard-widgets', 'url' => $siteUrl . '/admin/member-dashboard-widgets'],
-            ['label' => 'Plugin-Widgets',      'slug' => 'member-dashboard-plugin-widgets', 'url' => $siteUrl . '/admin/member-dashboard-plugin-widgets'],
-            ['label' => 'Profil-Felder',       'slug' => 'member-dashboard-profile-fields', 'url' => $siteUrl . '/admin/member-dashboard-profile-fields'],
-            ['label' => 'Benachrichtigungen',  'slug' => 'member-dashboard-notifications', 'url' => $siteUrl . '/admin/member-dashboard-notifications'],
-            ['label' => 'Mitglieder-Onboarding', 'slug' => 'member-dashboard-onboarding', 'url' => $siteUrl . '/admin/member-dashboard-onboarding'],
-        ],
+        'slugs'    => $memberDashboardSidebarSlugs,
+        'children' => $memberDashboardSidebarChildren,
     ],
 
     // ─── Aboverwaltung ────────────────
@@ -373,16 +403,8 @@ $menuGroups = [
         'type'     => 'group',
         'label'    => 'System & Doku',
         'icon'     => '<svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10.325 4.317c.426 -1.756 2.924 -1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543 -.94 3.31 .826 2.37 2.37a1.724 1.724 0 0 0 1.066 2.573c1.756 .426 1.756 2.924 0 3.35a1.724 1.724 0 0 0 -1.066 2.573c.94 1.543 -.826 3.31 -2.37 2.37a1.724 1.724 0 0 0 -2.573 1.066c-.426 1.756 -2.924 1.756 -3.35 0a1.724 1.724 0 0 0 -2.573 -1.066c-1.543 .94 -3.31 -.826 -2.37 -2.37a1.724 1.724 0 0 0 -1.066 -2.573c-1.756 -.426 -1.756 -2.924 0 -3.35a1.724 1.724 0 0 0 1.066 -2.573c-.94 -1.543 .826 -3.31 2.37 -2.37c1 .608 2.296 .07 2.572 -1.065z"/><path d="M9 12a3 3 0 1 0 6 0a3 3 0 0 0 -6 0"/></svg>',
-        'slugs'    => ['settings', 'mail-settings', 'ai-services', 'theme-settings', 'backups', 'updates', 'modules', 'documentation'],
-        'children' => [
-            ['label' => 'Einstellungen',      'slug' => 'settings', 'url' => $siteUrl . '/admin/settings'],
-            ['label' => 'Mail & Azure OAuth2', 'slug' => 'mail-settings', 'url' => $siteUrl . '/admin/mail-settings'],
-            ['label' => 'AI Services',        'slug' => 'ai-services', 'url' => $siteUrl . '/admin/ai-services'],
-            ['label' => 'Module',             'slug' => 'modules', 'url' => $siteUrl . '/admin/modules'],
-            ['label' => 'Backup & Restore',   'slug' => 'backups',  'url' => $siteUrl . '/admin/backups'],
-            ['label' => 'Updates',            'slug' => 'updates',  'url' => $siteUrl . '/admin/updates'],
-            ['label' => 'Dokumentation',      'slug' => 'documentation', 'url' => $siteUrl . '/admin/documentation'],
-        ],
+        'slugs'    => $systemSidebarSlugs,
+        'children' => $systemSidebarChildren,
     ],
 
     // ─── Diagnose ────────────────────

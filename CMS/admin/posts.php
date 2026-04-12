@@ -12,6 +12,7 @@ if (!defined('ABSPATH')) {
 
 use CMS\Auth;
 use CMS\Security;
+use CMS\Services\CoreModuleService;
 use CMS\Services\EditorJsService;
 use CMS\Services\EditorService;
 
@@ -113,10 +114,13 @@ function cms_admin_posts_can_run_action(string $action): bool
 function cms_admin_posts_view_config(PostsModule $module, string $view): array
 {
     $normalizedView = cms_admin_posts_normalize_view($view);
+    $aiTranslationEnabled = !class_exists(CoreModuleService::class)
+        || CoreModuleService::getInstance()->isModuleEnabled('ai_services');
     $baseTemplateVars = [
         'editorMediaToken' => Security::instance()->generateToken('editorjs_media'),
-        'aiTranslationToken' => Security::instance()->generateToken('admin_ai_editorjs_translation'),
-        'aiTranslationUrl' => '/admin/ai-translate-editorjs',
+        'aiTranslationEnabled' => $aiTranslationEnabled,
+        'aiTranslationToken' => $aiTranslationEnabled ? Security::instance()->generateToken('admin_ai_editorjs_translation') : '',
+        'aiTranslationUrl' => $aiTranslationEnabled ? '/admin/ai-translate-editorjs' : '',
         'useEditorJs' => false,
     ];
 

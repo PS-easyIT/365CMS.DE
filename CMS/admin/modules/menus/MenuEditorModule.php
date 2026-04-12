@@ -736,7 +736,7 @@ class MenuEditorModule
             return '';
         }
 
-        if (preg_match('#^(?:/(?!/)|#|\?|mailto:|tel:)#i', $sanitized) === 1) {
+        if (preg_match('#^(?:/(?!/)|\#|\?|mailto:|tel:)#i', $sanitized) === 1) {
             return $sanitized;
         }
 
