@@ -28,12 +28,6 @@
 | **2.9.192** | 🔴 fix | Landing/Theme Runtime | **`CMS/themes/cms-default/home.php` nutzt im Landing-Modus jetzt ausschließlich `partials/home-landing.php`, und die öffentliche Hero-Badge folgt dem gespeicherten Feld `badge_text` statt dem veralteten `version`-Schattenwert**: Änderungen aus dem Landing-Admin wirken damit public wieder sichtbar und laufen nicht länger durch doppelte Frontend-Logik auseinander. |
 | **2.9.192** | 🔴 fix | Core/System & Admin Runtime | **`CMS/core/Router.php`, `CMS/core/Services/Media/UploadHandler.php`, `CMS/admin/modules/media/MediaModule.php`, `CMS/core/Services/DashboardService.php`, `CMS/core/Services/MemberService.php`, die DSGVO-/Settings-Module sowie der Backups-Admin ziehen Regex-, MariaDB-`SHOW COLUMNS`-, Capability- und Legacy-Fallback-Pfade nach**: Runtime-Warnungen, Backup-Rechteabbrüche und lokale 404s für Marketplace-/Sidebar-Kompatibilitätsdateien fallen damit deutlich leiser und fail-closed aus. |
 
-### v2.9.191 — 11. April 2026
-
-| Version | Typ | Bereich | Beschreibung |
-|---------|-----|---------|-------------|
-| **2.9.191** | 🔵 docs | Audit-Konsolidierung | **`DOC/audit/` bündelt die frühere Einzelteil-Landschaft aus `AdminAudit-*.md`, `AssetAudit-*.md`, `PRÜFUNG.MD` sowie separaten Snyk-/Live-Berichten jetzt in sechs logisch gruppierten Sammeldateien plus `ToDoPrüfung.md` und `BEWERTUNG.md`**: Audit-Backlog, Content-/Commerce-/Design-/System- und externe Snapshot-Sichten bleiben damit nachvollziehbar, ohne weiter über dutzende Parallel-Dokumente zu zerfasern. |
-
 ### v2.9.190 — 11. April 2026
 
 | Version | Typ | Bereich | Beschreibung |
