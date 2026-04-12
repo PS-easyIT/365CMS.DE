@@ -10,14 +10,14 @@
 
 #### 365CMS brings publishing, member features, design, compliance and operational control into one clear system — for teams that want to grow without getting buried under plugins, workarounds and tool chains.
 
+---
+
 ![Self-Hosted](https://img.shields.io/badge/Self--Hosted-Ready-15803d)
 ![Members](https://img.shields.io/badge/Members-Built--In-0f766e)
 ![Themes](https://img.shields.io/badge/Themes-Built--In-2563eb)
 ![Plugins](https://img.shields.io/badge/Plugins-Extensible-7c3aed)
 ![SEO](https://img.shields.io/badge/SEO-Integrated-f59e0b)
 ![GDPR](https://img.shields.io/badge/GDPR-Ready-334155)
-
----
 
 [🌐 Website](https://365cms.de) • [🚀 Installation](DOC/INSTALLATION.md) • [📚 Dokumentation](DOC/INDEX.md) • [🎨 Themes](DOC/theme/README.md) • [🔌 Plugins](DOC/plugins/GUIDE.md) • [📝 Changelog](Changelog.md)
 
