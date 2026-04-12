@@ -1,4 +1,4 @@
-# 365CMS.DE  [![Version](https://img.shields.io/badge/Version-2.9.209-blue.svg)](Changelog.md) ![Status](https://img.shields.io/badge/Status-Stable-16a34a) ![PHP](https://img.shields.io/badge/PHP-8.4%2B-777BB4?logo=php&logoColor=white) ![MySQL](https://img.shields.io/badge/MySQL-5.7%2B-4479A1?logo=mysql&logoColor=white) ![MariaDB](https://img.shields.io/badge/MariaDB-10.3%2B-003545?logo=mariadb&logoColor=white)
+# 365CMS.DE  [![Version](https://img.shields.io/badge/Version-2.9.210-blue.svg)](Changelog.md) ![Status](https://img.shields.io/badge/Status-Stable-16a34a) ![PHP](https://img.shields.io/badge/PHP-8.4%2B-777BB4?logo=php&logoColor=white) ![MySQL](https://img.shields.io/badge/MySQL-5.7%2B-4479A1?logo=mysql&logoColor=white) ![MariaDB](https://img.shields.io/badge/MariaDB-10.3%2B-003545?logo=mariadb&logoColor=white)
 
 <div align="center">
 
@@ -8,7 +8,7 @@
 
 #### 365CMS brings publishing, member features, design, compliance and operational control into one clear system | for teams that want to grow without getting buried under plugins, workarounds and tool chains.
 
-#### Release `2.9.209` stärkt den Core-Modulvertrag für **SEO**, **Sicherheit**, **Recht** und **Performance**, blendet modulgebundene Assets konsequent aus und hebt **AI Services** als eigenen Admin-Hauptbereich mit separaten Unterseiten aus `System` heraus.
+#### Release `2.9.210` baut **AI Services** operativ aus: Provider werden jetzt bewusst per **+** in eine schlanke Liste aufgenommen, und **Ollama** sowie **Azure AI** sind erstmals live für Editor.js-Übersetzungen im Gateway verdrahtet.
 
 ---
 

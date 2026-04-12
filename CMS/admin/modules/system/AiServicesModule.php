@@ -61,11 +61,22 @@ final class AiServicesModule
     {
         try {
             $current = $this->settings->getConfiguration();
+            $currentProviderEntries = array_values(array_filter(
+                (array) ($current['providers']['entries'] ?? []),
+                static fn (mixed $entry): bool => is_array($entry)
+            ));
             $providerEntries = $this->sanitizeProviderEntries($post, $current);
             $providerIds = array_values(array_map(
                 static fn (array $entry): string => (string) ($entry['id'] ?? ''),
                 $providerEntries
             ));
+            $removedProviderIds = [];
+            foreach ($currentProviderEntries as $entry) {
+                $entryId = $this->sanitizeProviderId((string) ($entry['id'] ?? ''));
+                if ($entryId !== '' && !in_array($entryId, $providerIds, true)) {
+                    $removedProviderIds[] = $entryId;
+                }
+            }
 
             $meta = [
                 'active_provider_id' => $this->sanitizeProviderSelection((string) ($post['active_provider_id'] ?? ''), $providerIds),
@@ -92,6 +103,7 @@ final class AiServicesModule
                     $clearSecrets[] = $providerId;
                 }
             }
+            $clearSecrets = array_values(array_unique(array_merge($clearSecrets, $removedProviderIds)));
 
             if (!$this->settings->saveProviders($meta, $providerEntries, $secretValues, $clearSecrets)) {
                 return ['success' => false, 'error' => 'Provider-Einstellungen konnten nicht gespeichert werden.'];
@@ -600,7 +612,7 @@ final class AiServicesModule
         foreach ($rawEntries as $rawEntry) {
             $providerId = $this->sanitizeProviderId((string) ($rawEntry['id'] ?? ''));
             $providerType = $this->sanitizeProviderType((string) ($rawEntry['type'] ?? ''), false);
-            if ($providerId === '' || $providerType === '' || isset($knownIds[$providerId])) {
+            if ($providerId === '' || $providerType === '' || !empty($rawEntry['remove']) || isset($knownIds[$providerId])) {
                 continue;
             }
 

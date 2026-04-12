@@ -152,7 +152,9 @@ $seoAssistProviders = array_values(array_filter($providers, static fn (array $pr
                         <ul class="list-unstyled mb-0 small text-secondary">
                             <li class="mb-2">✅ AI Services laufen jetzt als eigener Hauptbereich mit separaten Unterseiten.</li>
                             <li class="mb-2">✅ Provider-, Feature-, Translation-, Logging- und Quota-Persistenz ist im Core verdrahtet.</li>
+                            <li class="mb-2">✅ Provider erscheinen jetzt nur noch als bewusst angelegte Liste statt als starre Komplettmatrix.</li>
                             <li class="mb-2">✅ Der Editor.js-Übersetzungs-Endpoint bleibt geschützt und an die zentralen Feature-Gates gekoppelt.</li>
+                            <li class="mb-2">✅ Ollama und Azure AI sind als erste echte Live-Provider im Gateway verdrahtet.</li>
                             <li class="mb-2">✅ Translation, Content-Assist und SEO-Assist lassen sich auf Provider-Ebene getrennt schalten.</li>
                             <li class="mb-2">⚠️ Live-Generatoren für Content- und SEO-Outputs sind als nächster Ausbauschritt vorgesehen, derzeit aber noch Leitplanken-/Settings-getrieben.</li>
                             <li>⚠️ Feingranulare Daily-/Monthly-Quota-Erzwingung und Retry-UX sind noch nicht bis zum letzten Pixel durchgezogen.</li>
@@ -404,95 +406,182 @@ $seoAssistProviders = array_values(array_filter($providers, static fn (array $pr
 
             <div class="col-12">
                 <form method="post" class="card mb-4">
+                    <?php $renderFormContext('add_provider'); ?>
+                    <div class="card-header d-flex justify-content-between align-items-center gap-3 flex-wrap">
+                        <h3 class="card-title mb-0">Provider-Liste</h3>
+                        <button type="submit" class="btn btn-primary">+ Provider anlegen</button>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3 align-items-end">
+                            <div class="col-md-5">
+                                <label class="form-label">Neuen Providertyp anlegen</label>
+                                <select class="form-select" name="provider_type" <?php echo $providerCatalogAddable === [] ? 'disabled' : ''; ?>>
+                                    <?php foreach ($providerCatalogAddable as $providerType => $catalogEntry): ?>
+                                        <option value="<?php echo htmlspecialchars((string) $providerType, ENT_QUOTES); ?>"><?php echo htmlspecialchars((string) ($catalogEntry['label'] ?? $providerType)); ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="col-md-7 text-secondary small">
+                                Es werden nur Provider angezeigt, die du wirklich nutzt. Neue Einträge kommen bewusst über das <strong>+</strong> in die Liste – sauber, schlank und ohne Zoo im Standardzustand.
+                            </div>
+                        </div>
+                        <div class="row g-3 mt-1">
+                            <div class="col-md-6">
+                                <div class="border rounded p-3 h-100">
+                                    <div class="text-secondary small mb-1">Aktiver Standard</div>
+                                    <div class="fw-semibold"><?php echo htmlspecialchars($activeProviderLabel); ?></div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="border rounded p-3 h-100">
+                                    <div class="text-secondary small mb-1">Expliziter Fallback</div>
+                                    <div class="fw-semibold"><?php echo htmlspecialchars($fallbackProviderLabel); ?></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <div class="col-12">
+                <form method="post" class="card mb-4">
                     <?php $renderFormContext('save_providers'); ?>
                     <div class="card-header d-flex justify-content-between align-items-center gap-3 flex-wrap">
-                        <h3 class="card-title mb-0">Provider-Steuerung</h3>
+                        <h3 class="card-title mb-0">Konfigurierte Provider</h3>
                         <button type="submit" class="btn btn-primary">Provider speichern</button>
                     </div>
                     <div class="card-body">
-                        <div class="row g-3 mb-4">
-                            <div class="col-md-6">
-                                <label class="form-label">Aktiver Standard-Provider</label>
-                                <select class="form-select" name="active_provider">
-                                    <?php foreach ($providers as $providerSlug => $provider): ?>
-                                        <option value="<?php echo htmlspecialchars((string) $providerSlug, ENT_QUOTES); ?>" <?php echo $isSelected((string) ($providersData['active_provider'] ?? 'openai'), (string) $providerSlug); ?>><?php echo htmlspecialchars((string) ($provider['label'] ?? $providerSlug)); ?></option>
-                                    <?php endforeach; ?>
-                                </select>
+                        <?php if ($providers === []): ?>
+                            <div class="alert alert-info mb-0">Noch keine Provider konfiguriert. Lege über das <strong>+</strong> oben gezielt Ollama, Azure AI oder einen Mock-Provider an.</div>
+                        <?php else: ?>
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-6">
+                                    <label class="form-label">Aktiver Standard-Provider</label>
+                                    <select class="form-select" name="active_provider_id">
+                                        <?php foreach ($providers as $provider): ?>
+                                            <?php $providerId = (string) ($provider['id'] ?? ''); ?>
+                                            <option value="<?php echo htmlspecialchars($providerId, ENT_QUOTES); ?>" <?php echo $isSelected($activeProviderId, $providerId); ?>><?php echo htmlspecialchars((string) ($provider['label'] ?? $providerId)); ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Expliziter Fallback-Provider</label>
+                                    <select class="form-select" name="fallback_provider_id">
+                                        <option value="">Kein expliziter Fallback</option>
+                                        <?php foreach ($providers as $provider): ?>
+                                            <?php $providerId = (string) ($provider['id'] ?? ''); ?>
+                                            <option value="<?php echo htmlspecialchars($providerId, ENT_QUOTES); ?>" <?php echo $isSelected($fallbackProviderId, $providerId); ?>><?php echo htmlspecialchars((string) ($provider['label'] ?? $providerId)); ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
                             </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Fallback-Provider</label>
-                                <select class="form-select" name="fallback_provider">
-                                    <?php foreach ($providers as $providerSlug => $provider): ?>
-                                        <option value="<?php echo htmlspecialchars((string) $providerSlug, ENT_QUOTES); ?>" <?php echo $isSelected((string) ($providersData['fallback_provider'] ?? 'azure_openai'), (string) $providerSlug); ?>><?php echo htmlspecialchars((string) ($provider['label'] ?? $providerSlug)); ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                        </div>
 
-                        <div class="row row-cards">
-                            <?php foreach ($providers as $providerSlug => $provider): ?>
-                                <?php $providerLabel = (string) ($provider['label'] ?? $providerSlug); ?>
-                                <div class="col-12 col-xl-6">
-                                    <div class="card h-100">
-                                        <div class="card-header d-flex justify-content-between align-items-center gap-3">
-                                            <h3 class="card-title mb-0"><?php echo htmlspecialchars($providerLabel); ?></h3>
-                                            <?php $renderBadge(!empty($provider['enabled']) ? 'success' : 'secondary', !empty($provider['enabled']) ? 'aktiv' : 'aus'); ?>
-                                        </div>
-                                        <div class="card-body">
-                                            <?php $renderSwitch($providerSlug . '_enabled', 'Provider aktivieren', !empty($provider['enabled']), 'Steuert, ob der Provider grundsätzlich für AI Services berücksichtigt wird.'); ?>
-                                            <div class="row g-3">
-                                                <div class="col-md-6">
-                                                    <label class="form-label">Betriebsprofil</label>
-                                                    <select class="form-select" name="<?php echo htmlspecialchars($providerSlug . '_profile', ENT_QUOTES); ?>">
-                                                        <?php foreach ($providerProfiles as $profileValue => $profileLabel): ?>
-                                                            <option value="<?php echo htmlspecialchars($profileValue, ENT_QUOTES); ?>" <?php echo $isSelected((string) ($provider['profile'] ?? 'disabled'), $profileValue); ?>><?php echo htmlspecialchars($profileLabel); ?></option>
-                                                        <?php endforeach; ?>
-                                                    </select>
-                                                </div>
-                                                <div class="col-md-6">
-                                                    <label class="form-label">Default-Modell</label>
-                                                    <input type="text" class="form-control" name="<?php echo htmlspecialchars($providerSlug . '_default_model', ENT_QUOTES); ?>" value="<?php echo htmlspecialchars((string) ($provider['default_model'] ?? '')); ?>">
-                                                </div>
-                                                <div class="col-12">
-                                                    <label class="form-label">Endpoint</label>
-                                                    <input type="url" class="form-control" name="<?php echo htmlspecialchars($providerSlug . '_endpoint', ENT_QUOTES); ?>" value="<?php echo htmlspecialchars((string) ($provider['endpoint'] ?? '')); ?>" placeholder="https://...">
-                                                </div>
-                                                <div class="col-12">
-                                                    <label class="form-label">Allowed Locales</label>
-                                                    <input type="text" class="form-control" name="<?php echo htmlspecialchars($providerSlug . '_allowed_locales', ENT_QUOTES); ?>" value="<?php echo htmlspecialchars(implode(',', (array) ($provider['allowed_locales'] ?? ['en']))); ?>" placeholder="en,de">
-                                                </div>
-                                            </div>
-
-                                            <hr>
-                                            <div class="row g-2">
-                                                <div class="col-md-6"><?php $renderSwitch($providerSlug . '_translation_enabled', 'Translation', !empty($provider['translation_enabled'])); ?></div>
-                                                <div class="col-md-6"><?php $renderSwitch($providerSlug . '_rewrite_enabled', 'Rewrite', !empty($provider['rewrite_enabled'])); ?></div>
-                                                <div class="col-md-6"><?php $renderSwitch($providerSlug . '_summary_enabled', 'Summaries', !empty($provider['summary_enabled'])); ?></div>
-                                                <div class="col-md-6"><?php $renderSwitch($providerSlug . '_seo_meta_enabled', 'SEO / Meta', !empty($provider['seo_meta_enabled'])); ?></div>
-                                                <div class="col-md-6"><?php $renderSwitch($providerSlug . '_editorjs_enabled', 'Editor.js', !empty($provider['editorjs_enabled'])); ?></div>
-                                                <div class="col-md-6"><?php $renderSwitch($providerSlug . '_beta_only', 'Nur Beta', !empty($provider['beta_only'])); ?></div>
-                                            </div>
-
-                                            <?php if (isset($providerSecretFields[$providerSlug])): ?>
-                                                <?php $secretField = $providerSecretFields[$providerSlug]; ?>
-                                                <hr>
-                                                <div class="row g-3">
-                                                    <div class="col-12">
-                                                        <label class="form-label"><?php echo htmlspecialchars((string) $secretField['label']); ?></label>
-                                                        <input type="password" class="form-control" name="<?php echo htmlspecialchars((string) $secretField['key'], ENT_QUOTES); ?>" value="" placeholder="Leer lassen = gespeichertes Secret behalten">
-                                                        <div class="form-hint">Aktuell gespeichert: <?php echo !empty($provider['secret_configured']) ? 'Ja' : 'Nein'; ?></div>
-                                                        <label class="form-check mt-2">
-                                                            <input class="form-check-input" type="checkbox" name="<?php echo htmlspecialchars('clear_' . (string) $secretField['key'], ENT_QUOTES); ?>" value="1">
-                                                            <span class="form-check-label">Gespeichertes Secret löschen</span>
-                                                        </label>
+                            <div class="row row-cards">
+                                <?php foreach ($providers as $providerIndex => $provider): ?>
+                                    <?php
+                                    $providerId = (string) ($provider['id'] ?? '');
+                                    $providerType = (string) ($provider['type'] ?? 'mock');
+                                    $providerLabel = (string) ($provider['label'] ?? $providerId);
+                                    $namePrefix = 'provider_entries[' . $providerIndex . ']';
+                                    ?>
+                                    <div class="col-12 col-xl-6">
+                                        <div class="card h-100">
+                                            <div class="card-header d-flex justify-content-between align-items-start gap-3 flex-wrap">
+                                                <div>
+                                                    <h3 class="card-title mb-1"><?php echo htmlspecialchars($providerLabel); ?></h3>
+                                                    <div class="d-flex gap-2 flex-wrap">
+                                                        <span class="badge bg-secondary-lt"><?php echo htmlspecialchars((string) ($provider['type_label'] ?? $providerType)); ?></span>
+                                                        <?php if (!empty($provider['live_supported'])): ?>
+                                                            <span class="badge bg-success-lt">Live im Gateway</span>
+                                                        <?php else: ?>
+                                                            <span class="badge bg-warning-lt text-warning-emphasis">Bridge folgt</span>
+                                                        <?php endif; ?>
                                                     </div>
                                                 </div>
-                                            <?php endif; ?>
+                                                <?php $renderBadge(!empty($provider['enabled']) ? 'success' : 'secondary', !empty($provider['enabled']) ? 'aktiv' : 'aus'); ?>
+                                            </div>
+                                            <div class="card-body">
+                                                <input type="hidden" name="<?php echo htmlspecialchars($namePrefix . '[id]', ENT_QUOTES); ?>" value="<?php echo htmlspecialchars($providerId, ENT_QUOTES); ?>">
+                                                <input type="hidden" name="<?php echo htmlspecialchars($namePrefix . '[type]', ENT_QUOTES); ?>" value="<?php echo htmlspecialchars($providerType, ENT_QUOTES); ?>">
+
+                                                <?php $renderSwitch($namePrefix . '[enabled]', 'Provider aktivieren', !empty($provider['enabled']), 'Steuert, ob der Eintrag grundsätzlich für AI Services berücksichtigt wird.'); ?>
+
+                                                <div class="row g-3">
+                                                    <div class="col-md-6">
+                                                        <label class="form-label">Interner Anzeigename</label>
+                                                        <input type="text" class="form-control" name="<?php echo htmlspecialchars($namePrefix . '[label]', ENT_QUOTES); ?>" value="<?php echo htmlspecialchars($providerLabel); ?>">
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <label class="form-label">Betriebsprofil</label>
+                                                        <select class="form-select" name="<?php echo htmlspecialchars($namePrefix . '[profile]', ENT_QUOTES); ?>">
+                                                            <?php foreach ($providerProfiles as $profileValue => $profileLabel): ?>
+                                                                <option value="<?php echo htmlspecialchars($profileValue, ENT_QUOTES); ?>" <?php echo $isSelected((string) ($provider['profile'] ?? 'disabled'), $profileValue); ?>><?php echo htmlspecialchars($profileLabel); ?></option>
+                                                            <?php endforeach; ?>
+                                                        </select>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <label class="form-label">Default-Modell</label>
+                                                        <input type="text" class="form-control" name="<?php echo htmlspecialchars($namePrefix . '[default_model]', ENT_QUOTES); ?>" value="<?php echo htmlspecialchars((string) ($provider['default_model'] ?? '')); ?>">
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <label class="form-label">Erlaubte Zielsprachen</label>
+                                                        <input type="text" class="form-control" name="<?php echo htmlspecialchars($namePrefix . '[allowed_locales]', ENT_QUOTES); ?>" value="<?php echo htmlspecialchars(implode(',', (array) ($provider['allowed_locales'] ?? ['en']))); ?>" placeholder="en,de">
+                                                    </div>
+                                                    <div class="col-12">
+                                                        <label class="form-label">Endpoint</label>
+                                                        <input type="url" class="form-control" name="<?php echo htmlspecialchars($namePrefix . '[endpoint]', ENT_QUOTES); ?>" value="<?php echo htmlspecialchars((string) ($provider['endpoint'] ?? '')); ?>" placeholder="https://..." <?php echo $providerType === 'mock' ? 'readonly' : ''; ?>>
+                                                        <?php if (!empty($provider['description'])): ?>
+                                                            <div class="form-hint"><?php echo htmlspecialchars((string) $provider['description']); ?></div>
+                                                        <?php endif; ?>
+                                                    </div>
+                                                    <?php if ($providerType === 'azure_openai'): ?>
+                                                        <div class="col-md-6">
+                                                            <label class="form-label">Deployment</label>
+                                                            <input type="text" class="form-control" name="<?php echo htmlspecialchars($namePrefix . '[deployment]', ENT_QUOTES); ?>" value="<?php echo htmlspecialchars((string) ($provider['deployment'] ?? '')); ?>" placeholder="gpt-4.1-mini">
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <label class="form-label">API-Version</label>
+                                                            <input type="text" class="form-control" name="<?php echo htmlspecialchars($namePrefix . '[api_version]', ENT_QUOTES); ?>" value="<?php echo htmlspecialchars((string) ($provider['api_version'] ?? '')); ?>" placeholder="2024-10-21">
+                                                        </div>
+                                                    <?php endif; ?>
+                                                </div>
+
+                                                <hr>
+                                                <div class="row g-2">
+                                                    <div class="col-md-6"><?php $renderSwitch($namePrefix . '[translation_enabled]', 'Translation', !empty($provider['translation_enabled'])); ?></div>
+                                                    <div class="col-md-6"><?php $renderSwitch($namePrefix . '[rewrite_enabled]', 'Rewrite', !empty($provider['rewrite_enabled'])); ?></div>
+                                                    <div class="col-md-6"><?php $renderSwitch($namePrefix . '[summary_enabled]', 'Summaries', !empty($provider['summary_enabled'])); ?></div>
+                                                    <div class="col-md-6"><?php $renderSwitch($namePrefix . '[seo_meta_enabled]', 'SEO / Meta', !empty($provider['seo_meta_enabled'])); ?></div>
+                                                    <div class="col-md-6"><?php $renderSwitch($namePrefix . '[editorjs_enabled]', 'Editor.js', !empty($provider['editorjs_enabled'])); ?></div>
+                                                    <div class="col-md-6"><?php $renderSwitch($namePrefix . '[beta_only]', 'Nur Beta', !empty($provider['beta_only'])); ?></div>
+                                                </div>
+
+                                                <?php if (!empty($provider['requires_secret'])): ?>
+                                                    <hr>
+                                                    <div class="row g-3">
+                                                        <div class="col-12">
+                                                            <label class="form-label"><?php echo htmlspecialchars((string) ($provider['secret_label'] ?? 'Secret')); ?></label>
+                                                            <input type="password" class="form-control" name="provider_secret[<?php echo htmlspecialchars($providerId, ENT_QUOTES); ?>]" value="" placeholder="Leer lassen = gespeichertes Secret behalten">
+                                                            <div class="form-hint">Aktuell gespeichert: <?php echo !empty($provider['secret_configured']) ? 'Ja' : 'Nein'; ?></div>
+                                                            <label class="form-check mt-2">
+                                                                <input class="form-check-input" type="checkbox" name="clear_provider_secret[<?php echo htmlspecialchars($providerId, ENT_QUOTES); ?>]" value="1">
+                                                                <span class="form-check-label">Gespeichertes Secret löschen</span>
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                <?php endif; ?>
+
+                                                <hr>
+                                                <label class="form-check mb-0">
+                                                    <input class="form-check-input" type="checkbox" name="<?php echo htmlspecialchars($namePrefix . '[remove]', ENT_QUOTES); ?>" value="1">
+                                                    <span class="form-check-label text-danger">Diesen Eintrag beim nächsten Speichern entfernen</span>
+                                                </label>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            <?php endforeach; ?>
-                        </div>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php endif; ?>
                     </div>
                 </form>
             </div>

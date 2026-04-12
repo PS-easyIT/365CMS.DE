@@ -1,4 +1,4 @@
-﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.209-blue.svg)](https://shields.io/)
+﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.210-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -19,6 +19,13 @@
 ## 📜 Vollständige Versionshistorie
 
 ---
+
+### v2.9.210 — 12. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.210** | 🟡 refactor | AI Services / Settings | **`CMS/core/Services/AI/AiSettingsService.php`, `CMS/admin/modules/system/AiServicesModule.php`, `CMS/admin/ai-page.php` und `CMS/admin/views/system/ai-services.php` ziehen die Provider-Verwaltung von einer starren Slug-Matrix auf eine bewusst anlegbare Provider-Liste um**: AI Services zeigt damit nur noch die tatsächlich genutzten Provider-Einträge, erlaubt neue Einträge gezielt per `+` und verwaltet Standard/Fallback, Secrets und Scope-Flags pro Instanz statt alle potenziellen Provider dauerhaft im Formular auszubreiten. |
+| **2.9.210** | 🔴 fix | AI Runtime / Live Provider | **`CMS/core/Services/AI/AiProviderGateway.php`, `CMS/core/Services/AI/Providers/AbstractPromptingAiProvider.php`, `CMS/core/Services/AI/Providers/OllamaAiProvider.php`, `CMS/core/Services/AI/Providers/AzureOpenAiProvider.php`, `CMS/core/Services/AI/Providers/MockAiProvider.php`, `CMS/admin/modules/system/AiEditorJsTranslationModule.php` und `CMS/assets/js/admin-content-editor.js` machen die ersten echten Live-Provider in der bestehenden Editor.js-Übersetzung produktiv**: Übersetzungsrequests können jetzt über konfiguriertes Ollama oder Azure AI laufen, inklusive Secret-/Deployment-/API-Version-Auflösung, fail-softem Fallback auf andere freigegebene Provider und providerneutraler UI-/Audit-Meldungen statt reiner Mock-Kommunikation. |
 
 ### v2.9.209 — 12. April 2026
 

@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.9.209",
+  "version": "2.9.210",
   "min_php": "8.4",
   "released": "2026-04-12",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 2.9.209: SEO, Sicherheit, Recht und Performance sind jetzt echte Root-Core-Module mit modulgebundenem Asset-Gating in Admin, Frontend und Diagnose/Assets; zusätzlich laufen AI Services als eigener Admin-Hauptbereich mit Unterseiten für Übersetzung, Content Creator, SEO Creator und Einstellungen.",
+  "notes": "Release-Stand 2.9.210: AI Services verwaltet Provider jetzt als gezielt anlegbare Liste statt als starre Vollübersicht; zusätzlich sind Ollama und Azure AI im AiProviderGateway erstmals live für Editor.js-Übersetzungen angebunden – inklusive Secret-, Deployment- und Fallback-Steuerung im Admin.",
   "critical": false
 }

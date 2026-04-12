@@ -227,9 +227,11 @@ final class AiSettingsService
             $sanitizedEntries
         ));
 
+        $activeProviderId = $this->normalizeSelectedProviderId((string) ($meta['active_provider_id'] ?? ''), $entryIds, $sanitizedEntries);
+
         $payload = [
-            'active_provider_id' => $this->normalizeSelectedProviderId((string) ($meta['active_provider_id'] ?? ''), $entryIds, $sanitizedEntries),
-            'fallback_provider_id' => $this->normalizeSelectedProviderId((string) ($meta['fallback_provider_id'] ?? ''), $entryIds, $sanitizedEntries, (string) ($meta['active_provider_id'] ?? '')),
+            'active_provider_id' => $activeProviderId,
+            'fallback_provider_id' => $this->normalizeSelectedProviderId((string) ($meta['fallback_provider_id'] ?? ''), $entryIds, $sanitizedEntries, $activeProviderId),
             'entries' => $sanitizedEntries,
         ];
 
@@ -291,6 +293,7 @@ final class AiSettingsService
     private function normalizeProviders(array $stored): array
     {
         $defaults = $this->defaultProviders();
+        $hasExplicitEntryList = array_key_exists('entries', $stored) && is_array($stored['entries'] ?? null);
         $rawEntries = $this->extractStoredProviderEntries($stored);
         $entries = [];
         $knownEntryIds = [];
@@ -314,7 +317,7 @@ final class AiSettingsService
             $knownEntryIds[$providerId] = true;
         }
 
-        if ($entries === []) {
+        if ($entries === [] && !$hasExplicitEntryList) {
             $entries[] = $this->buildProviderEntry('mock', 'mock');
         }
 

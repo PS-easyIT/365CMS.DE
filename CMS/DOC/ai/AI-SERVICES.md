@@ -4,7 +4,7 @@ Kurzbeschreibung: Kanonische Konzept- und Architektur-Dokumentation für den Ber
 
 Letzte Aktualisierung: 2026-04-08 · Version 2.9.2
 
-> **Wichtig:** Diese Datei bleibt die führende Fach- und Architekturreferenz. Seit `2.9.2` existieren bereits eine **runtime-seitige Settings- und Admin-Hülle** unter `/admin/ai-services`, ein **Provider-Gateway**, ein integrierter **`mock`-Provider**, der geschützte Endpoint **`/admin/ai-translate-editorjs`**, eine erste **Mock-Translation-Pipeline für Editor.js** in Post-/Page-Editoren sowie ein **bewusster Preview-/Diff-Workflow vor der EN-Übernahme**. **Noch nicht umgesetzt** sind echte externe Live-Provider-Requests und produktive Daily-Quota-Erzwingung.
+> **Wichtig:** Diese Datei bleibt die führende Fach- und Architekturreferenz. Seit `2.9.210` existieren bereits eine **runtime-seitige Settings- und Admin-Hülle** unter `/admin/ai-services`, ein **Provider-Gateway** mit gezielt anlegbarer Provider-Liste, ein integrierter **`mock`-Provider**, die ersten **Live-Adapter für `ollama` und `azure_openai`**, der geschützte Endpoint **`/admin/ai-translate-editorjs`** sowie ein **bewusster Preview-/Diff-Workflow vor der EN-Übernahme**. **Noch nicht umgesetzt** sind feingranulare Daily-/Monthly-Quota-Erzwingung und weitere Bridge-Provider wie OpenAI/OpenRouter.
 
 ## Inhaltsverzeichnis
 - [Ziel und Abgrenzung](#ziel-und-abgrenzung)
@@ -75,26 +75,23 @@ Ein eigener Bereich **„AI Services“** bündelt genau diese Querschnittstheme
 
 ## Aktuelle Einordnung im Admin
 
-### Zielposition
+### Aktuelle Position
 
-Empfohlene Einordnung unter dem bestehenden System-Umfeld:
+`AI Services` läuft inzwischen als eigener Admin-Hauptbereich mit fünf Routen:
 
-- `System`
-  - `Einstellungen`
-  - `Mail & Azure OAuth2`
-  - `AI Services`
-  - `Module`
-  - `CMS Logs`
-  - `Backups`
-  - `Updates`
+- `/admin/ai-services`
+- `/admin/ai-translation`
+- `/admin/ai-content-creator`
+- `/admin/ai-seo-creator`
+- `/admin/ai-settings`
 
 ### Zielroute
 
 - `/admin/ai-services`
 
-### Warum unter `System` statt `SEO` oder `Content`
+### Warum eigener Hauptbereich statt Unterpunkt
 
-Die AI-Funktionen sind keine einzelne Fachseite, sondern eine **Systemfähigkeit** mit mehreren Fachanwendungen. Daher gehört die Konfiguration unter `System`, während die spätere Nutzung in einzelnen Modulen stattfinden kann.
+Die AI-Funktionen sind keine einzelne Fachseite, sondern eine **querschnittliche Betriebsdomäne** mit mehreren Fachanwendungen. Deshalb ist ein eigener Hauptbereich sinnvoller als ein versteckter Unterpunkt unter `System`.
 
 ---
 
@@ -468,30 +465,29 @@ Gespeicherte Top-Level-Werte:
 
 | Key | Typ | Zweck |
 |---|---|---|
-| `active_provider` | `string` | Standard-Provider |
-| `fallback_provider` | `string` | Fallback bei Fehlern/Deaktivierung |
-| `mock` | `array` | eingebauter lokaler Mock-Provider für Runtime-/UI-Tests |
-| `openai` | `array` | Provider-Profil für OpenAI |
-| `azure_openai` | `array` | Provider-Profil für Azure OpenAI |
-| `ollama` | `array` | Provider-Profil für lokale Modelle |
-| `openrouter` | `array` | Provider-Profil für Router-/Bridge-Betrieb |
+| `active_provider_id` | `string` | ID des Standard-Eintrags |
+| `fallback_provider_id` | `string` | ID des bevorzugten Fallback-Eintrags |
+| `entries` | `array<provider-entry>` | gezielt angelegte Provider-Liste statt starrer Vollmatrix |
 
 Zusätzliche verschlüsselte Secret-Keys:
 
 | Key | Typ | Schutz |
 |---|---|---|
-| `openai_api_key` | `string` | verschlüsselt |
-| `azure_openai_api_key` | `string` | verschlüsselt |
-| `openrouter_api_key` | `string` | verschlüsselt |
+| `provider_secret_<providerId>` | `string` | verschlüsselt |
 
-Provider-Profilstruktur pro Provider:
+Provider-Profilstruktur pro Eintrag:
 
 | Feld | Typ | Zweck |
 |---|---|---|
+| `id` | `string` | stabile interne Eintrags-ID |
+| `type` | `string` | Providertyp wie `mock`, `ollama` oder `azure_openai` |
+| `label` | `string` | frei lesbarer Anzeigename |
 | `enabled` | `bool` | Provider grundsätzlich aktiv |
 | `profile` | `string` | Betriebsprofil wie `beta` oder `editor-translation` |
 | `default_model` | `string` | bevorzugtes Modell |
 | `endpoint` | `string` | Basis-Endpoint |
+| `deployment` | `string` | Azure-spezifischer Deployment-Name |
+| `api_version` | `string` | Azure-spezifische API-Version |
 | `translation_enabled` | `bool` | Provider darf Übersetzungen |
 | `rewrite_enabled` | `bool` | Provider darf Rewrite |
 | `summary_enabled` | `bool` | Provider darf Zusammenfassungen |
@@ -586,9 +582,13 @@ Bereits umgesetzt:
 - `CMS/admin/modules/system/AiServicesModule.php`
 - `CMS/admin/modules/system/AiEditorJsTranslationModule.php`
 - `CMS/admin/views/system/ai-services.php`
-- `CMS/assets/js/admin-content-editor.js` mit DE→EN-Mock-Translation für Post-/Page-Editoren
+- `CMS/core/Services/AI/Providers/OllamaAiProvider.php`
+- `CMS/core/Services/AI/Providers/AzureOpenAiProvider.php`
+- `CMS/assets/js/admin-content-editor.js` mit DE→EN-Übersetzungsworkflow für Post-/Page-Editoren inklusive Preview-/Diff-Schritt
 - Preview-/Diff-Review vor der bewussten Übernahme in EN-Felder direkt im Editor
-- Sidebar-Einhängung unter `System`
+- Provider-Liste mit bewusstem `+`-Anlegen neuer Einträge statt fixer Komplettübersicht
+- Live-Übersetzungen über Ollama und Azure AI im bestehenden Editor.js-Workflow
+- eigener AI-Hauptbereich in der Sidebar
 - vorbereitete Default-Capabilities für AI-Verwaltung/Nutzung in `CMS/includes/functions/roles.php`
 
 Der aktuelle Scope dieser Umsetzung ist bewusst:
@@ -598,7 +598,7 @@ Der aktuelle Scope dieser Umsetzung ist bewusst:
 - **Rückführung in lokalisierte EN-Felder von Posts/Pages**
 - **keine** externen produktiven Provider-Requests
 
-Damit steht jetzt der **betriebliche Rahmen plus eine erste echte Runtime-Stufe**, auf der echte AI-Funktionen später sauber aufsetzen können.
+Damit steht jetzt der **betriebliche Rahmen plus eine erste echte Live-Runtime-Stufe**, auf der weitere AI-Funktionen und zusätzliche Provider später sauber aufsetzen können.
 
 ---
 
@@ -674,16 +674,16 @@ Was `AI Services` am Anfang **nicht** sein soll:
 
 ## Offene Punkte / Was noch fehlt
 
-Folgende Punkte sind **trotz der neuen Mock-Runtime-Stufe noch nicht umgesetzt** und müssten für eine echte produktive AI-Einführung ergänzt werden:
+Folgende Punkte sind **trotz der neuen Live-Runtime-Stufe** noch nicht vollständig umgesetzt und müssten für den weiteren Ausbau ergänzt werden:
 
 1. **feingranulares Capability-Modell** für Nutzung vs. Verwaltung im echten Workflow
-2. **mindestens ein echter externer Provider-Adapter** inklusive Request-/Response-Vertrag
-3. **Provider-spezifische Policies** für Live-Modelle, Secrets und Datenschutzfreigaben
+2. **zusätzliche Provider-Adapter** für vorbereitete Bridge-Kandidaten wie OpenAI und OpenRouter
+3. **Provider-spezifische Policies** für Live-Modelle, Secrets, Datenschutzfreigaben und Health-Checks
 4. **Fehler- und Statusmodell** für Teilfehler pro Block/Batches inklusive Retry-/Review-UX
 5. **produktive Datenschutz- und Audit-Integration** mit sauberer Daily-/Monthly-Quota-Erzwingung
 6. **Tests / Smoke-Checks** für Scope, Limits, Provider-Fallback, Preview-Übernahme und Blockerhaltung
 
-Kurz gesagt: **Struktur, Persistenz, Gateway, Mock-Editor.js-Flow und Preview-/Diff-Übernahme stehen jetzt – die externe Live-Ausführung fehlt noch.**
+Kurz gesagt: **Struktur, Persistenz, Provider-Liste, Gateway, Preview-/Diff-Übernahme sowie erste Live-Ausführung über Ollama und Azure AI stehen jetzt – weitere Provider und tiefere Governance-Schichten folgen.**
 
 ---
 
