@@ -167,6 +167,10 @@ final class VendorRegistry
         $packages = [];
 
         foreach ($this->getManagedPackageDefinitions() as $package => $definition) {
+            if (!$this->isVisibleManagedPackageDefinition($definition)) {
+                continue;
+            }
+
             $loadStatus = $this->getPackageLoadStatus($package);
             $packages[] = [
                 'package' => $package,
@@ -183,6 +187,14 @@ final class VendorRegistry
     }
 
     /**
+     * @param array<string, mixed> $definition
+     */
+    private function isVisibleManagedPackageDefinition(array $definition): bool
+    {
+        return ($definition['diagnostics_visible'] ?? true) === true;
+    }
+
+    /**
      * @return array<int, array<string, mixed>>
      */
     private function getBundledLibraryDiagnostics(): array
@@ -190,6 +202,10 @@ final class VendorRegistry
         $diagnostics = [];
 
         foreach ($this->getBundledLibraryDefinitions() as $definition) {
+            if (!$this->isRuntimeBundledLibraryDefinition($definition)) {
+                continue;
+            }
+
             $available = true;
             foreach ($definition['paths'] as $path) {
                 if (!$this->pathExists($path['path'], $path['type'])) {
@@ -216,6 +232,14 @@ final class VendorRegistry
         }
 
         return $diagnostics;
+    }
+
+    /**
+     * @param array<string, mixed> $definition
+     */
+    private function isRuntimeBundledLibraryDefinition(array $definition): bool
+    {
+        return in_array((string) ($definition['symbol_type'] ?? ''), ['class', 'interface', 'path'], true);
     }
 
     /**
@@ -246,7 +270,7 @@ final class VendorRegistry
     }
 
     /**
-     * @return array<string, array{label: string, path: string, path_type: string, notes: string}>
+     * @return array<string, array{label: string, path: string, path_type: string, notes: string, diagnostics_visible?: bool}>
      */
     private function getManagedPackageDefinitions(): array
     {
@@ -274,6 +298,7 @@ final class VendorRegistry
                 'path' => ABSPATH . 'assets' . DIRECTORY_SEPARATOR . 'symfony-contracts',
                 'path_type' => 'dir',
                 'notes' => 'Lokale Minimal-Contracts für Translation/Mailer, solange kein separates Contracts-Bundle gebündelt ist.',
+                'diagnostics_visible' => false,
             ],
         ];
     }

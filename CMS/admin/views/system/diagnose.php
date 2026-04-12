@@ -255,7 +255,7 @@ foreach ($tables as $tableInfo) {
                             <div class="col-12 col-xl-4">
                                 <div class="border rounded-3 h-100 p-3">
                                     <div class="fw-semibold mb-2">Registrierte Produktivpakete</div>
-                                    <div class="text-secondary small mb-3">Zentrale Registry-Einträge, die Bundle-Sonderpfade und den Assets-Autoloader kapseln.</div>
+                                    <div class="text-secondary small mb-3">Zentrale Registry-Einträge für produktiv sichtbare Paketpfade und den Assets-Autoloader.</div>
                                     <div class="table-responsive">
                                         <table class="table table-sm table-vcenter mb-0">
                                             <thead>
@@ -291,14 +291,14 @@ foreach ($tables as $tableInfo) {
 
                             <div class="col-12 col-xl-4">
                                 <div class="border rounded-3 h-100 p-3">
-                                    <div class="fw-semibold mb-2">Asset-Libraries & Kandidaten</div>
-                                    <div class="text-secondary small mb-3">Aktive Runtime-Bundles aus `CMS/assets/` plus dokumentierte Staging-, Legacy- und Referenzkandidaten außerhalb der produktiven Verdrahtung.</div>
+                                    <div class="fw-semibold mb-2">Asset-Libraries</div>
+                                    <div class="text-secondary small mb-3">Aktive Runtime-Bundles aus <code>CMS/assets/</code> und produktiv relevante Asset-Bestände der aktuellen Verdrahtung.</div>
                                     <div class="table-responsive">
                                         <table class="table table-sm table-vcenter mb-0">
                                             <thead>
                                                 <tr>
                                                     <th>Library</th>
-                                                    <th>Datei</th>
+                                                    <th>Pfad / Bestand</th>
                                                     <th>Runtime</th>
                                                 </tr>
                                             </thead>
@@ -315,8 +315,24 @@ foreach ($tables as $tableInfo) {
                                                                     <div class="text-warning small mt-1"><?php echo htmlspecialchars((string)$library['runtime_error']); ?></div>
                                                                 <?php endif; ?>
                                                             </td>
-                                                            <td><span class="badge bg-<?php echo !empty($library['available']) ? 'success' : 'danger'; ?>-lt"><?php echo !empty($library['available']) ? 'vorhanden' : 'fehlt'; ?></span></td>
-                                                            <td><span class="badge bg-<?php echo htmlspecialchars((string)($library['runtime_class'] ?? (!empty($library['runtime_ready']) ? 'success' : 'secondary'))); ?>-lt"><?php echo htmlspecialchars((string)($library['runtime_label'] ?? (!empty($library['runtime_ready']) ? 'auflösbar' : 'nicht aufgelöst'))); ?></span></td>
+                                                            <td>
+                                                                <?php $libraryPaths = is_array($library['paths'] ?? null) ? $library['paths'] : []; ?>
+                                                                <?php if ($libraryPaths === []): ?>
+                                                                    <span class="text-secondary">—</span>
+                                                                <?php else: ?>
+                                                                    <div class="d-flex flex-column gap-1">
+                                                                        <?php foreach ($libraryPaths as $libraryPath): ?>
+                                                                            <code class="text-break"><?php echo htmlspecialchars((string)$libraryPath); ?></code>
+                                                                        <?php endforeach; ?>
+                                                                    </div>
+                                                                <?php endif; ?>
+                                                                <div class="mt-2">
+                                                                    <span class="badge bg-<?php echo !empty($library['available']) ? 'success' : 'danger'; ?>-lt"><?php echo !empty($library['available']) ? 'vorhanden' : 'fehlt'; ?></span>
+                                                                </div>
+                                                            </td>
+                                                            <td>
+                                                                <span class="badge bg-<?php echo htmlspecialchars((string)($library['runtime_class'] ?? (!empty($library['runtime_ready']) ? 'success' : 'secondary'))); ?>-lt"><?php echo htmlspecialchars((string)($library['runtime_label'] ?? (!empty($library['runtime_ready']) ? 'auflösbar' : 'nicht aufgelöst'))); ?></span>
+                                                            </td>
                                                         </tr>
                                                     <?php endforeach; ?>
                                                 <?php endif; ?>
