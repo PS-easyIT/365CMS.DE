@@ -739,9 +739,10 @@ if (CMS_DEBUG) {
     ini_set('log_errors', '1');
     ini_set('error_log', CMS_ERROR_LOG);
 } else {
-    error_reporting(0);
+    error_reporting(E_ALL);
     ini_set('display_errors', '0');
-    ini_set('log_errors', '0');
+    ini_set('log_errors', '1');
+    ini_set('error_log', CMS_ERROR_LOG);
 }
 
 date_default_timezone_set('Europe/Berlin');

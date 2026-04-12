@@ -1,4 +1,4 @@
-﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.200-blue.svg)](https://shields.io/)
+﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.202-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -19,6 +19,18 @@
 ## 📜 Vollständige Versionshistorie
 
 ---
+
+### v2.9.202 — 12. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.202** | 🔴 fix | System/Logging | **`CMS/config/app.php`, `CMS/install/InstallerService.php` und `CMS/admin/modules/settings/SettingsModule.php` halten PHP-Fehlerlogging jetzt auch außerhalb des Debug-Modus aktiv und pinnen den `error_log`-Pfad weiterhin auf `CMS/logs/error.log`**: Direkte `error_log()`-Aufrufe, PHP-Warnings und andere Laufzeitfehler verschwinden damit in Produktion nicht mehr ins Nirwana, sondern landen wieder korrekt im zentralen `/logs/`-Pfad, während `display_errors` weiterhin deaktiviert bleibt. |
+
+### v2.9.201 — 12. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.201** | 🔴 fix | System/Assets & Diagnose | **`CMS/core/VendorRegistry.php` lädt für die Diagnose den produktiven Assets-Autoloader jetzt vor den Runtime-Symbolprüfungen und blendet nicht verdrahtete Staging-/Referenz-/Legacy-Kandidaten aus der Runtime-Library-Liste aus**: `Symfony Translation` wird dadurch in der Diagnose wieder korrekt als `auflösbar` erkannt, während `Symfony Contracts (lokaler Runtime-Shim)` in der Asset-Info sichtbar bleibt und die Laufzeitliste nur noch produktiv relevante Bundles zeigt. |
 
 ### v2.9.200 — 12. April 2026
 

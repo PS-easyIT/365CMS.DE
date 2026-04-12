@@ -215,44 +215,7 @@ foreach ($tables as $tableInfo) {
                         <?php endif; ?>
 
                         <div class="row g-4">
-                            <div class="col-12 col-xl-4">
-                                <div class="border rounded-3 h-100 p-3">
-                                    <div class="fw-semibold mb-2">Autoloader-Kandidaten</div>
-                                    <div class="text-secondary small mb-3">Zeigt, welcher produktive oder lokale Fallback-Autoloader aktuell gefunden wurde.</div>
-                                    <div class="table-responsive">
-                                        <table class="table table-sm table-vcenter mb-0">
-                                            <thead>
-                                                <tr>
-                                                    <th>Pfad</th>
-                                                    <th>Status</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                <?php if (empty($autoloadDiagnostics['candidates']) || !is_array($autoloadDiagnostics['candidates'])): ?>
-                                                    <tr><td colspan="2" class="text-center text-secondary py-3">Keine Kandidaten ermittelt.</td></tr>
-                                                <?php else: ?>
-                                                    <?php foreach ($autoloadDiagnostics['candidates'] as $candidate): ?>
-                                                        <tr>
-                                                            <td><code><?php echo htmlspecialchars((string)($candidate['path'] ?? '')); ?></code></td>
-                                                            <td>
-                                                                <?php if (!empty($candidate['active'])): ?>
-                                                                    <span class="badge bg-success-lt">aktiv</span>
-                                                                <?php elseif (!empty($candidate['exists'])): ?>
-                                                                    <span class="badge bg-primary-lt">gefunden</span>
-                                                                <?php else: ?>
-                                                                    <span class="badge bg-danger-lt">fehlt</span>
-                                                                <?php endif; ?>
-                                                            </td>
-                                                        </tr>
-                                                    <?php endforeach; ?>
-                                                <?php endif; ?>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="col-12 col-xl-4">
+                            <div class="col-12 col-xl-6">
                                 <div class="border rounded-3 h-100 p-3">
                                     <div class="fw-semibold mb-2">Registrierte Produktivpakete</div>
                                     <div class="text-secondary small mb-3">Zentrale Registry-Einträge für produktiv sichtbare Paketpfade und den Assets-Autoloader.</div>
@@ -289,7 +252,7 @@ foreach ($tables as $tableInfo) {
                                 </div>
                             </div>
 
-                            <div class="col-12 col-xl-4">
+                            <div class="col-12 col-xl-6">
                                 <div class="border rounded-3 h-100 p-3">
                                     <div class="fw-semibold mb-2">Asset-Libraries</div>
                                     <div class="text-secondary small mb-3">Aktive Runtime-Bundles aus <code>CMS/assets/</code> und produktiv relevante Asset-Bestände der aktuellen Verdrahtung.</div>
