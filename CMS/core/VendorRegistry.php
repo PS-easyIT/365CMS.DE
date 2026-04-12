@@ -25,6 +25,8 @@ final class VendorRegistry
 
     public function getDiagnostics(): array
     {
+        $this->loadAssetsAutoloader();
+
         $autoload = $this->getAutoloadDiagnostics();
         $packages = $this->getPackageDiagnostics();
         $bundles = $this->getBundledLibraryDiagnostics();
@@ -167,10 +169,6 @@ final class VendorRegistry
         $packages = [];
 
         foreach ($this->getManagedPackageDefinitions() as $package => $definition) {
-            if (!$this->isVisibleManagedPackageDefinition($definition)) {
-                continue;
-            }
-
             $loadStatus = $this->getPackageLoadStatus($package);
             $packages[] = [
                 'package' => $package,
@@ -184,14 +182,6 @@ final class VendorRegistry
         }
 
         return $packages;
-    }
-
-    /**
-     * @param array<string, mixed> $definition
-     */
-    private function isVisibleManagedPackageDefinition(array $definition): bool
-    {
-        return ($definition['diagnostics_visible'] ?? true) === true;
     }
 
     /**
@@ -270,7 +260,7 @@ final class VendorRegistry
     }
 
     /**
-     * @return array<string, array{label: string, path: string, path_type: string, notes: string, diagnostics_visible?: bool}>
+     * @return array<string, array{label: string, path: string, path_type: string, notes: string}>
      */
     private function getManagedPackageDefinitions(): array
     {
@@ -298,7 +288,6 @@ final class VendorRegistry
                 'path' => ABSPATH . 'assets' . DIRECTORY_SEPARATOR . 'symfony-contracts',
                 'path_type' => 'dir',
                 'notes' => 'Lokale Minimal-Contracts für Translation/Mailer, solange kein separates Contracts-Bundle gebündelt ist.',
-                'diagnostics_visible' => false,
             ],
         ];
     }
