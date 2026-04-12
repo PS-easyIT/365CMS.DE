@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.9.198",
+  "version": "2.9.199",
   "min_php": "8.4",
   "released": "2026-04-12",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 2.9.198: Redirect-Checks vermeiden das Live-`%`-Regex-Warning, der DOC-Sync prüft GitHub-Snapshots jetzt dynamisch gegen den offiziellen Tree, und der OPcache-Warmup ignoriert Fremdpfade wie `ptc/`, `meridan/` oder `beta/`.",
+  "notes": "Release-Stand 2.9.199: Die Vendor-/Asset-Diagnose bleibt jetzt auch bei fehlerhaften Bundle-Symbolprüfungen sichtbar und zeigt konkrete Runtime-Hinweise an, statt komplett auf leere Tabellen zurückzufallen.",
   "critical": false
 }

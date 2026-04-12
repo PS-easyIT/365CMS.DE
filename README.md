@@ -24,32 +24,7 @@
 ---
 </div>
 
-## ⚡ Warum 365CMS
-
-| Vorteil | Kurz gesagt |
-|---|---|
-| **Alles aus einem Guss** | Inhalte, SEO, Mitgliederbereich, Datenschutz, Design und Betrieb arbeiten in einem zusammenhängenden System |
-| **Self-hosted ohne Abstriche** | Daten, Hosting, Erweiterungen und Betriebsprozesse bleiben in der eigenen Hand |
-| **Vom CMS zur Plattform** | 365CMS verbindet Publishing, Member-Funktionen, Business-Logik und operative Administration |
-| **Branding mit System** | Themes, Menüs, Landing-Pages, Fonts und Login-Erlebnis lassen sich gezielt anpassen |
-| **Wachstum ohne Wildwuchs** | Plugins, Hooks und integrierte Betriebsfunktionen schaffen Spielraum ohne Tool-Flickenteppich |
-
-## 🧱 Feature Snapshot
-
-| Bereich | Was direkt drin steckt |
-|---|---|
-| **Publishing** | Seiten, Beiträge, Landing-Pages, Kategorien, Tags, Revisionen, Featured Images, TOC |
-| **SEO** | Meta-Daten, Redirects, Sitemap, Schema, 404-Monitor, Analytics, IndexNow |
-| **Mitglieder & Zugriff** | Profile, Benachrichtigungen, Member-Bereich, Pakete, Rollen, Rechte, sichere Logins |
-| **Design** | Themes, Theme-Editor, Theme-Explorer, Menüs, Fonts, CMS-Loginpage |
-| **Betrieb** | Cache, Performance, Logs, Updates, Backups, Monitoring, Diagnose |
-| **Erweiterung** | Plugins, Hooks, Marketplace-Pfade, modulare Integrationen |
-
 ## 🖼️ Screenshots
-
-Die folgenden Screens zeigen, wie 365CMS im Alltag aussieht – vom Dashboard über Content-, Medien- und SEO-Workflows bis zu Theme-, Plugin- und Systembereichen. Die Galerie referenziert die öffentliche Doku-Bildablage unter `/DOC/img/`.
-
-Zu sehen sind keine isolierten Demo-Ansichten, sondern typische Arbeitsoberflächen aus echten Projektabläufen: Redaktion, Medienverwaltung, SEO, Design, Systempflege sowie plugin- und mitgliedernahe Bereiche. So wird schnell greifbar, ob 365CMS zu einer klassischen Website, einem Portal oder einem erweiterten Mitglieder-Setup passt.
 
 <table>
 	<tr>

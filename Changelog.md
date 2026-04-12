@@ -1,4 +1,4 @@
-﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.198-blue.svg)](https://shields.io/)
+﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.199-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -19,6 +19,12 @@
 ## 📜 Vollständige Versionshistorie
 
 ---
+
+### v2.9.199 — 12. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.199** | 🔴 fix | System/Diagnose & Vendor Registry | **`CMS/core/VendorRegistry.php` behandelt Runtime-Fehler einzelner Bundle-Symbolprüfungen jetzt pro Paket fail-soft und `CMS/admin/views/system/diagnose.php` blendet diese Details direkt in der Vendor-/Asset-Registry ein**: Die Diagnose bleibt damit bei unvollständigen oder fehlerhaften Asset-Abhängigkeiten nicht mehr komplett leer, sondern zeigt Autoloader, Registry-Pakete, Libraries und konkrete Problemstellen weiterhin sichtbar an. |
 
 ### v2.9.198 — 12. April 2026
 
