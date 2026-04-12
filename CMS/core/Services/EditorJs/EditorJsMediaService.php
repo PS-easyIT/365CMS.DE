@@ -38,6 +38,7 @@ final class EditorJsMediaService
 
             $action = (string) ($_REQUEST['action'] ?? '');
             $payload = $this->getJsonInput();
+            $requestContext = array_merge($_POST, $payload);
 
             switch ($action) {
                 case 'list_images':
@@ -57,11 +58,11 @@ final class EditorJsMediaService
                     break;
 
                 case 'fetch_image':
-                    $this->json($this->remoteMediaService->fetchImageByUrl($payload, $_POST));
+                    $this->json($this->remoteMediaService->fetchImageByUrl($payload, $requestContext));
                     break;
 
                 case 'fetch_link':
-                    $this->json($this->remoteMediaService->fetchLinkMetadata($payload, $_POST));
+                    $this->json($this->remoteMediaService->fetchLinkMetadata($payload, $requestContext));
                     break;
 
                 default:

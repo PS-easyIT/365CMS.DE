@@ -111,7 +111,73 @@ function cms_admin_posts_can_run_action(string $action): bool
     return $action !== '' && Auth::instance()->hasCapability(CMS_ADMIN_POSTS_WRITE_CAPABILITY);
 }
 
-function cms_admin_posts_view_config(PostsModule $module, string $view): array
+function cms_admin_posts_build_inline_edit_data(PostsModule $module, array $post): array
+{
+    $id = cms_admin_posts_normalize_positive_id($post['id'] ?? 0);
+    $editData = $module->getEditData($id > 0 ? $id : null);
+    $existingPost = is_array($editData['post'] ?? null) ? $editData['post'] : [];
+    $publishedAt = trim((string) ($existingPost['published_at'] ?? ''));
+    $publishDate = trim((string) ($post['publish_date'] ?? ''));
+    $publishTime = trim((string) ($post['publish_time'] ?? ''));
+
+    if ($publishDate !== '') {
+        $publishedAt = $publishDate . ' ' . ($publishTime !== '' ? $publishTime : '00:00') . ':00';
+    }
+
+    $draftPost = array_merge($existingPost, [
+        'id' => $id > 0 ? $id : (int) ($existingPost['id'] ?? 0),
+        'title' => (string) ($post['title'] ?? ($existingPost['title'] ?? '')),
+        'title_en' => (string) ($post['title_en'] ?? ($existingPost['title_en'] ?? '')),
+        'slug' => (string) ($post['slug'] ?? ($existingPost['slug'] ?? '')),
+        'slug_en' => (string) ($post['slug_en'] ?? ($existingPost['slug_en'] ?? '')),
+        'content' => $post['content'] ?? ($existingPost['content'] ?? ''),
+        'content_en' => $post['content_en'] ?? ($existingPost['content_en'] ?? ''),
+        'excerpt' => (string) ($post['excerpt'] ?? ($existingPost['excerpt'] ?? '')),
+        'excerpt_en' => (string) ($post['excerpt_en'] ?? ($existingPost['excerpt_en'] ?? '')),
+        'status' => (string) ($post['status'] ?? ($existingPost['status'] ?? 'draft')),
+        'category_id' => cms_admin_posts_normalize_positive_id($post['category_id'] ?? ($existingPost['category_id'] ?? 0)),
+        'featured_image' => (string) ($post['featured_image'] ?? ($existingPost['featured_image'] ?? '')),
+        'meta_title' => (string) ($post['meta_title'] ?? ($existingPost['meta_title'] ?? '')),
+        'meta_description' => (string) ($post['meta_description'] ?? ($existingPost['meta_description'] ?? '')),
+        'author_display_name' => (string) ($post['author_display_name'] ?? ($existingPost['author_display_name'] ?? '')),
+        'published_at' => $publishedAt,
+    ]);
+
+    $tagNames = array_values(array_filter(array_map(
+        static fn (string $value): string => trim($value),
+        preg_split('/[\r\n,]+/', (string) ($post['tags'] ?? '')) ?: []
+    ), static fn (string $value): bool => $value !== ''));
+
+    $editData['post'] = $draftPost;
+    $editData['assignedCategoryIds'] = cms_admin_posts_normalize_bulk_ids(array_merge(
+        [cms_admin_posts_normalize_positive_id($post['category_id'] ?? 0)],
+        array_map('intval', (array) ($post['additional_category_ids'] ?? []))
+    ));
+    $editData['postTags'] = $tagNames !== []
+        ? array_map(static fn (string $name): array => ['name' => $name, 'slug' => ''], $tagNames)
+        : ($editData['postTags'] ?? []);
+    $editData['seoMeta'] = array_merge(is_array($editData['seoMeta'] ?? null) ? $editData['seoMeta'] : [], [
+        'focus_keyphrase' => (string) ($post['focus_keyphrase'] ?? ''),
+        'canonical_url' => (string) ($post['canonical_url'] ?? ''),
+        'robots_index' => !empty($post['robots_index']),
+        'robots_follow' => !empty($post['robots_follow']),
+        'og_title' => (string) ($post['og_title'] ?? ''),
+        'og_description' => (string) ($post['og_description'] ?? ''),
+        'og_image' => (string) ($post['og_image'] ?? ''),
+        'twitter_title' => (string) ($post['twitter_title'] ?? ''),
+        'twitter_description' => (string) ($post['twitter_description'] ?? ''),
+        'twitter_image' => (string) ($post['twitter_image'] ?? ''),
+        'twitter_card' => (string) ($post['twitter_card'] ?? 'summary_large_image'),
+        'schema_type' => (string) ($post['schema_type'] ?? 'Article'),
+        'sitemap_priority' => (string) ($post['sitemap_priority'] ?? ''),
+        'sitemap_changefreq' => (string) ($post['sitemap_changefreq'] ?? 'monthly'),
+        'hreflang_group' => (string) ($post['hreflang_group'] ?? ''),
+    ]);
+
+    return $editData;
+}
+
+function cms_admin_posts_view_config(PostsModule $module, string $view, ?array $overrideEditData = null): array
 {
     $normalizedView = cms_admin_posts_normalize_view($view);
     $aiTranslationEnabled = !class_exists(CoreModuleService::class)
@@ -126,7 +192,7 @@ function cms_admin_posts_view_config(PostsModule $module, string $view): array
 
     if ($normalizedView === 'edit') {
         $id = cms_admin_posts_normalize_positive_id($_GET['id'] ?? 0);
-        $editData = $module->getEditData($id);
+        $editData = is_array($overrideEditData) ? $overrideEditData : $module->getEditData($id);
 
         if ($id > 0 && !empty($editData['isNew'])) {
             cms_admin_posts_flash('danger', 'Der angeforderte Beitrag existiert nicht mehr. Bitte Liste neu laden.');
@@ -350,7 +416,7 @@ $sectionPageConfig = [
                     'error' => (string) ($result['error'] ?? 'Beitrag konnte nicht gespeichert werden.'),
                     'details' => is_array($result['details'] ?? null) ? $result['details'] : [],
                     'render_inline' => true,
-                    'runtime_context' => cms_admin_posts_view_config($module, 'edit'),
+                    'runtime_context' => cms_admin_posts_view_config($module, 'edit', cms_admin_posts_build_inline_edit_data($module, $post)),
                 ];
 
             case 'delete':

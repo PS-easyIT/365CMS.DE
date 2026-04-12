@@ -204,7 +204,7 @@ final class EditorJsRemoteMediaService
 
         return [
             'success' => true,
-            'html' => mb_substr($html, 0, self::MAX_METADATA_HTML_BYTES),
+            'html' => $this->truncateText($html, self::MAX_METADATA_HTML_BYTES),
         ];
     }
 
@@ -358,7 +358,7 @@ final class EditorJsRemoteMediaService
         $value = trim(strip_tags($value));
         $value = preg_replace('/\s+/u', ' ', $value) ?? $value;
 
-        return mb_substr($value, 0, $maxLength);
+        return $this->truncateText($value, $maxLength);
     }
 
     private function sanitizeLogMessage(string $message): string
@@ -366,7 +366,14 @@ final class EditorJsRemoteMediaService
         $message = str_replace(["\r", "\n", "\0"], ' ', $message);
         $message = preg_replace('/\s+/u', ' ', $message) ?? $message;
 
-        return mb_substr(trim($message), 0, 300);
+        return $this->truncateText(trim($message), 300);
+    }
+
+    private function truncateText(string $value, int $maxLength): string
+    {
+        return function_exists('mb_substr')
+            ? mb_substr($value, 0, $maxLength)
+            : substr($value, 0, $maxLength);
     }
 
     private function maskUrlForLogs(string $url): string

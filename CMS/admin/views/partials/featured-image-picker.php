@@ -65,6 +65,7 @@ $pickerContentType = (string)($pickerContentType ?? 'post'); // 'post' | 'page'
     var pickerIsNew = <?= $pickerIsNew ? 'true' : 'false' ?>;
     var pickerContentType = <?= json_encode($pickerContentType) ?>;
     var pickerTempPathInputId = <?= json_encode($pickerInputId . '_temp_path') ?>;
+    var tempPathEl = document.getElementById(pickerTempPathInputId);
 
     if (!modalEl || !openBtn || !inputEl || !previewEl || !apiUrl) {
         return;
@@ -202,8 +203,11 @@ $pickerContentType = (string)($pickerContentType ?? 'post'); // 'post' | 'page'
         return titleSlug || 'artikelbild';
     }
 
-    function updatePreview(url) {
+    function updatePreview(url, tempPath) {
         inputEl.value = String(url || '');
+        if (tempPathEl) {
+            tempPathEl.value = String(tempPath || '');
+        }
         clearChildren(previewEl);
         previewEl.appendChild(createPreviewImage(url));
         previewEl.classList.remove('d-none');
@@ -296,14 +300,7 @@ $pickerContentType = (string)($pickerContentType ?? 'post'); // 'post' | 'page'
                 throw new Error(payload && payload.message ? payload.message : 'Upload fehlgeschlagen.');
             }
 
-            updatePreview(payload.file.url);
-            // Store temp path in hidden field so the save handler can move it
-            if (payload.temp_path) {
-                var tempEl = document.getElementById(pickerTempPathInputId);
-                if (tempEl) {
-                    tempEl.value = payload.temp_path;
-                }
-            }
+            updatePreview(payload.file.url, payload.temp_path || '');
             hideModal();
             loadItems();
         }).catch(function(error) {
@@ -358,7 +355,7 @@ $pickerContentType = (string)($pickerContentType ?? 'post'); // 'post' | 'page'
             return;
         }
 
-        updatePreview(url);
+        updatePreview(url, '');
         hideModal();
     });
 

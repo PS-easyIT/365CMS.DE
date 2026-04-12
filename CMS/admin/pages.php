@@ -92,7 +92,51 @@ function cms_admin_pages_normalize_bulk_ids(mixed $ids, mixed $csvIds = ''): arr
     return array_values($normalizedIds);
 }
 
-function cms_admin_pages_view_config(PagesModule $module, string $view): array
+function cms_admin_pages_build_inline_edit_data(PagesModule $module, array $post): array
+{
+    $id = cms_admin_pages_normalize_positive_id($post['id'] ?? 0);
+    $editData = $module->getEditData($id > 0 ? $id : null);
+    $existingPage = is_object($editData['page'] ?? null) ? (array) $editData['page'] : [];
+
+    $draftPage = array_merge($existingPage, [
+        'id' => $id > 0 ? $id : (int) ($existingPage['id'] ?? 0),
+        'title' => (string) ($post['title'] ?? ($existingPage['title'] ?? '')),
+        'title_en' => (string) ($post['title_en'] ?? ($existingPage['title_en'] ?? '')),
+        'slug' => (string) ($post['slug'] ?? ($existingPage['slug'] ?? '')),
+        'slug_en' => (string) ($post['slug_en'] ?? ($existingPage['slug_en'] ?? '')),
+        'status' => (string) ($post['status'] ?? ($existingPage['status'] ?? 'draft')),
+        'content' => $post['content'] ?? ($existingPage['content'] ?? ''),
+        'content_en' => $post['content_en'] ?? ($existingPage['content_en'] ?? ''),
+        'hide_title' => !empty($post['hide_title']) ? 1 : 0,
+        'category_id' => cms_admin_pages_normalize_positive_id($post['category_id'] ?? ($existingPage['category_id'] ?? 0)),
+        'featured_image' => (string) ($post['featured_image'] ?? ($existingPage['featured_image'] ?? '')),
+        'meta_title' => (string) ($post['meta_title'] ?? ($existingPage['meta_title'] ?? '')),
+        'meta_description' => (string) ($post['meta_description'] ?? ($existingPage['meta_description'] ?? '')),
+    ]);
+
+    $editData['page'] = (object) $draftPage;
+    $editData['seoMeta'] = array_merge(is_array($editData['seoMeta'] ?? null) ? $editData['seoMeta'] : [], [
+        'focus_keyphrase' => (string) ($post['focus_keyphrase'] ?? ''),
+        'canonical_url' => (string) ($post['canonical_url'] ?? ''),
+        'robots_index' => !empty($post['robots_index']),
+        'robots_follow' => !empty($post['robots_follow']),
+        'og_title' => (string) ($post['og_title'] ?? ''),
+        'og_description' => (string) ($post['og_description'] ?? ''),
+        'og_image' => (string) ($post['og_image'] ?? ''),
+        'twitter_title' => (string) ($post['twitter_title'] ?? ''),
+        'twitter_description' => (string) ($post['twitter_description'] ?? ''),
+        'twitter_image' => (string) ($post['twitter_image'] ?? ''),
+        'twitter_card' => (string) ($post['twitter_card'] ?? 'summary_large_image'),
+        'schema_type' => (string) ($post['schema_type'] ?? 'WebPage'),
+        'sitemap_priority' => (string) ($post['sitemap_priority'] ?? ''),
+        'sitemap_changefreq' => (string) ($post['sitemap_changefreq'] ?? 'weekly'),
+        'hreflang_group' => (string) ($post['hreflang_group'] ?? ''),
+    ]);
+
+    return $editData;
+}
+
+function cms_admin_pages_view_config(PagesModule $module, string $view, ?array $overrideEditData = null): array
 {
     $normalizedView = cms_admin_pages_normalize_view($view);
     $aiTranslationEnabled = !class_exists(CoreModuleService::class)
@@ -123,7 +167,7 @@ function cms_admin_pages_view_config(PagesModule $module, string $view): array
         $pageAssets['js'][] = cms_asset_url('js/admin-content-editor.js');
 
         $id = cms_admin_pages_normalize_positive_id($_GET['id'] ?? 0);
-        $editData = $module->getEditData($id);
+        $editData = is_array($overrideEditData) ? $overrideEditData : $module->getEditData($id);
 
         return [
             'section' => 'edit',
@@ -211,7 +255,7 @@ $sectionPageConfig = [
                     'error' => (string) ($result['error'] ?? 'Seite konnte nicht gespeichert werden.'),
                     'details' => is_array($result['details'] ?? null) ? $result['details'] : [],
                     'render_inline' => true,
-                    'runtime_context' => cms_admin_pages_view_config($module, 'edit'),
+                    'runtime_context' => cms_admin_pages_view_config($module, 'edit', cms_admin_pages_build_inline_edit_data($module, $post)),
                 ];
 
             case 'delete':

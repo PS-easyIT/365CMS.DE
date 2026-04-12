@@ -527,6 +527,7 @@ $additionalCategoryIds = array_values(array_filter(
             'formId' => 'postForm',
             'removeButtonId' => 'btnRemoveImage',
             'imageInputId' => 'featuredInput',
+            'tempPathInputId' => 'featuredInput_temp_path',
             'previewContainerId' => 'featuredPreview',
             'emptyStateId' => 'featuredEmpty',
             'currentTimestamp' => (int) round(microtime(true) * 1000),

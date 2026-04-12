@@ -63,6 +63,7 @@
         var form = getElement(config.formId);
         var removeButton = getElement(config.removeButtonId);
         var imageInput = getElement(config.imageInputId);
+        var tempPathInput = getElement(config.tempPathInputId);
         var previewContainer = getElement(config.previewContainerId);
         var emptyState = getElement(config.emptyStateId);
         var slugInput = getElement(config.slugInputId);
@@ -168,6 +169,9 @@
             removeButton.addEventListener('click', function () {
                 if (imageInput) {
                     imageInput.value = '';
+                }
+                if (tempPathInput) {
+                    tempPathInput.value = '';
                 }
                 if (previewContainer) {
                     clearElement(previewContainer);

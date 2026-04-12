@@ -432,6 +432,7 @@ if (!in_array($pageDefaultStatus, ['draft', 'published', 'private'], true)) {
             'formId' => 'pageForm',
             'removeButtonId' => 'featuredImageRemove',
             'imageInputId' => 'featuredImageInput',
+            'tempPathInputId' => 'featuredImageInput_temp_path',
             'previewContainerId' => 'featuredImagePreview',
             'emptyStateId' => 'featuredImageEmpty',
             'slugInputId' => 'pageSlug',
