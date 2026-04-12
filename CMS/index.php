@@ -33,6 +33,11 @@ $isHttpsRequest = static function (): bool {
     return in_array($frontEndHttps, ['on', '1'], true);
 };
 
+$earlyAppConfig = __DIR__ . '/config/app.php';
+if (file_exists($earlyAppConfig)) {
+    require_once $earlyAppConfig;
+}
+
 $resolveSessionCookieDomain = static function (): string {
     $host = strtolower(trim((string) ($_SERVER['HTTP_HOST'] ?? '')));
     if ($host === '') {
@@ -73,11 +78,6 @@ $resolveSessionCookieDomain = static function (): string {
 };
 
 $sessionCookieDomain = $resolveSessionCookieDomain();
-
-$earlyAppConfig = __DIR__ . '/config/app.php';
-if (file_exists($earlyAppConfig)) {
-    require_once $earlyAppConfig;
-}
 
 $resolveConfiguredSessionGcLifetime = static function (): int {
     $adminLifetime = 28_800;

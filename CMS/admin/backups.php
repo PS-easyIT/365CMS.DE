@@ -13,7 +13,7 @@ if (!defined('ABSPATH')) {
 use CMS\Auth;
 
 const CMS_ADMIN_BACKUPS_READ_CAPABILITIES = ['manage_settings', 'manage_system'];
-const CMS_ADMIN_BACKUPS_WRITE_CAPABILITY = 'manage_settings';
+const CMS_ADMIN_BACKUPS_WRITE_CAPABILITIES = ['manage_settings', 'manage_system'];
 
 function cms_admin_backups_has_any_capability(array $capabilities): bool
 {
@@ -35,7 +35,7 @@ function cms_admin_backups_can_access(): bool
 function cms_admin_backups_can_mutate(): bool
 {
     return cms_admin_backups_can_access()
-        && Auth::instance()->hasCapability(CMS_ADMIN_BACKUPS_WRITE_CAPABILITY);
+    && cms_admin_backups_has_any_capability(CMS_ADMIN_BACKUPS_WRITE_CAPABILITIES);
 }
 
 require_once __DIR__ . '/modules/system/BackupsModule.php';

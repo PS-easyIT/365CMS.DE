@@ -1,0 +1,16 @@
+{
+  "plugins": [
+    {
+      "slug": "cms-importer",
+      "name": "CMS WordPress Importer",
+      "description": "Importiert WordPress-WXR-, SEO-, Kommentar- und Medien-Daten nach 365CMS.",
+      "version": "1.6.0",
+      "author": "PS-easyIT",
+      "requires_cms": "0.26.0",
+      "requires_php": "8.1",
+      "is_paid": false,
+      "install_supported": false,
+      "update_url": "https://365cms.de/plugins/cms-importer/update.json"
+    }
+  ]
+}

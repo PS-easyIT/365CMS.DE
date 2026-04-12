@@ -1064,7 +1064,7 @@ class MediaModule
     private function sanitizeFolderName(string $name): string
     {
         $name = trim(strip_tags($name));
-        if ($name === '' || preg_match('/[\\\/\:\*\?"<>\|]/', $name) === 1) {
+        if ($name === '' || preg_match('#[\\/:*?"<>|]#', $name) === 1) {
             return '';
         }
 

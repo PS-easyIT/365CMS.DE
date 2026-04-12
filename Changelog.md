@@ -1,4 +1,4 @@
-﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.191-blue.svg)](https://shields.io/)
+﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.192-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -19,6 +19,14 @@
 ## 📜 Vollständige Versionshistorie
 
 ---
+
+### v2.9.192 — 12. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.192** | 🔴 fix | Core/Auth & Frontend | **`CMS/index.php` lädt `config/app.php` jetzt vor der Session-Cookie-Domain-Auflösung**: Default-Theme-Logins bleiben damit nach erfolgreicher Anmeldung auf derselben Origin im gültigen Session-Vertrag, statt sofort wieder auf eine anonyme Startseite zurückzufallen. |
+| **2.9.192** | 🔴 fix | Landing/Theme Runtime | **`CMS/themes/cms-default/home.php` nutzt im Landing-Modus jetzt ausschließlich `partials/home-landing.php`, und die öffentliche Hero-Badge folgt dem gespeicherten Feld `badge_text` statt dem veralteten `version`-Schattenwert**: Änderungen aus dem Landing-Admin wirken damit public wieder sichtbar und laufen nicht länger durch doppelte Frontend-Logik auseinander. |
+| **2.9.192** | 🔴 fix | Core/System & Admin Runtime | **`CMS/core/Router.php`, `CMS/core/Services/Media/UploadHandler.php`, `CMS/admin/modules/media/MediaModule.php`, `CMS/core/Services/DashboardService.php`, `CMS/core/Services/MemberService.php`, die DSGVO-/Settings-Module sowie der Backups-Admin ziehen Regex-, MariaDB-`SHOW COLUMNS`-, Capability- und Legacy-Fallback-Pfade nach**: Runtime-Warnungen, Backup-Rechteabbrüche und lokale 404s für Marketplace-/Sidebar-Kompatibilitätsdateien fallen damit deutlich leiser und fail-closed aus. |
 
 ### v2.9.191 — 11. April 2026
 

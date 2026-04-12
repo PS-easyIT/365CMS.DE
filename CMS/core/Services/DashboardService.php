@@ -604,7 +604,11 @@ class DashboardService {
     private function hasColumn(string $table, string $column): bool
     {
         try {
-            return $this->db->get_var("SHOW COLUMNS FROM {$table} LIKE ?", [$column]) !== null;
+            if (preg_match('/^[A-Za-z0-9_]+$/', $table) !== 1 || preg_match('/^[A-Za-z0-9_]+$/', $column) !== 1) {
+                return false;
+            }
+
+            return $this->db->get_var("SHOW COLUMNS FROM {$table} LIKE '{$column}'") !== null;
         } catch (\Throwable) {
             return false;
         }

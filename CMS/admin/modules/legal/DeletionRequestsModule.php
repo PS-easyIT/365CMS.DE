@@ -47,10 +47,7 @@ class DeletionRequestsModule
         );
 
         try {
-            $column = $this->db->get_row(
-                "SHOW COLUMNS FROM {$this->prefix}privacy_requests LIKE ?",
-                ['execute_after']
-            );
+            $column = $this->db->get_row("SHOW COLUMNS FROM {$this->prefix}privacy_requests LIKE 'execute_after'");
 
             if (!$column) {
                 $this->db->getPdo()->exec(

@@ -24,7 +24,7 @@ class BackupsModule
 
     private const CSRF_ACTION = 'admin_backups';
     private const READ_CAPABILITIES = ['manage_settings', 'manage_system'];
-    private const WRITE_CAPABILITY = 'manage_settings';
+    private const WRITE_CAPABILITIES = ['manage_settings', 'manage_system'];
     private const MAX_ERROR_LENGTH = 180;
     private const HISTORY_LIMIT = 15;
     private const BACKUP_LIST_LIMIT = 25;
@@ -200,9 +200,17 @@ class BackupsModule
 
     private function canWrite(): bool
     {
-        return class_exists(Auth::class)
-            && Auth::instance()->isAdmin()
-            && Auth::instance()->hasCapability(self::WRITE_CAPABILITY);
+        if (!class_exists(Auth::class) || !Auth::instance()->isAdmin()) {
+            return false;
+        }
+
+        foreach (self::WRITE_CAPABILITIES as $capability) {
+            if (Auth::instance()->hasCapability($capability)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function assertWritableRequest(): bool

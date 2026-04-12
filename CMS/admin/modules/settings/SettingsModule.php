@@ -555,10 +555,13 @@ class SettingsModule
         }
 
         try {
-            $exists = $this->db->get_var(
-                "SHOW COLUMNS FROM {$this->prefix}{$table} LIKE ?",
-                [$column]
-            ) !== null;
+            if (preg_match('/^[A-Za-z0-9_]+$/', $table) !== 1 || preg_match('/^[A-Za-z0-9_]+$/', $column) !== 1) {
+                $this->columnExistsCache[$cacheKey] = false;
+
+                return false;
+            }
+
+            $exists = $this->db->get_var("SHOW COLUMNS FROM {$this->prefix}{$table} LIKE '{$column}'") !== null;
             $this->columnExistsCache[$cacheKey] = $exists;
 
             return $exists;

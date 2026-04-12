@@ -1,0 +1,16 @@
+{
+  "themes": [
+    {
+      "slug": "cms-default",
+      "name": "Meridian CMS Default",
+      "description": "Standard-Theme für 365CMS mit Landingpage-, Blog- und Auth-Templates.",
+      "version": "1.0.3",
+      "author": "PS-easyIT",
+      "requires_cms": "0.20.0",
+      "requires_php": "8.4",
+      "is_paid": false,
+      "install_supported": false,
+      "update_url": "https://365cms.de/themes/cms-default/update.json"
+    }
+  ]
+}

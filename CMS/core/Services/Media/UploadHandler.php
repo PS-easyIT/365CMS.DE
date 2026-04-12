@@ -33,7 +33,7 @@ final class UploadHandler
         $path = trim($path, '/\\');
         $name = trim($name);
 
-        if ($name === '' || $name === '.' || $name === '..' || str_starts_with($name, '.') || preg_match('/[\\\/\:\*\?"<>\|]/', $name)) {
+        if ($name === '' || $name === '.' || $name === '..' || str_starts_with($name, '.') || preg_match('#[\\/:*?"<>|]#', $name) === 1) {
             return new WP_Error('invalid_folder_name', 'Ungültiger Ordnername');
         }
 
