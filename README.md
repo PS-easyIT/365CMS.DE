@@ -2,11 +2,11 @@
 
 <div align="center">
 
-### **Content. Members. SEO. Operations. And more!** [🇩🇪 Deutsch](https://github.com/PS-easyIT/365CMS.DE?tab=readme-ov-file#-deutsch) | [🇬🇧 English](https://github.com/PS-easyIT/365CMS.DE?tab=readme-ov-file#-english)
+### **Content. Members. SEO. Operations. And more!**  [🇩🇪 Deutsch](https://github.com/PS-easyIT/365CMS.DE?tab=readme-ov-file#-deutsch) |  [🇬🇧 English](https://github.com/PS-easyIT/365CMS.DE?tab=readme-ov-file#-english)
 
-#### 365CMS vereint Publishing, Mitgliederfunktionen, Design, Compliance und operative Kontrolle in einem klaren System – für Teams, die wachsen wollen, ohne sich in Plugins, Workarounds und Tool-Ketten zu verlieren.
+#### 365CMS vereint Publishing, Mitgliederfunktionen, Design, Compliance und operative Kontrolle in einem klaren System | für Teams, die wachsen wollen, ohne sich in Plugins, Workarounds und Tool-Ketten zu verlieren.
 
-#### 365CMS brings publishing, member features, design, compliance and operational control into one clear system — for teams that want to grow without getting buried under plugins, workarounds and tool chains.
+#### 365CMS brings publishing, member features, design, compliance and operational control into one clear system | for teams that want to grow without getting buried under plugins, workarounds and tool chains.
 
 ---
 
