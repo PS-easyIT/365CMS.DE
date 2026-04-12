@@ -1,4 +1,4 @@
-# 365CMS.DE  [![Version](https://img.shields.io/badge/Version-2.9.198-blue.svg)](Changelog.md) ![Status](https://img.shields.io/badge/Status-Stable-16a34a) ![PHP](https://img.shields.io/badge/PHP-8.4%2B-777BB4?logo=php&logoColor=white) ![MySQL](https://img.shields.io/badge/MySQL-5.7%2B-4479A1?logo=mysql&logoColor=white) ![MariaDB](https://img.shields.io/badge/MariaDB-10.3%2B-003545?logo=mariadb&logoColor=white)
+# 365CMS.DE  [![Version](https://img.shields.io/badge/Version-2.9.199-blue.svg)](Changelog.md) ![Status](https://img.shields.io/badge/Status-Stable-16a34a) ![PHP](https://img.shields.io/badge/PHP-8.4%2B-777BB4?logo=php&logoColor=white) ![MySQL](https://img.shields.io/badge/MySQL-5.7%2B-4479A1?logo=mysql&logoColor=white) ![MariaDB](https://img.shields.io/badge/MariaDB-10.3%2B-003545?logo=mariadb&logoColor=white)
 
 <div align="center">
 
@@ -23,6 +23,48 @@
 
 ---
 </div>
+
+## Navigation
+
+- [🖼️ Screenshots](#screenshots)
+- [🇩🇪 Deutsch](#deutsch)
+	- [✨ Warum 365CMS?](#de-warum-365cms)
+	- [💎 auf einen Blick](#de-auf-einen-blick)
+	- [🎯 Ideal für](#de-ideal-fuer)
+	- [🧭 Für wen – und für wen eher nicht?](#de-fuer-wen)
+	- [🏢 Use Cases / Trusted For](#de-use-cases)
+	- [⚖️ Warum 365CMS statt „CMS + fünf Zusatztools“?](#de-warum-statt-zusatztools)
+	- [🧩 Was 365CMS besonders stark macht](#de-besonders-stark)
+	- [🚀 Kurz positioniert](#de-kurz-positioniert)
+	- [⚙️ Typische Workflows in 365CMS](#de-workflows)
+	- [🧭 Admin-Bereiche im Überblick](#de-admin-bereiche)
+	- [🔌 Erweiterbarkeit & Ökosystem](#de-erweiterbarkeit)
+	- [🚀 Schnellstart](#de-schnellstart)
+		- [Voraussetzungen](#de-voraussetzungen)
+		- [Installation in Kürze](#de-installation)
+		- [Empfehlenswerte erste Schritte nach der Installation](#de-erste-schritte)
+	- [📚 Doku & nächste Schritte](#de-doku)
+	- [👨‍💻 Support & Lizenz](#de-support)
+- [🇬🇧 English](#english)
+	- [✨ Why 365CMS?](#en-why-365cms)
+	- [💎 Core USP at a glance](#en-core-usp)
+	- [🎯 Ideal for](#en-ideal-for)
+	- [🧭 Who it fits – and who it does not](#en-who-it-fits)
+	- [🏢 Use Cases / Trusted For](#en-use-cases)
+	- [⚖️ Why 365CMS instead of “a CMS plus five extra tools”?](#en-why-instead-of-extra-tools)
+	- [🧩 What 365CMS does especially well](#en-does-especially-well)
+	- [🚀 Positioned in one sentence](#en-positioned)
+	- [⚙️ Typical workflows in 365CMS](#en-workflows)
+	- [🧭 Admin areas at a glance](#en-admin-areas)
+	- [🔌 Extensibility & ecosystem](#en-extensibility)
+	- [🚀 Quick start](#en-quick-start)
+		- [Requirements](#en-requirements)
+		- [Installation in short](#en-installation)
+		- [Recommended first steps after installation](#en-first-steps)
+	- [📚 Documentation & next steps](#en-documentation)
+	- [👨‍💻 Support & license](#en-support)
+- [🚀 Bereit für den nächsten Schritt? / Ready for the next step?](#next-step)
+
 
 ## 🖼️ Screenshots
 
