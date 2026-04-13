@@ -308,8 +308,8 @@ final class EditorJsSanitizer
                         return null;
                     }
 
-                    $url = filter_var((string) ($item['url'] ?? ''), FILTER_VALIDATE_URL);
-                    if ($url === false) {
+                    $url = $this->sanitizeAssetUrl((string) ($item['url'] ?? ''));
+                    if ($url === '') {
                         return null;
                     }
 
@@ -446,7 +446,7 @@ final class EditorJsSanitizer
 
     private function sanitizeFileInfo(array $file): array
     {
-        $url = filter_var((string) ($file['url'] ?? ''), FILTER_VALIDATE_URL) ?: '';
+        $url = $this->sanitizeAssetUrl((string) ($file['url'] ?? ''));
 
         return [
             'url' => $url,
@@ -475,8 +475,8 @@ final class EditorJsSanitizer
     {
         $cleanUrls = [];
         foreach ($urls as $url) {
-            $sanitized = filter_var((string) $url, FILTER_VALIDATE_URL);
-            if ($sanitized !== false) {
+            $sanitized = $this->sanitizeAssetUrl((string) $url);
+            if ($sanitized !== '') {
                 $cleanUrls[] = $sanitized;
             }
         }
@@ -486,10 +486,28 @@ final class EditorJsSanitizer
 
     private function isValidAssetUrl(string $url): bool
     {
-        if (str_starts_with($url, 'data:image/')) {
-            return true;
+        return $this->sanitizeAssetUrl($url, true) !== '';
+    }
+
+    private function sanitizeAssetUrl(string $url, bool $allowDataImage = false): string
+    {
+        $url = trim($url);
+        if ($url === '') {
+            return '';
         }
 
-        return filter_var($url, FILTER_VALIDATE_URL) !== false;
+        if ($allowDataImage && preg_match('#^data:image/[a-z0-9.+-]+;base64,#i', $url) === 1) {
+            return $url;
+        }
+
+        if (str_starts_with($url, 'media-file?')) {
+            $url = '/' . $url;
+        }
+
+        if (preg_match('#^/(?:media-file(?:\?.*)?|uploads/[A-Za-z0-9._\-/%]+)$#', $url) === 1) {
+            return $url;
+        }
+
+        return filter_var($url, FILTER_VALIDATE_URL) !== false ? $url : '';
     }
 }

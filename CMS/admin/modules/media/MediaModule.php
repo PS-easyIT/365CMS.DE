@@ -74,6 +74,7 @@ class MediaModule
 
     private const ALLOWED_VIEWS = ['list', 'grid'];
     private const ALLOWED_TABS = ['library', 'categories', 'settings'];
+    private const ALLOWED_USAGE_FILTERS = ['all', 'used', 'unused'];
     private const SYSTEM_CATEGORY_SLUGS = ['themes', 'plugins', 'assets', 'fonts', 'dl-manager', 'form-uploads', 'member'];
 
     /**
@@ -234,6 +235,7 @@ class MediaModule
         $category = $this->normalizeCategorySlug((string)($_GET['category'] ?? ''));
         $view     = $this->normalizeView((string)($_GET['view'] ?? 'list'));
         $search   = $this->sanitizeSearch((string)($_GET['q'] ?? ''));
+        $usageFilter = $this->normalizeUsageFilter((string)($_GET['usage_filter'] ?? 'all'));
         $confirmMember = (string)($_GET['confirm_member'] ?? '') === '1';
 
         if ($category !== '' && !$this->categoryExists($category)) {
@@ -271,16 +273,25 @@ class MediaModule
 
         $categories = $this->getCategories();
         $diskUsage  = $this->service->getDiskUsage();
-        $stateParams = $this->buildLibraryStateParams($path, $view, $category, $search, $confirmMember);
-        $rootStateParams = $this->buildLibraryStateParams('', $view, $category, $search, $confirmMember);
+        $stateParams = $this->buildLibraryStateParams($path, $view, $category, $search, $usageFilter, $confirmMember);
+        $rootStateParams = $this->buildLibraryStateParams('', $view, $category, $search, $usageFilter, $confirmMember);
 
         $usageMap = $this->usageService->buildUsageMap(array_map(
             static fn (array $file): string => (string) ($file['path'] ?? ''),
             is_array($items['files'] ?? null) ? $items['files'] : []
         ));
 
+        if ($usageFilter !== 'all' && !empty($items['files'])) {
+            $items['files'] = array_values(array_filter($items['files'], function (array $file) use ($usageMap, $usageFilter): bool {
+                $filePath = (string) ($file['path'] ?? '');
+                $usageCount = count(is_array($usageMap[$filePath] ?? null) ? $usageMap[$filePath] : []);
+
+                return $usageFilter === 'used' ? $usageCount > 0 : $usageCount === 0;
+            }));
+        }
+
         return [
-            'folders'    => $this->buildFolderViewModels($items['folders'] ?? [], $path, $view, $category, $search, $confirmMember),
+            'folders'    => $this->buildFolderViewModels($items['folders'] ?? [], $path, $view, $category, $search, $usageFilter, $confirmMember),
             'files'      => $this->buildFileViewModels($items['files'] ?? [], $path, $usageMap),
             'categories' => $categories,
             'diskUsage'  => $diskUsage,
@@ -288,20 +299,27 @@ class MediaModule
             'category'   => $category,
             'view'       => $view,
             'search'     => $search,
+            'usage_filter' => $usageFilter,
             'confirm_member' => $confirmMember,
-            'breadcrumbs' => $this->buildBreadcrumbs($path, $view, $category, $search, $confirmMember),
+            'breadcrumbs' => $this->buildBreadcrumbs($path, $view, $category, $search, $usageFilter, $confirmMember),
             'stats' => $this->buildLibraryStats($items, $categories, $diskUsage),
             'base_url' => $this->buildAdminUrl(),
-            'list_url' => $this->buildAdminUrl($this->buildLibraryStateParams($path, 'list', $category, $search, $confirmMember)),
-            'grid_url' => $this->buildAdminUrl($this->buildLibraryStateParams($path, 'grid', $category, $search, $confirmMember)),
+            'list_url' => $this->buildAdminUrl($this->buildLibraryStateParams($path, 'list', $category, $search, $usageFilter, $confirmMember)),
+            'grid_url' => $this->buildAdminUrl($this->buildLibraryStateParams($path, 'grid', $category, $search, $usageFilter, $confirmMember)),
             'root_url' => $this->buildAdminUrl($rootStateParams),
             'filter_state' => [
                 'path' => $path,
                 'view' => $view,
                 'category' => $category,
                 'search' => $search,
+                'usage_filter' => $usageFilter,
             ],
             'category_options' => $this->buildCategoryOptions($categories),
+            'usage_filter_options' => [
+                ['value' => 'all', 'label' => 'Alle Medien'],
+                ['value' => 'unused', 'label' => 'Nur ungenutzte'],
+                ['value' => 'used', 'label' => 'Nur eingebundene'],
+            ],
             'move_targets' => $this->buildMoveTargetOptions(),
             'bulk_actions' => [
                 ['value' => 'delete', 'label' => 'Auswahl löschen'],
@@ -961,6 +979,13 @@ class MediaModule
         return in_array($view, self::ALLOWED_VIEWS, true) ? $view : 'list';
     }
 
+    public function normalizeUsageFilter(string $usageFilter): string
+    {
+        $usageFilter = strtolower(trim($usageFilter));
+
+        return in_array($usageFilter, self::ALLOWED_USAGE_FILTERS, true) ? $usageFilter : 'all';
+    }
+
     public function normalizeCategory(string $slug): string
     {
         return $this->normalizeCategorySlug($slug);
@@ -1360,7 +1385,7 @@ class MediaModule
     /**
      * @return array<string, string>
      */
-    private function buildLibraryStateParams(string $path, string $view, string $category, string $search, bool $confirmMember): array
+    private function buildLibraryStateParams(string $path, string $view, string $category, string $search, string $usageFilter, bool $confirmMember): array
     {
         $params = [];
 
@@ -1378,6 +1403,10 @@ class MediaModule
 
         if ($search !== '') {
             $params['q'] = $search;
+        }
+
+        if ($usageFilter !== 'all') {
+            $params['usage_filter'] = $usageFilter;
         }
 
         if ($confirmMember) {
@@ -1402,7 +1431,7 @@ class MediaModule
     /**
      * @return list<array<string, string>>
      */
-    private function buildBreadcrumbs(string $path, string $view, string $category, string $search, bool $confirmMember): array
+    private function buildBreadcrumbs(string $path, string $view, string $category, string $search, string $usageFilter, bool $confirmMember): array
     {
         if ($path === '') {
             return [];
@@ -1418,7 +1447,7 @@ class MediaModule
             $breadcrumbs[] = [
                 'label' => $part,
                 'path' => $cumulative,
-                'url' => $isLast ? '' : $this->buildAdminUrl($this->buildLibraryStateParams($cumulative, $view, $category, $search, $confirmMember)),
+                'url' => $isLast ? '' : $this->buildAdminUrl($this->buildLibraryStateParams($cumulative, $view, $category, $search, $usageFilter, $confirmMember)),
             ];
         }
 
@@ -1429,7 +1458,7 @@ class MediaModule
      * @param array<int, array<string, mixed>> $folders
      * @return list<array<string, mixed>>
      */
-    private function buildFolderViewModels(array $folders, string $path, string $view, string $category, string $search, bool $confirmMember): array
+    private function buildFolderViewModels(array $folders, string $path, string $view, string $category, string $search, string $usageFilter, bool $confirmMember): array
     {
         $viewModels = [];
 
@@ -1445,8 +1474,8 @@ class MediaModule
                 'category' => (string)($folder['category'] ?? ''),
                 'modified_label' => !empty($folder['modified']) ? date('d.m.Y H:i', (int)$folder['modified']) : '—',
                 'is_system' => !empty($folder['is_system']),
-                'url' => $this->buildAdminUrl($this->buildLibraryStateParams($folderPath, $view, $category, $search, $confirmMember)),
-                'confirm_url' => $this->buildAdminUrl($this->buildLibraryStateParams($folderPath, $view, $category, $search, true)),
+                'url' => $this->buildAdminUrl($this->buildLibraryStateParams($folderPath, $view, $category, $search, $usageFilter, $confirmMember)),
+                'confirm_url' => $this->buildAdminUrl($this->buildLibraryStateParams($folderPath, $view, $category, $search, $usageFilter, true)),
                 'requires_confirmation' => $requiresConfirmation,
             ];
         }

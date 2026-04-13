@@ -757,6 +757,145 @@
         return uploadedUrl;
     }
 
+    function isExternalHttpUrl(url) {
+        return /^https?:\/\//i.test(String(url || '').trim());
+    }
+
+    function normalizeImageGalleryUrlList(urls) {
+        const normalizedUrls = [];
+        const seen = new Set();
+
+        (Array.isArray(urls) ? urls : []).forEach(function (url) {
+            const rawUrl = String(url || '').trim();
+            if (rawUrl === '') {
+                return;
+            }
+
+            const normalizedUrl = normalizeInternalMediaUrl(rawUrl);
+            if (!isInternalMediaUrl(normalizedUrl) && !isExternalHttpUrl(normalizedUrl)) {
+                return;
+            }
+
+            if (seen.has(normalizedUrl)) {
+                return;
+            }
+
+            seen.add(normalizedUrl);
+            normalizedUrls.push(normalizedUrl);
+        });
+
+        return normalizedUrls;
+    }
+
+    function buildImageGalleryImageItems(urls, existingImages) {
+        const captionMap = new Map();
+
+        (Array.isArray(existingImages) ? existingImages : []).forEach(function (item) {
+            if (!item || typeof item !== 'object') {
+                return;
+            }
+
+            const file = item.file && typeof item.file === 'object' ? item.file : item;
+            const url = normalizeInternalMediaUrl(String(file && file.url ? file.url : ''));
+            if (url === '' || captionMap.has(url)) {
+                return;
+            }
+
+            captionMap.set(url, String(item.caption || ''));
+        });
+
+        return normalizeImageGalleryUrlList(urls).map(function (url) {
+            const extensionMatch = url.match(/\.([a-z0-9]+)(?:$|[?#])/i);
+
+            return {
+                file: {
+                    url: url,
+                    name: url.split('/').pop() || 'Bild',
+                    size: 0,
+                    extension: extensionMatch ? String(extensionMatch[1] || '').toLowerCase() : '',
+                },
+                caption: captionMap.get(url) || '',
+            };
+        });
+    }
+
+    function normalizeImageGalleryData(data) {
+        const nextData = data && typeof data === 'object' ? { ...data } : {};
+        const imageUrls = Array.isArray(nextData.images)
+            ? nextData.images.map(function (item) {
+                if (!item || typeof item !== 'object') {
+                    return '';
+                }
+
+                const file = item.file && typeof item.file === 'object' ? item.file : item;
+                return String(file && file.url ? file.url : '');
+            })
+            : [];
+        const rawUrls = imageUrls.length > 0
+            ? imageUrls
+            : Array.isArray(nextData.urls)
+                ? nextData.urls
+                : typeof nextData.urls === 'string'
+                    ? nextData.urls.split(/\r?\n+/)
+                    : [];
+
+        const normalizedUrls = normalizeImageGalleryUrlList(rawUrls);
+        const normalizedImages = buildImageGalleryImageItems(normalizedUrls, nextData.images);
+
+        nextData.urls = normalizedUrls;
+        nextData.images = normalizedImages;
+
+        return nextData;
+    }
+
+    function uploadImageGalleryFiles(uploadUrl, csrfToken, files, uploadContext) {
+        const fileList = Array.from(files || []).filter(function (file) {
+            return file && typeof file === 'object';
+        });
+
+        if (fileList.length === 0) {
+            return Promise.resolve([]);
+        }
+
+        return Promise.all(fileList.map(function (file) {
+            return uploadEditorImageFile(uploadUrl, csrfToken, file, uploadContext).then(function (payload) {
+                return payload && payload.file && payload.file.url ? String(payload.file.url) : '';
+            });
+        })).then(normalizeImageGalleryUrlList);
+    }
+
+    function importImageGalleryUrls(uploadUrl, csrfToken, urls, uploadContext) {
+        const importCandidates = Array.isArray(urls) ? urls : [];
+
+        if (importCandidates.length === 0) {
+            return Promise.resolve([]);
+        }
+
+        return Promise.all(importCandidates.map(function (url) {
+            const rawUrl = String(url || '').trim();
+            if (rawUrl === '') {
+                return '';
+            }
+
+            const normalizedUrl = normalizeInternalMediaUrl(rawUrl);
+            if (isInternalMediaUrl(normalizedUrl)) {
+                return normalizedUrl;
+            }
+
+            if (/^data:image\//i.test(normalizedUrl) || /^blob:/i.test(normalizedUrl)) {
+                return uploadEditorInlineImage(uploadUrl, csrfToken, normalizedUrl, uploadContext, 'gallery-image');
+            }
+
+            if (isExternalHttpUrl(normalizedUrl)) {
+                return fetchEditorImageByUrl(uploadUrl, csrfToken, normalizedUrl, uploadContext).then(function (payload) {
+                    return payload && payload.file && payload.file.url ? String(payload.file.url) : '';
+                });
+            }
+
+            return '';
+        })).then(normalizeImageGalleryUrlList);
+    }
+
     function settleImageToolUploadState(tool, url) {
         if (!tool || !tool.ui || !tool.ui.nodes) {
             return;
@@ -1600,13 +1739,253 @@
         return config;
     }
 
-    function createImageGalleryConfig(galleryClass) {
+    function createImageGalleryConfig(galleryClass, uploadUrl, csrfToken, uploadContext) {
         if (!galleryClass) {
             return null;
         }
 
+        class CmsImageGalleryTool extends galleryClass {
+            constructor(options) {
+                const nextOptions = { ...options };
+                nextOptions.data = normalizeImageGalleryData(options && options.data ? options.data : {});
+
+                super(nextOptions);
+
+                this.data = normalizeImageGalleryData(this.data);
+                this.cmsImagePicker = uploadUrl ? createEditorImagePicker(uploadUrl, csrfToken, uploadContext) : null;
+                this.cmsGalleryStatus = null;
+                this.cmsGalleryUploadInput = null;
+            }
+
+            _isImgUrl(url) {
+                const normalizedUrl = normalizeInternalMediaUrl(url);
+
+                return normalizedUrl !== '' && (isInternalMediaUrl(normalizedUrl) || isExternalHttpUrl(normalizedUrl));
+            }
+
+            render() {
+                const wrapper = super.render();
+                this.wrapper = wrapper;
+
+                this.cmsEnsureTextarea();
+                this.cmsEnsureToolbar();
+                this.cmsApplyUrls(this.cmsGetUrls(), false);
+
+                if (typeof this._acceptTuneView === 'function') {
+                    this._acceptTuneView();
+                }
+
+                return wrapper;
+            }
+
+            save(blockContent) {
+                const savedData = normalizeImageGalleryData(super.save(blockContent));
+                this.data = savedData;
+
+                return savedData;
+            }
+
+            validate(savedData) {
+                const normalizedData = normalizeImageGalleryData(savedData);
+                savedData.urls = normalizedData.urls;
+                savedData.images = normalizedData.images;
+
+                return true;
+            }
+
+            cmsEnsureTextarea() {
+                if (!this.wrapper) {
+                    return null;
+                }
+
+                let textarea = this.wrapper.querySelector('textarea.image-gallery-' + this.blockIndex);
+                if (textarea) {
+                    textarea.value = this.cmsGetUrls().join('\n');
+                    return textarea;
+                }
+
+                textarea = document.createElement('textarea');
+                textarea.className = 'image-gallery-' + this.blockIndex;
+                textarea.placeholder = 'Bild-URLs hier einfügen oder per Buttons importieren …';
+                textarea.value = this.cmsGetUrls().join('\n');
+
+                ['paste', 'change', 'keyup', 'input'].forEach((eventName) => {
+                    textarea.addEventListener(eventName, () => {
+                        this.cmsApplyUrls(this.cmsParseTextareaUrls(), false);
+                    }, false);
+                });
+
+                this.wrapper.insertBefore(textarea, this.wrapper.firstChild || null);
+
+                return textarea;
+            }
+
+            cmsEnsureToolbar() {
+                if (!this.wrapper || this.wrapper.querySelector('.cms-editor-gallery__toolbar')) {
+                    return;
+                }
+
+                const toolbar = document.createElement('div');
+                toolbar.className = 'cms-editor-gallery__toolbar';
+
+                const uploadButton = document.createElement('button');
+                uploadButton.type = 'button';
+                uploadButton.className = 'cms-editor-gallery__button';
+                uploadButton.textContent = 'Bilder hochladen';
+
+                const libraryButton = document.createElement('button');
+                libraryButton.type = 'button';
+                libraryButton.className = 'cms-editor-gallery__button';
+                libraryButton.textContent = 'Aus Mediathek wählen';
+
+                const importButton = document.createElement('button');
+                importButton.type = 'button';
+                importButton.className = 'cms-editor-gallery__button';
+                importButton.textContent = 'URLs importieren';
+
+                const uploadInput = document.createElement('input');
+                uploadInput.type = 'file';
+                uploadInput.accept = 'image/*';
+                uploadInput.multiple = true;
+                uploadInput.hidden = true;
+
+                const status = document.createElement('div');
+                status.className = 'cms-editor-gallery__status';
+
+                uploadButton.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    uploadInput.click();
+                });
+
+                uploadInput.addEventListener('change', () => {
+                    const files = Array.from(uploadInput.files || []);
+                    if (files.length === 0 || !uploadUrl) {
+                        return;
+                    }
+
+                    this.cmsSetGalleryStatus('Lade ' + files.length + ' Bild' + (files.length === 1 ? '' : 'er') + ' hoch …', false);
+                    uploadImageGalleryFiles(uploadUrl, csrfToken, files, uploadContext).then((urls) => {
+                        this.cmsAppendUrls(urls, true);
+                        this.cmsSetGalleryStatus(urls.length + ' Bild' + (urls.length === 1 ? '' : 'er') + ' hinzugefügt.', false);
+                    }).catch((error) => {
+                        console.error('Image gallery upload failed:', error);
+                        this.cmsSetGalleryStatus(error && error.message ? error.message : 'Galerie-Upload fehlgeschlagen.', true);
+                    }).finally(() => {
+                        uploadInput.value = '';
+                    });
+                });
+
+                libraryButton.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    if (!this.cmsImagePicker) {
+                        return;
+                    }
+
+                    this.cmsImagePicker.open().then((payload) => {
+                        const url = payload && payload.file && payload.file.url ? String(payload.file.url) : '';
+                        if (url !== '') {
+                            this.cmsAppendUrls([url], true);
+                            this.cmsSetGalleryStatus('Bild aus der Mediathek hinzugefügt.', false);
+                        }
+                    }).catch((error) => {
+                        if (!error || error.message !== 'Bildauswahl abgebrochen.') {
+                            console.error('Image gallery picker error:', error);
+                        }
+                    });
+                });
+
+                importButton.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    if (!uploadUrl) {
+                        return;
+                    }
+
+                    const urls = this.cmsParseTextareaUrls();
+                    if (urls.length === 0) {
+                        this.cmsSetGalleryStatus('Keine importierbaren URLs vorhanden.', true);
+                        return;
+                    }
+
+                    this.cmsSetGalleryStatus('Importiere ' + urls.length + ' Galerie-URL' + (urls.length === 1 ? '' : 's') + ' …', false);
+                    importImageGalleryUrls(uploadUrl, csrfToken, urls, uploadContext).then((importedUrls) => {
+                        this.cmsApplyUrls(importedUrls, true);
+                        this.cmsSetGalleryStatus(importedUrls.length + ' Galerie-Bild' + (importedUrls.length === 1 ? '' : 'er') + ' importiert.', false);
+                    }).catch((error) => {
+                        console.error('Image gallery import failed:', error);
+                        this.cmsSetGalleryStatus(error && error.message ? error.message : 'Galerie-Import fehlgeschlagen.', true);
+                    });
+                });
+
+                toolbar.appendChild(uploadButton);
+                toolbar.appendChild(libraryButton);
+                toolbar.appendChild(importButton);
+                toolbar.appendChild(uploadInput);
+
+                this.wrapper.insertBefore(toolbar, this.wrapper.firstChild || null);
+                this.wrapper.insertBefore(status, toolbar.nextSibling);
+
+                this.cmsGalleryStatus = status;
+                this.cmsGalleryUploadInput = uploadInput;
+            }
+
+            cmsParseTextareaUrls() {
+                const textarea = this.wrapper ? this.wrapper.querySelector('textarea.image-gallery-' + this.blockIndex) : null;
+                if (!textarea) {
+                    return this.cmsGetUrls();
+                }
+
+                return normalizeImageGalleryUrlList(String(textarea.value || '').split(/\r?\n+/));
+            }
+
+            cmsGetUrls() {
+                const normalizedData = normalizeImageGalleryData(this.data || {});
+                if (Array.isArray(normalizedData.urls) && normalizedData.urls.length > 0) {
+                    return normalizedData.urls;
+                }
+
+                if (this.wrapper) {
+                    return normalizeImageGalleryUrlList(Array.from(this.wrapper.querySelectorAll('.gg-box > img')).map(function (image) {
+                        return image.getAttribute('src') || '';
+                    }));
+                }
+
+                return [];
+            }
+
+            cmsApplyUrls(urls, updateTextarea) {
+                const nextData = normalizeImageGalleryData({ ...this.data, urls: normalizeImageGalleryUrlList(urls) });
+                this.data = nextData;
+
+                const textarea = this.wrapper ? this.wrapper.querySelector('textarea.image-gallery-' + this.blockIndex) : null;
+                if (textarea && updateTextarea !== false) {
+                    textarea.value = nextData.urls.join('\n');
+                }
+
+                if (typeof this._imageGallery === 'function') {
+                    this._imageGallery(nextData.urls);
+                }
+
+                if (typeof this._acceptTuneView === 'function') {
+                    this._acceptTuneView();
+                }
+            }
+
+            cmsAppendUrls(urls, updateTextarea) {
+                this.cmsApplyUrls(this.cmsGetUrls().concat(urls), updateTextarea);
+            }
+
+            cmsSetGalleryStatus(message, isError) {
+                if (!this.cmsGalleryStatus) {
+                    return;
+                }
+
+                this.cmsGalleryStatus.textContent = String(message || '');
+                this.cmsGalleryStatus.classList.toggle('is-error', Boolean(isError));
+            }
+        }
+
         return {
-            class: galleryClass,
+            class: CmsImageGalleryTool,
             inlineToolbar: true,
         };
     }
@@ -1822,7 +2201,7 @@
             columns: createColumnsConfig(resolved.columns, resolved.editorjs, childTools),
             accordion: createAccordionConfig(resolved.accordion),
             carousel: createCarouselConfig(resolved.carousel, uploadUrl, csrfToken, getUploadContext),
-            imageGallery: createImageGalleryConfig(resolved.imageGallery),
+            imageGallery: createImageGalleryConfig(resolved.imageGallery, uploadUrl, csrfToken, getUploadContext),
             drawingTool: createDrawingConfig(resolved.drawingTool, uploadUrl, csrfToken, getUploadContext),
         });
 

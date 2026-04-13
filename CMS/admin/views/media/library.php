@@ -20,11 +20,13 @@ $path       = $data['path'] ?? '';
 $category   = $data['category'] ?? '';
 $view       = $data['view'] ?? 'list';
 $search     = $data['search'] ?? '';
+$usageFilter = $data['usage_filter'] ?? 'all';
 $confirmMember = !empty($data['confirm_member']);
 $memberFolderConfirmMessage = (string)($data['member_folder_confirm_message'] ?? 'Der Member-Bereich enthält sensible Uploads. Möchten Sie den Ordner wirklich öffnen?');
 $breadcrumbs = is_array($data['breadcrumbs'] ?? null) ? $data['breadcrumbs'] : [];
 $stats = is_array($data['stats'] ?? null) ? $data['stats'] : [];
 $categoryOptions = is_array($data['category_options'] ?? null) ? $data['category_options'] : [];
+$usageFilterOptions = is_array($data['usage_filter_options'] ?? null) ? $data['usage_filter_options'] : [];
 $filterState = is_array($data['filter_state'] ?? null) ? $data['filter_state'] : [];
 $baseUrl = (string)($data['base_url'] ?? '/admin/media');
 $listUrl = (string)($data['list_url'] ?? $baseUrl);
@@ -260,6 +262,13 @@ function renderMediaUsageSummary(array $usageItems, int $usageCount): string {
                                     <?php foreach ($categoryOptions as $cat): ?>
                                         <option value="<?php echo htmlspecialchars((string)($cat['slug'] ?? '')); ?>" <?php echo $category === ($cat['slug'] ?? '') ? 'selected' : ''; ?>>
                                             <?php echo htmlspecialchars((string)($cat['name'] ?? '')); ?> (<?php echo (int)($cat['count'] ?? 0); ?>)
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <select class="form-select form-select-sm media-filter-category" name="usage_filter" data-media-auto-submit-select="1">
+                                    <?php foreach ($usageFilterOptions as $option): ?>
+                                        <option value="<?php echo htmlspecialchars((string)($option['value'] ?? 'all')); ?>" <?php echo $usageFilter === ($option['value'] ?? 'all') ? 'selected' : ''; ?>>
+                                            <?php echo htmlspecialchars((string)($option['label'] ?? 'Alle Medien')); ?>
                                         </option>
                                     <?php endforeach; ?>
                                 </select>

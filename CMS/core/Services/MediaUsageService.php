@@ -39,11 +39,12 @@ final class MediaUsageService
             return [];
         }
 
-        $lookup = array_fill_keys($targets, true);
         $usageMap = [];
         foreach ($targets as $targetPath) {
             $usageMap[$targetPath] = [];
         }
+
+        $lookup = $this->buildUsageLookup($targets);
 
         $this->collectUsagesForRows(
             $usageMap,
@@ -114,8 +115,8 @@ final class MediaUsageService
     }
 
     /**
-     * @param array<string, list<array<string, mixed>>> $usageMap
-     * @param array<string, bool> $lookup
+    * @param array<string, list<array<string, mixed>>> $usageMap
+    * @param array<string, list<string>> $lookup
      * @param array<int, object> $rows
      */
     private function collectUsagesForRows(array &$usageMap, array $lookup, array $rows, string $contentType, string $contentTypeLabel, string $editBaseUrl): void
@@ -137,28 +138,133 @@ final class MediaUsageService
 
             foreach ($fieldLabels as $field => $fieldLabel) {
                 foreach ($this->extractRelativeMediaPaths((string) ($row->{$field} ?? '')) as $relativePath) {
-                    if (!isset($lookup[$relativePath])) {
+                    $targetPaths = $lookup[$relativePath] ?? [];
+                    if ($targetPaths === []) {
                         continue;
                     }
 
                     $usageKey = $contentType . ':' . $contentId . ':' . $field;
-                    if ($this->usageExists($usageMap[$relativePath] ?? [], $usageKey)) {
-                        continue;
-                    }
 
-                    $usageMap[$relativePath][] = [
-                        'usage_key' => $usageKey,
-                        'content_type' => $contentType,
-                        'content_type_label' => $contentTypeLabel,
-                        'field' => $field,
-                        'field_label' => $fieldLabel,
-                        'content_id' => $contentId,
-                        'title' => $title,
-                        'edit_url' => $editUrl,
-                    ];
+                    foreach ($targetPaths as $targetPath) {
+                        if ($targetPath === '' || !array_key_exists($targetPath, $usageMap)) {
+                            continue;
+                        }
+
+                        if ($this->usageExists($usageMap[$targetPath] ?? [], $usageKey)) {
+                            continue;
+                        }
+
+                        $usageMap[$targetPath][] = [
+                            'usage_key' => $usageKey,
+                            'content_type' => $contentType,
+                            'content_type_label' => $contentTypeLabel,
+                            'field' => $field,
+                            'field_label' => $fieldLabel,
+                            'content_id' => $contentId,
+                            'title' => $title,
+                            'edit_url' => $editUrl,
+                        ];
+                    }
                 }
             }
         }
+    }
+
+    /**
+     * @param list<string> $targets
+     * @return array<string, list<string>>
+     */
+    private function buildUsageLookup(array $targets): array
+    {
+        $lookup = [];
+
+        foreach ($targets as $targetPath) {
+            foreach ($this->buildRelatedMediaPaths($targetPath) as $candidatePath) {
+                if ($candidatePath === '') {
+                    continue;
+                }
+
+                if (!isset($lookup[$candidatePath])) {
+                    $lookup[$candidatePath] = [];
+                }
+
+                if (!in_array($targetPath, $lookup[$candidatePath], true)) {
+                    $lookup[$candidatePath][] = $targetPath;
+                }
+            }
+        }
+
+        return $lookup;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function buildRelatedMediaPaths(string $relativePath): array
+    {
+        $normalizedPath = $this->normalizeRelativeMediaPath($relativePath);
+        if ($normalizedPath === '') {
+            return [];
+        }
+
+        $dirname = trim(str_replace('\\', '/', dirname($normalizedPath)), '/');
+        if ($dirname === '.' || $dirname === '/') {
+            $dirname = '';
+        }
+
+        $extension = strtolower((string) pathinfo($normalizedPath, PATHINFO_EXTENSION));
+        $filename = (string) pathinfo($normalizedPath, PATHINFO_FILENAME);
+
+        if ($filename === '') {
+            return [$normalizedPath];
+        }
+
+        $sizeSuffixes = ['small', 'medium', 'large', 'banner'];
+        $baseName = $filename;
+
+        if (preg_match('/^(.*?)-(small|medium|large|banner)$/i', $filename, $matches) === 1) {
+            $baseName = (string) ($matches[1] ?? $filename);
+        }
+
+        $buildPath = static function (string $dir, string $name, string $ext): string {
+            $candidate = $name . ($ext !== '' ? '.' . $ext : '');
+            return $dir !== '' ? $dir . '/' . $candidate : $candidate;
+        };
+
+        $relatedPaths = [$normalizedPath];
+
+        if ($extension !== '') {
+            $relatedPaths[] = $buildPath($dirname, $baseName, $extension);
+
+            foreach ($sizeSuffixes as $suffix) {
+                $relatedPaths[] = $buildPath($dirname, $baseName . '-' . $suffix, $extension);
+            }
+        }
+
+        if (in_array($extension, ['jpg', 'jpeg', 'png', 'gif'], true)) {
+            $relatedPaths[] = $buildPath($dirname, $baseName, 'webp');
+        }
+
+        if ($extension === 'webp') {
+            foreach (['jpg', 'jpeg', 'png', 'gif'] as $sourceExtension) {
+                $relatedPaths[] = $buildPath($dirname, $baseName, $sourceExtension);
+                foreach ($sizeSuffixes as $suffix) {
+                    $relatedPaths[] = $buildPath($dirname, $baseName . '-' . $suffix, $sourceExtension);
+                }
+            }
+        }
+
+        $normalizedRelatedPaths = [];
+        foreach ($relatedPaths as $candidatePath) {
+            $candidatePath = $this->normalizeRelativeMediaPath($candidatePath);
+            if ($candidatePath === '') {
+                continue;
+            }
+
+            $normalizedRelatedPaths[$candidatePath] = true;
+        }
+
+        return array_keys($normalizedRelatedPaths);
     }
 
     /**

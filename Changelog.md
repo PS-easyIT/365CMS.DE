@@ -1,4 +1,4 @@
-﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.223-blue.svg)](https://shields.io/)
+﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.226-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -19,6 +19,19 @@
 ## 📜 Vollständige Versionshistorie
 
 ---
+
+### v2.9.226 — 13. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.226** | 🔴 fix | Admin/Medienverwaltung Verwendungslogik | **`CMS/core/Services/MediaUsageService.php` erkennt eingebundene Editor-Bilder jetzt nicht mehr nur über den exakt gespeicherten Einzelpfad, sondern propagiert Verwendungen auch auf die automatisch erzeugten Dateivarianten desselben Uploads**: Originaldateien, zugehörige `.webp`-Ableitungen sowie bekannte Thumbnail-Suffixe wie `-small`, `-medium`, `-large` und `-banner` landen damit in der Medienverwaltung nicht mehr fälschlich auf „nicht eingebunden“, nur weil der Editor im Inhalt z. B. die JPG-Datei speichert, während die Bibliothek zusätzlich die generierte WebP- oder Größenvariante anzeigt. |
+
+### v2.9.225 — 13. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.225** | 🟢 feat | Admin/Medienverwaltung Filter | **`CMS/admin/modules/media/MediaModule.php` und `CMS/admin/views/media/library.php` erweitern die Medienbibliothek um einen Verwendungsfilter für eingebundene vs. ungenutzte Dateien**: Bereits referenzierte Medien lassen sich damit in der Mediathek auf Wunsch direkt ausblenden oder gezielt isolieren, ohne dass die vorhandenen Kategorie-, Such- und Ansichtsfilter ihren Zustand verlieren. |
+| **2.9.225** | 🔴 fix | Admin/EditorJS Galerie-Uploads | **`CMS/assets/js/editor-init.js` und `CMS/core/Services/EditorJs/EditorJsSanitizer.php` ziehen `imageGallery` endlich auf echte Upload-/Import-Logik samt internem Medien-URL-Vertrag um**: Galerieblöcke können jetzt Bilder direkt hochladen, aus der Mediathek übernehmen oder externe URLs sauber importieren, speichern die Ergebnisse als normale interne Medienpfade statt als loses URL-Textarea-Konstrukt und akzeptieren beim Sanitizing nun auch root-relative `/media-file?...`- bzw. `/uploads/...`-Assets, wie sie der restliche Editor.js-Medienpfad bereits produktiv verwendet. |
 
 ### v2.9.224 — 13. April 2026
 
