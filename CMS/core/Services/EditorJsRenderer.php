@@ -339,13 +339,13 @@ final class EditorJsRenderer
         $imageUrl = \CMS\Services\MediaDeliveryService::getInstance()->normalizeUrl((string)($file['url'] ?? ''), true);
 
         foreach (['Cropper', 'CropperTune'] as $tuneKey) {
-            if (!empty($tunes[$tuneKey]['croppedImage']) && filter_var((string)$tunes[$tuneKey]['croppedImage'], FILTER_VALIDATE_URL)) {
+            if (!empty($tunes[$tuneKey]['croppedImage']) && $this->isRenderableAssetUrl((string) $tunes[$tuneKey]['croppedImage'])) {
                 $imageUrl = (string)$tunes[$tuneKey]['croppedImage'];
                 break;
             }
         }
 
-        if (!filter_var($imageUrl, FILTER_VALIDATE_URL)) {
+        if (!$this->isRenderableAssetUrl($imageUrl)) {
             return '';
         }
 
@@ -376,7 +376,7 @@ final class EditorJsRenderer
     {
         $file = is_array($data['file'] ?? null) ? $data['file'] : [];
         $url = \CMS\Services\MediaDeliveryService::getInstance()->normalizeUrl((string)($file['url'] ?? ''), false);
-        if (!filter_var($url, FILTER_VALIDATE_URL)) {
+        if (!$this->isRenderableAssetUrl($url)) {
             return '';
         }
 
@@ -464,7 +464,7 @@ final class EditorJsRenderer
 
             $file = is_array($item['file'] ?? null) ? $item['file'] : [];
             $url = \CMS\Services\MediaDeliveryService::getInstance()->normalizeUrl((string)($file['url'] ?? ''), true);
-            if (!filter_var($url, FILTER_VALIDATE_URL)) {
+            if (!$this->isRenderableAssetUrl($url)) {
                 continue;
             }
 
@@ -479,7 +479,7 @@ final class EditorJsRenderer
             $urls = is_array($data['urls'] ?? null) ? $data['urls'] : [];
             foreach ($urls as $url) {
                 $normalizedUrl = \CMS\Services\MediaDeliveryService::getInstance()->normalizeUrl((string)$url, true);
-                if (!filter_var($normalizedUrl, FILTER_VALIDATE_URL)) {
+                if (!$this->isRenderableAssetUrl($normalizedUrl)) {
                     continue;
                 }
 
@@ -517,7 +517,7 @@ final class EditorJsRenderer
     {
         $file = is_array($data['file'] ?? null) ? $data['file'] : [];
         $imageUrl = \CMS\Services\MediaDeliveryService::getInstance()->normalizeUrl((string)($file['url'] ?? ''), true);
-        if (!filter_var($imageUrl, FILTER_VALIDATE_URL)) {
+        if (!$this->isRenderableAssetUrl($imageUrl)) {
             $imageUrl = '';
         }
 
@@ -795,7 +795,7 @@ final class EditorJsRenderer
             }
 
             $url = (string)($item['url'] ?? '');
-            if (!filter_var($url, FILTER_VALIDATE_URL)) {
+            if (!$this->isRenderableAssetUrl($url)) {
                 continue;
             }
 
@@ -863,7 +863,7 @@ final class EditorJsRenderer
             }
 
             $src = (string)($image['src'] ?? '');
-            if (!filter_var($src, FILTER_VALIDATE_URL) && !str_starts_with($src, 'data:image/')) {
+            if (!$this->isRenderableAssetUrl($src, true)) {
                 continue;
             }
 
@@ -882,6 +882,24 @@ final class EditorJsRenderer
             '<span class="tg-spoiler" style="background:#111827;color:transparent;border-radius:0.25rem;padding:0 0.2rem;">$1</span>',
             $sanitized
         ) ?? $sanitized;
+    }
+
+    private function isRenderableAssetUrl(string $url, bool $allowDataImage = false): bool
+    {
+        $url = trim($url);
+        if ($url === '') {
+            return false;
+        }
+
+        if ($allowDataImage && str_starts_with($url, 'data:image/')) {
+            return true;
+        }
+
+        if (filter_var($url, FILTER_VALIDATE_URL)) {
+            return true;
+        }
+
+        return preg_match('#^/(?:media-file(?:\?|$)|uploads(?:/|$))#', $url) === 1;
     }
 
     private function renderMarkdownInline(string $markdown): string

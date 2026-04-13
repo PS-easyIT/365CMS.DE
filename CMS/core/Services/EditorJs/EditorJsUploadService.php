@@ -129,16 +129,14 @@ final class EditorJsUploadService
             ];
         }
 
-        $slug = trim((string) ($post['slug'] ?? ''));
-        $slug = strtolower((string) preg_replace('/[^a-z0-9]+/i', '_', $slug));
-        $slug = trim($slug, '_');
-        if ($slug === '') {
-            $slug = 'artikelbild';
-        }
-
         $contentType = in_array($post['content_type'] ?? '', ['post', 'page'], true)
             ? (string) $post['content_type']
             : 'post';
+
+        $slug = $this->sanitizeFolderSegment((string) ($post['slug'] ?? ''));
+        if ($slug === '') {
+            $slug = $contentType === 'page' ? 'seitenbild' : 'artikelbild';
+        }
 
         $baseFolder = $contentType === 'page' ? 'pages' : 'articles';
         $isNew = !empty($post['is_new']);

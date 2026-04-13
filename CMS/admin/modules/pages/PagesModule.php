@@ -17,9 +17,8 @@ use CMS\AuditLogger;
 use CMS\Logger;
 use CMS\PageManager;
 use CMS\Services\RedirectService;
+use CMS\Services\ContentMediaPlacementService;
 use CMS\Services\ContentLocalizationService;
-use CMS\Services\MediaDeliveryService;
-use CMS\Services\MediaService;
 use CMS\Services\SEOService;
 
 class PagesModule
@@ -275,19 +274,6 @@ class PagesModule
         $slug       = $this->normalizeSlug($slug !== '' ? $slug : $this->pageManager->generateSlug($title));
         $slugEn     = $this->normalizeSlug($slugEn);
 
-        // Move temp upload to slug subfolder (pages/{slug}/{filename})
-        if ($featuredImageTempPath !== '' && str_contains($featuredImageTempPath, '/temp/')) {
-            $mediaService = MediaService::getInstance();
-            $mediaDelivery = MediaDeliveryService::getInstance();
-            $folderSlug   = strtolower((string)preg_replace('/[^a-z0-9]+/i', '_', $slug));
-            $folderSlug   = trim($folderSlug, '_');
-            $newRelPath   = 'pages/' . $folderSlug . '/' . basename($featuredImageTempPath);
-            $moved        = $mediaService->moveFile($featuredImageTempPath, $newRelPath);
-            if (!($moved instanceof \CMS\WP_Error)) {
-                $featuredImage = $mediaDelivery->buildAccessUrl((string)$moved, true);
-            }
-        }
-
         if ($title === '') {
             return ['success' => false, 'error' => 'Titel darf nicht leer sein.'];
         }
@@ -307,6 +293,10 @@ class PagesModule
         if ($slugEn !== '' && $this->isLocalizedSlugTaken($slugEn, $id)) {
             return ['success' => false, 'error' => 'Dieser englische Slug ist bereits vergeben.'];
         }
+
+        $contentMediaPlacement = ContentMediaPlacementService::getInstance();
+        [$content, $contentEn] = $contentMediaPlacement->relocateTemporaryContentMediaBatch([$content, $contentEn], 'page', $slug);
+        $featuredImage = $contentMediaPlacement->relocateTemporaryFeaturedImage($featuredImage, $featuredImageTempPath, 'page', $slug);
 
         $savePayload = [
             'title' => $title,

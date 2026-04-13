@@ -49,7 +49,16 @@ final class MediaDeliveryService
 
     public function buildPreviewUrl(string $relativePath): string
     {
-        return $this->buildAccessUrl($relativePath, true);
+        $normalizedPath = $this->normalizeRelativePath($relativePath);
+        if ($normalizedPath === '') {
+            return $this->buildAccessUrl($relativePath, true);
+        }
+
+        if ($this->isInlineSafePath($normalizedPath)) {
+            return $this->buildDeliveryUrl($normalizedPath, 'inline');
+        }
+
+        return $this->buildAccessUrl($normalizedPath, true);
     }
 
     public function buildDeliveryUrl(string $relativePath, string $disposition = 'attachment'): string

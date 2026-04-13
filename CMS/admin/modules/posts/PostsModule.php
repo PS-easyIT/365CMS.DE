@@ -18,8 +18,7 @@ use CMS\Database;
 use CMS\Hooks;
 use CMS\Logger;
 use CMS\Services\ContentLocalizationService;
-use CMS\Services\MediaDeliveryService;
-use CMS\Services\MediaService;
+use CMS\Services\ContentMediaPlacementService;
 use CMS\Services\PermalinkService;
 use CMS\Services\RedirectService;
 use CMS\Services\SEOService;
@@ -521,19 +520,6 @@ class PostsModule
         $slug       = $this->normalizeSlug($slugSource);
         $legacyTags = $this->serializeTagsForLegacyColumn($rawTags);
 
-        // Move temp upload to slug subfolder (articles/{slug}/{filename})
-        if ($featuredImageTempPath !== '' && str_contains($featuredImageTempPath, '/temp/')) {
-            $mediaService = MediaService::getInstance();
-            $mediaDelivery = MediaDeliveryService::getInstance();
-            $folderSlug   = strtolower((string)preg_replace('/[^a-z0-9]+/i', '_', $slug));
-            $folderSlug   = trim($folderSlug, '_');
-            $newRelPath   = 'articles/' . $folderSlug . '/' . basename($featuredImageTempPath);
-            $moved        = $mediaService->moveFile($featuredImageTempPath, $newRelPath);
-            if (!($moved instanceof \CMS\WP_Error)) {
-                $featuredImage = $mediaDelivery->buildAccessUrl((string)$moved, true);
-            }
-        }
-
         if ($title === '' && $titleEn === '') {
             return ['success' => false, 'error' => 'Bitte mindestens einen deutschen oder englischen Titel angeben.'];
         }
@@ -553,6 +539,10 @@ class PostsModule
         if ($slugEn !== '' && $this->isLocalizedSlugTaken($slugEn, $id)) {
             return ['success' => false, 'error' => 'Dieser englische Slug ist bereits vergeben.'];
         }
+
+        $contentMediaPlacement = ContentMediaPlacementService::getInstance();
+        [$content, $contentEn] = $contentMediaPlacement->relocateTemporaryContentMediaBatch([$content, $contentEn], 'post', $slug);
+        $featuredImage = $contentMediaPlacement->relocateTemporaryFeaturedImage($featuredImage, $featuredImageTempPath, 'post', $slug);
 
         $publishedAtInput = $this->normalizePublishedAtInput($publishDateRaw, $publishTimeRaw);
         if ($publishedAtInput['error'] !== null) {

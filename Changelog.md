@@ -1,4 +1,4 @@
-﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.219-blue.svg)](https://shields.io/)
+﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.222-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -19,6 +19,24 @@
 ## 📜 Vollständige Versionshistorie
 
 ---
+
+### v2.9.222 — 13. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.222** | 🔴 fix | Frontend/EditorJS Medien-Rendering | **`CMS/core/Services/EditorJsRenderer.php` akzeptiert für Bild-, Galerie-, MediaText-, Carousel-, Drawing- und Attachment-Blöcke jetzt auch hostneutrale interne Medienpfade wie `/media-file?...` und `/uploads/...` statt fälschlich nur absolute URLs zu rendern**: Neu hinzugefügte Bilder und Dateien bleiben damit nach dem Speichern nicht mehr auf die Admin-Vorschau beschränkt, sondern erscheinen auch im öffentlichen Frontend zuverlässig, obwohl die Upload-API interne Medien bewusst als relative Root-Pfade zurückliefert. |
+
+### v2.9.221 — 13. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.221** | 🔴 fix | Admin/Beiträge, Seiten & Medienordner | **`CMS/core/Services/ContentMediaPlacementService.php`, `CMS/admin/modules/posts/PostsModule.php`, `CMS/admin/modules/pages/PagesModule.php` und `CMS/core/Services/EditorJs/EditorJsUploadService.php` finalisieren neue Beitrags-/Seitenmedien jetzt konsequent in den echten Slug-Ordnern `articles/<slug>` bzw. `pages/<slug>`**: Frisch hochgeladene Editor.js-Bilder aus neuen Entwürfen werden beim ersten Save aus `.../temp/<draftKey>/...` in den finalen Slug-Pfad verschoben und ihre Referenzen in DE-/EN-Inhalten sauber umgeschrieben; zusätzlich verwendet auch der Featured-Image-Flow wieder denselben hyphenbasierten Slug-Vertrag statt abweichender Unterstrich-Ordner. |
+
+### v2.9.220 — 13. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.220** | 🔴 fix | Admin/Medienverwaltung Vorschau | **`CMS/core/Services/MediaDeliveryService.php` liefert Preview-URLs der Medienverwaltung für inline-fähige Bildformate jetzt gezielt über `/media-file?...&disposition=inline` statt über direkte statische `/uploads/...`-Pfade**: Die Übersicht der Medienbibliothek rendert damit auch JPG-, PNG-, GIF-, BMP- und ICO-Dateien wieder zuverlässig als Vorschau, selbst wenn die statische Webserver-MIME-Zuordnung für Originaldateien problematisch ist und bisher nur WebP sauber angezeigt wurde. |
 
 ### v2.9.219 — 13. April 2026
 
