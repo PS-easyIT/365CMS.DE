@@ -64,7 +64,7 @@ final class EditorJsImageLibraryService
             $items[] = [
                 'name' => $file->getFilename(),
                 'path' => $relativePath,
-                'url' => $this->toRelativeMediaUrl($mediaDelivery->buildAccessUrl($relativePath, true)),
+                'url' => $this->toRelativeMediaUrl($mediaDelivery->buildDeliveryUrl($relativePath, 'inline')),
                 'size' => $file->getSize(),
                 'modified' => $file->getMTime(),
             ];

@@ -16,6 +16,7 @@ if (!defined('ABSPATH')) {
 use CMS\AuditLogger;
 use CMS\Logger;
 use CMS\Services\MediaService;
+use CMS\Services\MediaUsageService;
 use CMS\Services\ErrorReportService;
 use CMS\WP_Error;
 
@@ -65,6 +66,7 @@ class MediaModule
     ];
 
     private MediaService $service;
+    private MediaUsageService $usageService;
     /**
      * @var array<int, array<string, mixed>>|null
      */
@@ -218,6 +220,7 @@ class MediaModule
     public function __construct()
     {
         $this->service = MediaService::getInstance();
+        $this->usageService = MediaUsageService::getInstance();
     }
 
     // ─── Bibliothek ──────────────────────────────────────
@@ -271,9 +274,14 @@ class MediaModule
         $stateParams = $this->buildLibraryStateParams($path, $view, $category, $search, $confirmMember);
         $rootStateParams = $this->buildLibraryStateParams('', $view, $category, $search, $confirmMember);
 
+        $usageMap = $this->usageService->buildUsageMap(array_map(
+            static fn (array $file): string => (string) ($file['path'] ?? ''),
+            is_array($items['files'] ?? null) ? $items['files'] : []
+        ));
+
         return [
             'folders'    => $this->buildFolderViewModels($items['folders'] ?? [], $path, $view, $category, $search, $confirmMember),
-            'files'      => $this->buildFileViewModels($items['files'] ?? [], $path),
+            'files'      => $this->buildFileViewModels($items['files'] ?? [], $path, $usageMap),
             'categories' => $categories,
             'diskUsage'  => $diskUsage,
             'path'       => $path,
@@ -1450,7 +1458,7 @@ class MediaModule
      * @param array<int, array<string, mixed>> $files
      * @return list<array<string, mixed>>
      */
-    private function buildFileViewModels(array $files, string $path): array
+    private function buildFileViewModels(array $files, string $path, array $usageMap = []): array
     {
         $viewModels = [];
 
@@ -1460,6 +1468,11 @@ class MediaModule
             $fileUrl = (string)($file['url'] ?? (UPLOAD_URL . '/' . $filePath));
             $previewUrl = (string)($file['preview_url'] ?? $fileUrl);
             $fileType = $this->detectFileType($fileName);
+            $usageItems = array_values(array_filter(
+                is_array($usageMap[$filePath] ?? null) ? $usageMap[$filePath] : [],
+                static fn (mixed $usage): bool => is_array($usage)
+            ));
+            $usageCount = count($usageItems);
 
             $viewModels[] = [
                 'name' => $fileName,
@@ -1472,6 +1485,9 @@ class MediaModule
                 'file_type' => $fileType,
                 'is_image' => $fileType === 'image',
                 'formatted_size' => $this->formatBytes(isset($file['size']) ? (int)$file['size'] : null),
+                'usage_items' => $usageItems,
+                'usage_count' => $usageCount,
+                'usage_count_label' => $usageCount === 1 ? '1 Verwendung' : $usageCount . ' Verwendungen',
             ] + $file;
         }
 

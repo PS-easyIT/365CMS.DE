@@ -380,6 +380,58 @@ class MediaService {
         ];
     }
 
+    private function detectUploadedMimeType(string $tmpName, bool $preferImageInspection = false): string
+    {
+        if ($tmpName === '' || !is_file($tmpName)) {
+            return '';
+        }
+
+        if ($preferImageInspection) {
+            $imageMime = $this->detectActualImageMimeType($tmpName);
+            if ($imageMime !== '') {
+                return $imageMime;
+            }
+        }
+
+        if (function_exists('finfo_open')) {
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            if ($finfo !== false) {
+                $realMime = finfo_file($finfo, $tmpName);
+                finfo_close($finfo);
+
+                if (is_string($realMime) && trim($realMime) !== '') {
+                    return strtolower(trim($realMime));
+                }
+            }
+        }
+
+        return '';
+    }
+
+    private function detectActualImageMimeType(string $tmpName): string
+    {
+        if ($tmpName === '' || !is_file($tmpName)) {
+            return '';
+        }
+
+        if (function_exists('exif_imagetype')) {
+            $imageType = @exif_imagetype($tmpName);
+            if (is_int($imageType)) {
+                $mimeType = image_type_to_mime_type($imageType);
+                if (is_string($mimeType) && trim($mimeType) !== '') {
+                    return strtolower(trim($mimeType));
+                }
+            }
+        }
+
+        $imageInfo = @getimagesize($tmpName);
+        if (is_array($imageInfo) && isset($imageInfo['mime']) && is_string($imageInfo['mime']) && trim($imageInfo['mime']) !== '') {
+            return strtolower(trim($imageInfo['mime']));
+        }
+
+        return '';
+    }
+
     /**
      * @return array{ext: string}|WP_Error
      */
@@ -432,14 +484,10 @@ class MediaService {
         }
 
         $allowedMimeMap = $this->getAllowedMimeMap();
-        if (function_exists('finfo_open') && isset($allowedMimeMap[$ext])) {
-            $finfo = finfo_open(FILEINFO_MIME_TYPE);
-            $realMime = $finfo ? finfo_file($finfo, $tmpName) : false;
-            if ($finfo) {
-                finfo_close($finfo);
-            }
+        if (isset($allowedMimeMap[$ext])) {
+            $realMime = $this->detectUploadedMimeType($tmpName, $this->isImageExtension($ext));
 
-            if ($realMime !== false && !in_array($realMime, $allowedMimeMap[$ext], true)) {
+            if ($realMime !== '' && !in_array($realMime, $allowedMimeMap[$ext], true)) {
                 return new WP_Error('mime_mismatch', sprintf('MIME-Typ "%s" passt nicht zur Dateiendung ".%s". Upload abgebrochen.', $realMime, $ext));
             }
         }
@@ -585,6 +633,29 @@ class MediaService {
         return $saved;
     }
 
+    /**
+     * Bestimmte Clipboard-/Browser-Uploads lassen sich via GD laden und zu WebP wandeln,
+     * hinterlassen aber trotzdem ein Original, das einzelne Browser nicht mehr sauber
+     * rendern. Für klassische Browserformate schreiben wir das gespeicherte Original daher
+     * einmal als saubere Datei neu.
+     *
+     * @param array<string,mixed> $settings
+     */
+    private function repairUploadedBrowserImage(string $absolutePath, string $storedName, array $settings): void
+    {
+        $extension = strtolower((string) pathinfo($storedName, PATHINFO_EXTENSION));
+        if (!in_array($extension, ['jpg', 'jpeg', 'png'], true)) {
+            return;
+        }
+
+        if (!is_file($absolutePath) || !is_readable($absolutePath) || !is_writable($absolutePath)) {
+            return;
+        }
+
+        $quality = max(60, min(100, (int) ($settings['jpeg_quality'] ?? 85)));
+        $this->reEncodeImage($absolutePath, $extension, $quality);
+    }
+
     private function readImageSize(string $path, string $context = 'image'): ?array
     {
         $result = $this->runImageOperation('getimagesize', $path, $context, static fn (): array|false => getimagesize($path));
@@ -717,7 +788,13 @@ class MediaService {
             return $result;
         }
 
-        return (string) ($result['name'] ?? '');
+        $storedName = (string) ($result['name'] ?? '');
+        $storedRelativePath = trim(($targetPath !== '' ? trim($targetPath, '/\\') . '/' : '') . $storedName, '/');
+        $storedAbsolutePath = rtrim($this->uploadPath, '/\\') . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $storedRelativePath);
+
+        $this->repairUploadedBrowserImage($storedAbsolutePath, $storedName, $settings);
+
+        return $storedName;
     }
 
     /**

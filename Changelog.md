@@ -1,4 +1,4 @@
-﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.214-blue.svg)](https://shields.io/)
+﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.219-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -19,6 +19,36 @@
 ## 📜 Vollständige Versionshistorie
 
 ---
+
+### v2.9.219 — 13. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.219** | 🟢 feat | Admin/Medienverwaltung Referenzspalte | **`CMS/core/Services/MediaUsageService.php`, `CMS/admin/modules/media/MediaModule.php` und `CMS/admin/views/media/library.php` erweitern die Medienbibliothek um echte Nutzungsreferenzen aus Beiträgen und Seiten**: Die Listenansicht zeigt pro Datei jetzt in einer zusätzlichen Spalte, in welchen Beiträgen bzw. Seiten ein Medium als Inhaltsbild oder Featured-/Seitenbild verwendet wird, inklusive Direktlinks in die jeweilige Bearbeitung; die Grid-Ansicht blendet ergänzend eine kompakte Verwendungszusammenfassung ein. |
+
+### v2.9.218 — 13. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.218** | 🔴 fix | Admin/EditorJS Medienauslieferung | **`CMS/core/Services/EditorJs/EditorJsUploadService.php` und `CMS/core/Services/EditorJs/EditorJsImageLibraryService.php` liefern Editor.js-Bilder jetzt bewusst über den Inline-Delivery-Endpoint `/media-file?...` statt über direkte statische `/uploads/...`-Pfade aus, und `CMS/core/Services/MediaDeliveryService.php` erkennt den tatsächlichen Bild-MIME-Typ dafür bevorzugt aus den Dateiinhalten**: Damit hängt die Editor-/Mediathek-Vorschau nicht mehr an der statischen Webserver-MIME-Zuordnung oder einer ggf. irreführenden Dateiendung des Uploads, sondern an der echten Bildsignatur der Datei — genau passend zum Fehlerbild „Original kaputt, WebP sichtbar“. |
+
+### v2.9.217 — 13. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.217** | 🔴 fix | Media/Clipboard Bildtyp-Erkennung | **`CMS/core/Services/EditorJs/EditorJsUploadService.php` und `CMS/core/Services/MediaService.php` erkennen den echten Bildtyp temporärer Clipboard-Uploads jetzt bevorzugt über `exif_imagetype()`/`getimagesize()` statt sich primär auf `finfo` oder den vom Browser gemeldeten MIME-Typ zu verlassen**: Fälle, in denen ein eingefügtes Bild intern bereits WebP-Daten trägt, aber fälschlich als PNG/JPG durchrutscht, werden damit korrekt als echter Bildtyp behandelt — genau der Fehlerpfad, der kaputte „Original“-Dateien bei gleichzeitig funktionierendem WebP-Derivat erklärt. |
+
+### v2.9.216 — 13. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.216** | 🔴 fix | Media/Clipboard Originaldatei | **`CMS/core/Services/MediaService.php` schreibt gespeicherte JPEG-/PNG-Originale nach dem Upload jetzt einmal sauber neu über GD zurück**: Clipboard-Bilder, deren Roh-Original zwar noch zu WebP konvertierbar ist, vom Browser aber als kaputtes PNG/JPG interpretiert wird, landen damit nicht mehr als beschädigte Originaldatei im Upload, sondern als neu kodiertes, browsergültiges Original plus weiterhin vorhandenem WebP-Derivat. |
+
+### v2.9.215 — 13. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.215** | 🔴 fix | Admin/EditorJS Clipboard Originaldatei | **`CMS/assets/js/editor-init.js` bevorzugt beim Bild-Einfügen aus der Zwischenablage jetzt echte Clipboard-`File`-Objekte gegenüber anonymen `blob:`-Zwischenzuständen des Browsers**: Wenn der Browser beim Paste den ursprünglichen Dateinamen und die Original-Endung noch in `clipboardData.files/items` mitliefert, verwendet Editor.js genau diese Datei für den Upload statt einer nachträglich aus `blob:` geholten namenlosen Kopie; damit bleiben echte JPG-/PNG-/GIF-Dateien aus Datei-/Explorer- oder App-Clipboard-Flows deutlich zuverlässiger als Originaldatei erhalten, während der bestehende Blob-Fallback für reine Raster-/Screenshot-Pastes weiterhin aktiv bleibt. |
 
 ### v2.9.214 — 13. April 2026
 

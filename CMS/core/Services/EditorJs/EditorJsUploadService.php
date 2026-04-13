@@ -207,6 +207,11 @@ final class EditorJsUploadService
     {
         $mimeCandidates = [];
 
+        $detectedImageMime = $this->detectActualImageMimeType($tmpName);
+        if ($detectedImageMime !== '') {
+            $mimeCandidates[] = $detectedImageMime;
+        }
+
         $reportedMime = strtolower(trim($reportedMime));
         if ($reportedMime !== '') {
             $mimeCandidates[] = $reportedMime;
@@ -243,6 +248,30 @@ final class EditorJsUploadService
         return '';
     }
 
+    private function detectActualImageMimeType(string $tmpName): string
+    {
+        if (!is_file($tmpName)) {
+            return '';
+        }
+
+        if (function_exists('exif_imagetype')) {
+            $imageType = @exif_imagetype($tmpName);
+            if (is_int($imageType)) {
+                $mimeType = image_type_to_mime_type($imageType);
+                if (is_string($mimeType) && trim($mimeType) !== '') {
+                    return strtolower(trim($mimeType));
+                }
+            }
+        }
+
+        $imageInfo = @getimagesize($tmpName);
+        if (is_array($imageInfo) && isset($imageInfo['mime']) && is_string($imageInfo['mime']) && trim($imageInfo['mime']) !== '') {
+            return strtolower(trim($imageInfo['mime']));
+        }
+
+        return '';
+    }
+
     private function sanitizeFolderSegment(string $value): string
     {
         $value = strtolower(trim($value));
@@ -267,7 +296,7 @@ final class EditorJsUploadService
         $relativePath = ($normalizedTargetPath !== '' ? $normalizedTargetPath . '/' : '') . ltrim($storedFile, '/');
         $fullPath = rtrim((string) UPLOAD_PATH, '/\\') . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relativePath);
         $mediaDelivery = MediaDeliveryService::getInstance();
-        $accessUrl = $this->toRelativeMediaUrl($mediaDelivery->buildAccessUrl($relativePath, true));
+        $accessUrl = $this->toRelativeMediaUrl($mediaDelivery->buildDeliveryUrl($relativePath, 'inline'));
 
         return [
             'url' => $accessUrl,

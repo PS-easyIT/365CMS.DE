@@ -451,6 +451,141 @@
         });
     }
 
+    const recentClipboardImages = [];
+    const RECENT_CLIPBOARD_IMAGE_TTL_MS = 4000;
+    const RECENT_CLIPBOARD_IMAGE_LIMIT = 6;
+
+    function isImageBlobCandidate(file) {
+        return Boolean(
+            file
+            && typeof file === 'object'
+            && file instanceof Blob
+            && String(file.type || '').toLowerCase().startsWith('image/')
+        );
+    }
+
+    function pruneRecentClipboardImages() {
+        const cutoff = Date.now() - RECENT_CLIPBOARD_IMAGE_TTL_MS;
+
+        for (let index = recentClipboardImages.length - 1; index >= 0; index -= 1) {
+            if (Number(recentClipboardImages[index].capturedAt || 0) < cutoff) {
+                recentClipboardImages.splice(index, 1);
+            }
+        }
+    }
+
+    function collectClipboardImageFiles(clipboardData) {
+        if (!clipboardData) {
+            return [];
+        }
+
+        const candidates = [];
+        const pushCandidate = function (file) {
+            if (!isImageBlobCandidate(file)) {
+                return;
+            }
+
+            const duplicate = candidates.some(function (candidate) {
+                return String(candidate.name || '') === String(file.name || '')
+                    && Number(candidate.size || 0) === Number(file.size || 0)
+                    && String(candidate.type || '') === String(file.type || '')
+                    && Number(candidate.lastModified || 0) === Number(file.lastModified || 0);
+            });
+
+            if (!duplicate) {
+                candidates.push(file);
+            }
+        };
+
+        Array.from(clipboardData.files || []).forEach(pushCandidate);
+
+        Array.from(clipboardData.items || []).forEach(function (item) {
+            if (!item || item.kind !== 'file' || !String(item.type || '').toLowerCase().startsWith('image/')) {
+                return;
+            }
+
+            if (typeof item.getAsFile === 'function') {
+                pushCandidate(item.getAsFile());
+            }
+        });
+
+        return candidates;
+    }
+
+    function rememberClipboardImageFiles(event) {
+        const clipboardData = event && event.clipboardData ? event.clipboardData : null;
+        const files = collectClipboardImageFiles(clipboardData);
+
+        if (files.length === 0) {
+            return;
+        }
+
+        pruneRecentClipboardImages();
+
+        files.forEach(function (file) {
+            recentClipboardImages.push({
+                capturedAt: Date.now(),
+                file: file,
+            });
+        });
+
+        if (recentClipboardImages.length > RECENT_CLIPBOARD_IMAGE_LIMIT) {
+            recentClipboardImages.splice(0, recentClipboardImages.length - RECENT_CLIPBOARD_IMAGE_LIMIT);
+        }
+    }
+
+    function hasMeaningfulImageFileName(file) {
+        const name = file && typeof file.name === 'string' ? file.name.trim() : '';
+
+        if (name === '' || !/\.[a-z0-9]+$/i.test(name)) {
+            return false;
+        }
+
+        return !/^(?:image|pasted[\s_-]*image|clipboard[\s_-]*image)(?:[\s_-]*\d+)?\.[a-z0-9]+$/i.test(name);
+    }
+
+    function takeRecentClipboardImageFile(preferredMimeType) {
+        pruneRecentClipboardImages();
+
+        if (recentClipboardImages.length === 0) {
+            return null;
+        }
+
+        const normalizedMimeType = String(preferredMimeType || '').toLowerCase().trim();
+        let matchIndex = -1;
+
+        if (normalizedMimeType !== '') {
+            matchIndex = recentClipboardImages.findIndex(function (entry) {
+                return String(entry && entry.file && entry.file.type || '').toLowerCase() === normalizedMimeType;
+            });
+        }
+
+        if (matchIndex < 0) {
+            matchIndex = recentClipboardImages.length - 1;
+        }
+
+        const match = recentClipboardImages.splice(matchIndex, 1)[0] || null;
+        return match && match.file ? match.file : null;
+    }
+
+    function resolveClipboardUploadFile(file) {
+        const recentClipboardFile = takeRecentClipboardImageFile(file && file.type ? file.type : '');
+
+        if (!recentClipboardFile) {
+            return file;
+        }
+
+        if (!file || typeof file !== 'object') {
+            return recentClipboardFile;
+        }
+
+        if (hasMeaningfulImageFileName(file)) {
+            return file;
+        }
+
+        return recentClipboardFile;
+    }
+
     function inferImageExtension(file) {
         const mimeType = file && typeof file.type === 'string'
             ? file.type.toLowerCase()
@@ -1174,13 +1309,19 @@
 
             async onPaste(event) {
                 if (event && event.type === 'file' && event.detail && event.detail.file) {
-                    this.uploadFile(event.detail.file);
+                    this.uploadFile(resolveClipboardUploadFile(event.detail.file));
                     return;
                 }
 
                 if (event && event.type === 'tag' && event.detail && event.detail.data) {
                     const source = String(event.detail.data.src || '');
                     if (/^blob:/i.test(source)) {
+                        const clipboardFile = takeRecentClipboardImageFile();
+                        if (clipboardFile) {
+                            this.uploadFile(clipboardFile);
+                            return;
+                        }
+
                         try {
                             const response = await fetch(source);
                             const blob = await response.blob();
@@ -1506,6 +1647,11 @@
 
         if (!holder || typeof resolved.editorjs !== 'function') {
             throw new Error('EditorJS core ist nicht geladen oder Holder fehlt.');
+        }
+
+        if (holder.dataset.cmsClipboardCaptureBound !== '1') {
+            holder.addEventListener('paste', rememberClipboardImageFiles, true);
+            holder.dataset.cmsClipboardCaptureBound = '1';
         }
 
         const cropperTuneKey = resolved.cropperTune ? 'Cropper' : null;

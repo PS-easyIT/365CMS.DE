@@ -79,6 +79,58 @@ function renderMoveTargetOptions(array $targets, string $selectedPath = ''): str
     return $html;
 }
 
+function renderMediaUsageList(array $usageItems, int $maxVisible = 3): string {
+    if ($usageItems === []) {
+        return '<span class="text-secondary">Nicht eingebunden</span>';
+    }
+
+    $html = '<div class="d-flex flex-column gap-1">';
+    $visibleItems = array_slice($usageItems, 0, $maxVisible);
+
+    foreach ($visibleItems as $usageItem) {
+        if (!is_array($usageItem)) {
+            continue;
+        }
+
+        $editUrl = (string)($usageItem['edit_url'] ?? '');
+        $typeLabel = (string)($usageItem['content_type_label'] ?? 'Inhalt');
+        $title = (string)($usageItem['title'] ?? 'Ohne Titel');
+        $fieldLabel = (string)($usageItem['field_label'] ?? 'Verwendung');
+
+        $html .= '<a href="' . htmlspecialchars($editUrl, ENT_QUOTES) . '" class="d-inline-flex flex-wrap align-items-center gap-1 text-reset text-decoration-none small">';
+        $html .= '<span class="badge bg-blue-lt">' . htmlspecialchars($typeLabel) . '</span>';
+        $html .= '<span class="fw-medium">' . htmlspecialchars($title) . '</span>';
+        $html .= '<span class="text-secondary">(' . htmlspecialchars($fieldLabel) . ')</span>';
+        $html .= '</a>';
+    }
+
+    $remaining = count($usageItems) - count($visibleItems);
+    if ($remaining > 0) {
+        $html .= '<span class="text-secondary small">+ ' . $remaining . ' weitere Referenz' . ($remaining === 1 ? '' : 'en') . '</span>';
+    }
+
+    $html .= '</div>';
+
+    return $html;
+}
+
+function renderMediaUsageSummary(array $usageItems, int $usageCount): string {
+    if ($usageCount <= 0 || $usageItems === []) {
+        return '<span class="text-secondary">Nicht eingebunden</span>';
+    }
+
+    $firstUsage = is_array($usageItems[0] ?? null) ? $usageItems[0] : [];
+    $summary = $usageCount === 1 ? '1 Verwendung' : $usageCount . ' Verwendungen';
+    $label = trim((string)($firstUsage['content_type_label'] ?? '') . ' ' . (string)($firstUsage['title'] ?? ''));
+
+    $html = '<span class="text-success">' . htmlspecialchars($summary) . '</span>';
+    if ($label !== '') {
+        $html .= '<span class="text-secondary"> · ' . htmlspecialchars($label) . '</span>';
+    }
+
+    return $html;
+}
+
 ?>
 
 <div class="page-header d-print-none">
@@ -329,6 +381,7 @@ function renderMoveTargetOptions(array $targets, string $selectedPath = ''): str
                                     </div>
                                     <div class="media-grid-label"><?php echo htmlspecialchars((string)($file['name'] ?? '')); ?></div>
                                     <div class="media-grid-meta"><?php echo htmlspecialchars((string)($file['category_label'] ?? 'Ohne Kategorie')); ?></div>
+                                    <div class="media-grid-meta small"><?php echo renderMediaUsageSummary((array)($file['usage_items'] ?? []), (int)($file['usage_count'] ?? 0)); ?></div>
                                 </div>
                             <?php endforeach; ?>
                         </div>
@@ -345,6 +398,7 @@ function renderMoveTargetOptions(array $targets, string $selectedPath = ''): str
                                         <th style="width: 60px;">Typ</th>
                                         <th>Name</th>
                                         <th>Kategorie</th>
+                                        <th>Eingebunden in</th>
                                         <th>Größe</th>
                                         <th>Geändert</th>
                                         <th class="w-1">Aktionen</th>
@@ -374,6 +428,7 @@ function renderMoveTargetOptions(array $targets, string $selectedPath = ''): str
                                                     <span class="text-secondary">—</span>
                                                 <?php endif; ?>
                                             </td>
+                                            <td><span class="text-secondary">—</span></td>
                                             <td class="text-secondary"><?php echo (int)($folder['items_count'] ?? 0); ?> Einträge</td>
                                             <td class="text-secondary"><?php echo htmlspecialchars((string)($folder['modified_label'] ?? '—')); ?></td>
                                             <td>
@@ -428,6 +483,7 @@ function renderMoveTargetOptions(array $targets, string $selectedPath = ''): str
                                                     </select>
                                                 </form>
                                             </td>
+                                            <td><?php echo renderMediaUsageList((array)($file['usage_items'] ?? [])); ?></td>
                                             <td class="text-secondary"><?php echo htmlspecialchars((string)($file['formatted_size'] ?? '—')); ?></td>
                                             <td class="text-secondary"><?php echo htmlspecialchars((string)($file['modified_label'] ?? '—')); ?></td>
                                             <td>

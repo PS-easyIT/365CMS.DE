@@ -391,9 +391,9 @@ final class MediaDeliveryService
 
     private function detectMimeType(string $absolutePath): string
     {
-        $mimeType = '';
+        $mimeType = $this->detectActualImageMimeType($absolutePath);
 
-        if (function_exists('finfo_open')) {
+        if ($mimeType === '' && function_exists('finfo_open')) {
             $finfo = finfo_open(FILEINFO_MIME_TYPE);
             if ($finfo !== false) {
                 $detected = finfo_file($finfo, $absolutePath);
@@ -408,6 +408,30 @@ final class MediaDeliveryService
         }
 
         return $mimeType !== '' ? $mimeType : 'application/octet-stream';
+    }
+
+    private function detectActualImageMimeType(string $absolutePath): string
+    {
+        if (!is_file($absolutePath)) {
+            return '';
+        }
+
+        if (function_exists('exif_imagetype')) {
+            $imageType = @exif_imagetype($absolutePath);
+            if (is_int($imageType)) {
+                $mimeType = image_type_to_mime_type($imageType);
+                if (is_string($mimeType) && trim($mimeType) !== '') {
+                    return strtolower(trim($mimeType));
+                }
+            }
+        }
+
+        $imageInfo = @getimagesize($absolutePath);
+        if (is_array($imageInfo) && isset($imageInfo['mime']) && is_string($imageInfo['mime']) && trim($imageInfo['mime']) !== '') {
+            return strtolower(trim($imageInfo['mime']));
+        }
+
+        return '';
     }
 
     /**
