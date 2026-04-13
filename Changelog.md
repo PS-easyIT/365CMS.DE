@@ -1,4 +1,4 @@
-﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.222-blue.svg)](https://shields.io/)
+﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.223-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -19,6 +19,18 @@
 ## 📜 Vollständige Versionshistorie
 
 ---
+
+### v2.9.224 — 13. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.224** | 🔴 fix | Admin/EditorJS Medienordner | **`CMS/assets/js/editor-init.js` und `CMS/assets/editorjs/cropper-tune.umd.js` ziehen jetzt auch die restlichen bildbezogenen Editor.js-Workflows auf denselben Beitrags-/Seitenordnervertrag wie normale Inhaltsbilder und Cover**: Carousel-Uploads verwenden nun denselben kontextgebundenen Datei-/URL-Uploader wie das Standard-Image-Tool, das Drawing-Tool lädt neu eingefügte Canvas-Bilder sowie Save-Rewrites nicht mehr als lose Data-URLs oder generische Dateien weg, sondern über den passenden Post-/Page-Kontext hoch, und der Cropper-Tune promoted zugeschnittene Bilder beim Anwenden direkt als echte Upload-Datei in den richtigen `articles/<slug>`- bzw. `pages/<slug>`-Ordner statt nur ein eingebettetes `data:image/...` im Block zu hinterlassen. |
+
+### v2.9.223 — 13. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.223** | 🔴 fix | Frontend/EditorJS Medienkonsistenz | **`CMS/core/Services/EditorJsRenderer.php` normalisiert Public-Medien-URLs für alle relevanten Editor.js-Medienblöcke jetzt zentral und einheitlich**: Neben normalen Bild- und Attachment-Blöcken folgen nun auch Cropper-Ausgaben, Galerie, MediaText, Carousel, Drawing und Link-Preview-Bilder demselben hostneutralen Frontend-Vertrag über `MediaDeliveryService::normalizeUrl(...)`, sodass interne `/media-file?...`- und `/uploads/...`-Pfade im öffentlichen Output konsistent gerendert werden statt blockabhängig mal roh, mal gar nicht oder mal nur als absolute URL zu funktionieren. |
 
 ### v2.9.222 — 13. April 2026
 

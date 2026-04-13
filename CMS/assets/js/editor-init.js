@@ -669,6 +669,12 @@
         }
     }
 
+    function isInternalMediaUrl(url) {
+        const normalizedUrl = normalizeInternalMediaUrl(url);
+
+        return normalizedUrl.startsWith('/media-file') || normalizedUrl.startsWith('/uploads/');
+    }
+
     function normalizeUploadPayload(payload) {
         if (!payload || typeof payload !== 'object') {
             return payload;
@@ -679,6 +685,76 @@
         }
 
         return payload;
+    }
+
+    async function createUploadFileFromImageSource(imageSource, fileNamePrefix) {
+        const normalizedSource = String(imageSource || '').trim();
+        if (normalizedSource === '') {
+            throw new Error('Bildquelle fehlt.');
+        }
+
+        let blob;
+
+        try {
+            const response = await fetch(normalizedSource);
+            blob = await response.blob();
+        } catch (_error) {
+            throw new Error('Bildquelle konnte nicht gelesen werden.');
+        }
+
+        if (!(blob instanceof Blob) || !String(blob.type || '').toLowerCase().startsWith('image/')) {
+            throw new Error('Ungültige Bildquelle.');
+        }
+
+        const baseName = String(fileNamePrefix || 'editor-image').trim() || 'editor-image';
+        const fileName = `${baseName}-${Date.now()}.${inferImageExtension(blob)}`;
+
+        if (typeof File === 'function') {
+            try {
+                return normalizeUploadFile(new File([blob], fileName, {
+                    type: typeof blob.type === 'string' && blob.type !== '' ? blob.type : 'application/octet-stream',
+                    lastModified: Date.now(),
+                }));
+            } catch (_error) {
+                // Fallback weiter unten.
+            }
+        }
+
+        try {
+            Object.defineProperty(blob, 'name', {
+                configurable: true,
+                value: fileName,
+            });
+        } catch (_error) {
+            // Manche Browser erlauben das Überschreiben von Blob.name nicht.
+        }
+
+        return normalizeUploadFile(blob);
+    }
+
+    async function uploadEditorInlineImage(uploadUrl, csrfToken, imageSource, uploadContext, fileNamePrefix) {
+        const normalizedSource = normalizeInternalMediaUrl(imageSource);
+        if (normalizedSource === '') {
+            throw new Error('Bildquelle fehlt.');
+        }
+
+        if (isInternalMediaUrl(normalizedSource)) {
+            return normalizedSource;
+        }
+
+        if (!/^data:image\//i.test(normalizedSource) && !/^blob:/i.test(normalizedSource)) {
+            return normalizedSource;
+        }
+
+        const file = await createUploadFileFromImageSource(normalizedSource, fileNamePrefix);
+        const payload = await uploadEditorImageFile(uploadUrl, csrfToken, file, uploadContext);
+        const uploadedUrl = payload && payload.file && payload.file.url ? String(payload.file.url) : '';
+
+        if (uploadedUrl === '') {
+            throw new Error('Bild-Upload fehlgeschlagen.');
+        }
+
+        return uploadedUrl;
     }
 
     function settleImageToolUploadState(tool, url) {
@@ -1497,7 +1573,7 @@
         };
     }
 
-    function createCarouselConfig(carouselClass, uploadUrl, csrfToken) {
+    function createCarouselConfig(carouselClass, uploadUrl, csrfToken, uploadContext) {
         if (!carouselClass) {
             return null;
         }
@@ -1506,9 +1582,18 @@
         if (uploadUrl) {
             config.config = {
                 additionalRequestHeaders: buildHeaders(csrfToken),
+                additionalRequestData: csrfToken ? { csrf_token: csrfToken } : {},
                 endpoints: {
                     byFile: buildQueryUrl(uploadUrl, 'upload_image'),
                     byUrl: buildQueryUrl(uploadUrl, 'fetch_image'),
+                },
+                uploader: {
+                    uploadByFile: function (file) {
+                        return uploadEditorImageFile(uploadUrl, csrfToken, file, uploadContext);
+                    },
+                    uploadByUrl: function (remoteUrl) {
+                        return fetchEditorImageByUrl(uploadUrl, csrfToken, remoteUrl, uploadContext);
+                    },
                 },
             };
         }
@@ -1526,7 +1611,7 @@
         };
     }
 
-    function createDrawingConfig(drawingClass) {
+    function createDrawingConfig(drawingClass, uploadUrl, csrfToken, uploadContext) {
         if (!drawingClass) {
             return null;
         }
@@ -1537,11 +1622,16 @@
             config: {
                 defaultBackground: '#ffffff',
                 defaultStrokeColor: '#111827',
+                uploader: uploadUrl ? {
+                    uploadImage: function (imageSource) {
+                        return uploadEditorInlineImage(uploadUrl, csrfToken, imageSource, uploadContext, 'drawing-image');
+                    },
+                } : undefined,
             },
         };
     }
 
-    function createCropperTuneConfig(cropperTuneClass, uploadUrl, csrfToken) {
+    function createCropperTuneConfig(cropperTuneClass, uploadUrl, csrfToken, uploadContext) {
         if (!cropperTuneClass || !uploadUrl) {
             return null;
         }
@@ -1551,6 +1641,11 @@
             config: {
                 uploadUrl: buildQueryUrl(uploadUrl, 'upload_image'),
                 headers: buildHeaders(csrfToken),
+                uploader: {
+                    uploadImage: function (imageSource) {
+                        return uploadEditorInlineImage(uploadUrl, csrfToken, imageSource, uploadContext, 'cropped-image');
+                    },
+                },
             },
         };
     }
@@ -1713,7 +1808,7 @@
                 },
             },
             spoiler: resolved.spoiler ? { class: resolved.spoiler } : null,
-            Cropper: createCropperTuneConfig(resolved.cropperTune, uploadUrl, csrfToken),
+            Cropper: createCropperTuneConfig(resolved.cropperTune, uploadUrl, csrfToken, getUploadContext),
         });
 
         const childTools = createColumnChildTools(baseTools, ['columns', 'accordion', 'carousel', 'drawingTool']);
@@ -1726,9 +1821,9 @@
             embed: createEmbedConfig(resolved.embed),
             columns: createColumnsConfig(resolved.columns, resolved.editorjs, childTools),
             accordion: createAccordionConfig(resolved.accordion),
-            carousel: createCarouselConfig(resolved.carousel, uploadUrl, csrfToken),
+            carousel: createCarouselConfig(resolved.carousel, uploadUrl, csrfToken, getUploadContext),
             imageGallery: createImageGalleryConfig(resolved.imageGallery),
-            drawingTool: createDrawingConfig(resolved.drawingTool),
+            drawingTool: createDrawingConfig(resolved.drawingTool, uploadUrl, csrfToken, getUploadContext),
         });
 
         const editor = new resolved.editorjs({

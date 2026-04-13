@@ -336,16 +336,17 @@ final class EditorJsRenderer
     private function renderImage(array $data, array $tunes = []): string
     {
         $file = is_array($data['file'] ?? null) ? $data['file'] : [];
-        $imageUrl = \CMS\Services\MediaDeliveryService::getInstance()->normalizeUrl((string)($file['url'] ?? ''), true);
+        $imageUrl = $this->normalizeRenderableAssetUrl((string)($file['url'] ?? ''), true);
 
         foreach (['Cropper', 'CropperTune'] as $tuneKey) {
-            if (!empty($tunes[$tuneKey]['croppedImage']) && $this->isRenderableAssetUrl((string) $tunes[$tuneKey]['croppedImage'])) {
-                $imageUrl = (string)$tunes[$tuneKey]['croppedImage'];
+            $croppedImage = $this->normalizeRenderableAssetUrl((string) ($tunes[$tuneKey]['croppedImage'] ?? ''), true);
+            if ($croppedImage !== '') {
+                $imageUrl = $croppedImage;
                 break;
             }
         }
 
-        if (!$this->isRenderableAssetUrl($imageUrl)) {
+        if ($imageUrl === '') {
             return '';
         }
 
@@ -375,8 +376,8 @@ final class EditorJsRenderer
     private function renderAttaches(array $data): string
     {
         $file = is_array($data['file'] ?? null) ? $data['file'] : [];
-        $url = \CMS\Services\MediaDeliveryService::getInstance()->normalizeUrl((string)($file['url'] ?? ''), false);
-        if (!$this->isRenderableAssetUrl($url)) {
+        $url = $this->normalizeRenderableAssetUrl((string)($file['url'] ?? ''), false);
+        if ($url === '') {
             return '';
         }
 
@@ -398,10 +399,10 @@ final class EditorJsRenderer
         $meta = is_array($data['meta'] ?? null) ? $data['meta'] : [];
         $title = $this->sanitizeInline((string)($meta['title'] ?? $link));
         $description = $this->sanitizeInline((string)($meta['description'] ?? ''));
-        $image = (string)($meta['image']['url'] ?? '');
+        $image = $this->normalizeRenderableAssetUrl((string)($meta['image']['url'] ?? ''), true);
 
         $html = '<div class="editorjs-block editorjs-link"><a href="' . htmlspecialchars($link, ENT_QUOTES, 'UTF-8') . '" target="_blank" rel="noopener noreferrer">';
-        if (filter_var($image, FILTER_VALIDATE_URL)) {
+        if ($image !== '') {
             $html .= '<div class="editorjs-link__image"><img src="' . htmlspecialchars($image, ENT_QUOTES, 'UTF-8') . '" alt="" loading="lazy"></div>';
         }
         $html .= '<div class="editorjs-link__content"><strong>' . $title . '</strong>';
@@ -463,8 +464,8 @@ final class EditorJsRenderer
             }
 
             $file = is_array($item['file'] ?? null) ? $item['file'] : [];
-            $url = \CMS\Services\MediaDeliveryService::getInstance()->normalizeUrl((string)($file['url'] ?? ''), true);
-            if (!$this->isRenderableAssetUrl($url)) {
+            $url = $this->normalizeRenderableAssetUrl((string)($file['url'] ?? ''), true);
+            if ($url === '') {
                 continue;
             }
 
@@ -478,8 +479,8 @@ final class EditorJsRenderer
         if ($images === []) {
             $urls = is_array($data['urls'] ?? null) ? $data['urls'] : [];
             foreach ($urls as $url) {
-                $normalizedUrl = \CMS\Services\MediaDeliveryService::getInstance()->normalizeUrl((string)$url, true);
-                if (!$this->isRenderableAssetUrl($normalizedUrl)) {
+                $normalizedUrl = $this->normalizeRenderableAssetUrl((string)$url, true);
+                if ($normalizedUrl === '') {
                     continue;
                 }
 
@@ -516,10 +517,7 @@ final class EditorJsRenderer
     private function renderMediaText(array $data): string
     {
         $file = is_array($data['file'] ?? null) ? $data['file'] : [];
-        $imageUrl = \CMS\Services\MediaDeliveryService::getInstance()->normalizeUrl((string)($file['url'] ?? ''), true);
-        if (!$this->isRenderableAssetUrl($imageUrl)) {
-            $imageUrl = '';
-        }
+        $imageUrl = $this->normalizeRenderableAssetUrl((string)($file['url'] ?? ''), true);
 
         $textHtml = $this->renderPlainTextContent((string)($data['text'] ?? ''));
         if ($imageUrl === '' && $textHtml === '') {
@@ -794,8 +792,8 @@ final class EditorJsRenderer
                 continue;
             }
 
-            $url = (string)($item['url'] ?? '');
-            if (!$this->isRenderableAssetUrl($url)) {
+            $url = $this->normalizeRenderableAssetUrl((string)($item['url'] ?? ''), true);
+            if ($url === '') {
                 continue;
             }
 
@@ -862,8 +860,8 @@ final class EditorJsRenderer
                 continue;
             }
 
-            $src = (string)($image['src'] ?? '');
-            if (!$this->isRenderableAssetUrl($src, true)) {
+            $src = $this->normalizeRenderableAssetUrl((string)($image['src'] ?? ''), true, true);
+            if ($src === '') {
                 continue;
             }
 
@@ -884,22 +882,31 @@ final class EditorJsRenderer
         ) ?? $sanitized;
     }
 
-    private function isRenderableAssetUrl(string $url, bool $allowDataImage = false): bool
+    private function normalizeRenderableAssetUrl(string $url, bool $preferInline = false, bool $allowDataImage = false): string
     {
         $url = trim($url);
         if ($url === '') {
-            return false;
+            return '';
         }
 
         if ($allowDataImage && str_starts_with($url, 'data:image/')) {
-            return true;
+            return $url;
         }
 
-        if (filter_var($url, FILTER_VALIDATE_URL)) {
-            return true;
+        $normalizedUrl = \CMS\Services\MediaDeliveryService::getInstance()->normalizeUrl($url, $preferInline);
+        $normalizedUrl = trim($normalizedUrl);
+
+        if ($normalizedUrl === '') {
+            return '';
         }
 
-        return preg_match('#^/(?:media-file(?:\?|$)|uploads(?:/|$))#', $url) === 1;
+        if (filter_var($normalizedUrl, FILTER_VALIDATE_URL)) {
+            return $normalizedUrl;
+        }
+
+        return preg_match('#^/(?:media-file(?:\?|$)|uploads(?:/|$))#', $normalizedUrl) === 1
+            ? $normalizedUrl
+            : '';
     }
 
     private function renderMarkdownInline(string $markdown): string
