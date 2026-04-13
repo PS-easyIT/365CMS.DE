@@ -1,4 +1,4 @@
-﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.210-blue.svg)](https://shields.io/)
+﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.214-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -19,6 +19,30 @@
 ## 📜 Vollständige Versionshistorie
 
 ---
+
+### v2.9.214 — 13. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.214** | 🔴 fix | Admin/EditorJS Clipboard Formaterkennung | **`CMS/core/Services/EditorJs/EditorJsUploadService.php` normalisiert Clipboard-Bilduploads jetzt anhand des real erkannten MIME-Typs der temporären Datei statt sich nur auf den vom Browser gelieferten Dateinamen zu verlassen**: JPG-, PNG-, GIF-, BMP-, AVIF- und WebP-Bilder aus der Zwischenablage behalten damit beim Editor.js-Upload wieder zuverlässig die zu ihren echten Bilddaten passende Original-Endung, und der Featured-Image-Pfadvertrag bleibt trotz der zuletzt hostneutral relativierten Media-URLs weiterhin korrekt auflösbar. |
+
+### v2.9.213 — 13. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.213** | 🔴 fix | Admin/EditorJS Media Response Contract | **`CMS/core/Services/EditorJs/EditorJsUploadService.php` und `CMS/core/Services/EditorJs/EditorJsImageLibraryService.php` liefern Editor.js-Bild- und Bibliotheks-URLs für interne Medien jetzt hostneutral als relative `/uploads/...`- bzw. `/media-file?...`-Pfade aus**: Neu hochgeladene Clipboard-/Direktuploads und Bibliothekseinträge hängen damit nicht länger an einer eventuell vom aktuellen Admin-Host abweichenden `SITE_URL`/`UPLOAD_URL`-Origin, was den hängenden Bild-Spinner im Editor bei erfolgreichem Upload zusätzlich serverseitig absichert. |
+
+### v2.9.212 — 13. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.212** | 🔴 fix | Admin/EditorJS Media URL Runtime | **`CMS/assets/js/editor-init.js` normalisiert vom Editor.js-Media-Endpunkt zurückgelieferte interne Bild-URLs jetzt hostneutral auf die aktuelle Browser-Origin und ergänzt ein hartes Timeout-Fallback für den Upload-State**: Clipboard- und Direktuploads geraten damit auch dann nicht mehr in einem dauerhaften Spinner-Zustand, wenn `SITE_URL`/`UPLOAD_URL` von der aktuell genutzten Admin-Origin abweichen oder ein interner Bild-Load-Request seinen finalen Load/Error-Event nicht sauber liefert. |
+
+### v2.9.211 — 13. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.211** | 🔴 fix | Admin/EditorJS Clipboard Upload | **`CMS/assets/js/editor-init.js` härtet den Bild-Paste-Flow im Editor.js-Image-Tool jetzt gegen Clipboard-/Blob-Sonderfälle und verlorene Load-Events ab**: Bilder aus der Zwischenablage bekommen bei Bedarf einen stabilen Dateinamen mit passender Endung, und der Image-Block finalisiert seinen Render-/Preloader-Status nach erfolgreichem Upload robuster inklusive Retry/Fallback, sodass eingefügte Clipboard-Bilder im Editor nicht mehr dauerhaft im Ladekreis hängen bleiben, obwohl der Upload bereits erfolgreich war. |
 
 ### v2.9.210 — 12. April 2026
 

@@ -451,10 +451,226 @@
         });
     }
 
+    function inferImageExtension(file) {
+        const mimeType = file && typeof file.type === 'string'
+            ? file.type.toLowerCase()
+            : '';
+
+        switch (mimeType) {
+            case 'image/jpeg':
+            case 'image/jpg':
+                return 'jpg';
+            case 'image/gif':
+                return 'gif';
+            case 'image/webp':
+                return 'webp';
+            case 'image/avif':
+                return 'avif';
+            case 'image/bmp':
+                return 'bmp';
+            default:
+                return 'png';
+        }
+    }
+
+    function normalizeUploadFile(file) {
+        if (!file || typeof file !== 'object') {
+            return file;
+        }
+
+        const currentName = typeof file.name === 'string' ? file.name.trim() : '';
+        if (currentName !== '' && /\.[a-z0-9]+$/i.test(currentName)) {
+            return file;
+        }
+
+        const normalizedName = 'clipboard-image-' + Date.now() + '.' + inferImageExtension(file);
+
+        if (typeof File === 'function' && file instanceof Blob) {
+            try {
+                return new File([file], normalizedName, {
+                    type: typeof file.type === 'string' && file.type !== '' ? file.type : 'application/octet-stream',
+                    lastModified: Date.now(),
+                });
+            } catch (_error) {
+                // Fallback weiter unten.
+            }
+        }
+
+        try {
+            Object.defineProperty(file, 'name', {
+                configurable: true,
+                value: normalizedName,
+            });
+        } catch (_error) {
+            // Manche Browser erlauben das Überschreiben von Blob.name nicht.
+        }
+
+        return file;
+    }
+
+    function withCacheBuster(url) {
+        const separator = url.includes('?') ? '&' : '?';
+        return `${url}${separator}cb=${Date.now()}`;
+    }
+
+    function normalizeInternalMediaUrl(url) {
+        const rawUrl = String(url || '').trim();
+        if (rawUrl === '') {
+            return '';
+        }
+
+        try {
+            const parsedUrl = new URL(rawUrl, window.location.origin);
+            const path = String(parsedUrl.pathname || '');
+            const isInternalMediaPath = path === '/media-file' || path.startsWith('/uploads/');
+
+            if (!isInternalMediaPath) {
+                return parsedUrl.href;
+            }
+
+            return `${path}${parsedUrl.search}${parsedUrl.hash}`;
+        } catch (_error) {
+            return rawUrl;
+        }
+    }
+
+    function normalizeUploadPayload(payload) {
+        if (!payload || typeof payload !== 'object') {
+            return payload;
+        }
+
+        if (payload.file && typeof payload.file === 'object' && payload.file.url) {
+            payload.file.url = normalizeInternalMediaUrl(payload.file.url);
+        }
+
+        return payload;
+    }
+
+    function settleImageToolUploadState(tool, url) {
+        if (!tool || !tool.ui || !tool.ui.nodes) {
+            return;
+        }
+
+        const ui = tool.ui;
+        const imageEl = ui.nodes.imageEl;
+        const preloader = ui.nodes.imagePreloader;
+
+        if (!imageEl || typeof url !== 'string' || url.trim() === '') {
+            return;
+        }
+
+        let settled = false;
+        let retried = false;
+        let timeoutId = null;
+
+        function clearPendingTimeout() {
+            if (timeoutId !== null) {
+                window.clearTimeout(timeoutId);
+                timeoutId = null;
+            }
+        }
+
+        function markFilled() {
+            if (settled) {
+                return;
+            }
+
+            settled = true;
+            clearPendingTimeout();
+            if (typeof ui.toggleStatus === 'function') {
+                ui.toggleStatus('filled');
+            }
+
+            if (preloader) {
+                preloader.style.backgroundImage = '';
+            }
+        }
+
+        function markFallbackFilled() {
+            if (settled) {
+                return;
+            }
+
+            settled = true;
+            clearPendingTimeout();
+            if (typeof console !== 'undefined' && typeof console.warn === 'function') {
+                console.warn('Editor.js Bild wurde hochgeladen, aber der Load-State musste fallbackartig finalisiert werden.', url);
+            }
+
+            if (typeof ui.toggleStatus === 'function') {
+                ui.toggleStatus('filled');
+            }
+
+            if (preloader) {
+                preloader.style.backgroundImage = '';
+            }
+        }
+
+        function retryLoad() {
+            if (retried) {
+                markFallbackFilled();
+                return;
+            }
+
+            retried = true;
+            window.setTimeout(function () {
+                if (settled) {
+                    return;
+                }
+
+                try {
+                    imageEl.src = withCacheBuster(url);
+                } catch (_error) {
+                    markFallbackFilled();
+                }
+            }, 180);
+        }
+
+        timeoutId = window.setTimeout(function () {
+            markFallbackFilled();
+        }, 1800);
+
+        if (String(imageEl.tagName || '').toUpperCase() === 'VIDEO') {
+            if (typeof imageEl.readyState === 'number' && imageEl.readyState >= 2) {
+                markFilled();
+                return;
+            }
+
+            imageEl.addEventListener('loadeddata', markFilled, { once: true });
+            imageEl.addEventListener('error', retryLoad, { once: true });
+            return;
+        }
+
+        if (typeof imageEl.complete === 'boolean' && imageEl.complete && Number(imageEl.naturalWidth || 0) > 0) {
+            markFilled();
+            return;
+        }
+
+        imageEl.addEventListener('load', markFilled, { once: true });
+        imageEl.addEventListener('error', retryLoad, { once: true });
+
+        window.setTimeout(function () {
+            if (settled) {
+                return;
+            }
+
+            if (typeof imageEl.complete === 'boolean' && imageEl.complete && Number(imageEl.naturalWidth || 0) > 0) {
+                markFilled();
+            }
+        }, 0);
+
+        window.setTimeout(function () {
+            if (!settled && typeof imageEl.complete === 'boolean' && imageEl.complete && Number(imageEl.naturalWidth || 0) > 0) {
+                markFilled();
+            }
+        }, 350);
+    }
+
     function uploadEditorImageFile(uploadUrl, csrfToken, file, uploadContext) {
+        const normalizedFile = normalizeUploadFile(file);
         const formData = new FormData();
         formData.append('action', 'upload_image');
-        formData.append('image', file);
+        formData.append('image', normalizedFile);
         appendUploadContext(formData, uploadContext);
 
         return fetchJson(uploadUrl, {
@@ -467,7 +683,7 @@
                 throw new Error(payload && payload.message ? payload.message : 'Bild-Upload fehlgeschlagen.');
             }
 
-            return payload;
+            return normalizeUploadPayload(payload);
         });
     }
 
@@ -492,7 +708,7 @@
                 throw new Error(payload && payload.message ? payload.message : 'Bild konnte nicht geladen werden.');
             }
 
-            return payload;
+            return normalizeUploadPayload(payload);
         });
     }
 
@@ -502,7 +718,19 @@
             headers: buildHeaders(csrfToken),
             credentials: 'same-origin',
         }).then(function (payload) {
-            return Array.isArray(payload.items) ? payload.items : [];
+            return Array.isArray(payload.items)
+                ? payload.items.map(function (item) {
+                    if (!item || typeof item !== 'object') {
+                        return item;
+                    }
+
+                    if (item.url) {
+                        item.url = normalizeInternalMediaUrl(item.url);
+                    }
+
+                    return item;
+                })
+                : [];
         });
     }
 
@@ -938,6 +1166,41 @@
                 super(nextOptions);
                 this.cmsImagePicker = imagePicker;
                 this.cmsImageLibraryButton = null;
+            }
+
+            uploadFile(file) {
+                return super.uploadFile(normalizeUploadFile(file));
+            }
+
+            async onPaste(event) {
+                if (event && event.type === 'file' && event.detail && event.detail.file) {
+                    this.uploadFile(event.detail.file);
+                    return;
+                }
+
+                if (event && event.type === 'tag' && event.detail && event.detail.data) {
+                    const source = String(event.detail.data.src || '');
+                    if (/^blob:/i.test(source)) {
+                        try {
+                            const response = await fetch(source);
+                            const blob = await response.blob();
+                            this.uploadFile(blob);
+                        } catch (error) {
+                            this.uploadingFailed(error);
+                        }
+                        return;
+                    }
+                }
+
+                return super.onPaste(event);
+            }
+
+            onUpload(payload) {
+                super.onUpload(payload);
+
+                if (payload && Number(payload.success) === 1 && payload.file && payload.file.url) {
+                    settleImageToolUploadState(this, String(payload.file.url));
+                }
             }
 
             render() {

@@ -64,7 +64,7 @@ final class EditorJsImageLibraryService
             $items[] = [
                 'name' => $file->getFilename(),
                 'path' => $relativePath,
-                'url' => $mediaDelivery->buildAccessUrl($relativePath, true),
+                'url' => $this->toRelativeMediaUrl($mediaDelivery->buildAccessUrl($relativePath, true)),
                 'size' => $file->getSize(),
                 'modified' => $file->getMTime(),
             ];
@@ -89,5 +89,28 @@ final class EditorJsImageLibraryService
         }
 
         return false;
+    }
+
+    private function toRelativeMediaUrl(string $url): string
+    {
+        $trimmedUrl = trim($url);
+        if ($trimmedUrl === '') {
+            return '';
+        }
+
+        $parts = parse_url($trimmedUrl);
+        if (!is_array($parts)) {
+            return $trimmedUrl;
+        }
+
+        $path = (string) ($parts['path'] ?? '');
+        if ($path === '' || ($path !== '/media-file' && !str_starts_with($path, '/uploads/'))) {
+            return $trimmedUrl;
+        }
+
+        $query = isset($parts['query']) && $parts['query'] !== '' ? '?' . $parts['query'] : '';
+        $fragment = isset($parts['fragment']) && $parts['fragment'] !== '' ? '#' . $parts['fragment'] : '';
+
+        return $path . $query . $fragment;
     }
 }

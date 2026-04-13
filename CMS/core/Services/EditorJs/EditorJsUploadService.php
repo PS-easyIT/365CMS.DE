@@ -86,6 +86,10 @@ final class EditorJsUploadService
      */
     public function storeUploadedFile(array $file, bool $imagesOnly, string $targetPath = 'editorjs'): array
     {
+        if ($imagesOnly) {
+            $file = $this->normalizeImageUploadFile($file);
+        }
+
         $extension = strtolower((string) pathinfo((string) ($file['name'] ?? ''), PATHINFO_EXTENSION));
 
         if ($imagesOnly && !$this->isAllowedImageExtension($extension)) {
@@ -141,6 +145,7 @@ final class EditorJsUploadService
         $subFolder = $isNew ? 'temp' : $slug;
         $targetPath = $baseFolder . '/' . $subFolder;
 
+        $file = $this->normalizeImageUploadFile($file);
         $extension = strtolower((string) pathinfo((string) ($file['name'] ?? ''), PATHINFO_EXTENSION));
         $file['name'] = $slug . ($extension !== '' ? '.' . $extension : '');
 
@@ -150,11 +155,7 @@ final class EditorJsUploadService
             $mediaService = MediaService::getInstance();
             $mediaService->ensureCategory('PhinIT-Cover', 'phinit-cover');
 
-            $uploadUrl = rtrim((string) (defined('UPLOAD_URL') ? UPLOAD_URL : ''), '/');
-            $fileUrl = rtrim((string) $result['file']['url'], '/');
-            $relativePath = $uploadUrl !== '' && str_starts_with($fileUrl, $uploadUrl)
-                ? ltrim(substr($fileUrl, strlen($uploadUrl)), '/')
-                : '';
+            $relativePath = $this->extractRelativeMediaPath((string) $result['file']['url']);
 
             if ($relativePath !== '') {
                 $mediaService->assignCategory($relativePath, 'phinit-cover');
@@ -172,6 +173,74 @@ final class EditorJsUploadService
     private function isAllowedImageExtension(string $extension): bool
     {
         return in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'avif', 'bmp'], true);
+    }
+
+    /**
+     * @param array<string,mixed> $file
+     * @return array<string,mixed>
+     */
+    private function normalizeImageUploadFile(array $file): array
+    {
+        $tmpName = (string) ($file['tmp_name'] ?? '');
+        if ($tmpName === '' || !is_file($tmpName)) {
+            return $file;
+        }
+
+        $detectedExtension = $this->detectImageExtensionFromFile($tmpName, (string) ($file['type'] ?? ''));
+        if ($detectedExtension === '') {
+            return $file;
+        }
+
+        $currentName = trim((string) ($file['name'] ?? ''));
+        $currentBaseName = pathinfo($currentName !== '' ? $currentName : 'clipboard-image', PATHINFO_FILENAME);
+        $currentBaseName = trim((string) $currentBaseName, " \t\n\r\0\x0B.-");
+        if ($currentBaseName === '') {
+            $currentBaseName = 'clipboard-image';
+        }
+
+        $file['name'] = $currentBaseName . '.' . $detectedExtension;
+
+        return $file;
+    }
+
+    private function detectImageExtensionFromFile(string $tmpName, string $reportedMime = ''): string
+    {
+        $mimeCandidates = [];
+
+        $reportedMime = strtolower(trim($reportedMime));
+        if ($reportedMime !== '') {
+            $mimeCandidates[] = $reportedMime;
+        }
+
+        if (function_exists('finfo_open')) {
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            if ($finfo !== false) {
+                $detectedMime = finfo_file($finfo, $tmpName);
+                finfo_close($finfo);
+
+                if (is_string($detectedMime) && trim($detectedMime) !== '') {
+                    $mimeCandidates[] = strtolower(trim($detectedMime));
+                }
+            }
+        }
+
+        foreach ($mimeCandidates as $mimeType) {
+            $extension = match ($mimeType) {
+                'image/jpeg', 'image/jpg', 'image/pjpeg' => 'jpg',
+                'image/png', 'image/x-png' => 'png',
+                'image/gif' => 'gif',
+                'image/webp' => 'webp',
+                'image/avif' => 'avif',
+                'image/bmp', 'image/x-bmp', 'image/x-ms-bmp', 'image/ms-bmp' => 'bmp',
+                default => '',
+            };
+
+            if ($extension !== '') {
+                return $extension;
+            }
+        }
+
+        return '';
     }
 
     private function sanitizeFolderSegment(string $value): string
@@ -198,12 +267,70 @@ final class EditorJsUploadService
         $relativePath = ($normalizedTargetPath !== '' ? $normalizedTargetPath . '/' : '') . ltrim($storedFile, '/');
         $fullPath = rtrim((string) UPLOAD_PATH, '/\\') . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relativePath);
         $mediaDelivery = MediaDeliveryService::getInstance();
+        $accessUrl = $this->toRelativeMediaUrl($mediaDelivery->buildAccessUrl($relativePath, true));
 
         return [
-            'url' => $mediaDelivery->buildAccessUrl($relativePath, true),
+            'url' => $accessUrl,
             'name' => basename($storedFile),
             'size' => file_exists($fullPath) ? (int) filesize($fullPath) : 0,
             'extension' => strtolower((string) pathinfo($storedFile, PATHINFO_EXTENSION)),
         ];
+    }
+
+    private function toRelativeMediaUrl(string $url): string
+    {
+        $trimmedUrl = trim($url);
+        if ($trimmedUrl === '') {
+            return '';
+        }
+
+        $parts = parse_url($trimmedUrl);
+        if (!is_array($parts)) {
+            return $trimmedUrl;
+        }
+
+        $path = (string) ($parts['path'] ?? '');
+        if ($path === '' || ($path !== '/media-file' && !str_starts_with($path, '/uploads/'))) {
+            return $trimmedUrl;
+        }
+
+        $query = isset($parts['query']) && $parts['query'] !== '' ? '?' . $parts['query'] : '';
+        $fragment = isset($parts['fragment']) && $parts['fragment'] !== '' ? '#' . $parts['fragment'] : '';
+
+        return $path . $query . $fragment;
+    }
+
+    private function extractRelativeMediaPath(string $url): string
+    {
+        $trimmedUrl = trim($url);
+        if ($trimmedUrl === '') {
+            return '';
+        }
+
+        $parts = parse_url($trimmedUrl);
+        if (!is_array($parts)) {
+            return '';
+        }
+
+        $path = (string) ($parts['path'] ?? '');
+        if ($path === '/media-file') {
+            $query = [];
+            parse_str((string) ($parts['query'] ?? ''), $query);
+            $relativePath = trim(str_replace('\\', '/', (string) ($query['path'] ?? '')), '/');
+            return str_contains($relativePath, '..') ? '' : $relativePath;
+        }
+
+        if (str_starts_with($path, '/uploads/')) {
+            $relativePath = ltrim(substr($path, strlen('/uploads/')), '/');
+            return str_contains($relativePath, '..') ? '' : trim($relativePath, '/');
+        }
+
+        $uploadUrl = rtrim((string) (defined('UPLOAD_URL') ? UPLOAD_URL : ''), '/');
+        if ($uploadUrl !== '' && str_starts_with($trimmedUrl, $uploadUrl)) {
+            $relativePath = ltrim(substr($trimmedUrl, strlen($uploadUrl)), '/');
+            return str_contains($relativePath, '..') ? '' : trim($relativePath, '/');
+        }
+
+        return '';
     }
 }
