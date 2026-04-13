@@ -240,6 +240,8 @@
         var nativeSubmitPending = false;
         var translationPreviewActive = false;
         var translationPreviewSuppressClear = false;
+        var pendingLazyBindings = {};
+        var suppressInitialCopyForKeys = {};
 
         if (!config) {
             return;
@@ -274,6 +276,37 @@
 
                 window.setTimeout(resolve, 0);
             });
+        }
+
+        function trackPendingLazyBinding(key, promise) {
+            var trackedPromise;
+
+            if (!key || !promise || typeof promise.then !== 'function') {
+                return promise;
+            }
+
+            trackedPromise = Promise.resolve(promise).then(function (result) {
+                if (pendingLazyBindings[key] === trackedPromise) {
+                    delete pendingLazyBindings[key];
+                }
+
+                return result;
+            }, function (error) {
+                if (pendingLazyBindings[key] === trackedPromise) {
+                    delete pendingLazyBindings[key];
+                }
+
+                throw error;
+            });
+
+            pendingLazyBindings[key] = trackedPromise;
+            return trackedPromise;
+        }
+
+        function waitForPendingLazyBinding(key) {
+            return key && pendingLazyBindings[key]
+                ? pendingLazyBindings[key]
+                : Promise.resolve();
         }
 
         function safeParseEditorInput(input) {
@@ -893,15 +926,36 @@
             }
         }
 
-        function activateTargetPane(buttonId) {
+        function activateTargetPane(buttonId, targetEditorKey, options) {
             var button = getElement(buttonId);
             var isActive = button && button.getAttribute('aria-pressed') === 'true';
+            var activateOptions = options && typeof options === 'object' ? options : {};
+
+            function cleanup() {
+                if (activateOptions.suppressInitialCopy && targetEditorKey) {
+                    delete suppressInitialCopyForKeys[targetEditorKey];
+                }
+            }
+
+            if (activateOptions.suppressInitialCopy && targetEditorKey) {
+                suppressInitialCopyForKeys[targetEditorKey] = true;
+            }
 
             if (button && !isActive) {
                 button.click();
             }
 
-            return waitForNextPaint();
+            return waitForNextPaint().then(function () {
+                return waitForPendingLazyBinding(targetEditorKey);
+            }).then(function () {
+                return waitForNextPaint();
+            }).then(function (result) {
+                cleanup();
+                return result;
+            }, function (error) {
+                cleanup();
+                throw error;
+            });
         }
 
         function destroyEditor(key) {
@@ -1045,9 +1099,10 @@
             return Promise.resolve(entry);
         }
 
-        function applyEditorData(key, data) {
+        function applyEditorData(key, data, options) {
             var definition = getDefinition(key);
             var input = definition ? getElement(definition.inputId) : null;
+            var applyOptions = options && typeof options === 'object' ? options : {};
             var normalizedData = normalizeEditorData(data);
             var renderResult;
 
@@ -1060,6 +1115,20 @@
 
             if (!definition) {
                 return Promise.resolve();
+            }
+
+            if (applyOptions.recreateEditor) {
+                return ensureEditorReady(key, true).then(function (entry) {
+                    return waitForNextPaint().then(function () {
+                        return entry;
+                    });
+                }).catch(function () {
+                    return ensureEditorReady(key, true).then(function (entry) {
+                        return waitForNextPaint().then(function () {
+                            return entry;
+                        });
+                    });
+                });
             }
 
             return ensureEditorReady(key).then(function (entry) {
@@ -1137,8 +1206,12 @@
                             copyFieldValue(copyAction.sourceSlugId, copyAction.targetSlugId);
                             copyFieldValue(copyAction.sourceExcerptId, copyAction.targetExcerptId);
 
-                            return activateTargetPane(copyAction.targetPaneButtonId).then(function () {
-                                return applyEditorData(copyAction.targetEditorKey, sourceData);
+                            return activateTargetPane(copyAction.targetPaneButtonId, copyAction.targetEditorKey, {
+                                suppressInitialCopy: true
+                            }).then(function () {
+                                return applyEditorData(copyAction.targetEditorKey, sourceData, {
+                                    recreateEditor: true
+                                });
                             });
                         });
                     }).then(function () {
@@ -1211,22 +1284,26 @@
 
         function applyResolvedTranslation(aiTranslation, resolvedOutput) {
             return withSuppressedPreviewClear(function () {
-                activateTargetPane(aiTranslation.targetPaneButtonId);
+                return activateTargetPane(aiTranslation.targetPaneButtonId, aiTranslation.targetEditorKey, {
+                    suppressInitialCopy: true
+                }).then(function () {
+                    if (aiTranslation.targetTitleId) {
+                        setFieldValue(aiTranslation.targetTitleId, resolvedOutput.title);
+                    }
 
-                if (aiTranslation.targetTitleId) {
-                    setFieldValue(aiTranslation.targetTitleId, resolvedOutput.title);
-                }
+                    if (aiTranslation.targetSlugId) {
+                        setFieldValue(aiTranslation.targetSlugId, resolvedOutput.slug);
+                    }
 
-                if (aiTranslation.targetSlugId) {
-                    setFieldValue(aiTranslation.targetSlugId, resolvedOutput.slug);
-                }
+                    if (aiTranslation.targetExcerptId) {
+                        setFieldValue(aiTranslation.targetExcerptId, resolvedOutput.excerpt);
+                    }
 
-                if (aiTranslation.targetExcerptId) {
-                    setFieldValue(aiTranslation.targetExcerptId, resolvedOutput.excerpt);
-                }
-
-                return applyEditorData(aiTranslation.targetEditorKey, resolvedOutput.contentData || { blocks: [] }).then(function () {
-                    clearPreviewPanel();
+                    return applyEditorData(aiTranslation.targetEditorKey, resolvedOutput.contentData || { blocks: [] }, {
+                        recreateEditor: true
+                    }).then(function () {
+                        clearPreviewPanel();
+                    });
                 });
             });
         }
@@ -1362,22 +1439,33 @@
                     trigger.addEventListener('click', function () {
                         var targetInput = getElement(definition.inputId);
                         var initialCopy = config.initialCopyOnFirstActivate || null;
+                        var lazyBindingPromise;
 
                         if (initialCopy
+                            && !suppressInitialCopyForKeys[definition.key]
                             && definition.key === initialCopy.targetKey
                             && targetInput
                             && isEditorInputEmpty(targetInput)) {
-                            ensureEditorSaved(initialCopy.sourceKey).then(function (sourceData) {
+                            lazyBindingPromise = ensureEditorSaved(initialCopy.sourceKey).then(function (sourceData) {
                                 targetInput.value = JSON.stringify(normalizeEditorData(sourceData));
                                 emitChangeEvents(targetInput);
                                 bindEditor(definition);
+                                return ensureEditorReady(definition.key);
                             }).catch(function () {
                                 bindEditor(definition);
+                                return ensureEditorReady(definition.key);
                             });
+
+                            trackPendingLazyBinding(definition.key, lazyBindingPromise);
                             return;
                         }
 
-                        bindEditor(definition);
+                        lazyBindingPromise = Promise.resolve().then(function () {
+                            bindEditor(definition);
+                            return ensureEditorReady(definition.key);
+                        });
+
+                        trackPendingLazyBinding(definition.key, lazyBindingPromise);
                     });
                 }
             }
@@ -1426,7 +1514,7 @@
                     : 'Der Editor-Inhalt konnte nicht gespeichert werden. Bitte Eingaben prüfen und erneut versuchen.';
 
                 if (failedDefinition && failedDefinition.activateButtonId) {
-                    activateTargetPane(failedDefinition.activateButtonId);
+                    activateTargetPane(failedDefinition.activateButtonId, failedDefinition.key);
                 }
 
                 if (typeof console !== 'undefined' && typeof console.error === 'function') {

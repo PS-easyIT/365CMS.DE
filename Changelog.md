@@ -1,4 +1,4 @@
-﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.227-blue.svg)](https://shields.io/)
+﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.229-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -19,6 +19,18 @@
 ## 📜 Vollständige Versionshistorie
 
 ---
+
+### v2.9.229 — 13. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.229** | 🔴 fix | Admin/EditorJS Sprachkopie Runtime | **`CMS/assets/js/admin-content-editor.js` schreibt explizite DE→EN- und AI-Overwrite-Zustände jetzt nicht nur in Hidden-Inputs und In-Place-Renderpfade, sondern bindet den EN-Editor bei Bedarf frisch aus dem neuen JSON-Zielzustand neu**: Seiten- und Beitragseditoren verlieren damit einen weiteren Stale-State-Pfad, bei dem die zugrunde liegenden EN-Daten bereits überschrieben waren, die sichtbare Editor.js-Instanz aber nach Lazy-Init- oder Render-Sonderfällen noch alte Blöcke zeigte. |
+
+### v2.9.228 — 13. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.228** | 🔴 fix | Admin/EditorJS Sprachkopie | **`CMS/assets/js/admin-content-editor.js` wartet bei manuellen DE→EN-Kopien und AI-Übernahmen jetzt explizit auf ausstehende Lazy-Initialisierungen des EN-Editors und unterdrückt dabei konkurrierende Erstkopien**: Seiten- und Beitragseditoren überschreiben Titel-, Slug-, Kurzfassungs- und Blockinhalte damit wieder deterministisch auch dann, wenn der EN-Tab gerade erst geöffnet wurde oder die englische Editor.js-Instanz noch mitten im Lazy-Bind steckt. |
 
 ### v2.9.227 — 13. April 2026
 
