@@ -242,6 +242,7 @@
         var translationPreviewSuppressClear = false;
         var pendingLazyBindings = {};
         var suppressInitialCopyForKeys = {};
+        var editorMutationState = {};
 
         if (!config) {
             return;
@@ -307,6 +308,76 @@
             return key && pendingLazyBindings[key]
                 ? pendingLazyBindings[key]
                 : Promise.resolve();
+        }
+
+        function markEditorMutation(key) {
+            var state;
+
+            if (!key) {
+                return;
+            }
+
+            state = editorMutationState[key] || {
+                lastMutationAt: 0,
+                settlePromise: null,
+                settleTimerId: null
+            };
+
+            state.lastMutationAt = Date.now();
+            editorMutationState[key] = state;
+        }
+
+        function waitForEditorMutationSettle(key) {
+            var state = key ? editorMutationState[key] : null;
+            var settleDelay = 260;
+
+            if (!state || !state.lastMutationAt) {
+                return Promise.resolve();
+            }
+
+            if (state.settleTimerId !== null) {
+                window.clearTimeout(state.settleTimerId);
+                state.settleTimerId = null;
+            }
+
+            state.settlePromise = new Promise(function (resolve) {
+                var complete = function () {
+                    state.settleTimerId = null;
+                    state.settlePromise = null;
+                    resolve();
+                };
+
+                var schedule = function () {
+                    var remaining = settleDelay - (Date.now() - state.lastMutationAt);
+
+                    if (remaining <= 0) {
+                        complete();
+                        return;
+                    }
+
+                    state.settleTimerId = window.setTimeout(function () {
+                        schedule();
+                    }, remaining);
+                };
+
+                schedule();
+            });
+
+            return state.settlePromise;
+        }
+
+        function registerEditorMutationTracking(key, holder) {
+            if (!key || !holder || holder.dataset.cmsEditorMutationTracked === '1') {
+                return;
+            }
+
+            ['beforeinput', 'input', 'paste', 'drop', 'cut', 'keyup', 'compositionend'].forEach(function (eventName) {
+                holder.addEventListener(eventName, function () {
+                    markEditorMutation(key);
+                }, true);
+            });
+
+            holder.dataset.cmsEditorMutationTracked = '1';
         }
 
         function safeParseEditorInput(input) {
@@ -1005,6 +1076,8 @@
                 destroyEditor(definition.key);
             }
 
+            registerEditorMutationTracking(definition.key, holder);
+
             editors[definition.key] = {
                 input: input,
                 instance: window.createCmsEditor(definition.holderId, input.value || '', config.mediaUploadUrl, config.csrfToken, {
@@ -1045,15 +1118,32 @@
             var entry = editors[key];
             var definition = getDefinition(key);
             var input = definition ? getElement(definition.inputId) : null;
+            var activeEntry = null;
 
             if (!entry) {
                 return Promise.resolve(normalizeEditorData(safeParseEditorInput(input)));
             }
 
-            return entry.instance.save().then(function (output) {
-                if (entry.input) {
-                    entry.input.value = JSON.stringify(output);
-                    emitChangeEvents(entry.input);
+            return waitForPendingLazyBinding(key).then(function () {
+                return ensureEditorReady(key, false);
+            }).then(function (readyEntry) {
+                activeEntry = readyEntry || editors[key] || entry;
+
+                if (!activeEntry || !activeEntry.instance) {
+                    return normalizeEditorData(safeParseEditorInput(input));
+                }
+
+                return waitForEditorInstanceReady(activeEntry).then(function () {
+                    return waitForNextPaint();
+                }).then(function () {
+                    return waitForEditorMutationSettle(key);
+                }).then(function () {
+                    return activeEntry.instance.save();
+                });
+            }).then(function (output) {
+                if (activeEntry && activeEntry.input) {
+                    activeEntry.input.value = JSON.stringify(output);
+                    emitChangeEvents(activeEntry.input);
                 }
 
                 return normalizeEditorData(output);
@@ -1097,6 +1187,18 @@
             }
 
             return Promise.resolve(entry);
+        }
+
+        function waitForEditorInstanceReady(entry) {
+            if (!entry || !entry.instance || !entry.instance.isReady || typeof entry.instance.isReady.then !== 'function') {
+                return Promise.resolve(entry);
+            }
+
+            return entry.instance.isReady.then(function () {
+                return entry;
+            }).catch(function () {
+                return entry;
+            });
         }
 
         function applyEditorData(key, data, options) {

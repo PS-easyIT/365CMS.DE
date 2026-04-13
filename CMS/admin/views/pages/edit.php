@@ -242,12 +242,11 @@ if (!in_array($pageDefaultStatus, ['draft', 'published', 'private'], true)) {
                             <div id="pageLanguagePaneEn" data-page-lang-pane="en" class="d-none">
                                 <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap mb-3">
                                     <div class="text-secondary small">Die englische Version ist unter <code><?= htmlspecialchars($pagePreviewUrlEn) ?></code> erreichbar.</div>
-                                    <div class="btn-list">
-                                        <button type="button" class="btn btn-outline-primary btn-sm" id="copyPageDeToEnButton">Alles aus DE nach EN kopieren</button>
-                                        <?php if ($aiTranslationEnabled): ?>
+                                    <?php if ($aiTranslationEnabled): ?>
+                                        <div class="btn-list">
                                             <button type="button" class="btn btn-primary btn-sm" id="translatePageDeToEnButton">Mit AI nach EN übersetzen</button>
-                                        <?php endif; ?>
-                                    </div>
+                                        </div>
+                                    <?php endif; ?>
                                 </div>
                                 <div class="row g-3 mb-3">
                                     <div class="col-lg-7">
@@ -260,7 +259,7 @@ if (!in_array($pageDefaultStatus, ['draft', 'published', 'private'], true)) {
                                         <div class="form-hint">Wenn leer, nutzt die EN-URL weiterhin den Standardslug.</div>
                                     </div>
                                 </div>
-                                <div class="mb-3 text-secondary small">Der Kopier-Button übernimmt Titel und alle Editor.js-Blöcke aus der DE-Version in die englische Bearbeitung.</div>
+                                <div class="mb-3 text-secondary small">Die EN-Bearbeitung wird aktuell direkt gepflegt und kann bei Bedarf weiterhin über AI unterstützt werden.</div>
                                 <?php if (!empty($useEditorJs)): ?>
                                 <div class="editorjs-wrap editorjs-wrap--page cms-editor-live-wrap"
                                        style="--editorjs-content-width:<?= (int)$pageEditorWidth ?>px; --editorjs-content-padding-x:50px;">
@@ -519,20 +518,6 @@ if (!in_array($pageDefaultStatus, ['draft', 'published', 'private'], true)) {
                 'slugFallbackInputId' => 'pageSlugEn',
                 'titleInputId' => 'pageTitle',
                 'titleFallbackInputId' => 'pageTitleEn',
-            ],
-            'initialCopyOnFirstActivate' => [
-                'sourceKey' => 'de',
-                'targetKey' => 'en',
-            ],
-            'copyAction' => [
-                'buttonId' => 'copyPageDeToEnButton',
-                'sourceEditorKey' => 'de',
-                'targetEditorKey' => 'en',
-                'sourceTitleId' => 'pageTitle',
-                'targetTitleId' => 'pageTitleEn',
-                'sourceSlugId' => 'pageSlug',
-                'targetSlugId' => 'pageSlugEn',
-                'targetPaneButtonId' => 'pageLangToggleEn',
             ],
             'aiTranslation' => $aiTranslationEnabled ? [
                 'buttonId' => 'translatePageDeToEnButton',

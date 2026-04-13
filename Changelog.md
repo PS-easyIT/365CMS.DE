@@ -1,4 +1,4 @@
-﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.229-blue.svg)](https://shields.io/)
+﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.232-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -19,6 +19,24 @@
 ## 📜 Vollständige Versionshistorie
 
 ---
+
+### v2.9.232 — 13. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.232** | 🔴 fix | Admin/EditorJS EN-Lazy-Save | **`CMS/assets/js/admin-content-editor.js` wartet beim Formular-Save jetzt zusätzlich auf laufende Lazy-Bindings und die echte `Editor.js`-Bereitschaft der Zielinstanz, bevor DE/EN-Inhalte serialisiert werden**: Wird der EN-Tab erst kurz vor dem Speichern geöffnet oder ist seine Instanz nach Paste/Init noch im Aufbau, landet damit nicht länger ein leerer Frühzustand in `content_en`, der nach dem Reload wie „weg gespeichert“ wirkt. |
+
+### v2.9.231 — 13. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.231** | 🔴 fix | Admin/EditorJS EN-Save nach Paste | **`CMS/assets/js/admin-content-editor.js` wartet vor dem Formular-Save jetzt kurz auf laufende Paste-/Drop-/Input-Mutationen des jeweiligen Editors, bevor `Editor.js.save()` den Zustand serialisiert**: Gerade im englischen Editor wird damit nach frisch eingefügten Inhalten nicht mehr der noch leere Zwischenstand gespeichert, nur weil der Speichern-Klick schneller war als die interne Einfüge-Verarbeitung des Editors. |
+
+### v2.9.230 — 13. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.230** | 🔴 fix | Admin/EditorJS EN-Workflow | **`CMS/admin/views/posts/edit.php` und `CMS/admin/views/pages/edit.php` entfernen den fehleranfälligen Button `Alles aus DE nach EN kopieren` samt zugehöriger Copy-Konfiguration aus der Editor.js-Bridge**: Beitrags- und Seiteneditoren zeigen damit im EN-Tab keine weiterhin defekte Direktkopie mehr an, während die direkte EN-Bearbeitung und die optionale AI-Übersetzung erhalten bleiben. |
 
 ### v2.9.229 — 13. April 2026
 
