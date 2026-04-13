@@ -1,4 +1,4 @@
-﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.232-blue.svg)](https://shields.io/)
+﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.233-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -19,6 +19,12 @@
 ## 📜 Vollständige Versionshistorie
 
 ---
+
+### v2.9.233 — 13. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.233** | 🔵 docs | Admin/EN-Save Debug-Instrumentierung | **`CMS/admin/modules/posts/PostsModule.php` und `CMS/admin/modules/pages/PagesModule.php` protokollieren `content_en` für die laufende Fehlersuche jetzt als Row-Level-Snapshots vor Filter, nach Filter und direkt nach dem DB-Write**: Für Beiträge und Seiten landen damit Länge, SHA-1, Kurzvorschau und erkannte Blockanzahl des EN-Inhalts sowie der zugehörigen EN-Titel-/Slug-Felder im jeweiligen Admin-Logchannel, sodass sich sauber belegen lässt, ob der Wert schon vor dem SQL-Write leer wird oder erst danach verloren geht. |
 
 ### v2.9.232 — 13. April 2026
 

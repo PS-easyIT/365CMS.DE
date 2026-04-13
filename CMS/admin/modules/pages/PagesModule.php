@@ -313,10 +313,23 @@ class PagesModule
             'meta_description' => $metaDesc,
         ];
 
+        $this->logContentEnSnapshot('pre_filter', $id, $savePayload, [
+            'request_content_en' => $contentEn,
+            'request_title_en' => $titleEn,
+            'request_slug_en' => $slugEn,
+            'status' => $status,
+            'is_new' => $id <= 0,
+        ]);
+
         $filteredPayload = Hooks::applyFilters('cms_prepare_page_save_payload', $savePayload, $post, $id, $userId);
         if (is_array($filteredPayload)) {
             $savePayload = array_merge($savePayload, $filteredPayload);
         }
+
+        $this->logContentEnSnapshot('post_filter', $id, $savePayload, [
+            'status' => (string) ($savePayload['status'] ?? $status),
+            'is_new' => $id <= 0,
+        ]);
 
         try {
             if ($id > 0) {
@@ -334,6 +347,10 @@ class PagesModule
                     (string)($savePayload['slug_en'] ?? '')
                 );
                 Hooks::doAction('cms_after_page_save', $id, $savePayload, $post);
+                $this->logPersistedContentEnSnapshot($id, 'post_write', [
+                    'status' => (string) ($savePayload['status'] ?? $status),
+                    'is_new' => false,
+                ]);
                 return ['success' => true, 'id' => $id, 'message' => 'Seite aktualisiert.'];
             } else {
                 // Create
@@ -358,6 +375,10 @@ class PagesModule
                     );
                     SEOService::getInstance()->saveContentMeta('page', $newId, $post);
                     Hooks::doAction('cms_after_page_save', $newId, $savePayload, $post);
+                    $this->logPersistedContentEnSnapshot($newId, 'post_write', [
+                        'status' => (string) ($savePayload['status'] ?? $status),
+                        'is_new' => true,
+                    ]);
                     return ['success' => true, 'id' => $newId, 'message' => 'Seite erstellt.'];
                 }
                 return ['success' => false, 'error' => 'Seite konnte nicht erstellt werden.'];
@@ -493,6 +514,92 @@ class PagesModule
         return function_exists('mb_substr')
             ? mb_substr($value, 0, $maxLength)
             : substr($value, 0, $maxLength);
+    }
+
+    private function logContentEnSnapshot(string $phase, int $pageId, array $payload, array $context = []): void
+    {
+        try {
+            Logger::instance()->withChannel('admin.pages')->info('Page content_en snapshot.', array_merge([
+                'phase' => $phase,
+                'page_id' => $pageId,
+                'title_en' => $this->summarizeEditorContentValue((string) ($payload['title_en'] ?? '')),
+                'slug_en' => $this->summarizeEditorContentValue((string) ($payload['slug_en'] ?? '')),
+                'content_en' => $this->summarizeEditorContentValue($payload['content_en'] ?? ''),
+            ], $context));
+        } catch (\Throwable $_error) {
+            // Debug-Instrumentierung darf den Save-Pfad niemals stören.
+        }
+    }
+
+    private function logPersistedContentEnSnapshot(int $pageId, string $phase, array $context = []): void
+    {
+        if ($pageId <= 0) {
+            return;
+        }
+
+        try {
+            $row = $this->db->get_row(
+                "SELECT title_en, slug_en, content_en FROM {$this->prefix}pages WHERE id = ? LIMIT 1",
+                [$pageId]
+            );
+
+            if (!is_object($row)) {
+                Logger::instance()->withChannel('admin.pages')->info('Page content_en snapshot.', array_merge([
+                    'phase' => $phase,
+                    'page_id' => $pageId,
+                    'row_missing' => true,
+                ], $context));
+                return;
+            }
+
+            Logger::instance()->withChannel('admin.pages')->info('Page content_en snapshot.', array_merge([
+                'phase' => $phase,
+                'page_id' => $pageId,
+                'row_missing' => false,
+                'title_en' => $this->summarizeEditorContentValue((string) ($row->title_en ?? '')),
+                'slug_en' => $this->summarizeEditorContentValue((string) ($row->slug_en ?? '')),
+                'content_en' => $this->summarizeEditorContentValue((string) ($row->content_en ?? '')),
+            ], $context));
+        } catch (\Throwable $_error) {
+            // Debug-Instrumentierung darf den Save-Pfad niemals stören.
+        }
+    }
+
+    /**
+     * @return array<string,mixed>
+     */
+    private function summarizeEditorContentValue(mixed $value): array
+    {
+        $stringValue = is_string($value)
+            ? $value
+            : (is_scalar($value) || $value === null ? (string) $value : json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+
+        if (!is_string($stringValue)) {
+            $stringValue = '';
+        }
+
+        $normalizedPreview = preg_replace('/\s+/u', ' ', trim($stringValue)) ?? '';
+        $summary = [
+            'length' => strlen($stringValue),
+            'sha1' => sha1($stringValue),
+            'is_empty' => trim($stringValue) === '',
+            'preview' => substr($normalizedPreview, 0, 180),
+        ];
+
+        try {
+            $decoded = json_decode($stringValue, true, 512, JSON_THROW_ON_ERROR);
+            if (is_array($decoded) && isset($decoded['blocks']) && is_array($decoded['blocks'])) {
+                $summary['json_blocks'] = count($decoded['blocks']);
+
+                if (!empty($decoded['blocks'][0]) && is_array($decoded['blocks'][0])) {
+                    $summary['first_block_type'] = (string) ($decoded['blocks'][0]['type'] ?? '');
+                }
+            }
+        } catch (\Throwable $_error) {
+            $summary['json_blocks'] = null;
+        }
+
+        return $summary;
     }
 
     private function sanitizeMediaReference(string $value): string
