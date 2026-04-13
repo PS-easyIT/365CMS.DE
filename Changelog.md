@@ -1,4 +1,4 @@
-﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.226-blue.svg)](https://shields.io/)
+﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.227-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -19,6 +19,12 @@
 ## 📜 Vollständige Versionshistorie
 
 ---
+
+### v2.9.227 — 13. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.227** | 🔴 fix | Admin/Medienverwaltung & Content-Medienpfade | **`CMS/core/Services/MediaUsageService.php` und `CMS/core/Services/ContentMediaPlacementService.php` erkennen Editor-Medienreferenzen jetzt auch dann korrekt, wenn die Installation unter einem Unterpfad wie `/CMS` läuft**: Neben nackten `/media-file?...`- und `/uploads/...`-Pfade werden nun auch Varianten wie `/CMS/media-file?...` bzw. `/CMS/uploads/...` aus JSON-, HTML- und CSS-Strings sauber aufgelöst, sodass eingebundene Editor-Bilder in der Medienverwaltung nicht länger fälschlich als „nicht eingebunden“ erscheinen und Temp-/Final-Pfad-Umschreibungen denselben Subdirectory-Vertrag mitziehen. |
 
 ### v2.9.226 — 13. April 2026
 

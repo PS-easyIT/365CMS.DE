@@ -350,7 +350,7 @@ final class MediaUsageService
         $decodedValue = html_entity_decode(str_replace('\/', '/', $value), ENT_QUOTES | ENT_HTML5, 'UTF-8');
         $candidates = [$decodedValue];
 
-        if (preg_match_all('#https?://[^\s<>"\']+|/media-file\?[^\s<>"\']+|/uploads/[^\s<>"\']+#i', $decodedValue, $matches) === 1 || !empty($matches[0])) {
+        if (preg_match_all('#https?://[^\s<>"\']+|/(?:[A-Za-z0-9._%-]+/)*media-file\?[^\s<>"\']+|/(?:[A-Za-z0-9._%-]+/)*uploads/[^\s<>"\']+#i', $decodedValue, $matches) === 1 || !empty($matches[0])) {
             foreach ($matches[0] as $match) {
                 $candidates[] = (string) $match;
             }
@@ -404,14 +404,43 @@ final class MediaUsageService
             return '';
         }
 
-        $path = (string) ($parsedUrl['path'] ?? '');
-        if ($path === '/media-file') {
-            parse_str((string) ($parsedUrl['query'] ?? ''), $query);
-            return $this->normalizeRelativeMediaPath((string) ($query['path'] ?? ''));
+        return $this->extractRelativeMediaPathFromUrlParts(
+            (string) ($parsedUrl['path'] ?? ''),
+            (string) ($parsedUrl['query'] ?? '')
+        );
+    }
+
+    private function extractRelativeMediaPathFromUrlParts(string $path, string $queryString = ''): string
+    {
+        $normalizedPath = '/' . ltrim((string) preg_replace('#/+#', '/', str_replace('\\', '/', trim($path))), '/');
+        if ($normalizedPath === '/') {
+            return '';
         }
 
-        if (str_starts_with($path, '/uploads/')) {
-            return $this->normalizeRelativeMediaPath(ltrim(substr($path, strlen('/uploads/')), '/'));
+        $sitePath = trim((string) (parse_url((string) SITE_URL, PHP_URL_PATH) ?? ''), '/');
+        $uploadPath = trim((string) (parse_url((string) UPLOAD_URL, PHP_URL_PATH) ?? ''), '/');
+
+        $mediaPrefixes = array_filter([
+            '/media-file',
+            $sitePath !== '' ? '/' . $sitePath . '/media-file' : '',
+        ]);
+
+        foreach ($mediaPrefixes as $mediaPrefix) {
+            if ($normalizedPath === $mediaPrefix) {
+                parse_str($queryString, $query);
+                return $this->normalizeRelativeMediaPath((string) ($query['path'] ?? ''));
+            }
+        }
+
+        $uploadPrefixes = array_filter([
+            '/uploads/',
+            $uploadPath !== '' ? '/' . $uploadPath . '/' : '',
+        ]);
+
+        foreach ($uploadPrefixes as $uploadPrefix) {
+            if (str_starts_with($normalizedPath, $uploadPrefix)) {
+                return $this->normalizeRelativeMediaPath(ltrim(substr($normalizedPath, strlen($uploadPrefix)), '/'));
+            }
         }
 
         return '';
