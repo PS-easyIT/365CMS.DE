@@ -1,4 +1,4 @@
-﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.233-blue.svg)](https://shields.io/)
+﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.236-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -19,6 +19,24 @@
 ## 📜 Vollständige Versionshistorie
 
 ---
+
+### v2.9.236 — 15. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.236** | 🔴 fix | Admin/Beiträge & Seiten EN-Edit-Redirects | **`CMS/admin/posts.php` und `CMS/admin/pages.php` halten locale-aware Redirects aus den neuen DE/EN-Edit-Screens jetzt auch für noch ungespeicherte Entwürfe sauber auf der Bearbeitungsansicht**: Muss ein neuer Beitrag oder eine neue Seite ohne bestehende ID aus der Edit-Ansicht erneut gerendert oder umgeleitet werden, landet der Flow damit nicht versehentlich in der Listenansicht, sondern bleibt inklusive `lang=en` auf der passenden separaten DE/EN-Bearbeitungsseite. |
+
+### v2.9.235 — 15. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.235** | 🔴 fix | Admin/Beiträge & Seiten EN-Wechsel | **`CMS/assets/js/admin-content-editor.js` erhält beim asynchronen Editor.js-Pre-Save jetzt den ursprünglich geklickten Submit-Button inklusive `name`, `value` und `formaction` sauber über den finalen Formular-Submit hinweg**: Der Klick auf `English` in Seiten- und Beitragseditoren kippt dadurch nicht länger still in ein normales `save` zurück, das sofort wieder die deutsche Ansicht mit `Erfolgreich aktualisiert` lädt, sondern bleibt beim echten Sprachwechsel auf der separaten EN-Bearbeitungsseite. Zusätzlich toleriert die UI-Initialisierung fehlende In-Page-Sprachtoggle-Selektoren der neuen getrennten DE/EN-Ansichten jetzt robust, statt an leeren Selektoren zu stolpern. |
+
+### v2.9.234 — 15. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.234** | 🔴 fix | Admin/Beiträge & Seiten EN-Bearbeitung | **`CMS/admin/posts.php`, `CMS/admin/pages.php`, `CMS/admin/views/posts/edit.php` und `CMS/admin/views/pages/edit.php` ziehen die Sprachbearbeitung für Beiträge und Seiten von einem gemeinsamen DE/EN-In-Page-Tab auf getrennte Admin-Ansichten um**: Der Klick auf `English` rendert nun eine eigene EN-Bearbeitungsseite mit den passenden englischen Feldern für Titel, Slug und Inhalt, hält die jeweils andere Sprachfassung im Formular versteckt erhalten und bringt die DE→EN-Kopier- bzw. AI-Übersetzungsfunktion direkt in diese EN-Ansicht zurück. Dadurch hängt der Save-Flow nicht länger an zwei konkurrierenden Editorinstanzen auf derselben Seite, was das bisherige „EN wirkt gespeichert, ist nach Reload aber weg“-Verhalten für Beiträge und Seiten zuverlässig entschärft. |
 
 ### v2.9.233 — 13. April 2026
 

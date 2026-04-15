@@ -85,6 +85,8 @@ $hasEnglishVariant = trim((string)($post['title_en'] ?? '')) !== ''
     || trim((string)($post['slug_en'] ?? '')) !== '';
 $isEnglishOnlyPost = !$hasGermanVariant && $hasEnglishVariant;
 $defaultContentLanguage = $isEnglishOnlyPost ? 'en' : 'de';
+$editorLocale = (($editorLocale ?? $defaultContentLanguage) === 'en') ? 'en' : 'de';
+$isEnglishEditorView = $editorLocale === 'en';
 $additionalCategoryIds = array_values(array_filter(
     $assignedCategoryIds,
     static fn (int $assignedId): bool => $assignedId > 0 && $assignedId !== $categoryId
@@ -117,6 +119,7 @@ $additionalCategoryIds = array_values(array_filter(
         <form method="post" id="postForm">
             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
             <input type="hidden" name="action" value="save">
+            <input type="hidden" name="editor_locale" value="<?php echo htmlspecialchars($editorLocale); ?>">
             <?php if (!$isNew): ?>
                 <input type="hidden" name="id" value="<?php echo (int)$post['id']; ?>">
             <?php endif; ?>
@@ -142,6 +145,25 @@ $additionalCategoryIds = array_values(array_filter(
                 : '/blog/{slug}/en';
             $postPreviewUrl = str_replace('{slug}', ltrim($postSlugValue !== '' ? $postSlugValue : 'beitrag', '/'), $postPreviewUrlTemplate);
             $postPreviewUrlEn = str_replace('{slug}', ltrim($postSlugEnValue !== '' ? $postSlugEnValue : ($postSlugValue !== '' ? $postSlugValue : 'beitrag'), '/'), $postPreviewUrlTemplateEn);
+            $postEditUrlDe = $isNew
+                ? '/admin/posts?action=edit&lang=de'
+                : '/admin/posts?action=edit&id=' . (int) ($post['id'] ?? 0) . '&lang=de';
+            $postEditUrlEn = $isNew
+                ? '/admin/posts?action=edit&lang=en'
+                : '/admin/posts?action=edit&id=' . (int) ($post['id'] ?? 0) . '&lang=en';
+            $activePostTitleValue = $isEnglishEditorView ? $postTitleEnValue : $postTitleValue;
+            $activePostSlugValue = $isEnglishEditorView ? $postSlugEnValue : $postSlugValue;
+            $activePostExcerptValue = $isEnglishEditorView ? $postExcerptEnValue : $postExcerptValue;
+            $activePostPreviewUrl = $isEnglishEditorView ? $postPreviewUrlEn : $postPreviewUrl;
+            $activePostPreviewUrlTemplate = $isEnglishEditorView ? $postPreviewUrlTemplateEn : $postPreviewUrlTemplate;
+            $activePostPreviewSlugFallback = $isEnglishEditorView
+                ? ($postSlugEnValue !== '' ? $postSlugEnValue : ($postSlugValue !== '' ? $postSlugValue : 'beitrag'))
+                : ($postSlugValue !== '' ? $postSlugValue : 'beitrag');
+            $activeTitleInputId = $isEnglishEditorView ? 'titleEn' : 'title';
+            $activeSlugInputId = $isEnglishEditorView ? 'slugEn' : 'slug';
+            $activeExcerptInputId = $isEnglishEditorView ? 'excerptEn' : 'excerpt';
+            $activeContentInputId = $isEnglishEditorView ? 'contentInputEn' : 'contentInput';
+            $activeEditorHolderId = $isEnglishEditorView ? 'editorjsEn' : 'editorjs';
             $postPermalinkHint = $permalinkService !== null
                 ? $permalinkService->getPostPermalinkStructure()
                 : '/blog/%postname%';
@@ -157,20 +179,40 @@ $additionalCategoryIds = array_values(array_filter(
                 : '';
             ?>
 
+            <?php if ($isEnglishEditorView): ?>
+                <input type="hidden" name="title" id="title" value="<?php echo htmlspecialchars($postTitleValue); ?>">
+                <input type="hidden" name="slug" id="slug" value="<?php echo htmlspecialchars($postSlugValue); ?>">
+                <input type="hidden" name="excerpt" id="excerpt" value="<?php echo htmlspecialchars($postExcerptValue); ?>">
+                <input type="hidden" name="content" id="contentInput" value="<?php echo htmlspecialchars($postContentValue); ?>">
+                <?php if (!empty($useEditorJs)): ?>
+                <input type="hidden" name="content_en" id="contentInputEn" value="<?php echo htmlspecialchars($postContentEnValue); ?>">
+                <?php endif; ?>
+            <?php else: ?>
+                <input type="hidden" name="title_en" id="titleEn" value="<?php echo htmlspecialchars($postTitleEnValue); ?>">
+                <input type="hidden" name="slug_en" id="slugEn" value="<?php echo htmlspecialchars($postSlugEnValue); ?>">
+                <input type="hidden" name="excerpt_en" id="excerptEn" value="<?php echo htmlspecialchars($postExcerptEnValue); ?>">
+                <?php if (!empty($useEditorJs)): ?>
+                <input type="hidden" name="content" id="contentInput" value="<?php echo htmlspecialchars($postContentValue); ?>">
+                <?php endif; ?>
+                <input type="hidden" name="content_en" id="contentInputEn" value="<?php echo htmlspecialchars($postContentEnValue); ?>">
+            <?php endif; ?>
+
             <div class="row g-3">
                 <div class="col-lg-4 d-flex">
                     <div class="card cms-edit-card cms-edit-top-card h-100 w-100">
                         <div class="card-body">
                             <div class="mb-3">
-                                <label class="form-label <?php echo $isEnglishOnlyPost ? '' : 'required'; ?>" for="title"><?php echo $isEnglishOnlyPost ? 'Deutscher Titel' : 'Titel'; ?></label>
-                                <input type="text" class="form-control" id="title" name="title" value="<?php echo htmlspecialchars($postTitleValue); ?>" <?php echo $isEnglishOnlyPost ? 'placeholder="Optional, falls du zusätzlich eine deutsche Variante pflegen möchtest"' : 'required'; ?>>
-                                <?php if ($isEnglishOnlyPost): ?>
-                                <div class="form-hint">Dieser Beitrag enthält aktuell nur englische Inhalte. Die Bearbeitung startet deshalb direkt in der EN-Ansicht; deutsche Felder bleiben optional.</div>
+                                <label class="form-label <?php echo (!$isEnglishEditorView && !$isEnglishOnlyPost) ? 'required' : ''; ?>" for="<?php echo htmlspecialchars($activeTitleInputId); ?>"><?php echo $isEnglishEditorView ? 'Englischer Titel' : ($isEnglishOnlyPost ? 'Deutscher Titel' : 'Titel'); ?></label>
+                                <input type="text" class="form-control" id="<?php echo htmlspecialchars($activeTitleInputId); ?>" name="<?php echo $isEnglishEditorView ? 'title_en' : 'title'; ?>" value="<?php echo htmlspecialchars($activePostTitleValue); ?>" <?php echo (!$isEnglishEditorView && !$isEnglishOnlyPost) ? 'required' : ''; ?> placeholder="<?php echo htmlspecialchars($isEnglishEditorView ? 'English article title' : ($isEnglishOnlyPost ? 'Optional, falls du zusätzlich eine deutsche Variante pflegen möchtest' : 'Beitragstitel')); ?>">
+                                <?php if ($isEnglishOnlyPost && !$isEnglishEditorView): ?>
+                                    <div class="form-hint">Dieser Beitrag enthält aktuell nur englische Inhalte. Die Bearbeitung startet deshalb standardmäßig in der EN-Ansicht; deutsche Felder bleiben optional.</div>
+                                <?php elseif ($isEnglishEditorView): ?>
+                                    <div class="form-hint">Dies ist die eigenständige EN-Bearbeitung. Die deutsche Variante bleibt separat erhalten und wird beim Speichern nicht überschrieben.</div>
                                 <?php endif; ?>
                             </div>
                             <div class="mb-3">
-                                <label class="form-label" for="slug"><?php echo $isEnglishOnlyPost ? 'Standard-Slug' : 'Slug'; ?></label>
-                                <input type="text" class="form-control" id="slug" name="slug" value="<?php echo htmlspecialchars($postSlugValue); ?>" placeholder="wird automatisch generiert">
+                                <label class="form-label" for="<?php echo htmlspecialchars($activeSlugInputId); ?>"><?php echo $isEnglishEditorView ? 'Englischer Slug' : ($isEnglishOnlyPost ? 'Standard-Slug' : 'Slug'); ?></label>
+                                <input type="text" class="form-control" id="<?php echo htmlspecialchars($activeSlugInputId); ?>" name="<?php echo $isEnglishEditorView ? 'slug_en' : 'slug'; ?>" value="<?php echo htmlspecialchars($activePostSlugValue); ?>" placeholder="<?php echo htmlspecialchars($isEnglishEditorView ? 'optional: english-url-slug' : 'wird automatisch generiert'); ?>">
                                 <div class="form-hint">Aktive Struktur: <code><?php echo htmlspecialchars($postPermalinkHint); ?></code></div>
                             </div>
                             <div class="mb-3">
@@ -295,53 +337,23 @@ $additionalCategoryIds = array_values(array_filter(
                 <div class="col-12">
                     <div class="card cms-edit-card cms-editor-card mb-3">
                         <div class="card-header d-flex justify-content-between align-items-center gap-3 flex-wrap">
-                            <h3 class="card-title">Inhalt</h3>
+                            <h3 class="card-title"><?php echo $isEnglishEditorView ? 'Inhalt · English' : 'Inhalt · Deutsch'; ?></h3>
                             <div class="btn-group" role="group" aria-label="Inhaltssprache wählen">
-                                <button class="btn btn-primary" type="button" id="postLangToggleDe" data-post-lang-toggle="de" aria-pressed="true">Deutsch</button>
-                                <button class="btn btn-outline-primary" type="button" id="postLangToggleEn" data-post-lang-toggle="en" aria-pressed="false">English</button>
+                                <button class="btn <?php echo $isEnglishEditorView ? 'btn-outline-primary' : 'btn-primary'; ?>" type="submit" name="_action" value="switch_locale:de" formaction="<?php echo htmlspecialchars($postEditUrlDe); ?>" aria-pressed="<?php echo $isEnglishEditorView ? 'false' : 'true'; ?>">Deutsch</button>
+                                <button class="btn <?php echo $isEnglishEditorView ? 'btn-primary' : 'btn-outline-primary'; ?>" type="submit" name="_action" value="switch_locale:en" formaction="<?php echo htmlspecialchars($postEditUrlEn); ?>" aria-pressed="<?php echo $isEnglishEditorView ? 'true' : 'false'; ?>">English</button>
                             </div>
                         </div>
                         <div class="card-body">
-                            <div id="postLanguagePaneDe" data-post-lang-pane="de">
-                                <div class="mb-3 text-secondary small">Standardansicht unter <code><?php echo htmlspecialchars($postPreviewUrl); ?></code></div>
-                                <?php if (!empty($useEditorJs)): ?>
-                                <div class="editorjs-wrap editorjs-wrap--post cms-editor-live-wrap"
-                                     style="--editorjs-content-width:<?php echo (int)$postEditorWidth; ?>px; --editorjs-content-padding-x:50px; --editorjs-content-width-expanded:1100px;">
-                                    <div id="editorjs" class="editorjs-holder cms-editor-live-holder" style="min-height:300px;"></div>
-                                </div>
-                                <input type="hidden" name="content" id="contentInput" value="<?php echo htmlspecialchars($postContentValue); ?>">
-                                <?php else: ?>
-                                    <?php echo EditorService::getInstance()->render('content', $postContentValue, [
-                                        'height' => '420',
-                                        'context' => 'post',
-                                        'content_width' => $postEditorWidth,
-                                        'content_width_expanded' => 1100,
-                                        'content_padding_x' => 50,
-                                    ]); ?>
-                                <?php endif; ?>
-                            </div>
-                            <div id="postLanguagePaneEn" data-post-lang-pane="en" class="d-none">
+                            <?php if ($isEnglishEditorView): ?>
                                 <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap mb-3">
                                     <div class="text-secondary small">Die englische Version ist unter <code><?php echo htmlspecialchars($postPreviewUrlEn); ?></code> erreichbar.</div>
-                                    <?php if ($aiTranslationEnabled): ?>
-                                        <div class="btn-list">
+                                    <div class="btn-list">
+                                        <?php if (!empty($useEditorJs)): ?>
+                                            <button type="button" class="btn btn-outline-secondary btn-sm" id="copyPostDeToEnButton">DE nach EN kopieren</button>
+                                        <?php endif; ?>
+                                        <?php if ($aiTranslationEnabled && !empty($useEditorJs)): ?>
                                             <button type="button" class="btn btn-primary btn-sm" id="translatePostDeToEnButton">Mit AI nach EN übersetzen</button>
-                                        </div>
-                                    <?php endif; ?>
-                                </div>
-                                <div class="row g-3 mb-3">
-                                    <div class="col-lg-7">
-                                        <label class="form-label" for="titleEn">Englischer Titel</label>
-                                        <input type="text" class="form-control" id="titleEn" name="title_en" value="<?php echo htmlspecialchars($postTitleEnValue); ?>" placeholder="English article title">
-                                    </div>
-                                    <div class="col-lg-5">
-                                        <label class="form-label" for="slugEn">Englischer Slug</label>
-                                        <input type="text" class="form-control" id="slugEn" name="slug_en" value="<?php echo htmlspecialchars($postSlugEnValue); ?>" placeholder="optional: english-url-slug">
-                                        <div class="form-hint">Wenn leer, nutzt die EN-URL weiterhin den Standardslug.</div>
-                                    </div>
-                                    <div class="col-lg-12">
-                                        <label class="form-label" for="excerptEn">Englische Kurzfassung</label>
-                                        <textarea class="form-control" id="excerptEn" name="excerpt_en" rows="2" placeholder="Short English summary"><?php echo htmlspecialchars($postExcerptEnValue); ?></textarea>
+                                        <?php endif; ?>
                                     </div>
                                 </div>
                                 <div class="mb-3 text-secondary small">Die EN-Bearbeitung wird aktuell direkt gepflegt. Vorhandene Medien bleiben dabei wie gewohnt nur referenziert und werden nicht erneut hochgeladen.</div>
@@ -350,7 +362,6 @@ $additionalCategoryIds = array_values(array_filter(
                                      style="--editorjs-content-width:<?php echo (int)$postEditorWidth; ?>px; --editorjs-content-padding-x:50px; --editorjs-content-width-expanded:1100px;">
                                     <div id="editorjsEn" class="editorjs-holder cms-editor-live-holder" style="min-height:300px;"></div>
                                 </div>
-                                <input type="hidden" name="content_en" id="contentInputEn" value="<?php echo htmlspecialchars($postContentEnValue); ?>">
                                 <?php else: ?>
                                     <?php echo EditorService::getInstance()->render('content_en', $postContentEnValue, [
                                         'height' => '420',
@@ -360,7 +371,23 @@ $additionalCategoryIds = array_values(array_filter(
                                         'content_padding_x' => 50,
                                     ]); ?>
                                 <?php endif; ?>
-                            </div>
+                            <?php else: ?>
+                                <div class="mb-3 text-secondary small">Standardansicht unter <code><?php echo htmlspecialchars($postPreviewUrl); ?></code></div>
+                                <?php if (!empty($useEditorJs)): ?>
+                                <div class="editorjs-wrap editorjs-wrap--post cms-editor-live-wrap"
+                                     style="--editorjs-content-width:<?php echo (int)$postEditorWidth; ?>px; --editorjs-content-padding-x:50px; --editorjs-content-width-expanded:1100px;">
+                                    <div id="editorjs" class="editorjs-holder cms-editor-live-holder" style="min-height:300px;"></div>
+                                </div>
+                                <?php else: ?>
+                                    <?php echo EditorService::getInstance()->render('content', $postContentValue, [
+                                        'height' => '420',
+                                        'context' => 'post',
+                                        'content_width' => $postEditorWidth,
+                                        'content_width_expanded' => 1100,
+                                        'content_padding_x' => 50,
+                                    ]); ?>
+                                <?php endif; ?>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
@@ -370,8 +397,8 @@ $additionalCategoryIds = array_values(array_filter(
                         <div class="card-header"><h3 class="card-title">SEO-Card</h3></div>
                         <div class="card-body">
                             <div class="mb-3">
-                                <label class="form-label" for="excerpt">Kurzfassung</label>
-                                <textarea class="form-control" id="excerpt" name="excerpt" rows="5" placeholder="Kurze Zusammenfassung für Übersichten…"><?php echo htmlspecialchars($postExcerptValue); ?></textarea>
+                                <label class="form-label" for="<?php echo htmlspecialchars($activeExcerptInputId); ?>"><?php echo $isEnglishEditorView ? 'Englische Kurzfassung' : 'Kurzfassung'; ?></label>
+                                <textarea class="form-control" id="<?php echo htmlspecialchars($activeExcerptInputId); ?>" name="<?php echo $isEnglishEditorView ? 'excerpt_en' : 'excerpt'; ?>" rows="5" placeholder="<?php echo htmlspecialchars($isEnglishEditorView ? 'Short English summary for overview pages…' : 'Kurze Zusammenfassung für Übersichten…'); ?>"><?php echo htmlspecialchars($activePostExcerptValue); ?></textarea>
                                 <span class="form-hint"><span id="excerptCount">0</span> Zeichen</span>
                             </div>
                             <div class="mb-3">
@@ -397,7 +424,7 @@ $additionalCategoryIds = array_values(array_filter(
                                 <span class="text-secondary small">Vorschau-URL</span>
                                 <span class="badge <?php echo $isScheduledPost ? 'bg-azure-lt text-azure' : 'bg-success-lt text-success'; ?>" id="postSlugState"><?php echo $isScheduledPost ? 'Geplant' : 'Slug gültig'; ?></span>
                             </div>
-                            <div class="form-control-plaintext text-break small mb-3" id="postPreviewUrl"><?php echo htmlspecialchars($postPreviewUrl); ?></div>
+                            <div class="form-control-plaintext text-break small mb-3" id="postPreviewUrl"><?php echo htmlspecialchars($activePostPreviewUrl); ?></div>
                             <div id="postPublishWarning" class="alert <?php echo $isScheduledPost ? 'alert-info' : 'alert-warning'; ?> mb-0<?php echo $isScheduledPost ? '' : ' d-none'; ?>" role="alert"><?php echo $isScheduledPost ? 'Dieser Beitrag ist geplant und wird automatisch zum gewählten Termin veröffentlicht.' : ''; ?></div>
                         </div>
                     </div>
@@ -427,16 +454,16 @@ $additionalCategoryIds = array_values(array_filter(
                     <?php
                     $previewCard = [
                         'serpTitleId' => 'postSerpTitle',
-                        'serpTitle' => $postMetaTitleValue ?: $postTitleValue,
+                        'serpTitle' => $postMetaTitleValue ?: $activePostTitleValue,
                         'serpUrlId' => 'postSerpUrl',
-                        'serpUrl' => $postPreviewUrl,
+                        'serpUrl' => $activePostPreviewUrl,
                         'serpDescriptionId' => 'postSerpDescription',
                         'serpDescription' => $postMetaDescriptionValue ?: 'Meta-Beschreibung wird automatisch aus dem ersten Absatz erzeugt.',
                         'socialImageId' => 'postSocialImage',
                         'socialImage' => $ogImage !== '' ? html_entity_decode($ogImage, ENT_QUOTES, 'UTF-8') : $postFeaturedImageValue,
                         'socialImageVisible' => $ogImage !== '' || $postFeaturedImageValue !== '',
                         'socialTitleId' => 'postSocialTitle',
-                        'socialTitle' => $ogTitle !== '' ? html_entity_decode($ogTitle, ENT_QUOTES, 'UTF-8') : ($postMetaTitleValue ?: $postTitleValue),
+                        'socialTitle' => $ogTitle !== '' ? html_entity_decode($ogTitle, ENT_QUOTES, 'UTF-8') : ($postMetaTitleValue ?: $activePostTitleValue),
                         'socialDescriptionId' => 'postSocialDescription',
                         'socialDescription' => $ogDescription !== '' ? html_entity_decode($ogDescription, ENT_QUOTES, 'UTF-8') : ($postMetaDescriptionValue ?: 'Social-Vorschau aus SEO-Daten'),
                     ];
@@ -455,7 +482,7 @@ $additionalCategoryIds = array_values(array_filter(
                             ['width' => 'col-md-2', 'label' => 'Titel', 'valueId' => 'postTitleCount', 'suffix' => 'Zeichen'],
                             ['width' => 'col-md-2', 'label' => 'Slug', 'valueId' => 'postSlugCount', 'suffix' => 'Zeichen'],
                             ['width' => 'col-md-3', 'label' => 'Status', 'badgeId' => 'postStatusBadge', 'badgeText' => 'Entwurf', 'badgeClass' => 'badge bg-yellow-lt text-yellow'],
-                            ['width' => 'col-md-5', 'label' => 'Kategorie', 'bodyText' => $selectedCategoryName],
+                            ['width' => 'col-md-5', 'label' => 'Kategorie', 'bodyText' => $selectedCategoryName . ($isEnglishEditorView ? ' · EN-Ansicht' : ' · DE-Ansicht')],
                         ],
                     ];
                     require __DIR__ . '/../partials/content-seo-score-panel.php';
@@ -530,11 +557,11 @@ $additionalCategoryIds = array_values(array_filter(
             'previewContainerId' => 'featuredPreview',
             'emptyStateId' => 'featuredEmpty',
             'currentTimestamp' => (int) round(microtime(true) * 1000),
-            'slugInputId' => 'slug',
+            'slugInputId' => $activeSlugInputId,
             'previewUrlId' => 'postPreviewUrl',
             'previewBaseUrl' => '/blog/',
-            'previewUrlTemplate' => $postPreviewUrlTemplate,
-            'previewPlaceholderSlug' => 'beitrag',
+            'previewUrlTemplate' => $activePostPreviewUrlTemplate,
+            'previewPlaceholderSlug' => $activePostPreviewSlugFallback,
             'statusSelectId' => 'status',
             'publishDateId' => 'publishDate',
             'publishTimeId' => 'publishTime',
@@ -548,15 +575,10 @@ $additionalCategoryIds = array_values(array_filter(
                 'private' => ['label' => 'Privat', 'className' => 'badge bg-purple-lt text-purple'],
                 'scheduled' => ['label' => 'Geplant', 'className' => 'badge bg-azure-lt text-azure'],
             ],
-            'languageToggleSelector' => '[data-post-lang-toggle]',
-            'languagePaneSelector' => '[data-post-lang-pane]',
-            'languageAttribute' => 'data-post-lang-toggle',
-            'languagePaneAttribute' => 'data-post-lang-pane',
-            'defaultLanguage' => $defaultContentLanguage,
             'countBindings' => [
-                ['sourceId' => 'title', 'targetId' => 'postTitleCount'],
-                ['sourceId' => 'slug', 'targetId' => 'postSlugCount'],
-                ['sourceId' => 'excerpt', 'targetId' => 'excerptCount'],
+                ['sourceId' => $activeTitleInputId, 'targetId' => 'postTitleCount'],
+                ['sourceId' => $activeSlugInputId, 'targetId' => 'postSlugCount'],
+                ['sourceId' => $activeExcerptInputId, 'targetId' => 'excerptCount'],
                 ['sourceId' => 'metaTitle', 'targetId' => 'metaTitleCount'],
                 ['sourceId' => 'metaDesc', 'targetId' => 'metaDescCount'],
             ],
@@ -564,8 +586,8 @@ $additionalCategoryIds = array_values(array_filter(
 
         $postContentSeoConfig = [
             'formId' => 'postForm',
-            'titleId' => 'title',
-            'slugId' => 'slug',
+            'titleId' => $activeTitleInputId,
+            'slugId' => $activeSlugInputId,
             'metaTitleId' => 'metaTitle',
             'metaDescId' => 'metaDesc',
             'focusKeyphraseId' => 'focusKeyphrase',
@@ -577,8 +599,8 @@ $additionalCategoryIds = array_values(array_filter(
             'twitterImageId' => 'twitterImage',
             'featuredImageId' => 'featuredInput',
             'statusId' => 'status',
-            'contentInputId' => 'contentInput',
-            'editorContainerId' => 'editorjs',
+            'contentInputId' => $activeContentInputId,
+            'editorContainerId' => $activeEditorHolderId,
             'serpTitleId' => 'postSerpTitle',
             'serpUrlId' => 'postSerpUrl',
             'serpDescriptionId' => 'postSerpDescription',
@@ -602,8 +624,8 @@ $additionalCategoryIds = array_values(array_filter(
             'readabilityBadgeId' => 'postReadabilityBadge',
             'readabilitySummaryId' => 'postReadabilitySummary',
             'previewBaseUrl' => '/blog/',
-            'previewUrlTemplate' => $postPreviewUrlTemplate,
-            'previewPlaceholderSlug' => 'beitrag',
+            'previewUrlTemplate' => $activePostPreviewUrlTemplate,
+            'previewPlaceholderSlug' => $activePostPreviewSlugFallback,
             'siteName' => (string)SITE_NAME,
             'siteTitleFormat' => (string)($seoTemplateSettings['site_title_format'] ?? '%%title%% %%sep%% %%sitename%%'),
             'titleSeparator' => (string)($seoTemplateSettings['title_separator'] ?? '|'),
@@ -626,7 +648,18 @@ $additionalCategoryIds = array_values(array_filter(
                 'titleInputId' => 'title',
                 'titleFallbackInputId' => 'titleEn',
             ],
-            'aiTranslation' => $aiTranslationEnabled ? [
+            'copyAction' => $isEnglishEditorView ? [
+                'buttonId' => 'copyPostDeToEnButton',
+                'sourceEditorKey' => 'de',
+                'targetEditorKey' => 'en',
+                'sourceTitleId' => 'title',
+                'targetTitleId' => 'titleEn',
+                'sourceSlugId' => 'slug',
+                'targetSlugId' => 'slugEn',
+                'sourceExcerptId' => 'excerpt',
+                'targetExcerptId' => 'excerptEn',
+            ] : null,
+            'aiTranslation' => ($aiTranslationEnabled && $isEnglishEditorView) ? [
                 'buttonId' => 'translatePostDeToEnButton',
                 'endpointUrl' => (string) ($aiTranslationUrl ?? '/admin/ai-translate-editorjs'),
                 'csrfToken' => (string) ($aiTranslationToken ?? ''),
@@ -641,12 +674,16 @@ $additionalCategoryIds = array_values(array_filter(
                 'targetSlugId' => 'slugEn',
                 'sourceExcerptId' => 'excerpt',
                 'targetExcerptId' => 'excerptEn',
-                'targetPaneButtonId' => 'postLangToggleEn',
             ] : null,
-            'editors' => [
-                ['key' => 'de', 'holderId' => 'editorjs', 'inputId' => 'contentInput', 'lazy' => false],
-                ['key' => 'en', 'holderId' => 'editorjsEn', 'inputId' => 'contentInputEn', 'lazy' => $defaultContentLanguage !== 'en', 'activateButtonId' => 'postLangToggleEn'],
-            ],
+            'editors' => $isEnglishEditorView
+                ? [
+                    ['key' => 'de', 'holderId' => 'postHiddenEditorDe', 'inputId' => 'contentInput', 'lazy' => true],
+                    ['key' => 'en', 'holderId' => 'editorjsEn', 'inputId' => 'contentInputEn', 'lazy' => false],
+                ]
+                : [
+                    ['key' => 'de', 'holderId' => 'editorjs', 'inputId' => 'contentInput', 'lazy' => false],
+                    ['key' => 'en', 'holderId' => 'postHiddenEditorEn', 'inputId' => 'contentInputEn', 'lazy' => true],
+                ],
         ] : null;
         ?>
 

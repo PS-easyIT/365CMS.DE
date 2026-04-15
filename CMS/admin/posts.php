@@ -16,7 +16,7 @@ use CMS\Services\CoreModuleService;
 use CMS\Services\EditorJsService;
 use CMS\Services\EditorService;
 
-const CMS_ADMIN_POSTS_ALLOWED_ACTIONS = ['save', 'delete', 'bulk', 'save_category', 'delete_category'];
+const CMS_ADMIN_POSTS_ALLOWED_ACTIONS = ['save', 'delete', 'bulk', 'save_category', 'delete_category', 'switch_locale'];
 const CMS_ADMIN_POSTS_ALLOWED_VIEWS = ['list', 'edit'];
 const CMS_ADMIN_POSTS_ALLOWED_BULK_ACTIONS = [
     'delete',
@@ -34,10 +34,35 @@ function cms_admin_posts_can_access(): bool
     return Auth::instance()->isAdmin() && Auth::instance()->hasCapability(CMS_ADMIN_POSTS_WRITE_CAPABILITY);
 }
 
-function cms_admin_posts_target_url(?int $id = null): string
+function cms_admin_posts_normalize_editor_locale(mixed $locale): string
 {
+    $normalizedLocale = strtolower(trim((string) $locale));
+
+    return in_array($normalizedLocale, ['de', 'en'], true) ? $normalizedLocale : 'de';
+}
+
+function cms_admin_posts_target_url(?int $id = null, string $editorLocale = 'de', bool $forceEditView = false): string
+{
+    $editorLocale = cms_admin_posts_normalize_editor_locale($editorLocale);
+
     if ($id !== null && $id > 0) {
-        return '/admin/posts?action=edit&id=' . $id;
+        $target = '/admin/posts?action=edit&id=' . $id;
+
+        if ($editorLocale === 'en') {
+            $target .= '&lang=en';
+        }
+
+        return $target;
+    }
+
+    if ($forceEditView) {
+        $target = '/admin/posts?action=edit';
+
+        if ($editorLocale === 'en') {
+            $target .= '&lang=en';
+        }
+
+        return $target;
     }
 
     return '/admin/posts';
@@ -51,9 +76,9 @@ function cms_admin_posts_flash(string $type, string $message): void
     ];
 }
 
-function cms_admin_posts_redirect(?int $id = null): never
+function cms_admin_posts_redirect(?int $id = null, string $editorLocale = 'de', bool $forceEditView = false): never
 {
-    header('Location: ' . cms_admin_posts_target_url($id));
+    header('Location: ' . cms_admin_posts_target_url($id, $editorLocale, $forceEditView));
     exit;
 }
 
@@ -61,7 +86,28 @@ function cms_admin_posts_normalize_action(mixed $action): string
 {
     $normalizedAction = trim((string) $action);
 
+    if (str_starts_with($normalizedAction, 'switch_locale:')) {
+        $normalizedAction = 'switch_locale';
+    }
+
     return in_array($normalizedAction, CMS_ADMIN_POSTS_ALLOWED_ACTIONS, true) ? $normalizedAction : '';
+}
+
+function cms_admin_posts_extract_action_value(array $post): string
+{
+    return trim((string) ($post['_action'] ?? $post['action'] ?? ''));
+}
+
+function cms_admin_posts_resolve_switch_target_locale(mixed $actionValue, mixed $fallbackLocale = 'de'): string
+{
+    $fallbackLocale = cms_admin_posts_normalize_editor_locale($fallbackLocale);
+    $normalizedActionValue = trim((string) $actionValue);
+
+    if (preg_match('/^switch_locale:(de|en)$/', $normalizedActionValue, $matches) === 1) {
+        return cms_admin_posts_normalize_editor_locale($matches[1] ?? $fallbackLocale);
+    }
+
+    return $fallbackLocale;
 }
 
 function cms_admin_posts_normalize_view(mixed $view): string
@@ -177,9 +223,10 @@ function cms_admin_posts_build_inline_edit_data(PostsModule $module, array $post
     return $editData;
 }
 
-function cms_admin_posts_view_config(PostsModule $module, string $view, ?array $overrideEditData = null): array
+function cms_admin_posts_view_config(PostsModule $module, string $view, ?array $overrideEditData = null, string $editorLocale = 'de'): array
 {
     $normalizedView = cms_admin_posts_normalize_view($view);
+    $editorLocale = cms_admin_posts_normalize_editor_locale($editorLocale);
     $aiTranslationEnabled = !class_exists(CoreModuleService::class)
         || CoreModuleService::getInstance()->isModuleEnabled('ai_services');
     $baseTemplateVars = [
@@ -187,6 +234,7 @@ function cms_admin_posts_view_config(PostsModule $module, string $view, ?array $
         'aiTranslationEnabled' => $aiTranslationEnabled,
         'aiTranslationToken' => $aiTranslationEnabled ? Security::instance()->generateToken('admin_ai_editorjs_translation') : '',
         'aiTranslationUrl' => $aiTranslationEnabled ? '/admin/ai-translate-editorjs' : '',
+        'editorLocale' => $editorLocale,
         'useEditorJs' => false,
     ];
 
@@ -218,7 +266,7 @@ function cms_admin_posts_view_config(PostsModule $module, string $view, ?array $
         return [
             'section' => 'edit',
             'view_file' => __DIR__ . '/views/posts/edit.php',
-            'page_title' => !empty($editData['isNew']) ? 'Neuer Beitrag' : 'Beitrag bearbeiten',
+            'page_title' => (!empty($editData['isNew']) ? 'Neuer Beitrag' : 'Beitrag bearbeiten') . ($editorLocale === 'en' ? ' · EN' : ''),
             'active_page' => 'posts',
             'page_assets' => $pageAssets,
             'template_vars' => $baseTemplateVars + [
@@ -377,22 +425,31 @@ $sectionPageConfig = [
     'access_checker' => static fn (): bool => cms_admin_posts_can_access(),
     'request_context_resolver' => static function (PostsModule $module): array {
         $view = cms_admin_posts_normalize_view($_GET['action'] ?? 'list');
+        $editorLocale = cms_admin_posts_normalize_editor_locale($_GET['lang'] ?? 'de');
 
-        return cms_admin_posts_view_config($module, $view);
+        return cms_admin_posts_view_config($module, $view, null, $editorLocale);
     },
     'redirect_path_resolver' => static function (PostsModule $module, string $section, mixed $result): string {
         if (is_array($result) && isset($result['redirect_path']) && is_string($result['redirect_path'])) {
             return $result['redirect_path'];
         }
 
+        $editorLocale = cms_admin_posts_normalize_editor_locale(
+            is_array($result) && isset($result['editor_locale'])
+                ? $result['editor_locale']
+                : ($_POST['editor_locale'] ?? ($_GET['lang'] ?? 'de'))
+        );
+
         if ($section === 'edit') {
-            return cms_admin_posts_target_url(cms_admin_posts_normalize_positive_id($_GET['id'] ?? 0));
+            return cms_admin_posts_target_url(cms_admin_posts_normalize_positive_id($_GET['id'] ?? 0), $editorLocale, true);
         }
 
         return cms_admin_posts_target_url();
     },
     'post_handler' => static function (PostsModule $module, string $section, array $post): array {
-        $postAction = cms_admin_posts_normalize_action($post['action'] ?? '');
+        $rawPostAction = cms_admin_posts_extract_action_value($post);
+        $postAction = cms_admin_posts_normalize_action($rawPostAction);
+        $editorLocale = cms_admin_posts_normalize_editor_locale($post['editor_locale'] ?? ($_GET['lang'] ?? 'de'));
 
         if ($postAction === '') {
             return ['success' => false, 'error' => 'Unbekannte Beitrags-Aktion.'];
@@ -403,11 +460,28 @@ $sectionPageConfig = [
         }
 
         switch ($postAction) {
+            case 'switch_locale':
+                $targetLocale = cms_admin_posts_resolve_switch_target_locale($rawPostAction, $editorLocale === 'en' ? 'de' : 'en');
+
+                return [
+                    'success' => true,
+                    'message' => '',
+                    'render_inline' => true,
+                    'editor_locale' => $targetLocale,
+                    'runtime_context' => cms_admin_posts_view_config(
+                        $module,
+                        'edit',
+                        cms_admin_posts_build_inline_edit_data($module, $post),
+                        $targetLocale
+                    ),
+                ];
+
             case 'save':
                 $userId = Auth::instance()->getCurrentUser()->id ?? 0;
                 $result = $module->save($post, (int) $userId);
                 if (!empty($result['success'])) {
-                    $result['redirect_path'] = cms_admin_posts_target_url(cms_admin_posts_normalize_positive_id($result['id'] ?? 0));
+                    $result['editor_locale'] = $editorLocale;
+                    $result['redirect_path'] = cms_admin_posts_target_url(cms_admin_posts_normalize_positive_id($result['id'] ?? 0), $editorLocale);
                     return $result;
                 }
 
@@ -416,7 +490,8 @@ $sectionPageConfig = [
                     'error' => (string) ($result['error'] ?? 'Beitrag konnte nicht gespeichert werden.'),
                     'details' => is_array($result['details'] ?? null) ? $result['details'] : [],
                     'render_inline' => true,
-                    'runtime_context' => cms_admin_posts_view_config($module, 'edit', cms_admin_posts_build_inline_edit_data($module, $post)),
+                    'editor_locale' => $editorLocale,
+                    'runtime_context' => cms_admin_posts_view_config($module, 'edit', cms_admin_posts_build_inline_edit_data($module, $post), $editorLocale),
                 ];
 
             case 'delete':

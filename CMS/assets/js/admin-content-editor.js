@@ -19,6 +19,18 @@
         return id ? document.getElementById(id) : null;
     }
 
+    function queryElements(selector) {
+        if (!selector) {
+            return [];
+        }
+
+        try {
+            return Array.prototype.slice.call(document.querySelectorAll(selector));
+        } catch (_error) {
+            return [];
+        }
+    }
+
     function clearElement(element) {
         if (!element) {
             return;
@@ -75,8 +87,8 @@
         var statusBadge = getElement(config.statusBadgeId);
         var categorySelect = getElement(config.categorySelectId);
         var categoryLabel = getElement(config.categoryLabelId);
-        var toggleButtons = document.querySelectorAll(config.languageToggleSelector || '');
-        var languagePanes = document.querySelectorAll(config.languagePaneSelector || '');
+        var toggleButtons = queryElements(config.languageToggleSelector);
+        var languagePanes = queryElements(config.languagePaneSelector);
         var statusMap = config.statusMap || {};
         var countBindings = Array.isArray(config.countBindings) ? config.countBindings : [];
 
@@ -238,6 +250,7 @@
         var editorDefinitions = {};
         var submitLocked = false;
         var nativeSubmitPending = false;
+        var pendingSubmitter = null;
         var translationPreviewActive = false;
         var translationPreviewSuppressClear = false;
         var pendingLazyBindings = {};
@@ -997,6 +1010,61 @@
             }
         }
 
+        function isFormSubmitter(element) {
+            var tagName;
+            var type;
+
+            if (!element || element.form !== form) {
+                return false;
+            }
+
+            tagName = String(element.tagName || '').toLowerCase();
+            type = String(element.type || '').toLowerCase();
+
+            if (tagName === 'button') {
+                return type === '' || type === 'submit';
+            }
+
+            if (tagName === 'input') {
+                return type === 'submit' || type === 'image';
+            }
+
+            return false;
+        }
+
+        function createFallbackSubmitter(submitter) {
+            var fallbackButton = document.createElement('button');
+
+            fallbackButton.type = 'submit';
+            fallbackButton.hidden = true;
+            fallbackButton.tabIndex = -1;
+            fallbackButton.setAttribute('aria-hidden', 'true');
+
+            if (!submitter) {
+                return fallbackButton;
+            }
+
+            if (submitter.name) {
+                fallbackButton.name = submitter.name;
+            }
+
+            if (typeof submitter.value === 'string') {
+                fallbackButton.value = submitter.value;
+            }
+
+            ['formaction', 'formmethod', 'formenctype', 'formtarget'].forEach(function (attributeName) {
+                if (submitter.hasAttribute && submitter.hasAttribute(attributeName)) {
+                    fallbackButton.setAttribute(attributeName, submitter.getAttribute(attributeName));
+                }
+            });
+
+            if (submitter.hasAttribute && submitter.hasAttribute('formnovalidate')) {
+                fallbackButton.setAttribute('formnovalidate', 'formnovalidate');
+            }
+
+            return fallbackButton;
+        }
+
         function activateTargetPane(buttonId, targetEditorKey, options) {
             var button = getElement(buttonId);
             var isActive = button && button.getAttribute('aria-pressed') === 'true';
@@ -1410,11 +1478,24 @@
             });
         }
 
-        function dispatchValidatedSubmit() {
+        function dispatchValidatedSubmit(submitter) {
+            var resolvedSubmitter = isFormSubmitter(submitter) ? submitter : null;
+            var fallbackButton;
+
             if (typeof form.requestSubmit === 'function') {
                 nativeSubmitPending = true;
-                form.requestSubmit();
-                nativeSubmitPending = false;
+
+                try {
+                    if (resolvedSubmitter) {
+                        form.requestSubmit(resolvedSubmitter);
+                    } else {
+                        form.requestSubmit();
+                    }
+                } finally {
+                    nativeSubmitPending = false;
+                    pendingSubmitter = null;
+                }
+
                 return;
             }
 
@@ -1422,17 +1503,18 @@
                 return;
             }
 
-            var fallbackButton = document.createElement('button');
-            fallbackButton.type = 'submit';
-            fallbackButton.hidden = true;
-            fallbackButton.tabIndex = -1;
-            fallbackButton.setAttribute('aria-hidden', 'true');
+            fallbackButton = createFallbackSubmitter(resolvedSubmitter);
 
             nativeSubmitPending = true;
             form.appendChild(fallbackButton);
-            fallbackButton.click();
-            fallbackButton.remove();
-            nativeSubmitPending = false;
+
+            try {
+                fallbackButton.click();
+            } finally {
+                fallbackButton.remove();
+                nativeSubmitPending = false;
+                pendingSubmitter = null;
+            }
         }
 
         function registerPreviewInvalidation(aiTranslation) {
@@ -1582,8 +1664,19 @@
             handleAiTranslation(config.aiTranslation);
         }
 
+        form.addEventListener('click', function (event) {
+            var target = event && event.target && typeof event.target.closest === 'function'
+                ? event.target.closest('button, input[type="submit"], input[type="image"]')
+                : null;
+
+            if (isFormSubmitter(target)) {
+                pendingSubmitter = target;
+            }
+        }, true);
+
         form.addEventListener('submit', function (event) {
             var keys = Object.keys(editorDefinitions);
+            var submitter = event && event.submitter ? event.submitter : pendingSubmitter;
 
             if (nativeSubmitPending) {
                 return;
@@ -1598,7 +1691,7 @@
             clearNotice();
 
             if (keys.length === 0) {
-                dispatchValidatedSubmit();
+                dispatchValidatedSubmit(submitter);
                 return;
             }
 
@@ -1608,7 +1701,7 @@
                 return saveEditorContent(key, false);
             })).then(function () {
                 submitLocked = false;
-                dispatchValidatedSubmit();
+                dispatchValidatedSubmit(submitter);
             }).catch(function (error) {
                 var failedDefinition = error && error.editorDefinition ? error.editorDefinition : null;
                 var message = error && error.message
@@ -1624,6 +1717,7 @@
                 }
 
                 submitLocked = false;
+                pendingSubmitter = null;
                 showNotice('danger', message);
             });
         });

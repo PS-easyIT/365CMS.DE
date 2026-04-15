@@ -33,6 +33,8 @@ $pageDefaultStatus = function_exists('get_option') ? (string)get_option('setting
 if (!in_array($pageDefaultStatus, ['draft', 'published', 'private'], true)) {
     $pageDefaultStatus = 'draft';
 }
+$editorLocale = (($editorLocale ?? 'de') === 'en') ? 'en' : 'de';
+$isEnglishEditorView = $editorLocale === 'en';
 ?>
 
 <!-- Page Header -->
@@ -65,6 +67,7 @@ if (!in_array($pageDefaultStatus, ['draft', 'published', 'private'], true)) {
         <form method="post" id="pageForm">
             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
             <input type="hidden" name="action" value="save">
+            <input type="hidden" name="editor_locale" value="<?= htmlspecialchars($editorLocale) ?>">
             <?php if (!$isNew): ?>
                 <input type="hidden" name="id" value="<?= (int)$page->id ?>">
             <?php endif; ?>
@@ -86,6 +89,25 @@ if (!in_array($pageDefaultStatus, ['draft', 'published', 'private'], true)) {
             $pagePreviewSlugEn = ltrim($pageSlugEnValue !== '' ? $pageSlugEnValue : $pageSlugValue, '/');
             $pagePreviewUrl = $pagePreviewSlug !== '' ? '/' . $pagePreviewSlug : '/';
             $pagePreviewUrlEn = $pagePreviewSlugEn !== '' ? '/' . $pagePreviewSlugEn . '/en' : '/en';
+            $pagePreviewUrlTemplate = '/{slug}';
+            $pagePreviewUrlTemplateEn = '/{slug}/en';
+            $pageEditUrlDe = $isNew
+                ? '/admin/pages?action=edit&lang=de'
+                : '/admin/pages?action=edit&id=' . (int)($page->id ?? 0) . '&lang=de';
+            $pageEditUrlEn = $isNew
+                ? '/admin/pages?action=edit&lang=en'
+                : '/admin/pages?action=edit&id=' . (int)($page->id ?? 0) . '&lang=en';
+            $activePageTitleValue = $isEnglishEditorView ? $pageTitleEnValue : $pageTitleValue;
+            $activePageSlugValue = $isEnglishEditorView ? $pageSlugEnValue : $pageSlugValue;
+            $activePagePreviewUrl = $isEnglishEditorView ? $pagePreviewUrlEn : $pagePreviewUrl;
+            $activePagePreviewUrlTemplate = $isEnglishEditorView ? $pagePreviewUrlTemplateEn : $pagePreviewUrlTemplate;
+            $activePagePreviewSlugFallback = $isEnglishEditorView
+                ? ($pageSlugEnValue !== '' ? $pageSlugEnValue : ($pageSlugValue !== '' ? $pageSlugValue : 'seite'))
+                : ($pageSlugValue !== '' ? $pageSlugValue : 'seite');
+            $activePageTitleInputId = $isEnglishEditorView ? 'pageTitleEn' : 'pageTitle';
+            $activePageSlugInputId = $isEnglishEditorView ? 'pageSlugEn' : 'pageSlug';
+            $activePageContentInputId = $isEnglishEditorView ? 'editorContentEn' : 'editorContent';
+            $activePageEditorHolderId = $isEnglishEditorView ? 'editorjsEn' : 'editorjs';
             $pageFocusKeyphraseValue = (string)($seoMeta['focus_keyphrase'] ?? '');
             $pageCanonicalUrlValue = (string)($seoMeta['canonical_url'] ?? '');
             $pageRobotsIndexValue = !array_key_exists('robots_index', $seoMeta) || !empty($seoMeta['robots_index']);
@@ -106,16 +128,32 @@ if (!in_array($pageDefaultStatus, ['draft', 'published', 'private'], true)) {
                 : '';
             ?>
 
+            <?php if ($isEnglishEditorView): ?>
+                <input type="hidden" name="title" id="pageTitle" value="<?= htmlspecialchars($pageTitleValue) ?>">
+                <input type="hidden" name="slug" id="pageSlug" value="<?= htmlspecialchars($pageSlugValue) ?>">
+                <input type="hidden" name="content" id="editorContent" value="<?= htmlspecialchars($pageContentValue) ?>">
+                <?php if (!empty($useEditorJs)): ?>
+                <input type="hidden" name="content_en" id="editorContentEn" value="<?= htmlspecialchars($pageContentEnValue) ?>">
+                <?php endif; ?>
+            <?php else: ?>
+                <input type="hidden" name="title_en" id="pageTitleEn" value="<?= htmlspecialchars($pageTitleEnValue) ?>">
+                <input type="hidden" name="slug_en" id="pageSlugEn" value="<?= htmlspecialchars($pageSlugEnValue) ?>">
+                <?php if (!empty($useEditorJs)): ?>
+                <input type="hidden" name="content" id="editorContent" value="<?= htmlspecialchars($pageContentValue) ?>">
+                <?php endif; ?>
+                <input type="hidden" name="content_en" id="editorContentEn" value="<?= htmlspecialchars($pageContentEnValue) ?>">
+            <?php endif; ?>
+
             <div class="row g-3">
                 <div class="col-lg-4 d-flex">
                     <div class="card cms-edit-card cms-edit-top-card h-100 w-100">
                         <div class="card-body">
                             <div class="row g-3 align-items-end mb-3">
                                 <div class="col-md-8">
-                                     <label class="form-label required" for="pageTitle">Titel</label>
-                                     <input type="text" name="title" id="pageTitle" class="form-control form-control-lg"
-                                           placeholder="Seitentitel"
-                                           value="<?= htmlspecialchars($pageTitleValue) ?>" required>
+                                     <label class="form-label<?= $isEnglishEditorView ? '' : ' required' ?>" for="<?= htmlspecialchars($activePageTitleInputId) ?>"><?= $isEnglishEditorView ? 'Englischer Titel' : 'Titel' ?></label>
+                                     <input type="text" name="<?= $isEnglishEditorView ? 'title_en' : 'title' ?>" id="<?= htmlspecialchars($activePageTitleInputId) ?>" class="form-control form-control-lg"
+                                           placeholder="<?= htmlspecialchars($isEnglishEditorView ? 'English page title' : 'Seitentitel') ?>"
+                                           value="<?= htmlspecialchars($activePageTitleValue) ?>"<?= $isEnglishEditorView ? '' : ' required' ?>>
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label d-block">&nbsp;</label>
@@ -129,14 +167,14 @@ if (!in_array($pageDefaultStatus, ['draft', 'published', 'private'], true)) {
                                 </div>
                             </div>
                             <div class="mb-0">
-                                <label class="form-label" for="pageSlug">Slug</label>
+                                <label class="form-label" for="<?= htmlspecialchars($activePageSlugInputId) ?>"><?= $isEnglishEditorView ? 'Englischer Slug' : 'Slug' ?></label>
                                 <div class="input-group">
                                     <span class="input-group-text">/</span>
-                                    <input type="text" name="slug" id="pageSlug" class="form-control"
-                                           placeholder="seiten-url"
-                                           value="<?= htmlspecialchars($pageSlugValue) ?>">
+                                    <input type="text" name="<?= $isEnglishEditorView ? 'slug_en' : 'slug' ?>" id="<?= htmlspecialchars($activePageSlugInputId) ?>" class="form-control"
+                                           placeholder="<?= htmlspecialchars($isEnglishEditorView ? 'english-page-slug' : 'seiten-url') ?>"
+                                           value="<?= htmlspecialchars($activePageSlugValue) ?>">
                                 </div>
-                                <small class="form-hint">Wird automatisch aus dem Titel generiert, wenn leer.</small>
+                                <small class="form-hint"><?= $isEnglishEditorView ? 'Wenn leer, nutzt die EN-URL weiterhin den Standardslug.' : 'Wird automatisch aus dem Titel generiert, wenn leer.' ?></small>
                             </div>
                         </div>
                     </div>
@@ -212,61 +250,31 @@ if (!in_array($pageDefaultStatus, ['draft', 'published', 'private'], true)) {
                 <div class="col-12">
                     <div class="card cms-edit-card cms-editor-card mb-3">
                         <div class="card-header d-flex justify-content-between align-items-center gap-3 flex-wrap">
-                            <h3 class="card-title">Inhalt</h3>
+                            <h3 class="card-title"><?= $isEnglishEditorView ? 'Inhalt · English' : 'Inhalt · Deutsch' ?></h3>
                             <div class="btn-group" role="group" aria-label="Inhaltssprache wählen">
-                                <button class="btn btn-primary" type="button" id="pageLangToggleDe" data-lang-toggle="de" aria-pressed="true">Deutsch</button>
-                                <button class="btn btn-outline-primary" type="button" id="pageLangToggleEn" data-lang-toggle="en" aria-pressed="false">English</button>
+                                <button class="btn <?= $isEnglishEditorView ? 'btn-outline-primary' : 'btn-primary' ?>" type="submit" name="_action" value="switch_locale:de" formaction="<?= htmlspecialchars($pageEditUrlDe) ?>" aria-pressed="<?= $isEnglishEditorView ? 'false' : 'true' ?>">Deutsch</button>
+                                <button class="btn <?= $isEnglishEditorView ? 'btn-primary' : 'btn-outline-primary' ?>" type="submit" name="_action" value="switch_locale:en" formaction="<?= htmlspecialchars($pageEditUrlEn) ?>" aria-pressed="<?= $isEnglishEditorView ? 'true' : 'false' ?>">English</button>
                             </div>
                         </div>
                         <div class="card-body">
-                            <div id="pageLanguagePaneDe" data-page-lang-pane="de">
-                                <div class="mb-3">
-                                    <div class="text-secondary small mb-2">Standardansicht unter <code><?= htmlspecialchars($pagePreviewUrl) ?></code></div>
-                                </div>
-                                <?php if (!empty($useEditorJs)): ?>
-                                <div class="editorjs-wrap editorjs-wrap--page cms-editor-live-wrap"
-                                       style="--editorjs-content-width:<?= (int)$pageEditorWidth ?>px; --editorjs-content-padding-x:50px;">
-                                    <div id="editorjs" class="editorjs-holder cms-editor-live-holder" style="min-height: 300px;"></div>
-                                </div>
-                                <input type="hidden" name="content" id="editorContent"
-                                       value="<?= htmlspecialchars($pageContentValue) ?>">
-                                <?php else: ?>
-                                    <?= EditorService::getInstance()->render('content', $pageContentValue, [
-                                        'height' => '420',
-                                        'context' => 'page',
-                                        'content_width' => $pageEditorWidth,
-                                        'content_padding_x' => 50,
-                                    ]) ?>
-                                <?php endif; ?>
-                            </div>
-                            <div id="pageLanguagePaneEn" data-page-lang-pane="en" class="d-none">
+                            <?php if ($isEnglishEditorView): ?>
                                 <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap mb-3">
                                     <div class="text-secondary small">Die englische Version ist unter <code><?= htmlspecialchars($pagePreviewUrlEn) ?></code> erreichbar.</div>
-                                    <?php if ($aiTranslationEnabled): ?>
-                                        <div class="btn-list">
+                                    <div class="btn-list">
+                                        <?php if (!empty($useEditorJs)): ?>
+                                            <button type="button" class="btn btn-outline-secondary btn-sm" id="copyPageDeToEnButton">DE nach EN kopieren</button>
+                                        <?php endif; ?>
+                                        <?php if ($aiTranslationEnabled && !empty($useEditorJs)): ?>
                                             <button type="button" class="btn btn-primary btn-sm" id="translatePageDeToEnButton">Mit AI nach EN übersetzen</button>
-                                        </div>
-                                    <?php endif; ?>
-                                </div>
-                                <div class="row g-3 mb-3">
-                                    <div class="col-lg-7">
-                                        <label class="form-label" for="pageTitleEn">Englischer Titel</label>
-                                        <input type="text" name="title_en" id="pageTitleEn" class="form-control" value="<?= htmlspecialchars($pageTitleEnValue) ?>" placeholder="English page title">
-                                    </div>
-                                    <div class="col-lg-5">
-                                        <label class="form-label" for="pageSlugEn">Englischer Slug</label>
-                                        <input type="text" name="slug_en" id="pageSlugEn" class="form-control" value="<?= htmlspecialchars($pageSlugEnValue) ?>" placeholder="optional: english-page-slug">
-                                        <div class="form-hint">Wenn leer, nutzt die EN-URL weiterhin den Standardslug.</div>
+                                        <?php endif; ?>
                                     </div>
                                 </div>
-                                <div class="mb-3 text-secondary small">Die EN-Bearbeitung wird aktuell direkt gepflegt und kann bei Bedarf weiterhin über AI unterstützt werden.</div>
+                                <div class="mb-3 text-secondary small">Die EN-Bearbeitung läuft als eigene Admin-Seite. Die deutsche Fassung bleibt parallel erhalten und wird beim Speichern nicht durch einen In-Page-Tabwechsel gefährdet.</div>
                                 <?php if (!empty($useEditorJs)): ?>
                                 <div class="editorjs-wrap editorjs-wrap--page cms-editor-live-wrap"
                                        style="--editorjs-content-width:<?= (int)$pageEditorWidth ?>px; --editorjs-content-padding-x:50px;">
                                     <div id="editorjsEn" class="editorjs-holder cms-editor-live-holder" style="min-height: 300px;"></div>
                                 </div>
-                                <input type="hidden" name="content_en" id="editorContentEn"
-                                       value="<?= htmlspecialchars($pageContentEnValue) ?>">
                                 <?php else: ?>
                                     <?= EditorService::getInstance()->render('content_en', $pageContentEnValue, [
                                         'height' => '420',
@@ -275,7 +283,24 @@ if (!in_array($pageDefaultStatus, ['draft', 'published', 'private'], true)) {
                                         'content_padding_x' => 50,
                                     ]) ?>
                                 <?php endif; ?>
-                            </div>
+                            <?php else: ?>
+                                <div class="mb-3">
+                                    <div class="text-secondary small mb-2">Standardansicht unter <code><?= htmlspecialchars($pagePreviewUrl) ?></code></div>
+                                </div>
+                                <?php if (!empty($useEditorJs)): ?>
+                                <div class="editorjs-wrap editorjs-wrap--page cms-editor-live-wrap"
+                                       style="--editorjs-content-width:<?= (int)$pageEditorWidth ?>px; --editorjs-content-padding-x:50px;">
+                                    <div id="editorjs" class="editorjs-holder cms-editor-live-holder" style="min-height: 300px;"></div>
+                                </div>
+                                <?php else: ?>
+                                    <?= EditorService::getInstance()->render('content', $pageContentValue, [
+                                        'height' => '420',
+                                        'context' => 'page',
+                                        'content_width' => $pageEditorWidth,
+                                        'content_padding_x' => 50,
+                                    ]) ?>
+                                <?php endif; ?>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
@@ -303,7 +328,7 @@ if (!in_array($pageDefaultStatus, ['draft', 'published', 'private'], true)) {
                                 <input type="text" name="canonical_url" id="pageCanonicalUrl" class="form-control" value="<?= htmlspecialchars($pageCanonicalUrlValue) ?>" placeholder="Automatisch self-referencing, wenn leer">
                             </div>
                             <div class="d-flex align-items-center justify-content-between gap-2 mb-2"><span class="text-secondary small">Vorschau-URL</span><span class="badge bg-success-lt text-success" id="pageSlugState">Slug gültig</span></div>
-                            <div class="form-control-plaintext text-break small mb-3" id="pagePreviewUrl"><?= htmlspecialchars($pagePreviewUrl) ?></div>
+                            <div class="form-control-plaintext text-break small mb-3" id="pagePreviewUrl"><?= htmlspecialchars($activePagePreviewUrl) ?></div>
                             <div id="pagePublishWarning" class="alert alert-warning mb-0" role="alert"></div>
                         </div>
                     </div>
@@ -333,16 +358,16 @@ if (!in_array($pageDefaultStatus, ['draft', 'published', 'private'], true)) {
                     <?php
                     $previewCard = [
                         'serpTitleId' => 'pageSerpTitle',
-                        'serpTitle' => $pageMetaTitleValue ?: $pageTitleValue,
+                        'serpTitle' => $pageMetaTitleValue ?: $activePageTitleValue,
                         'serpUrlId' => 'pageSerpUrl',
-                        'serpUrl' => $pagePreviewUrl,
+                        'serpUrl' => $activePagePreviewUrl,
                         'serpDescriptionId' => 'pageSerpDescription',
                         'serpDescription' => $pageMetaDescriptionValue ?: 'Meta-Beschreibung wird automatisch aus dem ersten Absatz erzeugt.',
                         'socialImageId' => 'pageSocialImage',
                         'socialImage' => $pageOgImageValue !== '' ? $pageOgImageValue : $pageFeaturedImageValue,
                         'socialImageVisible' => $pageOgImageValue !== '' || $pageFeaturedImageValue !== '',
                         'socialTitleId' => 'pageSocialTitle',
-                        'socialTitle' => $pageOgTitleValue !== '' ? $pageOgTitleValue : ($pageMetaTitleValue ?: $pageTitleValue),
+                        'socialTitle' => $pageOgTitleValue !== '' ? $pageOgTitleValue : ($pageMetaTitleValue ?: $activePageTitleValue),
                         'socialDescriptionId' => 'pageSocialDescription',
                         'socialDescription' => $pageOgDescriptionValue !== '' ? $pageOgDescriptionValue : ($pageMetaDescriptionValue ?: 'Social-Vorschau aus SEO-Daten'),
                     ];
@@ -361,7 +386,7 @@ if (!in_array($pageDefaultStatus, ['draft', 'published', 'private'], true)) {
                             ['width' => 'col-md-3', 'label' => 'Titel', 'valueId' => 'pageTitleCount', 'suffix' => 'Zeichen'],
                             ['width' => 'col-md-3', 'label' => 'Slug', 'valueId' => 'pageSlugCount', 'suffix' => 'Zeichen'],
                             ['width' => 'col-md-3', 'label' => 'Status', 'badgeId' => 'pageStatusBadge', 'badgeText' => 'Entwurf', 'badgeClass' => 'badge bg-yellow-lt text-yellow'],
-                            ['width' => 'col-md-3', 'label' => 'Hinweis', 'bodyText' => 'Slug, Meta, Lesbarkeit und Social-Preview live.'],
+                            ['width' => 'col-md-3', 'label' => 'Hinweis', 'bodyText' => $isEnglishEditorView ? 'EN-Ansicht mit separatem Save-Flow.' : 'DE-Ansicht mit separatem Save-Flow.'],
                         ],
                     ];
                     require __DIR__ . '/../partials/content-seo-score-panel.php';
@@ -420,8 +445,8 @@ if (!in_array($pageDefaultStatus, ['draft', 'published', 'private'], true)) {
         $pickerPreviewContainerId = 'featuredImagePreview';
         $pickerRemoveButtonId = 'featuredImageRemove';
         $pickerEmptyStateId = 'featuredImageEmpty';
-        $pickerTitleInputId = 'pageTitle';
-        $pickerSlugInputId = 'pageSlug';
+        $pickerTitleInputId = $activePageTitleInputId;
+        $pickerSlugInputId = $activePageSlugInputId;
         $pickerDialogTitle = 'Seitenbild auswählen';
         $pickerIsNew = $isNew;
         $pickerContentType = 'page';
@@ -434,9 +459,10 @@ if (!in_array($pageDefaultStatus, ['draft', 'published', 'private'], true)) {
             'tempPathInputId' => 'featuredImageInput_temp_path',
             'previewContainerId' => 'featuredImagePreview',
             'emptyStateId' => 'featuredImageEmpty',
-            'slugInputId' => 'pageSlug',
+            'slugInputId' => $activePageSlugInputId,
             'previewUrlId' => 'pagePreviewUrl',
             'previewBaseUrl' => '/',
+            'previewUrlTemplate' => $activePagePreviewUrlTemplate,
             'statusSelectId' => 'pageStatusSelect',
             'statusBadgeId' => 'pageStatusBadge',
             'statusMap' => [
@@ -444,14 +470,9 @@ if (!in_array($pageDefaultStatus, ['draft', 'published', 'private'], true)) {
                 'published' => ['label' => 'Veröffentlicht', 'className' => 'badge bg-green-lt text-green'],
                 'private' => ['label' => 'Privat', 'className' => 'badge bg-purple-lt text-purple'],
             ],
-            'languageToggleSelector' => '[data-lang-toggle]',
-            'languagePaneSelector' => '[data-page-lang-pane]',
-            'languageAttribute' => 'data-lang-toggle',
-            'languagePaneAttribute' => 'data-page-lang-pane',
-            'defaultLanguage' => 'de',
             'countBindings' => [
-                ['sourceId' => 'pageTitle', 'targetId' => 'pageTitleCount'],
-                ['sourceId' => 'pageSlug', 'targetId' => 'pageSlugCount'],
+                ['sourceId' => $activePageTitleInputId, 'targetId' => 'pageTitleCount'],
+                ['sourceId' => $activePageSlugInputId, 'targetId' => 'pageSlugCount'],
                 ['sourceId' => 'pageMetaTitle', 'targetId' => 'metaTitleCount'],
                 ['sourceId' => 'pageMetaDescription', 'targetId' => 'metaDescriptionCount'],
             ],
@@ -459,8 +480,8 @@ if (!in_array($pageDefaultStatus, ['draft', 'published', 'private'], true)) {
 
         $pageContentSeoConfig = [
             'formId' => 'pageForm',
-            'titleId' => 'pageTitle',
-            'slugId' => 'pageSlug',
+            'titleId' => $activePageTitleInputId,
+            'slugId' => $activePageSlugInputId,
             'metaTitleId' => 'pageMetaTitle',
             'metaDescId' => 'pageMetaDescription',
             'focusKeyphraseId' => 'pageFocusKeyphrase',
@@ -472,8 +493,8 @@ if (!in_array($pageDefaultStatus, ['draft', 'published', 'private'], true)) {
             'twitterImageId' => 'pageTwitterImage',
             'featuredImageId' => 'featuredImageInput',
             'statusId' => 'pageStatusSelect',
-            'contentInputId' => 'editorContent',
-            'editorContainerId' => 'editorjs',
+            'contentInputId' => $activePageContentInputId,
+            'editorContainerId' => $activePageEditorHolderId,
             'serpTitleId' => 'pageSerpTitle',
             'serpUrlId' => 'pageSerpUrl',
             'serpDescriptionId' => 'pageSerpDescription',
@@ -497,6 +518,8 @@ if (!in_array($pageDefaultStatus, ['draft', 'published', 'private'], true)) {
             'readabilityBadgeId' => 'pageReadabilityBadge',
             'readabilitySummaryId' => 'pageReadabilitySummary',
             'previewBaseUrl' => '/',
+            'previewUrlTemplate' => $activePagePreviewUrlTemplate,
+            'previewPlaceholderSlug' => $activePagePreviewSlugFallback,
             'siteName' => (string)SITE_NAME,
             'siteTitleFormat' => (string)($seoTemplateSettings['site_title_format'] ?? '%%title%% %%sep%% %%sitename%%'),
             'titleSeparator' => (string)($seoTemplateSettings['title_separator'] ?? '|'),
@@ -519,7 +542,16 @@ if (!in_array($pageDefaultStatus, ['draft', 'published', 'private'], true)) {
                 'titleInputId' => 'pageTitle',
                 'titleFallbackInputId' => 'pageTitleEn',
             ],
-            'aiTranslation' => $aiTranslationEnabled ? [
+            'copyAction' => $isEnglishEditorView ? [
+                'buttonId' => 'copyPageDeToEnButton',
+                'sourceEditorKey' => 'de',
+                'targetEditorKey' => 'en',
+                'sourceTitleId' => 'pageTitle',
+                'targetTitleId' => 'pageTitleEn',
+                'sourceSlugId' => 'pageSlug',
+                'targetSlugId' => 'pageSlugEn',
+            ] : null,
+            'aiTranslation' => ($aiTranslationEnabled && $isEnglishEditorView) ? [
                 'buttonId' => 'translatePageDeToEnButton',
                 'endpointUrl' => (string) ($aiTranslationUrl ?? '/admin/ai-translate-editorjs'),
                 'csrfToken' => (string) ($aiTranslationToken ?? ''),
@@ -532,12 +564,16 @@ if (!in_array($pageDefaultStatus, ['draft', 'published', 'private'], true)) {
                 'targetTitleId' => 'pageTitleEn',
                 'sourceSlugId' => 'pageSlug',
                 'targetSlugId' => 'pageSlugEn',
-                'targetPaneButtonId' => 'pageLangToggleEn',
             ] : null,
-            'editors' => [
-                ['key' => 'de', 'holderId' => 'editorjs', 'inputId' => 'editorContent', 'lazy' => false],
-                ['key' => 'en', 'holderId' => 'editorjsEn', 'inputId' => 'editorContentEn', 'lazy' => true, 'activateButtonId' => 'pageLangToggleEn'],
-            ],
+            'editors' => $isEnglishEditorView
+                ? [
+                    ['key' => 'de', 'holderId' => 'pageHiddenEditorDe', 'inputId' => 'editorContent', 'lazy' => true],
+                    ['key' => 'en', 'holderId' => 'editorjsEn', 'inputId' => 'editorContentEn', 'lazy' => false],
+                ]
+                : [
+                    ['key' => 'de', 'holderId' => 'editorjs', 'inputId' => 'editorContent', 'lazy' => false],
+                    ['key' => 'en', 'holderId' => 'pageHiddenEditorEn', 'inputId' => 'editorContentEn', 'lazy' => true],
+                ],
         ] : null;
         ?>
 
