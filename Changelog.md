@@ -1,4 +1,4 @@
-﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.236-blue.svg)](https://shields.io/)
+﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.237-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -19,6 +19,12 @@
 ## 📜 Vollständige Versionshistorie
 
 ---
+
+### v2.9.237 — 15. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.237** | 🔴 fix | Admin/Beiträge & Seiten Sprachbutton | **`CMS/admin/views/posts/edit.php` und `CMS/admin/views/pages/edit.php` verwenden für `Deutsch`/`English` jetzt echte locale-aware Navigationslinks statt Submit-Buttons innerhalb des Bearbeitungsformulars**: Der Klick auf `ENG` löst damit garantiert keinen Save-POST mehr aus, sondern öffnet direkt die separate EN-Bearbeitungsseite für Beiträge bzw. Seiten, ohne unterwegs in `Beitrag aktualisiert.` oder `Seite gespeichert.` abzubiegen. |
 
 ### v2.9.236 — 15. April 2026
 

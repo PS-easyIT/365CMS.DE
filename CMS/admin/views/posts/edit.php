@@ -339,8 +339,8 @@ $additionalCategoryIds = array_values(array_filter(
                         <div class="card-header d-flex justify-content-between align-items-center gap-3 flex-wrap">
                             <h3 class="card-title"><?php echo $isEnglishEditorView ? 'Inhalt · English' : 'Inhalt · Deutsch'; ?></h3>
                             <div class="btn-group" role="group" aria-label="Inhaltssprache wählen">
-                                <button class="btn <?php echo $isEnglishEditorView ? 'btn-outline-primary' : 'btn-primary'; ?>" type="submit" name="_action" value="switch_locale:de" formaction="<?php echo htmlspecialchars($postEditUrlDe); ?>" aria-pressed="<?php echo $isEnglishEditorView ? 'false' : 'true'; ?>">Deutsch</button>
-                                <button class="btn <?php echo $isEnglishEditorView ? 'btn-primary' : 'btn-outline-primary'; ?>" type="submit" name="_action" value="switch_locale:en" formaction="<?php echo htmlspecialchars($postEditUrlEn); ?>" aria-pressed="<?php echo $isEnglishEditorView ? 'true' : 'false'; ?>">English</button>
+                                <a class="btn <?php echo $isEnglishEditorView ? 'btn-outline-primary' : 'btn-primary'; ?>" href="<?php echo htmlspecialchars($postEditUrlDe); ?>" aria-current="<?php echo $isEnglishEditorView ? 'false' : 'page'; ?>">Deutsch</a>
+                                <a class="btn <?php echo $isEnglishEditorView ? 'btn-primary' : 'btn-outline-primary'; ?>" href="<?php echo htmlspecialchars($postEditUrlEn); ?>" aria-current="<?php echo $isEnglishEditorView ? 'page' : 'false'; ?>">English</a>
                             </div>
                         </div>
                         <div class="card-body">

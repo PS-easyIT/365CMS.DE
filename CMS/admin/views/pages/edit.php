@@ -252,8 +252,8 @@ $isEnglishEditorView = $editorLocale === 'en';
                         <div class="card-header d-flex justify-content-between align-items-center gap-3 flex-wrap">
                             <h3 class="card-title"><?= $isEnglishEditorView ? 'Inhalt · English' : 'Inhalt · Deutsch' ?></h3>
                             <div class="btn-group" role="group" aria-label="Inhaltssprache wählen">
-                                <button class="btn <?= $isEnglishEditorView ? 'btn-outline-primary' : 'btn-primary' ?>" type="submit" name="_action" value="switch_locale:de" formaction="<?= htmlspecialchars($pageEditUrlDe) ?>" aria-pressed="<?= $isEnglishEditorView ? 'false' : 'true' ?>">Deutsch</button>
-                                <button class="btn <?= $isEnglishEditorView ? 'btn-primary' : 'btn-outline-primary' ?>" type="submit" name="_action" value="switch_locale:en" formaction="<?= htmlspecialchars($pageEditUrlEn) ?>" aria-pressed="<?= $isEnglishEditorView ? 'true' : 'false' ?>">English</button>
+                                <a class="btn <?= $isEnglishEditorView ? 'btn-outline-primary' : 'btn-primary' ?>" href="<?= htmlspecialchars($pageEditUrlDe) ?>" aria-current="<?= $isEnglishEditorView ? 'false' : 'page' ?>">Deutsch</a>
+                                <a class="btn <?= $isEnglishEditorView ? 'btn-primary' : 'btn-outline-primary' ?>" href="<?= htmlspecialchars($pageEditUrlEn) ?>" aria-current="<?= $isEnglishEditorView ? 'page' : 'false' ?>">English</a>
                             </div>
                         </div>
                         <div class="card-body">
