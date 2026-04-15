@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.9.240",
+  "version": "2.9.242",
   "min_php": "8.4",
   "released": "2026-04-15",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 2.9.240: EN-Pfade verwenden wieder konsistent das Präfix-Schema /en/... statt .../en, und der manuelle Button DE nach EN kopieren übernimmt bewusst nur Inhalt bzw. Kurzfassung – niemals Titel oder Slug.",
+  "notes": "Release-Stand 2.9.242: EN-Custom-Slugs bleiben im PhinIT-/Default-Theme jetzt auch im Public-Frontend auf dem richtigen Routing- und Theme-Vertrag, inklusive kanonischer lokalisierter Seitenpfade, locale-aware Theme-Routenprüfung und Landing-Alias-Support für Custom-Slugs.",
   "critical": false
 }

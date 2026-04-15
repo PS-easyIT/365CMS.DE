@@ -230,6 +230,13 @@ class Router
             }
         }
 
+        $landingAliasPath = $this->resolveLandingAliasPath();
+        if ($landingAliasPath !== '' && $routingUri === $landingAliasPath) {
+            Debug::checkpoint('router.route.landing_alias', ['uri' => $routingUri, 'alias' => $landingAliasPath]);
+            ThemeManager::instance()->render('home');
+            return;
+        }
+
         if (!$this->shouldAttemptDynamicPageLookup($routingUri)) {
             Debug::checkpoint('router.route.404_direct', ['uri' => $routingUri]);
             $this->render404();
@@ -274,6 +281,19 @@ class Router
             $page = $pageManager->getPageBySlug($slug, $this->getRequestLocale());
             if ($page && $page['status'] === 'published') {
                 $locale = $this->getRequestLocale();
+                $requestBaseUri = (string)($this->requestContext['base_uri'] ?? $routingUri);
+                $canonicalPath = $this->buildLocalizedPagePath($page, $locale);
+                $localizedCanonicalContext = Services\ContentLocalizationService::getInstance()->resolveRequestContext($canonicalPath);
+                $expectedRequestBasePath = $locale === 'de'
+                    ? $canonicalPath
+                    : (string) ($localizedCanonicalContext['base_uri'] ?? $canonicalPath);
+
+                if ($requestBaseUri !== '' && $requestBaseUri !== $expectedRequestBasePath) {
+                    $query = trim((string) ($_SERVER['QUERY_STRING'] ?? ''));
+                    $target = $canonicalPath . ($query !== '' ? '?' . $query : '');
+                    $this->redirect($target, 301);
+                    return;
+                }
 
                 if (!empty($page['content'])) {
                     $page['updated_at'] = Services\SiteTableService::getInstance()->resolveContentLastModified(
@@ -512,6 +532,29 @@ class Router
             $type . ':' . $resourceId . ':' . $locale,
             $lastModified
         );
+    }
+
+    private function buildLocalizedPagePath(array $page, string $locale): string
+    {
+        $localization = Services\ContentLocalizationService::getInstance();
+        $resolvedSlug = $localization->resolveLocalizedSlug($page, $locale);
+        $pagePath = '/' . ltrim($resolvedSlug !== '' ? $resolvedSlug : 'home', '/');
+
+        return $localization->buildLocalizedPath($pagePath, $locale);
+    }
+
+    private function resolveLandingAliasPath(): string
+    {
+        if (!function_exists('get_option')) {
+            return '';
+        }
+
+        $landingSlug = trim((string) get_option('landing_slug', ''));
+        if ($landingSlug === '' || $landingSlug === '/') {
+            return '';
+        }
+
+        return '/' . trim($landingSlug, '/');
     }
 
     public function render404(): void

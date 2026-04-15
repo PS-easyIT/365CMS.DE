@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+use CMS\Services\ContentLocalizationService;
+
 if (!defined('ABSPATH')) {
     exit;
 }
@@ -17,7 +19,7 @@ $mainDomainHost = trim((string)(parse_url((string) SITE_URL, PHP_URL_HOST) ?? ''
 $hubBaseUrl = '/admin/hub-sites';
 $hubTemplatesUrl = $hubBaseUrl . '?action=templates';
 $hubPublicPath = !empty($settings['hub_slug']) ? '/' . ltrim((string)$settings['hub_slug'], '/') : '';
-$hubPublicEnPath = $hubPublicPath !== '' ? rtrim($hubPublicPath, '/') . '/en' : '';
+$hubPublicEnPath = $hubPublicPath !== '' ? ContentLocalizationService::getInstance()->buildLocalizedPath($hubPublicPath, 'en') : '';
 ?>
 
 <div class="page-header d-print-none">
@@ -37,7 +39,7 @@ $hubPublicEnPath = $hubPublicPath !== '' ? rtrim($hubPublicPath, '/') . '/en' : 
                 <div class="col-auto">
                     <div class="d-flex align-items-center gap-2">
                         <span class="badge bg-azure-lt">Public URL: /<?php echo htmlspecialchars((string)($settings['hub_slug'] ?? '')); ?></span>
-                        <span class="badge bg-indigo-lt">EN: /<?php echo htmlspecialchars((string)($settings['hub_slug'] ?? '')); ?>/en</span>
+                        <span class="badge bg-indigo-lt">EN: /en/<?php echo htmlspecialchars((string)($settings['hub_slug'] ?? '')); ?></span>
                         <?php if ($hubPublicPath !== ''): ?>
                             <button type="button"
                                     class="btn btn-outline-secondary btn-sm"
@@ -93,7 +95,7 @@ $hubPublicEnPath = $hubPublicPath !== '' ? rtrim($hubPublicPath, '/') . '/en' : 
                             <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
                                 <div>
                                     <strong>Inhaltssprache</strong>
-                                    <div class="text-secondary small">Deutsch bleibt Standard, English wird unter <code>/slug/en</code> ausgespielt.</div>
+                                    <div class="text-secondary small">Deutsch bleibt Standard, English wird unter <code>/en/slug</code> ausgespielt.</div>
                                 </div>
                                 <div class="btn-group" role="tablist" aria-label="Hub-Sprachansicht">
                                     <button type="button" class="btn btn-primary" data-hub-lang-toggle="de" aria-pressed="true">Deutsch</button>
@@ -190,7 +192,7 @@ $hubPublicEnPath = $hubPublicPath !== '' ? rtrim($hubPublicPath, '/') . '/en' : 
                                 <div class="col-12 d-none" data-lang-pane="en">
                                     <div class="row g-3">
                                         <div class="col-12">
-                                            <div class="alert alert-info mb-0">Die englische Hub-Site wird unter <code>/<?php echo htmlspecialchars((string)($settings['hub_slug'] ?? 'hub-site')); ?>/en</code> ausgeliefert. URL und Kartenstruktur bleiben identisch.</div>
+                                            <div class="alert alert-info mb-0">Die englische Hub-Site wird unter <code>/en/<?php echo htmlspecialchars((string)($settings['hub_slug'] ?? 'hub-site')); ?></code> ausgeliefert. URL und Kartenstruktur bleiben identisch.</div>
                                         </div>
                                         <div class="col-md-6">
                                             <label class="form-label">Topic badge</label>

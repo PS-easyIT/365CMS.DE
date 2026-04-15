@@ -1,4 +1,4 @@
-﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.240-blue.svg)](https://shields.io/)
+﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.242-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -19,6 +19,18 @@
 ## 📜 Vollständige Versionshistorie
 
 ---
+
+### v2.9.242 — 15. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.242** | 🔴 fix | Frontend/PhinIT-Theme, Seiten & EN-Custom-Slugs | **`CMS/core/Services/ContentLocalizationService.php`, `CMS/core/Router.php` und `CMS/themes/cms-default/includes/theme-runtime-helpers.php` halten lokalisierte Seiten-Slugs jetzt auch im Public-Runtime-Vertrag konsistent**: Seiten und Beiträge übernehmen ihren tatsächlich aufgelösten EN-Slug wieder direkt in den lokalisierten Payload, dynamische Seiten leiten auf ihren kanonischen lokalen Pfad um, der vorbereitete `landing_slug`-Alias kann das Home-/Landing-Template wieder unter einem Custom-Slug rendern, und die Theme-Routenprüfung validiert `/en/...`-Seiten/Hubs nicht länger mit hart verdrahtetem DE-Lookup. Dadurch verliert das PhinIT-/Default-Theme bei EN-Seiten mit eigenem Slug nicht mehr seinen erwarteten Frontend-Stil bzw. Landing-Look. |
+
+### v2.9.241 — 15. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.241** | 🔴 fix | Admin/Hub-Sites & EN-Pfade | **`CMS/admin/views/hub/edit.php` verwendet für EN-Preview, Badges, Hinweise und „EN öffnen“-Links jetzt ebenfalls konsequent das Präfix-Schema `/en/...` statt der alten Suffix-Variante `.../en`**: Die Hub-Site-Verwaltung folgt damit endlich demselben Lokalisierungsvertrag wie Beiträge, Seiten und der zentrale `ContentLocalizationService`, sodass die Admin-Anzeige keine irreführenden EN-Pfade mehr ausgibt. |
 
 ### v2.9.240 — 15. April 2026
 

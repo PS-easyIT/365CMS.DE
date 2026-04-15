@@ -151,12 +151,18 @@ final class ContentLocalizationService
 
     public function localizePage(array $page, string $locale): array
     {
-        return $this->localizeArrayPayload($page, ['title', 'content', 'excerpt', 'meta_title', 'meta_description'], $locale, 'page');
+        $page = $this->localizeArrayPayload($page, ['title', 'content', 'excerpt', 'meta_title', 'meta_description'], $locale, 'page');
+        $page['slug'] = $this->resolveLocalizedSlug($page, $locale);
+
+        return $page;
     }
 
     public function localizePost(array $post, string $locale): array
     {
-        return $this->localizeArrayPayload($post, ['title', 'content', 'excerpt', 'meta_title', 'meta_description'], $locale, 'post');
+        $post = $this->localizeArrayPayload($post, ['title', 'content', 'excerpt', 'meta_title', 'meta_description'], $locale, 'post');
+        $post['slug'] = $this->resolveLocalizedSlug($post, $locale);
+
+        return $post;
     }
 
     public function resolveLocalizedSlug(array $payload, string $locale): string

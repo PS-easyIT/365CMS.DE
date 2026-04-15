@@ -71,6 +71,17 @@ function meridian_route_exists(string $url): bool
         return false;
     }
 
+    $resolvedLocale = 'de';
+    if (class_exists('CMS\\Services\\ContentLocalizationService')) {
+        try {
+            $requestContext = \CMS\Services\ContentLocalizationService::getInstance()->resolveRequestContext($path);
+            $path = (string)($requestContext['base_uri'] ?? $path);
+            $resolvedLocale = (string)($requestContext['locale'] ?? 'de');
+        } catch (\Throwable $e) {
+            $resolvedLocale = 'de';
+        }
+    }
+
     $staticRoutes = [
         '/',
         '/blog',
@@ -126,7 +137,7 @@ function meridian_route_exists(string $url): bool
     }
 
     try {
-        $page = \CMS\PageManager::instance()->getPageBySlug($slug);
+        $page = \CMS\PageManager::instance()->getPageBySlug($slug, $resolvedLocale);
         if ($page !== null && ($page['status'] ?? '') === 'published') {
             return true;
         }
@@ -134,7 +145,7 @@ function meridian_route_exists(string $url): bool
     }
 
     try {
-        return \CMS\Services\SiteTableService::getInstance()->getHubPageBySlug($slug, 'de') !== null;
+        return \CMS\Services\SiteTableService::getInstance()->getHubPageBySlug($slug, $resolvedLocale) !== null;
     } catch (\Throwable $e) {
         return false;
     }
