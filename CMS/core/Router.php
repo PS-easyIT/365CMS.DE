@@ -356,7 +356,7 @@ class Router
 
         $targetPath = '/' . $slug;
         if ($locale !== '' && $locale !== 'de') {
-            $targetPath = rtrim($targetPath, '/') . '/' . rawurlencode($locale);
+            $targetPath = Services\ContentLocalizationService::getInstance()->buildLocalizedPath($targetPath, $locale);
         }
 
         $query = (string)(parse_url((string)($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_QUERY) ?? '');

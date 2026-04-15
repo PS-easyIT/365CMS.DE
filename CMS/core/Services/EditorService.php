@@ -197,6 +197,14 @@ class EditorService
                     
                     // Inhalt via API setzen – verhindert jegliches Encoding-Problem
                     editor_<?php echo self::$editorCount; ?>.setContents(_initialContent);
+
+                    window.cmsLegacyEditors = window.cmsLegacyEditors || { byId: {}, byName: {} };
+                    if (editorElement.id) {
+                        window.cmsLegacyEditors.byId[editorElement.id] = editor_<?php echo self::$editorCount; ?>;
+                    }
+                    if (editorElement.name) {
+                        window.cmsLegacyEditors.byName[editorElement.name] = editor_<?php echo self::$editorCount; ?>;
+                    }
                     
                     // Textarea bei Änderungen synchronisieren
                     editor_<?php echo self::$editorCount; ?>.onChange = function(contents, core) {

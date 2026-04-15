@@ -18,6 +18,7 @@ if (!defined('ABSPATH')) {
 }
 
 use CMS\Services\EditorService;
+use CMS\Services\ContentLocalizationService;
 
 $aiTranslationEnabled = !empty($aiTranslationEnabled);
 
@@ -88,9 +89,9 @@ $isEnglishEditorView = $editorLocale === 'en';
             $pagePreviewSlug = ltrim($pageSlugValue, '/');
             $pagePreviewSlugEn = ltrim($pageSlugEnValue !== '' ? $pageSlugEnValue : $pageSlugValue, '/');
             $pagePreviewUrl = $pagePreviewSlug !== '' ? '/' . $pagePreviewSlug : '/';
-            $pagePreviewUrlEn = $pagePreviewSlugEn !== '' ? '/' . $pagePreviewSlugEn . '/en' : '/en';
+            $pagePreviewUrlEn = ContentLocalizationService::getInstance()->buildLocalizedPath($pagePreviewSlugEn !== '' ? '/' . $pagePreviewSlugEn : '/', 'en');
             $pagePreviewUrlTemplate = '/{slug}';
-            $pagePreviewUrlTemplateEn = '/{slug}/en';
+            $pagePreviewUrlTemplateEn = ContentLocalizationService::getInstance()->buildLocalizedPath('/{slug}', 'en');
             $pageEditUrlDe = $isNew
                 ? '/admin/pages?action=edit&lang=de'
                 : '/admin/pages?action=edit&id=' . (int)($page->id ?? 0) . '&lang=de';
@@ -261,9 +262,7 @@ $isEnglishEditorView = $editorLocale === 'en';
                                 <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap mb-3">
                                     <div class="text-secondary small">Die englische Version ist unter <code><?= htmlspecialchars($pagePreviewUrlEn) ?></code> erreichbar.</div>
                                     <div class="btn-list">
-                                        <?php if (!empty($useEditorJs)): ?>
-                                            <button type="button" class="btn btn-outline-secondary btn-sm" id="copyPageDeToEnButton">DE nach EN kopieren</button>
-                                        <?php endif; ?>
+                                        <button type="button" class="btn btn-outline-secondary btn-sm" id="copyPageDeToEnButton">DE nach EN kopieren</button>
                                         <?php if ($aiTranslationEnabled && !empty($useEditorJs)): ?>
                                             <button type="button" class="btn btn-primary btn-sm" id="translatePageDeToEnButton">Mit AI nach EN übersetzen</button>
                                         <?php endif; ?>
@@ -529,29 +528,22 @@ $isEnglishEditorView = $editorLocale === 'en';
             'fallbackImage' => $pageFeaturedImageValue,
         ];
 
-        $pageContentEditorJsConfig = !empty($useEditorJs) ? [
+        $pageContentEditorJsConfig = [
             'formId' => 'pageForm',
-            'mediaUploadUrl' => '/api/media',
-            'csrfToken' => $editorMediaToken ?? '',
-            'uploadContext' => [
-                'contentType' => 'page',
-                'isNew' => $isNew,
-                'draftKey' => $pageEditorDraftKey,
-                'slugInputId' => 'pageSlug',
-                'slugFallbackInputId' => 'pageSlugEn',
-                'titleInputId' => 'pageTitle',
-                'titleFallbackInputId' => 'pageTitleEn',
-            ],
             'copyAction' => $isEnglishEditorView ? [
                 'buttonId' => 'copyPageDeToEnButton',
+                'contentMode' => !empty($useEditorJs) ? 'editorjs' : 'legacy-html',
                 'sourceEditorKey' => 'de',
                 'targetEditorKey' => 'en',
-                'sourceTitleId' => 'pageTitle',
-                'targetTitleId' => 'pageTitleEn',
-                'sourceSlugId' => 'pageSlug',
-                'targetSlugId' => 'pageSlugEn',
+                'sourceTitleId' => null,
+                'targetTitleId' => null,
+                'sourceSlugId' => null,
+                'targetSlugId' => null,
+                'sourceContentFieldId' => 'editorContent',
+                'targetContentFieldId' => !empty($useEditorJs) ? 'editorContentEn' : null,
+                'targetContentFieldName' => !empty($useEditorJs) ? null : 'content_en',
             ] : null,
-            'aiTranslation' => ($aiTranslationEnabled && $isEnglishEditorView) ? [
+            'aiTranslation' => ($aiTranslationEnabled && $isEnglishEditorView && !empty($useEditorJs)) ? [
                 'buttonId' => 'translatePageDeToEnButton',
                 'endpointUrl' => (string) ($aiTranslationUrl ?? '/admin/ai-translate-editorjs'),
                 'csrfToken' => (string) ($aiTranslationToken ?? ''),
@@ -565,7 +557,22 @@ $isEnglishEditorView = $editorLocale === 'en';
                 'sourceSlugId' => 'pageSlug',
                 'targetSlugId' => 'pageSlugEn',
             ] : null,
-            'editors' => $isEnglishEditorView
+            'editors' => [],
+        ];
+
+        if (!empty($useEditorJs)) {
+            $pageContentEditorJsConfig['mediaUploadUrl'] = '/api/media';
+            $pageContentEditorJsConfig['csrfToken'] = $editorMediaToken ?? '';
+            $pageContentEditorJsConfig['uploadContext'] = [
+                'contentType' => 'page',
+                'isNew' => $isNew,
+                'draftKey' => $pageEditorDraftKey,
+                'slugInputId' => 'pageSlug',
+                'slugFallbackInputId' => 'pageSlugEn',
+                'titleInputId' => 'pageTitle',
+                'titleFallbackInputId' => 'pageTitleEn',
+            ];
+            $pageContentEditorJsConfig['editors'] = $isEnglishEditorView
                 ? [
                     ['key' => 'de', 'holderId' => 'pageHiddenEditorDe', 'inputId' => 'editorContent', 'lazy' => true],
                     ['key' => 'en', 'holderId' => 'editorjsEn', 'inputId' => 'editorContentEn', 'lazy' => false],
@@ -573,15 +580,13 @@ $isEnglishEditorView = $editorLocale === 'en';
                 : [
                     ['key' => 'de', 'holderId' => 'editorjs', 'inputId' => 'editorContent', 'lazy' => false],
                     ['key' => 'en', 'holderId' => 'pageHiddenEditorEn', 'inputId' => 'editorContentEn', 'lazy' => true],
-                ],
-        ] : null;
+                ];
+        }
         ?>
 
         <input type="hidden" id="contentEditorUiConfig" value="<?= htmlspecialchars((string) json_encode($pageContentUiConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), ENT_QUOTES) ?>">
         <input type="hidden" id="contentEditorSeoConfig" value="<?= htmlspecialchars((string) json_encode($pageContentSeoConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), ENT_QUOTES) ?>">
-        <?php if ($pageContentEditorJsConfig !== null): ?>
-            <input type="hidden" id="contentEditorEditorJsConfig" value="<?= htmlspecialchars((string) json_encode($pageContentEditorJsConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), ENT_QUOTES) ?>">
-        <?php endif; ?>
+        <input type="hidden" id="contentEditorEditorJsConfig" value="<?= htmlspecialchars((string) json_encode($pageContentEditorJsConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), ENT_QUOTES) ?>">
 
     </div><!-- /.container-xl -->
 </div><!-- /.page-body -->

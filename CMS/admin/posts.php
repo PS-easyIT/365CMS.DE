@@ -312,6 +312,7 @@ function cms_admin_posts_view_config(PostsModule $module, string $view, ?array $
                                 slug: row.slug,
                                 slug_en: row.slug_en,
                                 display_slug: row.display_slug,
+                                has_english_variant: !!row.has_english_variant,
                                 is_english_only: !!row.is_english_only,
                                 status: row.status,
                                 effective_status: row.effective_status,
@@ -324,7 +325,7 @@ function cms_admin_posts_view_config(PostsModule $module, string $view, ?array $
                             var slugLine = baseSlug !== '' ? '/blog/' + window.cmsEsc(baseSlug) : '—';
                             var localeBadge = cell.is_english_only
                                 ? '<span class=\"badge bg-blue-lt ms-2\">EN only</span>'
-                                : (cell.title_en ? '<span class=\"badge bg-secondary-lt ms-2\">EN</span>' : '');
+                                : (cell.has_english_variant ? '<span class=\"badge bg-secondary-lt ms-2\">EN</span>' : '');
                             var englishSlugLine = cell.slug_en && cell.slug_en !== cell.slug
                                 ? '<div class=\"text-secondary small\">/en/blog/' + window.cmsEsc(cell.slug_en) + '</div>'
                                 : '';

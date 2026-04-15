@@ -1,4 +1,4 @@
-﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.237-blue.svg)](https://shields.io/)
+﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.240-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -19,6 +19,25 @@
 ## 📜 Vollständige Versionshistorie
 
 ---
+
+### v2.9.240 — 15. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.240** | 🔴 fix | Admin/Beiträge, Seiten & EN-Pfade | **`CMS/admin/views/posts/edit.php`, `CMS/admin/views/pages/edit.php`, `CMS/admin/views/pages/list.php` und `CMS/core/Router.php` ziehen verbliebene EN-Pfade jetzt konsistent auf das Präfix-Schema `/en/...` statt auf die alte Suffix-Variante `.../en`**: EN-Vorschauen, Seitenübersichten und locale-aware Alias-Weiterleitungen bauen englische URLs damit wieder in der erwarteten Form `/en/<slug>` bzw. `/en/blog/<slug>`, statt `en` ans Ende des Slugs zu hängen. |
+| **2.9.240** | 🔴 fix | Admin/DE→EN Kopie | **`CMS/admin/views/posts/edit.php` und `CMS/admin/views/pages/edit.php` nehmen Titel und Slug aus dem manuellen Button `DE nach EN kopieren` bewusst heraus**: Beim expliziten Copy-Flow werden damit nur noch Inhalt bzw. Kurzfassung übernommen, während EN-Titel und EN-Slug immer eigenständig gepflegt bleiben und niemals mehr aus der DE-Version überschrieben werden. |
+
+### v2.9.239 — 15. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.239** | 🔴 fix | Admin/Beiträge, Seiten & EN-Übersichten | **`CMS/assets/js/admin-content-editor.js`, `CMS/core/Routing/ApiRouter.php`, `CMS/admin/posts.php`, `CMS/admin/modules/pages/PagesModule.php` und `CMS/admin/views/pages/list.php` härten den getrennten DE/EN-Workflow weiter nach**: `DE nach EN kopieren` überschreibt im Editor.js-Pfad vorhandene EN-Inhalte jetzt wieder zuverlässig, ohne zuerst den alten EN-Zustand erfolgreich serialisieren zu müssen, und Beitrags-/Seitenübersichten erkennen EN-Varianten nicht länger nur über `title_en`, sondern über alle relevanten EN-Felder inklusive Inhalt und Slug. Dadurch erscheinen EN-Badges wieder belastbar auch dann, wenn der englische Inhalt vorhanden ist, aber kein separater EN-Titel gepflegt wurde. |
+
+### v2.9.238 — 15. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.238** | 🔴 fix | Admin/Beiträge & Seiten EN-Kopie | **`CMS/admin/views/posts/edit.php`, `CMS/admin/views/pages/edit.php`, `CMS/assets/js/admin-content-editor.js` und `CMS/core/Services/EditorService.php` bringen die fehlende Funktion `DE nach EN kopieren` in den neuen getrennten Sprachansichten wieder konsistent zurück**: Der Copy-Button wird auf der EN-Bearbeitungsseite jetzt nicht mehr nur bei `Editor.js`, sondern auch im Legacy-HTML-/SunEditor-Modus angezeigt, und die gemeinsame Admin-Bridge kann deutsche Titel-, Slug-, Kurzfassungs- und Inhaltswerte damit in beiden Editorwelten sauber in die EN-Bearbeitung übernehmen, ohne dass der sichtbare Legacy-Editor auf alten Inhalten stehen bleibt. |
 
 ### v2.9.237 — 15. April 2026
 

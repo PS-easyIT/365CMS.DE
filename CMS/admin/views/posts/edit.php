@@ -142,7 +142,7 @@ $additionalCategoryIds = array_values(array_filter(
                 : '/blog/{slug}';
             $postPreviewUrlTemplateEn = $permalinkService !== null
                 ? $permalinkService->buildPostUrlTemplate((string)($post['published_at'] ?? ''), (string)($post['created_at'] ?? ''), 'en')
-                : '/blog/{slug}/en';
+                : '/en/blog/{slug}';
             $postPreviewUrl = str_replace('{slug}', ltrim($postSlugValue !== '' ? $postSlugValue : 'beitrag', '/'), $postPreviewUrlTemplate);
             $postPreviewUrlEn = str_replace('{slug}', ltrim($postSlugEnValue !== '' ? $postSlugEnValue : ($postSlugValue !== '' ? $postSlugValue : 'beitrag'), '/'), $postPreviewUrlTemplateEn);
             $postEditUrlDe = $isNew
@@ -348,9 +348,7 @@ $additionalCategoryIds = array_values(array_filter(
                                 <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap mb-3">
                                     <div class="text-secondary small">Die englische Version ist unter <code><?php echo htmlspecialchars($postPreviewUrlEn); ?></code> erreichbar.</div>
                                     <div class="btn-list">
-                                        <?php if (!empty($useEditorJs)): ?>
-                                            <button type="button" class="btn btn-outline-secondary btn-sm" id="copyPostDeToEnButton">DE nach EN kopieren</button>
-                                        <?php endif; ?>
+                                        <button type="button" class="btn btn-outline-secondary btn-sm" id="copyPostDeToEnButton">DE nach EN kopieren</button>
                                         <?php if ($aiTranslationEnabled && !empty($useEditorJs)): ?>
                                             <button type="button" class="btn btn-primary btn-sm" id="translatePostDeToEnButton">Mit AI nach EN übersetzen</button>
                                         <?php endif; ?>
@@ -635,31 +633,24 @@ $additionalCategoryIds = array_values(array_filter(
             'fallbackImage' => $postFeaturedImageValue,
         ];
 
-        $postContentEditorJsConfig = !empty($useEditorJs) ? [
+        $postContentEditorJsConfig = [
             'formId' => 'postForm',
-            'mediaUploadUrl' => '/api/media',
-            'csrfToken' => $editorMediaToken ?? '',
-            'uploadContext' => [
-                'contentType' => 'post',
-                'isNew' => $isNew,
-                'draftKey' => $postEditorDraftKey,
-                'slugInputId' => 'slug',
-                'slugFallbackInputId' => 'slugEn',
-                'titleInputId' => 'title',
-                'titleFallbackInputId' => 'titleEn',
-            ],
             'copyAction' => $isEnglishEditorView ? [
                 'buttonId' => 'copyPostDeToEnButton',
+                'contentMode' => !empty($useEditorJs) ? 'editorjs' : 'legacy-html',
                 'sourceEditorKey' => 'de',
                 'targetEditorKey' => 'en',
-                'sourceTitleId' => 'title',
-                'targetTitleId' => 'titleEn',
-                'sourceSlugId' => 'slug',
-                'targetSlugId' => 'slugEn',
+                'sourceTitleId' => null,
+                'targetTitleId' => null,
+                'sourceSlugId' => null,
+                'targetSlugId' => null,
                 'sourceExcerptId' => 'excerpt',
                 'targetExcerptId' => 'excerptEn',
+                'sourceContentFieldId' => 'contentInput',
+                'targetContentFieldId' => !empty($useEditorJs) ? 'contentInputEn' : null,
+                'targetContentFieldName' => !empty($useEditorJs) ? null : 'content_en',
             ] : null,
-            'aiTranslation' => ($aiTranslationEnabled && $isEnglishEditorView) ? [
+            'aiTranslation' => ($aiTranslationEnabled && $isEnglishEditorView && !empty($useEditorJs)) ? [
                 'buttonId' => 'translatePostDeToEnButton',
                 'endpointUrl' => (string) ($aiTranslationUrl ?? '/admin/ai-translate-editorjs'),
                 'csrfToken' => (string) ($aiTranslationToken ?? ''),
@@ -675,7 +666,22 @@ $additionalCategoryIds = array_values(array_filter(
                 'sourceExcerptId' => 'excerpt',
                 'targetExcerptId' => 'excerptEn',
             ] : null,
-            'editors' => $isEnglishEditorView
+            'editors' => [],
+        ];
+
+        if (!empty($useEditorJs)) {
+            $postContentEditorJsConfig['mediaUploadUrl'] = '/api/media';
+            $postContentEditorJsConfig['csrfToken'] = $editorMediaToken ?? '';
+            $postContentEditorJsConfig['uploadContext'] = [
+                'contentType' => 'post',
+                'isNew' => $isNew,
+                'draftKey' => $postEditorDraftKey,
+                'slugInputId' => 'slug',
+                'slugFallbackInputId' => 'slugEn',
+                'titleInputId' => 'title',
+                'titleFallbackInputId' => 'titleEn',
+            ];
+            $postContentEditorJsConfig['editors'] = $isEnglishEditorView
                 ? [
                     ['key' => 'de', 'holderId' => 'postHiddenEditorDe', 'inputId' => 'contentInput', 'lazy' => true],
                     ['key' => 'en', 'holderId' => 'editorjsEn', 'inputId' => 'contentInputEn', 'lazy' => false],
@@ -683,14 +689,12 @@ $additionalCategoryIds = array_values(array_filter(
                 : [
                     ['key' => 'de', 'holderId' => 'editorjs', 'inputId' => 'contentInput', 'lazy' => false],
                     ['key' => 'en', 'holderId' => 'postHiddenEditorEn', 'inputId' => 'contentInputEn', 'lazy' => true],
-                ],
-        ] : null;
+                ];
+        }
         ?>
 
         <input type="hidden" id="contentEditorUiConfig" value="<?php echo htmlspecialchars((string) json_encode($postContentUiConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), ENT_QUOTES); ?>">
         <input type="hidden" id="contentEditorSeoConfig" value="<?php echo htmlspecialchars((string) json_encode($postContentSeoConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), ENT_QUOTES); ?>">
-        <?php if ($postContentEditorJsConfig !== null): ?>
-            <input type="hidden" id="contentEditorEditorJsConfig" value="<?php echo htmlspecialchars((string) json_encode($postContentEditorJsConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), ENT_QUOTES); ?>">
-        <?php endif; ?>
+        <input type="hidden" id="contentEditorEditorJsConfig" value="<?php echo htmlspecialchars((string) json_encode($postContentEditorJsConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), ENT_QUOTES); ?>">
     </div>
 </div>

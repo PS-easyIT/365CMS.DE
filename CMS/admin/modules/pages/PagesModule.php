@@ -186,7 +186,9 @@ class PagesModule
             $params[] = $categoryFilter;
         }
         if ($search !== '') {
-            $where[]  = '(p.title LIKE ? OR p.slug LIKE ?)';
+            $where[]  = '(p.title LIKE ? OR p.title_en LIKE ? OR p.slug LIKE ? OR p.slug_en LIKE ?)';
+            $params[] = "%{$search}%";
+            $params[] = "%{$search}%";
             $params[] = "%{$search}%";
             $params[] = "%{$search}%";
         }
@@ -194,7 +196,7 @@ class PagesModule
         $whereClause = $where ? 'WHERE ' . implode(' AND ', $where) : '';
 
         $pages = $this->db->get_results(
-            "SELECT p.id, p.title, p.slug, p.status, p.category_id, p.created_at, p.updated_at,
+                "SELECT p.id, p.title, p.title_en, p.slug, p.slug_en, p.content_en, p.status, p.category_id, p.created_at, p.updated_at,
                     u.display_name AS author,
                     c.name AS category_name
              FROM {$this->prefix}pages p
@@ -211,7 +213,26 @@ class PagesModule
         ) ?: [];
 
         return [
-            'pages'     => $pages,
+            'pages'     => array_map(static function (object $page): object {
+                $page->is_english_only = trim((string) ($page->title ?? '')) === ''
+                    && trim((string) ($page->slug ?? '')) === ''
+                    && (
+                        trim((string) ($page->title_en ?? '')) !== ''
+                        || trim((string) ($page->content_en ?? '')) !== ''
+                        || trim((string) ($page->slug_en ?? '')) !== ''
+                    );
+                $page->has_english_variant = trim((string) ($page->title_en ?? '')) !== ''
+                    || trim((string) ($page->content_en ?? '')) !== ''
+                    || trim((string) ($page->slug_en ?? '')) !== '';
+                $page->display_title = trim((string) ($page->title ?? '')) !== ''
+                    ? (string) ($page->title ?? '')
+                    : (string) ($page->title_en ?? '');
+                $page->display_slug = trim((string) ($page->slug ?? '')) !== ''
+                    ? (string) ($page->slug ?? '')
+                    : (string) ($page->slug_en ?? '');
+
+                return $page;
+            }, $pages),
             'categories' => $this->buildOrderedCategoryOptions(array_map(fn($category) => (array) $category, $categories)),
             'counts'    => compact('total', 'published', 'drafts', 'private'),
             'filter'    => $statusFilter,

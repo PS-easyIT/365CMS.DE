@@ -179,13 +179,16 @@ $statusLabels = [
                         <?php foreach ($pages as $page): ?>
                             <?php
                             $pageId = (int)($page->id ?? 0);
-                            $pageTitle = trim((string)($page->title ?? ''));
-                            $pageSlug = trim((string)($page->slug ?? ''));
+                            $pageTitle = trim((string)($page->display_title ?? $page->title ?? ''));
+                            $pageSlug = trim((string)($page->display_slug ?? $page->slug ?? ''));
+                            $pageSlugEn = trim((string)($page->slug_en ?? ''));
                             $pageStatus = (string)($page->status ?? 'draft');
                             [$pageStatusLabel, $pageStatusClass] = $statusLabels[$pageStatus] ?? [$pageStatus, 'bg-secondary-lt text-secondary'];
                             $pageCategory = trim((string)($page->category_name ?? ''));
                             $pageAuthor = trim((string)($page->author ?? ''));
                             $pageUpdatedAt = trim((string)($page->updated_at ?? $page->created_at ?? ''));
+                            $pageHasEnglishVariant = !empty($page->has_english_variant);
+                            $pageIsEnglishOnly = !empty($page->is_english_only);
                             ?>
                             <tr>
                                 <td>
@@ -195,8 +198,18 @@ $statusLabels = [
                                     <a href="<?= $pagesAdminBaseUrl ?>?action=edit&id=<?= $pageId ?>" class="text-reset fw-medium">
                                         <?= htmlspecialchars($pageTitle !== '' ? $pageTitle : 'Ohne Titel') ?>
                                     </a>
+                                    <?php if ($pageIsEnglishOnly): ?>
+                                        <span class="badge bg-blue-lt ms-2">EN only</span>
+                                    <?php elseif ($pageHasEnglishVariant): ?>
+                                        <span class="badge bg-secondary-lt ms-2">EN</span>
+                                    <?php endif; ?>
                                 </td>
-                                <td class="text-secondary">/<?= htmlspecialchars($pageSlug) ?></td>
+                                <td class="text-secondary">
+                                    /<?= htmlspecialchars($pageSlug) ?>
+                                    <?php if ($pageSlugEn !== '' && $pageSlugEn !== $pageSlug): ?>
+                                        <div class="small mt-1">/en/<?= htmlspecialchars($pageSlugEn) ?></div>
+                                    <?php endif; ?>
+                                </td>
                                 <td>
                                     <?php if ($pageCategory !== ''): ?>
                                         <span class="badge bg-azure-lt"><?= htmlspecialchars($pageCategory) ?></span>

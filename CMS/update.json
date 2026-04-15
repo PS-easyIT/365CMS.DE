@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.9.210",
+  "version": "2.9.240",
   "min_php": "8.4",
-  "released": "2026-04-12",
+  "released": "2026-04-15",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 2.9.210: AI Services verwaltet Provider jetzt als gezielt anlegbare Liste statt als starre Vollübersicht; zusätzlich sind Ollama und Azure AI im AiProviderGateway erstmals live für Editor.js-Übersetzungen angebunden – inklusive Secret-, Deployment- und Fallback-Steuerung im Admin.",
+  "notes": "Release-Stand 2.9.240: EN-Pfade verwenden wieder konsistent das Präfix-Schema /en/... statt .../en, und der manuelle Button DE nach EN kopieren übernimmt bewusst nur Inhalt bzw. Kurzfassung – niemals Titel oder Slug.",
   "critical": false
 }

@@ -224,7 +224,15 @@ final class ApiRouter
                              )
                         THEN 1
                         ELSE 0
-                    END AS is_english_only
+                    END AS is_english_only,
+                    CASE
+                        WHEN CHAR_LENGTH(TRIM(COALESCE(p.title_en, ''))) > 0
+                             OR CHAR_LENGTH(TRIM(COALESCE(p.content_en, ''))) > 0
+                             OR CHAR_LENGTH(TRIM(COALESCE(p.excerpt_en, ''))) > 0
+                             OR CHAR_LENGTH(TRIM(COALESCE(p.slug_en, ''))) > 0
+                        THEN 1
+                        ELSE 0
+                    END AS has_english_variant
              FROM {$prefix}posts p
              LEFT JOIN {$prefix}users u ON u.id = p.author_id
              LEFT JOIN {$prefix}post_categories c ON c.id = p.category_id
@@ -240,6 +248,7 @@ final class ApiRouter
             $row->is_scheduled = \cms_post_is_scheduled($row);
             $row->effective_status = $row->is_scheduled ? 'scheduled' : (string) ($row->status ?? 'draft');
             $row->is_english_only = !empty($row->is_english_only);
+            $row->has_english_variant = !empty($row->has_english_variant);
             $row->display_title = trim((string)($row->title ?? '')) !== ''
                 ? (string)$row->title
                 : (string)($row->title_en ?? '');
@@ -288,7 +297,9 @@ final class ApiRouter
             $params[] = $category;
         }
         if ($search !== '') {
-            $where[] = '(p.title LIKE ? OR p.slug LIKE ?)';
+            $where[] = '(p.title LIKE ? OR p.title_en LIKE ? OR p.slug LIKE ? OR p.slug_en LIKE ?)';
+            $params[] = "%{$search}%";
+            $params[] = "%{$search}%";
             $params[] = "%{$search}%";
             $params[] = "%{$search}%";
         }
@@ -296,7 +307,25 @@ final class ApiRouter
 
         $total = (int)$db->get_var("SELECT COUNT(*) FROM {$prefix}pages p {$whereStr}", $params);
         $rows = $db->get_results(
-                    "SELECT p.id, p.title, p.slug, p.status, p.updated_at, p.created_at,
+                    "SELECT p.id, p.title, p.title_en, p.slug, p.slug_en, p.status, p.updated_at, p.created_at,
+                        CASE
+                            WHEN CHAR_LENGTH(TRIM(COALESCE(p.title, ''))) = 0
+                                 AND CHAR_LENGTH(TRIM(COALESCE(p.content, ''))) = 0
+                                 AND (
+                                     CHAR_LENGTH(TRIM(COALESCE(p.title_en, ''))) > 0
+                                     OR CHAR_LENGTH(TRIM(COALESCE(p.content_en, ''))) > 0
+                                     OR CHAR_LENGTH(TRIM(COALESCE(p.slug_en, ''))) > 0
+                                 )
+                            THEN 1
+                            ELSE 0
+                        END AS is_english_only,
+                        CASE
+                            WHEN CHAR_LENGTH(TRIM(COALESCE(p.title_en, ''))) > 0
+                                 OR CHAR_LENGTH(TRIM(COALESCE(p.content_en, ''))) > 0
+                                 OR CHAR_LENGTH(TRIM(COALESCE(p.slug_en, ''))) > 0
+                            THEN 1
+                            ELSE 0
+                        END AS has_english_variant,
                         u.display_name AS author_name,
                         c.name AS category_name
              FROM {$prefix}pages p
@@ -307,6 +336,19 @@ final class ApiRouter
              LIMIT {$limit} OFFSET {$offset}",
             $params
         ) ?: [];
+
+        $rows = array_map(static function (object $row): object {
+            $row->is_english_only = !empty($row->is_english_only);
+            $row->has_english_variant = !empty($row->has_english_variant);
+            $row->display_title = trim((string)($row->title ?? '')) !== ''
+                ? (string)$row->title
+                : (string)($row->title_en ?? '');
+            $row->display_slug = trim((string)($row->slug ?? '')) !== ''
+                ? (string)$row->slug
+                : (string)($row->slug_en ?? '');
+
+            return $row;
+        }, $rows);
 
         echo json_encode([
             'data' => $rows,

@@ -421,6 +421,55 @@
             return key && editorDefinitions[key] ? editorDefinitions[key] : null;
         }
 
+        function getNamedFormField(name) {
+            var namedItem;
+
+            if (!name || !form || !form.elements || typeof form.elements.namedItem !== 'function') {
+                return null;
+            }
+
+            namedItem = form.elements.namedItem(name);
+
+            if (!namedItem) {
+                return null;
+            }
+
+            if (typeof namedItem.length === 'number' && !namedItem.tagName) {
+                return namedItem[0] || null;
+            }
+
+            return namedItem;
+        }
+
+        function resolveFormField(fieldId, fieldName) {
+            return getElement(fieldId) || getNamedFormField(fieldName);
+        }
+
+        function getLegacyEditorRegistry() {
+            return window.cmsLegacyEditors && typeof window.cmsLegacyEditors === 'object'
+                ? window.cmsLegacyEditors
+                : null;
+        }
+
+        function getLegacyEditorInstance(fieldId, fieldName) {
+            var field = resolveFormField(fieldId, fieldName);
+            var registry = getLegacyEditorRegistry();
+
+            if (!registry || !field) {
+                return null;
+            }
+
+            if (field.id && registry.byId && registry.byId[field.id]) {
+                return registry.byId[field.id];
+            }
+
+            if (field.name && registry.byName && registry.byName[field.name]) {
+                return registry.byName[field.name];
+            }
+
+            return null;
+        }
+
         function getFieldValue(id) {
             var element = getElement(id);
             return element ? String(element.value || '') : '';
@@ -434,6 +483,58 @@
 
             element.value = String(value || '');
             emitChangeEvents(element);
+        }
+
+        function readContentFieldValue(fieldId, fieldName) {
+            var field = resolveFormField(fieldId, fieldName);
+            var legacyEditor = getLegacyEditorInstance(fieldId, fieldName);
+            var value = '';
+
+            if (legacyEditor && typeof legacyEditor.getContents === 'function') {
+                try {
+                    value = String(legacyEditor.getContents() || '');
+                } catch (_error) {
+                    value = '';
+                }
+            }
+
+            if (value === '' && field) {
+                value = String(field.value || '');
+            }
+
+            if (field) {
+                field.value = value;
+                emitChangeEvents(field);
+            }
+
+            return value;
+        }
+
+        function writeContentFieldValue(fieldId, fieldName, value) {
+            var field = resolveFormField(fieldId, fieldName);
+            var legacyEditor = getLegacyEditorInstance(fieldId, fieldName);
+            var normalizedValue = String(value || '');
+
+            if (legacyEditor && typeof legacyEditor.setContents === 'function') {
+                try {
+                    legacyEditor.setContents(normalizedValue);
+                } catch (_error) {
+                    // Fall back to the raw field update below.
+                }
+            }
+
+            if (!field) {
+                return;
+            }
+
+            field.value = normalizedValue;
+            emitChangeEvents(field);
+        }
+
+        function readEditorJsSourceData(fieldId, fieldName) {
+            var field = resolveFormField(fieldId, fieldName);
+
+            return normalizeEditorData(safeParseEditorInput(field));
         }
 
         function readUploadContextField(fieldId) {
@@ -1365,11 +1466,39 @@
                     clearPreviewPanel();
                     setButtonBusy(button, true, 'Kopiere …');
 
-                    Promise.all([
-                        ensureEditorSaved(copyAction.sourceEditorKey),
-                        ensureEditorSaved(copyAction.targetEditorKey)
-                    ]).then(function (savedStates) {
-                        var sourceData = savedStates[0];
+                    if (copyAction.contentMode === 'legacy-html') {
+                        Promise.resolve().then(function () {
+                            copyFieldValue(copyAction.sourceTitleId, copyAction.targetTitleId);
+                            copyFieldValue(copyAction.sourceSlugId, copyAction.targetSlugId);
+                            copyFieldValue(copyAction.sourceExcerptId, copyAction.targetExcerptId);
+                            writeContentFieldValue(
+                                copyAction.targetContentFieldId,
+                                copyAction.targetContentFieldName,
+                                readContentFieldValue(copyAction.sourceContentFieldId, copyAction.sourceContentFieldName)
+                            );
+                        }).then(function () {
+                            showNotice('success', 'DE-Inhalt wurde in die EN-Bearbeitung übernommen und bestehende EN-Inhalte überschrieben.');
+                        }).catch(function (error) {
+                            if (typeof console !== 'undefined' && typeof console.error === 'function') {
+                                console.error('DE→EN Copy fehlgeschlagen.', error);
+                            }
+
+                            showNotice('danger', (error && error.message) ? error.message : 'DE-Inhalt konnte nicht in die EN-Bearbeitung kopiert werden.');
+                        }).finally(function () {
+                            setButtonBusy(button, false);
+                        });
+
+                        return;
+                    }
+
+                    Promise.resolve().then(function () {
+                        if (copyAction.sourceEditorKey && editors[copyAction.sourceEditorKey]) {
+                            return ensureEditorSaved(copyAction.sourceEditorKey);
+                        }
+
+                        return readEditorJsSourceData(copyAction.sourceContentFieldId, copyAction.sourceContentFieldName);
+                    }).then(function (sourceData) {
+                        var recreateTargetEditor = !(editors[copyAction.targetEditorKey] && editors[copyAction.targetEditorKey].instance);
 
                         return withSuppressedPreviewClear(function () {
                             copyFieldValue(copyAction.sourceTitleId, copyAction.targetTitleId);
@@ -1380,7 +1509,7 @@
                                 suppressInitialCopy: true
                             }).then(function () {
                                 return applyEditorData(copyAction.targetEditorKey, sourceData, {
-                                    recreateEditor: true
+                                    recreateEditor: recreateTargetEditor
                                 });
                             });
                         });
