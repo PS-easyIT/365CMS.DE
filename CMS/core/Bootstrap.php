@@ -714,7 +714,9 @@ class Bootstrap
                                 ? cms_runtime_base_url(ltrim((string) $fontMap[$slug], '/'))
                                 : rtrim((string) SITE_URL, '/') . '/' . ltrim((string) $fontMap[$slug], '/');
 
-                            echo '<link rel="stylesheet" href="' . htmlspecialchars($cssHref, ENT_QUOTES, 'UTF-8') . '">' . "\n";
+                            $safeCssHref = htmlspecialchars($cssHref, ENT_QUOTES, 'UTF-8');
+                            echo '<link rel="preload" as="style" href="' . $safeCssHref . '" onload="this.onload=null;this.rel=\'stylesheet\'">' . "\n";
+                            echo '<noscript><link rel="stylesheet" href="' . $safeCssHref . '"></noscript>' . "\n";
                         }
                     }
                 } catch (\Throwable $e) {

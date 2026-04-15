@@ -34,14 +34,26 @@ if (empty($listPosts)) {
                     ? time_ago($item->published_at ?? $item->created_at)
                     : '';
         $iRead    = !empty($item->read_time) ? $item->read_time . ' Min.' : '5 Min.';
-        $iImage   = $item->featured_image ?? '';
+        $iImageReference = (string) ($item->featured_image ?? '');
+        $iImage = function_exists('meridian_get_picture_sources')
+            ? meridian_get_picture_sources($iImageReference, null, 320, 218)
+            : ['url' => '', 'webp_url' => '', 'width' => 320, 'height' => 218];
+        $iImageDimensions = function_exists('meridian_image_dimension_attributes')
+            ? meridian_image_dimension_attributes($iImageReference, 320, 218)
+            : 'width="320" height="218"';
     ?>
     <article class="article-row">
-        <?php if (!empty($iImage)): ?>
+        <?php if ($iImage['url'] !== ''): ?>
         <a href="<?php echo SITE_URL; ?>/blog/<?php echo $iSlug; ?>" class="art-thumb">
-            <img src="<?php echo htmlspecialchars($iImage); ?>"
-                 alt="<?php echo $iTitle; ?>"
-                 loading="lazy">
+            <picture>
+                <?php if ($iImage['webp_url'] !== ''): ?>
+                <source srcset="<?php echo htmlspecialchars($iImage['webp_url'], ENT_QUOTES, 'UTF-8'); ?>" type="image/webp">
+                <?php endif; ?>
+                <img src="<?php echo htmlspecialchars($iImage['url'], ENT_QUOTES, 'UTF-8'); ?>"
+                     alt="<?php echo $iTitle; ?>"
+                     <?php echo function_exists('meridian_image_loading_attributes') ? meridian_image_loading_attributes(false) : 'loading="lazy" decoding="async"'; ?>
+                     <?php echo $iImageDimensions; ?>>
+            </picture>
         </a>
         <?php else: ?>
         <a href="<?php echo SITE_URL; ?>/blog/<?php echo $iSlug; ?>" class="art-thumb">

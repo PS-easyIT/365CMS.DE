@@ -146,12 +146,27 @@ $numRecent        = count($recentSidebar);
 
 <!-- ── Hero Post ──────────────────────────────────────────────────────────── -->
 <?php if ($showHero && $heroPost): ?>
+<?php
+    $heroImageReference = (string) ($heroPost->featured_image ?? '');
+    $heroImage = function_exists('meridian_get_picture_sources')
+        ? meridian_get_picture_sources($heroImageReference, null, 1600, 900)
+        : ['url' => '', 'webp_url' => '', 'width' => 1600, 'height' => 900];
+    $heroImageDimensions = function_exists('meridian_image_dimension_attributes')
+        ? meridian_image_dimension_attributes($heroImageReference, 1600, 900)
+        : 'width="1600" height="900"';
+?>
 <div class="hero-post">
     <div class="hero-image">
-        <?php if ($heroPost->featured_image): ?>
-        <img src="<?php echo htmlspecialchars($heroPost->featured_image); ?>"
-             alt="<?php echo htmlspecialchars($heroPost->title); ?>"
-             loading="eager">
+        <?php if ($heroImage['url'] !== ''): ?>
+        <picture>
+            <?php if ($heroImage['webp_url'] !== ''): ?>
+            <source srcset="<?php echo htmlspecialchars($heroImage['webp_url'], ENT_QUOTES, 'UTF-8'); ?>" type="image/webp">
+            <?php endif; ?>
+            <img src="<?php echo htmlspecialchars($heroImage['url'], ENT_QUOTES, 'UTF-8'); ?>"
+                 alt="<?php echo htmlspecialchars($heroPost->title); ?>"
+                 <?php echo function_exists('meridian_image_loading_attributes') ? meridian_image_loading_attributes(true) : 'loading="eager" decoding="async"'; ?>
+                 <?php echo $heroImageDimensions; ?>>
+        </picture>
         <?php endif; ?>
         <?php if ($heroPost->category_slug): ?>
         <div class="hero-cat-badge"><?php echo htmlspecialchars(strtoupper($heroPost->category_slug ?? '')); ?></div>
@@ -180,7 +195,7 @@ $numRecent        = count($recentSidebar);
             <time class="meta-date"><?php echo meridian_format_date($heroPost->published_at ?? $heroPost->created_at); ?></time>
             <?php if (meridian_setting('blog', 'show_reading_time', true)): ?>
             <span class="meta-sep">·</span>
-            <span class="meta-read"><?php echo meridian_reading_time($heroPost->content); ?></span>
+            <span class="meta-read"><?php echo meridian_reading_time($heroPost->content); ?> Min. Lesezeit</span>
             <?php endif; ?>
         </div>
     </div>
@@ -197,12 +212,27 @@ $numRecent        = count($recentSidebar);
 <div class="section-label"><h3>Aktuelle Artikel</h3></div>
 <div class="article-list">
     <?php foreach ($articleList as $post): ?>
+    <?php
+        $articleImageReference = (string) ($post->featured_image ?? '');
+        $articleImage = function_exists('meridian_get_picture_sources')
+            ? meridian_get_picture_sources($articleImageReference, null, 320, 218)
+            : ['url' => '', 'webp_url' => '', 'width' => 320, 'height' => 218];
+        $articleImageDimensions = function_exists('meridian_image_dimension_attributes')
+            ? meridian_image_dimension_attributes($articleImageReference, 320, 218)
+            : 'width="320" height="218"';
+    ?>
     <div class="article-row">
         <div class="art-thumb">
-            <?php if ($post->featured_image): ?>
-            <img src="<?php echo htmlspecialchars($post->featured_image); ?>"
-                 alt="<?php echo htmlspecialchars($post->title); ?>"
-                 loading="lazy">
+            <?php if ($articleImage['url'] !== ''): ?>
+            <picture>
+                <?php if ($articleImage['webp_url'] !== ''): ?>
+                <source srcset="<?php echo htmlspecialchars($articleImage['webp_url'], ENT_QUOTES, 'UTF-8'); ?>" type="image/webp">
+                <?php endif; ?>
+                <img src="<?php echo htmlspecialchars($articleImage['url'], ENT_QUOTES, 'UTF-8'); ?>"
+                     alt="<?php echo htmlspecialchars($post->title); ?>"
+                     <?php echo function_exists('meridian_image_loading_attributes') ? meridian_image_loading_attributes(false) : 'loading="lazy" decoding="async"'; ?>
+                     <?php echo $articleImageDimensions; ?>>
+            </picture>
             <?php endif; ?>
         </div>
         <div class="art-body">
@@ -236,12 +266,27 @@ $numRecent        = count($recentSidebar);
 <div class="section-label"><h3>Weitere Artikel</h3></div>
 <div class="card-grid">
     <?php foreach ($cardPosts as $post): ?>
+    <?php
+        $cardImageReference = (string) ($post->featured_image ?? '');
+        $cardImage = function_exists('meridian_get_picture_sources')
+            ? meridian_get_picture_sources($cardImageReference, null, 960, 560)
+            : ['url' => '', 'webp_url' => '', 'width' => 960, 'height' => 560];
+        $cardImageDimensions = function_exists('meridian_image_dimension_attributes')
+            ? meridian_image_dimension_attributes($cardImageReference, 960, 560)
+            : 'width="960" height="560"';
+    ?>
     <div class="card">
         <div class="card-thumb" style="background:<?php echo meridian_cat_gradient($post->category_name ?? ''); ?>">
-            <?php if ($post->featured_image): ?>
-            <img src="<?php echo htmlspecialchars($post->featured_image); ?>"
-                 alt="<?php echo htmlspecialchars($post->title); ?>"
-                 loading="lazy">
+            <?php if ($cardImage['url'] !== ''): ?>
+            <picture>
+                <?php if ($cardImage['webp_url'] !== ''): ?>
+                <source srcset="<?php echo htmlspecialchars($cardImage['webp_url'], ENT_QUOTES, 'UTF-8'); ?>" type="image/webp">
+                <?php endif; ?>
+                <img src="<?php echo htmlspecialchars($cardImage['url'], ENT_QUOTES, 'UTF-8'); ?>"
+                     alt="<?php echo htmlspecialchars($post->title); ?>"
+                     <?php echo function_exists('meridian_image_loading_attributes') ? meridian_image_loading_attributes(false) : 'loading="lazy" decoding="async"'; ?>
+                     <?php echo $cardImageDimensions; ?>>
+            </picture>
             <?php endif; ?>
             <?php if ($post->category_name): ?>
             <span class="card-cat"><?php echo htmlspecialchars($post->category_name); ?></span>

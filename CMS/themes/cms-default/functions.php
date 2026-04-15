@@ -5,14 +5,14 @@ declare(strict_types=1);
  * Meridian CMS Default Theme – Functions
  *
  * @package CMSDefault
- * @version 1.0.3
+ * @version 1.0.4
  */
 
 if (!defined('ABSPATH')) {
     exit;
 }
 
-define('MERIDIAN_THEME_VERSION', '1.0.3');
+define('MERIDIAN_THEME_VERSION', '1.0.4');
 define('MERIDIAN_THEME_DIR',     THEME_PATH . 'cms-default/');
 define('MERIDIAN_THEME_URL',     \CMS\ThemeManager::instance()->getThemeUrl());
 
@@ -91,7 +91,9 @@ class MeridianCMSDefaultTheme
                 ? cms_asset_url('css/local-fonts.css')
                 : (defined('SITE_URL') ? SITE_URL . '/assets/css/local-fonts.css' : '');
             if ($localCssPath && file_exists($localCssPath) && $localCssUrl) {
-                echo '<link rel="stylesheet" href="' . htmlspecialchars($localCssUrl, ENT_QUOTES, 'UTF-8') . '">' . "\n";
+                $href = htmlspecialchars($localCssUrl, ENT_QUOTES, 'UTF-8');
+                echo '<link rel="preload" href="' . $href . '" as="style" onload="this.onload=null;this.rel=\'stylesheet\'">' . "\n";
+                echo '<noscript><link rel="stylesheet" href="' . $href . '"></noscript>' . "\n";
             }
             return; // Kein Google-Fonts-Request
         }
@@ -530,6 +532,390 @@ function meridian_output_fonts(): void
     MeridianCMSDefaultTheme::instance()->outputGoogleFonts();
 }
 
+if (!function_exists('meridian_safe_public_url')) {
+    /**
+     * Normalisiert öffentliche Theme-URLs defensiv auf site-lokale oder valide absolute Ziele.
+     */
+    function meridian_safe_public_url(?string $value, ?string $siteUrl = null): string
+    {
+        $normalizedUrl = trim(html_entity_decode((string) $value, ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+        if ($normalizedUrl === '' || str_starts_with($normalizedUrl, 'data:') || str_contains($normalizedUrl, "\0")) {
+            return '';
+        }
+
+        $siteBase = rtrim((string) ($siteUrl ?? (defined('SITE_URL') ? SITE_URL : '')), '/');
+
+        if (preg_match('#^https?://#i', $normalizedUrl) === 1) {
+            return filter_var($normalizedUrl, FILTER_VALIDATE_URL) ? $normalizedUrl : '';
+        }
+
+        if (str_starts_with($normalizedUrl, '/')) {
+            return $siteBase !== '' ? $siteBase . $normalizedUrl : $normalizedUrl;
+        }
+
+        $relativePath = preg_replace('#^(?:\./)+#', '', $normalizedUrl) ?? '';
+        $relativePath = ltrim($relativePath, '/');
+
+        if ($relativePath === '' || str_contains($relativePath, '..')) {
+            return '';
+        }
+
+        if (preg_match('#^[a-z][a-z0-9+.-]*:#i', $relativePath) === 1) {
+            return '';
+        }
+
+        return $siteBase !== '' ? $siteBase . '/' . $relativePath : '/' . $relativePath;
+    }
+}
+
+if (!function_exists('meridian_safe_public_media_url')) {
+    /**
+     * Alias für öffentliche Medienpfade.
+     */
+    function meridian_safe_public_media_url(?string $value, ?string $siteUrl = null): string
+    {
+        return meridian_safe_public_url($value, $siteUrl);
+    }
+}
+
+if (!function_exists('meridian_normalize_public_media_url')) {
+    /**
+     * Konvertiert Medienreferenzen in frontend-taugliche, kanonische URLs.
+     */
+    function meridian_normalize_public_media_url(?string $value, bool $preferInline = true, ?string $siteUrl = null): string
+    {
+        $url = trim((string) $value);
+        if ($url === '') {
+            return '';
+        }
+
+        try {
+            if (class_exists('\\CMS\\Services\\MediaDeliveryService')) {
+                $url = \CMS\Services\MediaDeliveryService::getInstance()->normalizeUrl($url, $preferInline);
+            }
+        } catch (\Throwable) {
+        }
+
+        return meridian_safe_public_media_url($url, $siteUrl);
+    }
+}
+
+if (!function_exists('meridian_is_image_lazy_loading_enabled')) {
+    /**
+     * Prüft, ob browserbasiertes Lazy Loading aktiviert ist.
+     */
+    function meridian_is_image_lazy_loading_enabled(): bool
+    {
+        static $lazyLoadingEnabled = null;
+
+        if (is_bool($lazyLoadingEnabled)) {
+            return $lazyLoadingEnabled;
+        }
+
+        $lazyLoadingEnabled = true;
+
+        try {
+            $setting = \CMS\Services\ThemeCustomizer::instance()->get('performance', 'lazyload_images', true);
+            $lazyLoadingEnabled = filter_var($setting, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+            if ($lazyLoadingEnabled === null) {
+                $lazyLoadingEnabled = true;
+            }
+        } catch (\Throwable) {
+            $lazyLoadingEnabled = true;
+        }
+
+        return $lazyLoadingEnabled;
+    }
+}
+
+if (!function_exists('meridian_image_loading_attributes')) {
+    /**
+     * Liefert standardisierte Loading-/Priority-Attribute für Theme-Bilder.
+     */
+    function meridian_image_loading_attributes(bool $aboveTheFold = false, bool $highPriority = true): string
+    {
+        if ($aboveTheFold) {
+            return $highPriority
+                ? 'loading="eager" fetchpriority="high" decoding="async"'
+                : 'loading="eager" decoding="async"';
+        }
+
+        if (!meridian_is_image_lazy_loading_enabled()) {
+            return 'decoding="async"';
+        }
+
+        return 'loading="lazy" decoding="async"';
+    }
+}
+
+if (!function_exists('meridian_get_local_image_path')) {
+    /**
+     * Löst eine öffentliche Bildreferenz nach Möglichkeit auf einen lokalen Dateipfad auf.
+     */
+    function meridian_get_local_image_path(?string $reference): string
+    {
+        $value = trim(html_entity_decode((string) $reference, ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+        if ($value === '' || str_starts_with($value, 'data:') || str_starts_with($value, '//')) {
+            return '';
+        }
+
+        $basePath = rtrim((string) ABSPATH, "\\/");
+        $siteUrl = rtrim((string) (defined('SITE_URL') ? SITE_URL : ''), '/');
+        $uploadUrl = rtrim((string) (defined('UPLOAD_URL') ? UPLOAD_URL : ''), '/');
+        $uploadPath = rtrim((string) (defined('UPLOAD_PATH') ? UPLOAD_PATH : ''), "\\/");
+        $themeUrl = rtrim((string) (defined('MERIDIAN_THEME_URL') ? MERIDIAN_THEME_URL : ''), '/');
+        $themeDir = rtrim((string) (defined('MERIDIAN_THEME_DIR') ? MERIDIAN_THEME_DIR : ''), "\\/");
+        $candidates = [];
+
+        $appendAbsoluteCandidate = static function (array &$paths, string $candidate): void {
+            $candidate = trim($candidate);
+            if ($candidate === '') {
+                return;
+            }
+
+            $paths[] = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $candidate);
+        };
+
+        $appendRelativeCandidate = static function (array &$paths, string $root, string $relativePath): void {
+            $relativePath = trim(str_replace('\\', '/', $relativePath), '/');
+            if ($root === '' || $relativePath === '' || str_contains($relativePath, '..')) {
+                return;
+            }
+
+            $paths[] = rtrim($root, "\\/") . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relativePath);
+        };
+
+        $appendFromSitePath = static function (array &$paths, string $path) use ($appendRelativeCandidate, $basePath): void {
+            $path = trim((string) parse_url($path, PHP_URL_PATH));
+            if ($path === '') {
+                return;
+            }
+
+            $appendRelativeCandidate($paths, $basePath, $path);
+        };
+
+        if (preg_match('/^[A-Za-z]:[\\\\\/]/', $value) === 1) {
+            $appendAbsoluteCandidate($candidates, $value);
+        } elseif (preg_match('#^https?://#i', $value) === 1) {
+            if ($siteUrl !== '' && str_starts_with($value, $siteUrl . '/')) {
+                $appendFromSitePath($candidates, $value);
+            }
+
+            if ($uploadUrl !== '' && str_starts_with($value, $uploadUrl . '/')) {
+                $relativeUploadPath = ltrim(substr($value, strlen($uploadUrl)), '/');
+                $appendRelativeCandidate($candidates, $uploadPath !== '' ? $uploadPath : $basePath, $relativeUploadPath);
+            }
+
+            if ($themeUrl !== '' && str_starts_with($value, $themeUrl . '/')) {
+                $relativeThemePath = ltrim(substr($value, strlen($themeUrl)), '/');
+                $appendRelativeCandidate($candidates, $themeDir, $relativeThemePath);
+            }
+
+            if (preg_match('#/media-file(?:$|\?)#', $value) === 1) {
+                $query = (string) parse_url($value, PHP_URL_QUERY);
+                parse_str($query, $params);
+                $mediaPath = trim(str_replace('\\', '/', (string) ($params['path'] ?? '')), '/');
+                $appendRelativeCandidate($candidates, $basePath, $mediaPath);
+                $appendRelativeCandidate($candidates, $uploadPath !== '' ? $uploadPath : $basePath, $mediaPath);
+            }
+        } elseif (str_starts_with($value, '/media-file')) {
+            $query = (string) parse_url($value, PHP_URL_QUERY);
+            parse_str($query, $params);
+            $mediaPath = trim(str_replace('\\', '/', (string) ($params['path'] ?? '')), '/');
+            $appendRelativeCandidate($candidates, $basePath, $mediaPath);
+            $appendRelativeCandidate($candidates, $uploadPath !== '' ? $uploadPath : $basePath, $mediaPath);
+        } elseif (str_starts_with($value, '/')) {
+            $appendFromSitePath($candidates, $value);
+        } else {
+            $appendRelativeCandidate($candidates, $uploadPath !== '' ? $uploadPath : $basePath, $value);
+            $appendRelativeCandidate($candidates, $themeDir, $value);
+            $appendRelativeCandidate($candidates, $basePath, $value);
+        }
+
+        foreach (array_values(array_unique($candidates)) as $candidate) {
+            if (is_file($candidate)) {
+                return $candidate;
+            }
+        }
+
+        return '';
+    }
+}
+
+if (!function_exists('meridian_get_image_dimensions')) {
+    /**
+     * Ermittelt Bilddimensionen für lokale Bilder mit kleinem Request-Cache.
+     *
+     * @return array{width:int,height:int}|null
+     */
+    function meridian_get_image_dimensions(?string $reference): ?array
+    {
+        static $dimensionCache = [];
+
+        $cacheKey = trim((string) $reference);
+        if ($cacheKey === '') {
+            return null;
+        }
+
+        if (array_key_exists($cacheKey, $dimensionCache)) {
+            return $dimensionCache[$cacheKey];
+        }
+
+        $filePath = meridian_get_local_image_path($cacheKey);
+        if ($filePath === '') {
+            $dimensionCache[$cacheKey] = null;
+            return null;
+        }
+
+        $size = @getimagesize($filePath);
+        if (!is_array($size) || empty($size[0]) || empty($size[1])) {
+            $dimensionCache[$cacheKey] = null;
+            return null;
+        }
+
+        $dimensionCache[$cacheKey] = [
+            'width' => max(1, (int) $size[0]),
+            'height' => max(1, (int) $size[1]),
+        ];
+
+        return $dimensionCache[$cacheKey];
+    }
+}
+
+if (!function_exists('meridian_local_path_to_public_url')) {
+    /**
+     * Übersetzt einen lokalen Dateipfad zurück in eine öffentliche URL.
+     */
+    function meridian_local_path_to_public_url(?string $path): string
+    {
+        $resolvedPath = realpath(trim((string) $path));
+        if ($resolvedPath === false || $resolvedPath === '') {
+            return '';
+        }
+
+        $normalizedPath = str_replace('\\', '/', $resolvedPath);
+        $roots = [
+            [defined('UPLOAD_PATH') ? (realpath((string) UPLOAD_PATH) ?: '') : '', defined('UPLOAD_URL') ? rtrim((string) UPLOAD_URL, '/') : ''],
+            [defined('MERIDIAN_THEME_DIR') ? (realpath((string) MERIDIAN_THEME_DIR) ?: '') : '', defined('MERIDIAN_THEME_URL') ? rtrim((string) MERIDIAN_THEME_URL, '/') : ''],
+            [realpath((string) ABSPATH) ?: '', defined('SITE_URL') ? rtrim((string) SITE_URL, '/') : ''],
+        ];
+
+        foreach ($roots as [$rootPath, $baseUrl]) {
+            $normalizedRoot = str_replace('\\', '/', (string) $rootPath);
+            if ($normalizedRoot === '' || $baseUrl === '') {
+                continue;
+            }
+
+            if ($normalizedPath !== $normalizedRoot && !str_starts_with($normalizedPath, $normalizedRoot . '/')) {
+                continue;
+            }
+
+            $relativePath = ltrim(substr($normalizedPath, strlen($normalizedRoot)), '/');
+            if ($relativePath === '') {
+                return $baseUrl;
+            }
+
+            $segments = array_map(static fn(string $segment): string => rawurlencode($segment), explode('/', $relativePath));
+
+            return $baseUrl . '/' . implode('/', $segments);
+        }
+
+        return '';
+    }
+}
+
+if (!function_exists('meridian_get_picture_sources')) {
+    /**
+     * Liefert bevorzugte Bildquellen inkl. optionalem lokal generiertem WebP-Fallback.
+     *
+     * @return array{url:string,webp_url:string,width:int,height:int}
+     */
+    function meridian_get_picture_sources(?string $reference, ?string $siteUrl = null, int $fallbackWidth = 0, int $fallbackHeight = 0): array
+    {
+        $normalizedUrl = meridian_normalize_public_media_url($reference, false, $siteUrl);
+        $dimensions = meridian_get_image_dimensions($reference);
+
+        $result = [
+            'url' => $normalizedUrl,
+            'webp_url' => '',
+            'width' => max(0, (int) ($dimensions['width'] ?? $fallbackWidth)),
+            'height' => max(0, (int) ($dimensions['height'] ?? $fallbackHeight)),
+        ];
+
+        if ($normalizedUrl === '') {
+            return $result;
+        }
+
+        $sourcePath = meridian_get_local_image_path($reference);
+        if ($sourcePath === '' || !is_file($sourcePath)) {
+            return $result;
+        }
+
+        $extension = strtolower((string) pathinfo($sourcePath, PATHINFO_EXTENSION));
+        if (!in_array($extension, ['jpg', 'jpeg', 'png'], true) || !class_exists('\\CMS\\Services\\ImageService')) {
+            return $result;
+        }
+
+        try {
+            $imageService = \CMS\Services\ImageService::getInstance();
+            $imageInfo = $imageService->getInfo();
+
+            if (!$imageService->isAvailable() || empty($imageInfo['webp_support'])) {
+                return $result;
+            }
+
+            $webpPath = preg_replace('/\.[a-z0-9]+$/i', '.webp', $sourcePath);
+            if (!is_string($webpPath) || $webpPath === '' || $webpPath === $sourcePath) {
+                return $result;
+            }
+
+            if (!is_file($webpPath)) {
+                $generatedPath = $imageService->convertToWebP($sourcePath, 78, false);
+                if (!is_string($generatedPath) || !is_file($generatedPath)) {
+                    return $result;
+                }
+
+                $webpPath = $generatedPath;
+            }
+
+            $sourceSize = (int) (filesize($sourcePath) ?: 0);
+            $webpSize = (int) (filesize($webpPath) ?: 0);
+            if ($sourceSize > 0 && $webpSize > 0 && $webpSize >= $sourceSize) {
+                return $result;
+            }
+
+            $webpUrl = meridian_local_path_to_public_url($webpPath);
+            if ($webpUrl === '') {
+                return $result;
+            }
+
+            $result['webp_url'] = meridian_safe_public_media_url($webpUrl, $siteUrl);
+        } catch (\Throwable) {
+            return $result;
+        }
+
+        return $result;
+    }
+}
+
+if (!function_exists('meridian_image_dimension_attributes')) {
+    /**
+     * Liefert width-/height-Attribute für Bilder.
+     */
+    function meridian_image_dimension_attributes(?string $reference, int $fallbackWidth = 0, int $fallbackHeight = 0): string
+    {
+        $dimensions = meridian_get_image_dimensions($reference);
+        $width = max(0, (int) ($dimensions['width'] ?? $fallbackWidth));
+        $height = max(0, (int) ($dimensions['height'] ?? $fallbackHeight));
+
+        if ($width < 1 || $height < 1) {
+            return '';
+        }
+
+        return 'width="' . $width . '" height="' . $height . '"';
+    }
+}
+
 // ─── Template Helper-Funktionen ─────────────────────────────────────────────
 
 /**
@@ -864,7 +1250,7 @@ function meridian_get_recent_posts(int $limit = 5, ?int $excludeId = null): arra
     try {
         $db     = \CMS\Database::instance();
         $prefix = $db->getPrefix();
-        $sql    = "SELECT p.id, p.title, p.slug, p.featured_image, p.published_at, p.created_at, c.name AS category_name
+        $sql    = "SELECT p.id, p.title, p.slug, p.excerpt, p.featured_image, p.published_at, p.created_at, c.name AS category_name
                    FROM {$prefix}posts p
                    LEFT JOIN {$prefix}post_categories c ON c.id = p.category_id
                    WHERE p.status = 'published'";
@@ -894,7 +1280,7 @@ function meridian_get_related_posts(int $categoryId, int $excludeId, int $limit 
         $db     = \CMS\Database::instance();
         $prefix = $db->getPrefix();
         $rows   = $db->get_results(
-            "SELECT p.id, p.title, p.slug, p.featured_image, c.name AS category_name
+            "SELECT p.id, p.title, p.slug, p.excerpt, p.featured_image, p.published_at, p.created_at, c.name AS category_name
              FROM {$prefix}posts p
              LEFT JOIN {$prefix}post_categories c ON c.id = p.category_id
              WHERE p.status = 'published' AND p.category_id = ? AND p.id != ?

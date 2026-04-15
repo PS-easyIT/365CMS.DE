@@ -1,4 +1,4 @@
-﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.242-blue.svg)](https://shields.io/)
+﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.243-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -19,6 +19,14 @@
 ## 📜 Vollständige Versionshistorie
 
 ---
+
+### v2.9.243 — 15. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.243** | 🎨 style | Frontend/Default-Theme Detailseiten | **`CMS/themes/cms-default/blog-single.php`, `CMS/themes/cms-default/page.php` und `CMS/themes/cms-default/style.css` geben Beitrags- und statischen Seiten-Detailansichten jetzt mit klarerem Editorial-Hero, sauberer Meta-Hierarchie, wertigeren Related-Cards und einer deutlich ruhigeren Inhaltsführung aus**: Die Public-Details wirken damit nicht länger „hingeworfen“, sondern konsistent komponiert. |
+| **2.9.243** | 🟠 perf | Frontend/Default-Theme Medien & Fonts | **`CMS/themes/cms-default/functions.php`, `CMS/themes/cms-default/header.php`, `CMS/themes/cms-default/home.php` sowie die Blog-Card-Partials ziehen lokale Font-Ausgabe und Featured Images auf denselben moderneren Vertrag wie im Phinit-Theme**: lokale Fonts werden nicht länger unnötig blockierend eingebunden, Karten/Home-Hero nutzen jetzt normalisierte Bildquellen mit optionalem WebP-Source-Fallback und echten `width`/`height`-Attributen, und der Header vermeidet doppelte Head-Asset-Ausgaben. |
+| **2.9.243** | 🔴 fix | Frontend/PhinIT-Theme Header | **`365CMS.DE-THEME/cms-phinit/header.php` übernimmt `$_currentLocale` jetzt korrekt in die locale-aware Desktop-Navigations-Closure**: Der bislang im Live-Header sichtbare Warning `Undefined variable $_currentLocale` verschwindet damit, ohne das Active-State-Verhalten lokalisierter Menüpunkte zu verlieren. |
 
 ### v2.9.242 — 15. April 2026
 

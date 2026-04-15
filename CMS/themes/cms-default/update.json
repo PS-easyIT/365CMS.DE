@@ -3,12 +3,13 @@
   "name": "Meridian CMS Default",
   "type": "theme",
   "license": "free",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "min_cms_version": "0.20.0",
-  "released": "2026-04-04",
+  "released": "2026-04-15",
   "download_url": "",
   "checksum_sha256": "",
   "changelog": {
+    "1.0.4": "Detailseiten für Beiträge und statische Seiten editorial überarbeitet, Featured Images auf Home-/Blog-Karten über Picture/WebP-Fallback mit echten Dimensionen umgestellt und der Head-/Logo-Pfad des Themes für lokale Fonts sowie stabilere CLS-Werte bereinigt.",
     "1.0.0": "Initiale Veröffentlichung. Editorial-Design basierend auf dem Meridian-Prototypen. Warm Off-White + Near-Black + Deep Amber Palette. Unterstützt Blog, Einzelseiten, Suche, Login und Register.",
     "1.0.2": "Menüvertrag für cms-default erweitert: mobiles Menü nutzt jetzt die eigene Theme-Position korrekt, und Footer-Spalten sowie Legal-Leiste sind als eigene Menüpositionen im Admin-Menüeditor verfügbar.",
     "1.0.3": "Neuer Theme-Customizer-Schalter zum Deaktivieren des oberen Footer-Bereichs mit Brand-Spalte, Social-Icons und Footer-Menüs."

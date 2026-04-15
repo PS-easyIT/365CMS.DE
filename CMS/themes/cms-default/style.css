@@ -1,7 +1,7 @@
 /*
 Theme Name: Meridian CMS Default
 Description: Das offizielle CMS-Default Theme – editorial, klar, charakterstark. Warm Off-White + Near-Black + Deep Amber. Ideal für Blogs, Magazine und Wissensportale.
-Version: 1.0.1
+Version: 1.0.4
 Author: PHINIT.DE / Andreas Hepp
 Author URI: https://phinit.de
 Tags: editorial, magazine, blog, responsive, cms, default
@@ -2214,4 +2214,315 @@ footer, .site-footer { background: var(--ink); color: rgba(255,255,255,.5); marg
   .footer-bottom-inner { flex-direction: column; align-items: flex-start; }
   .auth-card { padding: 1.75rem 1.25rem; }
   .page-wrap { padding: 0 1rem; margin: 1.5rem auto; }
+}
+
+/* === DETAIL / MEDIA REFINEMENTS (v1.0.4) === */
+.hero-image > picture,
+.art-thumb > picture,
+.card-thumb > picture,
+.related-card__media > picture,
+.page-hero__media picture,
+.post-featured-figure picture {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.hero-image > picture,
+.art-thumb > picture,
+.card-thumb > picture,
+.related-card__media > picture {
+  position: absolute;
+  inset: 0;
+}
+
+.post-detail-shell,
+.page-detail-shell {
+  max-width: var(--max);
+  margin: 0 auto;
+  padding: 2rem 1.5rem 0;
+}
+
+.post-hero,
+.page-hero {
+  display: grid;
+  gap: 2rem;
+  align-items: start;
+  margin-bottom: 2rem;
+}
+
+.post-hero {
+  grid-template-columns: minmax(0, 1fr) 240px;
+}
+
+.page-hero {
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 420px);
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.post-hero__eyebrow,
+.page-hero__eyebrow {
+  display: flex;
+  align-items: center;
+  gap: .65rem;
+  flex-wrap: wrap;
+  margin-bottom: .85rem;
+  font-size: .72rem;
+  font-weight: 600;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.post-hero__category {
+  color: var(--accent);
+}
+
+.post-hero__sep {
+  color: var(--ink-ghost);
+}
+
+.post-hero__title,
+.page-hero__title {
+  font-family: var(--font-serif);
+  font-size: clamp(1.9rem, 4vw, 3rem);
+  font-weight: 700;
+  line-height: 1.12;
+  letter-spacing: -.035em;
+  color: var(--ink);
+  margin-bottom: 1rem;
+}
+
+.post-hero__excerpt,
+.page-hero__excerpt {
+  max-width: 58ch;
+  font-family: var(--font-serif);
+  font-size: 1.04rem;
+  line-height: 1.8;
+  color: var(--ink-soft);
+  margin-bottom: 1.25rem;
+}
+
+.post-hero__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem 1.5rem;
+  align-items: center;
+}
+
+.post-hero__meta-list,
+.page-hero__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .55rem 1rem;
+  font-size: .8rem;
+  color: var(--ink-muted);
+}
+
+.post-hero__meta-list strong,
+.page-hero__meta strong {
+  color: var(--ink);
+  font-weight: 600;
+  margin-right: .2rem;
+}
+
+.page-hero__meta code {
+  font-family: var(--font-mono);
+  font-size: .92em;
+  background: var(--surface-tint);
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  padding: .08rem .32rem;
+  color: var(--ink);
+}
+
+.post-stat-card {
+  display: grid;
+  gap: .85rem;
+  padding: 1.15rem 1.25rem;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--r);
+  box-shadow: var(--shadow-sm);
+}
+
+.post-stat-card__item {
+  display: flex;
+  flex-direction: column;
+  gap: .2rem;
+  padding-bottom: .8rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.post-stat-card__item:last-child {
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.post-stat-card__label {
+  font-size: .68rem;
+  font-weight: 600;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--ink-ghost);
+}
+
+.post-stat-card__value {
+  font-size: .88rem;
+  font-weight: 600;
+  color: var(--ink);
+  line-height: 1.5;
+}
+
+.post-featured-figure,
+.page-hero__media {
+  overflow: hidden;
+  border-radius: var(--r);
+  border: 1px solid var(--rule);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.post-featured-figure {
+  margin: 0 0 2rem;
+}
+
+.post-featured-figure img,
+.page-hero__media img,
+.related-card__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.post-featured-figure img,
+.page-hero__media img {
+  aspect-ratio: 16 / 9;
+}
+
+.post-body--detail {
+  max-width: var(--col);
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.post-footer-bar--detail {
+  max-width: var(--col);
+  margin: 0 auto 2rem;
+  padding: 1rem 1.25rem;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-top: 1px solid var(--rule);
+  border-radius: var(--r);
+}
+
+.author-box--elevated {
+  box-shadow: var(--shadow-sm);
+}
+
+.related-card--detailed {
+  display: flex;
+  flex-direction: column;
+}
+
+.related-card__media {
+  display: block;
+  position: relative;
+  aspect-ratio: 16 / 10;
+  background: linear-gradient(135deg, #1e2a3e, #1a1a18);
+}
+
+.related-card__media--placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.related-card__media--placeholder svg {
+  width: 30px;
+  height: 30px;
+  fill: rgba(255,255,255,.14);
+}
+
+.related-card .rc-body {
+  display: flex;
+  flex-direction: column;
+  gap: .45rem;
+  flex: 1;
+}
+
+.related-card .rc-excerpt {
+  font-size: .78rem;
+  line-height: 1.65;
+  color: var(--ink-muted);
+}
+
+.related-card .rc-meta {
+  margin-top: auto;
+  font-size: .72rem;
+  color: var(--ink-ghost);
+}
+
+.page-content-wrap--detail {
+  max-width: var(--col);
+  margin: 0 auto;
+}
+
+.page-article--detail {
+  width: 100%;
+}
+
+.form-required {
+  color: #b91c1c;
+}
+
+.comment-form-wrap textarea {
+  min-height: 120px;
+}
+
+@media (max-width: 960px) {
+  .post-hero,
+  .page-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .post-stat-card {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .post-stat-card__item {
+    padding-bottom: 0;
+    border-bottom: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .post-detail-shell,
+  .page-detail-shell {
+    padding: 1.35rem 1rem 0;
+  }
+
+  .post-hero__title,
+  .page-hero__title {
+    font-size: clamp(1.55rem, 7vw, 2.15rem);
+  }
+
+  .post-hero__excerpt,
+  .page-hero__excerpt {
+    font-size: .96rem;
+  }
+
+  .post-stat-card {
+    grid-template-columns: 1fr;
+  }
+
+  .post-body--detail,
+  .page-content-wrap--detail,
+  .post-footer-bar--detail,
+  .author-box-wrap,
+  .related-section,
+  .comments-section {
+    max-width: 100%;
+  }
 }

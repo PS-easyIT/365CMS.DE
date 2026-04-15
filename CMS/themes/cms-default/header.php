@@ -11,7 +11,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-$logoUrl       = meridian_setting('header', 'logo_url', '');
+$logoUrl       = (string) meridian_setting('header', 'logo_url', '');
 $logoText      = meridian_setting('header', 'logo_text', defined('SITE_NAME') ? SITE_NAME : '365CMS');
 $logoType      = meridian_setting('header', 'logo_type', 'text');
 $logoTagline   = meridian_setting('header', 'logo_tagline', '');
@@ -24,13 +24,28 @@ $headerBarMode = meridian_setting('navigation', 'header_bar_mode', 'categories')
 $stickyHeader  = (bool)meridian_setting('layout', 'sticky_header', true);
 
 $currentPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
+$currentLocale = function_exists('meridian_current_request_locale') ? meridian_current_request_locale() : 'de';
 $isLoggedIn  = meridian_is_logged_in();
 $flashMsg    = meridian_get_flash();
 $accountPath = function_exists('meridian_account_path') ? meridian_account_path() : '/member/profile';
+$logoImageUrl = $logoUrl !== '' && function_exists('meridian_normalize_public_media_url')
+  ? meridian_normalize_public_media_url($logoUrl, false)
+  : $logoUrl;
+
+if ($logoImageUrl === '' && $logoUrl !== '') {
+  $logoImageUrl = $logoUrl;
+}
+
+$logoDimensionAttributes = $logoUrl !== '' && function_exists('meridian_image_dimension_attributes')
+  ? meridian_image_dimension_attributes($logoUrl)
+  : '';
+$logoLoadingAttributes = function_exists('meridian_image_loading_attributes')
+  ? meridian_image_loading_attributes(true)
+  : 'loading="eager" decoding="async"';
 
 ?>
 <!DOCTYPE html>
-<html lang="de">
+<html lang="<?php echo htmlspecialchars($currentLocale, ENT_QUOTES, 'UTF-8'); ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -46,24 +61,14 @@ $accountPath = function_exists('meridian_account_path') ? meridian_account_path(
     ?>
     <title><?php echo htmlspecialchars($siteTitle, ENT_QUOTES, 'UTF-8'); ?></title>
     <?php
-    // Preconnect + Fonts: Local Fonts werden automatisch priorisiert wenn aktiviert
-    if (function_exists('meridian_output_fonts')) {
-        meridian_output_fonts();
-    }
-    ?>
-    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/themes/cms-default/style.css?v=<?php echo defined('MERIDIAN_THEME_VERSION') ? MERIDIAN_THEME_VERSION : '1.0.3'; ?>">
-    <?php
-    // Theme-Customizer CSS-Variablen direkt nach style.css ausgeben
-    if (function_exists('meridian_output_custom_styles')) {
-        meridian_output_custom_styles();
-    }
-    // SEO meta tags + Custom Head Code via Hooks
     if (class_exists('\CMS\Hooks')) {
         \CMS\Hooks::doAction('head');
     }
     ?>
 </head>
 <body class="meridian-theme">
+
+  <?php if (class_exists('\CMS\Hooks')) { \CMS\Hooks::doAction('body_start'); } ?>
 
 <?php if ($flashMsg): ?>
 <div class="alert alert-<?php echo htmlspecialchars($flashMsg['type'] ?? 'info'); ?>" style="border-radius:0;margin:0;">
@@ -80,8 +85,8 @@ $accountPath = function_exists('meridian_account_path') ? meridian_account_path(
     <!-- Logo + optionaler Titel daneben -->
     <div class="site-logo-group">
       <a href="<?php echo SITE_URL; ?>/" class="site-logo" aria-label="<?php echo htmlspecialchars($logoText); ?> – Startseite">
-        <?php if ($logoType === 'image' && $logoUrl): ?>
-            <img src="<?php echo htmlspecialchars($logoUrl); ?>" alt="<?php echo htmlspecialchars($logoText); ?>" height="<?php echo $logoHeight; ?>" style="max-height:<?php echo $logoHeight; ?>px;display:block;width:auto;">
+        <?php if ($logoType === 'image' && $logoImageUrl): ?>
+            <img src="<?php echo htmlspecialchars($logoImageUrl, ENT_QUOTES, 'UTF-8'); ?>" alt="<?php echo htmlspecialchars($logoText); ?>" <?php echo $logoDimensionAttributes; ?> <?php echo $logoLoadingAttributes; ?> style="max-height:<?php echo $logoHeight; ?>px;display:block;width:auto;">
         <?php else: ?>
             <span class="logo-word"><?php echo htmlspecialchars($logoText); ?></span>
             <span class="logo-dot"></span>
@@ -227,8 +232,8 @@ $accountPath = function_exists('meridian_account_path') ? meridian_account_path(
 <nav id="mobileNavPanel" class="mobile-nav-panel" aria-hidden="true" inert aria-label="Mobile Navigation">
   <div class="mobile-nav-header">
     <a href="<?php echo SITE_URL; ?>/" class="site-logo" aria-label="<?php echo htmlspecialchars($logoText); ?> – Startseite" style="text-decoration:none;">
-      <?php if ($logoType === 'image' && $logoUrl): ?>
-        <img src="<?php echo htmlspecialchars($logoUrl); ?>" alt="<?php echo htmlspecialchars($logoText); ?>" height="32" style="max-height:32px;width:auto;">
+      <?php if ($logoType === 'image' && $logoImageUrl): ?>
+        <img src="<?php echo htmlspecialchars($logoImageUrl, ENT_QUOTES, 'UTF-8'); ?>" alt="<?php echo htmlspecialchars($logoText); ?>" <?php echo $logoDimensionAttributes; ?> <?php echo $logoLoadingAttributes; ?> style="max-height:32px;width:auto;">
       <?php else: ?>
         <span class="logo-word" style="font-size:1rem;"><?php echo htmlspecialchars($logoText); ?></span>
         <span class="logo-dot"></span>

@@ -52,17 +52,29 @@ $svgs = [
         $gDate    = !empty($item->published_at ?? $item->created_at ?? '')
                     ? time_ago($item->published_at ?? $item->created_at)
                     : '';
-        $gImage   = $item->featured_image ?? '';
+        $gImageReference = (string) ($item->featured_image ?? '');
+        $gImage = function_exists('meridian_get_picture_sources')
+            ? meridian_get_picture_sources($gImageReference, null, 960, 560)
+            : ['url' => '', 'webp_url' => '', 'width' => 960, 'height' => 560];
+        $gImageDimensions = function_exists('meridian_image_dimension_attributes')
+            ? meridian_image_dimension_attributes($gImageReference, 960, 560)
+            : 'width="960" height="560"';
         $grad     = $gradients[$i % count($gradients)];
         $svg      = $svgs[$i % count($svgs)];
     ?>
     <div class="card">
-        <?php if (!empty($gImage)): ?>
+        <?php if ($gImage['url'] !== ''): ?>
         <a href="<?php echo SITE_URL; ?>/blog/<?php echo $gSlug; ?>" class="card-thumb" style="background:<?php echo $grad; ?>;">
-            <img src="<?php echo htmlspecialchars($gImage); ?>"
-                 alt="<?php echo $gTitle; ?>"
-                 loading="lazy"
-                 style="width:100%;height:100%;object-fit:cover;opacity:.85;">
+            <picture>
+                <?php if ($gImage['webp_url'] !== ''): ?>
+                <source srcset="<?php echo htmlspecialchars($gImage['webp_url'], ENT_QUOTES, 'UTF-8'); ?>" type="image/webp">
+                <?php endif; ?>
+                <img src="<?php echo htmlspecialchars($gImage['url'], ENT_QUOTES, 'UTF-8'); ?>"
+                     alt="<?php echo $gTitle; ?>"
+                     <?php echo function_exists('meridian_image_loading_attributes') ? meridian_image_loading_attributes(false) : 'loading="lazy" decoding="async"'; ?>
+                     <?php echo $gImageDimensions; ?>
+                     style="width:100%;height:100%;object-fit:cover;opacity:.85;">
+            </picture>
             <?php if ($gCat): ?>
             <span class="card-cat"><?php echo $gCat; ?></span>
             <?php endif; ?>

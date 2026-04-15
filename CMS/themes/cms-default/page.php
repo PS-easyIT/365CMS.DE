@@ -14,38 +14,80 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-$pageTitle   = $page['title']       ?? '';
-$pageContent = $page['content']     ?? '';
-$pageUpdated = $page['updated_at']  ?? '';
-$pageId      = (int)($page['id']    ?? 0);
+$pageTitleRaw = trim((string) ($page['title'] ?? ''));
+$pageTitle = htmlspecialchars($pageTitleRaw, ENT_QUOTES, 'UTF-8');
+$pageContent = (string) ($page['content'] ?? '');
+$pageUpdated = (string) ($page['updated_at'] ?? '');
+$pageUpdatedLabel = $pageUpdated !== '' ? meridian_format_date($pageUpdated, false) : '';
+$pageUpdatedAgo = $pageUpdated !== '' ? time_ago($pageUpdated) : '';
+$pageExcerptRaw = trim((string) ($page['meta_description'] ?? ''));
+$pageExcerpt = $pageExcerptRaw !== '' ? htmlspecialchars($pageExcerptRaw, ENT_QUOTES, 'UTF-8') : '';
+$pageSlug = trim((string) ($page['slug'] ?? ''));
+$pageImageReference = (string) ($page['featured_image'] ?? '');
+$pageImage = function_exists('meridian_get_picture_sources')
+    ? meridian_get_picture_sources($pageImageReference, null, 1600, 900)
+    : ['url' => '', 'webp_url' => '', 'width' => 1600, 'height' => 900];
+$pageImageDimensions = function_exists('meridian_image_dimension_attributes')
+    ? meridian_image_dimension_attributes($pageImageReference, 1600, 900)
+    : 'width="1600" height="900"';
+$pageImageLoading = function_exists('meridian_image_loading_attributes')
+    ? meridian_image_loading_attributes(true)
+    : 'loading="eager" decoding="async"';
+$pageId = (int) ($page['id'] ?? 0);
 ?>
 
-<div class="container">
-    <div class="page-content-wrap">
-        <article class="page-article">
+<article class="page-detail">
+    <div class="breadcrumb-bar">
+        <nav class="breadcrumb-inner" aria-label="Breadcrumb">
+            <a href="<?php echo SITE_URL; ?>/">Startseite</a>
+            <span class="sep" aria-hidden="true">›</span>
+            <span class="cur" aria-current="page"><?php echo $pageTitle; ?></span>
+        </nav>
+    </div>
 
-            <!-- Breadcrumb -->
-            <nav class="breadcrumb" aria-label="Breadcrumb" style="margin-bottom:1.5rem;">
-                <a href="<?php echo SITE_URL; ?>/">Startseite</a>
-                <span class="breadcrumb-sep" aria-hidden="true">›</span>
-                <span class="breadcrumb-current" aria-current="page"><?php echo htmlspecialchars($pageTitle); ?></span>
-            </nav>
-
-            <header class="post-header">
-                <h1 class="post-title"><?php echo htmlspecialchars($pageTitle); ?></h1>
-                <?php if ($pageUpdated): ?>
-                <p class="post-meta-bar">
-                    <time class="post-meta-date" datetime="<?php echo htmlspecialchars(substr($pageUpdated, 0, 10)); ?>">
-                        Aktualisiert: <?php echo meridian_format_date($pageUpdated); ?>
-                    </time>
-                </p>
+    <div class="page-detail-shell">
+        <header class="page-hero<?php echo $pageImage['url'] !== '' ? ' page-hero--with-media' : ''; ?>">
+            <div class="page-hero__intro">
+                <div class="page-hero__eyebrow">Seite</div>
+                <h1 class="page-hero__title"><?php echo $pageTitle; ?></h1>
+                <?php if ($pageExcerpt !== ''): ?>
+                <p class="page-hero__excerpt"><?php echo $pageExcerpt; ?></p>
                 <?php endif; ?>
-            </header>
 
-            <div class="post-body page-content">
-                <?php echo $pageContent; // Kommt aus DB, bereits sanitiert ?>
+                <div class="page-hero__meta">
+                    <?php if ($pageUpdatedLabel !== ''): ?>
+                    <span><strong>Aktualisiert</strong> <?php echo htmlspecialchars($pageUpdatedLabel, ENT_QUOTES, 'UTF-8'); ?></span>
+                    <?php endif; ?>
+                    <?php if ($pageUpdatedAgo !== ''): ?>
+                    <span><?php echo htmlspecialchars($pageUpdatedAgo, ENT_QUOTES, 'UTF-8'); ?></span>
+                    <?php endif; ?>
+                    <?php if ($pageSlug !== ''): ?>
+                    <span>Slug: <code><?php echo htmlspecialchars($pageSlug, ENT_QUOTES, 'UTF-8'); ?></code></span>
+                    <?php endif; ?>
+                </div>
             </div>
 
-        </article>
-    </div><!-- /.page-content-wrap -->
-</div><!-- /.container -->
+            <?php if ($pageImage['url'] !== ''): ?>
+            <figure class="page-hero__media">
+                <picture>
+                    <?php if ($pageImage['webp_url'] !== ''): ?>
+                    <source srcset="<?php echo htmlspecialchars($pageImage['webp_url'], ENT_QUOTES, 'UTF-8'); ?>" type="image/webp">
+                    <?php endif; ?>
+                    <img src="<?php echo htmlspecialchars($pageImage['url'], ENT_QUOTES, 'UTF-8'); ?>"
+                         alt="<?php echo $pageTitle; ?>"
+                         <?php echo $pageImageLoading; ?>
+                         <?php echo $pageImageDimensions; ?>>
+                </picture>
+            </figure>
+            <?php endif; ?>
+        </header>
+
+        <div class="page-content-wrap page-content-wrap--detail">
+            <article class="page-article page-article--detail">
+                <div class="post-body page-content">
+                    <?php echo $pageContent; // Kommt aus DB, bereits sanitiert ?>
+                </div>
+            </article>
+        </div>
+    </div>
+</article>

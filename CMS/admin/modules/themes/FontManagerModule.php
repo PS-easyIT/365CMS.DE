@@ -38,6 +38,7 @@ class FontManagerModule
     private const SCAN_SKIPPED_SEGMENTS = ['vendor', 'node_modules', 'cache', '.git'];
     private const MANAGED_FONT_FILE_EXTENSIONS = ['woff', 'woff2', 'ttf', 'otf'];
     private const TEMP_FONT_FILE_PREFIX = 'cmsfont_';
+    private const LOCAL_FONT_ALLOWED_SUBSETS = ['latin', 'latin-ext'];
 
     private const SYSTEM_FONTS = [
         'system-ui'       => 'System UI (Standard)',
@@ -570,6 +571,11 @@ class FontManagerModule
                 ['Google Font: ' . $fontFamily, 'Quelle: ' . $cssUrl],
                 ['font_family' => $fontFamily, 'css_url' => $cssUrl]
             );
+        }
+
+        $optimizedCss = $this->optimizeGoogleFontCssForLocalDelivery($css);
+        if ($optimizedCss !== '') {
+            $css = $optimizedCss;
         }
 
         // Font-URLs extrahieren und lokal speichern
@@ -1118,6 +1124,50 @@ class FontManagerModule
         }
 
         return array_values(array_unique($families));
+    }
+
+    private function optimizeGoogleFontCssForLocalDelivery(string $css): string
+    {
+        $normalizedCss = str_replace(["\r\n", "\r"], "\n", trim($css));
+        if ($normalizedCss === '' || stripos($normalizedCss, '@font-face') === false) {
+            return $normalizedCss;
+        }
+
+        if (preg_match_all('/(?:\/\*\s*(?<label>[^*]+?)\s*\*\/\s*)?(?<block>@font-face\s*\{.*?\})/is', $normalizedCss, $matches, PREG_SET_ORDER) < 1) {
+            return $normalizedCss;
+        }
+
+        $keptBlocks = [];
+
+        foreach ($matches as $match) {
+            $label = strtolower(trim(preg_replace('/\s+/u', ' ', (string) ($match['label'] ?? '')) ?? ''));
+            $block = trim((string) ($match['block'] ?? ''));
+
+            if ($block === '') {
+                continue;
+            }
+
+            if (!$this->shouldKeepOptimizedFontCssBlock($label, $block)) {
+                continue;
+            }
+
+            $keptBlocks[] = ($label !== '' ? '/* ' . $label . " */\n" : '') . $block;
+        }
+
+        if ($keptBlocks === []) {
+            return $normalizedCss;
+        }
+
+        return implode("\n\n", $keptBlocks) . "\n";
+    }
+
+    private function shouldKeepOptimizedFontCssBlock(string $label, string $block): bool
+    {
+        if ($label === '' || in_array($label, self::LOCAL_FONT_ALLOWED_SUBSETS, true)) {
+            return true;
+        }
+
+        return preg_match('/unicode-range\s*:/i', $block) !== 1;
     }
 
     /**

@@ -5,6 +5,7 @@ namespace CMS\Services;
 
 use CMS\Auth;
 use CMS\CacheManager;
+use CMS\Database;
 use CMS\Logger;
 use CMS\WP_Error;
 
@@ -176,13 +177,26 @@ final class MediaDeliveryService
 
         $inline = $requestedInline && $this->isInlineSafePath($relativePath);
         $cacheProfile = $this->isPrivateMemberPath($relativePath) ? 'private' : 'public';
-        $cacheTtl = $inline ? 3600 : 300;
-        CacheManager::instance()->sendResponseHeaders($cacheProfile, $cacheTtl);
+        $cacheManager = CacheManager::instance();
+        $cacheTtl = $cacheProfile === 'public'
+            ? $this->resolvePublicCacheTtl($inline)
+            : 300;
+        $cacheManager->sendResponseHeaders($cacheProfile, $cacheTtl);
 
         $mimeType = $this->detectMimeType($absolutePath);
         $filename = basename($absolutePath);
         $filesize = (int) filesize($absolutePath);
         $lastModified = filemtime($absolutePath) ?: time();
+
+        if ($cacheProfile === 'public' && !headers_sent()) {
+            header_remove('Vary');
+            header('Vary: Accept-Encoding');
+
+            if (!$cacheManager->sendConditionalHeaders('media:' . $relativePath . ':' . ($inline ? 'inline' : 'attachment'), $lastModified)) {
+                exit;
+            }
+        }
+
         $range = $this->parseRangeHeader((string) ($_SERVER['HTTP_RANGE'] ?? ''), $filesize);
 
         if ($range instanceof WP_Error) {
@@ -208,7 +222,9 @@ final class MediaDeliveryService
             header('X-Content-Type-Options: nosniff');
             header('Accept-Ranges: bytes');
             header('Content-Length: ' . $contentLength);
-            header('Last-Modified: ' . gmdate('D, d M Y H:i:s', $lastModified) . ' GMT');
+            if ($cacheProfile !== 'public') {
+                header('Last-Modified: ' . gmdate('D, d M Y H:i:s', $lastModified) . ' GMT');
+            }
             header('Content-Disposition: ' . ($inline ? 'inline' : 'attachment') . '; filename="' . $this->buildSafeFilename($filename) . '"');
 
             if ($isPartial) {
@@ -396,6 +412,47 @@ final class MediaDeliveryService
     {
         $extension = strtolower((string) pathinfo($relativePath, PATHINFO_EXTENSION));
         return in_array($extension, self::INLINE_EXTENSIONS, true);
+    }
+
+    private function resolvePublicCacheTtl(bool $inline): int
+    {
+        $ttl = $inline ? 3600 : 300;
+
+        try {
+            $db = Database::instance();
+            $rows = $db->get_results(
+                "SELECT option_name, option_value FROM {$db->getPrefix()}settings WHERE option_name IN ('perf_browser_cache', 'perf_browser_cache_ttl')"
+            ) ?: [];
+
+            $browserCacheEnabled = true;
+            $configuredTtl = $ttl;
+
+            foreach ($rows as $row) {
+                $name = (string) ($row->option_name ?? '');
+                $value = (string) ($row->option_value ?? '');
+
+                if ($name === 'perf_browser_cache') {
+                    $browserCacheEnabled = $value !== '0';
+                    continue;
+                }
+
+                if ($name === 'perf_browser_cache_ttl') {
+                    $configuredTtl = (int) $value;
+                }
+            }
+
+            if (!$browserCacheEnabled) {
+                return 300;
+            }
+
+            if ($configuredTtl > 0) {
+                $ttl = $configuredTtl;
+            }
+        } catch (\Throwable) {
+            return $ttl;
+        }
+
+        return max(300, min(31536000, $ttl));
     }
 
     private function detectMimeType(string $absolutePath): string

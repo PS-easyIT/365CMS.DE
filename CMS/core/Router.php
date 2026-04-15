@@ -509,7 +509,48 @@ class Router
             return;
         }
 
-        $cache->sendResponseHeaders('public', 300);
+        $cache->sendResponseHeaders('public', $this->resolvePublicHtmlCacheTtl());
+    }
+
+    private function resolvePublicHtmlCacheTtl(): int
+    {
+        $ttl = 300;
+
+        try {
+            $db = Database::instance();
+            $rows = $db->get_results(
+                "SELECT option_name, option_value FROM {$db->getPrefix()}settings WHERE option_name IN ('perf_page_cache', 'perf_html_cache_ttl')"
+            ) ?: [];
+
+            $pageCacheEnabled = true;
+            $configuredTtl = $ttl;
+
+            foreach ($rows as $row) {
+                $name = (string) ($row->option_name ?? '');
+                $value = (string) ($row->option_value ?? '');
+
+                if ($name === 'perf_page_cache') {
+                    $pageCacheEnabled = $value !== '0';
+                    continue;
+                }
+
+                if ($name === 'perf_html_cache_ttl') {
+                    $configuredTtl = (int) $value;
+                }
+            }
+
+            if (!$pageCacheEnabled) {
+                return 60;
+            }
+
+            if ($configuredTtl > 0) {
+                $ttl = $configuredTtl;
+            }
+        } catch (\Throwable) {
+            return $ttl;
+        }
+
+        return max(60, min(86400, $ttl));
     }
 
     private function sendConditionalPublicPageHeaders(string $type, array $resource, string $locale): bool
