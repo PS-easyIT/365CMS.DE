@@ -329,7 +329,9 @@ class PostsModule
             $params[] = $categoryFilter;
         }
         if ($search !== '') {
-            $where[]  = '(p.title LIKE ? OR p.slug LIKE ?)';
+            $where[]  = '(p.title LIKE ? OR p.title_en LIKE ? OR p.slug LIKE ? OR p.slug_en LIKE ?)';
+            $params[] = "%{$search}%";
+            $params[] = "%{$search}%";
             $params[] = "%{$search}%";
             $params[] = "%{$search}%";
         }

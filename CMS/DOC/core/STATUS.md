@@ -1,12 +1,12 @@
 # 365CMS – Systemstatus
-> **Stand:** 2026-04-24 | **Version:** 2.9.246 | **Status:** Aktuell
+> **Stand:** 2026-04-24 | **Version:** 2.9.247 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Versionsstand](#versionsstand)
 - [Core- und Plattformstatus](#core--und-plattformstatus)
 - [Datenbankschema](#datenbankschema)
 - [Aktuelle Admin-Architektur](#aktuelle-admin-architektur)
-- [Wichtige Feature-Stände](#wichtige-feature-stände-im-aktuellen-stand-29246)
+- [Wichtige Feature-Stände](#wichtige-feature-stände-im-aktuellen-stand-29247)
 - [Bekannte Grenzen](#bekannte-grenzen)
 - [Nächste geplante Features](#nächste-geplante-features)
 - [Deprecations](#deprecations)
@@ -18,7 +18,7 @@
 
 | Eigenschaft | Wert |
 |---|---|
-| CMS-Version | `2.9.246` |
+| CMS-Version | `2.9.247` |
 | Code-Referenz | `CMS/core/Version.php` |
 | Update-Metadaten | `CMS/update.json` |
 | Release-Datum | `2026-04-24` |
@@ -82,7 +82,7 @@ Maßgebliche Referenz: `CMS/admin/partials/sidebar.php`
 
 ---
 
-## Wichtige Feature-Stände im aktuellen Stand 2.9.246 <!-- UPDATED: 2026-04-24 -->
+## Wichtige Feature-Stände im aktuellen Stand 2.9.247 <!-- UPDATED: 2026-04-24 -->
 
 | Bereich | Stand |
 |---|---|
@@ -121,11 +121,11 @@ Maßgebliche Referenz: `CMS/admin/partials/sidebar.php`
 - Hintergrund sind die produktiv gebündelten Symfony-Komponenten in `CMS/assets/mailer`, `CMS/assets/mime` und `CMS/assets/translation`, deren Composer-Metadaten PHP 8.4 voraussetzen.
 - Diese Vorgabe wird nicht nur dokumentiert, sondern zur Laufzeit auch über `CMS/config.php`, `CMS/core/Bootstrap.php`, `CMS/core/Services/StatusService.php`, `CMS/core/Services/UpdateService.php` und `CMS/install.php` aktiv geprüft bzw. signalisiert.
 
-## Release-Notiz 2.9.246 <!-- ADDED: 2026-04-24 -->
+## Release-Notiz 2.9.247 <!-- ADDED: 2026-04-24 -->
 
-- Login-Redirects zu privaten Public-Seiten und -Beiträgen fallen nicht mehr still auf `/member` zurück, sondern kehren kontrolliert zum ursprünglich angeforderten same-origin-Ziel zurück.
-- Die Redirect-Sanitierung bleibt dabei defensiv: API- und Auth-Ziele sowie Schleifenpfade bleiben weiter ausgesperrt.
-- Anonyme Admin-Zugriffe nutzen für den Sprung zur Anmeldung jetzt denselben öffentlichen Auth-Vertrag wie Public-/Member-Flows.
+- `ThemeRouter::renderContact()` initialisiert die aufgelöste Locale wieder vor dem Kontaktseiten-Lookup, damit `/contact` und `/kontakt` keine undefinierte Sprachvariable mehr verwenden.
+- Öffentliche Category- und Tag-Archive filtern `?q=` in EN jetzt konsistent über lokalisierte Titel-, Auszugs- und Inhaltsfelder statt nur über die Basissprache.
+- Die Admin-Beitragsliste zieht bei der Serversuche denselben EN-Titel-/Slug-Vertrag wie `/api/v1/admin/posts` nach.
 
 ---
 

@@ -1,9 +1,9 @@
 # 365CMS – Projektdokumentation
-> **Stand:** 2026-04-24 | **Version:** 2.9.246 | **Status:** Aktuell
+> **Stand:** 2026-04-24 | **Version:** 2.9.247 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Womit ihr anfangen solltet](#womit-ihr-anfangen-solltet)
-- [Release-Fokus 2.9.246](#release-fokus-29246)
+- [Release-Fokus 2.9.247](#release-fokus-29247)
 - [Dokumentationsbereiche](#dokumentationsbereiche)
 - [Wichtige Hinweise](#wichtige-hinweise)
 - [Verwandte Einstiege](#verwandte-einstiege)
@@ -33,14 +33,14 @@
 
 ---
 
-## Release-Fokus 2.9.246
+## Release-Fokus 2.9.247
 
-Der aktuelle Release-Fokus `2.9.246` schließt die nächste Redirect-Lücke zwischen Login-Strecke und geschützten Public-/Admin-Zielen:
+Der aktuelle Release-Fokus `2.9.247` räumt drei konkrete Vertragsbrüche zwischen Public-Routing, Archiven und Admin-Liste auf:
 
-- `PublicRouter::resolveAllowedRedirectParts()` akzeptiert sichere same-origin-Pfade jetzt auch dann, wenn sie auf private Public-Seiten oder Beiträge zurückführen, statt solche Ziele pauschal auf `/member` zu verwerfen
-- `ThemeRouter` profitiert davon direkt, weil seine Redirects von privaten Seiten/Beiträgen zur Login-Seite den ursprünglichen Public-Pfad jetzt wieder wirklich zurückbekommen
-- `AdminRouter::redirectUnauthorized()` nutzt ebenfalls die öffentliche Auth-Strecke statt eines hart verdrahteten `/cms-login`, wodurch Admin-Redirects denselben Auth-Slug-Modus respektieren wie der Rest der Runtime
-- `README.md`, `Changelog.md`, `CMS/core/Version.php`, `CMS/update.json` und die zentralen CMS-Dokumente bleiben dabei auf demselben Release-Stand `2.9.246`
+- `ThemeRouter::renderContact()` zieht die aufgelöste Locale vor den `PageManager::getPageBySlug()`-Lookup, sodass `/contact` und `/kontakt` nicht mehr mit undefiniertem `$locale` in den falschen Sprachpfad laufen
+- Category- und Tag-Archive verwenden bei `?q=` in EN jetzt dieselben locale-aware Suchfelder wie `/search`, also `*_en` mit Fallback auf die Basissprache statt einer rein deutschen Volltextprüfung
+- `PostsModule::getListData()` durchsucht EN-Titel und EN-Slugs jetzt ebenso wie `/api/v1/admin/posts`, damit HTML-/Fallback-Pfade keine anderen Ergebnisse liefern als das Admin-Grid
+- `README.md`, `Changelog.md`, `CMS/core/Version.php`, `CMS/update.json` und die zentralen CMS-Dokumente bleiben dabei auf demselben Release-Stand `2.9.247`
 
 ---
 

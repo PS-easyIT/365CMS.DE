@@ -405,13 +405,14 @@ final class ThemeRouter
             return;
         }
 
+        $locale = $this->getResolvedContentLocale();
+
         foreach (['contact', 'kontakt'] as $slug) {
             $page = PageManager::instance()->getPageBySlug($slug, $locale);
             if ($page === null || ($page['status'] ?? '') !== 'published') {
                 continue;
             }
 
-            $locale = $this->router->getRequestLocale();
             $page = Services\ContentLocalizationService::getInstance()->localizePage($page, $locale);
             if (!empty($page['content'])) {
                 $page['content'] = $this->router->prepareRenderableContent((string)$page['content'], 'page', (int)($page['id'] ?? 0));
@@ -510,7 +511,7 @@ final class ThemeRouter
         $params = array_merge($categoryIds, $categoryIds);
 
         if ($query !== '') {
-            $where[] = '(p.title LIKE ? OR p.excerpt LIKE ? OR p.content LIKE ?)';
+            $where[] = $this->buildLocalizedPostSearchClause('p', $locale);
             $like = '%' . $query . '%';
             array_push($params, $like, $like, $like);
         }
@@ -606,7 +607,7 @@ final class ThemeRouter
             $params = [(int) ($tagRow->id ?? 0)];
 
             if ($query !== '') {
-                $where[] = '(p.title LIKE ? OR p.excerpt LIKE ? OR p.content LIKE ?)';
+                $where[] = $this->buildLocalizedPostSearchClause('p', $locale);
                 $like = '%' . $query . '%';
                 array_push($params, $like, $like, $like);
             }
@@ -679,7 +680,7 @@ final class ThemeRouter
 
                 $allMatchingPosts[] = (object) $post;
 
-                if ($this->matchesArchiveSearch($post, $query)) {
+                if ($this->matchesArchiveSearch($post, $query, $locale)) {
                     $matchingPosts[] = (object) $post;
                 }
 
@@ -1213,16 +1214,54 @@ final class ThemeRouter
     }
 
 
-    private function matchesArchiveSearch(array $post, string $query): bool
+    private function buildLocalizedPostSearchClause(string $alias, string $locale): string
+    {
+        $locale = Services\ContentLocalizationService::getInstance()->normalizeLocale($locale);
+
+        if ($locale === 'en') {
+            return '('
+                . "COALESCE(NULLIF({$alias}.title_en, ''), {$alias}.title) LIKE ?"
+                . " OR COALESCE(NULLIF({$alias}.excerpt_en, ''), {$alias}.excerpt) LIKE ?"
+                . " OR COALESCE(NULLIF({$alias}.content_en, ''), {$alias}.content) LIKE ?"
+                . ')';
+        }
+
+        return "({$alias}.title LIKE ? OR {$alias}.excerpt LIKE ? OR {$alias}.content LIKE ?)";
+    }
+
+    private function buildLocalizedPostSearchHaystack(array $post, string $locale): string
+    {
+        $locale = Services\ContentLocalizationService::getInstance()->normalizeLocale($locale);
+
+        if ($locale === 'en') {
+            $title = trim((string) ($post['title_en'] ?? '')) !== ''
+                ? (string) ($post['title_en'] ?? '')
+                : (string) ($post['title'] ?? '');
+            $excerpt = trim((string) ($post['excerpt_en'] ?? '')) !== ''
+                ? (string) ($post['excerpt_en'] ?? '')
+                : (string) ($post['excerpt'] ?? '');
+            $content = trim((string) ($post['content_en'] ?? '')) !== ''
+                ? (string) ($post['content_en'] ?? '')
+                : (string) ($post['content'] ?? '');
+
+            return trim($title . ' ' . $excerpt . ' ' . $content);
+        }
+
+        return trim(
+            trim((string) ($post['title'] ?? '')) . ' '
+            . trim((string) ($post['excerpt'] ?? '')) . ' '
+            . trim((string) ($post['content'] ?? ''))
+        );
+    }
+
+
+    private function matchesArchiveSearch(array $post, string $query, string $locale): bool
     {
         if ($query === '') {
             return true;
         }
 
-        $haystack = mb_strtolower(
-            trim((string) ($post['title'] ?? '')) . ' ' . trim((string) ($post['excerpt'] ?? '')) . ' ' . trim((string) ($post['content'] ?? '')),
-            'UTF-8'
-        );
+        $haystack = mb_strtolower($this->buildLocalizedPostSearchHaystack($post, $locale), 'UTF-8');
 
         return str_contains($haystack, mb_strtolower($query, 'UTF-8'));
     }

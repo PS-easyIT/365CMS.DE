@@ -1,4 +1,4 @@
-﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.246-blue.svg)](https://shields.io/)
+﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.247-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -19,6 +19,13 @@
 ## 📜 Vollständige Versionshistorie
 
 ---
+
+### v2.9.247 — 24. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.247** | 🔴 fix | Core/Public Routing & Archive Search | **`CMS/core/Routing/ThemeRouter.php` initialisiert in `renderContact()` die aufgelöste Request-Locale jetzt vor dem Seiten-Lookup und zieht Category-/Tag-Archive bei der Query-Suche auf denselben locale-aware Suchvertrag wie `/search`**: `/contact` bzw. `/kontakt` laufen damit nicht mehr in einen `$locale`-Warning samt falschem Seiten-Lookup, und EN-Archive filtern Titel, Auszug und Inhalt jetzt konsistent über `*_en` mit sauberem Fallback auf die Basissprache. |
+| **2.9.247** | 🔴 fix | Admin/Beiträge Listenvertrag | **`CMS/admin/modules/posts/PostsModule.php` spiegelt die Admin-Postsuche jetzt wieder an den JSON-Vertrag aus `CMS/core/Routing/ApiRouter.php` an**: Fallback-/Serverlisten durchsuchen englische Titel und Slugs damit genauso wie `/api/v1/admin/posts`, statt EN-Beiträge nur im API/Grid-Pfad sichtbar zu machen. |
 
 ### v2.9.246 — 24. April 2026
 
