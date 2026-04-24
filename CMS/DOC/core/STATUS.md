@@ -1,12 +1,12 @@
 # 365CMS – Systemstatus
-> **Stand:** 2026-04-24 | **Version:** 2.9.244 | **Status:** Aktuell
+> **Stand:** 2026-04-24 | **Version:** 2.9.245 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Versionsstand](#versionsstand)
 - [Core- und Plattformstatus](#core--und-plattformstatus)
 - [Datenbankschema](#datenbankschema)
 - [Aktuelle Admin-Architektur](#aktuelle-admin-architektur)
-- [Wichtige Feature-Stände](#wichtige-feature-stände-im-aktuellen-stand-29244)
+- [Wichtige Feature-Stände](#wichtige-feature-stände-im-aktuellen-stand-29245)
 - [Bekannte Grenzen](#bekannte-grenzen)
 - [Nächste geplante Features](#nächste-geplante-features)
 - [Deprecations](#deprecations)
@@ -18,7 +18,7 @@
 
 | Eigenschaft | Wert |
 |---|---|
-| CMS-Version | `2.9.244` |
+| CMS-Version | `2.9.245` |
 | Code-Referenz | `CMS/core/Version.php` |
 | Update-Metadaten | `CMS/update.json` |
 | Release-Datum | `2026-04-24` |
@@ -82,7 +82,7 @@ Maßgebliche Referenz: `CMS/admin/partials/sidebar.php`
 
 ---
 
-## Wichtige Feature-Stände im aktuellen Stand 2.9.244 <!-- UPDATED: 2026-04-24 -->
+## Wichtige Feature-Stände im aktuellen Stand 2.9.245 <!-- UPDATED: 2026-04-24 -->
 
 | Bereich | Stand |
 |---|---|
@@ -121,13 +121,11 @@ Maßgebliche Referenz: `CMS/admin/partials/sidebar.php`
 - Hintergrund sind die produktiv gebündelten Symfony-Komponenten in `CMS/assets/mailer`, `CMS/assets/mime` und `CMS/assets/translation`, deren Composer-Metadaten PHP 8.4 voraussetzen.
 - Diese Vorgabe wird nicht nur dokumentiert, sondern zur Laufzeit auch über `CMS/config.php`, `CMS/core/Bootstrap.php`, `CMS/core/Services/StatusService.php`, `CMS/core/Services/UpdateService.php` und `CMS/install.php` aktiv geprüft bzw. signalisiert.
 
-## Release-Notiz 2.9.244 <!-- ADDED: 2026-04-24 -->
+## Release-Notiz 2.9.245 <!-- ADDED: 2026-04-24 -->
 
-- Öffentliche Bot-/Scanner-POSTs ohne sinnvollen CSRF-Kontext landen im Routing jetzt leiser im regulären 404-Pfad statt als unnötige Warnflut im Log.
-- Theme-Renderpfade laden Hilfsfunktionen vor Header-/Footer-/Template-Ausgabe wieder garantiert aus dem aktiven Theme, wodurch 404-/Error-Szenarien stabiler laufen.
-- Analytics- und Dashboard-KPIs respektieren Altinstallationen ohne `sessions.created_at` jetzt kontrolliert, statt mit SQL-Fehlern auf älteren Datenbanken auszusteigen.
-- Mail-Fallbacks bleiben auch ohne verfügbare Symfony-Mime-/Egulias-Abhängigkeiten lauffähig, solange SMTP nicht aktiv konfiguriert ist.
-- Der Doku- und Release-Vertrag wurde nachgezogen: zentrale CMS-Dokumente, Root-README, Core-Version und Update-Metadaten zeigen wieder denselben Stand `2.9.244`.
+- Login-Redirects aus Public-, Member- und Theme-Routing nutzen jetzt wieder denselben locale-aware Auth-Vertrag statt hart das unlokalisierte `/cms-login` anzuspringen.
+- Legacy-Aliasse wie `/login`/`/register`/`/forgot-password` respektieren beim Redirect wieder Sprachpräfix und aktuellen Auth-Slug-Modus.
+- Private Seiten/Beiträge, MFA-Fallbacks und Member-/Plugin-Zugriffe verlieren damit ihren EN-Kontext nicht mehr im Sprung zur Login-Seite.
 
 ---
 

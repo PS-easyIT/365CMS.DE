@@ -213,7 +213,7 @@ final class PublicRouter
     public function renderMfaChallenge(): void
     {
         if (empty($_SESSION['mfa_pending_user_id'])) {
-            $this->router->redirect($this->getCmsAuthPath('login'));
+            $this->router->redirect($this->getPublicAuthPath('login'));
             return;
         }
 
@@ -265,7 +265,7 @@ final class PublicRouter
 
         $pendingUserId = (int)($_SESSION['mfa_pending_user_id'] ?? 0);
         if ($pendingUserId === 0) {
-            $this->router->redirect($this->getCmsAuthPath('login'));
+            $this->router->redirect($this->getPublicAuthPath('login'));
             return;
         }
 
@@ -295,7 +295,7 @@ final class PublicRouter
     public function renderMfaSetup(): void
     {
         if (!Auth::instance()->isLoggedIn()) {
-            $this->router->redirect($this->getCmsAuthPath('login'));
+            $this->router->redirect($this->getPublicAuthPath('login'));
             return;
         }
 
@@ -359,7 +359,7 @@ final class PublicRouter
     public function handleMfaSetup(): void
     {
         if (!Auth::instance()->isLoggedIn()) {
-            $this->router->redirect($this->getCmsAuthPath('login'));
+            $this->router->redirect($this->getPublicAuthPath('login'));
             return;
         }
 
@@ -386,7 +386,7 @@ final class PublicRouter
     public function handleMfaDisable(): void
     {
         if (!Auth::instance()->isLoggedIn()) {
-            $this->router->redirect($this->getCmsAuthPath('login'));
+            $this->router->redirect($this->getPublicAuthPath('login'));
             return;
         }
 
@@ -668,11 +668,6 @@ final class PublicRouter
         return (string)(base64_decode($value, true) ?: '');
     }
 
-    private function getCmsAuthPath(string $page): string
-    {
-        return Services\CmsAuthPageService::getInstance()->getPath($page);
-    }
-
     private function getLocalizedPublicPath(string $path): string
     {
         return Services\ContentLocalizationService::getInstance()->buildLocalizedPath(
@@ -712,7 +707,7 @@ final class PublicRouter
 
     private function redirectLegacyAuthPath(string $page): void
     {
-        $target = $this->getCmsAuthPath($page);
+        $target = $this->getPublicAuthPath($page);
         $queryString = (string)(parse_url((string)($_SERVER['REQUEST_URI'] ?? ''), PHP_URL_QUERY) ?? '');
         if ($queryString !== '') {
             parse_str($queryString, $queryParams);

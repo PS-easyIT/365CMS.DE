@@ -160,7 +160,8 @@ final class MemberRouter
     private function redirectToLogin(): void
     {
         $requestUri = (string) ($_SERVER['REQUEST_URI'] ?? '/member');
-        $path = CmsAuthPageService::getInstance()->getPath('login') . '?redirect=' . urlencode($requestUri);
+        $path = CmsAuthPageService::getInstance()->getPublicPath('login', $this->router->getRequestLocale())
+            . '?redirect=' . urlencode($requestUri);
         $this->router->redirect($path);
     }
 }

@@ -1,9 +1,9 @@
 # 365CMS – Projektdokumentation
-> **Stand:** 2026-04-24 | **Version:** 2.9.244 | **Status:** Aktuell
+> **Stand:** 2026-04-24 | **Version:** 2.9.245 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Womit ihr anfangen solltet](#womit-ihr-anfangen-solltet)
-- [Release-Fokus 2.9.244](#release-fokus-29244)
+- [Release-Fokus 2.9.245](#release-fokus-29245)
 - [Dokumentationsbereiche](#dokumentationsbereiche)
 - [Wichtige Hinweise](#wichtige-hinweise)
 - [Verwandte Einstiege](#verwandte-einstiege)
@@ -33,14 +33,14 @@
 
 ---
 
-## Release-Fokus 2.9.244
+## Release-Fokus 2.9.245
 
-Die zentralen Einstiegsdokumente sind jetzt auf den aktuellen Release-Stand `2.9.244` nachgezogen. Der Schwerpunkt liegt diesmal nicht auf neuen Kapiteln, sondern auf einem wieder konsistenten, betriebssicheren Dokumentationsvertrag zwischen Runtime, Update-Metadaten und API-Referenz:
+Der aktuelle Release-Fokus `2.9.245` zieht die öffentliche Auth-Strecke wieder auf einen konsistenten Mehrsprachenvertrag zwischen Routing, Member-Zugriffen und der CMS-Loginpage:
 
-- `DOC/INDEX.md` und `DOC/README.md` zeigen wieder denselben aktuellen Release-Stand wie `README.md`, `Changelog.md`, `CMS/core/Version.php` und `CMS/update.json`
-- `DOC/core/STATUS.md` referenziert den laufenden Core jetzt wieder mit `2.9.244` und dem tatsächlichen Release-Datum `2026-04-24` statt einem uralten `2.9.0`-Snapshot
-- `DOC/core/API-REFERENCE.md` dokumentiert den öffentlichen Status-Endpunkt `/api/v1/status` jetzt passend zur echten Runtime in `CMS/core/Routing/ApiRouter.php`
-- der Status-Endpunkt wird dabei explizit als **flat JSON ohne `data`-Wrapper** beschrieben, während controllerbasierte API-Antworten weiter über `CMS\Api::sendResponse()` im klassischen `{"data": ...}`-Format laufen
+- `PublicRouter::redirectLegacyAuthPath()` leitet `/login`, `/register` und `/forgot-password` jetzt wieder locale-aware auf die öffentliche CMS-Auth-Strecke um, statt EN-Anfragen still auf das nackte `/cms-*` ohne Sprachpräfix zurückzuwerfen
+- `MemberRouter`, `ThemeRouter` und `PluginDashboardRegistry` verwenden für Login-Redirects nun denselben `CmsAuthPageService::getPublicPath()`-Vertrag wie die eigentlichen Auth-Templates
+- private Seiten/Beiträge, MFA-Fallbacks und Member-/Plugin-Zugriffe verlieren dadurch ihren aktuellen Sprachkontext nicht mehr mitten im Redirect-Flow
+- `README.md`, `Changelog.md`, `CMS/core/Version.php`, `CMS/update.json` und die zentralen CMS-Dokumente bleiben dabei auf demselben Release-Stand `2.9.245`
 
 ---
 

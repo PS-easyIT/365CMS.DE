@@ -1,4 +1,4 @@
-﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.244-blue.svg)](https://shields.io/)
+﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.245-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -19,6 +19,12 @@
 ## 📜 Vollständige Versionshistorie
 
 ---
+
+### v2.9.245 — 24. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.245** | 🔴 fix | Core/Routing, Member & Public Auth | **`CMS/core/Routing/PublicRouter.php`, `CMS/core/Routing/MemberRouter.php`, `CMS/core/Routing/ThemeRouter.php` und `CMS/core/Member/PluginDashboardRegistry.php` verwenden für anonyme Redirects jetzt wieder konsequent die lokalisierte öffentliche Login-Strecke über `CmsAuthPageService::getPublicPath()`**: Legacy-Aliasse wie `/login`, private Seiten/Beiträge, MFA-Fallbacks sowie Member-/Plugin-Zugriffe verlieren damit nicht länger ihre EN-/Slug-Kontextinformation und landen nicht mehr hart auf dem unlokalisierten `/cms-login`. |
 
 ### v2.9.244 — 24. April 2026
 
