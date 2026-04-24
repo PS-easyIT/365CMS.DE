@@ -1,4 +1,4 @@
-﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.243-blue.svg)](https://shields.io/)
+﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.244-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -19,6 +19,16 @@
 ## 📜 Vollständige Versionshistorie
 
 ---
+
+### v2.9.244 — 24. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.244** | 🔴 fix | Core/Routing & Theme Runtime | **`CMS/core/Router.php` und `CMS/core/ThemeManager.php` härten öffentliche Fehler- und Renderpfade jetzt weiter für produktive Bot- und 404-Szenarien**: Öffentliche POST-Scanner ohne CSRF-Token laufen damit nicht mehr in laute CSRF-Warnungen, sondern fail-soft in den normalen 404-Pfad, und Theme-Renderings laden Header, Footer und Templates wieder garantiert über das aktive Theme, bevor Hilfsfunktionen wie `phinit_t()` benötigt werden. |
+| **2.9.244** | 🔴 fix | Core/Analytics & Dashboard | **`CMS/core/Services/AnalyticsService.php` und `CMS/core/Services/DashboardService.php` behandeln Session-KPIs jetzt schema-aware gegen Altinstallationen ohne `sessions.created_at`**: Besucher-, Dashboard- und Sessionstatistiken brechen damit nicht mehr mit SQL-Fehlern auf langlebigen Bestandsdatenbanken ab, sondern fallen bei fehlender Spalte kontrolliert auf kompatible Kennzahlen zurück. |
+| **2.9.244** | 🔴 fix | Core/Mail, Dokumentation & Media | **`CMS/core/Services/MailService.php`, `CMS/admin/modules/system/DocumentationSyncDownloader.php` und `CMS/core/Services/MediaDeliveryService.php` räumen drei produktive Fehlerpfade im Betriebsalltag auf einmal auf**: Der PHP-`mail()`-Fallback hängt nicht mehr implizit an fehlenden Symfony-Mime-/Egulias-Abhängigkeiten, der GitHub-Doku-Download akzeptiert jetzt denselben 50-MB-Rahmen wie der nachgelagerte ZIP-Sync, und leere `/media-file`-Probe-Requests enden als stille 404 statt als unnötiger Warning-Logspam. |
+| **2.9.244** | 🔵 docs | Repository/README | **`README.md` zeigt die zentralen Dokumentationslinks im Root-Repository jetzt auf den tatsächlich vorhandenen Pfad `CMS/DOC/...` statt auf einen nicht existenten Top-Level-Ordner `DOC/...`**: GitHub-README-Einstiege für Installation, Index, Themes und Plugins laufen damit nicht mehr in kaputte Repository-Links oder 404-Leerpfade. |
+| **2.9.244** | 🔵 docs | Release | **`README.md`, `Changelog.md`, `CMS/core/Version.php`, `CMS/update.json` und `CMS/marketplace/core/365cms/update.json` wurden auf den Release-Stand `2.9.244` synchronisiert**: sichtbare Versionsnummer, Update-Metadaten und Marketplace-Core-Manifest zeigen damit wieder denselben aktuellen Fehlerfix-Stand für Runtime, Mail, Doku-Sync und Repository-Dokumentation. |
 
 ### v2.9.243 — 15. April 2026
 

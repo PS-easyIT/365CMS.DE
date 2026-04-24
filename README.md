@@ -1,4 +1,4 @@
-# 365CMS.DE  [![Version](https://img.shields.io/badge/Version-2.9.242-blue.svg)](Changelog.md) ![Status](https://img.shields.io/badge/Status-Stable-16a34a) ![PHP](https://img.shields.io/badge/PHP-8.4%2B-777BB4?logo=php&logoColor=white) ![MySQL](https://img.shields.io/badge/MySQL-5.7%2B-4479A1?logo=mysql&logoColor=white) ![MariaDB](https://img.shields.io/badge/MariaDB-10.3%2B-003545?logo=mariadb&logoColor=white)
+# 365CMS.DE  [![Version](https://img.shields.io/badge/Version-2.9.244-blue.svg)](Changelog.md) ![Status](https://img.shields.io/badge/Status-Stable-16a34a) ![PHP](https://img.shields.io/badge/PHP-8.4%2B-777BB4?logo=php&logoColor=white) ![MySQL](https://img.shields.io/badge/MySQL-5.7%2B-4479A1?logo=mysql&logoColor=white) ![MariaDB](https://img.shields.io/badge/MariaDB-10.3%2B-003545?logo=mariadb&logoColor=white)
 
 <div align="center">
 
@@ -8,7 +8,7 @@
 
 #### 365CMS brings publishing, member features, design, compliance and operational control into one clear system | for teams that want to grow without getting buried under plugins, workarounds and tool chains.
 
-#### Release `2.9.242` hält EN-Custom-Slugs im PhinIT-/Default-Theme jetzt auch im Frontend auf dem richtigen Theme- und Routing-Vertrag: lokalisierte Slugs werden kanonisch aufgelöst, Landing-Aliasse können wieder das Home-/Landing-Template rendern und locale-aware Theme-Checks verwerfen `/en/...`-Seiten nicht länger als ungültig.
+#### Release `2.9.244` beruhigt produktive Fehlerpfade im Core deutlich: Mail-Fallbacks bleiben ohne Egulias-/Symfony-Mime-Hard-Fail lauffähig, Session-KPIs respektieren Altinstallationen ohne `created_at`, Doku-Syncs akzeptieren wieder große GitHub-Archive konsistent, Bot-POSTs landen leiser im 404-Pfad und die Root-Dokumentation zeigt endlich auf den echten `CMS/DOC/`-Baum.
 
 ---
 
