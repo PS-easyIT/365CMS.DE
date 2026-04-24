@@ -153,6 +153,10 @@ final class MediaDeliveryService
         $disposition = strtolower(trim((string) ($_GET['disposition'] ?? 'attachment')));
         $requestedInline = $disposition === 'inline';
 
+        if (trim($path) === '') {
+            $this->deny(404, 'Die angeforderte Datei wurde nicht gefunden.', false);
+        }
+
         $relativePath = $this->normalizeRelativePath($path);
         if ($relativePath === '' || str_contains($relativePath, '..')) {
             $this->deny(400, 'Ungültiger Medienpfad.');
@@ -614,13 +618,15 @@ final class MediaDeliveryService
         return $safe !== '' ? $safe : 'download';
     }
 
-    private function deny(int $status, string $message): void
+    private function deny(int $status, string $message, bool $logRequest = true): void
     {
-        Logger::instance()->withChannel('media.delivery')->warning('Medienauslieferung abgelehnt.', [
-            'status' => $status,
-            'message' => $message,
-            'path' => (string) ($_GET['path'] ?? ''),
-        ]);
+        if ($logRequest) {
+            Logger::instance()->withChannel('media.delivery')->warning('Medienauslieferung abgelehnt.', [
+                'status' => $status,
+                'message' => $message,
+                'path' => (string) ($_GET['path'] ?? ''),
+            ]);
+        }
 
         http_response_code($status);
         header('Content-Type: text/plain; charset=utf-8');

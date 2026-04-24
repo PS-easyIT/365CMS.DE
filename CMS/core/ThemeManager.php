@@ -394,6 +394,7 @@ class ThemeManager
     {
         // Allow plugins to modify template
         $template = Hooks::applyFilters('template_name', $template);
+        $this->loadTheme();
         
         // Template hierarchy
         $templates = [
@@ -476,6 +477,7 @@ class ThemeManager
      */
     public function getHeader(array $data = []): void
     {
+        $this->loadTheme();
         $headerFile = $this->themePath . 'header.php';
         if (file_exists($headerFile)) {
             Hooks::doAction('before_header');
@@ -489,6 +491,7 @@ class ThemeManager
      */
     public function getFooter(array $data = []): void
     {
+        $this->loadTheme();
         $footerFile = $this->themePath . 'footer.php';
         if (file_exists($footerFile)) {
             Hooks::doAction('before_footer');

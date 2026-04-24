@@ -186,7 +186,7 @@ class Router
             && !in_array($routingUri, $csrfBypassExact, true)
             && !array_reduce($csrfBypassPrefixes, fn(bool $carry, string $prefix): bool => $carry || str_starts_with($routingUri, $prefix), false)
         ) {
-            $csrfToken = $_POST['csrf_token'] ?? '';
+            $csrfToken = trim((string) ($_POST['csrf_token'] ?? ''));
             $hasValidThemeFavoriteToken = false;
 
             if ($isThemeFavoriteToggle) {
@@ -197,6 +197,10 @@ class Router
                     (string) ($_POST['favorite_csrf_token'] ?? ''),
                     $favoriteAction
                 );
+            }
+
+            if (!$hasValidThemeFavoriteToken && $csrfToken === '') {
+                $this->respondWithPublicPostNotFound($routingUri);
             }
 
             if (!$hasValidThemeFavoriteToken && !Security::instance()->verifyToken($csrfToken, 'form_guard')) {
@@ -486,6 +490,18 @@ class Router
         }
 
         return $routeSlug;
+    }
+
+    private function respondWithPublicPostNotFound(string $routingUri): never
+    {
+        http_response_code(404);
+        echo $this->buildFallbackErrorPage(
+            404,
+            'Seite nicht gefunden',
+            'Die angeforderte Seite konnte nicht gefunden werden.',
+            $routingUri
+        );
+        exit;
     }
 
     private function applyRequestCacheHeaders(string $routingUri, string $method): void

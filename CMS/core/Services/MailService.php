@@ -158,6 +158,13 @@ class MailService
     public function sendDetailed(string $to, string $subject, string $htmlBody, array $headers = []): array
     {
         try {
+            $config = $this->getEffectiveConfig();
+            if (!$config['use_smtp'] && !$this->isSymfonyMimeAvailable()) {
+                return $this->dispatchMailFallbackDetailed($to, $subject, $htmlBody, $headers, true);
+            }
+
+            $this->assertSymfonyMimeAvailableForConfig($config);
+
             $htmlBody = $this->normalizeBody($htmlBody);
             $plainBody = $this->createPlainTextBody($htmlBody);
             $email = $this->createBaseEmail($to, $subject, $headers)
@@ -194,6 +201,13 @@ class MailService
     public function sendPlainDetailed(string $to, string $subject, string $plainBody, array $headers = []): array
     {
         try {
+            $config = $this->getEffectiveConfig();
+            if (!$config['use_smtp'] && !$this->isSymfonyMimeAvailable()) {
+                return $this->dispatchMailFallbackDetailed($to, $subject, $plainBody, $headers, false);
+            }
+
+            $this->assertSymfonyMimeAvailableForConfig($config);
+
             $plainBody = $this->normalizeBody($plainBody);
             $email = $this->createBaseEmail($to, $subject, $headers)
                 ->text($plainBody);
@@ -246,6 +260,13 @@ class MailService
         }
 
         try {
+            $config = $this->getEffectiveConfig();
+            if (!$config['use_smtp'] && !$this->isSymfonyMimeAvailable()) {
+                return $this->dispatchMailAttachmentFallbackDetailed($to, $subject, $body, $attachmentPath, $attachmentName, $isHtml, $headers);
+            }
+
+            $this->assertSymfonyMimeAvailableForConfig($config);
+
             $body = $this->normalizeBody($body);
             $attachmentName = $attachmentName !== '' ? $attachmentName : basename($attachmentPath);
             $mimeType = $attachmentMimeType !== '' ? $attachmentMimeType : (mime_content_type($attachmentPath) ?: 'application/octet-stream');
@@ -894,7 +915,8 @@ class MailService
         } elseif ($containsAny($message, [
             'invalid client', 'aadsts7000215', 'aadsts700016', 'unauthorized_client', 'invalid_scope', 'consent',
             'service principal', 'authentication unsuccessful', 'username and password not accepted', '535 5.7',
-            'client secret', 'application was not found', 'tenant',
+            'client secret', 'application was not found', 'tenant', 'egulias\\emailvalidator\\emailvalidator',
+            'email-validator', 'symfony\\component\\mime\\address',
         ])) {
             $category = 'configuration';
             $retryable = false;
@@ -936,6 +958,123 @@ class MailService
             'oauth', 'network', 'temporary' => max(60, $this->settings->getInt('mail', 'queue_retry_delay_seconds', 300)),
             default => 0,
         };
+    }
+
+    private function isSymfonyMimeAvailable(): bool
+    {
+        return class_exists(Email::class)
+            && class_exists(Address::class)
+            && class_exists('Egulias\\EmailValidator\\EmailValidator');
+    }
+
+    private function assertSymfonyMimeAvailableForConfig(array $config): void
+    {
+        if ($this->isSymfonyMimeAvailable()) {
+            return;
+        }
+
+        throw new \RuntimeException(
+            !empty($config['use_smtp'])
+                ? 'Der konfigurierte Mail-Transport benötigt die Abhängigkeit egulias/email-validator.'
+                : 'Der Symfony-Mime-Stack ist nicht vollständig verfügbar.'
+        );
+    }
+
+    /**
+     * @return array{success:bool,error?:string,transport?:string,provider?:string,source?:string,retryable?:bool,error_category?:string,recommended_delay?:int,message_id?:string}
+     */
+    private function dispatchMailFallbackDetailed(string $to, string $subject, string $body, array $headers, bool $isHtml): array
+    {
+        $config = $this->getEffectiveConfig();
+        $source = $this->resolveSource($headers);
+
+        $recipient = $this->sanitizeRequiredEmail($to, 'Empfänger-Adresse ist ungültig.');
+        $normalizedSubject = $this->sanitizeSubject($subject);
+        $normalizedBody = $this->normalizeBody($body);
+
+        $success = $this->sendMessageFallback($recipient, $normalizedSubject, $normalizedBody, $headers, $isHtml);
+        if ($success) {
+            $this->logSuccess($recipient, $normalizedSubject, $config, null, $headers, $source);
+
+            return [
+                'success' => true,
+                'transport' => (string) ($config['transport_label'] ?? 'PHP mail() Fallback'),
+                'provider' => (string) ($config['provider'] ?? 'mail'),
+                'source' => $source,
+            ];
+        }
+
+        $error = 'PHP mail() konnte die Nachricht nicht versenden.';
+        $classification = $this->classifyDeliveryFailure($error, $config);
+        $this->logFailure($recipient, $normalizedSubject, 'mail', $error, $headers, $source, $config);
+
+        return [
+            'success' => false,
+            'error' => $error,
+            'transport' => (string) ($config['transport_label'] ?? 'PHP mail() Fallback'),
+            'provider' => (string) ($config['provider'] ?? 'mail'),
+            'source' => $source,
+            'retryable' => (bool) ($classification['retryable'] ?? false),
+            'error_category' => (string) ($classification['category'] ?? 'temporary'),
+            'recommended_delay' => (int) ($classification['recommended_delay'] ?? 300),
+        ];
+    }
+
+    /**
+     * @return array{success:bool,error?:string,transport?:string,provider?:string,source?:string,retryable?:bool,error_category?:string,recommended_delay?:int,message_id?:string}
+     */
+    private function dispatchMailAttachmentFallbackDetailed(
+        string $to,
+        string $subject,
+        string $body,
+        string $attachmentPath,
+        string $attachmentName,
+        bool $isHtml,
+        array $headers
+    ): array {
+        $config = $this->getEffectiveConfig();
+        $source = $this->resolveSource($headers);
+
+        $recipient = $this->sanitizeRequiredEmail($to, 'Empfänger-Adresse ist ungültig.');
+        $normalizedSubject = $this->sanitizeSubject($subject);
+        $normalizedBody = $this->normalizeBody($body);
+        $resolvedAttachmentName = $attachmentName !== '' ? $attachmentName : basename($attachmentPath);
+
+        $success = $this->sendWithAttachmentFallback(
+            $recipient,
+            $normalizedSubject,
+            $normalizedBody,
+            $attachmentPath,
+            $resolvedAttachmentName,
+            $isHtml,
+            $headers
+        );
+
+        if ($success) {
+            $this->logSuccess($recipient, $normalizedSubject, $config, null, $headers, $source);
+
+            return [
+                'success' => true,
+                'transport' => (string) ($config['transport_label'] ?? 'PHP mail() Fallback'),
+                'provider' => (string) ($config['provider'] ?? 'mail'),
+                'source' => $source,
+            ];
+        }
+
+        $error = 'PHP mail() konnte die Nachricht nicht versenden.';
+        $classification = $this->classifyDeliveryFailure($error, $config);
+        $this->logFailure($recipient, $normalizedSubject, 'mail', $error, $headers, $source, $config);
+
+        return [
+            'success' => false,
+            'error' => $error,
+            'transport' => (string) ($config['transport_label'] ?? 'PHP mail() Fallback'),
+            'provider' => (string) ($config['provider'] ?? 'mail'),
+            'source' => $source,
+            'retryable' => (bool) ($classification['retryable'] ?? false),
+            'error_category' => (string) ($classification['category'] ?? 'temporary'),
+            'recommended_delay' => (int) ($classification['recommended_delay'] ?? 300),
+        ];
     }
 
     /**

@@ -92,7 +92,7 @@ final class DocumentationDownloadPayload
 
 final class DocumentationSyncDownloader
 {
-    private const MAX_DOWNLOAD_BYTES = 25 * 1024 * 1024;
+    private const MAX_DOWNLOAD_BYTES = 50 * 1024 * 1024;
     private const MIN_DOWNLOAD_BYTES = 128;
     private const MAX_LOG_VALUE_LENGTH = 220;
     private const ZIP_MAGIC_HEADERS = ["PK\x03\x04", "PK\x05\x06", "PK\x07\x08"];

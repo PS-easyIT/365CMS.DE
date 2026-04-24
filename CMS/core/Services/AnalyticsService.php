@@ -25,6 +25,7 @@ class AnalyticsService
     private TrackingService $tracking;
     private FeatureUsageService $featureUsage;
     private CoreWebVitalsService $coreWebVitals;
+    private ?bool $sessionsTableHasCreatedAt = null;
     
     /**
      * Singleton instance
@@ -110,15 +111,7 @@ class AnalyticsService
             }
             
             // Average session duration (from sessions table)
-            $stmt = $this->db->prepare("
-                SELECT AVG(TIMESTAMPDIFF(SECOND, created_at, last_activity)) as avg_duration
-                FROM {$this->db->getPrefix()}sessions
-                WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
-                AND last_activity > created_at
-            ");
-            
-            $stmt->execute([$days]);
-            $avgDuration = (int)$stmt->fetch(\PDO::FETCH_OBJ)->avg_duration;
+            $avgDuration = $this->getAverageSessionDurationSeconds($days);
             
             $minutes = floor($avgDuration / 60);
             $seconds = $avgDuration % 60;
@@ -151,6 +144,40 @@ class AnalyticsService
             'bounce_rate' => '0%',
             'avg_session_duration' => '0s',
         ];
+    }
+
+    private function sessionsTableHasCreatedAt(): bool
+    {
+        if ($this->sessionsTableHasCreatedAt !== null) {
+            return $this->sessionsTableHasCreatedAt;
+        }
+
+        try {
+            $table = $this->db->getPrefix() . 'sessions';
+            $this->sessionsTableHasCreatedAt = $this->db->get_var("SHOW COLUMNS FROM {$table} LIKE 'created_at'") !== null;
+        } catch (\Throwable) {
+            $this->sessionsTableHasCreatedAt = false;
+        }
+
+        return $this->sessionsTableHasCreatedAt;
+    }
+
+    private function getAverageSessionDurationSeconds(int $days): int
+    {
+        if (!$this->sessionsTableHasCreatedAt()) {
+            return 0;
+        }
+
+        $stmt = $this->db->prepare("\n            SELECT AVG(TIMESTAMPDIFF(SECOND, created_at, last_activity)) as avg_duration\n            FROM {$this->db->getPrefix()}sessions\n            WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)\n            AND last_activity > created_at\n        ");
+
+        if (!$stmt) {
+            return 0;
+        }
+
+        $stmt->execute([$days]);
+        $row = $stmt->fetch(\PDO::FETCH_OBJ);
+
+        return (int) round((float) ($row->avg_duration ?? 0));
     }
     
     /**

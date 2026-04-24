@@ -265,19 +265,24 @@ class DashboardService {
      */
     public function getSessionStats(): array {
         try {
+            $sessionsTable = $this->prefix . 'sessions';
             $active_sessions = (int)$this->db->get_var(
-                "SELECT COUNT(*) FROM {$this->prefix}sessions WHERE last_activity >= DATE_SUB(NOW(), INTERVAL 30 MINUTE)"
+                "SELECT COUNT(*) FROM {$sessionsTable} WHERE last_activity >= DATE_SUB(NOW(), INTERVAL 30 MINUTE)"
             ) ?: 0;
             
             $total_sessions_today = (int)$this->db->get_var(
-                "SELECT COUNT(*) FROM {$this->prefix}sessions WHERE DATE(last_activity) = CURDATE()"
+                "SELECT COUNT(*) FROM {$sessionsTable} WHERE DATE(last_activity) = CURDATE()"
             ) ?: 0;
-            
-            $avg_session_duration = $this->db->get_var(
-                "SELECT AVG(TIMESTAMPDIFF(SECOND, created_at, last_activity)) 
-                 FROM {$this->prefix}sessions 
-                 WHERE DATE(created_at) = CURDATE()"
-            ) ?: 0;
+
+            $avg_session_duration = 0;
+            if ($this->hasColumn($sessionsTable, 'created_at')) {
+                $avg_session_duration = $this->db->get_var(
+                    "SELECT AVG(TIMESTAMPDIFF(SECOND, created_at, last_activity)) 
+                     FROM {$sessionsTable} 
+                     WHERE DATE(created_at) = CURDATE()
+                     AND last_activity > created_at"
+                ) ?: 0;
+            }
             
             // Browser-Statistik
             $browsers = $this->db->get_results(
@@ -290,7 +295,7 @@ class DashboardService {
                         ELSE 'Other'
                     END as browser,
                     COUNT(*) as count
-                 FROM {$this->prefix}sessions 
+                 FROM {$sessionsTable} 
                  WHERE DATE(last_activity) = CURDATE()
                  GROUP BY browser"
             ) ?: [];
@@ -300,7 +305,7 @@ class DashboardService {
                 $browser_stats[$browser->browser] = (int)$browser->count;
             }
             
-            $total_sessions = (int)$this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}sessions") ?: 0;
+            $total_sessions = (int)$this->db->get_var("SELECT COUNT(*) FROM {$sessionsTable}") ?: 0;
             
             return [
                 'active' => $active_sessions,

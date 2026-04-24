@@ -19,7 +19,7 @@
 ![SEO](https://img.shields.io/badge/SEO-Integrated-f59e0b)
 ![GDPR](https://img.shields.io/badge/GDPR-Ready-334155)
 
-[🌐 Website](https://365cms.de) • [🚀 Installation](DOC/INSTALLATION.md) • [📚 Dokumentation](DOC/INDEX.md) • [🎨 Themes](DOC/theme/README.md) • [🔌 Plugins](DOC/plugins/GUIDE.md) 
+[🌐 Website](https://365cms.de) • [🚀 Installation](CMS/DOC/INSTALLATION.md) • [📚 Dokumentation](CMS/DOC/INDEX.md) • [🎨 Themes](CMS/DOC/theme/README.md) • [🔌 Plugins](CMS/DOC/plugins/GUIDE.md) 
 
 ---
 
@@ -244,18 +244,18 @@ Die README zeigt den Produktrahmen; die Fachdokumente vertiefen Installation, Be
 
 | Thema | Dokument |
 |---|---|
-| Gesamte Dokumentation | [`DOC/INDEX.md`](DOC/INDEX.md) |
-| Installation | [`DOC/INSTALLATION.md`](DOC/INSTALLATION.md) |
-| Admin-Überblick | [`DOC/admin/README.md`](DOC/admin/README.md) |
-| Member-Bereich | [`DOC/member/README.md`](DOC/member/README.md) |
-| Theme-System | [`DOC/theme/README.md`](DOC/theme/README.md) |
-| Plugin-Einstieg | [`DOC/plugins/GUIDE.md`](DOC/plugins/GUIDE.md) |
-| Core & Services | [`DOC/core/ARCHITECTURE.md`](DOC/core/ARCHITECTURE.md), [`DOC/core/SERVICES.md`](DOC/core/SERVICES.md) |
-| Medien-Workflow | [`DOC/workflow/MEDIA-UPLOAD-WORKFLOW.md`](DOC/workflow/MEDIA-UPLOAD-WORKFLOW.md) |
-| Update & Deployment | [`DOC/workflow/UPDATE-DEPLOYMENT-WORKFLOW.md`](DOC/workflow/UPDATE-DEPLOYMENT-WORKFLOW.md) |
-| API-Integration | [`DOC/workflow/API-INTEGRATION-WORKFLOW.md`](DOC/workflow/API-INTEGRATION-WORKFLOW.md) |
-| Theme-Entwicklung | [`DOC/theme/THEME-DEVELOPMENT.md`](DOC/theme/THEME-DEVELOPMENT.md) |
-| Plugin-Entwicklung | [`DOC/plugins/PLUGIN-DEVELOPMENT.md`](DOC/plugins/PLUGIN-DEVELOPMENT.md) |
+| Gesamte Dokumentation | [`CMS/DOC/INDEX.md`](CMS/DOC/INDEX.md) |
+| Installation | [`CMS/DOC/INSTALLATION.md`](CMS/DOC/INSTALLATION.md) |
+| Admin-Überblick | [`CMS/DOC/admin/README.md`](CMS/DOC/admin/README.md) |
+| Member-Bereich | [`CMS/DOC/member/README.md`](CMS/DOC/member/README.md) |
+| Theme-System | [`CMS/DOC/theme/README.md`](CMS/DOC/theme/README.md) |
+| Plugin-Einstieg | [`CMS/DOC/plugins/GUIDE.md`](CMS/DOC/plugins/GUIDE.md) |
+| Core & Services | [`CMS/DOC/core/ARCHITECTURE.md`](CMS/DOC/core/ARCHITECTURE.md), [`CMS/DOC/core/SERVICES.md`](CMS/DOC/core/SERVICES.md) |
+| Medien-Workflow | [`CMS/DOC/workflow/MEDIA-UPLOAD-WORKFLOW.md`](CMS/DOC/workflow/MEDIA-UPLOAD-WORKFLOW.md) |
+| Update & Deployment | [`CMS/DOC/workflow/UPDATE-DEPLOYMENT-WORKFLOW.md`](CMS/DOC/workflow/UPDATE-DEPLOYMENT-WORKFLOW.md) |
+| API-Integration | [`CMS/DOC/workflow/API-INTEGRATION-WORKFLOW.md`](CMS/DOC/workflow/API-INTEGRATION-WORKFLOW.md) |
+| Theme-Entwicklung | [`CMS/DOC/theme/THEME-DEVELOPMENT.md`](CMS/DOC/theme/THEME-DEVELOPMENT.md) |
+| Plugin-Entwicklung | [`CMS/DOC/plugins/PLUGIN-DEVELOPMENT.md`](CMS/DOC/plugins/PLUGIN-DEVELOPMENT.md) |
 
 ### 👨‍💻 Support & Lizenz
 
@@ -263,7 +263,7 @@ Die README zeigt den Produktrahmen; die Fachdokumente vertiefen Installation, Be
 
 - **Entwicklung:** Andreas Hepp
 - **Web:** [365CMS.DE](https://365cms.de) · [PhinIT.DE](https://phinit.de)
-- **Support:** GitHub Issues, Kontaktformular auf [365cms.de](https://365cms.de) und die lokale Projektdokumentation im `DOC/`-Baum
+- **Support:** GitHub Issues, Kontaktformular auf [365cms.de](https://365cms.de) und die lokale Projektdokumentation im `CMS/DOC/`-Baum
 - **Lizenz:** Freie Verwendung für private und geschäftliche Projekte
 
 Für Funktionsfragen, Fehlermeldungen, Projektkontext und Dokumentationspfade sind GitHub Issues und die vorhandene Projektdokumentation die sinnvollsten Einstiege. So bleiben Rückfragen nachvollziehbar statt in Mail-Postfächern zu verschwinden.
@@ -444,18 +444,18 @@ The README stays focused on product value; the specialized documents cover insta
 
 | Topic | Document |
 |---|---|
-| Full documentation index | [`DOC/INDEX.md`](DOC/INDEX.md) |
-| Installation | [`DOC/INSTALLATION.md`](DOC/INSTALLATION.md) |
-| Admin overview | [`DOC/admin/README.md`](DOC/admin/README.md) |
-| Member area | [`DOC/member/README.md`](DOC/member/README.md) |
-| Theme system | [`DOC/theme/README.md`](DOC/theme/README.md) |
-| Plugin quick start | [`DOC/plugins/GUIDE.md`](DOC/plugins/GUIDE.md) |
-| Core & services | [`DOC/core/ARCHITECTURE.md`](DOC/core/ARCHITECTURE.md), [`DOC/core/SERVICES.md`](DOC/core/SERVICES.md) |
-| Media workflow | [`DOC/workflow/MEDIA-UPLOAD-WORKFLOW.md`](DOC/workflow/MEDIA-UPLOAD-WORKFLOW.md) |
-| Update & deployment | [`DOC/workflow/UPDATE-DEPLOYMENT-WORKFLOW.md`](DOC/workflow/UPDATE-DEPLOYMENT-WORKFLOW.md) |
-| API integration | [`DOC/workflow/API-INTEGRATION-WORKFLOW.md`](DOC/workflow/API-INTEGRATION-WORKFLOW.md) |
-| Theme development | [`DOC/theme/THEME-DEVELOPMENT.md`](DOC/theme/THEME-DEVELOPMENT.md) |
-| Plugin development | [`DOC/plugins/PLUGIN-DEVELOPMENT.md`](DOC/plugins/PLUGIN-DEVELOPMENT.md) |
+| Full documentation index | [`CMS/DOC/INDEX.md`](CMS/DOC/INDEX.md) |
+| Installation | [`CMS/DOC/INSTALLATION.md`](CMS/DOC/INSTALLATION.md) |
+| Admin overview | [`CMS/DOC/admin/README.md`](CMS/DOC/admin/README.md) |
+| Member area | [`CMS/DOC/member/README.md`](CMS/DOC/member/README.md) |
+| Theme system | [`CMS/DOC/theme/README.md`](CMS/DOC/theme/README.md) |
+| Plugin quick start | [`CMS/DOC/plugins/GUIDE.md`](CMS/DOC/plugins/GUIDE.md) |
+| Core & services | [`CMS/DOC/core/ARCHITECTURE.md`](CMS/DOC/core/ARCHITECTURE.md), [`CMS/DOC/core/SERVICES.md`](CMS/DOC/core/SERVICES.md) |
+| Media workflow | [`CMS/DOC/workflow/MEDIA-UPLOAD-WORKFLOW.md`](CMS/DOC/workflow/MEDIA-UPLOAD-WORKFLOW.md) |
+| Update & deployment | [`CMS/DOC/workflow/UPDATE-DEPLOYMENT-WORKFLOW.md`](CMS/DOC/workflow/UPDATE-DEPLOYMENT-WORKFLOW.md) |
+| API integration | [`CMS/DOC/workflow/API-INTEGRATION-WORKFLOW.md`](CMS/DOC/workflow/API-INTEGRATION-WORKFLOW.md) |
+| Theme development | [`CMS/DOC/theme/THEME-DEVELOPMENT.md`](CMS/DOC/theme/THEME-DEVELOPMENT.md) |
+| Plugin development | [`CMS/DOC/plugins/PLUGIN-DEVELOPMENT.md`](CMS/DOC/plugins/PLUGIN-DEVELOPMENT.md) |
 
 ### 👨‍💻 Support & license
 
@@ -463,7 +463,7 @@ The README stays focused on product value; the specialized documents cover insta
 
 - **Development:** Andreas Hepp
 - **Web:** [365CMS.DE](https://365cms.de) · [PhinIT.DE](https://phinit.de)
-- **Support:** GitHub Issues, the contact form on [365cms.de](https://365cms.de) and the local project docs inside `DOC/`
+- **Support:** GitHub Issues, the contact form on [365cms.de](https://365cms.de) and the local project docs inside `CMS/DOC/`
 - **License:** Free to use for private and commercial projects
 
 For feature questions, bug reports, project context and documentation references, GitHub Issues and the existing docs are the most useful starting points. That keeps communication transparent and prevents important information from disappearing into email black holes.
@@ -478,6 +478,6 @@ For feature questions, bug reports, project context and documentation references
 
 **Start with 365CMS if you want one platform that brings together content, members, SEO, privacy, design and operations in one clear system.**
 
-[🚀 Installation starten](DOC/INSTALLATION.md) • [📚 Dokumentation öffnen](DOC/INDEX.md) • [🎨 Themes erkunden](DOC/theme/README.md) • [🔌 Plugins ansehen](DOC/plugins/GUIDE.md)
+[🚀 Installation starten](CMS/DOC/INSTALLATION.md) • [📚 Dokumentation öffnen](CMS/DOC/INDEX.md) • [🎨 Themes erkunden](CMS/DOC/theme/README.md) • [🔌 Plugins ansehen](CMS/DOC/plugins/GUIDE.md)
 
-[🚀 Start installation](DOC/INSTALLATION.md) • [📚 Open documentation](DOC/INDEX.md) • [🎨 Explore themes](DOC/theme/README.md) • [🔌 Browse plugins](DOC/plugins/GUIDE.md)
+[🚀 Start installation](CMS/DOC/INSTALLATION.md) • [📚 Open documentation](CMS/DOC/INDEX.md) • [🎨 Explore themes](CMS/DOC/theme/README.md) • [🔌 Browse plugins](CMS/DOC/plugins/GUIDE.md)
