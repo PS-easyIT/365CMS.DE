@@ -1,16 +1,16 @@
 # 365CMS – API-Referenz
-> **Stand:** 2026-04-07 | **Version:** 2.9.0 | **Status:** Aktuell
+> **Stand:** 2026-04-24 | **Version:** 2.9.244 | **Status:** Aktuell
 
 Dokumentation der REST-API (`/api/v1/`) mit Authentifizierung, Endpunkten, Fehlerbehandlung und Beispielen.
 
 ---
 
-<!-- UPDATED: 2026-04-07 -->
+<!-- UPDATED: 2026-04-24 -->
 ## 1 · Übersicht
 
 Die 365CMS REST-API folgt dem Muster `/api/v1/{endpoint}/{id}`. Alle Antworten werden als `Content-Type: application/json` zurückgegeben.
 
-Die Datei beschreibt die produktive 2.9.0-API-Linie. Für Detailabweichungen in Einzelfällen bleibt die tatsächliche Laufzeitimplementierung in `CMS/core/Api.php`, `CMS/admin/api/` und den registrierten Router-Endpunkten führend.
+Die Datei beschreibt die produktive 2.9.244-API-Linie. Für Detailabweichungen in Einzelfällen bleibt die tatsächliche Laufzeitimplementierung in `CMS/core/Api.php`, `CMS/core/Routing/ApiRouter.php`, `CMS/admin/api/` und den registrierten Router-Endpunkten führend.
 
 | Eigenschaft | Wert |
 |-------------|------|
@@ -20,6 +20,8 @@ Die Datei beschreibt die produktive 2.9.0-API-Linie. Für Detailabweichungen in 
 | Format | JSON |
 | Authentifizierung | JWT Bearer-Token, Session, API-Key |
 | Rate-Limiting | 60 Requests / 60 Sekunden pro IP |
+
+> Hinweis: Die meisten klassischen Controller-Endpunkte antworten über `CMS\Api::sendResponse()` im Format `{"data": ...}`. Der öffentliche Health-/Status-Endpunkt `/api/v1/status` ist davon bewusst ausgenommen und liefert direkt ein flaches JSON aus `CMS\Routing\ApiRouter::status()`.
 
 ### Erfolgs-Response
 
@@ -85,12 +87,12 @@ X-API-Key: dein-api-key-hier
 
 ---
 
-<!-- UPDATED: 2026-04-07 -->
+<!-- UPDATED: 2026-04-24 -->
 ## 3 · Endpunkte
 
 | Methode | Route | Auth | Parameter | Response | Beschreibung |
 |---------|-------|------|-----------|----------|-------------|
-| `GET` | `/api/v1/status` | Keine | – | `{"data":{"status":"ok","version":"2.9.0"}}` | System-Status |
+| `GET` | `/api/v1/status` | Keine | – | `{"status":"ok","version":"2.9.244"}` | System-Status (flat JSON, kein `data`-Wrapper) |
 | `GET` | `/api/v1/pages` | Session/JWT | `?q=suchbegriff` | `{"data":[...]}` | Seiten durchsuchen |
 | `GET` | `/api/v1/pages/{slug}` | Session/JWT | – | `{"data":{...}}` | Einzelne Seite per Slug |
 | `GET` | `/api/v1/users` | Admin | – | `{"data":[...]}` | Benutzer auflisten (max. 50) |
@@ -214,7 +216,7 @@ curl -s -X POST https://example.com/api/v1/webauthn/login/verify \
 
 ---
 
-<!-- UPDATED: 2026-04-07 -->
+<!-- UPDATED: 2026-04-24 -->
 ## 7 · curl-Beispiele
 
 ### System-Status abfragen
@@ -225,10 +227,8 @@ curl -s https://example.com/api/v1/status | jq
 
 ```json
 {
-    "data": {
-        "status": "ok",
-      "version": "2.9.0"
-    }
+  "status": "ok",
+  "version": "2.9.244"
 }
 ```
 

@@ -1,15 +1,15 @@
 # 365CMS – Projektdokumentation
-> **Stand:** 2026-04-11 | **Version:** 2.9.191 | **Status:** Aktuell
+> **Stand:** 2026-04-24 | **Version:** 2.9.244 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Womit ihr anfangen solltet](#womit-ihr-anfangen-solltet)
-- [Release-Fokus 2.9.2](#release-fokus-292)
+- [Release-Fokus 2.9.244](#release-fokus-29244)
 - [Dokumentationsbereiche](#dokumentationsbereiche)
 - [Wichtige Hinweise](#wichtige-hinweise)
 - [Verwandte Einstiege](#verwandte-einstiege)
 
 ---
-<!-- UPDATED: 2026-04-11 -->
+<!-- UPDATED: 2026-04-24 -->
 
 ## Womit ihr anfangen solltet
 
@@ -33,17 +33,14 @@
 
 ---
 
-## Release-Fokus 2.9.2
+## Release-Fokus 2.9.244
 
-Die Dokumentation ist jetzt auf den dokumentierten Stand `2.9.2` nachgezogen. Der Schwerpunkt liegt auf dem jüngsten Runtime-Asset-Refresh und der sauberen Trennung zwischen aktiv genutzten Bundles und nur beobachteten Kandidaten:
+Die zentralen Einstiegsdokumente sind jetzt auf den aktuellen Release-Stand `2.9.244` nachgezogen. Der Schwerpunkt liegt diesmal nicht auf neuen Kapiteln, sondern auf einem wieder konsistenten, betriebssicheren Dokumentationsvertrag zwischen Runtime, Update-Metadaten und API-Referenz:
 
-- selektiver Runtime-Refresh für `Carbon`, `LdapRecord`, `mailer`, `mime`, `translation`, `tntsearch`, `suneditor`, `editorjs` und `dompdf`
-- gezielter Neu-Build des produktiv erwarteten `Editor.js`-Delimiter-Bundles statt Übernahme einer unklaren Altdatei
-- aktualisierte Asset-Doku mit präziserem Sonderfall-Hinweis für `SunEditor` und `Editor.js`
-- bewusste Nicht-Integration aktuell unreferenzierter Kandidaten wie `cache`, `guzzle`, `php-jwt_yuliyan` und `tabler-icons`
-- Entfernung des inoffiziellen `google-translate-php`-Staging-Assets aus `/ASSETS` zugunsten eines providerbasierten AI-Services-Zielbilds
-- neue kanonische Konzeptdoku für **AI Services** unter `DOC/ai/AI-SERVICES.md` mit Provider-Scope, Feature-Gates, Provider-Matrix, Editor.js-Datenfluss und einer ersten Phase für Übersetzung nach Englisch
-- synchronisierte Release-Spur über `README.md`, `Changelog.md`, `CMS/core/Version.php`, `CMS/update.json`, `DOC/ASSET.md` und `DOC/assets/README.md`
+- `DOC/INDEX.md` und `DOC/README.md` zeigen wieder denselben aktuellen Release-Stand wie `README.md`, `Changelog.md`, `CMS/core/Version.php` und `CMS/update.json`
+- `DOC/core/STATUS.md` referenziert den laufenden Core jetzt wieder mit `2.9.244` und dem tatsächlichen Release-Datum `2026-04-24` statt einem uralten `2.9.0`-Snapshot
+- `DOC/core/API-REFERENCE.md` dokumentiert den öffentlichen Status-Endpunkt `/api/v1/status` jetzt passend zur echten Runtime in `CMS/core/Routing/ApiRouter.php`
+- der Status-Endpunkt wird dabei explizit als **flat JSON ohne `data`-Wrapper** beschrieben, während controllerbasierte API-Antworten weiter über `CMS\Api::sendResponse()` im klassischen `{"data": ...}`-Format laufen
 
 ---
 
