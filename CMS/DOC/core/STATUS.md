@@ -1,12 +1,12 @@
 # 365CMS – Systemstatus
-> **Stand:** 2026-04-24 | **Version:** 2.9.245 | **Status:** Aktuell
+> **Stand:** 2026-04-24 | **Version:** 2.9.246 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Versionsstand](#versionsstand)
 - [Core- und Plattformstatus](#core--und-plattformstatus)
 - [Datenbankschema](#datenbankschema)
 - [Aktuelle Admin-Architektur](#aktuelle-admin-architektur)
-- [Wichtige Feature-Stände](#wichtige-feature-stände-im-aktuellen-stand-29245)
+- [Wichtige Feature-Stände](#wichtige-feature-stände-im-aktuellen-stand-29246)
 - [Bekannte Grenzen](#bekannte-grenzen)
 - [Nächste geplante Features](#nächste-geplante-features)
 - [Deprecations](#deprecations)
@@ -18,7 +18,7 @@
 
 | Eigenschaft | Wert |
 |---|---|
-| CMS-Version | `2.9.245` |
+| CMS-Version | `2.9.246` |
 | Code-Referenz | `CMS/core/Version.php` |
 | Update-Metadaten | `CMS/update.json` |
 | Release-Datum | `2026-04-24` |
@@ -82,7 +82,7 @@ Maßgebliche Referenz: `CMS/admin/partials/sidebar.php`
 
 ---
 
-## Wichtige Feature-Stände im aktuellen Stand 2.9.245 <!-- UPDATED: 2026-04-24 -->
+## Wichtige Feature-Stände im aktuellen Stand 2.9.246 <!-- UPDATED: 2026-04-24 -->
 
 | Bereich | Stand |
 |---|---|
@@ -121,11 +121,11 @@ Maßgebliche Referenz: `CMS/admin/partials/sidebar.php`
 - Hintergrund sind die produktiv gebündelten Symfony-Komponenten in `CMS/assets/mailer`, `CMS/assets/mime` und `CMS/assets/translation`, deren Composer-Metadaten PHP 8.4 voraussetzen.
 - Diese Vorgabe wird nicht nur dokumentiert, sondern zur Laufzeit auch über `CMS/config.php`, `CMS/core/Bootstrap.php`, `CMS/core/Services/StatusService.php`, `CMS/core/Services/UpdateService.php` und `CMS/install.php` aktiv geprüft bzw. signalisiert.
 
-## Release-Notiz 2.9.245 <!-- ADDED: 2026-04-24 -->
+## Release-Notiz 2.9.246 <!-- ADDED: 2026-04-24 -->
 
-- Login-Redirects aus Public-, Member- und Theme-Routing nutzen jetzt wieder denselben locale-aware Auth-Vertrag statt hart das unlokalisierte `/cms-login` anzuspringen.
-- Legacy-Aliasse wie `/login`/`/register`/`/forgot-password` respektieren beim Redirect wieder Sprachpräfix und aktuellen Auth-Slug-Modus.
-- Private Seiten/Beiträge, MFA-Fallbacks und Member-/Plugin-Zugriffe verlieren damit ihren EN-Kontext nicht mehr im Sprung zur Login-Seite.
+- Login-Redirects zu privaten Public-Seiten und -Beiträgen fallen nicht mehr still auf `/member` zurück, sondern kehren kontrolliert zum ursprünglich angeforderten same-origin-Ziel zurück.
+- Die Redirect-Sanitierung bleibt dabei defensiv: API- und Auth-Ziele sowie Schleifenpfade bleiben weiter ausgesperrt.
+- Anonyme Admin-Zugriffe nutzen für den Sprung zur Anmeldung jetzt denselben öffentlichen Auth-Vertrag wie Public-/Member-Flows.
 
 ---
 

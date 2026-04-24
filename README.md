@@ -1,4 +1,4 @@
-# 365CMS.DE  [![Version](https://img.shields.io/badge/Version-2.9.245-blue.svg)](Changelog.md) ![Status](https://img.shields.io/badge/Status-Stable-16a34a) ![PHP](https://img.shields.io/badge/PHP-8.4%2B-777BB4?logo=php&logoColor=white) ![MySQL](https://img.shields.io/badge/MySQL-5.7%2B-4479A1?logo=mysql&logoColor=white) ![MariaDB](https://img.shields.io/badge/MariaDB-10.3%2B-003545?logo=mariadb&logoColor=white)
+# 365CMS.DE  [![Version](https://img.shields.io/badge/Version-2.9.246-blue.svg)](Changelog.md) ![Status](https://img.shields.io/badge/Status-Stable-16a34a) ![PHP](https://img.shields.io/badge/PHP-8.4%2B-777BB4?logo=php&logoColor=white) ![MySQL](https://img.shields.io/badge/MySQL-5.7%2B-4479A1?logo=mysql&logoColor=white) ![MariaDB](https://img.shields.io/badge/MariaDB-10.3%2B-003545?logo=mariadb&logoColor=white)
 
 <div align="center">
 
@@ -8,7 +8,7 @@
 
 #### 365CMS brings publishing, member features, design, compliance and operational control into one clear system | for teams that want to grow without getting buried under plugins, workarounds and tool chains.
 
-#### Release `2.9.245` hält die öffentliche Auth-Strecke jetzt auch in mehrsprachigen Redirect-Pfaden konsistent: Legacy-Aliasse wie `/login`, private Seiten/Beiträge, MFA-Fallbacks und Member-/Plugin-Zugriffe leiten anonyme EN-Anfragen wieder auf die passende lokalisierte Login-Seite statt hart auf das unlokalisierte `/cms-login`.
+#### Release `2.9.246` repariert jetzt auch den letzten Sprung nach dem Login: Redirects zu privaten Public-Seiten, Beiträgen und anonym geöffneten Admin-Zielen werden nicht mehr still auf `/member` zusammengekürzt, sondern laufen wieder kontrolliert zurück auf den ursprünglich angeforderten same-origin-Pfad.
 
 ---
 

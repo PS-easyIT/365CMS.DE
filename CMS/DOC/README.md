@@ -1,9 +1,9 @@
 # 365CMS – Projektdokumentation
-> **Stand:** 2026-04-24 | **Version:** 2.9.245 | **Status:** Aktuell
+> **Stand:** 2026-04-24 | **Version:** 2.9.246 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Womit ihr anfangen solltet](#womit-ihr-anfangen-solltet)
-- [Release-Fokus 2.9.245](#release-fokus-29245)
+- [Release-Fokus 2.9.246](#release-fokus-29246)
 - [Dokumentationsbereiche](#dokumentationsbereiche)
 - [Wichtige Hinweise](#wichtige-hinweise)
 - [Verwandte Einstiege](#verwandte-einstiege)
@@ -33,14 +33,14 @@
 
 ---
 
-## Release-Fokus 2.9.245
+## Release-Fokus 2.9.246
 
-Der aktuelle Release-Fokus `2.9.245` zieht die öffentliche Auth-Strecke wieder auf einen konsistenten Mehrsprachenvertrag zwischen Routing, Member-Zugriffen und der CMS-Loginpage:
+Der aktuelle Release-Fokus `2.9.246` schließt die nächste Redirect-Lücke zwischen Login-Strecke und geschützten Public-/Admin-Zielen:
 
-- `PublicRouter::redirectLegacyAuthPath()` leitet `/login`, `/register` und `/forgot-password` jetzt wieder locale-aware auf die öffentliche CMS-Auth-Strecke um, statt EN-Anfragen still auf das nackte `/cms-*` ohne Sprachpräfix zurückzuwerfen
-- `MemberRouter`, `ThemeRouter` und `PluginDashboardRegistry` verwenden für Login-Redirects nun denselben `CmsAuthPageService::getPublicPath()`-Vertrag wie die eigentlichen Auth-Templates
-- private Seiten/Beiträge, MFA-Fallbacks und Member-/Plugin-Zugriffe verlieren dadurch ihren aktuellen Sprachkontext nicht mehr mitten im Redirect-Flow
-- `README.md`, `Changelog.md`, `CMS/core/Version.php`, `CMS/update.json` und die zentralen CMS-Dokumente bleiben dabei auf demselben Release-Stand `2.9.245`
+- `PublicRouter::resolveAllowedRedirectParts()` akzeptiert sichere same-origin-Pfade jetzt auch dann, wenn sie auf private Public-Seiten oder Beiträge zurückführen, statt solche Ziele pauschal auf `/member` zu verwerfen
+- `ThemeRouter` profitiert davon direkt, weil seine Redirects von privaten Seiten/Beiträgen zur Login-Seite den ursprünglichen Public-Pfad jetzt wieder wirklich zurückbekommen
+- `AdminRouter::redirectUnauthorized()` nutzt ebenfalls die öffentliche Auth-Strecke statt eines hart verdrahteten `/cms-login`, wodurch Admin-Redirects denselben Auth-Slug-Modus respektieren wie der Rest der Runtime
+- `README.md`, `Changelog.md`, `CMS/core/Version.php`, `CMS/update.json` und die zentralen CMS-Dokumente bleiben dabei auf demselben Release-Stand `2.9.246`
 
 ---
 

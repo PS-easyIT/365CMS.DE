@@ -812,24 +812,7 @@ final class PublicRouter
 
     private function redirectToSafeTarget(array $targetParts): void
     {
-        $route = (string) ($targetParts['route'] ?? 'member');
-        $suffix = (string) ($targetParts['suffix'] ?? '');
-        $query = (string) ($targetParts['query'] ?? '');
-
-        $basePath = match ($route) {
-            'admin' => '/admin',
-            'dashboard' => '/dashboard',
-            default => '/member',
-        };
-
-        $safeSuffix = $this->sanitizeAllowedPathSuffix($suffix);
-        if ($safeSuffix === null) {
-            $safeSuffix = '';
-        }
-
-        $target = $basePath . $safeSuffix;
-        $safeQuery = $this->sanitizeAllowedQueryString($query);
-        $this->router->redirect($safeQuery !== '' ? $target . '?' . $safeQuery : $target);
+        $this->router->redirect($this->buildAllowedRedirectTarget($targetParts));
     }
 
     private function resolveAllowedRedirectParts(mixed $candidate): array
@@ -877,12 +860,33 @@ final class PublicRouter
             ];
         }
 
+        $safePublicPath = $this->sanitizeAllowedPublicRedirectPath($path);
+        if ($safePublicPath !== null) {
+            return [
+                'route' => 'public',
+                'path' => $safePublicPath,
+                'query' => $this->sanitizeAllowedQueryString($query),
+            ];
+        }
+
         return ['route' => 'member', 'suffix' => '', 'query' => ''];
     }
 
     private function buildAllowedRedirectTarget(array $targetParts): string
     {
         $route = (string) ($targetParts['route'] ?? 'member');
+
+        if ($route === 'public') {
+            $safePublicPath = $this->sanitizeAllowedPublicRedirectPath((string) ($targetParts['path'] ?? ''));
+            if ($safePublicPath === null) {
+                return '/member';
+            }
+
+            $safeQuery = $this->sanitizeAllowedQueryString((string) ($targetParts['query'] ?? ''));
+
+            return $safeQuery !== '' ? $safePublicPath . '?' . $safeQuery : $safePublicPath;
+        }
+
         $suffix = (string) ($targetParts['suffix'] ?? '');
         $query = (string) ($targetParts['query'] ?? '');
 
@@ -946,6 +950,61 @@ final class PublicRouter
         }
 
         return $suffix;
+    }
+
+    private function sanitizeAllowedPublicRedirectPath(string $path): ?string
+    {
+        $path = trim($path);
+        if ($path === '') {
+            return null;
+        }
+
+        if (!str_starts_with($path, '/')) {
+            $path = '/' . ltrim($path, '/');
+        }
+
+        if (preg_match('/[\x00-\x1F\x7F]/', $path) === 1 || str_starts_with($path, '//')) {
+            return null;
+        }
+
+        if (str_contains($path, '/../') || str_contains($path, '/./') || str_ends_with($path, '/..') || str_ends_with($path, '/.')) {
+            return null;
+        }
+
+        if (preg_match('#^/(?:[A-Za-z0-9\-._~%!$&()*+,;=:@]+(?:/[A-Za-z0-9\-._~%!$&()*+,;=:@]+)*)?/?$#', $path) !== 1) {
+            return null;
+        }
+
+        $basePath = $path;
+        try {
+            $requestContext = Services\ContentLocalizationService::getInstance()->resolveRequestContext($path);
+            $basePath = (string) ($requestContext['base_uri'] ?? $path);
+        } catch (\Throwable) {
+            $basePath = $path;
+        }
+
+        foreach (['/api'] as $disallowedPrefix) {
+            if ($basePath === $disallowedPrefix || str_starts_with($basePath, $disallowedPrefix . '/')) {
+                return null;
+            }
+        }
+
+        if (in_array($basePath, [
+            '/login',
+            '/register',
+            '/forgot-password',
+            '/cms-login',
+            '/cms-register',
+            '/cms-password-forgot',
+            '/logout',
+            '/mfa-challenge',
+            '/mfa-setup',
+            '/mfa-disable',
+        ], true)) {
+            return null;
+        }
+
+        return $path;
     }
 
     private function sanitizeAllowedQueryString(string $query): string

@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.9.245",
+  "version": "2.9.246",
   "min_php": "8.4",
   "released": "2026-04-24",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 2.9.245: Login-Redirects aus Public-, Member- und Theme-Routing bleiben jetzt auch in EN-/Legacy-Flows auf der lokalisierten CMS-Auth-Strecke; private Seiten/Beiträge, MFA-Fallbacks und Member-/Plugin-Zugriffe verlieren ihren Sprachkontext beim Sprung zur Login-Seite nicht mehr.",
+  "notes": "Release-Stand 2.9.246: Sichere same-origin Redirects zu privaten Public-Seiten, Beiträgen und Admin-Zielen bleiben nach dem Login erhalten, statt still auf /member zu fallen; zugleich nutzt auch der Admin-Unauthorized-Pfad jetzt den zentralen öffentlichen Auth-Vertrag.",
   "critical": false
 }

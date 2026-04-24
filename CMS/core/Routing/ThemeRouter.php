@@ -1204,6 +1204,14 @@ final class ThemeRouter
         return $postData;
     }
 
+    private function buildLocalizedLoginRedirectPath(): string
+    {
+        $requestUri = (string) ($_SERVER['REQUEST_URI'] ?? '/');
+        $loginPath = CmsAuthPageService::getInstance()->getPublicPath('login', $this->router->getRequestLocale());
+
+        return $loginPath . '?redirect=' . urlencode($requestUri);
+    }
+
 
     private function matchesArchiveSearch(array $post, string $query): bool
     {

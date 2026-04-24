@@ -12,6 +12,7 @@ namespace CMS\Routing;
 use CMS\Auth;
 use CMS\Hooks;
 use CMS\Router;
+use CMS\Services\CmsAuthPageService;
 use CMS\Services\FeatureUsageService;
 
 if (!defined('ABSPATH')) {
@@ -195,7 +196,8 @@ final class AdminRouter
         if (!Auth::instance()->isLoggedIn()) {
             $requestUri = (string) ($_SERVER['REQUEST_URI'] ?? '/admin');
             $requestUri = $requestUri !== '' ? $requestUri : '/admin';
-            $this->router->redirect('/cms-login?redirect=' . urlencode($requestUri));
+            $loginPath = CmsAuthPageService::getInstance()->getPublicPath('login', $this->router->getRequestLocale());
+            $this->router->redirect($loginPath . '?redirect=' . urlencode($requestUri));
             return;
         }
 

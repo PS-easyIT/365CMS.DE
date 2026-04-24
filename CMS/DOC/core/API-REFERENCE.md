@@ -1,5 +1,5 @@
 # 365CMS – API-Referenz
-> **Stand:** 2026-04-24 | **Version:** 2.9.245 | **Status:** Aktuell
+> **Stand:** 2026-04-24 | **Version:** 2.9.246 | **Status:** Aktuell
 
 Dokumentation der REST-API (`/api/v1/`) mit Authentifizierung, Endpunkten, Fehlerbehandlung und Beispielen.
 
@@ -10,7 +10,7 @@ Dokumentation der REST-API (`/api/v1/`) mit Authentifizierung, Endpunkten, Fehle
 
 Die 365CMS REST-API folgt dem Muster `/api/v1/{endpoint}/{id}`. Alle Antworten werden als `Content-Type: application/json` zurückgegeben.
 
-Die Datei beschreibt die produktive 2.9.245-API-Linie. Für Detailabweichungen in Einzelfällen bleibt die tatsächliche Laufzeitimplementierung in `CMS/core/Api.php`, `CMS/core/Routing/ApiRouter.php`, `CMS/admin/api/` und den registrierten Router-Endpunkten führend.
+Die Datei beschreibt die produktive 2.9.246-API-Linie. Für Detailabweichungen in Einzelfällen bleibt die tatsächliche Laufzeitimplementierung in `CMS/core/Api.php`, `CMS/core/Routing/ApiRouter.php`, `CMS/admin/api/` und den registrierten Router-Endpunkten führend.
 
 | Eigenschaft | Wert |
 |-------------|------|
@@ -92,7 +92,7 @@ X-API-Key: dein-api-key-hier
 
 | Methode | Route | Auth | Parameter | Response | Beschreibung |
 |---------|-------|------|-----------|----------|-------------|
-| `GET` | `/api/v1/status` | Keine | – | `{"status":"ok","version":"2.9.245"}` | System-Status (flat JSON, kein `data`-Wrapper) |
+| `GET` | `/api/v1/status` | Keine | – | `{"status":"ok","version":"2.9.246"}` | System-Status (flat JSON, kein `data`-Wrapper) |
 | `GET` | `/api/v1/pages` | Session/JWT | `?q=suchbegriff` | `{"data":[...]}` | Seiten durchsuchen |
 | `GET` | `/api/v1/pages/{slug}` | Session/JWT | – | `{"data":{...}}` | Einzelne Seite per Slug |
 | `GET` | `/api/v1/users` | Admin | – | `{"data":[...]}` | Benutzer auflisten (max. 50) |
@@ -228,7 +228,7 @@ curl -s https://example.com/api/v1/status | jq
 ```json
 {
   "status": "ok",
-  "version": "2.9.245"
+  "version": "2.9.246"
 }
 ```
 

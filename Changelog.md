@@ -1,4 +1,4 @@
-﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.245-blue.svg)](https://shields.io/)
+﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.246-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -19,6 +19,12 @@
 ## 📜 Vollständige Versionshistorie
 
 ---
+
+### v2.9.246 — 24. April 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.246** | 🔴 fix | Core/Public, Theme & Admin Auth Redirects | **`CMS/core/Routing/PublicRouter.php`, `CMS/core/Routing/ThemeRouter.php` und `CMS/core/Routing/AdminRouter.php` lassen sichere same-origin Redirects jetzt wieder bis zu privaten Public-Zielen durch, statt sie still auf `/member` zu kastrieren**: Private Seiten/Beiträge, locale-aware Login-Redirects und anonyme Admin-Zugriffe springen damit nach erfolgreichem Login wieder auf den ursprünglich angeforderten Public- oder Admin-Pfad zurück, solange das Ziel denselben Host nutzt und nicht auf API-/Auth-Schleifen zeigt. |
 
 ### v2.9.245 — 24. April 2026
 
