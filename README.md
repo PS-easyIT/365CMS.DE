@@ -1,4 +1,4 @@
-# 365CMS.DE  [![Version](https://img.shields.io/badge/Version-2.9.247-blue.svg)](Changelog.md) ![Status](https://img.shields.io/badge/Status-Stable-16a34a) ![PHP](https://img.shields.io/badge/PHP-8.4%2B-777BB4?logo=php&logoColor=white) ![MySQL](https://img.shields.io/badge/MySQL-5.7%2B-4479A1?logo=mysql&logoColor=white) ![MariaDB](https://img.shields.io/badge/MariaDB-10.3%2B-003545?logo=mariadb&logoColor=white)
+# 365CMS.DE  [![Version](https://img.shields.io/badge/Version-2.9.248-blue.svg)](Changelog.md) ![Status](https://img.shields.io/badge/Status-Stable-16a34a) ![PHP](https://img.shields.io/badge/PHP-8.4%2B-777BB4?logo=php&logoColor=white) ![MySQL](https://img.shields.io/badge/MySQL-5.7%2B-4479A1?logo=mysql&logoColor=white) ![MariaDB](https://img.shields.io/badge/MariaDB-10.3%2B-003545?logo=mariadb&logoColor=white)
 
 <div align="center">
 
@@ -8,7 +8,7 @@
 
 #### 365CMS brings publishing, member features, design, compliance and operational control into one clear system | for teams that want to grow without getting buried under plugins, workarounds and tool chains.
 
-#### Release `2.9.247` schließt die nächste Public-/Admin-Vertragswelle: Die Kontaktseite löst ihre Locale wieder korrekt vor dem Lookup auf, EN-Category-/Tag-Archive suchen endlich genauso locale-aware wie `/search`, und die Admin-Beitragsliste findet EN-Titel/-Slugs jetzt konsistent auch außerhalb des JSON-Grid-Pfads.
+#### Release `2.9.248` trennt den DE/EN-Editorvertrag weiter sauber aus, härtet Public-Seiten gegen falsche Sprach-Fallbacks und zeigt in der Coverbild-Auswahl für Seiten und Beiträge nur noch `ArtikelRahmen_*`-Bilder an, während normale Editor-Medien unverändert bleiben.
 
 ---
 

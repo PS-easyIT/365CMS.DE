@@ -1,4 +1,4 @@
-﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.247-blue.svg)](https://shields.io/)
+﻿﻿[![Generic badge](https://img.shields.io/badge/VERSION-2.9.248-blue.svg)](https://shields.io/)
 
 # 365CMS Changelog
 
@@ -19,6 +19,14 @@
 ## 📜 Vollständige Versionshistorie
 
 ---
+
+### v2.9.248 — 2. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.248** | 🔴 fix | Admin/Beiträge & Seiten Sprachspeicherung | **`CMS/admin/modules/posts/PostsModule.php`, `CMS/admin/modules/pages/PagesModule.php`, `CMS/admin/posts.php` und `CMS/admin/pages.php` speichern getrennte DE-/EN-Editorseiten jetzt tatsächlich sprachisoliert**: Beim Speichern der englischen Ansicht werden deutsche Titel-, Slug-, Inhalt- und Kurzfassungsfelder aus dem bestehenden Datensatz erhalten, beim Speichern der deutschen Ansicht bleiben die EN-Felder erhalten, und Inline-Fehlerrenderings ziehen die inaktive Sprachfassung wieder aus dem Persistenzstand statt aus versteckten/stalen Formularwerten. |
+| **2.9.248** | 🔴 fix | Core/Public Locale-Routing | **`CMS/core/PageManager.php`, `CMS/core/Router.php`, `CMS/core/Routing/ThemeRouter.php`, `CMS/core/Services/ContentLocalizationService.php`, `CMS/core/Services/PermalinkService.php` und `CMS/themes/cms-default/includes/theme-runtime-helpers.php` ziehen Seiten auf denselben strikten Prefix-Vertrag wie Beiträge**: `/en/...` liefert nur Seiten mit echten EN-Feldern, deutsche Public-Pfade bleiben ohne `/en`, und alte Suffix-Erkennungen wie `.../en` werden nicht mehr als lokalisierte Route normalisiert. |
+| **2.9.248** | 🟢 feat | Admin/Coverbild-Auswahl & Media API | **`CMS/admin/views/partials/featured-image-picker.php`, `CMS/core/Services/EditorJs/EditorJsMediaService.php`, `CMS/core/Services/EditorJs/EditorJsImageLibraryService.php` und `CMS/core/Services/EditorJs/EditorJsUploadService.php` begrenzen die Seiten-/Beitrags-Coverbild-Auswahl gezielt auf Dateien mit dem Prefix `ArtikelRahmen_`**: Der normale Editor-Medienpicker bleibt unverändert, Coverbild-Uploads erhalten automatisch `ArtikelRahmen_<slug>.<endung>`, und der optionale API-Parameter `filename_prefix` ist serverseitig nach Upload-Best-Practice auf erlaubte Zeichen und Länge begrenzt. |
 
 ### v2.9.247 — 24. April 2026
 

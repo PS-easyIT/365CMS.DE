@@ -1,15 +1,15 @@
 # 365CMS – Projektdokumentation
-> **Stand:** 2026-04-24 | **Version:** 2.9.247 | **Status:** Aktuell
+> **Stand:** 2026-05-02 | **Version:** 2.9.248 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Womit ihr anfangen solltet](#womit-ihr-anfangen-solltet)
-- [Release-Fokus 2.9.247](#release-fokus-29247)
+- [Release-Fokus 2.9.248](#release-fokus-29248)
 - [Dokumentationsbereiche](#dokumentationsbereiche)
 - [Wichtige Hinweise](#wichtige-hinweise)
 - [Verwandte Einstiege](#verwandte-einstiege)
 
 ---
-<!-- UPDATED: 2026-04-24 -->
+<!-- UPDATED: 2026-05-02 -->
 
 ## Womit ihr anfangen solltet
 
@@ -33,14 +33,14 @@
 
 ---
 
-## Release-Fokus 2.9.247
+## Release-Fokus 2.9.248
 
-Der aktuelle Release-Fokus `2.9.247` räumt drei konkrete Vertragsbrüche zwischen Public-Routing, Archiven und Admin-Liste auf:
+Der aktuelle Release-Fokus `2.9.248` schließt die nächsten Lücken im getrennten Sprach- und Medienvertrag für redaktionelle Inhalte:
 
-- `ThemeRouter::renderContact()` zieht die aufgelöste Locale vor den `PageManager::getPageBySlug()`-Lookup, sodass `/contact` und `/kontakt` nicht mehr mit undefiniertem `$locale` in den falschen Sprachpfad laufen
-- Category- und Tag-Archive verwenden bei `?q=` in EN jetzt dieselben locale-aware Suchfelder wie `/search`, also `*_en` mit Fallback auf die Basissprache statt einer rein deutschen Volltextprüfung
-- `PostsModule::getListData()` durchsucht EN-Titel und EN-Slugs jetzt ebenso wie `/api/v1/admin/posts`, damit HTML-/Fallback-Pfade keine anderen Ergebnisse liefern als das Admin-Grid
-- `README.md`, `Changelog.md`, `CMS/core/Version.php`, `CMS/update.json` und die zentralen CMS-Dokumente bleiben dabei auf demselben Release-Stand `2.9.247`
+- Beitrags- und Seiteneditoren speichern getrennte DE-/EN-Ansichten jetzt sprachisoliert: Die jeweils inaktive Sprachfassung wird bei Save und Inline-Fehlerrendering aus dem bestehenden Datensatz erhalten
+- Public-Seiten folgen analog zu Beiträgen strikt dem Prefix-Vertrag: `/en/...` liefert nur echte EN-Seitenvarianten, deutsche Pfade bleiben ohne `/en`, alte Suffix-Erkennungen werden nicht mehr als lokalisierte Route behandelt
+- Die Coverbild-Auswahl für Seiten und Beiträge zeigt nur noch Dateien mit `ArtikelRahmen_`-Prefix; normale Editor-Medienlisten bleiben unverändert, neue Cover-Uploads bekommen den Prefix automatisch
+- `README.md`, `Changelog.md`, `CMS/core/Version.php`, `CMS/update.json`, Marketplace-Metadaten und die zentralen CMS-Dokumente bleiben dabei auf demselben Release-Stand `2.9.248`
 
 ---
 

@@ -1,5 +1,5 @@
 # 365CMS – Dokumentationsindex
-> **Stand:** 2026-04-24 | **Version:** 2.9.247 | **Status:** Aktuell
+> **Stand:** 2026-05-02 | **Version:** 2.9.248 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Schnellstart](#schnellstart)
@@ -11,7 +11,7 @@
 - [Direktlinks für häufige Aufgaben](#direktlinks-für-häufige-aufgaben)
 
 ---
-<!-- UPDATED: 2026-04-24 -->
+<!-- UPDATED: 2026-05-02 -->
 
 ## Schnellstart
 

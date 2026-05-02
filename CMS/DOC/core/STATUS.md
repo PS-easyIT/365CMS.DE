@@ -1,12 +1,12 @@
 # 365CMS – Systemstatus
-> **Stand:** 2026-04-24 | **Version:** 2.9.247 | **Status:** Aktuell
+> **Stand:** 2026-05-02 | **Version:** 2.9.248 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Versionsstand](#versionsstand)
 - [Core- und Plattformstatus](#core--und-plattformstatus)
 - [Datenbankschema](#datenbankschema)
 - [Aktuelle Admin-Architektur](#aktuelle-admin-architektur)
-- [Wichtige Feature-Stände](#wichtige-feature-stände-im-aktuellen-stand-29247)
+- [Wichtige Feature-Stände](#wichtige-feature-stände-im-aktuellen-stand-29248)
 - [Bekannte Grenzen](#bekannte-grenzen)
 - [Nächste geplante Features](#nächste-geplante-features)
 - [Deprecations](#deprecations)
@@ -18,10 +18,10 @@
 
 | Eigenschaft | Wert |
 |---|---|
-| CMS-Version | `2.9.247` |
+| CMS-Version | `2.9.248` |
 | Code-Referenz | `CMS/core/Version.php` |
 | Update-Metadaten | `CMS/update.json` |
-| Release-Datum | `2026-04-24` |
+| Release-Datum | `2026-05-02` |
 | Projektstandard PHP | `8.4+` |
 | Update-Metadaten `min_php` | `8.4` |
 | Datenbank | MySQL 5.7+ / MariaDB 10.3+ |
@@ -82,14 +82,14 @@ Maßgebliche Referenz: `CMS/admin/partials/sidebar.php`
 
 ---
 
-## Wichtige Feature-Stände im aktuellen Stand 2.9.247 <!-- UPDATED: 2026-04-24 -->
+## Wichtige Feature-Stände im aktuellen Stand 2.9.248 <!-- UPDATED: 2026-05-02 -->
 
 | Bereich | Stand |
 |---|---|
 | SEO | ✅ eigenes SEO-Center mit Dashboard, Audit, Meta, Social, Schema, Sitemap und Technical |
 | Performance | ✅ eigenes Performance-Center mit Cache-, Medien-, Datenbank-, Settings- und Sessions-Unterseiten |
 | Monitoring | ✅ Response-Time, Cron-Status, Disk-Usage, Scheduled Tasks, Health-Check und E-Mail-Alerts |
-| Medien | ✅ Listen-/Grid-Ansicht, native Uploads, Rename/Move-Modale, Admin-Bulk-Aktionen, stabile Member-Root-Grenzen und korrigierte Systempfad-Semantik |
+| Medien | ✅ Listen-/Grid-Ansicht, native Uploads, Rename/Move-Modale, Admin-Bulk-Aktionen, stabile Member-Root-Grenzen, korrigierte Systempfad-Semantik und `ArtikelRahmen_`-gefilterte Coverbild-Auswahl für Seiten/Beiträge |
 | Tabellen | ✅ eigene Tabellen-Display-Defaults mit wählbaren Stil-Presets und Admin-Settings-Seite |
 | Post-Taxonomien | ✅ Admin-Einstiege für Beitrags-Kategorien und Beitrags-Tags inklusive CRUD |
 | Fehlerreports | ✅ persistente Admin-Fehlerreports mit Audit-Logging und Redirect-kompatiblen Payloads |
@@ -98,6 +98,7 @@ Maßgebliche Referenz: `CMS/admin/partials/sidebar.php`
 | Legal/Privacy | ✅ Sammelroute `/admin/data-requests`, Legal-Sites-Autofill, nativer Cookie-Consent-Flow via `CookieConsentService` + `cookieconsent-init.js` |
 | Rollen & Rechte | ✅ dynamische Rollen, `role_permissions`, DB-basierte Capability-Prüfung |
 | Editor.js | ✅ Block-basierter Content-Editor als primärer Editor |
+| Mehrsprachige Inhalte | ✅ getrennte DE-/EN-Editorseiten mit sprachisoliertem Speichern und strengem `/en/...`-Public-Prefix-Vertrag |
 | Admin-Struktur | ✅ klarere Hauptbereiche für Hub-Sites, TOC, Beitrags-Kategorien/-Tags, Font Manager, Theme-Marketplace und gruppierte Member-Dashboard-Unterseiten |
 | WebAuthn/Passkey | ✅ FIDO2-Authentifizierung als alternative Login-Methode |
 | PDF-Export | ✅ DomPDF-Integration für Seiten- und Beitragsexport |
@@ -121,11 +122,11 @@ Maßgebliche Referenz: `CMS/admin/partials/sidebar.php`
 - Hintergrund sind die produktiv gebündelten Symfony-Komponenten in `CMS/assets/mailer`, `CMS/assets/mime` und `CMS/assets/translation`, deren Composer-Metadaten PHP 8.4 voraussetzen.
 - Diese Vorgabe wird nicht nur dokumentiert, sondern zur Laufzeit auch über `CMS/config.php`, `CMS/core/Bootstrap.php`, `CMS/core/Services/StatusService.php`, `CMS/core/Services/UpdateService.php` und `CMS/install.php` aktiv geprüft bzw. signalisiert.
 
-## Release-Notiz 2.9.247 <!-- ADDED: 2026-04-24 -->
+## Release-Notiz 2.9.248 <!-- ADDED: 2026-05-02 -->
 
-- `ThemeRouter::renderContact()` initialisiert die aufgelöste Locale wieder vor dem Kontaktseiten-Lookup, damit `/contact` und `/kontakt` keine undefinierte Sprachvariable mehr verwenden.
-- Öffentliche Category- und Tag-Archive filtern `?q=` in EN jetzt konsistent über lokalisierte Titel-, Auszugs- und Inhaltsfelder statt nur über die Basissprache.
-- Die Admin-Beitragsliste zieht bei der Serversuche denselben EN-Titel-/Slug-Vertrag wie `/api/v1/admin/posts` nach.
+- Beiträge und Seiten behalten beim Speichern der getrennten DE-/EN-Editoransichten die jeweils inaktive Sprachfassung aus dem bestehenden Datensatz bei.
+- Public-Seiten prüfen vor der Auslieferung, ob die angefragte Sprachvariante wirklich Inhalt besitzt; EN bleibt damit strikt unter `/en/...`, DE ohne Sprachprefix.
+- Die Coverbild-Auswahl für Beiträge und Seiten listet nur noch `ArtikelRahmen_*`-Dateien, während normale Editor-Medienlisten unverändert bleiben.
 
 ---
 

@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.9.247",
+  "version": "2.9.248",
   "min_php": "8.4",
-  "released": "2026-04-24",
+  "released": "2026-05-02",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 2.9.247: Die Kontaktseite löst ihre Locale wieder vor dem Seiten-Lookup auf, öffentliche Category-/Tag-Archive suchen in EN jetzt konsistent locale-aware wie /search, und die Admin-Beitragsliste spiegelt denselben EN-Suchvertrag wie /api/v1/admin/posts.",
+  "notes": "Release-Stand 2.9.248: Getrennte DE-/EN-Editorseiten speichern Beiträge und Seiten jetzt sprachisoliert, Public-Seiten folgen strikt dem /en-Prefix-Vertrag ohne Suffix-Fallbacks, und die Coverbild-Auswahl zeigt nur noch ArtikelRahmen_*-Bilder, während Editor-Medien unverändert bleiben.",
   "critical": false
 }
