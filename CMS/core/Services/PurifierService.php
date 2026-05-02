@@ -11,6 +11,8 @@
  *
  * Profile:
  *   - 'default'  → Standard CMS-Whitelist (Posts, Seiten)
+ *   - 'table'    → Tabellen-/Beschreibungstexte mit Struktur-Tags
+ *   - 'table_cell' → Nur Inline-Formatierung und Links für Tabellenzellen
  *   - 'strict'   → Nur Text-Formatierung (Kommentare, User-Bio)
  *   - 'minimal'  → Nur Inline-Tags (Nachrichten)
  *
@@ -56,6 +58,10 @@ class PurifierService
             'elements'   => 'p,a,strong,b,em,i,u,ul,ol,li,br,blockquote,pre,code,img,span,div,small,mark,sub,sup,table,thead,tbody,tfoot,tr,th,td,caption',
             'attributes' => 'a.href,a.title,a.target,a.rel,a.class,img.src,img.alt,img.width,img.height,img.loading,img.class,td.colspan,td.rowspan,td.class,th.colspan,th.rowspan,th.class,span.class,div.class,p.class,table.class,caption.class,pre.class,code.class',
         ],
+        'table_cell' => [
+            'elements'   => 'a,strong,b,em,i,u',
+            'attributes' => 'a.href,a.title,a.target,a.rel',
+        ],
         'strict' => [
             'elements'   => 'p,a,strong,b,em,i,u,br,ul,ol,li,blockquote,code,pre',
             'attributes' => 'a.href,a.title,a.rel',
@@ -92,11 +98,11 @@ class PurifierService
 
         // Fallback wenn HTMLPurifier nicht geladen ist
         if (!$this->available) {
-            return $this->fallbackSanitize($dirty, $profile);
+            return $this->hardenAnchorLinks($this->fallbackSanitize($dirty, $profile));
         }
 
         $purifier = $this->getPurifier($profile);
-        return $purifier->purify($dirty);
+        return $this->hardenAnchorLinks($purifier->purify($dirty));
     }
 
     /**
@@ -109,11 +115,11 @@ class PurifierService
     public function purifyArray(array $dirtyArray, string $profile = 'default'): array
     {
         if (!$this->available) {
-            return array_map(fn(string $s) => $this->fallbackSanitize($s, $profile), $dirtyArray);
+            return array_map(fn(string $s) => $this->hardenAnchorLinks($this->fallbackSanitize($s, $profile)), $dirtyArray);
         }
 
         $purifier = $this->getPurifier($profile);
-        return $purifier->purifyArray($dirtyArray);
+        return array_map(fn(string $s) => $this->hardenAnchorLinks($s), $purifier->purifyArray($dirtyArray));
     }
 
     /**
@@ -215,7 +221,190 @@ class PurifierService
         // strip_tags Whitelist aufbauen
         $allowedTags = implode('', array_map(fn(string $el): string => "<{$el}>", $elements));
 
-        return strip_tags($dirty, $allowedTags);
+        $stripped = strip_tags($dirty, $allowedTags);
+
+        return $this->sanitizeFallbackAttributes($stripped, $profileConfig);
+    }
+
+    /**
+     * Bereinigt Attribute im Fallback-Pfad. strip_tags() entfernt zwar Tags,
+     * lässt aber gefährliche Attribute wie onclick oder javascript:-URLs stehen.
+     *
+     * @param array{elements:string,attributes:string} $profileConfig
+     */
+    private function sanitizeFallbackAttributes(string $html, array $profileConfig): string
+    {
+        if ($html === '' || !str_contains($html, '<')) {
+            return $html;
+        }
+
+        if (!class_exists('DOMDocument')) {
+            return (string) preg_replace('/<([a-z][a-z0-9]*)(?:\s+[^>]*)>/i', '<$1>', $html);
+        }
+
+        $allowedAttributes = $this->buildAllowedAttributeMap($profileConfig);
+
+        return $this->transformHtmlFragment($html, function (\DOMDocument $document) use ($allowedAttributes): void {
+            foreach ($document->getElementsByTagName('*') as $element) {
+                if (!$element instanceof \DOMElement || $element->getAttribute('data-cms-fragment-root') === '1') {
+                    continue;
+                }
+
+                $tag = strtolower($element->tagName);
+                $attributes = [];
+                foreach ($element->attributes ?? [] as $attribute) {
+                    $attributes[] = strtolower($attribute->name);
+                }
+
+                foreach ($attributes as $attributeName) {
+                    $allowed = in_array($attributeName, $allowedAttributes[$tag] ?? [], true);
+                    if (!$allowed || str_starts_with($attributeName, 'on')) {
+                        $element->removeAttribute($attributeName);
+                        continue;
+                    }
+
+                    if (in_array($attributeName, ['href', 'src'], true) && !$this->isSafeUri($element->getAttribute($attributeName))) {
+                        $element->removeAttribute($attributeName);
+                    }
+                }
+            }
+        });
+    }
+
+    /**
+     * Erzwingt sichere Link-Ziele und schützt target="_blank" gegen Tabnabbing.
+     */
+    private function hardenAnchorLinks(string $html): string
+    {
+        if ($html === '' || stripos($html, '<a') === false || !class_exists('DOMDocument')) {
+            return $html;
+        }
+
+        return $this->transformHtmlFragment($html, function (\DOMDocument $document): void {
+            foreach ($document->getElementsByTagName('a') as $link) {
+                if (!$link instanceof \DOMElement) {
+                    continue;
+                }
+
+                if ($link->hasAttribute('href') && !$this->isSafeUri($link->getAttribute('href'))) {
+                    $link->removeAttribute('href');
+                }
+
+                if ($link->hasAttribute('target')) {
+                    $target = strtolower(trim($link->getAttribute('target')));
+                    if (!in_array($target, ['_blank', '_self', '_parent', '_top'], true)) {
+                        $link->removeAttribute('target');
+                    } elseif ($target === '_blank') {
+                        $this->ensureRelTokens($link, ['noopener', 'noreferrer']);
+                    }
+                }
+            }
+        });
+    }
+
+    /**
+     * @param array{elements:string,attributes:string} $profileConfig
+     * @return array<string,list<string>>
+     */
+    private function buildAllowedAttributeMap(array $profileConfig): array
+    {
+        $map = [];
+        foreach (explode(',', $profileConfig['attributes'] ?? '') as $pair) {
+            $pair = trim($pair);
+            if (!str_contains($pair, '.')) {
+                continue;
+            }
+
+            [$tag, $attribute] = explode('.', $pair, 2);
+            $tag = strtolower(trim($tag));
+            $attribute = strtolower(trim($attribute));
+            if ($tag === '' || $attribute === '') {
+                continue;
+            }
+
+            $map[$tag][] = $attribute;
+        }
+
+        return array_map(static fn(array $attributes): array => array_values(array_unique($attributes)), $map);
+    }
+
+    private function isSafeUri(string $uri): bool
+    {
+        $uri = trim(html_entity_decode($uri, ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+        if ($uri === '') {
+            return false;
+        }
+
+        if (preg_match('/[\x00-\x1F\x7F]/', $uri) === 1) {
+            return false;
+        }
+
+        if (str_starts_with($uri, '#') || str_starts_with($uri, '/') || str_starts_with($uri, './') || str_starts_with($uri, '../')) {
+            return true;
+        }
+
+        $scheme = strtolower((string) parse_url($uri, PHP_URL_SCHEME));
+        if ($scheme === '') {
+            return !str_starts_with($uri, '//');
+        }
+
+        return in_array($scheme, ['http', 'https', 'mailto', 'tel'], true);
+    }
+
+    /**
+     * @param list<string> $requiredTokens
+     */
+    private function ensureRelTokens(\DOMElement $link, array $requiredTokens): void
+    {
+        $tokens = preg_split('/\s+/', strtolower(trim($link->getAttribute('rel')))) ?: [];
+        $tokens = array_values(array_filter($tokens, static fn(string $token): bool => $token !== ''));
+
+        foreach ($requiredTokens as $token) {
+            if (!in_array($token, $tokens, true)) {
+                $tokens[] = $token;
+            }
+        }
+
+        $link->setAttribute('rel', implode(' ', array_unique($tokens)));
+    }
+
+    private function transformHtmlFragment(string $html, callable $callback): string
+    {
+        $document = new \DOMDocument('1.0', 'UTF-8');
+        $previous = libxml_use_internal_errors(true);
+        $wrapped = '<?xml encoding="UTF-8"><div data-cms-fragment-root="1">' . $html . '</div>';
+        $options = defined('LIBXML_HTML_NOIMPLIED') && defined('LIBXML_HTML_NODEFDTD')
+            ? LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD
+            : 0;
+
+        if (!$document->loadHTML($wrapped, $options)) {
+            libxml_clear_errors();
+            libxml_use_internal_errors($previous);
+            return '';
+        }
+
+        $callback($document);
+        libxml_clear_errors();
+        libxml_use_internal_errors($previous);
+
+        $root = null;
+        foreach ($document->getElementsByTagName('div') as $candidate) {
+            if ($candidate instanceof \DOMElement && $candidate->getAttribute('data-cms-fragment-root') === '1') {
+                $root = $candidate;
+                break;
+            }
+        }
+
+        if (!$root instanceof \DOMElement) {
+            return '';
+        }
+
+        $result = '';
+        foreach ($root->childNodes as $child) {
+            $result .= $document->saveHTML($child) ?: '';
+        }
+
+        return $result;
     }
 
     private function resolveCacheDirectory(): string

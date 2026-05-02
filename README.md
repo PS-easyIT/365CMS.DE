@@ -8,8 +8,6 @@
 
 #### 365CMS brings publishing, member features, design, compliance and operational control into one clear system | for teams that want to grow without getting buried under plugins, workarounds and tool chains.
 
-#### Release `2.9.248` trennt den DE/EN-Editorvertrag weiter sauber aus, härtet Public-Seiten gegen falsche Sprach-Fallbacks und zeigt in der Coverbild-Auswahl für Seiten und Beiträge nur noch `ArtikelRahmen_*`-Bilder an, während normale Editor-Medien unverändert bleiben.
-
 ---
 
 ![Self-Hosted](https://img.shields.io/badge/Self--Hosted-Ready-15803d)
@@ -143,6 +141,7 @@ Die folgenden Bereiche zeigen, wie breit 365CMS bereits ohne Plugin-Zwang aufges
 | Bereich | Enthaltene Funktionen | Nutzen |
 |---|---|---|
 | **Content & Publishing** | Seiten, Beiträge, Landing-Pages, Kategorien, Tags, Revisionen, Featured Images, Inhaltsstruktur und TOC | Macht aus einfacher Seitenpflege einen belastbaren Redaktions-Workflow mit Struktur, Übersicht und Wachstumsspielraum |
+| **Tabellen & Datenübersichten** | Site Tables mit Stil-Presets, sicher sanitierter Inline-HTML-Formatierung, Exporten und optional dynamischen Spalten aus veröffentlichten Seiten und Beiträgen | Macht wiederverwendbare Tabellen im Public-Bereich möglich, ohne freie Eingaben unkontrolliert ins Frontend zu übernehmen |
 | **Medienverwaltung** | Uploads, Ordner, Kategorien, Bild-/Dateiverwaltung, Grid-/Listenansicht, WebP-Workflows | Verhindert Medien-Chaos und hält Assets auch bei wachsenden Projekten schnell nutzbar |
 | **Mitgliederbereich** | Member-Dashboard, Profile, Favoriten, Benachrichtigungen, Nachrichten, Datenschutz, Medienbereich | Liefert die Basis für geschützte Bereiche, Community-Features und kundennahe Plattformlogik |
 | **Business & Abos** | Pakete, Bestellungen, Abonnements, Limits, Gruppen und zugehörige Prozesse | Bringt Geschäftslogik näher ans CMS, statt sie komplett außerhalb des Systems zu parken |
@@ -343,6 +342,7 @@ The following areas show how much 365CMS already covers out of the box before an
 | Area | Included capabilities | Benefit |
 |---|---|---|
 | **Content & Publishing** | Pages, posts, landing pages, categories, tags, revisions, featured images, content structure and TOC | Turns basic page editing into a durable editorial workflow with structure, clarity and room to grow |
+| **Tables & Data Views** | Site Tables with style presets, safely sanitized inline HTML formatting, exports and optional dynamic columns from published pages and posts | Enables reusable public data tables without letting uncontrolled free-form input leak into the frontend |
 | **Media Management** | Uploads, folders, categories, image/file management, grid/list views and WebP workflows | Prevents media chaos and keeps assets ready for use even as the project scales |
 | **Member Area** | Member dashboard, profiles, favorites, notifications, messages, privacy settings and media areas | Provides the foundation for protected areas, community features and customer-facing platform logic |
 | **Business & Subscriptions** | Packages, orders, subscriptions, limits, groups and related business processes | Brings business logic closer to the CMS instead of pushing it entirely into external tooling |

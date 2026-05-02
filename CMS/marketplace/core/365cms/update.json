@@ -8,6 +8,6 @@
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 2.9.248: Getrennte DE-/EN-Editorseiten speichern Beiträge und Seiten jetzt sprachisoliert, Public-Seiten folgen strikt dem /en-Prefix-Vertrag ohne Suffix-Fallbacks, und die Coverbild-Auswahl zeigt nur noch ArtikelRahmen_*-Bilder, während Editor-Medien unverändert bleiben.",
+  "notes": "Release-Stand 2.9.248: Getrennte DE-/EN-Editorseiten speichern Beiträge und Seiten jetzt sprachisoliert, Public-Seiten folgen strikt dem /en-Prefix-Vertrag, Coverbilder werden auf ArtikelRahmen_* gefiltert, und Site Tables unterstützen sicher sanitierte Inline-HTML-Formatierung sowie locale-bewusste dynamische Spalten aus veröffentlichten Seiten und Beiträgen.",
   "critical": false
 }

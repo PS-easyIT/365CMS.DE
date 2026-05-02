@@ -133,6 +133,9 @@
         var tableForm = document.getElementById('tableForm');
         var columnsJsonInput = document.getElementById('columnsJsonInput');
         var rowsJsonInput = document.getElementById('rowsJsonInput');
+        var contentSourceEnabledInput = document.getElementById('contentSourceEnabled');
+        var contentSourceOptions = document.getElementById('contentSourceOptions');
+        var manualEditorBlocks = document.querySelectorAll('[data-manual-table-editor]');
 
         if (!columnsBody || !rowsHeadContainer || !rowsBody || !tableForm || !columnsJsonInput || !rowsJsonInput) {
             return;
@@ -158,6 +161,32 @@
             }
 
             window.alert(message);
+        }
+
+        function isContentSourceEnabled() {
+            return Boolean(contentSourceEnabledInput && contentSourceEnabledInput.checked);
+        }
+
+        function updateContentSourceMode() {
+            var enabled = isContentSourceEnabled();
+
+            if (contentSourceOptions) {
+                contentSourceOptions.classList.toggle('d-none', !enabled);
+            }
+
+            manualEditorBlocks.forEach(function (block) {
+                block.classList.toggle('d-none', enabled);
+                block.querySelectorAll('input, button, textarea, select').forEach(function (control) {
+                    control.disabled = enabled;
+                });
+            });
+
+            if (enabled) {
+                columnsJsonInput.value = '[]';
+                rowsJsonInput.value = '[]';
+            } else {
+                syncHiddenInputs();
+            }
         }
 
         function renderRowsHead() {
@@ -265,6 +294,11 @@
 
         if (addColumnButton) {
             addColumnButton.addEventListener('click', function () {
+                if (isContentSourceEnabled()) {
+                    showValidationMessage('Bei aktivierter Site-Table-Quelle sind nur die auswählbaren Seiten-/Beitrags-Spalten erlaubt.');
+                    return;
+                }
+
                 if (columns.length >= maxColumns) {
                     showValidationMessage('Es sind maximal ' + maxColumns + ' Spalten erlaubt.');
                     return;
@@ -277,6 +311,11 @@
 
         if (addRowButton) {
             addRowButton.addEventListener('click', function () {
+                if (isContentSourceEnabled()) {
+                    showValidationMessage('Bei aktivierter Site-Table-Quelle werden Zeilen automatisch aus Seiten/Beiträgen erzeugt.');
+                    return;
+                }
+
                 if (columns.length === 0) {
                     showValidationMessage('Bitte zuerst mindestens eine Spalte anlegen.');
                     return;
@@ -297,6 +336,12 @@
         }
 
         tableForm.addEventListener('submit', function (event) {
+            if (isContentSourceEnabled()) {
+                columnsJsonInput.value = '[]';
+                rowsJsonInput.value = '[]';
+                return;
+            }
+
             if (columns.length > maxColumns) {
                 event.preventDefault();
                 showValidationMessage('Es sind maximal ' + maxColumns + ' Spalten erlaubt.');
@@ -313,6 +358,10 @@
         });
 
         renderColumns();
+        if (contentSourceEnabledInput) {
+            contentSourceEnabledInput.addEventListener('change', updateContentSourceMode);
+        }
+        updateContentSourceMode();
     }
 
     document.addEventListener('DOMContentLoaded', function () {

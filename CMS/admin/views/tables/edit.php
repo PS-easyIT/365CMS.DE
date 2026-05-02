@@ -24,6 +24,10 @@ $description = htmlspecialchars($table['description'] ?? '');
 $columns     = $table['columns'] ?? [];
 $rows        = $table['rows'] ?? [];
 $settings    = $table['settings'] ?? $defaults;
+$contentSource = is_array($data['contentSource'] ?? null) ? $data['contentSource'] : ['sourceOptions' => [], 'fieldOptions' => []];
+$contentSourceEnabled = !empty($settings['content_source_enabled']);
+$contentSourceTypes = is_array($settings['content_source_types'] ?? null) ? $settings['content_source_types'] : ['pages', 'posts'];
+$contentSourceFields = is_array($settings['content_source_fields'] ?? null) ? $settings['content_source_fields'] : ['type', 'title', 'url', 'status', 'published_at', 'updated_at'];
 $siteTablesBaseUrl = '/admin/site-tables';
 $siteTablesSettingsUrl = $siteTablesBaseUrl . '?action=settings';
 $encodeTableJson = static function (mixed $value): string {
@@ -92,7 +96,7 @@ $encodeTableJson = static function (mixed $value): string {
                     </div>
 
                     <!-- Spalten-Editor -->
-                    <div class="card mb-3">
+                    <div class="card mb-3" data-manual-table-editor>
                         <div class="card-header">
                             <h3 class="card-title">Spalten</h3>
                             <div class="card-actions">
@@ -120,7 +124,7 @@ $encodeTableJson = static function (mixed $value): string {
                     </div>
 
                     <!-- Zeilen-Editor -->
-                    <div class="card mb-3">
+                    <div class="card mb-3" data-manual-table-editor>
                         <div class="card-header">
                             <h3 class="card-title">Daten</h3>
                             <div class="card-actions">
@@ -158,6 +162,38 @@ $encodeTableJson = static function (mixed $value): string {
                             <h3 class="card-title">Einstellungen</h3>
                         </div>
                         <div class="card-body">
+                            <div class="mb-3 pb-3 border-bottom">
+                                <label class="form-check form-switch mb-2">
+                                    <input class="form-check-input" type="checkbox" id="contentSourceEnabled" name="setting_content_source_enabled" value="1" <?php echo $contentSourceEnabled ? 'checked' : ''; ?>>
+                                    <span class="form-check-label">Als Site Table aus Seiten/Beiträgen verwenden</span>
+                                </label>
+                                <div class="form-hint mb-3">
+                                    Aktiviert eine dynamische Tabelle aus veröffentlichten Seiten und/oder Beiträgen. Freie Spalten- und Zelleneingaben sind dann deaktiviert.
+                                </div>
+
+                                <div id="contentSourceOptions" class="<?php echo $contentSourceEnabled ? '' : 'd-none'; ?>">
+                                    <div class="mb-3">
+                                        <label class="form-label">Quellen</label>
+                                        <?php foreach (($contentSource['sourceOptions'] ?? []) as $sourceKey => $sourceLabel): ?>
+                                            <label class="form-check mb-1">
+                                                <input class="form-check-input" type="checkbox" name="content_source_types[]" value="<?php echo htmlspecialchars((string)$sourceKey, ENT_QUOTES); ?>" <?php echo in_array((string)$sourceKey, $contentSourceTypes, true) ? 'checked' : ''; ?>>
+                                                <span class="form-check-label"><?php echo htmlspecialchars((string)$sourceLabel); ?></span>
+                                            </label>
+                                        <?php endforeach; ?>
+                                    </div>
+
+                                    <div class="mb-0">
+                                        <label class="form-label">Spalten aus Seiten/Beiträgen</label>
+                                        <?php foreach (($contentSource['fieldOptions'] ?? []) as $fieldKey => $field): ?>
+                                            <label class="form-check mb-1">
+                                                <input class="form-check-input" type="checkbox" name="content_source_fields[]" value="<?php echo htmlspecialchars((string)$fieldKey, ENT_QUOTES); ?>" <?php echo in_array((string)$fieldKey, $contentSourceFields, true) ? 'checked' : ''; ?>>
+                                                <span class="form-check-label"><?php echo htmlspecialchars((string)($field['label'] ?? $fieldKey)); ?></span>
+                                            </label>
+                                        <?php endforeach; ?>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div class="mb-3">
                                 <label class="form-label" for="setting_style_theme">Stil</label>
                                 <select class="form-select" id="setting_style_theme" name="setting_style_theme">

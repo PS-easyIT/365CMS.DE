@@ -15,6 +15,8 @@ if (!defined('ABSPATH')) {
 
 use CMS\Database;
 use CMS\Logger;
+use CMS\Services\PurifierService;
+use CMS\Services\SiteTable\SiteTableContentSource;
 use CMS\Services\SiteTable\SiteTableDisplaySettings;
 
 class TablesModule
@@ -45,6 +47,9 @@ class TablesModule
         'page_size'          => 10,
         'highlight_rows'     => false,
         'custom_css'         => '',
+        'content_source_enabled' => false,
+        'content_source_types'   => ['pages', 'posts'],
+        'content_source_fields'  => ['type', 'title', 'url', 'status', 'published_at', 'updated_at'],
     ];
 
     private const SETTINGS_BOOL_FIELDS = [
@@ -157,6 +162,10 @@ class TablesModule
             'styleOptions'     => $styleOptions,
             'editorSummary'    => $this->buildEditorSummary($editorColumns, $editorRows),
             'editorConfigJson' => $this->encodeEditorConfig($editorColumns, $editorRows),
+            'contentSource'    => [
+                'sourceOptions' => SiteTableContentSource::sourceOptions(),
+                'fieldOptions'  => SiteTableContentSource::fieldOptions(),
+            ],
             'editorLimits'     => [
                 'maxColumns' => self::MAX_COLUMNS,
                 'maxRows' => self::MAX_ROWS,
@@ -221,30 +230,6 @@ class TablesModule
             return ['success' => false, 'error' => 'Tabellenname darf nicht leer sein.'];
         }
 
-        // Spalten & Zeilen aus JSON-Feldern
-        $columns = $this->decodeEditorArrayPayload($post['columns_json'] ?? null);
-        if ($columns === null) {
-            return ['success' => false, 'error' => 'Ungültige Spalten-Konfiguration. Bitte Editor neu laden und erneut versuchen.'];
-        }
-
-        $rows = $this->decodeEditorArrayPayload($post['rows_json'] ?? null);
-        if ($rows === null) {
-            return ['success' => false, 'error' => 'Ungültige Zeilen-Konfiguration. Bitte Editor neu laden und erneut versuchen.'];
-        }
-
-        $normalizedColumns = $this->normalizeColumns($columns);
-        if ($normalizedColumns['error'] !== '') {
-            return ['success' => false, 'error' => $normalizedColumns['error']];
-        }
-
-        $normalizedRows = $this->normalizeRows($rows, $normalizedColumns['columns']);
-        if ($normalizedRows['error'] !== '') {
-            return ['success' => false, 'error' => $normalizedRows['error']];
-        }
-
-        $columns = $normalizedColumns['columns'];
-        $rows = $normalizedRows['rows'];
-
         // Settings zusammenstellen
         $settings = self::DEFAULT_SETTINGS;
         $settings['content_mode'] = 'table';
@@ -253,9 +238,58 @@ class TablesModule
                 $settings[$key] = isset($post['setting_' . $key]);
             } elseif (is_int($default)) {
                 $settings[$key] = (int)($post['setting_' . $key] ?? $default);
+            } elseif (is_array($default)) {
+                $settings[$key] = $default;
             } else {
                 $settings[$key] = trim((string)($post['setting_' . $key] ?? $default));
             }
+        }
+
+        $contentSource = SiteTableContentSource::normalizeSettings(
+            isset($post['setting_content_source_enabled']),
+            $post['content_source_types'] ?? [],
+            $post['content_source_fields'] ?? []
+        );
+        if ($contentSource['error'] !== '') {
+            return ['success' => false, 'error' => $contentSource['error']];
+        }
+
+        $settings['content_source_enabled'] = $contentSource['enabled'];
+        $settings['content_source_types'] = $contentSource['sources'];
+        $settings['content_source_fields'] = $contentSource['fields'];
+
+        if ($contentSource['enabled']) {
+            $columns = SiteTableContentSource::buildColumns([
+                'fields' => $contentSource['fields'],
+            ]);
+            $rows = SiteTableContentSource::buildRows($this->db, $this->prefix, [
+                'sources' => $contentSource['sources'],
+                'fields' => $contentSource['fields'],
+            ], self::MAX_ROWS);
+        } else {
+            // Spalten & Zeilen aus JSON-Feldern
+            $columns = $this->decodeEditorArrayPayload($post['columns_json'] ?? null);
+            if ($columns === null) {
+                return ['success' => false, 'error' => 'Ungültige Spalten-Konfiguration. Bitte Editor neu laden und erneut versuchen.'];
+            }
+
+            $rows = $this->decodeEditorArrayPayload($post['rows_json'] ?? null);
+            if ($rows === null) {
+                return ['success' => false, 'error' => 'Ungültige Zeilen-Konfiguration. Bitte Editor neu laden und erneut versuchen.'];
+            }
+
+            $normalizedColumns = $this->normalizeColumns($columns);
+            if ($normalizedColumns['error'] !== '') {
+                return ['success' => false, 'error' => $normalizedColumns['error']];
+            }
+
+            $normalizedRows = $this->normalizeRows($rows, $normalizedColumns['columns']);
+            if ($normalizedRows['error'] !== '') {
+                return ['success' => false, 'error' => $normalizedRows['error']];
+            }
+
+            $columns = $normalizedColumns['columns'];
+            $rows = $normalizedRows['rows'];
         }
 
         if (!in_array((string) $settings['style_theme'], $displaySettings['enabled_styles'], true)) {
@@ -517,7 +551,7 @@ class TablesModule
                     $cellValue = '';
                 }
 
-                $normalizedRow[$label] = $this->sanitizeText((string)$cellValue, self::MAX_CELL_LENGTH);
+                $normalizedRow[$label] = $this->sanitizeTableCell((string)$cellValue, self::MAX_CELL_LENGTH);
             }
 
             $normalizedRows[] = $normalizedRow;
@@ -558,7 +592,37 @@ class TablesModule
                 'maxColumnLabelLength' => self::MAX_COLUMN_LABEL_LENGTH,
                 'maxCellLength' => self::MAX_CELL_LENGTH,
             ],
+            'contentSource' => [
+                'enabled' => false,
+            ],
         ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
+    }
+
+    private function sanitizeTableCell(string $value, int $maxLength): string
+    {
+        $value = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/u', '', trim($value)) ?? '';
+        $value = function_exists('mb_substr')
+            ? mb_substr($value, 0, $maxLength)
+            : substr($value, 0, $maxLength);
+
+        if ($value === '') {
+            return '';
+        }
+
+        $value = $this->decodeAllowedTableCellHtmlEntities($value);
+
+        if (preg_match('/<\s*\/?\s*[a-z][^>]*>/i', $value) !== 1) {
+            return htmlspecialchars_decode(htmlspecialchars($value, ENT_NOQUOTES, 'UTF-8'), ENT_NOQUOTES);
+        }
+
+        return PurifierService::getInstance()->purify($value, 'table_cell');
+    }
+
+    private function decodeAllowedTableCellHtmlEntities(string $value): string
+    {
+        return preg_match('/&lt;\s*\/?\s*(?:a|strong|b|em|i|u)(?:\s|&gt;|>)/i', $value) === 1
+            ? html_entity_decode($value, ENT_QUOTES | ENT_HTML5, 'UTF-8')
+            : $value;
     }
 
     /**

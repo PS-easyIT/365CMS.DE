@@ -90,7 +90,7 @@ Maßgebliche Referenz: `CMS/admin/partials/sidebar.php`
 | Performance | ✅ eigenes Performance-Center mit Cache-, Medien-, Datenbank-, Settings- und Sessions-Unterseiten |
 | Monitoring | ✅ Response-Time, Cron-Status, Disk-Usage, Scheduled Tasks, Health-Check und E-Mail-Alerts |
 | Medien | ✅ Listen-/Grid-Ansicht, native Uploads, Rename/Move-Modale, Admin-Bulk-Aktionen, stabile Member-Root-Grenzen, korrigierte Systempfad-Semantik und `ArtikelRahmen_`-gefilterte Coverbild-Auswahl für Seiten/Beiträge |
-| Tabellen | ✅ eigene Tabellen-Display-Defaults mit wählbaren Stil-Presets und Admin-Settings-Seite |
+| Tabellen | ✅ eigene Tabellen-Display-Defaults mit wählbaren Stil-Presets, sicherer Inline-HTML-Formatierung in Zellen, gehärteten Link-Attributen und locale-bewussten dynamischen CMS-Quellen aus Seiten/Beiträgen |
 | Post-Taxonomien | ✅ Admin-Einstiege für Beitrags-Kategorien und Beitrags-Tags inklusive CRUD |
 | Fehlerreports | ✅ persistente Admin-Fehlerreports mit Audit-Logging und Redirect-kompatiblen Payloads |
 | Fonts | ✅ lokales Self-Hosting, Download-Fallbacks, Audit-Logging |
@@ -127,6 +127,7 @@ Maßgebliche Referenz: `CMS/admin/partials/sidebar.php`
 - Beiträge und Seiten behalten beim Speichern der getrennten DE-/EN-Editoransichten die jeweils inaktive Sprachfassung aus dem bestehenden Datensatz bei.
 - Public-Seiten prüfen vor der Auslieferung, ob die angefragte Sprachvariante wirklich Inhalt besitzt; EN bleibt damit strikt unter `/en/...`, DE ohne Sprachprefix.
 - Die Coverbild-Auswahl für Beiträge und Seiten listet nur noch `ArtikelRahmen_*`-Dateien, während normale Editor-Medienlisten unverändert bleiben.
+- Site Tables erlauben in Tabellenzellen nur sichere Formatierungs-Tags für Fett, Kursiv, Unterstreichung und Links; Link-Attribute werden sanitizer- und fallbackseitig auf sichere Schemata/Tabnabbing-Schutz gehärtet, aktivierte CMS-Quellen erzeugen Tabellen dynamisch und locale-bewusst aus Seiten/Beiträgen statt aus freier Eingabe.
 
 ---
 

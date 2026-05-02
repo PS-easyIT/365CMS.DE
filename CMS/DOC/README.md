@@ -35,11 +35,12 @@
 
 ## Release-Fokus 2.9.248
 
-Der aktuelle Release-Fokus `2.9.248` schließt die nächsten Lücken im getrennten Sprach- und Medienvertrag für redaktionelle Inhalte:
+Der aktuelle Release-Fokus `2.9.248` schließt die nächsten Lücken im getrennten Sprach-, Medien- und Tabellenvertrag für redaktionelle Inhalte:
 
 - Beitrags- und Seiteneditoren speichern getrennte DE-/EN-Ansichten jetzt sprachisoliert: Die jeweils inaktive Sprachfassung wird bei Save und Inline-Fehlerrendering aus dem bestehenden Datensatz erhalten
 - Public-Seiten folgen analog zu Beiträgen strikt dem Prefix-Vertrag: `/en/...` liefert nur echte EN-Seitenvarianten, deutsche Pfade bleiben ohne `/en`, alte Suffix-Erkennungen werden nicht mehr als lokalisierte Route behandelt
 - Die Coverbild-Auswahl für Seiten und Beiträge zeigt nur noch Dateien mit `ArtikelRahmen_`-Prefix; normale Editor-Medienlisten bleiben unverändert, neue Cover-Uploads bekommen den Prefix automatisch
+- Site Tables erkennen in Tabellenzellen sichere Inline-HTML-Formatierungen (`b/strong`, `i/em`, `u`, `a`), härten Link-Attribute gegen unsichere Schemata/Tabnabbing und können optional dynamisch aus veröffentlichten Seiten und Beiträgen mit fest auswählbaren, locale-bewussten Spalten gespeist werden
 - `README.md`, `Changelog.md`, `CMS/core/Version.php`, `CMS/update.json`, Marketplace-Metadaten und die zentralen CMS-Dokumente bleiben dabei auf demselben Release-Stand `2.9.248`
 
 ---

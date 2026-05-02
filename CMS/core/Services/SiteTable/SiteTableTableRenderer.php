@@ -22,13 +22,14 @@ final class SiteTableTableRenderer
 
     public function renderTable(int $tableId, array $table): string
     {
-        $columns = $this->normalizeColumns($table['columns'] ?? []);
+        $settings = $this->getSettings($table);
+        [$sourceColumns, $sourceRows] = $this->resolveContentSourceData($settings);
+        $columns = $this->normalizeColumns($sourceColumns !== [] ? $sourceColumns : ($table['columns'] ?? []));
         if ($columns === []) {
             return '';
         }
 
-        $rows = $this->normalizeRows($table['rows'] ?? [], $columns);
-        $settings = $this->getSettings($table);
+        $rows = $this->normalizeRows($sourceColumns !== [] ? $sourceRows : ($table['rows'] ?? []), $columns);
         $displaySettings = $this->loadDisplaySettings();
 
         $themeClassMap = [
@@ -58,7 +59,7 @@ final class SiteTableTableRenderer
                 $metaHtml .= '<h3 class="cms-site-table-title">' . $tableName . '</h3>';
             }
             if (!empty($displaySettings['show_description']) && !empty($table['description'])) {
-                $metaHtml .= '<div class="cms-site-table-description">' . $this->renderEmbeddedContent((string) $table['description'], $tableId) . '</div>';
+                $metaHtml .= '<div class="cms-site-table-description">' . $this->renderEmbeddedContent((string) $table['description'], $tableId, 'table') . '</div>';
             }
             if (!empty($displaySettings['show_export_links'])) {
                 $metaHtml .= $this->renderExportLinks($tableId, $settings);
@@ -120,8 +121,9 @@ final class SiteTableTableRenderer
             }
         }
 
-        $columns = $this->normalizeColumns($table['columns'] ?? []);
-        $rows = $this->normalizeRows($table['rows'] ?? [], $columns);
+        [$sourceColumns, $sourceRows] = $this->resolveContentSourceData($settings);
+        $columns = $this->normalizeColumns($sourceColumns !== [] ? $sourceColumns : ($table['columns'] ?? []));
+        $rows = $this->normalizeRows($sourceColumns !== [] ? $sourceRows : ($table['rows'] ?? []), $columns);
         $fileName = $slugSanitizer((string) ($table['name'] ?? 'site-table'));
         $fileName = is_string($fileName) && $fileName !== '' ? $fileName : 'site-table';
 
@@ -226,7 +228,7 @@ final class SiteTableTableRenderer
         return '<div class="cms-site-table-actions"><span>Export:</span> ' . implode(' <span aria-hidden="true">·</span> ', $links) . '</div>';
     }
 
-    private function renderEmbeddedContent(string $value, int $currentTableId): string
+    private function renderEmbeddedContent(string $value, int $currentTableId, string $htmlProfile = 'table_cell'): string
     {
         if ($value === '') {
             return '';
@@ -248,10 +250,11 @@ final class SiteTableTableRenderer
             },
             $value
         );
+        $prepared = $this->decodeAllowedTableCellHtmlEntities($prepared);
 
         $containsHtml = $this->containsHtml($prepared);
         $html = $containsHtml
-            ? $this->sanitizeRichHtml($prepared)
+            ? $this->sanitizeRichHtml($prepared, $htmlProfile)
             : nl2br(htmlspecialchars($prepared, ENT_QUOTES, 'UTF-8'));
 
         foreach ($placeholders as $token => $replacement) {
@@ -273,7 +276,7 @@ final class SiteTableTableRenderer
         }
 
         if ($this->containsHtml($value)) {
-            return $this->sanitizeRichHtml($value);
+            return $this->sanitizeRichHtml($value, 'table_cell');
         }
 
         return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
@@ -284,9 +287,39 @@ final class SiteTableTableRenderer
         return preg_match('/<\s*\/?\s*[a-z][^>]*>/i', $value) === 1;
     }
 
-    private function sanitizeRichHtml(string $value): string
+    private function decodeAllowedTableCellHtmlEntities(string $value): string
     {
-        return PurifierService::getInstance()->purify($value, 'table');
+        return preg_match('/&lt;\s*\/?\s*(?:a|strong|b|em|i|u)(?:\s|&gt;|>)/i', $value) === 1
+            ? html_entity_decode($value, ENT_QUOTES | ENT_HTML5, 'UTF-8')
+            : $value;
+    }
+
+    private function sanitizeRichHtml(string $value, string $profile): string
+    {
+        return PurifierService::getInstance()->purify($value, $profile);
+    }
+
+    /** @return array{0:array<int,array<string,mixed>>,1:array<int,array<string,string>>} */
+    private function resolveContentSourceData(array $settings): array
+    {
+        if (empty($settings['content_source_enabled'])) {
+            return [[], []];
+        }
+
+        $sourceSettings = [
+            'sources' => is_array($settings['content_source_types'] ?? null) ? $settings['content_source_types'] : SiteTableContentSource::defaultSources(),
+            'fields' => is_array($settings['content_source_fields'] ?? null) ? $settings['content_source_fields'] : SiteTableContentSource::defaultFields(),
+        ];
+
+        $columns = SiteTableContentSource::buildColumns($sourceSettings);
+        if ($columns === []) {
+            return [[], []];
+        }
+
+        $db = Database::instance();
+        $rows = SiteTableContentSource::buildRows($db, $db->getPrefix(), $sourceSettings, 250);
+
+        return [$columns, $rows];
     }
 
     /** @return array<string,mixed> */
