@@ -307,6 +307,9 @@ final class SiteTableTableRenderer
         }
 
         $sourceSettings = [
+            'mode' => is_scalar($settings['content_source_mode'] ?? null) ? (string) $settings['content_source_mode'] : SiteTableContentSource::defaultSelectionMode(),
+            'item_keys' => is_array($settings['content_source_item_keys'] ?? null) ? $settings['content_source_item_keys'] : SiteTableContentSource::defaultItemKeys(),
+            'category_id' => (int) ($settings['content_source_category_id'] ?? SiteTableContentSource::defaultCategoryId()),
             'sources' => is_array($settings['content_source_types'] ?? null) ? $settings['content_source_types'] : SiteTableContentSource::defaultSources(),
             'fields' => is_array($settings['content_source_fields'] ?? null) ? $settings['content_source_fields'] : SiteTableContentSource::defaultFields(),
         ];

@@ -48,8 +48,9 @@ class TablesModule
         'highlight_rows'     => false,
         'custom_css'         => '',
         'content_source_enabled' => false,
-        'content_source_types'   => ['pages', 'posts'],
-        'content_source_fields'  => ['type', 'title', 'url', 'status', 'published_at', 'updated_at'],
+        'content_source_mode'    => 'items',
+        'content_source_item_keys' => [],
+        'content_source_category_id' => 0,
     ];
 
     private const SETTINGS_BOOL_FIELDS = [
@@ -162,10 +163,7 @@ class TablesModule
             'styleOptions'     => $styleOptions,
             'editorSummary'    => $this->buildEditorSummary($editorColumns, $editorRows),
             'editorConfigJson' => $this->encodeEditorConfig($editorColumns, $editorRows),
-            'contentSource'    => [
-                'sourceOptions' => SiteTableContentSource::sourceOptions(),
-                'fieldOptions'  => SiteTableContentSource::fieldOptions(),
-            ],
+            'contentSource'    => SiteTableContentSource::adminOptions($this->db, $this->prefix),
             'editorLimits'     => [
                 'maxColumns' => self::MAX_COLUMNS,
                 'maxRows' => self::MAX_ROWS,
@@ -247,24 +245,34 @@ class TablesModule
 
         $contentSource = SiteTableContentSource::normalizeSettings(
             isset($post['setting_content_source_enabled']),
-            $post['content_source_types'] ?? [],
-            $post['content_source_fields'] ?? []
+            $post['content_source_mode'] ?? '',
+            $post['content_source_item_keys'] ?? [],
+            $post['content_source_category_id'] ?? 0
         );
         if ($contentSource['error'] !== '') {
             return ['success' => false, 'error' => $contentSource['error']];
         }
 
+        $selectionError = SiteTableContentSource::validateSelection($this->db, $this->prefix, $contentSource);
+        if ($selectionError !== '') {
+            return ['success' => false, 'error' => $selectionError];
+        }
+
         $settings['content_source_enabled'] = $contentSource['enabled'];
-        $settings['content_source_types'] = $contentSource['sources'];
-        $settings['content_source_fields'] = $contentSource['fields'];
+        $settings['content_source_mode'] = $contentSource['mode'];
+        $settings['content_source_item_keys'] = $contentSource['item_keys'];
+        $settings['content_source_category_id'] = $contentSource['category_id'];
 
         if ($contentSource['enabled']) {
             $columns = SiteTableContentSource::buildColumns([
-                'fields' => $contentSource['fields'],
+                'mode' => $contentSource['mode'],
+                'item_keys' => $contentSource['item_keys'],
+                'category_id' => $contentSource['category_id'],
             ]);
             $rows = SiteTableContentSource::buildRows($this->db, $this->prefix, [
-                'sources' => $contentSource['sources'],
-                'fields' => $contentSource['fields'],
+                'mode' => $contentSource['mode'],
+                'item_keys' => $contentSource['item_keys'],
+                'category_id' => $contentSource['category_id'],
             ], self::MAX_ROWS);
         } else {
             // Spalten & Zeilen aus JSON-Feldern

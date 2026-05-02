@@ -38,10 +38,10 @@ Options +FollowSymLinks
 # Security Headers
 <IfModule mod_headers.c>
     # Prevent clickjacking
-    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set X-Frame-Options "DENY"
 
-    # XSS Protection (legacy, ergänzt CSP)
-    Header always set X-XSS-Protection "1; mode=block"
+    # XSS Protection ist in modernen Browsern veraltet; CSP übernimmt den Schutz.
+    Header always set X-XSS-Protection "0"
 
     # Prevent MIME sniffing
     Header always set X-Content-Type-Options "nosniff"
@@ -52,7 +52,7 @@ Options +FollowSymLinks
     # ── Content Security Policy (Fallback) ───────────────────────────────────
     # PHP setzt primär eine nonce-basierte CSP. Dieser Apache-Header dient nur
     # als Fallback, falls die PHP-Header nicht gesendet werden konnten.
-    Header always setifempty Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https: blob:; media-src 'self' data: blob:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'; trusted-types cms365 default sanitize-html dompurify; require-trusted-types-for 'script'"
+    Header always setifempty Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self' data:; img-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; trusted-types cms365 default sanitize-html dompurify; require-trusted-types-for 'script'"
 
     # ── HSTS – nur über HTTPS aktiv ──────────────────────────────────────────
     # Der Core setzt HSTS primär selbst, sobald HTTPS oder Proxy-HTTPS erkannt
@@ -60,9 +60,8 @@ Options +FollowSymLinks
     Header always setifempty Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" env=HTTPS
 
     # ── Cross-Origin-Opener-Policy (COOP) ────────────────────────────────────
-    # Isoliert das Browser-Fenster von fremden Origins. same-origin-allow-popups
-    # erlaubt OAuth-Popups und Payment-Redirects.
-    Header always set Cross-Origin-Opener-Policy "same-origin-allow-popups"
+    # Isoliert das Browser-Fenster von fremden Origins.
+    Header always set Cross-Origin-Opener-Policy "same-origin"
 
     # ── Cross-Origin-Resource-Policy (CORP) ──────────────────────────────────
     Header always set Cross-Origin-Resource-Policy "same-site"

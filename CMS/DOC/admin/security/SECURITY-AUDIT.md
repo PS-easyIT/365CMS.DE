@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Dokumentiert die Admin-Seite für manuelle Sicherheitsprüfungen, KPI-Auswertung und Audit-Log-Einsicht.
 
-Letzte Aktualisierung: 2026-04-07 · Version 2.9.0
+Letzte Aktualisierung: 2026-05-02 · Version 2.9.248
 
 **Admin-Route:** `/admin/security-audit`
 
@@ -43,6 +43,9 @@ Das Modul bewertet derzeit unter anderem:
 - Schutz des Upload-Verzeichnisses via `.htaccess`
 - Passwort-Policy-Verfügbarkeit
 - CSRF-Token-System
+- nonce-basierte CSP, Trusted Types, HSTS und `.htaccess`-Fallback
+- Runtime-Verdrahtung von Firewall und AntiSpam
+- Fremdassets in Public-Runtime und Editor.js-Assetliste
 - Alter vorhandener Backups
 - auffällige Admin-Passwort-Hashes
 
@@ -75,6 +78,7 @@ Das Modul schreibt selbst protokollierte Einträge über `CMS\AuditLogger`, etwa
 
 - Die Seite ersetzt keine externe Härtungsanalyse oder einen Penetrationstest.
 - Sie ist als operative Frühwarn- und Kontrolloberfläche gedacht.
+- Das Audit erkennt typische Fehlkonfigurationen, aber keine vollständige Supply-Chain- oder Dependency-SBOM-Prüfung.
 - Aussagen über Sicherheitslage sollten immer zusammen mit [../../core/SECURITY.md](../../core/SECURITY.md) und den Audit-Berichten unter `DOC/audits/` gelesen werden.
 
 ---

@@ -8,7 +8,6 @@ $blacklist = $d['blacklist'] ?? [];
 $settings  = $d['settings'] ?? [];
 $stats     = $d['stats'] ?? [];
 $typeLabels = ['word' => 'Wort', 'email' => 'E-Mail', 'ip' => 'IP-Adresse', 'domain' => 'Domain'];
-$hasRecaptchaSecret = trim((string)($settings['antispam_recaptcha_secret'] ?? '')) !== '';
 ?>
 
 <div class="page-header d-print-none">
@@ -101,18 +100,8 @@ $hasRecaptchaSecret = trim((string)($settings['antispam_recaptcha_secret'] ?? ''
                                 <input type="number" name="antispam_max_links" class="form-control" min="0" max="50" value="<?php echo (int)($settings['antispam_max_links'] ?: 3); ?>">
                             </div>
 
-                            <hr>
-                            <h4 class="mb-3">reCAPTCHA (optional)</h4>
-
-                            <div class="mb-3">
-                                <label class="form-label">Site Key</label>
-                                <input type="text" name="antispam_recaptcha_key" class="form-control" value="<?php echo htmlspecialchars($settings['antispam_recaptcha_key'] ?? ''); ?>" autocomplete="off" spellcheck="false" maxlength="255">
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label">Secret Key</label>
-                                <input type="password" name="antispam_recaptcha_secret" class="form-control" value="" autocomplete="new-password" maxlength="255" placeholder="<?php echo $hasRecaptchaSecret ? 'Bestehendes Secret bleibt bei leerem Feld erhalten' : ''; ?>">
-                                <small class="form-hint">Vorhandene Secrets werden aus Sicherheitsgründen nicht erneut im Formular angezeigt.</small>
+                            <div class="alert alert-info mb-3">
+                                Externe CAPTCHA-Dienste werden in der Public-Runtime nicht geladen. Der Schutz erfolgt lokal über Honeypot, Mindestzeit, Linklimit, User-Agent-Prüfung und Blacklist.
                             </div>
 
                             <button type="submit" class="btn btn-primary w-100">Einstellungen speichern</button>

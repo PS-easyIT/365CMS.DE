@@ -1,4 +1,6 @@
-# 365CMS.DE  [![Version](https://img.shields.io/badge/Version-2.9.248-blue.svg)](Changelog.md) ![Status](https://img.shields.io/badge/Status-Stable-16a34a) ![PHP](https://img.shields.io/badge/PHP-8.4%2B-777BB4?logo=php&logoColor=white) ![MySQL](https://img.shields.io/badge/MySQL-5.7%2B-4479A1?logo=mysql&logoColor=white) ![MariaDB](https://img.shields.io/badge/MariaDB-10.3%2B-003545?logo=mariadb&logoColor=white)
+# 365CMS.DE
+
+**Version:** [2.9.248](Changelog.md) · **Status:** Stable · **PHP:** 8.4+ · **MySQL:** 5.7+ · **MariaDB:** 10.3+
 
 <div align="center">
 
@@ -10,65 +12,13 @@
 
 ---
 
-![Self-Hosted](https://img.shields.io/badge/Self--Hosted-Ready-15803d)
-![Members](https://img.shields.io/badge/Members-Built--In-0f766e)
-![Themes](https://img.shields.io/badge/Themes-Built--In-2563eb)
-![Plugins](https://img.shields.io/badge/Plugins-Extensible-7c3aed)
-![SEO](https://img.shields.io/badge/SEO-Integrated-f59e0b)
-![GDPR](https://img.shields.io/badge/GDPR-Ready-334155)
+`Self-hosted ready` · `Members built in` · `Themes built in` · `Plugins extensible` · `SEO integrated` · `GDPR ready`
 
 [🌐 Website](https://365cms.de) • [🚀 Installation](CMS/DOC/INSTALLATION.md) • [📚 Dokumentation](CMS/DOC/INDEX.md) • [🎨 Themes](CMS/DOC/theme/README.md) • [🔌 Plugins](CMS/DOC/plugins/GUIDE.md) 
 
 ---
 
 </div>
-
-## 🖼️ Screenshots
-
-<table>
-	<tr>
-		<td><img src="https://365cms.de/DOC/img/screen1.jpg" alt="365CMS Screenshot 1" width="220"></td>
-		<td><img src="https://365cms.de/DOC/img/screen2.jpg" alt="365CMS Screenshot 2" width="220"></td>
-		<td><img src="https://365cms.de/DOC/img/screen3.jpg" alt="365CMS Screenshot 3" width="220"></td>
-		<td><img src="https://365cms.de/DOC/img/screen4.jpg" alt="365CMS Screenshot 4" width="220"></td>
-		<td><img src="https://365cms.de/DOC/img/screen5.jpg" alt="365CMS Screenshot 5" width="220"></td>
-	</tr>
-	<tr>
-		<td><img src="https://365cms.de/DOC/img/screen6.jpg" alt="365CMS Screenshot 6" width="220"></td>
-		<td><img src="https://365cms.de/DOC/img/screen7.jpg" alt="365CMS Screenshot 7" width="220"></td>
-		<td><img src="https://365cms.de/DOC/img/screen8.jpg" alt="365CMS Screenshot 8" width="220"></td>
-		<td><img src="https://365cms.de/DOC/img/screen9.jpg" alt="365CMS Screenshot 9" width="220"></td>
-		<td><img src="https://365cms.de/DOC/img/screen10.jpg" alt="365CMS Screenshot 10" width="220"></td>
-	</tr>
-	<tr>
-		<td><img src="https://365cms.de/DOC/img/screen11.jpg" alt="365CMS Screenshot 11" width="220"></td>
-		<td><img src="https://365cms.de/DOC/img/screen12.jpg" alt="365CMS Screenshot 12" width="220"></td>
-		<td><img src="https://365cms.de/DOC/img/screen13.jpg" alt="365CMS Screenshot 13" width="220"></td>
-		<td><img src="https://365cms.de/DOC/img/screen14.jpg" alt="365CMS Screenshot 14" width="220"></td>
-		<td><img src="https://365cms.de/DOC/img/screen15.jpg" alt="365CMS Screenshot 15" width="220"></td>
-	</tr>
-	<tr>
-		<td><img src="https://365cms.de/DOC/img/screen16.jpg" alt="365CMS Screenshot 16" width="220"></td>
-		<td><img src="https://365cms.de/DOC/img/screen17.jpg" alt="365CMS Screenshot 17" width="220"></td>
-		<td><img src="https://365cms.de/DOC/img/screen18.jpg" alt="365CMS Screenshot 18" width="220"></td>
-		<td><img src="https://365cms.de/DOC/img/screen19.jpg" alt="365CMS Screenshot 19" width="220"></td>
-		<td><img src="https://365cms.de/DOC/img/screen20.jpg" alt="365CMS Screenshot 20" width="220"></td>
-	</tr>
-	<tr>
-		<td><img src="https://365cms.de/DOC/img/screen21.jpg" alt="365CMS Screenshot 21" width="220"></td>
-		<td><img src="https://365cms.de/DOC/img/screen22.jpg" alt="365CMS Screenshot 22" width="220"></td>
-		<td><img src="https://365cms.de/DOC/img/screen23.jpg" alt="365CMS Screenshot 23" width="220"></td>
-		<td><img src="https://365cms.de/DOC/img/screen24.jpg" alt="365CMS Screenshot 24" width="220"></td>
-		<td><img src="https://365cms.de/DOC/img/screen25.jpg" alt="365CMS Screenshot 25" width="220"></td>
-	</tr>
-	<tr>
-		<td><img src="https://365cms.de/DOC/img/screen26.jpg" alt="365CMS Screenshot 26" width="220"></td>
-		<td><img src="https://365cms.de/DOC/img/screen27.jpg" alt="365CMS Screenshot 27" width="220"></td>
-		<td><img src="https://365cms.de/DOC/img/screen28.jpg" alt="365CMS Screenshot 28" width="220"></td>
-		<td><img src="https://365cms.de/DOC/img/screen29.jpg" alt="365CMS Screenshot 29" width="220"></td>
-		<td><img src="https://365cms.de/DOC/img/screen30.jpg" alt="365CMS Screenshot 30" width="220"></td>
-	</tr>
-</table>
 
 ## 🇩🇪 Deutsch
 
@@ -141,7 +91,7 @@ Die folgenden Bereiche zeigen, wie breit 365CMS bereits ohne Plugin-Zwang aufges
 | Bereich | Enthaltene Funktionen | Nutzen |
 |---|---|---|
 | **Content & Publishing** | Seiten, Beiträge, Landing-Pages, Kategorien, Tags, Revisionen, Featured Images, Inhaltsstruktur und TOC | Macht aus einfacher Seitenpflege einen belastbaren Redaktions-Workflow mit Struktur, Übersicht und Wachstumsspielraum |
-| **Tabellen & Datenübersichten** | Site Tables mit Stil-Presets, sicher sanitierter Inline-HTML-Formatierung, Exporten und optional dynamischen Spalten aus veröffentlichten Seiten und Beiträgen | Macht wiederverwendbare Tabellen im Public-Bereich möglich, ohne freie Eingaben unkontrolliert ins Frontend zu übernehmen |
+| **Tabellen & Datenübersichten** | Site Tables mit Stil-Presets, sicher sanitierter Inline-HTML-Formatierung, Exporten und festen Zeilen aus ausgewählten Seiten/Beiträgen oder einem Kategorie-Filter | Macht wiederverwendbare Tabellen im Public-Bereich möglich, ohne freie Eingaben unkontrolliert ins Frontend zu übernehmen |
 | **Medienverwaltung** | Uploads, Ordner, Kategorien, Bild-/Dateiverwaltung, Grid-/Listenansicht, WebP-Workflows | Verhindert Medien-Chaos und hält Assets auch bei wachsenden Projekten schnell nutzbar |
 | **Mitgliederbereich** | Member-Dashboard, Profile, Favoriten, Benachrichtigungen, Nachrichten, Datenschutz, Medienbereich | Liefert die Basis für geschützte Bereiche, Community-Features und kundennahe Plattformlogik |
 | **Business & Abos** | Pakete, Bestellungen, Abonnements, Limits, Gruppen und zugehörige Prozesse | Bringt Geschäftslogik näher ans CMS, statt sie komplett außerhalb des Systems zu parken |
@@ -342,7 +292,7 @@ The following areas show how much 365CMS already covers out of the box before an
 | Area | Included capabilities | Benefit |
 |---|---|---|
 | **Content & Publishing** | Pages, posts, landing pages, categories, tags, revisions, featured images, content structure and TOC | Turns basic page editing into a durable editorial workflow with structure, clarity and room to grow |
-| **Tables & Data Views** | Site Tables with style presets, safely sanitized inline HTML formatting, exports and optional dynamic columns from published pages and posts | Enables reusable public data tables without letting uncontrolled free-form input leak into the frontend |
+| **Tables & Data Views** | Site Tables with style presets, safely sanitized inline HTML formatting, exports and fixed rows from selected pages/posts or a category filter | Enables reusable public data tables without letting uncontrolled free-form input leak into the frontend |
 | **Media Management** | Uploads, folders, categories, image/file management, grid/list views and WebP workflows | Prevents media chaos and keeps assets ready for use even as the project scales |
 | **Member Area** | Member dashboard, profiles, favorites, notifications, messages, privacy settings and media areas | Provides the foundation for protected areas, community features and customer-facing platform logic |
 | **Business & Subscriptions** | Packages, orders, subscriptions, limits, groups and related business processes | Brings business logic closer to the CMS instead of pushing it entirely into external tooling |

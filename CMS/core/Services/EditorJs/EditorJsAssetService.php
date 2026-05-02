@@ -26,7 +26,6 @@ final class EditorJsAssetService
         'editorjs-list.umd.js',
         'code.umd.js',
         'delimiter.umd.js',
-        'embed.umd.js',
         'image.umd.js',
         'inline-code.umd.js',
         'link.umd.js',
@@ -38,7 +37,6 @@ final class EditorJsAssetService
         'attaches.umd.js',
         'accordion.umd.js',
         'carousel.umd.js',
-        'columns.umd.js',
         'cropper-tune.umd.js',
         'drag-drop.umd.js',
         'drawing-tool.umd.js',
@@ -136,14 +134,6 @@ final class EditorJsAssetService
                 <button type="button" data-block="prosCons" title="Pros / Cons oder Vergleichsblock">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 7h10"/><path d="M8 12h10"/><path d="M8 17h10"/><path d="M4 7h.01"/><path d="M4 12h.01"/><path d="M4 17h.01"/></svg>
                     <span>Pros/Cons</span>
-                </button>
-                <button type="button" data-block="embed" title="Embed">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 9l-3 3l3 3"/><path d="M16 9l3 3l-3 3"/><path d="M14 5l-4 14"/></svg>
-                    <span>Embed</span>
-                </button>
-                <button type="button" data-block="columns" title="Spalten">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="7" height="14" rx="1"/><rect x="14" y="5" width="7" height="14" rx="1"/></svg>
-                    <span>Spalten</span>
                 </button>
                 <button type="button" data-block="accordion" title="Accordion">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 7h14"/><path d="M5 12h14"/><path d="M9 17h6"/></svg>

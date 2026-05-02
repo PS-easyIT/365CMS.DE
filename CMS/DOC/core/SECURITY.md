@@ -1,6 +1,6 @@
-<!-- UPDATED: 2026-04-07 -->
+<!-- UPDATED: 2026-05-02 -->
 # 365CMS – Sicherheitsarchitektur
-> **Stand:** 2026-04-07 | **Version:** 2.9.0 | **Status:** Aktuell
+> **Stand:** 2026-05-02 | **Version:** 2.9.248 | **Status:** Aktuell
 
 Umfassende Dokumentation der Sicherheitsmechanismen, Authentifizierungsverfahren und
 Secure-Coding-Grundsätze im 365CMS.
@@ -38,6 +38,9 @@ Request
 Security::init()          ← Security-Headers, CSP-Nonce, Session-Start
   │
   ▼
+SecurityRuntimeService    ← Firewall-Regeln, Rate-Limits, temporäre Sperren
+    │
+    ▼
 Auth::checkSession()      ← Session-Validierung, Lifetime, MFA-Status
   │
   ▼
@@ -63,6 +66,19 @@ AuditLogger               ← Alle sicherheitsrelevanten Aktionen protokollieren
 | Bcrypt (cost 12) | Passwort-Hashing |
 | CSP Level 3 + Trusted Types | Nonce-basiert, Report-Only im Debug |
 | HSTS Preload | max-age 1 Jahr, includeSubDomains |
+| Runtime-Asset-Policy | keine externen Font-/Embed-CDNs im Default-Runtime-Pfad |
+
+### 1.1 Zweitprüfung 2026-05-02
+
+Die Security-Zweitprüfung für `2.9.248` hat folgende Punkte gehärtet:
+
+- Default-Theme lädt keine Google-Fonts-Preconnects oder externen Font-Stylesheets mehr.
+- PHP-CSP und Apache-Fallback erlauben keine Remote-Fonts mehr; `img-src` ist auf `self`, `data:` und `blob:` begrenzt.
+- Editor.js lädt die externen `embed.umd.js`- und `columns.umd.js`-Bundles nicht mehr; bestehende Embed-Blöcke rendern nur noch als sicherer Link statt als Iframe.
+- AntiSpam bewirbt keine externen CAPTCHA-Dienste mehr und bleibt lokal: Honeypot, Mindestzeit, Linklimit, User-Agent und Blacklist.
+- Security-Audit prüft zusätzlich Firewall-Runtime, AntiSpam-Runtime und Fremdasset-Indikatoren.
+
+**Noch offen:** Kontaktformulare nutzen weiterhin eigene lokale Honeypot-Logik statt des zentralen AntiSpam-Services; `security_log` ist gleichzeitig Rate-Limit-Zähler und Audit-Tabelle, was bei sehr hohem Traffic später aggregiert werden sollte.
 
 ---
 

@@ -24,10 +24,11 @@ $description = htmlspecialchars($table['description'] ?? '');
 $columns     = $table['columns'] ?? [];
 $rows        = $table['rows'] ?? [];
 $settings    = $table['settings'] ?? $defaults;
-$contentSource = is_array($data['contentSource'] ?? null) ? $data['contentSource'] : ['sourceOptions' => [], 'fieldOptions' => []];
+$contentSource = is_array($data['contentSource'] ?? null) ? $data['contentSource'] : ['modeOptions' => [], 'itemOptions' => ['pages' => [], 'posts' => []], 'categoryOptions' => [], 'fixedColumns' => []];
 $contentSourceEnabled = !empty($settings['content_source_enabled']);
-$contentSourceTypes = is_array($settings['content_source_types'] ?? null) ? $settings['content_source_types'] : ['pages', 'posts'];
-$contentSourceFields = is_array($settings['content_source_fields'] ?? null) ? $settings['content_source_fields'] : ['type', 'title', 'url', 'status', 'published_at', 'updated_at'];
+$contentSourceMode = is_scalar($settings['content_source_mode'] ?? null) ? (string) $settings['content_source_mode'] : 'items';
+$contentSourceItemKeys = is_array($settings['content_source_item_keys'] ?? null) ? $settings['content_source_item_keys'] : [];
+$contentSourceCategoryId = (int) ($settings['content_source_category_id'] ?? 0);
 $siteTablesBaseUrl = '/admin/site-tables';
 $siteTablesSettingsUrl = $siteTablesBaseUrl . '?action=settings';
 $encodeTableJson = static function (mixed $value): string {
@@ -168,28 +169,77 @@ $encodeTableJson = static function (mixed $value): string {
                                     <span class="form-check-label">Als Site Table aus Seiten/Beiträgen verwenden</span>
                                 </label>
                                 <div class="form-hint mb-3">
-                                    Aktiviert eine dynamische Tabelle aus veröffentlichten Seiten und/oder Beiträgen. Freie Spalten- und Zelleneingaben sind dann deaktiviert.
+                                    Aktiviert eine dynamische Tabelle. Dann wählst du entweder einzelne Seiten/Beiträge oder einen Kategorie-Filter; freie Spalten- und Zelleneingaben sind deaktiviert.
                                 </div>
 
                                 <div id="contentSourceOptions" class="<?php echo $contentSourceEnabled ? '' : 'd-none'; ?>">
                                     <div class="mb-3">
-                                        <label class="form-label">Quellen</label>
-                                        <?php foreach (($contentSource['sourceOptions'] ?? []) as $sourceKey => $sourceLabel): ?>
-                                            <label class="form-check mb-1">
-                                                <input class="form-check-input" type="checkbox" name="content_source_types[]" value="<?php echo htmlspecialchars((string)$sourceKey, ENT_QUOTES); ?>" <?php echo in_array((string)$sourceKey, $contentSourceTypes, true) ? 'checked' : ''; ?>>
-                                                <span class="form-check-label"><?php echo htmlspecialchars((string)$sourceLabel); ?></span>
-                                            </label>
-                                        <?php endforeach; ?>
+                                        <label class="form-label" for="contentSourceMode">Zeilenquelle</label>
+                                        <select class="form-select" id="contentSourceMode" name="content_source_mode">
+                                            <?php foreach (($contentSource['modeOptions'] ?? []) as $modeKey => $modeLabel): ?>
+                                                <option value="<?php echo htmlspecialchars((string) $modeKey, ENT_QUOTES); ?>" <?php echo $contentSourceMode === (string) $modeKey ? 'selected' : ''; ?>><?php echo htmlspecialchars((string) $modeLabel); ?></option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+
+                                    <div class="mb-3" id="contentSourceItemsBlock">
+                                        <label class="form-label">Zeilen aus bestehenden Seiten/Beiträgen</label>
+                                        <div class="form-hint mb-2">Sortierung erfolgt automatisch als Seiten A–Z, danach Beiträge A–Z.</div>
+
+                                        <div class="mb-3">
+                                            <div class="fw-semibold small text-secondary text-uppercase mb-2">Seiten</div>
+                                            <div class="border rounded p-2" style="max-height: 220px; overflow:auto;">
+                                                <?php foreach (($contentSource['itemOptions']['pages'] ?? []) as $item): ?>
+                                                    <?php $itemKey = (string) ($item['key'] ?? ''); ?>
+                                                    <label class="form-check mb-2">
+                                                        <input class="form-check-input" type="checkbox" name="content_source_item_keys[]" value="<?php echo htmlspecialchars($itemKey, ENT_QUOTES); ?>" <?php echo in_array($itemKey, $contentSourceItemKeys, true) ? 'checked' : ''; ?>>
+                                                        <span class="form-check-label d-block">
+                                                            <span><?php echo htmlspecialchars((string) ($item['label'] ?? $itemKey)); ?></span>
+                                                            <?php if (!empty($item['meta'])): ?><span class="form-hint d-block"><?php echo htmlspecialchars((string) $item['meta']); ?></span><?php endif; ?>
+                                                        </span>
+                                                    </label>
+                                                <?php endforeach; ?>
+                                            </div>
+                                        </div>
+
+                                        <div class="mb-0">
+                                            <div class="fw-semibold small text-secondary text-uppercase mb-2">Beiträge</div>
+                                            <div class="border rounded p-2" style="max-height: 220px; overflow:auto;">
+                                                <?php foreach (($contentSource['itemOptions']['posts'] ?? []) as $item): ?>
+                                                    <?php $itemKey = (string) ($item['key'] ?? ''); ?>
+                                                    <label class="form-check mb-2">
+                                                        <input class="form-check-input" type="checkbox" name="content_source_item_keys[]" value="<?php echo htmlspecialchars($itemKey, ENT_QUOTES); ?>" <?php echo in_array($itemKey, $contentSourceItemKeys, true) ? 'checked' : ''; ?>>
+                                                        <span class="form-check-label d-block">
+                                                            <span><?php echo htmlspecialchars((string) ($item['label'] ?? $itemKey)); ?></span>
+                                                            <?php if (!empty($item['meta'])): ?><span class="form-hint d-block"><?php echo htmlspecialchars((string) $item['meta']); ?></span><?php endif; ?>
+                                                        </span>
+                                                    </label>
+                                                <?php endforeach; ?>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3 d-none" id="contentSourceCategoryBlock">
+                                        <label class="form-label" for="contentSourceCategoryId">Kategorie-Filter</label>
+                                        <select class="form-select" id="contentSourceCategoryId" name="content_source_category_id">
+                                            <option value="0">Bitte Kategorie wählen</option>
+                                            <?php foreach (($contentSource['categoryOptions'] ?? []) as $category): ?>
+                                                <option value="<?php echo (int) ($category['id'] ?? 0); ?>" <?php echo $contentSourceCategoryId === (int) ($category['id'] ?? 0) ? 'selected' : ''; ?>>
+                                                    <?php echo htmlspecialchars((string) ($category['label'] ?? 'Kategorie')); ?><?php echo !empty($category['slug']) ? ' (' . htmlspecialchars((string) $category['slug']) . ')' : ''; ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                        <div class="form-hint mt-2">Zeigt alle veröffentlichten Seiten und Beiträge aus der gewählten Kategorie.</div>
                                     </div>
 
                                     <div class="mb-0">
-                                        <label class="form-label">Spalten aus Seiten/Beiträgen</label>
-                                        <?php foreach (($contentSource['fieldOptions'] ?? []) as $fieldKey => $field): ?>
-                                            <label class="form-check mb-1">
-                                                <input class="form-check-input" type="checkbox" name="content_source_fields[]" value="<?php echo htmlspecialchars((string)$fieldKey, ENT_QUOTES); ?>" <?php echo in_array((string)$fieldKey, $contentSourceFields, true) ? 'checked' : ''; ?>>
-                                                <span class="form-check-label"><?php echo htmlspecialchars((string)($field['label'] ?? $fieldKey)); ?></span>
-                                            </label>
-                                        <?php endforeach; ?>
+                                        <label class="form-label">Feste Spalten</label>
+                                        <div class="form-hint">Die Ausgabe enthält nur diese Spalten:</div>
+                                        <div class="d-flex flex-wrap gap-2 mt-2">
+                                            <?php foreach (($contentSource['fixedColumns'] ?? []) as $columnLabel): ?>
+                                                <span class="badge bg-azure-lt"><?php echo htmlspecialchars((string) $columnLabel); ?></span>
+                                            <?php endforeach; ?>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

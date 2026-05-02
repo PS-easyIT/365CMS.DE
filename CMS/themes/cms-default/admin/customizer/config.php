@@ -268,10 +268,10 @@ return [
                 'default' => '700',
             ],
             'google_fonts' => [
-                'label' => 'Google Fonts laden',
-                'description' => 'Libre Baskerville (Überschriften) + DM Sans (Text). Deaktivieren für DSGVO-Konformität. Hinweis: Wenn unter <em>CMS-Einstellungen → Datenschutz → Lokale Schriften</em> aktiviert, wird automatisch die lokal heruntergeladene Version verwendet, unabhängig von dieser Einstellung.',
+                'label' => 'Lokale Schriftdateien verwenden',
+                'description' => 'Die Public-Runtime lädt keine externen Google-Fonts-CDNs mehr. Optional importierte oder hochgeladene Schriften werden ausschließlich lokal ausgeliefert; ohne lokale Dateien greift der System-Font-Stack.',
                 'type' => 'checkbox',
-                'default' => true,
+                'default' => false,
             ],
             'font_family_body' => [
                 'label' => 'Schriftart Fließtext',

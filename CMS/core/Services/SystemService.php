@@ -607,14 +607,7 @@ class SystemService {
         }
         
         try {
-            $lines = file($log_file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-            
-            if ($lines === false) {
-                return $logs;
-            }
-            
-            // Get last N lines
-            $lines = array_slice($lines, -$limit);
+            $lines = $this->readLastLogLines($log_file, $limit);
             
             foreach ($lines as $line) {
                 // Parse log line (format: [YYYY-MM-DD HH:MM:SS] TYPE: Message)
@@ -723,17 +716,11 @@ class SystemService {
         }
 
         $entries = [];
-        $lines   = file($logFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-
-        if ($lines === false) {
-            return [];
-        }
-
-        $lines = array_slice($lines, -$limit);
+        $lines = $this->readLastLogLines($logFile, $limit);
 
         foreach ($lines as $line) {
             // Logger format: [2026-02-22 14:30:00] [WARNING] [cms] Message {context}
-            if (preg_match('/^\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\]\s+\[(\w+)\]\s+\[(\w+)\]\s+(.*)$/', $line, $m)) {
+            if (preg_match('/^\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\]\s+\[([A-Z]+)\]\s+\[([A-Za-z0-9_.-]+)\]\s+(.*)$/', $line, $m)) {
                 $entries[] = [
                     'timestamp' => $m[1],
                     'level'     => $m[2],
@@ -818,6 +805,41 @@ class SystemService {
         return preg_match('/^[A-Za-z0-9._-]+\.log$/', $filename) === 1
             && basename($filename) === $filename
             && !str_contains($filename, '..');
+    }
+
+    /** @return array<int,string> */
+    private function readLastLogLines(string $path, int $limit): array
+    {
+        $limit = max(1, min(1000, $limit));
+        $maxBytes = 2 * 1024 * 1024;
+        $size = filesize($path);
+        if ($size === false || $size <= 0) {
+            return [];
+        }
+
+        $handle = fopen($path, 'rb');
+        if ($handle === false) {
+            return [];
+        }
+
+        try {
+            $offset = max(0, $size - $maxBytes);
+            fseek($handle, $offset);
+            $content = stream_get_contents($handle);
+            if ($content === false) {
+                return [];
+            }
+        } finally {
+            fclose($handle);
+        }
+
+        $lines = preg_split('/\R/u', $content) ?: [];
+        $lines = array_values(array_filter($lines, static fn(string $line): bool => trim($line) !== ''));
+        $lines = array_slice($lines, -$limit);
+
+        return array_map(static function (string $line): string {
+            return trim(preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]+/u', ' ', $line) ?? '');
+        }, $lines);
     }
     
     /**

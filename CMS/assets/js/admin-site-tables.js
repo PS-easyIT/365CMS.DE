@@ -135,6 +135,9 @@
         var rowsJsonInput = document.getElementById('rowsJsonInput');
         var contentSourceEnabledInput = document.getElementById('contentSourceEnabled');
         var contentSourceOptions = document.getElementById('contentSourceOptions');
+        var contentSourceModeInput = document.getElementById('contentSourceMode');
+        var contentSourceItemsBlock = document.getElementById('contentSourceItemsBlock');
+        var contentSourceCategoryBlock = document.getElementById('contentSourceCategoryBlock');
         var manualEditorBlocks = document.querySelectorAll('[data-manual-table-editor]');
 
         if (!columnsBody || !rowsHeadContainer || !rowsBody || !tableForm || !columnsJsonInput || !rowsJsonInput) {
@@ -167,11 +170,34 @@
             return Boolean(contentSourceEnabledInput && contentSourceEnabledInput.checked);
         }
 
+        function getContentSourceMode() {
+            if (!contentSourceModeInput) {
+                return 'items';
+            }
+
+            return String(contentSourceModeInput.value || 'items');
+        }
+
         function updateContentSourceMode() {
             var enabled = isContentSourceEnabled();
+            var mode = getContentSourceMode();
 
             if (contentSourceOptions) {
                 contentSourceOptions.classList.toggle('d-none', !enabled);
+            }
+
+            if (contentSourceItemsBlock) {
+                contentSourceItemsBlock.classList.toggle('d-none', !enabled || mode !== 'items');
+                contentSourceItemsBlock.querySelectorAll('input, select, textarea, button').forEach(function (control) {
+                    control.disabled = !enabled || mode !== 'items';
+                });
+            }
+
+            if (contentSourceCategoryBlock) {
+                contentSourceCategoryBlock.classList.toggle('d-none', !enabled || mode !== 'category');
+                contentSourceCategoryBlock.querySelectorAll('input, select, textarea, button').forEach(function (control) {
+                    control.disabled = !enabled || mode !== 'category';
+                });
             }
 
             manualEditorBlocks.forEach(function (block) {
@@ -360,6 +386,9 @@
         renderColumns();
         if (contentSourceEnabledInput) {
             contentSourceEnabledInput.addEventListener('change', updateContentSourceMode);
+        }
+        if (contentSourceModeInput) {
+            contentSourceModeInput.addEventListener('change', updateContentSourceMode);
         }
         updateContentSourceMode();
     }

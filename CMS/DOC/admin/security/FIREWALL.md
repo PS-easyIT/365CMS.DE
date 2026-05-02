@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Schutz vor missbräuchlichen Anfragen, IP-Sperren, Blockregeln und sicherheitsrelevanten Zugriffsmustern.
 
-Letzte Aktualisierung: 2026-04-07 · Version 2.9.0
+Letzte Aktualisierung: 2026-05-02 · Version 2.9.248
 
 **Admin-Route:** `/admin/firewall`
 
@@ -16,6 +16,7 @@ Die Firewall ist das zentrale Admin-Modul für anwendungsnahe Abwehrmaßnahmen. 
 |---|---|
 | Entry Point | `CMS/admin/firewall.php` |
 | Modul | `CMS/admin/modules/security/FirewallModule.php` |
+| Runtime | `CMS/core/Services/SecurityRuntimeService.php` |
 | View | `CMS/admin/views/security/firewall.php` |
 
 Typische Aufgaben:
@@ -24,6 +25,8 @@ Typische Aufgaben:
 - regelbasierte Filter pflegen
 - Sperren aktivieren oder aufheben
 - sicherheitsrelevante Änderungen protokollieren
+
+Seit 2.9.248 werden aktive Firewall-Regeln nicht nur verwaltet, sondern im Core-Runtime-Pfad serverseitig ausgewertet. Blockentscheidungen laufen damit unabhängig von der Admin-Oberfläche.
 
 ---
 
@@ -47,7 +50,7 @@ Je nach Konfiguration können Regeln unter anderem auf Folgendes zielen:
 - CIDR-Bereich
 - Länderkennung
 - User-Agent-Muster
-- bekannte Angriffssignaturen in Requests
+- temporäre Rate-Limit-Sperren
 
 Die aktuelle Modul-Implementierung prüft Eingaben strenger als ältere Stände, insbesondere bei IP-Bereichen, Länderkennungen und benutzerdefinierten Regeln.
 
@@ -70,7 +73,14 @@ Diese Aktionen werden im aktuellen Arbeitsstand zusätzlich über den `AuditLogg
 - Zugriff nur für Administratoren
 - CSRF-Prüfung für alle POST-Aktionen
 - serverseitige Validierung von IPs und Regelparametern
+- Runtime-Enforcement über `SecurityRuntimeService`
+- Rate-Limit-Ereignisse und Blockierungen in `security_log`
+- Allow-Regeln überspringen Blockregeln, aber nicht mehr das Rate-Limit
 - Redirect nach jeder schreibenden Aktion
+
+## Aktuell noch offen
+
+- `security_log` dient weiterhin als Rate-Limit-Zähler. Für sehr stark frequentierte Installationen wäre eine aggregierte Zählertabelle ressourcenschonender.
 
 ---
 

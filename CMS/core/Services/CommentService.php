@@ -18,6 +18,7 @@ namespace CMS\Services;
 use CMS\AuditLogger;
 use CMS\Database;
 use CMS\Logger;
+use CMS\Security;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -31,6 +32,13 @@ class CommentService
     private const MAX_LIST_LIMIT = 200;
     private const FLOOD_WINDOW_MINUTES = 15;
     private const MAX_COMMENTS_PER_WINDOW = 5;
+    private const ANTISPAM_SETTING_KEYS = [
+        'antispam_enabled',
+        'antispam_honeypot',
+        'antispam_min_time',
+        'antispam_max_links',
+        'antispam_block_empty_ua',
+    ];
 
     private static ?self $instance = null;
 
@@ -116,6 +124,16 @@ class CommentService
 
         if ($this->isRateLimited((string) $validatedEmail, $normalizedIp, $userId)) {
             $this->logFailure('comments.create.rate_limited', 'Kommentar wegen Kommentar-Flood-Limit verworfen.', [
+                'post_id' => $postId,
+                'user_id' => $userId,
+                'email_masked' => $this->maskEmailForAudit((string) $validatedEmail),
+                'ip' => $normalizedIp,
+            ]);
+            return false;
+        }
+
+        if ($this->isRejectedByAntispam((string) $validatedEmail, $normalizedIp, $authorName, $cleanContent)) {
+            $this->logFailure('comments.create.antispam_rejected', 'Kommentar durch AntiSpam-Regel verworfen.', [
                 'post_id' => $postId,
                 'user_id' => $userId,
                 'email_masked' => $this->maskEmailForAudit((string) $validatedEmail),
@@ -402,6 +420,132 @@ class CommentService
         return $count >= self::MAX_COMMENTS_PER_WINDOW;
     }
 
+    private function isRejectedByAntispam(string $email, string $ipAddress, string $authorName, string $content): bool
+    {
+        $settings = $this->loadAntispamSettings();
+        if (($settings['antispam_enabled'] ?? '0') !== '1') {
+            return false;
+        }
+
+        if (($settings['antispam_honeypot'] ?? '0') === '1' && trim((string)($_POST['comment_hp'] ?? '')) !== '') {
+            return true;
+        }
+
+        $minimumSeconds = max(0, min(60, (int)($settings['antispam_min_time'] ?? 0)));
+        $startedAt = (int)($_POST['comment_started_at'] ?? 0);
+        if ($minimumSeconds > 0 && $startedAt > 0 && time() - $startedAt < $minimumSeconds) {
+            return true;
+        }
+
+        if (($settings['antispam_block_empty_ua'] ?? '0') === '1' && trim((string)($_SERVER['HTTP_USER_AGENT'] ?? '')) === '') {
+            return true;
+        }
+
+        $maxLinks = max(0, min(50, (int)($settings['antispam_max_links'] ?? 0)));
+        if ($maxLinks > 0 && $this->countLinks($content) > $maxLinks) {
+            return true;
+        }
+
+        return $this->matchesSpamBlacklist($email, $ipAddress, $authorName, $content);
+    }
+
+    /** @return array<string,string> */
+    private function loadAntispamSettings(): array
+    {
+        $placeholders = implode(',', array_fill(0, count(self::ANTISPAM_SETTING_KEYS), '?'));
+        $rows = $this->db->get_results(
+            "SELECT option_name, option_value FROM {$this->prefix}settings WHERE option_name IN ({$placeholders})",
+            self::ANTISPAM_SETTING_KEYS
+        ) ?: [];
+
+        $settings = [
+            'antispam_enabled' => '0',
+            'antispam_honeypot' => '1',
+            'antispam_min_time' => '3',
+            'antispam_max_links' => '3',
+            'antispam_block_empty_ua' => '1',
+        ];
+
+        foreach ($rows as $row) {
+            $name = (string)($row->option_name ?? '');
+            if (array_key_exists($name, $settings)) {
+                $settings[$name] = (string)($row->option_value ?? '');
+            }
+        }
+
+        return $settings;
+    }
+
+    private function countLinks(string $content): int
+    {
+        $count = preg_match_all('/https?:\/\//i', $content, $matches);
+        if ($count === false) {
+            return 0;
+        }
+
+        return $count;
+    }
+
+    private function matchesSpamBlacklist(string $email, string $ipAddress, string $authorName, string $content): bool
+    {
+        try {
+            $rows = $this->db->get_results(
+                "SELECT type, value FROM {$this->prefix}spam_blacklist ORDER BY id DESC LIMIT 1000"
+            ) ?: [];
+        } catch (\Throwable) {
+            return false;
+        }
+        if ($rows === []) {
+            return false;
+        }
+
+        $haystack = $this->lowerUtf8($authorName . "\n" . strip_tags($content));
+        $email = strtolower($email);
+        $emailDomain = str_contains($email, '@') ? substr(strrchr($email, '@') ?: '', 1) : '';
+
+        foreach ($rows as $row) {
+            $type = (string)($row->type ?? '');
+            $value = trim((string)($row->value ?? ''));
+            if ($value === '') {
+                continue;
+            }
+
+            if ($type === 'ip' && $ipAddress !== '' && hash_equals($value, $ipAddress)) {
+                return true;
+            }
+
+            if ($type === 'email' && hash_equals(strtolower($value), $email)) {
+                return true;
+            }
+
+            if ($type === 'domain' && $emailDomain !== '' && hash_equals(strtolower($value), $emailDomain)) {
+                return true;
+            }
+
+            if ($type === 'word' && $this->containsUtf8($haystack, $this->lowerUtf8($value))) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function lowerUtf8(string $value): string
+    {
+        return function_exists('mb_strtolower') ? mb_strtolower($value, 'UTF-8') : strtolower($value);
+    }
+
+    private function containsUtf8(string $haystack, string $needle): bool
+    {
+        if ($needle === '') {
+            return false;
+        }
+
+        return function_exists('mb_stripos')
+            ? mb_stripos($haystack, $needle, 0, 'UTF-8') !== false
+            : stripos($haystack, $needle) !== false;
+    }
+
     private function notifyAdminForPendingComment(int $postId, string $author, string $email): void
     {
         $to = defined('ADMIN_EMAIL') ? (string) ADMIN_EMAIL : '';
@@ -442,6 +586,7 @@ class CommentService
 
     private function logFailure(string $action, string $message, array $context = []): void
     {
+        $context = $this->sanitizeLogContext($context);
         Logger::instance()->withChannel('comments')->warning($message, $context);
         AuditLogger::instance()->log(
             AuditLogger::CAT_CONTENT,
@@ -456,6 +601,7 @@ class CommentService
 
     private function logSuccess(string $action, string $message, array $context = [], ?int $commentId = null): void
     {
+        $context = $this->sanitizeLogContext($context);
         Logger::instance()->withChannel('comments')->info($message, $context);
         AuditLogger::instance()->log(
             AuditLogger::CAT_CONTENT,
@@ -466,5 +612,19 @@ class CommentService
             $context,
             'info'
         );
+    }
+
+    /** @param array<string,mixed> $context @return array<string,mixed> */
+    private function sanitizeLogContext(array $context): array
+    {
+        foreach ($context as $key => $value) {
+            if (is_string($value)) {
+                $context[$key] = Security::escape(trim(preg_replace('/[\x00-\x1F\x7F]+/u', ' ', $value) ?? ''));
+            } elseif (is_array($value)) {
+                $context[$key] = $this->sanitizeLogContext($value);
+            }
+        }
+
+        return $context;
     }
 }

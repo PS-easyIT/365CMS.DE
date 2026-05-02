@@ -19,8 +19,6 @@ class AntispamModule
         'antispam_min_time',
         'antispam_max_links',
         'antispam_block_empty_ua',
-        'antispam_recaptcha_key',
-        'antispam_recaptcha_secret',
     ];
 
     private readonly \CMS\Database $db;
@@ -41,9 +39,18 @@ class AntispamModule
                 type        VARCHAR(20) NOT NULL DEFAULT 'word',
                 value       VARCHAR(255) NOT NULL,
                 created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                INDEX idx_type (type)
+                INDEX idx_type (type),
+                UNIQUE KEY uniq_type_value (type, value)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
         );
+
+        try {
+            $this->db->getPdo()->exec(
+                "ALTER TABLE {$this->prefix}spam_blacklist ADD UNIQUE KEY uniq_type_value (type, value)"
+            );
+        } catch (\Throwable $e) {
+            // Index existiert bereits oder Altbestand enthält Duplikate; Laufzeitprüfung fängt Duplikate trotzdem ab.
+        }
     }
 
     public function getData(): array
@@ -85,18 +92,12 @@ class AntispamModule
 
     public function saveSettings(array $post): array
     {
-        $existingSettings = $this->loadSettings();
-        $recaptchaSecret = $this->sanitizeText((string)($post['antispam_recaptcha_secret'] ?? ''), 255);
         $keys = [
             'antispam_enabled'         => isset($post['antispam_enabled']) ? '1' : '0',
             'antispam_honeypot'        => isset($post['antispam_honeypot']) ? '1' : '0',
             'antispam_min_time'        => (string)max(0, min(60, (int)($post['antispam_min_time'] ?? 3))),
             'antispam_max_links'       => (string)max(0, min(50, (int)($post['antispam_max_links'] ?? 3))),
             'antispam_block_empty_ua'  => isset($post['antispam_block_empty_ua']) ? '1' : '0',
-            'antispam_recaptcha_key'   => $this->sanitizeText((string)($post['antispam_recaptcha_key'] ?? ''), 255),
-            'antispam_recaptcha_secret' => $recaptchaSecret !== ''
-                ? $recaptchaSecret
-                : (string)($existingSettings['antispam_recaptcha_secret'] ?? ''),
         ];
 
         try {
@@ -155,6 +156,14 @@ class AntispamModule
         }
 
         try {
+            $exists = (int)$this->db->get_var(
+                "SELECT COUNT(*) FROM {$this->prefix}spam_blacklist WHERE type = ? AND value = ?",
+                [$type, $value]
+            );
+            if ($exists > 0) {
+                return ['success' => true, 'message' => 'Blacklist-Eintrag existiert bereits.'];
+            }
+
             $this->db->insert('spam_blacklist', [
                 'type'  => $type,
                 'value' => $value,

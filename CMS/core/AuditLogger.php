@@ -75,7 +75,13 @@ class AuditLogger
 
             $userId    = isset($_SESSION['user_id']) ? (int) $_SESSION['user_id'] : null;
             $ipAddress = $this->getClientIp();
-            $userAgent = substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 500);
+            $userAgent = $this->sanitizeLogText((string)($_SERVER['HTTP_USER_AGENT'] ?? ''), 500);
+            $category = $this->sanitizeIdentifier($category, 40, self::CAT_SYSTEM);
+            $action = $this->sanitizeIdentifier($action, 100, 'unknown');
+            $description = $this->sanitizeLogText($description, 1000);
+            $entityType = $this->sanitizeIdentifier($entityType, 100, '');
+            $severity = $this->sanitizeSeverity($severity);
+            $metadata = $this->sanitizeMetadata($metadata);
 
             $db->execute(
                 "INSERT INTO {$db->getPrefix()}audit_log
@@ -225,6 +231,8 @@ class AuditLogger
     {
         try {
             $db = Database::instance();
+            $limit = max(1, min(200, $limit));
+            $category = $this->sanitizeIdentifier($category, 40, '');
 
             if ($category !== '') {
                 $stmt = $db->prepare(
@@ -254,5 +262,58 @@ class AuditLogger
     private function getClientIp(): string
     {
         return Security::getClientIp();
+    }
+
+    private function sanitizeIdentifier(string $value, int $maxLength, string $fallback): string
+    {
+        $value = strtolower($this->sanitizeLogText($value, $maxLength));
+        $value = preg_replace('/[^a-z0-9_.:-]/', '_', $value) ?? '';
+        $value = trim($value, '_.:-');
+
+        return $value !== '' ? substr($value, 0, $maxLength) : $fallback;
+    }
+
+    private function sanitizeSeverity(string $severity): string
+    {
+        $severity = strtolower(trim($severity));
+
+        return in_array($severity, ['info', 'warning', 'error', 'critical'], true) ? $severity : 'info';
+    }
+
+    private function sanitizeLogText(string $value, int $maxLength): string
+    {
+        $value = trim(preg_replace('/[\x00-\x1F\x7F]+/u', ' ', $value) ?? '');
+
+        return function_exists('mb_substr') ? mb_substr($value, 0, $maxLength, 'UTF-8') : substr($value, 0, $maxLength);
+    }
+
+    /** @param array<string,mixed> $metadata @return array<string,mixed> */
+    private function sanitizeMetadata(array $metadata): array
+    {
+        foreach ($metadata as $key => $value) {
+            $normalizedKey = strtolower((string)$key);
+            if (preg_match('/(password|passwd|secret|token|nonce|csrf|auth|mfa|key|credential|cookie|session)/', $normalizedKey) === 1) {
+                $metadata[$key] = '***';
+                continue;
+            }
+
+            if (is_string($value)) {
+                $metadata[$key] = $this->sanitizeLogText($this->maskInlineSecrets($value), 500);
+            } elseif (is_array($value)) {
+                $metadata[$key] = $this->sanitizeMetadata($value);
+            } elseif ($value instanceof \Throwable) {
+                $metadata[$key] = $value::class;
+            }
+        }
+
+        return $metadata;
+    }
+
+    private function maskInlineSecrets(string $value): string
+    {
+        $value = preg_replace('/([?&](?:token|csrf_token|nonce|key|secret|password|pass)=)[^&\s]+/i', '$1***', $value) ?? $value;
+        $value = preg_replace('/\b(Bearer\s+)[A-Za-z0-9._~+\/-]+=*/i', '$1***', $value) ?? $value;
+
+        return $value;
     }
 }

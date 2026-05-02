@@ -8,7 +8,6 @@
  */
 
 declare(strict_types=1);
-
 namespace CMS;
 
 if (!defined('ABSPATH')) {
@@ -692,20 +691,7 @@ class Auth
             return ltrim($domain, '.');
         }
 
-        $host = strtolower(trim((string)($_SERVER['HTTP_HOST'] ?? '')));
-        if ($host === '') {
-            return '';
-        }
-
-        if (str_contains($host, ':')) {
-            $host = explode(':', $host, 2)[0];
-        }
-
-        if ($host === '' || $host === 'localhost' || filter_var($host, FILTER_VALIDATE_IP)) {
-            return '';
-        }
-
-        return preg_replace('/^www\./i', '', $host) ?? '';
+        return '';
     }
 
     private function refreshSessionCookie(string $role, bool $remember): void

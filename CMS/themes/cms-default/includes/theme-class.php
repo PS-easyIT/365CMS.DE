@@ -24,7 +24,7 @@ final class MeridianCMSDefaultTheme
     private function __construct()
     {
         \CMS\Hooks::addAction('head', [$this, 'outputPreconnect'], 1);
-        \CMS\Hooks::addAction('head', [$this, 'outputGoogleFonts'], 5);
+        \CMS\Hooks::addAction('head', [$this, 'outputLocalFonts'], 5);
         \CMS\Hooks::addAction('head', [$this, 'enqueueStyles'], 10);
         \CMS\Hooks::addAction('head', [$this, 'outputMetaTags'], 15);
         \CMS\Hooks::addAction('head', [$this, 'outputCustomStyles'], 20);
@@ -39,12 +39,7 @@ final class MeridianCMSDefaultTheme
 
     public function outputPreconnect(): void
     {
-        if ($this->isLocalFontsEnabled()) {
-            return;
-        }
-
-        echo '<link rel="preconnect" href="https://fonts.googleapis.com">' . "\n";
-        echo '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>' . "\n";
+        // Runtime lädt keine externen Font-CDNs. Lokale Assets benötigen kein Cross-Origin-Preconnect.
     }
 
     private function isLocalFontsEnabled(): bool
@@ -61,55 +56,18 @@ final class MeridianCMSDefaultTheme
         }
     }
 
-    public function outputGoogleFonts(): void
+    public function outputLocalFonts(): void
     {
-        if ($this->isLocalFontsEnabled()) {
-            return;
+        $localCssPath = defined('ASSETS_PATH') ? ASSETS_PATH . 'css/local-fonts.css' : '';
+        $localCssUrl = function_exists('cms_asset_url')
+            ? cms_asset_url('css/local-fonts.css')
+            : (defined('SITE_URL') ? SITE_URL . '/assets/css/local-fonts.css' : '');
+
+        if ($localCssPath && file_exists($localCssPath) && $localCssUrl) {
+            $href = htmlspecialchars($localCssUrl, ENT_QUOTES, 'UTF-8');
+            echo '<link rel="preload" href="' . $href . '" as="style" onload="this.onload=null;this.rel=\'stylesheet\'">' . "\n";
+            echo '<noscript><link rel="stylesheet" href="' . $href . '"></noscript>' . "\n";
         }
-
-        try {
-            $loadFonts = \CMS\Services\ThemeCustomizer::instance()->get('typography', 'google_fonts', true);
-        } catch (\Throwable $e) {
-            $loadFonts = true;
-        }
-
-        if (!$loadFonts) {
-            return;
-        }
-
-        try {
-            $customizer = \CMS\Services\ThemeCustomizer::instance();
-            $fontBody = (string)$customizer->get('typography', 'font_family_body', 'dm-sans');
-            $fontHeading = (string)$customizer->get('typography', 'font_family_heading', 'libre-baskerville');
-        } catch (\Throwable $e) {
-            $fontBody = 'dm-sans';
-            $fontHeading = 'libre-baskerville';
-        }
-
-        $googleMap = [
-            'dm-sans' => 'DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400',
-            'libre-baskerville' => 'Libre+Baskerville:ital,wght@0,400;0,700;1,400',
-            'inter' => 'Inter:wght@400;500;600;700',
-            'playfair-display' => 'Playfair+Display:ital,wght@0,400;0,700;1,400',
-            'merriweather' => 'Merriweather:ital,wght@0,400;0,700;1,400',
-        ];
-
-        $families = [];
-
-        if (isset($googleMap[$fontBody])) {
-            $families[] = $googleMap[$fontBody];
-        }
-
-        if ($fontHeading !== $fontBody && isset($googleMap[$fontHeading])) {
-            $families[] = $googleMap[$fontHeading];
-        }
-
-        if (!in_array('DM+Mono:wght@400;500', $families, true)) {
-            $families[] = 'DM+Mono:wght@400;500';
-        }
-
-        $url = 'https://fonts.googleapis.com/css2?family=' . implode('&family=', $families) . '&display=swap';
-        echo '<link href="' . htmlspecialchars($url, ENT_QUOTES, 'UTF-8') . '" rel="stylesheet">' . "\n";
     }
 
     public function enqueueStyles(): void

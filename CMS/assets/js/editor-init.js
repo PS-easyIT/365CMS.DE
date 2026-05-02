@@ -1657,47 +1657,6 @@
         };
     }
 
-    function createEmbedConfig(embedClass) {
-        if (!embedClass) {
-            return null;
-        }
-
-        return {
-            class: embedClass,
-            inlineToolbar: true,
-            config: {
-                services: {
-                    youtube: true,
-                    vimeo: true,
-                    codepen: true,
-                    instagram: true,
-                    x: true,
-                    twitter: true,
-                    facebook: true,
-                    twitch: true,
-                    coub: true,
-                    miro: true,
-                },
-            },
-        };
-    }
-
-    function createColumnsConfig(columnsClass, editorJsClass, childTools) {
-        if (!columnsClass || !editorJsClass) {
-            return null;
-        }
-
-        return {
-            class: columnsClass,
-            config: {
-                EditorJsLibrary: editorJsClass,
-                tools: childTools,
-                minColumns: 2,
-                maxColumns: 4,
-            },
-        };
-    }
-
     function createAccordionConfig(accordionClass) {
         if (!accordionClass) {
             return null;
@@ -2094,8 +2053,6 @@
             image: resolveClass(['ImageTool']),
             linkTool: resolveClass(['LinkTool']),
             attaches: resolveClass(['AttachesTool']),
-            embed: resolveClass(['Embed']),
-            columns: resolveClass(['editorjsColumns', 'EditorJsColumns']),
             accordion: resolveClass(['AccordionBlock']),
             carousel: resolveClass(['Carousel']),
             imageGallery: resolveClass(['ImageGallery']),
@@ -2190,15 +2147,11 @@
             Cropper: createCropperTuneConfig(resolved.cropperTune, uploadUrl, csrfToken, getUploadContext),
         });
 
-        const childTools = createColumnChildTools(baseTools, ['columns', 'accordion', 'carousel', 'drawingTool']);
-
         const tools = pruneUnavailableTools({
             ...baseTools,
             image: createImageToolConfig(resolved.image, uploadUrl, csrfToken, cropperTuneKey, getUploadContext),
             linkTool: createLinkToolConfig(resolved.linkTool, uploadUrl, csrfToken),
             attaches: createAttachesToolConfig(resolved.attaches, uploadUrl, csrfToken),
-            embed: createEmbedConfig(resolved.embed),
-            columns: createColumnsConfig(resolved.columns, resolved.editorjs, childTools),
             accordion: createAccordionConfig(resolved.accordion),
             carousel: createCarouselConfig(resolved.carousel, uploadUrl, csrfToken, getUploadContext),
             imageGallery: createImageGalleryConfig(resolved.imageGallery, uploadUrl, csrfToken, getUploadContext),

@@ -14,6 +14,15 @@ use CMS\Auth;
 use CMS\Security;
 use CMS\Services\CoreModuleService;
 
+const CMS_ADMIN_SECURITY_AUDIT_ALLOWED_ACTIONS = ['run_audit', 'clear_log'];
+
+function cms_admin_security_audit_normalize_action(mixed $action): string
+{
+    $normalizedAction = strtolower(trim((string)$action));
+
+    return in_array($normalizedAction, CMS_ADMIN_SECURITY_AUDIT_ALLOWED_ACTIONS, true) ? $normalizedAction : '';
+}
+
 if (!Auth::instance()->isAdmin()
     || !Auth::instance()->hasCapability('manage_settings')
     || (class_exists(CoreModuleService::class) && !CoreModuleService::getInstance()->isAdminPageEnabled('security-audit'))
@@ -30,7 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!Security::instance()->verifyToken($_POST['csrf_token'] ?? '', 'admin_sec_audit')) {
         $alert = ['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.'];
     } else {
-        $action = $_POST['action'] ?? '';
+        $action = cms_admin_security_audit_normalize_action($_POST['action'] ?? '');
         switch ($action) {
             case 'run_audit':
                 $result = $module->runAudit();

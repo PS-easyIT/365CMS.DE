@@ -56,6 +56,7 @@ class Api
             echo json_encode(['error' => 'Rate limit exceeded. Please try again later.']);
             exit;
         }
+        Security::recordDbRateLimitAttempt($security->getClientIp(), 'api');
         
         try {
             switch ($endpoint) {

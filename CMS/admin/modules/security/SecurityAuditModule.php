@@ -282,7 +282,87 @@ class SecurityAuditModule
             ]);
         }
 
+        $runtimeFirewallOk = class_exists('\CMS\Services\SecurityRuntimeService')
+            && is_file($abspath . 'core/Bootstrap.php')
+            && $this->fileContains($abspath . 'core/Bootstrap.php', 'SecurityRuntimeService::getInstance()->handleRequest()');
+        $checks[] = $this->buildCheck(
+            'Firewall Runtime aktiv',
+            $runtimeFirewallOk ? 'ok' : 'critical',
+            $runtimeFirewallOk
+                ? 'Firewall-Regeln und Rate-Limits sind im Bootstrap-Runtime-Pfad verdrahtet.'
+                : 'Firewall ist nicht vollständig im Runtime-Pfad verdrahtet.'
+        );
+
+        $commentAntispamOk = is_file($abspath . 'core/Services/CommentService.php')
+            && $this->fileContains($abspath . 'core/Services/CommentService.php', 'isRejectedByAntispam')
+            && $this->fileContains($abspath . 'themes/cms-default/blog-single.php', 'comment_hp')
+            && $this->fileContains($abspath . 'themes/cms-default/blog-single.php', 'comment_started_at');
+        $checks[] = $this->buildCheck(
+            'AntiSpam Runtime aktiv',
+            $commentAntispamOk ? 'ok' : 'critical',
+            $commentAntispamOk
+                ? 'Kommentar-Runtime nutzt lokale AntiSpam-Regeln inklusive Honeypot und Mindestzeit.'
+                : 'AntiSpam-Konfiguration ist nicht vollständig mit der öffentlichen Kommentar-Runtime verbunden.'
+        );
+
+        $externalRuntimeHits = [];
+        foreach ([
+            'themes/cms-default/functions.php',
+            'themes/cms-default/includes/theme-class.php',
+            'core/Security.php',
+            '.htaccess',
+        ] as $relativePath) {
+            $path = $abspath . $relativePath;
+            if ($this->fileContainsAny($path, ['fonts.googleapis.com', 'fonts.gstatic.com', 'font-src \'self\' data: https:', 'img-src \'self\' data: https:'])) {
+                $externalRuntimeHits[] = $relativePath;
+            }
+        }
+        $checks[] = $this->buildCheck(
+            'Fremdassets in der Runtime',
+            $externalRuntimeHits === [] ? 'ok' : 'warning',
+            $externalRuntimeHits === []
+                ? 'Default-Theme und CSP laden keine externen Font-/Embed-CDNs in der Runtime.'
+                : 'Runtime-Fremdasset-Verweise prüfen: ' . implode(', ', $externalRuntimeHits)
+        );
+
+        $editorAssetOk = is_file($abspath . 'core/Services/EditorJs/EditorJsAssetService.php')
+            && !$this->fileContainsAny($abspath . 'core/Services/EditorJs/EditorJsAssetService.php', ['embed.umd.js', 'columns.umd.js'])
+            && !$this->fileContainsAny($abspath . 'assets/js/editor-init.js', ['createEmbedConfig', 'createColumnsConfig']);
+        $checks[] = $this->buildCheck(
+            'Editor.js Fremd-Embeds deaktiviert',
+            $editorAssetOk ? 'ok' : 'warning',
+            $editorAssetOk
+                ? 'Editor.js lädt die externen Embed-/Columns-Bundles nicht mehr in neuen Editor-Sessions.'
+                : 'Editor.js Embed-/Columns-Bundles oder Tool-Konfigurationen sind weiterhin aktiv.'
+        );
+
         return $checks;
+    }
+
+    private function fileContains(string $path, string $needle): bool
+    {
+        return $this->fileContainsAny($path, [$needle]);
+    }
+
+    /** @param array<int,string> $needles */
+    private function fileContainsAny(string $path, array $needles): bool
+    {
+        if (!is_file($path) || !is_readable($path)) {
+            return false;
+        }
+
+        $content = file_get_contents($path, false, null, 0, self::MAX_HTACCESS_BYTES);
+        if (!is_string($content) || $content === '') {
+            return false;
+        }
+
+        foreach ($needles as $needle) {
+            if ($needle !== '' && str_contains($content, $needle)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function inspectHtaccessHeaders(string $abspath): array
@@ -337,7 +417,9 @@ class SecurityAuditModule
 
     private function canAccess(): bool
     {
-        return class_exists('\CMS\Auth') && \CMS\Auth::instance()->isAdmin();
+        return class_exists('\CMS\Auth')
+            && \CMS\Auth::instance()->isAdmin()
+            && \CMS\Auth::instance()->hasCapability('manage_settings');
     }
 
     /**

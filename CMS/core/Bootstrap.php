@@ -357,6 +357,10 @@ class Bootstrap
         $this->auth = Auth::instance();
         $this->container->bindInstance(Auth::class, $this->auth);
 
+        if ($this->mode !== 'cli') {
+            Services\SecurityRuntimeService::getInstance()->handleRequest();
+        }
+
         // Logger – immer verfügbar
         $logger = Logger::instance();
         $this->container->bindInstance(Logger::class, $logger);

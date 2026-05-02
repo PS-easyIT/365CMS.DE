@@ -239,6 +239,8 @@ $relatedPosts = ($showRelated && function_exists('meridian_get_related_posts'))
         <form method="post" action="<?php echo SITE_URL; ?>/comments/post">
            <input type="hidden" name="post_id" value="<?php echo (int) ($post->id ?? 0); ?>">
            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($commentCsrf, ENT_QUOTES, 'UTF-8'); ?>">
+           <input type="text" name="comment_hp" value="" tabindex="-1" autocomplete="off" aria-hidden="true" class="visually-hidden">
+           <input type="hidden" name="comment_started_at" value="<?php echo time(); ?>">
            <div class="form-2col">
               <div class="form-field"><label>Name <span class="form-required">*</span></label><input type="text" name="author" placeholder="Dein Name" required maxlength="100"></div>
               <div class="form-field"><label>E-Mail <span class="form-required">*</span></label><input type="email" name="email" placeholder="deine@email.de" required maxlength="200"></div>

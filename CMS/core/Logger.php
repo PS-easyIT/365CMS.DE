@@ -79,7 +79,7 @@ class Logger implements LoggerInterface
 
     private function __construct(string $channel = 'cms')
     {
-        $this->channel  = $channel;
+        $this->channel  = $this->sanitizeChannel($channel);
         $this->logPath  = defined('LOG_PATH')  ? LOG_PATH  : (ABSPATH . 'logs/');
         $this->minLevel = defined('LOG_LEVEL') ? LOG_LEVEL : (CMS_DEBUG ? self::DEBUG : self::WARNING);
 
@@ -152,6 +152,7 @@ class Logger implements LoggerInterface
 
         // Message interpolation (PSR-3 §1.2)
         $message = $this->interpolate($message, $context);
+        $message = $this->sanitizeLogLine($message);
 
         // Exception-Stack-Trace anhängen
         if (isset($context['exception']) && $context['exception'] instanceof \Throwable) {
@@ -191,7 +192,7 @@ class Logger implements LoggerInterface
                     AuditLogger::CAT_SYSTEM,
                     'log_' . $level,
                     $message,
-                    null,
+                    '',
                     null,
                     $this->sanitizeContext($context),
                     $level
@@ -219,7 +220,7 @@ class Logger implements LoggerInterface
     public function withChannel(string $channel): self
     {
         $clone          = clone $this;
-        $clone->channel = $channel;
+        $clone->channel = $this->sanitizeChannel($channel);
         return $clone;
     }
 
@@ -260,15 +261,43 @@ class Logger implements LoggerInterface
      */
     private function sanitizeContext(array $context): array
     {
-        $sensitive = ['password', 'secret', 'token', 'key', 'auth', 'mfa_secret', 'credit_card'];
+        $sensitivePattern = '/(password|passwd|secret|token|nonce|csrf|key|auth|mfa|credit_card|credential|cookie|session)/i';
         foreach ($context as $k => $v) {
-            if (in_array(strtolower($k), $sensitive, true)) {
+            if (preg_match($sensitivePattern, (string)$k) === 1) {
                 $context[$k] = '***';
             } elseif ($v instanceof \Throwable) {
                 // Exceptions in serialisierbares Format umwandeln
-                $context[$k] = get_class($v) . ': ' . $v->getMessage();
+                $context[$k] = get_class($v) . ': ' . $this->sanitizeLogLine($v->getMessage());
+            } elseif (is_string($v)) {
+                $context[$k] = $this->sanitizeLogLine($this->maskInlineSecrets($v));
+            } elseif (is_array($v)) {
+                $context[$k] = $this->sanitizeContext($v);
             }
         }
         return $context;
+    }
+
+    private function sanitizeChannel(string $channel): string
+    {
+        $channel = strtolower(trim($channel));
+        $channel = preg_replace('/[^a-z0-9_.-]/', '-', $channel) ?? '';
+        $channel = trim($channel, '.-');
+
+        return $channel !== '' ? substr($channel, 0, 80) : 'cms';
+    }
+
+    private function sanitizeLogLine(string $value): string
+    {
+        $value = preg_replace('/[\x00-\x1F\x7F]+/u', ' ', $value) ?? '';
+
+        return trim($value);
+    }
+
+    private function maskInlineSecrets(string $value): string
+    {
+        $value = preg_replace('/([?&](?:token|csrf_token|nonce|key|secret|password|pass)=)[^&\s]+/i', '$1***', $value) ?? $value;
+        $value = preg_replace('/\b(Bearer\s+)[A-Za-z0-9._~+\/-]+=*/i', '$1***', $value) ?? $value;
+
+        return $value;
     }
 }

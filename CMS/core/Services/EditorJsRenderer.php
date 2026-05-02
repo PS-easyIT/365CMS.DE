@@ -417,23 +417,19 @@ final class EditorJsRenderer
     /** @param array<string,mixed> $data */
     private function renderEmbed(array $data): string
     {
-        $embedUrl = (string)($data['embed'] ?? $data['source'] ?? '');
-        if (!filter_var($embedUrl, FILTER_VALIDATE_URL)) {
+        $sourceUrl = (string)($data['source'] ?? $data['embed'] ?? '');
+        if (!filter_var($sourceUrl, FILTER_VALIDATE_URL)) {
             return '';
         }
 
         $caption = $this->sanitizeInline((string)($data['caption'] ?? ''));
-        $width = max(320, (int)($data['width'] ?? 640));
-        $height = max(180, (int)($data['height'] ?? 360));
+        $label = $caption !== '' ? $caption : htmlspecialchars($sourceUrl, ENT_QUOTES, 'UTF-8');
 
-        $html = '<figure class="editorjs-block editorjs-embed">';
-        $html .= '<div class="editorjs-embed__frame"><iframe src="' . htmlspecialchars($embedUrl, ENT_QUOTES, 'UTF-8') . '" loading="lazy" allowfullscreen width="' . $width . '" height="' . $height . '"></iframe></div>';
-        if ($caption !== '') {
-            $html .= '<figcaption>' . $caption . '</figcaption>';
-        }
-        $html .= '</figure>';
-
-        return $html;
+        return '<div class="editorjs-block editorjs-embed editorjs-embed--link-only"><a href="'
+            . htmlspecialchars($sourceUrl, ENT_QUOTES, 'UTF-8')
+            . '" target="_blank" rel="noopener noreferrer">'
+            . $label
+            . '</a></div>';
     }
 
     /** @param array<string,mixed> $data */

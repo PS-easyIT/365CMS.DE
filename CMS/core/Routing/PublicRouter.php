@@ -597,12 +597,6 @@ final class PublicRouter
         $postId = (int)($_POST['post_id'] ?? 0);
         $redirectTarget = $this->resolveCommentRedirect($postId);
 
-        if (trim((string)($_POST['comment_hp'] ?? '')) !== '') {
-            $_SESSION['success'] = 'Kommentar gespeichert und zur Moderation eingereicht.';
-            $this->router->redirect($redirectTarget);
-            return;
-        }
-
         if ($postId <= 0 || !Security::instance()->verifyToken((string)($_POST['csrf_token'] ?? ''), 'comment_' . $postId)) {
             $_SESSION['error'] = 'Sicherheitsüberprüfung fehlgeschlagen.';
             $this->router->redirect($redirectTarget);

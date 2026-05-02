@@ -4,17 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Meridian CMS – Default Theme</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
 
     /* ═══════════════════════════════════════════
        DESIGN TOKENS
        Palette: Off-white ground · Near-black type
        One accent: deep amber · Code: slate mono
-       Fonts: Libre Baskerville (editorial serif) +
-              DM Sans (clean grotesque) +
-              DM Mono (code)
+      Fonts: lokale Theme-Fonts oder System-Fallbacks
     ═══════════════════════════════════════════ */
     :root {
       --ink:          #1a1a18;
@@ -34,9 +30,9 @@
       --tag-bg:       #edece6;
       --tag-color:    #5a5a52;
 
-      --font-serif:   'Libre Baskerville', Georgia, serif;
-      --font-sans:    'DM Sans', system-ui, sans-serif;
-      --font-mono:    'DM Mono', 'Courier New', monospace;
+      --font-serif:   Georgia, 'Times New Roman', serif;
+      --font-sans:    system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      --font-mono:    ui-monospace, SFMono-Regular, Consolas, 'Courier New', monospace;
 
       --nav-h:        52px;
       --max:          1140px;

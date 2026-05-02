@@ -98,8 +98,8 @@ class Security
             "default-src 'self'",
             "script-src 'self' 'nonce-{$nonce}'",
             "style-src 'self' 'nonce-{$nonce}'",
-            "img-src 'self' data: https: blob:",
-            "font-src 'self' data: https:",
+            "img-src 'self' data: blob:",
+            "font-src 'self' data:",
             "connect-src 'self'",
             "media-src 'self' data: blob:",
             "object-src 'none'",
@@ -184,10 +184,18 @@ class Security
     {
         if (!headers_sent()) {
             header('X-Content-Type-Options: nosniff');
+            header('X-Frame-Options: DENY');
+            header('X-XSS-Protection: 0');
             header('Referrer-Policy: strict-origin-when-cross-origin');
             header('Permissions-Policy: geolocation=(), microphone=(), camera=()');
             header('Cross-Origin-Opener-Policy: same-origin');
             header('Cross-Origin-Resource-Policy: same-site');
+
+            if (defined('CMS_MODE') && in_array(CMS_MODE, ['admin', 'api'], true)) {
+                header('Cache-Control: no-store, max-age=0');
+                header('Pragma: no-cache');
+                header('X-Robots-Tag: noindex, nofollow');
+            }
 
             // H-04: HSTS – nur über HTTPS senden, nicht im Debug-Modus
             $hstsValue = $this->getHstsValue();
@@ -228,6 +236,8 @@ class Security
             // Start session with secure settings
             ini_set('session.cookie_httponly', '1');
             ini_set('session.cookie_secure', $this->isHttpsRequest() ? '1' : '0');
+            ini_set('session.cookie_samesite', 'Lax');
+            ini_set('session.use_only_cookies', '1');
             ini_set('session.use_strict_mode', '1');
             session_start();
             
@@ -493,6 +503,27 @@ class Security
             error_log('Security::checkDbRateLimit() Fehler (Fallback auf Session): ' . $e->getMessage());
             // Fallback auf Session-basiertes Rate-Limiting wenn DB nicht verfügbar
             return self::checkRateLimit('db_rl_' . $action . '_' . $ip, $maxAttempts, $timeWindow);
+        }
+    }
+
+    public static function recordDbRateLimitAttempt(string $ip, string $action, string $username = ''): void
+    {
+        if (!filter_var($ip, FILTER_VALIDATE_IP)) {
+            return;
+        }
+
+        $action = preg_replace('/[^a-z0-9_.:-]/i', '_', trim($action)) ?? '';
+        if ($action === '') {
+            return;
+        }
+
+        try {
+            $db = Database::instance();
+            $prefix = $db->getPrefix();
+            $stmt = $db->prepare("INSERT INTO {$prefix}login_attempts (username, ip_address, action, attempted_at) VALUES (?, ?, ?, NOW())");
+            $stmt->execute([substr($username, 0, 190), $ip, substr($action, 0, 50)]);
+        } catch (\Throwable $e) {
+            error_log('Security::recordDbRateLimitAttempt() Fehler: ' . $e->getMessage());
         }
     }
 

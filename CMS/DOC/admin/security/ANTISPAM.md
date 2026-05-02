@@ -1,16 +1,16 @@
 # AntiSpam-Einstellungen
 
-Kurzbeschreibung: Beschreibt die aktuelle Anti-Spam-Verwaltung im Admin, die konfigurierbaren Schutzmechanismen und die serverseitige Speicherung der Blacklist- und CAPTCHA-Einstellungen.
+Kurzbeschreibung: Beschreibt die aktuelle Anti-Spam-Verwaltung im Admin, die lokalen Schutzmechanismen und die serverseitige Blacklist-Speicherung.
 
-Letzte Aktualisierung: 2026-04-07 · Version 2.9.0
+Letzte Aktualisierung: 2026-05-02 · Version 2.9.248
 
 ## Überblick
 
-Die Anti-Spam-Verwaltung ist über `/admin/antispam` erreichbar und wird serverseitig durch `CMS/admin/modules/security/AntispamModule.php` gesteuert. Die Seite bündelt Basisschutz, Formularhärtung, Blacklist-Verwaltung und optionale CAPTCHA-Anbindung.
+Die Anti-Spam-Verwaltung ist über `/admin/antispam` erreichbar und wird serverseitig durch `CMS/admin/modules/security/AntispamModule.php` gesteuert. Die Seite bündelt Basisschutz, Formularhärtung und Blacklist-Verwaltung. Externe CAPTCHA-Dienste werden im Public-Runtime-Vertrag nicht geladen.
 
 ## Konfigurierbare Schutzmechanismen
 
-Die aktuelle Implementierung arbeitet mit einer Kombination aus einfachen, performanten Prüfungen und optionalen externen Diensten.
+Die aktuelle Implementierung arbeitet bewusst mit lokalen, performanten Prüfungen ohne externe Public-Assets.
 
 ### Basisschutz
 
@@ -20,11 +20,11 @@ Die aktuelle Implementierung arbeitet mit einer Kombination aus einfachen, perfo
 - maximale Linkanzahl über `antispam_max_links`
 - Blockade leerer User-Agents über `antispam_block_empty_ua`
 
-Diese Prüfungen sind besonders relevant für öffentliche Formulare, Registrierungen und kontaktnahe Eingaben. Welche Frontend-Formulare die Werte konkret auswerten, hängt vom jeweiligen Handler oder Plugin ab.
+Diese Prüfungen werden im Core-Kommentarpfad durch `CMS/core/Services/CommentService.php` serverseitig ausgewertet. Das Default-Theme liefert dafür Honeypot- und Mindestzeit-Felder mit; manipulierte oder fehlende UI-Werte werden weiterhin serverseitig geprüft.
 
 ### CAPTCHA-Unterstützung
 
-Die Admin-Seite verwaltet optionale Zugangsdaten für zusätzliche Prüfmechanismen. Im Modul sichtbar sind insbesondere Einstellungen für reCAPTCHA-Schlüssel. Frühere Dokumentationsstände mit hCaptcha- oder Turnstile-Fokus beschreiben nicht den aktuellen Kernstand des Moduls.
+Externe CAPTCHA-Dienste wie reCAPTCHA, hCaptcha oder Turnstile sind im Core-Runtime-Vertrag deaktiviert, weil sie Fremdskripte bzw. externe Prüf-Endpunkte voraussetzen. Der produktive Schutzumfang besteht aus Honeypot, Mindestzeit, Linklimit, User-Agent-Prüfung und Blacklist.
 
 ## Blacklist-Verwaltung
 
@@ -57,6 +57,8 @@ Die aktuelle Implementierung protokolliert Anti-Spam-relevante Änderungen über
 
 Dadurch sind Konfigurationsänderungen nachvollziehbar, ohne dass ein separates „Spam-Log“-Subsystem auf Admin-Ebene dokumentiert werden muss.
 
+Es werden keine CAPTCHA-Secrets mehr über die AntiSpam-Oberfläche gespeichert oder beworben.
+
 ## Sicherheit
 
 Die Seite folgt dem üblichen Admin-Muster:
@@ -75,8 +77,10 @@ Die Seite folgt dem üblichen Admin-Muster:
 | `antispam_min_time` | Mindestdauer bis zur erlaubten Formularabgabe |
 | `antispam_max_links` | maximale Anzahl erlaubter Links |
 | `antispam_block_empty_ua` | blockiert Requests ohne User-Agent |
-| `recaptcha_site_key` | öffentlicher CAPTCHA-Key |
-| `recaptcha_secret_key` | geheimer CAPTCHA-Key |
+
+## Aktuell noch offen
+
+- Der lokale AntiSpam-Vertrag ist aktuell auf öffentliche Kommentare verdrahtet. Kontaktformulare besitzen eigene Honeypot-Logik und sollten mittelfristig an denselben zentralen AntiSpam-Service angebunden werden.
 
 ## Relevante Dateien
 
@@ -84,6 +88,7 @@ Die Seite folgt dem üblichen Admin-Muster:
 |---|---|
 | `CMS/admin/antispam.php` | Admin-Entry-Point |
 | `CMS/admin/modules/security/AntispamModule.php` | Speichern, Laden und Blacklist-Handling |
+| `CMS/core/Services/CommentService.php` | Runtime-Prüfung öffentlicher Kommentare |
 | `CMS/admin/views/security/antispam.php` | Ausgabe der Verwaltungsoberfläche |
 
 ## Verwandte Dokumente
