@@ -17,6 +17,7 @@ $pickerDialogTitle = (string)($pickerDialogTitle ?? 'Bild auswählen');
 $pickerToken = (string)($editorMediaToken ?? '');
 $pickerIsNew = isset($pickerIsNew) ? (bool)$pickerIsNew : true;
 $pickerContentType = (string)($pickerContentType ?? 'post'); // 'post' | 'page'
+$pickerFilenamePrefix = (string)($pickerFilenamePrefix ?? 'ArtikelRahmen_');
 ?>
 
 <div class="modal modal-blur fade" id="<?= htmlspecialchars($pickerModalId) ?>" tabindex="-1" aria-hidden="true">
@@ -64,6 +65,7 @@ $pickerContentType = (string)($pickerContentType ?? 'post'); // 'post' | 'page'
     var apiUrl = <?= json_encode('/api/media') ?>;
     var pickerIsNew = <?= $pickerIsNew ? 'true' : 'false' ?>;
     var pickerContentType = <?= json_encode($pickerContentType) ?>;
+    var pickerFilenamePrefix = <?= json_encode($pickerFilenamePrefix) ?>;
     var pickerTempPathInputId = <?= json_encode($pickerInputId . '_temp_path') ?>;
     var tempPathEl = document.getElementById(pickerTempPathInputId);
 
@@ -226,7 +228,9 @@ $pickerContentType = (string)($pickerContentType ?? 'post'); // 'post' | 'page'
 
         if (!Array.isArray(items) || items.length === 0) {
             clearChildren(gridEl);
-            statusEl.textContent = 'Keine Bilder gefunden.';
+            statusEl.textContent = pickerFilenamePrefix
+                ? 'Keine passenden Coverbilder gefunden.'
+                : 'Keine Bilder gefunden.';
             return;
         }
 
@@ -256,7 +260,12 @@ $pickerContentType = (string)($pickerContentType ?? 'post'); // 'post' | 'page'
         }
 
         statusEl.textContent = 'Lade Bilder …';
-        fetch(apiUrl + '?action=list_images', {
+        var listUrl = apiUrl + '?action=list_images';
+        if (pickerFilenamePrefix) {
+            listUrl += '&filename_prefix=' + encodeURIComponent(pickerFilenamePrefix);
+        }
+
+        fetch(listUrl, {
             method: 'GET',
             headers: {
                 'X-CSRF-Token': token

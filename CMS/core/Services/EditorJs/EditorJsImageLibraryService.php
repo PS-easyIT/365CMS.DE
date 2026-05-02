@@ -20,11 +20,18 @@ final class EditorJsImageLibraryService
     /**
      * @return array{success:int,items?:array<int,array<string,mixed>>,message?:string}
      */
-    public function listImages(): array
+    public function listImages(string $filenamePrefix = ''): array
     {
         $items = [];
         $rootPath = rtrim((string) UPLOAD_PATH, '/\\');
         $mediaDelivery = MediaDeliveryService::getInstance();
+        $filenamePrefix = $this->normalizeFilenamePrefix($filenamePrefix);
+        if ($filenamePrefix === null) {
+            return [
+                'success' => 1,
+                'items' => [],
+            ];
+        }
 
         if (!is_dir($rootPath)) {
             return [
@@ -61,6 +68,10 @@ final class EditorJsImageLibraryService
                 continue;
             }
 
+            if ($filenamePrefix !== '' && !str_starts_with($file->getFilename(), $filenamePrefix)) {
+                continue;
+            }
+
             $items[] = [
                 'name' => $file->getFilename(),
                 'path' => $relativePath,
@@ -78,6 +89,20 @@ final class EditorJsImageLibraryService
             'success' => 1,
             'items' => array_slice($items, 0, 250),
         ];
+    }
+
+    private function normalizeFilenamePrefix(string $filenamePrefix): ?string
+    {
+        $filenamePrefix = trim($filenamePrefix);
+        if ($filenamePrefix === '') {
+            return '';
+        }
+
+        if (strlen($filenamePrefix) > 120 || preg_match('/^[A-Za-z0-9._-]+$/', $filenamePrefix) !== 1) {
+            return null;
+        }
+
+        return $filenamePrefix;
     }
 
     private function containsHiddenSegment(string $relativePath): bool

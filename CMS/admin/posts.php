@@ -162,6 +162,7 @@ function cms_admin_posts_build_inline_edit_data(PostsModule $module, array $post
     $id = cms_admin_posts_normalize_positive_id($post['id'] ?? 0);
     $editData = $module->getEditData($id > 0 ? $id : null);
     $existingPost = is_array($editData['post'] ?? null) ? $editData['post'] : [];
+    $editorLocale = cms_admin_posts_normalize_editor_locale($post['editor_locale'] ?? ($_GET['lang'] ?? 'de'));
     $publishedAt = trim((string) ($existingPost['published_at'] ?? ''));
     $publishDate = trim((string) ($post['publish_date'] ?? ''));
     $publishTime = trim((string) ($post['publish_time'] ?? ''));
@@ -188,6 +189,18 @@ function cms_admin_posts_build_inline_edit_data(PostsModule $module, array $post
         'author_display_name' => (string) ($post['author_display_name'] ?? ($existingPost['author_display_name'] ?? '')),
         'published_at' => $publishedAt,
     ]);
+
+    if ($editorLocale === 'en') {
+        $draftPost['title'] = (string) ($existingPost['title'] ?? '');
+        $draftPost['slug'] = (string) ($existingPost['slug'] ?? '');
+        $draftPost['content'] = $existingPost['content'] ?? '';
+        $draftPost['excerpt'] = (string) ($existingPost['excerpt'] ?? '');
+    } else {
+        $draftPost['title_en'] = (string) ($existingPost['title_en'] ?? $draftPost['title_en'] ?? '');
+        $draftPost['slug_en'] = (string) ($existingPost['slug_en'] ?? $draftPost['slug_en'] ?? '');
+        $draftPost['content_en'] = $existingPost['content_en'] ?? ($draftPost['content_en'] ?? '');
+        $draftPost['excerpt_en'] = (string) ($existingPost['excerpt_en'] ?? $draftPost['excerpt_en'] ?? '');
+    }
 
     $tagNames = array_values(array_filter(array_map(
         static fn (string $value): string => trim($value),

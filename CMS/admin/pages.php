@@ -143,6 +143,7 @@ function cms_admin_pages_build_inline_edit_data(PagesModule $module, array $post
     $id = cms_admin_pages_normalize_positive_id($post['id'] ?? 0);
     $editData = $module->getEditData($id > 0 ? $id : null);
     $existingPage = is_object($editData['page'] ?? null) ? (array) $editData['page'] : [];
+    $editorLocale = cms_admin_pages_normalize_editor_locale($post['editor_locale'] ?? ($_GET['lang'] ?? 'de'));
 
     $draftPage = array_merge($existingPage, [
         'id' => $id > 0 ? $id : (int) ($existingPage['id'] ?? 0),
@@ -159,6 +160,16 @@ function cms_admin_pages_build_inline_edit_data(PagesModule $module, array $post
         'meta_title' => (string) ($post['meta_title'] ?? ($existingPage['meta_title'] ?? '')),
         'meta_description' => (string) ($post['meta_description'] ?? ($existingPage['meta_description'] ?? '')),
     ]);
+
+    if ($editorLocale === 'en') {
+        $draftPage['title'] = (string) ($existingPage['title'] ?? '');
+        $draftPage['slug'] = (string) ($existingPage['slug'] ?? '');
+        $draftPage['content'] = $existingPage['content'] ?? '';
+    } else {
+        $draftPage['title_en'] = (string) ($existingPage['title_en'] ?? $draftPage['title_en'] ?? '');
+        $draftPage['slug_en'] = (string) ($existingPage['slug_en'] ?? $draftPage['slug_en'] ?? '');
+        $draftPage['content_en'] = $existingPage['content_en'] ?? ($draftPage['content_en'] ?? '');
+    }
 
     $editData['page'] = (object) $draftPage;
     $editData['seoMeta'] = array_merge(is_array($editData['seoMeta'] ?? null) ? $editData['seoMeta'] : [], [

@@ -486,6 +486,12 @@ class PostsModule
     public function save(array $post, int $userId): array
     {
         $id         = (int)($post['id'] ?? 0);
+        $editorLocale = in_array(strtolower(trim((string) ($post['editor_locale'] ?? 'de'))), ['de', 'en'], true)
+            ? strtolower(trim((string) ($post['editor_locale'] ?? 'de')))
+            : 'de';
+        $existingPost = $id > 0
+            ? (array) ($this->db->get_row("SELECT title, title_en, slug, slug_en, content, content_en, excerpt, excerpt_en FROM {$this->prefix}posts WHERE id = ? LIMIT 1", [$id]) ?: [])
+            : [];
         $title      = $this->sanitizePlainText((string)($post['title'] ?? ''), 255);
         $slug       = trim((string)($post['slug'] ?? ''));
         $slugEn     = trim((string)($post['slug_en'] ?? ''));
@@ -513,6 +519,25 @@ class PostsModule
         $metaDesc   = $this->sanitizePlainText((string)($post['meta_description'] ?? ''), 2000);
         $authorDisplayName = $this->sanitizeAuthorDisplayName((string)($post['author_display_name'] ?? ''));
         $rawTags    = $post['tags'] ?? '';
+
+        if ($id > 0 && $existingPost === []) {
+            return ['success' => false, 'error' => 'Der Beitrag existiert nicht mehr. Bitte Liste neu laden.'];
+        }
+
+        if ($editorLocale === 'en' && $existingPost !== []) {
+            $title = $this->sanitizePlainText((string) ($existingPost['title'] ?? ''), 255);
+            $slug = trim((string) ($existingPost['slug'] ?? ''));
+            $content = $existingPost['content'] ?? '';
+            $excerpt = $this->sanitizePlainText((string) ($existingPost['excerpt'] ?? ''), 2000);
+        }
+
+        if ($editorLocale === 'de' && $existingPost !== []) {
+            $titleEn = $this->sanitizePlainText((string) ($existingPost['title_en'] ?? ''), 255);
+            $slugEn = trim((string) ($existingPost['slug_en'] ?? ''));
+            $contentEn = $existingPost['content_en'] ?? '';
+            $excerptEn = $this->sanitizePlainText((string) ($existingPost['excerpt_en'] ?? ''), 2000);
+        }
+
         $slugEn     = $this->normalizeSlug($slugEn);
         $slugSource = $slug !== ''
             ? $slug

@@ -272,6 +272,12 @@ class PagesModule
     public function save(array $post, int $userId): array
     {
         $id     = (int)($post['id'] ?? 0);
+        $editorLocale = in_array(strtolower(trim((string) ($post['editor_locale'] ?? 'de'))), ['de', 'en'], true)
+            ? strtolower(trim((string) ($post['editor_locale'] ?? 'de')))
+            : 'de';
+        $existingPage = $id > 0
+            ? (array) ($this->db->get_row("SELECT title, title_en, slug, slug_en, content, content_en FROM {$this->prefix}pages WHERE id = ? LIMIT 1", [$id]) ?: [])
+            : [];
         $title  = $this->sanitizePlainText((string)($post['title'] ?? ''), 255);
         $slug   = trim($post['slug'] ?? '');
         $slugEn = trim((string)($post['slug_en'] ?? ''));
@@ -292,11 +298,32 @@ class PagesModule
         $featuredImageTempPath = $this->sanitizeMediaReference((string)($post['featured_image_temp_path'] ?? ''));
         $metaTitle  = $this->sanitizePlainText((string)($post['meta_title'] ?? ''), 255);
         $metaDesc   = $this->sanitizePlainText((string)($post['meta_description'] ?? ''), 2000);
-        $slug       = $this->normalizeSlug($slug !== '' ? $slug : $this->pageManager->generateSlug($title));
-        $slugEn     = $this->normalizeSlug($slugEn);
+        if ($id > 0 && $existingPage === []) {
+            return ['success' => false, 'error' => 'Die Seite existiert nicht mehr. Bitte Liste neu laden.'];
+        }
 
-        if ($title === '') {
-            return ['success' => false, 'error' => 'Titel darf nicht leer sein.'];
+        if ($editorLocale === 'en' && $existingPage !== []) {
+            $title = $this->sanitizePlainText((string) ($existingPage['title'] ?? ''), 255);
+            $slug = trim((string) ($existingPage['slug'] ?? ''));
+            $content = $existingPage['content'] ?? '';
+        }
+
+        if ($editorLocale === 'de' && $existingPage !== []) {
+            $titleEn = $this->sanitizePlainText((string) ($existingPage['title_en'] ?? ''), 255);
+            $slugEn = trim((string) ($existingPage['slug_en'] ?? ''));
+            $contentEn = $existingPage['content_en'] ?? '';
+        }
+
+        $slugEn     = $this->normalizeSlug($slugEn);
+        $slugSource = $slug !== ''
+            ? $slug
+            : ($slugEn !== ''
+                ? $slugEn
+                : $this->pageManager->generateSlug($title !== '' ? $title : $titleEn));
+        $slug       = $this->normalizeSlug($slugSource);
+
+        if ($title === '' && $titleEn === '') {
+            return ['success' => false, 'error' => 'Bitte mindestens einen deutschen oder englischen Titel angeben.'];
         }
 
         if ($slug === '') {

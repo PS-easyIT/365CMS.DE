@@ -194,6 +194,39 @@ class PageManager
         $result = $stmt->fetch(\PDO::FETCH_ASSOC);
         return $result ?: null;
     }
+
+    public function pageMatchesLocaleAvailability(array $page, string $locale): bool
+    {
+        $locale = strtolower(trim($locale));
+        if ($locale === '' || $locale === 'de') {
+            return $this->pageHasBaseContent($page);
+        }
+
+        return $this->pageHasLocalizedContent($page, $locale);
+    }
+
+    private function pageHasBaseContent(array $page): bool
+    {
+        foreach (['title', 'content'] as $field) {
+            if (trim((string) ($page[$field] ?? '')) !== '') {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function pageHasLocalizedContent(array $page, string $locale): bool
+    {
+        $locale = preg_match('/^[a-z]{2}(?:-[a-z]{2})?$/', $locale) === 1 ? $locale : 'en';
+        foreach (['title_' . $locale, 'content_' . $locale] as $field) {
+            if (trim((string) ($page[$field] ?? '')) !== '') {
+                return true;
+            }
+        }
+
+        return false;
+    }
     
     /**
      * List Pages

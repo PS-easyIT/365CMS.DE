@@ -283,8 +283,8 @@ class Router
             $pageManager = PageManager::instance();
 
             $page = $pageManager->getPageBySlug($slug, $this->getRequestLocale());
-            if ($page && $page['status'] === 'published') {
-                $locale = $this->getRequestLocale();
+            $locale = $this->getRequestLocale();
+            if ($page && $page['status'] === 'published' && $pageManager->pageMatchesLocaleAvailability($page, $locale)) {
                 $requestBaseUri = (string)($this->requestContext['base_uri'] ?? $routingUri);
                 $canonicalPath = $this->buildLocalizedPagePath($page, $locale);
                 $localizedCanonicalContext = Services\ContentLocalizationService::getInstance()->resolveRequestContext($canonicalPath);

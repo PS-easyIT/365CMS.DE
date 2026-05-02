@@ -382,11 +382,6 @@ final class PermalinkService
                     $stripped = substr($normalized, strlen($prefix));
                     return $this->normalizePath($stripped === false || $stripped === '' ? '/' : $stripped);
                 }
-
-                $suffix = '/' . $locale;
-                if (str_ends_with($normalized, $suffix)) {
-                    return rtrim(substr($normalized, 0, -strlen($suffix)) ?: '/', '/') ?: '/';
-                }
             }
         } catch (\Throwable) {
         }

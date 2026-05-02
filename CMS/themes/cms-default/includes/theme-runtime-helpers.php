@@ -137,8 +137,9 @@ function meridian_route_exists(string $url): bool
     }
 
     try {
-        $page = \CMS\PageManager::instance()->getPageBySlug($slug, $resolvedLocale);
-        if ($page !== null && ($page['status'] ?? '') === 'published') {
+        $pageManager = \CMS\PageManager::instance();
+        $page = $pageManager->getPageBySlug($slug, $resolvedLocale);
+        if ($page !== null && ($page['status'] ?? '') === 'published' && $pageManager->pageMatchesLocaleAvailability($page, $resolvedLocale)) {
             return true;
         }
     } catch (\Throwable $e) {

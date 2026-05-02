@@ -128,21 +128,6 @@ final class ContentLocalizationService
                 $context['is_localized'] = true;
                 break;
             }
-
-            $suffix = '/' . $locale;
-            if (!str_ends_with($uri, $suffix)) {
-                continue;
-            }
-
-            $baseUri = substr($uri, 0, -strlen($suffix));
-            if ($baseUri === false || $baseUri === '' || $baseUri === '/') {
-                $baseUri = '/';
-            }
-
-            $context['base_uri'] = $this->normalizePath($baseUri);
-            $context['locale'] = $locale;
-            $context['is_localized'] = true;
-            break;
         }
 
         $filtered = Hooks::applyFilters('cms_content_request_context', $context, $uri);

@@ -408,8 +408,9 @@ final class ThemeRouter
         $locale = $this->getResolvedContentLocale();
 
         foreach (['contact', 'kontakt'] as $slug) {
-            $page = PageManager::instance()->getPageBySlug($slug, $locale);
-            if ($page === null || ($page['status'] ?? '') !== 'published') {
+            $pageManager = PageManager::instance();
+            $page = $pageManager->getPageBySlug($slug, $locale);
+            if ($page === null || ($page['status'] ?? '') !== 'published' || !$pageManager->pageMatchesLocaleAvailability($page, $locale)) {
                 continue;
             }
 
@@ -1119,8 +1120,10 @@ final class ThemeRouter
             return true;
         }
 
-        $page = PageManager::instance()->getPageBySlug($slug, $this->router->getRequestLocale());
-        if ($page !== null) {
+        $pageManager = PageManager::instance();
+        $locale = $this->router->getRequestLocale();
+        $page = $pageManager->getPageBySlug($slug, $locale);
+        if ($page !== null && $pageManager->pageMatchesLocaleAvailability($page, $locale)) {
             $pageStatus = (string) ($page['status'] ?? '');
             if ($pageStatus === 'private') {
                 if (!\CMS\Auth::instance()->isLoggedIn()) {
@@ -1131,7 +1134,6 @@ final class ThemeRouter
                 return false;
             }
 
-            $locale = $this->router->getRequestLocale();
             $page = Services\ContentLocalizationService::getInstance()->localizePage($page, $locale);
             if (!empty($page['content'])) {
                 $page['content'] = $this->router->prepareRenderableContent((string)$page['content'], 'page', (int)($page['id'] ?? 0));

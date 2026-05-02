@@ -18,6 +18,8 @@ if (!defined('ABSPATH')) {
 
 final class EditorJsUploadService
 {
+    private const FEATURED_IMAGE_FILENAME_PREFIX = 'ArtikelRahmen_';
+
     /**
      * @param array<string,mixed> $post
      * @param array<string,mixed> $files
@@ -145,7 +147,7 @@ final class EditorJsUploadService
 
         $file = $this->normalizeImageUploadFile($file);
         $extension = strtolower((string) pathinfo((string) ($file['name'] ?? ''), PATHINFO_EXTENSION));
-        $file['name'] = $slug . ($extension !== '' ? '.' . $extension : '');
+        $file['name'] = self::FEATURED_IMAGE_FILENAME_PREFIX . $slug . ($extension !== '' ? '.' . $extension : '');
 
         $result = $this->storeUploadedFile($file, true, $targetPath);
 

@@ -42,7 +42,8 @@ final class EditorJsMediaService
 
             switch ($action) {
                 case 'list_images':
-                    $this->json($this->imageLibraryService->listImages());
+                    $filenamePrefix = trim((string) ($_GET['filename_prefix'] ?? ''));
+                    $this->json($this->imageLibraryService->listImages($filenamePrefix));
                     break;
 
                 case 'upload_image':
