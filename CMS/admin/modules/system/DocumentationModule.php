@@ -4,8 +4,8 @@ declare(strict_types=1);
 /**
  * Dokumentations-Modul
  *
- * Orchestriert Dokumentkatalog, Rendering und Synchronisation für den
- * Admin-Bereich `/admin/documentation`.
+ * Orchestriert Dokumentkatalog und Rendering für die Liveansicht des lokalen
+ * Repository-Verzeichnisses `/DOC` im Admin-Bereich `/admin/documentation`.
  *
  * @package CMSv2\Admin\Modules
  */
@@ -16,11 +16,9 @@ if (!defined('ABSPATH')) {
 
 use CMS\Auth;
 use CMS\Logger;
-use CMS\Services\SystemService;
 
 require_once __DIR__ . '/DocumentationCatalog.php';
 require_once __DIR__ . '/DocumentationRenderer.php';
-require_once __DIR__ . '/DocumentationSyncService.php';
 
 final class DocumentationViewData
 {
@@ -40,53 +38,8 @@ final class DocumentationViewData
     }
 }
 
-final class DocumentationSyncActionResult
-{
-    public function __construct(
-        private readonly bool $success,
-        private readonly ?string $message = null,
-        private readonly ?string $error = null
-    ) {
-    }
-
-    public function isSuccess(): bool
-    {
-        return $this->success;
-    }
-
-    public function getMessage(): string
-    {
-        return $this->message ?? $this->error ?? 'Unbekannte Antwort beim Doku-Sync.';
-    }
-
-    /**
-     * @return array{success: bool, message?: string, error?: string}
-     */
-    public function toArray(): array
-    {
-        $payload = ['success' => $this->success];
-
-        if ($this->message !== null && $this->message !== '') {
-            $payload['message'] = $this->message;
-        }
-
-        if ($this->error !== null && $this->error !== '') {
-            $payload['error'] = $this->error;
-        }
-
-        return $payload;
-    }
-}
-
 final class DocumentationModule
 {
-    private const GITHUB_DOC_BASE = 'https://github.com/PS-easyIT/365CMS.DE/blob/main/DOC/';
-    private const GITHUB_DOC_TREE = 'https://github.com/PS-easyIT/365CMS.DE/tree/main/DOC';
-    private const GITHUB_DOC_ZIP = 'https://codeload.github.com/PS-easyIT/365CMS.DE/zip/refs/heads/main';
-    private const APPROVED_DOC_BUNDLE_SHA256 = '93dda4e869fbf53536940164a3fdd8cd85a73cfb40bd24c414b5a99db9fbea17';
-    private const APPROVED_DOC_BUNDLE_FILE_COUNT = 164;
-    private const DEFAULT_REMOTE = 'origin';
-    private const DEFAULT_BRANCH = 'main';
     private const MAX_SELECTED_DOC_LENGTH = 240;
     private const MAX_UI_ERROR_LENGTH = 180;
 
@@ -94,9 +47,7 @@ final class DocumentationModule
     private readonly string $repoRoot;
     private readonly DocumentationCatalog $catalog;
     private readonly DocumentationRenderer $renderer;
-    private readonly DocumentationSyncService $syncService;
     private readonly Logger $logger;
-    private readonly SystemService $systemService;
 
     public function __construct()
     {
@@ -104,24 +55,12 @@ final class DocumentationModule
         $this->repoRoot = $resolvedRoots['repo_root'];
         $this->docsRoot = $resolvedRoots['docs_root'];
         $this->logger = Logger::instance()->withChannel('admin.documentation');
-        $this->systemService = SystemService::instance();
 
         $this->catalog = new DocumentationCatalog(
             $this->docsRoot,
-            self::GITHUB_DOC_BASE,
-            self::GITHUB_DOC_TREE,
             ''
         );
         $this->renderer = new DocumentationRenderer([$this->catalog, 'resolveLink']);
-        $this->syncService = new DocumentationSyncService(
-            $this->repoRoot,
-            $this->docsRoot,
-            self::GITHUB_DOC_ZIP,
-            self::APPROVED_DOC_BUNDLE_SHA256,
-            self::APPROVED_DOC_BUNDLE_FILE_COUNT,
-            self::DEFAULT_REMOTE,
-            self::DEFAULT_BRANCH
-        );
     }
 
     public function getData(?string $selectedDoc = null): DocumentationViewData
@@ -132,34 +71,16 @@ final class DocumentationModule
         }
 
         try {
-            $syncCapabilities = $this->syncService->getSyncCapabilities()->toArray();
             $catalogSelection = $this->loadCatalogSelection($selectedDoc);
 
             return $this->buildAvailableData(
                 $catalogSelection['catalog'],
-                $catalogSelection['selected_document'],
-                $syncCapabilities
+                $catalogSelection['selected_document']
             );
         } catch (\Throwable $e) {
             $this->logThrowableWarning('Dokumentationsdaten konnten nicht geladen werden.', $e);
 
             return $this->errorData('Die Dokumentation konnte gerade nicht geladen werden. Bitte Logs prüfen.');
-        }
-    }
-
-    public function syncDocsFromRepository(): DocumentationSyncActionResult
-    {
-        $syncValidation = $this->validateSyncRequest();
-        if ($syncValidation instanceof DocumentationSyncActionResult) {
-            return $syncValidation;
-        }
-
-        try {
-            return $this->sanitizeSyncResult($this->syncService->syncDocsFromRepository()->toArray());
-        } catch (\Throwable $e) {
-            $this->logThrowableWarning('Dokumentations-Sync ist unerwartet fehlgeschlagen.', $e);
-
-            return $this->createSyncFailureResult('Doku-Sync fehlgeschlagen. Bitte Logs prüfen.');
         }
     }
 
@@ -244,9 +165,8 @@ final class DocumentationModule
 
     /**
      * @param array<string, mixed> $catalogData
-     * @param array<string, mixed> $syncCapabilities
      */
-    private function buildAvailableData(array $catalogData, mixed $selectedDocument, array $syncCapabilities): DocumentationViewData
+    private function buildAvailableData(array $catalogData, mixed $selectedDocument): DocumentationViewData
     {
         $selectedPayload = $this->buildSelectedDocumentPayload($selectedDocument);
 
@@ -260,10 +180,6 @@ final class DocumentationModule
             'doc_count' => $catalogData['doc_count'],
             'section_count' => $catalogData['section_count'],
             'is_selected_csv' => $selectedPayload['is_selected_csv'],
-            'git_available' => (bool) ($syncCapabilities['git'] ?? false),
-            'sync_capabilities' => $syncCapabilities,
-            'log_path' => $this->systemService->getConfiguredLogDirectory(),
-            'logs_url' => '/admin/cms-logs',
             'error' => null,
         ]));
     }
@@ -278,7 +194,6 @@ final class DocumentationModule
             'available' => false,
             'docs_root' => $this->docsRoot,
             'repo_root' => $this->repoRoot,
-            'github_root_url' => self::GITHUB_DOC_TREE,
             'sections' => [],
             'featured_docs' => [],
             'selected_document' => null,
@@ -287,10 +202,6 @@ final class DocumentationModule
             'doc_count' => 0,
             'section_count' => 0,
             'is_selected_csv' => false,
-            'git_available' => false,
-            'sync_capabilities' => [],
-            'log_path' => $this->systemService->getConfiguredLogDirectory(),
-            'logs_url' => '/admin/cms-logs',
             'error' => null,
         ], $overrides);
     }
@@ -357,28 +268,6 @@ final class DocumentationModule
             $this->normalizeDocumentExtension($extension),
             (string) ($selectedDocument['relative_path'] ?? '')
         );
-    }
-
-    private function sanitizeSyncResult(array $result): DocumentationSyncActionResult
-    {
-        return $this->createSyncActionResult(
-            !empty($result['success']),
-            $this->sanitizeOptionalUiText($result['message'] ?? null),
-            $this->sanitizeOptionalUiText($result['error'] ?? null)
-        );
-    }
-
-    private function validateSyncRequest(): ?DocumentationSyncActionResult
-    {
-        if (!$this->canAccess()) {
-            return $this->createSyncFailureResult('Sie dürfen die Dokumentation nicht synchronisieren.');
-        }
-
-        if (!$this->hasValidRepositoryLayout()) {
-            return $this->createSyncFailureResult('Das Dokumentationsmodul ist lokal nicht korrekt konfiguriert. Bitte Logs prüfen.');
-        }
-
-        return null;
     }
 
     private function validateViewRequest(): ?DocumentationViewData
@@ -480,25 +369,6 @@ final class DocumentationModule
         }
 
         return substr($value, 0, $maxLength);
-    }
-
-    private function sanitizeOptionalUiText(mixed $value, int $maxLength = self::MAX_UI_ERROR_LENGTH): ?string
-    {
-        if (!is_string($value) || trim($value) === '') {
-            return null;
-        }
-
-        return $this->sanitizeUiText($value, $maxLength);
-    }
-
-    private function createSyncActionResult(bool $success, ?string $message = null, ?string $error = null): DocumentationSyncActionResult
-    {
-        return new DocumentationSyncActionResult($success, $message, $error);
-    }
-
-    private function createSyncFailureResult(string $message): DocumentationSyncActionResult
-    {
-        return $this->createSyncActionResult(false, null, $message);
     }
 
     /**

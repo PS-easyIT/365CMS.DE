@@ -48,6 +48,7 @@ final class CronRunnerService
 
         $result = [
             'mail_queue' => null,
+            'mail_queue_after_hourly' => null,
             'hourly' => null,
             'feed_queue_recovery' => null,
             'feed_queue' => null,
@@ -106,6 +107,15 @@ final class CronRunnerService
                 $result['hourly'] = $this->runHourlyHooks($settings, $force);
             }
 
+            if (is_array($result['hourly'])
+                && !empty($result['hourly']['executed'])
+                && ($queue->isEnabled() || $force)) {
+                $result['mail_queue_after_hourly'] = $queue->handleCronHook([
+                    'limit' => $limit,
+                    'force' => $force,
+                ]);
+            }
+
             if (($task === 'mail-queue' || $task === 'cms_cron_mail_queue' || $task === 'all')
                 && (!is_array($result['hourly']) || !empty($result['hourly']['skipped']))) {
                 $result['feed_queue_recovery'] = $this->repairFeedProcessingQueue();
@@ -119,6 +129,9 @@ final class CronRunnerService
             $success = true;
             if (is_array($result['mail_queue']) && array_key_exists('success', $result['mail_queue'])) {
                 $success = $success && !empty($result['mail_queue']['success']);
+            }
+            if (is_array($result['mail_queue_after_hourly']) && array_key_exists('success', $result['mail_queue_after_hourly'])) {
+                $success = $success && !empty($result['mail_queue_after_hourly']['success']);
             }
             if (is_array($result['hourly']) && array_key_exists('success', $result['hourly'])) {
                 $success = $success && !empty($result['hourly']['success']);

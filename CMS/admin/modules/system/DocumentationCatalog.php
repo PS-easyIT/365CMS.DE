@@ -12,8 +12,6 @@ final class DocumentationCatalog
 
     public function __construct(
         private readonly string $docsRoot,
-        private readonly string $githubDocBase,
-        private readonly string $githubDocTree,
         private readonly string $siteUrl
     ) {
     }
@@ -130,7 +128,7 @@ final class DocumentationCatalog
             return $this->buildAdminUrl($normalized);
         }
 
-        return $this->buildGithubTreeUrl($normalized);
+        return '#';
     }
 
     /**
@@ -168,7 +166,6 @@ final class DocumentationCatalog
                     'slug' => $entry,
                     'title' => $this->resolveSectionTitle($entry),
                     'description' => $this->resolveSectionDescription($entry),
-                    'github_url' => $this->buildGithubTreeUrl($entry),
                     'doc_count' => count($documents),
                     'documents' => $documents,
                 ];
@@ -185,7 +182,6 @@ final class DocumentationCatalog
                 'slug' => 'root',
                 'title' => 'Basisdokumente',
                 'description' => 'Zentrale Einstiegs- und Referenzdokumente aus dem Wurzelverzeichnis von /DOC.',
-                'github_url' => $this->githubDocTree,
                 'doc_count' => count($rootDocs),
                 'documents' => $rootDocs,
             ]);
@@ -243,7 +239,6 @@ final class DocumentationCatalog
             'relative_path' => $relativePath,
             'full_path' => $fullPath,
             'extension' => $extension,
-            'github_url' => $this->buildGithubBlobUrl($relativePath),
             'admin_url' => $this->buildAdminUrl($relativePath),
         ];
     }
@@ -309,7 +304,7 @@ final class DocumentationCatalog
 
         $text = $this->stripMarkdown(implode(' ', $paragraph));
         if ($text === '') {
-            return 'Dokumentation aus dem Repository-Bereich /DOC.';
+            return 'Dokumentation aus dem lokalen Repository-Verzeichnis /DOC.';
         }
 
         return cms_truncate_text($text, 180);
@@ -444,29 +439,8 @@ final class DocumentationCatalog
             'screenshots' => 'Bildmaterial und visuelle Dokumentationsartefakte.',
             'theme' => 'Theme-System, Customizer, Komponenten und Frontend-Entwicklung.',
             'workflow' => 'Abläufe, Registrierungsprozesse und technische Journeys.',
-            default => 'Dokumentationssammlung aus dem Repository-Bereich /DOC.',
+            default => 'Dokumentationssammlung aus dem lokalen Repository-Verzeichnis /DOC.',
         };
-    }
-
-    private function buildGithubBlobUrl(string $relativePath): string
-    {
-        return $this->githubDocBase . $this->encodePath($relativePath);
-    }
-
-    private function buildGithubTreeUrl(string $relativePath): string
-    {
-        $relativePath = trim($relativePath, '/');
-        if ($relativePath === '') {
-            return $this->githubDocTree;
-        }
-
-        return $this->githubDocTree . '/' . $this->encodePath($relativePath);
-    }
-
-    private function encodePath(string $path): string
-    {
-        $segments = array_filter(explode('/', str_replace('\\', '/', $path)), static fn (string $segment): bool => $segment !== '');
-        return implode('/', array_map('rawurlencode', $segments));
     }
 
     private function buildAdminUrl(string $relativePath): string

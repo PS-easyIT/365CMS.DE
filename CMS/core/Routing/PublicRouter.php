@@ -425,14 +425,14 @@ final class PublicRouter
     public function handleForgotPassword(): void
     {
         if (Auth::instance()->isLoggedIn()) {
-            $this->router->redirect('/member');
+            $this->router->redirect('/member', 303);
             return;
         }
 
         $security = Security::instance();
         if (!$security->verifyToken($_POST['csrf_token'] ?? '', 'forgot_password')) {
             $_SESSION['error'] = 'Sicherheitsüberprüfung fehlgeschlagen.';
-            $this->router->redirect($this->getPublicAuthPath('forgot-password'));
+            $this->router->redirect($this->getPublicAuthPath('forgot-password'), 303);
             return;
         }
 
@@ -449,12 +449,12 @@ final class PublicRouter
 
             if ($result['success'] ?? false) {
                 $_SESSION['success'] = (string)($result['message'] ?? 'Dein Passwort wurde erfolgreich geändert.');
-                $this->router->redirect($this->getPublicAuthPath('forgot-password') . '?step=done');
+                $this->router->redirect($this->getPublicAuthPath('forgot-password') . '?step=done', 303);
                 return;
             }
 
             $_SESSION['error'] = (string)($result['message'] ?? 'Das Passwort konnte nicht geändert werden.');
-            $this->router->redirect($this->getPublicAuthPath('forgot-password') . '?step=reset&token=' . urlencode($token));
+            $this->router->redirect($this->getPublicAuthPath('forgot-password') . '?step=reset&token=' . urlencode($token), 303);
             return;
         }
 
@@ -467,7 +467,7 @@ final class PublicRouter
             $this->setAuthFormOldValues('forgot-password', ['email' => $email]);
         }
 
-        $this->router->redirect($this->getPublicAuthPath('forgot-password'));
+        $this->router->redirect($this->getPublicAuthPath('forgot-password'), 303);
     }
 
     public function handleRegister(): void

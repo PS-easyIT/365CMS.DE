@@ -13,7 +13,6 @@ if (!defined('ABSPATH')) {
 use CMS\Auth;
 
 const CMS_ADMIN_DOCUMENTATION_READ_CAPABILITIES = ['manage_settings', 'manage_system'];
-const CMS_ADMIN_DOCUMENTATION_WRITE_CAPABILITY = 'manage_settings';
 
 function cms_admin_documentation_has_any_capability(array $capabilities): bool
 {
@@ -30,12 +29,6 @@ function cms_admin_documentation_can_access(): bool
 {
     return Auth::instance()->isAdmin()
         && cms_admin_documentation_has_any_capability(CMS_ADMIN_DOCUMENTATION_READ_CAPABILITIES);
-}
-
-function cms_admin_documentation_can_mutate(): bool
-{
-    return cms_admin_documentation_can_access()
-        && Auth::instance()->hasCapability(CMS_ADMIN_DOCUMENTATION_WRITE_CAPABILITY);
 }
 
 function cms_admin_documentation_substring(string $value, int $start, ?int $length = null): string
@@ -87,37 +80,6 @@ function cms_admin_documentation_redirect(?string $selectedDoc): never
     exit;
 }
 
-/**
- * @return list<string>
- */
-function cms_admin_documentation_allowed_actions(): array
-{
-    return ['sync_docs'];
-}
-
-function cms_admin_documentation_normalize_action($value): ?string
-{
-    $action = trim((string) $value);
-
-    return in_array($action, cms_admin_documentation_allowed_actions(), true) ? $action : null;
-}
-
-/** @return array{action:?string} */
-function cms_admin_documentation_normalize_post_payload(array $post): array
-{
-    return [
-        'action' => cms_admin_documentation_normalize_action($post['action'] ?? null),
-    ];
-}
-
-function cms_admin_documentation_handle_action(DocumentationModule $module, ?string $action): DocumentationSyncActionResult
-{
-    return match ($action) {
-        'sync_docs' => $module->syncDocsFromRepository(),
-        default => new DocumentationSyncActionResult(false, null, 'Unbekannte oder nicht erlaubte Aktion.'),
-    };
-}
-
 $sectionPageConfig = [
     'section' => 'documentation',
     'route_path' => '/admin/documentation',
@@ -134,19 +96,6 @@ $sectionPageConfig = [
     'redirect_path_resolver' => static fn (): string => cms_admin_documentation_redirect_url(cms_admin_documentation_normalize_selected_doc($_GET['doc'] ?? null)),
     'invalid_token_message' => 'Sicherheitstoken ungültig.',
     'unknown_action_message' => 'Unbekannte oder nicht erlaubte Aktion.',
-    'post_handler' => static function (DocumentationModule $module, string $section, array $post): array {
-        if (!cms_admin_documentation_can_mutate()) {
-            return ['success' => false, 'error' => 'Keine Berechtigung für Dokumentations-Synchronisationen.'];
-        }
-
-        $normalizedPost = cms_admin_documentation_normalize_post_payload($post);
-        $result = cms_admin_documentation_handle_action($module, $normalizedPost['action']);
-
-        return [
-            'success' => $result->isSuccess(),
-            'message' => $result->getMessage(),
-        ];
-    },
 ];
 
 require __DIR__ . '/partials/section-page-shell.php';

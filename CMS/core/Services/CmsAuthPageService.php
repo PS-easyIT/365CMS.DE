@@ -17,6 +17,7 @@ final class CmsAuthPageService
     private const SETTING_PREFIX = 'cms_loginpage_';
     private const FORGOT_PASSWORD_REQUEST_RATE_LIMIT_ATTEMPTS = 5;
     private const FORGOT_PASSWORD_REQUEST_RATE_LIMIT_WINDOW = 900;
+    private const FORGOT_PASSWORD_REQUEST_MIN_RESPONSE_MICROSECONDS = 350000;
     private const FORGOT_PASSWORD_RESET_RATE_LIMIT_ATTEMPTS = 10;
     private const FORGOT_PASSWORD_RESET_RATE_LIMIT_WINDOW = 900;
     private const FORGOT_PASSWORD_RESET_TOKEN_RATE_LIMIT_ATTEMPTS = 5;
@@ -293,6 +294,9 @@ final class CmsAuthPageService
         $forgotStep = (string) ($context['forgot_step'] ?? ($_GET['step'] ?? 'request'));
         $forgotStep = in_array($forgotStep, ['request', 'reset', 'done'], true) ? $forgotStep : 'request';
         $resetToken = trim((string) ($context['reset_token'] ?? ($_GET['token'] ?? '')));
+        if ($pageType === 'forgot-password' && $forgotStep === 'reset' && $resetToken !== '' && !headers_sent()) {
+            header('Referrer-Policy: no-referrer', true);
+        }
         $passkeyPayload = is_array($context['passkey_payload'] ?? null) ? $context['passkey_payload'] : ['available' => false, 'options_json' => '{}'];
         if (!$this->isPasskeyLoginEnabled($settings)) {
             $passkeyPayload = ['available' => false, 'options_json' => '{}'];
@@ -318,6 +322,8 @@ final class CmsAuthPageService
             return ['success' => false, 'message' => 'Bitte eine gültige E-Mail-Adresse eingeben.'];
         }
 
+        $requestStartedAt = microtime(true);
+
         $settings = $this->getSettings();
         $expiryMinutes = max(5, min(1440, (int) ($settings['password_reset_expiry_minutes'] ?? '60')));
         $security = Security::instance();
@@ -335,10 +341,10 @@ final class CmsAuthPageService
                 'email' => $email,
             ]);
 
-            return [
+            return $this->withMinimumForgotPasswordRequestDuration([
                 'success' => false,
                 'message' => 'Zu viele Reset-Anfragen. Bitte warte einige Minuten und versuche es erneut.',
-            ];
+            ], $requestStartedAt);
         }
 
         if (!$this->checkPasswordResetIdentifierRateLimit(
@@ -352,10 +358,10 @@ final class CmsAuthPageService
                 'email' => $normalizedEmail,
             ]);
 
-            return [
+            return $this->withMinimumForgotPasswordRequestDuration([
                 'success' => true,
                 'message' => (string) ($settings['forgot_request_success_message'] ?? 'Falls ein Konto mit dieser E-Mail-Adresse existiert, haben wir einen Reset-Link versendet.'),
-            ];
+            ], $requestStartedAt);
         }
 
         Security::recordDbRateLimitAttempt($clientIp, 'forgot_password_request', $normalizedEmail);
@@ -407,16 +413,19 @@ final class CmsAuthPageService
                 }
             }
 
-            return [
+            return $this->withMinimumForgotPasswordRequestDuration([
                 'success' => true,
                 'message' => (string) ($settings['forgot_request_success_message'] ?? 'Falls ein Konto mit dieser E-Mail-Adresse existiert, haben wir einen Reset-Link versendet.'),
-            ];
+            ], $requestStartedAt);
         } catch (\Throwable $e) {
             $this->logger->error('Passwort-Reset-Anfrage konnte nicht verarbeitet werden.', [
                 'email' => $email,
                 'exception' => $e->getMessage(),
             ]);
-            return ['success' => false, 'message' => 'Die Passwort-Zurücksetzung konnte gerade nicht verarbeitet werden.'];
+            return $this->withMinimumForgotPasswordRequestDuration([
+                'success' => false,
+                'message' => 'Die Passwort-Zurücksetzung konnte gerade nicht verarbeitet werden.',
+            ], $requestStartedAt);
         }
     }
 
@@ -523,6 +532,18 @@ final class CmsAuthPageService
 
             return Security::checkRateLimit('forgot_identifier_' . $action . '_' . hash('sha256', $identifier), $maxAttempts, $timeWindow);
         }
+    }
+
+    /** @param array{success:bool,message:string} $result */
+    private function withMinimumForgotPasswordRequestDuration(array $result, float $startedAt): array
+    {
+        $elapsedMicroseconds = (int) ((microtime(true) - $startedAt) * 1000000);
+        $remainingMicroseconds = self::FORGOT_PASSWORD_REQUEST_MIN_RESPONSE_MICROSECONDS - $elapsedMicroseconds;
+        if ($remainingMicroseconds > 0) {
+            usleep($remainingMicroseconds);
+        }
+
+        return $result;
     }
 
     /** @return array<string, string> */
