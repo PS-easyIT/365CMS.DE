@@ -31,10 +31,14 @@ class GroupsModule
     public function getData(): array
     {
         $groups = $this->db->get_results(
-            "SELECT g.*, COUNT(ugm.user_id) AS member_count
+            "SELECT g.*, sp.name AS plan_name,
+                    (
+                        SELECT COUNT(*)
+                        FROM {$this->prefix}user_group_members ugm
+                        WHERE ugm.group_id = g.id
+                    ) AS member_count
              FROM {$this->prefix}user_groups g
-             LEFT JOIN {$this->prefix}user_group_members ugm ON g.id = ugm.group_id
-             GROUP BY g.id
+             LEFT JOIN {$this->prefix}subscription_plans sp ON sp.id = g.plan_id
              ORDER BY g.is_active DESC, g.name ASC"
         ) ?: [];
 
@@ -75,6 +79,7 @@ class GroupsModule
         return [
             'groups' => $normalizedGroups,
             'userOptions' => $this->getUserOptions(),
+            'planOptions' => $this->getPlanOptions(),
         ];
     }
 
@@ -123,6 +128,47 @@ class GroupsModule
                 'status' => (string)($row->status ?? 'inactive'),
             ];
         }, $rows);
+    }
+
+    private function getPlanOptions(): array
+    {
+        try {
+            $rows = $this->db->get_results(
+                "SELECT id, name, slug, is_active
+                 FROM {$this->prefix}subscription_plans
+                 ORDER BY is_active DESC, sort_order ASC, name ASC"
+            ) ?: [];
+        } catch (\Throwable) {
+            return [];
+        }
+
+        return array_map(static function (object $row): array {
+            return [
+                'id' => (int)($row->id ?? 0),
+                'name' => (string)($row->name ?? ''),
+                'slug' => (string)($row->slug ?? ''),
+                'is_active' => (int)($row->is_active ?? 0),
+            ];
+        }, $rows);
+    }
+
+    private function sanitizeExistingPlanId(mixed $value): ?int
+    {
+        $planId = (int)$value;
+        if ($planId <= 0) {
+            return null;
+        }
+
+        try {
+            $exists = (int)$this->db->get_var(
+                "SELECT COUNT(*) FROM {$this->prefix}subscription_plans WHERE id = ?",
+                [$planId]
+            );
+        } catch (\Throwable) {
+            return null;
+        }
+
+        return $exists > 0 ? $planId : null;
     }
 
     private function normalizeSlug(mixed $value, string $fallback): string
@@ -217,6 +263,7 @@ class GroupsModule
         $description = $this->normalizeScalarText($post['description'] ?? '', 500);
         $memberIds   = $this->normalizeMemberIds($post['member_ids'] ?? []);
         $isActive    = !empty($post['is_active']) ? 1 : 0;
+        $planId      = $this->sanitizeExistingPlanId($post['plan_id'] ?? 0);
 
         if ($name === '') {
             return ['success' => false, 'error' => 'Gruppenname darf nicht leer sein.'];
@@ -237,13 +284,13 @@ class GroupsModule
 
             if ($id > 0) {
                 $this->db->execute(
-                    "UPDATE {$this->prefix}user_groups SET name = ?, slug = ?, description = ?, is_active = ?, updated_at = NOW() WHERE id = ?",
-                    [$name, $slug, $description, $isActive, $id]
+                    "UPDATE {$this->prefix}user_groups SET name = ?, slug = ?, description = ?, plan_id = ?, is_active = ?, updated_at = NOW() WHERE id = ?",
+                    [$name, $slug, $description, $planId, $isActive, $id]
                 );
             } else {
                 $this->db->execute(
-                    "INSERT INTO {$this->prefix}user_groups (name, slug, description, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, NOW(), NOW())",
-                    [$name, $slug, $description, $isActive]
+                    "INSERT INTO {$this->prefix}user_groups (name, slug, description, plan_id, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, NOW(), NOW())",
+                    [$name, $slug, $description, $planId, $isActive]
                 );
                 $id = (int)$pdo->lastInsertId();
             }
@@ -254,13 +301,14 @@ class GroupsModule
                 $pdo->commit();
             }
 
-            $memberLabel = count($memberIds) === 1 ? '1 Mitglied' : count($memberIds) . ' Mitglieder';
+                $memberLabel = count($memberIds) === 1 ? '1 Mitglied' : count($memberIds) . ' Mitglieder';
+                $planLabel = $planId !== null ? ' Paket verknüpft.' : ' Kein Paket verknüpft.';
 
             return [
                 'success' => true,
                 'message' => $post['id'] ?? false
-                    ? 'Gruppe aktualisiert · ' . $memberLabel . ' zugeordnet.'
-                    : 'Gruppe erstellt · ' . $memberLabel . ' zugeordnet.',
+                    ? 'Gruppe aktualisiert · ' . $memberLabel . ' zugeordnet.' . $planLabel
+                    : 'Gruppe erstellt · ' . $memberLabel . ' zugeordnet.' . $planLabel,
             ];
         } catch (\Throwable $e) {
             $pdo = $this->db->getPdo();

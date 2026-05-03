@@ -16,6 +16,8 @@ $isNew = $data['isNew'] ?? true;
 $availableRoles = $data['availableRoles'] ?? [];
 $availableStatuses = $data['availableStatuses'] ?? [];
 $usersAdminPath = '/admin/users';
+$userId = (int)($user->id ?? 0);
+$userName = trim((string)($user->username ?? ''));
 $requestUriRaw = (string) ($_SERVER['REQUEST_URI'] ?? '');
 $requestPath = (string) parse_url($requestUriRaw, PHP_URL_PATH);
 $requestQuery = (string) parse_url($requestUriRaw, PHP_URL_QUERY);
@@ -59,7 +61,7 @@ $roleColors = [
         <form method="post" action="<?php echo htmlspecialchars($currentRequestUri, ENT_QUOTES); ?>" id="userForm">
             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
             <?php if (!$isNew): ?>
-                <input type="hidden" name="id" value="<?php echo (int)$user->id; ?>">
+                <input type="hidden" name="id" value="<?php echo $userId; ?>">
             <?php endif; ?>
 
             <div class="row">
@@ -162,13 +164,10 @@ $roleColors = [
                         <div class="card-body">
                             <p class="text-secondary mb-3">Der Benutzer wird <strong>vollständig entfernt</strong>. Diese Aktion ist dauerhaft und kann nicht rückgängig gemacht werden.</p>
                             <button
-                                type="submit"
-                                name="action"
-                                value="delete"
+                                type="button"
                                 class="btn btn-danger w-100"
-                                form="userForm"
-                                formnovalidate
-                                data-confirm="Der Benutzer wird dauerhaft gelöscht. Wirklich fortfahren?"
+                                data-user-delete-id="<?php echo $userId; ?>"
+                                data-user-delete-name="<?php echo htmlspecialchars($userName !== '' ? $userName : 'Benutzer', ENT_QUOTES); ?>"
                             >Benutzer löschen</button>
                         </div>
                     </div>
@@ -176,6 +175,14 @@ $roleColors = [
                 </div>
             </div>
         </form>
+
+        <?php if (!$isNew): ?>
+            <form id="deleteUserForm" method="post" action="<?php echo htmlspecialchars($usersAdminPath, ENT_QUOTES); ?>" class="d-none">
+                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
+                <input type="hidden" name="action" value="delete">
+                <input type="hidden" name="id" value="<?php echo $userId; ?>">
+            </form>
+        <?php endif; ?>
 
     </div>
 </div>

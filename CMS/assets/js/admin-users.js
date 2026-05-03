@@ -1,6 +1,28 @@
 (function () {
     'use strict';
 
+    function submitWithTemporarySubmitter(form) {
+        if (!form) {
+            return false;
+        }
+
+        if (typeof form.requestSubmit === 'function') {
+            form.requestSubmit();
+            return true;
+        }
+
+        var submitter = document.createElement('button');
+        submitter.type = 'submit';
+        submitter.hidden = true;
+        submitter.tabIndex = -1;
+        submitter.setAttribute('aria-hidden', 'true');
+        form.appendChild(submitter);
+        submitter.click();
+        submitter.remove();
+
+        return true;
+    }
+
     function setSubmittingState(form, isSubmitting) {
         if (!form) {
             return;
@@ -253,9 +275,48 @@
         });
     }
 
+    function initUserDeleteActions() {
+        var deleteButton = document.querySelector('[data-user-delete-id]');
+        var deleteForm = document.getElementById('deleteUserForm');
+
+        if (!deleteButton || !deleteForm) {
+            return;
+        }
+
+        deleteButton.addEventListener('click', function () {
+            if (deleteForm.dataset.submitting === '1') {
+                return;
+            }
+
+            var userName = deleteButton.getAttribute('data-user-delete-name') || 'Benutzer';
+            var message = 'Der Benutzer "' + userName + '" wird dauerhaft gelöscht. Wirklich fortfahren?';
+
+            var confirmDelete = function () {
+                deleteForm.dataset.submitting = '1';
+                submitWithTemporarySubmitter(deleteForm);
+            };
+
+            if (typeof cmsConfirm === 'function') {
+                cmsConfirm({
+                    title: 'Benutzer löschen',
+                    message: message,
+                    confirmText: 'Löschen',
+                    confirmClass: 'btn-danger',
+                    onConfirm: confirmDelete
+                });
+                return;
+            }
+
+            if (window.confirm(message)) {
+                confirmDelete();
+            }
+        });
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
         initUsersFilters();
         initUsersBulkActions();
+        initUserDeleteActions();
         initRolesUi();
     });
 })();

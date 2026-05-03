@@ -37,6 +37,7 @@ Im aktuellen Basisschema sind insbesondere relevant:
 
 - Gruppen sind stärker mit der Paket- und Zuweisungslogik verzahnt als ältere Dokumentationsstände vermuten lassen.
 - Das Admin-Modal pflegt jetzt Name, optionalen Slug, Aktiv-Status und Mitgliederzuordnung in einem Flow; fehlende Slugs werden serverseitig eindeutig erzeugt.
+- Gruppen können direkt mit einem Paket/Plan aus `subscription_plans` verknüpft werden, damit gruppenbasierte Abo-Zuordnungen nicht mehr nur auf Datenbankebene existieren.
 - Gruppen-Löschungen entfernen Mitgliedschaften transaktional, damit keine verwaisten `user_group_members`-Zuordnungen zurückbleiben.
 - Für Rechte und Capabilities ist heute vorrangig die Rollenverwaltung unter `/admin/roles` zuständig.
 

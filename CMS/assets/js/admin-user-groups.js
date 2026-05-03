@@ -37,6 +37,7 @@
         var groupNameInput = document.getElementById('groupName');
         var groupSlugInput = document.getElementById('groupSlug');
         var groupDescInput = document.getElementById('groupDesc');
+        var groupPlanInput = document.getElementById('groupPlan');
         var groupIsActiveInput = document.getElementById('groupIsActive');
         var modalTitle = document.getElementById('groupModalTitle');
         var deleteGroupIdInput = document.getElementById('deleteGroupId');
@@ -44,7 +45,7 @@
         var groupMemberInputs = Array.prototype.slice.call(document.querySelectorAll('input[name="member_ids[]"]'));
 
         function applyGroupModalData(button) {
-            if (!button || !groupIdInput || !groupNameInput || !groupDescInput || !modalTitle || !groupSlugInput || !groupIsActiveInput) {
+            if (!button || !groupIdInput || !groupNameInput || !groupDescInput || !modalTitle || !groupSlugInput || !groupPlanInput || !groupIsActiveInput) {
                 return;
             }
 
@@ -62,6 +63,7 @@
             groupNameInput.value = button.getAttribute('data-group-name') || '';
             groupSlugInput.value = button.getAttribute('data-group-slug') || '';
             groupDescInput.value = button.getAttribute('data-group-description') || '';
+            groupPlanInput.value = button.getAttribute('data-group-plan-id') || '0';
             groupIsActiveInput.checked = (button.getAttribute('data-group-is-active') || '1') === '1';
             modalTitle.textContent = button.getAttribute('data-group-modal-title') || 'Gruppe bearbeiten';
 

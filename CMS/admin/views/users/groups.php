@@ -13,6 +13,7 @@ if (!defined('ABSPATH')) {
 
 $groups  = $data['groups'] ?? [];
 $userOptions = $data['userOptions'] ?? [];
+$planOptions = $data['planOptions'] ?? [];
 
 /** @param object|array<string,mixed> $group */
 $groupField = static function (mixed $group, string $key, mixed $default = ''): mixed {
@@ -73,6 +74,8 @@ $groupField = static function (mixed $group, string $key, mixed $default = ''): 
                     $groupDescription = (string) $groupField($group, 'description', '');
                     $groupMemberCount = (int) $groupField($group, 'member_count', 0);
                     $groupIsActive = (int) $groupField($group, 'is_active', 1) === 1;
+                    $groupPlanId = (int) $groupField($group, 'plan_id', 0);
+                    $groupPlanName = (string) $groupField($group, 'plan_name', '');
                     $groupMembers = $groupField($group, 'members', []);
                     $groupMemberIds = $groupField($group, 'member_ids', []);
                     ?>
@@ -93,6 +96,9 @@ $groupField = static function (mixed $group, string $key, mixed $default = ''): 
                                 </div>
                                 <?php if ($groupSlug !== ''): ?>
                                     <div class="mb-2 text-secondary small">Slug: <code><?php echo htmlspecialchars($groupSlug); ?></code></div>
+                                <?php endif; ?>
+                                <?php if ($groupPlanId > 0 && $groupPlanName !== ''): ?>
+                                    <div class="mb-2"><span class="badge bg-purple-lt text-purple">Paket: <?php echo htmlspecialchars($groupPlanName); ?></span></div>
                                 <?php endif; ?>
                                 <?php if ($groupDescription !== ''): ?>
                                     <p class="text-secondary mb-3"><?php echo htmlspecialchars($groupDescription); ?></p>
@@ -125,6 +131,7 @@ $groupField = static function (mixed $group, string $key, mixed $default = ''): 
                                         data-group-name="<?php echo htmlspecialchars($groupName, ENT_QUOTES); ?>"
                                         data-group-slug="<?php echo htmlspecialchars($groupSlug, ENT_QUOTES); ?>"
                                         data-group-description="<?php echo htmlspecialchars($groupDescription, ENT_QUOTES); ?>"
+                                        data-group-plan-id="<?php echo $groupPlanId; ?>"
                                         data-group-is-active="<?php echo $groupIsActive ? '1' : '0'; ?>"
                                         data-group-member-ids="<?php echo htmlspecialchars((string)json_encode($groupMemberIds, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), ENT_QUOTES); ?>"
                                         data-group-modal-title="Gruppe bearbeiten">
@@ -169,6 +176,23 @@ $groupField = static function (mixed $group, string $key, mixed $default = ''): 
                 <div class="mb-3">
                     <label class="form-label" for="groupDesc">Beschreibung</label>
                     <textarea class="form-control" id="groupDesc" name="description" rows="3" maxlength="500"></textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="groupPlan">Paket / Plan</label>
+                    <select class="form-select" id="groupPlan" name="plan_id">
+                        <option value="0">Kein Paket verknüpfen</option>
+                        <?php foreach ($planOptions as $planOption): ?>
+                            <?php
+                            $planOptionId = (int)($planOption['id'] ?? 0);
+                            $planOptionName = trim((string)($planOption['name'] ?? ''));
+                            $planOptionActive = (int)($planOption['is_active'] ?? 0) === 1;
+                            ?>
+                            <option value="<?php echo $planOptionId; ?>">
+                                <?php echo htmlspecialchars($planOptionName !== '' ? $planOptionName : ('Plan #' . $planOptionId)); ?><?php echo $planOptionActive ? '' : ' (inaktiv)'; ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                    <div class="form-hint">Verknüpfte Gruppenpakete können in der Abo-Runtime als Benutzergruppen-Subscription ausgewertet werden.</div>
                 </div>
                 <div class="mb-3">
                     <label class="form-check form-switch">

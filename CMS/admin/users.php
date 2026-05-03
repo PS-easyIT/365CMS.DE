@@ -145,7 +145,11 @@ function cms_admin_users_view_config(UsersModule $module, string $view, ?int $ed
             'view_file' => __DIR__ . '/views/users/edit.php',
             'page_title' => !empty($data['isNew']) ? 'Neuer Benutzer' : 'Benutzer bearbeiten',
             'active_page' => 'users',
-            'page_assets' => [],
+            'page_assets' => [
+                'js' => [
+                    cms_asset_url('js/admin-users.js'),
+                ],
+            ],
             'data' => $data,
         ];
     }

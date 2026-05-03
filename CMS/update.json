@@ -8,6 +8,6 @@
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 2.9.512: Benutzer & Gruppen schließen ihren 5xx-Batch mit echter Standardrollen-Wirkung für Registrierungen, einheitlicher 12-Zeichen-Passwort-Policy in Auth und Admin, sichtbarem Gruppenbezug in der Benutzerliste sowie vervollständigter Gruppenpflege für Slug, Aktiv-Status und Mitgliedschaften direkt im Admin ab.",
+  "notes": "Release-Stand 2.9.512: Benutzer & Gruppen schließen ihren 5xx-Batch mit echter Standardrollen-Wirkung für Registrierungen, einheitlicher 12-Zeichen-Passwort-Policy in Auth und Admin, robuster Benutzer-Löschung per explizitem Delete-Formular, sichtbarem Gruppenbezug in der Benutzerliste sowie vervollständigter Gruppenpflege für Slug, Paketbezug, Aktiv-Status und Mitgliedschaften direkt im Admin ab.",
   "critical": false
 }
