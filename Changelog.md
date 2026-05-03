@@ -20,52 +20,17 @@
 
 ---
 
-### v2.9.507 — 3. Mai 2026
+### v2.9.501 - X07 — 3. Mai 2026
 
 | Version | Typ | Bereich | Beschreibung |
 |---------|-----|---------|-------------|
 | **2.9.507** | 🔴 fix | Admin & Public/Hub-Sites + Tabellen | **`CMS/admin/modules/hub/HubSitesModule.php`, `CMS/admin/hub-sites.php`, `CMS/admin/views/hub/edit.php`, `CMS/core/Services/SiteTable/SiteTableRepository.php`, `CMS/core/Services/SiteTableService.php`, `CMS/core/Services/SiteTable/SiteTableHubRenderer.php`, `CMS/admin/modules/tables/TablesModule.php`, `CMS/admin/site-tables.php`, `CMS/admin/views/tables/edit.php`, `CMS/core/Services/SiteTable/SiteTableTableRenderer.php`, `CMS/assets/js/site-tables.js`, `CMS/assets/css/main.css`, `CMS/DOC/admin/pages-posts/README.md`, `CMS/DOC/admin/pages-posts/TABLES.md` und `CMS/DOC/admin/pages-posts/HUBSITES.md` schließen den Unterbereich Hub-Sites & Tabellen als eigenen 5xx-Batch ab**: Hub-Sites reservieren jetzt auch reale Public-Routen und Archivbasen als Slugs statt später an `/contact`, `/authors`, `/feed`, `/category` oder `/tag` unsichtbar zu scheitern; Legacy-Hubs mit nur gesetztem `table_slug` lösen über Zusatzdomains wieder konsistent auf, öffentliche Hub-Navigation/TOC-Labels folgen dem aktuellen Locale statt fest auf Deutsch zu bleiben, und fehlgeschlagene Saves springen wieder ins Edit-Formular zurück statt kommentarlos auf die Liste. Parallel schließt die Site-Table-Runtime ihre im Editor sichtbaren Schalter nun tatsächlich an das Frontend an: Suche, Sortierung, Paginierung und Zeilenhervorhebung wirken öffentlich sichtbar, `aria-sort` sitzt nur noch auf der aktiv sortierten Spalte, statische Datentabellen verlieren die irreführende `role=\"grid\"`-Umdeutung zugunsten semantischer `<table>`-Struktur, fehlgeschlagene Tabellen-Saves behalten Eingaben und Fehlermeldung im Edit-Formular, und die zuvor nur scheinbar vorhandene Excel-Option verschwindet aus dem Editor zugunsten des real produktiven Export-Vertrags CSV/JSON. |
-
-### v2.9.506 — 3. Mai 2026
-
-| Version | Typ | Bereich | Beschreibung |
-|---------|-----|---------|-------------|
 | **2.9.506** | 🔴 fix | Admin & Public/Kommentare + Inhaltsverzeichnis | **`CMS/core/Routing/PublicRouter.php`, `CMS/themes/cms-default/blog-single.php`, `CMS/core/TableOfContents.php`, `CMS/admin/modules/toc/TocModule.php`, `CMS/admin/table-of-contents.php`, `CMS/admin/views/toc/settings.php`, `CMS/assets/js/admin-comments.js` und `CMS/DOC/admin/pages-posts/POSTS.md` schließen den Unterbereich Kommentare & Inhaltsverzeichnis als eigenen 5xx-Batch ab**: Einzelbeiträge rendern freigegebene Kommentare jetzt wieder sichtbar statt nur ein Formular, besitzen endlich ein echtes `#comments`-Sprungziel, respektieren `allow_comments` im Frontend und halten Formularfehler/-erfolge inline am Beitrag mit erhaltenem Zustand statt bloß als generischen Header-Flash; eingeloggte Nutzer können vorhandene Profildaten konsistent verwenden und optional anonym posten. Im Kommentar-Admin ist veraltete JS-Altlogik entfernt, `Select all` synchronisiert nun korrekt mit Einzelhaken, und Bulk-Aktionen feuern nur noch aus einem konsistenten Auswahlzustand. Parallel respektiert das TOC nun Ausschlusslisten per Pipe **oder** Komma, die Optionen `lowercase`, `hyphenate`, `homepage_toc` und `exclude_css` wirken in der Runtime tatsächlich, `light`/`dark` landen wieder auf funktionierenden Theme-Varianten, die Positionsauswahl beschreibt den realen Vertrag „vor/nach der ersten Überschrift“ korrekt, und die TOC-Adminseite läuft nun auf denselben Section-Shell-Standard wie andere modernisierte Admin-Bereiche. |
-
-### v2.9.505 — 3. Mai 2026
-
-| Version | Typ | Bereich | Beschreibung |
-|---------|-----|---------|-------------|
 | **2.9.505** | 🔴 fix | Public/Beiträge-Kategorien & -Tags | **`CMS/core/Routing/ThemeRouter.php`, `CMS/themes/cms-default/functions.php`, `CMS/themes/cms-default/blog.php` und `CMS/DOC/admin/pages-posts/POSTS.md` schließen den öffentlichen Kategorien-/Tags-Vertrag jetzt an den bereits gehärteten Admin-Stand an**: `/blog?category=...` und `/blog?tag=...` delegieren wieder sauber in die bestehenden Kategorie-/Tag-Archive statt die Auswahl still zu ignorieren, das Default-Theme zählt Sidebar-/Header-Kategorien relationstabellen- und locale-aware statt nur über `posts.category_id`, die Tag-Cloud nutzt wieder den echten Tag-Bestand aus Relationstabelle plus Legacy-Fallback statt eine rohe `posts.tags`-Abfrage ohne Prefix, und die Bereichsdoku beschreibt diese Public-Runtime nun explizit. |
-
-### v2.9.504 — 3. Mai 2026
-
-| Version | Typ | Bereich | Beschreibung |
-|---------|-----|---------|-------------|
 | **2.9.504** | 🎨 style | Admin/Seiten & Beiträge Editor-Aktionen | **`CMS/admin/views/posts/edit.php`, `CMS/admin/views/pages/edit.php`, `CMS/DOC/admin/pages-posts/POSTS.md` und `CMS/DOC/admin/pages-posts/PAGES.md` ziehen die obere Aktionshierarchie im Editor auf einen konsistenteren Kartenvertrag**: Der Einzel-Löschbutton sitzt bei Seiten und Beiträgen jetzt dezent in der jeweiligen Aktionskarte direkt unter den Vorschau-Buttons statt als separater Block, wodurch Speichern, Preview und destruktive Aktion als zusammengehörige Bediengruppe erscheinen; zusätzlich nutzt der Seiten-Editor oben nun denselben Drei-Karten-Aufbau wie die Beiträge, mit Bild plus Aktionen in der mittleren Spalte und Veröffentlichung rechts. |
-
-### v2.9.503 — 3. Mai 2026
-
-| Version | Typ | Bereich | Beschreibung |
-|---------|-----|---------|-------------|
 | **2.9.503** | 🔴 fix | Admin/Beitrags-Kategorien & -Tags | **`CMS/admin/post-categories.php`, `CMS/admin/post-tags.php`, `CMS/admin/views/posts/categories.php`, `CMS/admin/views/posts/tags.php`, `CMS/assets/js/admin.js` und `CMS/DOC/admin/pages-posts/POSTS.md` schließen den Kategorien-/Tags-Unterbereich als eigenen 5xx-Audit-Batch ab**: Validierungsfehler in Taxonomie-Formularen verlieren Eingaben nicht mehr beim Redirect, sondern zeigen die Rückmeldung direkt im Formular mit erhaltenem Zustand; der Kategorien-Löschfallback ohne Bootstrap-Modal respektiert hinterlegte Ersatzkategorien wieder statt legitime Löschungen pauschal abzubrechen; und die Bereichsdoku beschreibt den tatsächlichen Taxonomie-Vertrag nun explizit inklusive Ersatzlogik, Fehlerrückfluss und Bestätigungsdialogen. |
-
-### v2.9.502 — 3. Mai 2026
-
-| Version | Typ | Bereich | Beschreibung |
-|---------|-----|---------|-------------|
 | **2.9.502** | 🔴 fix | Admin/Beiträge | **`CMS/admin/modules/posts/PostsModule.php`, `CMS/admin/views/posts/list.php`, `CMS/admin/views/posts/edit.php` und `CMS/DOC/admin/pages-posts/POSTS.md` schließen den Beiträge-Bereichsaudit mit robusteren Redirect-/Delete-/Bulk-/Taxonomie-Verträgen ab**: Bootstrap-Migrationen loggen Warnungen jetzt strukturiert statt über `error_log()`, Einzel-, Bulk-, Kategorie- und Tag-Mutationen räumen den Inhaltscache konsistent mit auf, Kategorie-/Tag-Löschpfade prüfen Delete-Statements robuster, EN-Slug-Änderungen erzeugen ebenfalls lokalisierte Redirects im aktuellen Präfix-Schema `/en/blog/...` inklusive Legacy-Kompatibilität, die Editor-UI bietet einen sichtbaren Einzel-Löschpfad mit Bestätigung sowie klarere Vorschau-Labels, und die Bereichsdoku beschreibt wieder den tatsächlichen Runtime-Stand statt veralteter 2.9.0-Annahmen. |
-
-### v2.9.501 — 3. Mai 2026
-
-| Version | Typ | Bereich | Beschreibung |
-|---------|-----|---------|-------------|
 | **2.9.501** | 🔴 fix | Admin/Seiten | **`CMS/admin/modules/pages/PagesModule.php`, `CMS/admin/views/pages/list.php`, `CMS/admin/views/pages/edit.php` und `CMS/DOC/admin/pages-posts/PAGES.md` schließen den Seiten-Bereichsaudit mit korrigierten Redirect-/Delete-/Bulk-Verträgen ab**: Lokalisierte Slug-Redirects folgen wieder dem aktuellen Präfix-Schema `/en/...` statt der veralteten Suffix-Variante `.../en`, Legacy-EN-Pfade bleiben per Redirect kompatibel, Einzel- und Bulk-Löschungen validieren Seitenbestände jetzt fail-closed und leeren den Inhaltscache konsistent mit, die Seiten-UI bietet endlich einen sichtbaren Einzel-Löschpfad inklusive Bestätigung sowie klarere Bulk-Rückmeldung, und die Bereichsdoku beschreibt den echten Runtime-Stand statt eines überholten 2.9.0-Bilds. |
-
-### v2.9.500 — 3. Mai 2026
-
-| Version | Typ | Bereich | Beschreibung |
-|---------|-----|---------|-------------|
 | **2.9.500** | 🎨 style | Admin/Dashboard | **`CMS/admin/views/dashboard/index.php`, `CMS/admin/modules/dashboard/DashboardModule.php` und `CMS/DOC/admin/dashboard/README.md` schließen den Dashboard-Bereichsaudit mit kompakteren KPI-/Highlight-Karten, robusterem View-Fallback und aktualisierter Bereichsdoku ab**: Die Admin-Startseite zeigt Kernsignale jetzt dichter und scanbarer, Highlight-Karten nutzen passende Icons statt eines pauschalen Activity-Fallbacks, das Beitrags-KPI besitzt wieder ein korrektes Icon-Mapping, und fehlende `kpis`-/`activity`-Payloads kippen im Renderpfad nicht mehr in fragile Annahmen. |
 
 ### v2.9.248 — 2. Mai 2026
@@ -88,29 +53,14 @@
 | **2.9.248** | 🔴 fix | Frontend/Fonts Runtime | **`CMS/themes/cms-default/functions.php`, `CMS/themes/cms-default/includes/theme-class.php` und `CMS/admin/modules/themes/FontManagerModule.php` schließen die letzte Lücke zwischen Font Manager und Default-Theme**: Sind lokale Fonts aktiv, übernimmt das Public-Theme nun auch wirklich die im Font Manager gespeicherten Font-Familien, Font-Stacks, Basisgrößen und Zeilenhöhen statt weiterhin nur auf die Customizer-Typografie zu hören; zusätzlich richtet sich die Erfolgs-/Fehlerkommunikation des Font Managers jetzt nach dem tatsächlichen Toggle-Wert statt bloß nach der Feld-Existenz. |
 | **2.9.248** | 🔴 fix | Admin/Security Audit & AntiSpam Vertrag | **`CMS/admin/modules/security/SecurityAuditModule.php`, `CMS/admin/modules/security/AntispamModule.php` und `CMS/admin/views/security/antispam.php` ziehen die Security-Oberflächen auf den tatsächlich unterstützten lokalen Schutzumfang**: Das Audit prüft jetzt Firewall-Runtime, AntiSpam-Runtime und Runtime-Fremdassets, AntiSpam-Blacklists vermeiden Duplikate per Laufzeitprüfung/Unique-Key, und reCAPTCHA wird nicht länger als aktives Feature beworben, weil externe CAPTCHA-Dienste bewusst nicht in der Public-Runtime geladen werden. |
 
-### v2.9.247 — 24. April 2026
+### v2.9.244 - .247 — 24. April 2026
 
 | Version | Typ | Bereich | Beschreibung |
 |---------|-----|---------|-------------|
 | **2.9.247** | 🔴 fix | Core/Public Routing & Archive Search | **`CMS/core/Routing/ThemeRouter.php` initialisiert in `renderContact()` die aufgelöste Request-Locale jetzt vor dem Seiten-Lookup und zieht Category-/Tag-Archive bei der Query-Suche auf denselben locale-aware Suchvertrag wie `/search`**: `/contact` bzw. `/kontakt` laufen damit nicht mehr in einen `$locale`-Warning samt falschem Seiten-Lookup, und EN-Archive filtern Titel, Auszug und Inhalt jetzt konsistent über `*_en` mit sauberem Fallback auf die Basissprache. |
 | **2.9.247** | 🔴 fix | Admin/Beiträge Listenvertrag | **`CMS/admin/modules/posts/PostsModule.php` spiegelt die Admin-Postsuche jetzt wieder an den JSON-Vertrag aus `CMS/core/Routing/ApiRouter.php` an**: Fallback-/Serverlisten durchsuchen englische Titel und Slugs damit genauso wie `/api/v1/admin/posts`, statt EN-Beiträge nur im API/Grid-Pfad sichtbar zu machen. |
-
-### v2.9.246 — 24. April 2026
-
-| Version | Typ | Bereich | Beschreibung |
-|---------|-----|---------|-------------|
 | **2.9.246** | 🔴 fix | Core/Public, Theme & Admin Auth Redirects | **`CMS/core/Routing/PublicRouter.php`, `CMS/core/Routing/ThemeRouter.php` und `CMS/core/Routing/AdminRouter.php` lassen sichere same-origin Redirects jetzt wieder bis zu privaten Public-Zielen durch, statt sie still auf `/member` zu kastrieren**: Private Seiten/Beiträge, locale-aware Login-Redirects und anonyme Admin-Zugriffe springen damit nach erfolgreichem Login wieder auf den ursprünglich angeforderten Public- oder Admin-Pfad zurück, solange das Ziel denselben Host nutzt und nicht auf API-/Auth-Schleifen zeigt. |
-
-### v2.9.245 — 24. April 2026
-
-| Version | Typ | Bereich | Beschreibung |
-|---------|-----|---------|-------------|
 | **2.9.245** | 🔴 fix | Core/Routing, Member & Public Auth | **`CMS/core/Routing/PublicRouter.php`, `CMS/core/Routing/MemberRouter.php`, `CMS/core/Routing/ThemeRouter.php` und `CMS/core/Member/PluginDashboardRegistry.php` verwenden für anonyme Redirects jetzt wieder konsequent die lokalisierte öffentliche Login-Strecke über `CmsAuthPageService::getPublicPath()`**: Legacy-Aliasse wie `/login`, private Seiten/Beiträge, MFA-Fallbacks sowie Member-/Plugin-Zugriffe verlieren damit nicht länger ihre EN-/Slug-Kontextinformation und landen nicht mehr hart auf dem unlokalisierten `/cms-login`. |
-
-### v2.9.244 — 24. April 2026
-
-| Version | Typ | Bereich | Beschreibung |
-|---------|-----|---------|-------------|
 | **2.9.244** | 🔴 fix | Core/Routing & Theme Runtime | **`CMS/core/Router.php` und `CMS/core/ThemeManager.php` härten öffentliche Fehler- und Renderpfade jetzt weiter für produktive Bot- und 404-Szenarien**: Öffentliche POST-Scanner ohne CSRF-Token laufen damit nicht mehr in laute CSRF-Warnungen, sondern fail-soft in den normalen 404-Pfad, und Theme-Renderings laden Header, Footer und Templates wieder garantiert über das aktive Theme, bevor Hilfsfunktionen wie `phinit_t()` benötigt werden. |
 | **2.9.244** | 🔴 fix | Core/Analytics & Dashboard | **`CMS/core/Services/AnalyticsService.php` und `CMS/core/Services/DashboardService.php` behandeln Session-KPIs jetzt schema-aware gegen Altinstallationen ohne `sessions.created_at`**: Besucher-, Dashboard- und Sessionstatistiken brechen damit nicht mehr mit SQL-Fehlern auf langlebigen Bestandsdatenbanken ab, sondern fallen bei fehlender Spalte kontrolliert auf kompatible Kennzahlen zurück. |
 | **2.9.244** | 🔴 fix | Core/Mail, Dokumentation & Media | **`CMS/core/Services/MailService.php`, `CMS/admin/modules/system/DocumentationSyncDownloader.php` und `CMS/core/Services/MediaDeliveryService.php` räumen drei produktive Fehlerpfade im Betriebsalltag auf einmal auf**: Der PHP-`mail()`-Fallback hängt nicht mehr implizit an fehlenden Symfony-Mime-/Egulias-Abhängigkeiten, der GitHub-Doku-Download akzeptiert jetzt denselben 50-MB-Rahmen wie der nachgelagerte ZIP-Sync, und leere `/media-file`-Probe-Requests enden als stille 404 statt als unnötiger Warning-Logspam. |
