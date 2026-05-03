@@ -1,4 +1,4 @@
-﻿﻿**Version:** 2.9.605
+﻿﻿**Version:** 2.9.608
 
 # 365CMS Changelog
 
@@ -20,16 +20,14 @@
 
 ---
 
-### v2.9.605 — 3. Mai 2026
+### v2.9.608 — 3. Mai 2026
 
 | Version | Typ | Bereich | Beschreibung |
 |---------|-----|---------|-------------|
+| **2.9.608** | 🎨 style | Admin/Dokumentation | **`CMS/admin/views/system/documentation.php` und `CMS/assets/css/admin.css` geben der Live-Doku eine klassische Dokumentations-Sidebar**: Wichtige Einstiegsdokumente werden oben als dezenter Schnellzugriff angezeigt, der `/DOC`-Baum nutzt klare Ordnerzeilen mit Caret statt Emoji-Optik, Dateien bekommen ruhige Typ-Badges und Pfadangaben, und die Navigation wirkt wie eine ordentliche technische Dokumentation statt wie ein generiertes Kartenmenü. |
+| **2.9.607** | 🎨 style | Admin/Dokumentation | **`CMS/admin/views/system/documentation.php` macht die Live-Doku-Navigation kompakter**: Wichtige Markdown-Einstiege stehen wieder dezent oberhalb des `/DOC`-Baums, Ordner und Unterordner sind standardmäßig eingeklappt, und nur der aktive Dokumentpfad wird automatisch geöffnet, damit große Dokumentationsbäume übersichtlich bleiben. |
+| **2.9.606** | 🎨 style | Admin/Dokumentation | **`CMS/admin/modules/system/DocumentationCatalog.php` und `CMS/admin/views/system/documentation.php` stellen die Dokumentation jetzt als dezente Live-Dateibaum-Ansicht des lokalen `/DOC`-Verzeichnisses dar**: Die Navigation bildet Ordner und Unterordner rekursiv anhand des Dateisystems ab, zeigt `README.md` je Ebene immer zuerst, verzichtet auf künstliche Bereichsbeschreibungen, Datei-Excerpts und die bisherige Schnellstart-Topbox, und verschiebt wichtige Markdown-Links ans untere Ende des Menüs. |
 | **2.9.605** | 🔴 fix | Core/Cron & Plugins/Mail | **`CMS/core/Services/CronRunnerService.php`, `cms-contact` und `cms-feed` schließen den Cron-/Mail-Pfad für Kontakt- und Feed-Mails an die zentrale Queue an**: Kontakt-Benachrichtigungen und Feed-Digests umgehen die CMS-Mail-Infrastruktur nicht länger per Direktversand, sondern nutzen bei aktiver Queue `MailQueueService` und sonst `MailService`; zusätzlich verarbeitet der CronRunner nach tatsächlich ausgeführten stündlichen Hooks die Mail-Queue nochmals, damit durch Feed-Digests oder andere Plugin-Hourly-Hooks frisch erzeugte Queue-Mails noch im selben Cron-Lauf versendet bzw. sauber in Retry/Logging übernommen werden. |
-
-### v2.9.604 — 3. Mai 2026
-
-| Version | Typ | Bereich | Beschreibung |
-|---------|-----|---------|-------------|
 | **2.9.604** | 🟡 refactor | Admin/Dokumentation | **`CMS/admin/documentation.php`, `CMS/admin/modules/system/DocumentationModule.php`, `CMS/admin/modules/system/DocumentationCatalog.php` und `CMS/admin/views/system/documentation.php` reduzieren die Admin-Dokumentation auf eine lokale Liveansicht des Repository-Verzeichnisses `/DOC`**: Der bisherige Git-/GitHub-/ZIP-Doku-Sync inklusive Remote-Downloadklassen, Sync-POST-Aktion, Sync-Diagnose, GitHub-Buttons und GitHub-Linkmetadaten wurde entfernt; die Ansicht liest Markdown-/CSV-Dokumente jetzt ausschließlich direkt aus dem lokalen `/DOC`-Baum und zeigt lokale Pfade als Quelle an. |
 | **2.9.603** | 🔴 fix | Core/Auth & Public-Routing/Best-Practice-Nachprüfung | **`CMS/core/Services/CmsAuthPageService.php` und `CMS/core/Routing/PublicRouter.php` schließen weitere OWASP-/MDN-Prüfpunkte im Passwort-Reset-Flow**: Gültig formatierte Reset-Anfragen erhalten eine Mindestantwortzeit, damit existierende und nicht existierende Konten weniger über Timing unterscheidbar sind; Reset-Token-Seiten überschreiben die globale Referrer-Policy gezielt auf `no-referrer`, damit Token nicht über Referer-Pfade weitergereicht werden; und alle öffentlichen Forgot-Password-POST-Flows redirecten PRG-konform mit HTTP `303`, sodass Reloads keine Reset-Anfrage oder Token-Einlösung erneut absenden. |
 | **2.9.602** | 🔴 fix | Core/Auth & Default-Theme/Best-Practice-Nachprüfung | **`CMS/core/Services/CmsAuthPageService.php`, `CMS/themes/cms-default/functions.php` und `CMS/themes/cms-default/includes/theme-utility-helpers.php` härten die letzten Theme- und Live-Log-Fixes nach Web-Best-Practice-Nachprüfung nach**: Passwort-Reset-Anfragen bleiben weiterhin gegen Account-Enumeration konsistent, werden aber zusätzlich zur IP nun auch konto-bezogen begrenzt, damit einzelne Zielpostfächer nicht durch verteilte Requests geflutet werden; Reset-Token-Einlösungen erhalten ein token-bezogenes Limit gegen Brute-Force-Versuche; und die Meridian-Default-Theme-Helfer sind durchgängig mit `function_exists`-Guards geschützt, sodass doppelte Includes nicht nur bei den Font-/Custom-Style-Wrappern, sondern auch bei Utility-Helfern keine Fatal-Redeclarations mehr auslösen. |

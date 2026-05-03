@@ -22,6 +22,7 @@ class MailQueueService
 
     private const GROUP = 'mail';
     private const SETTINGS_LAST_RUN = 'queue_last_run';
+    private const MAX_SUBJECT_LENGTH = 255;
 
     private static ?self $instance = null;
 
@@ -222,10 +223,12 @@ class MailQueueService
             return ['success' => false, 'error' => 'Ungültige Empfänger-E-Mail-Adresse für die Queue.'];
         }
 
-        $subject = trim($subject);
+        $subject = $this->sanitizeSubject($subject);
         if ($subject === '') {
             return ['success' => false, 'error' => 'Für die Queue ist ein Betreff erforderlich.'];
         }
+
+        $headers = $this->sanitizeHeaders($headers);
 
         $contentType = $contentType === 'plain' ? 'plain' : 'html';
 
@@ -634,6 +637,7 @@ class MailQueueService
      */
     private function encodeHeaders(array $headers): ?string
     {
+        $headers = $this->sanitizeHeaders($headers);
         if ($headers === []) {
             return null;
         }
@@ -666,7 +670,13 @@ class MailQueueService
                     continue;
                 }
 
-                $normalized[(string) $key] = trim((string) $value);
+                $name = $this->sanitizeHeaderName((string) $key);
+                $headerValue = $this->sanitizeHeaderValue((string) $value);
+                if ($name === '' || $headerValue === '') {
+                    continue;
+                }
+
+                $normalized[$name] = $headerValue;
             }
 
             return $normalized;
@@ -683,5 +693,59 @@ class MailQueueService
         }
 
         return mb_substr($error, 0, 4000);
+    }
+
+    private function sanitizeSubject(string $subject): string
+    {
+        $subject = trim($this->sanitizeHeaderValue($subject));
+        $subject = preg_replace('/\s+/u', ' ', $subject) ?? $subject;
+
+        return $this->substring($subject, self::MAX_SUBJECT_LENGTH);
+    }
+
+    /**
+     * @param array<string, string> $headers
+     * @return array<string, string>
+     */
+    private function sanitizeHeaders(array $headers): array
+    {
+        $normalized = [];
+
+        foreach ($headers as $key => $value) {
+            if (!is_scalar($value)) {
+                continue;
+            }
+
+            $name = $this->sanitizeHeaderName((string) $key);
+            $headerValue = $this->sanitizeHeaderValue((string) $value);
+            if ($name === '' || $headerValue === '') {
+                continue;
+            }
+
+            $normalized[$name] = $headerValue;
+        }
+
+        return $normalized;
+    }
+
+    private function sanitizeHeaderName(string $name): string
+    {
+        $name = trim($name);
+
+        return preg_match('/^[A-Za-z0-9-]+$/', $name) === 1 ? $name : '';
+    }
+
+    private function sanitizeHeaderValue(string $value): string
+    {
+        $value = str_replace(["\r", "\n", "\0"], ' ', $value);
+        $value = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]+/u', '', $value) ?? $value;
+        $value = preg_replace('/\s+/u', ' ', $value) ?? $value;
+
+        return trim($value);
+    }
+
+    private function substring(string $value, int $length): string
+    {
+        return function_exists('mb_substr') ? mb_substr($value, 0, $length) : substr($value, 0, $length);
     }
 }

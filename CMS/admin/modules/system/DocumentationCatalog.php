@@ -136,7 +136,7 @@ final class DocumentationCatalog
      */
     private function scanSections(): array
     {
-        $sections = [];
+        $directories = [];
         $rootDocs = [];
 
         $entries = scandir($this->docsRoot);
@@ -156,72 +156,86 @@ final class DocumentationCatalog
                 continue;
             }
 
-            if (is_dir($fullPath)) {
-                $documents = $this->scanDocumentsInDirectory($fullPath);
-                if ($documents === []) {
+            if (is_dir($fullPath) && !is_link($fullPath)) {
+                $directoryNode = $this->scanDirectoryNode($fullPath);
+                if ($directoryNode === null) {
                     continue;
                 }
 
-                $sections[] = [
-                    'slug' => $entry,
-                    'title' => $this->resolveSectionTitle($entry),
-                    'description' => $this->resolveSectionDescription($entry),
-                    'doc_count' => count($documents),
-                    'documents' => $documents,
-                ];
+                $directories[] = $directoryNode;
             }
         }
 
-        usort($sections, static function (array $left, array $right): int {
-            return strcasecmp((string) $left['title'], (string) $right['title']);
-        });
+        usort($rootDocs, [$this, 'compareDocuments']);
+        usort($directories, [$this, 'compareDirectoryNodes']);
 
-        if ($rootDocs !== []) {
-            usort($rootDocs, [$this, 'compareDocuments']);
-            array_unshift($sections, [
-                'slug' => 'root',
-                'title' => 'Basisdokumente',
-                'description' => 'Zentrale Einstiegs- und Referenzdokumente aus dem Wurzelverzeichnis von /DOC.',
-                'doc_count' => count($rootDocs),
-                'documents' => $rootDocs,
-            ]);
+        if ($rootDocs === [] && $directories === []) {
+            return [];
         }
 
-        return $sections;
+        return [[
+            'type' => 'directory',
+            'slug' => 'doc-root',
+            'title' => '/DOC',
+            'relative_path' => '',
+            'doc_count' => count($rootDocs) + $this->countDocumentsInDirectoryNodes($directories),
+            'documents' => $rootDocs,
+            'children' => $directories,
+        ]];
     }
 
     /**
-     * @return array<int, array<string, mixed>>
+     * @return array<string, mixed>|null
      */
-    private function scanDocumentsInDirectory(string $directory): array
+    private function scanDirectoryNode(string $directory): ?array
     {
         $documents = [];
-        $iterator = new RecursiveIteratorIterator(
-            new RecursiveCallbackFilterIterator(
-                new RecursiveDirectoryIterator($directory, FilesystemIterator::SKIP_DOTS),
-                static function (SplFileInfo $file): bool {
-                    return !$file->isLink();
+        $children = [];
+
+        $entries = scandir($directory);
+        if ($entries === false) {
+            return null;
+        }
+
+        foreach ($entries as $entry) {
+            if ($entry === '.' || $entry === '..') {
+                continue;
+            }
+
+            $fullPath = $directory . DIRECTORY_SEPARATOR . $entry;
+
+            if (is_file($fullPath) && $this->isSupportedDocument($fullPath)) {
+                $documents[] = $this->buildDocumentMeta($fullPath);
+                continue;
+            }
+
+            if (is_dir($fullPath) && !is_link($fullPath)) {
+                $child = $this->scanDirectoryNode($fullPath);
+                if ($child !== null) {
+                    $children[] = $child;
                 }
-            )
-        );
-
-        /** @var SplFileInfo $file */
-        foreach ($iterator as $file) {
-            if (!$file->isFile()) {
-                continue;
             }
-
-            $fullPath = $file->getPathname();
-            if (!$this->isSupportedDocument($fullPath)) {
-                continue;
-            }
-
-            $documents[] = $this->buildDocumentMeta($fullPath);
         }
 
         usort($documents, [$this, 'compareDocuments']);
+        usort($children, [$this, 'compareDirectoryNodes']);
 
-        return $documents;
+        $docCount = count($documents) + $this->countDocumentsInDirectoryNodes($children);
+        if ($docCount < 1) {
+            return null;
+        }
+
+        $relativePath = $this->relativeDirectoryPath($directory);
+
+        return [
+            'type' => 'directory',
+            'slug' => $this->buildDirectorySlug($relativePath),
+            'title' => basename($directory),
+            'relative_path' => $relativePath,
+            'doc_count' => $docCount,
+            'documents' => $documents,
+            'children' => $children,
+        ];
     }
 
     /**
@@ -234,7 +248,7 @@ final class DocumentationCatalog
         $extension = strtolower((string) pathinfo($fullPath, PATHINFO_EXTENSION));
 
         return [
-            'title' => $this->extractTitle($relativePath, $contents),
+            'title' => basename($relativePath),
             'excerpt' => $this->extractExcerpt($contents, $extension),
             'relative_path' => $relativePath,
             'full_path' => $fullPath,
@@ -249,6 +263,20 @@ final class DocumentationCatalog
         return $this->normalizeRelativePath((string) $relative);
     }
 
+    private function relativeDirectoryPath(string $directory): string
+    {
+        $relative = substr($directory, strlen(rtrim($this->docsRoot, '\\/')) + 1);
+        return $this->normalizeRelativePath((string) $relative);
+    }
+
+    private function buildDirectorySlug(string $relativePath): string
+    {
+        $slug = strtolower(trim(str_replace(['/', '\\', ' '], '-', $relativePath), '-'));
+        $slug = preg_replace('/[^a-z0-9._-]+/', '-', $slug) ?? '';
+
+        return $slug !== '' ? $slug : 'doc-root';
+    }
+
     private function readMetadataContents(string $fullPath): string
     {
         if (!$this->isReadableDocumentPath($fullPath)) {
@@ -257,15 +285,6 @@ final class DocumentationCatalog
 
         $contents = @file_get_contents($fullPath, false, null, 0, self::MAX_METADATA_READ_BYTES);
         return is_string($contents) ? $contents : '';
-    }
-
-    private function extractTitle(string $relativePath, string $contents): string
-    {
-        if (preg_match('/^#\s+(.+)$/m', $contents, $matches) === 1) {
-            return trim($matches[1]);
-        }
-
-        return (string) pathinfo($relativePath, PATHINFO_FILENAME);
     }
 
     private function extractExcerpt(string $contents, string $extension): string
@@ -351,16 +370,31 @@ final class DocumentationCatalog
         $documents = [];
 
         foreach ($sections as $section) {
-            foreach ((array) ($section['documents'] ?? []) as $document) {
-                if (!is_array($document) || empty($document['relative_path'])) {
-                    continue;
-                }
-
-                $documents[(string) $document['relative_path']] = $document;
-            }
+            $this->collectDocumentsFromNode($section, $documents);
         }
 
         return $documents;
+    }
+
+    /**
+     * @param array<string, mixed> $node
+     * @param array<string, array<string, mixed>> $documents
+     */
+    private function collectDocumentsFromNode(array $node, array &$documents): void
+    {
+        foreach ((array) ($node['documents'] ?? []) as $document) {
+            if (!is_array($document) || empty($document['relative_path'])) {
+                continue;
+            }
+
+            $documents[(string) $document['relative_path']] = $document;
+        }
+
+        foreach ((array) ($node['children'] ?? []) as $child) {
+            if (is_array($child)) {
+                $this->collectDocumentsFromNode($child, $documents);
+            }
+        }
     }
 
     /**
@@ -405,42 +439,29 @@ final class DocumentationCatalog
         return strcasecmp($leftPath, $rightPath);
     }
 
+    private function compareDirectoryNodes(array $left, array $right): int
+    {
+        return strcasecmp((string) ($left['relative_path'] ?? ''), (string) ($right['relative_path'] ?? ''));
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $nodes
+     */
+    private function countDocumentsInDirectoryNodes(array $nodes): int
+    {
+        $count = 0;
+
+        foreach ($nodes as $node) {
+            $count += (int) ($node['doc_count'] ?? 0);
+        }
+
+        return $count;
+    }
+
     private function isSupportedDocument(string $fullPath): bool
     {
         $extension = strtolower((string) pathinfo($fullPath, PATHINFO_EXTENSION));
         return in_array($extension, ['md', 'csv'], true);
-    }
-
-    private function resolveSectionTitle(string $slug): string
-    {
-        return match ($slug) {
-            'admin' => 'Admin-Panel',
-            'audits' => 'Audits',
-            'core' => 'Core & Architektur',
-            'feature' => 'Feature-Dokumentation',
-            'member' => 'Mitglieder-Bereich',
-            'plugins' => 'Plugins',
-            'screenshots' => 'Screenshots',
-            'theme' => 'Themes',
-            'workflow' => 'Workflows',
-            default => ucwords(str_replace(['-', '_'], ' ', $slug)),
-        };
-    }
-
-    private function resolveSectionDescription(string $slug): string
-    {
-        return match ($slug) {
-            'admin' => 'Bedienung und Architektur des Admin-Panels inklusive Unterbereiche.',
-            'audits' => 'Prüfberichte, Analysen und Sicherheitsbewertungen.',
-            'core' => 'Grundlagen zu Bootstrap, Router, Auth, Datenbank und Systemarchitektur.',
-            'feature' => 'Fachliche Dokumentation einzelner Features und Funktionsbereiche.',
-            'member' => 'Doku für Dashboard, Profil, Medien, Nachrichten und Datenschutz im Member-Bereich.',
-            'plugins' => 'Entwicklungsleitfäden und Referenzen für Plugins und Integrationen.',
-            'screenshots' => 'Bildmaterial und visuelle Dokumentationsartefakte.',
-            'theme' => 'Theme-System, Customizer, Komponenten und Frontend-Entwicklung.',
-            'workflow' => 'Abläufe, Registrierungsprozesse und technische Journeys.',
-            default => 'Dokumentationssammlung aus dem lokalen Repository-Verzeichnis /DOC.',
-        };
     }
 
     private function buildAdminUrl(string $relativePath): string
