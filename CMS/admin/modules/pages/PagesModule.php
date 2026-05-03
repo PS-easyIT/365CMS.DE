@@ -87,7 +87,10 @@ class PagesModule
                     $this->db->query($sql);
                 }
             } catch (\Throwable $e) {
-                error_log(sprintf('PagesModule::ensureCategoryColumns(%s) warning: %s', $column, $e->getMessage()));
+                Logger::instance()->withChannel('admin.pages')->warning('Zusätzliche Kategorien-Spalte konnte nicht sichergestellt werden.', [
+                    'column' => $column,
+                    'exception' => $e->getMessage(),
+                ]);
             }
         }
     }
@@ -134,7 +137,9 @@ class PagesModule
                 $sortOrder += 10;
             }
         } catch (\Throwable $e) {
-            error_log(sprintf('PagesModule::ensureDefaultCategories warning: %s', $e->getMessage()));
+            Logger::instance()->withChannel('admin.pages')->warning('Standardkategorien für Seiten konnten nicht vollständig synchronisiert werden.', [
+                'exception' => $e->getMessage(),
+            ]);
         }
     }
 
@@ -156,6 +161,42 @@ class PagesModule
             "SELECT COUNT(*) FROM {$this->prefix}post_categories WHERE id = ?",
             [$categoryId]
         ) > 0;
+    }
+
+    private function pageExists(int $pageId): bool
+    {
+        if ($pageId <= 0) {
+            return false;
+        }
+
+        return (int) $this->db->get_var(
+            "SELECT COUNT(*) FROM {$this->prefix}pages WHERE id = ?",
+            [$pageId]
+        ) > 0;
+    }
+
+    /**
+     * @param array<int,int> $ids
+     * @return array<int,int>
+     */
+    private function getExistingPageIds(array $ids): array
+    {
+        $ids = array_values(array_unique(array_filter(array_map('intval', $ids), static fn (int $id): bool => $id > 0)));
+        if ($ids === []) {
+            return [];
+        }
+
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $rows = $this->db->get_results(
+            "SELECT id FROM {$this->prefix}pages WHERE id IN ({$placeholders})",
+            $ids
+        ) ?: [];
+
+        $existingIds = array_map(static fn (object $row): int => (int) ($row->id ?? 0), $rows);
+        $existingIds = array_values(array_unique(array_filter($existingIds, static fn (int $id): bool => $id > 0)));
+        sort($existingIds);
+
+        return $existingIds;
     }
 
     /**
@@ -453,10 +494,17 @@ class PagesModule
             return ['success' => false, 'error' => 'Ungültige Seiten-ID.'];
         }
 
-        try {
-            $success = $this->db->delete('pages', ['id' => $id]);
+        if (!$this->pageExists($id)) {
+            return ['success' => false, 'error' => 'Seite wurde nicht gefunden oder bereits gelöscht.'];
+        }
 
-            if (!$success) {
+        try {
+            $statement = $this->db->execute(
+                "DELETE FROM {$this->prefix}pages WHERE id = ? LIMIT 1",
+                [$id]
+            );
+
+            if (!$statement || $statement->rowCount() < 1) {
                 return $this->failResult(
                     'pages.delete.failed',
                     'Seite konnte nicht gelöscht werden.',
@@ -466,6 +514,7 @@ class PagesModule
             }
 
             Hooks::doAction('page_deleted', $id);
+            $this->clearContentCacheIfEnabled('page_delete', $id);
 
             return ['success' => true, 'message' => 'Seite gelöscht.'];
         } catch (\Throwable $e) {
@@ -489,6 +538,17 @@ class PagesModule
             return ['success' => false, 'error' => 'Keine gültigen Seiten-IDs ausgewählt.'];
         }
 
+        $existingIds = $this->getExistingPageIds($ids);
+        if ($existingIds === []) {
+            return ['success' => false, 'error' => 'Die ausgewählten Seiten existieren nicht mehr. Bitte Liste neu laden.'];
+        }
+
+        if (count($existingIds) !== count($ids)) {
+            return ['success' => false, 'error' => 'Mindestens eine ausgewählte Seite existiert nicht mehr. Bitte Liste neu laden und Aktion erneut ausführen.'];
+        }
+
+        $ids = $existingIds;
+
         $placeholders = implode(',', array_fill(0, count($ids), '?'));
 
         try {
@@ -503,6 +563,8 @@ class PagesModule
                         Hooks::doAction('page_deleted', (int) $pageId);
                     }
 
+                    $this->clearContentCacheIfEnabled('page_bulk_delete', (int) $ids[0]);
+
                     return ['success' => true, 'message' => count($ids) . ' Seite(n) gelöscht.'];
 
                 case 'publish':
@@ -510,6 +572,7 @@ class PagesModule
                         "UPDATE {$this->prefix}pages SET status = 'published', updated_at = NOW() WHERE id IN ({$placeholders})",
                         $ids
                     );
+                    $this->clearContentCacheIfEnabled('page_bulk_publish', (int) $ids[0]);
                     return ['success' => true, 'message' => count($ids) . ' Seite(n) veröffentlicht.'];
 
                 case 'draft':
@@ -517,6 +580,7 @@ class PagesModule
                         "UPDATE {$this->prefix}pages SET status = 'draft', updated_at = NOW() WHERE id IN ({$placeholders})",
                         $ids
                     );
+                    $this->clearContentCacheIfEnabled('page_bulk_draft', (int) $ids[0]);
                     return ['success' => true, 'message' => count($ids) . ' Seite(n) als Entwurf gespeichert.'];
 
                 case 'set_category':
@@ -535,6 +599,8 @@ class PagesModule
                         $params
                     );
 
+                    $this->clearContentCacheIfEnabled('page_bulk_set_category', (int) $ids[0]);
+
                     return ['success' => true, 'message' => count($ids) . ' Seite(n) einer Kategorie zugewiesen.'];
 
                 case 'clear_category':
@@ -542,6 +608,7 @@ class PagesModule
                         "UPDATE {$this->prefix}pages SET category_id = NULL, updated_at = NOW() WHERE id IN ({$placeholders})",
                         $ids
                     );
+                    $this->clearContentCacheIfEnabled('page_bulk_clear_category', (int) $ids[0]);
                     return ['success' => true, 'message' => count($ids) . ' Seite(n) aus der Kategorie entfernt.'];
 
                 default:
@@ -817,6 +884,7 @@ class PagesModule
         $newSlug = trim($newSlug);
         $oldLocalizedSlug = trim($oldLocalizedSlug);
         $newLocalizedSlug = trim($newLocalizedSlug);
+        $localizationService = ContentLocalizationService::getInstance();
 
         if ($oldSlug === '' || $newSlug === '' || $oldSlug === $newSlug) {
             // lokalisierte Redirects ggf. trotzdem weiter prüfen
@@ -836,11 +904,31 @@ class PagesModule
                 continue;
             }
 
+            $localizedSourcePath = $localizationService->buildLocalizedPath('/' . ltrim($sourceSlug, '/'), $locale);
+            $localizedTargetPath = $localizationService->buildLocalizedPath('/' . ltrim($targetSlug, '/'), $locale);
+
             RedirectService::getInstance()->createAutomaticRedirect(
-                '/' . $sourceSlug . '/' . $locale,
-                '/' . $targetSlug . '/' . $locale,
+                $localizedSourcePath,
+                $localizedTargetPath,
                 'Automatisch bei lokalisiertem Seiten-Slug angelegt'
             );
+
+            $legacyLocalizedSourcePath = $this->buildLegacyLocalizedPagePath($sourceSlug, $locale);
+            if ($legacyLocalizedSourcePath !== $localizedSourcePath) {
+                RedirectService::getInstance()->createAutomaticRedirect(
+                    $legacyLocalizedSourcePath,
+                    $localizedTargetPath,
+                    'Legacy-Weiterleitung bei lokalisiertem Seiten-Slug angelegt'
+                );
+            }
         }
+    }
+
+    private function buildLegacyLocalizedPagePath(string $slug, string $locale): string
+    {
+        $slug = trim($slug, '/');
+        $locale = trim($locale, '/');
+
+        return '/' . $slug . '/' . $locale;
     }
 }

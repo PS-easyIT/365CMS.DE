@@ -1,4 +1,4 @@
-﻿﻿**Version:** 2.9.500
+﻿﻿**Version:** 2.9.501
 
 # 365CMS Changelog
 
@@ -19,6 +19,12 @@
 ## 📜 Vollständige Versionshistorie
 
 ---
+
+### v2.9.501 — 3. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.501** | 🔴 fix | Admin/Seiten | **`CMS/admin/modules/pages/PagesModule.php`, `CMS/admin/views/pages/list.php`, `CMS/admin/views/pages/edit.php` und `CMS/DOC/admin/pages-posts/PAGES.md` schließen den Seiten-Bereichsaudit mit korrigierten Redirect-/Delete-/Bulk-Verträgen ab**: Lokalisierte Slug-Redirects folgen wieder dem aktuellen Präfix-Schema `/en/...` statt der veralteten Suffix-Variante `.../en`, Legacy-EN-Pfade bleiben per Redirect kompatibel, Einzel- und Bulk-Löschungen validieren Seitenbestände jetzt fail-closed und leeren den Inhaltscache konsistent mit, die Seiten-UI bietet endlich einen sichtbaren Einzel-Löschpfad inklusive Bestätigung sowie klarere Bulk-Rückmeldung, und die Bereichsdoku beschreibt den echten Runtime-Stand statt eines überholten 2.9.0-Bilds. |
 
 ### v2.9.500 — 3. Mai 2026
 

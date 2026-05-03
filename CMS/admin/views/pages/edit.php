@@ -224,6 +224,30 @@ $isEnglishEditorView = $editorLocale === 'en';
                     </div>
                 </div>
 
+                <?php if (!$isNew): ?>
+                <div class="col-12">
+                    <div class="card border-danger-subtle cms-edit-card">
+                        <div class="card-header">
+                            <h3 class="card-title text-danger mb-0">Seite dauerhaft löschen</h3>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-secondary mb-0">Die Seite wird vollständig entfernt. Diese Aktion ist dauerhaft und kann nicht rückgängig gemacht werden.</p>
+                        </div>
+                        <div class="card-footer">
+                            <button
+                                type="submit"
+                                name="_action"
+                                value="delete"
+                                class="btn btn-danger w-100"
+                                form="pageForm"
+                                formnovalidate
+                                data-confirm="Die Seite wird dauerhaft gelöscht. Wirklich fortfahren?"
+                            >Seite löschen</button>
+                        </div>
+                    </div>
+                </div>
+                <?php endif; ?>
+
                 <!-- Contentheader Bild (sichtbar im Hauptformular) -->
                 <div class="col-lg-4 d-flex">
                     <div class="card cms-edit-card cms-edit-top-card h-100 w-100">

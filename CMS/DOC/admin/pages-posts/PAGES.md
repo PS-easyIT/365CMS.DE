@@ -1,8 +1,8 @@
 # 365CMS – Seitenverwaltung
 
-Kurzbeschreibung: Verwaltung statischer CMS-Seiten im Admin inklusive Editor, SEO-Feldern, Slugs und Revisionsbezug.
+Kurzbeschreibung: Verwaltung statischer CMS-Seiten im Admin inklusive getrennter DE/EN-Bearbeitung, SEO-Feldern, Slugs, Redirects, Bulk-Aktionen und Delete-/Preview-Pfaden.
 
-Letzte Aktualisierung: 2026-04-07 · Version 2.9.0
+Letzte Aktualisierung: 2026-05-03 · Release 2.9.501
 
 ---
 
@@ -17,10 +17,11 @@ Seiten bilden die statischen Inhalte des Systems, etwa Startseite, Kontakt, Impr
 | Feld | Zweck |
 |---|---|
 | Titel | Anzeigename und Grundbasis für den Slug |
-| Slug | URL-Pfad der Seite |
+| Slug | URL-Pfad der Standardsprache |
+| EN-Slug | Optionaler lokalisierter Pfad für `/en/...` |
 | Inhalt | Rich-Text- oder Blockinhalt |
-| Auszug | Kurzbeschreibung für Listen- und SEO-Kontexte |
 | Status | Redaktionsstatus |
+| Kategorie | Optionale Gruppierung für Admin-Filter und Content-Kontext |
 | Featured Image | Vorschaubild für Cards und Social Preview |
 | SEO-Felder | seitenspezifische Meta-Informationen |
 
@@ -30,11 +31,36 @@ Seiten bilden die statischen Inhalte des Systems, etwa Startseite, Kontakt, Impr
 
 Der Seiteneditor kombiniert im aktuellen Stand:
 
-- klassischen Inhaltseditor
-- Editor.js-Komponenten
+- klassischen Inhaltseditor oder Editor.js
+- getrennte DE- und EN-Bearbeitungsseiten statt eines fragilen In-Page-Sprachwechsels
 - SEO-/Readability-/Preview-Karten unter dem Editor
+- sichtbare Public-Preview-Links für DE und EN
+- einen direkten Einzel-Löschpfad für bestehende Seiten
 
-Dadurch werden Titel, Beschreibung, Snippet-Vorschau und Social-Vorschau direkt im Redaktionsablauf mit gepflegt.
+Dadurch werden Titel, Slugs, Snippet-Vorschau, Social-Vorschau und Sprachvarianten direkt im Redaktionsablauf mit gepflegt, ohne dass ein Sprachwechsel unbeabsichtigt einen Save-POST auslöst.
+
+---
+
+## Listenansicht und Bulk-Workflows
+
+Die Seitenliste bündelt den Bereich aktuell in drei klare Laufzeitpfade:
+
+- Status-/Kategorie-/Suchfilter für schnelle Redaktionsnavigation
+- Bulk-Aktionen für Veröffentlichen, Entwurf, Kategorie setzen/entfernen und Löschen
+- klare Sichtbarkeit von EN-Varianten, EN-only-Inhalten und den zuletzt geänderten Zeitpunkten
+
+Destruktive Bulk-Löschungen werden vor dem Submit bestätigt. Die Auswahl wird serverseitig auf echte, positive IDs normalisiert und gegen den aktuellen Bestand validiert.
+
+---
+
+## Redirect- und Lokalisierungsvertrag
+
+Seiten folgen im Public-Routing dem Prefix-Schema:
+
+- Deutsch: `/<slug>`
+- Englisch: `/en/<slug>`
+
+Bei Slug-Änderungen legt die Seitenverwaltung automatische Redirects an. Seit Release `2.9.501` werden lokalisierte Redirects wieder korrekt auf das Präfix-Schema `/en/...` geschrieben; zusätzlich bleiben Legacy-Weiterleitungen aus älteren `.../en`-Pfaden kompatibel.
 
 ---
 
@@ -52,9 +78,11 @@ Dadurch werden Titel, Beschreibung, Snippet-Vorschau und Social-Vorschau direkt 
 
 ## Aktueller Arbeitsstand
 
-- Single-Delete-Workflows wurden robuster gemacht.
+- Einzel- und Bulk-Delete-Pfade validieren bestehende Seiten jetzt fail-closed statt still auf fragilen DB-Rückgaben zu vertrauen.
+- Inhalts-Cache-Clears greifen nicht mehr nur beim Speichern, sondern auch bei Delete- und Bulk-Mutationen.
 - Seiten-SEO ist direkt im Editor sichtbar.
-- Slug-, Redirect- und Preview-Bezüge greifen stärker ineinander als in älteren Dokumentationsständen.
+- Slug-, Redirect- und Preview-Bezüge greifen konsistent über DE/EN-Pfade ineinander.
+- Die Admin-UI stellt Einzel-Löschen jetzt sichtbar im Bearbeitungsbildschirm bereit, statt die vorhandene Delete-Logik nur implizit vorzuhalten.
 
 ---
 

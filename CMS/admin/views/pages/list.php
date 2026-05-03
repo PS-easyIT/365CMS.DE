@@ -20,12 +20,12 @@ if (!defined('ABSPATH')) {
 }
 
 $pagesAdminBaseUrl = '/admin/pages';
-$counts  = $listData['counts'];
-$pages   = $listData['pages'];
+$counts  = is_array($listData['counts'] ?? null) ? $listData['counts'] : [];
+$pages   = is_array($listData['pages'] ?? null) ? $listData['pages'] : [];
 $categories = $listData['categories'] ?? [];
-$filter  = $listData['filter'];
+$filter  = (string)($listData['filter'] ?? '');
 $catFilter = (int)($listData['catFilter'] ?? 0);
-$search  = $listData['search'];
+$search  = (string)($listData['search'] ?? '');
 
 $statusLabels = [
     'published' => ['Veröffentlicht', 'bg-green-lt text-green'],
@@ -131,7 +131,7 @@ $statusLabels = [
                 <form method="post" id="bulkFormPages" class="d-flex flex-wrap align-items-center gap-2">
                     <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
                     <input type="hidden" name="action" value="bulk">
-                    <span class="text-secondary">Markierte Seiten bearbeiten</span>
+                    <span class="text-secondary"><strong id="selectedCountPages">0</strong> ausgewählt</span>
                     <select name="bulk_action" class="form-select form-select-sm w-auto">
                         <option value="">Aktion wählen…</option>
                         <option value="publish">Veröffentlichen</option>
@@ -187,6 +187,13 @@ $statusLabels = [
                             $pageCategory = trim((string)($page->category_name ?? ''));
                             $pageAuthor = trim((string)($page->author ?? ''));
                             $pageUpdatedAt = trim((string)($page->updated_at ?? $page->created_at ?? ''));
+                            $pageUpdatedAtLabel = $pageUpdatedAt;
+                            if ($pageUpdatedAt !== '') {
+                                $pageUpdatedTimestamp = strtotime($pageUpdatedAt);
+                                if ($pageUpdatedTimestamp !== false) {
+                                    $pageUpdatedAtLabel = date('d.m.Y H:i', $pageUpdatedTimestamp);
+                                }
+                            }
                             $pageHasEnglishVariant = !empty($page->has_english_variant);
                             $pageIsEnglishOnly = !empty($page->is_english_only);
                             ?>
@@ -221,7 +228,7 @@ $statusLabels = [
                                     <span class="badge <?= htmlspecialchars($pageStatusClass) ?>"><?= htmlspecialchars($pageStatusLabel) ?></span>
                                 </td>
                                 <td><?= htmlspecialchars($pageAuthor !== '' ? $pageAuthor : '–') ?></td>
-                                <td class="text-secondary"><?= htmlspecialchars($pageUpdatedAt !== '' ? $pageUpdatedAt : '–') ?></td>
+                                <td class="text-secondary"><?= htmlspecialchars($pageUpdatedAtLabel !== '' ? $pageUpdatedAtLabel : '–') ?></td>
                                 <td>
                                     <a href="<?= $pagesAdminBaseUrl ?>?action=edit&id=<?= $pageId ?>" class="btn btn-sm btn-outline-primary">Bearbeiten</a>
                                 </td>
@@ -239,8 +246,32 @@ $statusLabels = [
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     var selectAll = document.getElementById('pagesSelectAll');
+    var bulkForm = document.getElementById('bulkFormPages');
     var bulkAction = document.querySelector('#bulkFormPages [name="bulk_action"]');
     var bulkCategory = document.getElementById('bulkCategoryPages');
+    var selectedCount = document.getElementById('selectedCountPages');
+
+    function getRowCheckboxes() {
+        return Array.prototype.slice.call(document.querySelectorAll('input[name="ids[]"][form="bulkFormPages"]'));
+    }
+
+    function updateSelectionState() {
+        var rowCheckboxes = getRowCheckboxes();
+        var checkedCount = rowCheckboxes.filter(function (checkbox) {
+            return checkbox.checked;
+        }).length;
+
+        if (selectedCount) {
+            selectedCount.textContent = String(checkedCount);
+        }
+
+        if (!selectAll) {
+            return;
+        }
+
+        selectAll.checked = rowCheckboxes.length > 0 && checkedCount === rowCheckboxes.length;
+        selectAll.indeterminate = checkedCount > 0 && checkedCount < rowCheckboxes.length;
+    }
 
     function syncBulkCategoryVisibility() {
         if (!bulkAction || !bulkCategory) {
@@ -257,21 +288,65 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     if (!selectAll) {
+        updateSelectionState();
         syncBulkCategoryVisibility();
         return;
     }
 
     selectAll.addEventListener('change', function () {
-        document.querySelectorAll('input[name="ids[]"][form="bulkFormPages"]').forEach(function (checkbox) {
+        getRowCheckboxes().forEach(function (checkbox) {
             checkbox.checked = selectAll.checked;
         });
+        updateSelectionState();
+    });
+
+    getRowCheckboxes().forEach(function (checkbox) {
+        checkbox.addEventListener('change', updateSelectionState);
     });
 
     if (bulkAction) {
         bulkAction.addEventListener('change', syncBulkCategoryVisibility);
     }
 
+    if (bulkForm) {
+        bulkForm.addEventListener('submit', function (event) {
+            var selectedCheckboxes = getRowCheckboxes().filter(function (checkbox) {
+                return checkbox.checked;
+            });
+
+            if (!bulkAction || bulkAction.value === '') {
+                event.preventDefault();
+                if (bulkAction) {
+                    bulkAction.focus();
+                }
+                return;
+            }
+
+            if (selectedCheckboxes.length === 0) {
+                event.preventDefault();
+                return;
+            }
+
+            if (bulkAction.value === 'set_category' && bulkCategory && bulkCategory.value === '0') {
+                event.preventDefault();
+                bulkCategory.focus();
+                return;
+            }
+
+            if (bulkAction.value === 'delete') {
+                var deleteMessage = selectedCheckboxes.length === 1
+                    ? 'Soll die ausgewählte Seite wirklich gelöscht werden?'
+                    : 'Sollen die ' + selectedCheckboxes.length + ' ausgewählten Seiten wirklich gelöscht werden?';
+
+                if (!window.confirm(deleteMessage)) {
+                    event.preventDefault();
+                }
+            }
+        });
+    }
+
     syncBulkCategoryVisibility();
+    updateSelectionState();
 });
 </script>
 
