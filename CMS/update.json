@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.9.511",
+  "version": "2.9.512",
   "min_php": "8.4",
   "released": "2026-05-03",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 2.9.511: Die Medienverwaltung härtet Dateinamen zusätzlich auf Maximal­länge und eindeutige Basenamen ohne Mehrfach-Punkte, benennt Bulk-Aktionen explizit, meldet Upload-Status zugänglicher und hält den internen Upload-Endpunkt bewusst dauerhaft authentifiziert statt einen freien Public-Upload-Schalter vorzutäuschen.",
+  "notes": "Release-Stand 2.9.512: Benutzer & Gruppen schließen ihren 5xx-Batch mit echter Standardrollen-Wirkung für Registrierungen, einheitlicher 12-Zeichen-Passwort-Policy in Auth und Admin, sichtbarem Gruppenbezug in der Benutzerliste sowie vervollständigter Gruppenpflege für Slug, Aktiv-Status und Mitgliedschaften direkt im Admin ab.",
   "critical": false
 }

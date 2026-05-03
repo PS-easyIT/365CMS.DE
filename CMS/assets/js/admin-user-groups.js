@@ -35,36 +35,61 @@
         var groupForm = document.getElementById('groupForm');
         var groupIdInput = document.getElementById('groupId');
         var groupNameInput = document.getElementById('groupName');
+        var groupSlugInput = document.getElementById('groupSlug');
         var groupDescInput = document.getElementById('groupDesc');
+        var groupIsActiveInput = document.getElementById('groupIsActive');
         var modalTitle = document.getElementById('groupModalTitle');
         var deleteGroupIdInput = document.getElementById('deleteGroupId');
         var deleteGroupForm = document.getElementById('deleteGroupForm');
+        var groupMemberInputs = Array.prototype.slice.call(document.querySelectorAll('input[name="member_ids[]"]'));
+
+        function applyGroupModalData(button) {
+            if (!button || !groupIdInput || !groupNameInput || !groupDescInput || !modalTitle || !groupSlugInput || !groupIsActiveInput) {
+                return;
+            }
+
+            var memberIdsRaw = button.getAttribute('data-group-member-ids') || '[]';
+            var memberIds = [];
+            try {
+                memberIds = JSON.parse(memberIdsRaw);
+            } catch (error) {
+                memberIds = [];
+            }
+
+            var selectedIds = new Set(Array.isArray(memberIds) ? memberIds.map(function (id) { return String(id); }) : []);
+
+            groupIdInput.value = button.getAttribute('data-group-id') || '0';
+            groupNameInput.value = button.getAttribute('data-group-name') || '';
+            groupSlugInput.value = button.getAttribute('data-group-slug') || '';
+            groupDescInput.value = button.getAttribute('data-group-description') || '';
+            groupIsActiveInput.checked = (button.getAttribute('data-group-is-active') || '1') === '1';
+            modalTitle.textContent = button.getAttribute('data-group-modal-title') || 'Gruppe bearbeiten';
+
+            groupMemberInputs.forEach(function (input) {
+                input.checked = selectedIds.has(String(input.value));
+            });
+
+            setSubmittingState(groupForm, false);
+        }
 
         if (modalElement) {
             modalElement.addEventListener('show.bs.modal', function (event) {
                 var button = event.relatedTarget;
-                if (!button || !groupIdInput || !groupNameInput || !groupDescInput || !modalTitle) {
+                if (!button) {
                     return;
                 }
 
-                groupIdInput.value = button.getAttribute('data-group-id') || '0';
-                groupNameInput.value = button.getAttribute('data-group-name') || '';
-                groupDescInput.value = button.getAttribute('data-group-description') || '';
-                modalTitle.textContent = button.getAttribute('data-group-modal-title') || 'Gruppe bearbeiten';
-                setSubmittingState(groupForm, false);
+                applyGroupModalData(button);
             });
         }
 
         document.querySelectorAll('.js-group-modal-trigger').forEach(function (button) {
             button.addEventListener('click', function () {
-                if (modalElement || !groupIdInput || !groupNameInput || !groupDescInput || !modalTitle) {
+                if (modalElement) {
                     return;
                 }
 
-                groupIdInput.value = button.getAttribute('data-group-id') || '0';
-                groupNameInput.value = button.getAttribute('data-group-name') || '';
-                groupDescInput.value = button.getAttribute('data-group-description') || '';
-                modalTitle.textContent = button.getAttribute('data-group-modal-title') || 'Gruppe bearbeiten';
+                applyGroupModalData(button);
             });
         });
 
@@ -83,7 +108,7 @@
             button.addEventListener('click', function () {
                 var groupId = button.getAttribute('data-group-id') || '0';
                 var groupName = button.getAttribute('data-group-name') || '';
-                var message = 'Gruppe "' + groupName + '" wirklich löschen?';
+                var message = 'Gruppe "' + groupName + '" wirklich löschen? Zugeordnete Mitgliedschaften werden dabei ebenfalls entfernt.';
 
                 if (!deleteGroupIdInput || !deleteGroupForm) {
                     return;

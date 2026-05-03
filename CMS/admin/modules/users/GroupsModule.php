@@ -12,6 +12,7 @@ if (!defined('ABSPATH')) {
 }
 
 use CMS\Database;
+use CMS\Logger;
 
 class GroupsModule
 {
@@ -34,10 +35,47 @@ class GroupsModule
              FROM {$this->prefix}user_groups g
              LEFT JOIN {$this->prefix}user_group_members ugm ON g.id = ugm.group_id
              GROUP BY g.id
-             ORDER BY g.name ASC"
+             ORDER BY g.is_active DESC, g.name ASC"
         ) ?: [];
 
-        return ['groups' => $groups];
+        $memberRows = $this->db->get_results(
+            "SELECT ugm.group_id, u.id, u.username, u.display_name, u.email, u.status
+             FROM {$this->prefix}user_group_members ugm
+             INNER JOIN {$this->prefix}users u ON u.id = ugm.user_id
+             ORDER BY u.username ASC"
+        ) ?: [];
+
+        $membersByGroup = [];
+        foreach ($memberRows as $row) {
+            $groupId = (int)($row->group_id ?? 0);
+            if ($groupId <= 0) {
+                continue;
+            }
+
+            $membersByGroup[$groupId][] = [
+                'id' => (int)($row->id ?? 0),
+                'username' => (string)($row->username ?? ''),
+                'display_name' => (string)($row->display_name ?? ''),
+                'email' => (string)($row->email ?? ''),
+                'status' => (string)($row->status ?? ''),
+            ];
+        }
+
+        $normalizedGroups = [];
+        foreach ($groups as $group) {
+            $groupId = (int)($group->id ?? 0);
+            $members = $membersByGroup[$groupId] ?? [];
+            $group->slug = (string)($group->slug ?? '');
+            $group->is_active = (int)($group->is_active ?? 1);
+            $group->members = $members;
+            $group->member_ids = array_values(array_map(static fn (array $member): int => (int)$member['id'], $members));
+            $normalizedGroups[] = $group;
+        }
+
+        return [
+            'groups' => $normalizedGroups,
+            'userOptions' => $this->getUserOptions(),
+        ];
     }
 
     private function normalizeScalarText(mixed $value, int $maxLength): string
@@ -68,6 +106,106 @@ class GroupsModule
         return $count !== null && (int) $count > 0;
     }
 
+    private function getUserOptions(): array
+    {
+        $rows = $this->db->get_results(
+            "SELECT id, username, display_name, email, status
+             FROM {$this->prefix}users
+             ORDER BY CASE WHEN status = 'active' THEN 0 ELSE 1 END, username ASC"
+        ) ?: [];
+
+        return array_map(static function (object $row): array {
+            return [
+                'id' => (int)($row->id ?? 0),
+                'username' => (string)($row->username ?? ''),
+                'display_name' => (string)($row->display_name ?? ''),
+                'email' => (string)($row->email ?? ''),
+                'status' => (string)($row->status ?? 'inactive'),
+            ];
+        }, $rows);
+    }
+
+    private function normalizeSlug(mixed $value, string $fallback): string
+    {
+        $slug = $this->normalizeScalarText($value, 100);
+        if ($slug === '') {
+            $slug = $fallback;
+        }
+
+        $slug = strtolower($slug);
+        $slug = preg_replace('/[^a-z0-9]+/i', '-', $slug) ?? '';
+        $slug = trim($slug, '-');
+
+        return $slug !== '' ? $slug : 'gruppe';
+    }
+
+    private function ensureUniqueSlug(string $slug, int $groupId = 0): string
+    {
+        $baseSlug = $slug;
+        $suffix = 2;
+
+        while ($this->slugExists($slug, $groupId)) {
+            $slug = $baseSlug . '-' . $suffix;
+            $suffix++;
+        }
+
+        return $slug;
+    }
+
+    private function slugExists(string $slug, int $groupId = 0): bool
+    {
+        if ($groupId > 0) {
+            $count = $this->db->get_var(
+                "SELECT COUNT(*) FROM {$this->prefix}user_groups WHERE slug = ? AND id != ?",
+                [$slug, $groupId]
+            );
+        } else {
+            $count = $this->db->get_var(
+                "SELECT COUNT(*) FROM {$this->prefix}user_groups WHERE slug = ?",
+                [$slug]
+            );
+        }
+
+        return (int)$count > 0;
+    }
+
+    private function normalizeMemberIds(mixed $value): array
+    {
+        $ids = is_array($value) ? $value : [];
+        $normalizedIds = [];
+
+        foreach ($ids as $id) {
+            $id = (int)$id;
+            if ($id > 0) {
+                $normalizedIds[$id] = $id;
+            }
+        }
+
+        if ($normalizedIds === []) {
+            return [];
+        }
+
+        $placeholders = implode(',', array_fill(0, count($normalizedIds), '?'));
+        $rows = $this->db->get_results(
+            "SELECT id FROM {$this->prefix}users WHERE id IN ({$placeholders})",
+            array_values($normalizedIds)
+        ) ?: [];
+
+        return array_values(array_map(static fn (object $row): int => (int)$row->id, $rows));
+    }
+
+    private function syncGroupMembers(int $groupId, array $memberIds): void
+    {
+        $this->db->execute("DELETE FROM {$this->prefix}user_group_members WHERE group_id = ?", [$groupId]);
+
+        foreach ($memberIds as $memberId) {
+            $this->db->execute(
+                "INSERT INTO {$this->prefix}user_group_members (user_id, group_id, joined_at) VALUES (?, ?, NOW())",
+                [$memberId, $groupId]
+            );
+        }
+    }
+
     /**
      * Gruppe erstellen oder aktualisieren
      */
@@ -75,32 +213,67 @@ class GroupsModule
     {
         $id          = (int)($post['id'] ?? 0);
         $name        = $this->normalizeScalarText($post['name'] ?? '', 120);
+        $slug        = $this->normalizeSlug($post['slug'] ?? '', $name);
         $description = $this->normalizeScalarText($post['description'] ?? '', 500);
+        $memberIds   = $this->normalizeMemberIds($post['member_ids'] ?? []);
+        $isActive    = !empty($post['is_active']) ? 1 : 0;
 
         if ($name === '') {
             return ['success' => false, 'error' => 'Gruppenname darf nicht leer sein.'];
         }
+
+        $slug = $this->ensureUniqueSlug($slug, $id);
 
         if ($id > 0 && !$this->groupExists($id)) {
             return ['success' => false, 'error' => 'Die angeforderte Gruppe existiert nicht mehr.'];
         }
 
         try {
+            $pdo = $this->db->getPdo();
+            $startedTransaction = !$pdo->inTransaction();
+            if ($startedTransaction) {
+                $pdo->beginTransaction();
+            }
+
             if ($id > 0) {
                 $this->db->execute(
-                    "UPDATE {$this->prefix}user_groups SET name = ?, description = ?, updated_at = NOW() WHERE id = ?",
-                    [$name, $description, $id]
+                    "UPDATE {$this->prefix}user_groups SET name = ?, slug = ?, description = ?, is_active = ?, updated_at = NOW() WHERE id = ?",
+                    [$name, $slug, $description, $isActive, $id]
                 );
-                return ['success' => true, 'message' => 'Gruppe aktualisiert.'];
             } else {
                 $this->db->execute(
-                    "INSERT INTO {$this->prefix}user_groups (name, description, created_at) VALUES (?, ?, NOW())",
-                    [$name, $description]
+                    "INSERT INTO {$this->prefix}user_groups (name, slug, description, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, NOW(), NOW())",
+                    [$name, $slug, $description, $isActive]
                 );
-                return ['success' => true, 'message' => 'Gruppe erstellt.'];
+                $id = (int)$pdo->lastInsertId();
             }
+
+            $this->syncGroupMembers($id, $memberIds);
+
+            if ($startedTransaction && $pdo->inTransaction()) {
+                $pdo->commit();
+            }
+
+            $memberLabel = count($memberIds) === 1 ? '1 Mitglied' : count($memberIds) . ' Mitglieder';
+
+            return [
+                'success' => true,
+                'message' => $post['id'] ?? false
+                    ? 'Gruppe aktualisiert · ' . $memberLabel . ' zugeordnet.'
+                    : 'Gruppe erstellt · ' . $memberLabel . ' zugeordnet.',
+            ];
         } catch (\Throwable $e) {
-            return ['success' => false, 'error' => 'Fehler: ' . $e->getMessage()];
+            $pdo = $this->db->getPdo();
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+
+            Logger::instance()->withChannel('admin.users.groups')->error('Benutzergruppe konnte nicht gespeichert werden.', [
+                'group_id' => $id,
+                'exception' => $e,
+            ]);
+
+            return ['success' => false, 'error' => 'Die Gruppe konnte nicht gespeichert werden.'];
         }
     }
 
@@ -142,7 +315,12 @@ class GroupsModule
                 $pdo->rollBack();
             }
 
-            return ['success' => false, 'error' => 'Fehler: ' . $e->getMessage()];
+            Logger::instance()->withChannel('admin.users.groups')->error('Benutzergruppe konnte nicht gelöscht werden.', [
+                'group_id' => $id,
+                'exception' => $e,
+            ]);
+
+            return ['success' => false, 'error' => 'Die Gruppe konnte nicht gelöscht werden.'];
         }
     }
 }

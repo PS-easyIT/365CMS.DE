@@ -12,6 +12,7 @@ if (!defined('ABSPATH')) {
  */
 
 $groups  = $data['groups'] ?? [];
+$userOptions = $data['userOptions'] ?? [];
 
 /** @param object|array<string,mixed> $group */
 $groupField = static function (mixed $group, string $key, mixed $default = ''): mixed {
@@ -68,8 +69,12 @@ $groupField = static function (mixed $group, string $key, mixed $default = ''): 
                     <?php
                     $groupId = (int) $groupField($group, 'id', 0);
                     $groupName = (string) $groupField($group, 'name', '');
+                    $groupSlug = (string) $groupField($group, 'slug', '');
                     $groupDescription = (string) $groupField($group, 'description', '');
                     $groupMemberCount = (int) $groupField($group, 'member_count', 0);
+                    $groupIsActive = (int) $groupField($group, 'is_active', 1) === 1;
+                    $groupMembers = $groupField($group, 'members', []);
+                    $groupMemberIds = $groupField($group, 'member_ids', []);
                     ?>
                     <div class="col-md-6 col-lg-4">
                         <div class="card">
@@ -80,11 +85,35 @@ $groupField = static function (mixed $group, string $key, mixed $default = ''): 
                                     </span>
                                     <div>
                                         <h3 class="card-title mb-0"><?php echo htmlspecialchars($groupName); ?></h3>
-                                        <div class="text-secondary small"><?php echo $groupMemberCount; ?> Mitglieder</div>
+                                        <div class="text-secondary small d-flex flex-wrap gap-2 align-items-center">
+                                            <span><?php echo $groupMemberCount; ?> Mitglieder</span>
+                                            <span class="badge <?php echo $groupIsActive ? 'bg-green-lt text-green' : 'bg-secondary-lt text-secondary'; ?>"><?php echo $groupIsActive ? 'Aktiv' : 'Inaktiv'; ?></span>
+                                        </div>
                                     </div>
                                 </div>
+                                <?php if ($groupSlug !== ''): ?>
+                                    <div class="mb-2 text-secondary small">Slug: <code><?php echo htmlspecialchars($groupSlug); ?></code></div>
+                                <?php endif; ?>
                                 <?php if ($groupDescription !== ''): ?>
-                                    <p class="text-secondary mb-0"><?php echo htmlspecialchars($groupDescription); ?></p>
+                                    <p class="text-secondary mb-3"><?php echo htmlspecialchars($groupDescription); ?></p>
+                                <?php endif; ?>
+                                <?php if (!empty($groupMembers) && is_array($groupMembers)): ?>
+                                    <div class="d-flex flex-wrap gap-1">
+                                        <?php foreach (array_slice($groupMembers, 0, 4) as $member): ?>
+                                            <?php
+                                            $memberName = trim((string)($member['display_name'] ?? ''));
+                                            if ($memberName === '') {
+                                                $memberName = trim((string)($member['username'] ?? ''));
+                                            }
+                                            ?>
+                                            <span class="badge bg-blue-lt text-blue"><?php echo htmlspecialchars($memberName !== '' ? $memberName : 'Benutzer'); ?></span>
+                                        <?php endforeach; ?>
+                                        <?php if (count($groupMembers) > 4): ?>
+                                            <span class="badge bg-secondary-lt text-secondary">+<?php echo count($groupMembers) - 4; ?> weitere</span>
+                                        <?php endif; ?>
+                                    </div>
+                                <?php else: ?>
+                                    <p class="text-secondary mb-0 small">Aktuell sind noch keine Mitglieder zugeordnet.</p>
                                 <?php endif; ?>
                             </div>
                             <div class="card-footer d-flex gap-2">
@@ -94,7 +123,10 @@ $groupField = static function (mixed $group, string $key, mixed $default = ''): 
                                         data-group-mode="edit"
                                         data-group-id="<?php echo $groupId; ?>"
                                         data-group-name="<?php echo htmlspecialchars($groupName, ENT_QUOTES); ?>"
+                                        data-group-slug="<?php echo htmlspecialchars($groupSlug, ENT_QUOTES); ?>"
                                         data-group-description="<?php echo htmlspecialchars($groupDescription, ENT_QUOTES); ?>"
+                                        data-group-is-active="<?php echo $groupIsActive ? '1' : '0'; ?>"
+                                        data-group-member-ids="<?php echo htmlspecialchars((string)json_encode($groupMemberIds, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), ENT_QUOTES); ?>"
                                         data-group-modal-title="Gruppe bearbeiten">
                                     Bearbeiten
                                 </button>
@@ -115,7 +147,7 @@ $groupField = static function (mixed $group, string $key, mixed $default = ''): 
 
 <!-- Gruppe erstellen/bearbeiten Modal -->
 <div class="modal modal-blur fade" id="groupModal" tabindex="-1">
-    <div class="modal-dialog modal-sm">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <form method="post" class="modal-content" id="groupForm">
             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
             <input type="hidden" name="action" value="save">
@@ -130,8 +162,48 @@ $groupField = static function (mixed $group, string $key, mixed $default = ''): 
                     <input type="text" class="form-control" id="groupName" name="name" required maxlength="120" autocomplete="organization-title">
                 </div>
                 <div class="mb-3">
+                    <label class="form-label" for="groupSlug">Slug</label>
+                    <input type="text" class="form-control" id="groupSlug" name="slug" maxlength="100" pattern="[a-z0-9-]*" autocomplete="off">
+                    <div class="form-hint">Leer lassen, um aus dem Namen automatisch einen eindeutigen Slug zu erzeugen.</div>
+                </div>
+                <div class="mb-3">
                     <label class="form-label" for="groupDesc">Beschreibung</label>
                     <textarea class="form-control" id="groupDesc" name="description" rows="3" maxlength="500"></textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="form-check form-switch">
+                        <input type="checkbox" class="form-check-input" id="groupIsActive" name="is_active" value="1" checked>
+                        <span class="form-check-label">Gruppe aktiv schalten</span>
+                    </label>
+                </div>
+                <div>
+                    <label class="form-label">Mitglieder</label>
+                    <div class="border rounded p-3" style="max-height: 18rem; overflow:auto;">
+                        <?php if (empty($userOptions)): ?>
+                            <p class="text-secondary mb-0 small">Es stehen aktuell keine Benutzer zur Auswahl.</p>
+                        <?php else: ?>
+                            <div class="d-flex flex-column gap-2">
+                                <?php foreach ($userOptions as $userOption): ?>
+                                    <?php
+                                    $optionId = (int)($userOption['id'] ?? 0);
+                                    $optionUsername = trim((string)($userOption['username'] ?? ''));
+                                    $optionDisplayName = trim((string)($userOption['display_name'] ?? ''));
+                                    $optionEmail = trim((string)($userOption['email'] ?? ''));
+                                    $optionStatus = trim((string)($userOption['status'] ?? 'inactive'));
+                                    $optionLabel = $optionDisplayName !== '' ? $optionDisplayName : $optionUsername;
+                                    ?>
+                                    <label class="form-check mb-0 js-group-member-option" data-member-id="<?php echo $optionId; ?>">
+                                        <input class="form-check-input" type="checkbox" name="member_ids[]" value="<?php echo $optionId; ?>">
+                                        <span class="form-check-label d-flex flex-column">
+                                            <span><?php echo htmlspecialchars($optionLabel !== '' ? $optionLabel : 'Benutzer'); ?></span>
+                                            <span class="text-secondary small"><?php echo htmlspecialchars($optionEmail !== '' ? $optionEmail : $optionUsername); ?> · <?php echo htmlspecialchars($optionStatus); ?></span>
+                                        </span>
+                                    </label>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                    <div class="form-hint">Mitglieder werden direkt mit der Gruppe synchronisiert. Nicht markierte Benutzer werden aus dieser Gruppe entfernt.</div>
                 </div>
             </div>
             <div class="modal-footer">

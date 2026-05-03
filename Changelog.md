@@ -1,4 +1,4 @@
-﻿﻿**Version:** 2.9.511
+﻿﻿**Version:** 2.9.512
 
 # 365CMS Changelog
 
@@ -21,6 +21,10 @@
 ---
 
 ### v2.9.511 — 3. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.512** | 🔴 fix | Admin, Core & Default-Theme/Benutzer & Gruppen | **`CMS/core/Auth.php`, `CMS/core/Services/UserService.php`, `CMS/admin/modules/users/UserSettingsModule.php`, `CMS/admin/modules/users/GroupsModule.php`, `CMS/admin/views/users/list.php`, `CMS/admin/views/users/edit.php`, `CMS/admin/views/users/settings.php`, `CMS/admin/views/users/groups.php`, `CMS/assets/js/admin-users.js`, `CMS/assets/js/admin-user-groups.js`, `CMS/themes/cms-default/functions.php`, `CMS/themes/cms-default/includes/theme-auth-helpers.php` sowie `CMS/DOC/admin/users-groups/*.md` schließen den Bereich „Benutzer & Gruppen“ als eigenen 5xx-Batch ab**: Öffentliche Registrierungen übernehmen nun die in `/admin/user-settings` gespeicherte Standardrolle tatsächlich zur Laufzeit und fallen bei administrativen oder ungültigen Altwerten fail-closed auf `member` zurück; die Passwort-Policy mit mindestens 12 Zeichen plus Groß-/Kleinbuchstaben, Ziffer und Sonderzeichen gilt jetzt konsistent auch für das Admin-Erstellen und -Bearbeiten von Benutzern; die Benutzerliste macht Gruppenbezüge sichtbar und benennt Bulk-Aktionen explizit; und `/admin/groups` pflegt Slug, Aktiv-Status sowie Mitgliedschaften direkt mit, statt auf Name/Beschreibung reduziert und auf frischen Schemas still am Pflichtfeld `slug` vorbeizulaufen. |
 
 | Version | Typ | Bereich | Beschreibung |
 |---------|-----|---------|-------------|

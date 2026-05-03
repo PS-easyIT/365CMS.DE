@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Zentrale Admin-Seite für Registrierung, rollenbezogene Standardwerte und technische Auth-Provider-Informationen – ergänzt durch die neue Core-Auth-Strecke über die CMS Loginpage.
 
-Letzte Aktualisierung: 2026-04-07 · Version 2.9.0
+Letzte Aktualisierung: 2026-05-03 · Version 2.9.512
 
 Route: `/admin/user-settings`
 
@@ -27,9 +27,11 @@ Diese Werte werden in der Tabelle `cms_settings` gespeichert:
 | `registration_enabled` | Globaler Schalter für öffentliche Benutzerregistrierung |
 | `member_registration_enabled` | Registrierung im Member-Bereich |
 | `member_email_verification` | Erzwingt E-Mail-Verifizierung für neue Mitglieder |
-| `member_default_role` | Standardrolle für neue Registrierungen |
+| `member_default_role` | Standardrolle für neue Registrierungen; wird zur Laufzeit auf registrierungsgeeignete Rollen begrenzt und direkt im Core-Registrierungsfluss angewendet |
 
 > Hinweis: `registration_enabled` und `member_registration_enabled` werden zusätzlich von der **CMS Loginpage** verwendet. Die Core-Auth-Strecke liest damit dieselben globalen Registrierungsschalter wie der restliche Member-/User-Bereich – kein zweiter Schatten-Schalter, kein Konfigurations-Doppelgänger.
+
+> Sicherheitsnotiz: Die Rollen-Auswahl für neue Registrierungen wird auf nicht-administrative, öffentliche Rollen eingeschränkt. Selbst wenn Altstände noch andere Werte in `cms_settings` enthalten, fällt die Registrierung fail-closed auf `member` zurück.
 
 ---
 
@@ -45,6 +47,8 @@ Zusätzlich zeigt die Seite **read-only** Informationen zu Auth-Providern und Si
 - JWT / API-Authentifizierung
 - Login-Rate-Limits
 - Passwort-Policy
+
+Die Passwort-Policy ist im aktuellen Stand nicht mehr nur auf die öffentliche Auth-Strecke beschränkt: Auch das Admin-Erstellen und -Bearbeiten von Benutzern verwendet denselben Vertrag mit mindestens 12 Zeichen sowie Groß-/Kleinbuchstaben, Ziffer und Sonderzeichen.
 
 Die öffentliche Anmeldestrecke arbeitet seit `2.9.0` standardmäßig über:
 
