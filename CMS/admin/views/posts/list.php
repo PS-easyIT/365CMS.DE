@@ -12,12 +12,12 @@ if (!defined('ABSPATH')) {
  *           $alert (Session-Alert)
  */
 
-$posts      = $data['posts'] ?? [];
-$categories = $data['categories'] ?? [];
-$counts     = $data['counts'] ?? [];
-$filter     = $data['filter'] ?? '';
-$catFilter  = $data['catFilter'] ?? 0;
-$search     = $data['search'] ?? '';
+$posts      = is_array($data['posts'] ?? null) ? $data['posts'] : [];
+$categories = is_array($data['categories'] ?? null) ? $data['categories'] : [];
+$counts     = is_array($data['counts'] ?? null) ? $data['counts'] : [];
+$filter     = (string)($data['filter'] ?? '');
+$catFilter  = (int)($data['catFilter'] ?? 0);
+$search     = (string)($data['search'] ?? '');
 ?>
 
 <div class="page-header d-print-none">
@@ -256,16 +256,24 @@ function applyFilters() {
     }
 
     function syncInputs() {
-        gridRoot.querySelectorAll('.bulk-row-check').forEach(function(checkbox) {
+        getRowCheckboxes().forEach(function(checkbox) {
             checkbox.checked = selectedIds.has(String(checkbox.value));
         });
 
-        var allCheckboxes = Array.prototype.slice.call(gridRoot.querySelectorAll('.bulk-row-check'));
+        var allCheckboxes = getRowCheckboxes();
         var selectAll = gridRoot.querySelector('.bulk-select-all');
         if (selectAll) {
-            selectAll.checked = allCheckboxes.length > 0 && allCheckboxes.every(function(checkbox) {
+            var checkedCount = allCheckboxes.filter(function(checkbox) {
                 return checkbox.checked;
-            });
+            }).length;
+
+            selectAll.checked = allCheckboxes.length > 0 && checkedCount === allCheckboxes.length;
+            selectAll.indeterminate = checkedCount > 0 && checkedCount < allCheckboxes.length;
+
+            if (allCheckboxes.length === 0) {
+                selectAll.checked = false;
+                selectAll.indeterminate = false;
+            }
         }
     }
 
@@ -308,6 +316,12 @@ function applyFilters() {
 
         if (selectedIds.size === 0) {
             event.preventDefault();
+            return;
+        }
+
+        if (bulkActionSelect && !bulkActionSelect.value) {
+            event.preventDefault();
+            bulkActionSelect.focus();
             return;
         }
 

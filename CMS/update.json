@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.9.501",
+  "version": "2.9.502",
   "min_php": "8.4",
   "released": "2026-05-03",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 2.9.501: Der Seiten-Bereich wurde als abgeschlossener 5xx-Audit-Batch auf den aktuellen Laufzeitvertrag gezogen – lokalisierte Slug-Redirects verwenden wieder `/en/...`, Delete- und Bulk-Pfade validieren Bestände fail-closed, räumen den Inhaltscache konsistent auf und die Admin-UI bietet sichtbares Einzel-Löschen sowie klarere Bulk-Rückmeldung.",
+  "notes": "Release-Stand 2.9.502: Der Beiträge-Bereich wurde als abgeschlossener 5xx-Audit-Batch auf den aktuellen Laufzeitvertrag gezogen – Bootstrap-Migrationen loggen strukturiert, Delete-, Bulk-, Kategorie- und Tag-Pfade räumen den Inhaltscache konsistent auf, Kategorie-/Tag-Löschungen prüfen Delete-Statements robuster, EN-Slug-Änderungen erzeugen nun ebenfalls lokalisierte `/en/blog/...`-Redirects inklusive Legacy-Kompatibilität, und der Editor bietet einen sichtbaren Einzel-Löschpfad samt aktualisierter Bereichsdoku.",
   "critical": false
 }

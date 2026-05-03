@@ -2,67 +2,92 @@
 
 Kurzbeschreibung: Verwaltung chronologischer Inhalte wie News und Blog-Beiträge im Admin-Bereich.
 
-Letzte Aktualisierung: 2026-04-07 · Version 2.9.0
+Letzte Aktualisierung: 2026-05-03 · Version 2.9.502
 
 ---
 
 ## Überblick
 
-Beiträge sind die dynamischen, chronologischen Inhalte des Systems. Sie werden typischerweise in Blog-Listen, Feeds, thematischen Übersichten und Suchergebnissen verwendet.
+Beiträge sind chronologische Inhalte für Blog, News, Feeds, Themenarchive und Suche. Der Admin-Bereich kombiniert Listenworkflow, mehrsprachige Bearbeitung, SEO-Hilfen, Veröffentlichungssteuerung und Medien-/Taxonomie-Zuordnung in einem gemeinsamen Redaktionspfad.
 
 ---
 
-## Typische Inhalte eines Beitrags
+## Aktueller Listenvertrag
 
-| Feld | Zweck |
-|---|---|
-| Titel | Überschrift des Beitrags |
-| Slug | URL-Segment |
-| Inhalt | Hauptinhalt des Beitrags |
-| Auszug | Kurztext für Listen, Cards und Suchergebnisse |
-| Featured Image | Bild für Listen, Social und SEO-Vorschau |
-| Kategorien | thematische Einordnung |
-| Tags | zusätzliche Schlagwörter |
-| SEO-Daten | Meta- und Vorschauinformationen |
+Die Beitragsübersicht bietet aktuell:
 
----
+- Statusfilter (`Veröffentlicht`, `Geplant`, `Entwurf`, `Privat`)
+- Kategoriefilter
+- Freitextsuche
+- Multi-Select für Bulk-Aktionen
+- KPI-Karten für Gesamt, veröffentlicht, geplant, Entwürfe und privat
 
-## Redaktioneller Workflow
+### Bulk-Aktionen
 
-Im aktuellen Redaktionsfluss greifen mehrere Systeme zusammen:
+Folgende Bulk-Aktionen sind produktiv vorgesehen:
 
-- Editor mit klassischem und blockbasiertem Inhalt
-- Featured-Image-Picker aus der Medienbibliothek
-- SEO-Karten unter dem Editor
-- Listen- und Einzellöschung mit stabilisiertem Delete-Flow
-- kompakter Top-Bereich mit separater Aktions-Card unter dem Beitragsbild
-- Einzel-Kategorie statt zusätzlicher Mehrfach-Kategorien im Editor
-- einmalige Initialkopie DE → EN beim ersten Wechsel in den noch leeren englischen Editor
+- Veröffentlichen
+- Als Entwurf setzen
+- Kategorie(n) setzen
+- Kategorie entfernen
+- Autoren-Anzeigenamen setzen
+- Autoren-Anzeigenamen zurücksetzen
+- Löschen
+
+Der Bulk-Flow validiert Beitrags-IDs fail-closed gegen den aktuellen Datenbestand. Fehlende oder zwischenzeitlich gelöschte Beiträge führen nicht zu stillen Teiloperationen, sondern zu einer klaren Fehlermeldung.
 
 ---
 
-## Editor-Aufbau im aktuellen Stand
+## Editor-Aufbau
 
-Die obere Editor-Zone ist in drei Bereiche gegliedert:
+Die obere Editor-Zone besteht aus drei primären Bereichen plus sichtbarer Delete-Sektion bei bestehenden Beiträgen:
 
 | Bereich | Inhalt |
 |---|---|
-| Card 1 | Titel, Slug, Kategorie, Tags |
+| Card 1 | Titel, Slug, Primärkategorie, zusätzliche Kategorien, Tags |
 | Card 2 | Beitragsbild |
-| Card 2b | Aktionen mit `Erstellen/Aktualisieren` sowie öffentlicher DE-/EN-Vorschau |
+| Card 2b | Hauptaktion `Erstellen/Aktualisieren` sowie öffentliche DE-/EN-Vorschau |
 | Card 3 | Status, Veröffentlichungsdatum/-zeit und Autoren-Anzeigename |
+| Delete-Card | Sichtbarer Einzel-Löschpfad mit Bestätigung |
 
-Wichtig: Für Beiträge gibt es im Editor aktuell **nur noch eine primäre Kategorie**. Die frühere UI für „Zusätzliche Kategorien“ wird nicht mehr angezeigt.
+Wichtig: Beiträge unterstützen weiterhin **eine Primärkategorie plus optionale zusätzliche Kategorien** über die Relationstabelle `post_category_rel`. Ältere Dokumentationsstände ohne Mehrfachkategorien sind überholt.
 
 ---
 
-## Mehrsprachiger Editor-Flow
+## Mehrsprachiger Redaktionsfluss
 
-Der englische Beitrags-Editor wird lazy beim Umschalten geladen. Wenn die EN-Fassung beim **ersten Wechsel** noch leer ist, übernimmt 365CMS automatisch den aktuellen deutschen Inhalt als Ausgangspunkt.
+Beiträge werden in getrennten DE-/EN-Ansichten bearbeitet.
 
-- Die Kopie erfolgt **nicht** bereits beim Laden der Seite.
-- Die Kopie läuft **nur einmal** beim ersten Wechsel auf die EN-Ansicht.
-- Bereits vorhandener oder später bearbeiteter EN-Inhalt wird **nicht** automatisch überschrieben.
+- Die deutsche und englische Fassung bleiben beim Speichern voneinander isoliert.
+- Die EN-Ansicht bietet einen expliziten Button `DE nach EN kopieren`.
+- Optional kann die EN-Fassung per AI-Übersetzung vorbereitet werden.
+- Eine automatische Erstkopie beim ersten Sprachwechsel ist für Beiträge aktuell **nicht** konfiguriert.
+
+Das bedeutet: Bestehende EN-Inhalte werden nicht implizit beim Ansichtswechsel überschrieben. Kopie und Übersetzung sind bewusste Redaktionsaktionen.
+
+---
+
+## Redirect- und URL-Vertrag
+
+Bei Slug-Änderungen werden automatische Redirects auf Basis der aktiven Beitrags-Permalinkstruktur erzeugt.
+
+- Standardpfade folgen dem aktuellen Public-Schema, z. B. `/blog/...`
+- Lokalisierte Pfade folgen dem Präfix-Schema `/en/blog/...`
+- Legacy-Pfade bleiben zusätzlich per Redirect kompatibel
+- Änderungen an `slug_en` erzeugen ebenfalls lokalisierte Redirects und fallen bei leerem EN-Slug kontrolliert auf den Standardslug zurück
+
+Damit bleiben sowohl aktuelle als auch ältere öffentliche Beitrags-URLs stabil auflösbar.
+
+---
+
+## Delete-, Cache- und Veröffentlichungslogik
+
+- Einzel-Löschen ist im Editor sichtbar und mit Bestätigungsdialog abgesichert.
+- Einzel- und Bulk-Löschen feuern `post_deleted` für Folgeprozesse.
+- Wenn `perf_auto_clear_content_cache` aktiv ist, leeren Speichern, Löschen, relevante Bulk-Mutationen sowie Kategorie-/Tag-Änderungen den Inhaltscache automatisch.
+- Veröffentlichte Beiträge mit zukünftigem Datum erscheinen im Admin als `Geplant` und werden erst zum vorgesehenen Zeitpunkt öffentlich sichtbar.
+
+Das folgt den Heuristiken **Visibility of System Status**, **Error Prevention** und **User Control and Freedom**: Status ist sichtbar, riskante Aktionen werden bestätigt und destruktive Schritte sind klar erkennbar statt versteckt.
 
 ---
 
@@ -70,18 +95,11 @@ Der englische Beitrags-Editor wird lazy beim Umschalten geladen. Wenn die EN-Fas
 
 | Bereich | Nutzen |
 |---|---|
-| Kategorien und Tags | Organisation und spätere Filterung |
-| SEO-Center | globale SEO-Vorgaben und technische Auswertung |
-| Redirect-Manager | 404- und Umleitungsbezug bei URL-Änderungen |
-| Sitemap | Veröffentlichung fließt in SEO-Sitemaps ein |
-
----
-
-## Aktuelle Hinweise
-
-- Die Dokumentation alter Monolithen wie `/admin/seo.php` ist für den Beitragsworkflow nicht mehr aktuell.
-- Beitragslöschungen wurden in den neueren 2.1.x-Ständen robuster gemacht.
-- SEO-Vorschau und Redaktionshilfen sind direkter Teil des Editors geworden.
+| Kategorien und Tags | Taxonomie, Archive, Filterung und Routing |
+| SEO-Center | Meta-Daten, Vorschauen, strukturierte Daten und Analysen |
+| Redirect-Manager | URL-Stabilität bei Slug-Änderungen |
+| Sitemap / SEO-Services | Veröffentlichte Beiträge fließen in Sichtbarkeits- und Indexierungsprozesse ein |
+| Medienverwaltung | Featured Image und Inhaltsmedien |
 
 ---
 

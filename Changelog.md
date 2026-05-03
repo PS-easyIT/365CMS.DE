@@ -1,4 +1,4 @@
-﻿﻿**Version:** 2.9.501
+﻿﻿**Version:** 2.9.502
 
 # 365CMS Changelog
 
@@ -19,6 +19,12 @@
 ## 📜 Vollständige Versionshistorie
 
 ---
+
+### v2.9.502 — 3. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.502** | 🔴 fix | Admin/Beiträge | **`CMS/admin/modules/posts/PostsModule.php`, `CMS/admin/views/posts/list.php`, `CMS/admin/views/posts/edit.php` und `CMS/DOC/admin/pages-posts/POSTS.md` schließen den Beiträge-Bereichsaudit mit robusteren Redirect-/Delete-/Bulk-/Taxonomie-Verträgen ab**: Bootstrap-Migrationen loggen Warnungen jetzt strukturiert statt über `error_log()`, Einzel-, Bulk-, Kategorie- und Tag-Mutationen räumen den Inhaltscache konsistent mit auf, Kategorie-/Tag-Löschpfade prüfen Delete-Statements robuster, EN-Slug-Änderungen erzeugen ebenfalls lokalisierte Redirects im aktuellen Präfix-Schema `/en/blog/...` inklusive Legacy-Kompatibilität, die Editor-UI bietet einen sichtbaren Einzel-Löschpfad mit Bestätigung sowie klarere Vorschau-Labels, und die Bereichsdoku beschreibt wieder den tatsächlichen Runtime-Stand statt veralteter 2.9.0-Annahmen. |
 
 ### v2.9.501 — 3. Mai 2026
 

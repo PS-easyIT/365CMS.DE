@@ -130,7 +130,10 @@ class PostsModule
                     $this->db->query($sql);
                 }
             } catch (\Throwable $e) {
-                error_log(sprintf('PostsModule::ensureColumns(%s) warning: %s', $column, $e->getMessage()));
+                Logger::instance()->withChannel('admin.posts')->warning('Beitrags-Spalte konnte nicht automatisch ergänzt werden.', [
+                    'column' => $column,
+                    'exception' => $e->getMessage(),
+                ]);
             }
         }
     }
@@ -151,7 +154,10 @@ class PostsModule
                     $this->db->query($sql);
                 }
             } catch (\Throwable $e) {
-                error_log(sprintf('PostsModule::ensureCategoryColumns(%s) warning: %s', $column, $e->getMessage()));
+                Logger::instance()->withChannel('admin.posts')->warning('Beitrags-Kategoriespalte konnte nicht automatisch ergänzt werden.', [
+                    'column' => $column,
+                    'exception' => $e->getMessage(),
+                ]);
             }
         }
     }
@@ -172,7 +178,9 @@ class PostsModule
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
             );
         } catch (\Throwable $e) {
-            error_log(sprintf('PostsModule::ensurePostCategoryRelationTable warning: %s', $e->getMessage()));
+            Logger::instance()->withChannel('admin.posts')->warning('Beitrags-Kategorie-Relationstabelle konnte nicht automatisch angelegt werden.', [
+                'exception' => $e->getMessage(),
+            ]);
         }
     }
 
@@ -224,7 +232,9 @@ class PostsModule
                 }
             }
         } catch (\Throwable $e) {
-            error_log(sprintf('PostsModule::ensureDefaultCategories warning: %s', $e->getMessage()));
+            Logger::instance()->withChannel('admin.posts')->warning('Standard-Beitragskategorien konnten nicht vollständig sichergestellt werden.', [
+                'exception' => $e->getMessage(),
+            ]);
         }
     }
 
@@ -616,7 +626,7 @@ class PostsModule
 
         try {
             if ($id > 0) {
-                $existing = $this->db->get_row("SELECT slug, status, published_at, created_at FROM {$this->prefix}posts WHERE id = ? LIMIT 1", [$id]);
+                $existing = $this->db->get_row("SELECT slug, slug_en, status, published_at, created_at FROM {$this->prefix}posts WHERE id = ? LIMIT 1", [$id]);
                 $resolvedPublishedAt = $this->resolvePublishedAtValue((string) $savePayload['status'], $savePayload['published_at'], $existing);
                 $this->db->execute(
                     "UPDATE {$this->prefix}posts 
@@ -649,10 +659,16 @@ class PostsModule
                 SEOService::getInstance()->saveContentMeta('post', $id, $post);
                 $this->syncPostTags($id, $rawTags);
                 $this->syncPostCategories($id, $assignedCategoryIds !== [] ? $assignedCategoryIds : ($savePayload['category_id'] !== null ? [(int) $savePayload['category_id']] : []));
-                $this->createSlugRedirectIfNeeded((string)($existing->slug ?? ''), $slug, [
-                    'published_at' => (string)($existing->published_at ?? ''),
-                    'created_at' => (string)($existing->created_at ?? ''),
-                ]);
+                $this->createSlugRedirectIfNeeded(
+                    (string)($existing->slug ?? ''),
+                    $slug,
+                    (string)($existing->slug_en ?? ''),
+                    (string)($savePayload['slug_en'] ?? ''),
+                    [
+                        'published_at' => (string)($existing->published_at ?? ''),
+                        'created_at' => (string)($existing->created_at ?? ''),
+                    ]
+                );
                 Hooks::doAction('cms_after_post_save', $id, $savePayload, $post);
                 $this->clearContentCacheIfEnabled('post_update', $id);
                 $this->logPersistedContentEnSnapshot($id, 'post_write', [
@@ -727,20 +743,21 @@ class PostsModule
                 [$id]
             );
 
-            if ($statement->rowCount() < 1) {
-                return ['success' => false, 'error' => 'Beitrag wurde nicht gefunden oder bereits gelöscht.'];
-            }
-
-            if (!$statement) {
+            if (!$statement instanceof \PDOStatement) {
                 return $this->failResult(
                     'posts.delete.failed',
                     'Beitrag konnte nicht gelöscht werden.',
                     null,
-                    ['post_id' => $id, 'db_last_error' => trim((string)$this->db->last_error)]
+                    ['post_id' => $id, 'db_last_error' => trim((string) $this->db->last_error)]
                 );
             }
 
+            if ($statement->rowCount() < 1) {
+                return ['success' => false, 'error' => 'Beitrag wurde nicht gefunden oder bereits gelöscht.'];
+            }
+
             Hooks::doAction('post_deleted', $id);
+            $this->clearContentCacheIfEnabled('post_delete', $id);
 
             return ['success' => true, 'message' => 'Beitrag gelöscht.'];
         } catch (\Throwable $e) {
@@ -786,14 +803,18 @@ class PostsModule
                         Hooks::doAction('post_deleted', (int) $postId);
                     }
 
+                    $this->clearContentCacheIfEnabled('post_bulk_delete', (int) $ids[0]);
+
                     return ['success' => true, 'message' => count($ids) . ' Beitrag/Beiträge gelöscht.'];
 
                 case 'publish':
                     $this->db->execute("UPDATE {$this->prefix}posts SET status = 'published', published_at = COALESCE(published_at, NOW()), updated_at = NOW() WHERE id IN ({$placeholders})", $ids);
+                    $this->clearContentCacheIfEnabled('post_bulk_publish', (int) $ids[0]);
                     return ['success' => true, 'message' => count($ids) . ' Beitrag/Beiträge veröffentlicht.'];
 
                 case 'draft':
                     $this->db->execute("UPDATE {$this->prefix}posts SET status = 'draft', updated_at = NOW() WHERE id IN ({$placeholders})", $ids);
+                    $this->clearContentCacheIfEnabled('post_bulk_draft', (int) $ids[0]);
                     return ['success' => true, 'message' => count($ids) . ' Beitrag/Beiträge als Entwurf gesetzt.'];
 
                 case 'set_category':
@@ -815,6 +836,8 @@ class PostsModule
                         $this->syncPostCategories((int) $postId, $selectedCategoryIds);
                     }
 
+                    $this->clearContentCacheIfEnabled('post_bulk_set_category', (int) $ids[0]);
+
                     return ['success' => true, 'message' => count($ids) . ' Beitrag/Beiträge den gewählten Kategorien zugewiesen.'];
 
                 case 'clear_category':
@@ -822,6 +845,7 @@ class PostsModule
                     foreach ($ids as $postId) {
                         $this->syncPostCategories((int) $postId, []);
                     }
+                    $this->clearContentCacheIfEnabled('post_bulk_clear_category', (int) $ids[0]);
                     return ['success' => true, 'message' => count($ids) . ' Beitrag/Beiträge aus der Kategorie entfernt.'];
 
                 case 'set_author_display_name':
@@ -836,10 +860,13 @@ class PostsModule
                         $params
                     );
 
+                    $this->clearContentCacheIfEnabled('post_bulk_set_author_display_name', (int) $ids[0]);
+
                     return ['success' => true, 'message' => count($ids) . ' Beitrag/Beiträge mit neuem Autoren-Anzeigenamen aktualisiert.'];
 
                 case 'clear_author_display_name':
                     $this->db->execute("UPDATE {$this->prefix}posts SET author_display_name = NULL, updated_at = NOW() WHERE id IN ({$placeholders})", $ids);
+                    $this->clearContentCacheIfEnabled('post_bulk_clear_author_display_name', (int) $ids[0]);
                     return ['success' => true, 'message' => count($ids) . ' Beitrag/Beiträge auf den normalen 365CMS-Anzeigenamen zurückgesetzt.'];
 
                 default:
@@ -938,12 +965,14 @@ class PostsModule
                     "UPDATE {$this->prefix}post_categories SET name = ?, slug = ?, parent_id = ?, alias_domains_json = ?, replacement_category_id = ? WHERE id = ?",
                     [$name, $slug, $parentId > 0 ? $parentId : null, $domainsJson, $replacementCategoryId > 0 ? $replacementCategoryId : null, $id]
                 );
+                $this->clearContentCacheIfEnabled('post_category_update', $id);
                 return ['success' => true, 'message' => 'Kategorie aktualisiert.'];
             } else {
                 $this->db->execute(
                     "INSERT INTO {$this->prefix}post_categories (name, slug, parent_id, alias_domains_json, replacement_category_id) VALUES (?, ?, ?, ?, ?)",
                     [$name, $slug, $parentId > 0 ? $parentId : null, $domainsJson, $replacementCategoryId > 0 ? $replacementCategoryId : null]
                 );
+                $this->clearContentCacheIfEnabled('post_category_create', (int) $this->db->lastInsertId());
                 return ['success' => true, 'message' => 'Kategorie erstellt.'];
             }
         } catch (\Throwable $e) {
@@ -1126,9 +1155,20 @@ class PostsModule
             $this->db->execute("UPDATE {$this->prefix}post_categories SET parent_id = NULL WHERE parent_id = ?", [$id]);
             $this->db->execute("UPDATE {$this->prefix}post_categories SET replacement_category_id = NULL WHERE replacement_category_id = ?", [$id]);
             $deleteStatement = $this->db->execute("DELETE FROM {$this->prefix}post_categories WHERE id = ? LIMIT 1", [$id]);
+            if (!$deleteStatement instanceof \PDOStatement) {
+                return $this->failResult(
+                    'posts.category.delete.failed',
+                    'Kategorie konnte nicht gelöscht werden.',
+                    null,
+                    ['category_id' => $id, 'replacement_category_id' => $replacementId, 'db_last_error' => trim((string) $this->db->last_error)]
+                );
+            }
+
             if ($deleteStatement->rowCount() < 1) {
                 return ['success' => false, 'error' => 'Kategorie wurde nicht gefunden oder bereits gelöscht.'];
             }
+
+            $this->clearContentCacheIfEnabled('post_category_delete', $id);
 
             return ['success' => true, 'message' => 'Kategorie gelöscht.'];
         } catch (\Throwable $e) {
@@ -1281,6 +1321,8 @@ class PostsModule
                     [$name, $slug, $id]
                 );
 
+                $this->clearContentCacheIfEnabled('post_tag_update', $id);
+
                 return ['success' => true, 'message' => 'Tag aktualisiert.'];
             }
 
@@ -1288,6 +1330,8 @@ class PostsModule
                 "INSERT INTO {$this->prefix}post_tags (name, slug) VALUES (?, ?)",
                 [$name, $slug]
             );
+
+            $this->clearContentCacheIfEnabled('post_tag_create', (int) $this->db->lastInsertId());
 
             return ['success' => true, 'message' => 'Tag erstellt.'];
         } catch (\Throwable $e) {
@@ -1336,9 +1380,20 @@ class PostsModule
             }
 
             $deleteStatement = $this->db->execute("DELETE FROM {$this->prefix}post_tags WHERE id = ? LIMIT 1", [$id]);
+            if (!$deleteStatement instanceof \PDOStatement) {
+                return $this->failResult(
+                    'posts.tag.delete.failed',
+                    'Tag konnte nicht gelöscht werden.',
+                    null,
+                    ['tag_id' => $id, 'replacement_tag_id' => $replacementId, 'db_last_error' => trim((string) $this->db->last_error)]
+                );
+            }
+
             if ($deleteStatement->rowCount() < 1) {
                 return ['success' => false, 'error' => 'Tag wurde nicht gefunden oder bereits gelöscht.'];
             }
+
+            $this->clearContentCacheIfEnabled('post_tag_delete', $id);
 
             return ['success' => true, 'message' => 'Tag gelöscht.'];
         } catch (\Throwable $e) {
@@ -2154,34 +2209,35 @@ class PostsModule
     /**
      * @param array<string, string> $postDates
      */
-    private function createSlugRedirectIfNeeded(string $oldSlug, string $newSlug, array $postDates = []): void
+    private function createSlugRedirectIfNeeded(string $oldSlug, string $newSlug, string $oldLocalizedSlug = '', string $newLocalizedSlug = '', array $postDates = []): void
     {
         $oldSlug = trim($oldSlug);
         $newSlug = trim($newSlug);
-
-        if ($oldSlug === '' || $newSlug === '' || $oldSlug === $newSlug) {
-            return;
-        }
+        $oldLocalizedSlug = trim($oldLocalizedSlug);
+        $newLocalizedSlug = trim($newLocalizedSlug);
 
         $permalinkService = PermalinkService::getInstance();
         $publishedAt = (string)($postDates['published_at'] ?? '');
         $createdAt = (string)($postDates['created_at'] ?? '');
-        $oldPath = $permalinkService->buildPostPathFromValues($oldSlug, $publishedAt, $createdAt);
-        $newPath = $permalinkService->buildPostPathFromValues($newSlug, $publishedAt, $createdAt);
 
-        RedirectService::getInstance()->createAutomaticRedirect(
-            $oldPath,
-            $newPath,
-            'Automatisch bei Beitrags-Slug-Änderung angelegt'
-        );
+        if ($oldSlug !== '' && $newSlug !== '' && $oldSlug !== $newSlug) {
+            $oldPath = $permalinkService->buildPostPathFromValues($oldSlug, $publishedAt, $createdAt);
+            $newPath = $permalinkService->buildPostPathFromValues($newSlug, $publishedAt, $createdAt);
 
-        $legacyOldPath = $permalinkService->getLegacyPostPath($oldSlug);
-        if ($legacyOldPath !== $oldPath) {
             RedirectService::getInstance()->createAutomaticRedirect(
-                $legacyOldPath,
+                $oldPath,
                 $newPath,
-                'Legacy-Weiterleitung bei Beitrags-Slug-Änderung angelegt'
+                'Automatisch bei Beitrags-Slug-Änderung angelegt'
             );
+
+            $legacyOldPath = $permalinkService->getLegacyPostPath($oldSlug);
+            if ($legacyOldPath !== $oldPath) {
+                RedirectService::getInstance()->createAutomaticRedirect(
+                    $legacyOldPath,
+                    $newPath,
+                    'Legacy-Weiterleitung bei Beitrags-Slug-Änderung angelegt'
+                );
+            }
         }
 
         foreach (ContentLocalizationService::getInstance()->getContentLocales() as $locale) {
@@ -2189,15 +2245,22 @@ class PostsModule
                 continue;
             }
 
-            $localizedOldPath = $permalinkService->buildPostPathFromValues($oldSlug, $publishedAt, $createdAt, $locale);
-            $localizedNewPath = $permalinkService->buildPostPathFromValues($newSlug, $publishedAt, $createdAt, $locale);
+            $sourceSlug = $locale === 'en' && $oldLocalizedSlug !== '' ? $oldLocalizedSlug : $oldSlug;
+            $targetSlug = $locale === 'en' && $newLocalizedSlug !== '' ? $newLocalizedSlug : $newSlug;
+
+            if ($sourceSlug === '' || $targetSlug === '' || $sourceSlug === $targetSlug) {
+                continue;
+            }
+
+            $localizedOldPath = $permalinkService->buildPostPathFromValues($sourceSlug, $publishedAt, $createdAt, $locale);
+            $localizedNewPath = $permalinkService->buildPostPathFromValues($targetSlug, $publishedAt, $createdAt, $locale);
             RedirectService::getInstance()->createAutomaticRedirect(
                 $localizedOldPath,
                 $localizedNewPath,
                 'Automatisch bei lokalisiertem Beitrags-Slug angelegt'
             );
 
-            $localizedLegacyOldPath = $permalinkService->getLegacyPostPath($oldSlug, $locale);
+            $localizedLegacyOldPath = $permalinkService->getLegacyPostPath($sourceSlug, $locale);
             if ($localizedLegacyOldPath !== $localizedOldPath) {
                 RedirectService::getInstance()->createAutomaticRedirect(
                     $localizedLegacyOldPath,
