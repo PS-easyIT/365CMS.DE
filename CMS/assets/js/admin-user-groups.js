@@ -20,6 +20,11 @@
             return;
         }
 
+        if (typeof form.requestSubmit === 'function') {
+            form.requestSubmit();
+            return;
+        }
+
         var submitter = document.createElement('button');
         submitter.type = 'submit';
         submitter.hidden = true;
@@ -28,6 +33,12 @@
         form.appendChild(submitter);
         submitter.click();
         submitter.remove();
+
+        if (form.dataset.submitting === '1') {
+            return;
+        }
+
+        form.submit();
     }
 
     document.addEventListener('DOMContentLoaded', function () {

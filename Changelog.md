@@ -1,4 +1,4 @@
-﻿﻿**Version:** 2.9.513
+﻿﻿**Version:** 2.9.602
 
 # 365CMS Changelog
 
@@ -19,6 +19,14 @@
 ## 📜 Vollständige Versionshistorie
 
 ---
+
+### v2.9.602 — 3. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.602** | 🔴 fix | Core/Auth & Default-Theme/Best-Practice-Nachprüfung | **`CMS/core/Services/CmsAuthPageService.php`, `CMS/themes/cms-default/functions.php` und `CMS/themes/cms-default/includes/theme-utility-helpers.php` härten die letzten Theme- und Live-Log-Fixes nach Web-Best-Practice-Nachprüfung nach**: Passwort-Reset-Anfragen bleiben weiterhin gegen Account-Enumeration konsistent, werden aber zusätzlich zur IP nun auch konto-bezogen begrenzt, damit einzelne Zielpostfächer nicht durch verteilte Requests geflutet werden; Reset-Token-Einlösungen erhalten ein token-bezogenes Limit gegen Brute-Force-Versuche; und die Meridian-Default-Theme-Helfer sind durchgängig mit `function_exists`-Guards geschützt, sodass doppelte Includes nicht nur bei den Font-/Custom-Style-Wrappern, sondern auch bei Utility-Helfern keine Fatal-Redeclarations mehr auslösen. |
+| **2.9.601** | 🔴 fix | Admin/Content & Benutzerverwaltung | **`CMS/admin/partials/section-page-shell.php`, `CMS/admin/pages.php`, `CMS/admin/posts.php`, `CMS/admin/roles.php`, `CMS/admin/views/users/roles.php`, `CMS/assets/js/admin-user-groups.js` und `CMS/assets/js/admin-users.js` härten die destruktiven Admin-Flows nach**: Admin-POST-Redirects laufen jetzt PRG-konform über HTTP `303`, damit Browser nach `save`/`delete` nicht an unsauberen POST/Refresh-Pfaden hängenbleiben; Seiten- und Beitragslöschungen leiten nach Erfolg bewusst zurück auf die jeweilige Listenansicht statt erneut auf gelöschte Edit-URLs, was die gemeldeten 500er nach dem Löschen entschärft; und die Löschpfade für Gruppen, eigene Rollen und eigene Rechte sind im UI robuster verdrahtet, sodass Bestätigung und Formularsubmit nicht mehr still an fragilen Modal-/Submitter-Ketten hängen. |
+| **2.9.600** | 🔴 fix | Core, Admin & Default-Theme/Live-Log-Härtung | **`CMS/index.php`, `CMS/core/Bootstrap.php`, `CMS/core/Routing/ThemeRouter.php`, `CMS/admin/posts.php`, `CMS/admin/post-categories.php`, `CMS/admin/post-tags.php`, `CMS/admin/modules/menus/MenuEditorModule.php`, `CMS/themes/cms-default/functions.php` und `CMS/themes/cms-default/includes/theme-utility-helpers.php` schließen die akuten Live-Log-Fatals und Warnings in einem 6xx-Batch**: Der globale Fatal-Fallback springt bei Bootfehlern nicht länger blind auf das nicht vorhandene `themes/default/error.php`, sondern rendert zuerst das deklarierte Default-Theme bzw. einen generischen HTML-Fallback; der Admin-Posts-Flow löst `PostsModule` in `posts`, `post-categories` und `post-tags` nun explizit global auf, damit Includes unter `CMS\\Routing\\AdminRouter` nicht mehr an einem nackten Klassennamen scheitern; `Bootstrap` lädt `SecurityRuntimeService` defensiv vor der ersten Runtime-Firewall-Nutzung; `ThemeRouter` und die Meridian-Wrapper werden gegen doppelte Deklaration gehärtet; und der Menu-Editor ersetzt den fragilen URL-RegEx-Pfad durch deterministische Präfixprüfungen, sodass der Warning `preg_match(): Unknown modifier '|'` nicht mehr auftreten kann. |
 
 ### v2.9.513 — 3. Mai 2026
 

@@ -23,6 +23,14 @@
         return true;
     }
 
+    function submitFormDirectly(form) {
+        if (!form) {
+            return;
+        }
+
+        HTMLFormElement.prototype.submit.call(form);
+    }
+
     function setSubmittingState(form, isSubmitting) {
         if (!form) {
             return;
@@ -270,6 +278,78 @@
                 var modal = openModal('deleteCapabilityModal');
                 if (modal) {
                     modal.show();
+                }
+            });
+        });
+
+        document.querySelectorAll('.js-delete-role-form').forEach(function (form) {
+            form.addEventListener('submit', function (event) {
+                if (form.dataset.submitting === '1') {
+                    event.preventDefault();
+                    return;
+                }
+
+                var roleLabel = form.getAttribute('data-role-label') || 'diese Rolle';
+                var message = 'Die Rolle "' + roleLabel + '" wird gelöscht. Zugeordnete Benutzer werden automatisch auf die Rolle "member" umgestellt. Wirklich fortfahren?';
+
+                var confirmDelete = function () {
+                    setSubmittingState(form, true);
+                    submitFormDirectly(form);
+                };
+
+                event.preventDefault();
+
+                if (typeof cmsConfirm === 'function') {
+                    cmsConfirm({
+                        title: 'Rolle löschen',
+                        message: message,
+                        confirmText: 'Löschen',
+                        confirmClass: 'btn-danger',
+                        onConfirm: confirmDelete
+                    });
+                    return;
+                }
+
+                if (window.confirm(message)) {
+                    confirmDelete();
+                } else {
+                    setSubmittingState(form, false);
+                }
+            });
+        });
+
+        document.querySelectorAll('.js-delete-capability-form').forEach(function (form) {
+            form.addEventListener('submit', function (event) {
+                if (form.dataset.submitting === '1') {
+                    event.preventDefault();
+                    return;
+                }
+
+                var capabilityLabel = form.getAttribute('data-capability-label') || 'dieses Recht';
+                var message = 'Das Recht "' + capabilityLabel + '" wird aus allen Rollen entfernt. Wirklich fortfahren?';
+
+                var confirmDelete = function () {
+                    setSubmittingState(form, true);
+                    submitFormDirectly(form);
+                };
+
+                event.preventDefault();
+
+                if (typeof cmsConfirm === 'function') {
+                    cmsConfirm({
+                        title: 'Recht löschen',
+                        message: message,
+                        confirmText: 'Löschen',
+                        confirmClass: 'btn-danger',
+                        onConfirm: confirmDelete
+                    });
+                    return;
+                }
+
+                if (window.confirm(message)) {
+                    confirmDelete();
+                } else {
+                    setSubmittingState(form, false);
                 }
             });
         });

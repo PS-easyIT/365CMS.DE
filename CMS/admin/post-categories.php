@@ -54,7 +54,7 @@ if (!Auth::instance()->isAdmin() || !Auth::instance()->hasCapability(CMS_ADMIN_P
 
 require_once __DIR__ . '/modules/posts/PostsModule.php';
 
-$module = new PostsModule();
+$module = new \PostsModule();
 $alert = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {

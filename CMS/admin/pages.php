@@ -228,6 +228,14 @@ function cms_admin_pages_view_config(PagesModule $module, string $view, ?array $
         $id = cms_admin_pages_normalize_positive_id($_GET['id'] ?? 0);
         $editData = is_array($overrideEditData) ? $overrideEditData : $module->getEditData($id);
 
+        if ($id > 0 && !empty($editData['isNew'])) {
+            cms_admin_section_shell_flash('admin_alert', [
+                'type' => 'danger',
+                'message' => 'Die angeforderte Seite existiert nicht mehr. Bitte Liste neu laden.',
+            ]);
+            cms_admin_section_shell_redirect(cms_admin_pages_target_url());
+        }
+
         return [
             'section' => 'edit',
             'view_file' => __DIR__ . '/views/pages/edit.php',
@@ -350,7 +358,12 @@ $sectionPageConfig = [
                     return ['success' => false, 'error' => 'Ungültige Seiten-ID.'];
                 }
 
-                return $module->delete($id);
+                $result = $module->delete($id);
+                if (!empty($result['success'])) {
+                    $result['redirect_path'] = cms_admin_pages_target_url();
+                }
+
+                return $result;
 
             case 'bulk':
                 $bulkAction = cms_admin_pages_normalize_bulk_action($post['bulk_action'] ?? '');
@@ -363,7 +376,12 @@ $sectionPageConfig = [
                     return ['success' => false, 'error' => 'Bitte mindestens eine gültige Seite auswählen.'];
                 }
 
-                return $module->bulkAction($bulkAction, $bulkIds, $post);
+                $result = $module->bulkAction($bulkAction, $bulkIds, $post);
+                if (!empty($result['success'])) {
+                    $result['redirect_path'] = cms_admin_pages_target_url();
+                }
+
+                return $result;
 
             default:
                 return ['success' => false, 'error' => 'Unbekannte Seiten-Aktion.'];

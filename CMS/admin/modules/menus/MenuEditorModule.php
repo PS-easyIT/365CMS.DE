@@ -736,7 +736,14 @@ class MenuEditorModule
             return '';
         }
 
-        if (preg_match('#^(?:/(?!/)|\#|\?|mailto:|tel:)#i', $sanitized) === 1) {
+        $normalizedSanitized = $this->normalizeLowercase($sanitized);
+        if (
+            (str_starts_with($sanitized, '/') && !str_starts_with($sanitized, '//'))
+            || str_starts_with($sanitized, '#')
+            || str_starts_with($sanitized, '?')
+            || str_starts_with($normalizedSanitized, 'mailto:')
+            || str_starts_with($normalizedSanitized, 'tel:')
+        ) {
             return $sanitized;
         }
 
@@ -810,7 +817,9 @@ class MenuEditorModule
 
     private function isNoOpMenuItemUrl(string $url): bool
     {
-        return preg_match('/^javascript:\s*(?:void\(0\)|;?)\s*;?$/i', trim($url)) === 1;
+        $normalizedUrl = preg_replace('/\s+/u', '', $this->normalizeLowercase(trim($url))) ?? '';
+
+        return in_array($normalizedUrl, ['javascript:', 'javascript:;', 'javascript:void(0)', 'javascript:void(0);'], true);
     }
 
     private function buildEditorTree(array $items): array

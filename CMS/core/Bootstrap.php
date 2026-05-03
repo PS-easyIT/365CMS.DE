@@ -279,6 +279,10 @@ class Bootstrap
         if (in_array($this->mode, ['web', 'admin'], true) && !class_exists(__NAMESPACE__ . '\ThemeManager', false)) {
             require_once CORE_PATH . 'ThemeManager.php';
         }
+
+        if ($this->mode !== 'cli' && !class_exists(__NAMESPACE__ . '\\Services\\SecurityRuntimeService', false)) {
+            require_once CORE_PATH . 'Services/SecurityRuntimeService.php';
+        }
         
         if (file_exists(ABSPATH . 'includes/functions.php') && !defined('CMS_GLOBAL_FUNCTIONS_LOADED') && !function_exists('esc_html')) {
             require_once ABSPATH . 'includes/functions.php';

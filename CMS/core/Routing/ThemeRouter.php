@@ -23,6 +23,10 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+if (class_exists(__NAMESPACE__ . '\\ThemeRouter', false)) {
+    return;
+}
+
 final class ThemeRouter
 {
     private ThemeArchiveRepository $archiveRepository;

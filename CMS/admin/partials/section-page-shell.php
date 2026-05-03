@@ -83,9 +83,9 @@ function cms_admin_section_shell_require_view_file(mixed $viewFile): string
     return $resolvedViewFile;
 }
 
-function cms_admin_section_shell_redirect(string $routePath): never
+function cms_admin_section_shell_redirect(string $routePath, int $statusCode = 302): never
 {
-    header('Location: ' . $routePath);
+    header('Location: ' . $routePath, true, $statusCode);
     exit;
 }
 
@@ -255,7 +255,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $verifiedCsrfAction = cms_admin_section_shell_verify_csrf_token($postToken, $csrfActions, $csrfPersistentValidation);
     if ($verifiedCsrfAction === null) {
         cms_admin_section_shell_flash($alertSessionKey, ['type' => 'danger', 'message' => $invalidTokenMessage]);
-        cms_admin_section_shell_redirect($redirectTarget);
+        cms_admin_section_shell_redirect($redirectTarget, 303);
     }
 
     cms_admin_section_shell_mark_csrf_verified($verifiedCsrfAction);
@@ -294,7 +294,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'report_payload' => $result['report_payload'] ?? [],
         ]);
 
-        cms_admin_section_shell_redirect($redirectTarget);
+        cms_admin_section_shell_redirect($redirectTarget, 303);
     }
 }
 

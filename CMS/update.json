@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.9.513",
+  "version": "2.9.602",
   "min_php": "8.4",
   "released": "2026-05-03",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 2.9.513: Themes & Design schließen ihren 5xx-Batch mit korrigierter Font-Asset-Erkennung für mehrteilige CSS-url()-Referenzen, zusätzlichem Rate-Limit-Schutz für Passwort-Reset-Anfrage und -Einlösung der CMS Loginpage sowie auf den echten Runtime-Stand aktualisierter Bereichsdokumentation für Theme-Editor, Legacy-Design-Aliasse, Marketplace, Fonts und Core-Auth-UI ab.",
+  "notes": "Release-Stand 2.9.602: Best-Practice-Nachprüfung der Theme- und Live-Log-Fixes; Passwort-Reset-Flows sind zusätzlich konto- bzw. tokenbezogen rate-limitiert und Default-Theme-Helfer sind durchgängig gegen doppelte Deklarationen geschützt.",
   "critical": false
 }

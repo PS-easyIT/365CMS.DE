@@ -70,7 +70,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $postToken = $_POST['csrf_token'] ?? '';
     if (!Security::instance()->verifyToken($postToken, 'admin_roles')) {
         $_SESSION['admin_alert'] = ['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.'];
-        header('Location: /admin/roles');
+        header('Location: /admin/roles', true, 303);
         exit;
     }
 
@@ -82,7 +82,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'message' => $result['message'] ?? $result['error'] ?? '',
     ];
 
-    header('Location: /admin/roles');
+    header('Location: /admin/roles', true, 303);
     exit;
 }
 

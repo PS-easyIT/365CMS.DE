@@ -157,7 +157,7 @@ function cms_admin_posts_can_run_action(string $action): bool
     return $action !== '' && Auth::instance()->hasCapability(CMS_ADMIN_POSTS_WRITE_CAPABILITY);
 }
 
-function cms_admin_posts_build_inline_edit_data(PostsModule $module, array $post): array
+function cms_admin_posts_build_inline_edit_data(\PostsModule $module, array $post): array
 {
     $id = cms_admin_posts_normalize_positive_id($post['id'] ?? 0);
     $editData = $module->getEditData($id > 0 ? $id : null);
@@ -236,7 +236,7 @@ function cms_admin_posts_build_inline_edit_data(PostsModule $module, array $post
     return $editData;
 }
 
-function cms_admin_posts_view_config(PostsModule $module, string $view, ?array $overrideEditData = null, string $editorLocale = 'de'): array
+function cms_admin_posts_view_config(\PostsModule $module, string $view, ?array $overrideEditData = null, string $editorLocale = 'de'): array
 {
     $normalizedView = cms_admin_posts_normalize_view($view);
     $editorLocale = cms_admin_posts_normalize_editor_locale($editorLocale);
@@ -435,15 +435,15 @@ $sectionPageConfig = [
     'active_page' => 'posts',
     'csrf_action' => 'admin_posts',
     'module_file' => __DIR__ . '/modules/posts/PostsModule.php',
-    'module_factory' => static fn (): PostsModule => new PostsModule(),
+    'module_factory' => static fn (): \PostsModule => new \PostsModule(),
     'access_checker' => static fn (): bool => cms_admin_posts_can_access(),
-    'request_context_resolver' => static function (PostsModule $module): array {
+    'request_context_resolver' => static function (\PostsModule $module): array {
         $view = cms_admin_posts_normalize_view($_GET['action'] ?? 'list');
         $editorLocale = cms_admin_posts_normalize_editor_locale($_GET['lang'] ?? 'de');
 
         return cms_admin_posts_view_config($module, $view, null, $editorLocale);
     },
-    'redirect_path_resolver' => static function (PostsModule $module, string $section, mixed $result): string {
+    'redirect_path_resolver' => static function (\PostsModule $module, string $section, mixed $result): string {
         if (is_array($result) && isset($result['redirect_path']) && is_string($result['redirect_path'])) {
             return $result['redirect_path'];
         }
@@ -460,7 +460,7 @@ $sectionPageConfig = [
 
         return cms_admin_posts_target_url();
     },
-    'post_handler' => static function (PostsModule $module, string $section, array $post): array {
+    'post_handler' => static function (\PostsModule $module, string $section, array $post): array {
         $rawPostAction = cms_admin_posts_extract_action_value($post);
         $postAction = cms_admin_posts_normalize_action($rawPostAction);
         $editorLocale = cms_admin_posts_normalize_editor_locale($post['editor_locale'] ?? ($_GET['lang'] ?? 'de'));
@@ -514,7 +514,12 @@ $sectionPageConfig = [
                     return ['success' => false, 'error' => 'Ungültige Beitrags-ID.'];
                 }
 
-                return $module->delete($id);
+                $result = $module->delete($id);
+                if (!empty($result['success'])) {
+                    $result['redirect_path'] = cms_admin_posts_target_url();
+                }
+
+                return $result;
 
             case 'bulk':
                 $bulkAction = cms_admin_posts_normalize_bulk_action($post['bulk_action'] ?? '');
@@ -527,7 +532,12 @@ $sectionPageConfig = [
                     return ['success' => false, 'error' => 'Bitte mindestens einen gültigen Beitrag auswählen.'];
                 }
 
-                return $module->bulkAction($bulkAction, $ids, $post);
+                $result = $module->bulkAction($bulkAction, $ids, $post);
+                if (!empty($result['success'])) {
+                    $result['redirect_path'] = cms_admin_posts_target_url();
+                }
+
+                return $result;
 
             case 'save_category':
                 return $module->saveCategory($post);

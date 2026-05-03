@@ -19,6 +19,8 @@ final class CmsAuthPageService
     private const FORGOT_PASSWORD_REQUEST_RATE_LIMIT_WINDOW = 900;
     private const FORGOT_PASSWORD_RESET_RATE_LIMIT_ATTEMPTS = 10;
     private const FORGOT_PASSWORD_RESET_RATE_LIMIT_WINDOW = 900;
+    private const FORGOT_PASSWORD_RESET_TOKEN_RATE_LIMIT_ATTEMPTS = 5;
+    private const FORGOT_PASSWORD_RESET_TOKEN_RATE_LIMIT_WINDOW = 900;
     private const AUTH_CANONICAL_PATHS = [
         'login' => '/cms-login',
         'register' => '/cms-register',
@@ -320,6 +322,7 @@ final class CmsAuthPageService
         $expiryMinutes = max(5, min(1440, (int) ($settings['password_reset_expiry_minutes'] ?? '60')));
         $security = Security::instance();
         $clientIp = $security->getClientIp();
+        $normalizedEmail = strtolower($email);
 
         if (!$security->checkDbRateLimit(
             $clientIp,
@@ -338,7 +341,25 @@ final class CmsAuthPageService
             ];
         }
 
-        Security::recordDbRateLimitAttempt($clientIp, 'forgot_password_request', $email);
+        if (!$this->checkPasswordResetIdentifierRateLimit(
+            $normalizedEmail,
+            'forgot_password_request_account',
+            self::FORGOT_PASSWORD_REQUEST_RATE_LIMIT_ATTEMPTS,
+            self::FORGOT_PASSWORD_REQUEST_RATE_LIMIT_WINDOW
+        )) {
+            $this->logger->warning('Passwort-Reset-Anfrage wegen konto-bezogenem Rate-Limit geblockt.', [
+                'ip' => $clientIp,
+                'email' => $normalizedEmail,
+            ]);
+
+            return [
+                'success' => true,
+                'message' => (string) ($settings['forgot_request_success_message'] ?? 'Falls ein Konto mit dieser E-Mail-Adresse existiert, haben wir einen Reset-Link versendet.'),
+            ];
+        }
+
+        Security::recordDbRateLimitAttempt($clientIp, 'forgot_password_request', $normalizedEmail);
+        Security::recordDbRateLimitAttempt($clientIp, 'forgot_password_request_account', $normalizedEmail);
 
         try {
             $user = $this->db->get_row(
@@ -409,6 +430,7 @@ final class CmsAuthPageService
 
         $security = Security::instance();
         $clientIp = $security->getClientIp();
+        $tokenRateLimitKey = hash('sha256', $token);
 
         if (!$security->checkDbRateLimit(
             $clientIp,
@@ -423,7 +445,22 @@ final class CmsAuthPageService
             return ['success' => false, 'message' => 'Zu viele Reset-Versuche. Bitte warte einige Minuten und versuche es erneut.'];
         }
 
+        if (!$this->checkPasswordResetIdentifierRateLimit(
+            $tokenRateLimitKey,
+            'forgot_password_reset_token',
+            self::FORGOT_PASSWORD_RESET_TOKEN_RATE_LIMIT_ATTEMPTS,
+            self::FORGOT_PASSWORD_RESET_TOKEN_RATE_LIMIT_WINDOW
+        )) {
+            $this->logger->warning('Passwort-Reset wegen token-bezogenem Rate-Limit geblockt.', [
+                'ip' => $clientIp,
+                'token_hash' => $tokenRateLimitKey,
+            ]);
+
+            return ['success' => false, 'message' => 'Zu viele Reset-Versuche. Bitte warte einige Minuten und versuche es erneut.'];
+        }
+
         Security::recordDbRateLimitAttempt($clientIp, 'forgot_password_reset');
+        Security::recordDbRateLimitAttempt($clientIp, 'forgot_password_reset_token', $tokenRateLimitKey);
 
         if ($password !== $passwordConfirmation) {
             return ['success' => false, 'message' => 'Die Passwörter stimmen nicht überein.'];
@@ -460,6 +497,31 @@ final class CmsAuthPageService
                 'exception' => $e->getMessage(),
             ]);
             return ['success' => false, 'message' => 'Das Passwort konnte nicht zurückgesetzt werden.'];
+        }
+    }
+
+    private function checkPasswordResetIdentifierRateLimit(string $identifier, string $action, int $maxAttempts, int $timeWindow): bool
+    {
+        $identifier = trim($identifier);
+        if ($identifier === '') {
+            return false;
+        }
+
+        try {
+            $since = date('Y-m-d H:i:s', time() - $timeWindow);
+            $row = $this->db->get_row(
+                "SELECT COUNT(*) AS attempt_count FROM {$this->prefix}login_attempts WHERE username = ? AND action = ? AND attempted_at >= ?",
+                [substr($identifier, 0, 190), substr($action, 0, 50), $since]
+            );
+
+            return (int) ($row->attempt_count ?? 0) < $maxAttempts;
+        } catch (\Throwable $e) {
+            $this->logger->warning('Passwort-Reset Identifier-Rate-Limit konnte nicht geprüft werden.', [
+                'action' => $action,
+                'exception' => $e->getMessage(),
+            ]);
+
+            return Security::checkRateLimit('forgot_identifier_' . $action . '_' . hash('sha256', $identifier), $maxAttempts, $timeWindow);
         }
     }
 

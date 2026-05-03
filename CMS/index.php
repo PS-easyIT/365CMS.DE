@@ -182,5 +182,25 @@ try {
     }
     
     http_response_code(500);
-    include __DIR__ . '/themes/default/error.php';
+
+    $defaultTheme = defined('DEFAULT_THEME') && is_string(DEFAULT_THEME) && trim(DEFAULT_THEME) !== ''
+        ? (preg_replace('/[^a-zA-Z0-9_-]/', '', trim(DEFAULT_THEME)) ?: 'cms-default')
+        : 'cms-default';
+
+    $errorTemplates = [
+        __DIR__ . '/themes/' . $defaultTheme . '/error.php',
+        __DIR__ . '/themes/cms-default/error.php',
+        __DIR__ . '/themes/default/error.php',
+    ];
+
+    foreach ($errorTemplates as $errorTemplate) {
+        if (is_file($errorTemplate)) {
+            include $errorTemplate;
+            exit;
+        }
+    }
+
+    header('Content-Type: text/html; charset=utf-8');
+    echo '<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>365CMS – Fehler</title></head><body><h1>Interner Fehler</h1><p>365CMS konnte die Anfrage gerade nicht verarbeiten.</p></body></html>';
+    exit;
 }

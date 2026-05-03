@@ -130,7 +130,13 @@ $formatLabel = static function (string $value): string {
                                             <td>
                                                 <div class="btn-list flex-nowrap">
                                                     <button type="button" class="btn btn-sm btn-outline-primary js-edit-role" data-role="<?php echo htmlspecialchars($role); ?>">Bearbeiten</button>
-                                                    <button type="button" class="btn btn-sm btn-outline-danger js-delete-role" data-role="<?php echo htmlspecialchars($role); ?>">Löschen</button>
+                                                    <form method="post" class="m-0 js-delete-role-form" data-role-label="<?php echo htmlspecialchars($roleLabels[$role] ?? $formatLabel($role), ENT_QUOTES); ?>">
+                                                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
+                                                        <input type="hidden" name="action" value="delete_role">
+                                                        <input type="hidden" name="role_slug" value="<?php echo htmlspecialchars($role); ?>">
+                                                        <input type="hidden" name="fallback_role" value="member">
+                                                        <button type="submit" class="btn btn-sm btn-outline-danger">Löschen</button>
+                                                    </form>
                                                 </div>
                                             </td>
                                         </tr>
@@ -166,7 +172,12 @@ $formatLabel = static function (string $value): string {
                                             <td>
                                                 <div class="btn-list flex-nowrap">
                                                     <button type="button" class="btn btn-sm btn-outline-primary js-edit-capability" data-capability="<?php echo htmlspecialchars((string)$item['capability']); ?>">Bearbeiten</button>
-                                                    <button type="button" class="btn btn-sm btn-outline-danger js-delete-capability" data-capability="<?php echo htmlspecialchars((string)$item['capability']); ?>">Löschen</button>
+                                                    <form method="post" class="m-0 js-delete-capability-form" data-capability-label="<?php echo htmlspecialchars((string)$item['capability'], ENT_QUOTES); ?>">
+                                                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
+                                                        <input type="hidden" name="action" value="delete_capability">
+                                                        <input type="hidden" name="capability_slug" value="<?php echo htmlspecialchars((string)$item['capability']); ?>">
+                                                        <button type="submit" class="btn btn-sm btn-outline-danger">Löschen</button>
+                                                    </form>
                                                 </div>
                                             </td>
                                         </tr>
