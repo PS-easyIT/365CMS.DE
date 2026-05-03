@@ -6,8 +6,25 @@
         var bulkBar = document.getElementById('bulkBar');
         var bulkForm = document.getElementById('bulkForm');
         var countElement = document.getElementById('selectedCount');
+        var bulkAction = document.getElementById('bulkActionComments');
+        var bulkSubmit = document.getElementById('bulkSubmitComments');
         var tableWrap = document.querySelector('.comments-table-responsive');
         var rowChecks = Array.prototype.slice.call(document.querySelectorAll('.row-check'));
+
+        function bulkSubmitMeta(action) {
+            switch (action) {
+                case 'approve':
+                    return { text: 'Kommentare freigeben', className: 'btn btn-sm btn-primary' };
+                case 'spam':
+                    return { text: 'Als Spam markieren', className: 'btn btn-sm btn-warning' };
+                case 'trash':
+                    return { text: 'In den Papierkorb', className: 'btn btn-sm btn-outline-secondary' };
+                case 'delete':
+                    return { text: 'Kommentare löschen', className: 'btn btn-sm btn-danger' };
+                default:
+                    return { text: 'Anwenden', className: 'btn btn-sm btn-primary' };
+            }
+        }
 
         function submitForm(form) {
             if (!form) {
@@ -44,6 +61,25 @@
 
             countElement.textContent = String(checkedCount);
             bulkBar.classList.toggle('d-none', checkedCount === 0);
+            updateBulkSubmitState(checkedCount);
+        }
+
+        function updateBulkSubmitState(checkedCountOverride) {
+            if (!bulkSubmit || !bulkAction) {
+                return;
+            }
+
+            var checkedCount = typeof checkedCountOverride === 'number'
+                ? checkedCountOverride
+                : rowChecks.filter(function (checkbox) {
+                    return checkbox.checked;
+                }).length;
+            var action = String(bulkAction.value || '').trim();
+            var meta = bulkSubmitMeta(action);
+
+            bulkSubmit.textContent = meta.text;
+            bulkSubmit.className = meta.className;
+            bulkSubmit.disabled = checkedCount === 0 || action === '';
         }
 
         function syncSelectAllState() {
@@ -79,7 +115,6 @@
 
         if (bulkForm) {
             bulkForm.addEventListener('submit', function (event) {
-                var bulkAction = bulkForm.querySelector('select[name="bulk_action"]');
                 var selectedAction = bulkAction ? String(bulkAction.value || '').trim() : '';
                 var checkedCount = rowChecks.filter(function (checkbox) {
                     return checkbox.checked;
@@ -127,6 +162,12 @@
             });
         }
 
+        if (bulkAction) {
+            bulkAction.addEventListener('change', function () {
+                updateBulkSubmitState();
+            });
+        }
+
         rowChecks.forEach(function (checkbox) {
             checkbox.addEventListener('change', function () {
                 syncSelectAllState();
@@ -146,5 +187,6 @@
 
         syncSelectAllState();
         updateBulkBar();
+        updateBulkSubmitState();
     });
 })();

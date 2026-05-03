@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.9.508",
+  "version": "2.9.509",
   "min_php": "8.4",
   "released": "2026-05-03",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 2.9.508: Der Unterbereich Seiten & Beiträge → Einstellungen ist produktiv nachgezogen – der Content-Tab unter `/admin/settings?tab=content` bündelt jetzt Editor-, Status-, Permalink- und Archiv-Basen sichtbar an einem Ort, benutzerdefinierte Permalinks werden nur noch im passenden Preset bearbeitet, und Validierungsfehler behalten Eingaben plus Feldbezug über Redirects hinweg statt auf den alten Stand zurückzufallen.",
+  "notes": "Release-Stand 2.9.509: Die Content-Übersichten reagieren robuster auf echte Auswahlzustände – Bulk-Aktionsleisten zeigen die gewählte Operation jetzt eindeutig an, deaktivieren sich ohne gültige Auswahl und scrollbare Tabellen lassen ihre Aktionsmenüs sichtbar aufklappen, statt Optionen in der Overflow-Box zu verstecken.",
   "critical": false
 }

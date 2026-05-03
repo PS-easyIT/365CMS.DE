@@ -127,12 +127,13 @@ $statusLabels = [
                 </div>
             </div>
 
-            <div class="card-body border-bottom py-2" id="bulkBarPages">
+            <div class="card-body border-bottom py-2 d-none" id="bulkBarPages">
                 <form method="post" id="bulkFormPages" class="d-flex flex-wrap align-items-center gap-2">
                     <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
                     <input type="hidden" name="action" value="bulk">
                     <span class="text-secondary"><strong id="selectedCountPages">0</strong> ausgewählt</span>
-                    <select name="bulk_action" class="form-select form-select-sm w-auto">
+                    <label for="bulkActionPages" class="form-label mb-0 small text-secondary">Aktion</label>
+                    <select name="bulk_action" id="bulkActionPages" class="form-select form-select-sm w-auto">
                         <option value="">Aktion wählen…</option>
                         <option value="publish">Veröffentlichen</option>
                         <option value="draft">Als Entwurf setzen</option>
@@ -146,7 +147,7 @@ $statusLabels = [
                             <option value="<?= (int)($category['id'] ?? 0) ?>"><?= htmlspecialchars((string)($category['option_label'] ?? $category['name'] ?? '')) ?></option>
                         <?php endforeach; ?>
                     </select>
-                    <button type="submit" class="btn btn-sm btn-primary">Anwenden</button>
+                    <button type="submit" id="bulkSubmitPages" class="btn btn-sm btn-primary" disabled>Anwenden</button>
                 </form>
             </div>
 
@@ -247,9 +248,28 @@ $statusLabels = [
 document.addEventListener('DOMContentLoaded', function () {
     var selectAll = document.getElementById('pagesSelectAll');
     var bulkForm = document.getElementById('bulkFormPages');
+    var bulkBar = document.getElementById('bulkBarPages');
     var bulkAction = document.querySelector('#bulkFormPages [name="bulk_action"]');
     var bulkCategory = document.getElementById('bulkCategoryPages');
     var selectedCount = document.getElementById('selectedCountPages');
+    var bulkSubmit = document.getElementById('bulkSubmitPages');
+
+    function bulkSubmitMeta(action) {
+        switch (action) {
+            case 'publish':
+                return { text: 'Seiten veröffentlichen', className: 'btn btn-sm btn-primary' };
+            case 'draft':
+                return { text: 'Als Entwurf setzen', className: 'btn btn-sm btn-warning' };
+            case 'set_category':
+                return { text: 'Kategorie setzen', className: 'btn btn-sm btn-primary' };
+            case 'clear_category':
+                return { text: 'Kategorie entfernen', className: 'btn btn-sm btn-outline-secondary' };
+            case 'delete':
+                return { text: 'Seiten löschen', className: 'btn btn-sm btn-danger' };
+            default:
+                return { text: 'Anwenden', className: 'btn btn-sm btn-primary' };
+        }
+    }
 
     function getRowCheckboxes() {
         return Array.prototype.slice.call(document.querySelectorAll('input[name="ids[]"][form="bulkFormPages"]'));
@@ -264,6 +284,12 @@ document.addEventListener('DOMContentLoaded', function () {
         if (selectedCount) {
             selectedCount.textContent = String(checkedCount);
         }
+
+        if (bulkBar) {
+            bulkBar.classList.toggle('d-none', checkedCount === 0);
+        }
+
+        syncBulkSubmitState(checkedCount);
 
         if (!selectAll) {
             return;
@@ -285,6 +311,26 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!requiresCategory) {
             bulkCategory.value = '0';
         }
+
+        syncBulkSubmitState();
+    }
+
+    function syncBulkSubmitState(selectedCountOverride) {
+        if (!bulkSubmit || !bulkAction) {
+            return;
+        }
+
+        var selectedItems = typeof selectedCountOverride === 'number'
+            ? selectedCountOverride
+            : getRowCheckboxes().filter(function (checkbox) { return checkbox.checked; }).length;
+        var action = bulkAction.value || '';
+        var requiresCategory = action === 'set_category';
+        var categoryReady = !requiresCategory || !bulkCategory || bulkCategory.value !== '0';
+        var meta = bulkSubmitMeta(action);
+
+        bulkSubmit.textContent = meta.text;
+        bulkSubmit.className = meta.className;
+        bulkSubmit.disabled = selectedItems === 0 || action === '' || !categoryReady;
     }
 
     if (!selectAll) {
@@ -306,6 +352,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (bulkAction) {
         bulkAction.addEventListener('change', syncBulkCategoryVisibility);
+    }
+
+    if (bulkCategory) {
+        bulkCategory.addEventListener('change', function () {
+            syncBulkSubmitState();
+        });
     }
 
     if (bulkForm) {

@@ -114,7 +114,8 @@ $actionClass = static function (string $variant): string {
                         <input type="hidden" name="action" value="bulk">
                         <div class="d-flex align-items-center gap-2">
                             <span class="text-secondary"><strong id="selectedCount">0</strong> ausgewählt</span>
-                            <select name="bulk_action" class="form-select form-select-sm w-auto">
+                            <label for="bulkActionComments" class="form-label mb-0 small text-secondary">Aktion</label>
+                            <select name="bulk_action" id="bulkActionComments" class="form-select form-select-sm w-auto">
                                 <option value="">Aktion wählen…</option>
                                 <?php if ($canModerate): ?>
                                     <option value="approve">Freigeben</option>
@@ -125,7 +126,7 @@ $actionClass = static function (string $variant): string {
                                     <option value="delete">Endgültig löschen</option>
                                 <?php endif; ?>
                             </select>
-                            <button type="submit" class="btn btn-sm btn-primary">Anwenden</button>
+                            <button type="submit" id="bulkSubmitComments" class="btn btn-sm btn-primary" disabled>Anwenden</button>
                         </div>
                     </form>
                 </div>

@@ -174,7 +174,8 @@ $search     = (string)($data['search'] ?? '');
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
                     <input type="hidden" name="action" value="bulk">
                     <span class="text-secondary"><strong id="selectedCountPosts">0</strong> ausgewählt</span>
-                    <select name="bulk_action" class="form-select form-select-sm w-auto">
+                    <label for="bulkActionPosts" class="form-label mb-0 small text-secondary">Aktion</label>
+                    <select name="bulk_action" id="bulkActionPosts" class="form-select form-select-sm w-auto">
                         <option value="">Aktion wählen…</option>
                         <option value="publish">Veröffentlichen</option>
                         <option value="draft">Als Entwurf setzen</option>
@@ -195,7 +196,7 @@ $search     = (string)($data['search'] ?? '');
                            class="form-control form-control-sm w-auto d-none"
                            maxlength="150"
                            placeholder="Neuer Anzeigename für ausgewählte Beiträge">
-                    <button type="submit" class="btn btn-sm btn-primary">Anwenden</button>
+                    <button type="submit" id="bulkSubmitPosts" class="btn btn-sm btn-primary" disabled>Anwenden</button>
                 </form>
             </div>
 
@@ -228,10 +229,32 @@ function applyFilters() {
     var bulkActionSelect = bulkForm ? bulkForm.querySelector('[name="bulk_action"]') : null;
     var bulkAuthorDisplayName = document.getElementById('bulkAuthorDisplayNamePosts');
     var bulkCategorySelect = document.getElementById('bulkCategoryPosts');
+    var bulkSubmit = document.getElementById('bulkSubmitPosts');
     var selectedIds = new Set();
 
     if (!gridRoot || !bulkForm || !bulkBar || !countEl) {
         return;
+    }
+
+    function bulkSubmitMeta(action) {
+        switch (action) {
+            case 'publish':
+                return { text: 'Beiträge veröffentlichen', className: 'btn btn-sm btn-primary' };
+            case 'draft':
+                return { text: 'Als Entwurf setzen', className: 'btn btn-sm btn-warning' };
+            case 'set_category':
+                return { text: 'Kategorien setzen', className: 'btn btn-sm btn-primary' };
+            case 'clear_category':
+                return { text: 'Kategorien entfernen', className: 'btn btn-sm btn-outline-secondary' };
+            case 'set_author_display_name':
+                return { text: 'Autorenname setzen', className: 'btn btn-sm btn-primary' };
+            case 'clear_author_display_name':
+                return { text: 'Autorenname zurücksetzen', className: 'btn btn-sm btn-outline-secondary' };
+            case 'delete':
+                return { text: 'Beiträge löschen', className: 'btn btn-sm btn-danger' };
+            default:
+                return { text: 'Anwenden', className: 'btn btn-sm btn-primary' };
+        }
     }
 
     function updateBulkActionUi() {
@@ -253,6 +276,8 @@ function applyFilters() {
                 option.selected = false;
             });
         }
+
+        updateBulkSubmitState();
     }
 
     function syncInputs() {
@@ -280,7 +305,25 @@ function applyFilters() {
     function updateBulkState() {
         countEl.textContent = String(selectedIds.size);
         bulkBar.classList.toggle('d-none', selectedIds.size === 0);
+        updateBulkSubmitState();
         syncInputs();
+    }
+
+    function updateBulkSubmitState() {
+        if (!bulkSubmit || !bulkActionSelect) {
+            return;
+        }
+
+        var action = bulkActionSelect.value || '';
+        var requiresName = action === 'set_author_display_name';
+        var requiresCategory = action === 'set_category';
+        var nameReady = !requiresName || (bulkAuthorDisplayName && bulkAuthorDisplayName.value.trim() !== '');
+        var categoryReady = !requiresCategory || (bulkCategorySelect && bulkCategorySelect.selectedOptions.length > 0);
+        var meta = bulkSubmitMeta(action);
+
+        bulkSubmit.textContent = meta.text;
+        bulkSubmit.className = meta.className;
+        bulkSubmit.disabled = selectedIds.size === 0 || action === '' || !nameReady || !categoryReady;
     }
 
     gridRoot.addEventListener('change', function(event) {
@@ -364,6 +407,12 @@ function applyFilters() {
     observer.observe(gridRoot, { childList: true, subtree: true });
     if (bulkActionSelect) {
         bulkActionSelect.addEventListener('change', updateBulkActionUi);
+    }
+    if (bulkAuthorDisplayName) {
+        bulkAuthorDisplayName.addEventListener('input', updateBulkSubmitState);
+    }
+    if (bulkCategorySelect) {
+        bulkCategorySelect.addEventListener('change', updateBulkSubmitState);
     }
     updateBulkActionUi();
     updateBulkState();

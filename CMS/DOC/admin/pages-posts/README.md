@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Überblick über die Content-Module im Admin-Bereich und ihre aktuelle Aufgabenverteilung.
 
-Letzte Aktualisierung: 2026-05-03 · Version 2.9.508
+Letzte Aktualisierung: 2026-05-03 · Version 2.9.509
 
 Der Content-Bereich ist auf mehrere spezialisierte Bereiche verteilt:
 
@@ -57,4 +57,5 @@ Die SEO-spezifischen Global-Einstellungen liegen nicht mehr in einem alten Monol
 - Hub-Sites reservieren nun auch statische Public-Routen und Archivbasen als Slugs, damit neu angelegte Hubs nicht an `/contact`, `/authors`, `/feed`, `/category`, `/tag` oder ähnlichen Frontend-Routen unsichtbar vorbeiplanen.
 - Site-Tabellen schließen ihren Public-Vertrag jetzt sichtbar an den Editor an: Suche, Sortierung, Paginierung und Zeilenhervorhebung wirken im Frontend tatsächlich; die nicht implementierte Excel-Option wird im Admin nicht länger als scheinbar produktiver Export angeboten.
 - Der Unterbereich „Einstellungen“ lebt technisch unter `/admin/settings?tab=content`, bündelt jetzt auch Permalink-/Archiv-Basen direkt im Inhalts-Tab und behält Formulareingaben bei Validierungsfehlern über den Redirect hinweg.
+- Listenansichten mit Mehrfachauswahl machen die beabsichtigte Bulk-Aktion jetzt direkt am Button sichtbar; destruktive Aktionen werden so nicht mehr hinter einem generischen „Anwenden“ versteckt. Gleichzeitig öffnen Aktions-Dropdowns in scrollbaren Tabellen sichtbar, statt in der horizontalen Overflow-Zone abgeschnitten zu werden.
 - Historische Verweise auf `/admin/seo.php` oder alte Monolith-Seiten sind in diesem Bereich nicht mehr korrekt.
