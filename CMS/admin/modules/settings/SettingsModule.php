@@ -229,6 +229,17 @@ class SettingsModule
                 $permalinkStructure = \CMS\Services\PermalinkService::normalizePostStructure($permalinkStructure);
             }
 
+            if ($permalinkPreset === 'custom' && $permalinkCustom === '') {
+                return $this->buildValidationFailure(
+                    'Bitte eine benutzerdefinierte Beitrags-URL-Struktur angeben.',
+                    ['post_permalink_custom'],
+                    [
+                        'Nutze z. B. /wissen/%postname% oder /%year%/%postname%.',
+                        'Erlaubte Platzhalter sind %year%, %monthnum%, %day% und %postname%.',
+                    ]
+                );
+            }
+
             $categoryBaseDe = $this->normalizeRouteBase(
                 (string)($post['category_base_de'] ?? ''),
                 self::ARCHIVE_BASE_DEFAULTS['category']['de']
@@ -247,11 +258,19 @@ class SettingsModule
             );
 
             if ($categoryBaseDe === $tagBaseDe) {
-                return ['success' => false, 'error' => 'Die deutschen Slugs für Kategorie- und Tag-Archive müssen unterschiedlich sein.'];
+                return $this->buildValidationFailure(
+                    'Die deutschen Slugs für Kategorie- und Tag-Archive müssen unterschiedlich sein.',
+                    ['category_base_de', 'tag_base_de'],
+                    [sprintf('Aktuell würden beide Archive unter /%s/... laufen.', $categoryBaseDe)]
+                );
             }
 
             if ($categoryBaseEn === $tagBaseEn) {
-                return ['success' => false, 'error' => 'Die englischen Slugs für Kategorie- und Tag-Archive müssen unterschiedlich sein.'];
+                return $this->buildValidationFailure(
+                    'Die englischen Slugs für Kategorie- und Tag-Archive müssen unterschiedlich sein.',
+                    ['category_base_en', 'tag_base_en'],
+                    [sprintf('Aktuell würden beide Archive unter /en/%s/... laufen.', $categoryBaseEn)]
+                );
             }
 
             $editorType = (string)($post['editor_type'] ?? 'editorjs');
@@ -410,6 +429,27 @@ class SettingsModule
 
             return ['success' => false, 'error' => 'Allgemeine Einstellungen konnten nicht gespeichert werden. Bitte Logs prüfen.'];
         }
+    }
+
+    /**
+     * @param list<string> $invalidFields
+     * @param list<string> $details
+     * @return array{success:false,error:string,invalid_fields:list<string>,details:list<string>}
+     */
+    private function buildValidationFailure(string $message, array $invalidFields = [], array $details = []): array
+    {
+        return [
+            'success' => false,
+            'error' => $message,
+            'invalid_fields' => array_values(array_filter(array_map(
+                static fn ($field): string => trim((string) $field),
+                $invalidFields
+            ), static fn (string $field): bool => $field !== '')),
+            'details' => array_values(array_filter(array_map(
+                static fn ($detail): string => trim((string) $detail),
+                $details
+            ), static fn (string $detail): bool => $detail !== '')),
+        ];
     }
 
     public function runSiteUrlMigration(array $post): array

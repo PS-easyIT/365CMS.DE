@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.9.507",
+  "version": "2.9.508",
   "min_php": "8.4",
   "released": "2026-05-03",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 2.9.507: Der Unterbereich Hub-Sites & Tabellen ist produktiv nachgezogen – Hub-Sites schützen ihre Slugs jetzt robuster gegen bestehende Public-Routen, lösen Zusatzdomain-/Legacy-`table_slug`-Fälle konsistenter auf und führen Save-Fehler zurück ins Edit-Formular; zusätzlich schließen Site Tables ihre Public-Schalter nun sichtbar an Suche, Sortierung, Paginierung und Zeilenhervorhebung an, behalten Validierungsfehler im Editorzustand und entfernen die nicht implementierte Excel-Option aus dem Admin.",
+  "notes": "Release-Stand 2.9.508: Der Unterbereich Seiten & Beiträge → Einstellungen ist produktiv nachgezogen – der Content-Tab unter `/admin/settings?tab=content` bündelt jetzt Editor-, Status-, Permalink- und Archiv-Basen sichtbar an einem Ort, benutzerdefinierte Permalinks werden nur noch im passenden Preset bearbeitet, und Validierungsfehler behalten Eingaben plus Feldbezug über Redirects hinweg statt auf den alten Stand zurückzufallen.",
   "critical": false
 }

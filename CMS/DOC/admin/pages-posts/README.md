@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Überblick über die Content-Module im Admin-Bereich und ihre aktuelle Aufgabenverteilung.
 
-Letzte Aktualisierung: 2026-05-03 · Version 2.9.507
+Letzte Aktualisierung: 2026-05-03 · Version 2.9.508
 
 Der Content-Bereich ist auf mehrere spezialisierte Bereiche verteilt:
 
@@ -15,7 +15,7 @@ Der Content-Bereich ist auf mehrere spezialisierte Bereiche verteilt:
 | `/admin/landing-page` | Landing-Page-Bausteine und Homepage-Sektionen |
 | `/admin/table-of-contents` | Inhaltsverzeichnis-Logik und TOC-Einstellungen |
 | `/admin/site-tables` | benutzerdefinierte Datentabellen |
-| `/admin/content-settings` | Inhalts-Einstellungen (Editor-Optionen, Defaults) |
+| `/admin/settings?tab=content` | Inhalts-Einstellungen (Editor-Optionen, Defaults, Permalinks, Archiv-Basen) |
 
 ---
 
@@ -40,6 +40,7 @@ Die SEO-spezifischen Global-Einstellungen liegen nicht mehr in einem alten Monol
 | [POSTS.md](POSTS.md) | Beiträge und Blog-Workflow |
 | [COMMENTS.md](COMMENTS.md) | Kommentar-Moderation und Massenaktion |
 | [HUBSITES.md](HUBSITES.md) | Hub-Sites, Slugs, Zusatzdomains und Public-Routing |
+| [SETTINGS.md](SETTINGS.md) | Inhalts-Einstellungen für Editor, Defaults, Permalinks und Archive |
 | [TABLES.md](TABLES.md) | Wiederverwendbare Site-Tabellen |
 | [TOC.md](TOC.md) | Inhaltsverzeichnis-Einstellungen |
 | [../landing-page/LANDING-PAGE.md](../landing-page/LANDING-PAGE.md) | Landing-Page-Builder |
@@ -55,4 +56,5 @@ Die SEO-spezifischen Global-Einstellungen liegen nicht mehr in einem alten Monol
 - Beiträge arbeiten im Editor aktuell mit **einer primären Kategorie**; die frühere UI für zusätzliche Kategorien wird nicht mehr angeboten.
 - Hub-Sites reservieren nun auch statische Public-Routen und Archivbasen als Slugs, damit neu angelegte Hubs nicht an `/contact`, `/authors`, `/feed`, `/category`, `/tag` oder ähnlichen Frontend-Routen unsichtbar vorbeiplanen.
 - Site-Tabellen schließen ihren Public-Vertrag jetzt sichtbar an den Editor an: Suche, Sortierung, Paginierung und Zeilenhervorhebung wirken im Frontend tatsächlich; die nicht implementierte Excel-Option wird im Admin nicht länger als scheinbar produktiver Export angeboten.
+- Der Unterbereich „Einstellungen“ lebt technisch unter `/admin/settings?tab=content`, bündelt jetzt auch Permalink-/Archiv-Basen direkt im Inhalts-Tab und behält Formulareingaben bei Validierungsfehlern über den Redirect hinweg.
 - Historische Verweise auf `/admin/seo.php` oder alte Monolith-Seiten sind in diesem Bereich nicht mehr korrekt.

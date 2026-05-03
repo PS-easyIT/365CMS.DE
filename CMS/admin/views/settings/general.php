@@ -27,21 +27,72 @@ $defaultCoreUpdateUrl = 'https://365cms.de/marketplace/core/365cms/update.json';
 $usesDefaultPluginRegistry = (($s['plugin_registry_url'] ?? $defaultPluginRegistryUrl) === $defaultPluginRegistryUrl);
 $usesDefaultThemeMarketplace = (($s['theme_marketplace_url'] ?? $defaultThemeMarketplaceUrl) === $defaultThemeMarketplaceUrl);
 $usesDefaultCoreUpdate = (($s['core_update_url'] ?? $defaultCoreUpdateUrl) === $defaultCoreUpdateUrl);
+$formValues = is_array($formValues ?? null) ? $formValues : [];
+$invalidFields = array_values(array_filter(array_map(
+    static fn ($field): string => trim((string) $field),
+    is_array($invalidFields ?? null) ? $invalidFields : []
+), static fn (string $field): bool => $field !== ''));
+$invalidFieldLookup = array_fill_keys($invalidFields, true);
+$hasInvalidField = static fn (string $field): bool => isset($invalidFieldLookup[$field]);
+$controlClass = static fn (string $field, string $base = 'form-control'): string => $base . ($hasInvalidField($field) ? ' is-invalid' : '');
+$controlDescribedBy = static function (string $field, array $ids = []) use ($hasInvalidField): string {
+    if ($hasInvalidField($field)) {
+        $ids[] = 'settings-alert-region';
+    }
+
+    return implode(' ', array_values(array_unique(array_filter($ids, static fn ($id): bool => trim((string) $id) !== ''))));
+};
+
+if ($currentTab === 'content' && $formValues !== []) {
+    foreach (['editor_type', 'post_default_status', 'page_default_status', 'page_editor_width', 'post_editor_width', 'post_permalink_preset', 'post_permalink_custom', 'category_base_de', 'category_base_en', 'tag_base_de', 'tag_base_en'] as $key) {
+        if (array_key_exists($key, $formValues)) {
+            $s[$key] = (string) $formValues[$key];
+        }
+    }
+
+    $preset = (string)($s['post_permalink_preset'] ?? 'blog');
+    $custom = trim((string)($s['post_permalink_custom'] ?? ''));
+    $structure = match ($preset) {
+        'dated' => class_exists('\CMS\Services\PermalinkService') ? \CMS\Services\PermalinkService::PRESET_DATED : '/%year%/%monthnum%/%day%/%postname%',
+        'slug' => class_exists('\CMS\Services\PermalinkService') ? \CMS\Services\PermalinkService::PRESET_SLUG : '/%postname%',
+        'year' => class_exists('\CMS\Services\PermalinkService') ? \CMS\Services\PermalinkService::PRESET_YEAR : '/%year%/%postname%',
+        'custom' => $custom,
+        default => class_exists('\CMS\Services\PermalinkService') ? \CMS\Services\PermalinkService::PRESET_BLOG : '/blog/%postname%',
+    };
+
+    if (class_exists('\CMS\Services\PermalinkService')) {
+        $s['post_permalink_structure'] = \CMS\Services\PermalinkService::normalizePostStructure($structure);
+        $s['post_permalink_example'] = \CMS\Services\PermalinkService::buildExamplePath((string)$s['post_permalink_structure']);
+    } else {
+        $s['post_permalink_structure'] = $structure;
+        $s['post_permalink_example'] = '/blog/beispielbeitrag';
+    }
+}
+
+$settingsPretitle = $currentTab === 'content' ? 'Seiten & Beiträge' : 'System';
+$settingsHeading = $currentTab === 'content' ? 'Beiträge & Sites – Einstellungen' : 'Allgemeine Einstellungen';
 ?>
 
 <div class="container-xl">
     <div class="page-header d-print-none mb-4">
         <div class="row align-items-center">
             <div class="col-auto">
+                <div class="page-pretitle"><?php echo htmlspecialchars($settingsPretitle, ENT_QUOTES, 'UTF-8'); ?></div>
                 <h2 class="page-title">
                     <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-settings me-2" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10.325 4.317c.426 -1.756 2.924 -1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543 -.94 3.31 .826 2.37 2.37a1.724 1.724 0 0 0 1.066 2.573c1.756 .426 1.756 2.924 0 3.35a1.724 1.724 0 0 0 -1.066 2.573c.94 1.543 -.826 3.31 -2.37 2.37a1.724 1.724 0 0 0 -2.573 1.066c-.426 1.756 -2.924 1.756 -3.35 0a1.724 1.724 0 0 0 -2.573 -1.066c-1.543 .94 -3.31 -.826 -2.37 -2.37a1.724 1.724 0 0 0 -1.066 -2.573c-1.756 -.426 -1.756 -2.924 0 -3.35a1.724 1.724 0 0 0 1.066 -2.573c-.94 -1.543 .826 -3.31 2.37 -2.37c1 .608 2.296 .07 2.572 -1.065z"/><path d="M9 12a3 3 0 1 0 6 0a3 3 0 0 0 -6 0"/></svg>
-                    Allgemeine Einstellungen
+                    <?php echo htmlspecialchars($settingsHeading, ENT_QUOTES, 'UTF-8'); ?>
                 </h2>
             </div>
         </div>
     </div>
 
-    <?php require dirname(__DIR__) . '/partials/flash-alert.php'; ?>
+    <div id="settings-alert-region">
+        <?php
+        $alertData = is_array($alert ?? null) ? $alert : [];
+        $alertMarginClass = 'mb-4';
+        require dirname(__DIR__) . '/partials/flash-alert.php';
+        ?>
+    </div>
 
     <form method="post" autocomplete="off">
         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
@@ -314,72 +365,6 @@ $usesDefaultCoreUpdate = (($s['core_update_url'] ?? $defaultCoreUpdateUrl) === $
 
             <div class="col-lg-6 mb-4">
                 <div class="card h-100">
-                    <div class="card-header"><h3 class="card-title">Website Slugs</h3></div>
-                    <div class="card-body">
-                        <div class="mb-3">
-                            <label class="form-label">Beitrags-URL-Struktur</label>
-                            <select name="post_permalink_preset" class="form-select">
-                                <option value="blog" <?php echo ($s['post_permalink_preset'] ?? 'blog') === 'blog' ? 'selected' : ''; ?>>/blog/beitragsname</option>
-                                <option value="dated" <?php echo ($s['post_permalink_preset'] ?? '') === 'dated' ? 'selected' : ''; ?>>/jahr/monat/tag/beitragsname</option>
-                                <option value="slug" <?php echo ($s['post_permalink_preset'] ?? '') === 'slug' ? 'selected' : ''; ?>>/beitragsname</option>
-                                <option value="year" <?php echo ($s['post_permalink_preset'] ?? '') === 'year' ? 'selected' : ''; ?>>/jahr/beitragsname</option>
-                                <option value="custom" <?php echo ($s['post_permalink_preset'] ?? '') === 'custom' ? 'selected' : ''; ?>>Benutzerdefiniert</option>
-                            </select>
-                            <div class="form-hint">Erlaubte Platzhalter: <code>%year%</code>, <code>%monthnum%</code>, <code>%day%</code> und <code>%postname%</code>.</div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Benutzerdefinierte Struktur</label>
-                            <input type="text" name="post_permalink_custom" class="form-control" value="<?php echo htmlspecialchars((string)($s['post_permalink_custom'] ?? '')); ?>" placeholder="/%year%/%monthnum%/%day%/%postname%">
-                        </div>
-                        <div class="row g-3 mb-3">
-                            <div class="col-md-6">
-                                <label class="form-label">Kategorie-Basis (DE)</label>
-                                <div class="input-group">
-                                    <span class="input-group-text">/</span>
-                                    <input type="text" name="category_base_de" class="form-control" value="<?php echo htmlspecialchars((string)($s['category_base_de'] ?? 'kategorie')); ?>" placeholder="kategorie">
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Kategorie-Basis (EN)</label>
-                                <div class="input-group">
-                                    <span class="input-group-text">/</span>
-                                    <input type="text" name="category_base_en" class="form-control" value="<?php echo htmlspecialchars((string)($s['category_base_en'] ?? 'category')); ?>" placeholder="category">
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Tag-Basis (DE)</label>
-                                <div class="input-group">
-                                    <span class="input-group-text">/</span>
-                                    <input type="text" name="tag_base_de" class="form-control" value="<?php echo htmlspecialchars((string)($s['tag_base_de'] ?? 'tag')); ?>" placeholder="tag">
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Tag-Basis (EN)</label>
-                                <div class="input-group">
-                                    <span class="input-group-text">/</span>
-                                    <input type="text" name="tag_base_en" class="form-control" value="<?php echo htmlspecialchars((string)($s['tag_base_en'] ?? 'tag')); ?>" placeholder="tag">
-                                </div>
-                            </div>
-                        </div>
-                        <div class="form-hint mb-3">Die Archive werden sprachabhängig auf dieselben Theme-Templates <code>category.php</code> und <code>tag.php</code> geleitet. Beispiel: <code>/<?php echo htmlspecialchars((string)($s['category_base_de'] ?? 'kategorie')); ?>/azure</code> bzw. <code>/en/<?php echo htmlspecialchars((string)($s['category_base_en'] ?? 'category')); ?>/azure</code>.</div>
-                        <div class="alert alert-info mb-3" role="alert">
-                            <div class="fw-semibold mb-1">Aktive Beispiel-URL</div>
-                            <code><?php echo htmlspecialchars((string)($s['post_permalink_example'] ?? '/blog/beispielbeitrag')); ?></code>
-                            <div class="small mt-1">Die Blog-Übersicht bleibt weiterhin unter <code>/blog</code> erreichbar.</div>
-                        </div>
-                        <div class="border rounded p-3 bg-light">
-                            <div class="fw-semibold mb-1">Manuelle Nachkorrektur importierter Slugs</div>
-                            <p class="text-secondary small mb-3">Prüft importierte Beiträge und Seiten aus dem WordPress-Importer und übernimmt – wenn möglich – den ursprünglichen Quell-Slug. Bereits verlinkte Pfade bleiben per Weiterleitung erreichbar.</p>
-                            <button type="submit" class="btn btn-outline-warning" name="action" value="repair_imported_slugs">
-                                Falsche Import-Slugs jetzt manuell korrigieren
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-lg-6 mb-4">
-                <div class="card h-100">
                     <div class="card-header"><h3 class="card-title">Marketplace &amp; Updates</h3></div>
                     <div class="card-body">
                         <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
@@ -468,24 +453,31 @@ $usesDefaultCoreUpdate = (($s['core_update_url'] ?? $defaultCoreUpdateUrl) === $
         </div>
         <?php else: ?>
         <div class="row">
+            <div class="col-12 mb-4">
+                <div class="alert alert-info mb-0" role="status">
+                    Diese Einstellungen steuern Standard-Editor, Veröffentlichungs-Defaults und die öffentlichen URL-Basen für neue Seiten, Beiträge und Archive. Bei Validierungsfehlern bleiben deine Eingaben nach dem Redirect erhalten – diesmal ohne Magier-Act.
+                </div>
+            </div>
+
             <div class="col-lg-6 mb-4">
                 <div class="card h-100">
                     <div class="card-header"><h3 class="card-title">Editor</h3></div>
                     <div class="card-body">
                         <div class="mb-3">
-                            <label class="form-label">Standard-Editor</label>
-                            <select name="editor_type" class="form-select">
+                            <label class="form-label" for="settingsEditorType">Standard-Editor</label>
+                            <select name="editor_type" id="settingsEditorType" class="<?php echo htmlspecialchars($controlClass('editor_type', 'form-select'), ENT_QUOTES, 'UTF-8'); ?>" aria-describedby="<?php echo htmlspecialchars($controlDescribedBy('editor_type', ['settingsEditorTypeHint']), ENT_QUOTES, 'UTF-8'); ?>" aria-invalid="<?php echo $hasInvalidField('editor_type') ? 'true' : 'false'; ?>">
                                 <option value="editorjs" <?php echo $s['editor_type'] === 'editorjs' ? 'selected' : ''; ?>>Editor.js</option>
                                 <option value="suneditor" <?php echo $s['editor_type'] === 'suneditor' ? 'selected' : ''; ?>>SunEditor</option>
                             </select>
-                            <small class="form-hint">Gilt für Seiten und Beiträge beim Erstellen und Bearbeiten.</small>
+                            <small id="settingsEditorTypeHint" class="form-hint">Gilt für Seiten und Beiträge beim Erstellen und Bearbeiten.</small>
                         </div>
                         <div>
-                            <label class="form-label">Beitrags-Editorbreite</label>
+                            <label class="form-label" for="settingsPostEditorWidth">Beitrags-Editorbreite</label>
                             <div class="input-group">
-                                <input type="number" name="post_editor_width" class="form-control" min="320" max="1600" step="10" value="<?php echo (int)$s['post_editor_width']; ?>">
+                                <input type="number" name="post_editor_width" id="settingsPostEditorWidth" class="<?php echo htmlspecialchars($controlClass('post_editor_width'), ENT_QUOTES, 'UTF-8'); ?>" min="320" max="1600" step="10" value="<?php echo (int)$s['post_editor_width']; ?>" aria-describedby="<?php echo htmlspecialchars($controlDescribedBy('post_editor_width', ['settingsPostEditorWidthHint']), ENT_QUOTES, 'UTF-8'); ?>" aria-invalid="<?php echo $hasInvalidField('post_editor_width') ? 'true' : 'false'; ?>">
                                 <span class="input-group-text">px</span>
                             </div>
+                            <small id="settingsPostEditorWidthHint" class="form-hint">Wirkt direkt in der Beitragsbearbeitung. Zulässig sind 320 bis 1600&nbsp;px.</small>
                         </div>
                     </div>
                 </div>
@@ -496,19 +488,21 @@ $usesDefaultCoreUpdate = (($s['core_update_url'] ?? $defaultCoreUpdateUrl) === $
                     <div class="card-header"><h3 class="card-title">Standard beim Speichern</h3></div>
                     <div class="card-body">
                         <div class="mb-3">
-                            <label class="form-label">Neue Beiträge</label>
-                            <select name="post_default_status" class="form-select">
+                            <label class="form-label" for="settingsPostDefaultStatus">Neue Beiträge</label>
+                            <select name="post_default_status" id="settingsPostDefaultStatus" class="<?php echo htmlspecialchars($controlClass('post_default_status', 'form-select'), ENT_QUOTES, 'UTF-8'); ?>" aria-describedby="<?php echo htmlspecialchars($controlDescribedBy('post_default_status', ['settingsPostDefaultStatusHint']), ENT_QUOTES, 'UTF-8'); ?>" aria-invalid="<?php echo $hasInvalidField('post_default_status') ? 'true' : 'false'; ?>">
                                 <option value="draft" <?php echo $s['post_default_status'] === 'draft' ? 'selected' : ''; ?>>Als Entwurf speichern</option>
                                 <option value="published" <?php echo $s['post_default_status'] === 'published' ? 'selected' : ''; ?>>Direkt veröffentlichen</option>
                             </select>
+                            <small id="settingsPostDefaultStatusHint" class="form-hint">Bestehende Beiträge behalten ihren aktuellen Status.</small>
                         </div>
                         <div>
-                            <label class="form-label">Neue Seiten / Sites</label>
-                            <select name="page_default_status" class="form-select">
+                            <label class="form-label" for="settingsPageDefaultStatus">Neue Seiten / Sites</label>
+                            <select name="page_default_status" id="settingsPageDefaultStatus" class="<?php echo htmlspecialchars($controlClass('page_default_status', 'form-select'), ENT_QUOTES, 'UTF-8'); ?>" aria-describedby="<?php echo htmlspecialchars($controlDescribedBy('page_default_status', ['settingsPageDefaultStatusHint']), ENT_QUOTES, 'UTF-8'); ?>" aria-invalid="<?php echo $hasInvalidField('page_default_status') ? 'true' : 'false'; ?>">
                                 <option value="draft" <?php echo $s['page_default_status'] === 'draft' ? 'selected' : ''; ?>>Als Entwurf speichern</option>
                                 <option value="published" <?php echo $s['page_default_status'] === 'published' ? 'selected' : ''; ?>>Direkt veröffentlichen</option>
                                 <option value="private" <?php echo $s['page_default_status'] === 'private' ? 'selected' : ''; ?>>Privat anlegen</option>
                             </select>
+                            <small id="settingsPageDefaultStatusHint" class="form-hint">Der Status gilt für neue Seiten und Site-nahe Inhaltseinträge.</small>
                         </div>
                     </div>
                 </div>
@@ -519,12 +513,79 @@ $usesDefaultCoreUpdate = (($s['core_update_url'] ?? $defaultCoreUpdateUrl) === $
                     <div class="card-header"><h3 class="card-title">Seiten-Editor</h3></div>
                     <div class="card-body">
                         <div class="mb-3">
-                            <label class="form-label">Seiten-Editorbreite</label>
+                            <label class="form-label" for="settingsPageEditorWidth">Seiten-Editorbreite</label>
                             <div class="input-group">
-                                <input type="number" name="page_editor_width" class="form-control" min="320" max="1600" step="10" value="<?php echo (int)$s['page_editor_width']; ?>">
+                                <input type="number" name="page_editor_width" id="settingsPageEditorWidth" class="<?php echo htmlspecialchars($controlClass('page_editor_width'), ENT_QUOTES, 'UTF-8'); ?>" min="320" max="1600" step="10" value="<?php echo (int)$s['page_editor_width']; ?>" aria-describedby="<?php echo htmlspecialchars($controlDescribedBy('page_editor_width', ['settingsPageEditorWidthHint']), ENT_QUOTES, 'UTF-8'); ?>" aria-invalid="<?php echo $hasInvalidField('page_editor_width') ? 'true' : 'false'; ?>">
                                 <span class="input-group-text">px</span>
                             </div>
-                            <small class="form-hint">Bestimmt die nutzbare Inhaltsbreite im Editor für Seiten.</small>
+                            <small id="settingsPageEditorWidthHint" class="form-hint">Bestimmt die nutzbare Inhaltsbreite im Editor für Seiten. Zulässig sind 320 bis 1600&nbsp;px.</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header"><h3 class="card-title">URL-Struktur &amp; Archive</h3></div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label" for="settingsPostPermalinkPreset">Beitrags-URL-Struktur</label>
+                            <select name="post_permalink_preset" id="settingsPostPermalinkPreset" class="<?php echo htmlspecialchars($controlClass('post_permalink_preset', 'form-select'), ENT_QUOTES, 'UTF-8'); ?>" aria-describedby="<?php echo htmlspecialchars($controlDescribedBy('post_permalink_preset', ['settingsPostPermalinkPresetHint']), ENT_QUOTES, 'UTF-8'); ?>" aria-invalid="<?php echo $hasInvalidField('post_permalink_preset') ? 'true' : 'false'; ?>" data-settings-permalink-preset>
+                                <option value="blog" <?php echo ($s['post_permalink_preset'] ?? 'blog') === 'blog' ? 'selected' : ''; ?>>/blog/beitragsname</option>
+                                <option value="dated" <?php echo ($s['post_permalink_preset'] ?? '') === 'dated' ? 'selected' : ''; ?>>/jahr/monat/tag/beitragsname</option>
+                                <option value="slug" <?php echo ($s['post_permalink_preset'] ?? '') === 'slug' ? 'selected' : ''; ?>>/beitragsname</option>
+                                <option value="year" <?php echo ($s['post_permalink_preset'] ?? '') === 'year' ? 'selected' : ''; ?>>/jahr/beitragsname</option>
+                                <option value="custom" <?php echo ($s['post_permalink_preset'] ?? '') === 'custom' ? 'selected' : ''; ?>>Benutzerdefiniert</option>
+                            </select>
+                            <div id="settingsPostPermalinkPresetHint" class="form-hint">Erlaubte Platzhalter: <code>%year%</code>, <code>%monthnum%</code>, <code>%day%</code> und <code>%postname%</code>.</div>
+                        </div>
+                        <div class="mb-3" data-settings-permalink-custom-group>
+                            <label class="form-label" for="settingsPostPermalinkCustom">Benutzerdefinierte Struktur</label>
+                            <input type="text" name="post_permalink_custom" id="settingsPostPermalinkCustom" class="<?php echo htmlspecialchars($controlClass('post_permalink_custom'), ENT_QUOTES, 'UTF-8'); ?>" value="<?php echo htmlspecialchars((string)($s['post_permalink_custom'] ?? '')); ?>" placeholder="/%year%/%monthnum%/%day%/%postname%" aria-describedby="<?php echo htmlspecialchars($controlDescribedBy('post_permalink_custom', ['settingsPostPermalinkCustomHint']), ENT_QUOTES, 'UTF-8'); ?>" aria-invalid="<?php echo $hasInvalidField('post_permalink_custom') ? 'true' : 'false'; ?>" data-settings-permalink-custom-input>
+                            <div id="settingsPostPermalinkCustomHint" class="form-hint">Nur nötig bei „Benutzerdefiniert“. 365CMS ergänzt fehlende Slashes automatisch, erwartet aber trotzdem ein sinnvolles Beitragsmuster.</div>
+                        </div>
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label" for="settingsCategoryBaseDe">Kategorie-Basis (DE)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">/</span>
+                                    <input type="text" name="category_base_de" id="settingsCategoryBaseDe" class="<?php echo htmlspecialchars($controlClass('category_base_de'), ENT_QUOTES, 'UTF-8'); ?>" value="<?php echo htmlspecialchars((string)($s['category_base_de'] ?? 'kategorie')); ?>" placeholder="kategorie" aria-describedby="<?php echo htmlspecialchars($controlDescribedBy('category_base_de', ['settingsArchiveBaseHint']), ENT_QUOTES, 'UTF-8'); ?>" aria-invalid="<?php echo $hasInvalidField('category_base_de') ? 'true' : 'false'; ?>">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="settingsCategoryBaseEn">Kategorie-Basis (EN)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">/</span>
+                                    <input type="text" name="category_base_en" id="settingsCategoryBaseEn" class="<?php echo htmlspecialchars($controlClass('category_base_en'), ENT_QUOTES, 'UTF-8'); ?>" value="<?php echo htmlspecialchars((string)($s['category_base_en'] ?? 'category')); ?>" placeholder="category" aria-describedby="<?php echo htmlspecialchars($controlDescribedBy('category_base_en', ['settingsArchiveBaseHint']), ENT_QUOTES, 'UTF-8'); ?>" aria-invalid="<?php echo $hasInvalidField('category_base_en') ? 'true' : 'false'; ?>">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="settingsTagBaseDe">Tag-Basis (DE)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">/</span>
+                                    <input type="text" name="tag_base_de" id="settingsTagBaseDe" class="<?php echo htmlspecialchars($controlClass('tag_base_de'), ENT_QUOTES, 'UTF-8'); ?>" value="<?php echo htmlspecialchars((string)($s['tag_base_de'] ?? 'tag')); ?>" placeholder="tag" aria-describedby="<?php echo htmlspecialchars($controlDescribedBy('tag_base_de', ['settingsArchiveBaseHint']), ENT_QUOTES, 'UTF-8'); ?>" aria-invalid="<?php echo $hasInvalidField('tag_base_de') ? 'true' : 'false'; ?>">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="settingsTagBaseEn">Tag-Basis (EN)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">/</span>
+                                    <input type="text" name="tag_base_en" id="settingsTagBaseEn" class="<?php echo htmlspecialchars($controlClass('tag_base_en'), ENT_QUOTES, 'UTF-8'); ?>" value="<?php echo htmlspecialchars((string)($s['tag_base_en'] ?? 'tag')); ?>" placeholder="tag" aria-describedby="<?php echo htmlspecialchars($controlDescribedBy('tag_base_en', ['settingsArchiveBaseHint']), ENT_QUOTES, 'UTF-8'); ?>" aria-invalid="<?php echo $hasInvalidField('tag_base_en') ? 'true' : 'false'; ?>">
+                                </div>
+                            </div>
+                        </div>
+                        <div id="settingsArchiveBaseHint" class="form-hint mb-3">Die Archive werden sprachabhängig auf dieselben Theme-Templates <code>category.php</code> und <code>tag.php</code> geleitet. Beispiel: <code>/<?php echo htmlspecialchars((string)($s['category_base_de'] ?? 'kategorie')); ?>/azure</code> bzw. <code>/en/<?php echo htmlspecialchars((string)($s['category_base_en'] ?? 'category')); ?>/azure</code>.</div>
+                        <div class="alert alert-info mb-3" role="status">
+                            <div class="fw-semibold mb-1">Aktive Beispiel-URL</div>
+                            <code><?php echo htmlspecialchars((string)($s['post_permalink_example'] ?? '/blog/beispielbeitrag')); ?></code>
+                            <div class="small mt-1">Die Blog-Übersicht bleibt weiterhin unter <code>/blog</code> erreichbar.</div>
+                        </div>
+                        <div class="border rounded p-3 bg-light">
+                            <div class="fw-semibold mb-1">Manuelle Nachkorrektur importierter Slugs</div>
+                            <p class="text-secondary small mb-3">Prüft importierte Beiträge und Seiten aus dem WordPress-Importer und übernimmt – wenn möglich – den ursprünglichen Quell-Slug. Bereits verlinkte Pfade bleiben per Weiterleitung erreichbar.</p>
+                            <button type="submit" class="btn btn-outline-warning" name="action" value="repair_imported_slugs">
+                                Falsche Import-Slugs jetzt manuell korrigieren
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -537,6 +598,7 @@ $usesDefaultCoreUpdate = (($s['core_update_url'] ?? $defaultCoreUpdateUrl) === $
                         <ul class="mb-0 text-secondary small ps-3">
                             <li class="mb-2">Die Editor-Auswahl greift global für Seiten und Beiträge.</li>
                             <li class="mb-2">Standard-Status gilt vor allem für neue Einträge; bestehende Inhalte behalten ihren Status.</li>
+                            <li class="mb-2">Permalink- und Archiv-Basen sitzen jetzt direkt im Inhalts-Tab statt versteckt unter „Allgemein“.</li>
                             <li>Breiten werden direkt in den Editor-Ansichten übernommen.</li>
                         </ul>
                     </div>
