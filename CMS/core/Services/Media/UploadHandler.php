@@ -14,6 +14,9 @@ if (!defined('ABSPATH')) {
 
 final class UploadHandler
 {
+    private const MAX_STORED_FILENAME_LENGTH = 180;
+    private const MAX_EXTENSION_LENGTH = 16;
+
     private LoggerInterface $logger;
     private ?\Closure $uploadValidator;
 
@@ -73,7 +76,8 @@ final class UploadHandler
             return $validation;
         }
 
-        $targetDir = $this->resolvePath($path);
+        $effectivePath = $this->resolveManagedUploadPath($path, $validationSettings);
+        $targetDir = $this->resolvePath($effectivePath);
         if ($targetDir instanceof WP_Error) {
             return $targetDir;
         }
@@ -84,8 +88,15 @@ final class UploadHandler
         }
 
         $originalName = $file['name'];
-        $sanitizedName = $this->sanitizeFileName($originalName);
-        $targetPath = $this->createUniqueTargetPath($targetDir, $sanitizedName);
+        $sanitizedName = $this->sanitizeFileName($originalName, $validationSettings ?? []);
+        $targetPath = $this->createTargetPath(
+            $targetDir,
+            $sanitizedName,
+            (bool) (($validationSettings['unique_filenames'] ?? true) === true)
+        );
+        if ($targetPath instanceof WP_Error) {
+            return $targetPath;
+        }
         $sourcePath = (string) $file['tmp_name'];
 
         if (!is_file($sourcePath) || !is_readable($sourcePath)) {
@@ -109,7 +120,7 @@ final class UploadHandler
 
         @chmod($targetPath, 0640);
 
-        $relativePath = trim(($path !== '' ? trim($path, '/\\') . '/' : '') . basename($targetPath), '/');
+    $relativePath = trim(($effectivePath !== '' ? trim($effectivePath, '/\\') . '/' : '') . basename($targetPath), '/');
         $category = $this->repository->detectSystemCategory($relativePath);
         $meta = $this->repository->loadMeta();
         $currentUser = Auth::getCurrentUser();
@@ -284,29 +295,97 @@ final class UploadHandler
         return $fullPath;
     }
 
-    private function sanitizeFileName(string $fileName): string
+    private function sanitizeFileName(string $fileName, array $settings = []): string
     {
-        $fileName = preg_replace('/[^A-Za-z0-9._-]+/', '-', $fileName) ?: 'upload';
-        $fileName = trim($fileName, '-');
-        $fileName = ltrim($fileName, '.');
+        $fileName = trim((string) preg_replace('/[\x00-\x1F\x7F]+/u', '', $fileName));
 
-        return $fileName !== '' ? $fileName : 'upload';
+        $name = (string) pathinfo($fileName, PATHINFO_FILENAME);
+        $extension = (string) pathinfo($fileName, PATHINFO_EXTENSION);
+        $sanitize = (bool) ($settings['sanitize_filenames'] ?? true);
+        $lowercase = (bool) ($settings['lowercase_filenames'] ?? false);
+
+        $name = str_replace(['/', '\\'], '-', $name);
+        $name = preg_replace('/\s+/u', '-', $name) ?: $name;
+        $name = str_replace('.', '-', $name);
+
+        if ($sanitize) {
+            $name = preg_replace('/[^A-Za-z0-9_-]+/u', '-', $name) ?: $name;
+            $name = preg_replace('/[-_]{2,}/', '-', $name) ?: $name;
+        } else {
+            $name = preg_replace('/[^A-Za-z0-9_-]+/u', '', $name) ?: $name;
+        }
+
+        $name = trim($name, " \t\n\r\0\x0B.-_");
+        $extension = preg_replace('/[^A-Za-z0-9]+/', '', $extension) ?: '';
+        $extension = substr($extension, 0, self::MAX_EXTENSION_LENGTH);
+
+        if ($lowercase) {
+            $name = strtolower($name);
+            $extension = strtolower($extension);
+        }
+
+        if ($name === '') {
+            $name = 'upload';
+        }
+
+        $name = $this->limitFileBaseNameLength($name, $extension);
+
+        return $name . ($extension !== '' ? '.' . $extension : '');
     }
 
-    private function createUniqueTargetPath(string $directory, string $fileName): string
+    private function createTargetPath(string $directory, string $fileName, bool $allowUniqueSuffix = true): string|WP_Error
     {
         $info = pathinfo($fileName);
         $name = $info['filename'] ?? 'upload';
         $extension = isset($info['extension']) ? '.' . $info['extension'] : '';
+        $name = $this->limitFileBaseNameLength($name, ltrim($extension, '.'));
         $targetPath = $directory . DIRECTORY_SEPARATOR . $name . $extension;
+
+        if (!$allowUniqueSuffix) {
+            if (file_exists($targetPath)) {
+                return new WP_Error('file_exists', 'Eine Datei mit diesem Namen existiert bereits.');
+            }
+
+            return $targetPath;
+        }
+
         $counter = 1;
 
         while (file_exists($targetPath)) {
-            $targetPath = $directory . DIRECTORY_SEPARATOR . $name . '-' . $counter . $extension;
+            $suffix = '-' . $counter;
+            $candidateName = $this->limitFileBaseNameLength($name, ltrim($extension, '.'), $suffix) . $suffix;
+            $targetPath = $directory . DIRECTORY_SEPARATOR . $candidateName . $extension;
             $counter++;
         }
 
         return $targetPath;
+    }
+
+    private function limitFileBaseNameLength(string $name, string $extension = '', string $suffix = ''): string
+    {
+        $extensionLength = $extension !== '' ? min(strlen($extension), self::MAX_EXTENSION_LENGTH) + 1 : 0;
+        $maxBaseLength = max(1, self::MAX_STORED_FILENAME_LENGTH - $extensionLength - strlen($suffix));
+
+        if (strlen($name) <= $maxBaseLength) {
+            return $name;
+        }
+
+        return substr($name, 0, $maxBaseLength);
+    }
+
+    private function resolveManagedUploadPath(string $path, ?array $settings = null): string
+    {
+        $normalized = trim(str_replace('\\', '/', $path), '/');
+        if (empty($settings['organize_month_year'])) {
+            return $normalized;
+        }
+
+        if (preg_match('#(?:^|/)\d{4}/\d{2}$#', $normalized) === 1) {
+            return $normalized;
+        }
+
+        $datePath = date('Y') . '/' . date('m');
+        return trim(($normalized !== '' ? $normalized . '/' : '') . $datePath, '/');
     }
 
     private function deleteDirectory(string $directory): bool
@@ -480,6 +559,10 @@ final class UploadHandler
             ? (string) pathinfo($newName, PATHINFO_FILENAME)
             : $newName;
         $requestedBaseName = trim($requestedBaseName, " \t\n\r\0\x0B.");
+        $requestedBaseName = str_replace('.', '-', $requestedBaseName);
+        $requestedBaseName = preg_replace('/[^A-Za-z0-9_-]+/u', '-', $requestedBaseName) ?: $requestedBaseName;
+        $requestedBaseName = preg_replace('/[-_]{2,}/', '-', $requestedBaseName) ?: $requestedBaseName;
+        $requestedBaseName = trim($requestedBaseName, " \t\n\r\0\x0B.-_");
 
         if ($requestedBaseName === '') {
             return new WP_Error('invalid_name', 'Ungültiger Name');
@@ -492,6 +575,8 @@ final class UploadHandler
         if ($currentExtension === '' && $requestedExtension !== '') {
             return new WP_Error('extension_change_forbidden', 'Dateien ohne Endung dürfen nicht in einen anderen Dateityp umbenannt werden');
         }
+
+        $requestedBaseName = $this->limitFileBaseNameLength($requestedBaseName, $currentExtension);
 
         return $requestedBaseName . ($currentExtension !== '' ? '.' . $currentExtension : '');
     }

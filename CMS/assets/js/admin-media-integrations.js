@@ -226,6 +226,29 @@
         container.appendChild(item);
     }
 
+    function resolveParentPath(path) {
+        var normalized = String(path || '').replace(/\\/g, '/').replace(/^\/+|\/+$/g, '');
+        if (!normalized) {
+            return '';
+        }
+
+        var segments = normalized.split('/');
+        segments.pop();
+
+        return segments.join('/');
+    }
+
+    function redirectToCurrentMediaPath(targetPath) {
+        var url = new URL(window.location.href);
+        if (targetPath) {
+            url.searchParams.set('path', targetPath);
+        } else {
+            url.searchParams.delete('path');
+        }
+
+        window.location.assign(url.toString());
+    }
+
     function initNativeUploader() {
         var form = document.getElementById('uploadForm');
         var input = document.getElementById('uploadFiles');
@@ -259,6 +282,7 @@
 
             var successCount = 0;
             var errorCount = 0;
+            var effectiveTargetPath = uploadPath;
             var sequence = Promise.resolve();
 
             files.forEach(function (file) {
@@ -279,6 +303,9 @@
                         }
 
                         successCount += 1;
+                        if (payload && payload.path) {
+                            effectiveTargetPath = resolveParentPath(payload.path);
+                        }
                         renderUploadResult(resultsElement, 'success', {
                             title: file.name,
                             detail: payload && payload.path ? payload.path : 'Datei erfolgreich hochgeladen.'
@@ -304,7 +331,7 @@
                 if (successCount > 0 && errorCount === 0) {
                     setElementText(statusElement, successCount + ' Datei(en) erfolgreich hochgeladen. Bibliothek wird aktualisiert …');
                     window.setTimeout(function () {
-                        window.location.reload();
+                        redirectToCurrentMediaPath(effectiveTargetPath);
                     }, 700);
                     return;
                 }
@@ -607,6 +634,34 @@
         var bulkSubmitButton = bulkForm ? bulkForm.querySelector('button[type="submit"]') : null;
         var selectedPaths = new Set();
 
+        function updateBulkSubmitButton() {
+            if (!bulkSubmitButton) {
+                return;
+            }
+
+            var selectedCount = selectedPaths.size;
+            var action = bulkActionField ? String(bulkActionField.value || '') : '';
+            var requiresMoveTarget = action === 'move';
+            var hasValidAction = action === 'delete' || action === 'move';
+            var hasValidTarget = !requiresMoveTarget || !bulkMoveTargetField || !!bulkMoveTargetField.value;
+            var enabled = selectedCount > 0 && hasValidAction && hasValidTarget;
+            var label = 'Diesen Medien-Batch ausführen';
+
+            if (action === 'delete') {
+                label = selectedCount > 0
+                    ? selectedCount + ' Medium/Medien löschen'
+                    : 'Ausgewählte Medien löschen';
+            } else if (action === 'move') {
+                label = selectedCount > 0
+                    ? selectedCount + ' Medium/Medien verschieben'
+                    : 'Ausgewählte Medien verschieben';
+            }
+
+            bulkSubmitButton.textContent = label;
+            bulkSubmitButton.disabled = !enabled;
+            bulkSubmitButton.setAttribute('aria-disabled', enabled ? 'false' : 'true');
+        }
+
         function collectSelectedPaths() {
             if (!bulkRoot) {
                 return new Set();
@@ -783,6 +838,7 @@
 
         function updateBulkActionUi() {
             if (!bulkMoveWrap || !bulkActionField) {
+                updateBulkSubmitButton();
                 return;
             }
 
@@ -798,6 +854,8 @@
                     }
                 }
             }
+
+            updateBulkSubmitButton();
         }
 
         function updateBulkUi() {
@@ -805,10 +863,6 @@
 
             if (bulkCount) {
                 bulkCount.textContent = String(selectedPaths.size);
-            }
-
-            if (bulkSubmitButton) {
-                bulkSubmitButton.disabled = selectedPaths.size === 0;
             }
 
             syncBulkCheckboxes();
@@ -838,6 +892,10 @@
 
         if (bulkActionField) {
             bulkActionField.addEventListener('change', updateBulkActionUi);
+        }
+
+        if (bulkMoveTargetField) {
+            bulkMoveTargetField.addEventListener('change', updateBulkSubmitButton);
         }
 
         document.querySelectorAll('[data-media-auto-submit-select="1"]').forEach(function (select) {

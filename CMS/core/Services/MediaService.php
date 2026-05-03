@@ -660,6 +660,55 @@ class MediaService {
         $this->reEncodeImage($absolutePath, $extension, $quality);
     }
 
+    /**
+     * @param array<string,mixed> $settings
+     */
+    private function processManagedImageUpload(string $absolutePath, string $storedName, array $settings): void
+    {
+        $extension = strtolower((string) pathinfo($storedName, PATHINFO_EXTENSION));
+        if (!$this->isImageExtension($extension) || !is_file($absolutePath)) {
+            return;
+        }
+
+        $quality = max(60, min(100, (int) ($settings['jpeg_quality'] ?? 85)));
+
+        $this->repairUploadedBrowserImage($absolutePath, $storedName, $settings);
+
+        $maxWidth = max(1, (int) ($settings['max_width'] ?? 2560));
+        $maxHeight = max(1, (int) ($settings['max_height'] ?? 2560));
+
+        $resizeResult = $this->imageProcessor->resizeToFit($absolutePath, $maxWidth, $maxHeight, $quality);
+        if ($resizeResult instanceof WP_Error) {
+            $this->logger->warning('Originalbild konnte nach dem Upload nicht auf Maximalmaße skaliert werden.', [
+                'path' => $absolutePath,
+                'error_code' => $resizeResult->get_error_code(),
+                'error_message' => $resizeResult->get_error_message(),
+            ]);
+        }
+
+        if (!empty($settings['generate_thumbnails'])) {
+            $thumbnailResult = $this->imageProcessor->generateThumbnails($absolutePath, $this->buildThumbnailSizes($settings), $quality);
+            if ($thumbnailResult instanceof WP_Error) {
+                $this->logger->warning('Bild-Thumbnails konnten nach dem Upload nicht erzeugt werden.', [
+                    'path' => $absolutePath,
+                    'error_code' => $thumbnailResult->get_error_code(),
+                    'error_message' => $thumbnailResult->get_error_message(),
+                ]);
+            }
+        }
+
+        if (!empty($settings['auto_webp'])) {
+            $webpResult = $this->imageProcessor->convertToWebP($absolutePath, $quality);
+            if ($webpResult instanceof WP_Error) {
+                $this->logger->warning('WebP-Konvertierung nach Upload fehlgeschlagen.', [
+                    'path' => $absolutePath,
+                    'error_code' => $webpResult->get_error_code(),
+                    'error_message' => $webpResult->get_error_message(),
+                ]);
+            }
+        }
+    }
+
     private function readImageSize(string $path, string $context = 'image'): ?array
     {
         $result = $this->runImageOperation('getimagesize', $path, $context, static fn (): array|false => getimagesize($path));
@@ -799,6 +848,34 @@ class MediaService {
         $this->repairUploadedBrowserImage($storedAbsolutePath, $storedName, $settings);
 
         return $storedName;
+    }
+
+    /**
+     * Verwalteter Medien-Upload für Bibliothek und Member-Bereich.
+     * Wendet Pfad-Organisation, Dateinamensregeln, Maximalmaße und Thumbnails an.
+     *
+     * @param array<string,mixed> $file
+     * @return array<string,mixed>|WP_Error
+     */
+    public function uploadManagedFile(array $file, string $targetPath = '', bool $memberContext = false): array|WP_Error
+    {
+        $settings = $this->buildUploadValidationSettings($this->getSettings(), $memberContext);
+        $result = $this->uploadHandler->uploadFile($file, $targetPath, false, $settings);
+
+        if ($result instanceof WP_Error) {
+            return $result;
+        }
+
+        $storedRelativePath = trim((string) ($result['path'] ?? ''), '/');
+        if ($storedRelativePath === '') {
+            $storedRelativePath = trim(($targetPath !== '' ? trim($targetPath, '/\\') . '/' : '') . (string) ($result['name'] ?? ''), '/');
+            $result['path'] = $storedRelativePath;
+        }
+
+        $storedAbsolutePath = rtrim($this->uploadPath, '/\\') . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $storedRelativePath);
+        $this->processManagedImageUpload($storedAbsolutePath, (string) ($result['name'] ?? basename($storedRelativePath)), $settings);
+
+        return $result;
     }
 
     /**

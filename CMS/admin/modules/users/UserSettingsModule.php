@@ -9,11 +9,13 @@ use CMS\AuditLogger;
 use CMS\Database;
 use CMS\Auth\AuthManager;
 use CMS\Auth\LDAP\LdapAuthProvider;
+use CMS\Services\UserService;
 
 class UserSettingsModule
 {
     private Database $db;
     private string $prefix;
+    private UserService $userService;
 
     private const SETTINGS_KEYS = [
         'registration_enabled',
@@ -26,6 +28,7 @@ class UserSettingsModule
     {
         $this->db = Database::instance();
         $this->prefix = $this->db->getPrefix();
+        $this->userService = UserService::getInstance();
     }
 
     public function getData(): array
@@ -38,7 +41,7 @@ class UserSettingsModule
                 'registration_enabled' => ($settings['registration_enabled'] ?? '0') === '1',
                 'member_registration_enabled' => ($settings['member_registration_enabled'] ?? '1') === '1',
                 'member_email_verification' => ($settings['member_email_verification'] ?? '0') === '1',
-                'member_default_role' => $this->sanitizeRole((string)($settings['member_default_role'] ?? 'member')),
+                'member_default_role' => $this->userService->resolveRegistrationRole((string)($settings['member_default_role'] ?? 'member')),
             ],
             'roles' => $this->getAvailableRoles(),
             'stats' => $this->getAuthStats(),
@@ -87,7 +90,7 @@ class UserSettingsModule
                 'registration_enabled' => !empty($post['registration_enabled']) ? '1' : '0',
                 'member_registration_enabled' => !empty($post['member_registration_enabled']) ? '1' : '0',
                 'member_email_verification' => !empty($post['member_email_verification']) ? '1' : '0',
-                'member_default_role' => $this->sanitizeRole((string)($post['member_default_role'] ?? 'member')),
+                'member_default_role' => $this->userService->resolveRegistrationRole((string)($post['member_default_role'] ?? 'member')),
             ];
 
             foreach ($values as $key => $value) {
@@ -203,22 +206,7 @@ class UserSettingsModule
      */
     private function getAvailableRoles(): array
     {
-        $roles = ['member', 'author', 'editor'];
-
-        try {
-            $dbRoles = $this->db->get_results("SELECT DISTINCT role FROM {$this->prefix}users ORDER BY role ASC") ?: [];
-            foreach ($dbRoles as $row) {
-                $role = $this->sanitizeRole((string)($row->role ?? ''));
-                if ($role !== '' && !in_array($role, $roles, true)) {
-                    $roles[] = $role;
-                }
-            }
-        } catch (\Throwable $e) {
-        }
-
-        sort($roles);
-
-        return $roles;
+        return array_keys($this->userService->getRegistrationRoleOptions());
     }
 
     private function upsertSetting(string $key, string $value): void
@@ -240,12 +228,5 @@ class UserSettingsModule
             "INSERT INTO {$this->prefix}settings (option_name, option_value) VALUES (?, ?)",
             [$key, $value]
         );
-    }
-
-    private function sanitizeRole(string $role): string
-    {
-        $role = preg_replace('/[^a-zA-Z0-9_-]/', '', trim($role)) ?? '';
-
-        return $role !== '' ? strtolower($role) : 'member';
     }
 }

@@ -238,10 +238,9 @@ $s = is_array($settings) ? $settings : [];
                                 <input type="checkbox" class="form-check-input" name="validate_image_content" value="1" <?php echo !empty($s['validate_image_content']) ? 'checked' : ''; ?>>
                                 <span class="form-check-label">Bild-Inhalte validieren</span>
                             </label>
-                            <label class="form-check form-switch mb-2">
-                                <input type="checkbox" class="form-check-input" name="require_login_for_upload" value="1" <?php echo !empty($s['require_login_for_upload']) ? 'checked' : ''; ?>>
-                                <span class="form-check-label">Login für Upload erforderlich</span>
-                            </label>
+                            <div class="alert alert-secondary py-2 mb-2" role="note">
+                                <strong>Authentifizierung:</strong> Der interne Upload-Endpunkt bleibt aus Sicherheitsgründen immer auf angemeldete Admin- bzw. Member-Kontexte beschränkt.
+                            </div>
                             <label class="form-check form-switch mb-0">
                                 <input type="checkbox" class="form-check-input" name="protect_uploads_dir" value="1" <?php echo !empty($s['protect_uploads_dir']) ? 'checked' : ''; ?>>
                                 <span class="form-check-label">Uploads-Verzeichnis schützen</span>

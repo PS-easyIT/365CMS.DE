@@ -151,7 +151,7 @@ $renderStatusBadge = static function (bool $enabled, string $enabledLabel = 'Akt
                                         </option>
                                     <?php endforeach; ?>
                                 </select>
-                                <div class="form-hint">Willkommens- und Dashboard-Texte bleiben weiterhin unter <a href="<?php echo htmlspecialchars($memberDashboardGeneralUrl, ENT_QUOTES, 'UTF-8'); ?>">Member Dashboard → Allgemein</a>.</div>
+                                <div class="form-hint">Die Auswahl wirkt jetzt direkt auf öffentliche Registrierungen. Aus Sicherheitsgründen werden hier nur registrierungsgeeignete, nicht-administrative Rollen angeboten. Willkommens- und Dashboard-Texte bleiben weiterhin unter <a href="<?php echo htmlspecialchars($memberDashboardGeneralUrl, ENT_QUOTES, 'UTF-8'); ?>">Member Dashboard → Allgemein</a>.</div>
                             </div>
                         </div>
                     </div>

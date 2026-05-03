@@ -8,6 +8,7 @@ if (!defined('ABSPATH')) {
 }
 
 use CMS\Database;
+use CMS\Auth;
 use CMS\Logger;
 use CMS\Security;
 use CMS\WP_Error;
@@ -54,6 +55,24 @@ class UserService {
             'read',
             'edit_profile',
         ],
+    ];
+
+    private const REGISTRATION_BLOCKED_CAPABILITIES = [
+        'manage_users',
+        'manage_settings',
+        'manage_pages',
+        'edit_all_posts',
+        'delete_all_posts',
+        'view_analytics',
+        'comments.moderate',
+        'comments.delete',
+    ];
+
+    private const REGISTRATION_BLOCKED_PREFIXES = [
+        'users.',
+        'settings.',
+        'themes.',
+        'plugins.',
     ];
     
     private Database $db;
@@ -360,7 +379,14 @@ class UserService {
         
         // Users abrufen
         $users = $this->db->get_results(
-            "SELECT * FROM {$this->prefix}users {$where_sql} ORDER BY {$orderby} {$order} LIMIT ? OFFSET ?",
+            "SELECT u.*, (
+                    SELECT COUNT(*)
+                    FROM {$this->prefix}user_group_members ugm
+                    WHERE ugm.user_id = u.id
+                ) AS group_count
+             FROM {$this->prefix}users u
+             {$where_sql}
+             ORDER BY u.{$orderby} {$order} LIMIT ? OFFSET ?",
             array_merge($params, [(int)$args['limit'], (int)$args['offset']])
         );
         
@@ -465,13 +491,10 @@ class UserService {
             if (empty($data['username'])) {
                 return new WP_Error('missing_username', 'Benutzername ist erforderlich', ['status' => 400]);
             }
-            
-            if (strlen($data['username']) < 3 || strlen($data['username']) > 50) {
-                return new WP_Error('invalid_username', 'Benutzername muss 3-50 Zeichen lang sein', ['status' => 400]);
-            }
-            
-            if (!preg_match('/^[a-zA-Z0-9_]+$/', $data['username'])) {
-                return new WP_Error('invalid_username', 'Benutzername darf nur Buchstaben, Zahlen und Unterstrich enthalten', ['status' => 400]);
+
+            $usernameValidation = $this->validateUsername((string)$data['username']);
+            if ($usernameValidation instanceof WP_Error) {
+                return $usernameValidation;
             }
             
             // E-Mail erforderlich
@@ -487,23 +510,61 @@ class UserService {
             if (empty($data['password'])) {
                 return new WP_Error('missing_password', 'Passwort ist erforderlich', ['status' => 400]);
             }
-            
-            if (strlen($data['password']) < 8) {
-                return new WP_Error('weak_password', 'Passwort muss mindestens 8 Zeichen lang sein', ['status' => 400]);
+
+            $passwordValidation = $this->validatePassword((string)$data['password']);
+            if ($passwordValidation instanceof WP_Error) {
+                return $passwordValidation;
             }
         }
         
         // Update-spezifische Validierung
         if ($context === 'update') {
+            if (array_key_exists('username', $data) && trim((string)$data['username']) === '') {
+                return new WP_Error('missing_username', 'Benutzername ist erforderlich', ['status' => 400]);
+            }
+
+            if (isset($data['username'])) {
+                $usernameValidation = $this->validateUsername((string)$data['username']);
+                if ($usernameValidation instanceof WP_Error) {
+                    return $usernameValidation;
+                }
+            }
+
             if (isset($data['email']) && !filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
                 return new WP_Error('invalid_email', 'Ungültige E-Mail-Adresse', ['status' => 400]);
             }
-            
-            if (isset($data['password']) && strlen($data['password']) < 8) {
-                return new WP_Error('weak_password', 'Passwort muss mindestens 8 Zeichen lang sein', ['status' => 400]);
+
+            if (isset($data['password']) && trim((string)$data['password']) !== '') {
+                $passwordValidation = $this->validatePassword((string)$data['password']);
+                if ($passwordValidation instanceof WP_Error) {
+                    return $passwordValidation;
+                }
             }
         }
         
+        return true;
+    }
+
+    private function validateUsername(string $username): bool|WP_Error {
+        $length = function_exists('mb_strlen') ? mb_strlen($username) : strlen($username);
+
+        if ($length < 3 || $length > 50) {
+            return new WP_Error('invalid_username', 'Benutzername muss 3-50 Zeichen lang sein', ['status' => 400]);
+        }
+
+        if (!preg_match('/^[a-zA-Z0-9_]+$/', $username)) {
+            return new WP_Error('invalid_username', 'Benutzername darf nur Buchstaben, Zahlen und Unterstrich enthalten', ['status' => 400]);
+        }
+
+        return true;
+    }
+
+    private function validatePassword(string $password): bool|WP_Error {
+        $policyResult = Auth::validatePasswordPolicy($password);
+        if ($policyResult !== true) {
+            return new WP_Error('weak_password', $policyResult, ['status' => 400]);
+        }
+
         return true;
     }
     
@@ -661,6 +722,41 @@ class UserService {
 
         return $roles;
     }
+
+    /**
+     * Öffentlich zuweisbare Registrierungsrollen.
+     *
+     * Verhindert, dass Registrierungen direkt mit administrativen Rechten starten.
+     *
+     * @return array<string, string>
+     */
+    public function getRegistrationRoleOptions(): array {
+        $availableRoles = $this->getAvailableRoles();
+        $roles = [];
+
+        foreach ($availableRoles as $role => $label) {
+            if ($this->isRegistrationRoleAllowed($role)) {
+                $roles[$role] = $label;
+            }
+        }
+
+        if ($roles === []) {
+            $roles['member'] = $availableRoles['member'] ?? 'Mitglied';
+        }
+
+        return $roles;
+    }
+
+    public function resolveRegistrationRole(?string $role): string {
+        $role = strtolower(trim((string)$role));
+        if ($role === '') {
+            return 'member';
+        }
+
+        $roles = $this->getRegistrationRoleOptions();
+
+        return array_key_exists($role, $roles) ? $role : 'member';
+    }
     
     /**
      * Role-Beschreibungen
@@ -740,5 +836,31 @@ class UserService {
 
     private function humanizeRole(string $role): string {
         return ucwords(str_replace(['_', '-'], ' ', strtolower($role)));
+    }
+
+    private function isRegistrationRoleAllowed(string $role): bool {
+        $role = strtolower(trim($role));
+        if ($role === '' || $role === 'admin') {
+            return false;
+        }
+
+        foreach ($this->getRoleCapabilities($role) as $capability) {
+            $capability = strtolower(trim((string)$capability));
+            if ($capability === '') {
+                continue;
+            }
+
+            if (in_array($capability, self::REGISTRATION_BLOCKED_CAPABILITIES, true)) {
+                return false;
+            }
+
+            foreach (self::REGISTRATION_BLOCKED_PREFIXES as $prefix) {
+                if (str_starts_with($capability, $prefix)) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 }

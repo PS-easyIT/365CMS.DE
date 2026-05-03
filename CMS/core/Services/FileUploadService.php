@@ -123,7 +123,7 @@ final class FileUploadService
             );
         }
 
-        $uploadResult = $mediaService->uploadFile($uploadFile, $targetPath, $validationSettings);
+        $uploadResult = $mediaService->uploadManagedFile($uploadFile, $targetPath, !$isAdmin);
 
         if ($uploadResult instanceof WP_Error) {
             return $this->errorResponse(
@@ -138,8 +138,13 @@ final class FileUploadService
             );
         }
 
-        $filename = (string)$uploadResult;
-        $relativePath = trim($targetPath . '/' . $filename, '/');
+        $filename = (string)($uploadResult['name'] ?? '');
+        $relativePath = trim((string)($uploadResult['path'] ?? ''), '/');
+        if ($relativePath === '') {
+            $relativePath = trim($targetPath . '/' . $filename, '/');
+        }
+
+        $parentPath = trim(str_replace('\\', '/', dirname($relativePath)), '/.');
         $mediaDelivery = MediaDeliveryService::getInstance();
         $url = $mediaDelivery->buildAccessUrl($relativePath, true);
         $downloadUrl = $mediaDelivery->buildDeliveryUrl($relativePath, 'attachment');
@@ -151,6 +156,7 @@ final class FileUploadService
                 'id' => $relativePath,
                 'filename' => $filename,
                 'path' => $relativePath,
+                'parent_path' => $parentPath,
                 'url' => $url,
                 'preview_url' => $mediaDelivery->buildPreviewUrl($relativePath),
                 'download_url' => $downloadUrl,

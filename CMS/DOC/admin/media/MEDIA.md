@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Verwaltung hochgeladener Dateien und Ordner, Kategorien, Medieneinstellungen und kontrollierter Auslieferung über interne Services.
 
-Letzte Aktualisierung: 2026-04-07 · Version 2.9.0
+Letzte Aktualisierung: 2026-05-03 · Version 2.9.511
 
 ---
 
@@ -35,6 +35,7 @@ Die Medienverwaltung bündelt Bibliothek, Kategorien und Einstellungen unter ein
 | Rename-/Move-Modale | zentrale Dialoge statt breiter Inline-Formulare |
 | Bulk-Löschen / Bulk-Verschieben | Mehrfachauswahl im Admin mit vorbereiteten Zielordnern |
 | Vorschaulogik | robuste Dateivorschau und Proxy-/Preview-URLs |
+| Verwaltete Bildverarbeitung | Maximalmaße, Thumbnail-Sätze und optionale WebP-Derivate |
 
 ---
 
@@ -70,6 +71,8 @@ Typische Metadaten umfassen:
 - abgeleitete Preview-/Public-URLs
 - Systempfad-Klassifikation
 
+Zusätzliche derivative Dateien entstehen – abhängig von den Einstellungen – direkt neben dem Original mit bekannten Suffixen wie `-small`, `-medium`, `-large`, `-banner` sowie optional `.webp`.
+
 ---
 
 ## Technische Grundlage
@@ -80,7 +83,39 @@ Die Bibliothek verteilt Verantwortlichkeiten bewusst:
 - `CMS/admin/modules/media/MediaModule.php` bereitet View-Modelle, Constraints, Optionen und Ergebnis-Alerts auf
 - `CMS/core/Services/MediaService.php` bündelt Upload-, Move-, Rename-, Delete- und Settings-Logik
 - `CMS/core/Services/Media/MediaRepository.php` liefert Items, Metadaten und Schutzlogik
-- `CMS/core/Services/Media/UploadHandler.php` übernimmt Dateisystem-Mutationen
+- `CMS/core/Services/Media/UploadHandler.php` übernimmt Dateisystem-Mutationen inklusive Zielpfad-Organisation und Dateinamen-Regeln für verwaltete Uploads
+- `CMS/core/Services/Media/ImageProcessor.php` erzeugt WebP-Derivate, skaliert Originalbilder auf Maximalmaße und erstellt Thumbnail-Varianten
+
+---
+
+## Laufzeitvertrag der Upload-Einstellungen
+
+Die Medien-Einstellungen unter `/admin/media?tab=settings` wirken für Bibliotheks- und Member-Uploads jetzt direkt in der Runtime:
+
+| Einstellung | Laufzeitwirkung |
+|---|---|
+| `max_upload_size` / `member_max_upload_size` | Byte-Limit für Admin- bzw. Member-Uploads |
+| `allowed_types` / `member_allowed_types` | Extension-/Typgruppen-Allowlist |
+| `organize_month_year` | hängt `YYYY/MM` an den Zielpfad von Bibliotheks-/Member-Uploads an |
+| `sanitize_filenames` | bereinigt Dateinamen auf den serverseitig erlaubten Zeichensatz |
+| zusätzliche Dateinamens-Härtung | begrenzt die Speicherlänge und entfernt mehrdeutige Zusatzpunkte im Basenamen |
+| `lowercase_filenames` | speichert Dateinamen optional vollständig in Kleinschreibung |
+| `unique_filenames` | hängt bei Bedarf fortlaufende Suffixe an oder blockiert Namenskollisionen fail-closed |
+| `strip_exif` | schreibt klassische Browserbildformate neu, um EXIF-/Darstellungsprobleme zu entschärfen |
+| `max_width` / `max_height` | skaliert Bilder nach dem Upload auf eine Obergrenze herunter |
+| `generate_thumbnails` | erstellt `-small`, `-medium`, `-large`, `-banner`-Varianten |
+| `auto_webp` | erzeugt zusätzlich ein WebP-Derivat für konvertierbare Originale |
+| Upload-Authentifizierung | bleibt für den internen Upload-Endpunkt fail-closed auf angemeldete Admin-/Member-Kontexte beschränkt |
+
+Wichtig: Dieser verwaltete Upload-Vertrag gilt bewusst für die Medienbibliothek und den Member-Bereich. Kontextgebundene Spezialpfade wie Theme-Logo- oder Editor.js-Uploads können weiterhin eigene Zielordnerverträge haben.
+
+---
+
+## UI-Vertrag nach erfolgreichem Upload
+
+Sowohl das Admin-Upload-Modal als auch der Member-Uploader aktualisieren nach erfolgreichen Uploads nun den tatsächlich verwendeten Zielordner. Dadurch bleiben automatisch angelegte Jahres-/Monats-Unterordner nicht mehr „unsichtbar“, sondern der View springt direkt dorthin zurück.
+
+Zusätzlich benennt die Bulk-Schaltfläche in der Bibliothek die ausgewählte Aktion jetzt explizit und bleibt gesperrt, bis Auswahl **und** gültige Aktion zusammenpassen.
 
 ---
 

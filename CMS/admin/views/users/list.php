@@ -148,13 +148,13 @@ $getRoleColor = static function (string $role) use ($roleColors): string {
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
                     <input type="hidden" name="action" value="bulk">
                     <span class="text-secondary"><strong id="selectedCountUsers">0</strong> ausgewählt</span>
-                    <select name="bulk_action" class="form-select form-select-sm w-auto">
+                    <select name="bulk_action" class="form-select form-select-sm w-auto" aria-label="Bulk-Aktion für ausgewählte Benutzer">
                         <option value="">Aktion wählen…</option>
                         <option value="activate">Aktivieren</option>
                         <option value="deactivate">Deaktivieren</option>
                         <option value="hard_delete">Dauerhaft löschen</option>
                     </select>
-                    <button type="submit" class="btn btn-sm btn-primary">Anwenden</button>
+                    <button type="submit" class="btn btn-sm btn-primary" disabled aria-disabled="true">Aktion wählen…</button>
                 </form>
             </div>
 
@@ -170,6 +170,7 @@ $getRoleColor = static function (string $role) use ($roleColors): string {
                             <th>Benutzer</th>
                             <th>E-Mail</th>
                             <th>Rolle</th>
+                            <th>Gruppen</th>
                             <th>Status</th>
                             <th>Registriert</th>
                             <th class="w-1"></th>
@@ -178,7 +179,7 @@ $getRoleColor = static function (string $role) use ($roleColors): string {
                     <tbody>
                     <?php if (empty($users)): ?>
                         <?php
-                        $emptyStateColspan = 7;
+                        $emptyStateColspan = 8;
                         $emptyStateMessage = 'Keine Benutzer gefunden.';
                         $emptyStateSubtitle = 'Prüfen Sie Filter oder Suche – die serverseitige Liste liefert aktuell keine Einträge.';
                         $emptyStateIcon = 'users';
@@ -195,6 +196,7 @@ $getRoleColor = static function (string $role) use ($roleColors): string {
                             $status = trim((string)($user->status ?? 'inactive'));
                             $createdAt = trim((string)($user->created_at ?? ''));
                             $roleLabel = (string)($availableRoles[$role] ?? ucfirst($role));
+                            $groupCount = (int)($user->group_count ?? 0);
                             $statusLabel = match ($status) {
                                 'active' => 'Aktiv',
                                 'inactive' => 'Inaktiv',
@@ -228,6 +230,11 @@ $getRoleColor = static function (string $role) use ($roleColors): string {
                                 </td>
                                 <td><?php echo htmlspecialchars($email !== '' ? $email : '–'); ?></td>
                                 <td><span class="badge bg-azure-lt"><?php echo htmlspecialchars($roleLabel); ?></span></td>
+                                <td>
+                                    <span class="badge <?php echo $groupCount > 0 ? 'bg-blue-lt text-blue' : 'bg-secondary-lt text-secondary'; ?>">
+                                        <?php echo $groupCount > 0 ? (int)$groupCount . ' Gruppen' : 'Keine'; ?>
+                                    </span>
+                                </td>
                                 <td><span class="badge <?php echo htmlspecialchars($statusClass); ?>"><?php echo htmlspecialchars($statusLabel); ?></span></td>
                                 <td class="text-secondary"><?php echo htmlspecialchars($createdAt !== '' ? substr($createdAt, 0, 10) : '–'); ?></td>
                                 <td>

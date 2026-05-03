@@ -163,6 +163,29 @@
         return payload;
     }
 
+    function resolveMediaParentPath(path) {
+        var normalized = String(path || '').replace(/\\/g, '/').replace(/^\/+|\/+$/g, '');
+        if (!normalized) {
+            return '';
+        }
+
+        var segments = normalized.split('/');
+        segments.pop();
+
+        return segments.join('/');
+    }
+
+    function redirectToMemberMediaPath(path) {
+        var url = new URL(window.location.href);
+        if (path) {
+            url.searchParams.set('path', path);
+        } else {
+            url.searchParams.delete('path');
+        }
+
+        window.location.assign(url.toString());
+    }
+
     function initMemberUploads() {
         document.querySelectorAll('[data-member-upload-form]').forEach(function (form) {
             const endpoint = form.getAttribute('data-upload-endpoint');
@@ -199,6 +222,7 @@
                 clearElement(results);
 
                 let hadError = false;
+                let effectiveTargetPath = path;
 
                 for (let index = 0; index < files.length; index += 1) {
                     const file = files[index];
@@ -217,6 +241,10 @@
                         if (payload.new_token) {
                             currentToken = payload.new_token;
                             form.setAttribute('data-upload-token', payload.new_token);
+                        }
+
+                        if (payload.path) {
+                            effectiveTargetPath = resolveMediaParentPath(payload.path);
                         }
                     } catch (error) {
                         if (error && error.payload && error.payload.new_token) {
@@ -245,7 +273,7 @@
 
                 if (!hadError) {
                     window.setTimeout(function () {
-                        window.location.reload();
+                    redirectToMemberMediaPath(effectiveTargetPath);
                     }, 900);
                 }
             });

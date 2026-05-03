@@ -42,9 +42,9 @@ include __DIR__ . '/partials/header.php';
             <div class="card-body">
                 <?php if (!empty($mediaSettings['member_uploads_enabled'])): ?>
                     <form method="post" action="" class="vstack gap-3" data-member-upload-form data-upload-endpoint="<?= htmlspecialchars('/api/upload', ENT_QUOTES) ?>" data-upload-token="<?= htmlspecialchars($controller->csrfToken('media_action'), ENT_QUOTES) ?>" data-upload-path="<?= htmlspecialchars($memberPath, ENT_QUOTES) ?>">
-                        <input type="file" class="form-control" name="member_upload_files[]" multiple>
-                        <div class="text-secondary small" data-member-upload-status hidden></div>
-                        <div class="vstack gap-2" data-member-upload-results hidden></div>
+                        <input type="file" class="form-control" name="member_upload_files[]" multiple required>
+                        <div class="text-secondary small" role="status" aria-live="polite" data-member-upload-status hidden></div>
+                        <div class="vstack gap-2" aria-live="polite" data-member-upload-results hidden></div>
                         <div>
                             <button type="submit" class="btn btn-primary">Upload starten</button>
                         </div>

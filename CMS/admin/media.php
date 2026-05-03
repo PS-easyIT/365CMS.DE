@@ -493,11 +493,17 @@ function cms_admin_media_handle_upload(MediaModule $module, string $path): array
     $uploaded = 0;
     $errors   = [];
     $reportPayload = [];
+    $redirectTargetPath = $path;
 
     foreach ($files as $file) {
         $result = $module->uploadFile($file, $path);
         if (!empty($result['success'])) {
             $uploaded++;
+
+            if (is_string($result['stored_parent_path'] ?? null)) {
+                $redirectTargetPath = (string) $result['stored_parent_path'];
+            }
+
             continue;
         }
 
@@ -525,6 +531,7 @@ function cms_admin_media_handle_upload(MediaModule $module, string $path): array
             'message' => $uploaded . ' Datei(en) hochgeladen.' . ($formattedErrors !== '' ? ' Fehler: ' . $formattedErrors : ''),
             'details' => $detailErrors,
             'report_payload' => $reportPayload,
+            'redirect_path' => cms_admin_media_build_redirect_url($module, 'library', $redirectTargetPath),
         ];
     }
 
@@ -539,10 +546,18 @@ function cms_admin_media_handle_upload(MediaModule $module, string $path): array
 function cms_admin_media_handle_action(MediaModule $module, string $action, string $tab, string $path, array $post): array
 {
     $redirectPath = cms_admin_media_action_redirect_path($module, $action, $tab, $path);
+    $uploadFlash = null;
+
+    if ($action === 'upload') {
+        $uploadFlash = cms_admin_media_handle_upload($module, $path);
+        $redirectPath = is_string($uploadFlash['redirect_path'] ?? null)
+            ? (string) $uploadFlash['redirect_path']
+            : $redirectPath;
+    }
 
     return match ($action) {
         'upload' => [
-            'flash' => cms_admin_media_handle_upload($module, $path),
+            'flash' => $uploadFlash,
             'redirect_path' => $redirectPath,
         ],
         'create_folder' => [

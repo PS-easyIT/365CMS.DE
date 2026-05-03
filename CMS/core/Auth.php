@@ -10,6 +10,8 @@
 declare(strict_types=1);
 namespace CMS;
 
+use CMS\Services\UserService;
+
 if (!defined('ABSPATH')) {
     exit;
 }
@@ -245,6 +247,7 @@ class Auth
     {
         $security = Security::instance();
         $db = Database::instance();
+        $registrationRole = $this->resolveRegistrationRole($db);
         
         // Validate required fields
         $required = ['username', 'email', 'password'];
@@ -289,7 +292,7 @@ class Auth
             'email' => $email,
             'password' => $security->hashPassword($data['password']),
             'display_name' => $data['display_name'] ?? $username,
-            'role' => 'member',
+            'role' => $registrationRole,
             'status' => 'active'
         ]);
         
@@ -299,6 +302,20 @@ class Auth
         }
         
         return 'Registrierung fehlgeschlagen.';
+    }
+
+    private function resolveRegistrationRole(Database $db): string
+    {
+        try {
+            $configuredRole = (string)$db->get_var(
+                "SELECT option_value FROM {$db->getPrefix()}settings WHERE option_name = ? LIMIT 1",
+                ['member_default_role']
+            );
+
+            return UserService::getInstance()->resolveRegistrationRole($configuredRole);
+        } catch (\Throwable) {
+            return 'member';
+        }
     }
 
     /**

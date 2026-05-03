@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.9.509",
+  "version": "2.9.511",
   "min_php": "8.4",
   "released": "2026-05-03",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 2.9.509: Die Content-Übersichten reagieren robuster auf echte Auswahlzustände – Bulk-Aktionsleisten zeigen die gewählte Operation jetzt eindeutig an, deaktivieren sich ohne gültige Auswahl und scrollbare Tabellen lassen ihre Aktionsmenüs sichtbar aufklappen, statt Optionen in der Overflow-Box zu verstecken.",
+  "notes": "Release-Stand 2.9.511: Die Medienverwaltung härtet Dateinamen zusätzlich auf Maximal­länge und eindeutige Basenamen ohne Mehrfach-Punkte, benennt Bulk-Aktionen explizit, meldet Upload-Status zugänglicher und hält den internen Upload-Endpunkt bewusst dauerhaft authentifiziert statt einen freien Public-Upload-Schalter vorzutäuschen.",
   "critical": false
 }

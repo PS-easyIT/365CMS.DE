@@ -1753,7 +1753,12 @@ function theme_register_user(string $email, string $username, string $password):
 
         // Auth-Service verwenden wenn vorhanden, sonst direkt einfügen
         if (method_exists(\CMS\Auth::instance(), 'register')) {
-            $result = \CMS\Auth::instance()->register($email, $username, $password);
+            $result = \CMS\Auth::instance()->register([
+                'email' => $email,
+                'username' => $username,
+                'password' => $password,
+                'display_name' => $username,
+            ]);
             return ($result === true) ? true : (is_string($result) ? $result : 'Registrierung fehlgeschlagen.');
         }
 

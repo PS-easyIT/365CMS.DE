@@ -62,9 +62,16 @@
         var bulkForm = document.getElementById('bulkFormUsers');
         var countElement = document.getElementById('selectedCountUsers');
         var bulkActionSelect = bulkForm ? bulkForm.querySelector('[name="bulk_action"]') : null;
+        var bulkSubmitButton = bulkForm ? bulkForm.querySelector('button[type="submit"]') : null;
         var selectedIds = new Set();
 
-        if (!root || !bulkBar || !bulkForm || !countElement || !bulkActionSelect) {
+        var bulkActionLabels = {
+            activate: 'Benutzer aktivieren',
+            deactivate: 'Benutzer deaktivieren',
+            hard_delete: 'Benutzer löschen'
+        };
+
+        if (!root || !bulkBar || !bulkForm || !countElement || !bulkActionSelect || !bulkSubmitButton) {
             return;
         }
 
@@ -88,6 +95,10 @@
         function updateState() {
             countElement.textContent = String(selectedIds.size);
             bulkBar.classList.toggle('d-none', selectedIds.size === 0);
+            var canSubmit = selectedIds.size > 0 && bulkActionSelect.value !== '';
+            bulkSubmitButton.disabled = !canSubmit;
+            bulkSubmitButton.setAttribute('aria-disabled', canSubmit ? 'false' : 'true');
+            bulkSubmitButton.textContent = bulkActionLabels[bulkActionSelect.value] || 'Aktion wählen…';
             syncCheckboxes();
         }
 
@@ -119,6 +130,8 @@
                 updateState();
             }
         });
+
+        bulkActionSelect.addEventListener('change', updateState);
 
         bulkForm.addEventListener('submit', function (event) {
             if (bulkForm.dataset.submitting === '1') {

@@ -80,8 +80,8 @@ $roleColors = [
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label <?php echo $isNew ? 'required' : ''; ?>" for="password">Passwort</label>
-                                    <input type="password" class="form-control" id="password" name="password" <?php echo $isNew ? 'required' : ''; ?> minlength="8" autocomplete="new-password">
-                                    <span class="form-hint">Mindestens 8 Zeichen.</span>
+                                    <input type="password" class="form-control" id="password" name="password" <?php echo $isNew ? 'required' : ''; ?> minlength="12" autocomplete="new-password">
+                                    <span class="form-hint">Mindestens 12 Zeichen sowie Groß-/Kleinbuchstaben, Ziffer und Sonderzeichen.</span>
                                     <?php if (!$isNew): ?>
                                         <span class="form-hint">Leer lassen, um das Passwort nicht zu ändern.</span>
                                     <?php endif; ?>

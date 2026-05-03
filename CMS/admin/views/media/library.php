@@ -329,7 +329,7 @@ function renderMediaUsageSummary(array $usageItems, int $usageCount): string {
                                             <?php echo renderMoveTargetOptions($moveTargets, $path); ?>
                                         </select>
                                     </div>
-                                    <button type="submit" class="btn btn-primary">Auf Auswahl anwenden</button>
+                                    <button type="submit" class="btn btn-primary" aria-disabled="true" disabled>Diesen Medien-Batch ausführen</button>
                                 </div>
                             </form>
                         </div>
@@ -571,8 +571,8 @@ function renderMediaUsageSummary(array $usageItems, int $usageCount): string {
                     Mehrfachauswahl möglich. Pro Upload sind maximal <?php echo (int)($constraints['max_upload_files'] ?? 0); ?> Dateien
                     mit zusammen höchstens <?php echo htmlspecialchars((string)($constraints['max_upload_batch_label'] ?? '—')); ?> erlaubt.
                 </div>
-                <div class="alert alert-info mt-3 mb-0" role="status" data-upload-status hidden></div>
-                <div class="list-group list-group-flush mt-3" data-upload-results hidden></div>
+                <div class="alert alert-info mt-3 mb-0" role="status" aria-live="polite" data-upload-status hidden></div>
+                <div class="list-group list-group-flush mt-3" aria-live="polite" data-upload-results hidden></div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn" data-bs-dismiss="modal">Abbrechen</button>

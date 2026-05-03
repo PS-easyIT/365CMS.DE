@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Überblick über Medienbibliothek, Upload-Workflows, Schutzbereiche, Admin-Tabs und verknüpfte Member-/Asset-Dokumentation.
 
-Letzte Aktualisierung: 2026-04-07 · Version 2.9.0
+Letzte Aktualisierung: 2026-05-03 · Version 2.9.511
 
 Die Medienverwaltung ist unter `/admin/media` erreichbar und bündelt Bibliothek, Kategorien und Einstellungen über Query-Tabs statt über getrennte Legacy-Routen.
 
@@ -18,7 +18,7 @@ Die Medienverwaltung ist unter `/admin/media` erreichbar und bündelt Bibliothek
 
 ---
 
-## Kernfunktionen in 2.9.0
+## Kernfunktionen in 2.9.511
 
 - Listen- **und** Grid-Ansicht
 - Such- und Kategorien-Filter
@@ -26,8 +26,12 @@ Die Medienverwaltung ist unter `/admin/media` erreichbar und bündelt Bibliothek
 - kompakte Dropdown-Aktionen für Dateien und Ordner
 - zentrale Rename-/Move-Modale mit vorbereiteten Zielordnern
 - Admin-Bulk-Aktionen für Löschen und Verschieben
+- aktionsspezifische Bulk-Schaltfläche statt generischem „Auf Auswahl anwenden“
 - serverseitig normalisierte Pfade, CSRF-geschützte POST-Flows und PRG-Redirects
 - geschützte Systempfade mit zusätzlicher Member-Bestätigung am `member`-Bereich
+- verwaltete Upload-Pipeline für Bibliothek und Member-Bereich mit Maximalmaßen, optionalen Thumbnails und Auto-WebP
+- Rücksprung in den **tatsächlich verwendeten** Zielordner, wenn Uploads automatisch in Jahres-/Monats-Unterordner einsortiert werden
+- strengere Dateinamens-Härtung mit Längenlimit und ohne irreführende Mehrfach-Punkte im Basenamen
 
 ---
 
@@ -47,6 +51,17 @@ Wichtig im aktuellen Stand:
 
 Uploads laufen über native Formulare und interne APIs. Die konkrete Laufzeit-Validierung orientiert sich an `config/media-settings.json` und den vom Modul vorbereiteten Constraints.
 
+Für die Medienbibliothek und den Member-Bereich gilt jetzt ein gemeinsamer verwalteter Upload-Vertrag:
+
+- Uploads über `/admin/media` und `/api/upload` respektieren die Einstellungen aus `config/media-settings.json` direkt in der Laufzeit
+- `organize_month_year` hängt bei Bibliotheks-/Member-Uploads automatisch `YYYY/MM` an den gewählten Zielpfad an
+- `sanitize_filenames`, `lowercase_filenames` und `unique_filenames` steuern den gespeicherten Dateinamen und das Verhalten bei Kollisionen
+- gespeicherte Dateinamen werden zusätzlich auf eine sichere Maximal­länge begrenzt; mehrdeutige Basenamen wie `bild.php.jpg` werden serverseitig auf einen eindeutigen, ungefährlichen Speichername reduziert
+- `max_width` und `max_height` skalieren zu große Bilder nach dem Speichern auf die konfigurierte Obergrenze herunter
+- `generate_thumbnails` erzeugt zusätzliche Varianten mit den Suffixen `-small`, `-medium`, `-large` und `-banner`
+- `auto_webp` erzeugt für konvertierbare Bildformate weiterhin ein zusätzliches WebP-Derivat, ohne das Original zu ersetzen
+- der interne Upload-Endpunkt bleibt bewusst authentifiziert; ein anonymer Public-Upload-Modus gehört nicht zum aktuellen Medien-Vertrag
+
 Typische Stellschrauben:
 
 - maximale Upload-Größe
@@ -54,6 +69,7 @@ Typische Stellschrauben:
 - Dateinamen-Sanitisierung / Eindeutigkeit
 - Auto-WebP / EXIF-Strip
 - Thumbnail-Generierung
+- automatische Ordnerorganisation nach Jahr/Monat
 
 ---
 
@@ -76,42 +92,16 @@ Typische Stellschrauben:
 
 ---
 
-## Listenspalten
+## Bibliotheksansicht
 
-Die Bibliotheksansicht zeigt pro Eintrag:
+Die Bibliotheksansicht zeigt Ordner und Dateien in Listen- oder Grid-Darstellung, ergänzt um:
 
-| Spalte | Beschreibung |
-|---|---|
-| Thumbnail | Kleines Vorschaubild |
-| Dateiname | Original-Dateiname mit Link zur Bearbeitungsseite |
-| Typ | MIME-Type |
-| Größe | Dateigröße in KB/MB |
-| Abmessungen | Breite × Höhe (nur für Bilder) |
-| Hochgeladen | Datum und Uhrzeit |
-| Benutzer | Wer hat die Datei hochgeladen |
-| Aktionen | Bearbeiten, Löschen, URL kopieren |
+- Verwendungsstatus bzw. Referenzen aus Seiten/Beiträgen
+- Kategorien- und Suchfilter
+- Bulk-Aktionen für Löschen und Verschieben
+- direkte Dateiaktionen für Umbenennen, Verschieben, Löschen und Kategorie-Zuordnung
 
----
-
-## Upload und Grenzwerte
-
-Dateien können per Drag & Drop oder über den klassischen Datei-Dialog hochgeladen werden. Mehrfachauswahl ist möglich.
-
-Upload-Grenzen sind über den Settings-Tab unter `/admin/media?tab=settings` konfigurierbar:
-
-- maximale Dateigröße (Standard: 10 MB)
-- maximale Bildbreite mit Auto-Resize
-- erlaubte MIME-Typen (Whitelist)
-
-**WebP-Konvertierung** ist optional über `/admin/performance-media` aktivierbar. Dabei wird automatisch eine WebP-Kopie erstellt; das Original bleibt erhalten.
-
-**Automatische Thumbnails** werden in drei Größen generiert: `thumbnail` (150×150), `medium` (300×300), `large` (1024×1024).
-
----
-
-## Metadaten
-
-Pro Datei pflegbar: Titel, Alt-Text, Beschreibung und Bildunterschrift. Alt-Text ist für SEO und Barrierefreiheit (WCAG 2.1) besonders relevant.
+Bei erfolgreich hochgeladenen Dateien bleibt die Oberfläche nicht mehr am alten Pfad hängen, sondern aktualisiert auf den effektiven Zielordner. Das ist besonders relevant, wenn `organize_month_year` aktiv ist.
 
 ---
 

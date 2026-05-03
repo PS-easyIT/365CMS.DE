@@ -396,7 +396,7 @@ class MediaModule
             return ['success' => false, 'error' => 'Der Zielordner für den Upload existiert nicht mehr.'];
         }
 
-        $result = $this->service->uploadFile($normalizedFile, $normalizedTargetPath);
+        $result = $this->service->uploadManagedFile($normalizedFile, $normalizedTargetPath);
         if ($result instanceof WP_Error) {
             return $this->buildGenericFailureFromWpError($result, [
                 'title' => 'Datei konnte nicht hochgeladen werden',
@@ -407,13 +407,19 @@ class MediaModule
                 'filename' => (string)($normalizedFile['name'] ?? ''),
             ]);
         }
+
+        $storedPath = trim((string) ($result['path'] ?? ''), '/');
+        $storedParentPath = $storedPath !== '' ? trim(str_replace('\\', '/', dirname($storedPath)), '/.') : '';
+
         return [
             'success' => true,
             'message' => 'Datei hochgeladen.',
             'details' => [
                 'Datei: ' . (string)($normalizedFile['name'] ?? 'Unbekannt'),
-                'Zielpfad: ' . ($normalizedTargetPath !== '' ? $normalizedTargetPath : '/'),
+                'Zielpfad: ' . ($storedParentPath !== '' ? $storedParentPath : '/'),
             ],
+            'stored_path' => $storedPath,
+            'stored_parent_path' => $storedParentPath,
         ];
     }
 
@@ -899,11 +905,15 @@ class MediaModule
             'generate_thumbnails' => 'generate_thumbnails',
             'block_dangerous_types' => 'block_dangerous_types',
             'validate_image_content' => 'validate_image_content',
-            'require_login_for_upload' => 'require_login_for_upload',
             'protect_uploads_dir' => 'protect_uploads_dir',
         ] as $inputKey => $settingsKey) {
             $settings[$settingsKey] = isset($input[$inputKey]);
         }
+
+        // Interne Upload-Endpunkte bleiben bewusst authentifiziert; die Einstellung
+        // wird fail-closed auf true gehalten, statt einen nicht existierenden
+        // anonymen Upload-Modus im UI vorzutäuschen.
+        $settings['require_login_for_upload'] = true;
 
         // Arrays
         $settings['allowed_types'] = $this->normalizeSettingTypeSelection(
