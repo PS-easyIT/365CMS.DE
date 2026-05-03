@@ -129,7 +129,7 @@ final class SiteTableService
             return null;
         }
 
-        $slug = trim((string)($table['settings']['hub_slug'] ?? ''));
+        $slug = trim((string)($table['settings']['hub_slug'] ?? ($table['table_slug'] ?? '')));
         if ($slug === '') {
             return null;
         }

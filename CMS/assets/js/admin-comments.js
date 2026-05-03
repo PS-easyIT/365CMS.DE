@@ -2,15 +2,12 @@
     'use strict';
 
     document.addEventListener('DOMContentLoaded', function () {
-        var actionForm = document.getElementById('actionForm');
-        var actionTypeInput = document.getElementById('actionType');
-        var actionIdInput = document.getElementById('actionId');
-        var actionStatusInput = document.getElementById('actionStatus');
         var selectAll = document.getElementById('selectAll');
         var bulkBar = document.getElementById('bulkBar');
         var bulkForm = document.getElementById('bulkForm');
         var countElement = document.getElementById('selectedCount');
         var tableWrap = document.querySelector('.comments-table-responsive');
+        var rowChecks = Array.prototype.slice.call(document.querySelectorAll('.row-check'));
 
         function submitForm(form) {
             if (!form) {
@@ -36,59 +33,30 @@
             form.submit();
         }
 
-        function submitAction(action, commentId, newStatus) {
-            if (!actionForm || !actionTypeInput || !actionIdInput || !actionStatusInput) {
-                return;
-            }
-
-            actionTypeInput.value = action;
-            actionIdInput.value = commentId;
-            actionStatusInput.value = newStatus || '';
-            submitForm(actionForm);
-        }
-
-        document.querySelectorAll('.js-comment-action').forEach(function (button) {
-            button.addEventListener('click', function () {
-                submitAction(
-                    button.getAttribute('data-comment-action') || '',
-                    button.getAttribute('data-comment-id') || '0',
-                    button.getAttribute('data-comment-status') || ''
-                );
-            });
-        });
-
-        document.querySelectorAll('.js-comment-delete').forEach(function (button) {
-            button.addEventListener('click', function () {
-                var commentId = button.getAttribute('data-comment-id') || '0';
-                var confirmDelete = function () {
-                    submitAction('delete', commentId, '');
-                };
-
-                if (typeof cmsConfirm === 'function') {
-                    cmsConfirm({
-                        title: 'Kommentar löschen',
-                        message: 'Kommentar endgültig löschen? Dies kann nicht rückgängig gemacht werden.',
-                        confirmText: 'Löschen',
-                        confirmClass: 'btn-danger',
-                        onConfirm: confirmDelete,
-                    });
-                    return;
-                }
-
-                if (window.confirm('Kommentar endgültig löschen? Dies kann nicht rückgängig gemacht werden.')) {
-                    confirmDelete();
-                }
-            });
-        });
-
         function updateBulkBar() {
             if (!bulkBar || !countElement) {
                 return;
             }
 
-            var checkedCount = document.querySelectorAll('.row-check:checked').length;
+            var checkedCount = rowChecks.filter(function (checkbox) {
+                return checkbox.checked;
+            }).length;
+
             countElement.textContent = String(checkedCount);
             bulkBar.classList.toggle('d-none', checkedCount === 0);
+        }
+
+        function syncSelectAllState() {
+            if (!selectAll || rowChecks.length === 0) {
+                return;
+            }
+
+            var checkedCount = rowChecks.filter(function (checkbox) {
+                return checkbox.checked;
+            }).length;
+
+            selectAll.checked = checkedCount > 0 && checkedCount === rowChecks.length;
+            selectAll.indeterminate = checkedCount > 0 && checkedCount < rowChecks.length;
         }
 
         function setDropdownOverflow(open) {
@@ -101,9 +69,10 @@
 
         if (selectAll) {
             selectAll.addEventListener('change', function () {
-                document.querySelectorAll('.row-check').forEach(function (checkbox) {
+                rowChecks.forEach(function (checkbox) {
                     checkbox.checked = selectAll.checked;
                 });
+                selectAll.indeterminate = false;
                 updateBulkBar();
             });
         }
@@ -112,7 +81,14 @@
             bulkForm.addEventListener('submit', function (event) {
                 var bulkAction = bulkForm.querySelector('select[name="bulk_action"]');
                 var selectedAction = bulkAction ? String(bulkAction.value || '').trim() : '';
-                var checkedCount = document.querySelectorAll('.row-check:checked').length;
+                var checkedCount = rowChecks.filter(function (checkbox) {
+                    return checkbox.checked;
+                }).length;
+
+                if (selectedAction === '' || checkedCount === 0) {
+                    event.preventDefault();
+                    return;
+                }
 
                 if (selectedAction !== 'delete') {
                     return;
@@ -151,8 +127,11 @@
             });
         }
 
-        document.querySelectorAll('.row-check').forEach(function (checkbox) {
-            checkbox.addEventListener('change', updateBulkBar);
+        rowChecks.forEach(function (checkbox) {
+            checkbox.addEventListener('change', function () {
+                syncSelectAllState();
+                updateBulkBar();
+            });
         });
 
         document.querySelectorAll('.comments-table-responsive .dropdown').forEach(function (dropdown) {
@@ -165,6 +144,7 @@
             });
         });
 
+        syncSelectAllState();
         updateBulkBar();
     });
 })();

@@ -297,7 +297,6 @@ $encodeTableJson = static function (mixed $value): string {
                             $exportSettings = [
                                 'allow_export_csv'   => 'CSV-Export erlauben',
                                 'allow_export_json'  => 'JSON-Export erlauben',
-                                'allow_export_excel' => 'Excel-Export erlauben',
                             ];
                             foreach ($exportSettings as $key => $label): ?>
                                 <label class="form-check mb-2">

@@ -115,6 +115,7 @@ Der Unterbereich **Kommentare** ist nun auch im Public-Frontend wieder vollstän
 - Das Default-Theme respektiert im Formular jetzt auch `allow_comments` des Beitrags. Ist Kommentieren deaktiviert, erscheint kein irreführend funktionierendes Formular mehr.
 - Fehler- und Erfolgsrückmeldungen der Kommentarabgabe werden inline im Kommentarbereich gezeigt; Name, E-Mail, Kommentartext und der anonyme Status bleiben bei Fehlern erhalten.
 - Eingeloggte Nutzer verwenden konsistent ihre Profilidentität und können optional anonym veröffentlichen; öffentliche Kommentare bleiben weiterhin moderationspflichtig.
+- Die Admin-Moderationsliste verwendet nur noch den tatsächlich produktiven Formular-/Dropdown-Vertrag; veraltete JS-Aktionspfade ohne DOM-Gegenstück wurden entfernt, und `Alle auswählen` arbeitet jetzt sauber mit indeterminiertem Zwischenzustand und Bulk-Zähler zusammen.
 
 Für das **Inhaltsverzeichnis (TOC)** gilt jetzt ein präziserer Runtime-Vertrag:
 

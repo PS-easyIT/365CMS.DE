@@ -165,7 +165,15 @@ final class SiteTableHubRenderer
         $cardSchema = is_array($templateProfile['card_schema'] ?? null) ? $templateProfile['card_schema'] : [];
         $colorSettings = is_array($templateProfile['colors'] ?? null) ? $templateProfile['colors'] : [];
         $styleVariables = $this->templateRegistry->buildHubStyleVariables($colorSettings, $cardDesign);
-        $contentLanguage = $this->templateRegistry->getTemplateContentLanguage($template, $locale);
+        $contentLanguage = array_merge([
+            'quicklinks_label' => $locale === 'en' ? 'Hub navigation' : 'Hub-Navigation',
+            'toc_label' => $locale === 'en' ? 'Table of contents' : 'Inhaltsverzeichnis',
+            'toc_eyebrow' => $locale === 'en' ? 'Jump to the right section' : 'Schnell zum richtigen Abschnitt',
+            'toc_empty' => $locale === 'en'
+                ? 'No cards with titles available for the table of contents.'
+                : 'Keine Karten mit Titel für das Inhaltsverzeichnis vorhanden.',
+            'card_cta_label' => $locale === 'en' ? '… read more' : '… weiterlesen',
+        ], $this->templateRegistry->getTemplateContentLanguage($template, $locale));
 
         $html = '<section class="cms-hub-site cms-hub-site--' . htmlspecialchars($template, ENT_QUOTES, 'UTF-8') . '"';
         if ($pageSlug !== '') {
@@ -233,7 +241,8 @@ final class SiteTableHubRenderer
             return '';
         }
 
-        $html = '<nav class="cms-hub-site__quicklinks" aria-label="Hub-Navigation">';
+        $navLabel = (string) ($contentLanguage['quicklinks_label'] ?? 'Hub-Navigation');
+        $html = '<nav class="cms-hub-site__quicklinks" aria-label="' . htmlspecialchars($navLabel, ENT_QUOTES, 'UTF-8') . '">';
         foreach ($quickLinks as $link) {
             $html .= '<a class="cms-hub-site__quicklink" href="' . htmlspecialchars((string) $link['url'], ENT_QUOTES, 'UTF-8') . '">';
             $html .= '<span class="cms-hub-site__quicklink-label">' . htmlspecialchars((string) $link['label'], ENT_QUOTES, 'UTF-8') . '</span>';
@@ -251,6 +260,7 @@ final class SiteTableHubRenderer
 
         $label = (string) ($contentLanguage['toc_label'] ?? 'Inhaltsverzeichnis');
         $eyebrow = (string) ($contentLanguage['toc_eyebrow'] ?? 'Schnell zum richtigen Abschnitt');
+        $emptyMessage = (string) ($contentLanguage['toc_empty'] ?? 'Keine Karten mit Titel für das Inhaltsverzeichnis vorhanden.');
         $html = '<details class="cms-hub-site__toc">';
         $html .= '<summary class="cms-hub-site__toc-summary">';
         $html .= '<span class="cms-hub-site__toc-summary-copy">';
@@ -261,7 +271,7 @@ final class SiteTableHubRenderer
         $html .= '</summary>';
         $html .= '<nav class="cms-hub-site__toc-panel" aria-label="' . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '">';
         if ($tocEntries === []) {
-            $html .= '<div class="cms-hub-site__toc-empty">Keine Karten mit Titel für das Inhaltsverzeichnis vorhanden.</div>';
+            $html .= '<div class="cms-hub-site__toc-empty">' . htmlspecialchars($emptyMessage, ENT_QUOTES, 'UTF-8') . '</div>';
             $html .= '</nav></details>';
 
             return $html;

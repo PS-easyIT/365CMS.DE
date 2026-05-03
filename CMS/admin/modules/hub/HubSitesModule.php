@@ -491,12 +491,70 @@ class HubSitesModule
 
     private function isReservedSlug(string $slug): bool
     {
-        static $reserved = [
-            'admin', 'api', 'login', 'logout', 'register', 'member', 'dashboard', 'order',
-            'search', 'blog', 'sitemap.xml', 'robots.txt', 'cookie-einstellungen', 'site-table',
+        return in_array($slug, $this->getReservedSlugs(), true);
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function getReservedSlugs(): array
+    {
+        static $reserved = null;
+
+        if (is_array($reserved)) {
+            return $reserved;
+        }
+
+        $candidates = [
+            'admin',
+            'api',
+            'login',
+            'logout',
+            'register',
+            'member',
+            'dashboard',
+            'order',
+            'search',
+            'blog',
+            'feed',
+            'contact',
+            'kontakt',
+            'authors',
+            'autoren',
+            'author',
+            'sitemap',
+            'sitemap.xml',
+            'robots.txt',
+            'security.txt',
+            '.well-known/security.txt',
+            'cookie-einstellungen',
+            'site-table',
         ];
 
-        return in_array($slug, $reserved, true);
+        if (function_exists('cms_get_archive_locales') && function_exists('cms_get_archive_base')) {
+            foreach (['category', 'tag'] as $archiveType) {
+                foreach (cms_get_archive_locales() as $locale) {
+                    $archiveBase = trim((string) cms_get_archive_base($archiveType, (string) $locale), '/');
+                    if ($archiveBase !== '') {
+                        $candidates[] = $archiveBase;
+                    }
+                }
+            }
+        }
+
+        $normalized = [];
+        foreach ($candidates as $candidate) {
+            $normalizedSlug = $this->sanitizeSlug((string) $candidate);
+            if ($normalizedSlug === '') {
+                continue;
+            }
+
+            $normalized[$normalizedSlug] = $normalizedSlug;
+        }
+
+        $reserved = array_values($normalized);
+
+        return $reserved;
     }
 
     private function sanitizeSlug(string $value): string

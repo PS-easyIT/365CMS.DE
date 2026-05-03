@@ -33,6 +33,9 @@ class TablesModule
     private string $prefix;
     private ?bool $hasTableSlugColumn = null;
 
+    /** @var list<string> */
+    private const ALLOWED_STYLE_THEMES = ['default', 'stripe', 'hover', 'cell-border'];
+
     private const DEFAULT_SETTINGS = [
         'responsive'         => true,
         'style_theme'        => 'default',
@@ -242,6 +245,12 @@ class TablesModule
                 $settings[$key] = trim((string)($post['setting_' . $key] ?? $default));
             }
         }
+
+        $settings['style_theme'] = $this->normalizeStyleTheme((string) ($settings['style_theme'] ?? 'default'));
+        $settings['caption'] = $this->sanitizeText((string) ($settings['caption'] ?? ''), 255);
+        $settings['aria_label'] = $this->sanitizeText((string) ($settings['aria_label'] ?? ''), 255);
+        $settings['page_size'] = $this->normalizeInteger((int) ($settings['page_size'] ?? 10), 5, 100, 10);
+        $settings['allow_export_excel'] = false;
 
         $contentSource = SiteTableContentSource::normalizeSettings(
             isset($post['setting_content_source_enabled']),
@@ -472,6 +481,20 @@ class TablesModule
         return function_exists('mb_substr')
             ? mb_substr($value, 0, $maxLength)
             : substr($value, 0, $maxLength);
+    }
+
+    private function normalizeStyleTheme(string $value): string
+    {
+        return in_array($value, self::ALLOWED_STYLE_THEMES, true) ? $value : 'default';
+    }
+
+    private function normalizeInteger(int $value, int $min, int $max, int $fallback): int
+    {
+        if ($value < $min || $value > $max) {
+            return $fallback;
+        }
+
+        return $value;
     }
 
     /**

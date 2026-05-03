@@ -26,8 +26,10 @@ final class SiteTableRepository
             return null;
         }
 
+        $selectSlug = $this->hasTableSlugColumn() ? ', table_slug' : ", '' AS table_slug";
+
         $row = $this->db->fetchOne(
-            "SELECT id, table_name, description, columns_json, rows_json, settings_json, updated_at
+            "SELECT id, table_name, description, columns_json, rows_json, settings_json, updated_at{$selectSlug}
              FROM {$this->prefix}site_tables
              WHERE id = ? LIMIT 1",
             [$tableId]
@@ -113,13 +115,24 @@ final class SiteTableRepository
 
     private function hydrateTable(array $row): array
     {
+        $tableSlug = trim((string) ($row['table_slug'] ?? ''));
+        $settings = Json::decodeArray($row['settings_json'] ?? null, []);
+        if (!is_array($settings)) {
+            $settings = [];
+        }
+
+        if ($tableSlug !== '' && trim((string) ($settings['hub_slug'] ?? '')) === '') {
+            $settings['hub_slug'] = $tableSlug;
+        }
+
         return [
             'id' => (int) ($row['id'] ?? 0),
             'name' => (string) ($row['table_name'] ?? 'Tabelle'),
             'description' => trim((string) ($row['description'] ?? '')),
             'columns' => Json::decodeArray($row['columns_json'] ?? null, []),
             'rows' => Json::decodeArray($row['rows_json'] ?? null, []),
-            'settings' => Json::decodeArray($row['settings_json'] ?? null, []),
+            'settings' => $settings,
+            'table_slug' => $tableSlug,
             'updated_at' => (string) ($row['updated_at'] ?? ''),
         ];
     }

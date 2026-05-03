@@ -1,4 +1,4 @@
-﻿﻿**Version:** 2.9.506
+﻿﻿**Version:** 2.9.507
 
 # 365CMS Changelog
 
@@ -20,11 +20,17 @@
 
 ---
 
+### v2.9.507 — 3. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.507** | 🔴 fix | Admin & Public/Hub-Sites + Tabellen | **`CMS/admin/modules/hub/HubSitesModule.php`, `CMS/core/Services/SiteTable/SiteTableRepository.php`, `CMS/core/Services/SiteTableService.php`, `CMS/core/Services/SiteTable/SiteTableHubRenderer.php`, `CMS/admin/modules/tables/TablesModule.php`, `CMS/core/Services/SiteTable/SiteTableTableRenderer.php`, `CMS/assets/js/site-tables.js`, `CMS/assets/css/main.css`, `CMS/admin/views/tables/edit.php`, `CMS/DOC/admin/pages-posts/README.md`, `CMS/DOC/admin/pages-posts/TABLES.md` und `CMS/DOC/admin/pages-posts/HUBSITES.md` schließen den Unterbereich Hub-Sites & Tabellen als eigenen 5xx-Batch ab**: Hub-Sites reservieren jetzt auch reale Public-Routen und Archivbasen als Slugs statt später an `/contact`, `/authors`, `/feed`, `/category` oder `/tag` unsichtbar zu scheitern; Legacy-Hubs mit nur gesetztem `table_slug` lösen über Zusatzdomains wieder konsistent auf, und öffentliche Hub-Navigation/TOC-Labels folgen dem aktuellen Locale statt fest auf Deutsch zu bleiben. Parallel schließt die Site-Table-Runtime ihre im Editor sichtbaren Schalter nun tatsächlich an das Frontend an: Suche, Sortierung mit `aria-sort`, Paginierung und Zeilenhervorhebung wirken öffentlich sichtbar, statische Datentabellen verlieren die irreführende `role=\"grid\"`-Umdeutung zugunsten semantischer `<table>`-Struktur, und die zuvor nur scheinbar vorhandene Excel-Option verschwindet aus dem Editor zugunsten des real produktiven Export-Vertrags CSV/JSON. |
+
 ### v2.9.506 — 3. Mai 2026
 
 | Version | Typ | Bereich | Beschreibung |
 |---------|-----|---------|-------------|
-| **2.9.506** | 🔴 fix | Admin & Public/Kommentare + Inhaltsverzeichnis | **`CMS/core/Routing/PublicRouter.php`, `CMS/themes/cms-default/blog-single.php`, `CMS/core/TableOfContents.php`, `CMS/admin/modules/toc/TocModule.php`, `CMS/admin/table-of-contents.php`, `CMS/admin/views/toc/settings.php` und `CMS/DOC/admin/pages-posts/POSTS.md` schließen den Unterbereich Kommentare & Inhaltsverzeichnis als eigenen 5xx-Batch ab**: Einzelbeiträge rendern freigegebene Kommentare jetzt wieder sichtbar statt nur ein Formular, besitzen endlich ein echtes `#comments`-Sprungziel, respektieren `allow_comments` im Frontend und halten Formularfehler/-erfolge inline am Beitrag mit erhaltenem Zustand statt bloß als generischen Header-Flash; eingeloggte Nutzer können vorhandene Profildaten konsistent verwenden und optional anonym posten. Parallel respektiert das TOC nun Ausschlusslisten per Pipe **oder** Komma, die Optionen `lowercase`, `hyphenate`, `homepage_toc` und `exclude_css` wirken in der Runtime tatsächlich, `light`/`dark` landen wieder auf funktionierenden Theme-Varianten, die Positionsauswahl beschreibt den realen Vertrag „vor/nach der ersten Überschrift“ korrekt, und die TOC-Adminseite läuft nun auf denselben Section-Shell-Standard wie andere modernisierte Admin-Bereiche. |
+| **2.9.506** | 🔴 fix | Admin & Public/Kommentare + Inhaltsverzeichnis | **`CMS/core/Routing/PublicRouter.php`, `CMS/themes/cms-default/blog-single.php`, `CMS/core/TableOfContents.php`, `CMS/admin/modules/toc/TocModule.php`, `CMS/admin/table-of-contents.php`, `CMS/admin/views/toc/settings.php`, `CMS/assets/js/admin-comments.js` und `CMS/DOC/admin/pages-posts/POSTS.md` schließen den Unterbereich Kommentare & Inhaltsverzeichnis als eigenen 5xx-Batch ab**: Einzelbeiträge rendern freigegebene Kommentare jetzt wieder sichtbar statt nur ein Formular, besitzen endlich ein echtes `#comments`-Sprungziel, respektieren `allow_comments` im Frontend und halten Formularfehler/-erfolge inline am Beitrag mit erhaltenem Zustand statt bloß als generischen Header-Flash; eingeloggte Nutzer können vorhandene Profildaten konsistent verwenden und optional anonym posten. Im Kommentar-Admin ist veraltete JS-Altlogik entfernt, `Select all` synchronisiert nun korrekt mit Einzelhaken, und Bulk-Aktionen feuern nur noch aus einem konsistenten Auswahlzustand. Parallel respektiert das TOC nun Ausschlusslisten per Pipe **oder** Komma, die Optionen `lowercase`, `hyphenate`, `homepage_toc` und `exclude_css` wirken in der Runtime tatsächlich, `light`/`dark` landen wieder auf funktionierenden Theme-Varianten, die Positionsauswahl beschreibt den realen Vertrag „vor/nach der ersten Überschrift“ korrekt, und die TOC-Adminseite läuft nun auf denselben Section-Shell-Standard wie andere modernisierte Admin-Bereiche. |
 
 ### v2.9.505 — 3. Mai 2026
 

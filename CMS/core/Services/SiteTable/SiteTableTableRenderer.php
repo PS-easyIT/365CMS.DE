@@ -16,6 +16,8 @@ final class SiteTableTableRenderer
     /** @var array<string,mixed>|null */
     private static ?array $displaySettings = null;
 
+    private static bool $frontendScriptIncluded = false;
+
     public function __construct(private SiteTableTemplateRegistry $templateRegistry)
     {
     }
@@ -43,23 +45,47 @@ final class SiteTableTableRenderer
             : (string) $displaySettings['default_style'];
         $themeClass = $themeClassMap[$activeStyle] ?? $themeClassMap['default'];
         $wrapperClasses = ['cms-site-table-wrap'];
+        $interactiveConfig = $this->buildInteractiveConfig($settings);
         if (!empty($settings['responsive']) && !empty($displaySettings['responsive_default'])) {
             $wrapperClasses[] = 'cms-site-table-wrap--responsive';
+        }
+        if (!empty($interactiveConfig['interactiveEnabled'])) {
+            $wrapperClasses[] = 'cms-site-table-wrap--interactive';
         }
 
         $caption = trim((string) ($settings['caption'] ?? ''));
         $ariaLabel = trim((string) ($settings['aria_label'] ?? ''));
         $tableName = htmlspecialchars((string) ($table['name'] ?? 'Tabelle'), ENT_QUOTES, 'UTF-8');
         $tableLabel = htmlspecialchars($ariaLabel !== '' ? $ariaLabel : (string) ($table['name'] ?? 'Tabelle'), ENT_QUOTES, 'UTF-8');
+        $descriptionId = !empty($displaySettings['show_description']) && !empty($table['description'])
+            ? 'cms-site-table-desc-' . $tableId
+            : '';
+        $tableClasses = ['cms-site-table', $themeClass];
+        if (!empty($settings['highlight_rows'])) {
+            $tableClasses[] = 'cms-site-table--highlighted';
+        }
 
-        $html = '<div class="' . implode(' ', $wrapperClasses) . '">';
+        $wrapperAttributes = [
+            'class="' . implode(' ', $wrapperClasses) . '"',
+            'data-site-table-id="' . $tableId . '"',
+        ];
+
+        if (!empty($interactiveConfig['interactiveEnabled'])) {
+            $wrapperAttributes[] = 'data-site-table-config="' . htmlspecialchars(
+                (string) json_encode($interactiveConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                ENT_QUOTES,
+                'UTF-8'
+            ) . '"';
+        }
+
+        $html = '<div ' . implode(' ', $wrapperAttributes) . '>';
         if (!empty($displaySettings['show_meta_panel'])) {
             $metaHtml = '';
             if (!empty($displaySettings['show_table_name'])) {
                 $metaHtml .= '<h3 class="cms-site-table-title">' . $tableName . '</h3>';
             }
             if (!empty($displaySettings['show_description']) && !empty($table['description'])) {
-                $metaHtml .= '<div class="cms-site-table-description">' . $this->renderEmbeddedContent((string) $table['description'], $tableId, 'table') . '</div>';
+                $metaHtml .= '<div class="cms-site-table-description" id="' . htmlspecialchars($descriptionId, ENT_QUOTES, 'UTF-8') . '">' . $this->renderEmbeddedContent((string) $table['description'], $tableId, 'table') . '</div>';
             }
             if (!empty($displaySettings['show_export_links'])) {
                 $metaHtml .= $this->renderExportLinks($tableId, $settings);
@@ -68,18 +94,39 @@ final class SiteTableTableRenderer
                 $html .= '<div class="cms-site-table-meta">' . $metaHtml . '</div>';
             }
         }
-        $html .= '<table class="cms-site-table ' . $themeClass . '" role="grid" aria-label="' . $tableLabel . '">';
+        $html .= $this->renderToolbar($interactiveConfig);
+
+        $tableAttributes = [
+            'class="' . implode(' ', $tableClasses) . '"',
+        ];
+        if ($caption === '') {
+            $tableAttributes[] = 'aria-label="' . $tableLabel . '"';
+        }
+        if ($descriptionId !== '') {
+            $tableAttributes[] = 'aria-describedby="' . htmlspecialchars($descriptionId, ENT_QUOTES, 'UTF-8') . '"';
+        }
+
+        $html .= '<table ' . implode(' ', $tableAttributes) . '>';
         if (!empty($displaySettings['show_caption']) && $caption !== '') {
             $html .= '<caption>' . htmlspecialchars($caption, ENT_QUOTES, 'UTF-8') . '</caption>';
         }
         $html .= '<thead><tr>';
-        foreach ($columns as $column) {
-            $html .= '<th scope="col">' . $this->renderColumnLabel((string) ($column['label'] ?? '')) . '</th>';
+        foreach ($columns as $index => $column) {
+            $html .= '<th scope="col"' . (!empty($interactiveConfig['sortingEnabled']) ? ' aria-sort="none"' : '') . '>';
+            if (!empty($interactiveConfig['sortingEnabled'])) {
+                $html .= '<button type="button" class="cms-site-table__sort" data-site-table-sort="' . $index . '">';
+                $html .= '<span class="cms-site-table__sort-label">' . $this->renderColumnLabel((string) ($column['label'] ?? '')) . '</span>';
+                $html .= '<span class="cms-site-table__sort-indicator" aria-hidden="true">↕</span>';
+                $html .= '</button>';
+            } else {
+                $html .= $this->renderColumnLabel((string) ($column['label'] ?? ''));
+            }
+            $html .= '</th>';
         }
         $html .= '</tr></thead><tbody>';
 
         if ($rows === []) {
-            $html .= '<tr><td colspan="' . count($columns) . '">Keine Tabellenzeilen vorhanden.</td></tr>';
+            $html .= '<tr><td colspan="' . count($columns) . '">' . htmlspecialchars((string) ($interactiveConfig['labels']['emptyStatic'] ?? 'Keine Tabellenzeilen vorhanden.'), ENT_QUOTES, 'UTF-8') . '</td></tr>';
         } else {
             foreach ($rows as $row) {
                 $html .= '<tr>';
@@ -99,7 +146,18 @@ final class SiteTableTableRenderer
             }
         }
 
-        return $html . '</tbody></table></div>';
+        $html .= '</tbody></table>';
+        if (!empty($interactiveConfig['paginationEnabled'])) {
+            $html .= '<nav class="cms-site-table-pagination" data-site-table-pagination aria-label="' . htmlspecialchars((string) ($interactiveConfig['labels']['pagination'] ?? 'Seitennavigation der Tabelle'), ENT_QUOTES, 'UTF-8') . '"></nav>';
+        }
+        $html .= '</div>';
+
+        if (!empty($interactiveConfig['interactiveEnabled']) && !self::$frontendScriptIncluded) {
+            self::$frontendScriptIncluded = true;
+            $html .= '<script src="' . htmlspecialchars(cms_asset_url('js/site-tables.js'), ENT_QUOTES, 'UTF-8') . '"></script>';
+        }
+
+        return $html;
     }
 
     public function streamExport(array $table, string $format, bool $respectFrontendPermissions, callable $slugSanitizer): bool
@@ -228,6 +286,29 @@ final class SiteTableTableRenderer
         return '<div class="cms-site-table-actions"><span>Export:</span> ' . implode(' <span aria-hidden="true">·</span> ', $links) . '</div>';
     }
 
+    private function renderToolbar(array $interactiveConfig): string
+    {
+        if (empty($interactiveConfig['searchEnabled']) && empty($interactiveConfig['paginationEnabled'])) {
+            return '';
+        }
+
+        $labels = is_array($interactiveConfig['labels'] ?? null) ? $interactiveConfig['labels'] : [];
+        $html = '<div class="cms-site-table-toolbar">';
+        if (!empty($interactiveConfig['searchEnabled'])) {
+            $html .= '<label class="cms-site-table-toolbar__search">';
+            $html .= '<span class="cms-site-table-toolbar__search-label">' . htmlspecialchars((string) ($labels['searchLabel'] ?? 'Tabelle durchsuchen'), ENT_QUOTES, 'UTF-8') . '</span>';
+            $html .= '<input type="search" class="cms-site-table-toolbar__search-input" data-site-table-search placeholder="' . htmlspecialchars((string) ($labels['searchPlaceholder'] ?? 'Suchbegriff eingeben …'), ENT_QUOTES, 'UTF-8') . '" aria-label="' . htmlspecialchars((string) ($labels['searchLabel'] ?? 'Tabelle durchsuchen'), ENT_QUOTES, 'UTF-8') . '">';
+            $html .= '</label>';
+        }
+
+        $html .= '<div class="cms-site-table-toolbar__meta">';
+        $html .= '<span class="cms-site-table-toolbar__status" data-site-table-status aria-live="polite"></span>';
+        $html .= '</div>';
+        $html .= '</div>';
+
+        return $html;
+    }
+
     private function renderEmbeddedContent(string $value, int $currentTableId, string $htmlProfile = 'table_cell'): string
     {
         if ($value === '') {
@@ -346,5 +427,64 @@ final class SiteTableTableRenderer
         self::$displaySettings = SiteTableDisplaySettings::normalize(is_array($saved) ? $saved : []);
 
         return self::$displaySettings;
+    }
+
+    /** @return array<string,mixed> */
+    private function buildInteractiveConfig(array $settings): array
+    {
+        $locale = $this->resolveCurrentLocale();
+        $labels = $locale === 'en'
+            ? [
+                'searchLabel' => 'Search table',
+                'searchPlaceholder' => 'Enter a search term …',
+                'emptyStatic' => 'No table rows available.',
+                'emptyFiltered' => 'No matching table rows found.',
+                'rowsLabelSingle' => 'row',
+                'rowsLabelPlural' => 'rows',
+                'filteredFrom' => 'filtered from',
+                'page' => 'Page',
+                'of' => 'of',
+                'previous' => 'Previous',
+                'next' => 'Next',
+                'pagination' => 'Table pagination',
+            ]
+            : [
+                'searchLabel' => 'Tabelle durchsuchen',
+                'searchPlaceholder' => 'Suchbegriff eingeben …',
+                'emptyStatic' => 'Keine Tabellenzeilen vorhanden.',
+                'emptyFiltered' => 'Keine passenden Tabellenzeilen gefunden.',
+                'rowsLabelSingle' => 'Zeile',
+                'rowsLabelPlural' => 'Zeilen',
+                'filteredFrom' => 'gefiltert aus',
+                'page' => 'Seite',
+                'of' => 'von',
+                'previous' => 'Zurück',
+                'next' => 'Weiter',
+                'pagination' => 'Seitennavigation der Tabelle',
+            ];
+
+        $pageSize = (int) ($settings['page_size'] ?? 10);
+        if ($pageSize < 5 || $pageSize > 100) {
+            $pageSize = 10;
+        }
+
+        return [
+            'searchEnabled' => !empty($settings['enable_search']),
+            'sortingEnabled' => !empty($settings['enable_sorting']),
+            'paginationEnabled' => !empty($settings['enable_pagination']),
+            'pageSize' => $pageSize,
+            'interactiveEnabled' => !empty($settings['enable_search']) || !empty($settings['enable_sorting']) || !empty($settings['enable_pagination']),
+            'labels' => $labels,
+        ];
+    }
+
+    private function resolveCurrentLocale(): string
+    {
+        $requestUri = is_string($_SERVER['REQUEST_URI'] ?? null) ? (string) $_SERVER['REQUEST_URI'] : '/';
+        $path = parse_url($requestUri, PHP_URL_PATH);
+        $context = \CMS\Services\ContentLocalizationService::getInstance()->resolveRequestContext(is_string($path) ? $path : '/');
+        $locale = (string) ($context['locale'] ?? 'de');
+
+        return in_array($locale, ['de', 'en'], true) ? $locale : 'de';
     }
 }
