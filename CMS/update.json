@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.9.248",
+  "version": "2.9.500",
   "min_php": "8.4",
-  "released": "2026-05-02",
+  "released": "2026-05-03",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 2.9.248: Getrennte DE-/EN-Editorseiten speichern Beiträge und Seiten jetzt sprachisoliert, Public-Seiten folgen strikt dem /en-Prefix-Vertrag, Coverbilder werden auf ArtikelRahmen_* gefiltert, und Site Tables unterstützen sicher sanitierte Inline-HTML-Formatierung sowie Zeilen aus ausgewählten Seiten/Beiträgen oder einem Kategorie-Filter.",
+  "notes": "Release-Stand 2.9.500: Der Dashboard-Bereich wurde als abgeschlossener 5xx-Audit-Batch kompakter und robuster nachgezogen – KPI- und Highlight-Karten sind dichter aufgebaut, nutzen passende Icons, tolerieren fehlende Daten defensiver und die Bereichsdokumentation beschreibt den aktuellen Aufbau jetzt konsistent.",
   "critical": false
 }

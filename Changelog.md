@@ -1,4 +1,4 @@
-﻿﻿**Version:** 2.9.248
+﻿﻿**Version:** 2.9.500
 
 # 365CMS Changelog
 
@@ -19,6 +19,12 @@
 ## 📜 Vollständige Versionshistorie
 
 ---
+
+### v2.9.500 — 3. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.500** | 🎨 style | Admin/Dashboard | **`CMS/admin/views/dashboard/index.php`, `CMS/admin/modules/dashboard/DashboardModule.php` und `CMS/DOC/admin/dashboard/README.md` schließen den Dashboard-Bereichsaudit mit kompakteren KPI-/Highlight-Karten, robusterem View-Fallback und aktualisierter Bereichsdoku ab**: Die Admin-Startseite zeigt Kernsignale jetzt dichter und scanbarer, Highlight-Karten nutzen passende Icons statt eines pauschalen Activity-Fallbacks, das Beitrags-KPI besitzt wieder ein korrektes Icon-Mapping, und fehlende `kpis`-/`activity`-Payloads kippen im Renderpfad nicht mehr in fragile Annahmen. |
 
 ### v2.9.248 — 2. Mai 2026
 

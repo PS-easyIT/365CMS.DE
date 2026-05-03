@@ -19,9 +19,12 @@ if (!defined('ABSPATH')) {
     exit;
 }
 $welcome = is_array($data['welcome'] ?? null) ? $data['welcome'] : [];
+$kpis = is_array($data['kpis'] ?? null) ? $data['kpis'] : [];
+$activityEntries = is_array($data['activity'] ?? null) ? $data['activity'] : [];
 $attentionItems = is_array($data['attention'] ?? null) ? $data['attention'] : [];
 $recentOrders = is_array($data['recent_orders'] ?? null) ? $data['recent_orders'] : [];
 $highlights = is_array($data['highlights'] ?? null) ? $data['highlights'] : [];
+$dashboardHighlights = array_slice($highlights, 0, 4);
 $security = is_array($data['security'] ?? null) ? $data['security'] : [];
 $performance = is_array($data['performance'] ?? null) ? $data['performance'] : [];
 $system = is_array($data['system'] ?? null) ? $data['system'] : [];
@@ -42,51 +45,58 @@ $headerQuickLinks = array_values(array_filter($quickLinks, static function (arra
 }));
 
 /** Tabler-Icon-SVG als Inline-Helfer */
-function dashIcon(string $name): string {
-    $icons = [
-        'users'         => '<path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 7m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0"/><path d="M3 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/><path d="M21 21v-2a4 4 0 0 0 -3 -3.85"/>',
-        'file-text'     => '<path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z"/><path d="M9 9l1 0"/><path d="M9 13l6 0"/><path d="M9 17l6 0"/>',
-        'photo'         => '<path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M15 8h.01"/><path d="M3 6a3 3 0 0 1 3 -3h12a3 3 0 0 1 3 3v12a3 3 0 0 1 -3 3h-12a3 3 0 0 1 -3 -3v-12z"/><path d="M3 16l5 -5c.928 -.893 2.072 -.893 3 0l5 5"/><path d="M14 14l1 -1c.928 -.893 2.072 -.893 3 0l3 3"/>',
-        'currency-euro' => '<path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M17.2 7a6 7 0 1 0 0 10"/><path d="M13 10h-8m0 4h8"/>',
-        'file-plus'     => '<path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z"/><path d="M12 11l0 6"/><path d="M9 14l6 0"/>',
-        'pencil-plus'   => '<path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4"/><path d="M13.5 6.5l4 4"/>',
-        'upload'        => '<path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2v-2"/><path d="M7 9l5 -5l5 5"/><path d="M12 4l0 12"/>',
-        'settings'      => '<path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10.325 4.317c.426 -1.756 2.924 -1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543 -.94 3.31 .826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756 .426 1.756 2.924 0 3.35a1.724 1.724 0 0 0 -1.066 2.573c.94 1.543 -.826 3.31 -2.37 2.37a1.724 1.724 0 0 0 -2.572 1.065c-.426 1.756 -2.924 1.756 -3.35 0a1.724 1.724 0 0 0 -2.573 -1.066c-1.543 .94 -3.31 -.826 -2.37 -2.37a1.724 1.724 0 0 0 -1.065 -2.572c-1.756 -.426 -1.756 -2.924 0 -3.35a1.724 1.724 0 0 0 1.066 -2.573c-.94 -1.543 .826 -3.31 2.37 -2.37c1 .608 2.296 .07 2.572 -1.065z"/><path d="M9 12a3 3 0 1 0 6 0a3 3 0 0 0 -6 0"/>',
-        'activity'      => '<path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 12h4l3 8l4 -16l3 8h4"/>',
-        'alert-triangle' => '<path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 9v4"/><path d="M10.363 3.591l-8.106 13.534a1.914 1.914 0 0 0 1.636 2.871h16.214a1.914 1.914 0 0 0 1.636 -2.87l-8.106 -13.536a1.914 1.914 0 0 0 -3.274 0z"/><path d="M12 16h.01"/>',
-        'shield-check'  => '<path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 3l7 4v5c0 5 -3.5 7.5 -7 9c-3.5 -1.5 -7 -4 -7 -9v-5l7 -4"/><path d="M9 12l2 2l4 -4"/>',
-        'server'        => '<path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 4m0 2a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v4a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2z"/><path d="M3 14m0 2a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v2a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2z"/><path d="M7 8l0 .01"/><path d="M7 17l0 .01"/>',
-        'shopping-cart' => '<path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 19a1 1 0 0 0 1 1h14a1 1 0 0 0 0 -2h-14a1 1 0 0 0 -1 1z"/><path d="M6 17l1.2 -7h11.6l1.2 7"/><path d="M6 10l-1 -5h-2"/><path d="M9 21a1 1 0 1 0 0 -2a1 1 0 0 0 0 2z"/><path d="M17 21a1 1 0 1 0 0 -2a1 1 0 0 0 0 2z"/>',
-    ];
-    $path = $icons[$name] ?? $icons['activity'];
-    return '<svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">' . $path . '</svg>';
-}
-
-function dashboardStatusBadge(string $status): string {
-    return match ($status) {
-        'good' => 'success',
-        'warning' => 'warning',
-        'critical' => 'danger',
-        default => 'secondary',
-    };
-}
-
-function dashboardUrl(string $url, string $fallback = '/admin'): string {
-    $normalized = trim($url);
-
-    if ($normalized === '') {
-        return $fallback;
+if (!function_exists('dashIcon')) {
+    function dashIcon(string $name): string {
+        $icons = [
+            'users'         => '<path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M9 7m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0"/><path d="M3 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/><path d="M21 21v-2a4 4 0 0 0 -3 -3.85"/>',
+            'file-text'     => '<path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z"/><path d="M9 9l1 0"/><path d="M9 13l6 0"/><path d="M9 17l6 0"/>',
+            'article'       => '<path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M16 4h2a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h2"/><path d="M9 4h6v4h-6z"/><path d="M8 12h8"/><path d="M8 16h5"/>',
+            'photo'         => '<path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M15 8h.01"/><path d="M3 6a3 3 0 0 1 3 -3h12a3 3 0 0 1 3 3v12a3 3 0 0 1 -3 3h-12a3 3 0 0 1 -3 -3v-12z"/><path d="M3 16l5 -5c.928 -.893 2.072 -.893 3 0l5 5"/><path d="M14 14l1 -1c.928 -.893 2.072 -.893 3 0l3 3"/>',
+            'currency-euro' => '<path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M17.2 7a6 7 0 1 0 0 10"/><path d="M13 10h-8m0 4h8"/>',
+            'file-plus'     => '<path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z"/><path d="M12 11l0 6"/><path d="M9 14l6 0"/>',
+            'pencil-plus'   => '<path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4"/><path d="M13.5 6.5l4 4"/>',
+            'upload'        => '<path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2v-2"/><path d="M7 9l5 -5l5 5"/><path d="M12 4l0 12"/>',
+            'settings'      => '<path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10.325 4.317c.426 -1.756 2.924 -1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543 -.94 3.31 .826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756 .426 1.756 2.924 0 3.35a1.724 1.724 0 0 0 -1.066 2.573c.94 1.543 -.826 3.31 -2.37 2.37a1.724 1.724 0 0 0 -2.572 1.065c-.426 1.756 -2.924 1.756 -3.35 0a1.724 1.724 0 0 0 -2.573 -1.066c-1.543 .94 -3.31 -.826 -2.37 -2.37a1.724 1.724 0 0 0 -1.065 -2.572c-1.756 -.426 -1.756 -2.924 0 -3.35a1.724 1.724 0 0 0 1.066 -2.573c-.94 -1.543 .826 -3.31 2.37 -2.37c1 .608 2.296 .07 2.572 -1.065z"/><path d="M9 12a3 3 0 1 0 6 0a3 3 0 0 0 -6 0"/>',
+            'activity'      => '<path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 12h4l3 8l4 -16l3 8h4"/>',
+            'alert-triangle' => '<path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 9v4"/><path d="M10.363 3.591l-8.106 13.534a1.914 1.914 0 0 0 1.636 2.871h16.214a1.914 1.914 0 0 0 1.636 -2.87l-8.106 -13.536a1.914 1.914 0 0 0 -3.274 0z"/><path d="M12 16h.01"/>',
+            'shield-check'  => '<path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 3l7 4v5c0 5 -3.5 7.5 -7 9c-3.5 -1.5 -7 -4 -7 -9v-5l7 -4"/><path d="M9 12l2 2l4 -4"/>',
+            'server'        => '<path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 4m0 2a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v4a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2z"/><path d="M3 14m0 2a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v2a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2z"/><path d="M7 8l0 .01"/><path d="M7 17l0 .01"/>',
+            'shopping-cart' => '<path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 19a1 1 0 0 0 1 1h14a1 1 0 0 0 0 -2h-14a1 1 0 0 0 -1 1z"/><path d="M6 17l1.2 -7h11.6l1.2 7"/><path d="M6 10l-1 -5h-2"/><path d="M9 21a1 1 0 1 0 0 -2a1 1 0 0 0 0 2z"/><path d="M17 21a1 1 0 1 0 0 -2a1 1 0 0 0 0 2z"/>',
+        ];
+        $path = $icons[$name] ?? $icons['activity'];
+        return '<svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">' . $path . '</svg>';
     }
+}
 
-    return $normalized;
+if (!function_exists('dashboardStatusBadge')) {
+    function dashboardStatusBadge(string $status): string {
+        return match ($status) {
+            'good' => 'success',
+            'warning' => 'warning',
+            'critical' => 'danger',
+            default => 'secondary',
+        };
+    }
+}
+
+if (!function_exists('dashboardUrl')) {
+    function dashboardUrl(string $url, string $fallback = '/admin'): string {
+        $normalized = trim($url);
+
+        if ($normalized === '') {
+            return $fallback;
+        }
+
+        return $normalized;
+    }
 }
 ?>
 
 <style>
     .dashboard-overview-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
-        gap: 1rem;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 252px), 1fr));
+        gap: 0.875rem;
         align-items: stretch;
     }
 
@@ -96,30 +106,36 @@ function dashboardUrl(string $url, string $fallback = '/admin'): string {
     }
 
     .dashboard-overview-card .card-header {
-        min-height: 68px;
+        min-height: 58px;
         display: flex;
         align-items: center;
+        padding: 0.85rem 1rem;
     }
 
     .dashboard-overview-card .list-group-item,
     .dashboard-overview-card .card-body,
     .dashboard-overview-card .card-footer {
-        font-size: 0.95rem;
+        font-size: 0.9rem;
     }
 
     .dashboard-kpi-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
-        gap: 1rem;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 188px), 1fr));
+        gap: 0.75rem;
     }
 
     .dashboard-kpi-tile {
         border: 1px solid rgba(37, 99, 235, 0.12);
-        border-radius: 0.75rem;
-        background: rgba(255, 255, 255, 0.72);
-        padding: 1rem;
-        min-height: 100%;
+        border-radius: 0.875rem;
+        background: #fff;
+        padding: 0.875rem 0.95rem;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.2rem;
         transition: transform 0.18s ease, box-shadow 0.18s ease;
+        box-shadow: 0 0.125rem 0.25rem rgba(15, 23, 42, 0.05);
+        overflow: hidden;
     }
 
     .dashboard-kpi-tile:hover {
@@ -127,15 +143,28 @@ function dashboardUrl(string $url, string $fallback = '/admin'): string {
         box-shadow: 0 0.375rem 1rem rgba(37, 99, 235, 0.10);
     }
 
+    .dashboard-kpi-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 0.65rem;
+        margin-bottom: 0.2rem;
+    }
+
+    .dashboard-kpi-label {
+        line-height: 1.25;
+    }
+
     .dashboard-kpi-tile .dashboard-kpi-value {
-        font-size: 1.4rem;
+        font-size: clamp(1.15rem, 1rem + 0.55vw, 1.35rem);
         font-weight: 700;
         line-height: 1.2;
+        margin-bottom: 0;
     }
 
     .dashboard-kpi-tile .dashboard-kpi-icon {
-        width: 2.5rem;
-        height: 2.5rem;
+        width: 2.15rem;
+        height: 2.15rem;
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -145,8 +174,46 @@ function dashboardUrl(string $url, string $fallback = '/admin'): string {
         flex: 0 0 auto;
     }
 
+    .dashboard-kpi-sub {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        min-height: 2.45em;
+        line-height: 1.22;
+        margin-bottom: 0;
+    }
+
+    .dashboard-kpi-footer {
+        margin-top: auto;
+        padding-top: 0.35rem;
+        font-size: 0.75rem;
+        letter-spacing: 0.01em;
+    }
+
     .dashboard-kpi-tile .dashboard-kpi-value.is-highlight {
-        font-size: 1.1rem;
+        font-size: 1rem;
+    }
+
+    .dashboard-mini-stat {
+        border: 1px solid var(--tblr-border-color, rgba(15, 23, 42, 0.08));
+        border-radius: 0.75rem;
+        padding: 0.75rem 0.875rem;
+        background: rgba(248, 250, 252, 0.85);
+    }
+
+    @media (max-width: 767.98px) {
+        .dashboard-kpi-grid {
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr));
+        }
+
+        .dashboard-kpi-tile {
+            padding: 0.8rem 0.85rem;
+        }
+
+        .dashboard-overview-grid {
+            gap: 0.75rem;
+        }
     }
 </style>
 
@@ -222,27 +289,27 @@ function dashboardUrl(string $url, string $fallback = '/admin'): string {
                 </p>
 
                 <div class="dashboard-kpi-grid mt-4">
-                    <?php foreach ($data['kpis'] as $kpi): ?>
+                    <?php foreach ($kpis as $kpi): ?>
                         <a href="<?= htmlspecialchars(dashboardUrl((string) ($kpi['url'] ?? ''), '/admin')) ?>" class="dashboard-kpi-tile text-reset text-decoration-none">
-                            <div class="d-flex align-items-center justify-content-between gap-3 mb-3">
-                                <div class="subheader mb-0"><?= htmlspecialchars((string) ($kpi['label'] ?? 'KPI')) ?></div>
+                            <div class="dashboard-kpi-header">
+                                <div class="subheader mb-0 dashboard-kpi-label"><?= htmlspecialchars((string) ($kpi['label'] ?? 'KPI')) ?></div>
                                 <span class="dashboard-kpi-icon"><?= dashIcon((string) ($kpi['icon'] ?? 'activity')) ?></span>
                             </div>
-                            <div class="dashboard-kpi-value mb-1"><?= htmlspecialchars((string) ($kpi['value'] ?? '0')) ?></div>
-                            <div class="small text-secondary mb-2"><?= htmlspecialchars((string) ($kpi['sub'] ?? '')) ?></div>
-                            <div class="small fw-semibold text-primary">Details →</div>
+                            <div class="dashboard-kpi-value"><?= htmlspecialchars((string) ($kpi['value'] ?? '0')) ?></div>
+                            <p class="small text-secondary dashboard-kpi-sub"><?= htmlspecialchars((string) ($kpi['sub'] ?? '')) ?></p>
+                            <div class="fw-semibold text-primary dashboard-kpi-footer">Details →</div>
                         </a>
                     <?php endforeach; ?>
 
-                    <?php foreach (array_slice($highlights, 0, 4) as $highlight): ?>
+                    <?php foreach ($dashboardHighlights as $highlight): ?>
                         <a href="<?= htmlspecialchars(dashboardUrl((string) ($highlight['url'] ?? ''), '/admin')) ?>" class="dashboard-kpi-tile text-reset text-decoration-none">
-                            <div class="d-flex align-items-center justify-content-between gap-3 mb-3">
-                                <div class="subheader mb-0"><?= htmlspecialchars((string) ($highlight['label'] ?? 'Hinweis')) ?></div>
-                                <span class="dashboard-kpi-icon"><?= dashIcon('activity') ?></span>
+                            <div class="dashboard-kpi-header">
+                                <div class="subheader mb-0 dashboard-kpi-label"><?= htmlspecialchars((string) ($highlight['label'] ?? 'Hinweis')) ?></div>
+                                <span class="dashboard-kpi-icon"><?= dashIcon((string) ($highlight['icon'] ?? 'activity')) ?></span>
                             </div>
-                            <div class="dashboard-kpi-value is-highlight mb-1"><?= htmlspecialchars((string) ($highlight['value'] ?? '0')) ?></div>
-                            <div class="small text-secondary mb-2"><?= htmlspecialchars((string) ($highlight['hint'] ?? '')) ?></div>
-                            <div class="small fw-semibold text-primary">Öffnen →</div>
+                            <div class="dashboard-kpi-value is-highlight"><?= htmlspecialchars((string) ($highlight['value'] ?? '0')) ?></div>
+                            <p class="small text-secondary dashboard-kpi-sub"><?= htmlspecialchars((string) ($highlight['hint'] ?? '')) ?></p>
+                            <div class="fw-semibold text-primary dashboard-kpi-footer">Öffnen →</div>
                         </a>
                     <?php endforeach; ?>
                 </div>
@@ -338,25 +405,25 @@ function dashboardUrl(string $url, string $fallback = '/admin'): string {
                         </div>
                         <div class="row g-3">
                             <div class="col-6">
-                                <div class="border rounded p-3 h-100">
+                                <div class="dashboard-mini-stat h-100">
                                     <div class="text-secondary small mb-1">HTTPS</div>
                                     <div class="fw-semibold"><?= !empty($security['https_enabled']) ? 'Aktiv' : 'Prüfen' ?></div>
                                 </div>
                             </div>
                             <div class="col-6">
-                                <div class="border rounded p-3 h-100">
+                                <div class="dashboard-mini-stat h-100">
                                     <div class="text-secondary small mb-1">Failed Logins</div>
                                     <div class="fw-semibold"><?= htmlspecialchars((string) ($security['failed_logins_24h'] ?? 0)) ?> / 24h</div>
                                 </div>
                             </div>
                             <div class="col-6">
-                                <div class="border rounded p-3 h-100">
+                                <div class="dashboard-mini-stat h-100">
                                     <div class="text-secondary small mb-1">Performance-Score</div>
                                     <div class="fw-semibold"><?= htmlspecialchars((string) ($performance['performance_score'] ?? 0)) ?>/50</div>
                                 </div>
                             </div>
                             <div class="col-6">
-                                <div class="border rounded p-3 h-100">
+                                <div class="dashboard-mini-stat h-100">
                                     <div class="text-secondary small mb-1">RAM-Auslastung</div>
                                     <div class="fw-semibold"><?= htmlspecialchars((string) ($performance['memory_percent'] ?? 0)) ?>%</div>
                                 </div>
@@ -412,7 +479,7 @@ function dashboardUrl(string $url, string $fallback = '/admin'): string {
             <div class="card-header">
                 <h3 class="card-title">Letzte Aktivitäten</h3>
             </div>
-            <?php if (!empty($data['activity'])): ?>
+            <?php if ($activityEntries !== []): ?>
                 <div class="card-body p-0">
                     <table class="table table-vcenter card-table">
                         <thead>
@@ -423,7 +490,7 @@ function dashboardUrl(string $url, string $fallback = '/admin'): string {
                             </tr>
                         </thead>
                         <tbody>
-                            <?php foreach ($data['activity'] as $entry): ?>
+                            <?php foreach ($activityEntries as $entry): ?>
                                 <tr>
                                     <td>
                                         <span class="badge bg-blue-lt"><?= htmlspecialchars((string) ($entry->action ?? '')) ?></span>
