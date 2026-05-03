@@ -140,6 +140,7 @@ function cms_admin_section_shell_normalize_template_vars(mixed $templateVars): a
 function cms_admin_section_shell_normalize_csrf_actions(mixed $actions, string $fallbackAction): array
 {
     $normalized = [];
+    $fallbackAction = trim($fallbackAction) !== '' ? trim($fallbackAction) : 'admin_section';
     $candidates = is_array($actions) ? $actions : [$actions];
 
     foreach ($candidates as $action) {
@@ -204,7 +205,8 @@ $pageTitle = (string)($sectionPageConfig['page_title'] ?? 'Admin');
 $activePage = (string)($sectionPageConfig['active_page'] ?? 'dashboard');
 $pageAssets = cms_admin_section_shell_normalize_page_assets($sectionPageConfig['page_assets'] ?? []);
 $section = (string)($sectionPageConfig['section'] ?? 'overview');
-$csrfAction = (string)($sectionPageConfig['csrf_action'] ?? 'admin_section');
+$csrfAction = trim((string)($sectionPageConfig['csrf_action'] ?? 'admin_section'));
+$csrfAction = $csrfAction !== '' ? $csrfAction : 'admin_section';
 $csrfActions = cms_admin_section_shell_normalize_csrf_actions($sectionPageConfig['csrf_actions'] ?? [$csrfAction], $csrfAction);
 $csrfPersistentValidation = !empty($sectionPageConfig['csrf_persistent_validation']);
 $guardConstant = (string)($sectionPageConfig['guard_constant'] ?? '');
