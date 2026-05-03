@@ -44,11 +44,11 @@ $settings = $data['settings'] ?? [];
                                     </label>
                                     <label class="form-check form-switch mb-3">
                                         <input class="form-check-input" type="checkbox" name="perf_minify_css" value="1" <?php echo ($settings['perf_minify_css'] ?? '0') === '1' ? 'checked' : ''; ?>>
-                                        <span class="form-check-label">CSS-Minifizierung aktivieren</span>
+                                        <span class="form-check-label">CSS-Minifizierung markieren</span>
                                     </label>
                                     <label class="form-check form-switch mb-3">
                                         <input class="form-check-input" type="checkbox" name="perf_minify_js" value="1" <?php echo ($settings['perf_minify_js'] ?? '0') === '1' ? 'checked' : ''; ?>>
-                                        <span class="form-check-label">JS-Minifizierung aktivieren</span>
+                                        <span class="form-check-label">JS-Minifizierung markieren</span>
                                     </label>
                                     <label class="form-check form-switch mb-0">
                                         <input class="form-check-input" type="checkbox" name="perf_gzip" value="1" <?php echo ($settings['perf_gzip'] ?? '0') === '1' ? 'checked' : ''; ?>>
@@ -63,7 +63,7 @@ $settings = $data['settings'] ?? [];
                                         </div>
                                     </div>
                                     <div class="form-text mt-3">
-                                        Empfehlung: Lokale Fonts + Lazy Loading + Minifizierung kombinieren, um Ladezeit und externe Requests sichtbar zu reduzieren.
+                                        Hinweis: Lazy Loading und Cache-Header wirken direkt. Medien-WebP/EXIF werden auf der Medien-Unterseite gespeichert. Minify-Schalter markieren die Zielstrategie für Theme-/Build-Pfade; Server-Kompression läuft über Apache/Brotli/GZIP-Konfiguration.
                                     </div>
                                 </div>
                             </div>

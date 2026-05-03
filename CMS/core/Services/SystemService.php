@@ -513,42 +513,27 @@ class SystemService {
      * Repair database tables
      */
     public function repairTables(): array {
-        $pdo = $this->db->getConnection();
         $prefix = $this->db->getPrefix();
-        
-        $tables = [
-            'users', 'roles', 'sessions', 'settings', 'pages', 
-            'page_revisions', 'landing_sections', 'activity_log', 
-            'cache', 'login_attempts'
-        ];
-        
+        $supportedEngines = ['MYISAM', 'ARCHIVE', 'CSV'];
         $results = [];
-        
-        foreach ($tables as $table) {
-            $full_table = $prefix . $table;
-            
-            try {
-                $result = $pdo->query("REPAIR TABLE `{$full_table}`");
-                
-                if ($result && $row = $result->fetch(PDO::FETCH_ASSOC)) {
-                    $results[$table] = [
-                        'success' => true,
-                        'message' => $row['Msg_text'] ?? 'OK'
-                    ];
-                } else {
-                    $results[$table] = [
-                        'success' => false,
-                        'message' => 'Repair fehlgeschlagen'
-                    ];
-                }
-            } catch (\Exception $e) {
-                $results[$table] = [
+
+        foreach ($this->getCmsTableMaintenanceTargets() as $target) {
+            $tableName = (string)($target['table_name'] ?? '');
+            $engine = strtoupper((string)($target['engine'] ?? ''));
+            $key = str_starts_with($tableName, $prefix) ? substr($tableName, strlen($prefix)) : $tableName;
+
+            if (!in_array($engine, $supportedEngines, true)) {
+                $results[$key] = [
                     'success' => false,
-                    'message' => $e->getMessage()
+                    'skipped' => true,
+                    'message' => 'Übersprungen: REPAIR TABLE ist für Engine ' . ($engine !== '' ? $engine : 'unbekannt') . ' nicht vorgesehen.'
                 ];
+                continue;
             }
+
+            $results[$key] = $this->runTableMaintenanceStatement('REPAIR', $tableName);
         }
-        
+
         return $results;
     }
     
@@ -556,43 +541,97 @@ class SystemService {
      * Optimize database tables
      */
     public function optimizeTables(): array {
+        $prefix = $this->db->getPrefix();
+        $supportedEngines = ['INNODB', 'MYISAM', 'ARCHIVE'];
+        $results = [];
+
+        foreach ($this->getCmsTableMaintenanceTargets() as $target) {
+            $tableName = (string)($target['table_name'] ?? '');
+            $engine = strtoupper((string)($target['engine'] ?? ''));
+            $key = str_starts_with($tableName, $prefix) ? substr($tableName, strlen($prefix)) : $tableName;
+
+            if (!in_array($engine, $supportedEngines, true)) {
+                $results[$key] = [
+                    'success' => false,
+                    'skipped' => true,
+                    'message' => 'Übersprungen: OPTIMIZE TABLE ist für Engine ' . ($engine !== '' ? $engine : 'unbekannt') . ' nicht vorgesehen.'
+                ];
+                continue;
+            }
+
+            $results[$key] = $this->runTableMaintenanceStatement('OPTIMIZE', $tableName);
+        }
+
+        return $results;
+    }
+
+    /**
+     * @return list<array{table_name:string,engine:?string}>
+     */
+    private function getCmsTableMaintenanceTargets(): array {
         $pdo = $this->db->getConnection();
         $prefix = $this->db->getPrefix();
-        
-        $tables = [
-            'users', 'roles', 'sessions', 'settings', 'pages', 
-            'page_revisions', 'landing_sections', 'activity_log', 
-            'cache', 'login_attempts', 'plugins', 'plugin_meta'
-        ];
-        
-        $results = [];
-        
-        foreach ($tables as $table) {
-            $full_table = $prefix . $table;
-            
-            try {
-                $result = $pdo->query("OPTIMIZE TABLE `{$full_table}`");
-                
-                if ($result && $row = $result->fetch(PDO::FETCH_ASSOC)) {
-                    $results[$table] = [
-                        'success' => true,
-                        'message' => $row['Msg_text'] ?? 'OK'
-                    ];
-                } else {
-                    $results[$table] = [
-                        'success' => false,
-                        'message' => 'Optimierung fehlgeschlagen'
-                    ];
-                }
-            } catch (\Exception $e) {
-                $results[$table] = [
+
+        $stmt = $pdo->prepare(
+            "SELECT table_name, engine
+             FROM information_schema.tables
+             WHERE table_schema = DATABASE()
+               AND table_type = 'BASE TABLE'
+               AND table_name LIKE ?
+             ORDER BY table_name ASC"
+        );
+        $stmt->execute([$prefix . '%']);
+
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        return is_array($rows) ? $rows : [];
+    }
+
+    /**
+     * @return array{success:bool,message:string,details?:list<array<string,mixed>>}
+     */
+    private function runTableMaintenanceStatement(string $operation, string $tableName): array {
+        $pdo = $this->db->getConnection();
+        $operation = strtoupper($operation) === 'REPAIR' ? 'REPAIR' : 'OPTIMIZE';
+
+        try {
+            $result = $pdo->query($operation . ' TABLE ' . $this->quoteIdentifier($tableName));
+            $rows = $result ? $result->fetchAll(PDO::FETCH_ASSOC) : [];
+
+            if ($rows === []) {
+                return [
                     'success' => false,
-                    'message' => $e->getMessage()
+                    'message' => $operation === 'REPAIR' ? 'Repair fehlgeschlagen' : 'Optimierung fehlgeschlagen'
                 ];
             }
+
+            $messages = [];
+            $hasError = false;
+            foreach ($rows as $row) {
+                $msgType = strtolower((string)($row['Msg_type'] ?? ''));
+                $msgText = trim((string)($row['Msg_text'] ?? ''));
+                if ($msgType === 'error') {
+                    $hasError = true;
+                }
+                if ($msgText !== '') {
+                    $messages[] = $msgText;
+                }
+            }
+
+            return [
+                'success' => !$hasError,
+                'message' => $messages !== [] ? implode(' | ', $messages) : 'OK',
+                'details' => $rows,
+            ];
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'message' => $e->getMessage()
+            ];
         }
-        
-        return $results;
+    }
+
+    private function quoteIdentifier(string $identifier): string {
+        return '`' . str_replace('`', '``', $identifier) . '`';
     }
     
     /**

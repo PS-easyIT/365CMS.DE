@@ -21,6 +21,7 @@ if (!defined('ABSPATH')) {
 final class EditorJsRenderer
 {
     private static ?self $instance = null;
+    private ?bool $lazyLoadingEnabled = null;
 
     public static function getInstance(): self
     {
@@ -363,7 +364,7 @@ final class EditorJsRenderer
         }
 
         $html = '<figure class="' . implode(' ', $classes) . '">';
-        $html .= '<img src="' . htmlspecialchars($imageUrl, ENT_QUOTES, 'UTF-8') . '" alt="' . htmlspecialchars(strip_tags($caption), ENT_QUOTES, 'UTF-8') . '" loading="lazy">';
+        $html .= '<img src="' . htmlspecialchars($imageUrl, ENT_QUOTES, 'UTF-8') . '" alt="' . htmlspecialchars(strip_tags($caption), ENT_QUOTES, 'UTF-8') . '"' . $this->getLazyLoadingAttribute() . '>';
         if ($caption !== '') {
             $html .= '<figcaption>' . $caption . '</figcaption>';
         }
@@ -403,7 +404,7 @@ final class EditorJsRenderer
 
         $html = '<div class="editorjs-block editorjs-link"><a href="' . htmlspecialchars($link, ENT_QUOTES, 'UTF-8') . '" target="_blank" rel="noopener noreferrer">';
         if ($image !== '') {
-            $html .= '<div class="editorjs-link__image"><img src="' . htmlspecialchars($image, ENT_QUOTES, 'UTF-8') . '" alt="" loading="lazy"></div>';
+            $html .= '<div class="editorjs-link__image"><img src="' . htmlspecialchars($image, ENT_QUOTES, 'UTF-8') . '" alt=""' . $this->getLazyLoadingAttribute() . '></div>';
         }
         $html .= '<div class="editorjs-link__content"><strong>' . $title . '</strong>';
         if ($description !== '') {
@@ -498,7 +499,7 @@ final class EditorJsRenderer
         $html = '<div class="editorjs-block editorjs-gallery" style="display:flex;flex-wrap:wrap;gap:' . $gap . 'px;align-items:flex-start;">';
         foreach ($images as $image) {
             $html .= '<figure class="editorjs-gallery__item" style="margin:0;flex:1 1 ' . $maxWidth . ';max-width:' . $maxWidth . ';min-width:140px;">';
-            $html .= '<img src="' . htmlspecialchars($image['url'], ENT_QUOTES, 'UTF-8') . '" alt="' . $image['alt'] . '" loading="lazy" style="display:block;width:100%;height:auto;aspect-ratio:4/3;object-fit:cover;border-radius:12px;">';
+            $html .= '<img src="' . htmlspecialchars($image['url'], ENT_QUOTES, 'UTF-8') . '" alt="' . $image['alt'] . '"' . $this->getLazyLoadingAttribute() . ' style="display:block;width:100%;height:auto;aspect-ratio:4/3;object-fit:cover;border-radius:12px;">';
             if ($image['caption'] !== '') {
                 $html .= '<figcaption style="margin-top:0.6rem;font-size:0.92rem;color:#475569;">' . $image['caption'] . '</figcaption>';
             }
@@ -526,7 +527,7 @@ final class EditorJsRenderer
         $html = '<section class="editorjs-block editorjs-media-text" style="display:flex;flex-wrap:wrap;align-items:flex-start;gap:24px;">';
         if ($imageUrl !== '') {
             $html .= '<figure class="editorjs-media-text__media" style="margin:0;flex:0 1 30%;min-width:220px;max-width:360px;">';
-            $html .= '<img src="' . htmlspecialchars($imageUrl, ENT_QUOTES, 'UTF-8') . '" alt="' . $alt . '" loading="lazy" style="display:block;width:100%;height:auto;aspect-ratio:4/3;object-fit:cover;border-radius:14px;">';
+            $html .= '<img src="' . htmlspecialchars($imageUrl, ENT_QUOTES, 'UTF-8') . '" alt="' . $alt . '"' . $this->getLazyLoadingAttribute() . ' style="display:block;width:100%;height:auto;aspect-ratio:4/3;object-fit:cover;border-radius:14px;">';
             $html .= '</figure>';
         }
 
@@ -795,7 +796,7 @@ final class EditorJsRenderer
 
             $caption = $this->sanitizeInline((string)($item['caption'] ?? ''));
             $html .= '<figure class="editorjs-carousel__item">';
-            $html .= '<img src="' . htmlspecialchars($url, ENT_QUOTES, 'UTF-8') . '" alt="" loading="lazy">';
+            $html .= '<img src="' . htmlspecialchars($url, ENT_QUOTES, 'UTF-8') . '" alt=""' . $this->getLazyLoadingAttribute() . '>';
             if ($caption !== '') {
                 $html .= '<figcaption>' . $caption . '</figcaption>';
             }
@@ -861,11 +862,40 @@ final class EditorJsRenderer
                 continue;
             }
 
-            $html .= '<img src="' . htmlspecialchars($src, ENT_QUOTES, 'UTF-8') . '" alt="Zeichnung" loading="lazy">';
+            $html .= '<img src="' . htmlspecialchars($src, ENT_QUOTES, 'UTF-8') . '" alt="Zeichnung"' . $this->getLazyLoadingAttribute() . '>';
         }
         $html .= '</div>';
 
         return $html;
+    }
+
+    private function getLazyLoadingAttribute(): string
+    {
+        return $this->isLazyLoadingEnabled() ? ' loading="lazy"' : '';
+    }
+
+    private function isLazyLoadingEnabled(): bool
+    {
+        if ($this->lazyLoadingEnabled !== null) {
+            return $this->lazyLoadingEnabled;
+        }
+
+        try {
+            if (function_exists('get_option')) {
+                $this->lazyLoadingEnabled = (string) get_option('perf_lazy_loading', '1') !== '0';
+                return $this->lazyLoadingEnabled;
+            }
+
+            $db = \CMS\Database::instance();
+            $value = $db->get_var(
+                "SELECT option_value FROM {$db->getPrefix()}settings WHERE option_name = 'perf_lazy_loading' LIMIT 1"
+            );
+            $this->lazyLoadingEnabled = (string) $value !== '0';
+        } catch (\Throwable) {
+            $this->lazyLoadingEnabled = true;
+        }
+
+        return $this->lazyLoadingEnabled;
     }
 
     private function sanitizeInline(string $html): string

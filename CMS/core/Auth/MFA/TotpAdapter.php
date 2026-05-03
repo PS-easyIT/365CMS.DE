@@ -45,7 +45,7 @@ final class TotpAdapter
 
     /**
      * Gibt die RobThree-Instanz zurück (lazy init).
-     * Nutzt den ServerQrCodeProvider nicht (QR wird im Frontend per JS erzeugt).
+    * Nutzt keinen externen QR-Code-Provider; QR wird als OTP-URI bzw. lokal im Frontend erzeugt.
      */
     private function getTfa(): ?\RobThree\Auth\TwoFactorAuth
     {
@@ -55,9 +55,18 @@ final class TotpAdapter
 
         if ($this->tfa === null) {
             $issuer = defined('SITE_NAME') ? SITE_NAME : '365CMS';
-            // Ohne QR-Provider: URI wird ans Frontend zurückgegeben
             $this->tfa = new \RobThree\Auth\TwoFactorAuth(
-                new \RobThree\Auth\Providers\Qr\QRServerProvider(),
+                new class implements \RobThree\Auth\Providers\Qr\IQRCodeProvider {
+                    public function getQRCodeImage(string $qrText, int $size): string
+                    {
+                        return '';
+                    }
+
+                    public function getMimeType(): string
+                    {
+                        return 'image/svg+xml';
+                    }
+                },
                 $issuer
             );
         }
@@ -143,15 +152,6 @@ final class TotpAdapter
 
         $otpUri = $this->getOtpAuthUri($secret, $accountLabel);
         $qrDataUri = '';
-
-        $tfa = $this->getTfa();
-        if ($tfa !== null) {
-            try {
-                $qrDataUri = $tfa->getQRCodeImageAsDataUri($accountLabel, $secret, 200);
-            } catch (\Throwable) {
-                $qrDataUri = '';
-            }
-        }
 
         return [
             'secret'      => $secret,

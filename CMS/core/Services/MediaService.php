@@ -643,6 +643,10 @@ class MediaService {
      */
     private function repairUploadedBrowserImage(string $absolutePath, string $storedName, array $settings): void
     {
+        if (empty($settings['strip_exif'])) {
+            return;
+        }
+
         $extension = strtolower((string) pathinfo($storedName, PATHINFO_EXTENSION));
         if (!in_array($extension, ['jpg', 'jpeg', 'png'], true)) {
             return;

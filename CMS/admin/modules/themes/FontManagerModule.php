@@ -372,7 +372,7 @@ class FontManagerModule
 
             return [
                 'success' => true,
-                'message' => isset($post['use_local_fonts'])
+                'message' => (($post['use_local_fonts'] ?? '0') === '1')
                     ? 'Schrifteinstellungen gespeichert. Lokale On-Prem-Fonts sind jetzt im Frontend aktiv.'
                     : 'Schrifteinstellungen gespeichert. Google-Fonts-Fallback bleibt aktiv.',
                 'details' => array_values(array_filter([
@@ -382,11 +382,13 @@ class FontManagerModule
                 ])),
             ];
         } catch (\Throwable $e) {
+            $useLocalFonts = (($post['use_local_fonts'] ?? '0') === '1');
+
             $this->logger->error('Schrifteinstellungen konnten nicht gespeichert werden.', [
                 'exception' => $e,
                 'heading_font' => (string) ($post['heading_font'] ?? ''),
                 'body_font' => (string) ($post['body_font'] ?? ''),
-                'use_local_fonts' => isset($post['use_local_fonts']),
+                'use_local_fonts' => $useLocalFonts,
             ]);
 
             return $this->buildFontFailureResult(
@@ -395,12 +397,12 @@ class FontManagerModule
                 [
                     'Heading: ' . (string) ($post['heading_font'] ?? 'system-ui'),
                     'Body: ' . (string) ($post['body_font'] ?? 'system-ui'),
-                    'Lokale Fonts aktiv: ' . (isset($post['use_local_fonts']) ? 'ja' : 'nein'),
+                    'Lokale Fonts aktiv: ' . ($useLocalFonts ? 'ja' : 'nein'),
                 ],
                 [
                     'heading_font' => (string) ($post['heading_font'] ?? ''),
                     'body_font' => (string) ($post['body_font'] ?? ''),
-                    'use_local_fonts' => isset($post['use_local_fonts']),
+                    'use_local_fonts' => $useLocalFonts,
                     'exception' => $this->sanitizeErrorContext($e->getMessage()),
                 ]
             );

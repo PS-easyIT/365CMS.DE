@@ -131,7 +131,7 @@ class Totp
     }
 
     /**
-     * QR-Code-Bild-URL via api.qrserver.com (kein Google, DSGVO-freundlicher).
+     * OTP-Auth-URI für lokale QR-Code-Generierung zurückgeben.
      *
      * @param string $secret  Base32-kodiertes Geheimnis
      * @param string $account E-Mail oder Benutzername

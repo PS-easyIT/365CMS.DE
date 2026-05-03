@@ -313,15 +313,15 @@ class SecurityAuditModule
             '.htaccess',
         ] as $relativePath) {
             $path = $abspath . $relativePath;
-            if ($this->fileContainsAny($path, ['fonts.googleapis.com', 'fonts.gstatic.com', 'font-src \'self\' data: https:', 'img-src \'self\' data: https:'])) {
+            if ($this->fileContainsAny($path, ['img-src \'self\' data: https:', 'script-src \'self\' https:', 'frame-src https:', 'child-src https:'])) {
                 $externalRuntimeHits[] = $relativePath;
             }
         }
         $checks[] = $this->buildCheck(
-            'Fremdassets in der Runtime',
+            'Unerwartete Runtime-Fremdassets',
             $externalRuntimeHits === [] ? 'ok' : 'warning',
             $externalRuntimeHits === []
-                ? 'Default-Theme und CSP laden keine externen Font-/Embed-CDNs in der Runtime.'
+                ? 'Default-Theme und CSP erlauben keine ungeplanten Remote-Embeds; genehmigte Google-Font-Fallbacks bleiben optional.'
                 : 'Runtime-Fremdasset-Verweise prüfen: ' . implode(', ', $externalRuntimeHits)
         );
 

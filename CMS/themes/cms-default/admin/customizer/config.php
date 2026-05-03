@@ -268,10 +268,10 @@ return [
                 'default' => '700',
             ],
             'google_fonts' => [
-                'label' => 'Lokale Schriftdateien verwenden',
-                'description' => 'Die Public-Runtime lädt keine externen Google-Fonts-CDNs mehr. Optional importierte oder hochgeladene Schriften werden ausschließlich lokal ausgeliefert; ohne lokale Dateien greift der System-Font-Stack.',
+                'label' => 'Google Fonts als Fallback laden',
+                'description' => 'Erlaubt externe Google-Fonts im Frontend, solange keine lokalen Fonts aktiv sind. Sobald im Font Manager bzw. über lokale Schriften eine passende lokale Datei aktiv ist, hat diese Vorrang und der Remote-Fallback wird unterdrückt.',
                 'type' => 'checkbox',
-                'default' => false,
+                'default' => true,
             ],
             'font_family_body' => [
                 'label' => 'Schriftart Fließtext',

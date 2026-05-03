@@ -14,6 +14,7 @@ if (!defined('ABSPATH')) {
 require_once __DIR__ . '/PostsCategoryViewModelBuilder.php';
 
 use CMS\AuditLogger;
+use CMS\CacheManager;
 use CMS\Database;
 use CMS\Hooks;
 use CMS\Logger;
@@ -653,6 +654,7 @@ class PostsModule
                     'created_at' => (string)($existing->created_at ?? ''),
                 ]);
                 Hooks::doAction('cms_after_post_save', $id, $savePayload, $post);
+                $this->clearContentCacheIfEnabled('post_update', $id);
                 $this->logPersistedContentEnSnapshot($id, 'post_write', [
                     'status' => (string) ($savePayload['status'] ?? $status),
                     'is_new' => false,
@@ -689,6 +691,7 @@ class PostsModule
                 $this->syncPostTags($newId, $rawTags);
                 $this->syncPostCategories($newId, $assignedCategoryIds !== [] ? $assignedCategoryIds : ($savePayload['category_id'] !== null ? [(int) $savePayload['category_id']] : []));
                 Hooks::doAction('cms_after_post_save', $newId, $savePayload, $post);
+                $this->clearContentCacheIfEnabled('post_create', $newId);
                 $this->logPersistedContentEnSnapshot($newId, 'post_write', [
                     'status' => (string) ($savePayload['status'] ?? $status),
                     'is_new' => true,
@@ -1509,6 +1512,24 @@ class PostsModule
             $context,
             'error'
         );
+    }
+
+    private function clearContentCacheIfEnabled(string $reason, int $contentId): void
+    {
+        try {
+            $enabled = (string)($this->db->get_var("SELECT option_value FROM {$this->prefix}settings WHERE option_name = 'perf_auto_clear_content_cache' LIMIT 1") ?? '1') !== '0';
+            if (!$enabled) {
+                return;
+            }
+
+            CacheManager::instance()->clear();
+        } catch (\Throwable $e) {
+            Logger::instance()->withChannel('admin.posts')->warning('Content-Cache konnte nach Beitragsänderung nicht automatisch geleert werden.', [
+                'reason' => $reason,
+                'post_id' => $contentId,
+                'exception' => $e->getMessage(),
+            ]);
+        }
     }
 
     /**

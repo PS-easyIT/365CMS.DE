@@ -180,8 +180,9 @@ final class MediaDeliveryService
         }
 
         $inline = $requestedInline && $this->isInlineSafePath($relativePath);
-        $cacheProfile = $this->isPrivateMemberPath($relativePath) ? 'private' : 'public';
+        $cacheProfile = $this->isPrivateMemberPath($relativePath) ? 'private' : $this->resolvePublicCacheProfile();
         $cacheManager = CacheManager::instance();
+        $isPublicCacheProfile = in_array($cacheProfile, ['public', 'public_no_cache'], true);
         $cacheTtl = $cacheProfile === 'public'
             ? $this->resolvePublicCacheTtl($inline)
             : 300;
@@ -192,7 +193,7 @@ final class MediaDeliveryService
         $filesize = (int) filesize($absolutePath);
         $lastModified = filemtime($absolutePath) ?: time();
 
-        if ($cacheProfile === 'public' && !headers_sent()) {
+        if ($isPublicCacheProfile && !headers_sent()) {
             header_remove('Vary');
             header('Vary: Accept-Encoding');
 
@@ -226,7 +227,7 @@ final class MediaDeliveryService
             header('X-Content-Type-Options: nosniff');
             header('Accept-Ranges: bytes');
             header('Content-Length: ' . $contentLength);
-            if ($cacheProfile !== 'public') {
+            if (!$isPublicCacheProfile) {
                 header('Last-Modified: ' . gmdate('D, d M Y H:i:s', $lastModified) . ' GMT');
             }
             header('Content-Disposition: ' . ($inline ? 'inline' : 'attachment') . '; filename="' . $this->buildSafeFilename($filename) . '"');
@@ -418,6 +419,20 @@ final class MediaDeliveryService
         return in_array($extension, self::INLINE_EXTENSIONS, true);
     }
 
+    private function resolvePublicCacheProfile(): string
+    {
+        try {
+            $db = Database::instance();
+            $value = $db->get_var(
+                "SELECT option_value FROM {$db->getPrefix()}settings WHERE option_name = 'perf_browser_cache' LIMIT 1"
+            );
+
+            return (string) $value === '0' ? 'public_no_cache' : 'public';
+        } catch (\Throwable) {
+            return 'public';
+        }
+    }
+
     private function resolvePublicCacheTtl(bool $inline): int
     {
         $ttl = $inline ? 3600 : 300;
@@ -428,7 +443,6 @@ final class MediaDeliveryService
                 "SELECT option_name, option_value FROM {$db->getPrefix()}settings WHERE option_name IN ('perf_browser_cache', 'perf_browser_cache_ttl')"
             ) ?: [];
 
-            $browserCacheEnabled = true;
             $configuredTtl = $ttl;
 
             foreach ($rows as $row) {
@@ -436,17 +450,12 @@ final class MediaDeliveryService
                 $value = (string) ($row->option_value ?? '');
 
                 if ($name === 'perf_browser_cache') {
-                    $browserCacheEnabled = $value !== '0';
                     continue;
                 }
 
                 if ($name === 'perf_browser_cache_ttl') {
                     $configuredTtl = (int) $value;
                 }
-            }
-
-            if (!$browserCacheEnabled) {
-                return 300;
             }
 
             if ($configuredTtl > 0) {

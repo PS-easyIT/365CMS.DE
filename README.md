@@ -190,6 +190,7 @@ Schon nach der Grundinstallation stehen die Kernbereiche für Inhalte, Medien, B
 Wenn du tiefer einsteigen willst, ist die Detaildokumentation bereits sauber getrennt vorhanden.
 
 Die README zeigt den Produktrahmen; die Fachdokumente vertiefen Installation, Betrieb, Erweiterung und einzelne Teilbereiche.
+Der Performance-Link führt zur aktuellen Best-Practice-Übersicht für Cache, Medien, Datenbankwartung, Sessions und bewusst offene Grenzen.
 
 | Thema | Dokument |
 |---|---|
@@ -201,6 +202,7 @@ Die README zeigt den Produktrahmen; die Fachdokumente vertiefen Installation, Be
 | Plugin-Einstieg | [`CMS/DOC/plugins/GUIDE.md`](CMS/DOC/plugins/GUIDE.md) |
 | Core & Services | [`CMS/DOC/core/ARCHITECTURE.md`](CMS/DOC/core/ARCHITECTURE.md), [`CMS/DOC/core/SERVICES.md`](CMS/DOC/core/SERVICES.md) |
 | Medien-Workflow | [`CMS/DOC/workflow/MEDIA-UPLOAD-WORKFLOW.md`](CMS/DOC/workflow/MEDIA-UPLOAD-WORKFLOW.md) |
+| Performance-Center | [`CMS/DOC/admin/performance/PERFORMANCE.md`](CMS/DOC/admin/performance/PERFORMANCE.md) |
 | Update & Deployment | [`CMS/DOC/workflow/UPDATE-DEPLOYMENT-WORKFLOW.md`](CMS/DOC/workflow/UPDATE-DEPLOYMENT-WORKFLOW.md) |
 | API-Integration | [`CMS/DOC/workflow/API-INTEGRATION-WORKFLOW.md`](CMS/DOC/workflow/API-INTEGRATION-WORKFLOW.md) |
 | Theme-Entwicklung | [`CMS/DOC/theme/THEME-DEVELOPMENT.md`](CMS/DOC/theme/THEME-DEVELOPMENT.md) |
@@ -402,6 +404,7 @@ The README stays focused on product value; the specialized documents cover insta
 | Plugin quick start | [`CMS/DOC/plugins/GUIDE.md`](CMS/DOC/plugins/GUIDE.md) |
 | Core & services | [`CMS/DOC/core/ARCHITECTURE.md`](CMS/DOC/core/ARCHITECTURE.md), [`CMS/DOC/core/SERVICES.md`](CMS/DOC/core/SERVICES.md) |
 | Media workflow | [`CMS/DOC/workflow/MEDIA-UPLOAD-WORKFLOW.md`](CMS/DOC/workflow/MEDIA-UPLOAD-WORKFLOW.md) |
+| Performance center | [`CMS/DOC/admin/performance/PERFORMANCE.md`](CMS/DOC/admin/performance/PERFORMANCE.md) |
 | Update & deployment | [`CMS/DOC/workflow/UPDATE-DEPLOYMENT-WORKFLOW.md`](CMS/DOC/workflow/UPDATE-DEPLOYMENT-WORKFLOW.md) |
 | API integration | [`CMS/DOC/workflow/API-INTEGRATION-WORKFLOW.md`](CMS/DOC/workflow/API-INTEGRATION-WORKFLOW.md) |
 | Theme development | [`CMS/DOC/theme/THEME-DEVELOPMENT.md`](CMS/DOC/theme/THEME-DEVELOPMENT.md) |

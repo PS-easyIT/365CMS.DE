@@ -392,8 +392,8 @@ class CacheManager implements CacheInterface
                 'status' => function_exists('opcache_get_status') ? opcache_get_status(false) : null
             ],
             'apcu' => [
-                'enabled' => function_exists('apcu_cache_info') && apcu_enabled(),
-                'info' => function_exists('apcu_cache_info') ? @apcu_cache_info(true) : null
+                'enabled' => function_exists('apcu_cache_info') && function_exists('apcu_enabled') && apcu_enabled(),
+                'info' => (function_exists('apcu_cache_info') && function_exists('apcu_enabled') && apcu_enabled()) ? @apcu_cache_info(true) : null
             ],
             'litespeed' => [
                 'enabled' => $this->useLiteSpeed,
@@ -465,6 +465,17 @@ class CacheManager implements CacheInterface
                 'Surrogate-Control' => 'no-store',
                 'Vary' => ['Accept-Encoding', 'Cookie'],
                 'X-LiteSpeed-Cache-Control' => $this->useLiteSpeed ? 'no-cache, no-store' : null,
+            ];
+        }
+
+        if ($profile === 'public_no_cache') {
+            return [
+                'Cache-Control' => 'public, no-cache, must-revalidate, max-age=0',
+                'Pragma' => 'no-cache',
+                'Expires' => '0',
+                'Surrogate-Control' => 'no-store',
+                'Vary' => ['Accept-Encoding'],
+                'X-LiteSpeed-Cache-Control' => $this->useLiteSpeed ? 'no-cache' : null,
             ];
         }
 

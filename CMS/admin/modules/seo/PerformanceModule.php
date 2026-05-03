@@ -7,6 +7,7 @@ if (!defined('ABSPATH')) {
 
 use CMS\AuditLogger;
 use CMS\Services\ImageService;
+use CMS\Services\MediaService;
 use CMS\Services\OpcacheWarmupService;
 
 final class PerformanceModule
@@ -25,8 +26,8 @@ final class PerformanceModule
         'perf_page_cache' => '1',
         'perf_browser_cache_ttl' => '604800',
         'perf_html_cache_ttl' => '300',
-        'perf_webp_uploads' => '0',
-        'perf_strip_exif' => '0',
+        'perf_webp_uploads' => '1',
+        'perf_strip_exif' => '1',
         'perf_auto_clear_content_cache' => '1',
         'perf_session_timeout_admin' => '28800',
         'perf_session_timeout_member' => '2592000',
@@ -54,8 +55,6 @@ final class PerformanceModule
             'perf_page_cache',
             'perf_browser_cache_ttl',
             'perf_html_cache_ttl',
-            'perf_webp_uploads',
-            'perf_strip_exif',
             'perf_auto_clear_content_cache',
             'perf_session_timeout_admin',
             'perf_session_timeout_member',
@@ -175,10 +174,26 @@ final class PerformanceModule
         );
 
         $settings = self::DEFAULT_SETTINGS;
+        $foundKeys = [];
         foreach ($rows as $row) {
             $name = (string)($row->option_name ?? '');
             if ($name !== '' && array_key_exists($name, $settings)) {
                 $settings[$name] = (string)($row->option_value ?? '');
+                $foundKeys[$name] = true;
+            }
+        }
+
+        if (!isset($foundKeys['perf_webp_uploads']) || !isset($foundKeys['perf_strip_exif'])) {
+            try {
+                $mediaSettings = MediaService::getInstance()->getSettings();
+                if (!isset($foundKeys['perf_webp_uploads'])) {
+                    $settings['perf_webp_uploads'] = !empty($mediaSettings['auto_webp']) ? '1' : '0';
+                }
+                if (!isset($foundKeys['perf_strip_exif'])) {
+                    $settings['perf_strip_exif'] = !empty($mediaSettings['strip_exif']) ? '1' : '0';
+                }
+            } catch (\Throwable) {
+                // Defaults bleiben erhalten, wenn die Medienkonfiguration nicht lesbar ist.
             }
         }
 
@@ -710,9 +725,15 @@ final class PerformanceModule
     {
         $result = $this->systemService->optimizeTables();
         $success = 0;
+        $skipped = 0;
+        $failed = 0;
         foreach ($result as $row) {
             if (!empty($row['success'])) {
                 $success++;
+            } elseif (!empty($row['skipped'])) {
+                $skipped++;
+            } else {
+                $failed++;
             }
         }
 
@@ -722,20 +743,29 @@ final class PerformanceModule
             'Datenbanktabellen optimiert',
             'database',
             null,
-            ['success_count' => $success],
-            'warning'
+            ['success_count' => $success, 'skipped_count' => $skipped, 'failed_count' => $failed],
+            $failed > 0 ? 'error' : 'warning'
         );
 
-        return ['success' => true, 'message' => $success . ' Tabelle(n) optimiert.'];
+        return [
+            'success' => $failed === 0 || $success > 0 || $skipped > 0,
+            'message' => sprintf('%d Tabelle(n) optimiert, %d übersprungen, %d fehlgeschlagen.', $success, $skipped, $failed),
+        ];
     }
 
     private function repairDatabase(): array
     {
         $result = $this->systemService->repairTables();
         $success = 0;
+        $skipped = 0;
+        $failed = 0;
         foreach ($result as $row) {
             if (!empty($row['success'])) {
                 $success++;
+            } elseif (!empty($row['skipped'])) {
+                $skipped++;
+            } else {
+                $failed++;
             }
         }
 
@@ -745,11 +775,14 @@ final class PerformanceModule
             'Datenbanktabellen geprüft oder repariert',
             'database',
             null,
-            ['success_count' => $success],
-            'warning'
+            ['success_count' => $success, 'skipped_count' => $skipped, 'failed_count' => $failed],
+            $failed > 0 ? 'error' : 'warning'
         );
 
-        return ['success' => true, 'message' => $success . ' Tabelle(n) repariert bzw. geprüft.'];
+        return [
+            'success' => $failed === 0 || $success > 0 || $skipped > 0,
+            'message' => sprintf('%d Tabelle(n) repariert bzw. geprüft, %d übersprungen, %d fehlgeschlagen.', $success, $skipped, $failed),
+        ];
     }
 
     private function clearExpiredSessions(): array
@@ -828,6 +861,21 @@ final class PerformanceModule
                     $this->db->update('settings', ['option_value' => $value], ['option_name' => $key]);
                 } else {
                     $this->db->insert('settings', ['option_name' => $key, 'option_value' => $value]);
+                }
+            }
+
+            if ($action === 'save_media_settings' || array_key_exists('perf_webp_uploads', $settingsToSave) || array_key_exists('perf_strip_exif', $settingsToSave)) {
+                $mediaService = MediaService::getInstance();
+                $mediaSettings = $mediaService->getSettings();
+                if (array_key_exists('perf_webp_uploads', $settingsToSave)) {
+                    $mediaSettings['auto_webp'] = $settingsToSave['perf_webp_uploads'] === '1';
+                }
+                if (array_key_exists('perf_strip_exif', $settingsToSave)) {
+                    $mediaSettings['strip_exif'] = $settingsToSave['perf_strip_exif'] === '1';
+                }
+                $mediaResult = $mediaService->saveSettings($mediaSettings);
+                if ($mediaResult instanceof \CMS\WP_Error) {
+                    throw new \RuntimeException($mediaResult->get_error_message());
                 }
             }
         } catch (\Throwable $e) {

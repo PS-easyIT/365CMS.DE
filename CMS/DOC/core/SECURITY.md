@@ -66,14 +66,15 @@ AuditLogger               ← Alle sicherheitsrelevanten Aktionen protokollieren
 | Bcrypt (cost 12) | Passwort-Hashing |
 | CSP Level 3 + Trusted Types | Nonce-basiert, Report-Only im Debug |
 | HSTS Preload | max-age 1 Jahr, includeSubDomains |
-| Runtime-Asset-Policy | keine externen Font-/Embed-CDNs im Default-Runtime-Pfad |
+| Runtime-Asset-Policy | keine externen Embed-CDNs; Google Fonts nur als optionaler Fallback für Themes, lokale Fonts haben Vorrang |
 
 ### 1.1 Zweitprüfung 2026-05-02
 
 Die Security-Zweitprüfung für `2.9.248` hat folgende Punkte gehärtet:
 
-- Default-Theme lädt keine Google-Fonts-Preconnects oder externen Font-Stylesheets mehr.
-- PHP-CSP und Apache-Fallback erlauben keine Remote-Fonts mehr; `img-src` ist auf `self`, `data:` und `blob:` begrenzt.
+- Default-Theme lädt Google-Fonts nur noch optional, wenn lokale Fonts nicht aktiv sind und der Theme-Customizer den Fallback erlaubt.
+- PHP-CSP und Apache-Fallback erlauben genehmigte Google-Font-Hosts wieder als optionalen Fallback; `img-src` bleibt auf `self`, `data:` und `blob:` begrenzt.
+- Der Font Manager kann erkannte Google-Fonts weiterhin lokal spiegeln; aktivierte lokale Fonts unterdrücken anschließend den Remote-Fallback im Frontend.
 - Editor.js lädt die externen `embed.umd.js`- und `columns.umd.js`-Bundles nicht mehr; bestehende Embed-Blöcke rendern nur noch als sicherer Link statt als Iframe.
 - AntiSpam bewirbt keine externen CAPTCHA-Dienste mehr und bleibt lokal: Honeypot, Mindestzeit, Linklimit, User-Agent und Blacklist.
 - Security-Audit prüft zusätzlich Firewall-Runtime, AntiSpam-Runtime und Fremdasset-Indikatoren.

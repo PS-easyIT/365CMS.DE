@@ -525,7 +525,13 @@ class Router
             return;
         }
 
-        $cache->sendResponseHeaders('public', $this->resolvePublicHtmlCacheTtl());
+        $publicHtmlTtl = $this->resolvePublicHtmlCacheTtl();
+        if ($publicHtmlTtl <= 0) {
+            $cache->sendResponseHeaders('public_no_cache', 0);
+            return;
+        }
+
+        $cache->sendResponseHeaders('public', $publicHtmlTtl);
     }
 
     private function resolvePublicHtmlCacheTtl(): int
@@ -556,7 +562,7 @@ class Router
             }
 
             if (!$pageCacheEnabled) {
-                return 60;
+                return 0;
             }
 
             if ($configuredTtl > 0) {

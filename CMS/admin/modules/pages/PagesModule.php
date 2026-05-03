@@ -13,6 +13,7 @@ if (!defined('ABSPATH')) {
 
 use CMS\Database;
 use CMS\Hooks;
+use CMS\CacheManager;
 use CMS\AuditLogger;
 use CMS\Logger;
 use CMS\PageManager;
@@ -395,6 +396,7 @@ class PagesModule
                     (string)($savePayload['slug_en'] ?? '')
                 );
                 Hooks::doAction('cms_after_page_save', $id, $savePayload, $post);
+                $this->clearContentCacheIfEnabled('page_update', $id);
                 $this->logPersistedContentEnSnapshot($id, 'post_write', [
                     'status' => (string) ($savePayload['status'] ?? $status),
                     'is_new' => false,
@@ -423,6 +425,7 @@ class PagesModule
                     );
                     SEOService::getInstance()->saveContentMeta('page', $newId, $post);
                     Hooks::doAction('cms_after_page_save', $newId, $savePayload, $post);
+                    $this->clearContentCacheIfEnabled('page_create', $newId);
                     $this->logPersistedContentEnSnapshot($newId, 'post_write', [
                         'status' => (string) ($savePayload['status'] ?? $status),
                         'is_new' => true,
@@ -689,6 +692,24 @@ class PagesModule
         $this->logFailure($action, $message, $exception, $context);
 
         return ['success' => false, 'error' => $message . ' Bitte Logs prüfen.'];
+    }
+
+    private function clearContentCacheIfEnabled(string $reason, int $contentId): void
+    {
+        try {
+            $enabled = (string)($this->db->get_var("SELECT option_value FROM {$this->prefix}settings WHERE option_name = 'perf_auto_clear_content_cache' LIMIT 1") ?? '1') !== '0';
+            if (!$enabled) {
+                return;
+            }
+
+            CacheManager::instance()->clear();
+        } catch (\Throwable $e) {
+            Logger::instance()->withChannel('admin.pages')->warning('Content-Cache konnte nach Seitenänderung nicht automatisch geleert werden.', [
+                'reason' => $reason,
+                'page_id' => $contentId,
+                'exception' => $e->getMessage(),
+            ]);
+        }
     }
 
     private function logFailure(string $action, string $message, ?\Throwable $exception = null, array $context = []): void

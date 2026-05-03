@@ -39,7 +39,12 @@ final class MeridianCMSDefaultTheme
 
     public function outputPreconnect(): void
     {
-        // Runtime lädt keine externen Font-CDNs. Lokale Assets benötigen kein Cross-Origin-Preconnect.
+        if (!$this->shouldLoadExternalFonts()) {
+            return;
+        }
+
+        echo '<link rel="preconnect" href="https://fonts.googleapis.com">' . "\n";
+        echo '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>' . "\n";
     }
 
     private function isLocalFontsEnabled(): bool
@@ -63,11 +68,170 @@ final class MeridianCMSDefaultTheme
             ? cms_asset_url('css/local-fonts.css')
             : (defined('SITE_URL') ? SITE_URL . '/assets/css/local-fonts.css' : '');
 
-        if ($localCssPath && file_exists($localCssPath) && $localCssUrl) {
+        if ($this->isLocalFontsEnabled() && $localCssPath && file_exists($localCssPath) && $localCssUrl) {
             $href = htmlspecialchars($localCssUrl, ENT_QUOTES, 'UTF-8');
             echo '<link rel="preload" href="' . $href . '" as="style" onload="this.onload=null;this.rel=\'stylesheet\'">' . "\n";
             echo '<noscript><link rel="stylesheet" href="' . $href . '"></noscript>' . "\n";
+
+            return;
         }
+
+        if (!$this->shouldLoadExternalFonts()) {
+            return;
+        }
+
+        $fontUrl = $this->getGoogleFontsStylesheetUrl();
+        if ($fontUrl !== '') {
+            echo '<link href="' . htmlspecialchars($fontUrl, ENT_QUOTES, 'UTF-8') . '" rel="stylesheet">' . "\n";
+        }
+    }
+
+    private function shouldLoadExternalFonts(): bool
+    {
+        if ($this->isLocalFontsEnabled()) {
+            return false;
+        }
+
+        try {
+            return (bool) \CMS\Services\ThemeCustomizer::instance()->get('typography', 'google_fonts', true);
+        } catch (\Throwable $e) {
+            return true;
+        }
+    }
+
+    private function getGoogleFontsStylesheetUrl(): string
+    {
+        try {
+            $customizer = \CMS\Services\ThemeCustomizer::instance();
+            $fontBody = (string) $customizer->get('typography', 'font_family_body', 'dm-sans');
+            $fontHeading = (string) $customizer->get('typography', 'font_family_heading', 'libre-baskerville');
+        } catch (\Throwable $e) {
+            $fontBody = 'dm-sans';
+            $fontHeading = 'libre-baskerville';
+        }
+
+        $googleMap = [
+            'dm-sans' => 'DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400',
+            'libre-baskerville' => 'Libre+Baskerville:ital,wght@0,400;0,700;1,400',
+            'inter' => 'Inter:wght@400;500;600;700',
+            'playfair-display' => 'Playfair+Display:ital,wght@0,400;0,700;1,400',
+            'merriweather' => 'Merriweather:ital,wght@0,400;0,700;1,400',
+        ];
+
+        $families = [];
+
+        if (isset($googleMap[$fontBody])) {
+            $families[] = $googleMap[$fontBody];
+        }
+
+        if ($fontHeading !== $fontBody && isset($googleMap[$fontHeading])) {
+            $families[] = $googleMap[$fontHeading];
+        }
+
+        if (!in_array('DM+Mono:wght@400;500', $families, true)) {
+            $families[] = 'DM+Mono:wght@400;500';
+        }
+
+        if ($families === []) {
+            return '';
+        }
+
+        return 'https://fonts.googleapis.com/css2?family=' . implode('&family=', $families) . '&display=swap';
+    }
+
+    /** @return array{font_body:string,font_heading:string,font_size_base:?int,font_line_height:?float} */
+    private function getLocalFontRuntimeSettings(): array
+    {
+        try {
+            $db = \CMS\Database::instance();
+            $rows = $db->get_results(
+                "SELECT option_name, option_value FROM {$db->getPrefix()}settings WHERE option_name IN ('font_body', 'font_heading', 'font_size_base', 'font_line_height')"
+            ) ?: [];
+        } catch (\Throwable $e) {
+            return [
+                'font_body' => '',
+                'font_heading' => '',
+                'font_size_base' => null,
+                'font_line_height' => null,
+            ];
+        }
+
+        $settings = [
+            'font_body' => '',
+            'font_heading' => '',
+            'font_size_base' => null,
+            'font_line_height' => null,
+        ];
+
+        foreach ($rows as $row) {
+            $name = (string) ($row->option_name ?? '');
+            $value = trim((string) ($row->option_value ?? ''));
+
+            if ($name === 'font_body' || $name === 'font_heading') {
+                $settings[$name] = $this->sanitizeFontKey($value);
+                continue;
+            }
+
+            if ($name === 'font_size_base' && $value !== '' && is_numeric($value)) {
+                $settings[$name] = max(10, min(72, (int) round((float) $value)));
+                continue;
+            }
+
+            if ($name === 'font_line_height' && $value !== '' && is_numeric(str_replace(',', '.', $value))) {
+                $settings[$name] = max(1.0, min(3.0, (float) str_replace(',', '.', $value)));
+            }
+        }
+
+        return $settings;
+    }
+
+    private function resolveConfiguredFontStack(string $fontKey, string $fallback): string
+    {
+        $fontKey = $this->sanitizeFontKey($fontKey);
+        if ($fontKey === '') {
+            return $fallback;
+        }
+
+        $customStack = $this->getStoredFontStack($fontKey);
+        if ($customStack !== '') {
+            return $customStack;
+        }
+
+        return match ($fontKey) {
+            'system-ui' => 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+            'arial' => 'Arial, "Helvetica Neue", Helvetica, sans-serif',
+            'georgia' => 'Georgia, "Times New Roman", Times, serif',
+            'times-new-roman' => '"Times New Roman", Times, serif',
+            'courier-new' => '"Courier New", Courier, monospace',
+            'verdana' => 'Verdana, Geneva, sans-serif',
+            'trebuchet-ms' => '"Trebuchet MS", "Lucida Grande", sans-serif',
+            'inter' => '"Inter", system-ui, sans-serif',
+            'dm-sans' => '"DM Sans", system-ui, sans-serif',
+            'libre-baskerville' => '"Libre Baskerville", Georgia, serif',
+            'playfair-display' => '"Playfair Display", Georgia, serif',
+            'merriweather' => '"Merriweather", Georgia, serif',
+            default => $fallback,
+        };
+    }
+
+    private function getStoredFontStack(string $fontKey): string
+    {
+        try {
+            $db = \CMS\Database::instance();
+            $value = $db->get_var(
+                "SELECT option_value FROM {$db->getPrefix()}settings WHERE option_name = ? LIMIT 1",
+                ['font_stack_' . $fontKey]
+            );
+        } catch (\Throwable $e) {
+            return '';
+        }
+
+        return trim((string) $value);
+    }
+
+    private function sanitizeFontKey(string $fontKey): string
+    {
+        return preg_replace('/[^a-z0-9_-]/', '', strtolower(trim($fontKey))) ?? '';
     }
 
     public function enqueueStyles(): void
@@ -136,6 +300,26 @@ final class MeridianCMSDefaultTheme
             $h2Size = max(14, (int)$customizer->get('typography', 'h2_size', 28));
             $h3Size = max(12, (int)$customizer->get('typography', 'h3_size', 22));
 
+            if ($this->isLocalFontsEnabled()) {
+                $fontRuntimeSettings = $this->getLocalFontRuntimeSettings();
+
+                if ($fontRuntimeSettings['font_body'] !== '') {
+                    $fontBody = $fontRuntimeSettings['font_body'];
+                }
+
+                if ($fontRuntimeSettings['font_heading'] !== '') {
+                    $fontHeading = $fontRuntimeSettings['font_heading'];
+                }
+
+                if ($fontRuntimeSettings['font_size_base'] !== null) {
+                    $baseFontSz = $fontRuntimeSettings['font_size_base'];
+                }
+
+                if ($fontRuntimeSettings['font_line_height'] !== null) {
+                    $lineHeight = $fontRuntimeSettings['font_line_height'];
+                }
+            }
+
             $navFontSize = max(11, (int)$customizer->get('navigation', 'nav_font_size', 14));
             $navUppercase = (string)$customizer->get('navigation', 'nav_uppercase', '0') !== '0';
             $navLetterSp = (string)$customizer->get('navigation', 'nav_letter_spacing', '0');
@@ -143,20 +327,8 @@ final class MeridianCMSDefaultTheme
             $stripeEnabled = (string)$customizer->get('header', 'header_stripe_enabled', '1') !== '0';
             $customCss = (string)$customizer->get('advanced', 'custom_css', '');
 
-            $fontBodyCss = match ($fontBody) {
-                'system-ui' => 'system-ui, -apple-system, sans-serif',
-                'georgia' => "'Georgia', serif",
-                'times-new-roman' => "'Times New Roman', Times, serif",
-                'inter' => "'Inter', system-ui, sans-serif",
-                default => "'DM Sans', system-ui, sans-serif",
-            };
-            $fontHeadingCss = match ($fontHeading) {
-                'georgia' => 'Georgia, serif',
-                'merriweather' => "'Merriweather', Georgia, serif",
-                'playfair-display' => "'Playfair Display', Georgia, serif",
-                'system-ui' => 'system-ui, -apple-system, sans-serif',
-                default => "'Libre Baskerville', Georgia, serif",
-            };
+            $fontBodyCss = $this->resolveConfiguredFontStack($fontBody, '"DM Sans", system-ui, sans-serif');
+            $fontHeadingCss = $this->resolveConfiguredFontStack($fontHeading, '"Libre Baskerville", Georgia, serif');
 
             $esc = static fn(string $value): string => htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
 
