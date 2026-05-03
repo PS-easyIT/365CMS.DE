@@ -134,6 +134,55 @@ function cms_admin_section_shell_normalize_template_vars(mixed $templateVars): a
     return $normalized;
 }
 
+/**
+ * @return list<string>
+ */
+function cms_admin_section_shell_normalize_csrf_actions(mixed $actions, string $fallbackAction): array
+{
+    $normalized = [];
+    $candidates = is_array($actions) ? $actions : [$actions];
+
+    foreach ($candidates as $action) {
+        $actionName = trim((string) $action);
+        if ($actionName === '' || in_array($actionName, $normalized, true)) {
+            continue;
+        }
+
+        $normalized[] = $actionName;
+    }
+
+    if ($normalized === []) {
+        $normalized[] = $fallbackAction;
+    }
+
+    if (!in_array($fallbackAction, $normalized, true)) {
+        array_unshift($normalized, $fallbackAction);
+    }
+
+    return $normalized;
+}
+
+function cms_admin_section_shell_verify_csrf_token(mixed $token, array $csrfActions, bool $persistentValidation): ?string
+{
+    $token = is_string($token) ? $token : (string) $token;
+    if ($token === '') {
+        return null;
+    }
+
+    $security = Security::instance();
+    foreach ($csrfActions as $csrfAction) {
+        $isValid = $persistentValidation
+            ? $security->verifyPersistentToken($token, $csrfAction)
+            : $security->verifyToken($token, $csrfAction);
+
+        if ($isValid) {
+            return $csrfAction;
+        }
+    }
+
+    return null;
+}
+
 function cms_admin_section_shell_apply_runtime_context(array $runtimeContext, string &$section, string &$viewFile, string &$pageTitle, string &$activePage, array &$pageAssets, array &$templateVars, mixed &$resolvedData): void
 {
     $section = (string) ($runtimeContext['section'] ?? $section);
@@ -156,6 +205,8 @@ $activePage = (string)($sectionPageConfig['active_page'] ?? 'dashboard');
 $pageAssets = cms_admin_section_shell_normalize_page_assets($sectionPageConfig['page_assets'] ?? []);
 $section = (string)($sectionPageConfig['section'] ?? 'overview');
 $csrfAction = (string)($sectionPageConfig['csrf_action'] ?? 'admin_section');
+$csrfActions = cms_admin_section_shell_normalize_csrf_actions($sectionPageConfig['csrf_actions'] ?? [$csrfAction], $csrfAction);
+$csrfPersistentValidation = !empty($sectionPageConfig['csrf_persistent_validation']);
 $guardConstant = (string)($sectionPageConfig['guard_constant'] ?? '');
 $moduleFile = (string)($sectionPageConfig['module_file'] ?? '');
 $moduleFactory = $sectionPageConfig['module_factory'] ?? null;
@@ -199,12 +250,13 @@ $alert = cms_admin_section_shell_pull_flash($alertSessionKey);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $postToken = $_POST['csrf_token'] ?? '';
-    if (!Security::instance()->verifyToken($postToken, $csrfAction)) {
+    $verifiedCsrfAction = cms_admin_section_shell_verify_csrf_token($postToken, $csrfActions, $csrfPersistentValidation);
+    if ($verifiedCsrfAction === null) {
         cms_admin_section_shell_flash($alertSessionKey, ['type' => 'danger', 'message' => $invalidTokenMessage]);
         cms_admin_section_shell_redirect($redirectTarget);
     }
 
-    cms_admin_section_shell_mark_csrf_verified($csrfAction);
+    cms_admin_section_shell_mark_csrf_verified($verifiedCsrfAction);
 
     $result = is_callable($postHandler)
         ? $postHandler($module, $section, $_POST)

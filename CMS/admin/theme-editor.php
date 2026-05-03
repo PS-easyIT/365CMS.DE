@@ -285,6 +285,8 @@ $sectionPageConfig = [
     'active_page' => 'theme-editor',
     'page_assets' => [],
     'csrf_action' => 'admin_theme_editor',
+    'csrf_actions' => ['admin_theme_editor', 'theme_customizer', 'phinit_customizer', 'ptc_customizer'],
+    'csrf_persistent_validation' => true,
     'module_factory' => static fn (): ThemeManager => ThemeManager::instance(),
     'data_loader' => static fn (ThemeManager $themeManager): array => cms_admin_theme_editor_resolve_state($themeManager),
     'request_context_resolver' => static fn (ThemeManager $themeManager): array => cms_admin_theme_editor_runtime_context($themeManager),
