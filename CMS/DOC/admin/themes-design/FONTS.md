@@ -1,37 +1,88 @@
 # 365CMS – Font Manager
 
-Kurzbeschreibung: Verwaltung lokal gehosteter Schriftarten inklusive Import, Upload und CSS-Bereitstellung.
+Kurzbeschreibung: Verwaltung lokal gehosteter Schriftarten inklusive Theme-Scan, Google-Font-Spiegelung und CSS-Bereitstellung.
 
-Letzte Aktualisierung: 2026-05-02 · Version 2.9.248
+Letzte Aktualisierung: 2026-05-03 · Version 2.9.513
 
 ---
 
 ## Überblick
 
-Der Font Manager ersetzt ältere, isolierte Font-Verwaltungslösungen und bündelt opt-in externe Google-Font-Einbindung mit DSGVO-freundlichem lokalem Hosting von Webfonts.
+Der Font Manager bündelt drei Aufgaben:
 
-Mögliche Anwendungsfälle:
+- aktive Theme-Dateien auf externe oder bekannte Fonts scannen
+- Google-Fonts kontrolliert lokal nach `/uploads/fonts` spiegeln
+- Schriftfamilien für Überschriften und Body-Text im Frontend zuordnen
 
-- Google-Fonts im Theme zunächst extern einbinden und später lokal spiegeln
-- eigene WOFF/WOFF2-Dateien hochladen
-- Schriftfamilien zentral verwalten
-- generierte CSS-Pfade prüfen
-- lokale Fonts im Frontend priorisieren und Remote-Fallback gezielt unterdrücken
+Damit lässt sich der Remote-Fallback im Theme zunächst beibehalten und später gezielt auf lokales Hosting umstellen.
 
 ---
 
-## Datenmodell
+## Datenmodell und Speicherung
 
-Die aktuelle Implementierung kombiniert lokale Theme-Scans, Download-/Import-Pfade und persistente Konfigurationsdaten wie `CMS/config/fonts.json` bzw. passende Settings. Ältere Dokumentationsstände, die ausschließlich von einer einzelnen DB-Tabelle ausgehen, greifen zu kurz.
+Die aktuelle Runtime kombiniert:
+
+- Tabelle `custom_fonts` für lokal verwaltete Fonts
+- Settings wie `font_heading`, `font_body`, `font_size_base`, `font_line_height` und `privacy_use_local_fonts`
+- Theme-bezogene Scan-Caches im Settings-Speicher
+- lokale Font-Dateien und CSS unter `/uploads/fonts`
+
+Ältere Dokumentationsstände, die nur von einer einzelnen JSON-Datei oder nur von einer einzelnen Tabelle ausgehen, sind zu kurz gegriffen.
 
 ---
 
-## Aktuelle technische Hinweise
+## Theme-Scan
 
-Der aktuelle Arbeitsstand enthält zusätzliche Härtungen für den Font-Download, unter anderem robustere CSS-Endpunkt-Fallbacks, vorsichtigere Dateischreiboperationen und Audit-Logging für Scan-, Download- und Löschaktionen. Externe Google-Fonts bleiben im Theme als bewusster Fallback möglich; sobald lokale Fonts aktiviert sind, verwendet das Frontend vorrangig die lokal gespeicherten Dateien.
+Der Font Manager scannt das aktive Theme kontrolliert mit festen Schutzgrenzen:
+
+- nur definierte Text-Endungen
+- Größenlimit pro Datei
+- Gesamtlimit für gescannten Textinhalt
+- übersprungene Segmente wie `vendor`, `node_modules`, `cache`, `.git`
+- Cache-TTL von 900 Sekunden pro aktivem Theme
+
+Erkannte Fonts werden mit Quellen, Installationsstatus und Warnhinweisen in der UI gespiegelt.
+
+---
+
+## Remote-Download und lokales Hosting
+
+Google-Fonts werden nur von freigegebenen Hosts geladen:
+
+- `fonts.googleapis.com`
+- `fonts.gstatic.com`
+
+Zusätzliche Härtungen:
+
+- CSS-Endpunkt-Fallback bei blockierten `css2`-Antworten
+- Limit für Anzahl und Größe heruntergeladener Font-Dateien
+- atomisches Schreiben lokaler Dateien
+- Binär-/Header-Prüfung für `woff`, `woff2`, `ttf`, `otf`
+- Audit-Logging für Scan, Download und Löschung
+
+---
+
+## Lokale Font-Aktivierung
+
+Sobald `privacy_use_local_fonts = 1` gesetzt ist, priorisiert das Frontend lokale Fonts und unterdrückt den vorgesehenen Google-Fonts-Fallback, sofern passende lokale Dateien vorhanden sind.
+
+Bleibt die Option deaktiviert, kann das Theme weiterhin bewusst externe Google-Fonts als Fallback verwenden.
+
+---
+
+## Asset-Status und Löschung
+
+Die lokale Font-Liste zeigt nicht nur die Primärdatei, sondern auch:
+
+- zugehörige CSS-Datei
+- verknüpfte Font-Assets aus der CSS
+- fehlende verknüpfte Dateien
+- Asset-Status (`complete` / `warning`)
+
+Beim Löschen versucht der Font Manager, sowohl CSS als auch verknüpfte lokale Font-Dateien kontrolliert zu entfernen.
 
 ---
 
 ## Dokumentationshinweis
 
-Verweise auf `admin/fonts-local.php` sind veraltet. Verwendet in aktueller Dokumentation ausschließlich `/admin/font-manager`.
+Verweise auf `admin/fonts-local.php` sind veraltet. Für aktuelle Dokumentation und Supportfälle ausschließlich `/admin/font-manager` verwenden.

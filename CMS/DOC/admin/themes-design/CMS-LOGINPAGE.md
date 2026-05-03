@@ -2,11 +2,11 @@
 
 Kurzbeschreibung: Themeunabhängige Core-Oberfläche für Login, Registrierung und Passwort-Reset inklusive zentraler Admin-Steuerung.
 
-Letzte Aktualisierung: 2026-04-07 · Version 2.9.0
+Letzte Aktualisierung: 2026-05-03 · Version 2.9.513
 
 Route: `/admin/cms-loginpage`
 
-Öffentliche Core-Routen:
+Öffentliche Core-Routen im Modus `auth_slug_mode = cms`:
 
 - `/cms-login`
 - `/cms-register`
@@ -25,16 +25,21 @@ Damit rendert 365CMS Login, Registrierung und Passwort-Reset nicht mehr nur übe
 - einheitliche Redirect- und Sicherheitsverträge
 - Admin-seitige Pflege von Auth-Texten und Brand-Elementen
 
+Zusätzlich kann die Oberfläche bestimmen, ob öffentliche Auth-Links bevorzugt die kanonischen CMS-Slugs oder die Legacy-Slugs verwenden sollen.
+
 ---
 
 ## Bearbeitbare Bereiche
 
 Die Admin-Seite arbeitet über `CMS\Services\CmsAuthPageService` und speichert ihre Werte überwiegend als `cms_loginpage_*`-Settings in `cms_settings`.
 
+Gemeinsam genutzte Core-Schalter wie `registration_enabled`, `member_registration_enabled`, `privacy_page_id`, `terms_page_id` und `imprint_page_id` bleiben bewusst im allgemeinen Settings-Raum und werden hier nur mitverwaltet.
+
 ### 1. Grundlayout
 
 - Brandname
 - Logo-URL
+- Umschalter für öffentliche Auth-Slugs (`cms` / `legacy`)
 - Kartenbreite
 - Footer-Hinweis
 
@@ -114,6 +119,19 @@ Verfügbare Platzhalter im Mail-Text:
 
 ---
 
+## Eingabe- und Speichervertrag
+
+Die Werte werden serverseitig validiert und normalisiert, unter anderem für:
+
+- Farbwerte (`#rrggbb`)
+- Layout-Varianten (`centered`, `split`)
+- Slug-Modus (`cms`, `legacy`)
+- veröffentlichte Seiten-IDs für Datenschutz/AGB/Impressum
+- Text-, Textarea- und Multiline-Felder mit Längenlimits
+- Logo-URLs und interne Pfade ohne unsichere Schemata
+
+---
+
 ## Sicherheits- und Laufzeitvertrag
 
 Die CMS Loginpage ist nicht nur „hübscher Login“, sondern Teil des Security-Vertrags.
@@ -127,6 +145,13 @@ Die CMS Loginpage ist nicht nur „hübscher Login“, sondern Teil des Security
 
 - Login, Registrierung und Reset arbeiten mit Core-CSRF-Tokens
 - Admin-Speicherungen der CMS Loginpage folgen dem üblichen Admin-PRG-Flow
+
+### Passwort-Reset
+
+- Reset-Anfragen liefern weiterhin konsistente Erfolgstexte, um Benutzeraufzählung per Antwortinhalt zu vermeiden
+- Reset-Tokens werden kryptografisch zufällig erzeugt, gehasht gespeichert und nach erfolgreicher Nutzung gelöscht
+- Reset-Anfrage und Token-Einlösung sind zusätzlich per IP-basiertem Core-Rate-Limit geschützt
+- die Passwort-Policy bleibt mit dem übrigen Auth-System synchron
 
 ### Registrierung
 
@@ -152,6 +177,10 @@ Das behebt insbesondere den früheren Effekt, dass MFA-Benutzer nach erfolgreich
 ### Remember-Me
 
 Der Schalter **„Angemeldet bleiben“** ist seit `2.9.0` eine echte persistente Backend-Option und keine reine UI-Dekoration mehr.
+
+### Öffentliche Pfade
+
+Die Vorschau- und Laufzeitpfade werden locale-aware aus dem Core erzeugt. Damit können Login, Registrierung und Passwort-Reset dieselbe Core-Strecke auch in lokalisierten Routen konsistent verwenden.
 
 ---
 

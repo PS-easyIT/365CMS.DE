@@ -1,8 +1,8 @@
 # Theme Editor
 
-Kurzbeschreibung: Dokumentiert den aktuellen Theme-Editor als Einstieg in den theme-spezifischen Customizer des aktiven Themes.
+Kurzbeschreibung: Dokumentiert den aktuellen Theme-Editor als sicheren Einstieg in den theme-spezifischen Customizer des aktiven Themes.
 
-Letzte Aktualisierung: 2026-04-07 · Version 2.9.0
+Letzte Aktualisierung: 2026-05-03 · Version 2.9.513
 
 ---
 
@@ -11,11 +11,7 @@ Letzte Aktualisierung: 2026-04-07 · Version 2.9.0
 - Route: `/admin/theme-editor`
 - Entry Point: `CMS/admin/theme-editor.php`
 
-Der Theme-Editor ist kein generischer Roh-Dateieditor, sondern lädt bevorzugt die vom aktiven Theme bereitgestellte Datei:
-
-- `admin/customizer.php`
-
-Existiert diese Datei nicht oder schlägt die Prüfung fehl, wird stattdessen eine strukturierte Fallback-Seite mit Hinweisen angezeigt.
+Der Theme-Editor ist **kein** freier Code-Editor. Er versucht, die Datei `admin/customizer.php` des aktiven Themes kontrolliert einzubinden. Wenn das nicht sicher möglich ist, rendert er einen erklärenden Fallback.
 
 ---
 
@@ -24,55 +20,67 @@ Existiert diese Datei nicht oder schlägt die Prüfung fehl, wird stattdessen ei
 Beim Aufruf werden folgende Schritte ausgeführt:
 
 1. Admin-Berechtigung prüfen
-2. Aktives Theme über `CMS\ThemeManager::instance()` bestimmen
-3. `admin/customizer.php` des aktiven Themes suchen und Theme-Pfade prüfen
-4. Falls vorhanden: über den Theme-Editor-Flow laden
-5. Falls nicht vorhanden oder ungültig: Fallback-Ansicht mit Links zu
-	- `/admin/themes`
-	- `/admin/theme-explorer`
+2. aktives Theme über `CMS\ThemeManager::instance()` bestimmen
+3. Theme-Pfad sicher auflösen
+4. `admin/customizer.php` suchen
+5. Datei vor dem Einbinden validieren
+6. entweder Customizer inline laden oder `views/themes/customizer-missing.php` rendern
 
 ---
 
-## Bedeutung für Theme-Entwickler
+## Validierungen vor dem Einbinden
 
-Wenn ein Theme eigene Einstellungsoberflächen im Admin bereitstellen soll, ist `admin/customizer.php` der zentrale Einstiegspunkt.
+Die aktuelle Runtime bindet `admin/customizer.php` nur ein, wenn alle Schutzprüfungen bestehen:
 
-Empfohlene Aufgaben dieser Datei:
+- Datei liegt innerhalb des aktiven Theme-Verzeichnisses
+- Datei ist lesbar
+- Datei überschreitet nicht das Inline-Limit von 256 KB
+- Datei enthält keine Binärdaten / NUL-Bytes
+- PHP-Syntax ist gültig
+- bestimmte riskante Funktionsaufrufe kommen nicht vor
 
-- Theme-Farben verwalten
-- Typografie konfigurieren
-- Header-/Footer-Optionen pflegen
-- Layout-Defaults ändern
-- CSS-Ausgabe aus Theme-Settings erzeugen
+Aktuell blockierte Funktionsnamen:
 
-Die genaue Umsetzung ist theme-spezifisch. Der Core erzwingt hier keine universelle UI, sondern nur den Einstiegspfad.
+- `eval`
+- `exec`
+- `system`
+- `shell_exec`
+- `passthru`
+- `proc_open`
+- `popen`
+- `base64_decode`
 
 ---
 
 ## Fallback-Verhalten
 
-Wenn kein Customizer vorhanden ist, zeigt die Seite explizit an:
+Wenn der Customizer nicht geladen werden kann, zeigt die Fallback-Ansicht strukturiert an:
 
-- welches Theme aktiv ist
-- dass keine `admin/customizer.php` gefunden wurde
-- welche Alternativen verfügbar sind
+- aktives Theme
+- Reason-Code und Erklärung
+- erwarteten Pfad `admin/customizer.php`
+- Verweise auf `/admin/themes` und `/admin/theme-explorer`
 
-Das schützt vor irreführenden Fehlermeldungen und macht sichtbar, dass der fehlende Editor kein Systemfehler ist, sondern eine Eigenschaft des Themes.
+Das verhindert irreführende weiße Seiten und macht sichtbar, ob ein Theme schlicht keinen Customizer mitbringt oder ob eine Sicherheitsprüfung fehlgeschlagen ist.
+
+---
+
+## Bedeutung für Theme-Entwickler
+
+Wenn ein Theme eine eigene Admin-Konfiguration bereitstellen soll, ist `admin/customizer.php` der zentrale Einstiegspunkt.
+
+Die Datei bleibt theme-spezifisch. Der Core stellt den sicheren Ladepfad, das Shell-Layout und den Fallback bereit, erzwingt aber keine universelle UI.
 
 ---
 
 ## Sicherheit und Grenzen
 
-- Zugriff nur für Admins
-- Keine freie Bearbeitung beliebiger Core-Dateien über diese Route
-- Kein automatischer Syntax-Check für Theme-PHP außerhalb des geladenen Theme-Customizers
+- Zugriff nur für Admins mit `manage_settings`
+- keine freie Bearbeitung beliebiger Dateien über diese Route
+- POST-Requests werden absichtlich inline an den eingebetteten Customizer durchgereicht
+- die Section-Shell nutzt persistent validierte CSRF-Allowlists für eingebettete Theme-Customizer
 
-Wenn ein Theme eigene Formulare einbindet, muss es selbst auf folgende Punkte achten:
-
-- CSRF-Schutz
-- Ausgabe-Escaping
-- Sanitizing von Theme-Optionen
-- konsistente Speicherung in `settings` oder theme-spezifischen Datenstrukturen
+Für tatsächliche Dateibearbeitung ist stattdessen `/admin/theme-explorer` vorgesehen.
 
 ---
 

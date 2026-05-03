@@ -1,44 +1,52 @@
 # Design-Einstellungen
 
-Kurzbeschreibung: Globale Design-Tokens (Farben, Layout, Header, Footer) unabhängig vom aktiven Theme.
+Kurzbeschreibung: Einordnung des früheren globalen Design-Pfads und seiner heutigen Rolle im produktiven Admin.
 
-Letzte Aktualisierung: 2026-04-07 · Version 2.9.0
+Letzte Aktualisierung: 2026-05-03 · Version 2.9.513
 
 ---
 
-## Route und Technik
+## Aktueller Status
+
+`/admin/design-settings` ist im aktuellen Core **kein eigenständiger Settings-Screen mehr**, sondern ein Legacy-Alias auf `/admin/theme-editor`.
 
 | Eigenschaft | Wert |
 |---|---|
-| Route | `/admin/design-settings` *(Legacy-/Übergangspfad)* |
-| Modul | `CMS/admin/modules/themes/DesignSettingsModule.php` |
-| CSRF-Kontext | `admin_design_settings` |
+| Öffentliche Admin-Route | `/admin/design-settings` |
+| Aktuelles Verhalten | Redirect auf `/admin/theme-editor` |
+| Entry Point | `CMS/admin/design-settings.php` |
+| Produktive Bearbeitungsoberfläche | `CMS/admin/theme-editor.php` |
 
 ---
 
-## Funktionsumfang
+## Was nicht mehr gilt
 
-`getData()` liefert die aktuellen globalen Design-Einstellungen. `saveSettings(array $post)` speichert Änderungen.
+Ältere Dokumentationsstände beschrieben `/admin/design-settings` als vollständige Oberfläche mit eigener POST-Verarbeitung und eigenem CSRF-Kontext. Das trifft auf die aktuelle Runtime nicht mehr zu.
 
-### Typische Einstellungsbereiche
+Auch `CMS/admin/modules/themes/DesignSettingsModule.php` und `CMS/admin/views/themes/settings.php` sind derzeit **keine Standard-Adminroute** im laufenden Navigationsfluss.
 
-- **Farben**: Primär-, Sekundär-, Akzentfarben, Hintergrund
-- **Layout**: Container-Breite, Abstände, Spaltenraster
-- **Header**: Header-Typ, Sticky-Verhalten, Logo-Position
-- **Footer**: Footer-Layout, Spaltenanzahl, Copyright
-- **Performance**: Lazy Loading, Asset-Optimierung
+---
 
-Die Design-Einstellungen wirken systemweit und können vom Theme-Editor bzw. theme-spezifischen Customizer-Pfaden überschrieben oder ergänzt werden.
+## Wo globale Design-Aspekte heute landen
+
+Statt einer einzelnen globalen Design-Seite verteilt der aktuelle Core Design-nahe Pflege auf mehrere spezialisierte Werkzeuge:
+
+- `/admin/theme-editor` für theme-spezifische Customizer-Oberflächen
+- `/admin/theme-explorer` für kontrollierte Dateiansicht/-bearbeitung
+- `/admin/font-manager` für Schriftzuordnung und lokales Font-Hosting
+- `/admin/cms-loginpage` für Core-Auth-Branding, Farben und Texte
+- `/admin/settings` für allgemeine Core-Einstellungen, auf die früher `theme-settings` teils verwies
 
 ---
 
 ## Abgrenzung zum Theme-Editor
 
-| Aspekt | Design-Einstellungen | Theme-Editor |
+| Aspekt | Legacy `design-settings` | Aktiver `theme-editor` |
 |---|---|---|
-| Scope | Global / systemweit | Theme-spezifisch |
-| Route | `/admin/design-settings` *(Legacy/Übergang)* | `/admin/theme-editor` |
-| Modul | `DesignSettingsModule` | Theme-eigene `customizer.php` |
+| Status | Alias / Redirect | produktive Oberfläche |
+| Scope | historisch global | aktives Theme / sicherer Customizer-Einstieg |
+| Route | `/admin/design-settings` | `/admin/theme-editor` |
+| Runtime | keine eigene Bearbeitungslogik | validiertes `admin/customizer.php` oder Fallback |
 
 ---
 

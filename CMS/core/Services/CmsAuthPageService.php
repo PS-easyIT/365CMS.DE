@@ -15,6 +15,10 @@ if (!defined('ABSPATH')) {
 final class CmsAuthPageService
 {
     private const SETTING_PREFIX = 'cms_loginpage_';
+    private const FORGOT_PASSWORD_REQUEST_RATE_LIMIT_ATTEMPTS = 5;
+    private const FORGOT_PASSWORD_REQUEST_RATE_LIMIT_WINDOW = 900;
+    private const FORGOT_PASSWORD_RESET_RATE_LIMIT_ATTEMPTS = 10;
+    private const FORGOT_PASSWORD_RESET_RATE_LIMIT_WINDOW = 900;
     private const AUTH_CANONICAL_PATHS = [
         'login' => '/cms-login',
         'register' => '/cms-register',
@@ -314,6 +318,27 @@ final class CmsAuthPageService
 
         $settings = $this->getSettings();
         $expiryMinutes = max(5, min(1440, (int) ($settings['password_reset_expiry_minutes'] ?? '60')));
+        $security = Security::instance();
+        $clientIp = $security->getClientIp();
+
+        if (!$security->checkDbRateLimit(
+            $clientIp,
+            'forgot_password_request',
+            self::FORGOT_PASSWORD_REQUEST_RATE_LIMIT_ATTEMPTS,
+            self::FORGOT_PASSWORD_REQUEST_RATE_LIMIT_WINDOW
+        )) {
+            $this->logger->warning('Passwort-Reset-Anfrage wegen Rate-Limit geblockt.', [
+                'ip' => $clientIp,
+                'email' => $email,
+            ]);
+
+            return [
+                'success' => false,
+                'message' => 'Zu viele Reset-Anfragen. Bitte warte einige Minuten und versuche es erneut.',
+            ];
+        }
+
+        Security::recordDbRateLimitAttempt($clientIp, 'forgot_password_request', $email);
 
         try {
             $user = $this->db->get_row(
@@ -381,6 +406,24 @@ final class CmsAuthPageService
         if ($token === '') {
             return ['success' => false, 'message' => 'Ungültiger Reset-Link.'];
         }
+
+        $security = Security::instance();
+        $clientIp = $security->getClientIp();
+
+        if (!$security->checkDbRateLimit(
+            $clientIp,
+            'forgot_password_reset',
+            self::FORGOT_PASSWORD_RESET_RATE_LIMIT_ATTEMPTS,
+            self::FORGOT_PASSWORD_RESET_RATE_LIMIT_WINDOW
+        )) {
+            $this->logger->warning('Passwort-Reset wegen Rate-Limit geblockt.', [
+                'ip' => $clientIp,
+            ]);
+
+            return ['success' => false, 'message' => 'Zu viele Reset-Versuche. Bitte warte einige Minuten und versuche es erneut.'];
+        }
+
+        Security::recordDbRateLimitAttempt($clientIp, 'forgot_password_reset');
 
         if ($password !== $passwordConfirmation) {
             return ['success' => false, 'message' => 'Die Passwörter stimmen nicht überein.'];

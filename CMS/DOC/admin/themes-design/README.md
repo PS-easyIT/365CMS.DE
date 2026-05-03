@@ -1,16 +1,16 @@
 # Themes & Design
 
-Kurzbeschreibung: Übersicht über die aktuellen Design-, Theme- und Frontend-Werkzeuge im Admin-Bereich – inklusive der neuen CMS-eigenen Loginpage, die trotz eigenem Core-Rendering organisatorisch unter „Themes & Design“ geführt wird.
+Kurzbeschreibung: Übersicht über die aktuell produktiven Theme-, Design- und Frontend-Werkzeuge im Admin-Bereich – inklusive der Core-eigenen CMS Loginpage.
 
-Letzte Aktualisierung: 2026-04-07 · Version 2.9.0
+Letzte Aktualisierung: 2026-05-03 · Version 2.9.513
 
 ---
 
 ## Überblick
 
-Der Bereich **Themes & Design** bündelt die Werkzeuge zur Verwaltung des aktiven Themes, zur Bearbeitung theme-spezifischer Einstellungen sowie zu Navigation, Landingpages und Schriften.
+Der Bereich **Themes & Design** bündelt die Core-Oberflächen für Theme-Verwaltung, Theme-Customizer-Einstieg, kontrollierte Dateiinspektion, Schriftverwaltung und die themeunabhängige Auth-UI.
 
-Die Standardnavigation in `CMS/admin/partials/sidebar.php` führt aktuell auf folgende Routen:
+Die Standardnavigation in `CMS/admin/partials/sidebar.php` führt aktuell auf folgende produktive Routen:
 
 - `/admin/themes`
 - `/admin/theme-editor`
@@ -20,7 +20,11 @@ Die Standardnavigation in `CMS/admin/partials/sidebar.php` führt aktuell auf fo
 - `/admin/landing-page`
 - `/admin/font-manager`
 
-Ein separater Theme-Marketplace (`/admin/theme-marketplace`) existiert ebenfalls, wird aber derzeit nicht als Standardpunkt in der Sidebar geführt.
+Ergänzend existieren weitere themennahe Admin-Pfade:
+
+- `/admin/theme-marketplace`
+- `/admin/design-settings` → Legacy-Alias auf `/admin/theme-editor`
+- `/admin/theme-settings` → Legacy-Alias auf `/admin/settings`
 
 ---
 
@@ -29,65 +33,67 @@ Ein separater Theme-Marketplace (`/admin/theme-marketplace`) existiert ebenfalls
 ### Theme-Verwaltung
 
 - Route: `/admin/themes`
-- Zweck: Installierte Themes anzeigen, aktives Theme erkennen, Theme-Wechsel steuern.
+- Zweck: installierte Themes anzeigen, aktivieren und – sofern nicht aktiv – löschen.
+- Laufzeitvertrag: Theme-Wechsel und Löschungen laufen über `CMS\ThemeManager` inklusive Health-Check, Locking und Audit-Logging.
 
 ### Theme-Editor
 
 - Route: `/admin/theme-editor`
-- Zweck: Lädt den Customizer des aktiven Themes über `admin/customizer.php`, falls vorhanden.
-- Fallback: Zeigt eine Info-Seite, wenn das aktive Theme keinen eigenen Customizer bereitstellt.
+- Zweck: sicherer Einstieg in `admin/customizer.php` des aktiven Themes.
+- Kein Roh-Dateieditor: Die Route lädt nur einen validierten Theme-Customizer oder einen strukturierten Fallback.
 
 ### Theme-Explorer
 
 - Route: `/admin/theme-explorer`
-- Zweck: Dateien, Struktur und Assets eines Themes kontrolliert durchsuchen.
+- Zweck: Dateien des aktiven Themes kontrolliert durchsuchen und ausgewählte Textdateien im Browser bearbeiten.
+- Laufzeitvertrag: Pfad-Whitelist, Dateigrößenlimits, erlaubte Endungen, PHP-Syntaxprüfung und atomisches Schreiben mit Integritätscheck.
 
 ### CMS Loginpage
 
 - Route: `/admin/cms-loginpage`
-- Zweck: Die CMS-eigene Auth-Strecke für Login, Registrierung und Passwort-Reset design- und textseitig konfigurieren.
-- Besonderheit: Die Seite rendert **Core-Auth-Ansichten**, nicht Theme-Templates. Sie sitzt hier im Navigationsbereich, weil Branding, Farben und UX-Texte dort fachlich am besten aufgehoben sind.
-
-### Menü-Editor
-
-- Route: `/admin/menu-editor`
-- Zweck: Navigationsstrukturen, Positionen und Einträge der Theme-Menüs pflegen.
-
-### Landing Page
-
-- Route: `/admin/landing-page`
-- Zweck: Landingpage-nahe Inhalte und Präsentationsblöcke verwalten, sofern das aktive Setup diese Oberfläche nutzt.
+- Zweck: Branding, Farben, Texte und rechtliche Verknüpfungen für `/cms-login`, `/cms-register` und `/cms-password-forgot` steuern.
+- Besonderheit: rendert Core-Auth-Ansichten statt Theme-Templates und bleibt damit unabhängig vom aktiven Frontend-Theme stabil.
 
 ### Font Manager
 
 - Route: `/admin/font-manager`
-- Zweck: lokale Schriften, Zuordnungen und Font-Assets pflegen.
+- Zweck: Theme-Fonts scannen, Google-Fonts lokal spiegeln, Font-Zuordnungen speichern und lokales Frontend-Hosting aktivieren.
+- Laufzeitvertrag: Remote-Downloads nur von freigegebenen Hosts, lokale Ablage in `/uploads/fonts`, Scan-/Download-Limits und Audit-Logging.
+
+### Menü-Editor
+
+- Route: `/admin/menu-editor`
+- Zweck: Menüs, Positionen und Navigationsstrukturen pflegen.
+
+### Landing Page
+
+- Route: `/admin/landing-page`
+- Zweck: landingpage-nahe Präsentationsblöcke verwalten, sofern das Setup diese Oberfläche nutzt.
 
 ---
 
-## Theme-Editor versus Datei-Editor
+## Abgrenzung der Werkzeuge
 
-Im aktuellen 365CMS ist der „Theme Editor“ in erster Linie ein **Theme-Customizer-Einstiegspunkt**.
+| Route | Rolle |
+|---|---|
+| `/admin/theme-editor` | lädt den sicheren Theme-Customizer-Einstieg |
+| `/admin/theme-explorer` | kontrollierte Theme-Dateiansicht und Browser-Save-Pfad |
+| `/admin/themes` | operative Theme-Verwaltung |
+| `/admin/theme-marketplace` | katalogbasierte Theme-Entdeckung und Installation |
+| `/admin/cms-loginpage` | themeunabhängige Core-Auth-Oberfläche |
+| `/admin/font-manager` | lokale Font-Verwaltung und Theme-Font-Scan |
 
-Er arbeitet wie folgt:
-
-1. Ermittelt das aktive Theme über `CMS\ThemeManager`
-2. Prüft, ob `admin/customizer.php` im Theme existiert
-3. Lädt diese Datei direkt als Theme-spezifische Admin-Oberfläche
-4. Zeigt andernfalls einen Fallback mit Verweisen zur Theme-Verwaltung und zum Theme-Explorer
-
-Das ist bewusst etwas anderes als ein generischer Browser-Codeeditor mit freier Dateibearbeitung.
+Wichtig: Der Theme-Editor ist **kein** generischer Code-Editor. Für Dateibearbeitung ist der Theme-Explorer zuständig.
 
 ---
 
-## Zusätzliche Module außerhalb der Sidebar
+## Sicherheits- und Betriebsbild
 
-Neben den Standardpunkten existieren weitere themennahe Routen, darunter:
-
-- `/admin/theme-marketplace`
-- Legacy-Weiterleitungen wie `/admin/design-settings` → `/admin/theme-editor`
-
-Solche Seiten sind funktional vorhanden, aber nicht zwingend Teil des Standard-Navigationsflusses in `2.8.0 RC`.
+- Theme-Marketplace arbeitet mit HTTPS-Quellen, Host-Allowlist, ZIP-only, SHA-256-Prüfung, Paketgrößenlimits und Install-Locks.
+- Theme-Explorer begrenzt Pfade, Dateitypen, Baumtiefe und Browser-Dateigrößen und speichert nur atomisch mit Hash-Prüfung.
+- Theme-Editor validiert `admin/customizer.php` vor dem Einbinden auf Pfad, Größe, Syntax, Binärinhalte und unsichere Funktionsaufrufe.
+- Font Manager scannt und löscht Font-Assets kontrolliert und priorisiert lokale Fonts optional vor externen Fallbacks.
+- CMS Loginpage speichert ihre Werte serverseitig validiert und schützt Reset- und Login-Flows mit Core-CSRF sowie Rate-Limits auf Passwort-Reset-Aktionen.
 
 ---
 

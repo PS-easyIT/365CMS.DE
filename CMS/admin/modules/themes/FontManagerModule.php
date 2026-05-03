@@ -1348,7 +1348,7 @@ class FontManagerModule
             return [];
         }
 
-        if (preg_match_all('/url\(([^)]+)\)/i', $content, $matches) !== 1) {
+        if (preg_match_all('/url\(([^)]+)\)/i', $content, $matches) < 1) {
             return [];
         }
 

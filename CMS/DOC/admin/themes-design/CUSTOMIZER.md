@@ -1,56 +1,73 @@
-# 365CMS – Theme-Editor & Design-Anpassung
+# 365CMS – Theme-Customizer-Vertrag
 
-Kurzbeschreibung: Aktueller Einstieg für visuelle Theme-Anpassungen, Customizer-Werte und Export/Import von Design-Einstellungen – ergänzt um die Abgrenzung zur neuen CMS Loginpage.
+Kurzbeschreibung: Einordnung des heutigen Theme-Customizers, seiner Ladeverträge im Theme-Editor und der Abgrenzung zu anderen Design-Oberflächen.
 
-Letzte Aktualisierung: 2026-04-07 · Version 2.9.0
+Letzte Aktualisierung: 2026-05-03 · Version 2.9.513
 
 ---
 
 ## Überblick
 
-Der frühere separate „Theme-Customizer“ ist im aktuellen Stand funktional im Theme-Editor aufgegangen. Dort werden visuelle Einstellungen, Theme-spezifische Optionen und generierte Styles zusammengeführt.
+Der frühere separate „Theme-Customizer“ ist im aktuellen Core kein eigener Standard-Entry-Point mehr. Maßgebliche Referenz ist `/admin/theme-editor`.
 
-Der Theme-Bereich umfasst derzeit vor allem:
+Der Core-Customizer-Vertrag lautet heute:
 
-- `/admin/themes`
-- `/admin/theme-editor`
-- `/admin/theme-explorer`
-- `/admin/cms-loginpage`
-- `/admin/menu-editor`
-- `/admin/landing-page`
-- `/admin/font-manager`
+- aktives Theme bestimmen
+- `admin/customizer.php` des aktiven Themes suchen
+- Datei sicher validieren
+- Inline im Admin-Shell-Kontext rendern
 
----
-
-## Typische Funktionen im Theme-Editor
-
-- Farben und Design-Tokens anpassen
-- Layout-Parameter pflegen
-- Typografie konfigurieren
-- Kategorien zurücksetzen
-- Gesamte Einstellungen zurücksetzen
-- Einstellungen exportieren oder importieren
-- generiertes CSS ableiten
+Wenn diese Kette nicht erfüllt ist, erscheint der sichere Theme-Editor-Fallback statt einer halb kaputten UI.
 
 ---
 
-## Datenmodell
+## Produktiver Einstieg
 
-Theme-Anpassungen werden weiterhin über Theme- und Core-Pfade gespeichert; je nach Funktion spielen dabei `theme_customizations` sowie ergänzende Settings-/Exportpfade zusammen.
+- Route: `/admin/theme-editor`
+- erwartete Theme-Datei: `admin/customizer.php`
+- Fallback bei Fehlern oder fehlender Datei: `CMS/admin/views/themes/customizer-missing.php`
+
+Der Legacy-Pfad `/admin/design-settings` zeigt in der aktuellen Runtime nicht auf einen separaten Customizer, sondern leitet auf `/admin/theme-editor` um.
+
+---
+
+## POST- und CSRF-Vertrag
+
+Eingebettete Theme-Customizer werden nicht wie normale Module per Standard-POST-Handler verarbeitet. Stattdessen lässt die Section-Shell den POST inline an das Theme-Fragment weiterlaufen.
+
+Aktive Schutzmerkmale des Theme-Editor-Shells:
+
+- `csrf_action = admin_theme_editor`
+- zusätzliche Allowlist für eingebettete Theme-Customizer-Aktionen
+- persistente CSRF-Vorvalidierung, damit One-Time-Tokens des eingebetteten Customizers nicht vorzeitig verbraucht werden
+
+Das ist relevant für Themes, die eigene Save-Aktionen direkt in `admin/customizer.php` behandeln.
+
+---
+
+## Typische Aufgaben im Theme-Customizer
+
+Die konkrete Oberfläche bleibt Theme-Sache. Häufige Aufgaben sind:
+
+- Farben und Design-Tokens pflegen
+- Typografie und Abstände konfigurieren
+- Header-/Footer-Optionen speichern
+- Theme-spezifische CSS-Ausgabe generieren
+- Exporte/Importe oder Reset-Aktionen des Themes anbieten
+
+Die Umsetzung kann je Theme variieren; der Core garantiert nur den sicheren Einstiegspfad.
+
+---
+
+## Abgrenzung zu anderen Oberflächen
+
+- `/admin/theme-editor` → theme-spezifischer Customizer des aktiven Themes
+- `/admin/theme-explorer` → kontrollierte Dateibearbeitung im aktiven Theme
+- `/admin/font-manager` → lokale Schriften, Theme-Scan und Font-Zuordnungen
+- `/admin/cms-loginpage` → themeunabhängige Core-Auth-Seiten für Login/Registrierung/Reset
 
 ---
 
 ## Dokumentationshinweis
 
-Verweise auf `admin/theme-customizer.php` sind veraltet. Für aktuelle Dokumentation und Supportfälle ist `/admin/theme-editor` die maßgebliche Referenz.
-
-## Abgrenzung zur CMS Loginpage
-
-Seit `2.9.0` existiert mit [`/admin/cms-loginpage`](CMS-LOGINPAGE.md) zusätzlich eine **Core-eigene** Auth-Oberfläche.
-
-Wichtig ist die Trennung:
-
-- `/admin/theme-editor` steuert **Theme-spezifische** Darstellung über den Customizer des aktiven Themes.
-- `/admin/cms-loginpage` steuert **themeunabhängige Auth-Seiten** des Core für `/cms-login`, `/cms-register` und `/cms-password-forgot`.
-
-Die CMS Loginpage ist also kein weiterer Theme-Customizer, sondern bewusst eine stabile Core-Strecke für Login, Registrierung und Reset – auch dann, wenn ein Theme eigene Login-Templates hat oder eben nicht hat. Kleiner, aber wichtiger Unterschied mit großem Effekt auf Support-Tickets.
+Verweise auf `admin/theme-customizer.php` oder auf einen eigenständigen globalen Customizer sind veraltet. Für Support- und Entwicklungsfälle ist `/admin/theme-editor` die führende Referenz.

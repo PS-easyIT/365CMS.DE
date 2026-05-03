@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Beschreibt die Marketplace-Oberflächen für Themes und Plugins im aktuellen Admin-Bereich.
 
-Letzte Aktualisierung: 2026-04-07 · Version 2.9.0
+Letzte Aktualisierung: 2026-05-03 · Version 2.9.513
 
 ---
 
@@ -13,7 +13,7 @@ Letzte Aktualisierung: 2026-04-07 · Version 2.9.0
 - Theme Marketplace: `/admin/theme-marketplace`
 - Plugin Marketplace: `/admin/plugin-marketplace`
 
-Beide Seiten sind Admin-only und arbeiten mit dedizierten Modulen und Views.
+Beide Seiten sind Admin-only und arbeiten mit dedizierten Modulen und Views. Der Theme Marketplace ist dabei stärker auf sichere Paketprüfung und kontrollierte Installation ausgelegt.
 
 ---
 
@@ -26,21 +26,49 @@ Beide Seiten sind Admin-only und arbeiten mit dedizierten Modulen und Views.
 - Modul: `CMS/admin/modules/themes/ThemeMarketplaceModule.php`
 - View: `CMS/admin/views/themes/marketplace.php`
 
-### Funktionsumfang
+### Katalogquellen
 
-Die Oberfläche zeigt einen Katalog aus Theme-Metadaten und unterstützt aktuell insbesondere:
+Der Theme-Katalog wird in folgender Reihenfolge aufgelöst:
 
-- Theme-Katalog auf Basis der Registry
-- Screenshot-/Vorschaudarstellung
-- Statusanzeige für
-    - aktiv
-    - installiert
-    - Update verfügbar
-- Installation per Formularaktion `install`
+1. frischer Cache für die konfigurierte Marketplace-URL
+2. Remote-`index.json`
+3. abgelaufener Cache als Fallback
+4. lokaler `index.json`-Fallback im Theme-Umfeld
+
+Aktueller Cache-TTL: 900 Sekunden.
+
+### Sichtbarer Funktionsumfang
+
+- Theme-Kacheln mit Screenshot, Version, Autor und Status
+- Suche und Statusfilter im Frontend
+- Kennzeichnung für aktiv, installiert, Update verfügbar, kostenpflichtig
+- Hinweise zu Paketgröße, Download-Host, SHA-256 und Kompatibilität
+- Installation per POST-Aktion `install`
+
+### Voraussetzungen für Auto-Install
+
+Ein Theme gilt nur dann als automatisch installierbar, wenn alle Bedingungen erfüllt sind:
+
+- HTTPS-Download-URL
+- Host liegt in der Marketplace-Allowlist
+- erlaubte Archiv-Endung (`zip`)
+- gültige SHA-256-Prüfsumme vorhanden
+- Paketgröße innerhalb des Limits
+- CMS- und PHP-Mindestversion passen zur aktuellen Runtime
+
+### Paket-Härtung
+
+Die Installation arbeitet zusätzlich mit:
+
+- Install-Lock pro Theme-Zielordner
+- Größen- und Eintragslimits für Archive
+- Finalisierung des entpackten Pakets auf gültige Theme-Struktur
+- Prüfung auf `style.css`, `theme.json` und `functions.php`
+- Fallback-Bereinigung unvollständiger Pakete
 
 ### Wichtige Einordnung
 
-Der Theme Marketplace existiert, wird aber derzeit **nicht** als Standardpunkt in der Sidebar ausgegeben. Für die tägliche Arbeit ist primär die Route `/admin/themes` relevant.
+Der Theme Marketplace ist bewusst vom operativen Theme-Management getrennt. Für Aktivieren, Health-Checks und Löschen bleibt `/admin/themes` die primäre Verwaltungsseite.
 
 ---
 
@@ -55,20 +83,12 @@ Der Theme Marketplace existiert, wird aber derzeit **nicht** als Standardpunkt i
 
 ### Funktionsumfang
 
-Aktuell dokumentierter und im View sichtbarer Umfang:
-
 - Kachelübersicht verfügbarer Plugins
-- KPI-Karten für
-    - verfügbar
-    - installiert
-    - installierbar
-- Volltextsuche im Frontend
-- Kategoriefilter
+- KPI-Karten für verfügbar, installiert und installierbar
+- Volltextsuche und Kategoriefilter
 - Installation per POST-Aktion `install`
 
-### Sidebar-Verhalten
-
-Der Plugin Marketplace wird in der Sidebar nur eingeblendet, wenn die Einstellung `marketplace_enabled` nicht deaktiviert wurde.
+Der Plugin Marketplace wird in der Sidebar nur eingeblendet, wenn `marketplace_enabled` aktiv ist.
 
 ---
 
@@ -76,10 +96,8 @@ Der Plugin Marketplace wird in der Sidebar nur eingeblendet, wenn die Einstellun
 
 Marketplace und Verwaltung sind bewusst getrennt:
 
-- `/admin/themes` und `/admin/plugins` sind die operativen Verwaltungsseiten
-- `/admin/theme-marketplace` und `/admin/plugin-marketplace` dienen dem katalogbasierten Entdecken und Installieren
-
-Für produktive Pflege bestehender Installationen bleiben daher die klassischen Verwaltungsseiten die wichtigste Referenz.
+- `/admin/themes` und `/admin/plugins` = operative Verwaltungsseiten
+- `/admin/theme-marketplace` und `/admin/plugin-marketplace` = katalogbasiertes Entdecken und Installieren
 
 ---
 
@@ -91,6 +109,8 @@ Beide Marketplace-Seiten verwenden:
 - CSRF-Token-Prüfung
 - Redirect nach POST
 - Session-basierte Erfolgs-/Fehlermeldungen
+
+Der Theme Marketplace ergänzt dies um HTTPS-/Host-Allowlisting, Hash-Prüfung, Archiv-Grenzen und strukturierte Fehler-Report-Payloads.
 
 ---
 
