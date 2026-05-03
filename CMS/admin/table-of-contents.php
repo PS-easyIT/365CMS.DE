@@ -11,65 +11,31 @@ if (!defined('ABSPATH')) {
  */
 
 use CMS\Auth;
-use CMS\Security;
 
 const CMS_ADMIN_TOC_CAPABILITY = 'manage_settings';
 
-function cms_admin_toc_can_access(): bool
-{
-    return Auth::instance()->isAdmin()
-        && Auth::instance()->hasCapability(CMS_ADMIN_TOC_CAPABILITY);
-}
+$sectionPageConfig = [
+    'section' => 'table-of-contents',
+    'route_path' => '/admin/table-of-contents',
+    'view_file' => __DIR__ . '/views/toc/settings.php',
+    'page_title' => 'Inhaltsverzeichnis',
+    'active_page' => 'table-of-contents',
+    'csrf_action' => 'admin_toc',
+    'module_file' => __DIR__ . '/modules/toc/TocModule.php',
+    'module_factory' => static fn (): TocModule => new TocModule(),
+    'data_loader' => static fn (TocModule $module): array => [
+        'settings' => $module->getSettings(),
+    ],
+    'access_checker' => static fn (): bool => Auth::instance()->isAdmin() && Auth::instance()->hasCapability(CMS_ADMIN_TOC_CAPABILITY),
+    'invalid_token_message' => 'Sicherheitstoken ungültig.',
+    'unknown_action_message' => 'Aktion konnte nicht verarbeitet werden.',
+    'post_handler' => static function (TocModule $module, string $section, array $post): array {
+        if (($post['action'] ?? '') !== 'save') {
+            return ['success' => false, 'error' => 'Unbekannte Aktion.'];
+        }
 
-function cms_admin_toc_redirect(): never
-{
-    header('Location: /admin/table-of-contents');
-    exit;
-}
+        return $module->saveSettings($post);
+    },
+];
 
-if (!cms_admin_toc_can_access()) {
-    header('Location: /');
-    exit;
-}
-
-require_once __DIR__ . '/modules/toc/TocModule.php';
-$module    = new TocModule();
-$alert     = null;
-
-// ─── POST-Handling ───────────────────────────────────────
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $action    = $_POST['action'] ?? '';
-    $postToken = $_POST['csrf_token'] ?? '';
-
-    if (!Security::instance()->verifyToken($postToken, 'admin_toc')) {
-        $_SESSION['admin_alert'] = ['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.'];
-        cms_admin_toc_redirect();
-    }
-
-    if ($action === 'save') {
-        $result = $module->saveSettings($_POST);
-        $_SESSION['admin_alert'] = [
-            'type'    => $result['success'] ? 'success' : 'danger',
-            'message' => $result['message'] ?? $result['error'] ?? '',
-        ];
-        cms_admin_toc_redirect();
-    }
-}
-
-// ─── Session-Alert abholen ───────────────────────────────
-if (!empty($_SESSION['admin_alert'])) {
-    $alert = $_SESSION['admin_alert'];
-    unset($_SESSION['admin_alert']);
-}
-
-$csrfToken = Security::instance()->generateToken('admin_toc');
-
-// ─── View ────────────────────────────────────────────────
-$settings   = $module->getSettings();
-$pageTitle  = 'Inhaltsverzeichnis';
-$activePage = 'table-of-contents';
-
-require __DIR__ . '/partials/header.php';
-require __DIR__ . '/partials/sidebar.php';
-require __DIR__ . '/views/toc/settings.php';
-require __DIR__ . '/partials/footer.php';
+require __DIR__ . '/partials/section-page-shell.php';

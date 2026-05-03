@@ -1,4 +1,4 @@
-﻿﻿**Version:** 2.9.505
+﻿﻿**Version:** 2.9.506
 
 # 365CMS Changelog
 
@@ -19,6 +19,12 @@
 ## 📜 Vollständige Versionshistorie
 
 ---
+
+### v2.9.506 — 3. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.506** | 🔴 fix | Admin & Public/Kommentare + Inhaltsverzeichnis | **`CMS/core/Routing/PublicRouter.php`, `CMS/themes/cms-default/blog-single.php`, `CMS/core/TableOfContents.php`, `CMS/admin/modules/toc/TocModule.php`, `CMS/admin/table-of-contents.php`, `CMS/admin/views/toc/settings.php` und `CMS/DOC/admin/pages-posts/POSTS.md` schließen den Unterbereich Kommentare & Inhaltsverzeichnis als eigenen 5xx-Batch ab**: Einzelbeiträge rendern freigegebene Kommentare jetzt wieder sichtbar statt nur ein Formular, besitzen endlich ein echtes `#comments`-Sprungziel, respektieren `allow_comments` im Frontend und halten Formularfehler/-erfolge inline am Beitrag mit erhaltenem Zustand statt bloß als generischen Header-Flash; eingeloggte Nutzer können vorhandene Profildaten konsistent verwenden und optional anonym posten. Parallel respektiert das TOC nun Ausschlusslisten per Pipe **oder** Komma, die Optionen `lowercase`, `hyphenate`, `homepage_toc` und `exclude_css` wirken in der Runtime tatsächlich, `light`/`dark` landen wieder auf funktionierenden Theme-Varianten, die Positionsauswahl beschreibt den realen Vertrag „vor/nach der ersten Überschrift“ korrekt, und die TOC-Adminseite läuft nun auf denselben Section-Shell-Standard wie andere modernisierte Admin-Bereiche. |
 
 ### v2.9.505 — 3. Mai 2026
 

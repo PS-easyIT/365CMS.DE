@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.9.505",
+  "version": "2.9.506",
   "min_php": "8.4",
   "released": "2026-05-03",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 2.9.505: Der Public-Taxonomie-Vertrag für Kategorien und Tags wurde nachgeschärft – `?category=`- und `?tag=`-Links im Default-Theme laufen wieder in dieselben Archive wie die dedizierten Routing-Pfade, und die Theme-Helper für Kategorien/Tags zählen veröffentlichte Beiträge jetzt relationstabellen- sowie locale-aware statt nur über Primärkategorie bzw. Legacy-Tag-Strings.",
+  "notes": "Release-Stand 2.9.506: Der Unterbereich Kommentare & Inhaltsverzeichnis ist produktiv nachgezogen – Einzelbeiträge rendern freigegebene Kommentare wieder sichtbar samt `#comments`-Ziel, per Formularfehler bleibt der Zustand inline am Beitrag erhalten und Redirects springen auf denselben sicheren Public-Pfad zurück; zusätzlich respektiert das TOC nun Ausschlusslisten mit Pipe/Komma, die Optionen `lowercase`, `hyphenate`, `homepage_toc` und `exclude_css` sowie die sichtbaren Theme-/Positionsverträge konsistenter.",
   "critical": false
 }

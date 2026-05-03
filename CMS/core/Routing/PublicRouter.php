@@ -596,9 +596,15 @@ final class PublicRouter
     {
         $postId = (int)($_POST['post_id'] ?? 0);
         $redirectTarget = $this->resolveCommentRedirect($postId);
+        $commentFormValues = [
+            'author' => (string) ($_POST['author'] ?? ''),
+            'email' => (string) ($_POST['email'] ?? ''),
+            'comment' => (string) ($_POST['comment'] ?? ''),
+            'comment_anonymous' => !empty($_POST['comment_anonymous']),
+        ];
 
         if ($postId <= 0 || !Security::instance()->verifyToken((string)($_POST['csrf_token'] ?? ''), 'comment_' . $postId)) {
-            $_SESSION['error'] = 'Sicherheitsüberprüfung fehlgeschlagen.';
+            $this->flashCommentFormState($postId, 'error', 'Sicherheitsüberprüfung fehlgeschlagen.', $commentFormValues);
             $this->router->redirect($redirectTarget);
             return;
         }
@@ -616,9 +622,9 @@ final class PublicRouter
         );
 
         if ($result === false) {
-            $_SESSION['error'] = 'Kommentar konnte nicht gespeichert werden. Bitte prüfe deine Eingaben.';
+            $this->flashCommentFormState($postId, 'error', 'Kommentar konnte nicht gespeichert werden. Bitte prüfe deine Eingaben.', $commentFormValues);
         } else {
-            $_SESSION['success'] = 'Kommentar gespeichert und zur Moderation eingereicht.';
+            $this->flashCommentFormState($postId, 'success', 'Kommentar gespeichert und zur Moderation eingereicht.');
         }
 
         $this->router->redirect($redirectTarget);
@@ -785,6 +791,14 @@ final class PublicRouter
 
     private function resolveCommentRedirect(int $postId): string
     {
+        $refererTarget = $this->normalizeAllowedRedirectTarget($_SERVER['HTTP_REFERER'] ?? null);
+        if (
+            $refererTarget !== ''
+            && !in_array($refererTarget, ['/member', '/admin', '/dashboard'], true)
+        ) {
+            return preg_replace('/#.*$/', '', $refererTarget) . '#comments';
+        }
+
         if ($postId > 0) {
             $db = Database::instance();
             $post = $db->get_row("SELECT slug, published_at, created_at FROM {$db->getPrefix()}posts WHERE id = ? LIMIT 1", [$postId]);
@@ -802,6 +816,37 @@ final class PublicRouter
         }
 
         return '/blog';
+    }
+
+    private function flashCommentFormState(int $postId, string $type, string $message, array $values = []): void
+    {
+        if ($postId <= 0) {
+            return;
+        }
+
+        if (!isset($_SESSION['comment_form_state']) || !is_array($_SESSION['comment_form_state'])) {
+            $_SESSION['comment_form_state'] = [];
+        }
+
+        $_SESSION['comment_form_state'][$postId] = [
+            'type' => in_array($type, ['success', 'error', 'info'], true) ? $type : 'error',
+            'message' => trim($message),
+            'values' => $this->sanitizeCommentFormValues($values),
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $values
+     * @return array{author:string,email:string,comment:string,comment_anonymous:bool}
+     */
+    private function sanitizeCommentFormValues(array $values): array
+    {
+        return [
+            'author' => trim((string) ($values['author'] ?? '')),
+            'email' => trim((string) ($values['email'] ?? '')),
+            'comment' => trim((string) ($values['comment'] ?? '')),
+            'comment_anonymous' => !empty($values['comment_anonymous']),
+        ];
     }
 
     private function redirectToSafeTarget(array $targetParts): void

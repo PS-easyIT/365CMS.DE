@@ -62,6 +62,11 @@ class TableOfContents
         'sticky_toggle'        => false,
     ];
 
+    private const ALLOWED_TYPES = ['post', 'page'];
+    private const ALLOWED_POSITIONS = ['before', 'after', 'top', 'bottom'];
+    private const ALLOWED_THEMES = ['grey', 'light', 'dark', 'transparent', 'custom', 'light-blue', 'white', 'black'];
+    private const ALLOWED_HEADINGS = ['h2', 'h3', 'h4', 'h5', 'h6'];
+
     // ─── Singleton ────────────────────────────────────────────────────────────
 
     public static function instance(): self
@@ -89,14 +94,14 @@ class TableOfContents
             if ($row && !empty($row['option_value'])) {
                 $saved = Json::decodeArray($row['option_value'] ?? null, []);
                 if (is_array($saved)) {
-                    $this->settings = array_merge(self::DEFAULTS, $saved);
+                    $this->settings = $this->normalizeSettings(array_merge(self::DEFAULTS, $saved));
                     return;
                 }
             }
         } catch (\Throwable) {
             // Fallback auf Defaults
         }
-        $this->settings = self::DEFAULTS;
+        $this->settings = $this->normalizeSettings(self::DEFAULTS);
     }
 
     public function getSetting(string $key, mixed $default = null): mixed
@@ -123,14 +128,18 @@ class TableOfContents
             return ['toc' => '', 'content' => str_replace('[cms_toc]', '', $content)];
         }
 
+        if (!(bool) ($this->settings['homepage_toc'] ?? false) && $this->isHomepageRequest()) {
+            return ['toc' => '', 'content' => str_replace('[cms_toc]', '', $content)];
+        }
+
         // Keine Unterstützung für diesen Typ?
-        $supportTypes = (array)($this->settings['support_types'] ?? ['post', 'page']);
+        $supportTypes = $this->normalizeTypes((array)($this->settings['support_types'] ?? ['post', 'page']));
         if (!in_array($type, $supportTypes, true)) {
             return ['toc' => '', 'content' => str_replace('[cms_toc]', '', $content)];
         }
 
         $hasShortcode = str_contains($content, '[cms_toc]');
-        $autoTypes    = (array)($this->settings['auto_insert_types'] ?? ['post']);
+        $autoTypes    = $this->normalizeTypes((array)($this->settings['auto_insert_types'] ?? ['post']));
         $autoInsert   = !$hasShortcode && in_array($type, $autoTypes, true);
 
         // Weder Shortcode noch Auto-Insert → unverändert zurückgeben
@@ -200,14 +209,50 @@ class TableOfContents
         return $currentPath === $limitPath || str_starts_with($currentPath, $limitPath . '/');
     }
 
+    private function isHomepageRequest(): bool
+    {
+        $currentPath = (string) parse_url((string) ($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_PATH);
+        $currentPath = '/' . ltrim($currentPath, '/');
+        $currentPath = rtrim((string) preg_replace('#/+#', '/', $currentPath), '/');
+        $currentPath = $currentPath === '' ? '/' : $currentPath;
+
+        if ($currentPath === '/') {
+            return true;
+        }
+
+        if (!class_exists('CMS\Services\ContentLocalizationService')) {
+            return false;
+        }
+
+        try {
+            foreach (Services\ContentLocalizationService::getInstance()->getContentLocales() as $locale) {
+                $locale = strtolower(trim((string) $locale));
+                if ($locale === '' || $locale === 'de') {
+                    continue;
+                }
+
+                if ($currentPath === '/' . $locale) {
+                    return true;
+                }
+            }
+        } catch (\Throwable) {
+        }
+
+        return false;
+    }
+
     // ─── Heading Extraction ───────────────────────────────────────────────────
 
     private function extractHeadings(string $html): array
     {
-        $levels  = (array)($this->settings['headings'] ?? ['h2', 'h3', 'h4']);
+        $levels  = $this->normalizeHeadingLevels((array)($this->settings['headings'] ?? ['h2', 'h3', 'h4']));
         $usedAnchors = [];
         $counter     = 0;
         $headings    = [];
+
+        if ($levels === []) {
+            return [];
+        }
 
         $levelPattern = implode('|', array_map(fn($l) => preg_quote($l, '/'), $levels));
         $pattern      = '/<(' . $levelPattern . ')([^>]*)>(.*?)<\/(?:' . $levelPattern . ')>/si';
@@ -217,9 +262,7 @@ class TableOfContents
         }
 
         // Ausschluss-Liste aufbauen
-        $excludes = array_filter(
-            array_map('trim', explode(',', (string)($this->settings['exclude_headings'] ?? '')))
-        );
+        $excludes = $this->parseExcludedHeadings((string)($this->settings['exclude_headings'] ?? ''));
         $prefix   = (string)($this->settings['anchor_prefix'] ?? '');
 
         foreach ($matches as $match) {
@@ -274,14 +317,15 @@ class TableOfContents
             'ù'=>'u','ú'=>'u','û'=>'u','ý'=>'y',
         ];
 
-        $anchor = strtolower($text);
+        $anchor = (bool) ($this->settings['lowercase'] ?? true) ? $this->lowerUtf8($text) : $text;
         $anchor = str_replace(array_keys($map), array_values($map), $anchor);
-        $anchor = (string)preg_replace('/[^\w\s\-]/', '', $anchor);
-        $anchor = (string)preg_replace('/[\s\-]+/', '-', $anchor);
-        $anchor = trim($anchor, '-');
+        $separator = (bool) ($this->settings['hyphenate'] ?? true) ? '-' : '_';
+        $anchor = (string)preg_replace('/[^\p{L}\p{N}\s\-_]/u', '', $anchor);
+        $anchor = (string)preg_replace('/[\s\-_]+/u', $separator, $anchor);
+        $anchor = trim($anchor, '-_');
 
         if ($prefix !== '') {
-            $anchor = rtrim($prefix, '-') . '-' . $anchor;
+            $anchor = rtrim($prefix, '-_') . $separator . $anchor;
         }
 
         if ($anchor === '' || strlen($anchor) < 2) {
@@ -291,14 +335,15 @@ class TableOfContents
         }
 
         if (strlen($anchor) > 60) {
-            $anchor = rtrim(substr($anchor, 0, 57), '-');
+            $anchor = rtrim(substr($anchor, 0, 57), '-_');
         }
 
         // Eindeutigkeit
         $base   = $anchor;
+        $usedKeys = array_map([$this, 'lowerUtf8'], $used);
         $suffix = 1;
-        while (in_array($anchor, $used, true)) {
-            $anchor = $base . '-' . $suffix++;
+        while (in_array($this->lowerUtf8($anchor), $usedKeys, true)) {
+            $anchor = $base . $separator . $suffix++;
         }
         $used[] = $anchor;
 
@@ -354,24 +399,26 @@ class TableOfContents
         $mobileOffset  = (int) ($this->settings['mobile_scroll_offset'] ?? $desktopOffset);
         $removeLinks  = (bool)($this->settings['remove_toc_links']   ?? false);
         $stickyToggle = (bool)($this->settings['sticky_toggle']      ?? false);
-        $theme        = htmlspecialchars((string)($this->settings['theme']      ?? 'grey'),  ENT_QUOTES, 'UTF-8');
+        $useInternalCss = !(bool) ($this->settings['exclude_css'] ?? false);
+        $themeVariant = $this->resolveThemeVariant((string)($this->settings['theme'] ?? 'grey'));
+        $theme        = htmlspecialchars($themeVariant, ENT_QUOTES, 'UTF-8');
         $alignment    = htmlspecialchars((string)($this->settings['alignment']  ?? 'none'),  ENT_QUOTES, 'UTF-8');
         $widthSetting = (string)($this->settings['width'] ?? 'auto');
 
         $uid     = 'toc-' . $this->generateUidSuffix();
-        $classes = ['cms-toc', 'cms-toc--' . $theme];
-        if ($alignment !== 'none') {
+        $classes = $useInternalCss ? ['cms-toc', 'cms-toc--' . $theme] : ['cms-toc-unstyled'];
+        if ($useInternalCss && $alignment !== 'none') {
             $classes[] = 'cms-toc--align-' . $alignment;
         }
-        if ($widthSetting === '100%') {
+        if ($useInternalCss && $widthSetting === '100%') {
             $classes[] = 'cms-toc--w-full';
         }
-        if ($stickyToggle) {
+        if ($useInternalCss && $stickyToggle) {
             $classes[] = 'cms-toc--sticky';
         }
 
         $inlineStyles = [];
-        if ($theme === 'custom') {
+        if ($useInternalCss && $themeVariant === 'custom') {
             $inlineStyles[] = '--cms-toc-bg:' . htmlspecialchars((string)($this->settings['custom_bg_color'] ?? '#f9f9f9'), ENT_QUOTES, 'UTF-8');
             $inlineStyles[] = '--cms-toc-border:' . htmlspecialchars((string)($this->settings['custom_border_color'] ?? '#aaaaaa'), ENT_QUOTES, 'UTF-8');
             $inlineStyles[] = '--cms-toc-title:' . htmlspecialchars((string)($this->settings['custom_title_color'] ?? '#333333'), ENT_QUOTES, 'UTF-8');
@@ -379,28 +426,33 @@ class TableOfContents
         }
         $styleAttr = $inlineStyles !== [] ? ' style="' . implode(';', $inlineStyles) . '"' : '';
 
-        $html  = '<nav id="' . $uid . '" class="' . implode(' ', $classes) . '" aria-label="Inhaltsverzeichnis"' . $styleAttr . '>';
+        $html  = '<nav id="' . $uid . '" class="' . implode(' ', $classes) . '" data-cms-toc-root="1" aria-label="Inhaltsverzeichnis"' . $styleAttr . '>';
+
+        $headerClass = $useInternalCss ? ' class="cms-toc__header"' : '';
+        $titleClass = $useInternalCss ? ' class="cms-toc__title"' : '';
+        $toggleClass = $useInternalCss ? ' class="cms-toc__toggle"' : '';
+        $bodyClass = $useInternalCss ? ' class="cms-toc__body"' : '';
 
         if ($showHeader) {
-            $html .= '<div class="cms-toc__header">';
-            $html .= '<span class="cms-toc__title">' . $label . '</span>';
+            $html .= '<div' . $headerClass . '>';
+            $html .= '<span' . $titleClass . '>' . $label . '</span>';
             if ($allowToggle) {
-                $html .= '<button type="button" class="cms-toc__toggle"'
+                $html .= '<button type="button"' . $toggleClass . ' data-cms-toc-toggle="1"'
                     . ' aria-expanded="true" aria-controls="' . $uid . '-body">';
-                $html .= '<span class="cms-toc__toggle-icon" aria-hidden="true">−</span>';
-                $html .= '<span class="cms-toc__toggle-label">Ausblenden</span>';
+                $html .= '<span' . ($useInternalCss ? ' class="cms-toc__toggle-icon"' : '') . ' data-cms-toc-toggle-icon="1" aria-hidden="true">−</span>';
+                $html .= '<span' . ($useInternalCss ? ' class="cms-toc__toggle-label"' : '') . ' data-cms-toc-toggle-label="1">Ausblenden</span>';
                 $html .= '</button>';
             }
             $html .= '</div>';
         }
 
-        $html .= '<div id="' . $uid . '-body" class="cms-toc__body">';
+        $html .= '<div id="' . $uid . '-body"' . $bodyClass . ' data-cms-toc-body="1">';
 
         if ($showHier) {
             $structured = $this->buildHierarchy($headings);
-            $html      .= $this->renderList($structured, 0, $showCounter, $smoothScroll, $removeLinks);
+            $html      .= $this->renderList($structured, 0, $showCounter, $smoothScroll, $removeLinks, $useInternalCss);
         } else {
-            $html .= $this->renderList($headings, 0, $showCounter, $smoothScroll, $removeLinks);
+            $html .= $this->renderList($headings, 0, $showCounter, $smoothScroll, $removeLinks, $useInternalCss);
         }
 
         $html .= '</div>';
@@ -413,14 +465,16 @@ class TableOfContents
             $html .= '<script>(function(){'
                 . 'var n=document.getElementById(' . $uidJson . ');'
                 . 'if(!n)return;'
-                . 'var btn=n.querySelector(".cms-toc__toggle");'
+                . 'var btn=n.querySelector("[data-cms-toc-toggle]");'
                 . 'var body=document.getElementById(' . $bodyIdJson . ');'
                 . 'if(!btn||!body)return;'
                 . 'btn.addEventListener("click",function(){'
                 .   'var open=btn.getAttribute("aria-expanded")==="true";'
                 .   'btn.setAttribute("aria-expanded",open?"false":"true");'
-                .   'btn.querySelector(".cms-toc__toggle-label").textContent=open?"Anzeigen":"Ausblenden";'
-                .   'btn.querySelector(".cms-toc__toggle-icon").textContent=open?"+":"−";'
+                .   'var label=btn.querySelector("[data-cms-toc-toggle-label]");'
+                .   'var icon=btn.querySelector("[data-cms-toc-toggle-icon]");'
+                .   'if(label){label.textContent=open?"Anzeigen":"Ausblenden";}'
+                .   'if(icon){icon.textContent=open?"+":"−";}'
                 .   'body.style.display=open?"none":"";'
                 . '});'
                 . '})();</script>';
@@ -429,7 +483,7 @@ class TableOfContents
         // Smooth Scroll
         if ($smoothScroll) {
             $html .= '<script>(function(){'
-                . 'document.querySelectorAll(".cms-toc [data-tl]").forEach(function(a){'
+                . 'document.querySelectorAll("[data-cms-toc-root] [data-tl]").forEach(function(a){'
                 .   'a.addEventListener("click",function(e){'
                 .     'var id=a.getAttribute("href").slice(1);'
                 .     'var el=document.getElementById(id);'
@@ -477,7 +531,7 @@ class TableOfContents
 
     // ─── Render List ─────────────────────────────────────────────────────────
 
-    private function renderList(array $headings, int $depth, bool $numbered, bool $smooth, bool $removeLinks): string
+    private function renderList(array $headings, int $depth, bool $numbered, bool $smooth, bool $removeLinks, bool $useInternalCss = true): string
     {
         if (empty($headings)) {
             return '';
@@ -485,7 +539,8 @@ class TableOfContents
 
         $cls  = $depth === 0 ? 'cms-toc__list' : 'cms-toc__list cms-toc__list--nested';
         $tag  = $numbered ? 'ol' : 'ul';
-        $html = '<' . $tag . ' class="' . $cls . '">';
+        $listClass = $useInternalCss ? ' class="' . $cls . '"' : '';
+        $html = '<' . $tag . $listClass . '>';
 
         foreach ($headings as $h) {
             $href      = '#' . htmlspecialchars($h['anchor'], ENT_QUOTES, 'UTF-8');
@@ -493,15 +548,15 @@ class TableOfContents
             $scrollAttr = $smooth ? ' data-tl' : '';
             $hasKids   = !empty($h['children']);
 
-            $html .= '<li class="cms-toc__item' . ($hasKids ? ' has-children' : '') . '">';
+            $html .= '<li' . ($useInternalCss ? ' class="cms-toc__item' . ($hasKids ? ' has-children' : '') . '"' : '') . '>';
             if ($removeLinks) {
-                $html .= '<span class="cms-toc__label">' . $text . '</span>';
+                $html .= '<span' . ($useInternalCss ? ' class="cms-toc__label"' : '') . '>' . $text . '</span>';
             } else {
                 $html .= '<a href="' . $href . '"' . $scrollAttr . '>' . $text . '</a>';
             }
 
             if ($hasKids) {
-                $html .= $this->renderList($h['children'], $depth + 1, $numbered, $smooth, $removeLinks);
+                $html .= $this->renderList($h['children'], $depth + 1, $numbered, $smooth, $removeLinks, $useInternalCss);
             }
 
             $html .= '</li>';
@@ -517,5 +572,76 @@ class TableOfContents
         } catch (\Throwable) {
             return substr(hash('sha256', (string) microtime(true) . '|' . random_int(0, PHP_INT_MAX)), 0, 8);
         }
+    }
+
+    /**
+     * @param array<string, mixed> $settings
+     * @return array<string, mixed>
+     */
+    private function normalizeSettings(array $settings): array
+    {
+        $settings['support_types'] = $this->normalizeTypes((array) ($settings['support_types'] ?? self::DEFAULTS['support_types']));
+        $settings['auto_insert_types'] = $this->normalizeTypes((array) ($settings['auto_insert_types'] ?? self::DEFAULTS['auto_insert_types']));
+        $settings['headings'] = $this->normalizeHeadingLevels((array) ($settings['headings'] ?? self::DEFAULTS['headings']));
+        $settings['position'] = $this->normalizeEnum((string) ($settings['position'] ?? self::DEFAULTS['position']), self::ALLOWED_POSITIONS, self::DEFAULTS['position']);
+        $settings['theme'] = $this->normalizeEnum((string) ($settings['theme'] ?? self::DEFAULTS['theme']), self::ALLOWED_THEMES, self::DEFAULTS['theme']);
+        $settings['exclude_headings'] = implode('|', $this->parseExcludedHeadings((string) ($settings['exclude_headings'] ?? '')));
+        $settings['anchor_prefix'] = $this->normalizeAnchorPrefix((string) ($settings['anchor_prefix'] ?? ''));
+        $settings['show_limit'] = max(1, (int) ($settings['show_limit'] ?? self::DEFAULTS['show_limit']));
+
+        return $settings;
+    }
+
+    /** @return list<string> */
+    private function normalizeTypes(array $types): array
+    {
+        return array_values(array_intersect(
+            array_values(array_unique(array_map(static fn (mixed $type): string => strtolower(trim((string) $type)), $types))),
+            self::ALLOWED_TYPES
+        ));
+    }
+
+    /** @return list<string> */
+    private function normalizeHeadingLevels(array $levels): array
+    {
+        return array_values(array_intersect(array_values(array_unique(array_map(static fn (mixed $level): string => strtolower(trim((string) $level)), $levels))), self::ALLOWED_HEADINGS));
+    }
+
+    /** @return list<string> */
+    private function parseExcludedHeadings(string $value): array
+    {
+        $parts = preg_split('/\s*(?:\||,|\r\n|\r|\n)\s*/u', $value) ?: [];
+
+        return array_values(array_filter(array_map(static fn (string $part): string => trim($part), $parts), static fn (string $part): bool => $part !== ''));
+    }
+
+    /** @param list<string> $allowed */
+    private function normalizeEnum(string $value, array $allowed, string $fallback): string
+    {
+        $value = strtolower(trim($value));
+
+        return in_array($value, $allowed, true) ? $value : $fallback;
+    }
+
+    private function resolveThemeVariant(string $theme): string
+    {
+        return match ($this->normalizeEnum($theme, self::ALLOWED_THEMES, self::DEFAULTS['theme'])) {
+            'light' => 'white',
+            'dark' => 'black',
+            default => $this->normalizeEnum($theme, self::ALLOWED_THEMES, self::DEFAULTS['theme']),
+        };
+    }
+
+    private function normalizeAnchorPrefix(string $prefix): string
+    {
+        $prefix = trim($prefix);
+        $prefix = (string) preg_replace('/[^\p{L}\p{N}\-_]+/u', '-', $prefix);
+
+        return trim($prefix, '-_');
+    }
+
+    private function lowerUtf8(string $value): string
+    {
+        return function_exists('mb_strtolower') ? mb_strtolower($value, 'UTF-8') : strtolower($value);
     }
 }

@@ -11,6 +11,9 @@ if (!defined('ABSPATH')) {
  * Erwartet: $settings (Array), $csrfToken, $alert
  */
 
+$settings = is_array($settings ?? null)
+    ? $settings
+    : (is_array($data['settings'] ?? null) ? $data['settings'] : []);
 $s = $settings;
 ?>
 
@@ -79,9 +82,10 @@ $s = $settings;
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label" for="position">Position</label>
                                     <select class="form-select" id="position" name="position">
-                                        <option value="before" <?php echo ($s['position'] ?? '') === 'before' ? 'selected' : ''; ?>>Vor dem Inhalt</option>
-                                        <option value="after" <?php echo ($s['position'] ?? '') === 'after' ? 'selected' : ''; ?>>Nach dem Inhalt</option>
+                                        <option value="before" <?php echo ($s['position'] ?? '') === 'before' ? 'selected' : ''; ?>>Vor der ersten Überschrift</option>
+                                        <option value="after" <?php echo ($s['position'] ?? '') === 'after' ? 'selected' : ''; ?>>Nach der ersten Überschrift</option>
                                     </select>
+                                    <span class="form-hint">Für eine exakte Platzierung im Fließtext kannst du weiterhin <code>[cms_toc]</code> verwenden.</span>
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label" for="show_limit">Mindestanzahl Überschriften</label>
@@ -235,8 +239,8 @@ $s = $settings;
                             </div>
                             <div class="mb-3">
                                 <label class="form-label" for="exclude_headings">Ausgeschlossene Überschriften</label>
-                                <input type="text" class="form-control" id="exclude_headings" name="exclude_headings" value="<?php echo htmlspecialchars($s['exclude_headings'] ?? ''); ?>" placeholder="Pipe-getrennt: FAQ|Fragen">
-                                <span class="form-hint">Pipe-getrennte Liste von Texten</span>
+                                <input type="text" class="form-control" id="exclude_headings" name="exclude_headings" value="<?php echo htmlspecialchars($s['exclude_headings'] ?? ''); ?>" placeholder="Beispiel: FAQ|Fragen oder FAQ, Fragen">
+                                <span class="form-hint">Unterstützt Pipe- oder Komma-getrennte Textfragmente.</span>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label" for="limit_path">Pfad-Begrenzung</label>
@@ -247,7 +251,7 @@ $s = $settings;
                             <?php
                             $advToggles = [
                                 'lowercase'        => 'Anker in Kleinbuchstaben',
-                                'hyphenate'         => 'Leerzeichen in Ankern ersetzen',
+                                'hyphenate'         => 'Leerzeichen in Ankern mit Bindestrichen ersetzen',
                                 'homepage_toc'      => 'TOC auf Homepage anzeigen',
                                 'exclude_css'       => 'Internes CSS deaktivieren',
                                 'remove_toc_links'  => 'TOC-Links aus Inhalt entfernen',

@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Verwaltung chronologischer Inhalte wie News und Blog-Beiträge im Admin-Bereich.
 
-Letzte Aktualisierung: 2026-05-03 · Version 2.9.505
+Letzte Aktualisierung: 2026-05-03 · Version 2.9.506
 
 ---
 
@@ -103,6 +103,29 @@ Die Taxonomie-Verwaltung gehört funktional zum Beiträge-Bereich und folgt jetz
 Das passt zu den NN/g-Empfehlungen für **Confirmation Dialogs** und **Error Messages**: riskante Aktionen werden konkret beschrieben, Modale bleiben auf destruktive Schritte beschränkt, und Korrekturen können mit erhaltenem Formzustand direkt am Entstehungsort erfolgen.
 
 Zusätzlich ist der Public-Vertrag des Default-Themes für Taxonomie-Navigation jetzt wieder konsistent: Blog-Links mit `?category=` bzw. `?tag=` lösen in dieselben Kategorie-/Tag-Archive auf wie die dedizierten Archivrouten, und Sidebar-/Header-Helfer zählen veröffentlichte Beiträge nicht mehr nur über die Primärkategorie oder Legacy-`posts.tags`, sondern berücksichtigen Relationstabellen sowie die aktuelle DE/EN-Content-Verfügbarkeit.
+
+---
+
+## Kommentare- und TOC-Vertrag
+
+Der Unterbereich **Kommentare** ist nun auch im Public-Frontend wieder vollständig angeschlossen:
+
+- Einzelbeiträge rendern freigegebene Kommentare wieder sichtbar oberhalb des Formulars.
+- Der Redirect nach `POST /comments/post` landet bevorzugt wieder auf demselben sicheren Public-Pfad des absendenden Beitrags statt pauschal auf einer generischen Blog-URL; dadurch bleiben locale-aware Pfade und `#comments` stabil.
+- Das Default-Theme respektiert im Formular jetzt auch `allow_comments` des Beitrags. Ist Kommentieren deaktiviert, erscheint kein irreführend funktionierendes Formular mehr.
+- Fehler- und Erfolgsrückmeldungen der Kommentarabgabe werden inline im Kommentarbereich gezeigt; Name, E-Mail, Kommentartext und der anonyme Status bleiben bei Fehlern erhalten.
+- Eingeloggte Nutzer verwenden konsistent ihre Profilidentität und können optional anonym veröffentlichen; öffentliche Kommentare bleiben weiterhin moderationspflichtig.
+
+Für das **Inhaltsverzeichnis (TOC)** gilt jetzt ein präziserer Runtime-Vertrag:
+
+- `exclude_headings` akzeptiert Pipe- **und** Komma-getrennte Ausschlusslisten.
+- Die Optionen `lowercase` und `hyphenate` beeinflussen die Ankererzeugung jetzt tatsächlich statt nur gespeichert zu werden.
+- `homepage_toc` unterdrückt TOCs auf Home-/Locale-Root-Pfaden, wenn die Option deaktiviert ist.
+- `exclude_css` rendert eine ungestylte TOC-Ausgabe ohne die internen TOC-Klassen, sodass die Core-CSS wirklich wegfällt.
+- Die Admin-Auswahl `light`/`dark` mappt wieder auf funktionierende Theme-Varianten, und die Positionsbeschreibung benennt den realen Insertionsvertrag korrekt als **vor/nach der ersten Überschrift**.
+- Die Admin-Seite `/admin/table-of-contents` nutzt denselben Section-Shell-Standard wie andere modernisierte Bereiche, inklusive konsistenter CSRF-/Flash-/Redirect-Behandlung.
+
+Diese Nachschärfung folgt zwei UX-/A11y-Grundsätzen: Kommentare müssen sichtbar, lokalisierbar und rückmeldungsstark sein, und TOCs müssen sich an echter Überschriftenstruktur orientieren statt an bloß dekorativen Schaltern.
 
 ---
 

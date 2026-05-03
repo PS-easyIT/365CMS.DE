@@ -56,6 +56,48 @@ if (is_string($pTags)) {
 $showRelated  = (bool) meridian_setting('blog', 'show_related_posts', true);
 $showComments = (bool) meridian_setting('blog', 'show_comments', true);
 $showViews    = (bool) meridian_setting('blog', 'show_views', false);
+$postAllowsComments = (int) ($post->allow_comments ?? 1) === 1;
+$currentUser = class_exists('\CMS\Auth') ? \CMS\Auth::getCurrentUser() : null;
+$isLoggedInCommentAuthor = isset($currentUser->id) && (int) ($currentUser->id ?? 0) > 0;
+
+$commentFormState = null;
+if (isset($_SESSION['comment_form_state']) && is_array($_SESSION['comment_form_state'])) {
+  $candidateCommentState = $_SESSION['comment_form_state'][(int) ($post->id ?? 0)] ?? null;
+  if (is_array($candidateCommentState)) {
+    $commentFormState = $candidateCommentState;
+  }
+  unset($_SESSION['comment_form_state'][(int) ($post->id ?? 0)]);
+}
+
+$commentFormValues = [
+  'author' => '',
+  'email' => '',
+  'comment' => '',
+  'comment_anonymous' => false,
+];
+
+if ($isLoggedInCommentAuthor) {
+  $resolvedCommentAuthorName = trim((string) ($currentUser->display_name ?? $currentUser->username ?? ''));
+  if ($resolvedCommentAuthorName === '') {
+    $resolvedCommentAuthorName = trim((string) ($currentUser->username ?? ''));
+  }
+
+  $commentFormValues['author'] = $resolvedCommentAuthorName;
+  $commentFormValues['email'] = trim((string) ($currentUser->email ?? ''));
+}
+
+if (is_array($commentFormState['values'] ?? null)) {
+  $commentFormValues['author'] = trim((string) ($commentFormState['values']['author'] ?? $commentFormValues['author']));
+  $commentFormValues['email'] = trim((string) ($commentFormState['values']['email'] ?? $commentFormValues['email']));
+  $commentFormValues['comment'] = trim((string) ($commentFormState['values']['comment'] ?? ''));
+  $commentFormValues['comment_anonymous'] = !empty($commentFormState['values']['comment_anonymous']);
+}
+
+$approvedComments = ($showComments && class_exists('\CMS\Services\CommentService'))
+  ? \CMS\Services\CommentService::getInstance()->getApprovedForPost((int) ($post->id ?? 0))
+  : [];
+$approvedCommentCount = count($approvedComments);
+$shouldRenderCommentsSection = $showComments && ($postAllowsComments || $approvedCommentCount > 0);
 
 // Verwandte Posts: korrekte Signatur (categoryId, excludeId, limit)
 $relatedPosts = ($showRelated && function_exists('meridian_get_related_posts'))
@@ -225,9 +267,52 @@ $relatedPosts = ($showRelated && function_exists('meridian_get_related_posts'))
     </section>
     <?php endif; ?>
 
-    <?php if ($showComments): ?>
-    <section class="comments-section" aria-labelledby="comments-heading">
-      <div class="section-label"><h3 id="comments-heading">Kommentare</h3></div>
+    <?php if ($shouldRenderCommentsSection): ?>
+    <section id="comments" class="comments-section" aria-labelledby="comments-heading">
+      <div class="section-label"><h3 id="comments-heading">Kommentare<?php echo $approvedCommentCount > 0 ? ' (' . $approvedCommentCount . ')' : ''; ?></h3></div>
+
+      <?php if ($approvedCommentCount > 0): ?>
+      <div class="comment-thread" aria-label="Freigegebene Kommentare">
+        <?php foreach ($approvedComments as $comment): ?>
+          <?php
+            $commentAuthor = trim((string) ($comment->author ?? 'Gast'));
+            $commentDateRaw = (string) ($comment->post_date ?? '');
+            $commentDate = $commentDateRaw !== '' ? meridian_format_date($commentDateRaw, false) : '';
+            $commentDateIso = $commentDateRaw !== '' ? date(DATE_ATOM, strtotime($commentDateRaw) ?: time()) : '';
+            $commentText = nl2br(htmlspecialchars((string) ($comment->content ?? ''), ENT_QUOTES, 'UTF-8'));
+            $commentInitials = meridian_author_initials($commentAuthor !== '' ? $commentAuthor : 'Gast');
+            $commentIsAnonymous = !empty($comment->is_anonymous);
+          ?>
+          <article class="comment-item" id="comment-<?php echo (int) ($comment->id ?? 0); ?>">
+            <div class="comment-av"><?php echo htmlspecialchars($commentInitials, ENT_QUOTES, 'UTF-8'); ?></div>
+            <div class="comment-body">
+              <div class="comment-meta-row">
+                <span class="comment-name"><?php echo htmlspecialchars($commentAuthor !== '' ? $commentAuthor : 'Gast', ENT_QUOTES, 'UTF-8'); ?></span>
+                <?php if ($commentIsAnonymous): ?>
+                <span class="comment-author-tag">Anonym</span>
+                <?php endif; ?>
+                <?php if ($commentDate !== ''): ?>
+                <time class="comment-date" datetime="<?php echo htmlspecialchars($commentDateIso, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($commentDate, ENT_QUOTES, 'UTF-8'); ?></time>
+                <?php endif; ?>
+              </div>
+              <div class="comment-text"><?php echo $commentText; ?></div>
+            </div>
+          </article>
+        <?php endforeach; ?>
+      </div>
+      <?php elseif ($postAllowsComments): ?>
+      <p class="comments-empty">Noch keine Kommentare – sei der Erste.</p>
+      <?php elseif (!$postAllowsComments): ?>
+      <p class="comments-empty">Für diesen Beitrag sind derzeit keine Kommentare veröffentlicht.</p>
+      <?php endif; ?>
+
+      <?php if (is_array($commentFormState) && !empty($commentFormState['message'])): ?>
+      <div class="alert alert-<?php echo !empty($commentFormState['type']) && $commentFormState['type'] === 'success' ? 'success' : 'error'; ?>">
+        <?php echo htmlspecialchars((string) ($commentFormState['message'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>
+      </div>
+      <?php endif; ?>
+
+      <?php if ($postAllowsComments): ?>
       <div class="comment-form-wrap">
         <h4>Einen Kommentar hinterlassen</h4>
         <?php
@@ -242,13 +327,23 @@ $relatedPosts = ($showRelated && function_exists('meridian_get_related_posts'))
            <input type="text" name="comment_hp" value="" tabindex="-1" autocomplete="off" aria-hidden="true" class="visually-hidden">
            <input type="hidden" name="comment_started_at" value="<?php echo time(); ?>">
            <div class="form-2col">
-              <div class="form-field"><label>Name <span class="form-required">*</span></label><input type="text" name="author" placeholder="Dein Name" required maxlength="100"></div>
-              <div class="form-field"><label>E-Mail <span class="form-required">*</span></label><input type="email" name="email" placeholder="deine@email.de" required maxlength="200"></div>
-              <div class="form-field form-full"><label>Kommentar <span class="form-required">*</span></label><textarea name="comment" placeholder="Dein Kommentar …" required maxlength="2000"></textarea></div>
+              <div class="form-field"><label>Name <span class="form-required">*</span></label><input type="text" name="author" placeholder="Dein Name" required maxlength="100" autocomplete="name" value="<?php echo htmlspecialchars($commentFormValues['author'], ENT_QUOTES, 'UTF-8'); ?>"<?php echo $isLoggedInCommentAuthor ? ' readonly' : ''; ?>></div>
+              <div class="form-field"><label>E-Mail <span class="form-required">*</span></label><input type="email" name="email" placeholder="deine@email.de" required maxlength="200" autocomplete="email" value="<?php echo htmlspecialchars($commentFormValues['email'], ENT_QUOTES, 'UTF-8'); ?>"<?php echo $isLoggedInCommentAuthor ? ' readonly' : ''; ?>></div>
+              <div class="form-field form-full"><label>Kommentar <span class="form-required">*</span></label><textarea name="comment" placeholder="Dein Kommentar …" required maxlength="5000"><?php echo htmlspecialchars($commentFormValues['comment'], ENT_QUOTES, 'UTF-8'); ?></textarea></div>
            </div>
+           <?php if ($isLoggedInCommentAuthor): ?>
+           <label class="checkbox-label" style="margin-bottom: .9rem;">
+             <input type="checkbox" name="comment_anonymous" value="1" <?php echo !empty($commentFormValues['comment_anonymous']) ? 'checked' : ''; ?>>
+             <span>Kommentar anonym veröffentlichen</span>
+           </label>
+           <?php endif; ?>
            <button type="submit" class="btn-submit">Kommentar absenden →</button>
+           <p class="form-text" style="margin-top: .75rem;">Kommentare werden vor der Veröffentlichung geprüft.</p>
         </form>
       </div>
+      <?php else: ?>
+      <p class="comments-login-hint">Die Kommentarfunktion ist für diesen Beitrag geschlossen.</p>
+      <?php endif; ?>
     </section>
     <?php endif; ?>
   </div>
