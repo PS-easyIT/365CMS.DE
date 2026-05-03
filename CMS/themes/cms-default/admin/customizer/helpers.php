@@ -82,7 +82,8 @@ function cms_default_theme_customizer_build_uploaded_logo_path(string $storedLog
 function cms_default_theme_customizer_verify_csrf(): bool
 {
     if (function_exists('cms_admin_section_shell_was_csrf_verified')
-        && cms_admin_section_shell_was_csrf_verified('theme_customizer')
+        && (cms_admin_section_shell_was_csrf_verified('theme_customizer')
+            || cms_admin_section_shell_was_csrf_verified('admin_theme_editor'))
     ) {
         return true;
     }

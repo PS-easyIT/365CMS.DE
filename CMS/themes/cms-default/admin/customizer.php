@@ -49,6 +49,6 @@ if ($success === null && $error === null && isset($alert) && is_array($alert)) {
     }
 }
 
-$customizerCsrfToken = (string) ($csrfToken ?? Security::instance()->generateToken('theme_customizer'));
+$customizerCsrfToken = Security::instance()->generateToken('theme_customizer');
 
 require __DIR__ . '/customizer/partials/page.php';
