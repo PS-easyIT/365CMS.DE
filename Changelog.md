@@ -1,4 +1,4 @@
-﻿﻿**Version:** 2.9.608
+﻿﻿**Version:** 2.9.609
 
 # 365CMS Changelog
 
@@ -20,10 +20,11 @@
 
 ---
 
-### v2.9.608 — 3. Mai 2026
+### v2.9.609 — 3. Mai 2026
 
 | Version | Typ | Bereich | Beschreibung |
 |---------|-----|---------|-------------|
+| **2.9.609** | 🔴 fix | Admin/Dokumentation & Core/Mail-Queue/Best-Practice-Nachprüfung | **`CMS/admin/views/system/documentation.php`, `CMS/assets/css/admin.css` und `CMS/core/Services/MailQueueService.php` härten die letzten Doku- und Mail-Fixes nach Web-Best-Practice-Prüfung nach**: Die Doku-Sidebar nutzt nun explizite Navigations-Landmarks und `aria-current="page"`, die eigene Caret-Animation respektiert `prefers-reduced-motion`, und die Mail-Queue bereinigt Betreff sowie Headernamen/-werte bereits vor dem Speichern gegen CRLF-/Header-Injection statt erst beim späteren Versandpfad. |
 | **2.9.608** | 🎨 style | Admin/Dokumentation | **`CMS/admin/views/system/documentation.php` und `CMS/assets/css/admin.css` geben der Live-Doku eine klassische Dokumentations-Sidebar**: Wichtige Einstiegsdokumente werden oben als dezenter Schnellzugriff angezeigt, der `/DOC`-Baum nutzt klare Ordnerzeilen mit Caret statt Emoji-Optik, Dateien bekommen ruhige Typ-Badges und Pfadangaben, und die Navigation wirkt wie eine ordentliche technische Dokumentation statt wie ein generiertes Kartenmenü. |
 | **2.9.607** | 🎨 style | Admin/Dokumentation | **`CMS/admin/views/system/documentation.php` macht die Live-Doku-Navigation kompakter**: Wichtige Markdown-Einstiege stehen wieder dezent oberhalb des `/DOC`-Baums, Ordner und Unterordner sind standardmäßig eingeklappt, und nur der aktive Dokumentpfad wird automatisch geöffnet, damit große Dokumentationsbäume übersichtlich bleiben. |
 | **2.9.606** | 🎨 style | Admin/Dokumentation | **`CMS/admin/modules/system/DocumentationCatalog.php` und `CMS/admin/views/system/documentation.php` stellen die Dokumentation jetzt als dezente Live-Dateibaum-Ansicht des lokalen `/DOC`-Verzeichnisses dar**: Die Navigation bildet Ordner und Unterordner rekursiv anhand des Dateisystems ab, zeigt `README.md` je Ebene immer zuerst, verzichtet auf künstliche Bereichsbeschreibungen, Datei-Excerpts und die bisherige Schnellstart-Topbox, und verschiebt wichtige Markdown-Links ans untere Ende des Menüs. |
