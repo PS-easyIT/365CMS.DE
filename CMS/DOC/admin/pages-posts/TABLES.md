@@ -42,6 +42,7 @@ Der Editor unterstützt zwei Modi:
 	- freie Spaltenlabels
 	- freie Zellenwerte
 	- serverseitige Begrenzung auf maximal 25 Spalten, 250 Zeilen und 5000 Zeichen pro Zelle
+	- fehlgeschlagene Saves bleiben im Edit-Formular und verlieren den aktuellen Editorzustand nicht mehr still per Redirect
 
 2. **Dynamische Site Table aus CMS-Inhalten**
 	- entweder explizit ausgewählte veröffentlichte Seiten/Beiträge

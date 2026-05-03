@@ -8,6 +8,6 @@
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 2.9.507: Der Unterbereich Hub-Sites & Tabellen ist produktiv nachgezogen – Hub-Sites schützen ihre Slugs jetzt robuster gegen bestehende Public-Routen und lösen Zusatzdomain-/Legacy-`table_slug`-Fälle konsistenter auf; zusätzlich schließen Site Tables ihre Public-Schalter nun sichtbar an Suche, Sortierung, Paginierung und Zeilenhervorhebung an, während die nicht implementierte Excel-Option aus dem Editor verschwindet.",
+  "notes": "Release-Stand 2.9.507: Der Unterbereich Hub-Sites & Tabellen ist produktiv nachgezogen – Hub-Sites schützen ihre Slugs jetzt robuster gegen bestehende Public-Routen, lösen Zusatzdomain-/Legacy-`table_slug`-Fälle konsistenter auf und führen Save-Fehler zurück ins Edit-Formular; zusätzlich schließen Site Tables ihre Public-Schalter nun sichtbar an Suche, Sortierung, Paginierung und Zeilenhervorhebung an, behalten Validierungsfehler im Editorzustand und entfernen die nicht implementierte Excel-Option aus dem Admin.",
   "critical": false
 }

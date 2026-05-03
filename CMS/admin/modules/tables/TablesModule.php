@@ -119,7 +119,7 @@ class TablesModule
     /**
      * Daten für Edit/Create
      */
-    public function getEditData(?int $id): array
+    public function getEditData(?int $id, array $formValues = []): array
     {
         $displaySettings = $this->loadDisplaySettings();
         $styleOptions = array_intersect_key(
@@ -151,6 +151,16 @@ class TablesModule
                 }
             } else {
                 $missing = true;
+            }
+        }
+
+        if ($formValues !== []) {
+            $table = $this->applyFormValuesToTable($table, $formValues);
+            if ($table !== null) {
+                $selectedStyle = (string) ($table['settings']['style_theme'] ?? '');
+                if (!isset($styleOptions[$selectedStyle])) {
+                    $table['settings']['style_theme'] = $displaySettings['default_style'];
+                }
             }
         }
 
@@ -495,6 +505,79 @@ class TablesModule
         }
 
         return $value;
+    }
+
+    private function applyFormValuesToTable(?array $table, array $formValues): array
+    {
+        $table ??= [
+            'id' => max(0, (int) ($formValues['id'] ?? 0)),
+            'table_name' => '',
+            'description' => '',
+            'columns' => [],
+            'rows' => [],
+            'settings' => self::DEFAULT_SETTINGS,
+        ];
+
+        $table['table_name'] = (string) ($formValues['table_name'] ?? ($table['table_name'] ?? ''));
+        $table['description'] = (string) ($formValues['description'] ?? ($table['description'] ?? ''));
+
+        $columns = $this->decodeEditorArrayPayload($formValues['columns_json'] ?? null);
+        if (is_array($columns)) {
+            $normalizedColumns = $this->normalizeColumns($columns);
+            $table['columns'] = $normalizedColumns['columns'];
+        }
+
+        $rows = $this->decodeEditorArrayPayload($formValues['rows_json'] ?? null);
+        if (is_array($rows)) {
+            $normalizedRows = $this->normalizeRows($rows, is_array($table['columns'] ?? null) ? $table['columns'] : []);
+            $table['rows'] = $normalizedRows['rows'];
+        }
+
+        $settings = array_merge(self::DEFAULT_SETTINGS, is_array($table['settings'] ?? null) ? $table['settings'] : []);
+        foreach (self::DEFAULT_SETTINGS as $key => $default) {
+            if ($key === 'content_source_item_keys') {
+                $settings[$key] = is_array($formValues[$key] ?? null)
+                    ? array_values(array_map('strval', $formValues[$key]))
+                    : (is_array($settings[$key] ?? null) ? $settings[$key] : []);
+                continue;
+            }
+
+            if ($key === 'content_source_category_id') {
+                $settings[$key] = max(0, (int) ($formValues[$key] ?? ($settings[$key] ?? 0)));
+                continue;
+            }
+
+            if (is_bool($default)) {
+                $settings[$key] = !empty($formValues['setting_' . $key]);
+            } elseif (is_int($default)) {
+                $settings[$key] = (int) ($formValues['setting_' . $key] ?? $settings[$key] ?? $default);
+            } elseif (is_array($default)) {
+                $settings[$key] = is_array($settings[$key] ?? null) ? $settings[$key] : $default;
+            } else {
+                $settings[$key] = (string) ($formValues['setting_' . $key] ?? $settings[$key] ?? $default);
+            }
+        }
+
+        $contentSource = SiteTableContentSource::normalizeSettings(
+            isset($formValues['setting_content_source_enabled']),
+            $formValues['content_source_mode'] ?? ($settings['content_source_mode'] ?? ''),
+            $formValues['content_source_item_keys'] ?? ($settings['content_source_item_keys'] ?? []),
+            $formValues['content_source_category_id'] ?? ($settings['content_source_category_id'] ?? 0)
+        );
+
+        $settings['style_theme'] = $this->normalizeStyleTheme((string) ($settings['style_theme'] ?? 'default'));
+        $settings['caption'] = $this->sanitizeText((string) ($settings['caption'] ?? ''), 255);
+        $settings['aria_label'] = $this->sanitizeText((string) ($settings['aria_label'] ?? ''), 255);
+        $settings['page_size'] = $this->normalizeInteger((int) ($settings['page_size'] ?? 10), 5, 100, 10);
+        $settings['allow_export_excel'] = false;
+        $settings['content_source_enabled'] = $contentSource['enabled'];
+        $settings['content_source_mode'] = $contentSource['mode'];
+        $settings['content_source_item_keys'] = $contentSource['item_keys'];
+        $settings['content_source_category_id'] = $contentSource['category_id'];
+
+        $table['settings'] = $settings;
+
+        return $table;
     }
 
     /**

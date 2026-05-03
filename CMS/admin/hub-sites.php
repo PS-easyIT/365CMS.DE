@@ -14,6 +14,7 @@ use CMS\Auth;
 
 const CMS_ADMIN_HUB_SITES_READ_CAPABILITY = 'manage_settings';
 const CMS_ADMIN_HUB_SITES_WRITE_CAPABILITY = 'manage_settings';
+const CMS_ADMIN_HUB_SITES_FORM_SESSION_KEY = 'admin_hub_sites_form';
 
 function cms_admin_hub_sites_can_access(): bool
 {
@@ -64,7 +65,11 @@ function cms_admin_hub_sites_post_redirect(string $action, array $result, array 
             return '/admin/hub-sites?action=edit&id=' . (int) ($result['id'] ?? 0);
         }
 
-        return cms_admin_hub_sites_default_url();
+        $editId = max(0, (int) ($post['id'] ?? 0));
+
+        return $editId > 0
+            ? '/admin/hub-sites?action=edit&id=' . $editId
+            : '/admin/hub-sites?action=edit';
     }
 
     if ($action === 'save-template' || $action === 'duplicate-template') {
@@ -136,6 +141,23 @@ function cms_admin_hub_sites_normalize_payload(array $post): array
     ];
 }
 
+function cms_admin_hub_sites_store_form_state(array $post): void
+{
+    unset($post['csrf_token']);
+
+    $_SESSION[CMS_ADMIN_HUB_SITES_FORM_SESSION_KEY] = [
+        'values' => $post,
+    ];
+}
+
+function cms_admin_hub_sites_pull_form_state(): array
+{
+    $state = $_SESSION[CMS_ADMIN_HUB_SITES_FORM_SESSION_KEY] ?? [];
+    unset($_SESSION[CMS_ADMIN_HUB_SITES_FORM_SESSION_KEY]);
+
+    return is_array($state['values'] ?? null) ? $state['values'] : [];
+}
+
 function cms_admin_hub_sites_handle_action(HubSitesModule $module, array $payload): array
 {
     return match ($payload['action']) {
@@ -184,7 +206,7 @@ function cms_admin_hub_sites_view_config(HubSitesModule $module, string $viewAct
     return match ($viewAction) {
         'edit' => (function () use ($module): array {
             $id = isset($_GET['id']) ? (int)$_GET['id'] : null;
-            $data = $module->getEditData($id);
+            $data = $module->getEditData($id, cms_admin_hub_sites_pull_form_state());
 
             return [
                 'data' => $data,
@@ -306,6 +328,10 @@ $sectionPageConfig = [
         $result = is_array($handledAction['result'] ?? null)
             ? $handledAction['result']
             : ['success' => false, 'error' => 'Unbekannte Hub-Sites-Aktion.'];
+
+        if ($payload['action'] === 'save' && empty($result['success'])) {
+            cms_admin_hub_sites_store_form_state($payload['post']);
+        }
 
         if (empty($result['message']) && !empty($handledAction['fallback'])) {
             $result['error'] = (string) ($result['error'] ?? $handledAction['fallback']);

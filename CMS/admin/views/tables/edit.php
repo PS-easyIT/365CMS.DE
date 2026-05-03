@@ -68,6 +68,13 @@ $encodeTableJson = static function (mixed $value): string {
 
 <div class="page-body">
     <div class="container-xl">
+        <?php
+        $alertData = $alert ?? [];
+        $alertDismissible = true;
+        $alertMarginClass = 'mb-3';
+        require __DIR__ . '/../partials/flash-alert.php';
+        ?>
+
         <form method="post" id="tableForm">
             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
             <input type="hidden" name="action" value="save">

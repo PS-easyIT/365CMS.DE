@@ -15,6 +15,7 @@ $templateProfiles = $data['templateProfiles'] ?? [];
 $settings = $site['settings'] ?? $defaults;
 $cards = $site['cards'] ?? [];
 $hubDomains = is_array($settings['hub_domains'] ?? null) ? $settings['hub_domains'] : [];
+$hubDomainsInput = (string) ($data['hubDomainsInput'] ?? implode("\n", array_map('strval', $hubDomains)));
 $mainDomainHost = trim((string)(parse_url((string) SITE_URL, PHP_URL_HOST) ?? ''));
 $hubBaseUrl = '/admin/hub-sites';
 $hubTemplatesUrl = $hubBaseUrl . '?action=templates';
@@ -126,7 +127,7 @@ $hubPublicEnPath = $hubPublicPath !== '' ? ContentLocalizationService::getInstan
                             </div>
                             <div class="mt-3">
                                 <label class="form-label">Zusatzdomains</label>
-                                <textarea class="form-control" name="hub_domains" rows="4" placeholder="hub.example.de&#10;thema.example.org"><?php echo htmlspecialchars(implode("\n", array_map('strval', $hubDomains))); ?></textarea>
+                                <textarea class="form-control" name="hub_domains" rows="4" placeholder="hub.example.de&#10;thema.example.org"><?php echo htmlspecialchars($hubDomainsInput); ?></textarea>
                                 <div class="form-hint">Eine Domain pro Zeile. Nur zusätzliche Domains/Subdomains, die auf die Startseite zeigen. Die Hauptdomain <code><?php echo htmlspecialchars($mainDomainHost); ?></code> ist hier ausdrücklich tabu.</div>
                             </div>
                         </div>

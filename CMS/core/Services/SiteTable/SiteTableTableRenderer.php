@@ -112,7 +112,7 @@ final class SiteTableTableRenderer
         }
         $html .= '<thead><tr>';
         foreach ($columns as $index => $column) {
-            $html .= '<th scope="col"' . (!empty($interactiveConfig['sortingEnabled']) ? ' aria-sort="none"' : '') . '>';
+            $html .= '<th scope="col">';
             if (!empty($interactiveConfig['sortingEnabled'])) {
                 $html .= '<button type="button" class="cms-site-table__sort" data-site-table-sort="' . $index . '">';
                 $html .= '<span class="cms-site-table__sort-label">' . $this->renderColumnLabel((string) ($column['label'] ?? '')) . '</span>';

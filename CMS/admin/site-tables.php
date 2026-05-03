@@ -16,6 +16,7 @@ use CMS\Security;
 const CMS_ADMIN_SITE_TABLES_CAPABILITY = 'manage_settings';
 const CMS_ADMIN_SITE_TABLES_MAX_COLUMNS_JSON_LENGTH = 100000;
 const CMS_ADMIN_SITE_TABLES_MAX_ROWS_JSON_LENGTH = 500000;
+const CMS_ADMIN_SITE_TABLES_FORM_SESSION_KEY = 'admin_site_tables_form';
 
 function cms_admin_site_tables_can_access(): bool
 {
@@ -68,6 +69,23 @@ function cms_admin_site_tables_flash(array $result): void
         'type' => !empty($result['success']) ? 'success' : 'danger',
         'message' => trim((string) ($result['message'] ?? $result['error'] ?? 'Unbekannte Antwort.')),
     ];
+}
+
+function cms_admin_site_tables_store_form_state(array $post): void
+{
+    unset($post['csrf_token']);
+
+    $_SESSION[CMS_ADMIN_SITE_TABLES_FORM_SESSION_KEY] = [
+        'values' => $post,
+    ];
+}
+
+function cms_admin_site_tables_pull_form_state(): array
+{
+    $state = $_SESSION[CMS_ADMIN_SITE_TABLES_FORM_SESSION_KEY] ?? [];
+    unset($_SESSION[CMS_ADMIN_SITE_TABLES_FORM_SESSION_KEY]);
+
+    return is_array($state['values'] ?? null) ? $state['values'] : [];
 }
 
 function cms_admin_site_tables_normalize_action(mixed $action): string
@@ -182,6 +200,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($payload['error'] !== '') {
         cms_admin_site_tables_flash(['success' => false, 'error' => $payload['error']]);
+        if ($payload['action'] === 'save') {
+            cms_admin_site_tables_store_form_state($payload['post']);
+        }
         cms_admin_site_tables_redirect($payload['action'] === 'save' ? cms_admin_site_tables_edit_redirect_path($payload['id']) : '/admin/site-tables');
     }
 
@@ -203,6 +224,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             cms_admin_site_tables_redirect(cms_admin_site_tables_edit_redirect_path($resultId));
         }
 
+        cms_admin_site_tables_store_form_state($payload['post']);
         cms_admin_site_tables_redirect(cms_admin_site_tables_edit_redirect_path($payload['id']));
     }
 
@@ -216,6 +238,7 @@ if (!empty($_SESSION['admin_alert'])) {
 }
 
 $csrfToken = Security::instance()->generateToken('admin_tables');
+$formValues = cms_admin_site_tables_pull_form_state();
 
 // ─── View-Routing ────────────────────────────────────────
 $viewAction = cms_admin_site_tables_normalize_view_action($_GET['action'] ?? 'list');
@@ -233,7 +256,7 @@ if ($viewAction === 'settings') {
 } elseif ($viewAction === 'edit') {
     $normalizedId = cms_admin_site_tables_normalize_positive_id($_GET['id'] ?? 0);
     $id        = $normalizedId > 0 ? $normalizedId : null;
-    $data      = $module->getEditData($id);
+    $data      = $module->getEditData($id, $formValues);
 
     if (!empty($data['missing'])) {
         cms_admin_site_tables_flash(['success' => false, 'error' => 'Angeforderte Tabelle wurde nicht gefunden.']);

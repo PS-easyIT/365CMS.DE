@@ -99,16 +99,13 @@
             headers.forEach(function (header, index) {
                 var indicator = header.querySelector('.cms-site-table__sort-indicator');
                 var isActive = state.sortIndex === index;
-                var ariaSort = 'none';
                 var indicatorText = '↕';
 
                 if (isActive) {
-                    ariaSort = state.sortDirection === 'desc' ? 'descending' : 'ascending';
+                    header.setAttribute('aria-sort', state.sortDirection === 'desc' ? 'descending' : 'ascending');
                     indicatorText = state.sortDirection === 'desc' ? '↓' : '↑';
-                }
-
-                if (header.hasAttribute('aria-sort')) {
-                    header.setAttribute('aria-sort', ariaSort);
+                } else {
+                    header.removeAttribute('aria-sort');
                 }
 
                 if (indicator) {
@@ -216,7 +213,9 @@
                         state.page = pageNumber;
                         render();
                     });
-                    button.setAttribute('aria-current', pageNumber === state.page ? 'page' : 'false');
+                    if (pageNumber === state.page) {
+                        button.setAttribute('aria-current', 'page');
+                    }
                     list.appendChild(button);
                 })(page);
             }

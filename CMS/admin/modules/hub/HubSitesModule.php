@@ -122,7 +122,7 @@ class HubSitesModule
         ];
     }
 
-    public function getEditData(?int $id): array
+    public function getEditData(?int $id, array $formValues = []): array
     {
         $site = null;
 
@@ -145,12 +145,21 @@ class HubSitesModule
             }
         }
 
+        if ($formValues !== []) {
+            $site = $this->applyFormValuesToSite($site, $formValues);
+        }
+
+        $hubDomainsInput = isset($formValues['hub_domains'])
+            ? (string) $formValues['hub_domains']
+            : implode("\n", array_map('strval', is_array($site['settings']['hub_domains'] ?? null) ? $site['settings']['hub_domains'] : []));
+
         return [
             'site' => $site,
             'isNew' => $site === null,
             'defaults' => self::DEFAULT_SETTINGS,
             'templateOptions' => $this->templateProfileManager->getChoices(),
             'templateProfiles' => $this->templateProfileManager->getProfiles(),
+            'hubDomainsInput' => $hubDomainsInput,
         ];
     }
 
@@ -459,6 +468,85 @@ class HubSitesModule
         }
 
         return $slug;
+    }
+
+    private function applyFormValuesToSite(?array $site, array $formValues): array
+    {
+        $site ??= [
+            'id' => max(0, (int) ($formValues['id'] ?? 0)),
+            'table_name' => '',
+            'description' => '',
+            'cards' => [],
+            'settings' => self::DEFAULT_SETTINGS,
+        ];
+
+        $site['table_name'] = (string) ($formValues['site_name'] ?? ($site['table_name'] ?? ''));
+        $site['description'] = (string) ($formValues['description'] ?? ($site['description'] ?? ''));
+
+        $cards = \CMS\Json::decodeArray($formValues['cards_json'] ?? null, null);
+        if (is_array($cards)) {
+            $site['cards'] = $cards;
+        }
+
+        $settings = array_merge(self::DEFAULT_SETTINGS, is_array($site['settings'] ?? null) ? $site['settings'] : []);
+        foreach (array_keys(self::DEFAULT_SETTINGS) as $key) {
+            if ($key === 'hub_domains') {
+                $normalizedDomains = $this->normalizeHubDomains((string) ($formValues['hub_domains'] ?? ''));
+                $settings[$key] = $normalizedDomains['domains'] ?? [];
+                continue;
+            }
+
+            if (!array_key_exists($key, $formValues)) {
+                continue;
+            }
+
+            $settings[$key] = $formValues[$key];
+        }
+
+        $settings['hub_feature_card_interval'] = $this->normalizeNumber((int) ($settings['hub_feature_card_interval'] ?? 0), 0, 12, 0);
+        $settings['hub_feature_cards_json'] = $this->normalizeFeatureCardsJson((string) ($settings['hub_feature_cards_json'] ?? '[]'));
+        $settings['hub_template'] = $this->normalizeTemplateChoice((string) ($settings['hub_template'] ?? 'general-it'));
+        $settings['hub_badge'] = $this->sanitizePlainText((string) ($settings['hub_badge'] ?? ''), 80);
+        $settings['hub_badge_en'] = $this->sanitizePlainText((string) ($settings['hub_badge_en'] ?? ''), 80);
+        $settings['hub_hero_title'] = $this->sanitizePlainText((string) ($settings['hub_hero_title'] ?? ''), 160);
+        $settings['hub_hero_title_en'] = $this->sanitizePlainText((string) ($settings['hub_hero_title_en'] ?? ''), 160);
+        $settings['hub_hero_text'] = (string) ($formValues['hub_hero_text'] ?? ($settings['hub_hero_text'] ?? ''));
+        $settings['hub_hero_text_en'] = (string) ($formValues['hub_hero_text_en'] ?? ($settings['hub_hero_text_en'] ?? ''));
+        $settings['hub_cta_label'] = $this->sanitizePlainText((string) ($settings['hub_cta_label'] ?? ''), 60);
+        $settings['hub_cta_label_en'] = $this->sanitizePlainText((string) ($settings['hub_cta_label_en'] ?? ''), 60);
+        $settings['hub_cta_url'] = (string) ($formValues['hub_cta_url'] ?? ($settings['hub_cta_url'] ?? ''));
+        $settings['hub_meta_audience'] = $this->sanitizePlainText((string) ($settings['hub_meta_audience'] ?? ''), 120);
+        $settings['hub_meta_audience_en'] = $this->sanitizePlainText((string) ($settings['hub_meta_audience_en'] ?? ''), 120);
+        $settings['hub_meta_owner'] = $this->sanitizePlainText((string) ($settings['hub_meta_owner'] ?? ''), 120);
+        $settings['hub_meta_owner_en'] = $this->sanitizePlainText((string) ($settings['hub_meta_owner_en'] ?? ''), 120);
+        $settings['hub_meta_update_cycle'] = $this->sanitizePlainText((string) ($settings['hub_meta_update_cycle'] ?? ''), 120);
+        $settings['hub_meta_update_cycle_en'] = $this->sanitizePlainText((string) ($settings['hub_meta_update_cycle_en'] ?? ''), 120);
+        $settings['hub_meta_focus'] = $this->sanitizePlainText((string) ($settings['hub_meta_focus'] ?? ''), 160);
+        $settings['hub_meta_focus_en'] = $this->sanitizePlainText((string) ($settings['hub_meta_focus_en'] ?? ''), 160);
+        $settings['hub_meta_kpi'] = $this->sanitizePlainText((string) ($settings['hub_meta_kpi'] ?? ''), 120);
+        $settings['hub_meta_kpi_en'] = $this->sanitizePlainText((string) ($settings['hub_meta_kpi_en'] ?? ''), 120);
+        $settings['hub_links_json'] = (string) ($formValues['hub_links_json'] ?? ($settings['hub_links_json'] ?? '[]'));
+        $settings['hub_sections_json'] = (string) ($formValues['hub_sections_json'] ?? ($settings['hub_sections_json'] ?? '[]'));
+        $settings['hub_card_layout'] = $this->normalizeSetting((string) ($settings['hub_card_layout'] ?? 'standard'), self::ALLOWED_CARD_LAYOUTS, 'standard');
+        $settings['hub_card_image_position'] = $this->normalizeSetting((string) ($settings['hub_card_image_position'] ?? 'top'), self::ALLOWED_IMAGE_POSITIONS, 'top');
+        $settings['hub_card_image_fit'] = $this->normalizeSetting((string) ($settings['hub_card_image_fit'] ?? 'cover'), self::ALLOWED_IMAGE_FITS, 'cover');
+        $settings['hub_card_image_ratio'] = $this->normalizeSetting((string) ($settings['hub_card_image_ratio'] ?? 'wide'), self::ALLOWED_IMAGE_RATIOS, 'wide');
+        $settings['hub_card_meta_layout'] = $this->normalizeSetting((string) ($settings['hub_card_meta_layout'] ?? 'split'), self::ALLOWED_META_LAYOUTS, 'split');
+
+        if (!empty($site['table_slug']) && trim((string) ($settings['hub_slug'] ?? '')) === '') {
+            $settings['hub_slug'] = (string) $site['table_slug'];
+        }
+
+        $site['settings'] = $settings;
+
+        return $site;
+    }
+
+    private function normalizeTemplateChoice(string $value): string
+    {
+        $choices = $this->templateProfileManager->getChoices();
+
+        return array_key_exists($value, $choices) ? $value : 'general-it';
     }
 
     private function hubSlugExists(string $slug, ?int $excludeId = null): bool
