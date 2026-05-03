@@ -1327,6 +1327,113 @@ function meridian_setting(string $section, string $key, mixed $default = null): 
     }
 }
 
+function meridian_build_base_post_content_expression(string $alias): string
+{
+    return "(CHAR_LENGTH(TRIM(COALESCE({$alias}.content, ''))) > 0"
+        . " OR CHAR_LENGTH(TRIM(COALESCE({$alias}.excerpt, ''))) > 0"
+        . " OR CHAR_LENGTH(TRIM(COALESCE({$alias}.title, ''))) > 0)";
+}
+
+function meridian_build_localized_post_content_expression(string $alias, string $locale): string
+{
+    return "(CHAR_LENGTH(TRIM(COALESCE({$alias}.content_{$locale}, ''))) > 0"
+        . " OR CHAR_LENGTH(TRIM(COALESCE({$alias}.excerpt_{$locale}, ''))) > 0"
+        . " OR CHAR_LENGTH(TRIM(COALESCE({$alias}.title_{$locale}, ''))) > 0)";
+}
+
+function meridian_build_legacy_english_only_post_expression(string $alias): string
+{
+    $englishContent = meridian_build_localized_post_content_expression($alias, 'en');
+
+    return "(CHAR_LENGTH(TRIM(COALESCE({$alias}.slug_en, ''))) > 0 AND NOT {$englishContent})";
+}
+
+function meridian_post_locale_availability_expression(string $alias = 'p', ?string $locale = null): string
+{
+    try {
+        $localization = \CMS\Services\ContentLocalizationService::getInstance();
+        $resolvedLocale = $localization->normalizeLocale($locale ?? meridian_current_request_locale());
+        $baseContent = meridian_build_base_post_content_expression($alias);
+        $englishLegacyOnly = meridian_build_legacy_english_only_post_expression($alias);
+
+        if ($resolvedLocale === '' || $resolvedLocale === 'de') {
+            return "{$baseContent} AND NOT {$englishLegacyOnly}";
+        }
+
+        if (!in_array($resolvedLocale, $localization->getContentLocales(), true)) {
+            return '1=1';
+        }
+
+        $localizedContent = meridian_build_localized_post_content_expression($alias, $resolvedLocale);
+
+        if ($resolvedLocale === 'en') {
+            return "({$localizedContent} OR {$englishLegacyOnly})";
+        }
+
+        return $localizedContent;
+    } catch (\Throwable $e) {
+        return '1=1';
+    }
+}
+
+/**
+ * @param array<int,array<string,mixed>> $rows
+ * @return array<int,array<string,mixed>>
+ */
+function meridian_build_category_tree_rows(array $rows): array
+{
+    $byId = [];
+    foreach ($rows as $row) {
+        $id = (int) ($row['id'] ?? 0);
+        if ($id <= 0) {
+            continue;
+        }
+
+        $row['id'] = $id;
+        $row['parent_id'] = (int) ($row['parent_id'] ?? 0);
+        $row['post_count_direct'] = (int) ($row['post_count_direct'] ?? $row['post_count'] ?? 0);
+        $byId[$id] = $row;
+    }
+
+    $byParent = [];
+    foreach ($byId as $id => $row) {
+        $parentId = (int) ($row['parent_id'] ?? 0);
+        if ($parentId > 0 && !isset($byId[$parentId])) {
+            $parentId = 0;
+        }
+
+        $byParent[$parentId][] = $id;
+    }
+
+    $flat = [];
+    $walker = function (int $parentId, int $depth) use (&$walker, &$flat, $byParent, $byId): int {
+        $branchTotal = 0;
+
+        foreach ($byParent[$parentId] ?? [] as $categoryId) {
+            if (!isset($byId[$categoryId])) {
+                continue;
+            }
+
+            $row = $byId[$categoryId];
+            $row['depth'] = $depth;
+            $row['name_plain'] = (string) ($row['name'] ?? '');
+            $row['name'] = str_repeat('— ', $depth) . (string) ($row['name'] ?? '');
+            $index = count($flat);
+            $flat[] = $row;
+            $childrenTotal = $walker($categoryId, $depth + 1);
+            $row['post_count'] = (int) ($row['post_count_direct'] ?? 0) + $childrenTotal;
+            $flat[$index] = $row;
+            $branchTotal += (int) $row['post_count'];
+        }
+
+        return $branchTotal;
+    };
+
+    $walker(0, 0);
+
+    return $flat;
+}
+
 /**
  * Kategorie-Leiste: Holt Kategorien aus der DB
  *
@@ -1335,16 +1442,78 @@ function meridian_setting(string $section, string $key, mixed $default = null): 
 function meridian_get_categories(int $limit = 0): array
 {
     try {
-        $db     = \CMS\Database::instance();
+        $db = \CMS\Database::instance();
         $prefix = $db->getPrefix();
-        $sql    = "SELECT id, name, slug,
-                          (SELECT COUNT(*) FROM {$prefix}posts p WHERE p.category_id = c.id AND p.status = 'published') AS post_count
-                   FROM {$prefix}post_categories c ORDER BY c.sort_order ASC, c.name ASC";
-        if ($limit > 0) {
-            $sql .= ' LIMIT ' . $limit;
+        $localeAvailability = meridian_post_locale_availability_expression('p');
+        $categories = $db->get_results(
+            "SELECT id, name, slug, parent_id, sort_order
+             FROM {$prefix}post_categories
+             ORDER BY sort_order ASC, name ASC"
+        ) ?: [];
+
+        if ($categories === []) {
+            return [];
         }
-        $cats = $db->get_results($sql);
-        return $cats ? array_map(fn($c) => (array)$c, $cats) : [];
+
+        $rows = array_map(static fn(object $category): array => (array) $category, $categories);
+        $postIdsByCategory = [];
+        foreach ($rows as $row) {
+            $categoryId = (int) ($row['id'] ?? 0);
+            if ($categoryId > 0) {
+                $postIdsByCategory[$categoryId] = [];
+            }
+        }
+
+        $primaryRows = $db->get_results(
+            "SELECT p.id AS post_id, p.category_id AS category_id
+             FROM {$prefix}posts p
+             WHERE " . cms_post_publication_where('p') . "
+               AND {$localeAvailability}
+               AND p.category_id IS NOT NULL
+               AND p.category_id > 0"
+        ) ?: [];
+
+        foreach ($primaryRows as $row) {
+            $categoryId = (int) ($row->category_id ?? 0);
+            $postId = (int) ($row->post_id ?? 0);
+            if ($categoryId > 0 && $postId > 0) {
+                $postIdsByCategory[$categoryId][$postId] = true;
+            }
+        }
+
+        $relationRows = $db->get_results(
+            "SELECT p.id AS post_id, pcr.category_id AS category_id
+             FROM {$prefix}post_category_rel pcr
+             INNER JOIN {$prefix}posts p ON p.id = pcr.post_id
+             WHERE " . cms_post_publication_where('p') . "
+               AND {$localeAvailability}"
+        ) ?: [];
+
+        foreach ($relationRows as $row) {
+            $categoryId = (int) ($row->category_id ?? 0);
+            $postId = (int) ($row->post_id ?? 0);
+            if ($categoryId > 0 && $postId > 0) {
+                $postIdsByCategory[$categoryId][$postId] = true;
+            }
+        }
+
+        foreach ($rows as &$row) {
+            $categoryId = (int) ($row['id'] ?? 0);
+            $row['post_count_direct'] = count($postIdsByCategory[$categoryId] ?? []);
+        }
+        unset($row);
+
+        $cats = array_values(array_filter(
+            meridian_build_category_tree_rows($rows),
+            static fn(array $category): bool => trim((string) ($category['slug'] ?? '')) !== ''
+                && ((int) ($category['post_count'] ?? 0)) > 0
+        ));
+
+        if ($limit > 0) {
+            $cats = array_slice($cats, 0, $limit);
+        }
+
+        return $cats;
     } catch (\Throwable $e) {
         return [];
     }
@@ -1358,29 +1527,23 @@ function meridian_get_categories(int $limit = 0): array
 function meridian_get_tags(int $limit = 30): array
 {
     try {
-        $db     = \CMS\Database::instance();
-        $prefix = $db->getPrefix();
-        $stmt   = $db->execute("SELECT tags FROM {$prefix}posts WHERE status = 'published' AND tags IS NOT NULL AND tags != ''");
-        $rows   = $stmt->fetchAll(\PDO::FETCH_COLUMN);
-        $counts = [];
-        foreach ($rows as $row) {
-            foreach (array_filter(array_map('trim', explode(',', $row))) as $tag) {
-                $counts[$tag] = ($counts[$tag] ?? 0) + 1;
-            }
-        }
-        arsort($counts);
+        $repository = new \CMS\Routing\ThemeArchiveRepository();
+        $items = $repository->getPublishedTagOverview(
+            meridian_current_request_locale(),
+            meridian_post_locale_availability_expression('p')
+        );
+
         if ($limit > 0) {
-            $counts = array_slice($counts, 0, $limit, true);
+            $items = array_slice($items, 0, $limit);
         }
-        $out = [];
-        foreach ($counts as $name => $count) {
-            $out[] = [
-                'name'  => $name,
-                'slug'  => urlencode(strtolower($name)),
-                'count' => $count,
+
+        return array_values(array_map(static function (array $item): array {
+            return [
+                'name' => trim((string) ($item['title'] ?? '')),
+                'slug' => trim((string) ($item['slug'] ?? '')),
+                'count' => (int) ($item['count'] ?? 0),
             ];
-        }
-        return $out;
+        }, $items));
     } catch (\Throwable $e) {
         return [];
     }
@@ -1611,14 +1774,65 @@ function theme_register_user(string $email, string $username, string $password):
  */
 function meridian_get_category_post_count(int $categoryId): int
 {
+    if ($categoryId <= 0) {
+        return 0;
+    }
+
     try {
-        $db     = \CMS\Database::instance();
+        $db = \CMS\Database::instance();
         $prefix = $db->getPrefix();
-        $row    = $db->execute(
-            "SELECT COUNT(*) AS cnt FROM {$prefix}posts WHERE category_id = ? AND status = 'published'",
-            [$categoryId]
+        $categories = $db->get_results(
+            "SELECT id, parent_id FROM {$prefix}post_categories",
+            []
+        ) ?: [];
+
+        $byParent = [];
+        foreach ($categories as $category) {
+            $byParent[(int) ($category->parent_id ?? 0)][] = (int) ($category->id ?? 0);
+        }
+
+        $categoryIds = [];
+        $walker = function (int $currentId) use (&$walker, &$categoryIds, $byParent): void {
+            if ($currentId <= 0 || isset($categoryIds[$currentId])) {
+                return;
+            }
+
+            $categoryIds[$currentId] = true;
+            foreach ($byParent[$currentId] ?? [] as $childId) {
+                $walker((int) $childId);
+            }
+        };
+
+        $walker($categoryId);
+        if ($categoryIds === []) {
+            return 0;
+        }
+
+        $ids = array_map('intval', array_keys($categoryIds));
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $localeAvailability = meridian_post_locale_availability_expression('p');
+        $row = $db->execute(
+            "SELECT COUNT(DISTINCT category_posts.post_id) AS cnt
+             FROM (
+                 SELECT p.id AS post_id
+                 FROM {$prefix}posts p
+                 WHERE " . cms_post_publication_where('p') . "
+                   AND {$localeAvailability}
+                   AND p.category_id IN ({$placeholders})
+
+                 UNION
+
+                 SELECT p.id AS post_id
+                 FROM {$prefix}post_category_rel pcr
+                 INNER JOIN {$prefix}posts p ON p.id = pcr.post_id
+                 WHERE " . cms_post_publication_where('p') . "
+                   AND {$localeAvailability}
+                   AND pcr.category_id IN ({$placeholders})
+             ) category_posts",
+            array_merge($ids, $ids)
         )->fetch();
-        return $row ? (int)$row->cnt : 0;
+
+        return $row ? (int) ($row->cnt ?? 0) : 0;
     } catch (\Throwable $e) {
         return 0;
     }

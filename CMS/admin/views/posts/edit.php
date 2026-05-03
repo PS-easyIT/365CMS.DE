@@ -293,6 +293,17 @@ $additionalCategoryIds = array_values(array_filter(
                                             Vorschau EN
                                         </a>
                                     </div>
+                                    <div class="border-top pt-2 mt-1">
+                                        <button
+                                            type="submit"
+                                            name="_action"
+                                            value="delete"
+                                            class="btn btn-outline-danger btn-sm w-100"
+                                            form="postForm"
+                                            formnovalidate
+                                            data-confirm="Der Beitrag wird dauerhaft gelöscht. Wirklich fortfahren?"
+                                        >Beitrag löschen</button>
+                                    </div>
                                     <?php endif; ?>
                                 </div>
                             </div>
@@ -333,30 +344,6 @@ $additionalCategoryIds = array_values(array_filter(
                         </div>
                     </div>
                 </div>
-
-                <?php if (!$isNew): ?>
-                <div class="col-12">
-                    <div class="card border-danger-subtle cms-edit-card">
-                        <div class="card-header">
-                            <h3 class="card-title text-danger mb-0">Beitrag dauerhaft löschen</h3>
-                        </div>
-                        <div class="card-body">
-                            <p class="text-secondary mb-0">Der Beitrag wird vollständig entfernt. Diese Aktion ist dauerhaft und kann nicht rückgängig gemacht werden.</p>
-                        </div>
-                        <div class="card-footer">
-                            <button
-                                type="submit"
-                                name="_action"
-                                value="delete"
-                                class="btn btn-danger w-100"
-                                form="postForm"
-                                formnovalidate
-                                data-confirm="Der Beitrag wird dauerhaft gelöscht. Wirklich fortfahren?"
-                            >Beitrag löschen</button>
-                        </div>
-                    </div>
-                </div>
-                <?php endif; ?>
 
                 <div class="col-12">
                     <div class="card cms-edit-card cms-editor-card mb-3">

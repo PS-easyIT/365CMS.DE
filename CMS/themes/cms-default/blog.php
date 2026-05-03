@@ -37,24 +37,10 @@ if ($activeCategory) {
 // Sidebar-Daten
 $recentSidebar = meridian_get_recent_posts(5);
 $sidebarCats   = meridian_get_categories(8);
-$tagCloud      = [];
-try {
-    $pdo = \CMS\Database::instance()->getConnection();
-    $stmt = $pdo->query("SELECT tags FROM posts WHERE status = 'published' AND tags IS NOT NULL AND tags != ''");
-    $tagRows = $stmt->fetchAll(\PDO::FETCH_COLUMN);
-    $tagCounts = [];
-    foreach ($tagRows as $row) {
-        foreach (array_map('trim', explode(',', $row)) as $tag) {
-            if ($tag) {
-                $tagCounts[$tag] = ($tagCounts[$tag] ?? 0) + 1;
-            }
-        }
-    }
-    arsort($tagCounts);
-    $tagCloud = array_keys(array_slice($tagCounts, 0, 20));
-} catch (\Exception $e) {
-    $tagCloud = [];
-}
+$tagCloud = array_values(array_filter(array_map(
+    static fn(array $tag): string => trim((string) ($tag['name'] ?? '')),
+    meridian_get_tags(20)
+), static fn(string $tag): bool => $tag !== ''));
 ?>
 
 <div class="page-wrap">

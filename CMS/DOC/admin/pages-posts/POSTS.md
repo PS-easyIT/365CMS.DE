@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Verwaltung chronologischer Inhalte wie News und Blog-Beiträge im Admin-Bereich.
 
-Letzte Aktualisierung: 2026-05-03 · Version 2.9.502
+Letzte Aktualisierung: 2026-05-03 · Version 2.9.505
 
 ---
 
@@ -40,15 +40,14 @@ Der Bulk-Flow validiert Beitrags-IDs fail-closed gegen den aktuellen Datenbestan
 
 ## Editor-Aufbau
 
-Die obere Editor-Zone besteht aus drei primären Bereichen plus sichtbarer Delete-Sektion bei bestehenden Beiträgen:
+Die obere Editor-Zone besteht aus drei primären Bereichen:
 
 | Bereich | Inhalt |
 |---|---|
 | Card 1 | Titel, Slug, Primärkategorie, zusätzliche Kategorien, Tags |
 | Card 2 | Beitragsbild |
-| Card 2b | Hauptaktion `Erstellen/Aktualisieren` sowie öffentliche DE-/EN-Vorschau |
+| Card 2b | Hauptaktion `Erstellen/Aktualisieren`, öffentliche DE-/EN-Vorschau und dezenter Delete-Button |
 | Card 3 | Status, Veröffentlichungsdatum/-zeit und Autoren-Anzeigename |
-| Delete-Card | Sichtbarer Einzel-Löschpfad mit Bestätigung |
 
 Wichtig: Beiträge unterstützen weiterhin **eine Primärkategorie plus optionale zusätzliche Kategorien** über die Relationstabelle `post_category_rel`. Ältere Dokumentationsstände ohne Mehrfachkategorien sind überholt.
 
@@ -82,12 +81,28 @@ Damit bleiben sowohl aktuelle als auch ältere öffentliche Beitrags-URLs stabil
 
 ## Delete-, Cache- und Veröffentlichungslogik
 
-- Einzel-Löschen ist im Editor sichtbar und mit Bestätigungsdialog abgesichert.
+- Einzel-Löschen ist im Editor direkt in der Aktionskarte unter den Vorschau-Buttons sichtbar und mit Bestätigungsdialog abgesichert.
 - Einzel- und Bulk-Löschen feuern `post_deleted` für Folgeprozesse.
 - Wenn `perf_auto_clear_content_cache` aktiv ist, leeren Speichern, Löschen, relevante Bulk-Mutationen sowie Kategorie-/Tag-Änderungen den Inhaltscache automatisch.
 - Veröffentlichte Beiträge mit zukünftigem Datum erscheinen im Admin als `Geplant` und werden erst zum vorgesehenen Zeitpunkt öffentlich sichtbar.
 
 Das folgt den Heuristiken **Visibility of System Status**, **Error Prevention** und **User Control and Freedom**: Status ist sichtbar, riskante Aktionen werden bestätigt und destruktive Schritte sind klar erkennbar statt versteckt.
+
+---
+
+## Kategorien- und Tag-Vertrag
+
+Die Taxonomie-Verwaltung gehört funktional zum Beiträge-Bereich und folgt jetzt einem konsistenteren Admin-Vertrag:
+
+- **Kategorien** unterstützen Haupt-/Unterkategorien, optionale Fremddomains sowie eine hinterlegte Ersatzkategorie für spätere Löschvorgänge.
+- **Tags** bleiben flach, erlauben aber beim Löschen eine bewusste Umstellung betroffener Beiträge auf einen Ersatztag.
+- Validierungsfehler in Kategorie-/Tag-Formularen verwerfen die Eingaben nicht mehr sofort: Name, Slug, Eltern-/Ersatzauswahl und Zusatzdomains bleiben nach dem Redirect erhalten und werden direkt am Formular erneut eingeblendet.
+- Einzel-Löschdialoge sind bewusst spezifisch formuliert: sie nennen die betroffene Taxonomie und erläutern, ob Beiträge umgehängt oder Beziehungen nur entfernt werden.
+- Auch der Fallback ohne Bootstrap-Modal blockiert Kategorie-Löschungen nicht mehr unnötig, wenn bereits eine gültige Ersatzkategorie hinterlegt ist.
+
+Das passt zu den NN/g-Empfehlungen für **Confirmation Dialogs** und **Error Messages**: riskante Aktionen werden konkret beschrieben, Modale bleiben auf destruktive Schritte beschränkt, und Korrekturen können mit erhaltenem Formzustand direkt am Entstehungsort erfolgen.
+
+Zusätzlich ist der Public-Vertrag des Default-Themes für Taxonomie-Navigation jetzt wieder konsistent: Blog-Links mit `?category=` bzw. `?tag=` lösen in dieselben Kategorie-/Tag-Archive auf wie die dedizierten Archivrouten, und Sidebar-/Header-Helfer zählen veröffentlichte Beiträge nicht mehr nur über die Primärkategorie oder Legacy-`posts.tags`, sondern berücksichtigen Relationstabellen sowie die aktuelle DE/EN-Content-Verfügbarkeit.
 
 ---
 

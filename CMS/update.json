@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.9.502",
+  "version": "2.9.505",
   "min_php": "8.4",
   "released": "2026-05-03",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 2.9.502: Der Beiträge-Bereich wurde als abgeschlossener 5xx-Audit-Batch auf den aktuellen Laufzeitvertrag gezogen – Bootstrap-Migrationen loggen strukturiert, Delete-, Bulk-, Kategorie- und Tag-Pfade räumen den Inhaltscache konsistent auf, Kategorie-/Tag-Löschungen prüfen Delete-Statements robuster, EN-Slug-Änderungen erzeugen nun ebenfalls lokalisierte `/en/blog/...`-Redirects inklusive Legacy-Kompatibilität, und der Editor bietet einen sichtbaren Einzel-Löschpfad samt aktualisierter Bereichsdoku.",
+  "notes": "Release-Stand 2.9.505: Der Public-Taxonomie-Vertrag für Kategorien und Tags wurde nachgeschärft – `?category=`- und `?tag=`-Links im Default-Theme laufen wieder in dieselben Archive wie die dedizierten Routing-Pfade, und die Theme-Helper für Kategorien/Tags zählen veröffentlichte Beiträge jetzt relationstabellen- sowie locale-aware statt nur über Primärkategorie bzw. Legacy-Tag-Strings.",
   "critical": false
 }

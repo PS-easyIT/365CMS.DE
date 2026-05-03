@@ -69,15 +69,23 @@ function initPostCategoryDeleteFlow() {
             var categoryId = String(form.getAttribute('data-category-id') || '0');
             var categoryName = String(form.getAttribute('data-category-name') || '');
             var assignedPosts = parseInt(form.getAttribute('data-assigned-posts') || '0', 10);
+            var preferredReplacementId = parseInt(form.getAttribute('data-default-replacement-category-id') || '0', 10);
 
             if (!modal) {
-                if (assignedPosts > 0) {
+                if (assignedPosts > 0 && preferredReplacementId <= 0) {
                     event.preventDefault();
                     window.alert('Für diese Kategorie muss zuerst eine Ersatzkategorie gewählt werden. Bitte Seite neu laden und erneut versuchen.');
                     return;
                 }
 
-                if (!window.confirm('Kategorie wirklich löschen? Unterkategorien werden zu Hauptkategorien.')) {
+                var fallbackMessage = 'Kategorie „' + categoryName + '“ wirklich löschen?';
+                if (assignedPosts > 0 && preferredReplacementId > 0) {
+                    fallbackMessage += ' ' + assignedPosts + ' Beitrag/Beiträge werden automatisch in die hinterlegte Ersatzkategorie verschoben.';
+                } else {
+                    fallbackMessage += ' Unterkategorien werden zu Hauptkategorien.';
+                }
+
+                if (!window.confirm(fallbackMessage)) {
                     event.preventDefault();
                 }
                 return;
@@ -87,8 +95,7 @@ function initPostCategoryDeleteFlow() {
 
             categoryIdInput.value = categoryId;
             categoryNameEl.textContent = categoryName;
-            var preferredReplacementId = String(form.getAttribute('data-default-replacement-category-id') || '0');
-            var replacementState = configureReplacementOptions(categoryId, preferredReplacementId);
+            var replacementState = configureReplacementOptions(categoryId, String(preferredReplacementId || '0'));
             submitButton.disabled = false;
             submitButton.textContent = 'Kategorie löschen';
             questionEl.classList.add('d-none');

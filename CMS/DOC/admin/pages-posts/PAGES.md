@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Verwaltung statischer CMS-Seiten im Admin inklusive getrennter DE/EN-Bearbeitung, SEO-Feldern, Slugs, Redirects, Bulk-Aktionen und Delete-/Preview-Pfaden.
 
-Letzte Aktualisierung: 2026-05-03 · Release 2.9.501
+Letzte Aktualisierung: 2026-05-03 · Release 2.9.504
 
 ---
 
@@ -33,9 +33,10 @@ Der Seiteneditor kombiniert im aktuellen Stand:
 
 - klassischen Inhaltseditor oder Editor.js
 - getrennte DE- und EN-Bearbeitungsseiten statt eines fragilen In-Page-Sprachwechsels
+- drei obere Karten analog zum Beiträge-Editor: Inhalt/Slug links, Bild plus Aktionen mittig, Veröffentlichung rechts
 - SEO-/Readability-/Preview-Karten unter dem Editor
 - sichtbare Public-Preview-Links für DE und EN
-- einen direkten Einzel-Löschpfad für bestehende Seiten
+- einen direkten Einzel-Löschpfad für bestehende Seiten innerhalb der Aktionskarte
 
 Dadurch werden Titel, Slugs, Snippet-Vorschau, Social-Vorschau und Sprachvarianten direkt im Redaktionsablauf mit gepflegt, ohne dass ein Sprachwechsel unbeabsichtigt einen Save-POST auslöst.
 
@@ -82,7 +83,7 @@ Bei Slug-Änderungen legt die Seitenverwaltung automatische Redirects an. Seit R
 - Inhalts-Cache-Clears greifen nicht mehr nur beim Speichern, sondern auch bei Delete- und Bulk-Mutationen.
 - Seiten-SEO ist direkt im Editor sichtbar.
 - Slug-, Redirect- und Preview-Bezüge greifen konsistent über DE/EN-Pfade ineinander.
-- Die Admin-UI stellt Einzel-Löschen jetzt sichtbar im Bearbeitungsbildschirm bereit, statt die vorhandene Delete-Logik nur implizit vorzuhalten.
+- Die Admin-UI bündelt Speichern, DE-/EN-Vorschau und Einzel-Löschen jetzt in einer gemeinsamen Aktionskarte mit klarer visueller Hierarchie statt in getrennten Top-/Delete-Bereichen.
 
 ---
 

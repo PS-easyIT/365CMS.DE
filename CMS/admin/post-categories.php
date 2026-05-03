@@ -9,10 +9,41 @@ use CMS\Auth;
 use CMS\Security;
 
 const CMS_ADMIN_POST_CATEGORIES_WRITE_CAPABILITY = 'edit_all_posts';
+const CMS_ADMIN_POST_CATEGORIES_FORM_SESSION_KEY = 'admin_post_categories_form';
 
-function cms_admin_post_categories_redirect(): never
+function cms_admin_post_categories_target_url(?int $editId = null): string
 {
-    header('Location: /admin/post-categories');
+    if ($editId !== null && $editId > 0) {
+        return '/admin/post-categories?edit=' . $editId;
+    }
+
+    return '/admin/post-categories';
+}
+
+/**
+ * @param array<string,mixed> $post
+ */
+function cms_admin_post_categories_store_form_state(array $post, string $message): void
+{
+    $_SESSION[CMS_ADMIN_POST_CATEGORIES_FORM_SESSION_KEY] = [
+        'alert' => [
+            'type' => 'danger',
+            'message' => $message,
+        ],
+        'values' => [
+            'cat_id' => max(0, (int) ($post['cat_id'] ?? 0)),
+            'cat_name' => (string) ($post['cat_name'] ?? ''),
+            'cat_slug' => (string) ($post['cat_slug'] ?? ''),
+            'parent_id' => max(0, (int) ($post['parent_id'] ?? 0)),
+            'replacement_category_id' => max(0, (int) ($post['replacement_category_id'] ?? 0)),
+            'cat_domains' => (string) ($post['cat_domains'] ?? ''),
+        ],
+    ];
+}
+
+function cms_admin_post_categories_redirect(?int $editId = null): never
+{
+    header('Location: ' . cms_admin_post_categories_target_url($editId));
     exit;
 }
 
@@ -29,6 +60,7 @@ $alert = null;
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = (string) ($_POST['action'] ?? '');
     $postToken = (string) ($_POST['csrf_token'] ?? '');
+    $redirectEditId = 0;
 
     if (!Security::instance()->verifyToken($postToken, 'admin_post_categories')) {
         $_SESSION['admin_alert'] = ['type' => 'danger', 'message' => 'Sicherheitstoken ungültig. Bitte erneut versuchen.'];
@@ -37,6 +69,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     switch ($action) {
         case 'save_category':
+            $redirectEditId = max(0, (int) ($_POST['cat_id'] ?? 0));
             $result = $module->saveCategory($_POST);
             break;
         case 'delete_category':
@@ -53,6 +86,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             break;
     }
 
+    if ($action === 'save_category' && empty($result['success'])) {
+        cms_admin_post_categories_store_form_state(
+            $_POST,
+            (string) ($result['message'] ?? $result['error'] ?? 'Kategorie konnte nicht gespeichert werden.')
+        );
+
+        cms_admin_post_categories_redirect($redirectEditId > 0 ? $redirectEditId : null);
+    }
+
     $_SESSION['admin_alert'] = [
         'type' => !empty($result['success']) ? 'success' : 'danger',
         'message' => (string) ($result['message'] ?? $result['error'] ?? 'Aktion abgeschlossen.'),
@@ -64,6 +106,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 if (!empty($_SESSION['admin_alert'])) {
     $alert = $_SESSION['admin_alert'];
     unset($_SESSION['admin_alert']);
+}
+
+$formAlert = null;
+$formValues = [];
+if (!empty($_SESSION[CMS_ADMIN_POST_CATEGORIES_FORM_SESSION_KEY]) && is_array($_SESSION[CMS_ADMIN_POST_CATEGORIES_FORM_SESSION_KEY])) {
+    $formState = $_SESSION[CMS_ADMIN_POST_CATEGORIES_FORM_SESSION_KEY];
+    $formAlert = is_array($formState['alert'] ?? null) ? $formState['alert'] : null;
+    $formValues = is_array($formState['values'] ?? null) ? $formState['values'] : [];
+    unset($_SESSION[CMS_ADMIN_POST_CATEGORIES_FORM_SESSION_KEY]);
 }
 
 $csrfToken = Security::instance()->generateToken('admin_post_categories');

@@ -436,6 +436,30 @@ final class ThemeRouter
 
     public function renderBlogIndex(): void
     {
+        $requestedCategory = trim((string) ($_GET['category'] ?? ''));
+        if ($requestedCategory !== '') {
+            $resolvedCategorySlug = $this->resolveRequestedCategorySlug($requestedCategory);
+            if ($resolvedCategorySlug === '') {
+                $this->router->render404();
+                return;
+            }
+
+            $this->renderCategoryArchive($resolvedCategorySlug);
+            return;
+        }
+
+        $requestedTag = trim((string) ($_GET['tag'] ?? ''));
+        if ($requestedTag !== '') {
+            $resolvedTagSlug = $this->resolveRequestedTagSlug($requestedTag);
+            if ($resolvedTagSlug === '') {
+                $this->router->render404();
+                return;
+            }
+
+            $this->renderTagArchive($resolvedTagSlug);
+            return;
+        }
+
         $db = Database::instance();
         $prefix = $db->getPrefix();
         $locale = $this->getResolvedContentLocale();
@@ -1175,6 +1199,86 @@ final class ThemeRouter
             'currentPage' => $page,
             'totalPages' => $totalPages,
         ];
+    }
+
+    private function resolveRequestedCategorySlug(string $value): string
+    {
+        $value = trim(rawurldecode($value));
+        if ($value === '') {
+            return '';
+        }
+
+        $db = Database::instance();
+        $prefix = $db->getPrefix();
+        $rows = $db->get_results(
+            "SELECT slug, name
+             FROM {$prefix}post_categories",
+            []
+        ) ?: [];
+
+        $needle = mb_strtolower($value, 'UTF-8');
+        $normalizedNeedle = $this->archiveRepository->normalizeArchiveSlug($value);
+
+        foreach ($rows as $row) {
+            $slug = trim((string) ($row->slug ?? ''));
+            $name = trim((string) ($row->name ?? ''));
+
+            if ($slug === '') {
+                continue;
+            }
+
+            if ($slug === $value || mb_strtolower($name, 'UTF-8') === $needle) {
+                return $slug;
+            }
+
+            if ($normalizedNeedle !== '' && $this->archiveRepository->normalizeArchiveSlug($name) === $normalizedNeedle) {
+                return $slug;
+            }
+        }
+
+        return '';
+    }
+
+    private function resolveRequestedTagSlug(string $value): string
+    {
+        $value = trim(rawurldecode($value));
+        if ($value === '') {
+            return '';
+        }
+
+        $normalizedNeedle = $this->archiveRepository->normalizeArchiveSlug($value);
+        if ($normalizedNeedle === '') {
+            return '';
+        }
+
+        $db = Database::instance();
+        $prefix = $db->getPrefix();
+        $rows = $db->get_results(
+            "SELECT slug, name
+             FROM {$prefix}post_tags",
+            []
+        ) ?: [];
+
+        $needle = mb_strtolower($value, 'UTF-8');
+
+        foreach ($rows as $row) {
+            $slug = trim((string) ($row->slug ?? ''));
+            $name = trim((string) ($row->name ?? ''));
+
+            if ($slug === '') {
+                continue;
+            }
+
+            if ($slug === $value || mb_strtolower($name, 'UTF-8') === $needle) {
+                return $slug;
+            }
+
+            if ($this->archiveRepository->normalizeArchiveSlug($name) === $normalizedNeedle) {
+                return $slug;
+            }
+        }
+
+        return $normalizedNeedle;
     }
 
 

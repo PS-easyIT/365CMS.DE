@@ -9,6 +9,25 @@ use CMS\Auth;
 use CMS\Security;
 
 const CMS_ADMIN_POST_TAGS_WRITE_CAPABILITY = 'edit_all_posts';
+const CMS_ADMIN_POST_TAGS_FORM_SESSION_KEY = 'admin_post_tags_form';
+
+/**
+ * @param array<string,mixed> $post
+ */
+function cms_admin_post_tags_store_form_state(array $post, string $message): void
+{
+    $_SESSION[CMS_ADMIN_POST_TAGS_FORM_SESSION_KEY] = [
+        'alert' => [
+            'type' => 'danger',
+            'message' => $message,
+        ],
+        'values' => [
+            'tag_id' => max(0, (int) ($post['tag_id'] ?? 0)),
+            'tag_name' => (string) ($post['tag_name'] ?? ''),
+            'tag_slug' => (string) ($post['tag_slug'] ?? ''),
+        ],
+    ];
+}
 
 function cms_admin_post_tags_target_url(?int $editId = null): string
 {
@@ -61,6 +80,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             break;
     }
 
+    if ($action === 'save_tag' && empty($result['success'])) {
+        cms_admin_post_tags_store_form_state(
+            $_POST,
+            (string) ($result['message'] ?? $result['error'] ?? 'Tag konnte nicht gespeichert werden.')
+        );
+
+        cms_admin_post_tags_redirect($redirectEditId > 0 ? $redirectEditId : null);
+    }
+
     $_SESSION['admin_alert'] = [
         'type' => !empty($result['success']) ? 'success' : 'danger',
         'message' => (string) ($result['message'] ?? $result['error'] ?? 'Aktion abgeschlossen.'),
@@ -72,6 +100,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 if (!empty($_SESSION['admin_alert'])) {
     $alert = $_SESSION['admin_alert'];
     unset($_SESSION['admin_alert']);
+}
+
+$formAlert = null;
+$formValues = [];
+if (!empty($_SESSION[CMS_ADMIN_POST_TAGS_FORM_SESSION_KEY]) && is_array($_SESSION[CMS_ADMIN_POST_TAGS_FORM_SESSION_KEY])) {
+    $formState = $_SESSION[CMS_ADMIN_POST_TAGS_FORM_SESSION_KEY];
+    $formAlert = is_array($formState['alert'] ?? null) ? $formState['alert'] : null;
+    $formValues = is_array($formState['values'] ?? null) ? $formState['values'] : [];
+    unset($_SESSION[CMS_ADMIN_POST_TAGS_FORM_SESSION_KEY]);
 }
 
 $csrfToken = Security::instance()->generateToken('admin_post_tags');

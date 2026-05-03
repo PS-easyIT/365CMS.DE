@@ -9,13 +9,17 @@ $categories = $data['categories'] ?? [];
 $categoryOptions = $data['categoryOptions'] ?? [];
 $counts = $data['counts'] ?? [];
 $editCategory = $editCategory ?? null;
+$formValues = is_array($formValues ?? null) ? $formValues : [];
+$formAlert = is_array($formAlert ?? null) ? $formAlert : null;
 
-$editCategoryId = (int) ($editCategory['id'] ?? 0);
-$editCategoryName = (string) ($editCategory['name'] ?? '');
-$editCategorySlug = (string) ($editCategory['slug'] ?? '');
-$editCategoryParentId = (int) ($editCategory['parent_id'] ?? 0);
-$editCategoryReplacementId = (int) ($editCategory['replacement_category_id'] ?? 0);
-$editCategoryDomains = implode("\n", array_map('strval', $editCategory['domains'] ?? []));
+$editCategoryId = (int) ($formValues['cat_id'] ?? ($editCategory['id'] ?? 0));
+$editCategoryName = (string) ($formValues['cat_name'] ?? ($editCategory['name'] ?? ''));
+$editCategorySlug = (string) ($formValues['cat_slug'] ?? ($editCategory['slug'] ?? ''));
+$editCategoryParentId = (int) ($formValues['parent_id'] ?? ($editCategory['parent_id'] ?? 0));
+$editCategoryReplacementId = (int) ($formValues['replacement_category_id'] ?? ($editCategory['replacement_category_id'] ?? 0));
+$editCategoryDomains = array_key_exists('cat_domains', $formValues)
+    ? (string) $formValues['cat_domains']
+    : implode("\n", array_map('strval', $editCategory['domains'] ?? []));
 $isEditing = $editCategoryId > 0;
 $deleteCategoryOptions = array_values(array_filter(
     $categoryOptions,
@@ -90,6 +94,10 @@ $replacementCategoryDeletePreview = array_slice($replacementCategoryDeletePrevie
                 <div class="card">
                     <div class="card-header"><h3 class="card-title"><?php echo $isEditing ? 'Kategorie bearbeiten' : 'Neue Kategorie'; ?></h3></div>
                     <div class="card-body">
+                        <?php if (!empty($formAlert)): ?>
+                            <?php $alertData = $formAlert; $alertMarginClass = 'mb-3'; $alertDismissible = false; require __DIR__ . '/../partials/flash-alert.php'; ?>
+                        <?php endif; ?>
+
                         <form method="post">
                             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES); ?>">
                             <input type="hidden" name="action" value="save_category">

@@ -9,9 +9,11 @@ $tags = $data['tags'] ?? [];
 $tagOptions = $data['tagOptions'] ?? [];
 $counts = $data['counts'] ?? [];
 $editTag = $editTag ?? ($data['editTag'] ?? null);
-$editTagId = (int) ($editTag['id'] ?? 0);
-$editTagName = (string) ($editTag['name'] ?? '');
-$editTagSlug = (string) ($editTag['slug'] ?? '');
+$formValues = is_array($formValues ?? null) ? $formValues : [];
+$formAlert = is_array($formAlert ?? null) ? $formAlert : null;
+$editTagId = (int) ($formValues['tag_id'] ?? ($editTag['id'] ?? 0));
+$editTagName = (string) ($formValues['tag_name'] ?? ($editTag['name'] ?? ''));
+$editTagSlug = (string) ($formValues['tag_slug'] ?? ($editTag['slug'] ?? ''));
 $isEditing = $editTagId > 0;
 $deleteTagOptions = array_values(array_filter(
     $tagOptions,
@@ -71,6 +73,10 @@ $deleteTagSubmitDisabled = count($deleteTagOptions) <= 1;
                 <div class="card">
                     <div class="card-header"><h3 class="card-title"><?php echo $isEditing ? 'Tag bearbeiten' : 'Neuen Tag anlegen'; ?></h3></div>
                     <div class="card-body">
+                        <?php if (!empty($formAlert)): ?>
+                            <?php $alertData = $formAlert; $alertMarginClass = 'mb-3'; $alertDismissible = false; require __DIR__ . '/../partials/flash-alert.php'; ?>
+                        <?php endif; ?>
+
                         <form method="post">
                             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES); ?>">
                             <input type="hidden" name="action" value="save_tag">

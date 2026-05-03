@@ -1,4 +1,4 @@
-﻿﻿**Version:** 2.9.502
+﻿﻿**Version:** 2.9.505
 
 # 365CMS Changelog
 
@@ -19,6 +19,24 @@
 ## 📜 Vollständige Versionshistorie
 
 ---
+
+### v2.9.505 — 3. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.505** | 🔴 fix | Public/Beiträge-Kategorien & -Tags | **`CMS/core/Routing/ThemeRouter.php`, `CMS/themes/cms-default/functions.php`, `CMS/themes/cms-default/blog.php` und `CMS/DOC/admin/pages-posts/POSTS.md` schließen den öffentlichen Kategorien-/Tags-Vertrag jetzt an den bereits gehärteten Admin-Stand an**: `/blog?category=...` und `/blog?tag=...` delegieren wieder sauber in die bestehenden Kategorie-/Tag-Archive statt die Auswahl still zu ignorieren, das Default-Theme zählt Sidebar-/Header-Kategorien relationstabellen- und locale-aware statt nur über `posts.category_id`, die Tag-Cloud nutzt wieder den echten Tag-Bestand aus Relationstabelle plus Legacy-Fallback statt eine rohe `posts.tags`-Abfrage ohne Prefix, und die Bereichsdoku beschreibt diese Public-Runtime nun explizit. |
+
+### v2.9.504 — 3. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.504** | 🎨 style | Admin/Seiten & Beiträge Editor-Aktionen | **`CMS/admin/views/posts/edit.php`, `CMS/admin/views/pages/edit.php`, `CMS/DOC/admin/pages-posts/POSTS.md` und `CMS/DOC/admin/pages-posts/PAGES.md` ziehen die obere Aktionshierarchie im Editor auf einen konsistenteren Kartenvertrag**: Der Einzel-Löschbutton sitzt bei Seiten und Beiträgen jetzt dezent in der jeweiligen Aktionskarte direkt unter den Vorschau-Buttons statt als separater Block, wodurch Speichern, Preview und destruktive Aktion als zusammengehörige Bediengruppe erscheinen; zusätzlich nutzt der Seiten-Editor oben nun denselben Drei-Karten-Aufbau wie die Beiträge, mit Bild plus Aktionen in der mittleren Spalte und Veröffentlichung rechts. |
+
+### v2.9.503 — 3. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.503** | 🔴 fix | Admin/Beitrags-Kategorien & -Tags | **`CMS/admin/post-categories.php`, `CMS/admin/post-tags.php`, `CMS/admin/views/posts/categories.php`, `CMS/admin/views/posts/tags.php`, `CMS/assets/js/admin.js` und `CMS/DOC/admin/pages-posts/POSTS.md` schließen den Kategorien-/Tags-Unterbereich als eigenen 5xx-Audit-Batch ab**: Validierungsfehler in Taxonomie-Formularen verlieren Eingaben nicht mehr beim Redirect, sondern zeigen die Rückmeldung direkt im Formular mit erhaltenem Zustand; der Kategorien-Löschfallback ohne Bootstrap-Modal respektiert hinterlegte Ersatzkategorien wieder statt legitime Löschungen pauschal abzubrechen; und die Bereichsdoku beschreibt den tatsächlichen Taxonomie-Vertrag nun explizit inklusive Ersatzlogik, Fehlerrückfluss und Bestätigungsdialogen. |
 
 ### v2.9.502 — 3. Mai 2026
 

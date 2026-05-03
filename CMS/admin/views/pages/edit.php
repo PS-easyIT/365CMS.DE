@@ -181,10 +181,72 @@ $isEnglishEditorView = $editorLocale === 'en';
                     </div>
                 </div>
 
+                <div class="col-lg-4">
+                    <div class="row g-3 h-100">
+                        <div class="col-12 d-flex">
+                            <div class="card cms-edit-card cms-edit-top-card w-100">
+                                <div class="card-header">
+                                    <h3 class="card-title">Contentheader Bild</h3>
+                                </div>
+                                <div class="card-body flex-fill">
+                                    <div class="small text-secondary mb-2">Erscheint links vom Seitentitel im Content-Header.</div>
+                                    <div id="featuredImagePreview" class="mb-2">
+                                        <?php if ($pageFeaturedImageValue !== ''): ?>
+                                            <img src="<?= htmlspecialchars(\CMS\Services\MediaDeliveryService::getInstance()->normalizeUrl($pageFeaturedImageValue, true)) ?>" alt="" class="img-fluid rounded" style="max-height:120px;object-fit:cover;width:100%;">
+                                        <?php endif; ?>
+                                    </div>
+                                    <input type="hidden" name="featured_image" id="featuredImageInput" value="<?= htmlspecialchars($pageFeaturedImageValue) ?>">
+                                    <input type="hidden" name="featured_image_temp_path" id="featuredImageInput_temp_path" value="">
+                                    <div id="featuredImageEmpty" class="text-secondary small <?= $pageFeaturedImageValue !== '' ? 'd-none' : '' ?>">Noch kein Bild ausgewählt.</div>
+                                    <div class="btn-list mt-2">
+                                        <button type="button" class="btn btn-sm btn-outline-primary" id="featuredImageBtn">Bild auswählen</button>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary <?= $pageFeaturedImageValue === '' ? 'd-none' : '' ?>" id="featuredImageRemove">Entfernen</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 d-flex">
+                            <div class="card cms-edit-card cms-edit-top-card w-100">
+                                <div class="card-header">
+                                    <h3 class="card-title">Aktionen</h3>
+                                </div>
+                                <div class="card-body d-flex flex-column gap-2">
+                                    <button type="submit" class="btn btn-primary w-100">
+                                        <?= $isNew ? 'Seite erstellen' : 'Speichern' ?>
+                                    </button>
+                                    <?php if (!$isNew): ?>
+                                        <div class="d-flex gap-2">
+                                            <a href="<?= htmlspecialchars($pagePreviewUrl) ?>"
+                                               class="btn btn-outline-secondary w-100" target="_blank" rel="noopener noreferrer" title="Vorschau Deutsch">
+                                                Vorschau DE
+                                            </a>
+                                            <a href="<?= htmlspecialchars($pagePreviewUrlEn) ?>"
+                                               class="btn btn-outline-secondary w-100" target="_blank" rel="noopener noreferrer" title="English public preview">
+                                                Vorschau EN
+                                            </a>
+                                        </div>
+                                        <div class="border-top pt-2 mt-1">
+                                            <button
+                                                type="submit"
+                                                name="_action"
+                                                value="delete"
+                                                class="btn btn-outline-danger btn-sm w-100"
+                                                form="pageForm"
+                                                formnovalidate
+                                                data-confirm="Die Seite wird dauerhaft gelöscht. Wirklich fortfahren?"
+                                            >Seite löschen</button>
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="col-lg-4 d-flex">
                     <div class="card cms-edit-card cms-edit-top-card h-100 w-100">
                         <div class="card-header">
-                            <h3 class="card-title">Veröffentlichen</h3>
+                            <h3 class="card-title">Veröffentlichung</h3>
                         </div>
                         <div class="card-body flex-fill">
                             <div class="mb-3">
@@ -204,69 +266,6 @@ $isEnglishEditorView = $editorLocale === 'en';
                                         <option value="<?= (int)($category['id'] ?? 0) ?>"<?= $pageCategoryIdValue === (int)($category['id'] ?? 0) ? ' selected' : '' ?>><?= htmlspecialchars((string)($category['option_label'] ?? $category['name'] ?? '')) ?></option>
                                     <?php endforeach; ?>
                                 </select>
-                            </div>
-                        </div>
-                        <div class="card-footer d-flex gap-2">
-                            <button type="submit" class="btn btn-primary flex-fill">
-                                <?= $isNew ? 'Seite erstellen' : 'Speichern' ?>
-                            </button>
-                            <?php if (!$isNew): ?>
-                                <a href="<?= htmlspecialchars($pagePreviewUrl) ?>"
-                                   class="btn btn-outline-secondary" target="_blank" rel="noopener">
-                                    DE
-                                </a>
-                                <a href="<?= htmlspecialchars($pagePreviewUrlEn) ?>"
-                                   class="btn btn-outline-secondary" target="_blank" rel="noopener">
-                                    EN
-                                </a>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-                </div>
-
-                <?php if (!$isNew): ?>
-                <div class="col-12">
-                    <div class="card border-danger-subtle cms-edit-card">
-                        <div class="card-header">
-                            <h3 class="card-title text-danger mb-0">Seite dauerhaft löschen</h3>
-                        </div>
-                        <div class="card-body">
-                            <p class="text-secondary mb-0">Die Seite wird vollständig entfernt. Diese Aktion ist dauerhaft und kann nicht rückgängig gemacht werden.</p>
-                        </div>
-                        <div class="card-footer">
-                            <button
-                                type="submit"
-                                name="_action"
-                                value="delete"
-                                class="btn btn-danger w-100"
-                                form="pageForm"
-                                formnovalidate
-                                data-confirm="Die Seite wird dauerhaft gelöscht. Wirklich fortfahren?"
-                            >Seite löschen</button>
-                        </div>
-                    </div>
-                </div>
-                <?php endif; ?>
-
-                <!-- Contentheader Bild (sichtbar im Hauptformular) -->
-                <div class="col-lg-4 d-flex">
-                    <div class="card cms-edit-card cms-edit-top-card h-100 w-100">
-                        <div class="card-header">
-                            <h3 class="card-title">Contentheader Bild</h3>
-                        </div>
-                        <div class="card-body flex-fill">
-                            <div class="small text-secondary mb-2">Erscheint links vom Seitentitel im Content-Header.</div>
-                            <div id="featuredImagePreview" class="mb-2">
-                                <?php if ($pageFeaturedImageValue !== ''): ?>
-                                    <img src="<?= htmlspecialchars(\CMS\Services\MediaDeliveryService::getInstance()->normalizeUrl($pageFeaturedImageValue, true)) ?>" alt="" class="img-fluid rounded" style="max-height:120px;object-fit:cover;width:100%;">
-                                <?php endif; ?>
-                            </div>
-                            <input type="hidden" name="featured_image" id="featuredImageInput" value="<?= htmlspecialchars($pageFeaturedImageValue) ?>">
-                            <input type="hidden" name="featured_image_temp_path" id="featuredImageInput_temp_path" value="">
-                            <div id="featuredImageEmpty" class="text-secondary small <?= $pageFeaturedImageValue !== '' ? 'd-none' : '' ?>">Noch kein Bild ausgewählt.</div>
-                            <div class="btn-list mt-2">
-                                <button type="button" class="btn btn-sm btn-outline-primary" id="featuredImageBtn">Bild auswählen</button>
-                                <button type="button" class="btn btn-sm btn-outline-secondary <?= $pageFeaturedImageValue === '' ? 'd-none' : '' ?>" id="featuredImageRemove">Entfernen</button>
                             </div>
                         </div>
                     </div>
