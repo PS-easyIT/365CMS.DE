@@ -22,6 +22,9 @@ final class EditorJsRenderer
 {
     private static ?self $instance = null;
     private ?bool $lazyLoadingEnabled = null;
+    private ?int $eagerImageCount = null;
+    private int $renderDepth = 0;
+    private int $renderedImageCount = 0;
 
     public static function getInstance(): self
     {
@@ -39,15 +42,27 @@ final class EditorJsRenderer
      */
     public function render(string|array $data): string
     {
+        $isRootRender = $this->renderDepth === 0;
+        if ($isRootRender) {
+            $this->renderedImageCount = 0;
+        }
+
+        $this->renderDepth++;
+
         if (is_string($data)) {
             $data = Json::decodeArray($data, []);
         }
 
         if (!is_array($data) || !isset($data['blocks']) || !is_array($data['blocks'])) {
+            $this->renderDepth = max(0, $this->renderDepth - 1);
             return '';
         }
 
-        return $this->renderBlocks($data['blocks']);
+        try {
+            return $this->renderBlocks($data['blocks']);
+        } finally {
+            $this->renderDepth = max(0, $this->renderDepth - 1);
+        }
     }
 
     /**
@@ -871,7 +886,16 @@ final class EditorJsRenderer
 
     private function getLazyLoadingAttribute(): string
     {
-        return $this->isLazyLoadingEnabled() ? ' loading="lazy"' : '';
+        if (!$this->isLazyLoadingEnabled()) {
+            return '';
+        }
+
+        $this->renderedImageCount++;
+        if ($this->renderedImageCount <= $this->getEagerImageCount()) {
+            return ' loading="eager" fetchpriority="high" decoding="async"';
+        }
+
+        return ' loading="lazy" decoding="async"';
     }
 
     private function isLazyLoadingEnabled(): bool
@@ -896,6 +920,30 @@ final class EditorJsRenderer
         }
 
         return $this->lazyLoadingEnabled;
+    }
+
+    private function getEagerImageCount(): int
+    {
+        if ($this->eagerImageCount !== null) {
+            return $this->eagerImageCount;
+        }
+
+        try {
+            if (function_exists('get_option')) {
+                $this->eagerImageCount = max(0, min(5, (int)get_option('perf_lazy_loading_eager_images', '1')));
+                return $this->eagerImageCount;
+            }
+
+            $db = \CMS\Database::instance();
+            $value = $db->get_var(
+                "SELECT option_value FROM {$db->getPrefix()}settings WHERE option_name = 'perf_lazy_loading_eager_images' LIMIT 1"
+            );
+            $this->eagerImageCount = max(0, min(5, (int)($value ?? 1)));
+        } catch (\Throwable) {
+            $this->eagerImageCount = 1;
+        }
+
+        return $this->eagerImageCount;
     }
 
     private function sanitizeInline(string $html): string

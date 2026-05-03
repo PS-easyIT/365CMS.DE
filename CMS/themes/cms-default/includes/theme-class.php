@@ -238,8 +238,14 @@ final class MeridianCMSDefaultTheme
     {
         $cssPath = MERIDIAN_THEME_DIR . 'style.css';
         $version = file_exists($cssPath) ? (string)filemtime($cssPath) : MERIDIAN_THEME_VERSION;
+        $href = MERIDIAN_THEME_URL . '/style.css';
+        if (class_exists('\\CMS\\Services\\AssetOptimizerService')) {
+            $href = \CMS\Services\AssetOptimizerService::instance()->getAssetUrl($cssPath, $href, 'css', $version);
+        } else {
+            $href .= '?v=' . rawurlencode($version);
+        }
 
-        echo '<link rel="stylesheet" href="' . htmlspecialchars(MERIDIAN_THEME_URL, ENT_QUOTES, 'UTF-8') . '/style.css?v=' . htmlspecialchars($version, ENT_QUOTES, 'UTF-8') . '">' . "\n";
+        echo '<link rel="stylesheet" href="' . htmlspecialchars($href, ENT_QUOTES, 'UTF-8') . '">' . "\n";
     }
 
     public function outputMetaTags(): void
@@ -468,8 +474,14 @@ final class MeridianCMSDefaultTheme
     {
         $jsPath = MERIDIAN_THEME_DIR . 'js/theme.js';
         $version = file_exists($jsPath) ? (string)filemtime($jsPath) : MERIDIAN_THEME_VERSION;
+        $src = MERIDIAN_THEME_URL . '/js/theme.js';
+        if (class_exists('\\CMS\\Services\\AssetOptimizerService')) {
+            $src = \CMS\Services\AssetOptimizerService::instance()->getAssetUrl($jsPath, $src, 'js', $version);
+        } else {
+            $src .= '?v=' . rawurlencode($version);
+        }
 
-        echo '<script src="' . htmlspecialchars(MERIDIAN_THEME_URL, ENT_QUOTES, 'UTF-8') . '/js/theme.js?v=' . htmlspecialchars($version, ENT_QUOTES, 'UTF-8') . '" defer></script>' . "\n";
+        echo '<script src="' . htmlspecialchars($src, ENT_QUOTES, 'UTF-8') . '" defer></script>' . "\n";
 
         try {
             $footerCode = \CMS\Services\ThemeCustomizer::instance()->get('advanced', 'custom_footer_code', '');

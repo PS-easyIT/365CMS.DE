@@ -101,7 +101,7 @@ Die folgenden Bereiche zeigen, wie breit 365CMS bereits ohne Plugin-Zwang aufges
 | **Themes & Design** | Theme-System, Theme-Editor, Theme-Explorer, Menü-Editor, Landing-Page-Editor, Font-Manager, CMS-Loginpage | Macht Branding, Navigation und UX-Anpassung zu einem echten Projektwerkzeug statt zu einer Bastelbaustelle |
 | **Plugins & Integrationen** | Hook-System, Plugin-Verwaltung, Plugin-Marketplace, modulare Erweiterungspunkte, API-nahe Workflows | Öffnet das System für individuelle Funktionen, ohne Wartbarkeit und Struktur zu opfern |
 | **Legal & DSGVO** | Legal-Sites, Cookie-Manager, Consent-Dialog, Datenexporte, Löschanfragen, Datenschutzpfade | Unterstützt Datenschutz- und Compliance-Prozesse dort, wo sie im Alltag gebraucht werden: direkt im CMS |
-| **Betrieb & Wartung** | Cache, Performance-Werkzeuge, Cron, Monitoring, Health-Checks, Backups, Mail-Queue, Logs, Updates | Macht den Betrieb sichtbar, steuerbar und langfristig beherrschbar – nicht nur am Launch-Tag |
+| **Betrieb & Wartung** | Cache, Performance-Werkzeuge, WebP-Batches mit Dry-Run/Rollback, lokale Asset-Minifizierung, Cron, Monitoring, Health-Checks, Backups, Mail-Queue, Logs, Updates | Macht den Betrieb sichtbar, steuerbar und langfristig beherrschbar – nicht nur am Launch-Tag |
 
 ### 🚀 Kurz positioniert
 

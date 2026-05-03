@@ -27,7 +27,6 @@ Diese Pfade werden **nicht still mit dem Core verwechselt**, sondern über eine 
 | `CMS/assets/simplepiesrc/File.php` | `curl_init`, `file_get_contents($url)`, `fsockopen` | eigener Remote-Fetch in SimplePie |
 | `CMS/assets/melbahja-seo/src/Utils/HttpClient.php` | `curl_init` | Bibliotheksinterner SEO-HTTP-Client |
 | `CMS/assets/twofactorauth/Providers/Time/HttpTimeProvider.php` | `stream_context_create` | externer Zeitquellenabruf |
-| `CMS/assets/twofactorauth/Providers/Qr/BaseHTTPQRCodeProvider.php` | `curl_init` | externer QR-Code-Dienst |
 | `CMS/assets/mailer/Transport/Smtp/Stream/SocketStream.php` | `stream_context_create` | SMTP-Transport auf Bundle-Ebene |
 | `CMS/assets/elfinder/php/elFinder.class.php` | `curl_init`, `fsockopen`, `get_remote_contents` | generische Remote-Content-Logik in elFinder |
 | `CMS/assets/elfinder/php/elFinderVolumeBox.class.php` | `curl_init` | Box-API |

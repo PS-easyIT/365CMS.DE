@@ -6,6 +6,7 @@ if (!defined('ABSPATH')) {
 }
 
 use CMS\AuditLogger;
+use CMS\Hooks;
 use CMS\Services\ImageService;
 use CMS\Services\MediaService;
 use CMS\Services\OpcacheWarmupService;
@@ -15,10 +16,16 @@ final class PerformanceModule
     private const MEDIA_EXCLUDED_PATH_PARTS = [
         '/uploads/.elfinder/.tmb/',
         '\\uploads\\.elfinder\\.tmb\\',
+        '/cache/performance-webp-backups/',
+        '\\cache\\performance-webp-backups\\',
     ];
+
+    private const WEBP_DEFAULT_BATCH_LIMIT = 25;
+    private const WEBP_MAX_BATCH_LIMIT = 200;
 
     private const DEFAULT_SETTINGS = [
         'perf_lazy_loading' => '1',
+        'perf_lazy_loading_eager_images' => '1',
         'perf_minify_css' => '0',
         'perf_minify_js' => '0',
         'perf_gzip' => '0',
@@ -48,6 +55,7 @@ final class PerformanceModule
     private const SETTING_KEYS_BY_ACTION = [
         'save_settings' => [
             'perf_lazy_loading',
+            'perf_lazy_loading_eager_images',
             'perf_minify_css',
             'perf_minify_js',
             'perf_gzip',
@@ -68,6 +76,7 @@ final class PerformanceModule
         ],
         'save_media_settings' => [
             'perf_lazy_loading',
+            'perf_lazy_loading_eager_images',
             'perf_webp_uploads',
             'perf_strip_exif',
         ],
@@ -142,6 +151,7 @@ final class PerformanceModule
             ],
             'settings' => [
                 'settings' => $this->getSettings(),
+                'php_info' => $this->getPhpInfo(),
             ],
             'overview' => $this->getData(),
             default => $this->getData(),
@@ -158,7 +168,8 @@ final class PerformanceModule
             'optimize_database' => $this->optimizeDatabase(),
             'repair_tables' => $this->repairDatabase(),
             'clear_expired_sessions' => $this->clearExpiredSessions(),
-            'convert_media_to_webp' => $this->convertMediaLibraryToWebp(),
+            'convert_media_to_webp' => $this->convertMediaLibraryToWebp($post),
+            'rollback_webp_conversion' => $this->rollbackLastWebpConversion(),
             'save_settings', 'save_cache_settings', 'save_media_settings', 'save_session_settings' => $this->saveSettings($post, $action),
             default => ['success' => false, 'error' => 'Unbekannte Aktion.'],
         };
@@ -212,6 +223,8 @@ final class PerformanceModule
             'post_max' => (string)ini_get('post_max_size'),
             'opcache_enabled' => $opcacheStatus !== false,
             'gzip_enabled' => extension_loaded('zlib'),
+            'brotli_configured' => $this->isHtaccessModuleConfigured('mod_brotli'),
+            'deflate_configured' => $this->isHtaccessModuleConfigured('mod_deflate'),
             'opcache_memory_used' => isset($opcacheStatus['memory_usage']['used_memory']) ? (int)$opcacheStatus['memory_usage']['used_memory'] : 0,
             'opcache_memory_free' => isset($opcacheStatus['memory_usage']['free_memory']) ? (int)$opcacheStatus['memory_usage']['free_memory'] : 0,
         ];
@@ -400,7 +413,7 @@ final class PerformanceModule
         ];
     }
 
-    private function convertMediaLibraryToWebp(): array
+    private function convertMediaLibraryToWebp(array $post = []): array
     {
         $imageService = ImageService::getInstance();
         $imageInfo = $imageService->getInfo();
@@ -414,11 +427,23 @@ final class PerformanceModule
             return ['success' => false, 'error' => 'Uploads-Verzeichnis nicht gefunden.'];
         }
 
+        $dryRun = (string)($post['webp_mode'] ?? '') === 'dry_run';
+        $batchLimit = max(1, min(self::WEBP_MAX_BATCH_LIMIT, (int)($post['webp_batch_limit'] ?? self::WEBP_DEFAULT_BATCH_LIMIT)));
+        $deleteOriginals = !$dryRun && !empty($post['webp_replace_originals']);
+        $runId = date('Ymd_His') . '_' . bin2hex(random_bytes(4));
+
         $converted = 0;
         $skipped = 0;
         $failed = 0;
         $savedBytes = 0;
         $updatedReferences = 0;
+        $seenCandidates = 0;
+        $manifest = [
+            'run_id' => $runId,
+            'created_at' => date('c'),
+            'delete_originals' => $deleteOriginals,
+            'entries' => [],
+        ];
 
         $iterator = $this->createMediaIterator($uploadDir);
         foreach ($iterator as $file) {
@@ -432,7 +457,29 @@ final class PerformanceModule
                 continue;
             }
 
+            $seenCandidates++;
+            if ($seenCandidates > $batchLimit) {
+                break;
+            }
+
             $originalSize = (int)$file->getSize();
+            $targetWebpPath = preg_replace('/\.[a-z]+$/i', '.webp', $sourcePath) ?: '';
+            if ($targetWebpPath === '' || $targetWebpPath === $sourcePath) {
+                $failed++;
+                continue;
+            }
+
+            if (is_file($targetWebpPath)) {
+                $skipped++;
+                continue;
+            }
+
+            if ($dryRun) {
+                $skipped++;
+                $savedBytes += 0;
+                continue;
+            }
+
             $webpPath = $imageService->convertToWebP($sourcePath, 82, false);
             if ($webpPath === null || !is_file($webpPath)) {
                 $failed++;
@@ -448,18 +495,54 @@ final class PerformanceModule
                 continue;
             }
 
-            $updatedReferences += $this->replaceMediaReferences($sourcePath, $webpPath, $webpSize);
+            $backupPath = null;
+            if ($deleteOriginals) {
+                $backupPath = $this->backupWebpOriginal($sourcePath, $runId);
+                if ($backupPath === null) {
+                    $this->deleteFileIfExists($webpPath);
+                    $failed++;
+                    continue;
+                }
+            }
 
-            if (is_file($sourcePath)) {
+            $updatedForFile = $this->replaceMediaReferences($sourcePath, $webpPath, $webpSize, 'image/webp');
+            $updatedReferences += $updatedForFile;
+
+            if ($deleteOriginals && is_file($sourcePath)) {
                 $this->deleteFileIfExists($sourcePath);
             }
 
+            $manifest['entries'][] = [
+                'source_path' => $sourcePath,
+                'webp_path' => $webpPath,
+                'backup_path' => $backupPath,
+                'original_size' => $originalSize,
+                'webp_size' => $webpSize,
+                'had_existing_webp' => false,
+                'updated_references' => $updatedForFile,
+            ];
             $converted++;
             $savedBytes += max(0, $originalSize - $webpSize);
         }
 
+        if ($dryRun) {
+            return [
+                'success' => true,
+                'message' => sprintf(
+                    'Dry-Run: %d mögliche Bild%s im aktuellen Batch erkannt. Es wurden keine Dateien geändert. Batch-Limit: %d.',
+                    min($seenCandidates, $batchLimit),
+                    min($seenCandidates, $batchLimit) === 1 ? '' : 'er',
+                    $batchLimit
+                ),
+            ];
+        }
+
         if ($converted === 0 && $failed === 0) {
             return ['success' => true, 'message' => 'Keine geeigneten Bilder für eine kleinere WebP-Version gefunden.'];
+        }
+
+        if ($converted > 0) {
+            $this->writeWebpManifest($runId, $manifest);
         }
 
         AuditLogger::instance()->log(
@@ -474,6 +557,9 @@ final class PerformanceModule
                 'failed' => $failed,
                 'saved_bytes' => $savedBytes,
                 'updated_references' => $updatedReferences,
+                'batch_limit' => $batchLimit,
+                'delete_originals' => $deleteOriginals,
+                'run_id' => $runId,
             ],
             $failed > 0 ? 'warning' : 'info'
         );
@@ -481,15 +567,86 @@ final class PerformanceModule
         return [
             'success' => $converted > 0,
             'message' => sprintf(
-                '%d Bild%s in WebP umgewandelt, %s eingespart, %d Referenz%s aktualisiert, %d übersprungen, %d fehlgeschlagen.',
+                '%d Bild%s in WebP umgewandelt, %s eingespart, %d Referenz%s aktualisiert, %d übersprungen, %d fehlgeschlagen. Batch-Limit: %d. Rollback-ID: %s.',
                 $converted,
                 $converted === 1 ? '' : 'er',
                 $this->formatBytes($savedBytes),
                 $updatedReferences,
                 $updatedReferences === 1 ? '' : 'en',
                 $skipped,
-                $failed
+                $failed,
+                $batchLimit,
+                $runId
             ),
+        ];
+    }
+
+    private function rollbackLastWebpConversion(): array
+    {
+        $manifestPath = $this->findLatestWebpManifestPath();
+        if ($manifestPath === null) {
+            return ['success' => false, 'error' => 'Kein WebP-Rollback-Manifest gefunden.'];
+        }
+
+        $manifest = json_decode((string)file_get_contents($manifestPath), true);
+        if (!is_array($manifest) || !is_array($manifest['entries'] ?? null)) {
+            return ['success' => false, 'error' => 'Das letzte WebP-Rollback-Manifest ist ungültig.'];
+        }
+
+        $restored = 0;
+        $references = 0;
+        $failed = 0;
+        foreach ($manifest['entries'] as $entry) {
+            if (!is_array($entry)) {
+                continue;
+            }
+
+            $sourcePath = (string)($entry['source_path'] ?? '');
+            $webpPath = (string)($entry['webp_path'] ?? '');
+            $backupPath = (string)($entry['backup_path'] ?? '');
+            $originalSize = (int)($entry['original_size'] ?? 0);
+
+            if ($sourcePath === '' || $webpPath === '') {
+                $failed++;
+                continue;
+            }
+
+            if ($backupPath !== '' && is_file($backupPath) && !is_file($sourcePath)) {
+                if (!is_dir(dirname($sourcePath))) {
+                    mkdir(dirname($sourcePath), 0775, true);
+                }
+                if (!rename($backupPath, $sourcePath)) {
+                    $failed++;
+                    continue;
+                }
+                $restored++;
+            }
+
+            if (is_file($sourcePath)) {
+                $references += $this->replaceMediaReferences($webpPath, $sourcePath, $originalSize, $this->guessImageMimeType($sourcePath));
+            }
+
+            if (empty($entry['had_existing_webp']) && is_file($webpPath)) {
+                $this->deleteFileIfExists($webpPath);
+            }
+        }
+
+        $rolledBackPath = $manifestPath . '.rolled-back';
+        @rename($manifestPath, $rolledBackPath);
+
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_MEDIA,
+            'performance.media.rollback_webp',
+            'Letzte WebP-Konvertierung zurückgerollt',
+            'media',
+            null,
+            ['restored' => $restored, 'references' => $references, 'failed' => $failed, 'manifest' => basename($manifestPath)],
+            $failed > 0 ? 'warning' : 'info'
+        );
+
+        return [
+            'success' => $failed === 0 || $restored > 0 || $references > 0,
+            'message' => sprintf('%d Originaldatei%s wiederhergestellt, %d Referenz%s zurückgesetzt, %d fehlgeschlagen.', $restored, $restored === 1 ? '' : 'en', $references, $references === 1 ? '' : 'en', $failed),
         ];
     }
 
@@ -637,6 +794,13 @@ final class PerformanceModule
             'warning'
         );
 
+        Hooks::doAction('performance_cache_purged', 'all', $report);
+        Hooks::doAction('performance_cdn_purge_requested', [
+            'scope' => 'all',
+            'source' => 'performance.cache.clear_all',
+            'purged_at' => date('c'),
+        ]);
+
         return [
             'success' => true,
             'message' => 'Alle Cache-Layer bereinigt. ' . implode(' | ', $details),
@@ -670,6 +834,13 @@ final class PerformanceModule
             ['deleted_files' => $count],
             'warning'
         );
+
+        Hooks::doAction('performance_cache_purged', 'file', ['deleted_files' => $count]);
+        Hooks::doAction('performance_cdn_purge_requested', [
+            'scope' => 'file',
+            'source' => 'performance.cache.clear_file',
+            'purged_at' => date('c'),
+        ]);
 
         return ['success' => true, 'message' => $count . ' Datei-Cache(s) gelöscht.'];
     }
@@ -847,6 +1018,7 @@ final class PerformanceModule
             $settingsToSave[$key] = match ($key) {
                 'perf_browser_cache_ttl' => (string)max(0, min(31536000, (int)($post[$key] ?? $default))),
                 'perf_html_cache_ttl' => (string)max(0, min(86400, (int)($post[$key] ?? $default))),
+                'perf_lazy_loading_eager_images' => (string)max(0, min(5, (int)($post[$key] ?? $default))),
                 'perf_session_timeout_admin' => (string)max(300, min(604800, (int)($post[$key] ?? $default))),
                 'perf_session_timeout_member' => (string)max(300, min(31536000, (int)($post[$key] ?? $default))),
                 default => (string)max(0, (int)($post[$key] ?? $default)),
@@ -983,10 +1155,10 @@ final class PerformanceModule
         return false;
     }
 
-    private function replaceMediaReferences(string $sourcePath, string $webpPath, int $webpSize): int
+    private function replaceMediaReferences(string $sourcePath, string $targetPath, int $targetSize, string $targetMimeType): int
     {
         $oldRelative = ltrim(str_replace('\\', '/', str_replace(ABSPATH, '', $sourcePath)), '/');
-        $newRelative = ltrim(str_replace('\\', '/', str_replace(ABSPATH, '', $webpPath)), '/');
+        $newRelative = ltrim(str_replace('\\', '/', str_replace(ABSPATH, '', $targetPath)), '/');
         $oldPublic = '/' . $oldRelative;
         $newPublic = '/' . $newRelative;
         $oldUrl = rtrim((string)SITE_URL, '/') . $oldPublic;
@@ -1000,10 +1172,10 @@ final class PerformanceModule
              WHERE REPLACE(filepath, '\\\\', '/') IN (?, ?, ?) OR filename = ?"
         );
         $stmt->execute([
-            basename($webpPath),
+            basename($targetPath),
             $newRelative,
-            'image/webp',
-            $webpSize,
+            $targetMimeType,
+            $targetSize,
             $oldRelative,
             $oldPublic,
             $oldUrl,
@@ -1024,6 +1196,54 @@ final class PerformanceModule
         }
 
         return $updates;
+    }
+
+    private function backupWebpOriginal(string $sourcePath, string $runId): ?string
+    {
+        $relative = ltrim(str_replace('\\', '/', str_replace(ABSPATH, '', $sourcePath)), '/');
+        if ($relative === '' || str_contains($relative, '..')) {
+            return null;
+        }
+
+        $backupPath = ABSPATH . 'cache/performance-webp-backups/' . $runId . '/' . str_replace('/', DIRECTORY_SEPARATOR, $relative);
+        if (!is_dir(dirname($backupPath))) {
+            mkdir(dirname($backupPath), 0775, true);
+        }
+
+        return copy($sourcePath, $backupPath) ? $backupPath : null;
+    }
+
+    private function writeWebpManifest(string $runId, array $manifest): void
+    {
+        $dir = ABSPATH . 'cache/performance-webp-manifests/';
+        if (!is_dir($dir)) {
+            mkdir($dir, 0775, true);
+        }
+
+        file_put_contents($dir . $runId . '.json', json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+    }
+
+    private function findLatestWebpManifestPath(): ?string
+    {
+        $files = glob(ABSPATH . 'cache/performance-webp-manifests/*.json') ?: [];
+        if ($files === []) {
+            return null;
+        }
+
+        usort($files, static fn(string $a, string $b): int => ((int)filemtime($b)) <=> ((int)filemtime($a)));
+        return $files[0] ?? null;
+    }
+
+    private function guessImageMimeType(string $path): string
+    {
+        $extension = strtolower((string)pathinfo($path, PATHINFO_EXTENSION));
+        return match ($extension) {
+            'jpg', 'jpeg' => 'image/jpeg',
+            'png' => 'image/png',
+            'gif' => 'image/gif',
+            'webp' => 'image/webp',
+            default => 'application/octet-stream',
+        };
     }
 
     private function replaceInColumn(string $table, string $column, string $search, string $replace): int
@@ -1069,6 +1289,17 @@ final class PerformanceModule
     private function getImageSize(string $path): array|false
     {
         return $this->runSuppressedOperation(static fn() => getimagesize($path));
+    }
+
+    private function isHtaccessModuleConfigured(string $moduleName): bool
+    {
+        $path = ABSPATH . '.htaccess';
+        if (!is_file($path)) {
+            return false;
+        }
+
+        $content = (string)file_get_contents($path);
+        return str_contains($content, '<IfModule ' . $moduleName . '.c>');
     }
 
     private function deleteFileIfExists(string $path): bool

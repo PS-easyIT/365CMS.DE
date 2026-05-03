@@ -57,8 +57,8 @@ Die Seite `/admin/performance-media` bündelt bildspezifische Optimierungen:
 
 - **Upload-WebP:** Der Performance-Schalter synchronisiert auf die echte Medienoption `auto_webp`; neue Uploads erzeugen bei unterstützten Formaten WebP-Begleitdateien.
 - **EXIF-Entfernung:** Der Performance-Schalter synchronisiert auf `strip_exif`; neue JPG-/PNG-Uploads werden nur bei aktivem Schalter sauber per GD re-encodiert.
-- **Lazy Loading:** Editor.js-/CMS-Medienausgaben respektieren `perf_lazy_loading` und setzen `loading="lazy"` nur bei aktivem Schalter.
-- **WebP-Massenkonvertierung:** Geeignete Bilder in `uploads/` als WebP konvertieren und zugehörige Referenzen im CMS-Bestand nachziehen. Diese Aktion kann Originale ersetzen; vor Live-Läufen ist ein Backup Pflicht.
+- **Lazy Loading:** Editor.js-/CMS-Medienausgaben respektieren `perf_lazy_loading`; die ersten konfigurierbaren Bilder bleiben eager/high-priority, damit Hero-/LCP-Medien nicht versehentlich lazy geladen werden.
+- **WebP-Massenkonvertierung:** Geeignete Bilder in `uploads/` werden batchweise verarbeitet. Dry-Run, Batch-Limit, optionales Original-Ersetzen, Backup-Manifest und Rollback der letzten Konvertierung sind integriert.
 - Bildgrößen-Analyse
 - Thumbnail-Regenerierung
 
@@ -87,17 +87,17 @@ Die Seite `/admin/performance-settings` verwaltet globale Optimierungsschalter w
 - HTML- und Medien-Cache-Header samt TTLs
 - automatische CMS-Cache-Invalidierung bei Content-Änderungen
 - Session-Timeouts für Admin- und Member-Kontext
-- Minify-Markierungen für Theme-/Build-Pfade
+- lokale CSS-/JS-Minifizierung mit Cache-Dateien für unterstützte Theme-Assets
 
-GZIP/Brotli-Kompression wird serverseitig über Apache-/Brotli-/Deflate-Konfiguration bereitgestellt; der Performance-Bereich dokumentiert und speichert die Zielstrategie, ersetzt aber keine Serverkonfiguration.
+GZIP/Brotli-Kompression wird serverseitig über Apache-/Brotli-/Deflate-Konfiguration bereitgestellt; der Performance-Bereich zeigt den erkannten Status an, ersetzt aber keine Serverkonfiguration. Externe CDN-/Reverse-Proxy-Integrationen können Cache-Löschungen über die Hooks `performance_cache_purged` und `performance_cdn_purge_requested` anbinden.
 
-### Noch bewusst nicht automatisiert
+### Bewusst verbleibende Grenzen
 
-- CSS-/JS-Minifizierung ist aktuell kein Core-Runtime-Minifier, sondern ein gespeicherter Strategie-Schalter für Theme-/Build-Prozesse.
-- Die WebP-Massenkonvertierung ist eine direkte Wartungsaktion ohne Dry-Run; Backups bleiben erforderlich.
-- Above-the-fold-/LCP-Bilder werden vom Core nicht automatisch erkannt; `perf_lazy_loading` wirkt aktuell pauschal auf CMS-/Editor.js-Medien. Templates sollten wichtige Hero-/LCP-Bilder bei Bedarf explizit eager ausgeben.
+- CSS-/JS-Minifizierung arbeitet lokal für angebundene Assets und fällt bei Problemen auf Originaldateien zurück; komplexe Bundle-Optimierung, Tree-Shaking oder Quellkarten bleiben Aufgabe eines Build-Prozesses.
+- WebP-Rollback bezieht sich auf die letzte manifestierte Performance-Konvertierung; vollständige Server-Backups bleiben für produktive Medienläufe weiterhin Best Practice.
+- Above-the-fold-/LCP-Erkennung erfolgt heuristisch über die ersten CMS-/Editor.js-Bilder. Templates sollten besondere Hero-Bilder zusätzlich explizit mit passenden Attributen ausgeben.
 - Google-Fonts bleiben als kontrollierter Opt-in-Fallback erlaubt, solange keine lokalen Fonts aktiv sind. Der Font Manager kann sie lokal spiegeln.
-- Externe QR-Code-Provider der gebündelten 2FA-Bibliothek werden im MFA-Setup nicht mehr aktiv abgefragt; der Setup-Flow gibt die lokale OTP-URI zurück.
+- Externe QR-Code-Provider der gebündelten 2FA-Bibliothek wurden entfernt; der Setup-Flow arbeitet mit lokaler OTP-URI bzw. lokalen QR-Providern.
 
 ---
 

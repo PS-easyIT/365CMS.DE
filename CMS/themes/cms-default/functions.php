@@ -261,7 +261,17 @@ class MeridianCMSDefaultTheme
     {
         $themeUrl = MERIDIAN_THEME_URL;
         $version  = MERIDIAN_THEME_VERSION;
-        echo '<link rel="stylesheet" href="' . htmlspecialchars($themeUrl, ENT_QUOTES, 'UTF-8') . '/style.css?v=' . $version . '">' . "\n";
+        $href = $themeUrl . '/style.css?v=' . $version;
+        if (class_exists('\\CMS\\Services\\AssetOptimizerService')) {
+            $href = \CMS\Services\AssetOptimizerService::instance()->getAssetUrl(
+                MERIDIAN_THEME_DIR . 'style.css',
+                $themeUrl . '/style.css',
+                'css',
+                $version
+            );
+        }
+
+        echo '<link rel="stylesheet" href="' . htmlspecialchars($href, ENT_QUOTES, 'UTF-8') . '">' . "\n";
     }
 
     // ─── Meta Tags ──────────────────────────────────────────────────────────
@@ -520,7 +530,17 @@ class MeridianCMSDefaultTheme
     {
         $themeUrl = MERIDIAN_THEME_URL;
         $version  = MERIDIAN_THEME_VERSION;
-        echo '<script src="' . htmlspecialchars($themeUrl, ENT_QUOTES, 'UTF-8') . '/js/theme.js?v=' . $version . '" defer></script>' . "\n";
+        $src = $themeUrl . '/js/theme.js?v=' . $version;
+        if (class_exists('\\CMS\\Services\\AssetOptimizerService')) {
+            $src = \CMS\Services\AssetOptimizerService::instance()->getAssetUrl(
+                MERIDIAN_THEME_DIR . 'js/theme.js',
+                $themeUrl . '/js/theme.js',
+                'js',
+                $version
+            );
+        }
+
+        echo '<script src="' . htmlspecialchars($src, ENT_QUOTES, 'UTF-8') . '" defer></script>' . "\n";
         // Footer-Code aus Customizer
         try {
             $footerCode = \CMS\Services\ThemeCustomizer::instance()->get('advanced', 'custom_footer_code', '');

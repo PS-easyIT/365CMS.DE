@@ -284,7 +284,7 @@ $sectionPageConfig = [
     'page_title' => cms_admin_theme_editor_page_title(),
     'active_page' => 'theme-editor',
     'page_assets' => [],
-    'csrf_action' => 'theme_customizer',
+    'csrf_action' => 'admin_theme_editor',
     'module_factory' => static fn (): ThemeManager => ThemeManager::instance(),
     'data_loader' => static fn (ThemeManager $themeManager): array => cms_admin_theme_editor_resolve_state($themeManager),
     'request_context_resolver' => static fn (ThemeManager $themeManager): array => cms_admin_theme_editor_runtime_context($themeManager),

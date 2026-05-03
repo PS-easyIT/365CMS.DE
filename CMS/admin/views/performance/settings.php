@@ -4,6 +4,7 @@ if (!defined('ABSPATH')) exit;
 if (!defined('CMS_ADMIN_PERFORMANCE_VIEW')) exit;
 
 $settings = $data['settings'] ?? [];
+$phpInfo = $data['php_info'] ?? [];
 ?>
 <div class="page-header d-print-none">
     <div class="container-xl">
@@ -44,11 +45,11 @@ $settings = $data['settings'] ?? [];
                                     </label>
                                     <label class="form-check form-switch mb-3">
                                         <input class="form-check-input" type="checkbox" name="perf_minify_css" value="1" <?php echo ($settings['perf_minify_css'] ?? '0') === '1' ? 'checked' : ''; ?>>
-                                        <span class="form-check-label">CSS-Minifizierung markieren</span>
+                                        <span class="form-check-label">CSS lokal minifizieren</span>
                                     </label>
                                     <label class="form-check form-switch mb-3">
                                         <input class="form-check-input" type="checkbox" name="perf_minify_js" value="1" <?php echo ($settings['perf_minify_js'] ?? '0') === '1' ? 'checked' : ''; ?>>
-                                        <span class="form-check-label">JS-Minifizierung markieren</span>
+                                        <span class="form-check-label">JS lokal minifizieren</span>
                                     </label>
                                     <label class="form-check form-switch mb-0">
                                         <input class="form-check-input" type="checkbox" name="perf_gzip" value="1" <?php echo ($settings['perf_gzip'] ?? '0') === '1' ? 'checked' : ''; ?>>
@@ -63,7 +64,10 @@ $settings = $data['settings'] ?? [];
                                         </div>
                                     </div>
                                     <div class="form-text mt-3">
-                                        Hinweis: Lazy Loading und Cache-Header wirken direkt. Medien-WebP/EXIF werden auf der Medien-Unterseite gespeichert. Minify-Schalter markieren die Zielstrategie für Theme-/Build-Pfade; Server-Kompression läuft über Apache/Brotli/GZIP-Konfiguration.
+                                        Hinweis: Lazy Loading und Cache-Header wirken direkt. Medien-WebP/EXIF werden auf der Medien-Unterseite gespeichert. CSS/JS-Minify erzeugt lokale Cache-Dateien; Server-Kompression läuft über Apache/Brotli/GZIP-Konfiguration.
+                                    </div>
+                                    <div class="mt-3 small text-secondary">
+                                        Kompression erkannt: zlib <?php echo !empty($phpInfo['gzip_enabled']) ? 'aktiv' : 'inaktiv'; ?>, Apache Brotli-Regel <?php echo !empty($phpInfo['brotli_configured']) ? 'vorhanden' : 'nicht gefunden'; ?>, Deflate-Regel <?php echo !empty($phpInfo['deflate_configured']) ? 'vorhanden' : 'nicht gefunden'; ?>.
                                     </div>
                                 </div>
                             </div>

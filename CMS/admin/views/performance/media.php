@@ -28,18 +28,18 @@ $formatBytes = static function (int $bytes): string {
         <div class="col-md-3"><div class="card"><div class="card-body"><div class="subheader">WebP-Dateien</div><div class="h1 mb-0"><?php echo (int)($library['webp_files'] ?? 0); ?></div></div></div></div>
     </div>
 
-    <div class="card mb-4"><div class="card-header"><h3 class="card-title">Medien-Strategie</h3></div><div class="card-body"><form method="post"><input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>"><input type="hidden" name="action" value="save_media_settings"><div class="row"><div class="col-md-4"><label class="form-check form-switch mb-3"><input class="form-check-input" type="checkbox" name="perf_lazy_loading" value="1" <?php echo ($settings['perf_lazy_loading'] ?? '0') === '1' ? 'checked' : ''; ?>><span class="form-check-label">Lazy Loading für CMS-Medien aktivieren</span></label></div><div class="col-md-4"><label class="form-check form-switch mb-3"><input class="form-check-input" type="checkbox" name="perf_webp_uploads" value="1" <?php echo ($settings['perf_webp_uploads'] ?? '0') === '1' ? 'checked' : ''; ?>><span class="form-check-label">WebP-Begleitdateien bei Upload erzeugen</span></label></div><div class="col-md-4"><label class="form-check form-switch mb-3"><input class="form-check-input" type="checkbox" name="perf_strip_exif" value="1" <?php echo ($settings['perf_strip_exif'] ?? '0') === '1' ? 'checked' : ''; ?>><span class="form-check-label">EXIF-Metadaten beim Upload entfernen</span></label></div></div><div class="form-text mb-3">Diese Optionen werden mit den Medien-Einstellungen synchronisiert und wirken auf neue Uploads sowie Editor.js-Ausgaben.</div><button type="submit" class="btn btn-primary">Medien-Einstellungen speichern</button></form></div></div>
+    <div class="card mb-4"><div class="card-header"><h3 class="card-title">Medien-Strategie</h3></div><div class="card-body"><form method="post"><input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>"><input type="hidden" name="action" value="save_media_settings"><div class="row"><div class="col-md-3"><label class="form-check form-switch mb-3"><input class="form-check-input" type="checkbox" name="perf_lazy_loading" value="1" <?php echo ($settings['perf_lazy_loading'] ?? '0') === '1' ? 'checked' : ''; ?>><span class="form-check-label">Lazy Loading für CMS-Medien aktivieren</span></label></div><div class="col-md-3"><label class="form-check form-switch mb-3"><input class="form-check-input" type="checkbox" name="perf_webp_uploads" value="1" <?php echo ($settings['perf_webp_uploads'] ?? '0') === '1' ? 'checked' : ''; ?>><span class="form-check-label">WebP-Begleitdateien bei Upload erzeugen</span></label></div><div class="col-md-3"><label class="form-check form-switch mb-3"><input class="form-check-input" type="checkbox" name="perf_strip_exif" value="1" <?php echo ($settings['perf_strip_exif'] ?? '0') === '1' ? 'checked' : ''; ?>><span class="form-check-label">EXIF-Metadaten beim Upload entfernen</span></label></div><div class="col-md-3"><label class="form-label">Eager-Bilder am Seitenanfang</label><input type="number" min="0" max="5" step="1" class="form-control" name="perf_lazy_loading_eager_images" value="<?php echo htmlspecialchars((string)($settings['perf_lazy_loading_eager_images'] ?? '1')); ?>"></div></div><div class="form-text mb-3">Diese Optionen werden mit den Medien-Einstellungen synchronisiert und wirken auf neue Uploads sowie Editor.js-Ausgaben. Die ersten Eager-Bilder schützen Hero-/LCP-Medien vor versehentlichem Lazy Loading.</div><button type="submit" class="btn btn-primary">Medien-Einstellungen speichern</button></form></div></div>
 
     <div class="card mb-4">
         <div class="card-header d-flex align-items-center justify-content-between">
             <div>
                 <h3 class="card-title">WebP-Massenkonvertierung</h3>
-                <div class="text-secondary small">Konvertiert geeignete Bilder, zeigt die Ersparnis und ersetzt bekannte Referenzen automatisch. Vor Live-Läufen Backup prüfen.</div>
+                <div class="text-secondary small">Konvertiert geeignete Bilder batchweise, unterstützt Dry-Run und legt für ersetzte Originale ein Rollback-Manifest an.</div>
             </div>
-            <form method="post" class="m-0" data-confirm-title="WebP-Massenkonvertierung starten" data-confirm-message="Wirklich alle geeigneten Bilder in WebP konvertieren? Erfolgreich umgewandelte Originaldateien können ersetzt und bekannte Referenzen automatisch angepasst werden. Bitte vorher ein Backup sicherstellen." data-confirm-text="Konvertierung starten" data-confirm-class="btn-success" data-confirm-status-class="bg-success">
+            <form method="post" class="m-0" data-confirm-title="Letzte WebP-Konvertierung zurückrollen" data-confirm-message="Wirklich die letzte WebP-Konvertierung anhand des Manifests zurückrollen? Referenzen werden zurückgesetzt und gesicherte Originale wiederhergestellt." data-confirm-text="Rollback starten" data-confirm-class="btn-warning" data-confirm-status-class="bg-warning">
                 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>">
-                <input type="hidden" name="action" value="convert_media_to_webp">
-                <button type="submit" class="btn btn-success" <?php echo empty($conversion['supported']) || empty($conversion['convertible_files']) ? 'disabled' : ''; ?>>Alle Bilder zu WebP konvertieren</button>
+                <input type="hidden" name="action" value="rollback_webp_conversion">
+                <button type="submit" class="btn btn-outline-warning">Letzte Konvertierung zurückrollen</button>
             </form>
         </div>
         <div class="card-body">
@@ -48,6 +48,30 @@ $formatBytes = static function (int $bytes): string {
                 <div class="col-md-4"><div class="card card-sm"><div class="card-body"><div class="subheader">Aktuelles Dateivolumen</div><div class="h2 mb-0"><?php echo htmlspecialchars($formatBytes((int)($conversion['convertible_bytes'] ?? 0))); ?></div></div></div></div>
                 <div class="col-md-4"><div class="card card-sm"><div class="card-body"><div class="subheader">Server-Support</div><div class="h2 mb-0 <?php echo !empty($conversion['supported']) ? 'text-success' : 'text-danger'; ?>"><?php echo !empty($conversion['supported']) ? 'WebP bereit' : 'Nicht verfügbar'; ?></div></div></div></div>
             </div>
+
+            <form method="post" class="card card-sm mb-3" data-confirm-title="WebP-Batch starten" data-confirm-message="WebP-Batch wirklich starten? Bei aktivierter Original-Ersetzung werden Originale gesichert, Referenzen angepasst und ein Rollback-Manifest geschrieben." data-confirm-text="Batch starten" data-confirm-class="btn-success" data-confirm-status-class="bg-success">
+                <div class="card-body">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>">
+                    <input type="hidden" name="action" value="convert_media_to_webp">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-md-3">
+                            <label class="form-label">Batch-Größe</label>
+                            <input type="number" class="form-control" name="webp_batch_limit" min="1" max="200" step="1" value="25">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-check form-switch mb-2">
+                                <input class="form-check-input" type="checkbox" name="webp_replace_originals" value="1">
+                                <span class="form-check-label">Originale nach Referenzersatz sichern und entfernen</span>
+                            </label>
+                            <div class="form-hint">Ohne Haken bleiben Originaldateien erhalten; WebP-Dateien werden nur ergänzt und bekannte Referenzen angepasst.</div>
+                        </div>
+                        <div class="col-md-5 d-flex gap-2 justify-content-md-end">
+                            <button type="submit" name="webp_mode" value="dry_run" class="btn btn-outline-primary" <?php echo empty($conversion['supported']) || empty($conversion['convertible_files']) ? 'disabled' : ''; ?>>Dry-Run prüfen</button>
+                            <button type="submit" name="webp_mode" value="convert" class="btn btn-success" <?php echo empty($conversion['supported']) || empty($conversion['convertible_files']) ? 'disabled' : ''; ?>>Batch konvertieren</button>
+                        </div>
+                    </div>
+                </div>
+            </form>
 
             <?php if (empty($conversion['supported'])): ?>
                 <div class="alert alert-warning mb-0">Auf diesem Server fehlt GD mit WebP-Support. Ohne das bleibt die WebP-Rakete leider am Boden.</div>
