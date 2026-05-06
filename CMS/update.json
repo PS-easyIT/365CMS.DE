@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.9.612",
+  "version": "2.9.613",
   "min_php": "8.4",
   "released": "2026-05-06",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 2.9.612: Die Best-Practice-Nachprüfung für Site-, Beitrags- und Medienbereich härtet den neuen Beitrags-/Site-Medien-Replace-Flow weiter ab – Ersetzen ist nun serverseitig auf tatsächlich registrierte Beitrags-/Seitenbild-Referenzen begrenzt und die Dateiauswahl nennt nur die vom Server akzeptierten Bildformate.",
+  "notes": "Release-Stand 2.9.613: Die erneute Best-Practice-Nachprüfung des Site-, Beitrags- und Medienbereichs synchronisiert die Beitrags-/Site-Medien-Dateiauswahl noch enger mit der Backend-Allowlist: Clientseitige Prüfungen verlangen nun eine erlaubte Dateiendung plus passenden oder leeren Bild-MIME-Typ und berücksichtigen den vom Server akzeptierten BMP-MIME-Alias image/x-bmp.",
   "critical": false
 }

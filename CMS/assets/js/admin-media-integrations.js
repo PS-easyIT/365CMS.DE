@@ -1035,21 +1035,25 @@
             return types.indexOf('Files') !== -1;
         }
 
+        function hasAllowedReplacementImageExtension(name) {
+            return /\.(?:bmp|gif|ico|jpe?g|png|webp)$/i.test(String(name || ''));
+        }
+
+        function hasAllowedReplacementImageMime(type) {
+            var normalizedType = String(type || '').toLowerCase();
+
+            return normalizedType === '' || /^image\/(?:bmp|x-bmp|gif|jpeg|png|webp|x-icon|vnd\.microsoft\.icon)$/i.test(normalizedType);
+        }
+
         function isImageFile(file) {
             var name;
-            var type;
 
             if (!file) {
                 return false;
             }
 
-            type = String(file.type || '').toLowerCase();
-            if (/^image\/(?:bmp|gif|jpeg|png|webp|x-icon|vnd\.microsoft\.icon)$/i.test(type)) {
-                return true;
-            }
-
             name = String(file.name || '');
-            return /\.(?:bmp|gif|ico|jpe?g|png|webp)$/i.test(name);
+            return hasAllowedReplacementImageExtension(name) && hasAllowedReplacementImageMime(file.type || '');
         }
 
         function formatFileSize(size) {
@@ -1286,8 +1290,7 @@
 
                     if (event.dataTransfer) {
                         event.dataTransfer.dropEffect = fileItems.length === 1 && fileItems.every(function (item) {
-                            var itemType = String(item.type || '').toLowerCase();
-                            return itemType === '' || /^(image\/(?:bmp|gif|jpeg|png|webp|x-icon|vnd\.microsoft\.icon))$/i.test(itemType);
+                            return hasAllowedReplacementImageMime(item.type || '');
                         }) ? 'copy' : 'none';
                     }
 

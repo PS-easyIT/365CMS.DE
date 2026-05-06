@@ -254,7 +254,7 @@ if (!function_exists('cms_admin_media_render_featured_usage_list')) {
                                                     name="replacement_file"
                                                     id="<?php echo htmlspecialchars($fieldId, ENT_QUOTES); ?>"
                                                     class="form-control form-control-sm"
-                                                    accept=".jpg,.jpeg,.png,.gif,.webp,.bmp,.ico,image/jpeg,image/png,image/gif,image/webp,image/bmp,image/x-icon,image/vnd.microsoft.icon"
+                                                    accept=".jpg,.jpeg,.png,.gif,.webp,.bmp,.ico,image/jpeg,image/png,image/gif,image/webp,image/bmp,image/x-bmp,image/x-icon,image/vnd.microsoft.icon"
                                                     required>
 
                                                 <div class="d-flex flex-wrap gap-2 align-items-center">
