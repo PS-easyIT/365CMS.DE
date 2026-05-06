@@ -1007,10 +1007,371 @@
         });
     }
 
+    function initFeaturedMediaReplace() {
+        var forms = document.querySelectorAll('[data-featured-replace-form="1"]');
+        var cleanupRegistered = false;
+
+        if (!forms.length) {
+            return;
+        }
+
+        function eventContainsFiles(event) {
+            var dataTransfer = event && event.dataTransfer ? event.dataTransfer : null;
+            var items;
+            var types;
+
+            if (!dataTransfer) {
+                return false;
+            }
+
+            items = Array.prototype.slice.call(dataTransfer.items || []);
+            if (items.length) {
+                return items.some(function (item) {
+                    return item && item.kind === 'file';
+                });
+            }
+
+            types = Array.prototype.slice.call(dataTransfer.types || []);
+            return types.indexOf('Files') !== -1;
+        }
+
+        function isImageFile(file) {
+            var name;
+
+            if (!file) {
+                return false;
+            }
+
+            if (/^image\//i.test(String(file.type || ''))) {
+                return true;
+            }
+
+            name = String(file.name || '');
+            return /\.(?:avif|bmp|gif|ico|jpe?g|png|svg|webp)$/i.test(name);
+        }
+
+        function formatFileSize(size) {
+            var bytes = Number(size || 0);
+
+            if (!Number.isFinite(bytes) || bytes <= 0) {
+                return '';
+            }
+
+            if (bytes >= 1048576) {
+                return (Math.round((bytes / 1048576) * 10) / 10) + ' MB';
+            }
+
+            if (bytes >= 1024) {
+                return Math.round(bytes / 1024) + ' KB';
+            }
+
+            return Math.round(bytes) + ' B';
+        }
+
+        function getDefaultMessage(target) {
+            if (!target) {
+                return '';
+            }
+
+            return String(target.dataset.defaultMessage || '').trim();
+        }
+
+        function revokeFeaturedPreview(form) {
+            var objectUrl = form ? String(form.dataset.featuredPreviewUrl || '') : '';
+
+            if (!objectUrl || typeof window.URL === 'undefined' || typeof window.URL.revokeObjectURL !== 'function') {
+                return;
+            }
+
+            window.URL.revokeObjectURL(objectUrl);
+            delete form.dataset.featuredPreviewUrl;
+        }
+
+        function updateLocalPreview(form, file) {
+            var previewWrap = form.querySelector('[data-featured-local-preview]');
+            var previewImage = form.querySelector('[data-featured-local-preview-image]');
+            var previewName = form.querySelector('[data-featured-local-preview-name]');
+            var previewMeta = form.querySelector('[data-featured-local-preview-meta]');
+            var metaParts;
+            var objectUrl;
+            var reader;
+
+            if (!previewWrap || !previewImage) {
+                return;
+            }
+
+            revokeFeaturedPreview(form);
+
+            if (!file || !isImageFile(file)) {
+                previewWrap.hidden = true;
+                previewImage.removeAttribute('src');
+                previewImage.alt = '';
+                if (previewName) {
+                    previewName.textContent = '';
+                }
+                if (previewMeta) {
+                    previewMeta.textContent = '';
+                }
+                return;
+            }
+
+            previewImage.alt = 'Vorschau für ' + String(file.name || 'Bilddatei');
+
+            if (previewName) {
+                previewName.textContent = String(file.name || 'Bilddatei');
+            }
+
+            if (previewMeta) {
+                metaParts = [];
+
+                if (file.type) {
+                    metaParts.push(String(file.type));
+                }
+
+                if (file.size) {
+                    metaParts.push(formatFileSize(file.size));
+                }
+
+                previewMeta.textContent = metaParts.join(' • ');
+            }
+
+            previewWrap.hidden = false;
+
+            if (typeof window.URL !== 'undefined' && typeof window.URL.createObjectURL === 'function') {
+                objectUrl = window.URL.createObjectURL(file);
+                form.dataset.featuredPreviewUrl = objectUrl;
+                previewImage.src = objectUrl;
+                return;
+            }
+
+            if (typeof window.FileReader === 'function') {
+                reader = new window.FileReader();
+                reader.addEventListener('load', function () {
+                    previewImage.src = String(reader.result || '');
+                });
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function setDropzoneState(dropzone, isActive) {
+            if (!dropzone) {
+                return;
+            }
+
+            dropzone.classList.toggle('border-primary', isActive);
+            dropzone.classList.toggle('bg-primary-lt', isActive);
+        }
+
+        function updateSelectedFileHint(form, file) {
+            var selectedFileTargets = form.querySelectorAll('[data-featured-selected-file]');
+            var statusTargets = form.querySelectorAll('[data-featured-replace-status]');
+            var message = file
+                ? 'Bereit: ' + String(file.name || 'Bilddatei')
+                : '';
+
+            selectedFileTargets.forEach(function (target) {
+                target.textContent = message || getDefaultMessage(target) || 'Noch keine Datei ausgewählt.';
+            });
+
+            statusTargets.forEach(function (target) {
+                var defaultMessage;
+
+                if (target.classList.contains('alert')) {
+                    return;
+                }
+
+                defaultMessage = getDefaultMessage(target);
+                target.textContent = file
+                    ? 'Ausgewählt: ' + String(file.name || 'Bilddatei') + '. Mit „Bild ersetzen“ übernehmen Sie die neue Datei für alle verknüpften Inhalte.'
+                    : defaultMessage;
+            });
+
+            updateLocalPreview(form, file);
+        }
+
+        if (!cleanupRegistered) {
+            window.addEventListener('pagehide', function () {
+                forms.forEach(function (form) {
+                    revokeFeaturedPreview(form);
+                });
+            });
+            cleanupRegistered = true;
+        }
+
+        window.addEventListener('dragover', function (event) {
+            if (!eventContainsFiles(event)) {
+                return;
+            }
+
+            if (!event.target || !event.target.closest || event.target.closest('[data-featured-dropzone="1"]')) {
+                return;
+            }
+
+            event.preventDefault();
+            if (event.dataTransfer) {
+                event.dataTransfer.dropEffect = 'none';
+            }
+        });
+
+        window.addEventListener('drop', function (event) {
+            if (!eventContainsFiles(event)) {
+                return;
+            }
+
+            if (event.target && event.target.closest && event.target.closest('[data-featured-dropzone="1"]')) {
+                return;
+            }
+
+            event.preventDefault();
+        });
+
+        forms.forEach(function (form) {
+            var fileInput = form.querySelector('input[type="file"][name="replacement_file"]');
+            var dropzone = form.querySelector('[data-featured-dropzone="1"]');
+            var submitButton = form.querySelector('[data-featured-submit="1"]');
+            var dragDepth = 0;
+
+            if (!fileInput || !dropzone) {
+                return;
+            }
+
+            updateSelectedFileHint(form, fileInput.files && fileInput.files[0] ? fileInput.files[0] : null);
+
+            fileInput.addEventListener('change', function () {
+                var selectedFile = fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
+
+                if (selectedFile && !isImageFile(selectedFile)) {
+                    fileInput.value = '';
+                    updateSelectedFileHint(form, null);
+                    showMessage('danger', 'Bitte eine gültige Bilddatei auswählen.');
+                    return;
+                }
+
+                updateSelectedFileHint(form, selectedFile);
+            });
+
+            dropzone.addEventListener('click', function () {
+                fileInput.click();
+            });
+
+            dropzone.addEventListener('keydown', function (event) {
+                if (event.key !== 'Enter' && event.key !== ' ') {
+                    return;
+                }
+
+                event.preventDefault();
+                fileInput.click();
+            });
+
+            ['dragenter', 'dragover'].forEach(function (eventName) {
+                dropzone.addEventListener(eventName, function (event) {
+                    var fileItems;
+
+                    if (!eventContainsFiles(event)) {
+                        return;
+                    }
+
+                    event.preventDefault();
+                    event.stopPropagation();
+
+                    if (eventName === 'dragenter') {
+                        dragDepth += 1;
+                    }
+
+                    fileItems = Array.prototype.slice.call((event.dataTransfer && event.dataTransfer.items) || []).filter(function (item) {
+                        return item && item.kind === 'file';
+                    });
+
+                    if (event.dataTransfer) {
+                        event.dataTransfer.dropEffect = fileItems.length === 1 && fileItems.every(function (item) {
+                            return /^image\//i.test(String(item.type || ''));
+                        }) ? 'copy' : 'none';
+                    }
+
+                    setDropzoneState(dropzone, true);
+                });
+            });
+
+            ['dragleave', 'dragend'].forEach(function (eventName) {
+                dropzone.addEventListener(eventName, function (event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+
+                    if (eventName === 'dragleave') {
+                        dragDepth = Math.max(0, dragDepth - 1);
+                    } else {
+                        dragDepth = 0;
+                    }
+
+                    if (dragDepth === 0) {
+                        setDropzoneState(dropzone, false);
+                    }
+                });
+            });
+
+            dropzone.addEventListener('drop', function (event) {
+                var files;
+                var imageFiles;
+                var dataTransfer;
+
+                if (!eventContainsFiles(event)) {
+                    return;
+                }
+
+                event.preventDefault();
+                event.stopPropagation();
+                dragDepth = 0;
+                setDropzoneState(dropzone, false);
+
+                files = event.dataTransfer && event.dataTransfer.files
+                    ? Array.prototype.slice.call(event.dataTransfer.files)
+                    : [];
+
+                imageFiles = files.filter(function (file) {
+                    return isImageFile(file);
+                });
+
+                if (imageFiles.length !== 1) {
+                    showMessage('danger', 'Bitte genau eine Bilddatei auf die Ersetzen-Zone ziehen.');
+                    updateSelectedFileHint(form, null);
+                    return;
+                }
+
+                if (typeof window.DataTransfer === 'function') {
+                    try {
+                        dataTransfer = new window.DataTransfer();
+                        dataTransfer.items.add(imageFiles[0]);
+                        fileInput.files = dataTransfer.files;
+                    } catch (error) {
+                        dataTransfer = null;
+                    }
+                }
+
+                if (!fileInput.files || !fileInput.files.length) {
+                    showMessage('danger', 'Drag-&-Drop wird in diesem Browser für dieses Formular nicht vollständig unterstützt. Bitte Bild per Klick auswählen.');
+                    updateSelectedFileHint(form, null);
+                    return;
+                }
+
+                updateSelectedFileHint(form, fileInput.files[0]);
+
+                if (submitButton) {
+                    submitButton.focus();
+                }
+            });
+
+            form.addEventListener('submit', function () {
+                setDropzoneState(dropzone, false);
+                dragDepth = 0;
+            });
+        });
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
         initNativeUploader();
         initMediaPickers();
         initMediaLibraryActions();
         initMediaCategoryActions();
+        initFeaturedMediaReplace();
     });
 })();

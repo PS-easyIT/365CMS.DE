@@ -17,6 +17,7 @@ use CMS\Security;
 
 const CMS_ADMIN_MEDIA_ALLOWED_ACTIONS = [
     'upload',
+    'replace_item',
     'create_folder',
     'delete_item',
     'rename_item',
@@ -271,6 +272,9 @@ function cms_admin_media_normalize_action_payload(MediaModule $module, string $a
         'upload' => [
             'target_path' => $module->normalizePath((string) ($post['target_path'] ?? '')),
         ],
+        'replace_item' => [
+            'item_path' => $module->normalizePath((string) ($post['item_path'] ?? '')),
+        ],
         'create_folder' => [
             'parent_path' => $module->normalizePath((string) ($post['parent_path'] ?? '')),
             'folder_name' => cms_admin_media_normalize_text($post['folder_name'] ?? '', 120),
@@ -310,6 +314,7 @@ function cms_admin_media_normalize_action_payload(MediaModule $module, string $a
 function cms_admin_media_validate_action_payload(string $action, array $payload): ?string
 {
     return match ($action) {
+        'replace_item' => ($payload['item_path'] ?? '') === '' ? 'Ungültiger Bildpfad.' : null,
         'create_folder' => ($payload['folder_name'] ?? '') === '' ? 'Bitte einen gültigen Ordnernamen angeben.' : null,
         'delete_item' => ($payload['item_path'] ?? '') === '' ? 'Ungültiger Elementpfad.' : null,
         'rename_item' => ($payload['old_path'] ?? '') === ''
@@ -361,11 +366,31 @@ function cms_admin_media_redirect_params(MediaModule $module, string $tab, strin
     if ($normalizedSearch !== '') {
         $redirectParams['q'] = $normalizedSearch;
     }
+    $normalizedUsageScope = strtolower(trim((string) ($_GET['usage_scope'] ?? 'all')));
+    if (in_array($normalizedUsageScope, ['posts', 'pages'], true)) {
+        $redirectParams['usage_scope'] = $normalizedUsageScope;
+    }
     if ((string)($_GET['confirm_member'] ?? '') === '1') {
         $redirectParams['confirm_member'] = '1';
     }
 
     return $redirectParams;
+}
+
+function cms_admin_media_build_featured_redirect_url(MediaModule $module, string $highlightPath = '', bool $markAsReplaced = false): string
+{
+    $redirectParams = cms_admin_media_redirect_params($module, 'featured', '');
+    unset($redirectParams['path'], $redirectParams['confirm_member']);
+
+    if ($highlightPath !== '') {
+        $redirectParams['highlight'] = $module->normalizePath($highlightPath);
+    }
+
+    if ($markAsReplaced && $highlightPath !== '') {
+        $redirectParams['replaced'] = '1';
+    }
+
+    return CMS_ADMIN_MEDIA_ROUTE_PATH . '?' . http_build_query($redirectParams);
 }
 
 function cms_admin_media_build_redirect_url(MediaModule $module, string $tab, string $path): string
@@ -377,6 +402,10 @@ function cms_admin_media_build_redirect_url(MediaModule $module, string $tab, st
 
 function cms_admin_media_action_redirect_path(MediaModule $module, string $action, string $tab, string $path): string
 {
+    if ($action === 'replace_item' && $module->normalizeTab($tab) === 'featured') {
+        return cms_admin_media_build_featured_redirect_url($module);
+    }
+
     return match ($action) {
         'add_category', 'delete_category' => CMS_ADMIN_MEDIA_ROUTE_PATH . '?tab=categories',
         'save_settings' => CMS_ADMIN_MEDIA_ROUTE_PATH . '?tab=settings',
@@ -555,6 +584,22 @@ function cms_admin_media_handle_action(MediaModule $module, string $action, stri
             : $redirectPath;
     }
 
+    if ($action === 'replace_item') {
+        $result = $module->replaceItem((string)($post['item_path'] ?? ''));
+        if (!empty($result['success'])) {
+            $redirectPath = cms_admin_media_build_featured_redirect_url(
+                $module,
+                (string) ($result['highlight_path'] ?? ($post['item_path'] ?? '')),
+                true
+            );
+        }
+
+        return [
+            'result' => $result,
+            'redirect_path' => $redirectPath,
+        ];
+    }
+
     return match ($action) {
         'upload' => [
             'flash' => $uploadFlash,
@@ -626,6 +671,18 @@ function cms_admin_media_view_config(MediaModule $module, string $tab): array
     $normalizedTab = $module->normalizeTab($tab);
 
     return match ($normalizedTab) {
+        'featured' => [
+            'section' => 'featured',
+            'view_file' => __DIR__ . '/views/media/featured.php',
+            'page_title' => 'Medien – Beitrags- & Seitenmedien',
+            'active_page' => 'media-featured',
+            'page_assets' => [
+                'js' => [
+                    cms_asset_url('js/admin-media-integrations.js'),
+                ],
+            ],
+            'data' => $module->getFeaturedMediaData(),
+        ],
         'categories' => [
             'section' => 'categories',
             'view_file' => __DIR__ . '/views/media/categories.php',
@@ -716,6 +773,7 @@ $sectionPageConfig = [
         }
 
         return match ($module->normalizeTab($section)) {
+            'featured' => cms_admin_media_build_featured_redirect_url($module),
             'categories' => CMS_ADMIN_MEDIA_ROUTE_PATH . '?tab=categories',
             'settings' => CMS_ADMIN_MEDIA_ROUTE_PATH . '?tab=settings',
             default => cms_admin_media_build_redirect_url($module, 'library', $module->normalizePath((string) ($_GET['path'] ?? ''))),

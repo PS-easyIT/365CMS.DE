@@ -73,6 +73,39 @@ final class MediaUsageService
     }
 
     /**
+     * @return array<string, list<array<string, mixed>>>
+     */
+    public function buildFeaturedImageMap(): array
+    {
+        $usageMap = [];
+
+        $this->collectFeaturedUsages(
+            $usageMap,
+            $this->fetchPosts(),
+            'post',
+            'Beitrag',
+            '/admin/posts?action=edit&id='
+        );
+
+        $this->collectFeaturedUsages(
+            $usageMap,
+            $this->fetchPages(),
+            'page',
+            'Seite',
+            '/admin/pages?action=edit&id='
+        );
+
+        foreach ($usageMap as &$items) {
+            $this->sortUsageItems($items);
+        }
+        unset($items);
+
+        ksort($usageMap);
+
+        return $usageMap;
+    }
+
+    /**
      * @param array<int, string> $relativePaths
      * @return list<string>
      */
@@ -112,6 +145,51 @@ final class MediaUsageService
             "SELECT id, title, slug, featured_image, content, content_en
              FROM {$this->prefix}pages"
         ) ?: [];
+    }
+
+    /**
+     * @param array<string, list<array<string, mixed>>> $usageMap
+     * @param array<int, object> $rows
+     */
+    private function collectFeaturedUsages(array &$usageMap, array $rows, string $contentType, string $contentTypeLabel, string $editBaseUrl): void
+    {
+        $fieldLabel = $contentType === 'post' ? 'Beitragsbild' : 'Seitenbild';
+
+        foreach ($rows as $row) {
+            $contentId = (int) ($row->id ?? 0);
+            if ($contentId <= 0) {
+                continue;
+            }
+
+            $title = $this->buildContentTitle((string) ($row->title ?? ''), (string) ($row->slug ?? ''), $contentTypeLabel, $contentId);
+            $editUrl = $editBaseUrl . $contentId;
+
+            foreach ($this->extractRelativeMediaPaths((string) ($row->featured_image ?? '')) as $relativePath) {
+                if ($relativePath === '') {
+                    continue;
+                }
+
+                if (!isset($usageMap[$relativePath])) {
+                    $usageMap[$relativePath] = [];
+                }
+
+                $usageKey = $contentType . ':' . $contentId . ':featured_image';
+                if ($this->usageExists($usageMap[$relativePath], $usageKey)) {
+                    continue;
+                }
+
+                $usageMap[$relativePath][] = [
+                    'usage_key' => $usageKey,
+                    'content_type' => $contentType,
+                    'content_type_label' => $contentTypeLabel,
+                    'field' => 'featured_image',
+                    'field_label' => $fieldLabel,
+                    'content_id' => $contentId,
+                    'title' => $title,
+                    'edit_url' => $editUrl,
+                ];
+            }
+        }
     }
 
     /**

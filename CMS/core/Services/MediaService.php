@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace CMS\Services;
 
+use CMS\Auth;
 use CMS\Contracts\LoggerInterface;
 use CMS\Json;
 use CMS\Logger;
@@ -543,6 +544,139 @@ class MediaService {
         return $variants;
     }
 
+    private function normalizeManagedRelativePath(string $path): string
+    {
+        $path = trim(str_replace('\\', '/', $path));
+        $path = preg_replace('#/+#', '/', $path) ?? '';
+        $path = trim($path, '/');
+
+        if ($path === '' || str_contains($path, '..') || preg_match('/[\x00-\x1F\x7F]/', $path) === 1) {
+            return '';
+        }
+
+        return preg_match('#^[A-Za-z0-9._\-/]+$#', $path) === 1 ? $path : '';
+    }
+
+    private function resolveManagedAbsolutePath(string $relativePath): string|WP_Error
+    {
+        $normalizedRelativePath = $this->normalizeManagedRelativePath($relativePath);
+        if ($normalizedRelativePath === '') {
+            return new WP_Error('invalid_target_path', 'Der Medienpfad ist ungültig.');
+        }
+
+        $absolutePath = rtrim($this->uploadPath, '/\\') . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $normalizedRelativePath);
+        $normalizedRoot = rtrim(str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $this->uploadPath), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+        $normalizedAbsolute = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $absolutePath);
+
+        if (!str_starts_with($normalizedAbsolute, $normalizedRoot)) {
+            return new WP_Error('invalid_target_path', 'Der Medienpfad liegt außerhalb des Upload-Verzeichnisses.');
+        }
+
+        return $absolutePath;
+    }
+
+    /**
+     * @param array<string,mixed> $file
+     */
+    private function writeReplacementImage(array $file, string $sourceExtension, string $targetAbsolutePath, string $targetExtension, int $quality): bool
+    {
+        $sourcePath = (string) ($file['tmp_name'] ?? '');
+        if ($sourcePath === '' || !is_file($sourcePath) || !is_readable($sourcePath)) {
+            return false;
+        }
+
+        if ($sourceExtension === $targetExtension) {
+            return $this->moveIncomingReplacementFile($sourcePath, $targetAbsolutePath);
+        }
+
+        if (!in_array($targetExtension, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'], true)) {
+            return false;
+        }
+
+        $image = $this->loadGdImage($sourcePath, $sourceExtension);
+        if (!$image instanceof \GdImage) {
+            return false;
+        }
+
+        try {
+            return $this->saveReplacementGdImage($image, $targetAbsolutePath, $targetExtension, $quality);
+        } finally {
+            imagedestroy($image);
+        }
+    }
+
+    private function moveIncomingReplacementFile(string $sourcePath, string $targetPath): bool
+    {
+        if (is_uploaded_file($sourcePath)) {
+            return move_uploaded_file($sourcePath, $targetPath);
+        }
+
+        if (@rename($sourcePath, $targetPath)) {
+            return true;
+        }
+
+        if (!@copy($sourcePath, $targetPath)) {
+            return false;
+        }
+
+        if (!@unlink($sourcePath)) {
+            @unlink($targetPath);
+            return false;
+        }
+
+        return true;
+    }
+
+    private function saveReplacementGdImage(\GdImage $image, string $targetPath, string $extension, int $quality): bool
+    {
+        return match (strtolower($extension)) {
+            'jpg', 'jpeg' => imagejpeg($image, $targetPath, $quality),
+            'png' => imagepng($image, $targetPath, max(0, min(9, (int) round((100 - $quality) / 10)))),
+            'gif' => imagegif($image, $targetPath),
+            'webp' => function_exists('imagewebp') ? imagewebp($image, $targetPath, $quality) : false,
+            'bmp' => function_exists('imagebmp') ? imagebmp($image, $targetPath) : false,
+            default => false,
+        };
+    }
+
+    private function restoreManagedReplacementBackup(?string $backupPath, string $targetAbsolutePath): void
+    {
+        if ($backupPath === null || !is_file($backupPath)) {
+            return;
+        }
+
+        if (is_file($targetAbsolutePath)) {
+            @unlink($targetAbsolutePath);
+        }
+
+        @rename($backupPath, $targetAbsolutePath);
+    }
+
+    private function syncReplacedFileMeta(string $relativePath, string $originalName): void
+    {
+        $normalizedPath = $this->normalizeManagedRelativePath($relativePath);
+        if ($normalizedPath === '') {
+            return;
+        }
+
+        $meta = $this->repository->loadMeta();
+        $existingMeta = is_array($meta['files'][$normalizedPath] ?? null) ? $meta['files'][$normalizedPath] : [];
+        $currentUser = Auth::getCurrentUser();
+        $uploadedBy = (string) ($currentUser->username ?? $currentUser->email ?? 'system');
+        $uploaderId = isset($currentUser->id) ? (int) $currentUser->id : null;
+        $category = (string) ($existingMeta['category'] ?? $this->repository->detectSystemCategory($normalizedPath) ?? '');
+
+        $meta['files'][$normalizedPath] = array_merge($existingMeta, [
+            'uploaded_at' => date('c'),
+            'uploaded_by' => function_exists('mb_substr') ? mb_substr($uploadedBy, 0, 120, 'UTF-8') : substr($uploadedBy, 0, 120),
+            'uploader_id' => $uploaderId,
+            'original_name' => function_exists('mb_substr') ? mb_substr($originalName, 0, 180, 'UTF-8') : substr($originalName, 0, 180),
+            'category' => $category,
+        ]);
+
+        $this->repository->saveMeta($meta);
+    }
+
     private function purgeMetaForPath(string $relativePath): void {
         $meta = $this->loadMeta();
         $relativePath = trim(str_replace('\\', '/', $relativePath), '/');
@@ -876,6 +1010,92 @@ class MediaService {
         $this->processManagedImageUpload($storedAbsolutePath, (string) ($result['name'] ?? basename($storedRelativePath)), $settings);
 
         return $result;
+    }
+
+    /**
+     * Ersetzt eine bestehende Bilddatei unter derselben Medien-Referenz.
+     * Dadurch bleiben alle Verwendungen in Beiträgen und Seiten unverändert gültig.
+     *
+     * @param array<string,mixed> $file
+     * @return array<string,mixed>|WP_Error
+     */
+    public function replaceManagedFile(array $file, string $targetRelativePath): array|WP_Error
+    {
+        $normalizedTargetPath = $this->normalizeManagedRelativePath($targetRelativePath);
+        if ($normalizedTargetPath === '') {
+            return new WP_Error('invalid_target_path', 'Der Zielpfad für den Bildersatz ist ungültig.');
+        }
+
+        $targetExtension = strtolower((string) pathinfo($normalizedTargetPath, PATHINFO_EXTENSION));
+        if (!$this->isImageExtension($targetExtension)) {
+            return new WP_Error('invalid_target_type', 'Es können nur vorhandene Bilddateien ersetzt werden.');
+        }
+
+        $settings = $this->buildUploadValidationSettings($this->getSettings());
+        $validation = $this->validateFile($file, $settings);
+        if ($validation instanceof WP_Error) {
+            return $validation;
+        }
+
+        $sourceExtension = strtolower((string) ($validation['ext'] ?? ''));
+        if (!$this->isImageExtension($sourceExtension)) {
+            return new WP_Error('invalid_replacement_type', 'Bitte eine gültige Bilddatei zum Ersetzen hochladen.');
+        }
+
+        $targetAbsolutePath = $this->resolveManagedAbsolutePath($normalizedTargetPath);
+        if ($targetAbsolutePath instanceof WP_Error) {
+            return $targetAbsolutePath;
+        }
+
+        $targetDirectory = dirname($targetAbsolutePath);
+        if (!is_dir($targetDirectory) && !@mkdir($targetDirectory, 0755, true) && !is_dir($targetDirectory)) {
+            return new WP_Error('target_dir_missing', 'Das Zielverzeichnis für den Bildersatz konnte nicht erstellt werden.');
+        }
+
+        if (!is_writable($targetDirectory)) {
+            return new WP_Error('target_dir_not_writable', 'Das Zielverzeichnis für den Bildersatz ist nicht beschreibbar.');
+        }
+
+        $backupPath = null;
+        if (is_file($targetAbsolutePath)) {
+            $backupPath = $targetAbsolutePath . '.replace.' . str_replace('.', '', uniqid('', true));
+            if (!@rename($targetAbsolutePath, $backupPath)) {
+                return new WP_Error('backup_failed', 'Die bestehende Bilddatei konnte vor dem Ersetzen nicht gesichert werden.');
+            }
+        }
+
+        try {
+            $quality = max(60, min(100, (int) ($settings['jpeg_quality'] ?? 85)));
+            $replacementStored = $this->writeReplacementImage($file, $sourceExtension, $targetAbsolutePath, $targetExtension, $quality);
+            if (!$replacementStored) {
+                $this->restoreManagedReplacementBackup($backupPath, $targetAbsolutePath);
+
+                return new WP_Error('replacement_write_failed', 'Die neue Bilddatei konnte nicht gespeichert werden.');
+            }
+
+            @chmod($targetAbsolutePath, self::ATOMIC_FILE_MODE);
+            $this->processManagedImageUpload($targetAbsolutePath, basename($normalizedTargetPath), $settings);
+            $this->syncReplacedFileMeta($normalizedTargetPath, (string) ($file['name'] ?? basename($normalizedTargetPath)));
+
+            if ($backupPath !== null && is_file($backupPath)) {
+                @unlink($backupPath);
+            }
+
+            return [
+                'path' => $normalizedTargetPath,
+                'name' => basename($normalizedTargetPath),
+                'url' => MediaDeliveryService::getInstance()->buildAccessUrl($normalizedTargetPath, true),
+                'preview_url' => MediaDeliveryService::getInstance()->buildPreviewUrl($normalizedTargetPath),
+            ];
+        } catch (\Throwable $exception) {
+            $this->restoreManagedReplacementBackup($backupPath, $targetAbsolutePath);
+            $this->logger->warning('Bildersatz in der Medienverwaltung fehlgeschlagen.', [
+                'path' => $normalizedTargetPath,
+                'exception' => $exception->getMessage(),
+            ]);
+
+            return new WP_Error('replacement_failed', 'Die Bilddatei konnte nicht ersetzt werden.');
+        }
     }
 
     /**

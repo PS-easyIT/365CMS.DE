@@ -15,6 +15,7 @@ if (!defined('ABSPATH')) {
 
 use CMS\AuditLogger;
 use CMS\Logger;
+use CMS\Services\MediaDeliveryService;
 use CMS\Services\MediaService;
 use CMS\Services\MediaUsageService;
 use CMS\Services\ErrorReportService;
@@ -73,7 +74,7 @@ class MediaModule
     private ?array $categoriesCache = null;
 
     private const ALLOWED_VIEWS = ['list', 'grid'];
-    private const ALLOWED_TABS = ['library', 'categories', 'settings'];
+    private const ALLOWED_TABS = ['library', 'featured', 'categories', 'settings'];
     private const ALLOWED_USAGE_FILTERS = ['all', 'used', 'unused'];
     private const SYSTEM_CATEGORY_SLUGS = ['themes', 'plugins', 'assets', 'fonts', 'dl-manager', 'form-uploads', 'member'];
 
@@ -340,6 +341,105 @@ class MediaModule
         ];
     }
 
+    /**
+     * Daten für die fokussierte Ansicht aller in Beiträgen und Seiten verwendeten Titelbilder.
+     */
+    public function getFeaturedMediaData(): array
+    {
+        $search = $this->sanitizeSearch((string) ($_GET['q'] ?? ''));
+        $usageScope = $this->normalizeFeaturedUsageScope((string) ($_GET['usage_scope'] ?? 'all'));
+        $highlightPath = $this->normalizeRelativePath((string) ($_GET['highlight'] ?? ''));
+        $highlightActive = ((string) ($_GET['replaced'] ?? '') === '1') && $highlightPath !== '';
+        $featuredUsageMap = $this->usageService->buildFeaturedImageMap();
+        $items = [];
+        $totalReferences = 0;
+        $postReferences = 0;
+        $pageReferences = 0;
+        $missingFiles = 0;
+
+        foreach ($featuredUsageMap as $relativePath => $usageItems) {
+            $normalizedPath = $this->normalizeRelativePath($relativePath);
+            if ($normalizedPath === '') {
+                continue;
+            }
+
+            $usageItems = $this->filterFeaturedUsageItemsByScope($usageItems, $usageScope);
+            if ($usageItems === []) {
+                continue;
+            }
+
+            if ($search !== '' && !$this->featuredMediaMatchesSearch($normalizedPath, $usageItems, $search)) {
+                continue;
+            }
+
+            $usageCount = count($usageItems);
+            $postCount = count(array_filter($usageItems, static fn (array $usageItem): bool => (string) ($usageItem['content_type'] ?? '') === 'post'));
+            $pageCount = count(array_filter($usageItems, static fn (array $usageItem): bool => (string) ($usageItem['content_type'] ?? '') === 'page'));
+            $exists = $this->service->pathExists($normalizedPath);
+
+            $totalReferences += $usageCount;
+            $postReferences += $postCount;
+            $pageReferences += $pageCount;
+            if (!$exists) {
+                $missingFiles++;
+            }
+
+            $items[] = [
+                'name' => basename($normalizedPath),
+                'path' => $normalizedPath,
+                'exists' => $exists,
+                'preview_url' => $exists ? MediaDeliveryService::getInstance()->buildPreviewUrl($normalizedPath) : '',
+                'access_url' => $exists ? MediaDeliveryService::getInstance()->buildAccessUrl($normalizedPath, true) : '',
+                'usage_items' => $usageItems,
+                'usage_count' => $usageCount,
+                'post_count' => $postCount,
+                'page_count' => $pageCount,
+                'usage_count_label' => $usageCount === 1 ? '1 Verknüpfung' : $usageCount . ' Verknüpfungen',
+                'is_highlighted' => $highlightActive && $normalizedPath === $highlightPath,
+            ];
+        }
+
+        usort($items, static function (array $left, array $right): int {
+            $usageCompare = (int) ($right['usage_count'] ?? 0) <=> (int) ($left['usage_count'] ?? 0);
+            if ($usageCompare !== 0) {
+                return $usageCompare;
+            }
+
+            return strcasecmp((string) ($left['name'] ?? ''), (string) ($right['name'] ?? ''));
+        });
+
+        return [
+            'items' => $items,
+            'search' => $search,
+            'usage_scope' => $usageScope,
+            'base_url' => '/admin/media',
+            'stats' => [
+                'image_count' => count($items),
+                'reference_count' => $totalReferences,
+                'post_reference_count' => $postReferences,
+                'page_reference_count' => $pageReferences,
+                'missing_count' => $missingFiles,
+            ],
+            'constraints' => [
+                'search_max_length' => self::SEARCH_MAX_LENGTH,
+            ],
+            'usage_scope_options' => [
+                ['value' => 'all', 'label' => 'Beiträge & Seiten'],
+                ['value' => 'posts', 'label' => 'Nur Beiträge'],
+                ['value' => 'pages', 'label' => 'Nur Seiten'],
+            ],
+            'empty_state' => [
+                'title' => $search !== '' ? 'Keine passenden Beitrags- oder Seitenbilder gefunden' : 'Noch keine Beitrags- oder Seitenbilder hinterlegt',
+                'subtitle' => $search !== ''
+                    ? 'Bitte Suchbegriff anpassen oder zurücksetzen.'
+                    : 'Sobald Beiträge oder Seiten ein Titelbild haben, erscheinen sie hier gesammelt zur schnellen Pflege.',
+            ],
+            'help_text' => 'Hier sehen Sie ausschließlich die Bilder, die aktuell als Beitragsbild oder Seitenbild verwendet werden. Beim Ersetzen bleibt die gleiche Medien-Referenz bestehen – alle verknüpften Beiträge und Seiten ziehen also automatisch das neue Bild.',
+            'highlight_path' => $highlightPath,
+            'highlight_active' => $highlightActive,
+        ];
+    }
+
     public function requiresMemberConfirmation(string $path): bool
     {
         $normalizedPath = $this->normalizeRelativePath($path);
@@ -420,6 +520,48 @@ class MediaModule
             ],
             'stored_path' => $storedPath,
             'stored_parent_path' => $storedParentPath,
+        ];
+    }
+
+    /**
+     * Bereits eingebundene Bilddatei durch eine neue Datei ersetzen.
+     */
+    public function replaceItem(string $path): array
+    {
+        $normalizedPath = $this->normalizeRelativePath($path);
+        if ($normalizedPath === '') {
+            return ['success' => false, 'error' => 'Ungültiger Bildpfad.'];
+        }
+
+        $replacementFile = is_array($_FILES['replacement_file'] ?? null) ? $_FILES['replacement_file'] : null;
+        if ($replacementFile === null || (int) ($replacementFile['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+            return ['success' => false, 'error' => 'Bitte eine neue Bilddatei auswählen.'];
+        }
+
+        $result = $this->service->replaceManagedFile($replacementFile, $normalizedPath);
+        if ($result instanceof WP_Error) {
+            return $this->buildGenericFailureFromWpError($result, [
+                'title' => 'Bild konnte nicht ersetzt werden',
+                'source' => '/admin/media?tab=featured',
+                'module' => 'media',
+                'operation' => 'replace_item',
+                'path' => $normalizedPath,
+            ]);
+        }
+
+        $usageItems = $this->usageService->buildFeaturedImageMap()[$normalizedPath] ?? [];
+        $usageCount = count($usageItems);
+
+        return [
+            'success' => true,
+            'message' => 'Bild ersetzt.',
+            'highlight_path' => $normalizedPath,
+            'details' => [
+                'Datei: ' . basename($normalizedPath),
+                $usageCount > 0
+                    ? 'Aktualisiert in ' . $usageCount . ' Beitrags-/Seiten-Verknüpfung' . ($usageCount === 1 ? '' : 'en') . '.'
+                    : 'Die bestehende Medien-Referenz wurde beibehalten.',
+            ],
         ];
     }
 
@@ -1602,6 +1744,61 @@ class MediaModule
         }
 
         return $bytes . ' B';
+    }
+
+    /**
+     * @param list<array<string, mixed>> $usageItems
+     */
+    private function featuredMediaMatchesSearch(string $path, array $usageItems, string $search): bool
+    {
+        $needle = strtolower(trim($search));
+        if ($needle === '') {
+            return true;
+        }
+
+        $haystacks = [
+            strtolower($path),
+            strtolower(basename($path)),
+        ];
+
+        foreach ($usageItems as $usageItem) {
+            $haystacks[] = strtolower((string) ($usageItem['title'] ?? ''));
+            $haystacks[] = strtolower((string) ($usageItem['content_type_label'] ?? ''));
+            $haystacks[] = strtolower((string) ($usageItem['field_label'] ?? ''));
+        }
+
+        foreach ($haystacks as $haystack) {
+            if ($haystack !== '' && str_contains($haystack, $needle)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function normalizeFeaturedUsageScope(string $usageScope): string
+    {
+        $usageScope = strtolower(trim($usageScope));
+
+        return in_array($usageScope, ['all', 'posts', 'pages'], true) ? $usageScope : 'all';
+    }
+
+    /**
+     * @param list<array<string, mixed>> $usageItems
+     * @return list<array<string, mixed>>
+     */
+    private function filterFeaturedUsageItemsByScope(array $usageItems, string $usageScope): array
+    {
+        if ($usageScope === 'all') {
+            return array_values(array_filter($usageItems, static fn (mixed $usageItem): bool => is_array($usageItem)));
+        }
+
+        $targetType = $usageScope === 'posts' ? 'post' : 'page';
+
+        return array_values(array_filter(
+            $usageItems,
+            static fn (mixed $usageItem): bool => is_array($usageItem) && (string) ($usageItem['content_type'] ?? '') === $targetType
+        ));
     }
 
     private function buildGenericFailureFromWpError(WP_Error $error, array $context): array
