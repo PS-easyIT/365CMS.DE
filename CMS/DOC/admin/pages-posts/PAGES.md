@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Verwaltung statischer CMS-Seiten im Admin inklusive getrennter DE/EN-Bearbeitung, SEO-Feldern, Slugs, Redirects, Bulk-Aktionen und Delete-/Preview-Pfaden.
 
-Letzte Aktualisierung: 2026-05-03 · Release 2.9.504
+Letzte Aktualisierung: 2026-05-06 · Release 2.9.613
 
 ---
 
@@ -69,7 +69,7 @@ Bei Slug-Änderungen legt die Seitenverwaltung automatische Redirects an. Seit R
 
 | Integration | Bedeutung |
 |---|---|
-| Medienbibliothek | Auswahl von Featured Images und eingebetteten Medien |
+| Medienbibliothek | Auswahl von Featured Images und eingebetteten Medien; globale Ersetzung verwendeter Seitenbilder unter `/admin/media?tab=featured` |
 | SEO-Center | globale Templates und technisches SEO |
 | Legal Sites | rechtliche Seitenzuordnung |
 | Theme-Routing | Ausgabe über Theme-Templates |

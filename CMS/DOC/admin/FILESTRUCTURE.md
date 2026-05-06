@@ -236,7 +236,7 @@ $csrfToken = Security::instance()->generateToken('my_action');
 👥 Benutzer & Gruppen /admin/users, /admin/groups, /admin/roles, /admin/user-settings
 🧑 Mitglieder         /admin/member-dashboard*
 🎨 Themes & Design    /admin/themes, /admin/theme-editor, /admin/theme-explorer, /admin/theme-marketplace, /admin/font-manager
-🖼 Medien              /admin/media
+🖼 Medien              /admin/media, /admin/media?tab=featured, /admin/media?tab=categories, /admin/media?tab=settings
 💳 Abos               /admin/packages, /admin/orders, /admin/subscription-settings
 🔌 Plugins            /admin/plugins
 🔍 SEO                /admin/seo-dashboard

@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Verwaltung hochgeladener Dateien und Ordner, Kategorien, Medieneinstellungen und kontrollierter Auslieferung über interne Services.
 
-Letzte Aktualisierung: 2026-05-03 · Version 2.9.511
+Letzte Aktualisierung: 2026-05-06 · Version 2.9.613
 
 ---
 
@@ -14,11 +14,12 @@ Die Medienbibliothek verwaltet Bilder, Dokumente und weitere Uploads zentral fü
 
 ## Admin-Routen
 
-Die Medienverwaltung bündelt Bibliothek, Kategorien und Einstellungen unter einer Route mit Query-Tabs:
+Die Medienverwaltung bündelt Bibliothek, Beitrags-/Site-Medien, Kategorien und Einstellungen unter einer Route mit Query-Tabs:
 
 | Route | View | Zweck |
 |---|---|---|
 | `/admin/media` | `views/media/library.php` | Dateibrowser, Upload, Suche, Bulk-Aktionen und Vorschau |
+| `/admin/media?tab=featured` | `views/media/featured.php` | Beitrags- und Seitenbilder finden, filtern und global unter stabiler Referenz ersetzen |
 | `/admin/media?tab=categories` | `views/media/categories.php` | Medien-Kategorien anlegen und pflegen |
 | `/admin/media?tab=settings` | `views/media/settings.php` | Upload-Limits, erlaubte Typen und globale Medienoptionen |
 
@@ -36,6 +37,7 @@ Die Medienverwaltung bündelt Bibliothek, Kategorien und Einstellungen unter ein
 | Bulk-Löschen / Bulk-Verschieben | Mehrfachauswahl im Admin mit vorbereiteten Zielordnern |
 | Vorschaulogik | robuste Dateivorschau und Proxy-/Preview-URLs |
 | Verwaltete Bildverarbeitung | Maximalmaße, Thumbnail-Sätze und optionale WebP-Derivate |
+| Beitrags-/Site-Medien | fokussierte Übersicht der in Beiträgen und Seiten hinterlegten Featured Images mit globalem Replace-in-place |
 
 ---
 
@@ -82,6 +84,7 @@ Die Bibliothek verteilt Verantwortlichkeiten bewusst:
 - `CMS/admin/media.php` normalisiert Actions, Payloads und Redirects
 - `CMS/admin/modules/media/MediaModule.php` bereitet View-Modelle, Constraints, Optionen und Ergebnis-Alerts auf
 - `CMS/core/Services/MediaService.php` bündelt Upload-, Move-, Rename-, Delete- und Settings-Logik
+- `CMS/core/Services/MediaUsageService.php` ermittelt Dateiverwendungen und baut die Karte der als Beitrags-/Seitenbild referenzierten Medien
 - `CMS/core/Services/Media/MediaRepository.php` liefert Items, Metadaten und Schutzlogik
 - `CMS/core/Services/Media/UploadHandler.php` übernimmt Dateisystem-Mutationen inklusive Zielpfad-Organisation und Dateinamen-Regeln für verwaltete Uploads
 - `CMS/core/Services/Media/ImageProcessor.php` erzeugt WebP-Derivate, skaliert Originalbilder auf Maximalmaße und erstellt Thumbnail-Varianten
@@ -108,6 +111,23 @@ Die Medien-Einstellungen unter `/admin/media?tab=settings` wirken für Bibliothe
 | Upload-Authentifizierung | bleibt für den internen Upload-Endpunkt fail-closed auf angemeldete Admin-/Member-Kontexte beschränkt |
 
 Wichtig: Dieser verwaltete Upload-Vertrag gilt bewusst für die Medienbibliothek und den Member-Bereich. Kontextgebundene Spezialpfade wie Theme-Logo- oder Editor.js-Uploads können weiterhin eigene Zielordnerverträge haben.
+
+---
+
+## Beitrags-/Site-Medien und globales Ersetzen
+
+Der Spezialtab `/admin/media?tab=featured` ist für Bilder gedacht, die im Header, in Karten oder auf Übersichtsseiten als Beitrags- oder Seitenbild erscheinen. Er arbeitet deshalb nicht wie ein freier Dateibrowser, sondern nur auf tatsächlich gefundenen `featured_image`-Referenzen aus Beiträgen und Seiten.
+
+Der Replace-Flow ersetzt die Datei am bestehenden verwalteten Medienpfad. Dadurch müssen Beiträge und Seiten nicht massenhaft umgeschrieben werden: Alle Inhalte, die denselben Pfad referenzieren, zeigen nach dem Austausch automatisch die neue Datei.
+
+Absicherungen und UX-Details:
+
+- `replace_item` akzeptiert serverseitig nur Pfade aus der aktuellen Featured-Image-Usage-Map.
+- Uploadvalidierung bleibt im `MediaService`: erlaubte Extension, MIME-/Signaturprüfung, Bilddatenprüfung, Größenlimit und SVG-Block.
+- Die Oberfläche nennt nur die serverseitig unterstützten Bildformate JPG/JPEG, PNG, GIF, WebP, BMP und ICO; `accept` ist dabei nur ein Browser-Hinweis und ersetzt keine Serverprüfung.
+- Drag-&-Drop wird auf genau eine Datei begrenzt; ungültige Drops außerhalb der Zielzone werden abgefangen, damit der Browser keine Datei versehentlich öffnet.
+- Vor dem Speichern wird lokal eine Mini-Vorschau über Objekt-URL bzw. FileReader gezeigt und beim Seitenwechsel wieder freigegeben.
+- Nach erfolgreichem POST springt die Ansicht per Redirect zurück und markiert die ersetzte Bildzeile mit Erfolgshinweis.
 
 ---
 

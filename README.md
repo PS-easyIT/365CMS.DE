@@ -10,13 +10,17 @@
 
 #### 365CMS brings publishing, member features, design, compliance and operational control into one clear system | for teams that want to grow without getting buried under plugins, workarounds and tool chains.
 
+
 ---
+
 
 `Self-hosted ready` · `Members built in` · `Themes built in` · `Plugins extensible` · `SEO integrated` · `GDPR ready`
 
 [🌐 Website](https://365cms.de) • [🚀 Installation](CMS/DOC/INSTALLATION.md) • [📚 Dokumentation](CMS/DOC/INDEX.md) • [🎨 Themes](CMS/DOC/theme/README.md) • [🔌 Plugins](CMS/DOC/plugins/GUIDE.md) 
 
+
 </div>
+
 
 ## 🇩🇪 Deutsch
 

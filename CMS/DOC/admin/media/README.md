@@ -2,9 +2,9 @@
 
 Kurzbeschreibung: Überblick über Medienbibliothek, Upload-Workflows, Schutzbereiche, Admin-Tabs und verknüpfte Member-/Asset-Dokumentation.
 
-Letzte Aktualisierung: 2026-05-03 · Version 2.9.511
+Letzte Aktualisierung: 2026-05-06 · Version 2.9.613
 
-Die Medienverwaltung ist unter `/admin/media` erreichbar und bündelt Bibliothek, Kategorien und Einstellungen über Query-Tabs statt über getrennte Legacy-Routen.
+Die Medienverwaltung ist unter `/admin/media` erreichbar und bündelt Bibliothek, Beitrags-/Site-Medien, Kategorien und Einstellungen über Query-Tabs statt über getrennte Legacy-Routen.
 
 ---
 
@@ -13,12 +13,13 @@ Die Medienverwaltung ist unter `/admin/media` erreichbar und bündelt Bibliothek
 | Route | Zweck |
 |---|---|
 | `/admin/media` | Bibliothek mit Listen-/Grid-Ansicht, Upload, Suche, Rename/Move/Delete |
+| `/admin/media?tab=featured` | fokussierte Übersicht aller als Beitrags- oder Seitenbild verwendeten Medien mit Ersetzen-Workflow |
 | `/admin/media?tab=categories` | Medien-Kategorien anlegen und pflegen |
 | `/admin/media?tab=settings` | Upload-Limits, erlaubte Typen und globale Medienoptionen |
 
 ---
 
-## Kernfunktionen in 2.9.511
+## Kernfunktionen in 2.9.613
 
 - Listen- **und** Grid-Ansicht
 - Such- und Kategorien-Filter
@@ -32,6 +33,7 @@ Die Medienverwaltung ist unter `/admin/media` erreichbar und bündelt Bibliothek
 - verwaltete Upload-Pipeline für Bibliothek und Member-Bereich mit Maximalmaßen, optionalen Thumbnails und Auto-WebP
 - Rücksprung in den **tatsächlich verwendeten** Zielordner, wenn Uploads automatisch in Jahres-/Monats-Unterordner einsortiert werden
 - strengere Dateinamens-Härtung mit Längenlimit und ohne irreführende Mehrfach-Punkte im Basenamen
+- Unterpunkt **Beitrags & Site Medien** für Featured Images aus Beiträgen und Seiten inklusive Suche, Filter nach Beiträgen/Seiten, Drag-&-Drop-Ersetzen, lokaler Mini-Vorschau und Erfolgshinweis pro Bild
 
 ---
 
@@ -61,6 +63,26 @@ Für die Medienbibliothek und den Member-Bereich gilt jetzt ein gemeinsamer verw
 - `generate_thumbnails` erzeugt zusätzliche Varianten mit den Suffixen `-small`, `-medium`, `-large` und `-banner`
 - `auto_webp` erzeugt für konvertierbare Bildformate weiterhin ein zusätzliches WebP-Derivat, ohne das Original zu ersetzen
 - der interne Upload-Endpunkt bleibt bewusst authentifiziert; ein anonymer Public-Upload-Modus gehört nicht zum aktuellen Medien-Vertrag
+
+---
+
+## Beitrags & Site Medien
+
+Der Unterpunkt `/admin/media?tab=featured` zeigt ausschließlich Medienpfade, die aktuell als `featured_image` in Beiträgen oder Seiten referenziert sind. Die Ansicht ist bewusst enger als die allgemeine Bibliothek:
+
+- Suchfeld für Dateiname, Pfad, Inhaltstitel und Inhaltstyp
+- Filter auf **alle**, **nur Beiträge** oder **nur Seiten**
+- Verwendungsnachweis mit Direktlinks in die jeweilige Bearbeitung
+- globales Ersetzen unter derselben Medienreferenz, sodass alle verknüpften Beiträge und Seiten automatisch die neue Datei anzeigen
+- Drag-&-Drop oder klassische Dateiauswahl mit lokaler Mini-Vorschau vor dem Speichern
+- PRG-Redirect mit Erfolgshinweis an der ersetzten Bildzeile
+
+Sicherheitsvertrag:
+
+- Replace-POSTs werden serverseitig nur für Pfade akzeptiert, die in der aktuellen Beitrags-/Seitenbild-Karte vorkommen.
+- Die Client-Auswahl erlaubt nur die vom Backend unterstützten Bildendungen JPG/JPEG, PNG, GIF, WebP, BMP und ICO.
+- Der Browser-MIME-Typ ist nur ein UX-Signal; die verbindliche Prüfung erfolgt weiterhin serverseitig über Extension-Allowlist, MIME-/Signaturprüfung, Größenlimit, Bildvalidierung sowie den blockierten SVG-Typ.
+- Ersatzdateien überschreiben die bestehende verwaltete Datei mit Backup-/Restore-Pfad, damit die Referenz in Beiträgen und Seiten stabil bleibt.
 
 Typische Stellschrauben:
 

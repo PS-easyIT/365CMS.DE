@@ -37,7 +37,7 @@ Wichtige Grundsätze:
 |---|---|---|
 | Dashboard | `/admin` | Gesamtüberblick, KPIs, Schnellzugriffe |
 | Seiten & Beiträge | `/admin/pages`, `/admin/posts`, `/admin/comments`, `/admin/table-of-contents`, `/admin/site-tables` | Content-Management |
-| Medienverwaltung | `/admin/media`, `/admin/media?tab=categories`, `/admin/media?tab=settings` | Bibliothek, Kategorien, Medieneinstellungen |
+| Medienverwaltung | `/admin/media`, `/admin/media?tab=featured`, `/admin/media?tab=categories`, `/admin/media?tab=settings` | Bibliothek, Beitrags-/Site-Medien, Kategorien, Medieneinstellungen |
 | Benutzer & Gruppen | `/admin/users`, `/admin/groups`, `/admin/roles`, `/admin/user-settings` | Benutzer, Teams, Rechte und Auth-Einstellungen |
 | Member Dashboard | `/admin/member-dashboard` und Folgeseiten | Konfiguration des Mitgliederbereichs |
 | Aboverwaltung | `/admin/packages`, `/admin/orders`, `/admin/subscription-settings` | Pakete, Bestellungen, Zuweisungen |
@@ -95,7 +95,7 @@ Einige ältere Einstiege tauchen noch in Alt-Dokumentation oder Redirects auf. D
 - nicht mehr `backup.php`, sondern `/admin/backups`
 - nicht mehr `cookies.php`, sondern `/admin/cookie-manager`
 - nicht mehr `system-info.php` als Zielseite; die Legacy-Route leitet auf `/admin/info` um
-- nicht mehr eigene Medien-Unterseiten wie `media-categories.php` oder `media-settings.php`, sondern Query-Tabs unter `/admin/media?tab=...`
+- nicht mehr eigene Medien-Unterseiten wie `media-categories.php` oder `media-settings.php`, sondern Query-Tabs unter `/admin/media?tab=...` inklusive `/admin/media?tab=featured` für Beitrags-/Site-Medien
 
 ---
 

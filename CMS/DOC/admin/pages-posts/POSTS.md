@@ -138,7 +138,7 @@ Diese Nachschärfung folgt zwei UX-/A11y-Grundsätzen: Kommentare müssen sichtb
 | SEO-Center | Meta-Daten, Vorschauen, strukturierte Daten und Analysen |
 | Redirect-Manager | URL-Stabilität bei Slug-Änderungen |
 | Sitemap / SEO-Services | Veröffentlichte Beiträge fließen in Sichtbarkeits- und Indexierungsprozesse ein |
-| Medienverwaltung | Featured Image und Inhaltsmedien |
+| Medienverwaltung | Featured Image und Inhaltsmedien; globale Ersetzung verwendeter Beitragsbilder unter `/admin/media?tab=featured` |
 
 ---
 
