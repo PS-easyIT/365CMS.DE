@@ -1,4 +1,4 @@
-﻿﻿**Version:** 2.9.611
+﻿﻿**Version:** 2.9.612
 
 # 365CMS Changelog
 
@@ -20,11 +20,22 @@
 
 ---
 
+### v2.9.612 — 6. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.612** | 🔴 fix | Admin/Sites, Beiträge & Medien – Best-Practice-Nachprüfung | **`CMS/admin/modules/media/MediaModule.php`, `CMS/admin/views/media/featured.php`, `CMS/assets/js/admin-media-integrations.js`, `CMS/admin/pages.php`, `CMS/admin/posts.php`, `CMS/admin/modules/pages/PagesModule.php` und `CMS/admin/modules/posts/PostsModule.php` wurden gezielt gegen OWASP-/MDN-Best-Practices für Uploads, PRG und Datei-Vorschauen geprüft**: Der neue Bereich `Medien → Beitrags & Site Medien` akzeptiert Replace-POSTs jetzt nur noch für Pfade, die tatsächlich als Beitrags- oder Seitenbild referenziert sind, statt beliebige gültige Medienpfade über den Spezial-Endpunkt zuzulassen; gleichzeitig nennen Dropzone und Dateiauswahl nur noch die serverseitig erlaubten Bildformate JPG, PNG, GIF, WebP, BMP und ICO, damit Client-Hinweis und Backend-Validierung nicht mehr durch geblockte Formate wie SVG oder AVIF auseinanderlaufen. |
+
 ### v2.9.611 — 6. Mai 2026
 
 | Version | Typ | Bereich | Beschreibung |
 |---------|-----|---------|-------------|
 | **2.9.611** | 🔴 fix | Admin/Medien – Featured Images Nachschärfung | **`CMS/admin/media.php`, `CMS/admin/modules/media/MediaModule.php`, `CMS/admin/views/media/featured.php` und `CMS/assets/js/admin-media-integrations.js` härten den neuen Bereich `Medien → Beitrags & Site Medien` nach dem Erstrelease gezielt für den Redaktionsalltag nach**: Die Ansicht filtert Verwendungen jetzt zusätzlich sauber auf nur Beiträge oder nur Seiten, erfolgreiche Bild-Ersetzungen markieren nach dem PRG-Redirect wieder exakt die betroffene Referenzzeile mit lokalem Erfolgshinweis, die Ersetzen-Zone unterstützt Drag-&-Drop robuster gegen Fehlbedienung und Browser-Navigation außerhalb der Zielzone, und vor dem Speichern erscheint pro Bild eine lokale Mini-Vorschau der neu gewählten Datei inklusive Dateiinformationen. |
+
+### v2.9.610 — 6. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
 | **2.9.610** | 🟢 feat | Admin/Medien – Beitrags- & Site Medien | **`CMS/admin/media.php`, `CMS/admin/modules/media/MediaModule.php`, `CMS/core/Services/MediaUsageService.php`, `CMS/core/Services/MediaService.php`, `CMS/admin/views/media/featured.php` und `CMS/admin/partials/sidebar.php` führen den neuen Unterpunkt `Medien → Beitrags & Site Medien` ein**: Der Admin erhält damit erstmals eine fokussierte Übersicht aller aktuell als Beitrags- oder Seitenbild verwendeten Medien inklusive Verwendungsnachweis pro Referenz, Direktlinks in die zugehörige Bearbeitung sowie der Möglichkeit, eine bestehende Bilddatei unter derselben Medien-Referenz global zu ersetzen, sodass alle verknüpften Beiträge und Seiten automatisch das neue Bild übernehmen. |
 
 ### v2.9.609 — 3. Mai 2026

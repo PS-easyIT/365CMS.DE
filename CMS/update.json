@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.9.611",
+  "version": "2.9.612",
   "min_php": "8.4",
   "released": "2026-05-06",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 2.9.611: Der neue Medien-Unterpunkt für Beitrags- und Seitenbilder wurde nach dem Erstrelease UX- und Fehler-seitig nachgeschärft – mit Scope-Filtern für Beiträge/Seiten, sauberem Highlight nach erfolgreichem Replace, lokaler Mini-Vorschau vor dem Speichern und robusterem Drag-&-Drop-Verhalten.",
+  "notes": "Release-Stand 2.9.612: Die Best-Practice-Nachprüfung für Site-, Beitrags- und Medienbereich härtet den neuen Beitrags-/Site-Medien-Replace-Flow weiter ab – Ersetzen ist nun serverseitig auf tatsächlich registrierte Beitrags-/Seitenbild-Referenzen begrenzt und die Dateiauswahl nennt nur die vom Server akzeptierten Bildformate.",
   "critical": false
 }

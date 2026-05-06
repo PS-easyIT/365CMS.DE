@@ -1,6 +1,6 @@
 # 365CMS.DE
 
-**Version:** [2.9.609](Changelog.md) · **Status:** Stable · **PHP:** 8.4+ · **MySQL:** 5.7+ · **MariaDB:** 10.3+
+**Version:** [2.9.612](Changelog.md) · **Status:** Stable · **PHP:** 8.4+ · **MySQL:** 5.7+ · **MariaDB:** 10.3+
 
 <div align="center">
 
@@ -15,8 +15,6 @@
 `Self-hosted ready` · `Members built in` · `Themes built in` · `Plugins extensible` · `SEO integrated` · `GDPR ready`
 
 [🌐 Website](https://365cms.de) • [🚀 Installation](CMS/DOC/INSTALLATION.md) • [📚 Dokumentation](CMS/DOC/INDEX.md) • [🎨 Themes](CMS/DOC/theme/README.md) • [🔌 Plugins](CMS/DOC/plugins/GUIDE.md) 
-
----
 
 </div>
 
@@ -92,7 +90,7 @@ Die folgenden Bereiche zeigen, wie breit 365CMS bereits ohne Plugin-Zwang aufges
 |---|---|---|
 | **Content & Publishing** | Seiten, Beiträge, Landing-Pages, Kategorien, Tags, Revisionen, Featured Images, Inhaltsstruktur und TOC | Macht aus einfacher Seitenpflege einen belastbaren Redaktions-Workflow mit Struktur, Übersicht und Wachstumsspielraum |
 | **Tabellen & Datenübersichten** | Site Tables mit Stil-Presets, sicher sanitierter Inline-HTML-Formatierung, Exporten und festen Zeilen aus ausgewählten Seiten/Beiträgen oder einem Kategorie-Filter | Macht wiederverwendbare Tabellen im Public-Bereich möglich, ohne freie Eingaben unkontrolliert ins Frontend zu übernehmen |
-| **Medienverwaltung** | Uploads, Ordner, Kategorien, Bild-/Dateiverwaltung, Grid-/Listenansicht, WebP-Workflows | Verhindert Medien-Chaos und hält Assets auch bei wachsenden Projekten schnell nutzbar |
+| **Medienverwaltung** | Uploads, Ordner, Kategorien, Bild-/Dateiverwaltung, Beitrags-/Site-Medien, Grid-/Listenansicht, WebP-Workflows | Verhindert Medien-Chaos und hält Assets auch bei wachsenden Projekten schnell nutzbar – inklusive gezieltem Ersetzen von Beitrags- und Seitenbildern |
 | **Mitgliederbereich** | Member-Dashboard, Profile, Favoriten, Benachrichtigungen, Nachrichten, Datenschutz, Medienbereich | Liefert die Basis für geschützte Bereiche, Community-Features und kundennahe Plattformlogik |
 | **Business & Abos** | Pakete, Bestellungen, Abonnements, Limits, Gruppen und zugehörige Prozesse | Bringt Geschäftslogik näher ans CMS, statt sie komplett außerhalb des Systems zu parken |
 | **Suche & Auffindbarkeit** | Volltextsuche, Indexierung zentraler Inhalte, Suchfelder und Inhaltserschließung | Hilft Nutzern und Teams, relevante Inhalte auch in großen Beständen schnell zu finden |
@@ -115,7 +113,7 @@ Die folgenden Bereiche zeigen, wie breit 365CMS bereits ohne Plugin-Zwang aufges
 |---|---|---|
 | **Neue Inhalte veröffentlichen** | Seiten, Beiträge, Kategorien, Tags, Featured Images, SEO-Meta, Social-Daten | Inhalte gehen nicht nur live, sondern sind strukturiert, auffindbar und direkt suchmaschinenfähig aufbereitet |
 | **Landing-Pages für Kampagnen bauen** | Landing-Page-Editor, Menü-Editor, Theme-System, Medienbibliothek | Kampagnen und Sonderseiten lassen sich ohne externen Baukasten schnell umsetzen |
-| **Medien für Redaktion und Mitglieder verwalten** | Zentrale Medienverwaltung, Kategorien, Ordner, Member-Medienbereiche | Dateien bleiben sauber sortiert und nutzbar – sowohl intern als auch in geschützten Bereichen |
+| **Medien für Redaktion und Mitglieder verwalten** | Zentrale Medienverwaltung, Beitrags-/Site-Medien, Kategorien, Ordner, Member-Medienbereiche | Dateien bleiben sauber sortiert, verwendungsbezogen auffindbar und nutzbar – sowohl intern als auch in geschützten Bereichen |
 | **Mitgliederzugänge absichern** | Rollen, Capabilities, Passkeys, 2FA, LDAP, Passwort-Reset, Session-Management | Sichere Logins und kontrollierte Zugriffe für Teams, Kunden oder Community-Mitglieder |
 | **Sichtbarkeit in Suchmaschinen verbessern** | Sitemap, Redirects, Schema, IndexNow, Robots, 404-Monitor | Bessere technische SEO-Basis und weniger blinde Flecken im Suchmaschinenbetrieb |
 | **Abos und Zugriffsmodelle steuern** | Pakete, Bestellungen, Gruppen, Limits, Mitgliederfunktionen | Funktions- und Inhaltszugriffe lassen sich an Business-Logiken koppeln |
@@ -132,7 +130,7 @@ Der Admin-Bereich ist so aufgebaut, dass inhaltliche, technische und betrieblich
 |---|---|---|
 | **Dashboard** | KPIs, Schnellzugriffe und zentrale Einstiegspunkte | Überblick gewinnen, häufige Aufgaben anstoßen, Status prüfen |
 | **Seiten & Beiträge** | Content-Struktur, redaktionelle Inhalte, Kommentare und Inhaltsbausteine | Inhalte erstellen, strukturieren, pflegen und veröffentlichen |
-| **Medien** | Bibliothek, Kategorien, Einstellungen und Dateimanagement | Uploads verwalten, Dateien organisieren, Medien für Inhalte vorbereiten |
+| **Medien** | Bibliothek, Beitrags & Site Medien, Kategorien, Einstellungen und Dateimanagement | Uploads verwalten, Dateien organisieren, Beitrags-/Seitenbilder gezielt ersetzen und Medien für Inhalte vorbereiten |
 | **Benutzer & Gruppen** | Benutzerkonten, Teams, Rollen, Rechte und Auth-Einstellungen | Zugriffe definieren, Benutzer pflegen, Sicherheitsoptionen steuern |
 | **Mitgliederbereich** | Member-Dashboard-Konfiguration und usernahe Funktionen | Benutzererlebnis für Mitglieder gestalten und absichern |
 | **Aboverwaltung** | Pakete, Bestellungen, Limits, Zuweisungen und abonnahes Business-Handling | Pakete verwalten, Zugriffe staffeln, Bestell- und Paketlogik steuern |
@@ -295,7 +293,7 @@ The following areas show how much 365CMS already covers out of the box before an
 |---|---|---|
 | **Content & Publishing** | Pages, posts, landing pages, categories, tags, revisions, featured images, content structure and TOC | Turns basic page editing into a durable editorial workflow with structure, clarity and room to grow |
 | **Tables & Data Views** | Site Tables with style presets, safely sanitized inline HTML formatting, exports and fixed rows from selected pages/posts or a category filter | Enables reusable public data tables without letting uncontrolled free-form input leak into the frontend |
-| **Media Management** | Uploads, folders, categories, image/file management, grid/list views and WebP workflows | Prevents media chaos and keeps assets ready for use even as the project scales |
+| **Media Management** | Uploads, folders, categories, image/file management, post/site media, grid/list views and WebP workflows | Prevents media chaos and keeps assets ready for use even as the project scales, including targeted replacement of post and page images |
 | **Member Area** | Member dashboard, profiles, favorites, notifications, messages, privacy settings and media areas | Provides the foundation for protected areas, community features and customer-facing platform logic |
 | **Business & Subscriptions** | Packages, orders, subscriptions, limits, groups and related business processes | Brings business logic closer to the CMS instead of pushing it entirely into external tooling |
 | **Search & Discovery** | Full-text search, indexing of key content, search fields and content discovery flows | Helps both visitors and internal teams reach the right content quickly |
@@ -318,7 +316,7 @@ The following areas show how much 365CMS already covers out of the box before an
 |---|---|---|
 | **Publish new content** | Pages, posts, categories, tags, featured images, SEO meta data and social data | Content is not just published, but structured, discoverable and ready for search visibility |
 | **Build landing pages for campaigns** | Landing page editor, menu editor, theme system and media library | Campaign and conversion pages can be created quickly without an external page builder |
-| **Manage media for editors and members** | Central media management, categories, folders and member media areas | Files stay organized and reusable across editorial and protected areas |
+| **Manage media for editors and members** | Central media management, post/site media, categories, folders and member media areas | Files stay organized, traceable by usage and reusable across editorial and protected areas |
 | **Secure account access** | Roles, capabilities, passkeys, 2FA, LDAP, password reset and session management | Teams, customers and members get safer and more controlled login flows |
 | **Improve search visibility** | Sitemap, redirects, schema, IndexNow, robots and 404 monitoring | Technical SEO hygiene improves and visibility issues are easier to spot |
 | **Manage subscriptions and access logic** | Packages, orders, groups, limits and member features | Access to features and content can follow real business rules |
@@ -335,7 +333,7 @@ The admin area is structured so editorial, technical and operational work does n
 |---|---|---|
 | **Dashboard** | KPIs, shortcuts and central entry points | Get an overview, start common tasks and review status quickly |
 | **Pages & Posts** | Content structure, editorial content, comments and supporting content blocks | Create, edit, organize and publish content |
-| **Media** | Library, categories, settings and file management | Upload files, manage media collections and prepare assets for content |
+| **Media** | Library, Post & Site Media, categories, settings and file management | Upload files, manage media collections, replace post/page images in place and prepare assets for content |
 | **Users & Groups** | Accounts, teams, roles, permissions and authentication settings | Define access, maintain users and control security-related settings |
 | **Member Area** | Member dashboard configuration and user-facing functions | Shape the member experience and manage protected features |
 | **Subscriptions** | Packages, orders, limits, assignments and subscription-related business handling | Configure plans, manage access logic and support paid feature models |

@@ -1037,17 +1037,19 @@
 
         function isImageFile(file) {
             var name;
+            var type;
 
             if (!file) {
                 return false;
             }
 
-            if (/^image\//i.test(String(file.type || ''))) {
+            type = String(file.type || '').toLowerCase();
+            if (/^image\/(?:bmp|gif|jpeg|png|webp|x-icon|vnd\.microsoft\.icon)$/i.test(type)) {
                 return true;
             }
 
             name = String(file.name || '');
-            return /\.(?:avif|bmp|gif|ico|jpe?g|png|svg|webp)$/i.test(name);
+            return /\.(?:bmp|gif|ico|jpe?g|png|webp)$/i.test(name);
         }
 
         function formatFileSize(size) {
@@ -1284,7 +1286,8 @@
 
                     if (event.dataTransfer) {
                         event.dataTransfer.dropEffect = fileItems.length === 1 && fileItems.every(function (item) {
-                            return /^image\//i.test(String(item.type || ''));
+                            var itemType = String(item.type || '').toLowerCase();
+                            return itemType === '' || /^(image\/(?:bmp|gif|jpeg|png|webp|x-icon|vnd\.microsoft\.icon))$/i.test(itemType);
                         }) ? 'copy' : 'none';
                     }
 

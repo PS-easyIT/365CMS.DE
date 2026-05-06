@@ -533,6 +533,11 @@ class MediaModule
             return ['success' => false, 'error' => 'Ungültiger Bildpfad.'];
         }
 
+        $featuredUsageMap = $this->usageService->buildFeaturedImageMap();
+        if (!array_key_exists($normalizedPath, $featuredUsageMap)) {
+            return ['success' => false, 'error' => 'Dieses Bild ist aktuell nicht als Beitrags- oder Seitenbild registriert. Bitte die Medienansicht neu laden.'];
+        }
+
         $replacementFile = is_array($_FILES['replacement_file'] ?? null) ? $_FILES['replacement_file'] : null;
         if ($replacementFile === null || (int) ($replacementFile['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
             return ['success' => false, 'error' => 'Bitte eine neue Bilddatei auswählen.'];
@@ -549,7 +554,7 @@ class MediaModule
             ]);
         }
 
-        $usageItems = $this->usageService->buildFeaturedImageMap()[$normalizedPath] ?? [];
+        $usageItems = $featuredUsageMap[$normalizedPath] ?? [];
         $usageCount = count($usageItems);
 
         return [

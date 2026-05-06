@@ -229,7 +229,7 @@ if (!function_exists('cms_admin_media_render_featured_usage_list')) {
                                                 <div class="card card-sm border-0 bg-body-tertiary" data-featured-dropzone="1" role="button" tabindex="0" aria-controls="<?php echo htmlspecialchars($fieldId, ENT_QUOTES); ?>">
                                                     <div class="card-body py-3">
                                                         <div class="fw-medium">Bild hier ablegen oder per Klick auswählen</div>
-                                                        <div class="text-secondary small mt-1">Ziehen Sie genau ein Bild direkt auf diese Karte. Danach können Sie es sofort ersetzen.</div>
+                                                        <div class="text-secondary small mt-1">Ziehen Sie genau ein JPG, PNG, GIF, WebP, BMP oder ICO direkt auf diese Karte. Danach können Sie es sofort ersetzen.</div>
                                                         <div class="small text-success mt-2" data-featured-selected-file data-default-message="<?php echo htmlspecialchars($defaultSelectedFileMessage, ENT_QUOTES); ?>" aria-live="polite"><?php echo htmlspecialchars($defaultSelectedFileMessage); ?></div>
                                                         <div class="mt-3" data-featured-local-preview hidden>
                                                             <div class="d-flex align-items-center gap-3">
@@ -254,7 +254,7 @@ if (!function_exists('cms_admin_media_render_featured_usage_list')) {
                                                     name="replacement_file"
                                                     id="<?php echo htmlspecialchars($fieldId, ENT_QUOTES); ?>"
                                                     class="form-control form-control-sm"
-                                                    accept="image/*"
+                                                    accept=".jpg,.jpeg,.png,.gif,.webp,.bmp,.ico,image/jpeg,image/png,image/gif,image/webp,image/bmp,image/x-icon,image/vnd.microsoft.icon"
                                                     required>
 
                                                 <div class="d-flex flex-wrap gap-2 align-items-center">
