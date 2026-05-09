@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Beschreibt die aktuelle Startseite des Admin-Bereichs inklusive Kennzahlen, Schnellzugriffen, Warnhinweisen und segmentweisem Fail-Soft-Verhalten.
 
-Letzte Aktualisierung: 2026-05-09 · Version 2.9.701
+Letzte Aktualisierung: 2026-05-09 · Version 2.9.705
 
 ---
 
@@ -15,6 +15,8 @@ Letzte Aktualisierung: 2026-05-09 · Version 2.9.701
 Das Admin-Dashboard ist die zentrale Einstiegsseite für Redakteure und Administratoren. Es zeigt einen kuratierten Überblick über Systemzustand, Inhalte, Aktivität und – falls aktiv – Bestellungen. Seit `2.9.701` können Admins optionale Blöcke pro Benutzer ein- oder ausblenden; kritische Alerts und die zentrale Arbeitsübersicht bleiben dabei bewusst sichtbar.
 
 Seit `2.9.615` wird jeder Statistikblock einzeln geladen. Fällt z. B. die Sicherheits-, Sessions- oder Orders-Datenquelle aus, bleibt die Startseite renderbar und arbeitet für den betroffenen Block mit neutralen Fallback-Werten statt mit einem Full-Page-Fatal.
+
+Seit `2.9.705` ist der Speichern-Flow der Dashboard-Personalisierung zusätzlich gegen stale Tabs und parallel geöffnete Admin-Formulare gehärtet: Mehrere Tokens pro CSRF-Action bleiben innerhalb des TTL-Fensters gültig, der konkret verwendete Token wird danach weiterhin invalidiert.
 
 ---
 
@@ -86,6 +88,8 @@ Der Speichern-Flow:
 3. Allowlist-Normalisierung der gewählten Bereiche
 4. Persistenz in `settings`
 5. Audit-Eintrag `dashboard.preferences.save`
+
+Die CSRF-Prüfung bleibt ein One-Time-Token-Vertrag pro tatsächlich eingereichtem Token, akzeptiert aber seit `2.9.705` eine begrenzte Token-Historie pro Action, damit ältere noch gültige Admin-Formulare nicht fälschlich scheitern.
 
 Ausblendbar sind optionale Bereiche wie Aufmerksamkeit, Systemstatus, Sicherheit & Performance, Bestellungen und letzte Aktivitäten. Nicht ausblendbar sind kritische Alerts sowie die zentrale Arbeitsübersicht.
 

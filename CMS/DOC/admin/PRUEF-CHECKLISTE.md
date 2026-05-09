@@ -166,6 +166,19 @@ Die Sidebar in `CMS/admin/partials/sidebar.php` ist für die Menüstruktur führ
 - **Offene Nice-to-haves:** Drag-&-Drop-Sortierung, rollenbasierte Dashboard-Vorlagen, gespeicherte Favoriten/Zuletzt genutzt
 - **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/dashboard/README.md`, `CMS/DOC/admin/dashboard/DASHBOARD.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`
 
+### Audit-Stand – Dashboard Nachprüfung CSRF · Durchlauf 2
+
+- **Status:** abgeschlossen auf Code-/Best-Practice-/Vertragsbasis · Release `2.9.705`
+- **Prüfer:** GitHub Copilot
+- **Datum:** 2026-05-09
+- **Geprüfte Route:** `/admin`
+- **Reproduziertes Fehlerbild:** Beim Speichern von „Dashboard personalisieren“ konnten Admins mit länger geöffneten oder parallel gerenderten Formularen in eine CSRF-Fehlermeldung laufen, obwohl der Formularvertrag grundsätzlich korrekt war.
+- **Umsetzung in diesem Durchlauf:** `CMS\Security` speichert pro CSRF-Action jetzt eine begrenzte Token-Historie innerhalb des TTL-Fensters. Erfolgreich verwendete Tokens werden weiterhin invalidiert, aber andere parallel gültige Formular-Tokens bleiben nutzbar. Dadurch wird der Admin-PRG-Flow robuster gegen Mehrtab-/Back-Button-Szenarien, ohne CSRF-Schutz oder One-Time-Verbrauch aufzugeben.
+- **Abhängige Bereiche:** `Security`, `section-page-shell.php`, Dashboard-Personalisierung, alle Admin-Formulare mit `generateToken()`/`verifyToken()`
+- **Offene Must-haves:** keine
+- **Offene Nice-to-haves:** keine aus diesem Fix-Durchlauf
+- **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/dashboard/README.md`, `CMS/DOC/admin/dashboard/DASHBOARD.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`
+
 ---
 
 ## 2. AI Services
@@ -245,6 +258,19 @@ Die Sidebar in `CMS/admin/partials/sidebar.php` ist für die Menüstruktur führ
 - **Offene Must-haves:** keine
 - **Offene Nice-to-haves:** exakte providerübergreifende Token-/Kostenintegration bei künftig konsistenten Usage-Rückgaben
 - **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/system-settings/AI-SERVICES.md`, `CMS/DOC/admin/system-settings/README.md`, `CMS/DOC/ai/AI-SERVICES.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`
+
+### Audit-Stand – AI Services Nachprüfung Runtime · Durchlauf 3
+
+- **Status:** abgeschlossen auf Code-/Best-Practice-/Vertragsbasis · Release `2.9.705`
+- **Prüfer:** GitHub Copilot
+- **Datum:** 2026-05-09
+- **Geprüfte Routen:** `/admin/ai-services`, `/admin/ai-translation`, `/admin/ai-content-creator`, `/admin/ai-seo-creator`, `/admin/ai-settings`
+- **Reproduziertes Fehlerbild:** Alle AI-Service-Seiten konnten als generischer Serverfehler enden, weil `AiServicesModule` bei der Initialisierung `Database::getInstance()` statt der vorhandenen Core-API `Database::instance()` aufrief.
+- **Umsetzung in diesem Durchlauf:** Das Modul nutzt die korrekte Datenbank-Singleton-API. Zusätzlich bleibt die AI-UI bei Initialisierungsfehlern fail-soft renderbar: Konfigurationsdaten fallen auf sichere Defaults zurück, Schreibaktionen liefern admin-taugliche Fehlermeldungen, und technische Details werden datensparsam im `admin.ai-services`-Logkanal protokolliert statt an die UI geleakt.
+- **Abhängige Bereiche:** `AiServicesModule`, `AiSettingsService`, `Database`, `Logger`, `section-page-shell.php`
+- **Offene Must-haves:** keine
+- **Offene Nice-to-haves:** exakte providerübergreifende Token-/Kostenintegration bei künftig konsistenten Usage-Rückgaben
+- **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/system-settings/AI-SERVICES.md`, `CMS/DOC/ai/AI-SERVICES.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`
 
 ---
 

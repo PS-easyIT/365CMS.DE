@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.9.704",
+  "version": "2.9.705",
   "min_php": "8.4",
   "released": "2026-05-09",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 2.9.704: Die Kommentarmoderation unter /admin/comments ergänzt serverseitige Schnellfilter für Suche, Autorentyp und Beitragsbezug; aktive Filter bleiben über PRG-Redirects erhalten, und der sichtbare Batch-Modus schaltet parallele Zeilenaktionen bei Mehrfachauswahl bewusst ab.",
+  "notes": "Release-Stand 2.9.705: AI Services nutzen wieder den korrekten Database-Singleton und fallen bei Initialisierungsproblemen fail-soft statt mit Full-Page-Fatal zurück; Admin-CSRF-Tokens unterstützen mehrere parallel geöffnete/stale Formulare innerhalb des TTL-Fensters, bleiben aber nach erfolgreicher Nutzung weiterhin One-Time-Tokens.",
   "critical": false
 }

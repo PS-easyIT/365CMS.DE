@@ -1,5 +1,5 @@
 # 365CMS – Admin-Bereich
-> **Stand:** 2026-05-09 | **Version:** 2.9.704 | **Status:** Aktuell
+> **Stand:** 2026-05-09 | **Version:** 2.9.705 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Überblick](#überblick)
@@ -10,7 +10,7 @@
 
 Die Struktur folgt der aktuellen Sidebar-Konfiguration aus `CMS/admin/partials/sidebar.php`. Öffentliche Admin-Routen werden in der Dokumentation bewusst ohne `.php` beschrieben.
 
-Für Detailfragen gilt die reale Sidebar- und Routing-Laufzeit als führend; diese Datei ist die verdichtete 2.9.704-Übersicht, nicht der einzige Wahrheitsspeicher.
+Für Detailfragen gilt die reale Sidebar- und Routing-Laufzeit als führend; diese Datei ist die verdichtete 2.9.705-Übersicht, nicht der einzige Wahrheitsspeicher.
 
 ---
 <!-- UPDATED: 2026-05-09 -->
@@ -25,7 +25,7 @@ Wichtige Grundsätze:
 - Menüpunkte werden gruppiert in der Sidebar definiert
 - Fachlogik liegt überwiegend in `admin/modules/`
 - Views liegen unter `admin/views/`
-- Views und Actions hängen an kleinen Request-/CSRF-Verträgen
+- Views und Actions hängen an kleinen Request-/CSRF-Verträgen; Admin-Formulare tolerieren mehrere parallel geöffnete Tokens pro Action innerhalb des TTL-Fensters, invalidieren den verwendeten Token aber weiterhin nach erfolgreichem POST
 - Redirects folgen möglichst dem PRG-Muster (Post/Redirect/Get)
 - Legacy-Einstiege werden nur noch dokumentiert, wenn sie aktiv umleiten oder Rücksicht auf Altbestände erfordern
 
@@ -35,8 +35,8 @@ Wichtige Grundsätze:
 
 | Menügruppe | Wichtige Routen | Zweck |
 |---|---|---|
-| Dashboard | `/admin` | Gesamtüberblick, KPIs, Schnellzugriffe, fail-softe Statusblöcke und benutzerbezogene Sichtbarkeitsprofile |
-| AI Services | `/admin/ai-services`, `/admin/ai-translation`, `/admin/ai-content-creator`, `/admin/ai-seo-creator`, `/admin/ai-settings` | Provider, Translation-Regeln, Prompt-Vorlagen, Logging, Quotas und request-/historiennahe AI-Beobachtung |
+| Dashboard | `/admin` | Gesamtüberblick, KPIs, Schnellzugriffe, fail-softe Statusblöcke und benutzerbezogene Sichtbarkeitsprofile mit mehrtab-tolerantem CSRF-Speichern |
+| AI Services | `/admin/ai-services`, `/admin/ai-translation`, `/admin/ai-content-creator`, `/admin/ai-seo-creator`, `/admin/ai-settings` | Provider, Translation-Regeln, Prompt-Vorlagen, Logging, Quotas und request-/historiennahe AI-Beobachtung mit fail-softem Initialisierungspfad |
 | Seiten & Beiträge | `/admin/pages`, `/admin/posts`, `/admin/comments`, `/admin/table-of-contents`, `/admin/site-tables` | Content-Management mit stabilem Slug-/Taxonomie-Vertrag für Seiten, Beiträge, Blog-Filter und eine kommentarseitige Moderationsliste mit Schnellfiltern |
 | Medienverwaltung | `/admin/media`, `/admin/media?tab=featured`, `/admin/media?tab=categories`, `/admin/media?tab=settings` | Bibliothek, Beitrags-/Site-Medien, Kategorien, Medieneinstellungen mit festem Bildvertrag im Replace-in-place-Flow |
 | Benutzer & Gruppen | `/admin/users`, `/admin/groups`, `/admin/roles`, `/admin/user-settings` | Benutzer, Teams, Rechte und Auth-Einstellungen mit gemeinsamer Rollenmatrix und einheitlicher 12-Zeichen-Passwort-Policy |

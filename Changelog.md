@@ -1,4 +1,4 @@
-﻿﻿**Version:** 2.9.704
+﻿﻿**Version:** 2.9.705
 
 # 365CMS Changelog
 
@@ -19,6 +19,12 @@
 ## 📜 Vollständige Versionshistorie
 
 ---
+
+### v2.9.705 — 9. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.705** | 🔴 fix | Admin/AI Services & Dashboard-CSRF | **`CMS/admin/modules/system/AiServicesModule.php`, `CMS/core/Security.php`, `CMS/core/Version.php`, `CMS/update.json`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`, `CMS/DOC/admin/system-settings/AI-SERVICES.md`, `CMS/DOC/ai/AI-SERVICES.md`, `CMS/DOC/admin/dashboard/README.md` und `CMS/DOC/admin/dashboard/DASHBOARD.md` schließen die direkte Nachprüfung der letzten AI-/Dashboard-Anpassungen**: Die AI-Services-Seiten liefen bei der Modulinitialisierung in einen falschen `Database::getInstance()`-Aufruf, obwohl die Core-DB-API `Database::instance()` bereitstellt; dadurch konnten alle AI-Unterseiten als generischer Serverfehler enden. Das Modul nutzt jetzt die korrekte API und kapselt Initialisierungsprobleme zusätzlich fail-soft mit datensparsamer Logger-Ausgabe. Parallel akzeptiert die CSRF-Schicht mehrere parallel erzeugte Admin-Formular-Tokens pro Action innerhalb des TTL-Fensters, invalidiert den tatsächlich verwendeten Token aber weiterhin nach erfolgreicher Prüfung. Damit bleiben stale Tabs und das Dashboard-Personalisierungsformular bedienbar, ohne den One-Time-Token-Vertrag grundsätzlich aufzugeben. |
 
 ### v2.9.704 — 9. Mai 2026
 
