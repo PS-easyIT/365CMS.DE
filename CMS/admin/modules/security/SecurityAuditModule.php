@@ -293,16 +293,26 @@ class SecurityAuditModule
                 : 'Firewall ist nicht vollständig im Runtime-Pfad verdrahtet.'
         );
 
-        $commentAntispamOk = is_file($abspath . 'core/Services/CommentService.php')
-            && $this->fileContains($abspath . 'core/Services/CommentService.php', 'isRejectedByAntispam')
+        $contactAntispamRuntime = $this->inspectContactAntispamRuntime();
+        $commentAntispamOk = class_exists('\CMS\Services\AntispamService')
+            && is_file($abspath . 'core/Services/CommentService.php')
+            && $this->fileContains($abspath . 'core/Services/CommentService.php', 'AntispamService::getInstance()->evaluate')
             && $this->fileContains($abspath . 'themes/cms-default/blog-single.php', 'comment_hp')
             && $this->fileContains($abspath . 'themes/cms-default/blog-single.php', 'comment_started_at');
+
+        $antispamRuntimeOk = $commentAntispamOk && $contactAntispamRuntime['ok'];
+        $antispamRuntimeDetail = $commentAntispamOk
+            ? 'Kommentar-Runtime nutzt die zentrale AntiSpam-Auswertung inklusive Honeypot, Mindestzeit, User-Agent-, Link- und Blacklist-Prüfung.'
+            : 'Kommentar-Runtime ist nicht vollständig mit der zentralen AntiSpam-Auswertung verbunden.';
+
+        if (!empty($contactAntispamRuntime['detail'])) {
+            $antispamRuntimeDetail .= ' ' . (string) $contactAntispamRuntime['detail'];
+        }
+
         $checks[] = $this->buildCheck(
             'AntiSpam Runtime aktiv',
-            $commentAntispamOk ? 'ok' : 'critical',
-            $commentAntispamOk
-                ? 'Kommentar-Runtime nutzt lokale AntiSpam-Regeln inklusive Honeypot und Mindestzeit.'
-                : 'AntiSpam-Konfiguration ist nicht vollständig mit der öffentlichen Kommentar-Runtime verbunden.'
+            $antispamRuntimeOk ? 'ok' : 'critical',
+            $antispamRuntimeDetail
         );
 
         $externalRuntimeHits = [];
@@ -342,6 +352,58 @@ class SecurityAuditModule
     private function fileContains(string $path, string $needle): bool
     {
         return $this->fileContainsAny($path, [$needle]);
+    }
+
+    /**
+     * @return array{ok:bool,detail:string}
+     */
+    private function inspectContactAntispamRuntime(): array
+    {
+        if (!class_exists('CMS_Contact_Frontend', false) || !defined('CMS_CONTACT_PLUGIN_DIR')) {
+            return [
+                'ok' => true,
+                'detail' => 'Kein aktives Kontaktformular-Plugin erkannt; zusätzlicher Formular-Check nicht erforderlich.',
+            ];
+        }
+
+        try {
+            $reflection = new \ReflectionClass('CMS_Contact_Frontend');
+            $frontendFile = $reflection->getFileName();
+            $templateFiles = glob(rtrim((string) CMS_CONTACT_PLUGIN_DIR, '/\\') . DIRECTORY_SEPARATOR . 'templates' . DIRECTORY_SEPARATOR . 'template-*.php') ?: [];
+        } catch (\Throwable $e) {
+            $this->logFailure('security.audit.contact_antispam_inspect_failed', 'Kontaktformular-Runtime konnte für das Sicherheits-Audit nicht geprüft werden.', [
+                'exception' => $e::class,
+            ]);
+
+            return [
+                'ok' => false,
+                'detail' => 'Aktives Kontaktformular-Plugin konnte nicht zuverlässig auf zentrale AntiSpam-Verdrahtung geprüft werden.',
+            ];
+        }
+
+        $frontendUsesCentralService = is_string($frontendFile)
+            && $frontendFile !== ''
+            && $this->fileContains($frontendFile, 'AntispamService::getInstance()->evaluate');
+
+        $templatesContainTimestamp = $templateFiles !== [];
+        foreach ($templateFiles as $templateFile) {
+            if (!$this->fileContains($templateFile, 'contact_started_at')) {
+                $templatesContainTimestamp = false;
+                break;
+            }
+        }
+
+        if ($frontendUsesCentralService && $templatesContainTimestamp) {
+            return [
+                'ok' => true,
+                'detail' => 'Aktive Kontaktformulare nutzen ebenfalls die zentrale AntiSpam-Auswertung inklusive Formular-Timestamp für `antispam_min_time`.',
+            ];
+        }
+
+        return [
+            'ok' => false,
+            'detail' => 'Aktive Kontaktformulare sind nicht vollständig an die zentrale AntiSpam-Auswertung oder den Formular-Timestamp angebunden.',
+        ];
     }
 
     /** @param array<int,string> $needles */

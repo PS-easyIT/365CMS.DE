@@ -78,8 +78,9 @@ Die Security-Zweitprüfung für `2.9.248` hat folgende Punkte gehärtet:
 - Editor.js lädt die externen `embed.umd.js`- und `columns.umd.js`-Bundles nicht mehr; bestehende Embed-Blöcke rendern nur noch als sicherer Link statt als Iframe.
 - AntiSpam bewirbt keine externen CAPTCHA-Dienste mehr und bleibt lokal: Honeypot, Mindestzeit, Linklimit, User-Agent und Blacklist.
 - Security-Audit prüft zusätzlich Firewall-Runtime, AntiSpam-Runtime und Fremdasset-Indikatoren.
+- Öffentliche `cms-contact`-Formulare nutzen jetzt ebenfalls den zentralen `AntispamService` und erzwingen damit globale Regeln wie Mindestzeit, Linklimit, leere User-Agents und Blacklist nicht nur bei Kommentaren, sondern auch im Kontaktpfad.
 
-**Noch offen:** Kontaktformulare nutzen weiterhin eigene lokale Honeypot-Logik statt des zentralen AntiSpam-Services; `security_log` ist gleichzeitig Rate-Limit-Zähler und Audit-Tabelle, was bei sehr hohem Traffic später aggregiert werden sollte.
+**Noch offen:** `security_log` ist gleichzeitig Rate-Limit-Zähler und Audit-Tabelle, was bei sehr hohem Traffic später aggregiert werden sollte.
 
 ---
 

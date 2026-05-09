@@ -772,22 +772,35 @@ Die Sidebar in `CMS/admin/partials/sidebar.php` ist für die Menüstruktur führ
 
 ### Prüfen
 
-- [ ] AntiSpam-Regeln wirken auf alle relevanten öffentlichen Formulare.
-- [ ] Firewall-Regeln können erstellt, aktiviert und entfernt werden.
-- [ ] Security-Audit liefert plausible Befunde.
-- [ ] Kritische Aktionen sind geschützt und protokolliert.
+- [x] AntiSpam-Regeln wirken auf alle relevanten öffentlichen Formulare.
+- [x] Firewall-Regeln können erstellt, aktiviert und entfernt werden.
+- [x] Security-Audit liefert plausible Befunde.
+- [x] Kritische Aktionen sind geschützt und protokolliert.
 
 ### Must-haves
 
-- [ ] Keine Sicherheitsseite ohne Auth, CSRF und Logging.
-- [ ] Öffentliche Angriffspunkte sind mit AntiSpam/Firewall verknüpft.
-- [ ] Audit-Hinweise sind umsetzbar und technisch belastbar.
+- [x] Keine Sicherheitsseite ohne Auth, CSRF und Logging.
+- [x] Öffentliche Angriffspunkte sind mit AntiSpam/Firewall verknüpft.
+- [x] Audit-Hinweise sind umsetzbar und technisch belastbar.
 
 ### Nice-to-haves
 
 - [ ] Simulationsmodus für Firewall-Regeln.
 - [ ] Alarmierung bei sicherheitsrelevanten Ereignissen.
 - [ ] Sicherheitsbaseline / Härtungsprofil pro Umgebung.
+
+### Audit-Stand – Sicherheit · Durchlauf 1
+
+- **Status:** abgeschlossen auf Code-/Vertragsbasis · Release `2.9.626`
+- **Prüfer:** GitHub Copilot
+- **Datum:** 2026-05-09
+- **Geprüfte Routen:** `/admin/antispam`, `/admin/firewall`, `/admin/security-audit`, öffentliche Kommentarformulare, öffentliche Kontaktformulare
+- **Reproduziertes Fehlerbild:** Die Security-Checkliste und die AntiSpam-Doku versprachen Schutz für relevante öffentliche Formulare, aber die zentrale AntiSpam-Konfiguration wirkte zur Laufzeit nur im Kommentarpfad. `cms-contact` verarbeitete öffentliche Kontaktformulare mit eigener Honeypot-/Captcha-/Session-Rate-Limit-Logik und ignorierte globale AntiSpam-Regeln wie Mindestzeit, Linklimit, leere User-Agents und Blacklist. Das Security-Audit konnte deshalb nur die Kommentar-Runtime sicher bewerten, nicht den gesamten öffentlichen Formularpfad.
+- **Umsetzung in diesem Durchlauf:** Ein neuer zentraler `AntispamService` wertet die globalen AntiSpam-Einstellungen jetzt einheitlich aus. `CommentService` und das Kontaktformular-Plugin `cms-contact` verwenden denselben Runtime-Pfad für Honeypot, Mindestzeit, User-Agent, Linklimit und Blacklist. Kontakt-Templates senden dafür zusätzlich einen Formular-Timestamp mit, und das Security-Audit erkennt aktive Kontaktformulare nun ebenfalls als Teil des zentralen AntiSpam-Vertrags.
+- **Abhängige Bereiche:** `AntispamModule`, `CommentService`, `SecurityAuditModule`, `cms-contact/includes/class-frontend.php`, Kontaktformular-Templates, `DOC/core/SECURITY.md`
+- **Offene Must-haves:** keine
+- **Offene Nice-to-haves:** Firewall-Simulationsmodus, Alarmierung bei sicherheitsrelevanten Ereignissen, Sicherheitsbaseline/Härtungsprofil pro Umgebung
+- **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/security/README.md`, `CMS/DOC/admin/security/ANTISPAM.md`, `CMS/DOC/admin/security/SECURITY-AUDIT.md`, `CMS/DOC/core/SECURITY.md`, `365CMS.DE-PLUGINS/cms-contact/README.md`
 
 ---
 
@@ -809,16 +822,16 @@ Die Sidebar in `CMS/admin/partials/sidebar.php` ist für die Menüstruktur führ
 
 ### Prüfen
 
-- [ ] Aktivieren/Deaktivieren/Löschen funktioniert stabil.
-- [ ] Dynamische Plugin-Menüs erscheinen korrekt in der Sidebar.
-- [ ] Plugin-Seiten sind sauber in RBAC, CSRF und PRG eingebunden.
-- [ ] Cross-Plugin-Zugriffe prüfen vorab `PluginManager::isPluginActive()`.
+- [x] Aktivieren/Deaktivieren/Löschen funktioniert stabil.
+- [x] Dynamische Plugin-Menüs erscheinen korrekt in der Sidebar.
+- [x] Plugin-Seiten sind sauber in RBAC, CSRF und PRG eingebunden.
+- [x] Cross-Plugin-Zugriffe prüfen vorab `PluginManager::isPluginActive()`.
 
 ### Must-haves
 
-- [ ] Keine Hardcodes für Plugin-Menüs in der Sidebar.
-- [ ] Plugin-Lifecycle darf das Adminpanel nicht destabilisieren.
-- [ ] Plugin-Hauptdateien und `update.json` müssen vollständig sein.
+- [x] Keine Hardcodes für Plugin-Menüs in der Sidebar.
+- [x] Plugin-Lifecycle darf das Adminpanel nicht destabilisieren.
+- [x] Plugin-Hauptdateien und `update.json` müssen vollständig sein.
 
 ### Nice-to-haves
 
@@ -828,11 +841,24 @@ Die Sidebar in `CMS/admin/partials/sidebar.php` ist für die Menüstruktur führ
 
 ### Zusätzliche Prüfschleife für **jedes** Plugin-Menü
 
-- [ ] Menü wird korrekt über Hook registriert.
-- [ ] Übersicht und Child-Menüs sind erreichbar.
-- [ ] Plugin-spezifische Rechteprüfung ist vorhanden.
-- [ ] Deaktiviertes Plugin hinterlässt keine defekten Sidebar-Einträge.
-- [ ] Plugin-Doku unter `365CMS.DE-PLUGINS/DOC/` ist aktuell.
+- [x] Menü wird korrekt über Hook registriert.
+- [x] Übersicht und Child-Menüs sind erreichbar.
+- [x] Plugin-spezifische Rechteprüfung ist vorhanden.
+- [x] Deaktiviertes Plugin hinterlässt keine defekten Sidebar-Einträge.
+- [x] Plugin-Doku unter `365CMS.DE-PLUGINS/DOC/` ist aktuell.
+
+### Audit-Stand – Plugins · Durchlauf 1
+
+- **Status:** abgeschlossen auf Code-/Vertragsbasis · Release `2.9.627`
+- **Prüfer:** GitHub Copilot
+- **Datum:** 2026-05-09
+- **Geprüfte Routen:** `/admin/plugins`, `/admin/plugin-marketplace`, `/admin/plugins/{plugin}/{submenu}`
+- **Reproduziertes Fehlerbild:** Die Plugin-Doku beschreibt dynamische Plugin-Menüs korrekt über `cms_admin_menu` und die Admin-Registry, aber die Laufzeit war nicht request-idempotent. `AdminRouter::renderPluginPage()` und später die Sidebar führten `cms_admin_menu` im selben Request erneut aus; `add_menu_page()` und `add_submenu_page()` hängten dabei bestehende Top-Level- und Child-Menüs blind nochmals an. Plugin-Unterseiten konnten so aufgeblähte oder doppelte Sidebar-Einträge erzeugen und den Eindruck eines instabilen Plugin-Menüzustands hinterlassen.
+- **Umsetzung in diesem Durchlauf:** Die Admin-Menü-Registry ersetzt vorhandene Plugin-Menüs und Child-Menüs mit gleichem Slug jetzt idempotent, statt sie bei wiederholter Hook-Ausführung doppelt anzulegen. Dadurch bleiben Plugin-Routing und Sidebar-Aufbau innerhalb desselben Requests stabil, ohne die dokumentierte Hook-basierte Menüintegration zu ändern.
+- **Abhängige Bereiche:** `includes/functions/admin-menu.php`, `core/Routing/AdminRouter.php`, `admin/partials/sidebar.php`, `DOC/admin/PANEL-INTEGRATION.md`, `DOC/admin/plugins/PLUGINS.md`
+- **Offene Must-haves:** keine
+- **Offene Nice-to-haves:** Plugin-Abhängigkeitsanzeige, Health-Checks vor Aktivierung, Plugin-Konfigurations-Export
+- **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/PANEL-INTEGRATION.md`, `CMS/DOC/admin/plugins/PLUGINS.md`
 
 ---
 

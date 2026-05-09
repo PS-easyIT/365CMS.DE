@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Dokumentiert die Admin-Seite für manuelle Sicherheitsprüfungen, KPI-Auswertung und Audit-Log-Einsicht.
 
-Letzte Aktualisierung: 2026-05-02 · Version 2.9.248
+Letzte Aktualisierung: 2026-05-09 · Version 2.9.626
 
 **Admin-Route:** `/admin/security-audit`
 
@@ -44,7 +44,7 @@ Das Modul bewertet derzeit unter anderem:
 - Passwort-Policy-Verfügbarkeit
 - CSRF-Token-System
 - nonce-basierte CSP, Trusted Types, HSTS und `.htaccess`-Fallback
-- Runtime-Verdrahtung von Firewall und AntiSpam
+- Runtime-Verdrahtung von Firewall und AntiSpam (inklusive aktiver Kontaktformulare)
 - Fremdassets in Public-Runtime und Editor.js-Assetliste
 - Alter vorhandener Backups
 - auffällige Admin-Passwort-Hashes
@@ -70,7 +70,7 @@ Darunter folgt eine tabellarische Liste aller Checks mit Status-Badge und Detail
 
 Zusätzlich werden bis zu 50 Einträge aus `audit_log` angezeigt. Dazu gehören Datum, Aktion, Benutzerbezug, Details, Kategorie, Severity und IP-Adresse.
 
-Das Modul schreibt selbst protokollierte Einträge über `CMS\AuditLogger`, etwa wenn ein Audit manuell gestartet oder alte Logs bereinigt werden.
+Das Modul schreibt selbst protokollierte Einträge über `CMS\AuditLogger`, etwa wenn ein Audit manuell gestartet oder alte Logs bereinigt werden. Seit `2.9.626` bewertet der AntiSpam-Check zusätzlich, ob aktive `cms-contact`-Formulare denselben zentralen AntiSpam-Service wie die Kommentar-Runtime nutzen.
 
 ---
 

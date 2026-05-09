@@ -1,5 +1,5 @@
 # 365CMS – Admin-Panel-Integration
-> **Stand:** 2026-04-07 | **Version:** 2.9.0 | **Status:** Aktuell
+> **Stand:** 2026-05-09 | **Version:** 2.9.627 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Aktueller Integrationspfad](#aktueller-integrationspfad)
@@ -15,7 +15,7 @@
 ---
 <!-- UPDATED: 2026-04-07 -->
 
-Das Sidebar-Menü wird zentral in `CMS/admin/partials/sidebar.php` aufgebaut. Vor dem Rendern der Plugin-Menüs wird dort `CMS\Hooks::doAction('cms_admin_menu')` ausgeführt. Anschließend werden registrierte Einträge über `get_registered_admin_menus()` ausgelesen.
+Das Sidebar-Menü wird zentral in `CMS/admin/partials/sidebar.php` aufgebaut. Vor dem Rendern der Plugin-Menüs wird dort `CMS\Hooks::doAction('cms_admin_menu')` ausgeführt. Anschließend werden registrierte Einträge über `get_registered_admin_menus()` ausgelesen. Der Routing-Pfad für Plugin-Seiten kann denselben Hook im selben Request ebenfalls ausführen; die Menü-Registry ersetzt seit `2.9.627` vorhandene Einträge mit gleichem Slug deshalb idempotent, statt doppelte Menüs aufzubauen.
 
 Frühere Dokumentationsstände mit einem Filter `admin_menu_items` sind veraltet und gelten nicht mehr als Referenz für neue Integrationen.
 
@@ -96,7 +96,7 @@ Die Sidebar führt vereinfacht diesen Ablauf aus:
 3. registrierte Plugin-Menüs aus `get_registered_admin_menus()` holen
 4. Plugin-Menüs rendern
 
-Damit ist klar: Die Menüintegration läuft über eine Aktion plus Registry, nicht über ein vorher zusammenkopiertes Array.
+Damit ist klar: Die Menüintegration läuft über eine Aktion plus Registry, nicht über ein vorher zusammenkopiertes Array. Wiederholte Hook-Ausführung innerhalb eines Requests muss seit `2.9.627` keine doppelte Sidebar-Struktur mehr erzeugen.
 
 ## Sicherheitsanforderungen
 

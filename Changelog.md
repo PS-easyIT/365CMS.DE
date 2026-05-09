@@ -1,4 +1,4 @@
-﻿﻿**Version:** 2.9.625
+﻿﻿**Version:** 2.9.627
 
 # 365CMS Changelog
 
@@ -19,6 +19,18 @@
 ## 📜 Vollständige Versionshistorie
 
 ---
+
+### v2.9.627 — 9. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.627** | 🔴 fix | Admin/Plugins | **`CMS/includes/functions/admin-menu.php`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/PANEL-INTEGRATION.md`, `CMS/DOC/admin/plugins/PLUGINS.md` und `README.md` schließen den ersten Plugin-Durchlauf gegen den dynamischen Menü-Registry-Vertrag**: Plugin-Unterseiten konnten `cms_admin_menu` im selben Request mehrfach auslösen – einmal im Plugin-Router und später erneut beim Sidebar-Rendering – während `add_menu_page()` und `add_submenu_page()` identische Slugs blind erneut anhängten. Die Admin-Menü-Registry ersetzt bestehende Plugin- und Child-Einträge mit gleichem Slug jetzt idempotent, sodass dynamische Plugin-Menüs und Unterseiten stabil bleiben, statt Sidebar-Dubletten oder aufgeblähte Menüstrukturen zu erzeugen. |
+
+### v2.9.626 — 9. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.626** | 🔴 fix | Admin/Sicherheit | **`CMS/core/Services/AntispamService.php`, `CMS/core/Services/CommentService.php`, `CMS/admin/modules/security/SecurityAuditModule.php`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/security/README.md`, `CMS/DOC/admin/security/ANTISPAM.md`, `CMS/DOC/admin/security/SECURITY-AUDIT.md`, `CMS/DOC/core/SECURITY.md`, `README.md` sowie `365CMS.DE-PLUGINS/cms-contact/**` schließen den ersten Sicherheits-Durchlauf gegen den öffentlichen AntiSpam-Vertrag**: Die globale AntiSpam-Konfiguration wirkte zuvor nur im Kommentarpfad, während aktive `cms-contact`-Formulare mit eigener Honeypot-/Captcha-/Sessionlogik an Mindestzeit, Linklimit, leerem User-Agent und Blacklist vorbeiliefen. Ein neuer zentraler `AntispamService` wertet diese Regeln jetzt gemeinsam für Kommentare und Kontaktformulare aus, Kontakt-Templates senden dafür einen Formular-Timestamp mit, und das Security-Audit bewertet die AntiSpam-Runtime nicht mehr nur anhand des Kommentarwegs. |
 
 ### v2.9.625 — 9. Mai 2026
 

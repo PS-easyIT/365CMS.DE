@@ -422,31 +422,17 @@ class CommentService
 
     private function isRejectedByAntispam(string $email, string $ipAddress, string $authorName, string $content): bool
     {
-        $settings = $this->loadAntispamSettings();
-        if (($settings['antispam_enabled'] ?? '0') !== '1') {
-            return false;
-        }
+        $result = AntispamService::getInstance()->evaluate([
+            'honeypot_value' => (string) ($_POST['comment_hp'] ?? ''),
+            'started_at' => (int) ($_POST['comment_started_at'] ?? 0),
+            'email' => $email,
+            'ip_address' => $ipAddress,
+            'author_name' => $authorName,
+            'content' => $content,
+            'user_agent' => (string) ($_SERVER['HTTP_USER_AGENT'] ?? ''),
+        ]);
 
-        if (($settings['antispam_honeypot'] ?? '0') === '1' && trim((string)($_POST['comment_hp'] ?? '')) !== '') {
-            return true;
-        }
-
-        $minimumSeconds = max(0, min(60, (int)($settings['antispam_min_time'] ?? 0)));
-        $startedAt = (int)($_POST['comment_started_at'] ?? 0);
-        if ($minimumSeconds > 0 && $startedAt > 0 && time() - $startedAt < $minimumSeconds) {
-            return true;
-        }
-
-        if (($settings['antispam_block_empty_ua'] ?? '0') === '1' && trim((string)($_SERVER['HTTP_USER_AGENT'] ?? '')) === '') {
-            return true;
-        }
-
-        $maxLinks = max(0, min(50, (int)($settings['antispam_max_links'] ?? 0)));
-        if ($maxLinks > 0 && $this->countLinks($content) > $maxLinks) {
-            return true;
-        }
-
-        return $this->matchesSpamBlacklist($email, $ipAddress, $authorName, $content);
+        return !empty($result['rejected']);
     }
 
     /** @return array<string,string> */

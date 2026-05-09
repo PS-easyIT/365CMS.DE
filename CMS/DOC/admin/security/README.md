@@ -2,11 +2,11 @@
 
 Kurzbeschreibung: Überblick über die aktuellen Sicherheitswerkzeuge im Admin-Bereich mit AntiSpam, Firewall und Security-Audit.
 
-Letzte Aktualisierung: 2026-04-07 · Version 2.9.0
+Letzte Aktualisierung: 2026-05-09 · Version 2.9.626
 
 Der Bereich bündelt die anwendungsnahen Schutzmechanismen des aktuellen 365CMS-Kerns. Maßgeblich ist die Sidebar-Gruppe **Sicherheit** aus `CMS/admin/partials/sidebar.php`.
 
-Diese Übersicht beschreibt die 2.9.0-Adminoberfläche; für tiefe Verträge rund um CSRF, Session-Härtung, Auth und Sanitizing sind zusätzlich die Core-Dokumente unter `DOC/core/` führend.
+Diese Übersicht beschreibt die 2.9.626-Adminoberfläche; für tiefe Verträge rund um CSRF, Session-Härtung, Auth und Sanitizing sind zusätzlich die Core-Dokumente unter `DOC/core/` führend.
 
 ## Aktuelle Routen
 
@@ -18,9 +18,9 @@ Diese Übersicht beschreibt die 2.9.0-Adminoberfläche; für tiefe Verträge run
 
 ## Zusammenspiel der Module
 
-- **AntiSpam** schützt redaktionelle und öffentliche Eingabeflüsse.
+- **AntiSpam** schützt Kommentare und aktive Kontaktformulare über denselben zentralen Runtime-Service.
 - **Firewall** reagiert auf missbräuchliche Muster, Sperren und Regelwerke.
-- **Security-Audit** bewertet den Betriebszustand mit technischen Prüfungen und zeigt sicherheitsrelevante Log-Ereignisse an.
+- **Security-Audit** bewertet den Betriebszustand mit technischen Prüfungen und zeigt sicherheitsrelevante Log-Ereignisse an – inklusive zentraler AntiSpam-Verdrahtung für aktive Kontaktformulare.
 
 Mehrere Admin-Aktionen werden zusätzlich über das zentrale `audit_log` nachvollziehbar gemacht.
 

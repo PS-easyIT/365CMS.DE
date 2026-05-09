@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Dokumentiert die aktuelle Plugin-Verwaltung unter `/admin/plugins` mit Aktivierung, Deaktivierung, Löschung und den Datenquellen für installierte Erweiterungen.
 
-Letzte Aktualisierung: 2026-03-28 · Version 2.8.0 RC
+Letzte Aktualisierung: 2026-05-09 · Version 2.9.627
 
 ## Überblick
 
@@ -35,6 +35,12 @@ Alle Aktionen verwenden den CSRF-Kontext `admin_plugins`.
 Beim Aktivieren oder Deaktivieren ruft das Modul die entsprechende Plugin-Logik an und aktualisiert den aktiven Zustand. Welche Initialisierungs- oder Cleanup-Schritte intern stattfinden, hängt vom jeweiligen Plugin und vom Plugin-Manager ab.
 
 Wichtig ist: Die aktuelle Admin-Seite dokumentiert keine generische Pflicht-API mit `register()`, `install()`, `deactivate()` und `uninstall()` als harte Voraussetzung. Solche Muster können vorkommen, sind aber nicht die alleinige Wahrheit der Live-Implementierung.
+
+## Dynamische Plugin-Menüs
+
+Die Plugin-Sidebar wird weiterhin über `cms_admin_menu` plus Registry-Helfer aufgebaut. Seit `2.9.627` ist diese Registry request-idempotent: Wiederholte Ausführung von `cms_admin_menu` innerhalb desselben Requests ersetzt bestehende Top-Level- oder Child-Einträge mit gleichem Slug, statt identische Plugin-Menüs mehrfach anzuhängen.
+
+Damit bleiben sowohl das Routing über `AdminRouter::renderPluginPage()` als auch das spätere Sidebar-Rendering stabil, selbst wenn beide Pfade die Plugin-Menüs im selben Request auflösen.
 
 ## Löschen
 

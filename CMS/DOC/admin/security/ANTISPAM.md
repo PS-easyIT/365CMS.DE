@@ -2,11 +2,11 @@
 
 Kurzbeschreibung: Beschreibt die aktuelle Anti-Spam-Verwaltung im Admin, die lokalen Schutzmechanismen und die serverseitige Blacklist-Speicherung.
 
-Letzte Aktualisierung: 2026-05-02 · Version 2.9.248
+Letzte Aktualisierung: 2026-05-09 · Version 2.9.626
 
 ## Überblick
 
-Die Anti-Spam-Verwaltung ist über `/admin/antispam` erreichbar und wird serverseitig durch `CMS/admin/modules/security/AntispamModule.php` gesteuert. Die Seite bündelt Basisschutz, Formularhärtung und Blacklist-Verwaltung. Externe CAPTCHA-Dienste werden im Public-Runtime-Vertrag nicht geladen.
+Die Anti-Spam-Verwaltung ist über `/admin/antispam` erreichbar und wird serverseitig durch `CMS/admin/modules/security/AntispamModule.php` gesteuert. Die Seite bündelt Basisschutz, Formularhärtung und Blacklist-Verwaltung. Die Laufzeit-Auswertung der globalen Regeln erfolgt zentral über `CMS/core/Services/AntispamService.php`. Externe CAPTCHA-Dienste werden im Public-Runtime-Vertrag nicht geladen.
 
 ## Konfigurierbare Schutzmechanismen
 
@@ -20,11 +20,11 @@ Die aktuelle Implementierung arbeitet bewusst mit lokalen, performanten Prüfung
 - maximale Linkanzahl über `antispam_max_links`
 - Blockade leerer User-Agents über `antispam_block_empty_ua`
 
-Diese Prüfungen werden im Core-Kommentarpfad durch `CMS/core/Services/CommentService.php` serverseitig ausgewertet. Das Default-Theme liefert dafür Honeypot- und Mindestzeit-Felder mit; manipulierte oder fehlende UI-Werte werden weiterhin serverseitig geprüft.
+Diese Prüfungen werden serverseitig zentral über `CMS/core/Services/AntispamService.php` ausgewertet. Aktuell nutzen mindestens der Core-Kommentarpfad (`CMS/core/Services/CommentService.php`) und aktive `cms-contact`-Formulare denselben Runtime-Service. Das Default-Theme liefert dafür Honeypot- und Mindestzeit-Felder mit; die Kontaktformulare senden zusätzlich einen Formular-Timestamp, damit `antispam_min_time` auch dort serverseitig erzwungen wird.
 
 ### CAPTCHA-Unterstützung
 
-Externe CAPTCHA-Dienste wie reCAPTCHA, hCaptcha oder Turnstile sind im Core-Runtime-Vertrag deaktiviert, weil sie Fremdskripte bzw. externe Prüf-Endpunkte voraussetzen. Der produktive Schutzumfang besteht aus Honeypot, Mindestzeit, Linklimit, User-Agent-Prüfung und Blacklist.
+Externe CAPTCHA-Dienste wie reCAPTCHA, hCaptcha oder Turnstile sind im Core-Runtime-Vertrag deaktiviert, weil sie Fremdskripte bzw. externe Prüf-Endpunkte voraussetzen. Der produktive Schutzumfang besteht aus Honeypot, Mindestzeit, Linklimit, User-Agent-Prüfung und Blacklist. Plugins dürfen zusätzliche lokale Prüfungen wie Mathe-Captchas ergänzen, sollen die globalen AntiSpam-Regeln aber nicht umgehen.
 
 ## Blacklist-Verwaltung
 
@@ -78,9 +78,11 @@ Die Seite folgt dem üblichen Admin-Muster:
 | `antispam_max_links` | maximale Anzahl erlaubter Links |
 | `antispam_block_empty_ua` | blockiert Requests ohne User-Agent |
 
-## Aktuell noch offen
+## Aktueller Runtime-Vertrag
 
-- Der lokale AntiSpam-Vertrag ist aktuell auf öffentliche Kommentare verdrahtet. Kontaktformulare besitzen eigene Honeypot-Logik und sollten mittelfristig an denselben zentralen AntiSpam-Service angebunden werden.
+- Öffentliche Kommentare und aktive `cms-contact`-Formulare nutzen dieselbe zentrale AntiSpam-Auswertung.
+- Kontaktformulare dürfen optional zusätzlich ein lokales Mathe-Captcha und sessionbasiertes Rate-Limit verwenden, ersetzen damit aber nicht die globalen AntiSpam-Regeln.
+- Weitere Public-Plugins mit eigenen Formularen sollten denselben Core-Service verwenden, statt einen parallelen Blacklist-/Mindestzeit-Pfad aufzubauen.
 
 ## Relevante Dateien
 
@@ -88,7 +90,9 @@ Die Seite folgt dem üblichen Admin-Muster:
 |---|---|
 | `CMS/admin/antispam.php` | Admin-Entry-Point |
 | `CMS/admin/modules/security/AntispamModule.php` | Speichern, Laden und Blacklist-Handling |
+| `CMS/core/Services/AntispamService.php` | zentrale Runtime-Auswertung für globale AntiSpam-Regeln |
 | `CMS/core/Services/CommentService.php` | Runtime-Prüfung öffentlicher Kommentare |
+| `365CMS.DE-PLUGINS/cms-contact/includes/class-frontend.php` | zentrale AntiSpam-Verdrahtung im Kontaktformular-Plugin |
 | `CMS/admin/views/security/antispam.php` | Ausgabe der Verwaltungsoberfläche |
 
 ## Verwandte Dokumente
