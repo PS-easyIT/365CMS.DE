@@ -20,6 +20,9 @@ if (!defined('ABSPATH')) {
 }
 $welcome = is_array($data['welcome'] ?? null) ? $data['welcome'] : [];
 $kpis = is_array($data['kpis'] ?? null) ? $data['kpis'] : [];
+$dashboardSections = is_array($data['dashboard_sections'] ?? null) ? $data['dashboard_sections'] : [];
+$dashboardPreferences = is_array($data['dashboard_preferences'] ?? null) ? $data['dashboard_preferences'] : [];
+$visibleDashboardSections = is_array($dashboardPreferences['visible_sections'] ?? null) ? array_values($dashboardPreferences['visible_sections']) : array_keys($dashboardSections);
 $activityEntries = is_array($data['activity'] ?? null) ? $data['activity'] : [];
 $attentionItems = is_array($data['attention'] ?? null) ? $data['attention'] : [];
 $recentOrders = is_array($data['recent_orders'] ?? null) ? $data['recent_orders'] : [];
@@ -88,6 +91,12 @@ if (!function_exists('dashboardUrl')) {
         }
 
         return $normalized;
+    }
+}
+
+if (!function_exists('dashboardSectionVisible')) {
+    function dashboardSectionVisible(array $visibleSections, string $section): bool {
+        return in_array($section, $visibleSections, true);
     }
 }
 ?>
@@ -215,6 +224,20 @@ if (!function_exists('dashboardUrl')) {
             gap: 0.75rem;
         }
     }
+
+    .dashboard-preferences-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+        gap: 0.5rem 0.75rem;
+    }
+
+    .dashboard-preferences-grid .form-check {
+        min-height: 2.5rem;
+        padding: 0.55rem 0.65rem 0.55rem 2.15rem;
+        border: 1px solid var(--tblr-border-color, rgba(15, 23, 42, 0.08));
+        border-radius: 0.65rem;
+        background: rgba(248, 250, 252, 0.75);
+    }
 </style>
 
 <!-- Page Header -->
@@ -277,6 +300,44 @@ if (!function_exists('dashboardUrl')) {
         endif;
         ?>
 
+        <?php if ($dashboardSections !== []): ?>
+            <details class="card mb-4">
+                <summary class="card-header cursor-pointer">
+                    <span class="card-title mb-0">Dashboard personalisieren</span>
+                    <span class="text-secondary small ms-2">Sichtbare Bereiche pro Admin-Benutzer festlegen</span>
+                </summary>
+                <form method="post" class="card-body" aria-describedby="dashboard-preferences-help">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? '', ENT_QUOTES, 'UTF-8'); ?>">
+                    <input type="hidden" name="action" value="save_dashboard_preferences">
+                    <p id="dashboard-preferences-help" class="text-secondary small mb-3">
+                        Kritische Alerts bleiben immer sichtbar. Ausgeblendete Bereiche können hier jederzeit wieder aktiviert werden.
+                    </p>
+                    <div class="dashboard-preferences-grid" aria-live="polite">
+                        <?php foreach ($dashboardSections as $sectionKey => $sectionDefinition): ?>
+                            <?php
+                            $sectionKey = (string) $sectionKey;
+                            $isRequired = !empty($sectionDefinition['required']);
+                            $inputId = 'dashboard-section-' . preg_replace('/[^a-z0-9_-]+/i', '-', $sectionKey);
+                            ?>
+                            <label class="form-check" for="<?php echo htmlspecialchars($inputId, ENT_QUOTES, 'UTF-8'); ?>">
+                                <input class="form-check-input" type="checkbox" id="<?php echo htmlspecialchars($inputId, ENT_QUOTES, 'UTF-8'); ?>" name="dashboard_sections[]" value="<?php echo htmlspecialchars($sectionKey, ENT_QUOTES, 'UTF-8'); ?>"<?php echo dashboardSectionVisible($visibleDashboardSections, $sectionKey) ? ' checked' : ''; ?><?php echo $isRequired ? ' disabled' : ''; ?>>
+                                <?php if ($isRequired): ?>
+                                    <input type="hidden" name="dashboard_sections[]" value="<?php echo htmlspecialchars($sectionKey, ENT_QUOTES, 'UTF-8'); ?>">
+                                <?php endif; ?>
+                                <span class="form-check-label fw-semibold"><?php echo htmlspecialchars((string) ($sectionDefinition['label'] ?? $sectionKey), ENT_QUOTES, 'UTF-8'); ?></span>
+                                <span class="d-block small text-secondary"><?php echo htmlspecialchars((string) ($sectionDefinition['description'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></span>
+                            </label>
+                        <?php endforeach; ?>
+                    </div>
+                    <div class="mt-3 d-flex gap-2 flex-wrap align-items-center">
+                        <button type="submit" class="btn btn-primary">Ansicht speichern</button>
+                        <span class="text-secondary small" role="status" aria-live="polite">Speicherung erfolgt per CSRF-geschütztem POST.</span>
+                    </div>
+                </form>
+            </details>
+        <?php endif; ?>
+
+        <?php if (dashboardSectionVisible($visibleDashboardSections, 'work_overview')): ?>
         <div class="card card-lg mb-4 bg-primary-lt border-primary-subtle">
             <div class="card-body">
                 <div class="d-flex align-items-center gap-2 text-primary mb-2">
@@ -315,8 +376,10 @@ if (!function_exists('dashboardUrl')) {
                 </div>
             </div>
         </div>
+        <?php endif; ?>
 
         <div class="dashboard-overview-grid mb-4">
+            <?php if (dashboardSectionVisible($visibleDashboardSections, 'attention')): ?>
             <div class="dashboard-overview-card">
                 <div class="card">
                     <div class="card-header">
@@ -343,7 +406,9 @@ if (!function_exists('dashboardUrl')) {
                     </div>
                 </div>
             </div>
+            <?php endif; ?>
 
+            <?php if (dashboardSectionVisible($visibleDashboardSections, 'system_status')): ?>
             <div class="dashboard-overview-card">
                 <div class="card">
                     <div class="card-header">
@@ -387,7 +452,9 @@ if (!function_exists('dashboardUrl')) {
                     </div>
                 </div>
             </div>
+            <?php endif; ?>
 
+            <?php if (dashboardSectionVisible($visibleDashboardSections, 'security_performance')): ?>
             <div class="dashboard-overview-card">
                 <div class="card">
                     <div class="card-header">
@@ -432,8 +499,9 @@ if (!function_exists('dashboardUrl')) {
                     </div>
                 </div>
             </div>
+            <?php endif; ?>
 
-            <?php if ($subscriptionEnabled): ?>
+            <?php if ($subscriptionEnabled && dashboardSectionVisible($visibleDashboardSections, 'recent_orders')): ?>
                 <div class="dashboard-overview-card">
                     <div class="card">
                         <div class="card-header">
@@ -474,6 +542,7 @@ if (!function_exists('dashboardUrl')) {
             <?php endif; ?>
         </div>
 
+        <?php if (dashboardSectionVisible($visibleDashboardSections, 'recent_activity')): ?>
         <!-- ─── Letzte Aktivitäten ─────────────────────────────── -->
         <div class="card">
             <div class="card-header">
@@ -516,6 +585,7 @@ if (!function_exists('dashboardUrl')) {
                 </div>
             <?php endif; ?>
         </div>
+        <?php endif; ?>
 
     </div><!-- /.container-xl -->
 </div><!-- /.page-body -->

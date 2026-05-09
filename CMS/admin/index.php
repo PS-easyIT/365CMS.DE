@@ -32,6 +32,9 @@ $sectionPageConfig = [
     'module_factory' => static function (): DashboardModule {
         return new DashboardModule();
     },
+    'post_handler' => static function ($module, string $section, array $post): array {
+        return $module instanceof DashboardModule ? $module->handleAction($post) : ['success' => false, 'error' => 'Dashboard-Aktion konnte nicht verarbeitet werden.'];
+    },
     'data_loader' => static function ($module): array {
         return $module instanceof DashboardModule ? $module->getData() : [];
     },

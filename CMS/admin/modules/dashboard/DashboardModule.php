@@ -17,9 +17,44 @@ if (!defined('ABSPATH')) {
 use CMS\Services\CoreModuleService;
 use CMS\Services\DashboardService;
 use CMS\Database;
+use CMS\Auth;
+use CMS\AuditLogger;
 
 class DashboardModule
 {
+    private const DASHBOARD_SECTION_DEFINITIONS = [
+        'work_overview' => [
+            'label' => 'Zentrale Arbeitsübersicht',
+            'description' => 'KPI-Karten und wichtigste Schnellzugriffe.',
+            'required' => true,
+        ],
+        'attention' => [
+            'label' => 'Nächste Aufmerksamkeit',
+            'description' => 'Offene Prioritäten und kontextuelle Warnungen.',
+            'required' => false,
+        ],
+        'system_status' => [
+            'label' => 'Systemstatus',
+            'description' => 'PHP, CMS, Datenbank und Speicherindikatoren.',
+            'required' => false,
+        ],
+        'security_performance' => [
+            'label' => 'Sicherheit & Performance',
+            'description' => 'Security- und Performance-Kurzsignale.',
+            'required' => false,
+        ],
+        'recent_orders' => [
+            'label' => 'Neueste Bestellungen',
+            'description' => 'Aktuelle Bestellungen bei aktivem Abo-/Order-Modul.',
+            'required' => false,
+        ],
+        'recent_activity' => [
+            'label' => 'Letzte Aktivitäten',
+            'description' => 'Jüngste Audit-Ereignisse aus dem System.',
+            'required' => false,
+        ],
+    ];
+
     private DashboardService $service;
     private Database $db;
     private string $prefix;
@@ -48,10 +83,13 @@ class DashboardModule
         $pages = $stats['pages'] ?? [];
         $posts = $stats['posts'] ?? [];
         $media = $stats['media'] ?? [];
+        $preferences = $this->getDashboardPreferences($subscriptionOrdersEnabled);
 
         return [
             'welcome'       => $this->getWelcomeData($system),
             'kpis'          => $this->buildKpis($stats, $subscriptionOrdersEnabled),
+            'dashboard_sections' => $this->getDashboardSections($subscriptionOrdersEnabled),
+            'dashboard_preferences' => $preferences,
             'activity'      => $this->getRecentActivity(),
             'quickLinks'    => $this->getQuickLinks(),
             'alerts'        => array_merge($this->buildDashboardHealthAlerts($meta), $this->getAlerts($stats)),
@@ -101,6 +139,129 @@ class DashboardModule
                 ]] : []),
             ],
         ];
+    }
+
+    public function handleAction(array $post): array
+    {
+        $action = trim((string) ($post['action'] ?? ''));
+
+        return match ($action) {
+            'save_dashboard_preferences' => $this->saveDashboardPreferences($post),
+            default => ['success' => false, 'error' => 'Unbekannte Dashboard-Aktion.'],
+        };
+    }
+
+    private function getDashboardSections(bool $subscriptionOrdersEnabled): array
+    {
+        $sections = self::DASHBOARD_SECTION_DEFINITIONS;
+        if (!$subscriptionOrdersEnabled) {
+            unset($sections['recent_orders']);
+        }
+
+        return $sections;
+    }
+
+    private function getDashboardPreferences(bool $subscriptionOrdersEnabled): array
+    {
+        $sections = $this->getDashboardSections($subscriptionOrdersEnabled);
+        $defaultVisible = array_keys($sections);
+        $userId = $this->getCurrentUserId();
+        if ($userId <= 0) {
+            return ['visible_sections' => $defaultVisible];
+        }
+
+        try {
+            $optionValue = $this->db->get_var(
+                "SELECT option_value FROM {$this->prefix}settings WHERE option_name = ?",
+                [$this->getDashboardPreferencesOptionName($userId)]
+            );
+        } catch (\Throwable) {
+            return ['visible_sections' => $defaultVisible];
+        }
+
+        $decoded = is_string($optionValue) ? json_decode($optionValue, true) : null;
+        $visible = is_array($decoded['visible_sections'] ?? null) ? $decoded['visible_sections'] : $defaultVisible;
+
+        return ['visible_sections' => $this->normalizeVisibleDashboardSections($visible, $sections)];
+    }
+
+    private function saveDashboardPreferences(array $post): array
+    {
+        $userId = $this->getCurrentUserId();
+        if ($userId <= 0) {
+            return ['success' => false, 'error' => 'Dashboard-Einstellungen können ohne gültigen Benutzer nicht gespeichert werden.'];
+        }
+
+        $sections = $this->getDashboardSections($this->isSubscriptionOrdersEnabled());
+        $selectedSections = is_array($post['dashboard_sections'] ?? null) ? $post['dashboard_sections'] : [];
+        $visibleSections = $this->normalizeVisibleDashboardSections($selectedSections, $sections);
+        $payload = [
+            'visible_sections' => $visibleSections,
+            'updated_at' => date('Y-m-d H:i:s'),
+        ];
+        $optionName = $this->getDashboardPreferencesOptionName($userId);
+        $optionValue = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        if (!is_string($optionValue)) {
+            return ['success' => false, 'error' => 'Dashboard-Einstellungen konnten nicht serialisiert werden.'];
+        }
+
+        try {
+            $exists = (int) ($this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}settings WHERE option_name = ?", [$optionName]) ?? 0);
+            $success = $exists > 0
+                ? $this->db->update('settings', ['option_value' => $optionValue, 'autoload' => 0], ['option_name' => $optionName])
+                : $this->db->insert('settings', ['option_name' => $optionName, 'option_value' => $optionValue, 'autoload' => 0]) !== false;
+        } catch (\Throwable) {
+            return ['success' => false, 'error' => 'Dashboard-Einstellungen konnten nicht gespeichert werden.'];
+        }
+
+        if (!$success) {
+            return ['success' => false, 'error' => 'Dashboard-Einstellungen konnten nicht gespeichert werden.'];
+        }
+
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_SETTING,
+            'dashboard.preferences.save',
+            'Admin-Dashboard-Personalisierung gespeichert',
+            'dashboard',
+            $userId,
+            ['visible_sections' => $visibleSections],
+            'info'
+        );
+
+        return ['success' => true, 'message' => 'Dashboard-Ansicht gespeichert.'];
+    }
+
+    private function normalizeVisibleDashboardSections(array $selectedSections, array $availableSections): array
+    {
+        $availableKeys = array_keys($availableSections);
+        $visible = [];
+
+        foreach ($selectedSections as $section) {
+            $section = trim((string) $section);
+            if ($section !== '' && in_array($section, $availableKeys, true) && !in_array($section, $visible, true)) {
+                $visible[] = $section;
+            }
+        }
+
+        foreach ($availableSections as $sectionKey => $definition) {
+            if (!empty($definition['required']) && !in_array($sectionKey, $visible, true)) {
+                $visible[] = $sectionKey;
+            }
+        }
+
+        return $visible !== [] ? $visible : $availableKeys;
+    }
+
+    private function getDashboardPreferencesOptionName(int $userId): string
+    {
+        return 'admin_dashboard_preferences_user_' . max(0, $userId);
+    }
+
+    private function getCurrentUserId(): int
+    {
+        $user = Auth::instance()->currentUser();
+
+        return (int) ($user->id ?? $_SESSION['user_id'] ?? 0);
     }
 
     private function buildDashboardHealthAlerts(array $meta): array
