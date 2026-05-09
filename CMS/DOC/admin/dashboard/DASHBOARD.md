@@ -1,8 +1,8 @@
 # Admin-Dashboard
 
-Kurzbeschreibung: Beschreibt die aktuelle Startseite des Admin-Bereichs inklusive Kennzahlen, Schnellzugriffen und Warnhinweisen.
+Kurzbeschreibung: Beschreibt die aktuelle Startseite des Admin-Bereichs inklusive Kennzahlen, Schnellzugriffen, Warnhinweisen und segmentweisem Fail-Soft-Verhalten.
 
-Letzte Aktualisierung: 2026-04-07 · Version 2.9.0
+Letzte Aktualisierung: 2026-05-09 · Version 2.9.615
 
 ---
 
@@ -13,6 +13,8 @@ Letzte Aktualisierung: 2026-04-07 · Version 2.9.0
 - Logik: `CMS/admin/modules/dashboard/DashboardModule.php`
 
 Das Admin-Dashboard ist die zentrale Einstiegsseite für Redakteure und Administratoren. Es zeigt keine beliebig konfigurierbare Widget-Landschaft, sondern einen kuratierten Überblick über Systemzustand, Inhalte, Aktivität und – falls aktiv – Bestellungen.
+
+Seit `2.9.615` wird jeder Statistikblock einzeln geladen. Fällt z. B. die Sicherheits-, Sessions- oder Orders-Datenquelle aus, bleibt die Startseite renderbar und arbeitet für den betroffenen Block mit neutralen Fallback-Werten statt mit einem Full-Page-Fatal.
 
 ---
 
@@ -88,6 +90,12 @@ Zusätzliche Systemhinweise aus `DashboardService::getAttentionItems()`.
 
 Diese zweite Ebene bündelt situationsabhängige Punkte, die besondere Aufmerksamkeit brauchen.
 
+### Fallback-Warnung bei degradierten Statistikquellen
+
+Kann ein einzelnes Dashboard-Segment nicht geladen werden, ergänzt `DashboardModule` einen zusätzlichen `warning`-Hinweis mit Deep-Link auf `/admin/cms-logs`.
+
+Damit wird der degradierte Zustand sichtbar, ohne den übrigen Dashboard-Renderpfad zu blockieren.
+
 ---
 
 ## Begrenzungen der Seite
@@ -95,6 +103,7 @@ Diese zweite Ebene bündelt situationsabhängige Punkte, die besondere Aufmerksa
 - Es gibt aktuell keine frei konfigurierbaren Rollen-Widgetsets für die Admin-Startseite.
 - Die frühere Dokumentation zu einem separaten „Admin Dashboard Widgets“-Designer ist nicht mehr aktuell.
 - Konfigurierbare Widgets betreffen heute primär das **Member Dashboard**, nicht die Admin-Startseite.
+- Live-Plausibilitätsprüfungen der Kennzahlen bleiben weiterhin Aufgabe des Betriebs-/QA-Durchlaufs gegen eine reale Datenbank, nicht der statischen Doku.
 
 ---
 

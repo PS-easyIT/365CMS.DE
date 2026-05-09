@@ -1249,7 +1249,7 @@
                 if (selectedFile && !isImageFile(selectedFile)) {
                     fileInput.value = '';
                     updateSelectedFileHint(form, null);
-                    showMessage('danger', 'Bitte eine gültige Bilddatei auswählen.');
+                    showMessage('danger', 'Bitte eine gültige Bilddatei im Format JPG/JPEG, PNG, GIF, WebP, BMP oder ICO auswählen.');
                     return;
                 }
 
@@ -1338,7 +1338,9 @@
                 });
 
                 if (imageFiles.length !== 1) {
-                    showMessage('danger', 'Bitte genau eine Bilddatei auf die Ersetzen-Zone ziehen.');
+                    showMessage('danger', imageFiles.length === 0
+                        ? 'Bitte genau eine Bilddatei im Format JPG/JPEG, PNG, GIF, WebP, BMP oder ICO auf die Ersetzen-Zone ziehen.'
+                        : 'Bitte genau eine einzelne Bilddatei auf die Ersetzen-Zone ziehen.');
                     updateSelectedFileHint(form, null);
                     return;
                 }

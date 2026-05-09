@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Admin-spezifische Einordnung des Bereichs `AI Services` als **eigener Admin-Hauptbereich**. Die führende Fach- und Architektur-Dokumentation liegt unter [`../../ai/AI-SERVICES.md`](../../ai/AI-SERVICES.md); die Admin-Seiten `/admin/ai-services`, `/admin/ai-translation`, `/admin/ai-content-creator`, `/admin/ai-seo-creator` und `/admin/ai-settings` sind als Settings- und Runtime-Steuerflächen im Core eingehängt.
 
-Letzte Aktualisierung: 2026-04-08 · Version 2.9.2
+Letzte Aktualisierung: 2026-05-09 · Version 2.9.616
 
 > **Wichtig:** Diese Datei ist bewusst nur der **Admin- und Routing-Kontext**. Die vollständige Konzeption, Provider-Logik, Editor.js-Übersetzungsphase und offene Punkte werden kanonisch in [`../../ai/AI-SERVICES.md`](../../ai/AI-SERVICES.md) gepflegt.
 
@@ -47,6 +47,7 @@ Aktueller Runtime-Hinweis:
 - `/admin/ai-services` bzw. `/admin/ai-settings` verwalten heute die Datenstruktur für `ai.providers`, `ai.features`, `ai.translation`, `ai.logging` und `ai.quotas`
 - Provider werden als gezielt anlegbare Liste geführt; sichtbar sind damit nur die tatsächlich konfigurierten Einträge statt einer fest verdrahteten Komplettmatrix
 - `/admin/ai-translate-editorjs` stellt heute einen geschützten Live-Endpoint für Editor.js-Übersetzungen bereit, inklusive Preview-/Diff-Schritt vor der EN-Übernahme
+- der Preview-/Diff-Schritt ist seit `2.9.616` serverseitig verpflichtend und nicht mehr als optionaler Admin-Toggle abschaltbar
 - echte Live-Provider sind aktuell für **Ollama** und **Azure AI** umgesetzt; weitere Bridge-Kandidaten wie OpenAI/OpenRouter bleiben vorbereitete Folgearbeit
 
 Verwandte Admin-Dokumente:

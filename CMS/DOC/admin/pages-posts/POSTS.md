@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Verwaltung chronologischer Inhalte wie News und Blog-Beiträge im Admin-Bereich.
 
-Letzte Aktualisierung: 2026-05-09 · Version 2.9.614
+Letzte Aktualisierung: 2026-05-09 · Version 2.9.617
 
 ---
 
@@ -105,6 +105,8 @@ Die Taxonomie-Verwaltung gehört funktional zum Beiträge-Bereich und folgt jetz
 Das passt zu den NN/g-Empfehlungen für **Confirmation Dialogs** und **Error Messages**: riskante Aktionen werden konkret beschrieben, Modale bleiben auf destruktive Schritte beschränkt, und Korrekturen können mit erhaltenem Formzustand direkt am Entstehungsort erfolgen.
 
 Zusätzlich ist der Public-Vertrag des Default-Themes für Taxonomie-Navigation jetzt wieder konsistent: Blog-Links mit `?category=` bzw. `?tag=` lösen in dieselben Kategorie-/Tag-Archive auf wie die dedizierten Archivrouten, und Sidebar-/Header-Helfer zählen veröffentlichte Beiträge nicht mehr nur über die Primärkategorie oder Legacy-`posts.tags`, sondern berücksichtigen Relationstabellen sowie die aktuelle DE/EN-Content-Verfügbarkeit.
+
+Seit `2.9.617` gilt das auch bei späteren Slug-Änderungen: Kategorie- und Tag-Slugs erzeugen automatische Archiv-Redirects, und die Query-basierten Blog-Filter können alte Slugs über diese Redirect-Spur wieder auf den aktuellen Archiv-Slug auflösen, statt mit 404 zu enden.
 
 ---
 

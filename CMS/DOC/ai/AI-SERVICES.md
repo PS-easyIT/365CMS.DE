@@ -2,9 +2,9 @@
 
 Kurzbeschreibung: Kanonische Konzept- und Architektur-Dokumentation für den Bereich **AI Services** in 365CMS. Der Fokus liegt auf Provider-Scope, Feature-Gates, Admin-Steuerung, Editor.js-Übersetzung und einem kontrollierten, ausbaufähigen KI-Betriebsmodell.
 
-Letzte Aktualisierung: 2026-04-08 · Version 2.9.2
+Letzte Aktualisierung: 2026-05-09 · Version 2.9.616
 
-> **Wichtig:** Diese Datei bleibt die führende Fach- und Architekturreferenz. Seit `2.9.210` existieren bereits eine **runtime-seitige Settings- und Admin-Hülle** unter `/admin/ai-services`, ein **Provider-Gateway** mit gezielt anlegbarer Provider-Liste, ein integrierter **`mock`-Provider**, die ersten **Live-Adapter für `ollama` und `azure_openai`**, der geschützte Endpoint **`/admin/ai-translate-editorjs`** sowie ein **bewusster Preview-/Diff-Workflow vor der EN-Übernahme**. **Noch nicht umgesetzt** sind feingranulare Daily-/Monthly-Quota-Erzwingung und weitere Bridge-Provider wie OpenAI/OpenRouter.
+> **Wichtig:** Diese Datei bleibt die führende Fach- und Architekturreferenz. Seit `2.9.210` existieren bereits eine **runtime-seitige Settings- und Admin-Hülle** unter `/admin/ai-services`, ein **Provider-Gateway** mit gezielt anlegbarer Provider-Liste, ein integrierter **`mock`-Provider**, die ersten **Live-Adapter für `ollama` und `azure_openai`**, der geschützte Endpoint **`/admin/ai-translate-editorjs`** sowie ein **bewusster Preview-/Diff-Workflow vor der EN-Übernahme**. Seit `2.9.616` ist dieser Review-Schritt serverseitig verpflichtend und kann im Admin nicht mehr abgeschaltet werden. **Noch nicht umgesetzt** sind feingranulare Daily-/Monthly-Quota-Erzwingung und weitere Bridge-Provider wie OpenAI/OpenRouter.
 
 ## Inhaltsverzeichnis
 - [Ziel und Abgrenzung](#ziel-und-abgrenzung)
@@ -525,10 +525,10 @@ Zweck:
 | `default_target_locale` | `string` | Standardziel wie `en` |
 | `allowed_target_locales` | `array<string>` | erlaubte Zielsprachen |
 | `supported_block_types` | `array<string>` | unterstützte Editor.js-Blocktypen |
-| `preview_required` | `bool` | Bestätigung vor Übernahme |
+| `preview_required` | `bool` | Bestätigung vor Übernahme; wird runtime-seitig auf `true` erzwungen |
 | `preserve_unsupported_blocks` | `bool` | nicht unterstützte Blöcke unverändert belassen |
 | `skip_html_blocks` | `bool` | HTML-/Raw-Blöcke grundsätzlich ausnehmen |
-| `result_mode` | `string` | z. B. `preview`, `localized-field`, `overwrite-current-draft` |
+| `result_mode` | `string` | z. B. `preview`, `localized-field`, `overwrite-current-draft`; die eigentliche Übernahme bleibt trotzdem review-pflichtig |
 
 ### 4. `ai.logging`
 

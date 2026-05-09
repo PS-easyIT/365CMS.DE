@@ -297,7 +297,7 @@ final class AiServicesModule
                 'default_target_locale' => $this->sanitizeLocale((string) ($post['default_target_locale'] ?? 'en'), 'en'),
                 'allowed_target_locales' => $this->sanitizeCsvList((string) ($post['allowed_target_locales'] ?? 'en'), ['en']),
                 'supported_block_types' => $this->sanitizeSupportedBlockTypes((string) ($post['supported_block_types'] ?? 'paragraph,header,list,checklist,quote,callout,warning,mediaText'), ['paragraph', 'header', 'list', 'checklist', 'quote', 'callout', 'warning', 'mediaText']),
-                'preview_required' => !empty($post['preview_required']),
+                'preview_required' => true,
                 'preserve_unsupported_blocks' => !empty($post['preserve_unsupported_blocks']),
                 'skip_html_blocks' => !empty($post['skip_html_blocks']),
                 'result_mode' => $this->sanitizeResultMode((string) ($post['result_mode'] ?? 'localized-field')),

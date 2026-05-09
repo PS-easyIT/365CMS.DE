@@ -232,9 +232,14 @@ $seoAssistProviders = array_values(array_filter($providers, static fn (array $pr
                                     <?php endforeach; ?>
                                 </select>
                             </div>
-                            <div class="col-md-4"><?php $renderSwitch('preview_required', 'Preview vor Übernahme', !empty($translation['preview_required'])); ?></div>
-                            <div class="col-md-4"><?php $renderSwitch('preserve_unsupported_blocks', 'Nicht unterstützte Blöcke bewahren', !empty($translation['preserve_unsupported_blocks'])); ?></div>
-                            <div class="col-md-4"><?php $renderSwitch('skip_html_blocks', 'HTML-/Raw-Blöcke überspringen', !empty($translation['skip_html_blocks'])); ?></div>
+                            <input type="hidden" name="preview_required" value="1">
+                            <div class="col-12">
+                                <div class="alert alert-info mb-0">
+                                    Generierte Übersetzungen werden immer erst als Vorschau/Diff bereitgestellt und nur nach expliziter Bestätigung übernommen.
+                                </div>
+                            </div>
+                            <div class="col-md-6"><?php $renderSwitch('preserve_unsupported_blocks', 'Nicht unterstützte Blöcke bewahren', !empty($translation['preserve_unsupported_blocks'])); ?></div>
+                            <div class="col-md-6"><?php $renderSwitch('skip_html_blocks', 'HTML-/Raw-Blöcke überspringen', !empty($translation['skip_html_blocks'])); ?></div>
                         </div>
                     </div>
                 </form>

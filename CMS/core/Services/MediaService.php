@@ -19,6 +19,7 @@ if (!defined('ABSPATH')) {
 class MediaService {
 
     private const BLOCKED_UPLOAD_EXTENSIONS = ['svg'];
+    private const FEATURED_REPLACEMENT_IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'ico'];
 
     private static array $instances = [];
     private const ATOMIC_FILE_MODE = 0640;
@@ -333,6 +334,20 @@ class MediaService {
 
         $normalized['max_upload_size'] = (string) ($normalized['member_max_upload_size'] ?? $normalized['max_upload_size']);
         $normalized['allowed_types'] = array_values(array_map('strval', (array) ($normalized['member_allowed_types'] ?? $normalized['allowed_types'])));
+
+        return $normalized;
+    }
+
+    /**
+     * @param array<string,mixed> $settings
+     * @return array<string,mixed>
+     */
+    private function buildFeaturedReplacementValidationSettings(array $settings): array
+    {
+        $normalized = $this->buildUploadValidationSettings($settings);
+        $normalized['allowed_types'] = self::FEATURED_REPLACEMENT_IMAGE_EXTENSIONS;
+        $normalized['block_dangerous_types'] = true;
+        $normalized['validate_image_content'] = true;
 
         return $normalized;
     }
@@ -1031,7 +1046,7 @@ class MediaService {
             return new WP_Error('invalid_target_type', 'Es können nur vorhandene Bilddateien ersetzt werden.');
         }
 
-        $settings = $this->buildUploadValidationSettings($this->getSettings());
+        $settings = $this->buildFeaturedReplacementValidationSettings($this->getSettings());
         $validation = $this->validateFile($file, $settings);
         if ($validation instanceof WP_Error) {
             return $validation;

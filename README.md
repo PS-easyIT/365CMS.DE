@@ -1,6 +1,6 @@
 # 365CMS.DE
 
-**Version:** [2.9.614](Changelog.md) · **Status:** Stable · **PHP:** 8.4+ · **MySQL:** 5.7+ · **MariaDB:** 10.3+
+**Version:** [2.9.618](Changelog.md) · **Status:** Stable · **PHP:** 8.4+ · **MySQL:** 5.7+ · **MariaDB:** 10.3+
 
 <div align="center">
 
@@ -132,9 +132,10 @@ Der Admin-Bereich ist so aufgebaut, dass inhaltliche, technische und betrieblich
 
 | Bereich | Was man dort steuert | Typische Aufgaben |
 |---|---|---|
-| **Dashboard** | KPIs, Schnellzugriffe und zentrale Einstiegspunkte | Überblick gewinnen, häufige Aufgaben anstoßen, Status prüfen |
-| **Seiten & Beiträge** | Content-Struktur, redaktionelle Inhalte, Kommentare und Inhaltsbausteine | Inhalte erstellen, strukturieren, pflegen und veröffentlichen |
-| **Medien** | Bibliothek, Beitrags & Site Medien, Kategorien, Einstellungen und Dateimanagement | Uploads verwalten, Dateien organisieren, Beitrags-/Seitenbilder gezielt ersetzen und Medien für Inhalte vorbereiten |
+| **Dashboard** | KPIs, Schnellzugriffe, zentrale Einstiegspunkte und fail-softe Statuskarten | Überblick gewinnen, häufige Aufgaben anstoßen, Status prüfen |
+| **AI Services** | Provider, Übersetzung, Content-/SEO-Helfer, Logging und Quotas | KI-Workflows freigeben, Leitplanken setzen und redaktionelle Assistenz kontrolliert betreiben |
+| **Seiten & Beiträge** | Content-Struktur, redaktionelle Inhalte, Kommentare und Inhaltsbausteine | Inhalte erstellen, strukturieren, pflegen, veröffentlichen und stabile Slug-/Taxonomie-Pfade erhalten |
+| **Medien** | Bibliothek, Beitrags & Site Medien, Kategorien, Einstellungen und Dateimanagement | Uploads verwalten, Dateien organisieren, Beitrags-/Seitenbilder mit festem Bildvertrag gezielt ersetzen und Medien für Inhalte vorbereiten |
 | **Benutzer & Gruppen** | Benutzerkonten, Teams, Rollen, Rechte und Auth-Einstellungen | Zugriffe definieren, Benutzer pflegen, Sicherheitsoptionen steuern |
 | **Mitgliederbereich** | Member-Dashboard-Konfiguration und usernahe Funktionen | Benutzererlebnis für Mitglieder gestalten und absichern |
 | **Aboverwaltung** | Pakete, Bestellungen, Limits, Zuweisungen und abonnahes Business-Handling | Pakete verwalten, Zugriffe staffeln, Bestell- und Paketlogik steuern |
@@ -336,8 +337,9 @@ The admin area is structured so editorial, technical and operational work does n
 | Area | What you manage there | Typical tasks |
 |---|---|---|
 | **Dashboard** | KPIs, shortcuts and central entry points | Get an overview, start common tasks and review status quickly |
-| **Pages & Posts** | Content structure, editorial content, comments and supporting content blocks | Create, edit, organize and publish content |
-| **Media** | Library, Post & Site Media, categories, settings and file management | Upload files, manage media collections, replace post/page images in place and prepare assets for content |
+| **AI Services** | Providers, translation, content/SEO helpers, logging and quotas | Govern AI workflows, enforce guardrails and run editorial assistance in a controlled way |
+| **Pages & Posts** | Content structure, editorial content, comments and supporting content blocks | Create, edit, organize, publish content and keep slug/taxonomy links stable |
+| **Media** | Library, Post & Site Media, categories, settings and file management | Upload files, manage media collections, replace post/page images in place under a fixed image contract and prepare assets for content |
 | **Users & Groups** | Accounts, teams, roles, permissions and authentication settings | Define access, maintain users and control security-related settings |
 | **Member Area** | Member dashboard configuration and user-facing functions | Shape the member experience and manage protected features |
 | **Subscriptions** | Packages, orders, limits, assignments and subscription-related business handling | Configure plans, manage access logic and support paid feature models |

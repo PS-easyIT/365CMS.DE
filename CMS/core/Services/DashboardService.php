@@ -23,6 +23,8 @@ class DashboardService {
     private string $prefix;
     private static ?DashboardService $instance = null;
     private ?array $cachedAllStats = null;
+    /** @var array<string, true> */
+    private array $statsFailures = [];
     
     private function __construct() {
         $this->db = Database::instance();
@@ -46,19 +48,143 @@ class DashboardService {
             return $this->cachedAllStats;
         }
 
+        $this->statsFailures = [];
         $this->cachedAllStats = [
-            'users' => $this->getUserStats(),
-            'pages' => $this->getPageStats(),
-            'posts' => $this->getPostStats(),
-            'media' => $this->getMediaStats(),
-            'sessions' => $this->getSessionStats(),
-            'security' => $this->getSecurityStats(),
-            'performance' => $this->getPerformanceStats(),
-            'system' => $this->getSystemInfo(),
-            'orders' => $this->getOrderStats()
+            'users' => $this->loadStatsSegment('users', fn (): array => $this->getUserStats()),
+            'pages' => $this->loadStatsSegment('pages', fn (): array => $this->getPageStats()),
+            'posts' => $this->loadStatsSegment('posts', fn (): array => $this->getPostStats()),
+            'media' => $this->loadStatsSegment('media', fn (): array => $this->getMediaStats()),
+            'sessions' => $this->loadStatsSegment('sessions', fn (): array => $this->getSessionStats()),
+            'security' => $this->loadStatsSegment('security', fn (): array => $this->getSecurityStats()),
+            'performance' => $this->loadStatsSegment('performance', fn (): array => $this->getPerformanceStats()),
+            'system' => $this->loadStatsSegment('system', fn (): array => $this->getSystemInfo()),
+            'orders' => $this->loadStatsSegment('orders', fn (): array => $this->getOrderStats()),
+            'meta' => [
+                'degraded_sections' => array_keys($this->statsFailures),
+            ],
         ];
 
         return $this->cachedAllStats;
+    }
+
+    /**
+     * Lädt einen Statistikblock fail-soft mit segmentweisem Fallback.
+     *
+     * @param callable():array $loader
+     */
+    private function loadStatsSegment(string $segment, callable $loader): array
+    {
+        try {
+            $stats = $loader();
+
+            return is_array($stats)
+                ? $stats
+                : $this->getDefaultStatsForSegment($segment);
+        } catch (\Throwable $e) {
+            $this->statsFailures[$segment] = true;
+
+            Logger::instance()->withChannel('dashboard')->warning('Dashboard statistics segment fell back to defaults.', [
+                'segment' => $segment,
+                'exception' => $e,
+            ]);
+
+            return $this->getDefaultStatsForSegment($segment);
+        }
+    }
+
+    private function getDefaultStatsForSegment(string $segment): array
+    {
+        return match ($segment) {
+            'users' => [
+                'total' => 0,
+                'active' => 0,
+                'inactive' => 0,
+                'active_today' => 0,
+                'new_today' => 0,
+                'new_this_week' => 0,
+                'new_this_month' => 0,
+                'roles' => [],
+                'growth_rate' => 0,
+            ],
+            'pages' => [
+                'total' => 0,
+                'published' => 0,
+                'drafts' => 0,
+                'private' => 0,
+                'scheduled' => 0,
+            ],
+            'posts' => [
+                'total' => 0,
+                'published' => 0,
+                'drafts' => 0,
+                'private' => 0,
+                'scheduled' => 0,
+            ],
+            'media' => [
+                'total' => 0,
+                'total_files' => 0,
+                'total_size' => 0,
+                'total_size_mb' => 0,
+                'total_size_formatted' => $this->formatBytes(0),
+                'types' => [
+                    'images' => 0,
+                    'videos' => 0,
+                    'documents' => 0,
+                    'archives' => 0,
+                    'other' => 0,
+                ],
+            ],
+            'sessions' => [
+                'active' => 0,
+                'active_now' => 0,
+                'today' => 0,
+                'total' => 0,
+                'avg_duration' => 0,
+                'browsers' => [],
+            ],
+            'security' => [
+                'failed_logins_24h' => 0,
+                'successful_logins_24h' => 0,
+                'blocked_ips' => 0,
+                'https_enabled' => false,
+                'security_score' => 0,
+                'status' => 'warning',
+            ],
+            'performance' => [
+                'memory_limit' => (string) (ini_get('memory_limit') ?: '0'),
+                'memory_usage' => 0,
+                'memory_usage_formatted' => $this->formatBytes(0),
+                'memory_peak' => 0,
+                'memory_peak_formatted' => $this->formatBytes(0),
+                'memory_percent' => 0,
+                'disk_free' => 0,
+                'disk_free_formatted' => $this->formatBytes(0),
+                'disk_total' => 0,
+                'disk_total_formatted' => $this->formatBytes(0),
+                'disk_percent' => 0,
+                'opcache' => [],
+                'performance_score' => 0,
+            ],
+            'system' => [
+                'php_version' => PHP_VERSION,
+                'mysql_version' => 'Unbekannt',
+                'server_software' => $_SERVER['SERVER_SOFTWARE'] ?? 'Unknown',
+                'os' => PHP_OS,
+                'cms_version' => defined('CMS_VERSION') ? CMS_VERSION : Version::CURRENT,
+                'server_time' => date('Y-m-d H:i:s'),
+                'timezone' => date_default_timezone_get(),
+                'max_execution_time' => (string) (ini_get('max_execution_time') ?: '0'),
+                'upload_max_filesize' => (string) (ini_get('upload_max_filesize') ?: '0'),
+                'post_max_size' => (string) (ini_get('post_max_size') ?: '0'),
+            ],
+            'orders' => [
+                'total' => 0,
+                'pending' => 0,
+                'month_revenue' => 0.0,
+                'month_revenue_formatted' => '0,00 EUR',
+            ],
+            default => [],
+        };
     }
 
     /**

@@ -919,6 +919,8 @@ class PostsModule
             return ['success' => false, 'error' => 'Die zu bearbeitende Kategorie existiert nicht mehr.'];
         }
 
+        $previousSlug = $id > 0 ? $this->getCurrentCategorySlug($id) : '';
+
         if ($this->isCategorySlugTaken($slug, $id)) {
             return ['success' => false, 'error' => 'Dieser Kategorie-Slug ist bereits vergeben.'];
         }
@@ -975,6 +977,7 @@ class PostsModule
                     "UPDATE {$this->prefix}post_categories SET name = ?, slug = ?, parent_id = ?, alias_domains_json = ?, replacement_category_id = ? WHERE id = ?",
                     [$name, $slug, $parentId > 0 ? $parentId : null, $domainsJson, $replacementCategoryId > 0 ? $replacementCategoryId : null, $id]
                 );
+                $this->createTaxonomyArchiveRedirectsIfNeeded('category', $previousSlug, $slug);
                 $this->clearContentCacheIfEnabled('post_category_update', $id);
                 return ['success' => true, 'message' => 'Kategorie aktualisiert.'];
             } else {
@@ -1320,6 +1323,8 @@ class PostsModule
             return ['success' => false, 'error' => 'Der zu bearbeitende Tag existiert nicht mehr.'];
         }
 
+        $previousSlug = $id > 0 ? $this->getCurrentTagSlug($id) : '';
+
         if ($this->isTagSlugTaken($slug, $id)) {
             return ['success' => false, 'error' => 'Dieser Tag-Slug ist bereits vergeben.'];
         }
@@ -1330,6 +1335,8 @@ class PostsModule
                     "UPDATE {$this->prefix}post_tags SET name = ?, slug = ? WHERE id = ?",
                     [$name, $slug, $id]
                 );
+
+                $this->createTaxonomyArchiveRedirectsIfNeeded('tag', $previousSlug, $slug);
 
                 $this->clearContentCacheIfEnabled('post_tag_update', $id);
 
@@ -2213,6 +2220,66 @@ class PostsModule
                 "INSERT IGNORE INTO {$this->prefix}post_category_rel (post_id, category_id) VALUES (?, ?)",
                 [$postId, $categoryId]
             );
+        }
+    }
+
+    private function getCurrentCategorySlug(int $categoryId): string
+    {
+        if ($categoryId <= 0) {
+            return '';
+        }
+
+        return trim((string) ($this->db->get_var(
+            "SELECT slug FROM {$this->prefix}post_categories WHERE id = ? LIMIT 1",
+            [$categoryId]
+        ) ?: ''));
+    }
+
+    private function getCurrentTagSlug(int $tagId): string
+    {
+        if ($tagId <= 0) {
+            return '';
+        }
+
+        return trim((string) ($this->db->get_var(
+            "SELECT slug FROM {$this->prefix}post_tags WHERE id = ? LIMIT 1",
+            [$tagId]
+        ) ?: ''));
+    }
+
+    private function createTaxonomyArchiveRedirectsIfNeeded(string $archiveType, string $oldSlug, string $newSlug): void
+    {
+        $oldSlug = $this->normalizeSlug($oldSlug);
+        $newSlug = $this->normalizeSlug($newSlug);
+
+        if ($oldSlug === '' || $newSlug === '' || $oldSlug === $newSlug) {
+            return;
+        }
+
+        if (!function_exists('cms_get_archive_locales') || !function_exists('cms_get_archive_base')) {
+            return;
+        }
+
+        $notes = $archiveType === 'tag'
+            ? 'Automatisch bei Tag-Slug-Änderung angelegt'
+            : 'Automatisch bei Kategorie-Slug-Änderung angelegt';
+        $paths = [];
+
+        foreach (cms_get_archive_locales() as $locale) {
+            $archiveBase = trim((string) cms_get_archive_base($archiveType, (string) $locale), '/');
+            if ($archiveBase === '') {
+                continue;
+            }
+
+            $sourcePath = '/' . $archiveBase . '/' . $oldSlug;
+            $targetPath = '/' . $archiveBase . '/' . $newSlug;
+
+            if (isset($paths[$sourcePath])) {
+                continue;
+            }
+
+            $paths[$sourcePath] = true;
+            RedirectService::getInstance()->createAutomaticRedirect($sourcePath, $targetPath, $notes);
         }
     }
 

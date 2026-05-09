@@ -1,8 +1,8 @@
 # 365CMS – Admin-Dashboard
 
-Kurzbeschreibung: Überblick über die Startseite des Admin-Bereichs mit KPI-Karten, Statushinweisen und Schnellzugriffen.
+Kurzbeschreibung: Überblick über die Startseite des Admin-Bereichs mit KPI-Karten, Statushinweisen, Schnellzugriffen und fail-soften Statusblöcken.
 
-Letzte Aktualisierung: 2026-05-03 · Stand: Dashboard-Audit Mai 2026 · Release 2.9.500
+Letzte Aktualisierung: 2026-05-09 · Stand: Dashboard-Audit Mai 2026 · Release 2.9.615
 
 **Admin-Route:** `/admin`
 
@@ -21,6 +21,7 @@ Im aktuellen Stand bildet das Dashboard vor allem den Überblick über:
 - Aktivitätslisten/Audit-nahe Ereignisse
 - Schnellzugriffe in häufig genutzte Admin-Bereiche
 - priorisierte Hinweise für offene To-dos oder Sicherheitsauffälligkeiten
+- segmentweise Fallbacks, falls einzelne Statistikquellen temporär ausfallen
 
 ---
 
@@ -31,6 +32,7 @@ Im aktuellen Stand bildet das Dashboard vor allem den Überblick über:
 | KPI-Karten | Benutzer, Seiten, Beiträge, Medien und optional Bestell-/Umsatzkennzahlen |
 | Highlight-Karten | verdichtete Zusatzsignale wie neue Benutzer, Entwürfe, geplante Beiträge oder Upload-Volumen |
 | Prioritäten | offene Bestellungen, fehlgeschlagene Logins oder HTTPS-Hinweise |
+| Dashboard-Gesundheit | Warnhinweis, wenn einzelne Statistiksegmente nur mit Fallback-Daten gerendert werden |
 | Systemstatus | PHP-, CMS- und MySQL-Version sowie Laufzeit-/Upload-Kontext |
 | Sicherheit & Performance | Security-Score, HTTPS, fehlgeschlagene Logins, RAM- und Performance-Score |
 | Schnellzugriffe | Header-Aktionen für neue Inhalte, Medien und zentrale Admin-Bereiche |
@@ -44,6 +46,7 @@ Im aktuellen Stand bildet das Dashboard vor allem den Überblick über:
 - Karten dienen primär als Einstieg in Detailseiten; längere Erklärtexte gehören in die Zielbereiche statt in die Startansicht.
 - Warnungen auf der Startseite bleiben auf relevante `warning`-/`danger`-Fälle begrenzt, damit das Dashboard nicht zur Alert-Wand mutiert.
 - Quicklinks und Filter-/Sortierlogik gehören außerhalb einzelner Kartenblöcke, damit die Kartensammlung visuell ruhig bleibt.
+- Fällt nur eine Datenquelle aus, bleibt das Dashboard insgesamt renderbar; der degradierte Zustand wird über einen Hinweis auf `CMS Logs` transparent gemacht.
 
 ---
 
@@ -54,6 +57,7 @@ Im aktuellen Stand bildet das Dashboard vor allem den Überblick über:
 - das Dashboard ist Startpunkt, aber nicht mehr die alleinige Systemübersicht
 - KPI- und Highlight-Karten arbeiten aus derselben Stats-Basis wie Attention-Items, damit Kennzahlen konsistent bleiben
 - Bestellbezogene Blöcke erscheinen nur, wenn die zugehörigen Subscription-/Orders-Module aktiv sind
+- Statistiksegmente werden seit `2.9.615` einzeln fail-soft geladen und bei Ausfall mit strukturiertem Logger-Hinweis auf dem Kanal `dashboard` protokolliert
 
 ---
 

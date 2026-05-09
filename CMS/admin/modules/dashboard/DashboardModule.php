@@ -37,6 +37,7 @@ class DashboardModule
     public function getData(): array
     {
         $stats = $this->service->getAllStats();
+        $meta = is_array($stats['meta'] ?? null) ? $stats['meta'] : [];
         $subscriptionEnabled = $this->isSubscriptionSystemEnabled();
         $subscriptionOrdersEnabled = $this->isSubscriptionOrdersEnabled();
         $system = $stats['system'] ?? [];
@@ -53,7 +54,7 @@ class DashboardModule
             'kpis'          => $this->buildKpis($stats, $subscriptionOrdersEnabled),
             'activity'      => $this->getRecentActivity(),
             'quickLinks'    => $this->getQuickLinks(),
-            'alerts'        => $this->getAlerts($stats),
+            'alerts'        => array_merge($this->buildDashboardHealthAlerts($meta), $this->getAlerts($stats)),
             'attention'     => $this->service->getAttentionItems($stats),
             'subscription_enabled' => $subscriptionEnabled,
             'recent_orders' => $subscriptionOrdersEnabled ? $this->service->getRecentOrders() : [],
@@ -61,6 +62,7 @@ class DashboardModule
             'system'        => $system,
             'security'      => $security,
             'performance'   => $performance,
+            'meta'          => $meta,
             'highlights'    => [
                 [
                     'label' => 'Neue Benutzer heute',
@@ -99,6 +101,41 @@ class DashboardModule
                 ]] : []),
             ],
         ];
+    }
+
+    private function buildDashboardHealthAlerts(array $meta): array
+    {
+        $degradedSections = array_values(array_filter(
+            is_array($meta['degraded_sections'] ?? null) ? $meta['degraded_sections'] : [],
+            static fn (mixed $section): bool => is_string($section) && trim($section) !== ''
+        ));
+
+        if ($degradedSections === []) {
+            return [];
+        }
+
+        $sectionLabels = [
+            'users' => 'Benutzer',
+            'pages' => 'Seiten',
+            'posts' => 'Beiträge',
+            'media' => 'Medien',
+            'sessions' => 'Sessions',
+            'security' => 'Sicherheit',
+            'performance' => 'Performance',
+            'system' => 'Systemstatus',
+            'orders' => 'Bestellungen',
+        ];
+
+        $labels = array_map(
+            static fn (string $section): string => $sectionLabels[$section] ?? ucfirst($section),
+            $degradedSections
+        );
+
+        return [[
+            'type' => 'warning',
+            'message' => 'Einige Dashboard-Bereiche laufen aktuell im Fallback-Modus: ' . implode(', ', $labels) . '. Details stehen in den CMS Logs.',
+            'url' => '/admin/cms-logs',
+        ]];
     }
 
     private function isSubscriptionSystemEnabled(): bool

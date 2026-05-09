@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.9.614",
+  "version": "2.9.618",
   "min_php": "8.4",
   "released": "2026-05-09",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 2.9.614: Der Featured-Image-Save-Flow für neue Beiträge und Seiten ist gegen Fehler beim Verschieben temporärer Uploads gehärtet, sodass erfolgreiche Bildübernahmen nicht mehr als 500er im Admin landen. Der Picker bewirbt außerdem nur noch die serverseitig akzeptierten Bildformate JPG, PNG, GIF, WebP, BMP und ICO.",
+  "notes": "Release-Stand 2.9.618: Der Replace-in-place-Flow für Beitrags- und Seitenbilder erzwingt jetzt immer die feste Bild-Allowlist JPG/JPEG, PNG, GIF, WebP, BMP und ICO. Damit bleiben UI, Doku und serverseitige Validierung auch dann konsistent, wenn allgemeine Bibliotheks-Typen im Admin umkonfiguriert werden.",
   "critical": false
 }

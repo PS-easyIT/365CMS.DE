@@ -417,7 +417,7 @@ final class AiSettingsService
             'default_target_locale' => $this->normalizeLocale((string) ($stored['default_target_locale'] ?? $defaults['default_target_locale']), (string) $defaults['default_target_locale']),
             'allowed_target_locales' => $this->normalizeStringList($stored['allowed_target_locales'] ?? $defaults['allowed_target_locales'], ['en']),
             'supported_block_types' => $this->normalizeSupportedBlockTypes($stored['supported_block_types'] ?? $defaults['supported_block_types'], (array) $defaults['supported_block_types']),
-            'preview_required' => (bool) ($stored['preview_required'] ?? $defaults['preview_required']),
+            'preview_required' => true,
             'preserve_unsupported_blocks' => (bool) ($stored['preserve_unsupported_blocks'] ?? $defaults['preserve_unsupported_blocks']),
             'skip_html_blocks' => (bool) ($stored['skip_html_blocks'] ?? $defaults['skip_html_blocks']),
             'result_mode' => $resultMode,

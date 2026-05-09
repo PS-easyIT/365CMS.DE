@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Verwaltung hochgeladener Dateien und Ordner, Kategorien, Medieneinstellungen und kontrollierter Auslieferung über interne Services.
 
-Letzte Aktualisierung: 2026-05-09 · Version 2.9.614
+Letzte Aktualisierung: 2026-05-09 · Version 2.9.618
 
 ---
 
@@ -126,6 +126,7 @@ Absicherungen und UX-Details:
 
 - `replace_item` akzeptiert serverseitig nur Pfade aus der aktuellen Featured-Image-Usage-Map.
 - Uploadvalidierung bleibt im `MediaService`: erlaubte Extension, MIME-/Signaturprüfung, Bilddatenprüfung, Größenlimit und SVG-Block.
+- Seit `2.9.618` hängt dieser Spezialpfad dabei nicht mehr an den allgemeinen `allowed_types` der Bibliothek, sondern erzwingt serverseitig immer die feste Bild-Allowlist `jpg`, `jpeg`, `png`, `gif`, `webp`, `bmp`, `ico`.
 - Die Oberfläche nennt nur die serverseitig unterstützten Bildformate JPG/JPEG, PNG, GIF, WebP, BMP und ICO; `accept` ist dabei nur ein Browser-Hinweis und ersetzt keine Serverprüfung.
 - Drag-&-Drop wird auf genau eine Datei begrenzt; ungültige Drops außerhalb der Zielzone werden abgefangen, damit der Browser keine Datei versehentlich öffnet.
 - Vor dem Speichern wird lokal eine Mini-Vorschau über Objekt-URL bzw. FileReader gezeigt und beim Seitenwechsel wieder freigegeben.

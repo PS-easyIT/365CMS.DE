@@ -1,5 +1,5 @@
 # 365CMS – Admin-Bereich
-> **Stand:** 2026-04-08 | **Version:** 2.9.2 | **Status:** Aktuell
+> **Stand:** 2026-05-09 | **Version:** 2.9.618 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Überblick](#überblick)
@@ -10,10 +10,10 @@
 
 Die Struktur folgt der aktuellen Sidebar-Konfiguration aus `CMS/admin/partials/sidebar.php`. Öffentliche Admin-Routen werden in der Dokumentation bewusst ohne `.php` beschrieben.
 
-Für Detailfragen gilt die reale Sidebar- und Routing-Laufzeit als führend; diese Datei ist die verdichtete 2.9.2-Übersicht, nicht der einzige Wahrheitsspeicher.
+Für Detailfragen gilt die reale Sidebar- und Routing-Laufzeit als führend; diese Datei ist die verdichtete 2.9.618-Übersicht, nicht der einzige Wahrheitsspeicher.
 
 ---
-<!-- UPDATED: 2026-04-08 -->
+<!-- UPDATED: 2026-05-09 -->
 
 ## Überblick
 
@@ -35,9 +35,10 @@ Wichtige Grundsätze:
 
 | Menügruppe | Wichtige Routen | Zweck |
 |---|---|---|
-| Dashboard | `/admin` | Gesamtüberblick, KPIs, Schnellzugriffe |
-| Seiten & Beiträge | `/admin/pages`, `/admin/posts`, `/admin/comments`, `/admin/table-of-contents`, `/admin/site-tables` | Content-Management |
-| Medienverwaltung | `/admin/media`, `/admin/media?tab=featured`, `/admin/media?tab=categories`, `/admin/media?tab=settings` | Bibliothek, Beitrags-/Site-Medien, Kategorien, Medieneinstellungen |
+| Dashboard | `/admin` | Gesamtüberblick, KPIs, Schnellzugriffe und fail-softe Statusblöcke |
+| AI Services | `/admin/ai-services`, `/admin/ai-translation`, `/admin/ai-content-creator`, `/admin/ai-seo-creator`, `/admin/ai-settings` | Provider, Translation-Regeln, Logging und Quotas für AI-Workflows |
+| Seiten & Beiträge | `/admin/pages`, `/admin/posts`, `/admin/comments`, `/admin/table-of-contents`, `/admin/site-tables` | Content-Management mit stabilem Slug-/Taxonomie-Vertrag für Seiten, Beiträge und Blog-Filter |
+| Medienverwaltung | `/admin/media`, `/admin/media?tab=featured`, `/admin/media?tab=categories`, `/admin/media?tab=settings` | Bibliothek, Beitrags-/Site-Medien, Kategorien, Medieneinstellungen mit festem Bildvertrag im Replace-in-place-Flow |
 | Benutzer & Gruppen | `/admin/users`, `/admin/groups`, `/admin/roles`, `/admin/user-settings` | Benutzer, Teams, Rechte und Auth-Einstellungen |
 | Member Dashboard | `/admin/member-dashboard` und Folgeseiten | Konfiguration des Mitgliederbereichs |
 | Aboverwaltung | `/admin/packages`, `/admin/orders`, `/admin/subscription-settings` | Pakete, Bestellungen, Zuweisungen |
@@ -58,6 +59,7 @@ Wichtige Grundsätze:
 | Bereich | Dokument |
 |---|---|
 | Admin-Struktur | [FILESTRUCTURE.md](FILESTRUCTURE.md) |
+| Admin-Prüfplanung | [PRUEF-CHECKLISTE.md](PRUEF-CHECKLISTE.md) |
 | Dashboard | [dashboard/DASHBOARD.md](dashboard/DASHBOARD.md) |
 | Seiten & Beiträge | [pages-posts/README.md](pages-posts/README.md) |
 | Kommentare | [pages-posts/COMMENTS.md](pages-posts/COMMENTS.md) |
@@ -109,6 +111,8 @@ Alle Einstiege folgen demselben Grundmuster:
 4. CSRF-Prüfung via `CMS\Security`
 5. Verarbeitung der Aktion im Modul oder Service
 6. Redirect mit Session-Alert statt direkter POST-Antwort
+
+Für das Dashboard gilt seit `2.9.615` zusätzlich: einzelne Statistikquellen müssen fail-soft isoliert werden, damit ein ausgefallener Teilblock nicht die komplette Startseite bricht.
 
 Das ist wichtig für konsistente Fehlerbehandlung, PRG-Flow und nachvollziehbare Audit-Einträge.
 

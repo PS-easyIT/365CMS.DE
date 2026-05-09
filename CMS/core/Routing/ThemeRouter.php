@@ -1240,6 +1240,13 @@ final class ThemeRouter
             }
         }
 
+        if ($normalizedNeedle !== '') {
+            $redirectedSlug = $this->resolveArchiveSlugFromRedirect('category', $normalizedNeedle);
+            if ($redirectedSlug !== '') {
+                return $redirectedSlug;
+            }
+        }
+
         return '';
     }
 
@@ -1282,7 +1289,93 @@ final class ThemeRouter
             }
         }
 
+        $redirectedSlug = $this->resolveArchiveSlugFromRedirect('tag', $normalizedNeedle);
+        if ($redirectedSlug !== '') {
+            return $redirectedSlug;
+        }
+
         return $normalizedNeedle;
+    }
+
+    private function resolveArchiveSlugFromRedirect(string $archiveType, string $slug): string
+    {
+        $slug = $this->archiveRepository->normalizeArchiveSlug($slug);
+        if ($slug === '' || !function_exists('cms_get_archive_locales') || !function_exists('cms_get_archive_base')) {
+            return '';
+        }
+
+        $db = Database::instance();
+        $prefix = $db->getPrefix();
+        $checkedPaths = [];
+
+        foreach (cms_get_archive_locales() as $locale) {
+            $archiveBase = trim((string) cms_get_archive_base($archiveType, (string) $locale), '/');
+            if ($archiveBase === '') {
+                continue;
+            }
+
+            $sourcePath = '/' . $archiveBase . '/' . $slug;
+            if (isset($checkedPaths[$sourcePath])) {
+                continue;
+            }
+
+            $checkedPaths[$sourcePath] = true;
+
+            $row = $db->get_row(
+                "SELECT target_url FROM {$prefix}redirect_rules WHERE source_path = ? AND site_scope = ? AND is_active = 1 LIMIT 1",
+                [$sourcePath, '']
+            );
+
+            if ($row === null) {
+                continue;
+            }
+
+            $resolvedSlug = $this->extractArchiveSlugFromTarget($archiveType, (string) ($row->target_url ?? ''));
+            if ($resolvedSlug !== '') {
+                return $resolvedSlug;
+            }
+        }
+
+        return '';
+    }
+
+    private function extractArchiveSlugFromTarget(string $archiveType, string $targetUrl): string
+    {
+        $targetUrl = trim($targetUrl);
+        if ($targetUrl === '' || !function_exists('cms_get_archive_locales') || !function_exists('cms_get_archive_base')) {
+            return '';
+        }
+
+        if (($queryPosition = strpos($targetUrl, '?')) !== false) {
+            $targetUrl = substr($targetUrl, 0, $queryPosition);
+        }
+
+        if (filter_var($targetUrl, FILTER_VALIDATE_URL)) {
+            $targetUrl = (string) parse_url($targetUrl, PHP_URL_PATH);
+        }
+
+        $targetPath = '/' . ltrim($targetUrl, '/');
+        if ($targetPath !== '/') {
+            $targetPath = rtrim($targetPath, '/');
+        }
+
+        foreach (cms_get_archive_locales() as $locale) {
+            $archiveBase = trim((string) cms_get_archive_base($archiveType, (string) $locale), '/');
+            if ($archiveBase === '') {
+                continue;
+            }
+
+            $archivePrefix = '/' . $archiveBase . '/';
+            if (!str_starts_with($targetPath, $archivePrefix)) {
+                continue;
+            }
+
+            $resolvedSlug = trim(substr($targetPath, strlen($archivePrefix)), '/');
+
+            return $this->archiveRepository->normalizeArchiveSlug($resolvedSlug);
+        }
+
+        return '';
     }
 
 
