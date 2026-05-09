@@ -30,21 +30,37 @@ final class AiServicesModule
         'mediatext' => 'mediaText',
     ];
 
-    private AiSettingsService $settings;
-    private Database $db;
-    private string $dbPrefix;
+    private ?AiSettingsService $settings = null;
+    private ?Database $db = null;
+    private string $dbPrefix = '';
+    private string $initializationError = '';
 
     public function __construct()
     {
-        $this->settings = AiSettingsService::getInstance();
-        $this->db = Database::getInstance();
-        $this->dbPrefix = $this->db->getPrefix();
+        try {
+            $this->settings = AiSettingsService::getInstance();
+            $this->db = Database::instance();
+            $this->dbPrefix = $this->db->getPrefix();
+        } catch (\Throwable $e) {
+            $this->initializationError = 'AI-Services konnten nicht initialisiert werden. Bitte Datenbank-/Runtime-Logs prüfen.';
+            Logger::instance()->withChannel('admin.ai-services')->error('AI-Services Initialisierung fehlgeschlagen.', [
+                'exception' => $e::class,
+                'message' => $this->sanitizeText($e->getMessage(), self::MAX_TEXT_LENGTH),
+            ]);
+        }
     }
 
     /** @return array<string, mixed> */
     public function getData(string $section = 'overview'): array
     {
         try {
+            if ($this->settings === null) {
+                $fallback = $this->getDefaultData();
+                $fallback['error'] = $this->initializationError !== '' ? $this->initializationError : 'AI-Services-Konfiguration konnte gerade nicht geladen werden.';
+
+                return $fallback;
+            }
+
             $configuration = $this->settings->getConfiguration();
 
             if ($section === 'overview') {
@@ -172,6 +188,10 @@ final class AiServicesModule
      */
     private function loadUsageEntries(array $providerLabels): array
     {
+        if ($this->db === null || $this->dbPrefix === '') {
+            throw new \RuntimeException('AI-Nutzungsdatenbank ist nicht initialisiert.');
+        }
+
         $since = (new \DateTimeImmutable('-' . self::USAGE_LOOKBACK_DAYS . ' days'))->format('Y-m-d H:i:s');
         $rows = $this->db->get_results(
             "SELECT user_id, action, severity, description, metadata, created_at
@@ -397,6 +417,10 @@ final class AiServicesModule
     public function saveProviders(array $post): array
     {
         try {
+            if ($this->settings === null) {
+                return $this->runtimeUnavailableResult('Provider-Einstellungen konnten nicht gespeichert werden.');
+            }
+
             $current = $this->settings->getConfiguration();
             $currentProviderEntries = array_values(array_filter(
                 (array) ($current['providers']['entries'] ?? []),
@@ -473,6 +497,10 @@ final class AiServicesModule
     public function addProvider(array $post): array
     {
         try {
+            if ($this->settings === null) {
+                return $this->runtimeUnavailableResult('Provider-Eintrag konnte nicht angelegt werden.');
+            }
+
             $providerType = $this->sanitizeProviderType((string) ($post['provider_type'] ?? ''), true);
             if ($providerType === '') {
                 return ['success' => false, 'error' => 'Bitte einen unterstützten Providertyp auswählen.'];
@@ -532,6 +560,10 @@ final class AiServicesModule
     public function deleteProvider(array $post): array
     {
         try {
+            if ($this->settings === null) {
+                return $this->runtimeUnavailableResult('Provider-Eintrag konnte nicht gelöscht werden.');
+            }
+
             $providerId = $this->sanitizeProviderId((string) ($post['provider_id'] ?? ''));
             if ($providerId === '') {
                 return ['success' => false, 'error' => 'Der zu löschende Provider-Eintrag ist ungültig.'];
@@ -596,6 +628,10 @@ final class AiServicesModule
     public function saveFeatures(array $post): array
     {
         try {
+            if ($this->settings === null) {
+                return $this->runtimeUnavailableResult('Feature-Gates konnten nicht gespeichert werden.');
+            }
+
             $values = [
                 'ai_services_enabled' => !empty($post['ai_services_enabled']),
                 'ai_translation_enabled' => !empty($post['ai_translation_enabled']),
@@ -629,6 +665,10 @@ final class AiServicesModule
     public function saveTranslation(array $post): array
     {
         try {
+            if ($this->settings === null) {
+                return $this->runtimeUnavailableResult('Translation-Einstellungen konnten nicht gespeichert werden.');
+            }
+
             $values = [
                 'default_source_locale' => $this->sanitizeLocale((string) ($post['default_source_locale'] ?? 'de'), 'de'),
                 'default_target_locale' => $this->sanitizeLocale((string) ($post['default_target_locale'] ?? 'en'), 'en'),
@@ -693,6 +733,10 @@ final class AiServicesModule
                 return ['success' => false, 'error' => 'Unbekannter Prompt-Vorlagenbereich.'];
             }
 
+            if ($this->settings === null) {
+                return $this->runtimeUnavailableResult('Prompt-Vorlage konnte nicht gespeichert werden.');
+            }
+
             $label = $this->sanitizeText((string) ($post['prompt_label'] ?? ''), self::MAX_TEXT_LENGTH);
             $systemPrompt = $this->sanitizePromptBody((string) ($post['system_prompt'] ?? ''), 4000);
             $userTemplate = $this->sanitizePromptBody((string) ($post['user_template'] ?? ''), 4000);
@@ -742,6 +786,10 @@ final class AiServicesModule
     public function saveLogging(array $post): array
     {
         try {
+            if ($this->settings === null) {
+                return $this->runtimeUnavailableResult('Logging-Einstellungen konnten nicht gespeichert werden.');
+            }
+
             $values = [
                 'logging_mode' => $this->sanitizeLoggingMode((string) ($post['logging_mode'] ?? 'technical')),
                 'retention_days' => $this->sanitizeInt((int) ($post['retention_days'] ?? 30), 1, 3650),
@@ -779,6 +827,10 @@ final class AiServicesModule
     public function saveQuotas(array $post): array
     {
         try {
+            if ($this->settings === null) {
+                return $this->runtimeUnavailableResult('Quota- und Limit-Einstellungen konnten nicht gespeichert werden.');
+            }
+
             $values = [
                 'max_chars_per_request' => $this->sanitizeInt((int) ($post['max_chars_per_request'] ?? 12000), 250, 250000),
                 'max_blocks_per_request' => $this->sanitizeInt((int) ($post['max_blocks_per_request'] ?? 40), 1, 500),
@@ -1098,5 +1150,14 @@ final class AiServicesModule
         );
 
         return ['success' => false, 'error' => $message . ' Bitte Logs prüfen.'];
+    }
+
+    /** @return array<string, mixed> */
+    private function runtimeUnavailableResult(string $message): array
+    {
+        return [
+            'success' => false,
+            'error' => $message . ' ' . ($this->initializationError !== '' ? $this->initializationError : 'AI-Services sind aktuell nicht initialisiert.'),
+        ];
     }
 }

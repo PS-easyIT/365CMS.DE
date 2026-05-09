@@ -18,6 +18,8 @@ if (!defined('ABSPATH')) {
 class Security
 {
     private static ?self $instance = null;
+    private const int CSRF_TOKEN_TTL = 3600;
+    private const int CSRF_TOKEN_HISTORY_LIMIT = 20;
 
     /**
      * Per-Request CSP-Nonce (H-03)
@@ -279,21 +281,15 @@ class Security
      */
     public function generateToken(string $action = 'default'): string
     {
-        if (isset($_SESSION['csrf_tokens'][$action])) {
-            $stored = $_SESSION['csrf_tokens'][$action];
-            if (is_array($stored)
-                && isset($stored['token'], $stored['time'])
-                && is_string($stored['token'])
-                && (time() - (int)$stored['time']) <= 3600
-            ) {
-                return $stored['token'];
-            }
-        }
-
         $token = bin2hex(random_bytes(32));
-        $_SESSION['csrf_tokens'][$action] = [
+        $tokens = $this->normalizeCsrfTokenBucket($action);
+        $tokens[] = [
             'token' => $token,
-            'time' => time()
+            'time' => time(),
+        ];
+
+        $_SESSION['csrf_tokens'][$action] = [
+            'tokens' => array_slice($tokens, -self::CSRF_TOKEN_HISTORY_LIMIT),
         ];
         
         return $token;
@@ -304,23 +300,36 @@ class Security
      */
     public function verifyToken(string $token, string $action = 'default'): bool
     {
-        if (!isset($_SESSION['csrf_tokens'][$action])) {
+        $token = trim($token);
+        if ($token === '' || !isset($_SESSION['csrf_tokens'][$action])) {
             return false;
         }
-        
-        $stored = $_SESSION['csrf_tokens'][$action];
-        
-        // Check expiration (1 hour)
-        if (time() - $stored['time'] > 3600) {
+
+        $tokens = $this->normalizeCsrfTokenBucket($action);
+        if ($tokens === []) {
             unset($_SESSION['csrf_tokens'][$action]);
             return false;
         }
-        
-        $valid = hash_equals($stored['token'], $token);
+
+        $valid = false;
+        $remaining = [];
+        foreach ($tokens as $stored) {
+            $storedToken = (string) ($stored['token'] ?? '');
+            if ($storedToken !== '' && !$valid && hash_equals($storedToken, $token)) {
+                $valid = true;
+                continue;
+            }
+
+            $remaining[] = $stored;
+        }
 
         // Token nach erfolgreicher Prüfung invalidieren (verhindert Replay-Angriffe)
         if ($valid) {
-            unset($_SESSION['csrf_tokens'][$action]);
+            if ($remaining === []) {
+                unset($_SESSION['csrf_tokens'][$action]);
+            } else {
+                $_SESSION['csrf_tokens'][$action] = ['tokens' => array_slice($remaining, -self::CSRF_TOKEN_HISTORY_LIMIT)];
+            }
         }
 
         return $valid;
@@ -335,18 +344,62 @@ class Security
      */
     public function verifyPersistentToken(string $token, string $action = 'default'): bool
     {
-        if (!isset($_SESSION['csrf_tokens'][$action])) {
+        $token = trim($token);
+        if ($token === '' || !isset($_SESSION['csrf_tokens'][$action])) {
             return false;
         }
 
-        $stored = $_SESSION['csrf_tokens'][$action];
-
-        if (time() - $stored['time'] > 3600) {
+        $tokens = $this->normalizeCsrfTokenBucket($action);
+        if ($tokens === []) {
             unset($_SESSION['csrf_tokens'][$action]);
             return false;
         }
 
-        return hash_equals($stored['token'], $token);
+        $_SESSION['csrf_tokens'][$action] = ['tokens' => array_slice($tokens, -self::CSRF_TOKEN_HISTORY_LIMIT)];
+
+        foreach ($tokens as $stored) {
+            $storedToken = (string) ($stored['token'] ?? '');
+            if ($storedToken !== '' && hash_equals($storedToken, $token)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @return list<array{token:string,time:int}>
+     */
+    private function normalizeCsrfTokenBucket(string $action): array
+    {
+        $stored = $_SESSION['csrf_tokens'][$action] ?? null;
+        $candidates = [];
+
+        if (is_array($stored) && isset($stored['token'], $stored['time'])) {
+            $candidates[] = $stored;
+        } elseif (is_array($stored) && is_array($stored['tokens'] ?? null)) {
+            $candidates = $stored['tokens'];
+        }
+
+        $now = time();
+        $tokens = [];
+        foreach ($candidates as $candidate) {
+            if (!is_array($candidate) || !is_string($candidate['token'] ?? null)) {
+                continue;
+            }
+
+            $createdAt = (int) ($candidate['time'] ?? 0);
+            if ($createdAt <= 0 || ($now - $createdAt) > self::CSRF_TOKEN_TTL) {
+                continue;
+            }
+
+            $tokens[] = [
+                'token' => $candidate['token'],
+                'time' => $createdAt,
+            ];
+        }
+
+        return array_slice($tokens, -self::CSRF_TOKEN_HISTORY_LIMIT);
     }
     
     /**
