@@ -45,6 +45,16 @@ function cms_admin_comments_normalize_bulk_action(mixed $action): string
     return in_array($normalizedAction, CMS_ADMIN_COMMENTS_ALLOWED_BULK_ACTIONS, true) ? $normalizedAction : '';
 }
 
+/** @return array{query:string,author_scope:string,link_scope:string} */
+function cms_admin_comments_normalize_filters(CommentsModule $module, array $source): array
+{
+    return $module->normalizeFilters([
+        'q' => $source['q'] ?? '',
+        'author_scope' => $source['author_scope'] ?? 'all',
+        'link_scope' => $source['link_scope'] ?? 'all',
+    ]);
+}
+
 /**
  * @return array{action:string,id:int,new_status:string,bulk_action:string,ids:list<int>}
  */
@@ -116,12 +126,13 @@ $sectionPageConfig = [
     'module_file' => __DIR__ . '/modules/comments/CommentsModule.php',
     'module_factory' => static fn (): CommentsModule => new CommentsModule(),
     'data_loader' => static fn (CommentsModule $module): array => $module->getListData(
-        $module->normalizeStatusFilter((string) ($_GET['status'] ?? 'all'))
+        $module->normalizeStatusFilter((string) ($_GET['status'] ?? 'all')),
+        cms_admin_comments_normalize_filters($module, $_GET)
     ),
     'access_checker' => static fn (): bool => Auth::isLoggedIn() && function_exists('current_user_can') && current_user_can('comments.view'),
     'redirect_path_resolver' => static function (CommentsModule $module): string {
         $status = $module->normalizeStatusFilter((string) ($_GET['status'] ?? 'all'));
-        $target = $module->buildListUrl($status);
+        $target = $module->buildListUrlWithFilters($status, cms_admin_comments_normalize_filters($module, $_GET));
 
         return (string) parse_url($target, PHP_URL_PATH) . (($query = (string) parse_url($target, PHP_URL_QUERY)) !== '' ? '?' . $query : '');
     },

@@ -320,7 +320,7 @@ Die Sidebar in `CMS/admin/partials/sidebar.php` ist für die Menüstruktur führ
 
 - [ ] Revisionen / Vergleich / Diff für Seiten und Beiträge.
 - [ ] Bulk-Aktionen für Kategorien/Tags.
-- [ ] Kommentarmoderation mit Schnellfiltern und Massenaktionen.
+- [x] Kommentarmoderation mit Schnellfiltern und Massenaktionen.
 - [ ] Inhaltsqualitätsprüfungen direkt im Editor.
 
 ### Audit-Stand – Seiten & Beiträge · Durchlauf 1
@@ -335,6 +335,19 @@ Die Sidebar in `CMS/admin/partials/sidebar.php` ist für die Menüstruktur führ
 - **Offene Must-haves:** keine
 - **Offene Nice-to-haves:** Revisionsvergleich, Bulk-Aktionen für Kategorien/Tags, erweiterte Kommentarmoderation, Inhaltsqualitätsprüfungen
 - **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/pages-posts/README.md`, `CMS/DOC/admin/pages-posts/POSTS.md`
+
+### Audit-Stand – Seiten & Beiträge Nice-to-haves · Durchlauf 1
+
+- **Status:** abgeschlossen auf Code-/Best-Practice-/Vertragsbasis · Release `2.9.704`
+- **Prüfer:** GitHub Copilot
+- **Datum:** 2026-05-09
+- **Geprüfte Route:** `/admin/comments`
+- **Umgesetztes Nice-to-have:** Kommentarmoderation mit Schnellfiltern und Massenaktionen.
+- **Umsetzung in diesem Durchlauf:** Die Kommentar-Liste verbindet Status-Tabs jetzt mit serverseitiger Schnellsuche über Autor, E-Mail, Kommentartext und Beitragstitel sowie zusätzlichen Filtern für Autorentyp (`Gast`, `Registriert`, `Anonymes Mitglied`) und Beitragsbezug (`verknüpft`, `verwaist`). Aktive Filter bleiben über PRG-Redirects nach Einzel- und Bulk-Aktionen erhalten. Während Mehrfachauswahl aktiv ist, schaltet die UI sichtbar in einen Batch-Modus und deaktiviert parallele Zeilenaktionen bewusst, damit Moderations- und Löschpfade nicht gleichzeitig gegeneinander laufen.
+- **Abhängige Bereiche:** `CommentsModule`, `CommentService`, `comments.php`, `views/comments/list.php`, `assets/js/admin-comments.js`
+- **Offene Must-haves:** keine
+- **Offene Nice-to-haves:** Revisionsvergleich für Seiten/Beiträge, Bulk-Aktionen für Kategorien/Tags, Inhaltsqualitätsprüfungen direkt im Editor
+- **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/pages-posts/README.md`, `CMS/DOC/admin/pages-posts/COMMENTS.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`
 
 ---
 

@@ -10,6 +10,7 @@
         var bulkSubmit = document.getElementById('bulkSubmitComments');
         var tableWrap = document.querySelector('.comments-table-responsive');
         var rowChecks = Array.prototype.slice.call(document.querySelectorAll('.row-check'));
+        var rowActionTriggers = Array.prototype.slice.call(document.querySelectorAll('.comment-row-menu-trigger'));
 
         function bulkSubmitMeta(action) {
             switch (action) {
@@ -61,7 +62,17 @@
 
             countElement.textContent = String(checkedCount);
             bulkBar.classList.toggle('d-none', checkedCount === 0);
+            document.body.classList.toggle('comments-batch-mode', checkedCount > 0);
+            toggleRowActionsDisabled(checkedCount > 0);
             updateBulkSubmitState(checkedCount);
+        }
+
+        function toggleRowActionsDisabled(disabled) {
+            rowActionTriggers.forEach(function (trigger) {
+                trigger.disabled = !!disabled;
+                trigger.setAttribute('aria-disabled', disabled ? 'true' : 'false');
+                trigger.classList.toggle('disabled', !!disabled);
+            });
         }
 
         function updateBulkSubmitState(checkedCountOverride) {
@@ -188,5 +199,6 @@
         syncSelectAllState();
         updateBulkBar();
         updateBulkSubmitState();
+        toggleRowActionsDisabled(false);
     });
 })();

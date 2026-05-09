@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.9.703",
+  "version": "2.9.704",
   "min_php": "8.4",
   "released": "2026-05-09",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 2.9.703: AI Services ergänzt eine Prompt-/Vorlagenverwaltung je Bereich; die Translation-Vorlage wirkt direkt in der Editor.js-Live-Pipeline, Content- und SEO-Vorlagen sind für kommende Generatoren vorbereitet und alle Prompt-Änderungen werden datensparsam auditiert.",
+  "notes": "Release-Stand 2.9.704: Die Kommentarmoderation unter /admin/comments ergänzt serverseitige Schnellfilter für Suche, Autorentyp und Beitragsbezug; aktive Filter bleiben über PRG-Redirects erhalten, und der sichtbare Batch-Modus schaltet parallele Zeilenaktionen bei Mehrfachauswahl bewusst ab.",
   "critical": false
 }

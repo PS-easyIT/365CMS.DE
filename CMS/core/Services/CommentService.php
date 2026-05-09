@@ -30,6 +30,7 @@ class CommentService
     private const MAX_EMAIL_LENGTH = 150;
     private const MAX_CONTENT_LENGTH = 5000;
     private const MAX_LIST_LIMIT = 200;
+    private const MAX_FILTER_SEARCH_LENGTH = 80;
     private const FLOOD_WINDOW_MINUTES = 15;
     private const MAX_COMMENTS_PER_WINDOW = 5;
     private const ANTISPAM_SETTING_KEYS = [
@@ -214,35 +215,99 @@ class CommentService
         return [$resolvedName, $resolvedEmail];
     }
 
-    public function getComments(string $status = 'all', int $limit = 50, int $offset = 0): array
+    /**
+     * @param array<string, mixed> $filters
+     */
+    public function getComments(string $status = 'all', int $limit = 50, int $offset = 0, array $filters = []): array
     {
         $limit = max(1, min(self::MAX_LIST_LIMIT, $limit));
         $offset = max(0, $offset);
 
-        $where = '';
+        $status = in_array($status, ['all', 'pending', 'approved', 'spam', 'trash'], true) ? $status : 'all';
+        $normalizedFilters = $this->normalizeListFilters($filters);
+        $where = [];
         $params = [];
 
         if (in_array($status, ['pending', 'approved', 'spam', 'trash'], true)) {
-            $where = 'WHERE c.status = ?';
+            $where[] = 'c.status = ?';
             $params[] = $status;
         } elseif ($status === 'all') {
-            $where = "WHERE c.status <> 'spam'";
+            $where[] = "c.status <> 'spam'";
+        }
+
+        if ($normalizedFilters['query'] !== '') {
+            $like = '%' . $this->escapeLikeValue($normalizedFilters['query']) . '%';
+            $where[] = '(c.author LIKE ? ESCAPE "\\" OR c.author_email LIKE ? ESCAPE "\\" OR c.content LIKE ? ESCAPE "\\" OR COALESCE(p.title, "") LIKE ? ESCAPE "\\")';
+            array_push($params, $like, $like, $like, $like);
+        }
+
+        if ($normalizedFilters['author_scope'] === 'registered') {
+            $where[] = 'c.user_id IS NOT NULL AND c.author <> ?';
+            $params[] = 'Anonym';
+        } elseif ($normalizedFilters['author_scope'] === 'guest') {
+            $where[] = 'c.user_id IS NULL';
+        } elseif ($normalizedFilters['author_scope'] === 'anonymous') {
+            $where[] = 'c.user_id IS NOT NULL AND c.author = ?';
+            $params[] = 'Anonym';
+        }
+
+        if ($normalizedFilters['link_scope'] === 'linked') {
+            $where[] = 'p.id IS NOT NULL';
+        } elseif ($normalizedFilters['link_scope'] === 'orphaned') {
+            $where[] = 'p.id IS NULL';
         }
 
         $params[] = $limit;
         $params[] = $offset;
 
+        $whereSql = $where !== [] ? 'WHERE ' . implode(' AND ', $where) : '';
+
         return $this->db->get_results(
             "SELECT c.id, c.post_id, c.author, c.author_email, c.content, c.status, c.post_date,
+                c.user_id,
+                p.id AS linked_post_id,
                 p.title AS post_title, p.slug AS post_slug,
                 p.published_at AS post_published_at, p.created_at AS post_created_at
              FROM {$this->prefix}comments c
              LEFT JOIN {$this->prefix}posts p ON p.id = c.post_id
-             {$where}
+             {$whereSql}
              ORDER BY c.post_date DESC
              LIMIT ? OFFSET ?",
             $params
         ) ?: [];
+    }
+
+    /**
+     * @param array<string, mixed> $filters
+     * @return array{query:string,author_scope:string,link_scope:string}
+     */
+    public function normalizeListFilters(array $filters): array
+    {
+        $query = trim((string) ($filters['query'] ?? $filters['q'] ?? ''));
+        $query = preg_replace('/[\x00-\x1F\x7F]+/u', ' ', $query) ?? '';
+        $query = preg_replace('/\s+/u', ' ', $query) ?? '';
+        $query = $this->substringUtf8($query, 0, self::MAX_FILTER_SEARCH_LENGTH);
+
+        $authorScope = strtolower(trim((string) ($filters['author_scope'] ?? 'all')));
+        if (!in_array($authorScope, ['all', 'registered', 'guest', 'anonymous'], true)) {
+            $authorScope = 'all';
+        }
+
+        $linkScope = strtolower(trim((string) ($filters['link_scope'] ?? 'all')));
+        if (!in_array($linkScope, ['all', 'linked', 'orphaned'], true)) {
+            $linkScope = 'all';
+        }
+
+        return [
+            'query' => $query,
+            'author_scope' => $authorScope,
+            'link_scope' => $linkScope,
+        ];
+    }
+
+    private function escapeLikeValue(string $value): string
+    {
+        return str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $value);
     }
 
     public function getCounts(): array

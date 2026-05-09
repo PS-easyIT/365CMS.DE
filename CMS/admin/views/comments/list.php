@@ -17,6 +17,9 @@ $counts   = $data['counts'] ?? [];
 $status   = $data['status'] ?? 'all';
 $tabs = $data['tabs'] ?? [];
 $summaryCards = is_array($data['summaryCards'] ?? null) ? $data['summaryCards'] : [];
+$filters = is_array($data['filters'] ?? null) ? $data['filters'] : [];
+$filterMeta = is_array($data['filterMeta'] ?? null) ? $data['filterMeta'] : [];
+$activeFilters = array_values(array_filter((array) ($filterMeta['active_filters'] ?? []), static fn (mixed $entry): bool => is_array($entry)));
 $canModerate = (bool)($data['canModerate'] ?? false);
 $canDelete = (bool)($data['canDelete'] ?? false);
 $canBulkActions = $canModerate || $canDelete;
@@ -106,6 +109,55 @@ $actionClass = static function (string $variant): string {
                 </ul>
             </div>
 
+            <div class="card-body border-bottom">
+                <form method="get" action="<?php echo htmlspecialchars($commentsBaseUrl); ?>" class="row g-2 align-items-end">
+                    <div class="col-12 col-lg-5">
+                        <label for="comment-search" class="form-label mb-1">Schnellsuche</label>
+                        <input
+                            type="search"
+                            class="form-control"
+                            id="comment-search"
+                            name="q"
+                            maxlength="80"
+                            value="<?php echo htmlspecialchars((string) ($filters['query'] ?? ''), ENT_QUOTES); ?>"
+                            placeholder="Autor, E-Mail, Kommentartext oder Beitrag suchen">
+                    </div>
+                    <div class="col-12 col-md-6 col-lg-3">
+                        <label for="comment-author-scope" class="form-label mb-1">Autorentyp</label>
+                        <select class="form-select" id="comment-author-scope" name="author_scope">
+                            <?php foreach ((array) ($filterMeta['author_scope_options'] ?? []) as $scopeValue => $scopeLabel): ?>
+                                <option value="<?php echo htmlspecialchars((string) $scopeValue, ENT_QUOTES); ?>" <?php echo ((string) ($filters['author_scope'] ?? 'all') === (string) $scopeValue) ? 'selected' : ''; ?>><?php echo htmlspecialchars((string) $scopeLabel); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="col-12 col-md-6 col-lg-3">
+                        <label for="comment-link-scope" class="form-label mb-1">Beitragsbezug</label>
+                        <select class="form-select" id="comment-link-scope" name="link_scope">
+                            <?php foreach ((array) ($filterMeta['link_scope_options'] ?? []) as $scopeValue => $scopeLabel): ?>
+                                <option value="<?php echo htmlspecialchars((string) $scopeValue, ENT_QUOTES); ?>" <?php echo ((string) ($filters['link_scope'] ?? 'all') === (string) $scopeValue) ? 'selected' : ''; ?>><?php echo htmlspecialchars((string) $scopeLabel); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="col-12 col-lg-1 d-flex gap-2">
+                        <?php if ($status !== 'all'): ?>
+                            <input type="hidden" name="status" value="<?php echo htmlspecialchars((string) $status, ENT_QUOTES); ?>">
+                        <?php endif; ?>
+                        <button type="submit" class="btn btn-primary w-100">Filtern</button>
+                    </div>
+                    <div class="col-12 d-flex flex-wrap align-items-center gap-2 mt-2">
+                        <?php if ($activeFilters !== []): ?>
+                            <span class="text-secondary small"><?php echo (int) ($filterMeta['active_filter_count'] ?? count($activeFilters)); ?> aktive Filter:</span>
+                            <?php foreach ($activeFilters as $activeFilter): ?>
+                                <span class="badge bg-secondary-lt text-secondary-emphasis"><?php echo htmlspecialchars((string) ($activeFilter['label'] ?? 'Filter')); ?>: <?php echo htmlspecialchars((string) ($activeFilter['value'] ?? '')); ?></span>
+                            <?php endforeach; ?>
+                            <a class="btn btn-sm btn-outline-secondary" href="<?php echo htmlspecialchars($status === 'all' ? $commentsBaseUrl : $commentsBaseUrl . '?status=' . rawurlencode((string) $status), ENT_QUOTES); ?>">Filter zurücksetzen</a>
+                        <?php else: ?>
+                            <span class="text-secondary small">Keine zusätzlichen Filter aktiv. Status-Tabs und Schnellfilter lassen sich kombinieren.</span>
+                        <?php endif; ?>
+                    </div>
+                </form>
+            </div>
+
             <!-- Bulk-Aktionen -->
             <?php if ($canBulkActions): ?>
                 <div class="card-body py-2 d-none" id="bulkBar">
@@ -181,6 +233,7 @@ $actionClass = static function (string $variant): string {
                                         <div>
                                             <div class="font-weight-medium"><?php echo htmlspecialchars($cAuthor); ?></div>
                                             <div class="text-secondary small"><?php echo htmlspecialchars($cEmail); ?></div>
+                                            <div class="text-secondary small"><?php echo htmlspecialchars((string) ($c['author_scope_label'] ?? '')); ?></div>
                                         </div>
                                     </div>
                                 </td>
@@ -192,8 +245,19 @@ $actionClass = static function (string $variant): string {
                                         <a href="<?php echo htmlspecialchars($cPostUrl); ?>" class="text-reset" target="_blank" rel="noopener noreferrer">
                                             <?php echo htmlspecialchars($cPostTitle); ?>
                                         </a>
+                                        <?php if (empty($c['has_linked_post'])): ?>
+                                            <div class="text-warning small">Beitragsdatensatz fehlt</div>
+                                        <?php endif; ?>
+                                    <?php elseif ($cPostTitle): ?>
+                                        <span class="text-reset"><?php echo htmlspecialchars($cPostTitle); ?></span>
+                                        <?php if (empty($c['has_linked_post'])): ?>
+                                            <div class="text-warning small">Beitragsdatensatz fehlt</div>
+                                        <?php endif; ?>
                                     <?php else: ?>
                                         <span class="text-secondary">–</span>
+                                        <?php if (empty($c['has_linked_post'])): ?>
+                                            <div class="text-warning small">verwaist</div>
+                                        <?php endif; ?>
                                     <?php endif; ?>
                                 </td>
                                 <td>
@@ -205,7 +269,7 @@ $actionClass = static function (string $variant): string {
                                 <?php if ($showActionColumn): ?>
                                     <td>
                                         <div class="dropdown">
-                                            <button class="btn btn-ghost-secondary btn-icon btn-sm" data-bs-toggle="dropdown" aria-expanded="false">
+                                            <button class="btn btn-ghost-secondary btn-icon btn-sm comment-row-menu-trigger" data-bs-toggle="dropdown" aria-expanded="false">
                                                 <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/><circle cx="12" cy="5" r="1"/></svg>
                                             </button>
                                             <div class="dropdown-menu dropdown-menu-end">

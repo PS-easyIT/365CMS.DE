@@ -1,4 +1,4 @@
-﻿﻿**Version:** 2.9.703
+﻿﻿**Version:** 2.9.704
 
 # 365CMS Changelog
 
@@ -19,6 +19,12 @@
 ## 📜 Vollständige Versionshistorie
 
 ---
+
+### v2.9.704 — 9. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.704** | 🟢 feat | Admin/Seiten & Beiträge – Kommentare Nice-to-have | **`CMS/core/Services/CommentService.php`, `CMS/admin/modules/comments/CommentsModule.php`, `CMS/admin/comments.php`, `CMS/admin/views/comments/list.php`, `CMS/assets/js/admin-comments.js`, `CMS/DOC/admin/pages-posts/COMMENTS.md`, `CMS/DOC/admin/pages-posts/README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`, `CMS/core/Version.php`, `CMS/update.json` und `README.md` schließen den ersten Nice-to-have-Durchlauf im Bereich Kommentare ab**: Die Moderationsliste unter `/admin/comments` bietet jetzt neben Status-Tabs echte serverseitige Schnellfilter für Autor, E-Mail, Kommentartext und Beitragstitel sowie zusätzliche Filter nach Autorentyp und Beitragsbezug (`verknüpft`/`verwaist`). Aktive Filter bleiben über Einzel- und Bulk-Aktionen hinweg per PRG erhalten. Gleichzeitig schaltet die UI bei Mehrfachauswahl in einen sichtbaren Batch-Modus und deaktiviert parallele Zeilenaktionen, damit Moderation und destruktive Sammelaktionen nicht gegeneinander ausgelöst werden. |
 
 ### v2.9.703 — 9. Mai 2026
 

@@ -22,6 +22,8 @@ use CMS\Services\PermalinkService;
 class CommentsModule
 {
     private const LIST_STATUSES = ['all', 'pending', 'approved', 'spam', 'trash'];
+    private const AUTHOR_SCOPES = ['all', 'registered', 'guest', 'anonymous'];
+    private const LINK_SCOPES = ['all', 'linked', 'orphaned'];
     private const MODERATION_STATUSES = ['pending', 'approved', 'spam', 'trash'];
     private const SUPPORTED_ACTIONS = ['status', 'delete', 'bulk'];
     private const BULK_ACTIONS = ['approve', 'spam', 'trash', 'delete'];
@@ -90,32 +92,70 @@ class CommentsModule
 
     public function buildListUrl(string $status = 'all'): string
     {
+        return $this->buildListUrlWithFilters($status, []);
+    }
+
+    /**
+     * @param array<string, mixed> $filters
+     */
+    public function buildListUrlWithFilters(string $status = 'all', array $filters = []): string
+    {
         $status = $this->normalizeStatusFilter($status);
-        if ($status === 'all') {
-            return '/admin/comments';
+        $normalizedFilters = $this->normalizeFilters($filters);
+        $query = [];
+
+        if ($status !== 'all') {
+            $query['status'] = $status;
         }
 
-        return '/admin/comments?status=' . rawurlencode($status);
+        if ($normalizedFilters['query'] !== '') {
+            $query['q'] = $normalizedFilters['query'];
+        }
+
+        if ($normalizedFilters['author_scope'] !== 'all') {
+            $query['author_scope'] = $normalizedFilters['author_scope'];
+        }
+
+        if ($normalizedFilters['link_scope'] !== 'all') {
+            $query['link_scope'] = $normalizedFilters['link_scope'];
+        }
+
+        return '/admin/comments' . ($query !== [] ? '?' . http_build_query($query) : '');
     }
 
     /**
      * Daten für die Listenansicht
      */
-    public function getListData(string $status = 'all'): array
+    public function getListData(string $status = 'all', array $filters = []): array
     {
         $counts = $this->service->getCounts();
         $status = $this->normalizeStatusFilter($status);
-        $comments = array_map(fn(mixed $comment): array => $this->normalizeComment($comment), $this->service->getComments($status, 200, 0));
+        $normalizedFilters = $this->normalizeFilters($filters);
+        $comments = array_map(
+            fn(mixed $comment): array => $this->normalizeComment($comment),
+            $this->service->getComments($status, 200, 0, $normalizedFilters)
+        );
 
         return [
             'comments' => $comments,
             'counts'   => $counts,
             'status'   => $status,
-            'tabs' => $this->buildTabs($counts),
+            'tabs' => $this->buildTabs($counts, $normalizedFilters),
             'summaryCards' => $this->buildSummaryCards($counts),
+            'filters' => $normalizedFilters,
+            'filterMeta' => $this->buildFilterMeta($normalizedFilters),
             'canModerate' => $this->canModerate(),
             'canDelete' => $this->canDelete(),
         ];
+    }
+
+    /**
+     * @param array<string, mixed> $filters
+     * @return array{query:string,author_scope:string,link_scope:string}
+     */
+    public function normalizeFilters(array $filters): array
+    {
+        return $this->service->normalizeListFilters($filters);
     }
 
     /**
@@ -325,19 +365,25 @@ class CommentsModule
         $author = trim((string)$this->commentField($comment, 'author', ''));
         $content = trim((string)$this->commentField($comment, 'content', ''));
         $status = trim((string)$this->commentField($comment, 'status', 'pending'));
+        $userId = (int)$this->commentField($comment, 'user_id', 0);
         $postDate = (string)$this->commentField($comment, 'post_date', '');
         $postSlug = trim((string)$this->commentField($comment, 'post_slug', ''));
         $postPublishedAt = trim((string)$this->commentField($comment, 'post_published_at', ''));
         $postCreatedAt = trim((string)$this->commentField($comment, 'post_created_at', ''));
+        $hasLinkedPost = (int)$this->commentField($comment, 'linked_post_id', 0) > 0;
         $postUrl = $this->buildPostUrl($postSlug, $postPublishedAt, $postCreatedAt);
         $statusMeta = self::ROW_STATUS_META[$status] ?? ['label' => $status, 'badge_class' => 'bg-secondary-lt'];
+        $authorScope = $this->determineAuthorScope($userId, $author);
 
         return [
             'id' => $commentId,
             'post_id' => (int)$this->commentField($comment, 'post_id', 0),
+            'user_id' => $userId,
             'author' => $author,
             'author_email' => trim((string)$this->commentField($comment, 'author_email', '')),
             'author_initials' => $this->buildAuthorInitials($author),
+            'author_scope' => $authorScope,
+            'author_scope_label' => $this->authorScopeLabel($authorScope),
             'content' => $content,
             'excerpt' => $this->buildExcerpt($content),
             'status' => $status,
@@ -349,6 +395,7 @@ class CommentsModule
             'post_slug' => preg_replace('/[^a-zA-Z0-9\-_\/]/', '', $postSlug) ?? '',
             'post_url' => $postUrl,
             'has_post_link' => $postUrl !== '',
+            'has_linked_post' => $hasLinkedPost,
             'actions' => $this->buildRowActions($commentId, $status),
         ];
     }
@@ -377,7 +424,7 @@ class CommentsModule
      * @param array<string, mixed> $counts
      * @return array<int, array<string, mixed>>
      */
-    private function buildTabs(array $counts): array
+    private function buildTabs(array $counts, array $filters = []): array
     {
         $tabs = [];
 
@@ -388,11 +435,89 @@ class CommentsModule
                 'label' => (string)($meta['label'] ?? $status),
                 'count' => (int)($counts[$countKey] ?? 0),
                 'badge_class' => (string)($meta['badge_class'] ?? 'bg-secondary'),
-                'url' => $this->buildListUrl($status),
+                'url' => $this->buildListUrlWithFilters($status, $filters),
             ];
         }
 
         return $tabs;
+    }
+
+    /**
+     * @param array<string, mixed> $filters
+     * @return array<string, mixed>
+     */
+    private function buildFilterMeta(array $filters): array
+    {
+        $activeFilters = [];
+
+        if ((string) ($filters['query'] ?? '') !== '') {
+            $activeFilters[] = [
+                'label' => 'Suche',
+                'value' => (string) $filters['query'],
+            ];
+        }
+
+        if (($filters['author_scope'] ?? 'all') !== 'all') {
+            $activeFilters[] = [
+                'label' => 'Autorentyp',
+                'value' => $this->authorScopeLabel((string) $filters['author_scope']),
+            ];
+        }
+
+        if (($filters['link_scope'] ?? 'all') !== 'all') {
+            $activeFilters[] = [
+                'label' => 'Beitragsbezug',
+                'value' => $this->linkScopeLabel((string) $filters['link_scope']),
+            ];
+        }
+
+        return [
+            'author_scope_options' => [
+                'all' => 'Alle',
+                'registered' => 'Registrierte Nutzer',
+                'guest' => 'Gäste',
+                'anonymous' => 'Anonyme Mitglieder',
+            ],
+            'link_scope_options' => [
+                'all' => 'Alle',
+                'linked' => 'Nur verknüpfte Beiträge',
+                'orphaned' => 'Nur verwaiste Kommentare',
+            ],
+            'active_filters' => $activeFilters,
+            'active_filter_count' => count($activeFilters),
+        ];
+    }
+
+    private function determineAuthorScope(int $userId, string $author): string
+    {
+        if ($userId > 0 && trim($author) === 'Anonym') {
+            return 'anonymous';
+        }
+
+        if ($userId > 0) {
+            return 'registered';
+        }
+
+        return 'guest';
+    }
+
+    private function authorScopeLabel(string $scope): string
+    {
+        return match ($scope) {
+            'registered' => 'Registriert',
+            'guest' => 'Gast',
+            'anonymous' => 'Anonymes Mitglied',
+            default => 'Alle',
+        };
+    }
+
+    private function linkScopeLabel(string $scope): string
+    {
+        return match ($scope) {
+            'linked' => 'Verknüpfte Beiträge',
+            'orphaned' => 'Verwaiste Kommentare',
+            default => 'Alle',
+        };
     }
 
     private function commentField(mixed $comment, string $key, mixed $default = ''): mixed
