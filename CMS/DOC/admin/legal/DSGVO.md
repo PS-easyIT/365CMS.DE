@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Bearbeitung von Datenschutzanfragen nach Art. 15 und Art. 17 DSGVO im aktuellen Admin-Workflow.
 
-Letzte Aktualisierung: 2026-03-28 · Version 2.8.0 RC
+Letzte Aktualisierung: 2026-05-09 · Version 2.9.625
 
 ---
 
@@ -85,6 +85,8 @@ Besonders bei Bestellungen, Rechnungs- und Zahlungsbezug ist die gesetzliche Auf
 | Auskunft beantworten | in der Regel innerhalb von 30 Tagen |
 | Löschantrag bearbeiten | unverzüglich, unter Beachtung gesetzlicher Pflichten |
 | Ablehnung dokumentieren | mit nachvollziehbarer Begründung |
+
+Zusätzlich werden Zustandswechsel im Admin-Workflow jetzt im Audit-Log festgehalten. Das betrifft insbesondere das Starten der Bearbeitung, den Abschluss einer Auskunft, das Ausführen einer Löschung, Ablehnungen mit Begründung sowie das endgültige Entfernen abgeschlossener Anträge aus der Liste.
 
 ---
 

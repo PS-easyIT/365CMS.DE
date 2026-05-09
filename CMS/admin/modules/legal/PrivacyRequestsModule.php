@@ -9,9 +9,12 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+use CMS\AuditLogger;
+
 class PrivacyRequestsModule
 {
     private const REQUEST_TYPE = 'export';
+    private const MAX_AUDIT_STRING_LENGTH = 240;
 
     private readonly \CMS\Database $db;
     private readonly string $prefix;
@@ -95,7 +98,8 @@ class PrivacyRequestsModule
     public function processRequest(int $id): array
     {
         if ($id <= 0) return ['success' => false, 'error' => 'Ungültige ID.'];
-        if ($this->getRequestById($id) === null) {
+        $request = $this->getRequestById($id);
+        if ($request === null) {
             return ['success' => false, 'error' => 'Auskunftsanfrage nicht gefunden.'];
         }
 
@@ -103,6 +107,17 @@ class PrivacyRequestsModule
             'status'       => 'processing',
             'processed_at' => date('Y-m-d H:i:s'),
         ], ['id' => $id]);
+
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_SETTING,
+            'legal.data_request.privacy.process',
+            'Auskunftsanfrage in Bearbeitung gesetzt',
+            'privacy_request',
+            $id,
+            $this->buildAuditContext($request, ['status' => 'processing']),
+            'info'
+        );
+
         return ['success' => true, 'message' => 'Anfrage wird bearbeitet.'];
     }
 
@@ -124,32 +139,72 @@ class PrivacyRequestsModule
             'status'       => 'completed',
             'completed_at' => date('Y-m-d H:i:s'),
         ], ['id' => $id]);
+
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_SETTING,
+            'legal.data_request.privacy.complete',
+            'Auskunftsanfrage abgeschlossen',
+            'privacy_request',
+            $id,
+            $this->buildAuditContext($request, ['status' => 'completed']),
+            'info'
+        );
+
         return ['success' => true, 'message' => 'Auskunft erteilt und als abgeschlossen markiert.'];
     }
 
     public function rejectRequest(int $id, string $reason): array
     {
         if ($id <= 0) return ['success' => false, 'error' => 'Ungültige ID.'];
-        if ($this->getRequestById($id) === null) {
+        $request = $this->getRequestById($id);
+        if ($request === null) {
             return ['success' => false, 'error' => 'Auskunftsanfrage nicht gefunden.'];
+        }
+
+        $reason = trim(strip_tags($reason));
+        if ($reason === '') {
+            return ['success' => false, 'error' => 'Eine Begründung für die Ablehnung ist erforderlich.'];
         }
 
         $this->db->update('privacy_requests', [
             'status'        => 'rejected',
-            'reject_reason' => strip_tags($reason),
+            'reject_reason' => $reason,
             'completed_at'  => date('Y-m-d H:i:s'),
         ], ['id' => $id]);
+
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_SETTING,
+            'legal.data_request.privacy.reject',
+            'Auskunftsanfrage abgelehnt',
+            'privacy_request',
+            $id,
+            $this->buildAuditContext($request, ['status' => 'rejected', 'reason' => $this->sanitizeAuditString($reason, 160)]),
+            'warning'
+        );
+
         return ['success' => true, 'message' => 'Anfrage abgelehnt.'];
     }
 
     public function deleteRequest(int $id): array
     {
         if ($id <= 0) return ['success' => false, 'error' => 'Ungültige ID.'];
-        if ($this->getRequestById($id) === null) {
+        $request = $this->getRequestById($id);
+        if ($request === null) {
             return ['success' => false, 'error' => 'Auskunftsanfrage nicht gefunden.'];
         }
 
         $this->db->delete('privacy_requests', ['id' => $id]);
+
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_SETTING,
+            'legal.data_request.privacy.delete',
+            'Auskunftsanfrage gelöscht',
+            'privacy_request',
+            $id,
+            $this->buildAuditContext($request, ['status' => 'deleted']),
+            'warning'
+        );
+
         return ['success' => true, 'message' => 'Anfrage gelöscht.'];
     }
 
@@ -165,5 +220,23 @@ class PrivacyRequestsModule
         );
 
         return is_object($request) ? $request : null;
+    }
+
+    /** @param array<string, scalar|null> $extra */
+    private function buildAuditContext(object $request, array $extra = []): array
+    {
+        return array_merge([
+            'type' => self::REQUEST_TYPE,
+            'user_id' => (int) ($request->user_id ?? 0),
+            'email' => $this->sanitizeAuditString((string) ($request->email ?? ''), 160),
+            'status' => $this->sanitizeAuditString((string) ($request->status ?? ''), 40),
+        ], $extra);
+    }
+
+    private function sanitizeAuditString(string $value, int $maxLength = self::MAX_AUDIT_STRING_LENGTH): string
+    {
+        $value = preg_replace('/[\x00-\x1F\x7F]+/u', ' ', trim($value)) ?? '';
+
+        return function_exists('mb_substr') ? mb_substr($value, 0, $maxLength) : substr($value, 0, $maxLength);
     }
 }

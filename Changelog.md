@@ -1,4 +1,4 @@
-﻿﻿**Version:** 2.9.624
+﻿﻿**Version:** 2.9.625
 
 # 365CMS Changelog
 
@@ -19,6 +19,12 @@
 ## 📜 Vollständige Versionshistorie
 
 ---
+
+### v2.9.625 — 9. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.625** | 🔴 fix | Admin/Recht | **`CMS/admin/modules/legal/PrivacyRequestsModule.php`, `CMS/admin/modules/legal/DeletionRequestsModule.php`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/legal/README.md`, `CMS/DOC/admin/legal/DSGVO.md`, `CMS/DOC/admin/legal/DELETION-REQUESTS.md` und `README.md` schließen den ersten Rechts-Durchlauf gegen den DSGVO-Nachvollziehbarkeits-Vertrag**: Die Sammelroute `/admin/data-requests` bearbeitete Auskunfts- und Löschanfragen zwar funktional, hielt zentrale Zustandswechsel aber nicht im Audit-Log fest; zusätzlich akzeptierten die Servermodule Ablehnungen ohne belastbare Begründung. Datenschutzanfragen erzeugen jetzt nachvollziehbare Audit-Einträge für Bearbeitung, Abschluss, Ablehnung, Löschausführung und finales Entfernen, und Ablehnungen verlangen serverseitig eine echte Begründung statt nur eines HTML-`required`-Flags. |
 
 ### v2.9.624 — 9. Mai 2026
 

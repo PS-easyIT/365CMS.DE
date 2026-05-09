@@ -722,22 +722,35 @@ Die Sidebar in `CMS/admin/partials/sidebar.php` ist für die Menüstruktur führ
 
 ### Prüfen
 
-- [ ] Legal-Seiten lassen sich erzeugen und pflegen.
-- [ ] Cookie-Manager wirkt im Frontend korrekt.
-- [ ] Auskunfts- und Löschanfragen werden vollständig verarbeitet.
-- [ ] Relevante Aktionen landen im Audit-Log.
+- [x] Legal-Seiten lassen sich erzeugen und pflegen.
+- [x] Cookie-Manager wirkt im Frontend korrekt.
+- [x] Auskunfts- und Löschanfragen werden vollständig verarbeitet.
+- [x] Relevante Aktionen landen im Audit-Log.
 
 ### Must-haves
 
-- [ ] DSGVO-Workflows müssen nachvollziehbar und protokolliert sein.
-- [ ] Export/Löschung berücksichtigt Plugin-Hooks.
-- [ ] Consent-Einstellungen und Frontend-Banner dürfen nicht auseinanderlaufen.
+- [x] DSGVO-Workflows müssen nachvollziehbar und protokolliert sein.
+- [x] Export/Löschung berücksichtigt Plugin-Hooks.
+- [x] Consent-Einstellungen und Frontend-Banner dürfen nicht auseinanderlaufen.
 
 ### Nice-to-haves
 
 - [ ] Vorlagen / Profile für Rechtstexte.
 - [ ] Fristen- und Bearbeitungsstatus für Datenschutzanfragen.
 - [ ] Prüfung auf fehlende Pflichtseiten im Dashboard.
+
+### Audit-Stand – Recht · Durchlauf 1
+
+- **Status:** abgeschlossen auf Code-/Vertragsbasis · Release `2.9.625`
+- **Prüfer:** GitHub Copilot
+- **Datum:** 2026-05-09
+- **Geprüfte Routen:** `/admin/legal-sites`, `/admin/cookie-manager`, `/admin/data-requests`, `/cookie-einstellungen`
+- **Reproduziertes Fehlerbild:** Die DSGVO-Sammelroute `/admin/data-requests` bearbeitete Auskunfts- und Löschanfragen zwar funktional, dokumentierte zentrale Zustandswechsel aber nicht im Audit-Log. Zusätzlich akzeptierten die Servermodule Ablehnungen ohne belastbare Begründung, obwohl UI und Doku eine nachvollziehbare Ablehnung voraussetzen. Damit blieb der Datenschutz-Workflow für Bearbeitung, Ablehnung und Löschung nur teilweise nachvollziehbar.
+- **Umsetzung in diesem Durchlauf:** `PrivacyRequestsModule` und `DeletionRequestsModule` schreiben Zustandswechsel für Bearbeitung, Abschluss, Ablehnung, Löschausführung und endgültiges Entfernen jetzt ins Audit-Log. Ablehnungen verlangen serverseitig eine nichtleere Begründung. Die bestehenden Plugin-Hooks `dsgvo_export_data` und `dsgvo_delete_data` bleiben dabei erhalten und sind nun in einen nachvollziehbaren Admin-Workflow eingebettet.
+- **Abhängige Bereiche:** `PrivacyRequestsModule`, `DeletionRequestsModule`, `data-requests.php`, DSGVO-Hooks `dsgvo_export_data` / `dsgvo_delete_data`, Legal-Dokumentation
+- **Offene Must-haves:** keine
+- **Offene Nice-to-haves:** Vorlagen/Profile für Rechtstexte, Fristen-/Bearbeitungsstatus für Datenschutzanfragen, Dashboard-Hinweise auf fehlende Pflichtseiten
+- **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/legal/README.md`, `CMS/DOC/admin/legal/DSGVO.md`, `CMS/DOC/admin/legal/DELETION-REQUESTS.md`
 
 ---
 

@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Überblick über die aktuellen Legal-, Privacy- und Security-Module im Admin-Bereich.
 
-Letzte Aktualisierung: 2026-04-07 · Version 2.9.0
+Letzte Aktualisierung: 2026-05-09 · Version 2.9.625
 
 Der Bereich ist in zwei Gruppen gegliedert:
 
@@ -51,9 +51,10 @@ Besonderheit: Frühere Einzelseiten für Privacy- und Deletion-Requests werden h
 
 ## Audit- und Nachvollziehbarkeit
 
-Mehrere Module in diesem Bereich schreiben sicherheitsrelevante Aktionen inzwischen in das Audit-Log, darunter insbesondere:
+Mehrere Module in diesem Bereich schreiben sicherheitsrelevante oder rechtlich relevante Aktionen inzwischen in das Audit-Log, darunter insbesondere:
 
 - Speichern von Legal-Site-Einstellungen
+- Zustandswechsel und Ablehnungen in `/admin/data-requests`
 - Firewall-Regeln anlegen, löschen oder umschalten
 - AntiSpam-Blacklist pflegen
 - Security-Audits auslösen oder bereinigen

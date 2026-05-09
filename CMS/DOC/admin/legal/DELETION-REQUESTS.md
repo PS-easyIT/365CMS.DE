@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Verwaltung und Durchführung von Datenlöschungsanfragen gemäß DSGVO Art. 17 (Recht auf Löschung).
 
-Letzte Aktualisierung: 2026-03-28 · Version 2.8.0 RC
+Letzte Aktualisierung: 2026-05-09 · Version 2.9.625
 
 ---
 
@@ -47,6 +47,7 @@ Die Löschung triggert den Hook `dsgvo_delete_data`, damit angebundene Plugins i
 - Nur Administratoren
 - CSRF-Prüfung
 - Begründungspflicht bei Ablehnung
+- Audit-Logging für Bearbeitung, Durchführung, Ablehnung und endgültiges Löschen des Antrags
 
 ---
 

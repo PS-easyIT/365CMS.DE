@@ -1,6 +1,6 @@
 # 365CMS.DE
 
-**Version:** [2.9.624](Changelog.md) · **Status:** Stable · **PHP:** 8.4+ · **MySQL:** 5.7+ · **MariaDB:** 10.3+
+**Version:** [2.9.625](Changelog.md) · **Status:** Stable · **PHP:** 8.4+ · **MySQL:** 5.7+ · **MariaDB:** 10.3+
 
 <div align="center">
 
@@ -102,7 +102,7 @@ Die folgenden Bereiche zeigen, wie breit 365CMS bereits ohne Plugin-Zwang aufges
 | **Security & Auth** | Rollen & Rechte, CSRF-/XSS-Schutz, Rate Limits, Firewall, Anti-Spam, Passkeys, 2FA, LDAP, sichere Reset-Flows | Gibt produktiven Installationen ein Sicherheitsfundament, das nicht erst nachträglich zusammengesucht werden muss – inklusive gemeinsamer Rollenmatrix für Legacy- und moderne Core-Capabilities sowie derselben 12-Zeichen-Passwort-Policy in Registrierung, Reset und Admin-CRUD |
 | **Themes & Design** | Theme-System, Theme-Editor, Theme-Explorer, Menü-Editor, Landing-Page-Editor mit echten Plugin-Overrides pro Bereich, Font-Manager, CMS-Loginpage | Macht Branding, Navigation und UX-Anpassung zu einem echten Projektwerkzeug statt zu einer Bastelbaustelle |
 | **Plugins & Integrationen** | Hook-System, Plugin-Verwaltung, Plugin-Marketplace, modulare Erweiterungspunkte, API-nahe Workflows | Öffnet das System für individuelle Funktionen, ohne Wartbarkeit und Struktur zu opfern |
-| **Legal & DSGVO** | Legal-Sites, Cookie-Manager, Consent-Dialog, Datenexporte, Löschanfragen, Datenschutzpfade | Unterstützt Datenschutz- und Compliance-Prozesse dort, wo sie im Alltag gebraucht werden: direkt im CMS |
+| **Legal & DSGVO** | Legal-Sites, Cookie-Manager, Consent-Dialog, Datenexporte, Löschanfragen, Datenschutzpfade | Unterstützt Datenschutz- und Compliance-Prozesse dort, wo sie im Alltag gebraucht werden: direkt im CMS – inklusive auditierbarer DSGVO-Workflows für Auskunft, Ablehnung und Löschung |
 | **Betrieb & Wartung** | Cache, Performance-Werkzeuge, WebP-Batches mit Dry-Run/Rollback, lokale Asset-Minifizierung, Cron, Monitoring, Health-Checks, Backups, Mail-Queue, Logs, Updates | Macht den Betrieb sichtbar, steuerbar und langfristig beherrschbar – nicht nur am Launch-Tag; serverseitige Kompression wird dabei ehrlich als Infrastrukturstatus statt als dekorativer CMS-Toggle behandelt |
 
 ### 🚀 Kurz positioniert
@@ -142,7 +142,7 @@ Der Admin-Bereich ist so aufgebaut, dass inhaltliche, technische und betrieblich
 | **Themes & Design** | Aktive Themes, Theme-Anpassung, Menüs, Landing-Pages, bereichsgenaue Landing-Plugin-Overrides und lokale Fonts | Layout, Branding, Navigation und Seitenaufbau anpassen |
 | **SEO** | Meta, Social, Schema, Sitemap, Redirects, Analytics und technisches SEO | Sichtbarkeit verbessern, Fehlerquellen reduzieren, SEO-Basis pflegen; globale Social-Defaults greifen dabei auch in der echten Frontend-Ausgabe |
 | **Plugins** | Installierte Erweiterungen, Marketplace und modulare Ausbaupfade | Features ergänzen, Add-ons verwalten, neue Integrationen aktivieren |
-| **Recht & Datenschutz** | Legal-Sites, Cookie-Management, Datenanfragen und Datenschutzprozesse | Consent verwalten, Pflichtseiten pflegen, DSGVO-Abläufe bearbeiten |
+| **Recht & Datenschutz** | Legal-Sites, Cookie-Management, Datenanfragen und Datenschutzprozesse | Consent verwalten, Pflichtseiten pflegen und DSGVO-Abläufe mit nachvollziehbaren Audit-Spuren bearbeiten |
 | **Performance & System** | Caches, Performance, Sessions, Konfiguration, Updates und Backups | Systemzustand optimieren, Ressourcen verwalten, Updates vorbereiten; echte Infrastrukturgrenzen wie Server-Kompression bleiben dabei transparent dokumentiert |
 | **Diagnose & Monitoring** | Systemprüfungen, Laufzeitstatus und technische Kontrollansichten | Probleme eingrenzen, Betriebszustand prüfen, technische Auffälligkeiten erkennen |
 
