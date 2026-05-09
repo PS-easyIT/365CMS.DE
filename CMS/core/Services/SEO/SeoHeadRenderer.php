@@ -46,7 +46,7 @@ final class SeoHeadRenderer
             'og:image' => $payload['og_image'] ?? '',
             'og:type' => $payload['og_type'] ?? 'website',
             'og:url' => $payload['canonical_url'] ?? '',
-            'og:site_name' => SITE_NAME,
+            'og:site_name' => $payload['og_site_name'] ?? SITE_NAME,
         ];
 
         foreach ($ogMap as $property => $value) {
@@ -81,6 +81,7 @@ final class SeoHeadRenderer
     private function getCurrentSeoPayload(): array
     {
         $analysis = SeoAnalysisService::getInstance();
+        $socialDefaults = $this->settings->getSocialDefaults();
         $uri = isset($_SERVER['REQUEST_URI']) ? strtok((string) $_SERVER['REQUEST_URI'], '?') : '/';
         $uri = $uri !== false ? $uri : '/';
         $canonicalUrl = SITE_URL . ($uri === '/' ? '/' : $uri);
@@ -107,12 +108,13 @@ final class SeoHeadRenderer
                 'robots_follow' => true,
                 'og_title' => SITE_NAME,
                 'og_description' => $description,
-                'og_image' => '',
-                'og_type' => 'website',
-                'twitter_card' => 'summary_large_image',
+                'og_image' => $socialDefaults['image'],
+                'og_type' => $socialDefaults['og_type'],
+                'og_site_name' => $socialDefaults['brand_name'],
+                'twitter_card' => $socialDefaults['twitter_card'],
                 'twitter_title' => SITE_NAME,
                 'twitter_description' => $description,
-                'twitter_image' => '',
+                'twitter_image' => $socialDefaults['image'],
                 'schema_type' => 'WebPage',
                 'title' => SITE_NAME,
                 'url' => $canonicalUrl,
@@ -135,6 +137,7 @@ final class SeoHeadRenderer
         $featuredImage = trim((string) ($this->readField($content, 'featured_image') ?? ''));
         $meta = $this->repository->getContentMeta($contentType, $id);
         $updatedAt = (string) ($this->readField($content, 'updated_at') ?? $this->readField($content, 'created_at') ?? date(DATE_W3C));
+        $resolvedOgImage = $meta['og_image'] !== '' ? $meta['og_image'] : ($featuredImage !== '' ? $featuredImage : $socialDefaults['image']);
 
         return [
             'title' => $title,
@@ -144,12 +147,13 @@ final class SeoHeadRenderer
             'robots_follow' => $meta['robots_follow'],
             'og_title' => $meta['og_title'] !== '' ? $meta['og_title'] : $title,
             'og_description' => $meta['og_description'] !== '' ? $meta['og_description'] : $description,
-            'og_image' => $meta['og_image'] !== '' ? $meta['og_image'] : $featuredImage,
-            'og_type' => $meta['og_type'] !== '' ? $meta['og_type'] : ($contentType === 'post' ? 'article' : 'website'),
-            'twitter_card' => $meta['twitter_card'] !== '' ? $meta['twitter_card'] : 'summary_large_image',
+            'og_image' => $resolvedOgImage,
+            'og_type' => $meta['og_type'] !== '' ? $meta['og_type'] : $socialDefaults['og_type'],
+            'og_site_name' => $socialDefaults['brand_name'],
+            'twitter_card' => $meta['twitter_card'] !== '' ? $meta['twitter_card'] : $socialDefaults['twitter_card'],
             'twitter_title' => $meta['twitter_title'] !== '' ? $meta['twitter_title'] : $title,
             'twitter_description' => $meta['twitter_description'] !== '' ? $meta['twitter_description'] : $description,
-            'twitter_image' => $meta['twitter_image'] !== '' ? $meta['twitter_image'] : ($meta['og_image'] !== '' ? $meta['og_image'] : $featuredImage),
+            'twitter_image' => $meta['twitter_image'] !== '' ? $meta['twitter_image'] : $resolvedOgImage,
             'schema_type' => $meta['schema_type'] !== '' ? $meta['schema_type'] : ($contentType === 'post' ? 'Article' : 'WebPage'),
             'url' => $canonicalUrl,
             'content_type' => $contentType,

@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Dokumentiert den aktuellen Landing-Page-Editor im Admin inklusive Sektionen, Datenmodell, Plugin-Overrides und Sicherheitslogik.
 
-Letzte Aktualisierung: 2026-04-07 · Version 2.9.0
+Letzte Aktualisierung: 2026-05-09 · Version 2.9.622
 
 ## Überblick
 
@@ -101,13 +101,15 @@ Die Landing Page unterstützt alternative Ausgaben durch Plugins. Unterstützte 
 - `content`
 - `footer`
 
-Plugins registrieren sich über den Filter `landing_page_plugins`. Ein Plugin-Eintrag beschreibt mindestens Kennung, Namen, unterstützte Zielbereiche und optional eine Callback-Funktion für eigene Einstellungen.
+Plugins registrieren sich über den Filter `landing_page_plugins`. Ein Plugin-Eintrag beschreibt mindestens Kennung, Namen, unterstützte Zielbereiche und einen renderbaren `render_callback`; optional kann zusätzlich ein `settings_callback` für projektspezifische Zusatzfelder verwendet werden.
 
-Gespeichert wird pro Zielbereich, welches Plugin aktiv ist. Zusätzlich können plugin-spezifische Einstellungen als `plugin_settings` abgelegt werden. Vor dem Speichern prüft der Service, ob:
+Gespeichert wird pro Zielbereich, welches Plugin aktiv ist. Zusätzlich können plugin-spezifische Einstellungen als `plugin_settings` abgelegt werden. Der Core-Admin weist Plugins jetzt bereichsgenau über Checkboxen für `Header`, `Content` und `Footer` zu; pro Bereich ist genau ein aktives Plugin möglich. Vor dem Speichern prüft der Service, ob:
 
 - das Plugin tatsächlich registriert wurde,
 - der Zielbereich unterstützt wird,
-- optionale Callbacks aufrufbar sind.
+- ein renderbarer `render_callback` vorhanden ist.
+
+Das Default-Theme fragt diese Overrides während des Renderns der Landing Page aktiv ab. Liefert ein Plugin für einen Bereich HTML zurück oder schreibt Ausgabe in den Output-Buffer, ersetzt dieser Block die jeweilige Core-Standardsektion. Ungültige, fehlende oder nicht renderbare Zuordnungen failen geschlossen auf den normalen Core-Header, Core-Content bzw. Core-Footer zurück.
 
 ## POST-Aktionen
 
@@ -138,7 +140,8 @@ Die Seite folgt dem aktuellen Admin-Standard:
 |---|---|
 | `CMS/admin/landing-page.php` | Admin-Entry-Point und POST-Dispatch |
 | `CMS/core/Services/LandingPageService.php` | Laden, Validieren und Persistieren der Landing-Page-Daten |
-| `CMS/admin/views/landing-page/*` | Ausgabe der einzelnen Admin-Abschnitte |
+| `CMS/admin/views/landing/page.php` | Ausgabe der Landing-Page-Adminoberfläche |
+| `CMS/themes/cms-default/partials/home-landing.php` | Frontend-Rendering der Landing Page inklusive Plugin-Overrides |
 
 ## Verwandte Dokumente
 

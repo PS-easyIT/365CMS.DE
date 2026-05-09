@@ -1,7 +1,7 @@
 # 365CMS – Performance-Center
-> **Stand:** 2026-04-07 | **Version:** 2.9.0 | **Status:** Aktuell
+> **Stand:** 2026-05-09 | **Version:** 2.9.624 | **Status:** Aktuell
 
-<!-- UPDATED: 2026-04-07 -->
+<!-- UPDATED: 2026-05-09 -->
 
 ## Überblick
 
@@ -20,7 +20,7 @@ Im aktuellen Stand ist der Bereich zugleich Diagnose- und Tuning-Zentrale für C
 | Cache-Verwaltung | Leeren, Warmup und Konfiguration der Cache-Ebenen |
 | Medien-Optimierung | Bildkompression, WebP-Konvertierung und Lazy Loading |
 | Datenbank | Tabellenstatus, Optimierung und Bereinigung |
-| Settings | Allgemeine Performance-Einstellungen und Tuning |
+| Settings | Allgemeine Performance-Einstellungen und Tuning ohne dekorativen GZIP-Schalter |
 | Sessions | Aktive Sitzungen verwalten und bereinigen |
 | Übersicht | Dashboard mit zentralen Performance-Kennzahlen |
 

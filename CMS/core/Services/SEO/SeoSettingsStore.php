@@ -11,6 +11,9 @@ if (!defined('ABSPATH')) {
 
 final class SeoSettingsStore
 {
+    private const ALLOWED_OG_TYPES = ['website', 'article', 'profile'];
+    private const ALLOWED_TWITTER_CARDS = ['summary', 'summary_large_image'];
+
     public function __construct(
         private readonly DatabaseInterface $db,
         private readonly string $prefix
@@ -56,6 +59,22 @@ final class SeoSettingsStore
         return $desc !== '' ? $desc : $default;
     }
 
+    /**
+     * @return array{og_type: string, image: string, twitter_card: string, brand_name: string}
+     */
+    public function getSocialDefaults(): array
+    {
+        $fallbackSiteName = defined('SITE_NAME') ? (string) SITE_NAME : '365CMS';
+        $brandName = trim($this->getSetting('social_brand_name', $fallbackSiteName));
+
+        return [
+            'og_type' => $this->normalizeAllowedValue($this->getSetting('social_default_og_type', 'website'), self::ALLOWED_OG_TYPES, 'website'),
+            'image' => trim($this->getSetting('social_default_image', '')),
+            'twitter_card' => $this->normalizeAllowedValue($this->getSetting('social_default_twitter_card', 'summary_large_image'), self::ALLOWED_TWITTER_CARDS, 'summary_large_image'),
+            'brand_name' => $brandName !== '' ? $brandName : $fallbackSiteName,
+        ];
+    }
+
     public function getSitemapSettings(): array
     {
         return [
@@ -78,5 +97,12 @@ final class SeoSettingsStore
     public function getTitleSeparator(): string
     {
         return $this->getSetting('title_separator', '|');
+    }
+
+    private function normalizeAllowedValue(string $value, array $allowed, string $fallback): string
+    {
+        $value = strtolower(trim($value));
+
+        return in_array($value, $allowed, true) ? $value : $fallback;
     }
 }

@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Dokumentiert das Performance-Center mit seinen sechs Unterseiten für Cache, Medien, Datenbank, Settings und Sessions.
 
-Letzte Aktualisierung: 2026-05-03 · Version 2.9.248
+Letzte Aktualisierung: 2026-05-09 · Version 2.9.624
 
 ---
 
@@ -89,7 +89,7 @@ Die Seite `/admin/performance-settings` verwaltet globale Optimierungsschalter w
 - Session-Timeouts für Admin- und Member-Kontext
 - lokale CSS-/JS-Minifizierung mit Cache-Dateien für unterstützte Theme-Assets
 
-GZIP/Brotli-Kompression wird serverseitig über Apache-/Brotli-/Deflate-Konfiguration bereitgestellt; der Performance-Bereich zeigt den erkannten Status an, ersetzt aber keine Serverkonfiguration. Externe CDN-/Reverse-Proxy-Integrationen können Cache-Löschungen über die Hooks `performance_cache_purged` und `performance_cdn_purge_requested` anbinden.
+GZIP/Brotli-Kompression wird serverseitig über Apache-/Brotli-/Deflate-Konfiguration bereitgestellt; der Performance-Bereich zeigt den erkannten Status bewusst nur noch lesend an und ersetzt keine Serverkonfiguration. Es gibt dafür keinen wirkenden CMS-Schalter mehr. Externe CDN-/Reverse-Proxy-Integrationen können Cache-Löschungen über die Hooks `performance_cache_purged` und `performance_cdn_purge_requested` anbinden.
 
 ### Bewusst verbleibende Grenzen
 

@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.9.621",
+  "version": "2.9.624",
   "min_php": "8.4",
   "released": "2026-05-09",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 2.9.621: Die Aboverwaltung wendet das konfigurierte Standardpaket für neue Mitglieder jetzt wieder in der echten Laufzeit an; öffentliche Registrierungen und neu im Admin angelegte Member-Konten erhalten das aktive Default-Paket automatisch statt nur einen dekorativ gespeicherten Setting-Wert.",
+  "notes": "Release-Stand 2.9.624: Der dekorative Performance-Schalter für GZIP/Brotli wurde entfernt; Server-Kompression erscheint im Admin jetzt nur noch als ehrlicher Infrastrukturstatus statt als speicherbarer, aber wirkungsloser CMS-Toggle.",
   "critical": false
 }

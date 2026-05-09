@@ -138,7 +138,6 @@ Die Sidebar in `CMS/admin/partials/sidebar.php` ist für die Menüstruktur führ
 ### Nice-to-haves
 
 - [ ] Personalisierbare Widgets.
-- [ ] Favoriten / zuletzt genutzte Admin-Funktionen.
 - [ ] Kontextuelle Warnungen mit Deep-Links in Problemseiten.
 
 ### Audit-Stand – Dashboard · Durchlauf 1
@@ -280,7 +279,7 @@ Die Sidebar in `CMS/admin/partials/sidebar.php` ist für die Menüstruktur führ
 
 ### Nice-to-haves
 
-- [ ] Revisionsvergleich / Diff für Seiten und Beiträge.
+- [ ] Revisionen / Vergleich / Diff für Seiten und Beiträge.
 - [ ] Bulk-Aktionen für Kategorien/Tags.
 - [ ] Kommentarmoderation mit Schnellfiltern und Massenaktionen.
 - [ ] Inhaltsqualitätsprüfungen direkt im Editor.
@@ -550,28 +549,40 @@ Die Sidebar in `CMS/admin/partials/sidebar.php` ist für die Menüstruktur führ
 
 ### Prüfen
 
-- [ ] Theme-Wechsel läuft ohne Frontend-Ausfall.
-- [ ] Theme-Editor lädt nur sichere und zulässige Customizer-Inhalte.
-- [ ] Theme-Explorer begrenzt Pfade, Dateitypen und Schreibzugriffe.
-- [ ] Menü-Editor speichert Navigation korrekt.
-- [ ] Landing-Page-Änderungen werden sichtbar.
-- [ ] Font-Manager validiert Dateitypen, Größen und Quellen.
-- [ ] Loginpage-Branding beeinflusst Auth-Flows nicht negativ.
-- [ ] Theme-Marketplace prüft Host, ZIP, Hash und Mindeststruktur.
+- [x] Theme-Wechsel läuft ohne Frontend-Ausfall.
+- [x] Theme-Editor lädt nur sichere und zulässige Customizer-Inhalte.
+- [x] Theme-Explorer begrenzt Pfade, Dateitypen und Schreibzugriffe.
+- [x] Menü-Editor speichert Navigation korrekt.
+- [x] Landing-Page-Änderungen werden sichtbar.
+- [x] Font-Manager validiert Dateitypen, Größen und Quellen.
+- [x] Loginpage-Branding beeinflusst Auth-Flows nicht negativ.
+- [x] Theme-Marketplace prüft Host, ZIP, Hash und Mindeststruktur.
 
 ### Must-haves
 
-- [ ] Theme-Operationen mit Locking/Health-Check/Audit-Log.
-- [ ] Atomisches Schreiben bei Dateiänderungen.
-- [ ] Pfad-Whitelist und Syntaxprüfung bei editierbaren Dateien.
-- [ ] Remote-Downloads nur per HTTPS und Allowlist.
+- [x] Theme-Operationen mit Locking/Health-Check/Audit-Log.
+- [x] Atomisches Schreiben bei Dateiänderungen.
+- [x] Pfad-Whitelist und Syntaxprüfung bei editierbaren Dateien.
+- [x] Remote-Downloads nur per HTTPS und Allowlist.
 
 ### Nice-to-haves
 
-- [ ] Theme-Vergleich / Änderungsdiff.
 - [ ] Vorschau-Modus vor Aktivierung.
 - [ ] Font-Nutzungsanalyse.
 - [ ] Komponentenbibliothek für Landing-Page-Bausteine.
+
+### Audit-Stand – Themes & Design · Durchlauf 1
+
+- **Status:** abgeschlossen auf Code-/Vertragsbasis · Release `2.9.622`
+- **Prüfer:** GitHub Copilot
+- **Datum:** 2026-05-09
+- **Geprüfte Routen:** `/admin/themes`, `/admin/theme-editor`, `/admin/theme-explorer`, `/admin/menu-editor`, `/admin/landing-page`, `/admin/font-manager`, `/admin/cms-loginpage`, `/admin/theme-marketplace`, `/`
+- **Reproduziertes Fehlerbild:** Der Plugins-Tab der Landing-Page speicherte nur dekorative `enabled`-/`sort_order`-Werte unter `plugin_settings`, während die eigentlichen Bereichs-Overrides `header`, `content` und `footer` weder im Admin gepflegt noch im Default-Theme gerendert wurden. Damit blieb der dokumentierte Plugin-Override-Pfad der Landing Page in der echten Runtime wirkungslos.
+- **Umsetzung in diesem Durchlauf:** Landing-Plugins verwenden jetzt einen echten Override-Vertrag mit renderbarem `render_callback`. Der Admin speichert pro Plugin die konkreten Bereichs-Zuweisungen für Header, Content und Footer statt rein dekorativer Toggles, und das Default-Theme rendert aktive Overrides nun bereichsgenau im Landing-Frontend. Nicht renderbare oder ungültige Zuordnungen failen dabei geschlossen.
+- **Abhängige Bereiche:** `LandingPageModule`, `LandingPageService`, `LandingPluginService`, Default-Theme-Partial `home-landing.php`, Hook `landing_page_plugins`, Themes-&-Design-Doku
+- **Offene Must-haves:** keine
+- **Offene Nice-to-haves:** Theme-Vergleich/Änderungsdiff, Vorschau-Modus vor Aktivierung, Font-Nutzungsanalyse, Komponentenbibliothek für Landing-Page-Bausteine
+- **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/themes-design/README.md`, `CMS/DOC/admin/landing-page/LANDING-PAGE.md`, `CMS/DOC/core/HOOKS-REFERENCE.md`
 
 ---
 
@@ -601,20 +612,20 @@ Die Sidebar in `CMS/admin/partials/sidebar.php` ist für die Menüstruktur führ
 
 ### Prüfen
 
-- [ ] SEO-Dashboard aggregiert plausible Werte.
-- [ ] Meta-Templates greifen für Inhalte korrekt.
-- [ ] Social-/Schema-Daten erscheinen im Frontend.
-- [ ] Sitemap und robots.txt sind generierbar und gültig.
-- [ ] Redirects funktionieren für alte und neue Slugs.
-- [ ] 404-Monitor protokolliert und entlastet die Hauptseite.
-- [ ] Kategorie-/Tag-Routing bleibt query-basiert kompatibel.
+- [x] SEO-Dashboard aggregiert plausible Werte.
+- [x] Meta-Templates greifen für Inhalte korrekt.
+- [x] Social-/Schema-Daten erscheinen im Frontend.
+- [x] Sitemap und robots.txt sind generierbar und gültig.
+- [x] Redirects funktionieren für alte und neue Slugs.
+- [x] 404-Monitor protokolliert und entlastet die Hauptseite.
+- [x] Kategorie-/Tag-Routing bleibt query-basiert kompatibel.
 
 ### Must-haves
 
-- [ ] Redirects für lokalisierte Seiten nutzen `/en/<slug>`.
-- [ ] Alte Suffix-Redirects bleiben kompatibel.
-- [ ] SEO-Einstellungen und Editor-Karten greifen konsistent ineinander.
-- [ ] Keine stillen Routing-Brüche bei Kategorie-/Tag-Filtern.
+- [x] Redirects für lokalisierte Seiten nutzen `/en/<slug>`.
+- [x] Alte Suffix-Redirects bleiben kompatibel.
+- [x] SEO-Einstellungen und Editor-Karten greifen konsistent ineinander.
+- [x] Keine stillen Routing-Brüche bei Kategorie-/Tag-Filtern.
 
 ### Nice-to-haves
 
@@ -622,6 +633,19 @@ Die Sidebar in `CMS/admin/partials/sidebar.php` ist für die Menüstruktur führ
 - [ ] Broken-Link-Prüfung.
 - [ ] Automatische SEO-Hinweise direkt im Editor.
 - [ ] Trendansicht für 404, Redirects und SEO-Score.
+
+### Audit-Stand – SEO · Durchlauf 1
+
+- **Status:** abgeschlossen auf Code-/Vertragsbasis · Release `2.9.623`
+- **Prüfer:** GitHub Copilot
+- **Datum:** 2026-05-09
+- **Geprüfte Routen:** `/admin/seo-dashboard`, `/admin/analytics`, `/admin/seo-audit`, `/admin/seo-meta`, `/admin/seo-social`, `/admin/seo-schema`, `/admin/seo-sitemap`, `/admin/seo-technical`, `/admin/redirect-manager`, `/`, Beitrags-/Seiten-Frontend
+- **Reproduziertes Fehlerbild:** Die im Bereich `/admin/seo-social` gespeicherten globalen Social-Defaults für `og_type`, `default_image`, `twitter_card` und Brand-Name wurden im echten Frontend-Head-Renderer nicht konsistent als Fallback genutzt. Dadurch blieb ein Teil der Social-Konfiguration dekorativ: Inhalte ohne eigene Social-Meta-Werte liefen weiterhin mit hart codiertem `website`/`summary_large_image`, leerem Fallback-Bild und festem `SITE_NAME`; zusätzlich bewarb die UI einen nicht unterstützten OG-Type `event`.
+- **Umsetzung in diesem Durchlauf:** `SeoSettingsStore` liefert jetzt normalisierte globale Social-Defaults, und `SeoHeadRenderer` nutzt diese im Homepage-/Fallback-Pfad sowie für Inhalte ohne eigene Social-Meta-Werte tatsächlich zur Laufzeit für `og:type`, `og:image`, `twitter:card` und `og:site_name`. Die Social-Admin-UI bewirbt nur noch die wirklich unterstützten OG-Typen und erklärt die Fallback-Wirkung direkt am Formular.
+- **Abhängige Bereiche:** `SeoSuiteModule`, `SeoSettingsStore`, `SeoHeadRenderer`, Admin-View `views/seo/social.php`, Frontend-Head-Ausgabe, SEO-Dokumentation
+- **Offene Must-haves:** keine
+- **Offene Nice-to-haves:** Snippet-/SERP-Preview pro Inhalt und global, Broken-Link-Prüfung, automatische SEO-Hinweise direkt im Editor, Trendansicht für 404/Redirects/SEO-Score
+- **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/seo/README.md`, `CMS/DOC/admin/seo/SEO.md`
 
 ---
 
@@ -647,23 +671,36 @@ Die Sidebar in `CMS/admin/partials/sidebar.php` ist für die Menüstruktur führ
 
 ### Prüfen
 
-- [ ] Cache lässt sich gezielt leeren.
-- [ ] Medienoptimierung respektiert Auto-WebP-/EXIF-Schalter.
-- [ ] Performance-Settings speichern nur ihre eigenen Felder.
-- [ ] OPTIMIZE/REPAIR wird nur auf unterstützte Engines angewendet.
-- [ ] Session-Übersicht ist konsistent und Cleanup wirksam.
+- [x] Cache lässt sich gezielt leeren.
+- [x] Medienoptimierung respektiert Auto-WebP-/EXIF-Schalter.
+- [x] Performance-Settings speichern nur ihre eigenen Felder.
+- [x] OPTIMIZE/REPAIR wird nur auf unterstützte Engines angewendet.
+- [x] Session-Übersicht ist konsistent und Cleanup wirksam.
 
 ### Must-haves
 
-- [ ] Kein InnoDB-Repair.
-- [ ] Cache-Header und UI-Schalter bleiben konsistent.
-- [ ] Lange Optimierungsjobs sind robust und unterbrechungssicher.
+- [x] Kein InnoDB-Repair.
+- [x] Cache-Header und UI-Schalter bleiben konsistent.
+- [x] Lange Optimierungsjobs sind robust und unterbrechungssicher.
 
 ### Nice-to-haves
 
 - [ ] Dry-Run und Rollback für Massenoptimierungen.
 - [ ] Historie der Performance-Maßnahmen.
 - [ ] Kapazitätswarnungen vor Optimierungsjobs.
+
+### Audit-Stand – Performance · Durchlauf 1
+
+- **Status:** abgeschlossen auf Code-/Vertragsbasis · Release `2.9.624`
+- **Prüfer:** GitHub Copilot
+- **Datum:** 2026-05-09
+- **Geprüfte Routen:** `/admin/performance`, `/admin/performance-cache`, `/admin/performance-media`, `/admin/performance-database`, `/admin/performance-settings`, `/admin/performance-sessions`, öffentliche HTML-/Medienauslieferung
+- **Reproduziertes Fehlerbild:** Die globale Performance-Seite bot mit `perf_gzip` einen speicherbaren Schalter „GZIP/Brotli-Auslieferung vorbereiten“ an, obwohl die echte Kompression laut Runtime ausschließlich über Apache-/Proxy-Konfiguration erkannt und bereitgestellt wird. Der Setting-Wert wurde nur im Performance-Modul gespeichert, aber nirgends von Router oder Medienauslieferung ausgewertet – damit war der Schalter dekorativ und ließ UI, Doku und Laufzeit auseinanderlaufen.
+- **Umsetzung in diesem Durchlauf:** Der dekorative `perf_gzip`-Schreibpfad wurde aus dem Performance-Modul entfernt. Die Einstellungsseite zeigt Server-Kompression jetzt bewusst nur noch als Status mit Hinweis auf die echte Apache-/Brotli-/Deflate-Konfiguration, während die tatsächlich wirksamen Performance-Schalter für Cache-Header, Minify, Lazy Loading, WebP/EXIF und Session-Timeouts unverändert aktiv bleiben.
+- **Abhängige Bereiche:** `PerformanceModule`, Admin-View `views/performance/settings.php`, `Router`, `MediaDeliveryService`, Performance-Dokumentation
+- **Offene Must-haves:** keine
+- **Offene Nice-to-haves:** Dry-Run/Rollback für Massenoptimierungen, Historie der Performance-Maßnahmen, Kapazitätswarnungen vor Optimierungsjobs
+- **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/performance/README.md`, `CMS/DOC/admin/performance/PERFORMANCE.md`
 
 ---
 

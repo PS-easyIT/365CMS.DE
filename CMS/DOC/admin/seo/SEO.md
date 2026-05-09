@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Dokumentiert die vollständige SEO-Suite mit Dashboard, Analytics, Audit, Meta-Daten, Social Media, Schema, Sitemap, technischem SEO und Redirect-Manager.
 
-Letzte Aktualisierung: 2026-04-07 · Version 2.9.0
+Letzte Aktualisierung: 2026-05-09 · Version 2.9.623
 
 ---
 
@@ -76,10 +76,12 @@ Die Meta-Seite verwaltet globale und seitenspezifische SEO-Vorlagen:
 
 Verwaltung der Social-Media-Metadaten:
 
-- Open Graph-Defaults (Typ, Bild, Titel)
-- Twitter/X-Card-Einstellungen
-- Facebook App ID
-- Social-Preview-Defaults
+- Open-Graph-Defaults für Typ und Fallback-Bild
+- globale Twitter/X-Card-Defaults
+- Brand-Name als globaler `og:site_name`-Fallback
+- Social-Preview-Defaults im Admin bei gleichzeitiger echter Runtime-Nutzung der gespeicherten Social-Fallbacks im Frontend-Head
+
+Der aktuelle Laufzeitvertrag ist dabei bewusst fail-soft: Wenn ein Beitrag oder eine Seite keine eigenen Social-Werte gespeichert hat, nutzt der Frontend-Head-Renderer die globalen SEO-Social-Defaults für `og:type`, `og:image`, `twitter:card` und `og:site_name`, statt auf fest codierte Werte zurückzufallen.
 
 ---
 
@@ -135,7 +137,7 @@ In Seiten- und Beitragseditoren stehen drei SEO-Karten zur Verfügung:
 - **Readability-Karte**: Lesbarkeitsanalyse
 - **Preview-Karte**: SERP- und Social-Media-Vorschau
 
-Diese Karten greifen auf die globalen SEO-Einstellungen zurück.
+Diese Karten greifen auf die globalen SEO-Einstellungen zurück. Für die echte Frontend-Ausgabe gilt zusätzlich: globale Social-Defaults aus dem SEO-Center sind jetzt mit dem Head-Renderer verbunden und wirken als Fallback, solange kein inhaltsspezifischer Social-Meta-Wert vorhanden ist.
 
 ---
 

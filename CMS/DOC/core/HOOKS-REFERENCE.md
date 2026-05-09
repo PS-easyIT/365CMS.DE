@@ -254,7 +254,7 @@ Hooks für Suchmaschinen-Optimierung und Suche, ausgelöst in `Services/SearchSe
 |-----------|-----|-----------|--------|----------------|----------|
 | `search_register_indices` | Action | `SearchService $service` | – | Suchindizes werden registriert | `addAction('search_register_indices', fn ($s) => $s->addIndex('products', $cb))` |
 | `search_results` | Filter | `array $results`, `string $query`, `int $limit` | `array` | Suchergebnisse vor Rückgabe an den Client | `addFilter('search_results', fn (array $r) => boostFeatured($r))` |
-| `landing_page_plugins` | Filter | `array $plugins` | `array` | Plugin-Blöcke für Landing-Pages registrieren | `addFilter('landing_page_plugins', fn ($p) => [...$p, myBlock()])` |
+| `landing_page_plugins` | Filter | `array $plugins` | `array` | Plugin-Blöcke für Landing-Pages registrieren; für echte Overrides sollte jeder Eintrag mindestens `id`, `targets` und `render_callback` liefern | `addFilter('landing_page_plugins', fn ($p) => [...$p, ['id' => 'hero-block', 'targets' => ['header'], 'render_callback' => fn (array $payload) => '<section>...</section>']])` |
 | `email_subject` | Filter | `string $subject` | `string` | E-Mail-Betreff vor dem Versand | `addFilter('email_subject', fn (string $s) => '[Site] ' . $s)` |
 | `email_body` | Filter | `string $body` | `string` | E-Mail-Inhalt vor dem Versand | `addFilter('email_body', fn (string $b) => appendFooter($b))` |
 

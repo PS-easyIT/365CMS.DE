@@ -51,10 +51,12 @@ $phpInfo = $data['php_info'] ?? [];
                                         <input class="form-check-input" type="checkbox" name="perf_minify_js" value="1" <?php echo ($settings['perf_minify_js'] ?? '0') === '1' ? 'checked' : ''; ?>>
                                         <span class="form-check-label">JS lokal minifizieren</span>
                                     </label>
-                                    <label class="form-check form-switch mb-0">
-                                        <input class="form-check-input" type="checkbox" name="perf_gzip" value="1" <?php echo ($settings['perf_gzip'] ?? '0') === '1' ? 'checked' : ''; ?>>
-                                        <span class="form-check-label">GZIP/Brotli-Auslieferung vorbereiten</span>
-                                    </label>
+                                    <div class="alert alert-info mb-0">
+                                        <div class="fw-semibold mb-1">Server-Kompression</div>
+                                        <div class="text-secondary small">
+                                            GZIP/Brotli wird serverseitig über Apache-/Proxy-Konfiguration bereitgestellt und hier bewusst nur als Status angezeigt – nicht als dekorativer CMS-Schalter.
+                                        </div>
+                                    </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="alert alert-info mb-0">
@@ -64,7 +66,7 @@ $phpInfo = $data['php_info'] ?? [];
                                         </div>
                                     </div>
                                     <div class="form-text mt-3">
-                                        Hinweis: Lazy Loading und Cache-Header wirken direkt. Medien-WebP/EXIF werden auf der Medien-Unterseite gespeichert. CSS/JS-Minify erzeugt lokale Cache-Dateien; Server-Kompression läuft über Apache/Brotli/GZIP-Konfiguration.
+                                        Hinweis: Lazy Loading und Cache-Header wirken direkt. Medien-WebP/EXIF werden auf der Medien-Unterseite gespeichert. CSS/JS-Minify erzeugt lokale Cache-Dateien; Server-Kompression läuft ausschließlich über Apache/Brotli/GZIP-Konfiguration.
                                     </div>
                                     <div class="mt-3 small text-secondary">
                                         Kompression erkannt: zlib <?php echo !empty($phpInfo['gzip_enabled']) ? 'aktiv' : 'inaktiv'; ?>, Apache Brotli-Regel <?php echo !empty($phpInfo['brotli_configured']) ? 'vorhanden' : 'nicht gefunden'; ?>, Deflate-Regel <?php echo !empty($phpInfo['deflate_configured']) ? 'vorhanden' : 'nicht gefunden'; ?>.

@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Übersicht über die aktuell produktiven Theme-, Design- und Frontend-Werkzeuge im Admin-Bereich – inklusive der Core-eigenen CMS Loginpage.
 
-Letzte Aktualisierung: 2026-05-03 · Version 2.9.513
+Letzte Aktualisierung: 2026-05-09 · Version 2.9.622
 
 ---
 
@@ -69,6 +69,7 @@ Ergänzend existieren weitere themennahe Admin-Pfade:
 
 - Route: `/admin/landing-page`
 - Zweck: landingpage-nahe Präsentationsblöcke verwalten, sofern das Setup diese Oberfläche nutzt.
+- Laufzeitvertrag: Header-, Content- und Footer-Bereiche können optional von registrierten Landing-Plugins mit `render_callback` überschrieben werden; der Admin speichert dafür echte Bereichs-Zuweisungen statt rein dekorativer Plugin-Toggles.
 
 ---
 
@@ -94,6 +95,7 @@ Wichtig: Der Theme-Editor ist **kein** generischer Code-Editor. Für Dateibearbe
 - Theme-Editor validiert `admin/customizer.php` vor dem Einbinden auf Pfad, Größe, Syntax, Binärinhalte und unsichere Funktionsaufrufe.
 - Font Manager scannt und löscht Font-Assets kontrolliert und priorisiert lokale Fonts optional vor externen Fallbacks.
 - CMS Loginpage speichert ihre Werte serverseitig validiert und schützt Reset- und Login-Flows mit Core-CSRF sowie Rate-Limits auf Passwort-Reset-Aktionen.
+- Landing-Page-Plugins failen geschlossen: nur registrierte, renderbare Plugins können pro Bereich aktiviert werden; das Default-Theme rendert diese Overrides anschließend tatsächlich in Header, Content oder Footer.
 
 ---
 
