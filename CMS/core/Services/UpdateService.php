@@ -1000,8 +1000,9 @@ class UpdateService
     public function getUpdateHistory(int $limit = 20): array
     {
         try {
+            $limit = max(1, min(100, $limit));
             $stmt = $this->db->prepare("
-                SELECT * FROM {$this->db->getPrefix()}settings
+                SELECT option_value FROM {$this->db->getPrefix()}settings
                 WHERE option_name LIKE 'update_log_%'
                 ORDER BY option_name DESC
                 LIMIT ?
@@ -1011,7 +1012,8 @@ class UpdateService
                 return [];
             }
             
-            $stmt->execute([$limit]);
+            $stmt->bindValue(1, $limit, \PDO::PARAM_INT);
+            $stmt->execute();
             
             $history = [];
             while ($row = $stmt->fetch(\PDO::FETCH_OBJ)) {
@@ -1245,7 +1247,12 @@ class UpdateService
             'user' => $_SESSION['user_id'] ?? 'System',
         ];
         
-        $optionName = 'update_log_' . time();
+        $optionName = sprintf(
+            'update_log_%s_%06d_%s',
+            date('YmdHis'),
+            (int) ((microtime(true) - floor(microtime(true))) * 1000000),
+            bin2hex(random_bytes(2))
+        );
         
         try {
             return $this->db->insert('settings', [

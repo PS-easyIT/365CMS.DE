@@ -1,6 +1,6 @@
 # 365CMS.DE
 
-**Version:** [2.9.630](Changelog.md) · **Status:** Stable · **PHP:** 8.4+ · **MySQL:** 5.7+ · **MariaDB:** 10.3+
+**Version:** [2.9.631](Changelog.md) · **Status:** Stable · **PHP:** 8.4+ · **MySQL:** 5.7+ · **MariaDB:** 10.3+
 
 <div align="center">
 
@@ -103,7 +103,7 @@ Die folgenden Bereiche zeigen, wie breit 365CMS bereits ohne Plugin-Zwang aufges
 | **Themes & Design** | Theme-System, Theme-Editor, Theme-Explorer, Menü-Editor, Landing-Page-Editor mit echten Plugin-Overrides pro Bereich, Font-Manager, CMS-Loginpage | Macht Branding, Navigation und UX-Anpassung zu einem echten Projektwerkzeug statt zu einer Bastelbaustelle |
 | **Plugins & Integrationen** | Hook-System, Plugin-Verwaltung, Plugin-Marketplace, modulare Erweiterungspunkte, API-nahe Workflows | Öffnet das System für individuelle Funktionen, ohne Wartbarkeit und Struktur zu opfern – inklusive stabiler dynamischer Plugin-Menüs, auch wenn Routing und Sidebar dieselbe Registry mehrfach im Request auflösen |
 | **Legal & DSGVO** | Legal-Sites, Cookie-Manager, Consent-Dialog, Datenexporte, Löschanfragen, Datenschutzpfade | Unterstützt Datenschutz- und Compliance-Prozesse dort, wo sie im Alltag gebraucht werden: direkt im CMS – inklusive auditierbarer DSGVO-Workflows für Auskunft, Ablehnung und Löschung |
-| **Betrieb & Wartung** | Cache, Performance-Werkzeuge, WebP-Batches mit Dry-Run/Rollback, lokale Asset-Minifizierung, Cron, Monitoring, Health-Checks, Backups, Mail-Queue, Logs, Updates | Macht den Betrieb sichtbar, steuerbar und langfristig beherrschbar – nicht nur am Launch-Tag; serverseitige Kompression wird dabei ehrlich als Infrastrukturstatus statt als dekorativer CMS-Toggle behandelt, Theme-Updates laufen zentral über das Update-Center, Backup-Restores erzeugen vorab automatisch einen Rollback-Snapshot, lokale Health-Endpunkte werden im Monitoring real geprüft statt nur markiert, und die Diagnose-Logzentrale bündelt operative Audit-Spuren aus System/Backups/Performance plus Update-Historie in einer Oberfläche |
+| **Betrieb & Wartung** | Cache, Performance-Werkzeuge, WebP-Batches mit Dry-Run/Rollback, lokale Asset-Minifizierung, Cron, Monitoring, Health-Checks, Backups, Mail-Queue, Logs, Updates | Macht den Betrieb sichtbar, steuerbar und langfristig beherrschbar – nicht nur am Launch-Tag; serverseitige Kompression wird dabei ehrlich als Infrastrukturstatus statt als dekorativer CMS-Toggle behandelt, Theme-Updates laufen zentral über das Update-Center, Backup-Restores erzeugen vorab automatisch einen Rollback-Snapshot, lokale Health-Endpunkte werden im Monitoring real geprüft statt nur markiert, und die Diagnose-Logzentrale bündelt operative Audit-Spuren aus System/Backups/Performance plus eine robust geladene, kollisionsarme Update-Historie in einer Oberfläche |
 
 ### 🚀 Kurz positioniert
 

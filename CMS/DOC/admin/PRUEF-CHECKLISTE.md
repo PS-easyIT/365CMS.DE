@@ -1010,6 +1010,19 @@ Die Sidebar in `CMS/admin/partials/sidebar.php` ist für die Menüstruktur führ
 - **Offene Nice-to-haves:** Trendhistorie für Response-Time/Cron/Speicher, Diagnose-Export, Sammelansicht kritischer Warnungen
 - **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/diagnose/README.md`, `CMS/DOC/admin/diagnose/DIAGNOSE.md`, `CMS/DOC/admin/system-settings/README.md`, `CMS/DOC/admin/system-settings/SYSTEM.md`, `CMS/DOC/admin/performance/PERFORMANCE.md`
 
+### Audit-Stand – Review/Nachprüfung · Gesamtstand der letzten Admin-Anpassungen · Durchlauf 1
+
+- **Status:** abgeschlossen auf Code-/Best-Practice-/Vertragsbasis · Release `2.9.631`
+- **Prüfer:** GitHub Copilot
+- **Datum:** 2026-05-09
+- **Geprüfte Artefakte:** `CMS/core/Services/UpdateService.php`, `Changelog.md`, `CMS/DOC/admin/README.md`, `/admin/cms-logs`-bezogene Update-Historie
+- **Reproduziertes Fehlerbild:** Die neue Diagnose-Update-Historie hing an einer PDO-Abfrage mit `LIMIT ?` plus `execute([$limit])`, obwohl diese Bindung laut PHP-Dokumentation standardmäßig als String behandelt wird und bei nativen MySQL-Prepares zu still leeren Ergebnissen führen kann. Zusätzlich verwendete `UpdateService::logUpdate()` nur `time()` als Schlüsselbasis, wodurch mehrere Update-Ereignisse derselben Sekunde einander überschreiben konnten. Parallel blieb nach `2.9.630` eine Versionsdrift in `Changelog.md` und `CMS/DOC/admin/README.md` zurück.
+- **Umsetzung in diesem Durchlauf:** Die Update-History-Abfrage bindet das Limit jetzt explizit als Integer und liest nur die benötigte Nutzlast. Persistierte `update_log_*`-Einträge erhalten kollisionsarme, zeitlich sortierbare Schlüssel mit Zeitstempel, Mikrosekunden und Kurzsuffix, sodass schnelle Update-Folgen nicht mehr zusammenfallen. Außerdem wurden die bei der Nachprüfung gefundenen Versionsdrifts in Changelog und Admin-Übersicht bereinigt.
+- **Abhängige Bereiche:** `UpdateService`, Diagnose-Logzentrale `/admin/cms-logs`, zentrale Release-/Admin-Doku
+- **Offene Must-haves:** keine
+- **Offene Nice-to-haves:** sprechende Benutzeranzeige statt User-ID in der Update-Historie, optionaler Diagnose-Export
+- **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`
+
 ### Plugins ↔ alle anderen Bereiche
 
 - [ ] Aktivierte Plugins erweitern Menüs und Funktionen sauber.
