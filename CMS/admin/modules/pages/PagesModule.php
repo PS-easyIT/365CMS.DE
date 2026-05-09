@@ -384,9 +384,19 @@ class PagesModule
             return ['success' => false, 'error' => 'Dieser englische Slug ist bereits vergeben.'];
         }
 
-        $contentMediaPlacement = ContentMediaPlacementService::getInstance();
-        [$content, $contentEn] = $contentMediaPlacement->relocateTemporaryContentMediaBatch([$content, $contentEn], 'page', $slug);
-        $featuredImage = $contentMediaPlacement->relocateTemporaryFeaturedImage($featuredImage, $featuredImageTempPath, 'page', $slug);
+        try {
+            $contentMediaPlacement = ContentMediaPlacementService::getInstance();
+            [$content, $contentEn] = $contentMediaPlacement->relocateTemporaryContentMediaBatch([$content, $contentEn], 'page', $slug);
+            $featuredImage = $contentMediaPlacement->relocateTemporaryFeaturedImage($featuredImage, $featuredImageTempPath, 'page', $slug);
+        } catch (\Throwable $e) {
+            Logger::instance()->withChannel('admin.pages')->warning('Temporäre Seitenmedien konnten beim Speichern nicht vollständig verarbeitet werden.', [
+                'page_id' => $id,
+                'slug' => $slug,
+                'featured_image' => $featuredImage,
+                'featured_image_temp_path' => $featuredImageTempPath,
+                'exception' => $e->getMessage(),
+            ]);
+        }
 
         $savePayload = [
             'title' => $title,

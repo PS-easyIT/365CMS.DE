@@ -578,9 +578,19 @@ class PostsModule
             return ['success' => false, 'error' => 'Dieser englische Slug ist bereits vergeben.'];
         }
 
-        $contentMediaPlacement = ContentMediaPlacementService::getInstance();
-        [$content, $contentEn] = $contentMediaPlacement->relocateTemporaryContentMediaBatch([$content, $contentEn], 'post', $slug);
-        $featuredImage = $contentMediaPlacement->relocateTemporaryFeaturedImage($featuredImage, $featuredImageTempPath, 'post', $slug);
+        try {
+            $contentMediaPlacement = ContentMediaPlacementService::getInstance();
+            [$content, $contentEn] = $contentMediaPlacement->relocateTemporaryContentMediaBatch([$content, $contentEn], 'post', $slug);
+            $featuredImage = $contentMediaPlacement->relocateTemporaryFeaturedImage($featuredImage, $featuredImageTempPath, 'post', $slug);
+        } catch (\Throwable $e) {
+            Logger::instance()->withChannel('admin.posts')->warning('Temporäre Beitragsmedien konnten beim Speichern nicht vollständig verarbeitet werden.', [
+                'post_id' => $id,
+                'slug' => $slug,
+                'featured_image' => $featuredImage,
+                'featured_image_temp_path' => $featuredImageTempPath,
+                'exception' => $e->getMessage(),
+            ]);
+        }
 
         $publishedAtInput = $this->normalizePublishedAtInput($publishDateRaw, $publishTimeRaw);
         if ($publishedAtInput['error'] !== null) {
