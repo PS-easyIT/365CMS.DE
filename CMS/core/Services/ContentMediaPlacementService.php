@@ -36,55 +36,77 @@ final class ContentMediaPlacementService
      */
     public function relocateTemporaryContentMediaBatch(array $contents, string $contentType, string $slug): array
     {
-        $baseFolder = $this->resolveBaseFolder($contentType);
-        $folderSlug = $this->sanitizeFolderSegment($slug);
+        try {
+            $baseFolder = $this->resolveBaseFolder($contentType);
+            $folderSlug = $this->sanitizeFolderSegment($slug);
 
-        if ($baseFolder === '' || $folderSlug === '' || $contents === []) {
-            return $contents;
-        }
-
-        $sourcePaths = [];
-        foreach ($contents as $content) {
-            foreach ($this->extractTemporaryRelativePaths((string) $content, $baseFolder) as $relativePath) {
-                $sourcePaths[$relativePath] = true;
+            if ($baseFolder === '' || $folderSlug === '' || $contents === []) {
+                return $contents;
             }
-        }
 
-        $pathMap = $this->moveTemporaryMediaPaths(array_keys($sourcePaths), $baseFolder, $folderSlug);
-        if ($pathMap === []) {
+            $sourcePaths = [];
+            foreach ($contents as $content) {
+                foreach ($this->extractTemporaryRelativePaths((string) $content, $baseFolder) as $relativePath) {
+                    $sourcePaths[$relativePath] = true;
+                }
+            }
+
+            $pathMap = $this->moveTemporaryMediaPaths(array_keys($sourcePaths), $baseFolder, $folderSlug);
+            if ($pathMap === []) {
+                return $contents;
+            }
+
+            $updatedContents = [];
+            foreach ($contents as $index => $content) {
+                $updatedContents[$index] = $this->replaceContentReferences((string) $content, $pathMap);
+            }
+
+            return $updatedContents;
+        } catch (\Throwable $exception) {
+            $this->logger->warning('Temporäre Content-Mediendateien konnten beim Speichern nicht vollständig verschoben werden.', [
+                'content_type' => $contentType,
+                'slug' => $slug,
+                'exception' => $exception->getMessage(),
+            ]);
+
             return $contents;
         }
-
-        $updatedContents = [];
-        foreach ($contents as $index => $content) {
-            $updatedContents[$index] = $this->replaceContentReferences((string) $content, $pathMap);
-        }
-
-        return $updatedContents;
     }
 
     public function relocateTemporaryFeaturedImage(string $featuredImageUrl, string $featuredImageTempPath, string $contentType, string $slug): string
     {
-        $baseFolder = $this->resolveBaseFolder($contentType);
-        $folderSlug = $this->sanitizeFolderSegment($slug);
+        try {
+            $baseFolder = $this->resolveBaseFolder($contentType);
+            $folderSlug = $this->sanitizeFolderSegment($slug);
 
-        if ($baseFolder === '' || $folderSlug === '') {
+            if ($baseFolder === '' || $folderSlug === '') {
+                return $featuredImageUrl;
+            }
+
+            $sourcePath = $this->extractRelativeMediaPath($featuredImageTempPath !== '' ? $featuredImageTempPath : $featuredImageUrl);
+            if ($sourcePath === '' || !str_starts_with($sourcePath, $baseFolder . '/temp/')) {
+                return $featuredImageUrl;
+            }
+
+            $pathMap = $this->moveTemporaryMediaPaths([$sourcePath], $baseFolder, $folderSlug);
+            $targetPath = $pathMap[$sourcePath] ?? '';
+
+            if ($targetPath === '') {
+                return $featuredImageUrl;
+            }
+
+            return $this->mediaDelivery->buildAccessUrl($targetPath, true);
+        } catch (\Throwable $exception) {
+            $this->logger->warning('Temporäres Beitrags-/Seitenbild konnte beim Speichern nicht vollständig verschoben werden.', [
+                'content_type' => $contentType,
+                'slug' => $slug,
+                'featured_image' => $featuredImageUrl,
+                'temp_path' => $featuredImageTempPath,
+                'exception' => $exception->getMessage(),
+            ]);
+
             return $featuredImageUrl;
         }
-
-        $sourcePath = $this->extractRelativeMediaPath($featuredImageTempPath !== '' ? $featuredImageTempPath : $featuredImageUrl);
-        if ($sourcePath === '' || !str_starts_with($sourcePath, $baseFolder . '/temp/')) {
-            return $featuredImageUrl;
-        }
-
-        $pathMap = $this->moveTemporaryMediaPaths([$sourcePath], $baseFolder, $folderSlug);
-        $targetPath = $pathMap[$sourcePath] ?? '';
-
-        if ($targetPath === '') {
-            return $featuredImageUrl;
-        }
-
-        return $this->mediaDelivery->buildAccessUrl($targetPath, true);
     }
 
     private function resolveBaseFolder(string $contentType): string
@@ -176,7 +198,21 @@ final class ContentMediaPlacementService
             }
         }
 
-        $moved = $this->mediaService->moveFile($sourcePath, $targetPath);
+        try {
+            $moved = $this->mediaService->moveFile($sourcePath, $targetPath);
+        } catch (\Throwable $exception) {
+            $this->logger->warning('Temporäre Content-Mediendatei wurde möglicherweise verschoben, die Metadaten-Synchronisation ist aber fehlgeschlagen.', [
+                'source_path' => $sourcePath,
+                'target_path' => $targetPath,
+                'exception' => $exception->getMessage(),
+            ]);
+
+            if (!$this->mediaService->pathExists($sourcePath) && $this->mediaService->pathExists($targetPath)) {
+                return $targetPath;
+            }
+
+            return '';
+        }
         if ($moved instanceof \CMS\WP_Error) {
             $this->logger->warning('Temporäre Content-Mediendatei konnte nicht in den Slug-Ordner verschoben werden.', [
                 'source_path' => $sourcePath,

@@ -172,7 +172,7 @@ final class EditorJsUploadService
 
     private function isAllowedImageExtension(string $extension): bool
     {
-        return in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'avif', 'bmp'], true);
+        return in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'ico'], true);
     }
 
     /**
@@ -235,8 +235,8 @@ final class EditorJsUploadService
                 'image/png', 'image/x-png' => 'png',
                 'image/gif' => 'gif',
                 'image/webp' => 'webp',
-                'image/avif' => 'avif',
                 'image/bmp', 'image/x-bmp', 'image/x-ms-bmp', 'image/ms-bmp' => 'bmp',
+                'image/x-icon', 'image/vnd.microsoft.icon' => 'ico',
                 default => '',
             };
 
