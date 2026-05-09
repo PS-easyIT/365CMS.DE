@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Überblick über die Content-Module im Admin-Bereich und ihre aktuelle Aufgabenverteilung.
 
-Letzte Aktualisierung: 2026-05-09 · Version 2.9.704
+Letzte Aktualisierung: 2026-05-09 · Version 2.9.706
 
 Der Content-Bereich ist auf mehrere spezialisierte Bereiche verteilt:
 
@@ -56,6 +56,7 @@ Die SEO-spezifischen Global-Einstellungen liegen nicht mehr in einem alten Monol
 - Der Beitrags-Editor nutzt im Top-Bereich jetzt eine kompaktere Kartenverteilung: Kategorie und Tags sitzen direkt beim Slug, während Speichern und öffentliche DE-/EN-Vorschau in einer eigenen Aktions-Card unter dem Beitragsbild liegen.
 - Beiträge arbeiten im Editor aktuell mit **einer primären Kategorie**; die frühere UI für zusätzliche Kategorien wird nicht mehr angeboten.
 - Slug-Änderungen an Kategorien und Tags halten den öffentlichen Taxonomie-Vertrag jetzt ebenfalls stabil: dedizierte Archivpfade und alte `?category=`/`?tag=`-Filterwerte werden weiter auf den aktuellen Slug aufgelöst.
+- Kategorien und Tags unterstützen seit `2.9.706` Bulk-Löschaktionen in den jeweiligen Listen. Bei Beitragsbezug erzwingt der Server gültige Ersatzkategorien bzw. Ersatztags, verhindert Ersatzwerte aus der Lösch-Auswahl und protokolliert erfolgreiche Sammelaktionen im Audit-Trail.
 - Hub-Sites reservieren nun auch statische Public-Routen und Archivbasen als Slugs, damit neu angelegte Hubs nicht an `/contact`, `/authors`, `/feed`, `/category`, `/tag` oder ähnlichen Frontend-Routen unsichtbar vorbeiplanen.
 - Site-Tabellen schließen ihren Public-Vertrag jetzt sichtbar an den Editor an: Suche, Sortierung, Paginierung und Zeilenhervorhebung wirken im Frontend tatsächlich; die nicht implementierte Excel-Option wird im Admin nicht länger als scheinbar produktiver Export angeboten.
 - Der Unterbereich „Einstellungen“ lebt technisch unter `/admin/settings?tab=content`, bündelt jetzt auch Permalink-/Archiv-Basen direkt im Inhalts-Tab und behält Formulareingaben bei Validierungsfehlern über den Redirect hinweg.

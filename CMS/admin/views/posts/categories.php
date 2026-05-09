@@ -155,10 +155,29 @@ $replacementCategoryDeletePreview = array_slice($replacementCategoryDeletePrevie
             </div>
             <div class="col-lg-8">
                 <div class="card">
+                      <form method="post" id="bulkCategoryForm"
+                          data-confirm-title="Kategorien gesammelt löschen"
+                          data-confirm-message="Ausgewählte Kategorien wirklich löschen? Kategorien mit Beitragsbezug werden nur gelöscht, wenn eine gültige Ersatzkategorie vorhanden ist."
+                          data-confirm-text="Kategorien löschen"
+                          data-confirm-class="btn-danger"
+                          data-confirm-status-class="bg-danger"></form>
                     <div class="card-header d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
                         <div>
                             <h3 class="card-title mb-1">Vorhandene Kategorien</h3>
-                            <div class="text-secondary small">Kategorien mit hinterlegter Ersatzkategorie können gesammelt gelöscht und automatisch umgestellt werden.</div>
+                            <div class="text-secondary small">Ausgewählte Kategorien können gesammelt gelöscht werden; bei Beitragsbezug ist eine Ersatzkategorie Pflicht.</div>
+                        </div>
+                        <div class="d-flex flex-column flex-xl-row gap-2 align-items-stretch align-items-xl-center">
+                            <input type="hidden" form="bulkCategoryForm" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES); ?>">
+                            <input type="hidden" form="bulkCategoryForm" name="action" value="bulk_delete_categories">
+                            <select class="form-select form-select-sm" form="bulkCategoryForm" name="bulk_replacement_category_id" aria-label="Gemeinsame Ersatzkategorie">
+                                <option value="0">Ersatz je Kategorie nutzen</option>
+                                <?php foreach ($deleteCategoryOptions as $categoryOption): ?>
+                                    <option value="<?php echo (int) ($categoryOption['id'] ?? 0); ?>">
+                                        <?php echo htmlspecialchars((string) ($categoryOption['option_label'] ?? $categoryOption['name'] ?? ''), ENT_QUOTES); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                            <button type="submit" form="bulkCategoryForm" class="btn btn-outline-danger btn-sm">Ausgewählte löschen</button>
                         </div>
                         <?php if ($replacementCategoryDeleteCount > 0): ?>
                             <form method="post" class="d-inline-flex js-delete-replacement-categories-form"
@@ -176,6 +195,7 @@ $replacementCategoryDeletePreview = array_slice($replacementCategoryDeletePrevie
                         <table class="table table-vcenter card-table">
                             <thead>
                                 <tr>
+                                    <th class="w-1">Auswahl</th>
                                     <th>Name</th>
                                     <th>Slug</th>
                                     <th>Ebene</th>
@@ -187,10 +207,13 @@ $replacementCategoryDeletePreview = array_slice($replacementCategoryDeletePrevie
                             </thead>
                             <tbody>
                                 <?php if ($categories === []): ?>
-                                    <tr><td colspan="7" class="text-secondary text-center py-4">Noch keine Kategorien vorhanden.</td></tr>
+                                    <tr><td colspan="8" class="text-secondary text-center py-4">Noch keine Kategorien vorhanden.</td></tr>
                                 <?php endif; ?>
                                 <?php foreach ($categories as $category): ?>
                                     <tr>
+                                        <td>
+                                            <input class="form-check-input" type="checkbox" form="bulkCategoryForm" name="category_ids[]" value="<?php echo (int) ($category['id'] ?? 0); ?>" aria-label="Kategorie auswählen: <?php echo htmlspecialchars((string) ($category['name'] ?? ''), ENT_QUOTES); ?>">
+                                        </td>
                                         <td class="fw-medium"><?php echo htmlspecialchars((string) ($category['option_label'] ?? $category['name'] ?? ''), ENT_QUOTES); ?></td>
                                         <td><code><?php echo htmlspecialchars((string) ($category['slug'] ?? ''), ENT_QUOTES); ?></code></td>
                                         <td>

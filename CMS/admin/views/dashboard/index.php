@@ -90,6 +90,10 @@ if (!function_exists('dashboardUrl')) {
             return $fallback;
         }
 
+        if ($normalized[0] !== '/' || str_starts_with($normalized, '//') || preg_match('/[\x00-\x1F\x7F]/', $normalized) === 1) {
+            return $fallback;
+        }
+
         return $normalized;
     }
 }

@@ -440,7 +440,7 @@ final class AiServicesModule
             }
 
             $meta = [
-                'active_provider_id' => $this->sanitizeProviderSelection((string) ($post['active_provider_id'] ?? ''), $providerIds),
+                'active_provider_id' => $this->resolvePrimaryProviderSelection((string) ($post['active_provider_id'] ?? ''), $providerIds),
                 'fallback_provider_id' => $this->sanitizeProviderSelection((string) ($post['fallback_provider_id'] ?? ''), $providerIds),
             ];
 
@@ -591,7 +591,7 @@ final class AiServicesModule
             ));
 
             $meta = [
-                'active_provider_id' => $this->sanitizeProviderSelection((string) ($providersData['active_provider_id'] ?? ''), $remainingIds),
+                'active_provider_id' => $this->resolvePrimaryProviderSelection((string) ($providersData['active_provider_id'] ?? ''), $remainingIds),
                 'fallback_provider_id' => $this->sanitizeProviderSelection((string) ($providersData['fallback_provider_id'] ?? ''), $remainingIds),
             ];
             if ($meta['fallback_provider_id'] !== '' && $meta['fallback_provider_id'] === $meta['active_provider_id']) {
@@ -891,6 +891,17 @@ final class AiServicesModule
         $value = $this->sanitizeProviderId($value);
 
         return in_array($value, $validProviderIds, true) ? $value : '';
+    }
+
+    /** @param list<string> $validProviderIds */
+    private function resolvePrimaryProviderSelection(string $value, array $validProviderIds): string
+    {
+        $selection = $this->sanitizeProviderSelection($value, $validProviderIds);
+        if ($selection !== '' || $validProviderIds === []) {
+            return $selection;
+        }
+
+        return (string) ($validProviderIds[0] ?? '');
     }
 
     private function sanitizeProfile(string $value): string

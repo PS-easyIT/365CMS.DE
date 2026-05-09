@@ -75,6 +75,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 (int) ($_POST['replacement_tag_id'] ?? 0)
             );
             break;
+        case 'bulk_delete_tags':
+            $result = $module->bulkDeleteTags(
+                (array) ($_POST['tag_ids'] ?? []),
+                (int) ($_POST['bulk_replacement_tag_id'] ?? 0)
+            );
+            break;
         default:
             $result = ['success' => false, 'error' => 'Unbekannte Aktion.'];
             break;

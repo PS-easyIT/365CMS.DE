@@ -101,11 +101,36 @@ $deleteTagSubmitDisabled = count($deleteTagOptions) <= 1;
             </div>
             <div class="col-lg-8">
                 <div class="card">
-                    <div class="card-header"><h3 class="card-title">Vorhandene Tags</h3></div>
+                      <form method="post" id="bulkTagForm"
+                          data-confirm-title="Tags gesammelt löschen"
+                          data-confirm-message="Ausgewählte Tags wirklich löschen? Tags mit Beitragsbezug benötigen einen gültigen Ersatztag."
+                          data-confirm-text="Tags löschen"
+                          data-confirm-class="btn-danger"
+                          data-confirm-status-class="bg-danger"></form>
+                    <div class="card-header d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+                        <div>
+                            <h3 class="card-title mb-1">Vorhandene Tags</h3>
+                            <div class="text-secondary small">Ausgewählte Tags können gesammelt gelöscht werden; bei Beitragsbezug ist ein Ersatztag Pflicht.</div>
+                        </div>
+                        <div class="d-flex flex-column flex-xl-row gap-2 align-items-stretch align-items-xl-center">
+                            <input type="hidden" form="bulkTagForm" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES); ?>">
+                            <input type="hidden" form="bulkTagForm" name="action" value="bulk_delete_tags">
+                            <select class="form-select form-select-sm" form="bulkTagForm" name="bulk_replacement_tag_id" aria-label="Gemeinsamer Ersatztag">
+                                <option value="0">Ohne Ersatztag</option>
+                                <?php foreach ($deleteTagOptions as $tagOption): ?>
+                                    <option value="<?php echo (int) ($tagOption['id'] ?? 0); ?>">
+                                        <?php echo htmlspecialchars((string) ($tagOption['name'] ?? ''), ENT_QUOTES); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                            <button type="submit" form="bulkTagForm" class="btn btn-outline-danger btn-sm">Ausgewählte löschen</button>
+                        </div>
+                    </div>
                     <div class="table-responsive">
                         <table class="table table-vcenter card-table">
                             <thead>
                                 <tr>
+                                    <th class="w-1">Auswahl</th>
                                     <th>Name</th>
                                     <th>Slug</th>
                                     <th>Beiträge</th>
@@ -114,10 +139,13 @@ $deleteTagSubmitDisabled = count($deleteTagOptions) <= 1;
                             </thead>
                             <tbody>
                                 <?php if ($tags === []): ?>
-                                    <tr><td colspan="4" class="text-secondary text-center py-4">Noch keine Tags vorhanden.</td></tr>
+                                    <tr><td colspan="5" class="text-secondary text-center py-4">Noch keine Tags vorhanden.</td></tr>
                                 <?php endif; ?>
                                 <?php foreach ($tags as $tag): ?>
                                     <tr>
+                                        <td>
+                                            <input class="form-check-input" type="checkbox" form="bulkTagForm" name="tag_ids[]" value="<?php echo (int) ($tag['id'] ?? 0); ?>" aria-label="Tag auswählen: <?php echo htmlspecialchars((string) ($tag['name'] ?? ''), ENT_QUOTES); ?>">
+                                        </td>
                                         <td class="fw-medium"><?php echo htmlspecialchars((string) ($tag['name'] ?? ''), ENT_QUOTES); ?></td>
                                         <td><code><?php echo htmlspecialchars((string) ($tag['slug'] ?? ''), ENT_QUOTES); ?></code></td>
                                         <td><?php echo (int) ($tag['post_count'] ?? 0); ?></td>

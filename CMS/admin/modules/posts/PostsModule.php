@@ -1127,7 +1127,104 @@ class PostsModule
         return ['success' => true, 'message' => implode(' ', $messageParts)];
     }
 
-    private function deleteCategoryResolved(int $id, int $replacementId = 0): array
+    /**
+     * @param array<int|string,mixed> $categoryIds
+     */
+    public function bulkDeleteCategories(array $categoryIds, int $replacementId = 0): array
+    {
+        $requestedIds = $this->normalizePositiveIds($categoryIds);
+        if ($requestedIds === []) {
+            return ['success' => false, 'error' => 'Bitte mindestens eine Kategorie auswählen.'];
+        }
+
+        $existingIds = $this->getExistingCategoryIds($requestedIds);
+        if (count($existingIds) !== count($requestedIds)) {
+            return ['success' => false, 'error' => 'Mindestens eine ausgewählte Kategorie existiert nicht mehr. Bitte Liste neu laden.'];
+        }
+
+        $selectedLookup = array_fill_keys($existingIds, true);
+        if ($replacementId > 0) {
+            if (isset($selectedLookup[$replacementId])) {
+                return ['success' => false, 'error' => 'Die gemeinsame Ersatzkategorie darf nicht selbst gelöscht werden.'];
+            }
+
+            if (!$this->categoryExists($replacementId)) {
+                return ['success' => false, 'error' => 'Die gemeinsame Ersatzkategorie existiert nicht mehr.'];
+            }
+        }
+
+        $resolvedReplacements = [];
+        foreach ($existingIds as $categoryId) {
+            $assignedPostCount = $this->countAssignedPostsForCategory($categoryId);
+            if ($assignedPostCount <= 0) {
+                $resolvedReplacements[$categoryId] = 0;
+                continue;
+            }
+
+            $resolvedReplacementId = $replacementId > 0 ? $replacementId : $this->getStoredReplacementCategoryId($categoryId);
+            if ($resolvedReplacementId <= 0) {
+                return ['success' => false, 'error' => 'Für mindestens eine ausgewählte Kategorie mit Beiträgen fehlt eine gültige Ersatzkategorie. Bitte eine gemeinsame Ersatzkategorie wählen oder je Kategorie eine Ersatzkategorie hinterlegen.'];
+            }
+
+            if (isset($selectedLookup[$resolvedReplacementId])) {
+                return ['success' => false, 'error' => 'Eine Ersatzkategorie darf nicht Teil der Lösch-Auswahl sein.'];
+            }
+
+            if (!$this->categoryExists($resolvedReplacementId)) {
+                return ['success' => false, 'error' => 'Mindestens eine hinterlegte Ersatzkategorie existiert nicht mehr. Bitte Liste neu laden.'];
+            }
+
+            $resolvedReplacements[$categoryId] = $resolvedReplacementId;
+        }
+
+        $pdo = $this->db->getPdo();
+        $startedTransaction = !$pdo->inTransaction();
+
+        try {
+            if ($startedTransaction) {
+                $pdo->beginTransaction();
+            }
+
+            foreach ($existingIds as $categoryId) {
+                $result = $this->deleteCategoryResolved($categoryId, (int) ($resolvedReplacements[$categoryId] ?? 0), false);
+                if (empty($result['success'])) {
+                    if ($startedTransaction && $pdo->inTransaction()) {
+                        $pdo->rollBack();
+                    }
+
+                    return ['success' => false, 'error' => (string) ($result['error'] ?? 'Bulk-Löschen der Kategorien fehlgeschlagen.')];
+                }
+            }
+
+            if ($startedTransaction && $pdo->inTransaction()) {
+                $pdo->commit();
+            }
+
+            if ($existingIds !== []) {
+                $this->clearContentCacheIfEnabled('post_category_bulk_delete', (int) $existingIds[0]);
+            }
+
+            AuditLogger::instance()->log(
+                AuditLogger::CAT_CONTENT,
+                'posts.category.bulk_delete',
+                count($existingIds) . ' Beitragskategorie(n) per Bulk-Aktion gelöscht.',
+                'post_categories',
+                null,
+                ['category_ids' => $existingIds, 'replacement_category_id' => $replacementId],
+                'info'
+            );
+
+            return ['success' => true, 'message' => count($existingIds) . ' Kategorie/Kategorien gelöscht.'];
+        } catch (\Throwable $e) {
+            if ($startedTransaction && $pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+
+            return $this->failResult('posts.category.bulk_delete.failed', 'Bulk-Löschen der Kategorien fehlgeschlagen.', $e, ['category_ids' => $existingIds, 'replacement_category_id' => $replacementId]);
+        }
+    }
+
+    private function deleteCategoryResolved(int $id, int $replacementId = 0, bool $clearCache = true): array
     {
         if ($id <= 0) {
             return ['success' => false, 'error' => 'Ungültige Kategorie.'];
@@ -1181,7 +1278,9 @@ class PostsModule
                 return ['success' => false, 'error' => 'Kategorie wurde nicht gefunden oder bereits gelöscht.'];
             }
 
-            $this->clearContentCacheIfEnabled('post_category_delete', $id);
+            if ($clearCache) {
+                $this->clearContentCacheIfEnabled('post_category_delete', $id);
+            }
 
             return ['success' => true, 'message' => 'Kategorie gelöscht.'];
         } catch (\Throwable $e) {
@@ -1361,6 +1460,11 @@ class PostsModule
      */
     public function deleteTag(int $id, int $replacementId = 0): array
     {
+        return $this->deleteTagInternal($id, $replacementId, true);
+    }
+
+    private function deleteTagInternal(int $id, int $replacementId = 0, bool $clearCache = true): array
+    {
         if ($id <= 0) {
             return ['success' => false, 'error' => 'Ungültiger Tag.'];
         }
@@ -1410,11 +1514,98 @@ class PostsModule
                 return ['success' => false, 'error' => 'Tag wurde nicht gefunden oder bereits gelöscht.'];
             }
 
-            $this->clearContentCacheIfEnabled('post_tag_delete', $id);
+            if ($clearCache) {
+                $this->clearContentCacheIfEnabled('post_tag_delete', $id);
+            }
 
             return ['success' => true, 'message' => 'Tag gelöscht.'];
         } catch (\Throwable $e) {
             return $this->failResult('posts.tag.delete.failed', 'Tag konnte nicht gelöscht werden.', $e, ['tag_id' => $id, 'replacement_tag_id' => $replacementId]);
+        }
+    }
+
+    /**
+     * @param array<int|string,mixed> $tagIds
+     */
+    public function bulkDeleteTags(array $tagIds, int $replacementId = 0): array
+    {
+        $requestedIds = $this->normalizePositiveIds($tagIds);
+        if ($requestedIds === []) {
+            return ['success' => false, 'error' => 'Bitte mindestens einen Tag auswählen.'];
+        }
+
+        $existingIds = $this->getExistingTagIds($requestedIds);
+        if (count($existingIds) !== count($requestedIds)) {
+            return ['success' => false, 'error' => 'Mindestens ein ausgewählter Tag existiert nicht mehr. Bitte Liste neu laden.'];
+        }
+
+        $selectedLookup = array_fill_keys($existingIds, true);
+        $requiresReplacement = false;
+        foreach ($existingIds as $tagId) {
+            if ($this->countAssignedPostsForTag($tagId) > 0) {
+                $requiresReplacement = true;
+                break;
+            }
+        }
+
+        if ($requiresReplacement) {
+            if ($replacementId <= 0) {
+                return ['success' => false, 'error' => 'Für Tags mit Beitragsbezug bitte einen gemeinsamen Ersatztag auswählen.'];
+            }
+
+            if (isset($selectedLookup[$replacementId])) {
+                return ['success' => false, 'error' => 'Der gemeinsame Ersatztag darf nicht selbst gelöscht werden.'];
+            }
+
+            if (!$this->tagExists($replacementId)) {
+                return ['success' => false, 'error' => 'Der gemeinsame Ersatztag existiert nicht mehr.'];
+            }
+        }
+
+        $pdo = $this->db->getPdo();
+        $startedTransaction = !$pdo->inTransaction();
+
+        try {
+            if ($startedTransaction) {
+                $pdo->beginTransaction();
+            }
+
+            foreach ($existingIds as $tagId) {
+                $result = $this->deleteTagInternal($tagId, $requiresReplacement ? $replacementId : 0, false);
+                if (empty($result['success'])) {
+                    if ($startedTransaction && $pdo->inTransaction()) {
+                        $pdo->rollBack();
+                    }
+
+                    return ['success' => false, 'error' => (string) ($result['error'] ?? 'Bulk-Löschen der Tags fehlgeschlagen.')];
+                }
+            }
+
+            if ($startedTransaction && $pdo->inTransaction()) {
+                $pdo->commit();
+            }
+
+            if ($existingIds !== []) {
+                $this->clearContentCacheIfEnabled('post_tag_bulk_delete', (int) $existingIds[0]);
+            }
+
+            AuditLogger::instance()->log(
+                AuditLogger::CAT_CONTENT,
+                'posts.tag.bulk_delete',
+                count($existingIds) . ' Beitrags-Tag(s) per Bulk-Aktion gelöscht.',
+                'post_tags',
+                null,
+                ['tag_ids' => $existingIds, 'replacement_tag_id' => $replacementId],
+                'info'
+            );
+
+            return ['success' => true, 'message' => count($existingIds) . ' Tag(s) gelöscht.'];
+        } catch (\Throwable $e) {
+            if ($startedTransaction && $pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+
+            return $this->failResult('posts.tag.bulk_delete.failed', 'Bulk-Löschen der Tags fehlgeschlagen.', $e, ['tag_ids' => $existingIds, 'replacement_tag_id' => $replacementId]);
         }
     }
 
@@ -1552,6 +1743,18 @@ class PostsModule
     private function normalizeExistingCategoryId(int $categoryId): int
     {
         return $this->categoryExists($categoryId) ? $categoryId : 0;
+    }
+
+    /**
+     * @param array<int|string,mixed> $ids
+     * @return array<int,int>
+     */
+    private function normalizePositiveIds(array $ids): array
+    {
+        return array_values(array_unique(array_filter(
+            array_map('intval', $ids),
+            static fn(int $id): bool => $id > 0
+        )));
     }
 
     private function normalizeBulkAction(string $action): string
@@ -1937,6 +2140,31 @@ class PostsModule
             "SELECT COUNT(*) FROM {$this->prefix}post_tags WHERE id != ?",
             [$excludeId]
         ) ?: 0);
+    }
+
+    /**
+     * @param array<int,int> $tagIds
+     * @return array<int,int>
+     */
+    private function getExistingTagIds(array $tagIds): array
+    {
+        $tagIds = $this->normalizePositiveIds($tagIds);
+        if ($tagIds === []) {
+            return [];
+        }
+
+        $placeholders = implode(',', array_fill(0, count($tagIds), '?'));
+        $rows = $this->db->get_results(
+            "SELECT id FROM {$this->prefix}post_tags WHERE id IN ({$placeholders})",
+            $tagIds
+        ) ?: [];
+
+        $existing = [];
+        foreach ($rows as $row) {
+            $existing[(int) ($row->id ?? 0)] = true;
+        }
+
+        return array_values(array_filter($tagIds, static fn(int $id): bool => isset($existing[$id])));
     }
 
     private function countAssignedPostsForTag(int $tagId): int

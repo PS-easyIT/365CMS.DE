@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Beschreibt die aktuelle Startseite des Admin-Bereichs inklusive Kennzahlen, Schnellzugriffen, Warnhinweisen und segmentweisem Fail-Soft-Verhalten.
 
-Letzte Aktualisierung: 2026-05-09 · Version 2.9.705
+Letzte Aktualisierung: 2026-05-09 · Version 2.9.707
 
 ---
 
@@ -17,6 +17,8 @@ Das Admin-Dashboard ist die zentrale Einstiegsseite für Redakteure und Administ
 Seit `2.9.615` wird jeder Statistikblock einzeln geladen. Fällt z. B. die Sicherheits-, Sessions- oder Orders-Datenquelle aus, bleibt die Startseite renderbar und arbeitet für den betroffenen Block mit neutralen Fallback-Werten statt mit einem Full-Page-Fatal.
 
 Seit `2.9.705` ist der Speichern-Flow der Dashboard-Personalisierung zusätzlich gegen stale Tabs und parallel geöffnete Admin-Formulare gehärtet: Mehrere Tokens pro CSRF-Action bleiben innerhalb des TTL-Fensters gültig, der konkret verwendete Token wird danach weiterhin invalidiert.
+
+Seit `2.9.707` akzeptiert die View für Quicklinks und Deep-Links außerdem nur noch interne Pfade mit führendem `/`. Unerwartete oder beschädigte Zielwerte fallen fail-closed auf ein internes Admin-Ziel zurück, statt roh übernommen zu werden.
 
 ---
 

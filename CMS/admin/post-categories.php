@@ -81,6 +81,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         case 'delete_categories_with_replacement':
             $result = $module->deleteCategoriesWithStoredReplacement();
             break;
+        case 'bulk_delete_categories':
+            $result = $module->bulkDeleteCategories(
+                (array) ($_POST['category_ids'] ?? []),
+                (int) ($_POST['bulk_replacement_category_id'] ?? 0)
+            );
+            break;
         default:
             $result = ['success' => false, 'error' => 'Unbekannte Aktion.'];
             break;

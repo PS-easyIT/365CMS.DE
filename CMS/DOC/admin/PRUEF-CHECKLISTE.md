@@ -179,6 +179,19 @@ Die Sidebar in `CMS/admin/partials/sidebar.php` ist für die Menüstruktur führ
 - **Offene Nice-to-haves:** keine aus diesem Fix-Durchlauf
 - **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/dashboard/README.md`, `CMS/DOC/admin/dashboard/DASHBOARD.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`
 
+### Audit-Stand – Dashboard Nice-to-haves Nachprüfung · Durchlauf 3
+
+- **Status:** abgeschlossen auf Code-/Best-Practice-/Vertragsbasis · Release `2.9.707`
+- **Prüfer:** GitHub Copilot
+- **Datum:** 2026-05-09
+- **Geprüfte Route:** `/admin`
+- **Reproduziertes Risiko:** Quicklinks und Deep-Links im Dashboard wurden in der View bislang nur getrimmt; bei tainteten oder beschädigten Zielwerten hätte der Linkpfad unnötig roh übernommen werden können.
+- **Umsetzung in diesem Durchlauf:** Dashboard-Links akzeptieren jetzt nur noch interne Pfade mit führendem `/`; Protokoll-spezifische, schemalose oder Steuerzeichen-haltige Zielwerte fallen fail-closed auf ein internes Standardziel zurück.
+- **Abhängige Bereiche:** `DashboardModule`, `views/dashboard/index.php`, Quicklinks, Alerts, Highlight-Karten
+- **Offene Must-haves:** keine
+- **Offene Nice-to-haves:** Drag-&-Drop-Sortierung, rollenbasierte Dashboard-Vorlagen, gespeicherte Favoriten/Zuletzt genutzt
+- **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/dashboard/DASHBOARD.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`
+
 ---
 
 ## 2. AI Services
@@ -272,6 +285,19 @@ Die Sidebar in `CMS/admin/partials/sidebar.php` ist für die Menüstruktur führ
 - **Offene Nice-to-haves:** exakte providerübergreifende Token-/Kostenintegration bei künftig konsistenten Usage-Rückgaben
 - **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/system-settings/AI-SERVICES.md`, `CMS/DOC/ai/AI-SERVICES.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`
 
+### Audit-Stand – AI Services Nice-to-haves Nachprüfung · Durchlauf 4
+
+- **Status:** abgeschlossen auf Code-/Best-Practice-/Vertragsbasis · Release `2.9.707`
+- **Prüfer:** GitHub Copilot
+- **Datum:** 2026-05-09
+- **Geprüfte Routen:** `/admin/ai-services`, `/admin/ai-settings`
+- **Reproduziertes Risiko:** Nach Provider-Änderungen konnte `active_provider_id` bei verbleibenden Einträgen leer werden; zusätzlich waren Secret-Felder unnötig offen für Browser-Autofill und Komfortfunktionen.
+- **Umsetzung in diesem Durchlauf:** Die Provider-Verwaltung stellt jetzt nach Speichern und Löschen automatisch wieder eine gültige aktive Auswahl her, solange mindestens ein Provider vorhanden ist. Secret-Felder signalisieren Browsern gleichzeitig per `autocomplete="new-password"` und deaktivierten Eingabehilfen, dass keine fremden Zugangsdaten eingefüllt werden sollen.
+- **Abhängige Bereiche:** `AiServicesModule`, `AiSettingsService`, `views/system/ai-services.php`, Provider-Meta `ai.providers`
+- **Offene Must-haves:** keine
+- **Offene Nice-to-haves:** exakte providerübergreifende Token-/Kostenintegration bei künftig konsistenten Usage-Rückgaben
+- **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/system-settings/AI-SERVICES.md`, `CMS/DOC/ai/AI-SERVICES.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`
+
 ---
 
 ## 3. Seiten & Beiträge
@@ -345,7 +371,7 @@ Die Sidebar in `CMS/admin/partials/sidebar.php` ist für die Menüstruktur führ
 ### Nice-to-haves
 
 - [ ] Revisionen / Vergleich / Diff für Seiten und Beiträge.
-- [ ] Bulk-Aktionen für Kategorien/Tags.
+- [x] Bulk-Aktionen für Kategorien/Tags.
 - [x] Kommentarmoderation mit Schnellfiltern und Massenaktionen.
 - [ ] Inhaltsqualitätsprüfungen direkt im Editor.
 
@@ -359,7 +385,7 @@ Die Sidebar in `CMS/admin/partials/sidebar.php` ist für die Menüstruktur führ
 - **Umsetzung in diesem Durchlauf:** Taxonomie-Slug-Änderungen erzeugen jetzt automatische Archiv-Redirects; der Blog-Dispatcher kann alte Query-Slugs über diese Redirect-Spur auf den aktuellen Kategorie-/Tag-Slug auflösen und bleibt damit kompatibel zu bestehenden Theme-Links und Altverweisen.
 - **Abhängige Bereiche:** Theme-Routing, Default-Theme-Blogfilter, Redirect-Manager, Kategorien/Tags, Hub-Sites, Site-Tables, Kommentare
 - **Offene Must-haves:** keine
-- **Offene Nice-to-haves:** Revisionsvergleich, Bulk-Aktionen für Kategorien/Tags, erweiterte Kommentarmoderation, Inhaltsqualitätsprüfungen
+- **Offene Nice-to-haves nach Folge-Durchläufen:** Revisionsvergleich, Inhaltsqualitätsprüfungen direkt im Editor
 - **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/pages-posts/README.md`, `CMS/DOC/admin/pages-posts/POSTS.md`
 
 ### Audit-Stand – Seiten & Beiträge Nice-to-haves · Durchlauf 1
@@ -372,8 +398,35 @@ Die Sidebar in `CMS/admin/partials/sidebar.php` ist für die Menüstruktur führ
 - **Umsetzung in diesem Durchlauf:** Die Kommentar-Liste verbindet Status-Tabs jetzt mit serverseitiger Schnellsuche über Autor, E-Mail, Kommentartext und Beitragstitel sowie zusätzlichen Filtern für Autorentyp (`Gast`, `Registriert`, `Anonymes Mitglied`) und Beitragsbezug (`verknüpft`, `verwaist`). Aktive Filter bleiben über PRG-Redirects nach Einzel- und Bulk-Aktionen erhalten. Während Mehrfachauswahl aktiv ist, schaltet die UI sichtbar in einen Batch-Modus und deaktiviert parallele Zeilenaktionen bewusst, damit Moderations- und Löschpfade nicht gleichzeitig gegeneinander laufen.
 - **Abhängige Bereiche:** `CommentsModule`, `CommentService`, `comments.php`, `views/comments/list.php`, `assets/js/admin-comments.js`
 - **Offene Must-haves:** keine
-- **Offene Nice-to-haves:** Revisionsvergleich für Seiten/Beiträge, Bulk-Aktionen für Kategorien/Tags, Inhaltsqualitätsprüfungen direkt im Editor
+- **Offene Nice-to-haves:** Revisionsvergleich für Seiten/Beiträge, Inhaltsqualitätsprüfungen direkt im Editor
 - **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/pages-posts/README.md`, `CMS/DOC/admin/pages-posts/COMMENTS.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`
+
+### Audit-Stand – Seiten & Beiträge Nice-to-haves · Durchlauf 2
+
+- **Status:** abgeschlossen auf Code-/Best-Practice-/Vertragsbasis · Release `2.9.706`
+- **Prüfer:** GitHub Copilot
+- **Datum:** 2026-05-09
+- **Geprüfte Routen:** `/admin/post-categories`, `/admin/post-tags`
+- **Umgesetztes Nice-to-have:** Bulk-Aktionen für Kategorien/Tags.
+- **Umsetzung in diesem Durchlauf:** Beitragskategorien und Tags können jetzt direkt aus der jeweiligen Taxonomie-Liste gesammelt gelöscht werden. Die POST-Pfade sind CSRF-geschützt, normalisieren IDs serverseitig, validieren den aktuellen Datenbestand und erzwingen bei Beitragsbezug gültige Ersatzkategorien bzw. Ersatztags. Ersatzziele dürfen nicht selbst Teil der Lösch-Auswahl sein. Die Ausführung läuft transaktional und schreibt erfolgreiche Sammelaktionen in den Audit-Trail.
+- **Best-Practice-Bezug:** OWASP-CSRF-Hinweise wurden berücksichtigt: zustandsändernde Aktionen bleiben POST-only mit Tokenprüfung; OWASP Input Validation und Mass Assignment wurden über serverseitige ID-/Action-Allowlisting und explizite DTO-artige Parameterübergabe abgebildet.
+- **Abhängige Bereiche:** `PostsModule`, `post_categories`, `post_tags`, `post_category_rel`, `post_tag_rel`, Content-Cache, Audit-Log, Public-Taxonomie-Routing
+- **Offene Must-haves:** keine
+- **Offene Nice-to-haves:** Revisionsvergleich für Seiten/Beiträge, Inhaltsqualitätsprüfungen direkt im Editor
+- **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/pages-posts/README.md`, `CMS/DOC/admin/pages-posts/POSTS.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`
+
+### Audit-Stand – Seiten & Beiträge Nice-to-haves Nachprüfung · Durchlauf 3
+
+- **Status:** abgeschlossen auf Code-/Best-Practice-/Vertragsbasis · Release `2.9.707`
+- **Prüfer:** GitHub Copilot
+- **Datum:** 2026-05-09
+- **Geprüfte Routen:** `/admin/post-categories`, `/admin/post-tags`
+- **Reproduziertes Risiko:** Die Sammellöschungen für Kategorien und Tags leerten den Content-Cache bislang pro Einzellöschung innerhalb der offenen Transaktion; das erzeugte unnötige Invalidierungen und konnte bei späterem Rollback inkonsistente Zwischenzustände begünstigen.
+- **Umsetzung in diesem Durchlauf:** Bulk-Löschungen räumen den Cache jetzt nur noch einmal nach erfolgreichem Commit. Zusätzlich nutzen die Sammellöschformulare explizit destruktive Confirm-Metadaten, damit der bestehende Bestätigungs-Flow klar als Löschaktion erscheint.
+- **Abhängige Bereiche:** `PostsModule`, `views/posts/categories.php`, `views/posts/tags.php`, Content-Cache, Audit-Log
+- **Offene Must-haves:** keine
+- **Offene Nice-to-haves:** Revisionsvergleich für Seiten/Beiträge, Inhaltsqualitätsprüfungen direkt im Editor
+- **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/pages-posts/POSTS.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`
 
 ---
 

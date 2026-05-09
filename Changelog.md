@@ -1,4 +1,4 @@
-﻿﻿**Version:** 2.9.705
+﻿﻿﻿**Version:** 2.9.707
 
 # 365CMS Changelog
 
@@ -20,34 +20,16 @@
 
 ---
 
-### v2.9.705 — 9. Mai 2026
+### v2.9.707 — 9. Mai 2026
 
 | Version | Typ | Bereich | Beschreibung |
 |---------|-----|---------|-------------|
+| **2.9.707** | 🔴 fix | Admin/Nachprüfung der letzten Nice-to-haves | **`CMS/admin/views/dashboard/index.php`, `CMS/admin/modules/system/AiServicesModule.php`, `CMS/admin/views/system/ai-services.php`, `CMS/admin/modules/posts/PostsModule.php`, `CMS/admin/views/posts/categories.php`, `CMS/admin/views/posts/tags.php`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/dashboard/DASHBOARD.md`, `CMS/DOC/admin/system-settings/AI-SERVICES.md`, `CMS/DOC/ai/AI-SERVICES.md`, `CMS/DOC/admin/pages-posts/POSTS.md`, `CMS/core/Version.php`, `CMS/update.json` und `README.md` schließen die explizite Nachprüfung der letzten Nice-to-have-Releases gegen Best Practice, Sicherheit und Performance ab**: Dashboard-Links aus den personalisierbaren Karten werden jetzt fail-closed auf interne Ziele begrenzt, falls eine unerwartete URL in die View gelangt. Die AI-Provider-Verwaltung hält nach Speichern oder Löschen immer einen gültigen aktiven Provider-Eintrag, solange noch Provider vorhanden sind; zusätzlich vermeiden Secret-Felder Browser-Autofill und unnötige Eingabehilfen. Bei Bulk-Löschungen für Kategorien und Tags wird der Content-Cache nicht mehr pro Einzellöschung innerhalb der Transaktion geleert, sondern einmalig nach erfolgreichem Commit, was unnötige Cache-Clears und inkonsistente Zwischenzustände reduziert. |
+| **2.9.706** | 🟢 feat | Admin/Seiten & Beiträge – Kategorien/Tags Nice-to-have | **`CMS/admin/post-categories.php`, `CMS/admin/post-tags.php`, `CMS/admin/modules/posts/PostsModule.php`, `CMS/admin/views/posts/categories.php`, `CMS/admin/views/posts/tags.php`, `CMS/DOC/admin/pages-posts/README.md`, `CMS/DOC/admin/pages-posts/POSTS.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`, `CMS/core/Version.php`, `CMS/update.json` und `README.md` schließen den nächsten Nice-to-have-Durchlauf im Bereich Seiten & Beiträge ab**: Beitragskategorien und Tags bieten jetzt eigene Bulk-Löschpfade direkt in den Taxonomie-Listen. Der Server normalisiert die ausgewählten IDs per Allowlist, prüft den aktuellen Datenbestand, erzwingt bei Beitragsbezug gültige Ersatzkategorien bzw. Ersatztags und verhindert, dass ein Ersatzziel selbst Teil der Lösch-Auswahl ist. Die Aktionen laufen CSRF-geschützt per POST, nutzen den bestehenden Confirm-Flow, werden transaktional ausgeführt und schreiben nach erfolgreicher Sammelaktion einen Audit-Eintrag. |
 | **2.9.705** | 🔴 fix | Admin/AI Services & Dashboard-CSRF | **`CMS/admin/modules/system/AiServicesModule.php`, `CMS/core/Security.php`, `CMS/core/Version.php`, `CMS/update.json`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`, `CMS/DOC/admin/system-settings/AI-SERVICES.md`, `CMS/DOC/ai/AI-SERVICES.md`, `CMS/DOC/admin/dashboard/README.md` und `CMS/DOC/admin/dashboard/DASHBOARD.md` schließen die direkte Nachprüfung der letzten AI-/Dashboard-Anpassungen**: Die AI-Services-Seiten liefen bei der Modulinitialisierung in einen falschen `Database::getInstance()`-Aufruf, obwohl die Core-DB-API `Database::instance()` bereitstellt; dadurch konnten alle AI-Unterseiten als generischer Serverfehler enden. Das Modul nutzt jetzt die korrekte API und kapselt Initialisierungsprobleme zusätzlich fail-soft mit datensparsamer Logger-Ausgabe. Parallel akzeptiert die CSRF-Schicht mehrere parallel erzeugte Admin-Formular-Tokens pro Action innerhalb des TTL-Fensters, invalidiert den tatsächlich verwendeten Token aber weiterhin nach erfolgreicher Prüfung. Damit bleiben stale Tabs und das Dashboard-Personalisierungsformular bedienbar, ohne den One-Time-Token-Vertrag grundsätzlich aufzugeben. |
-
-### v2.9.704 — 9. Mai 2026
-
-| Version | Typ | Bereich | Beschreibung |
-|---------|-----|---------|-------------|
 | **2.9.704** | 🟢 feat | Admin/Seiten & Beiträge – Kommentare Nice-to-have | **`CMS/core/Services/CommentService.php`, `CMS/admin/modules/comments/CommentsModule.php`, `CMS/admin/comments.php`, `CMS/admin/views/comments/list.php`, `CMS/assets/js/admin-comments.js`, `CMS/DOC/admin/pages-posts/COMMENTS.md`, `CMS/DOC/admin/pages-posts/README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`, `CMS/core/Version.php`, `CMS/update.json` und `README.md` schließen den ersten Nice-to-have-Durchlauf im Bereich Kommentare ab**: Die Moderationsliste unter `/admin/comments` bietet jetzt neben Status-Tabs echte serverseitige Schnellfilter für Autor, E-Mail, Kommentartext und Beitragstitel sowie zusätzliche Filter nach Autorentyp und Beitragsbezug (`verknüpft`/`verwaist`). Aktive Filter bleiben über Einzel- und Bulk-Aktionen hinweg per PRG erhalten. Gleichzeitig schaltet die UI bei Mehrfachauswahl in einen sichtbaren Batch-Modus und deaktiviert parallele Zeilenaktionen, damit Moderation und destruktive Sammelaktionen nicht gegeneinander ausgelöst werden. |
-
-### v2.9.703 — 9. Mai 2026
-
-| Version | Typ | Bereich | Beschreibung |
-|---------|-----|---------|-------------|
 | **2.9.703** | 🟢 feat | Admin/AI Services Prompt-Vorlagen | **`CMS/core/Services/AI/AiSettingsService.php`, `CMS/core/Services/AI/AiProviderGateway.php`, `CMS/core/Services/AI/EditorJsTranslationPipeline.php`, `CMS/core/Services/AI/Providers/AbstractPromptingAiProvider.php`, `CMS/admin/ai-page.php`, `CMS/admin/modules/system/AiServicesModule.php`, `CMS/admin/views/system/ai-services.php`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`, `CMS/DOC/admin/system-settings/AI-SERVICES.md`, `CMS/DOC/admin/system-settings/README.md`, `CMS/DOC/ai/AI-SERVICES.md`, `CMS/DOC/admin/README.md`, `CMS/core/Version.php`, `CMS/update.json` und `README.md` schließen das letzte direkte AI-Services-Nice-to-have ab**: Der Admin verwaltet jetzt Prompt-/Vorlagen je Bereich über `ai.prompts`. Die Translation-Vorlage wirkt direkt in der Editor.js-Live-Pipeline für Prompting-Provider, während Content- und SEO-Vorlagen als geprüfte Briefing-/Leitplankenbasis für kommende Generatoren bereitstehen. Prompt-Änderungen laufen über den bestehenden CSRF-/PRG-Vertrag, werden ohne Prompt-Volltext auditierbar protokolliert und behalten serverseitige Pflichtregeln gegen Prompt Injection, Systemprompt-Leaks und Secret-Offenlegung bei. |
-
-### v2.9.702 — 9. Mai 2026
-
-| Version | Typ | Bereich | Beschreibung |
-|---------|-----|---------|-------------|
 | **2.9.702** | 🟢 feat | Admin/AI Services Nice-to-haves | **`CMS/admin/ai-page.php`, `CMS/admin/modules/system/AiServicesModule.php`, `CMS/admin/modules/system/AiEditorJsTranslationModule.php`, `CMS/admin/views/system/ai-services.php`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`, `CMS/DOC/admin/system-settings/AI-SERVICES.md`, `CMS/DOC/ai/AI-SERVICES.md`, `CMS/DOC/admin/README.md`, `CMS/core/Version.php`, `CMS/update.json` und `README.md` setzen den ersten Nice-to-have-Durchlauf für AI Services um**: Das AI-Dashboard zeigt jetzt request- und quota-nahe Nutzungsdaten sowie die letzten Generierungsläufe direkt aus `audit_log`, inklusive Erfolgsquote, Tages-/Monatsbudgets, Provider-Auslastung und Verlaufstabelle. Die Editor.js-Translation ergänzt bei aktivierten Request-Metriken Zeichen- und Blockzahlen im Audit-Kontext, damit Monitoring und Historie belastbar bleiben. Der gesamte Verlauf bleibt bewusst datensparsam: Rohprompts, Volltexte und Secrets werden weder im Dashboard ausgegeben noch als Teil dieses Nice-to-have-Ausbaus eingeführt. |
-
-### v2.9.701 — 9. Mai 2026
-
-| Version | Typ | Bereich | Beschreibung |
-|---------|-----|---------|-------------|
 | **2.9.701** | 🟢 feat | Admin/Dashboard Nice-to-haves | **`CMS/admin/index.php`, `CMS/admin/modules/dashboard/DashboardModule.php`, `CMS/admin/views/dashboard/index.php`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`, `CMS/DOC/admin/dashboard/README.md`, `CMS/DOC/admin/dashboard/DASHBOARD.md`, `CMS/DOC/admin/README.md` und `README.md` setzen den ersten Nice-to-have-Durchlauf für das Admin-Dashboard um**: Die Startseite war bislang bewusst kuratiert, aber nicht benutzerbezogen anpassbar. Admins können jetzt pro Benutzer festlegen, welche Dashboard-Bereiche sichtbar bleiben – etwa Aufmerksamkeit, Systemstatus, Sicherheit/Performance, Bestellungen oder letzte Aktivitäten. Kritische Alerts und die zentrale Arbeitsübersicht bleiben fail-closed sichtbar, die Speicherung läuft CSRF-geschützt per POST über die gemeinsame Section-Shell, wird serverseitig über eine feste Allowlist normalisiert, auditierbar in `audit_log` protokolliert und als nicht-autoloadende `settings`-Option pro Admin-Benutzer gespeichert. 
 
 

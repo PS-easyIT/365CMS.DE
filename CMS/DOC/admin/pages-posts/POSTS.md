@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Verwaltung chronologischer Inhalte wie News und Blog-Beiträge im Admin-Bereich.
 
-Letzte Aktualisierung: 2026-05-09 · Version 2.9.617
+Letzte Aktualisierung: 2026-05-09 · Version 2.9.707
 
 ---
 
@@ -98,6 +98,9 @@ Die Taxonomie-Verwaltung gehört funktional zum Beiträge-Bereich und folgt jetz
 
 - **Kategorien** unterstützen Haupt-/Unterkategorien, optionale Fremddomains sowie eine hinterlegte Ersatzkategorie für spätere Löschvorgänge.
 - **Tags** bleiben flach, erlauben aber beim Löschen eine bewusste Umstellung betroffener Beiträge auf einen Ersatztag.
+- Seit `2.9.706` unterstützen beide Taxonomie-Listen Bulk-Löschaktionen: Kategorien verwenden entweder eine gemeinsame Ersatzkategorie oder die je Kategorie hinterlegte Ersatzkategorie; Tags verwenden bei Beitragsbezug einen gemeinsamen Ersatztag.
+- Der Bulk-Flow ist fail-closed: IDs werden gegen den aktuellen Datenbestand geprüft, Ersatzziele dürfen nicht Teil der Lösch-Auswahl sein, die Ausführung läuft transaktional, und erfolgreiche Sammelaktionen werden im Audit-Log dokumentiert.
+- Seit `2.9.707` wird der Content-Cache bei erfolgreichen Bulk-Löschungen nicht mehr pro Einzelobjekt innerhalb der laufenden Transaktion geleert, sondern nur noch einmal nach erfolgreichem Commit. Das reduziert unnötige Cache-Invalidierungen und vermeidet Zwischenzustände bei späteren Rollbacks.
 - Validierungsfehler in Kategorie-/Tag-Formularen verwerfen die Eingaben nicht mehr sofort: Name, Slug, Eltern-/Ersatzauswahl und Zusatzdomains bleiben nach dem Redirect erhalten und werden direkt am Formular erneut eingeblendet.
 - Einzel-Löschdialoge sind bewusst spezifisch formuliert: sie nennen die betroffene Taxonomie und erläutern, ob Beiträge umgehängt oder Beziehungen nur entfernt werden.
 - Auch der Fallback ohne Bootstrap-Modal blockiert Kategorie-Löschungen nicht mehr unnötig, wenn bereits eine gültige Ersatzkategorie hinterlegt ist.

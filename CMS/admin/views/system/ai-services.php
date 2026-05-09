@@ -779,7 +779,7 @@ $seoAssistProviders = array_values(array_filter($providers, static fn (array $pr
                                                     <div class="row g-3">
                                                         <div class="col-12">
                                                             <label class="form-label"><?php echo htmlspecialchars((string) ($provider['secret_label'] ?? 'Secret')); ?></label>
-                                                            <input type="password" class="form-control" name="provider_secret[<?php echo htmlspecialchars($providerId, ENT_QUOTES); ?>]" value="" placeholder="Leer lassen = gespeichertes Secret behalten">
+                                                            <input type="password" class="form-control" name="provider_secret[<?php echo htmlspecialchars($providerId, ENT_QUOTES); ?>]" value="" placeholder="Leer lassen = gespeichertes Secret behalten" autocomplete="new-password" spellcheck="false" autocapitalize="off" autocorrect="off">
                                                             <div class="form-hint">Aktuell gespeichert: <?php echo !empty($provider['secret_configured']) ? 'Ja' : 'Nein'; ?></div>
                                                             <label class="form-check mt-2">
                                                                 <input class="form-check-input" type="checkbox" name="clear_provider_secret[<?php echo htmlspecialchars($providerId, ENT_QUOTES); ?>]" value="1">

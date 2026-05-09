@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.9.705",
+  "version": "2.9.707",
   "min_php": "8.4",
   "released": "2026-05-09",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 2.9.705: AI Services nutzen wieder den korrekten Database-Singleton und fallen bei Initialisierungsproblemen fail-soft statt mit Full-Page-Fatal zurück; Admin-CSRF-Tokens unterstützen mehrere parallel geöffnete/stale Formulare innerhalb des TTL-Fensters, bleiben aber nach erfolgreicher Nutzung weiterhin One-Time-Tokens.",
+  "notes": "Release-Stand 2.9.707: Nachprüfung der letzten Nice-to-haves: Dashboard-Quicklinks fallen bei unerwarteten URLs fail-closed auf interne Admin-Ziele zurück, AI-Provider behalten nach Änderungen immer eine gültige aktive Auswahl, Secret-Felder vermeiden Browser-Autofill, und Taxonomie-Bulk-Löschungen leeren den Content-Cache erst einmalig nach erfolgreichem Commit.",
   "critical": false
 }
