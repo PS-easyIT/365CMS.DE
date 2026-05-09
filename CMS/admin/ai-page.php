@@ -40,9 +40,9 @@ const CMS_ADMIN_AI_PAGE_CONFIGS = [
 
 const CMS_ADMIN_AI_ALLOWED_ACTIONS_BY_SECTION = [
     'overview' => [],
-    'translation' => ['save_translation'],
-    'content_creator' => [],
-    'seo_creator' => [],
+    'translation' => ['save_translation', 'save_translation_prompts'],
+    'content_creator' => ['save_content_prompts'],
+    'seo_creator' => ['save_seo_prompts'],
     'settings' => ['add_provider', 'delete_provider', 'save_providers', 'save_features', 'save_logging', 'save_quotas'],
 ];
 
@@ -136,6 +136,9 @@ function cms_admin_ai_handle_action(AiServicesModule $module, string $action, ar
         'save_providers' => $module->saveProviders($post),
         'save_features' => $module->saveFeatures($post),
         'save_translation' => $module->saveTranslation($post),
+        'save_translation_prompts' => $module->saveTranslationPrompts($post),
+        'save_content_prompts' => $module->saveContentPrompts($post),
+        'save_seo_prompts' => $module->saveSeoPrompts($post),
         'save_logging' => $module->saveLogging($post),
         'save_quotas' => $module->saveQuotas($post),
         default => ['success' => false, 'error' => 'Unbekannte oder nicht erlaubte Aktion.'],
@@ -191,7 +194,7 @@ $sectionPageConfig = [
     'guard_constant' => 'CMS_ADMIN_AI_VIEW',
     'module_file' => __DIR__ . '/modules/system/AiServicesModule.php',
     'module_factory' => static fn (): AiServicesModule => new AiServicesModule(),
-    'data_loader' => static fn (AiServicesModule $module): array => $module->getData(),
+    'data_loader' => static fn (AiServicesModule $module): array => $module->getData($aiPageConfig['section']),
     'access_checker' => static fn (): bool => cms_admin_ai_can_access($aiPageConfig['active_page']),
     'access_denied_route' => '/',
     'request_context_resolver' => static fn (): array => [

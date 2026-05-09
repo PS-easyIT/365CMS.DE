@@ -36,7 +36,22 @@ $features = is_array($data['features'] ?? null) ? $data['features'] : [];
 $translation = is_array($data['translation'] ?? null) ? $data['translation'] : [];
 $logging = is_array($data['logging'] ?? null) ? $data['logging'] : [];
 $quotas = is_array($data['quotas'] ?? null) ? $data['quotas'] : [];
+$prompts = is_array($data['prompts'] ?? null) ? $data['prompts'] : [];
+$translationPromptTemplate = is_array($prompts['translation'] ?? null) ? $prompts['translation'] : [];
+$contentPromptTemplate = is_array($prompts['content_creator'] ?? null) ? $prompts['content_creator'] : [];
+$seoPromptTemplate = is_array($prompts['seo_creator'] ?? null) ? $prompts['seo_creator'] : [];
 $summary = is_array($data['summary'] ?? null) ? $data['summary'] : [];
+$monitoring = is_array($data['monitoring'] ?? null) ? $data['monitoring'] : [];
+$currentUserMonitoring = is_array($monitoring['current_user'] ?? null) ? $monitoring['current_user'] : [];
+$activeProviderMonitoring = is_array($monitoring['active_provider'] ?? null) ? $monitoring['active_provider'] : [];
+$providerBreakdown = array_values(array_filter(
+    (array) ($monitoring['provider_breakdown'] ?? []),
+    static fn (mixed $entry): bool => is_array($entry)
+));
+$generationHistory = array_values(array_filter(
+    (array) ($data['generation_history'] ?? []),
+    static fn (mixed $entry): bool => is_array($entry)
+));
 $currentSection = $currentSection ?? 'overview';
 $navItems = [
     'overview' => ['label' => 'Dashboard', 'url' => '/admin/ai-services'],
@@ -102,6 +117,54 @@ $renderSwitch = static function (string $name, string $label, bool $checked, str
     </label>
     <?php
 };
+$renderPromptTemplateForm = static function (string $action, array $template, string $title, string $description) use ($renderFormContext, $renderSwitch): void {
+    $placeholders = array_values(array_filter(array_map('strval', (array) ($template['placeholders'] ?? []))));
+    ?>
+    <form method="post" class="card h-100">
+        <?php $renderFormContext($action); ?>
+        <div class="card-header d-flex justify-content-between align-items-center gap-3 flex-wrap">
+            <div>
+                <h3 class="card-title mb-1"><?php echo htmlspecialchars($title); ?></h3>
+                <div class="text-secondary small"><?php echo htmlspecialchars($description); ?></div>
+            </div>
+            <button type="submit" class="btn btn-primary">Vorlage speichern</button>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-7">
+                    <label class="form-label">Anzeigename</label>
+                    <input type="text" class="form-control" name="prompt_label" maxlength="120" value="<?php echo htmlspecialchars((string) ($template['label'] ?? ''), ENT_QUOTES); ?>">
+                </div>
+                <div class="col-md-5 d-flex align-items-end">
+                    <?php $renderSwitch('prompt_enabled', 'Vorlage aktiv verwenden', !empty($template['enabled']), 'Bei Translation wirkt die Vorlage direkt in der Live-Pipeline; Content/SEO sind für kommende Generatoren vorbereitet.'); ?>
+                </div>
+                <div class="col-12">
+                    <label class="form-label">System-Prompt / Leitplanken</label>
+                    <textarea class="form-control" name="system_prompt" rows="6" maxlength="4000" spellcheck="false"><?php echo htmlspecialchars((string) ($template['system_prompt'] ?? '')); ?></textarea>
+                    <div class="form-hint">Serverseitig werden zusätzliche Pflichtregeln gegen Prompt Injection, Secret-Leaks und System-Prompt-Offenlegung angehängt.</div>
+                </div>
+                <div class="col-12">
+                    <label class="form-label">User-Template / strukturierte Nutzdaten</label>
+                    <textarea class="form-control" name="user_template" rows="6" maxlength="4000" spellcheck="false"><?php echo htmlspecialchars((string) ($template['user_template'] ?? '')); ?></textarea>
+                    <?php if ($placeholders !== []): ?>
+                        <div class="form-hint">Platzhalter: <?php echo htmlspecialchars(implode(', ', $placeholders)); ?></div>
+                    <?php endif; ?>
+                </div>
+                <div class="col-12">
+                    <label class="form-label">Interne Notiz</label>
+                    <textarea class="form-control" name="prompt_notes" rows="3" maxlength="1000"><?php echo htmlspecialchars((string) ($template['notes'] ?? '')); ?></textarea>
+                    <div class="form-hint">Notizen werden gespeichert, aber nicht an Provider gesendet.</div>
+                </div>
+                <div class="col-12">
+                    <div class="alert alert-info mb-0 small">
+                        Best-Practice: Instruktionen und Nutzdaten getrennt halten. Keine API-Keys, personenbezogenen Details oder Rohprompts in Notizen oder Logs ablegen.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+    <?php
+};
 $translationReadyProviders = array_values(array_filter($providers, static fn (array $provider): bool => !empty($provider['enabled']) && !empty($provider['translation_enabled'])));
 $contentAssistProviders = array_values(array_filter($providers, static fn (array $provider): bool => !empty($provider['enabled']) && (!empty($provider['rewrite_enabled']) || !empty($provider['summary_enabled']))));
 $seoAssistProviders = array_values(array_filter($providers, static fn (array $provider): bool => !empty($provider['enabled']) && !empty($provider['seo_meta_enabled'])));
@@ -141,8 +204,27 @@ $seoAssistProviders = array_values(array_filter($providers, static fn (array $pr
             <?php $renderMetricCard('Aktive Provider', (string) ((int) ($summary['provider_enabled'] ?? 0)) . ' / ' . (string) ((int) ($summary['provider_total'] ?? count($providers))), 'konfigurierter Provider-Pool'); ?>
             <?php $renderMetricCard('Aktive Gates', (string) (int) ($summary['feature_enabled'] ?? 0), 'globale Feature-Freigaben'); ?>
             <?php $renderMetricCard('Translation-Provider', (string) count($translationReadyProviders), 'für DE → EN nutzbar'); ?>
-            <?php $renderMetricCard('Request-Limit', (string) (int) ($summary['quota_chars'] ?? 0), 'max. Zeichen pro Lauf'); ?>
+            <?php $renderMetricCard('Prompt-Vorlagen', (string) (int) ($summary['prompt_templates_enabled'] ?? 0) . ' / 3', 'aktiv verwaltete Bereiche'); ?>
         </div>
+
+        <?php if ($monitoring !== []): ?>
+            <div class="row row-cards mb-4">
+                <?php $renderMetricCard('AI-Läufe · 24h', (string) (int) ($monitoring['runs_24h'] ?? 0), ((int) ($monitoring['failures_24h'] ?? 0)) > 0 ? (string) (int) ($monitoring['failures_24h'] ?? 0) . ' fehlgeschlagen' : 'keine Fehler protokolliert'); ?>
+                <?php $renderMetricCard('Erfolgsquote · 30 Tage', (string) (int) ($monitoring['success_rate_30d'] ?? 0) . ' %', (string) ((int) ($monitoring['successes_30d'] ?? 0) + (int) ($monitoring['failures_30d'] ?? 0)) . ' dokumentierte Läufe'); ?>
+                <?php $renderMetricCard('Dein Tagesbudget', (string) (int) ($currentUserMonitoring['requests_24h'] ?? 0) . ' / ' . (string) max(0, (int) ($currentUserMonitoring['request_limit'] ?? 0)), 'Requests der letzten 24 Stunden'); ?>
+                <?php $renderMetricCard('Ø Laufzeit · 30 Tage', (string) (int) ($monitoring['avg_duration_ms_30d'] ?? 0) . ' ms', 'auf Basis erfolgreicher Läufe'); ?>
+            </div>
+
+            <?php if (!empty($monitoring['load_error'])): ?>
+                <div class="alert alert-warning mb-4"><?php echo htmlspecialchars((string) $monitoring['load_error']); ?></div>
+            <?php endif; ?>
+
+            <?php if (empty($monitoring['metrics_logging_enabled'])): ?>
+                <div class="alert alert-info mb-4">
+                    Request-Metriken sind derzeit nicht vollständig aktiviert. Das Dashboard zeigt deshalb bewusst nur request- und quota-nahe Nutzungsdaten; Rohprompts, Volltexte und exakte Tokenkosten bleiben ausgeblendet.
+                </div>
+            <?php endif; ?>
+        <?php endif; ?>
 
         <div class="row row-cards">
             <div class="col-12 col-xl-7">
@@ -156,8 +238,10 @@ $seoAssistProviders = array_values(array_filter($providers, static fn (array $pr
                             <li class="mb-2">✅ Der Editor.js-Übersetzungs-Endpoint bleibt geschützt und an die zentralen Feature-Gates gekoppelt.</li>
                             <li class="mb-2">✅ Ollama und Azure AI sind als erste echte Live-Provider im Gateway verdrahtet.</li>
                             <li class="mb-2">✅ Translation, Content-Assist und SEO-Assist lassen sich auf Provider-Ebene getrennt schalten.</li>
+                            <li class="mb-2">✅ Das AI-Dashboard zeigt jetzt request- und quota-nahe Nutzungsdaten sowie letzte Generierungsläufe aus dem Audit-Log, ohne Rohprompts oder Volltexte offenzulegen.</li>
+                            <li class="mb-2">✅ Prompt-Vorlagen lassen sich je Bereich verwalten; die Translation-Vorlage wirkt direkt in der Live-Pipeline und bleibt durch serverseitige Pflicht-Leitplanken abgesichert.</li>
                             <li class="mb-2">⚠️ Live-Generatoren für Content- und SEO-Outputs sind als nächster Ausbauschritt vorgesehen, derzeit aber noch Leitplanken-/Settings-getrieben.</li>
-                            <li>⚠️ Feingranulare Daily-/Monthly-Quota-Erzwingung und Retry-UX sind noch nicht bis zum letzten Pixel durchgezogen.</li>
+                            <li>⚠️ Feingranulare Daily-/Monthly-Quota-Erzwingung und echte providerübergreifende Tokenkosten bleiben Follow-up-Arbeit, solange Live-Provider ihre Usage-Daten nicht konsistent zurückmelden.</li>
                         </ul>
                     </div>
                 </div>
@@ -185,11 +269,131 @@ $seoAssistProviders = array_values(array_filter($providers, static fn (array $pr
                 <div class="card">
                     <div class="card-header"><h3 class="card-title">Kanonische Doku</h3></div>
                     <div class="card-body text-secondary small">
-                        Die fachliche Hauptdoku liegt in <code>DOC/ai/AI-SERVICES.md</code>. Dieser Bereich bildet den aktuellen Settings-, Routing- und Readiness-Rahmen im Core ab.
+                        Die fachliche Hauptdoku liegt in <code>DOC/ai/AI-SERVICES.md</code>. Dieser Bereich bildet den aktuellen Settings-, Routing-, Monitoring- und Readiness-Rahmen im Core ab.
                     </div>
                 </div>
             </div>
         </div>
+
+        <?php if ($monitoring !== [] || $generationHistory !== []): ?>
+            <div class="row row-cards mt-4">
+                <div class="col-12 col-xl-5">
+                    <div class="card h-100">
+                        <div class="card-header"><h3 class="card-title">Nutzungsmonitoring & Kontingente</h3></div>
+                        <div class="card-body">
+                            <dl class="row mb-4 small">
+                                <dt class="col-7">Dein Tagesbudget</dt>
+                                <dd class="col-5"><?php echo (int) ($currentUserMonitoring['requests_24h'] ?? 0); ?> / <?php echo (int) ($currentUserMonitoring['request_limit'] ?? 0); ?> Requests</dd>
+                                <dt class="col-7">Dein Zeichenbudget</dt>
+                                <dd class="col-5">
+                                    <?php if (!empty($currentUserMonitoring['char_metrics_available'])): ?>
+                                        <?php echo number_format((int) ($currentUserMonitoring['chars_24h'] ?? 0), 0, ',', '.'); ?> / <?php echo number_format((int) ($currentUserMonitoring['char_limit'] ?? 0), 0, ',', '.'); ?>
+                                    <?php else: ?>
+                                        <span class="text-secondary">noch keine Zeichenmetriken</span>
+                                    <?php endif; ?>
+                                </dd>
+                                <dt class="col-7">Aktiver Provider</dt>
+                                <dd class="col-5"><?php echo htmlspecialchars((string) ($activeProviderMonitoring['provider_label'] ?? '—')); ?></dd>
+                                <dt class="col-7">Provider-Budget · 30 Tage</dt>
+                                <dd class="col-5"><?php echo (int) ($activeProviderMonitoring['requests_30d'] ?? 0); ?> / <?php echo (int) ($activeProviderMonitoring['request_limit'] ?? 0); ?></dd>
+                            </dl>
+
+                            <div class="text-secondary small mb-2">Top-Provider der letzten 30 Tage</div>
+                            <div class="table-responsive">
+                                <table class="table table-sm table-vcenter mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>Provider</th>
+                                            <th>Requests</th>
+                                            <th>Blöcke</th>
+                                            <th>Zeichen</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php if ($providerBreakdown === []): ?>
+                                            <tr><td colspan="4" class="text-center text-secondary py-3">Noch keine protokollierten AI-Läufe im 30-Tage-Fenster.</td></tr>
+                                        <?php else: ?>
+                                            <?php foreach ($providerBreakdown as $providerStats): ?>
+                                                <tr>
+                                                    <td class="fw-semibold"><?php echo htmlspecialchars((string) ($providerStats['provider_label'] ?? '—')); ?></td>
+                                                    <td><?php echo (int) ($providerStats['requests_30d'] ?? 0); ?></td>
+                                                    <td><?php echo number_format((int) ($providerStats['blocks_30d'] ?? 0), 0, ',', '.'); ?></td>
+                                                    <td>
+                                                        <?php if (!empty($providerStats['char_metrics_available'])): ?>
+                                                            <?php echo number_format((int) ($providerStats['chars_30d'] ?? 0), 0, ',', '.'); ?>
+                                                        <?php else: ?>
+                                                            <span class="text-secondary">—</span>
+                                                        <?php endif; ?>
+                                                    </td>
+                                                </tr>
+                                            <?php endforeach; ?>
+                                        <?php endif; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="text-secondary small mt-3 mb-0">Es werden bewusst keine Rohprompts, Inhaltsblöcke oder Secrets angezeigt – nur betriebsnahe Audit-Metadaten.</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12 col-xl-7">
+                    <div class="card h-100">
+                        <div class="card-header"><h3 class="card-title">Letzte AI-Läufe</h3></div>
+                        <div class="table-responsive">
+                            <table class="table table-vcenter card-table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Zeitpunkt</th>
+                                        <th>Status</th>
+                                        <th>Benutzer</th>
+                                        <th>Provider</th>
+                                        <th>Ziel</th>
+                                        <th>Dauer</th>
+                                        <th>Blöcke / Zeichen</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php if ($generationHistory === []): ?>
+                                        <tr><td colspan="7" class="text-center text-secondary py-4">Noch keine Generierungsläufe protokolliert.</td></tr>
+                                    <?php else: ?>
+                                        <?php foreach ($generationHistory as $historyEntry): ?>
+                                            <tr>
+                                                <td class="text-secondary small"><?php echo htmlspecialchars((string) ($historyEntry['created_at'] ?? '—')); ?></td>
+                                                <td>
+                                                    <?php $renderBadge((string) ($historyEntry['status'] ?? 'secondary'), (string) ($historyEntry['status_label'] ?? 'unbekannt')); ?>
+                                                </td>
+                                                <td><?php echo htmlspecialchars((string) ($historyEntry['user_label'] ?? '—')); ?></td>
+                                                <td>
+                                                    <div class="fw-semibold"><?php echo htmlspecialchars((string) ($historyEntry['provider_label'] ?? '—')); ?></div>
+                                                    <div class="text-secondary small"><?php echo htmlspecialchars((string) ($historyEntry['resolved_via'] ?? 'direct')); ?></div>
+                                                </td>
+                                                <td><?php echo htmlspecialchars((string) ($historyEntry['target_locale'] ?? '—')); ?></td>
+                                                <td>
+                                                    <?php if (($historyEntry['duration_ms'] ?? null) !== null): ?>
+                                                        <?php echo number_format((int) $historyEntry['duration_ms'], 0, ',', '.'); ?> ms
+                                                    <?php else: ?>
+                                                        <span class="text-secondary">—</span>
+                                                    <?php endif; ?>
+                                                </td>
+                                                <td>
+                                                    <?php echo number_format((int) ($historyEntry['translated_blocks'] ?? 0), 0, ',', '.'); ?>
+                                                    /
+                                                    <?php if (($historyEntry['char_count'] ?? null) !== null): ?>
+                                                        <?php echo number_format((int) $historyEntry['char_count'], 0, ',', '.'); ?>
+                                                    <?php else: ?>
+                                                        <span class="text-secondary">—</span>
+                                                    <?php endif; ?>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        <?php endif; ?>
     <?php elseif ($isCurrentSection('translation')): ?>
         <div class="row row-cards mb-4">
             <?php $renderMetricCard('Default-Quelle', (string) ($translation['default_source_locale'] ?? 'de'), 'typisch DE'); ?>
@@ -258,6 +462,9 @@ $seoAssistProviders = array_values(array_filter($providers, static fn (array $pr
                     </div>
                 </div>
             </div>
+            <div class="col-12">
+                <?php $renderPromptTemplateForm('save_translation_prompts', $translationPromptTemplate, 'Prompt-Vorlage · Übersetzung', 'Strukturierte Runtime-Vorlage für Editor.js-Übersetzungen mit klarer Trennung von Instruktion und Segmentdaten.'); ?>
+            </div>
         </div>
     <?php elseif ($isCurrentSection('content_creator')): ?>
         <div class="row row-cards mb-4">
@@ -320,6 +527,9 @@ $seoAssistProviders = array_values(array_filter($providers, static fn (array $pr
                     </div>
                 </div>
             </div>
+            <div class="col-12">
+                <?php $renderPromptTemplateForm('save_content_prompts', $contentPromptTemplate, 'Prompt-Vorlage · Content Creator', 'Vorbereitete Briefing-Vorlage für Rewrite-, Summary-, CTA- und Outline-Flows mit Human-in-the-Loop-Ausgabe.'); ?>
+            </div>
         </div>
     <?php elseif ($isCurrentSection('seo_creator')): ?>
         <div class="row row-cards mb-4">
@@ -381,6 +591,9 @@ $seoAssistProviders = array_values(array_filter($providers, static fn (array $pr
                         </table>
                     </div>
                 </div>
+            </div>
+            <div class="col-12">
+                <?php $renderPromptTemplateForm('save_seo_prompts', $seoPromptTemplate, 'Prompt-Vorlage · SEO Creator', 'Vorbereitete Vorlage für Meta-, Social-Snippet- und strukturierte Daten-Hinweise mit redaktioneller Freigabe.'); ?>
             </div>
         </div>
     <?php else: ?>

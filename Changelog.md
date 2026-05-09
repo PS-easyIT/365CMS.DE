@@ -1,4 +1,4 @@
-﻿﻿**Version:** 2.9.632
+﻿﻿**Version:** 2.9.702
 
 # 365CMS Changelog
 
@@ -19,6 +19,12 @@
 ## 📜 Vollständige Versionshistorie
 
 ---
+
+### v2.9.702 — 9. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.702** | 🟢 feat | Admin/AI Services Nice-to-haves | **`CMS/admin/ai-page.php`, `CMS/admin/modules/system/AiServicesModule.php`, `CMS/admin/modules/system/AiEditorJsTranslationModule.php`, `CMS/admin/views/system/ai-services.php`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`, `CMS/DOC/admin/system-settings/AI-SERVICES.md`, `CMS/DOC/ai/AI-SERVICES.md`, `CMS/DOC/admin/README.md`, `CMS/core/Version.php`, `CMS/update.json` und `README.md` setzen den ersten Nice-to-have-Durchlauf für AI Services um**: Das AI-Dashboard zeigt jetzt request- und quota-nahe Nutzungsdaten sowie die letzten Generierungsläufe direkt aus `audit_log`, inklusive Erfolgsquote, Tages-/Monatsbudgets, Provider-Auslastung und Verlaufstabelle. Die Editor.js-Translation ergänzt bei aktivierten Request-Metriken Zeichen- und Blockzahlen im Audit-Kontext, damit Monitoring und Historie belastbar bleiben. Der gesamte Verlauf bleibt bewusst datensparsam: Rohprompts, Volltexte und Secrets werden weder im Dashboard ausgegeben noch als Teil dieses Nice-to-have-Ausbaus eingeführt. |
 
 ### v2.9.701 — 9. Mai 2026
 

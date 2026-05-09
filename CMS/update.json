@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.9.632",
+  "version": "2.9.702",
   "min_php": "8.4",
   "released": "2026-05-09",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 2.9.632: Das Admin-Dashboard erhält pro Benutzer gespeicherte Sichtbarkeitsprofile für optionale Bereiche; kritische Alerts bleiben sichtbar, Änderungen laufen CSRF-geschützt und werden auditierbar protokolliert.",
+  "notes": "Release-Stand 2.9.702: AI Services zeigt request- und quota-nahes Nutzungsmonitoring plus jüngste Generierungsläufe aus dem Audit-Log, ohne Rohprompts oder Volltexte offenzulegen; Dashboard-Personalisierung bleibt historisch als 2.9.701 dokumentiert.",
   "critical": false
 }

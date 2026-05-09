@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Überblick über die Startseite des Admin-Bereichs mit KPI-Karten, Statushinweisen, Schnellzugriffen und fail-soften Statusblöcken.
 
-Letzte Aktualisierung: 2026-05-09 · Stand: Dashboard-Nice-to-have-Durchlauf Mai 2026 · Release 2.9.632
+Letzte Aktualisierung: 2026-05-09 · Stand: Dashboard-Nice-to-have-Durchlauf Mai 2026 · Release 2.9.701
 
 **Admin-Route:** `/admin`
 
@@ -41,7 +41,7 @@ Im aktuellen Stand bildet das Dashboard vor allem den Überblick über:
 
 ---
 
-## Personalisierung seit 2.9.632
+## Personalisierung seit 2.9.701
 
 Admins können ihre Startansicht direkt auf `/admin` über „Dashboard personalisieren“ fokussieren. Die Auswahl wird pro Admin-Benutzer in `settings` als `admin_dashboard_preferences_user_<id>` gespeichert und bewusst mit `autoload = 0` abgelegt.
 
@@ -78,7 +78,7 @@ Der Speichern-Flow läuft über die gemeinsame Admin-Section-Shell mit CSRF-Prü
 - KPI- und Highlight-Karten arbeiten aus derselben Stats-Basis wie Attention-Items, damit Kennzahlen konsistent bleiben
 - Bestellbezogene Blöcke erscheinen nur, wenn die zugehörigen Subscription-/Orders-Module aktiv sind
 - Statistiksegmente werden seit `2.9.615` einzeln fail-soft geladen und bei Ausfall mit strukturiertem Logger-Hinweis auf dem Kanal `dashboard` protokolliert
-- Dashboard-Sichtbarkeitsprofile werden seit `2.9.632` pro Admin-Benutzer serverseitig gespeichert, CSRF-geschützt geändert und auditierbar protokolliert
+- Dashboard-Sichtbarkeitsprofile werden seit `2.9.701` pro Admin-Benutzer serverseitig gespeichert, CSRF-geschützt geändert und auditierbar protokolliert
 
 ---
 

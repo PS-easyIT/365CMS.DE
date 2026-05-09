@@ -2,9 +2,9 @@
 
 Kurzbeschreibung: Kanonische Konzept- und Architektur-Dokumentation für den Bereich **AI Services** in 365CMS. Der Fokus liegt auf Provider-Scope, Feature-Gates, Admin-Steuerung, Editor.js-Übersetzung und einem kontrollierten, ausbaufähigen KI-Betriebsmodell.
 
-Letzte Aktualisierung: 2026-05-09 · Version 2.9.616
+Letzte Aktualisierung: 2026-05-09 · Version 2.9.702
 
-> **Wichtig:** Diese Datei bleibt die führende Fach- und Architekturreferenz. Seit `2.9.210` existieren bereits eine **runtime-seitige Settings- und Admin-Hülle** unter `/admin/ai-services`, ein **Provider-Gateway** mit gezielt anlegbarer Provider-Liste, ein integrierter **`mock`-Provider**, die ersten **Live-Adapter für `ollama` und `azure_openai`**, der geschützte Endpoint **`/admin/ai-translate-editorjs`** sowie ein **bewusster Preview-/Diff-Workflow vor der EN-Übernahme**. Seit `2.9.616` ist dieser Review-Schritt serverseitig verpflichtend und kann im Admin nicht mehr abgeschaltet werden. **Noch nicht umgesetzt** sind feingranulare Daily-/Monthly-Quota-Erzwingung und weitere Bridge-Provider wie OpenAI/OpenRouter.
+> **Wichtig:** Diese Datei bleibt die führende Fach- und Architekturreferenz. Seit `2.9.210` existieren bereits eine **runtime-seitige Settings- und Admin-Hülle** unter `/admin/ai-services`, ein **Provider-Gateway** mit gezielt anlegbarer Provider-Liste, ein integrierter **`mock`-Provider**, die ersten **Live-Adapter für `ollama` und `azure_openai`**, der geschützte Endpoint **`/admin/ai-translate-editorjs`** sowie ein **bewusster Preview-/Diff-Workflow vor der EN-Übernahme**. Seit `2.9.616` ist dieser Review-Schritt serverseitig verpflichtend und kann im Admin nicht mehr abgeschaltet werden. Seit `2.9.702` verdichtet das AI-Dashboard zusätzlich request- und quota-nahe Nutzungsdaten sowie letzte Generierungsläufe aus `audit_log`, ohne Rohprompts oder Volltexte offenzulegen. **Noch nicht umgesetzt** sind feingranulare Daily-/Monthly-Quota-Erzwingung und weitere Bridge-Provider wie OpenAI/OpenRouter.
 
 ## Inhaltsverzeichnis
 - [Ziel und Abgrenzung](#ziel-und-abgrenzung)
@@ -409,6 +409,8 @@ Sinnvoll sind:
 - optional Tages- oder Benutzerkontingente
 - später evtl. Audit-KPI für AI-Nutzung
 
+Seit `2.9.702` nutzt `/admin/ai-services` diese Richtung bereits für ein bewusst datensparsames Monitoring: dargestellt werden Requests, Zeichen-/Blockmengen, Laufzeiten, Provider-Auslastung und letzte Läufe aus dem Audit-Kontext. Rohprompts, Volltextinhalte und Secrets bleiben explizit außen vor. Exakte providerübergreifende Tokenkosten sind weiterhin kein harter Vertragsbestandteil, solange die Live-Provider ihre Usage-Daten nicht konsistent in derselben Form liefern.
+
 ---
 
 ## Empfohlene Zielarchitektur
@@ -588,6 +590,8 @@ Bereits umgesetzt:
 - Preview-/Diff-Review vor der bewussten Übernahme in EN-Felder direkt im Editor
 - Provider-Liste mit bewusstem `+`-Anlegen neuer Einträge statt fixer Komplettübersicht
 - Live-Übersetzungen über Ollama und Azure AI im bestehenden Editor.js-Workflow
+- request- und quota-nahes Nutzungsmonitoring im AI-Dashboard auf Basis von `audit_log`
+- Verlaufstabelle der letzten AI-Generierungsläufe ohne Rohprompt-/Volltextanzeige
 - eigener AI-Hauptbereich in der Sidebar
 - vorbereitete Default-Capabilities für AI-Verwaltung/Nutzung in `CMS/includes/functions/roles.php`
 

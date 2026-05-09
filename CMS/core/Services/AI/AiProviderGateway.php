@@ -50,6 +50,7 @@ final class AiProviderGateway
         $loggingConfig = is_array($configuration['logging'] ?? null) ? $configuration['logging'] : [];
         $quotaConfig = is_array($configuration['quotas'] ?? null) ? $configuration['quotas'] : [];
         $providersConfig = is_array($configuration['providers'] ?? null) ? $configuration['providers'] : [];
+        $promptsConfig = is_array($configuration['prompts'] ?? null) ? $configuration['prompts'] : [];
 
         $this->assertEditorJsTranslationEnabled($features);
 
@@ -85,7 +86,8 @@ final class AiProviderGateway
                 'editor_data' => $editorData,
             ],
             $provider,
-            $translationConfig
+            $translationConfig,
+            is_array($promptsConfig['translation'] ?? null) ? $promptsConfig['translation'] : []
         );
 
         $telemetry = [
@@ -97,6 +99,7 @@ final class AiProviderGateway
             'content_type' => $contentType,
             'source_locale' => $sourceLocale,
             'target_locale' => $targetLocale,
+            'prompt_template_enabled' => !empty($promptsConfig['translation']['enabled']),
         ];
 
         if (!empty($loggingConfig['store_content_hashes'])) {

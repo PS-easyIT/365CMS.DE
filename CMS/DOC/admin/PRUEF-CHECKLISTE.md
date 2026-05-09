@@ -155,7 +155,7 @@ Die Sidebar in `CMS/admin/partials/sidebar.php` ist für die Menüstruktur führ
 
 ### Audit-Stand – Dashboard Nice-to-haves · Durchlauf 1
 
-- **Status:** abgeschlossen auf Code-/Best-Practice-/Vertragsbasis · Release `2.9.632`
+- **Status:** abgeschlossen auf Code-/Best-Practice-/Vertragsbasis · Release `2.9.701`
 - **Prüfer:** GitHub Copilot
 - **Datum:** 2026-05-09
 - **Geprüfte Route:** `/admin`
@@ -174,7 +174,7 @@ Die Sidebar in `CMS/admin/partials/sidebar.php` ist für die Menüstruktur führ
 
 | Unterbereich | Route | Kernfunktion |
 |---|---|---|
-| AI Dashboard | `/admin/ai-services` | Überblick über KI-Dienste, Nutzung, Status |
+| AI Dashboard | `/admin/ai-services` | Überblick über KI-Dienste, Nutzung, Status und jüngste Läufe |
 | Übersetzung | `/admin/ai-translation` | KI-gestützte Übersetzung von Inhalten |
 | Content Creator | `/admin/ai-content-creator` | KI-gestützte Erstellung von Texten |
 | SEO Creator | `/admin/ai-seo-creator` | KI-Hilfen für Meta-Daten und SEO-Texte |
@@ -204,8 +204,8 @@ Die Sidebar in `CMS/admin/partials/sidebar.php` ist für die Menüstruktur führ
 ### Nice-to-haves
 
 - [ ] Prompt-/Vorlagenverwaltung je Bereich.
-- [ ] Verlauf / Historie je Generierung.
-- [ ] Kosten- oder Token-Monitoring im Dashboard.
+- [x] Verlauf / Historie je Generierung.
+- [x] Kosten- oder Token-Monitoring im Dashboard.
 
 ### Audit-Stand – AI Services · Durchlauf 1
 
@@ -218,7 +218,21 @@ Die Sidebar in `CMS/admin/partials/sidebar.php` ist für die Menüstruktur führ
 - **Abhängige Bereiche:** Editor.js-Übersetzung, Provider-Gateway, Logging/Audit, Quotas, Rechteprüfung im AI-Hauptbereich
 - **Offene Must-haves:** keine
 - **Offene Nice-to-haves:** Prompt-Vorlagen, Verlauf/Historie, Kosten-/Token-Monitoring
+- **Offene Nice-to-haves:** Prompt-Vorlagen, Verlauf/Historie, Kosten-/Token-Monitoring
 - **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/system-settings/AI-SERVICES.md`, `CMS/DOC/ai/AI-SERVICES.md`
+
+### Audit-Stand – AI Services Nice-to-haves · Durchlauf 1
+
+- **Status:** abgeschlossen auf Code-/Best-Practice-/Vertragsbasis · Release `2.9.702`
+- **Prüfer:** GitHub Copilot
+- **Datum:** 2026-05-09
+- **Geprüfte Route:** `/admin/ai-services`
+- **Umgesetzte Nice-to-haves:** Verlauf/Historie je Generierung sowie Dashboard-Monitoring für request-/quota-nahe Nutzung.
+- **Umsetzung in diesem Durchlauf:** Das AI-Dashboard aggregiert jetzt die letzten protokollierten `ai.editorjs.translate.processed`-/`failed`-Läufe aus `audit_log`, zeigt Erfolgsquote, letzte Läufe, Provider-Auslastung sowie Tages-/Monatskontingente an und nutzt dafür bewusst nur datensparsame Metadaten wie Provider, Ziel-Locale, Laufzeit, Block- und Zeichenanzahl. Rohprompts, Volltexte und Secrets werden weder gespeichert noch im Dashboard ausgegeben. Zusätzlich schreibt die Editor.js-Translation bei aktivierten Request-Metriken Zeichen- und Blockzahlen in den Audit-Kontext, damit Verlauf und Budgetanzeigen belastbar bleiben.
+- **Abhängige Bereiche:** `AiServicesModule`, `AiEditorJsTranslationModule`, `AiProviderGateway`, `audit_log`, AI-Settings `ai.logging` und `ai.quotas`
+- **Offene Must-haves:** keine
+- **Offene Nice-to-haves:** Prompt-Vorlagen je Bereich, exakte providerübergreifende Token-/Kostenintegration bei künftig konsistenten Usage-Rückgaben
+- **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/system-settings/AI-SERVICES.md`, `CMS/DOC/ai/AI-SERVICES.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`
 
 ---
 

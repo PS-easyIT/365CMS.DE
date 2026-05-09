@@ -60,6 +60,8 @@ final class AiEditorJsTranslationModule
                     'target_locale' => $targetLocale,
                     'translated_blocks' => (int) (($result['stats']['translated_blocks'] ?? 0)),
                     'translated_segments' => (int) (($result['stats']['translated_segments'] ?? 0)),
+                    'char_count' => isset($telemetry['char_count']) ? (int) $telemetry['char_count'] : null,
+                    'block_count' => isset($telemetry['block_count']) ? (int) $telemetry['block_count'] : null,
                     'duration_ms' => (int) ($telemetry['duration_ms'] ?? 0),
                     'source_hash' => (string) ($telemetry['source_hash'] ?? ''),
                     'translated_hash' => (string) ($telemetry['translated_hash'] ?? ''),

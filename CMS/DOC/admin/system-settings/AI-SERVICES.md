@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Admin-spezifische Einordnung des Bereichs `AI Services` als **eigener Admin-Hauptbereich**. Die führende Fach- und Architektur-Dokumentation liegt unter [`../../ai/AI-SERVICES.md`](../../ai/AI-SERVICES.md); die Admin-Seiten `/admin/ai-services`, `/admin/ai-translation`, `/admin/ai-content-creator`, `/admin/ai-seo-creator` und `/admin/ai-settings` sind als Settings- und Runtime-Steuerflächen im Core eingehängt.
 
-Letzte Aktualisierung: 2026-05-09 · Version 2.9.616
+Letzte Aktualisierung: 2026-05-09 · Version 2.9.702
 
 > **Wichtig:** Diese Datei ist bewusst nur der **Admin- und Routing-Kontext**. Die vollständige Konzeption, Provider-Logik, Editor.js-Übersetzungsphase und offene Punkte werden kanonisch in [`../../ai/AI-SERVICES.md`](../../ai/AI-SERVICES.md) gepflegt.
 
@@ -48,6 +48,8 @@ Aktueller Runtime-Hinweis:
 - Provider werden als gezielt anlegbare Liste geführt; sichtbar sind damit nur die tatsächlich konfigurierten Einträge statt einer fest verdrahteten Komplettmatrix
 - `/admin/ai-translate-editorjs` stellt heute einen geschützten Live-Endpoint für Editor.js-Übersetzungen bereit, inklusive Preview-/Diff-Schritt vor der EN-Übernahme
 - der Preview-/Diff-Schritt ist seit `2.9.616` serverseitig verpflichtend und nicht mehr als optionaler Admin-Toggle abschaltbar
+- `/admin/ai-services` bündelt seit `2.9.702` request- und quota-nahes Nutzungsmonitoring plus die letzten Generierungsläufe direkt aus `audit_log`, ohne Rohprompts, Volltexte oder Secrets im Dashboard offenzulegen
+- wenn `store_request_metrics` aktiv ist, protokolliert die Editor.js-Translation zusätzlich Zeichen- und Blockmetriken für nutzbare Verlauf-/Budgetanzeigen
 - echte Live-Provider sind aktuell für **Ollama** und **Azure AI** umgesetzt; weitere Bridge-Kandidaten wie OpenAI/OpenRouter bleiben vorbereitete Folgearbeit
 
 Verwandte Admin-Dokumente:

@@ -25,7 +25,7 @@ final class EditorJsTranslationPipeline
      * @param array<string, mixed> $translationConfig
      * @return array<string, mixed>
      */
-    public function translate(array $payload, AiProviderInterface $provider, array $translationConfig): array
+    public function translate(array $payload, AiProviderInterface $provider, array $translationConfig, array $promptTemplate = []): array
     {
         $editorData = is_array($payload['editor_data'] ?? null) ? $payload['editor_data'] : ['blocks' => []];
         $blocks = is_array($editorData['blocks'] ?? null) ? $editorData['blocks'] : [];
@@ -96,6 +96,7 @@ final class EditorJsTranslationPipeline
                 'content_type' => (string) ($payload['content_type'] ?? 'editorjs'),
                 'source_locale' => (string) ($payload['source_locale'] ?? 'de'),
                 'target_locale' => (string) ($payload['target_locale'] ?? 'en'),
+                'prompt_template' => $promptTemplate,
             ]
         );
 
