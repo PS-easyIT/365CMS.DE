@@ -1,7 +1,7 @@
 # 365CMS – Diagnose & Monitoring
-> **Stand:** 2026-04-07 | **Version:** 2.9.0 | **Status:** Aktuell
+> **Stand:** 2026-05-09 | **Version:** 2.9.629 | **Status:** Aktuell
 
-<!-- UPDATED: 2026-04-07 -->
+<!-- UPDATED: 2026-05-09 -->
 
 ## Überblick
 
@@ -15,14 +15,14 @@ Die Monitor-Seiten folgen dem üblichen Admin-Flow mit geschütztem Zugriff und 
 | System-Monitor | Zentrale Einstiegsseite mit Statusübersicht |
 | Cron-Status | Überwachung geplanter Aufgaben und Laufzeiten |
 | Disk Usage | Speicherverbrauch nach Verzeichnissen und Medien |
-| Health-Checks | Automatisierte Prüfungen kritischer Systemkomponenten |
+| Health-Checks | Automatisierte Prüfungen kritischer Systemkomponenten inklusive realem lokalem Health-Endpunkt-Check |
 | Error-Log | Einsicht in aktuelle Fehlermeldungen und Warnungen |
 | PHP / MySQL Info | Laufzeitumgebung und Datenbankstatus |
 
 ## Benötigte Rechte
 
 - Rolle **Admin** erforderlich
-- CSRF-Kontext: abhängig von der jeweiligen Diagnose-Aktion
+- CSRF-Kontext: `admin_system_info` für alle Shared-Monitoring-Aktionen
 
 ## Verwandte Dokumente
 

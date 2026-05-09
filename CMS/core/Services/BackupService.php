@@ -36,6 +36,8 @@ class BackupService
     private const LEGACY_DATABASE_BACKUP_PATTERN = '/^database_[0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9]{2}-[0-9]{2}-[0-9]{2}\.sql(?:\.gz)?$/i';
     private const S3_BUCKET_PATTERN = '/^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$/';
     private const S3_ENDPOINT_PATTERN = '/^[a-z0-9.-]+$/i';
+    private const FILE_BACKUP_DIRECTORIES = ['uploads', 'themes', 'plugins', 'assets'];
+    private const ALLOWED_DOWNLOAD_PARTS = ['database', 'files'];
     
     /**
      * Singleton instance
@@ -663,6 +665,79 @@ class BackupService
         
         return array_slice($backups, 0, $limit);
     }
+
+    /**
+     * Liefert eine herunterladbare Backup-Datei (DB oder Dateien) für den Admin-Download.
+     *
+     * @return array{path:string,filename:string,content_type:string}|null
+     */
+    public function resolveDownloadableBackupFile(string $backupName, string $part = 'database'): ?array
+    {
+        $record = $this->findBackupRecord($backupName);
+        if ($record === null) {
+            return null;
+        }
+
+        $part = $this->normalizeDownloadPart($part);
+        $path = $part === 'files'
+            ? $this->resolveBackupFilesArchivePath($record)
+            : $this->resolveBackupDatabasePath($record);
+
+        if ($path === '' || !is_file($path) || !is_readable($path) || !$this->isWithinBackupRoot($path)) {
+            return null;
+        }
+
+        return [
+            'path' => $path,
+            'filename' => basename($path),
+            'content_type' => $this->getMimeType($path),
+        ];
+    }
+
+    /**
+     * Stellt ein Datenbank- oder Vollbackup wieder her.
+     *
+     * @return array{success:bool, restored_database:bool, restored_files:bool, rollback_backup:string}
+     */
+    public function restoreBackup(string $backupName): array
+    {
+        $record = $this->findBackupRecord($backupName);
+        if ($record === null) {
+            throw new \RuntimeException('Backup wurde nicht gefunden.');
+        }
+
+        $databasePath = $this->resolveBackupDatabasePath($record);
+        $filesPath = $this->resolveBackupFilesArchivePath($record);
+
+        if ($databasePath === '' && $filesPath === '') {
+            throw new \RuntimeException('Backup enthält keine wiederherstellbaren Bestandteile.');
+        }
+
+        $rollbackBackup = $this->createFullBackup();
+        if (empty($rollbackBackup['success']) || empty($rollbackBackup['name'])) {
+            throw new \RuntimeException('Vor der Wiederherstellung konnte kein Sicherungs-Snapshot erstellt werden.');
+        }
+
+        $restoredDatabase = false;
+        $restoredFiles = false;
+
+        if ($databasePath !== '') {
+            $this->restoreDatabaseDump($databasePath);
+            $restoredDatabase = true;
+        }
+
+        if ($filesPath !== '') {
+            $this->restoreFilesArchive($filesPath);
+            $restoredFiles = true;
+        }
+
+        return [
+            'success' => true,
+            'restored_database' => $restoredDatabase,
+            'restored_files' => $restoredFiles,
+            'rollback_backup' => (string) $rollbackBackup['name'],
+        ];
+    }
     
     /**
      * Delete backup
@@ -734,6 +809,345 @@ class BackupService
         }
         
         return rmdir($normalizedDir);
+    }
+
+    /** @return array<string, mixed>|null */
+    private function findBackupRecord(string $backupName): ?array
+    {
+        $normalizedName = trim(basename($backupName));
+        if ($normalizedName === '') {
+            return null;
+        }
+
+        foreach ($this->listBackups(self::MAX_BACKUP_LIST_LIMIT) as $backup) {
+            if (!is_array($backup)) {
+                continue;
+            }
+
+            if ((string) ($backup['name'] ?? '') === $normalizedName) {
+                return $backup;
+            }
+        }
+
+        return null;
+    }
+
+    private function normalizeDownloadPart(string $part): string
+    {
+        $part = strtolower(trim($part));
+
+        return in_array($part, self::ALLOWED_DOWNLOAD_PARTS, true) ? $part : 'database';
+    }
+
+    /** @param array<string, mixed> $record */
+    private function resolveBackupDatabasePath(array $record): string
+    {
+        $name = trim(basename((string) ($record['name'] ?? '')));
+        if ($name !== '' && $this->isLegacyDatabaseBackupFile($name)) {
+            $path = $this->backupRoot() . $name;
+
+            return is_file($path) ? $path : '';
+        }
+
+        $databaseFile = trim(basename((string) ($record['database'] ?? '')));
+        if ($name === '' || $databaseFile === '') {
+            return '';
+        }
+
+        $path = $this->backupRoot() . $name . DIRECTORY_SEPARATOR . $databaseFile;
+
+        return is_file($path) ? $path : '';
+    }
+
+    /** @param array<string, mixed> $record */
+    private function resolveBackupFilesArchivePath(array $record): string
+    {
+        $name = trim(basename((string) ($record['name'] ?? '')));
+        $filesArchive = trim(basename((string) ($record['files'] ?? '')));
+        if ($name === '' || $filesArchive === '') {
+            return '';
+        }
+
+        $path = $this->backupRoot() . $name . DIRECTORY_SEPARATOR . $filesArchive;
+
+        return is_file($path) ? $path : '';
+    }
+
+    private function restoreDatabaseDump(string $filePath): void
+    {
+        if (!$this->isWithinBackupRoot($filePath) || !is_file($filePath) || !is_readable($filePath)) {
+            throw new \RuntimeException('Backup-Dump ist nicht lesbar.');
+        }
+
+        $sql = $this->readBackupFileContents($filePath);
+        if ($sql === '') {
+            throw new \RuntimeException('Backup-Dump ist leer.');
+        }
+
+        $this->executeSqlBatch($sql);
+    }
+
+    private function restoreFilesArchive(string $archivePath): void
+    {
+        if (!$this->isWithinBackupRoot($archivePath) || !is_file($archivePath) || !is_readable($archivePath)) {
+            throw new \RuntimeException('Backup-Archiv ist nicht lesbar.');
+        }
+
+        if (!extension_loaded('zip')) {
+            throw new \RuntimeException('ZIP-Unterstützung ist für die Dateiwiederherstellung nicht verfügbar.');
+        }
+
+        $zip = new \ZipArchive();
+        $zipResult = $zip->open($archivePath);
+        if ($zipResult !== true) {
+            throw new \RuntimeException('Backup-Archiv konnte nicht geöffnet werden.');
+        }
+
+        if (!$this->validateRestoreArchiveEntries($zip)) {
+            $zip->close();
+            throw new \RuntimeException('Backup-Archiv enthält ungültige oder unsichere Pfade.');
+        }
+
+        $stagingRoot = $this->createManagedTemporaryDirectory(ABSPATH, '365cms_restore_stage_');
+        $rollbackRoot = $this->createManagedTemporaryDirectory(ABSPATH, '365cms_restore_rollback_');
+
+        try {
+            if (!$zip->extractTo($stagingRoot)) {
+                throw new \RuntimeException('Backup-Archiv konnte nicht in das Staging-Verzeichnis entpackt werden.');
+            }
+        } finally {
+            $zip->close();
+        }
+
+        $sourceRoot = $this->resolveRestoreArchiveRoot($stagingRoot);
+        $entries = $this->listDirectoryEntries($sourceRoot);
+        if ($entries === []) {
+            $this->removeDirectory($stagingRoot);
+            $this->removeDirectory($rollbackRoot);
+            throw new \RuntimeException('Backup-Archiv enthält keine wiederherstellbaren Dateien.');
+        }
+
+        $backedUpTargets = [];
+        $restoredTargets = [];
+
+        try {
+            foreach ($entries as $entry) {
+                if (!in_array($entry, self::FILE_BACKUP_DIRECTORIES, true)) {
+                    throw new \RuntimeException('Backup-Archiv enthält nicht erlaubte Zielpfade.');
+                }
+
+                $sourcePath = $sourceRoot . DIRECTORY_SEPARATOR . $entry;
+                if (!is_dir($sourcePath)) {
+                    throw new \RuntimeException('Backup-Archiv enthält einen ungültigen Verzeichniseintrag.');
+                }
+
+                $targetPath = rtrim((string) ABSPATH, '/\\') . DIRECTORY_SEPARATOR . $entry;
+                $rollbackPath = $rollbackRoot . DIRECTORY_SEPARATOR . $entry;
+
+                if (file_exists($targetPath)) {
+                    if (!rename($targetPath, $rollbackPath)) {
+                        throw new \RuntimeException('Bestehendes Zielverzeichnis konnte nicht in das Rollback verschoben werden: ' . $entry);
+                    }
+
+                    $backedUpTargets[] = $entry;
+                }
+
+                if (!rename($sourcePath, $targetPath)) {
+                    throw new \RuntimeException('Backup-Dateien konnten nicht in das Ziel verschoben werden: ' . $entry);
+                }
+
+                $restoredTargets[] = $entry;
+            }
+        } catch (\Throwable $e) {
+            foreach (array_reverse($restoredTargets) as $entry) {
+                $targetPath = rtrim((string) ABSPATH, '/\\') . DIRECTORY_SEPARATOR . $entry;
+                $stagingPath = $sourceRoot . DIRECTORY_SEPARATOR . $entry;
+
+                if (file_exists($targetPath)) {
+                    @rename($targetPath, $stagingPath);
+                }
+            }
+
+            foreach (array_reverse($backedUpTargets) as $entry) {
+                $targetPath = rtrim((string) ABSPATH, '/\\') . DIRECTORY_SEPARATOR . $entry;
+                $rollbackPath = $rollbackRoot . DIRECTORY_SEPARATOR . $entry;
+
+                if (file_exists($rollbackPath)) {
+                    @rename($rollbackPath, $targetPath);
+                }
+            }
+
+            $this->removeDirectory($stagingRoot);
+            $this->removeDirectory($rollbackRoot);
+            throw $e;
+        }
+
+        $this->removeDirectory($stagingRoot);
+        $this->removeDirectory($rollbackRoot);
+    }
+
+    private function readBackupFileContents(string $filePath): string
+    {
+        $extension = strtolower((string) pathinfo($filePath, PATHINFO_EXTENSION));
+        if ($extension === 'gz') {
+            $handle = gzopen($filePath, 'rb');
+            if ($handle === false) {
+                throw new \RuntimeException('Komprimierter Backup-Dump konnte nicht gelesen werden.');
+            }
+
+            $content = '';
+            while (!gzeof($handle)) {
+                $chunk = gzread($handle, 8192);
+                if ($chunk === false) {
+                    gzclose($handle);
+                    throw new \RuntimeException('Komprimierter Backup-Dump konnte nicht vollständig gelesen werden.');
+                }
+
+                $content .= $chunk;
+            }
+
+            gzclose($handle);
+
+            return $content;
+        }
+
+        $content = file_get_contents($filePath);
+        if (!is_string($content)) {
+            throw new \RuntimeException('Backup-Dump konnte nicht gelesen werden.');
+        }
+
+        return $content;
+    }
+
+    private function executeSqlBatch(string $sql): void
+    {
+        $pdo = $this->db->getPdo();
+        $statement = '';
+        $length = strlen($sql);
+        $inSingleQuote = false;
+        $inDoubleQuote = false;
+        $isEscaped = false;
+
+        for ($i = 0; $i < $length; $i++) {
+            $char = $sql[$i];
+
+            if ($isEscaped) {
+                $statement .= $char;
+                $isEscaped = false;
+                continue;
+            }
+
+            if (($inSingleQuote || $inDoubleQuote) && $char === '\\') {
+                $statement .= $char;
+                $isEscaped = true;
+                continue;
+            }
+
+            if ($char === "'" && !$inDoubleQuote) {
+                $inSingleQuote = !$inSingleQuote;
+                $statement .= $char;
+                continue;
+            }
+
+            if ($char === '"' && !$inSingleQuote) {
+                $inDoubleQuote = !$inDoubleQuote;
+                $statement .= $char;
+                continue;
+            }
+
+            if ($char === ';' && !$inSingleQuote && !$inDoubleQuote) {
+                $trimmed = trim($statement);
+                if ($trimmed !== '') {
+                    $pdo->exec($trimmed);
+                }
+
+                $statement = '';
+                continue;
+            }
+
+            $statement .= $char;
+        }
+
+        $trimmed = trim($statement);
+        if ($trimmed !== '') {
+            $pdo->exec($trimmed);
+        }
+    }
+
+    private function validateRestoreArchiveEntries(\ZipArchive $zip): bool
+    {
+        $hasEntries = false;
+
+        for ($index = 0; $index < $zip->numFiles; $index++) {
+            $entryName = $zip->getNameIndex($index);
+            if (!is_string($entryName) || $entryName === '') {
+                return false;
+            }
+
+            $normalized = str_replace('\\', '/', $entryName);
+            $normalized = ltrim($normalized, '/');
+
+            if ($normalized === ''
+                || str_contains($normalized, '../')
+                || str_contains($normalized, '..\\')
+                || preg_match('~^[A-Za-z]:/~', $normalized) === 1
+            ) {
+                return false;
+            }
+
+            $hasEntries = true;
+        }
+
+        return $hasEntries;
+    }
+
+    private function resolveRestoreArchiveRoot(string $stagingRoot): string
+    {
+        $entries = $this->listDirectoryEntries($stagingRoot);
+        if ($entries === []) {
+            return $stagingRoot;
+        }
+
+        $allAllowed = array_reduce($entries, fn (bool $carry, string $entry): bool => $carry && in_array($entry, self::FILE_BACKUP_DIRECTORIES, true), true);
+        if ($allAllowed) {
+            return $stagingRoot;
+        }
+
+        if (count($entries) === 1) {
+            $candidate = $stagingRoot . DIRECTORY_SEPARATOR . $entries[0];
+            if (is_dir($candidate)) {
+                $candidateEntries = $this->listDirectoryEntries($candidate);
+                $candidateAllowed = $candidateEntries !== []
+                    && array_reduce($candidateEntries, fn (bool $carry, string $entry): bool => $carry && in_array($entry, self::FILE_BACKUP_DIRECTORIES, true), true);
+
+                if ($candidateAllowed) {
+                    return $candidate;
+                }
+            }
+        }
+
+        return $stagingRoot;
+    }
+
+    private function createManagedTemporaryDirectory(string $parentDir, string $prefix): string
+    {
+        $path = $this->buildManagedTemporaryPath($parentDir, $prefix);
+        if (!mkdir($path, 0755, true) && !is_dir($path)) {
+            throw new \RuntimeException('Temporäres Restore-Verzeichnis konnte nicht erstellt werden.');
+        }
+
+        return $path;
+    }
+
+    private function buildManagedTemporaryPath(string $parentDir, string $prefix): string
+    {
+        $parentDir = rtrim($parentDir, '/\\');
+
+        do {
+            $path = $parentDir . DIRECTORY_SEPARATOR . $prefix . bin2hex(random_bytes(8));
+        } while (file_exists($path));
+
+        return $path;
     }
     
     /**

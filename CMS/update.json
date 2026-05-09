@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.9.627",
+  "version": "2.9.629",
   "min_php": "8.4",
   "released": "2026-05-09",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 2.9.627: Die Admin-Menü-Registry für Plugin-Seiten arbeitet jetzt request-idempotent; wiederholte cms_admin_menu-Ausführung ersetzt vorhandene Plugin- und Child-Menüs mit gleichem Slug, statt doppelte Sidebar-Einträge aufzubauen.",
+  "notes": "Release-Stand 2.9.629: Der Diagnose-Health-Check prüft lokale Health-Endpunkte jetzt real gegen die eigene Installation, statt eine bloße Aktiv-Markierung als bestanden zu werten.",
   "critical": false
 }

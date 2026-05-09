@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Lokale Sicherungen, Datenbank-Backups und Verwaltungsabläufe für Wiederherstellung und Bereinigung.
 
-Letzte Aktualisierung: 2026-04-07 · Version 2.9.0
+Letzte Aktualisierung: 2026-05-09 · Version 2.9.628
 
 ---
 
@@ -22,8 +22,9 @@ Der Standard-Speicherpfad des Services ist `CMS/backups/`.
 | `create_db` | reines Datenbank-Backup erzeugen |
 | `restore` | gesicherten Stand wiederherstellen |
 | `delete` | vorhandenes Backup löschen |
+| Download | DB-Dumps und Datei-Archive gezielt herunterladen |
 
-Die Oberfläche listet vorhandene Backups auf und erlaubt deren Verwaltung.
+Die Oberfläche listet vorhandene Backups auf und erlaubt deren Verwaltung. Datenbank-Dumps und Datei-Archive können direkt aus dem Admin heruntergeladen werden. Vor jeder Wiederherstellung erstellt der Runtime-Pfad automatisch einen Rollback-Snapshot des aktuellen Zustands, bevor Datenbank und optionale Datei-Artefakte eingespielt werden.
 
 ---
 

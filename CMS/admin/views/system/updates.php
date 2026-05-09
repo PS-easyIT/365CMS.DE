@@ -218,11 +218,20 @@ $hasUpdates = $data['has_updates'];
                 $alertMarginClass = 'mb-0';
                 require __DIR__ . '/../partials/flash-alert.php';
                 ?>
+                <div class="mt-3 d-flex flex-wrap gap-2">
+                <?php if (!empty($theme['install_supported'])): ?>
+                    <form method="post" class="d-inline" data-confirm-message="Theme-Update jetzt installieren?" data-confirm-title="Theme-Update installieren" data-confirm-text="Installieren" data-confirm-class="btn-warning" data-confirm-status-class="bg-warning">
+                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
+                        <input type="hidden" name="action" value="install_theme">
+                        <button type="submit" class="btn btn-warning">Theme aktualisieren</button>
+                    </form>
+                <?php endif; ?>
                 <?php if (!empty($theme['purchase_url'])): ?>
-                    <div class="mt-3">
+                    <div class="d-inline">
                         <a href="<?php echo htmlspecialchars((string) $theme['purchase_url']); ?>" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary">Anfragen / Kaufen</a>
                     </div>
                 <?php endif; ?>
+                </div>
             <?php else: ?>
                 <?php
                 $themeMessage = 'Theme ist aktuell';

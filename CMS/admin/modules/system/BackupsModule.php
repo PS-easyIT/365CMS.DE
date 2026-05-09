@@ -157,6 +157,58 @@ class BackupsModule
         }
     }
 
+    /**
+     * Backup wiederherstellen
+     */
+    public function restoreBackup(string $name): array
+    {
+        if (!$this->assertWritableRequest()) {
+            return ['success' => false, 'error' => 'Keine Berechtigung für diese Aktion.'];
+        }
+
+        $normalizedName = $this->normalizeBackupName($name);
+        if ($normalizedName === '') {
+            return ['success' => false, 'error' => 'Kein Backup angegeben.'];
+        }
+
+        try {
+            $result = $this->service->restoreBackup($normalizedName);
+
+            $this->auditAction('backup.restored', 'Backup wiederhergestellt.', [
+                'name' => $normalizedName,
+                'restored_database' => !empty($result['restored_database']),
+                'restored_files' => !empty($result['restored_files']),
+                'rollback_backup' => (string) ($result['rollback_backup'] ?? ''),
+            ]);
+
+            $message = 'Backup wiederhergestellt: ' . $normalizedName;
+            if (!empty($result['rollback_backup'])) {
+                $message .= ' · Rollback-Snapshot: ' . (string) $result['rollback_backup'];
+            }
+
+            return ['success' => true, 'message' => $message];
+        } catch (\Throwable $e) {
+            return $this->failResult('backup.restore_failed', 'Backup konnte nicht wiederhergestellt werden.', $e);
+        }
+    }
+
+    /**
+     * @return array{path:string,filename:string,content_type:string}|null
+     */
+    public function getDownloadableBackupFile(string $name, string $part = 'database'): ?array
+    {
+        if (!$this->canRead()) {
+            return null;
+        }
+
+        $normalizedName = $this->normalizeBackupName($name);
+        if ($normalizedName === '') {
+            return null;
+        }
+
+        return $this->service->resolveDownloadableBackupFile($normalizedName, $part);
+    }
+
     private function listBackupsSafe(): array
     {
         try {
@@ -257,6 +309,10 @@ class BackupsModule
                 'database' => $this->normalizeBackupFileName((string)($backup['database'] ?? ''), ['sql', 'gz']),
                 'files' => $this->normalizeBackupFileName((string)($backup['files'] ?? ''), ['zip']),
             ];
+
+            $entry['can_download_database'] = $entry['database'] !== '';
+            $entry['can_download_files'] = $entry['files'] !== '';
+            $entry['can_restore'] = $entry['can_download_database'] || $entry['can_download_files'];
 
             $sanitized[] = $entry;
         }

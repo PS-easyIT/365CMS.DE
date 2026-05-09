@@ -46,6 +46,7 @@ function cms_admin_backups_allowed_actions(): array
     return [
         'create_full' => true,
         'create_db' => true,
+        'restore' => true,
         'delete' => true,
     ];
 }
@@ -64,6 +65,46 @@ function cms_admin_backups_normalize_backup_name(array $post): string
     return preg_match('/^[a-z0-9][a-z0-9._-]{2,120}$/i', $name) === 1 ? $name : '';
 }
 
+function cms_admin_backups_normalize_backup_name_value(mixed $value): string
+{
+    $name = trim(basename((string) $value));
+
+    return preg_match('/^[a-z0-9][a-z0-9._-]{2,120}$/i', $name) === 1 ? $name : '';
+}
+
+function cms_admin_backups_normalize_download_part(mixed $value): string
+{
+    $part = strtolower(trim((string) $value));
+
+    return in_array($part, ['database', 'files'], true) ? $part : 'database';
+}
+
+function cms_admin_backups_flash(array $payload): void
+{
+    $_SESSION['admin_alert'] = [
+        'type' => ($payload['type'] ?? 'danger') === 'success' ? 'success' : 'danger',
+        'message' => trim((string) ($payload['message'] ?? '')),
+    ];
+}
+
+function cms_admin_backups_redirect(string $path = '/admin/backups'): never
+{
+    header('Location: ' . $path, true, 303);
+    exit;
+}
+
+function cms_admin_backups_send_download(array $download): never
+{
+    header('Content-Type: ' . (string) ($download['content_type'] ?? 'application/octet-stream'));
+    header('Content-Disposition: attachment; filename="' . str_replace('"', '', (string) ($download['filename'] ?? 'backup.bin')) . '"');
+    header('Content-Length: ' . (string) filesize((string) $download['path']));
+    header('Cache-Control: private, no-store, no-cache, must-revalidate');
+    header('Pragma: no-cache');
+    header('X-Content-Type-Options: nosniff');
+    readfile((string) $download['path']);
+    exit;
+}
+
 /**
  * @return array<string, callable(array): array>
  */
@@ -72,8 +113,24 @@ function cms_admin_backups_action_handlers(BackupsModule $module): array
     return [
         'create_full' => static fn (array $post): array => $module->createFullBackup(),
         'create_db' => static fn (array $post): array => $module->createDatabaseBackup(),
+        'restore' => static fn (array $post): array => $module->restoreBackup(cms_admin_backups_normalize_backup_name($post)),
         'delete' => static fn (array $post): array => $module->deleteBackup(cms_admin_backups_normalize_backup_name($post)),
     ];
+}
+
+if (cms_admin_backups_can_access() && $_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['download'])) {
+    $module = new BackupsModule();
+    $download = $module->getDownloadableBackupFile(
+        cms_admin_backups_normalize_backup_name_value($_GET['download'] ?? ''),
+        cms_admin_backups_normalize_download_part($_GET['part'] ?? 'database')
+    );
+
+    if (!is_array($download) || empty($download['path'])) {
+        cms_admin_backups_flash(['type' => 'danger', 'message' => 'Backup-Datei konnte nicht zum Download vorbereitet werden.']);
+        cms_admin_backups_redirect();
+    }
+
+    cms_admin_backups_send_download($download);
 }
 
 $sectionPageConfig = [
@@ -112,7 +169,7 @@ $sectionPageConfig = [
             return ['success' => false, 'error' => 'Unbekannte Aktion.'];
         }
 
-        if ($action === 'delete' && cms_admin_backups_normalize_backup_name($postData) === '') {
+        if (in_array($action, ['delete', 'restore'], true) && cms_admin_backups_normalize_backup_name($postData) === '') {
             return ['success' => false, 'error' => 'Ungültiger Backup-Name.'];
         }
 

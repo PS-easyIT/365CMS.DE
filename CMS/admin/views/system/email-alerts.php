@@ -66,11 +66,12 @@ $settings = $data['email_alerts'] ?? [];
 
 							<label class="form-check form-switch mb-3">
 								<input class="form-check-input" type="checkbox" name="monitor_health_endpoint_enabled" value="1" <?php echo ($settings['monitor_health_endpoint_enabled'] ?? '0') === '1' ? 'checked' : ''; ?>>
-								<span class="form-check-label">Health-Endpunkt aktiv markieren</span>
+								<span class="form-check-label">Lokalen Health-Endpunkt aktiv prüfen</span>
 							</label>
 
 							<div class="mb-4">
 								<label class="form-label">Health-Endpunkt-Pfad</label>
+								<div class="form-hint mb-2">Nur lokale Pfade wie <code>/health</code> oder <code>/status/health</code>. Der Health-Check ruft diesen Pfad real gegen die eigene Installation auf.</div>
 								<input class="form-control" type="text" name="monitor_health_endpoint_path" value="<?php echo htmlspecialchars((string)($settings['monitor_health_endpoint_path'] ?? '/health')); ?>">
 							</div>
 

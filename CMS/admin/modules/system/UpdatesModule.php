@@ -170,6 +170,54 @@ class UpdatesModule
         }
     }
 
+    /**
+     * Theme-Update installieren
+     */
+    public function installThemeUpdate(): array
+    {
+        try {
+            $theme = $this->getThemeData();
+            if (empty($theme['update_available'])) {
+                return ['success' => false, 'error' => 'Kein Theme-Update verfügbar.'];
+            }
+
+            if (empty($theme['install_supported'])) {
+                return ['success' => false, 'error' => 'Für dieses Theme ist nur ein manueller Update-Prozess verfügbar.'];
+            }
+
+            $downloadUrl = (string) ($theme['download_url'] ?? '');
+            $sha256 = (string) ($theme['sha256'] ?? '');
+            $slug = $this->normalizeThemeSlug((string) ($theme['slug'] ?? ''));
+            $version = (string) ($theme['latest_version'] ?? '');
+
+            if ($slug === '') {
+                return ['success' => false, 'error' => 'Aktives Theme konnte nicht bestimmt werden.'];
+            }
+
+            if ($downloadUrl === '') {
+                return ['success' => false, 'error' => 'Download-URL nicht verfügbar.'];
+            }
+
+            $themeDir = defined('THEME_PATH') ? THEME_PATH : ABSPATH . 'themes/';
+
+            return $this->service->downloadAndInstallUpdate(
+                $downloadUrl,
+                $sha256,
+                rtrim((string) $themeDir, '/\\') . DIRECTORY_SEPARATOR . $slug . DIRECTORY_SEPARATOR,
+                'theme',
+                $slug,
+                $version
+            );
+        } catch (\Throwable $e) {
+            return $this->failResult(
+                'updates.theme.install_failed',
+                'Theme-Update konnte nicht installiert werden.',
+                $e,
+                ['component' => 'theme']
+            );
+        }
+    }
+
     private function getCoreSafe(): array
     {
         try {
@@ -259,6 +307,11 @@ class UpdatesModule
     }
 
     private function normalizePluginSlug(string $slug): string
+    {
+        return (string) preg_replace('/[^a-z0-9_-]/', '', strtolower(trim($slug)));
+    }
+
+    private function normalizeThemeSlug(string $slug): string
     {
         return (string) preg_replace('/[^a-z0-9_-]/', '', strtolower(trim($slug)));
     }

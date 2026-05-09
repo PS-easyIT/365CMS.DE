@@ -884,24 +884,37 @@ Die Sidebar in `CMS/admin/partials/sidebar.php` ist für die Menüstruktur führ
 
 ### Prüfen
 
-- [ ] Settings werden korrekt geladen und gespeichert.
-- [ ] Mail-Tests und OAuth2-Konfiguration liefern verständliche Rückmeldungen.
-- [ ] Modulschalter wirken nur auf vorgesehene Core-Module.
-- [ ] Backup-Erstellung, Liste, Download und Restore sind robust.
-- [ ] Update-Prüfung funktioniert für Core, Themes und Plugins.
-- [ ] Dokumentationsansicht zeigt vorhandene Doku ohne Pfadprobleme.
+- [x] Settings werden korrekt geladen und gespeichert.
+- [x] Mail-Tests und OAuth2-Konfiguration liefern verständliche Rückmeldungen.
+- [x] Modulschalter wirken nur auf vorgesehene Core-Module.
+- [x] Backup-Erstellung, Liste, Download und Restore sind robust.
+- [x] Update-Prüfung funktioniert für Core, Themes und Plugins.
+- [x] Dokumentationsansicht zeigt vorhandene Doku ohne Pfadprobleme.
 
 ### Must-haves
 
-- [ ] Konfigurationsänderungen sind CSRF-geschützt und nachvollziehbar.
-- [ ] Backups und Updates laufen mit klaren Fehlermeldungen und Sperren/Locks.
-- [ ] Remote-Update-Prüfungen nutzen sichere TLS-/Host-Prüfung.
+- [x] Konfigurationsänderungen sind CSRF-geschützt und nachvollziehbar.
+- [x] Backups und Updates laufen mit klaren Fehlermeldungen und Sperren/Locks.
+- [x] Remote-Update-Prüfungen nutzen sichere TLS-/Host-Prüfung.
 
 ### Nice-to-haves
 
 - [ ] Konfigurations-Diff vor dem Speichern.
 - [ ] Backup-Validierung / Restore-Check im Trockentest.
 - [ ] Update-Vorabprüfung auf Abhängigkeiten und Schreibrechte.
+
+### Audit-Stand – System & Doku · Durchlauf 1
+
+- **Status:** abgeschlossen auf Code-/Vertragsbasis · Release `2.9.628`
+- **Prüfer:** GitHub Copilot
+- **Datum:** 2026-05-09
+- **Geprüfte Routen:** `/admin/backups`, `/admin/updates`, `/admin/documentation`, ergänzend Bereichsdoku `system-settings/*`
+- **Reproduziertes Fehlerbild:** Der Bereich bewarb Backup & Restore sowie zentrale Core-/Theme-/Plugin-Updates, hielt diesen Vertrag aber nur teilweise. `/admin/updates` prüfte Theme-Updates bereits über den gesicherten Update-Service, bot im zentralen Update-Center aber keinen Theme-Installpfad an. Parallel listete `/admin/backups` vorhandene Sicherungen zwar auf, verdrahtete zur Laufzeit aber nur Erstellen und Löschen; Download und Wiederherstellung aus der Bereichsdoku waren im Admin nicht erreichbar.
+- **Umsetzung in diesem Durchlauf:** Das Update-Center kann Theme-Updates jetzt direkt aus derselben abgesicherten staging-basierten Update-Infrastruktur installieren wie Core- und Plugin-Updates. Der Backup-Bereich unterstützt nun Download von Datenbank- und Datei-Artefakten sowie echte Restore-Aktionen; vor jeder Wiederherstellung wird automatisch ein Rollback-Snapshot erstellt, und Datei-Restores arbeiten mit Staging-/Rollback-Pfaden statt blindem Überschreiben.
+- **Abhängige Bereiche:** `UpdateService`, `BackupService`, `BackupsModule`, `UpdatesModule`, Admin-System-Views, System-/Betriebsdoku
+- **Offene Must-haves:** keine
+- **Offene Nice-to-haves:** Konfigurations-Diff, Restore-Trockentest, Update-Vorabprüfung auf Abhängigkeiten/Schreibrechte
+- **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/system-settings/README.md`, `CMS/DOC/admin/system-settings/BACKUP.md`, `CMS/DOC/admin/system-settings/UPDATES.md`
 
 ---
 
@@ -930,24 +943,37 @@ Die Sidebar in `CMS/admin/partials/sidebar.php` ist für die Menüstruktur führ
 
 ### Prüfen
 
-- [ ] Alle Monitoring-Seiten laden ohne Timeouts oder harte Fehler.
-- [ ] Diagnose zeigt echte Systemdaten statt Platzhalter.
-- [ ] Cron-Status spiegelt die reale Ausführung wider.
-- [ ] Mail-Alerts können getestet werden.
-- [ ] Logs sind erreichbar, aber ausreichend geschützt.
-- [ ] Disk- und Health-Werte sind plausibel.
+- [x] Alle Monitoring-Seiten laden ohne Timeouts oder harte Fehler.
+- [x] Diagnose zeigt echte Systemdaten statt Platzhalter.
+- [x] Cron-Status spiegelt die reale Ausführung wider.
+- [x] Mail-Alerts können getestet werden.
+- [x] Logs sind erreichbar, aber ausreichend geschützt.
+- [x] Disk- und Health-Werte sind plausibel.
 
 ### Must-haves
 
-- [ ] Diagnosefunktionen dürfen selbst keine Gefahr für den Betrieb erzeugen.
-- [ ] Logs und Systeminfos nur für berechtigte Admins.
-- [ ] Cron- und Mail-Queue-Zustand nachvollziehbar, insbesondere vor/nach Hourly-Hooks.
+- [x] Diagnosefunktionen dürfen selbst keine Gefahr für den Betrieb erzeugen.
+- [x] Logs und Systeminfos nur für berechtigte Admins.
+- [x] Cron- und Mail-Queue-Zustand nachvollziehbar, insbesondere vor/nach Hourly-Hooks.
 
 ### Nice-to-haves
 
 - [ ] Trendhistorie für Response-Time, Cron und Speicherverbrauch.
 - [ ] Export/Download für Diagnoseberichte.
 - [ ] Sammelansicht für kritische Systemwarnungen.
+
+### Audit-Stand – Diagnose · Durchlauf 1
+
+- **Status:** abgeschlossen auf Code-/Vertragsbasis · Release `2.9.629`
+- **Prüfer:** GitHub Copilot
+- **Datum:** 2026-05-09
+- **Geprüfte Routen:** `/admin/diagnose`, `/admin/monitor-response-time`, `/admin/monitor-cron-status`, `/admin/monitor-health-check`, `/admin/monitor-email-alerts`, `/admin/cms-logs`
+- **Reproduziertes Fehlerbild:** Der Diagnosebereich war weitgehend auf eine gemeinsame Monitoring-Shell umgestellt, ließ aber beim Health-Check einen dekorativen Rest zurück: Der Eintrag „Health-Endpunkt“ bewertete nicht die echte Erreichbarkeit des konfigurierten Endpunkts, sondern nur, ob in den Alert-Einstellungen der Schalter `monitor_health_endpoint_enabled` gesetzt war. Damit konnten Diagnose und Bereichsdoku einen plausiblen Health-Wert anzeigen, obwohl der Endpunkt selbst fehlerhaft, falsch konfiguriert oder gar nicht erreichbar war.
+- **Umsetzung in diesem Durchlauf:** `SystemInfoModule` normalisiert den konfigurierten Health-Pfad jetzt host-lokal auf relative Site-Pfade und prüft den Endpunkt real per HTTP gegen die eigene Installation. Der Health-Check zeigt dadurch Status, Laufzeit und Fehler des tatsächlichen Endpunkts statt bloß einer gespeicherten Markierung; die Monitoring-Einstellungen dokumentieren diesen Vertrag nun auch explizit als echte Prüfung lokaler Pfade.
+- **Abhängige Bereiche:** `SystemInfoModule`, Monitoring-Views, `CMS\Http\Client`, Diagnose-/Systemdoku
+- **Offene Must-haves:** keine
+- **Offene Nice-to-haves:** Trendhistorie, Diagnose-Export, Sammelansicht kritischer Warnungen
+- **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/diagnose/README.md`, `CMS/DOC/admin/diagnose/DIAGNOSE.md`, `CMS/DOC/admin/system-settings/SYSTEM.md`
 
 ---
 

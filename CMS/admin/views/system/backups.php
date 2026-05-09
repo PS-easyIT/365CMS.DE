@@ -78,6 +78,9 @@ $history = $data['history'];
                             $name = is_array($backup) ? ($backup['name'] ?? $backup['filename'] ?? '') : (string)$backup;
                             $size = is_array($backup) ? ($backup['size'] ?? $backup['size_formatted'] ?? '-') : '-';
                             $date = is_array($backup) ? ($backup['date'] ?? $backup['created'] ?? '-') : '-';
+                            $canDownloadDatabase = !empty($backup['can_download_database']);
+                            $canDownloadFiles = !empty($backup['can_download_files']);
+                            $canRestore = !empty($backup['can_restore']);
                             if (is_numeric($size)) {
                                 $size = round($size / 1024 / 1024, 2) . ' MB';
                             }
@@ -90,15 +93,34 @@ $history = $data['history'];
                                 <td class="text-muted"><?php echo htmlspecialchars((string)$size); ?></td>
                                 <td class="text-muted"><?php echo htmlspecialchars((string)$date); ?></td>
                                 <td>
-                                    <form method="post" class="d-inline">
-                                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
-                                        <input type="hidden" name="action" value="delete">
-                                        <input type="hidden" name="backup_name" value="<?php echo htmlspecialchars($name); ?>">
-                                        <button type="button" class="btn btn-sm btn-outline-danger"
-                                                onclick="cmsConfirm({title:'Backup löschen?',message:'<?php echo htmlspecialchars($name); ?> wird unwiderruflich gelöscht.',confirmText:'Löschen',confirmClass:'btn-danger',onConfirm:()=>this.closest('form').submit()})">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 7l16 0"/><path d="M10 11l0 6"/><path d="M14 11l0 6"/><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12"/><path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3"/></svg>
-                                        </button>
-                                    </form>
+                                    <div class="d-flex justify-content-end gap-2 flex-wrap">
+                                        <?php if ($canDownloadDatabase): ?>
+                                            <a class="btn btn-sm btn-outline-primary" href="/admin/backups?download=<?php echo rawurlencode((string) $name); ?>&amp;part=database">DB</a>
+                                        <?php endif; ?>
+                                        <?php if ($canDownloadFiles): ?>
+                                            <a class="btn btn-sm btn-outline-primary" href="/admin/backups?download=<?php echo rawurlencode((string) $name); ?>&amp;part=files">Dateien</a>
+                                        <?php endif; ?>
+                                        <?php if ($canRestore): ?>
+                                            <form method="post" class="d-inline">
+                                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
+                                                <input type="hidden" name="action" value="restore">
+                                                <input type="hidden" name="backup_name" value="<?php echo htmlspecialchars($name); ?>">
+                                                <button type="button" class="btn btn-sm btn-warning"
+                                                        onclick="cmsConfirm({title:'Backup wiederherstellen?',message:'<?php echo htmlspecialchars($name); ?> wird eingespielt. Vorher wird automatisch ein Rollback-Snapshot erstellt.',confirmText:'Wiederherstellen',confirmClass:'btn-warning',onConfirm:()=>this.closest('form').submit()})">
+                                                    Restore
+                                                </button>
+                                            </form>
+                                        <?php endif; ?>
+                                        <form method="post" class="d-inline">
+                                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
+                                            <input type="hidden" name="action" value="delete">
+                                            <input type="hidden" name="backup_name" value="<?php echo htmlspecialchars($name); ?>">
+                                            <button type="button" class="btn btn-sm btn-outline-danger"
+                                                    onclick="cmsConfirm({title:'Backup löschen?',message:'<?php echo htmlspecialchars($name); ?> wird unwiderruflich gelöscht.',confirmText:'Löschen',confirmClass:'btn-danger',onConfirm:()=>this.closest('form').submit()})">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 7l16 0"/><path d="M10 11l0 6"/><path d="M14 11l0 6"/><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12"/><path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3"/></svg>
+                                            </button>
+                                        </form>
+                                    </div>
                                 </td>
                             </tr>
                         <?php endforeach; ?>

@@ -2,11 +2,11 @@
 
 Kurzbeschreibung: Überblick über Konfiguration, Updates, Backups, Info-Ansichten, Diagnose und die inzwischen eingehängte AI-Steuerung im Admin-Bereich.
 
-Letzte Aktualisierung: 2026-04-08 · Version 2.9.2
+Letzte Aktualisierung: 2026-05-09 · Version 2.9.628
 
 Der Bereich „System" wurde in mehrere klar getrennte Einstiege aufgeteilt.
 
-Die Übersicht bezieht sich auf die aktuelle 2.9.2-Bedienstruktur. Für Runtime-Fragen zu Konfiguration, Bootstrap, Logs oder Dateisystempfaden ergänzen `DOC/INSTALLATION.md`, `DOC/core/ARCHITECTURE.md` und `DOC/FILELIST.md` diese Seite.
+Die Übersicht bezieht sich auf die aktuelle 2.9.628-Bedienstruktur. Für Runtime-Fragen zu Konfiguration, Bootstrap, Logs oder Dateisystempfaden ergänzen `DOC/INSTALLATION.md`, `DOC/core/ARCHITECTURE.md` und `DOC/FILELIST.md` diese Seite.
 
 ### System-Gruppe
 
@@ -14,8 +14,8 @@ Die Übersicht bezieht sich auf die aktuelle 2.9.2-Bedienstruktur. Für Runtime-
 |---|---|
 | `/admin/settings` | allgemeine Systemeinstellungen inkl. SMTP-/Mail-Status und Testversand |
 | `/admin/ai-services` | zentrale AI-Settings für Provider, Feature-Gates, Translation, Logging und Quotas |
-| `/admin/backups` | Backups erstellen, auflisten und löschen |
-| `/admin/updates` | Core-, Theme- und Plugin-Updates |
+| `/admin/backups` | Backups erstellen, auflisten, herunterladen, wiederherstellen und löschen |
+| `/admin/updates` | Core-, Theme- und Plugin-Updates zentral prüfen und installieren |
 | `/admin/cms-logs` | konfigurierte CMS-Logdateien, Kanal-Einträge und schnelle Laufzeitdiagnose |
 
 Wichtig: Der Bereich **AI Services** ist jetzt als **Admin- und Settings-Shell implementiert**. Dokumentiert und noch offen bleiben echte Provider-Adapter, Editor.js-Übersetzung, Preview-Workflows und produktive Laufzeitaktionen.

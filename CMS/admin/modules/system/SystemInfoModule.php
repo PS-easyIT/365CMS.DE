@@ -558,7 +558,7 @@ class SystemInfoModule
         $settings['monitor_response_threshold_ms'] = (string)max(100, (int)($post['monitor_response_threshold_ms'] ?? $settings['monitor_response_threshold_ms']));
         $settings['monitor_disk_threshold_percent'] = (string)min(99, max(1, (int)($post['monitor_disk_threshold_percent'] ?? $settings['monitor_disk_threshold_percent'])));
         $settings['monitor_health_endpoint_enabled'] = !empty($post['monitor_health_endpoint_enabled']) ? '1' : '0';
-        $settings['monitor_health_endpoint_path'] = trim((string)($post['monitor_health_endpoint_path'] ?? $settings['monitor_health_endpoint_path'])) ?: '/health';
+        $settings['monitor_health_endpoint_path'] = $this->normalizeHealthEndpointPath($post['monitor_health_endpoint_path'] ?? $settings['monitor_health_endpoint_path']);
 
         try {
             $db = Database::instance();
@@ -970,6 +970,7 @@ class SystemInfoModule
         $response = $this->measureResponseTime(SITE_URL);
         $disk = $this->getDiskUsageData();
         $db = $this->getDatabaseStatusSafe();
+        $healthEndpoint = $this->probeHealthEndpoint($settings);
         $cacheWritable = is_writable(ABSPATH . 'cache');
         $uploadsWritable = is_writable(ABSPATH . 'uploads');
         $logsWritable = is_dir($this->service->getConfiguredLogDirectory()) && is_writable($this->service->getConfiguredLogDirectory());
@@ -981,7 +982,7 @@ class SystemInfoModule
             ['label' => 'Logs-Verzeichnis', 'passed' => $logsWritable, 'detail' => $logsWritable ? 'Beschreibbar' : 'Nicht beschreibbar'],
             ['label' => 'Response Time', 'passed' => empty($response['error']) && ((int)($response['duration_ms'] ?? 0) <= (int)$settings['monitor_response_threshold_ms']), 'detail' => empty($response['error']) ? ((int)$response['duration_ms']) . ' ms' : (string)$response['error']],
             ['label' => 'Disk-Auslastung', 'passed' => ($disk['used_percent'] ?? 0) < (float)$settings['monitor_disk_threshold_percent'], 'detail' => ($disk['used_percent'] ?? null) !== null ? ((string)$disk['used_percent']) . '%' : 'Unbekannt'],
-            ['label' => 'Health-Endpunkt', 'passed' => ($settings['monitor_health_endpoint_enabled'] ?? '0') === '1', 'detail' => ($settings['monitor_health_endpoint_enabled'] ?? '0') === '1' ? (string)$settings['monitor_health_endpoint_path'] : 'Deaktiviert'],
+            ['label' => 'Health-Endpunkt', 'passed' => !empty($healthEndpoint['passed']), 'detail' => (string)($healthEndpoint['detail'] ?? 'Nicht geprüft')],
         ];
 
         $passed = 0;
@@ -995,6 +996,73 @@ class SystemInfoModule
             'checks' => $checks,
             'passed' => $passed,
             'total' => count($checks),
+            'endpoint' => $healthEndpoint,
+        ];
+    }
+
+    /**
+     * @param array<string,string> $settings
+     * @return array{enabled:bool,passed:bool,path:string,url:string,status:int,duration_ms:int,error:?string,detail:string}
+     */
+    private function probeHealthEndpoint(array $settings): array
+    {
+        $enabled = ($settings['monitor_health_endpoint_enabled'] ?? '0') === '1';
+        $path = $this->normalizeHealthEndpointPath($settings['monitor_health_endpoint_path'] ?? '/health');
+        $url = $this->buildSiteRelativeUrl($path);
+
+        if (!$enabled) {
+            return [
+                'enabled' => false,
+                'passed' => false,
+                'path' => $path,
+                'url' => $url,
+                'status' => 0,
+                'duration_ms' => 0,
+                'error' => null,
+                'detail' => 'Deaktiviert',
+            ];
+        }
+
+        if ($url === '') {
+            return [
+                'enabled' => true,
+                'passed' => false,
+                'path' => $path,
+                'url' => '',
+                'status' => 0,
+                'duration_ms' => 0,
+                'error' => 'Ungültiger lokaler Health-Pfad.',
+                'detail' => $path . ' · Ungültiger lokaler Health-Pfad',
+            ];
+        }
+
+        $start = microtime(true);
+        $response = HttpClient::getInstance()->get($url, [
+            'userAgent' => '365CMS-HealthMonitor/1.0',
+            'timeout' => 5,
+            'connectTimeout' => 3,
+            'maxBytes' => 128 * 1024,
+            'allowPrivateHosts' => true,
+            'allowUnresolvedHosts' => true,
+            'allowedContentTypes' => ['application/json', 'text/plain', 'text/html'],
+        ]);
+        $durationMs = (int) round((microtime(true) - $start) * 1000);
+        $success = !empty($response['success']);
+        $status = (int) ($response['status'] ?? 0);
+        $error = $success ? null : (string) ($response['error'] ?? 'Health-Endpunkt nicht erreichbar.');
+        $detail = $success
+            ? $path . ' · HTTP ' . $status . ' · ' . $durationMs . ' ms'
+            : $path . ' · ' . ($error !== '' ? $error : 'Health-Endpunkt nicht erreichbar.');
+
+        return [
+            'enabled' => true,
+            'passed' => $success,
+            'path' => $path,
+            'url' => $url,
+            'status' => $status,
+            'duration_ms' => $durationMs,
+            'error' => $error,
+            'detail' => $detail,
         ];
     }
 
@@ -1016,6 +1084,45 @@ class SystemInfoModule
             'status_code' => (int) ($response['status'] ?? 0),
             'error' => ($response['success'] ?? false) === true ? null : (string) ($response['error'] ?? 'Anfrage fehlgeschlagen'),
         ];
+    }
+
+    private function normalizeHealthEndpointPath(mixed $value): string
+    {
+        $path = preg_replace('/[\x00-\x1F\x7F\s]+/u', '', trim((string) $value)) ?? '';
+        if ($path === '') {
+            return '/health';
+        }
+
+        if (filter_var($path, FILTER_VALIDATE_URL)) {
+            $siteHost = strtolower((string) parse_url((string) SITE_URL, PHP_URL_HOST));
+            $pathHost = strtolower((string) parse_url($path, PHP_URL_HOST));
+            if ($siteHost === '' || $pathHost === '' || $siteHost !== $pathHost) {
+                return '/health';
+            }
+
+            $parsedPath = (string) parse_url($path, PHP_URL_PATH);
+            $parsedQuery = (string) parse_url($path, PHP_URL_QUERY);
+            $path = $parsedPath !== '' ? $parsedPath : '/health';
+            if ($parsedQuery !== '') {
+                $path .= '?' . $parsedQuery;
+            }
+        }
+
+        if (!str_starts_with($path, '/')) {
+            $path = '/' . ltrim($path, '/');
+        }
+
+        return $path !== '' ? $path : '/health';
+    }
+
+    private function buildSiteRelativeUrl(string $path): string
+    {
+        $baseUrl = rtrim((string) SITE_URL, '/');
+        if ($baseUrl === '') {
+            return '';
+        }
+
+        return $baseUrl . '/' . ltrim($path, '/');
     }
 
     private function normalizeDisplayedPath(string $path): string

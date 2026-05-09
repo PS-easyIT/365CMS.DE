@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Dokumentiert die Diagnose-Oberflächen und Monitoring-Werkzeuge für den laufenden Betrieb von 365CMS.
 
-Letzte Aktualisierung: 2026-04-07 · Version 2.9.0
+Letzte Aktualisierung: 2026-05-09 · Version 2.9.629
 
 ---
 
@@ -66,7 +66,7 @@ Listet alle geplanten Aufgaben mit Status, Intervall und letzter Ausführung.
 
 ### Health-Check
 
-Bündelt übergreifende Gesundheitsprüfungen: PHP-Version, Speicher, Erreichbarkeit externer Dienste.
+Bündelt übergreifende Gesundheitsprüfungen: Datenbank, beschreibbare Betriebsverzeichnisse, Response-Time, Disk-Auslastung und einen real geprüften lokalen Health-Endpunkt. Der konfigurierte Pfad wird dabei auf host-lokale relative Pfade normalisiert und dann tatsächlich gegen die eigene Installation geprüft; ein gesetzter Schalter allein gilt nicht mehr als „gesund“.
 
 ### E-Mail-Benachrichtigungen
 

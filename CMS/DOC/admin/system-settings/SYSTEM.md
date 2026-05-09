@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Aktuelle Betriebs-, Monitoring- und Diagnoseoberflächen im Admin-Bereich.
 
-Letzte Aktualisierung: 2026-04-07 · Version 2.9.0
+Letzte Aktualisierung: 2026-05-09 · Version 2.9.629
 
 Die systemnahen Werkzeuge sind heute auf mehrere Oberflächen verteilt statt in einer einzigen Seite gebündelt.
 
@@ -14,7 +14,7 @@ Die systemnahen Werkzeuge sind heute auf mehrere Oberflächen verteilt statt in 
 | `/admin/monitor-cron-status` | Cron- und Job-Status |
 | `/admin/monitor-disk-usage` | Speicher- und Verzeichnisnutzung |
 | `/admin/monitor-scheduled-tasks` | geplante Aufgaben |
-| `/admin/monitor-health-check` | allgemeine Health-Checks |
+| `/admin/monitor-health-check` | allgemeine Health-Checks inklusive realem lokalem Endpoint-Probe |
 | `/admin/monitor-email-alerts` | Status und Ziele von Mail-Benachrichtigungen |
 
 ---

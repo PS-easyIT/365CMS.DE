@@ -85,6 +85,7 @@ function cms_admin_updates_allowed_actions(): array
         'check_updates' => true,
         'install_core' => true,
         'install_plugin' => true,
+        'install_theme' => true,
     ];
 }
 
@@ -101,6 +102,7 @@ function cms_admin_updates_handle_action(UpdatesModule $module, string $action, 
         }],
         'install_core' => $module->installCoreUpdate(),
         'install_plugin' => $module->installPluginUpdate(cms_admin_updates_normalize_plugin_slug($post)),
+        'install_theme' => $module->installThemeUpdate(),
         default => ['success' => false, 'error' => 'Ungültige Update-Aktion.'],
     };
 }
@@ -132,7 +134,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $fallbackMessage = $action === 'install_core'
             ? 'Core-Update konnte nicht verarbeitet werden.'
-            : 'Plugin-Update konnte nicht verarbeitet werden.';
+            : ($action === 'install_theme'
+                ? 'Theme-Update konnte nicht verarbeitet werden.'
+                : 'Plugin-Update konnte nicht verarbeitet werden.');
 
         cms_admin_updates_flash_result($result, $fallbackMessage);
     }
