@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Verwaltung statischer CMS-Seiten im Admin inklusive getrennter DE/EN-Bearbeitung, SEO-Feldern, Slugs, Redirects, Bulk-Aktionen und Delete-/Preview-Pfaden.
 
-Letzte Aktualisierung: 2026-05-06 · Release 2.9.613
+Letzte Aktualisierung: 2026-05-09 · Release 2.9.614
 
 ---
 
@@ -24,6 +24,8 @@ Seiten bilden die statischen Inhalte des Systems, etwa Startseite, Kontakt, Impr
 | Kategorie | Optionale Gruppierung für Admin-Filter und Content-Kontext |
 | Featured Image | Vorschaubild für Cards und Social Preview |
 | SEO-Felder | seitenspezifische Meta-Informationen |
+
+Neue Seitenbilder laufen über den gemeinsamen Featured-Image-Picker: Uploads landen bei neuen Seiten zunächst temporär und werden beim Speichern in den Slug-Ordner verschoben. Fehler in diesem Verschiebe-/Metadaten-Schritt werden geloggt und dürfen den Save-Flow nicht mehr als HTTP-500 abbrechen.
 
 ---
 

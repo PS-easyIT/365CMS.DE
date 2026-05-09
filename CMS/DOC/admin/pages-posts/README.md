@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Überblick über die Content-Module im Admin-Bereich und ihre aktuelle Aufgabenverteilung.
 
-Letzte Aktualisierung: 2026-05-06 · Version 2.9.613
+Letzte Aktualisierung: 2026-05-09 · Version 2.9.614
 
 Der Content-Bereich ist auf mehrere spezialisierte Bereiche verteilt:
 
@@ -52,6 +52,7 @@ Die SEO-spezifischen Global-Einstellungen liegen nicht mehr in einem alten Monol
 
 - Lösch-Workflows für Seiten und Beiträge folgen im aktuellen Stand dem konsolidierten Admin-Flow mit Redirects, Alerts und serverseitiger Validierung.
 - Featured Images, Slugs und Redaktionshilfen sind stärker mit SEO und Medienverwaltung verzahnt; verwendete Beitrags- und Seitenbilder können unter `/admin/media?tab=featured` gezielt gefunden und global am bestehenden Medienpfad ersetzt werden.
+- Neue Beitrags- und Seitenbilder werden zuerst temporär hochgeladen und beim Speichern in den Slug-Ordner verschoben; der Save-Flow ist dabei fail-soft gegen Metadaten-/Dateisystemfehler und verhindert leere 500er nach erfolgreicher Bildübernahme.
 - Der Beitrags-Editor nutzt im Top-Bereich jetzt eine kompaktere Kartenverteilung: Kategorie und Tags sitzen direkt beim Slug, während Speichern und öffentliche DE-/EN-Vorschau in einer eigenen Aktions-Card unter dem Beitragsbild liegen.
 - Beiträge arbeiten im Editor aktuell mit **einer primären Kategorie**; die frühere UI für zusätzliche Kategorien wird nicht mehr angeboten.
 - Hub-Sites reservieren nun auch statische Public-Routen und Archivbasen als Slugs, damit neu angelegte Hubs nicht an `/contact`, `/authors`, `/feed`, `/category`, `/tag` oder ähnlichen Frontend-Routen unsichtbar vorbeiplanen.

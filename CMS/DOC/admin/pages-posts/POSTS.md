@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Verwaltung chronologischer Inhalte wie News und Blog-Beiträge im Admin-Bereich.
 
-Letzte Aktualisierung: 2026-05-03 · Version 2.9.506
+Letzte Aktualisierung: 2026-05-09 · Version 2.9.614
 
 ---
 
@@ -50,6 +50,8 @@ Die obere Editor-Zone besteht aus drei primären Bereichen:
 | Card 3 | Status, Veröffentlichungsdatum/-zeit und Autoren-Anzeigename |
 
 Wichtig: Beiträge unterstützen weiterhin **eine Primärkategorie plus optionale zusätzliche Kategorien** über die Relationstabelle `post_category_rel`. Ältere Dokumentationsstände ohne Mehrfachkategorien sind überholt.
+
+Neue Beitragsbilder nutzt der gemeinsame Featured-Image-Picker zunächst als temporären Upload und verschiebt sie beim Speichern in den Slug-Ordner des Beitrags. Der Relocator arbeitet fail-soft: Metadaten- oder Dateisystemfehler werden geloggt und sollen nach bereits erfolgreicher Bildübernahme keinen HTTP-500 im Admin auslösen.
 
 ---
 

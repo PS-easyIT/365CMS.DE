@@ -1,4 +1,4 @@
-﻿﻿**Version:** 2.9.613
+﻿﻿**Version:** 2.9.614
 
 # 365CMS Changelog
 
@@ -17,6 +17,14 @@
 ---
 
 ## 📜 Vollständige Versionshistorie
+
+---
+
+### v2.9.614 — 9. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.614** | 🔴 fix | Admin/Seiten & Beiträge – Featured-Image-Speichern | **`CMS/core/Services/ContentMediaPlacementService.php`, `CMS/core/Services/EditorJs/EditorJsUploadService.php` und `CMS/admin/views/partials/featured-image-picker.php` härten den Speichern-Flow für Beitrags- und Seitenbilder nach**: Temporäre Featured-Image-Uploads werden beim Speichern weiterhin in den Slug-Ordner verschoben, aber Fehler bei Datei-/Metadaten-Synchronisation werden nun strukturiert geloggt und führen nicht mehr zu einem nackten HTTP-500, wenn das Bild bereits übernommen wurde. Falls die Datei trotz Metadatenfehler schon am Ziel liegt, verwendet der Relocator den Zielpfad weiter; außerdem bewirbt und akzeptiert der gemeinsame Picker nur noch die Backend-Allowlist JPG, PNG, GIF, WebP, BMP und ICO statt generischem `image/*` oder nicht unterstütztem AVIF. |
 
 ---
 

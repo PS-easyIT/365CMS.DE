@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Überblick über Medienbibliothek, Upload-Workflows, Schutzbereiche, Admin-Tabs und verknüpfte Member-/Asset-Dokumentation.
 
-Letzte Aktualisierung: 2026-05-06 · Version 2.9.613
+Letzte Aktualisierung: 2026-05-09 · Version 2.9.614
 
 Die Medienverwaltung ist unter `/admin/media` erreichbar und bündelt Bibliothek, Beitrags-/Site-Medien, Kategorien und Einstellungen über Query-Tabs statt über getrennte Legacy-Routen.
 
@@ -19,7 +19,7 @@ Die Medienverwaltung ist unter `/admin/media` erreichbar und bündelt Bibliothek
 
 ---
 
-## Kernfunktionen in 2.9.613
+## Kernfunktionen in 2.9.614
 
 - Listen- **und** Grid-Ansicht
 - Such- und Kategorien-Filter
@@ -31,6 +31,7 @@ Die Medienverwaltung ist unter `/admin/media` erreichbar und bündelt Bibliothek
 - serverseitig normalisierte Pfade, CSRF-geschützte POST-Flows und PRG-Redirects
 - geschützte Systempfade mit zusätzlicher Member-Bestätigung am `member`-Bereich
 - verwaltete Upload-Pipeline für Bibliothek und Member-Bereich mit Maximalmaßen, optionalen Thumbnails und Auto-WebP
+- gemeinsamer Featured-Image-Picker für Beiträge und Seiten mit fail-soft Verschiebung temporärer Uploads beim Speichern
 - Rücksprung in den **tatsächlich verwendeten** Zielordner, wenn Uploads automatisch in Jahres-/Monats-Unterordner einsortiert werden
 - strengere Dateinamens-Härtung mit Längenlimit und ohne irreführende Mehrfach-Punkte im Basenamen
 - Unterpunkt **Beitrags & Site Medien** für Featured Images aus Beiträgen und Seiten inklusive Suche, Filter nach Beiträgen/Seiten, Drag-&-Drop-Ersetzen, lokaler Mini-Vorschau und Erfolgshinweis pro Bild

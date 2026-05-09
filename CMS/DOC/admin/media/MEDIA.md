@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Verwaltung hochgeladener Dateien und Ordner, Kategorien, Medieneinstellungen und kontrollierter Auslieferung über interne Services.
 
-Letzte Aktualisierung: 2026-05-06 · Version 2.9.613
+Letzte Aktualisierung: 2026-05-09 · Version 2.9.614
 
 ---
 
@@ -38,6 +38,8 @@ Die Medienverwaltung bündelt Bibliothek, Beitrags-/Site-Medien, Kategorien und 
 | Vorschaulogik | robuste Dateivorschau und Proxy-/Preview-URLs |
 | Verwaltete Bildverarbeitung | Maximalmaße, Thumbnail-Sätze und optionale WebP-Derivate |
 | Beitrags-/Site-Medien | fokussierte Übersicht der in Beiträgen und Seiten hinterlegten Featured Images mit globalem Replace-in-place |
+
+Der gemeinsame Featured-Image-Picker für Seiten und Beiträge akzeptiert nur die Backend-Bildformate JPG, PNG, GIF, WebP, BMP und ICO. Bei neuen Inhalten werden Uploads temporär abgelegt und beim Speichern in den Slug-Ordner verschoben; Verschiebe- oder Metadatenfehler werden protokolliert, sollen aber keine leeren HTTP-500-Antworten nach erfolgreicher Bildübernahme mehr verursachen.
 
 ---
 
