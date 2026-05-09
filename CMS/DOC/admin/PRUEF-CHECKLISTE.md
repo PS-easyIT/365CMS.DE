@@ -993,9 +993,22 @@ Die Sidebar in `CMS/admin/partials/sidebar.php` ist für die Menüstruktur führ
 
 ### System ↔ Diagnose ↔ Performance
 
-- [ ] Caches, Sessions, Cron und Logs greifen sichtbar ineinander.
-- [ ] Diagnose zeigt die Effekte von Performance- oder Systemänderungen.
-- [ ] Backups/Updates werden in Monitoring und Logs nachvollziehbar.
+- [x] Caches, Sessions, Cron und Logs greifen sichtbar ineinander.
+- [x] Diagnose zeigt die Effekte von Performance- oder Systemänderungen.
+- [x] Backups/Updates werden in Monitoring und Logs nachvollziehbar.
+
+### Audit-Stand – Cross-Checks · System ↔ Diagnose ↔ Performance · Durchlauf 1
+
+- **Status:** abgeschlossen auf Code-/Vertragsbasis · Release `2.9.630`
+- **Prüfer:** GitHub Copilot
+- **Datum:** 2026-05-09
+- **Geprüfte Routen:** `/admin/cms-logs`, `/admin/backups`, `/admin/updates`, `/admin/performance`, `/admin/performance-cache`, `/admin/performance-media`, `/admin/performance-database`, `/admin/performance-settings`, `/admin/performance-sessions`
+- **Reproduziertes Fehlerbild:** System-, Backup- und Performance-Aktionen wurden bereits sauber im zentralen `audit_log` protokolliert, und erfolgreiche Updates erzeugten zusätzlich eine persistierte Update-Historie. Die Diagnose-Logzentrale unter `/admin/cms-logs` zeigte davon zur Laufzeit aber fast nur Dateilogs, PHP-Error-Log und `admin.documentation`; dadurch blieben Cache-/Session-/Cron-/Backup-/Performance-Effekte im Diagnosepfad nur indirekt oder gar nicht sichtbar, obwohl die Prüfliste genau diese bereichsübergreifende Nachvollziehbarkeit fordert.
+- **Umsetzung in diesem Durchlauf:** `/admin/cms-logs` bindet jetzt ein operatives Betriebs-Audit aus dem zentralen `audit_log` ein und gruppiert Einträge für System, Backups, Updates, Performance, Monitoring, Cron/Queue und Log-Aktionen direkt in der Diagnoseoberfläche. Zusätzlich spiegelt dieselbe Seite die persistierte Update-Historie des Update-Services, sodass erfolgreiche Update-Läufe nicht nur auf der Update-Seite, sondern auch im Diagnose-/Logkontext nachvollziehbar bleiben. Damit zeigt Diagnose die Effekte von Cache-, Session-, Cron-, Backup-, Performance- und Update-Aktionen endlich im echten Betriebsjournal statt nur über verstreute Teilansichten.
+- **Abhängige Bereiche:** `SystemInfoModule`, `cms-logs.php`, `AuditLogger`, `UpdateService`, `PerformanceModule`, `BackupsModule`, Diagnose-/System-/Performance-Doku
+- **Offene Must-haves:** keine
+- **Offene Nice-to-haves:** Trendhistorie für Response-Time/Cron/Speicher, Diagnose-Export, Sammelansicht kritischer Warnungen
+- **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/diagnose/README.md`, `CMS/DOC/admin/diagnose/DIAGNOSE.md`, `CMS/DOC/admin/system-settings/README.md`, `CMS/DOC/admin/system-settings/SYSTEM.md`, `CMS/DOC/admin/performance/PERFORMANCE.md`
 
 ### Plugins ↔ alle anderen Bereiche
 

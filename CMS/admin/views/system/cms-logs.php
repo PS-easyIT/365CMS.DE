@@ -21,6 +21,9 @@ $selectedFileInfo = is_array($logsData['selected_file_info'] ?? null) ? $logsDat
 $selectedEntries = is_array($logsData['selected_entries'] ?? null) ? $logsData['selected_entries'] : [];
 $errorLogEntries = is_array($logsData['error_log_entries'] ?? null) ? $logsData['error_log_entries'] : [];
 $documentationEntries = is_array($logsData['documentation_entries'] ?? null) ? $logsData['documentation_entries'] : [];
+$operationalAuditEntries = is_array($logsData['operational_audit_entries'] ?? null) ? $logsData['operational_audit_entries'] : [];
+$operationalAuditSummary = is_array($logsData['operational_audit_summary'] ?? null) ? $logsData['operational_audit_summary'] : [];
+$updateHistoryEntries = is_array($logsData['update_history_entries'] ?? null) ? $logsData['update_history_entries'] : [];
 $channelSummary = [];
 
 foreach ($logFiles as $file) {
@@ -55,7 +58,7 @@ ksort($channelSummary);
             <div class="col">
                 <div class="page-pretitle">Diagnose</div>
                 <h2 class="page-title">Logs &amp; Protokolle</h2>
-                <div class="text-secondary mt-1">Zentrale Logzentrale für CMS-Dateilogs, PHP Error-Log und wichtige Kanalspuren wie <code>admin.documentation</code>.</div>
+                <div class="text-secondary mt-1">Zentrale Logzentrale für CMS-Dateilogs, PHP Error-Log, operative Audit-Spuren aus Backup/Update/Performance sowie wichtige Kanalspuren wie <code>admin.documentation</code>.</div>
             </div>
             <div class="col-auto d-flex gap-2 flex-wrap">
                 <form method="post" class="d-inline" data-confirm-message="PHP Error-Log wirklich leeren?" data-confirm-title="PHP Error-Log leeren" data-confirm-text="Leeren" data-confirm-class="btn-warning" data-confirm-status-class="bg-warning">
@@ -143,6 +146,121 @@ ksort($channelSummary);
                         </table>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <div class="row row-cards mb-4">
+            <div class="col-12 col-xl-4">
+                <div class="card h-100">
+                    <div class="card-header"><h3 class="card-title">Operative Bereiche</h3></div>
+                    <div class="table-responsive">
+                        <table class="table table-vcenter card-table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Bereich</th>
+                                    <th>Einträge</th>
+                                    <th>Zuletzt</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php if ($operationalAuditSummary === []): ?>
+                                    <tr><td colspan="3" class="text-center text-secondary py-4">Noch keine operativen Audit-Spuren für System, Backups, Updates oder Performance gefunden.</td></tr>
+                                <?php else: ?>
+                                    <?php foreach ($operationalAuditSummary as $summary): ?>
+                                        <tr>
+                                            <td><span class="badge bg-blue-lt"><?php echo htmlspecialchars((string) ($summary['label'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></span></td>
+                                            <td><?php echo (int) ($summary['count'] ?? 0); ?></td>
+                                            <td class="text-secondary small"><?php echo htmlspecialchars((string) ($summary['last_created_at'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 col-xl-8">
+                <div class="card h-100">
+                    <div class="card-header"><h3 class="card-title">Betriebs-Audit</h3></div>
+                    <div class="table-responsive">
+                        <table class="table table-vcenter card-table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Zeit</th>
+                                    <th>Bereich</th>
+                                    <th>Level</th>
+                                    <th>Aktion</th>
+                                    <th>Meldung</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php if ($operationalAuditEntries === []): ?>
+                                    <tr><td colspan="5" class="text-center text-secondary py-4">Keine operativen Audit-Einträge gefunden.</td></tr>
+                                <?php else: ?>
+                                    <?php foreach ($operationalAuditEntries as $entry): ?>
+                                        <?php
+                                        $severity = (string) ($entry['severity'] ?? 'info');
+                                        $severityClass = match ($severity) {
+                                            'critical', 'error' => 'bg-danger-lt text-danger',
+                                            'warning' => 'bg-warning-lt text-warning',
+                                            default => 'bg-success-lt text-success',
+                                        };
+                                        ?>
+                                        <tr>
+                                            <td class="text-nowrap"><?php echo htmlspecialchars((string) ($entry['created_at'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
+                                            <td><span class="badge bg-blue-lt"><?php echo htmlspecialchars((string) ($entry['group_label'] ?? $entry['group'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></span></td>
+                                            <td><span class="badge <?php echo $severityClass; ?>"><?php echo htmlspecialchars($severity, ENT_QUOTES, 'UTF-8'); ?></span></td>
+                                            <td><code><?php echo htmlspecialchars((string) ($entry['action'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></code></td>
+                                            <td class="small"><?php echo htmlspecialchars((string) ($entry['details'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header"><h3 class="card-title">Update-Historie im Diagnose-Kontext</h3></div>
+            <div class="table-responsive">
+                <table class="table table-vcenter card-table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Zeit</th>
+                            <th>Typ</th>
+                            <th>Komponente</th>
+                            <th>Version</th>
+                            <th>Benutzer</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if ($updateHistoryEntries === []): ?>
+                            <tr><td colspan="5" class="text-center text-secondary py-4">Noch keine Update-Historie in den Systemsettings gespeichert.</td></tr>
+                        <?php else: ?>
+                            <?php foreach ($updateHistoryEntries as $entry): ?>
+                                <?php
+                                $type = (string) ($entry['type'] ?? 'update');
+                                $typeLabel = match ($type) {
+                                    'core' => 'Core',
+                                    'plugin' => 'Plugin',
+                                    'theme' => 'Theme',
+                                    default => ucfirst($type),
+                                };
+                                ?>
+                                <tr>
+                                    <td class="text-nowrap"><?php echo htmlspecialchars((string) ($entry['timestamp'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
+                                    <td><span class="badge bg-azure-lt"><?php echo htmlspecialchars($typeLabel, ENT_QUOTES, 'UTF-8'); ?></span></td>
+                                    <td><?php echo htmlspecialchars((string) ($entry['name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
+                                    <td><code><?php echo htmlspecialchars((string) ($entry['version'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></code></td>
+                                    <td><?php echo htmlspecialchars((string) ($entry['user'] ?? 'System'), ENT_QUOTES, 'UTF-8'); ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
             </div>
         </div>
 

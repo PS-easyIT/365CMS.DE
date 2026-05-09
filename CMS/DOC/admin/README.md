@@ -1,5 +1,5 @@
 # 365CMS – Admin-Bereich
-> **Stand:** 2026-05-09 | **Version:** 2.9.629 | **Status:** Aktuell
+> **Stand:** 2026-05-09 | **Version:** 2.9.630 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Überblick](#überblick)
@@ -48,9 +48,9 @@ Wichtige Grundsätze:
 | Recht | `/admin/legal-sites`, `/admin/cookie-manager`, `/admin/data-requests` | Legal Sites, Cookie-Management und auditierbare DSGVO-Anfragen mit Begründungspflicht bei Ablehnungen |
 | Sicherheit | `/admin/antispam`, `/admin/firewall`, `/admin/security-audit` | Schutzmaßnahmen und Auditing mit zentralem AntiSpam-Vertrag für Kommentare und aktive Kontaktformulare |
 | Plugins | `/admin/plugins`, `/admin/plugin-marketplace` sowie Plugin-Unterseiten | Plugin-Lifecycle mit stabiler, request-idempotenter Menü-Registry für dynamische Sidebar- und Submenü-Einträge |
-| System | `/admin/settings`, `/admin/backups`, `/admin/updates`, `/admin/cms-logs` | Konfiguration, Backups mit Download/Restore, Updates inklusive zentralem Theme-Installpfad, zentrale CMS-Logs |
+| System | `/admin/settings`, `/admin/backups`, `/admin/updates`, `/admin/cms-logs` | Konfiguration, Backups mit Download/Restore, Updates inklusive zentralem Theme-Installpfad, zentrale CMS-Logs mit Betriebs-Audit und Update-Historie |
 | Info | `/admin/info`, `/admin/documentation` | Systeminfo und lokale Dokuansicht |
-| Diagnose | `/admin/diagnose` sowie Monitoring-Seiten | technische Prüfungen und Monitoring mit realem lokalem Health-Endpunkt-Check statt dekorativer Markierung |
+| Diagnose | `/admin/diagnose` sowie Monitoring-Seiten | technische Prüfungen und Monitoring mit realem lokalem Health-Endpunkt-Check statt dekorativer Markierung sowie nachvollziehbaren Betriebs- und Update-Spuren in `/admin/cms-logs` |
 
 ---
 

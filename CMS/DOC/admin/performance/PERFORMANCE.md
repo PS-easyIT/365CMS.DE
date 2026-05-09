@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Dokumentiert das Performance-Center mit seinen sechs Unterseiten für Cache, Medien, Datenbank, Settings und Sessions.
 
-Letzte Aktualisierung: 2026-05-09 · Version 2.9.624
+Letzte Aktualisierung: 2026-05-09 · Version 2.9.630
 
 ---
 
@@ -119,6 +119,8 @@ Alle Performance-Seiten folgen dem Admin-Standardmuster:
 - CSRF-Prüfung via `Security::instance()->verifyToken(..., 'admin_performance')`
 - POST-Ergebnis als Session-Alert, Redirect auf GET-Route
 - Audit-Logging für sicherheitsrelevante Aktionen
+
+Zusätzlich werden operative Performance-Aktionen wie Cache-Bereinigung, Datenbankwartung, Session-Cleanup, WebP-Massenläufe und Performance-Settings jetzt nicht nur protokolliert, sondern in `/admin/cms-logs` auch direkt als Betriebs-Audit im Diagnosekontext sichtbar gemacht. Damit bleiben die Effekte von Performance-Mutationen nicht in verstreuten Einzellogs verborgen.
 
 ---
 

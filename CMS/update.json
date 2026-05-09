@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.9.629",
+  "version": "2.9.630",
   "min_php": "8.4",
   "released": "2026-05-09",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 2.9.629: Der Diagnose-Health-Check prüft lokale Health-Endpunkte jetzt real gegen die eigene Installation, statt eine bloße Aktiv-Markierung als bestanden zu werten.",
+  "notes": "Release-Stand 2.9.630: Die Diagnose-Logzentrale bündelt jetzt operative Audit-Spuren aus System, Backups und Performance sowie die persistierte Update-Historie des Update-Services in `/admin/cms-logs`.",
   "critical": false
 }

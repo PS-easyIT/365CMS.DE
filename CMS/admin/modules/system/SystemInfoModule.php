@@ -19,12 +19,15 @@ use CMS\Services\MailQueueService;
 use CMS\Services\MailService;
 use CMS\Services\ErrorReportService;
 use CMS\Services\SystemService;
+use CMS\Services\UpdateService;
 use CMS\AuditLogger;
 use CMS\VendorRegistry;
 
 class SystemInfoModule
 {
     private const MAX_AUDIT_STRING_LENGTH = 240;
+    private const OPERATIONAL_AUDIT_LIMIT = 40;
+    private const UPDATE_HISTORY_LIMIT = 12;
 
     private const MONITOR_DEFAULTS = [
         'monitor_email_notifications_enabled' => '0',
@@ -133,6 +136,7 @@ class SystemInfoModule
         $logFiles = $this->service->getCmsLogFiles();
         $selectedFilename = $this->normalizeLogFilename($selectedFile);
         $selectedFileInfo = null;
+        $operationalAuditEntries = $this->getOperationalAuditEntries();
 
         if ($selectedFilename === '' && $logFiles !== []) {
             $selectedFilename = (string) ($logFiles[0]['filename'] ?? '');
@@ -157,6 +161,9 @@ class SystemInfoModule
             'selected_file_info' => $selectedFileInfo,
             'selected_entries' => $selectedFilename !== '' ? $this->service->getCmsLogEntries($selectedFilename, 300) : [],
             'documentation_entries' => $this->service->getRecentLogEntriesByChannel('admin.documentation', 40),
+            'operational_audit_entries' => $operationalAuditEntries,
+            'operational_audit_summary' => $this->summarizeOperationalAuditEntries($operationalAuditEntries),
+            'update_history_entries' => $this->getUpdateHistoryEntries(),
         ];
     }
 
@@ -1123,6 +1130,197 @@ class SystemInfoModule
         }
 
         return $baseUrl . '/' . ltrim($path, '/');
+    }
+
+    /**
+     * @return array<int, array<string, scalar|null>>
+     */
+    private function getOperationalAuditEntries(): array
+    {
+        try {
+            $db = Database::instance();
+            $rows = $db->get_results(
+                "SELECT created_at, action, description, category, severity, user_id, metadata
+                 FROM {$db->getPrefix()}audit_log
+                 WHERE category = ? OR action LIKE ?
+                 ORDER BY created_at DESC
+                 LIMIT " . self::OPERATIONAL_AUDIT_LIMIT,
+                [AuditLogger::CAT_SYSTEM, 'performance.%']
+            ) ?: [];
+
+            return array_map(fn (mixed $row): array => $this->normalizeOperationalAuditRow($row), $rows);
+        } catch (\Throwable $e) {
+            $this->logModuleFailure('system.logs.operational_audit_failed', $e, 'log');
+
+            return [];
+        }
+    }
+
+    /**
+     * @param array<int, array<string, scalar|null>> $entries
+     * @return array<int, array<string, scalar|null>>
+     */
+    private function summarizeOperationalAuditEntries(array $entries): array
+    {
+        $summary = [];
+
+        foreach ($entries as $entry) {
+            $group = (string) ($entry['group'] ?? 'system');
+            if (!isset($summary[$group])) {
+                $summary[$group] = [
+                    'group' => $group,
+                    'label' => $this->getOperationalAuditGroupLabel($group),
+                    'count' => 0,
+                    'last_created_at' => '',
+                ];
+            }
+
+            $summary[$group]['count']++;
+            $createdAt = (string) ($entry['created_at'] ?? '');
+            if ($createdAt !== '' && strcmp($createdAt, (string) $summary[$group]['last_created_at']) > 0) {
+                $summary[$group]['last_created_at'] = $createdAt;
+            }
+        }
+
+        usort($summary, static function (array $left, array $right): int {
+            return strcmp((string) ($right['last_created_at'] ?? ''), (string) ($left['last_created_at'] ?? ''));
+        });
+
+        return $summary;
+    }
+
+    /**
+     * @return array<int, array<string, scalar|null>>
+     */
+    private function getUpdateHistoryEntries(): array
+    {
+        try {
+            $history = UpdateService::getInstance()->getUpdateHistory(self::UPDATE_HISTORY_LIMIT);
+        } catch (\Throwable $e) {
+            $this->logModuleFailure('system.logs.update_history_failed', $e, 'log');
+
+            return [];
+        }
+
+        $entries = [];
+        foreach ($history as $entry) {
+            if (!is_array($entry)) {
+                continue;
+            }
+
+            $entries[] = [
+                'timestamp' => $this->sanitizeAuditString((string) ($entry['timestamp'] ?? ''), 40),
+                'type' => $this->sanitizeAuditString((string) ($entry['type'] ?? 'update'), 40),
+                'name' => $this->sanitizeAuditString((string) ($entry['name'] ?? ''), 120),
+                'version' => $this->sanitizeAuditString((string) ($entry['version'] ?? ''), 60),
+                'user' => $this->sanitizeAuditString((string) ($entry['user'] ?? 'System'), 80),
+            ];
+        }
+
+        return $entries;
+    }
+
+    /**
+     * @return array<string, scalar|null>
+     */
+    private function normalizeOperationalAuditRow(mixed $row): array
+    {
+        $data = is_object($row) ? get_object_vars($row) : (is_array($row) ? $row : []);
+        $action = $this->sanitizeAuditString((string) ($data['action'] ?? ''), 120);
+        $metadataPreview = '';
+
+        if (!empty($data['metadata']) && is_string($data['metadata'])) {
+            $decodedMetadata = json_decode($data['metadata'], true);
+            if (is_array($decodedMetadata)) {
+                $metadataPreview = $this->buildOperationalMetadataPreview($decodedMetadata);
+            }
+
+            if ($metadataPreview === '') {
+                $metadataPreview = $this->sanitizeAuditString((string) $data['metadata'], 160);
+            }
+        }
+
+        $details = $this->sanitizeAuditString((string) ($data['description'] ?? ''), 180);
+        if ($details === '' && $metadataPreview !== '') {
+            $details = $metadataPreview;
+        }
+
+        $group = $this->classifyOperationalAuditGroup($action);
+
+        return [
+            'created_at' => (string) ($data['created_at'] ?? ''),
+            'action' => $action,
+            'details' => $details,
+            'category' => $this->sanitizeAuditString((string) ($data['category'] ?? ''), 40),
+            'severity' => $this->sanitizeAuditString((string) ($data['severity'] ?? 'info'), 20),
+            'user_id' => isset($data['user_id']) ? (int) $data['user_id'] : null,
+            'group' => $group,
+            'group_label' => $this->getOperationalAuditGroupLabel($group),
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $metadata
+     */
+    private function buildOperationalMetadataPreview(array $metadata): string
+    {
+        $parts = [];
+
+        foreach ($metadata as $key => $value) {
+            if (count($parts) >= 3) {
+                break;
+            }
+
+            $normalizedKey = $this->sanitizeAuditString((string) $key, 40);
+            if ($normalizedKey === '') {
+                continue;
+            }
+
+            if (is_bool($value)) {
+                $normalizedValue = $value ? 'ja' : 'nein';
+            } elseif (is_scalar($value) || $value === null) {
+                $normalizedValue = (string) $value;
+            } elseif (is_array($value)) {
+                $normalizedValue = json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '';
+            } else {
+                continue;
+            }
+
+            $normalizedValue = $this->sanitizeAuditString($normalizedValue, 60);
+            if ($normalizedValue === '') {
+                continue;
+            }
+
+            $parts[] = $normalizedKey . ': ' . $normalizedValue;
+        }
+
+        return $this->sanitizeAuditString(implode(' · ', $parts), 180);
+    }
+
+    private function classifyOperationalAuditGroup(string $action): string
+    {
+        return match (true) {
+            str_starts_with($action, 'backup.') => 'backup',
+            str_starts_with($action, 'updates.'), str_starts_with($action, 'update.') => 'update',
+            str_starts_with($action, 'performance.') => 'performance',
+            str_starts_with($action, 'system.monitoring.') => 'monitoring',
+            str_starts_with($action, 'system.cron.') => 'cron',
+            str_starts_with($action, 'system.logs.') => 'logs',
+            default => 'system',
+        };
+    }
+
+    private function getOperationalAuditGroupLabel(string $group): string
+    {
+        return match ($group) {
+            'backup' => 'Backups',
+            'update' => 'Updates',
+            'performance' => 'Performance',
+            'monitoring' => 'Monitoring',
+            'cron' => 'Cron & Queue',
+            'logs' => 'Logs',
+            default => 'System',
+        };
     }
 
     private function normalizeDisplayedPath(string $path): string

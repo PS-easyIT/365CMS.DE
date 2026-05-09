@@ -1,5 +1,5 @@
 # 365CMS – Diagnose & Monitoring
-> **Stand:** 2026-05-09 | **Version:** 2.9.629 | **Status:** Aktuell
+> **Stand:** 2026-05-09 | **Version:** 2.9.630 | **Status:** Aktuell
 
 <!-- UPDATED: 2026-05-09 -->
 
@@ -16,7 +16,7 @@ Die Monitor-Seiten folgen dem üblichen Admin-Flow mit geschütztem Zugriff und 
 | Cron-Status | Überwachung geplanter Aufgaben und Laufzeiten |
 | Disk Usage | Speicherverbrauch nach Verzeichnissen und Medien |
 | Health-Checks | Automatisierte Prüfungen kritischer Systemkomponenten inklusive realem lokalem Health-Endpunkt-Check |
-| Error-Log | Einsicht in aktuelle Fehlermeldungen und Warnungen |
+| Logs & Protokolle | CMS-Dateilogs, PHP Error-Log, operatives Audit für System/Backups/Performance sowie Update-Historie |
 | PHP / MySQL Info | Laufzeitumgebung und Datenbankstatus |
 
 ## Benötigte Rechte

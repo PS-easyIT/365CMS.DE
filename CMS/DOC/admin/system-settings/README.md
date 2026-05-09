@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Überblick über Konfiguration, Updates, Backups, Info-Ansichten, Diagnose und die inzwischen eingehängte AI-Steuerung im Admin-Bereich.
 
-Letzte Aktualisierung: 2026-05-09 · Version 2.9.628
+Letzte Aktualisierung: 2026-05-09 · Version 2.9.630
 
 Der Bereich „System" wurde in mehrere klar getrennte Einstiege aufgeteilt.
 
@@ -16,7 +16,7 @@ Die Übersicht bezieht sich auf die aktuelle 2.9.628-Bedienstruktur. Für Runtim
 | `/admin/ai-services` | zentrale AI-Settings für Provider, Feature-Gates, Translation, Logging und Quotas |
 | `/admin/backups` | Backups erstellen, auflisten, herunterladen, wiederherstellen und löschen |
 | `/admin/updates` | Core-, Theme- und Plugin-Updates zentral prüfen und installieren |
-| `/admin/cms-logs` | konfigurierte CMS-Logdateien, Kanal-Einträge und schnelle Laufzeitdiagnose |
+| `/admin/cms-logs` | konfigurierte CMS-Logdateien, PHP Error-Log, operatives Audit und Update-Historie |
 
 Wichtig: Der Bereich **AI Services** ist jetzt als **Admin- und Settings-Shell implementiert**. Dokumentiert und noch offen bleiben echte Provider-Adapter, Editor.js-Übersetzung, Preview-Workflows und produktive Laufzeitaktionen.
 

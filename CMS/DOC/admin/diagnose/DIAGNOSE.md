@@ -1,14 +1,14 @@
 # 365CMS – Diagnose & Monitoring
 
-Kurzbeschreibung: Dokumentiert die Diagnose-Oberflächen und Monitoring-Werkzeuge für den laufenden Betrieb von 365CMS.
+Kurzbeschreibung: Dokumentiert die Diagnose-Oberflächen, Monitoring-Werkzeuge und die zentrale Logzentrale für den laufenden Betrieb von 365CMS.
 
-Letzte Aktualisierung: 2026-05-09 · Version 2.9.629
+Letzte Aktualisierung: 2026-05-09 · Version 2.9.630
 
 ---
 
 ## Überblick
 
-Der Diagnosebereich umfasst eine zentrale Einstiegsseite und sechs spezialisierte Monitoring-Oberflächen. Alle Seiten nutzen `SystemInfoModule` als gemeinsames Modul und teilen sich den CSRF-Kontext `admin_system_info`.
+Der Diagnosebereich umfasst eine zentrale Einstiegsseite, mehrere spezialisierte Monitoring-Oberflächen und die gemeinsame Logzentrale. Alle Seiten nutzen `SystemInfoModule` als gemeinsames Modul und teilen sich den CSRF-Kontext `admin_system_info`.
 
 **Gemeinsamer technischer Aufbau:**
 
@@ -31,6 +31,7 @@ Der Diagnosebereich umfasst eine zentrale Einstiegsseite und sechs spezialisiert
 | `/admin/monitor-scheduled-tasks` | `views/system/scheduled-tasks.php` | Geplante Aufgaben und deren Ausführungsstatus |
 | `/admin/monitor-health-check` | `views/system/health-check.php` | Allgemeine Systemgesundheitsprüfungen |
 | `/admin/monitor-email-alerts` | `views/system/email-alerts.php` | E-Mail-Benachrichtigungen konfigurieren und Status |
+| `/admin/cms-logs` | `views/system/cms-logs.php` | CMS-Dateilogs, PHP Error-Log, operatives Audit und Update-Historie |
 
 ---
 
@@ -71,6 +72,10 @@ Bündelt übergreifende Gesundheitsprüfungen: Datenbank, beschreibbare Betriebs
 ### E-Mail-Benachrichtigungen
 
 Konfiguriert Zieladressen und Schwellwerte für Monitoring-Benachrichtigungen per E-Mail und erlaubt einen direkten Testversand aus dem Backend über die zentrale Mail-Implementierung.
+
+### Logs & Protokolle
+
+`/admin/cms-logs` bündelt nicht mehr nur CMS-Dateilogs und das PHP Error-Log, sondern auch ein operatives Betriebs-Audit aus dem zentralen `audit_log`. Dadurch werden System-, Backup-, Monitoring-, Cron-/Queue- und Performance-Aktionen direkt im Diagnosekontext sichtbar. Ergänzend zeigt die Seite die persistierte Update-Historie des Update-Services, sodass erfolgreiche Core-, Theme- und Plugin-Updates nicht nur auf `/admin/updates`, sondern auch in der Diagnose-Logzentrale nachvollziehbar bleiben.
 
 ---
 
