@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.9.618",
+  "version": "2.9.620",
   "min_php": "8.4",
   "released": "2026-05-09",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 2.9.618: Der Replace-in-place-Flow für Beitrags- und Seitenbilder erzwingt jetzt immer die feste Bild-Allowlist JPG/JPEG, PNG, GIF, WebP, BMP und ICO. Damit bleiben UI, Doku und serverseitige Validierung auch dann konsistent, wenn allgemeine Bibliotheks-Typen im Admin umkonfiguriert werden.",
+  "notes": "Release-Stand 2.9.620: Das Member Dashboard trennt Admin-Konfiguration und öffentliche Runtime wieder sauber; gespeicherte `member_*`-Einstellungen wirken dadurch auch für normale Mitglieder im echten `/member/dashboard`-Frontend statt am admin-geschützten Read-Pfad hängen zu bleiben.",
   "critical": false
 }

@@ -38,6 +38,7 @@ $fpEmail      = '';
 $forgotPasswordUrl = function_exists('meridian_auth_url') ? meridian_auth_url('forgot-password') : rtrim((string) SITE_URL, '/') . '/forgot-password';
 $loginUrl = function_exists('meridian_auth_url') ? meridian_auth_url('login') : rtrim((string) SITE_URL, '/') . '/login';
 $homeUrl = rtrim((string) SITE_URL, '/') . '/';
+$passwordPolicyHint = 'Mindestens 12 Zeichen sowie Groß-/Kleinbuchstabe, Zahl und Sonderzeichen.';
 
 if (!$themeFlashAvailable) {
     unset($_SESSION['error'], $_SESSION['success']);
@@ -112,9 +113,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['reset_submit'])) {
         $token    = $_POST['reset_token'] ?? '';
         $pass1    = $_POST['new_password']  ?? '';
         $pass2    = $_POST['new_password2'] ?? '';
+        $policyResult = class_exists('\CMS\Auth')
+            ? \CMS\Auth::validatePasswordPolicy((string) $pass1)
+            : (strlen((string) $pass1) >= 12 ? true : 'Das Passwort muss mindestens 12 Zeichen lang sein.');
 
-        if (strlen($pass1) < 8) {
-            $fpError = 'Das Passwort muss mindestens 8 Zeichen lang sein.';
+        if ($policyResult !== true) {
+            $fpError = is_string($policyResult)
+                ? $policyResult
+                : 'Das Passwort erfüllt die Sicherheitsanforderungen nicht.';
         } elseif ($pass1 !== $pass2) {
             $fpError = 'Die Passwörter stimmen nicht überein.';
         } elseif (empty($token)) {
@@ -197,20 +203,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['reset_submit'])) {
                     <label class="form-label" for="newPassword">Neues Passwort</label>
                     <div class="form-control-wrap form-control-wrap--password">
                         <input type="password" id="newPassword" name="new_password" class="form-control"
-                               autocomplete="new-password" required minlength="8"
-                               placeholder="Mindestens 8 Zeichen" autofocus>
+                               autocomplete="new-password" required minlength="12"
+                               placeholder="Mindestens 12 Zeichen" autofocus>
                         <button type="button" class="btn-icon form-password-toggle" aria-label="Passwort anzeigen">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
                             </svg>
                         </button>
                     </div>
+                    <small class="form-text"><?php echo htmlspecialchars($passwordPolicyHint, ENT_QUOTES, 'UTF-8'); ?></small>
                 </div>
 
                 <div class="form-group">
                     <label class="form-label" for="newPassword2">Passwort wiederholen</label>
                     <input type="password" id="newPassword2" name="new_password2" class="form-control"
-                           autocomplete="new-password" required minlength="8"
+                           autocomplete="new-password" required minlength="12"
                            placeholder="Passwort wiederholen">
                 </div>
 

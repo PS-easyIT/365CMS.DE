@@ -192,10 +192,22 @@ class Auth
         }
 
         $role = $this->currentUser->role;
+        $capability = function_exists('cms_normalize_role_capability')
+            ? cms_normalize_role_capability($cap)
+            : strtolower(trim($cap));
+
+        if ($capability === '') {
+            return false;
+        }
 
         // Admin has all caps
         if ($role === 'admin') {
             return true;
+        }
+
+        if (function_exists('cms_load_role_capabilities')) {
+            $capabilities = cms_load_role_capabilities((string) $role);
+            return !empty($capabilities[$capability]);
         }
 
         $db = Database::instance();
@@ -203,22 +215,13 @@ class Auth
         try {
             $granted = $db->get_var(
                 "SELECT granted FROM {$db->getPrefix()}role_permissions WHERE role = ? AND capability = ? LIMIT 1",
-                [$role, $cap]
+                [$role, $capability]
             );
 
-            if ($granted !== null) {
-                return (bool)$granted;
-            }
+            return $granted !== null ? (bool) $granted : false;
         } catch (\Throwable $e) {
+            return false;
         }
-
-        $caps = [
-            'member' => ['read', 'edit_profile', 'view_content'],
-            'editor' => ['read', 'edit_profile', 'view_content', 'edit_posts', 'publish_posts', 'manage_media'],
-            'author' => ['read', 'edit_profile', 'view_content', 'edit_own_posts']
-        ];
-
-        return isset($caps[$role]) && in_array($cap, $caps[$role], true);
     }
 
     /**

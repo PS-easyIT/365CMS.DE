@@ -1,6 +1,6 @@
 # 365CMS.DE
 
-**Version:** [2.9.618](Changelog.md) · **Status:** Stable · **PHP:** 8.4+ · **MySQL:** 5.7+ · **MariaDB:** 10.3+
+**Version:** [2.9.620](Changelog.md) · **Status:** Stable · **PHP:** 8.4+ · **MySQL:** 5.7+ · **MariaDB:** 10.3+
 
 <div align="center">
 
@@ -95,11 +95,11 @@ Die folgenden Bereiche zeigen, wie breit 365CMS bereits ohne Plugin-Zwang aufges
 | **Content & Publishing** | Seiten, Beiträge, Landing-Pages, Kategorien, Tags, Revisionen, Featured Images, Inhaltsstruktur und TOC | Macht aus einfacher Seitenpflege einen belastbaren Redaktions-Workflow mit Struktur, Übersicht und Wachstumsspielraum |
 | **Tabellen & Datenübersichten** | Site Tables mit Stil-Presets, sicher sanitierter Inline-HTML-Formatierung, Exporten und festen Zeilen aus ausgewählten Seiten/Beiträgen oder einem Kategorie-Filter | Macht wiederverwendbare Tabellen im Public-Bereich möglich, ohne freie Eingaben unkontrolliert ins Frontend zu übernehmen |
 | **Medienverwaltung** | Uploads, Ordner, Kategorien, Bild-/Dateiverwaltung, Beitrags-/Site-Medien, Grid-/Listenansicht, WebP-Workflows | Verhindert Medien-Chaos und hält Assets auch bei wachsenden Projekten schnell nutzbar – inklusive gezieltem Ersetzen von Beitrags- und Seitenbildern |
-| **Mitgliederbereich** | Member-Dashboard, Profile, Favoriten, Benachrichtigungen, Nachrichten, Datenschutz, Medienbereich | Liefert die Basis für geschützte Bereiche, Community-Features und kundennahe Plattformlogik |
+| **Mitgliederbereich** | Member-Dashboard, Profile, Favoriten, Benachrichtigungen, Nachrichten, Datenschutz, Medienbereich | Liefert die Basis für geschützte Bereiche, Community-Features und kundennahe Plattformlogik – inklusive sauber getrennter Runtime, damit Admin-Schalter für Dashboard, Onboarding und Frontend-Module auch im echten Member-Frontend wirken |
 | **Business & Abos** | Pakete, Bestellungen, Abonnements, Limits, Gruppen und zugehörige Prozesse | Bringt Geschäftslogik näher ans CMS, statt sie komplett außerhalb des Systems zu parken |
 | **Suche & Auffindbarkeit** | Volltextsuche, Indexierung zentraler Inhalte, Suchfelder und Inhaltserschließung | Hilft Nutzern und Teams, relevante Inhalte auch in großen Beständen schnell zu finden |
 | **SEO & Sichtbarkeit** | Meta-Daten, Social-Daten, strukturierte Daten, Sitemap, Robots, Redirects, 404-Monitor, Analytics, IndexNow | Sorgt für eine ernstzunehmende SEO-Basis direkt im Produkt statt in einem Sammelsurium aus Zusatzlösungen |
-| **Security & Auth** | Rollen & Rechte, CSRF-/XSS-Schutz, Rate Limits, Firewall, Anti-Spam, Passkeys, 2FA, LDAP, sichere Reset-Flows | Gibt produktiven Installationen ein Sicherheitsfundament, das nicht erst nachträglich zusammengesucht werden muss |
+| **Security & Auth** | Rollen & Rechte, CSRF-/XSS-Schutz, Rate Limits, Firewall, Anti-Spam, Passkeys, 2FA, LDAP, sichere Reset-Flows | Gibt produktiven Installationen ein Sicherheitsfundament, das nicht erst nachträglich zusammengesucht werden muss – inklusive gemeinsamer Rollenmatrix für Legacy- und moderne Core-Capabilities sowie derselben 12-Zeichen-Passwort-Policy in Registrierung, Reset und Admin-CRUD |
 | **Themes & Design** | Theme-System, Theme-Editor, Theme-Explorer, Menü-Editor, Landing-Page-Editor, Font-Manager, CMS-Loginpage | Macht Branding, Navigation und UX-Anpassung zu einem echten Projektwerkzeug statt zu einer Bastelbaustelle |
 | **Plugins & Integrationen** | Hook-System, Plugin-Verwaltung, Plugin-Marketplace, modulare Erweiterungspunkte, API-nahe Workflows | Öffnet das System für individuelle Funktionen, ohne Wartbarkeit und Struktur zu opfern |
 | **Legal & DSGVO** | Legal-Sites, Cookie-Manager, Consent-Dialog, Datenexporte, Löschanfragen, Datenschutzpfade | Unterstützt Datenschutz- und Compliance-Prozesse dort, wo sie im Alltag gebraucht werden: direkt im CMS |
@@ -136,8 +136,8 @@ Der Admin-Bereich ist so aufgebaut, dass inhaltliche, technische und betrieblich
 | **AI Services** | Provider, Übersetzung, Content-/SEO-Helfer, Logging und Quotas | KI-Workflows freigeben, Leitplanken setzen und redaktionelle Assistenz kontrolliert betreiben |
 | **Seiten & Beiträge** | Content-Struktur, redaktionelle Inhalte, Kommentare und Inhaltsbausteine | Inhalte erstellen, strukturieren, pflegen, veröffentlichen und stabile Slug-/Taxonomie-Pfade erhalten |
 | **Medien** | Bibliothek, Beitrags & Site Medien, Kategorien, Einstellungen und Dateimanagement | Uploads verwalten, Dateien organisieren, Beitrags-/Seitenbilder mit festem Bildvertrag gezielt ersetzen und Medien für Inhalte vorbereiten |
-| **Benutzer & Gruppen** | Benutzerkonten, Teams, Rollen, Rechte und Auth-Einstellungen | Zugriffe definieren, Benutzer pflegen, Sicherheitsoptionen steuern |
-| **Mitgliederbereich** | Member-Dashboard-Konfiguration und usernahe Funktionen | Benutzererlebnis für Mitglieder gestalten und absichern |
+| **Benutzer & Gruppen** | Benutzerkonten, Teams, Rollen, Rechte und Auth-Einstellungen | Zugriffe über eine gemeinsame Rollenmatrix definieren, Benutzer pflegen und dieselbe Passwort-Policy in Public- und Admin-Auth-Flows durchziehen |
+| **Mitgliederbereich** | Member-Dashboard-Konfiguration und usernahe Funktionen | Benutzererlebnis für Mitglieder gestalten und absichern; Admin-Konfiguration und öffentliche Runtime bleiben dabei getrennt, damit gespeicherte Einstellungen im `/member`-Bereich tatsächlich ankommen |
 | **Aboverwaltung** | Pakete, Bestellungen, Limits, Zuweisungen und abonnahes Business-Handling | Pakete verwalten, Zugriffe staffeln, Bestell- und Paketlogik steuern |
 | **Themes & Design** | Aktive Themes, Theme-Anpassung, Menüs, Landing-Pages und lokale Fonts | Layout, Branding, Navigation und Seitenaufbau anpassen |
 | **SEO** | Meta, Social, Schema, Sitemap, Redirects, Analytics und technisches SEO | Sichtbarkeit verbessern, Fehlerquellen reduzieren, SEO-Basis pflegen |

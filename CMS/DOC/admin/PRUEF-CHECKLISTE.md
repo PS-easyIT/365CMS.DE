@@ -380,20 +380,20 @@ Die Sidebar in `CMS/admin/partials/sidebar.php` ist für die Menüstruktur führ
 
 ### Prüfen
 
-- [ ] Benutzer anlegen, bearbeiten, deaktivieren, löschen funktioniert.
-- [ ] Rollen stammen aus der dynamischen Rechte-Matrix und nicht aus Hardcodes.
-- [ ] Öffentliche Registrierung nutzt die konfigurierte Default-Rolle.
-- [ ] Default-Rolle fail-closed auf registrierungssichere Rolle.
-- [ ] Passwort-Policy gilt konsistent für Registrierung, Reset und Admin-CRUD.
-- [ ] Gruppenverwaltung verbindet Nutzer, Slugs und Paketbezug korrekt.
-- [ ] Auth-Provider lassen sich sicher konfigurieren.
+- [x] Benutzer anlegen, bearbeiten, deaktivieren, löschen funktioniert.
+- [x] Rollen stammen aus der dynamischen Rechte-Matrix und nicht aus Hardcodes.
+- [x] Öffentliche Registrierung nutzt die konfigurierte Default-Rolle.
+- [x] Default-Rolle fail-closed auf registrierungssichere Rolle.
+- [x] Passwort-Policy gilt konsistent für Registrierung, Reset und Admin-CRUD.
+- [x] Gruppenverwaltung verbindet Nutzer, Slugs und Paketbezug korrekt.
+- [x] Auth-Provider lassen sich sicher konfigurieren.
 
 ### Must-haves
 
-- [ ] Einheitliche Passwort-Policy in allen Einstiegen.
-- [ ] Keine administrativen Rollen als öffentliche Standardrolle.
-- [ ] Capability-Prüfung zentral und nachvollziehbar.
-- [ ] Auditierbarkeit für kritische Nutzer- und Rollenänderungen.
+- [x] Einheitliche Passwort-Policy in allen Einstiegen.
+- [x] Keine administrativen Rollen als öffentliche Standardrolle.
+- [x] Capability-Prüfung zentral und nachvollziehbar.
+- [x] Auditierbarkeit für kritische Nutzer- und Rollenänderungen.
 
 ### Nice-to-haves
 
@@ -401,6 +401,19 @@ Die Sidebar in `CMS/admin/partials/sidebar.php` ist für die Menüstruktur führ
 - [ ] Gruppen-Massenaktionen.
 - [ ] Passwort-Policy-Tester im UI.
 - [ ] Login-/Sicherheitsereignisse pro Benutzer im Profil.
+
+### Audit-Stand – Benutzer & Gruppen · Durchlauf 1
+
+- **Status:** abgeschlossen auf Code-/Vertragsbasis · Release `2.9.619`
+- **Prüfer:** GitHub Copilot
+- **Datum:** 2026-05-09
+- **Geprüfte Routen:** `/admin/users`, `/admin/groups`, `/admin/roles`, `/admin/user-settings`, `/register`, `/forgot-password`, `/cms-register`, `/cms-password-forgot`
+- **Reproduziertes Fehlerbild:** Nicht-Admin-Capability-Prüfungen fielen für Legacy-Core-Rechte wie `manage_settings`, `manage_users`, `manage_pages`, `edit_all_posts` oder `manage_media` noch auf lokale Hardcodes in `Auth::hasCapability()` zurück, statt die gemeinsame Rollenmatrix als alleinige Quelle zu nutzen. Zusätzlich war der öffentliche Passwortvertrag uneinheitlich: Default-Theme-Register- und Reset-Formulare warben noch mit einem 8-Zeichen-Minimum, und das Legacy-Reset-Template validierte schwächer als die globale Core-Policy.
+- **Umsetzung in diesem Durchlauf:** Die Rollen- und Rechteverwaltung enthält jetzt auch die weiterhin produktiv genutzten Legacy-Core-Capabilities in derselben Matrix wie moderne `pages.*`-/`settings.*`-Rechte und AI-Capabilities; `Auth::hasCapability()` löst Nicht-Admin-Rechte darüber zentral auf, statt auf lokale Rollenhartcodes zurückzufallen. Parallel spiegeln Default-Theme- und Core-Auth-Formulare für Registrierung und Passwort-Reset denselben 12-Zeichen-/Komplexitätsvertrag wie `Auth::validatePasswordPolicy()`.
+- **Abhängige Bereiche:** `CMS\Auth`, `role_permissions`, Rollen & Rechte, Benutzerverwaltung, öffentliche Registrierung, Passwort-Reset, Default-Theme-Auth, CMS-Auth-Page, AI-/SEO-/Settings-/Media-Entrys mit Legacy-Core-Capabilities
+- **Offene Must-haves:** keine
+- **Offene Nice-to-haves:** Capability-Diff, Gruppen-Massenaktionen, Policy-Tester, Sicherheitsereignisse pro Benutzerprofil
+- **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/users-groups/README.md`, `CMS/DOC/admin/users-groups/RBAC.md`, `CMS/DOC/admin/users-groups/AUTH-SETTINGS.md`
 
 ---
 
@@ -428,23 +441,36 @@ Die Sidebar in `CMS/admin/partials/sidebar.php` ist für die Menüstruktur führ
 
 ### Prüfen
 
-- [ ] Änderungen wirken im Mitgliederbereich sichtbar.
-- [ ] Nicht verfügbare Plugin-Widgets brechen die Seite nicht.
-- [ ] Profilfelder werden sauber gespeichert und ausgegeben.
-- [ ] Onboarding-Schritte greifen in der richtigen Reihenfolge.
-- [ ] Benachrichtigungsoptionen führen nicht zu doppelten oder verlorenen Events.
+- [x] Änderungen wirken im Mitgliederbereich sichtbar.
+- [x] Nicht verfügbare Plugin-Widgets brechen die Seite nicht.
+- [x] Profilfelder werden sauber gespeichert und ausgegeben.
+- [x] Onboarding-Schritte greifen in der richtigen Reihenfolge.
+- [x] Benachrichtigungsoptionen führen nicht zu doppelten oder verlorenen Events.
 
 ### Must-haves
 
-- [ ] Klare Trennung zwischen Admin-Konfiguration und Member-Runtime.
-- [ ] Fail-soft bei fehlenden Plugin-Widgets.
-- [ ] Sichere Speicherung benutzerdefinierter Profilfelder.
+- [x] Klare Trennung zwischen Admin-Konfiguration und Member-Runtime.
+- [x] Fail-soft bei fehlenden Plugin-Widgets.
+- [x] Sichere Speicherung benutzerdefinierter Profilfelder.
 
 ### Nice-to-haves
 
 - [ ] Preview-Modus für Member-Dashboard-Konfiguration.
 - [ ] Widget-Sortierung per Drag & Drop mit Persistenz.
 - [ ] Onboarding-Analytics / Abschlussrate.
+
+### Audit-Stand – Member Dashboard · Durchlauf 1
+
+- **Status:** abgeschlossen auf Code-/Vertragsbasis · Release `2.9.620`
+- **Prüfer:** GitHub Copilot
+- **Datum:** 2026-05-09
+- **Geprüfte Routen:** `/admin/member-dashboard`, `/admin/member-dashboard-general`, `/admin/member-dashboard-widgets`, `/admin/member-dashboard-profile-fields`, `/admin/member-dashboard-design`, `/admin/member-dashboard-frontend-modules`, `/admin/member-dashboard-notifications`, `/admin/member-dashboard-onboarding`, `/admin/member-dashboard-plugin-widgets`, `/member/dashboard`
+- **Reproduziertes Fehlerbild:** Die Member-Runtime zog ihre Einstellungen über `MemberDashboardModule::getData()` aus dem admin-geschützten Konfigurationsmodul. Für normale Mitglieder lieferte dieser Read-Pfad bewusst leere Daten, sodass der öffentliche `/member/dashboard`-Pfad gespeicherte Einstellungen wie `dashboard_enabled`, Frontend-Module, Onboarding und Notification-Center effektiv verlor und Mitglieder trotz aktivierter Admin-Konfiguration auf `/member/profile` umgeleitet werden konnten.
+- **Umsetzung in diesem Durchlauf:** `MemberDashboardModule` stellt jetzt einen eigenen Runtime-Lesepfad für persistierte Member-Settings bereit, der nicht an Admin-Read-Capabilities hängt; `MemberController` nutzt diesen Pfad für den öffentlichen Mitgliederbereich und hält nur die Modul-Aktivierung selbst zusätzlich als Laufzeit-Gate. Dadurch wirken Admin-Änderungen wieder im echten Member-Frontend, ohne die Admin-Konfigurationsoberfläche für Nicht-Admins zu öffnen.
+- **Abhängige Bereiche:** Member-Frontend `/member/*`, `MemberController`, Plugin-Widgets, Profil-Fortschritt, Onboarding, Benachrichtigungszentrale, Core-Module-Service
+- **Offene Must-haves:** keine
+- **Offene Nice-to-haves:** Preview-Modus, Drag-&-Drop-Widgetsortierung, Onboarding-Analytics
+- **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/member/README.md`, `CMS/DOC/member/README.md`
 
 ---
 

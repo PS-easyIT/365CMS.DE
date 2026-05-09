@@ -797,6 +797,20 @@ class UserService {
      * @return array Capabilities
      */
     public function getRoleCapabilities(string $role): array {
+        if (function_exists('cms_load_role_capabilities')) {
+            $capabilityMap = cms_load_role_capabilities($role);
+            if ($capabilityMap !== []) {
+                $capabilities = array_keys(array_filter(
+                    $capabilityMap,
+                    static fn ($granted): bool => !empty($granted)
+                ));
+
+                sort($capabilities, SORT_NATURAL | SORT_FLAG_CASE);
+
+                return array_values($capabilities);
+            }
+        }
+
         try {
             $rows = $this->db->get_results(
                 "SELECT capability FROM {$this->prefix}role_permissions WHERE role = ? AND granted = 1 ORDER BY capability ASC",

@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Beschreibt die aktuelle Admin-Konfiguration des Member-Dashboards mit Sektionen, gespeicherten Einstellungen und der Trennung zwischen Verwaltungsoberfläche und Frontend-Mitgliederbereich.
 
-Letzte Aktualisierung: 2026-04-07 · Version 2.9.0
+Letzte Aktualisierung: 2026-05-09 · Version 2.9.620
 
 ## Überblick
 
@@ -18,7 +18,9 @@ Die aktuelle Implementierung trennt klar zwischen:
 - Frontend-Dashboard unter `/member/...`
 - optionalen Plugin-Erweiterungen über Widgets oder Module
 
-Der Entry-Point lädt die Daten über `MemberDashboardModule::getData()` und speichert abschnittsweise über `saveSection()`.
+Der Entry-Point lädt die Admin-Daten über `MemberDashboardModule::getData()` und speichert abschnittsweise über `saveSection()`.
+
+Seit `2.9.620` ist der öffentliche Member-Runtime-Pfad davon sauber getrennt: Das Frontend unter `/member/...` liest persistierte Member-Settings über einen eigenen Runtime-Lesepfad (`MemberDashboardModule::getRuntimeSettings()` via `MemberController`), statt an den admin-geschützten Read-Contract der Konfigurationsoberfläche gekoppelt zu sein.
 
 ## Aktuelle Konfigurationsbereiche
 
@@ -92,6 +94,7 @@ Die Admin-Konfiguration folgt dem Standardmuster:
 | `CMS/admin/member-dashboard-page.php` | zentraler Admin-Entry-Point |
 | `CMS/admin/modules/member/MemberDashboardModule.php` | Laden und Speichern der Member-Konfiguration |
 | `CMS/admin/views/member/dashboard.php` | Ausgabe der Admin-Oberfläche |
+| `CMS/member/includes/class-member-controller.php` | Runtime-Laden der Member-Einstellungen für `/member/...` |
 
 ## Verwandte Dokumente
 

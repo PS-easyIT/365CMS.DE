@@ -21,13 +21,15 @@ class RolesModule
     private const ROLES = ['admin', 'editor', 'author', 'member'];
 
     private const CAPABILITIES = [
-        'pages'    => ['pages.view', 'pages.create', 'pages.edit', 'pages.delete', 'pages.publish'],
-        'posts'    => ['posts.view', 'posts.create', 'posts.edit', 'posts.delete', 'posts.publish'],
-        'media'    => ['media.view', 'media.upload', 'media.delete', 'media.settings'],
-        'users'    => ['users.view', 'users.create', 'users.edit', 'users.delete', 'users.roles'],
+        'pages'    => ['pages.view', 'pages.create', 'pages.edit', 'pages.delete', 'pages.publish', 'manage_pages'],
+        'posts'    => ['posts.view', 'posts.create', 'posts.edit', 'posts.delete', 'posts.publish', 'edit_all_posts', 'delete_all_posts', 'edit_own_posts'],
+        'media'    => ['media.view', 'media.upload', 'media.delete', 'media.settings', 'manage_media'],
+        'users'    => ['users.view', 'users.create', 'users.edit', 'users.delete', 'users.roles', 'manage_users'],
         'themes'   => ['themes.view', 'themes.activate', 'themes.customize', 'themes.install'],
         'plugins'  => ['plugins.view', 'plugins.activate', 'plugins.install', 'plugins.settings'],
-        'settings' => ['settings.view', 'settings.edit', 'settings.system'],
+        'settings' => ['settings.view', 'settings.edit', 'settings.system', 'manage_settings', 'manage_system'],
+        'ai'       => ['manage_ai_services', 'use_ai_translation', 'use_ai_rewrite', 'use_ai_summary', 'use_ai_seo_meta'],
+        'analytics'=> ['view_analytics'],
         'comments' => ['comments.view', 'comments.moderate', 'comments.delete'],
     ];
 
@@ -446,9 +448,12 @@ class RolesModule
                 $perms['editor'][$cap] = true;
             }
         }
+        foreach (['use_ai_translation', 'use_ai_rewrite', 'use_ai_summary', 'use_ai_seo_meta'] as $cap) {
+            $perms['editor'][$cap] = true;
+        }
 
         // Author: eigene Inhalte
-        foreach (['pages.view', 'pages.create', 'pages.edit', 'posts.view', 'posts.create', 'posts.edit', 'media.view', 'media.upload', 'comments.view'] as $cap) {
+        foreach (['pages.view', 'pages.create', 'pages.edit', 'posts.view', 'posts.create', 'posts.edit', 'media.view', 'media.upload', 'comments.view', 'edit_own_posts'] as $cap) {
             $perms['author'][$cap] = true;
         }
 

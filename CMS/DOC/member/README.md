@@ -1,13 +1,15 @@
 # 365CMS – Member-Bereich
-> **Stand:** 2026-04-07 | **Version:** 2.9.0 | **Status:** Aktuell
+> **Stand:** 2026-05-09 | **Version:** 2.9.620 | **Status:** Aktuell
 
-<!-- UPDATED: 2026-04-07 -->
+<!-- UPDATED: 2026-05-09 -->
 
 ## Überblick
 
 Der Member-Bereich ist die benutzerseitige Oberfläche für eingeloggte Mitglieder.
 Er bietet Zugriff auf persönliche Einstellungen, Abonnements, Medien und Kommunikation.
 Die Implementierung liegt in `CMS/member/` mit eigenem Partial-System für Sidebar und Layout.
+
+Seit `2.9.620` liest der öffentliche Member-Bereich seine Dashboard-Konfiguration wieder über einen eigenen Runtime-Settings-Pfad, der **nicht** an die admin-geschützte Leselogik der Konfigurationsoberfläche gekoppelt ist. Dadurch wirken Schalter aus `/admin/member-dashboard*` – etwa Dashboard-Aktivierung, Frontend-Module, Onboarding und Notification-Center – wieder zuverlässig im echten `/member/dashboard`-Frontend.
 
 ## Verfügbare Funktionen
 
@@ -28,6 +30,20 @@ Die Implementierung liegt in `CMS/member/` mit eigenem Partial-System für Sideb
 
 - Rolle **Member** (eingeloggter Benutzer) erforderlich
 - Einzelne Funktionen können durch Paket-Limits eingeschränkt sein
+
+## Dashboard-Konfiguration im Stand 2.9.620
+
+Die Dashboard-Oberfläche unter `/member/dashboard` hängt funktional an zwei Ebenen:
+
+- **Admin-Konfiguration** unter `/admin/member-dashboard*`
+- **öffentliche Runtime** über `CMS\MemberArea\MemberController`
+
+Aktueller Vertragsstand:
+
+- gespeicherte `member_*`-Settings werden im Frontend unabhängig von Admin-Read-Capabilities geladen
+- die reine Modulaktivierung `member_dashboard` bleibt zusätzliches Laufzeit-Gate
+- deaktivierte oder fehlende Plugin-Widgets fallen fail-soft aus dem Dashboard, statt den Member-Bereich zu blockieren
+- Profil-Fortschritt, Onboarding und Benachrichtigungscards greifen auf denselben Settings-Stand zu wie die Admin-Konfiguration
 
 ## Authentifizierung im Stand 2.9.0
 

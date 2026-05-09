@@ -39,6 +39,8 @@ Die Capability-Prüfung im Core liest diese Daten mit aus, sodass neu angelegte 
 - Rollen- und Rechteverwaltung ist dynamisch.
 - Benutzerverwaltung und Rechteverwaltung greifen auf dieselbe Rollenquelle zu.
 - Neue Rollen und Capabilities lassen sich direkt über die Admin-Oberfläche ergänzen.
+- Die gemeinsame Rollenmatrix enthält neben modernen `pages.*`-/`settings.*`-Rechten auch die weiterhin produktiv genutzten Legacy-Core-Capabilities wie `manage_settings`, `manage_users`, `manage_pages`, `edit_all_posts`, `manage_media` oder `view_analytics`.
+- `Auth::hasCapability()` löst Nicht-Admin-Rechte über diese gemeinsame Matrix auf, statt auf lokale Rollenhartcodes zurückzufallen.
 
 ---
 

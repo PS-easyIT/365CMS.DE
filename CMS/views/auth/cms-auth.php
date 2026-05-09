@@ -62,6 +62,7 @@ $footerRegisterText = (string) ($settings['footer_link_register'] ?? 'Registrier
 $footerForgotText = (string) ($settings['footer_link_forgot'] ?? 'Passwort vergessen');
 $footerHomeText = (string) ($settings['footer_link_home'] ?? 'Zur Startseite');
 $documentLanguage = trim((string) ($documentLanguage ?? $requestLocale ?? 'de'));
+$passwordPolicyHint = 'Mindestens 12 Zeichen sowie Groß-/Kleinbuchstabe, Zahl und Sonderzeichen.';
 ?><!DOCTYPE html>
 <html lang="<?php echo htmlspecialchars($documentLanguage !== '' ? $documentLanguage : 'de', ENT_QUOTES, 'UTF-8'); ?>">
 <head>
@@ -313,6 +314,12 @@ $documentLanguage = trim((string) ($documentLanguage ?? $requestLocale ?? 'de'))
             text-transform: uppercase;
             opacity: 0.85;
         }
+        .cms-auth-help {
+            margin-top: 0.45rem;
+            color: var(--cms-auth-muted);
+            font-size: 0.85rem;
+            line-height: 1.45;
+        }
         .cms-auth-divider {
             display: flex;
             align-items: center;
@@ -536,11 +543,12 @@ $documentLanguage = trim((string) ($documentLanguage ?? $requestLocale ?? 'de'))
                         <div class="cms-auth-grid cms-auth-grid--2">
                             <div class="cms-auth-field">
                                 <label for="cms-register-password"><?php echo htmlspecialchars((string) ($settings['register_label_password'] ?? 'Passwort'), ENT_QUOTES, 'UTF-8'); ?></label>
-                                <input class="cms-auth-input" type="password" id="cms-register-password" name="password" autocomplete="new-password" required>
+                                <input class="cms-auth-input" type="password" id="cms-register-password" name="password" autocomplete="new-password" required minlength="12">
+                                <div class="cms-auth-help"><?php echo htmlspecialchars($passwordPolicyHint, ENT_QUOTES, 'UTF-8'); ?></div>
                             </div>
                             <div class="cms-auth-field">
                                 <label for="cms-register-password2"><?php echo htmlspecialchars((string) ($settings['register_label_password_confirm'] ?? 'Passwort bestätigen'), ENT_QUOTES, 'UTF-8'); ?></label>
-                                <input class="cms-auth-input" type="password" id="cms-register-password2" name="password2" autocomplete="new-password" required>
+                                <input class="cms-auth-input" type="password" id="cms-register-password2" name="password2" autocomplete="new-password" required minlength="12">
                             </div>
                         </div>
 
@@ -577,11 +585,12 @@ $documentLanguage = trim((string) ($documentLanguage ?? $requestLocale ?? 'de'))
 
                         <div class="cms-auth-field">
                             <label for="cms-reset-password">Neues Passwort</label>
-                            <input class="cms-auth-input" type="password" id="cms-reset-password" name="new_password" autocomplete="new-password" required>
+                            <input class="cms-auth-input" type="password" id="cms-reset-password" name="new_password" autocomplete="new-password" required minlength="12">
+                            <div class="cms-auth-help"><?php echo htmlspecialchars($passwordPolicyHint, ENT_QUOTES, 'UTF-8'); ?></div>
                         </div>
                         <div class="cms-auth-field">
                             <label for="cms-reset-password2">Passwort wiederholen</label>
-                            <input class="cms-auth-input" type="password" id="cms-reset-password2" name="new_password2" autocomplete="new-password" required>
+                            <input class="cms-auth-input" type="password" id="cms-reset-password2" name="new_password2" autocomplete="new-password" required minlength="12">
                         </div>
 
                         <button class="cms-auth-button" type="submit"><?php echo htmlspecialchars($forgotResetButtonText, ENT_QUOTES, 'UTF-8'); ?></button>

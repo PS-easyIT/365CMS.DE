@@ -215,6 +215,20 @@ class MemberDashboardModule
         ];
     }
 
+    /**
+     * Frontend-/Runtime-Einstellungen für den Member-Bereich laden.
+     *
+     * Dieser Pfad darf nicht an Admin-Read-Capabilities hängen, da die
+     * gespeicherten Member-Dashboard-Settings auch für normale Mitglieder im
+     * öffentlichen `/member/...`-Bereich benötigt werden.
+     *
+     * @return array<string, mixed>
+     */
+    public function getRuntimeSettings(): array
+    {
+        return $this->getSettings($this->loadSettingsMap());
+    }
+
     public function getSectionData(string $section): array
     {
         if (!$this->canRead()) {

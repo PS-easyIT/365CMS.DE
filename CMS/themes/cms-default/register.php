@@ -34,6 +34,7 @@ if (class_exists('\CMS\Security')) {
 $registerAction = function_exists('meridian_auth_url') ? meridian_auth_url('register') : rtrim((string) SITE_URL, '/') . '/register';
 $loginUrl = function_exists('meridian_auth_url') ? meridian_auth_url('login') : rtrim((string) SITE_URL, '/') . '/login';
 $homeUrl = rtrim((string) SITE_URL, '/') . '/';
+$passwordPolicyHint = 'Mindestens 12 Zeichen sowie Groß-/Kleinbuchstabe, Zahl und Sonderzeichen.';
 ?>
 
 <main id="main" role="main" style="background:linear-gradient(135deg,#e3f2fd 0%,#f5f9fc 100%);min-height:calc(100vh - 200px);display:flex;align-items:center;padding:2rem 1.5rem;">
@@ -90,20 +91,21 @@ $homeUrl = rtrim((string) SITE_URL, '/') . '/';
                     <label class="form-label" for="regPassword">Passwort</label>
                     <div class="form-control-wrap form-control-wrap--password">
                         <input type="password" id="regPassword" name="password" class="form-control"
-                               autocomplete="new-password" required minlength="8"
-                               placeholder="Mindestens 8 Zeichen">
+                               autocomplete="new-password" required minlength="12"
+                               placeholder="Mindestens 12 Zeichen">
                         <button type="button" class="btn-icon form-password-toggle" aria-label="Passwort anzeigen">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
                             </svg>
                         </button>
                     </div>
+                    <small class="form-text"><?php echo htmlspecialchars($passwordPolicyHint, ENT_QUOTES, 'UTF-8'); ?></small>
                 </div>
 
                 <div class="form-group">
                     <label class="form-label" for="regPassword2">Passwort bestätigen</label>
                     <input type="password" id="regPassword2" name="password2" class="form-control"
-                           autocomplete="new-password" required minlength="8"
+                           autocomplete="new-password" required minlength="12"
                            placeholder="Passwort wiederholen">
                 </div>
 

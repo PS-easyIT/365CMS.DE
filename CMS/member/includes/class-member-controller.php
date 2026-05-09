@@ -101,9 +101,19 @@ final class MemberController
         if (class_exists('MemberDashboardModule')) {
             try {
                 $module = new \MemberDashboardModule();
-                $data = $module->getData();
-                if (is_array($data['settings'] ?? null)) {
-                    $this->settings = $data['settings'];
+                if (method_exists($module, 'getRuntimeSettings')) {
+                    $runtimeSettings = $module->getRuntimeSettings();
+                    if (is_array($runtimeSettings)) {
+                        $this->settings = $runtimeSettings;
+                    }
+                } else {
+                    $data = $module->getData();
+                    if (is_array($data['settings'] ?? null) && $data['settings'] !== []) {
+                        $this->settings = $data['settings'];
+                    }
+                }
+
+                if (is_array($this->settings)) {
                     $this->settings['dashboard_enabled'] = $memberDashboardModuleEnabled
                         && !empty($this->settings['dashboard_enabled']);
                     return $this->settings;

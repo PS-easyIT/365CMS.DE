@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Zentrale Admin-Seite für Registrierung, rollenbezogene Standardwerte und technische Auth-Provider-Informationen – ergänzt durch die neue Core-Auth-Strecke über die CMS Loginpage.
 
-Letzte Aktualisierung: 2026-05-03 · Version 2.9.512
+Letzte Aktualisierung: 2026-05-09 · Version 2.9.619
 
 Route: `/admin/user-settings`
 
@@ -49,6 +49,8 @@ Zusätzlich zeigt die Seite **read-only** Informationen zu Auth-Providern und Si
 - Passwort-Policy
 
 Die Passwort-Policy ist im aktuellen Stand nicht mehr nur auf die öffentliche Auth-Strecke beschränkt: Auch das Admin-Erstellen und -Bearbeiten von Benutzern verwendet denselben Vertrag mit mindestens 12 Zeichen sowie Groß-/Kleinbuchstaben, Ziffer und Sonderzeichen.
+
+Zusätzlich spiegeln die öffentlichen Register- und Passwort-Reset-Formulare im Default-Theme und in der Core-Auth-Ansicht denselben Vertrag jetzt auch sichtbar im UI, statt an veralteten 8-Zeichen-Hinweisen hängen zu bleiben.
 
 Die öffentliche Anmeldestrecke arbeitet seit `2.9.0` standardmäßig über:
 
