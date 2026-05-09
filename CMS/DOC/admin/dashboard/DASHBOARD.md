@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Beschreibt die aktuelle Startseite des Admin-Bereichs inklusive Kennzahlen, Schnellzugriffen, Warnhinweisen und segmentweisem Fail-Soft-Verhalten.
 
-Letzte Aktualisierung: 2026-05-09 · Version 2.9.615
+Letzte Aktualisierung: 2026-05-09 · Version 2.9.632
 
 ---
 
@@ -12,7 +12,7 @@ Letzte Aktualisierung: 2026-05-09 · Version 2.9.615
 - Entry Point: `CMS/admin/index.php`
 - Logik: `CMS/admin/modules/dashboard/DashboardModule.php`
 
-Das Admin-Dashboard ist die zentrale Einstiegsseite für Redakteure und Administratoren. Es zeigt keine beliebig konfigurierbare Widget-Landschaft, sondern einen kuratierten Überblick über Systemzustand, Inhalte, Aktivität und – falls aktiv – Bestellungen.
+Das Admin-Dashboard ist die zentrale Einstiegsseite für Redakteure und Administratoren. Es zeigt einen kuratierten Überblick über Systemzustand, Inhalte, Aktivität und – falls aktiv – Bestellungen. Seit `2.9.632` können Admins optionale Blöcke pro Benutzer ein- oder ausblenden; kritische Alerts und die zentrale Arbeitsübersicht bleiben dabei bewusst sichtbar.
 
 Seit `2.9.615` wird jeder Statistikblock einzeln geladen. Fällt z. B. die Sicherheits-, Sessions- oder Orders-Datenquelle aus, bleibt die Startseite renderbar und arbeitet für den betroffenen Block mit neutralen Fallback-Werten statt mit einem Full-Page-Fatal.
 
@@ -73,6 +73,24 @@ Diese Links werden zentral in `DashboardModule::getQuickLinks()` definiert.
 
 ---
 
+## Benutzerbezogene Sichtbarkeit
+
+Die Dashboard-Personalisierung speichert sichtbare Bereiche pro Admin-Benutzer in `settings` unter `admin_dashboard_preferences_user_<id>`.
+
+Der Server akzeptiert nur bekannte Bereichsschlüssel aus `DashboardModule::DASHBOARD_SECTION_DEFINITIONS`. Eingaben werden normalisiert, Pflichtbereiche bleiben sichtbar, und die Option wird mit `autoload = 0` abgelegt.
+
+Der Speichern-Flow:
+
+1. POST auf `/admin` mit Action `save_dashboard_preferences`
+2. CSRF-Prüfung über die gemeinsame Section-Shell (`admin_dashboard`)
+3. Allowlist-Normalisierung der gewählten Bereiche
+4. Persistenz in `settings`
+5. Audit-Eintrag `dashboard.preferences.save`
+
+Ausblendbar sind optionale Bereiche wie Aufmerksamkeit, Systemstatus, Sicherheit & Performance, Bestellungen und letzte Aktivitäten. Nicht ausblendbar sind kritische Alerts sowie die zentrale Arbeitsübersicht.
+
+---
+
 ## Warnungen und Aufmerksamkeitspunkte
 
 Das Dashboard zeigt zwei unterschiedliche Arten von Hinweisen:
@@ -100,7 +118,7 @@ Damit wird der degradierte Zustand sichtbar, ohne den übrigen Dashboard-Renderp
 
 ## Begrenzungen der Seite
 
-- Es gibt aktuell keine frei konfigurierbaren Rollen-Widgetsets für die Admin-Startseite.
+- Es gibt aktuell keine frei konfigurierbaren Rollen-Widgetsets für die Admin-Startseite; umgesetzt ist eine benutzerbezogene Sichtbarkeit optionaler Core-Blöcke.
 - Die frühere Dokumentation zu einem separaten „Admin Dashboard Widgets“-Designer ist nicht mehr aktuell.
 - Konfigurierbare Widgets betreffen heute primär das **Member Dashboard**, nicht die Admin-Startseite.
 - Live-Plausibilitätsprüfungen der Kennzahlen bleiben weiterhin Aufgabe des Betriebs-/QA-Durchlaufs gegen eine reale Datenbank, nicht der statischen Doku.

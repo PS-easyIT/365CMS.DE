@@ -137,8 +137,8 @@ Die Sidebar in `CMS/admin/partials/sidebar.php` ist für die Menüstruktur führ
 
 ### Nice-to-haves
 
-- [ ] Personalisierbare Widgets.
-- [ ] Kontextuelle Warnungen mit Deep-Links in Problemseiten.
+- [x] Personalisierbare Widgets/Bereiche.
+- [x] Kontextuelle Warnungen mit Deep-Links in Problemseiten.
 
 ### Audit-Stand – Dashboard · Durchlauf 1
 
@@ -152,6 +152,19 @@ Die Sidebar in `CMS/admin/partials/sidebar.php` ist für die Menüstruktur führ
 - **Offene Must-haves:** keine
 - **Offene Nice-to-haves:** personalisierbare Widgets, Favoriten/Zuletzt genutzt, kontextuell priorisierte Warnungen
 - **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/dashboard/README.md`, `CMS/DOC/admin/dashboard/DASHBOARD.md`
+
+### Audit-Stand – Dashboard Nice-to-haves · Durchlauf 1
+
+- **Status:** abgeschlossen auf Code-/Best-Practice-/Vertragsbasis · Release `2.9.632`
+- **Prüfer:** GitHub Copilot
+- **Datum:** 2026-05-09
+- **Geprüfte Route:** `/admin`
+- **Umgesetztes Nice-to-have:** Personalisierbare Dashboard-Bereiche und bereits vorhandene kontextuelle Warnungen mit Deep-Links final als erfüllt markiert.
+- **Umsetzung in diesem Durchlauf:** `/admin` speichert sichtbare Dashboard-Bereiche jetzt pro Admin-Benutzer über eine CSRF-geschützte POST-Aktion. Die Backend-Logik normalisiert eingereichte Bereichsschlüssel gegen eine feste Allowlist, erzwingt Pflichtbereiche, speichert die Auswahl nicht-autoloadend in `settings` und schreibt einen Audit-Eintrag. Kritische Alerts bleiben unabhängig von der persönlichen Ansicht sichtbar.
+- **Abhängige Bereiche:** `DashboardModule`, `DashboardService`, `section-page-shell.php`, `settings`, `audit_log`
+- **Offene Must-haves:** keine
+- **Offene Nice-to-haves:** Drag-&-Drop-Sortierung, rollenbasierte Dashboard-Vorlagen, gespeicherte Favoriten/Zuletzt genutzt
+- **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/dashboard/README.md`, `CMS/DOC/admin/dashboard/DASHBOARD.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`
 
 ---
 

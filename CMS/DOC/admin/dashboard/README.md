@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Überblick über die Startseite des Admin-Bereichs mit KPI-Karten, Statushinweisen, Schnellzugriffen und fail-soften Statusblöcken.
 
-Letzte Aktualisierung: 2026-05-09 · Stand: Dashboard-Audit Mai 2026 · Release 2.9.615
+Letzte Aktualisierung: 2026-05-09 · Stand: Dashboard-Nice-to-have-Durchlauf Mai 2026 · Release 2.9.632
 
 **Admin-Route:** `/admin`
 
@@ -22,6 +22,7 @@ Im aktuellen Stand bildet das Dashboard vor allem den Überblick über:
 - Schnellzugriffe in häufig genutzte Admin-Bereiche
 - priorisierte Hinweise für offene To-dos oder Sicherheitsauffälligkeiten
 - segmentweise Fallbacks, falls einzelne Statistikquellen temporär ausfallen
+- benutzerbezogene Sichtbarkeitsprofile für optionale Dashboard-Bereiche
 
 ---
 
@@ -40,6 +41,24 @@ Im aktuellen Stand bildet das Dashboard vor allem den Überblick über:
 
 ---
 
+## Personalisierung seit 2.9.632
+
+Admins können ihre Startansicht direkt auf `/admin` über „Dashboard personalisieren“ fokussieren. Die Auswahl wird pro Admin-Benutzer in `settings` als `admin_dashboard_preferences_user_<id>` gespeichert und bewusst mit `autoload = 0` abgelegt.
+
+Sichtbar/ausblendbar sind optionale Blöcke wie:
+
+- Nächste Aufmerksamkeit
+- Systemstatus
+- Sicherheit & Performance
+- Neueste Bestellungen, sofern das Order-Modul aktiv ist
+- Letzte Aktivitäten
+
+Die zentrale Arbeitsübersicht und kritische Alerts bleiben absichtlich sichtbar. Dadurch wird Personalisierung nicht zur Sicherheitsblindheit.
+
+Der Speichern-Flow läuft über die gemeinsame Admin-Section-Shell mit CSRF-Prüfung, normalisiert eingereichte Bereichsschlüssel serverseitig gegen eine Allowlist und schreibt einen Audit-Eintrag `dashboard.preferences.save`.
+
+---
+
 ## UI-Hinweise
 
 - KPI-Karten sind bewusst kompakt und scan-orientiert aufgebaut, damit auf kleineren Screens mehr Kernsignale gleichzeitig sichtbar bleiben.
@@ -47,6 +66,7 @@ Im aktuellen Stand bildet das Dashboard vor allem den Überblick über:
 - Warnungen auf der Startseite bleiben auf relevante `warning`-/`danger`-Fälle begrenzt, damit das Dashboard nicht zur Alert-Wand mutiert.
 - Quicklinks und Filter-/Sortierlogik gehören außerhalb einzelner Kartenblöcke, damit die Kartensammlung visuell ruhig bleibt.
 - Fällt nur eine Datenquelle aus, bleibt das Dashboard insgesamt renderbar; der degradierte Zustand wird über einen Hinweis auf `CMS Logs` transparent gemacht.
+- Die Personalisierung ändert nur die Sichtbarkeit optionaler Blöcke, nicht die zugrunde liegenden Berechtigungen oder Audit-/Warnlogik.
 
 ---
 
@@ -58,6 +78,7 @@ Im aktuellen Stand bildet das Dashboard vor allem den Überblick über:
 - KPI- und Highlight-Karten arbeiten aus derselben Stats-Basis wie Attention-Items, damit Kennzahlen konsistent bleiben
 - Bestellbezogene Blöcke erscheinen nur, wenn die zugehörigen Subscription-/Orders-Module aktiv sind
 - Statistiksegmente werden seit `2.9.615` einzeln fail-soft geladen und bei Ausfall mit strukturiertem Logger-Hinweis auf dem Kanal `dashboard` protokolliert
+- Dashboard-Sichtbarkeitsprofile werden seit `2.9.632` pro Admin-Benutzer serverseitig gespeichert, CSRF-geschützt geändert und auditierbar protokolliert
 
 ---
 

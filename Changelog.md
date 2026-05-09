@@ -1,4 +1,4 @@
-﻿﻿**Version:** 2.9.631
+﻿﻿**Version:** 2.9.632
 
 # 365CMS Changelog
 
@@ -20,10 +20,17 @@
 
 ---
 
-### v2.9.631 — 9. Mai 2026
+### v2.9.701 — 9. Mai 2026
 
 | Version | Typ | Bereich | Beschreibung |
 |---------|-----|---------|-------------|
+| **2.9.701** | 🟢 feat | Admin/Dashboard Nice-to-haves | **`CMS/admin/index.php`, `CMS/admin/modules/dashboard/DashboardModule.php`, `CMS/admin/views/dashboard/index.php`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`, `CMS/DOC/admin/dashboard/README.md`, `CMS/DOC/admin/dashboard/DASHBOARD.md`, `CMS/DOC/admin/README.md` und `README.md` setzen den ersten Nice-to-have-Durchlauf für das Admin-Dashboard um**: Die Startseite war bislang bewusst kuratiert, aber nicht benutzerbezogen anpassbar. Admins können jetzt pro Benutzer festlegen, welche Dashboard-Bereiche sichtbar bleiben – etwa Aufmerksamkeit, Systemstatus, Sicherheit/Performance, Bestellungen oder letzte Aktivitäten. Kritische Alerts und die zentrale Arbeitsübersicht bleiben fail-closed sichtbar, die Speicherung läuft CSRF-geschützt per POST über die gemeinsame Section-Shell, wird serverseitig über eine feste Allowlist normalisiert, auditierbar in `audit_log` protokolliert und als nicht-autoloadende `settings`-Option pro Admin-Benutzer gespeichert. 
+
+
+### v2.9.631 — 9. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------||
 | **2.9.631** | 🔴 fix | Admin/Review, Updates & Doku | **`CMS/core/Services/UpdateService.php`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`, `CMS/DOC/admin/README.md`, `Changelog.md` und `README.md` schließen die direkte Nachprüfung der 2.9.630-Anpassungen gegen Vollständigkeit, Best Practice und Nachvollziehbarkeit**: Der Diagnosepfad nutzte die persistierte Update-Historie zwar bereits in `/admin/cms-logs`, las sie aber weiter über ein `LIMIT ?` mit `execute([$limit])`, obwohl `PDOStatement::execute()` Array-Werte laut PHP-Dokumentation standardmäßig als String behandelt; das kann bei nativen MySQL-Prepares an `LIMIT '12'` scheitern und die neue Diagnose-Historie still leeren. Zusätzlich verwendete `UpdateService::logUpdate()` weiter nur `time()` für `update_log_*`-Schlüssel, sodass mehrere Update-Ereignisse derselben Sekunde einander überschreiben konnten. Die Update-Historie bindet ihr Limit jetzt explizit als Integer, liest nur die benötigte Nutzlast und erzeugt kollisionsarme, lexikografisch sortierbare Log-Schlüssel; parallel wurden die bei der Review gefundenen Versionsdrifts in `Changelog.md` und `CMS/DOC/admin/README.md` bereinigt. |
 | **2.9.630** | 🔴 fix | Admin/Cross-Checks System ↔ Diagnose ↔ Performance | **`CMS/admin/modules/system/SystemInfoModule.php`, `CMS/admin/views/system/cms-logs.php`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/diagnose/README.md`, `CMS/DOC/admin/diagnose/DIAGNOSE.md`, `CMS/DOC/admin/system-settings/README.md`, `CMS/DOC/admin/system-settings/SYSTEM.md`, `CMS/DOC/admin/performance/PERFORMANCE.md` und `README.md` schließen den ersten Cross-Durchlauf für System ↔ Diagnose ↔ Performance gegen den Nachvollziehbarkeits-Vertrag**: Die Diagnose-Logzentrale zeigte bisher fast nur Dateilogs, PHP Error-Log und `admin.documentation`, obwohl System-, Backup- und Performance-Aktionen längst im zentralen `audit_log` liefen und erfolgreiche Updates zusätzlich eine persistierte Update-Historie erzeugten. `/admin/cms-logs` bindet jetzt ein operatives Betriebs-Audit für System-, Backup-, Monitoring-, Cron-/Queue- und Performance-Spuren direkt ein und ergänzt es um die Update-Historie des Update-Services, sodass Diagnose die Effekte von Cache-, Session-, Cron-, Backup-, Performance- und Update-Aktionen im echten Logkontext sichtbar macht. |
 | **2.9.629** | 🔴 fix | Admin/Diagnose | **`CMS/admin/modules/system/SystemInfoModule.php`, `CMS/admin/views/system/email-alerts.php`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/diagnose/README.md`, `CMS/DOC/admin/diagnose/DIAGNOSE.md`, `CMS/DOC/admin/system-settings/SYSTEM.md` und `README.md` schließen den ersten Diagnose-Durchlauf gegen den Health-Check-Vertrag**: Der Diagnosebereich behandelte den konfigurierten Health-Endpunkt bislang nur als dekorative Markierung; sobald `monitor_health_endpoint_enabled` gesetzt war, galt der Check als bestanden, ohne den Endpunkt tatsächlich zu prüfen. Das Monitoring normalisiert den konfigurierten Health-Pfad jetzt host-lokal auf relative Site-Pfade und ruft ihn real gegen die eigene Installation auf, sodass `/admin/monitor-health-check` Status, Laufzeit und Fehler des Endpunkts anzeigt statt bloß eines gespeicherten Schalters. |
