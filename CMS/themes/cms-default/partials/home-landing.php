@@ -12,6 +12,7 @@ $lpFooter      = [];
 $lpColors      = [];
 $lpSettings    = ['show_footer_section' => true];
 $lpContentSets = ['content_type' => 'features', 'posts_count' => 5];
+$lpPluginHtml  = ['header' => '', 'content' => '', 'footer' => ''];
 
 try {
     $landingSvc    = \CMS\Services\LandingPageService::getInstance();
@@ -133,6 +134,22 @@ $lpFooterCopyright  = (string)($lpFooter['copyright'] ?? '');
 $showLandingFooter  = !empty($lpSettings['show_footer_section']) && !empty($lpFooter['show_footer']);
 $lpDescHtml         = $renderLandingHtml((string)$lpDesc);
 $lpFooterContentHtml = $renderLandingHtml($lpFooterContent);
+
+if (($landingSvc ?? null) instanceof \CMS\Services\LandingPageService) {
+    $lpPluginContext = [
+        'header' => $lpHeader,
+        'features' => $lpFeatures,
+        'footer' => $lpFooter,
+        'colors' => $lpColors,
+        'content' => $lpContentSets,
+        'settings' => $lpSettings,
+        'design' => $lpDesign,
+    ];
+
+    $lpPluginHtml['header'] = $landingSvc->renderPluginOverride('header', $lpPluginContext);
+    $lpPluginHtml['content'] = $landingSvc->renderPluginOverride('content', $lpPluginContext);
+    $lpPluginHtml['footer'] = $landingSvc->renderPluginOverride('footer', $lpPluginContext);
+}
 
 // ── Layout: compact vs. standard ─────────────────────────
 $lpLayout    = $lpHeader['header_layout'] ?? 'standard';
@@ -258,6 +275,11 @@ main.site-main       { padding: 0 !important; margin: 0 !important; }
 <div id="lp-content">
 
     <!-- ── Hero ──────────────────────────────────────────── -->
+    <?php if ($lpPluginHtml['header'] !== ''): ?>
+    <div class="lp-plugin-area lp-plugin-area--header">
+        <?php echo $lpPluginHtml['header']; ?>
+    </div>
+    <?php else: ?>
     <section class="lp-hero" style="
         margin-top:0;
         padding:<?php echo $heroPadding;?>;
@@ -344,6 +366,7 @@ main.site-main       { padding: 0 !important; margin: 0 !important; }
 
         </div>
     </section>
+    <?php endif; ?>
 
     <!-- ── Hauptinhalt (Features / Artikel / Text) ────────── -->
     <?php
@@ -354,7 +377,12 @@ main.site-main       { padding: 0 !important; margin: 0 !important; }
     $lpPostsCount  = max(1, (int)($lpContentSets['posts_count'] ?? 5));
     ?>
 
-    <?php if ($lpContentType === 'features' && !empty($lpFeatures)): ?>
+    <?php if ($lpPluginHtml['content'] !== ''): ?>
+    <div class="lp-plugin-area lp-plugin-area--content">
+        <?php echo $lpPluginHtml['content']; ?>
+    </div>
+
+    <?php elseif ($lpContentType === 'features' && !empty($lpFeatures)): ?>
     <!-- Feature-Karten aus dem Landing-Page-Admin -->
     <section class="lp-features" style="padding:3rem 0;background:var(--lp-features-bg);">
         <div style="max-width:1140px;margin:0 auto;padding:0 1.5rem;">
@@ -463,7 +491,11 @@ main.site-main       { padding: 0 !important; margin: 0 !important; }
     </div>
     <?php endif; ?>
 
-    <?php if ($showLandingFooter && ($lpFooterContent !== '' || $lpFooterButtonText !== '' || $lpFooterCopyright !== '')): ?>
+    <?php if ($lpPluginHtml['footer'] !== ''): ?>
+    <div class="lp-plugin-area lp-plugin-area--footer">
+        <?php echo $lpPluginHtml['footer']; ?>
+    </div>
+    <?php elseif ($showLandingFooter && ($lpFooterContent !== '' || $lpFooterButtonText !== '' || $lpFooterCopyright !== '')): ?>
     <section class="lp-footer-callout">
         <div class="lp-footer-callout__inner">
             <div>

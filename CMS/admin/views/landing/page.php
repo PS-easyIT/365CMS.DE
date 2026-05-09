@@ -401,8 +401,22 @@ $escape = static fn (mixed $value): string => htmlspecialchars((string) $value, 
                                 <?php if (!empty($plugin['targets'])): ?>
                                     <div class="mb-3 d-flex flex-wrap gap-2">
                                         <?php foreach ((array)($plugin['targets'] ?? []) as $target): ?>
-                                            <span class="badge bg-secondary-lt"><?php echo $escape($target); ?></span>
+                                            <span class="badge <?php echo !empty($target['assigned']) ? 'bg-primary-lt text-primary' : 'bg-secondary-lt'; ?>">
+                                                <?php echo $escape($target['label'] ?? ''); ?>
+                                            </span>
                                         <?php endforeach; ?>
+                                    </div>
+                                <?php endif; ?>
+                                <div class="mb-3 small text-muted">
+                                    <?php if (!empty($plugin['assigned_labels'])): ?>
+                                        Aktiv in: <?php echo $escape(implode(', ', (array)($plugin['assigned_labels'] ?? []))); ?>
+                                    <?php else: ?>
+                                        Aktuell ist dieses Plugin keinem Landing-Bereich zugewiesen.
+                                    <?php endif; ?>
+                                </div>
+                                <?php if (empty($plugin['has_render_callback'])): ?>
+                                    <div class="alert alert-warning" role="alert">
+                                        Dieses Plugin ist zwar registriert, liefert aber noch keinen renderbaren Landing-Block. Eine Bereichs-Zuweisung bleibt deshalb deaktiviert, bis ein `render_callback` vorhanden ist.
                                     </div>
                                 <?php endif; ?>
                                 <form method="post">
@@ -412,19 +426,26 @@ $escape = static fn (mixed $value): string => htmlspecialchars((string) $value, 
                                     <input type="hidden" name="plugin_id" value="<?php echo $escape($plugin['id'] ?? ''); ?>">
 
                                     <div class="mb-3">
-                                        <label class="form-check form-switch">
-                                            <input type="checkbox" name="enabled" class="form-check-input" value="1"
-                                                   <?php echo !empty($plugin['enabled']) ? 'checked' : ''; ?>>
-                                            <span class="form-check-label">Auf Landing Page anzeigen</span>
-                                        </label>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label class="form-label">Reihenfolge</label>
-                                        <input type="number" name="sort_order" class="form-control w-auto"
-                                               value="<?php echo (int)($plugin['sort_order'] ?? 10); ?>">
+                                        <label class="form-label">Landing-Bereiche</label>
+                                        <div class="d-flex flex-column gap-2">
+                                            <?php foreach ((array)($plugin['targets'] ?? []) as $target): ?>
+                                                <label class="form-check">
+                                                    <input type="checkbox"
+                                                           name="areas[]"
+                                                           class="form-check-input"
+                                                           value="<?php echo $escape($target['slug'] ?? ''); ?>"
+                                                           <?php echo !empty($target['assigned']) ? 'checked' : ''; ?>
+                                                           <?php echo empty($plugin['has_render_callback']) ? 'disabled' : ''; ?>>
+                                                    <span class="form-check-label">
+                                                        <?php echo $escape($target['label'] ?? ''); ?>
+                                                    </span>
+                                                </label>
+                                            <?php endforeach; ?>
+                                        </div>
+                                        <div class="form-hint mt-2">Pro Landing-Bereich ist genau ein aktives Plugin möglich. Eine neue Zuweisung ersetzt die bisherige Belegung dieses Bereichs.</div>
                                     </div>
 
-                                    <button type="submit" class="btn btn-primary btn-sm">Speichern</button>
+                                    <button type="submit" class="btn btn-primary btn-sm" <?php echo empty($plugin['has_render_callback']) ? 'disabled' : ''; ?>>Zuweisung speichern</button>
                                 </form>
                             </div>
                         </div>

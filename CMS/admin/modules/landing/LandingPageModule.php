@@ -203,11 +203,55 @@ class LandingPageModule
                 return ['success' => false, 'error' => 'Plugin-ID fehlt.'];
             }
 
-            if (!$this->service->savePluginSettings($pluginId, $payload)) {
+            $plugins = $this->service->getRegisteredPlugins();
+            $plugin = $plugins[$pluginId] ?? null;
+            if (!is_array($plugin)) {
+                return ['success' => false, 'error' => 'Plugin wurde nicht gefunden.'];
+            }
+
+            if (!is_callable($plugin['render_callback'] ?? null)) {
+                return ['success' => false, 'error' => 'Dieses Plugin registriert keinen renderbaren Landing-Block.'];
+            }
+
+            $supportedAreas = array_values(array_filter(
+                array_map('strval', (array) ($plugin['targets'] ?? [])),
+                fn (string $area): bool => in_array($area, ['header', 'content', 'footer'], true)
+            ));
+            $selectedAreas = array_values(array_intersect($payload['areas'], $supportedAreas));
+            $overrides = $this->service->getPluginOverrides();
+
+            foreach ($supportedAreas as $area) {
+                $currentlyAssignedPlugin = (string) ($overrides[$area] ?? '');
+                $shouldAssignPlugin = in_array($area, $selectedAreas, true);
+
+                if ($shouldAssignPlugin && $currentlyAssignedPlugin !== $pluginId) {
+                    if (!$this->service->updatePluginOverride(['area' => $area, 'plugin_id' => $pluginId])) {
+                        return ['success' => false, 'error' => 'Plugin-Override konnte nicht gespeichert werden.'];
+                    }
+
+                    continue;
+                }
+
+                if (!$shouldAssignPlugin && $currentlyAssignedPlugin === $pluginId) {
+                    if (!$this->service->updatePluginOverride(['area' => $area, 'plugin_id' => ''])) {
+                        return ['success' => false, 'error' => 'Plugin-Override konnte nicht gespeichert werden.'];
+                    }
+                }
+            }
+
+            $pluginSettingsPayload = $this->extractPluginSettingsPayload($post);
+            if ($pluginSettingsPayload !== [] && !$this->service->savePluginSettings($pluginId, $pluginSettingsPayload)) {
                 return ['success' => false, 'error' => 'Plugin-Einstellungen konnten nicht gespeichert werden.'];
             }
 
-            return ['success' => true, 'message' => 'Plugin-Einstellungen gespeichert.'];
+            $assignedAreaLabels = array_map([$this, 'formatLandingPluginAreaLabel'], $selectedAreas);
+
+            return [
+                'success' => true,
+                'message' => $assignedAreaLabels === []
+                    ? 'Plugin-Zuweisung gespeichert. Für dieses Plugin ist aktuell kein Landing-Bereich aktiv.'
+                    : 'Plugin-Zuweisung gespeichert: ' . implode(', ', $assignedAreaLabels) . '.',
+            ];
         } catch (\Throwable $e) {
             return $this->failResult('Plugin-Einstellungen konnten nicht gespeichert werden.', 'save_plugin', $e);
         }
@@ -328,10 +372,17 @@ class LandingPageModule
      */
     private function sanitizePluginPayload(array $post): array
     {
+        $areas = [];
+        foreach ((array) ($post['areas'] ?? []) as $area) {
+            $normalizedArea = $this->sanitizer->sanitizeEnum((string) $area, ['header', 'content', 'footer'], '');
+            if ($normalizedArea !== '' && !in_array($normalizedArea, $areas, true)) {
+                $areas[] = $normalizedArea;
+            }
+        }
+
         return [
             'plugin_id' => $this->sanitizer->sanitizePluginId((string)($post['plugin_id'] ?? '')),
-            'enabled' => !empty($post['enabled']),
-            'sort_order' => $this->clampInt($post['sort_order'] ?? 10, 0, self::MAX_SORT_ORDER),
+            'areas' => $areas,
         ];
     }
 
@@ -405,7 +456,6 @@ class LandingPageModule
      */
     private function buildPluginCards(array $plugins, array $overrides): array
     {
-        $pluginSettings = is_array($overrides['plugin_settings'] ?? null) ? $overrides['plugin_settings'] : [];
         $cards = [];
 
         foreach ($plugins as $pluginId => $plugin) {
@@ -414,16 +464,23 @@ class LandingPageModule
                 continue;
             }
 
-            $storedSettings = is_array($pluginSettings[$id] ?? null) ? $pluginSettings[$id] : [];
-            $targetLabels = array_map(
-                static fn (string $target): string => match ($target) {
-                    'header' => 'Header',
-                    'content' => 'Content',
-                    'footer' => 'Footer',
-                    default => ucfirst($target),
-                },
-                array_values(array_filter(array_map('strval', (array)($plugin['targets'] ?? []))))
-            );
+            $targets = [];
+            $assignedLabels = [];
+
+            foreach (array_values(array_filter(array_map('strval', (array)($plugin['targets'] ?? [])))) as $target) {
+                $label = $this->formatLandingPluginAreaLabel($target);
+                $assigned = (string) ($overrides[$target] ?? '') === $id;
+
+                $targets[] = [
+                    'slug' => $target,
+                    'label' => $label,
+                    'assigned' => $assigned,
+                ];
+
+                if ($assigned) {
+                    $assignedLabels[] = $label;
+                }
+            }
 
             $cards[] = [
                 'id' => $id,
@@ -431,13 +488,52 @@ class LandingPageModule
                 'description' => (string)($plugin['description'] ?? ''),
                 'version' => (string)($plugin['version'] ?? ''),
                 'author' => (string)($plugin['author'] ?? ''),
-                'targets' => $targetLabels,
-                'enabled' => !empty($storedSettings['enabled']),
-                'sort_order' => $this->clampInt($storedSettings['sort_order'] ?? 10, 0, self::MAX_SORT_ORDER),
+                'targets' => $targets,
+                'assigned_labels' => $assignedLabels,
+                'has_render_callback' => is_callable($plugin['render_callback'] ?? null),
             ];
         }
 
         return $cards;
+    }
+
+    /**
+     * @param array<string, mixed> $post
+     * @return array<string, mixed>
+     */
+    private function extractPluginSettingsPayload(array $post): array
+    {
+        $reservedKeys = [
+            'csrf_token' => true,
+            'action' => true,
+            'active_tab' => true,
+            'plugin_id' => true,
+            'areas' => true,
+            'enabled' => true,
+            'sort_order' => true,
+        ];
+
+        $settings = [];
+        foreach ($post as $key => $value) {
+            $normalizedKey = (string) $key;
+            if (isset($reservedKeys[$normalizedKey])) {
+                continue;
+            }
+
+            $settings[$normalizedKey] = $value;
+        }
+
+        return $settings;
+    }
+
+    private function formatLandingPluginAreaLabel(string $area): string
+    {
+        return match ($area) {
+            'header' => 'Header',
+            'content' => 'Content',
+            'footer' => 'Footer',
+            default => ucfirst($area),
+        };
     }
 
     private function sanitizeFeatureIcon(string $value): string

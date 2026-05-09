@@ -60,6 +60,7 @@ final class LandingPluginService
                 'version' => $this->sanitizer->sanitizePlainText((string)($plugin['version'] ?? ''), 40),
                 'author' => $this->sanitizer->sanitizePlainText((string)($plugin['author'] ?? ''), 80),
                 'targets' => $targets,
+                'render_callback' => is_callable($plugin['render_callback'] ?? null) ? $plugin['render_callback'] : null,
                 'settings_callback' => is_callable($plugin['settings_callback'] ?? null) ? $plugin['settings_callback'] : null,
             ];
         }
@@ -104,7 +105,11 @@ final class LandingPluginService
 
         if ($pluginId !== '') {
             $plugins = $this->getRegisteredPlugins();
-            if (!isset($plugins[$pluginId]) || !in_array($area, $plugins[$pluginId]['targets'], true)) {
+            if (
+                !isset($plugins[$pluginId])
+                || !in_array($area, $plugins[$pluginId]['targets'], true)
+                || !is_callable($plugins[$pluginId]['render_callback'] ?? null)
+            ) {
                 return false;
             }
         }
@@ -159,6 +164,69 @@ final class LandingPluginService
     }
 
     /**
+     * Rendert den aktiven Plugin-Override für einen Landing-Bereich.
+     *
+     * @param array<string, mixed> $context
+     */
+    public function renderPluginOverride(string $area, array $context = []): string
+    {
+        if (!in_array($area, self::ALLOWED_PLUGIN_AREAS, true)) {
+            return '';
+        }
+
+        $overrides = $this->getPluginOverrides();
+        $pluginId = $this->sanitizer->sanitizePluginId((string) ($overrides[$area] ?? ''));
+        if ($pluginId === '') {
+            return '';
+        }
+
+        $plugins = $this->getRegisteredPlugins();
+        $plugin = $plugins[$pluginId] ?? null;
+        if (!is_array($plugin) || !in_array($area, (array) ($plugin['targets'] ?? []), true)) {
+            return '';
+        }
+
+        $callback = $plugin['render_callback'] ?? null;
+        if (!is_callable($callback)) {
+            return '';
+        }
+
+        $settings = $this->getPluginSettings($pluginId);
+        $payload = [
+            'area' => $area,
+            'plugin' => $plugin,
+            'settings' => $settings,
+            'context' => $context,
+        ];
+
+        $buffer = '';
+
+        try {
+            ob_start();
+            $result = $this->invokePluginCallback($callback, [$payload, $area, $settings, $context, $plugin]);
+            $buffer = (string) ob_get_clean();
+        } catch (\Throwable $e) {
+            if (ob_get_level() > 0) {
+                ob_end_clean();
+            }
+
+            Logger::instance()->withChannel('landing')->warning('Landing plugin override could not be rendered.', [
+                'area' => $area,
+                'plugin_id' => $pluginId,
+                'exception' => $e,
+            ]);
+
+            return '';
+        }
+
+        if (is_string($result) && $result !== '') {
+            $buffer .= $result;
+        }
+
+        return trim($buffer);
+    }
+
+    /**
      * @param array<string, mixed> $overrides
      */
     private function savePluginOverridesRecord(array $overrides): bool
@@ -185,5 +253,44 @@ final class LandingPluginService
             'footer' => null,
             'plugin_settings' => [],
         ];
+    }
+
+    /**
+     * @param array<int, mixed> $arguments
+     */
+    private function invokePluginCallback(callable $callback, array $arguments): mixed
+    {
+        $reflection = $this->reflectCallback($callback);
+
+        if ($reflection !== null && !$reflection->isVariadic()) {
+            $arguments = array_slice($arguments, 0, $reflection->getNumberOfParameters());
+        }
+
+        return call_user_func_array($callback, $arguments);
+    }
+
+    private function reflectCallback(callable $callback): \ReflectionFunctionAbstract|null
+    {
+        try {
+            if (is_array($callback) && isset($callback[0], $callback[1])) {
+                return new \ReflectionMethod($callback[0], (string) $callback[1]);
+            }
+
+            if (is_string($callback) && str_contains($callback, '::')) {
+                return new \ReflectionMethod($callback);
+            }
+
+            if ($callback instanceof \Closure) {
+                return new \ReflectionFunction($callback);
+            }
+
+            if (is_object($callback) && method_exists($callback, '__invoke')) {
+                return new \ReflectionMethod($callback, '__invoke');
+            }
+
+            return new \ReflectionFunction(\Closure::fromCallable($callback));
+        } catch (\Throwable) {
+            return null;
+        }
     }
 }

@@ -403,6 +403,7 @@ class LandingPageService
      * Plugins register via Hooks::addFilter('landing_page_plugins', callback).
      * Each entry: ['id', 'name', 'description', 'version', 'author',
      *              'targets' => ['header'|'content'|'footer'],
+     *              'render_callback' => callable|null,
      *              'settings_callback' => callable|null]
      */
     public function getRegisteredPlugins(): array
@@ -444,6 +445,14 @@ class LandingPageService
     public function getPluginSettings(string $pluginId): array
     {
         return $this->pluginService->getPluginSettings($pluginId);
+    }
+
+    /**
+     * @param array<string, mixed> $context
+     */
+    public function renderPluginOverride(string $area, array $context = []): string
+    {
+        return $this->pluginService->renderPluginOverride($area, $context);
     }
 
     private function normalizeLowercase(string $value): string
