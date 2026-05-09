@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.9.620",
+  "version": "2.9.621",
   "min_php": "8.4",
   "released": "2026-05-09",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 2.9.620: Das Member Dashboard trennt Admin-Konfiguration und öffentliche Runtime wieder sauber; gespeicherte `member_*`-Einstellungen wirken dadurch auch für normale Mitglieder im echten `/member/dashboard`-Frontend statt am admin-geschützten Read-Pfad hängen zu bleiben.",
+  "notes": "Release-Stand 2.9.621: Die Aboverwaltung wendet das konfigurierte Standardpaket für neue Mitglieder jetzt wieder in der echten Laufzeit an; öffentliche Registrierungen und neu im Admin angelegte Member-Konten erhalten das aktive Default-Paket automatisch statt nur einen dekorativ gespeicherten Setting-Wert.",
   "critical": false
 }

@@ -11,6 +11,7 @@ use CMS\Database;
 use CMS\Auth;
 use CMS\Logger;
 use CMS\Security;
+use CMS\SubscriptionManager;
 use CMS\WP_Error;
 
 /**
@@ -154,6 +155,21 @@ class UserService {
         }
         if (!empty($data['last_name'])) {
             $this->updateUserMeta($user_id, 'last_name', Security::sanitize($data['last_name'], 'text'));
+        }
+
+        if ($clean_data['role'] === 'member') {
+            try {
+                SubscriptionManager::instance()->assignConfiguredDefaultPlan($user_id);
+            } catch (\Throwable $e) {
+                Logger::instance()->withChannel('user.service')->warning(
+                    'Standardpaket konnte nach dem Erstellen eines Mitglieds nicht automatisch zugewiesen werden.',
+                    [
+                        'user_id' => $user_id,
+                        'role' => $clean_data['role'],
+                        'exception' => $e::class,
+                    ]
+                );
+            }
         }
         
         // Log-Eintrag

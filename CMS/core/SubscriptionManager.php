@@ -429,6 +429,39 @@ class SubscriptionManager
         
         return $result > 0;
     }
+
+    /**
+     * Weist einem neuen Benutzer das konfigurierte Standardpaket zu, sofern eines aktiv hinterlegt ist.
+     */
+    public function assignConfiguredDefaultPlan(int $userId, string $billingCycle = 'monthly'): bool
+    {
+        if ($userId <= 0) {
+            return false;
+        }
+
+        $planId = (int) $this->getSetting('subscription_default_plan_id', '0');
+        if ($planId <= 0) {
+            return true;
+        }
+
+        $plan = $this->getPlan($planId);
+        if ($plan === null || (int) ($plan->is_active ?? 0) !== 1) {
+            return false;
+        }
+
+        $billingCycle = in_array($billingCycle, ['monthly', 'yearly', 'lifetime'], true)
+            ? $billingCycle
+            : 'monthly';
+
+        $existing = $this->db->prepare("\n            SELECT id\n            FROM {$this->db->getPrefix()}user_subscriptions\n            WHERE user_id = ?\n              AND status IN ('active', 'trial')\n            LIMIT 1\n        ");
+        $existing->execute([$userId]);
+
+        if ($existing->fetch()) {
+            return true;
+        }
+
+        return $this->assignSubscription($userId, $planId, $billingCycle);
+    }
     
     /**
      * Holt alle Pläne

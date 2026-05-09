@@ -1,6 +1,6 @@
 # 365CMS.DE
 
-**Version:** [2.9.620](Changelog.md) · **Status:** Stable · **PHP:** 8.4+ · **MySQL:** 5.7+ · **MariaDB:** 10.3+
+**Version:** [2.9.621](Changelog.md) · **Status:** Stable · **PHP:** 8.4+ · **MySQL:** 5.7+ · **MariaDB:** 10.3+
 
 <div align="center">
 
@@ -96,7 +96,7 @@ Die folgenden Bereiche zeigen, wie breit 365CMS bereits ohne Plugin-Zwang aufges
 | **Tabellen & Datenübersichten** | Site Tables mit Stil-Presets, sicher sanitierter Inline-HTML-Formatierung, Exporten und festen Zeilen aus ausgewählten Seiten/Beiträgen oder einem Kategorie-Filter | Macht wiederverwendbare Tabellen im Public-Bereich möglich, ohne freie Eingaben unkontrolliert ins Frontend zu übernehmen |
 | **Medienverwaltung** | Uploads, Ordner, Kategorien, Bild-/Dateiverwaltung, Beitrags-/Site-Medien, Grid-/Listenansicht, WebP-Workflows | Verhindert Medien-Chaos und hält Assets auch bei wachsenden Projekten schnell nutzbar – inklusive gezieltem Ersetzen von Beitrags- und Seitenbildern |
 | **Mitgliederbereich** | Member-Dashboard, Profile, Favoriten, Benachrichtigungen, Nachrichten, Datenschutz, Medienbereich | Liefert die Basis für geschützte Bereiche, Community-Features und kundennahe Plattformlogik – inklusive sauber getrennter Runtime, damit Admin-Schalter für Dashboard, Onboarding und Frontend-Module auch im echten Member-Frontend wirken |
-| **Business & Abos** | Pakete, Bestellungen, Abonnements, Limits, Gruppen und zugehörige Prozesse | Bringt Geschäftslogik näher ans CMS, statt sie komplett außerhalb des Systems zu parken |
+| **Business & Abos** | Pakete, Bestellungen, Abonnements, Limits, Gruppen und zugehörige Prozesse | Bringt Geschäftslogik näher ans CMS, statt sie komplett außerhalb des Systems zu parken – inklusive automatisch wirkendem Standardpaket für neue Mitglieder |
 | **Suche & Auffindbarkeit** | Volltextsuche, Indexierung zentraler Inhalte, Suchfelder und Inhaltserschließung | Hilft Nutzern und Teams, relevante Inhalte auch in großen Beständen schnell zu finden |
 | **SEO & Sichtbarkeit** | Meta-Daten, Social-Daten, strukturierte Daten, Sitemap, Robots, Redirects, 404-Monitor, Analytics, IndexNow | Sorgt für eine ernstzunehmende SEO-Basis direkt im Produkt statt in einem Sammelsurium aus Zusatzlösungen |
 | **Security & Auth** | Rollen & Rechte, CSRF-/XSS-Schutz, Rate Limits, Firewall, Anti-Spam, Passkeys, 2FA, LDAP, sichere Reset-Flows | Gibt produktiven Installationen ein Sicherheitsfundament, das nicht erst nachträglich zusammengesucht werden muss – inklusive gemeinsamer Rollenmatrix für Legacy- und moderne Core-Capabilities sowie derselben 12-Zeichen-Passwort-Policy in Registrierung, Reset und Admin-CRUD |
@@ -138,7 +138,7 @@ Der Admin-Bereich ist so aufgebaut, dass inhaltliche, technische und betrieblich
 | **Medien** | Bibliothek, Beitrags & Site Medien, Kategorien, Einstellungen und Dateimanagement | Uploads verwalten, Dateien organisieren, Beitrags-/Seitenbilder mit festem Bildvertrag gezielt ersetzen und Medien für Inhalte vorbereiten |
 | **Benutzer & Gruppen** | Benutzerkonten, Teams, Rollen, Rechte und Auth-Einstellungen | Zugriffe über eine gemeinsame Rollenmatrix definieren, Benutzer pflegen und dieselbe Passwort-Policy in Public- und Admin-Auth-Flows durchziehen |
 | **Mitgliederbereich** | Member-Dashboard-Konfiguration und usernahe Funktionen | Benutzererlebnis für Mitglieder gestalten und absichern; Admin-Konfiguration und öffentliche Runtime bleiben dabei getrennt, damit gespeicherte Einstellungen im `/member`-Bereich tatsächlich ankommen |
-| **Aboverwaltung** | Pakete, Bestellungen, Limits, Zuweisungen und abonnahes Business-Handling | Pakete verwalten, Zugriffe staffeln, Bestell- und Paketlogik steuern |
+| **Aboverwaltung** | Pakete, Bestellungen, Limits, Zuweisungen und abonnahes Business-Handling | Pakete verwalten, Zugriffe staffeln, Bestell- und Paketlogik steuern; konfigurierte Standardpakete wirken dabei auch für neue Mitglieder tatsächlich zur Laufzeit |
 | **Themes & Design** | Aktive Themes, Theme-Anpassung, Menüs, Landing-Pages und lokale Fonts | Layout, Branding, Navigation und Seitenaufbau anpassen |
 | **SEO** | Meta, Social, Schema, Sitemap, Redirects, Analytics und technisches SEO | Sichtbarkeit verbessern, Fehlerquellen reduzieren, SEO-Basis pflegen |
 | **Plugins** | Installierte Erweiterungen, Marketplace und modulare Ausbaupfade | Features ergänzen, Add-ons verwalten, neue Integrationen aktivieren |

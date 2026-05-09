@@ -300,7 +300,19 @@ class Auth
         ]);
         
         if ($userId) {
-            Hooks::doAction('user_registered', $userId);
+            try {
+                SubscriptionManager::instance()->assignConfiguredDefaultPlan((int) $userId);
+            } catch (\Throwable $e) {
+                Logger::instance()->withChannel('auth.register')->warning(
+                    'Standardpaket konnte nach Registrierung nicht automatisch zugewiesen werden.',
+                    [
+                        'user_id' => (int) $userId,
+                        'exception' => $e::class,
+                    ]
+                );
+            }
+
+            Hooks::doAction('user_registered', (int) $userId);
             return true;
         }
         

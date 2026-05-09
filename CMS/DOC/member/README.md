@@ -1,5 +1,5 @@
 # 365CMS – Member-Bereich
-> **Stand:** 2026-05-09 | **Version:** 2.9.620 | **Status:** Aktuell
+> **Stand:** 2026-05-09 | **Version:** 2.9.621 | **Status:** Aktuell
 
 <!-- UPDATED: 2026-05-09 -->
 
@@ -44,6 +44,19 @@ Aktueller Vertragsstand:
 - die reine Modulaktivierung `member_dashboard` bleibt zusätzliches Laufzeit-Gate
 - deaktivierte oder fehlende Plugin-Widgets fallen fail-soft aus dem Dashboard, statt den Member-Bereich zu blockieren
 - Profil-Fortschritt, Onboarding und Benachrichtigungscards greifen auf denselben Settings-Stand zu wie die Admin-Konfiguration
+
+## Abo-Zuweisung im Stand 2.9.621
+
+Wenn unter `/admin/subscription-settings` ein aktives Standardpaket hinterlegt ist, wird dieses seit `2.9.621` automatisch auf neue Mitgliedskonten angewendet:
+
+- bei öffentlichen Registrierungen
+- beim Anlegen neuer Member-Konten im Admin
+
+Der Vertragsstand bleibt dabei fail-soft:
+
+- bestehende aktive oder Trial-Abos werden nicht überschrieben
+- nur aktive Paketreferenzen werden automatisch übernommen
+- der Member-Bereich kann das zugewiesene Paket anschließend konsistent über `/member/subscription` und die Limit-Logik auswerten
 
 ## Authentifizierung im Stand 2.9.0
 

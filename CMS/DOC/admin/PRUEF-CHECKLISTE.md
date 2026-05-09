@@ -492,22 +492,35 @@ Die Sidebar in `CMS/admin/partials/sidebar.php` ist für die Menüstruktur führ
 
 ### Prüfen
 
-- [ ] Pakete sind vollständig pflegbar.
-- [ ] Zuweisungen an Benutzer/Gruppen funktionieren.
-- [ ] Statuswechsel von Orders sind nachvollziehbar.
-- [ ] Globale Subscription-Settings wirken auf neue Vorgänge.
+- [x] Pakete sind vollständig pflegbar.
+- [x] Zuweisungen an Benutzer/Gruppen funktionieren.
+- [x] Statuswechsel von Orders sind nachvollziehbar.
+- [x] Globale Subscription-Settings wirken auf neue Vorgänge.
 
 ### Must-haves
 
-- [ ] Konsistente Zuordnung Paket ↔ Benutzer/Gruppe.
-- [ ] Sichere Statuswechsel mit Audit-Log.
-- [ ] Keine stillen Inkonsistenzen bei deaktivierten Paketen.
+- [x] Konsistente Zuordnung Paket ↔ Benutzer/Gruppe.
+- [x] Sichere Statuswechsel mit Audit-Log.
+- [x] Keine stillen Inkonsistenzen bei deaktivierten Paketen.
 
 ### Nice-to-haves
 
 - [ ] Ablaufwarnungen / Renewal-Hinweise.
 - [ ] Export für Orders und Paketnutzung.
 - [ ] Historie pro Paket und Bestellung.
+
+### Audit-Stand – Aboverwaltung · Durchlauf 1
+
+- **Status:** abgeschlossen auf Code-/Vertragsbasis · Release `2.9.621`
+- **Prüfer:** GitHub Copilot
+- **Datum:** 2026-05-09
+- **Geprüfte Routen:** `/admin/packages`, `/admin/orders`, `/admin/subscription-settings`, `/register`, `/cms-register`
+- **Reproduziertes Fehlerbild:** Die globale Einstellung `subscription_default_plan_id` ließ sich im Admin speichern, wurde aber im echten Registrierungs- und Benutzer-Anlagepfad nicht angewendet. Damit blieb das im Bereich „Einstellungen“ ausgewählte Standardpaket für neue Mitglieder rein dekorativ und wirkte auf neue Vorgänge nicht.
+- **Umsetzung in diesem Durchlauf:** `SubscriptionManager` stellt jetzt einen zentralen Runtime-Helfer für das konfigurierte Standardpaket bereit. Öffentliche Registrierungen über `Auth::register()` und neu im Admin angelegte Member-Konten über `UserService::createUser()` wenden diese Standardpaket-Zuweisung jetzt automatisch an, sofern ein aktiver Plan referenziert ist. Bereits vorhandene aktive/trial-Abos werden dabei nicht überschrieben.
+- **Abhängige Bereiche:** `SubscriptionSettingsModule`, `OrdersModule`, `SubscriptionManager`, öffentliche Registrierung, Benutzerverwaltung, Member-Bereich `/member/subscription`
+- **Offene Must-haves:** keine
+- **Offene Nice-to-haves:** Ablaufwarnungen/Renewal-Hinweise, Export für Orders/Paketnutzung, Historie pro Paket/Bestellung
+- **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/subscription/README.md`, `CMS/DOC/admin/subscription/SUBSCRIPTION-SYSTEM.md`, `CMS/DOC/member/README.md`
 
 ---
 

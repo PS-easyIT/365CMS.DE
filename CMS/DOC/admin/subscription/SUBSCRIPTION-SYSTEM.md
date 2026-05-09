@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Überblick über die aktuelle Aboarchitektur mit Paketen, Limits, Zuweisungen und dem Member-Bezug.
 
-Letzte Aktualisierung: 2026-04-07 · Version 2.9.0
+Letzte Aktualisierung: 2026-05-09 · Version 2.9.621
 
 ---
 
@@ -62,11 +62,11 @@ Die Seite `/admin/subscription-settings` verwaltet zwei Bereiche über Tabs:
 
 | Key | Zweck | Default |
 |---|---|---|
-| `subscription_limits_enabled` | Paketlimits systemweit durchsetzen | `0` |
-| `subscription_default_plan` | Standardpaket für neue Mitglieder | – |
-| `subscription_member_area` | Abo-Bereich im Member-Dashboard | `0` |
-| `subscription_ordering_enabled` | Bestell-/Upgrade-Prozesse zulassen | `0` |
-| `subscription_public_pricing_enabled` | Pakete öffentlich kommunizieren | `0` |
+| `subscription_limits_enabled` | Paketlimits systemweit durchsetzen | `1` |
+| `subscription_default_plan_id` | Standardpaket für neue Mitglieder | `0` |
+| `subscription_member_area_enabled` | Abo-Bereich im Member-Dashboard | `1` |
+| `subscription_ordering_enabled` | Bestell-/Upgrade-Prozesse zulassen | `1` |
+| `subscription_public_pricing_enabled` | Pakete öffentlich kommunizieren | `1` |
 | `subscription_disabled_notice` | Hinweistext bei Deaktivierung | – |
 
 ### Package Settings (15 Optionen)
@@ -74,20 +74,38 @@ Die Seite `/admin/subscription-settings` verwaltet zwei Bereiche über Tabs:
 | Key | Zweck | Default |
 |---|---|---|
 | `subscription_enabled` | Abo-System aktiv | `0` |
-| `subscription_trial_enabled` | Trial-Phase aktivieren | `0` |
-| `subscription_trial_days` | Dauer Trial in Tagen | `14` |
-| `subscription_auto_renewal` | Auto-Verlängerung | `1` |
-| `subscription_grace_period_days` | Karenzzeit nach Ablauf | `3` |
-| `subscription_cancellation_period_days` | Kündigungsfrist | `0` |
-| `subscription_payment_methods` | Erlaubte Zahlungsmethoden | – |
-| `subscription_invoice_prefix` | Rechnungsnummer-Prefix | – |
-| `subscription_invoice_next_number` | Nächste Rechnungsnummer | – |
-| `subscription_tax_rate` | Steuersatz (%) | `0` |
-| `subscription_notification_*` | E-Mail-Benachrichtigungen | – |
-| `subscription_terms_page` | AGB-Seite (Page-ID) | – |
-| `subscription_cancellation_page` | Widerrufsseite (Page-ID) | – |
+| `trial_enabled` | Trial-Phase aktivieren | `0` |
+| `trial_days` | Dauer Trial in Tagen | `14` |
+| `auto_renewal` | Auto-Verlängerung | `1` |
+| `grace_period_days` | Karenzzeit nach Ablauf | `3` |
+| `cancellation_period_days` | Kündigungsfrist | `0` |
+| `payment_methods` | Erlaubte Zahlungsmethoden | `invoice` |
+| `invoice_prefix` | Rechnungsnummer-Prefix | `INV-` |
+| `invoice_next_number` | Nächste Rechnungsnummer | `1001` |
+| `tax_rate` | Steuersatz (%) | `19` |
+| `tax_included` | Preise inklusive MwSt. | `1` |
+| `notification_before_expiry` | Vorwarnung vor Ablauf in Tagen | `7` |
+| `notification_email` | Zieladresse für Abo-Hinweise | – |
+| `terms_page_id` | AGB-Seite (Page-ID) | `0` |
+| `cancellation_page_id` | Widerrufsseite (Page-ID) | `0` |
 
 Preislogik, Trial, Steuern und Paketdetails werden im Package-Settings-Tab gepflegt, nicht bei General Settings.
+
+### Laufzeitvertrag des Standardpakets seit 2.9.621
+
+Das unter `subscription_default_plan_id` gespeicherte Standardpaket wirkt jetzt direkt auf neue Mitglieder:
+
+- öffentliche Registrierungen über `CMS\Auth::register()`
+- neu im Admin angelegte Member-Konten über `CMS\Services\UserService::createUser()`
+
+Die Zuweisung läuft zentral über `CMS\SubscriptionManager::assignConfiguredDefaultPlan()`.
+
+Wichtige Details:
+
+- nur **aktive** referenzierte Pakete werden automatisch zugewiesen
+- bestehende aktive oder Trial-Abos werden nicht still überschrieben
+- ist kein Standardpaket konfiguriert, bleibt die Registrierung ohne Zusatzmutation erfolgreich
+- stale oder deaktivierte Paket-IDs führen fail-soft dazu, dass kein Default-Abo angelegt wird
 
 ---
 
@@ -110,6 +128,7 @@ Wichtige Bezugspunkte:
 1. `/admin/subscription-settings` öffnen
 2. Standardpaket auswählen
 3. speichern
+4. neue öffentliche Registrierungen und neu im Admin angelegte Member-Konten erhalten das aktive Paket automatisch
 
 ### Paket manuell zuweisen
 
