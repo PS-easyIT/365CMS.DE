@@ -1,6 +1,6 @@
 # 365CMS.DE
 
-**Version:** [2.9.702](Changelog.md) · **Status:** Stable · **PHP:** 8.4+ · **MySQL:** 5.7+ · **MariaDB:** 10.3+
+**Version:** [2.9.703](Changelog.md) · **Status:** Stable · **PHP:** 8.4+ · **MySQL:** 5.7+ · **MariaDB:** 10.3+
 
 <div align="center">
 
@@ -133,7 +133,7 @@ Der Admin-Bereich ist so aufgebaut, dass inhaltliche, technische und betrieblich
 | Bereich | Was man dort steuert | Typische Aufgaben |
 |---|---|---|
 | **Dashboard** | KPIs, Schnellzugriffe, zentrale Einstiegspunkte, fail-softe Statuskarten und benutzerbezogene Sichtbarkeitsprofile | Überblick gewinnen, häufige Aufgaben anstoßen, Status prüfen und die Startansicht pro Admin fokussieren, ohne kritische Alerts zu verstecken |
-| **AI Services** | Provider, Übersetzung, Content-/SEO-Helfer, Logging, Quotas und Nutzungsmonitoring | KI-Workflows freigeben, Leitplanken setzen, letzte Läufe nachvollziehen und redaktionelle Assistenz kontrolliert betreiben |
+| **AI Services** | Provider, Übersetzung, Prompt-Vorlagen, Content-/SEO-Helfer, Logging, Quotas und Nutzungsmonitoring | KI-Workflows freigeben, Leitplanken setzen, letzte Läufe nachvollziehen und redaktionelle Assistenz kontrolliert betreiben |
 | **Seiten & Beiträge** | Content-Struktur, redaktionelle Inhalte, Kommentare und Inhaltsbausteine | Inhalte erstellen, strukturieren, pflegen, veröffentlichen und stabile Slug-/Taxonomie-Pfade erhalten |
 | **Medien** | Bibliothek, Beitrags & Site Medien, Kategorien, Einstellungen und Dateimanagement | Uploads verwalten, Dateien organisieren, Beitrags-/Seitenbilder mit festem Bildvertrag gezielt ersetzen und Medien für Inhalte vorbereiten |
 | **Benutzer & Gruppen** | Benutzerkonten, Teams, Rollen, Rechte und Auth-Einstellungen | Zugriffe über eine gemeinsame Rollenmatrix definieren, Benutzer pflegen und dieselbe Passwort-Policy in Public- und Admin-Auth-Flows durchziehen |
@@ -337,7 +337,7 @@ The admin area is structured so editorial, technical and operational work does n
 | Area | What you manage there | Typical tasks |
 |---|---|---|
 | **Dashboard** | KPIs, shortcuts and central entry points | Get an overview, start common tasks and review status quickly |
-| **AI Services** | Providers, translation, content/SEO helpers, logging, quotas and usage monitoring | Govern AI workflows, review recent runs and operate editorial assistance with clear guardrails |
+| **AI Services** | Providers, translation, prompt templates, content/SEO helpers, logging, quotas and usage monitoring | Govern AI workflows, review recent runs and operate editorial assistance with clear guardrails |
 | **Pages & Posts** | Content structure, editorial content, comments and supporting content blocks | Create, edit, organize, publish content and keep slug/taxonomy links stable |
 | **Media** | Library, Post & Site Media, categories, settings and file management | Upload files, manage media collections, replace post/page images in place under a fixed image contract and prepare assets for content |
 | **Users & Groups** | Accounts, teams, roles, permissions and authentication settings | Define access, maintain users and control security-related settings |

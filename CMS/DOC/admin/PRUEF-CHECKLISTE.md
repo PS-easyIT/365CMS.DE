@@ -203,7 +203,7 @@ Die Sidebar in `CMS/admin/partials/sidebar.php` ist für die Menüstruktur führ
 
 ### Nice-to-haves
 
-- [ ] Prompt-/Vorlagenverwaltung je Bereich.
+- [x] Prompt-/Vorlagenverwaltung je Bereich.
 - [x] Verlauf / Historie je Generierung.
 - [x] Kosten- oder Token-Monitoring im Dashboard.
 
@@ -217,8 +217,7 @@ Die Sidebar in `CMS/admin/partials/sidebar.php` ist für die Menüstruktur führ
 - **Umsetzung in diesem Durchlauf:** Der Review-/Preview-Schritt wird jetzt beim Laden und Speichern der Translation-Konfiguration serverseitig erzwungen; die Admin-UI dokumentiert den Schritt als festen Sicherheitsvertrag statt als frei abschaltbaren Toggle.
 - **Abhängige Bereiche:** Editor.js-Übersetzung, Provider-Gateway, Logging/Audit, Quotas, Rechteprüfung im AI-Hauptbereich
 - **Offene Must-haves:** keine
-- **Offene Nice-to-haves:** Prompt-Vorlagen, Verlauf/Historie, Kosten-/Token-Monitoring
-- **Offene Nice-to-haves:** Prompt-Vorlagen, Verlauf/Historie, Kosten-/Token-Monitoring
+- **Offene Nice-to-haves zu diesem Zeitpunkt:** Prompt-Vorlagen, Verlauf/Historie, Kosten-/Token-Monitoring; in den nachfolgenden Nice-to-have-Durchläufen `2.9.702` und `2.9.703` umgesetzt bzw. eingegrenzt.
 - **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/system-settings/AI-SERVICES.md`, `CMS/DOC/ai/AI-SERVICES.md`
 
 ### Audit-Stand – AI Services Nice-to-haves · Durchlauf 1
@@ -231,8 +230,21 @@ Die Sidebar in `CMS/admin/partials/sidebar.php` ist für die Menüstruktur führ
 - **Umsetzung in diesem Durchlauf:** Das AI-Dashboard aggregiert jetzt die letzten protokollierten `ai.editorjs.translate.processed`-/`failed`-Läufe aus `audit_log`, zeigt Erfolgsquote, letzte Läufe, Provider-Auslastung sowie Tages-/Monatskontingente an und nutzt dafür bewusst nur datensparsame Metadaten wie Provider, Ziel-Locale, Laufzeit, Block- und Zeichenanzahl. Rohprompts, Volltexte und Secrets werden weder gespeichert noch im Dashboard ausgegeben. Zusätzlich schreibt die Editor.js-Translation bei aktivierten Request-Metriken Zeichen- und Blockzahlen in den Audit-Kontext, damit Verlauf und Budgetanzeigen belastbar bleiben.
 - **Abhängige Bereiche:** `AiServicesModule`, `AiEditorJsTranslationModule`, `AiProviderGateway`, `audit_log`, AI-Settings `ai.logging` und `ai.quotas`
 - **Offene Must-haves:** keine
-- **Offene Nice-to-haves:** Prompt-Vorlagen je Bereich, exakte providerübergreifende Token-/Kostenintegration bei künftig konsistenten Usage-Rückgaben
+- **Offene Nice-to-haves:** exakte providerübergreifende Token-/Kostenintegration bei künftig konsistenten Usage-Rückgaben
 - **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/system-settings/AI-SERVICES.md`, `CMS/DOC/ai/AI-SERVICES.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`
+
+### Audit-Stand – AI Services Nice-to-haves · Durchlauf 2
+
+- **Status:** abgeschlossen auf Code-/Best-Practice-/Vertragsbasis · Release `2.9.703`
+- **Prüfer:** GitHub Copilot
+- **Datum:** 2026-05-09
+- **Geprüfte Routen:** `/admin/ai-translation`, `/admin/ai-content-creator`, `/admin/ai-seo-creator`
+- **Umgesetztes Nice-to-have:** Prompt-/Vorlagenverwaltung je Bereich.
+- **Umsetzung in diesem Durchlauf:** `ai.prompts` ergänzt die AI-Settings um je eine verwaltbare Vorlage für Übersetzung, Content Creator und SEO Creator. Die Translation-Vorlage wird in der Editor.js-Live-Pipeline an die Prompting-Provider übergeben; serverseitige Pflicht-Leitplanken gegen Prompt Injection, Systemprompt-Leaks und Secret-Offenlegung bleiben unabhängig von Admin-Eingaben aktiv. Content- und SEO-Vorlagen sind als geprüfte Briefing-/Leitplankenbasis für kommende Generatoren vorbereitet.
+- **Abhängige Bereiche:** `AiSettingsService`, `AiProviderGateway`, `EditorJsTranslationPipeline`, `AbstractPromptingAiProvider`, `AiServicesModule`, AI-Routen-POST-Vertrag
+- **Offene Must-haves:** keine
+- **Offene Nice-to-haves:** exakte providerübergreifende Token-/Kostenintegration bei künftig konsistenten Usage-Rückgaben
+- **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/system-settings/AI-SERVICES.md`, `CMS/DOC/admin/system-settings/README.md`, `CMS/DOC/ai/AI-SERVICES.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`
 
 ---
 

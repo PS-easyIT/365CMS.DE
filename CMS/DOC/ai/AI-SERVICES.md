@@ -2,9 +2,9 @@
 
 Kurzbeschreibung: Kanonische Konzept- und Architektur-Dokumentation für den Bereich **AI Services** in 365CMS. Der Fokus liegt auf Provider-Scope, Feature-Gates, Admin-Steuerung, Editor.js-Übersetzung und einem kontrollierten, ausbaufähigen KI-Betriebsmodell.
 
-Letzte Aktualisierung: 2026-05-09 · Version 2.9.702
+Letzte Aktualisierung: 2026-05-09 · Version 2.9.703
 
-> **Wichtig:** Diese Datei bleibt die führende Fach- und Architekturreferenz. Seit `2.9.210` existieren bereits eine **runtime-seitige Settings- und Admin-Hülle** unter `/admin/ai-services`, ein **Provider-Gateway** mit gezielt anlegbarer Provider-Liste, ein integrierter **`mock`-Provider**, die ersten **Live-Adapter für `ollama` und `azure_openai`**, der geschützte Endpoint **`/admin/ai-translate-editorjs`** sowie ein **bewusster Preview-/Diff-Workflow vor der EN-Übernahme**. Seit `2.9.616` ist dieser Review-Schritt serverseitig verpflichtend und kann im Admin nicht mehr abgeschaltet werden. Seit `2.9.702` verdichtet das AI-Dashboard zusätzlich request- und quota-nahe Nutzungsdaten sowie letzte Generierungsläufe aus `audit_log`, ohne Rohprompts oder Volltexte offenzulegen. **Noch nicht umgesetzt** sind feingranulare Daily-/Monthly-Quota-Erzwingung und weitere Bridge-Provider wie OpenAI/OpenRouter.
+> **Wichtig:** Diese Datei bleibt die führende Fach- und Architekturreferenz. Seit `2.9.210` existieren bereits eine **runtime-seitige Settings- und Admin-Hülle** unter `/admin/ai-services`, ein **Provider-Gateway** mit gezielt anlegbarer Provider-Liste, ein integrierter **`mock`-Provider**, die ersten **Live-Adapter für `ollama` und `azure_openai`**, der geschützte Endpoint **`/admin/ai-translate-editorjs`** sowie ein **bewusster Preview-/Diff-Workflow vor der EN-Übernahme**. Seit `2.9.616` ist dieser Review-Schritt serverseitig verpflichtend und kann im Admin nicht mehr abgeschaltet werden. Seit `2.9.702` verdichtet das AI-Dashboard zusätzlich request- und quota-nahe Nutzungsdaten sowie letzte Generierungsläufe aus `audit_log`, ohne Rohprompts oder Volltexte offenzulegen. Seit `2.9.703` verwaltet der Admin Prompt-Vorlagen je Bereich; die Translation-Vorlage wirkt direkt in der Editor.js-Live-Pipeline, Content- und SEO-Vorlagen bereiten kommende Generatoren vor. **Noch nicht umgesetzt** sind feingranulare Daily-/Monthly-Quota-Erzwingung und weitere Bridge-Provider wie OpenAI/OpenRouter.
 
 ## Inhaltsverzeichnis
 - [Ziel und Abgrenzung](#ziel-und-abgrenzung)
@@ -440,6 +440,7 @@ Sinnvolle logische Gruppen:
 - `ai.translation`
 - `ai.logging`
 - `ai.quotas`
+- `ai.prompts`
 
 ### Warum diese Schichtung sinnvoll ist
 
@@ -565,6 +566,34 @@ Zweck:
 | `daily_chars_per_user` | `int` | Zeichenbudget pro Benutzer/Tag |
 | `monthly_requests_per_provider` | `int` | monatliches Budget pro Provider |
 
+### 6. `ai.prompts`
+
+Zweck:
+
+- Prompt-/Vorlagenverwaltung je AI-Bereich
+- klare Trennung von System-Instruktion und strukturierten Nutzdaten
+- vorbereitete Leitplanken für kommende Content- und SEO-Generatoren
+
+Persistierte Bereiche:
+
+| Key | Typ | Zweck |
+|---|---|---|
+| `translation` | `array` | Runtime-Vorlage für Editor.js-Übersetzungen |
+| `content_creator` | `array` | Briefing-Vorlage für spätere Rewrite-/Summary-/Outline-Flows |
+| `seo_creator` | `array` | Briefing-Vorlage für spätere Meta-/Snippet-/Schema-Hilfen |
+
+Struktur pro Bereich:
+
+| Feld | Typ | Zweck |
+|---|---|---|
+| `enabled` | `bool` | Vorlage aktiv verwenden |
+| `label` | `string` | Anzeigename im Admin |
+| `system_prompt` | `string` | fachliche System-Leitplanken ohne Secrets |
+| `user_template` | `string` | strukturierte Nutzdatenvorlage mit Platzhaltern |
+| `notes` | `string` | interne Notiz, wird nicht an Provider gesendet |
+
+Die Translation-Vorlage unterstützt u. a. `{source_locale}`, `{target_locale}`, `{content_type}`, `{segment_count}` und `{segments_json}`. Selbst bei aktivierter Vorlage hängt die Runtime zusätzliche Pflichtregeln an, damit Segmenttexte als untrusted data behandelt werden und Systemprompt-/Secret-Leaks nicht durch eine Admin-Vorlage aufgeweicht werden.
+
 ### Beispielhafte Persistenzsicht
 
 Die Gruppen werden **nicht** als separate Tabellen eingeführt, sondern als logische Bereiche in der vorhandenen Settings-Infrastruktur. Dadurch bleibt die erste Umsetzung klein, migrationsarm und gut in bestehende Admin-Konfigurationen integriert.
@@ -592,13 +621,14 @@ Bereits umgesetzt:
 - Live-Übersetzungen über Ollama und Azure AI im bestehenden Editor.js-Workflow
 - request- und quota-nahes Nutzungsmonitoring im AI-Dashboard auf Basis von `audit_log`
 - Verlaufstabelle der letzten AI-Generierungsläufe ohne Rohprompt-/Volltextanzeige
+- Prompt-/Vorlagenverwaltung je Bereich; die Translation-Vorlage wird direkt in `AbstractPromptingAiProvider::buildTranslationPrompt()` berücksichtigt und serverseitig mit Pflicht-Sicherheitsregeln ergänzt
 - eigener AI-Hauptbereich in der Sidebar
 - vorbereitete Default-Capabilities für AI-Verwaltung/Nutzung in `CMS/includes/functions/roles.php`
 
 Der aktuelle Scope dieser Umsetzung ist bewusst:
 
 - **Settings-, Gateway- und Mock-Runtime-Implementierung**
-- **Editor.js-Translation zur Laufzeit über lokalen Mock-Datenfluss**
+- **Editor.js-Translation zur Laufzeit über Mock-, Ollama- oder Azure-AI-Datenfluss**
 - **Rückführung in lokalisierte EN-Felder von Posts/Pages**
 - **keine** externen produktiven Provider-Requests
 
@@ -687,7 +717,7 @@ Folgende Punkte sind **trotz der neuen Live-Runtime-Stufe** noch nicht vollstän
 5. **produktive Datenschutz- und Audit-Integration** mit sauberer Daily-/Monthly-Quota-Erzwingung
 6. **Tests / Smoke-Checks** für Scope, Limits, Provider-Fallback, Preview-Übernahme und Blockerhaltung
 
-Kurz gesagt: **Struktur, Persistenz, Provider-Liste, Gateway, Preview-/Diff-Übernahme sowie erste Live-Ausführung über Ollama und Azure AI stehen jetzt – weitere Provider und tiefere Governance-Schichten folgen.**
+Kurz gesagt: **Struktur, Persistenz, Prompt-Vorlagen, Provider-Liste, Gateway, Preview-/Diff-Übernahme sowie erste Live-Ausführung über Ollama und Azure AI stehen jetzt – weitere Provider und tiefere Governance-Schichten folgen.**
 
 ---
 

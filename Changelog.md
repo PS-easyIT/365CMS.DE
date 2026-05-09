@@ -1,4 +1,4 @@
-﻿﻿**Version:** 2.9.702
+﻿﻿**Version:** 2.9.703
 
 # 365CMS Changelog
 
@@ -19,6 +19,12 @@
 ## 📜 Vollständige Versionshistorie
 
 ---
+
+### v2.9.703 — 9. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.703** | 🟢 feat | Admin/AI Services Prompt-Vorlagen | **`CMS/core/Services/AI/AiSettingsService.php`, `CMS/core/Services/AI/AiProviderGateway.php`, `CMS/core/Services/AI/EditorJsTranslationPipeline.php`, `CMS/core/Services/AI/Providers/AbstractPromptingAiProvider.php`, `CMS/admin/ai-page.php`, `CMS/admin/modules/system/AiServicesModule.php`, `CMS/admin/views/system/ai-services.php`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`, `CMS/DOC/admin/system-settings/AI-SERVICES.md`, `CMS/DOC/admin/system-settings/README.md`, `CMS/DOC/ai/AI-SERVICES.md`, `CMS/DOC/admin/README.md`, `CMS/core/Version.php`, `CMS/update.json` und `README.md` schließen das letzte direkte AI-Services-Nice-to-have ab**: Der Admin verwaltet jetzt Prompt-/Vorlagen je Bereich über `ai.prompts`. Die Translation-Vorlage wirkt direkt in der Editor.js-Live-Pipeline für Prompting-Provider, während Content- und SEO-Vorlagen als geprüfte Briefing-/Leitplankenbasis für kommende Generatoren bereitstehen. Prompt-Änderungen laufen über den bestehenden CSRF-/PRG-Vertrag, werden ohne Prompt-Volltext auditierbar protokolliert und behalten serverseitige Pflichtregeln gegen Prompt Injection, Systemprompt-Leaks und Secret-Offenlegung bei. |
 
 ### v2.9.702 — 9. Mai 2026
 

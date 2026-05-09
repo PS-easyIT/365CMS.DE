@@ -1,5 +1,5 @@
 # 365CMS – Admin-Bereich
-> **Stand:** 2026-05-09 | **Version:** 2.9.702 | **Status:** Aktuell
+> **Stand:** 2026-05-09 | **Version:** 2.9.703 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Überblick](#überblick)
@@ -10,7 +10,7 @@
 
 Die Struktur folgt der aktuellen Sidebar-Konfiguration aus `CMS/admin/partials/sidebar.php`. Öffentliche Admin-Routen werden in der Dokumentation bewusst ohne `.php` beschrieben.
 
-Für Detailfragen gilt die reale Sidebar- und Routing-Laufzeit als führend; diese Datei ist die verdichtete 2.9.702-Übersicht, nicht der einzige Wahrheitsspeicher.
+Für Detailfragen gilt die reale Sidebar- und Routing-Laufzeit als führend; diese Datei ist die verdichtete 2.9.703-Übersicht, nicht der einzige Wahrheitsspeicher.
 
 ---
 <!-- UPDATED: 2026-05-09 -->
@@ -36,7 +36,7 @@ Wichtige Grundsätze:
 | Menügruppe | Wichtige Routen | Zweck |
 |---|---|---|
 | Dashboard | `/admin` | Gesamtüberblick, KPIs, Schnellzugriffe, fail-softe Statusblöcke und benutzerbezogene Sichtbarkeitsprofile |
-| AI Services | `/admin/ai-services`, `/admin/ai-translation`, `/admin/ai-content-creator`, `/admin/ai-seo-creator`, `/admin/ai-settings` | Provider, Translation-Regeln, Logging, Quotas und request-/historiennahe AI-Beobachtung |
+| AI Services | `/admin/ai-services`, `/admin/ai-translation`, `/admin/ai-content-creator`, `/admin/ai-seo-creator`, `/admin/ai-settings` | Provider, Translation-Regeln, Prompt-Vorlagen, Logging, Quotas und request-/historiennahe AI-Beobachtung |
 | Seiten & Beiträge | `/admin/pages`, `/admin/posts`, `/admin/comments`, `/admin/table-of-contents`, `/admin/site-tables` | Content-Management mit stabilem Slug-/Taxonomie-Vertrag für Seiten, Beiträge und Blog-Filter |
 | Medienverwaltung | `/admin/media`, `/admin/media?tab=featured`, `/admin/media?tab=categories`, `/admin/media?tab=settings` | Bibliothek, Beitrags-/Site-Medien, Kategorien, Medieneinstellungen mit festem Bildvertrag im Replace-in-place-Flow |
 | Benutzer & Gruppen | `/admin/users`, `/admin/groups`, `/admin/roles`, `/admin/user-settings` | Benutzer, Teams, Rechte und Auth-Einstellungen mit gemeinsamer Rollenmatrix und einheitlicher 12-Zeichen-Passwort-Policy |
