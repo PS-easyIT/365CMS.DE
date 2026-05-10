@@ -71,8 +71,14 @@ class UsersModule
     public function getEditData(?int $id): array
     {
         $user = null;
+        $securityEventsState = [
+            'events' => [],
+            'unavailable' => false,
+        ];
+
         if ($id !== null) {
             $user = $this->userService->getUserById($id);
+            $securityEventsState = $user !== null ? $this->getUserSecurityEvents($user) : $securityEventsState;
         }
 
         return [
@@ -80,7 +86,82 @@ class UsersModule
             'isNew'             => $user === null,
             'availableRoles'    => $this->userService->getAvailableRoles(),
             'availableStatuses' => $this->userService->getAvailableStatuses(),
+            'securityEvents'    => $securityEventsState['events'],
+            'securityEventsUnavailable' => (bool) $securityEventsState['unavailable'],
         ];
+    }
+
+    /**
+     * Letzte sicherheitsrelevante Ereignisse zum Benutzerprofil.
+     *
+     * Die Profilanzeige ist bewusst read-only und fail-soft: Audit-Log-Fehler dürfen
+     * weder die Benutzerverwaltung blockieren noch einen 500er auslösen.
+     *
+     * @return array{events:array<int,object>,unavailable:bool}
+     */
+    private function getUserSecurityEvents(object $user, int $limit = 10): array
+    {
+        $userId = (int) ($user->id ?? 0);
+        if ($userId <= 0) {
+            return ['events' => [], 'unavailable' => false];
+        }
+
+        $limit = max(1, min(20, $limit));
+        $clauses = [
+            'user_id = ?',
+            '(entity_type = ? AND entity_id = ?)',
+        ];
+        $params = [
+            $userId,
+            'user',
+            $userId,
+        ];
+
+        $metadataIdentityClauses = [];
+        foreach ([$user->username ?? '', $user->email ?? ''] as $identity) {
+            $identity = trim((string) $identity);
+            if ($identity === '') {
+                continue;
+            }
+
+            $metadataIdentityClauses[] = '(category = ? AND metadata LIKE ? ESCAPE \'\\\')';
+            $params[] = 'auth';
+            $params[] = '%"username":"' . $this->escapeSqlLike($identity) . '"%';
+        }
+
+        if ($metadataIdentityClauses !== []) {
+            $clauses[] = '(' . implode(' OR ', $metadataIdentityClauses) . ')';
+        }
+
+        try {
+            $stmt = $this->db->prepare(
+                "SELECT id, user_id, category, action, entity_type, entity_id,
+                        description, ip_address, severity, created_at
+                   FROM {$this->prefix}audit_log
+                  WHERE (" . implode(' OR ', $clauses) . ")
+                    AND (category IN ('auth', 'security', 'user') OR action LIKE 'auth.%' OR action LIKE 'login_%')
+                  ORDER BY created_at DESC
+                  LIMIT {$limit}"
+            );
+            $stmt->execute($params);
+
+            return [
+                'events' => $stmt->fetchAll(\PDO::FETCH_OBJ) ?: [],
+                'unavailable' => false,
+            ];
+        } catch (\Throwable $e) {
+            Logger::instance()->withChannel('admin.users')->warning('Benutzer-Sicherheitsereignisse konnten nicht geladen werden.', [
+                'exception' => $e::class,
+                'user_id' => $userId,
+            ]);
+
+            return ['events' => [], 'unavailable' => true];
+        }
+    }
+
+    private function escapeSqlLike(string $value): string
+    {
+        return addcslashes($value, "\\%_");
     }
 
     public function hasUser(int $id): bool
@@ -182,7 +263,7 @@ class UsersModule
             }
         } catch (\Throwable $e) {
             Logger::instance()->withChannel('admin.users')->error('Benutzer konnte nicht gespeichert werden.', [
-                'exception' => $e->getMessage(),
+                'exception_class' => $e::class,
                 'user_id' => $id,
                 'payload_keys' => array_keys($post),
             ]);
@@ -192,11 +273,11 @@ class UsersModule
                 'error' => 'Benutzer konnte nicht gespeichert werden.',
                 'error_details' => [
                     'Die Benutzerverwaltung hat den Speichervorgang wegen eines internen Fehlers abgebrochen.',
-                    'Technischer Hinweis: ' . $this->normalizeScalarText($e->getMessage(), 250),
+                    'Details wurden im Server-Log protokolliert.',
                 ],
                 'report_payload' => [
                     'title' => 'Benutzer konnte nicht gespeichert werden',
-                    'message' => $this->normalizeScalarText($e->getMessage(), 500),
+                    'message' => 'Die Benutzerverwaltung hat den Speichervorgang wegen eines internen Fehlers abgebrochen. Details wurden im Server-Log protokolliert.',
                     'error_code' => 'users_save_exception',
                     'source_url' => $this->buildUserEditSourceUrl($id),
                     'context' => [
@@ -204,6 +285,7 @@ class UsersModule
                         'operation' => $id > 0 ? 'update' : 'create',
                         'user_id' => $id,
                         'payload_keys' => array_keys($post),
+                        'exception_class' => $e::class,
                     ],
                 ],
             ];
@@ -266,7 +348,7 @@ class UsersModule
             return ['success' => true, 'message' => 'Benutzer dauerhaft gelöscht.'];
         } catch (\Throwable $e) {
             Logger::instance()->withChannel('admin.users')->error('Benutzer konnte nicht gelöscht werden.', [
-                'exception' => $e->getMessage(),
+                'exception_class' => $e::class,
                 'user_id' => $id,
             ]);
 
@@ -275,17 +357,18 @@ class UsersModule
                 'error' => 'Benutzer konnte nicht gelöscht werden.',
                 'error_details' => [
                     'Die Benutzerverwaltung hat den Löschvorgang wegen eines internen Fehlers abgebrochen.',
-                    'Technischer Hinweis: ' . $this->normalizeScalarText($e->getMessage(), 250),
+                    'Details wurden im Server-Log protokolliert.',
                 ],
                 'report_payload' => [
                     'title' => 'Benutzer konnte nicht gelöscht werden',
-                    'message' => $this->normalizeScalarText($e->getMessage(), 500),
+                    'message' => 'Die Benutzerverwaltung hat den Löschvorgang wegen eines internen Fehlers abgebrochen. Details wurden im Server-Log protokolliert.',
                     'error_code' => 'users_delete_exception',
                     'source_url' => '/admin/users',
                     'context' => [
                         'module' => 'users',
                         'operation' => 'delete',
                         'user_id' => $id,
+                        'exception_class' => $e::class,
                     ],
                 ],
             ];

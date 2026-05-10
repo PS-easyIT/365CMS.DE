@@ -29,6 +29,9 @@ class MediaModule
     private const MAX_UPLOAD_BATCH_BYTES = 104857600;
     private const MAX_UPLOAD_SIZE_MB = 256;
     private const MIN_UPLOAD_SIZE_MB = 1;
+    private const MEDIA_PROCESSING_JOB_BATCH_SIZE = 5;
+    private const MEDIA_PROCESSING_JOB_MAX_CANDIDATES = 1000;
+    private const MEDIA_PROCESSING_JOB_MAX_FILE_BYTES = 1048576;
     private const SEARCH_MAX_LENGTH = 120;
     private const FOLDER_NAME_MAX_LENGTH = 120;
     private const CATEGORY_NAME_MAX_LENGTH = 80;
@@ -76,6 +79,11 @@ class MediaModule
     private const ALLOWED_VIEWS = ['list', 'grid'];
     private const ALLOWED_TABS = ['library', 'featured', 'categories', 'settings'];
     private const ALLOWED_USAGE_FILTERS = ['all', 'used', 'unused'];
+    private const ALLOWED_FILE_TYPE_FILTERS = ['all', 'image', 'document', 'video', 'audio', 'archive', 'other'];
+    private const ALLOWED_SIZE_FILTERS = ['all', 'tiny', 'small', 'medium', 'large', 'huge'];
+    private const ALLOWED_MODIFIED_FILTERS = ['all', 'today', '7d', '30d', 'year'];
+    private const ALLOWED_PROCESSING_MODES = ['all', 'webp', 'thumbnails'];
+    private const EXTENSION_FILTER_MAX_LENGTH = 16;
     private const SYSTEM_CATEGORY_SLUGS = ['themes', 'plugins', 'assets', 'fonts', 'dl-manager', 'form-uploads', 'member'];
 
     /**
@@ -237,6 +245,12 @@ class MediaModule
         $view     = $this->normalizeView((string)($_GET['view'] ?? 'list'));
         $search   = $this->sanitizeSearch((string)($_GET['q'] ?? ''));
         $usageFilter = $this->normalizeUsageFilter((string)($_GET['usage_filter'] ?? 'all'));
+        $advancedFilters = [
+            'file_type' => $this->normalizeFileTypeFilter((string)($_GET['file_type'] ?? 'all')),
+            'extension' => $this->normalizeExtensionFilter((string)($_GET['extension'] ?? '')),
+            'size' => $this->normalizeSizeFilter((string)($_GET['size_filter'] ?? 'all')),
+            'modified' => $this->normalizeModifiedFilter((string)($_GET['modified_filter'] ?? 'all')),
+        ];
         $confirmMember = (string)($_GET['confirm_member'] ?? '') === '1';
 
         if ($category !== '' && !$this->categoryExists($category)) {
@@ -272,10 +286,15 @@ class MediaModule
             }));
         }
 
+        $extensionOptions = $this->buildExtensionFilterOptions($items['files'] ?? [], $advancedFilters['extension']);
+        if ($this->hasActiveAdvancedMediaFilters($advancedFilters)) {
+            $items['files'] = $this->applyAdvancedMediaFilters($items['files'] ?? [], $advancedFilters);
+        }
+
         $categories = $this->getCategories();
         $diskUsage  = $this->service->getDiskUsage();
-        $stateParams = $this->buildLibraryStateParams($path, $view, $category, $search, $usageFilter, $confirmMember);
-        $rootStateParams = $this->buildLibraryStateParams('', $view, $category, $search, $usageFilter, $confirmMember);
+        $stateParams = $this->buildLibraryStateParams($path, $view, $category, $search, $usageFilter, $confirmMember, $advancedFilters);
+        $rootStateParams = $this->buildLibraryStateParams('', $view, $category, $search, $usageFilter, $confirmMember, $advancedFilters);
 
         $usageMap = $this->usageService->buildUsageMap(array_map(
             static fn (array $file): string => (string) ($file['path'] ?? ''),
@@ -295,10 +314,10 @@ class MediaModule
             static fn (array $file): string => (string) ($file['path'] ?? ''),
             is_array($items['files'] ?? null) ? $items['files'] : []
         ));
-        $stats = $this->buildLibraryStats($items, $categories, $diskUsage, $duplicateMap);
+        $stats = $this->buildLibraryStats($items, $categories, $diskUsage, $duplicateMap, $usageMap);
 
         return [
-            'folders'    => $this->buildFolderViewModels($items['folders'] ?? [], $path, $view, $category, $search, $usageFilter, $confirmMember),
+            'folders'    => $this->buildFolderViewModels($items['folders'] ?? [], $path, $view, $category, $search, $usageFilter, $confirmMember, $advancedFilters),
             'files'      => $this->buildFileViewModels($items['files'] ?? [], $path, $usageMap, $duplicateMap),
             'categories' => $categories,
             'diskUsage'  => $diskUsage,
@@ -307,19 +326,28 @@ class MediaModule
             'view'       => $view,
             'search'     => $search,
             'usage_filter' => $usageFilter,
+            'file_type_filter' => $advancedFilters['file_type'],
+            'extension_filter' => $advancedFilters['extension'],
+            'size_filter' => $advancedFilters['size'],
+            'modified_filter' => $advancedFilters['modified'],
             'confirm_member' => $confirmMember,
-            'breadcrumbs' => $this->buildBreadcrumbs($path, $view, $category, $search, $usageFilter, $confirmMember),
+            'breadcrumbs' => $this->buildBreadcrumbs($path, $view, $category, $search, $usageFilter, $confirmMember, $advancedFilters),
             'stats' => $stats,
             'base_url' => $this->buildAdminUrl(),
-            'list_url' => $this->buildAdminUrl($this->buildLibraryStateParams($path, 'list', $category, $search, $usageFilter, $confirmMember)),
-            'grid_url' => $this->buildAdminUrl($this->buildLibraryStateParams($path, 'grid', $category, $search, $usageFilter, $confirmMember)),
+            'list_url' => $this->buildAdminUrl($this->buildLibraryStateParams($path, 'list', $category, $search, $usageFilter, $confirmMember, $advancedFilters)),
+            'grid_url' => $this->buildAdminUrl($this->buildLibraryStateParams($path, 'grid', $category, $search, $usageFilter, $confirmMember, $advancedFilters)),
             'root_url' => $this->buildAdminUrl($rootStateParams),
+            'reset_filter_url' => $this->buildAdminUrl($this->buildLibraryStateParams($path, $view, '', '', 'all', $confirmMember)),
             'filter_state' => [
                 'path' => $path,
                 'view' => $view,
                 'category' => $category,
                 'search' => $search,
                 'usage_filter' => $usageFilter,
+                'file_type' => $advancedFilters['file_type'],
+                'extension' => $advancedFilters['extension'],
+                'size' => $advancedFilters['size'],
+                'modified' => $advancedFilters['modified'],
             ],
             'category_options' => $this->buildCategoryOptions($categories),
             'usage_filter_options' => [
@@ -327,6 +355,10 @@ class MediaModule
                 ['value' => 'unused', 'label' => 'Nur ungenutzte'],
                 ['value' => 'used', 'label' => 'Nur eingebundene'],
             ],
+            'file_type_filter_options' => $this->buildFileTypeFilterOptions(),
+            'extension_filter_options' => $extensionOptions,
+            'size_filter_options' => $this->buildSizeFilterOptions(),
+            'modified_filter_options' => $this->buildModifiedFilterOptions(),
             'move_targets' => $this->buildMoveTargetOptions(),
             'bulk_actions' => [
                 ['value' => 'delete', 'label' => 'Auswahl löschen'],
@@ -981,6 +1013,7 @@ class MediaModule
             'settings'  => $this->buildSettingsViewModel($settings),
             'diskUsage' => $this->service->getDiskUsage(),
             'options' => $this->buildSettingsOptions(),
+            'processing_job' => $this->getMediaProcessingJobViewData(),
             'constraints' => [
                 'min_upload_size_mb' => self::MIN_UPLOAD_SIZE_MB,
                 'max_upload_size_mb' => self::MAX_UPLOAD_SIZE_MB,
@@ -990,7 +1023,201 @@ class MediaModule
                 'dimension_max' => 8000,
                 'thumbnail_min' => 50,
                 'thumbnail_max' => 6000,
+                'processing_batch_size' => self::MEDIA_PROCESSING_JOB_BATCH_SIZE,
+                'processing_max_candidates' => self::MEDIA_PROCESSING_JOB_MAX_CANDIDATES,
             ],
+        ];
+    }
+
+    public function normalizeProcessingMode(string $mode): string
+    {
+        $normalizedMode = strtolower(trim($mode));
+
+        return in_array($normalizedMode, self::ALLOWED_PROCESSING_MODES, true) ? $normalizedMode : 'all';
+    }
+
+    public function startMediaProcessingJob(string $mode): array
+    {
+        $mode = $this->normalizeProcessingMode($mode);
+        $paths = $this->service->collectImageDerivativeProcessingCandidates(self::MEDIA_PROCESSING_JOB_MAX_CANDIDATES);
+
+        if ($paths === []) {
+            $this->clearMediaProcessingJob();
+
+            return [
+                'success' => true,
+                'message' => 'Kein Medienjob gestartet: Es wurden keine geeigneten Bilddateien gefunden.',
+                'details' => ['Es werden nur JPG, PNG, GIF, WebP und BMP verarbeitet; bereits erzeugte Thumbnail-Derivate werden übersprungen.'],
+            ];
+        }
+
+        $now = date('c');
+        $job = [
+            'id' => 'media-derivatives-' . date('Ymd-His'),
+            'status' => 'queued',
+            'mode' => $mode,
+            'created_at' => $now,
+            'updated_at' => $now,
+            'total' => count($paths),
+            'cursor' => 0,
+            'processed' => 0,
+            'succeeded' => 0,
+            'skipped' => 0,
+            'failed' => 0,
+            'batch_size' => self::MEDIA_PROCESSING_JOB_BATCH_SIZE,
+            'paths' => $paths,
+            'last_details' => [],
+            'last_errors' => [],
+        ];
+
+        if (!$this->saveMediaProcessingJob($job)) {
+            return [
+                'success' => false,
+                'error' => 'Der Medienjob konnte nicht gespeichert werden.',
+                'details' => ['Bitte Schreibrechte für das CMS-Konfigurationsverzeichnis prüfen.'],
+            ];
+        }
+
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_MEDIA,
+            'media.derivative_job.started',
+            'Medien-Derivat-Job gestartet',
+            'media',
+            null,
+            ['mode' => $mode, 'total' => count($paths)],
+            'info'
+        );
+
+        return [
+            'success' => true,
+            'message' => 'Medienjob vorbereitet. Starte die Verarbeitung in kleinen Schritten, um Timeouts zu vermeiden.',
+            'details' => [
+                count($paths) . ' Bilddatei(en) in die Warteschlange gelegt.',
+                'Batchgröße: ' . self::MEDIA_PROCESSING_JOB_BATCH_SIZE . ' Datei(en) pro Schritt.',
+            ],
+        ];
+    }
+
+    public function processMediaProcessingJob(): array
+    {
+        $job = $this->loadMediaProcessingJob();
+        if ($job === []) {
+            return [
+                'success' => false,
+                'error' => 'Es ist kein Medienjob vorbereitet.',
+                'details' => ['Bitte zuerst einen neuen WebP-/Thumbnail-Job starten.'],
+            ];
+        }
+
+        $status = (string) ($job['status'] ?? 'queued');
+        if (in_array($status, ['completed', 'cancelled'], true)) {
+            return [
+                'success' => true,
+                'message' => $status === 'completed' ? 'Der Medienjob ist bereits abgeschlossen.' : 'Der Medienjob wurde abgebrochen.',
+                'details' => $this->buildMediaProcessingJobSummaryDetails($job),
+            ];
+        }
+
+        $paths = array_values(array_filter(array_map('strval', (array) ($job['paths'] ?? []))));
+        $total = count($paths);
+        $cursor = max(0, min($total, (int) ($job['cursor'] ?? 0)));
+        $batchSize = max(1, min(20, (int) ($job['batch_size'] ?? self::MEDIA_PROCESSING_JOB_BATCH_SIZE)));
+        $mode = $this->normalizeProcessingMode((string) ($job['mode'] ?? 'all'));
+        $generateWebp = in_array($mode, ['all', 'webp'], true);
+        $generateThumbnails = in_array($mode, ['all', 'thumbnails'], true);
+        $batch = array_slice($paths, $cursor, $batchSize);
+        $details = [];
+        $errors = [];
+
+        foreach ($batch as $path) {
+            try {
+                $result = $this->service->processImageDerivativeJobItem($path, $generateWebp, $generateThumbnails);
+            } catch (\Throwable $exception) {
+                $result = [
+                    'path' => $path,
+                    'status' => 'failed',
+                    'detail' => 'Unerwarteter Fehler bei der Bildverarbeitung. Details wurden protokolliert.',
+                    'webp' => 'failed',
+                    'thumbnails' => 'failed',
+                ];
+
+                Logger::instance()->withChannel('admin.media')->warning('Medien-Derivat-Job-Schritt fehlgeschlagen.', [
+                    'path' => $path,
+                    'exception_class' => $exception::class,
+                ]);
+            }
+
+            $job['processed'] = (int) ($job['processed'] ?? 0) + 1;
+            $cursor++;
+            $resultPath = (string) ($result['path'] ?? $path);
+            $resultDetail = trim((string) ($result['detail'] ?? ''));
+            $resultStatus = (string) ($result['status'] ?? 'failed');
+
+            if ($resultStatus === 'processed') {
+                $job['succeeded'] = (int) ($job['succeeded'] ?? 0) + 1;
+                $details[] = 'Erzeugt: ' . $resultPath;
+            } elseif ($resultStatus === 'skipped') {
+                $job['skipped'] = (int) ($job['skipped'] ?? 0) + 1;
+                $details[] = 'Übersprungen: ' . $resultPath . ($resultDetail !== '' ? ' (' . $resultDetail . ')' : '');
+            } else {
+                $job['failed'] = (int) ($job['failed'] ?? 0) + 1;
+                $errors[] = $resultPath . ($resultDetail !== '' ? ': ' . $resultDetail : ': Verarbeitung fehlgeschlagen');
+            }
+        }
+
+        $job['cursor'] = $cursor;
+        $job['updated_at'] = date('c');
+        $job['status'] = $cursor >= $total ? 'completed' : 'running';
+        $job['last_details'] = array_slice($details, 0, 8);
+        $job['last_errors'] = array_slice($errors, 0, 8);
+
+        if (!$this->saveMediaProcessingJob($job)) {
+            return [
+                'success' => false,
+                'error' => 'Der Medienjob-Fortschritt konnte nicht gespeichert werden.',
+                'details' => ['Die Verarbeitung wurde gestoppt, damit kein inkonsistenter Fortschritt angezeigt wird.'],
+                'error_details' => array_slice($errors, 0, 8),
+            ];
+        }
+
+        return [
+            'success' => true,
+            'message' => $job['status'] === 'completed'
+                ? 'Medienjob abgeschlossen.'
+                : 'Medienjob-Schritt verarbeitet. Weitere Dateien stehen noch aus.',
+            'details' => array_merge($this->buildMediaProcessingJobSummaryDetails($job), array_slice($details, 0, 4)),
+            'error_details' => array_slice($errors, 0, 8),
+        ];
+    }
+
+    public function cancelMediaProcessingJob(): array
+    {
+        $job = $this->loadMediaProcessingJob();
+        if ($job === []) {
+            return [
+                'success' => true,
+                'message' => 'Es gibt keinen aktiven Medienjob.',
+            ];
+        }
+
+        $job['status'] = 'cancelled';
+        $job['updated_at'] = date('c');
+        $this->saveMediaProcessingJob($job);
+
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_MEDIA,
+            'media.derivative_job.cancelled',
+            'Medien-Derivat-Job abgebrochen',
+            'media',
+            null,
+            ['id' => (string) ($job['id'] ?? ''), 'processed' => (int) ($job['processed'] ?? 0)],
+            'info'
+        );
+
+        return [
+            'success' => true,
+            'message' => 'Medienjob abgebrochen.',
+            'details' => $this->buildMediaProcessingJobSummaryDetails($job),
         ];
     }
 
@@ -1149,6 +1376,27 @@ class MediaModule
         return in_array($usageFilter, self::ALLOWED_USAGE_FILTERS, true) ? $usageFilter : 'all';
     }
 
+    public function normalizeFileTypeFilter(string $fileTypeFilter): string
+    {
+        $fileTypeFilter = strtolower(trim($fileTypeFilter));
+
+        return in_array($fileTypeFilter, self::ALLOWED_FILE_TYPE_FILTERS, true) ? $fileTypeFilter : 'all';
+    }
+
+    public function normalizeSizeFilter(string $sizeFilter): string
+    {
+        $sizeFilter = strtolower(trim($sizeFilter));
+
+        return in_array($sizeFilter, self::ALLOWED_SIZE_FILTERS, true) ? $sizeFilter : 'all';
+    }
+
+    public function normalizeModifiedFilter(string $modifiedFilter): string
+    {
+        $modifiedFilter = strtolower(trim($modifiedFilter));
+
+        return in_array($modifiedFilter, self::ALLOWED_MODIFIED_FILTERS, true) ? $modifiedFilter : 'all';
+    }
+
     public function normalizeCategory(string $slug): string
     {
         return $this->normalizeCategorySlug($slug);
@@ -1157,6 +1405,15 @@ class MediaModule
     public function normalizeSearch(string $search): string
     {
         return $this->sanitizeSearch($search);
+    }
+
+    public function normalizeExtensionFilter(string $extension): string
+    {
+        $extension = strtolower(trim(strip_tags($extension)));
+        $extension = ltrim($extension, '.');
+        $extension = preg_replace('/[^a-z0-9]+/', '', $extension) ?? '';
+
+        return function_exists('mb_substr') ? mb_substr($extension, 0, self::EXTENSION_FILTER_MAX_LENGTH) : substr($extension, 0, self::EXTENSION_FILTER_MAX_LENGTH);
     }
 
     public function getMemberFolderConfirmMessage(): string
@@ -1548,7 +1805,7 @@ class MediaModule
     /**
      * @return array<string, string>
      */
-    private function buildLibraryStateParams(string $path, string $view, string $category, string $search, string $usageFilter, bool $confirmMember): array
+    private function buildLibraryStateParams(string $path, string $view, string $category, string $search, string $usageFilter, bool $confirmMember, array $advancedFilters = []): array
     {
         $params = [];
 
@@ -1570,6 +1827,26 @@ class MediaModule
 
         if ($usageFilter !== 'all') {
             $params['usage_filter'] = $usageFilter;
+        }
+
+        $fileTypeFilter = $this->normalizeFileTypeFilter((string)($advancedFilters['file_type'] ?? 'all'));
+        if ($fileTypeFilter !== 'all') {
+            $params['file_type'] = $fileTypeFilter;
+        }
+
+        $extensionFilter = $this->normalizeExtensionFilter((string)($advancedFilters['extension'] ?? ''));
+        if ($extensionFilter !== '') {
+            $params['extension'] = $extensionFilter;
+        }
+
+        $sizeFilter = $this->normalizeSizeFilter((string)($advancedFilters['size'] ?? 'all'));
+        if ($sizeFilter !== 'all') {
+            $params['size_filter'] = $sizeFilter;
+        }
+
+        $modifiedFilter = $this->normalizeModifiedFilter((string)($advancedFilters['modified'] ?? 'all'));
+        if ($modifiedFilter !== 'all') {
+            $params['modified_filter'] = $modifiedFilter;
         }
 
         if ($confirmMember) {
@@ -1594,7 +1871,7 @@ class MediaModule
     /**
      * @return list<array<string, string>>
      */
-    private function buildBreadcrumbs(string $path, string $view, string $category, string $search, string $usageFilter, bool $confirmMember): array
+    private function buildBreadcrumbs(string $path, string $view, string $category, string $search, string $usageFilter, bool $confirmMember, array $advancedFilters = []): array
     {
         if ($path === '') {
             return [];
@@ -1610,7 +1887,7 @@ class MediaModule
             $breadcrumbs[] = [
                 'label' => $part,
                 'path' => $cumulative,
-                'url' => $isLast ? '' : $this->buildAdminUrl($this->buildLibraryStateParams($cumulative, $view, $category, $search, $usageFilter, $confirmMember)),
+                'url' => $isLast ? '' : $this->buildAdminUrl($this->buildLibraryStateParams($cumulative, $view, $category, $search, $usageFilter, $confirmMember, $advancedFilters)),
             ];
         }
 
@@ -1621,7 +1898,7 @@ class MediaModule
      * @param array<int, array<string, mixed>> $folders
      * @return list<array<string, mixed>>
      */
-    private function buildFolderViewModels(array $folders, string $path, string $view, string $category, string $search, string $usageFilter, bool $confirmMember): array
+    private function buildFolderViewModels(array $folders, string $path, string $view, string $category, string $search, string $usageFilter, bool $confirmMember, array $advancedFilters = []): array
     {
         $viewModels = [];
 
@@ -1637,8 +1914,8 @@ class MediaModule
                 'category' => (string)($folder['category'] ?? ''),
                 'modified_label' => !empty($folder['modified']) ? date('d.m.Y H:i', (int)$folder['modified']) : '—',
                 'is_system' => !empty($folder['is_system']),
-                'url' => $this->buildAdminUrl($this->buildLibraryStateParams($folderPath, $view, $category, $search, $usageFilter, $confirmMember)),
-                'confirm_url' => $this->buildAdminUrl($this->buildLibraryStateParams($folderPath, $view, $category, $search, $usageFilter, true)),
+                'url' => $this->buildAdminUrl($this->buildLibraryStateParams($folderPath, $view, $category, $search, $usageFilter, $confirmMember, $advancedFilters)),
+                'confirm_url' => $this->buildAdminUrl($this->buildLibraryStateParams($folderPath, $view, $category, $search, $usageFilter, true, $advancedFilters)),
                 'requires_confirmation' => $requiresConfirmation,
             ];
         }
@@ -1665,6 +1942,7 @@ class MediaModule
                 static fn (mixed $usage): bool => is_array($usage)
             ));
             $usageCount = count($usageItems);
+            $usageSummary = $this->buildMediaUsageSummary($usageItems);
             $duplicateInfo = is_array($duplicateMap[$filePath] ?? null) ? $duplicateMap[$filePath] : [];
 
             $viewModels[] = [
@@ -1681,6 +1959,7 @@ class MediaModule
                 'usage_items' => $usageItems,
                 'usage_count' => $usageCount,
                 'usage_count_label' => $usageCount === 1 ? '1 Verwendung' : $usageCount . ' Verwendungen',
+                'usage_summary' => $usageSummary,
                 'duplicate_info' => $duplicateInfo,
                 'duplicate_count' => (int) ($duplicateInfo['duplicate_count'] ?? 0),
                 'duplicate_paths' => is_array($duplicateInfo['duplicate_paths'] ?? null) ? array_values($duplicateInfo['duplicate_paths']) : [],
@@ -1689,6 +1968,220 @@ class MediaModule
         }
 
         return $viewModels;
+    }
+
+    /**
+     * @param list<array<string, mixed>> $usageItems
+     * @return array<string, mixed>
+     */
+    private function buildMediaUsageSummary(array $usageItems): array
+    {
+        $summary = [
+            'post_count' => 0,
+            'page_count' => 0,
+            'featured_count' => 0,
+            'content_count' => 0,
+            'content_en_count' => 0,
+            'field_labels' => [],
+        ];
+
+        foreach ($usageItems as $usageItem) {
+            if (!is_array($usageItem)) {
+                continue;
+            }
+
+            $contentType = (string) ($usageItem['content_type'] ?? '');
+            if ($contentType === 'post') {
+                $summary['post_count']++;
+            } elseif ($contentType === 'page') {
+                $summary['page_count']++;
+            }
+
+            $field = (string) ($usageItem['field'] ?? '');
+            if ($field === 'featured_image') {
+                $summary['featured_count']++;
+            } elseif ($field === 'content') {
+                $summary['content_count']++;
+            } elseif ($field === 'content_en') {
+                $summary['content_en_count']++;
+            }
+
+            $fieldLabel = trim((string) ($usageItem['field_label'] ?? 'Verwendung'));
+            if ($fieldLabel !== '') {
+                $summary['field_labels'][$fieldLabel] = ((int) ($summary['field_labels'][$fieldLabel] ?? 0)) + 1;
+            }
+        }
+
+        ksort($summary['field_labels'], SORT_NATURAL | SORT_FLAG_CASE);
+
+        return $summary;
+    }
+
+    /**
+     * @param array<string, string> $advancedFilters
+     */
+    private function hasActiveAdvancedMediaFilters(array $advancedFilters): bool
+    {
+        return $this->normalizeFileTypeFilter((string)($advancedFilters['file_type'] ?? 'all')) !== 'all'
+            || $this->normalizeExtensionFilter((string)($advancedFilters['extension'] ?? '')) !== ''
+            || $this->normalizeSizeFilter((string)($advancedFilters['size'] ?? 'all')) !== 'all'
+            || $this->normalizeModifiedFilter((string)($advancedFilters['modified'] ?? 'all')) !== 'all';
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $files
+     * @param array<string, string> $advancedFilters
+     * @return list<array<string, mixed>>
+     */
+    private function applyAdvancedMediaFilters(array $files, array $advancedFilters): array
+    {
+        $fileTypeFilter = $this->normalizeFileTypeFilter((string)($advancedFilters['file_type'] ?? 'all'));
+        $extensionFilter = $this->normalizeExtensionFilter((string)($advancedFilters['extension'] ?? ''));
+        $sizeFilter = $this->normalizeSizeFilter((string)($advancedFilters['size'] ?? 'all'));
+        $modifiedFilter = $this->normalizeModifiedFilter((string)($advancedFilters['modified'] ?? 'all'));
+
+        return array_values(array_filter($files, function (array $file) use ($fileTypeFilter, $extensionFilter, $sizeFilter, $modifiedFilter): bool {
+            $fileName = (string)($file['name'] ?? $file['path'] ?? '');
+            $extension = strtolower((string)pathinfo($fileName, PATHINFO_EXTENSION));
+            $fileType = $this->detectFileType($fileName);
+
+            if ($fileTypeFilter !== 'all' && $fileType !== $fileTypeFilter) {
+                return false;
+            }
+
+            if ($extensionFilter !== '' && $extension !== $extensionFilter) {
+                return false;
+            }
+
+            if (!$this->fileMatchesSizeFilter(isset($file['size']) ? (int)$file['size'] : null, $sizeFilter)) {
+                return false;
+            }
+
+            return $this->fileMatchesModifiedFilter(isset($file['modified']) ? (int)$file['modified'] : null, $modifiedFilter);
+        }));
+    }
+
+    private function fileMatchesSizeFilter(?int $bytes, string $sizeFilter): bool
+    {
+        $sizeFilter = $this->normalizeSizeFilter($sizeFilter);
+        if ($sizeFilter === 'all') {
+            return true;
+        }
+
+        if ($bytes === null || $bytes < 0) {
+            return false;
+        }
+
+        return match ($sizeFilter) {
+            'tiny' => $bytes < 102400,
+            'small' => $bytes >= 102400 && $bytes < 1048576,
+            'medium' => $bytes >= 1048576 && $bytes < 5242880,
+            'large' => $bytes >= 5242880 && $bytes < 52428800,
+            'huge' => $bytes >= 52428800,
+            default => true,
+        };
+    }
+
+    private function fileMatchesModifiedFilter(?int $modifiedTimestamp, string $modifiedFilter): bool
+    {
+        $modifiedFilter = $this->normalizeModifiedFilter($modifiedFilter);
+        if ($modifiedFilter === 'all') {
+            return true;
+        }
+
+        if ($modifiedTimestamp === null || $modifiedTimestamp <= 0) {
+            return false;
+        }
+
+        $now = time();
+        $startOfToday = strtotime('today') ?: ($now - 86400);
+
+        return match ($modifiedFilter) {
+            'today' => $modifiedTimestamp >= $startOfToday,
+            '7d' => $modifiedTimestamp >= ($now - 7 * 86400),
+            '30d' => $modifiedTimestamp >= ($now - 30 * 86400),
+            'year' => $modifiedTimestamp >= ($now - 365 * 86400),
+            default => true,
+        };
+    }
+
+    /**
+     * @return list<array{value:string,label:string}>
+     */
+    private function buildFileTypeFilterOptions(): array
+    {
+        return [
+            ['value' => 'all', 'label' => 'Alle Dateitypen'],
+            ['value' => 'image', 'label' => 'Nur Bilder'],
+            ['value' => 'document', 'label' => 'Nur Dokumente'],
+            ['value' => 'video', 'label' => 'Nur Videos'],
+            ['value' => 'audio', 'label' => 'Nur Audio'],
+            ['value' => 'archive', 'label' => 'Nur Archive'],
+            ['value' => 'other', 'label' => 'Sonstige Dateien'],
+        ];
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $files
+     * @return list<array{value:string,label:string,count:int}>
+     */
+    private function buildExtensionFilterOptions(array $files, string $selectedExtension = ''): array
+    {
+        $counts = [];
+        foreach ($files as $file) {
+            $extension = $this->normalizeExtensionFilter((string)pathinfo((string)($file['name'] ?? $file['path'] ?? ''), PATHINFO_EXTENSION));
+            if ($extension === '') {
+                continue;
+            }
+
+            $counts[$extension] = ($counts[$extension] ?? 0) + 1;
+        }
+
+        $selectedExtension = $this->normalizeExtensionFilter($selectedExtension);
+        if ($selectedExtension !== '' && !isset($counts[$selectedExtension])) {
+            $counts[$selectedExtension] = 0;
+        }
+
+        ksort($counts, SORT_NATURAL);
+        $options = [];
+        foreach ($counts as $extension => $count) {
+            $options[] = [
+                'value' => (string)$extension,
+                'label' => strtoupper((string)$extension),
+                'count' => (int)$count,
+            ];
+        }
+
+        return $options;
+    }
+
+    /**
+     * @return list<array{value:string,label:string}>
+     */
+    private function buildSizeFilterOptions(): array
+    {
+        return [
+            ['value' => 'all', 'label' => 'Alle Größen'],
+            ['value' => 'tiny', 'label' => 'Unter 100 KB'],
+            ['value' => 'small', 'label' => '100 KB bis 1 MB'],
+            ['value' => 'medium', 'label' => '1 MB bis 5 MB'],
+            ['value' => 'large', 'label' => '5 MB bis 50 MB'],
+            ['value' => 'huge', 'label' => 'Über 50 MB'],
+        ];
+    }
+
+    /**
+     * @return list<array{value:string,label:string}>
+     */
+    private function buildModifiedFilterOptions(): array
+    {
+        return [
+            ['value' => 'all', 'label' => 'Alle Änderungsdaten'],
+            ['value' => 'today', 'label' => 'Heute geändert'],
+            ['value' => '7d', 'label' => 'Letzte 7 Tage'],
+            ['value' => '30d', 'label' => 'Letzte 30 Tage'],
+            ['value' => 'year', 'label' => 'Letztes Jahr'],
+        ];
     }
 
     /**
@@ -1716,7 +2209,7 @@ class MediaModule
      * @param array<string, mixed> $diskUsage
      * @return array<string, string|int>
      */
-    private function buildLibraryStats(array $items, array $categories, array $diskUsage, array $duplicateMap = []): array
+    private function buildLibraryStats(array $items, array $categories, array $diskUsage, array $duplicateMap = [], array $usageMap = []): array
     {
         $duplicateGroupIds = [];
         foreach ($duplicateMap as $duplicateInfo) {
@@ -1726,11 +2219,32 @@ class MediaModule
             }
         }
 
+        $usedFileCount = 0;
+        $visibleUsageReferenceCount = 0;
+        foreach (($items['files'] ?? []) as $file) {
+            if (!is_array($file)) {
+                continue;
+            }
+
+            $filePath = (string) ($file['path'] ?? '');
+            $usageCount = count(is_array($usageMap[$filePath] ?? null) ? $usageMap[$filePath] : []);
+            if ($usageCount > 0) {
+                $usedFileCount++;
+                $visibleUsageReferenceCount += $usageCount;
+            }
+        }
+
+        $visibleFileCount = count($items['files'] ?? []);
+
         return [
             'file_count' => (int)($diskUsage['count'] ?? count($items['files'] ?? [])),
             'storage_label' => (string)($diskUsage['formatted'] ?? '0 B'),
             'folder_count' => count($items['folders'] ?? []),
             'category_count' => count($categories),
+            'visible_file_count' => $visibleFileCount,
+            'used_file_count' => $usedFileCount,
+            'unused_file_count' => max(0, $visibleFileCount - $usedFileCount),
+            'visible_usage_reference_count' => $visibleUsageReferenceCount,
             'duplicate_file_count' => count($duplicateMap),
             'duplicate_group_count' => count($duplicateGroupIds),
         ];
@@ -1752,7 +2266,15 @@ class MediaModule
             return 'audio';
         }
 
-        return 'document';
+        if (in_array($extension, ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'rtf', 'csv'], true)) {
+            return 'document';
+        }
+
+        if (in_array($extension, ['zip', 'rar', '7z', 'tar', 'gz'], true)) {
+            return 'archive';
+        }
+
+        return 'other';
     }
 
     private function formatBytes(?int $bytes): string
@@ -1844,6 +2366,197 @@ class MediaModule
             'details' => is_array($payload['details'] ?? null) ? $payload['details'] : [],
             'error_details' => is_array($payload['error_details'] ?? null) ? $payload['error_details'] : [],
             'report_payload' => $payload['report_payload'] ?? [],
+        ];
+    }
+
+    private function getMediaProcessingJobPath(): string
+    {
+        return dirname(__DIR__, 3) . DIRECTORY_SEPARATOR . 'config' . DIRECTORY_SEPARATOR . 'media-processing-job.json';
+    }
+
+    /** @return array<string,mixed> */
+    private function loadMediaProcessingJob(): array
+    {
+        $path = $this->getMediaProcessingJobPath();
+        if (!is_file($path) || !is_readable($path)) {
+            return [];
+        }
+
+        $fileSize = @filesize($path);
+        if ($fileSize === false || $fileSize <= 0 || $fileSize > self::MEDIA_PROCESSING_JOB_MAX_FILE_BYTES) {
+            Logger::instance()->withChannel('admin.media')->warning('Medien-Derivat-Jobdatei wurde wegen ungültiger Größe ignoriert.', [
+                'job_file' => 'media-processing-job.json',
+                'size' => $fileSize,
+            ]);
+
+            return [];
+        }
+
+        $content = @file_get_contents($path);
+        if (!is_string($content) || trim($content) === '') {
+            return [];
+        }
+
+        $decoded = json_decode($content, true);
+
+        return is_array($decoded) ? $this->normalizeLoadedMediaProcessingJob($decoded) : [];
+    }
+
+    /**
+     * @param array<string,mixed> $job
+     * @return array<string,mixed>
+     */
+    private function normalizeLoadedMediaProcessingJob(array $job): array
+    {
+        $paths = [];
+        foreach ((array) ($job['paths'] ?? []) as $path) {
+            $normalizedPath = $this->normalizeRelativePath((string) $path);
+            if ($normalizedPath === '') {
+                continue;
+            }
+
+            $paths[$normalizedPath] = true;
+            if (count($paths) >= self::MEDIA_PROCESSING_JOB_MAX_CANDIDATES) {
+                break;
+            }
+        }
+
+        if ($paths === []) {
+            return [];
+        }
+
+        $total = count($paths);
+        $cursor = max(0, min($total, (int) ($job['cursor'] ?? 0)));
+        $processed = max(0, min($total, (int) ($job['processed'] ?? $cursor)));
+        $status = strtolower(trim((string) ($job['status'] ?? 'queued')));
+        if (!in_array($status, ['queued', 'running', 'completed', 'cancelled'], true)) {
+            $status = 'queued';
+        }
+
+        $limitStrings = static function (mixed $values, int $limit): array {
+            $items = [];
+            foreach ((array) $values as $value) {
+                $text = trim((string) $value);
+                if ($text === '') {
+                    continue;
+                }
+
+                $items[] = function_exists('mb_substr') ? mb_substr($text, 0, 240) : substr($text, 0, 240);
+                if (count($items) >= $limit) {
+                    break;
+                }
+            }
+
+            return $items;
+        };
+
+        return [
+            'id' => preg_replace('/[^A-Za-z0-9._:-]/', '', (string) ($job['id'] ?? 'media-derivatives')) ?: 'media-derivatives',
+            'status' => $status,
+            'mode' => $this->normalizeProcessingMode((string) ($job['mode'] ?? 'all')),
+            'created_at' => trim((string) ($job['created_at'] ?? date('c'))),
+            'updated_at' => trim((string) ($job['updated_at'] ?? date('c'))),
+            'total' => $total,
+            'cursor' => $cursor,
+            'processed' => $processed,
+            'succeeded' => max(0, min($total, (int) ($job['succeeded'] ?? 0))),
+            'skipped' => max(0, min($total, (int) ($job['skipped'] ?? 0))),
+            'failed' => max(0, min($total, (int) ($job['failed'] ?? 0))),
+            'batch_size' => max(1, min(20, (int) ($job['batch_size'] ?? self::MEDIA_PROCESSING_JOB_BATCH_SIZE))),
+            'paths' => array_keys($paths),
+            'last_details' => $limitStrings($job['last_details'] ?? [], 8),
+            'last_errors' => $limitStrings($job['last_errors'] ?? [], 8),
+        ];
+    }
+
+    /** @param array<string,mixed> $job */
+    private function saveMediaProcessingJob(array $job): bool
+    {
+        $path = $this->getMediaProcessingJobPath();
+        $directory = dirname($path);
+        if (!is_dir($directory) && !@mkdir($directory, 0755, true) && !is_dir($directory)) {
+            return false;
+        }
+
+        $job = $this->normalizeLoadedMediaProcessingJob($job);
+        if ($job === []) {
+            return false;
+        }
+
+        $encoded = json_encode($job, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        if (!is_string($encoded)) {
+            return false;
+        }
+
+        $temporaryPath = $path . '.tmp.' . str_replace('.', '', uniqid('', true));
+        if (@file_put_contents($temporaryPath, $encoded . PHP_EOL, LOCK_EX) === false) {
+            return false;
+        }
+
+        @chmod($temporaryPath, 0640);
+
+        if (!@rename($temporaryPath, $path)) {
+            @unlink($temporaryPath);
+            return false;
+        }
+
+        return true;
+    }
+
+    private function clearMediaProcessingJob(): void
+    {
+        $path = $this->getMediaProcessingJobPath();
+        if (is_file($path)) {
+            @unlink($path);
+        }
+    }
+
+    /** @return array<string,mixed> */
+    private function getMediaProcessingJobViewData(): array
+    {
+        $job = $this->loadMediaProcessingJob();
+        if ($job === []) {
+            return [
+                'exists' => false,
+                'is_active' => false,
+                'status' => 'none',
+                'percent' => 0,
+            ];
+        }
+
+        $total = max(0, (int) ($job['total'] ?? 0));
+        $processed = max(0, min($total, (int) ($job['processed'] ?? $job['cursor'] ?? 0)));
+        $status = (string) ($job['status'] ?? 'queued');
+
+        return array_merge($job, [
+            'exists' => true,
+            'is_active' => in_array($status, ['queued', 'running'], true) && $processed < $total,
+            'status' => $status,
+            'total' => $total,
+            'processed' => $processed,
+            'percent' => $total > 0 ? (int) floor(($processed / $total) * 100) : 0,
+            'succeeded' => max(0, (int) ($job['succeeded'] ?? 0)),
+            'skipped' => max(0, (int) ($job['skipped'] ?? 0)),
+            'failed' => max(0, (int) ($job['failed'] ?? 0)),
+            'last_details' => is_array($job['last_details'] ?? null) ? array_slice($job['last_details'], 0, 8) : [],
+            'last_errors' => is_array($job['last_errors'] ?? null) ? array_slice($job['last_errors'], 0, 8) : [],
+        ]);
+    }
+
+    /**
+     * @param array<string,mixed> $job
+     * @return list<string>
+     */
+    private function buildMediaProcessingJobSummaryDetails(array $job): array
+    {
+        $total = max(0, (int) ($job['total'] ?? 0));
+        $processed = max(0, min($total, (int) ($job['processed'] ?? $job['cursor'] ?? 0)));
+
+        return [
+            'Fortschritt: ' . $processed . ' / ' . $total . ' Datei(en).',
+            'Erzeugt: ' . max(0, (int) ($job['succeeded'] ?? 0))
+                . ', übersprungen: ' . max(0, (int) ($job['skipped'] ?? 0))
+                . ', fehlgeschlagen: ' . max(0, (int) ($job['failed'] ?? 0)) . '.',
         ];
     }
 

@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Überblick über die aktuelle Benutzerverwaltung mit dynamischen Rollen, Gruppen und Rechtezuordnung.
 
-Letzte Aktualisierung: 2026-05-10 · Version 2.9.712
+Letzte Aktualisierung: 2026-05-10 · Version 2.9.731
 
 Der Bereich ist im aktuellen Stand auf vier Hauptbereiche verteilt:
 
@@ -29,6 +29,9 @@ Der Bereich ist im aktuellen Stand auf vier Hauptbereiche verteilt:
 ## Aktuelle Hinweise
 
 - Rollen werden nicht mehr starr aus lokalen Auth-Hartcodes abgeleitet, sondern über die gemeinsame Rollenmatrix geladen.
+- `/admin/roles` enthält seit `2.9.729` einen read-only Rollenvergleich, der gemeinsame und abweichende Capabilities zweier Rollen gruppiert anzeigt, ohne die Rechte-Matrix zu speichern.
+- Benutzerprofile unter `/admin/users?action=edit&id=...` zeigen seit `2.9.730` begrenzte Login- und Sicherheitsereignisse aus `audit_log`, ohne Roh-Metadaten, Tokens oder Session-Daten offenzulegen.
+- Seit `2.9.731` passt das Audit-Log-Schema zum tatsächlich genutzten Severity-Wert `error`, und interne Exception-Texte aus Benutzer-Speichern/-Löschen sowie Rollen-/Rechte-Schreibaktionen werden nicht mehr in Admin-Alerts oder Fehlerreports zurückgegeben.
 - `Auth::hasCapability()` löst Nicht-Admin-Capabilities über dieselbe Rollenquelle auf wie Rollenverwaltung und Benutzer-Service, inklusive der weiterhin produktiv genutzten Legacy-Core-Capabilities wie `manage_settings`, `manage_users`, `manage_pages`, `edit_all_posts` oder `manage_media`.
 - Filter- und Dropdown-Logik der Benutzerverwaltung nutzt dieselbe Rollenquelle wie die Rechteverwaltung.
 - Benutzer- und Authentifizierungseinstellungen sind jetzt unter `/admin/user-settings` zentralisiert.

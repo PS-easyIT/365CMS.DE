@@ -19,6 +19,7 @@ $permissions  = $data['permissions'] ?? [];
 $roleCounts   = $data['roleCounts'] ?? [];
 $customRoles  = $data['customRoles'] ?? [];
 $customCapabilities = $data['customCapabilities'] ?? [];
+$roleComparison = is_array($data['roleComparison'] ?? null) ? $data['roleComparison'] : [];
 
 $groupLabels = [
     'pages'    => 'Seiten',
@@ -49,6 +50,29 @@ $capLabels = [
 
 $formatLabel = static function (string $value): string {
     return ucwords(str_replace(['_', '-', '.'], ' ', strtolower($value)));
+};
+
+$renderCapabilityDiffList = static function (array $groupedCapabilities) use ($groupLabels, $formatLabel): string {
+    if ($groupedCapabilities === []) {
+        return '<p class="text-secondary mb-0">Keine abweichenden Rechte.</p>';
+    }
+
+    $html = '<div class="d-flex flex-column gap-2">';
+    foreach ($groupedCapabilities as $group => $items) {
+        if (!is_array($items) || $items === []) {
+            continue;
+        }
+
+        $html .= '<div>';
+        $html .= '<div class="fw-semibold small text-secondary mb-1">' . htmlspecialchars($groupLabels[$group] ?? $formatLabel((string)$group)) . '</div>';
+        $html .= '<div class="d-flex flex-wrap gap-1">';
+        foreach ($items as $capability) {
+            $html .= '<code class="badge bg-secondary-lt text-secondary">' . htmlspecialchars((string)$capability) . '</code>';
+        }
+        $html .= '</div></div>';
+    }
+
+    return $html . '</div>';
 };
 ?>
 
@@ -206,6 +230,83 @@ $formatLabel = static function (string $value): string {
                 </div>
             <?php endforeach; ?>
         </div>
+
+        <?php if (!empty($roleComparison['available'])): ?>
+            <?php
+            $comparisonFromRole = (string)($roleComparison['from_role'] ?? '');
+            $comparisonToRole = (string)($roleComparison['to_role'] ?? '');
+            $comparisonFromLabel = $roleLabels[$comparisonFromRole] ?? $formatLabel($comparisonFromRole);
+            $comparisonToLabel = $roleLabels[$comparisonToRole] ?? $formatLabel($comparisonToRole);
+            ?>
+            <div class="card mb-4">
+                <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
+                    <div>
+                        <h3 class="card-title mb-0">Rollenvergleich / Capability-Diff</h3>
+                        <div class="text-secondary small">Read-only Vergleich der aktuell geladenen Rechte-Matrix – ohne Speichern oder Tokenwechsel.</div>
+                    </div>
+                    <form method="get" action="/admin/roles" class="d-flex flex-wrap align-items-end gap-2" aria-label="Rollenvergleich auswählen">
+                        <div>
+                            <label class="form-label small mb-1" for="compare_from">Basisrolle</label>
+                            <select class="form-select form-select-sm" id="compare_from" name="compare_from">
+                                <?php foreach ($roles as $role): ?>
+                                    <option value="<?php echo htmlspecialchars($role, ENT_QUOTES); ?>" <?php echo $role === $comparisonFromRole ? 'selected' : ''; ?>>
+                                        <?php echo htmlspecialchars($roleLabels[$role] ?? $formatLabel($role)); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="form-label small mb-1" for="compare_to">Vergleichsrolle</label>
+                            <select class="form-select form-select-sm" id="compare_to" name="compare_to">
+                                <?php foreach ($roles as $role): ?>
+                                    <option value="<?php echo htmlspecialchars($role, ENT_QUOTES); ?>" <?php echo $role === $comparisonToRole ? 'selected' : ''; ?>>
+                                        <?php echo htmlspecialchars($roleLabels[$role] ?? $formatLabel($role)); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-sm btn-outline-primary">Vergleichen</button>
+                    </form>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3 mb-3">
+                        <div class="col-sm-4">
+                            <div class="border rounded p-3 h-100">
+                                <div class="text-secondary small">Gemeinsame Rechte</div>
+                                <div class="h2 mb-0"><?php echo (int)($roleComparison['shared_count'] ?? 0); ?></div>
+                            </div>
+                        </div>
+                        <div class="col-sm-4">
+                            <div class="border rounded p-3 h-100">
+                                <div class="text-secondary small">Nur <?php echo htmlspecialchars($comparisonFromLabel); ?></div>
+                                <div class="h2 mb-0"><?php echo (int)($roleComparison['from_only_count'] ?? 0); ?></div>
+                            </div>
+                        </div>
+                        <div class="col-sm-4">
+                            <div class="border rounded p-3 h-100">
+                                <div class="text-secondary small">Nur <?php echo htmlspecialchars($comparisonToLabel); ?></div>
+                                <div class="h2 mb-0"><?php echo (int)($roleComparison['to_only_count'] ?? 0); ?></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-lg-6">
+                            <div class="border rounded p-3 h-100">
+                                <h4 class="mb-2">Zusätzliche Rechte in <?php echo htmlspecialchars($comparisonFromLabel); ?></h4>
+                                <?php echo $renderCapabilityDiffList(is_array($roleComparison['from_only_by_group'] ?? null) ? $roleComparison['from_only_by_group'] : []); ?>
+                            </div>
+                        </div>
+                        <div class="col-lg-6">
+                            <div class="border rounded p-3 h-100">
+                                <h4 class="mb-2">Zusätzliche Rechte in <?php echo htmlspecialchars($comparisonToLabel); ?></h4>
+                                <?php echo $renderCapabilityDiffList(is_array($roleComparison['to_only_by_group'] ?? null) ? $roleComparison['to_only_by_group'] : []); ?>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        <?php endif; ?>
 
         <!-- Permissions Matrix -->
         <form method="post">

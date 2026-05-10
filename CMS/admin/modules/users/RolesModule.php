@@ -12,6 +12,7 @@ if (!defined('ABSPATH')) {
 }
 
 use CMS\Database;
+use CMS\Logger;
 
 class RolesModule
 {
@@ -42,7 +43,7 @@ class RolesModule
     /**
      * Rollen-Daten mit Berechtigungen laden
      */
-    public function getData(): array
+    public function getData(array $query = []): array
     {
         $roles        = $this->getKnownRoles();
         $capabilities = $this->getKnownCapabilities();
@@ -64,7 +65,91 @@ class RolesModule
             'roleCounts'   => $roleCounts,
             'customRoles'  => $this->getCustomRoles($roles),
             'customCapabilities' => $this->getCustomCapabilities($capabilities),
+            'roleComparison' => $this->buildRoleComparison($roles, $capabilities, $permissions, $query),
         ];
+    }
+
+    /**
+     * @param list<string> $roles
+     * @param array<string,list<string>> $capabilities
+     * @param array<string,array<string,bool>> $permissions
+     * @param array<string,mixed> $query
+     * @return array<string,mixed>
+     */
+    private function buildRoleComparison(array $roles, array $capabilities, array $permissions, array $query): array
+    {
+        if (count($roles) < 2) {
+            return [
+                'available' => false,
+                'from_role' => '',
+                'to_role' => '',
+                'shared_count' => 0,
+                'from_only_count' => 0,
+                'to_only_count' => 0,
+                'from_only_by_group' => [],
+                'to_only_by_group' => [],
+            ];
+        }
+
+        $fromRole = $this->normalizeComparisonRole((string)($query['compare_from'] ?? ''), $roles, 'editor');
+        $toRole = $this->normalizeComparisonRole((string)($query['compare_to'] ?? ''), $roles, 'author');
+
+        if ($fromRole === '') {
+            $fromRole = $roles[0];
+        }
+
+        if ($toRole === '' || $toRole === $fromRole) {
+            foreach ($roles as $role) {
+                if ($role !== $fromRole) {
+                    $toRole = $role;
+                    break;
+                }
+            }
+        }
+
+        $fromOnly = [];
+        $toOnly = [];
+        $sharedCount = 0;
+
+        foreach ($capabilities as $group => $caps) {
+            foreach ($caps as $capability) {
+                $fromGranted = !empty($permissions[$fromRole][$capability]);
+                $toGranted = !empty($permissions[$toRole][$capability]);
+
+                if ($fromGranted && $toGranted) {
+                    $sharedCount++;
+                    continue;
+                }
+
+                if ($fromGranted) {
+                    $fromOnly[$group][] = $capability;
+                } elseif ($toGranted) {
+                    $toOnly[$group][] = $capability;
+                }
+            }
+        }
+
+        return [
+            'available' => true,
+            'from_role' => $fromRole,
+            'to_role' => $toRole,
+            'shared_count' => $sharedCount,
+            'from_only_count' => array_sum(array_map('count', $fromOnly)),
+            'to_only_count' => array_sum(array_map('count', $toOnly)),
+            'from_only_by_group' => $fromOnly,
+            'to_only_by_group' => $toOnly,
+        ];
+    }
+
+    /** @param list<string> $roles */
+    private function normalizeComparisonRole(string $role, array $roles, string $fallback): string
+    {
+        $role = $this->sanitizeRoleSlug($role);
+        if ($role !== '' && in_array($role, $roles, true)) {
+            return $role;
+        }
+
+        return in_array($fallback, $roles, true) ? $fallback : '';
     }
 
     /**
@@ -108,7 +193,7 @@ class RolesModule
                 $pdo->rollBack();
             }
 
-            return ['success' => false, 'error' => 'Fehler: ' . $e->getMessage()];
+            return $this->buildRoleOperationFailure('Berechtigungen konnten nicht gespeichert werden.', $e, 'save_permissions');
         }
     }
 
@@ -163,7 +248,7 @@ class RolesModule
                 $pdo->rollBack();
             }
 
-            return ['success' => false, 'error' => 'Fehler beim Anlegen der Rolle: ' . $e->getMessage()];
+            return $this->buildRoleOperationFailure('Rolle konnte nicht angelegt werden.', $e, 'add_role');
         }
     }
 
@@ -225,7 +310,7 @@ class RolesModule
                 $pdo->rollBack();
             }
 
-            return ['success' => false, 'error' => 'Fehler beim Bearbeiten der Rolle: ' . $e->getMessage()];
+            return $this->buildRoleOperationFailure('Rolle konnte nicht bearbeitet werden.', $e, 'update_role');
         }
     }
 
@@ -287,7 +372,7 @@ class RolesModule
                 $pdo->rollBack();
             }
 
-            return ['success' => false, 'error' => 'Fehler beim Löschen der Rolle: ' . $e->getMessage()];
+            return $this->buildRoleOperationFailure('Rolle konnte nicht gelöscht werden.', $e, 'delete_role');
         }
     }
 
@@ -339,7 +424,7 @@ class RolesModule
                 $pdo->rollBack();
             }
 
-            return ['success' => false, 'error' => 'Fehler beim Anlegen der Berechtigung: ' . $e->getMessage()];
+            return $this->buildRoleOperationFailure('Berechtigung konnte nicht angelegt werden.', $e, 'add_capability');
         }
     }
 
@@ -381,7 +466,7 @@ class RolesModule
 
             return ['success' => true, 'message' => 'Berechtigung wurde aktualisiert.'];
         } catch (\Throwable $e) {
-            return ['success' => false, 'error' => 'Fehler beim Bearbeiten der Berechtigung: ' . $e->getMessage()];
+            return $this->buildRoleOperationFailure('Berechtigung konnte nicht bearbeitet werden.', $e, 'update_capability');
         }
     }
 
@@ -414,8 +499,21 @@ class RolesModule
 
             return ['success' => true, 'message' => 'Berechtigung wurde gelöscht.'];
         } catch (\Throwable $e) {
-            return ['success' => false, 'error' => 'Fehler beim Löschen der Berechtigung: ' . $e->getMessage()];
+            return $this->buildRoleOperationFailure('Berechtigung konnte nicht gelöscht werden.', $e, 'delete_capability');
         }
+    }
+
+    private function buildRoleOperationFailure(string $message, \Throwable $exception, string $operation): array
+    {
+        Logger::instance()->withChannel('admin.roles')->error($message, [
+            'operation' => $operation,
+            'exception_class' => $exception::class,
+        ]);
+
+        return [
+            'success' => false,
+            'error' => $message . ' Details wurden im Server-Log protokolliert.',
+        ];
     }
 
     /**

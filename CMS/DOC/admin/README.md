@@ -1,5 +1,5 @@
 # 365CMS – Admin-Bereich
-> **Stand:** 2026-05-10 | **Version:** 2.9.724 | **Status:** Aktuell
+> **Stand:** 2026-05-10 | **Version:** 2.9.731 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Überblick](#überblick)
@@ -10,7 +10,7 @@
 
 Die Struktur folgt der aktuellen Sidebar-Konfiguration aus `CMS/admin/partials/sidebar.php`. Öffentliche Admin-Routen werden in der Dokumentation bewusst ohne `.php` beschrieben.
 
-Für Detailfragen gilt die reale Sidebar- und Routing-Laufzeit als führend; diese Datei ist die verdichtete 2.9.712-Übersicht, nicht der einzige Wahrheitsspeicher.
+Für Detailfragen gilt die reale Sidebar- und Routing-Laufzeit als führend; diese Datei ist die verdichtete 2.9.731-Übersicht, nicht der einzige Wahrheitsspeicher.
 
 ---
 <!-- UPDATED: 2026-05-09 -->
@@ -38,8 +38,8 @@ Wichtige Grundsätze:
 | Dashboard | `/admin` | Gesamtüberblick, KPIs, Schnellzugriffe, fail-softe Statusblöcke und benutzerbezogene Sichtbarkeitsprofile mit mehrtab-tolerantem CSRF-Speichern, defensiv internen Zielpfaden für Quicklinks, bereinigter browserlokaler Recent-Liste, rollenbasierten Standardvorlagen mit Reset-Pfad sowie persistenter Widget-/Favoriten-Sortierung per Drag-&-Drop oder Pfeil-Fallback |
 | AI Services | `/admin/ai-services`, `/admin/ai-translation`, `/admin/ai-content-creator`, `/admin/ai-seo-creator`, `/admin/ai-settings` | Provider, Translation-Regeln, Prompt-Vorlagen, Logging, Quotas und request-/historiennahe AI-Beobachtung mit fail-softem Initialisierungspfad und konsistenter aktiver Provider-Auswahl |
 | Seiten & Beiträge | `/admin/pages`, `/admin/posts`, `/admin/comments`, `/admin/table-of-contents`, `/admin/site-tables` | Content-Management mit stabilem Slug-/Taxonomie-Vertrag, Bulk-fähiger Kategorien-/Tag-Verwaltung, commit-schonenderem Cache-Clear bei Sammellöschungen, direkt im Editor sichtbaren SEO-/Readability-Prüfungen und read-only Revisionsvergleichen in Seiten- **und** Beitragseditor ohne zusätzliches Snapshot-Debug-Logging im Save-Flow |
-| Medienverwaltung | `/admin/media`, `/admin/media?tab=featured`, `/admin/media?tab=categories`, `/admin/media?tab=settings` | Bibliothek, Beitrags-/Site-Medien, Kategorien, Medieneinstellungen mit festem Bildvertrag im Replace-in-place-Flow und read-only Duplikat-Erkennung per Inhalts-Hash |
-| Benutzer & Gruppen | `/admin/users`, `/admin/groups`, `/admin/roles`, `/admin/user-settings` | Benutzer, Teams, Rechte und Auth-Einstellungen mit gemeinsamer Rollenmatrix, einheitlicher 12-Zeichen-Passwort-Policy, lokalem Policy-Tester und allowlist-basierten Gruppen-Sammelaktionen für Aktivstatus, Paketzuweisung und Löschung |
+| Medienverwaltung | `/admin/media`, `/admin/media?tab=featured`, `/admin/media?tab=categories`, `/admin/media?tab=settings` | Bibliothek, Beitrags-/Site-Medien, Kategorien, Medieneinstellungen mit festem Bildvertrag im Replace-in-place-Flow, direkt sichtbaren Beitrags-/Seitenverwendungen pro Medium, serverseitig erweiterten GET-Filtern, opportunistisch begrenzter read-only Duplikat-Erkennung per Inhalts-Hash und chunkbasierten WebP-/Thumbnail-Jobs mit validierter Statusdatei, Fortschritt und generischen UI-Fehlern ohne rohe Exception-Texte |
+| Benutzer & Gruppen | `/admin/users`, `/admin/groups`, `/admin/roles`, `/admin/user-settings` | Benutzer, Teams, Rechte und Auth-Einstellungen mit gemeinsamer Rollenmatrix, read-only Capability-Diff für Rollenvergleiche, begrenzten Profil-Sicherheitsereignissen aus `audit_log`, schema-seitig unterstützter `error`-Severity, einheitlicher 12-Zeichen-Passwort-Policy, lokalem Policy-Tester und allowlist-basierten Gruppen-Sammelaktionen für Aktivstatus, Paketzuweisung und Löschung |
 | Member Dashboard | `/admin/member-dashboard` und Folgeseiten | Konfiguration des Mitgliederbereichs mit getrenntem Runtime-Settings-Pfad für das öffentliche `/member`-Frontend |
 | Aboverwaltung | `/admin/packages`, `/admin/orders`, `/admin/subscription-settings` | Pakete, Bestellungen, Zuweisungen und automatische Standardpaket-Zuweisung für neue Mitglieder |
 | Themes & Design | `/admin/themes`, `/admin/theme-editor`, `/admin/theme-explorer`, `/admin/menu-editor`, `/admin/landing-page`, `/admin/font-manager` | Design, Navigation, Fonts und Landing-Page-Plugin-Overrides mit echten Header-/Content-/Footer-Zuweisungen |

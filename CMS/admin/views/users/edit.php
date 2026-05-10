@@ -15,6 +15,8 @@ $user  = $data['user'] ?? null;
 $isNew = $data['isNew'] ?? true;
 $availableRoles = $data['availableRoles'] ?? [];
 $availableStatuses = $data['availableStatuses'] ?? [];
+$securityEvents = is_array($data['securityEvents'] ?? null) ? $data['securityEvents'] : [];
+$securityEventsUnavailable = !empty($data['securityEventsUnavailable']);
 $usersAdminPath = '/admin/users';
 $userId = (int)($user->id ?? 0);
 $userName = trim((string)($user->username ?? ''));
@@ -156,6 +158,55 @@ $roleColors = [
                                 <dt class="col-5">Letzter Login</dt>
                                 <dd class="col-7"><?php echo !empty($user->last_login) ? date('d.m.Y H:i', strtotime($user->last_login)) : '–'; ?></dd>
                             </dl>
+                        </div>
+                    </div>
+
+                    <div class="card mt-3">
+                        <div class="card-header">
+                            <h3 class="card-title">Sicherheitsereignisse</h3>
+                        </div>
+                        <div class="card-body p-0">
+                            <?php if ($securityEventsUnavailable): ?>
+                                <div class="p-3 text-secondary">
+                                    Sicherheitsereignisse sind aktuell nicht verfügbar. Die Benutzerbearbeitung bleibt davon unberührt.
+                                </div>
+                            <?php elseif ($securityEvents === []): ?>
+                                <div class="p-3 text-secondary">
+                                    Keine sicherheitsrelevanten Ereignisse für dieses Profil gefunden.
+                                </div>
+                            <?php else: ?>
+                                <div class="list-group list-group-flush">
+                                    <?php foreach ($securityEvents as $event): ?>
+                                        <?php
+                                        $eventSeverity = (string)($event->severity ?? 'info');
+                                        $severityColor = match ($eventSeverity) {
+                                            'critical', 'error' => 'danger',
+                                            'warning' => 'warning',
+                                            default => 'blue',
+                                        };
+                                        $eventCreatedAt = !empty($event->created_at) ? date('d.m.Y H:i', strtotime((string)$event->created_at)) : '–';
+                                        $eventAction = (string)($event->action ?? '');
+                                        $eventCategory = (string)($event->category ?? '');
+                                        $eventDescription = trim((string)($event->description ?? ''));
+                                        $eventIp = trim((string)($event->ip_address ?? ''));
+                                        ?>
+                                        <div class="list-group-item">
+                                            <div class="d-flex w-100 align-items-start gap-2">
+                                                <span class="badge bg-<?php echo htmlspecialchars($severityColor, ENT_QUOTES); ?>-lt mt-1"><?php echo htmlspecialchars($eventSeverity); ?></span>
+                                                <div class="flex-fill">
+                                                    <div class="fw-semibold"><?php echo htmlspecialchars($eventDescription !== '' ? $eventDescription : $eventAction); ?></div>
+                                                    <div class="small text-secondary">
+                                                        <?php echo htmlspecialchars($eventCreatedAt); ?> · <?php echo htmlspecialchars($eventCategory); ?><?php if ($eventAction !== ''): ?> · <?php echo htmlspecialchars($eventAction); ?><?php endif; ?><?php if ($eventIp !== ''): ?> · IP <?php echo htmlspecialchars($eventIp); ?><?php endif; ?>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                        <div class="card-footer text-secondary small">
+                            Es werden nur die letzten begrenzten Audit-Einträge ohne Roh-Metadaten, Tokens oder Session-Daten angezeigt.
                         </div>
                     </div>
 

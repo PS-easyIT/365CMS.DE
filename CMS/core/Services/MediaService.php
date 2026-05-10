@@ -20,6 +20,9 @@ class MediaService {
 
     private const BLOCKED_UPLOAD_EXTENSIONS = ['svg'];
     private const FEATURED_REPLACEMENT_IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'ico'];
+    private const DERIVATIVE_PROCESSING_IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
+    private const GENERATED_VARIANT_SUFFIXES = ['small', 'medium', 'large', 'banner'];
+    private const DUPLICATE_HASH_MAX_BYTES = 268435456;
 
     private static array $instances = [];
     private const ATOMIC_FILE_MODE = 0640;
@@ -1194,6 +1197,10 @@ class MediaService {
                 continue;
             }
 
+            if ($fileSize > self::DUPLICATE_HASH_MAX_BYTES) {
+                continue;
+            }
+
             $candidatesBySize[(string) $fileSize][] = [
                 'path' => $normalizedPath,
                 'absolute_path' => $absolutePath,
@@ -1248,6 +1255,194 @@ class MediaService {
         }
 
         return $duplicates;
+    }
+
+    /**
+     * Collect managed source images that can be processed in a chunked derivative job.
+     *
+     * Generated thumbnail variants are skipped to avoid recursive `-small-small` files.
+     * The result is intentionally capped so the job state stays small and predictable.
+     *
+     * @return list<string>
+     */
+    public function collectImageDerivativeProcessingCandidates(int $limit = 1000): array
+    {
+        $limit = max(1, min(5000, $limit));
+        $root = rtrim($this->uploadPath, '/\\');
+        if (!is_dir($root) || !is_readable($root)) {
+            return [];
+        }
+
+        $paths = [];
+
+        try {
+            $iterator = new \RecursiveIteratorIterator(
+                new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS),
+                \RecursiveIteratorIterator::SELF_FIRST
+            );
+        } catch (\Throwable $exception) {
+            $this->logger->warning('Medien-Derivat-Kandidaten konnten nicht gelesen werden.', [
+                'exception' => $exception->getMessage(),
+            ]);
+
+            return [];
+        }
+
+        foreach ($iterator as $item) {
+            if (count($paths) >= $limit) {
+                break;
+            }
+
+            if (!$item instanceof \SplFileInfo || !$item->isFile()) {
+                continue;
+            }
+
+            $absolutePath = $item->getPathname();
+            if (!is_readable($absolutePath)) {
+                continue;
+            }
+
+            $extension = strtolower((string) pathinfo($absolutePath, PATHINFO_EXTENSION));
+            if (!in_array($extension, self::DERIVATIVE_PROCESSING_IMAGE_EXTENSIONS, true) || $this->isGeneratedDerivativeVariant($absolutePath)) {
+                continue;
+            }
+
+            $normalizedRoot = rtrim(str_replace('\\', '/', $root), '/') . '/';
+            $normalizedAbsolutePath = str_replace('\\', '/', $absolutePath);
+            if (!str_starts_with($normalizedAbsolutePath, $normalizedRoot)) {
+                continue;
+            }
+
+            $relativePath = ltrim(substr($normalizedAbsolutePath, strlen($normalizedRoot)), '/');
+            $normalizedPath = $this->normalizeManagedRelativePath($relativePath);
+            if ($normalizedPath === '') {
+                continue;
+            }
+
+            $paths[] = $normalizedPath;
+        }
+
+        sort($paths, SORT_NATURAL);
+
+        return array_values(array_unique($paths));
+    }
+
+    /**
+     * Process one image derivative job item. Designed for small chunks to avoid timeouts.
+     *
+     * @return array{path:string,status:string,detail:string,webp:string,thumbnails:string}
+     */
+    public function processImageDerivativeJobItem(string $relativePath, bool $generateWebp, bool $generateThumbnails): array
+    {
+        $normalizedPath = $this->normalizeManagedRelativePath($relativePath);
+        if ($normalizedPath === '') {
+            return [
+                'path' => '',
+                'status' => 'failed',
+                'detail' => 'Ungültiger Medienpfad.',
+                'webp' => 'skipped',
+                'thumbnails' => 'skipped',
+            ];
+        }
+
+        if (!$generateWebp && !$generateThumbnails) {
+            return [
+                'path' => $normalizedPath,
+                'status' => 'skipped',
+                'detail' => 'Keine Derivat-Aktion ausgewählt.',
+                'webp' => 'skipped',
+                'thumbnails' => 'skipped',
+            ];
+        }
+
+        $absolutePath = $this->resolveManagedAbsolutePath($normalizedPath);
+        if ($absolutePath instanceof WP_Error || !is_file($absolutePath) || !is_readable($absolutePath)) {
+            return [
+                'path' => $normalizedPath,
+                'status' => 'failed',
+                'detail' => 'Datei nicht lesbar oder nicht vorhanden.',
+                'webp' => 'skipped',
+                'thumbnails' => 'skipped',
+            ];
+        }
+
+        $extension = strtolower((string) pathinfo($absolutePath, PATHINFO_EXTENSION));
+        if (!in_array($extension, self::DERIVATIVE_PROCESSING_IMAGE_EXTENSIONS, true) || $this->isGeneratedDerivativeVariant($absolutePath)) {
+            return [
+                'path' => $normalizedPath,
+                'status' => 'skipped',
+                'detail' => 'Nicht unterstütztes Bild oder bereits erzeugtes Derivat.',
+                'webp' => 'skipped',
+                'thumbnails' => 'skipped',
+            ];
+        }
+
+        $settings = $this->getSettings();
+        $quality = max(60, min(100, (int) ($settings['jpeg_quality'] ?? 85)));
+        $webpStatus = 'skipped';
+        $thumbnailStatus = 'skipped';
+        $errors = [];
+
+        if ($generateThumbnails) {
+            $thumbnailResult = $this->imageProcessor->generateThumbnails($absolutePath, $this->buildThumbnailSizes($settings), $quality);
+            if ($thumbnailResult instanceof WP_Error) {
+                $thumbnailStatus = 'failed';
+                $errors[] = 'Thumbnails: ' . $thumbnailResult->get_error_message();
+            } else {
+                $thumbnailStatus = 'done';
+            }
+        }
+
+        if ($generateWebp) {
+            if ($extension === 'webp') {
+                $webpStatus = 'skipped';
+            } else {
+                $webpResult = $this->imageProcessor->convertToWebP($absolutePath, $quality);
+                if ($webpResult instanceof WP_Error) {
+                    $webpStatus = 'failed';
+                    $errors[] = 'WebP: ' . $webpResult->get_error_message();
+                } else {
+                    $webpStatus = 'done';
+                }
+            }
+        }
+
+        if ($errors !== []) {
+            $this->logger->warning('Medien-Derivat-Job konnte ein Bild nicht vollständig verarbeiten.', [
+                'path' => $normalizedPath,
+                'errors' => $errors,
+            ]);
+
+            return [
+                'path' => $normalizedPath,
+                'status' => 'failed',
+                'detail' => implode('; ', array_slice($errors, 0, 2)),
+                'webp' => $webpStatus,
+                'thumbnails' => $thumbnailStatus,
+            ];
+        }
+
+        $didWork = $webpStatus === 'done' || $thumbnailStatus === 'done';
+
+        return [
+            'path' => $normalizedPath,
+            'status' => $didWork ? 'processed' : 'skipped',
+            'detail' => $didWork ? 'Derivate erzeugt.' : 'Keine passende Derivat-Aktion notwendig.',
+            'webp' => $webpStatus,
+            'thumbnails' => $thumbnailStatus,
+        ];
+    }
+
+    private function isGeneratedDerivativeVariant(string $path): bool
+    {
+        $filename = (string) pathinfo($path, PATHINFO_FILENAME);
+        foreach (self::GENERATED_VARIANT_SUFFIXES as $suffix) {
+            if (str_ends_with($filename, '-' . $suffix)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

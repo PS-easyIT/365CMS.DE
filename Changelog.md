@@ -1,4 +1,4 @@
-﻿﻿**Version:** 2.9.724
+﻿﻿**Version:** 2.9.731
 
 # 365CMS Changelog
 
@@ -19,6 +19,56 @@
 ## 📜 Vollständige Versionshistorie
 
 ---
+
+### v2.9.731 — 10. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.731** | 🔴 fix | Admin/Nachprüfung der letzten Nice-to-haves | **`CMS/admin/modules/media/MediaModule.php`, `CMS/admin/modules/users/UsersModule.php`, `CMS/admin/modules/users/RolesModule.php`, `CMS/core/SchemaManager.php`, `CMS/core/Version.php`, `CMS/update.json`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/users-groups/README.md`, `CMS/DOC/admin/users-groups/USERS.md`, `CMS/DOC/admin/media/README.md`, `CMS/DOC/admin/media/MEDIA.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md` und `Changelog.md` härten die zuletzt umgesetzten Nice-to-haves gegen bekannte Fehler, unvollständige Schema-Verträge, Best Practice, Sicherheit und Fehleroffenlegung nach**: Medien-Derivat-Jobs übernehmen unerwartete Exception-Texte nicht mehr in die sichtbare Job-Fehlerliste und protokollieren stattdessen nur datensparsame Diagnosedaten. Benutzer-Speichern/-Löschen sowie Rollen-/Rechte-Schreibaktionen geben interne Exception-Nachrichten nicht mehr in Admin-Alerts oder Fehlerreport-Payloads zurück. Zusätzlich unterstützt das `audit_log`-Schema den von `AuditLogger` und Profilansicht bereits vorgesehenen Severity-Wert `error`, inklusive Runtime-Migration für bestehende Installationen. |
+
+---
+
+### v2.9.730 — 10. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.730** | 🟢 feat | Admin/Benutzer & Gruppen – Profil-Sicherheitsereignisse | **`CMS/admin/modules/users/UsersModule.php`, `CMS/admin/views/users/edit.php`, `CMS/DOC/admin/users-groups/README.md`, `CMS/DOC/admin/users-groups/USERS.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`, `CMS/core/Version.php`, `CMS/update.json`, `README.md` und `Changelog.md` schließen das letzte offene Benutzer-&-Gruppen-Nice-to-have ab**: `/admin/users?action=edit&id=...` zeigt bei bestehenden Benutzerprofilen jetzt die letzten begrenzten Login- und Sicherheitsereignisse aus `audit_log` an. Die Abfrage nutzt nur zusammenfassende Audit-Felder, verknüpft Einträge über Benutzer-ID, Entity-Bezug und bekannte Auth-Metadaten, rendert keine Roh-Metadaten, Tokens oder Session-Daten und bleibt read-only ohne neuen POST-, CSRF- oder Sicherheitstoken-Pfad. Falls das Audit-Log in Altinstallationen fehlt oder temporär nicht lesbar ist, fällt die Profilkarte fail-soft auf einen neutralen Hinweis zurück, während die Benutzerbearbeitung weiterhin verfügbar bleibt. |
+
+---
+
+### v2.9.729 — 10. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.729** | 🟢 feat | Admin/Benutzer & Gruppen – Rollenvergleich / Capability-Diff | **`CMS/admin/modules/users/RolesModule.php`, `CMS/admin/roles.php`, `CMS/admin/views/users/roles.php`, `CMS/DOC/admin/users-groups/README.md`, `CMS/DOC/admin/users-groups/RBAC.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`, `CMS/core/Version.php`, `CMS/update.json`, `README.md` und `Changelog.md` schließen das nächste Benutzer-&-Gruppen-Nice-to-have ab**: `/admin/roles` zeigt jetzt einen read-only Rollenvergleich an, der zwei Rollen aus der bestehenden Rechte-Matrix per GET vergleicht und gemeinsame sowie abweichende Capabilities gruppiert ausweist. Die Auswahl wird serverseitig gegen bekannte Rollen normalisiert, ungültige Werte fallen auf sichere Defaults zurück, und der Ausbau erzeugt keine neue Schreibaktion, keinen zusätzlichen CSRF-/Sicherheitstoken-Pfad und keinen neuen Mass-Assignment-Risikopfad. Damit können Admins Least-Privilege- und Privilege-Creep-Prüfungen direkt in der Rollenverwaltung durchführen, ohne die Matrix speichern zu müssen. |
+
+---
+
+### v2.9.728 — 10. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.728** | 🔴 fix | Admin/Medienverwaltung – Nachprüfung der letzten Nice-to-haves | **`CMS/core/Services/MediaService.php`, `CMS/admin/modules/media/MediaModule.php`, `CMS/admin/views/media/library.php`, `CMS/DOC/admin/media/README.md`, `CMS/DOC/admin/media/MEDIA.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`, `CMS/core/Version.php`, `CMS/update.json`, `README.md` und `Changelog.md` härten die zuletzt umgesetzten Medien-Nice-to-haves nach Best-Practice-, Sicherheits- und Performance-Prüfung nach**: Die read-only Duplikat-Erkennung überspringt sehr große Dateien jetzt im Bibliotheks-View-Pfad, statt mehrere riesige gleich große Archive oder Videos synchron per SHA-256 zu hashen. Die direkte Verwendungsanzeige normalisiert Bearbeitungslinks zusätzlich direkt in der View fail-closed auf interne Beitrags-/Seiten-Edit-Routen; unerwartete Zielwerte bleiben als Textreferenz sichtbar, aber nicht klickbar. Außerdem wird `CMS/config/media-processing-job.json` beim Laden größen- und schema-validiert, Pfadlisten werden erneut normalisiert und begrenzt, sodass beschädigte oder unvollständig geschriebene Jobdaten den Medien-Settings-Tab nicht als HTTP-500 destabilisieren. |
+
+---
+
+### v2.9.727 — 10. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.727** | 🟢 feat | Admin/Medienverwaltung – direkte Verwendungsanzeige | **`CMS/admin/modules/media/MediaModule.php`, `CMS/admin/views/media/library.php`, `CMS/assets/css/admin.css`, `CMS/DOC/admin/media/README.md`, `CMS/DOC/admin/media/MEDIA.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`, `CMS/core/Version.php`, `CMS/update.json`, `README.md` und `Changelog.md` schließen das nächste Medien-Nice-to-have ab**: Die allgemeine Medienbibliothek zeigt jetzt pro Datei direkt an, ob und wo sie in Beiträgen oder Seiten verwendet wird. Die vorhandene `MediaUsageService`-Map wird dafür read-only weitergenutzt, im Modul zu Beitrags-/Seiten- und Feld-Zusammenfassungen verdichtet und in der Listenansicht mit direkten Bearbeitungslinks sowie aufklappbaren weiteren Referenzen dargestellt; die Grid-Ansicht erhält kompakte Zähler- und Feld-Badges. Zusätzlich zeigen die Bibliotheks-KPIs, wie viele sichtbare Dateien eingebunden sind. Der Ausbau erzeugt keine neue Schreibaktion, keinen zusätzlichen Sicherheitstoken-Pfad und keine langen Bild-/Dateioperationen; alle Ausgaben bleiben escaped und ungültige oder fehlende Referenzen fallen auf neutrale Anzeigen zurück. |
+
+### v2.9.726 — 10. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.726** | 🟢 feat | Admin/Medienverwaltung – WebP-/Thumbnail-Hintergrundjobs | **`CMS/admin/media.php`, `CMS/admin/modules/media/MediaModule.php`, `CMS/admin/views/media/settings.php`, `CMS/core/Services/MediaService.php`, `CMS/DOC/admin/media/README.md`, `CMS/DOC/admin/media/MEDIA.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`, `CMS/core/Version.php`, `CMS/update.json`, `README.md` und `Changelog.md` schließen das nächste Medien-Nice-to-have ab**: Unter `/admin/media?tab=settings` können Admins jetzt bestehende Bilder in eine WebP-/Thumbnail-Warteschlange legen, den Fortschritt sehen und die Verarbeitung in kleinen Batches fortsetzen oder abbrechen. Der Job speichert seinen Zustand atomar in `CMS/config/media-processing-job.json`, überspringt bereits erzeugte Thumbnail-Varianten, verarbeitet pro POST nur wenige Quellbilder und nutzt die vorhandene `ImageProcessor`-Logik statt neue Bildpfade zu duplizieren. Mutierende Aktionen bleiben im bestehenden Admin-CSRF-/PRG-Vertrag, Einzelfehler werden gezählt und geloggt, sodass defekte Dateien nicht den kompletten Request als HTTP-500 abreißen. |
+
+### v2.9.725 — 10. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.725** | 🟢 feat | Admin/Medienverwaltung – erweiterte Suche & Filter | **`CMS/admin/modules/media/MediaModule.php`, `CMS/admin/views/media/library.php`, `CMS/assets/css/admin.css`, `CMS/DOC/admin/media/README.md`, `CMS/DOC/admin/media/MEDIA.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`, `CMS/core/Version.php`, `CMS/update.json`, `README.md` und `Changelog.md` schließen das nächste Medien-Nice-to-have ab**: Die Bibliothek filtert jetzt nicht mehr nur nach Name/Pfad und Kategorie, sondern zusätzlich serverseitig nach Dateityp, Dateiendung, Größenklasse und Änderungszeitraum. Alle neuen Filter laufen bewusst als GET-Parameter ohne neue Schreibaktion, werden per Allowlist normalisiert, bleiben in Ordner-, Breadcrumb- und Listen-/Grid-Links erhalten und haben einen expliziten Reset-Pfad. Dadurch entsteht kein zusätzlicher CSRF-/Sicherheitstoken-Risikopfad, und ungültige Filterwerte fallen fail-closed auf neutrale Defaults zurück statt einen HTTP-500 zu erzeugen. |
 
 ### v2.9.724 — 10. Mai 2026
 

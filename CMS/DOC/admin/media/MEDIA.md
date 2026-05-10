@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Verwaltung hochgeladener Dateien und Ordner, Kategorien, Medieneinstellungen und kontrollierter Auslieferung über interne Services.
 
-Letzte Aktualisierung: 2026-05-10 · Version 2.9.721
+Letzte Aktualisierung: 2026-05-10 · Version 2.9.728
 
 ---
 
@@ -32,12 +32,15 @@ Die Medienverwaltung bündelt Bibliothek, Beitrags-/Site-Medien, Kategorien und 
 | Listen- und Grid-Ansicht | kompakte Darstellung für Dateien und Ordner |
 | Suchfeld | Filterung nach Dateien und Medienbegriffen |
 | Kategorien-Filter | Eingrenzung nach Mediengruppen |
+| Erweiterte Filter | Serverbasierte Eingrenzung nach Dateityp, Endung, Größenklasse und Änderungszeitraum |
+| Direkte Verwendungsanzeige | sichtbare Beitrags-/Seitenreferenzen pro Medium mit Feldkontext und Bearbeitungslink |
 | Duplikat-Erkennung | read-only Hinweise auf sichtbare Dateien mit identischem SHA-256-Inhalts-Hash |
 | Native Uploads | Mehrfachauswahl über interne API-/Form-Flows |
 | Rename-/Move-Modale | zentrale Dialoge statt breiter Inline-Formulare |
 | Bulk-Löschen / Bulk-Verschieben | Mehrfachauswahl im Admin mit vorbereiteten Zielordnern |
 | Vorschaulogik | robuste Dateivorschau und Proxy-/Preview-URLs |
 | Verwaltete Bildverarbeitung | Maximalmaße, Thumbnail-Sätze und optionale WebP-Derivate |
+| WebP-/Thumbnail-Jobs | fortsetzbare Bestandsverarbeitung mit Fortschritt und kleinen Server-Batches |
 | Beitrags-/Site-Medien | fokussierte Übersicht der in Beiträgen und Seiten hinterlegten Featured Images mit globalem Replace-in-place |
 
 Der gemeinsame Featured-Image-Picker für Seiten und Beiträge akzeptiert nur die Backend-Bildformate JPG, PNG, GIF, WebP, BMP und ICO. Bei neuen Inhalten werden Uploads temporär abgelegt und beim Speichern in den Slug-Ordner verschoben; Verschiebe- oder Metadatenfehler werden protokolliert, sollen aber keine leeren HTTP-500-Antworten nach erfolgreicher Bildübernahme mehr verursachen.
@@ -78,7 +81,9 @@ Typische Metadaten umfassen:
 
 Zusätzliche derivative Dateien entstehen – abhängig von den Einstellungen – direkt neben dem Original mit bekannten Suffixen wie `-small`, `-medium`, `-large`, `-banner` sowie optional `.webp`.
 
-Die Duplikat-Erkennung arbeitet nicht als dauerhafter Metadatenindex, sondern wird in der aktuellen Bibliotheksansicht read-only berechnet: sichtbare Dateien werden zuerst nach Byte-Größe gruppiert; nur Gruppen mit mindestens zwei gleich großen Dateien werden anschließend per `hash_file('sha256', ...)` auf identische Inhalte geprüft. Fehlende, nicht lesbare oder ungültige Pfade werden übersprungen, damit die Bibliothek fail-soft sichtbar bleibt.
+Der fortsetzbare Medienjob speichert seinen aktuellen Fortschritt in `CMS/config/media-processing-job.json`. Diese Datei enthält nur relative Medienpfade, Zähler, Status und letzte begrenzte Fehlerhinweise; sie ersetzt keinen dauerhaften Metadatenindex und kann durch einen neuen Job überschrieben werden. Beim Laden wird die Jobdatei größen- und schema-validiert; beschädigte, übergroße oder pfadseitig ungültige Zustände werden ignoriert, statt den Einstellungs-Tab zu brechen. Unerwartete Exceptions werden serverseitig protokolliert und im UI generisch angezeigt.
+
+Die Duplikat-Erkennung arbeitet nicht als dauerhafter Metadatenindex, sondern wird in der aktuellen Bibliotheksansicht read-only berechnet: sichtbare Dateien werden zuerst nach Byte-Größe gruppiert; nur Gruppen mit mindestens zwei gleich großen Dateien werden anschließend per `hash_file('sha256', ...)` auf identische Inhalte geprüft. Fehlende, nicht lesbare, ungültige oder sehr große Pfade werden übersprungen, damit die Bibliothek fail-soft sichtbar und auch bei großen Upload-Beständen bedienbar bleibt.
 
 ---
 
@@ -87,12 +92,16 @@ Die Duplikat-Erkennung arbeitet nicht als dauerhafter Metadatenindex, sondern wi
 Die Bibliothek verteilt Verantwortlichkeiten bewusst:
 
 - `CMS/admin/media.php` normalisiert Actions, Payloads und Redirects
-- `CMS/admin/modules/media/MediaModule.php` bereitet View-Modelle, Constraints, Optionen und Ergebnis-Alerts auf
+- `CMS/admin/modules/media/MediaModule.php` bereitet View-Modelle, Constraints, Optionen, serverseitige GET-Filter und Ergebnis-Alerts auf
 - `CMS/core/Services/MediaService.php` bündelt Upload-, Move-, Rename-, Delete- und Settings-Logik
 - `CMS/core/Services/MediaUsageService.php` ermittelt Dateiverwendungen und baut die Karte der als Beitrags-/Seitenbild referenzierten Medien
 - `CMS/core/Services/Media/MediaRepository.php` liefert Items, Metadaten und Schutzlogik
 - `CMS/core/Services/Media/UploadHandler.php` übernimmt Dateisystem-Mutationen inklusive Zielpfad-Organisation und Dateinamen-Regeln für verwaltete Uploads
 - `CMS/core/Services/Media/ImageProcessor.php` erzeugt WebP-Derivate, skaliert Originalbilder auf Maximalmaße und erstellt Thumbnail-Varianten
+
+Der WebP-/Thumbnail-Job in `/admin/media?tab=settings` nutzt denselben Service-Stack: `MediaModule` verwaltet Jobstatus und View-Daten, `MediaService` sammelt geeignete Quellbilder und verarbeitet einzelne Job-Items, und `ImageProcessor` führt die eigentliche Derivat-Erzeugung aus.
+
+Die direkte Verwendungsanzeige in der Bibliothek verwendet ebenfalls den vorhandenen Service-Stack: `MediaUsageService` findet Referenzen in `featured_image`, `content` und `content_en` von Beiträgen und Seiten; `MediaModule` verdichtet diese Informationen zu Zählern und Feld-Badges; `views/media/library.php` rendert sie read-only mit escaped Titeln und fail-closed normalisierten internen Bearbeitungslinks.
 
 ---
 
@@ -144,6 +153,18 @@ Sowohl das Admin-Upload-Modal als auch der Member-Uploader aktualisieren nach er
 Zusätzlich benennt die Bulk-Schaltfläche in der Bibliothek die ausgewählte Aktion jetzt explizit und bleibt gesperrt, bis Auswahl **und** gültige Aktion zusammenpassen.
 
 Seit `2.9.721` markiert die Bibliothek identische sichtbare Dateien zusätzlich mit einem Duplikat-Badge, Kurz-Hash und den ersten weiteren Pfaden derselben Hash-Gruppe. Diese Anzeige ersetzt keine redaktionelle Entscheidung: Admins löschen oder verschieben Duplikate weiterhin bewusst über die vorhandenen Einzel- oder Bulk-Aktionen.
+
+Seit `2.9.728` bleibt diese Prüfung bewusst opportunistisch: sehr große Dateien werden im View-Pfad nicht mehr gehasht, weil die Medienliste kein lang laufender Integritätsjob ist. Falls ein Projekt forensische Duplikatprüfungen für große Archive oder Videos braucht, gehört das in einen separaten Batch-/Diagnosepfad.
+
+Seit `2.9.725` ergänzt die Bibliothek die Suche um erweiterte Filter für Dateityp, Dateiendung, Größenklasse und Änderungszeitraum. Der Pfad bleibt bewusst nicht-destruktiv: Alle neuen Filter sind GET-Parameter, werden im Modul per Allowlist normalisiert, bleiben in Ordnernavigation sowie Listen-/Grid-Umschaltung erhalten und fallen bei ungültigen Werten auf `all` bzw. leere Endung zurück. Damit entstehen keine neuen CSRF-/POST-Pfade und keine unnötigen 500-Risiken durch manipulierte Filterwerte.
+
+Seit `2.9.726` lassen sich vorhandene Bildbestände zusätzlich über einen fortsetzbaren WebP-/Thumbnail-Job nachverarbeiten. Start, nächster Batch und Abbruch sind normale Admin-POST-Aktionen mit bestehendem CSRF-/PRG-Vertrag; die Fortschrittsanzeige liest den gespeicherten Jobstatus. Einzelschäden wie nicht lesbare Dateien werden gezählt und geloggt, während der Job weiter fortgesetzt werden kann.
+
+Seit `2.9.728` wird auch die gespeicherte Jobdatei selbst defensiver behandelt: zu große, leere, beschädigte oder schemafremde Inhalte werden beim Laden verworfen; Pfadlisten werden erneut normalisiert und auf die Job-Grenze begrenzt. Dadurch bleibt `/admin/media?tab=settings` auch nach manueller Dateibeschädigung oder unvollständigem Schreibvorgang erreichbar.
+
+Seit `2.9.727` zeigt die Bibliothek pro Medium direkt an, ob es in Beiträgen oder Seiten verwendet wird. Die Anzeige bleibt auf die bereits berechneten sichtbaren Dateien begrenzt, nutzt gruppierte Badges für Inhaltstyp und Feldkontext und klappt zusätzliche Referenzen nur bei Bedarf auf. Damit bleibt die Medienliste auch bei mehrfach verwendeten Dateien übersichtlich und vermeidet neue Token-, POST- oder 500-riskante Verarbeitungspfade.
+
+Seit `2.9.728` werden die zugehörigen Bearbeitungslinks zusätzlich in der View auf interne Beitrags-/Seiten-Edit-Routen begrenzt. Falls ein unerwarteter Zielwert in den Usage-Payload gelangt, bleibt die Referenz sichtbar, aber ohne klickbaren Link.
 
 ---
 

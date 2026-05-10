@@ -586,9 +586,9 @@ Die Sidebar in `CMS/admin/partials/sidebar.php` ist für die Menüstruktur führ
 ### Nice-to-haves
 
 - [x] Duplikat-Erkennung nach Hash.
-- [ ] Mediensuche mit erweiterten Filtern (nicht nur Name/Pfad).
-- [ ] Hintergrundverarbeitung für WebP-/Thumbnail-Jobs mit Fortschritt.
-- [ ] Verwendungsanzeige pro Medium direkt in der Bibliothek.
+- [x] Mediensuche mit erweiterten Filtern (nicht nur Name/Pfad).
+- [x] Hintergrundverarbeitung für WebP-/Thumbnail-Jobs mit Fortschritt.
+- [x] Verwendungsanzeige pro Medium direkt in der Bibliothek.
 - [ ] weitere sinnvolle Erweiterungen
 
 ### Audit-Stand – Medienverwaltung · Durchlauf 1
@@ -615,6 +615,62 @@ Die Sidebar in `CMS/admin/partials/sidebar.php` ist für die Menüstruktur führ
 - **Abhängige Bereiche:** `MediaService`, `MediaModule`, Medienbibliothek-View, Dateisystem unter `CMS/uploads/`
 - **Offene Must-haves:** keine
 - **Offene Nice-to-haves:** erweiterte Suche, Hintergrundjobs für WebP-/Thumbnail-Verarbeitung, weitere Verwendungs-/Bibliothekskomfortfunktionen
+- **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/media/README.md`, `CMS/DOC/admin/media/MEDIA.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`
+
+### Audit-Stand – Medienverwaltung · Durchlauf 3
+
+- **Status:** abgeschlossen auf Code-/Best-Practice-/Doku-Basis · Release `2.9.725`
+- **Prüfer:** GitHub Copilot
+- **Datum:** 2026-05-10
+- **Geprüfte Route:** `/admin/media`
+- **Umgesetztes Nice-to-have:** Mediensuche mit erweiterten Filtern.
+- **Umsetzung in diesem Durchlauf:** Die Bibliothek erweitert die bestehende Name-/Pfad-/Kategorie-/Verwendungsfilterung um serverseitige GET-Filter für Dateityp, Dateiendung, Größenklasse und Änderungszeitraum. Ordner-, Breadcrumb- und Listen-/Grid-Links behalten die aktiven Filter bei; ein Reset-Link entfernt Such- und Filterparameter gezielt wieder.
+- **Best-Practice-Bezug:** Der Ausbau erzeugt keine neue Schreibaktion und damit keinen zusätzlichen CSRF-/Token-Pfad. Alle Filterwerte werden per Allowlist bzw. alphanumerischer Endungsnormalisierung begrenzt; manipulierte Werte fallen auf neutrale Defaults zurück, statt einen HTTP-500 zu riskieren. Die Toolbar darf responsive umbrechen, damit zusätzliche Filter auf kleinen Viewports bedienbar bleiben.
+- **Abhängige Bereiche:** `MediaModule`, Medienbibliothek-View, `admin.css`, Dateisystem-Metadaten `size`/`modified`, bestehende Usage-Map
+- **Offene Must-haves:** keine
+- **Offene Nice-to-haves:** Hintergrundjobs für WebP-/Thumbnail-Verarbeitung, weitere Verwendungs-/Bibliothekskomfortfunktionen
+- **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/media/README.md`, `CMS/DOC/admin/media/MEDIA.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`
+
+### Audit-Stand – Medienverwaltung · Durchlauf 4
+
+- **Status:** abgeschlossen auf Code-/Best-Practice-/Doku-Basis · Release `2.9.726`
+- **Prüfer:** GitHub Copilot
+- **Datum:** 2026-05-10
+- **Geprüfte Route:** `/admin/media?tab=settings`
+- **Umgesetztes Nice-to-have:** Hintergrundverarbeitung für WebP-/Thumbnail-Jobs mit Fortschritt.
+- **Umsetzung in diesem Durchlauf:** Die Medien-Einstellungen können bestehende Bilder jetzt in einen fortsetzbaren WebP-/Thumbnail-Job legen. Der Job speichert Status, Cursor, Zähler und letzte Fehler atomar in `CMS/config/media-processing-job.json`, verarbeitet pro Schritt nur wenige Quellbilder und überspringt bereits erzeugte Thumbnail-Derivate. Admins können den nächsten Batch per Button anstoßen oder den Job abbrechen.
+- **Best-Practice-Bezug:** Mutierende Aktionen bleiben vollständig im vorhandenen Admin-CSRF-/PRG-Vertrag und verlangen die bestehende Medien-Capability. Der Server verarbeitet kleine Chunks statt langer Komplettrequests, fängt Einzelfehler pro Datei ab, zählt und loggt diese und verhindert damit, dass ein defektes Bild den gesamten Medienbereich als HTTP-500 abreißt.
+- **Abhängige Bereiche:** `CMS/admin/media.php`, `MediaModule`, `MediaService`, `ImageProcessor`, `CMS/config/media-processing-job.json`, Medien-Einstellungen-View
+- **Offene Must-haves:** keine
+- **Offene Nice-to-haves:** Verwendungsanzeige pro Medium direkt in der Bibliothek und weitere Bibliothekskomfortfunktionen
+- **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/media/README.md`, `CMS/DOC/admin/media/MEDIA.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`
+
+### Audit-Stand – Medienverwaltung · Durchlauf 5
+
+- **Status:** abgeschlossen auf Code-/Best-Practice-/Doku-Basis · Release `2.9.727`
+- **Prüfer:** GitHub Copilot
+- **Datum:** 2026-05-10
+- **Geprüfte Route:** `/admin/media`
+- **Umgesetztes Nice-to-have:** Verwendungsanzeige pro Medium direkt in der Bibliothek.
+- **Umsetzung in diesem Durchlauf:** Die Bibliothek zeigt pro Datei jetzt nicht nur den Verwendungsfilterstatus, sondern konkrete Referenzen aus Beiträgen und Seiten. `MediaModule` verdichtet die vorhandenen `MediaUsageService`-Daten zu Beitrags-/Seiten- und Feld-Zählern; `library.php` rendert direkte Bearbeitungslinks, Badges für Inhaltstyp/Feldkontext und aufklappbare weitere Referenzen. Zusätzlich zeigt die KPI-Leiste, wie viele sichtbare Dateien eingebunden sind.
+- **Best-Practice-Bezug:** Der Ausbau ist read-only, erzeugt keine neuen POST-Aktionen und damit keinen zusätzlichen CSRF-/Token-Pfad. Die Anzeige nutzt die bereits berechnete Usage-Map für sichtbare Dateien, begrenzt lange Referenzlisten per `<details>` und escaped alle Titel, Labels und URLs in der View, damit defekte Inhalte oder unerwartete Referenzen nicht zu XSS oder HTTP-500 führen.
+- **Abhängige Bereiche:** `MediaUsageService`, `MediaModule`, Medienbibliothek-View, `admin.css`, Beiträge, Seiten
+- **Offene Must-haves:** keine
+- **Offene Nice-to-haves:** weitere sinnvolle Bibliothekskomfortfunktionen
+- **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/media/README.md`, `CMS/DOC/admin/media/MEDIA.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`
+
+### Audit-Stand – Medienverwaltung Nachprüfung · Durchlauf 6
+
+- **Status:** abgeschlossen auf Code-/Best-Practice-/Sicherheits-/Performance-Basis · Release `2.9.728`
+- **Prüfer:** GitHub Copilot
+- **Datum:** 2026-05-10
+- **Geprüfte Routen:** `/admin/media`, `/admin/media?tab=settings`
+- **Reproduziertes Risiko:** Die zuletzt ergänzte read-only Duplikat-Erkennung konnte bei mehreren sehr großen gleich großen Dateien im synchronen Bibliotheks-View unnötig viel I/O und CPU für SHA-256-Hashing erzeugen. Zusätzlich verließ sich die direkte Usage-Anzeige auf bereits interne Service-URLs, ohne diese im Renderpfad nochmals fail-closed zu begrenzen; beschädigte Medienjob-Dateien wurden zwar meist harmlos gelesen, aber nicht explizit nach Größe und Schema verworfen.
+- **Umsetzung in diesem Durchlauf:** Duplikat-Hashing überspringt sehr große Dateien jetzt opportunistisch im View-Pfad, Usage-Bearbeitungslinks werden direkt in `library.php` auf interne Beitrags-/Seiten-Edit-Routen normalisiert, und `media-processing-job.json` wird beim Laden größen- und schema-validiert. Job-Pfade werden nochmals normalisiert und auf die definierte Job-Grenze begrenzt.
+- **Best-Practice-Bezug:** Die Medienbibliothek bleibt ein schneller Admin-View und kein lang laufender Integritätsjob. Upload-/Datei-Best-Practices aus OWASP bleiben erhalten: erlaubte Typen, Größenlimits, Servervalidierung, authentifizierte Mutationen und CSRF; die Nachhärtung ergänzt fail-soft Verhalten für teure Lesepfade und beschädigte lokale Statusdateien.
+- **Abhängige Bereiche:** `MediaService`, `MediaModule`, `views/media/library.php`, Medienbibliothek, WebP-/Thumbnail-Jobstatus
+- **Offene Must-haves:** keine
+- **Offene Nice-to-haves:** weitere sinnvolle Bibliothekskomfortfunktionen
 - **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/media/README.md`, `CMS/DOC/admin/media/MEDIA.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`
 
 ---
@@ -656,10 +712,10 @@ Die Sidebar in `CMS/admin/partials/sidebar.php` ist für die Menüstruktur führ
 
 ### Nice-to-haves
 
-- [ ] Rollenvergleich / Capability-Diff.
+- [x] Rollenvergleich / Capability-Diff.
 - [x] Gruppen-Massenaktionen.
 - [x] Passwort-Policy-Tester im UI.
-- [ ] Login-/Sicherheitsereignisse pro Benutzer im Profil.
+- [x] Login-/Sicherheitsereignisse pro Benutzer im Profil.
 
 ### Audit-Stand – Benutzer & Gruppen · Durchlauf 2
 
@@ -713,7 +769,48 @@ Die Sidebar in `CMS/admin/partials/sidebar.php` ist für die Menüstruktur führ
 - **Offene Must-haves:** keine
 - **Offene Nice-to-haves:** Capability-Diff, Sicherheitsereignisse pro Benutzerprofil
 - **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/users-groups/README.md`, `CMS/DOC/admin/users-groups/GROUPS.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`
-- **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/users-groups/README.md`, `CMS/DOC/admin/users-groups/RBAC.md`, `CMS/DOC/admin/users-groups/AUTH-SETTINGS.md`
+
+### Audit-Stand – Benutzer & Gruppen Nice-to-haves · Durchlauf 5
+
+- **Status:** abgeschlossen auf Code-/Best-Practice-/Sicherheits-/Performance-Basis · Release `2.9.729`
+- **Prüfer:** GitHub Copilot
+- **Datum:** 2026-05-10
+- **Geprüfte Route:** `/admin/roles`
+- **Umgesetztes Nice-to-have:** Rollenvergleich / Capability-Diff.
+- **Umsetzung in diesem Durchlauf:** Die Rollenverwaltung zeigt jetzt einen read-only Vergleich zweier Rollen an. `RolesModule` nutzt die bereits geladene Rollen-/Capability-Matrix, normalisiert `compare_from` und `compare_to` serverseitig gegen bekannte Rollen und berechnet gemeinsame sowie nur einseitig gesetzte Rechte gruppiert nach Capability-Bereich. Die View rendert den Vergleich über ein GET-Formular ohne Speichern-Button und escaped Rollenlabels sowie Capability-Namen.
+- **Best-Practice-Bezug:** Der Ausbau unterstützt Least-Privilege- und Privilege-Creep-Prüfungen nach OWASP Authorization, ohne eine neue schreibende Route, CSRF-Token-Abhängigkeit oder Mass-Assignment-Fläche zu erzeugen. Ungültige GET-Werte fallen fail-closed auf bekannte Rollen zurück; bei zu wenigen Rollen wird der Block nicht gerendert, statt einen HTTP-500 zu riskieren.
+- **Abhängige Bereiche:** `roles.php`, `RolesModule`, `views/users/roles.php`, `role_permissions`, gemeinsame Rollenmatrix
+- **Offene Must-haves:** keine
+- **Offene Nice-to-haves:** Login-/Sicherheitsereignisse pro Benutzerprofil
+- **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/users-groups/README.md`, `CMS/DOC/admin/users-groups/RBAC.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`
+
+### Audit-Stand – Benutzer & Gruppen Nice-to-haves · Durchlauf 6
+
+- **Status:** abgeschlossen auf Code-/Best-Practice-/Sicherheits-/Performance-Basis · Release `2.9.730`
+- **Prüfer:** GitHub Copilot
+- **Datum:** 2026-05-10
+- **Geprüfte Route:** `/admin/users?action=edit&id=...`
+- **Umgesetztes Nice-to-have:** Login-/Sicherheitsereignisse pro Benutzer im Profil.
+- **Umsetzung in diesem Durchlauf:** Die Benutzerbearbeitung zeigt bei bestehenden Profilen jetzt eine read-only Karte mit den letzten begrenzten Login- und Sicherheitsereignissen aus dem zentralen `audit_log`. `UsersModule` verknüpft Einträge über `user_id`, `entity_type/entity_id` sowie bekannte Auth-Metadaten wie den Login-Identifier, liest nur zusammenfassende Felder und begrenzt die Ausgabe serverseitig. Die View rendert Datum, Kategorie, Aktion, Severity und IP-Adresse, lässt Roh-Metadaten, User-Agent, Tokens, Session-IDs und Secrets aber bewusst weg.
+- **Best-Practice-Bezug:** Der Ausbau folgt OWASP Logging und Authentication: Auth-Erfolge/-Fehler und sicherheitsrelevante Kontoereignisse werden für Admins nachvollziehbar, ohne sensible Logdaten offenzulegen. Die Anzeige erzeugt keine neue Schreibroute, keinen zusätzlichen CSRF-/Sicherheitstoken-Pfad und fällt bei fehlendem oder temporär nicht lesbarem Audit-Log fail-soft auf einen neutralen Hinweis zurück, statt die Benutzerverwaltung mit einem HTTP-500 zu blockieren.
+- **Abhängige Bereiche:** `users.php`, `UsersModule`, `views/users/edit.php`, `audit_log`, `AuditLogger`
+- **Offene Must-haves:** keine
+- **Offene Nice-to-haves:** keine
+- **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/users-groups/README.md`, `CMS/DOC/admin/users-groups/USERS.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`
+
+### Audit-Stand – Nachprüfung der letzten Nice-to-haves · Durchlauf 7
+
+- **Status:** abgeschlossen auf Code-/Best-Practice-/Sicherheits-/Performance-Basis · Release `2.9.731`
+- **Prüfer:** GitHub Copilot
+- **Datum:** 2026-05-10
+- **Geprüfte Routen:** `/admin/media?tab=settings`, `/admin/users?action=edit&id=...`, `/admin/roles`, zuletzt ergänzte Medien-/Benutzer-&-Gruppen-Nice-to-haves
+- **Umgesetzte Nachhärtung:** Die Paketprüfung gegen OWASP Input Validation, CSRF, Logging, File Upload, SQL Injection, Query Parameterization, Error Handling und Authorization ergab vier konkrete Nachläufer: sichtbare Medienjob-Fehler durften keine rohen Exception-Texte enthalten, Benutzer-Speichern/-Löschen und Rollen-/Rechte-Schreibaktionen sollten interne Exception-Meldungen nicht in Alerts oder Fehlerreport-Payloads zurückgeben, und das Audit-Log-Schema musste den im Code bereits vorgesehenen Severity-Wert `error` unterstützen.
+- **Umsetzung in diesem Durchlauf:** `MediaModule` zeigt bei unerwarteten Derivat-Job-Exceptions nur noch generische UI-Details und protokolliert serverseitig datensparsam Exception-Klasse und relativen Pfad. `UsersModule` gibt bei unerwarteten Save/Delete-Exceptions keine rohen Exception-Messages mehr an Admin-Alerts oder Report-Payloads weiter. `RolesModule` behandelt Rollen-/Capability-Schreibfehler ebenfalls generisch und protokolliert serverseitig nur Operation und Exception-Klasse. `SchemaManager` erstellt und migriert `audit_log.severity` mit `info`, `warning`, `error` und `critical`, damit `AuditLogger::sanitizeSeverity()` und Profilanzeige schema-kompatibel bleiben.
+- **Best-Practice-Bezug:** Die Nachhärtung folgt OWASP Error Handling und Logging: technische Details bleiben serverseitig, Benutzeroberflächen erhalten generische Hinweise, Logs enthalten ausreichend Diagnosekontext ohne unnötige Rohfehlerausgabe. Der Severity-Fix verhindert stille Audit-Log-Ausfälle bei legitimen `error`-Ereignissen und stärkt damit Monitoring/Nachvollziehbarkeit.
+- **Abhängige Bereiche:** `MediaModule`, `UsersModule`, `SchemaManager`, `AuditLogger`, `audit_log`, Medienjob-Statusdatei, Benutzer-Alerts und Fehlerreport-Payloads
+- **Offene Must-haves:** keine
+- **Offene Nice-to-haves:** keine
+- **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/users-groups/README.md`, `CMS/DOC/admin/users-groups/USERS.md`, `CMS/DOC/admin/media/README.md`, `CMS/DOC/admin/media/MEDIA.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`
 
 ---
 

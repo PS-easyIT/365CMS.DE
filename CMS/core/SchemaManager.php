@@ -579,7 +579,7 @@ class SchemaManager
                 ip_address VARCHAR(45),
                 user_agent VARCHAR(500),
                 metadata LONGTEXT COMMENT 'JSON-Daten',
-                severity ENUM('info','warning','critical') NOT NULL DEFAULT 'info',
+                severity ENUM('info','warning','error','critical') NOT NULL DEFAULT 'info',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 INDEX idx_user_id (user_id),
                 INDEX idx_category (category),
@@ -921,6 +921,18 @@ class SchemaManager
         }
 
         $this->ensureOrdersRuntimeSchema();
+        $this->ensureAuditLogRuntimeSchema();
+    }
+
+    private function ensureAuditLogRuntimeSchema(): void
+    {
+        $table = $this->prefix . 'audit_log';
+
+        try {
+            $this->db->query("ALTER TABLE {$table} MODIFY COLUMN severity ENUM('info','warning','error','critical') NOT NULL DEFAULT 'info'");
+        } catch (\Throwable $e) {
+            error_log('SchemaManager::ensureAuditLogRuntimeSchema() severity failed: ' . $e->getMessage());
+        }
     }
 
     private function ensureOrdersRuntimeSchema(): void

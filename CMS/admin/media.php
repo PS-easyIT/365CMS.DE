@@ -27,6 +27,9 @@ const CMS_ADMIN_MEDIA_ALLOWED_ACTIONS = [
     'add_category',
     'delete_category',
     'save_settings',
+    'start_media_processing_job',
+    'process_media_processing_job',
+    'cancel_media_processing_job',
 ];
 
 const CMS_ADMIN_MEDIA_WRITE_CAPABILITY = 'manage_media';
@@ -306,6 +309,10 @@ function cms_admin_media_normalize_action_payload(MediaModule $module, string $a
         'delete_category' => [
             'slug' => $module->normalizeCategory((string) ($post['slug'] ?? '')),
         ],
+        'start_media_processing_job' => [
+            'processing_mode' => $module->normalizeProcessingMode((string) ($post['processing_mode'] ?? 'all')),
+        ],
+        'process_media_processing_job', 'cancel_media_processing_job' => [],
         'save_settings' => cms_admin_media_normalize_settings_payload($post),
         default => [],
     };
@@ -408,7 +415,7 @@ function cms_admin_media_action_redirect_path(MediaModule $module, string $actio
 
     return match ($action) {
         'add_category', 'delete_category' => CMS_ADMIN_MEDIA_ROUTE_PATH . '?tab=categories',
-        'save_settings' => CMS_ADMIN_MEDIA_ROUTE_PATH . '?tab=settings',
+        'save_settings', 'start_media_processing_job', 'process_media_processing_job', 'cancel_media_processing_job' => CMS_ADMIN_MEDIA_ROUTE_PATH . '?tab=settings',
         default => cms_admin_media_build_redirect_url($module, $tab, $path),
     };
 }
@@ -639,6 +646,18 @@ function cms_admin_media_handle_action(MediaModule $module, string $action, stri
         ],
         'delete_category' => [
             'result' => $module->deleteCategory((string)($post['slug'] ?? '')),
+            'redirect_path' => $redirectPath,
+        ],
+        'start_media_processing_job' => [
+            'result' => $module->startMediaProcessingJob((string)($post['processing_mode'] ?? 'all')),
+            'redirect_path' => $redirectPath,
+        ],
+        'process_media_processing_job' => [
+            'result' => $module->processMediaProcessingJob(),
+            'redirect_path' => $redirectPath,
+        ],
+        'cancel_media_processing_job' => [
+            'result' => $module->cancelMediaProcessingJob(),
             'redirect_path' => $redirectPath,
         ],
         'save_settings' => [

@@ -92,7 +92,7 @@ if (!empty($_SESSION['admin_alert'])) {
 }
 
 $csrfToken  = Security::instance()->generateToken('admin_roles');
-$data       = $module->getData();
+$data       = $module->getData($_GET);
 $pageTitle  = 'Rollen & Rechte';
 $activePage = 'roles';
 $pageAssets = [

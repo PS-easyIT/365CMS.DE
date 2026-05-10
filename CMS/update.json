@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.9.724",
+  "version": "2.9.731",
   "min_php": "8.4",
   "released": "2026-05-10",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 2.9.724: Live-Hotfix gegen Redeclare-Fatals im Admin- und Theme-Bootstrap. SchemaManager ist jetzt als echte konditionale Klasse gekapselt, sodass doppelte Includes nicht mehr vor dem Guard mit Cannot redeclare class CMS\\SchemaManager abbrechen. Die Default-Theme-Funktion meridian_nav_menu ist in functions.php und theme-runtime-helpers.php ebenfalls konditional geschützt.",
+  "notes": "Release-Stand 2.9.731: Die Nachprüfung der letzten Nice-to-haves härtet Medienjobs, Benutzer-/Rollenverwaltung und Audit-Log-Schema nach. Medienjob-Fehler zeigen keine rohen Exception-Texte mehr im UI, Benutzer-Save/Delete- sowie Rollen-/Rechte-Schreibfehler geben interne Details nicht mehr in Alerts oder Fehlerreports weiter, und audit_log unterstützt den bereits verwendeten Severity-Wert error auch schema- und runtime-seitig.",
   "critical": false
 }

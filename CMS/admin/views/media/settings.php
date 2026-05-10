@@ -16,6 +16,7 @@ $settings  = $data['settings'] ?? [];
 $diskUsage = $data['diskUsage'] ?? [];
 $options = $data['options'] ?? [];
 $constraints = is_array($data['constraints'] ?? null) ? $data['constraints'] : [];
+$processingJob = is_array($data['processing_job'] ?? null) ? $data['processing_job'] : [];
 $allTypes = is_array($options['allowed_types'] ?? null) ? $options['allowed_types'] : [];
 $memberTypes = is_array($options['member_allowed_types'] ?? null) ? $options['member_allowed_types'] : [];
 $thumbnailSizes = is_array($options['thumbnail_sizes'] ?? null) ? $options['thumbnail_sizes'] : [];
@@ -226,6 +227,75 @@ $s = is_array($settings) ? $settings : [];
 
                 <!-- Sidebar -->
                 <div class="col-lg-4">
+                    <!-- Hintergrundverarbeitung -->
+                    <div class="card mb-3">
+                        <div class="card-header"><h3 class="card-title">WebP-/Thumbnail-Job</h3></div>
+                        <div class="card-body">
+                            <?php
+                            $jobExists = !empty($processingJob['exists']);
+                            $jobActive = !empty($processingJob['is_active']);
+                            $jobStatus = (string)($processingJob['status'] ?? 'none');
+                            $jobPercent = max(0, min(100, (int)($processingJob['percent'] ?? 0)));
+                            $jobTotal = max(0, (int)($processingJob['total'] ?? 0));
+                            $jobProcessed = max(0, (int)($processingJob['processed'] ?? 0));
+                            ?>
+                            <p class="text-secondary small mb-3">
+                                Bestehende Bilder werden in kleinen Server-Schritten verarbeitet (max.
+                                <?php echo (int)($constraints['processing_batch_size'] ?? 5); ?> pro Klick), damit keine langen Requests oder 500er entstehen.
+                            </p>
+
+                            <?php if ($jobExists): ?>
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between mb-1">
+                                        <span class="small text-secondary">Status: <?php echo htmlspecialchars($jobStatus); ?></span>
+                                        <strong class="small"><?php echo $jobPercent; ?>%</strong>
+                                    </div>
+                                    <div class="progress" role="progressbar" aria-valuenow="<?php echo $jobPercent; ?>" aria-valuemin="0" aria-valuemax="100" aria-label="Medienjob-Fortschritt">
+                                        <div class="progress-bar" style="width: <?php echo $jobPercent; ?>%"></div>
+                                    </div>
+                                    <div class="small text-secondary mt-1">
+                                        <?php echo $jobProcessed; ?> / <?php echo $jobTotal; ?> Datei(en),
+                                        erzeugt <?php echo (int)($processingJob['succeeded'] ?? 0); ?>,
+                                        übersprungen <?php echo (int)($processingJob['skipped'] ?? 0); ?>,
+                                        Fehler <?php echo (int)($processingJob['failed'] ?? 0); ?>.
+                                    </div>
+                                </div>
+
+                                <?php if (!empty($processingJob['last_errors']) && is_array($processingJob['last_errors'])): ?>
+                                    <div class="alert alert-warning py-2 mb-3" role="alert">
+                                        <strong>Letzte Fehler:</strong>
+                                        <ul class="mb-0 ps-3">
+                                            <?php foreach (array_slice($processingJob['last_errors'], 0, 3) as $jobError): ?>
+                                                <li><?php echo htmlspecialchars((string)$jobError); ?></li>
+                                            <?php endforeach; ?>
+                                        </ul>
+                                    </div>
+                                <?php endif; ?>
+                            <?php endif; ?>
+
+                            <div class="mb-3">
+                                <label class="form-label" for="processingMode">Job-Typ</label>
+                                <select class="form-select" id="processingMode" name="processing_mode" <?php echo $jobActive ? 'disabled' : ''; ?>>
+                                    <option value="all">WebP + Thumbnails nachziehen</option>
+                                    <option value="webp">Nur WebP erzeugen</option>
+                                    <option value="thumbnails">Nur Thumbnails erzeugen</option>
+                                </select>
+                                <div class="form-hint">
+                                    Maximal <?php echo (int)($constraints['processing_max_candidates'] ?? 1000); ?> Quellbilder pro Job; vorhandene Thumbnail-Derivate werden nicht erneut in die Queue gelegt.
+                                </div>
+                            </div>
+
+                            <div class="d-grid gap-2">
+                                <?php if ($jobActive): ?>
+                                    <button type="submit" class="btn btn-primary" name="action" value="process_media_processing_job">Nächsten Batch verarbeiten</button>
+                                    <button type="submit" class="btn btn-outline-danger" name="action" value="cancel_media_processing_job">Job abbrechen</button>
+                                <?php else: ?>
+                                    <button type="submit" class="btn btn-outline-primary" name="action" value="start_media_processing_job">Neuen Job vorbereiten</button>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Sicherheit -->
                     <div class="card mb-3">
                         <div class="card-header"><h3 class="card-title">Sicherheit</h3></div>

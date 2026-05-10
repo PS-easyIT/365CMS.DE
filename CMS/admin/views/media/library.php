@@ -21,17 +21,26 @@ $category   = $data['category'] ?? '';
 $view       = $data['view'] ?? 'list';
 $search     = $data['search'] ?? '';
 $usageFilter = $data['usage_filter'] ?? 'all';
+$fileTypeFilter = (string)($data['file_type_filter'] ?? 'all');
+$extensionFilter = (string)($data['extension_filter'] ?? '');
+$sizeFilter = (string)($data['size_filter'] ?? 'all');
+$modifiedFilter = (string)($data['modified_filter'] ?? 'all');
 $confirmMember = !empty($data['confirm_member']);
 $memberFolderConfirmMessage = (string)($data['member_folder_confirm_message'] ?? 'Der Member-Bereich enthält sensible Uploads. Möchten Sie den Ordner wirklich öffnen?');
 $breadcrumbs = is_array($data['breadcrumbs'] ?? null) ? $data['breadcrumbs'] : [];
 $stats = is_array($data['stats'] ?? null) ? $data['stats'] : [];
 $categoryOptions = is_array($data['category_options'] ?? null) ? $data['category_options'] : [];
 $usageFilterOptions = is_array($data['usage_filter_options'] ?? null) ? $data['usage_filter_options'] : [];
+$fileTypeFilterOptions = is_array($data['file_type_filter_options'] ?? null) ? $data['file_type_filter_options'] : [];
+$extensionFilterOptions = is_array($data['extension_filter_options'] ?? null) ? $data['extension_filter_options'] : [];
+$sizeFilterOptions = is_array($data['size_filter_options'] ?? null) ? $data['size_filter_options'] : [];
+$modifiedFilterOptions = is_array($data['modified_filter_options'] ?? null) ? $data['modified_filter_options'] : [];
 $filterState = is_array($data['filter_state'] ?? null) ? $data['filter_state'] : [];
 $baseUrl = (string)($data['base_url'] ?? '/admin/media');
 $listUrl = (string)($data['list_url'] ?? $baseUrl);
 $gridUrl = (string)($data['grid_url'] ?? $baseUrl);
 $rootUrl = (string)($data['root_url'] ?? $baseUrl);
+$resetFilterUrl = (string)($data['reset_filter_url'] ?? $baseUrl);
 $emptyState = is_array($data['empty_state'] ?? null) ? $data['empty_state'] : ['title' => 'Dieser Ordner ist leer', 'subtitle' => 'Legen Sie einen Ordner an oder laden Sie Dateien hoch.'];
 $constraints = is_array($data['constraints'] ?? null) ? $data['constraints'] : [];
 $moveTargets = is_array($data['move_targets'] ?? null) ? $data['move_targets'] : [];
@@ -56,6 +65,7 @@ $mediaLibraryConfig = [
     'bulkMoveWrapId' => 'mediaBulkMoveWrap',
     'bulkMoveTargetFieldId' => 'mediaBulkTarget',
 ];
+$hasAdvancedMediaFilters = $fileTypeFilter !== 'all' || $extensionFilter !== '' || $sizeFilter !== 'all' || $modifiedFilter !== 'all';
 
 // Dateityp-Icon Helper
 function mediaTypeIcon(string $type): string {
@@ -81,12 +91,64 @@ function renderMoveTargetOptions(array $targets, string $selectedPath = ''): str
     return $html;
 }
 
-function renderMediaUsageList(array $usageItems, int $maxVisible = 3): string {
+function renderMediaUsageBadges(array $usageSummary): string {
+    $badges = [];
+    $postCount = (int)($usageSummary['post_count'] ?? 0);
+    $pageCount = (int)($usageSummary['page_count'] ?? 0);
+    $featuredCount = (int)($usageSummary['featured_count'] ?? 0);
+    $contentCount = (int)($usageSummary['content_count'] ?? 0);
+    $contentEnCount = (int)($usageSummary['content_en_count'] ?? 0);
+
+    if ($postCount > 0) {
+        $badges[] = '<span class="badge bg-blue-lt">' . $postCount . ' Beitrag' . ($postCount === 1 ? '' : 'e') . '</span>';
+    }
+    if ($pageCount > 0) {
+        $badges[] = '<span class="badge bg-indigo-lt">' . $pageCount . ' Seite' . ($pageCount === 1 ? '' : 'n') . '</span>';
+    }
+    if ($featuredCount > 0) {
+        $badges[] = '<span class="badge bg-green-lt">' . $featuredCount . ' Bildreferenz' . ($featuredCount === 1 ? '' : 'en') . '</span>';
+    }
+    if (($contentCount + $contentEnCount) > 0) {
+        $badges[] = '<span class="badge bg-purple-lt">' . ($contentCount + $contentEnCount) . ' Inhalt' . (($contentCount + $contentEnCount) === 1 ? '' : 'e') . '</span>';
+    }
+
+    return $badges !== [] ? '<div class="media-usage-badges">' . implode('', $badges) . '</div>' : '';
+}
+
+function normalizeMediaUsageEditUrl(string $editUrl): string {
+    $editUrl = trim($editUrl);
+
+    if ($editUrl === '' || preg_match('/[\x00-\x1F\x7F]/', $editUrl) === 1) {
+        return '';
+    }
+
+    return preg_match('#^/admin/(?:posts|pages)\?action=edit&id=\d+$#', $editUrl) === 1 ? $editUrl : '';
+}
+
+function renderMediaUsageLink(array $usageItem): string {
+    $editUrl = normalizeMediaUsageEditUrl((string)($usageItem['edit_url'] ?? ''));
+    $typeLabel = (string)($usageItem['content_type_label'] ?? 'Inhalt');
+    $title = (string)($usageItem['title'] ?? 'Ohne Titel');
+    $fieldLabel = (string)($usageItem['field_label'] ?? 'Verwendung');
+
+    $inner = '<span class="badge bg-blue-lt">' . htmlspecialchars($typeLabel) . '</span>';
+    $inner .= '<span class="fw-medium">' . htmlspecialchars($title) . '</span>';
+    $inner .= '<span class="text-secondary">(' . htmlspecialchars($fieldLabel) . ')</span>';
+
+    if ($editUrl === '') {
+        return '<span class="media-usage-link">' . $inner . '</span>';
+    }
+
+    return '<a href="' . htmlspecialchars($editUrl, ENT_QUOTES) . '" class="media-usage-link text-reset text-decoration-none">' . $inner . '</a>';
+}
+
+function renderMediaUsageList(array $usageItems, array $usageSummary = [], int $maxVisible = 3): string {
     if ($usageItems === []) {
         return '<span class="text-secondary">Nicht eingebunden</span>';
     }
 
-    $html = '<div class="d-flex flex-column gap-1">';
+    $html = '<div class="media-usage-list">';
+    $html .= renderMediaUsageBadges($usageSummary);
     $visibleItems = array_slice($usageItems, 0, $maxVisible);
 
     foreach ($visibleItems as $usageItem) {
@@ -94,21 +156,21 @@ function renderMediaUsageList(array $usageItems, int $maxVisible = 3): string {
             continue;
         }
 
-        $editUrl = (string)($usageItem['edit_url'] ?? '');
-        $typeLabel = (string)($usageItem['content_type_label'] ?? 'Inhalt');
-        $title = (string)($usageItem['title'] ?? 'Ohne Titel');
-        $fieldLabel = (string)($usageItem['field_label'] ?? 'Verwendung');
-
-        $html .= '<a href="' . htmlspecialchars($editUrl, ENT_QUOTES) . '" class="d-inline-flex flex-wrap align-items-center gap-1 text-reset text-decoration-none small">';
-        $html .= '<span class="badge bg-blue-lt">' . htmlspecialchars($typeLabel) . '</span>';
-        $html .= '<span class="fw-medium">' . htmlspecialchars($title) . '</span>';
-        $html .= '<span class="text-secondary">(' . htmlspecialchars($fieldLabel) . ')</span>';
-        $html .= '</a>';
+        $html .= renderMediaUsageLink($usageItem);
     }
 
-    $remaining = count($usageItems) - count($visibleItems);
-    if ($remaining > 0) {
-        $html .= '<span class="text-secondary small">+ ' . $remaining . ' weitere Referenz' . ($remaining === 1 ? '' : 'en') . '</span>';
+    $remainingItems = array_slice($usageItems, $maxVisible);
+    if ($remainingItems !== []) {
+        $remaining = count($remainingItems);
+        $html .= '<details class="media-usage-more">';
+        $html .= '<summary>+ ' . $remaining . ' weitere Referenz' . ($remaining === 1 ? '' : 'en') . '</summary>';
+        $html .= '<div class="media-usage-more-list">';
+        foreach ($remainingItems as $usageItem) {
+            if (is_array($usageItem)) {
+                $html .= renderMediaUsageLink($usageItem);
+            }
+        }
+        $html .= '</div></details>';
     }
 
     $html .= '</div>';
@@ -129,6 +191,19 @@ function renderMediaUsageSummary(array $usageItems, int $usageCount): string {
     if ($label !== '') {
         $html .= '<span class="text-secondary"> · ' . htmlspecialchars($label) . '</span>';
     }
+
+    return $html;
+}
+
+function renderMediaUsageSummaryBlock(array $file): string {
+    $usageItems = (array)($file['usage_items'] ?? []);
+    $usageCount = (int)($file['usage_count'] ?? 0);
+    $usageSummary = is_array($file['usage_summary'] ?? null) ? $file['usage_summary'] : [];
+
+    $html = '<div class="media-usage-summary-block">';
+    $html .= renderMediaUsageSummary($usageItems, $usageCount);
+    $html .= renderMediaUsageBadges($usageSummary);
+    $html .= '</div>';
 
     return $html;
 }
@@ -197,7 +272,7 @@ function renderMediaDuplicateSummary(array $file, bool $compact = false): string
 
         <!-- KPIs -->
         <div class="row row-deck row-cards mb-4">
-            <div class="col-sm-6 col-lg-3">
+            <div class="col-sm-6 col-lg">
                 <div class="card card-sm">
                     <div class="card-body">
                         <div class="row align-items-center">
@@ -210,7 +285,20 @@ function renderMediaDuplicateSummary(array $file, bool $compact = false): string
                     </div>
                 </div>
             </div>
-            <div class="col-sm-6 col-lg-3">
+            <div class="col-sm-6 col-lg">
+                <div class="card card-sm">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-auto"><span class="bg-green text-white avatar"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10 14a3.5 3.5 0 0 0 5 0l4 -4a3.5 3.5 0 0 0 -5 -5l-.5 .5"/><path d="M14 10a3.5 3.5 0 0 0 -5 0l-4 4a3.5 3.5 0 0 0 5 5l.5 -.5"/></svg></span></div>
+                            <div class="col">
+                                <div class="font-weight-medium"><?php echo (int)($stats['used_file_count'] ?? 0); ?> / <?php echo (int)($stats['visible_file_count'] ?? count($files)); ?></div>
+                                <div class="text-secondary">sichtbar eingebunden</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-6 col-lg">
                 <div class="card card-sm">
                     <div class="card-body">
                         <div class="row align-items-center">
@@ -223,7 +311,7 @@ function renderMediaDuplicateSummary(array $file, bool $compact = false): string
                     </div>
                 </div>
             </div>
-            <div class="col-sm-6 col-lg-3">
+            <div class="col-sm-6 col-lg">
                 <div class="card card-sm">
                     <div class="card-body">
                         <div class="row align-items-center">
@@ -236,7 +324,7 @@ function renderMediaDuplicateSummary(array $file, bool $compact = false): string
                     </div>
                 </div>
             </div>
-            <div class="col-sm-6 col-lg-3">
+            <div class="col-sm-6 col-lg">
                 <div class="card card-sm">
                     <div class="card-body">
                         <div class="row align-items-center">
@@ -304,12 +392,44 @@ function renderMediaDuplicateSummary(array $file, bool $compact = false): string
                                         </option>
                                     <?php endforeach; ?>
                                 </select>
+                                <select class="form-select form-select-sm media-filter-category" name="file_type" data-media-auto-submit-select="1" aria-label="Dateityp filtern">
+                                    <?php foreach ($fileTypeFilterOptions as $option): ?>
+                                        <option value="<?php echo htmlspecialchars((string)($option['value'] ?? 'all')); ?>" <?php echo $fileTypeFilter === ($option['value'] ?? 'all') ? 'selected' : ''; ?>>
+                                            <?php echo htmlspecialchars((string)($option['label'] ?? 'Alle Dateitypen')); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <select class="form-select form-select-sm media-filter-category" name="extension" data-media-auto-submit-select="1" aria-label="Dateiendung filtern">
+                                    <option value="">Alle Endungen</option>
+                                    <?php foreach ($extensionFilterOptions as $option): ?>
+                                        <option value="<?php echo htmlspecialchars((string)($option['value'] ?? ''), ENT_QUOTES); ?>" <?php echo $extensionFilter === ($option['value'] ?? '') ? 'selected' : ''; ?>>
+                                            <?php echo htmlspecialchars((string)($option['label'] ?? '')); ?> (<?php echo (int)($option['count'] ?? 0); ?>)
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <select class="form-select form-select-sm media-filter-category" name="size_filter" data-media-auto-submit-select="1" aria-label="Dateigröße filtern">
+                                    <?php foreach ($sizeFilterOptions as $option): ?>
+                                        <option value="<?php echo htmlspecialchars((string)($option['value'] ?? 'all')); ?>" <?php echo $sizeFilter === ($option['value'] ?? 'all') ? 'selected' : ''; ?>>
+                                            <?php echo htmlspecialchars((string)($option['label'] ?? 'Alle Größen')); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <select class="form-select form-select-sm media-filter-category" name="modified_filter" data-media-auto-submit-select="1" aria-label="Änderungszeitraum filtern">
+                                    <?php foreach ($modifiedFilterOptions as $option): ?>
+                                        <option value="<?php echo htmlspecialchars((string)($option['value'] ?? 'all')); ?>" <?php echo $modifiedFilter === ($option['value'] ?? 'all') ? 'selected' : ''; ?>>
+                                            <?php echo htmlspecialchars((string)($option['label'] ?? 'Alle Änderungsdaten')); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
                                 <div class="input-group input-group-sm media-filter-search">
                                     <input type="search" class="form-control" name="q" placeholder="Dateien suchen …" value="<?php echo htmlspecialchars($search); ?>" maxlength="<?php echo (int)($constraints['search_max_length'] ?? 120); ?>">
                                     <button type="submit" class="btn btn-icon">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0"/><path d="M21 21l-6 -6"/></svg>
                                     </button>
                                 </div>
+                                <?php if ($hasAdvancedMediaFilters || $category !== '' || $usageFilter !== 'all' || $search !== ''): ?>
+                                    <a href="<?php echo htmlspecialchars($resetFilterUrl, ENT_QUOTES); ?>" class="btn btn-sm btn-outline-secondary">Filter zurücksetzen</a>
+                                <?php endif; ?>
                             </form>
 
                             <div class="btn-group" role="group" aria-label="Ansicht umschalten">
@@ -324,6 +444,12 @@ function renderMediaDuplicateSummary(array $file, bool $compact = false): string
                             </div>
                         </div>
                     </div>
+                    <?php if ($hasAdvancedMediaFilters): ?>
+                        <div class="alert alert-info mb-0 mt-3" role="status">
+                            <strong>Erweiterte Filter aktiv:</strong>
+                            Dateityp, Endung, Größe und Änderungszeitraum werden serverseitig per Allowlist geprüft. Ordner bleiben sichtbar, damit die Navigation auch bei leeren Trefferlisten erhalten bleibt.
+                        </div>
+                    <?php endif; ?>
                     <?php if ((int)($stats['duplicate_file_count'] ?? 0) > 0): ?>
                         <div class="alert alert-warning mb-0 mt-3" role="status">
                             <strong>Duplikat-Erkennung:</strong>
@@ -430,7 +556,7 @@ function renderMediaDuplicateSummary(array $file, bool $compact = false): string
                                     </div>
                                     <div class="media-grid-label"><?php echo htmlspecialchars((string)($file['name'] ?? '')); ?></div>
                                     <div class="media-grid-meta"><?php echo htmlspecialchars((string)($file['category_label'] ?? 'Ohne Kategorie')); ?></div>
-                                    <div class="media-grid-meta small"><?php echo renderMediaUsageSummary((array)($file['usage_items'] ?? []), (int)($file['usage_count'] ?? 0)); ?></div>
+                                    <div class="media-grid-meta small"><?php echo renderMediaUsageSummaryBlock($file); ?></div>
                                     <?php echo renderMediaDuplicateSummary($file, true); ?>
                                 </div>
                             <?php endforeach; ?>
@@ -534,7 +660,7 @@ function renderMediaDuplicateSummary(array $file, bool $compact = false): string
                                                     </select>
                                                 </form>
                                             </td>
-                                            <td><?php echo renderMediaUsageList((array)($file['usage_items'] ?? [])); ?></td>
+                                            <td><?php echo renderMediaUsageList((array)($file['usage_items'] ?? []), is_array($file['usage_summary'] ?? null) ? $file['usage_summary'] : []); ?></td>
                                             <td class="text-secondary"><?php echo htmlspecialchars((string)($file['formatted_size'] ?? '—')); ?></td>
                                             <td class="text-secondary"><?php echo htmlspecialchars((string)($file['modified_label'] ?? '—')); ?></td>
                                             <td>
