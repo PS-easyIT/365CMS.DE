@@ -852,7 +852,7 @@ Die Sidebar in `CMS/admin/partials/sidebar.php` ist für die Menüstruktur führ
 
 ### Nice-to-haves
 
-- [ ] Preview-Modus für Member-Dashboard-Konfiguration.
+- [x] Preview-Modus für Member-Dashboard-Konfiguration.
 - [ ] Widget-Sortierung per Drag & Drop mit Persistenz.
 - [ ] Onboarding-Analytics / Abschlussrate.
 
@@ -868,6 +868,34 @@ Die Sidebar in `CMS/admin/partials/sidebar.php` ist für die Menüstruktur führ
 - **Offene Must-haves:** keine
 - **Offene Nice-to-haves:** Preview-Modus, Drag-&-Drop-Widgetsortierung, Onboarding-Analytics
 - **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/member/README.md`, `CMS/DOC/member/README.md`
+
+### Audit-Stand – Member Dashboard Nice-to-haves · Durchlauf 2
+
+- **Status:** abgeschlossen auf Code-/Best-Practice-/Sicherheits-/Performance-Basis · Release `2.9.732`
+- **Prüfer:** GitHub Copilot
+- **Datum:** 2026-05-10
+- **Geprüfte Route:** `/admin/member-dashboard?preview=1`
+- **Umgesetztes Nice-to-have:** Preview-Modus für Member-Dashboard-Konfiguration.
+- **Umsetzung in diesem Durchlauf:** Die Übersicht des Member-Dashboard-Admins kann jetzt eine read-only Vorschau der gespeicherten Runtime-Konfiguration öffnen. `MemberDashboardModule` verdichtet vorhandene Settings zu einem Preview-View-Model mit Welcome-Bereich, Frontend-Modulen, Beispiel-Statistiken, Kern-Widgets, eigenen Info-Widgets, sichtbaren Plugin-Widgets, Profilfeldern, Onboarding und Benachrichtigungen. Die View rendert diese Daten auf `/admin/member-dashboard?preview=1` ohne Speichern-Button und ohne personenbezogene Live-Daten. Zusätzlich geben Member-Dashboard-Schreibfehler keine rohen Exception-Messages mehr an Audit-/Admin-Ausgaben weiter.
+- **Best-Practice-Bezug:** Der Ausbau folgt OWASP CSRF, Input Validation, Authorization, Error Handling und Logging: Die Vorschau ist ein reiner GET-/Lesepfad, erzeugt keine neue Schreibaktion, transportiert keine CSRF-Token in URLs, nutzt bestehende Admin-Berechtigungen, normalisiert Farben und bekannte Widget-/Plugin-Schlüssel serverseitig und fällt bei fehlenden Plugin-Widgets oder unbekannten Konfigurationswerten fail-soft auf sichere Defaults zurück.
+- **Abhängige Bereiche:** `MemberDashboardModule`, `views/member/dashboard.php`, Runtime-Settings `member_*`, `/member/dashboard`, Plugin-Dashboard-Registry, Profilfelder, Onboarding, Benachrichtigungen
+- **Offene Must-haves:** keine
+- **Offene Nice-to-haves:** Widget-Sortierung per Drag & Drop mit Persistenz, Onboarding-Analytics / Abschlussrate
+- **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/member/README.md`, `CMS/DOC/member/README.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`
+
+### Audit-Stand – Nachprüfung letzte Nice-to-haves · Durchlauf 8
+
+- **Status:** abgeschlossen auf bekannte Fehler, Unvollständiges, Best Practice, Sicherheit und Geschwindigkeit · Release `2.9.733`
+- **Prüfer:** GitHub Copilot
+- **Datum:** 2026-05-10
+- **Web-Referenzen:** OWASP CSRF Prevention, Input Validation, XSS Prevention, Error Handling, Authorization und Logging Cheat Sheets
+- **Geprüfter Fokus:** Zuletzt umgesetzter Member-Dashboard-Preview-Modus und angrenzende Fehler-/Logging-Härtung
+- **Gefundene Nachbesserungen:** Die Preview lud Plugin-Widget-Metadaten im Übersichtspfad mehrfach und berechnete zwar die gespeicherte `section_order`, machte diese aber in der Vorschau noch nicht sichtbar.
+- **Umsetzung in diesem Durchlauf:** `MemberDashboardModule` lädt Plugin-Widget-Metadaten für `overview`/`plugin-widgets` nun einmal pro Request und reicht sie an Overview- und Preview-Builder weiter. `views/member/dashboard.php` rendert die gespeicherte Bereichsreihenfolge als read-only Badge-Liste mit allowlisted Section-Schlüsseln. Der Preview-Pfad bleibt GET-only, ohne POST-Aktion, ohne CSRF-Token in URLs und ohne personenbezogene Live-Daten.
+- **Best-Practice-Bezug:** Keine state-changing GETs, serverseitige Allowlist für Bereichsschlüssel/Farben/Widgets, kontextnahes HTML-/Attribut-Escaping, generische Fehlerausgabe, keine rohen Exception-Messages in Admin-Ausgaben und reduzierter Registry-/Plugin-Overhead im Renderpfad.
+- **Offene Must-haves:** keine
+- **Offene Nice-to-haves:** Widget-Sortierung per Drag & Drop mit Persistenz, Onboarding-Analytics / Abschlussrate
+- **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/member/README.md`, `CMS/DOC/member/README.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`
 
 ---
 

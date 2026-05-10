@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.9.731",
+  "version": "2.9.733",
   "min_php": "8.4",
   "released": "2026-05-10",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 2.9.731: Die Nachprüfung der letzten Nice-to-haves härtet Medienjobs, Benutzer-/Rollenverwaltung und Audit-Log-Schema nach. Medienjob-Fehler zeigen keine rohen Exception-Texte mehr im UI, Benutzer-Save/Delete- sowie Rollen-/Rechte-Schreibfehler geben interne Details nicht mehr in Alerts oder Fehlerreports weiter, und audit_log unterstützt den bereits verwendeten Severity-Wert error auch schema- und runtime-seitig.",
+  "notes": "Release-Stand 2.9.733: Die Nachprüfung der letzten Nice-to-haves härtet den Member-Dashboard-Preview-Modus nach. Plugin-Widget-Metadaten werden für die Admin-Übersicht nur noch einmal pro Request geladen, die gespeicherte Bereichsreihenfolge ist in der read-only Vorschau sichtbar, und die CSRF-/XSS-/Logging-Leitplanken aus den OWASP-Cheat-Sheets bleiben ohne neue Schreibroute oder Token-in-URL-Risiko erfüllt.",
   "critical": false
 }

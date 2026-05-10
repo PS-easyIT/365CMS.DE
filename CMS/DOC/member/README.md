@@ -1,5 +1,5 @@
 # 365CMS – Member-Bereich
-> **Stand:** 2026-05-09 | **Version:** 2.9.621 | **Status:** Aktuell
+> **Stand:** 2026-05-10 | **Version:** 2.9.733 | **Status:** Aktuell
 
 <!-- UPDATED: 2026-05-09 -->
 
@@ -10,6 +10,10 @@ Er bietet Zugriff auf persönliche Einstellungen, Abonnements, Medien und Kommun
 Die Implementierung liegt in `CMS/member/` mit eigenem Partial-System für Sidebar und Layout.
 
 Seit `2.9.620` liest der öffentliche Member-Bereich seine Dashboard-Konfiguration wieder über einen eigenen Runtime-Settings-Pfad, der **nicht** an die admin-geschützte Leselogik der Konfigurationsoberfläche gekoppelt ist. Dadurch wirken Schalter aus `/admin/member-dashboard*` – etwa Dashboard-Aktivierung, Frontend-Module, Onboarding und Notification-Center – wieder zuverlässig im echten `/member/dashboard`-Frontend.
+
+Seit `2.9.732` kann die gespeicherte Dashboard-Konfiguration im Admin unter `/admin/member-dashboard?preview=1` read-only geprüft werden. Diese Vorschau ersetzt nicht den echten Member-Bereich, hilft aber beim Gegencheck von Welcome-Bereich, Frontend-Modulen, Kern-/Info-/Plugin-Widgets, Profilfeldern, Onboarding und Benachrichtigungstexten, ohne neue Schreibaktionen oder Sicherheitstoken in URLs zu erzeugen.
+
+Seit `2.9.733` macht die Admin-Preview auch die gespeicherte Bereichsreihenfolge sichtbar und vermeidet wiederholte Plugin-Widget-Metadatenläufe im Übersichtspfad.
 
 ## Verfügbare Funktionen
 
@@ -44,6 +48,7 @@ Aktueller Vertragsstand:
 - die reine Modulaktivierung `member_dashboard` bleibt zusätzliches Laufzeit-Gate
 - deaktivierte oder fehlende Plugin-Widgets fallen fail-soft aus dem Dashboard, statt den Member-Bereich zu blockieren
 - Profil-Fortschritt, Onboarding und Benachrichtigungscards greifen auf denselben Settings-Stand zu wie die Admin-Konfiguration
+- die Admin-Preview unter `/admin/member-dashboard?preview=1` rendert nur gespeicherte Runtime-Settings mit Beispielwerten, sichtbarer Bereichsreihenfolge und fail-soft Verhalten bei unbekannten Widgets oder deaktivierten Plugin-Kacheln
 
 ## Abo-Zuweisung im Stand 2.9.621
 

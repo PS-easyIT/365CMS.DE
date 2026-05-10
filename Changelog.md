@@ -1,4 +1,4 @@
-﻿﻿**Version:** 2.9.731
+﻿﻿**Version:** 2.9.733
 
 # 365CMS Changelog
 
@@ -17,6 +17,22 @@
 ---
 
 ## 📜 Vollständige Versionshistorie
+
+---
+
+### v2.9.733 — 10. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.733** | 🟢 fix | Admin/Member Dashboard – Nice-to-have-Nachprüfung | **`CMS/admin/modules/member/MemberDashboardModule.php`, `CMS/admin/views/member/dashboard.php`, `CMS/core/Version.php`, `CMS/update.json`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/member/README.md`, `CMS/DOC/member/README.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md` und `Changelog.md` prüfen und härten die letzten Nice-to-haves nach**: Der read-only Preview-Modus bleibt ein reiner GET-/Lesepfad ohne neue Schreibaktion und ohne CSRF-Token in URLs, lädt Plugin-Widget-Metadaten für die Übersicht nur noch einmal pro Request und zeigt die gespeicherte Bereichsreihenfolge nun sichtbar in der Vorschau an. Die Nachprüfung orientiert sich an OWASP CSRF, Input Validation, XSS Output Encoding, Error Handling, Authorization und Logging: Farben bleiben hex-allowlisted, Preview-Daten werden kontextnah escaped, unbekannte Widget-/Plugin-Werte fallen fail-soft aus und technische Fehlerdetails werden nicht im Admin-UI offengelegt. |
+
+---
+
+### v2.9.732 — 10. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.732** | 🟢 feat | Admin/Member Dashboard – Preview-Modus | **`CMS/admin/modules/member/MemberDashboardModule.php`, `CMS/admin/views/member/dashboard.php`, `CMS/core/Version.php`, `CMS/update.json`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/member/README.md`, `CMS/DOC/member/README.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md` und `Changelog.md` schließen das nächste Member-Dashboard-Nice-to-have ab**: `/admin/member-dashboard?preview=1` zeigt eine read-only Vorschau der gespeicherten Member-Dashboard-Runtime-Konfiguration. Die Vorschau nutzt denselben Settings-Vertrag wie `/member/dashboard`, zeigt Dashboard-Status, Welcome-Bereich, Schnellstart, Statistik-Kacheln, Onboarding, eigene Info-Widgets, sichtbare Plugin-Widgets, Kern-Widgets, Profilfelder und Benachrichtigungstexte mit sicheren Defaults an und erzeugt keine neue POST-Aktion, keinen zusätzlichen CSRF-Token-Pfad und keinen Token in der URL. Ungültige Farben, unbekannte Widgets oder deaktivierte Plugin-Widgets fallen fail-soft aus der Preview, statt einen HTTP-500 auszulösen. Zusätzlich protokollieren Member-Dashboard-Schreibfehler keine rohen Exception-Messages mehr im Audit-Kontext, sondern nur noch die Exception-Klasse. |
 
 ---
 

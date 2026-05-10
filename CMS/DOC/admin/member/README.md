@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Beschreibt die aktuelle Admin-Konfiguration des Member-Dashboards mit Sektionen, gespeicherten Einstellungen und der Trennung zwischen Verwaltungsoberfläche und Frontend-Mitgliederbereich.
 
-Letzte Aktualisierung: 2026-05-09 · Version 2.9.620
+Letzte Aktualisierung: 2026-05-10 · Version 2.9.733
 
 ## Überblick
 
@@ -21,6 +21,10 @@ Die aktuelle Implementierung trennt klar zwischen:
 Der Entry-Point lädt die Admin-Daten über `MemberDashboardModule::getData()` und speichert abschnittsweise über `saveSection()`.
 
 Seit `2.9.620` ist der öffentliche Member-Runtime-Pfad davon sauber getrennt: Das Frontend unter `/member/...` liest persistierte Member-Settings über einen eigenen Runtime-Lesepfad (`MemberDashboardModule::getRuntimeSettings()` via `MemberController`), statt an den admin-geschützten Read-Contract der Konfigurationsoberfläche gekoppelt zu sein.
+
+Seit `2.9.732` bietet `/admin/member-dashboard?preview=1` zusätzlich eine read-only Vorschau der gespeicherten Member-Dashboard-Konfiguration. Sie nutzt denselben Settings-Vertrag wie die Runtime, zeigt aber bewusst Beispielwerte statt personenbezogener Live-Daten und erzeugt keine neue POST-Aktion, keinen zusätzlichen CSRF-Token-Pfad und keinen Token in der URL.
+
+Seit `2.9.733` zeigt diese Vorschau zusätzlich die gespeicherte Bereichsreihenfolge sichtbar an und lädt Plugin-Widget-Metadaten im Admin-Übersichtspfad nur einmal pro Request. Dadurch bleibt die Vorschau vollständiger und schlanker, ohne den sicheren read-only Vertrag zu verändern.
 
 ## Aktuelle Konfigurationsbereiche
 
@@ -49,6 +53,7 @@ Je nach Sektion werden unter anderem folgende Aspekte gepflegt:
 - Benachrichtigungslogik und Standardtexte
 - Onboarding-Elemente für neue Mitglieder
 - plugin-gelieferte Widgets oder Erweiterungsmodule
+- read-only Dashboard-Preview mit Welcome-Bereich, gespeicherter Bereichsreihenfolge, Schnellstart, Statistik-Beispielen, Kern-/Info-/Plugin-Widgets, Profilfeldern, Onboarding und Benachrichtigungstexten
 
 Die konkreten Werte werden über zahlreiche `member_*`-Settings persistent gespeichert.
 
@@ -61,6 +66,8 @@ Die Seite nutzt aktuell eine einheitliche POST-Verarbeitung:
 - Dispatch nach Abschnitt über den gesetzten Member-Section-Kontext
 
 Nach dem Speichern werden Statusmeldungen in `$_SESSION['admin_alert']` hinterlegt und per Redirect wieder ausgegeben.
+
+Der Preview-Modus ist dagegen ein reiner GET-/Lesepfad. Er liest gespeicherte Settings, normalisiert Farben, Reihenfolge, Widgets und Plugin-Sichtbarkeiten serverseitig und speichert keine Daten. Dadurch entstehen weder zusätzliche CSRF-Anforderungen noch Token-Fragilität beim Öffnen, Aktualisieren oder Teilen der Admin-Preview-URL innerhalb einer bestehenden Admin-Sitzung.
 
 ## Verhältnis zum Frontend
 
@@ -86,6 +93,7 @@ Die Admin-Konfiguration folgt dem Standardmuster:
 - CSRF-Prüfung via `Security::instance()->verifyToken(..., 'admin_member_dashboard')`
 - serverseitige Abschnittsvalidierung im Modul
 - Session-basierte Erfolgs- und Fehlermeldungen
+- generische Fehlerausgabe bei Schreibfehlern; technische Exception-Texte bleiben aus Audit-/Admin-Ausgaben heraus
 
 ## Relevante Dateien
 
@@ -94,6 +102,7 @@ Die Admin-Konfiguration folgt dem Standardmuster:
 | `CMS/admin/member-dashboard-page.php` | zentraler Admin-Entry-Point |
 | `CMS/admin/modules/member/MemberDashboardModule.php` | Laden und Speichern der Member-Konfiguration |
 | `CMS/admin/views/member/dashboard.php` | Ausgabe der Admin-Oberfläche |
+| `CMS/admin/views/member/dashboard.php?preview=1` | read-only Vorschau der gespeicherten Runtime-Konfiguration |
 | `CMS/member/includes/class-member-controller.php` | Runtime-Laden der Member-Einstellungen für `/member/...` |
 
 ## Verwandte Dokumente

@@ -31,8 +31,6 @@ class MemberDashboardModule
         'onboarding' => 'manage_settings',
         'plugin-widgets' => 'manage_settings',
     ];
-    private const MAX_AUDIT_ERROR_LENGTH = 180;
-
     private Database $db;
     private string $prefix;
     private Logger $logger;
@@ -212,6 +210,7 @@ class MemberDashboardModule
                 'subscriptionVisible' => !empty($settings['subscription_visible']),
                 'pluginWidgetCount'   => count($pluginWidgets),
             ],
+            'dashboardPreview' => $this->buildDashboardPreviewData($settings, $settingsMap, $pluginWidgets),
         ];
     }
 
@@ -237,6 +236,9 @@ class MemberDashboardModule
 
         $settingsMap = $this->loadSettingsMap();
         $settings = $this->getSettings($settingsMap);
+        $pluginWidgets = in_array($section, ['overview', 'plugin-widgets'], true)
+            ? $this->getPluginWidgets($settingsMap)
+            : [];
 
         return match ($section) {
             'overview' => [
@@ -244,7 +246,9 @@ class MemberDashboardModule
                 'stats' => $this->getMemberStats(),
                 'widgets' => $this->getAvailableWidgets(),
                 'profileFields' => $this->getProfileFieldDefinitions(),
-                'overview' => $this->buildOverviewData($settings, $settingsMap),
+                'pluginWidgets' => $pluginWidgets,
+                'overview' => $this->buildOverviewData($settings, $settingsMap, $pluginWidgets),
+                'dashboardPreview' => $this->buildDashboardPreviewData($settings, $settingsMap, $pluginWidgets),
             ],
             'general', 'design', 'frontend-modules', 'onboarding' => [
                 'settings' => $settings,
@@ -265,7 +269,7 @@ class MemberDashboardModule
             ],
             'plugin-widgets' => [
                 'settings' => $settings,
-                'pluginWidgets' => $this->getPluginWidgets($settingsMap),
+                'pluginWidgets' => $pluginWidgets,
             ],
             default => $this->getData(),
         };
@@ -995,9 +999,9 @@ class MemberDashboardModule
      * @param array<string, string> $settingsMap
      * @return array<string, mixed>
      */
-    private function buildOverviewData(array $settings, array $settingsMap): array
+    private function buildOverviewData(array $settings, array $settingsMap, ?array $pluginWidgets = null): array
     {
-        $pluginWidgets = $this->getPluginWidgets($settingsMap);
+        $pluginWidgets ??= $this->getPluginWidgets($settingsMap);
 
         return [
             'enabledWidgets' => count($settings['widgets'] ?? []),
@@ -1009,6 +1013,138 @@ class MemberDashboardModule
             'verificationEnabled' => !empty($settings['email_verification']),
             'subscriptionVisible' => !empty($settings['subscription_visible']),
             'pluginWidgetCount' => count($pluginWidgets),
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $settings
+     * @param array<string, string> $settingsMap
+     * @return array<string, mixed>
+     */
+    private function buildDashboardPreviewData(array $settings, array $settingsMap, ?array $pluginWidgets = null): array
+    {
+        $frontendModules = is_array($settings['frontend_modules'] ?? null) ? $settings['frontend_modules'] : [];
+        $availableWidgets = $this->getAvailableWidgets();
+        $profileFieldDefinitions = $this->getProfileFieldDefinitions();
+        $pluginWidgets ??= $this->getPluginWidgets($settingsMap);
+
+        $enabledCoreWidgets = [];
+        foreach ((array)($settings['widgets'] ?? []) as $widgetKey) {
+            $widgetKey = (string)$widgetKey;
+            if (!isset($availableWidgets[$widgetKey])) {
+                continue;
+            }
+
+            $enabledCoreWidgets[] = [
+                'key' => $widgetKey,
+                'label' => (string)($availableWidgets[$widgetKey]['label'] ?? $widgetKey),
+                'description' => (string)($availableWidgets[$widgetKey]['description'] ?? ''),
+            ];
+        }
+
+        $customWidgets = [];
+        foreach ((array)($settings['custom_widgets'] ?? []) as $widget) {
+            if (!is_array($widget)) {
+                continue;
+            }
+
+            $title = $this->sanitizeTextSetting((string)($widget['title'] ?? ''), 120);
+            $content = $this->sanitizeTextSetting((string)($widget['content'] ?? ''), 240);
+            if ($title === '' && $content === '') {
+                continue;
+            }
+
+            $customWidgets[] = [
+                'title' => $title !== '' ? $title : 'Info-Widget',
+                'content' => $content,
+                'icon' => $this->sanitizeTextSetting((string)($widget['icon'] ?? '✨'), 16) ?: '✨',
+            ];
+        }
+
+        $visiblePluginWidgets = [];
+        foreach ($pluginWidgets as $widget) {
+            if (empty($widget['supports_frontend_widget'])) {
+                continue;
+            }
+
+            $pluginSlug = $this->sanitizeTextSetting((string)($widget['plugin'] ?? ''), 120);
+            if ($pluginSlug === '') {
+                continue;
+            }
+
+            if (($settingsMap['member_dashboard_plugin_' . $pluginSlug] ?? '1') !== '1') {
+                continue;
+            }
+
+            $visiblePluginWidgets[] = [
+                'plugin' => $pluginSlug,
+                'label' => (string)($widget['label'] ?? $pluginSlug),
+                'description' => (string)($widget['description'] ?? ''),
+                'icon' => (string)($widget['icon'] ?? '🔌'),
+                'color' => $this->sanitizeColor((string)($widget['color'] ?? '#4f46e5'), '#4f46e5'),
+            ];
+        }
+
+        $profileFields = [];
+        foreach ((array)($settings['profile_fields'] ?? []) as $fieldKey) {
+            $fieldKey = (string)$fieldKey;
+            if (!isset($profileFieldDefinitions[$fieldKey])) {
+                continue;
+            }
+
+            $profileFields[] = [
+                'key' => $fieldKey,
+                'label' => (string)($profileFieldDefinitions[$fieldKey]['label'] ?? $fieldKey),
+            ];
+        }
+
+        $sectionOrder = [];
+        $allowedSections = ['quick_start', 'stats', 'widgets', 'plugins'];
+        foreach (explode(',', (string)($settings['section_order'] ?? 'stats,widgets,plugins')) as $section) {
+            $section = trim($section);
+            if ($section !== '' && in_array($section, $allowedSections, true) && !in_array($section, $sectionOrder, true)) {
+                $sectionOrder[] = $section;
+            }
+        }
+
+        if ($sectionOrder === []) {
+            $sectionOrder = ['stats', 'widgets', 'plugins'];
+        }
+
+        $notifications = is_array($settings['notifications'] ?? null) ? $settings['notifications'] : [];
+        $onboarding = is_array($settings['onboarding'] ?? null) ? $settings['onboarding'] : [];
+
+        return [
+            'dashboard_enabled' => !empty($settings['dashboard_enabled']),
+            'show_welcome' => !empty($settings['show_welcome']),
+            'greeting' => (string)($settings['dashboard_greeting'] ?? 'Guten Tag, {name}!'),
+            'welcome_text' => (string)($settings['dashboard_welcome_text'] ?? 'Hier findest du alle wichtigen Funktionen rund um Profil, Sicherheit, Dateien und Kommunikation.'),
+            'design' => is_array($settings['design'] ?? null) ? $settings['design'] : [],
+            'frontend_modules' => [
+                'show_quickstart' => !array_key_exists('show_quickstart', $frontendModules) || !empty($frontendModules['show_quickstart']),
+                'show_stats' => !array_key_exists('show_stats', $frontendModules) || !empty($frontendModules['show_stats']),
+                'show_custom_widgets' => !array_key_exists('show_custom_widgets', $frontendModules) || !empty($frontendModules['show_custom_widgets']),
+                'show_plugin_widgets' => !array_key_exists('show_plugin_widgets', $frontendModules) || !empty($frontendModules['show_plugin_widgets']),
+                'show_notifications_panel' => !array_key_exists('show_notifications_panel', $frontendModules) || !empty($frontendModules['show_notifications_panel']),
+                'show_onboarding_panel' => !array_key_exists('show_onboarding_panel', $frontendModules) || !empty($frontendModules['show_onboarding_panel']),
+            ],
+            'section_order' => $sectionOrder,
+            'core_widgets' => $enabledCoreWidgets,
+            'custom_widgets' => $customWidgets,
+            'plugin_widgets' => $visiblePluginWidgets,
+            'profile_fields' => $profileFields,
+            'notifications' => [
+                'center_enabled' => !array_key_exists('center_enabled', $notifications) || !empty($notifications['center_enabled']),
+                'empty_text' => trim((string)($notifications['empty_text'] ?? 'Aktuell gibt es keine neuen Meldungen.')),
+            ],
+            'onboarding' => [
+                'enabled' => !array_key_exists('enabled', $onboarding) || !empty($onboarding['enabled']),
+                'title' => (string)($onboarding['title'] ?? 'So startest du optimal'),
+                'intro' => (string)($onboarding['intro'] ?? ''),
+                'steps' => array_values(array_filter(array_map('strval', (array)($onboarding['steps'] ?? [])))),
+                'cta_label' => (string)($onboarding['cta_label'] ?? 'Jetzt starten'),
+                'cta_url' => $this->normalizeActionUrl((string)($onboarding['cta_url'] ?? '/member/profile'), '/member/profile'),
+            ],
         ];
     }
 
@@ -1085,12 +1221,9 @@ class MemberDashboardModule
 
     private function failResult(string $action, string $message, \Throwable $e): array
     {
-        $sanitizedError = $this->sanitizeTextSetting($e->getMessage(), self::MAX_AUDIT_ERROR_LENGTH);
-
         $this->logger->warning($message, [
             'action' => $action,
-            'exception' => $e::class,
-            'message' => $sanitizedError,
+            'exception_class' => $e::class,
         ]);
 
         AuditLogger::instance()->log(
@@ -1099,7 +1232,7 @@ class MemberDashboardModule
             $message,
             'member_dashboard',
             null,
-            ['exception' => $e::class, 'message' => $sanitizedError],
+            ['exception_class' => $e::class],
             'error'
         );
 
