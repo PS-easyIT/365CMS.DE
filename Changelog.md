@@ -1,4 +1,4 @@
-﻿﻿**Version:** 2.9.715
+﻿﻿**Version:** 2.9.718
 
 # 365CMS Changelog
 
@@ -19,6 +19,24 @@
 ## 📜 Vollständige Versionshistorie
 
 ---
+
+### v2.9.718 — 10. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.718** | 🟢 feat | Admin/Dashboard – persistente Sortierung für Widgets & Favoriten | **`CMS/admin/index.php`, `CMS/admin/modules/dashboard/DashboardModule.php`, `CMS/admin/views/dashboard/index.php`, `CMS/assets/js/admin-dashboard.js`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/dashboard/DASHBOARD.md`, `CMS/DOC/admin/dashboard/README.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`, `CMS/core/Version.php`, `CMS/update.json`, `README.md` und `Changelog.md` schließen das nächste Dashboard-Nice-to-have ab**: Die Dashboard-Personalisierung speichert jetzt zusätzlich die Reihenfolge der Arbeits-Widgets und Favoriten. Die UI bietet dafür einen progressiv erweiterten Sortierpfad mit Drag-&-Drop als Komfortfunktion und Auf/Ab-Buttons als robustem Fallback; serverseitig werden die übermittelten Reihenfolgen allowlist-basiert normalisiert, fehlende bekannte Keys kontrolliert ergänzt und gemeinsam mit Sichtbarkeit/Favoriten auditierbar gespeichert. Dadurch zeigt `/admin` nicht nur die richtigen Karten und Schnellzugriffe, sondern auch in der persönlichen Arbeitsreihenfolge. |
+
+### v2.9.717 — 10. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.717** | 🟢 feat | Admin/Dashboard – Favoriten & zuletzt genutzt | **`CMS/admin/modules/dashboard/DashboardModule.php`, `CMS/admin/views/dashboard/index.php`, `CMS/admin/partials/sidebar.php`, `CMS/DOC/admin/dashboard/DASHBOARD.md`, `CMS/DOC/admin/dashboard/README.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`, `CMS/core/Version.php`, `CMS/update.json`, `README.md` und `Changelog.md` erweitern das Dashboard um persönliche Favoriten und einen lokalen Recent-Block**: Admins können jetzt vordefinierte Schnellzugriffe als persönliche Favoriten im Dashboard speichern; die Persistenz läuft serverseitig, allowlist-basiert und auditierbar über denselben Preference-Payload wie die übrige Dashboard-Personalisierung. Zusätzlich schreibt die gemeinsame Admin-Sidebar zuletzt genutzte Admin-Ziele browserlokal in `localStorage`, entfernt dabei flüchtige Parameter wie Tokens oder Flash-Werte und zeigt die Liste auf `/admin` fail-soft nur dann an, wenn Web Storage im Browser verfügbar ist. |
+
+### v2.9.716 — 10. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.716** | 🟢 feat | Admin/Dashboard – einzeln schaltbare Arbeits-Widgets | **`CMS/admin/modules/dashboard/DashboardModule.php`, `CMS/admin/views/dashboard/index.php`, `CMS/DOC/admin/dashboard/DASHBOARD.md`, `CMS/DOC/admin/dashboard/README.md`, `CMS/core/Version.php`, `CMS/update.json`, `README.md` und `Changelog.md` erweitern die Dashboard-Personalisierung von Bereichsebene auf Widget-Ebene**: Die „Zentrale Arbeitsübersicht“ bleibt als Pflichtsektion sichtbar, ihre einzelnen Karten lassen sich pro Admin-Benutzer nun aber separat aktivieren oder deaktivieren. Zusätzlich erhält die Übersicht mehrere neue, direkt nutzbare Widgets für Nutzerwachstum, Redaktions-Pipeline, Kommentar-Moderation, aktive Sessions, Security Snapshot und System-Stack; Bestell-/Umsatzkarten erscheinen weiterhin nur bei aktivem Order-Modul. Die Persistenz speichert dafür neben `visible_sections` auch `visible_work_overview_widgets` allowlist-basiert und auditierbar, ohne Berechtigungen oder Pflicht-Alerts aufzuweichen. |
 
 ### v2.9.715 — 10. Mai 2026
 

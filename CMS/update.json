@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.9.715",
+  "version": "2.9.718",
   "min_php": "8.4",
   "released": "2026-05-10",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 2.9.715: Die Kommentar-Moderation bietet im Admin jetzt eine echte Anzeige-Option für den Kommentarinhalt. Unter `/admin/comments` lässt sich zwischen `Ausschnitt` und `Volltext` umschalten; die Auswahl bleibt beim Filtern, beim Wechsel der Status-Tabs und nach Moderations-/Löschaktionen erhalten. Technisch nutzt die View dafür den bereits geladenen vollständigen Kommentarinhalt, statt nur das gekürzte `excerpt` zu rendern.",
+  "notes": "Release-Stand 2.9.718: Das Admin-Dashboard ergänzt die Personalisierung um persistente Reihenfolgen für Arbeits-Widgets und Favoriten. Die Sortierung läuft progressiv über Drag-&-Drop oder Pfeil-Fallback im Dashboard-Formular, wird serverseitig allowlist-basiert normalisiert und bleibt gemeinsam mit Sichtbarkeit und Favoriten auditierbar im bestehenden Preference-Payload gespeichert. Damit lässt sich `/admin` jetzt nicht nur filtern, sondern auch in der persönlichen Arbeitsreihenfolge zuschneiden.",
   "critical": false
 }

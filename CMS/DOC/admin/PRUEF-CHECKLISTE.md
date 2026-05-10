@@ -139,6 +139,8 @@ Die Sidebar in `CMS/admin/partials/sidebar.php` ist für die Menüstruktur führ
 
 - [x] Personalisierbare Widgets/Bereiche.
 - [x] Kontextuelle Warnungen mit Deep-Links in Problemseiten.
+- [x] Gespeicherte Favoriten / zuletzt genutzt.
+- [x] Drag-&-Drop-Sortierung mit Persistenz.
 
 ### Audit-Stand – Dashboard · Durchlauf 1
 
@@ -150,7 +152,7 @@ Die Sidebar in `CMS/admin/partials/sidebar.php` ist für die Menüstruktur führ
 - **Umsetzung in diesem Durchlauf:** Dashboard-Statistiken werden jetzt segmentweise mit Fallback-Daten geladen; degradierte Bereiche erzeugen einen verständlichen Warnhinweis mit Deep-Link auf `CMS Logs`, statt in einem Full-Page-Fatal zu enden.
 - **Abhängige Bereiche:** Diagnose, CMS Logs, Security Audit, Bestellungen, Sessions, Medien, Content-Statistiken
 - **Offene Must-haves:** keine
-- **Offene Nice-to-haves:** personalisierbare Widgets, Favoriten/Zuletzt genutzt, kontextuell priorisierte Warnungen
+- **Offene Nice-to-haves:** initial personalisierbare Widgets, Favoriten/Zuletzt genutzt und kontextuelle Warnungen; in Folge-Releases `2.9.701`, `2.9.716` und `2.9.717` schrittweise umgesetzt.
 - **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/dashboard/README.md`, `CMS/DOC/admin/dashboard/DASHBOARD.md`
 
 ### Audit-Stand – Dashboard Nice-to-haves · Durchlauf 1
@@ -164,6 +166,48 @@ Die Sidebar in `CMS/admin/partials/sidebar.php` ist für die Menüstruktur führ
 - **Abhängige Bereiche:** `DashboardModule`, `DashboardService`, `section-page-shell.php`, `settings`, `audit_log`
 - **Offene Must-haves:** keine
 - **Offene Nice-to-haves:** Drag-&-Drop-Sortierung, rollenbasierte Dashboard-Vorlagen, gespeicherte Favoriten/Zuletzt genutzt
+- **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/dashboard/README.md`, `CMS/DOC/admin/dashboard/DASHBOARD.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`
+
+### Audit-Stand – Dashboard Nice-to-haves · Durchlauf 4
+
+- **Status:** abgeschlossen auf Code-/Best-Practice-/Vertragsbasis · Release `2.9.716`
+- **Prüfer:** GitHub Copilot
+- **Datum:** 2026-05-10
+- **Geprüfte Route:** `/admin`
+- **Umgesetztes Nice-to-have:** Personalisierbare Widgets innerhalb der zentralen Arbeitsübersicht.
+- **Umsetzung in diesem Durchlauf:** Die Dashboard-Personalisierung speichert nicht mehr nur sichtbare Bereiche, sondern zusätzlich einzeln aktivierbare Widgets der „Zentralen Arbeitsübersicht“. Die Serverlogik arbeitet allowlist-basiert mit `visible_work_overview_widgets`, hält die Hauptsektion selbst als Pflichtbereich sichtbar und rendert zusätzliche Arbeitskarten für Nutzerwachstum, Redaktions-Pipeline, Kommentar-Moderation, aktive Sessions, Security Snapshot und System-Stack.
+- **Best-Practice-Bezug:** Die Persistenz bleibt CSRF-geschützt, auditierbar und fail-closed auf bekannte Schlüssel beschränkt. Dadurch erweitert die Personalisierung die UI-Granularität, ohne Berechtigungen, Pflichtbereiche oder Warnlogik aufzubrechen.
+- **Abhängige Bereiche:** `DashboardModule`, `DashboardService`, `views/dashboard/index.php`, `settings`, `audit_log`
+- **Offene Must-haves:** keine
+- **Offene Nice-to-haves:** Drag-&-Drop-Sortierung, rollenbasierte Dashboard-Vorlagen, gespeicherte Favoriten/Zuletzt genutzt
+- **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/dashboard/README.md`, `CMS/DOC/admin/dashboard/DASHBOARD.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`
+
+### Audit-Stand – Dashboard Nice-to-haves · Durchlauf 5
+
+- **Status:** abgeschlossen auf Code-/Best-Practice-/Vertragsbasis · Release `2.9.717`
+- **Prüfer:** GitHub Copilot
+- **Datum:** 2026-05-10
+- **Geprüfte Routen:** `/admin` sowie adminweite Sidebar-Navigation
+- **Umgesetztes Nice-to-have:** Gespeicherte Favoriten / zuletzt genutzt.
+- **Umsetzung in diesem Durchlauf:** Das Dashboard bietet jetzt einen optionalen Bereich „Favoriten & zuletzt genutzt“. Favoriten-Schnellzugriffe werden pro Admin-Benutzer serverseitig im bestehenden Dashboard-Preference-Payload gespeichert und gegen eine feste Shortcut-Allowlist normalisiert. Zusätzlich schreibt die gemeinsame Admin-Sidebar eine kleine, nicht-sensitive Verlaufsliste zuletzt genutzter Admin-Ziele in `localStorage`; das Dashboard rendert diese Liste nur bei verfügbarer Browser-Persistenz und fällt sonst sauber auf einen leeren Zustand zurück.
+- **Best-Practice-Bezug:** Die lokale Verlaufsliste speichert nur relative interne Admin-Ziele und Labels, entfernt flüchtige Query-Parameter wie Tokens/Flash-Werte und nutzt Web-Storage-Feature-Detection mit Fallback gemäß MDN, damit blockierte oder deaktivierte Browser-Persistenz nicht zu Fehlern im Admin führt.
+- **Abhängige Bereiche:** `DashboardModule`, `views/dashboard/index.php`, `admin/partials/sidebar.php`, `settings`, Browser-Storage im Admin
+- **Offene Must-haves:** keine
+- **Offene Nice-to-haves:** Drag-&-Drop-Sortierung, rollenbasierte Dashboard-Vorlagen
+- **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/dashboard/README.md`, `CMS/DOC/admin/dashboard/DASHBOARD.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`
+
+### Audit-Stand – Dashboard Nice-to-haves · Durchlauf 6
+
+- **Status:** abgeschlossen auf Code-/Best-Practice-/Vertragsbasis · Release `2.9.718`
+- **Prüfer:** GitHub Copilot
+- **Datum:** 2026-05-10
+- **Geprüfte Route:** `/admin`
+- **Umgesetztes Nice-to-have:** Drag-&-Drop-Sortierung mit Persistenz.
+- **Umsetzung in diesem Durchlauf:** Die Dashboard-Personalisierung speichert jetzt neben Sichtbarkeit auch die Reihenfolge der Arbeits-Widgets und Favoriten. Die UI nutzt ein dediziertes Dashboard-Asset für Sortierung und Recent-Rendering; per Drag-&-Drop wird die visuelle Reihenfolge angepasst und über Hidden-Inputs in den CSRF-geschützten Save-Flow gegeben. Serverseitig werden die übermittelten Orders allowlist-basiert normalisiert und fehlende bekannte Keys kontrolliert ergänzt, sodass gespeicherte Reihenfolgen auch bei deaktivierten Optionen oder modulabhängigen Widgets stabil bleiben.
+- **Best-Practice-Bezug:** Die Sortierung ist progressiv erweitert: Drag-&-Drop dient als Komfortpfad, Auf/Ab-Buttons bleiben als robuster Fallback verfügbar. Dadurch hängt die Bedienbarkeit nicht allein an Browser-DnD, während die Persistenz weiterhin vollständig serverseitig validiert und auditierbar bleibt.
+- **Abhängige Bereiche:** `DashboardModule`, `views/dashboard/index.php`, `assets/js/admin-dashboard.js`, `settings`, `audit_log`
+- **Offene Must-haves:** keine
+- **Offene Nice-to-haves:** rollenbasierte Dashboard-Vorlagen
 - **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/dashboard/README.md`, `CMS/DOC/admin/dashboard/DASHBOARD.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`
 
 ### Audit-Stand – Dashboard Nachprüfung CSRF · Durchlauf 2

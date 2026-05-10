@@ -19,15 +19,28 @@ if (!defined('ABSPATH')) {
     exit;
 }
 $welcome = is_array($data['welcome'] ?? null) ? $data['welcome'] : [];
-$kpis = is_array($data['kpis'] ?? null) ? $data['kpis'] : [];
 $dashboardSections = is_array($data['dashboard_sections'] ?? null) ? $data['dashboard_sections'] : [];
+$workOverviewWidgetDefinitions = is_array($data['dashboard_work_overview_widget_definitions'] ?? null) ? $data['dashboard_work_overview_widget_definitions'] : [];
+$workOverviewWidgets = is_array($data['work_overview_widgets'] ?? null) ? $data['work_overview_widgets'] : [];
+$favoriteShortcutDefinitions = is_array($data['favorite_shortcut_definitions'] ?? null) ? $data['favorite_shortcut_definitions'] : [];
+$favoriteShortcuts = is_array($data['favorite_shortcuts'] ?? null) ? $data['favorite_shortcuts'] : [];
 $dashboardPreferences = is_array($data['dashboard_preferences'] ?? null) ? $data['dashboard_preferences'] : [];
 $visibleDashboardSections = is_array($dashboardPreferences['visible_sections'] ?? null) ? array_values($dashboardPreferences['visible_sections']) : array_keys($dashboardSections);
+$visibleWorkOverviewWidgets = is_array($dashboardPreferences['visible_work_overview_widgets'] ?? null)
+    ? array_values($dashboardPreferences['visible_work_overview_widgets'])
+    : array_keys($workOverviewWidgetDefinitions);
+$workOverviewWidgetOrder = is_array($dashboardPreferences['work_overview_widget_order'] ?? null)
+    ? array_values($dashboardPreferences['work_overview_widget_order'])
+    : array_keys($workOverviewWidgetDefinitions);
+$selectedFavoriteShortcuts = is_array($dashboardPreferences['favorite_shortcuts'] ?? null)
+    ? array_values($dashboardPreferences['favorite_shortcuts'])
+    : array_keys($favoriteShortcutDefinitions);
+$favoriteShortcutOrder = is_array($dashboardPreferences['favorite_shortcut_order'] ?? null)
+    ? array_values($dashboardPreferences['favorite_shortcut_order'])
+    : array_keys($favoriteShortcutDefinitions);
 $activityEntries = is_array($data['activity'] ?? null) ? $data['activity'] : [];
 $attentionItems = is_array($data['attention'] ?? null) ? $data['attention'] : [];
 $recentOrders = is_array($data['recent_orders'] ?? null) ? $data['recent_orders'] : [];
-$highlights = is_array($data['highlights'] ?? null) ? $data['highlights'] : [];
-$dashboardHighlights = array_slice($highlights, 0, 4);
 $security = is_array($data['security'] ?? null) ? $data['security'] : [];
 $performance = is_array($data['performance'] ?? null) ? $data['performance'] : [];
 $system = is_array($data['system'] ?? null) ? $data['system'] : [];
@@ -62,6 +75,7 @@ if (!function_exists('dashIcon')) {
             'settings'      => '<path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10.325 4.317c.426 -1.756 2.924 -1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543 -.94 3.31 .826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756 .426 1.756 2.924 0 3.35a1.724 1.724 0 0 0 -1.066 2.573c.94 1.543 -.826 3.31 -2.37 2.37a1.724 1.724 0 0 0 -2.572 1.065c-.426 1.756 -2.924 1.756 -3.35 0a1.724 1.724 0 0 0 -2.573 -1.066c-1.543 .94 -3.31 -.826 -2.37 -2.37a1.724 1.724 0 0 0 -1.065 -2.572c-1.756 -.426 -1.756 -2.924 0 -3.35a1.724 1.724 0 0 0 1.066 -2.573c-.94 -1.543 .826 -3.31 2.37 -2.37c1 .608 2.296 .07 2.572 -1.065z"/><path d="M9 12a3 3 0 1 0 6 0a3 3 0 0 0 -6 0"/>',
             'activity'      => '<path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 12h4l3 8l4 -16l3 8h4"/>',
             'alert-triangle' => '<path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 9v4"/><path d="M10.363 3.591l-8.106 13.534a1.914 1.914 0 0 0 1.636 2.871h16.214a1.914 1.914 0 0 0 1.636 -2.87l-8.106 -13.536a1.914 1.914 0 0 0 -3.274 0z"/><path d="M12 16h.01"/>',
+            'message-circle' => '<path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 7a4 4 0 0 1 4 -4h10a4 4 0 0 1 4 4v6a4 4 0 0 1 -4 4h-8l-4 4v-4a4 4 0 0 1 -4 -4z"/>',
             'shield-check'  => '<path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 3l7 4v5c0 5 -3.5 7.5 -7 9c-3.5 -1.5 -7 -4 -7 -9v-5l7 -4"/><path d="M9 12l2 2l4 -4"/>',
             'server'        => '<path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 4m0 2a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v4a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2z"/><path d="M3 14m0 2a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v2a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2z"/><path d="M7 8l0 .01"/><path d="M7 17l0 .01"/>',
             'shopping-cart' => '<path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 19a1 1 0 0 0 1 1h14a1 1 0 0 0 0 -2h-14a1 1 0 0 0 -1 1z"/><path d="M6 17l1.2 -7h11.6l1.2 7"/><path d="M6 10l-1 -5h-2"/><path d="M9 21a1 1 0 1 0 0 -2a1 1 0 0 0 0 2z"/><path d="M17 21a1 1 0 1 0 0 -2a1 1 0 0 0 0 2z"/>',
@@ -101,6 +115,19 @@ if (!function_exists('dashboardUrl')) {
 if (!function_exists('dashboardSectionVisible')) {
     function dashboardSectionVisible(array $visibleSections, string $section): bool {
         return in_array($section, $visibleSections, true);
+    }
+}
+
+if (!function_exists('dashboardWorkOverviewWidgetVisible')) {
+    function dashboardWorkOverviewWidgetVisible(array $visibleWidgets, string $widget): bool {
+        return in_array($widget, $visibleWidgets, true);
+    }
+}
+
+$activeWorkOverviewWidgets = [];
+foreach ($workOverviewWidgets as $widgetKey => $widget) {
+    if (dashboardWorkOverviewWidgetVisible($visibleWorkOverviewWidgets, (string) $widgetKey)) {
+        $activeWorkOverviewWidgets[(string) $widgetKey] = is_array($widget) ? $widget : [];
     }
 }
 ?>
@@ -204,6 +231,18 @@ if (!function_exists('dashboardSectionVisible')) {
         letter-spacing: 0.01em;
     }
 
+    .dashboard-kpi-detail-list {
+        margin: 0.2rem 0 0;
+        padding-left: 1rem;
+        color: var(--tblr-secondary, #667085);
+        font-size: 0.78rem;
+        line-height: 1.35;
+    }
+
+    .dashboard-kpi-detail-list li + li {
+        margin-top: 0.18rem;
+    }
+
     .dashboard-kpi-tile .dashboard-kpi-value.is-highlight {
         font-size: 1rem;
     }
@@ -241,6 +280,118 @@ if (!function_exists('dashboardSectionVisible')) {
         border: 1px solid var(--tblr-border-color, rgba(15, 23, 42, 0.08));
         border-radius: 0.65rem;
         background: rgba(248, 250, 252, 0.75);
+    }
+
+    .dashboard-preferences-group-title {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .dashboard-sortable-list {
+        display: grid;
+        gap: 0.75rem;
+    }
+
+    .dashboard-sortable-item {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 0.875rem;
+        padding: 0.8rem 0.9rem;
+        border: 1px solid var(--tblr-border-color, rgba(15, 23, 42, 0.08));
+        border-radius: 0.8rem;
+        background: rgba(248, 250, 252, 0.82);
+        transition: border-color 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
+    }
+
+    .dashboard-sortable-item[draggable="true"] {
+        cursor: move;
+    }
+
+    .dashboard-sortable-item.is-dragging {
+        opacity: 0.55;
+        border-color: rgba(37, 99, 235, 0.45);
+        box-shadow: 0 0.4rem 1rem rgba(37, 99, 235, 0.12);
+    }
+
+    .dashboard-sortable-item.is-drop-target {
+        border-color: rgba(37, 99, 235, 0.6);
+        background: rgba(219, 234, 254, 0.7);
+    }
+
+    .dashboard-sortable-main {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.8rem;
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    .dashboard-sortable-handle {
+        flex: 0 0 auto;
+        min-width: 2rem;
+        text-align: center;
+        cursor: grab;
+    }
+
+    .dashboard-sortable-item.is-dragging .dashboard-sortable-handle {
+        cursor: grabbing;
+    }
+
+    .dashboard-sortable-main .form-check {
+        min-height: 0;
+        margin: 0;
+        padding-left: 1.8rem;
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    .dashboard-sortable-main .form-check-input {
+        margin-left: -1.8rem;
+    }
+
+    .dashboard-sortable-actions {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        flex: 0 0 auto;
+    }
+
+    .dashboard-sortable-meta {
+        display: block;
+        margin-top: 0.15rem;
+    }
+
+    .dashboard-favorite-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+        gap: 0.75rem;
+    }
+
+    .dashboard-favorite-grid .btn {
+        justify-content: flex-start;
+        min-height: 3rem;
+    }
+
+    .dashboard-recent-list .list-group-item {
+        padding-left: 0;
+        padding-right: 0;
+        border-left: 0;
+        border-right: 0;
+    }
+
+    @media (max-width: 767.98px) {
+        .dashboard-sortable-item {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .dashboard-sortable-actions {
+            justify-content: flex-end;
+        }
     }
 </style>
 
@@ -333,6 +484,70 @@ if (!function_exists('dashboardSectionVisible')) {
                             </label>
                         <?php endforeach; ?>
                     </div>
+                    <?php if ($workOverviewWidgetDefinitions !== []): ?>
+                        <div class="border-top mt-4 pt-4">
+                            <input type="hidden" name="work_overview_widget_order" id="dashboard-work-widget-order" value="<?php echo htmlspecialchars(implode(',', array_map('strval', $workOverviewWidgetOrder)), ENT_QUOTES, 'UTF-8'); ?>">
+                            <div class="dashboard-preferences-group-title">
+                                <div>
+                                    <h3 class="card-title mb-1">Widgets in „Zentrale Arbeitsübersicht“</h3>
+                                    <p class="text-secondary small mb-0">Hier steuerst du einzelne Infokarten innerhalb der Hauptübersicht – unabhängig von den übrigen Dashboard-Bereichen.</p>
+                                </div>
+                                <span class="badge bg-primary-lt"><?php echo count($visibleWorkOverviewWidgets); ?> aktiv</span>
+                            </div>
+                            <p class="text-secondary small mb-3">Sortiere die Karten per Drag &amp; Drop oder über die Pfeilbuttons. Die Reihenfolge wirkt direkt in deiner Arbeitsübersicht.</p>
+                            <div class="dashboard-sortable-list" data-dashboard-sortable-list="1" data-order-input="dashboard-work-widget-order" aria-live="polite">
+                                <?php foreach ($workOverviewWidgetDefinitions as $widgetKey => $widgetDefinition): ?>
+                                    <?php $widgetInputId = 'dashboard-work-widget-' . preg_replace('/[^a-z0-9_-]+/i', '-', (string) $widgetKey); ?>
+                                    <div class="dashboard-sortable-item" data-sort-key="<?php echo htmlspecialchars((string) $widgetKey, ENT_QUOTES, 'UTF-8'); ?>" draggable="true">
+                                        <div class="dashboard-sortable-main">
+                                            <span class="badge bg-secondary-lt dashboard-sortable-handle" aria-hidden="true">⇅</span>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="<?php echo htmlspecialchars($widgetInputId, ENT_QUOTES, 'UTF-8'); ?>" name="work_overview_widgets[]" value="<?php echo htmlspecialchars((string) $widgetKey, ENT_QUOTES, 'UTF-8'); ?>"<?php echo dashboardWorkOverviewWidgetVisible($visibleWorkOverviewWidgets, (string) $widgetKey) ? ' checked' : ''; ?>>
+                                                <label class="form-check-label fw-semibold" for="<?php echo htmlspecialchars($widgetInputId, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars((string) ($widgetDefinition['label'] ?? $widgetKey), ENT_QUOTES, 'UTF-8'); ?></label>
+                                                <span class="dashboard-sortable-meta small text-secondary"><?php echo htmlspecialchars((string) ($widgetDefinition['description'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></span>
+                                            </div>
+                                        </div>
+                                        <div class="dashboard-sortable-actions" aria-label="Reihenfolge für <?php echo htmlspecialchars((string) ($widgetDefinition['label'] ?? $widgetKey), ENT_QUOTES, 'UTF-8'); ?> anpassen">
+                                            <button type="button" class="btn btn-sm btn-outline-secondary" data-sort-move="up" title="Nach oben verschieben" aria-label="<?php echo htmlspecialchars((string) ($widgetDefinition['label'] ?? $widgetKey), ENT_QUOTES, 'UTF-8'); ?> nach oben verschieben">↑</button>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary" data-sort-move="down" title="Nach unten verschieben" aria-label="<?php echo htmlspecialchars((string) ($widgetDefinition['label'] ?? $widgetKey), ENT_QUOTES, 'UTF-8'); ?> nach unten verschieben">↓</button>
+                                        </div>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+                    <?php if ($favoriteShortcutDefinitions !== []): ?>
+                        <div class="border-top mt-4 pt-4">
+                            <input type="hidden" name="favorite_shortcut_order" id="dashboard-favorite-shortcut-order" value="<?php echo htmlspecialchars(implode(',', array_map('strval', $favoriteShortcutOrder)), ENT_QUOTES, 'UTF-8'); ?>">
+                            <div class="dashboard-preferences-group-title">
+                                <div>
+                                    <h3 class="card-title mb-1">Favoriten-Schnellzugriffe</h3>
+                                    <p class="text-secondary small mb-0">Lege fest, welche Admin-Ziele im Favoritenbereich deines Dashboards direkt als Buttons erscheinen.</p>
+                                </div>
+                                <span class="badge bg-primary-lt"><?php echo count($selectedFavoriteShortcuts); ?> gewählt</span>
+                            </div>
+                            <p class="text-secondary small mb-3">Die obersten aktivierten Einträge bestimmen die spätere Button-Reihenfolge im Favoritenbereich.</p>
+                            <div class="dashboard-sortable-list" data-dashboard-sortable-list="1" data-order-input="dashboard-favorite-shortcut-order" aria-live="polite">
+                                <?php foreach ($favoriteShortcutDefinitions as $shortcutKey => $shortcutDefinition): ?>
+                                    <?php $shortcutInputId = 'dashboard-favorite-shortcut-' . preg_replace('/[^a-z0-9_-]+/i', '-', (string) $shortcutKey); ?>
+                                    <div class="dashboard-sortable-item" data-sort-key="<?php echo htmlspecialchars((string) $shortcutKey, ENT_QUOTES, 'UTF-8'); ?>" draggable="true">
+                                        <div class="dashboard-sortable-main">
+                                            <span class="badge bg-secondary-lt dashboard-sortable-handle" aria-hidden="true">⇅</span>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="<?php echo htmlspecialchars($shortcutInputId, ENT_QUOTES, 'UTF-8'); ?>" name="favorite_shortcuts[]" value="<?php echo htmlspecialchars((string) $shortcutKey, ENT_QUOTES, 'UTF-8'); ?>"<?php echo in_array((string) $shortcutKey, $selectedFavoriteShortcuts, true) ? ' checked' : ''; ?>>
+                                                <label class="form-check-label fw-semibold" for="<?php echo htmlspecialchars($shortcutInputId, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars((string) ($shortcutDefinition['label'] ?? $shortcutKey), ENT_QUOTES, 'UTF-8'); ?></label>
+                                                <span class="dashboard-sortable-meta small text-secondary"><?php echo htmlspecialchars((string) ($shortcutDefinition['description'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></span>
+                                            </div>
+                                        </div>
+                                        <div class="dashboard-sortable-actions" aria-label="Reihenfolge für <?php echo htmlspecialchars((string) ($shortcutDefinition['label'] ?? $shortcutKey), ENT_QUOTES, 'UTF-8'); ?> anpassen">
+                                            <button type="button" class="btn btn-sm btn-outline-secondary" data-sort-move="up" title="Nach oben verschieben" aria-label="<?php echo htmlspecialchars((string) ($shortcutDefinition['label'] ?? $shortcutKey), ENT_QUOTES, 'UTF-8'); ?> nach oben verschieben">↑</button>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary" data-sort-move="down" title="Nach unten verschieben" aria-label="<?php echo htmlspecialchars((string) ($shortcutDefinition['label'] ?? $shortcutKey), ENT_QUOTES, 'UTF-8'); ?> nach unten verschieben">↓</button>
+                                        </div>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                    <?php endif; ?>
                     <div class="mt-3 d-flex gap-2 flex-wrap align-items-center">
                         <button type="submit" class="btn btn-primary">Ansicht speichern</button>
                         <span class="text-secondary small" role="status" aria-live="polite">Speicherung erfolgt per CSRF-geschütztem POST.</span>
@@ -350,33 +565,83 @@ if (!function_exists('dashboardSectionVisible')) {
                 </div>
                 <h3 class="mb-2">Alles Wichtige auf einen Blick</h3>
                 <p class="text-secondary mb-0">
-                    Prüfe offene Aufgaben, springe direkt in häufige Bereiche und behalte Sicherheit, Performance sowie Bestellungen im Blick.
+                    Prüfe offene Aufgaben, springe direkt in häufige Bereiche und blende nur die Arbeitskarten ein, die für deinen Admin-Alltag wirklich relevant sind.
                 </p>
 
                 <div class="dashboard-kpi-grid mt-4">
-                    <?php foreach ($kpis as $kpi): ?>
-                        <a href="<?= htmlspecialchars(dashboardUrl((string) ($kpi['url'] ?? ''), '/admin')) ?>" class="dashboard-kpi-tile text-reset text-decoration-none">
+                    <?php if ($activeWorkOverviewWidgets !== []): ?>
+                        <?php foreach ($activeWorkOverviewWidgets as $widget): ?>
+                            <?php
+                            $widgetDetails = array_values(array_filter(
+                                is_array($widget['details'] ?? null) ? $widget['details'] : [],
+                                static fn ($detail): bool => trim((string) $detail) !== ''
+                            ));
+                            ?>
+                            <a href="<?= htmlspecialchars(dashboardUrl((string) ($widget['url'] ?? ''), '/admin')) ?>" class="dashboard-kpi-tile text-reset text-decoration-none">
+                                <div class="dashboard-kpi-header">
+                                    <div class="subheader mb-0 dashboard-kpi-label"><?= htmlspecialchars((string) ($widget['label'] ?? 'Widget')) ?></div>
+                                    <span class="dashboard-kpi-icon"><?= dashIcon((string) ($widget['icon'] ?? 'activity')) ?></span>
+                                </div>
+                                <div class="dashboard-kpi-value<?= !empty($widget['value_class']) ? ' ' . htmlspecialchars((string) $widget['value_class']) : '' ?>"><?= htmlspecialchars((string) ($widget['value'] ?? '0')) ?></div>
+                                <p class="small text-secondary dashboard-kpi-sub"><?= htmlspecialchars((string) ($widget['hint'] ?? '')) ?></p>
+                                <?php if ($widgetDetails !== []): ?>
+                                    <ul class="dashboard-kpi-detail-list">
+                                        <?php foreach ($widgetDetails as $detail): ?>
+                                            <li><?= htmlspecialchars((string) $detail) ?></li>
+                                        <?php endforeach; ?>
+                                    </ul>
+                                <?php endif; ?>
+                                <div class="fw-semibold text-primary dashboard-kpi-footer"><?= htmlspecialchars((string) ($widget['footer_label'] ?? 'Öffnen →')) ?></div>
+                            </a>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <div class="dashboard-kpi-tile">
                             <div class="dashboard-kpi-header">
-                                <div class="subheader mb-0 dashboard-kpi-label"><?= htmlspecialchars((string) ($kpi['label'] ?? 'KPI')) ?></div>
-                                <span class="dashboard-kpi-icon"><?= dashIcon((string) ($kpi['icon'] ?? 'activity')) ?></span>
+                                <div class="subheader mb-0 dashboard-kpi-label">Keine Arbeits-Widgets aktiv</div>
+                                <span class="dashboard-kpi-icon"><?= dashIcon('settings') ?></span>
                             </div>
-                            <div class="dashboard-kpi-value"><?= htmlspecialchars((string) ($kpi['value'] ?? '0')) ?></div>
-                            <p class="small text-secondary dashboard-kpi-sub"><?= htmlspecialchars((string) ($kpi['sub'] ?? '')) ?></p>
-                            <div class="fw-semibold text-primary dashboard-kpi-footer">Details →</div>
-                        </a>
-                    <?php endforeach; ?>
+                            <div class="dashboard-kpi-value is-highlight">0 sichtbar</div>
+                            <p class="small text-secondary dashboard-kpi-sub">Aktiviere im Bereich „Dashboard personalisieren“ die Karten, die du in deiner Zentrale Arbeitsübersicht sehen möchtest.</p>
+                            <div class="fw-semibold text-primary dashboard-kpi-footer">Personalisierung oben öffnen ↑</div>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
 
-                    <?php foreach ($dashboardHighlights as $highlight): ?>
-                        <a href="<?= htmlspecialchars(dashboardUrl((string) ($highlight['url'] ?? ''), '/admin')) ?>" class="dashboard-kpi-tile text-reset text-decoration-none">
-                            <div class="dashboard-kpi-header">
-                                <div class="subheader mb-0 dashboard-kpi-label"><?= htmlspecialchars((string) ($highlight['label'] ?? 'Hinweis')) ?></div>
-                                <span class="dashboard-kpi-icon"><?= dashIcon((string) ($highlight['icon'] ?? 'activity')) ?></span>
+        <?php if (dashboardSectionVisible($visibleDashboardSections, 'favorites_recent')): ?>
+        <div class="dashboard-overview-grid mb-4">
+            <div class="dashboard-overview-card">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Favoriten</h3>
+                    </div>
+                    <div class="card-body">
+                        <?php if ($favoriteShortcuts !== []): ?>
+                            <div class="dashboard-favorite-grid">
+                                <?php foreach ($favoriteShortcuts as $shortcut): ?>
+                                    <a href="<?= htmlspecialchars(dashboardUrl((string) ($shortcut['url'] ?? ''), '/admin')) ?>" class="btn btn-outline-primary">
+                                        <?= dashIcon((string) ($shortcut['icon'] ?? 'settings')) ?>
+                                        <?= htmlspecialchars((string) ($shortcut['label'] ?? 'Favorit')) ?>
+                                    </a>
+                                <?php endforeach; ?>
                             </div>
-                            <div class="dashboard-kpi-value is-highlight"><?= htmlspecialchars((string) ($highlight['value'] ?? '0')) ?></div>
-                            <p class="small text-secondary dashboard-kpi-sub"><?= htmlspecialchars((string) ($highlight['hint'] ?? '')) ?></p>
-                            <div class="fw-semibold text-primary dashboard-kpi-footer">Öffnen →</div>
-                        </a>
-                    <?php endforeach; ?>
+                        <?php else: ?>
+                            <p class="text-secondary mb-0">Noch keine Favoriten gespeichert. Du kannst sie oben im Bereich „Dashboard personalisieren“ auswählen.</p>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dashboard-overview-card">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Zuletzt genutzt</h3>
+                    </div>
+                    <div class="card-body dashboard-recent-list" id="dashboard-recent-links" aria-live="polite" data-empty-text="Noch keine zuletzt genutzten Admin-Ziele gespeichert.">
+                        <div class="text-secondary">Zuletzt genutzte Ziele werden geladen …</div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -593,3 +858,4 @@ if (!function_exists('dashboardSectionVisible')) {
 
     </div><!-- /.container-xl -->
 </div><!-- /.page-body -->
+

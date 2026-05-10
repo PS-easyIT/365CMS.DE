@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Beschreibt die aktuelle Startseite des Admin-Bereichs inklusive Kennzahlen, Schnellzugriffen, Warnhinweisen und segmentweisem Fail-Soft-Verhalten.
 
-Letzte Aktualisierung: 2026-05-09 · Version 2.9.707
+Letzte Aktualisierung: 2026-05-10 · Version 2.9.718
 
 ---
 
@@ -14,6 +14,12 @@ Letzte Aktualisierung: 2026-05-09 · Version 2.9.707
 
 Das Admin-Dashboard ist die zentrale Einstiegsseite für Redakteure und Administratoren. Es zeigt einen kuratierten Überblick über Systemzustand, Inhalte, Aktivität und – falls aktiv – Bestellungen. Seit `2.9.701` können Admins optionale Blöcke pro Benutzer ein- oder ausblenden; kritische Alerts und die zentrale Arbeitsübersicht bleiben dabei bewusst sichtbar.
 
+Seit `2.9.716` lässt sich zusätzlich **jedes einzelne Widget innerhalb der zentralen Arbeitsübersicht** pro Admin-Benutzer aktivieren oder deaktivieren. Die Hauptsektion bleibt sichtbar, aber ihre Karten sind jetzt granular konfigurierbar – von Kernzahlen über Moderation bis hin zu Security- und System-Snapshots.
+
+Seit `2.9.717` ergänzt das Dashboard außerdem einen optionalen Block **„Favoriten & zuletzt genutzt“**: ausgewählte Admin-Ziele werden serverseitig als persönliche Favoriten gespeichert, und eine lokale Verlaufsliste zeigt zuletzt genutzte Admin-Seiten an, ohne dafür sensible Daten oder serverseitige Verlaufsprofile anzulegen.
+
+Seit `2.9.718` lässt sich die Reihenfolge der Arbeits-Widgets und Favoriten zusätzlich **persistiert sortieren**. Das Dashboard nutzt dafür einen progressiv erweiterten Sortierpfad: per Drag-&-Drop im Browser oder per Auf/Ab-Buttons als Fallback, sodass die Personalisierung nicht an einer einzigen Maus-Interaktion hängt.
+
 Seit `2.9.615` wird jeder Statistikblock einzeln geladen. Fällt z. B. die Sicherheits-, Sessions- oder Orders-Datenquelle aus, bleibt die Startseite renderbar und arbeitet für den betroffenen Block mit neutralen Fallback-Werten statt mit einem Full-Page-Fatal.
 
 Seit `2.9.705` ist der Speichern-Flow der Dashboard-Personalisierung zusätzlich gegen stale Tabs und parallel geöffnete Admin-Formulare gehärtet: Mehrere Tokens pro CSRF-Action bleiben innerhalb des TTL-Fensters gültig, der konkret verwendete Token wird danach weiterhin invalidiert.
@@ -22,33 +28,68 @@ Seit `2.9.707` akzeptiert die View für Quicklinks und Deep-Links außerdem nur 
 
 ---
 
-## KPI-Karten
+## Zentrale Arbeitsübersicht
 
-Die Haupt-KPIs werden in `DashboardModule::buildKpis()` aufgebaut.
+Die zentrale Arbeitsübersicht wird in `DashboardModule::buildWorkOverviewWidgets()` aufgebaut. Sie bündelt scanbare Management-Karten mit Direktlinks in die jeweiligen Admin-Bereiche.
 
-Aktuell sind vorgesehen:
+Aktuell sind unter anderem vorgesehen:
 
-| KPI | Quelle | Link |
+| Widget | Quelle | Link |
 |---|---|---|
 | Benutzer | Benutzerstatistik | `/admin/users` |
 | Seiten | Seitenstatistik | `/admin/pages` |
+| Beiträge | Beitragsstatistik | `/admin/posts` |
 | Medien | Medienstatistik | `/admin/media` |
-| Umsatz (30T) | nur bei aktivem Abo-System | `/admin/orders` |
+| Nutzerwachstum | Benutzerstatistik | `/admin/users` |
+| Redaktions-Pipeline | Seiten- und Beitragsstatus | `/admin/posts` |
+| Kommentar-Moderation | Kommentarbestand | `/admin/comments` |
+| Aktive Sessions | Sessionstatistik | `/admin/analytics` |
+| Security Snapshot | Sicherheitsstatistik | `/admin/security-audit` |
+| System-Stack | Systemstatistik | `/admin/settings` |
+| Umsatz (30T) | nur bei aktivem Abo-/Order-System | `/admin/orders` |
 
-Die Umsatz-Kachel erscheint nur, wenn das Abo-/Bestellsystem aktiv ist.
+Die Umsatz-Kachel erscheint nur, wenn das Abo-/Bestellsystem aktiv ist. Alle Widgets verwenden serverseitig allowlistete Schlüssel aus `DashboardModule::WORK_OVERVIEW_WIDGET_DEFINITIONS`.
 
 ---
 
-## Highlight-Karten
+## Widget-Personalisierung & Reihenfolge
 
-Zusätzlich werden hervorgehobene Kennzahlen ausgegeben, unter anderem:
+Die Dashboard-Personalisierung speichert sichtbare Bereiche pro Admin-Benutzer in `settings` unter `admin_dashboard_preferences_user_<id>`.
 
-- neue Benutzer heute
-- Entwürfe und private Seiten
-- Uploads gesamt
-- offene Bestellungen inkl. 30-Tage-Umsatz
+Seit `2.9.716` werden dort zusätzlich zu `visible_sections` auch `visible_work_overview_widgets` abgelegt. Seit `2.9.718` kommen außerdem `work_overview_widget_order` und `favorite_shortcut_order` hinzu. Der Server akzeptiert nur bekannte Bereichs-, Widget- und Favoriten-Schlüssel, normalisiert Duplikate heraus, ergänzt fehlende bekannte Keys kontrolliert und lässt die zentrale Arbeitsübersicht selbst weiterhin sichtbar.
 
-Diese Informationen stammen aus `DashboardModule::getData()` und sind als kompakte Management-Sicht gedacht.
+Der Speichern-Flow:
+
+1. POST auf `/admin` mit Action `save_dashboard_preferences`
+2. CSRF-Prüfung über die gemeinsame Section-Shell (`admin_dashboard`)
+3. Allowlist-Normalisierung der gewählten Bereiche, Widgets, Favoriten und ihrer Reihenfolgen
+4. Persistenz in `settings` mit `autoload = 0`
+5. Audit-Eintrag `dashboard.preferences.save`
+
+Dadurch können Admins die Arbeitsübersicht pro Benutzer fein zuschneiden und sortieren, ohne Warnlogik, Berechtigungen oder Pflichtbereiche abzuschalten.
+
+Die Sortier-UI hängt an `CMS/assets/js/admin-dashboard.js` und arbeitet bewusst progressiv:
+
+- Drag-&-Drop via HTML Drag and Drop API für schnelle Mausinteraktionen
+- persistente Reihenfolge über Hidden-Inputs im Formular
+- Auf/Ab-Buttons als browser- und zugänglichkeitsfreundlicher Fallback
+
+Selbst wenn Drag-&-Drop im konkreten Browser nicht genutzt wird, bleibt die Sortierung über die Button-Steuerung weiter möglich.
+
+---
+
+## Favoriten & zuletzt genutzt
+
+Der Bereich „Favoriten & zuletzt genutzt“ ergänzt das Dashboard um zwei persönliche Navigationsebenen:
+
+| Teil | Speicherort | Zweck |
+|---|---|---|
+| Favoriten | `settings` → `admin_dashboard_preferences_user_<id>` | serverseitig gespeicherte Schnellzugriffe pro Admin-Benutzer |
+| Zuletzt genutzt | `localStorage` im Browser | lokale Verlaufsliste zuletzt besuchter Admin-Ziele |
+
+Die Favoriten werden über `favorite_shortcuts` im bestehenden Dashboard-Preference-Payload gespeichert und serverseitig gegen `DashboardModule::FAVORITE_SHORTCUT_DEFINITIONS` normalisiert. Seit `2.9.718` wird zusätzlich eine separate bevorzugte Reihenfolge gespeichert, sodass aktive Favoriten nicht nur sichtbar, sondern auch bewusst priorisiert angeordnet werden können.
+
+Die Verlaufsliste „Zuletzt genutzt“ wird bewusst **nicht** serverseitig als Benutzertracking gespeichert, sondern nur lokal im Browser. Dabei werden ausschließlich interne relative Admin-URLs und Labels erfasst; flüchtige Parameter wie Tokens oder Flash-Meldungen werden vor dem Speichern entfernt. Ist Browser-Persistenz deaktiviert oder nicht verfügbar, bleibt der Bereich leer und der Admin bleibt weiter vollständig nutzbar.
 
 ---
 
@@ -79,21 +120,9 @@ Diese Links werden zentral in `DashboardModule::getQuickLinks()` definiert.
 
 ## Benutzerbezogene Sichtbarkeit
 
-Die Dashboard-Personalisierung speichert sichtbare Bereiche pro Admin-Benutzer in `settings` unter `admin_dashboard_preferences_user_<id>`.
-
-Der Server akzeptiert nur bekannte Bereichsschlüssel aus `DashboardModule::DASHBOARD_SECTION_DEFINITIONS`. Eingaben werden normalisiert, Pflichtbereiche bleiben sichtbar, und die Option wird mit `autoload = 0` abgelegt.
-
-Der Speichern-Flow:
-
-1. POST auf `/admin` mit Action `save_dashboard_preferences`
-2. CSRF-Prüfung über die gemeinsame Section-Shell (`admin_dashboard`)
-3. Allowlist-Normalisierung der gewählten Bereiche
-4. Persistenz in `settings`
-5. Audit-Eintrag `dashboard.preferences.save`
-
 Die CSRF-Prüfung bleibt ein One-Time-Token-Vertrag pro tatsächlich eingereichtem Token, akzeptiert aber seit `2.9.705` eine begrenzte Token-Historie pro Action, damit ältere noch gültige Admin-Formulare nicht fälschlich scheitern.
 
-Ausblendbar sind optionale Bereiche wie Aufmerksamkeit, Systemstatus, Sicherheit & Performance, Bestellungen und letzte Aktivitäten. Nicht ausblendbar sind kritische Alerts sowie die zentrale Arbeitsübersicht.
+Ausblendbar sind optionale Bereiche wie Favoriten & zuletzt genutzt, Aufmerksamkeit, Systemstatus, Sicherheit & Performance, Bestellungen und letzte Aktivitäten. Zusätzlich sind die einzelnen Widgets der Arbeitsübersicht schaltbar und ihre Reihenfolge – ebenso wie die der Favoriten – pro Benutzer persistent. Nicht ausblendbar sind kritische Alerts sowie die zentrale Arbeitsübersicht selbst.
 
 ---
 
@@ -124,9 +153,10 @@ Damit wird der degradierte Zustand sichtbar, ohne den übrigen Dashboard-Renderp
 
 ## Begrenzungen der Seite
 
-- Es gibt aktuell keine frei konfigurierbaren Rollen-Widgetsets für die Admin-Startseite; umgesetzt ist eine benutzerbezogene Sichtbarkeit optionaler Core-Blöcke.
+- Es gibt aktuell keine rollenbasierten Widgetsets oder frei definierbaren Widget-Typen; umgesetzt ist eine benutzerbezogene Sichtbarkeit und Reihenfolge vordefinierter Core-Bereiche, vordefinierter Arbeitsübersichts-Widgets und vordefinierter Favoriten-Ziele.
 - Die frühere Dokumentation zu einem separaten „Admin Dashboard Widgets“-Designer ist nicht mehr aktuell.
 - Konfigurierbare Widgets betreffen heute primär das **Member Dashboard**, nicht die Admin-Startseite.
+- Die lokale Liste „Zuletzt genutzt“ ist browsergebunden und kein serverseitig synchronisierter Verlauf über Geräte oder Browser hinweg.
 - Live-Plausibilitätsprüfungen der Kennzahlen bleiben weiterhin Aufgabe des Betriebs-/QA-Durchlaufs gegen eine reale Datenbank, nicht der statischen Doku.
 
 ---

@@ -1,6 +1,6 @@
 # 365CMS.DE
 
-**Version:** [2.9.715](Changelog.md) · **Status:** Stable · **PHP:** 8.4+ · **MySQL:** 5.7+ · **MariaDB:** 10.3+
+**Version:** [2.9.718](Changelog.md) · **Status:** Stable · **PHP:** 8.4+ · **MySQL:** 5.7+ · **MariaDB:** 10.3+ 
 
 <div align="center">
 
@@ -104,7 +104,7 @@ Die folgenden Bereiche zeigen, wie breit 365CMS bereits ohne Plugin-Zwang aufges
 | **Themes & Design** | Theme-System, Theme-Editor, Theme-Explorer, Menü-Editor, Landing-Page-Editor mit echten Plugin-Overrides pro Bereich, Font-Manager, CMS-Loginpage | Macht Branding, Navigation und UX-Anpassung zu einem echten Projektwerkzeug statt zu einer Bastelbaustelle |
 | **Plugins & Integrationen** | Hook-System, Plugin-Verwaltung, Plugin-Marketplace, modulare Erweiterungspunkte, API-nahe Workflows | Öffnet das System für individuelle Funktionen, ohne Wartbarkeit und Struktur zu opfern – inklusive stabiler dynamischer Plugin-Menüs, auch wenn Routing und Sidebar dieselbe Registry mehrfach im Request auflösen |
 | **Legal & DSGVO** | Legal-Sites, Cookie-Manager, Consent-Dialog, Datenexporte, Löschanfragen, Datenschutzpfade | Unterstützt Datenschutz- und Compliance-Prozesse dort, wo sie im Alltag gebraucht werden: direkt im CMS – inklusive auditierbarer DSGVO-Workflows für Auskunft, Ablehnung und Löschung |
-| **Betrieb & Wartung** | Cache, Performance-Werkzeuge, WebP-Batches mit Dry-Run/Rollback, lokale Asset-Minifizierung, Cron, Monitoring, Health-Checks, Backups, Mail-Queue, Logs, Updates | Macht den Betrieb sichtbar, steuerbar und langfristig beherrschbar – nicht nur am Launch-Tag; das Admin-Dashboard lässt sich pro Benutzer auf relevante Bereiche zuschneiden, ohne kritische Alerts auszublenden; serverseitige Kompression wird ehrlich als Infrastrukturstatus statt als dekorativer CMS-Toggle behandelt, Theme-Updates laufen zentral über das Update-Center, Backup-Restores erzeugen vorab automatisch einen Rollback-Snapshot, lokale Health-Endpunkte werden im Monitoring real geprüft statt nur markiert, und die Diagnose-Logzentrale bündelt operative Audit-Spuren aus System/Backups/Performance plus eine robust geladene, kollisionsarme Update-Historie in einer Oberfläche |
+| **Betrieb & Wartung** | Cache, Performance-Werkzeuge, WebP-Batches mit Dry-Run/Rollback, lokale Asset-Minifizierung, Cron, Monitoring, Health-Checks, Backups, Mail-Queue, Logs, Updates | Macht den Betrieb sichtbar, steuerbar und langfristig beherrschbar – nicht nur am Launch-Tag; das Admin-Dashboard lässt sich pro Benutzer auf relevante Bereiche, **einzelne Arbeits-Widgets**, persönliche Favoriten und nun auch auf eine eigene Arbeitsreihenfolge zuschneiden, ohne kritische Alerts auszublenden. Zusätzlich zeigt es zuletzt genutzte Admin-Ziele browserlokal und nicht-sensitiv an. Serverseitige Kompression wird ehrlich als Infrastrukturstatus statt als dekorativer CMS-Toggle behandelt, Theme-Updates laufen zentral über das Update-Center, Backup-Restores erzeugen vorab automatisch einen Rollback-Snapshot, lokale Health-Endpunkte werden im Monitoring real geprüft statt nur markiert, und die Diagnose-Logzentrale bündelt operative Audit-Spuren aus System/Backups/Performance plus eine robust geladene, kollisionsarme Update-Historie in einer Oberfläche |
 
 ### 🚀 Kurz positioniert
 
@@ -133,7 +133,7 @@ Der Admin-Bereich ist so aufgebaut, dass inhaltliche, technische und betrieblich
 
 | Bereich | Was man dort steuert | Typische Aufgaben |
 |---|---|---|
-| **Dashboard** | KPIs, Schnellzugriffe, zentrale Einstiegspunkte, fail-softe Statuskarten und benutzerbezogene Sichtbarkeitsprofile | Überblick gewinnen, häufige Aufgaben anstoßen, Status prüfen und die Startansicht pro Admin fokussieren, ohne kritische Alerts zu verstecken |
+| **Dashboard** | KPIs, Schnellzugriffe, zentrale Einstiegspunkte, fail-softe Statuskarten, einzeln schaltbare Arbeits-Widgets, Favoriten, persistente Reihenfolgen und benutzerbezogene Sichtbarkeitsprofile | Überblick gewinnen, häufige Aufgaben anstoßen, Status prüfen und die Startansicht pro Admin bis auf Widget-, Favoriten- und Reihenfolge-Ebene fokussieren, ohne kritische Alerts zu verstecken |
 | **AI Services** | Provider, Übersetzung, Prompt-Vorlagen, Content-/SEO-Helfer, Logging, Quotas und Nutzungsmonitoring | KI-Workflows freigeben, Leitplanken setzen, letzte Läufe nachvollziehen und redaktionelle Assistenz kontrolliert betreiben |
 | **Seiten & Beiträge** | Content-Struktur, redaktionelle Inhalte, Kommentare und Inhaltsbausteine | Inhalte erstellen, strukturieren, pflegen, veröffentlichen, Kommentare mit Schnellfiltern moderieren und stabile Slug-/Taxonomie-Pfade erhalten |
 | **Medien** | Bibliothek, Beitrags & Site Medien, Kategorien, Einstellungen und Dateimanagement | Uploads verwalten, Dateien organisieren, Beitrags-/Seitenbilder mit festem Bildvertrag gezielt ersetzen und Medien für Inhalte vorbereiten |

@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Überblick über die Startseite des Admin-Bereichs mit KPI-Karten, Statushinweisen, Schnellzugriffen und fail-soften Statusblöcken.
 
-Letzte Aktualisierung: 2026-05-09 · Stand: Dashboard-Nice-to-have-/CSRF-Nachprüfung Mai 2026 · Release 2.9.705
+Letzte Aktualisierung: 2026-05-10 · Stand: Dashboard-Sortierung Mai 2026 · Release 2.9.718
 
 **Admin-Route:** `/admin`
 
@@ -23,6 +23,9 @@ Im aktuellen Stand bildet das Dashboard vor allem den Überblick über:
 - priorisierte Hinweise für offene To-dos oder Sicherheitsauffälligkeiten
 - segmentweise Fallbacks, falls einzelne Statistikquellen temporär ausfallen
 - benutzerbezogene Sichtbarkeitsprofile für optionale Dashboard-Bereiche
+- einzeln schaltbare Widgets innerhalb der zentralen Arbeitsübersicht
+- serverseitig gespeicherte Favoriten und eine lokale Liste zuletzt genutzter Admin-Ziele
+- persistente Reihenfolge für Arbeits-Widgets und Favoriten per Drag-&-Drop oder Pfeil-Fallback
 
 ---
 
@@ -30,8 +33,8 @@ Im aktuellen Stand bildet das Dashboard vor allem den Überblick über:
 
 | Bereich | Inhalt |
 |---|---|
-| KPI-Karten | Benutzer, Seiten, Beiträge, Medien und optional Bestell-/Umsatzkennzahlen |
-| Highlight-Karten | verdichtete Zusatzsignale wie neue Benutzer, Entwürfe, geplante Beiträge oder Upload-Volumen |
+| Zentrale Arbeitsübersicht | einzeln schaltbare Widgets für Benutzer, Seiten, Beiträge, Medien, Wachstum, Pipeline, Kommentare, Sessions, Security, System und optional Umsatz – inklusive persistenter Reihenfolge |
+| Favoriten & zuletzt genutzt | persönliche Schnellzugriffe aus serverseitig gespeicherten Favoriten plus browserlokale Verlaufsliste zuletzt genutzter Admin-Ziele; Favoriten bleiben ebenfalls sortierbar |
 | Prioritäten | offene Bestellungen, fehlgeschlagene Logins oder HTTPS-Hinweise |
 | Dashboard-Gesundheit | Warnhinweis, wenn einzelne Statistiksegmente nur mit Fallback-Daten gerendert werden |
 | Systemstatus | PHP-, CMS- und MySQL-Version sowie Laufzeit-/Upload-Kontext |
@@ -41,7 +44,7 @@ Im aktuellen Stand bildet das Dashboard vor allem den Überblick über:
 
 ---
 
-## Personalisierung seit 2.9.701
+## Personalisierung seit 2.9.701 / 2.9.716 / 2.9.717 / 2.9.718
 
 Admins können ihre Startansicht direkt auf `/admin` über „Dashboard personalisieren“ fokussieren. Die Auswahl wird pro Admin-Benutzer in `settings` als `admin_dashboard_preferences_user_<id>` gespeichert und bewusst mit `autoload = 0` abgelegt.
 
@@ -55,18 +58,26 @@ Sichtbar/ausblendbar sind optionale Blöcke wie:
 
 Die zentrale Arbeitsübersicht und kritische Alerts bleiben absichtlich sichtbar. Dadurch wird Personalisierung nicht zur Sicherheitsblindheit.
 
-Der Speichern-Flow läuft über die gemeinsame Admin-Section-Shell mit CSRF-Prüfung, normalisiert eingereichte Bereichsschlüssel serverseitig gegen eine Allowlist und schreibt einen Audit-Eintrag `dashboard.preferences.save`. Seit `2.9.705` toleriert die CSRF-Schicht mehrere parallel geöffnete Admin-Formulare derselben Action innerhalb des TTL-Fensters; der tatsächlich verwendete Token wird nach erfolgreicher Prüfung weiterhin verbraucht.
+Seit `2.9.716` gilt das zusätzlich innerhalb der zentralen Arbeitsübersicht: Dort können Admins einzelne Widgets wie Kommentar-Moderation, Sessions, Security Snapshot oder System-Stack pro Benutzer separat zu- oder abschalten, ohne die gesamte Hauptsektion zu verlieren.
+
+Seit `2.9.717` lassen sich außerdem vordefinierte Favoriten-Ziele pro Admin-Benutzer speichern. Der getrennte Block „Zuletzt genutzt“ arbeitet ergänzend browserlokal via Web Storage und bleibt bewusst nicht Teil des serverseitigen Benutzerprofils.
+
+Seit `2.9.718` bleibt diese Personalisierung nicht mehr auf Sichtbarkeit beschränkt: Arbeits-Widgets und Favoriten können jetzt zusätzlich sortiert werden. Die UI nutzt Drag-&-Drop als Komfortpfad, hält aber Auf/Ab-Buttons als Fallback bereit, damit die Funktion auch ohne gelungene Drag-Interaktion bedienbar bleibt.
+
+Der Speichern-Flow läuft über die gemeinsame Admin-Section-Shell mit CSRF-Prüfung, normalisiert eingereichte Bereichs-, Widget- und Favoriten-Schlüssel sowie ihre Reihenfolgen serverseitig gegen eine Allowlist und schreibt einen Audit-Eintrag `dashboard.preferences.save`. Seit `2.9.705` toleriert die CSRF-Schicht mehrere parallel geöffnete Admin-Formulare derselben Action innerhalb des TTL-Fensters; der tatsächlich verwendete Token wird nach erfolgreicher Prüfung weiterhin verbraucht.
 
 ---
 
 ## UI-Hinweise
 
-- KPI-Karten sind bewusst kompakt und scan-orientiert aufgebaut, damit auf kleineren Screens mehr Kernsignale gleichzeitig sichtbar bleiben.
+- Arbeits-Widgets sind bewusst kompakt und scan-orientiert aufgebaut, damit auf kleineren Screens mehr Kernsignale gleichzeitig sichtbar bleiben.
 - Karten dienen primär als Einstieg in Detailseiten; längere Erklärtexte gehören in die Zielbereiche statt in die Startansicht.
 - Warnungen auf der Startseite bleiben auf relevante `warning`-/`danger`-Fälle begrenzt, damit das Dashboard nicht zur Alert-Wand mutiert.
 - Quicklinks und Filter-/Sortierlogik gehören außerhalb einzelner Kartenblöcke, damit die Kartensammlung visuell ruhig bleibt.
 - Fällt nur eine Datenquelle aus, bleibt das Dashboard insgesamt renderbar; der degradierte Zustand wird über einen Hinweis auf `CMS Logs` transparent gemacht.
-- Die Personalisierung ändert nur die Sichtbarkeit optionaler Blöcke, nicht die zugrunde liegenden Berechtigungen oder Audit-/Warnlogik.
+- Die Personalisierung ändert nur die Sichtbarkeit optionaler Blöcke bzw. vordefinierter Widgets, nicht die zugrunde liegenden Berechtigungen oder Audit-/Warnlogik.
+- „Zuletzt genutzt“ speichert nur nicht-sensitive interne Navigationsziele im Browser; bei deaktiviertem Storage fällt der Block still auf einen leeren Zustand zurück.
+- Die Sortierung ist progressiv erweitert: Drag-&-Drop ist Komfort, die Pfeilbuttons sind der robuste Fallback. So bleibt die Personalisierung auch dann nutzbar, wenn Browser-DnD nicht ideal funktioniert.
 
 ---
 
@@ -75,10 +86,10 @@ Der Speichern-Flow läuft über die gemeinsame Admin-Section-Shell mit CSRF-Prü
 - CMS-Versionen dürfen nicht mehr als historische 0.x-Stände dokumentiert werden
 - für vertiefte Technikzustände sind heute spezialisierte Unterseiten zuständig, z. B. Diagnose oder Performance
 - das Dashboard ist Startpunkt, aber nicht mehr die alleinige Systemübersicht
-- KPI- und Highlight-Karten arbeiten aus derselben Stats-Basis wie Attention-Items, damit Kennzahlen konsistent bleiben
+- Arbeits-Widgets und Attention-Items arbeiten aus derselben Stats-Basis wie Dashboard-Alerts, damit Kennzahlen konsistent bleiben
 - Bestellbezogene Blöcke erscheinen nur, wenn die zugehörigen Subscription-/Orders-Module aktiv sind
 - Statistiksegmente werden seit `2.9.615` einzeln fail-soft geladen und bei Ausfall mit strukturiertem Logger-Hinweis auf dem Kanal `dashboard` protokolliert
-- Dashboard-Sichtbarkeitsprofile werden seit `2.9.701` pro Admin-Benutzer serverseitig gespeichert, CSRF-geschützt geändert und auditierbar protokolliert; seit `2.9.705` ist dieser POST-Flow robuster gegen stale Tabs und parallel gerenderte Formulare
+- Dashboard-Sichtbarkeitsprofile werden seit `2.9.701` pro Admin-Benutzer serverseitig gespeichert, CSRF-geschützt geändert und auditierbar protokolliert; seit `2.9.716` umfasst das auch einzelne Arbeitsübersichts-Widgets, seit `2.9.717` zusätzlich serverseitig gespeicherte Favoriten-Ziele und seit `2.9.718` auch persistente Reihenfolgen für Widgets und Favoriten. Seit `2.9.705` ist dieser POST-Flow robuster gegen stale Tabs und parallel gerenderte Formulare
 
 ---
 

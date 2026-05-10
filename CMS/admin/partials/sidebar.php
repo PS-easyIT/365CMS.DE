@@ -649,4 +649,90 @@ if (!function_exists('isGroupActive')) {
     </div>
 </aside>
 
+<script>
+(function () {
+    if (typeof window === 'undefined' || typeof document === 'undefined') {
+        return;
+    }
+
+    function storageAvailable(type) {
+        let storage;
+        try {
+            storage = window[type];
+            const testKey = '__storage_test__';
+            storage.setItem(testKey, testKey);
+            storage.removeItem(testKey);
+            return true;
+        } catch (error) {
+            return !!(
+                error instanceof DOMException
+                && error.name === 'QuotaExceededError'
+                && storage
+                && storage.length !== 0
+            );
+        }
+    }
+
+    if (!storageAvailable('localStorage')) {
+        return;
+    }
+
+    const currentUrl = new URL(window.location.href);
+    if (!/^\/admin(?:\/|$)/.test(currentUrl.pathname)) {
+        return;
+    }
+
+    ['csrf_token', 'token', 'success', 'error', 'message', 'flash'].forEach((key) => currentUrl.searchParams.delete(key));
+
+    const normalizedUrl = currentUrl.pathname + (currentUrl.searchParams.toString() !== '' ? '?' + currentUrl.searchParams.toString() : '');
+    const activeChild = document.querySelector('#sidebar-menu .dropdown-item.active');
+    const activeTopLevel = document.querySelector('#sidebar-menu .nav-item.active > .nav-link .nav-link-title');
+    const activeGroup = document.querySelector('#sidebar-menu .nav-item.dropdown.active > .nav-link .nav-link-title');
+    let label = '';
+
+    if (activeChild) {
+        const childLabel = activeChild.textContent ? activeChild.textContent.trim() : '';
+        const groupLabel = activeGroup && activeGroup.textContent ? activeGroup.textContent.trim() : '';
+        label = groupLabel !== '' && groupLabel !== childLabel ? groupLabel + ' · ' + childLabel : childLabel;
+    } else if (activeTopLevel && activeTopLevel.textContent) {
+        label = activeTopLevel.textContent.trim();
+    }
+
+    if (label === '') {
+        label = (document.title || 'Dashboard').replace(/\s*[·|-]\s*365CMS.*$/i, '').trim();
+    }
+
+    if (label === '') {
+        return;
+    }
+
+    const storageKey = 'cms365-admin-recent-links';
+    let entries = [];
+
+    try {
+        entries = JSON.parse(window.localStorage.getItem(storageKey) || '[]');
+    } catch (error) {
+        entries = [];
+    }
+
+    if (!Array.isArray(entries)) {
+        entries = [];
+    }
+
+    entries = entries.filter((entry) => {
+        return entry
+            && typeof entry.url === 'string'
+            && entry.url !== normalizedUrl;
+    });
+
+    entries.unshift({
+        url: normalizedUrl,
+        label: label,
+        ts: new Date().toISOString(),
+    });
+
+    window.localStorage.setItem(storageKey, JSON.stringify(entries.slice(0, 8)));
+})();
+</script>
+
 <div class="page-wrapper">

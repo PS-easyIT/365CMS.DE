@@ -28,6 +28,11 @@ class DashboardModule
             'description' => 'KPI-Karten und wichtigste Schnellzugriffe.',
             'required' => true,
         ],
+        'favorites_recent' => [
+            'label' => 'Favoriten & zuletzt genutzt',
+            'description' => 'Persönliche Schnellzugriffe und zuletzt genutzte Admin-Ziele.',
+            'required' => false,
+        ],
         'attention' => [
             'label' => 'Nächste Aufmerksamkeit',
             'description' => 'Offene Prioritäten und kontextuelle Warnungen.',
@@ -55,6 +60,131 @@ class DashboardModule
         ],
     ];
 
+    private const WORK_OVERVIEW_WIDGET_DEFINITIONS = [
+        'users_total' => [
+            'label' => 'Benutzer',
+            'description' => 'Gesamtzahl, Aktivität und frische Registrierungen.',
+        ],
+        'pages_total' => [
+            'label' => 'Seiten',
+            'description' => 'Seitenbestand inklusive Redaktionsstatus.',
+        ],
+        'posts_total' => [
+            'label' => 'Beiträge',
+            'description' => 'Beitragsvolumen, Veröffentlichung und Planung.',
+        ],
+        'media_total' => [
+            'label' => 'Medien',
+            'description' => 'Dateibestand, Speicherverbrauch und Dateitypen.',
+        ],
+        'orders_revenue' => [
+            'label' => 'Umsatz (30T)',
+            'description' => 'Umsatz- und Bestellstatus bei aktivem Order-Modul.',
+        ],
+        'user_growth' => [
+            'label' => 'Nutzerwachstum',
+            'description' => 'Neue Konten und Entwicklung über 30 Tage.',
+        ],
+        'content_pipeline' => [
+            'label' => 'Redaktions-Pipeline',
+            'description' => 'Entwürfe, geplante Inhalte und private Inhalte mit Handlungsbedarf.',
+        ],
+        'comment_queue' => [
+            'label' => 'Kommentar-Moderation',
+            'description' => 'Offene Kommentare mit direktem Sprung in die Moderation.',
+        ],
+        'sessions_live' => [
+            'label' => 'Aktive Sessions',
+            'description' => 'Live-Aktivität und heutige Nutzung im Überblick.',
+        ],
+        'security_snapshot' => [
+            'label' => 'Security Snapshot',
+            'description' => 'Score, HTTPS-Status und auffällige Login-Signale.',
+        ],
+        'system_stack' => [
+            'label' => 'System-Stack',
+            'description' => 'CMS-, PHP- und Datenbank-Kontext für schnelle Checks.',
+        ],
+    ];
+
+    private const FAVORITE_SHORTCUT_DEFINITIONS = [
+        'new_page' => [
+            'label' => 'Neue Seite',
+            'description' => 'Schnell in die Seitenerstellung springen.',
+            'icon' => 'file-plus',
+            'url' => '/admin/pages?action=new',
+        ],
+        'new_post' => [
+            'label' => 'Neuer Beitrag',
+            'description' => 'Direkt einen neuen Beitrag anlegen.',
+            'icon' => 'pencil-plus',
+            'url' => '/admin/posts?action=new',
+        ],
+        'comments' => [
+            'label' => 'Kommentare',
+            'description' => 'Moderation und offene Kommentare prüfen.',
+            'icon' => 'message-circle',
+            'url' => '/admin/comments',
+        ],
+        'media' => [
+            'label' => 'Medien',
+            'description' => 'Medienbibliothek und Uploads öffnen.',
+            'icon' => 'photo',
+            'url' => '/admin/media',
+        ],
+        'featured_media' => [
+            'label' => 'Beitrags & Site Medien',
+            'description' => 'Verwendete Featured Images direkt verwalten.',
+            'icon' => 'photo',
+            'url' => '/admin/media?tab=featured',
+        ],
+        'users' => [
+            'label' => 'Benutzer',
+            'description' => 'Benutzerverwaltung und Rollen aufrufen.',
+            'icon' => 'users',
+            'url' => '/admin/users',
+        ],
+        'analytics' => [
+            'label' => 'Analytics',
+            'description' => 'Nutzung, Traffic und Kennzahlen ansehen.',
+            'icon' => 'activity',
+            'url' => '/admin/analytics',
+        ],
+        'security_audit' => [
+            'label' => 'Security Audit',
+            'description' => 'Sicherheitsstatus und Audit-Hinweise prüfen.',
+            'icon' => 'shield-check',
+            'url' => '/admin/security-audit',
+        ],
+        'updates' => [
+            'label' => 'Updates',
+            'description' => 'Core-, Theme- und Plugin-Updates prüfen.',
+            'icon' => 'settings',
+            'url' => '/admin/updates',
+        ],
+        'cms_logs' => [
+            'label' => 'CMS Logs',
+            'description' => 'Diagnose- und Betriebsprotokolle öffnen.',
+            'icon' => 'alert-triangle',
+            'url' => '/admin/cms-logs',
+        ],
+        'settings' => [
+            'label' => 'Einstellungen',
+            'description' => 'Zentrale Core-Einstellungen verwalten.',
+            'icon' => 'settings',
+            'url' => '/admin/settings',
+        ],
+    ];
+
+    private const DEFAULT_FAVORITE_SHORTCUTS = [
+        'new_page',
+        'new_post',
+        'comments',
+        'media',
+        'users',
+        'updates',
+    ];
+
     private DashboardService $service;
     private Database $db;
     private string $prefix;
@@ -75,28 +205,48 @@ class DashboardModule
         $meta = is_array($stats['meta'] ?? null) ? $stats['meta'] : [];
         $subscriptionEnabled = $this->isSubscriptionSystemEnabled();
         $subscriptionOrdersEnabled = $this->isSubscriptionOrdersEnabled();
+        $widgetDefinitions = $this->getWorkOverviewWidgetDefinitions($subscriptionOrdersEnabled);
+        $favoriteShortcutDefinitions = $this->getFavoriteShortcutDefinitions();
         $system = $stats['system'] ?? [];
         $security = $stats['security'] ?? [];
         $performance = $stats['performance'] ?? [];
         $orders = $stats['orders'] ?? [];
+        $sessions = $stats['sessions'] ?? [];
         $users = $stats['users'] ?? [];
         $pages = $stats['pages'] ?? [];
         $posts = $stats['posts'] ?? [];
         $media = $stats['media'] ?? [];
-        $preferences = $this->getDashboardPreferences($subscriptionOrdersEnabled);
+        $pendingComments = $this->getPendingCommentsCount();
+        $preferences = $this->getDashboardPreferences($subscriptionOrdersEnabled, $widgetDefinitions, $favoriteShortcutDefinitions);
+        $workOverviewWidgetOrder = is_array($preferences['work_overview_widget_order'] ?? null)
+            ? $this->normalizeOrderedPreferenceKeys($preferences['work_overview_widget_order'], $widgetDefinitions)
+            : array_keys($widgetDefinitions);
+        $favoriteShortcutOrder = is_array($preferences['favorite_shortcut_order'] ?? null)
+            ? $this->normalizeOrderedPreferenceKeys($preferences['favorite_shortcut_order'], $favoriteShortcutDefinitions)
+            : array_keys($favoriteShortcutDefinitions);
+        $widgetDefinitions = $this->sortDefinitionMapByOrder($widgetDefinitions, $workOverviewWidgetOrder);
+        $favoriteShortcutDefinitions = $this->sortDefinitionMapByOrder($favoriteShortcutDefinitions, $favoriteShortcutOrder);
 
         return [
             'welcome'       => $this->getWelcomeData($system),
             'kpis'          => $this->buildKpis($stats, $subscriptionOrdersEnabled),
+            'work_overview_widgets' => $this->buildWorkOverviewWidgets($stats, $pendingComments, $subscriptionOrdersEnabled, $workOverviewWidgetOrder),
             'dashboard_sections' => $this->getDashboardSections($subscriptionOrdersEnabled),
+            'dashboard_work_overview_widget_definitions' => $widgetDefinitions,
+            'favorite_shortcut_definitions' => $favoriteShortcutDefinitions,
+            'favorite_shortcuts' => $this->buildFavoriteShortcuts(
+                is_array($preferences['favorite_shortcuts'] ?? null) ? $preferences['favorite_shortcuts'] : [],
+                $favoriteShortcutDefinitions
+            ),
             'dashboard_preferences' => $preferences,
             'activity'      => $this->getRecentActivity(),
             'quickLinks'    => $this->getQuickLinks(),
-            'alerts'        => array_merge($this->buildDashboardHealthAlerts($meta), $this->getAlerts($stats)),
+            'alerts'        => array_merge($this->buildDashboardHealthAlerts($meta), $this->getAlerts($stats, $pendingComments)),
             'attention'     => $this->service->getAttentionItems($stats),
             'subscription_enabled' => $subscriptionEnabled,
             'recent_orders' => $subscriptionOrdersEnabled ? $this->service->getRecentOrders() : [],
             'orders'        => $orders,
+            'sessions'      => $sessions,
             'system'        => $system,
             'security'      => $security,
             'performance'   => $performance,
@@ -161,13 +311,91 @@ class DashboardModule
         return $sections;
     }
 
-    private function getDashboardPreferences(bool $subscriptionOrdersEnabled): array
+    private function getFavoriteShortcutDefinitions(): array
+    {
+        return self::FAVORITE_SHORTCUT_DEFINITIONS;
+    }
+
+    private function getWorkOverviewWidgetDefinitions(bool $subscriptionOrdersEnabled): array
+    {
+        $widgets = self::WORK_OVERVIEW_WIDGET_DEFINITIONS;
+        if (!$subscriptionOrdersEnabled) {
+            unset($widgets['orders_revenue']);
+        }
+
+        return $widgets;
+    }
+
+    private function parseOrderedPreferenceInput(mixed $value): array
+    {
+        $candidates = is_array($value) ? $value : explode(',', (string) $value);
+        $normalized = [];
+
+        foreach ($candidates as $candidate) {
+            $candidate = trim((string) $candidate);
+            if ($candidate === '' || in_array($candidate, $normalized, true)) {
+                continue;
+            }
+
+            $normalized[] = $candidate;
+        }
+
+        return $normalized;
+    }
+
+    private function normalizeOrderedPreferenceKeys(array $orderedKeys, array $availableItems): array
+    {
+        $availableKeys = array_keys($availableItems);
+        $normalized = [];
+
+        foreach ($orderedKeys as $key) {
+            $key = trim((string) $key);
+            if ($key === '' || !in_array($key, $availableKeys, true) || in_array($key, $normalized, true)) {
+                continue;
+            }
+
+            $normalized[] = $key;
+        }
+
+        foreach ($availableKeys as $key) {
+            if (!in_array($key, $normalized, true)) {
+                $normalized[] = $key;
+            }
+        }
+
+        return $normalized;
+    }
+
+    private function sortDefinitionMapByOrder(array $definitions, array $orderedKeys): array
+    {
+        $sorted = [];
+
+        foreach ($this->normalizeOrderedPreferenceKeys($orderedKeys, $definitions) as $key) {
+            if (array_key_exists($key, $definitions)) {
+                $sorted[$key] = $definitions[$key];
+            }
+        }
+
+        return $sorted;
+    }
+
+    private function getDashboardPreferences(bool $subscriptionOrdersEnabled, array $workOverviewWidgetDefinitions, array $favoriteShortcutDefinitions): array
     {
         $sections = $this->getDashboardSections($subscriptionOrdersEnabled);
         $defaultVisible = array_keys($sections);
+        $defaultVisibleWorkOverviewWidgets = array_keys($workOverviewWidgetDefinitions);
+        $defaultWorkOverviewWidgetOrder = array_keys($workOverviewWidgetDefinitions);
+        $defaultFavoriteShortcutOrder = array_keys($favoriteShortcutDefinitions);
+        $defaultFavoriteShortcuts = $this->normalizeFavoriteShortcuts(self::DEFAULT_FAVORITE_SHORTCUTS, $favoriteShortcutDefinitions);
         $userId = $this->getCurrentUserId();
         if ($userId <= 0) {
-            return ['visible_sections' => $defaultVisible];
+            return [
+                'visible_sections' => $defaultVisible,
+                'visible_work_overview_widgets' => $defaultVisibleWorkOverviewWidgets,
+                'work_overview_widget_order' => $defaultWorkOverviewWidgetOrder,
+                'favorite_shortcuts' => $defaultFavoriteShortcuts,
+                'favorite_shortcut_order' => $defaultFavoriteShortcutOrder,
+            ];
         }
 
         try {
@@ -176,13 +404,38 @@ class DashboardModule
                 [$this->getDashboardPreferencesOptionName($userId)]
             );
         } catch (\Throwable) {
-            return ['visible_sections' => $defaultVisible];
+            return [
+                'visible_sections' => $defaultVisible,
+                'visible_work_overview_widgets' => $defaultVisibleWorkOverviewWidgets,
+                'work_overview_widget_order' => $defaultWorkOverviewWidgetOrder,
+                'favorite_shortcuts' => $defaultFavoriteShortcuts,
+                'favorite_shortcut_order' => $defaultFavoriteShortcutOrder,
+            ];
         }
 
         $decoded = is_string($optionValue) ? json_decode($optionValue, true) : null;
         $visible = is_array($decoded['visible_sections'] ?? null) ? $decoded['visible_sections'] : $defaultVisible;
+        $workOverviewWidgetOrder = is_array($decoded['work_overview_widget_order'] ?? null)
+            ? $this->normalizeOrderedPreferenceKeys($decoded['work_overview_widget_order'], $workOverviewWidgetDefinitions)
+            : $defaultWorkOverviewWidgetOrder;
+        $hasStoredWorkOverviewWidgets = is_array($decoded) && array_key_exists('visible_work_overview_widgets', $decoded);
+        $visibleWorkOverviewWidgets = $hasStoredWorkOverviewWidgets && is_array($decoded['visible_work_overview_widgets'] ?? null)
+            ? $this->normalizeVisibleWorkOverviewWidgets($decoded['visible_work_overview_widgets'], $workOverviewWidgetDefinitions, $workOverviewWidgetOrder)
+            : $defaultVisibleWorkOverviewWidgets;
+        $favoriteShortcutOrder = is_array($decoded['favorite_shortcut_order'] ?? null)
+            ? $this->normalizeOrderedPreferenceKeys($decoded['favorite_shortcut_order'], $favoriteShortcutDefinitions)
+            : $defaultFavoriteShortcutOrder;
+        $favoriteShortcuts = is_array($decoded['favorite_shortcuts'] ?? null)
+            ? $this->normalizeFavoriteShortcuts($decoded['favorite_shortcuts'], $favoriteShortcutDefinitions, $favoriteShortcutOrder)
+            : $defaultFavoriteShortcuts;
 
-        return ['visible_sections' => $this->normalizeVisibleDashboardSections($visible, $sections)];
+        return [
+            'visible_sections' => $this->normalizeVisibleDashboardSections($visible, $sections),
+            'visible_work_overview_widgets' => $visibleWorkOverviewWidgets,
+            'work_overview_widget_order' => $workOverviewWidgetOrder,
+            'favorite_shortcuts' => $favoriteShortcuts,
+            'favorite_shortcut_order' => $favoriteShortcutOrder,
+        ];
     }
 
     private function saveDashboardPreferences(array $post): array
@@ -193,10 +446,24 @@ class DashboardModule
         }
 
         $sections = $this->getDashboardSections($this->isSubscriptionOrdersEnabled());
+        $workOverviewWidgetDefinitions = $this->getWorkOverviewWidgetDefinitions($this->isSubscriptionOrdersEnabled());
+        $favoriteShortcutDefinitions = $this->getFavoriteShortcutDefinitions();
         $selectedSections = is_array($post['dashboard_sections'] ?? null) ? $post['dashboard_sections'] : [];
+        $selectedWorkOverviewWidgets = is_array($post['work_overview_widgets'] ?? null) ? $post['work_overview_widgets'] : [];
+        $selectedWorkOverviewWidgetOrder = $this->parseOrderedPreferenceInput($post['work_overview_widget_order'] ?? '');
+        $selectedFavoriteShortcuts = is_array($post['favorite_shortcuts'] ?? null) ? $post['favorite_shortcuts'] : [];
+        $selectedFavoriteShortcutOrder = $this->parseOrderedPreferenceInput($post['favorite_shortcut_order'] ?? '');
         $visibleSections = $this->normalizeVisibleDashboardSections($selectedSections, $sections);
+        $workOverviewWidgetOrder = $this->normalizeOrderedPreferenceKeys($selectedWorkOverviewWidgetOrder, $workOverviewWidgetDefinitions);
+        $favoriteShortcutOrder = $this->normalizeOrderedPreferenceKeys($selectedFavoriteShortcutOrder, $favoriteShortcutDefinitions);
+        $visibleWorkOverviewWidgets = $this->normalizeVisibleWorkOverviewWidgets($selectedWorkOverviewWidgets, $workOverviewWidgetDefinitions, $workOverviewWidgetOrder);
+        $favoriteShortcuts = $this->normalizeFavoriteShortcuts($selectedFavoriteShortcuts, $favoriteShortcutDefinitions, $favoriteShortcutOrder);
         $payload = [
             'visible_sections' => $visibleSections,
+            'visible_work_overview_widgets' => $visibleWorkOverviewWidgets,
+            'work_overview_widget_order' => $workOverviewWidgetOrder,
+            'favorite_shortcuts' => $favoriteShortcuts,
+            'favorite_shortcut_order' => $favoriteShortcutOrder,
             'updated_at' => date('Y-m-d H:i:s'),
         ];
         $optionName = $this->getDashboardPreferencesOptionName($userId);
@@ -224,7 +491,13 @@ class DashboardModule
             'Admin-Dashboard-Personalisierung gespeichert',
             'dashboard',
             $userId,
-            ['visible_sections' => $visibleSections],
+            [
+                'visible_sections' => $visibleSections,
+                'visible_work_overview_widgets' => $visibleWorkOverviewWidgets,
+                'work_overview_widget_order' => $workOverviewWidgetOrder,
+                'favorite_shortcuts' => $favoriteShortcuts,
+                'favorite_shortcut_order' => $favoriteShortcutOrder,
+            ],
             'info'
         );
 
@@ -250,6 +523,78 @@ class DashboardModule
         }
 
         return $visible !== [] ? $visible : $availableKeys;
+    }
+
+    private function normalizeVisibleWorkOverviewWidgets(array $selectedWidgets, array $availableWidgets, array $preferredOrder = []): array
+    {
+        $availableKeys = array_keys($availableWidgets);
+        $selected = [];
+
+        foreach ($selectedWidgets as $widgetKey) {
+            $widgetKey = trim((string) $widgetKey);
+            if ($widgetKey !== '' && in_array($widgetKey, $availableKeys, true) && !in_array($widgetKey, $selected, true)) {
+                $selected[] = $widgetKey;
+            }
+        }
+
+        $orderedKeys = $preferredOrder !== []
+            ? $this->normalizeOrderedPreferenceKeys($preferredOrder, $availableWidgets)
+            : $availableKeys;
+        $visible = [];
+        foreach ($orderedKeys as $widgetKey) {
+            if (in_array($widgetKey, $selected, true)) {
+                $visible[] = $widgetKey;
+            }
+        }
+
+        return $visible;
+    }
+
+    private function normalizeFavoriteShortcuts(array $selectedShortcuts, array $availableShortcuts, array $preferredOrder = []): array
+    {
+        $availableKeys = array_keys($availableShortcuts);
+        $selected = [];
+
+        foreach ($selectedShortcuts as $shortcutKey) {
+            $shortcutKey = trim((string) $shortcutKey);
+            if ($shortcutKey !== '' && in_array($shortcutKey, $availableKeys, true) && !in_array($shortcutKey, $selected, true)) {
+                $selected[] = $shortcutKey;
+            }
+        }
+
+        $orderedKeys = $preferredOrder !== []
+            ? $this->normalizeOrderedPreferenceKeys($preferredOrder, $availableShortcuts)
+            : $availableKeys;
+        $favorites = [];
+        foreach ($orderedKeys as $shortcutKey) {
+            if (in_array($shortcutKey, $selected, true)) {
+                $favorites[] = $shortcutKey;
+            }
+        }
+
+        return array_slice($favorites, 0, 8);
+    }
+
+    private function buildFavoriteShortcuts(array $favoriteShortcutKeys, array $definitions): array
+    {
+        $shortcuts = [];
+
+        foreach ($favoriteShortcutKeys as $shortcutKey) {
+            $shortcutKey = (string) $shortcutKey;
+            if (!isset($definitions[$shortcutKey]) || !is_array($definitions[$shortcutKey])) {
+                continue;
+            }
+
+            $definition = $definitions[$shortcutKey];
+            $shortcuts[$shortcutKey] = [
+                'label' => (string) ($definition['label'] ?? $shortcutKey),
+                'description' => (string) ($definition['description'] ?? ''),
+                'icon' => (string) ($definition['icon'] ?? 'settings'),
+                'url' => (string) ($definition['url'] ?? '/admin'),
+            ];
+        }
+
+        return $shortcuts;
     }
 
     private function getDashboardPreferencesOptionName(int $userId): string
@@ -297,6 +642,177 @@ class DashboardModule
             'message' => 'Einige Dashboard-Bereiche laufen aktuell im Fallback-Modus: ' . implode(', ', $labels) . '. Details stehen in den CMS Logs.',
             'url' => '/admin/cms-logs',
         ]];
+    }
+
+    private function buildWorkOverviewWidgets(array $stats, int $pendingComments, bool $subscriptionOrdersEnabled, array $widgetOrder = []): array
+    {
+        $users = is_array($stats['users'] ?? null) ? $stats['users'] : [];
+        $pages = is_array($stats['pages'] ?? null) ? $stats['pages'] : [];
+        $posts = is_array($stats['posts'] ?? null) ? $stats['posts'] : [];
+        $media = is_array($stats['media'] ?? null) ? $stats['media'] : [];
+        $orders = is_array($stats['orders'] ?? null) ? $stats['orders'] : [];
+        $sessions = is_array($stats['sessions'] ?? null) ? $stats['sessions'] : [];
+        $security = is_array($stats['security'] ?? null) ? $stats['security'] : [];
+        $system = is_array($stats['system'] ?? null) ? $stats['system'] : [];
+
+        $redactionLoad = (int) (($pages['drafts'] ?? 0) + ($pages['private'] ?? 0) + ($posts['drafts'] ?? 0) + ($posts['private'] ?? 0) + ($posts['scheduled'] ?? 0));
+        $widgets = [
+            'users_total' => [
+                'label' => 'Benutzer',
+                'value' => (string) ($users['total'] ?? 0),
+                'hint' => (string) (($users['active_today'] ?? 0) . ' heute aktiv'),
+                'icon' => 'users',
+                'url' => '/admin/users',
+                'footer_label' => 'Benutzer öffnen →',
+                'details' => [
+                    (string) (($users['new_today'] ?? 0) . ' neu heute'),
+                    (string) (($users['new_this_week'] ?? 0) . ' neu in 7 Tagen'),
+                ],
+            ],
+            'pages_total' => [
+                'label' => 'Seiten',
+                'value' => (string) ($pages['total'] ?? 0),
+                'hint' => (string) (($pages['published'] ?? 0) . ' veröffentlicht'),
+                'icon' => 'file-text',
+                'url' => '/admin/pages',
+                'footer_label' => 'Seiten öffnen →',
+                'details' => [
+                    (string) (($pages['drafts'] ?? 0) . ' Entwürfe'),
+                    (string) (($pages['private'] ?? 0) . ' privat'),
+                ],
+            ],
+            'posts_total' => [
+                'label' => 'Beiträge',
+                'value' => (string) ($posts['total'] ?? 0),
+                'hint' => (string) (($posts['published'] ?? 0) . ' sichtbar · ' . ($posts['scheduled'] ?? 0) . ' geplant'),
+                'icon' => 'article',
+                'url' => '/admin/posts',
+                'footer_label' => 'Beiträge öffnen →',
+                'details' => [
+                    (string) (($posts['drafts'] ?? 0) . ' Entwürfe'),
+                    (string) (($posts['private'] ?? 0) . ' privat'),
+                ],
+            ],
+            'media_total' => [
+                'label' => 'Medien',
+                'value' => (string) ($media['total_files'] ?? 0),
+                'hint' => (string) ($media['total_size_formatted'] ?? $this->formatBytes((int) ($media['total_size'] ?? 0))),
+                'icon' => 'photo',
+                'url' => '/admin/media',
+                'footer_label' => 'Medien öffnen →',
+                'details' => [
+                    (string) (($media['types']['images'] ?? 0) . ' Bilder'),
+                    (string) (($media['types']['documents'] ?? 0) . ' Dokumente'),
+                ],
+            ],
+            'user_growth' => [
+                'label' => 'Nutzerwachstum',
+                'value' => (string) ($users['new_this_month'] ?? 0),
+                'hint' => 'neue Konten in 30 Tagen',
+                'icon' => 'users',
+                'url' => '/admin/users',
+                'footer_label' => 'Wachstum prüfen →',
+                'details' => [
+                    (string) (($users['new_today'] ?? 0) . ' neu heute'),
+                    (string) (($users['growth_rate'] ?? 0) . '% Anteil am Bestand'),
+                ],
+            ],
+            'content_pipeline' => [
+                'label' => 'Redaktions-Pipeline',
+                'value' => (string) $redactionLoad,
+                'hint' => 'Inhalte warten auf Review oder Veröffentlichung',
+                'icon' => 'activity',
+                'url' => '/admin/posts',
+                'footer_label' => 'Pipeline öffnen →',
+                'details' => [
+                    (string) ((($pages['drafts'] ?? 0) + ($pages['private'] ?? 0)) . ' Seiten mit Handlungsbedarf'),
+                    (string) ((($posts['drafts'] ?? 0) + ($posts['scheduled'] ?? 0) + ($posts['private'] ?? 0)) . ' Beiträge mit Handlungsbedarf'),
+                ],
+            ],
+            'comment_queue' => [
+                'label' => 'Kommentar-Moderation',
+                'value' => (string) $pendingComments,
+                'hint' => $pendingComments > 0 ? 'Kommentare warten auf Freigabe' : 'Aktuell keine offenen Kommentare',
+                'icon' => 'message-circle',
+                'url' => '/admin/comments',
+                'footer_label' => 'Moderation öffnen →',
+                'details' => [
+                    $pendingComments > 0 ? 'Direkt in die Kommentarmoderation springen' : 'Kommentarbereich bleibt erreichbar',
+                ],
+            ],
+            'sessions_live' => [
+                'label' => 'Aktive Sessions',
+                'value' => (string) ($sessions['active_now'] ?? 0),
+                'hint' => (string) (($sessions['today'] ?? 0) . ' Sessions heute'),
+                'icon' => 'activity',
+                'url' => '/admin/analytics',
+                'footer_label' => 'Nutzung ansehen →',
+                'details' => [
+                    (string) (($sessions['avg_duration'] ?? 0) . ' Minuten Ø-Dauer'),
+                    (string) (($sessions['total'] ?? 0) . ' Sessions gesamt'),
+                ],
+            ],
+            'security_snapshot' => [
+                'label' => 'Security Snapshot',
+                'value' => (string) (($security['security_score'] ?? 0) . '/100'),
+                'hint' => !empty($security['https_enabled']) ? 'HTTPS aktiv' : 'HTTPS prüfen',
+                'icon' => 'shield-check',
+                'url' => '/admin/security-audit',
+                'footer_label' => 'Security prüfen →',
+                'details' => [
+                    (string) (($security['failed_logins_24h'] ?? 0) . ' Fehlversuche / 24h'),
+                    'Status: ' . (string) ($security['status'] ?? 'unbekannt'),
+                ],
+            ],
+            'system_stack' => [
+                'label' => 'System-Stack',
+                'value' => 'CMS ' . (string) ($system['cms_version'] ?? '–'),
+                'hint' => 'PHP ' . (string) ($system['php_version'] ?? '–') . ' · MySQL ' . (string) ($system['mysql_version'] ?? '–'),
+                'icon' => 'server',
+                'url' => '/admin/settings',
+                'footer_label' => 'Systemdetails →',
+                'details' => [
+                    'Upload-Limit: ' . (string) ($system['upload_max_filesize'] ?? '–'),
+                    'Post-Limit: ' . (string) ($system['post_max_size'] ?? '–'),
+                ],
+            ],
+        ];
+
+        if ($subscriptionOrdersEnabled) {
+            $widgets['orders_revenue'] = [
+                'label' => 'Umsatz (30T)',
+                'value' => (string) ($orders['month_revenue_formatted'] ?? '0,00 EUR'),
+                'hint' => (string) (($orders['pending'] ?? 0) . ' Bestellungen offen'),
+                'icon' => 'shopping-cart',
+                'url' => '/admin/orders',
+                'footer_label' => 'Bestellungen öffnen →',
+                'details' => [
+                    (string) (($orders['total'] ?? 0) . ' Bestellungen gesamt'),
+                    'Letzte 30 Tage im Blick',
+                ],
+            ];
+        }
+
+        $orderedWidgets = [];
+        $orderedWidgetKeys = $this->normalizeOrderedPreferenceKeys($widgetOrder, $this->getWorkOverviewWidgetDefinitions($subscriptionOrdersEnabled));
+        foreach ($orderedWidgetKeys as $widgetKey) {
+            if (isset($widgets[$widgetKey])) {
+                $orderedWidgets[$widgetKey] = $widgets[$widgetKey];
+            }
+        }
+
+        return $orderedWidgets;
+    }
+
+    private function getPendingCommentsCount(): int
+    {
+        try {
+            return (int) ($this->db->get_var(
+                "SELECT COUNT(*) FROM {$this->prefix}comments WHERE status = 'pending'"
+            ) ?? 0);
+        } catch (\Throwable) {
+            return 0;
+        }
     }
 
     private function isSubscriptionSystemEnabled(): bool
@@ -431,24 +947,18 @@ class DashboardModule
     /**
      * Aufmerksamkeits-Hinweise
      */
-    private function getAlerts(array $stats): array
+    private function getAlerts(array $stats, ?int $pendingComments = null): array
     {
         $alerts = [];
 
         // Offene Kommentare
-        try {
-            $pending = (int)$this->db->get_var(
-                "SELECT COUNT(*) FROM {$this->prefix}comments WHERE status = 'pending'"
-            );
-            if ($pending > 0) {
-                $alerts[] = [
-                    'type'    => 'warning',
-                    'message' => $pending . ' Kommentar(e) warten auf Freigabe',
-                    'url'     => '/admin/comments',
-                ];
-            }
-        } catch (\Throwable $e) {
-            // comments table may not exist
+        $pendingComments ??= $this->getPendingCommentsCount();
+        if ($pendingComments > 0) {
+            $alerts[] = [
+                'type'    => 'warning',
+                'message' => $pendingComments . ' Kommentar(e) warten auf Freigabe',
+                'url'     => '/admin/comments',
+            ];
         }
 
         // Security-Warnungen

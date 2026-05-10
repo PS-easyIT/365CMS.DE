@@ -1,5 +1,5 @@
 # 365CMS – Admin-Bereich
-> **Stand:** 2026-05-10 | **Version:** 2.9.712 | **Status:** Aktuell
+> **Stand:** 2026-05-10 | **Version:** 2.9.718 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Überblick](#überblick)
@@ -35,7 +35,7 @@ Wichtige Grundsätze:
 
 | Menügruppe | Wichtige Routen | Zweck |
 |---|---|---|
-| Dashboard | `/admin` | Gesamtüberblick, KPIs, Schnellzugriffe, fail-softe Statusblöcke und benutzerbezogene Sichtbarkeitsprofile mit mehrtab-tolerantem CSRF-Speichern sowie defensiv internen Zielpfaden für Quicklinks |
+| Dashboard | `/admin` | Gesamtüberblick, KPIs, Schnellzugriffe, fail-softe Statusblöcke und benutzerbezogene Sichtbarkeitsprofile mit mehrtab-tolerantem CSRF-Speichern, defensiv internen Zielpfaden für Quicklinks sowie persistenter Widget-/Favoriten-Sortierung per Drag-&-Drop oder Pfeil-Fallback |
 | AI Services | `/admin/ai-services`, `/admin/ai-translation`, `/admin/ai-content-creator`, `/admin/ai-seo-creator`, `/admin/ai-settings` | Provider, Translation-Regeln, Prompt-Vorlagen, Logging, Quotas und request-/historiennahe AI-Beobachtung mit fail-softem Initialisierungspfad und konsistenter aktiver Provider-Auswahl |
 | Seiten & Beiträge | `/admin/pages`, `/admin/posts`, `/admin/comments`, `/admin/table-of-contents`, `/admin/site-tables` | Content-Management mit stabilem Slug-/Taxonomie-Vertrag, Bulk-fähiger Kategorien-/Tag-Verwaltung, commit-schonenderem Cache-Clear bei Sammellöschungen, direkt im Editor sichtbaren SEO-/Readability-Prüfungen und read-only Revisionsvergleichen in Seiten- **und** Beitragseditor ohne zusätzliches Snapshot-Debug-Logging im Save-Flow |
 | Medienverwaltung | `/admin/media`, `/admin/media?tab=featured`, `/admin/media?tab=categories`, `/admin/media?tab=settings` | Bibliothek, Beitrags-/Site-Medien, Kategorien, Medieneinstellungen mit festem Bildvertrag im Replace-in-place-Flow |
@@ -112,7 +112,7 @@ Alle Einstiege folgen demselben Grundmuster:
 5. Verarbeitung der Aktion im Modul oder Service
 6. Redirect mit Session-Alert statt direkter POST-Antwort
 
-Für das Dashboard gilt seit `2.9.615` zusätzlich: einzelne Statistikquellen müssen fail-soft isoliert werden, damit ein ausgefallener Teilblock nicht die komplette Startseite bricht.
+Für das Dashboard gilt seit `2.9.615` zusätzlich: einzelne Statistikquellen müssen fail-soft isoliert werden, damit ein ausgefallener Teilblock nicht die komplette Startseite bricht. Seit `2.9.718` bleibt die Personalisierung außerdem nicht mehr auf Sichtbarkeit beschränkt; die Reihenfolge von Arbeits-Widgets und Favoriten wird ebenfalls pro Admin-Benutzer persistiert und serverseitig allowlist-basiert normalisiert.
 
 Das ist wichtig für konsistente Fehlerbehandlung, PRG-Flow und nachvollziehbare Audit-Einträge.
 
