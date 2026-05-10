@@ -1,4 +1,4 @@
-﻿﻿**Version:** 2.9.714
+﻿﻿**Version:** 2.9.715
 
 # 365CMS Changelog
 
@@ -19,6 +19,12 @@
 ## 📜 Vollständige Versionshistorie
 
 ---
+
+### v2.9.715 — 10. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.715** | 🔴 fix | Admin/Kommentare – Volltext-Option in der Moderation | **`CMS/admin/comments.php`, `CMS/admin/modules/comments/CommentsModule.php`, `CMS/admin/views/comments/list.php`, `CMS/core/Version.php`, `CMS/update.json`, `README.md` und `Changelog.md` erweitern die Kommentar-Moderation um eine echte Anzeige-Option für den Inhalt**: Unter `/admin/comments` lässt sich der Kommentarinhalt nun zwischen `Ausschnitt` und `Volltext` umschalten. Die Auswahl bleibt über Schnellfilter, Status-Tabs sowie Moderations- und Löschaktionen hinweg erhalten, sodass Admins längere Kommentare vollständig prüfen können, ohne nach jedem Statuswechsel wieder nur auf einen gekürzten Teaser zurückzufallen. |
 
 ### v2.9.714 — 10. Mai 2026
 

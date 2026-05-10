@@ -45,13 +45,14 @@ function cms_admin_comments_normalize_bulk_action(mixed $action): string
     return in_array($normalizedAction, CMS_ADMIN_COMMENTS_ALLOWED_BULK_ACTIONS, true) ? $normalizedAction : '';
 }
 
-/** @return array{query:string,author_scope:string,link_scope:string} */
+/** @return array{query:string,author_scope:string,link_scope:string,content_view:string} */
 function cms_admin_comments_normalize_filters(CommentsModule $module, array $source): array
 {
     return $module->normalizeFilters([
         'q' => $source['q'] ?? '',
         'author_scope' => $source['author_scope'] ?? 'all',
         'link_scope' => $source['link_scope'] ?? 'all',
+        'content_view' => $source['content_view'] ?? 'excerpt',
     ]);
 }
 

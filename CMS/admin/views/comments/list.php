@@ -20,6 +20,8 @@ $summaryCards = is_array($data['summaryCards'] ?? null) ? $data['summaryCards'] 
 $filters = is_array($data['filters'] ?? null) ? $data['filters'] : [];
 $filterMeta = is_array($data['filterMeta'] ?? null) ? $data['filterMeta'] : [];
 $activeFilters = array_values(array_filter((array) ($filterMeta['active_filters'] ?? []), static fn (mixed $entry): bool => is_array($entry)));
+$contentView = (string) ($data['contentView'] ?? ($filters['content_view'] ?? 'excerpt'));
+$showFullCommentContent = $contentView === 'full';
 $canModerate = (bool)($data['canModerate'] ?? false);
 $canDelete = (bool)($data['canDelete'] ?? false);
 $canBulkActions = $canModerate || $canDelete;
@@ -138,6 +140,14 @@ $actionClass = static function (string $variant): string {
                             <?php endforeach; ?>
                         </select>
                     </div>
+                    <div class="col-12 col-md-6 col-lg-2">
+                        <label for="comment-content-view" class="form-label mb-1">Kommentarinhalt</label>
+                        <select class="form-select" id="comment-content-view" name="content_view">
+                            <?php foreach ((array) ($filterMeta['content_view_options'] ?? []) as $scopeValue => $scopeLabel): ?>
+                                <option value="<?php echo htmlspecialchars((string) $scopeValue, ENT_QUOTES); ?>" <?php echo ($contentView === (string) $scopeValue) ? 'selected' : ''; ?>><?php echo htmlspecialchars((string) $scopeLabel); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
                     <div class="col-12 col-lg-1 d-flex gap-2">
                         <?php if ($status !== 'all'): ?>
                             <input type="hidden" name="status" value="<?php echo htmlspecialchars((string) $status, ENT_QUOTES); ?>">
@@ -238,7 +248,13 @@ $actionClass = static function (string $variant): string {
                                     </div>
                                 </td>
                                 <td>
-                                    <div class="text-truncate" style="max-width:300px;"><?php echo htmlspecialchars((string)($c['excerpt'] ?? '')); ?></div>
+                                    <?php if ($showFullCommentContent): ?>
+                                        <div class="small text-wrap" style="max-width: 420px; white-space: pre-wrap; overflow-wrap: anywhere;">
+                                            <?php echo nl2br(htmlspecialchars((string)($c['content'] ?? ''), ENT_QUOTES, 'UTF-8')); ?>
+                                        </div>
+                                    <?php else: ?>
+                                        <div class="text-truncate" style="max-width:300px;"><?php echo htmlspecialchars((string)($c['excerpt'] ?? '')); ?></div>
+                                    <?php endif; ?>
                                 </td>
                                 <td>
                                     <?php if ($cPostTitle && !empty($c['has_post_link'])): ?>

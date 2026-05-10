@@ -516,6 +516,7 @@ Die Sidebar in `CMS/admin/partials/sidebar.php` ist für die Menüstruktur führ
 - [ ] Mediensuche mit erweiterten Filtern (nicht nur Name/Pfad).
 - [ ] Hintergrundverarbeitung für WebP-/Thumbnail-Jobs mit Fortschritt.
 - [ ] Verwendungsanzeige pro Medium direkt in der Bibliothek.
+- [ ] weitere sinnvolle Erweiterungen
 
 ### Audit-Stand – Medienverwaltung · Durchlauf 1
 

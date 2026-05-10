@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.9.714",
+  "version": "2.9.715",
   "min_php": "8.4",
   "released": "2026-05-10",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 2.9.714: Der Core zieht den Live-Hotfix für den Beitragsbereich nach. `CMS/admin/posts.php` koppelt den Save-Flow nicht länger hart an den nackten Klassennamen `PostsModule`, sondern löst das Modul über einen belastbaren Methodenvertrag und Dateireflexion auf; falls Live-Deploy oder OPcache kurzfristig driften, wird die Moduldatei gezielt erneut geladen, statt mit `Class \"PostsModule\" not found` oder `PostsModule konnte nach dem Laden der Moduldatei nicht aufgelöst werden` abzubrechen. Parallel schützt `CMS/admin/modules/posts/PostsModule.php` seine Klassendeklaration gegen erneute Auswertung, und `CMS/admin/post-categories.php` sowie `CMS/admin/post-tags.php` verwenden denselben robusteren Bootstrap-Pfad für die gemeinsame Beitrags-Taxonomie-Verwaltung.",
+  "notes": "Release-Stand 2.9.715: Die Kommentar-Moderation bietet im Admin jetzt eine echte Anzeige-Option für den Kommentarinhalt. Unter `/admin/comments` lässt sich zwischen `Ausschnitt` und `Volltext` umschalten; die Auswahl bleibt beim Filtern, beim Wechsel der Status-Tabs und nach Moderations-/Löschaktionen erhalten. Technisch nutzt die View dafür den bereits geladenen vollständigen Kommentarinhalt, statt nur das gekürzte `excerpt` zu rendern.",
   "critical": false
 }

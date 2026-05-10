@@ -24,6 +24,7 @@ class CommentsModule
     private const LIST_STATUSES = ['all', 'pending', 'approved', 'spam', 'trash'];
     private const AUTHOR_SCOPES = ['all', 'registered', 'guest', 'anonymous'];
     private const LINK_SCOPES = ['all', 'linked', 'orphaned'];
+    private const CONTENT_VIEWS = ['excerpt', 'full'];
     private const MODERATION_STATUSES = ['pending', 'approved', 'spam', 'trash'];
     private const SUPPORTED_ACTIONS = ['status', 'delete', 'bulk'];
     private const BULK_ACTIONS = ['approve', 'spam', 'trash', 'delete'];
@@ -143,6 +144,7 @@ class CommentsModule
             'tabs' => $this->buildTabs($counts, $normalizedFilters),
             'summaryCards' => $this->buildSummaryCards($counts),
             'filters' => $normalizedFilters,
+            'contentView' => (string) ($normalizedFilters['content_view'] ?? 'excerpt'),
             'filterMeta' => $this->buildFilterMeta($normalizedFilters),
             'canModerate' => $this->canModerate(),
             'canDelete' => $this->canDelete(),
@@ -151,11 +153,20 @@ class CommentsModule
 
     /**
      * @param array<string, mixed> $filters
-     * @return array{query:string,author_scope:string,link_scope:string}
+     * @return array{query:string,author_scope:string,link_scope:string,content_view:string}
      */
     public function normalizeFilters(array $filters): array
     {
-        return $this->service->normalizeListFilters($filters);
+        $normalized = $this->service->normalizeListFilters($filters);
+
+        $contentView = strtolower(trim((string) ($filters['content_view'] ?? 'excerpt')));
+        if (!in_array($contentView, self::CONTENT_VIEWS, true)) {
+            $contentView = 'excerpt';
+        }
+
+        $normalized['content_view'] = $contentView;
+
+        return $normalized;
     }
 
     /**
@@ -482,6 +493,10 @@ class CommentsModule
                 'all' => 'Alle',
                 'linked' => 'Nur verknüpfte Beiträge',
                 'orphaned' => 'Nur verwaiste Kommentare',
+            ],
+            'content_view_options' => [
+                'excerpt' => 'Ausschnitt',
+                'full' => 'Volltext',
             ],
             'active_filters' => $activeFilters,
             'active_filter_count' => count($activeFilters),
