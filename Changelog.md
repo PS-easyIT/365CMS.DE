@@ -25,101 +25,18 @@
 | Version | Typ | Bereich | Beschreibung |
 |---------|-----|---------|-------------|
 | **2.9.736** | 🟢 feat | Admin/Member Aboverwaltung – Ablaufwarnungen & Renewal-Hinweise | **`CMS/core/SubscriptionManager.php`, `CMS/core/Services/MemberService.php`, `CMS/admin/modules/subscriptions/OrdersModule.php`, `CMS/admin/views/subscriptions/orders.php`, `CMS/member/subscription.php`, `CMS/core/Version.php`, `CMS/update.json`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/subscription/README.md`, `CMS/DOC/admin/subscription/ORDERS.md`, `CMS/DOC/admin/subscription/SUBSCRIPTION-SYSTEM.md`, `CMS/DOC/member/README.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md` und `Changelog.md` schließen das nächste offene Nice-to-have der Aboverwaltung ab**: Die bislang nur speicherbare Einstellung `notification_before_expiry` bekommt einen echten read-only Runtime-Vertrag. `SubscriptionManager` leitet jetzt zentrale Renewal-/Ablaufhinweise aus `next_billing_date`, `end_date`, globaler Auto-Verlängerung und Kulanzzeit ab. `/admin/orders` zeigt daraus ein Hinweisfenster mit fälligen bzw. überfälligen Mitgliedschaften, und `/member/subscription` nutzt denselben Vertrag für Laufzeit- und Verlängerungshinweise statt am dekorativen Feld `expires_at` vorbeizulaufen. Der Ausbau bleibt bewusst lesend: keine neue Schreibroute, kein zusätzlicher Token-Pfad, kein Mailversand und fail-softes Verhalten bei fehlenden oder unvollständigen Daten. |
-
----
-
-### v2.9.735 — 10. Mai 2026
-
-| Version | Typ | Bereich | Beschreibung |
-|---------|-----|---------|-------------|
 | **2.9.735** | 🟢 feat | Admin/Member Dashboard – Onboarding-Analytics & Abschlussrate | **`CMS/admin/modules/member/MemberDashboardModule.php`, `CMS/admin/views/member/onboarding.php`, `CMS/core/Version.php`, `CMS/update.json`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/member/README.md`, `CMS/DOC/member/README.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md` und `Changelog.md` schließen das letzte offene Member-Dashboard-Nice-to-have ab**: `/admin/member-dashboard-onboarding` zeigt jetzt read-only Onboarding-Analytics mit einer transparent dokumentierten Abschlussrate. Die Kennzahlen leiten sich ausschließlich aus bestehenden Signalen ab – aktuell aktiven Konten, konfigurierten Profilfeldern, MFA-/Passkey-Adoption und erfolgreichen Logins der letzten 30 Tage – und bleiben bewusst aggregiert, ohne neue Tracking-Tabelle, zusätzliche POST-Route, Token in URLs oder personenbezogene Detailausgabe. Falls optionale Datenquellen wie `activity_log` oder `passkey_credentials` fehlen, fällt die Ansicht fail-soft auf sichere Defaultwerte zurück und protokolliert nur datensparsame Diagnosedetails serverseitig. |
-
----
-
-### v2.9.734 — 10. Mai 2026
-
-| Version | Typ | Bereich | Beschreibung |
-|---------|-----|---------|-------------|
 | **2.9.734** | 🟢 feat | Admin/Member Dashboard – Widget-Sortierung mit Persistenz | **`CMS/admin/modules/member/MemberDashboardModule.php`, `CMS/admin/views/member/widgets.php`, `CMS/admin/views/member/plugin-widgets.php`, `CMS/assets/js/admin-member-dashboard.js`, `CMS/member/includes/class-member-controller.php`, `CMS/core/Version.php`, `CMS/update.json`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/member/README.md`, `CMS/DOC/admin/themes-design/DASHBOARD-WIDGETS.md`, `CMS/DOC/member/README.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md` und `Changelog.md` schließen das nächste Member-Dashboard-Nice-to-have ab**: `/admin/member-dashboard-widgets` unterstützt jetzt eine persistente Reihenfolge für Kern-Widgets und eigene Info-Widgets, `/admin/member-dashboard-plugin-widgets` ergänzt denselben Auf/Ab-Fallback zusätzlich zum bestehenden Drag-&-Drop. Die Sortierung bleibt progressiv erweitert: Browser-DnD ist Komfort, Pfeilbuttons sind der robuste Fallback. Gespeichert wird ausschließlich per bestehendem CSRF-geschütztem POST-Flow; Widget-, Custom- und Plugin-Reihenfolgen werden serverseitig allowlist-basiert normalisiert, Duplikate entfernt und fehlende bekannte Keys kontrolliert ergänzt. Die Member-Runtime respektiert die Reihenfolge eigener Info-Widgets weiterhin fail-soft, die Plugin-Reihenfolge bleibt konsistent, und die Admin-Preview zeigt die daraus abgeleitete Reihenfolge ohne neue GET-Mutationen, Token in URLs oder technische Fehleroffenlegung. |
-
----
-
-### v2.9.733 — 10. Mai 2026
-
-| Version | Typ | Bereich | Beschreibung |
-|---------|-----|---------|-------------|
 | **2.9.733** | 🟢 fix | Admin/Member Dashboard – Nice-to-have-Nachprüfung | **`CMS/admin/modules/member/MemberDashboardModule.php`, `CMS/admin/views/member/dashboard.php`, `CMS/core/Version.php`, `CMS/update.json`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/member/README.md`, `CMS/DOC/member/README.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md` und `Changelog.md` prüfen und härten die letzten Nice-to-haves nach**: Der read-only Preview-Modus bleibt ein reiner GET-/Lesepfad ohne neue Schreibaktion und ohne CSRF-Token in URLs, lädt Plugin-Widget-Metadaten für die Übersicht nur noch einmal pro Request und zeigt die gespeicherte Bereichsreihenfolge nun sichtbar in der Vorschau an. Die Nachprüfung orientiert sich an OWASP CSRF, Input Validation, XSS Output Encoding, Error Handling, Authorization und Logging: Farben bleiben hex-allowlisted, Preview-Daten werden kontextnah escaped, unbekannte Widget-/Plugin-Werte fallen fail-soft aus und technische Fehlerdetails werden nicht im Admin-UI offengelegt. |
-
----
-
-### v2.9.732 — 10. Mai 2026
-
-| Version | Typ | Bereich | Beschreibung |
-|---------|-----|---------|-------------|
 | **2.9.732** | 🟢 feat | Admin/Member Dashboard – Preview-Modus | **`CMS/admin/modules/member/MemberDashboardModule.php`, `CMS/admin/views/member/dashboard.php`, `CMS/core/Version.php`, `CMS/update.json`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/member/README.md`, `CMS/DOC/member/README.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md` und `Changelog.md` schließen das nächste Member-Dashboard-Nice-to-have ab**: `/admin/member-dashboard?preview=1` zeigt eine read-only Vorschau der gespeicherten Member-Dashboard-Runtime-Konfiguration. Die Vorschau nutzt denselben Settings-Vertrag wie `/member/dashboard`, zeigt Dashboard-Status, Welcome-Bereich, Schnellstart, Statistik-Kacheln, Onboarding, eigene Info-Widgets, sichtbare Plugin-Widgets, Kern-Widgets, Profilfelder und Benachrichtigungstexte mit sicheren Defaults an und erzeugt keine neue POST-Aktion, keinen zusätzlichen CSRF-Token-Pfad und keinen Token in der URL. Ungültige Farben, unbekannte Widgets oder deaktivierte Plugin-Widgets fallen fail-soft aus der Preview, statt einen HTTP-500 auszulösen. Zusätzlich protokollieren Member-Dashboard-Schreibfehler keine rohen Exception-Messages mehr im Audit-Kontext, sondern nur noch die Exception-Klasse. |
-
----
-
-### v2.9.731 — 10. Mai 2026
-
-| Version | Typ | Bereich | Beschreibung |
-|---------|-----|---------|-------------|
 | **2.9.731** | 🔴 fix | Admin/Nachprüfung der letzten Nice-to-haves | **`CMS/admin/modules/media/MediaModule.php`, `CMS/admin/modules/users/UsersModule.php`, `CMS/admin/modules/users/RolesModule.php`, `CMS/core/SchemaManager.php`, `CMS/core/Version.php`, `CMS/update.json`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/users-groups/README.md`, `CMS/DOC/admin/users-groups/USERS.md`, `CMS/DOC/admin/media/README.md`, `CMS/DOC/admin/media/MEDIA.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md` und `Changelog.md` härten die zuletzt umgesetzten Nice-to-haves gegen bekannte Fehler, unvollständige Schema-Verträge, Best Practice, Sicherheit und Fehleroffenlegung nach**: Medien-Derivat-Jobs übernehmen unerwartete Exception-Texte nicht mehr in die sichtbare Job-Fehlerliste und protokollieren stattdessen nur datensparsame Diagnosedaten. Benutzer-Speichern/-Löschen sowie Rollen-/Rechte-Schreibaktionen geben interne Exception-Nachrichten nicht mehr in Admin-Alerts oder Fehlerreport-Payloads zurück. Zusätzlich unterstützt das `audit_log`-Schema den von `AuditLogger` und Profilansicht bereits vorgesehenen Severity-Wert `error`, inklusive Runtime-Migration für bestehende Installationen. |
-
----
-
-### v2.9.730 — 10. Mai 2026
-
-| Version | Typ | Bereich | Beschreibung |
-|---------|-----|---------|-------------|
 | **2.9.730** | 🟢 feat | Admin/Benutzer & Gruppen – Profil-Sicherheitsereignisse | **`CMS/admin/modules/users/UsersModule.php`, `CMS/admin/views/users/edit.php`, `CMS/DOC/admin/users-groups/README.md`, `CMS/DOC/admin/users-groups/USERS.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`, `CMS/core/Version.php`, `CMS/update.json`, `README.md` und `Changelog.md` schließen das letzte offene Benutzer-&-Gruppen-Nice-to-have ab**: `/admin/users?action=edit&id=...` zeigt bei bestehenden Benutzerprofilen jetzt die letzten begrenzten Login- und Sicherheitsereignisse aus `audit_log` an. Die Abfrage nutzt nur zusammenfassende Audit-Felder, verknüpft Einträge über Benutzer-ID, Entity-Bezug und bekannte Auth-Metadaten, rendert keine Roh-Metadaten, Tokens oder Session-Daten und bleibt read-only ohne neuen POST-, CSRF- oder Sicherheitstoken-Pfad. Falls das Audit-Log in Altinstallationen fehlt oder temporär nicht lesbar ist, fällt die Profilkarte fail-soft auf einen neutralen Hinweis zurück, während die Benutzerbearbeitung weiterhin verfügbar bleibt. |
-
----
-
-### v2.9.729 — 10. Mai 2026
-
-| Version | Typ | Bereich | Beschreibung |
-|---------|-----|---------|-------------|
 | **2.9.729** | 🟢 feat | Admin/Benutzer & Gruppen – Rollenvergleich / Capability-Diff | **`CMS/admin/modules/users/RolesModule.php`, `CMS/admin/roles.php`, `CMS/admin/views/users/roles.php`, `CMS/DOC/admin/users-groups/README.md`, `CMS/DOC/admin/users-groups/RBAC.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`, `CMS/core/Version.php`, `CMS/update.json`, `README.md` und `Changelog.md` schließen das nächste Benutzer-&-Gruppen-Nice-to-have ab**: `/admin/roles` zeigt jetzt einen read-only Rollenvergleich an, der zwei Rollen aus der bestehenden Rechte-Matrix per GET vergleicht und gemeinsame sowie abweichende Capabilities gruppiert ausweist. Die Auswahl wird serverseitig gegen bekannte Rollen normalisiert, ungültige Werte fallen auf sichere Defaults zurück, und der Ausbau erzeugt keine neue Schreibaktion, keinen zusätzlichen CSRF-/Sicherheitstoken-Pfad und keinen neuen Mass-Assignment-Risikopfad. Damit können Admins Least-Privilege- und Privilege-Creep-Prüfungen direkt in der Rollenverwaltung durchführen, ohne die Matrix speichern zu müssen. |
-
----
-
-### v2.9.728 — 10. Mai 2026
-
-| Version | Typ | Bereich | Beschreibung |
-|---------|-----|---------|-------------|
 | **2.9.728** | 🔴 fix | Admin/Medienverwaltung – Nachprüfung der letzten Nice-to-haves | **`CMS/core/Services/MediaService.php`, `CMS/admin/modules/media/MediaModule.php`, `CMS/admin/views/media/library.php`, `CMS/DOC/admin/media/README.md`, `CMS/DOC/admin/media/MEDIA.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`, `CMS/core/Version.php`, `CMS/update.json`, `README.md` und `Changelog.md` härten die zuletzt umgesetzten Medien-Nice-to-haves nach Best-Practice-, Sicherheits- und Performance-Prüfung nach**: Die read-only Duplikat-Erkennung überspringt sehr große Dateien jetzt im Bibliotheks-View-Pfad, statt mehrere riesige gleich große Archive oder Videos synchron per SHA-256 zu hashen. Die direkte Verwendungsanzeige normalisiert Bearbeitungslinks zusätzlich direkt in der View fail-closed auf interne Beitrags-/Seiten-Edit-Routen; unerwartete Zielwerte bleiben als Textreferenz sichtbar, aber nicht klickbar. Außerdem wird `CMS/config/media-processing-job.json` beim Laden größen- und schema-validiert, Pfadlisten werden erneut normalisiert und begrenzt, sodass beschädigte oder unvollständig geschriebene Jobdaten den Medien-Settings-Tab nicht als HTTP-500 destabilisieren. |
-
----
-
-### v2.9.727 — 10. Mai 2026
-
-| Version | Typ | Bereich | Beschreibung |
-|---------|-----|---------|-------------|
 | **2.9.727** | 🟢 feat | Admin/Medienverwaltung – direkte Verwendungsanzeige | **`CMS/admin/modules/media/MediaModule.php`, `CMS/admin/views/media/library.php`, `CMS/assets/css/admin.css`, `CMS/DOC/admin/media/README.md`, `CMS/DOC/admin/media/MEDIA.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`, `CMS/core/Version.php`, `CMS/update.json`, `README.md` und `Changelog.md` schließen das nächste Medien-Nice-to-have ab**: Die allgemeine Medienbibliothek zeigt jetzt pro Datei direkt an, ob und wo sie in Beiträgen oder Seiten verwendet wird. Die vorhandene `MediaUsageService`-Map wird dafür read-only weitergenutzt, im Modul zu Beitrags-/Seiten- und Feld-Zusammenfassungen verdichtet und in der Listenansicht mit direkten Bearbeitungslinks sowie aufklappbaren weiteren Referenzen dargestellt; die Grid-Ansicht erhält kompakte Zähler- und Feld-Badges. Zusätzlich zeigen die Bibliotheks-KPIs, wie viele sichtbare Dateien eingebunden sind. Der Ausbau erzeugt keine neue Schreibaktion, keinen zusätzlichen Sicherheitstoken-Pfad und keine langen Bild-/Dateioperationen; alle Ausgaben bleiben escaped und ungültige oder fehlende Referenzen fallen auf neutrale Anzeigen zurück. |
-
-### v2.9.726 — 10. Mai 2026
-
-| Version | Typ | Bereich | Beschreibung |
-|---------|-----|---------|-------------|
 | **2.9.726** | 🟢 feat | Admin/Medienverwaltung – WebP-/Thumbnail-Hintergrundjobs | **`CMS/admin/media.php`, `CMS/admin/modules/media/MediaModule.php`, `CMS/admin/views/media/settings.php`, `CMS/core/Services/MediaService.php`, `CMS/DOC/admin/media/README.md`, `CMS/DOC/admin/media/MEDIA.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`, `CMS/core/Version.php`, `CMS/update.json`, `README.md` und `Changelog.md` schließen das nächste Medien-Nice-to-have ab**: Unter `/admin/media?tab=settings` können Admins jetzt bestehende Bilder in eine WebP-/Thumbnail-Warteschlange legen, den Fortschritt sehen und die Verarbeitung in kleinen Batches fortsetzen oder abbrechen. Der Job speichert seinen Zustand atomar in `CMS/config/media-processing-job.json`, überspringt bereits erzeugte Thumbnail-Varianten, verarbeitet pro POST nur wenige Quellbilder und nutzt die vorhandene `ImageProcessor`-Logik statt neue Bildpfade zu duplizieren. Mutierende Aktionen bleiben im bestehenden Admin-CSRF-/PRG-Vertrag, Einzelfehler werden gezählt und geloggt, sodass defekte Dateien nicht den kompletten Request als HTTP-500 abreißen. |
-
-### v2.9.725 — 10. Mai 2026
-
-| Version | Typ | Bereich | Beschreibung |
-|---------|-----|---------|-------------|
 | **2.9.725** | 🟢 feat | Admin/Medienverwaltung – erweiterte Suche & Filter | **`CMS/admin/modules/media/MediaModule.php`, `CMS/admin/views/media/library.php`, `CMS/assets/css/admin.css`, `CMS/DOC/admin/media/README.md`, `CMS/DOC/admin/media/MEDIA.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`, `CMS/core/Version.php`, `CMS/update.json`, `README.md` und `Changelog.md` schließen das nächste Medien-Nice-to-have ab**: Die Bibliothek filtert jetzt nicht mehr nur nach Name/Pfad und Kategorie, sondern zusätzlich serverseitig nach Dateityp, Dateiendung, Größenklasse und Änderungszeitraum. Alle neuen Filter laufen bewusst als GET-Parameter ohne neue Schreibaktion, werden per Allowlist normalisiert, bleiben in Ordner-, Breadcrumb- und Listen-/Grid-Links erhalten und haben einen expliziten Reset-Pfad. Dadurch entsteht kein zusätzlicher CSRF-/Sicherheitstoken-Risikopfad, und ungültige Filterwerte fallen fail-closed auf neutrale Defaults zurück statt einen HTTP-500 zu erzeugen. |
-
-### v2.9.724 — 10. Mai 2026
-
-| Version | Typ | Bereich | Beschreibung |
-|---------|-----|---------|-------------|
 | **2.9.724** | 🔴 fix | Core/Bootstrap & Default-Theme – Redeclare-Fatals | **`CMS/core/SchemaManager.php`, `CMS/themes/cms-default/functions.php`, `CMS/themes/cms-default/includes/theme-runtime-helpers.php`, `CMS/core/Version.php`, `CMS/update.json`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md` und `Changelog.md` schließen die aktuellen Live-Fatals aus `error.log`**: Der bisherige `return`-Guard in `SchemaManager.php` konnte bei erneuter Dateiauswertung zu spät kommen, weil die Top-Level-Klasse bereits beim Kompilieren erneut registriert wurde. `SchemaManager` ist jetzt als echte konditionale Klassendeklaration gekapselt, sodass doppelte Includes über unterschiedliche Bootstrap-/Repair-/Installer-Pfade nicht mehr mit `Cannot redeclare class CMS\\SchemaManager` abbrechen. Zusätzlich ist `meridian_nav_menu()` sowohl im Default-Theme-`functions.php` als auch in `includes/theme-runtime-helpers.php` per `function_exists()` geschützt, damit doppelte Theme-Helferladungen nicht erneut in einen Fatal laufen. Der ältere Dashboard-`$sections`-Fatal ist im aktuellen Stand bereits durch die initialisierte Sections-Liste im Rollen-Vorlagenpfad behoben. |
-
-### v2.9.723 — 10. Mai 2026
-
-| Version | Typ | Bereich | Beschreibung |
-|---------|-----|---------|-------------|
 | **2.9.723** | 🔴 fix | Admin/Recht – Matomo-URL-Erkennung | **`CMS/admin/modules/legal/CookieManagerModule.php`, `CMS/core/Services/CookieConsentService.php`, `CMS/DOC/admin/legal/COOKIES.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`, `CMS/core/Version.php`, `CMS/update.json`, `README.md` und `Changelog.md` härten den Matomo-Self-Hosted-URL-Pfad nach**: Die Servervalidierung hängt nicht mehr an `filter_var()` allein, sondern normalisiert typische korrekte Matomo-URLs robuster – inklusive Copy/Paste-Leerzeichen, IDN-/Intranet-Hosts, `localhost`/IP-Adressen, optionalen Ports, Pfaden und Query-Parametern. Zugangsdaten in URLs bleiben weiterhin verboten, und nur `http`/`https` wird akzeptiert. Admin-Speichern und öffentliche `/cookie-einstellungen` verwenden damit dieselbe URL-Logik; zusätzlich greift die Public-Runtime bei leer gespeicherter Cookie-Matomo-URL nun wirklich auf vorhandene SEO-Matomo-Werte zurück, statt durch einen leeren gespeicherten Cookie-Wert den Fallback zu blockieren. |
 | **2.9.722** | 🔴 fix | Admin/Recht – Cookie-Manager & Matomo Self-Hosted | **`CMS/admin/modules/legal/CookieManagerModule.php`, `CMS/core/Services/CookieConsentService.php`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/legal/README.md`, `CMS/DOC/admin/legal/COOKIES.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`, `CMS/core/Version.php`, `CMS/update.json`, `README.md` und `Changelog.md` beheben den Cookie-/Matomo-Persistenzpfad**: Globale Cookie- und Matomo-Self-Hosted-Einstellungen werden nicht mehr über stille `insert()`/`update()`-Rückgabewerte gespeichert, sondern atomar per `INSERT ... ON DUPLICATE KEY UPDATE` in `settings` geschrieben; Speicherfehler brechen damit sichtbar ab, statt nach dem PRG-Redirect leere Admin-Felder vorzutäuschen. Die öffentliche `/cookie-einstellungen`-Runtime liest dieselben Settings konsistent, nutzt bei leerem Cookie-spezifischem Matomo-URL-Feld kontrolliert konfigurierte SEO-Matomo-Werte als Fallback und aktiviert den Matomo-Transparenzblock nur noch bei tatsächlicher Service- oder Setting-Konfiguration statt durch reine Defaultwerte. |
 | **2.9.721** | 🟢 feat | Admin/Medienverwaltung – Duplikat-Erkennung nach Hash | **`CMS/core/Services/MediaService.php`, `CMS/admin/modules/media/MediaModule.php`, `CMS/admin/views/media/library.php`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/media/README.md`, `CMS/DOC/admin/media/MEDIA.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`, `CMS/core/Version.php`, `CMS/update.json`, `README.md` und `Changelog.md` schließen das nächste Medien-Nice-to-have ab**: Die Medienbibliothek erkennt sichtbare identische Dateien jetzt serverseitig anhand eines SHA-256-Inhalts-Hashs. Zur Schonung großer Medienordner werden Dateien zuerst nach Byte-Größe vorgruppiert und nur gleich große Kandidaten gehasht. Die UI markiert Duplikatgruppen read-only mit Kurz-Hash und weiteren Pfaden, ohne Dateien automatisch zu löschen, umzubenennen oder bestehende Inhaltsreferenzen zu verändern. |
