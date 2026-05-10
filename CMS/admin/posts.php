@@ -157,7 +157,53 @@ function cms_admin_posts_can_run_action(string $action): bool
     return $action !== '' && Auth::instance()->hasCapability(CMS_ADMIN_POSTS_WRITE_CAPABILITY);
 }
 
-function cms_admin_posts_build_inline_edit_data(\PostsModule $module, array $post): array
+/**
+ * @return list<string>
+ */
+function cms_admin_posts_module_contract_methods(): array
+{
+    return [
+        'getListData',
+        'getEditData',
+        'save',
+        'delete',
+        'bulkAction',
+        'saveCategory',
+        'deleteCategory',
+    ];
+}
+
+function cms_admin_posts_module_matches_contract(mixed $module): bool
+{
+    if (!is_object($module)) {
+        return false;
+    }
+
+    foreach (cms_admin_posts_module_contract_methods() as $method) {
+        if (!method_exists($module, $method)) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+function cms_admin_posts_reflection_matches_contract(\ReflectionClass $reflection): bool
+{
+    if (!$reflection->isInstantiable()) {
+        return false;
+    }
+
+    foreach (cms_admin_posts_module_contract_methods() as $method) {
+        if (!$reflection->hasMethod($method) || !$reflection->getMethod($method)->isPublic()) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+function cms_admin_posts_build_inline_edit_data(object $module, array $post): array
 {
     $id = cms_admin_posts_normalize_positive_id($post['id'] ?? 0);
     $editData = $module->getEditData($id > 0 ? $id : null);
@@ -236,7 +282,7 @@ function cms_admin_posts_build_inline_edit_data(\PostsModule $module, array $pos
     return $editData;
 }
 
-function cms_admin_posts_view_config(\PostsModule $module, string $view, ?array $overrideEditData = null, string $editorLocale = 'de'): array
+function cms_admin_posts_view_config(object $module, string $view, ?array $overrideEditData = null, string $editorLocale = 'de'): array
 {
     $normalizedView = cms_admin_posts_normalize_view($view);
     $editorLocale = cms_admin_posts_normalize_editor_locale($editorLocale);
@@ -421,12 +467,91 @@ function cms_admin_posts_view_config(\PostsModule $module, string $view, ?array 
     ];
 }
 
+function cms_admin_posts_resolve_module_class(string $moduleFile = __DIR__ . '/modules/posts/PostsModule.php'): string
+{
+    $moduleFile = realpath($moduleFile) ?: $moduleFile;
+    $candidates = [
+        'PostsModule',
+        'CMS\\Admin\\Modules\\PostsModule',
+        'CMSv2\\Admin\\Modules\\PostsModule',
+    ];
+
+    foreach ($candidates as $candidate) {
+        if (!class_exists($candidate, false)) {
+            continue;
+        }
+
+        try {
+            $reflection = new \ReflectionClass($candidate);
+        } catch (\ReflectionException) {
+            continue;
+        }
+
+        if (!cms_admin_posts_reflection_matches_contract($reflection)) {
+            continue;
+        }
+
+        return $candidate;
+    }
+
+    foreach (get_declared_classes() as $declaredClass) {
+        try {
+            $reflection = new \ReflectionClass($declaredClass);
+        } catch (\ReflectionException) {
+            continue;
+        }
+
+        $reflectionFile = $reflection->getFileName();
+        if ($reflectionFile === false) {
+            continue;
+        }
+
+        $reflectionFile = realpath($reflectionFile) ?: $reflectionFile;
+        if ($reflectionFile !== $moduleFile) {
+            continue;
+        }
+
+        if (!cms_admin_posts_reflection_matches_contract($reflection)) {
+            continue;
+        }
+
+        return $declaredClass;
+    }
+
+    return '';
+}
+
+function cms_admin_posts_create_module(string $moduleFile = __DIR__ . '/modules/posts/PostsModule.php'): object
+{
+    $resolvedModuleFile = realpath($moduleFile) ?: $moduleFile;
+    if (!is_file($resolvedModuleFile)) {
+        throw new RuntimeException('PostsModule-Datei wurde nicht gefunden.');
+    }
+
+    $moduleClass = cms_admin_posts_resolve_module_class($resolvedModuleFile);
+    if ($moduleClass === '') {
+        require $resolvedModuleFile;
+        $moduleClass = cms_admin_posts_resolve_module_class($resolvedModuleFile);
+    }
+
+    if ($moduleClass === '') {
+        throw new RuntimeException('PostsModule konnte nach dem Laden der Moduldatei nicht aufgelöst werden.');
+    }
+
+    $module = new $moduleClass();
+    if (!cms_admin_posts_module_matches_contract($module)) {
+        throw new RuntimeException('PostsModule-Vertrag ist unvollständig oder inkompatibel.');
+    }
+
+    return $module;
+}
+
 if (!cms_admin_posts_can_access()) {
     header('Location: /');
     exit;
 }
 
-require_once __DIR__ . '/modules/posts/PostsModule.php';
+$postsModuleFile = __DIR__ . '/modules/posts/PostsModule.php';
 
 $sectionPageConfig = [
     'route_path' => '/admin/posts',
@@ -434,16 +559,16 @@ $sectionPageConfig = [
     'page_title' => 'Beiträge',
     'active_page' => 'posts',
     'csrf_action' => 'admin_posts',
-    'module_file' => __DIR__ . '/modules/posts/PostsModule.php',
-    'module_factory' => static fn (): \PostsModule => new \PostsModule(),
+    'module_file' => $postsModuleFile,
+    'module_factory' => static fn (): object => cms_admin_posts_create_module($postsModuleFile),
     'access_checker' => static fn (): bool => cms_admin_posts_can_access(),
-    'request_context_resolver' => static function (\PostsModule $module): array {
+    'request_context_resolver' => static function (object $module): array {
         $view = cms_admin_posts_normalize_view($_GET['action'] ?? 'list');
         $editorLocale = cms_admin_posts_normalize_editor_locale($_GET['lang'] ?? 'de');
 
         return cms_admin_posts_view_config($module, $view, null, $editorLocale);
     },
-    'redirect_path_resolver' => static function (\PostsModule $module, string $section, mixed $result): string {
+    'redirect_path_resolver' => static function (object $module, string $section, mixed $result): string {
         if (is_array($result) && isset($result['redirect_path']) && is_string($result['redirect_path'])) {
             return $result['redirect_path'];
         }
@@ -460,7 +585,7 @@ $sectionPageConfig = [
 
         return cms_admin_posts_target_url();
     },
-    'post_handler' => static function (\PostsModule $module, string $section, array $post): array {
+    'post_handler' => static function (object $module, string $section, array $post): array {
         $rawPostAction = cms_admin_posts_extract_action_value($post);
         $postAction = cms_admin_posts_normalize_action($rawPostAction);
         $editorLocale = cms_admin_posts_normalize_editor_locale($post['editor_locale'] ?? ($_GET['lang'] ?? 'de'));

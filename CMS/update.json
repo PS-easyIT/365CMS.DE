@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.9.711",
+  "version": "2.9.714",
   "min_php": "8.4",
   "released": "2026-05-10",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 2.9.711: Die Nachprüfung der letzten Nice-to-haves härtet den Passwort-Policy-Tester unter /admin/user-settings weiter nach, sodass Browser und PHP dieselbe Unicode-aware Zeichenzählung nutzen und die sichtbaren Anforderungen direkt aus der strukturierten Runtime-Policy stammen. Zusätzlich entfernen die neuen Revisionspfade für Seiten und Beiträge unnötiges Snapshot-Debug-Logging aus dem Save-Flow, damit Vergleichsansichten read-only bleiben, ohne Logvolumen oder Save-Latenz künstlich aufzublähen.",
+  "notes": "Release-Stand 2.9.714: Der Core zieht den Live-Hotfix für den Beitragsbereich nach. `CMS/admin/posts.php` koppelt den Save-Flow nicht länger hart an den nackten Klassennamen `PostsModule`, sondern löst das Modul über einen belastbaren Methodenvertrag und Dateireflexion auf; falls Live-Deploy oder OPcache kurzfristig driften, wird die Moduldatei gezielt erneut geladen, statt mit `Class \"PostsModule\" not found` oder `PostsModule konnte nach dem Laden der Moduldatei nicht aufgelöst werden` abzubrechen. Parallel schützt `CMS/admin/modules/posts/PostsModule.php` seine Klassendeklaration gegen erneute Auswertung, und `CMS/admin/post-categories.php` sowie `CMS/admin/post-tags.php` verwenden denselben robusteren Bootstrap-Pfad für die gemeinsame Beitrags-Taxonomie-Verwaltung.",
   "critical": false
 }

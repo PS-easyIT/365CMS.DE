@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Verwaltung von Benutzergruppen, Mitgliedschaften und Paketbezügen im Admin-Bereich.
 
-Letzte Aktualisierung: 2026-05-03 · Version 2.9.512
+Letzte Aktualisierung: 2026-05-10 · Version 2.9.712
 
 ---
 
@@ -39,6 +39,7 @@ Im aktuellen Basisschema sind insbesondere relevant:
 - Das Admin-Modal pflegt jetzt Name, optionalen Slug, Aktiv-Status und Mitgliederzuordnung in einem Flow; fehlende Slugs werden serverseitig eindeutig erzeugt.
 - Gruppen können direkt mit einem Paket/Plan aus `subscription_plans` verknüpft werden, damit gruppenbasierte Abo-Zuordnungen nicht mehr nur auf Datenbankebene existieren.
 - Gruppen-Löschungen entfernen Mitgliedschaften transaktional, damit keine verwaisten `user_group_members`-Zuordnungen zurückbleiben.
+- Die Gruppenübersicht unterstützt Sammelaktionen für Aktivieren, Deaktivieren, Paket setzen/entfernen und Löschen. Bulk-IDs und Aktionsnamen werden serverseitig gegen feste Allowlists validiert; Sammellöschungen löschen Mitgliedschaften und Gruppen innerhalb einer Transaktion und schreiben einen Audit-Eintrag.
 - Für Rechte und Capabilities ist heute vorrangig die Rollenverwaltung unter `/admin/roles` zuständig.
 
 ---

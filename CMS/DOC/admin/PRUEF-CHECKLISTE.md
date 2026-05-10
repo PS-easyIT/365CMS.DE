@@ -570,7 +570,7 @@ Die Sidebar in `CMS/admin/partials/sidebar.php` ist für die Menüstruktur führ
 ### Nice-to-haves
 
 - [ ] Rollenvergleich / Capability-Diff.
-- [ ] Gruppen-Massenaktionen.
+- [x] Gruppen-Massenaktionen.
 - [x] Passwort-Policy-Tester im UI.
 - [ ] Login-/Sicherheitsereignisse pro Benutzer im Profil.
 
@@ -584,7 +584,7 @@ Die Sidebar in `CMS/admin/partials/sidebar.php` ist für die Menüstruktur führ
 - **Umsetzung in diesem Durchlauf:** `Auth` liefert die Passwort-Policy jetzt strukturiert für Runtime und Admin-UI aus, inklusive Unicode-sicherer Längenprüfung und derselben Reihenfolge der Validierungsfehler wie im Live-Betrieb. `/admin/user-settings` enthält darauf aufbauend einen lokalen Policy-Tester mit Live-Feedback und erster Fehlermeldung nach echtem Runtime-Vertrag, ohne Testeingaben zu speichern oder mitzusenden. Die Save-Route gibt im Fehlerfall nur noch generische UI-Meldungen aus und schreibt technische Details serverseitig ins Log.
 - **Abhängige Bereiche:** `CMS\Auth`, Benutzer-/Auth-Settings, öffentliche Registrierung, Passwort-Reset, Admin-Benutzer-CRUD
 - **Offene Must-haves:** keine
-- **Offene Nice-to-haves:** Capability-Diff, Gruppen-Massenaktionen, Sicherheitsereignisse pro Benutzerprofil
+- **Offene Nice-to-haves:** Capability-Diff, Sicherheitsereignisse pro Benutzerprofil
 - **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/users-groups/README.md`, `CMS/DOC/admin/users-groups/AUTH-SETTINGS.md`
 
 ### Audit-Stand – Benutzer & Gruppen · Durchlauf 3
@@ -598,7 +598,7 @@ Die Sidebar in `CMS/admin/partials/sidebar.php` ist für die Menüstruktur führ
 - **Best-Practice-Bezug:** Die Passwort-Policy bleibt als Single Source of Truth implementiert; technische Details werden nicht doppelt gepflegt, und Unicode-Eingaben verhalten sich im Tester konsistent zur Servervalidierung.
 - **Abhängige Bereiche:** `CMS\Auth`, `UserSettingsModule`, `/admin/user-settings`, öffentliche Registrierung, Passwort-Reset, Admin-Benutzer-CRUD
 - **Offene Must-haves:** keine
-- **Offene Nice-to-haves:** Capability-Diff, Gruppen-Massenaktionen, Sicherheitsereignisse pro Benutzerprofil
+- **Offene Nice-to-haves:** Capability-Diff, Sicherheitsereignisse pro Benutzerprofil
 - **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`
 
 ### Audit-Stand – Benutzer & Gruppen · Durchlauf 1
@@ -611,7 +611,21 @@ Die Sidebar in `CMS/admin/partials/sidebar.php` ist für die Menüstruktur führ
 - **Umsetzung in diesem Durchlauf:** Die Rollen- und Rechteverwaltung enthält jetzt auch die weiterhin produktiv genutzten Legacy-Core-Capabilities in derselben Matrix wie moderne `pages.*`-/`settings.*`-Rechte und AI-Capabilities; `Auth::hasCapability()` löst Nicht-Admin-Rechte darüber zentral auf, statt auf lokale Rollenhartcodes zurückzufallen. Parallel spiegeln Default-Theme- und Core-Auth-Formulare für Registrierung und Passwort-Reset denselben 12-Zeichen-/Komplexitätsvertrag wie `Auth::validatePasswordPolicy()`.
 - **Abhängige Bereiche:** `CMS\Auth`, `role_permissions`, Rollen & Rechte, Benutzerverwaltung, öffentliche Registrierung, Passwort-Reset, Default-Theme-Auth, CMS-Auth-Page, AI-/SEO-/Settings-/Media-Entrys mit Legacy-Core-Capabilities
 - **Offene Must-haves:** keine
-- **Offene Nice-to-haves:** Capability-Diff, Gruppen-Massenaktionen, Policy-Tester, Sicherheitsereignisse pro Benutzerprofil
+- **Offene Nice-to-haves:** Capability-Diff, Policy-Tester, Sicherheitsereignisse pro Benutzerprofil
+
+### Audit-Stand – Benutzer & Gruppen Nice-to-haves · Durchlauf 4
+
+- **Status:** abgeschlossen auf Code-/Best-Practice-/Vertragsbasis · Release `2.9.712`
+- **Prüfer:** GitHub Copilot
+- **Datum:** 2026-05-10
+- **Geprüfte Route:** `/admin/groups`
+- **Umgesetztes Nice-to-have:** Gruppen-Massenaktionen.
+- **Umsetzung in diesem Durchlauf:** Die Gruppenübersicht unterstützt jetzt Sammelaktionen für Aktivieren, Deaktivieren, Paket zuweisen, Paket entfernen und Löschen direkt in `/admin/groups`. Die POST-Route normalisiert `bulk_action` und `ids[]` serverseitig gegen feste Allowlists, begrenzt Mehrfachauswahlen, validiert den aktuellen Datenbestand fail-soft und delegiert nur explizit erlaubte Felder an das Modul. Paketwechsel laufen als gezielte Massenupdates, Sammellöschungen löschen Mitgliedschaften und Gruppen transaktional, und erfolgreiche kritische Änderungen landen zusätzlich im Audit-Log.
+- **Best-Practice-Bezug:** Die Umsetzung folgt Allowlist-/DTO-Prinzipien aus OWASP Input Validation und Mass Assignment: feste Aktionsnamen, normalisierte IDs, keine blinde Übergabe kompletter POST-Daten an destruktive Bulk-Pfade. Die UI schützt Mehrfachaktionen gegen Doppel-Submit, verlangt bei destruktiven Aktionen eine Bestätigung und blendet paketbezogene Eingaben nur für die passende Aktion ein.
+- **Abhängige Bereiche:** `groups.php`, `GroupsModule`, `views/users/groups.php`, `assets/js/admin-user-groups.js`, `user_groups`, `user_group_members`, `subscription_plans`, `audit_log`
+- **Offene Must-haves:** keine
+- **Offene Nice-to-haves:** Capability-Diff, Sicherheitsereignisse pro Benutzerprofil
+- **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/users-groups/README.md`, `CMS/DOC/admin/users-groups/GROUPS.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`
 - **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/users-groups/README.md`, `CMS/DOC/admin/users-groups/RBAC.md`, `CMS/DOC/admin/users-groups/AUTH-SETTINGS.md`
 
 ---

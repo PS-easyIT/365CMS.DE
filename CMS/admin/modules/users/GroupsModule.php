@@ -12,12 +12,16 @@ if (!defined('ABSPATH')) {
 }
 
 use CMS\Database;
+use CMS\AuditLogger;
 use CMS\Logger;
 
 class GroupsModule
 {
     private Database $db;
     private string $prefix;
+
+    /** @var string[] */
+    private const ALLOWED_BULK_ACTIONS = ['activate', 'deactivate', 'delete', 'set_plan', 'clear_plan'];
 
     public function __construct()
     {
@@ -109,6 +113,36 @@ class GroupsModule
         );
 
         return $count !== null && (int) $count > 0;
+    }
+
+    /**
+     * @param array<int,int> $ids
+     * @return array<int,int>
+     */
+    private function getExistingGroupIds(array $ids): array
+    {
+        $normalizedIds = [];
+        foreach ($ids as $id) {
+            $normalizedId = (int) $id;
+            if ($normalizedId > 0) {
+                $normalizedIds[$normalizedId] = $normalizedId;
+            }
+        }
+
+        if ($normalizedIds === []) {
+            return [];
+        }
+
+        $placeholders = implode(', ', array_fill(0, count($normalizedIds), '?'));
+        $rows = $this->db->get_col(
+            "SELECT id FROM {$this->prefix}user_groups WHERE id IN ({$placeholders})",
+            array_values($normalizedIds)
+        );
+
+        $existingIds = array_map('intval', $rows);
+        sort($existingIds, SORT_NUMERIC);
+
+        return array_values(array_unique(array_filter($existingIds, static fn (int $id): bool => $id > 0)));
     }
 
     private function getUserOptions(): array
@@ -301,8 +335,23 @@ class GroupsModule
                 $pdo->commit();
             }
 
-                $memberLabel = count($memberIds) === 1 ? '1 Mitglied' : count($memberIds) . ' Mitglieder';
-                $planLabel = $planId !== null ? ' Paket verknüpft.' : ' Kein Paket verknüpft.';
+            AuditLogger::instance()->log(
+                AuditLogger::CAT_USER,
+                !empty($post['id']) ? 'groups.update' : 'groups.create',
+                !empty($post['id']) ? 'Benutzergruppe aktualisiert.' : 'Benutzergruppe erstellt.',
+                'user_group',
+                $id,
+                [
+                    'slug' => $slug,
+                    'member_count' => count($memberIds),
+                    'plan_id' => $planId,
+                    'is_active' => $isActive,
+                ],
+                'info'
+            );
+
+            $memberLabel = count($memberIds) === 1 ? '1 Mitglied' : count($memberIds) . ' Mitglieder';
+            $planLabel = $planId !== null ? ' Paket verknüpft.' : ' Kein Paket verknüpft.';
 
             return [
                 'success' => true,
@@ -356,6 +405,16 @@ class GroupsModule
                 $pdo->commit();
             }
 
+            AuditLogger::instance()->log(
+                AuditLogger::CAT_USER,
+                'groups.delete',
+                'Benutzergruppe gelöscht.',
+                'user_group',
+                $id,
+                [],
+                'warning'
+            );
+
             return ['success' => true, 'message' => 'Gruppe gelöscht.'];
         } catch (\Throwable $e) {
             $pdo = $this->db->getPdo();
@@ -370,5 +429,154 @@ class GroupsModule
 
             return ['success' => false, 'error' => 'Die Gruppe konnte nicht gelöscht werden.'];
         }
+    }
+
+    public function bulkAction(string $action, array $ids, array $payload = []): array
+    {
+        $action = trim($action);
+        if (!in_array($action, self::ALLOWED_BULK_ACTIONS, true)) {
+            return ['success' => false, 'error' => 'Unbekannte Bulk-Aktion für Gruppen.'];
+        }
+
+        $normalizedIds = array_values(array_unique(array_filter(
+            array_map('intval', $ids),
+            static fn (int $id): bool => $id > 0
+        )));
+
+        if ($normalizedIds === []) {
+            return ['success' => false, 'error' => 'Bitte mindestens eine Gruppe auswählen.'];
+        }
+
+        $existingIds = $this->getExistingGroupIds($normalizedIds);
+        if ($existingIds === []) {
+            return ['success' => false, 'error' => 'Die ausgewählten Gruppen existieren nicht mehr.'];
+        }
+
+        if (count($existingIds) !== count($normalizedIds)) {
+            return ['success' => false, 'error' => 'Mindestens eine ausgewählte Gruppe existiert nicht mehr. Bitte Liste neu laden.'];
+        }
+
+        $placeholders = implode(', ', array_fill(0, count($existingIds), '?'));
+        $processedCount = count($existingIds);
+
+        try {
+            switch ($action) {
+                case 'activate':
+                case 'deactivate':
+                    $isActive = $action === 'activate' ? 1 : 0;
+                    $params = array_merge([$isActive], $existingIds);
+                    $this->db->execute(
+                        "UPDATE {$this->prefix}user_groups SET is_active = ?, updated_at = NOW() WHERE id IN ({$placeholders})",
+                        $params
+                    );
+
+                    $label = $isActive === 1 ? 'aktiviert' : 'deaktiviert';
+                    AuditLogger::instance()->log(
+                        AuditLogger::CAT_USER,
+                        'groups.bulk.' . $action,
+                        $processedCount . ' Benutzergruppe(n) ' . $label . '.',
+                        'user_group',
+                        null,
+                        ['group_ids' => $existingIds, 'processed_count' => $processedCount, 'is_active' => $isActive],
+                        'info'
+                    );
+
+                    return ['success' => true, 'message' => $processedCount . ' Gruppe(n) ' . $label . '.'];
+
+                case 'set_plan':
+                    $planId = $this->sanitizeExistingPlanId($payload['bulk_plan_id'] ?? 0);
+                    if ($planId === null) {
+                        return ['success' => false, 'error' => 'Bitte ein gültiges Paket für die Sammelaktion auswählen.'];
+                    }
+
+                    $params = array_merge([$planId], $existingIds);
+                    $this->db->execute(
+                        "UPDATE {$this->prefix}user_groups SET plan_id = ?, updated_at = NOW() WHERE id IN ({$placeholders})",
+                        $params
+                    );
+
+                    AuditLogger::instance()->log(
+                        AuditLogger::CAT_USER,
+                        'groups.bulk.set_plan',
+                        $processedCount . ' Benutzergruppe(n) einem Paket zugewiesen.',
+                        'user_group',
+                        null,
+                        ['group_ids' => $existingIds, 'processed_count' => $processedCount, 'plan_id' => $planId],
+                        'info'
+                    );
+
+                    return ['success' => true, 'message' => $processedCount . ' Gruppe(n) einem Paket zugewiesen.'];
+
+                case 'clear_plan':
+                    $this->db->execute(
+                        "UPDATE {$this->prefix}user_groups SET plan_id = NULL, updated_at = NOW() WHERE id IN ({$placeholders})",
+                        $existingIds
+                    );
+
+                    AuditLogger::instance()->log(
+                        AuditLogger::CAT_USER,
+                        'groups.bulk.clear_plan',
+                        $processedCount . ' Benutzergruppe(n) vom Paket gelöst.',
+                        'user_group',
+                        null,
+                        ['group_ids' => $existingIds, 'processed_count' => $processedCount],
+                        'info'
+                    );
+
+                    return ['success' => true, 'message' => $processedCount . ' Gruppe(n) vom Paket gelöst.'];
+
+                case 'delete':
+                    $pdo = $this->db->getPdo();
+                    $startedTransaction = !$pdo->inTransaction();
+                    if ($startedTransaction) {
+                        $pdo->beginTransaction();
+                    }
+
+                    $this->db->execute(
+                        "DELETE FROM {$this->prefix}user_group_members WHERE group_id IN ({$placeholders})",
+                        $existingIds
+                    );
+
+                    $deleteStatement = $this->db->execute(
+                        "DELETE FROM {$this->prefix}user_groups WHERE id IN ({$placeholders})",
+                        $existingIds
+                    );
+
+                    if (!$deleteStatement || $deleteStatement->rowCount() < $processedCount) {
+                        throw new \RuntimeException('Mindestens eine Gruppe konnte nicht gelöscht werden.');
+                    }
+
+                    if ($startedTransaction && $pdo->inTransaction()) {
+                        $pdo->commit();
+                    }
+
+                    AuditLogger::instance()->log(
+                        AuditLogger::CAT_USER,
+                        'groups.bulk.delete',
+                        $processedCount . ' Benutzergruppe(n) gelöscht.',
+                        'user_group',
+                        null,
+                        ['group_ids' => $existingIds, 'processed_count' => $processedCount],
+                        'warning'
+                    );
+
+                    return ['success' => true, 'message' => $processedCount . ' Gruppe(n) gelöscht.'];
+            }
+        } catch (\Throwable $e) {
+            $pdo = $this->db->getPdo();
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+
+            Logger::instance()->withChannel('admin.users.groups')->error('Bulk-Aktion für Benutzergruppen fehlgeschlagen.', [
+                'bulk_action' => $action,
+                'group_ids' => $existingIds,
+                'exception' => $e,
+            ]);
+
+            return ['success' => false, 'error' => 'Die Sammelaktion für Gruppen konnte nicht abgeschlossen werden.'];
+        }
+
+        return ['success' => false, 'error' => 'Unbekannte Bulk-Aktion für Gruppen.'];
     }
 }

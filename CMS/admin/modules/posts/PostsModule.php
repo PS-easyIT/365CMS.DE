@@ -24,6 +24,7 @@ use CMS\Services\PermalinkService;
 use CMS\Services\RedirectService;
 use CMS\Services\SEOService;
 
+if (!class_exists('PostsModule', false)) {
 class PostsModule
 {
     private Database $db;
@@ -2982,4 +2983,5 @@ class PostsModule
             }
         }
     }
+}
 }

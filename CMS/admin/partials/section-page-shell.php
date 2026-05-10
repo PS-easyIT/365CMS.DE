@@ -6,6 +6,7 @@ if (!defined('ABSPATH')) {
 }
 
 use CMS\Auth;
+use CMS\Logger;
 use CMS\Security;
 
 function cms_admin_section_shell_normalize_alert_type(mixed $type, string $fallback = 'danger'): string
@@ -198,6 +199,31 @@ function cms_admin_section_shell_apply_runtime_context(array $runtimeContext, st
     }
 }
 
+function cms_admin_section_shell_render_bootstrap_failure(string $pageTitle, string $activePage, array $pageAssets, string $message): never
+{
+    http_response_code(500);
+
+    $alert = [
+        'type' => 'danger',
+        'message' => $message,
+        'details' => [],
+        'error_details' => [],
+        'report_payload' => [],
+    ];
+    $data = [];
+    $csrfToken = '';
+
+    require __DIR__ . '/header.php';
+    require __DIR__ . '/sidebar.php';
+
+    echo '<div class="page-body"><div class="container-xl">';
+    echo '<div class="alert alert-danger" role="alert">' . htmlspecialchars($message, ENT_QUOTES, 'UTF-8') . '</div>';
+    echo '</div></div>';
+
+    require __DIR__ . '/footer.php';
+    exit;
+}
+
 $sectionPageConfig = is_array($sectionPageConfig ?? null) ? $sectionPageConfig : [];
 $routePath = cms_admin_section_shell_normalize_route_path($sectionPageConfig['route_path'] ?? '/admin');
 $viewFile = cms_admin_section_shell_require_view_file($sectionPageConfig['view_file'] ?? '');
@@ -239,7 +265,41 @@ if (!is_callable($moduleFactory)) {
     throw new RuntimeException('Admin-Section-Shell erwartet eine callable module_factory-Konfiguration.');
 }
 
-$module = $moduleFactory();
+try {
+    $module = $moduleFactory();
+} catch (\Throwable $e) {
+    Logger::instance()->withChannel('admin.section_shell')->error('Admin-Sektion konnte nicht initialisiert werden.', [
+        'route_path' => $routePath,
+        'module_file' => $moduleFile,
+        'page_title' => $pageTitle,
+        'exception' => $e->getMessage(),
+    ]);
+
+    $bootstrapFailureMessage = 'Die Admin-Sektion konnte nicht geladen werden. Bitte Deployment, Dateistand und Cache/OPcache prüfen.';
+
+    if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
+        cms_admin_section_shell_flash($alertSessionKey, ['type' => 'danger', 'message' => $bootstrapFailureMessage]);
+        cms_admin_section_shell_redirect($routePath, 303);
+    }
+
+    cms_admin_section_shell_render_bootstrap_failure($pageTitle, $activePage, $pageAssets, $bootstrapFailureMessage);
+}
+
+if (!is_object($module)) {
+    Logger::instance()->withChannel('admin.section_shell')->error('Admin-Sektion lieferte kein gültiges Modul-Objekt.', [
+        'route_path' => $routePath,
+        'module_file' => $moduleFile,
+        'page_title' => $pageTitle,
+        'module_type' => get_debug_type($module),
+    ]);
+
+    cms_admin_section_shell_render_bootstrap_failure(
+        $pageTitle,
+        $activePage,
+        $pageAssets,
+        'Die Admin-Sektion konnte nicht korrekt initialisiert werden. Bitte Deployment und Cache/OPcache prüfen.'
+    );
+}
 $runtimeContext = is_callable($requestContextResolver)
     ? $requestContextResolver($module, $section, $sectionPageConfig)
     : [];

@@ -53,7 +53,56 @@ $groupField = static function (mixed $group, string $key, mixed $default = ''): 
             <?php $alertData = $alert; $alertMarginClass = 'mb-3'; require __DIR__ . '/../partials/flash-alert.php'; ?>
         <?php endif; ?>
 
-        <div class="row row-cards">
+        <?php if (!empty($groups)): ?>
+            <div class="card mb-4">
+                <div class="card-body d-flex flex-wrap align-items-center gap-3">
+                    <label class="form-check m-0">
+                        <input type="checkbox" class="form-check-input js-groups-bulk-all" aria-label="Alle sichtbaren Gruppen auswählen">
+                        <span class="form-check-label">Alle auswählen</span>
+                    </label>
+
+                    <button type="button" class="btn btn-sm btn-outline-secondary js-groups-bulk-clear" disabled aria-disabled="true">Auswahl leeren</button>
+
+                    <form method="post" id="bulkFormGroups" class="d-flex flex-wrap align-items-center gap-2 ms-lg-auto">
+                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
+                        <input type="hidden" name="action" value="bulk">
+
+                        <span class="text-secondary"><strong id="selectedCountGroups">0</strong> ausgewählt</span>
+
+                        <select name="bulk_action" class="form-select form-select-sm w-auto" id="bulkActionGroups" aria-label="Bulk-Aktion für ausgewählte Gruppen">
+                            <option value="">Aktion wählen…</option>
+                            <option value="activate">Gruppen aktivieren</option>
+                            <option value="deactivate">Gruppen deaktivieren</option>
+                            <?php if (!empty($planOptions)): ?>
+                                <option value="set_plan">Paket zuweisen</option>
+                            <?php endif; ?>
+                            <option value="clear_plan">Paket entfernen</option>
+                            <option value="delete">Gruppen löschen</option>
+                        </select>
+
+                        <div class="d-none" id="bulkGroupsPlanWrap">
+                            <select name="bulk_plan_id" class="form-select form-select-sm w-auto" id="bulkGroupsPlanSelect" aria-label="Paket für Sammelaktion auswählen">
+                                <option value="0">Paket wählen…</option>
+                                <?php foreach ($planOptions as $planOption): ?>
+                                    <?php
+                                    $planOptionId = (int)($planOption['id'] ?? 0);
+                                    $planOptionName = trim((string)($planOption['name'] ?? ''));
+                                    $planOptionActive = (int)($planOption['is_active'] ?? 0) === 1;
+                                    ?>
+                                    <option value="<?php echo $planOptionId; ?>">
+                                        <?php echo htmlspecialchars($planOptionName !== '' ? $planOptionName : ('Plan #' . $planOptionId)); ?><?php echo $planOptionActive ? '' : ' (inaktiv)'; ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+
+                        <button type="submit" class="btn btn-sm btn-primary" disabled aria-disabled="true">Aktion wählen…</button>
+                    </form>
+                </div>
+            </div>
+        <?php endif; ?>
+
+        <div class="row row-cards" id="groupsListRoot">
             <?php if (empty($groups)): ?>
                 <div class="col-12">
                     <div class="card">
@@ -80,7 +129,7 @@ $groupField = static function (mixed $group, string $key, mixed $default = ''): 
                     $groupMemberIds = $groupField($group, 'member_ids', []);
                     ?>
                     <div class="col-md-6 col-lg-4">
-                        <div class="card">
+                        <div class="card h-100">
                             <div class="card-body">
                                 <div class="d-flex align-items-center mb-3">
                                     <span class="avatar bg-blue-lt me-3">
@@ -122,26 +171,33 @@ $groupField = static function (mixed $group, string $key, mixed $default = ''): 
                                     <p class="text-secondary mb-0 small">Aktuell sind noch keine Mitglieder zugeordnet.</p>
                                 <?php endif; ?>
                             </div>
-                            <div class="card-footer d-flex gap-2">
-                                <button type="button" class="btn btn-outline-primary btn-sm js-group-modal-trigger"
-                                    data-bs-toggle="modal"
-                                    data-bs-target="#groupModal"
-                                        data-group-mode="edit"
-                                        data-group-id="<?php echo $groupId; ?>"
-                                        data-group-name="<?php echo htmlspecialchars($groupName, ENT_QUOTES); ?>"
-                                        data-group-slug="<?php echo htmlspecialchars($groupSlug, ENT_QUOTES); ?>"
-                                        data-group-description="<?php echo htmlspecialchars($groupDescription, ENT_QUOTES); ?>"
-                                        data-group-plan-id="<?php echo $groupPlanId; ?>"
-                                        data-group-is-active="<?php echo $groupIsActive ? '1' : '0'; ?>"
-                                        data-group-member-ids="<?php echo htmlspecialchars((string)json_encode($groupMemberIds, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), ENT_QUOTES); ?>"
-                                        data-group-modal-title="Gruppe bearbeiten">
-                                    Bearbeiten
-                                </button>
-                                <button type="button" class="btn btn-outline-danger btn-sm js-delete-group"
-                                        data-group-id="<?php echo $groupId; ?>"
-                                        data-group-name="<?php echo htmlspecialchars($groupName, ENT_QUOTES); ?>">
-                                    Löschen
-                                </button>
+                            <div class="card-footer d-flex justify-content-between align-items-center gap-2 flex-wrap">
+                                <label class="form-check m-0">
+                                    <input type="checkbox" class="form-check-input js-groups-bulk-row" value="<?php echo $groupId; ?>" aria-label="Gruppe <?php echo htmlspecialchars($groupName, ENT_QUOTES); ?> auswählen">
+                                    <span class="form-check-label small">Auswählen</span>
+                                </label>
+
+                                <div class="d-flex gap-2">
+                                    <button type="button" class="btn btn-outline-primary btn-sm js-group-modal-trigger"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#groupModal"
+                                            data-group-mode="edit"
+                                            data-group-id="<?php echo $groupId; ?>"
+                                            data-group-name="<?php echo htmlspecialchars($groupName, ENT_QUOTES); ?>"
+                                            data-group-slug="<?php echo htmlspecialchars($groupSlug, ENT_QUOTES); ?>"
+                                            data-group-description="<?php echo htmlspecialchars($groupDescription, ENT_QUOTES); ?>"
+                                            data-group-plan-id="<?php echo $groupPlanId; ?>"
+                                            data-group-is-active="<?php echo $groupIsActive ? '1' : '0'; ?>"
+                                            data-group-member-ids="<?php echo htmlspecialchars((string)json_encode($groupMemberIds, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), ENT_QUOTES); ?>"
+                                            data-group-modal-title="Gruppe bearbeiten">
+                                        Bearbeiten
+                                    </button>
+                                    <button type="button" class="btn btn-outline-danger btn-sm js-delete-group"
+                                            data-group-id="<?php echo $groupId; ?>"
+                                            data-group-name="<?php echo htmlspecialchars($groupName, ENT_QUOTES); ?>">
+                                        Löschen
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>

@@ -15,21 +15,21 @@ use CMS\Auth;
 require_once __DIR__ . '/modules/users/GroupsModule.php';
 
 const CMS_ADMIN_GROUPS_WRITE_CAPABILITY = 'manage_users';
+const CMS_ADMIN_GROUPS_ALLOWED_ACTIONS = ['save', 'delete', 'bulk'];
+const CMS_ADMIN_GROUPS_ALLOWED_BULK_ACTIONS = ['activate', 'deactivate', 'delete', 'set_plan', 'clear_plan'];
 
-/** @return array<string, true> */
-function cms_admin_groups_allowed_actions(): array
-{
-    return [
-        'save' => true,
-        'delete' => true,
-    ];
-}
-
-function cms_admin_groups_normalize_action(mixed $value): ?string
+function cms_admin_groups_normalize_action(mixed $value): string
 {
     $action = strtolower(trim((string) $value));
 
-    return isset(cms_admin_groups_allowed_actions()[$action]) ? $action : null;
+    return in_array($action, CMS_ADMIN_GROUPS_ALLOWED_ACTIONS, true) ? $action : '';
+}
+
+function cms_admin_groups_normalize_bulk_action(mixed $value): string
+{
+    $action = strtolower(trim((string) $value));
+
+    return in_array($action, CMS_ADMIN_GROUPS_ALLOWED_BULK_ACTIONS, true) ? $action : '';
 }
 
 function cms_admin_groups_normalize_id(array $post): int
@@ -40,13 +40,36 @@ function cms_admin_groups_normalize_id(array $post): int
 }
 
 /**
- * @return array{action:string,id:int,post:array<string,mixed>}
+ * @return array<int,int>
+ */
+function cms_admin_groups_normalize_bulk_ids(mixed $ids): array
+{
+    $normalizedIds = [];
+
+    foreach ((array) $ids as $id) {
+        $normalizedId = (int) $id;
+        if ($normalizedId > 0) {
+            $normalizedIds[$normalizedId] = $normalizedId;
+        }
+
+        if (count($normalizedIds) >= 200) {
+            break;
+        }
+    }
+
+    return array_values($normalizedIds);
+}
+
+/**
+ * @return array{action:string,id:int,bulk_action:string,ids:array<int,int>,post:array<string,mixed>}
  */
 function cms_admin_groups_normalize_payload(array $post): array
 {
     return [
-        'action' => cms_admin_groups_normalize_action($post['action'] ?? null) ?? '',
+        'action' => cms_admin_groups_normalize_action($post['action'] ?? null),
         'id' => cms_admin_groups_normalize_id($post),
+        'bulk_action' => cms_admin_groups_normalize_bulk_action($post['bulk_action'] ?? null),
+        'ids' => cms_admin_groups_normalize_bulk_ids($post['ids'] ?? []),
         'post' => $post,
     ];
 }
@@ -56,6 +79,7 @@ function cms_admin_groups_handle_action(GroupsModule $module, array $payload): a
     return match ($payload['action']) {
         'save' => $module->save($payload['post']),
         'delete' => $module->delete($payload['id']),
+        'bulk' => $module->bulkAction($payload['bulk_action'], $payload['ids'], $payload['post']),
         default => ['success' => false, 'error' => 'Unbekannte Aktion.'],
     };
 }
@@ -86,6 +110,16 @@ $sectionPageConfig = [
 
         if ($payload['action'] === 'delete' && $payload['id'] <= 0) {
             return ['success' => false, 'error' => 'Ungültige Gruppen-ID.'];
+        }
+
+        if ($payload['action'] === 'bulk') {
+            if ($payload['bulk_action'] === '') {
+                return ['success' => false, 'error' => 'Unbekannte Bulk-Aktion für Gruppen.'];
+            }
+
+            if ($payload['ids'] === []) {
+                return ['success' => false, 'error' => 'Bitte mindestens eine gültige Gruppe auswählen.'];
+            }
         }
 
         return cms_admin_groups_handle_action($module, $payload);

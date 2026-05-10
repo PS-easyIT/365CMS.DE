@@ -173,7 +173,7 @@ class Router
             }
         }
 
-        $csrfBypassPrefixes = ['/api/', '/admin/', '/member/', '/contact/'];
+        $csrfBypassPrefixes = ['/contact/'];
         $csrfBypassExact = ['/login', '/register', '/forgot-password', '/cms-login', '/cms-register', '/cms-password-forgot', '/logout', '/contact', '/comments/post', '/mfa-challenge', '/mfa-setup', '/mfa-disable'];
             $isThemeFavoriteToggle = $method === 'POST'
                 && (string) ($_POST['phinit_toggle_favorite'] ?? '') === '1'
@@ -183,6 +183,9 @@ class Router
 
         if ($isProtectedMethod
             && !$this->isM365LicPublicEvaluationRequest($routingUri, $method)
+            && !$this->isApiRequest($routingUri)
+            && !$this->isAdminRequest($routingUri)
+            && !$this->isMemberRequest($routingUri)
             && !in_array($routingUri, $csrfBypassExact, true)
             && !array_reduce($csrfBypassPrefixes, fn(bool $carry, string $prefix): bool => $carry || str_starts_with($routingUri, $prefix), false)
         ) {

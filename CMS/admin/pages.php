@@ -268,6 +268,30 @@ function cms_admin_pages_view_config(PagesModule $module, string $view, ?array $
     ];
 }
 
+function cms_admin_pages_resolve_module_class(): string
+{
+    $globalClass = 'PagesModule';
+    $candidates = [
+        $globalClass,
+        'CMS\\Admin\\Modules\\PagesModule',
+        'CMSv2\\Admin\\Modules\\PagesModule',
+    ];
+
+    foreach ($candidates as $candidate) {
+        if (!class_exists($candidate, false)) {
+            continue;
+        }
+
+        if ($candidate !== $globalClass && !class_exists($globalClass, false)) {
+            class_alias($candidate, $globalClass);
+        }
+
+        return $globalClass;
+    }
+
+    throw new RuntimeException('PagesModule konnte nach dem Laden der Moduldatei nicht aufgelöst werden.');
+}
+
 // ─── Auth-Check ────────────────────────────────────────────────────────────
 if (!cms_admin_pages_can_access()) {
     header('Location: /');
@@ -275,6 +299,7 @@ if (!cms_admin_pages_can_access()) {
 }
 
 require_once __DIR__ . '/modules/pages/PagesModule.php';
+$pagesModuleClass = cms_admin_pages_resolve_module_class();
 
 $sectionPageConfig = [
     'route_path' => '/admin/pages',
@@ -283,7 +308,7 @@ $sectionPageConfig = [
     'active_page' => 'pages',
     'csrf_action' => 'admin_pages',
     'module_file' => __DIR__ . '/modules/pages/PagesModule.php',
-    'module_factory' => static fn (): PagesModule => new PagesModule(),
+    'module_factory' => static fn (): PagesModule => new $pagesModuleClass(),
     'access_checker' => static fn (): bool => cms_admin_pages_can_access(),
     'request_context_resolver' => static function (PagesModule $module): array {
         $view = cms_admin_pages_normalize_view($_GET['action'] ?? 'list');

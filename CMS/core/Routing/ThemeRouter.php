@@ -23,9 +23,15 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+if (defined('CMS_THEME_ROUTER_CLASS_LOADING')) {
+    return;
+}
+
 if (class_exists(__NAMESPACE__ . '\\ThemeRouter', false)) {
     return;
 }
+
+define('CMS_THEME_ROUTER_CLASS_LOADING', true);
 
 final class ThemeRouter
 {

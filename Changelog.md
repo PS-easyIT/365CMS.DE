@@ -1,4 +1,4 @@
-﻿﻿**Version:** 2.9.711
+﻿﻿**Version:** 2.9.714
 
 # 365CMS Changelog
 
@@ -19,6 +19,24 @@
 ## 📜 Vollständige Versionshistorie
 
 ---
+
+### v2.9.714 — 10. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.714** | 🔴 fix | Admin/Beiträge – robuster Modul-Bootstrap im Live-Betrieb | **`CMS/admin/posts.php`, `CMS/admin/modules/posts/PostsModule.php`, `CMS/admin/post-categories.php`, `CMS/admin/post-tags.php`, `CMS/core/Version.php`, `CMS/update.json`, `README.md` und `Changelog.md` ziehen den noch offenen Live-500 im Beitragsbereich endgültig nach**: Der Beitrags-Entry-Point hängt beim Speichern nicht länger an einem starren globalen `PostsModule`-Klassennamen, sondern löst das Modul jetzt über einen expliziten Methodenvertrag plus Dateireflexion auf. Falls eine produktive Deployment-/OPcache-Situation kurzzeitig inkonsistente Includes liefert, lädt der Bootstrap die Moduldatei gezielt erneut und beendet nicht mehr mit `Class "PostsModule" not found` oder `PostsModule konnte nach dem Laden der Moduldatei nicht aufgelöst werden`. Zusätzlich schützt `PostsModule.php` seine Klassendeklaration gegen erneute Auswertung, und die separaten Admin-Einstiege für Beitrags-Kategorien und -Tags verwenden denselben robusteren Initialisierungspfad für die gemeinsame Beitragsverwaltung. |
+
+### v2.9.713 — 10. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.713** | 🔴 fix | Admin/Live-Hotfixes – Dashboard, Beiträge, Seiten & Theme-Runtime | **`CMS/core/Router.php`, `CMS/admin/partials/section-page-shell.php`, `CMS/admin/posts.php`, `CMS/admin/pages.php`, `CMS/core/Routing/ThemeRouter.php`, `CMS/themes/cms-default/functions.php`, `CMS/core/Version.php`, `CMS/update.json`, `README.md` und `Changelog.md` schließen den aktuellen Live-Fehlerblock aus Produktiv-Logs**: Die globale Public-CSRF-Vorprüfung behandelt exakte Admin-/Member-Routen wie `/admin` nicht länger als normales Public-Formular, sodass die Dashboard-Personalisierung nicht mehr vor dem eigentlichen Admin-Handler mit `403 CSRF-Validierung fehlgeschlagen` abgewiesen wird. Parallel lösen die Beitrags- und Seiten-Entry-Points ihre Module jetzt defensiv auch über mögliche namespaced Klassennamen auf und die gemeinsame Section-Shell kapselt Modul-Bootstrap-Fehler fail-soft, statt bei Klassen-/Deploy-Drift mit einem nackten HTTP-500 zu enden. Zusätzlich verhindern Reentrancy-Guards doppelte Includes von `ThemeRouter.php` und dem Default-Theme-`functions.php`, wodurch die gemeldeten Redeclare-Fatals um `CMS\\Routing\\ThemeRouter` und `meridian_nav_menu()` robuster abgefangen werden. |
+
+### v2.9.712 — 10. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.712** | 🟢 feat | Admin/Benutzer & Gruppen – Gruppen-Massenaktionen | **`CMS/admin/groups.php`, `CMS/admin/modules/users/GroupsModule.php`, `CMS/admin/views/users/groups.php`, `CMS/assets/js/admin-user-groups.js`, `CMS/DOC/admin/users-groups/README.md`, `CMS/DOC/admin/users-groups/GROUPS.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`, `CMS/DOC/admin/README.md`, `CMS/core/Version.php`, `CMS/update.json`, `README.md` und `Changelog.md` schließen das nächste echte Nice-to-have im Bereich Benutzer & Gruppen ab**: `/admin/groups` unterstützt jetzt Sammelaktionen für Aktivieren, Deaktivieren, Paket zuweisen, Paket entfernen und Löschen direkt aus der Gruppenübersicht. Der Server normalisiert Bulk-Aktionen und Gruppen-IDs konsequent per Allowlist, prüft den aktuellen Bestand fail-soft, protokolliert kritische Gruppenänderungen im Audit-Log und löscht Gruppen inklusive Mitgliedschaften transaktional. Die Admin-UI ergänzt dazu Auswahl-Checkboxen, Paketwahl nur bei passender Aktion, Double-Submit-Schutz und eine explizite Bestätigung für destruktive Sammellöschungen. |
 
 ### v2.9.711 — 10. Mai 2026
 

@@ -11,6 +11,24 @@ use CMS\Security;
 const CMS_ADMIN_POST_TAGS_WRITE_CAPABILITY = 'edit_all_posts';
 const CMS_ADMIN_POST_TAGS_FORM_SESSION_KEY = 'admin_post_tags_form';
 
+function cms_admin_post_tags_create_module(): object
+{
+    $moduleFile = realpath(__DIR__ . '/modules/posts/PostsModule.php') ?: __DIR__ . '/modules/posts/PostsModule.php';
+    if (!is_file($moduleFile)) {
+        throw new RuntimeException('PostsModule-Datei wurde nicht gefunden.');
+    }
+
+    if (!class_exists('PostsModule', false)) {
+        require $moduleFile;
+    }
+
+    if (!class_exists('PostsModule', false)) {
+        throw new RuntimeException('PostsModule konnte für die Tag-Verwaltung nicht geladen werden.');
+    }
+
+    return new PostsModule();
+}
+
 /**
  * @param array<string,mixed> $post
  */
@@ -51,7 +69,7 @@ if (!Auth::instance()->isAdmin() || !Auth::instance()->hasCapability(CMS_ADMIN_P
 
 require_once __DIR__ . '/modules/posts/PostsModule.php';
 
-$module = new \PostsModule();
+$module = cms_admin_post_tags_create_module();
 $alert = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {

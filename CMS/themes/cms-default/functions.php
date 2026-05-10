@@ -12,6 +12,12 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+if (defined('MERIDIAN_THEME_FUNCTIONS_LOADED')) {
+    return;
+}
+
+define('MERIDIAN_THEME_FUNCTIONS_LOADED', true);
+
 define('MERIDIAN_THEME_VERSION', '1.0.4');
 define('MERIDIAN_THEME_DIR',     THEME_PATH . 'cms-default/');
 define('MERIDIAN_THEME_URL',     \CMS\ThemeManager::instance()->getThemeUrl());

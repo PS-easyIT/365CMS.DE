@@ -1,6 +1,6 @@
 # 365CMS.DE
 
-**Version:** [2.9.711](Changelog.md) · **Status:** Stable · **PHP:** 8.4+ · **MySQL:** 5.7+ · **MariaDB:** 10.3+
+**Version:** [2.9.714](Changelog.md) · **Status:** Stable · **PHP:** 8.4+ · **MySQL:** 5.7+ · **MariaDB:** 10.3+
 
 <div align="center">
 
@@ -341,7 +341,7 @@ The admin area is structured so editorial, technical and operational work does n
 | **AI Services** | Providers, translation, prompt templates, content/SEO helpers, logging, quotas and usage monitoring | Govern AI workflows, review recent runs and operate editorial assistance with clear guardrails |
 | **Pages & Posts** | Content structure, editorial content, comments and supporting content blocks | Create, edit, organize, publish content, moderate comments with quick filters and keep slug/taxonomy links stable |
 | **Media** | Library, Post & Site Media, categories, settings and file management | Upload files, manage media collections, replace post/page images in place under a fixed image contract and prepare assets for content |
-| **Users & Groups** | Accounts, teams, roles, permissions and authentication settings | Define access, maintain users and control security-related settings |
+| **Users & Groups** | Accounts, teams, roles, permissions and authentication settings | Define access, maintain users, control security-related settings and process groups in batches with package-aware bulk actions |
 | **Member Area** | Member dashboard configuration and user-facing functions | Shape the member experience and manage protected features |
 | **Subscriptions** | Packages, orders, limits, assignments and subscription-related business handling | Configure plans, manage access logic and support paid feature models |
 | **Themes & Design** | Active themes, theme customization, menus, landing pages and local fonts | Adjust branding, layouts, navigation and page presentation |
