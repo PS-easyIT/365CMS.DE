@@ -35,6 +35,17 @@ class UserSettingsModule
     {
         $settings = $this->loadSettings();
         $authManager = AuthManager::instance();
+        $passwordPolicy = \CMS\Auth::evaluatePasswordPolicy('');
+        $passwordRequirements = [];
+
+        foreach ((array) ($passwordPolicy['requirements'] ?? []) as $requirement) {
+            $key = trim((string) ($requirement['key'] ?? ''));
+            if ($key === '') {
+                continue;
+            }
+
+            $passwordRequirements[$key] = true;
+        }
 
         return [
             'settings' => [
@@ -72,11 +83,12 @@ class UserSettingsModule
             'security' => [
                 'max_login_attempts' => defined('MAX_LOGIN_ATTEMPTS') ? (int)MAX_LOGIN_ATTEMPTS : 5,
                 'login_timeout_seconds' => defined('LOGIN_TIMEOUT') ? (int)LOGIN_TIMEOUT : 300,
-                'password_min_length' => 12,
-                'password_requires_uppercase' => true,
-                'password_requires_lowercase' => true,
-                'password_requires_digit' => true,
-                'password_requires_special' => true,
+                'password_min_length' => (int) ($passwordPolicy['min_length'] ?? 12),
+                'password_requires_uppercase' => !empty($passwordRequirements['uppercase']),
+                'password_requires_lowercase' => !empty($passwordRequirements['lowercase']),
+                'password_requires_digit' => !empty($passwordRequirements['digit']),
+                'password_requires_special' => !empty($passwordRequirements['special']),
+                'password_policy' => $passwordPolicy,
                 'admin_session_hours' => 8,
                 'member_session_days' => 30,
             ],
@@ -114,7 +126,15 @@ class UserSettingsModule
 
             return ['success' => true, 'message' => 'Benutzer- und Authentifizierungseinstellungen gespeichert.'];
         } catch (\Throwable $e) {
-            return ['success' => false, 'error' => 'Fehler: ' . $e->getMessage()];
+            \CMS\Logger::instance()->withChannel('user-settings')->error(
+                'Benutzer- und Authentifizierungseinstellungen konnten nicht gespeichert werden.',
+                [
+                    'exception' => $e::class,
+                    'message' => $e->getMessage(),
+                ]
+            );
+
+            return ['success' => false, 'error' => 'Die Benutzer- und Authentifizierungseinstellungen konnten nicht gespeichert werden.'];
         }
     }
 

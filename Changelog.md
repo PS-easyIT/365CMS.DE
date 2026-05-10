@@ -1,4 +1,4 @@
-﻿﻿**Version:** 2.9.709
+﻿﻿**Version:** 2.9.711
 
 # 365CMS Changelog
 
@@ -19,6 +19,18 @@
 ## 📜 Vollständige Versionshistorie
 
 ---
+
+### v2.9.711 — 10. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.711** | 🔴 fix | Admin/Nachprüfung der letzten Nice-to-haves | **`CMS/core/Auth.php`, `CMS/admin/modules/users/UserSettingsModule.php`, `CMS/admin/views/users/settings.php`, `CMS/admin/modules/pages/PagesModule.php`, `CMS/admin/modules/posts/PostsModule.php`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`, `CMS/DOC/admin/README.md`, `CMS/core/Version.php`, `CMS/update.json`, `README.md` und `Changelog.md` schließen die direkte Nachprüfung der zuletzt eingebauten Nice-to-haves ab**: Der Passwort-Policy-Tester unter `/admin/user-settings` nutzt jetzt auch browserseitig dieselbe Unicode-aware Zeichenzählung wie die Servervalidierung, und die sichtbaren Anforderungen stammen direkt aus der strukturierten Runtime-Policy statt aus statischen UI-Listen. Parallel verlieren die read-only Revisionspfade für Seiten und Beiträge ihr zusätzliches Snapshot-Debug-Logging im Save-Flow, sodass die neuen Vergleichsansichten ihren Vertrag behalten, ohne Logvolumen und Redaktionslatenz unnötig zu erhöhen. |
+
+### v2.9.710 — 10. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.710** | 🟢 feat | Admin/Benutzer & Gruppen – Passwort-Policy-Tester | **`CMS/core/Auth.php`, `CMS/admin/modules/users/UserSettingsModule.php`, `CMS/admin/views/users/settings.php`, `CMS/DOC/admin/users-groups/AUTH-SETTINGS.md`, `CMS/DOC/admin/users-groups/README.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`, `CMS/DOC/admin/README.md`, `CMS/core/Version.php`, `CMS/update.json`, `README.md` und `Changelog.md` schließen das nächste echte Nice-to-have im Bereich Benutzer & Gruppen ab**: Unter `/admin/user-settings` gibt es jetzt einen lokalen Live-Tester für die Passwort-Policy, der exakt denselben Runtime-Vertrag wie `Auth::validatePasswordPolicy()` spiegelt und die erste verletzte Regel unmittelbar anzeigt, ohne Eingaben zu speichern oder mitzuschicken. Gleichzeitig liefert `Auth` die Policy nun strukturiert für UI und Laufzeit aus, zählt Passwortlängen Unicode-sicherer und die Save-Route für Benutzer-/Auth-Settings leakt im Fehlerfall keine rohen Exception-Texte mehr in den Admin-Alert, sondern protokolliert Details nur serverseitig. |
 
 ### v2.9.709 — 10. Mai 2026
 

@@ -456,6 +456,20 @@ Die Sidebar in `CMS/admin/partials/sidebar.php` ist für die Menüstruktur führ
 - **Offene Nice-to-haves:** keine im Bereich Seiten & Beiträge
 - **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/pages-posts/README.md`, `CMS/DOC/admin/pages-posts/POSTS.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`, `CMS/DOC/core/DATABASE-SCHEMA.md`
 
+### Audit-Stand – Seiten & Beiträge Nice-to-haves Nachprüfung · Durchlauf 6
+
+- **Status:** abgeschlossen auf Code-/Best-Practice-/Vertragsbasis · Release `2.9.711`
+- **Prüfer:** GitHub Copilot
+- **Datum:** 2026-05-10
+- **Geprüfte Routen:** `/admin/pages?action=edit&id=...`, `/admin/posts?action=edit&id=...`
+- **Reproduziertes Risiko:** Die neu eingebauten Revisionsvergleiche blieben funktional read-only, erzeugten im Save-Flow aber zusätzliches Snapshot-Debug-Logging für EN-Felder. Das erhöhte Logvolumen und CPU-/I/O-Last unnötig, ohne den dokumentierten Revisionsvertrag funktional zu erweitern.
+- **Umsetzung in diesem Durchlauf:** Die Revisionspfade für Seiten und Beiträge behalten ihre read-only Vergleichsansichten und die kontrollierte Snapshot-Erzeugung bei, entfernen aber das laute Debug-Logging aus dem produktiven Save-Flow. Damit bleibt der Vergleichspfad nachvollziehbar und fail-soft, ohne bei jedem Speichern zusätzliche Log-Summaries zu erzeugen.
+- **Best-Practice-Bezug:** Logging bleibt auf wirklich sicherheits- und betriebsrelevante Fehler fokussiert, statt bei normalen Content-Saves unnötige Diagnoseeinträge zu produzieren. Das reduziert Alarm-Fog und vermeidet vermeidbare Last im Redaktionsalltag.
+- **Abhängige Bereiche:** `PagesModule`, `PostsModule`, read-only Revisionskarten in `views/pages/edit.php` und `views/posts/edit.php`, Save-Flow, Logger/Audit-Pfade
+- **Offene Must-haves:** keine
+- **Offene Nice-to-haves:** keine im Bereich Seiten & Beiträge
+- **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`
+
 ---
 
 ## 4. Medienverwaltung
@@ -557,8 +571,35 @@ Die Sidebar in `CMS/admin/partials/sidebar.php` ist für die Menüstruktur führ
 
 - [ ] Rollenvergleich / Capability-Diff.
 - [ ] Gruppen-Massenaktionen.
-- [ ] Passwort-Policy-Tester im UI.
+- [x] Passwort-Policy-Tester im UI.
 - [ ] Login-/Sicherheitsereignisse pro Benutzer im Profil.
+
+### Audit-Stand – Benutzer & Gruppen · Durchlauf 2
+
+- **Status:** abgeschlossen auf Code-/Vertragsbasis · Release `2.9.710`
+- **Prüfer:** GitHub Copilot
+- **Datum:** 2026-05-10
+- **Geprüfte Routen:** `/admin/user-settings`
+- **Reproduziertes Fehlerbild:** In den Benutzer-/Auth-Einstellungen wurde die Passwort-Policy bisher nur statisch beschrieben. Admins konnten also nicht direkt im UI prüfen, welche konkrete Runtime-Regel ein Testpasswort verletzt; zusätzlich reichte der Save-Pfad bei internen Fehlern rohe Exception-Messages bis in den Alert zurück.
+- **Umsetzung in diesem Durchlauf:** `Auth` liefert die Passwort-Policy jetzt strukturiert für Runtime und Admin-UI aus, inklusive Unicode-sicherer Längenprüfung und derselben Reihenfolge der Validierungsfehler wie im Live-Betrieb. `/admin/user-settings` enthält darauf aufbauend einen lokalen Policy-Tester mit Live-Feedback und erster Fehlermeldung nach echtem Runtime-Vertrag, ohne Testeingaben zu speichern oder mitzusenden. Die Save-Route gibt im Fehlerfall nur noch generische UI-Meldungen aus und schreibt technische Details serverseitig ins Log.
+- **Abhängige Bereiche:** `CMS\Auth`, Benutzer-/Auth-Settings, öffentliche Registrierung, Passwort-Reset, Admin-Benutzer-CRUD
+- **Offene Must-haves:** keine
+- **Offene Nice-to-haves:** Capability-Diff, Gruppen-Massenaktionen, Sicherheitsereignisse pro Benutzerprofil
+- **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/users-groups/README.md`, `CMS/DOC/admin/users-groups/AUTH-SETTINGS.md`
+
+### Audit-Stand – Benutzer & Gruppen · Durchlauf 3
+
+- **Status:** abgeschlossen auf Code-/Best-Practice-/Vertragsbasis · Release `2.9.711`
+- **Prüfer:** GitHub Copilot
+- **Datum:** 2026-05-10
+- **Geprüfte Route:** `/admin/user-settings`
+- **Reproduziertes Fehlerbild:** Der lokale Passwort-Policy-Tester zählte Zeichen im Browser nicht in jedem Pfad identisch zur Runtime und hielt die sichtbare Anforderungsliste noch teilweise separat in der View vor. Dadurch konnte die UI bei Unicode-Zeichen vom PHP-Vertrag abweichen und wieder in eine zweite Policy-Quelle driften.
+- **Umsetzung in diesem Durchlauf:** Browser und PHP verwenden jetzt denselben Unicode-aware Zeichenzählansatz für die Policy-Prüfung. Gleichzeitig rendert die UI ihre sichtbaren Anforderungen direkt aus der strukturierten Passwort-Policy statt aus statischen Listenpunkten, sodass Runtime-Vertrag, Live-Tester und Textanzeige wieder aus einer Quelle kommen.
+- **Best-Practice-Bezug:** Die Passwort-Policy bleibt als Single Source of Truth implementiert; technische Details werden nicht doppelt gepflegt, und Unicode-Eingaben verhalten sich im Tester konsistent zur Servervalidierung.
+- **Abhängige Bereiche:** `CMS\Auth`, `UserSettingsModule`, `/admin/user-settings`, öffentliche Registrierung, Passwort-Reset, Admin-Benutzer-CRUD
+- **Offene Must-haves:** keine
+- **Offene Nice-to-haves:** Capability-Diff, Gruppen-Massenaktionen, Sicherheitsereignisse pro Benutzerprofil
+- **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`
 
 ### Audit-Stand – Benutzer & Gruppen · Durchlauf 1
 

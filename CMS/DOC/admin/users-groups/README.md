@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Überblick über die aktuelle Benutzerverwaltung mit dynamischen Rollen, Gruppen und Rechtezuordnung.
 
-Letzte Aktualisierung: 2026-05-09 · Version 2.9.619
+Letzte Aktualisierung: 2026-05-10 · Version 2.9.710
 
 Der Bereich ist im aktuellen Stand auf vier Hauptbereiche verteilt:
 
@@ -34,6 +34,7 @@ Der Bereich ist im aktuellen Stand auf vier Hauptbereiche verteilt:
 - Benutzer- und Authentifizierungseinstellungen sind jetzt unter `/admin/user-settings` zentralisiert.
 - Öffentliche Registrierungen respektieren die unter `/admin/user-settings` gewählte Standardrolle jetzt tatsächlich, wobei nur registrierungsgeeignete, nicht-administrative Rollen angeboten und angenommen werden.
 - Die Passwort-Policy ist für öffentliche Registrierung, Passwort-Reset sowie Admin-Erstellen/-Bearbeiten von Benutzern auf denselben 12-Zeichen-/Komplexitätsvertrag vereinheitlicht; Default-Theme- und Core-Auth-Formulare bewerben jetzt denselben Vertrag auch sichtbar im UI.
+- `/admin/user-settings` enthält zusätzlich einen lokalen Passwort-Policy-Tester, der denselben Runtime-Vertrag wie `Auth::validatePasswordPolicy()` live anzeigt, ohne Testeingaben zu speichern.
 - Gruppen pflegen nun neben Name/Beschreibung auch Slug, Paketbezug, Aktiv-Status und Mitgliedschaften direkt in `/admin/groups`.
 - Passkeys/WebAuthn, MFA/TOTP, Backup-Codes, LDAP und Session-/Registrierungsparameter werden im aktuellen Stand als zusammenhängender Auth-/Provider-Kontext gelesen.
 

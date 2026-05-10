@@ -13,6 +13,8 @@ $ldap = $data['ldap'] ?? [];
 $jwt = $data['jwt'] ?? [];
 $passkey = $data['passkey'] ?? [];
 $security = $data['security'] ?? [];
+$passwordPolicy = is_array($security['password_policy'] ?? null) ? $security['password_policy'] : ['min_length' => 12, 'requirements' => [], 'definition' => ['patterns' => []]];
+$passwordPolicyRequirements = is_array($passwordPolicy['requirements'] ?? null) ? $passwordPolicy['requirements'] : [];
 $memberDashboardGeneralUrl = '/admin/member-dashboard-general';
 
 $providerLabels = [
@@ -29,6 +31,18 @@ $renderStatusBadge = static function (bool $enabled, string $enabledLabel = 'Akt
 
     return '<span class="badge bg-' . $class . '-lt">' . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '</span>';
 };
+
+$passwordPolicyTesterConfig = [
+    'minLength' => (int) ($passwordPolicy['min_length'] ?? ($security['password_min_length'] ?? 12)),
+    'patterns' => is_array($passwordPolicy['definition']['patterns'] ?? null) ? $passwordPolicy['definition']['patterns'] : [],
+    'requirements' => array_map(static function (array $requirement): array {
+        return [
+            'key' => (string) ($requirement['key'] ?? ''),
+            'label' => (string) ($requirement['label'] ?? ''),
+            'message' => (string) ($requirement['message'] ?? ''),
+        ];
+    }, is_array($passwordPolicy['requirements'] ?? null) ? $passwordPolicy['requirements'] : []),
+];
 ?>
 
 <div class="page-header d-print-none">
@@ -186,12 +200,42 @@ $renderStatusBadge = static function (bool $enabled, string $enabledLabel = 'Akt
                             <div class="mb-0">
                                 <div class="form-label">Passwortanforderungen</div>
                                 <ul class="mb-0 text-secondary ps-3">
-                                    <li>Mindestens <?php echo (int)($security['password_min_length'] ?? 12); ?> Zeichen</li>
-                                    <li>Mindestens ein Großbuchstabe</li>
-                                    <li>Mindestens ein Kleinbuchstabe</li>
-                                    <li>Mindestens eine Ziffer</li>
-                                    <li>Mindestens ein Sonderzeichen</li>
+                                    <?php foreach ($passwordPolicyRequirements as $requirement): ?>
+                                        <li><?php echo htmlspecialchars((string) ($requirement['label'] ?? 'Anforderung')); ?></li>
+                                    <?php endforeach; ?>
                                 </ul>
+                            </div>
+
+                            <div class="card bg-light mt-4 border-0" data-password-policy-tester data-password-policy-config="<?php echo htmlspecialchars((string) json_encode($passwordPolicyTesterConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), ENT_QUOTES, 'UTF-8'); ?>">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3">
+                                        <div>
+                                            <div class="form-label mb-1">Passwort-Policy-Tester</div>
+                                            <div class="text-secondary small">Lokaler Live-Check für den aktuellen Runtime-Vertrag. Die Eingabe wird nicht gespeichert und nicht mitgesendet.</div>
+                                        </div>
+                                        <span class="badge bg-azure-lt text-azure" data-password-policy-length-badge>0 Zeichen</span>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label" for="passwordPolicyTesterInput">Test-Passwort</label>
+                                        <input type="password" id="passwordPolicyTesterInput" class="form-control" autocomplete="new-password" spellcheck="false" placeholder="Passwort lokal gegen die Policy prüfen …" data-password-policy-input>
+                                    </div>
+
+                                    <div class="alert alert-secondary mb-3" role="status" aria-live="polite" aria-atomic="true" data-password-policy-status>
+                                        Noch kein Passwort geprüft.
+                                    </div>
+
+                                    <div class="row g-2" data-password-policy-requirements>
+                                        <?php foreach ((array) ($passwordPolicy['requirements'] ?? []) as $requirement): ?>
+                                            <div class="col-md-6">
+                                                <div class="border rounded px-3 py-2 d-flex align-items-center gap-2 text-secondary" data-password-policy-requirement data-requirement-key="<?php echo htmlspecialchars((string) ($requirement['key'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
+                                                    <span aria-hidden="true" data-password-policy-icon>○</span>
+                                                    <span><?php echo htmlspecialchars((string) ($requirement['label'] ?? 'Anforderung')); ?></span>
+                                                </div>
+                                            </div>
+                                        <?php endforeach; ?>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -322,3 +366,138 @@ $renderStatusBadge = static function (bool $enabled, string $enabledLabel = 'Akt
         </form>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var testerRoot = document.querySelector('[data-password-policy-tester]');
+    if (!testerRoot) {
+        return;
+    }
+
+    var configRaw = testerRoot.getAttribute('data-password-policy-config') || '{}';
+    var config = {};
+    try {
+        config = JSON.parse(configRaw);
+    } catch (error) {
+        console.error('Password policy tester config error:', error);
+        return;
+    }
+
+    var inputEl = testerRoot.querySelector('[data-password-policy-input]');
+    var statusEl = testerRoot.querySelector('[data-password-policy-status]');
+    var lengthBadgeEl = testerRoot.querySelector('[data-password-policy-length-badge]');
+    var requirementEls = testerRoot.querySelectorAll('[data-password-policy-requirement]');
+    var minLength = Number(config.minLength || 12);
+    var patterns = config.patterns || {};
+
+    if (!inputEl || !statusEl || !lengthBadgeEl || requirementEls.length === 0) {
+        return;
+    }
+
+    var createPattern = function (source, fallback) {
+        try {
+            return new RegExp(source || fallback);
+        } catch (error) {
+            return new RegExp(fallback);
+        }
+    };
+
+    var countCharacters = function (value) {
+        return Array.from(value || '').length;
+    };
+
+    var compiledPatterns = {
+        uppercase: createPattern(patterns.uppercase, '[A-Z]'),
+        lowercase: createPattern(patterns.lowercase, '[a-z]'),
+        digit: createPattern(patterns.digit, '\\d'),
+        special: createPattern(patterns.special, '[^a-zA-Z0-9]')
+    };
+
+    var updateRequirementEl = function (element, passed) {
+        element.classList.remove('text-secondary', 'text-success', 'text-danger', 'border-success', 'border-danger');
+        var iconEl = element.querySelector('[data-password-policy-icon]');
+
+        if (passed === null) {
+            element.classList.add('text-secondary');
+            if (iconEl) {
+                iconEl.textContent = '○';
+            }
+            return;
+        }
+
+        if (passed) {
+            element.classList.add('text-success', 'border-success');
+            if (iconEl) {
+                iconEl.textContent = '✓';
+            }
+            return;
+        }
+
+        element.classList.add('text-danger', 'border-danger');
+        if (iconEl) {
+            iconEl.textContent = '✕';
+        }
+    };
+
+    var evaluate = function (password) {
+        var characterCount = countCharacters(password);
+
+        return {
+            min_length: characterCount >= minLength,
+            uppercase: compiledPatterns.uppercase.test(password),
+            lowercase: compiledPatterns.lowercase.test(password),
+            digit: compiledPatterns.digit.test(password),
+            special: compiledPatterns.special.test(password)
+        };
+    };
+
+    var updateStatus = function () {
+        var password = inputEl.value || '';
+        var length = countCharacters(password);
+        lengthBadgeEl.textContent = length + ' Zeichen';
+
+        if (password === '') {
+            statusEl.className = 'alert alert-secondary mb-3';
+            statusEl.textContent = 'Noch kein Passwort geprüft.';
+            requirementEls.forEach(function (element) {
+                updateRequirementEl(element, null);
+            });
+            return;
+        }
+
+        var results = evaluate(password);
+        var firstFailedMessage = '';
+
+        requirementEls.forEach(function (element) {
+            var key = element.getAttribute('data-requirement-key') || '';
+            var passed = Object.prototype.hasOwnProperty.call(results, key) ? !!results[key] : false;
+            updateRequirementEl(element, passed);
+
+            if (!passed && firstFailedMessage === '') {
+                var matchedRequirement = (config.requirements || []).find(function (requirement) {
+                    return (requirement.key || '') === key;
+                });
+                firstFailedMessage = matchedRequirement && matchedRequirement.message
+                    ? matchedRequirement.message
+                    : 'Die Passwort-Policy ist noch nicht vollständig erfüllt.';
+            }
+        });
+
+        var isValid = Object.keys(results).every(function (key) {
+            return results[key];
+        });
+
+        if (isValid) {
+            statusEl.className = 'alert alert-success mb-3';
+            statusEl.textContent = 'Die aktuelle Passwort-Policy ist erfüllt.';
+            return;
+        }
+
+        statusEl.className = 'alert alert-warning mb-3';
+        statusEl.textContent = firstFailedMessage || 'Die Passwort-Policy ist noch nicht vollständig erfüllt.';
+    };
+
+    inputEl.addEventListener('input', updateStatus, { passive: true });
+    updateStatus();
+});
+</script>

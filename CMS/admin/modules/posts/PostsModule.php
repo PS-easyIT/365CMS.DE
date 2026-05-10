@@ -674,23 +674,10 @@ class PostsModule
             'published_at' => $publishedAtInput['value'],
         ];
 
-        $this->logContentEnSnapshot('pre_filter', $id, $savePayload, [
-            'request_content_en' => $contentEn,
-            'request_title_en' => $titleEn,
-            'request_slug_en' => $slugEn,
-            'status' => $status,
-            'is_new' => $id <= 0,
-        ]);
-
         $filteredPayload = Hooks::applyFilters('cms_prepare_post_save_payload', $savePayload, $post, $id, $userId);
         if (is_array($filteredPayload)) {
             $savePayload = array_merge($savePayload, $filteredPayload);
         }
-
-        $this->logContentEnSnapshot('post_filter', $id, $savePayload, [
-            'status' => (string) ($savePayload['status'] ?? $status),
-            'is_new' => $id <= 0,
-        ]);
 
         try {
             if ($id > 0) {
@@ -751,10 +738,6 @@ class PostsModule
                 );
                 Hooks::doAction('cms_after_post_save', $id, $savePayload, $post);
                 $this->clearContentCacheIfEnabled('post_update', $id);
-                $this->logPersistedContentEnSnapshot($id, 'post_write', [
-                    'status' => (string) ($savePayload['status'] ?? $status),
-                    'is_new' => false,
-                ]);
                 return ['success' => true, 'id' => $id, 'message' => 'Beitrag aktualisiert.'];
             } else {
                 $resolvedPublishedAt = $this->resolvePublishedAtValue((string) $savePayload['status'], $savePayload['published_at'], null);
@@ -788,10 +771,6 @@ class PostsModule
                 $this->syncPostCategories($newId, $assignedCategoryIds !== [] ? $assignedCategoryIds : ($savePayload['category_id'] !== null ? [(int) $savePayload['category_id']] : []));
                 Hooks::doAction('cms_after_post_save', $newId, $savePayload, $post);
                 $this->clearContentCacheIfEnabled('post_create', $newId);
-                $this->logPersistedContentEnSnapshot($newId, 'post_write', [
-                    'status' => (string) ($savePayload['status'] ?? $status),
-                    'is_new' => true,
-                ]);
                 return ['success' => true, 'id' => $newId, 'message' => 'Beitrag erstellt.'];
             }
         } catch (\Throwable $e) {
@@ -2097,55 +2076,6 @@ class PostsModule
         return function_exists('mb_substr')
             ? mb_substr($value, 0, 150)
             : substr($value, 0, 150);
-    }
-
-    private function logContentEnSnapshot(string $phase, int $postId, array $payload, array $context = []): void
-    {
-        try {
-            Logger::instance()->withChannel('admin.posts')->info('Post content_en snapshot.', array_merge([
-                'phase' => $phase,
-                'post_id' => $postId,
-                'title_en' => $this->summarizeEditorContentValue((string) ($payload['title_en'] ?? '')),
-                'slug_en' => $this->summarizeEditorContentValue((string) ($payload['slug_en'] ?? '')),
-                'content_en' => $this->summarizeEditorContentValue($payload['content_en'] ?? ''),
-            ], $context));
-        } catch (\Throwable $_error) {
-            // Debug-Instrumentierung darf den Save-Pfad niemals stören.
-        }
-    }
-
-    private function logPersistedContentEnSnapshot(int $postId, string $phase, array $context = []): void
-    {
-        if ($postId <= 0) {
-            return;
-        }
-
-        try {
-            $row = $this->db->get_row(
-                "SELECT title_en, slug_en, content_en FROM {$this->prefix}posts WHERE id = ? LIMIT 1",
-                [$postId]
-            );
-
-            if (!is_object($row)) {
-                Logger::instance()->withChannel('admin.posts')->info('Post content_en snapshot.', array_merge([
-                    'phase' => $phase,
-                    'post_id' => $postId,
-                    'row_missing' => true,
-                ], $context));
-                return;
-            }
-
-            Logger::instance()->withChannel('admin.posts')->info('Post content_en snapshot.', array_merge([
-                'phase' => $phase,
-                'post_id' => $postId,
-                'row_missing' => false,
-                'title_en' => $this->summarizeEditorContentValue((string) ($row->title_en ?? '')),
-                'slug_en' => $this->summarizeEditorContentValue((string) ($row->slug_en ?? '')),
-                'content_en' => $this->summarizeEditorContentValue((string) ($row->content_en ?? '')),
-            ], $context));
-        } catch (\Throwable $_error) {
-            // Debug-Instrumentierung darf den Save-Pfad niemals stören.
-        }
     }
 
     /**

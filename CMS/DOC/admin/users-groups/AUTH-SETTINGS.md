@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Zentrale Admin-Seite für Registrierung, rollenbezogene Standardwerte und technische Auth-Provider-Informationen – ergänzt durch die neue Core-Auth-Strecke über die CMS Loginpage.
 
-Letzte Aktualisierung: 2026-05-09 · Version 2.9.619
+Letzte Aktualisierung: 2026-05-10 · Version 2.9.710
 
 Route: `/admin/user-settings`
 
@@ -52,6 +52,8 @@ Die Passwort-Policy ist im aktuellen Stand nicht mehr nur auf die öffentliche A
 
 Zusätzlich spiegeln die öffentlichen Register- und Passwort-Reset-Formulare im Default-Theme und in der Core-Auth-Ansicht denselben Vertrag jetzt auch sichtbar im UI, statt an veralteten 8-Zeichen-Hinweisen hängen zu bleiben.
 
+Unter `/admin/user-settings` gibt es außerdem einen **lokalen Passwort-Policy-Tester**, der denselben Runtime-Vertrag wie `Auth::validatePasswordPolicy()` live im Admin auswertet. Die Eingabe dient nur der Prüfung im Browser, wird nicht gespeichert und nicht mit dem Settings-Formular übertragen.
+
 Die öffentliche Anmeldestrecke arbeitet seit `2.9.0` standardmäßig über:
 
 - `/cms-login`
@@ -78,5 +80,6 @@ Diese Werte kommen aktuell überwiegend aus `CMS/config/app.php` oder aus den je
 
 - Die Seite folgt dem üblichen PRG-Flow mit CSRF-Prüfung und Session-Alert.
 - Änderungen werden im Audit-Log als Setting-Änderung protokolliert.
+- Fehler beim Speichern der Einstellungen werden generisch an die UI zurückgegeben; technische Details landen nur im Server-Log.
 - LDAP-, JWT- und Login-Limit-Parameter bleiben aktuell in der Systemkonfiguration (`CMS/config/app.php`).
 - MFA-, Backup-Code-, Passkey- und LDAP-Logins finalisieren seit `2.9.0` dieselbe Session wie der klassische Passwort-Login. Wenn ein MFA-Nutzer also früher auf die Startseite zurückfiel: genau dieser kleine Zirkus wurde hiermit beendet.

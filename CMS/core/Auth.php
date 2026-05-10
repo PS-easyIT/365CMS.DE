@@ -18,6 +18,14 @@ if (!defined('ABSPATH')) {
 
 class Auth
 {
+    private const PASSWORD_POLICY_MIN_LENGTH = 12;
+    private const PASSWORD_POLICY_PATTERNS = [
+        'uppercase' => '/[A-Z]/',
+        'lowercase' => '/[a-z]/',
+        'digit' => '/\d/',
+        'special' => '/[^a-zA-Z0-9]/',
+    ];
+
     private const DEVICE_COOKIE_NAME = 'cms_device';
     private const DEVICE_COOKIE_TTL = 7200;
     private const SESSION_LIFETIME_OPTION_ADMIN = 'perf_session_timeout_admin';
@@ -334,6 +342,104 @@ class Auth
     }
 
     /**
+     * Liefert die technische Passwort-Policy als strukturierte Definition.
+     *
+     * @return array<string, mixed>
+     */
+    public static function getPasswordPolicyDefinition(): array
+    {
+        return [
+            'min_length' => self::PASSWORD_POLICY_MIN_LENGTH,
+            'patterns' => [
+                'uppercase' => '[A-Z]',
+                'lowercase' => '[a-z]',
+                'digit' => '\\d',
+                'special' => '[^a-zA-Z0-9]',
+            ],
+        ];
+    }
+
+    /**
+     * Bewertet ein Passwort gegen die aktuelle Runtime-Policy.
+     *
+     * @return array<string, mixed>
+     */
+    public static function evaluatePasswordPolicy(string $password): array
+    {
+        $length = self::countPasswordLength($password);
+
+        $requirements = [
+            [
+                'key' => 'min_length',
+                'label' => 'Mindestens ' . self::PASSWORD_POLICY_MIN_LENGTH . ' Zeichen',
+                'message' => 'Das Passwort muss mindestens ' . self::PASSWORD_POLICY_MIN_LENGTH . ' Zeichen lang sein.',
+                'passed' => $length >= self::PASSWORD_POLICY_MIN_LENGTH,
+            ],
+            [
+                'key' => 'uppercase',
+                'label' => 'Mindestens ein Großbuchstabe',
+                'message' => 'Das Passwort muss mindestens einen Großbuchstaben enthalten.',
+                'passed' => preg_match(self::PASSWORD_POLICY_PATTERNS['uppercase'], $password) === 1,
+            ],
+            [
+                'key' => 'lowercase',
+                'label' => 'Mindestens ein Kleinbuchstabe',
+                'message' => 'Das Passwort muss mindestens einen Kleinbuchstaben enthalten.',
+                'passed' => preg_match(self::PASSWORD_POLICY_PATTERNS['lowercase'], $password) === 1,
+            ],
+            [
+                'key' => 'digit',
+                'label' => 'Mindestens eine Ziffer',
+                'message' => 'Das Passwort muss mindestens eine Ziffer (0–9) enthalten.',
+                'passed' => preg_match(self::PASSWORD_POLICY_PATTERNS['digit'], $password) === 1,
+            ],
+            [
+                'key' => 'special',
+                'label' => 'Mindestens ein Sonderzeichen',
+                'message' => 'Das Passwort muss mindestens ein Sonderzeichen enthalten (z. B. !@#$%^&*).',
+                'passed' => preg_match(self::PASSWORD_POLICY_PATTERNS['special'], $password) === 1,
+            ],
+        ];
+
+        $message = null;
+        foreach ($requirements as $requirement) {
+            if (!empty($requirement['passed'])) {
+                continue;
+            }
+
+            $message = (string) ($requirement['message'] ?? 'Die Passwort-Policy ist nicht erfüllt.');
+            break;
+        }
+
+        return [
+            'valid' => $message === null,
+            'message' => $message,
+            'length' => $length,
+            'min_length' => self::PASSWORD_POLICY_MIN_LENGTH,
+            'requirements' => $requirements,
+            'definition' => self::getPasswordPolicyDefinition(),
+        ];
+    }
+
+    private static function countPasswordLength(string $password): int
+    {
+        if ($password === '') {
+            return 0;
+        }
+
+        if (function_exists('mb_strlen')) {
+            return mb_strlen($password, 'UTF-8');
+        }
+
+        $characterCount = preg_match_all('/./us', $password, $matches);
+        if ($characterCount !== false) {
+            return $characterCount;
+        }
+
+        return strlen($password);
+    }
+
+    /**
      * M-18: Passwort-Policy validieren.
      *
      * Anforderungen:
@@ -348,27 +454,11 @@ class Auth
      */
     public static function validatePasswordPolicy(string $password): true|string
     {
-        if (strlen($password) < 12) {
-            return 'Das Passwort muss mindestens 12 Zeichen lang sein.';
-        }
+        $evaluation = self::evaluatePasswordPolicy($password);
 
-        if (!preg_match('/[A-Z]/', $password)) {
-            return 'Das Passwort muss mindestens einen Großbuchstaben enthalten.';
-        }
-
-        if (!preg_match('/[a-z]/', $password)) {
-            return 'Das Passwort muss mindestens einen Kleinbuchstaben enthalten.';
-        }
-
-        if (!preg_match('/\d/', $password)) {
-            return 'Das Passwort muss mindestens eine Ziffer (0–9) enthalten.';
-        }
-
-        if (!preg_match('/[^a-zA-Z0-9]/', $password)) {
-            return 'Das Passwort muss mindestens ein Sonderzeichen enthalten (z. B. !@#$%^&*).';
-        }
-
-        return true;
+        return !empty($evaluation['valid'])
+            ? true
+            : (string) ($evaluation['message'] ?? 'Die Passwort-Policy ist nicht erfüllt.');
     }
 
     /**
