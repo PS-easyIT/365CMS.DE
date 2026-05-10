@@ -13,7 +13,22 @@ $packages = $data['packages'] ?? [];
 $stats    = $data['stats'] ?? [];
 $settings = $data['settings'] ?? [];
 $pages    = $data['pages'] ?? [];
+$packageHistoryState = is_array($data['package_history'] ?? null) ? $data['package_history'] : [];
+$packageHistoryEvents = is_array($packageHistoryState['events'] ?? null) ? $packageHistoryState['events'] : [];
+$packageHistoryUnavailable = !empty($packageHistoryState['unavailable']);
 $packagePayload = static fn (array $package): string => htmlspecialchars((string) json_encode($package, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8');
+$formatHistoryDateTime = static function (?string $dateValue): string {
+    $timestamp = $dateValue !== null ? strtotime($dateValue) : false;
+
+    return $timestamp !== false ? date('d.m.Y H:i', $timestamp) : '–';
+};
+$packageHistorySeverityMeta = static function (string $severity): array {
+    return match ($severity) {
+        'critical', 'error' => ['label' => 'Fehler', 'class' => 'bg-danger'],
+        'warning' => ['label' => 'Warnung', 'class' => 'bg-warning'],
+        default => ['label' => 'Info', 'class' => 'bg-info'],
+    };
+};
 ?>
 
 <div class="page-header d-print-none">
@@ -177,6 +192,49 @@ $packagePayload = static fn (array $package): string => htmlspecialchars((string
                 <?php endforeach; ?>
             </div>
         <?php endif; ?>
+
+        <div class="card mt-4">
+            <div class="card-header">
+                <h3 class="card-title">Pakethistorie</h3>
+            </div>
+            <div class="card-body">
+                <p class="text-secondary mb-0">Read-only Auszug aus dem Audit-Log für Paket-Erstellung, Aktualisierung, Statuswechsel und Löschung. Es werden keine rohen Metadaten ausgegeben.</p>
+                <?php if ($packageHistoryUnavailable): ?>
+                    <div class="alert alert-warning mt-3 mb-0" role="alert">Die Pakethistorie konnte aktuell nicht geladen werden. Die Paketverwaltung bleibt weiter nutzbar.</div>
+                <?php endif; ?>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-vcenter card-table">
+                    <thead>
+                        <tr>
+                            <th>Zeitpunkt</th>
+                            <th>Ereignis</th>
+                            <th>Paket</th>
+                            <th>Hinweis</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if ($packageHistoryEvents === []): ?>
+                            <tr>
+                                <td colspan="5" class="text-center text-secondary py-4"><?= htmlspecialchars($packageHistoryUnavailable ? 'Keine Historie verfügbar.' : 'Noch keine passenden Pakethistorien vorhanden.', ENT_QUOTES, 'UTF-8') ?></td>
+                            </tr>
+                        <?php else: ?>
+                            <?php foreach ($packageHistoryEvents as $historyEvent): ?>
+                                <?php $historyMeta = $packageHistorySeverityMeta((string) ($historyEvent['severity'] ?? 'info')); ?>
+                                <tr>
+                                    <td class="text-secondary"><?= htmlspecialchars($formatHistoryDateTime((string) ($historyEvent['created_at'] ?? '')), ENT_QUOTES, 'UTF-8') ?></td>
+                                    <td><strong><?= htmlspecialchars((string) ($historyEvent['action'] ?? 'Ereignis'), ENT_QUOTES, 'UTF-8') ?></strong></td>
+                                    <td><?= htmlspecialchars((string) ($historyEvent['subject'] ?? 'Pakete'), ENT_QUOTES, 'UTF-8') ?></td>
+                                    <td class="text-secondary"><?= htmlspecialchars((string) ($historyEvent['description'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td>
+                                    <td><span class="badge <?= htmlspecialchars((string) $historyMeta['class'], ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars((string) $historyMeta['label'], ENT_QUOTES, 'UTF-8') ?></span></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
 
         <div class="row row-deck row-cards mt-4">
             <div class="col-lg-7">

@@ -1,4 +1,4 @@
-﻿﻿**Version:** 2.9.737
+﻿﻿**Version:** 2.9.738
 
 # 365CMS Changelog
 
@@ -19,6 +19,12 @@
 ## 📜 Vollständige Versionshistorie
 
 ---
+
+### v2.9.738 — 10. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.738** | 🟢 feat | Admin/Aboverwaltung – Historie pro Paket & Bestellung | **`CMS/admin/modules/subscriptions/OrdersModule.php`, `CMS/admin/views/subscriptions/orders.php`, `CMS/admin/modules/subscriptions/PackagesModule.php`, `CMS/admin/views/subscriptions/packages.php`, `CMS/core/Version.php`, `CMS/update.json`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/subscription/README.md`, `CMS/DOC/admin/subscription/ORDERS.md`, `CMS/DOC/admin/subscription/PACKAGES.md`, `CMS/DOC/admin/subscription/SUBSCRIPTION-SYSTEM.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md` und `Changelog.md` schließen das letzte offene Nice-to-have der Aboverwaltung ab**: `/admin/orders` zeigt jetzt eine read-only Historie für sichtbare Bestellungen, Paketzuweisungen und Exportereignisse, während `/admin/packages` eine Pakethistorie für Erstellung, Aktualisierung, Statuswechsel und Löschung ergänzt. Beide Ansichten nutzen ausschließlich begrenzte Auszüge aus dem vorhandenen `audit_log`, geben keine rohen Metadaten, Kontakt-Payloads oder Tokens aus und fallen bei fehlendem oder temporär nicht lesbarem Audit-Log mit neutralem Hinweis aus, ohne die Admin-Seiten in einen HTTP-500 zu ziehen. Neue Paket-Audit-Einträge setzen zusätzlich die Paket-ID als `entity_id`, damit künftige Historien präziser paketbezogen gefunden werden. |
 
 ### v2.9.737 — 10. Mai 2026
 

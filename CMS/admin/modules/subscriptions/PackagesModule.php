@@ -19,6 +19,7 @@ class PackagesModule
     private const int MAX_NAME_LENGTH = 120;
     private const int MAX_SLUG_LENGTH = 120;
     private const int MAX_DESCRIPTION_LENGTH = 2000;
+    private const int MAX_HISTORY_EVENTS = 30;
 
     private readonly \CMS\Database $db;
     private readonly string $prefix;
@@ -77,7 +78,13 @@ class PackagesModule
             'featured' => count(array_filter($packages, fn($p) => (int)$p->is_featured === 1)),
         ];
 
-        return ['packages' => array_map(fn($p) => (array)$p, $packages), 'stats' => $stats];
+        $packageRows = array_map(fn($p) => (array)$p, $packages);
+
+        return [
+            'packages' => $packageRows,
+            'stats' => $stats,
+            'package_history' => $this->buildPackageHistoryState($packageRows),
+        ];
     }
 
     public function seedDefaults(): array
@@ -189,7 +196,7 @@ class PackagesModule
                     'subscriptions.packages.update',
                     'Paket aktualisiert.',
                     'subscriptions',
-                    null,
+                    $id,
                     ['id' => $id, 'slug' => $slug, 'featured' => $isFeatured],
                     'info'
                 );
@@ -208,8 +215,8 @@ class PackagesModule
                     'subscriptions.packages.create',
                     'Paket erstellt.',
                     'subscriptions',
-                    null,
-                    ['slug' => $slug, 'featured' => $isFeatured],
+                    (int) $insertId,
+                    ['id' => (int) $insertId, 'slug' => $slug, 'featured' => $isFeatured],
                     'info'
                 );
                 return ['success' => true, 'message' => 'Paket erstellt.'];
@@ -256,7 +263,7 @@ class PackagesModule
                 'subscriptions.packages.delete',
                 'Paket gelöscht.',
                 'subscriptions',
-                null,
+                $id,
                 ['id' => $id, 'slug' => (string)($plan->slug ?? '')],
                 'warning'
             );
@@ -299,7 +306,7 @@ class PackagesModule
                 'subscriptions.packages.toggle',
                 $newStatus ? 'Paket aktiviert.' : 'Paket deaktiviert.',
                 'subscriptions',
-                null,
+                $id,
                 ['id' => $id, 'slug' => (string)($current->slug ?? ''), 'active' => $newStatus],
                 'info'
             );
@@ -315,6 +322,149 @@ class PackagesModule
         return class_exists(Auth::class)
             && Auth::instance()->isAdmin()
             && Auth::instance()->hasCapability(self::REQUIRED_CAPABILITY);
+    }
+
+    /**
+     * @param list<array<string,mixed>> $packages
+     * @return array{events:list<array<string,mixed>>,unavailable:bool}
+     */
+    private function buildPackageHistoryState(array $packages): array
+    {
+        $packageIds = [];
+        $packageLabelsById = [];
+        $packageLabelsBySlug = [];
+
+        foreach ($packages as $package) {
+            $id = (int) ($package['id'] ?? 0);
+            $slug = trim((string) ($package['slug'] ?? ''));
+            $name = trim((string) ($package['name'] ?? ''));
+            $label = $name !== '' ? $name : ($slug !== '' ? $slug : ('Paket #' . $id));
+
+            if ($id > 0) {
+                $packageIds[$id] = $id;
+                $packageLabelsById[$id] = $label;
+            }
+
+            if ($slug !== '') {
+                $packageLabelsBySlug[$slug] = $label;
+            }
+        }
+
+        $clauses = ["action IN ('subscriptions.packages.seed_defaults')"];
+        $params = [];
+
+        if ($packageIds !== []) {
+            $clauses[] = "(entity_type = 'subscriptions' AND entity_id IN (" . implode(', ', array_fill(0, count($packageIds), '?')) . '))';
+            array_push($params, ...array_values($packageIds));
+
+            foreach ($packageIds as $id) {
+                $clauses[] = "metadata LIKE ? ESCAPE '\\'";
+                $params[] = '%"id":' . $id . '%';
+            }
+        }
+
+        foreach (array_keys($packageLabelsBySlug) as $slug) {
+            $clauses[] = "metadata LIKE ? ESCAPE '\\'";
+            $params[] = '%"slug":"' . $this->escapeSqlLike($slug) . '"%';
+        }
+
+        try {
+            $stmt = $this->db->prepare(
+                "SELECT id, user_id, category, action, entity_type, entity_id, description, severity, metadata, created_at
+                   FROM {$this->prefix}audit_log
+                  WHERE (" . implode(' OR ', $clauses) . ")
+                    AND action LIKE 'subscriptions.packages.%'
+                  ORDER BY created_at DESC, id DESC
+                  LIMIT " . self::MAX_HISTORY_EVENTS
+            );
+            $stmt->execute($params);
+            $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+
+            return [
+                'events' => array_map(
+                    fn (array $row): array => $this->mapPackageHistoryEvent($row, $packageLabelsById, $packageLabelsBySlug),
+                    $rows
+                ),
+                'unavailable' => false,
+            ];
+        } catch (\Throwable $e) {
+            Logger::instance()->withChannel('admin.packages')->warning('Pakethistorie konnte nicht geladen werden.', [
+                'exception' => $e::class,
+            ]);
+
+            return ['events' => [], 'unavailable' => true];
+        }
+    }
+
+    /**
+     * @param array<string,mixed> $row
+     * @param array<int,string> $packageLabelsById
+     * @param array<string,string> $packageLabelsBySlug
+     * @return array<string,mixed>
+     */
+    private function mapPackageHistoryEvent(array $row, array $packageLabelsById, array $packageLabelsBySlug): array
+    {
+        $metadata = $this->decodeHistoryMetadata((string) ($row['metadata'] ?? ''));
+        $entityId = (int) ($row['entity_id'] ?? 0);
+        $slug = trim((string) ($metadata['slug'] ?? ''));
+
+        $subject = 'Pakete';
+        if ($entityId > 0 && isset($packageLabelsById[$entityId])) {
+            $subject = $packageLabelsById[$entityId];
+        } elseif (isset($metadata['id']) && (int) $metadata['id'] > 0 && isset($packageLabelsById[(int) $metadata['id']])) {
+            $subject = $packageLabelsById[(int) $metadata['id']];
+        } elseif ($slug !== '' && isset($packageLabelsBySlug[$slug])) {
+            $subject = $packageLabelsBySlug[$slug];
+        } elseif ($slug !== '') {
+            $subject = $slug;
+        }
+
+        return [
+            'action' => $this->labelPackageHistoryAction((string) ($row['action'] ?? '')),
+            'subject' => $subject,
+            'description' => (string) ($row['description'] ?? ''),
+            'severity' => $this->normalizeHistorySeverity((string) ($row['severity'] ?? 'info')),
+            'created_at' => (string) ($row['created_at'] ?? ''),
+        ];
+    }
+
+    /** @return array<string,mixed> */
+    private function decodeHistoryMetadata(string $metadata): array
+    {
+        if ($metadata === '') {
+            return [];
+        }
+
+        $decoded = json_decode($metadata, true);
+
+        return is_array($decoded) ? $decoded : [];
+    }
+
+    private function labelPackageHistoryAction(string $action): string
+    {
+        return match ($action) {
+            'subscriptions.packages.seed_defaults' => 'Standardpakete ergänzt',
+            'subscriptions.packages.create' => 'Paket erstellt',
+            'subscriptions.packages.update' => 'Paket aktualisiert',
+            'subscriptions.packages.delete' => 'Paket gelöscht',
+            'subscriptions.packages.toggle' => 'Status geändert',
+            'subscriptions.packages.save_failed' => 'Speichern fehlgeschlagen',
+            'subscriptions.packages.delete_failed' => 'Löschen fehlgeschlagen',
+            'subscriptions.packages.toggle_failed' => 'Statuswechsel fehlgeschlagen',
+            default => $action !== '' ? $action : 'Ereignis',
+        };
+    }
+
+    private function normalizeHistorySeverity(string $severity): string
+    {
+        $severity = strtolower(trim($severity));
+
+        return in_array($severity, ['info', 'warning', 'error', 'critical'], true) ? $severity : 'info';
+    }
+
+    private function escapeSqlLike(string $value): string
+    {
+        return addcslashes($value, "\\%_");
     }
 
     private function sanitizeText(string $value, int $maxLength): string
