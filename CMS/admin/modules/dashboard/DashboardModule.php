@@ -185,6 +185,168 @@ class DashboardModule
         'updates',
     ];
 
+    private const ROLE_TEMPLATE_DEFINITIONS = [
+        'admin' => [
+            'label' => 'Administrator',
+            'description' => 'Breite Steuerungsansicht mit Betriebs-, Sicherheits- und Aktivitätsfokus.',
+            'visible_sections' => [
+                'work_overview',
+                'favorites_recent',
+                'attention',
+                'system_status',
+                'security_performance',
+                'recent_orders',
+                'recent_activity',
+            ],
+            'visible_work_overview_widgets' => [
+                'content_pipeline',
+                'comment_queue',
+                'users_total',
+                'pages_total',
+                'posts_total',
+                'media_total',
+                'orders_revenue',
+                'sessions_live',
+                'user_growth',
+                'security_snapshot',
+                'system_stack',
+            ],
+            'work_overview_widget_order' => [
+                'content_pipeline',
+                'comment_queue',
+                'users_total',
+                'pages_total',
+                'posts_total',
+                'media_total',
+                'orders_revenue',
+                'sessions_live',
+                'user_growth',
+                'security_snapshot',
+                'system_stack',
+            ],
+            'favorite_shortcuts' => [
+                'new_page',
+                'new_post',
+                'comments',
+                'media',
+                'users',
+                'analytics',
+                'security_audit',
+                'updates',
+            ],
+            'favorite_shortcut_order' => [
+                'new_page',
+                'new_post',
+                'comments',
+                'media',
+                'users',
+                'analytics',
+                'security_audit',
+                'updates',
+                'cms_logs',
+                'settings',
+                'featured_media',
+            ],
+        ],
+        'editor' => [
+            'label' => 'Redaktion',
+            'description' => 'Redaktionelle Standardansicht mit Fokus auf Content, Moderation und Medien.',
+            'visible_sections' => [
+                'work_overview',
+                'favorites_recent',
+                'attention',
+                'recent_activity',
+            ],
+            'visible_work_overview_widgets' => [
+                'content_pipeline',
+                'comment_queue',
+                'pages_total',
+                'posts_total',
+                'media_total',
+                'sessions_live',
+                'user_growth',
+            ],
+            'work_overview_widget_order' => [
+                'content_pipeline',
+                'comment_queue',
+                'pages_total',
+                'posts_total',
+                'media_total',
+                'sessions_live',
+                'user_growth',
+            ],
+            'favorite_shortcuts' => [
+                'new_page',
+                'new_post',
+                'comments',
+                'media',
+                'analytics',
+            ],
+            'favorite_shortcut_order' => [
+                'new_page',
+                'new_post',
+                'comments',
+                'media',
+                'analytics',
+                'featured_media',
+            ],
+        ],
+        'author' => [
+            'label' => 'Autor',
+            'description' => 'Schlankere Arbeitsansicht für Content-Erstellung, Uploads und Moderation.',
+            'visible_sections' => [
+                'work_overview',
+                'favorites_recent',
+                'attention',
+            ],
+            'visible_work_overview_widgets' => [
+                'content_pipeline',
+                'posts_total',
+                'media_total',
+                'comment_queue',
+            ],
+            'work_overview_widget_order' => [
+                'content_pipeline',
+                'posts_total',
+                'media_total',
+                'comment_queue',
+            ],
+            'favorite_shortcuts' => [
+                'new_post',
+                'media',
+                'comments',
+            ],
+            'favorite_shortcut_order' => [
+                'new_post',
+                'media',
+                'comments',
+                'featured_media',
+            ],
+        ],
+        'member' => [
+            'label' => 'Mitglied',
+            'description' => 'Minimaler Standard mit Fokus auf die wichtigsten Content- und Medienpfade.',
+            'visible_sections' => [
+                'work_overview',
+                'favorites_recent',
+            ],
+            'visible_work_overview_widgets' => [
+                'posts_total',
+                'media_total',
+            ],
+            'work_overview_widget_order' => [
+                'posts_total',
+                'media_total',
+            ],
+            'favorite_shortcuts' => [
+                'media',
+            ],
+            'favorite_shortcut_order' => [
+                'media',
+            ],
+        ],
+    ];
+
     private DashboardService $service;
     private Database $db;
     private string $prefix;
@@ -297,6 +459,7 @@ class DashboardModule
 
         return match ($action) {
             'save_dashboard_preferences' => $this->saveDashboardPreferences($post),
+            'reset_dashboard_preferences' => $this->resetDashboardPreferences(),
             default => ['success' => false, 'error' => 'Unbekannte Dashboard-Aktion.'],
         };
     }
@@ -382,20 +545,34 @@ class DashboardModule
     private function getDashboardPreferences(bool $subscriptionOrdersEnabled, array $workOverviewWidgetDefinitions, array $favoriteShortcutDefinitions): array
     {
         $sections = $this->getDashboardSections($subscriptionOrdersEnabled);
-        $defaultVisible = array_keys($sections);
-        $defaultVisibleWorkOverviewWidgets = array_keys($workOverviewWidgetDefinitions);
-        $defaultWorkOverviewWidgetOrder = array_keys($workOverviewWidgetDefinitions);
-        $defaultFavoriteShortcutOrder = array_keys($favoriteShortcutDefinitions);
-        $defaultFavoriteShortcuts = $this->normalizeFavoriteShortcuts(self::DEFAULT_FAVORITE_SHORTCUTS, $favoriteShortcutDefinitions);
+        $roleTemplate = $this->getRoleTemplateContext($subscriptionOrdersEnabled, $workOverviewWidgetDefinitions, $favoriteShortcutDefinitions);
+        $defaultPreferences = is_array($roleTemplate['preferences'] ?? null) ? $roleTemplate['preferences'] : [];
+        $defaultVisible = is_array($defaultPreferences['visible_sections'] ?? null) ? $defaultPreferences['visible_sections'] : array_keys($sections);
+        $defaultVisibleWorkOverviewWidgets = is_array($defaultPreferences['visible_work_overview_widgets'] ?? null)
+            ? $defaultPreferences['visible_work_overview_widgets']
+            : array_keys($workOverviewWidgetDefinitions);
+        $defaultWorkOverviewWidgetOrder = is_array($defaultPreferences['work_overview_widget_order'] ?? null)
+            ? $defaultPreferences['work_overview_widget_order']
+            : array_keys($workOverviewWidgetDefinitions);
+        $defaultFavoriteShortcutOrder = is_array($defaultPreferences['favorite_shortcut_order'] ?? null)
+            ? $defaultPreferences['favorite_shortcut_order']
+            : array_keys($favoriteShortcutDefinitions);
+        $defaultFavoriteShortcuts = is_array($defaultPreferences['favorite_shortcuts'] ?? null)
+            ? $defaultPreferences['favorite_shortcuts']
+            : $this->normalizeFavoriteShortcuts(self::DEFAULT_FAVORITE_SHORTCUTS, $favoriteShortcutDefinitions);
         $userId = $this->getCurrentUserId();
         if ($userId <= 0) {
-            return [
+            return array_merge([
                 'visible_sections' => $defaultVisible,
                 'visible_work_overview_widgets' => $defaultVisibleWorkOverviewWidgets,
                 'work_overview_widget_order' => $defaultWorkOverviewWidgetOrder,
                 'favorite_shortcuts' => $defaultFavoriteShortcuts,
                 'favorite_shortcut_order' => $defaultFavoriteShortcutOrder,
-            ];
+            ], [
+                'uses_role_template' => true,
+                'has_saved_preferences' => false,
+                'role_template' => $this->buildRoleTemplateViewData($roleTemplate),
+            ]);
         }
 
         try {
@@ -404,21 +581,39 @@ class DashboardModule
                 [$this->getDashboardPreferencesOptionName($userId)]
             );
         } catch (\Throwable) {
-            return [
+            return array_merge([
                 'visible_sections' => $defaultVisible,
                 'visible_work_overview_widgets' => $defaultVisibleWorkOverviewWidgets,
                 'work_overview_widget_order' => $defaultWorkOverviewWidgetOrder,
                 'favorite_shortcuts' => $defaultFavoriteShortcuts,
                 'favorite_shortcut_order' => $defaultFavoriteShortcutOrder,
-            ];
+            ], [
+                'uses_role_template' => true,
+                'has_saved_preferences' => false,
+                'role_template' => $this->buildRoleTemplateViewData($roleTemplate),
+            ]);
         }
 
         $decoded = is_string($optionValue) ? json_decode($optionValue, true) : null;
+        if (!is_array($decoded)) {
+            return array_merge([
+                'visible_sections' => $defaultVisible,
+                'visible_work_overview_widgets' => $defaultVisibleWorkOverviewWidgets,
+                'work_overview_widget_order' => $defaultWorkOverviewWidgetOrder,
+                'favorite_shortcuts' => $defaultFavoriteShortcuts,
+                'favorite_shortcut_order' => $defaultFavoriteShortcutOrder,
+            ], [
+                'uses_role_template' => true,
+                'has_saved_preferences' => false,
+                'role_template' => $this->buildRoleTemplateViewData($roleTemplate),
+            ]);
+        }
+
         $visible = is_array($decoded['visible_sections'] ?? null) ? $decoded['visible_sections'] : $defaultVisible;
         $workOverviewWidgetOrder = is_array($decoded['work_overview_widget_order'] ?? null)
             ? $this->normalizeOrderedPreferenceKeys($decoded['work_overview_widget_order'], $workOverviewWidgetDefinitions)
             : $defaultWorkOverviewWidgetOrder;
-        $hasStoredWorkOverviewWidgets = is_array($decoded) && array_key_exists('visible_work_overview_widgets', $decoded);
+        $hasStoredWorkOverviewWidgets = array_key_exists('visible_work_overview_widgets', $decoded);
         $visibleWorkOverviewWidgets = $hasStoredWorkOverviewWidgets && is_array($decoded['visible_work_overview_widgets'] ?? null)
             ? $this->normalizeVisibleWorkOverviewWidgets($decoded['visible_work_overview_widgets'], $workOverviewWidgetDefinitions, $workOverviewWidgetOrder)
             : $defaultVisibleWorkOverviewWidgets;
@@ -435,6 +630,9 @@ class DashboardModule
             'work_overview_widget_order' => $workOverviewWidgetOrder,
             'favorite_shortcuts' => $favoriteShortcuts,
             'favorite_shortcut_order' => $favoriteShortcutOrder,
+            'uses_role_template' => false,
+            'has_saved_preferences' => true,
+            'role_template' => $this->buildRoleTemplateViewData($roleTemplate),
         ];
     }
 
@@ -502,6 +700,57 @@ class DashboardModule
         );
 
         return ['success' => true, 'message' => 'Dashboard-Ansicht gespeichert.'];
+    }
+
+    private function resetDashboardPreferences(): array
+    {
+        $userId = $this->getCurrentUserId();
+        if ($userId <= 0) {
+            return ['success' => false, 'error' => 'Dashboard-Einstellungen können ohne gültigen Benutzer nicht zurückgesetzt werden.'];
+        }
+
+        $optionName = $this->getDashboardPreferencesOptionName($userId);
+
+        try {
+            $exists = (int) ($this->db->get_var(
+                "SELECT COUNT(*) FROM {$this->prefix}settings WHERE option_name = ?",
+                [$optionName]
+            ) ?? 0);
+        } catch (\Throwable) {
+            return ['success' => false, 'error' => 'Dashboard-Vorlage konnte nicht wiederhergestellt werden.'];
+        }
+
+        if ($exists < 1) {
+            return ['success' => true, 'message' => 'Die Rollen-Vorlage ist bereits aktiv.'];
+        }
+
+        try {
+            $this->db->execute(
+                "DELETE FROM {$this->prefix}settings WHERE option_name = ?",
+                [$optionName]
+            );
+        } catch (\Throwable) {
+            return ['success' => false, 'error' => 'Dashboard-Vorlage konnte nicht wiederhergestellt werden.'];
+        }
+
+        $role = $this->getCurrentUserRole();
+        $resolvedTemplate = $this->resolveRoleTemplateKey($role);
+
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_SETTING,
+            'dashboard.preferences.reset',
+            'Admin-Dashboard-Personalisierung auf Rollen-Vorlage zurückgesetzt',
+            'dashboard',
+            $userId,
+            [
+                'role' => $role !== '' ? $role : 'admin',
+                'role_template' => $resolvedTemplate['key'] ?? 'admin',
+                'exact_match' => !empty($resolvedTemplate['exact_match']),
+            ],
+            'info'
+        );
+
+        return ['success' => true, 'message' => 'Persönliche Dashboard-Ansicht auf Rollen-Vorlage zurückgesetzt.'];
     }
 
     private function normalizeVisibleDashboardSections(array $selectedSections, array $availableSections): array
@@ -607,6 +856,168 @@ class DashboardModule
         $user = Auth::instance()->currentUser();
 
         return (int) ($user->id ?? $_SESSION['user_id'] ?? 0);
+    }
+
+    private function getCurrentUserRole(): string
+    {
+        $user = Auth::instance()->currentUser();
+
+        return $this->normalizeRoleSlug((string) ($user->role ?? $_SESSION['user_role'] ?? ''));
+    }
+
+    private function getCurrentUserRoleLabel(string $role): string
+    {
+        $role = $this->normalizeRoleSlug($role);
+        if ($role === '') {
+            return 'Administrator';
+        }
+
+        if (function_exists('get_role')) {
+            $roleObject = get_role($role);
+            $displayName = trim((string) ($roleObject->display_name ?? ''));
+            if ($displayName !== '') {
+                return $displayName;
+            }
+        }
+
+        return $this->humanizeRoleSlug($role);
+    }
+
+    private function normalizeRoleSlug(string $role): string
+    {
+        if (function_exists('cms_normalize_role_slug')) {
+            return (string) cms_normalize_role_slug($role);
+        }
+
+        $role = strtolower(trim($role));
+        if ($role === 'administrator') {
+            $role = 'admin';
+        }
+
+        $role = preg_replace('/[^a-z0-9_-]+/', '-', $role) ?? '';
+
+        return trim($role, '-_');
+    }
+
+    private function humanizeRoleSlug(string $role): string
+    {
+        if (function_exists('cms_humanize_role_slug')) {
+            return (string) cms_humanize_role_slug($role);
+        }
+
+        $role = str_replace(['_', '-', '.'], ' ', strtolower($role));
+
+        return ucwords(trim($role));
+    }
+
+    private function resolveRoleTemplateKey(string $role): array
+    {
+        $role = $this->normalizeRoleSlug($role);
+        if ($role !== '' && isset(self::ROLE_TEMPLATE_DEFINITIONS[$role])) {
+            return ['key' => $role, 'exact_match' => true];
+        }
+
+        $capabilities = function_exists('cms_load_role_capabilities') && $role !== ''
+            ? cms_load_role_capabilities($role)
+            : [];
+
+        $hasAnyCapability = static function (array $availableCapabilities, array $needles): bool {
+            foreach ($needles as $needle) {
+                if (!empty($availableCapabilities[$needle])) {
+                    return true;
+                }
+            }
+
+            return false;
+        };
+
+        if ($hasAnyCapability($capabilities, ['manage_settings', 'manage_system', 'manage_users'])) {
+            return ['key' => 'admin', 'exact_match' => false];
+        }
+
+        if ($hasAnyCapability($capabilities, ['manage_pages', 'edit_all_posts', 'comments.moderate'])) {
+            return ['key' => 'editor', 'exact_match' => false];
+        }
+
+        if ($hasAnyCapability($capabilities, ['posts.create', 'edit_own_posts', 'pages.create'])) {
+            return ['key' => 'author', 'exact_match' => false];
+        }
+
+        return ['key' => 'member', 'exact_match' => false];
+    }
+
+    private function getRoleTemplateContext(bool $subscriptionOrdersEnabled, array $workOverviewWidgetDefinitions, array $favoriteShortcutDefinitions): array
+    {
+        $sections = $this->getDashboardSections($subscriptionOrdersEnabled);
+        $role = $this->getCurrentUserRole();
+        $resolvedTemplate = $this->resolveRoleTemplateKey($role);
+        $templateKey = (string) ($resolvedTemplate['key'] ?? 'admin');
+        $definition = self::ROLE_TEMPLATE_DEFINITIONS[$templateKey] ?? self::ROLE_TEMPLATE_DEFINITIONS['admin'];
+
+        $workOverviewWidgetOrder = $this->normalizeOrderedPreferenceKeys(
+            is_array($definition['work_overview_widget_order'] ?? null)
+                ? $definition['work_overview_widget_order']
+                : (is_array($definition['visible_work_overview_widgets'] ?? null) ? $definition['visible_work_overview_widgets'] : array_keys($workOverviewWidgetDefinitions)),
+            $workOverviewWidgetDefinitions
+        );
+        $visibleWorkOverviewWidgets = $this->normalizeVisibleWorkOverviewWidgets(
+            is_array($definition['visible_work_overview_widgets'] ?? null)
+                ? $definition['visible_work_overview_widgets']
+                : $workOverviewWidgetOrder,
+            $workOverviewWidgetDefinitions,
+            $workOverviewWidgetOrder
+        );
+        if ($visibleWorkOverviewWidgets === []) {
+            $visibleWorkOverviewWidgets = array_slice($workOverviewWidgetOrder, 0, min(4, count($workOverviewWidgetOrder)));
+        }
+
+        $favoriteShortcutOrder = $this->normalizeOrderedPreferenceKeys(
+            is_array($definition['favorite_shortcut_order'] ?? null)
+                ? $definition['favorite_shortcut_order']
+                : (is_array($definition['favorite_shortcuts'] ?? null) ? $definition['favorite_shortcuts'] : array_keys($favoriteShortcutDefinitions)),
+            $favoriteShortcutDefinitions
+        );
+        $favoriteShortcuts = $this->normalizeFavoriteShortcuts(
+            is_array($definition['favorite_shortcuts'] ?? null)
+                ? $definition['favorite_shortcuts']
+                : self::DEFAULT_FAVORITE_SHORTCUTS,
+            $favoriteShortcutDefinitions,
+            $favoriteShortcutOrder
+        );
+        if ($favoriteShortcuts === []) {
+            $favoriteShortcuts = $this->normalizeFavoriteShortcuts(self::DEFAULT_FAVORITE_SHORTCUTS, $favoriteShortcutDefinitions, $favoriteShortcutOrder);
+        }
+
+        return [
+            'key' => $templateKey,
+            'label' => (string) ($definition['label'] ?? $this->getCurrentUserRoleLabel($role)),
+            'description' => (string) ($definition['description'] ?? ''),
+            'role' => $role !== '' ? $role : 'admin',
+            'role_label' => $this->getCurrentUserRoleLabel($role),
+            'exact_match' => !empty($resolvedTemplate['exact_match']),
+            'preferences' => [
+                'visible_sections' => $this->normalizeVisibleDashboardSections(
+                    is_array($definition['visible_sections'] ?? null) ? $definition['visible_sections'] : array_keys($sections),
+                    $sections
+                ),
+                'visible_work_overview_widgets' => $visibleWorkOverviewWidgets,
+                'work_overview_widget_order' => $workOverviewWidgetOrder,
+                'favorite_shortcuts' => $favoriteShortcuts,
+                'favorite_shortcut_order' => $favoriteShortcutOrder,
+            ],
+        ];
+    }
+
+    private function buildRoleTemplateViewData(array $roleTemplate): array
+    {
+        return [
+            'key' => (string) ($roleTemplate['key'] ?? 'admin'),
+            'label' => (string) ($roleTemplate['label'] ?? 'Administrator'),
+            'description' => (string) ($roleTemplate['description'] ?? ''),
+            'role' => (string) ($roleTemplate['role'] ?? 'admin'),
+            'role_label' => (string) ($roleTemplate['role_label'] ?? 'Administrator'),
+            'exact_match' => !empty($roleTemplate['exact_match']),
+        ];
     }
 
     private function buildDashboardHealthAlerts(array $meta): array

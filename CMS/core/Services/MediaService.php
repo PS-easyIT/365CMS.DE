@@ -1163,6 +1163,94 @@ class MediaService {
     }
 
     /**
+     * Build a read-only duplicate map for the provided managed media paths.
+     *
+     * Files are grouped by byte size first and only same-sized candidates are
+     * hashed with SHA-256. This keeps the library view deterministic without
+     * hashing every visible file unnecessarily.
+     *
+     * @param array<int, string> $relativePaths
+     * @return array<string, array{group_id:string,hash:string,short_hash:string,duplicate_count:int,duplicate_paths:list<string>,size:int}>
+     */
+    public function buildDuplicateHashMap(array $relativePaths): array
+    {
+        $candidatesBySize = [];
+        $seenPaths = [];
+
+        foreach ($relativePaths as $relativePath) {
+            $normalizedPath = $this->normalizeManagedRelativePath((string) $relativePath);
+            if ($normalizedPath === '' || isset($seenPaths[$normalizedPath])) {
+                continue;
+            }
+            $seenPaths[$normalizedPath] = true;
+
+            $absolutePath = $this->resolveManagedAbsolutePath($normalizedPath);
+            if ($absolutePath instanceof WP_Error || !is_file($absolutePath) || !is_readable($absolutePath)) {
+                continue;
+            }
+
+            $fileSize = filesize($absolutePath);
+            if ($fileSize === false || $fileSize < 0) {
+                continue;
+            }
+
+            $candidatesBySize[(string) $fileSize][] = [
+                'path' => $normalizedPath,
+                'absolute_path' => $absolutePath,
+                'size' => (int) $fileSize,
+            ];
+        }
+
+        $duplicates = [];
+        $groupNumber = 0;
+
+        foreach ($candidatesBySize as $candidates) {
+            if (count($candidates) < 2) {
+                continue;
+            }
+
+            $candidatesByHash = [];
+            foreach ($candidates as $candidate) {
+                $hash = @hash_file('sha256', (string) $candidate['absolute_path']);
+                if (!is_string($hash) || $hash === '') {
+                    continue;
+                }
+
+                $candidatesByHash[$hash][] = $candidate;
+            }
+
+            foreach ($candidatesByHash as $hash => $hashGroup) {
+                if (count($hashGroup) < 2) {
+                    continue;
+                }
+
+                $groupNumber++;
+                $paths = array_map(
+                    static fn (array $candidate): string => (string) $candidate['path'],
+                    $hashGroup
+                );
+
+                foreach ($hashGroup as $candidate) {
+                    $path = (string) $candidate['path'];
+                    $duplicates[$path] = [
+                        'group_id' => 'sha256-' . $groupNumber,
+                        'hash' => $hash,
+                        'short_hash' => substr($hash, 0, 12),
+                        'duplicate_count' => count($hashGroup),
+                        'duplicate_paths' => array_values(array_filter(
+                            $paths,
+                            static fn (string $otherPath): bool => $otherPath !== $path
+                        )),
+                        'size' => (int) $candidate['size'],
+                    ];
+                }
+            }
+        }
+
+        return $duplicates;
+    }
+
+    /**
      * Get disk usage
      */
     public function getDiskUsage(): array {

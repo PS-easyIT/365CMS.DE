@@ -1,8 +1,8 @@
 # 365CMS – Cookie-Manager
 
-Kurzbeschreibung: Verwaltung von Cookie-Kategorien, Diensten, Banner-Texten und der öffentlichen Einwilligungsseite.
+Kurzbeschreibung: Verwaltung von Cookie-Kategorien, Diensten, Banner-Texten, Matomo-Self-Hosted-Transparenzwerten und der öffentlichen Einwilligungsseite.
 
-Letzte Aktualisierung: 2026-03-28 · Version 2.8.0 RC
+Letzte Aktualisierung: 2026-05-10 · Version 2.9.723
 
 ---
 
@@ -15,6 +15,7 @@ Wichtige Aufgaben:
 - Cookie-Kategorien verwalten
 - Dienste und zugehörige Cookies pflegen
 - Banner- und Textbausteine definieren
+- Matomo-Self-Hosted-Werte wie URL, Site-ID, Hosting-Region, IP-Anonymisierung, Do-Not-Track, cookieloser Betrieb, Log-Aufbewahrung und DSGVO-Hinweis pflegen
 - kuratierte Dienste importieren
 - Website-Scan auslösen
 
@@ -25,6 +26,8 @@ Wichtige Aufgaben:
 Die öffentliche Seite für Besucher lautet `/cookie-einstellungen`.
 
 Sie wird nicht als normale CMS-Seite gepflegt, sondern vom `CookieConsentService` bereitgestellt und mit nativen 365CMS-Assets hydratisiert. Eine aktive Vendor-Runtime aus `CMS/assets/cookieconsent/` ist dafür nicht mehr nötig.
+
+Seit `2.9.722` nutzt die öffentliche Seite dieselben `cookie_matomo_*`-Settings wie der Admin-Cookie-Manager. Falls dort keine Cookie-spezifische Matomo-URL gespeichert ist, kann die Runtime kontrolliert auf vorhandene SEO-Matomo-Einstellungen zurückfallen; der Matomo-Transparenzblock erscheint aber nur, wenn tatsächlich ein Matomo-Service oder echte Matomo-Transparenzwerte konfiguriert sind. Seit `2.9.723` verwenden Admin und Public dafür denselben robusteren Matomo-URL-Parser: akzeptiert werden `http`/`https`-URLs ohne Zugangsdaten, auch mit IDN-/Intranet-Hosts, `localhost`, IP-Adressen, Ports, Pfaden und Query-Parametern; Copy/Paste-Leerzeichen werden bereinigt.
 
 ---
 
@@ -53,7 +56,7 @@ Pro Dienst werden üblicherweise gepflegt:
 
 ### Einstellungen
 
-Konfigurierbar sind unter anderem Banner-Texte, Button-Beschriftungen, Standardzustände, Scanner-Einstellungen und ergänzende Hinweise für öffentlich dargestellte Datenschutzhinweise.
+Konfigurierbar sind unter anderem Banner-Texte, Button-Beschriftungen, Standardzustände, Scanner-Einstellungen und ergänzende Hinweise für öffentlich dargestellte Datenschutzhinweise. Globale Settings werden in `settings` atomar per Upsert gespeichert, damit bereits vorhandene Schlüssel sauber überschrieben werden und Speicherfehler nicht als erfolgreiche PRG-Meldung durchrutschen.
 
 ---
 
@@ -70,6 +73,7 @@ Im Datenmodell spielen insbesondere diese Tabellen eine Rolle:
 
 - `cookie_categories`
 - `cookie_services`
+- `settings` für globale Consent- und Matomo-Self-Hosted-Werte
 
 ---
 

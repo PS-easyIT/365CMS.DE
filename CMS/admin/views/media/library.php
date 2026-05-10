@@ -133,6 +133,38 @@ function renderMediaUsageSummary(array $usageItems, int $usageCount): string {
     return $html;
 }
 
+function renderMediaDuplicateSummary(array $file, bool $compact = false): string {
+    $duplicateCount = (int)($file['duplicate_count'] ?? 0);
+    $duplicatePaths = is_array($file['duplicate_paths'] ?? null) ? $file['duplicate_paths'] : [];
+
+    if ($duplicateCount < 2 || $duplicatePaths === []) {
+        return '';
+    }
+
+    $shortHash = (string)($file['duplicate_short_hash'] ?? '');
+    $label = $duplicateCount === 2 ? '1 Duplikat' : ($duplicateCount - 1) . ' Duplikate';
+    $html = '<div class="small mt-1">';
+    $html .= '<span class="badge bg-warning-lt text-warning">' . htmlspecialchars($label) . '</span>';
+
+    if ($shortHash !== '') {
+        $html .= '<span class="text-secondary ms-1">Hash ' . htmlspecialchars($shortHash) . '</span>';
+    }
+
+    if (!$compact) {
+        $visiblePaths = array_slice(array_map('strval', $duplicatePaths), 0, 3);
+        $html .= '<div class="text-secondary mt-1">Auch vorhanden: ' . htmlspecialchars(implode(', ', $visiblePaths));
+        $remaining = count($duplicatePaths) - count($visiblePaths);
+        if ($remaining > 0) {
+            $html .= ' +' . $remaining . ' weitere';
+        }
+        $html .= '</div>';
+    }
+
+    $html .= '</div>';
+
+    return $html;
+}
+
 ?>
 
 <div class="page-header d-print-none">
@@ -292,6 +324,14 @@ function renderMediaUsageSummary(array $usageItems, int $usageCount): string {
                             </div>
                         </div>
                     </div>
+                    <?php if ((int)($stats['duplicate_file_count'] ?? 0) > 0): ?>
+                        <div class="alert alert-warning mb-0 mt-3" role="status">
+                            <strong>Duplikat-Erkennung:</strong>
+                            <?php echo (int)($stats['duplicate_file_count'] ?? 0); ?> sichtbare Datei(en)
+                            gehören zu <?php echo (int)($stats['duplicate_group_count'] ?? 0); ?> identischen Hash-Gruppe(n).
+                            Die Erkennung ist read-only; Löschen oder Verschieben bleibt eine bewusste Admin-Aktion.
+                        </div>
+                    <?php endif; ?>
                 </div>
             </div>
 
@@ -391,6 +431,7 @@ function renderMediaUsageSummary(array $usageItems, int $usageCount): string {
                                     <div class="media-grid-label"><?php echo htmlspecialchars((string)($file['name'] ?? '')); ?></div>
                                     <div class="media-grid-meta"><?php echo htmlspecialchars((string)($file['category_label'] ?? 'Ohne Kategorie')); ?></div>
                                     <div class="media-grid-meta small"><?php echo renderMediaUsageSummary((array)($file['usage_items'] ?? []), (int)($file['usage_count'] ?? 0)); ?></div>
+                                    <?php echo renderMediaDuplicateSummary($file, true); ?>
                                 </div>
                             <?php endforeach; ?>
                         </div>
@@ -476,6 +517,7 @@ function renderMediaUsageSummary(array $usageItems, int $usageCount): string {
                                                 <a href="<?php echo htmlspecialchars((string)($file['url'] ?? '')); ?>" target="_blank" rel="noopener noreferrer" class="fw-semibold text-reset">
                                                     <?php echo htmlspecialchars((string)($file['name'] ?? '')); ?>
                                                 </a>
+                                                <?php echo renderMediaDuplicateSummary($file); ?>
                                             </td>
                                             <td>
                                                 <form method="post" class="d-flex gap-2 align-items-center">

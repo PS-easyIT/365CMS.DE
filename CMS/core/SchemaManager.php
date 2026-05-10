@@ -23,11 +23,10 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-if (defined('CMS_SCHEMA_MANAGER_LOADED') || class_exists(__NAMESPACE__ . '\\SchemaManager', false)) {
-    return;
-}
-
-define('CMS_SCHEMA_MANAGER_LOADED', true);
+if (!class_exists(__NAMESPACE__ . '\\SchemaManager', false)) {
+    if (!defined('CMS_SCHEMA_MANAGER_LOADED')) {
+        define('CMS_SCHEMA_MANAGER_LOADED', true);
+    }
 
 class SchemaManager
 {
@@ -1055,4 +1054,5 @@ class SchemaManager
             error_log(sprintf('SchemaManager::ensureColumnExists(%s.%s) failed: %s', $table, $column, $e->getMessage()));
         }
     }
+}
 }

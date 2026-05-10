@@ -285,8 +285,9 @@ class CookieManagerModule
             return ['success' => false, 'error' => 'Zugriff verweigert.'];
         }
 
-        $matomoSelfHostedUrl = $this->sanitizeOptionalUrl((string)($post['cookie_matomo_self_hosted_url'] ?? ''));
-        if (trim((string)($post['cookie_matomo_self_hosted_url'] ?? '')) !== '' && $matomoSelfHostedUrl === '') {
+        $rawMatomoSelfHostedUrl = $this->cleanUrlInput((string)($post['cookie_matomo_self_hosted_url'] ?? ''));
+        $matomoSelfHostedUrl = $this->sanitizeOptionalUrl($rawMatomoSelfHostedUrl);
+        if ($rawMatomoSelfHostedUrl !== '' && $matomoSelfHostedUrl === '') {
             return ['success' => false, 'error' => 'Die Matomo-URL muss als gültige http(s)-URL ohne Zugangsdaten angegeben werden.'];
         }
 
@@ -987,13 +988,7 @@ class CookieManagerModule
 
     private function storeSetting(string $key, string $value): void
     {
-        $this->warmSettingNamesCache([$key]);
-        if (isset($this->existingSettingNamesCache[$key])) {
-            $this->db->update('settings', ['option_value' => $value], ['option_name' => $key]);
-            return;
-        }
-
-        $this->db->insert('settings', ['option_name' => $key, 'option_value' => $value]);
+        $this->upsertSetting($key, $value);
         $this->existingSettingNamesCache[$key] = true;
     }
 
@@ -1004,15 +999,26 @@ class CookieManagerModule
             return;
         }
 
-        $this->warmSettingNamesCache(array_keys($values));
         foreach ($values as $key => $value) {
-            if (isset($this->existingSettingNamesCache[$key])) {
-                $this->db->update('settings', ['option_value' => $value], ['option_name' => $key]);
-                continue;
-            }
-
-            $this->db->insert('settings', ['option_name' => $key, 'option_value' => $value]);
+            $this->upsertSetting((string)$key, (string)$value);
             $this->existingSettingNamesCache[$key] = true;
+        }
+    }
+
+    private function upsertSetting(string $key, string $value): void
+    {
+        $key = trim($key);
+        if ($key === '') {
+            throw new \InvalidArgumentException('Leerer Setting-Key kann nicht gespeichert werden.');
+        }
+
+        $stmt = $this->db->prepare(
+            "INSERT INTO {$this->prefix}settings (option_name, option_value)
+             VALUES (?, ?)
+             ON DUPLICATE KEY UPDATE option_value = VALUES(option_value)"
+        );
+        if ($stmt === false || !$stmt->execute([$key, $value])) {
+            throw new \RuntimeException('Setting konnte nicht gespeichert werden: ' . $key);
         }
     }
 
@@ -1059,17 +1065,16 @@ class CookieManagerModule
 
     private function sanitizeOptionalUrl(string $url): string
     {
-        $url = trim($url);
+        $url = $this->cleanUrlInput($url);
         if ($url === '') {
             return '';
         }
 
-        if (!preg_match('~^[a-z][a-z0-9+.-]*://~i', $url) && preg_match('~^[a-z0-9.-]+(?::\d+)?(?:/.*)?$~i', $url)) {
+        if (!preg_match('~^[a-z][a-z0-9+.-]*://~i', $url) && preg_match('~^[^\s/:?#]+(?::\d+)?(?:[/?#].*)?$~u', $url)) {
             $url = 'https://' . ltrim($url, '/');
         }
 
-        $url = trim((string)filter_var($url, FILTER_SANITIZE_URL));
-        if ($url === '' || filter_var($url, FILTER_VALIDATE_URL) === false) {
+        if (preg_match('/\s/u', $url) === 1) {
             return '';
         }
 
@@ -1079,8 +1084,12 @@ class CookieManagerModule
         }
 
         $scheme = strtolower((string)($parts['scheme'] ?? ''));
-        $host = trim((string)($parts['host'] ?? ''));
+        $host = $this->normalizeUrlHost((string)($parts['host'] ?? ''));
         if (!in_array($scheme, ['http', 'https'], true) || $host === '' || isset($parts['user']) || isset($parts['pass'])) {
+            return '';
+        }
+
+        if (isset($parts['port']) && ((int)$parts['port'] < 1 || (int)$parts['port'] > 65535)) {
             return '';
         }
 
@@ -1094,7 +1103,52 @@ class CookieManagerModule
             $normalized .= '/' . ltrim($path, '/');
         }
 
+        $query = trim((string)($parts['query'] ?? ''));
+        if ($query !== '') {
+            $normalized .= '?' . $query;
+        }
+
         return $normalized;
+    }
+
+    private function cleanUrlInput(string $url): string
+    {
+        $url = str_replace(["\u{00A0}", "\u{200B}", "\u{FEFF}"], ' ', $url);
+        $url = preg_replace('/[\x00-\x1F\x7F]+/u', '', $url) ?? $url;
+        $url = preg_replace('/^\p{Z}+|\p{Z}+$/u', '', $url) ?? $url;
+
+        return trim($url);
+    }
+
+    private function normalizeUrlHost(string $host): string
+    {
+        $host = trim($host);
+        if ($host === '') {
+            return '';
+        }
+
+        if (str_starts_with($host, '[') && str_ends_with($host, ']')) {
+            $ipv6 = trim($host, '[]');
+            return filter_var($ipv6, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== false ? '[' . strtolower($ipv6) . ']' : '';
+        }
+
+        if (filter_var($host, FILTER_VALIDATE_IP) !== false) {
+            return $host;
+        }
+
+        if (function_exists('idn_to_ascii')) {
+            $asciiHost = idn_to_ascii($host, IDNA_DEFAULT, INTL_IDNA_VARIANT_UTS46);
+            if (is_string($asciiHost) && $asciiHost !== '') {
+                $host = $asciiHost;
+            }
+        }
+
+        $host = strtolower($host);
+        if (preg_match('/^[a-z0-9._-]+$/', $host) !== 1 || str_contains($host, '..')) {
+            return '';
+        }
+
+        return $host;
     }
 
     private function normalizePolicyUrl(string $url): string

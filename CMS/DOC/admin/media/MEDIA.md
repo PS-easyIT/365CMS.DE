@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Verwaltung hochgeladener Dateien und Ordner, Kategorien, Medieneinstellungen und kontrollierter Auslieferung über interne Services.
 
-Letzte Aktualisierung: 2026-05-09 · Version 2.9.618
+Letzte Aktualisierung: 2026-05-10 · Version 2.9.721
 
 ---
 
@@ -32,6 +32,7 @@ Die Medienverwaltung bündelt Bibliothek, Beitrags-/Site-Medien, Kategorien und 
 | Listen- und Grid-Ansicht | kompakte Darstellung für Dateien und Ordner |
 | Suchfeld | Filterung nach Dateien und Medienbegriffen |
 | Kategorien-Filter | Eingrenzung nach Mediengruppen |
+| Duplikat-Erkennung | read-only Hinweise auf sichtbare Dateien mit identischem SHA-256-Inhalts-Hash |
 | Native Uploads | Mehrfachauswahl über interne API-/Form-Flows |
 | Rename-/Move-Modale | zentrale Dialoge statt breiter Inline-Formulare |
 | Bulk-Löschen / Bulk-Verschieben | Mehrfachauswahl im Admin mit vorbereiteten Zielordnern |
@@ -76,6 +77,8 @@ Typische Metadaten umfassen:
 - Systempfad-Klassifikation
 
 Zusätzliche derivative Dateien entstehen – abhängig von den Einstellungen – direkt neben dem Original mit bekannten Suffixen wie `-small`, `-medium`, `-large`, `-banner` sowie optional `.webp`.
+
+Die Duplikat-Erkennung arbeitet nicht als dauerhafter Metadatenindex, sondern wird in der aktuellen Bibliotheksansicht read-only berechnet: sichtbare Dateien werden zuerst nach Byte-Größe gruppiert; nur Gruppen mit mindestens zwei gleich großen Dateien werden anschließend per `hash_file('sha256', ...)` auf identische Inhalte geprüft. Fehlende, nicht lesbare oder ungültige Pfade werden übersprungen, damit die Bibliothek fail-soft sichtbar bleibt.
 
 ---
 
@@ -139,6 +142,8 @@ Absicherungen und UX-Details:
 Sowohl das Admin-Upload-Modal als auch der Member-Uploader aktualisieren nach erfolgreichen Uploads nun den tatsächlich verwendeten Zielordner. Dadurch bleiben automatisch angelegte Jahres-/Monats-Unterordner nicht mehr „unsichtbar“, sondern der View springt direkt dorthin zurück.
 
 Zusätzlich benennt die Bulk-Schaltfläche in der Bibliothek die ausgewählte Aktion jetzt explizit und bleibt gesperrt, bis Auswahl **und** gültige Aktion zusammenpassen.
+
+Seit `2.9.721` markiert die Bibliothek identische sichtbare Dateien zusätzlich mit einem Duplikat-Badge, Kurz-Hash und den ersten weiteren Pfaden derselben Hash-Gruppe. Diese Anzeige ersetzt keine redaktionelle Entscheidung: Admins löschen oder verschieben Duplikate weiterhin bewusst über die vorhandenen Einzel- oder Bulk-Aktionen.
 
 ---
 

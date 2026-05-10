@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Überblick über die aktuellen Legal-, Privacy- und Security-Module im Admin-Bereich.
 
-Letzte Aktualisierung: 2026-05-09 · Version 2.9.625
+Letzte Aktualisierung: 2026-05-10 · Version 2.9.723
 
 Der Bereich ist in zwei Gruppen gegliedert:
 
@@ -18,7 +18,7 @@ Die Menüstruktur wird aus `CMS/admin/partials/sidebar.php` gespeist. Dadurch ge
 | Route | Zweck |
 |---|---|
 | `/admin/legal-sites` | Verwaltung von Impressum, Datenschutz, AGB und weiteren Legal Pages |
-| `/admin/cookie-manager` | Cookie-Kategorien, Services, Banner- und Scanner-Konfiguration |
+| `/admin/cookie-manager` | Cookie-Kategorien, Services, Banner-, Scanner- und Matomo-Self-Hosted-Transparenzkonfiguration |
 | `/admin/data-requests` | gebündelte Bearbeitung von Auskunfts- und Löschanfragen |
 
 Besonderheit: Frühere Einzelseiten für Privacy- und Deletion-Requests werden heute auf die Sammelroute `/admin/data-requests` zusammengeführt.
@@ -54,6 +54,7 @@ Besonderheit: Frühere Einzelseiten für Privacy- und Deletion-Requests werden h
 Mehrere Module in diesem Bereich schreiben sicherheitsrelevante oder rechtlich relevante Aktionen inzwischen in das Audit-Log, darunter insbesondere:
 
 - Speichern von Legal-Site-Einstellungen
+- Speichern von Cookie-/Consent- und Matomo-Self-Hosted-Einstellungen
 - Zustandswechsel und Ablehnungen in `/admin/data-requests`
 - Firewall-Regeln anlegen, löschen oder umschalten
 - AntiSpam-Blacklist pflegen

@@ -1,8 +1,8 @@
 # 365CMS – Admin-Dashboard
 
-Kurzbeschreibung: Überblick über die Startseite des Admin-Bereichs mit KPI-Karten, Statushinweisen, Schnellzugriffen und fail-soften Statusblöcken.
+Kurzbeschreibung: Überblick über die Startseite des Admin-Bereichs mit KPI-Karten, Statushinweisen, Schnellzugriffen, rollenbasierten Standardvorlagen und fail-soften Statusblöcken.
 
-Letzte Aktualisierung: 2026-05-10 · Stand: Dashboard-Sortierung Mai 2026 · Release 2.9.718
+Letzte Aktualisierung: 2026-05-10 · Stand: Dashboard-Rollenvorlagen Mai 2026 · Release 2.9.720
 
 **Admin-Route:** `/admin`
 
@@ -25,6 +25,7 @@ Im aktuellen Stand bildet das Dashboard vor allem den Überblick über:
 - benutzerbezogene Sichtbarkeitsprofile für optionale Dashboard-Bereiche
 - einzeln schaltbare Widgets innerhalb der zentralen Arbeitsübersicht
 - serverseitig gespeicherte Favoriten und eine lokale Liste zuletzt genutzter Admin-Ziele
+- rollenbasierte Standardvorlagen für neue oder zurückgesetzte persönliche Dashboard-Ansichten
 - persistente Reihenfolge für Arbeits-Widgets und Favoriten per Drag-&-Drop oder Pfeil-Fallback
 
 ---
@@ -44,7 +45,7 @@ Im aktuellen Stand bildet das Dashboard vor allem den Überblick über:
 
 ---
 
-## Personalisierung seit 2.9.701 / 2.9.716 / 2.9.717 / 2.9.718
+## Personalisierung seit 2.9.701 / 2.9.716 / 2.9.717 / 2.9.718 / 2.9.719 / 2.9.720
 
 Admins können ihre Startansicht direkt auf `/admin` über „Dashboard personalisieren“ fokussieren. Die Auswahl wird pro Admin-Benutzer in `settings` als `admin_dashboard_preferences_user_<id>` gespeichert und bewusst mit `autoload = 0` abgelegt.
 
@@ -64,6 +65,10 @@ Seit `2.9.717` lassen sich außerdem vordefinierte Favoriten-Ziele pro Admin-Ben
 
 Seit `2.9.718` bleibt diese Personalisierung nicht mehr auf Sichtbarkeit beschränkt: Arbeits-Widgets und Favoriten können jetzt zusätzlich sortiert werden. Die UI nutzt Drag-&-Drop als Komfortpfad, hält aber Auf/Ab-Buttons als Fallback bereit, damit die Funktion auch ohne gelungene Drag-Interaktion bedienbar bleibt.
 
+Seit `2.9.719` wird der browserlokale Recent-Block zusätzlich nachgehärtet: Beim Lesen und Schreiben werden nur gültige interne Admin-Ziele übernommen, doppelte oder beschädigte Einträge entfernt, URL-/Label-Längen begrenzt und der gespeicherte Verlauf klein gehalten. Außerdem liegt das Dashboard-spezifische CSS nun als cachebares Seiten-Asset vor statt inline in der View.
+
+Seit `2.9.720` erhalten neue oder zurückgesetzte persönliche Ansichten zusätzlich eine **rollenbasierte Standardvorlage**. Diese Vorlage liefert pro Rolle bzw. capability-basierter Rollenfamilie sinnvolle Defaults für sichtbare Bereiche, aktive Arbeits-Widgets, Favoriten und deren Reihenfolge. Persönliche Änderungen bleiben weiterhin benutzerbezogen; über „Rollen-Vorlage wiederherstellen“ kann ein Admin jederzeit sauber auf den Standard seiner Rolle zurückfallen.
+
 Der Speichern-Flow läuft über die gemeinsame Admin-Section-Shell mit CSRF-Prüfung, normalisiert eingereichte Bereichs-, Widget- und Favoriten-Schlüssel sowie ihre Reihenfolgen serverseitig gegen eine Allowlist und schreibt einen Audit-Eintrag `dashboard.preferences.save`. Seit `2.9.705` toleriert die CSRF-Schicht mehrere parallel geöffnete Admin-Formulare derselben Action innerhalb des TTL-Fensters; der tatsächlich verwendete Token wird nach erfolgreicher Prüfung weiterhin verbraucht.
 
 ---
@@ -76,7 +81,7 @@ Der Speichern-Flow läuft über die gemeinsame Admin-Section-Shell mit CSRF-Prü
 - Quicklinks und Filter-/Sortierlogik gehören außerhalb einzelner Kartenblöcke, damit die Kartensammlung visuell ruhig bleibt.
 - Fällt nur eine Datenquelle aus, bleibt das Dashboard insgesamt renderbar; der degradierte Zustand wird über einen Hinweis auf `CMS Logs` transparent gemacht.
 - Die Personalisierung ändert nur die Sichtbarkeit optionaler Blöcke bzw. vordefinierter Widgets, nicht die zugrunde liegenden Berechtigungen oder Audit-/Warnlogik.
-- „Zuletzt genutzt“ speichert nur nicht-sensitive interne Navigationsziele im Browser; bei deaktiviertem Storage fällt der Block still auf einen leeren Zustand zurück.
+- „Zuletzt genutzt“ speichert nur nicht-sensitive interne Navigationsziele im Browser; bei deaktiviertem Storage fällt der Block still auf einen leeren Zustand zurück und bereinigt beschädigte oder veraltete Einträge fail-soft.
 - Die Sortierung ist progressiv erweitert: Drag-&-Drop ist Komfort, die Pfeilbuttons sind der robuste Fallback. So bleibt die Personalisierung auch dann nutzbar, wenn Browser-DnD nicht ideal funktioniert.
 
 ---
@@ -89,7 +94,7 @@ Der Speichern-Flow läuft über die gemeinsame Admin-Section-Shell mit CSRF-Prü
 - Arbeits-Widgets und Attention-Items arbeiten aus derselben Stats-Basis wie Dashboard-Alerts, damit Kennzahlen konsistent bleiben
 - Bestellbezogene Blöcke erscheinen nur, wenn die zugehörigen Subscription-/Orders-Module aktiv sind
 - Statistiksegmente werden seit `2.9.615` einzeln fail-soft geladen und bei Ausfall mit strukturiertem Logger-Hinweis auf dem Kanal `dashboard` protokolliert
-- Dashboard-Sichtbarkeitsprofile werden seit `2.9.701` pro Admin-Benutzer serverseitig gespeichert, CSRF-geschützt geändert und auditierbar protokolliert; seit `2.9.716` umfasst das auch einzelne Arbeitsübersichts-Widgets, seit `2.9.717` zusätzlich serverseitig gespeicherte Favoriten-Ziele und seit `2.9.718` auch persistente Reihenfolgen für Widgets und Favoriten. Seit `2.9.705` ist dieser POST-Flow robuster gegen stale Tabs und parallel gerenderte Formulare
+- Dashboard-Sichtbarkeitsprofile werden seit `2.9.701` pro Admin-Benutzer serverseitig gespeichert, CSRF-geschützt geändert und auditierbar protokolliert; seit `2.9.716` umfasst das auch einzelne Arbeitsübersichts-Widgets, seit `2.9.717` zusätzlich serverseitig gespeicherte Favoriten-Ziele, seit `2.9.718` persistente Reihenfolgen für Widgets und Favoriten, seit `2.9.719` eine nachgehärtete browserlokale Recent-Persistenz plus cachebares Dashboard-CSS und seit `2.9.720` rollenbasierte Default-/Reset-Vorlagen für neue oder zurückgesetzte Benutzeransichten. Seit `2.9.705` ist dieser POST-Flow robuster gegen stale Tabs und parallel gerenderte Formulare
 
 ---
 

@@ -1,5 +1,5 @@
 # 365CMS – Admin-Bereich
-> **Stand:** 2026-05-10 | **Version:** 2.9.718 | **Status:** Aktuell
+> **Stand:** 2026-05-10 | **Version:** 2.9.724 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Überblick](#überblick)
@@ -35,17 +35,17 @@ Wichtige Grundsätze:
 
 | Menügruppe | Wichtige Routen | Zweck |
 |---|---|---|
-| Dashboard | `/admin` | Gesamtüberblick, KPIs, Schnellzugriffe, fail-softe Statusblöcke und benutzerbezogene Sichtbarkeitsprofile mit mehrtab-tolerantem CSRF-Speichern, defensiv internen Zielpfaden für Quicklinks sowie persistenter Widget-/Favoriten-Sortierung per Drag-&-Drop oder Pfeil-Fallback |
+| Dashboard | `/admin` | Gesamtüberblick, KPIs, Schnellzugriffe, fail-softe Statusblöcke und benutzerbezogene Sichtbarkeitsprofile mit mehrtab-tolerantem CSRF-Speichern, defensiv internen Zielpfaden für Quicklinks, bereinigter browserlokaler Recent-Liste, rollenbasierten Standardvorlagen mit Reset-Pfad sowie persistenter Widget-/Favoriten-Sortierung per Drag-&-Drop oder Pfeil-Fallback |
 | AI Services | `/admin/ai-services`, `/admin/ai-translation`, `/admin/ai-content-creator`, `/admin/ai-seo-creator`, `/admin/ai-settings` | Provider, Translation-Regeln, Prompt-Vorlagen, Logging, Quotas und request-/historiennahe AI-Beobachtung mit fail-softem Initialisierungspfad und konsistenter aktiver Provider-Auswahl |
 | Seiten & Beiträge | `/admin/pages`, `/admin/posts`, `/admin/comments`, `/admin/table-of-contents`, `/admin/site-tables` | Content-Management mit stabilem Slug-/Taxonomie-Vertrag, Bulk-fähiger Kategorien-/Tag-Verwaltung, commit-schonenderem Cache-Clear bei Sammellöschungen, direkt im Editor sichtbaren SEO-/Readability-Prüfungen und read-only Revisionsvergleichen in Seiten- **und** Beitragseditor ohne zusätzliches Snapshot-Debug-Logging im Save-Flow |
-| Medienverwaltung | `/admin/media`, `/admin/media?tab=featured`, `/admin/media?tab=categories`, `/admin/media?tab=settings` | Bibliothek, Beitrags-/Site-Medien, Kategorien, Medieneinstellungen mit festem Bildvertrag im Replace-in-place-Flow |
+| Medienverwaltung | `/admin/media`, `/admin/media?tab=featured`, `/admin/media?tab=categories`, `/admin/media?tab=settings` | Bibliothek, Beitrags-/Site-Medien, Kategorien, Medieneinstellungen mit festem Bildvertrag im Replace-in-place-Flow und read-only Duplikat-Erkennung per Inhalts-Hash |
 | Benutzer & Gruppen | `/admin/users`, `/admin/groups`, `/admin/roles`, `/admin/user-settings` | Benutzer, Teams, Rechte und Auth-Einstellungen mit gemeinsamer Rollenmatrix, einheitlicher 12-Zeichen-Passwort-Policy, lokalem Policy-Tester und allowlist-basierten Gruppen-Sammelaktionen für Aktivstatus, Paketzuweisung und Löschung |
 | Member Dashboard | `/admin/member-dashboard` und Folgeseiten | Konfiguration des Mitgliederbereichs mit getrenntem Runtime-Settings-Pfad für das öffentliche `/member`-Frontend |
 | Aboverwaltung | `/admin/packages`, `/admin/orders`, `/admin/subscription-settings` | Pakete, Bestellungen, Zuweisungen und automatische Standardpaket-Zuweisung für neue Mitglieder |
 | Themes & Design | `/admin/themes`, `/admin/theme-editor`, `/admin/theme-explorer`, `/admin/menu-editor`, `/admin/landing-page`, `/admin/font-manager` | Design, Navigation, Fonts und Landing-Page-Plugin-Overrides mit echten Header-/Content-/Footer-Zuweisungen |
 | SEO | `/admin/seo-dashboard`, `/admin/analytics`, `/admin/seo-audit`, `/admin/seo-meta`, `/admin/seo-social`, `/admin/seo-schema`, `/admin/seo-sitemap`, `/admin/seo-technical`, `/admin/redirect-manager` | Suchmaschinenoptimierung mit echten globalen Social-Fallbacks für Frontend-Head-Tags |
 | Performance | `/admin/performance`, `/admin/performance-cache`, `/admin/performance-media`, `/admin/performance-database`, `/admin/performance-settings`, `/admin/performance-sessions` | Laufzeit- und Ressourcenoptimierung mit ehrlichem Server-Kompressionsstatus statt dekorativem CMS-Schalter |
-| Recht | `/admin/legal-sites`, `/admin/cookie-manager`, `/admin/data-requests` | Legal Sites, Cookie-Management und auditierbare DSGVO-Anfragen mit Begründungspflicht bei Ablehnungen |
+| Recht | `/admin/legal-sites`, `/admin/cookie-manager`, `/admin/data-requests` | Legal Sites, Cookie-Management mit atomar gespeicherten Consent-/Matomo-Self-Hosted-Settings und auditierbare DSGVO-Anfragen mit Begründungspflicht bei Ablehnungen |
 | Sicherheit | `/admin/antispam`, `/admin/firewall`, `/admin/security-audit` | Schutzmaßnahmen und Auditing mit zentralem AntiSpam-Vertrag für Kommentare und aktive Kontaktformulare |
 | Plugins | `/admin/plugins`, `/admin/plugin-marketplace` sowie Plugin-Unterseiten | Plugin-Lifecycle mit stabiler, request-idempotenter Menü-Registry für dynamische Sidebar- und Submenü-Einträge |
 | System | `/admin/settings`, `/admin/backups`, `/admin/updates`, `/admin/cms-logs` | Konfiguration, Backups mit Download/Restore, Updates inklusive zentralem Theme-Installpfad, zentrale CMS-Logs mit Betriebs-Audit und Update-Historie |
@@ -112,7 +112,9 @@ Alle Einstiege folgen demselben Grundmuster:
 5. Verarbeitung der Aktion im Modul oder Service
 6. Redirect mit Session-Alert statt direkter POST-Antwort
 
-Für das Dashboard gilt seit `2.9.615` zusätzlich: einzelne Statistikquellen müssen fail-soft isoliert werden, damit ein ausgefallener Teilblock nicht die komplette Startseite bricht. Seit `2.9.718` bleibt die Personalisierung außerdem nicht mehr auf Sichtbarkeit beschränkt; die Reihenfolge von Arbeits-Widgets und Favoriten wird ebenfalls pro Admin-Benutzer persistiert und serverseitig allowlist-basiert normalisiert.
+Für das Dashboard gilt seit `2.9.615` zusätzlich: einzelne Statistikquellen müssen fail-soft isoliert werden, damit ein ausgefallener Teilblock nicht die komplette Startseite bricht. Seit `2.9.718` bleibt die Personalisierung außerdem nicht mehr auf Sichtbarkeit beschränkt; die Reihenfolge von Arbeits-Widgets und Favoriten wird ebenfalls pro Admin-Benutzer persistiert und serverseitig allowlist-basiert normalisiert. Seit `2.9.719` werden die browserlokalen „Zuletzt genutzt“-Einträge beim Lesen und Schreiben zusätzlich bereinigt, dedupliziert und größenbegrenzt, während das Dashboard-CSS als seitenbezogenes Asset statt inline geladen wird. Seit `2.9.720` ergänzt das Dashboard darauf aufbauend rollenbasierte Standardvorlagen als Default- und Reset-Basis für Bereiche, Arbeits-Widgets, Favoriten und deren Reihenfolge, ohne persönliche Anpassungen global zurück in die Vorlage zu schreiben.
 
 Das ist wichtig für konsistente Fehlerbehandlung, PRG-Flow und nachvollziehbare Audit-Einträge.
+
+Seit `2.9.724` sind außerdem zwei produktive Redeclare-Fatal-Pfade im Admin-/Theme-Bootstrap gehärtet: `CMS\SchemaManager` wird nur noch als konditionale Klasse deklariert, und die Default-Theme-Hilfsfunktion `meridian_nav_menu()` ist in beiden möglichen Helferdateien per `function_exists()` geschützt.
 

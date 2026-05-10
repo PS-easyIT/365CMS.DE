@@ -1180,6 +1180,7 @@ if (!function_exists('meridian_cat_gradient')) {
  * Gibt das aktive Menü für eine Position aus (HTML-Liste)
  * Unterstützt Dropdowns für Meridan-Layout
  */
+if (!function_exists('meridian_nav_menu')) {
 function meridian_nav_menu(string $location, string $currentPath = ''): void
 {
     $items = [];
@@ -1226,6 +1227,7 @@ function meridian_nav_menu(string $location, string $currentPath = ''): void
     };
 
     $renderItems($items);
+}
 }
 
 function meridian_current_request_locale(): string

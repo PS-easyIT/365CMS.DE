@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.9.718",
+  "version": "2.9.724",
   "min_php": "8.4",
   "released": "2026-05-10",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 2.9.718: Das Admin-Dashboard ergänzt die Personalisierung um persistente Reihenfolgen für Arbeits-Widgets und Favoriten. Die Sortierung läuft progressiv über Drag-&-Drop oder Pfeil-Fallback im Dashboard-Formular, wird serverseitig allowlist-basiert normalisiert und bleibt gemeinsam mit Sichtbarkeit und Favoriten auditierbar im bestehenden Preference-Payload gespeichert. Damit lässt sich `/admin` jetzt nicht nur filtern, sondern auch in der persönlichen Arbeitsreihenfolge zuschneiden.",
+  "notes": "Release-Stand 2.9.724: Live-Hotfix gegen Redeclare-Fatals im Admin- und Theme-Bootstrap. SchemaManager ist jetzt als echte konditionale Klasse gekapselt, sodass doppelte Includes nicht mehr vor dem Guard mit Cannot redeclare class CMS\\SchemaManager abbrechen. Die Default-Theme-Funktion meridian_nav_menu ist in functions.php und theme-runtime-helpers.php ebenfalls konditional geschützt.",
   "critical": false
 }

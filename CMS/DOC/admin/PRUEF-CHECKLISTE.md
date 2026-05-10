@@ -1,5 +1,5 @@
 # 365CMS – Admin-Prüf-Checkliste
-> **Stand:** 2026-05-09 | **Basis:** Laufzeit-Sidebar + Admin-Fachdoku | **Status:** Arbeitsdokument für Audit, Abnahme und Ausbau
+> **Stand:** 2026-05-10 | **Basis:** Laufzeit-Sidebar + Admin-Fachdoku | **Status:** Arbeitsdokument für Audit, Abnahme und Ausbau
 
 ## Zweck
 
@@ -141,6 +141,7 @@ Die Sidebar in `CMS/admin/partials/sidebar.php` ist für die Menüstruktur führ
 - [x] Kontextuelle Warnungen mit Deep-Links in Problemseiten.
 - [x] Gespeicherte Favoriten / zuletzt genutzt.
 - [x] Drag-&-Drop-Sortierung mit Persistenz.
+- [x] Rollenbasierte Dashboard-Vorlagen.
 
 ### Audit-Stand – Dashboard · Durchlauf 1
 
@@ -208,6 +209,34 @@ Die Sidebar in `CMS/admin/partials/sidebar.php` ist für die Menüstruktur führ
 - **Abhängige Bereiche:** `DashboardModule`, `views/dashboard/index.php`, `assets/js/admin-dashboard.js`, `settings`, `audit_log`
 - **Offene Must-haves:** keine
 - **Offene Nice-to-haves:** rollenbasierte Dashboard-Vorlagen
+- **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/dashboard/README.md`, `CMS/DOC/admin/dashboard/DASHBOARD.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`
+
+### Audit-Stand – Dashboard Nice-to-haves Nachhärtung · Durchlauf 7
+
+- **Status:** abgeschlossen auf Code-/Best-Practice-/Vertragsbasis · Release `2.9.719`
+- **Prüfer:** GitHub Copilot
+- **Datum:** 2026-05-10
+- **Geprüfte Routen:** `/admin` sowie adminweite Sidebar-Navigation
+- **Umgesetzter Nachhärtungsumfang:** Favoriten / zuletzt genutzt / Drag-&-Drop-Sortierung gegen beschädigte Browserdaten, unnötiges Inline-CSS und unstete Drop-Zustände nachgeprüft und gehärtet.
+- **Umsetzung in diesem Durchlauf:** Die browserlokale Verlaufsliste der Admin-Sidebar und des Dashboards bereinigt gespeicherte Recent-Einträge jetzt beim Lesen und Schreiben nochmals auf gültige interne Admin-Ziele, entfernt Dubletten, begrenzt URL-/Label-Längen und hält den Verlauf klein. Zusätzlich räumt das Dashboard-Sortier-JavaScript Drop-Markierungen robuster auf, und die Dashboard-Styles werden als cachebares Seiten-Asset statt inline aus der View geladen.
+- **Best-Practice-Bezug:** Die Nachhärtung folgt den MDN-Empfehlungen zu Web Storage Availability/Graceful Degradation und hält den DnD-Pfad progressiv: Persistenz bleibt fail-soft, nicht-sensitive Browserdaten werden defensiv klein und sauber gehalten, und das Layout profitiert von wiederverwendbarem Asset-Caching statt zusätzlichem Inline-CSS.
+- **Abhängige Bereiche:** `admin/partials/sidebar.php`, `assets/js/admin-dashboard.js`, `assets/css/admin-dashboard.css`, `views/dashboard/index.php`, `admin/index.php`
+- **Offene Must-haves:** keine
+- **Offene Nice-to-haves:** rollenbasierte Dashboard-Vorlagen
+- **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/dashboard/README.md`, `CMS/DOC/admin/dashboard/DASHBOARD.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`
+
+### Audit-Stand – Dashboard Nice-to-haves · Durchlauf 8
+
+- **Status:** abgeschlossen auf Code-/Best-Practice-/Vertragsbasis · Release `2.9.720`
+- **Prüfer:** GitHub Copilot
+- **Datum:** 2026-05-10
+- **Geprüfte Route:** `/admin`
+- **Umgesetztes Nice-to-have:** Rollenbasierte Dashboard-Vorlagen.
+- **Umsetzung in diesem Durchlauf:** Das Dashboard löst seinen bisherigen Einheits-Default durch rollenbasierte Standardvorlagen ab. Neue oder zurückgesetzte persönliche Ansichten übernehmen pro Rolle bzw. capability-basierter Rollenfamilie (`admin`, `editor`, `author`, `member`) definierte Defaults für sichtbare Bereiche, aktive Arbeits-Widgets, Favoriten und deren Reihenfolge. Gespeicherte Benutzeranpassungen bleiben davon getrennt und können über einen CSRF-geschützten Reset gezielt auf die Rollen-Vorlage zurückgesetzt werden, statt die Vorlage global zu überschreiben.
+- **Best-Practice-Bezug:** Die Umsetzung kombiniert sinnvolle Author-Defaults mit expliziter Benutzerkontrolle. Die Vorlagen arbeiten weiterhin allowlist-basiert, überschreiben bestehende persönliche Präferenzen nicht still und bieten einen klaren „Reset to default“-Pfad analog zu etablierten Dashboard-/Bookmark-Konzepten. Damit bleibt der Admin sowohl personalisierbar als auch reproduzierbar.
+- **Abhängige Bereiche:** `DashboardModule`, `views/dashboard/index.php`, `settings`, `audit_log`, Rollen-/Capability-Matrix aus `Auth` bzw. `roles.php`
+- **Offene Must-haves:** keine
+- **Offene Nice-to-haves:** keine im Dashboard-Bereich
 - **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/dashboard/README.md`, `CMS/DOC/admin/dashboard/DASHBOARD.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`
 
 ### Audit-Stand – Dashboard Nachprüfung CSRF · Durchlauf 2
@@ -556,7 +585,7 @@ Die Sidebar in `CMS/admin/partials/sidebar.php` ist für die Menüstruktur führ
 
 ### Nice-to-haves
 
-- [ ] Duplikat-Erkennung nach Hash.
+- [x] Duplikat-Erkennung nach Hash.
 - [ ] Mediensuche mit erweiterten Filtern (nicht nur Name/Pfad).
 - [ ] Hintergrundverarbeitung für WebP-/Thumbnail-Jobs mit Fortschritt.
 - [ ] Verwendungsanzeige pro Medium direkt in der Bibliothek.
@@ -574,6 +603,19 @@ Die Sidebar in `CMS/admin/partials/sidebar.php` ist für die Menüstruktur führ
 - **Offene Must-haves:** keine
 - **Offene Nice-to-haves:** Duplikat-Erkennung, erweiterte Suche, Hintergrundjobs, Verwendungsanzeige in der Bibliothek
 - **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/media/README.md`, `CMS/DOC/admin/media/MEDIA.md`
+
+### Audit-Stand – Medienverwaltung · Durchlauf 2
+
+- **Status:** abgeschlossen auf Code-/Doku-Basis · Release `2.9.721`
+- **Prüfer:** GitHub Copilot
+- **Datum:** 2026-05-10
+- **Geprüfte Route:** `/admin/media`
+- **Umsetzung in diesem Durchlauf:** Die Medienbibliothek erkennt Duplikate jetzt read-only anhand identischer Dateiinhalte. Sichtbare Dateien werden zunächst nach Byte-Größe vorgruppiert und nur bei gleich großen Kandidaten per SHA-256 gehasht. Treffer erscheinen in Listen- und Grid-Ansicht mit Duplikat-Hinweis, Kurz-Hash und weiteren Pfaden; automatische Löschungen oder Referenzumschreibungen finden bewusst nicht statt.
+- **Best-Practice-Bezug:** Die Erkennung basiert auf Inhalts-Hashes statt Dateinamen und bleibt durch Größen-Vorfilter, fail-soft übersprungene nicht lesbare Dateien sowie manuelle Admin-Entscheidung vor destruktiven Aktionen sicher und nachvollziehbar.
+- **Abhängige Bereiche:** `MediaService`, `MediaModule`, Medienbibliothek-View, Dateisystem unter `CMS/uploads/`
+- **Offene Must-haves:** keine
+- **Offene Nice-to-haves:** erweiterte Suche, Hintergrundjobs für WebP-/Thumbnail-Verarbeitung, weitere Verwendungs-/Bibliothekskomfortfunktionen
+- **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/media/README.md`, `CMS/DOC/admin/media/MEDIA.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`
 
 ---
 
@@ -1010,6 +1052,44 @@ Die Sidebar in `CMS/admin/partials/sidebar.php` ist für die Menüstruktur führ
 - **Offene Must-haves:** keine
 - **Offene Nice-to-haves:** Vorlagen/Profile für Rechtstexte, Fristen-/Bearbeitungsstatus für Datenschutzanfragen, Dashboard-Hinweise auf fehlende Pflichtseiten
 - **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/legal/README.md`, `CMS/DOC/admin/legal/DSGVO.md`, `CMS/DOC/admin/legal/DELETION-REQUESTS.md`
+
+### Audit-Stand – Recht/Cookie-Manager · Matomo-Persistenzfix
+
+- **Status:** abgeschlossen auf Code-/Runtime-/Doku-Basis · Release `2.9.722`
+- **Prüfer:** GitHub Copilot
+- **Datum:** 2026-05-10
+- **Geprüfte Routen:** `/admin/cookie-manager`, `/cookie-einstellungen`
+- **Reproduziertes Fehlerbild:** Matomo-Self-Hosted-Werte konnten nach dem Speichern im Admin wieder leer erscheinen und wurden auf der öffentlichen Cookie-Einstellungsseite nicht zuverlässig übernommen, weil der Settings-Speicher stille DB-Wrapper-Fehlschläge nicht als Fehler behandelte und die Public-Runtime teils mit Defaultwerten statt echten Matomo-Konfigurationssignalen arbeitete.
+- **Umsetzung in diesem Durchlauf:** `CookieManagerModule` speichert globale Cookie-/Matomo-Settings atomar per `INSERT ... ON DUPLICATE KEY UPDATE` direkt gegen die prefixed `settings`-Tabelle und wirft bei Speicherfehlern eine sichtbare Modul-Fehlermeldung. `CookieConsentService` liest die gespeicherten Matomo-Werte konsistent für `/cookie-einstellungen`, nutzt bei Bedarf vorhandene SEO-Matomo-Werte als URL-/Site-ID-Fallback und rendert den Matomo-Transparenzblock nur noch bei tatsächlicher Konfiguration.
+- **Abhängige Bereiche:** `CookieManagerModule`, `CookieConsentService`, `settings`, SEO-Analytics-Matomo-Settings, Public-Routing `/cookie-einstellungen`
+- **Offene Must-haves:** keine
+- **Offene Nice-to-haves:** Rechtstext-Vorlagen/Profile, Fristen-/Bearbeitungsstatus für Datenschutzanfragen, Dashboard-Hinweise auf fehlende Pflichtseiten
+- **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/legal/README.md`, `CMS/DOC/admin/legal/COOKIES.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`
+
+### Audit-Stand – Recht/Cookie-Manager · Matomo-URL-Nachfix
+
+- **Status:** abgeschlossen auf Code-/Runtime-/Doku-Basis · Release `2.9.723`
+- **Prüfer:** GitHub Copilot
+- **Datum:** 2026-05-10
+- **Geprüfte Routen:** `/admin/cookie-manager`, `/cookie-einstellungen`
+- **Reproduziertes Fehlerbild:** Korrekte Matomo-Self-Hosted-URLs konnten weiterhin mit „Die Matomo-URL muss als gültige http(s)-URL ohne Zugangsdaten angegeben werden.“ abgewiesen werden, weil die Validierung zu stark von `filter_var()` abhing und typische Self-Hosted-/Copy-Paste-Varianten nicht robust normalisierte.
+- **Umsetzung in diesem Durchlauf:** Admin-Modul und Public-Service nutzen jetzt dieselbe URL-Normalisierung für Matomo: Unicode-/Copy-Paste-Leerzeichen werden bereinigt, URLs ohne Schema erhalten kontrolliert `https://`, IDN-/Intranet-Hosts, `localhost`, IP-Adressen, Ports, Pfade und Query-Parameter werden akzeptiert, während Zugangsdaten sowie nicht-http(s)-Schemata weiterhin fail-closed abgelehnt werden. Zusätzlich blockiert ein leer gespeicherter Cookie-Matomo-URL-Wert den SEO-Matomo-Fallback im Public-Service nicht mehr.
+- **Abhängige Bereiche:** `CookieManagerModule`, `CookieConsentService`, `settings`, SEO-Analytics-Matomo-Settings, Public-Routing `/cookie-einstellungen`
+- **Offene Must-haves:** keine
+- **Offene Nice-to-haves:** Rechtstext-Vorlagen/Profile, Fristen-/Bearbeitungsstatus für Datenschutzanfragen, Dashboard-Hinweise auf fehlende Pflichtseiten
+- **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/legal/COOKIES.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`
+
+### Live-Fatal-Hotfix – SchemaManager & Default-Theme-Helfer
+
+- **Status:** abgeschlossen auf Code-/Log-/Doku-Basis · Release `2.9.724`
+- **Prüfer:** GitHub Copilot
+- **Datum:** 2026-05-10
+- **Geprüfte Logmeldungen:** `Cannot redeclare class CMS\\SchemaManager`, `Cannot redeclare function meridian_nav_menu()` sowie der ältere Dashboard-`$sections`-Fatal aus dem Rollen-Vorlagenpfad.
+- **Umsetzung in diesem Durchlauf:** `SchemaManager.php` nutzt jetzt eine echte konditionale Klassendeklaration statt eines zu spät greifenden Top-Level-Return-Guards. `meridian_nav_menu()` ist im Default-Theme sowohl in `functions.php` als auch in `includes/theme-runtime-helpers.php` per `function_exists()` gekapselt. Der Dashboard-Stack wurde gegen den gemeldeten `$sections`-Pfad gegengeprüft; im aktuellen Code wird `$sections` vor der Rollen-Vorlagen-Normalisierung initialisiert.
+- **Abhängige Bereiche:** `Database`, `Bootstrap`, `MigrationManager`, Installer-/Repair-Pfade, Default-Theme-Runtime, Admin-Dashboard
+- **Offene Must-haves:** keine
+- **Offene Nice-to-haves:** keine aus diesem Hotfix
+- **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`
 
 ---
 

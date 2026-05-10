@@ -291,6 +291,9 @@ final class CookieConsentService
         }
 
         $matomoUrl = $this->sanitizeOptionalUrl($this->getSetting('cookie_matomo_self_hosted_url', ''));
+        if ($matomoUrl === '') {
+            $matomoUrl = $this->sanitizeOptionalUrl($this->getSetting('seo_analytics_matomo_url', ''));
+        }
         $matomoInfo = $this->buildMatomoTransparencyInfo($categories, $matomoUrl);
 
         return [
@@ -475,13 +478,17 @@ final class CookieConsentService
 
         $provider = strtolower((string)($matomoService['provider'] ?? ''));
         $name = strtolower((string)($matomoService['name'] ?? ''));
-        $siteId = trim($this->getSetting('cookie_matomo_site_id', $this->getSetting('seo_analytics_matomo_site_id', '1')));
-        $hostingRegion = trim($this->getSetting('cookie_matomo_hosting_region', 'Deutschland / EU'));
+        $siteId = trim($this->getSetting('cookie_matomo_site_id', $this->getSetting('seo_analytics_matomo_site_id', '')));
+        $hostingRegion = trim($this->getSetting('cookie_matomo_hosting_region', ''));
         $note = $this->getSetting('cookie_matomo_dsgvo_note', '');
-        $respectDnt = $this->getSetting('cookie_matomo_respect_dnt', $this->getSetting('seo_analytics_respect_dnt', '0')) === '1';
-        $disableCookies = $this->getSetting('cookie_matomo_disable_cookies', $this->getSetting('seo_analytics_anonymize_ip', '0')) === '1';
-        $ipAnonymization = $this->getSetting('cookie_matomo_ip_anonymization', $this->getSetting('seo_analytics_anonymize_ip', '1')) === '1';
-        $logRetentionDays = max(1, (int)$this->getSetting('cookie_matomo_log_retention_days', '180'));
+        $respectDntSetting = $this->getSetting('cookie_matomo_respect_dnt', $this->getSetting('seo_analytics_respect_dnt', ''));
+        $disableCookiesSetting = $this->getSetting('cookie_matomo_disable_cookies', '');
+        $ipAnonymizationSetting = $this->getSetting('cookie_matomo_ip_anonymization', $this->getSetting('seo_analytics_anonymize_ip', ''));
+        $respectDnt = $respectDntSetting === '1';
+        $disableCookies = $disableCookiesSetting === '1';
+        $ipAnonymization = $ipAnonymizationSetting === '1';
+        $logRetentionSetting = trim($this->getSetting('cookie_matomo_log_retention_days', ''));
+        $logRetentionDays = $logRetentionSetting !== '' ? max(1, (int)$logRetentionSetting) : 0;
         $isSelfHosted = $matomoUrl !== ''
             || (bool)($matomoService['is_essential'] ?? false)
             || str_contains($provider, 'self-hosted')
@@ -491,10 +498,10 @@ final class CookieConsentService
             || $siteId !== ''
             || $hostingRegion !== ''
             || trim($note) !== ''
-            || $respectDnt
-            || $disableCookies
-            || $ipAnonymization
-            || $logRetentionDays > 0;
+            || $respectDntSetting !== ''
+            || $disableCookiesSetting !== ''
+            || $ipAnonymizationSetting !== ''
+            || $logRetentionSetting !== '';
 
         if (!$isSelfHosted && !$hasTransparencySettings) {
             return ['enabled' => false];
@@ -508,7 +515,7 @@ final class CookieConsentService
             'ip_anonymization' => $ipAnonymization,
             'respect_dnt' => $respectDnt,
             'disable_cookies' => $disableCookies,
-            'log_retention_days' => $logRetentionDays,
+            'log_retention_days' => $logRetentionDays > 0 ? $logRetentionDays : 180,
             'note' => $note,
             'is_essential' => (bool)($matomoService['is_essential'] ?? false),
         ];
@@ -626,20 +633,90 @@ final class CookieConsentService
 
     private function sanitizeOptionalUrl(string $url): string
     {
-        $url = trim($url);
+        $url = $this->cleanUrlInput($url);
         if ($url === '') {
             return '';
         }
 
-        if (!preg_match('~^[a-z][a-z0-9+.-]*://~i', $url) && preg_match('~^[a-z0-9.-]+(?::\d+)?(?:/.*)?$~i', $url)) {
+        if (!preg_match('~^[a-z][a-z0-9+.-]*://~i', $url) && preg_match('~^[^\s/:?#]+(?::\d+)?(?:[/?#].*)?$~u', $url)) {
             $url = 'https://' . ltrim($url, '/');
         }
 
-        if (filter_var($url, FILTER_VALIDATE_URL)) {
-            return $url;
+        if (preg_match('/\s/u', $url) === 1) {
+            return '';
         }
 
-        return '';
+        $parts = parse_url($url);
+        if (!is_array($parts)) {
+            return '';
+        }
+
+        $scheme = strtolower((string)($parts['scheme'] ?? ''));
+        $host = $this->normalizeUrlHost((string)($parts['host'] ?? ''));
+        if (!in_array($scheme, ['http', 'https'], true) || $host === '' || isset($parts['user']) || isset($parts['pass'])) {
+            return '';
+        }
+
+        if (isset($parts['port']) && ((int)$parts['port'] < 1 || (int)$parts['port'] > 65535)) {
+            return '';
+        }
+
+        $normalized = $scheme . '://' . $host;
+        if (isset($parts['port'])) {
+            $normalized .= ':' . (int)$parts['port'];
+        }
+
+        $path = trim((string)($parts['path'] ?? ''));
+        if ($path !== '') {
+            $normalized .= '/' . ltrim($path, '/');
+        }
+
+        $query = trim((string)($parts['query'] ?? ''));
+        if ($query !== '') {
+            $normalized .= '?' . $query;
+        }
+
+        return $normalized;
+    }
+
+    private function cleanUrlInput(string $url): string
+    {
+        $url = str_replace(["\u{00A0}", "\u{200B}", "\u{FEFF}"], ' ', $url);
+        $url = preg_replace('/[\x00-\x1F\x7F]+/u', '', $url) ?? $url;
+        $url = preg_replace('/^\p{Z}+|\p{Z}+$/u', '', $url) ?? $url;
+
+        return trim($url);
+    }
+
+    private function normalizeUrlHost(string $host): string
+    {
+        $host = trim($host);
+        if ($host === '') {
+            return '';
+        }
+
+        if (str_starts_with($host, '[') && str_ends_with($host, ']')) {
+            $ipv6 = trim($host, '[]');
+            return filter_var($ipv6, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== false ? '[' . strtolower($ipv6) . ']' : '';
+        }
+
+        if (filter_var($host, FILTER_VALIDATE_IP) !== false) {
+            return $host;
+        }
+
+        if (function_exists('idn_to_ascii')) {
+            $asciiHost = idn_to_ascii($host, IDNA_DEFAULT, INTL_IDNA_VARIANT_UTS46);
+            if (is_string($asciiHost) && $asciiHost !== '') {
+                $host = $asciiHost;
+            }
+        }
+
+        $host = strtolower($host);
+        if (preg_match('/^[a-z0-9._-]+$/', $host) !== 1 || str_contains($host, '..')) {
+            return '';
+        }
+
+        return $host;
     }
 
     private function formatCookieNames(string $cookieNames): string

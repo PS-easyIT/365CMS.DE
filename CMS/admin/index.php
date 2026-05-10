@@ -23,7 +23,9 @@ $sectionPageConfig = [
     'page_title' => 'Dashboard',
     'active_page' => 'dashboard',
     'page_assets' => [
-        'css' => [],
+        'css' => [
+            cms_asset_url('css/admin-dashboard.css'),
+        ],
         'js' => [
             cms_asset_url('js/admin-dashboard.js'),
         ],

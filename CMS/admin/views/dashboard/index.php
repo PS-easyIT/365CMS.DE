@@ -38,6 +38,9 @@ $selectedFavoriteShortcuts = is_array($dashboardPreferences['favorite_shortcuts'
 $favoriteShortcutOrder = is_array($dashboardPreferences['favorite_shortcut_order'] ?? null)
     ? array_values($dashboardPreferences['favorite_shortcut_order'])
     : array_keys($favoriteShortcutDefinitions);
+$usesRoleTemplate = !empty($dashboardPreferences['uses_role_template']);
+$hasSavedDashboardPreferences = !empty($dashboardPreferences['has_saved_preferences']);
+$roleTemplate = is_array($dashboardPreferences['role_template'] ?? null) ? $dashboardPreferences['role_template'] : [];
 $activityEntries = is_array($data['activity'] ?? null) ? $data['activity'] : [];
 $attentionItems = is_array($data['attention'] ?? null) ? $data['attention'] : [];
 $recentOrders = is_array($data['recent_orders'] ?? null) ? $data['recent_orders'] : [];
@@ -132,269 +135,6 @@ foreach ($workOverviewWidgets as $widgetKey => $widget) {
 }
 ?>
 
-<style>
-    .dashboard-overview-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(min(100%, 252px), 1fr));
-        gap: 0.875rem;
-        align-items: stretch;
-    }
-
-    .dashboard-overview-grid .card {
-        height: 100%;
-        box-shadow: 0 0.125rem 0.25rem rgba(15, 23, 42, 0.06);
-    }
-
-    .dashboard-overview-card .card-header {
-        min-height: 58px;
-        display: flex;
-        align-items: center;
-        padding: 0.85rem 1rem;
-    }
-
-    .dashboard-overview-card .list-group-item,
-    .dashboard-overview-card .card-body,
-    .dashboard-overview-card .card-footer {
-        font-size: 0.9rem;
-    }
-
-    .dashboard-kpi-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(min(100%, 188px), 1fr));
-        gap: 0.75rem;
-    }
-
-    .dashboard-kpi-tile {
-        border: 1px solid rgba(37, 99, 235, 0.12);
-        border-radius: 0.875rem;
-        background: #fff;
-        padding: 0.875rem 0.95rem;
-        min-height: 0;
-        display: flex;
-        flex-direction: column;
-        gap: 0.2rem;
-        transition: transform 0.18s ease, box-shadow 0.18s ease;
-        box-shadow: 0 0.125rem 0.25rem rgba(15, 23, 42, 0.05);
-        overflow: hidden;
-    }
-
-    .dashboard-kpi-tile:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 0.375rem 1rem rgba(37, 99, 235, 0.10);
-    }
-
-    .dashboard-kpi-header {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: 0.65rem;
-        margin-bottom: 0.2rem;
-    }
-
-    .dashboard-kpi-label {
-        line-height: 1.25;
-    }
-
-    .dashboard-kpi-tile .dashboard-kpi-value {
-        font-size: clamp(1.15rem, 1rem + 0.55vw, 1.35rem);
-        font-weight: 700;
-        line-height: 1.2;
-        margin-bottom: 0;
-    }
-
-    .dashboard-kpi-tile .dashboard-kpi-icon {
-        width: 2.15rem;
-        height: 2.15rem;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 999px;
-        background: rgba(37, 99, 235, 0.08);
-        color: rgb(37, 99, 235);
-        flex: 0 0 auto;
-    }
-
-    .dashboard-kpi-sub {
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-        min-height: 2.45em;
-        line-height: 1.22;
-        margin-bottom: 0;
-    }
-
-    .dashboard-kpi-footer {
-        margin-top: auto;
-        padding-top: 0.35rem;
-        font-size: 0.75rem;
-        letter-spacing: 0.01em;
-    }
-
-    .dashboard-kpi-detail-list {
-        margin: 0.2rem 0 0;
-        padding-left: 1rem;
-        color: var(--tblr-secondary, #667085);
-        font-size: 0.78rem;
-        line-height: 1.35;
-    }
-
-    .dashboard-kpi-detail-list li + li {
-        margin-top: 0.18rem;
-    }
-
-    .dashboard-kpi-tile .dashboard-kpi-value.is-highlight {
-        font-size: 1rem;
-    }
-
-    .dashboard-mini-stat {
-        border: 1px solid var(--tblr-border-color, rgba(15, 23, 42, 0.08));
-        border-radius: 0.75rem;
-        padding: 0.75rem 0.875rem;
-        background: rgba(248, 250, 252, 0.85);
-    }
-
-    @media (max-width: 767.98px) {
-        .dashboard-kpi-grid {
-            grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr));
-        }
-
-        .dashboard-kpi-tile {
-            padding: 0.8rem 0.85rem;
-        }
-
-        .dashboard-overview-grid {
-            gap: 0.75rem;
-        }
-    }
-
-    .dashboard-preferences-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
-        gap: 0.5rem 0.75rem;
-    }
-
-    .dashboard-preferences-grid .form-check {
-        min-height: 2.5rem;
-        padding: 0.55rem 0.65rem 0.55rem 2.15rem;
-        border: 1px solid var(--tblr-border-color, rgba(15, 23, 42, 0.08));
-        border-radius: 0.65rem;
-        background: rgba(248, 250, 252, 0.75);
-    }
-
-    .dashboard-preferences-group-title {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 0.75rem;
-        margin-bottom: 0.75rem;
-    }
-
-    .dashboard-sortable-list {
-        display: grid;
-        gap: 0.75rem;
-    }
-
-    .dashboard-sortable-item {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: 0.875rem;
-        padding: 0.8rem 0.9rem;
-        border: 1px solid var(--tblr-border-color, rgba(15, 23, 42, 0.08));
-        border-radius: 0.8rem;
-        background: rgba(248, 250, 252, 0.82);
-        transition: border-color 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
-    }
-
-    .dashboard-sortable-item[draggable="true"] {
-        cursor: move;
-    }
-
-    .dashboard-sortable-item.is-dragging {
-        opacity: 0.55;
-        border-color: rgba(37, 99, 235, 0.45);
-        box-shadow: 0 0.4rem 1rem rgba(37, 99, 235, 0.12);
-    }
-
-    .dashboard-sortable-item.is-drop-target {
-        border-color: rgba(37, 99, 235, 0.6);
-        background: rgba(219, 234, 254, 0.7);
-    }
-
-    .dashboard-sortable-main {
-        display: flex;
-        align-items: flex-start;
-        gap: 0.8rem;
-        flex: 1 1 auto;
-        min-width: 0;
-    }
-
-    .dashboard-sortable-handle {
-        flex: 0 0 auto;
-        min-width: 2rem;
-        text-align: center;
-        cursor: grab;
-    }
-
-    .dashboard-sortable-item.is-dragging .dashboard-sortable-handle {
-        cursor: grabbing;
-    }
-
-    .dashboard-sortable-main .form-check {
-        min-height: 0;
-        margin: 0;
-        padding-left: 1.8rem;
-        flex: 1 1 auto;
-        min-width: 0;
-    }
-
-    .dashboard-sortable-main .form-check-input {
-        margin-left: -1.8rem;
-    }
-
-    .dashboard-sortable-actions {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.35rem;
-        flex: 0 0 auto;
-    }
-
-    .dashboard-sortable-meta {
-        display: block;
-        margin-top: 0.15rem;
-    }
-
-    .dashboard-favorite-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
-        gap: 0.75rem;
-    }
-
-    .dashboard-favorite-grid .btn {
-        justify-content: flex-start;
-        min-height: 3rem;
-    }
-
-    .dashboard-recent-list .list-group-item {
-        padding-left: 0;
-        padding-right: 0;
-        border-left: 0;
-        border-right: 0;
-    }
-
-    @media (max-width: 767.98px) {
-        .dashboard-sortable-item {
-            flex-direction: column;
-            align-items: stretch;
-        }
-
-        .dashboard-sortable-actions {
-            justify-content: flex-end;
-        }
-    }
-</style>
-
 <!-- Page Header -->
 <div class="page-header d-print-none">
     <div class="container-xl">
@@ -463,10 +203,32 @@ foreach ($workOverviewWidgets as $widgetKey => $widget) {
                 </summary>
                 <form method="post" class="card-body" aria-describedby="dashboard-preferences-help">
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? '', ENT_QUOTES, 'UTF-8'); ?>">
-                    <input type="hidden" name="action" value="save_dashboard_preferences">
                     <p id="dashboard-preferences-help" class="text-secondary small mb-3">
                         Kritische Alerts bleiben immer sichtbar. Ausgeblendete Bereiche können hier jederzeit wieder aktiviert werden.
                     </p>
+                    <?php if ($roleTemplate !== []): ?>
+                        <div class="dashboard-template-callout mb-3" role="status" aria-live="polite">
+                            <div>
+                                <div class="dashboard-template-title">Aktive Rollen-Vorlage: <?php echo htmlspecialchars((string) ($roleTemplate['label'] ?? 'Standard'), ENT_QUOTES, 'UTF-8'); ?></div>
+                                <p class="dashboard-template-copy mb-0">
+                                    <?php echo htmlspecialchars((string) ($roleTemplate['description'] ?? 'Die Standardansicht orientiert sich an deiner Rolle und bleibt durch persönliche Anpassungen überschreibbar.'), ENT_QUOTES, 'UTF-8'); ?>
+                                </p>
+                                <div class="dashboard-template-meta text-secondary small mt-2">
+                                    Basisrolle: <strong><?php echo htmlspecialchars((string) ($roleTemplate['role_label'] ?? 'Administrator'), ENT_QUOTES, 'UTF-8'); ?></strong>
+                                    <?php if (empty($roleTemplate['exact_match'])): ?>
+                                        · abgeleitet über vorhandene Capabilities
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                            <div class="dashboard-template-actions">
+                                <?php if ($usesRoleTemplate): ?>
+                                    <span class="badge bg-success-lt">Standard aktiv</span>
+                                <?php else: ?>
+                                    <span class="badge bg-warning-lt">Persönlich angepasst</span>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    <?php endif; ?>
                     <div class="dashboard-preferences-grid" aria-live="polite">
                         <?php foreach ($dashboardSections as $sectionKey => $sectionDefinition): ?>
                             <?php
@@ -549,7 +311,10 @@ foreach ($workOverviewWidgets as $widgetKey => $widget) {
                         </div>
                     <?php endif; ?>
                     <div class="mt-3 d-flex gap-2 flex-wrap align-items-center">
-                        <button type="submit" class="btn btn-primary">Ansicht speichern</button>
+                        <button type="submit" name="action" value="save_dashboard_preferences" class="btn btn-primary">Ansicht speichern</button>
+                        <?php if ($hasSavedDashboardPreferences): ?>
+                            <button type="submit" name="action" value="reset_dashboard_preferences" class="btn btn-outline-secondary">Rollen-Vorlage wiederherstellen</button>
+                        <?php endif; ?>
                         <span class="text-secondary small" role="status" aria-live="polite">Speicherung erfolgt per CSRF-geschütztem POST.</span>
                     </div>
                 </form>

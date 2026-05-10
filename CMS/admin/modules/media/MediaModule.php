@@ -291,9 +291,15 @@ class MediaModule
             }));
         }
 
+        $duplicateMap = $this->service->buildDuplicateHashMap(array_map(
+            static fn (array $file): string => (string) ($file['path'] ?? ''),
+            is_array($items['files'] ?? null) ? $items['files'] : []
+        ));
+        $stats = $this->buildLibraryStats($items, $categories, $diskUsage, $duplicateMap);
+
         return [
             'folders'    => $this->buildFolderViewModels($items['folders'] ?? [], $path, $view, $category, $search, $usageFilter, $confirmMember),
-            'files'      => $this->buildFileViewModels($items['files'] ?? [], $path, $usageMap),
+            'files'      => $this->buildFileViewModels($items['files'] ?? [], $path, $usageMap, $duplicateMap),
             'categories' => $categories,
             'diskUsage'  => $diskUsage,
             'path'       => $path,
@@ -303,7 +309,7 @@ class MediaModule
             'usage_filter' => $usageFilter,
             'confirm_member' => $confirmMember,
             'breadcrumbs' => $this->buildBreadcrumbs($path, $view, $category, $search, $usageFilter, $confirmMember),
-            'stats' => $this->buildLibraryStats($items, $categories, $diskUsage),
+            'stats' => $stats,
             'base_url' => $this->buildAdminUrl(),
             'list_url' => $this->buildAdminUrl($this->buildLibraryStateParams($path, 'list', $category, $search, $usageFilter, $confirmMember)),
             'grid_url' => $this->buildAdminUrl($this->buildLibraryStateParams($path, 'grid', $category, $search, $usageFilter, $confirmMember)),
@@ -1644,7 +1650,7 @@ class MediaModule
      * @param array<int, array<string, mixed>> $files
      * @return list<array<string, mixed>>
      */
-    private function buildFileViewModels(array $files, string $path, array $usageMap = []): array
+    private function buildFileViewModels(array $files, string $path, array $usageMap = [], array $duplicateMap = []): array
     {
         $viewModels = [];
 
@@ -1659,6 +1665,7 @@ class MediaModule
                 static fn (mixed $usage): bool => is_array($usage)
             ));
             $usageCount = count($usageItems);
+            $duplicateInfo = is_array($duplicateMap[$filePath] ?? null) ? $duplicateMap[$filePath] : [];
 
             $viewModels[] = [
                 'name' => $fileName,
@@ -1674,6 +1681,10 @@ class MediaModule
                 'usage_items' => $usageItems,
                 'usage_count' => $usageCount,
                 'usage_count_label' => $usageCount === 1 ? '1 Verwendung' : $usageCount . ' Verwendungen',
+                'duplicate_info' => $duplicateInfo,
+                'duplicate_count' => (int) ($duplicateInfo['duplicate_count'] ?? 0),
+                'duplicate_paths' => is_array($duplicateInfo['duplicate_paths'] ?? null) ? array_values($duplicateInfo['duplicate_paths']) : [],
+                'duplicate_short_hash' => (string) ($duplicateInfo['short_hash'] ?? ''),
             ] + $file;
         }
 
@@ -1705,13 +1716,23 @@ class MediaModule
      * @param array<string, mixed> $diskUsage
      * @return array<string, string|int>
      */
-    private function buildLibraryStats(array $items, array $categories, array $diskUsage): array
+    private function buildLibraryStats(array $items, array $categories, array $diskUsage, array $duplicateMap = []): array
     {
+        $duplicateGroupIds = [];
+        foreach ($duplicateMap as $duplicateInfo) {
+            $groupId = (string) ($duplicateInfo['group_id'] ?? '');
+            if ($groupId !== '') {
+                $duplicateGroupIds[$groupId] = true;
+            }
+        }
+
         return [
             'file_count' => (int)($diskUsage['count'] ?? count($items['files'] ?? [])),
             'storage_label' => (string)($diskUsage['formatted'] ?? '0 B'),
             'folder_count' => count($items['folders'] ?? []),
             'category_count' => count($categories),
+            'duplicate_file_count' => count($duplicateMap),
+            'duplicate_group_count' => count($duplicateGroupIds),
         ];
     }
 

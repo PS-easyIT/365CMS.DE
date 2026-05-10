@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Überblick über Medienbibliothek, Upload-Workflows, Schutzbereiche, Admin-Tabs und verknüpfte Member-/Asset-Dokumentation.
 
-Letzte Aktualisierung: 2026-05-09 · Version 2.9.618
+Letzte Aktualisierung: 2026-05-10 · Version 2.9.721
 
 Die Medienverwaltung ist unter `/admin/media` erreichbar und bündelt Bibliothek, Beitrags-/Site-Medien, Kategorien und Einstellungen über Query-Tabs statt über getrennte Legacy-Routen.
 
@@ -34,6 +34,7 @@ Die Medienverwaltung ist unter `/admin/media` erreichbar und bündelt Bibliothek
 - gemeinsamer Featured-Image-Picker für Beiträge und Seiten mit fail-soft Verschiebung temporärer Uploads beim Speichern
 - Rücksprung in den **tatsächlich verwendeten** Zielordner, wenn Uploads automatisch in Jahres-/Monats-Unterordner einsortiert werden
 - strengere Dateinamens-Härtung mit Längenlimit und ohne irreführende Mehrfach-Punkte im Basenamen
+- read-only Duplikat-Erkennung in der Bibliothek: sichtbare gleich große Dateien werden per SHA-256-Inhalts-Hash verglichen und als identische Gruppen markiert
 - Unterpunkt **Beitrags & Site Medien** für Featured Images aus Beiträgen und Seiten inklusive Suche, Filter nach Beiträgen/Seiten, Drag-&-Drop-Ersetzen, lokaler Mini-Vorschau und Erfolgshinweis pro Bild
 - der Featured-Replace-Flow erzwingt seinen Bildvertrag seit `2.9.618` serverseitig unabhängig von den allgemeinen Bibliotheks-Typ-Häkchen, damit Beitrags-/Seitenbilder immer nur als JPG/JPEG, PNG, GIF, WebP, BMP oder ICO ersetzt werden
 
@@ -121,9 +122,12 @@ Typische Stellschrauben:
 Die Bibliotheksansicht zeigt Ordner und Dateien in Listen- oder Grid-Darstellung, ergänzt um:
 
 - Verwendungsstatus bzw. Referenzen aus Seiten/Beiträgen
+- Duplikat-Hinweise für sichtbare Dateien mit identischem SHA-256-Inhalts-Hash, Kurz-Hash und weiteren Pfaden
 - Kategorien- und Suchfilter
 - Bulk-Aktionen für Löschen und Verschieben
 - direkte Dateiaktionen für Umbenennen, Verschieben, Löschen und Kategorie-Zuordnung
+
+Die Duplikat-Erkennung ist bewusst nur ein Hinweis- und Prüfpfad: Sie löscht keine Dateien automatisch und schreibt keine bestehenden Medienreferenzen um. Dadurch können Admins zuerst prüfen, ob identische Dateien tatsächlich redundant sind oder bewusst mehrfach in unterschiedlichen Ordnerkontexten liegen.
 
 Bei erfolgreich hochgeladenen Dateien bleibt die Oberfläche nicht mehr am alten Pfad hängen, sondern aktualisiert auf den effektiven Zielordner. Das ist besonders relevant, wenn `organize_month_year` aktiv ist.
 

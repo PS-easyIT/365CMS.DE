@@ -220,6 +220,7 @@ function meridian_footer_about_links(): array
     return $links;
 }
 
+if (!function_exists('meridian_nav_menu')) {
 function meridian_nav_menu(string $location, string $currentPath = ''): void
 {
     $items = [];
@@ -265,6 +266,7 @@ function meridian_nav_menu(string $location, string $currentPath = ''): void
     };
 
     $renderItems($items);
+}
 }
 
 function meridian_is_logged_in(): bool

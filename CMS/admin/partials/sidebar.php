@@ -655,6 +655,9 @@ if (!function_exists('isGroupActive')) {
         return;
     }
 
+    const RECENT_LINKS_STORAGE_KEY = 'cms365-admin-recent-links';
+    const RECENT_LINKS_STORAGE_LIMIT = 8;
+
     function storageAvailable(type) {
         let storage;
         try {
@@ -673,6 +676,77 @@ if (!function_exists('isGroupActive')) {
         }
     }
 
+    function safeGetLocalStorageItem(key) {
+        try {
+            return window.localStorage.getItem(key);
+        } catch (error) {
+            return null;
+        }
+    }
+
+    function safeSetLocalStorageItem(key, value) {
+        try {
+            window.localStorage.setItem(key, value);
+            return true;
+        } catch (error) {
+            return false;
+        }
+    }
+
+    function isValidAdminUrl(url) {
+        return typeof url === 'string'
+            && /^\/admin(?:\/|$)/.test(url)
+            && /[\x00-\x1F\x7F]/.test(url) === false;
+    }
+
+    function normalizeRecentEntry(entry) {
+        if (!entry || typeof entry !== 'object') {
+            return null;
+        }
+
+        const rawUrl = typeof entry.url === 'string' ? entry.url.trim() : '';
+        const rawLabel = typeof entry.label === 'string' ? entry.label.trim() : '';
+
+        if (!isValidAdminUrl(rawUrl) || rawLabel === '') {
+            return null;
+        }
+
+        const normalized = {
+            url: rawUrl.slice(0, 512),
+            label: rawLabel.slice(0, 160),
+        };
+
+        if (typeof entry.ts === 'string') {
+            const timestamp = new Date(entry.ts);
+            if (!Number.isNaN(timestamp.getTime())) {
+                normalized.ts = timestamp.toISOString();
+            }
+        }
+
+        return normalized;
+    }
+
+    function sanitizeRecentEntries(entries, limit) {
+        const normalizedEntries = [];
+        const seenUrls = new Set();
+
+        if (!Array.isArray(entries)) {
+            return normalizedEntries;
+        }
+
+        entries.forEach((entry) => {
+            const normalized = normalizeRecentEntry(entry);
+            if (!normalized || seenUrls.has(normalized.url)) {
+                return;
+            }
+
+            seenUrls.add(normalized.url);
+            normalizedEntries.push(normalized);
+        });
+
+        return normalizedEntries.slice(0, limit);
+    }
+
     if (!storageAvailable('localStorage')) {
         return;
     }
@@ -685,6 +759,10 @@ if (!function_exists('isGroupActive')) {
     ['csrf_token', 'token', 'success', 'error', 'message', 'flash'].forEach((key) => currentUrl.searchParams.delete(key));
 
     const normalizedUrl = currentUrl.pathname + (currentUrl.searchParams.toString() !== '' ? '?' + currentUrl.searchParams.toString() : '');
+    if (!isValidAdminUrl(normalizedUrl)) {
+        return;
+    }
+
     const activeChild = document.querySelector('#sidebar-menu .dropdown-item.active');
     const activeTopLevel = document.querySelector('#sidebar-menu .nav-item.active > .nav-link .nav-link-title');
     const activeGroup = document.querySelector('#sidebar-menu .nav-item.dropdown.active > .nav-link .nav-link-title');
@@ -706,32 +784,23 @@ if (!function_exists('isGroupActive')) {
         return;
     }
 
-    const storageKey = 'cms365-admin-recent-links';
     let entries = [];
 
     try {
-        entries = JSON.parse(window.localStorage.getItem(storageKey) || '[]');
+        entries = JSON.parse(safeGetLocalStorageItem(RECENT_LINKS_STORAGE_KEY) || '[]');
     } catch (error) {
         entries = [];
     }
 
-    if (!Array.isArray(entries)) {
-        entries = [];
-    }
-
-    entries = entries.filter((entry) => {
-        return entry
-            && typeof entry.url === 'string'
-            && entry.url !== normalizedUrl;
-    });
+    entries = sanitizeRecentEntries(entries, RECENT_LINKS_STORAGE_LIMIT).filter((entry) => entry.url !== normalizedUrl);
 
     entries.unshift({
-        url: normalizedUrl,
-        label: label,
+        url: normalizedUrl.slice(0, 512),
+        label: label.slice(0, 160),
         ts: new Date().toISOString(),
     });
 
-    window.localStorage.setItem(storageKey, JSON.stringify(entries.slice(0, 8)));
+    safeSetLocalStorageItem(RECENT_LINKS_STORAGE_KEY, JSON.stringify(sanitizeRecentEntries(entries, RECENT_LINKS_STORAGE_LIMIT)));
 })();
 </script>
 
