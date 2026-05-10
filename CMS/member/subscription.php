@@ -18,8 +18,14 @@ $pageKey = 'subscription';
 $pageAssets = [];
 $memberService = \CMS\Services\MemberService::getInstance();
 $subscription = $memberService->getUserSubscription($controller->getUserId());
+$renewalNotice = $memberService->getSubscriptionRenewalNotice($controller->getUserId());
 $packages = $memberService->getAvailablePackages();
 $orders = $controller->getOrders();
+$renewalAlertClass = match ((string) ($renewalNotice['severity'] ?? 'info')) {
+    'danger' => 'alert-danger',
+    'warning' => 'alert-warning',
+    default => 'alert-info',
+};
 
 include __DIR__ . '/partials/header.php';
 ?>
@@ -33,8 +39,20 @@ include __DIR__ . '/partials/header.php';
                     <?php if (!empty($subscription->status)): ?>
                         <div class="badge bg-primary-lt mb-3"><?= htmlspecialchars((string)$subscription->status) ?></div>
                     <?php endif; ?>
-                    <?php if (!empty($subscription->expires_at)): ?>
-                        <div class="text-secondary">Läuft bis <?= htmlspecialchars((string)$subscription->expires_at) ?></div>
+                    <?php if (!empty($renewalNotice['due_label'])): ?>
+                        <div class="text-secondary mb-3">
+                            <?= htmlspecialchars(!empty($renewalNotice['is_auto_renewal']) ? 'Nächste Verlängerung: ' : 'Laufzeit bis: ') ?><?= htmlspecialchars((string)$renewalNotice['due_label']) ?>
+                        </div>
+                    <?php elseif (!empty($subscription->end_date)): ?>
+                        <div class="text-secondary mb-3">Läuft bis <?= htmlspecialchars((string)$subscription->end_date) ?></div>
+                    <?php endif; ?>
+                    <?php if (!empty($renewalNotice['has_notice'])): ?>
+                        <div class="alert <?= htmlspecialchars($renewalAlertClass, ENT_QUOTES) ?> mb-0" role="alert">
+                            <?php if (!empty($renewalNotice['title'])): ?>
+                                <div class="fw-semibold mb-1"><?= htmlspecialchars((string)$renewalNotice['title']) ?></div>
+                            <?php endif; ?>
+                            <div><?= htmlspecialchars((string)($renewalNotice['message'] ?? '')) ?></div>
+                        </div>
                     <?php endif; ?>
                 <?php else: ?>
                     <div class="text-secondary">Aktuell ist kein aktives Paket hinterlegt.</div>

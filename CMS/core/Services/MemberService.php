@@ -694,6 +694,50 @@ class MemberService
     }
 
     /**
+     * Read-only Renewal-/Ablaufhinweis für den aktiven Member-Vertrag.
+     *
+     * @return array<string, mixed>
+     */
+    public function getSubscriptionRenewalNotice(int $userId): array
+    {
+        $defaults = [
+            'has_notice' => false,
+            'is_highlighted' => false,
+            'is_overdue' => false,
+            'is_due_today' => false,
+            'kind' => 'none',
+            'severity' => 'info',
+            'title' => '',
+            'message' => '',
+            'due_at' => '',
+            'due_label' => '',
+            'days_until_due' => null,
+            'warning_days' => 0,
+            'auto_renewal_enabled' => false,
+            'grace_period_days' => 0,
+            'is_auto_renewal' => false,
+            'status' => '',
+        ];
+
+        if (!CoreModuleService::getInstance()->isModuleEnabled('subscriptions') || !class_exists('\\CMS\\SubscriptionManager')) {
+            return $defaults;
+        }
+
+        try {
+            $subscription = $this->getUserSubscription($userId);
+            if ($subscription === null) {
+                return $defaults;
+            }
+
+            $notice = \CMS\SubscriptionManager::instance()->getSubscriptionRenewalNotice($subscription);
+
+            return is_array($notice) ? array_merge($defaults, $notice) : $defaults;
+        } catch (\Throwable) {
+            return $defaults;
+        }
+    }
+
+    /**
      * Berechtigungen des Users auf Basis seines Subscription-Pakets.
      *
      * @return array<string, bool>

@@ -1,5 +1,5 @@
 # 365CMS – Admin-Bereich
-> **Stand:** 2026-05-10 | **Version:** 2.9.733 | **Status:** Aktuell
+> **Stand:** 2026-05-10 | **Version:** 2.9.736 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Überblick](#überblick)
@@ -10,7 +10,7 @@
 
 Die Struktur folgt der aktuellen Sidebar-Konfiguration aus `CMS/admin/partials/sidebar.php`. Öffentliche Admin-Routen werden in der Dokumentation bewusst ohne `.php` beschrieben.
 
-Für Detailfragen gilt die reale Sidebar- und Routing-Laufzeit als führend; diese Datei ist die verdichtete 2.9.733-Übersicht, nicht der einzige Wahrheitsspeicher.
+Für Detailfragen gilt die reale Sidebar- und Routing-Laufzeit als führend; diese Datei ist die verdichtete 2.9.736-Übersicht, nicht der einzige Wahrheitsspeicher.
 
 ---
 <!-- UPDATED: 2026-05-09 -->
@@ -40,8 +40,8 @@ Wichtige Grundsätze:
 | Seiten & Beiträge | `/admin/pages`, `/admin/posts`, `/admin/comments`, `/admin/table-of-contents`, `/admin/site-tables` | Content-Management mit stabilem Slug-/Taxonomie-Vertrag, Bulk-fähiger Kategorien-/Tag-Verwaltung, commit-schonenderem Cache-Clear bei Sammellöschungen, direkt im Editor sichtbaren SEO-/Readability-Prüfungen und read-only Revisionsvergleichen in Seiten- **und** Beitragseditor ohne zusätzliches Snapshot-Debug-Logging im Save-Flow |
 | Medienverwaltung | `/admin/media`, `/admin/media?tab=featured`, `/admin/media?tab=categories`, `/admin/media?tab=settings` | Bibliothek, Beitrags-/Site-Medien, Kategorien, Medieneinstellungen mit festem Bildvertrag im Replace-in-place-Flow, direkt sichtbaren Beitrags-/Seitenverwendungen pro Medium, serverseitig erweiterten GET-Filtern, opportunistisch begrenzter read-only Duplikat-Erkennung per Inhalts-Hash und chunkbasierten WebP-/Thumbnail-Jobs mit validierter Statusdatei, Fortschritt und generischen UI-Fehlern ohne rohe Exception-Texte |
 | Benutzer & Gruppen | `/admin/users`, `/admin/groups`, `/admin/roles`, `/admin/user-settings` | Benutzer, Teams, Rechte und Auth-Einstellungen mit gemeinsamer Rollenmatrix, read-only Capability-Diff für Rollenvergleiche, begrenzten Profil-Sicherheitsereignissen aus `audit_log`, schema-seitig unterstützter `error`-Severity, einheitlicher 12-Zeichen-Passwort-Policy, lokalem Policy-Tester und allowlist-basierten Gruppen-Sammelaktionen für Aktivstatus, Paketzuweisung und Löschung |
-| Member Dashboard | `/admin/member-dashboard` und Folgeseiten | Konfiguration des Mitgliederbereichs mit getrenntem Runtime-Settings-Pfad für das öffentliche `/member`-Frontend und read-only Preview-Modus unter `/admin/member-dashboard?preview=1`, inklusive sichtbarer Bereichsreihenfolge und einmaligem Plugin-Widget-Metadatenladen pro Übersicht |
-| Aboverwaltung | `/admin/packages`, `/admin/orders`, `/admin/subscription-settings` | Pakete, Bestellungen, Zuweisungen und automatische Standardpaket-Zuweisung für neue Mitglieder |
+| Member Dashboard | `/admin/member-dashboard` und Folgeseiten | Konfiguration des Mitgliederbereichs mit getrenntem Runtime-Settings-Pfad für das öffentliche `/member`-Frontend und read-only Preview-Modus unter `/admin/member-dashboard?preview=1`, inklusive sichtbarer Bereichsreihenfolge, einmaligem Plugin-Widget-Metadatenladen pro Übersicht, persistenter Widget-Sortierung per Drag-&-Drop oder Pfeil-Fallback und read-only Onboarding-Analytics mit aggregierter Abschlussrate auf `/admin/member-dashboard-onboarding` |
+| Aboverwaltung | `/admin/packages`, `/admin/orders`, `/admin/subscription-settings` | Pakete, Bestellungen, Zuweisungen, automatische Standardpaket-Zuweisung für neue Mitglieder sowie read-only Ablaufwarnungen und Renewal-Hinweise aus echten Vertragsdaten |
 | Themes & Design | `/admin/themes`, `/admin/theme-editor`, `/admin/theme-explorer`, `/admin/menu-editor`, `/admin/landing-page`, `/admin/font-manager` | Design, Navigation, Fonts und Landing-Page-Plugin-Overrides mit echten Header-/Content-/Footer-Zuweisungen |
 | SEO | `/admin/seo-dashboard`, `/admin/analytics`, `/admin/seo-audit`, `/admin/seo-meta`, `/admin/seo-social`, `/admin/seo-schema`, `/admin/seo-sitemap`, `/admin/seo-technical`, `/admin/redirect-manager` | Suchmaschinenoptimierung mit echten globalen Social-Fallbacks für Frontend-Head-Tags |
 | Performance | `/admin/performance`, `/admin/performance-cache`, `/admin/performance-media`, `/admin/performance-database`, `/admin/performance-settings`, `/admin/performance-sessions` | Laufzeit- und Ressourcenoptimierung mit ehrlichem Server-Kompressionsstatus statt dekorativem CMS-Schalter |

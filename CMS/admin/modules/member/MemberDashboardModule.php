@@ -45,6 +45,7 @@ class MemberDashboardModule
         'member_profile_fields',
         'member_dashboard_columns',
         'member_dashboard_section_order',
+        'member_dashboard_custom_widget_order',
         'member_dashboard_logo',
         'member_dashboard_greeting',
         'member_dashboard_welcome_text',
@@ -250,8 +251,12 @@ class MemberDashboardModule
                 'overview' => $this->buildOverviewData($settings, $settingsMap, $pluginWidgets),
                 'dashboardPreview' => $this->buildDashboardPreviewData($settings, $settingsMap, $pluginWidgets),
             ],
-            'general', 'design', 'frontend-modules', 'onboarding' => [
+            'general', 'design', 'frontend-modules' => [
                 'settings' => $settings,
+            ],
+            'onboarding' => [
+                'settings' => $settings,
+                'onboardingAnalytics' => $this->buildOnboardingAnalytics($settings),
             ],
             'widgets' => [
                 'settings' => $settings,
@@ -342,10 +347,22 @@ class MemberDashboardModule
     private function saveWidgetSettings(array $post): array
     {
         try {
-            $selectedWidgets = array_values(array_intersect(
-                array_keys($this->getAvailableWidgets()),
-                array_keys(array_filter($post['widgets'] ?? []))
+            $availableWidgets = array_keys($this->getAvailableWidgets());
+            $widgetOrder = $this->normalizeOrderedValues(
+                explode(',', (string)($post['widget_order'] ?? '')),
+                array_map('strval', $availableWidgets)
+            );
+
+            $selectedWidgetLookup = array_map('strval', array_keys(array_filter($post['widgets'] ?? [])));
+            $selectedWidgets = array_values(array_filter(
+                $widgetOrder,
+                static fn(string $widgetKey): bool => in_array($widgetKey, $selectedWidgetLookup, true)
             ));
+
+            $customWidgetOrder = $this->normalizeOrderedValues(
+                explode(',', (string)($post['custom_widget_order'] ?? '')),
+                $this->getDefaultCustomWidgetOrder()
+            );
 
             $columns = (int)($post['dashboard_columns'] ?? 3);
             if ($columns < 1 || $columns > 4) {
@@ -361,6 +378,7 @@ class MemberDashboardModule
                 'member_dashboard_widgets'      => json_encode($selectedWidgets, JSON_UNESCAPED_UNICODE),
                 'member_dashboard_columns'      => (string)$columns,
                 'member_dashboard_section_order'=> $sectionOrder,
+                'member_dashboard_custom_widget_order' => json_encode($customWidgetOrder, JSON_UNESCAPED_UNICODE),
             ];
 
             for ($i = 1; $i <= 4; $i++) {
@@ -554,6 +572,10 @@ class MemberDashboardModule
             'profile_fields'       => \CMS\Json::decodeArray($settings['member_profile_fields'] ?? null, []),
             'dashboard_columns'    => (int)($settings['member_dashboard_columns'] ?? 3),
             'section_order'        => $settings['member_dashboard_section_order'] ?? 'stats,widgets,plugins',
+            'custom_widget_order'  => $this->normalizeOrderedValues(
+                \CMS\Json::decodeArray($settings['member_dashboard_custom_widget_order'] ?? null, $this->getDefaultCustomWidgetOrder()),
+                $this->getDefaultCustomWidgetOrder()
+            ),
             'dashboard_logo'       => $settings['member_dashboard_logo'] ?? '',
             'dashboard_greeting'   => $settings['member_dashboard_greeting'] ?? 'Guten Tag, {name}!',
             'dashboard_welcome_text' => $settings['member_dashboard_welcome_text'] ?? '',
@@ -785,6 +807,90 @@ class MemberDashboardModule
     }
 
     /**
+     * @return array<int,string>
+     */
+    private function getDefaultCustomWidgetOrder(): array
+    {
+        return ['1', '2', '3', '4'];
+    }
+
+    /**
+     * @param array<int|string,mixed> $requestedValues
+     * @param array<int,string> $allowedValues
+     * @return array<int,string>
+     */
+    private function normalizeOrderedValues(array $requestedValues, array $allowedValues): array
+    {
+        $allowedLookup = [];
+        foreach ($allowedValues as $allowedValue) {
+            $allowedLookup[(string)$allowedValue] = true;
+        }
+
+        $normalized = [];
+        $seen = [];
+
+        foreach ($requestedValues as $requestedValue) {
+            $requestedValue = trim((string)$requestedValue);
+            if ($requestedValue === '' || !isset($allowedLookup[$requestedValue]) || isset($seen[$requestedValue])) {
+                continue;
+            }
+
+            $seen[$requestedValue] = true;
+            $normalized[] = $requestedValue;
+        }
+
+        foreach ($allowedValues as $allowedValue) {
+            $allowedValue = (string)$allowedValue;
+            if (isset($seen[$allowedValue])) {
+                continue;
+            }
+
+            $seen[$allowedValue] = true;
+            $normalized[] = $allowedValue;
+        }
+
+        return $normalized;
+    }
+
+    /**
+     * @param array<int,array<string,mixed>> $pluginWidgets
+     * @param array<int|string,mixed> $storedOrder
+     * @return array<int,array<string,mixed>>
+     */
+    private function sortPluginWidgetsByStoredOrder(array $pluginWidgets, array $storedOrder): array
+    {
+        if ($pluginWidgets === []) {
+            return [];
+        }
+
+        $allowedPlugins = [];
+        foreach ($pluginWidgets as $widget) {
+            $pluginSlug = trim((string)($widget['plugin'] ?? ''));
+            if ($pluginSlug !== '') {
+                $allowedPlugins[] = $pluginSlug;
+            }
+        }
+
+        $normalizedOrder = $this->normalizeOrderedValues($storedOrder, $allowedPlugins);
+        $positions = array_flip($normalizedOrder);
+
+        usort($pluginWidgets, static function (array $left, array $right) use ($positions): int {
+            $leftKey = (string)($left['plugin'] ?? '');
+            $rightKey = (string)($right['plugin'] ?? '');
+            $leftPosition = isset($positions[$leftKey]) ? (int)$positions[$leftKey] : 999;
+            $rightPosition = isset($positions[$rightKey]) ? (int)$positions[$rightKey] : 999;
+
+            if ($leftPosition === $rightPosition) {
+                return strcmp($leftKey, $rightKey);
+            }
+
+            return $leftPosition <=> $rightPosition;
+        });
+
+        return $pluginWidgets;
+    }
+
+    /**
      * @param array<string, string> $settings
      * @return array<string, array<string, string>>
      */
@@ -945,6 +1051,46 @@ class MemberDashboardModule
                 'subscriptionVisible' => false,
                 'pluginWidgetCount' => 0,
             ],
+            'dashboardPreview' => $this->emptyDashboardPreviewData(),
+        ];
+    }
+
+    /**
+     * @return array<string,mixed>
+     */
+    private function emptyDashboardPreviewData(): array
+    {
+        return [
+            'dashboard_enabled' => false,
+            'show_welcome' => false,
+            'greeting' => 'Guten Tag, {name}!',
+            'welcome_text' => '',
+            'design' => [],
+            'frontend_modules' => [
+                'show_quickstart' => false,
+                'show_stats' => false,
+                'show_custom_widgets' => false,
+                'show_plugin_widgets' => false,
+                'show_notifications_panel' => false,
+                'show_onboarding_panel' => false,
+            ],
+            'section_order' => ['stats', 'widgets', 'plugins'],
+            'core_widgets' => [],
+            'custom_widgets' => [],
+            'plugin_widgets' => [],
+            'profile_fields' => [],
+            'notifications' => [
+                'center_enabled' => false,
+                'empty_text' => 'Aktuell gibt es keine neuen Meldungen.',
+            ],
+            'onboarding' => [
+                'enabled' => false,
+                'title' => 'So startest du optimal',
+                'intro' => '',
+                'steps' => [],
+                'cta_label' => 'Jetzt starten',
+                'cta_url' => '/member/profile',
+            ],
         ];
     }
 
@@ -959,6 +1105,7 @@ class MemberDashboardModule
                 'stats' => ['total' => 0, 'active' => 0, 'thisWeek' => 0],
                 'widgets' => [],
                 'profileFields' => [],
+                'pluginWidgets' => [],
                 'overview' => [
                     'enabledWidgets' => 0,
                     'enabledProfileFields' => 0,
@@ -968,9 +1115,14 @@ class MemberDashboardModule
                     'subscriptionVisible' => false,
                     'pluginWidgetCount' => 0,
                 ],
+                'dashboardPreview' => $this->emptyDashboardPreviewData(),
             ],
-            'general', 'design', 'frontend-modules', 'onboarding' => [
+            'general', 'design', 'frontend-modules' => [
                 'settings' => [],
+            ],
+            'onboarding' => [
+                'settings' => [],
+                'onboardingAnalytics' => $this->emptyOnboardingAnalytics(),
             ],
             'widgets' => [
                 'settings' => [],
@@ -1027,6 +1179,11 @@ class MemberDashboardModule
         $availableWidgets = $this->getAvailableWidgets();
         $profileFieldDefinitions = $this->getProfileFieldDefinitions();
         $pluginWidgets ??= $this->getPluginWidgets($settingsMap);
+        $pluginWidgets = $this->sortPluginWidgetsByStoredOrder($pluginWidgets, (array)($settings['plugin_widget_order'] ?? []));
+        $customWidgetOrder = $this->normalizeOrderedValues(
+            (array)($settings['custom_widget_order'] ?? []),
+            $this->getDefaultCustomWidgetOrder()
+        );
 
         $enabledCoreWidgets = [];
         foreach ((array)($settings['widgets'] ?? []) as $widgetKey) {
@@ -1043,7 +1200,8 @@ class MemberDashboardModule
         }
 
         $customWidgets = [];
-        foreach ((array)($settings['custom_widgets'] ?? []) as $widget) {
+        foreach ($customWidgetOrder as $widgetPosition) {
+            $widget = $settings['custom_widgets'][(int)$widgetPosition] ?? null;
             if (!is_array($widget)) {
                 continue;
             }
@@ -1145,6 +1303,214 @@ class MemberDashboardModule
                 'cta_label' => (string)($onboarding['cta_label'] ?? 'Jetzt starten'),
                 'cta_url' => $this->normalizeActionUrl((string)($onboarding['cta_url'] ?? '/member/profile'), '/member/profile'),
             ],
+        ];
+    }
+
+    /**
+     * @param array<string,mixed> $settings
+     * @return array<string,mixed>
+     */
+    private function buildOnboardingAnalytics(array $settings): array
+    {
+        $analytics = $this->emptyOnboardingAnalytics();
+
+        $selectedProfileFields = array_values(array_intersect(
+            array_keys(self::PROFILE_FIELDS),
+            array_map('strval', (array)($settings['profile_fields'] ?? []))
+        ));
+
+        $onboarding = is_array($settings['onboarding'] ?? null) ? $settings['onboarding'] : [];
+        $analytics['profile_fields_considered'] = count($selectedProfileFields);
+        $analytics['steps_configured'] = count(array_values(array_filter(array_map('strval', (array)($onboarding['steps'] ?? [])))));
+        $analytics['require_profile_completion'] = !empty($onboarding['require_profile_completion']);
+
+        try {
+            $activeUsers = $this->db->get_results(
+                "SELECT id FROM {$this->prefix}users WHERE status = 'active'"
+            ) ?: [];
+
+            $activeUserIds = [];
+            foreach ($activeUsers as $userRow) {
+                $userId = (int)($userRow->id ?? 0);
+                if ($userId > 0) {
+                    $activeUserIds[] = $userId;
+                }
+            }
+
+            $analytics['total_active_accounts'] = count($activeUserIds);
+            if ($activeUserIds === []) {
+                $analytics['basis_note'] = 'Noch keine aktiven Konten vorhanden.';
+                return $analytics;
+            }
+
+            $profileCompletionByUser = [];
+            if ($selectedProfileFields !== []) {
+                $placeholders = implode(',', array_fill(0, count($selectedProfileFields), '?'));
+                $profileRows = $this->db->get_results(
+                    "SELECT um.user_id, um.meta_key, um.meta_value
+                     FROM {$this->prefix}user_meta um
+                     INNER JOIN {$this->prefix}users u ON u.id = um.user_id
+                     WHERE u.status = 'active' AND um.meta_key IN ({$placeholders})",
+                    $selectedProfileFields
+                ) ?: [];
+
+                foreach ($profileRows as $profileRow) {
+                    $userId = (int)($profileRow->user_id ?? 0);
+                    $metaKey = (string)($profileRow->meta_key ?? '');
+                    $metaValue = trim((string)($profileRow->meta_value ?? ''));
+                    if ($userId <= 0 || $metaKey === '' || $metaValue === '') {
+                        continue;
+                    }
+
+                    if (!isset($profileCompletionByUser[$userId])) {
+                        $profileCompletionByUser[$userId] = [];
+                    }
+
+                    $profileCompletionByUser[$userId][$metaKey] = true;
+                }
+            }
+
+            $mfaUsers = [];
+            try {
+                $mfaRows = $this->db->get_results(
+                    "SELECT DISTINCT um.user_id
+                     FROM {$this->prefix}user_meta um
+                     INNER JOIN {$this->prefix}users u ON u.id = um.user_id
+                     WHERE u.status = 'active'
+                       AND um.meta_key IN ('mfa_enabled', '2fa_enabled')
+                       AND um.meta_value = '1'"
+                ) ?: [];
+
+                foreach ($mfaRows as $mfaRow) {
+                    $userId = (int)($mfaRow->user_id ?? 0);
+                    if ($userId > 0) {
+                        $mfaUsers[$userId] = true;
+                    }
+                }
+            } catch (\Throwable) {
+                $mfaUsers = [];
+            }
+
+            $passkeyUsers = [];
+            try {
+                $passkeyRows = $this->db->get_results(
+                    "SELECT DISTINCT pc.user_id
+                     FROM {$this->prefix}passkey_credentials pc
+                     INNER JOIN {$this->prefix}users u ON u.id = pc.user_id
+                     WHERE u.status = 'active'"
+                ) ?: [];
+
+                foreach ($passkeyRows as $passkeyRow) {
+                    $userId = (int)($passkeyRow->user_id ?? 0);
+                    if ($userId > 0) {
+                        $passkeyUsers[$userId] = true;
+                    }
+                }
+            } catch (\Throwable) {
+                $passkeyUsers = [];
+            }
+
+            $recentlyActiveUsers = [];
+            try {
+                $recentActivityRows = $this->db->get_results(
+                    "SELECT DISTINCT al.user_id
+                     FROM {$this->prefix}activity_log al
+                     INNER JOIN {$this->prefix}users u ON u.id = al.user_id
+                     WHERE u.status = 'active'
+                       AND al.action = 'login'
+                       AND al.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)"
+                ) ?: [];
+
+                foreach ($recentActivityRows as $activityRow) {
+                    $userId = (int)($activityRow->user_id ?? 0);
+                    if ($userId > 0) {
+                        $recentlyActiveUsers[$userId] = true;
+                    }
+                }
+            } catch (\Throwable) {
+                $analytics['has_recent_login_signal'] = false;
+                $recentlyActiveUsers = [];
+            }
+
+            $profileCompletedAccounts = 0;
+            foreach ($activeUserIds as $userId) {
+                if ($selectedProfileFields === []) {
+                    continue;
+                }
+
+                $filledFields = $profileCompletionByUser[$userId] ?? [];
+                $isComplete = true;
+                foreach ($selectedProfileFields as $profileFieldKey) {
+                    if (empty($filledFields[$profileFieldKey])) {
+                        $isComplete = false;
+                        break;
+                    }
+                }
+
+                if ($isComplete) {
+                    $profileCompletedAccounts++;
+                }
+            }
+
+            $analytics['profile_completed_accounts'] = $profileCompletedAccounts;
+            $analytics['profile_incomplete_accounts'] = max(0, count($activeUserIds) - $profileCompletedAccounts);
+            $analytics['mfa_enabled_accounts'] = count($mfaUsers);
+            $analytics['passkey_ready_accounts'] = count($passkeyUsers);
+            $analytics['security_ready_accounts'] = count(array_unique(array_merge(array_keys($mfaUsers), array_keys($passkeyUsers))));
+            $analytics['recently_active_accounts'] = count($recentlyActiveUsers);
+
+            if ($selectedProfileFields !== []) {
+                $analytics['completion_mode'] = 'profile';
+                $analytics['completion_accounts'] = $profileCompletedAccounts;
+                $analytics['completion_rate'] = (int)round(($profileCompletedAccounts / count($activeUserIds)) * 100);
+                $analytics['profile_completion_rate'] = $analytics['completion_rate'];
+                $analytics['basis_note'] = 'Die Abschlussrate basiert auf vollständig ausgefüllten aktuell aktivierten Profilfeldern und bleibt rein aggregiert/read-only.';
+            } else {
+                $analytics['completion_mode'] = 'activity_fallback';
+                $analytics['completion_accounts'] = count($recentlyActiveUsers);
+                $analytics['completion_rate'] = (int)round((count($recentlyActiveUsers) / count($activeUserIds)) * 100);
+                $analytics['profile_completion_rate'] = 0;
+                $analytics['basis_note'] = 'Aktuell sind keine zusätzlichen Profilfelder aktiv. Als defensiver Fallback zeigt die Abschlusskarte daher die aktive Nutzung in den letzten 30 Tagen statt einer Profilquote.';
+            }
+
+            $analytics['security_ready_rate'] = (int)round(($analytics['security_ready_accounts'] / count($activeUserIds)) * 100);
+            $analytics['recently_active_rate'] = (int)round(($analytics['recently_active_accounts'] / count($activeUserIds)) * 100);
+
+            return $analytics;
+        } catch (\Throwable $e) {
+            $this->logger->warning('Onboarding-Analytics konnten nicht vollständig aufgebaut werden.', [
+                'action' => 'member.dashboard.onboarding.analytics_failed',
+                'exception_class' => $e::class,
+            ]);
+
+            return $analytics;
+        }
+    }
+
+    /**
+     * @return array<string,mixed>
+     */
+    private function emptyOnboardingAnalytics(): array
+    {
+        return [
+            'total_active_accounts' => 0,
+            'steps_configured' => 0,
+            'profile_fields_considered' => 0,
+            'require_profile_completion' => false,
+            'completion_mode' => 'profile',
+            'completion_accounts' => 0,
+            'completion_rate' => 0,
+            'profile_completed_accounts' => 0,
+            'profile_incomplete_accounts' => 0,
+            'profile_completion_rate' => 0,
+            'mfa_enabled_accounts' => 0,
+            'passkey_ready_accounts' => 0,
+            'security_ready_accounts' => 0,
+            'security_ready_rate' => 0,
+            'recently_active_accounts' => 0,
+            'recently_active_rate' => 0,
+            'has_recent_login_signal' => true,
+            'basis_note' => 'Die Kennzahlen werden read-only aus bestehenden Signalen abgeleitet.',
         ];
     }
 

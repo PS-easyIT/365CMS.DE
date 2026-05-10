@@ -138,6 +138,7 @@ final class MemberController
             'show_welcome' => true,
             'subscription_visible' => true,
             'custom_widgets' => [1 => ['title' => '', 'content' => '', 'icon' => ''], 2 => ['title' => '', 'content' => '', 'icon' => ''], 3 => ['title' => '', 'content' => '', 'icon' => ''], 4 => ['title' => '', 'content' => '', 'icon' => '']],
+            'custom_widget_order' => ['1', '2', '3', '4'],
             'design' => [
                 'primary' => '#6366f1',
                 'accent' => '#8b5cf6',
@@ -473,8 +474,21 @@ final class MemberController
      */
     public function getCustomWidgets(): array
     {
+        $settings = $this->getSettings();
+        $defaultOrder = ['1', '2', '3', '4'];
+        $customWidgetOrder = array_values(array_filter(array_map('strval', (array)($settings['custom_widget_order'] ?? $defaultOrder)), static function (string $value): bool {
+            return in_array($value, ['1', '2', '3', '4'], true);
+        }));
+
+        foreach ($defaultOrder as $defaultValue) {
+            if (!in_array($defaultValue, $customWidgetOrder, true)) {
+                $customWidgetOrder[] = $defaultValue;
+            }
+        }
+
         $widgets = [];
-        foreach ((array)($this->getSettings()['custom_widgets'] ?? []) as $widget) {
+        foreach ($customWidgetOrder as $widgetPosition) {
+            $widget = (array)($settings['custom_widgets'][(int)$widgetPosition] ?? []);
             if (trim((string)($widget['title'] ?? '')) === '' && trim((string)($widget['content'] ?? '')) === '') {
                 continue;
             }

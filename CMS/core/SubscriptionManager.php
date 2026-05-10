@@ -345,6 +345,312 @@ class SubscriptionManager
 
         return $this->settingsCache[$key];
     }
+
+    private function getIntSetting(string $key, int $default, int $min, int $max): int
+    {
+        return max($min, min($max, (int) $this->getSetting($key, (string) $default)));
+    }
+
+    /**
+     * @return array{warning_days:int,auto_renewal_enabled:bool,grace_period_days:int,notification_email_configured:bool}
+     */
+    public function getRenewalSettings(): array
+    {
+        return [
+            'warning_days' => $this->getIntSetting('notification_before_expiry', 7, 0, 365),
+            'auto_renewal_enabled' => $this->getSetting('auto_renewal', '1') === '1',
+            'grace_period_days' => $this->getIntSetting('grace_period_days', 3, 0, 365),
+            'notification_email_configured' => trim($this->getSetting('notification_email', '')) !== '',
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function normalizeSubscriptionData(object|array|null $subscription): array
+    {
+        if (is_object($subscription)) {
+            $subscription = (array) $subscription;
+        }
+
+        if (!is_array($subscription)) {
+            return [];
+        }
+
+        return $subscription;
+    }
+
+    private function parseDateValue(string $value): ?\DateTimeImmutable
+    {
+        $value = trim($value);
+        if ($value === '') {
+            return null;
+        }
+
+        try {
+            return new \DateTimeImmutable($value);
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    private function resolveSubscriptionDueDate(array $subscription): ?\DateTimeImmutable
+    {
+        $candidates = [
+            (string) ($subscription['next_billing_date'] ?? ''),
+            (string) ($subscription['end_date'] ?? ''),
+            (string) ($subscription['expires_at'] ?? ''),
+        ];
+
+        foreach ($candidates as $candidate) {
+            $parsed = $this->parseDateValue($candidate);
+            if ($parsed instanceof \DateTimeImmutable) {
+                return $parsed;
+            }
+        }
+
+        return null;
+    }
+
+    private function calculateDayDifference(\DateTimeImmutable $from, \DateTimeImmutable $to): int
+    {
+        return (int) $from->setTime(0, 0)->diff($to->setTime(0, 0))->format('%r%a');
+    }
+
+    private function formatDueLabel(\DateTimeImmutable $dueAt): string
+    {
+        return $dueAt->format('d.m.Y H:i');
+    }
+
+    /**
+     * @param array<string, mixed> $notice
+     */
+    private function buildRenewalAdminSummary(array $notice): string
+    {
+        $daysUntilDue = isset($notice['days_until_due']) ? (int) $notice['days_until_due'] : null;
+        $isAutoRenewal = !empty($notice['is_auto_renewal']);
+
+        if ($daysUntilDue === null) {
+            return '';
+        }
+
+        if ($daysUntilDue < 0) {
+            $days = abs($daysUntilDue);
+            return $isAutoRenewal
+                ? 'Verlängerung seit ' . $days . ' Tag' . ($days === 1 ? '' : 'en') . ' fällig'
+                : 'Seit ' . $days . ' Tag' . ($days === 1 ? '' : 'en') . ' abgelaufen';
+        }
+
+        if ($daysUntilDue === 0) {
+            return $isAutoRenewal ? 'Verlängerung heute fällig' : 'Läuft heute aus';
+        }
+
+        return $isAutoRenewal
+            ? 'Verlängerung in ' . $daysUntilDue . ' Tagen'
+            : 'Läuft in ' . $daysUntilDue . ' Tagen aus';
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function getSubscriptionRenewalNotice(object|array|null $subscription): array
+    {
+        $settings = $this->getRenewalSettings();
+        $data = $this->normalizeSubscriptionData($subscription);
+
+        $defaults = [
+            'has_notice' => false,
+            'is_highlighted' => false,
+            'is_overdue' => false,
+            'is_due_today' => false,
+            'kind' => 'none',
+            'severity' => 'info',
+            'title' => '',
+            'message' => '',
+            'due_at' => '',
+            'due_label' => '',
+            'days_until_due' => null,
+            'warning_days' => $settings['warning_days'],
+            'auto_renewal_enabled' => $settings['auto_renewal_enabled'],
+            'grace_period_days' => $settings['grace_period_days'],
+            'is_auto_renewal' => false,
+            'status' => '',
+        ];
+
+        if ($data === []) {
+            return $defaults;
+        }
+
+        $dueAt = $this->resolveSubscriptionDueDate($data);
+        if (!$dueAt instanceof \DateTimeImmutable) {
+            return $defaults;
+        }
+
+        $now = new \DateTimeImmutable('now');
+        $daysUntilDue = $this->calculateDayDifference($now, $dueAt);
+        $hasNextBillingDate = trim((string) ($data['next_billing_date'] ?? '')) !== '';
+        $billingCycle = strtolower(trim((string) ($data['billing_cycle'] ?? '')));
+        $status = strtolower(trim((string) ($data['status'] ?? '')));
+        $isAutoRenewal = $settings['auto_renewal_enabled'] && $hasNextBillingDate && $billingCycle !== 'lifetime';
+        $isOverdue = $daysUntilDue < 0;
+        $isDueToday = $daysUntilDue === 0;
+        $isHighlighted = $isOverdue || $isDueToday || ($settings['warning_days'] > 0 && $daysUntilDue > 0 && $daysUntilDue <= $settings['warning_days']);
+        $dueLabel = $this->formatDueLabel($dueAt);
+
+        $title = $isAutoRenewal ? 'Nächste Verlängerung' : 'Aktive Laufzeit';
+        $message = $isAutoRenewal
+            ? 'Die nächste Verlängerung ist am ' . $dueLabel . ' vorgesehen.'
+            : 'Die aktuelle Laufzeit endet am ' . $dueLabel . '.';
+        $kind = $isAutoRenewal ? 'renewal_scheduled' : 'active_until';
+        $severity = 'info';
+
+        if ($isOverdue) {
+            $kind = $isAutoRenewal ? 'renewal_overdue' : 'expired';
+            $severity = 'danger';
+            $title = $isAutoRenewal ? 'Verlängerung überfällig' : 'Abo abgelaufen';
+            $message = $isAutoRenewal
+                ? 'Die nächste Verlängerung war für ' . $dueLabel . ' vorgesehen. Zahlungs- und Vertragsstatus prüfen.'
+                : 'Die Laufzeit endete am ' . $dueLabel . '.';
+
+            if (!$isAutoRenewal && $settings['grace_period_days'] > 0) {
+                $message .= ' Konfigurierte Kulanzzeit: ' . $settings['grace_period_days'] . ' Tage.';
+            }
+        } elseif ($isDueToday) {
+            $kind = $isAutoRenewal ? 'renewal_due' : 'expires_today';
+            $severity = 'warning';
+            $title = $isAutoRenewal ? 'Verlängerung heute fällig' : 'Abo läuft heute aus';
+            $message = $isAutoRenewal
+                ? 'Die nächste Verlängerung ist heute fällig.'
+                : 'Die aktuelle Laufzeit endet heute.';
+        } elseif ($isHighlighted) {
+            $kind = $isAutoRenewal ? 'renewal_soon' : 'expiring_soon';
+            $severity = 'warning';
+            $title = $isAutoRenewal ? 'Verlängerung bald fällig' : 'Abo läuft bald aus';
+            $message = $isAutoRenewal
+                ? 'Die nächste Verlängerung ist in ' . $daysUntilDue . ' Tagen fällig.'
+                : 'Die aktuelle Laufzeit endet in ' . $daysUntilDue . ' Tagen.';
+        }
+
+        return [
+            'has_notice' => true,
+            'is_highlighted' => $isHighlighted,
+            'is_overdue' => $isOverdue,
+            'is_due_today' => $isDueToday,
+            'kind' => $kind,
+            'severity' => $severity,
+            'title' => $title,
+            'message' => $message,
+            'due_at' => $dueAt->format('Y-m-d H:i:s'),
+            'due_label' => $dueLabel,
+            'days_until_due' => $daysUntilDue,
+            'warning_days' => $settings['warning_days'],
+            'auto_renewal_enabled' => $settings['auto_renewal_enabled'],
+            'grace_period_days' => $settings['grace_period_days'],
+            'is_auto_renewal' => $isAutoRenewal,
+            'status' => $status,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function getRenewalOverview(int $limit = 10): array
+    {
+        $settings = $this->getRenewalSettings();
+        $limit = max(1, min(25, $limit));
+        $now = new \DateTimeImmutable('now');
+        $cutoff = $now->modify('+' . $settings['warning_days'] . ' days');
+        $defaultOverview = [
+            'warning_days' => $settings['warning_days'],
+            'auto_renewal_enabled' => $settings['auto_renewal_enabled'],
+            'grace_period_days' => $settings['grace_period_days'],
+            'counts' => [
+                'total' => 0,
+                'overdue' => 0,
+                'upcoming' => 0,
+            ],
+            'items' => [],
+            'basis_note' => $settings['warning_days'] > 0
+                ? 'Die Hinweise basieren auf dem globalen Ablaufhinweis von ' . $settings['warning_days'] . ' Tagen. Bei aktiver Auto-Verlängerung wird das Fälligkeitsdatum als Renewal-Termin interpretiert.'
+                : 'Die Hinweise zeigen nur heute fällige oder bereits überfällige Abos. Bei aktiver Auto-Verlängerung wird das Fälligkeitsdatum als Renewal-Termin interpretiert.',
+        ];
+
+        try {
+            $countRow = $this->db->get_row(
+                "SELECT COUNT(*) AS total,
+                        SUM(CASE WHEN COALESCE(us.next_billing_date, us.end_date) < ? THEN 1 ELSE 0 END) AS overdue
+                 FROM {$this->db->getPrefix()}user_subscriptions us
+                 WHERE us.status IN ('active', 'trial')
+                   AND COALESCE(us.next_billing_date, us.end_date) IS NOT NULL
+                   AND COALESCE(us.next_billing_date, us.end_date) <= ?",
+                [$now->format('Y-m-d H:i:s'), $cutoff->format('Y-m-d H:i:s')]
+            );
+
+            $rows = $this->db->get_results(
+                "SELECT us.id AS subscription_id,
+                        us.user_id,
+                        us.plan_id,
+                        us.status,
+                        us.billing_cycle,
+                        us.start_date,
+                        us.end_date,
+                        us.next_billing_date,
+                        us.cancelled_at,
+                        u.username,
+                        u.email,
+                        sp.name AS plan_name
+                 FROM {$this->db->getPrefix()}user_subscriptions us
+                 LEFT JOIN {$this->db->getPrefix()}users u ON us.user_id = u.id
+                 LEFT JOIN {$this->db->getPrefix()}subscription_plans sp ON us.plan_id = sp.id
+                 WHERE us.status IN ('active', 'trial')
+                   AND COALESCE(us.next_billing_date, us.end_date) IS NOT NULL
+                   AND COALESCE(us.next_billing_date, us.end_date) <= ?
+                 ORDER BY COALESCE(us.next_billing_date, us.end_date) ASC
+                 LIMIT {$limit}",
+                [$cutoff->format('Y-m-d H:i:s')]
+            ) ?: [];
+        } catch (\Throwable) {
+            return $defaultOverview;
+        }
+
+        $total = (int) ($countRow->total ?? 0);
+        $overdue = (int) ($countRow->overdue ?? 0);
+        $items = [];
+
+        foreach ($rows as $row) {
+            $data = (array) $row;
+            $notice = $this->getSubscriptionRenewalNotice($data);
+            if (empty($notice['has_notice'])) {
+                continue;
+            }
+
+            $items[] = [
+                'subscription_id' => (int) ($data['subscription_id'] ?? 0),
+                'user_id' => (int) ($data['user_id'] ?? 0),
+                'username' => trim((string) ($data['username'] ?? '')),
+                'email' => trim((string) ($data['email'] ?? '')),
+                'plan_name' => trim((string) ($data['plan_name'] ?? '')),
+                'status' => trim((string) ($data['status'] ?? 'active')),
+                'billing_cycle' => trim((string) ($data['billing_cycle'] ?? 'monthly')),
+                'due_at' => (string) ($notice['due_at'] ?? ''),
+                'due_label' => (string) ($notice['due_label'] ?? ''),
+                'days_until_due' => $notice['days_until_due'],
+                'severity' => (string) ($notice['severity'] ?? 'info'),
+                'kind' => (string) ($notice['kind'] ?? 'none'),
+                'summary' => $this->buildRenewalAdminSummary($notice),
+                'is_auto_renewal' => !empty($notice['is_auto_renewal']),
+            ];
+        }
+
+        $defaultOverview['counts'] = [
+            'total' => $total,
+            'overdue' => $overdue,
+            'upcoming' => max(0, $total - $overdue),
+        ];
+        $defaultOverview['items'] = $items;
+
+        return $defaultOverview;
+    }
     
     /**
      * Holt aktuelle Nutzung

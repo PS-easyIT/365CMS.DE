@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Dokumentiert die Konfiguration der Dashboard-Widgets im **Member Dashboard** aus Admin-Sicht.
 
-Letzte Aktualisierung: 2026-04-07 · Version 2.9.0
+Letzte Aktualisierung: 2026-05-10 · Version 2.9.734
 
 ---
 
@@ -42,11 +42,12 @@ Nicht jedes Widget muss im Frontend sichtbar sein. Sichtbarkeit und Reihenfolge 
 
 ## Konfigurierbare Bereiche
 
-Auf `/admin/member-dashboard-widgets` werden drei Ebenen konfiguriert:
+Auf `/admin/member-dashboard-widgets` werden heute vier Ebenen konfiguriert:
 
 1. **Aktive Kern-Widgets**
 2. **Spaltenlayout** (`1` bis `4` Spalten)
 3. **Reihenfolge der Bereichsblöcke**
+4. **Reihenfolge eigener Info-Widgets**
 
 Unterstützte Abschnittsreihenfolgen:
 
@@ -57,7 +58,13 @@ Unterstützte Abschnittsreihenfolgen:
 - `quick_start,stats,widgets,plugins`
 - `quick_start,stats,plugins,widgets`
 
-Damit wird nicht nur die Reihenfolge einzelner Kacheln, sondern die Anordnung ganzer Dashboard-Sektionen gesteuert.
+Seit `2.9.734` kommt zusätzlich eine persistente Sortierung hinzu:
+
+- **Kern-Widgets** werden in der Admin-UI per Drag-&-Drop oder Auf/Ab-Buttons angeordnet.
+- **Eigene Info-Widgets** lassen sich über dieselben Interaktionen sortieren.
+- **Plugin-Widgets** nutzen denselben Fallback-Mechanismus jetzt ebenfalls neben Drag-&-Drop.
+
+Damit wird nicht nur die Anordnung ganzer Dashboard-Sektionen gesteuert, sondern auch die Reihenfolge einzelner Widget-Gruppen innerhalb der Member-Dashboard-Konfiguration.
 
 ---
 
@@ -80,6 +87,8 @@ Diese Widgets eignen sich für:
 
 Die Inhalte werden serverseitig bereinigt; erlaubt ist nur eingeschränktes HTML.
 
+Seit `2.9.734` wird zusätzlich die Reihenfolge dieser vier Slots unter `member_dashboard_custom_widget_order` gespeichert. Die Slot-IDs selbst bleiben stabil (`1` bis `4`), sodass Inhaltsfelder nicht an unsichere freie Positionsschlüssel gekoppelt werden.
+
 ---
 
 ## Plugin-Widgets
@@ -94,6 +103,8 @@ Konfigurierbar sind:
 - Sichtbarkeit pro Plugin-Widget
 - Reihenfolge über `member_dashboard_plugin_order`
 
+Die Reihenfolge wird serverseitig allowlist-basiert gegen bekannte Plugin-Slugs normalisiert. Fehlende oder unbekannte Werte werden fail-soft behandelt, statt die Konfigurationsseite oder das Frontend-Dashboard abzureißen.
+
 Die zugehörige Admin-Seite ist:
 
 - `/admin/member-dashboard-plugin-widgets`
@@ -107,6 +118,7 @@ Die Konfiguration landet in der Tabelle `settings` mit `member_*`-Schlüsseln, i
 - `member_dashboard_widgets`
 - `member_dashboard_columns`
 - `member_dashboard_section_order`
+- `member_dashboard_custom_widget_order`
 - `member_dashboard_plugin_order`
 - `member_dashboard_show_custom_widgets`
 - `member_dashboard_show_plugin_widgets`
@@ -114,6 +126,24 @@ Die Konfiguration landet in der Tabelle `settings` mit `member_*`-Schlüsseln, i
 - `member_dashboard_show_quickstart`
 
 Die Werte werden überwiegend als Strings oder JSON gespeichert.
+
+## Request- und Sicherheitsvertrag
+
+Die Sortierung erzeugt **keine neue GET-Aktion** und keinen separaten Token-Pfad.
+
+- Speichern weiterhin nur per `POST`
+- CSRF-Kontext weiterhin `admin_member_dashboard`
+- keine Tokens in URLs
+- serverseitige Allowlist für Widget-Keys, Custom-Slot-IDs (`1`–`4`) und Plugin-Slugs
+- Duplikate werden entfernt, fehlende bekannte Werte kontrolliert ergänzt
+- beschädigte oder unvollständige Browserdaten führen fail-soft zu Defaults statt zu HTTP-500
+
+Die UI ist progressiv erweitert:
+
+- **Drag-&-Drop** für schnelle Mausinteraktionen
+- **Auf/Ab-Buttons** als robuster Fallback
+
+Dadurch bleibt die Funktion nutzbar, auch wenn Browser-DnD im konkreten Umfeld eingeschränkt ist.
 
 ---
 

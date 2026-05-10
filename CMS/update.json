@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.9.733",
+  "version": "2.9.736",
   "min_php": "8.4",
   "released": "2026-05-10",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 2.9.733: Die Nachprüfung der letzten Nice-to-haves härtet den Member-Dashboard-Preview-Modus nach. Plugin-Widget-Metadaten werden für die Admin-Übersicht nur noch einmal pro Request geladen, die gespeicherte Bereichsreihenfolge ist in der read-only Vorschau sichtbar, und die CSRF-/XSS-/Logging-Leitplanken aus den OWASP-Cheat-Sheets bleiben ohne neue Schreibroute oder Token-in-URL-Risiko erfüllt.",
+  "notes": "Release-Stand 2.9.736: Die Aboverwaltung ergänzt echte read-only Ablaufwarnungen und Renewal-Hinweise. /admin/orders zeigt ein Hinweisfenster für bald fällige oder überfällige Mitgliedschaften auf Basis von next_billing_date/end_date und der globalen Einstellung notification_before_expiry; /member/subscription nutzt denselben zentralen Runtime-Vertrag für Laufzeit- und Verlängerungshinweise, ohne neue POST-Route, ohne Mailversand und ohne zusätzliche Tokens oder Trackingdaten.",
   "critical": false
 }

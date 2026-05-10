@@ -22,6 +22,7 @@ final class OrdersDashboardData
         private array $assignments,
         private array $plans,
         private array $users,
+        private array $renewalInsights,
     ) {
     }
 
@@ -34,6 +35,7 @@ final class OrdersDashboardData
             'assignments' => $this->assignments,
             'plans' => $this->plans,
             'users' => $this->users,
+            'renewal_insights' => $this->renewalInsights,
         ];
     }
 }
@@ -200,7 +202,7 @@ class OrdersModule
     public function getData(string $statusFilter = ''): OrdersDashboardData
     {
         if (!$this->canAccess()) {
-            return new OrdersDashboardData([], $this->defaultStats(), '', [], [], []);
+            return new OrdersDashboardData([], $this->defaultStats(), '', [], [], [], $this->defaultRenewalInsights());
         }
 
         $table = $this->prefix . 'orders';
@@ -214,6 +216,7 @@ class OrdersModule
             $this->mapRows($this->fetchAssignments()),
             $this->mapRows($this->fetchPlans()),
             $this->mapRows($this->fetchUsers()),
+            $this->buildRenewalInsights(),
         );
     }
 
@@ -477,6 +480,37 @@ class OrdersModule
             'refunded' => 0,
             'failed' => 0,
         ];
+    }
+
+    private function defaultRenewalInsights(): array
+    {
+        return [
+            'warning_days' => 0,
+            'auto_renewal_enabled' => false,
+            'grace_period_days' => 0,
+            'counts' => [
+                'total' => 0,
+                'overdue' => 0,
+                'upcoming' => 0,
+            ],
+            'items' => [],
+            'basis_note' => '',
+        ];
+    }
+
+    private function buildRenewalInsights(): array
+    {
+        if (!class_exists(\CMS\SubscriptionManager::class)) {
+            return $this->defaultRenewalInsights();
+        }
+
+        try {
+            $overview = \CMS\SubscriptionManager::instance()->getRenewalOverview(10);
+
+            return is_array($overview) ? array_replace_recursive($this->defaultRenewalInsights(), $overview) : $this->defaultRenewalInsights();
+        } catch (\Throwable) {
+            return $this->defaultRenewalInsights();
+        }
     }
 
     /**

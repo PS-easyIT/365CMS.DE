@@ -16,6 +16,12 @@ $statusFilter = $data['filter'] ?? '';
 $assignments  = $data['assignments'] ?? [];
 $plans        = $data['plans'] ?? [];
 $users        = $data['users'] ?? [];
+$renewalInsights = is_array($data['renewal_insights'] ?? null) ? $data['renewal_insights'] : [];
+$renewalItems = is_array($renewalInsights['items'] ?? null) ? $renewalInsights['items'] : [];
+$renewalCounts = is_array($renewalInsights['counts'] ?? null) ? $renewalInsights['counts'] : [];
+$renewalWindowDays = max(0, (int) ($renewalInsights['warning_days'] ?? 0));
+$renewalBasisNote = (string) ($renewalInsights['basis_note'] ?? '');
+$renewalAutoRenewalEnabled = !empty($renewalInsights['auto_renewal_enabled']);
 $alertData    = is_array($alert ?? null) ? $alert : [];
 $statusLabels = [
     'pending'   => ['label' => 'Offen',       'class' => 'bg-warning'],
@@ -181,6 +187,25 @@ $planOptionLabel = static function (array $plan) use ($formatAmount): string {
 
     return $label;
 };
+$resolveRenewalSeverityMeta = static function (string $severity): array {
+    return match ($severity) {
+        'danger' => ['label' => 'Überfällig', 'class' => 'bg-danger'],
+        'warning' => ['label' => 'Hinweis', 'class' => 'bg-warning'],
+        default => ['label' => 'Info', 'class' => 'bg-info'],
+    };
+};
+$renewalStatusLabel = static function (array $item): string {
+    $status = strtolower(trim((string) ($item['status'] ?? 'active')));
+
+    return match ($status) {
+        'trial' => 'Testphase',
+        'cancelled' => 'Gekündigt',
+        'expired' => 'Abgelaufen',
+        'suspended' => 'Pausiert',
+        default => 'Aktiv',
+    };
+};
+$renewalSummaryValue = static fn (string $value): string => number_format((float) $value, 0, ',', '.');
 $billingCycleOptions = [
     'monthly' => 'Monatlich',
     'yearly' => 'Jährlich',
@@ -261,6 +286,83 @@ $assignCycleOptions = array_map(
                         </a>
                     <?php endforeach; ?>
                 </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h3 class="card-title">Ablaufwarnungen &amp; Renewal-Hinweise</h3>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-sm-6 col-lg-4">
+                        <div class="subheader">Hinweisfenster</div>
+                        <div class="h2 mb-0"><?= htmlspecialchars((string) $renewalWindowDays, ENT_QUOTES, 'UTF-8') ?> Tage</div>
+                    </div>
+                    <div class="col-sm-6 col-lg-4">
+                        <div class="subheader">Fällig / sichtbar</div>
+                        <div class="h2 mb-0 text-warning"><?= htmlspecialchars($renewalSummaryValue((string) ($renewalCounts['total'] ?? 0)), ENT_QUOTES, 'UTF-8') ?></div>
+                    </div>
+                    <div class="col-sm-6 col-lg-4">
+                        <div class="subheader">Überfällig</div>
+                        <div class="h2 mb-0 <?= (int) ($renewalCounts['overdue'] ?? 0) > 0 ? 'text-danger' : 'text-success' ?>">
+                            <?= htmlspecialchars($renewalSummaryValue((string) ($renewalCounts['overdue'] ?? 0)), ENT_QUOTES, 'UTF-8') ?>
+                        </div>
+                    </div>
+                </div>
+                <?php if ($renewalBasisNote !== ''): ?>
+                    <p class="text-secondary small mt-3 mb-0"><?= htmlspecialchars($renewalBasisNote, ENT_QUOTES, 'UTF-8') ?></p>
+                <?php endif; ?>
+                <div class="text-secondary small mt-2">
+                    Auto-Verlängerung global: <strong><?= htmlspecialchars($renewalAutoRenewalEnabled ? 'aktiv' : 'deaktiviert', ENT_QUOTES, 'UTF-8') ?></strong>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-vcenter card-table">
+                    <thead>
+                        <tr>
+                            <th>Benutzer</th>
+                            <th>Paket</th>
+                            <th>Hinweis</th>
+                            <th>Fällig am</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if ($renewalItems === []): ?>
+                            <?php $renderEmptyTableRow(5, 'Aktuell keine Abos im konfigurierten Hinweisfenster.'); ?>
+                        <?php else: ?>
+                            <?php foreach ($renewalItems as $renewalItem): ?>
+                                <?php
+                                $renewalSeverity = $resolveRenewalSeverityMeta((string) ($renewalItem['severity'] ?? 'info'));
+                                $renewalUserPrimary = trim((string) ($renewalItem['username'] ?? ''));
+                                if ($renewalUserPrimary === '') {
+                                    $renewalUserPrimary = trim((string) ($renewalItem['email'] ?? '–'));
+                                }
+                                $renewalUserSecondary = trim((string) ($renewalItem['email'] ?? ''));
+                                if ($renewalUserSecondary === $renewalUserPrimary) {
+                                    $renewalUserSecondary = '';
+                                }
+                                ?>
+                                <tr>
+                                    <td><?php $renderPrimarySecondaryText($renewalUserPrimary !== '' ? $renewalUserPrimary : '–', $renewalUserSecondary); ?></td>
+                                    <td><strong><?= htmlspecialchars((string) ($renewalItem['plan_name'] ?? '–'), ENT_QUOTES, 'UTF-8') ?></strong></td>
+                                    <td>
+                                        <?php $renderStatusBadge((string) $renewalSeverity['label'], (string) $renewalSeverity['class']); ?>
+                                        <?php if (!empty($renewalItem['summary'])): ?>
+                                            <div class="text-secondary small mt-1"><?= htmlspecialchars((string) $renewalItem['summary'], ENT_QUOTES, 'UTF-8') ?></div>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="text-secondary"><?= htmlspecialchars((string) ($renewalItem['due_label'] ?? '–'), ENT_QUOTES, 'UTF-8') ?></td>
+                                    <td>
+                                        <div><?= htmlspecialchars($renewalStatusLabel($renewalItem), ENT_QUOTES, 'UTF-8') ?></div>
+                                        <div class="text-secondary small"><?= htmlspecialchars(!empty($renewalItem['is_auto_renewal']) ? 'Auto-Renewal' : 'Laufzeitende', ENT_QUOTES, 'UTF-8') ?></div>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
             </div>
         </div>
 

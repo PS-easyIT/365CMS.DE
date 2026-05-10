@@ -1,4 +1,4 @@
-﻿﻿**Version:** 2.9.733
+﻿﻿**Version:** 2.9.736
 
 # 365CMS Changelog
 
@@ -17,6 +17,30 @@
 ---
 
 ## 📜 Vollständige Versionshistorie
+
+---
+
+### v2.9.736 — 10. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.736** | 🟢 feat | Admin/Member Aboverwaltung – Ablaufwarnungen & Renewal-Hinweise | **`CMS/core/SubscriptionManager.php`, `CMS/core/Services/MemberService.php`, `CMS/admin/modules/subscriptions/OrdersModule.php`, `CMS/admin/views/subscriptions/orders.php`, `CMS/member/subscription.php`, `CMS/core/Version.php`, `CMS/update.json`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/subscription/README.md`, `CMS/DOC/admin/subscription/ORDERS.md`, `CMS/DOC/admin/subscription/SUBSCRIPTION-SYSTEM.md`, `CMS/DOC/member/README.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md` und `Changelog.md` schließen das nächste offene Nice-to-have der Aboverwaltung ab**: Die bislang nur speicherbare Einstellung `notification_before_expiry` bekommt einen echten read-only Runtime-Vertrag. `SubscriptionManager` leitet jetzt zentrale Renewal-/Ablaufhinweise aus `next_billing_date`, `end_date`, globaler Auto-Verlängerung und Kulanzzeit ab. `/admin/orders` zeigt daraus ein Hinweisfenster mit fälligen bzw. überfälligen Mitgliedschaften, und `/member/subscription` nutzt denselben Vertrag für Laufzeit- und Verlängerungshinweise statt am dekorativen Feld `expires_at` vorbeizulaufen. Der Ausbau bleibt bewusst lesend: keine neue Schreibroute, kein zusätzlicher Token-Pfad, kein Mailversand und fail-softes Verhalten bei fehlenden oder unvollständigen Daten. |
+
+---
+
+### v2.9.735 — 10. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.735** | 🟢 feat | Admin/Member Dashboard – Onboarding-Analytics & Abschlussrate | **`CMS/admin/modules/member/MemberDashboardModule.php`, `CMS/admin/views/member/onboarding.php`, `CMS/core/Version.php`, `CMS/update.json`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/member/README.md`, `CMS/DOC/member/README.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md` und `Changelog.md` schließen das letzte offene Member-Dashboard-Nice-to-have ab**: `/admin/member-dashboard-onboarding` zeigt jetzt read-only Onboarding-Analytics mit einer transparent dokumentierten Abschlussrate. Die Kennzahlen leiten sich ausschließlich aus bestehenden Signalen ab – aktuell aktiven Konten, konfigurierten Profilfeldern, MFA-/Passkey-Adoption und erfolgreichen Logins der letzten 30 Tage – und bleiben bewusst aggregiert, ohne neue Tracking-Tabelle, zusätzliche POST-Route, Token in URLs oder personenbezogene Detailausgabe. Falls optionale Datenquellen wie `activity_log` oder `passkey_credentials` fehlen, fällt die Ansicht fail-soft auf sichere Defaultwerte zurück und protokolliert nur datensparsame Diagnosedetails serverseitig. |
+
+---
+
+### v2.9.734 — 10. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.734** | 🟢 feat | Admin/Member Dashboard – Widget-Sortierung mit Persistenz | **`CMS/admin/modules/member/MemberDashboardModule.php`, `CMS/admin/views/member/widgets.php`, `CMS/admin/views/member/plugin-widgets.php`, `CMS/assets/js/admin-member-dashboard.js`, `CMS/member/includes/class-member-controller.php`, `CMS/core/Version.php`, `CMS/update.json`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/member/README.md`, `CMS/DOC/admin/themes-design/DASHBOARD-WIDGETS.md`, `CMS/DOC/member/README.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md` und `Changelog.md` schließen das nächste Member-Dashboard-Nice-to-have ab**: `/admin/member-dashboard-widgets` unterstützt jetzt eine persistente Reihenfolge für Kern-Widgets und eigene Info-Widgets, `/admin/member-dashboard-plugin-widgets` ergänzt denselben Auf/Ab-Fallback zusätzlich zum bestehenden Drag-&-Drop. Die Sortierung bleibt progressiv erweitert: Browser-DnD ist Komfort, Pfeilbuttons sind der robuste Fallback. Gespeichert wird ausschließlich per bestehendem CSRF-geschütztem POST-Flow; Widget-, Custom- und Plugin-Reihenfolgen werden serverseitig allowlist-basiert normalisiert, Duplikate entfernt und fehlende bekannte Keys kontrolliert ergänzt. Die Member-Runtime respektiert die Reihenfolge eigener Info-Widgets weiterhin fail-soft, die Plugin-Reihenfolge bleibt konsistent, und die Admin-Preview zeigt die daraus abgeleitete Reihenfolge ohne neue GET-Mutationen, Token in URLs oder technische Fehleroffenlegung. |
 
 ---
 

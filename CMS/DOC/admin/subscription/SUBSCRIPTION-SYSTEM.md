@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Überblick über die aktuelle Aboarchitektur mit Paketen, Limits, Zuweisungen und dem Member-Bezug.
 
-Letzte Aktualisierung: 2026-05-09 · Version 2.9.621
+Letzte Aktualisierung: 2026-05-10 · Version 2.9.736
 
 ---
 
@@ -91,6 +91,20 @@ Die Seite `/admin/subscription-settings` verwaltet zwei Bereiche über Tabs:
 
 Preislogik, Trial, Steuern und Paketdetails werden im Package-Settings-Tab gepflegt, nicht bei General Settings.
 
+### Laufzeitvertrag für Ablaufwarnungen seit 2.9.736
+
+Die bestehende Einstellung `notification_before_expiry` ist nicht länger nur dekorativ gespeichert.
+
+Aktueller Vertragsstand:
+
+- `SubscriptionManager` normalisiert Renewal-/Ablaufhinweise zentral für Admin und Member
+- als Fälligkeitsdatum gilt bevorzugt `next_billing_date`, sonst `end_date`
+- bei aktivierter globaler Auto-Verlängerung wird das Fälligkeitsdatum als Renewal-Termin interpretiert
+- bei deaktivierter Auto-Verlängerung oder fehlendem Renewal-Termin wird dasselbe Datum als Laufzeitende behandelt
+- `/admin/orders` zeigt read-only die fälligen bzw. überfälligen Verträge im konfigurierten Hinweisfenster
+- `/member/subscription` nutzt denselben Vertrag für den persönlichen Hinweistext
+- der Ausbau bleibt bewusst ohne neue POST-Route, ohne Mailversand und ohne zusätzliche Trackingtabelle
+
 ### Laufzeitvertrag des Standardpakets seit 2.9.621
 
 Das unter `subscription_default_plan_id` gespeicherte Standardpaket wirkt jetzt direkt auf neue Mitglieder:
@@ -118,6 +132,7 @@ Wichtige Bezugspunkte:
 - Member-Navigation kann den Bereich `subscription` anzeigen
 - der Member-Bereich verlinkt auf Bestell-/Upgrade-Flows wie `/order?plan_id=...`
 - Admin-Einstellungen können den Abo-Bereich im Member Dashboard ein- oder ausblenden
+- Laufzeit- und Renewal-Hinweise für das aktive Paket werden dort seit `2.9.736` zentral aus echten Vertragsdaten statt aus dekorativen View-Feldern abgeleitet
 
 ---
 

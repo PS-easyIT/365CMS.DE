@@ -853,8 +853,8 @@ Die Sidebar in `CMS/admin/partials/sidebar.php` ist für die Menüstruktur führ
 ### Nice-to-haves
 
 - [x] Preview-Modus für Member-Dashboard-Konfiguration.
-- [ ] Widget-Sortierung per Drag & Drop mit Persistenz.
-- [ ] Onboarding-Analytics / Abschlussrate.
+- [x] Widget-Sortierung per Drag & Drop mit Persistenz.
+- [x] Onboarding-Analytics / Abschlussrate.
 
 ### Audit-Stand – Member Dashboard · Durchlauf 1
 
@@ -897,6 +897,36 @@ Die Sidebar in `CMS/admin/partials/sidebar.php` ist für die Menüstruktur führ
 - **Offene Nice-to-haves:** Widget-Sortierung per Drag & Drop mit Persistenz, Onboarding-Analytics / Abschlussrate
 - **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/member/README.md`, `CMS/DOC/member/README.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`
 
+### Audit-Stand – Member Dashboard Nice-to-haves · Durchlauf 3
+
+- **Status:** abgeschlossen auf Code-/Best-Practice-/Sicherheits-/Performance-Basis · Release `2.9.734`
+- **Prüfer:** GitHub Copilot
+- **Datum:** 2026-05-10
+- **Geprüfte Routen:** `/admin/member-dashboard-widgets`, `/admin/member-dashboard-plugin-widgets`, `/member/dashboard`
+- **Web-Referenzen:** OWASP CSRF Prevention, MDN HTML Drag and Drop API / Drag operations
+- **Umgesetztes Nice-to-have:** Widget-Sortierung per Drag & Drop mit Persistenz.
+- **Umsetzung in diesem Durchlauf:** Die Widgets-Seite des Member-Dashboards speichert jetzt zusätzlich eine persistente Reihenfolge für Kern-Widgets und eigene Info-Widgets; Plugin-Widgets behalten ihre persistente Reihenfolge und erhalten denselben Auf/Ab-Fallback wie das Admin-Dashboard. Die UI nutzt progressive Enhancement: Drag-&-Drop als Komfortpfad, Pfeilbuttons als robuster Fallback. `MemberDashboardModule` normalisiert Widget-, Custom- und Plugin-Reihenfolgen serverseitig allowlist-basiert, entfernt Duplikate und ergänzt fehlende bekannte Werte kontrolliert. `MemberController` respektiert die Reihenfolge eigener Info-Widgets im öffentlichen `/member/dashboard`, ohne personenbezogene Daten, Tokens oder neue GET-Aktionen einzuführen.
+- **Best-Practice-Bezug:** Keine state-changing GETs; Speichern bleibt beim bestehenden CSRF-geschützten POST-Flow. Die Client-Logik baut Requests nicht aus URL-/Hash-Parametern zusammen, nutzt nur lokale bekannte Sort-Keys und hält Drag-Zustände sowie Drop-Fallbacks robust. Fehlerhafte oder unvollständige Browserdaten fallen auf sichere Defaults zurück, statt einen HTTP-500 auszulösen.
+- **Abhängige Bereiche:** `MemberDashboardModule`, `views/member/widgets.php`, `views/member/plugin-widgets.php`, `assets/js/admin-member-dashboard.js`, `MemberController`, `/member/dashboard`
+- **Offene Must-haves:** keine
+- **Offene Nice-to-haves:** keine
+
+### Audit-Stand – Member Dashboard Nice-to-haves · Durchlauf 4
+
+- **Status:** abgeschlossen auf Code-/Best-Practice-/Sicherheits-/Performance-Basis · Release `2.9.735`
+- **Prüfer:** GitHub Copilot
+- **Datum:** 2026-05-10
+- **Geprüfte Route:** `/admin/member-dashboard-onboarding`
+- **Web-Referenzen:** OWASP Logging Cheat Sheet, OWASP Error Handling Cheat Sheet, OWASP User Privacy Protection Cheat Sheet, MDN `<progress>`
+- **Umgesetztes Nice-to-have:** Onboarding-Analytics / Abschlussrate.
+- **Umsetzung in diesem Durchlauf:** `MemberDashboardModule` berechnet jetzt read-only Onboarding-Analytics direkt aus bestehenden Datenquellen. Die Auswertung nutzt aktive Konten aus `users`, Profil-Vervollständigung aus konfigurierten `user_meta`-Feldern, MFA-/Passkey-Adoption aus `user_meta` bzw. `passkey_credentials` und – falls vorhanden – erfolgreiche Logins der letzten 30 Tage aus `activity_log`. `views/member/onboarding.php` rendert daraus eine Abschlussrate, Security-/Aktivitätsquoten und konfigurationsnahe KPI-Karten mit nativen `<progress>`-Elementen. Es werden weder neue Trackingtabellen noch zusätzliche POST-Routen eingeführt.
+- **Best-Practice-Bezug:** Keine state-changing GETs, keine zusätzlichen CSRF-Token-Pfade, keine personenbezogenen Einzelwerte im Analytics-UI, generische Fehlerbehandlung mit serverseitigem Logging ohne rohe Exception-Texte und fail-softes Verhalten bei optional fehlenden Tabellen wie `activity_log` oder `passkey_credentials`.
+- **Abhängige Bereiche:** `MemberDashboardModule`, `views/member/onboarding.php`, `user_meta`, optionale `activity_log`- und `passkey_credentials`-Tabellen, bestehende Member-Runtime- und Security-Signale
+- **Offene Must-haves:** keine
+- **Offene Nice-to-haves:** keine
+- **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/member/README.md`, `CMS/DOC/member/README.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`
+- **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/member/README.md`, `CMS/DOC/admin/themes-design/DASHBOARD-WIDGETS.md`, `CMS/DOC/member/README.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`
+
 ---
 
 ## 7. Aboverwaltung
@@ -930,7 +960,7 @@ Die Sidebar in `CMS/admin/partials/sidebar.php` ist für die Menüstruktur führ
 
 ### Nice-to-haves
 
-- [ ] Ablaufwarnungen / Renewal-Hinweise.
+- [x] Ablaufwarnungen / Renewal-Hinweise.
 - [ ] Export für Orders und Paketnutzung.
 - [ ] Historie pro Paket und Bestellung.
 
@@ -946,6 +976,19 @@ Die Sidebar in `CMS/admin/partials/sidebar.php` ist für die Menüstruktur führ
 - **Offene Must-haves:** keine
 - **Offene Nice-to-haves:** Ablaufwarnungen/Renewal-Hinweise, Export für Orders/Paketnutzung, Historie pro Paket/Bestellung
 - **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/subscription/README.md`, `CMS/DOC/admin/subscription/SUBSCRIPTION-SYSTEM.md`, `CMS/DOC/member/README.md`
+
+### Audit-Stand – Aboverwaltung · Durchlauf 2
+
+- **Status:** abgeschlossen auf Code-/Runtime-/Doku-Basis · Release `2.9.736`
+- **Prüfer:** GitHub Copilot
+- **Datum:** 2026-05-10
+- **Geprüfte Routen:** `/admin/orders`, `/member/subscription`, `/admin/subscription-settings`
+- **Reproduziertes Fehlerbild:** Die globale Einstellung `notification_before_expiry` war zwar im Admin pflegbar, wurde aber in keinem echten Runtime-Pfad ausgewertet. Gleichzeitig zeigte `/member/subscription` weiterhin nur das dekorative Feld `expires_at`, obwohl aktive Mitgliedschaften ihre Laufzeit bzw. Renewal-Termine praktisch über `end_date` und `next_billing_date` führen. Damit blieb das Nice-to-have „Ablaufwarnungen / Renewal-Hinweise“ unvollständig und der Member-Hinweisvertrag inkonsistent.
+- **Umsetzung in diesem Durchlauf:** `SubscriptionManager` stellt jetzt einen zentralen read-only Renewal-Vertrag bereit. Admin und Member leiten Hinweise gemeinsam aus `next_billing_date`, `end_date`, globaler Auto-Verlängerung, Kulanzzeit und dem konfigurierten Hinweisfenster ab. `/admin/orders` zeigt fällige bzw. überfällige Verträge in einer eigenen Hinweis-Sektion; `/member/subscription` rendert denselben Laufzeit-/Renewal-Hinweis für das aktive Paket. Der Ausbau bleibt bewusst ohne neue POST-Route, ohne Mailversand und ohne zusätzliche Trackingtabelle und fällt bei fehlenden Daten fail-soft aus.
+- **Abhängige Bereiche:** `SubscriptionManager`, `OrdersModule`, `MemberService`, Member-Runtime `/member/subscription`, globale Abo-Einstellungen unter `/admin/subscription-settings`
+- **Offene Must-haves:** keine
+- **Offene Nice-to-haves:** Export für Orders/Paketnutzung, Historie pro Paket/Bestellung
+- **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/subscription/README.md`, `CMS/DOC/admin/subscription/ORDERS.md`, `CMS/DOC/admin/subscription/SUBSCRIPTION-SYSTEM.md`, `CMS/DOC/member/README.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`
 
 ---
 

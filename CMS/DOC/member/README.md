@@ -1,5 +1,5 @@
 # 365CMS – Member-Bereich
-> **Stand:** 2026-05-10 | **Version:** 2.9.733 | **Status:** Aktuell
+> **Stand:** 2026-05-10 | **Version:** 2.9.736 | **Status:** Aktuell
 
 <!-- UPDATED: 2026-05-09 -->
 
@@ -14,6 +14,12 @@ Seit `2.9.620` liest der öffentliche Member-Bereich seine Dashboard-Konfigurati
 Seit `2.9.732` kann die gespeicherte Dashboard-Konfiguration im Admin unter `/admin/member-dashboard?preview=1` read-only geprüft werden. Diese Vorschau ersetzt nicht den echten Member-Bereich, hilft aber beim Gegencheck von Welcome-Bereich, Frontend-Modulen, Kern-/Info-/Plugin-Widgets, Profilfeldern, Onboarding und Benachrichtigungstexten, ohne neue Schreibaktionen oder Sicherheitstoken in URLs zu erzeugen.
 
 Seit `2.9.733` macht die Admin-Preview auch die gespeicherte Bereichsreihenfolge sichtbar und vermeidet wiederholte Plugin-Widget-Metadatenläufe im Übersichtspfad.
+
+Seit `2.9.734` respektiert die Runtime zusätzlich die persistierte Reihenfolge der eigenen Info-Widgets; die Plugin-Reihenfolge bleibt weiterhin konsistent aus den Admin-Einstellungen ableitbar, während die Admin-UI dieselbe Ordnung progressiv per Drag-&-Drop oder Pfeilbuttons pflegbar macht.
+
+Seit `2.9.735` ergänzt die Admin-Seite `/admin/member-dashboard-onboarding` eine rein aggregierte Onboarding-Analyse mit Abschlussrate. Die öffentliche Runtime bleibt unverändert read-only-konfiguriert; das Admin-Reporting nutzt nur bestehende Signale wie Profil-Vervollständigung, MFA-/Passkey-Status und jüngste Login-Aktivität, ohne einzelne Mitglieder im UI offenzulegen oder neue Tracking-Daten zu schreiben.
+
+Seit `2.9.736` verwendet `/member/subscription` zusätzlich einen zentralen Renewal-/Ablauf-Vertrag aus `SubscriptionManager`: Laufzeitende und nächste Verlängerung werden read-only aus `next_billing_date` bzw. `end_date` sowie den globalen Abo-Einstellungen abgeleitet, statt an einem dekorativen View-Feld vorbeizulaufen.
 
 ## Verfügbare Funktionen
 
@@ -49,6 +55,8 @@ Aktueller Vertragsstand:
 - deaktivierte oder fehlende Plugin-Widgets fallen fail-soft aus dem Dashboard, statt den Member-Bereich zu blockieren
 - Profil-Fortschritt, Onboarding und Benachrichtigungscards greifen auf denselben Settings-Stand zu wie die Admin-Konfiguration
 - die Admin-Preview unter `/admin/member-dashboard?preview=1` rendert nur gespeicherte Runtime-Settings mit Beispielwerten, sichtbarer Bereichsreihenfolge und fail-soft Verhalten bei unbekannten Widgets oder deaktivierten Plugin-Kacheln
+- eigene Info-Widgets folgen der gespeicherten Admin-Reihenfolge; fehlende Slots bleiben unkritisch und werden nicht als Fehler 500 hochgezogen
+- die Admin-Onboarding-Analytics auf `/admin/member-dashboard-onboarding` lesen bestehende Profildaten, MFA-/Passkey-Signale und – falls vorhanden – Login-Aktivität nur aggregiert aus und führen keine neue Schreib- oder Tracking-Strecke ein
 
 ## Abo-Zuweisung im Stand 2.9.621
 
@@ -61,7 +69,7 @@ Der Vertragsstand bleibt dabei fail-soft:
 
 - bestehende aktive oder Trial-Abos werden nicht überschrieben
 - nur aktive Paketreferenzen werden automatisch übernommen
-- der Member-Bereich kann das zugewiesene Paket anschließend konsistent über `/member/subscription` und die Limit-Logik auswerten
+- der Member-Bereich kann das zugewiesene Paket anschließend konsistent über `/member/subscription` und die Limit-Logik auswerten, inklusive read-only Laufzeit- und Renewal-Hinweisen für aktive Verträge
 
 ## Authentifizierung im Stand 2.9.0
 

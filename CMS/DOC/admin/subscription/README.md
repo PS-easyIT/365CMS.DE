@@ -1,7 +1,7 @@
 # 365CMS – Abo-Verwaltung
-> **Stand:** 2026-05-09 | **Version:** 2.9.621 | **Status:** Aktuell
+> **Stand:** 2026-05-10 | **Version:** 2.9.736 | **Status:** Aktuell
 
-<!-- UPDATED: 2026-05-09 -->
+<!-- UPDATED: 2026-05-10 -->
 
 ## Überblick
 
@@ -10,6 +10,8 @@ und eine systemweite Limitlogik. Die Verwaltung erfolgt über drei Admin-Routen 
 bildet die Grundlage für den Member-Bereich.
 
 Seit `2.9.621` wirkt das unter `/admin/subscription-settings` konfigurierte Standardpaket für neue Mitglieder wieder in der echten Laufzeit: Öffentliche Registrierungen und neu im Admin angelegte Member-Konten erhalten das referenzierte aktive Paket automatisch, ohne dass bestehende aktive oder Trial-Abos überschrieben werden.
+
+Seit `2.9.736` zeigt `/admin/orders` zusätzlich read-only Ablaufwarnungen und Renewal-Hinweise für fällige Mitgliedschaften. Die Hinweise leiten sich zentral aus `next_billing_date`, `end_date`, globaler Auto-Verlängerung, Kulanzzeit und dem konfigurierten Hinweisfenster `notification_before_expiry` ab. Es wird dabei bewusst **keine** neue Schreibroute, kein Mailversand und kein zusätzlicher Trackingpfad eingeführt.
 
 ## Verfügbare Funktionen
 

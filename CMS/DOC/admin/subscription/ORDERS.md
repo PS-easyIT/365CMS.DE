@@ -1,8 +1,8 @@
 # Bestellungen & Zuweisung
 
-Kurzbeschreibung: Dokumentiert die aktuelle Bestellverwaltung inklusive Statuspflege und manueller Paketzuweisung.
+Kurzbeschreibung: Dokumentiert die aktuelle Bestellverwaltung inklusive Statuspflege, manueller Paketzuweisung und read-only Renewal-Hinweisen.
 
-Letzte Aktualisierung: 2026-04-07 · Version 2.9.0
+Letzte Aktualisierung: 2026-05-10 · Version 2.9.736
 
 ---
 
@@ -32,6 +32,17 @@ Die Oberfläche zeigt vier Kennzahlen:
 - Umsatz
 
 Die Werte werden direkt aus `OrdersModule::getData()` geliefert.
+
+Zusätzlich zeigt die Seite seit `2.9.736` eine eigene read-only Sektion **„Ablaufwarnungen & Renewal-Hinweise“**.
+
+Sie verdichtet fällige oder überfällige Mitgliedschaften aus `user_subscriptions`, ohne neue POST-Aktion:
+
+- globales Hinweisfenster aus `notification_before_expiry`
+- Renewal-Interpretation über `next_billing_date`, wenn Auto-Verlängerung aktiv ist
+- Laufzeitende über `end_date`, wenn keine Auto-Verlängerung greift
+- überfällige Verträge und Hinweise innerhalb des konfigurierten Fensters
+
+Die Darstellung bleibt bewusst operativ und lesend. Es werden keine E-Mails verschickt und keine zusätzlichen Trackingdaten geschrieben.
 
 ---
 
