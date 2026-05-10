@@ -1,4 +1,4 @@
-﻿﻿**Version:** 2.9.736
+﻿﻿**Version:** 2.9.737
 
 # 365CMS Changelog
 
@@ -19,6 +19,12 @@
 ## 📜 Vollständige Versionshistorie
 
 ---
+
+### v2.9.737 — 10. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.737** | 🟢 feat | Admin/Aboverwaltung – Exporte für Orders & Paketnutzung | **`CMS/admin/orders.php`, `CMS/admin/modules/subscriptions/OrdersModule.php`, `CMS/admin/views/subscriptions/orders.php`, `CMS/core/Version.php`, `CMS/update.json`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/subscription/README.md`, `CMS/DOC/admin/subscription/ORDERS.md`, `CMS/DOC/admin/subscription/SUBSCRIPTION-SYSTEM.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md` und `Changelog.md` schließen das nächste offene Nice-to-have der Aboverwaltung ab**: `/admin/orders` bietet jetzt zwei read-only CSV-Exporte an – für Bestellungen sowie für Paketnutzung. Der Orders-Export übernimmt optional die aktuelle Statusfilterung, der Nutzungs-Export verdichtet `subscription_usage` mit aktuellem Abo-/Plankontext. Beide Downloads bleiben bewusst GET-only ohne CSRF- oder Sicherheitstoken in der URL, begrenzen große Exportmengen fail-soft, härten CSV-Zellen gegen Formula Injection durch Spreadsheet-Apps und schreiben nur datensparsame Audit-Einträge ohne unnötige PII in den Logkontext. |
 
 ### v2.9.736 — 10. Mai 2026
 

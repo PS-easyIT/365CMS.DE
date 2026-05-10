@@ -1,8 +1,8 @@
 ﻿# Abo-System
 
-Kurzbeschreibung: Überblick über die aktuelle Aboarchitektur mit Paketen, Limits, Zuweisungen und dem Member-Bezug.
+Kurzbeschreibung: Überblick über die aktuelle Aboarchitektur mit Paketen, Limits, Zuweisungen, Exporten und dem Member-Bezug.
 
-Letzte Aktualisierung: 2026-05-10 · Version 2.9.736
+Letzte Aktualisierung: 2026-05-10 · Version 2.9.737
 
 ---
 
@@ -105,6 +105,21 @@ Aktueller Vertragsstand:
 - `/member/subscription` nutzt denselben Vertrag für den persönlichen Hinweistext
 - der Ausbau bleibt bewusst ohne neue POST-Route, ohne Mailversand und ohne zusätzliche Trackingtabelle
 
+### Exportvertrag seit 2.9.737
+
+`/admin/orders` ergänzt den operativen Abo-Pfad um zwei read-only CSV-Exporte:
+
+- **Orders CSV** für Bestellungen, optional mit aktiver Statusfilterung
+- **Paketnutzung CSV** auf Basis von `subscription_usage` plus aktuellem Abo-/Plankontext
+
+Der Vertrag bleibt bewusst defensiv:
+
+- GET-only Download ohne state-changing Aktion
+- keine CSRF- oder Sicherheitstoken in der URL
+- CSV-Zellhärtung gegen Spreadsheet-Formula-Injection
+- fail-softe Begrenzung großer Exportmengen statt unkontrolliert langer Requests
+- datensparsame Audit-Einträge ohne unnötige Export-Payloads im Log
+
 ### Laufzeitvertrag des Standardpakets seit 2.9.621
 
 Das unter `subscription_default_plan_id` gespeicherte Standardpaket wirkt jetzt direkt auf neue Mitglieder:
@@ -150,6 +165,12 @@ Wichtige Bezugspunkte:
 1. `/admin/orders` öffnen
 2. „Zuweisen“ verwenden
 3. Benutzer, Paket und Abrechnungsintervall wählen
+
+### Bestellungen oder Paketnutzung exportieren
+
+1. `/admin/orders` öffnen
+2. optional Statusfilter setzen
+3. `Orders CSV` oder `Paketnutzung CSV` verwenden
 
 ### Limits global deaktivieren
 

@@ -13,6 +13,8 @@ $ordersBaseUrl = '/admin/orders';
 $orders       = $data['orders'] ?? [];
 $stats        = $data['stats'] ?? [];
 $statusFilter = $data['filter'] ?? '';
+$ordersExportUrl = $ordersBaseUrl . '?export=orders' . ($statusFilter !== '' ? '&status=' . rawurlencode((string) $statusFilter) : '');
+$usageExportUrl = $ordersBaseUrl . '?export=usage';
 $assignments  = $data['assignments'] ?? [];
 $plans        = $data['plans'] ?? [];
 $users        = $data['users'] ?? [];
@@ -22,6 +24,9 @@ $renewalCounts = is_array($renewalInsights['counts'] ?? null) ? $renewalInsights
 $renewalWindowDays = max(0, (int) ($renewalInsights['warning_days'] ?? 0));
 $renewalBasisNote = (string) ($renewalInsights['basis_note'] ?? '');
 $renewalAutoRenewalEnabled = !empty($renewalInsights['auto_renewal_enabled']);
+$historyState = is_array($data['history'] ?? null) ? $data['history'] : [];
+$historyEvents = is_array($historyState['events'] ?? null) ? $historyState['events'] : [];
+$historyUnavailable = !empty($historyState['unavailable']);
 $alertData    = is_array($alert ?? null) ? $alert : [];
 $statusLabels = [
     'pending'   => ['label' => 'Offen',       'class' => 'bg-warning'],
@@ -206,6 +211,13 @@ $renewalStatusLabel = static function (array $item): string {
     };
 };
 $renewalSummaryValue = static fn (string $value): string => number_format((float) $value, 0, ',', '.');
+$historySeverityMeta = static function (string $severity): array {
+    return match ($severity) {
+        'critical', 'error' => ['label' => 'Fehler', 'class' => 'bg-danger'],
+        'warning' => ['label' => 'Warnung', 'class' => 'bg-warning'],
+        default => ['label' => 'Info', 'class' => 'bg-info'],
+    };
+};
 $billingCycleOptions = [
     'monthly' => 'Monatlich',
     'yearly' => 'Jährlich',
@@ -254,7 +266,13 @@ $assignCycleOptions = array_map(
                 <h2 class="page-title">Bestellungen &amp; Zuweisung</h2>
             </div>
             <div class="col-auto ms-auto">
-                <button class="btn btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#assignModal" data-assign-reset="true">Zuweisen</button>
+                <div class="btn-list">
+                    <a class="btn btn-outline-secondary" href="<?= htmlspecialchars($ordersExportUrl, ENT_QUOTES, 'UTF-8') ?>">
+                        Orders CSV<?= $statusFilter !== '' ? ' (Filter)' : '' ?>
+                    </a>
+                    <a class="btn btn-outline-secondary" href="<?= htmlspecialchars($usageExportUrl, ENT_QUOTES, 'UTF-8') ?>">Paketnutzung CSV</a>
+                    <button class="btn btn-primary" type="button" data-bs-toggle="modal" data-bs-target="#assignModal" data-assign-reset="true">Zuweisen</button>
+                </div>
             </div>
         </div>
     </div>
@@ -358,6 +376,47 @@ $assignCycleOptions = array_map(
                                         <div><?= htmlspecialchars($renewalStatusLabel($renewalItem), ENT_QUOTES, 'UTF-8') ?></div>
                                         <div class="text-secondary small"><?= htmlspecialchars(!empty($renewalItem['is_auto_renewal']) ? 'Auto-Renewal' : 'Laufzeitende', ENT_QUOTES, 'UTF-8') ?></div>
                                     </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h3 class="card-title">Historie für Bestellungen &amp; Zuweisungen</h3>
+            </div>
+            <div class="card-body">
+                <p class="text-secondary mb-0">Read-only Auszug aus dem Audit-Log für sichtbare Bestellungen, Paketzuweisungen und Exporte. Es werden keine rohen Metadaten, Tokens oder Kontakt-Payloads ausgegeben.</p>
+                <?php if ($historyUnavailable): ?>
+                    <div class="alert alert-warning mt-3 mb-0" role="alert">Die Historie konnte aktuell nicht geladen werden. Die Bestellverwaltung bleibt weiter nutzbar.</div>
+                <?php endif; ?>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-vcenter card-table">
+                    <thead>
+                        <tr>
+                            <th>Zeitpunkt</th>
+                            <th>Ereignis</th>
+                            <th>Bezug</th>
+                            <th>Hinweis</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if ($historyEvents === []): ?>
+                            <?php $renderEmptyTableRow(5, $historyUnavailable ? 'Keine Historie verfügbar.' : 'Noch keine passenden Historieneinträge vorhanden.'); ?>
+                        <?php else: ?>
+                            <?php foreach ($historyEvents as $historyEvent): ?>
+                                <?php $historyMeta = $historySeverityMeta((string) ($historyEvent['severity'] ?? 'info')); ?>
+                                <tr>
+                                    <td class="text-secondary"><?= htmlspecialchars($formatDateTime((string) ($historyEvent['created_at'] ?? '')), ENT_QUOTES, 'UTF-8') ?></td>
+                                    <td><strong><?= htmlspecialchars((string) ($historyEvent['action'] ?? 'Ereignis'), ENT_QUOTES, 'UTF-8') ?></strong></td>
+                                    <td><?= htmlspecialchars((string) ($historyEvent['subject'] ?? 'Aboverwaltung'), ENT_QUOTES, 'UTF-8') ?></td>
+                                    <td class="text-secondary"><?= htmlspecialchars((string) ($historyEvent['description'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td>
+                                    <td><?php $renderStatusBadge((string) $historyMeta['label'], (string) $historyMeta['class']); ?></td>
                                 </tr>
                             <?php endforeach; ?>
                         <?php endif; ?>

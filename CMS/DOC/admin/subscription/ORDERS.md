@@ -1,8 +1,8 @@
 # Bestellungen & Zuweisung
 
-Kurzbeschreibung: Dokumentiert die aktuelle Bestellverwaltung inklusive Statuspflege, manueller Paketzuweisung und read-only Renewal-Hinweisen.
+Kurzbeschreibung: Dokumentiert die aktuelle Bestellverwaltung inklusive Statuspflege, manueller Paketzuweisung, read-only Renewal-Hinweisen und CSV-Exporten.
 
-Letzte Aktualisierung: 2026-05-10 · Version 2.9.736
+Letzte Aktualisierung: 2026-05-10 · Version 2.9.737
 
 ---
 
@@ -19,6 +19,8 @@ Die Seite bündelt zwei Aufgaben:
 2. Abos/Pakete manuell Benutzern zuweisen
 
 POST-Aktionen laufen im aktuellen Stand über den CSRF-Kontext `admin_orders`.
+
+Read-only CSV-Exporte für Bestellungen und Paketnutzung laufen bewusst **nicht** über eine neue POST-Route, sondern über einen separaten GET-Download-Pfad ohne CSRF- oder Sicherheitstoken in der URL.
 
 ---
 
@@ -65,6 +67,28 @@ Filterbar sind Bestellungen über den Status:
 - `cancelled`
 - `refunded`
 - `failed`
+
+## Exporte
+
+Seit `2.9.737` bietet `/admin/orders` zwei direkte CSV-Exporte an:
+
+1. **Orders CSV**
+	- exportiert Bestellungen
+	- übernimmt optional die aktuell gesetzte Statusfilterung
+	- enthält nur die für den Admin-Alltag relevanten Bestell- und Kundenspalten, nicht aber rohe Kontakt- oder Adresspayloads
+
+2. **Paketnutzung CSV**
+	- exportiert die aktuelle `subscription_usage`
+	- ergänzt den Export um den aktuellen Abo-/Plan-Kontext des Benutzers
+	- zeigt Ressourcentyp, aktuellen Zählerstand, Limitwert, Restmenge und Limitstatus
+
+Sicherheits- und Betriebsvertrag:
+
+- read-only GET-Downloads ohne state-changing Aktion
+- keine CSRF- oder Sicherheitstoken in URLs
+- datensparsame Audit-Logs ohne unnötige PII im Logkontext
+- CSV-Zellen werden gegen Spreadsheet-Formula-Injection gehärtet
+- große Exportmengen werden fail-soft begrenzt, statt den Request unkontrolliert zu verlängern
 
 ---
 

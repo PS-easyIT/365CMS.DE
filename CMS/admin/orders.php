@@ -17,6 +17,7 @@ const CMS_ADMIN_ORDERS_CAPABILITY = 'manage_settings';
 const CMS_ADMIN_ORDERS_ALLOWED_STATUSES = ['pending', 'paid', 'cancelled', 'refunded', 'failed'];
 const CMS_ADMIN_ORDERS_STATUS_ALIASES = ['confirmed' => 'paid', 'completed' => 'paid'];
 const CMS_ADMIN_ORDERS_ALLOWED_BILLING_CYCLES = ['monthly', 'yearly', 'lifetime'];
+const CMS_ADMIN_ORDERS_ALLOWED_EXPORTS = ['orders', 'usage'];
 
 /**
  * @return array{assign_subscription:update_status|delete}|array{}
@@ -80,9 +81,37 @@ function cms_admin_orders_redirect(): never
     exit;
 }
 
+function cms_admin_orders_redirect_to(string $path): never
+{
+    header('Location: ' . $path, true, 303);
+    exit;
+}
+
+function cms_admin_orders_flash(string $type, string $message): void
+{
+    $_SESSION['admin_alert'] = [
+        'type' => $type === 'success' ? 'success' : 'danger',
+        'message' => trim($message),
+    ];
+}
+
 function cms_admin_orders_normalize_status_filter(string $status): string
 {
     return cms_admin_orders_normalize_status_value($status);
+}
+
+function cms_admin_orders_normalize_export(mixed $export): string
+{
+    $export = is_string($export) ? strtolower(trim($export)) : '';
+
+    return in_array($export, CMS_ADMIN_ORDERS_ALLOWED_EXPORTS, true) ? $export : '';
+}
+
+function cms_admin_orders_build_redirect_path(string $statusFilter = ''): string
+{
+    return $statusFilter !== ''
+        ? '/admin/orders?status=' . rawurlencode($statusFilter)
+        : '/admin/orders';
 }
 
 function cms_admin_orders_handle_action(OrdersModule $module, string $action, array $post): ?OrdersActionResult
@@ -111,6 +140,27 @@ if (!Auth::instance()->isAdmin()
 
 require_once __DIR__ . '/modules/subscriptions/OrdersModule.php';
 
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['export'])) {
+    $statusFilter = cms_admin_orders_normalize_status_filter((string) ($_GET['status'] ?? ''));
+    $redirectPath = cms_admin_orders_build_redirect_path($statusFilter);
+    $exportType = cms_admin_orders_normalize_export($_GET['export'] ?? '');
+
+    if ($exportType === '') {
+        cms_admin_orders_flash('danger', 'Unbekannter Exporttyp.');
+        cms_admin_orders_redirect_to($redirectPath);
+    }
+
+    try {
+        (new OrdersModule())->streamCsvExport($exportType, $statusFilter);
+    } catch (\RuntimeException $e) {
+        cms_admin_orders_flash('danger', $e->getMessage());
+    } catch (\Throwable) {
+        cms_admin_orders_flash('danger', 'Der Export konnte nicht vorbereitet werden.');
+    }
+
+    cms_admin_orders_redirect_to($redirectPath);
+}
+
 $sectionPageConfig = [
     'route_path' => '/admin/orders',
     'view_file' => __DIR__ . '/views/subscriptions/orders.php',
@@ -133,9 +183,7 @@ $sectionPageConfig = [
     'redirect_path_resolver' => static function (OrdersModule $module, string $section): string {
         $statusFilter = cms_admin_orders_normalize_status_filter($section);
 
-        return $statusFilter !== ''
-            ? '/admin/orders?status=' . rawurlencode($statusFilter)
-            : '/admin/orders';
+        return cms_admin_orders_build_redirect_path($statusFilter);
     },
     'post_handler' => static function (OrdersModule $module, string $section, array $post): array {
         $action = cms_admin_orders_normalize_action($post['action'] ?? '');

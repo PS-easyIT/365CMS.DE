@@ -1,5 +1,5 @@
 # 365CMS – Abo-Verwaltung
-> **Stand:** 2026-05-10 | **Version:** 2.9.736 | **Status:** Aktuell
+> **Stand:** 2026-05-10 | **Version:** 2.9.737 | **Status:** Aktuell
 
 <!-- UPDATED: 2026-05-10 -->
 
@@ -13,12 +13,19 @@ Seit `2.9.621` wirkt das unter `/admin/subscription-settings` konfigurierte Stan
 
 Seit `2.9.736` zeigt `/admin/orders` zusätzlich read-only Ablaufwarnungen und Renewal-Hinweise für fällige Mitgliedschaften. Die Hinweise leiten sich zentral aus `next_billing_date`, `end_date`, globaler Auto-Verlängerung, Kulanzzeit und dem konfigurierten Hinweisfenster `notification_before_expiry` ab. Es wird dabei bewusst **keine** neue Schreibroute, kein Mailversand und kein zusätzlicher Trackingpfad eingeführt.
 
+Seit `2.9.737` bietet `/admin/orders` außerdem zwei sichere read-only CSV-Exporte an:
+
+- Bestellungen, optional mit aktueller Statusfilterung
+- Paketnutzung auf Basis von `subscription_usage` plus aktuellem Abo-/Plankontext
+
+Die Downloads bleiben bewusst GET-only ohne CSRF- oder Sicherheitstoken in der URL, härten CSV-Zellen gegen Spreadsheet-Formula-Injection und protokollieren Exporte datensparsam im Audit-Log.
+
 ## Verfügbare Funktionen
 
 | Funktion | Route | Beschreibung |
 |---|---|---|
 | Pakete | `/admin/packages` | Abo-Pakete mit Limits, Preisen und Features definieren |
-| Bestellungen | `/admin/orders` | Bestellungen einsehen, genehmigen und verwalten |
+| Bestellungen | `/admin/orders` | Bestellungen einsehen, genehmigen, verwalten und als CSV exportieren |
 | Einstellungen | `/admin/subscription-settings` | Systemweite Abo-Konfiguration, Default-Plan und Limits |
 
 ## Benötigte Rechte

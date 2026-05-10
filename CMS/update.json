@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.9.736",
+  "version": "2.9.737",
   "min_php": "8.4",
   "released": "2026-05-10",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 2.9.736: Die Aboverwaltung ergänzt echte read-only Ablaufwarnungen und Renewal-Hinweise. /admin/orders zeigt ein Hinweisfenster für bald fällige oder überfällige Mitgliedschaften auf Basis von next_billing_date/end_date und der globalen Einstellung notification_before_expiry; /member/subscription nutzt denselben zentralen Runtime-Vertrag für Laufzeit- und Verlängerungshinweise, ohne neue POST-Route, ohne Mailversand und ohne zusätzliche Tokens oder Trackingdaten.",
+  "notes": "Release-Stand 2.9.737: Die Aboverwaltung ergänzt sichere read-only CSV-Exporte für Bestellungen und Paketnutzung. /admin/orders bietet jetzt einen Orders-Export mit optionaler Statusfilterung sowie einen Paketnutzungs-Export auf Basis von subscription_usage und aktuellem Abo-/Plankontext; beide Downloads bleiben GET-only ohne Token in der URL, härten CSV-Zellen gegen Formula Injection und protokollieren Exporte datensparsam im Audit-Log.",
   "critical": false
 }

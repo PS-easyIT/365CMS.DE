@@ -961,7 +961,7 @@ Die Sidebar in `CMS/admin/partials/sidebar.php` ist für die Menüstruktur führ
 ### Nice-to-haves
 
 - [x] Ablaufwarnungen / Renewal-Hinweise.
-- [ ] Export für Orders und Paketnutzung.
+- [x] Export für Orders und Paketnutzung.
 - [ ] Historie pro Paket und Bestellung.
 
 ### Audit-Stand – Aboverwaltung · Durchlauf 1
@@ -989,6 +989,20 @@ Die Sidebar in `CMS/admin/partials/sidebar.php` ist für die Menüstruktur führ
 - **Offene Must-haves:** keine
 - **Offene Nice-to-haves:** Export für Orders/Paketnutzung, Historie pro Paket/Bestellung
 - **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/subscription/README.md`, `CMS/DOC/admin/subscription/ORDERS.md`, `CMS/DOC/admin/subscription/SUBSCRIPTION-SYSTEM.md`, `CMS/DOC/member/README.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`
+
+### Audit-Stand – Aboverwaltung · Durchlauf 3
+
+- **Status:** abgeschlossen auf Code-/Best-Practice-/Sicherheits-/Performance-Basis · Release `2.9.737`
+- **Prüfer:** GitHub Copilot
+- **Datum:** 2026-05-10
+- **Geprüfte Route:** `/admin/orders`
+- **Umgesetztes Nice-to-have:** Export für Orders und Paketnutzung.
+- **Umsetzung in diesem Durchlauf:** `/admin/orders` bietet jetzt zwei read-only CSV-Exporte an: einen Orders-Export mit optionaler Statusfilterung sowie einen Paketnutzungs-Export auf Basis von `subscription_usage` plus aktuellem Abo-/Plankontext. Der Exportpfad läuft bewusst als GET-Download ohne neue Schreibroute und ohne CSRF- oder Sicherheitstoken in der URL. `OrdersModule` begrenzt große Exportmengen fail-soft, protokolliert Exporte datensparsam im Audit-Log und härtet jede CSV-Zelle gegen Spreadsheet-Formula-Injection, statt untrusted Inhalte ungefiltert in Tabellenkalkulationen zu übergeben.
+- **Best-Practice-Bezug:** Keine state-changing GETs, keine Token-Leaks in URLs, datensparsame Audit-Protokollierung für den High-Risk-Use-Case „Data Export“ und CSV-Härtung gegen Formula Injection. Fehlerpfade bleiben generisch und leiten mit Flash/Redirect zurück, statt einen nackten Download-500 oder rohe Exception-Texte im UI zu erzeugen.
+- **Abhängige Bereiche:** `orders.php`, `OrdersModule`, `orders.php`-View, `subscription_usage`, `user_subscriptions`, `subscription_plans`, `audit_log`
+- **Offene Must-haves:** keine
+- **Offene Nice-to-haves:** Historie pro Paket/Bestellung
+- **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/subscription/README.md`, `CMS/DOC/admin/subscription/ORDERS.md`, `CMS/DOC/admin/subscription/SUBSCRIPTION-SYSTEM.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`
 
 ---
 
