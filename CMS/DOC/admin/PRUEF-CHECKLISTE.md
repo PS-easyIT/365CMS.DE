@@ -370,10 +370,11 @@ Die Sidebar in `CMS/admin/partials/sidebar.php` ist für die Menüstruktur führ
 
 ### Nice-to-haves
 
-- [ ] Revisionen / Vergleich / Diff für Seiten und Beiträge.
+- [x] Revisionen / Vergleich / Diff für Seiten.
+- [x] Revisionen / Vergleich / Diff für Beiträge.
 - [x] Bulk-Aktionen für Kategorien/Tags.
 - [x] Kommentarmoderation mit Schnellfiltern und Massenaktionen.
-- [ ] Inhaltsqualitätsprüfungen direkt im Editor.
+- [x] Inhaltsqualitätsprüfungen direkt im Editor.
 
 ### Audit-Stand – Seiten & Beiträge · Durchlauf 1
 
@@ -427,6 +428,33 @@ Die Sidebar in `CMS/admin/partials/sidebar.php` ist für die Menüstruktur führ
 - **Offene Must-haves:** keine
 - **Offene Nice-to-haves:** Revisionsvergleich für Seiten/Beiträge, Inhaltsqualitätsprüfungen direkt im Editor
 - **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/pages-posts/POSTS.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`
+
+### Audit-Stand – Seiten & Beiträge Nice-to-haves · Durchlauf 4
+
+- **Status:** abgeschlossen auf Code-/Best-Practice-/Vertragsbasis · Release `2.9.708`
+- **Prüfer:** GitHub Copilot
+- **Datum:** 2026-05-09
+- **Geprüfte Route:** `/admin/pages?action=edit&id=...`
+- **Umgesetztes Nice-to-have:** Revisionsvergleich für Seiten; Dokumentationsangleichung der bereits vorhandenen Inhaltsqualitätsprüfungen im Editor.
+- **Umsetzung in diesem Durchlauf:** Seiten-Revisionen speichern jetzt zusätzlich DE-/EN-Titel, Slugs, Inhalte und Status als Snapshot. Der Seiteneditor zeigt die letzten Revisionen read-only direkt unterhalb der SEO-/Readability-Bereiche an und vergleicht pro Revision die geänderten Felder mit dem aktuellen Stand, inklusive kompakter Inhaltszusammenfassungen für Editor.js-/HTML-Inhalte. Parallel wurde die Prüfliste auf den tatsächlichen Runtime-Stand angepasst: SEO-, Lesbarkeits- und Vorschauprüfungen waren bereits im gemeinsamen Editor-Stack für Seiten und Beiträge vorhanden und gelten damit nicht länger als offenes Nice-to-have.
+- **Best-Practice-Bezug:** Der Vergleichspfad bleibt read-only und folgt damit Secure-by-Default sowie Fail-Safe-Design: Revisionsdaten werden nur angezeigt, nicht implizit zurückgeschrieben. Die Oberfläche begrenzt sich aus Performance-Gründen bewusst auf die letzten Snapshots und zeigt nur zusammengefasste Inhaltsauszüge statt kompletter Rohfassungen. Änderungen an der Revisionsspeicherung bleiben serverseitig und auditierbar über den bestehenden Save-Flow.
+- **Abhängige Bereiche:** `PageManager`, `SchemaManager`, `PagesModule`, `views/pages/edit.php`, `admin/pages.php`, SEO-/Editor-Stack
+- **Offene Nice-to-haves:** Revisionsvergleich für Beiträge
+- **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/pages-posts/README.md`, `CMS/DOC/admin/pages-posts/PAGES.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`, `CMS/DOC/core/DATABASE-SCHEMA.md`
+
+### Audit-Stand – Seiten & Beiträge Nice-to-haves · Durchlauf 5
+
+- **Status:** abgeschlossen auf Code-/Best-Practice-/Vertragsbasis · Release `2.9.709`
+- **Prüfer:** GitHub Copilot
+- **Datum:** 2026-05-10
+- **Geprüfte Route:** `/admin/posts?action=edit&id=...`
+- **Umgesetztes Nice-to-have:** Revisionsvergleich für Beiträge.
+- **Umsetzung in diesem Durchlauf:** Der Beitrags-Save-Flow legt vor relevanten Änderungen automatisch Snapshots des bisherigen Stands in `post_revisions` an – inklusive Titel, Slugs, Teaser, Status, Kategorie, Tags, Autorenanzeige, Veröffentlichungszeitpunkt und DE/EN-Inhalten. Der Beitragseditor rendert daraus eine read-only Vergleichskarte mit geänderten Feldern und kompakten Inhaltszusammenfassungen statt kompletter Rohtexte.
+- **Best-Practice-Bezug:** Die Umsetzung folgt Secure-by-Default und Fail-Safe-Design: Die Revisionsansicht erlaubt nur Vergleich, keinen stillen Restore. Die UI begrenzt sich bewusst auf die letzten Snapshots und zeigt bei Inhaltsfeldern nur Summaries, was sensible Volltexte im Admin reduziert und die Darstellung performanter hält. Fehler beim Snapshot-Schreiben brechen das Speichern kontrolliert mit generischer Admin-Fehlermeldung ab, statt halbgespeicherte Revisionszustände zu riskieren.
+- **Abhängige Bereiche:** `PostsModule`, `views/posts/edit.php`, `SchemaManager`, `post_revisions`, Editor-/SEO-Stack, Taxonomie-Hilfen
+- **Offene Must-haves:** keine
+- **Offene Nice-to-haves:** keine im Bereich Seiten & Beiträge
+- **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/pages-posts/README.md`, `CMS/DOC/admin/pages-posts/POSTS.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`, `CMS/DOC/core/DATABASE-SCHEMA.md`
 
 ---
 

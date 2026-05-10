@@ -162,8 +162,13 @@ Versionierung von Seitenänderungen; verknüpft via FK mit `pages`.
 | `id` | BIGINT UNSIGNED | Nein | AUTO_INCREMENT | Primärschlüssel |
 | `page_id` | INT UNSIGNED | Nein | – | FK → pages.id (CASCADE) |
 | `title` | VARCHAR(255) | Nein | – | Titel der Revision |
+| `title_en` | VARCHAR(255) | Ja | NULL | Englischer Titel-Snapshot |
+| `slug` | VARCHAR(200) | Ja | NULL | Deutscher Slug-Snapshot |
+| `slug_en` | VARCHAR(200) | Ja | NULL | Englischer Slug-Snapshot |
 | `content` | LONGTEXT | Ja | NULL | HTML-Inhalt |
+| `content_en` | LONGTEXT | Ja | NULL | Englischer Inhalts-Snapshot |
 | `excerpt` | TEXT | Ja | NULL | Kurzfassung |
+| `status` | VARCHAR(20) | Ja | NULL | Seitenstatus zum Revisionszeitpunkt |
 | `author_id` | INT UNSIGNED | Ja | NULL | Autor der Änderung |
 | `created_at` | TIMESTAMP | Ja | CURRENT_TIMESTAMP | Erstellungszeitpunkt |
 
@@ -210,6 +215,33 @@ Blog-System mit Kategorien, Tags, View-Counter und Kommentar-Steuerung.
 | `published_at` | TIMESTAMP | Ja | NULL | Veröffentlichungszeitpunkt |
 
 **Indizes:** `idx_slug`, `idx_status`, `idx_author`, `idx_category`, `idx_published`
+
+### `cms_post_revisions` – Beitragsversionen
+
+Versionierung von Beitragsänderungen; speichert die zuletzt ersetzten Inhalte und Metadaten für den read-only Revisionsvergleich im Admin.
+
+| Feldname | Typ | Nullable | Default | Beschreibung |
+|---|---|---|---|---|
+| `id` | BIGINT UNSIGNED | Nein | AUTO_INCREMENT | Primärschlüssel |
+| `post_id` | BIGINT UNSIGNED | Nein | – | Referenz auf posts.id |
+| `title` | VARCHAR(255) | Nein | – | Deutscher Titel-Snapshot |
+| `title_en` | VARCHAR(255) | Ja | NULL | Englischer Titel-Snapshot |
+| `slug` | VARCHAR(255) | Ja | NULL | Deutscher Slug-Snapshot |
+| `slug_en` | VARCHAR(255) | Ja | NULL | Englischer Slug-Snapshot |
+| `content` | LONGTEXT | Ja | NULL | Deutscher Inhalts-Snapshot |
+| `content_en` | LONGTEXT | Ja | NULL | Englischer Inhalts-Snapshot |
+| `excerpt` | TEXT | Ja | NULL | Deutscher Teaser-Snapshot |
+| `excerpt_en` | TEXT | Ja | NULL | Englischer Teaser-Snapshot |
+| `status` | VARCHAR(20) | Ja | NULL | Beitragsstatus zum Revisionszeitpunkt |
+| `category_id` | INT UNSIGNED | Ja | NULL | Primäre Kategorie-ID zum Revisionszeitpunkt |
+| `category_name` | VARCHAR(150) | Ja | NULL | Kategoriename-Snapshot |
+| `tags` | VARCHAR(500) | Ja | NULL | Tag-Liste als Snapshot |
+| `author_id` | INT UNSIGNED | Ja | NULL | Autor der Änderung |
+| `author_display_name` | VARCHAR(150) | Ja | NULL | Optionaler Autoren-Anzeigename-Snapshot |
+| `published_at` | TIMESTAMP | Ja | NULL | Veröffentlichungszeitpunkt zum Revisionszeitpunkt |
+| `created_at` | TIMESTAMP | Ja | CURRENT_TIMESTAMP | Erstellungszeitpunkt der Revision |
+
+**Indizes:** `idx_post_id (post_id)`, `idx_author_id (author_id)`, `idx_created_at (created_at)`
 
 ### `cms_post_categories` – Blog-Kategorien
 

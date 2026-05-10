@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Verwaltung statischer CMS-Seiten im Admin inklusive getrennter DE/EN-Bearbeitung, SEO-Feldern, Slugs, Redirects, Bulk-Aktionen und Delete-/Preview-Pfaden.
 
-Letzte Aktualisierung: 2026-05-09 · Release 2.9.614
+Letzte Aktualisierung: 2026-05-09 · Release 2.9.708
 
 ---
 
@@ -37,10 +37,22 @@ Der Seiteneditor kombiniert im aktuellen Stand:
 - getrennte DE- und EN-Bearbeitungsseiten statt eines fragilen In-Page-Sprachwechsels
 - drei obere Karten analog zum Beiträge-Editor: Inhalt/Slug links, Bild plus Aktionen mittig, Veröffentlichung rechts
 - SEO-/Readability-/Preview-Karten unter dem Editor
+- read-only Revisionsvergleich der letzten gespeicherten Seiten-Snapshots direkt im Editor
 - sichtbare Public-Preview-Links für DE und EN
 - einen direkten Einzel-Löschpfad für bestehende Seiten innerhalb der Aktionskarte
 
 Dadurch werden Titel, Slugs, Snippet-Vorschau, Social-Vorschau und Sprachvarianten direkt im Redaktionsablauf mit gepflegt, ohne dass ein Sprachwechsel unbeabsichtigt einen Save-POST auslöst.
+
+---
+
+## Revisionen und Vergleich
+
+Seit Release `2.9.708` zeigt der Seiteneditor zusätzlich die letzten gespeicherten Revisionen der aktuellen Seite direkt im Admin an.
+
+- Die Revisions-Snapshots enthalten DE-/EN-Titel, Slugs, Inhalte und den Status der Seite.
+- Die Vergleichsansicht bleibt bewusst **read-only** und stellt den aktuellen Stand einer älteren Revision gegenüber.
+- Unterschiede werden pro Feld zusammengefasst, bei Inhalten mit Vorschau, Zeichenanzahl und – bei Editor.js – Blockanzahl.
+- Es werden aus Performance-Gründen nur die letzten Revisionen direkt in der Oberfläche angezeigt; ältere Snapshots bleiben in der Revisionstabelle erhalten.
 
 ---
 
@@ -83,9 +95,10 @@ Bei Slug-Änderungen legt die Seitenverwaltung automatische Redirects an. Seit R
 
 - Einzel- und Bulk-Delete-Pfade validieren bestehende Seiten jetzt fail-closed statt still auf fragilen DB-Rückgaben zu vertrauen.
 - Inhalts-Cache-Clears greifen nicht mehr nur beim Speichern, sondern auch bei Delete- und Bulk-Mutationen.
-- Seiten-SEO ist direkt im Editor sichtbar.
+- Seiten-SEO und Lesbarkeitsprüfungen sind direkt im Editor sichtbar.
 - Slug-, Redirect- und Preview-Bezüge greifen konsistent über DE/EN-Pfade ineinander.
 - Die Admin-UI bündelt Speichern, DE-/EN-Vorschau und Einzel-Löschen jetzt in einer gemeinsamen Aktionskarte mit klarer visueller Hierarchie statt in getrennten Top-/Delete-Bereichen.
+- Revisions-Snapshots lassen sich direkt im Seiteneditor gegen den aktuellen Stand vergleichen, ohne Restore-Aktionen still mitzuschleusen.
 
 ---
 

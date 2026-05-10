@@ -1,4 +1,4 @@
-﻿﻿﻿**Version:** 2.9.707
+﻿﻿**Version:** 2.9.709
 
 # 365CMS Changelog
 
@@ -19,6 +19,18 @@
 ## 📜 Vollständige Versionshistorie
 
 ---
+
+### v2.9.709 — 10. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.709** | 🟢 feat | Admin/Beiträge – Revisionsvergleich | **`CMS/admin/modules/posts/PostsModule.php`, `CMS/admin/views/posts/edit.php`, `CMS/core/SchemaManager.php`, `CMS/DOC/core/DATABASE-SCHEMA.md`, `CMS/DOC/admin/pages-posts/README.md`, `CMS/DOC/admin/pages-posts/POSTS.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`, `CMS/DOC/admin/README.md`, `CMS/core/Version.php`, `CMS/update.json`, `README.md` und `Changelog.md` schließen das letzte offene Nice-to-have im Bereich Seiten & Beiträge ab**: Beiträge sichern vor relevanten Änderungen jetzt automatisch Revisions-Snapshots für Titel, Slugs, Teaser, Status, Kategorie, Tags, Autoren-Anzeigename, Veröffentlichungszeitpunkt sowie DE-/EN-Inhalte. Im Beitragseditor erscheint eine bewusst read-only gehaltene Vergleichsansicht der letzten Revisionen gegen den aktuellen Stand, inklusive kompakter Inhaltszusammenfassungen statt kompletter Rohfassungen. Das hält den Pfad secure-by-default, begrenzt die UI aus Performance-Gründen auf die jüngsten Snapshots und dokumentiert den neuen Revisionsvertrag zusätzlich im Core-Schema und in der Bereichsdoku. |
+
+### v2.9.708 — 9. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.708** | 🟢 feat | Admin/Seiten – Revisionsvergleich & Dokuabgleich | **`CMS/core/PageManager.php`, `CMS/core/SchemaManager.php`, `CMS/admin/modules/pages/PagesModule.php`, `CMS/admin/views/pages/edit.php`, `CMS/DOC/core/DATABASE-SCHEMA.md`, `CMS/DOC/admin/pages-posts/README.md`, `CMS/DOC/admin/pages-posts/PAGES.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`, `CMS/DOC/admin/README.md`, `CMS/core/Version.php`, `CMS/update.json`, `README.md` und `Changelog.md` setzen den nächsten Nice-to-have-Schritt für Seiten & Beiträge um**: Seiten-Revisionen speichern jetzt zusätzlich DE-/EN-Titel, Slugs, Inhalte und Status als Snapshot. Im Seiteneditor erscheint daraus eine read-only Vergleichsansicht der letzten Revisionen gegen den aktuellen Stand, damit Redaktionen Unterschiede schnell prüfen können, ohne unbeabsichtigt alte Inhalte zurückzuschreiben. Gleichzeitig wurde die Prüfliste an den realen Editor-Stack angepasst: SEO-, Lesbarkeits- und Vorschauprüfungen waren für Seiten und Beiträge bereits vorhanden und gelten nicht länger als offenes Nice-to-have. |
 
 ### v2.9.707 — 9. Mai 2026
 

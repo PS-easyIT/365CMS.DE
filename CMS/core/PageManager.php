@@ -37,6 +37,7 @@ class PageManager
         $this->db = Database::instance();
         $this->prefix = $this->db->getPrefix();
         $this->ensureColumns();
+        $this->ensureRevisionColumns();
     }
 
     /**
@@ -64,6 +65,51 @@ class PageManager
             }
         } catch (\Throwable $e) {
             Logger::instance()->withChannel('pages')->warning('Page schema compatibility columns could not be ensured.', [
+                'exception' => $e,
+            ]);
+        }
+    }
+
+    /**
+     * Migrate: expand page revision snapshots for DE/EN compare views.
+     */
+    private function ensureRevisionColumns(): void
+    {
+        try {
+            $this->db->query("CREATE TABLE IF NOT EXISTS {$this->prefix}page_revisions (
+                id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                page_id INT UNSIGNED NOT NULL,
+                title VARCHAR(255) NOT NULL,
+                title_en VARCHAR(255) DEFAULT NULL,
+                slug VARCHAR(200) DEFAULT NULL,
+                slug_en VARCHAR(200) DEFAULT NULL,
+                content LONGTEXT,
+                content_en LONGTEXT,
+                excerpt TEXT,
+                status VARCHAR(20) DEFAULT NULL,
+                author_id INT UNSIGNED,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_page_id (page_id),
+                INDEX idx_author (author_id),
+                INDEX idx_created_at (created_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+            $columns = [
+                'title_en' => "ALTER TABLE {$this->prefix}page_revisions ADD COLUMN title_en VARCHAR(255) DEFAULT NULL AFTER title",
+                'slug' => "ALTER TABLE {$this->prefix}page_revisions ADD COLUMN slug VARCHAR(200) DEFAULT NULL AFTER title_en",
+                'slug_en' => "ALTER TABLE {$this->prefix}page_revisions ADD COLUMN slug_en VARCHAR(200) DEFAULT NULL AFTER slug",
+                'content_en' => "ALTER TABLE {$this->prefix}page_revisions ADD COLUMN content_en LONGTEXT AFTER content",
+                'status' => "ALTER TABLE {$this->prefix}page_revisions ADD COLUMN status VARCHAR(20) DEFAULT NULL AFTER excerpt",
+            ];
+
+            foreach ($columns as $column => $sql) {
+                $stmt = $this->db->query("SHOW COLUMNS FROM {$this->prefix}page_revisions LIKE '{$column}'");
+                if (!$stmt->fetch()) {
+                    $this->db->query($sql);
+                }
+            }
+        } catch (\Throwable $e) {
+            Logger::instance()->withChannel('pages')->warning('Page revision compatibility columns could not be ensured.', [
                 'exception' => $e,
             ]);
         }
@@ -130,7 +176,7 @@ class PageManager
      */
     private function hasTrackedRevisionChanges(array $currentPage, array $newData): bool
     {
-        foreach (['title', 'content', 'excerpt'] as $field) {
+        foreach (['title', 'title_en', 'slug', 'slug_en', 'content', 'content_en', 'excerpt', 'status'] as $field) {
             if (!array_key_exists($field, $newData)) {
                 continue;
             }
@@ -258,14 +304,19 @@ class PageManager
             return false;
         }
 
-        $sql = "INSERT INTO {$this->prefix}page_revisions (page_id, title, content, excerpt, author_id) VALUES (?, ?, ?, ?, ?)";
+        $sql = "INSERT INTO {$this->prefix}page_revisions (page_id, title, title_en, slug, slug_en, content, content_en, excerpt, status, author_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         $stmt = $this->db->prepare($sql);
 
         return $stmt->execute([
             $pageId,
             (string)($page['title'] ?? ''),
+            (string)($page['title_en'] ?? ''),
+            (string)($page['slug'] ?? ''),
+            (string)($page['slug_en'] ?? ''),
             (string)($page['content'] ?? ''),
+            (string)($page['content_en'] ?? ''),
             (string)($page['excerpt'] ?? ''),
+            (string)($page['status'] ?? 'draft'),
             (int)($page['author_id'] ?? 0),
         ]);
     }
@@ -284,8 +335,13 @@ class PageManager
         $sql = "SELECT pr.id,
                        pr.page_id,
                        pr.title,
+                       pr.title_en,
+                       pr.slug,
+                       pr.slug_en,
                        pr.content,
+                       pr.content_en,
                        pr.excerpt,
+                       pr.status,
                        pr.author_id,
                        pr.created_at,
                        u.username,

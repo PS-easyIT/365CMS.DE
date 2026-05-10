@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Verwaltung chronologischer Inhalte wie News und Blog-Beiträge im Admin-Bereich.
 
-Letzte Aktualisierung: 2026-05-09 · Version 2.9.707
+Letzte Aktualisierung: 2026-05-10 · Version 2.9.709
 
 ---
 
@@ -65,6 +65,30 @@ Beiträge werden in getrennten DE-/EN-Ansichten bearbeitet.
 - Eine automatische Erstkopie beim ersten Sprachwechsel ist für Beiträge aktuell **nicht** konfiguriert.
 
 Das bedeutet: Bestehende EN-Inhalte werden nicht implizit beim Ansichtswechsel überschrieben. Kopie und Übersetzung sind bewusste Redaktionsaktionen.
+
+---
+
+## Revisions- und Vergleichsvertrag
+
+Seit `2.9.709` speichert der Beitrags-Save-Flow vor relevanten Änderungen automatisch einen Snapshot des bisherigen Stands. Erfasst werden dabei insbesondere:
+
+- Titel und Slugs in DE/EN
+- Teaser in DE/EN
+- Status
+- Primärkategorie als ID und Name
+- Tag-Liste
+- Autoren-Anzeigename im Beitrag
+- Veröffentlichungszeitpunkt
+- Inhaltsstände in DE/EN
+
+Der Beitragseditor zeigt diese Snapshots in einer **read-only Vergleichskarte** direkt im Bearbeitungsformular an.
+
+- Pro Revision werden nur die tatsächlich geänderten Felder hervorgehoben.
+- Inhaltsfelder erscheinen bewusst als kompakte Zusammenfassung statt als vollständige Rohfassung.
+- Die Oberfläche zeigt aus Performance-Gründen nur die letzten gespeicherten Revisionen.
+- Es gibt absichtlich keinen impliziten Restore-Button in derselben Ansicht.
+
+Das folgt dem Secure-by-Default-Prinzip: Redaktion kann Unterschiede prüfen, ohne ältere Stände versehentlich direkt zurückzuschreiben.
 
 ---
 

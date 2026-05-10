@@ -104,6 +104,7 @@ class PostsModule
         $this->ensureColumns();
         $this->ensureCategoryColumns();
         $this->ensurePostCategoryRelationTable();
+        $this->ensurePostRevisionTable();
         $this->ensureDefaultCategories();
     }
 
@@ -179,6 +180,62 @@ class PostsModule
             );
         } catch (\Throwable $e) {
             Logger::instance()->withChannel('admin.posts')->warning('Beitrags-Kategorie-Relationstabelle konnte nicht automatisch angelegt werden.', [
+                'exception' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    private function ensurePostRevisionTable(): void
+    {
+        try {
+            $this->db->query(
+                "CREATE TABLE IF NOT EXISTS {$this->prefix}post_revisions (
+                    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                    post_id BIGINT UNSIGNED NOT NULL,
+                    title VARCHAR(255) NOT NULL,
+                    title_en VARCHAR(255) DEFAULT NULL,
+                    slug VARCHAR(255) DEFAULT NULL,
+                    slug_en VARCHAR(255) DEFAULT NULL,
+                    content LONGTEXT,
+                    content_en LONGTEXT,
+                    excerpt TEXT,
+                    excerpt_en TEXT,
+                    status VARCHAR(20) DEFAULT NULL,
+                    category_id INT UNSIGNED DEFAULT NULL,
+                    category_name VARCHAR(150) DEFAULT NULL,
+                    tags VARCHAR(500) DEFAULT NULL,
+                    author_id INT UNSIGNED DEFAULT NULL,
+                    author_display_name VARCHAR(150) DEFAULT NULL,
+                    published_at TIMESTAMP NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    INDEX idx_post_id (post_id),
+                    INDEX idx_author_id (author_id),
+                    INDEX idx_created_at (created_at)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
+            );
+
+            $columns = [
+                'title_en' => "ALTER TABLE {$this->prefix}post_revisions ADD COLUMN title_en VARCHAR(255) DEFAULT NULL AFTER title",
+                'slug' => "ALTER TABLE {$this->prefix}post_revisions ADD COLUMN slug VARCHAR(255) DEFAULT NULL AFTER title_en",
+                'slug_en' => "ALTER TABLE {$this->prefix}post_revisions ADD COLUMN slug_en VARCHAR(255) DEFAULT NULL AFTER slug",
+                'content_en' => "ALTER TABLE {$this->prefix}post_revisions ADD COLUMN content_en LONGTEXT AFTER content",
+                'excerpt_en' => "ALTER TABLE {$this->prefix}post_revisions ADD COLUMN excerpt_en TEXT DEFAULT NULL AFTER excerpt",
+                'status' => "ALTER TABLE {$this->prefix}post_revisions ADD COLUMN status VARCHAR(20) DEFAULT NULL AFTER excerpt_en",
+                'category_id' => "ALTER TABLE {$this->prefix}post_revisions ADD COLUMN category_id INT UNSIGNED DEFAULT NULL AFTER status",
+                'category_name' => "ALTER TABLE {$this->prefix}post_revisions ADD COLUMN category_name VARCHAR(150) DEFAULT NULL AFTER category_id",
+                'tags' => "ALTER TABLE {$this->prefix}post_revisions ADD COLUMN tags VARCHAR(500) DEFAULT NULL AFTER category_name",
+                'author_display_name' => "ALTER TABLE {$this->prefix}post_revisions ADD COLUMN author_display_name VARCHAR(150) DEFAULT NULL AFTER author_id",
+                'published_at' => "ALTER TABLE {$this->prefix}post_revisions ADD COLUMN published_at TIMESTAMP NULL AFTER author_display_name",
+            ];
+
+            foreach ($columns as $column => $sql) {
+                $stmt = $this->db->query("SHOW COLUMNS FROM {$this->prefix}post_revisions LIKE '{$column}'");
+                if ($stmt instanceof \PDOStatement && !$stmt->fetch()) {
+                    $this->db->query($sql);
+                }
+            }
+        } catch (\Throwable $e) {
+            Logger::instance()->withChannel('admin.posts')->warning('Beitrags-Revisionsschema konnte nicht automatisch sichergestellt werden.', [
                 'exception' => $e->getMessage(),
             ]);
         }
@@ -421,6 +478,7 @@ class PostsModule
             'tags'       => array_map(fn($t) => (array)$t, $tags),
             'postTags'   => array_map(fn($t) => (array)$t, $postTags),
             'seoMeta'    => $id !== null ? SEOService::getInstance()->getContentMeta('post', $id) : SEOService::getInstance()->getContentMeta('post', 0),
+            'revisionHistory' => $this->buildPostRevisionHistory($postData, array_map(fn($t) => (array) $t, $postTags)),
         ];
     }
 
@@ -638,6 +696,18 @@ class PostsModule
             if ($id > 0) {
                 $existing = $this->db->get_row("SELECT slug, slug_en, status, published_at, created_at FROM {$this->prefix}posts WHERE id = ? LIMIT 1", [$id]);
                 $resolvedPublishedAt = $this->resolvePublishedAtValue((string) $savePayload['status'], $savePayload['published_at'], $existing);
+                $currentRevisionSource = $this->getCurrentPostRevisionSource($id);
+                $revisionComparisonPayload = $savePayload;
+                $revisionComparisonPayload['published_at'] = $resolvedPublishedAt;
+                if ($this->hasTrackedPostRevisionChanges($currentRevisionSource, $revisionComparisonPayload) && !$this->storePostRevisionSnapshot($currentRevisionSource)) {
+                    return $this->failResult(
+                        'posts.revision.snapshot_failed',
+                        'Beitragsrevision konnte vor dem Speichern nicht gesichert werden.',
+                        null,
+                        ['post_id' => $id]
+                    );
+                }
+
                 $this->db->execute(
                     "UPDATE {$this->prefix}posts 
                      SET title = ?, title_en = ?, slug = ?, slug_en = ?, content = ?, content_en = ?, excerpt = ?, excerpt_en = ?, status = ?,
@@ -1607,6 +1677,413 @@ class PostsModule
 
             return $this->failResult('posts.tag.bulk_delete.failed', 'Bulk-Löschen der Tags fehlgeschlagen.', $e, ['tag_ids' => $existingIds, 'replacement_tag_id' => $replacementId]);
         }
+    }
+
+    /**
+     * @param array<string,mixed>|null $postData
+     * @param array<int,array<string,mixed>> $postTags
+     * @return array<string,mixed>
+     */
+    private function buildPostRevisionHistory(?array $postData, array $postTags): array
+    {
+        $postId = (int) ($postData['id'] ?? 0);
+        if ($postId <= 0) {
+            return [
+                'total' => 0,
+                'displayed' => 0,
+                'has_more' => false,
+                'items' => [],
+            ];
+        }
+
+        $currentPost = $this->buildCurrentPostComparisonState($postData, $postTags);
+        $rawRevisions = $this->getPostRevisions($postId);
+        $items = [];
+
+        foreach (array_slice($rawRevisions, 0, 6) as $revision) {
+            if (!is_array($revision)) {
+                continue;
+            }
+
+            $comparison = $this->buildPostRevisionComparison($currentPost, $revision);
+            $items[] = [
+                'id' => (int) ($revision['id'] ?? 0),
+                'created_at' => (string) ($revision['created_at'] ?? ''),
+                'created_at_label' => $this->formatAdminTimestamp((string) ($revision['created_at'] ?? '')),
+                'author_label' => $this->resolveRevisionAuthorLabel($revision),
+                'changed_fields' => $comparison['changed_fields'],
+                'field_diffs' => $comparison['field_diffs'],
+            ];
+        }
+
+        return [
+            'total' => count($rawRevisions),
+            'displayed' => count($items),
+            'has_more' => count($rawRevisions) > count($items),
+            'items' => $items,
+        ];
+    }
+
+    /**
+     * @param array<string,mixed>|null $postData
+     * @param array<int,array<string,mixed>> $postTags
+     * @return array<string,mixed>
+     */
+    private function buildCurrentPostComparisonState(?array $postData, array $postTags): array
+    {
+        $postData = is_array($postData) ? $postData : [];
+        $tagNames = [];
+        foreach ($postTags as $tag) {
+            $name = trim((string) ($tag['name'] ?? ''));
+            if ($name !== '') {
+                $tagNames[] = $name;
+            }
+        }
+
+        if ($tagNames === []) {
+            $tagNames = $this->normalizeTagNamesFromString((string) ($postData['tags'] ?? ''));
+        }
+
+        $categoryId = (int) ($postData['category_id'] ?? 0);
+
+        return [
+            'title' => (string) ($postData['title'] ?? ''),
+            'title_en' => (string) ($postData['title_en'] ?? ''),
+            'slug' => (string) ($postData['slug'] ?? ''),
+            'slug_en' => (string) ($postData['slug_en'] ?? ''),
+            'content' => $postData['content'] ?? '',
+            'content_en' => $postData['content_en'] ?? '',
+            'excerpt' => (string) ($postData['excerpt'] ?? ''),
+            'excerpt_en' => (string) ($postData['excerpt_en'] ?? ''),
+            'status' => (string) ($postData['status'] ?? ''),
+            'category_id' => $categoryId,
+            'category_name' => $this->resolveCategoryName($categoryId),
+            'tags' => implode(', ', $tagNames),
+            'author_display_name' => (string) ($postData['author_display_name'] ?? ''),
+            'published_at' => (string) ($postData['published_at'] ?? ''),
+        ];
+    }
+
+    /**
+     * @return array<int,array<string,mixed>>
+     */
+    private function getPostRevisions(int $postId): array
+    {
+        if ($postId <= 0) {
+            return [];
+        }
+
+        $stmt = $this->db->prepare(
+            "SELECT pr.id,
+                    pr.post_id,
+                    pr.title,
+                    pr.title_en,
+                    pr.slug,
+                    pr.slug_en,
+                    pr.content,
+                    pr.content_en,
+                    pr.excerpt,
+                    pr.excerpt_en,
+                    pr.status,
+                    pr.category_id,
+                    pr.category_name,
+                    pr.tags,
+                    pr.author_id,
+                    pr.author_display_name,
+                    pr.published_at,
+                    pr.created_at,
+                    u.username,
+                    u.display_name
+             FROM {$this->prefix}post_revisions pr
+             LEFT JOIN {$this->prefix}users u ON u.id = pr.author_id
+             WHERE pr.post_id = ?
+             ORDER BY pr.created_at DESC, pr.id DESC"
+        );
+
+        $stmt->execute([$postId]);
+        $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        return is_array($rows) ? $rows : [];
+    }
+
+    /**
+     * @return array<string,mixed>
+     */
+    private function getCurrentPostRevisionSource(int $postId): array
+    {
+        if ($postId <= 0) {
+            return [];
+        }
+
+        $row = $this->db->get_row(
+            "SELECT p.id, p.title, p.title_en, p.slug, p.slug_en, p.content, p.content_en, p.excerpt, p.excerpt_en,
+                    p.status, p.category_id, p.tags, p.author_id, p.author_display_name, p.published_at,
+                    c.name AS category_name
+             FROM {$this->prefix}posts p
+             LEFT JOIN {$this->prefix}post_categories c ON c.id = p.category_id
+             WHERE p.id = ?
+             LIMIT 1",
+            [$postId]
+        );
+
+        if (!is_object($row)) {
+            return [];
+        }
+
+        $snapshot = (array) $row;
+        $tagNames = $this->getPostTagNames($postId);
+        if ($tagNames !== []) {
+            $snapshot['tags'] = implode(', ', $tagNames);
+        } else {
+            $snapshot['tags'] = implode(', ', $this->normalizeTagNamesFromString((string) ($snapshot['tags'] ?? '')));
+        }
+
+        $snapshot['category_name'] = trim((string) ($snapshot['category_name'] ?? ''));
+
+        return $snapshot;
+    }
+
+    private function hasTrackedPostRevisionChanges(array $currentPost, array $newData): bool
+    {
+        foreach (['title', 'title_en', 'slug', 'slug_en', 'content', 'content_en', 'excerpt', 'excerpt_en', 'status', 'tags', 'author_display_name', 'published_at'] as $field) {
+            if (!array_key_exists($field, $newData)) {
+                continue;
+            }
+
+            if ((string) ($currentPost[$field] ?? '') !== (string) ($newData[$field] ?? '')) {
+                return true;
+            }
+        }
+
+        if (array_key_exists('category_id', $newData) && (int) ($currentPost['category_id'] ?? 0) !== (int) ($newData['category_id'] ?? 0)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    private function storePostRevisionSnapshot(array $post): bool
+    {
+        $postId = (int) ($post['id'] ?? 0);
+        if ($postId <= 0) {
+            return false;
+        }
+
+        $stmt = $this->db->prepare(
+            "INSERT INTO {$this->prefix}post_revisions (
+                post_id, title, title_en, slug, slug_en, content, content_en, excerpt, excerpt_en,
+                status, category_id, category_name, tags, author_id, author_display_name, published_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+        );
+
+        return $stmt->execute([
+            $postId,
+            (string) ($post['title'] ?? ''),
+            (string) ($post['title_en'] ?? ''),
+            (string) ($post['slug'] ?? ''),
+            (string) ($post['slug_en'] ?? ''),
+            (string) ($post['content'] ?? ''),
+            (string) ($post['content_en'] ?? ''),
+            (string) ($post['excerpt'] ?? ''),
+            (string) ($post['excerpt_en'] ?? ''),
+            (string) ($post['status'] ?? ''),
+            (int) ($post['category_id'] ?? 0) ?: null,
+            (string) ($post['category_name'] ?? ''),
+            (string) ($post['tags'] ?? ''),
+            (int) ($post['author_id'] ?? 0) ?: null,
+            (string) ($post['author_display_name'] ?? ''),
+            $this->normalizeRevisionTimestampValue($post['published_at'] ?? null),
+        ]);
+    }
+
+    /**
+     * @param array<string,mixed> $currentPost
+     * @param array<string,mixed> $revision
+     * @return array{changed_fields: array<int,string>, field_diffs: array<int,array<string,mixed>>}
+     */
+    private function buildPostRevisionComparison(array $currentPost, array $revision): array
+    {
+        $changedFields = [];
+        $fieldDiffs = [];
+
+        $this->appendRevisionTextDiff($changedFields, $fieldDiffs, 'Titel (DE)', $currentPost['title'] ?? '', $revision['title'] ?? '');
+        $this->appendRevisionTextDiff($changedFields, $fieldDiffs, 'Titel (EN)', $currentPost['title_en'] ?? '', $revision['title_en'] ?? '');
+        $this->appendRevisionTextDiff($changedFields, $fieldDiffs, 'Slug (DE)', $currentPost['slug'] ?? '', $revision['slug'] ?? '');
+        $this->appendRevisionTextDiff($changedFields, $fieldDiffs, 'Slug (EN)', $currentPost['slug_en'] ?? '', $revision['slug_en'] ?? '');
+        $this->appendRevisionTextDiff($changedFields, $fieldDiffs, 'Teaser (DE)', $currentPost['excerpt'] ?? '', $revision['excerpt'] ?? '');
+        $this->appendRevisionTextDiff($changedFields, $fieldDiffs, 'Teaser (EN)', $currentPost['excerpt_en'] ?? '', $revision['excerpt_en'] ?? '');
+        $this->appendRevisionTextDiff($changedFields, $fieldDiffs, 'Status', $currentPost['status'] ?? '', $revision['status'] ?? '');
+        $this->appendRevisionTextDiff($changedFields, $fieldDiffs, 'Kategorie', $currentPost['category_name'] ?? '', $revision['category_name'] ?? '');
+        $this->appendRevisionTextDiff($changedFields, $fieldDiffs, 'Tags', $currentPost['tags'] ?? '', $revision['tags'] ?? '');
+        $this->appendRevisionTextDiff($changedFields, $fieldDiffs, 'Autorenname im Artikel', $currentPost['author_display_name'] ?? '', $revision['author_display_name'] ?? '');
+        $this->appendRevisionTextDiff($changedFields, $fieldDiffs, 'Veröffentlichung', $this->formatRevisionTimestampLabel($currentPost['published_at'] ?? null), $this->formatRevisionTimestampLabel($revision['published_at'] ?? null));
+        $this->appendRevisionContentDiff($changedFields, $fieldDiffs, 'Inhalt (DE)', $currentPost['content'] ?? '', $revision['content'] ?? '');
+        $this->appendRevisionContentDiff($changedFields, $fieldDiffs, 'Inhalt (EN)', $currentPost['content_en'] ?? '', $revision['content_en'] ?? '');
+
+        return [
+            'changed_fields' => array_values(array_unique($changedFields)),
+            'field_diffs' => $fieldDiffs,
+        ];
+    }
+
+    /**
+     * @param array<int,string> $changedFields
+     * @param array<int,array<string,mixed>> $fieldDiffs
+     */
+    private function appendRevisionTextDiff(array &$changedFields, array &$fieldDiffs, string $label, mixed $current, mixed $revision): void
+    {
+        $currentValue = $this->normalizeRevisionTextValue($current);
+        $revisionValue = $this->normalizeRevisionTextValue($revision);
+
+        if ($currentValue === $revisionValue) {
+            return;
+        }
+
+        $changedFields[] = $label;
+        $fieldDiffs[] = [
+            'label' => $label,
+            'type' => 'text',
+            'current_label' => 'Aktuell',
+            'current_value' => $this->formatRevisionDisplayText($currentValue),
+            'revision_label' => 'Revision',
+            'revision_value' => $this->formatRevisionDisplayText($revisionValue),
+        ];
+    }
+
+    /**
+     * @param array<int,string> $changedFields
+     * @param array<int,array<string,mixed>> $fieldDiffs
+     */
+    private function appendRevisionContentDiff(array &$changedFields, array &$fieldDiffs, string $label, mixed $current, mixed $revision): void
+    {
+        $currentSummary = $this->summarizeEditorContentValue($current);
+        $revisionSummary = $this->summarizeEditorContentValue($revision);
+
+        if (($currentSummary['sha1'] ?? '') === ($revisionSummary['sha1'] ?? '')) {
+            return;
+        }
+
+        $changedFields[] = $label;
+        $fieldDiffs[] = [
+            'label' => $label,
+            'type' => 'content',
+            'current_label' => 'Aktuell',
+            'current_summary' => $this->formatContentSummaryForView($currentSummary),
+            'revision_label' => 'Revision',
+            'revision_summary' => $this->formatContentSummaryForView($revisionSummary),
+        ];
+    }
+
+    /**
+     * @return array<string,mixed>
+     */
+    private function formatContentSummaryForView(array $summary): array
+    {
+        return [
+            'preview' => trim((string) ($summary['preview'] ?? '')) !== '' ? (string) ($summary['preview'] ?? '') : '— leer —',
+            'length' => (int) ($summary['length'] ?? 0),
+            'json_blocks' => isset($summary['json_blocks']) && is_numeric($summary['json_blocks']) ? (int) $summary['json_blocks'] : null,
+            'first_block_type' => trim((string) ($summary['first_block_type'] ?? '')),
+            'is_empty' => !empty($summary['is_empty']),
+        ];
+    }
+
+    private function normalizeRevisionTextValue(mixed $value): string
+    {
+        $stringValue = is_scalar($value) || $value === null ? (string) $value : '';
+        $stringValue = preg_replace('/\s+/u', ' ', trim(strip_tags($stringValue))) ?? '';
+
+        return $stringValue;
+    }
+
+    private function formatRevisionDisplayText(string $value): string
+    {
+        if ($value === '') {
+            return '— leer —';
+        }
+
+        $maxLength = 180;
+        $truncated = function_exists('mb_substr') ? mb_substr($value, 0, $maxLength) : substr($value, 0, $maxLength);
+        $fullLength = function_exists('mb_strlen') ? mb_strlen($value) : strlen($value);
+
+        return $fullLength > $maxLength ? $truncated . ' …' : $truncated;
+    }
+
+    private function formatAdminTimestamp(string $value): string
+    {
+        if ($value === '') {
+            return 'Unbekanntes Datum';
+        }
+
+        $timestamp = strtotime($value);
+
+        return $timestamp !== false ? date('d.m.Y H:i', $timestamp) : $value;
+    }
+
+    /**
+     * @param array<string,mixed> $revision
+     */
+    private function resolveRevisionAuthorLabel(array $revision): string
+    {
+        $displayName = trim((string) ($revision['display_name'] ?? ''));
+        if ($displayName !== '') {
+            return $displayName;
+        }
+
+        $username = trim((string) ($revision['username'] ?? ''));
+        if ($username !== '') {
+            return $username;
+        }
+
+        $authorId = (int) ($revision['author_id'] ?? 0);
+
+        return $authorId > 0 ? 'Benutzer #' . $authorId : 'Unbekannt';
+    }
+
+    private function resolveCategoryName(int $categoryId): string
+    {
+        if ($categoryId <= 0) {
+            return '';
+        }
+
+        return trim((string) ($this->db->get_var(
+            "SELECT name FROM {$this->prefix}post_categories WHERE id = ? LIMIT 1",
+            [$categoryId]
+        ) ?: ''));
+    }
+
+    /**
+     * @return array<int,string>
+     */
+    private function normalizeTagNamesFromString(string $value): array
+    {
+        $entries = preg_split('/[\r\n,]+/', $value) ?: [];
+        $names = [];
+        foreach ($entries as $entry) {
+            $name = trim((string) $entry);
+            if ($name !== '') {
+                $names[] = $name;
+            }
+        }
+
+        return array_values(array_unique($names));
+    }
+
+    private function normalizeRevisionTimestampValue(mixed $value): ?string
+    {
+        $normalized = trim((string) $value);
+
+        return $normalized !== '' ? $normalized : null;
+    }
+
+    private function formatRevisionTimestampLabel(mixed $value): string
+    {
+        $normalized = trim((string) $value);
+        if ($normalized === '') {
+            return '— leer —';
+        }
+
+        return $this->formatAdminTimestamp($normalized);
     }
 
     private function sanitizeAuthorDisplayName(string $value): string

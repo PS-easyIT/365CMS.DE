@@ -27,6 +27,22 @@ $page    = $editData['page'] ?? null;
 $isNew   = $editData['isNew'] ?? true;
 $categories = $editData['categories'] ?? [];
 $seoMeta = $editData['seoMeta'] ?? [];
+$revisionHistory = is_array($editData['revisionHistory'] ?? null) ? $editData['revisionHistory'] : ['total' => 0, 'displayed' => 0, 'has_more' => false, 'items' => []];
+$pageRevisionItems = is_array($revisionHistory['items'] ?? null) ? $revisionHistory['items'] : [];
+$pageRevisionContentMeta = static function (array $summary): string {
+    $parts = [];
+    $parts[] = ((int) ($summary['length'] ?? 0)) . ' Zeichen';
+
+    if (isset($summary['json_blocks']) && $summary['json_blocks'] !== null) {
+        $parts[] = ((int) $summary['json_blocks']) . ' Block/Blöcke';
+    }
+
+    if (trim((string) ($summary['first_block_type'] ?? '')) !== '') {
+        $parts[] = 'Startblock: ' . (string) $summary['first_block_type'];
+    }
+
+    return implode(' · ', $parts);
+};
 $seoTemplateSettings = \CMS\Services\SeoAnalysisService::getInstance()->getSettings();
 $pageEditorWidth = function_exists('get_option') ? (int)get_option('setting_page_editor_width', 1050) : 1050;
 $pageEditorWidth = max(320, min(1600, $pageEditorWidth));
@@ -414,6 +430,92 @@ $isEnglishEditorView = $editorLocale === 'en';
                     require __DIR__ . '/../partials/content-seo-score-panel.php';
                     ?>
                 </div>
+
+                <?php if (!$isNew): ?>
+                <div class="col-12">
+                    <div class="card cms-edit-card">
+                        <div class="card-header d-flex justify-content-between align-items-center gap-3 flex-wrap">
+                            <div>
+                                <h3 class="card-title mb-0">Revisionen & Vergleich</h3>
+                                <div class="text-secondary small mt-1">Gespeicherte Snapshots zeigen Unterschiede zwischen aktuellem Stand und früheren Versionen der Seite – inklusive DE/EN-Titel, Slugs und Inhalte.</div>
+                            </div>
+                            <span class="badge bg-blue-lt text-blue"><?= (int) ($revisionHistory['total'] ?? 0) ?> Revision(en)</span>
+                        </div>
+                        <div class="card-body">
+                            <?php if ($pageRevisionItems === []): ?>
+                                <div class="text-secondary">Noch keine gespeicherten Revisionen vorhanden. Beim nächsten inhaltlichen Speichern wird automatisch ein Snapshot angelegt.</div>
+                            <?php else: ?>
+                                <div class="alert alert-info" role="status">
+                                    Die Ansicht bleibt bewusst read-only: Sie dient dem sicheren Vergleich, ohne versehentlich alte Inhalte direkt zurückzuschreiben. Kleine Zeitmaschine, große Vorsicht. 🕰️
+                                </div>
+                                <div class="d-flex flex-column gap-3">
+                                    <?php foreach ($pageRevisionItems as $revision): ?>
+                                        <?php
+                                        $revisionChangedFields = is_array($revision['changed_fields'] ?? null) ? $revision['changed_fields'] : [];
+                                        $revisionFieldDiffs = is_array($revision['field_diffs'] ?? null) ? $revision['field_diffs'] : [];
+                                        ?>
+                                        <details class="border rounded-3 p-3">
+                                            <summary class="d-flex flex-wrap align-items-center gap-2" style="cursor:pointer; list-style:none;">
+                                                <strong><?= htmlspecialchars((string) ($revision['created_at_label'] ?? 'Unbekanntes Datum')) ?></strong>
+                                                <span class="text-secondary">von <?= htmlspecialchars((string) ($revision['author_label'] ?? 'Unbekannt')) ?></span>
+                                                <?php if ($revisionChangedFields !== []): ?>
+                                                    <span class="text-secondary">· geändert:</span>
+                                                    <?php foreach ($revisionChangedFields as $fieldLabel): ?>
+                                                        <span class="badge bg-azure-lt text-azure"><?= htmlspecialchars((string) $fieldLabel) ?></span>
+                                                    <?php endforeach; ?>
+                                                <?php endif; ?>
+                                            </summary>
+
+                                            <?php if ($revisionFieldDiffs === []): ?>
+                                                <div class="text-secondary small mt-3">Zu den aktuell verglichenen Feldern wurden keine Unterschiede erkannt.</div>
+                                            <?php else: ?>
+                                                <div class="row g-3 mt-1">
+                                                    <?php foreach ($revisionFieldDiffs as $fieldDiff): ?>
+                                                        <div class="col-xl-6 d-flex">
+                                                            <div class="card card-sm w-100">
+                                                                <div class="card-header">
+                                                                    <h4 class="card-title mb-0"><?= htmlspecialchars((string) ($fieldDiff['label'] ?? 'Unterschied')) ?></h4>
+                                                                </div>
+                                                                <div class="card-body">
+                                                                    <div class="row g-3">
+                                                                        <div class="col-md-6">
+                                                                            <div class="text-secondary text-uppercase small mb-1"><?= htmlspecialchars((string) ($fieldDiff['current_label'] ?? 'Aktuell')) ?></div>
+                                                                            <?php if (($fieldDiff['type'] ?? '') === 'content'): ?>
+                                                                                <?php $currentSummary = is_array($fieldDiff['current_summary'] ?? null) ? $fieldDiff['current_summary'] : []; ?>
+                                                                                <div class="fw-semibold mb-1"><?= htmlspecialchars((string) ($currentSummary['preview'] ?? '— leer —')) ?></div>
+                                                                                <div class="small text-secondary"><?= htmlspecialchars($pageRevisionContentMeta($currentSummary)) ?></div>
+                                                                            <?php else: ?>
+                                                                                <div class="fw-semibold"><?= htmlspecialchars((string) ($fieldDiff['current_value'] ?? '— leer —')) ?></div>
+                                                                            <?php endif; ?>
+                                                                        </div>
+                                                                        <div class="col-md-6">
+                                                                            <div class="text-secondary text-uppercase small mb-1"><?= htmlspecialchars((string) ($fieldDiff['revision_label'] ?? 'Revision')) ?></div>
+                                                                            <?php if (($fieldDiff['type'] ?? '') === 'content'): ?>
+                                                                                <?php $revisionSummary = is_array($fieldDiff['revision_summary'] ?? null) ? $fieldDiff['revision_summary'] : []; ?>
+                                                                                <div class="fw-semibold mb-1"><?= htmlspecialchars((string) ($revisionSummary['preview'] ?? '— leer —')) ?></div>
+                                                                                <div class="small text-secondary"><?= htmlspecialchars($pageRevisionContentMeta($revisionSummary)) ?></div>
+                                                                            <?php else: ?>
+                                                                                <div class="fw-semibold"><?= htmlspecialchars((string) ($fieldDiff['revision_value'] ?? '— leer —')) ?></div>
+                                                                            <?php endif; ?>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    <?php endforeach; ?>
+                                                </div>
+                                            <?php endif; ?>
+                                        </details>
+                                    <?php endforeach; ?>
+                                </div>
+                                <?php if (!empty($revisionHistory['has_more'])): ?>
+                                    <div class="text-secondary small mt-3">Aus Performance-Gründen werden hier die letzten <?= (int) ($revisionHistory['displayed'] ?? 0) ?> Revisionen angezeigt.</div>
+                                <?php endif; ?>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+                <?php endif; ?>
 
                 <div class="col-12">
                     <?php

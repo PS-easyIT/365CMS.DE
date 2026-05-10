@@ -305,6 +305,7 @@ class PagesModule
             'isNew'  => $page === null,
             'categories' => $this->buildOrderedCategoryOptions(array_map(fn($category) => (array) $category, $categories)),
             'seoMeta' => $id !== null ? SEOService::getInstance()->getContentMeta('page', $id) : SEOService::getInstance()->getContentMeta('page', 0),
+            'revisionHistory' => $this->buildPageRevisionHistory($page),
         ];
     }
 
@@ -728,6 +729,188 @@ class PagesModule
         }
 
         return $summary;
+    }
+
+    /**
+     * @return array<string,mixed>
+     */
+    private function buildPageRevisionHistory(?object $page): array
+    {
+        $pageData = is_object($page) ? (array) $page : [];
+        $pageId = (int) ($pageData['id'] ?? 0);
+
+        if ($pageId <= 0) {
+            return [
+                'total' => 0,
+                'displayed' => 0,
+                'has_more' => false,
+                'items' => [],
+            ];
+        }
+
+        $rawRevisions = $this->pageManager->getRevisions($pageId);
+        $items = [];
+
+        foreach (array_slice($rawRevisions, 0, 6) as $revision) {
+            if (!is_array($revision)) {
+                continue;
+            }
+
+            $comparison = $this->buildPageRevisionComparison($pageData, $revision);
+            $items[] = [
+                'id' => (int) ($revision['id'] ?? 0),
+                'created_at' => (string) ($revision['created_at'] ?? ''),
+                'created_at_label' => $this->formatAdminTimestamp((string) ($revision['created_at'] ?? '')),
+                'author_label' => $this->resolveRevisionAuthorLabel($revision),
+                'changed_fields' => $comparison['changed_fields'],
+                'field_diffs' => $comparison['field_diffs'],
+            ];
+        }
+
+        return [
+            'total' => count($rawRevisions),
+            'displayed' => count($items),
+            'has_more' => count($rawRevisions) > count($items),
+            'items' => $items,
+        ];
+    }
+
+    /**
+     * @param array<string,mixed> $currentPage
+     * @param array<string,mixed> $revision
+     * @return array{changed_fields: array<int,string>, field_diffs: array<int,array<string,mixed>>}
+     */
+    private function buildPageRevisionComparison(array $currentPage, array $revision): array
+    {
+        $changedFields = [];
+        $fieldDiffs = [];
+
+        $this->appendRevisionTextDiff($changedFields, $fieldDiffs, 'Titel (DE)', $currentPage['title'] ?? '', $revision['title'] ?? '');
+        $this->appendRevisionTextDiff($changedFields, $fieldDiffs, 'Slug (DE)', $currentPage['slug'] ?? '', $revision['slug'] ?? '');
+        $this->appendRevisionTextDiff($changedFields, $fieldDiffs, 'Titel (EN)', $currentPage['title_en'] ?? '', $revision['title_en'] ?? '');
+        $this->appendRevisionTextDiff($changedFields, $fieldDiffs, 'Slug (EN)', $currentPage['slug_en'] ?? '', $revision['slug_en'] ?? '');
+        $this->appendRevisionTextDiff($changedFields, $fieldDiffs, 'Status', $currentPage['status'] ?? '', $revision['status'] ?? '');
+        $this->appendRevisionContentDiff($changedFields, $fieldDiffs, 'Inhalt (DE)', $currentPage['content'] ?? '', $revision['content'] ?? '');
+        $this->appendRevisionContentDiff($changedFields, $fieldDiffs, 'Inhalt (EN)', $currentPage['content_en'] ?? '', $revision['content_en'] ?? '');
+
+        return [
+            'changed_fields' => array_values(array_unique($changedFields)),
+            'field_diffs' => $fieldDiffs,
+        ];
+    }
+
+    /**
+     * @param array<int,string> $changedFields
+     * @param array<int,array<string,mixed>> $fieldDiffs
+     */
+    private function appendRevisionTextDiff(array &$changedFields, array &$fieldDiffs, string $label, mixed $current, mixed $revision): void
+    {
+        $currentValue = $this->normalizeRevisionTextValue($current);
+        $revisionValue = $this->normalizeRevisionTextValue($revision);
+
+        if ($currentValue === $revisionValue) {
+            return;
+        }
+
+        $changedFields[] = $label;
+        $fieldDiffs[] = [
+            'label' => $label,
+            'type' => 'text',
+            'current_label' => 'Aktuell',
+            'current_value' => $this->formatRevisionDisplayText($currentValue),
+            'revision_label' => 'Revision',
+            'revision_value' => $this->formatRevisionDisplayText($revisionValue),
+        ];
+    }
+
+    /**
+     * @param array<int,string> $changedFields
+     * @param array<int,array<string,mixed>> $fieldDiffs
+     */
+    private function appendRevisionContentDiff(array &$changedFields, array &$fieldDiffs, string $label, mixed $current, mixed $revision): void
+    {
+        $currentSummary = $this->summarizeEditorContentValue($current);
+        $revisionSummary = $this->summarizeEditorContentValue($revision);
+
+        if (($currentSummary['sha1'] ?? '') === ($revisionSummary['sha1'] ?? '')) {
+            return;
+        }
+
+        $changedFields[] = $label;
+        $fieldDiffs[] = [
+            'label' => $label,
+            'type' => 'content',
+            'current_label' => 'Aktuell',
+            'current_summary' => $this->formatContentSummaryForView($currentSummary),
+            'revision_label' => 'Revision',
+            'revision_summary' => $this->formatContentSummaryForView($revisionSummary),
+        ];
+    }
+
+    /**
+     * @return array<string,mixed>
+     */
+    private function formatContentSummaryForView(array $summary): array
+    {
+        return [
+            'preview' => trim((string) ($summary['preview'] ?? '')) !== '' ? (string) $summary['preview'] : '— leer —',
+            'length' => (int) ($summary['length'] ?? 0),
+            'json_blocks' => isset($summary['json_blocks']) && is_numeric($summary['json_blocks']) ? (int) $summary['json_blocks'] : null,
+            'first_block_type' => trim((string) ($summary['first_block_type'] ?? '')),
+            'is_empty' => !empty($summary['is_empty']),
+        ];
+    }
+
+    private function normalizeRevisionTextValue(mixed $value): string
+    {
+        $stringValue = is_scalar($value) || $value === null ? (string) $value : '';
+        $stringValue = preg_replace('/\s+/u', ' ', trim(strip_tags($stringValue))) ?? '';
+
+        return $stringValue;
+    }
+
+    private function formatRevisionDisplayText(string $value): string
+    {
+        if ($value === '') {
+            return '— leer —';
+        }
+
+        $maxLength = 180;
+        $truncated = function_exists('mb_substr') ? mb_substr($value, 0, $maxLength) : substr($value, 0, $maxLength);
+        $fullLength = function_exists('mb_strlen') ? mb_strlen($value) : strlen($value);
+
+        return $fullLength > $maxLength ? $truncated . ' …' : $truncated;
+    }
+
+    private function formatAdminTimestamp(string $value): string
+    {
+        if ($value === '') {
+            return 'Unbekanntes Datum';
+        }
+
+        $timestamp = strtotime($value);
+
+        return $timestamp !== false ? date('d.m.Y H:i', $timestamp) : $value;
+    }
+
+    /**
+     * @param array<string,mixed> $revision
+     */
+    private function resolveRevisionAuthorLabel(array $revision): string
+    {
+        $displayName = trim((string) ($revision['display_name'] ?? ''));
+        if ($displayName !== '') {
+            return $displayName;
+        }
+
+        $username = trim((string) ($revision['username'] ?? ''));
+        if ($username !== '') {
+            return $username;
+        }
+
+        $authorId = (int) ($revision['author_id'] ?? 0);
+
+        return $authorId > 0 ? 'Benutzer #' . $authorId : 'Unbekannt';
     }
 
     private function sanitizeMediaReference(string $value): string

@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.9.707",
+  "version": "2.9.709",
   "min_php": "8.4",
   "released": "2026-05-09",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 2.9.707: Nachprüfung der letzten Nice-to-haves: Dashboard-Quicklinks fallen bei unerwarteten URLs fail-closed auf interne Admin-Ziele zurück, AI-Provider behalten nach Änderungen immer eine gültige aktive Auswahl, Secret-Felder vermeiden Browser-Autofill, und Taxonomie-Bulk-Löschungen leeren den Content-Cache erst einmalig nach erfolgreichem Commit.",
+  "notes": "Release-Stand 2.9.709: Beiträge speichern vor inhaltlichen Änderungen jetzt Revisions-Snapshots für Titel, Slugs, Teaser, Kategorie, Tags, Autorenanzeige, Veröffentlichungszeitpunkt und DE/EN-Inhalte. Der Beitragseditor zeigt daraus einen read-only Vergleich der letzten Revisionen direkt im Admin; parallel dokumentieren Core-Schema und Bereichsdoku den neuen Revisionspfad.",
   "critical": false
 }
