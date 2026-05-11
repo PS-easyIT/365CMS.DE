@@ -20,6 +20,7 @@ class LegalSitesModule
     private const MAX_PROFILE_VALUE_LENGTH = 500;
     private const MAX_PROFILE_TEXTAREA_LENGTH = 4000;
     private const MAX_ERROR_CONTEXT_LENGTH = 180;
+    private const TEMPLATE_VERSION = '2026.05.11';
 
     private readonly \CMS\Database $db;
     private readonly \CMS\PageManager $pageManager;
@@ -76,6 +77,7 @@ class LegalSitesModule
 
     /** @var array<string, string> */
     private const array PROFILE_DEFAULTS = [
+        'legal_template_profile'             => 'dach_de',
         'legal_profile_entity_type'        => 'company',
         'legal_profile_company_name'        => '',
         'legal_profile_legal_form'          => '',
@@ -125,6 +127,30 @@ class LegalSitesModule
         'legal_profile_has_shop'            => '0',
     ];
 
+    /** @var array<string, array<string, string>> */
+    private const array TEMPLATE_PROFILES = [
+        'dach_de' => [
+            'label' => 'Deutschland · DACH-Basis',
+            'country_hint' => 'Deutschland',
+            'jurisdiction_note' => 'Berücksichtigt deutsche Anbieterkennzeichnung nach § 5 DDG als technische Strukturhilfe.',
+        ],
+        'dach_at' => [
+            'label' => 'Österreich · DACH-Basis',
+            'country_hint' => 'Österreich',
+            'jurisdiction_note' => 'Strukturiert die Texte für österreichische Anbieter; länderspezifische Offenlegungs- und Informationspflichten bitte fachlich prüfen.',
+        ],
+        'dach_ch' => [
+            'label' => 'Schweiz · DACH-Basis',
+            'country_hint' => 'Schweiz',
+            'jurisdiction_note' => 'Strukturiert die Texte für Schweizer Anbieter; DSG/DSGVO-Bezüge und kantonale bzw. branchenspezifische Angaben bitte fachlich prüfen.',
+        ],
+        'dach_generic' => [
+            'label' => 'DACH allgemein · neutrales Skelett',
+            'country_hint' => 'DACH',
+            'jurisdiction_note' => 'Neutrales DACH-Skelett ohne Anspruch auf eine vollständige Rechtsordnung; Pflichtangaben müssen projektspezifisch ergänzt werden.',
+        ],
+    ];
+
     public function __construct()
     {
         $this->db     = \CMS\Database::instance();
@@ -150,7 +176,7 @@ class LegalSitesModule
             ];
         }
 
-        $settings = $this->loadSettingsMap(array_merge(self::LEGAL_KEYS, $this->getAssignmentKeys(), array_keys(self::PROFILE_DEFAULTS), [
+        $settings = $this->loadSettingsMap(array_merge(self::LEGAL_KEYS, $this->getAssignmentKeys(), $this->getTemplateMetadataKeys(), array_keys(self::PROFILE_DEFAULTS), [
             'site_name',
             'admin_email',
             'site_url',
@@ -180,6 +206,8 @@ class LegalSitesModule
             'assigned_pages' => $assignedPages,
             'all_pages'      => array_map(fn($p) => (array)$p, $allPages),
             'profile'        => $this->loadProfile($settings),
+            'template_profiles' => $this->getTemplateProfiles(),
+            'template_meta'   => $this->getTemplateMetadata($settings),
             'page_configs'   => self::PAGE_CONFIG,
             'stats'          => [
                 'areas' => count(self::LEGAL_KEYS),
@@ -192,6 +220,8 @@ class LegalSitesModule
                 'max_profile_value_length' => self::MAX_PROFILE_VALUE_LENGTH,
                 'max_profile_textarea_length' => self::MAX_PROFILE_TEXTAREA_LENGTH,
                 'allowed_template_types' => array_keys(self::PAGE_CONFIG),
+                'template_version' => self::TEMPLATE_VERSION,
+                'template_profile_count' => count(self::TEMPLATE_PROFILES),
                 'template_area_count' => count(self::PAGE_CONFIG),
                 'profile_toggle_count' => count(array_filter(array_keys(self::PROFILE_DEFAULTS), static fn (string $key): bool => str_starts_with($key, 'legal_profile_has_'))),
             ],
@@ -342,7 +372,8 @@ class LegalSitesModule
             return $this->buildLegalFailureResult('Sie dürfen Rechtstext-Vorlagen nicht generieren.', 'legal_template_access_denied');
         }
 
-        $templates = $this->getTemplates($this->loadProfile());
+        $profile = $this->loadProfile();
+        $templates = $this->getTemplates($profile);
 
         if (!isset($templates[$type])) {
             return $this->buildLegalFailureResult('Unbekannter Vorlagentyp.', 'legal_template_unknown_type', ['Vorlagentyp: ' . $type], ['template_type' => $type]);
@@ -350,6 +381,7 @@ class LegalSitesModule
 
         $key = 'legal_' . $type;
         $this->saveSetting($key, $templates[$type]);
+        $this->recordTemplateApplication($type, $profile);
 
         AuditLogger::instance()->log(
             AuditLogger::CAT_SETTING,
@@ -357,7 +389,7 @@ class LegalSitesModule
             'Rechtstext-Vorlage generiert',
             'legal_template',
             null,
-            ['type' => $type],
+            ['type' => $type, 'profile' => $this->templateProfileKey($profile), 'version' => self::TEMPLATE_VERSION],
             'info'
         );
 
@@ -367,7 +399,9 @@ class LegalSitesModule
             'details' => [
                 'Vorlagentyp: ' . $type,
                 'Bereich: ' . self::LABELS[$key],
-                'Profiltyp: ' . $this->profileValue($this->loadProfile(), 'legal_profile_entity_type', 'company'),
+                'Profiltyp: ' . $this->profileValue($profile, 'legal_profile_entity_type', 'company'),
+                'DACH-Profil: ' . $this->getTemplateProfileConfig($profile)['label'],
+                'Vorlagenversion: ' . self::TEMPLATE_VERSION,
             ],
         ];
     }
@@ -388,12 +422,15 @@ class LegalSitesModule
         }
 
         try {
-            $content = $this->getTemplateContent($type);
+            $profile = $this->loadProfile();
+            $templates = $this->getTemplates($profile);
+            $content = (string)($templates[$type] ?? '');
             if ($content === '') {
                 return $this->buildLegalFailureResult('Für diesen Bereich konnte kein Inhalt generiert werden.', 'legal_page_missing_content', ['Seitentyp: ' . $type], ['page_type' => $type]);
             }
 
             $this->saveSetting($config['setting_key'], $content);
+            $this->recordTemplateApplication($type, $profile);
 
             $pageId = (int)$this->getSetting($config['page_id_key']);
             $title = $config['title'];
@@ -415,7 +452,17 @@ class LegalSitesModule
                     $this->saveSetting($config['page_id_key'], (string)$pageId);
                     $this->syncRelatedSettingsForType($type, $pageId);
 
-                    return ['success' => true, 'message' => $title . ' wurde aktualisiert.', 'page_id' => $pageId, 'details' => ['Seitentyp: ' . $type, 'Seiten-ID: ' . $pageId]];
+                    AuditLogger::instance()->log(
+                        AuditLogger::CAT_CONTENT,
+                        'legal.page.create_or_update',
+                        $title . ' als Rechtstext-Seite aktualisiert',
+                        'page',
+                        $pageId,
+                        ['type' => $type, 'slug' => $slug, 'profile' => $this->templateProfileKey($profile), 'version' => self::TEMPLATE_VERSION],
+                        'warning'
+                    );
+
+                    return ['success' => true, 'message' => $title . ' wurde aktualisiert.', 'page_id' => $pageId, 'details' => ['Seitentyp: ' . $type, 'Seiten-ID: ' . $pageId, 'Vorlagenversion: ' . self::TEMPLATE_VERSION]];
                 }
             }
 
@@ -448,11 +495,11 @@ class LegalSitesModule
                 $title . ' als Rechtstext-Seite erstellt oder aktualisiert',
                 'page',
                 $pageId,
-                ['type' => $type, 'slug' => $slug],
+                ['type' => $type, 'slug' => $slug, 'profile' => $this->templateProfileKey($profile), 'version' => self::TEMPLATE_VERSION],
                 'warning'
             );
 
-            return ['success' => true, 'message' => $title . ' wurde als Seite erstellt.', 'page_id' => $pageId, 'details' => ['Seitentyp: ' . $type, 'Seiten-ID: ' . $pageId]];
+            return ['success' => true, 'message' => $title . ' wurde als Seite erstellt.', 'page_id' => $pageId, 'details' => ['Seitentyp: ' . $type, 'Seiten-ID: ' . $pageId, 'Vorlagenversion: ' . self::TEMPLATE_VERSION]];
         } catch (\Throwable $e) {
 			return $this->failResult('legal.page.create_or_update_failed', 'Rechtstext-Seite konnte nicht erstellt oder aktualisiert werden.', $e);
         }
@@ -545,6 +592,11 @@ class LegalSitesModule
 
         if ($key === 'legal_profile_entity_type') {
             return in_array((string)$value, ['company', 'private'], true) ? (string)$value : 'company';
+        }
+
+        if ($key === 'legal_template_profile') {
+            $profile = strtolower(trim((string)$value));
+            return isset(self::TEMPLATE_PROFILES[$profile]) ? $profile : 'dach_de';
         }
 
         if ($key === 'legal_profile_dispute_participation') {
@@ -688,6 +740,7 @@ class LegalSitesModule
 
     private function buildImprintTemplate(array $profile): string
     {
+        $templateProfile = $this->getTemplateProfileConfig($profile);
         $isPrivateProfile = $this->isPrivateProfile($profile);
         $companyName = $this->getProfileDisplayName($profile, 'Ihr Unternehmen');
         $legalForm = $this->profileValue($profile, 'legal_profile_legal_form');
@@ -701,8 +754,17 @@ class LegalSitesModule
         $registerNumber = $this->profileValue($profile, 'legal_profile_register_number');
         $vatId = $this->profileValue($profile, 'legal_profile_vat_id');
 
+        $dutyLabel = match ($this->templateProfileKey($profile)) {
+            'dach_at' => 'Angaben gemäß den anwendbaren österreichischen Offenlegungs- und Informationspflichten',
+            'dach_ch' => 'Angaben gemäß den anwendbaren Schweizer Anbieter- und Transparenzpflichten',
+            'dach_generic' => 'Angaben gemäß anwendbaren Anbieterkennzeichnungs- und Informationspflichten',
+            default => 'Angaben gemäß § 5 DDG',
+        };
+
         $html = '<h2>Impressum</h2>';
-        $html .= '<p>Angaben gemäß § 5 DDG</p>';
+        $html .= $this->buildTemplateNotice($profile, 'Impressum');
+        $html .= '<p>' . $this->escape($dutyLabel) . '</p>';
+        $html .= '<p><em>DACH-Profil:</em> ' . $this->escape($templateProfile['label']) . ' – ' . $this->escape($templateProfile['jurisdiction_note']) . '</p>';
         $html .= '<p><strong>' . $this->escape($companyName) . '</strong>';
         if (!$isPrivateProfile && $legalForm !== '') {
             $html .= '<br>' . $this->escape($legalForm);
@@ -783,6 +845,7 @@ class LegalSitesModule
         $minimalPrivacyMode = $this->profileValue($profile, 'legal_profile_minimal_privacy_mode', '0') === '1';
 
         $html = '<h2>Datenschutzerklärung</h2>';
+        $html .= $this->buildTemplateNotice($profile, 'Datenschutzerklärung');
         $html .= '<h3>1. Verantwortliche Stelle</h3><p>Verantwortlich für die Datenverarbeitung auf dieser Website ist:<br><strong>' . $this->escape($privacyContactName) . '</strong><br>' . $this->nl2brEscaped($this->buildAddress($profile));
         if ($privacyContactEmail !== '') {
             $html .= '<br>E-Mail: <a href="mailto:' . $this->escapeAttr($privacyContactEmail) . '">' . $this->escape($privacyContactEmail) . '</a>';
@@ -945,6 +1008,7 @@ class LegalSitesModule
         };
 
         $html = '<h2>Allgemeine Geschäftsbedingungen</h2>';
+        $html .= $this->buildTemplateNotice($profile, 'AGB-Skelett');
         $html .= '<h3>§ 1 Geltungsbereich</h3><p>Diese Allgemeinen Geschäftsbedingungen gelten für alle Verträge zwischen ' . $this->escape($companyName) . ' und unseren Kunden ' . $this->escape($scopeText) . ', soweit nicht ausdrücklich und schriftlich etwas anderes vereinbart wurde.</p>';
         $html .= '<p>Sie regeln insbesondere ' . $this->escape($subjectText) . '. Individuelle Vereinbarungen mit dem Kunden haben stets Vorrang vor diesen AGB.</p>';
 
@@ -1012,6 +1076,7 @@ class LegalSitesModule
 
         if ($scope === 'b2b') {
             $html = '<h2>Hinweis zum Widerrufsrecht</h2>';
+            $html .= $this->buildTemplateNotice($profile, 'Widerrufs-Hinweis');
             $html .= '<p>Diese Angebote richten sich ausschließlich an Unternehmer. Für Unternehmer besteht kein gesetzliches Widerrufsrecht.</p>';
             return sanitize_html($html, 'default');
         }
@@ -1036,6 +1101,7 @@ class LegalSitesModule
             : 'Sie tragen die unmittelbaren Kosten der Rücksendung der Waren.';
 
         $html = '<h2>Widerrufsbelehrung</h2>';
+        $html .= $this->buildTemplateNotice($profile, 'Widerrufsbelehrung');
         $html .= '<p>Verbrauchern steht bei außerhalb von Geschäftsräumen geschlossenen Verträgen und bei Fernabsatzverträgen grundsätzlich ein gesetzliches Widerrufsrecht zu. Verbraucher ist jede natürliche Person, die ein Rechtsgeschäft zu Zwecken abschließt, die überwiegend weder ihrer gewerblichen noch ihrer selbständigen beruflichen Tätigkeit zugerechnet werden können.</p>';
         $html .= '<h3>Widerrufsrecht</h3><p>Sie haben das Recht, binnen vierzehn Tagen ohne Angabe von Gründen diesen Vertrag zu widerrufen.</p>';
         $html .= '<p>' . $this->escape($periodText) . '</p>';
@@ -1170,6 +1236,87 @@ class LegalSitesModule
     {
         $value = trim((string)($profile[$key] ?? ''));
         return $value !== '' ? $value : $fallback;
+    }
+
+    /** @return array<string, array<string, string>> */
+    private function getTemplateProfiles(): array
+    {
+        $profiles = [];
+        foreach (self::TEMPLATE_PROFILES as $key => $profile) {
+            $profiles[$key] = array_merge($profile, [
+                'key' => $key,
+                'version' => self::TEMPLATE_VERSION,
+            ]);
+        }
+
+        return $profiles;
+    }
+
+    private function templateProfileKey(array $profile): string
+    {
+        $key = strtolower(trim((string)($profile['legal_template_profile'] ?? 'dach_de')));
+
+        return isset(self::TEMPLATE_PROFILES[$key]) ? $key : 'dach_de';
+    }
+
+    /** @return array<string, string> */
+    private function getTemplateProfileConfig(array $profile): array
+    {
+        $key = $this->templateProfileKey($profile);
+
+        return self::TEMPLATE_PROFILES[$key] + ['key' => $key, 'version' => self::TEMPLATE_VERSION];
+    }
+
+    private function buildTemplateNotice(array $profile, string $templateLabel): string
+    {
+        $templateProfile = $this->getTemplateProfileConfig($profile);
+
+        return '<p><strong>Technische Vorlage – bitte prüfen:</strong> Dieses ' . $this->escape($templateLabel) . ' wurde aus dem Profil <em>' . $this->escape($templateProfile['label']) . '</em> in Version ' . $this->escape(self::TEMPLATE_VERSION) . ' erzeugt. Es ist ein überprüfbares Grundgerüst mit Platzhaltern und projektspezifischen Bausteinen und ersetzt keine individuelle rechtliche Beratung.</p>';
+    }
+
+    /** @return list<string> */
+    private function getTemplateMetadataKeys(): array
+    {
+        $keys = [];
+        foreach (array_keys(self::PAGE_CONFIG) as $type) {
+            $keys[] = 'legal_' . $type . '_template_profile';
+            $keys[] = 'legal_' . $type . '_template_version';
+            $keys[] = 'legal_' . $type . '_template_applied_at';
+        }
+
+        return $keys;
+    }
+
+    /** @return array<string, array<string, string>> */
+    private function getTemplateMetadata(array $settings): array
+    {
+        $metadata = [];
+        foreach (array_keys(self::PAGE_CONFIG) as $type) {
+            $metadata[$type] = [
+                'profile' => (string)($settings['legal_' . $type . '_template_profile'] ?? ''),
+                'version' => (string)($settings['legal_' . $type . '_template_version'] ?? ''),
+                'applied_at' => (string)($settings['legal_' . $type . '_template_applied_at'] ?? ''),
+            ];
+        }
+
+        return $metadata;
+    }
+
+    private function recordTemplateApplication(string $type, array $profile): void
+    {
+        if (!isset(self::PAGE_CONFIG[$type])) {
+            return;
+        }
+
+        $existingSettings = $this->loadSettingsMap([
+            'legal_' . $type . '_template_profile',
+            'legal_' . $type . '_template_version',
+            'legal_' . $type . '_template_applied_at',
+        ]);
+
+        $this->persistSetting('legal_' . $type . '_template_profile', $this->templateProfileKey($profile), $existingSettings);
+        $this->persistSetting('legal_' . $type . '_template_version', self::TEMPLATE_VERSION, $existingSettings);
+        $this->persistSetting('legal_' . $type . '_template_applied_at', date('c'), $existingSettings);
     }
 
     private function escape(string $value): string

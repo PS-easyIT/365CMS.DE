@@ -17,7 +17,10 @@ $tabIcons  = [
 $pageIdKeys = ['legal_imprint' => 'imprint_page_id', 'legal_privacy' => 'privacy_page_id', 'legal_terms' => 'terms_page_id', 'legal_revocation' => 'revocation_page_id'];
 $templateTypes = ['legal_imprint' => 'imprint', 'legal_privacy' => 'privacy', 'legal_terms' => 'terms', 'legal_revocation' => 'revocation'];
 $templateDefaults = $d['templates'] ?? [];
+$templateProfiles = is_array($d['template_profiles'] ?? null) ? $d['template_profiles'] : [];
+$templateMeta = is_array($d['template_meta'] ?? null) ? $d['template_meta'] : [];
 $profile = $d['profile'] ?? [];
+$activeTemplateProfile = (string)($profile['legal_template_profile'] ?? 'dach_de');
 $stats = is_array($d['stats'] ?? null) ? $d['stats'] : [];
 $constraints = is_array($d['constraints'] ?? null) ? $d['constraints'] : [];
 $allowedTemplateTypes = array_values(array_filter(array_map('strval', is_array($constraints['allowed_template_types'] ?? null) ? $constraints['allowed_template_types'] : [])));
@@ -81,6 +84,8 @@ $legalSitesConfig = [
                     !empty($constraints['max_legal_html_length']) ? 'HTML pro Bereich: max. ' . number_format((int) $constraints['max_legal_html_length'], 0, ',', '.') . ' Zeichen' : '',
                     !empty($constraints['max_profile_value_length']) ? 'Kurze Profilfelder: max. ' . number_format((int) $constraints['max_profile_value_length'], 0, ',', '.') . ' Zeichen' : '',
                     !empty($constraints['max_profile_textarea_length']) ? 'Längere Profilfelder: max. ' . number_format((int) $constraints['max_profile_textarea_length'], 0, ',', '.') . ' Zeichen' : '',
+                    !empty($constraints['template_version']) ? 'Vorlagenversion: ' . htmlspecialchars((string) $constraints['template_version']) : '',
+                    !empty($constraints['template_profile_count']) ? 'DACH-Profile: ' . (int) $constraints['template_profile_count'] : '',
                     !empty($constraints['template_area_count']) ? 'Generator-Bereiche: ' . (int) $constraints['template_area_count'] : '',
                     $allowedTemplateTypes !== [] ? 'Vorlagentypen: ' . htmlspecialchars(implode(', ', $allowedTemplateTypes)) : '',
                     !empty($constraints['profile_toggle_count']) ? 'Feature-Toggles: ' . (int) $constraints['profile_toggle_count'] : '',
@@ -133,8 +138,24 @@ $legalSitesConfig = [
                                             <option value="private" <?php echo ($profile['legal_profile_entity_type'] ?? 'company') === 'private' ? 'selected' : ''; ?>>Privat</option>
                                         </select>
                                     </div>
-                                    <div class="col-md-8">
+                                    <div class="col-md-4">
+                                        <label class="form-label">DACH-Vorlagenprofil</label>
+                                        <select name="legal_template_profile" class="form-select">
+                                            <?php foreach ($templateProfiles as $profileKey => $templateProfile): ?>
+                                                <option value="<?php echo htmlspecialchars((string) $profileKey); ?>" <?php echo $activeTemplateProfile === (string) $profileKey ? 'selected' : ''; ?>>
+                                                    <?php echo htmlspecialchars((string)($templateProfile['label'] ?? $profileKey)); ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                            <?php if ($templateProfiles === []): ?>
+                                                <option value="dach_de" selected>Deutschland · DACH-Basis</option>
+                                            <?php endif; ?>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4">
                                         <div class="text-secondary small pt-md-4" id="legalProfileEntityHint">Wähle aus, ob die Rechtstexte für eine Firma oder eine Privatperson erstellt werden. Die passenden Pflichtfelder werden automatisch gesetzt.</div>
+                                    </div>
+                                    <div class="col-12">
+                                        <div class="text-secondary small">DACH-Profile liefern versionierte, technische Grundgerüste für Impressum, Datenschutz, Widerruf und AGB-Skelett. Sie ersetzen keine rechtliche Prüfung – sie verhindern nur das berüchtigte „leeres Textfeld und viel Hoffnung“-Problem.</div>
                                     </div>
                                 </div>
                             </div>
@@ -510,6 +531,7 @@ $legalSitesConfig = [
         <div class="col-12">
             <?php $templateType = $templateTypes[$key] ?? ''; ?>
             <?php $defaultTemplate = $templateDefaults[$templateType] ?? ''; ?>
+            <?php $meta = is_array($templateMeta[$templateType] ?? null) ? $templateMeta[$templateType] : []; ?>
             <div class="card mb-3">
                 <div class="card-header d-flex align-items-center justify-content-between">
                     <div class="d-flex align-items-center gap-2 flex-wrap">
@@ -553,6 +575,15 @@ $legalSitesConfig = [
                                 <div class="subheader">Vorlage</div>
                                 <div class="fw-bold mb-2"><?php echo $defaultTemplate !== '' ? 'Standardtext verfügbar' : 'Keine Vorlage'; ?></div>
                                 <div class="text-secondary small">Der Generator nutzt deine Standardwerte für Name, Anschrift, Kontakt, Hosting und aktive Website-Funktionen.</div>
+                                <?php if (!empty($meta['version']) || !empty($meta['profile']) || !empty($meta['applied_at'])): ?>
+                                    <div class="small text-muted mt-2">
+                                        <?php if (!empty($meta['profile'])): ?>Profil: <?php echo htmlspecialchars((string) $meta['profile']); ?><?php endif; ?>
+                                        <?php if (!empty($meta['version'])): ?> · Version: <?php echo htmlspecialchars((string) $meta['version']); ?><?php endif; ?>
+                                        <?php if (!empty($meta['applied_at'])): ?> · angewendet: <?php echo htmlspecialchars((string) $meta['applied_at']); ?><?php endif; ?>
+                                    </div>
+                                <?php else: ?>
+                                    <div class="small text-muted mt-2">Noch keine versionierte Vorlage angewendet.</div>
+                                <?php endif; ?>
                             </div>
                         </div>
                     </div>

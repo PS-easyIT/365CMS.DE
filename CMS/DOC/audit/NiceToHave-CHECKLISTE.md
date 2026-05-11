@@ -9,7 +9,7 @@ Theme-System-Erweiterungen (Bereich 8 außerhalb des Webbaukastens) sind bewusst
 ausgeklammert. Reihenfolge folgt dem Wirkungspfad: zuerst Inhalte, dann Betrieb, dann
 querschnittliche Komfortfunktionen.
 
-Nachprüfung 2.9.756: Die zuletzt umgesetzten Nice-to-haves ab 2.9.725 wurden erneut mit Fokus auf bekannte Fehler, unvollständige Übernahmepfade, Security-/Token-Verträge, Best Practice und Performance geprüft. Konkret wurde der 404-Monitor-Übernahmeflow nachgehärtet, damit ungelöste 404-Logs wieder als neue Redirect-Regel gespeichert werden und keine 404-Log-ID als Redirect-ID missverstanden wird. Zusätzlich bleibt das Performance-Sicherheitsnetz auf reinen GET-Seiten fail-soft, weil Rollback-Verzeichnisse erst bei tatsächlichen Snapshot-Mutationen angelegt werden. Die SEO-Audit-Datenquelle ist nun serverseitig begrenzt, damit Dashboard, Trend-Live-Fallback und Broken-Link-Report auch bei großen Inhaltsbeständen nicht ungebremst alle Seiten und Beiträge synchron analysieren. Live-Log-Nacharbeit: MariaDB-kritische `SHOW TABLES LIKE ?`-Prüfungen wurden auf PDO-quotierte read-only Checks umgestellt, fehlende SEO-Trendtabellen erzeugen im Dashboard keine vorbereiteten SELECT-Fehler mehr, Paket-Historien nutzen ein robustes LIKE-Escape-Zeichen und die Medienbibliothek schützt ihre View-Helper gegen doppelte Includes. Neu hinzu kommt ein read-only Kapazitäts-Pre-Check im Performance-Center, der freie Disk-Kapazität, Last und erkannte parallele Hintergrundjobs vor Cache-, DB- und Medien-Massenaktionen sichtbar macht und dieselben Werte in die Bestätigungsdialoge übernimmt – ohne neue Schreib- oder Token-Pfade.
+Nachprüfung 2.9.759: Die zuletzt umgesetzten Nice-to-haves ab 2.9.725 wurden erneut mit Fokus auf bekannte Fehler, unvollständige Übernahmepfade, Security-/Token-Verträge, Best Practice und Performance geprüft. Konkret wurde der 404-Monitor-Übernahmeflow nachgehärtet, damit ungelöste 404-Logs wieder als neue Redirect-Regel gespeichert werden und keine 404-Log-ID als Redirect-ID missverstanden wird. Zusätzlich bleibt das Performance-Sicherheitsnetz auf reinen GET-Seiten fail-soft, weil Rollback-Verzeichnisse erst bei tatsächlichen Snapshot-Mutationen angelegt werden. Die SEO-Audit-Datenquelle ist nun serverseitig begrenzt, damit Dashboard, Trend-Live-Fallback und Broken-Link-Report auch bei großen Inhaltsbeständen nicht ungebremst alle Seiten und Beiträge synchron analysieren. Live-Log-Nacharbeit: MariaDB-kritische `SHOW TABLES LIKE ?`-Prüfungen wurden auf PDO-quotierte read-only Checks umgestellt, fehlende SEO-Trendtabellen erzeugen im Dashboard keine vorbereiteten SELECT-Fehler mehr, Paket-Historien nutzen ein robustes LIKE-Escape-Zeichen und die Medienbibliothek schützt ihre View-Helper gegen doppelte Includes. Neu hinzu kommt ein read-only Kapazitäts-Pre-Check im Performance-Center, der freie Disk-Kapazität, Last und erkannte parallele Hintergrundjobs vor Cache-, DB- und Medien-Massenaktionen sichtbar macht und dieselben Werte in die Bestätigungsdialoge übernimmt. Im Recht-Bereich ergänzt `/admin/legal-sites` nun versionierte DACH-Vorlagenprofile für Impressum, Datenschutz, Widerruf und AGB-Skelett inklusive einzelner Anwendung pro Legal-Site, gespeicherter Profil-/Versionsmetadaten und klarer Hinweise, dass die technischen Vorlagen keine Rechtsberatung ersetzen. Zusätzlich zeigt `/admin/data-requests` jetzt für Auskunfts- und Löschanfragen einen berechneten Fristenstatus mit 30-Tage-Pflichtfrist, 7-Tage-Warnfenster, Überfällig-Markierung und CSRF-geschützter Admin-Mail-Eskalation über die bestehende Mail-Queue – ohne neue GET-Mutationen, Token-URLs oder zusätzliche 500-anfällige Pflichtmigrationen.
 
 ---
 
@@ -55,12 +55,12 @@ Nachprüfung 2.9.756: Die zuletzt umgesetzten Nice-to-haves ab 2.9.725 wurden er
 
 ## 4. Recht – DSGVO-Workflow vervollständigen
 
-- [ ] **Vorlagen / Profile für Rechtstexte**
-  - [ ] Mitgelieferte DACH-Profile für Impressum, Datenschutz, Widerruf, AGB-Skelett
-  - [ ] Versionierung pro Vorlage, Anwendung pro Legal-Site einzeln möglich
-- [ ] **Fristen- und Bearbeitungsstatus für Datenschutzanfragen**
-  - [ ] Eingegangen → in Bearbeitung → erledigt/abgelehnt mit Pflichtfrist
-  - [ ] Warnung bei näherrückender Frist (Default 30 Tage), Eskalation an Admin-Mail
+- [x] **Vorlagen / Profile für Rechtstexte**
+  - [x] Mitgelieferte DACH-Profile für Impressum, Datenschutz, Widerruf, AGB-Skelett
+  - [x] Versionierung pro Vorlage, Anwendung pro Legal-Site einzeln möglich
+- [x] **Fristen- und Bearbeitungsstatus für Datenschutzanfragen**
+  - [x] Eingegangen → in Bearbeitung → erledigt/abgelehnt mit Pflichtfrist
+  - [x] Warnung bei näherrückender Frist (Default 30 Tage), Eskalation an Admin-Mail
 - [ ] **Prüfung auf fehlende Pflichtseiten im Dashboard**
   - [ ] Kontextuelle Warnung im Hauptdashboard mit Deep-Link zu Legal Sites
   - [ ] Mindestens Impressum, Datenschutz, Cookie-Hinweis als Pflichtprüfung
@@ -76,6 +76,7 @@ Nachprüfung 2.9.756: Die zuletzt umgesetzten Nice-to-haves ab 2.9.725 wurden er
 - [ ] **Sicherheitsbaseline / Härtungsprofil pro Umgebung**
   - [ ] Profile „Entwicklung", „Staging", „Produktion" mit empfohlenen Einstellungen
   - [ ] Diff-Ansicht zwischen aktivem Zustand und Profil, Anwendung optional
+  - [ ] Diagnose Untersite bei der Firewall um zu sehen das diese auch funktioniert und was bewirkt!
 
 ## 6. System & Doku – Konfigurationsdisziplin
 

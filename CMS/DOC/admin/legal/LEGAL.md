@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Dokumentiert die aktuelle Verwaltung von Impressum, Datenschutzerklärung, AGB und Widerrufsbelehrung über `/admin/legal-sites` inklusive Vorlagen-Generator und Seitensynchronisation.
 
-Letzte Aktualisierung: 2026-03-28 · Version 2.8.0 RC
+Letzte Aktualisierung: 2026-05-11 · Version 2.9.758
 
 Die Verwaltung der Rechtstexte erfolgt über `/admin/legal-sites`. Der Entry-Point `CMS/admin/legal-sites.php` delegiert alle inhaltlichen und generatorbezogenen Aufgaben an `LegalSitesModule`.
 
@@ -49,6 +49,23 @@ Ein wesentlicher Teil der aktuellen Implementierung ist das Legal-Profil. Es sam
 - Hinweise zu Cookies, Registrierung, Newsletter, Kommentaren, Analytics, Shop und externen Medien
 
 Damit kann das Modul situationsabhängige Textbausteine erzeugen, statt nur starre Muster abzulegen.
+
+## Versionierte DACH-Vorlagenprofile
+
+Seit Version 2.9.758 verwaltet `/admin/legal-sites` zusätzlich ein speicherbares DACH-Vorlagenprofil. Verfügbar sind derzeit:
+
+- Deutschland · DACH-Basis
+- Österreich · DACH-Basis
+- Schweiz · DACH-Basis
+- DACH allgemein · neutrales Skelett
+
+Die Profile liefern bewusst technische Grundgerüste für Impressum, Datenschutzerklärung, Widerrufsbelehrung und AGB-Skelett. Sie enthalten Hinweise auf notwendige Prüfung und ersetzen keine individuelle Rechtsberatung. Beim Generieren oder Erstellen/Aktualisieren einer Legal-Site speichert das Modul pro Bereich zusätzlich:
+
+- angewendetes Profil (`legal_<type>_template_profile`)
+- Vorlagenversion (`legal_<type>_template_version`)
+- Anwendungszeitpunkt (`legal_<type>_template_applied_at`)
+
+Dadurch ist im Adminbereich nachvollziehbar, welche Vorlage zuletzt auf welchen Rechtstext angewendet wurde. Die Anwendung bleibt eine CSRF-geschützte POST-Aktion; es gibt keine GET-Mutation und keine Sicherheitstoken in URLs.
 
 ## Verfügbare Admin-Aktionen
 

@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Bearbeitung von Datenschutzanfragen nach Art. 15 und Art. 17 DSGVO im aktuellen Admin-Workflow.
 
-Letzte Aktualisierung: 2026-05-09 · Version 2.9.625
+Letzte Aktualisierung: 2026-05-11 · Version 2.9.759
 
 ---
 
@@ -86,7 +86,11 @@ Besonders bei Bestellungen, Rechnungs- und Zahlungsbezug ist die gesetzliche Auf
 | Löschantrag bearbeiten | unverzüglich, unter Beachtung gesetzlicher Pflichten |
 | Ablehnung dokumentieren | mit nachvollziehbarer Begründung |
 
-Zusätzlich werden Zustandswechsel im Admin-Workflow jetzt im Audit-Log festgehalten. Das betrifft insbesondere das Starten der Bearbeitung, den Abschluss einer Auskunft, das Ausführen einer Löschung, Ablehnungen mit Begründung sowie das endgültige Entfernen abgeschlossener Anträge aus der Liste.
+Seit Version 2.9.759 berechnet `/admin/data-requests` für offene Auskunfts- und Löschanfragen zusätzlich eine konservative 30-Tage-Pflichtfrist ab Eingang der Anfrage. Offene Vorgänge werden als regulär, fristnah oder überfällig markiert; das Warnfenster beginnt sieben Tage vor Ablauf. Der sichtbare Bearbeitungsstatus bildet den Workflow `Eingegangen` → `In Bearbeitung` → `Erledigt` oder `Abgelehnt` ab.
+
+Fristnahe oder überfällige Vorgänge können über eine eigene Admin-Aktion an die konfigurierte Admin-Mail eskaliert werden. Diese Eskalation ist bewusst eine CSRF-geschützte POST-Aktion und wird über die bestehende Mail-Queue eingeplant; GET-Ansichten bleiben rein lesend und erzeugen keine Token-URLs. Wenn keine gültige Admin-Mail oder keine funktionsfähige Queue-Konfiguration vorhanden ist, fällt die Aktion mit einer sichtbaren Fehlermeldung aus, ohne die Übersichtsseite mit einem HTTP-500 zu destabilisieren.
+
+Zusätzlich werden Zustandswechsel im Admin-Workflow im Audit-Log festgehalten. Das betrifft insbesondere das Starten der Bearbeitung, den Abschluss einer Auskunft, das Ausführen einer Löschung, Ablehnungen mit Begründung, Fristeskalationen sowie das endgültige Entfernen abgeschlossener Anträge aus der Liste.
 
 ---
 

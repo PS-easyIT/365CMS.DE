@@ -29,6 +29,7 @@ const CMS_ADMIN_LEGAL_SITES_ASSIGNMENT_KEYS = [
 ];
 const CMS_ADMIN_LEGAL_SITES_PROFILE_KEYS = [
     'legal_profile_entity_type',
+    'legal_template_profile',
     'legal_profile_company_name',
     'legal_profile_legal_form',
     'legal_profile_owner_name',

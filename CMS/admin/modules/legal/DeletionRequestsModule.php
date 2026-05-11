@@ -10,11 +10,14 @@ if (!defined('ABSPATH')) {
 }
 
 use CMS\AuditLogger;
+use CMS\Services\MailQueueService;
 
 class DeletionRequestsModule
 {
     private const REQUEST_TYPE = 'deletion';
     private const MAX_AUDIT_STRING_LENGTH = 240;
+    private const DEFAULT_DEADLINE_DAYS = 30;
+    private const WARNING_BEFORE_DAYS = 7;
 
     private readonly \CMS\Database $db;
     private readonly string $prefix;
@@ -73,22 +76,53 @@ class DeletionRequestsModule
              ORDER BY r.created_at DESC"
         ) ?: [];
 
-        $pending = 0; $processing = 0; $completed = 0; $rejected = 0;
+        $pending = 0;
+        $processing = 0;
+        $completed = 0;
+        $rejected = 0;
+        $dueSoon = 0;
+        $overdue = 0;
+        $enrichedRequests = [];
+
         foreach ($requests as $r) {
-            if ($r->status === 'pending')    $pending++;
-            if ($r->status === 'processing') $processing++;
-            if ($r->status === 'completed')  $completed++;
-            if ($r->status === 'rejected')   $rejected++;
+            if ($r->status === 'pending') {
+                $pending++;
+            }
+            if ($r->status === 'processing') {
+                $processing++;
+            }
+            if ($r->status === 'completed') {
+                $completed++;
+            }
+            if ($r->status === 'rejected') {
+                $rejected++;
+            }
+
+            $row = (array)$r;
+            $row['deadline'] = $this->buildDeadlineState($r);
+            if (($row['deadline']['state'] ?? '') === 'due_soon') {
+                $dueSoon++;
+            }
+            if (($row['deadline']['state'] ?? '') === 'overdue') {
+                $overdue++;
+            }
+            $enrichedRequests[] = $row;
         }
 
         return [
-            'requests' => array_map(fn($r) => (array)$r, $requests),
+            'requests' => $enrichedRequests,
             'stats'    => [
                 'total'      => count($requests),
                 'pending'    => $pending,
                 'processing' => $processing,
                 'completed'  => $completed,
                 'rejected'   => $rejected,
+                'open'       => $pending + $processing,
+                'due_soon'   => $dueSoon,
+                'overdue'    => $overdue,
+                'deadline_days' => self::DEFAULT_DEADLINE_DAYS,
+                'warning_before_days' => self::WARNING_BEFORE_DAYS,
+                'admin_email' => $this->getAdminEmail(),
             ],
         ];
     }
@@ -209,6 +243,54 @@ class DeletionRequestsModule
         return ['success' => true, 'message' => 'Löschantrag abgelehnt.'];
     }
 
+    public function escalateRequest(int $id): array
+    {
+        if ($id <= 0) return ['success' => false, 'error' => 'Ungültige ID.'];
+        $request = $this->getRequestById($id);
+        if ($request === null) {
+            return ['success' => false, 'error' => 'Löschantrag nicht gefunden.'];
+        }
+
+        $deadline = $this->buildDeadlineState($request);
+        if (!in_array((string)($deadline['state'] ?? ''), ['due_soon', 'overdue'], true)) {
+            return ['success' => false, 'error' => 'Dieser Antrag ist noch nicht im Eskalationsfenster.'];
+        }
+
+        $recipient = $this->getAdminEmail();
+        if ($recipient === '') {
+            return ['success' => false, 'error' => 'Keine gültige Admin-E-Mail für die Eskalation konfiguriert.'];
+        }
+
+        try {
+            $result = MailQueueService::getInstance()->enqueuePlain(
+                $recipient,
+                '[365CMS] DSGVO-Löschantrag fristkritisch',
+                $this->buildEscalationMailBody($request, $deadline),
+                ['X-365CMS-Source' => 'legal-data-request-escalation'],
+                null,
+                'legal.data_requests.deadline'
+            );
+        } catch (\Throwable) {
+            return ['success' => false, 'error' => 'Eskalationsmail konnte nicht in die Mail-Queue aufgenommen werden.'];
+        }
+
+        if (empty($result['success'])) {
+            return ['success' => false, 'error' => (string)($result['error'] ?? 'Eskalationsmail konnte nicht queued werden.')];
+        }
+
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_SETTING,
+            'legal.data_request.deletion.escalate',
+            'Fristkritischer Löschantrag an Admin-Mail eskaliert',
+            'privacy_request',
+            $id,
+            $this->buildAuditContext($request, ['deadline_state' => (string)($deadline['state'] ?? ''), 'queue_id' => (int)($result['id'] ?? 0)]),
+            'warning'
+        );
+
+        return ['success' => true, 'message' => 'Eskalation wurde an die Admin-Mail-Queue übergeben.'];
+    }
+
     public function deleteRequest(int $id): array
     {
         if ($id <= 0) return ['success' => false, 'error' => 'Ungültige ID.'];
@@ -244,6 +326,101 @@ class DeletionRequestsModule
         );
 
         return is_object($request) ? $request : null;
+    }
+
+    /** @return array<string, int|string|bool|null> */
+    private function buildDeadlineState(object $request): array
+    {
+        $status = (string)($request->status ?? '');
+        $createdAt = $this->parseDateTime((string)($request->created_at ?? ''));
+        if ($createdAt === null) {
+            return [
+                'state' => 'unknown',
+                'label' => 'Frist unbekannt',
+                'due_at' => null,
+                'days_remaining' => null,
+                'is_closed' => in_array($status, ['completed', 'rejected'], true),
+                'needs_escalation' => false,
+            ];
+        }
+
+        $dueAt = $createdAt->modify('+' . self::DEFAULT_DEADLINE_DAYS . ' days');
+        $now = new \DateTimeImmutable('now');
+        $isClosed = in_array($status, ['completed', 'rejected'], true);
+        $daysRemaining = (int)$now->setTime(0, 0)->diff($dueAt->setTime(0, 0))->format('%r%a');
+
+        if ($isClosed) {
+            $state = 'closed';
+            $label = 'Abgeschlossen';
+        } elseif ($daysRemaining < 0) {
+            $state = 'overdue';
+            $label = 'Überfällig seit ' . abs($daysRemaining) . ' Tag(en)';
+        } elseif ($daysRemaining <= self::WARNING_BEFORE_DAYS) {
+            $state = 'due_soon';
+            $label = 'Fällig in ' . $daysRemaining . ' Tag(en)';
+        } else {
+            $state = 'ok';
+            $label = 'Fällig in ' . $daysRemaining . ' Tag(en)';
+        }
+
+        return [
+            'state' => $state,
+            'label' => $label,
+            'due_at' => $dueAt->format('Y-m-d H:i:s'),
+            'days_remaining' => $daysRemaining,
+            'is_closed' => $isClosed,
+            'needs_escalation' => in_array($state, ['due_soon', 'overdue'], true),
+        ];
+    }
+
+    private function parseDateTime(string $value): ?\DateTimeImmutable
+    {
+        $value = trim($value);
+        if ($value === '') {
+            return null;
+        }
+
+        try {
+            return new \DateTimeImmutable($value);
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    private function getAdminEmail(): string
+    {
+        $email = '';
+        try {
+            $value = $this->db->get_var(
+                "SELECT option_value FROM {$this->prefix}settings WHERE option_name = 'admin_email' LIMIT 1"
+            );
+            $email = is_scalar($value) ? trim((string)$value) : '';
+        } catch (\Throwable) {
+            $email = '';
+        }
+
+        if ($email === '' && defined('ADMIN_EMAIL')) {
+            $email = trim((string)ADMIN_EMAIL);
+        }
+
+        return filter_var($email, FILTER_VALIDATE_EMAIL) ? $email : '';
+    }
+
+    /** @param array<string, int|string|bool|null> $deadline */
+    private function buildEscalationMailBody(object $request, array $deadline): string
+    {
+        return implode("\n", [
+            'Ein DSGVO-Löschantrag ist fristkritisch.',
+            '',
+            'Typ: Löschung nach Art. 17 DSGVO',
+            'Anfrage-ID: ' . (int)($request->id ?? 0),
+            'Status: ' . $this->sanitizeAuditString((string)($request->status ?? ''), 40),
+            'Eingegangen: ' . $this->sanitizeAuditString((string)($request->created_at ?? ''), 80),
+            'Pflichtfrist: ' . $this->sanitizeAuditString((string)($deadline['due_at'] ?? ''), 80),
+            'Fristenlage: ' . $this->sanitizeAuditString((string)($deadline['label'] ?? ''), 120),
+            '',
+            'Bitte im Adminbereich unter /admin/data-requests prüfen und dokumentiert bearbeiten.',
+        ]);
     }
 
     /** @param array<string, scalar|null> $extra */

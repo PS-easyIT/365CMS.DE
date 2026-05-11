@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Überblick über die aktuellen Legal-, Privacy- und Security-Module im Admin-Bereich.
 
-Letzte Aktualisierung: 2026-05-10 · Version 2.9.723
+Letzte Aktualisierung: 2026-05-11 · Version 2.9.759
 
 Der Bereich ist in zwei Gruppen gegliedert:
 

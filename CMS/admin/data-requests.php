@@ -37,12 +37,14 @@ function cms_admin_data_requests_allowed_actions_by_scope(): array
             'process' => true,
             'complete' => true,
             'reject' => true,
+            'escalate' => true,
             'delete' => true,
         ],
         'deletion' => [
             'process' => true,
             'execute' => true,
             'reject' => true,
+            'escalate' => true,
             'delete' => true,
         ],
     ];
@@ -92,6 +94,7 @@ function cms_admin_data_requests_handle_privacy_action(PrivacyRequestsModule $pr
         'process'  => $privacyModule->processRequest($id),
         'complete' => $privacyModule->completeRequest($id),
         'reject'   => $privacyModule->rejectRequest($id, $reason),
+        'escalate' => $privacyModule->escalateRequest($id),
         'delete'   => $privacyModule->deleteRequest($id),
         default    => ['success' => false, 'error' => 'Unbekannte Auskunfts-Aktion.'],
     };
@@ -106,6 +109,7 @@ function cms_admin_data_requests_handle_deletion_action(DeletionRequestsModule $
         'process' => $deletionModule->processRequest($id),
         'execute' => $deletionModule->executeDeletion($id),
         'reject'  => $deletionModule->rejectRequest($id, $reason),
+        'escalate' => $deletionModule->escalateRequest($id),
         'delete'  => $deletionModule->deleteRequest($id),
         default   => ['success' => false, 'error' => 'Unbekannte Lösch-Aktion.'],
     };

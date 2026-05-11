@@ -8,11 +8,14 @@ $privacyStats  = $privacyData['stats'] ?? [];
 $deletionStats = $deletionData['stats'] ?? [];
 $privacyRows   = $privacyData['requests'] ?? [];
 $deletionRows  = $deletionData['requests'] ?? [];
+$deadlineDays = (int)($privacyStats['deadline_days'] ?? $deletionStats['deadline_days'] ?? 30);
+$warningBeforeDays = (int)($privacyStats['warning_before_days'] ?? $deletionStats['warning_before_days'] ?? 7);
+$adminEscalationEmail = (string)($privacyStats['admin_email'] ?? $deletionStats['admin_email'] ?? '');
 
 $statusLabels = [
-    'pending' => 'Wartend',
+    'pending' => 'Eingegangen',
     'processing' => 'In Bearbeitung',
-    'completed' => 'Abgeschlossen',
+    'completed' => 'Erledigt',
     'rejected' => 'Abgelehnt',
 ];
 
@@ -21,6 +24,14 @@ $statusBadges = [
     'processing' => 'bg-blue',
     'completed' => 'bg-success',
     'rejected' => 'bg-danger',
+];
+
+$deadlineBadges = [
+    'ok' => 'bg-green-lt text-green',
+    'due_soon' => 'bg-warning-lt text-warning',
+    'overdue' => 'bg-danger-lt text-danger',
+    'closed' => 'bg-secondary-lt text-secondary',
+    'unknown' => 'bg-secondary-lt text-secondary',
 ];
 
 $dataRequestsConfig = [
@@ -57,6 +68,17 @@ $dataRequestsConfig = [
             <div class="col-sm-6 col-lg-3"><div class="card"><div class="card-body"><div class="subheader">In Bearbeitung</div><div class="h1 mb-0 text-primary"><?php echo (int)(($privacyStats['processing'] ?? 0) + ($deletionStats['processing'] ?? 0)); ?></div></div></div></div>
         </div>
 
+        <div class="row row-deck row-cards mb-4">
+            <div class="col-sm-6 col-lg-3"><div class="card"><div class="card-body"><div class="subheader">Pflichtfrist</div><div class="h1 mb-0"><?php echo $deadlineDays; ?> Tage</div><div class="text-secondary small">Warnfenster ab <?php echo $warningBeforeDays; ?> Tagen Restlaufzeit.</div></div></div></div>
+            <div class="col-sm-6 col-lg-3"><div class="card"><div class="card-body"><div class="subheader">Frist läuft ab</div><div class="h1 mb-0 text-warning"><?php echo (int)(($privacyStats['due_soon'] ?? 0) + ($deletionStats['due_soon'] ?? 0)); ?></div><div class="text-secondary small">Offene Vorgänge im Warnfenster.</div></div></div></div>
+            <div class="col-sm-6 col-lg-3"><div class="card"><div class="card-body"><div class="subheader">Überfällig</div><div class="h1 mb-0 text-danger"><?php echo (int)(($privacyStats['overdue'] ?? 0) + ($deletionStats['overdue'] ?? 0)); ?></div><div class="text-secondary small">Sofort prüfen und dokumentieren.</div></div></div></div>
+            <div class="col-sm-6 col-lg-3"><div class="card"><div class="card-body"><div class="subheader">Admin-Eskalation</div><div class="text-secondary small"><?php echo $adminEscalationEmail !== '' ? htmlspecialchars($adminEscalationEmail) : 'Keine gültige Admin-Mail konfiguriert'; ?></div><div class="small text-muted mt-2">Eskalation erfolgt nur per CSRF-geschützter POST-Aktion in die Mail-Queue.</div></div></div></div>
+        </div>
+
+        <div class="alert alert-info mb-4">
+            <strong>Fristen-Workflow:</strong> Eingegangen → in Bearbeitung → erledigt oder abgelehnt. Nach Art. 12 DSGVO ist grundsätzlich ohne unangemessene Verzögerung und spätestens innerhalb eines Monats zu reagieren; 365CMS bewertet dies konservativ als <?php echo $deadlineDays; ?>-Tage-Frist und markiert offene Anfragen ab <?php echo $warningBeforeDays; ?> Tagen Restlaufzeit.
+        </div>
+
         <div class="row row-cards">
             <div class="col-12 col-xl-6">
                 <div class="card">
@@ -73,6 +95,7 @@ $dataRequestsConfig = [
                                     <th>#</th>
                                     <th>Name / E-Mail</th>
                                     <th>Status</th>
+                                    <th>Frist</th>
                                     <th>Erstellt</th>
                                     <th class="w-1"></th>
                                 </tr>
@@ -80,7 +103,7 @@ $dataRequestsConfig = [
                             <tbody>
                                 <?php if (empty($privacyRows)): ?>
                                     <?php
-                                    $emptyStateColspan = 5;
+                                    $emptyStateColspan = 6;
                                     $emptyStateMessage = 'Keine Auskunftsanfragen vorhanden.';
                                     $emptyStateSubtitle = 'Sobald Anfragen eingehen, werden sie hier zentral zur Bearbeitung aufgelistet.';
                                     $emptyStateIcon = 'default';
@@ -88,6 +111,7 @@ $dataRequestsConfig = [
                                     ?>
                                 <?php else: ?>
                                     <?php foreach ($privacyRows as $row): ?>
+                                        <?php $deadline = is_array($row['deadline'] ?? null) ? $row['deadline'] : []; ?>
                                         <tr>
                                             <td><?php echo (int)($row['id'] ?? 0); ?></td>
                                             <td>
@@ -98,6 +122,12 @@ $dataRequestsConfig = [
                                                 <?php endif; ?>
                                             </td>
                                             <td><span class="badge <?php echo htmlspecialchars($statusBadges[$row['status'] ?? ''] ?? 'bg-secondary'); ?>"><?php echo htmlspecialchars($statusLabels[$row['status'] ?? ''] ?? (string)($row['status'] ?? '')); ?></span></td>
+                                            <td>
+                                                <span class="badge <?php echo htmlspecialchars($deadlineBadges[$deadline['state'] ?? 'unknown'] ?? 'bg-secondary-lt text-secondary'); ?>"><?php echo htmlspecialchars((string)($deadline['label'] ?? 'Frist unbekannt')); ?></span>
+                                                <?php if (!empty($deadline['due_at'])): ?>
+                                                    <div class="text-secondary small"><?php echo htmlspecialchars((string)$deadline['due_at']); ?></div>
+                                                <?php endif; ?>
+                                            </td>
                                             <td class="text-secondary small"><?php echo htmlspecialchars((string)($row['created_at'] ?? '')); ?></td>
                                             <td>
                                                 <div class="dropdown">
@@ -111,6 +141,9 @@ $dataRequestsConfig = [
                                                         <?php endif; ?>
                                                         <?php if (in_array(($row['status'] ?? ''), ['pending', 'processing'], true)): ?>
                                                             <button type="button" class="dropdown-item text-warning js-open-data-request-reject-modal" data-request-scope="privacy" data-request-id="<?php echo (int)($row['id'] ?? 0); ?>" data-request-title="Auskunftsanfrage ablehnen">Ablehnen</button>
+                                                        <?php endif; ?>
+                                                        <?php if (!empty($deadline['needs_escalation']) && in_array(($row['status'] ?? ''), ['pending', 'processing'], true)): ?>
+                                                            <form method="post"><input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>"><input type="hidden" name="scope" value="privacy"><input type="hidden" name="action" value="escalate"><input type="hidden" name="id" value="<?php echo (int)($row['id'] ?? 0); ?>"><button class="dropdown-item text-danger">An Admin-Mail eskalieren</button></form>
                                                         <?php endif; ?>
                                                         <?php if (in_array(($row['status'] ?? ''), ['completed', 'rejected'], true)): ?>
                                                             <form method="post" data-confirm-message="Anfrage endgültig löschen?" data-confirm-title="Anfrage löschen" data-confirm-text="Löschen" data-confirm-class="btn-danger" data-confirm-status-class="bg-danger"><input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>"><input type="hidden" name="scope" value="privacy"><input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="<?php echo (int)($row['id'] ?? 0); ?>"><button class="dropdown-item text-danger">Löschen</button></form>
@@ -142,6 +175,7 @@ $dataRequestsConfig = [
                                     <th>#</th>
                                     <th>Name / E-Mail</th>
                                     <th>Status</th>
+                                    <th>Frist</th>
                                     <th>Erstellt</th>
                                     <th class="w-1"></th>
                                 </tr>
@@ -149,7 +183,7 @@ $dataRequestsConfig = [
                             <tbody>
                                 <?php if (empty($deletionRows)): ?>
                                     <?php
-                                    $emptyStateColspan = 5;
+                                    $emptyStateColspan = 6;
                                     $emptyStateMessage = 'Keine Löschanträge vorhanden.';
                                     $emptyStateSubtitle = 'Offene Löschanträge werden hier mit Status und Bearbeitungsaktionen angezeigt.';
                                     $emptyStateIcon = 'default';
@@ -157,6 +191,7 @@ $dataRequestsConfig = [
                                     ?>
                                 <?php else: ?>
                                     <?php foreach ($deletionRows as $row): ?>
+                                        <?php $deadline = is_array($row['deadline'] ?? null) ? $row['deadline'] : []; ?>
                                         <tr>
                                             <td><?php echo (int)($row['id'] ?? 0); ?></td>
                                             <td>
@@ -164,6 +199,12 @@ $dataRequestsConfig = [
                                                 <div class="text-secondary small"><?php echo htmlspecialchars((string)($row['email'] ?? '')); ?></div>
                                             </td>
                                             <td><span class="badge <?php echo htmlspecialchars($statusBadges[$row['status'] ?? ''] ?? 'bg-secondary'); ?>"><?php echo htmlspecialchars($statusLabels[$row['status'] ?? ''] ?? (string)($row['status'] ?? '')); ?></span></td>
+                                            <td>
+                                                <span class="badge <?php echo htmlspecialchars($deadlineBadges[$deadline['state'] ?? 'unknown'] ?? 'bg-secondary-lt text-secondary'); ?>"><?php echo htmlspecialchars((string)($deadline['label'] ?? 'Frist unbekannt')); ?></span>
+                                                <?php if (!empty($deadline['due_at'])): ?>
+                                                    <div class="text-secondary small"><?php echo htmlspecialchars((string)$deadline['due_at']); ?></div>
+                                                <?php endif; ?>
+                                            </td>
                                             <td class="text-secondary small"><?php echo htmlspecialchars((string)($row['created_at'] ?? '')); ?></td>
                                             <td>
                                                 <div class="dropdown">
@@ -177,6 +218,9 @@ $dataRequestsConfig = [
                                                         <?php endif; ?>
                                                         <?php if (in_array(($row['status'] ?? ''), ['pending', 'processing'], true)): ?>
                                                             <button type="button" class="dropdown-item text-warning js-open-data-request-reject-modal" data-request-scope="deletion" data-request-id="<?php echo (int)($row['id'] ?? 0); ?>" data-request-title="Löschantrag ablehnen">Ablehnen</button>
+                                                        <?php endif; ?>
+                                                        <?php if (!empty($deadline['needs_escalation']) && in_array(($row['status'] ?? ''), ['pending', 'processing'], true)): ?>
+                                                            <form method="post"><input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>"><input type="hidden" name="scope" value="deletion"><input type="hidden" name="action" value="escalate"><input type="hidden" name="id" value="<?php echo (int)($row['id'] ?? 0); ?>"><button class="dropdown-item text-danger">An Admin-Mail eskalieren</button></form>
                                                         <?php endif; ?>
                                                         <?php if (in_array(($row['status'] ?? ''), ['completed', 'rejected'], true)): ?>
                                                             <form method="post" data-confirm-message="Antrag endgültig löschen?" data-confirm-title="Antrag löschen" data-confirm-text="Löschen" data-confirm-class="btn-danger" data-confirm-status-class="bg-danger"><input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>"><input type="hidden" name="scope" value="deletion"><input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="<?php echo (int)($row['id'] ?? 0); ?>"><button class="dropdown-item text-danger">Löschen</button></form>

@@ -1,4 +1,4 @@
-﻿﻿**Version:** 2.9.757
+﻿﻿**Version:** 2.9.759
 
 # 365CMS Changelog
 
@@ -19,6 +19,18 @@
 ## 📜 Vollständige Versionshistorie
 
 ---
+
+### v2.9.759 — 11. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.759** | 🟢 feat | Admin/Recht – Fristenstatus für Datenschutzanfragen | **`CMS/admin/modules/legal/PrivacyRequestsModule.php`, `CMS/admin/modules/legal/DeletionRequestsModule.php`, `CMS/admin/data-requests.php`, `CMS/admin/views/legal/data-requests.php`, `CMS/DOC/admin/legal/README.md`, `CMS/DOC/admin/legal/DSGVO.md`, `CMS/DOC/audit/NiceToHave-CHECKLISTE.md`, `CMS/core/Version.php`, `CMS/update.json`, `README.md` und `Changelog.md` schließen das nächste Recht-/DSGVO-Nice-to-have ab**: `/admin/data-requests` zeigt für Auskunfts- und Löschanfragen jetzt einen vollständigen Fristenstatus entlang des Workflows `Eingegangen` → `In Bearbeitung` → `Erledigt` oder `Abgelehnt`. Offene Vorgänge erhalten eine berechnete 30-Tage-Pflichtfrist ab Eingang, ein 7-Tage-Warnfenster und eine Überfällig-Markierung. Fristnahe oder überfällige Anfragen können per expliziter, CSRF-geschützter POST-Aktion an die konfigurierte Admin-Mail eskaliert werden; der Versand läuft über die bestehende Mail-Queue und wird auditierbar protokolliert. GET-Ansichten bleiben rein lesend, es entstehen keine Sicherheitstoken in URLs, keine neue Pflichtmigration und keine 500-anfällige automatische Mailauslösung beim bloßen Öffnen der Adminseite. |
+
+### v2.9.758 — 11. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.758** | 🟢 feat | Admin/Recht – versionierte DACH-Rechtstextvorlagen | **`CMS/admin/modules/legal/LegalSitesModule.php`, `CMS/admin/legal-sites.php`, `CMS/admin/views/legal/sites.php`, `CMS/DOC/admin/legal/README.md`, `CMS/DOC/admin/legal/LEGAL.md`, `CMS/DOC/audit/NiceToHave-CHECKLISTE.md`, `CMS/core/Version.php`, `CMS/update.json`, `README.md` und `Changelog.md` schließen das nächste Recht-/DSGVO-Nice-to-have ab**: `/admin/legal-sites` besitzt jetzt versionierte DACH-Vorlagenprofile für Deutschland, Österreich, Schweiz und ein neutrales DACH-Skelett. Impressum, Datenschutzerklärung, Widerrufsbelehrung und AGB-Skelett können weiterhin einzeln generiert oder als Seite erstellt/aktualisiert werden; dabei speichert das Modul pro Legal-Site zusätzlich angewendetes Profil, Vorlagenversion und Anwendungszeitpunkt. Die erzeugten Texte enthalten klare Hinweise, dass es sich um technische Grundgerüste mit projektspezifischen Platzhaltern handelt und keine Rechtsberatung ersetzt wird. Der Ausbau nutzt die vorhandenen Profilfelder, POST-/CSRF-/PRG-Flows und Audit-Einträge weiter, führt keine GET-Mutationen oder Token-URLs ein und bleibt fail-soft bei ungültigen Typen oder fehlender Berechtigung. |
 
 ### v2.9.757 — 11. Mai 2026
 
