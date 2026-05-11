@@ -695,7 +695,7 @@ class SchemaManager
 
             'security_log' => "CREATE TABLE IF NOT EXISTS {$p}security_log (
                 id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-                action VARCHAR(50) NOT NULL DEFAULT 'blocked' COMMENT 'blocked|allowed|rate_limited|challenge',
+                action VARCHAR(50) NOT NULL DEFAULT 'blocked' COMMENT 'blocked|allowed|rate_limited|challenge|simulated',
                 ip_address VARCHAR(45) DEFAULT NULL,
                 request_uri VARCHAR(1000) DEFAULT NULL,
                 user_agent VARCHAR(500) DEFAULT NULL,

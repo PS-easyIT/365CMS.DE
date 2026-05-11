@@ -14,15 +14,20 @@ use CMS\Logger;
 
 class FirewallModule
 {
+    private const RULE_MODE_ENFORCE = 'enforce';
+    private const RULE_MODE_SIMULATE = 'simulate';
+    private const DEFAULT_SIMULATION_PREVIEW_HOURS = 24;
+
     private const SETTING_KEYS = [
         'firewall_enabled',
         'firewall_rate_limit',
         'firewall_rate_window',
         'firewall_block_duration',
         'firewall_log_enabled',
+        'firewall_simulation_preview_hours',
     ];
 
-    private const SUPPORTED_ACTIONS = ['save_settings', 'add_rule', 'delete_rule', 'toggle_rule'];
+    private const SUPPORTED_ACTIONS = ['save_settings', 'add_rule', 'delete_rule', 'toggle_rule', 'set_rule_mode'];
 
     private readonly \CMS\Database $db;
     private readonly string $prefix;
@@ -45,14 +50,22 @@ class FirewallModule
             "CREATE TABLE IF NOT EXISTS {$this->prefix}firewall_rules (
                 id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 rule_type   VARCHAR(20) NOT NULL DEFAULT 'block_ip',
+                rule_mode   VARCHAR(20) NOT NULL DEFAULT 'enforce',
                 value       VARCHAR(255) NOT NULL,
                 reason      VARCHAR(255) DEFAULT NULL,
                 is_active   TINYINT(1) NOT NULL DEFAULT 1,
                 expires_at  DATETIME DEFAULT NULL,
                 created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 INDEX idx_type  (rule_type),
+                INDEX idx_mode  (rule_mode),
                 INDEX idx_value (value)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+        );
+
+        $this->ensureColumn(
+            $this->prefix . 'firewall_rules',
+            'rule_mode',
+            "ALTER TABLE {$this->prefix}firewall_rules ADD COLUMN rule_mode VARCHAR(20) NOT NULL DEFAULT 'enforce' AFTER rule_type"
         );
     }
 
@@ -61,34 +74,60 @@ class FirewallModule
         $rules = $this->db->get_results(
             "SELECT * FROM {$this->prefix}firewall_rules ORDER BY created_at DESC"
         ) ?: [];
+        $normalizedRules = array_map(fn($r) => $this->normalizeRuleRow($r), $rules);
+        $settings = $this->loadSettings();
+        $previewHours = max(1, min(168, (int)($settings['firewall_simulation_preview_hours'] ?? self::DEFAULT_SIMULATION_PREVIEW_HOURS)));
+        $simulationPreview = $this->buildSimulationPreview($normalizedRules, $previewHours);
+
+        foreach ($normalizedRules as &$rule) {
+            $preview = $simulationPreview['rule_hits'][$rule['rule_match_key']] ?? null;
+            $rule['simulation_hits'] = (int)($preview['hits'] ?? 0);
+            $rule['simulation_unique_ips'] = (int)($preview['unique_ips'] ?? 0);
+            $rule['simulation_last_hit'] = (string)($preview['last_hit'] ?? '');
+        }
+        unset($rule);
 
         // Stats
-        $total   = count($rules);
+        $total   = count($normalizedRules);
         $active  = 0;
-        $blocked = 0;
+        $enforced = 0;
+        $simulated = 0;
         $allowed = 0;
-        foreach ($rules as $r) {
-            if ((int)$r->is_active) $active++;
-            if ($r->rule_type === 'block_ip' || $r->rule_type === 'block_range') $blocked++;
-            if ($r->rule_type === 'allow_ip') $allowed++;
+        foreach ($normalizedRules as $r) {
+            if ((int)$r['is_active']) {
+                $active++;
+            }
+            if ($r['rule_type'] === 'allow_ip') {
+                $allowed++;
+                continue;
+            }
+            if ($r['rule_mode'] === self::RULE_MODE_SIMULATE) {
+                $simulated++;
+            } else {
+                $enforced++;
+            }
         }
-
-        // Firewall-Settings (Batch-Abfrage)
-        $settings = $this->loadSettings();
 
         // Letzte blockierte Zugriffe (aus Logs, wenn vorhanden)
         $recentBlocks = [];
         try {
             $recentBlocks = $this->db->get_results(
-                "SELECT * FROM {$this->prefix}security_log WHERE action = 'blocked' ORDER BY created_at DESC LIMIT 10"
+                "SELECT * FROM {$this->prefix}security_log WHERE action IN ('blocked', 'rate_limited') ORDER BY created_at DESC LIMIT 10"
             ) ?: [];
         } catch (\Exception $e) {}
 
         return [
-            'rules'         => array_map(fn($r) => $this->normalizeRuleRow($r), $rules),
-            'stats'         => ['total' => $total, 'active' => $active, 'blocked_ips' => $blocked, 'allowed_ips' => $allowed],
+            'rules'         => $normalizedRules,
+            'stats'         => [
+                'total' => $total,
+                'active' => $active,
+                'enforced_rules' => $enforced,
+                'simulated_rules' => $simulated,
+                'allowed_ips' => $allowed,
+            ],
             'settings'      => $settings,
             'recent_blocks' => array_map(fn($r) => (array)$r, $recentBlocks),
+            'simulation'    => $simulationPreview,
         ];
     }
 
@@ -100,6 +139,7 @@ class FirewallModule
             'firewall_rate_window'    => (string)max(60, min(3600, (int)($post['firewall_rate_window'] ?? 60))),
             'firewall_block_duration' => (string)max(60, min(86400, (int)($post['firewall_block_duration'] ?? 3600))),
             'firewall_log_enabled'    => isset($post['firewall_log_enabled']) ? '1' : '0',
+            'firewall_simulation_preview_hours' => (string)max(1, min(168, (int)($post['firewall_simulation_preview_hours'] ?? self::DEFAULT_SIMULATION_PREVIEW_HOURS))),
         ];
 
         try {
@@ -136,6 +176,7 @@ class FirewallModule
     {
         $type  = in_array($post['rule_type'] ?? '', ['block_ip', 'block_range', 'allow_ip', 'block_ua', 'block_country'], true)
             ? (string)$post['rule_type'] : 'block_ip';
+        $ruleMode = $this->normalizeRuleMode((string)($post['rule_mode'] ?? self::RULE_MODE_SIMULATE), $type);
         $value = $this->sanitizeRuleValue((string)($post['rule_value'] ?? ''));
         if ($value === '') {
             return ['success' => false, 'error' => 'Wert ist erforderlich.'];
@@ -170,6 +211,7 @@ class FirewallModule
         try {
             $insertId = $this->db->insert('firewall_rules', [
                 'rule_type'  => $type,
+                'rule_mode'  => $ruleMode,
                 'value'      => $value,
                 'reason'     => $reason,
                 'is_active'  => 1,
@@ -186,11 +228,16 @@ class FirewallModule
                 'Firewall-Regel hinzugefügt',
                 'firewall_rule',
                 (int)$insertId,
-                ['type' => $type, 'value' => $value, 'reason' => $reason, 'expires_at' => $expiresAt],
+                ['type' => $type, 'rule_mode' => $ruleMode, 'value' => $value, 'reason' => $reason, 'expires_at' => $expiresAt],
                 'warning'
             );
 
-            return ['success' => true, 'message' => 'Regel hinzugefügt.'];
+            return [
+                'success' => true,
+                'message' => $ruleMode === self::RULE_MODE_SIMULATE
+                    ? 'Regel im Simulationsmodus hinzugefügt. Treffer werden nur protokolliert.'
+                    : 'Regel hinzugefügt und sofort scharfgeschaltet.',
+            ];
         } catch (\Throwable $e) {
             $this->logFailure('firewall.rule.add_failed', 'Firewall-Regel konnte nicht hinzugefügt werden.', [
                 'type' => $type,
@@ -282,6 +329,66 @@ class FirewallModule
         return ['success' => true, 'message' => $newStatus ? 'Regel aktiviert.' : 'Regel deaktiviert.'];
     }
 
+    public function setRuleMode(int $id, string $targetMode): array
+    {
+        if ($id <= 0) {
+            return ['success' => false, 'error' => 'Ungültige ID.'];
+        }
+
+        $rule = $this->db->get_row(
+            "SELECT id, rule_type, rule_mode, value, reason FROM {$this->prefix}firewall_rules WHERE id = ? LIMIT 1",
+            [$id]
+        );
+        if (!$rule) {
+            return ['success' => false, 'error' => 'Regel nicht gefunden.'];
+        }
+
+        $normalizedTargetMode = $this->normalizeRuleMode($targetMode, (string)$rule->rule_type);
+        if ((string)$rule->rule_type === 'allow_ip' && $normalizedTargetMode === self::RULE_MODE_SIMULATE) {
+            return ['success' => false, 'error' => 'Erlaubnisregeln unterstützen keinen Simulationsmodus.'];
+        }
+
+        if ($this->isRuntimeManagedRule((array)$rule) && $normalizedTargetMode === self::RULE_MODE_SIMULATE) {
+            return ['success' => false, 'error' => 'Automatische Rate-Limit-Sperren können nicht in den Simulationsmodus geschaltet werden.'];
+        }
+
+        if ((string)$rule->rule_mode === $normalizedTargetMode) {
+            return ['success' => true, 'message' => $normalizedTargetMode === self::RULE_MODE_SIMULATE ? 'Regel läuft bereits im Simulationsmodus.' : 'Regel ist bereits scharfgeschaltet.'];
+        }
+
+        try {
+            $updated = $this->db->update('firewall_rules', ['rule_mode' => $normalizedTargetMode], ['id' => $id]);
+            if (!$updated) {
+                return ['success' => false, 'error' => 'Regelmodus konnte nicht geändert werden.'];
+            }
+        } catch (\Throwable $e) {
+            $this->logFailure('firewall.rule.mode_failed', 'Firewall-Regelmodus konnte nicht geändert werden.', [
+                'rule_id' => $id,
+                'target_mode' => $normalizedTargetMode,
+                'exception' => $e::class,
+            ]);
+
+            return ['success' => false, 'error' => 'Regelmodus konnte nicht geändert werden.'];
+        }
+
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_SECURITY,
+            'firewall.rule.mode',
+            $normalizedTargetMode === self::RULE_MODE_SIMULATE ? 'Firewall-Regel auf Simulation gestellt' : 'Firewall-Regel scharfgeschaltet',
+            'firewall_rule',
+            $id,
+            ['rule_mode' => $normalizedTargetMode, 'type' => (string)$rule->rule_type, 'value' => (string)$rule->value],
+            'warning'
+        );
+
+        return [
+            'success' => true,
+            'message' => $normalizedTargetMode === self::RULE_MODE_SIMULATE
+                ? 'Regel läuft jetzt im Simulationsmodus. Treffer werden nur protokolliert.'
+                : 'Regel ist jetzt scharfgeschaltet und blockiert Treffer aktiv.',
+        ];
+    }
+
     private function loadSettings(): array
     {
         $placeholders = implode(',', array_fill(0, count(self::SETTING_KEYS), '?'));
@@ -290,7 +397,14 @@ class FirewallModule
             self::SETTING_KEYS
         ) ?: [];
 
-        $settings = array_fill_keys(self::SETTING_KEYS, '');
+        $settings = [
+            'firewall_enabled' => '0',
+            'firewall_rate_limit' => '60',
+            'firewall_rate_window' => '60',
+            'firewall_block_duration' => '3600',
+            'firewall_log_enabled' => '0',
+            'firewall_simulation_preview_hours' => (string)self::DEFAULT_SIMULATION_PREVIEW_HOURS,
+        ];
         foreach ($rows as $row) {
             $settings[(string)$row->option_name] = (string)$row->option_value;
         }
@@ -356,7 +470,7 @@ class FirewallModule
     private function getRuleById(int $id): ?array
     {
         $row = $this->db->get_row(
-            "SELECT id, rule_type, value FROM {$this->prefix}firewall_rules WHERE id = ? LIMIT 1",
+            "SELECT id, rule_type, rule_mode, value, reason FROM {$this->prefix}firewall_rules WHERE id = ? LIMIT 1",
             [$id]
         );
 
@@ -370,12 +484,160 @@ class FirewallModule
         return [
             'id' => (int)($row['id'] ?? 0),
             'rule_type' => (string)($row['rule_type'] ?? ''),
+            'rule_mode' => $this->normalizeRuleMode((string)($row['rule_mode'] ?? self::RULE_MODE_ENFORCE), (string)($row['rule_type'] ?? '')),
             'value' => (string)($row['value'] ?? ''),
             'reason' => (string)($row['reason'] ?? ''),
             'is_active' => (int)($row['is_active'] ?? 0),
             'expires_at' => (string)($row['expires_at'] ?? ''),
             'created_at' => (string)($row['created_at'] ?? ''),
+            'rule_match_key' => $this->buildRuleMatchKey((int)($row['id'] ?? 0)),
         ];
+    }
+
+    /** @param array<int,array<string,mixed>> $rules @return array<string,mixed> */
+    private function buildSimulationPreview(array $rules, int $hours): array
+    {
+        $ruleHits = [];
+        foreach ($rules as $rule) {
+            if (($rule['rule_mode'] ?? self::RULE_MODE_ENFORCE) !== self::RULE_MODE_SIMULATE || ($rule['rule_type'] ?? '') === 'allow_ip') {
+                continue;
+            }
+
+            $matchKey = (string)($rule['rule_match_key'] ?? '');
+            if ($matchKey === '') {
+                continue;
+            }
+
+            $ruleHits[$matchKey] = [
+                'rule_id' => (int)($rule['id'] ?? 0),
+                'label' => $this->getRuleTypeLabel((string)($rule['rule_type'] ?? '')),
+                'value' => (string)($rule['value'] ?? ''),
+                'hits' => 0,
+                'unique_ips' => 0,
+                'last_hit' => '',
+                '_ips' => [],
+            ];
+        }
+
+        $preview = [
+            'window_hours' => $hours,
+            'total_hits' => 0,
+            'rules_with_hits' => 0,
+            'recent_hits' => [],
+            'rule_hits' => $ruleHits,
+            'available' => true,
+        ];
+
+        if ($ruleHits === []) {
+            return $preview;
+        }
+
+        $since = date('Y-m-d H:i:s', time() - ($hours * 3600));
+
+        try {
+            $rows = $this->db->get_results(
+                "SELECT rule_matched, ip_address, request_uri, created_at
+                 FROM {$this->prefix}security_log
+                 WHERE action = 'simulated'
+                   AND created_at >= ?
+                 ORDER BY created_at DESC
+                 LIMIT 500",
+                [$since]
+            ) ?: [];
+        } catch (\Throwable $e) {
+            Logger::instance()->withChannel('admin.security')->warning('Firewall-Simulationsvorschau konnte nicht geladen werden.', [
+                'exception' => $e::class,
+            ]);
+
+            $preview['available'] = false;
+            return $preview;
+        }
+
+        foreach ($rows as $row) {
+            $matchKey = (string)($row->rule_matched ?? '');
+            if ($matchKey === '' || !isset($ruleHits[$matchKey])) {
+                continue;
+            }
+
+            $ruleHits[$matchKey]['hits']++;
+            $preview['total_hits']++;
+
+            $ip = (string)($row->ip_address ?? '');
+            if ($ip !== '') {
+                $ruleHits[$matchKey]['_ips'][$ip] = true;
+            }
+
+            if ($ruleHits[$matchKey]['last_hit'] === '') {
+                $ruleHits[$matchKey]['last_hit'] = (string)($row->created_at ?? '');
+            }
+
+            if (count($preview['recent_hits']) < 10) {
+                $preview['recent_hits'][] = [
+                    'rule_id' => $ruleHits[$matchKey]['rule_id'],
+                    'rule_label' => $ruleHits[$matchKey]['label'],
+                    'rule_value' => $ruleHits[$matchKey]['value'],
+                    'ip_address' => $ip,
+                    'request_uri' => $this->sanitizeText((string)($row->request_uri ?? ''), 180),
+                    'created_at' => (string)($row->created_at ?? ''),
+                ];
+            }
+        }
+
+        foreach ($ruleHits as $matchKey => $summary) {
+            $ruleHits[$matchKey]['unique_ips'] = count($summary['_ips']);
+            unset($ruleHits[$matchKey]['_ips']);
+
+            if ($ruleHits[$matchKey]['hits'] > 0) {
+                $preview['rules_with_hits']++;
+            }
+        }
+
+        $preview['rule_hits'] = $ruleHits;
+
+        return $preview;
+    }
+
+    private function getRuleTypeLabel(string $type): string
+    {
+        return match ($type) {
+            'block_ip' => 'IP blockieren',
+            'block_range' => 'IP-Bereich blockieren',
+            'allow_ip' => 'IP erlauben',
+            'block_ua' => 'User-Agent blockieren',
+            'block_country' => 'Land blockieren',
+            default => $type,
+        };
+    }
+
+    private function buildRuleMatchKey(int $id): string
+    {
+        return $id > 0 ? 'rule#' . $id : '';
+    }
+
+    private function normalizeRuleMode(string $mode, string $type): string
+    {
+        if ($type === 'allow_ip') {
+            return self::RULE_MODE_ENFORCE;
+        }
+
+        return $mode === self::RULE_MODE_SIMULATE ? self::RULE_MODE_SIMULATE : self::RULE_MODE_ENFORCE;
+    }
+
+    /** @param array<string,mixed> $rule */
+    private function isRuntimeManagedRule(array $rule): bool
+    {
+        return ((string)($rule['rule_type'] ?? '')) === 'block_ip'
+            && ((string)($rule['reason'] ?? '')) === 'Automatisches Rate-Limit';
+    }
+
+    private function ensureColumn(string $table, string $column, string $alterSql): void
+    {
+        $exists = $this->db->get_var("SHOW COLUMNS FROM {$table} LIKE '{$column}'") !== null;
+        if ($exists) {
+            return;
+        }
+
+        $this->db->getPdo()->exec($alterSql);
     }
 
     /** @param array<string, mixed> $context */

@@ -28,9 +28,16 @@ $typeLabels = ['word' => 'Wort', 'email' => 'E-Mail', 'ip' => 'IP-Adresse', 'dom
             <?php $alertData = $alert; $alertMarginClass = 'mb-4'; require __DIR__ . '/../partials/flash-alert.php'; ?>
         <?php endif; ?>
 
+        <div class="security-page-intro">
+            <div class="security-page-intro__text">
+                <p class="security-page-intro__title">Lokaler Spam-Schutz ohne externe Captcha-Abhängigkeit</p>
+                <p class="security-page-intro__copy">Die AntiSpam-Absicherung kombiniert Honeypot, Mindest-Ausfüllzeit, Link-Limits, User-Agent-Prüfung und eine lokale Blacklist. So bleibt die Oberfläche datensparsam, schnell und konsistent mit dem übrigen Security-Setup.</p>
+            </div>
+        </div>
+
         <div class="row row-deck row-cards mb-4">
             <div class="col-sm-6 col-lg-3">
-                <div class="card h-100">
+                <div class="card security-kpi-card is-danger h-100">
                     <div class="card-body">
                         <div class="subheader">Spam-Kommentare</div>
                         <div class="h1 mb-0 text-danger"><?php echo (int)($stats['spam_comments'] ?? 0); ?></div>
@@ -38,7 +45,7 @@ $typeLabels = ['word' => 'Wort', 'email' => 'E-Mail', 'ip' => 'IP-Adresse', 'dom
                 </div>
             </div>
             <div class="col-sm-6 col-lg-3">
-                <div class="card h-100">
+                <div class="card security-kpi-card h-100">
                     <div class="card-body">
                         <div class="subheader">Blacklist: Wörter</div>
                         <div class="h1 mb-0"><?php echo (int)($stats['words'] ?? 0); ?></div>
@@ -46,7 +53,7 @@ $typeLabels = ['word' => 'Wort', 'email' => 'E-Mail', 'ip' => 'IP-Adresse', 'dom
                 </div>
             </div>
             <div class="col-sm-6 col-lg-3">
-                <div class="card h-100">
+                <div class="card security-kpi-card h-100">
                     <div class="card-body">
                         <div class="subheader">Blacklist: E-Mails</div>
                         <div class="h1 mb-0"><?php echo (int)($stats['emails'] ?? 0); ?></div>
@@ -54,20 +61,25 @@ $typeLabels = ['word' => 'Wort', 'email' => 'E-Mail', 'ip' => 'IP-Adresse', 'dom
                 </div>
             </div>
             <div class="col-sm-6 col-lg-3">
-                <div class="card h-100">
+                <div class="card security-kpi-card h-100">
                     <div class="card-body">
                         <div class="subheader">Blacklist: IPs</div>
                         <div class="h1 mb-0"><?php echo (int)($stats['ips'] ?? 0); ?></div>
+                        <div class="security-kpi-note">Domains und IPs bleiben lokal gepflegt.</div>
                     </div>
                 </div>
             </div>
         </div>
 
         <div class="row row-deck row-cards mb-4">
-            <div class="col-lg-5">
-                <div class="card h-100">
+            <div class="col-lg-6">
+                <div class="card security-panel-card h-100">
                     <div class="card-header">
-                        <h3 class="card-title">AntiSpam-Einstellungen</h3>
+                        <div class="card-title-wrap">
+                            <p class="card-eyebrow">Schutzprofil</p>
+                            <h3 class="card-title">AntiSpam-Einstellungen</h3>
+                            <div class="card-title-meta">Definiert, welche lokalen Prüfungen bei öffentlichen Formularen aktiv sind.</div>
+                        </div>
                     </div>
                     <div class="card-body">
                         <form method="post">
@@ -110,10 +122,14 @@ $typeLabels = ['word' => 'Wort', 'email' => 'E-Mail', 'ip' => 'IP-Adresse', 'dom
                 </div>
             </div>
 
-            <div class="col-lg-7">
-                <div class="card mb-3">
+            <div class="col-lg-6">
+                <div class="card security-panel-card h-100">
                     <div class="card-header">
-                        <h3 class="card-title">Blacklist-Eintrag hinzufügen</h3>
+                        <div class="card-title-wrap">
+                            <p class="card-eyebrow">Blacklist</p>
+                            <h3 class="card-title">Blacklist-Eintrag hinzufügen</h3>
+                            <div class="card-title-meta">Wörter, Domains, E-Mails und IP-Adressen schnell ergänzen.</div>
+                        </div>
                     </div>
                     <div class="card-body">
                         <form method="post">
@@ -137,13 +153,21 @@ $typeLabels = ['word' => 'Wort', 'email' => 'E-Mail', 'ip' => 'IP-Adresse', 'dom
                         </form>
                     </div>
                 </div>
+            </div>
+        </div>
 
-                <div class="card">
+        <div class="row row-deck row-cards mb-4">
+            <div class="col-12">
+                <div class="card security-panel-card">
                     <div class="card-header">
-                        <h3 class="card-title">Blacklist (<?php echo count($blacklist); ?> Einträge)</h3>
+                        <div class="card-title-wrap">
+                            <p class="card-eyebrow">Übersicht</p>
+                            <h3 class="card-title">Blacklist (<?php echo count($blacklist); ?> Einträge)</h3>
+                            <div class="card-title-meta">Alle lokalen Sperrlisten-Einträge mit schneller Entfernung pro Zeile.</div>
+                        </div>
                     </div>
-                    <div class="table-responsive" style="max-height:500px; overflow-y:auto">
-                        <table class="table table-vcenter card-table table-striped">
+                    <div class="table-responsive security-table-wrap is-scrollable">
+                        <table class="table table-vcenter card-table table-striped security-table-modern">
                             <thead>
                                 <tr>
                                     <th>Typ</th>
@@ -167,13 +191,15 @@ $typeLabels = ['word' => 'Wort', 'email' => 'E-Mail', 'ip' => 'IP-Adresse', 'dom
                                     <td><span class="badge bg-secondary"><?php echo htmlspecialchars($typeLabels[$item['type']] ?? $item['type']); ?></span></td>
                                     <td><code><?php echo htmlspecialchars($item['value']); ?></code></td>
                                     <td class="text-secondary"><?php echo htmlspecialchars($item['created_at'] ?? ''); ?></td>
-                                    <td>
+                                    <td class="table-actions">
+                                        <div class="security-table-actions">
                                         <form method="post" class="d-inline">
                                             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>">
                                             <input type="hidden" name="action" value="delete_blacklist">
                                             <input type="hidden" name="id" value="<?php echo (int)$item['id']; ?>">
-                                            <button type="button" class="btn btn-ghost-danger btn-sm" aria-label="Eintrag löschen" onclick="cmsConfirm({title:'Eintrag löschen?',message:'Der Blacklist-Eintrag wird unwiderruflich entfernt.',confirmText:'Löschen',confirmClass:'btn-danger',onConfirm:()=>this.closest('form').submit()})">×</button>
+                                            <button type="button" class="btn btn-ghost-danger btn-sm btn-icon-inline" aria-label="Eintrag löschen" onclick="cmsConfirm({title:'Eintrag löschen?',message:'Der Blacklist-Eintrag wird unwiderruflich entfernt.',confirmText:'Löschen',confirmClass:'btn-danger',onConfirm:()=>this.closest('form').submit()})">×</button>
                                         </form>
+                                        </div>
                                     </td>
                                 </tr>
                                 <?php endforeach; ?>

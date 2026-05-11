@@ -67,9 +67,9 @@ Nachprüfung 2.9.760: Die zuletzt umgesetzten Nice-to-haves ab 2.9.725 wurden er
 
 ## 5. Sicherheit – proaktive Härtung
 
-- [ ] **Simulationsmodus für Firewall-Regeln**
-  - [ ] Neue Regel zunächst nur loggen, nicht blockieren
-  - [ ] Read-only Treffervorschau über X Stunden, dann scharfschalten
+- [x] **Simulationsmodus für Firewall-Regeln**
+  - [x] Neue Regel zunächst nur loggen, nicht blockieren
+  - [x] Read-only Treffervorschau über X Stunden, dann scharfschalten
 - [ ] **Alarmierung bei sicherheitsrelevanten Ereignissen**
   - [ ] Schwellenwert-basierte Mail-Alerts für Login-Brute-Force, AntiSpam-Spitzen, Firewall-Blocks
   - [ ] Wiederverwendung der bestehenden Monitoring-Mail-Pipeline
@@ -80,9 +80,6 @@ Nachprüfung 2.9.760: Die zuletzt umgesetzten Nice-to-haves ab 2.9.725 wurden er
 
 ## 6. System & Doku – Konfigurationsdisziplin
 
-- [ ] **Konfigurations-Diff vor dem Speichern**
-  - [ ] Side-by-Side-Vergleich „aktuell vs. neu" für alle Settings-Tabs
-  - [ ] Hervorhebung sicherheitsrelevanter Felder (Auth, Security, Mail, AI-Provider)
 - [ ] **Backup-Validierung / Restore-Check im Trockentest**
   - [ ] Hash-Verifikation der Sicherung, Probe-Lesen der wichtigsten Tabellen
   - [ ] Optionaler Restore in temporäre Datenbank, Vergleichsbericht als read-only Ergebnis

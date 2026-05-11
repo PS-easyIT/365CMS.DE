@@ -18,6 +18,12 @@ $counts     = is_array($data['counts'] ?? null) ? $data['counts'] : [];
 $filter     = (string)($data['filter'] ?? '');
 $catFilter  = (int)($data['catFilter'] ?? 0);
 $search     = (string)($data['search'] ?? '');
+$statusLabels = [
+    'published' => ['Veröffentlicht', 'bg-green-lt text-green'],
+    'scheduled' => ['Geplant', 'bg-azure-lt text-azure'],
+    'draft'     => ['Entwurf', 'bg-yellow-lt text-yellow'],
+    'private'   => ['Privat', 'bg-purple-lt text-purple'],
+];
 ?>
 
 <div class="page-header d-print-none">
@@ -200,8 +206,107 @@ $search     = (string)($data['search'] ?? '');
                 </form>
             </div>
 
-            <div class="card-body">
-                <div id="postsGrid"></div>
+            <div class="table-responsive">
+                <table class="table table-vcenter card-table">
+                    <thead>
+                        <tr>
+                            <th class="w-1">
+                                <input class="form-check-input" type="checkbox" id="postsSelectAll" aria-label="Alle Beiträge auswählen">
+                            </th>
+                            <th>Titel</th>
+                            <th>Slug</th>
+                            <th>Kategorie</th>
+                            <th>Status</th>
+                            <th>Autor</th>
+                            <th>Aktualisiert</th>
+                            <th class="w-1"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    <?php if (empty($posts)): ?>
+                        <?php
+                        $emptyStateColspan = 8;
+                        $emptyStateMessage = 'Keine Beiträge gefunden.';
+                        $emptyStateSubtitle = 'Prüfen Sie Filter oder Suche – die serverseitige Liste liefert aktuell keine Einträge.';
+                        $emptyStateIcon = 'file-text';
+                        require __DIR__ . '/../partials/empty-table-row.php';
+                        ?>
+                    <?php else: ?>
+                        <?php foreach ($posts as $post): ?>
+                            <?php
+                            $postId = (int)($post['id'] ?? 0);
+                            $postTitle = trim((string)($post['title'] ?? $post['title_en'] ?? ''));
+                            $postSlug = trim((string)($post['slug'] ?? $post['slug_en'] ?? ''));
+                            $postSlugEn = trim((string)($post['slug_en'] ?? ''));
+                            $postStatus = (string)($post['status'] ?? 'draft');
+                            $publishedAt = trim((string)($post['published_at'] ?? ''));
+                            if ($postStatus === 'published' && $publishedAt !== '') {
+                                $publishedTimestamp = strtotime($publishedAt);
+                                if ($publishedTimestamp !== false && $publishedTimestamp > time()) {
+                                    $postStatus = 'scheduled';
+                                }
+                            }
+                            [$postStatusLabel, $postStatusClass] = $statusLabels[$postStatus] ?? [$postStatus, 'bg-secondary-lt text-secondary'];
+                            $postCategory = trim((string)($post['category_name'] ?? ''));
+                            $postAuthor = trim((string)($post['author'] ?? ''));
+                            $postUpdatedAt = trim((string)($post['updated_at'] ?? $post['created_at'] ?? ''));
+                            $postUpdatedAtLabel = $postUpdatedAt;
+                            if ($postUpdatedAt !== '') {
+                                $postUpdatedTimestamp = strtotime($postUpdatedAt);
+                                if ($postUpdatedTimestamp !== false) {
+                                    $postUpdatedAtLabel = date('d.m.Y H:i', $postUpdatedTimestamp);
+                                }
+                            }
+                            $postHasEnglishVariant = $postSlugEn !== '' && $postSlugEn !== $postSlug;
+                            ?>
+                            <tr>
+                                <td>
+                                    <input class="form-check-input" type="checkbox" name="ids[]" value="<?php echo $postId; ?>" form="bulkFormPosts">
+                                </td>
+                                <td>
+                                    <a href="/admin/posts?action=edit&id=<?php echo $postId; ?>" class="text-reset fw-medium">
+                                        <?php echo htmlspecialchars($postTitle !== '' ? $postTitle : 'Ohne Titel', ENT_QUOTES, 'UTF-8'); ?>
+                                    </a>
+                                    <?php if ($postHasEnglishVariant): ?>
+                                        <span class="badge bg-secondary-lt ms-2">EN</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td class="text-secondary">
+                                    /blog/<?php echo htmlspecialchars($postSlug, ENT_QUOTES, 'UTF-8'); ?>
+                                    <?php if ($postHasEnglishVariant): ?>
+                                        <div class="small mt-1">/en/blog/<?php echo htmlspecialchars($postSlugEn, ENT_QUOTES, 'UTF-8'); ?></div>
+                                    <?php endif; ?>
+                                </td>
+                                <td>
+                                    <?php if ($postCategory !== ''): ?>
+                                        <span class="badge bg-azure-lt"><?php echo htmlspecialchars($postCategory, ENT_QUOTES, 'UTF-8'); ?></span>
+                                    <?php else: ?>
+                                        <span class="text-secondary">–</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td><span class="badge <?php echo htmlspecialchars($postStatusClass, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($postStatusLabel, ENT_QUOTES, 'UTF-8'); ?></span></td>
+                                <td><?php echo htmlspecialchars($postAuthor !== '' ? $postAuthor : '–', ENT_QUOTES, 'UTF-8'); ?></td>
+                                <td class="text-secondary"><?php echo htmlspecialchars($postUpdatedAtLabel !== '' ? $postUpdatedAtLabel : '–', ENT_QUOTES, 'UTF-8'); ?></td>
+                                <td class="table-actions">
+                                    <div class="table-row-actions table-row-actions--icons">
+                                        <a href="/admin/posts?action=edit&id=<?php echo $postId; ?>" class="btn btn-outline-primary btn-sm btn-icon" aria-label="Beitrag bearbeiten" title="Bearbeiten">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M7 7h10v10H7z" opacity="0"/><path d="M16.474 5.408a2.077 2.077 0 1 1 2.937 2.937l-9.19 9.19a6 6 0 0 1 -2.52 1.51l-2.093 .698l.698 -2.093a6 6 0 0 1 1.51 -2.52z"/><path d="M14.474 7.408l2.118 2.118"/></svg>
+                                        </a>
+                                        <form method="post" action="/admin/posts" class="d-inline">
+                                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>">
+                                            <input type="hidden" name="action" value="delete">
+                                            <input type="hidden" name="id" value="<?php echo $postId; ?>">
+                                            <button type="button" class="btn btn-ghost-danger btn-sm btn-icon" aria-label="Beitrag löschen" title="Löschen" onclick="cmsConfirm({title:'Beitrag löschen?',message:'Dieser Beitrag wird unwiderruflich gelöscht.',confirmText:'Löschen',confirmClass:'btn-danger',onConfirm:()=>this.closest('form').submit()})">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 7l16 0"/><path d="M10 11l0 6"/><path d="M14 11l0 6"/><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12"/><path d="M9 7l1 -3h4l1 3"/></svg>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                    </tbody>
+                </table>
             </div>
         </div>
 
@@ -209,6 +314,7 @@ $search     = (string)($data['search'] ?? '');
 </div>
 
 <script>
+
 function applyFilters() {
     var s = document.getElementById('statusFilter').value;
     var c = document.getElementById('categoryFilter').value;
@@ -222,7 +328,6 @@ function applyFilters() {
 }
 
 (function() {
-    var gridRoot = document.getElementById('postsGrid');
     var bulkForm = document.getElementById('bulkFormPosts');
     var bulkBar = document.getElementById('bulkBarPosts');
     var countEl = document.getElementById('selectedCountPosts');
@@ -230,9 +335,9 @@ function applyFilters() {
     var bulkAuthorDisplayName = document.getElementById('bulkAuthorDisplayNamePosts');
     var bulkCategorySelect = document.getElementById('bulkCategoryPosts');
     var bulkSubmit = document.getElementById('bulkSubmitPosts');
-    var selectedIds = new Set();
+    var selectAll = document.getElementById('postsSelectAll');
 
-    if (!gridRoot || !bulkForm || !bulkBar || !countEl) {
+    if (!bulkForm || !bulkBar || !countEl) {
         return;
     }
 
@@ -280,33 +385,22 @@ function applyFilters() {
         updateBulkSubmitState();
     }
 
-    function syncInputs() {
-        getRowCheckboxes().forEach(function(checkbox) {
-            checkbox.checked = selectedIds.has(String(checkbox.value));
-        });
-
-        var allCheckboxes = getRowCheckboxes();
-        var selectAll = gridRoot.querySelector('.bulk-select-all');
-        if (selectAll) {
-            var checkedCount = allCheckboxes.filter(function(checkbox) {
-                return checkbox.checked;
-            }).length;
-
-            selectAll.checked = allCheckboxes.length > 0 && checkedCount === allCheckboxes.length;
-            selectAll.indeterminate = checkedCount > 0 && checkedCount < allCheckboxes.length;
-
-            if (allCheckboxes.length === 0) {
-                selectAll.checked = false;
-                selectAll.indeterminate = false;
-            }
-        }
+    function getRowCheckboxes() {
+        return Array.prototype.slice.call(document.querySelectorAll('input[name="ids[]"][form="bulkFormPosts"]'));
     }
 
     function updateBulkState() {
-        countEl.textContent = String(selectedIds.size);
-        bulkBar.classList.toggle('d-none', selectedIds.size === 0);
+        var rowCheckboxes = getRowCheckboxes();
+        var checkedCount = rowCheckboxes.filter(function(checkbox) { return checkbox.checked; }).length;
+
+        countEl.textContent = String(checkedCount);
+        bulkBar.classList.toggle('d-none', checkedCount === 0);
         updateBulkSubmitState();
-        syncInputs();
+
+        if (selectAll) {
+            selectAll.checked = rowCheckboxes.length > 0 && checkedCount === rowCheckboxes.length;
+            selectAll.indeterminate = checkedCount > 0 && checkedCount < rowCheckboxes.length;
+        }
     }
 
     function updateBulkSubmitState() {
@@ -323,41 +417,27 @@ function applyFilters() {
 
         bulkSubmit.textContent = meta.text;
         bulkSubmit.className = meta.className;
-        bulkSubmit.disabled = selectedIds.size === 0 || action === '' || !nameReady || !categoryReady;
+        var selectedCount = getRowCheckboxes().filter(function(checkbox) { return checkbox.checked; }).length;
+        bulkSubmit.disabled = selectedCount === 0 || action === '' || !nameReady || !categoryReady;
     }
 
-    gridRoot.addEventListener('change', function(event) {
-        var target = event.target;
-
-        if (target.classList.contains('bulk-row-check')) {
-            if (target.checked) {
-                selectedIds.add(String(target.value));
-            } else {
-                selectedIds.delete(String(target.value));
-            }
-            updateBulkState();
-            return;
-        }
-
-        if (target.classList.contains('bulk-select-all')) {
-            gridRoot.querySelectorAll('.bulk-row-check').forEach(function(checkbox) {
-                checkbox.checked = target.checked;
-                if (target.checked) {
-                    selectedIds.add(String(checkbox.value));
-                } else {
-                    selectedIds.delete(String(checkbox.value));
-                }
+    if (selectAll) {
+        selectAll.addEventListener('change', function() {
+            getRowCheckboxes().forEach(function(checkbox) {
+                checkbox.checked = selectAll.checked;
             });
             updateBulkState();
-        }
+        });
+    }
+
+    getRowCheckboxes().forEach(function(checkbox) {
+        checkbox.addEventListener('change', updateBulkState);
     });
 
     bulkForm.addEventListener('submit', function(event) {
-        bulkForm.querySelectorAll('input[name="ids[]"]').forEach(function(input) {
-            input.remove();
-        });
+        var checkedBoxes = getRowCheckboxes().filter(function(checkbox) { return checkbox.checked; });
 
-        if (selectedIds.size === 0) {
+        if (checkedBoxes.length === 0) {
             event.preventDefault();
             return;
         }
@@ -381,30 +461,17 @@ function applyFilters() {
         }
 
         if (bulkActionSelect && bulkActionSelect.value === 'delete') {
-            var deleteMessage = selectedIds.size === 1
+            var deleteMessage = checkedBoxes.length === 1
                 ? 'Soll der ausgewählte Beitrag wirklich gelöscht werden?'
-                : 'Sollen die ' + selectedIds.size + ' ausgewählten Beiträge wirklich gelöscht werden?';
+                : 'Sollen die ' + checkedBoxes.length + ' ausgewählten Beiträge wirklich gelöscht werden?';
 
             if (!window.confirm(deleteMessage)) {
                 event.preventDefault();
                 return;
             }
         }
-
-        selectedIds.forEach(function(id) {
-            var input = document.createElement('input');
-            input.type = 'hidden';
-            input.name = 'ids[]';
-            input.value = id;
-            bulkForm.appendChild(input);
-        });
     });
 
-    var observer = new MutationObserver(function() {
-        syncInputs();
-    });
-
-    observer.observe(gridRoot, { childList: true, subtree: true });
     if (bulkActionSelect) {
         bulkActionSelect.addEventListener('change', updateBulkActionUi);
     }

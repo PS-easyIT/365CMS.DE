@@ -1,8 +1,8 @@
 # 365CMS – Firewall
 
-Kurzbeschreibung: Schutz vor missbräuchlichen Anfragen, IP-Sperren, Blockregeln und sicherheitsrelevanten Zugriffsmustern.
+Kurzbeschreibung: Schutz vor missbräuchlichen Anfragen, IP-Sperren, Blockregeln, Simulationsläufen und sicherheitsrelevanten Zugriffsmustern.
 
-Letzte Aktualisierung: 2026-05-02 · Version 2.9.248
+Letzte Aktualisierung: 2026-05-11 · Version 2.9.761
 
 **Admin-Route:** `/admin/firewall`
 
@@ -22,6 +22,9 @@ Die Firewall ist das zentrale Admin-Modul für anwendungsnahe Abwehrmaßnahmen. 
 Typische Aufgaben:
 
 - IP-Adressen oder Bereiche blockieren
+- neue Blockregeln zunächst nur simulieren
+- Treffer read-only über ein konfigurierbares Vorschaufenster auswerten
+- Regeln anschließend explizit scharfschalten
 - regelbasierte Filter pflegen
 - Sperren aktivieren oder aufheben
 - sicherheitsrelevante Änderungen protokollieren
@@ -38,6 +41,7 @@ Seit 2.9.248 werden aktive Firewall-Regeln nicht nur verwaltet, sondern im Core-
 | `failed_logins` | Fehlanmeldungen |
 | `login_attempts` | Rate-Limiting und Login-Muster |
 | `firewall_rules` | benutzerdefinierte Firewall-Regeln |
+| `security_log` (`action = simulated`) | read-only Treffervorschau für Simulationsregeln |
 | `audit_log` | Nachvollziehbarkeit von Admin-Aktionen |
 
 ---
@@ -54,6 +58,24 @@ Je nach Konfiguration können Regeln unter anderem auf Folgendes zielen:
 
 Die aktuelle Modul-Implementierung prüft Eingaben strenger als ältere Stände, insbesondere bei IP-Bereichen, Länderkennungen und benutzerdefinierten Regeln.
 
+## Simulationsmodus seit 2.9.761
+
+Blockregeln können jetzt in zwei Modi laufen:
+
+| Modus | Wirkung |
+|---|---|
+| `Simulation` | Treffer werden als `simulated` im `security_log` protokolliert, Requests laufen aber weiter |
+| `Scharf` | Treffer werden aktiv blockiert |
+
+Wichtige Details:
+
+- Neue Blockregeln können direkt im Simulationsmodus angelegt werden.
+- `allow_ip`-Regeln bleiben immer sofort wirksam und unterstützen bewusst keinen Simulationsmodus.
+- Die Admin-Oberfläche zeigt eine read-only Treffervorschau für die letzten konfigurierten Stunden.
+- Das Scharfschalten erfolgt ausschließlich per CSRF-geschütztem POST im Admin – nicht per GET und nicht über Token in URLs.
+- Simulierte Treffer werden unabhängig vom allgemeinen Zugriffs-Logging geschrieben, damit die Vorschau belastbar bleibt.
+- Das bestehende Rate-Limit bleibt auch bei simulierten Regeln aktiv und unverändert wirksam.
+
 ---
 
 ## Typische Admin-Aktionen
@@ -62,6 +84,7 @@ Die aktuelle Modul-Implementierung prüft Eingaben strenger als ältere Stände,
 - Regel anlegen
 - Regel löschen
 - Regel aktivieren oder deaktivieren
+- Regel zwischen `Simulation` und `Scharf` umstellen
 - gesperrte IPs prüfen
 
 Diese Aktionen werden im aktuellen Arbeitsstand zusätzlich über den `AuditLogger` protokolliert.
@@ -75,6 +98,7 @@ Diese Aktionen werden im aktuellen Arbeitsstand zusätzlich über den `AuditLogg
 - serverseitige Validierung von IPs und Regelparametern
 - Runtime-Enforcement über `SecurityRuntimeService`
 - Rate-Limit-Ereignisse und Blockierungen in `security_log`
+- simulierte Treffer als eigener, read-only Logpfad in `security_log`
 - Allow-Regeln überspringen Blockregeln, aber nicht mehr das Rate-Limit
 - Redirect nach jeder schreibenden Aktion
 

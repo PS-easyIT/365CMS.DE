@@ -64,35 +64,71 @@ $statusLabels = [
 
         <!-- KPI-Karten -->
         <div class="row row-deck row-cards mb-4">
-            <div class="col-6 col-sm-3">
-                <div class="card">
-                    <div class="card-body p-3 text-center">
-                        <div class="text-secondary mb-1">Gesamt</div>
-                        <div class="h1 mb-0"><?= $counts['total'] ?></div>
+            <div class="col-sm-6 col-lg-3">
+                <div class="card card-sm">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-auto">
+                                <span class="bg-primary text-white avatar">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M7 4h10a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-10a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2"/><path d="M11 8h4"/><path d="M9 12h6"/><path d="M9 16h6"/></svg>
+                                </span>
+                            </div>
+                            <div class="col">
+                                <div class="font-weight-medium"><?php echo (int)($counts['total'] ?? 0); ?> Seiten</div>
+                                <div class="text-secondary">Gesamt</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
-            <div class="col-6 col-sm-3">
-                <div class="card">
-                    <div class="card-body p-3 text-center">
-                        <div class="text-secondary mb-1">Veröffentlicht</div>
-                        <div class="h1 mb-0 text-green"><?= $counts['published'] ?></div>
+            <div class="col-sm-6 col-lg-3">
+                <div class="card card-sm">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-auto">
+                                <span class="bg-success text-white avatar">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 12l5 5l10 -10"/></svg>
+                                </span>
+                            </div>
+                            <div class="col">
+                                <div class="font-weight-medium"><?php echo (int)($counts['published'] ?? 0); ?></div>
+                                <div class="text-secondary">Veröffentlicht</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
-            <div class="col-6 col-sm-3">
-                <div class="card">
-                    <div class="card-body p-3 text-center">
-                        <div class="text-secondary mb-1">Entwürfe</div>
-                        <div class="h1 mb-0 text-yellow"><?= $counts['drafts'] ?></div>
+            <div class="col-sm-6 col-lg-3">
+                <div class="card card-sm">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-auto">
+                                <span class="bg-warning text-white avatar">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 9v4"/><path d="M12 16v.01"/><path d="M5.07 19h13.86a2 2 0 0 0 1.74 -3l-6.93 -12a2 2 0 0 0 -3.48 0l-6.93 12a2 2 0 0 0 1.74 3"/></svg>
+                                </span>
+                            </div>
+                            <div class="col">
+                                <div class="font-weight-medium"><?php echo (int)($counts['drafts'] ?? 0); ?></div>
+                                <div class="text-secondary">Entwürfe</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
-            <div class="col-6 col-sm-3">
-                <div class="card">
-                    <div class="card-body p-3 text-center">
-                        <div class="text-secondary mb-1">Privat</div>
-                        <div class="h1 mb-0 text-purple"><?= $counts['private'] ?></div>
+            <div class="col-sm-6 col-lg-3">
+                <div class="card card-sm">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-auto">
+                                <span class="bg-purple text-white avatar">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><rect x="5" y="11" width="14" height="10" rx="2"/><circle cx="12" cy="16" r="1"/><path d="M8 11v-3a4 4 0 1 1 8 0v3"/></svg>
+                                </span>
+                            </div>
+                            <div class="col">
+                                <div class="font-weight-medium"><?php echo (int)($counts['private'] ?? 0); ?></div>
+                                <div class="text-secondary">Privat</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -101,30 +137,33 @@ $statusLabels = [
         <!-- Toolbar: Filter + Suche + Bulk -->
         <div class="card">
             <div class="card-header">
-                <h3 class="card-title">Alle Seiten</h3>
-                <div class="card-actions">
-                    <form method="get" action="<?= $pagesAdminBaseUrl ?>" class="d-flex gap-2 js-pages-filter-form">
-                        <select name="status" class="form-select form-select-sm js-pages-filter-submit" style="width: auto;">
+                <div class="row w-100 g-2 align-items-center">
+                    <div class="col-auto">
+                        <select name="status" form="pagesFilterForm" class="form-select form-select-sm js-pages-filter-submit">
                             <option value="">Alle Status</option>
                             <option value="published"<?= $filter === 'published' ? ' selected' : '' ?>>Veröffentlicht</option>
-                            <option value="draft"<?= $filter === 'draft' ? ' selected' : '' ?>>Entwürfe</option>
+                            <option value="draft"<?= $filter === 'draft' ? ' selected' : '' ?>>Entwurf</option>
                             <option value="private"<?= $filter === 'private' ? ' selected' : '' ?>>Privat</option>
                         </select>
-                        <select name="category" class="form-select form-select-sm js-pages-filter-submit" style="width: auto;">
+                    </div>
+                    <div class="col-auto">
+                        <select name="category" form="pagesFilterForm" class="form-select form-select-sm js-pages-filter-submit">
                             <option value="0">Alle Kategorien</option>
                             <?php foreach ($categories as $category): ?>
                                 <option value="<?= (int)($category['id'] ?? 0) ?>"<?= $catFilter === (int)($category['id'] ?? 0) ? ' selected' : '' ?>><?= htmlspecialchars((string)($category['option_label'] ?? $category['name'] ?? '')) ?></option>
                             <?php endforeach; ?>
                         </select>
-                        <div class="input-group input-group-sm" style="width: 220px;">
-                            <input type="text" name="q" class="form-control" placeholder="Suchen…"
-                                   value="<?= htmlspecialchars($search) ?>">
-                            <button type="submit" class="btn btn-icon btn-sm">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0"/><path d="M21 21l-6 -6"/></svg>
-                            </button>
+                    </div>
+                    <div class="col-auto ms-auto">
+                        <div class="input-icon">
+                            <span class="input-icon-addon">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><circle cx="10" cy="10" r="7"/><path d="M21 21l-6 -6"/></svg>
+                            </span>
+                            <input type="text" name="q" form="pagesFilterForm" class="form-control form-control-sm" placeholder="Suchen…" value="<?= htmlspecialchars($search) ?>">
                         </div>
-                    </form>
+                    </div>
                 </div>
+                <form method="get" action="<?= $pagesAdminBaseUrl ?>" id="pagesFilterForm" class="js-pages-filter-form"></form>
             </div>
 
             <div class="card-body border-bottom py-2 d-none" id="bulkBarPages">
@@ -230,8 +269,20 @@ $statusLabels = [
                                 </td>
                                 <td><?= htmlspecialchars($pageAuthor !== '' ? $pageAuthor : '–') ?></td>
                                 <td class="text-secondary"><?= htmlspecialchars($pageUpdatedAtLabel !== '' ? $pageUpdatedAtLabel : '–') ?></td>
-                                <td>
-                                    <a href="<?= $pagesAdminBaseUrl ?>?action=edit&id=<?= $pageId ?>" class="btn btn-sm btn-outline-primary">Bearbeiten</a>
+                                <td class="table-actions">
+                                    <div class="table-row-actions table-row-actions--icons">
+                                        <a href="<?= $pagesAdminBaseUrl ?>?action=edit&id=<?= $pageId ?>" class="btn btn-outline-primary btn-sm btn-icon" aria-label="Seite bearbeiten" title="Bearbeiten">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M7 7h10v10H7z" opacity="0"/><path d="M16.474 5.408a2.077 2.077 0 1 1 2.937 2.937l-9.19 9.19a6 6 0 0 1 -2.52 1.51l-2.093 .698l.698 -2.093a6 6 0 0 1 1.51 -2.52z"/><path d="M14.474 7.408l2.118 2.118"/></svg>
+                                        </a>
+                                        <form method="post" action="<?= $pagesAdminBaseUrl ?>" class="d-inline">
+                                            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8') ?>">
+                                            <input type="hidden" name="action" value="delete">
+                                            <input type="hidden" name="id" value="<?= $pageId ?>">
+                                            <button type="button" class="btn btn-ghost-danger btn-sm btn-icon" aria-label="Seite löschen" title="Löschen" onclick="cmsConfirm({title:'Seite löschen?',message:'Diese Seite wird unwiderruflich gelöscht.',confirmText:'Löschen',confirmClass:'btn-danger',onConfirm:()=>this.closest('form').submit()})">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 7l16 0"/><path d="M10 11l0 6"/><path d="M14 11l0 6"/><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12"/><path d="M9 7l1 -3h4l1 3"/></svg>
+                                            </button>
+                                        </form>
+                                    </div>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -253,6 +304,16 @@ document.addEventListener('DOMContentLoaded', function () {
     var bulkCategory = document.getElementById('bulkCategoryPages');
     var selectedCount = document.getElementById('selectedCountPages');
     var bulkSubmit = document.getElementById('bulkSubmitPages');
+    var filterForm = document.getElementById('pagesFilterForm');
+    var filterInputs = Array.prototype.slice.call(document.querySelectorAll('.js-pages-filter-submit'));
+
+    filterInputs.forEach(function (input) {
+        input.addEventListener('change', function () {
+            if (filterForm) {
+                filterForm.requestSubmit ? filterForm.requestSubmit() : filterForm.submit();
+            }
+        });
+    });
 
     function bulkSubmitMeta(action) {
         switch (action) {

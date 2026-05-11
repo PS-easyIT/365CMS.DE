@@ -18,6 +18,8 @@ final class SecurityRuntimeService
     private const DEFAULT_RATE_LIMIT = 60;
     private const DEFAULT_RATE_WINDOW = 60;
     private const DEFAULT_BLOCK_DURATION = 3600;
+    private const RULE_MODE_ENFORCE = 'enforce';
+    private const RULE_MODE_SIMULATE = 'simulate';
 
     private static ?self $instance = null;
 
@@ -48,12 +50,14 @@ final class SecurityRuntimeService
             "CREATE TABLE IF NOT EXISTS {$this->prefix}firewall_rules (
                 id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 rule_type   VARCHAR(20) NOT NULL DEFAULT 'block_ip',
+                rule_mode   VARCHAR(20) NOT NULL DEFAULT 'enforce',
                 value       VARCHAR(255) NOT NULL,
                 reason      VARCHAR(255) DEFAULT NULL,
                 is_active   TINYINT(1) NOT NULL DEFAULT 1,
                 expires_at  DATETIME DEFAULT NULL,
                 created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 INDEX idx_type  (rule_type),
+                INDEX idx_mode  (rule_mode),
                 INDEX idx_value (value)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
         );
@@ -73,6 +77,12 @@ final class SecurityRuntimeService
                 INDEX idx_ip (ip_address),
                 INDEX idx_created (created_at)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+        );
+
+        $this->ensureColumn(
+            $this->prefix . 'firewall_rules',
+            'rule_mode',
+            "ALTER TABLE {$this->prefix}firewall_rules ADD COLUMN rule_mode VARCHAR(20) NOT NULL DEFAULT 'enforce' AFTER rule_type"
         );
     }
 
@@ -96,13 +106,32 @@ final class SecurityRuntimeService
             $decision = $this->evaluateRules($ip, $userAgent);
 
             if ($decision['decision'] === 'block') {
-                $this->denyRequest($ip, $uri, $userAgent, $decision['rule'], 'Firewall-Regel blockiert den Request.');
+                $this->denyRequest($ip, $uri, $userAgent, $decision['rule'], 'Firewall-Regel blockiert den Request.', 403, 0, [
+                    'source' => 'firewall_rule',
+                    'rule_id' => $decision['rule_id'],
+                    'rule_type' => $decision['rule_type'],
+                    'rule_mode' => $decision['rule_mode'],
+                ]);
+            }
+
+            if ($decision['decision'] === 'simulate') {
+                $this->logSecurityEvent('simulated', $ip, $uri, $userAgent, $decision['rule'], [
+                    'source' => 'simulate_rule',
+                    'rule_id' => $decision['rule_id'],
+                    'rule_type' => $decision['rule_type'],
+                    'rule_mode' => $decision['rule_mode'],
+                ]);
             }
 
             $this->enforceRateLimit($settings, $ip, $uri, $userAgent);
 
             if ($decision['decision'] === 'allow' && ($settings['firewall_log_enabled'] ?? '0') === '1') {
-                $this->logSecurityEvent('allowed', $ip, $uri, $userAgent, $decision['rule'], ['source' => 'allow_rule']);
+                $this->logSecurityEvent('allowed', $ip, $uri, $userAgent, $decision['rule'], [
+                    'source' => 'allow_rule',
+                    'rule_id' => $decision['rule_id'],
+                    'rule_type' => $decision['rule_type'],
+                    'rule_mode' => $decision['rule_mode'],
+                ]);
             }
         } catch (\Throwable $e) {
             Logger::instance()->withChannel('security.runtime')->warning('Firewall-Runtime-Prüfung fehlgeschlagen.', [
@@ -145,11 +174,11 @@ final class SecurityRuntimeService
         return $settings;
     }
 
-    /** @return array{decision:string,rule:string} */
+        /** @return array{decision:string,rule:string,rule_id:int,rule_type:string,rule_mode:string} */
     private function evaluateRules(string $ip, string $userAgent): array
     {
         $rows = $this->db->get_results(
-            "SELECT rule_type, value
+                        "SELECT id, rule_type, rule_mode, value
              FROM {$this->prefix}firewall_rules
              WHERE is_active = 1
                AND (expires_at IS NULL OR expires_at > NOW())
@@ -160,34 +189,39 @@ final class SecurityRuntimeService
         $country = strtoupper($this->sanitizeLogText((string)($_SERVER['HTTP_CF_IPCOUNTRY'] ?? $_SERVER['HTTP_X_APPENGINE_COUNTRY'] ?? ''), 2));
 
         foreach ($rows as $row) {
+            $ruleId = (int)($row->id ?? 0);
             $type = (string)($row->rule_type ?? '');
+            $mode = $this->normalizeRuleMode((string)($row->rule_mode ?? self::RULE_MODE_ENFORCE), $type);
             $value = trim((string)($row->value ?? ''));
             if ($value === '') {
                 continue;
             }
 
+            $decision = $mode === self::RULE_MODE_SIMULATE ? 'simulate' : 'block';
+            $ruleMatchKey = $this->buildRuleMatchKey($ruleId);
+
             if ($type === 'allow_ip' && hash_equals($value, $ip)) {
-                return ['decision' => 'allow', 'rule' => 'allow_ip:' . $value];
+                return ['decision' => 'allow', 'rule' => $ruleMatchKey, 'rule_id' => $ruleId, 'rule_type' => $type, 'rule_mode' => self::RULE_MODE_ENFORCE];
             }
 
             if ($type === 'block_ip' && hash_equals($value, $ip)) {
-                return ['decision' => 'block', 'rule' => 'block_ip:' . $value];
+                return ['decision' => $decision, 'rule' => $ruleMatchKey, 'rule_id' => $ruleId, 'rule_type' => $type, 'rule_mode' => $mode];
             }
 
             if ($type === 'block_range' && $this->ipMatchesCidr($ip, $value)) {
-                return ['decision' => 'block', 'rule' => 'block_range:' . $value];
+                return ['decision' => $decision, 'rule' => $ruleMatchKey, 'rule_id' => $ruleId, 'rule_type' => $type, 'rule_mode' => $mode];
             }
 
             if ($type === 'block_ua' && $userAgent !== '' && stripos($userAgent, $value) !== false) {
-                return ['decision' => 'block', 'rule' => 'block_ua:' . $this->sanitizeLogText($value, 80)];
+                return ['decision' => $decision, 'rule' => $ruleMatchKey, 'rule_id' => $ruleId, 'rule_type' => $type, 'rule_mode' => $mode];
             }
 
             if ($type === 'block_country' && $country !== '' && hash_equals(strtoupper($value), $country)) {
-                return ['decision' => 'block', 'rule' => 'block_country:' . $country];
+                return ['decision' => $decision, 'rule' => $ruleMatchKey, 'rule_id' => $ruleId, 'rule_type' => $type, 'rule_mode' => $mode];
             }
         }
 
-        return ['decision' => 'none', 'rule' => ''];
+        return ['decision' => 'none', 'rule' => '', 'rule_id' => 0, 'rule_type' => '', 'rule_mode' => ''];
     }
 
     private function enforceRateLimit(array $settings, string $ip, string $uri, string $userAgent): void
@@ -222,8 +256,8 @@ final class SecurityRuntimeService
         }
 
         $exists = (int)($this->db->get_var(
-            "SELECT COUNT(*) FROM {$this->prefix}firewall_rules WHERE rule_type = 'block_ip' AND value = ? AND is_active = 1",
-            [$ip]
+            "SELECT COUNT(*) FROM {$this->prefix}firewall_rules WHERE rule_type = 'block_ip' AND value = ? AND is_active = 1 AND (rule_mode IS NULL OR rule_mode = ?)",
+            [$ip, self::RULE_MODE_ENFORCE]
         ) ?? 0);
         if ($exists > 0) {
             return;
@@ -231,6 +265,7 @@ final class SecurityRuntimeService
 
         $this->db->insert('firewall_rules', [
             'rule_type' => 'block_ip',
+            'rule_mode' => self::RULE_MODE_ENFORCE,
             'value' => $ip,
             'reason' => 'Automatisches Rate-Limit',
             'is_active' => 1,
@@ -253,10 +288,12 @@ final class SecurityRuntimeService
         );
     }
 
-    private function denyRequest(string $ip, string $uri, string $userAgent, string $rule, string $message, int $status = 403, int $retryAfter = 0): never
+    /** @param array<string,mixed> $extra */
+    private function denyRequest(string $ip, string $uri, string $userAgent, string $rule, string $message, int $status = 403, int $retryAfter = 0, array $extra = []): never
     {
         $action = $status === 429 ? 'rate_limited' : 'blocked';
-        $this->logSecurityEvent($action, $ip, $uri, $userAgent, $rule, ['status' => $status]);
+        $extra['status'] = $status;
+        $this->logSecurityEvent($action, $ip, $uri, $userAgent, $rule, $extra);
         AuditLogger::instance()->log(
             AuditLogger::CAT_SECURITY,
             'firewall.request.' . $action,
@@ -352,5 +389,29 @@ final class SecurityRuntimeService
         $mask = (~((1 << (8 - $remainingBits)) - 1)) & 0xFF;
 
         return (ord($ipBin[$fullBytes]) & $mask) === (ord($rangeBin[$fullBytes]) & $mask);
+    }
+
+    private function buildRuleMatchKey(int $ruleId): string
+    {
+        return $ruleId > 0 ? 'rule#' . $ruleId : '';
+    }
+
+    private function normalizeRuleMode(string $mode, string $type): string
+    {
+        if ($type === 'allow_ip') {
+            return self::RULE_MODE_ENFORCE;
+        }
+
+        return $mode === self::RULE_MODE_SIMULATE ? self::RULE_MODE_SIMULATE : self::RULE_MODE_ENFORCE;
+    }
+
+    private function ensureColumn(string $table, string $column, string $alterSql): void
+    {
+        $exists = $this->db->get_var("SHOW COLUMNS FROM {$table} LIKE '{$column}'") !== null;
+        if ($exists) {
+            return;
+        }
+
+        $this->db->getPdo()->exec($alterSql);
     }
 }

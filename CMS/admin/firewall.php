@@ -18,6 +18,7 @@ const CMS_ADMIN_FIREWALL_ALLOWED_ACTIONS = [
     'add_rule',
     'delete_rule',
     'toggle_rule',
+    'set_rule_mode',
 ];
 
 const CMS_ADMIN_FIREWALL_ACTION_CAPABILITIES = [
@@ -25,6 +26,7 @@ const CMS_ADMIN_FIREWALL_ACTION_CAPABILITIES = [
     'add_rule' => 'manage_settings',
     'delete_rule' => 'manage_settings',
     'toggle_rule' => 'manage_settings',
+    'set_rule_mode' => 'manage_settings',
 ];
 
 function cms_admin_firewall_normalize_action(mixed $action): string
@@ -58,6 +60,7 @@ function cms_admin_firewall_handle_action(FirewallModule $module, string $action
         'add_rule' => $module->addRule($post),
         'delete_rule' => $module->deleteRule(cms_admin_firewall_normalize_positive_id($post['id'] ?? 0)),
         'toggle_rule' => $module->toggleRule(cms_admin_firewall_normalize_positive_id($post['id'] ?? 0)),
+        'set_rule_mode' => $module->setRuleMode(cms_admin_firewall_normalize_positive_id($post['id'] ?? 0), (string)($post['target_mode'] ?? '')),
         default => ['success' => false, 'error' => 'Firewall-Aktion konnte nicht verarbeitet werden.'],
     };
 }
@@ -89,7 +92,7 @@ $sectionPageConfig = [
             return ['success' => false, 'error' => 'Keine Berechtigung für diese Firewall-Aktion.'];
         }
 
-        if (in_array($action, ['delete_rule', 'toggle_rule'], true) && cms_admin_firewall_normalize_positive_id($post['id'] ?? 0) <= 0) {
+        if (in_array($action, ['delete_rule', 'toggle_rule', 'set_rule_mode'], true) && cms_admin_firewall_normalize_positive_id($post['id'] ?? 0) <= 0) {
             return ['success' => false, 'error' => 'Ungültige Firewall-Regel-ID.'];
         }
 

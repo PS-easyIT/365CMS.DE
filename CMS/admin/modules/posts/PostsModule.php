@@ -408,7 +408,7 @@ class PostsModule
         $whereClause = $where ? 'WHERE ' . implode(' AND ', $where) : '';
 
         $posts = $this->db->get_results(
-            "SELECT p.id, p.title, p.slug, p.status, p.category_id, p.created_at, p.updated_at,
+                "SELECT p.id, p.title, p.title_en, p.slug, p.slug_en, p.status, p.category_id, p.published_at, p.created_at, p.updated_at,
                     u.display_name AS author,
                     c.name AS category_name
              FROM {$this->prefix}posts p

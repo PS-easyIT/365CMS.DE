@@ -37,10 +37,17 @@ $statusBadge = ['ok' => 'bg-success', 'warning' => 'bg-warning', 'critical' => '
     ?>
 <?php endif; ?>
 
+<div class="security-page-intro">
+    <div class="security-page-intro__text">
+        <p class="security-page-intro__title">Sicherheitszustand schnell erfassen und sauber nachverfolgen</p>
+        <p class="security-page-intro__copy">Das Sicherheits-Audit bündelt die wichtigsten Prüfungen in einer kompakten Übersicht. Darunter bleibt das Audit-Log read-only und nachvollziehbar, ohne Rohdaten unnötig aufzublähen.</p>
+    </div>
+</div>
+
 <!-- KPI-Karten -->
 <div class="row row-deck row-cards mb-4">
     <div class="col-sm-6 col-lg-3">
-        <div class="card">
+        <div class="card security-kpi-card">
             <div class="card-body">
                 <div class="subheader">Prüfungen gesamt</div>
                 <div class="h1 mb-0"><?php echo (int)($stats['total'] ?? 0); ?></div>
@@ -48,7 +55,7 @@ $statusBadge = ['ok' => 'bg-success', 'warning' => 'bg-warning', 'critical' => '
         </div>
     </div>
     <div class="col-sm-6 col-lg-3">
-        <div class="card">
+        <div class="card security-kpi-card is-success">
             <div class="card-body">
                 <div class="subheader">Bestanden</div>
                 <div class="h1 mb-0 text-success"><?php echo (int)($stats['passed'] ?? 0); ?></div>
@@ -56,7 +63,7 @@ $statusBadge = ['ok' => 'bg-success', 'warning' => 'bg-warning', 'critical' => '
         </div>
     </div>
     <div class="col-sm-6 col-lg-3">
-        <div class="card">
+        <div class="card security-kpi-card is-warning">
             <div class="card-body">
                 <div class="subheader">Warnungen</div>
                 <div class="h1 mb-0 text-warning"><?php echo (int)($stats['warning'] ?? 0); ?></div>
@@ -64,7 +71,7 @@ $statusBadge = ['ok' => 'bg-success', 'warning' => 'bg-warning', 'critical' => '
         </div>
     </div>
     <div class="col-sm-6 col-lg-3">
-        <div class="card">
+        <div class="card security-kpi-card is-danger">
             <div class="card-body">
                 <div class="subheader">Kritisch</div>
                 <div class="h1 mb-0 text-danger"><?php echo (int)($stats['critical'] ?? 0); ?></div>
@@ -74,7 +81,7 @@ $statusBadge = ['ok' => 'bg-success', 'warning' => 'bg-warning', 'critical' => '
 </div>
 
 <!-- Aktionen -->
-<div class="d-flex gap-2 mb-4">
+<div class="security-action-bar">
     <form method="post">
         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>">
         <input type="hidden" name="action" value="run_audit">
@@ -88,12 +95,16 @@ $statusBadge = ['ok' => 'bg-success', 'warning' => 'bg-warning', 'critical' => '
 </div>
 
 <!-- Sicherheitsprüfungen -->
-<div class="card mb-4">
+<div class="card security-panel-card mb-4">
     <div class="card-header">
-        <h3 class="card-title">Sicherheitsprüfungen</h3>
+        <div class="card-title-wrap">
+            <p class="card-eyebrow">Checks</p>
+            <h3 class="card-title">Sicherheitsprüfungen</h3>
+            <div class="card-title-meta">Kritische, warnende und bestandene Prüfungen in einer kompakten Matrix.</div>
+        </div>
     </div>
-    <div class="table-responsive">
-        <table class="table table-vcenter card-table">
+    <div class="table-responsive security-table-wrap">
+        <table class="table table-vcenter card-table security-table-modern">
             <thead>
                 <tr>
                     <th style="width:40px"></th>
@@ -118,12 +129,16 @@ $statusBadge = ['ok' => 'bg-success', 'warning' => 'bg-warning', 'critical' => '
 
 <!-- Audit-Log -->
 <?php if (!empty($auditLog)): ?>
-<div class="card">
+<div class="card security-panel-card">
     <div class="card-header">
-        <h3 class="card-title">Audit-Log (letzte 50 Einträge)</h3>
+        <div class="card-title-wrap">
+            <p class="card-eyebrow">Historie</p>
+            <h3 class="card-title">Audit-Log (letzte 50 Einträge)</h3>
+            <div class="card-title-meta">Read-only Verlauf sicherheitsrelevanter Änderungen und Ereignisse.</div>
+        </div>
     </div>
-    <div class="table-responsive">
-        <table class="table table-vcenter card-table table-striped">
+    <div class="table-responsive security-table-wrap">
+        <table class="table table-vcenter card-table table-striped security-table-modern">
             <thead>
                 <tr>
                     <th>Datum</th>
@@ -156,7 +171,7 @@ $statusBadge = ['ok' => 'bg-success', 'warning' => 'bg-warning', 'critical' => '
     </div>
 </div>
 <?php else: ?>
-<div class="card">
+<div class="card security-panel-card">
     <div class="card-body text-center text-muted">
         <p>Kein Audit-Log vorhanden. Log-Einträge werden automatisch bei sicherheitsrelevanten Ereignissen erstellt.</p>
     </div>

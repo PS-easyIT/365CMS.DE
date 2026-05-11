@@ -433,7 +433,7 @@ function cms_admin_posts_view_config(object $module, string $view, ?array $overr
                         name: '',
                         sort: false,
                         formatter: function(cell){
-                            return gridjs.html('<a href=\"/admin/posts?action=edit&id=' + encodeURIComponent(cell) + '\" class=\"btn btn-ghost-primary btn-icon btn-sm\" title=\"Bearbeiten\">✎</a>');
+                            return gridjs.html(window.cmsPostsBuildRowActions ? window.cmsPostsBuildRowActions(cell) : '<a href=\"/admin/posts?action=edit&id=' + encodeURIComponent(cell) + '\" class=\"btn btn-outline-primary btn-sm\">Bearbeiten</a>');
                         }
                     }
                 ]
@@ -450,18 +450,9 @@ function cms_admin_posts_view_config(object $module, string $view, ?array $overr
         'view_file' => __DIR__ . '/views/posts/list.php',
         'page_title' => 'Beiträge',
         'active_page' => 'posts',
-        'page_assets' => [
-            'css' => [
-                cms_asset_url('gridjs/mermaid.min.css'),
-            ],
-            'js' => [
-                cms_asset_url('gridjs/gridjs.umd.js'),
-                cms_asset_url('js/gridjs-init.js'),
-            ],
-        ],
+        'page_assets' => [],
         'template_vars' => $baseTemplateVars + [
             'listData' => $listData,
-            'inlineJs' => $inlineJs,
         ],
         'data' => $listData,
     ];

@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.9.760",
+  "version": "2.9.762",
   "min_php": "8.4",
   "released": "2026-05-11",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 2.9.760: /admin ergänzt eine Pflichtseiten-Prüfung für Impressum, Datenschutzerklärung und Cookie-Hinweis direkt im Dashboard mit Deep-Link zu Legal Sites. Parallel akzeptiert die gemeinsame Admin-Section-Shell jetzt auch modulare Array-Container wie bei /admin/data-requests, sodass Auskunft & Löschen wieder korrekt laden, und der Admin-Hintergrund wurde dezent auf einen etwas dunkleren neutralen Grauton zurückgeführt – ohne neue GET-Mutationen, Token-URLs oder 500-anfällige Sonderpfade.",
+  "notes": "Release-Stand 2.9.762: Die zentrale Admin-Oberfläche wurde visuell neu austariert. Der Seitenhintergrund ist jetzt spürbar heller, läuft mit einem dezenten Verlauf von leicht dunkler oben zu heller unten und alle zentralen Oberflächen – Karten, Tabellen, Buttons, Auswahlzustände, Eingaben, Switches und Checkboxes – greifen auf ein harmonisiertes, Tabler-nahes Surface-System mit sanfteren Kontrasten zurück. Die Änderung bleibt reines CSS ohne neue Mutationspfade, Tokens in URLs oder zusätzliche 500-Risiken.",
   "critical": false
 }

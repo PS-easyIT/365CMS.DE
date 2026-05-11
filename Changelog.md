@@ -1,4 +1,4 @@
-﻿﻿**Version:** 2.9.760
+﻿﻿**Version:** 2.9.762
 
 # 365CMS Changelog
 
@@ -19,6 +19,18 @@
 ## 📜 Vollständige Versionshistorie
 
 ---
+
+### v2.9.762 — 11. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.762** | 🎨 style | Admin/UI – hellere Surface-Hierarchie & harmonisierte Controls | **`CMS/assets/css/admin-tabler.css`, `CMS/core/Version.php`, `CMS/update.json`, `README.md` und `Changelog.md` verfeinern die zentrale Admin-Oberfläche gestalterisch auf Basis der aktuellen Tabler-Empfehlungen für lichte Layouts, klare Surface-Trennung und subtile Interaktionszustände**: Der allgemeine Admin-Hintergrund ist nun rund 20 % heller abgestimmt und läuft mit einem sanften Verlauf von leicht dunkler oben zu heller unten. Gleichzeitig wurden Karten, Tabellen, Headerflächen, GridJS-Listen, Buttons, Auswahlzustände, Formfelder, Selects, Switches und Checkboxen auf ein gemeinsames, dezentes Surface-System mit weicheren Borders, zurückhaltenderen Hover-/Focus-States und konsistenteren Sekundärfarben umgestellt. Die Änderung bleibt bewusst reines CSS ohne neue GET-Mutationen, ohne Tokens in URLs und ohne zusätzliche 500-anfällige Laufzeitpfade. |
+
+### v2.9.761 — 11. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.761** | 🟢 feat | Admin/Sicherheit – Firewall-Simulationsmodus | **`CMS/core/Services/SecurityRuntimeService.php`, `CMS/admin/modules/security/FirewallModule.php`, `CMS/admin/firewall.php`, `CMS/admin/views/security/firewall.php`, `CMS/core/SchemaManager.php`, `CMS/DOC/admin/security/FIREWALL.md`, `CMS/DOC/audit/NiceToHave-CHECKLISTE.md`, `CMS/core/Version.php`, `CMS/update.json`, `README.md` und `Changelog.md` schließen das nächste Sicherheits-Nice-to-have ab**: Neue Firewall-Blockregeln können jetzt zunächst in einem echten Runtime-Simulationsmodus laufen. Treffer werden im bestehenden `security_log` als `simulated` protokolliert, Requests aber bewusst noch nicht blockiert. `/admin/firewall` ergänzt dafür einen Regelmodus, eine read-only Treffervorschau über ein konfigurierbares Stundenfenster sowie einen expliziten, CSRF-geschützten POST-Pfad zum Scharfschalten oder Zurückschalten auf reine Simulation. `allow_ip`-Regeln bleiben weiterhin sofort wirksam, automatische Rate-Limit-Sperren behalten ihren Enforce-Vertrag und die Umsetzung vermeidet neue GET-Mutationen, Token in URLs sowie 500-anfällige harte Abhängigkeiten an Vorschau- oder Alt-Schemadaten. |
 
 ### v2.9.760 — 11. Mai 2026
 
