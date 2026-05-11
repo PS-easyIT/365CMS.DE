@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.9.759",
+  "version": "2.9.760",
   "min_php": "8.4",
   "released": "2026-05-11",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 2.9.759: /admin/data-requests ergänzt einen DSGVO-Fristen- und Bearbeitungsstatus-Workflow für Auskunfts- und Löschanfragen. Offene Vorgänge erhalten eine berechnete 30-Tage-Pflichtfrist, Warnungen im 7-Tage-Fenster, Überfällig-Markierung und eine CSRF-geschützte Admin-Mail-Eskalation über die bestehende Mail-Queue – ohne GET-Mutationen, Token-URLs oder neue 500-anfällige Pflichtmigrationen.",
+  "notes": "Release-Stand 2.9.760: /admin ergänzt eine Pflichtseiten-Prüfung für Impressum, Datenschutzerklärung und Cookie-Hinweis direkt im Dashboard mit Deep-Link zu Legal Sites. Parallel akzeptiert die gemeinsame Admin-Section-Shell jetzt auch modulare Array-Container wie bei /admin/data-requests, sodass Auskunft & Löschen wieder korrekt laden, und der Admin-Hintergrund wurde dezent auf einen etwas dunkleren neutralen Grauton zurückgeführt – ohne neue GET-Mutationen, Token-URLs oder 500-anfällige Sonderpfade.",
   "critical": false
 }

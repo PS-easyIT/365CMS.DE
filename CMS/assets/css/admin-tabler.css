@@ -30,7 +30,7 @@
     --cms-sidebar-width:        260px;
 
     /* Admin surfaces */
-    --cms-admin-page-bg:        #e8eef6;
+    --cms-admin-page-bg:        #dde3ea;
     --cms-admin-card-bg:        rgb(248, 250, 253);
 
     --tblr-body-bg:             var(--cms-admin-page-bg);

@@ -199,6 +199,11 @@ function cms_admin_section_shell_apply_runtime_context(array $runtimeContext, st
     }
 }
 
+function cms_admin_section_shell_has_valid_module_container(mixed $module): bool
+{
+    return is_object($module) || is_array($module);
+}
+
 function cms_admin_section_shell_render_bootstrap_failure(string $pageTitle, string $activePage, array $pageAssets, string $message): never
 {
     http_response_code(500);
@@ -285,8 +290,8 @@ try {
     cms_admin_section_shell_render_bootstrap_failure($pageTitle, $activePage, $pageAssets, $bootstrapFailureMessage);
 }
 
-if (!is_object($module)) {
-    Logger::instance()->withChannel('admin.section_shell')->error('Admin-Sektion lieferte kein gültiges Modul-Objekt.', [
+if (!cms_admin_section_shell_has_valid_module_container($module)) {
+    Logger::instance()->withChannel('admin.section_shell')->error('Admin-Sektion lieferte kein gültiges Modul-Container-Ergebnis.', [
         'route_path' => $routePath,
         'module_file' => $moduleFile,
         'page_title' => $pageTitle,

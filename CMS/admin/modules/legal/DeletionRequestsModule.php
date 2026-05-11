@@ -183,13 +183,17 @@ class DeletionRequestsModule
             try {
                 $deleteResult = \CMS\Services\UserService::getInstance()->deleteUser((int)$request->user_id, true);
                 if ($deleteResult instanceof \CMS\WP_Error) {
-                    return ['success' => false, 'error' => $deleteResult->get_error_message()];
+                    if (class_exists('\CMS\Logger')) {
+                        \CMS\Logger::instance()->log('error', 'DSGVO-Löschung per UserService fehlgeschlagen für User ' . $request->user_id . ': ' . $deleteResult->get_error_message());
+                    }
+
+                    return ['success' => false, 'error' => 'Löschung fehlgeschlagen. Bitte Logs prüfen und den Vorgang erneut versuchen.'];
                 }
             } catch (\Throwable $e) {
                 if (class_exists('\CMS\Logger')) {
                     \CMS\Logger::instance()->log('error', 'DSGVO-Löschung fehlgeschlagen für User ' . $request->user_id . ': ' . $e->getMessage());
                 }
-                return ['success' => false, 'error' => 'Löschung fehlgeschlagen: ' . $e->getMessage()];
+                return ['success' => false, 'error' => 'Löschung fehlgeschlagen. Bitte Logs prüfen und den Vorgang erneut versuchen.'];
             }
         }
 

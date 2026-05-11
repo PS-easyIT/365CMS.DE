@@ -1,4 +1,4 @@
-﻿﻿**Version:** 2.9.759
+﻿﻿**Version:** 2.9.760
 
 # 365CMS Changelog
 
@@ -19,6 +19,12 @@
 ## 📜 Vollständige Versionshistorie
 
 ---
+
+### v2.9.760 — 11. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.760** | 🟢 feat | Admin/Dashboard – Pflichtseiten-Prüfung & Regression-Fixes | **`CMS/admin/modules/dashboard/DashboardModule.php`, `CMS/admin/partials/section-page-shell.php`, `CMS/admin/modules/legal/DeletionRequestsModule.php`, `CMS/assets/css/admin-tabler.css`, `CMS/DOC/admin/dashboard/README.md`, `CMS/DOC/admin/dashboard/DASHBOARD.md`, `CMS/DOC/audit/NiceToHave-CHECKLISTE.md`, `CMS/core/Version.php`, `CMS/update.json`, `README.md` und `Changelog.md` schließen das nächste Dashboard-Nice-to-have ab und beheben die begleitend gemeldeten Regressionen**: Das Hauptdashboard prüft jetzt read-only, ob Impressum, Datenschutzerklärung und Cookie-Hinweis korrekt vorhanden bzw. verknüpft sind, zeigt bei Lücken eine kontextuelle Warnung plus Attention-Item mit Deep-Link zu `/admin/legal-sites` und bleibt dabei rein im GET-Lesepfad ohne neue Token-URLs. Parallel akzeptiert die gemeinsame Admin-Section-Shell jetzt neben Modul-Objekten auch modulare Array-Container, sodass `/admin/data-requests` mit Privacy- und Deletion-Modul wieder korrekt initialisiert statt in die generische Bootstrap-Fehlermeldung zu laufen. Zusätzlich wurde der allgemeine Admin-Seitenhintergrund wieder leicht neutral abgedunkelt, damit Karten und Inhalte klarer hervortreten, und der DSGVO-Löschpfad zeigt im Fehlerfall keine rohen Exception-Details mehr im Admin an. |
 
 ### v2.9.759 — 11. Mai 2026
 
