@@ -83,11 +83,30 @@ $inlineJs   = $inlineJs ?? '';
      */
     function cmsConfirm(options) {
         const modal = document.getElementById('confirmModal');
+        const fallbackConfirm = function() {
+            const message = String(options && options.message ? options.message : '');
+            const confirmed = window.confirm(message !== '' ? message : 'Sind Sie sicher?');
+
+            if (confirmed && typeof options.onConfirm === 'function') {
+                options.onConfirm();
+            }
+
+            return confirmed;
+        };
+
+        if (!modal || typeof bootstrap === 'undefined' || !bootstrap || typeof bootstrap.Modal !== 'function') {
+            return fallbackConfirm();
+        }
+
         const bsModal = new bootstrap.Modal(modal);
         const titleEl = document.getElementById('confirmModalTitle');
         const msgEl = document.getElementById('confirmModalMessage');
         const btnEl = document.getElementById('confirmModalBtn');
         const statusEl = modal.querySelector('.modal-status');
+
+        if (!titleEl || !msgEl || !btnEl || !statusEl) {
+            return fallbackConfirm();
+        }
 
         titleEl.textContent = options.title || 'Sind Sie sicher?';
         msgEl.textContent = options.message || '';
@@ -108,6 +127,8 @@ $inlineJs   = $inlineJs ?? '';
         });
 
         bsModal.show();
+
+        return true;
     }
 
     /**

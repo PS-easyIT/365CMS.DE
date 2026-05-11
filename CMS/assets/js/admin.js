@@ -291,10 +291,49 @@ function initConfirmForms() {
         return;
     }
 
+    function submitConfirmedForm(form, submitter) {
+        if (!(form instanceof HTMLFormElement)) {
+            return;
+        }
+
+        if (submitter && typeof form.requestSubmit === 'function') {
+            try {
+                form.requestSubmit(submitter);
+                return;
+            } catch (error) {
+                // Fällt auf generischen Submit zurück.
+            }
+        }
+
+        if (typeof form.requestSubmit === 'function') {
+            form.requestSubmit();
+            return;
+        }
+
+        if (submitter && submitter.name) {
+            var hiddenSubmitter = document.createElement('input');
+            hiddenSubmitter.type = 'hidden';
+            hiddenSubmitter.name = submitter.name;
+            hiddenSubmitter.value = submitter.value;
+            form.appendChild(hiddenSubmitter);
+        }
+
+        form.submit();
+    }
+
     confirmForms.forEach(function(form) {
+        form.querySelectorAll('button[type="submit"], input[type="submit"]').forEach(function(submitButton) {
+            submitButton.addEventListener('click', function() {
+                form.__cmsConfirmSubmitter = submitButton;
+            });
+        });
+
         form.addEventListener('submit', function(event) {
+            var submitter = event.submitter || form.__cmsConfirmSubmitter || null;
+
             if (form.dataset.confirmAccepted === '1') {
                 form.dataset.confirmAccepted = '0';
+                form.__cmsConfirmSubmitter = submitter;
                 return;
             }
 
@@ -306,32 +345,28 @@ function initConfirmForms() {
             var confirmClass = form.dataset.confirmClass || 'btn-danger';
             var statusClass = form.dataset.confirmStatusClass || 'bg-danger';
 
-            if (typeof cmsConfirm === 'function') {
-                cmsConfirm({
-                    title: title,
-                    message: message,
-                    confirmText: confirmText,
-                    confirmClass: confirmClass,
-                    statusClass: statusClass,
-                    onConfirm: function() {
-                        form.dataset.confirmAccepted = '1';
-                        if (typeof form.requestSubmit === 'function') {
-                            form.requestSubmit();
-                            return;
+            try {
+                if (typeof cmsConfirm === 'function') {
+                    cmsConfirm({
+                        title: title,
+                        message: message,
+                        confirmText: confirmText,
+                        confirmClass: confirmClass,
+                        statusClass: statusClass,
+                        onConfirm: function() {
+                            form.dataset.confirmAccepted = '1';
+                            submitConfirmedForm(form, submitter);
                         }
-                        form.submit();
-                    }
-                });
-                return;
+                    });
+                    return;
+                }
+            } catch (error) {
+                console.warn('Bestätigungsdialog fehlgeschlagen, Fallback auf window.confirm wird verwendet.', error);
             }
 
             if (window.confirm(message)) {
                 form.dataset.confirmAccepted = '1';
-                if (typeof form.requestSubmit === 'function') {
-                    form.requestSubmit();
-                    return;
-                }
-                form.submit();
+                submitConfirmedForm(form, submitter);
             }
         });
     });

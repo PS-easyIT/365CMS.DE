@@ -11,7 +11,7 @@ const CMS_ADMIN_PERFORMANCE_SECTION_ACTIONS = [
     'overview' => [],
     'cache' => ['clear_all_cache', 'clear_file_cache', 'rollback_cache_cleanup', 'clear_opcache', 'warmup_opcache', 'save_settings', 'save_cache_settings'],
     'database' => ['optimize_database', 'repair_tables', 'rollback_database_maintenance', 'save_settings'],
-    'media' => ['convert_media_to_webp', 'save_settings', 'save_media_settings'],
+    'media' => ['convert_media_to_webp', 'rollback_webp_conversion', 'save_settings', 'save_media_settings'],
     'sessions' => ['clear_expired_sessions', 'save_settings', 'save_session_settings'],
     'settings' => ['save_settings'],
 ];

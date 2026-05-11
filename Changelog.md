@@ -1,4 +1,4 @@
-﻿﻿**Version:** 2.9.756
+﻿﻿**Version:** 2.9.757
 
 # 365CMS Changelog
 
@@ -19,6 +19,12 @@
 ## 📜 Vollständige Versionshistorie
 
 ---
+
+### v2.9.757 — 11. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.757** | 🔴 fix | Admin/Performance – tote Aktionsbuttons & Confirm-Resubmit | **`CMS/assets/js/admin.js`, `CMS/admin/partials/footer.php`, `CMS/admin/performance-page.php`, `CMS/core/Version.php`, `CMS/update.json`, `README.md` und `Changelog.md` beheben die aktuell gemeldete Performance-Regression**: Bestätigungsdialoge für Performance-Aktionen fallen jetzt fail-soft auf `window.confirm` zurück, falls die Modal-/Bootstrap-Runtime nicht verfügbar ist, statt den Submit nach `preventDefault()` wirkungslos hängen zu lassen. Zusätzlich reicht der globale Confirm-Flow beim erneuten Absenden den ursprünglichen Submitter wieder korrekt weiter, sodass buttongebundene Werte wie der WebP-Modus (`dry_run` vs. `convert`) erhalten bleiben. Parallel ist die Medien-Rollback-Aktion serverseitig wieder in der Performance-Whitelist freigeschaltet. Damit reagieren Cache-, Datenbank-, Session- und Medien-Aktionen im Performance-Center wieder verlässlich, ohne neue GET-Mutationen, Token in URLs oder 500-Risiken einzuführen; der Cron-Bereich wurde zusätzlich gegen aktuelle Web-Best-Practices geprüft und nutzt weiterhin Locking, strukturierte JSON-Antworten und direkte/Loopback-Ausführung sauber weiter. |
 
 ### v2.9.756 — 11. Mai 2026
 
