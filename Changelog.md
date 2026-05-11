@@ -25,20 +25,10 @@
 | Version | Typ | Bereich | Beschreibung |
 |---------|-----|---------|-------------|
 | **2.9.752** | 🎨 style | Admin/UI – Seitenhintergrund & Kartenkontrast | **`CMS/assets/css/admin-tabler.css`, `CMS/core/Version.php`, `CMS/update.json`, `README.md` und `Changelog.md` passen die Admin-Oberflächen visuell nach**: Der allgemeine Admin-Seitenhintergrund ist jetzt etwas dunkler und kühler abgestimmt (`--cms-admin-page-bg`), während Karten und Inhaltsboxen über einen helleren Surface-Token (`--cms-admin-card-bg`) klarer hervortreten. Body, Tabler-Page-Wrapper, Page-Body und Legacy-Inline-Admin-Content nutzen denselben zentralen Hintergrund, damit Listen-, Dashboard- und Modulansichten konsistent wirken. Die Änderung bleibt reines CSS, erzeugt keine neuen Mutationspfade, keine Token in URLs und keine Performance-Last. |
-
-### v2.9.751 — 11. Mai 2026
-
-| Version | Typ | Bereich | Beschreibung |
-|---------|-----|---------|-------------|
 | **2.9.751** | 🔴 fix | Admin/SEO & Performance – Nice-to-have-Nachprüfung | **`CMS/assets/js/admin-seo-redirects.js`, `CMS/core/Services/PerformanceSafetyNetService.php`, `CMS/core/Version.php`, `CMS/update.json`, `README.md`, `CMS/DOC/admin/seo/REDIRECTS.md`, `CMS/DOC/audit/NiceToHave-CHECKLISTE.md` und `Changelog.md` härten die Nice-to-haves ab 2.9.725 mit konkretem Fokus auf den gemeldeten 404-Monitor-Übernahmefehler nach**: Ungelöste 404-Einträge werden im Übernehmen-Dialog jetzt wieder zuverlässig als neue Redirect-Regel gespeichert, weil das gemeinsame Redirect-JavaScript im `not-found`-Modus ausschließlich eine echte `redirect_id` aus vorhandenen Redirect-Matches akzeptiert und die interne 404-Log-ID nicht mehr als Bearbeitungs-ID missversteht. Zusätzlich läuft die Dialoglogik robuster über delegierte Klick-Handler, behandelt blockierten Browser-Storage fail-soft und besitzt einen einfachen Modal-Fallback, falls die Bootstrap-Modal-API nicht global verfügbar ist. Die neue Performance-SafetyNet-Schicht bleibt auf GET-Seiten ebenfalls fail-soft, weil Rollback-Verzeichnisse erst bei Snapshot-Mutationen angelegt werden und nicht schon beim Anzeigen der Performance-Seiten Schreibrechte erzwingen. Der POST-/CSRF-Vertrag bleibt unverändert tokenfrei in URLs; es entstehen keine neuen GET-Mutationen und keine 500-anfälligen Serverpfade. |
-
-### v2.9.750 — 11. Mai 2026
-
-| Version | Typ | Bereich | Beschreibung |
-|---------|-----|---------|-------------|
 | **2.9.750** | 🟢 feat | Admin/Performance – Dry-Run & Rollback-Sicherheitsnetz | **`CMS/core/Services/PerformanceSafetyNetService.php`, `CMS/admin/modules/seo/PerformanceModule.php`, `CMS/admin/performance-page.php`, `CMS/admin/views/performance/cache.php`, `CMS/admin/views/performance/database.php`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/DOC/admin/performance/PERFORMANCE.md`, `CMS/DOC/audit/NiceToHave-CHECKLISTE.md`, `README.md` und `Changelog.md` schließen das nächste offene Performance-Nice-to-have ab**: Das Performance-Center zeigt für Cache-Purges und Datenbank-Wartung jetzt read-only Dry-Run-/Impact-Vorschauen statt nur pauschaler Warntexte. `/admin/performance-cache` beziffert vor einem Purge Datei-Cache-Menge, Snapshot-Größe sowie die betroffenen flüchtigen Runtime-Caches und legt vor Datei-/Gesamt-Purge automatisch einen zeitlich begrenzten Datei-Cache-Snapshot an, der über eine explizite Rollback-Aktion wiederhergestellt werden kann – ehrlich nur für Datei-Cache, nicht für APCu/OPcache. `/admin/performance-database` ergänzt eine enginebewusste Wartungsvorschau und erzeugt vor `OPTIMIZE TABLE` bzw. `REPAIR TABLE` automatisch ein eigenständiges Datenbank-Backup als belastbaren Rollback-Pfad; die Rücksicherung läuft kontrolliert über den bestehenden Restore-Mechanismus, der seinerseits vorab erneut einen Sicherheits-Snapshot anlegt. Der Ausbau bleibt auf POST/CSRF für Mutationen beschränkt, führt keine Token in URLs ein, hält GET-Seiten read-only und vermeidet falsche „magische Undo“-Versprechen für DB-Wartung. |
 
-### v2.9.749 — 11. Mai 2026
+### v2.9.749 — 10. Mai 2026
 
 | Version | Typ | Bereich | Beschreibung |
 |---------|-----|---------|-------------|
