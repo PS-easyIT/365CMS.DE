@@ -1,8 +1,8 @@
 # Pakete & Abo-Pläne
 
-Kurzbeschreibung: Verwaltung der Abo-Pakete mit Preisen, Limits, Feature-Flags und öffentlicher Darstellung.
+Kurzbeschreibung: Verwaltung der Abo-Pakete mit Preisen, Limits, Feature-Flags, Paketstatus und read-only Pakethistorie.
 
-Letzte Aktualisierung: 2026-04-07 · Version 2.9.0
+Letzte Aktualisierung: 2026-05-10 · Version 2.9.738
 
 ---
 
@@ -28,6 +28,7 @@ Die Übersicht zeigt alle Abo-Pläne mit:
 - Aktive Abonnenten (`subscriber_count`)
 - Featured-Markierung
 - Sortierung
+- read-only Pakethistorie unterhalb der Paketkarten
 
 ### Paket anlegen / bearbeiten
 
@@ -63,6 +64,26 @@ Jedes Paket kann granulare Features aktivieren:
 
 Beim ersten Aufruf legt `seedDefaults()` sechs Standardpakete an und markiert „Professional" als `is_featured`.
 
+### Pakethistorie
+
+Seit `2.9.738` zeigt `/admin/packages` einen begrenzten read-only Verlauf für paketbezogene Admin-Ereignisse aus dem vorhandenen `audit_log`.
+
+Darunter fallen insbesondere:
+
+- Paket erstellt
+- Paket aktualisiert
+- Paket aktiviert / deaktiviert
+- Paket gelöscht
+- Standardpakete ergänzt
+
+Der Verlauf bleibt bewusst defensiv:
+
+- keine neue Schreibroute
+- keine rohen Audit-Metadaten im UI
+- keine Token- oder Secret-Ausgabe
+- fail-soft bei nicht lesbarem Audit-Log
+- neue Paket-Audit-Einträge setzen zusätzlich die Paket-ID als `entity_id`, damit die Zuordnung robuster bleibt
+
 ---
 
 ## Aktionen
@@ -72,12 +93,15 @@ Beim ersten Aufruf legt `seedDefaults()` sechs Standardpakete an und markiert �
 | Paket erstellen/bearbeiten | `save(array $post)` |
 | Paket löschen | `delete(int $id)` |
 | Status umschalten | `toggleStatus(int $id)` |
+| Historie lesen | `getData()` → `package_history` |
 
 ---
 
 ## Migration
 
 `ensurePlanColumns()` prüft beim Laden, ob die Spalte `is_featured` in `subscription_plans` existiert und legt sie bei Bedarf an.
+
+Für die Pakethistorie wird keine neue Tabelle eingeführt. Die Anzeige nutzt das bestehende `audit_log`.
 
 ---
 

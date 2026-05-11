@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Übersicht über die aktuell produktiven Theme-, Design- und Frontend-Werkzeuge im Admin-Bereich – inklusive der Core-eigenen CMS Loginpage.
 
-Letzte Aktualisierung: 2026-05-09 · Version 2.9.622
+Letzte Aktualisierung: 2026-05-10 · Version 2.9.739
 
 ---
 
@@ -57,8 +57,8 @@ Ergänzend existieren weitere themennahe Admin-Pfade:
 ### Font Manager
 
 - Route: `/admin/font-manager`
-- Zweck: Theme-Fonts scannen, Google-Fonts lokal spiegeln, Font-Zuordnungen speichern und lokales Frontend-Hosting aktivieren.
-- Laufzeitvertrag: Remote-Downloads nur von freigegebenen Hosts, lokale Ablage in `/uploads/fonts`, Scan-/Download-Limits und Audit-Logging.
+- Zweck: Theme-Fonts scannen, Google-Fonts lokal spiegeln, Font-Zuordnungen speichern, lokales Frontend-Hosting aktivieren und die aktuelle Font-Nutzung read-only analysieren.
+- Laufzeitvertrag: Remote-Downloads nur von freigegebenen Hosts, lokale Ablage in `/uploads/fonts`, Scan-/Download-Limits, Asset-Prüfung, Runtime-Zuordnungen für Heading/Body und Audit-Logging.
 
 ### Menü-Editor
 
@@ -93,7 +93,7 @@ Wichtig: Der Theme-Editor ist **kein** generischer Code-Editor. Für Dateibearbe
 - Theme-Marketplace arbeitet mit HTTPS-Quellen, Host-Allowlist, ZIP-only, SHA-256-Prüfung, Paketgrößenlimits und Install-Locks.
 - Theme-Explorer begrenzt Pfade, Dateitypen, Baumtiefe und Browser-Dateigrößen und speichert nur atomisch mit Hash-Prüfung.
 - Theme-Editor validiert `admin/customizer.php` vor dem Einbinden auf Pfad, Größe, Syntax, Binärinhalte und unsichere Funktionsaufrufe.
-- Font Manager scannt und löscht Font-Assets kontrolliert und priorisiert lokale Fonts optional vor externen Fallbacks.
+- Font Manager scannt und löscht Font-Assets kontrolliert, priorisiert lokale Fonts optional vor externen Fallbacks und zeigt read-only an, welche Fonts aktiv, extern, lokal vorhanden oder aktuell ungenutzt sind.
 - CMS Loginpage speichert ihre Werte serverseitig validiert und schützt Reset- und Login-Flows mit Core-CSRF sowie Rate-Limits auf Passwort-Reset-Aktionen.
 - Landing-Page-Plugins failen geschlossen: nur registrierte, renderbare Plugins können pro Bereich aktiviert werden; das Default-Theme rendert diese Overrides anschließend tatsächlich in Header, Content oder Footer.
 

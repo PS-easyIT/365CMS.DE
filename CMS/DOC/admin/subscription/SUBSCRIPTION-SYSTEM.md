@@ -1,8 +1,8 @@
 ﻿# Abo-System
 
-Kurzbeschreibung: Überblick über die aktuelle Aboarchitektur mit Paketen, Limits, Zuweisungen, Exporten und dem Member-Bezug.
+Kurzbeschreibung: Überblick über die aktuelle Aboarchitektur mit Paketen, Limits, Zuweisungen, Exporten, Historie und dem Member-Bezug.
 
-Letzte Aktualisierung: 2026-05-10 · Version 2.9.737
+Letzte Aktualisierung: 2026-05-10 · Version 2.9.738
 
 ---
 
@@ -120,6 +120,20 @@ Der Vertrag bleibt bewusst defensiv:
 - fail-softe Begrenzung großer Exportmengen statt unkontrolliert langer Requests
 - datensparsame Audit-Einträge ohne unnötige Export-Payloads im Log
 
+### Historienvertrag seit 2.9.738
+
+Die Aboverwaltung zeigt jetzt zusätzlich begrenzte read-only Historien auf Basis des vorhandenen `audit_log`:
+
+- `/admin/orders` für sichtbare Bestellungen, Paketzuweisungen und Exporte
+- `/admin/packages` für paketbezogene Änderungsereignisse
+
+Der Vertrag bleibt bewusst konservativ:
+
+- keine neue Mutation oder Spezialroute nur für Historie
+- Ausgabe nur als begrenzter, escaped View-Auszug
+- keine rohen Audit-Metadaten, Kontakt-Payloads oder Tokenwerte im UI
+- fail-soft bei nicht verfügbarem Audit-Log statt Full-Page-Fehler
+
 ### Laufzeitvertrag des Standardpakets seit 2.9.621
 
 Das unter `subscription_default_plan_id` gespeicherte Standardpaket wirkt jetzt direkt auf neue Mitglieder:
@@ -171,6 +185,12 @@ Wichtige Bezugspunkte:
 1. `/admin/orders` öffnen
 2. optional Statusfilter setzen
 3. `Orders CSV` oder `Paketnutzung CSV` verwenden
+
+### Historie prüfen
+
+1. `/admin/orders` oder `/admin/packages` öffnen
+2. read-only Historienblock prüfen
+3. Änderungen, Exporte oder Paketereignisse ohne Rohdaten-Einsicht nachvollziehen
 
 ### Limits global deaktivieren
 

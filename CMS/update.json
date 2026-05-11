@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.9.738",
+  "version": "2.9.749",
   "min_php": "8.4",
-  "released": "2026-05-10",
+  "released": "2026-05-11",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 2.9.738: Die Aboverwaltung ergänzt eine read-only Historie für Bestellungen, Zuweisungen und Pakete. /admin/orders zeigt einen limitierten Audit-Log-Auszug für sichtbare Orders, Paketzuweisungen und Exporte; /admin/packages zeigt Paketereignisse für Erstellung, Aktualisierung, Statuswechsel und Löschung. Die Historie nutzt vorhandene Auditdaten, erzeugt keine neue Schreibroute, gibt keine rohen Metadaten oder Tokens aus und fällt bei fehlendem Audit-Log fail-soft aus.",
+  "notes": "Release-Stand 2.9.749: Das SEO-Dashboard ergänzt Sparkline-Trends für SEO-Score, 404-Pfade und Redirect-Regeln; stündliche Cron-Snapshots werden read-only mit Live-Fallback aus vorhandenen Zeitstempeln kombiniert.",
   "critical": false
 }

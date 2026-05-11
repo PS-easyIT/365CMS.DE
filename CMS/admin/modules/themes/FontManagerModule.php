@@ -141,6 +141,7 @@ class FontManagerModule
         $customFonts = $this->getCustomFonts();
         $scanResults = $this->getThemeScanResults($customFonts);
         $useLocalFonts = $this->isLocalFontsEnabled();
+        $customFontRows = $this->buildCustomFontRows($customFonts);
 
         // Custom Fonts in Auswahl-Optionen und Font-Stacks integrieren
         $allFonts  = self::SYSTEM_FONTS;
@@ -153,17 +154,28 @@ class FontManagerModule
             }
         }
 
+        $fontUsageAnalysis = $this->buildFontUsageAnalysis(
+            $allFonts,
+            $customFonts,
+            $customFontRows,
+            $scanResults,
+            (string) ($settings['font_heading'] ?? 'system-ui'),
+            (string) ($settings['font_body'] ?? 'system-ui'),
+            $useLocalFonts
+        );
+
         return [
             'systemFonts'   => $allFonts,
             'fontStacks'    => $allStacks,
             'customFonts'   => $customFonts,
-            'customFontRows' => $this->buildCustomFontRows($customFonts),
+            'customFontRows' => $customFontRows,
             'headingFont'   => $settings['font_heading'] ?? 'system-ui',
             'bodyFont'      => $settings['font_body'] ?? 'system-ui',
             'useLocalFonts' => $useLocalFonts,
             'fontSize'      => $settings['font_size_base'] ?? '16',
             'lineHeight'    => $settings['font_line_height'] ?? '1.6',
             'scanResults'   => $scanResults,
+            'fontUsageAnalysis' => $fontUsageAnalysis,
             'fontCatalog'   => $this->getCuratedFontCatalog($customFonts),
             'activeThemeSlug' => ThemeManager::instance()->getActiveThemeSlug(),
             'scanSummary' => [
@@ -437,7 +449,7 @@ class FontManagerModule
         try {
             // Font-Datei(en) löschen
             $font = $this->db->get_row(
-                "SELECT file_path, css_path FROM {$this->prefix}custom_fonts WHERE id = ?",
+                "SELECT name, slug, file_path, css_path FROM {$this->prefix}custom_fonts WHERE id = ?",
                 [$fontId]
             );
 
@@ -474,10 +486,26 @@ class FontManagerModule
                 $this->deleteFileIfExists($assetPath, $warnings);
             }
 
+            $fontSlug = $this->sanitizeFontKey((string) ($font->slug ?? ''));
+            $runtimeCleanupDetails = [];
+
             $this->db->execute(
                 "DELETE FROM {$this->prefix}custom_fonts WHERE id = ?",
                 [$fontId]
             );
+
+            if ($fontSlug !== '') {
+                try {
+                    $runtimeCleanupDetails = $this->cleanupDeletedFontRuntimeState($fontSlug);
+                } catch (\Throwable $e) {
+                    $warnings[] = 'Runtime-Zuordnungen konnten nicht vollständig bereinigt werden.';
+                    $this->logger->warning('Runtime-Zuordnungen für gelöschte Schriftart konnten nicht vollständig bereinigt werden.', [
+                        'font_id' => $fontId,
+                        'font_slug' => $fontSlug,
+                        'exception' => $e,
+                    ]);
+                }
+            }
 
             // ADDED: Löschaktionen an zentralem Audit-Log spiegeln.
             AuditLogger::instance()->log(
@@ -486,11 +514,19 @@ class FontManagerModule
                 'Lokale Schriftart gelöscht',
                 'font',
                 $fontId,
-                ['file_path' => (string)($font->file_path ?? '')],
+                [
+                    'font_name' => (string) ($font->name ?? ''),
+                    'font_slug' => $fontSlug,
+                    'file_path' => (string)($font->file_path ?? ''),
+                    'runtime_cleanup' => $runtimeCleanupDetails,
+                ],
                 'warning'
             );
 
             $message = 'Schriftart gelöscht.';
+            if ($runtimeCleanupDetails !== []) {
+                $message .= ' Aktive Font-Zuordnungen wurden auf sichere Defaults zurückgesetzt.';
+            }
             if (!empty($warnings)) {
                 $message .= ' Hinweise: ' . implode(' | ', $warnings);
             }
@@ -502,9 +538,11 @@ class FontManagerModule
                 'message' => $message,
                 'details' => array_values(array_filter([
                     'Font-ID: ' . $fontId,
+                    !empty($font->slug) ? 'Slug: ' . (string) $font->slug : '',
                     !empty($font->file_path) ? 'Datei: ' . (string) $font->file_path : '',
                     !empty($font->css_path) ? 'CSS: ' . (string) $font->css_path : '',
                     $linkedFontAssets !== [] ? 'Verknüpfte Assets: ' . count($linkedFontAssets) : '',
+                    $runtimeCleanupDetails !== [] ? 'Runtime-Bereinigung: ' . implode(', ', $runtimeCleanupDetails) : '',
                     !empty($warnings) ? 'Hinweise: ' . implode(' | ', array_slice($warnings, 0, 2)) : '',
                 ])),
             ];
@@ -521,6 +559,52 @@ class FontManagerModule
                 ['font_id' => $fontId, 'exception' => $this->sanitizeErrorContext($e->getMessage())]
             );
         }
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function cleanupDeletedFontRuntimeState(string $fontSlug): array
+    {
+        $fontSlug = $this->sanitizeFontKey($fontSlug);
+        if ($fontSlug === '') {
+            return [];
+        }
+
+        $cleanupDetails = [];
+
+        foreach (['font_heading', 'font_body'] as $settingKey) {
+            $currentValue = strtolower(trim((string) $this->db->get_var(
+                "SELECT option_value FROM {$this->prefix}settings WHERE option_name = ? LIMIT 1",
+                [$settingKey]
+            )));
+
+            if ($currentValue !== $fontSlug) {
+                continue;
+            }
+
+            $this->db->execute(
+                "UPDATE {$this->prefix}settings SET option_value = ? WHERE option_name = ?",
+                ['system-ui', $settingKey]
+            );
+            $cleanupDetails[] = $settingKey . ' → system-ui';
+        }
+
+        $stackKey = 'font_stack_' . $fontSlug;
+        $stackExists = (int) $this->db->get_var(
+            "SELECT COUNT(*) FROM {$this->prefix}settings WHERE option_name = ?",
+            [$stackKey]
+        );
+
+        if ($stackExists > 0) {
+            $this->db->execute(
+                "DELETE FROM {$this->prefix}settings WHERE option_name = ?",
+                [$stackKey]
+            );
+            $cleanupDetails[] = $stackKey . ' entfernt';
+        }
+
+        return $cleanupDetails;
     }
 
     /**
@@ -1081,6 +1165,411 @@ class FontManagerModule
         return $catalog;
     }
 
+    /**
+     * @param array<string, string> $availableFonts
+     * @param array<int, object> $customFonts
+     * @param array<int, array<string, mixed>> $customFontRows
+     * @param array<string, mixed> $scanResults
+     * @return array<string, mixed>
+     */
+    private function buildFontUsageAnalysis(
+        array $availableFonts,
+        array $customFonts,
+        array $customFontRows,
+        array $scanResults,
+        string $headingFont,
+        string $bodyFont,
+        bool $useLocalFonts
+    ): array {
+        $customFontsBySlug = [];
+        foreach ($customFonts as $font) {
+            $slug = $this->sanitizeFontKey((string) ($font->slug ?? ''));
+            if ($slug === '') {
+                continue;
+            }
+
+            $customFontsBySlug[$slug] = [
+                'slug' => $slug,
+                'name' => trim((string) ($font->name ?? $slug)),
+                'source' => trim((string) ($font->source ?? '')),
+            ];
+        }
+
+        $customFontRowsBySlug = [];
+        foreach ($customFontRows as $row) {
+            $slug = $this->sanitizeFontKey((string) ($row['slug'] ?? ''));
+            if ($slug === '') {
+                continue;
+            }
+
+            $customFontRowsBySlug[$slug] = $row;
+        }
+
+        $detectedFontsBySlug = [];
+        foreach ((array) ($scanResults['detectedFonts'] ?? []) as $font) {
+            if (!is_array($font)) {
+                continue;
+            }
+
+            $name = trim((string) ($font['name'] ?? ''));
+            $slug = $this->normalizeFontSlug($name);
+            if ($name === '' || $slug === '') {
+                continue;
+            }
+
+            $sources = [];
+            foreach ((array) ($font['sources'] ?? []) as $source) {
+                if (!is_array($source)) {
+                    continue;
+                }
+
+                $file = trim((string) ($source['file'] ?? ''));
+                $type = trim((string) ($source['type'] ?? 'Theme-Datei'));
+                if ($file === '') {
+                    continue;
+                }
+
+                $sources[$file] = [
+                    'file' => $file,
+                    'type' => $type !== '' ? $type : 'Theme-Datei',
+                ];
+            }
+
+            $detectedFontsBySlug[$slug] = [
+                'name' => $name,
+                'style' => trim((string) ($font['style'] ?? 'Theme-Font')),
+                'reason' => trim((string) ($font['reason'] ?? '')),
+                'sources' => array_values($sources),
+                'installed' => !empty($font['installed']),
+            ];
+        }
+
+        $headingKey = $this->sanitizeFontKey($headingFont);
+        $bodyKey = $this->sanitizeFontKey($bodyFont);
+        $configuredKeys = array_values(array_unique(array_filter([
+            $headingKey,
+            $bodyKey,
+        ], static fn (string $key): bool => $key !== '')));
+
+        $configuredFonts = [
+            $this->buildConfiguredFontUsageRow('Überschriften', $headingKey, $availableFonts, $customFontsBySlug, $customFontRowsBySlug, $detectedFontsBySlug, $useLocalFonts),
+            $this->buildConfiguredFontUsageRow('Fließtext', $bodyKey, $availableFonts, $customFontsBySlug, $customFontRowsBySlug, $detectedFontsBySlug, $useLocalFonts),
+        ];
+
+        $analysisKeys = array_values(array_unique(array_merge(
+            array_keys($customFontsBySlug),
+            array_keys($detectedFontsBySlug),
+            $configuredKeys
+        )));
+
+        $fontEntries = [];
+        foreach ($analysisKeys as $fontKey) {
+            if (!is_string($fontKey) || $fontKey === '') {
+                continue;
+            }
+
+            $fontEntries[] = $this->buildFontUsageEntry(
+                $fontKey,
+                $availableFonts,
+                $customFontsBySlug,
+                $customFontRowsBySlug,
+                $detectedFontsBySlug,
+                $headingKey,
+                $bodyKey,
+                $useLocalFonts
+            );
+        }
+
+        usort($fontEntries, function (array $left, array $right): int {
+            $priorityCompare = ((int) ($left['priority'] ?? 999)) <=> ((int) ($right['priority'] ?? 999));
+            if ($priorityCompare !== 0) {
+                return $priorityCompare;
+            }
+
+            return strcasecmp((string) ($left['name'] ?? ''), (string) ($right['name'] ?? ''));
+        });
+
+        $remainingExternalFonts = count(array_filter($fontEntries, static fn (array $entry): bool => (string) ($entry['status_key'] ?? '') === 'external'));
+        $unusedLocalFonts = count(array_filter($fontEntries, static fn (array $entry): bool => (string) ($entry['status_key'] ?? '') === 'unused-local'));
+        $localPendingFonts = count(array_filter($fontEntries, static fn (array $entry): bool => (string) ($entry['status_key'] ?? '') === 'local-pending'));
+        $fontsWithAssetWarnings = count(array_filter($fontEntries, static fn (array $entry): bool => !empty($entry['asset_warning'])));
+
+        $warnings = [];
+        if ($useLocalFonts && $remainingExternalFonts > 0) {
+            $warnings[] = $remainingExternalFonts . ' erkannte Theme-Schrift' . ($remainingExternalFonts === 1 ? '' : 'en') . ' werden trotz aktivem lokalen Font-Modus noch nicht lokal bereitgestellt.';
+        }
+
+        if (!$useLocalFonts && $localPendingFonts > 0) {
+            $warnings[] = $localPendingFonts . ' konfigurierte lokale Schrift' . ($localPendingFonts === 1 ? '' : 'en') . ' werden erst nach Aktivierung von „Lokale On-Prem-Fonts“ im Frontend eingebunden.';
+        }
+
+        if ($fontsWithAssetWarnings > 0) {
+            $warnings[] = $fontsWithAssetWarnings . ' lokale Schrift' . ($fontsWithAssetWarnings === 1 ? '' : 'en') . ' haben unvollständige CSS- oder Asset-Verknüpfungen und sollten geprüft werden.';
+        }
+
+        return [
+            'runtime_mode_label' => $useLocalFonts ? 'Lokaler Font-Modus aktiv' : 'Externer Fallback möglich',
+            'runtime_mode_badge_class' => $useLocalFonts ? 'bg-green-lt' : 'bg-orange-lt',
+            'runtime_mode_note' => $useLocalFonts
+                ? 'Bootstrap und Theme laden CSS nur für konfigurierte lokale Fonts plus Systemstacks.'
+                : 'Theme-Scan und Konfiguration bleiben read-only sichtbar; externe Imports können weiter aktiv sein.',
+            'stats' => [
+                [
+                    'label' => 'Erkannte Theme-Fonts',
+                    'value' => count($detectedFontsBySlug),
+                    'hint' => 'Aus Theme-Scan und Import-Erkennung',
+                    'badge_class' => 'bg-azure-lt',
+                ],
+                [
+                    'label' => 'Noch extern',
+                    'value' => $remainingExternalFonts,
+                    'hint' => $remainingExternalFonts > 0 ? 'Self-Hosting oder Theme-Bereinigung empfohlen' : 'Keine offenen externen Scan-Treffer',
+                    'badge_class' => $remainingExternalFonts > 0 ? 'bg-orange-lt' : 'bg-green-lt',
+                ],
+                [
+                    'label' => 'Lokal gespeichert',
+                    'value' => count($customFontsBySlug),
+                    'hint' => $useLocalFonts ? 'Lokale Bereitstellung ist aktivierbar' : 'Lokale Bibliothek vorhanden',
+                    'badge_class' => 'bg-green-lt',
+                ],
+                [
+                    'label' => 'Ungenutzte lokale Fonts',
+                    'value' => $unusedLocalFonts,
+                    'hint' => $unusedLocalFonts > 0 ? 'Kandidaten für Aufräumen oder spätere Nutzung' : 'Keine lokalen Karteileichen erkannt',
+                    'badge_class' => $unusedLocalFonts > 0 ? 'bg-secondary-lt' : 'bg-green-lt',
+                ],
+            ],
+            'configured_fonts' => $configuredFonts,
+            'font_entries' => $fontEntries,
+            'warnings' => $warnings,
+        ];
+    }
+
+    /**
+     * @param array<string, string> $availableFonts
+     * @param array<string, array<string, string>> $customFontsBySlug
+     * @param array<string, array<string, mixed>> $customFontRowsBySlug
+     * @param array<string, array<string, mixed>> $detectedFontsBySlug
+     * @return array<string, mixed>
+     */
+    private function buildConfiguredFontUsageRow(
+        string $slotLabel,
+        string $fontKey,
+        array $availableFonts,
+        array $customFontsBySlug,
+        array $customFontRowsBySlug,
+        array $detectedFontsBySlug,
+        bool $useLocalFonts
+    ): array {
+        $fontLabel = trim((string) ($availableFonts[$fontKey] ?? ''));
+        $customFont = $customFontsBySlug[$fontKey] ?? null;
+        $customRow = $customFontRowsBySlug[$fontKey] ?? null;
+        $detectedFont = $detectedFontsBySlug[$fontKey] ?? null;
+        $isSystemFont = array_key_exists($fontKey, self::SYSTEM_FONTS);
+        $assetWarning = (string) ($customRow['asset_status'] ?? '') === 'warning';
+
+        $deliveryLabel = 'Nicht erkannt';
+        $deliveryBadgeClass = 'bg-secondary-lt';
+        $note = 'Für diese Zuweisung wurde keine bekannte Font-Quelle erkannt.';
+
+        if ($isSystemFont) {
+            $deliveryLabel = 'Systemschrift';
+            $deliveryBadgeClass = 'bg-secondary-lt';
+            $note = 'Browser- oder Betriebssystem-Font, keine zusätzliche Datei nötig.';
+        } elseif ($customFont !== null && $useLocalFonts && !$assetWarning) {
+            $deliveryLabel = 'Lokal aktiv';
+            $deliveryBadgeClass = 'bg-green-lt';
+            $note = 'Bootstrap bindet die lokale CSS-Datei für diese Zuweisung im Frontend ein.';
+        } elseif ($customFont !== null && $useLocalFonts) {
+            $deliveryLabel = 'Lokal aktiv · Assets prüfen';
+            $deliveryBadgeClass = 'bg-warning-lt';
+            $note = 'Die Font ist konfiguriert, aber lokale CSS- oder Asset-Dateien sind unvollständig.';
+        } elseif ($customFont !== null) {
+            $deliveryLabel = 'Lokal vorhanden';
+            $deliveryBadgeClass = 'bg-orange-lt';
+            $note = 'Die lokale Font ist gespeichert, wird aber erst nach Aktivierung von „Lokale On-Prem-Fonts“ sicher eingebunden.';
+        } elseif ($detectedFont !== null) {
+            $deliveryLabel = $useLocalFonts ? 'Extern erkannt' : 'Externer Fallback';
+            $deliveryBadgeClass = 'bg-orange-lt';
+            $note = 'Das Theme erkennt diese Schrift bereits, lokal liegt sie für die Font-Manager-Zuweisung aber noch nicht vor.';
+        }
+
+        if ($fontLabel === '') {
+            $fontLabel = $customFont['name'] ?? $detectedFont['name'] ?? ($fontKey !== '' ? $fontKey : 'System UI');
+        }
+
+        return [
+            'slot_label' => $slotLabel,
+            'font_key' => $fontKey !== '' ? $fontKey : 'system-ui',
+            'font_label' => $fontLabel,
+            'delivery_label' => $deliveryLabel,
+            'delivery_badge_class' => $deliveryBadgeClass,
+            'note' => $note,
+        ];
+    }
+
+    /**
+     * @param array<string, string> $availableFonts
+     * @param array<string, array<string, string>> $customFontsBySlug
+     * @param array<string, array<string, mixed>> $customFontRowsBySlug
+     * @param array<string, array<string, mixed>> $detectedFontsBySlug
+     * @return array<string, mixed>
+     */
+    private function buildFontUsageEntry(
+        string $fontKey,
+        array $availableFonts,
+        array $customFontsBySlug,
+        array $customFontRowsBySlug,
+        array $detectedFontsBySlug,
+        string $headingKey,
+        string $bodyKey,
+        bool $useLocalFonts
+    ): array {
+        $customFont = $customFontsBySlug[$fontKey] ?? null;
+        $customRow = $customFontRowsBySlug[$fontKey] ?? null;
+        $detectedFont = $detectedFontsBySlug[$fontKey] ?? null;
+        $isSystemFont = array_key_exists($fontKey, self::SYSTEM_FONTS);
+        $isHeading = $fontKey !== '' && $fontKey === $headingKey;
+        $isBody = $fontKey !== '' && $fontKey === $bodyKey;
+        $isConfigured = $isHeading || $isBody;
+        $isDetected = $detectedFont !== null;
+        $assetWarning = (string) ($customRow['asset_status'] ?? '') === 'warning';
+        $sourceCount = is_array($detectedFont['sources'] ?? null) ? count((array) $detectedFont['sources']) : 0;
+
+        $name = trim((string) ($availableFonts[$fontKey] ?? ''));
+        if ($name === '') {
+            $name = trim((string) ($customFont['name'] ?? $detectedFont['name'] ?? $fontKey));
+        }
+
+        $typeLabel = 'Erkannt';
+        $typeBadgeClass = 'bg-azure-lt';
+        if ($isSystemFont) {
+            $typeLabel = 'System';
+            $typeBadgeClass = 'bg-secondary-lt';
+        } elseif ($customFont !== null) {
+            $typeLabel = 'Lokal gespeichert';
+            $typeBadgeClass = 'bg-green-lt';
+        }
+
+        $roles = [];
+        if ($isHeading) {
+            $roles[] = 'Heading';
+        }
+        if ($isBody) {
+            $roles[] = 'Body';
+        }
+        if ($isDetected) {
+            $roles[] = 'Theme-Scan';
+        }
+
+        $statusKey = 'unknown';
+        $statusLabel = 'Unbekannt';
+        $statusBadgeClass = 'bg-secondary-lt';
+        $note = 'Kein klarer Runtime-Hinweis verfügbar.';
+        $recommendation = 'Keine direkte Aktion nötig.';
+
+        if ($isSystemFont) {
+            $statusKey = 'system';
+            $statusLabel = 'Systemschrift';
+            $statusBadgeClass = 'bg-secondary-lt';
+            $note = 'Diese Schrift benötigt keine lokale Datei und keine externe CDN-Anfrage.';
+            $recommendation = 'Keine Aktion nötig.';
+        } elseif ($customFont !== null && $useLocalFonts && $isConfigured && !$assetWarning) {
+            $statusKey = 'local-active';
+            $statusLabel = 'Lokal aktiv';
+            $statusBadgeClass = 'bg-green-lt';
+            $note = 'Wird aus der lokalen Font-Bibliothek im Frontend vorgeladen.';
+            $recommendation = 'Keine Aktion nötig.';
+        } elseif ($customFont !== null && $useLocalFonts && $isConfigured) {
+            $statusKey = 'local-warning';
+            $statusLabel = 'Lokal aktiv · Assets prüfen';
+            $statusBadgeClass = 'bg-warning-lt';
+            $note = 'Die Font ist aktiv, aber Asset- oder CSS-Dateien sind unvollständig.';
+            $recommendation = 'CSS- und Font-Dateien prüfen oder Font erneut lokal speichern.';
+        } elseif ($customFont !== null && $isConfigured) {
+            $statusKey = 'local-pending';
+            $statusLabel = 'Konfiguriert, aber nicht aktiv';
+            $statusBadgeClass = 'bg-orange-lt';
+            $note = 'Die Font ist ausgewählt, wird aber erst bei aktiviertem lokalem Font-Modus sicher eingebunden.';
+            $recommendation = '„Lokale On-Prem-Fonts“ aktivieren oder auf eine Systemschrift zurückstellen.';
+        } elseif ($customFont !== null && !$isDetected) {
+            $statusKey = 'unused-local';
+            $statusLabel = 'Lokal gespeichert, aktuell ungenutzt';
+            $statusBadgeClass = 'bg-secondary-lt';
+            $note = 'Die Font ist lokal vorhanden, wird aber weder konfiguriert noch im Theme-Scan erkannt.';
+            $recommendation = 'Bei Nichtgebrauch löschen oder bewusst zuweisen.';
+        } elseif ($customFont !== null) {
+            $statusKey = 'local-available';
+            $statusLabel = 'Lokal vorhanden';
+            $statusBadgeClass = 'bg-azure-lt';
+            $note = 'Die Font liegt lokal vor und wird im Theme erkannt, ist aber nicht direkt als Heading/Body zugewiesen.';
+            $recommendation = 'Bei Bedarf als Heading-/Body-Font zuweisen oder externe Imports im Theme bereinigen.';
+        } elseif ($isDetected) {
+            $statusKey = 'external';
+            $statusLabel = $useLocalFonts ? 'Extern erkannt' : 'Externer Fallback';
+            $statusBadgeClass = 'bg-orange-lt';
+            $note = 'Der Theme-Scan erkennt diese Schrift, lokal ist sie noch nicht im Font Manager vorhanden.';
+            $recommendation = 'Self-Hosting im Font Manager starten oder Theme-Import entfernen.';
+        }
+
+        $sourcePreview = [];
+        foreach (array_slice((array) ($detectedFont['sources'] ?? []), 0, 3) as $source) {
+            if (!is_array($source)) {
+                continue;
+            }
+
+            $file = trim((string) ($source['file'] ?? ''));
+            $type = trim((string) ($source['type'] ?? 'Theme-Datei'));
+            if ($file === '') {
+                continue;
+            }
+
+            $sourcePreview[] = [
+                'file' => $file,
+                'type' => $type !== '' ? $type : 'Theme-Datei',
+            ];
+        }
+
+        return [
+            'font_key' => $fontKey,
+            'name' => $name !== '' ? $name : $fontKey,
+            'type_label' => $typeLabel,
+            'type_badge_class' => $typeBadgeClass,
+            'roles' => $roles,
+            'status_key' => $statusKey,
+            'status_label' => $statusLabel,
+            'status_badge_class' => $statusBadgeClass,
+            'note' => $note,
+            'recommendation' => $recommendation,
+            'source_count' => $sourceCount,
+            'source_preview' => $sourcePreview,
+            'asset_warning' => $assetWarning,
+            'priority' => $this->getFontUsagePriority($statusKey, $isConfigured),
+        ];
+    }
+
+    private function getFontUsagePriority(string $statusKey, bool $isConfigured): int
+    {
+        if ($isConfigured) {
+            return match ($statusKey) {
+                'local-warning' => 10,
+                'local-pending' => 20,
+                'external' => 30,
+                'local-active' => 40,
+                'system' => 50,
+                default => 60,
+            };
+        }
+
+        return match ($statusKey) {
+            'external' => 70,
+            'local-available' => 80,
+            'unused-local' => 90,
+            'system' => 100,
+            default => 110,
+        };
+    }
+
     private function getKnownFontIndex(): array
     {
         $fonts = [];
@@ -1458,6 +1947,7 @@ class FontManagerModule
         $rows = [];
 
         foreach ($customFonts as $font) {
+            $slug = $this->sanitizeFontKey((string) ($font->slug ?? ''));
             $filePath = (string) ($font->file_path ?? '');
             $cssPath = (string) ($font->css_path ?? '');
             $resolvedFilePath = $this->resolveManagedFontPath($filePath);
@@ -1476,6 +1966,7 @@ class FontManagerModule
 
             $rows[] = [
                 'id' => (int) ($font->id ?? 0),
+                'slug' => $slug,
                 'name' => (string) ($font->name ?? ''),
                 'format' => (string) ($font->format ?? ''),
                 'source' => (string) ($font->source ?? ''),
@@ -1664,6 +2155,11 @@ class FontManagerModule
         }
 
         return strtolower($value);
+    }
+
+    private function sanitizeFontKey(string $value): string
+    {
+        return preg_replace('/[^a-z0-9_-]/', '', strtolower(trim($value))) ?? '';
     }
 
     private function sanitizeErrorContext(string $value): string

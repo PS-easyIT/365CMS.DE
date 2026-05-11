@@ -744,11 +744,25 @@ final class RedirectService
      */
     private function buildAdminStats(array $redirectRows, array $logRows): array
     {
+        $redirectsTotal = count($redirectRows);
+        $redirectsActive = count(array_filter($redirectRows, static fn(array $row): bool => (int) ($row['is_active'] ?? 0) === 1));
+        $notFoundTotal = count($logRows);
+        $notFoundHits = array_sum(array_map(static fn(array $row): int => (int) ($row['hit_count'] ?? 0), $logRows));
+
+        try {
+            $redirectsTotal = (int)$this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}redirect_rules");
+            $redirectsActive = (int)$this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}redirect_rules WHERE is_active = 1");
+            $notFoundTotal = (int)$this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}not_found_logs");
+            $notFoundHits = (int)$this->db->get_var("SELECT COALESCE(SUM(hit_count), 0) FROM {$this->prefix}not_found_logs");
+        } catch (\Throwable) {
+            // Fallback auf die bereits geladenen Listen, damit die Admin-Ansicht fail-soft bleibt.
+        }
+
         return [
-            'redirects_total' => count($redirectRows),
-            'redirects_active' => count(array_filter($redirectRows, static fn(array $row): bool => (int) ($row['is_active'] ?? 0) === 1)),
-            'not_found_total' => count($logRows),
-            'not_found_hits' => array_sum(array_map(static fn(array $row): int => (int) ($row['hit_count'] ?? 0), $logRows)),
+            'redirects_total' => $redirectsTotal,
+            'redirects_active' => $redirectsActive,
+            'not_found_total' => $notFoundTotal,
+            'not_found_hits' => $notFoundHits,
         ];
     }
 

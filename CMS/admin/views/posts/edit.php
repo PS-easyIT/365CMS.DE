@@ -503,6 +503,7 @@ $additionalCategoryIds = array_values(array_filter(
                         'scoreLabelId' => 'postSeoScoreLabel',
                         'scoreBarId' => 'postSeoScoreBar',
                         'rulesId' => 'postSeoRules',
+                        'hintBadgeContainerId' => 'postSeoHintBadges',
                         'summaryCards' => [
                             ['width' => 'col-md-2', 'label' => 'Titel', 'valueId' => 'postTitleCount', 'suffix' => 'Zeichen'],
                             ['width' => 'col-md-2', 'label' => 'Slug', 'valueId' => 'postSlugCount', 'suffix' => 'Zeichen'],
@@ -734,6 +735,8 @@ $additionalCategoryIds = array_values(array_filter(
             'missingAltId' => 'postMissingAlt',
             'readabilityBadgeId' => 'postReadabilityBadge',
             'readabilitySummaryId' => 'postReadabilitySummary',
+            'hintBadgeContainerId' => 'postSeoHintBadges',
+            'titleCreatesH1' => true,
             'previewBaseUrl' => '/blog/',
             'previewUrlTemplate' => $activePostPreviewUrlTemplate,
             'previewPlaceholderSlug' => $activePostPreviewSlugFallback,

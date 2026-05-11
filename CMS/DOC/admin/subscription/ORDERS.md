@@ -1,8 +1,8 @@
 # Bestellungen & Zuweisung
 
-Kurzbeschreibung: Dokumentiert die aktuelle Bestellverwaltung inklusive Statuspflege, manueller Paketzuweisung, read-only Renewal-Hinweisen und CSV-Exporten.
+Kurzbeschreibung: Dokumentiert die aktuelle Bestellverwaltung inklusive Statuspflege, manueller Paketzuweisung, read-only Renewal-Hinweisen, CSV-Exporten und Historie.
 
-Letzte Aktualisierung: 2026-05-10 · Version 2.9.737
+Letzte Aktualisierung: 2026-05-10 · Version 2.9.738
 
 ---
 
@@ -21,6 +21,8 @@ Die Seite bündelt zwei Aufgaben:
 POST-Aktionen laufen im aktuellen Stand über den CSRF-Kontext `admin_orders`.
 
 Read-only CSV-Exporte für Bestellungen und Paketnutzung laufen bewusst **nicht** über eine neue POST-Route, sondern über einen separaten GET-Download-Pfad ohne CSRF- oder Sicherheitstoken in der URL.
+
+Die read-only Historie läuft ebenfalls ohne neue Mutation: Sie nutzt ausschließlich einen begrenzten Auszug aus dem vorhandenen `audit_log` und bleibt bei Problemen mit dem Logspeicher fail-soft.
 
 ---
 
@@ -89,6 +91,27 @@ Sicherheits- und Betriebsvertrag:
 - datensparsame Audit-Logs ohne unnötige PII im Logkontext
 - CSV-Zellen werden gegen Spreadsheet-Formula-Injection gehärtet
 - große Exportmengen werden fail-soft begrenzt, statt den Request unkontrolliert zu verlängern
+
+---
+
+## Historie
+
+Seit `2.9.738` zeigt `/admin/orders` zusätzlich eine read-only Historie für die aktuell sichtbaren Bestellungen und Paketzuweisungen.
+
+Abgedeckt werden insbesondere:
+
+- Bestellstatuswechsel
+- Bestelllöschungen
+- manuelle Paketzuweisungen
+- Orders- und Paketnutzungs-Exporte
+
+Sicherheits- und Betriebsvertrag:
+
+- keine neue GET- oder POST-Mutation
+- nur begrenzter Auszug aus `audit_log`
+- keine Ausgabe roher Audit-Metadaten, Kontakt-Payloads oder Tokenwerte
+- generischer Warnhinweis statt technischem Fehlerdetail, falls das Audit-Log nicht lesbar ist
+- Escape im View-Kontext, damit Log-Inhalte nicht zum XSS-/Log-Injection-Nachläufer werden
 
 ---
 

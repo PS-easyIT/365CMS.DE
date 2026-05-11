@@ -28,24 +28,39 @@ $previewCard = $previewCard ?? [];
 $socialImageVisible = !empty($previewCard['socialImageVisible']);
 ?>
 <div class="card cms-edit-card h-100 w-100">
-    <div class="card-header"><h3 class="card-title">Vorschau-Card</h3></div>
-    <div class="card-body">
-        <div class="text-uppercase text-secondary small mb-2">SERP</div>
-        <div class="border rounded p-3 bg-light mb-4">
-            <div id="<?php echo htmlspecialchars((string)($previewCard['serpTitleId'] ?? '')); ?>" class="fw-semibold text-primary mb-1"><?php echo htmlspecialchars((string)($previewCard['serpTitle'] ?? '')); ?></div>
-            <div id="<?php echo htmlspecialchars((string)($previewCard['serpUrlId'] ?? '')); ?>" class="small text-success mb-1"><?php echo htmlspecialchars((string)($previewCard['serpUrl'] ?? '')); ?></div>
-            <div id="<?php echo htmlspecialchars((string)($previewCard['serpDescriptionId'] ?? '')); ?>" class="small text-secondary"><?php echo htmlspecialchars((string)($previewCard['serpDescription'] ?? '')); ?></div>
+    <div class="card-header"><h3 class="card-title">SERP- &amp; Social-Vorschau</h3></div>
+    <div class="card-body d-flex flex-column gap-4">
+        <div>
+            <div class="text-uppercase text-secondary small mb-2">Google Desktop</div>
+            <div class="border rounded p-3 bg-light">
+                <div id="<?php echo htmlspecialchars((string)($previewCard['serpTitleId'] ?? '')); ?>" data-seo-preview-bind="serp-title" class="fw-semibold text-primary mb-1"><?php echo htmlspecialchars((string)($previewCard['serpTitle'] ?? '')); ?></div>
+                <div id="<?php echo htmlspecialchars((string)($previewCard['serpUrlId'] ?? '')); ?>" data-seo-preview-bind="serp-url" class="small text-success mb-1"><?php echo htmlspecialchars((string)($previewCard['serpUrl'] ?? '')); ?></div>
+                <div id="<?php echo htmlspecialchars((string)($previewCard['serpDescriptionId'] ?? '')); ?>" data-seo-preview-bind="serp-description" class="small text-secondary"><?php echo htmlspecialchars((string)($previewCard['serpDescription'] ?? '')); ?></div>
+            </div>
         </div>
-        <div class="text-uppercase text-secondary small mb-2">Social</div>
-        <div class="border rounded overflow-hidden bg-light">
-            <img id="<?php echo htmlspecialchars((string)($previewCard['socialImageId'] ?? '')); ?>"
-                 src="<?php echo htmlspecialchars((string)($previewCard['socialImage'] ?? '')); ?>"
-                 alt=""
-                 style="display:<?php echo $socialImageVisible ? 'block' : 'none'; ?>; width:100%; height:160px; object-fit:cover;">
-            <div class="p-3">
-                <div class="text-uppercase text-secondary small mb-1">facebook / x</div>
-                <div id="<?php echo htmlspecialchars((string)($previewCard['socialTitleId'] ?? '')); ?>" class="fw-semibold mb-1"><?php echo htmlspecialchars((string)($previewCard['socialTitle'] ?? '')); ?></div>
-                <div id="<?php echo htmlspecialchars((string)($previewCard['socialDescriptionId'] ?? '')); ?>" class="small text-secondary"><?php echo htmlspecialchars((string)($previewCard['socialDescription'] ?? '')); ?></div>
+
+        <div>
+            <div class="text-uppercase text-secondary small mb-2">Google Mobile</div>
+            <div class="border rounded p-3 bg-light" style="max-width: 26rem;">
+                <div class="small text-success mb-1" data-seo-preview-bind="serp-url"><?php echo htmlspecialchars((string)($previewCard['serpUrl'] ?? '')); ?></div>
+                <div class="fw-semibold text-primary mb-1" data-seo-preview-bind="serp-title"><?php echo htmlspecialchars((string)($previewCard['serpTitle'] ?? '')); ?></div>
+                <div class="small text-secondary" data-seo-preview-bind="serp-description"><?php echo htmlspecialchars((string)($previewCard['serpDescription'] ?? '')); ?></div>
+            </div>
+        </div>
+
+        <div>
+            <div class="text-uppercase text-secondary small mb-2">Social / OG</div>
+            <div class="border rounded overflow-hidden bg-light">
+                <img id="<?php echo htmlspecialchars((string)($previewCard['socialImageId'] ?? '')); ?>"
+                     data-seo-preview-bind="social-image"
+                     src="<?php echo htmlspecialchars((string)($previewCard['socialImage'] ?? '')); ?>"
+                     alt=""
+                     style="display:<?php echo $socialImageVisible ? 'block' : 'none'; ?>; width:100%; height:160px; object-fit:cover;">
+                <div class="p-3">
+                    <div class="text-uppercase text-secondary small mb-1">facebook / x</div>
+                    <div id="<?php echo htmlspecialchars((string)($previewCard['socialTitleId'] ?? '')); ?>" data-seo-preview-bind="social-title" class="fw-semibold mb-1"><?php echo htmlspecialchars((string)($previewCard['socialTitle'] ?? '')); ?></div>
+                    <div id="<?php echo htmlspecialchars((string)($previewCard['socialDescriptionId'] ?? '')); ?>" data-seo-preview-bind="social-description" class="small text-secondary"><?php echo htmlspecialchars((string)($previewCard['socialDescription'] ?? '')); ?></div>
+                </div>
             </div>
         </div>
     </div>

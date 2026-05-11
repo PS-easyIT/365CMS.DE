@@ -12,6 +12,7 @@ if (!defined('CMS_ADMIN_SEO_VIEW')) {
 $technical = $data['technical'] ?? [];
 $settings = $technical['settings'] ?? [];
 $brokenLinks = $technical['broken_links'] ?? [];
+$brokenLinkReport = $technical['broken_links_report'] ?? [];
 $missingAltRows = $technical['missing_alt_rows'] ?? [];
 $noindexCandidates = $technical['noindex_candidates'] ?? [];
 $hreflangGroups = $technical['hreflang_groups'] ?? [];
@@ -24,6 +25,17 @@ $indexNowDebug = $indexNow['debug'] ?? [];
 $indexNowDebugCandidates = is_array($indexNowDebug['root_candidates'] ?? null) ? $indexNowDebug['root_candidates'] : [];
 $indexNowSelectedFileReason = (string)($indexNowDebug['selected_file_reason'] ?? '');
 $indexNowSelectedFileResolvedFrom = (string)($indexNowDebug['selected_file_resolved_from'] ?? '');
+$brokenLinkAvailable = !empty($brokenLinkReport['available']);
+$brokenLinkGeneratedAt = (string)($brokenLinkReport['generated_at_label'] ?? '');
+$brokenLinkTrigger = (string)($brokenLinkReport['trigger_label'] ?? '—');
+$brokenLinkDuration = (int)($brokenLinkReport['duration_ms'] ?? 0);
+$brokenLinkFindingsTotal = (int)($brokenLinkReport['findings_total'] ?? count($brokenLinks));
+$brokenLinkOccurrencesTotal = (int)($brokenLinkReport['occurrences_total'] ?? 0);
+$brokenLinkIgnoredTotal = (int)($brokenLinkReport['ignored_total'] ?? 0);
+$brokenLinkSuppressedTotal = (int)($brokenLinkReport['suppressed_total'] ?? 0);
+$brokenLinkSourceStats = is_array($brokenLinkReport['source_stats'] ?? null) ? $brokenLinkReport['source_stats'] : [];
+$brokenLinkIgnoredPaths = is_array($brokenLinkReport['ignored_paths'] ?? null) ? $brokenLinkReport['ignored_paths'] : [];
+$brokenLinkNotes = is_array($brokenLinkReport['notes'] ?? null) ? $brokenLinkReport['notes'] : [];
 ?>
 <div class="page-header d-print-none">
     <div class="container-xl">
@@ -50,7 +62,7 @@ $indexNowSelectedFileResolvedFrom = (string)($indexNowDebug['selected_file_resol
             <div class="card">
                 <div class="card-body">
                     <div class="subheader">Broken Links</div>
-                    <div class="h1 mb-0 text-danger"><?= count($brokenLinks) ?></div>
+                    <div class="h1 mb-0 text-danger"><?= $brokenLinkFindingsTotal ?></div>
                 </div>
             </div>
         </div>
@@ -344,37 +356,179 @@ $indexNowSelectedFileResolvedFrom = (string)($indexNowDebug['selected_file_resol
             </div>
 
             <div class="card mb-4">
-                <div class="card-header">
-                    <h3 class="card-title">Broken Links</h3>
-                </div>
-                <div class="table-responsive">
-                    <table class="table card-table table-vcenter">
-                        <thead>
-                            <tr>
-                                <th>Quelle</th>
-                                <th>Ziel</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php if (empty($brokenLinks)): ?>
-                                <tr>
-                                    <td colspan="2" class="text-center text-secondary py-4">Keine internen Broken Links erkannt.</td>
-                                </tr>
-                            <?php else: ?>
-                                <?php foreach ($brokenLinks as $row): ?>
-                                    <tr>
-                                        <td>
-                                            <?= htmlspecialchars((string) $row['source_title']) ?>
-                                            <div class="text-secondary small">
-                                                <?= htmlspecialchars((string) $row['source_type']) ?> · <?= htmlspecialchars((string) $row['source_slug']) ?>
-                                            </div>
-                                        </td>
-                                        <td><code><?= htmlspecialchars((string) $row['target_path']) ?></code></td>
-                                    </tr>
-                                <?php endforeach; ?>
+                <div class="card-header d-flex align-items-center justify-content-between gap-3 flex-wrap">
+                    <div>
+                        <h3 class="card-title mb-0">Broken-Link-Report</h3>
+                        <div class="text-secondary small mt-1">
+                            Letzter Lauf: <?= $brokenLinkAvailable ? htmlspecialchars($brokenLinkGeneratedAt) : 'noch nicht ausgeführt' ?>
+                            <?php if ($brokenLinkAvailable): ?>
+                                · <?= htmlspecialchars($brokenLinkTrigger) ?>
+                                <?php if ($brokenLinkDuration > 0): ?>
+                                    · <?= $brokenLinkDuration ?> ms
+                                <?php endif; ?>
                             <?php endif; ?>
-                        </tbody>
-                    </table>
+                        </div>
+                    </div>
+                    <div class="d-flex gap-2 flex-wrap">
+                        <span class="badge <?= !empty($settings['seo_technical_broken_link_scan']) ? 'bg-success' : 'bg-secondary' ?>">
+                            Cron <?= !empty($settings['seo_technical_broken_link_scan']) ? 'aktiv' : 'deaktiviert' ?>
+                        </span>
+                        <form method="post" class="d-inline">
+                            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
+                            <input type="hidden" name="action" value="run_broken_link_scan">
+                            <button type="submit" class="btn btn-outline-primary btn-sm">Prüfung jetzt ausführen</button>
+                        </form>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3 mb-4">
+                        <div class="col-sm-4">
+                            <div class="border rounded p-3 h-100">
+                                <div class="text-secondary small">Offene Zielpfade</div>
+                                <div class="h2 mb-0 text-danger"><?= $brokenLinkFindingsTotal ?></div>
+                            </div>
+                        </div>
+                        <div class="col-sm-4">
+                            <div class="border rounded p-3 h-100">
+                                <div class="text-secondary small">Quellen-Treffer</div>
+                                <div class="h2 mb-0"><?= $brokenLinkOccurrencesTotal ?></div>
+                            </div>
+                        </div>
+                        <div class="col-sm-4">
+                            <div class="border rounded p-3 h-100">
+                                <div class="text-secondary small">Ignoriert</div>
+                                <div class="h2 mb-0 text-secondary"><?= $brokenLinkIgnoredTotal ?></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <?php if (!empty($brokenLinkNotes)): ?>
+                        <div class="alert alert-info" role="alert">
+                            <ul class="mb-0 ps-3">
+                                <?php foreach ($brokenLinkNotes as $note): ?>
+                                    <li><?= htmlspecialchars((string) $note) ?></li>
+                                <?php endforeach; ?>
+                            </ul>
+                        </div>
+                    <?php endif; ?>
+
+                    <?php if ($brokenLinkSuppressedTotal > 0): ?>
+                        <div class="alert alert-secondary" role="alert">
+                            <?= $brokenLinkSuppressedTotal ?> Zielpfad(e) werden aktuell über die Ignore-Liste aus der Übersicht ausgeblendet.
+                        </div>
+                    <?php endif; ?>
+
+                    <div class="mb-3 d-flex flex-wrap gap-2">
+                        <?php foreach ($brokenLinkSourceStats as $sourceStat): ?>
+                            <span class="badge bg-azure-lt text-azure">
+                                <?= htmlspecialchars((string)($sourceStat['label'] ?? 'Quelle')) ?>: <?= (int)($sourceStat['count'] ?? 0) ?>
+                            </span>
+                        <?php endforeach; ?>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table card-table table-vcenter">
+                            <thead>
+                                <tr>
+                                    <th>Ziel</th>
+                                    <th>Treffer pro Quelle</th>
+                                    <th>Aktion</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php if (!$brokenLinkAvailable): ?>
+                                    <tr>
+                                        <td colspan="3" class="text-center text-secondary py-4">Es liegt noch kein gespeicherter Broken-Link-Report vor.</td>
+                                    </tr>
+                                <?php elseif (empty($brokenLinks)): ?>
+                                    <tr>
+                                        <td colspan="3" class="text-center text-secondary py-4">Keine internen Broken Links erkannt.</td>
+                                    </tr>
+                                <?php else: ?>
+                                    <?php foreach ($brokenLinks as $row): ?>
+                                        <tr>
+                                            <td>
+                                                <div class="fw-semibold"><code><?= htmlspecialchars((string)($row['target_path'] ?? '')) ?></code></div>
+                                                <?php if (!empty($row['target_url'])): ?>
+                                                    <div class="text-secondary small mt-1"><?= htmlspecialchars((string) $row['target_url']) ?></div>
+                                                <?php endif; ?>
+                                                <div class="d-flex flex-wrap gap-2 mt-2">
+                                                    <?php foreach ((array)($row['source_badges'] ?? []) as $badge): ?>
+                                                        <span class="badge bg-azure-lt text-azure">
+                                                            <?= htmlspecialchars((string)($badge['label'] ?? 'Quelle')) ?>: <?= (int)($badge['count'] ?? 0) ?>
+                                                        </span>
+                                                    <?php endforeach; ?>
+                                                    <?php if ((int)($row['observed_404_hits'] ?? 0) > 0): ?>
+                                                        <span class="badge bg-orange-lt text-orange">404-Hits: <?= (int)($row['observed_404_hits'] ?? 0) ?></span>
+                                                    <?php endif; ?>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="fw-semibold"><?= (int)($row['occurrences_total'] ?? 0) ?> Treffer</div>
+                                                <?php foreach ((array)($row['sources'] ?? []) as $source): ?>
+                                                    <div class="small text-secondary mt-1">
+                                                        <strong><?= htmlspecialchars((string)($source['kind_label'] ?? 'Quelle')) ?>:</strong>
+                                                        <?= htmlspecialchars((string)($source['label'] ?? '')) ?>
+                                                        <?php if (!empty($source['detail'])): ?>
+                                                            · <?= htmlspecialchars((string)$source['detail']) ?>
+                                                        <?php endif; ?>
+                                                    </div>
+                                                <?php endforeach; ?>
+                                                <?php if (!empty($row['last_seen_at'])): ?>
+                                                    <div class="small text-secondary mt-1">Zuletzt gesehen: <?= htmlspecialchars((string)$row['last_seen_at']) ?></div>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td class="text-nowrap">
+                                                <form method="post" class="d-inline">
+                                                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
+                                                    <input type="hidden" name="action" value="ignore_broken_link_target">
+                                                    <input type="hidden" name="target_path" value="<?= htmlspecialchars((string)($row['target_path'] ?? ''), ENT_QUOTES) ?>">
+                                                    <button type="submit" class="btn btn-outline-secondary btn-sm">Ignorieren</button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <h4 class="mb-3">Ignore-Liste</h4>
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Zielpfad</th>
+                                    <th>Hinzugefügt</th>
+                                    <th>Aktion</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php if (empty($brokenLinkIgnoredPaths)): ?>
+                                    <tr>
+                                        <td colspan="3" class="text-center text-secondary py-3">Keine Einträge in der Ignore-Liste.</td>
+                                    </tr>
+                                <?php else: ?>
+                                    <?php foreach ($brokenLinkIgnoredPaths as $ignoredEntry): ?>
+                                        <tr>
+                                            <td><code><?= htmlspecialchars((string)($ignoredEntry['path'] ?? '')) ?></code></td>
+                                            <td><?= !empty($ignoredEntry['added_at']) ? htmlspecialchars((string)$ignoredEntry['added_at']) : '—' ?></td>
+                                            <td class="text-nowrap">
+                                                <form method="post" class="d-inline">
+                                                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
+                                                    <input type="hidden" name="action" value="unignore_broken_link_target">
+                                                    <input type="hidden" name="target_path" value="<?= htmlspecialchars((string)($ignoredEntry['path'] ?? ''), ENT_QUOTES) ?>">
+                                                    <button type="submit" class="btn btn-outline-primary btn-sm">Wieder aufnehmen</button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
 

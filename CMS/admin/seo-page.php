@@ -61,7 +61,7 @@ function cms_admin_seo_allowed_page_configs(): array
             'view_file' => __DIR__ . '/views/seo/technical.php',
             'page_title' => 'Technisches SEO',
             'active_page' => 'seo-technical',
-            'actions' => ['save_technical_settings', 'regenerate_sitemap_bundle', 'save_robots'],
+            'actions' => ['save_technical_settings', 'run_broken_link_scan', 'ignore_broken_link_target', 'unignore_broken_link_target', 'regenerate_sitemap_bundle', 'save_robots'],
         ],
         'analytics' => [
             'route_path' => '/admin/analytics',
@@ -228,6 +228,17 @@ $sectionPageConfig = [
         return method_exists($module, 'getSectionData')
             ? $module->getSectionData($seoSection)
             : $module->getData($seoSection);
+    },
+    'request_context_resolver' => static function (SeoSuiteModule $module, string $section): array {
+        if ($section !== 'meta') {
+            return [];
+        }
+
+        return [
+            'page_assets' => [
+                'js' => [cms_asset_url('js/admin-seo-meta.js')],
+            ],
+        ];
     },
     'post_handler' => static function (SeoSuiteModule $module, string $section, array $post): array {
         if (!cms_admin_seo_can_mutate_section($section)) {

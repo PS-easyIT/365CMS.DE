@@ -17,6 +17,8 @@ if (!defined('ABSPATH')) {
 final class MediaRepository
 {
     private const CATEGORY_NAME_MAX_LENGTH = 80;
+    private const TAG_NAME_MAX_LENGTH = 40;
+    private const MAX_TAGS_PER_FILE = 20;
     private const MAX_UPLOADED_BY_LENGTH = 120;
     private const MAX_ORIGINAL_NAME_LENGTH = 180;
     private const ATOMIC_FILE_MODE = 0640;
@@ -197,6 +199,70 @@ final class MediaRepository
         return $this->saveMeta($meta);
     }
 
+    /**
+     * @param array<int, string> $tags
+     */
+    public function assignTags(string $filePath, array $tags, string $mode = 'replace'): bool|WP_Error
+    {
+        $meta = $this->loadMeta();
+        $filePath = $this->normalizeRelativePath($filePath);
+
+        if ($filePath === '') {
+            return new WP_Error('invalid_path', 'Dateipfad ist ungültig');
+        }
+
+        $fullPath = $this->resolvePath($filePath);
+        if ($fullPath instanceof WP_Error) {
+            return $fullPath;
+        }
+
+        if (!is_file($fullPath)) {
+            return new WP_Error('missing_file', 'Tags können nur bestehenden Dateien zugewiesen werden');
+        }
+
+        $mode = strtolower(trim($mode));
+        if (!in_array($mode, ['add', 'replace', 'remove', 'clear'], true)) {
+            return new WP_Error('invalid_tag_mode', 'Tag-Aktion ist ungültig');
+        }
+
+        $normalizedTags = $this->normalizeTags($tags);
+        if ($mode !== 'clear' && $normalizedTags === []) {
+            return new WP_Error('missing_tags', 'Bitte mindestens einen gültigen Tag angeben');
+        }
+
+        if (!isset($meta['files'][$filePath])) {
+            $meta['files'][$filePath] = [];
+        }
+
+        $currentTags = $this->normalizeTags((array) ($meta['files'][$filePath]['tags'] ?? []));
+        $tagLookup = array_fill_keys($currentTags, true);
+
+        if ($mode === 'clear') {
+            $nextTags = [];
+        } elseif ($mode === 'replace') {
+            $nextTags = $normalizedTags;
+        } elseif ($mode === 'remove') {
+            $removeLookup = array_fill_keys($normalizedTags, true);
+            $nextTags = array_values(array_filter(
+                $currentTags,
+                static fn (string $tag): bool => !isset($removeLookup[$tag])
+            ));
+        } else {
+            foreach ($normalizedTags as $tag) {
+                $tagLookup[$tag] = true;
+            }
+            $nextTags = array_slice(array_keys($tagLookup), 0, self::MAX_TAGS_PER_FILE);
+        }
+
+        if ($nextTags === []) {
+            unset($meta['files'][$filePath]['tags']);
+        } else {
+            $meta['files'][$filePath]['tags'] = $nextTags;
+        }
+
+        return $this->saveMeta($meta);
+    }
+
     public function loadMeta(): array
     {
         if (!file_exists($this->metaFile)) {
@@ -355,6 +421,7 @@ final class MediaRepository
                     'modified' => filemtime($itemPath),
                     'mime_type' => mime_content_type($itemPath),
                     'category' => $category,
+                    'tags' => $this->normalizeTags((array) ($metaData['tags'] ?? [])),
                     'uploader_id' => $uploaderId,
                     'uploaded_by' => $uploadedBy,
                     'is_system' => $isSystem,
@@ -577,6 +644,11 @@ final class MediaRepository
                 $normalizedMeta['category'] = $category;
             }
 
+            $tags = $this->normalizeTags((array) ($fileMeta['tags'] ?? []));
+            if ($tags !== []) {
+                $normalizedMeta['tags'] = $tags;
+            }
+
             $files[$normalizedPath] = $normalizedMeta;
         }
 
@@ -602,6 +674,41 @@ final class MediaRepository
         return function_exists('mb_substr')
             ? mb_substr($name, 0, self::CATEGORY_NAME_MAX_LENGTH, 'UTF-8')
             : substr($name, 0, self::CATEGORY_NAME_MAX_LENGTH);
+    }
+
+    /**
+     * @param array<int, string> $tags
+     * @return list<string>
+     */
+    private function normalizeTags(array $tags): array
+    {
+        $normalized = [];
+
+        foreach ($tags as $tag) {
+            $normalizedTag = $this->normalizeTagName((string) $tag);
+            if ($normalizedTag === '') {
+                continue;
+            }
+
+            $normalized[$normalizedTag] = true;
+
+            if (count($normalized) >= self::MAX_TAGS_PER_FILE) {
+                break;
+            }
+        }
+
+        return array_keys($normalized);
+    }
+
+    private function normalizeTagName(string $tag): string
+    {
+        $tag = trim(strip_tags($tag));
+        $tag = preg_replace('/[\x00-\x1F\x7F]+/u', '', $tag) ?? '';
+        $tag = preg_replace('/\s+/u', ' ', $tag) ?? '';
+
+        return function_exists('mb_substr')
+            ? mb_substr($tag, 0, self::TAG_NAME_MAX_LENGTH, 'UTF-8')
+            : substr($tag, 0, self::TAG_NAME_MAX_LENGTH);
     }
 
     private function normalizeRelativePath(string $path): string

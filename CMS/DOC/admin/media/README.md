@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Überblick über Medienbibliothek, Upload-Workflows, Schutzbereiche, Admin-Tabs und verknüpfte Member-/Asset-Dokumentation.
 
-Letzte Aktualisierung: 2026-05-10 · Version 2.9.728
+Letzte Aktualisierung: 2026-05-10 · Version 2.9.745
 
 Die Medienverwaltung ist unter `/admin/media` erreichbar und bündelt Bibliothek, Beitrags-/Site-Medien, Kategorien und Einstellungen über Query-Tabs statt über getrennte Legacy-Routen.
 
@@ -26,7 +26,7 @@ Die Medienverwaltung ist unter `/admin/media` erreichbar und bündelt Bibliothek
 - native Upload-Modalstrecke statt aktiver FilePond-Runtime
 - kompakte Dropdown-Aktionen für Dateien und Ordner
 - zentrale Rename-/Move-Modale mit vorbereiteten Zielordnern
-- Admin-Bulk-Aktionen für Löschen und Verschieben
+- Admin-Bulk-Aktionen für Löschen, Verschieben, Kategorisieren, Tagging und Alt-Texte
 - aktionsspezifische Bulk-Schaltfläche statt generischem „Auf Auswahl anwenden“
 - serverseitig normalisierte Pfade, CSRF-geschützte POST-Flows und PRG-Redirects
 - geschützte Systempfade mit zusätzlicher Member-Bestätigung am `member`-Bereich
@@ -36,6 +36,11 @@ Die Medienverwaltung ist unter `/admin/media` erreichbar und bündelt Bibliothek
 - strengere Dateinamens-Härtung mit Längenlimit und ohne irreführende Mehrfach-Punkte im Basenamen
 - read-only Duplikat-Erkennung in der Bibliothek: sichtbare gleich große Dateien werden per SHA-256-Inhalts-Hash verglichen und als identische Gruppen markiert
 - erweiterte Bibliotheksfilter nach Dateityp, Endung, Größenklasse und Änderungszeitraum; ungültige GET-Werte werden allowlist-basiert auf sichere Defaults normalisiert
+- speicherbare Filter-Presets pro Admin-Benutzer für die Bibliotheksansicht, inklusive sicherem Persistenzpfad in `settings` ohne Autoload-Ballast und vollständigem Filterzustand bis zur Verwaist-Altersgrenze
+- sichtbarer Filter-Link für den aktuellen Bibliothekszustand; der Link bleibt bewusst tokenfrei und basiert ausschließlich auf Query-Parametern
+- globale read-only Orphan-Prüfung für Dateien, die laut `MediaUsageService` nirgends verwendet werden und älter als ein definierter Zeitraum sind
+- Bulk-Kategorisierung und Bulk-Tagging über die bestehende Toolbar; Tag-Metadaten werden begrenzt im bestehenden Medien-Meta-Store gehalten
+- Bulk-Alt-Text-Editor über dieselbe Toolbar; Alt-Texte werden fail-soft aus `cms_media` geladen und nur für ausgewählte sichtbare Dateien gespeichert
 - direkte Verwendungsanzeige pro sichtbarem Medium mit Beitrags-/Seiten- und Feld-Badges, Bearbeitungslinks und aufklappbaren weiteren Referenzen
 - Nachhärtung der direkten Verwendungsanzeige: Bearbeitungslinks werden in der View fail-closed auf interne Beitrags-/Seiten-Edit-Routen begrenzt
 - chunkbasierte WebP-/Thumbnail-Nachverarbeitung für bestehende Bilder unter `/admin/media?tab=settings`, inklusive Fortschritt, Fehlerzählung und Abbruchmöglichkeit ohne lange Einzelrequests
@@ -142,7 +147,7 @@ Die Bibliotheksansicht zeigt Ordner und Dateien in Listen- oder Grid-Darstellung
 - direkte Verwendungsanzeige bzw. Referenzen aus Seiten/Beiträgen mit kompakten Badges und Bearbeitungslinks
 - Duplikat-Hinweise für sichtbare Dateien mit identischem SHA-256-Inhalts-Hash, Kurz-Hash und weiteren Pfaden
 - Kategorien-, Such-, Verwendungs-, Typ-, Endungs-, Größen- und Änderungszeitraumfilter
-- Bulk-Aktionen für Löschen und Verschieben
+- Bulk-Aktionen für Löschen, Verschieben, Kategorisieren, Tagging und Alt-Texte
 - direkte Dateiaktionen für Umbenennen, Verschieben, Löschen und Kategorie-Zuordnung
 
 Die Duplikat-Erkennung ist bewusst nur ein Hinweis- und Prüfpfad: Sie löscht keine Dateien automatisch und schreibt keine bestehenden Medienreferenzen um. Dadurch können Admins zuerst prüfen, ob identische Dateien tatsächlich redundant sind oder bewusst mehrfach in unterschiedlichen Ordnerkontexten liegen.
@@ -150,6 +155,14 @@ Die Duplikat-Erkennung ist bewusst nur ein Hinweis- und Prüfpfad: Sie löscht k
 Seit `2.9.728` überspringt diese View-Berechnung sehr große Dateien beim SHA-256-Hashing opportunistisch. Dadurch bleibt die Bibliothek auch bei großen Video-, Archiv- oder Backup-Dateien bedienbar; die Anzeige ist weiterhin ein read-only Komfortsignal und kein vollständiger forensischer Duplikatindex.
 
 Seit `2.9.725` bleibt die erweiterte Suche bewusst ein reiner GET-/View-Pfad: Dateityp, Endung, Größenklasse und Änderungszeitraum werden serverseitig normalisiert, in Ordner-, Breadcrumb- und Listen-/Grid-Links mitgeführt und können über einen Reset-Link entfernt werden. Dadurch entstehen keine zusätzlichen CSRF-Token oder Schreibaktionen; fehlerhafte Filterwerte führen zu neutralen Defaults statt zu einem Serverfehler.
+
+Seit `2.9.740` ergänzt die Bibliothek darauf aufbauend persönliche Filter-Presets pro Admin-Benutzer. Gespeichert wird nur ein begrenzter, allowlist-normalisierter Filterzustand im bestehenden `settings`-Speicher unter einer benutzerbezogenen Option mit `autoload = 0`; der aktuelle Bibliothekszustand lässt sich zusätzlich als sichtbarer Filter-Link kopieren. Der Link enthält ausschließlich Query-Parameter für Pfad, Ansicht und Filter – bewusst keine CSRF- oder Sicherheitstokens. Gleichzeitig behalten PRG-Redirects nach Bibliotheks-POSTs nun auch `usage_filter`, Dateityp, Endung, Größenklasse, Änderungszeitraum und die read-only Verwaist-Altersgrenze zuverlässig bei, statt auf Teildefaults zurückzufallen.
+
+Seit `2.9.741` nutzt dieselbe Toolbar zusätzlich Bulk-Kategorisierung und Bulk-Tagging. Die neuen Aktionen bleiben POST-only und CSRF-geschützt: Kategorien können gesammelt gesetzt oder entfernt werden, Tags können hinzugefügt, ersetzt, entfernt oder vollständig geleert werden. Ordner in gemischten Auswahlen werden bei Datei-Metadatenaktionen gezählt übersprungen; erfolgreiche und teilweise fehlgeschlagene Sammelaktionen schreiben datensparsame Audit-Einträge mit Auswahl-, Erfolgs-, Skip- und Fehlerzahlen. Tags landen bewusst im vorhandenen `media-meta.json`-Store und werden serverseitig auf Anzahl und Länge begrenzt, damit defekte Eingaben keine 500er oder unbounded Meta-Payloads erzeugen.
+
+Seit `2.9.743` ergänzt dieselbe Bulk-Toolbar außerdem die Alt-Text-Pflege für SEO- und Accessibility-Aufräumarbeiten. Die Bibliothek rendert Alt-Text-Felder direkt an sichtbaren Dateien in Listen- und Grid-Ansicht; gespeichert werden sie weiterhin nur über den bestehenden POST-/CSRF-/PRG-Vertrag und ausschließlich für ausgewählte Dateien. Die Werte werden fail-soft aus `cms_media.alt_text` geladen; existiert zu einem sichtbaren Medium noch kein Datensatz, ergänzt die Medienverwaltung beim Speichern einen minimalen Eintrag per Upsert. Rename-, Move- und Delete-Aktionen synchronisieren vorhandene `cms_media.filepath`-Einträge bestmöglich mit, damit Alt-Texte nicht an alten Pfaden hängen bleiben.
+
+Seit `2.9.742` ergänzt die Bibliothek eine globale, read-only Orphan-Prüfung. Über einen tokenfreien GET-Parameter lässt sich eine Altersgrenze von 30, 90, 180 oder 365 Tagen aktivieren; die Analyse scannt Uploads rekursiv über einen bewusst begrenzten Inventurpfad, schließt geschützte System- und Member-Pfade aus und gleicht die verbleibenden Dateien gegen die bestehende `MediaUsageService`-Karte ab. Treffer erscheinen ausschließlich als Prüfliste mit Link in den Ordner und optionalem Dateiaufruf – bewusst ohne automatische Löschfunktion und ohne neuen POST-Pfad.
 
 Seit `2.9.727` ist die Verwendungsanzeige nicht mehr nur ein Filterkriterium: Jede sichtbare Datei erhält in der Listenansicht direkte Referenzzeilen mit Inhaltstyp, Titel, Feldkontext und Link zur Bearbeitung; weitere Treffer bleiben per `<details>` aufklappbar. Die Grid-Ansicht zeigt denselben Zustand kompakt über Zähler- und Feld-Badges. Der Pfad bleibt read-only und nutzt die bestehende `MediaUsageService`-Map, statt neue Schreibaktionen oder lange Zusatzläufe einzuführen.
 

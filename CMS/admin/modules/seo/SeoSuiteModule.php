@@ -13,6 +13,8 @@ use CMS\Services\PermalinkService;
 use CMS\Services\RedirectService;
 use CMS\Services\SEOService;
 use CMS\Services\SeoAnalysisService;
+use CMS\Services\SeoBrokenLinkService;
+use CMS\Services\SeoTrendService;
 
 final class SeoSuiteModule
 {
@@ -109,6 +111,8 @@ final class SeoSuiteModule
 	private AnalyticsService $analyticsService;
 	private IndexingService $indexingService;
 	private RedirectService $redirectService;
+	private SeoBrokenLinkService $brokenLinkService;
+	private SeoTrendService $trendService;
 	private ?array $knownSiteAuthorities = null;
 
 	public function __construct()
@@ -120,6 +124,8 @@ final class SeoSuiteModule
 		$this->analyticsService = AnalyticsService::getInstance();
 		$this->indexingService = IndexingService::getInstance();
 		$this->redirectService = RedirectService::getInstance();
+		$this->brokenLinkService = SeoBrokenLinkService::getInstance();
+		$this->trendService = SeoTrendService::getInstance();
 	}
 
 	public function getData(string $section = 'dashboard'): array
@@ -200,6 +206,9 @@ final class SeoSuiteModule
 			'save_social_defaults' => $this->saveSocialDefaults($post),
 			'save_schema_defaults' => $this->saveSchemaDefaults($post),
 			'save_technical_settings' => $this->saveTechnicalSettings($post),
+			'run_broken_link_scan' => $this->brokenLinkService->runScan('manual'),
+			'ignore_broken_link_target' => $this->brokenLinkService->ignorePath((string)($post['target_path'] ?? '')),
+			'unignore_broken_link_target' => $this->brokenLinkService->removeIgnoredPath((string)($post['target_path'] ?? '')),
 			'save_analytics_settings' => $this->saveAnalyticsSettings($post),
 			'save_audit_item' => $this->saveAuditItem($post),
 			'save_robots' => $this->saveRobotsTxt(),
@@ -541,6 +550,7 @@ final class SeoSuiteModule
 			'content_buckets' => $contentBuckets,
 			'recent_critical' => array_slice(array_values(array_filter($auditRows, static fn(array $row): bool => (int)($row['analysis']['score'] ?? 0) < 55)), 0, 8),
 			'status' => $overview['status'],
+			'trends' => $this->trendService->buildDashboardTrendData($auditRows, $overview),
 		];
 	}
 
@@ -650,9 +660,11 @@ final class SeoSuiteModule
 	private function getMetaData(array $auditRows): array
 	{
 		$examples = array_slice($auditRows, 0, 4);
+		$settings = $this->loadSettings(self::META_DEFAULTS);
+		$socialSettings = $this->loadSettings(self::SOCIAL_DEFAULTS);
 
 		return [
-			'settings' => $this->loadSettings(self::META_DEFAULTS),
+			'settings' => $settings,
 			'variables' => [
 				['token' => '%%title%%', 'description' => 'Titel des Inhalts'],
 				['token' => '%%sitename%%', 'description' => 'Website-Name'],
@@ -661,7 +673,158 @@ final class SeoSuiteModule
 				['token' => '%%slug%%', 'description' => 'Slug/URL-Segment'],
 			],
 			'examples' => $examples,
+			'site_name' => $this->resolveSiteName(),
+			'default_social_image' => (string)($socialSettings['seo_social_default_image'] ?? ''),
+			'preview_contexts' => $this->buildMetaPreviewContexts($settings, $socialSettings),
 		];
+	}
+
+	/**
+	 * @param array<string, string> $settings
+	 * @param array<string, string> $socialSettings
+	 * @return list<array<string, string>>
+	 */
+	private function buildMetaPreviewContexts(array $settings, array $socialSettings): array
+	{
+		$siteName = $this->resolveSiteName();
+		$globalDescription = trim((string)($settings['seo_meta_description'] ?? ''));
+		$homepageTitle = trim((string)($settings['seo_homepage_title'] ?? ''));
+		$homepageDescription = trim((string)($settings['seo_homepage_description'] ?? ''));
+		$socialImage = trim((string)($socialSettings['seo_social_default_image'] ?? ''));
+
+		$categorySample = $this->loadFirstTaxonomySample('post_categories', 'Kategorie', 'news');
+		$tagSample = $this->loadFirstTaxonomySample('post_tags', 'Tag', 'update');
+
+		return [
+			[
+				'key' => 'homepage',
+				'label' => 'Startseite',
+				'title' => $homepageTitle !== '' ? $homepageTitle : $siteName,
+				'description' => $homepageDescription !== '' ? $homepageDescription : ($globalDescription !== '' ? $globalDescription : 'Startseite mit den wichtigsten Inhalten und Einstiegen der Website.'),
+				'url' => $this->buildPublicPreviewUrl('/'),
+				'slug' => '',
+				'excerpt' => $homepageDescription !== '' ? $homepageDescription : $globalDescription,
+				'social_image' => $socialImage,
+			],
+			[
+				'key' => 'blog',
+				'label' => 'Blog-Archiv',
+				'title' => 'Blog',
+				'description' => $globalDescription !== '' ? $globalDescription : 'Aktuelle Beiträge, News und redaktionelle Inhalte der Website.',
+				'url' => $this->buildPublicPreviewUrl('/blog'),
+				'slug' => 'blog',
+				'excerpt' => $globalDescription,
+				'social_image' => $socialImage,
+			],
+			[
+				'key' => 'category',
+				'label' => 'Kategorie-Archiv',
+				'title' => (string)($categorySample['name'] ?? 'Kategorie'),
+				'description' => $globalDescription !== '' ? $globalDescription : 'Archivansicht für thematisch gebündelte Beiträge.',
+				'url' => $this->buildArchivePreviewUrl('category', (string)($categorySample['slug'] ?? 'news')),
+				'slug' => (string)($categorySample['slug'] ?? 'news'),
+				'excerpt' => $globalDescription,
+				'social_image' => $socialImage,
+			],
+			[
+				'key' => 'tag',
+				'label' => 'Tag-Archiv',
+				'title' => (string)($tagSample['name'] ?? 'Tag'),
+				'description' => $globalDescription !== '' ? $globalDescription : 'Archivansicht für Beiträge mit gemeinsamem Schlagwort.',
+				'url' => $this->buildArchivePreviewUrl('tag', (string)($tagSample['slug'] ?? 'update')),
+				'slug' => (string)($tagSample['slug'] ?? 'update'),
+				'excerpt' => $globalDescription,
+				'social_image' => $socialImage,
+			],
+		];
+	}
+
+	/**
+	 * @return array{name: string, slug: string}
+	 */
+	private function loadFirstTaxonomySample(string $table, string $fallbackName, string $fallbackSlug): array
+	{
+		try {
+			$row = $this->db->get_row(
+				"SELECT name, slug FROM {$this->prefix}{$table} ORDER BY name ASC LIMIT 1"
+			);
+
+			$name = trim((string)($row->name ?? ''));
+			$slug = trim((string)($row->slug ?? ''));
+			if ($name !== '' && $slug !== '') {
+				return ['name' => $name, 'slug' => $slug];
+			}
+		} catch (\Throwable) {
+			// Fail-soft: Preview bleibt mit Fallback-Beispielen nutzbar.
+		}
+
+		return [
+			'name' => $fallbackName,
+			'slug' => $fallbackSlug,
+		];
+	}
+
+	private function buildArchivePreviewUrl(string $type, string $slug): string
+	{
+		$normalizedType = strtolower(trim($type));
+		$normalizedSlug = trim($slug, "/ \t\n\r\0\x0B");
+
+		if (function_exists('cms_get_archive_url')) {
+			try {
+				$url = (string)cms_get_archive_url($normalizedType, $normalizedSlug);
+				if ($url !== '') {
+					return $url;
+				}
+			} catch (\Throwable) {
+				// Fallback unten.
+			}
+		}
+
+		$fallbackBase = $normalizedType === 'tag' ? 'tag' : 'category';
+		$fallbackPath = '/' . $fallbackBase . ($normalizedSlug !== '' ? '/' . rawurlencode($normalizedSlug) : '');
+
+		return $this->buildPublicPreviewUrl($fallbackPath);
+	}
+
+	private function buildPublicPreviewUrl(string $path): string
+	{
+		$normalizedPath = '/' . ltrim(trim($path), '/');
+		$normalizedPath = $normalizedPath === '//' ? '/' : $normalizedPath;
+
+		if (function_exists('cms_runtime_base_url')) {
+			try {
+				$url = (string)cms_runtime_base_url(ltrim($normalizedPath, '/'));
+				if ($url !== '') {
+					return $url;
+				}
+			} catch (\Throwable) {
+				// Fallback unten.
+			}
+		}
+
+		if (function_exists('home_url')) {
+			try {
+				$url = (string)home_url(ltrim($normalizedPath, '/'));
+				if ($url !== '') {
+					return $url;
+				}
+			} catch (\Throwable) {
+				// Fallback unten.
+			}
+		}
+
+		$siteUrl = defined('SITE_URL') ? rtrim((string)SITE_URL, '/') : '';
+
+		return $siteUrl !== '' ? $siteUrl . ($normalizedPath === '/' ? '/' : $normalizedPath) : $normalizedPath;
+	}
+
+	private function resolveSiteName(): string
+	{
+		$fallback = defined('SITE_NAME') ? (string)SITE_NAME : '365CMS';
+		$settings = $this->loadSettings(['site_name' => $fallback]);
+		$siteName = trim((string)($settings['site_name'] ?? $fallback));
+
+		return $siteName !== '' ? $siteName : $fallback;
 	}
 
 	private function getSocialData(array $auditRows): array
@@ -760,7 +923,7 @@ final class SeoSuiteModule
 	private function getTechnicalData(array $auditRows): array
 	{
 		$settings = $this->loadSettings(self::TECHNICAL_DEFAULTS);
-		$brokenLinks = !empty($settings['seo_technical_broken_link_scan']) ? $this->scanBrokenLinks($auditRows) : [];
+		$brokenLinkReport = $this->brokenLinkService->getAdminData();
 		$redirectData = $this->redirectService->getAdminData();
 		$indexNowStatus = $this->indexingService->getIndexNowConfigurationStatus();
 
@@ -787,7 +950,8 @@ final class SeoSuiteModule
 
 		return [
 			'settings' => $settings,
-			'broken_links' => $brokenLinks,
+			'broken_links' => (array)($brokenLinkReport['findings'] ?? []),
+			'broken_links_report' => $brokenLinkReport,
 			'missing_alt_rows' => array_slice($missingAltRows, 0, 10),
 			'noindex_candidates' => array_slice($noindexCandidates, 0, 10),
 			'hreflang_groups' => $hreflangGroups,
@@ -934,77 +1098,6 @@ final class SeoSuiteModule
 		}
 	}
 
-
-	private function scanBrokenLinks(array $auditRows): array
-	{
-		$validPaths = ['/'];
-		$permalinkService = PermalinkService::getInstance();
-		foreach ($auditRows as $row) {
-			$slug = trim((string)($row['slug'] ?? ''));
-			if ($slug === '') {
-				continue;
-			}
-
-			if (($row['type'] ?? '') === 'post') {
-				$validPaths[] = $permalinkService->buildPostPathFromValues(
-					$slug,
-					(string)($row['published_at'] ?? ''),
-					(string)($row['created_at'] ?? '')
-				);
-				$validPaths[] = $permalinkService->getLegacyPostPath($slug);
-				continue;
-			}
-
-			$validPaths[] = '/' . ltrim($slug, '/');
-		}
-		$validPaths = array_values(array_unique($validPaths));
-
-		$broken = [];
-		foreach ($auditRows as $row) {
-			if (!preg_match_all('/<a\b[^>]*href=["\']([^"\']+)["\']/i', (string)($row['content'] ?? ''), $matches)) {
-				continue;
-			}
-
-			foreach ($matches[1] as $href) {
-				$href = trim((string)$href);
-				if ($href === '' || str_starts_with($href, '#') || str_starts_with($href, 'mailto:') || str_starts_with($href, 'tel:')) {
-					continue;
-				}
-
-				$sameSitePath = $this->extractSameSitePathFromUrl($href);
-				if ($sameSitePath !== '') {
-					$href = $sameSitePath;
-				}
-				if (!str_starts_with($href, '/')) {
-					continue;
-				}
-
-				$href = rtrim((string)parse_url($href, PHP_URL_PATH), '/');
-				$href = $href === '' ? '/' : $href;
-				if (preg_match('/\.(css|js|png|jpe?g|gif|svg|webp|pdf|xml|txt)$/i', $href) === 1) {
-					continue;
-				}
-				if (in_array($href, $validPaths, true)) {
-					continue;
-				}
-
-				$broken[] = [
-					'source_title' => (string)($row['title'] ?? ''),
-					'source_type' => (string)($row['type'] ?? ''),
-					'source_slug' => (string)($row['slug'] ?? ''),
-					'target_path' => $href,
-				];
-			}
-		}
-
-		$unique = [];
-		foreach ($broken as $row) {
-			$key = $row['source_type'] . '|' . $row['source_slug'] . '|' . $row['target_path'];
-			$unique[$key] = $row;
-		}
-
-		return array_slice(array_values($unique), 0, 50);
-	}
 
 	private function normalizeOptionalUrl(string $value, bool $allowRelative): string
 	{

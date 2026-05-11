@@ -749,6 +749,12 @@ class Bootstrap
 
             Services\MailQueueService::getInstance()->handleCronHook(...$args);
         }, 10);
+        Hooks::addAction('cms_cron_hourly', static function (): void {
+            Services\SeoBrokenLinkService::getInstance()->runScheduledScan();
+        }, 20);
+        Hooks::addAction('cms_cron_hourly', static function (): void {
+            Services\SeoTrendService::getInstance()->runScheduledSnapshot();
+        }, 30);
 
         Services\OpcacheWarmupService::getInstance()->maybeWarmAfterDeploy(30);
         Debug::checkpoint('bootstrap.opcache_checked');

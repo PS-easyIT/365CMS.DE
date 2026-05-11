@@ -27,8 +27,13 @@ $fontCatalog  = $data['fontCatalog'] ?? [];
 $activeThemeSlug = $data['activeThemeSlug'] ?? '';
 $scanSummary = is_array($data['scanSummary'] ?? null) ? $data['scanSummary'] : ['scannedFiles' => 0, 'skippedFiles' => 0, 'warnings' => []];
 $constraints = is_array($data['constraints'] ?? null) ? $data['constraints'] : [];
+$fontUsageAnalysis = is_array($data['fontUsageAnalysis'] ?? null) ? $data['fontUsageAnalysis'] : [];
 $detectedFonts = (array)($scanResults['detectedFonts'] ?? []);
 $detectedInstallableFonts = array_values(array_filter($detectedFonts, static fn(array $font): bool => empty($font['installed'])));
+$fontUsageStats = is_array($fontUsageAnalysis['stats'] ?? null) ? $fontUsageAnalysis['stats'] : [];
+$fontUsageConfigured = is_array($fontUsageAnalysis['configured_fonts'] ?? null) ? $fontUsageAnalysis['configured_fonts'] : [];
+$fontUsageEntries = is_array($fontUsageAnalysis['font_entries'] ?? null) ? $fontUsageAnalysis['font_entries'] : [];
+$fontUsageWarnings = is_array($fontUsageAnalysis['warnings'] ?? null) ? $fontUsageAnalysis['warnings'] : [];
 $fontManagerConfig = [
     'fontStacks' => is_array($fontStacks) ? $fontStacks : [],
     'deleteModal' => [
@@ -227,6 +232,137 @@ $fontManagerConfig = [
                     <?php endif; ?>
                 </div>
             </div>
+
+            <?php if ($fontUsageAnalysis !== []): ?>
+                <div class="card mb-3">
+                    <div class="card-header d-flex align-items-center justify-content-between gap-3">
+                        <div>
+                            <h3 class="card-title mb-1">Schritt 1b · Font-Nutzungsanalyse</h3>
+                            <div class="text-muted small">Read-only Auswertung aus Runtime-Konfiguration, lokaler Font-Bibliothek und Theme-Scan</div>
+                        </div>
+                        <span class="badge <?php echo htmlspecialchars((string) ($fontUsageAnalysis['runtime_mode_badge_class'] ?? 'bg-secondary-lt')); ?>">
+                            <?php echo htmlspecialchars((string) ($fontUsageAnalysis['runtime_mode_label'] ?? 'Analyse')); ?>
+                        </span>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted mb-3"><?php echo htmlspecialchars((string) ($fontUsageAnalysis['runtime_mode_note'] ?? '')); ?></p>
+
+                        <?php if ($fontUsageWarnings !== []): ?>
+                            <?php
+                            $alertData = [
+                                'type' => 'warning',
+                                'message' => 'Die Nutzungsanalyse hat konkrete Nacharbeiten erkannt.',
+                                'details' => $fontUsageWarnings,
+                            ];
+                            $alertDismissible = false;
+                            $alertMarginClass = 'mb-3';
+                            require __DIR__ . '/../partials/flash-alert.php';
+                            ?>
+                        <?php endif; ?>
+
+                        <?php if ($fontUsageStats !== []): ?>
+                            <div class="row row-cards mb-3">
+                                <?php foreach ($fontUsageStats as $stat): ?>
+                                    <div class="col-sm-6 col-xl-3">
+                                        <div class="card card-sm h-100">
+                                            <div class="card-body">
+                                                <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
+                                                    <span class="text-muted small"><?php echo htmlspecialchars((string) ($stat['label'] ?? 'Kennzahl')); ?></span>
+                                                    <span class="badge <?php echo htmlspecialchars((string) ($stat['badge_class'] ?? 'bg-secondary-lt')); ?>"><?php echo htmlspecialchars((string) ($stat['value'] ?? '0')); ?></span>
+                                                </div>
+                                                <?php if (!empty($stat['hint'])): ?>
+                                                    <div class="small text-muted"><?php echo htmlspecialchars((string) ($stat['hint'] ?? '')); ?></div>
+                                                <?php endif; ?>
+                                            </div>
+                                        </div>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php endif; ?>
+
+                        <?php if ($fontUsageConfigured !== []): ?>
+                            <div class="row g-3 mb-3">
+                                <?php foreach ($fontUsageConfigured as $configuredFont): ?>
+                                    <div class="col-md-6">
+                                        <div class="border rounded p-3 h-100">
+                                            <div class="d-flex align-items-start justify-content-between gap-2 mb-2">
+                                                <div>
+                                                    <div class="text-muted small"><?php echo htmlspecialchars((string) ($configuredFont['slot_label'] ?? 'Konfiguration')); ?></div>
+                                                    <div class="fw-semibold"><?php echo htmlspecialchars((string) ($configuredFont['font_label'] ?? 'System UI')); ?></div>
+                                                </div>
+                                                <span class="badge <?php echo htmlspecialchars((string) ($configuredFont['delivery_badge_class'] ?? 'bg-secondary-lt')); ?>">
+                                                    <?php echo htmlspecialchars((string) ($configuredFont['delivery_label'] ?? 'Status')); ?>
+                                                </span>
+                                            </div>
+                                            <div class="small text-muted">
+                                                <code><?php echo htmlspecialchars((string) ($configuredFont['font_key'] ?? 'system-ui')); ?></code>
+                                                <?php if (!empty($configuredFont['note'])): ?>
+                                                    · <?php echo htmlspecialchars((string) ($configuredFont['note'] ?? '')); ?>
+                                                <?php endif; ?>
+                                            </div>
+                                        </div>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php endif; ?>
+
+                        <?php if ($fontUsageEntries !== []): ?>
+                            <div class="table-responsive">
+                                <table class="table table-vcenter card-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Schrift</th>
+                                            <th>Nutzung</th>
+                                            <th>Status</th>
+                                            <th>Hinweise</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($fontUsageEntries as $entry): ?>
+                                            <tr>
+                                                <td>
+                                                    <div class="d-flex flex-column gap-1">
+                                                        <div class="fw-semibold"><?php echo htmlspecialchars((string) ($entry['name'] ?? 'Schrift')); ?></div>
+                                                        <div class="d-flex flex-wrap gap-1">
+                                                            <span class="badge <?php echo htmlspecialchars((string) ($entry['type_badge_class'] ?? 'bg-secondary-lt')); ?>">
+                                                                <?php echo htmlspecialchars((string) ($entry['type_label'] ?? 'Typ')); ?>
+                                                            </span>
+                                                            <?php foreach ((array) ($entry['roles'] ?? []) as $role): ?>
+                                                                <span class="badge bg-azure-lt"><?php echo htmlspecialchars((string) $role); ?></span>
+                                                            <?php endforeach; ?>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <?php if (!empty($entry['source_count'])): ?>
+                                                        <div class="small fw-semibold"><?php echo (int) ($entry['source_count'] ?? 0); ?> Theme-Treffer</div>
+                                                        <?php foreach ((array) ($entry['source_preview'] ?? []) as $source): ?>
+                                                            <div class="small text-muted"><code><?php echo htmlspecialchars((string) ($source['file'] ?? '')); ?></code> <span>· <?php echo htmlspecialchars((string) ($source['type'] ?? 'Theme-Datei')); ?></span></div>
+                                                        <?php endforeach; ?>
+                                                    <?php else: ?>
+                                                        <span class="text-muted small">Kein Theme-Treffer notwendig</span>
+                                                    <?php endif; ?>
+                                                </td>
+                                                <td>
+                                                    <span class="badge <?php echo htmlspecialchars((string) ($entry['status_badge_class'] ?? 'bg-secondary-lt')); ?>">
+                                                        <?php echo htmlspecialchars((string) ($entry['status_label'] ?? 'Status')); ?>
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <div class="small"><?php echo htmlspecialchars((string) ($entry['note'] ?? '')); ?></div>
+                                                    <?php if (!empty($entry['recommendation'])): ?>
+                                                        <div class="text-muted small mt-1"><?php echo htmlspecialchars((string) ($entry['recommendation'] ?? '')); ?></div>
+                                                    <?php endif; ?>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            <?php endif; ?>
 
             <div class="card mb-3">
                 <div class="card-header">

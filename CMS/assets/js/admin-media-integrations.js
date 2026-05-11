@@ -139,6 +139,40 @@
         return true;
     }
 
+    function copyInputValue(input) {
+        var value = '';
+        var copied = false;
+
+        if (!(input instanceof HTMLInputElement) && !(input instanceof HTMLTextAreaElement)) {
+            return Promise.reject(new Error('Kein kopierbares Eingabefeld gefunden.'));
+        }
+
+        value = String(input.value || '').trim();
+        if (!value) {
+            return Promise.reject(new Error('Es gibt keinen Link zum Kopieren.'));
+        }
+
+        if (window.isSecureContext && navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+            return navigator.clipboard.writeText(value);
+        }
+
+        input.focus();
+        input.select();
+        if (typeof input.setSelectionRange === 'function') {
+            input.setSelectionRange(0, value.length);
+        }
+
+        try {
+            copied = document.execCommand('copy');
+        } catch (error) {
+            copied = false;
+        }
+
+        return copied
+            ? Promise.resolve()
+            : Promise.reject(new Error('Link konnte nicht automatisch kopiert werden.'));
+    }
+
     function clearElement(element) {
         if (!element) {
             return;
@@ -580,6 +614,36 @@
         });
     }
 
+    function initCopyInputButtons() {
+        document.querySelectorAll('[data-copy-input-target]').forEach(function (button) {
+            var defaultLabel = String(button.textContent || '').trim() || 'Kopieren';
+            var successLabel = String(button.dataset.copySuccessLabel || 'Kopiert').trim() || 'Kopiert';
+
+            button.addEventListener('click', function () {
+                var selector = button.dataset.copyInputTarget || '';
+                var input = selector ? document.querySelector(selector) : null;
+
+                copyInputValue(input).then(function () {
+                    button.textContent = successLabel;
+
+                    if (button._copyResetTimer) {
+                        window.clearTimeout(button._copyResetTimer);
+                    }
+
+                    button._copyResetTimer = window.setTimeout(function () {
+                        button.textContent = defaultLabel;
+                    }, 1600);
+                }).catch(function (error) {
+                    showMessage('danger', error && error.message ? error.message : 'Link konnte nicht kopiert werden.');
+                    if (input && (input instanceof HTMLInputElement || input instanceof HTMLTextAreaElement)) {
+                        input.focus();
+                        input.select();
+                    }
+                });
+            });
+        });
+    }
+
     function parseConfig(id) {
         var element = document.getElementById(id);
         if (!element) {
@@ -614,6 +678,10 @@
         var bulkActionFieldId = config.bulkActionFieldId || 'mediaBulkAction';
         var bulkMoveWrapId = config.bulkMoveWrapId || 'mediaBulkMoveWrap';
         var bulkMoveTargetFieldId = config.bulkMoveTargetFieldId || 'mediaBulkTarget';
+        var bulkCategoryWrapId = config.bulkCategoryWrapId || 'mediaBulkCategoryWrap';
+        var bulkCategoryFieldId = config.bulkCategoryFieldId || 'mediaBulkCategory';
+        var bulkTagsWrapId = config.bulkTagsWrapId || 'mediaBulkTagsWrap';
+        var bulkTagsFieldId = config.bulkTagsFieldId || 'mediaBulkTags';
         var deleteForm = document.getElementById(deleteFormId);
         var deletePathField = document.getElementById(deletePathFieldId);
         var renameModalElement = document.getElementById(renameModalId);
@@ -631,6 +699,10 @@
         var bulkActionField = document.getElementById(bulkActionFieldId);
         var bulkMoveWrap = document.getElementById(bulkMoveWrapId);
         var bulkMoveTargetField = document.getElementById(bulkMoveTargetFieldId);
+        var bulkCategoryWrap = document.getElementById(bulkCategoryWrapId);
+        var bulkCategoryField = document.getElementById(bulkCategoryFieldId);
+        var bulkTagsWrap = document.getElementById(bulkTagsWrapId);
+        var bulkTagsField = document.getElementById(bulkTagsFieldId);
         var bulkSubmitButton = bulkForm ? bulkForm.querySelector('button[type="submit"]') : null;
         var selectedPaths = new Set();
 
@@ -642,9 +714,11 @@
             var selectedCount = selectedPaths.size;
             var action = bulkActionField ? String(bulkActionField.value || '') : '';
             var requiresMoveTarget = action === 'move';
-            var hasValidAction = action === 'delete' || action === 'move';
+            var requiresTags = action === 'tag_add' || action === 'tag_replace' || action === 'tag_remove';
+            var hasValidAction = ['delete', 'move', 'assign_category', 'tag_add', 'tag_replace', 'tag_remove', 'tag_clear', 'alt_text_update'].indexOf(action) !== -1;
             var hasValidTarget = !requiresMoveTarget || !bulkMoveTargetField || !!bulkMoveTargetField.value;
-            var enabled = selectedCount > 0 && hasValidAction && hasValidTarget;
+            var hasValidTags = !requiresTags || !bulkTagsField || String(bulkTagsField.value || '').trim() !== '';
+            var enabled = selectedCount > 0 && hasValidAction && hasValidTarget && hasValidTags;
             var label = 'Diesen Medien-Batch ausführen';
 
             if (action === 'delete') {
@@ -655,6 +729,26 @@
                 label = selectedCount > 0
                     ? selectedCount + ' Medium/Medien verschieben'
                     : 'Ausgewählte Medien verschieben';
+            } else if (action === 'assign_category') {
+                label = selectedCount > 0
+                    ? selectedCount + ' Datei(en) kategorisieren'
+                    : 'Ausgewählte Dateien kategorisieren';
+            } else if (action === 'tag_add') {
+                label = selectedCount > 0
+                    ? selectedCount + ' Datei(en) taggen'
+                    : 'Ausgewählte Dateien taggen';
+            } else if (action === 'tag_replace') {
+                label = selectedCount > 0
+                    ? selectedCount + ' Datei-Tags ersetzen'
+                    : 'Tags ersetzen';
+            } else if (action === 'tag_remove' || action === 'tag_clear') {
+                label = selectedCount > 0
+                    ? selectedCount + ' Datei-Tags entfernen'
+                    : 'Tags entfernen';
+            } else if (action === 'alt_text_update') {
+                label = selectedCount > 0
+                    ? selectedCount + ' Datei-Alt-Texte aktualisieren'
+                    : 'Alt-Texte aktualisieren';
             }
 
             bulkSubmitButton.textContent = label;
@@ -837,13 +931,24 @@
         }
 
         function updateBulkActionUi() {
-            if (!bulkMoveWrap || !bulkActionField) {
+            if (!bulkActionField) {
                 updateBulkSubmitButton();
                 return;
             }
 
             var requiresMoveTarget = bulkActionField.value === 'move';
-            bulkMoveWrap.classList.toggle('d-none', !requiresMoveTarget);
+            var requiresCategory = bulkActionField.value === 'assign_category';
+            var requiresTags = bulkActionField.value === 'tag_add' || bulkActionField.value === 'tag_replace' || bulkActionField.value === 'tag_remove';
+
+            if (bulkMoveWrap) {
+                bulkMoveWrap.classList.toggle('d-none', !requiresMoveTarget);
+            }
+            if (bulkCategoryWrap) {
+                bulkCategoryWrap.classList.toggle('d-none', !requiresCategory);
+            }
+            if (bulkTagsWrap) {
+                bulkTagsWrap.classList.toggle('d-none', !requiresTags);
+            }
 
             if (bulkMoveTargetField) {
                 bulkMoveTargetField.disabled = !requiresMoveTarget;
@@ -853,6 +958,14 @@
                         bulkMoveTargetField.selectedIndex = 0;
                     }
                 }
+            }
+
+            if (bulkCategoryField) {
+                bulkCategoryField.disabled = !requiresCategory;
+            }
+
+            if (bulkTagsField) {
+                bulkTagsField.disabled = !requiresTags;
             }
 
             updateBulkSubmitButton();
@@ -896,6 +1009,14 @@
 
         if (bulkMoveTargetField) {
             bulkMoveTargetField.addEventListener('change', updateBulkSubmitButton);
+        }
+
+        if (bulkCategoryField) {
+            bulkCategoryField.addEventListener('change', updateBulkSubmitButton);
+        }
+
+        if (bulkTagsField) {
+            bulkTagsField.addEventListener('input', updateBulkSubmitButton);
         }
 
         document.querySelectorAll('[data-media-auto-submit-select="1"]').forEach(function (select) {
@@ -944,7 +1065,20 @@
                     return;
                 }
 
+                if ((bulkActionField.value === 'tag_add' || bulkActionField.value === 'tag_replace' || bulkActionField.value === 'tag_remove') && bulkTagsField && String(bulkTagsField.value || '').trim() === '') {
+                    event.preventDefault();
+                    setSubmittingState(bulkForm, false);
+                    bulkTagsField.focus();
+                    return;
+                }
+
                 if (bulkActionField.value === 'delete' && !window.confirm('Die ausgewählten Medien wirklich löschen?')) {
+                    event.preventDefault();
+                    setSubmittingState(bulkForm, false);
+                    return;
+                }
+
+                if ((bulkActionField.value === 'tag_replace' || bulkActionField.value === 'tag_clear') && !window.confirm('Die Tags der ausgewählten Dateien wirklich überschreiben bzw. entfernen?')) {
                     event.preventDefault();
                     setSubmittingState(bulkForm, false);
                     return;
@@ -1378,6 +1512,7 @@
     document.addEventListener('DOMContentLoaded', function () {
         initNativeUploader();
         initMediaPickers();
+        initCopyInputButtons();
         initMediaLibraryActions();
         initMediaCategoryActions();
         initFeaturedMediaReplace();

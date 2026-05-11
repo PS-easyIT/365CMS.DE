@@ -125,6 +125,13 @@ class MediaService {
         return $this->repository->assignCategory($filePath, $categorySlug);
     }
 
+    /**
+     * @param array<int, string> $tags
+     */
+    public function assignTags(string $filePath, array $tags, string $mode = 'replace'): bool|WP_Error {
+        return $this->repository->assignTags($filePath, $tags, $mode);
+    }
+
     private function getDefaultSettings(): array {
         return [
             'max_upload_size' => '64M',
@@ -969,6 +976,91 @@ class MediaService {
      */
     public function getItems(string $path = ''): array|WP_Error {
         return $this->repository->getItems($path);
+    }
+
+    /**
+     * Read-only recursive inventory of managed media files.
+     *
+     * The result is intentionally capped so admin analysis views stay bounded
+     * even on large installations.
+     *
+     * @return list<array<string,mixed>>
+     */
+    public function collectManagedFileInventory(int $limit = 5000): array
+    {
+        $limit = max(1, min(10000, $limit));
+        $root = rtrim($this->uploadPath, '/\\');
+
+        if (!is_dir($root) || !is_readable($root)) {
+            return [];
+        }
+
+        $meta = $this->repository->loadMeta();
+        $inventory = [];
+
+        try {
+            $iterator = new \RecursiveIteratorIterator(
+                new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS),
+                \RecursiveIteratorIterator::SELF_FIRST
+            );
+        } catch (\Throwable $exception) {
+            $this->logger->warning('Medien-Inventur konnte nicht initialisiert werden.', [
+                'exception' => $exception->getMessage(),
+            ]);
+
+            return [];
+        }
+
+        $normalizedRoot = rtrim(str_replace('\\', '/', $root), '/') . '/';
+
+        foreach ($iterator as $item) {
+            if (count($inventory) >= $limit) {
+                break;
+            }
+
+            if (!$item instanceof \SplFileInfo || !$item->isFile()) {
+                continue;
+            }
+
+            $absolutePath = $item->getPathname();
+            if (!is_readable($absolutePath)) {
+                continue;
+            }
+
+            $normalizedAbsolutePath = str_replace('\\', '/', $absolutePath);
+            if (!str_starts_with($normalizedAbsolutePath, $normalizedRoot)) {
+                continue;
+            }
+
+            $relativePath = ltrim(substr($normalizedAbsolutePath, strlen($normalizedRoot)), '/');
+            $normalizedPath = $this->normalizeManagedRelativePath($relativePath);
+            if ($normalizedPath === '') {
+                continue;
+            }
+
+            $metaData = is_array($meta['files'][$normalizedPath] ?? null) ? $meta['files'][$normalizedPath] : [];
+            $category = (string) ($metaData['category'] ?? $this->repository->detectSystemCategory($normalizedPath) ?? '');
+            $size = $item->getSize();
+            $modified = $item->getMTime();
+
+            $inventory[] = [
+                'name' => basename($normalizedPath),
+                'path' => $normalizedPath,
+                'url' => $this->repository->buildPublicUrl($normalizedPath),
+                'preview_url' => $this->repository->buildPreviewUrl($normalizedPath),
+                'type' => strtolower((string) pathinfo($normalizedPath, PATHINFO_EXTENSION)),
+                'size' => $size >= 0 ? (int) $size : 0,
+                'modified' => $modified > 0 ? (int) $modified : null,
+                'category' => $category,
+                'tags' => array_values(array_filter(array_map('strval', (array) ($metaData['tags'] ?? [])))),
+                'uploaded_at' => trim((string) ($metaData['uploaded_at'] ?? '')),
+                'uploaded_by' => trim((string) ($metaData['uploaded_by'] ?? '')),
+                'original_name' => trim((string) ($metaData['original_name'] ?? '')),
+                'is_system' => $this->repository->isSystemPath($normalizedPath),
+            ];
+        }
+
+        return $inventory;
     }
 
     /**

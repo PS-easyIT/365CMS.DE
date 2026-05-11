@@ -25,6 +25,7 @@ $fileTypeFilter = (string)($data['file_type_filter'] ?? 'all');
 $extensionFilter = (string)($data['extension_filter'] ?? '');
 $sizeFilter = (string)($data['size_filter'] ?? 'all');
 $modifiedFilter = (string)($data['modified_filter'] ?? 'all');
+$orphanDays = (int)($data['orphan_days'] ?? 0);
 $confirmMember = !empty($data['confirm_member']);
 $memberFolderConfirmMessage = (string)($data['member_folder_confirm_message'] ?? 'Der Member-Bereich enthält sensible Uploads. Möchten Sie den Ordner wirklich öffnen?');
 $breadcrumbs = is_array($data['breadcrumbs'] ?? null) ? $data['breadcrumbs'] : [];
@@ -35,16 +36,31 @@ $fileTypeFilterOptions = is_array($data['file_type_filter_options'] ?? null) ? $
 $extensionFilterOptions = is_array($data['extension_filter_options'] ?? null) ? $data['extension_filter_options'] : [];
 $sizeFilterOptions = is_array($data['size_filter_options'] ?? null) ? $data['size_filter_options'] : [];
 $modifiedFilterOptions = is_array($data['modified_filter_options'] ?? null) ? $data['modified_filter_options'] : [];
+$orphanDayOptions = is_array($data['orphan_day_options'] ?? null) ? $data['orphan_day_options'] : [];
+$orphanMedia = is_array($data['orphan_media'] ?? null) ? $data['orphan_media'] : [];
+$orphanMediaItems = is_array($orphanMedia['items'] ?? null) ? $orphanMedia['items'] : [];
+$orphanCandidateCount = (int)($orphanMedia['candidate_count'] ?? 0);
+$orphanScannedFileCount = (int)($orphanMedia['scanned_file_count'] ?? 0);
+$orphanEligibleFileCount = (int)($orphanMedia['eligible_file_count'] ?? 0);
+$orphanAnalysisTruncated = !empty($orphanMedia['is_truncated']);
 $filterState = is_array($data['filter_state'] ?? null) ? $data['filter_state'] : [];
+$filterPresets = is_array($data['filter_presets'] ?? null) ? $data['filter_presets'] : [];
+$currentFilterPresetState = is_array($data['current_filter_preset_state'] ?? null) ? $data['current_filter_preset_state'] : [];
+$hasFilterPresetState = !empty($data['has_filter_preset_state']);
+$filterPresetConstraints = is_array($data['filter_preset_constraints'] ?? null) ? $data['filter_preset_constraints'] : [];
 $baseUrl = (string)($data['base_url'] ?? '/admin/media');
 $listUrl = (string)($data['list_url'] ?? $baseUrl);
 $gridUrl = (string)($data['grid_url'] ?? $baseUrl);
 $rootUrl = (string)($data['root_url'] ?? $baseUrl);
 $resetFilterUrl = (string)($data['reset_filter_url'] ?? $baseUrl);
+$currentFilterPermalink = (string)($data['current_filter_permalink'] ?? $baseUrl);
 $emptyState = is_array($data['empty_state'] ?? null) ? $data['empty_state'] : ['title' => 'Dieser Ordner ist leer', 'subtitle' => 'Legen Sie einen Ordner an oder laden Sie Dateien hoch.'];
 $constraints = is_array($data['constraints'] ?? null) ? $data['constraints'] : [];
 $moveTargets = is_array($data['move_targets'] ?? null) ? $data['move_targets'] : [];
 $bulkActions = is_array($data['bulk_actions'] ?? null) ? $data['bulk_actions'] : [];
+$altTextBulkAvailable = !empty($data['alt_text_bulk_available']);
+$filterPresetNameMaxLength = (int)($filterPresetConstraints['preset_name_max_length'] ?? 60);
+$filterPresetMaxCount = (int)($filterPresetConstraints['max_presets'] ?? 8);
 $mediaLibraryConfig = [
     'memberFolderConfirmMessage' => $memberFolderConfirmMessage,
     'currentPath' => $path,
@@ -64,6 +80,10 @@ $mediaLibraryConfig = [
     'bulkActionFieldId' => 'mediaBulkAction',
     'bulkMoveWrapId' => 'mediaBulkMoveWrap',
     'bulkMoveTargetFieldId' => 'mediaBulkTarget',
+    'bulkCategoryWrapId' => 'mediaBulkCategoryWrap',
+    'bulkCategoryFieldId' => 'mediaBulkCategory',
+    'bulkTagsWrapId' => 'mediaBulkTagsWrap',
+    'bulkTagsFieldId' => 'mediaBulkTags',
 ];
 $hasAdvancedMediaFilters = $fileTypeFilter !== 'all' || $extensionFilter !== '' || $sizeFilter !== 'all' || $modifiedFilter !== 'all';
 
@@ -203,6 +223,27 @@ function renderMediaUsageSummaryBlock(array $file): string {
     $html = '<div class="media-usage-summary-block">';
     $html .= renderMediaUsageSummary($usageItems, $usageCount);
     $html .= renderMediaUsageBadges($usageSummary);
+    $html .= '</div>';
+
+    return $html;
+}
+
+function renderMediaTags(array $file): string {
+    $tags = is_array($file['tags'] ?? null) ? array_values(array_filter(array_map('strval', $file['tags']))) : [];
+    if ($tags === []) {
+        return '<span class="text-secondary">Keine Tags</span>';
+    }
+
+    $html = '<div class="d-flex flex-wrap gap-1 mt-1">';
+    foreach (array_slice($tags, 0, 6) as $tag) {
+        $html .= '<span class="badge bg-azure-lt">' . htmlspecialchars($tag) . '</span>';
+    }
+
+    $remaining = count($tags) - min(6, count($tags));
+    if ($remaining > 0) {
+        $html .= '<span class="badge bg-secondary-lt">+' . $remaining . '</span>';
+    }
+
     $html .= '</div>';
 
     return $html;
@@ -392,6 +433,13 @@ function renderMediaDuplicateSummary(array $file, bool $compact = false): string
                                         </option>
                                     <?php endforeach; ?>
                                 </select>
+                                <select class="form-select form-select-sm media-filter-category" name="orphan_days" data-media-auto-submit-select="1" aria-label="Verwaiste Medien nach Alter filtern">
+                                    <?php foreach ($orphanDayOptions as $option): ?>
+                                        <option value="<?php echo htmlspecialchars((string)($option['value'] ?? '0')); ?>" <?php echo (string)$orphanDays === (string)($option['value'] ?? '0') ? 'selected' : ''; ?>>
+                                            <?php echo htmlspecialchars((string)($option['label'] ?? 'Keine Orphan-Prüfung')); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
                                 <select class="form-select form-select-sm media-filter-category" name="file_type" data-media-auto-submit-select="1" aria-label="Dateityp filtern">
                                     <?php foreach ($fileTypeFilterOptions as $option): ?>
                                         <option value="<?php echo htmlspecialchars((string)($option['value'] ?? 'all')); ?>" <?php echo $fileTypeFilter === ($option['value'] ?? 'all') ? 'selected' : ''; ?>>
@@ -427,7 +475,7 @@ function renderMediaDuplicateSummary(array $file, bool $compact = false): string
                                         <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0"/><path d="M21 21l-6 -6"/></svg>
                                     </button>
                                 </div>
-                                <?php if ($hasAdvancedMediaFilters || $category !== '' || $usageFilter !== 'all' || $search !== ''): ?>
+                                <?php if ($hasAdvancedMediaFilters || $category !== '' || $usageFilter !== 'all' || $search !== '' || $orphanDays > 0): ?>
                                     <a href="<?php echo htmlspecialchars($resetFilterUrl, ENT_QUOTES); ?>" class="btn btn-sm btn-outline-secondary">Filter zurücksetzen</a>
                                 <?php endif; ?>
                             </form>
@@ -444,6 +492,156 @@ function renderMediaDuplicateSummary(array $file, bool $compact = false): string
                             </div>
                         </div>
                     </div>
+                    <div class="card card-sm mt-3">
+                        <div class="card-body">
+                            <div class="row g-3 align-items-end">
+                                <div class="col-xl-7">
+                                    <div class="fw-semibold mb-2">Gespeicherte Filter</div>
+                                    <?php if ($filterPresets !== []): ?>
+                                        <div class="d-flex flex-wrap gap-2 align-items-center">
+                                            <?php foreach ($filterPresets as $preset): ?>
+                                                <?php
+                                                $presetLabel = (string)($preset['label'] ?? 'Preset');
+                                                $presetUrl = (string)($preset['url'] ?? $baseUrl);
+                                                $presetSlug = (string)($preset['slug'] ?? '');
+                                                $presetStateLabel = (string)($preset['state_label'] ?? '');
+                                                $presetIsActive = !empty($preset['is_active']);
+                                                ?>
+                                                <div class="btn-group btn-group-sm" role="group" aria-label="Filter-Preset <?php echo htmlspecialchars($presetLabel, ENT_QUOTES); ?>">
+                                                    <a href="<?php echo htmlspecialchars($presetUrl, ENT_QUOTES); ?>" class="btn <?php echo $presetIsActive ? 'btn-primary active' : 'btn-outline-primary'; ?>" title="<?php echo htmlspecialchars($presetStateLabel, ENT_QUOTES); ?>">
+                                                        <?php echo htmlspecialchars($presetLabel); ?>
+                                                    </a>
+                                                    <form method="post" class="d-inline">
+                                                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES); ?>">
+                                                        <input type="hidden" name="action" value="delete_filter_preset">
+                                                        <input type="hidden" name="preset_slug" value="<?php echo htmlspecialchars($presetSlug, ENT_QUOTES); ?>">
+                                                        <button type="submit" class="btn <?php echo $presetIsActive ? 'btn-primary active' : 'btn-outline-secondary'; ?>" aria-label="Preset <?php echo htmlspecialchars($presetLabel, ENT_QUOTES); ?> löschen" title="Preset löschen">×</button>
+                                                    </form>
+                                                </div>
+                                            <?php endforeach; ?>
+                                        </div>
+                                    <?php else: ?>
+                                        <div class="text-secondary small">Noch keine gespeicherten Filter vorhanden.</div>
+                                    <?php endif; ?>
+                                </div>
+                                <div class="col-xl-5">
+                                    <form method="post" class="row g-2 align-items-end">
+                                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES); ?>">
+                                        <input type="hidden" name="action" value="save_filter_preset">
+                                        <input type="hidden" name="preset_view" value="<?php echo htmlspecialchars((string)($currentFilterPresetState['view'] ?? 'list'), ENT_QUOTES); ?>">
+                                        <input type="hidden" name="preset_category" value="<?php echo htmlspecialchars((string)($currentFilterPresetState['category'] ?? ''), ENT_QUOTES); ?>">
+                                        <input type="hidden" name="preset_search" value="<?php echo htmlspecialchars((string)($currentFilterPresetState['search'] ?? ''), ENT_QUOTES); ?>">
+                                        <input type="hidden" name="preset_usage_filter" value="<?php echo htmlspecialchars((string)($currentFilterPresetState['usage_filter'] ?? 'all'), ENT_QUOTES); ?>">
+                                        <input type="hidden" name="preset_file_type" value="<?php echo htmlspecialchars((string)($currentFilterPresetState['file_type'] ?? 'all'), ENT_QUOTES); ?>">
+                                        <input type="hidden" name="preset_extension" value="<?php echo htmlspecialchars((string)($currentFilterPresetState['extension'] ?? ''), ENT_QUOTES); ?>">
+                                        <input type="hidden" name="preset_size_filter" value="<?php echo htmlspecialchars((string)($currentFilterPresetState['size'] ?? 'all'), ENT_QUOTES); ?>">
+                                        <input type="hidden" name="preset_modified_filter" value="<?php echo htmlspecialchars((string)($currentFilterPresetState['modified'] ?? 'all'), ENT_QUOTES); ?>">
+                                        <input type="hidden" name="preset_orphan_days" value="<?php echo htmlspecialchars((string)($currentFilterPresetState['orphan_days'] ?? 0), ENT_QUOTES); ?>">
+                                        <div class="col-sm">
+                                            <label class="form-label mb-1" for="mediaFilterPresetLabel">Aktuellen Filter speichern</label>
+                                            <input
+                                                type="text"
+                                                class="form-control form-control-sm"
+                                                id="mediaFilterPresetLabel"
+                                                name="preset_label"
+                                                maxlength="<?php echo $filterPresetNameMaxLength; ?>"
+                                                placeholder="z. B. Nur ungenutzte Bilder"
+                                                <?php echo $hasFilterPresetState ? '' : 'disabled'; ?>>
+                                        </div>
+                                        <div class="col-sm-auto">
+                                            <button type="submit" class="btn btn-sm btn-primary" <?php echo $hasFilterPresetState ? '' : 'disabled aria-disabled="true"'; ?>>Preset speichern</button>
+                                        </div>
+                                    </form>
+                                    <div class="text-secondary small mt-2">
+                                        <?php if ($hasFilterPresetState): ?>
+                                            Bis zu <?php echo $filterPresetMaxCount; ?> Presets pro Admin-Benutzer. Bereits gespeicherte Namen oder identische Filterzustände – inklusive Verwaist-Alter – werden aktualisiert.
+                                        <?php else: ?>
+                                            Zum Speichern zuerst mindestens einen aktiven Such- oder Filterwert setzen.
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label mb-1" for="mediaFilterPermalink">Filter-Link</label>
+                                    <div class="input-group input-group-sm">
+                                        <input type="text" class="form-control" id="mediaFilterPermalink" value="<?php echo htmlspecialchars($currentFilterPermalink, ENT_QUOTES); ?>" readonly>
+                                        <button type="button" class="btn btn-outline-secondary" data-copy-input-target="#mediaFilterPermalink" data-copy-success-label="Kopiert">Link kopieren</button>
+                                    </div>
+                                    <div class="text-secondary small mt-1">Der Link enthält ausschließlich den aktuellen Bibliothekszustand als Query-Parameter – keine CSRF- oder Sicherheitstokens.</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <?php if ($orphanDays > 0): ?>
+                        <div class="card card-sm mt-3 border-warning-subtle">
+                            <div class="card-body">
+                                <div class="d-flex flex-column flex-lg-row justify-content-between gap-3 mb-3">
+                                    <div>
+                                        <div class="fw-semibold">Verwaiste Medien – read-only Prüfung</div>
+                                        <div class="text-secondary small">
+                                            Angezeigt werden Dateien außerhalb geschützter System-/Member-Pfade, die laut Inhaltsanalyse aktuell nirgends verwendet werden
+                                            und deren Upload- oder Änderungsdatum mindestens <?php echo $orphanDays; ?> Tage zurückliegt.
+                                            Die Liste ist ein Prüfhilfsmittel – es erfolgt bewusst <strong>kein automatisches Löschen</strong>.
+                                        </div>
+                                    </div>
+                                    <div class="text-secondary small text-lg-end">
+                                        <div><?php echo $orphanCandidateCount; ?> Kandidat<?php echo $orphanCandidateCount === 1 ? '' : 'en'; ?></div>
+                                        <div><?php echo $orphanEligibleFileCount; ?> prüfbare Datei<?php echo $orphanEligibleFileCount === 1 ? '' : 'en'; ?> · <?php echo $orphanScannedFileCount; ?> gescannt</div>
+                                    </div>
+                                </div>
+
+                                <?php if ($orphanAnalysisTruncated): ?>
+                                    <div class="alert alert-warning" role="status">
+                                        Die Analyse ist bewusst begrenzt und wurde nach einer festen Dateianzahl abgeschnitten, damit die Bibliothek responsiv bleibt.
+                                        Bitte große Aufräumaktionen in Etappen prüfen.
+                                    </div>
+                                <?php endif; ?>
+
+                                <?php if ($orphanMediaItems !== []): ?>
+                                    <div class="list-group list-group-flush">
+                                        <?php foreach ($orphanMediaItems as $orphanItem): ?>
+                                            <div class="list-group-item px-0">
+                                                <div class="d-flex flex-column flex-md-row align-items-md-center gap-3">
+                                                    <div class="flex-shrink-0">
+                                                        <?php if (!empty($orphanItem['is_image']) && !empty($orphanItem['preview_url'])): ?>
+                                                            <img src="<?php echo htmlspecialchars((string)($orphanItem['preview_url'] ?? ''), ENT_QUOTES); ?>" alt="<?php echo htmlspecialchars((string)($orphanItem['name'] ?? 'Datei')); ?>" class="media-thumb" loading="lazy">
+                                                        <?php else: ?>
+                                                            <span class="media-thumb-icon"><?php echo mediaTypeIcon((string)($orphanItem['file_type'] ?? 'document')); ?></span>
+                                                        <?php endif; ?>
+                                                    </div>
+                                                    <div class="flex-fill min-w-0">
+                                                        <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                                                            <span class="fw-semibold text-break"><?php echo htmlspecialchars((string)($orphanItem['name'] ?? 'Datei')); ?></span>
+                                                            <span class="badge bg-warning-lt"><?php echo htmlspecialchars((string)($orphanItem['age_label'] ?? '')); ?></span>
+                                                            <span class="badge bg-secondary-lt"><?php echo htmlspecialchars((string)($orphanItem['category_label'] ?? 'Ohne Kategorie')); ?></span>
+                                                        </div>
+                                                        <div class="text-secondary small text-break mb-1"><?php echo htmlspecialchars((string)($orphanItem['path'] ?? '')); ?></div>
+                                                        <div class="d-flex flex-wrap gap-3 small text-secondary">
+                                                            <span><?php echo htmlspecialchars((string)($orphanItem['reference_label'] ?? '')); ?></span>
+                                                            <span>Größe: <?php echo htmlspecialchars((string)($orphanItem['formatted_size'] ?? '—')); ?></span>
+                                                            <?php if (!empty($orphanItem['uploaded_by'])): ?>
+                                                                <span>Uploader: <?php echo htmlspecialchars((string)$orphanItem['uploaded_by']); ?></span>
+                                                            <?php endif; ?>
+                                                        </div>
+                                                        <?php echo renderMediaTags(is_array($orphanItem) ? $orphanItem : []); ?>
+                                                    </div>
+                                                    <div class="d-flex flex-column flex-sm-row gap-2 ms-md-auto">
+                                                        <a href="<?php echo htmlspecialchars((string)($orphanItem['review_url'] ?? $baseUrl), ENT_QUOTES); ?>" class="btn btn-sm btn-outline-primary">Im Ordner prüfen</a>
+                                                        <?php if (!empty($orphanItem['url'])): ?>
+                                                            <a href="<?php echo htmlspecialchars((string)($orphanItem['url'] ?? ''), ENT_QUOTES); ?>" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-secondary">Datei öffnen</a>
+                                                        <?php endif; ?>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        <?php endforeach; ?>
+                                    </div>
+                                <?php else: ?>
+                                    <div class="alert alert-success mb-0" role="status">
+                                        Für den gewählten Zeitraum wurden aktuell keine verwaisten Medienkandidaten gefunden.
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    <?php endif; ?>
                     <?php if ($hasAdvancedMediaFilters): ?>
                         <div class="alert alert-info mb-0 mt-3" role="status">
                             <strong>Erweiterte Filter aktiv:</strong>
@@ -495,6 +693,32 @@ function renderMediaDuplicateSummary(array $file, bool $compact = false): string
                                             <?php echo renderMoveTargetOptions($moveTargets, $path); ?>
                                         </select>
                                     </div>
+                                    <div class="d-none" id="mediaBulkCategoryWrap">
+                                        <select class="form-select" id="mediaBulkCategory" name="category_slug" style="min-width: 16rem; max-width: 22rem;" disabled>
+                                            <option value="">Ohne Kategorie</option>
+                                            <?php foreach ($categoryOptions as $cat): ?>
+                                                <option value="<?php echo htmlspecialchars((string)($cat['slug'] ?? ''), ENT_QUOTES); ?>">
+                                                    <?php echo htmlspecialchars((string)($cat['name'] ?? '')); ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+                                    <div class="d-none" id="mediaBulkTagsWrap">
+                                        <input
+                                            type="text"
+                                            class="form-control"
+                                            id="mediaBulkTags"
+                                            name="tag_list"
+                                            placeholder="Tags, kommagetrennt"
+                                            maxlength="<?php echo (int)(($constraints['tag_name_max_length'] ?? 40) * ($constraints['max_bulk_tags'] ?? 20)); ?>"
+                                            style="min-width: 18rem; max-width: 26rem;"
+                                            disabled>
+                                    </div>
+                                    <?php if ($altTextBulkAvailable): ?>
+                                        <div class="text-secondary small">
+                                            Alt-Texte werden direkt pro sichtbarer Datei gepflegt und nur für ausgewählte Dateien gespeichert.
+                                        </div>
+                                    <?php endif; ?>
                                     <button type="submit" class="btn btn-primary" aria-disabled="true" disabled>Diesen Medien-Batch ausführen</button>
                                 </div>
                             </form>
@@ -555,7 +779,26 @@ function renderMediaDuplicateSummary(array $file, bool $compact = false): string
                                         <?php endif; ?>
                                     </div>
                                     <div class="media-grid-label"><?php echo htmlspecialchars((string)($file['name'] ?? '')); ?></div>
+                                    <?php if ($altTextBulkAvailable): ?>
+                                        <div class="px-2 pt-2">
+                                            <label class="form-label form-label-sm mb-1" for="mediaAltTextGrid-<?php echo md5($filePath); ?>">Alt-Text</label>
+                                            <input
+                                                class="form-control form-control-sm"
+                                                id="mediaAltTextGrid-<?php echo md5($filePath); ?>"
+                                                form="mediaBulkForm"
+                                                type="text"
+                                                name="alt_texts[<?php echo htmlspecialchars($filePath, ENT_QUOTES); ?>]"
+                                                value="<?php echo htmlspecialchars((string)($file['alt_text'] ?? ''), ENT_QUOTES); ?>"
+                                                maxlength="<?php echo (int)($constraints['alt_text_max_length'] ?? 255); ?>"
+                                                placeholder="Beschreibender Alt-Text"
+                                                aria-label="Alt-Text für <?php echo htmlspecialchars((string)($file['name'] ?? 'Datei'), ENT_QUOTES); ?>">
+                                            <?php if (!empty($file['alt_text_missing'])): ?>
+                                                <div class="text-warning small mt-1">Alt-Text fehlt aktuell.</div>
+                                            <?php endif; ?>
+                                        </div>
+                                    <?php endif; ?>
                                     <div class="media-grid-meta"><?php echo htmlspecialchars((string)($file['category_label'] ?? 'Ohne Kategorie')); ?></div>
+                                    <div class="media-grid-meta small"><?php echo renderMediaTags($file); ?></div>
                                     <div class="media-grid-meta small"><?php echo renderMediaUsageSummaryBlock($file); ?></div>
                                     <?php echo renderMediaDuplicateSummary($file, true); ?>
                                 </div>
@@ -574,6 +817,7 @@ function renderMediaDuplicateSummary(array $file, bool $compact = false): string
                                         <th style="width: 60px;">Typ</th>
                                         <th>Name</th>
                                         <th>Kategorie</th>
+                                        <th>Tags</th>
                                         <th>Eingebunden in</th>
                                         <th>Größe</th>
                                         <th>Geändert</th>
@@ -604,6 +848,7 @@ function renderMediaDuplicateSummary(array $file, bool $compact = false): string
                                                     <span class="text-secondary">—</span>
                                                 <?php endif; ?>
                                             </td>
+                                            <td><span class="text-secondary">—</span></td>
                                             <td><span class="text-secondary">—</span></td>
                                             <td class="text-secondary"><?php echo (int)($folder['items_count'] ?? 0); ?> Einträge</td>
                                             <td class="text-secondary"><?php echo htmlspecialchars((string)($folder['modified_label'] ?? '—')); ?></td>
@@ -643,6 +888,24 @@ function renderMediaDuplicateSummary(array $file, bool $compact = false): string
                                                 <a href="<?php echo htmlspecialchars((string)($file['url'] ?? '')); ?>" target="_blank" rel="noopener noreferrer" class="fw-semibold text-reset">
                                                     <?php echo htmlspecialchars((string)($file['name'] ?? '')); ?>
                                                 </a>
+                                                <?php if ($altTextBulkAvailable): ?>
+                                                    <div class="mt-2">
+                                                        <label class="form-label form-label-sm mb-1" for="mediaAltTextList-<?php echo md5($filePath); ?>">Alt-Text</label>
+                                                        <input
+                                                            class="form-control form-control-sm"
+                                                            id="mediaAltTextList-<?php echo md5($filePath); ?>"
+                                                            form="mediaBulkForm"
+                                                            type="text"
+                                                            name="alt_texts[<?php echo htmlspecialchars($filePath, ENT_QUOTES); ?>]"
+                                                            value="<?php echo htmlspecialchars((string)($file['alt_text'] ?? ''), ENT_QUOTES); ?>"
+                                                            maxlength="<?php echo (int)($constraints['alt_text_max_length'] ?? 255); ?>"
+                                                            placeholder="Beschreibender Alt-Text"
+                                                            aria-label="Alt-Text für <?php echo htmlspecialchars((string)($file['name'] ?? 'Datei'), ENT_QUOTES); ?>">
+                                                        <?php if (!empty($file['alt_text_missing'])): ?>
+                                                            <span class="badge bg-orange-lt mt-1">Alt fehlt</span>
+                                                        <?php endif; ?>
+                                                    </div>
+                                                <?php endif; ?>
                                                 <?php echo renderMediaDuplicateSummary($file); ?>
                                             </td>
                                             <td>
@@ -660,6 +923,7 @@ function renderMediaDuplicateSummary(array $file, bool $compact = false): string
                                                     </select>
                                                 </form>
                                             </td>
+                                            <td><?php echo renderMediaTags($file); ?></td>
                                             <td><?php echo renderMediaUsageList((array)($file['usage_items'] ?? []), is_array($file['usage_summary'] ?? null) ? $file['usage_summary'] : []); ?></td>
                                             <td class="text-secondary"><?php echo htmlspecialchars((string)($file['formatted_size'] ?? '—')); ?></td>
                                             <td class="text-secondary"><?php echo htmlspecialchars((string)($file['modified_label'] ?? '—')); ?></td>

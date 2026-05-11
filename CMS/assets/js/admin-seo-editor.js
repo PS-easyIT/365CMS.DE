@@ -37,8 +37,25 @@
             plainText: '',
             paragraphs: [],
             links: { internal: 0, external: 0 },
-            images: { count: 0, missing: 0 }
+            images: { count: 0, missing: 0 },
+            headings: { h1: 0, h2: 0, h3: 0, h4: 0, h5: 0, h6: 0 }
         };
+    }
+
+    function incrementHeadingCount(analysis, level) {
+        var normalizedLevel = Number(level);
+        var key;
+
+        if (!analysis || !analysis.headings) {
+            return;
+        }
+
+        if (!Number.isFinite(normalizedLevel) || normalizedLevel < 1 || normalizedLevel > 6) {
+            return;
+        }
+
+        key = 'h' + String(Math.round(normalizedLevel));
+        analysis.headings[key] = Number(analysis.headings[key] || 0) + 1;
     }
 
     function pushParagraph(analysis, value) {
@@ -96,9 +113,60 @@
         }
     }
 
+    function collectPreviewTargets(primaryElement, bindName) {
+        var targets = [];
+        var seen = [];
+
+        if (primaryElement) {
+            targets.push(primaryElement);
+            seen.push(primaryElement);
+        }
+
+        if (bindName) {
+            document.querySelectorAll('[data-seo-preview-bind="' + bindName + '"]').forEach(function (element) {
+                if (seen.indexOf(element) !== -1) {
+                    return;
+                }
+
+                seen.push(element);
+                targets.push(element);
+            });
+        }
+
+        return targets;
+    }
+
+    function setPreviewText(primaryElement, bindName, value, fallback) {
+        var resolved = String(value || '');
+        if (!resolved) {
+            resolved = String(fallback || '');
+        }
+
+        collectPreviewTargets(primaryElement, bindName).forEach(function (element) {
+            element.textContent = resolved;
+        });
+    }
+
+    function setPreviewImage(primaryElement, bindName, src, fallback) {
+        var resolved = String(src || '').trim() || String(fallback || '').trim();
+
+        collectPreviewTargets(primaryElement, bindName).forEach(function (element) {
+            if (!('src' in element)) {
+                return;
+            }
+
+            element.src = resolved;
+            element.style.display = resolved ? 'block' : 'none';
+        });
+    }
+
     function collectHtmlAnalysis(html, analysis, addParagraph) {
         var htmlDocument = parseHtmlDocument(html);
         var root = htmlDocument.body || htmlDocument;
+
+        root.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach(function (heading) {
+            incrementHeadingCount(analysis, Number(String(heading.tagName || '').replace(/[^1-6]/g, '')));
+        });
 
         root.querySelectorAll('a[href]').forEach(function (link) {
             var kind = classifyHref(link.getAttribute('href') || '');
@@ -178,8 +246,13 @@
         var data = block && block.data && typeof block.data === 'object' ? block.data : {};
 
         switch (type) {
-            case 'paragraph':
             case 'header':
+                incrementHeadingCount(analysis, data.level);
+                if (typeof data.text === 'string') {
+                    collectHtmlAnalysis(data.text, analysis, true);
+                }
+                break;
+            case 'paragraph':
             case 'quote':
             case 'warning':
             case 'callout':
@@ -280,6 +353,10 @@
         }
 
         if (editorContainer && editorContainer.querySelectorAll) {
+            editorContainer.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach(function (heading) {
+                incrementHeadingCount(analysis, Number(String(heading.tagName || '').replace(/[^1-6]/g, '')));
+            });
+
             editorContainer.querySelectorAll('a[href]').forEach(function (link) {
                 var kind = classifyHref(link.getAttribute('href') || '');
                 if (kind === 'internal') {
@@ -424,6 +501,30 @@
         });
     }
 
+    function renderHintBadges(container, badges) {
+        if (!container) {
+            return;
+        }
+
+        clearElement(container);
+
+        badges.forEach(function (badgeConfig) {
+            var badge = document.createElement('span');
+            var tone = badgeConfig.tone || 'secondary';
+            var suffix = badgeConfig.passed ? 'ok' : 'empfohlen';
+
+            badge.className = 'badge rounded-pill bg-' + tone + '-lt text-' + tone;
+            badge.textContent = badgeConfig.label + ': ' + (badgeConfig.text || suffix);
+
+            if (badgeConfig.detail) {
+                badge.setAttribute('title', badgeConfig.detail);
+                badge.setAttribute('aria-label', badgeConfig.label + ': ' + badgeConfig.detail);
+            }
+
+            container.appendChild(badge);
+        });
+    }
+
     function resolveMetaTitle(metaTitle, title, siteName, format, separator) {
         if (metaTitle) {
             return metaTitle;
@@ -483,6 +584,8 @@
         var missingAltLabel = document.getElementById(config.missingAltId);
         var readabilityBadge = document.getElementById(config.readabilityBadgeId);
         var readabilitySummary = document.getElementById(config.readabilitySummaryId);
+        var hintBadgeContainer = document.getElementById(config.hintBadgeContainerId);
+        var hideTitleInput = document.getElementById(config.hideTitleId);
 
         var update = function () {
             var title = titleInput ? titleInput.value.trim() : '';
@@ -504,10 +607,14 @@
             var paragraphs = analysis.paragraphs.length ? analysis.paragraphs : splitParagraphs(plainText);
             var links = analysis.links;
             var images = analysis.images;
+            var contentH1Count = Number((analysis.headings && analysis.headings.h1) || 0);
+            var visiblePrimaryHeading = (config.titleCreatesH1 !== false) && title !== '' && !(hideTitleInput && hideTitleInput.checked);
+            var totalH1Count = contentH1Count + (visiblePrimaryHeading ? 1 : 0);
             var transitionCount = countTransitionWords(plainText);
             var passiveCount = countPassive(plainText);
             var longSentences = countLongSentences(sentences, config.maxSentenceWords || 24);
             var longParagraphs = countLongParagraphs(paragraphs, config.maxParagraphWords || 120);
+            var keyphraseHintPassed = !!focusPhrase && (containsPhrase(title, focusPhrase) || containsPhrase(intro, focusPhrase)) && density > 0;
             var previewHref = (function () {
                 var template = String(config.previewUrlTemplate || '');
                 var placeholderSlug = String(config.previewPlaceholderSlug || 'beitrag');
@@ -524,6 +631,7 @@
             var rules = [
                 createRule('meta_title', 'Meta-Titel', resolvedTitle.length >= 30 && resolvedTitle.length <= 60, resolvedTitle.length + ' Zeichen', 10),
                 createRule('meta_description', 'Meta-Beschreibung', resolvedDesc.length >= 120 && resolvedDesc.length <= 155, resolvedDesc.length + ' Zeichen', 10),
+                createRule('h1', 'H1-Eindeutigkeit', totalH1Count === 1, totalH1Count + ' H1 gesamt · ' + contentH1Count + ' im Inhalt', 8),
                 createRule('focus', 'Fokus-Keyphrase', !!focusPhrase, focusPhrase || 'fehlt', 10),
                 createRule('title', 'Keyphrase im Titel', focusPhrase ? containsPhrase(title, focusPhrase) : false, focusPhrase ? 'Titel geprüft' : 'ohne Keyphrase', 8),
                 createRule('slug', 'Keyphrase im Slug', focusPhrase ? containsPhrase(slug.replace(/-/g, ' '), focusPhrase) : false, slug || 'leer', 8),
@@ -544,26 +652,50 @@
             var passedWeight = rules.reduce(function (sum, rule) { return sum + (rule.passed ? rule.weight : 0); }, 0);
             var score = Math.round((passedWeight / totalWeight) * 100);
             var status = score >= 80 ? 'green' : (score >= 55 ? 'orange' : 'red');
+            var hintBadges = [
+                {
+                    label: 'Title',
+                    passed: resolvedTitle.length >= 30 && resolvedTitle.length <= 60,
+                    text: resolvedTitle.length >= 30 && resolvedTitle.length <= 60 ? 'ok' : 'empfohlen',
+                    detail: 'Titellinks sollten prägnant, eindeutig und beschreibend sein. Aktuell: ' + resolvedTitle.length + ' Zeichen.',
+                    tone: resolvedTitle.length >= 30 && resolvedTitle.length <= 60 ? 'success' : 'warning'
+                },
+                {
+                    label: 'Description',
+                    passed: resolvedDesc.length >= 120 && resolvedDesc.length <= 155,
+                    text: resolvedDesc.length >= 120 && resolvedDesc.length <= 155 ? 'ok' : 'empfohlen',
+                    detail: 'Meta-Beschreibungen sollen seitenkonkret und informativ sein. Aktuell: ' + resolvedDesc.length + ' Zeichen.',
+                    tone: resolvedDesc.length >= 120 && resolvedDesc.length <= 155 ? 'success' : 'warning'
+                },
+                {
+                    label: 'H1',
+                    passed: totalH1Count === 1,
+                    text: totalH1Count === 1 ? 'ok' : 'prüfen',
+                    detail: totalH1Count + ' H1 gesamt erkannt; ein klarer Haupttitel ist empfohlen.',
+                    tone: totalH1Count === 1 ? 'success' : 'warning'
+                },
+                {
+                    label: 'Keyphrase',
+                    passed: keyphraseHintPassed,
+                    text: keyphraseHintPassed ? 'ok' : 'empfohlen',
+                    detail: focusPhrase ? 'Fokus-Keyphrase „' + focusPhrase + '“ sollte früh im Inhalt oder Titel auftauchen.' : 'Fokus-Keyphrase fehlt.',
+                    tone: keyphraseHintPassed ? 'success' : 'warning'
+                },
+                {
+                    label: 'Alt-Texte',
+                    passed: images.count === 0 || images.missing === 0,
+                    text: images.count === 0 ? 'n/a' : (images.missing === 0 ? 'ok' : 'prüfen'),
+                    detail: images.count === 0 ? 'Keine Bilder im Inhalt erkannt.' : images.missing + ' von ' + images.count + ' Bildern ohne Alt-Text.',
+                    tone: images.count === 0 ? 'secondary' : (images.missing === 0 ? 'success' : 'warning')
+                }
+            ];
 
-            if (previewTitle) {
-                previewTitle.textContent = resolvedTitle || config.siteName;
-            }
-            if (previewUrl) {
-                previewUrl.textContent = previewHref;
-            }
-            if (previewDesc) {
-                previewDesc.textContent = resolvedDesc || 'Meta-Beschreibung wird automatisch aus dem ersten Absatz erzeugt.';
-            }
-            if (socialTitle) {
-                socialTitle.textContent = socialResolvedTitle;
-            }
-            if (socialDesc) {
-                socialDesc.textContent = socialResolvedDesc;
-            }
-            if (socialImage) {
-                socialImage.src = ogImage || config.fallbackImage || '';
-                socialImage.style.display = socialImage.src ? 'block' : 'none';
-            }
+            setPreviewText(previewTitle, 'serp-title', resolvedTitle || config.siteName, config.siteName || '');
+            setPreviewText(previewUrl, 'serp-url', previewHref, config.previewBaseUrl || '/');
+            setPreviewText(previewDesc, 'serp-description', resolvedDesc, 'Meta-Beschreibung wird automatisch aus dem ersten Absatz erzeugt.');
+            setPreviewText(socialTitle, 'social-title', socialResolvedTitle, config.siteName || '');
+            setPreviewText(socialDesc, 'social-description', socialResolvedDesc, 'Social Preview');
+            setPreviewImage(socialImage, 'social-image', ogImage, config.fallbackImage || '');
             if (progressBar) {
                 progressBar.style.width = score + '%';
                 progressBar.className = 'progress-bar bg-' + (status === 'green' ? 'success' : (status === 'orange' ? 'warning' : 'danger'));
@@ -577,6 +709,9 @@
             }
             if (rulesList) {
                 renderRuleList(rulesList, rules);
+            }
+            if (hintBadgeContainer) {
+                renderHintBadges(hintBadgeContainer, hintBadges);
             }
             if (slugState) {
                 var slugValid = slug === '' || /^[a-z0-9\-]+$/.test(slug);

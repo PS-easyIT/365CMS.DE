@@ -14,6 +14,8 @@ if (!defined('ABSPATH')) {
 }
 
 use CMS\AuditLogger;
+use CMS\Auth;
+use CMS\Database;
 use CMS\Logger;
 use CMS\Services\MediaDeliveryService;
 use CMS\Services\MediaService;
@@ -33,6 +35,13 @@ class MediaModule
     private const MEDIA_PROCESSING_JOB_MAX_CANDIDATES = 1000;
     private const MEDIA_PROCESSING_JOB_MAX_FILE_BYTES = 1048576;
     private const SEARCH_MAX_LENGTH = 120;
+    private const FILTER_PRESET_NAME_MAX_LENGTH = 60;
+    private const FILTER_PRESET_MAX_COUNT = 8;
+    private const TAG_NAME_MAX_LENGTH = 40;
+    private const MAX_BULK_TAGS = 20;
+    private const MAX_ALT_TEXT_LENGTH = 255;
+    private const ORPHAN_SCAN_MAX_FILES = 5000;
+    private const ORPHAN_LIST_LIMIT = 25;
     private const FOLDER_NAME_MAX_LENGTH = 120;
     private const CATEGORY_NAME_MAX_LENGTH = 80;
     private const CATEGORY_SLUG_MAX_LENGTH = 80;
@@ -71,6 +80,9 @@ class MediaModule
 
     private MediaService $service;
     private MediaUsageService $usageService;
+    private Database $db;
+    private ?bool $mediaTableExistsCache = null;
+    private string $prefix;
     /**
      * @var array<int, array<string, mixed>>|null
      */
@@ -82,6 +94,7 @@ class MediaModule
     private const ALLOWED_FILE_TYPE_FILTERS = ['all', 'image', 'document', 'video', 'audio', 'archive', 'other'];
     private const ALLOWED_SIZE_FILTERS = ['all', 'tiny', 'small', 'medium', 'large', 'huge'];
     private const ALLOWED_MODIFIED_FILTERS = ['all', 'today', '7d', '30d', 'year'];
+    private const ALLOWED_ORPHAN_DAYS = [0, 30, 90, 180, 365];
     private const ALLOWED_PROCESSING_MODES = ['all', 'webp', 'thumbnails'];
     private const EXTENSION_FILTER_MAX_LENGTH = 16;
     private const SYSTEM_CATEGORY_SLUGS = ['themes', 'plugins', 'assets', 'fonts', 'dl-manager', 'form-uploads', 'member'];
@@ -231,6 +244,8 @@ class MediaModule
     {
         $this->service = MediaService::getInstance();
         $this->usageService = MediaUsageService::getInstance();
+        $this->db = Database::instance();
+        $this->prefix = $this->db->prefix();
     }
 
     // ─── Bibliothek ──────────────────────────────────────
@@ -251,11 +266,29 @@ class MediaModule
             'size' => $this->normalizeSizeFilter((string)($_GET['size_filter'] ?? 'all')),
             'modified' => $this->normalizeModifiedFilter((string)($_GET['modified_filter'] ?? 'all')),
         ];
+        $orphanDays = $this->normalizeOrphanDays($_GET['orphan_days'] ?? 0);
         $confirmMember = (string)($_GET['confirm_member'] ?? '') === '1';
 
         if ($category !== '' && !$this->categoryExists($category)) {
             $category = '';
         }
+
+        $currentFilterPresetState = $this->normalizeLibraryFilterPresetState([
+            'view' => $view,
+            'category' => $category,
+            'search' => $search,
+            'usage_filter' => $usageFilter,
+            'file_type' => $advancedFilters['file_type'],
+            'extension' => $advancedFilters['extension'],
+            'size' => $advancedFilters['size'],
+            'modified' => $advancedFilters['modified'],
+            'orphan_days' => $orphanDays,
+        ]);
+        $hasFilterPresetState = $this->hasMeaningfulLibraryPresetState($currentFilterPresetState);
+        $filterPresets = $this->buildLibraryFilterPresetViewModels(
+            $this->loadLibraryFilterPresets(),
+            $currentFilterPresetState
+        );
 
         $items = $this->service->getItems($path);
         if ($items instanceof \WP_Error) {
@@ -293,8 +326,8 @@ class MediaModule
 
         $categories = $this->getCategories();
         $diskUsage  = $this->service->getDiskUsage();
-        $stateParams = $this->buildLibraryStateParams($path, $view, $category, $search, $usageFilter, $confirmMember, $advancedFilters);
-        $rootStateParams = $this->buildLibraryStateParams('', $view, $category, $search, $usageFilter, $confirmMember, $advancedFilters);
+        $stateParams = $this->buildLibraryStateParams($path, $view, $category, $search, $usageFilter, $confirmMember, $advancedFilters, $orphanDays);
+        $rootStateParams = $this->buildLibraryStateParams('', $view, $category, $search, $usageFilter, $confirmMember, $advancedFilters, $orphanDays);
 
         $usageMap = $this->usageService->buildUsageMap(array_map(
             static fn (array $file): string => (string) ($file['path'] ?? ''),
@@ -315,9 +348,11 @@ class MediaModule
             is_array($items['files'] ?? null) ? $items['files'] : []
         ));
         $stats = $this->buildLibraryStats($items, $categories, $diskUsage, $duplicateMap, $usageMap);
+        $orphanMedia = $this->buildOrphanMediaData($orphanDays);
+        $altTextBulkAvailable = $this->mediaTableExists();
 
         return [
-            'folders'    => $this->buildFolderViewModels($items['folders'] ?? [], $path, $view, $category, $search, $usageFilter, $confirmMember, $advancedFilters),
+            'folders'    => $this->buildFolderViewModels($items['folders'] ?? [], $path, $view, $category, $search, $usageFilter, $confirmMember, $advancedFilters, $orphanDays),
             'files'      => $this->buildFileViewModels($items['files'] ?? [], $path, $usageMap, $duplicateMap),
             'categories' => $categories,
             'diskUsage'  => $diskUsage,
@@ -330,14 +365,16 @@ class MediaModule
             'extension_filter' => $advancedFilters['extension'],
             'size_filter' => $advancedFilters['size'],
             'modified_filter' => $advancedFilters['modified'],
+            'orphan_days' => $orphanDays,
             'confirm_member' => $confirmMember,
-            'breadcrumbs' => $this->buildBreadcrumbs($path, $view, $category, $search, $usageFilter, $confirmMember, $advancedFilters),
+            'breadcrumbs' => $this->buildBreadcrumbs($path, $view, $category, $search, $usageFilter, $confirmMember, $advancedFilters, $orphanDays),
             'stats' => $stats,
             'base_url' => $this->buildAdminUrl(),
-            'list_url' => $this->buildAdminUrl($this->buildLibraryStateParams($path, 'list', $category, $search, $usageFilter, $confirmMember, $advancedFilters)),
-            'grid_url' => $this->buildAdminUrl($this->buildLibraryStateParams($path, 'grid', $category, $search, $usageFilter, $confirmMember, $advancedFilters)),
+            'list_url' => $this->buildAdminUrl($this->buildLibraryStateParams($path, 'list', $category, $search, $usageFilter, $confirmMember, $advancedFilters, $orphanDays)),
+            'grid_url' => $this->buildAdminUrl($this->buildLibraryStateParams($path, 'grid', $category, $search, $usageFilter, $confirmMember, $advancedFilters, $orphanDays)),
             'root_url' => $this->buildAdminUrl($rootStateParams),
-            'reset_filter_url' => $this->buildAdminUrl($this->buildLibraryStateParams($path, $view, '', '', 'all', $confirmMember)),
+            'reset_filter_url' => $this->buildAdminUrl($this->buildLibraryStateParams($path, $view, '', '', 'all', $confirmMember, [], $orphanDays)),
+            'current_filter_permalink' => $this->buildAdminUrl($stateParams),
             'filter_state' => [
                 'path' => $path,
                 'view' => $view,
@@ -349,6 +386,13 @@ class MediaModule
                 'size' => $advancedFilters['size'],
                 'modified' => $advancedFilters['modified'],
             ],
+            'filter_presets' => $filterPresets,
+            'current_filter_preset_state' => $currentFilterPresetState,
+            'has_filter_preset_state' => $hasFilterPresetState,
+            'filter_preset_constraints' => [
+                'max_presets' => self::FILTER_PRESET_MAX_COUNT,
+                'preset_name_max_length' => self::FILTER_PRESET_NAME_MAX_LENGTH,
+            ],
             'category_options' => $this->buildCategoryOptions($categories),
             'usage_filter_options' => [
                 ['value' => 'all', 'label' => 'Alle Medien'],
@@ -359,11 +403,20 @@ class MediaModule
             'extension_filter_options' => $extensionOptions,
             'size_filter_options' => $this->buildSizeFilterOptions(),
             'modified_filter_options' => $this->buildModifiedFilterOptions(),
+            'orphan_day_options' => $this->buildOrphanDayOptions(),
+            'orphan_media' => $orphanMedia,
             'move_targets' => $this->buildMoveTargetOptions(),
-            'bulk_actions' => [
+            'bulk_actions' => array_values(array_filter([
                 ['value' => 'delete', 'label' => 'Auswahl löschen'],
                 ['value' => 'move', 'label' => 'Auswahl verschieben'],
-            ],
+                ['value' => 'assign_category', 'label' => 'Kategorie setzen/entfernen'],
+                ['value' => 'tag_add', 'label' => 'Tags hinzufügen'],
+                ['value' => 'tag_replace', 'label' => 'Tags ersetzen'],
+                ['value' => 'tag_remove', 'label' => 'Tags entfernen'],
+                ['value' => 'tag_clear', 'label' => 'Alle Tags entfernen'],
+                $altTextBulkAvailable ? ['value' => 'alt_text_update', 'label' => 'Alt-Texte aktualisieren'] : null,
+            ])),
+            'alt_text_bulk_available' => $altTextBulkAvailable,
             'member_folder_confirm_message' => self::MEMBER_FOLDER_CONFIRM_MESSAGE,
             'constraints' => [
                 'max_upload_files' => self::MAX_UPLOAD_BATCH_FILES,
@@ -371,6 +424,9 @@ class MediaModule
                 'max_upload_batch_label' => $this->formatBytes(self::MAX_UPLOAD_BATCH_BYTES),
                 'search_max_length' => self::SEARCH_MAX_LENGTH,
                 'folder_name_max_length' => self::FOLDER_NAME_MAX_LENGTH,
+                'tag_name_max_length' => self::TAG_NAME_MAX_LENGTH,
+                'max_bulk_tags' => self::MAX_BULK_TAGS,
+                'alt_text_max_length' => self::MAX_ALT_TEXT_LENGTH,
             ],
             'empty_state' => [
                 'title' => 'Dieser Ordner ist leer',
@@ -636,6 +692,9 @@ class MediaModule
                 'path' => $normalizedPath,
             ]);
         }
+
+        $this->deleteMediaTableEntriesForPath($normalizedPath);
+
         return [
             'success' => true,
             'message' => 'Element gelöscht.',
@@ -662,6 +721,9 @@ class MediaModule
             return ['success' => false, 'error' => 'Das gewählte Element existiert nicht mehr.'];
         }
 
+        $parentPath = $this->resolveParentPathFromActionPath($normalizedPath);
+        $targetPath = ltrim(($parentPath !== '' ? $parentPath . '/' : '') . $sanitizedName, '/');
+
         $result = $this->service->renameItem($normalizedPath, $sanitizedName);
         if ($result instanceof WP_Error) {
             return $this->buildGenericFailureFromWpError($result, [
@@ -673,6 +735,11 @@ class MediaModule
                 'new_name' => $sanitizedName,
             ]);
         }
+
+        if ($targetPath !== '' && $targetPath !== $normalizedPath) {
+            $this->renameMediaTablePaths($normalizedPath, $targetPath);
+        }
+
         return [
             'success' => true,
             'message' => 'Element umbenannt.',
@@ -745,6 +812,10 @@ class MediaModule
             ]);
         }
 
+        if ($targetPath !== $normalizedPath) {
+            $this->renameMediaTablePaths($normalizedPath, $targetPath);
+        }
+
         return [
             'success' => true,
             'message' => 'Element verschoben.',
@@ -758,10 +829,10 @@ class MediaModule
     /**
      * @param array<int, string> $paths
      */
-    public function bulkItems(array $paths, string $bulkAction, string $targetParentPath = ''): array
+    public function bulkItems(array $paths, string $bulkAction, string $targetParentPath = '', string $categorySlug = '', mixed $tagList = '', mixed $altTextMap = []): array
     {
         $normalizedBulkAction = strtolower(trim($bulkAction));
-        if (!in_array($normalizedBulkAction, ['delete', 'move'], true)) {
+        if (!in_array($normalizedBulkAction, ['delete', 'move', 'assign_category', 'tag_add', 'tag_replace', 'tag_remove', 'tag_clear', 'alt_text_update'], true)) {
             return ['success' => false, 'error' => 'Die gewählte Bulk-Aktion ist nicht erlaubt.'];
         }
 
@@ -771,9 +842,32 @@ class MediaModule
         }
 
         $normalizedTargetParentPath = $this->normalizeRelativePath($targetParentPath);
+        $normalizedCategory = $this->normalizeCategorySlug($categorySlug);
+        $normalizedTags = $this->normalizeTags($tagList);
+        $normalizedAltTexts = $this->normalizeAltTextMap($altTextMap);
+
+        if ($normalizedBulkAction === 'assign_category' && $normalizedCategory !== '' && !$this->categoryExists($normalizedCategory)) {
+            return ['success' => false, 'error' => 'Die gewählte Kategorie existiert nicht mehr.'];
+        }
+
+        if (in_array($normalizedBulkAction, ['tag_add', 'tag_replace', 'tag_remove'], true) && $normalizedTags === []) {
+            return ['success' => false, 'error' => 'Bitte mindestens einen gültigen Tag angeben.'];
+        }
+
+        if ($normalizedBulkAction === 'alt_text_update') {
+            if (!$this->mediaTableExists()) {
+                return ['success' => false, 'error' => 'Die Alt-Text-Verwaltung ist auf dieser Installation derzeit nicht verfügbar.'];
+            }
+
+            if ($normalizedAltTexts === []) {
+                return ['success' => false, 'error' => 'Bitte mindestens einen Alt-Text-Wert übermitteln.'];
+            }
+        }
 
         $missingPaths = $this->collectMissingPaths($selectedPaths);
         if ($missingPaths !== []) {
+            $this->auditBulkMediaAction($normalizedBulkAction, count($selectedPaths), 0, 0, count($missingPaths), ['status' => 'failed_stale_selection']);
+
             return [
                 'success' => false,
                 'error' => 'Die Auswahl enthält veraltete oder bereits gelöschte Medien. Bitte die Liste aktualisieren.',
@@ -782,7 +876,9 @@ class MediaModule
         }
 
         $protectedPaths = $this->collectProtectedPaths($selectedPaths);
-        if ($protectedPaths !== []) {
+        if (in_array($normalizedBulkAction, ['delete', 'move'], true) && $protectedPaths !== []) {
+            $this->auditBulkMediaAction($normalizedBulkAction, count($selectedPaths), 0, 0, count($protectedPaths), ['status' => 'failed_protected_selection']);
+
             return [
                 'success' => false,
                 'error' => 'Geschützte Systemordner dürfen nicht per Bulk-Aktion verändert werden.',
@@ -801,42 +897,69 @@ class MediaModule
         $reportPayload = [];
 
         foreach ($selectedPaths as $selectedPath) {
+            $actionResult = null;
+
             if ($normalizedBulkAction === 'move') {
-                $moveResult = $this->executeBulkMove($selectedPath, $normalizedTargetParentPath);
+                $actionResult = $this->executeBulkMove($selectedPath, $normalizedTargetParentPath);
+            } elseif ($normalizedBulkAction === 'delete') {
+                $deleteResult = $this->deleteItem($selectedPath);
+                $actionResult = !empty($deleteResult['success'])
+                    ? ['status' => 'success', 'detail' => 'Gelöscht: ' . $selectedPath]
+                    : [
+                        'status' => 'error',
+                        'detail' => $selectedPath . ': ' . trim((string) ($deleteResult['error'] ?? 'Fehler')),
+                        'report_payload' => is_array($deleteResult['report_payload'] ?? null) ? $deleteResult['report_payload'] : [],
+                    ];
+            } elseif ($normalizedBulkAction === 'assign_category') {
+                $actionResult = $this->executeBulkCategoryAssignment($selectedPath, $normalizedCategory);
+            } elseif ($normalizedBulkAction === 'alt_text_update') {
+                $actionResult = $this->executeBulkAltTextUpdate($selectedPath, $normalizedAltTexts);
+            } elseif (str_starts_with($normalizedBulkAction, 'tag_')) {
+                $actionResult = $this->executeBulkTagAssignment($selectedPath, $normalizedBulkAction, $normalizedTags);
+            }
 
-                if (($moveResult['status'] ?? '') === 'success') {
-                    $successCount++;
-                    $details[] = (string) ($moveResult['detail'] ?? ('Verschoben: ' . $selectedPath));
-                    continue;
-                }
-
-                if (($moveResult['status'] ?? '') === 'skipped') {
-                    $skippedCount++;
-                    $details[] = (string) ($moveResult['detail'] ?? ('Übersprungen: ' . $selectedPath));
-                    continue;
-                }
-
-                $errorDetails[] = (string) ($moveResult['detail'] ?? ('Fehlgeschlagen: ' . $selectedPath));
-                if ($reportPayload === [] && is_array($moveResult['report_payload'] ?? null)) {
-                    $reportPayload = $moveResult['report_payload'];
-                }
+            if (!is_array($actionResult)) {
+                $errorDetails[] = $selectedPath . ': Unbekannte Bulk-Aktion.';
                 continue;
             }
 
-            $deleteResult = $this->deleteItem($selectedPath);
-            if (!empty($deleteResult['success'])) {
+            if (($actionResult['status'] ?? '') === 'success') {
                 $successCount++;
-                $details[] = 'Gelöscht: ' . $selectedPath;
+                $details[] = (string) ($actionResult['detail'] ?? ('Bearbeitet: ' . $selectedPath));
                 continue;
             }
 
-            $errorDetails[] = $selectedPath . ': ' . trim((string) ($deleteResult['error'] ?? 'Fehler'));
-            if ($reportPayload === [] && is_array($deleteResult['report_payload'] ?? null)) {
-                $reportPayload = $deleteResult['report_payload'];
+            if (($actionResult['status'] ?? '') === 'skipped') {
+                $skippedCount++;
+                $details[] = (string) ($actionResult['detail'] ?? ('Übersprungen: ' . $selectedPath));
+                continue;
+            }
+
+            $errorDetails[] = (string) ($actionResult['detail'] ?? ('Fehlgeschlagen: ' . $selectedPath));
+            if ($reportPayload === [] && is_array($actionResult['report_payload'] ?? null)) {
+                $reportPayload = $actionResult['report_payload'];
             }
         }
 
-        $verb = $normalizedBulkAction === 'move' ? 'verschoben' : 'gelöscht';
+        $verb = match ($normalizedBulkAction) {
+            'move' => 'verschoben',
+            'delete' => 'gelöscht',
+            'assign_category' => $normalizedCategory !== '' ? 'kategorisiert' : 'von Kategorien befreit',
+            'tag_add' => 'mit Tags ergänzt',
+            'tag_replace' => 'mit Tags ersetzt',
+            'tag_remove' => 'von Tags bereinigt',
+            'tag_clear' => 'von allen Tags bereinigt',
+            'alt_text_update' => 'mit Alt-Texten aktualisiert',
+            default => 'bearbeitet',
+        };
+
+        $this->auditBulkMediaAction($normalizedBulkAction, count($selectedPaths), $successCount, $skippedCount, count($errorDetails), [
+            'target_parent_path' => $normalizedBulkAction === 'move' ? $normalizedTargetParentPath : null,
+            'category' => $normalizedBulkAction === 'assign_category' && $normalizedCategory !== '' ? $normalizedCategory : null,
+            'tag_count' => str_starts_with($normalizedBulkAction, 'tag_') ? count($normalizedTags) : null,
+            'alt_text_count' => $normalizedBulkAction === 'alt_text_update' ? count($normalizedAltTexts) : null,
+        ]);
+
         $summaryParts = [];
         if ($successCount > 0) {
             $summaryParts[] = $successCount . ' Element(e) ' . $verb;
@@ -878,6 +1001,108 @@ class MediaModule
     }
 
     /**
+     * @return array<string, mixed>
+     */
+    private function executeBulkCategoryAssignment(string $selectedPath, string $categorySlug): array
+    {
+        if (!$this->isFileItem($selectedPath)) {
+            return ['status' => 'skipped', 'detail' => $selectedPath . ': Kategorien werden nur auf Dateien angewendet.'];
+        }
+
+        $result = $this->assignCategory($selectedPath, $categorySlug);
+        if (empty($result['success'])) {
+            return [
+                'status' => 'error',
+                'detail' => $selectedPath . ': ' . trim((string) ($result['error'] ?? 'Fehler')),
+                'report_payload' => is_array($result['report_payload'] ?? null) ? $result['report_payload'] : [],
+            ];
+        }
+
+        return ['status' => 'success', 'detail' => 'Kategorie gesetzt: ' . $selectedPath];
+    }
+
+    /**
+     * @param array<int, string> $tags
+     * @return array<string, mixed>
+     */
+    private function executeBulkTagAssignment(string $selectedPath, string $bulkAction, array $tags): array
+    {
+        if (!$this->isFileItem($selectedPath)) {
+            return ['status' => 'skipped', 'detail' => $selectedPath . ': Tags werden nur auf Dateien angewendet.'];
+        }
+
+        $mode = match ($bulkAction) {
+            'tag_add' => 'add',
+            'tag_replace' => 'replace',
+            'tag_remove' => 'remove',
+            'tag_clear' => 'clear',
+            default => '',
+        };
+
+        if ($mode === '') {
+            return ['status' => 'error', 'detail' => $selectedPath . ': Ungültige Tag-Aktion.'];
+        }
+
+        $result = $this->service->assignTags($selectedPath, $tags, $mode);
+        if ($result instanceof WP_Error) {
+            $failure = $this->buildGenericFailureFromWpError($result, [
+                'title' => 'Bulk-Tagging fehlgeschlagen',
+                'source' => '/admin/media',
+                'module' => 'media',
+                'operation' => 'bulk_' . $bulkAction,
+                'path' => $selectedPath,
+                'tag_count' => count($tags),
+            ]);
+
+            return [
+                'status' => 'error',
+                'detail' => $selectedPath . ': ' . trim((string) ($failure['error'] ?? 'Fehler')),
+                'report_payload' => $failure['report_payload'] ?? [],
+            ];
+        }
+
+        return ['status' => 'success', 'detail' => 'Tags aktualisiert: ' . $selectedPath];
+    }
+
+    /**
+     * @param array<string, string> $altTexts
+     * @return array<string, mixed>
+     */
+    private function executeBulkAltTextUpdate(string $selectedPath, array $altTexts): array
+    {
+        if (!$this->isFileItem($selectedPath)) {
+            return ['status' => 'skipped', 'detail' => $selectedPath . ': Alt-Texte werden nur auf Dateien angewendet.'];
+        }
+
+        if (!array_key_exists($selectedPath, $altTexts)) {
+            return ['status' => 'skipped', 'detail' => $selectedPath . ': Kein Alt-Text-Feld übermittelt.'];
+        }
+
+        $altText = $this->normalizeAltText($altTexts[$selectedPath]);
+        if (!$this->upsertMediaAltText($selectedPath, $altText)) {
+            return [
+                'status' => 'error',
+                'detail' => $selectedPath . ': Alt-Text konnte nicht gespeichert werden.',
+                'report_payload' => [
+                    'title' => 'Bulk-Alt-Text fehlgeschlagen',
+                    'source' => '/admin/media',
+                    'status' => 'warning',
+                    'context' => [
+                        'module' => 'media',
+                        'operation' => 'bulk_alt_text_update',
+                        'path' => $selectedPath,
+                    ],
+                ],
+            ];
+        }
+
+        return [
+            'status' => 'success',
+            'detail' => ($altText === '' ? 'Alt-Text geleert: ' : 'Alt-Text aktualisiert: ') . $selectedPath,
+        ];
+    }
+
+    /**
      * Kategorie zuweisen
      */
     public function assignCategory(string $filePath, string $categorySlug): array
@@ -911,6 +1136,147 @@ class MediaModule
                 'Datei: ' . $normalizedPath,
                 'Kategorie: ' . ($normalizedCategory !== '' ? $normalizedCategory : 'Ohne Kategorie'),
             ],
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $state
+     */
+    public function saveFilterPreset(string $label, array $state): array
+    {
+        $userId = $this->getCurrentUserId();
+        if ($userId <= 0) {
+            return ['success' => false, 'error' => 'Filter-Presets können ohne gültigen Benutzer nicht gespeichert werden.'];
+        }
+
+        $normalizedLabel = $this->normalizeFilterPresetLabel($label);
+        if ($normalizedLabel === '') {
+            return ['success' => false, 'error' => 'Bitte einen Namen für das Filter-Preset angeben.'];
+        }
+
+        $normalizedState = $this->normalizeLibraryFilterPresetState($state);
+        if (!$this->hasMeaningfulLibraryPresetState($normalizedState)) {
+            return ['success' => false, 'error' => 'Bitte zuerst mindestens einen aktiven Such- oder Filterwert setzen.'];
+        }
+
+        $existingPresets = $this->loadLibraryFilterPresets();
+        $baseSlug = $this->normalizeFilterPresetSlug($normalizedLabel);
+        $matchedPreset = null;
+        $remainingPresets = [];
+
+        foreach ($existingPresets as $preset) {
+            $presetSlug = (string) ($preset['slug'] ?? '');
+            $presetState = is_array($preset['state'] ?? null) ? $preset['state'] : [];
+
+            if ($matchedPreset === null && ($this->libraryFilterPresetStatesMatch($presetState, $normalizedState) || ($baseSlug !== '' && $presetSlug === $baseSlug))) {
+                $matchedPreset = $preset;
+                continue;
+            }
+
+            $remainingPresets[] = $preset;
+        }
+
+        if ($matchedPreset === null && count($remainingPresets) >= self::FILTER_PRESET_MAX_COUNT) {
+            return [
+                'success' => false,
+                'error' => 'Es können maximal ' . self::FILTER_PRESET_MAX_COUNT . ' Filter-Presets pro Admin gespeichert werden.',
+            ];
+        }
+
+        $existingSlugs = array_map(static fn (array $preset): string => (string) ($preset['slug'] ?? ''), $remainingPresets);
+        $resolvedSlug = $matchedPreset !== null
+            ? (string) ($matchedPreset['slug'] ?? '')
+            : $this->generateUniqueLibraryFilterPresetSlug($normalizedLabel, $existingSlugs);
+        $timestamp = date('c');
+        $presetPayload = [
+            'slug' => $resolvedSlug,
+            'label' => $normalizedLabel,
+            'state' => $normalizedState,
+            'created_at' => (string) ($matchedPreset['created_at'] ?? $timestamp),
+            'updated_at' => $timestamp,
+        ];
+
+        array_unshift($remainingPresets, $presetPayload);
+        $remainingPresets = array_slice(array_values($remainingPresets), 0, self::FILTER_PRESET_MAX_COUNT);
+
+        if (!$this->persistLibraryFilterPresets($userId, $remainingPresets)) {
+            return ['success' => false, 'error' => 'Das Filter-Preset konnte nicht gespeichert werden.'];
+        }
+
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_MEDIA,
+            'media.filter_preset.save',
+            'Filter-Preset gespeichert',
+            'media',
+            $userId,
+            [
+                'preset_slug' => $resolvedSlug,
+                'preset_label' => $normalizedLabel,
+                'state' => $normalizedState,
+            ],
+            'info'
+        );
+
+        return [
+            'success' => true,
+            'message' => $matchedPreset !== null ? 'Filter-Preset aktualisiert.' : 'Filter-Preset gespeichert.',
+            'details' => [
+                'Preset: ' . $normalizedLabel,
+                'Aktive Filter: ' . $this->describeLibraryFilterPresetState($normalizedState),
+            ],
+        ];
+    }
+
+    public function deleteFilterPreset(string $slug): array
+    {
+        $userId = $this->getCurrentUserId();
+        if ($userId <= 0) {
+            return ['success' => false, 'error' => 'Filter-Presets können ohne gültigen Benutzer nicht gelöscht werden.'];
+        }
+
+        $normalizedSlug = $this->normalizeFilterPresetSlug($slug);
+        if ($normalizedSlug === '') {
+            return ['success' => false, 'error' => 'Ungültiges Filter-Preset.'];
+        }
+
+        $presets = $this->loadLibraryFilterPresets();
+        $remainingPresets = [];
+        $deletedPreset = null;
+
+        foreach ($presets as $preset) {
+            if ($deletedPreset === null && (string) ($preset['slug'] ?? '') === $normalizedSlug) {
+                $deletedPreset = $preset;
+                continue;
+            }
+
+            $remainingPresets[] = $preset;
+        }
+
+        if ($deletedPreset === null) {
+            return ['success' => true, 'message' => 'Das Filter-Preset war bereits entfernt.'];
+        }
+
+        if (!$this->persistLibraryFilterPresets($userId, $remainingPresets)) {
+            return ['success' => false, 'error' => 'Das Filter-Preset konnte nicht gelöscht werden.'];
+        }
+
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_MEDIA,
+            'media.filter_preset.delete',
+            'Filter-Preset gelöscht',
+            'media',
+            $userId,
+            [
+                'preset_slug' => $normalizedSlug,
+                'preset_label' => (string) ($deletedPreset['label'] ?? $normalizedSlug),
+            ],
+            'info'
+        );
+
+        return [
+            'success' => true,
+            'message' => 'Filter-Preset gelöscht.',
+            'details' => ['Preset: ' . (string) ($deletedPreset['label'] ?? $normalizedSlug)],
         ];
     }
 
@@ -1397,6 +1763,13 @@ class MediaModule
         return in_array($modifiedFilter, self::ALLOWED_MODIFIED_FILTERS, true) ? $modifiedFilter : 'all';
     }
 
+    public function normalizeOrphanDays(mixed $days): int
+    {
+        $normalizedDays = is_numeric($days) ? (int) $days : 0;
+
+        return in_array($normalizedDays, self::ALLOWED_ORPHAN_DAYS, true) ? $normalizedDays : 0;
+    }
+
     public function normalizeCategory(string $slug): string
     {
         return $this->normalizeCategorySlug($slug);
@@ -1414,6 +1787,62 @@ class MediaModule
         $extension = preg_replace('/[^a-z0-9]+/', '', $extension) ?? '';
 
         return function_exists('mb_substr') ? mb_substr($extension, 0, self::EXTENSION_FILTER_MAX_LENGTH) : substr($extension, 0, self::EXTENSION_FILTER_MAX_LENGTH);
+    }
+
+    public function normalizeFilterPresetLabel(string $label): string
+    {
+        $label = trim(strip_tags($label));
+
+        return function_exists('mb_substr') ? mb_substr($label, 0, self::FILTER_PRESET_NAME_MAX_LENGTH) : substr($label, 0, self::FILTER_PRESET_NAME_MAX_LENGTH);
+    }
+
+    public function normalizeFilterPresetSlug(string $slug): string
+    {
+        $slug = strtolower(trim(strip_tags($slug)));
+        $slug = preg_replace('/[^a-z0-9]+/', '-', $slug) ?? '';
+        $slug = trim($slug, '-');
+
+        $slug = function_exists('mb_substr') ? mb_substr($slug, 0, self::FILTER_PRESET_NAME_MAX_LENGTH) : substr($slug, 0, self::FILTER_PRESET_NAME_MAX_LENGTH);
+
+        return trim($slug, '-');
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function normalizeTags(mixed $tags): array
+    {
+        $rawTags = is_array($tags)
+            ? $tags
+            : preg_split('/[,;\n]+/u', (string) $tags);
+
+        if (!is_array($rawTags)) {
+            return [];
+        }
+
+        $normalized = [];
+
+        foreach ($rawTags as $tag) {
+            $normalizedTag = trim(strip_tags((string) $tag));
+            $normalizedTag = preg_replace('/[\x00-\x1F\x7F]+/u', '', $normalizedTag) ?? '';
+            $normalizedTag = preg_replace('/\s+/u', ' ', $normalizedTag) ?? '';
+
+            if ($normalizedTag === '') {
+                continue;
+            }
+
+            $normalizedTag = function_exists('mb_substr')
+                ? mb_substr($normalizedTag, 0, self::TAG_NAME_MAX_LENGTH)
+                : substr($normalizedTag, 0, self::TAG_NAME_MAX_LENGTH);
+
+            $normalized[$normalizedTag] = true;
+
+            if (count($normalized) >= self::MAX_BULK_TAGS) {
+                break;
+            }
+        }
+
+        return array_keys($normalized);
     }
 
     public function getMemberFolderConfirmMessage(): string
@@ -1439,6 +1868,16 @@ class MediaModule
         }
 
         return $this->service->directoryExists($normalizedPath);
+    }
+
+    private function isFileItem(string $path): bool
+    {
+        $normalizedPath = $this->normalizeRelativePath($path);
+        if ($normalizedPath === '') {
+            return false;
+        }
+
+        return $this->service->pathExists($normalizedPath) && !$this->service->directoryExists($normalizedPath);
     }
 
     private function isProtectedPath(string $path): bool
@@ -1805,7 +2244,7 @@ class MediaModule
     /**
      * @return array<string, string>
      */
-    private function buildLibraryStateParams(string $path, string $view, string $category, string $search, string $usageFilter, bool $confirmMember, array $advancedFilters = []): array
+    private function buildLibraryStateParams(string $path, string $view, string $category, string $search, string $usageFilter, bool $confirmMember, array $advancedFilters = [], int $orphanDays = 0): array
     {
         $params = [];
 
@@ -1849,6 +2288,11 @@ class MediaModule
             $params['modified_filter'] = $modifiedFilter;
         }
 
+        $normalizedOrphanDays = $this->normalizeOrphanDays($orphanDays);
+        if ($normalizedOrphanDays > 0) {
+            $params['orphan_days'] = (string) $normalizedOrphanDays;
+        }
+
         if ($confirmMember) {
             $params['confirm_member'] = '1';
         }
@@ -1871,7 +2315,7 @@ class MediaModule
     /**
      * @return list<array<string, string>>
      */
-    private function buildBreadcrumbs(string $path, string $view, string $category, string $search, string $usageFilter, bool $confirmMember, array $advancedFilters = []): array
+    private function buildBreadcrumbs(string $path, string $view, string $category, string $search, string $usageFilter, bool $confirmMember, array $advancedFilters = [], int $orphanDays = 0): array
     {
         if ($path === '') {
             return [];
@@ -1887,7 +2331,7 @@ class MediaModule
             $breadcrumbs[] = [
                 'label' => $part,
                 'path' => $cumulative,
-                'url' => $isLast ? '' : $this->buildAdminUrl($this->buildLibraryStateParams($cumulative, $view, $category, $search, $usageFilter, $confirmMember, $advancedFilters)),
+                'url' => $isLast ? '' : $this->buildAdminUrl($this->buildLibraryStateParams($cumulative, $view, $category, $search, $usageFilter, $confirmMember, $advancedFilters, $orphanDays)),
             ];
         }
 
@@ -1898,7 +2342,7 @@ class MediaModule
      * @param array<int, array<string, mixed>> $folders
      * @return list<array<string, mixed>>
      */
-    private function buildFolderViewModels(array $folders, string $path, string $view, string $category, string $search, string $usageFilter, bool $confirmMember, array $advancedFilters = []): array
+    private function buildFolderViewModels(array $folders, string $path, string $view, string $category, string $search, string $usageFilter, bool $confirmMember, array $advancedFilters = [], int $orphanDays = 0): array
     {
         $viewModels = [];
 
@@ -1914,8 +2358,8 @@ class MediaModule
                 'category' => (string)($folder['category'] ?? ''),
                 'modified_label' => !empty($folder['modified']) ? date('d.m.Y H:i', (int)$folder['modified']) : '—',
                 'is_system' => !empty($folder['is_system']),
-                'url' => $this->buildAdminUrl($this->buildLibraryStateParams($folderPath, $view, $category, $search, $usageFilter, $confirmMember, $advancedFilters)),
-                'confirm_url' => $this->buildAdminUrl($this->buildLibraryStateParams($folderPath, $view, $category, $search, $usageFilter, true, $advancedFilters)),
+                'url' => $this->buildAdminUrl($this->buildLibraryStateParams($folderPath, $view, $category, $search, $usageFilter, $confirmMember, $advancedFilters, $orphanDays)),
+                'confirm_url' => $this->buildAdminUrl($this->buildLibraryStateParams($folderPath, $view, $category, $search, $usageFilter, true, $advancedFilters, $orphanDays)),
                 'requires_confirmation' => $requiresConfirmation,
             ];
         }
@@ -1930,6 +2374,10 @@ class MediaModule
     private function buildFileViewModels(array $files, string $path, array $usageMap = [], array $duplicateMap = []): array
     {
         $viewModels = [];
+        $altTextMap = $this->loadMediaAltTextMap(array_map(
+            static fn (array $file): string => (string) ($file['path'] ?? ''),
+            $files
+        ));
 
         foreach ($files as $file) {
             $fileName = (string)($file['name'] ?? '');
@@ -1944,6 +2392,7 @@ class MediaModule
             $usageCount = count($usageItems);
             $usageSummary = $this->buildMediaUsageSummary($usageItems);
             $duplicateInfo = is_array($duplicateMap[$filePath] ?? null) ? $duplicateMap[$filePath] : [];
+            $altText = $this->normalizeAltText($altTextMap[$filePath] ?? '');
 
             $viewModels[] = [
                 'name' => $fileName,
@@ -1952,6 +2401,7 @@ class MediaModule
                 'preview_url' => $previewUrl,
                 'category' => (string)($file['category'] ?? ''),
                 'category_label' => (string)($file['category'] ?? 'Ohne Kategorie'),
+                'tags' => $this->normalizeTags($file['tags'] ?? []),
                 'modified_label' => !empty($file['modified']) ? date('d.m.Y H:i', (int)$file['modified']) : '—',
                 'file_type' => $fileType,
                 'is_image' => $fileType === 'image',
@@ -1964,10 +2414,242 @@ class MediaModule
                 'duplicate_count' => (int) ($duplicateInfo['duplicate_count'] ?? 0),
                 'duplicate_paths' => is_array($duplicateInfo['duplicate_paths'] ?? null) ? array_values($duplicateInfo['duplicate_paths']) : [],
                 'duplicate_short_hash' => (string) ($duplicateInfo['short_hash'] ?? ''),
+                'alt_text' => $altText,
+                'alt_text_missing' => $altText === '',
             ] + $file;
         }
 
         return $viewModels;
+    }
+
+    /**
+     * @param mixed $altTextMap
+     * @return array<string, string>
+     */
+    public function normalizeAltTextMap(mixed $altTextMap): array
+    {
+        if (!is_array($altTextMap)) {
+            return [];
+        }
+
+        $normalized = [];
+
+        foreach ($altTextMap as $path => $value) {
+            $normalizedPath = $this->normalizeRelativePath((string) $path);
+            if ($normalizedPath === '') {
+                continue;
+            }
+
+            $normalized[$normalizedPath] = $this->normalizeAltText($value);
+        }
+
+        return $normalized;
+    }
+
+    private function normalizeAltText(mixed $value): string
+    {
+        $normalizedValue = trim((string) $value);
+        $normalizedValue = preg_replace('/[\x00-\x1F\x7F]+/u', '', $normalizedValue) ?? '';
+
+        return function_exists('mb_substr')
+            ? mb_substr($normalizedValue, 0, self::MAX_ALT_TEXT_LENGTH)
+            : substr($normalizedValue, 0, self::MAX_ALT_TEXT_LENGTH);
+    }
+
+    private function mediaTableExists(): bool
+    {
+        if ($this->mediaTableExistsCache !== null) {
+            return $this->mediaTableExistsCache;
+        }
+
+        try {
+            $this->mediaTableExistsCache = $this->db->get_var('SHOW TABLES LIKE ?', [$this->prefix . 'media']) !== null;
+        } catch (\Throwable) {
+            $this->mediaTableExistsCache = false;
+        }
+
+        return $this->mediaTableExistsCache;
+    }
+
+    /**
+     * @param array<int, string> $paths
+     * @return array<string, string>
+     */
+    private function loadMediaAltTextMap(array $paths): array
+    {
+        if ($paths === [] || !$this->mediaTableExists()) {
+            return [];
+        }
+
+        $normalizedPaths = [];
+
+        foreach ($paths as $path) {
+            $normalizedPath = $this->normalizeRelativePath($path);
+            if ($normalizedPath === '') {
+                continue;
+            }
+
+            $normalizedPaths[$normalizedPath] = true;
+        }
+
+        if ($normalizedPaths === []) {
+            return [];
+        }
+
+        $placeholders = implode(', ', array_fill(0, count($normalizedPaths), '?'));
+
+        try {
+            $rows = $this->db->get_results(
+                "SELECT filepath, alt_text FROM {$this->prefix}media WHERE filepath IN ({$placeholders})",
+                array_keys($normalizedPaths)
+            );
+        } catch (\Throwable) {
+            return [];
+        }
+
+        $altTextMap = [];
+        foreach ($rows as $row) {
+            $filePath = $this->normalizeRelativePath((string) ($row->filepath ?? ''));
+            if ($filePath === '') {
+                continue;
+            }
+
+            $altTextMap[$filePath] = $this->normalizeAltText($row->alt_text ?? '');
+        }
+
+        return $altTextMap;
+    }
+
+    private function upsertMediaAltText(string $relativePath, string $altText): bool
+    {
+        if (!$this->mediaTableExists()) {
+            return false;
+        }
+
+        $normalizedPath = $this->normalizeRelativePath($relativePath);
+        if ($normalizedPath === '') {
+            return false;
+        }
+
+        try {
+            $existingId = $this->db->get_var(
+                "SELECT id FROM {$this->prefix}media WHERE filepath = ? LIMIT 1",
+                [$normalizedPath]
+            );
+        } catch (\Throwable) {
+            return false;
+        }
+
+        if ($existingId !== null) {
+            return $this->db->update('media', ['alt_text' => $altText], ['id' => (int) $existingId]);
+        }
+
+        $absolutePath = rtrim((string) UPLOAD_PATH, '/\\') . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $normalizedPath);
+        if (!is_file($absolutePath)) {
+            return false;
+        }
+
+        $currentUser = Auth::getCurrentUser();
+        $uploadedBy = isset($currentUser->id) ? (int) $currentUser->id : 0;
+        $filename = basename($normalizedPath);
+        $mimeType = function_exists('mime_content_type') ? (string) (mime_content_type($absolutePath) ?: '') : '';
+        if ($mimeType === '') {
+            $mimeType = 'application/octet-stream';
+        }
+
+        return $this->db->insert('media', [
+            'filename' => $filename,
+            'filepath' => $normalizedPath,
+            'filetype' => $mimeType,
+            'filesize' => max(0, (int) (filesize($absolutePath) ?: 0)),
+            'title' => $this->buildMediaRecordTitle($filename),
+            'alt_text' => $altText,
+            'caption' => '',
+            'uploaded_by' => $uploadedBy,
+        ]) !== false;
+    }
+
+    private function buildMediaRecordTitle(string $filename): string
+    {
+        $title = (string) pathinfo($filename, PATHINFO_FILENAME);
+        $title = str_replace(['-', '_'], ' ', $title);
+        $title = trim(preg_replace('/\s+/u', ' ', $title) ?? $title);
+
+        if ($title === '') {
+            $title = $filename;
+        }
+
+        return function_exists('mb_substr')
+            ? mb_substr($title, 0, 255)
+            : substr($title, 0, 255);
+    }
+
+    private function deleteMediaTableEntriesForPath(string $relativePath): void
+    {
+        if (!$this->mediaTableExists()) {
+            return;
+        }
+
+        $normalizedPath = $this->normalizeRelativePath($relativePath);
+        if ($normalizedPath === '') {
+            return;
+        }
+
+        try {
+            $statement = $this->db->prepare("DELETE FROM {$this->prefix}media WHERE filepath = ? OR filepath LIKE ?");
+            if ($statement !== false) {
+                $statement->execute([$normalizedPath, $normalizedPath . '/%']);
+            }
+        } catch (\Throwable) {
+            // fail-soft: optionaler Alt-Text-Store darf Medienoperationen nicht abbrechen.
+        }
+    }
+
+    private function renameMediaTablePaths(string $oldRelativePath, string $newRelativePath): void
+    {
+        if (!$this->mediaTableExists()) {
+            return;
+        }
+
+        $normalizedOldPath = $this->normalizeRelativePath($oldRelativePath);
+        $normalizedNewPath = $this->normalizeRelativePath($newRelativePath);
+        if ($normalizedOldPath === '' || $normalizedNewPath === '' || $normalizedOldPath === $normalizedNewPath) {
+            return;
+        }
+
+        try {
+            $rows = $this->db->get_results(
+                "SELECT id, filepath FROM {$this->prefix}media WHERE filepath = ? OR filepath LIKE ?",
+                [$normalizedOldPath, $normalizedOldPath . '/%']
+            );
+        } catch (\Throwable) {
+            return;
+        }
+
+        foreach ($rows as $row) {
+            $currentPath = $this->normalizeRelativePath((string) ($row->filepath ?? ''));
+            if ($currentPath === '') {
+                continue;
+            }
+
+            $suffix = substr($currentPath, strlen($normalizedOldPath));
+            $updatedPath = $currentPath === $normalizedOldPath
+                ? $normalizedNewPath
+                : rtrim($normalizedNewPath, '/') . '/' . ltrim((string) $suffix, '/');
+            $updatedPath = preg_replace('#/+#', '/', $updatedPath) ?? $updatedPath;
+            $updatedPath = trim($updatedPath, '/');
+
+            if ($updatedPath === '') {
+                continue;
+            }
+
+            $this->db->update('media', [
+                'filepath' => $updatedPath,
+                'filename' => basename($updatedPath),
+            ], [
+                'id' => (int) ($row->id ?? 0),
+            ]);
+        }
     }
 
     /**
@@ -2185,6 +2867,20 @@ class MediaModule
     }
 
     /**
+     * @return list<array{value:string,label:string}>
+     */
+    private function buildOrphanDayOptions(): array
+    {
+        return [
+            ['value' => '0', 'label' => 'Keine Orphan-Prüfung'],
+            ['value' => '30', 'label' => 'Ungenutzt seit 30 Tagen'],
+            ['value' => '90', 'label' => 'Ungenutzt seit 90 Tagen'],
+            ['value' => '180', 'label' => 'Ungenutzt seit 180 Tagen'],
+            ['value' => '365', 'label' => 'Ungenutzt seit 365 Tagen'],
+        ];
+    }
+
+    /**
      * @param array<int, array<string, mixed>> $categories
      * @return list<array<string, mixed>>
      */
@@ -2248,6 +2944,435 @@ class MediaModule
             'duplicate_file_count' => count($duplicateMap),
             'duplicate_group_count' => count($duplicateGroupIds),
         ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function buildOrphanMediaData(int $orphanDays): array
+    {
+        $orphanDays = $this->normalizeOrphanDays($orphanDays);
+        if ($orphanDays <= 0) {
+            return [
+                'enabled' => false,
+                'days' => 0,
+                'items' => [],
+                'candidate_count' => 0,
+                'scanned_file_count' => 0,
+                'eligible_file_count' => 0,
+                'is_truncated' => false,
+            ];
+        }
+
+        $inventory = $this->service->collectManagedFileInventory(self::ORPHAN_SCAN_MAX_FILES);
+        $eligibleFiles = array_values(array_filter($inventory, fn (array $file): bool => $this->isEligibleForOrphanDetection((string) ($file['path'] ?? ''))));
+        $usageMap = $this->usageService->buildUsageMap(array_map(
+            static fn (array $file): string => (string) ($file['path'] ?? ''),
+            $eligibleFiles
+        ));
+
+        $thresholdTimestamp = time() - ($orphanDays * 86400);
+        $candidates = [];
+
+        foreach ($eligibleFiles as $file) {
+            $path = (string) ($file['path'] ?? '');
+            if ($path === '' || !empty($usageMap[$path])) {
+                continue;
+            }
+
+            $reference = $this->resolveOrphanReferenceTimestamp($file);
+            if ($reference === null || $reference['timestamp'] > $thresholdTimestamp) {
+                continue;
+            }
+
+            $candidates[] = $this->buildOrphanMediaItemViewModel($file, $reference);
+        }
+
+        usort($candidates, static function (array $left, array $right): int {
+            $timeCompare = ((int) ($left['reference_timestamp'] ?? 0)) <=> ((int) ($right['reference_timestamp'] ?? 0));
+            if ($timeCompare !== 0) {
+                return $timeCompare;
+            }
+
+            return strcasecmp((string) ($left['path'] ?? ''), (string) ($right['path'] ?? ''));
+        });
+
+        return [
+            'enabled' => true,
+            'days' => $orphanDays,
+            'items' => array_slice($candidates, 0, self::ORPHAN_LIST_LIMIT),
+            'candidate_count' => count($candidates),
+            'scanned_file_count' => count($inventory),
+            'eligible_file_count' => count($eligibleFiles),
+            'is_truncated' => count($inventory) >= self::ORPHAN_SCAN_MAX_FILES,
+        ];
+    }
+
+    private function isEligibleForOrphanDetection(string $path): bool
+    {
+        $normalizedPath = $this->normalizeRelativePath($path);
+        if ($normalizedPath === '') {
+            return false;
+        }
+
+        foreach (self::SYSTEM_CATEGORY_SLUGS as $systemSlug) {
+            if ($normalizedPath === $systemSlug || str_starts_with($normalizedPath, $systemSlug . '/')) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * @param array<string, mixed> $file
+     * @return array{timestamp:int,source:string,label:string}|null
+     */
+    private function resolveOrphanReferenceTimestamp(array $file): ?array
+    {
+        $uploadedAt = trim((string) ($file['uploaded_at'] ?? ''));
+        $uploadedTimestamp = $uploadedAt !== '' ? strtotime($uploadedAt) : false;
+        if (is_int($uploadedTimestamp) && $uploadedTimestamp > 0) {
+            return [
+                'timestamp' => $uploadedTimestamp,
+                'source' => 'uploaded_at',
+                'label' => 'Upload: ' . date('d.m.Y H:i', $uploadedTimestamp),
+            ];
+        }
+
+        $modifiedTimestamp = isset($file['modified']) ? (int) $file['modified'] : 0;
+        if ($modifiedTimestamp > 0) {
+            return [
+                'timestamp' => $modifiedTimestamp,
+                'source' => 'modified',
+                'label' => 'Datei geändert: ' . date('d.m.Y H:i', $modifiedTimestamp),
+            ];
+        }
+
+        return null;
+    }
+
+    /**
+     * @param array<string, mixed> $file
+     * @param array{timestamp:int,source:string,label:string} $reference
+     * @return array<string, mixed>
+     */
+    private function buildOrphanMediaItemViewModel(array $file, array $reference): array
+    {
+        $path = (string) ($file['path'] ?? '');
+        $parentPath = $this->resolveParentPathFromActionPath($path);
+        $referenceTimestamp = (int) ($reference['timestamp'] ?? 0);
+        $ageInDays = $referenceTimestamp > 0 ? max(0, (int) floor((time() - $referenceTimestamp) / 86400)) : 0;
+        $fileType = $this->detectFileType((string) ($file['name'] ?? basename($path)));
+
+        return [
+            'name' => (string) ($file['name'] ?? basename($path)),
+            'path' => $path,
+            'parent_path' => $parentPath,
+            'review_url' => $this->buildAdminUrl($this->buildLibraryStateParams($parentPath, 'list', '', '', 'all', false)),
+            'url' => (string) ($file['url'] ?? ''),
+            'preview_url' => (string) ($file['preview_url'] ?? ''),
+            'category_label' => (string) ($file['category'] ?? 'Ohne Kategorie'),
+            'formatted_size' => $this->formatBytes(isset($file['size']) ? (int) $file['size'] : null),
+            'reference_label' => (string) ($reference['label'] ?? ''),
+            'reference_timestamp' => $referenceTimestamp,
+            'age_label' => $ageInDays === 1 ? '1 Tag ohne erkannte Verwendung' : $ageInDays . ' Tage ohne erkannte Verwendung',
+            'uploaded_by' => trim((string) ($file['uploaded_by'] ?? '')),
+            'original_name' => trim((string) ($file['original_name'] ?? '')),
+            'tags' => array_values(array_filter(array_map('strval', (array) ($file['tags'] ?? [])))),
+            'is_image' => $fileType === 'image',
+            'file_type' => $fileType,
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $state
+     * @return array{view:string,category:string,search:string,usage_filter:string,file_type:string,extension:string,size:string,modified:string,orphan_days:int}
+     */
+    private function normalizeLibraryFilterPresetState(array $state): array
+    {
+        return [
+            'view' => $this->normalizeView((string) ($state['view'] ?? 'list')),
+            'category' => $this->normalizeCategorySlug((string) ($state['category'] ?? '')),
+            'search' => $this->sanitizeSearch((string) ($state['search'] ?? $state['q'] ?? '')),
+            'usage_filter' => $this->normalizeUsageFilter((string) ($state['usage_filter'] ?? 'all')),
+            'file_type' => $this->normalizeFileTypeFilter((string) ($state['file_type'] ?? 'all')),
+            'extension' => $this->normalizeExtensionFilter((string) ($state['extension'] ?? '')),
+            'size' => $this->normalizeSizeFilter((string) ($state['size'] ?? $state['size_filter'] ?? 'all')),
+            'modified' => $this->normalizeModifiedFilter((string) ($state['modified'] ?? $state['modified_filter'] ?? 'all')),
+            'orphan_days' => $this->normalizeOrphanDays($state['orphan_days'] ?? 0),
+        ];
+    }
+
+    /**
+     * @param array{view:string,category:string,search:string,usage_filter:string,file_type:string,extension:string,size:string,modified:string,orphan_days:int} $state
+     */
+    private function hasMeaningfulLibraryPresetState(array $state): bool
+    {
+        return $state['category'] !== ''
+            || $state['search'] !== ''
+            || $state['usage_filter'] !== 'all'
+            || $state['file_type'] !== 'all'
+            || $state['extension'] !== ''
+            || $state['size'] !== 'all'
+            || $state['modified'] !== 'all'
+            || $state['orphan_days'] > 0;
+    }
+
+    /**
+     * @param array{view:string,category:string,search:string,usage_filter:string,file_type:string,extension:string,size:string,modified:string,orphan_days:int} $state
+     * @return array<string, string>
+     */
+    private function buildLibraryPresetStateParams(array $state): array
+    {
+        return $this->buildLibraryStateParams(
+            '',
+            $state['view'],
+            $state['category'],
+            $state['search'],
+            $state['usage_filter'],
+            false,
+            [
+                'file_type' => $state['file_type'],
+                'extension' => $state['extension'],
+                'size' => $state['size'],
+                'modified' => $state['modified'],
+            ],
+            $state['orphan_days']
+        );
+    }
+
+    /**
+     * @param array<string, mixed> $left
+     * @param array<string, mixed> $right
+     */
+    private function libraryFilterPresetStatesMatch(array $left, array $right): bool
+    {
+        return $this->normalizeLibraryFilterPresetState($left) === $this->normalizeLibraryFilterPresetState($right);
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function loadLibraryFilterPresets(): array
+    {
+        $userId = $this->getCurrentUserId();
+        if ($userId <= 0) {
+            return [];
+        }
+
+        try {
+            $optionValue = $this->db->get_var(
+                "SELECT option_value FROM {$this->prefix}settings WHERE option_name = ?",
+                [$this->getLibraryFilterPresetsOptionName($userId)]
+            );
+        } catch (\Throwable) {
+            return [];
+        }
+
+        if (!is_string($optionValue) || trim($optionValue) === '') {
+            return [];
+        }
+
+        $decoded = json_decode($optionValue, true);
+        $rawPresets = is_array($decoded['presets'] ?? null)
+            ? $decoded['presets']
+            : (is_array($decoded) ? $decoded : []);
+
+        return $this->normalizeLoadedLibraryFilterPresets($rawPresets);
+    }
+
+    /**
+     * @param mixed $rawPresets
+     * @return list<array<string, mixed>>
+     */
+    private function normalizeLoadedLibraryFilterPresets(mixed $rawPresets): array
+    {
+        if (!is_array($rawPresets)) {
+            return [];
+        }
+
+        $presets = [];
+
+        foreach ($rawPresets as $preset) {
+            if (!is_array($preset)) {
+                continue;
+            }
+
+            $label = $this->normalizeFilterPresetLabel((string) ($preset['label'] ?? ''));
+            if ($label === '') {
+                continue;
+            }
+
+            $state = $this->normalizeLibraryFilterPresetState(is_array($preset['state'] ?? null) ? $preset['state'] : $preset);
+            if (!$this->hasMeaningfulLibraryPresetState($state)) {
+                continue;
+            }
+
+            $slug = $this->normalizeFilterPresetSlug((string) ($preset['slug'] ?? $label));
+            if ($slug === '') {
+                $slug = $this->generateUniqueLibraryFilterPresetSlug($label, array_keys($presets));
+            }
+
+            if ($slug === '' || isset($presets[$slug])) {
+                continue;
+            }
+
+            $presets[$slug] = [
+                'slug' => $slug,
+                'label' => $label,
+                'state' => $state,
+                'created_at' => trim((string) ($preset['created_at'] ?? '')),
+                'updated_at' => trim((string) ($preset['updated_at'] ?? '')),
+            ];
+
+            if (count($presets) >= self::FILTER_PRESET_MAX_COUNT) {
+                break;
+            }
+        }
+
+        return array_values($presets);
+    }
+
+    /**
+     * @param list<array<string, mixed>> $presets
+     */
+    private function persistLibraryFilterPresets(int $userId, array $presets): bool
+    {
+        $optionName = $this->getLibraryFilterPresetsOptionName($userId);
+
+        if ($presets === []) {
+            try {
+                $this->db->execute(
+                    "DELETE FROM {$this->prefix}settings WHERE option_name = ?",
+                    [$optionName]
+                );
+            } catch (\Throwable) {
+                return false;
+            }
+
+            return true;
+        }
+
+        $payload = json_encode([
+            'presets' => array_values($presets),
+            'updated_at' => date('c'),
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
+        if (!is_string($payload)) {
+            return false;
+        }
+
+        try {
+            $exists = (int) ($this->db->get_var(
+                "SELECT COUNT(*) FROM {$this->prefix}settings WHERE option_name = ?",
+                [$optionName]
+            ) ?? 0);
+
+            return $exists > 0
+                ? (bool) $this->db->update('settings', ['option_value' => $payload, 'autoload' => 0], ['option_name' => $optionName])
+                : $this->db->insert('settings', ['option_name' => $optionName, 'option_value' => $payload, 'autoload' => 0]) !== false;
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    /**
+     * @param list<string> $existingSlugs
+     */
+    private function generateUniqueLibraryFilterPresetSlug(string $label, array $existingSlugs): string
+    {
+        $baseSlug = $this->normalizeFilterPresetSlug($label);
+        if ($baseSlug === '') {
+            $baseSlug = 'preset';
+        }
+
+        if (!in_array($baseSlug, $existingSlugs, true)) {
+            return $baseSlug;
+        }
+
+        $suffix = 2;
+        while ($suffix <= 99) {
+            $candidate = $this->normalizeFilterPresetSlug($baseSlug . '-' . $suffix);
+            if ($candidate !== '' && !in_array($candidate, $existingSlugs, true)) {
+                return $candidate;
+            }
+            $suffix++;
+        }
+
+        return $baseSlug;
+    }
+
+    private function getLibraryFilterPresetsOptionName(int $userId): string
+    {
+        return 'admin_media_filter_presets_user_' . max(0, $userId);
+    }
+
+    private function getCurrentUserId(): int
+    {
+        $user = Auth::instance()->currentUser();
+
+        return (int) ($user->id ?? $_SESSION['user_id'] ?? 0);
+    }
+
+    /**
+     * @param list<array<string, mixed>> $presets
+    * @param array{view:string,category:string,search:string,usage_filter:string,file_type:string,extension:string,size:string,modified:string,orphan_days:int} $currentState
+     * @return list<array<string, mixed>>
+     */
+    private function buildLibraryFilterPresetViewModels(array $presets, array $currentState): array
+    {
+        $viewModels = [];
+
+        foreach ($presets as $preset) {
+            $state = $this->normalizeLibraryFilterPresetState(is_array($preset['state'] ?? null) ? $preset['state'] : []);
+
+            $viewModels[] = [
+                'slug' => (string) ($preset['slug'] ?? ''),
+                'label' => (string) ($preset['label'] ?? 'Preset'),
+                'state' => $state,
+                'is_active' => $this->libraryFilterPresetStatesMatch($state, $currentState),
+                'url' => $this->buildAdminUrl($this->buildLibraryPresetStateParams($state)),
+                'state_label' => $this->describeLibraryFilterPresetState($state),
+            ];
+        }
+
+        return $viewModels;
+    }
+
+    /**
+     * @param array{view:string,category:string,search:string,usage_filter:string,file_type:string,extension:string,size:string,modified:string,orphan_days:int} $state
+     */
+    private function describeLibraryFilterPresetState(array $state): string
+    {
+        $parts = [];
+
+        if ($state['search'] !== '') {
+            $parts[] = 'Suche';
+        }
+        if ($state['category'] !== '') {
+            $parts[] = 'Kategorie';
+        }
+        if ($state['usage_filter'] !== 'all') {
+            $parts[] = 'Verwendung';
+        }
+        if ($state['file_type'] !== 'all') {
+            $parts[] = 'Dateityp';
+        }
+        if ($state['extension'] !== '') {
+            $parts[] = 'Endung';
+        }
+        if ($state['size'] !== 'all') {
+            $parts[] = 'Größe';
+        }
+        if ($state['modified'] !== 'all') {
+            $parts[] = 'Änderungsdatum';
+        }
+        if ($state['orphan_days'] > 0) {
+            $parts[] = 'Verwaist ≥ ' . $state['orphan_days'] . ' Tage';
+        }
+
+        return $parts !== [] ? implode(', ', $parts) : 'Standardansicht';
     }
 
     private function detectFileType(string $filename): string
@@ -2581,6 +3706,37 @@ class MediaModule
                 'context' => $context,
             ],
             'warning'
+        );
+    }
+
+    /**
+     * @param array<string, mixed> $metadata
+     */
+    private function auditBulkMediaAction(string $action, int $selectedCount, int $successCount, int $skippedCount, int $failedCount, array $metadata = []): void
+    {
+        $payload = [
+            'bulk_action' => $action,
+            'selected_count' => max(0, $selectedCount),
+            'success_count' => max(0, $successCount),
+            'skipped_count' => max(0, $skippedCount),
+            'failed_count' => max(0, $failedCount),
+        ];
+
+        foreach ($metadata as $key => $value) {
+            if ($value === null || $value === '') {
+                continue;
+            }
+            $payload[(string) $key] = is_scalar($value) ? $value : '[complex]';
+        }
+
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_MEDIA,
+            'media.bulk.' . $action,
+            'Medien-Bulk-Aktion ausgeführt',
+            'media',
+            null,
+            $payload,
+            $failedCount > 0 ? 'warning' : 'info'
         );
     }
 }

@@ -12,12 +12,14 @@ if (!defined('ABSPATH')) {
  *     scoreLabelId:string,
  *     scoreBarId:string,
  *     rulesId:string,
+ *     hintBadgeContainerId?:string,
  *     summaryCards: array<int,array{width:string,label:string,valueId?:string,valueText?:string,suffix?:string,badgeId?:string,badgeText?:string,bodyText?:string,badgeClass?:string}>
  *   }
  */
 
 $seoScorePanel = $seoScorePanel ?? [];
 $summaryCards = is_array($seoScorePanel['summaryCards'] ?? null) ? $seoScorePanel['summaryCards'] : [];
+$hintBadgeContainerId = trim((string) ($seoScorePanel['hintBadgeContainerId'] ?? ''));
 ?>
 <details class="card cms-edit-card" open>
     <summary class="card-header" style="cursor:pointer; list-style:none;">
@@ -50,6 +52,17 @@ $summaryCards = is_array($seoScorePanel['summaryCards'] ?? null) ? $seoScorePane
                 </div>
             <?php endforeach; ?>
         </div>
+        <?php if ($hintBadgeContainerId !== ''): ?>
+            <div class="border rounded p-3 mb-3">
+                <div class="d-flex flex-column gap-2">
+                    <div>
+                        <strong>Live-Hinweise</strong>
+                        <div class="text-secondary small">Empfehlungen aus dem Editor – bewusst nicht blockierend.</div>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2" id="<?php echo htmlspecialchars($hintBadgeContainerId); ?>"></div>
+                </div>
+            </div>
+        <?php endif; ?>
         <div id="<?php echo htmlspecialchars((string)($seoScorePanel['rulesId'] ?? '')); ?>"></div>
     </div>
 </details>

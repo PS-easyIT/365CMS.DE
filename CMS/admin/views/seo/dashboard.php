@@ -18,6 +18,68 @@ $status = $dashboard['status'] ?? [];
 $topIssues = $dashboard['top_issues'] ?? [];
 $contentBuckets = $dashboard['content_buckets'] ?? [];
 $recentCritical = $dashboard['recent_critical'] ?? [];
+$trendSummary = $dashboard['trends'] ?? [];
+$trendMetrics = $trendSummary['metrics'] ?? [];
+$trendNote = (string)($trendSummary['note'] ?? '');
+$trendLastCapturedAt = (string)($trendSummary['last_captured_at'] ?? '');
+$trendDays = (int)($trendSummary['history_days'] ?? 14);
+
+$deltaToneClasses = [
+    'success' => 'bg-green-lt text-green',
+    'danger' => 'bg-red-lt text-red',
+    'warning' => 'bg-yellow-lt text-yellow',
+    'info' => 'bg-blue-lt text-blue',
+    'neutral' => 'bg-secondary-lt text-secondary',
+];
+
+$renderSparkline = static function (array $points, string $strokeColor, string $label): string {
+    $values = array_map(static fn(array $point): int => (int)($point['value'] ?? 0), $points);
+    if ($values === []) {
+        return '<div class="text-secondary small">Keine Daten</div>';
+    }
+
+    $width = 100.0;
+    $height = 32.0;
+    $padding = 3.0;
+    $min = min($values);
+    $max = max($values);
+    $range = max(1.0, (float)($max - $min));
+    $count = max(1, count($values) - 1);
+    $path = [];
+
+    foreach ($values as $index => $value) {
+        $x = $padding + (($width - (2 * $padding)) * ($index / $count));
+        $normalized = ($value - $min) / $range;
+        $y = $height - $padding - (($height - (2 * $padding)) * $normalized);
+        $path[] = sprintf('%s%.2F %.2F', $index === 0 ? 'M ' : 'L ', $x, $y);
+    }
+
+    $lastX = $padding + (($width - (2 * $padding)) * ((count($values) - 1) / $count));
+    $lastValue = (float)$values[array_key_last($values)];
+    $lastY = $height - $padding - (($height - (2 * $padding)) * (($lastValue - $min) / $range));
+
+    return sprintf(
+        '<svg viewBox="0 0 100 32" role="img" aria-label="%s"><path d="%s" fill="none" stroke="%s" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path><circle cx="%.2F" cy="%.2F" r="2.5" fill="%s"></circle></svg>',
+        htmlspecialchars($label, ENT_QUOTES),
+        htmlspecialchars(implode(' ', $path), ENT_QUOTES),
+        htmlspecialchars($strokeColor, ENT_QUOTES),
+        $lastX,
+        $lastY,
+        htmlspecialchars($strokeColor, ENT_QUOTES)
+    );
+};
+
+$formatDelta = static function (int $delta): string {
+    if ($delta > 0) {
+        return '+' . number_format($delta);
+    }
+
+    if ($delta < 0) {
+        return number_format($delta);
+    }
+
+    return '±0';
+};
 ?>
 
 <div class="page-header d-print-none">
@@ -77,6 +139,51 @@ $recentCritical = $dashboard['recent_critical'] ?? [];
                 </div>
             </div>
         </div>
+
+        <?php if (!empty($trendMetrics)): ?>
+            <div class="row row-deck row-cards mb-4">
+                <?php foreach ($trendMetrics as $metric): ?>
+                    <?php
+                    $metricLabel = (string)($metric['label'] ?? 'Trend');
+                    $metricValue = (int)($metric['value'] ?? 0);
+                    $metricSuffix = (string)($metric['suffix'] ?? '');
+                    $metricSecondary = (string)($metric['secondary'] ?? '');
+                    $metricDelta = (int)($metric['delta'] ?? 0);
+                    $metricDeltaTone = (string)($metric['delta_tone'] ?? 'neutral');
+                    $metricStroke = (string)($metric['sparkline_color'] ?? '#206bc4');
+                    $metricPoints = is_array($metric['points'] ?? null) ? $metric['points'] : [];
+                    $deltaClass = $deltaToneClasses[$metricDeltaTone] ?? $deltaToneClasses['neutral'];
+                    ?>
+                    <div class="col-sm-6 col-lg-4">
+                        <div class="card h-100">
+                            <div class="card-body d-flex flex-column gap-3">
+                                <div class="d-flex justify-content-between align-items-start gap-3">
+                                    <div>
+                                        <div class="subheader"><?= htmlspecialchars($metricLabel) ?></div>
+                                        <div class="h1 mb-1"><?= number_format($metricValue) ?><?= htmlspecialchars($metricSuffix) ?></div>
+                                        <div class="text-secondary small"><?= htmlspecialchars($metricSecondary) ?></div>
+                                    </div>
+                                    <div class="chart-sparkline chart-sparkline-wide" aria-hidden="true">
+                                        <?= $renderSparkline($metricPoints, $metricStroke, $metricLabel . ' Verlauf der letzten ' . $trendDays . ' Tage') ?>
+                                    </div>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center gap-2">
+                                    <span class="badge <?= htmlspecialchars($deltaClass) ?>"><?= htmlspecialchars($formatDelta($metricDelta)) ?> vs. Verlaufspunkt</span>
+                                    <span class="text-secondary small"><?= (int)$trendDays ?> Tage</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+
+            <div class="text-secondary small mb-4">
+                <?= htmlspecialchars($trendNote) ?>
+                <?php if ($trendLastCapturedAt !== ''): ?>
+                    · Letzter Snapshot: <?= htmlspecialchars($trendLastCapturedAt) ?>
+                <?php endif; ?>
+            </div>
+        <?php endif; ?>
 
         <div class="row g-3 mb-4">
             <div class="col-md-6">

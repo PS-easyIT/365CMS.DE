@@ -18,6 +18,8 @@ use CMS\Security;
 const CMS_ADMIN_MEDIA_ALLOWED_ACTIONS = [
     'upload',
     'replace_item',
+    'save_filter_preset',
+    'delete_filter_preset',
     'create_folder',
     'delete_item',
     'rename_item',
@@ -224,6 +226,30 @@ function cms_admin_media_normalize_paths(MediaModule $module, mixed $paths): arr
 }
 
 /**
+ * @param mixed $altTexts
+ * @return array<string, string>
+ */
+function cms_admin_media_normalize_alt_text_map(MediaModule $module, mixed $altTexts): array
+{
+    if (!is_array($altTexts)) {
+        return [];
+    }
+
+    $normalized = [];
+
+    foreach ($altTexts as $path => $value) {
+        $normalizedPath = $module->normalizePath((string) $path);
+        if ($normalizedPath === '') {
+            continue;
+        }
+
+        $normalized[$normalizedPath] = cms_admin_media_normalize_text($value, 255);
+    }
+
+    return $normalized;
+}
+
+/**
  * @return array<string, mixed>
  */
 function cms_admin_media_normalize_settings_payload(array $post): array
@@ -278,6 +304,20 @@ function cms_admin_media_normalize_action_payload(MediaModule $module, string $a
         'replace_item' => [
             'item_path' => $module->normalizePath((string) ($post['item_path'] ?? '')),
         ],
+        'save_filter_preset' => [
+            'preset_label' => $module->normalizeFilterPresetLabel((string) ($post['preset_label'] ?? '')),
+            'preset_view' => $module->normalizeView((string) ($post['preset_view'] ?? 'list')),
+            'preset_category' => $module->normalizeCategory((string) ($post['preset_category'] ?? '')),
+            'preset_search' => $module->normalizeSearch((string) ($post['preset_search'] ?? '')),
+            'preset_usage_filter' => $module->normalizeUsageFilter((string) ($post['preset_usage_filter'] ?? 'all')),
+            'preset_file_type' => $module->normalizeFileTypeFilter((string) ($post['preset_file_type'] ?? 'all')),
+            'preset_extension' => $module->normalizeExtensionFilter((string) ($post['preset_extension'] ?? '')),
+            'preset_size_filter' => $module->normalizeSizeFilter((string) ($post['preset_size_filter'] ?? 'all')),
+            'preset_modified_filter' => $module->normalizeModifiedFilter((string) ($post['preset_modified_filter'] ?? 'all')),
+        ],
+        'delete_filter_preset' => [
+            'preset_slug' => $module->normalizeFilterPresetSlug((string) ($post['preset_slug'] ?? '')),
+        ],
         'create_folder' => [
             'parent_path' => $module->normalizePath((string) ($post['parent_path'] ?? '')),
             'folder_name' => cms_admin_media_normalize_text($post['folder_name'] ?? '', 120),
@@ -297,6 +337,9 @@ function cms_admin_media_normalize_action_payload(MediaModule $module, string $a
             'bulk_action' => cms_admin_media_normalize_text($post['bulk_action'] ?? '', 40),
             'item_paths' => cms_admin_media_normalize_paths($module, $post['item_paths'] ?? []),
             'target_parent_path' => $module->normalizePath((string) ($post['target_parent_path'] ?? '')),
+            'category_slug' => $module->normalizeCategory((string) ($post['category_slug'] ?? '')),
+            'tag_list' => $module->normalizeTags($post['tag_list'] ?? ''),
+            'alt_texts' => cms_admin_media_normalize_alt_text_map($module, $post['alt_texts'] ?? []),
         ],
         'assign_category' => [
             'file_path' => $module->normalizePath((string) ($post['file_path'] ?? '')),
@@ -322,6 +365,8 @@ function cms_admin_media_validate_action_payload(string $action, array $payload)
 {
     return match ($action) {
         'replace_item' => ($payload['item_path'] ?? '') === '' ? 'Ungültiger Bildpfad.' : null,
+        'save_filter_preset' => ($payload['preset_label'] ?? '') === '' ? 'Bitte einen Namen für das Filter-Preset angeben.' : null,
+        'delete_filter_preset' => ($payload['preset_slug'] ?? '') === '' ? 'Ungültiges Filter-Preset.' : null,
         'create_folder' => ($payload['folder_name'] ?? '') === '' ? 'Bitte einen gültigen Ordnernamen angeben.' : null,
         'delete_item' => ($payload['item_path'] ?? '') === '' ? 'Ungültiger Elementpfad.' : null,
         'rename_item' => ($payload['old_path'] ?? '') === ''
@@ -330,9 +375,22 @@ function cms_admin_media_validate_action_payload(string $action, array $payload)
         'move_item' => ($payload['old_path'] ?? '') === '' ? 'Ungültiger Elementpfad.' : null,
         'bulk_items' => ($payload['item_paths'] ?? []) === []
             ? 'Bitte mindestens ein Element auswählen.'
-            : (!in_array(strtolower((string) ($payload['bulk_action'] ?? '')), ['delete', 'move'], true)
-                ? 'Bitte eine gültige Bulk-Aktion wählen.'
-                : null),
+            : (function () use ($payload): ?string {
+                $bulkAction = strtolower((string) ($payload['bulk_action'] ?? ''));
+                if (!in_array($bulkAction, ['delete', 'move', 'assign_category', 'tag_add', 'tag_replace', 'tag_remove', 'tag_clear', 'alt_text_update'], true)) {
+                    return 'Bitte eine gültige Bulk-Aktion wählen.';
+                }
+
+                if (in_array($bulkAction, ['tag_add', 'tag_replace', 'tag_remove'], true) && ($payload['tag_list'] ?? []) === []) {
+                    return 'Bitte mindestens einen gültigen Tag angeben.';
+                }
+
+                if ($bulkAction === 'alt_text_update' && ($payload['alt_texts'] ?? []) === []) {
+                    return 'Bitte mindestens einen Alt-Text-Wert angeben.';
+                }
+
+                return null;
+            })(),
         'assign_category' => ($payload['file_path'] ?? '') === '' ? 'Ungültiger Dateipfad.' : null,
         'add_category' => ($payload['name'] ?? '') === '' ? 'Bitte einen gültigen Kategorienamen angeben.' : null,
         'delete_category' => ($payload['slug'] ?? '') === '' ? 'Bitte eine gültige Kategorie angeben.' : null,
@@ -372,6 +430,30 @@ function cms_admin_media_redirect_params(MediaModule $module, string $tab, strin
     }
     if ($normalizedSearch !== '') {
         $redirectParams['q'] = $normalizedSearch;
+    }
+    $normalizedUsageFilter = $module->normalizeUsageFilter((string)($_GET['usage_filter'] ?? 'all'));
+    if ($normalizedUsageFilter !== 'all') {
+        $redirectParams['usage_filter'] = $normalizedUsageFilter;
+    }
+    $normalizedFileType = $module->normalizeFileTypeFilter((string)($_GET['file_type'] ?? 'all'));
+    if ($normalizedFileType !== 'all') {
+        $redirectParams['file_type'] = $normalizedFileType;
+    }
+    $normalizedExtension = $module->normalizeExtensionFilter((string)($_GET['extension'] ?? ''));
+    if ($normalizedExtension !== '') {
+        $redirectParams['extension'] = $normalizedExtension;
+    }
+    $normalizedSizeFilter = $module->normalizeSizeFilter((string)($_GET['size_filter'] ?? 'all'));
+    if ($normalizedSizeFilter !== 'all') {
+        $redirectParams['size_filter'] = $normalizedSizeFilter;
+    }
+    $normalizedModifiedFilter = $module->normalizeModifiedFilter((string)($_GET['modified_filter'] ?? 'all'));
+    if ($normalizedModifiedFilter !== 'all') {
+        $redirectParams['modified_filter'] = $normalizedModifiedFilter;
+    }
+    $normalizedOrphanDays = $module->normalizeOrphanDays($_GET['orphan_days'] ?? 0);
+    if ($normalizedOrphanDays > 0) {
+        $redirectParams['orphan_days'] = (string) $normalizedOrphanDays;
     }
     $normalizedUsageScope = strtolower(trim((string) ($_GET['usage_scope'] ?? 'all')));
     if (in_array($normalizedUsageScope, ['posts', 'pages'], true)) {
@@ -612,6 +694,23 @@ function cms_admin_media_handle_action(MediaModule $module, string $action, stri
             'flash' => $uploadFlash,
             'redirect_path' => $redirectPath,
         ],
+        'save_filter_preset' => [
+            'result' => $module->saveFilterPreset((string)($post['preset_label'] ?? ''), [
+                'view' => (string)($post['preset_view'] ?? 'list'),
+                'category' => (string)($post['preset_category'] ?? ''),
+                'search' => (string)($post['preset_search'] ?? ''),
+                'usage_filter' => (string)($post['preset_usage_filter'] ?? 'all'),
+                'file_type' => (string)($post['preset_file_type'] ?? 'all'),
+                'extension' => (string)($post['preset_extension'] ?? ''),
+                'size_filter' => (string)($post['preset_size_filter'] ?? 'all'),
+                'modified_filter' => (string)($post['preset_modified_filter'] ?? 'all'),
+            ]),
+            'redirect_path' => $redirectPath,
+        ],
+        'delete_filter_preset' => [
+            'result' => $module->deleteFilterPreset((string)($post['preset_slug'] ?? '')),
+            'redirect_path' => $redirectPath,
+        ],
         'create_folder' => [
             'result' => $module->createFolder(trim((string)($post['folder_name'] ?? '')), (string)($post['parent_path'] ?? '')),
             'redirect_path' => $redirectPath,
@@ -632,7 +731,10 @@ function cms_admin_media_handle_action(MediaModule $module, string $action, stri
             'result' => $module->bulkItems(
                 is_array($post['item_paths'] ?? null) ? $post['item_paths'] : [],
                 (string)($post['bulk_action'] ?? ''),
-                (string)($post['target_parent_path'] ?? '')
+                (string)($post['target_parent_path'] ?? ''),
+                (string)($post['category_slug'] ?? ''),
+                $post['tag_list'] ?? '',
+                $post['alt_texts'] ?? []
             ),
             'redirect_path' => $redirectPath,
         ],

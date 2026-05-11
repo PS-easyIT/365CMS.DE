@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Verwaltung hochgeladener Dateien und Ordner, Kategorien, Medieneinstellungen und kontrollierter Auslieferung über interne Services.
 
-Letzte Aktualisierung: 2026-05-10 · Version 2.9.728
+Letzte Aktualisierung: 2026-05-10 · Version 2.9.745
 
 ---
 
@@ -33,11 +33,15 @@ Die Medienverwaltung bündelt Bibliothek, Beitrags-/Site-Medien, Kategorien und 
 | Suchfeld | Filterung nach Dateien und Medienbegriffen |
 | Kategorien-Filter | Eingrenzung nach Mediengruppen |
 | Erweiterte Filter | Serverbasierte Eingrenzung nach Dateityp, Endung, Größenklasse und Änderungszeitraum |
+| Filter-Presets & Permalink | persönliche Presets pro Admin und tokenfreier Query-String-Link für den aktuellen Bibliothekszustand inklusive Orphan-Altersfilter |
+| Verwaiste Medien | globale read-only Kandidatenliste für nirgends verwendete ältere Medien mit Ordner-/Datei-Prüflinks |
 | Direkte Verwendungsanzeige | sichtbare Beitrags-/Seitenreferenzen pro Medium mit Feldkontext und Bearbeitungslink |
 | Duplikat-Erkennung | read-only Hinweise auf sichtbare Dateien mit identischem SHA-256-Inhalts-Hash |
 | Native Uploads | Mehrfachauswahl über interne API-/Form-Flows |
 | Rename-/Move-Modale | zentrale Dialoge statt breiter Inline-Formulare |
 | Bulk-Löschen / Bulk-Verschieben | Mehrfachauswahl im Admin mit vorbereiteten Zielordnern |
+| Bulk-Kategorisierung / Bulk-Tagging | Sammelpflege von Kategorien und Medien-Tags mit Audit-Zählwerten |
+| Bulk-Alt-Texte | Sammelpflege von Alt-Texten für sichtbare, ausgewählte Dateien über dieselbe Toolbar |
 | Vorschaulogik | robuste Dateivorschau und Proxy-/Preview-URLs |
 | Verwaltete Bildverarbeitung | Maximalmaße, Thumbnail-Sätze und optionale WebP-Derivate |
 | WebP-/Thumbnail-Jobs | fortsetzbare Bestandsverarbeitung mit Fortschritt und kleinen Server-Batches |
@@ -103,6 +107,10 @@ Der WebP-/Thumbnail-Job in `/admin/media?tab=settings` nutzt denselben Service-S
 
 Die direkte Verwendungsanzeige in der Bibliothek verwendet ebenfalls den vorhandenen Service-Stack: `MediaUsageService` findet Referenzen in `featured_image`, `content` und `content_en` von Beiträgen und Seiten; `MediaModule` verdichtet diese Informationen zu Zählern und Feld-Badges; `views/media/library.php` rendert sie read-only mit escaped Titeln und fail-closed normalisierten internen Bearbeitungslinks.
 
+Seit `2.9.742` nutzt dieselbe Bibliothek zusätzlich einen rekursiven, begrenzten Inventurpfad aus `MediaService`, um mögliche verwaiste Medien global zu prüfen. Der Pfad bleibt bewusst lesend: Er scannt Uploads nur bis zu einer festen Obergrenze, übernimmt vorhandene Metadaten wie `uploaded_at`, blendet geschützte System- und Member-Pfade aus und markiert Treffer ausschließlich als manuelle Prüfkandidaten.
+
+Seit `2.9.743` nutzt die Bibliothek ergänzend die bestehende Tabelle `cms_media` als fail-soften Sidecar für Alt-Texte. `MediaModule` lädt Alt-Texte für sichtbare Dateien optional aus der Tabelle, aktualisiert sie über die vorhandene Bulk-POST-Strecke und ergänzt bei Bedarf minimale Datensätze, damit Performance-/SEO-Auswertungen denselben Alt-Text-Bestand sehen. Die Tabelle bleibt bewusst optional: Fehlt sie oder ist sie temporär nicht lesbar, blendet die Bibliothek die Alt-Text-Bulk-Aktion kontrolliert aus bzw. liefert eine generische Fehlermeldung statt eines HTTP-500.
+
 ---
 
 ## Laufzeitvertrag der Upload-Einstellungen
@@ -152,11 +160,19 @@ Sowohl das Admin-Upload-Modal als auch der Member-Uploader aktualisieren nach er
 
 Zusätzlich benennt die Bulk-Schaltfläche in der Bibliothek die ausgewählte Aktion jetzt explizit und bleibt gesperrt, bis Auswahl **und** gültige Aktion zusammenpassen.
 
+Seit `2.9.741` deckt die Bulk-Toolbar neben Löschen und Verschieben auch Metadatenpflege ab. `assign_category` setzt oder entfernt Kategorien für ausgewählte Dateien, während `tag_add`, `tag_replace`, `tag_remove` und `tag_clear` die neue begrenzte Tag-Liste im vorhandenen Medien-Meta-Store pflegen. Die Serverlogik normalisiert Tags erneut, überspringt Ordner bei Datei-Metadatenaktionen kontrolliert und protokolliert jede Sammelaktion mit Auswahl-, Erfolgs-, Skip- und Fehlerzahlen im Audit-Log. Dadurch bleibt der Komfortgewinn im bestehenden POST/CSRF/PRG-Vertrag, ohne neue Token-URLs oder unkontrollierte Metadaten-Payloads einzuführen.
+
+Seit `2.9.743` gehört auch `alt_text_update` zu diesem Vertrag. Die Bibliothek zeigt pro sichtbarer Datei ein Alt-Text-Feld, speichert Änderungen aber weiterhin nur für markierte Dateien. Ordner werden dabei wie bei anderen Datei-Metadatenaktionen gezählt übersprungen. Zusätzlich halten Rename-, Move- und Delete-Aktionen vorhandene `cms_media.filepath`-Einträge fail-soft synchron, damit Alt-Text-Daten nach Aufräumarbeiten nicht verwaisen.
+
 Seit `2.9.721` markiert die Bibliothek identische sichtbare Dateien zusätzlich mit einem Duplikat-Badge, Kurz-Hash und den ersten weiteren Pfaden derselben Hash-Gruppe. Diese Anzeige ersetzt keine redaktionelle Entscheidung: Admins löschen oder verschieben Duplikate weiterhin bewusst über die vorhandenen Einzel- oder Bulk-Aktionen.
 
 Seit `2.9.728` bleibt diese Prüfung bewusst opportunistisch: sehr große Dateien werden im View-Pfad nicht mehr gehasht, weil die Medienliste kein lang laufender Integritätsjob ist. Falls ein Projekt forensische Duplikatprüfungen für große Archive oder Videos braucht, gehört das in einen separaten Batch-/Diagnosepfad.
 
 Seit `2.9.725` ergänzt die Bibliothek die Suche um erweiterte Filter für Dateityp, Dateiendung, Größenklasse und Änderungszeitraum. Der Pfad bleibt bewusst nicht-destruktiv: Alle neuen Filter sind GET-Parameter, werden im Modul per Allowlist normalisiert, bleiben in Ordnernavigation sowie Listen-/Grid-Umschaltung erhalten und fallen bei ungültigen Werten auf `all` bzw. leere Endung zurück. Damit entstehen keine neuen CSRF-/POST-Pfade und keine unnötigen 500-Risiken durch manipulierte Filterwerte.
+
+Seit `2.9.740` können Admins diesen normalisierten Bibliothekszustand zusätzlich als persönliches Filter-Preset speichern. Die Persistenz bleibt klein und fail-soft: Pro Admin werden maximal acht Presets im bestehenden `settings`-Store unter einer benutzerbezogenen Option mit `autoload = 0` gehalten, beschädigte oder unvollständige JSON-Payloads werden beim Laden ignoriert und unbekannte Filterwerte erneut über dieselben Allowlists normalisiert. Zusätzlich rendert die Bibliothek einen sichtbaren, bewusst tokenfreien Filter-Link für den aktuellen Query-String-Zustand. POST-/PRG-Flows behalten die erweiterten GET-Filter jetzt konsistent bei, sodass Kategoriezuweisung, Rename, Move oder Bulk-Aktionen nicht mehr ungewollt Dateityp-, Endungs-, Größen-, Datums- oder Orphan-Filter verlieren.
+
+Seit `2.9.742` kommt als weiterer read-only Komfortpfad die Orphan-Prüfung hinzu: Admins können sich Dateien anzeigen lassen, die laut `MediaUsageService` nirgends verwendet werden und deren Upload- oder Änderungsdatum seit mindestens 30, 90, 180 oder 365 Tagen zurückliegt. Die Analyse bleibt ein reiner GET-Zustand ohne neue Schreibaktion; die Oberfläche empfiehlt nur die manuelle Prüfung im Ordner oder per Direktöffnung der Datei.
 
 Seit `2.9.726` lassen sich vorhandene Bildbestände zusätzlich über einen fortsetzbaren WebP-/Thumbnail-Job nachverarbeiten. Start, nächster Batch und Abbruch sind normale Admin-POST-Aktionen mit bestehendem CSRF-/PRG-Vertrag; die Fortschrittsanzeige liest den gespeicherten Jobstatus. Einzelschäden wie nicht lesbare Dateien werden gezählt und geloggt, während der Job weiter fortgesetzt werden kann.
 

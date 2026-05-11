@@ -1,5 +1,5 @@
 # 365CMS – SEO-Center
-> **Stand:** 2026-05-09 | **Version:** 2.9.623 | **Status:** Aktuell
+> **Stand:** 2026-05-11 | **Version:** 2.9.749 | **Status:** Aktuell
 
 <!-- UPDATED: 2026-05-09 -->
 
@@ -14,13 +14,13 @@ Der Einstieg erfolgt über die SEO-Gruppe der Sidebar, in der Praxis typischerwe
 
 | Funktion | Beschreibung |
 |---|---|
-| SEO-Dashboard | Übersicht mit Score, Trends und Handlungsempfehlungen |
+| SEO-Dashboard | Übersicht mit Score, Sparkline-Trends für SEO/404/Redirects und Handlungsempfehlungen |
 | SEO-Audit | Automatisierte Prüfung aller Seiten mit Score-Karten |
 | Meta-Daten | Title, Description und Canonical-Tags verwalten |
 | Social Media | Open-Graph- und Twitter-Card-Einstellungen mit echten globalen Frontend-Fallbacks |
 | Schema / JSON-LD | Strukturierte Daten für Suchmaschinen |
 | Sitemap | XML-Sitemap-Konfiguration und -Generierung |
-| Technical SEO | Robots.txt, Indexierung und technische Optimierungen |
+| Technical SEO | Robots.txt, Indexierung, technische Optimierungen und lokaler Broken-Link-Report |
 | Redirects | 301/302-Weiterleitungen erstellen und verwalten |
 | Analytics | Traffic-Daten, Quellen und Seitenstatistiken |
 
@@ -33,3 +33,10 @@ Der Einstieg erfolgt über die SEO-Gruppe der Sidebar, in der Praxis typischerwe
 - [SEO.md](SEO.md)
 - [ANALYTICS.md](ANALYTICS.md)
 - [REDIRECTS.md](REDIRECTS.md)
+
+## Hinweise zum Trend-Dashboard
+
+- Das Dashboard zeigt read-only Trendkarten für **Ø SEO-Score**, **404-Pfade** und **Redirect-Regeln**.
+- Die Historie wird stündlich über den bestehenden Core-Cron-Hook `cms_cron_hourly` verdichtet.
+- Im Dashboard selbst gibt es **keine** neue Schreibaktion und **keine** Sicherheitstoken in URLs.
+- Solange nur wenige Snapshots vorliegen, ergänzt die Ansicht fail-soft einen Live-Fallback aus vorhandenen Zeitstempeln von Inhalten, Redirects und 404-Logs.

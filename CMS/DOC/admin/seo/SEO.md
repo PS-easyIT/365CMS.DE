@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Dokumentiert die vollständige SEO-Suite mit Dashboard, Analytics, Audit, Meta-Daten, Social Media, Schema, Sitemap, technischem SEO und Redirect-Manager.
 
-Letzte Aktualisierung: 2026-05-09 · Version 2.9.623
+Letzte Aktualisierung: 2026-05-11 · Version 2.9.748
 
 ---
 
@@ -69,6 +69,7 @@ Die Meta-Seite verwaltet globale und seitenspezifische SEO-Vorlagen:
 - Meta-Description-Vorlagen
 - allgemeine Meta-Keywords
 - Trennzeichen und Formatierung
+- globaler Live-Preview-Modus für Startseite, Blog-Archiv, Kategorie- und Tag-Archive auf Basis der aktuellen Meta-Defaults, des Titel-Templates und des Social-Fallback-Bilds
 
 ---
 
@@ -115,6 +116,9 @@ Erweiterte technische Steuerung:
 - Index/NoIndex-Defaults
 - HTTP-Header-Steuerung für SEO
 - Crawling-Budget-Optimierung
+- read-only Broken-Link-Report aus Inhalten, XML-Sitemaps, Redirect-Zielen und 404-Monitor mit manuellem Rerun, Ignore-Liste und geplantem Cron-Lauf
+
+Die Broken-Link-Prüfung bleibt bewusst lokal und fail-soft: Es gibt keinen externen Crawl, keine neuen Token in URLs und keinen zusätzlichen GET-Mutationspfad. Der Report wird als gespeicherte Übersicht aufgebaut, kann per POST/CSRF erneut berechnet werden und blendet ignorierte Zielpfade nur in der Anzeige aus, ohne historische Rohdaten oder Redirect-/404-Bestände mutierend umzuschreiben.
 
 ---
 
@@ -135,9 +139,19 @@ In Seiten- und Beitragseditoren stehen drei SEO-Karten zur Verfügung:
 
 - **Score-Karte**: SEO-Bewertung und Verbesserungsvorschläge
 - **Readability-Karte**: Lesbarkeitsanalyse
-- **Preview-Karte**: SERP- und Social-Media-Vorschau
+- **Preview-Karte**: parallele Vorschau für Google Desktop, Google Mobile und Social-OG
 
-Diese Karten greifen auf die globalen SEO-Einstellungen zurück. Für die echte Frontend-Ausgabe gilt zusätzlich: globale Social-Defaults aus dem SEO-Center sind jetzt mit dem Head-Renderer verbunden und wirken als Fallback, solange kein inhaltsspezifischer Social-Meta-Wert vorhanden ist.
+Zusätzlich ergänzt der Editor jetzt eine nicht blockierende **Live-Hinweis-Zeile** mit Badge-Empfehlungen für:
+
+- Title
+- Description
+- H1-Eindeutigkeit
+- Keyphrase
+- Bild-Alt-Texte
+
+Diese Karten greifen auf die globalen SEO-Einstellungen zurück. Für die echte Frontend-Ausgabe gilt zusätzlich: globale Social-Defaults aus dem SEO-Center sind jetzt mit dem Head-Renderer verbunden und wirken als Fallback, solange kein inhaltsspezifischer Social-Meta-Wert vorhanden ist. Auf `/admin/seo-meta` steht ergänzend ein read-only Vorschau-Modus zur Verfügung, der dieselben Meta-Defaults für Startseite, Archive und Taxonomien live gegen den aktuellen Template-Stand spiegelt.
+
+Die Hinweise sind ausdrücklich empfehlend: Sie ändern weder den POST-/CSRF-Vertrag des Editors noch blockieren sie Speichern oder Veröffentlichen. Für die H1-Prüfung wird der sichtbare Titel als primäre Überschrift mitberücksichtigt; bei Seiten mit aktivem `hide_title` muss die eindeutige H1 daher aus dem Inhalt selbst kommen.
 
 ---
 

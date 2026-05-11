@@ -1,5 +1,5 @@
 # 365CMS – Abo-Verwaltung
-> **Stand:** 2026-05-10 | **Version:** 2.9.737 | **Status:** Aktuell
+> **Stand:** 2026-05-10 | **Version:** 2.9.738 | **Status:** Aktuell
 
 <!-- UPDATED: 2026-05-10 -->
 
@@ -20,12 +20,14 @@ Seit `2.9.737` bietet `/admin/orders` außerdem zwei sichere read-only CSV-Expor
 
 Die Downloads bleiben bewusst GET-only ohne CSRF- oder Sicherheitstoken in der URL, härten CSV-Zellen gegen Spreadsheet-Formula-Injection und protokollieren Exporte datensparsam im Audit-Log.
 
+Seit `2.9.738` ergänzen `/admin/orders` und `/admin/packages` außerdem begrenzte read-only Historien auf Basis des vorhandenen `audit_log`. Damit werden Bestellstatuswechsel, Löschungen, Paketzuweisungen, Exporte sowie Paket-Erstellung, -Aktualisierung, -Statuswechsel und -Löschung direkt im jeweiligen Admin-Kontext sichtbar – ohne neue Schreibroute, ohne rohe Metadaten, ohne Token-Ausgabe und mit fail-softem Verhalten bei fehlendem Audit-Log.
+
 ## Verfügbare Funktionen
 
 | Funktion | Route | Beschreibung |
 |---|---|---|
-| Pakete | `/admin/packages` | Abo-Pakete mit Limits, Preisen und Features definieren |
-| Bestellungen | `/admin/orders` | Bestellungen einsehen, genehmigen, verwalten und als CSV exportieren |
+| Pakete | `/admin/packages` | Abo-Pakete mit Limits, Preisen, Features und Pakethistorie definieren |
+| Bestellungen | `/admin/orders` | Bestellungen einsehen, genehmigen, verwalten, als CSV exportieren und mit read-only Historie prüfen |
 | Einstellungen | `/admin/subscription-settings` | Systemweite Abo-Konfiguration, Default-Plan und Limits |
 
 ## Benötigte Rechte

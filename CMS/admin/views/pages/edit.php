@@ -420,6 +420,7 @@ $isEnglishEditorView = $editorLocale === 'en';
                         'scoreLabelId' => 'pageSeoScoreLabel',
                         'scoreBarId' => 'pageSeoScoreBar',
                         'rulesId' => 'pageSeoRules',
+                        'hintBadgeContainerId' => 'pageSeoHintBadges',
                         'summaryCards' => [
                             ['width' => 'col-md-3', 'label' => 'Titel', 'valueId' => 'pageTitleCount', 'suffix' => 'Zeichen'],
                             ['width' => 'col-md-3', 'label' => 'Slug', 'valueId' => 'pageSlugCount', 'suffix' => 'Zeichen'],
@@ -641,6 +642,9 @@ $isEnglishEditorView = $editorLocale === 'en';
             'missingAltId' => 'pageMissingAlt',
             'readabilityBadgeId' => 'pageReadabilityBadge',
             'readabilitySummaryId' => 'pageReadabilitySummary',
+            'hintBadgeContainerId' => 'pageSeoHintBadges',
+            'hideTitleId' => 'hideTitle',
+            'titleCreatesH1' => true,
             'previewBaseUrl' => '/',
             'previewUrlTemplate' => $activePagePreviewUrlTemplate,
             'previewPlaceholderSlug' => $activePagePreviewSlugFallback,
