@@ -11,6 +11,9 @@ if (!defined('ABSPATH')) {
 
 final class SeoAuditService
 {
+    private const DEFAULT_ROW_LIMIT_PER_TYPE = 1000;
+    private const MAX_ROW_LIMIT_PER_TYPE = 5000;
+
     public function __construct(
         private readonly DatabaseInterface $db,
         private readonly string $prefix
@@ -20,8 +23,9 @@ final class SeoAuditService
     /**
      * @return array<int, array<string, mixed>>
      */
-    public function getAuditRows(): array
+    public function getAuditRows(int $limitPerType = self::DEFAULT_ROW_LIMIT_PER_TYPE): array
     {
+        $limit = $this->normalizeLimit($limitPerType);
         $pages = $this->db->get_results(
             "SELECT p.id, p.title, p.slug, p.content, p.featured_image, p.meta_title, p.meta_description, p.status,
                     p.updated_at, p.created_at,
@@ -32,7 +36,8 @@ final class SeoAuditService
              FROM {$this->prefix}pages p
              LEFT JOIN {$this->prefix}seo_meta sm ON sm.content_type = 'page' AND sm.content_id = p.id
              WHERE p.status IN ('published', 'draft', 'private')
-             ORDER BY p.updated_at DESC"
+             ORDER BY p.updated_at DESC
+             LIMIT {$limit}"
         ) ?: [];
 
         $posts = $this->db->get_results(
@@ -45,10 +50,16 @@ final class SeoAuditService
              FROM {$this->prefix}posts p
              LEFT JOIN {$this->prefix}seo_meta sm ON sm.content_type = 'post' AND sm.content_id = p.id
              WHERE p.status IN ('published', 'draft')
-             ORDER BY p.updated_at DESC"
+             ORDER BY p.updated_at DESC
+             LIMIT {$limit}"
         ) ?: [];
 
         return array_merge($this->mapRows($pages, 'page'), $this->mapRows($posts, 'post'));
+    }
+
+    private function normalizeLimit(int $limit): int
+    {
+        return max(1, min(self::MAX_ROW_LIMIT_PER_TYPE, $limit));
     }
 
     /**

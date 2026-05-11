@@ -29,6 +29,7 @@ final class SeoTrendService
     private readonly string $prefix;
     private readonly SEOService $seoService;
     private readonly SeoAnalysisService $analysisService;
+    private ?bool $trendTableExists = null;
 
     public static function getInstance(): self
     {
@@ -66,6 +67,7 @@ final class SeoTrendService
                     INDEX idx_captured_at (captured_at)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
             );
+            $this->trendTableExists = true;
         } catch (\Throwable) {
             // Trendpersistenz ist Komfortfunktion und darf die Runtime nicht blockieren.
         }
@@ -290,6 +292,10 @@ final class SeoTrendService
      */
     private function loadRecentSnapshots(int $days): array
     {
+        if (!$this->trendTableExists()) {
+            return [];
+        }
+
         $lookbackDays = max(1, $days - 1);
 
         try {
@@ -303,6 +309,29 @@ final class SeoTrendService
         } catch (\Throwable) {
             return [];
         }
+    }
+
+    private function trendTableExists(): bool
+    {
+        if ($this->trendTableExists !== null) {
+            return $this->trendTableExists;
+        }
+
+        try {
+            $table = $this->prefix . 'seo_dashboard_trends';
+            $quotedTable = $this->db->getPdo()->quote($table);
+            if (!is_string($quotedTable)) {
+                $this->trendTableExists = false;
+                return false;
+            }
+
+            $result = $this->db->getPdo()->query('SHOW TABLES LIKE ' . $quotedTable);
+            $this->trendTableExists = $result !== false && $result->fetchColumn() !== false;
+        } catch (\Throwable) {
+            $this->trendTableExists = false;
+        }
+
+        return $this->trendTableExists;
     }
 
     /**

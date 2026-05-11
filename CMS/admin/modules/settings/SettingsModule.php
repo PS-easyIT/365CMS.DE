@@ -1549,7 +1549,15 @@ PHP;
         }
 
         try {
-            $exists = $this->db->get_var("SHOW TABLES LIKE ?", [$this->prefix . $table]) !== null;
+            $tableName = $this->prefix . $table;
+            $quotedTable = $this->db->getPdo()->quote($tableName);
+            if (!is_string($quotedTable)) {
+                $this->tableExistsCache[$table] = false;
+                return false;
+            }
+
+            $result = $this->db->getPdo()->query('SHOW TABLES LIKE ' . $quotedTable);
+            $exists = $result !== false && $result->fetchColumn() !== false;
             $this->tableExistsCache[$table] = $exists;
 
             return $exists;

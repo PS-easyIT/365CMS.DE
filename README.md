@@ -1,6 +1,6 @@
 # 365CMS.DE
 
-**Version:** [2.9.752](Changelog.md) · **Status:** Stable · **PHP:** 8.4+ · **MySQL:** 5.7+ · **MariaDB:** 10.3+ 
+**Version:** [2.9.754](Changelog.md) · **Status:** Stable · **PHP:** 8.4+ · **MySQL:** 5.7+ · **MariaDB:** 10.3+ 
 
 <div align="center">
 

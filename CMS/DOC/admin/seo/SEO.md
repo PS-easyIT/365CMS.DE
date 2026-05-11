@@ -59,6 +59,8 @@ Siehe [ANALYTICS.md](ANALYTICS.md) für die detaillierte Dokumentation der Track
 
 Der SEO-Audit prüft Seiten und Beiträge auf typische Optimierungspotenziale. Die aktuelle Implementierung arbeitet robuster mit unvollständigen Score- und Issue-Daten als ältere Dokumentationsstände.
 
+Zur Laufzeit ist die Audit-Datenquelle bewusst begrenzt: Pro Inhaltstyp werden standardmäßig die zuletzt aktualisierten 1.000 Seiten bzw. Beiträge analysiert und serverseitig auf maximal 5.000 Datensätze pro Typ geklemmt. Dashboard, Broken-Link-Report und Trend-Live-Fallback bleiben dadurch auch auf größeren Installationen responsive, ohne neue Schreibpfade, externe Fetches oder Token in URLs einzuführen.
+
 ---
 
 ## Meta-Daten

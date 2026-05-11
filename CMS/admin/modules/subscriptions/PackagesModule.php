@@ -358,13 +358,13 @@ class PackagesModule
             array_push($params, ...array_values($packageIds));
 
             foreach ($packageIds as $id) {
-                $clauses[] = "metadata LIKE ? ESCAPE '\\'";
+                $clauses[] = "metadata LIKE ? ESCAPE '!'";
                 $params[] = '%"id":' . $id . '%';
             }
         }
 
         foreach (array_keys($packageLabelsBySlug) as $slug) {
-            $clauses[] = "metadata LIKE ? ESCAPE '\\'";
+            $clauses[] = "metadata LIKE ? ESCAPE '!'";
             $params[] = '%"slug":"' . $this->escapeSqlLike($slug) . '"%';
         }
 
@@ -464,7 +464,11 @@ class PackagesModule
 
     private function escapeSqlLike(string $value): string
     {
-        return addcslashes($value, "\\%_");
+        return strtr($value, [
+            '!' => '!!',
+            '%' => '!%',
+            '_' => '!_',
+        ]);
     }
 
     private function sanitizeText(string $value, int $maxLength): string

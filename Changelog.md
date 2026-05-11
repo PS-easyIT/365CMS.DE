@@ -1,4 +1,4 @@
-﻿﻿**Version:** 2.9.752
+﻿﻿**Version:** 2.9.754
 
 # 365CMS Changelog
 
@@ -19,6 +19,18 @@
 ## 📜 Vollständige Versionshistorie
 
 ---
+
+### v2.9.754 — 11. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.754** | 🔴 fix | Admin/Live-Logs – MariaDB-SQL & Media-Redeclare-Hotfix | **`CMS/core/Services/SeoTrendService.php`, `CMS/admin/modules/subscriptions/PackagesModule.php`, `CMS/admin/modules/media/MediaModule.php`, `CMS/admin/modules/settings/SettingsModule.php`, `CMS/admin/views/media/library.php`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/DOC/audit/NiceToHave-CHECKLISTE.md`, `README.md` und `Changelog.md` beheben die aktuellen Live-Fehler aus den Logs**: Optionale SEO-Trenddaten werden im Dashboard jetzt erst nach einer MariaDB-kompatiblen, read-only Tabellenprüfung gelesen, sodass fehlende `seo_dashboard_trends`-Tabellen nicht mehr als vorbereitete SELECT-Fehler in den Logs landen. Tabellen-Existenzprüfungen in Medien- und Settings-Modulen verwenden ebenfalls PDO-quotierte `SHOW TABLES LIKE`-Abfragen statt Platzhalter-Prepared-Statements, die je nach MariaDB/PDO-Kombination fehlschlagen können. Die Pakethistorie ersetzt das fragile Backslash-`ESCAPE` in `metadata LIKE`-Klauseln durch ein explizites `!`-Escape und bleibt weiterhin parametrisiert. Zusätzlich sind alle globalen Helper der Medienbibliothek per `function_exists()` geschützt, damit doppelte View-Includes keinen `Cannot redeclare function mediaTypeIcon()`-Fatal mehr erzeugen. Die Änderungen bleiben fail-soft, führen keine neuen GET-Mutationen, keine Token in URLs und keine externen Fetch-Pfade ein. |
+
+### v2.9.753 — 11. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.753** | 🟠 perf | Admin/SEO – Nice-to-have-Nachprüfung & Audit-Begrenzung | **`CMS/core/Services/SEO/SeoAuditService.php`, `CMS/core/Services/SEOService.php`, `CMS/DOC/admin/seo/SEO.md`, `CMS/DOC/admin/seo/README.md`, `CMS/DOC/audit/NiceToHave-CHECKLISTE.md`, `CMS/core/Version.php`, `CMS/update.json`, `README.md` und `Changelog.md` schließen die erneute Prüfung der Nice-to-haves ab 2.9.725 mit einer Performance-Härtung ab**: Die zentrale SEO-Audit-Datenquelle lädt Seiten und Beiträge nicht mehr ungebremst vollständig, sondern standardmäßig die jeweils 1.000 zuletzt aktualisierten Datensätze pro Inhaltstyp und klemmt explizite Limits serverseitig auf maximal 5.000. Dadurch bleiben SEO-Dashboard, Trend-Live-Fallback und Broken-Link-Report auch bei größeren Installationen reaktionsfähig, während die bestehende POST-/CSRF-Trennung, tokenfreie GET-Ansichten, lokale Broken-Link-Prüfung ohne externe Fetches und fail-softes Verhalten unverändert erhalten bleiben. |
 
 ### v2.9.752 — 11. Mai 2026
 

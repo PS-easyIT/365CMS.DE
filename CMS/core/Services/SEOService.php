@@ -27,6 +27,8 @@ VendorRegistry::instance()->loadPackage('melbahja-seo');
 
 class SEOService
 {
+    private const DEFAULT_AUDIT_ROW_LIMIT_PER_TYPE = 1000;
+
     private static ?self $instance = null;
 
     private readonly SeoMetaService $metaService;
@@ -59,9 +61,9 @@ class SEOService
         $this->metaService->saveContentMeta($contentType, $contentId, $data);
     }
 
-    public function getAuditRows(): array
+    public function getAuditRows(int $limitPerType = self::DEFAULT_AUDIT_ROW_LIMIT_PER_TYPE): array
     {
-        return $this->auditService->getAuditRows();
+        return $this->auditService->getAuditRows($limitPerType);
     }
 
     public function renderCurrentHeadTags(): string

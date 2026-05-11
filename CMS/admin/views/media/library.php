@@ -88,6 +88,7 @@ $mediaLibraryConfig = [
 $hasAdvancedMediaFilters = $fileTypeFilter !== 'all' || $extensionFilter !== '' || $sizeFilter !== 'all' || $modifiedFilter !== 'all';
 
 // Dateityp-Icon Helper
+if (!function_exists('mediaTypeIcon')) {
 function mediaTypeIcon(string $type): string {
     $icons = [
         'image' => '<svg xmlns="http://www.w3.org/2000/svg" class="icon text-green" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M15 8h.01"/><path d="M3 6a3 3 0 0 1 3 -3h12a3 3 0 0 1 3 3v12a3 3 0 0 1 -3 3h-12a3 3 0 0 1 -3 -3v-12z"/><path d="M6 18l3.5 -4a4 4 0 0 1 5 -.5l5.5 4.5"/></svg>',
@@ -96,7 +97,9 @@ function mediaTypeIcon(string $type): string {
     ];
     return $icons[$type] ?? '<svg xmlns="http://www.w3.org/2000/svg" class="icon text-secondary" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z"/></svg>';
 }
+}
 
+if (!function_exists('renderMoveTargetOptions')) {
 function renderMoveTargetOptions(array $targets, string $selectedPath = ''): string {
     $html = '';
 
@@ -110,7 +113,9 @@ function renderMoveTargetOptions(array $targets, string $selectedPath = ''): str
 
     return $html;
 }
+}
 
+if (!function_exists('renderMediaUsageBadges')) {
 function renderMediaUsageBadges(array $usageSummary): string {
     $badges = [];
     $postCount = (int)($usageSummary['post_count'] ?? 0);
@@ -134,7 +139,9 @@ function renderMediaUsageBadges(array $usageSummary): string {
 
     return $badges !== [] ? '<div class="media-usage-badges">' . implode('', $badges) . '</div>' : '';
 }
+}
 
+if (!function_exists('normalizeMediaUsageEditUrl')) {
 function normalizeMediaUsageEditUrl(string $editUrl): string {
     $editUrl = trim($editUrl);
 
@@ -144,7 +151,9 @@ function normalizeMediaUsageEditUrl(string $editUrl): string {
 
     return preg_match('#^/admin/(?:posts|pages)\?action=edit&id=\d+$#', $editUrl) === 1 ? $editUrl : '';
 }
+}
 
+if (!function_exists('renderMediaUsageLink')) {
 function renderMediaUsageLink(array $usageItem): string {
     $editUrl = normalizeMediaUsageEditUrl((string)($usageItem['edit_url'] ?? ''));
     $typeLabel = (string)($usageItem['content_type_label'] ?? 'Inhalt');
@@ -161,7 +170,9 @@ function renderMediaUsageLink(array $usageItem): string {
 
     return '<a href="' . htmlspecialchars($editUrl, ENT_QUOTES) . '" class="media-usage-link text-reset text-decoration-none">' . $inner . '</a>';
 }
+}
 
+if (!function_exists('renderMediaUsageList')) {
 function renderMediaUsageList(array $usageItems, array $usageSummary = [], int $maxVisible = 3): string {
     if ($usageItems === []) {
         return '<span class="text-secondary">Nicht eingebunden</span>';
@@ -197,7 +208,9 @@ function renderMediaUsageList(array $usageItems, array $usageSummary = [], int $
 
     return $html;
 }
+}
 
+if (!function_exists('renderMediaUsageSummary')) {
 function renderMediaUsageSummary(array $usageItems, int $usageCount): string {
     if ($usageCount <= 0 || $usageItems === []) {
         return '<span class="text-secondary">Nicht eingebunden</span>';
@@ -214,7 +227,9 @@ function renderMediaUsageSummary(array $usageItems, int $usageCount): string {
 
     return $html;
 }
+}
 
+if (!function_exists('renderMediaUsageSummaryBlock')) {
 function renderMediaUsageSummaryBlock(array $file): string {
     $usageItems = (array)($file['usage_items'] ?? []);
     $usageCount = (int)($file['usage_count'] ?? 0);
@@ -227,7 +242,9 @@ function renderMediaUsageSummaryBlock(array $file): string {
 
     return $html;
 }
+}
 
+if (!function_exists('renderMediaTags')) {
 function renderMediaTags(array $file): string {
     $tags = is_array($file['tags'] ?? null) ? array_values(array_filter(array_map('strval', $file['tags']))) : [];
     if ($tags === []) {
@@ -248,7 +265,9 @@ function renderMediaTags(array $file): string {
 
     return $html;
 }
+}
 
+if (!function_exists('renderMediaDuplicateSummary')) {
 function renderMediaDuplicateSummary(array $file, bool $compact = false): string {
     $duplicateCount = (int)($file['duplicate_count'] ?? 0);
     $duplicatePaths = is_array($file['duplicate_paths'] ?? null) ? $file['duplicate_paths'] : [];
@@ -279,6 +298,7 @@ function renderMediaDuplicateSummary(array $file, bool $compact = false): string
     $html .= '</div>';
 
     return $html;
+}
 }
 
 ?>

@@ -2463,7 +2463,15 @@ class MediaModule
         }
 
         try {
-            $this->mediaTableExistsCache = $this->db->get_var('SHOW TABLES LIKE ?', [$this->prefix . 'media']) !== null;
+            $table = $this->prefix . 'media';
+            $quotedTable = $this->db->getPdo()->quote($table);
+            if (!is_string($quotedTable)) {
+                $this->mediaTableExistsCache = false;
+                return false;
+            }
+
+            $result = $this->db->getPdo()->query('SHOW TABLES LIKE ' . $quotedTable);
+            $this->mediaTableExistsCache = $result !== false && $result->fetchColumn() !== false;
         } catch (\Throwable) {
             $this->mediaTableExistsCache = false;
         }

@@ -40,3 +40,4 @@ Der Einstieg erfolgt über die SEO-Gruppe der Sidebar, in der Praxis typischerwe
 - Die Historie wird stündlich über den bestehenden Core-Cron-Hook `cms_cron_hourly` verdichtet.
 - Im Dashboard selbst gibt es **keine** neue Schreibaktion und **keine** Sicherheitstoken in URLs.
 - Solange nur wenige Snapshots vorliegen, ergänzt die Ansicht fail-soft einen Live-Fallback aus vorhandenen Zeitstempeln von Inhalten, Redirects und 404-Logs.
+- Der SEO-Score-Anteil der Live-Berechnung nutzt die zentral begrenzte Audit-Datenquelle mit standardmäßig 1.000 zuletzt aktualisierten Datensätzen pro Inhaltstyp, damit Dashboard und Broken-Link-Prüfung nicht durch ungebremste Volltabellenanalysen blockieren.
