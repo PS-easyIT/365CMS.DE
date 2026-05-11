@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Dokumentiert das Performance-Center mit seinen sechs Unterseiten für Cache, Medien, Datenbank, Settings und Sessions.
 
-Letzte Aktualisierung: 2026-05-09 · Version 2.9.630
+Letzte Aktualisierung: 2026-05-11 · Version 2.9.750
 
 ---
 
@@ -40,6 +40,9 @@ Die Seite `/admin/performance-cache` steuert die CMS-internen Caches:
 - Objekt-Cache-Status prüfen
 - Cache-Statistiken einsehen
 - selektive Invalidierung bei Bedarf
+- read-only Auswirkungs-Vorschau für Datei-Cache, APCu und OPcache vor Purge-Aktionen
+- automatischer Datei-Cache-Snapshot vor `Alle Cache-Layer leeren` und `Nur Datei-Cache leeren`
+- Rollback der letzten Cache-Bereinigung innerhalb eines begrenzten Zeitfensters (Datei-Cache only, flüchtige Runtime-Caches werden regulär neu aufgebaut)
 
 Die globalen Cache-Schalter wirken auf die Runtime-Header:
 
@@ -72,6 +75,9 @@ Unter `/admin/performance-database` stehen insbesondere zur Verfügung:
 - verwaiste Datensätze entfernen
 - Tabellen-Optimierung
 - allgemeiner Datenbank-Cleanup
+- read-only Wartungsvorschau je Engine mit Kennzeichnung, welche Tabellen für `OPTIMIZE TABLE` bzw. `REPAIR TABLE` überhaupt unterstützt sind
+- automatisches Standalone-Datenbank-Backup vor `OPTIMIZE`/`REPAIR` als ehrlicher Rollback-Pfad
+- Rollback der letzten DB-Wartung innerhalb eines begrenzten Zeitfensters über das vorab erzeugte Datenbank-Backup
 
 Hinweis: `OPTIMIZE TABLE` und Reparaturläufe arbeiten direkt auf den CMS-Tabellen. Je nach Storage Engine können Tabellen dabei gesperrt oder neu aufgebaut werden; produktive Läufe sollten daher außerhalb der Stoßzeiten und nach einem Backup erfolgen.
 
@@ -95,6 +101,8 @@ GZIP/Brotli-Kompression wird serverseitig über Apache-/Brotli-/Deflate-Konfigur
 
 - CSS-/JS-Minifizierung arbeitet lokal für angebundene Assets und fällt bei Problemen auf Originaldateien zurück; komplexe Bundle-Optimierung, Tree-Shaking oder Quellkarten bleiben Aufgabe eines Build-Prozesses.
 - WebP-Rollback bezieht sich auf die letzte manifestierte Performance-Konvertierung; vollständige Server-Backups bleiben für produktive Medienläufe weiterhin Best Practice.
+- Cache-Rollback stellt bewusst nur die gesicherten Datei-Cache-Dateien wieder her; APCu und OPcache werden nicht „eingefroren“, sondern nach dem Rollback wieder normal aufgebaut.
+- Datenbank-Rollback basiert bewusst auf einem echten vorab erzeugten Datenbank-Backup statt auf einem nur scheinbaren Undo der Wartungsbefehle.
 - Above-the-fold-/LCP-Erkennung erfolgt heuristisch über die ersten CMS-/Editor.js-Bilder. Templates sollten besondere Hero-Bilder zusätzlich explizit mit passenden Attributen ausgeben.
 - Google-Fonts bleiben als kontrollierter Opt-in-Fallback erlaubt, solange keine lokalen Fonts aktiv sind. Der Font Manager kann sie lokal spiegeln.
 - Externe QR-Code-Provider der gebündelten 2FA-Bibliothek wurden entfernt; der Setup-Flow arbeitet mit lokaler OTP-URI bzw. lokalen QR-Providern.

@@ -29,6 +29,13 @@
     --cms-sidebar-accent-glow:  rgba(59, 130, 246, 0.18);
     --cms-sidebar-width:        260px;
 
+    /* Admin surfaces */
+    --cms-admin-page-bg:        #e8eef6;
+    --cms-admin-card-bg:        rgb(248, 250, 253);
+
+    --tblr-body-bg:             var(--cms-admin-page-bg);
+    --tblr-bg-surface:          var(--cms-admin-card-bg);
+
     /* Legacy aliases (backward compat for existing admin pages) */
     --admin-primary:            var(--tblr-primary);
     --admin-primary-dark:       #2563eb;
@@ -39,8 +46,8 @@
     --card-border:              1px solid var(--tblr-border-color, #e2e8f0);
     --card-shadow:              var(--tblr-shadow-card, 0 1px 4px rgba(0,0,0,0.06));
     --card-shadow-hover:        0 4px 12px rgba(0,0,0,0.1);
-    --card-bg:                  var(--tblr-bg-surface, #fff);
-    --card-header-bg:           #f8fafc;
+    --card-bg:                  var(--cms-admin-card-bg);
+    --card-header-bg:           #e3e3e4;
 }
 
 
@@ -49,7 +56,13 @@
    ═══════════════════════════════════════════════════════ */
 
 body.admin-body {
-    background: var(--tblr-body-bg, #f1f5f9);
+    background: var(--cms-admin-page-bg);
+}
+
+body.admin-body .page,
+body.admin-body .page-wrapper,
+body.admin-body .page-body {
+    background: var(--cms-admin-page-bg);
 }
 
 /* Container volle Breite im Admin (Tabler-Default 1140px ist zu schmal) */
@@ -69,6 +82,7 @@ body.admin-body .container-xl {
 
 /* .admin-content (inline-rendering pages) works with Tabler sidebar */
 .navbar-vertical ~ .admin-content {
+    background: var(--cms-admin-page-bg);
     margin-left: var(--cms-sidebar-width);
     padding: 2rem;
     min-height: 100vh;
@@ -437,7 +451,7 @@ body.admin-body .container-xl {
 
 /* Legacy stat-card */
 .stat-card {
-    background: white;
+    background: rgb(248, 250, 253);
     padding: 1.5rem;
     border-radius: 10px;
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
@@ -480,7 +494,7 @@ body.admin-body .container-xl {
 }
 
 .info-card {
-    background: #fff;
+    background: rgb(248, 250, 253);
     padding: 1.5rem;
     border-radius: 10px;
     border: 1px solid #e2e8f0;

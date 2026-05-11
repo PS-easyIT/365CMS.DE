@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Verwaltung von 301/302-Weiterleitungen, Protokollierung, 404-Monitoring und Aggregatkennzahlen für Dashboard-Trends.
 
-Letzte Aktualisierung: 2026-05-11 · Version 2.9.749
+Letzte Aktualisierung: 2026-05-11 · Version 2.9.751
 
 ---
 
@@ -33,6 +33,13 @@ Zeigt alle konfigurierten Weiterleitungen mit Quell-URL, Ziel-URL, Typ (301/302)
 - Die Kennzahlen werden serverseitig über SQL-Aggregate berechnet und sind **nicht** mehr von der auf 200 Einträge begrenzten 404-Tabellenansicht abhängig.
 - Diese Aggregatwerte speisen zusätzlich die read-only Trendkarten im SEO-Dashboard.
 
+### 404-Monitor-Übernahme
+
+- `/admin/not-found-monitor` nutzt denselben `admin_redirect_manager`-CSRF-Kontext wie der Redirect-Manager.
+- Ein Klick auf **Übernehmen** öffnet den gemeinsamen Redirect-Dialog und behandelt ungelöste 404-Logs ausdrücklich als neue Weiterleitung (`redirect_id = 0`). Die interne 404-Log-ID wird nicht als Redirect-ID übernommen.
+- Bereits übernommene 404-Zeilen bleiben bearbeitbar, weil sie über die vom Service gesetzte echte `redirect_id` auf die vorhandene Redirect-Regel zeigen.
+- Der JavaScript-Dialog fällt fail-soft weiter, wenn Browser-Storage blockiert ist oder die Bootstrap-Modal-API nicht global verfügbar ist; dadurch darf der Übernahmebutton nicht still ins Leere laufen.
+
 ### Aktionen
 
 | Aktion | Methode |
@@ -56,6 +63,7 @@ Zeigt alle konfigurierten Weiterleitungen mit Quell-URL, Ziel-URL, Typ (301/302)
 - Admin-Zugriffsschutz
 - CSRF-Prüfung über gemeinsamen SEO-Kontext
 - Serverseitige Validierung von Quell- und Ziel-URLs
+- 404-Übernahmen bleiben POST-only und erzeugen keine Token- oder Aktionsparameter in URLs.
 - Trendkarten und Aggregatkennzahlen bleiben read-only; es gibt keinen neuen GET-Mutationspfad.
 
 ## SEO-Hinweis

@@ -46,6 +46,22 @@
         return normalized || '/';
     }
 
+    function safeStorageGet(key) {
+        try {
+            return window.localStorage.getItem(key);
+        } catch (_) {
+            return null;
+        }
+    }
+
+    function safeStorageSet(key, value) {
+        try {
+            window.localStorage.setItem(key, value);
+        } catch (_) {
+            // Browser-/Privacy-Modi dürfen den 404-Übernahmeflow nicht blockieren.
+        }
+    }
+
     function initRedirectEditor(options) {
         const modalElement = document.getElementById(options.modalId);
         if (!modalElement) {
@@ -73,12 +89,58 @@
         const targetCatalog = options.targets || { pages: [], posts: [], hubs: [] };
         const siteCatalog = options.sites || [];
 
+        const requiredElements = [
+            titleElement,
+            idField,
+            sourceField,
+            siteScopeField,
+            targetKindField,
+            targetPageField,
+            targetPostField,
+            targetHubField,
+            targetManualField,
+            targetHiddenField,
+            targetPageGroup,
+            targetPostGroup,
+            targetHubGroup,
+            targetManualGroup,
+            typeField,
+            notesField,
+            activeField
+        ];
+
+        if (requiredElements.some((element) => !element)) {
+            console.error('SEO-Redirect-Dialog ist unvollständig und wurde nicht initialisiert.', { mode: options.mode });
+            return;
+        }
+
         function getModalInstance() {
             if (typeof bootstrap === 'undefined' || !bootstrap.Modal) {
-                return null;
+                return {
+                    show() {
+                        modalElement.style.display = 'block';
+                        modalElement.removeAttribute('aria-hidden');
+                        modalElement.setAttribute('aria-modal', 'true');
+                        modalElement.classList.add('show');
+                        document.body.classList.add('modal-open');
+                    },
+                    hide() {
+                        modalElement.classList.remove('show');
+                        modalElement.style.display = 'none';
+                        modalElement.setAttribute('aria-hidden', 'true');
+                        modalElement.removeAttribute('aria-modal');
+                        document.body.classList.remove('modal-open');
+                    }
+                };
             }
             return bootstrap.Modal.getOrCreateInstance(modalElement);
         }
+
+        modalElement.querySelectorAll('[data-bs-dismiss="modal"]').forEach((button) => {
+            button.addEventListener('click', function () {
+                getModalInstance().hide();
+            });
+        });
 
         function updateTargetFieldVisibility() {
             const kind = targetKindField.value || 'manual';
@@ -190,9 +252,13 @@
             }
 
             resetForm();
-            const redirectId = payload.redirect_id || payload.id || 0;
+            const explicitRedirectId = Number.parseInt(String(payload.redirect_id || '0'), 10) || 0;
+            const fallbackId = Number.parseInt(String(payload.id || '0'), 10) || 0;
+            const redirectId = options.mode === 'not-found'
+                ? explicitRedirectId
+                : (explicitRedirectId > 0 ? explicitRedirectId : fallbackId);
             titleElement.textContent = redirectId ? options.editTitle : options.createTitle;
-            idField.value = redirectId;
+            idField.value = String(redirectId);
             sourceField.value = payload.source_path || payload.request_path || '';
             applySuggestedSiteScope(payload.site_scope || payload.site_scope_match || payload.site_scope_suggestion || '');
             applyTargetValue(payload.target_url || '');
@@ -242,19 +308,6 @@
 
         updateTargetFieldVisibility();
 
-        if (options.mode === 'redirect-manager') {
-            document.querySelectorAll('.js-create-redirect').forEach((button) => button.addEventListener('click', openCreateModal));
-            document.querySelectorAll('.js-edit-redirect').forEach((button) => {
-                button.addEventListener('click', function () {
-                    try {
-                        openEditModal(JSON.parse(button.dataset.redirect || '{}'));
-                    } catch (error) {
-                        console.error('Weiterleitung konnte nicht geladen werden.', error);
-                    }
-                });
-            });
-        }
-
         if (options.mode === 'not-found') {
             const hideResolvedToggle = document.getElementById('toggle-hide-resolved-404');
             const resolvedRows = Array.from(document.querySelectorAll('tr[data-log-resolved]'));
@@ -278,24 +331,52 @@
             }
 
             if (hideResolvedToggle) {
-                hideResolvedToggle.checked = window.localStorage.getItem(hideResolvedStorageKey) === '1';
+                hideResolvedToggle.checked = safeStorageGet(hideResolvedStorageKey) === '1';
                 applyResolvedFilter(hideResolvedToggle.checked);
                 hideResolvedToggle.addEventListener('change', function () {
                     const hideResolved = hideResolvedToggle.checked;
-                    window.localStorage.setItem(hideResolvedStorageKey, hideResolved ? '1' : '0');
+                    safeStorageSet(hideResolvedStorageKey, hideResolved ? '1' : '0');
                     applyResolvedFilter(hideResolved);
                 });
             }
 
-            document.querySelectorAll('.js-takeover-log').forEach((button) => {
-                button.addEventListener('click', function () {
-                    try {
-                        openEditModal(JSON.parse(button.dataset.log || '{}'));
-                    } catch (error) {
-                        console.error('404-Eintrag konnte nicht geladen werden.', error);
-                    }
-                });
+            document.addEventListener('click', function (event) {
+                const button = event.target instanceof Element ? event.target.closest('.js-takeover-log') : null;
+                if (!button) {
+                    return;
+                }
+
+                event.preventDefault();
+                try {
+                    openEditModal(JSON.parse(button.dataset.log || '{}'));
+                } catch (error) {
+                    console.error('404-Eintrag konnte nicht geladen werden.', error);
+                }
             });
+        }
+
+        if (options.mode === 'redirect-manager') {
+            document.addEventListener('click', function (event) {
+                const createButton = event.target instanceof Element ? event.target.closest('.js-create-redirect') : null;
+                if (createButton) {
+                    event.preventDefault();
+                    openCreateModal();
+                    return;
+                }
+
+                const editButton = event.target instanceof Element ? event.target.closest('.js-edit-redirect') : null;
+                if (!editButton) {
+                    return;
+                }
+
+                event.preventDefault();
+                try {
+                    openEditModal(JSON.parse(editButton.dataset.redirect || '{}'));
+                } catch (error) {
+                    console.error('Weiterleitung konnte nicht geladen werden.', error);
+                }
+            });
+
         }
     }
 

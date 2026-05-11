@@ -10,6 +10,7 @@ use CMS\Hooks;
 use CMS\Services\ImageService;
 use CMS\Services\MediaService;
 use CMS\Services\OpcacheWarmupService;
+use CMS\Services\PerformanceSafetyNetService;
 
 final class PerformanceModule
 {
@@ -88,6 +89,7 @@ final class PerformanceModule
     private readonly \CMS\Database $db;
     private readonly \CMS\CacheManager $cacheManager;
     private readonly \CMS\Services\SystemService $systemService;
+    private readonly PerformanceSafetyNetService $safetyNetService;
     private readonly string $prefix;
 
     public function __construct()
@@ -95,6 +97,7 @@ final class PerformanceModule
         $this->db = \CMS\Database::instance();
         $this->cacheManager = \CMS\CacheManager::instance();
         $this->systemService = \CMS\Services\SystemService::instance();
+        $this->safetyNetService = PerformanceSafetyNetService::getInstance();
         $this->prefix = $this->db->getPrefix();
     }
 
@@ -134,9 +137,15 @@ final class PerformanceModule
         return match ($section) {
             'cache' => [
                 'cache' => $this->getCacheMetrics(),
+                'safety' => [
+                    'cache' => $this->safetyNetService->getLatestCacheSnapshot(),
+                ],
             ],
             'database' => [
                 'database' => $this->getDatabaseMetrics(),
+                'safety' => [
+                    'database' => $this->safetyNetService->getLatestDatabaseSnapshot(),
+                ],
             ],
             'media' => [
                 'media' => $this->getMediaMetrics(),
@@ -160,10 +169,12 @@ final class PerformanceModule
         return match ($action) {
             'clear_all_cache' => $this->clearAllCacheLayers(),
             'clear_file_cache' => $this->clearFileCache(),
+            'rollback_cache_cleanup' => $this->rollbackCacheCleanup(),
             'clear_opcache' => $this->clearOpcache(),
             'warmup_opcache' => $this->warmupOpcache(),
             'optimize_database' => $this->optimizeDatabase(),
             'repair_tables' => $this->repairDatabase(),
+            'rollback_database_maintenance' => $this->rollbackDatabaseMaintenance(),
             'clear_expired_sessions' => $this->clearExpiredSessions(),
             'convert_media_to_webp' => $this->convertMediaLibraryToWebp($post),
             'rollback_webp_conversion' => $this->rollbackLastWebpConversion(),
@@ -300,6 +311,14 @@ final class PerformanceModule
             'db_cache' => [
                 'active_entries' => $activeDbCache,
                 'expired_entries' => $expiredDbCache,
+            ],
+            'purge_preview' => [
+                'file_count' => $fileCacheFiles,
+                'file_size_bytes' => $fileCacheSizeBytes,
+                'apcu_reset' => (bool)($status['apcu']['enabled'] ?? false),
+                'opcache_reset' => (bool)($status['opcache']['enabled'] ?? false),
+                'restores_runtime_caches' => false,
+                'rollback_window_seconds' => $this->safetyNetService->getRollbackWindowSeconds(),
             ],
         ];
     }
@@ -656,6 +675,7 @@ final class PerformanceModule
         try {
             $tables = $this->db->get_results(
                 "SELECT table_name,
+                        engine,
                         table_rows,
                         data_length,
                         index_length,
@@ -671,16 +691,38 @@ final class PerformanceModule
         }
 
         $tableMetrics = [];
+        $optimizeSupportedEngines = ['INNODB', 'MYISAM', 'ARCHIVE'];
+        $repairSupportedEngines = ['MYISAM', 'ARCHIVE', 'CSV'];
+        $optimizeSupportedCount = 0;
+        $repairSupportedCount = 0;
+        $tablesWithOverhead = 0;
         foreach ($tables as $table) {
             $size = (int)($table->data_length ?? 0) + (int)($table->index_length ?? 0);
             $overhead = (int)($table->data_free ?? 0);
+            $engine = strtoupper((string)($table->engine ?? ''));
+            $optimizeSupported = in_array($engine, $optimizeSupportedEngines, true);
+            $repairSupported = in_array($engine, $repairSupportedEngines, true);
             $totalSize += $size;
             $totalOverhead += $overhead;
+
+            if ($optimizeSupported) {
+                $optimizeSupportedCount++;
+            }
+            if ($repairSupported) {
+                $repairSupportedCount++;
+            }
+            if ($overhead > 0) {
+                $tablesWithOverhead++;
+            }
+
             $tableMetrics[] = [
                 'name' => (string)($table->table_name ?? ''),
+                'engine' => $engine !== '' ? $engine : 'UNKNOWN',
                 'rows' => (int)($table->table_rows ?? 0),
                 'size' => $size,
                 'overhead' => $overhead,
+                'optimize_supported' => $optimizeSupported,
+                'repair_supported' => $repairSupported,
             ];
         }
 
@@ -706,6 +748,15 @@ final class PerformanceModule
             'total_overhead_bytes' => $totalOverhead,
             'table_count' => count($tableMetrics),
             'top_tables' => array_slice($tableMetrics, 0, 8),
+            'maintenance_plan' => array_slice($tableMetrics, 0, 12),
+            'maintenance_preview' => [
+                'optimize_supported_count' => $optimizeSupportedCount,
+                'repair_supported_count' => $repairSupportedCount,
+                'optimize_skipped_count' => max(0, count($tableMetrics) - $optimizeSupportedCount),
+                'repair_skipped_count' => max(0, count($tableMetrics) - $repairSupportedCount),
+                'tables_with_overhead' => $tablesWithOverhead,
+                'rollback_window_seconds' => $this->safetyNetService->getRollbackWindowSeconds(),
+            ],
             'revision_count' => $revisionCount,
             'expired_sessions' => $expiredSessions,
             'expired_cache_entries' => $expiredCache,
@@ -768,6 +819,12 @@ final class PerformanceModule
 
     private function clearAllCacheLayers(): array
     {
+        $snapshot = $this->safetyNetService->createCacheSnapshot('clear_all_cache');
+        if (empty($snapshot['success'])) {
+            return ['success' => false, 'error' => (string)($snapshot['error'] ?? 'Vor der Cache-Bereinigung konnte kein Snapshot erstellt werden.')];
+        }
+
+        $snapshotInfo = is_array($snapshot['snapshot'] ?? null) ? $snapshot['snapshot'] : [];
         $report = $this->cacheManager->clearAll();
         $warmup = (!empty($report['opcache']))
             ? OpcacheWarmupService::getInstance()->warmTopFiles(30, true)
@@ -787,7 +844,11 @@ final class PerformanceModule
             'Alle Cache-Layer bereinigt',
             'cache',
             null,
-            ['details' => $this->sanitizeAuditArray((array)($report['details'] ?? [])), 'warmup' => $this->summarizeWarmupResult($warmup)],
+            [
+                'details' => $this->sanitizeAuditArray((array)($report['details'] ?? [])),
+                'warmup' => $this->summarizeWarmupResult($warmup),
+                'snapshot_id' => $this->sanitizeAuditString((string)($snapshotInfo['snapshot_id'] ?? ''), 64),
+            ],
             'warning'
         );
 
@@ -800,12 +861,18 @@ final class PerformanceModule
 
         return [
             'success' => true,
-            'message' => 'Alle Cache-Layer bereinigt. ' . implode(' | ', $details),
+            'message' => 'Alle Cache-Layer bereinigt. ' . implode(' | ', $details) . $this->buildCacheRollbackHint($snapshotInfo),
         ];
     }
 
     private function clearFileCache(): array
     {
+        $snapshot = $this->safetyNetService->createCacheSnapshot('clear_file_cache');
+        if (empty($snapshot['success'])) {
+            return ['success' => false, 'error' => (string)($snapshot['error'] ?? 'Vor der Cache-Bereinigung konnte kein Snapshot erstellt werden.')];
+        }
+
+        $snapshotInfo = is_array($snapshot['snapshot'] ?? null) ? $snapshot['snapshot'] : [];
         $cacheDir = ABSPATH . 'cache/';
         if (!is_dir($cacheDir)) {
             return ['success' => false, 'error' => 'Cache-Verzeichnis nicht gefunden.'];
@@ -828,7 +895,10 @@ final class PerformanceModule
             'Datei-Cache geleert',
             'cache',
             null,
-            ['deleted_files' => $count],
+            [
+                'deleted_files' => $count,
+                'snapshot_id' => $this->sanitizeAuditString((string)($snapshotInfo['snapshot_id'] ?? ''), 64),
+            ],
             'warning'
         );
 
@@ -839,7 +909,32 @@ final class PerformanceModule
             'purged_at' => date('c'),
         ]);
 
-        return ['success' => true, 'message' => $count . ' Datei-Cache(s) gelöscht.'];
+        return ['success' => true, 'message' => $count . ' Datei-Cache(s) gelöscht.' . $this->buildCacheRollbackHint($snapshotInfo)];
+    }
+
+    private function rollbackCacheCleanup(): array
+    {
+        $rollback = $this->safetyNetService->rollbackLatestCacheSnapshot();
+        $snapshotInfo = is_array($rollback['snapshot'] ?? null) ? $rollback['snapshot'] : [];
+
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_SYSTEM,
+            'performance.cache.rollback',
+            'Cache-Bereinigung zurückgerollt',
+            'cache',
+            null,
+            [
+                'snapshot_id' => $this->sanitizeAuditString((string)($snapshotInfo['snapshot_id'] ?? ''), 64),
+                'restored_files' => isset($rollback['restored_files']) ? (int)$rollback['restored_files'] : null,
+            ],
+            !empty($rollback['success']) ? 'warning' : 'error'
+        );
+
+        if (empty($rollback['success'])) {
+            return ['success' => false, 'error' => (string)($rollback['error'] ?? $rollback['message'] ?? 'Das Cache-Rollback ist fehlgeschlagen.')];
+        }
+
+        return ['success' => true, 'message' => (string)($rollback['message'] ?? 'Das Cache-Rollback wurde ausgeführt.')];
     }
 
     private function clearOpcache(): array
@@ -891,6 +986,18 @@ final class PerformanceModule
 
     private function optimizeDatabase(): array
     {
+        $metrics = $this->getDatabaseMetrics();
+        $preview = $metrics['maintenance_preview'] ?? [];
+        if ((int)($preview['optimize_supported_count'] ?? 0) <= 0) {
+            return ['success' => false, 'error' => 'Es wurden keine unterstützten Tabellen für OPTIMIZE TABLE gefunden.'];
+        }
+
+        $snapshot = $this->safetyNetService->createDatabaseSnapshot('optimize_database');
+        if (empty($snapshot['success'])) {
+            return ['success' => false, 'error' => (string)($snapshot['error'] ?? 'Vor der Datenbank-Wartung konnte kein Backup erstellt werden.')];
+        }
+
+        $snapshotInfo = is_array($snapshot['snapshot'] ?? null) ? $snapshot['snapshot'] : [];
         $result = $this->systemService->optimizeTables();
         $success = 0;
         $skipped = 0;
@@ -911,18 +1018,36 @@ final class PerformanceModule
             'Datenbanktabellen optimiert',
             'database',
             null,
-            ['success_count' => $success, 'skipped_count' => $skipped, 'failed_count' => $failed],
+            [
+                'success_count' => $success,
+                'skipped_count' => $skipped,
+                'failed_count' => $failed,
+                'snapshot_id' => $this->sanitizeAuditString((string)($snapshotInfo['snapshot_id'] ?? ''), 64),
+                'backup_name' => $this->sanitizeAuditString((string)($snapshotInfo['backup_name'] ?? ''), 120),
+            ],
             $failed > 0 ? 'error' : 'warning'
         );
 
         return [
             'success' => $failed === 0 || $success > 0 || $skipped > 0,
-            'message' => sprintf('%d Tabelle(n) optimiert, %d übersprungen, %d fehlgeschlagen.', $success, $skipped, $failed),
+            'message' => sprintf('%d Tabelle(n) optimiert, %d übersprungen, %d fehlgeschlagen.', $success, $skipped, $failed) . $this->buildDatabaseRollbackHint($snapshotInfo),
         ];
     }
 
     private function repairDatabase(): array
     {
+        $metrics = $this->getDatabaseMetrics();
+        $preview = $metrics['maintenance_preview'] ?? [];
+        if ((int)($preview['repair_supported_count'] ?? 0) <= 0) {
+            return ['success' => false, 'error' => 'Es wurden keine unterstützten Tabellen für REPAIR TABLE gefunden.'];
+        }
+
+        $snapshot = $this->safetyNetService->createDatabaseSnapshot('repair_tables');
+        if (empty($snapshot['success'])) {
+            return ['success' => false, 'error' => (string)($snapshot['error'] ?? 'Vor der Datenbank-Wartung konnte kein Backup erstellt werden.')];
+        }
+
+        $snapshotInfo = is_array($snapshot['snapshot'] ?? null) ? $snapshot['snapshot'] : [];
         $result = $this->systemService->repairTables();
         $success = 0;
         $skipped = 0;
@@ -943,14 +1068,45 @@ final class PerformanceModule
             'Datenbanktabellen geprüft oder repariert',
             'database',
             null,
-            ['success_count' => $success, 'skipped_count' => $skipped, 'failed_count' => $failed],
+            [
+                'success_count' => $success,
+                'skipped_count' => $skipped,
+                'failed_count' => $failed,
+                'snapshot_id' => $this->sanitizeAuditString((string)($snapshotInfo['snapshot_id'] ?? ''), 64),
+                'backup_name' => $this->sanitizeAuditString((string)($snapshotInfo['backup_name'] ?? ''), 120),
+            ],
             $failed > 0 ? 'error' : 'warning'
         );
 
         return [
             'success' => $failed === 0 || $success > 0 || $skipped > 0,
-            'message' => sprintf('%d Tabelle(n) repariert bzw. geprüft, %d übersprungen, %d fehlgeschlagen.', $success, $skipped, $failed),
+            'message' => sprintf('%d Tabelle(n) repariert bzw. geprüft, %d übersprungen, %d fehlgeschlagen.', $success, $skipped, $failed) . $this->buildDatabaseRollbackHint($snapshotInfo),
         ];
+    }
+
+    private function rollbackDatabaseMaintenance(): array
+    {
+        $rollback = $this->safetyNetService->rollbackLatestDatabaseSnapshot();
+        $snapshotInfo = is_array($rollback['snapshot'] ?? null) ? $rollback['snapshot'] : [];
+
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_SYSTEM,
+            'performance.database.rollback',
+            'Datenbank-Wartung zurückgerollt',
+            'database',
+            null,
+            [
+                'snapshot_id' => $this->sanitizeAuditString((string)($snapshotInfo['snapshot_id'] ?? ''), 64),
+                'rollback_backup' => $this->sanitizeAuditString((string)($rollback['rollback_backup'] ?? ''), 120),
+            ],
+            !empty($rollback['success']) ? 'warning' : 'error'
+        );
+
+        if (empty($rollback['success'])) {
+            return ['success' => false, 'error' => (string)($rollback['error'] ?? $rollback['message'] ?? 'Das Datenbank-Rollback ist fehlgeschlagen.')];
+        }
+
+        return ['success' => true, 'message' => (string)($rollback['message'] ?? 'Das Datenbank-Rollback wurde ausgeführt.')];
     }
 
     private function clearExpiredSessions(): array
@@ -1386,6 +1542,29 @@ final class PerformanceModule
         $value = preg_replace('/[\x00-\x1F\x7F]+/u', ' ', trim($value)) ?? '';
 
         return function_exists('mb_substr') ? mb_substr($value, 0, $maxLength) : substr($value, 0, $maxLength);
+    }
+
+    /** @param array<string, mixed> $snapshotInfo */
+    private function buildCacheRollbackHint(array $snapshotInfo): string
+    {
+        $expiresAt = trim((string)($snapshotInfo['expires_at'] ?? ''));
+        if ($expiresAt === '') {
+            return '';
+        }
+
+        return ' Rollback des Datei-Cache-Snapshots bis ' . $expiresAt . ' über die Cache-Seite verfügbar; APCu und OPcache werden dabei nicht konserviert, sondern danach regulär neu aufgebaut.';
+    }
+
+    /** @param array<string, mixed> $snapshotInfo */
+    private function buildDatabaseRollbackHint(array $snapshotInfo): string
+    {
+        $expiresAt = trim((string)($snapshotInfo['expires_at'] ?? ''));
+        $backupName = trim((string)($snapshotInfo['backup_name'] ?? ''));
+        if ($expiresAt === '' || $backupName === '') {
+            return '';
+        }
+
+        return ' Rollback bis ' . $expiresAt . ' über das vorab erstellte DB-Backup ' . $backupName . ' verfügbar.';
     }
 
     private function runSuppressedOperation(callable $operation): mixed

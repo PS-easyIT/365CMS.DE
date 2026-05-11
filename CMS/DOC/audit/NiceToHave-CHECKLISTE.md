@@ -1,5 +1,5 @@
 # 365CMS – Offene Nice-to-haves · Konsolidierte Restliste
-> **Stand:** 2026-05-10 | **Quelle:** PRUEF-CHECKLISTE.md | **Scope:** ohne Plugins und ohne weitere Theme-Erweiterungen
+> **Stand:** 2026-05-11 | **Quelle:** PRUEF-CHECKLISTE.md | **Scope:** ohne Plugins und ohne weitere Theme-Erweiterungen
 
 ## Zweck
 
@@ -8,6 +8,8 @@ arbeitsfähige Reihenfolge. Plugin-spezifische Ausbauten (Bereich 13) und Theme-
 Theme-System-Erweiterungen (Bereich 8 außerhalb des Webbaukastens) sind bewusst
 ausgeklammert. Reihenfolge folgt dem Wirkungspfad: zuerst Inhalte, dann Betrieb, dann
 querschnittliche Komfortfunktionen.
+
+Nachprüfung 2.9.751: Die zuletzt umgesetzten Nice-to-haves ab 2.9.725 wurden erneut mit Fokus auf bekannte Fehler, unvollständige Übernahmepfade, Security-/Token-Verträge, Best Practice und Performance geprüft. Konkret wurde der 404-Monitor-Übernahmeflow nachgehärtet, damit ungelöste 404-Logs wieder als neue Redirect-Regel gespeichert werden und keine 404-Log-ID als Redirect-ID missverstanden wird. Zusätzlich bleibt das Performance-Sicherheitsnetz auf reinen GET-Seiten fail-soft, weil Rollback-Verzeichnisse erst bei tatsächlichen Snapshot-Mutationen angelegt werden.
 
 ---
 
@@ -41,9 +43,9 @@ querschnittliche Komfortfunktionen.
 
 ## 3. Performance – Sicherheitsnetze für Massenoperationen
 
-- [ ] **Dry-Run und Rollback für Massenoptimierungen**
-  - [ ] Vorschau betroffener Datensätze pro Optimierungsaktion (Cache-Purge, Bildkonvertierung, DB-Wartung)
-  - [ ] Snapshot vor Ausführung, Rollback-Aktion innerhalb eines Zeitfensters
+- [x] **Dry-Run und Rollback für Massenoptimierungen**
+  - [x] Vorschau betroffener Datensätze pro Optimierungsaktion (Cache-Purge, Bildkonvertierung, DB-Wartung)
+  - [x] Snapshot vor Ausführung, Rollback-Aktion innerhalb eines Zeitfensters
 - [ ] **Historie der Performance-Maßnahmen**
   - [ ] Read-only Tabelle mit Zeitpunkt, Aktion, Auslöser, Ergebnis und Dauer
   - [ ] Anbindung an `audit_log` analog zur Update-Historie in `/admin/cms-logs`
