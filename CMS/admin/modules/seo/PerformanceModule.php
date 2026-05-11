@@ -23,6 +23,12 @@ final class PerformanceModule
 
     private const WEBP_DEFAULT_BATCH_LIMIT = 25;
     private const WEBP_MAX_BATCH_LIMIT = 200;
+    private const CAPACITY_WARNING_FREE_BYTES = 1073741824;
+    private const CAPACITY_CRITICAL_FREE_BYTES = 536870912;
+    private const CAPACITY_WARNING_LOAD = 4.0;
+    private const CAPACITY_CRITICAL_LOAD = 8.0;
+    private const ACTIVE_QUEUE_LOCK_WINDOW_MINUTES = 15;
+    private const MEDIA_JOB_STATUS_MAX_FILE_BYTES = 1048576;
 
     private const DEFAULT_SETTINGS = [
         'perf_lazy_loading' => '1',
@@ -85,12 +91,15 @@ final class PerformanceModule
     ];
 
     private const MAX_AUDIT_STRING_LENGTH = 240;
+    private const MAX_HISTORY_EVENTS = 30;
 
     private readonly \CMS\Database $db;
     private readonly \CMS\CacheManager $cacheManager;
     private readonly \CMS\Services\SystemService $systemService;
     private readonly PerformanceSafetyNetService $safetyNetService;
     private readonly string $prefix;
+    /** @var array<string, bool> */
+    private array $tableExistsCache = [];
 
     public function __construct()
     {
@@ -109,6 +118,7 @@ final class PerformanceModule
         $database = $this->getDatabaseMetrics();
         $sessions = $this->getSessionMetrics();
         $phpInfo = $this->getPhpInfo();
+        $history = $this->getPerformanceHistoryState();
 
         return [
             'cache_size' => (int)($cache['file_cache']['size_bytes'] ?? 0),
@@ -129,28 +139,44 @@ final class PerformanceModule
             'media' => $media,
             'database' => $database,
             'sessions' => $sessions,
+            'history' => $history,
         ];
     }
 
     public function getSectionData(string $section): array
     {
         return match ($section) {
-            'cache' => [
-                'cache' => $this->getCacheMetrics(),
-                'safety' => [
-                    'cache' => $this->safetyNetService->getLatestCacheSnapshot(),
-                ],
-            ],
-            'database' => [
-                'database' => $this->getDatabaseMetrics(),
-                'safety' => [
-                    'database' => $this->safetyNetService->getLatestDatabaseSnapshot(),
-                ],
-            ],
-            'media' => [
-                'media' => $this->getMediaMetrics(),
-                'settings' => $this->getSettings(),
-            ],
+            'cache' => (function (): array {
+                $cache = $this->getCacheMetrics();
+
+                return [
+                    'cache' => $cache,
+                    'safety' => [
+                        'cache' => $this->safetyNetService->getLatestCacheSnapshot(),
+                    ],
+                    'capacity' => $this->getCapacityPrecheck('cache', ['cache' => $cache]),
+                ];
+            })(),
+            'database' => (function (): array {
+                $database = $this->getDatabaseMetrics();
+
+                return [
+                    'database' => $database,
+                    'safety' => [
+                        'database' => $this->safetyNetService->getLatestDatabaseSnapshot(),
+                    ],
+                    'capacity' => $this->getCapacityPrecheck('database', ['database' => $database]),
+                ];
+            })(),
+            'media' => (function (): array {
+                $media = $this->getMediaMetrics();
+
+                return [
+                    'media' => $media,
+                    'settings' => $this->getSettings(),
+                    'capacity' => $this->getCapacityPrecheck('media', ['media' => $media]),
+                ];
+            })(),
             'sessions' => [
                 'sessions' => $this->getSessionMetrics(),
                 'settings' => $this->getSettings(),
@@ -166,7 +192,9 @@ final class PerformanceModule
 
     public function handleAction(string $section, string $action, array $post): array
     {
-        return match ($action) {
+        $startedAt = microtime(true);
+
+        $result = match ($action) {
             'clear_all_cache' => $this->clearAllCacheLayers(),
             'clear_file_cache' => $this->clearFileCache(),
             'rollback_cache_cleanup' => $this->rollbackCacheCleanup(),
@@ -180,6 +208,371 @@ final class PerformanceModule
             'rollback_webp_conversion' => $this->rollbackLastWebpConversion(),
             'save_settings', 'save_cache_settings', 'save_media_settings', 'save_session_settings' => $this->saveSettings($post, $action),
             default => ['success' => false, 'error' => 'Unbekannte Aktion.'],
+        };
+
+        $this->recordPerformanceHistory($section, $action, $post, $result, $startedAt);
+
+        return $result;
+    }
+
+    /** @return array<string, mixed> */
+    private function getPerformanceHistoryState(): array
+    {
+        try {
+            $rows = $this->loadPerformanceHistoryRows(true);
+            $sourceMode = 'standardized';
+
+            if ($rows === []) {
+                $rows = $this->loadPerformanceHistoryRows(false);
+                $sourceMode = 'legacy';
+            }
+
+            $entries = [];
+            foreach ($rows as $row) {
+                $entry = $this->normalizePerformanceHistoryEntry($row);
+                if ($entry !== null) {
+                    $entries[] = $entry;
+                }
+            }
+
+            $successCount = 0;
+            $partialCount = 0;
+            $errorCount = 0;
+            $durationTotal = 0;
+            $durationCount = 0;
+
+            foreach ($entries as $entry) {
+                $result = (string) ($entry['result'] ?? 'success');
+                if ($result === 'error') {
+                    ++$errorCount;
+                } elseif ($result === 'partial') {
+                    ++$partialCount;
+                } else {
+                    ++$successCount;
+                }
+
+                if (($entry['duration_ms'] ?? null) !== null) {
+                    $durationTotal += (int) $entry['duration_ms'];
+                    ++$durationCount;
+                }
+            }
+
+            $note = $sourceMode === 'standardized'
+                ? 'Die Historie wird read-only aus standardisierten Performance-Audit-Einträgen gespeist.'
+                : 'Die Historie fällt fail-soft auf bereits vorhandene Performance-Audits zurück; Trigger- und Laufzeitdaten erscheinen dabei nur, wenn sie zuvor schon in den Metadaten protokolliert wurden.';
+
+            return [
+                'entries' => $entries,
+                'summary' => [
+                    'total' => count($entries),
+                    'success_count' => $successCount,
+                    'partial_count' => $partialCount,
+                    'error_count' => $errorCount,
+                    'avg_duration_ms' => $durationCount > 0 ? (int) round($durationTotal / $durationCount) : null,
+                ],
+                'source_mode' => $sourceMode,
+                'note' => $note,
+                'unavailable' => false,
+            ];
+        } catch (\Throwable $e) {
+            AuditLogger::instance()->log(
+                AuditLogger::CAT_SYSTEM,
+                'performance.history.load_failed',
+                'Performance-Historie konnte nicht geladen werden',
+                'performance',
+                null,
+                ['exception' => $this->sanitizeAuditString($e::class, 120)],
+                'error'
+            );
+
+            return [
+                'entries' => [],
+                'summary' => [
+                    'total' => 0,
+                    'success_count' => 0,
+                    'partial_count' => 0,
+                    'error_count' => 0,
+                    'avg_duration_ms' => null,
+                ],
+                'source_mode' => 'unavailable',
+                'note' => 'Die Performance-Historie ist derzeit nicht verfügbar.',
+                'unavailable' => true,
+            ];
+        }
+    }
+
+    /** @return list<object> */
+    private function loadPerformanceHistoryRows(bool $standardizedOnly): array
+    {
+        $where = $standardizedOnly
+            ? "action LIKE 'performance.history.%'"
+            : "(action LIKE 'performance.cache.%' OR action LIKE 'performance.database.%' OR action LIKE 'performance.sessions.%' OR action LIKE 'performance.media.%' OR action LIKE 'performance.settings.%')";
+
+        return $this->db->get_results(
+            "SELECT id, user_id, category, action, description, severity, metadata, created_at
+             FROM {$this->prefix}audit_log
+             WHERE {$where}
+             ORDER BY created_at DESC, id DESC
+             LIMIT " . self::MAX_HISTORY_EVENTS
+        ) ?: [];
+    }
+
+    /** @param object $row @return array<string, mixed>|null */
+    private function normalizePerformanceHistoryEntry(object $row): ?array
+    {
+        $metadata = $this->decodeAuditMetadata($row->metadata ?? null);
+        $actionPayload = $this->normalizePerformanceHistoryActionPayload((string) ($row->action ?? ''));
+        if ($actionPayload === null) {
+            return null;
+        }
+
+        $section = (string) ($actionPayload['section'] ?? 'overview');
+        $action = (string) ($actionPayload['action'] ?? '');
+        $trigger = $this->normalizePerformanceHistoryTrigger((string) ($metadata['trigger'] ?? 'admin'));
+        $result = $this->normalizePerformanceHistoryResult(
+            (string) ($metadata['result'] ?? ''),
+            (string) ($row->severity ?? 'info'),
+            $action
+        );
+        $message = $this->sanitizeAuditString(
+            (string) ($metadata['message'] ?? ($row->description ?? '')),
+            180
+        );
+        $userId = (int) ($row->user_id ?? 0);
+
+        return [
+            'created_at' => (string) ($row->created_at ?? ''),
+            'section' => $section,
+            'section_label' => $this->mapPerformanceHistorySectionLabel($section),
+            'action' => $action,
+            'action_label' => $this->mapPerformanceHistoryActionLabel($section, $action),
+            'trigger' => $trigger,
+            'trigger_label' => $this->mapPerformanceHistoryTriggerLabel($trigger),
+            'result' => $result,
+            'result_label' => $this->mapPerformanceHistoryResultLabel($result),
+            'result_badge' => $this->mapPerformanceHistoryResultBadge($result),
+            'duration_ms' => $this->normalizePositiveNullable($metadata['duration_ms'] ?? null),
+            'user_label' => $userId > 0 ? 'User #' . $userId : 'System',
+            'message' => $message,
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function decodeAuditMetadata(mixed $rawMetadata): array
+    {
+        if (!is_string($rawMetadata) || trim($rawMetadata) === '') {
+            return [];
+        }
+
+        $decoded = json_decode($rawMetadata, true);
+
+        return is_array($decoded) ? $decoded : [];
+    }
+
+    /** @return array{section:string,action:string}|null */
+    private function normalizePerformanceHistoryActionPayload(string $action): ?array
+    {
+        $action = trim($action);
+        if ($action === '') {
+            return null;
+        }
+
+        if (str_starts_with($action, 'performance.history.')) {
+            $normalized = substr($action, strlen('performance.history.'));
+            $parts = explode('.', $normalized, 2);
+            if (count($parts) === 2 && $parts[0] !== '' && $parts[1] !== '') {
+                return ['section' => $parts[0], 'action' => $parts[1]];
+            }
+        }
+
+        return match ($action) {
+            'performance.cache.clear_all' => ['section' => 'cache', 'action' => 'clear_all_cache'],
+            'performance.cache.clear_file' => ['section' => 'cache', 'action' => 'clear_file_cache'],
+            'performance.cache.rollback' => ['section' => 'cache', 'action' => 'rollback_cache_cleanup'],
+            'performance.cache.clear_opcache' => ['section' => 'cache', 'action' => 'clear_opcache'],
+            'performance.cache.warmup_opcache' => ['section' => 'cache', 'action' => 'warmup_opcache'],
+            'performance.database.optimize' => ['section' => 'database', 'action' => 'optimize_database'],
+            'performance.database.repair' => ['section' => 'database', 'action' => 'repair_tables'],
+            'performance.database.rollback' => ['section' => 'database', 'action' => 'rollback_database_maintenance'],
+            'performance.sessions.clear_expired' => ['section' => 'sessions', 'action' => 'clear_expired_sessions'],
+            'performance.media.convert_webp' => ['section' => 'media', 'action' => 'convert_media_to_webp'],
+            'performance.media.rollback_webp' => ['section' => 'media', 'action' => 'rollback_webp_conversion'],
+            'performance.settings.save', 'performance.settings.save_failed' => ['section' => 'settings', 'action' => 'save_settings'],
+            default => null,
+        };
+    }
+
+    private function normalizePerformanceHistoryTrigger(string $trigger): string
+    {
+        $trigger = strtolower(trim($trigger));
+
+        return match ($trigger) {
+            'admin', 'manual', 'cron', 'system', 'rollback' => $trigger,
+            default => 'admin',
+        };
+    }
+
+    private function normalizePerformanceHistoryResult(string $result, string $severity, string $action): string
+    {
+        $result = strtolower(trim($result));
+        if (in_array($result, ['success', 'partial', 'error'], true)) {
+            return $result;
+        }
+
+        if ($action === 'save_settings' && str_contains(strtolower($severity), 'error')) {
+            return 'error';
+        }
+
+        return in_array(strtolower(trim($severity)), ['error', 'critical'], true) ? 'error' : 'success';
+    }
+
+    private function mapPerformanceHistorySectionLabel(string $section): string
+    {
+        return match ($section) {
+            'cache' => 'Cache',
+            'database' => 'Datenbank',
+            'media' => 'Medien',
+            'sessions' => 'Sessions',
+            'settings' => 'Einstellungen',
+            default => 'Performance',
+        };
+    }
+
+    private function mapPerformanceHistoryActionLabel(string $section, string $action): string
+    {
+        return match ($action) {
+            'clear_all_cache' => 'Alle Cache-Layer leeren',
+            'clear_file_cache' => 'Nur Datei-Cache leeren',
+            'rollback_cache_cleanup' => 'Cache-Bereinigung zurückrollen',
+            'clear_opcache' => 'OPcache zurücksetzen',
+            'warmup_opcache' => 'OPcache-Warmup',
+            'optimize_database' => 'Tabellen optimieren',
+            'repair_tables' => 'Tabellen prüfen & reparieren',
+            'rollback_database_maintenance' => 'DB-Wartung zurückrollen',
+            'clear_expired_sessions' => 'Abgelaufene Sessions bereinigen',
+            'convert_media_to_webp' => 'Medien zu WebP konvertieren',
+            'rollback_webp_conversion' => 'WebP-Konvertierung zurückrollen',
+            'save_cache_settings' => 'Cache-Einstellungen speichern',
+            'save_media_settings' => 'Medien-Performance speichern',
+            'save_session_settings' => 'Session-Einstellungen speichern',
+            'save_settings' => $section === 'settings' ? 'Performance-Einstellungen speichern' : 'Performance-Einstellungen speichern',
+            default => $action !== '' ? $action : 'Performance-Maßnahme',
+        };
+    }
+
+    private function mapPerformanceHistoryTriggerLabel(string $trigger): string
+    {
+        return match ($trigger) {
+            'admin' => 'Admin-Aktion',
+            'manual' => 'Manuell',
+            'cron' => 'Cron',
+            'system' => 'System',
+            'rollback' => 'Rollback',
+            default => 'Admin-Aktion',
+        };
+    }
+
+    private function mapPerformanceHistoryResultLabel(string $result): string
+    {
+        return match ($result) {
+            'partial' => 'teilweise',
+            'error' => 'fehlgeschlagen',
+            default => 'erfolgreich',
+        };
+    }
+
+    private function mapPerformanceHistoryResultBadge(string $result): string
+    {
+        return match ($result) {
+            'partial' => 'warning',
+            'error' => 'danger',
+            default => 'success',
+        };
+    }
+
+    /** @return int|null */
+    private function normalizePositiveNullable(mixed $value): ?int
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        $normalized = (int) $value;
+
+        return $normalized >= 0 ? $normalized : null;
+    }
+
+    private function recordPerformanceHistory(string $section, string $action, array $post, array $result, float $startedAt): void
+    {
+        $section = trim($section);
+        $action = trim($action);
+
+        if ($section === '' || $action === '') {
+            return;
+        }
+
+        $resultState = $this->determinePerformanceHistoryOutcome($result);
+        $severity = match ($resultState) {
+            'error' => 'error',
+            'partial' => 'warning',
+            default => 'info',
+        };
+
+        $message = (string) ($result['message'] ?? $result['error'] ?? '');
+        $metadata = [
+            'section' => $section,
+            'trigger' => 'admin',
+            'result' => $resultState,
+            'duration_ms' => max(0, (int) round((microtime(true) - $startedAt) * 1000)),
+            'message' => $this->sanitizeAuditString($message, 180),
+        ];
+
+        foreach ($this->buildPerformanceHistoryContext($section, $action, $post) as $key => $value) {
+            $metadata[$key] = $value;
+        }
+
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_SYSTEM,
+            'performance.history.' . $section . '.' . $action,
+            'Performance-Historie: ' . $this->mapPerformanceHistoryActionLabel($section, $action),
+            'performance',
+            null,
+            $metadata,
+            $severity
+        );
+    }
+
+    private function determinePerformanceHistoryOutcome(array $result): string
+    {
+        if (empty($result['success'])) {
+            return 'error';
+        }
+
+        $message = strtolower((string) ($result['message'] ?? ''));
+        if ($message !== '' && preg_match('/\b[1-9]\d*\s+fehlgeschlagen\b/u', $message) === 1) {
+            return 'partial';
+        }
+
+        return 'success';
+    }
+
+    /** @return array<string, scalar|null> */
+    private function buildPerformanceHistoryContext(string $section, string $action, array $post): array
+    {
+        if ($action === 'convert_media_to_webp') {
+            return [
+                'mode' => (string) (($post['webp_mode'] ?? '') === 'dry_run' ? 'dry_run' : 'live'),
+                'batch_limit' => max(1, min(self::WEBP_MAX_BATCH_LIMIT, (int) ($post['webp_batch_limit'] ?? self::WEBP_DEFAULT_BATCH_LIMIT))),
+                'replace_originals' => !empty($post['webp_replace_originals']),
+            ];
+        }
+
+        return match ($action) {
+            'save_cache_settings' => ['settings_scope' => 'cache'],
+            'save_media_settings' => ['settings_scope' => 'media'],
+            'save_session_settings' => ['settings_scope' => 'sessions'],
+            'save_settings' => ['settings_scope' => $section],
+            default => [],
         };
     }
 
@@ -815,6 +1208,289 @@ final class PerformanceModule
                 'member' => (int)$settings['perf_session_timeout_member'],
             ],
         ];
+    }
+
+    /** @param array<string, mixed> $sectionData @return array<string, mixed> */
+    private function getCapacityPrecheck(string $section, array $sectionData = []): array
+    {
+        $diskTotal = @disk_total_space(ABSPATH);
+        $diskFree = @disk_free_space(ABSPATH);
+        $diskUsed = ($diskTotal !== false && $diskFree !== false) ? max(0, (int) $diskTotal - (int) $diskFree) : 0;
+        $diskUsedPercent = ($diskTotal !== false && (int) $diskTotal > 0)
+            ? round(($diskUsed / (int) $diskTotal) * 100, 1)
+            : null;
+
+        $recommendedFreeBytes = $this->getRecommendedCapacityReserveBytes($section, $sectionData);
+        $loadAverage = $this->getLoadAverageSnapshot();
+        $activeJobs = $this->getActiveBackgroundCapacityJobs();
+        $warnings = [];
+
+        if ($diskFree === false || $diskTotal === false) {
+            $warnings[] = [
+                'level' => 'warning',
+                'title' => 'Freien Speicher derzeit nicht messbar',
+                'detail' => 'Der Server liefert aktuell keine belastbaren Disk-Werte. Optimierungsjobs sollten nur mit zusätzlicher Vorsicht gestartet werden.',
+            ];
+        } else {
+            if ((int) $diskFree < max(self::CAPACITY_CRITICAL_FREE_BYTES, (int) round($recommendedFreeBytes * 0.5))) {
+                $warnings[] = [
+                    'level' => 'danger',
+                    'title' => 'Kritisch wenig freier Speicher',
+                    'detail' => 'Nur ' . $this->formatBytes((int) $diskFree) . ' frei; empfohlener Puffer für diesen Job: ' . $this->formatBytes($recommendedFreeBytes) . '.',
+                ];
+            } elseif ((int) $diskFree < max(self::CAPACITY_WARNING_FREE_BYTES, $recommendedFreeBytes)) {
+                $warnings[] = [
+                    'level' => 'warning',
+                    'title' => 'Freier Speicher knapp',
+                    'detail' => 'Aktuell frei: ' . $this->formatBytes((int) $diskFree) . '; empfohlener Puffer: ' . $this->formatBytes($recommendedFreeBytes) . '.',
+                ];
+            }
+
+            if ($diskUsedPercent !== null && $diskUsedPercent >= 90.0) {
+                $warnings[] = [
+                    'level' => $diskUsedPercent >= 95.0 ? 'danger' : 'warning',
+                    'title' => 'Hohe Disk-Auslastung',
+                    'detail' => 'Die Partition unter ABSPATH ist bereits zu ' . number_format((float) $diskUsedPercent, 1, ',', '.') . ' % belegt.',
+                ];
+            }
+        }
+
+        $loadOneMinute = $loadAverage['one_minute'];
+        if ($loadOneMinute !== null) {
+            if ($loadOneMinute >= self::CAPACITY_CRITICAL_LOAD) {
+                $warnings[] = [
+                    'level' => 'danger',
+                    'title' => 'Hohe Systemlast',
+                    'detail' => '1-Minuten-Load liegt bei ' . number_format($loadOneMinute, 2, ',', '.') . '.',
+                ];
+            } elseif ($loadOneMinute >= self::CAPACITY_WARNING_LOAD) {
+                $warnings[] = [
+                    'level' => 'warning',
+                    'title' => 'Erhöhte Systemlast',
+                    'detail' => '1-Minuten-Load liegt bei ' . number_format($loadOneMinute, 2, ',', '.') . '.',
+                ];
+            }
+        }
+
+        if ($activeJobs !== []) {
+            $warnings[] = [
+                'level' => 'warning',
+                'title' => 'Parallele Hintergrundjobs erkannt',
+                'detail' => implode(' · ', array_map(static fn(array $job): string => (string) ($job['detail'] ?? $job['label'] ?? ''), $activeJobs)),
+            ];
+        }
+
+        $status = 'success';
+        foreach ($warnings as $warning) {
+            if (($warning['level'] ?? '') === 'danger') {
+                $status = 'danger';
+                break;
+            }
+
+            if (($warning['level'] ?? '') === 'warning') {
+                $status = 'warning';
+            }
+        }
+
+        return [
+            'status' => $status,
+            'status_label' => $status === 'danger' ? 'Engpass' : ($status === 'warning' ? 'Beobachten' : 'Bereit'),
+            'disk_total_bytes' => $diskTotal !== false ? (int) $diskTotal : 0,
+            'disk_free_bytes' => $diskFree !== false ? (int) $diskFree : 0,
+            'disk_used_percent' => $diskUsedPercent,
+            'recommended_free_bytes' => $recommendedFreeBytes,
+            'load_1m' => $loadAverage['one_minute'],
+            'load_5m' => $loadAverage['five_minutes'],
+            'load_15m' => $loadAverage['fifteen_minutes'],
+            'active_jobs' => $activeJobs,
+            'active_job_count' => count($activeJobs),
+            'warnings' => $warnings,
+            'confirm_suffix' => $this->buildCapacityConfirmSuffix($diskFree !== false ? (int) $diskFree : null, $diskUsedPercent, $recommendedFreeBytes, $loadAverage, $activeJobs),
+        ];
+    }
+
+    /** @param array<string, mixed> $sectionData */
+    private function getRecommendedCapacityReserveBytes(string $section, array $sectionData): int
+    {
+        return match ($section) {
+            'cache' => max(
+                268435456,
+                min(2147483648, (int) (($sectionData['cache']['purge_preview']['file_size_bytes'] ?? 0)))
+            ),
+            'database' => max(
+                1073741824,
+                min(4294967296, (int) round(((int) ($sectionData['database']['total_size_bytes'] ?? 0)) * 0.10))
+            ),
+            'media' => max(
+                536870912,
+                min(2147483648, $this->estimateMediaBatchReserveBytes((array) ($sectionData['media']['conversion']['candidates'] ?? [])))
+            ),
+            default => self::CAPACITY_WARNING_FREE_BYTES,
+        };
+    }
+
+    /** @param array<int, array<string, mixed>> $candidates */
+    private function estimateMediaBatchReserveBytes(array $candidates): int
+    {
+        $bytes = 0;
+        $count = 0;
+
+        foreach ($candidates as $candidate) {
+            if (!is_array($candidate)) {
+                continue;
+            }
+
+            $bytes += max(0, (int) ($candidate['size'] ?? 0));
+            ++$count;
+
+            if ($count >= self::WEBP_DEFAULT_BATCH_LIMIT) {
+                break;
+            }
+        }
+
+        return $bytes > 0 ? $bytes * 2 : 536870912;
+    }
+
+    /** @return array{one_minute:?float,five_minutes:?float,fifteen_minutes:?float} */
+    private function getLoadAverageSnapshot(): array
+    {
+        $load = false;
+        if (function_exists('sys_getloadavg')) {
+            $load = @sys_getloadavg();
+        } elseif (function_exists('getloadavg')) {
+            $load = @getloadavg();
+        }
+
+        if (!is_array($load)) {
+            return [
+                'one_minute' => null,
+                'five_minutes' => null,
+                'fifteen_minutes' => null,
+            ];
+        }
+
+        $normalize = static function (mixed $value): ?float {
+            return is_numeric($value) ? round((float) $value, 2) : null;
+        };
+
+        return [
+            'one_minute' => $normalize($load[0] ?? null),
+            'five_minutes' => $normalize($load[1] ?? null),
+            'fifteen_minutes' => $normalize($load[2] ?? null),
+        ];
+    }
+
+    /** @return list<array<string, string>> */
+    private function getActiveBackgroundCapacityJobs(): array
+    {
+        $jobs = [];
+
+        $mailQueueJobs = $this->countActiveMailQueueLocks();
+        if ($mailQueueJobs > 0) {
+            $jobs[] = [
+                'label' => 'Mail-Queue',
+                'detail' => $mailQueueJobs . ' Mail-Queue-Job(s) aktuell gesperrt oder in Verarbeitung.',
+            ];
+        }
+
+        $mediaJob = $this->getActiveMediaDerivativeJobSignal();
+        if ($mediaJob !== null) {
+            $jobs[] = $mediaJob;
+        }
+
+        return $jobs;
+    }
+
+    private function countActiveMailQueueLocks(): int
+    {
+        $tableName = $this->prefix . 'mail_queue';
+        if (!$this->tableExistsByFullName($tableName)) {
+            return 0;
+        }
+
+        try {
+            return (int) ($this->db->get_var(
+                "SELECT COUNT(*) FROM {$tableName} WHERE status = 'processing' AND locked_at IS NOT NULL AND locked_at >= DATE_SUB(NOW(), INTERVAL " . self::ACTIVE_QUEUE_LOCK_WINDOW_MINUTES . " MINUTE)"
+            ) ?? 0);
+        } catch (\Throwable) {
+            return 0;
+        }
+    }
+
+    /** @return array<string, string>|null */
+    private function getActiveMediaDerivativeJobSignal(): ?array
+    {
+        $path = dirname(__DIR__, 3) . DIRECTORY_SEPARATOR . 'config' . DIRECTORY_SEPARATOR . 'media-processing-job.json';
+        if (!is_file($path) || !is_readable($path)) {
+            return null;
+        }
+
+        $fileSize = @filesize($path);
+        if ($fileSize === false || $fileSize <= 0 || $fileSize > self::MEDIA_JOB_STATUS_MAX_FILE_BYTES) {
+            return null;
+        }
+
+        $decoded = json_decode((string) file_get_contents($path), true);
+        if (!is_array($decoded)) {
+            return null;
+        }
+
+        $status = strtolower(trim((string) ($decoded['status'] ?? 'queued')));
+        $total = max(0, (int) ($decoded['total'] ?? 0));
+        $processed = max(0, min($total, (int) ($decoded['processed'] ?? $decoded['cursor'] ?? 0)));
+        if (!in_array($status, ['queued', 'running'], true) || $processed >= $total) {
+            return null;
+        }
+
+        return [
+            'label' => 'Medien-Derivat-Job',
+            'detail' => 'Medien-Derivat-Job aktiv: ' . $processed . ' / ' . $total . ' Datei(en), Status ' . $status . '.',
+        ];
+    }
+
+    private function tableExistsByFullName(string $tableName): bool
+    {
+        if (array_key_exists($tableName, $this->tableExistsCache)) {
+            return $this->tableExistsCache[$tableName];
+        }
+
+        try {
+            $quotedTable = $this->db->getPdo()->quote($tableName);
+            if (!is_string($quotedTable)) {
+                $this->tableExistsCache[$tableName] = false;
+
+                return false;
+            }
+
+            $result = $this->db->getPdo()->query('SHOW TABLES LIKE ' . $quotedTable);
+            $this->tableExistsCache[$tableName] = $result !== false && $result->fetchColumn() !== false;
+        } catch (\Throwable) {
+            $this->tableExistsCache[$tableName] = false;
+        }
+
+        return $this->tableExistsCache[$tableName];
+    }
+
+    /**
+     * @param array{one_minute:?float,five_minutes:?float,fifteen_minutes:?float} $loadAverage
+     * @param list<array<string, string>> $activeJobs
+     */
+    private function buildCapacityConfirmSuffix(?int $diskFreeBytes, ?float $diskUsedPercent, int $recommendedFreeBytes, array $loadAverage, array $activeJobs): string
+    {
+        $lines = [
+            '- Freier Speicher: ' . ($diskFreeBytes !== null ? $this->formatBytes($diskFreeBytes) : 'unbekannt'),
+            '- Empfohlener Puffer: ' . $this->formatBytes($recommendedFreeBytes),
+            '- Disk-Auslastung: ' . ($diskUsedPercent !== null ? number_format($diskUsedPercent, 1, ',', '.') . ' %' : 'unbekannt'),
+            '- Last (1m): ' . ($loadAverage['one_minute'] !== null ? number_format((float) $loadAverage['one_minute'], 2, ',', '.') : 'nicht verfügbar'),
+        ];
+
+        if ($activeJobs === []) {
+            $lines[] = '- Aktive Hintergrundjobs: keine erkannt';
+        } else {
+            $lines[] = '- Aktive Hintergrundjobs: ' . implode(' · ', array_map(static fn(array $job): string => (string) ($job['label'] ?? 'Job'), $activeJobs));
+        }
+
+        return "\n\nPre-Check:\n" . implode("\n", $lines);
     }
 
     private function clearAllCacheLayers(): array

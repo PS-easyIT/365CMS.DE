@@ -4,17 +4,39 @@ if (!defined('ABSPATH')) exit;
 if (!defined('CMS_ADMIN_PERFORMANCE_VIEW')) exit;
 
 $media = $data['media'] ?? [];
+$capacity = $data['capacity'] ?? [];
 $library = $media['library'] ?? [];
 $largestImages = $media['largest_images'] ?? [];
 $conversion = $media['conversion'] ?? [];
 $conversionCandidates = $conversion['candidates'] ?? [];
 $settings = $data['settings'] ?? [];
+$capacityWarnings = is_array($capacity['warnings'] ?? null) ? $capacity['warnings'] : [];
+$capacityJobs = is_array($capacity['active_jobs'] ?? null) ? $capacity['active_jobs'] : [];
 $formatBytes = static function (int $bytes): string {
     if ($bytes >= 1073741824) return number_format($bytes / 1073741824, 2, ',', '.') . ' GB';
     if ($bytes >= 1048576) return number_format($bytes / 1048576, 2, ',', '.') . ' MB';
     if ($bytes >= 1024) return number_format($bytes / 1024, 2, ',', '.') . ' KB';
     return $bytes . ' B';
 };
+$buildConfirmMessage = static function (string $baseMessage) use ($capacity): string {
+    $suffix = trim((string) ($capacity['confirm_suffix'] ?? ''));
+
+    return $suffix !== '' ? $baseMessage . $suffix : $baseMessage;
+};
+$capacityStatus = (string) ($capacity['status'] ?? 'success');
+$capacityStatusBadge = match ($capacityStatus) {
+    'danger' => 'danger',
+    'warning' => 'warning',
+    default => 'success',
+};
+$diskFreeLabel = !empty($capacity['disk_total_bytes']) ? $formatBytes((int) ($capacity['disk_free_bytes'] ?? 0)) : '–';
+$diskUsedLabel = ($capacity['disk_used_percent'] ?? null) !== null
+    ? number_format((float) $capacity['disk_used_percent'], 1, ',', '.') . ' %'
+    : '–';
+$recommendedReserveLabel = $formatBytes((int) ($capacity['recommended_free_bytes'] ?? 0));
+$loadLabel = ($capacity['load_1m'] ?? null) !== null
+    ? number_format((float) $capacity['load_1m'], 2, ',', '.')
+    : 'nicht verfügbar';
 ?>
 <div class="page-header d-print-none"><div class="container-xl"><div class="row g-2 align-items-center"><div class="col"><div class="page-pretitle">Performance</div><h2 class="page-title">Medien-Optimierung</h2><div class="text-secondary mt-1">Bildbibliothek, Alt-Texte, Dateigrößen und WebP-/EXIF-Strategie im Blick.</div></div></div></div></div>
 <div class="page-body"><div class="container-xl">
@@ -29,6 +51,45 @@ $formatBytes = static function (int $bytes): string {
     </div>
 
     <div class="card mb-4"><div class="card-header"><h3 class="card-title">Medien-Strategie</h3></div><div class="card-body"><form method="post"><input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>"><input type="hidden" name="action" value="save_media_settings"><div class="row"><div class="col-md-3"><label class="form-check form-switch mb-3"><input class="form-check-input" type="checkbox" name="perf_lazy_loading" value="1" <?php echo ($settings['perf_lazy_loading'] ?? '0') === '1' ? 'checked' : ''; ?>><span class="form-check-label">Lazy Loading für CMS-Medien aktivieren</span></label></div><div class="col-md-3"><label class="form-check form-switch mb-3"><input class="form-check-input" type="checkbox" name="perf_webp_uploads" value="1" <?php echo ($settings['perf_webp_uploads'] ?? '0') === '1' ? 'checked' : ''; ?>><span class="form-check-label">WebP-Begleitdateien bei Upload erzeugen</span></label></div><div class="col-md-3"><label class="form-check form-switch mb-3"><input class="form-check-input" type="checkbox" name="perf_strip_exif" value="1" <?php echo ($settings['perf_strip_exif'] ?? '0') === '1' ? 'checked' : ''; ?>><span class="form-check-label">EXIF-Metadaten beim Upload entfernen</span></label></div><div class="col-md-3"><label class="form-label">Eager-Bilder am Seitenanfang</label><input type="number" min="0" max="5" step="1" class="form-control" name="perf_lazy_loading_eager_images" value="<?php echo htmlspecialchars((string)($settings['perf_lazy_loading_eager_images'] ?? '1')); ?>"></div></div><div class="form-text mb-3">Diese Optionen werden mit den Medien-Einstellungen synchronisiert und wirken auf neue Uploads sowie Editor.js-Ausgaben. Die ersten Eager-Bilder schützen Hero-/LCP-Medien vor versehentlichem Lazy Loading.</div><button type="submit" class="btn btn-primary">Medien-Einstellungen speichern</button></form></div></div>
+
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h3 class="card-title mb-0">Kapazitäts-Pre-Check vor Medienjobs</h3>
+            <span class="badge bg-<?php echo $capacityStatusBadge; ?>-lt"><?php echo htmlspecialchars((string) ($capacity['status_label'] ?? 'Bereit')); ?></span>
+        </div>
+        <div class="card-body">
+            <div class="row row-cards mb-3">
+                <div class="col-md-3"><div class="card card-sm"><div class="card-body"><div class="subheader">Freier Speicher</div><div class="h3 mb-0"><?php echo htmlspecialchars($diskFreeLabel); ?></div></div></div></div>
+                <div class="col-md-3"><div class="card card-sm"><div class="card-body"><div class="subheader">Disk-Auslastung</div><div class="h3 mb-0"><?php echo htmlspecialchars($diskUsedLabel); ?></div></div></div></div>
+                <div class="col-md-3"><div class="card card-sm"><div class="card-body"><div class="subheader">Empfohlener Puffer</div><div class="h3 mb-0"><?php echo htmlspecialchars($recommendedReserveLabel); ?></div></div></div></div>
+                <div class="col-md-3"><div class="card card-sm"><div class="card-body"><div class="subheader">Last (1m)</div><div class="h3 mb-0"><?php echo htmlspecialchars($loadLabel); ?></div></div></div></div>
+            </div>
+
+            <?php if ($capacityWarnings !== []): ?>
+                <div class="d-flex flex-column gap-2">
+                    <?php foreach ($capacityWarnings as $warning): ?>
+                        <div class="alert alert-<?php echo htmlspecialchars((string) (($warning['level'] ?? 'warning') === 'danger' ? 'danger' : 'warning')); ?> mb-0">
+                            <strong><?php echo htmlspecialchars((string) ($warning['title'] ?? 'Warnung')); ?>:</strong>
+                            <?php echo htmlspecialchars((string) ($warning['detail'] ?? '')); ?>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            <?php else: ?>
+                <div class="alert alert-success mb-0">Die Medien-Optimierung sieht aktuell unkritisch aus. WebP kann also ohne Nervenkostüm-Schweißperlen anlaufen.</div>
+            <?php endif; ?>
+
+            <?php if ($capacityJobs !== []): ?>
+                <div class="mt-3">
+                    <div class="small text-secondary mb-2">Erkannte parallele Hintergrundjobs</div>
+                    <ul class="mb-0 text-secondary small">
+                        <?php foreach ($capacityJobs as $job): ?>
+                            <li><?php echo htmlspecialchars((string) ($job['detail'] ?? ($job['label'] ?? 'Job'))); ?></li>
+                        <?php endforeach; ?>
+                    </ul>
+                </div>
+            <?php endif; ?>
+        </div>
+    </div>
 
     <div class="card mb-4">
         <div class="card-header d-flex align-items-center justify-content-between">
@@ -49,7 +110,7 @@ $formatBytes = static function (int $bytes): string {
                 <div class="col-md-4"><div class="card card-sm"><div class="card-body"><div class="subheader">Server-Support</div><div class="h2 mb-0 <?php echo !empty($conversion['supported']) ? 'text-success' : 'text-danger'; ?>"><?php echo !empty($conversion['supported']) ? 'WebP bereit' : 'Nicht verfügbar'; ?></div></div></div></div>
             </div>
 
-            <form method="post" class="card card-sm mb-3" data-confirm-title="WebP-Batch starten" data-confirm-message="WebP-Batch wirklich starten? Bei aktivierter Original-Ersetzung werden Originale gesichert, Referenzen angepasst und ein Rollback-Manifest geschrieben." data-confirm-text="Batch starten" data-confirm-class="btn-success" data-confirm-status-class="bg-success">
+            <form method="post" class="card card-sm mb-3" data-confirm-title="WebP-Batch starten" data-confirm-message="<?php echo htmlspecialchars($buildConfirmMessage('WebP-Batch wirklich starten? Bei aktivierter Original-Ersetzung werden Originale gesichert, Referenzen angepasst und ein Rollback-Manifest geschrieben.'), ENT_QUOTES); ?>" data-confirm-text="Batch starten" data-confirm-class="btn-success" data-confirm-status-class="bg-success">
                 <div class="card-body">
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>">
                     <input type="hidden" name="action" value="convert_media_to_webp">

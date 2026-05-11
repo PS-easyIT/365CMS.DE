@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Dokumentiert das Performance-Center mit seinen sechs Unterseiten für Cache, Medien, Datenbank, Settings und Sessions.
 
-Letzte Aktualisierung: 2026-05-11 · Version 2.9.750
+Letzte Aktualisierung: 2026-05-11 · Version 2.9.756
 
 ---
 
@@ -30,6 +30,10 @@ Performance ist ein eigenständiger Hauptbereich mit sechs Unterseiten. Die Navi
 | `/admin/performance-settings` | `views/performance/settings.php` | Globale Laufzeitoptionen und Optimierungsschalter |
 | `/admin/performance-sessions` | `views/performance/sessions.php` | Session-Übersicht, Bereinigung abgelaufener Sessions |
 
+Die Übersichtsseite ergänzt zusätzlich eine read-only Historie der letzten Performance-Maßnahmen mit Zeitpunkt, Bereich, Maßnahme, Auslöser, Ergebnis und – soweit vorhanden – Laufzeit. Die Daten stammen aus dem bestehenden `audit_log`; gibt es noch keine standardisierten Historieneinträge, fällt die Ansicht fail-soft auf die bereits vorhandenen Performance-Audits zurück.
+
+Zusätzlich zeigen die operativen Unterseiten für Cache, Datenbank und Medien jetzt einen read-only Kapazitäts-Pre-Check vor Massenaktionen. Der Pre-Check blendet freien Speicher, Disk-Auslastung, empfohlene Reserve, vorhandene Last-Signale und erkannte parallele Hintergrundjobs ein und ergänzt diese Werte direkt im Bestätigungsdialog für Optimierungsjobs. Die Auswertung bleibt rein lesend, ohne neue GET-Mutationen, Tokens in URLs oder blockierende Pflichtprüfungen.
+
 ---
 
 ## Cache-Verwaltung
@@ -41,6 +45,7 @@ Die Seite `/admin/performance-cache` steuert die CMS-internen Caches:
 - Cache-Statistiken einsehen
 - selektive Invalidierung bei Bedarf
 - read-only Auswirkungs-Vorschau für Datei-Cache, APCu und OPcache vor Purge-Aktionen
+- read-only Kapazitäts-Pre-Check mit freiem Speicher, Last und parallelen Hintergrundjobs vor Purge-Aktionen
 - automatischer Datei-Cache-Snapshot vor `Alle Cache-Layer leeren` und `Nur Datei-Cache leeren`
 - Rollback der letzten Cache-Bereinigung innerhalb eines begrenzten Zeitfensters (Datei-Cache only, flüchtige Runtime-Caches werden regulär neu aufgebaut)
 
@@ -62,6 +67,7 @@ Die Seite `/admin/performance-media` bündelt bildspezifische Optimierungen:
 - **EXIF-Entfernung:** Der Performance-Schalter synchronisiert auf `strip_exif`; neue JPG-/PNG-Uploads werden nur bei aktivem Schalter sauber per GD re-encodiert.
 - **Lazy Loading:** Editor.js-/CMS-Medienausgaben respektieren `perf_lazy_loading`; die ersten konfigurierbaren Bilder bleiben eager/high-priority, damit Hero-/LCP-Medien nicht versehentlich lazy geladen werden.
 - **WebP-Massenkonvertierung:** Geeignete Bilder in `uploads/` werden batchweise verarbeitet. Dry-Run, Batch-Limit, optionales Original-Ersetzen, Backup-Manifest und Rollback der letzten Konvertierung sind integriert.
+- **Kapazitätswarnungen:** Vor WebP-Batches zeigt die Seite zusätzlich freien Speicher, aktuelle Last, empfohlene Reserve und erkannte parallele Hintergrundjobs an; der Bestätigungsdialog übernimmt diese Werte direkt als Kontext.
 - Bildgrößen-Analyse
 - Thumbnail-Regenerierung
 
@@ -76,6 +82,7 @@ Unter `/admin/performance-database` stehen insbesondere zur Verfügung:
 - Tabellen-Optimierung
 - allgemeiner Datenbank-Cleanup
 - read-only Wartungsvorschau je Engine mit Kennzeichnung, welche Tabellen für `OPTIMIZE TABLE` bzw. `REPAIR TABLE` überhaupt unterstützt sind
+- read-only Kapazitäts-Pre-Check mit Speicher-, Last- und Paralleljob-Hinweisen direkt vor Wartungsaktionen
 - automatisches Standalone-Datenbank-Backup vor `OPTIMIZE`/`REPAIR` als ehrlicher Rollback-Pfad
 - Rollback der letzten DB-Wartung innerhalb eines begrenzten Zeitfensters über das vorab erzeugte Datenbank-Backup
 
@@ -128,7 +135,7 @@ Alle Performance-Seiten folgen dem Admin-Standardmuster:
 - POST-Ergebnis als Session-Alert, Redirect auf GET-Route
 - Audit-Logging für sicherheitsrelevante Aktionen
 
-Zusätzlich werden operative Performance-Aktionen wie Cache-Bereinigung, Datenbankwartung, Session-Cleanup, WebP-Massenläufe und Performance-Settings jetzt nicht nur protokolliert, sondern in `/admin/cms-logs` auch direkt als Betriebs-Audit im Diagnosekontext sichtbar gemacht. Damit bleiben die Effekte von Performance-Mutationen nicht in verstreuten Einzellogs verborgen.
+Zusätzlich werden operative Performance-Aktionen wie Cache-Bereinigung, Datenbankwartung, Session-Cleanup, WebP-Massenläufe und Performance-Settings jetzt nicht nur protokolliert, sondern in `/admin/cms-logs` auch direkt als Betriebs-Audit im Diagnosekontext sichtbar gemacht. Die Performance-Übersicht nutzt denselben Audit-Bestand für eine gebündelte Maßnahmenhistorie; Details bleiben bewusst datensparsam, ohne Tokens, Secrets oder neue GET-Mutationen.
 
 ---
 

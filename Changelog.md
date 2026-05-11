@@ -1,4 +1,4 @@
-﻿﻿**Version:** 2.9.754
+﻿﻿**Version:** 2.9.756
 
 # 365CMS Changelog
 
@@ -19,6 +19,18 @@
 ## 📜 Vollständige Versionshistorie
 
 ---
+
+### v2.9.756 — 11. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.756** | 🟢 feat | Admin/Performance – Kapazitätswarnungen vor Optimierungsjobs | **`CMS/admin/modules/seo/PerformanceModule.php`, `CMS/admin/views/performance/cache.php`, `CMS/admin/views/performance/database.php`, `CMS/admin/views/performance/media.php`, `CMS/DOC/admin/performance/PERFORMANCE.md`, `CMS/DOC/audit/NiceToHave-CHECKLISTE.md`, `CMS/core/Version.php`, `CMS/update.json`, `README.md` und `Changelog.md` schließen das nächste offene Performance-Nice-to-have ab**: Cache-, Datenbank- und Medien-Optimierungen zeigen jetzt vor Massenaktionen einen read-only Kapazitäts-Pre-Check mit freiem Speicher, Disk-Auslastung, empfohlener Reserve, Lastsignal und erkannten parallelen Hintergrundjobs. Dieselben Werte landen zusätzlich im jeweiligen Bestätigungsdialog, sodass Aktionen nicht mehr nur mit pauschalem „wirklich ausführen?“ bestätigt werden. Die Umsetzung bleibt fail-soft, führt keine neuen GET-Mutationen, keine Tokens in URLs und keine blockierenden Zwangsschreibpfade ein; aktive Mail-Queue- oder Medien-Hintergrundläufe werden lediglich transparent als Warnsignal eingeblendet. |
+
+### v2.9.755 — 11. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.755** | 🟢 feat | Admin/Performance – Historie der Performance-Maßnahmen | **`CMS/admin/modules/seo/PerformanceModule.php`, `CMS/admin/views/seo/performance.php`, `CMS/DOC/admin/performance/PERFORMANCE.md`, `CMS/DOC/audit/NiceToHave-CHECKLISTE.md`, `CMS/core/Version.php`, `CMS/update.json`, `README.md` und `Changelog.md` schließen das nächste offene Performance-Nice-to-have ab**: Die Performance-Übersicht zeigt jetzt eine read-only Historie der letzten Maßnahmen aus dem bestehenden `audit_log` – inklusive Zeitpunkt, Bereich, Maßnahme, Auslöser, Ergebnis und, soweit vorhanden, Laufzeit. Neue Performance-Aktionen schreiben dafür zusätzlich standardisierte History-Einträge in datensparsamer Form; solange noch keine dieser Einträge vorliegen, fällt die Übersicht fail-soft auf vorhandene Performance-Audits zurück. Die Umsetzung bleibt rein lesend im GET-Pfad, führt keine Tokens in URLs ein, vermeidet neue 500-Risiken bei fehlenden Audit-Daten und nutzt weiter den bestehenden POST-/CSRF-Vertrag für tatsächliche Mutationen. |
 
 ### v2.9.754 — 11. Mai 2026
 

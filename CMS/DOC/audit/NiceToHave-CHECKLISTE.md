@@ -9,7 +9,7 @@ Theme-System-Erweiterungen (Bereich 8 außerhalb des Webbaukastens) sind bewusst
 ausgeklammert. Reihenfolge folgt dem Wirkungspfad: zuerst Inhalte, dann Betrieb, dann
 querschnittliche Komfortfunktionen.
 
-Nachprüfung 2.9.754: Die zuletzt umgesetzten Nice-to-haves ab 2.9.725 wurden erneut mit Fokus auf bekannte Fehler, unvollständige Übernahmepfade, Security-/Token-Verträge, Best Practice und Performance geprüft. Konkret wurde der 404-Monitor-Übernahmeflow nachgehärtet, damit ungelöste 404-Logs wieder als neue Redirect-Regel gespeichert werden und keine 404-Log-ID als Redirect-ID missverstanden wird. Zusätzlich bleibt das Performance-Sicherheitsnetz auf reinen GET-Seiten fail-soft, weil Rollback-Verzeichnisse erst bei tatsächlichen Snapshot-Mutationen angelegt werden. Die SEO-Audit-Datenquelle ist nun serverseitig begrenzt, damit Dashboard, Trend-Live-Fallback und Broken-Link-Report auch bei großen Inhaltsbeständen nicht ungebremst alle Seiten und Beiträge synchron analysieren. Live-Log-Nacharbeit: MariaDB-kritische `SHOW TABLES LIKE ?`-Prüfungen wurden auf PDO-quotierte read-only Checks umgestellt, fehlende SEO-Trendtabellen erzeugen im Dashboard keine vorbereiteten SELECT-Fehler mehr, Paket-Historien nutzen ein robustes LIKE-Escape-Zeichen und die Medienbibliothek schützt ihre View-Helper gegen doppelte Includes.
+Nachprüfung 2.9.756: Die zuletzt umgesetzten Nice-to-haves ab 2.9.725 wurden erneut mit Fokus auf bekannte Fehler, unvollständige Übernahmepfade, Security-/Token-Verträge, Best Practice und Performance geprüft. Konkret wurde der 404-Monitor-Übernahmeflow nachgehärtet, damit ungelöste 404-Logs wieder als neue Redirect-Regel gespeichert werden und keine 404-Log-ID als Redirect-ID missverstanden wird. Zusätzlich bleibt das Performance-Sicherheitsnetz auf reinen GET-Seiten fail-soft, weil Rollback-Verzeichnisse erst bei tatsächlichen Snapshot-Mutationen angelegt werden. Die SEO-Audit-Datenquelle ist nun serverseitig begrenzt, damit Dashboard, Trend-Live-Fallback und Broken-Link-Report auch bei großen Inhaltsbeständen nicht ungebremst alle Seiten und Beiträge synchron analysieren. Live-Log-Nacharbeit: MariaDB-kritische `SHOW TABLES LIKE ?`-Prüfungen wurden auf PDO-quotierte read-only Checks umgestellt, fehlende SEO-Trendtabellen erzeugen im Dashboard keine vorbereiteten SELECT-Fehler mehr, Paket-Historien nutzen ein robustes LIKE-Escape-Zeichen und die Medienbibliothek schützt ihre View-Helper gegen doppelte Includes. Neu hinzu kommt ein read-only Kapazitäts-Pre-Check im Performance-Center, der freie Disk-Kapazität, Last und erkannte parallele Hintergrundjobs vor Cache-, DB- und Medien-Massenaktionen sichtbar macht und dieselben Werte in die Bestätigungsdialoge übernimmt – ohne neue Schreib- oder Token-Pfade.
 
 ---
 
@@ -46,12 +46,12 @@ Nachprüfung 2.9.754: Die zuletzt umgesetzten Nice-to-haves ab 2.9.725 wurden er
 - [x] **Dry-Run und Rollback für Massenoptimierungen**
   - [x] Vorschau betroffener Datensätze pro Optimierungsaktion (Cache-Purge, Bildkonvertierung, DB-Wartung)
   - [x] Snapshot vor Ausführung, Rollback-Aktion innerhalb eines Zeitfensters
-- [ ] **Historie der Performance-Maßnahmen**
-  - [ ] Read-only Tabelle mit Zeitpunkt, Aktion, Auslöser, Ergebnis und Dauer
-  - [ ] Anbindung an `audit_log` analog zur Update-Historie in `/admin/cms-logs`
-- [ ] **Kapazitätswarnungen vor Optimierungsjobs**
-  - [ ] Pre-Check für freien Speicher, Last und parallel laufende Cron-Jobs
-  - [ ] Bestätigungsdialog mit konkreten Werten statt pauschalem „sind Sie sicher"
+- [x] **Historie der Performance-Maßnahmen**
+  - [x] Read-only Tabelle mit Zeitpunkt, Aktion, Auslöser, Ergebnis und Dauer
+  - [x] Anbindung an `audit_log` analog zur Update-Historie in `/admin/cms-logs`
+- [x] **Kapazitätswarnungen vor Optimierungsjobs**
+  - [x] Pre-Check für freien Speicher, Last und parallel laufende Cron-Jobs
+  - [x] Bestätigungsdialog mit konkreten Werten statt pauschalem „sind Sie sicher"
 
 ## 4. Recht – DSGVO-Workflow vervollständigen
 
