@@ -398,8 +398,24 @@ final class RedirectService
 
     public function clearLogs(): array
     {
-        $this->db->query("TRUNCATE TABLE {$this->prefix}not_found_logs");
-        return ['success' => true, 'message' => '404-Protokoll wurde geleert.'];
+        try {
+            $statement = $this->db->execute("DELETE FROM {$this->prefix}not_found_logs");
+            $deleted = $statement->rowCount();
+
+            return [
+                'success' => true,
+                'message' => $deleted > 0
+                    ? $deleted . ' 404-Eintrag/Einträge wurden entfernt.'
+                    : 'Das 404-Protokoll war bereits leer.',
+                'details' => ['Gelöschte 404-Einträge: ' . $deleted],
+            ];
+        } catch (\Throwable $e) {
+            return [
+                'success' => false,
+                'error' => 'Das 404-Protokoll konnte nicht geleert werden.',
+                'details' => [$this->limitString($e->getMessage(), 200)],
+            ];
+        }
     }
 
     public function createAutomaticRedirect(string $sourcePath, string $targetUrl, string $notes = 'Automatisch bei Slug-Änderung angelegt'): array

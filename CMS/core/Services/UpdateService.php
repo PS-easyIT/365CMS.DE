@@ -1035,6 +1035,24 @@ class UpdateService
             return [];
         }
     }
+
+    public function clearUpdateHistory(): int
+    {
+        try {
+            $statement = $this->db->execute(
+                "DELETE FROM {$this->db->getPrefix()}settings WHERE option_name LIKE ?",
+                ['update_log_%']
+            );
+
+            return $statement->rowCount();
+        } catch (\Throwable $e) {
+            Logger::instance()->withChannel('updates.service')->warning('Update history could not be cleared.', [
+                'exception' => $e,
+            ]);
+
+            return 0;
+        }
+    }
     
     /**
      * H-19: Plugin/Theme/Core-Update herunterladen und staging-basiert installieren.

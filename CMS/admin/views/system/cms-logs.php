@@ -24,6 +24,7 @@ $documentationEntries = is_array($logsData['documentation_entries'] ?? null) ? $
 $operationalAuditEntries = is_array($logsData['operational_audit_entries'] ?? null) ? $logsData['operational_audit_entries'] : [];
 $operationalAuditSummary = is_array($logsData['operational_audit_summary'] ?? null) ? $logsData['operational_audit_summary'] : [];
 $updateHistoryEntries = is_array($logsData['update_history_entries'] ?? null) ? $logsData['update_history_entries'] : [];
+$hasClearableCmsProtocolData = $logFiles !== [] || $operationalAuditEntries !== [] || $updateHistoryEntries !== [];
 $channelSummary = [];
 
 foreach ($logFiles as $file) {
@@ -66,10 +67,10 @@ ksort($channelSummary);
                     <input type="hidden" name="action" value="clear_logs">
                     <button type="submit" class="btn btn-outline-warning"<?php echo !$errorLogExists ? ' disabled' : ''; ?>>PHP Error-Log leeren</button>
                 </form>
-                <form method="post" class="d-inline" data-confirm-message="Wirklich alle CMS-Logdateien löschen?" data-confirm-title="Alle Logs löschen" data-confirm-text="Löschen" data-confirm-class="btn-danger" data-confirm-status-class="bg-danger">
+                <form method="post" class="d-inline" data-confirm-message="Wirklich alle CMS-Logs, das operative Diagnose-Audit und die Update-Historie bereinigen?" data-confirm-title="Logs &amp; Protokolle bereinigen" data-confirm-text="Bereinigen" data-confirm-class="btn-danger" data-confirm-status-class="bg-danger">
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? '', ENT_QUOTES, 'UTF-8'); ?>">
                     <input type="hidden" name="action" value="clear_all_cms_logs">
-                    <button type="submit" class="btn btn-outline-danger"<?php echo $logFiles === [] ? ' disabled' : ''; ?>>Alle CMS-Logs löschen</button>
+                    <button type="submit" class="btn btn-outline-danger"<?php echo !$hasClearableCmsProtocolData ? ' disabled' : ''; ?>>CMS-Logs &amp; Protokolle bereinigen</button>
                 </form>
                 <form method="post" class="d-inline">
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? '', ENT_QUOTES, 'UTF-8'); ?>">

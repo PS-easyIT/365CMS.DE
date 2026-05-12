@@ -1,4 +1,4 @@
-﻿﻿**Version:** 2.9.773
+﻿﻿**Version:** 2.9.774
 
 # 365CMS Changelog
 
@@ -19,6 +19,14 @@
 ## 📜 Vollständige Versionshistorie
 
 ---
+
+### v2.9.773 — 12. Mai 2026
+
+### v2.9.774 — 12. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.774** | 🔴 fix | Diagnose/SEO/Theme-Runtime – Log-Clears & Redeclare-Härtung | **`CMS/core/Services/RedirectService.php`, `CMS/core/Services/UpdateService.php`, `CMS/admin/modules/system/SystemInfoModule.php`, `CMS/admin/views/system/cms-logs.php`, `CMS/admin/posts.php`, `CMS/core/Routing/ThemeRouter.php`, `CMS/themes/cms-default/functions.php`, `CMS/core/Version.php`, `CMS/update.json`, `README.md` und `Changelog.md` beheben den aktuellen Diagnose-/Live-Fehlerblock**: Der 404-Monitor leert sein Protokoll jetzt über einen robusteren `DELETE`-Pfad statt über `TRUNCATE`, sodass das Bereinigen nicht an restriktiveren DB-Rechten scheitert und das Ergebnis als echte Anzahl zurückmeldet. In `/admin/cms-logs` bereinigt die Sammelaktion nun neben CMS-Logdateien auch die im Diagnosekontext angezeigten operativen Audit-Spuren und die Update-Historie; gleichzeitig werden reine `system.logs.clear*`-Selbstprotokolle aus der operativen Diagnose-Liste ausgeblendet, damit eine erfolgreiche Löschaktion nicht sofort wieder als scheinbar „nicht bereinigt“ auftaucht. Zusätzlich wurden die gemeldeten Redeclare-Hotspots um `CMS\Routing\ThemeRouter` und die Theme-Helfer weiter gehärtet, und der tote `gridjs`-Inline-Rest im Beitrags-Entry-Point wurde entfernt, um unnötige PHP-Hotspots im Live-Betrieb zu entschärfen. |
 
 ### v2.9.773 — 12. Mai 2026
 

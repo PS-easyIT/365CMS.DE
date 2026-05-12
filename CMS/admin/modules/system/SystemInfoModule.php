@@ -334,18 +334,37 @@ class SystemInfoModule
     private function clearAllCmsLogs(): array
     {
         try {
-            $deleted = $this->service->clearAllCmsLogFiles();
+            $deletedFiles = $this->service->clearAllCmsLogFiles();
+            $deletedAuditEntries = $this->clearOperationalAuditEntries();
+            $deletedUpdateEntries = UpdateService::getInstance()->clearUpdateHistory();
+
             AuditLogger::instance()->log(
                 AuditLogger::CAT_SYSTEM,
                 'system.logs.clear_all',
-                'Alle CMS-Logdateien gelöscht',
+                'CMS-Logs und Diagnose-Protokolle gelöscht',
                 'log',
                 null,
-                ['deleted' => $deleted],
+                [
+                    'deleted_files' => $deletedFiles,
+                    'deleted_audit_entries' => $deletedAuditEntries,
+                    'deleted_update_entries' => $deletedUpdateEntries,
+                ],
                 'warning'
             );
 
-            return ['success' => true, 'message' => $deleted . ' Logdatei(en) gelöscht.'];
+            if ($deletedFiles === 0 && $deletedAuditEntries === 0 && $deletedUpdateEntries === 0) {
+                return ['success' => true, 'message' => 'Es waren keine CMS-Logs oder Diagnose-Protokolle zum Löschen vorhanden.'];
+            }
+
+            return [
+                'success' => true,
+                'message' => 'CMS-Logs und Diagnose-Protokolle wurden bereinigt.',
+                'details' => [
+                    'Gelöschte CMS-Logdateien: ' . $deletedFiles,
+                    'Gelöschte Audit-Einträge: ' . $deletedAuditEntries,
+                    'Gelöschte Update-Historien: ' . $deletedUpdateEntries,
+                ],
+            ];
         } catch (\Throwable $e) {
             return $this->buildActionFailureResponse(
                 'system.logs.clear_all_failed',
@@ -1362,10 +1381,11 @@ class SystemInfoModule
             $rows = $db->get_results(
                 "SELECT created_at, action, description, category, severity, user_id, metadata
                  FROM {$db->getPrefix()}audit_log
-                 WHERE category = ? OR action LIKE ?
+                 WHERE (category = ? OR action LIKE ?)
+                   AND action NOT LIKE ?
                  ORDER BY created_at DESC
                  LIMIT " . self::OPERATIONAL_AUDIT_LIMIT,
-                [AuditLogger::CAT_SYSTEM, 'performance.%']
+                [AuditLogger::CAT_SYSTEM, 'performance.%', 'system.logs.clear%']
             ) ?: [];
 
             return array_map(fn (mixed $row): array => $this->normalizeOperationalAuditRow($row), $rows);
@@ -1440,6 +1460,17 @@ class SystemInfoModule
         }
 
         return $entries;
+    }
+
+    private function clearOperationalAuditEntries(): int
+    {
+        $statement = Database::instance()->execute(
+            "DELETE FROM " . Database::instance()->getPrefix() . "audit_log
+             WHERE category = ? OR action LIKE ?",
+            [AuditLogger::CAT_SYSTEM, 'performance.%']
+        );
+
+        return $statement->rowCount();
     }
 
     /**

@@ -1230,6 +1230,7 @@ function meridian_nav_menu(string $location, string $currentPath = ''): void
 }
 }
 
+if (!function_exists('meridian_current_request_locale')) {
 function meridian_current_request_locale(): string
 {
     try {
@@ -1878,4 +1879,5 @@ if (!function_exists('meridian_copyright')) {
         $text = str_replace(['{year}', '{site_title}'], [date('Y'), $siteName], $template);
         return htmlspecialchars($text, ENT_QUOTES, 'UTF-8');
     }
+}
 }
