@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Beschreibt die aktuelle Startseite des Admin-Bereichs inklusive Kennzahlen, Schnellzugriffen, Warnhinweisen und segmentweisem Fail-Soft-Verhalten.
 
-Letzte Aktualisierung: 2026-05-11 · Version 2.9.760
+Letzte Aktualisierung: 2026-05-12 · Version 2.9.772
 
 ---
 
@@ -23,8 +23,6 @@ Seit `2.9.718` lässt sich die Reihenfolge der Arbeits-Widgets und Favoriten zus
 Seit `2.9.719` wird dieser Pfad zusätzlich nachgehärtet: Die browserlokale Recent-Liste wird vor Anzeige und Speicherung bereinigt, dedupliziert und größenbegrenzt, Drop-Zustände werden im Sortier-JS robuster zurückgesetzt und das Dashboard-CSS wird als cachebares Seiten-Asset statt inline ausgeliefert.
 
 Seit `2.9.720` ergänzt das Dashboard darauf aufbauend rollenbasierte Standardvorlagen: Neue oder auf Standard zurückgesetzte persönliche Ansichten übernehmen pro Rolle bzw. capability-basierter Rollenfamilie sinnvolle Defaults für sichtbare Bereiche, aktive Arbeits-Widgets, Favoriten und deren Reihenfolge. Persönliche Anpassungen bleiben dabei bewusst benutzerbezogen und überschreiben nicht die zugrunde liegende Rollen-Vorlage.
-
-Seit `2.9.760` ergänzt das Hauptdashboard zusätzlich eine read-only Pflichtseiten-Prüfung für die operative Mindestbasis aus Impressum, Datenschutzerklärung und Cookie-Hinweis. Fehlende oder nicht mehr sauber verknüpfte Punkte erscheinen sowohl als Top-Alert als auch als Attention-Item mit Deep-Link zu `/admin/legal-sites`. Die Cookie-Prüfung bewertet dabei den aktiven Consent-/Banner-Status zusammen mit der verknüpften Datenschutzhinweis-URL, statt bloß stumpf eine beliebige Einstellung abzufragen.
 
 Seit `2.9.615` wird jeder Statistikblock einzeln geladen. Fällt z. B. die Sicherheits-, Sessions- oder Orders-Datenquelle aus, bleibt die Startseite renderbar und arbeitet für den betroffenen Block mit neutralen Fallback-Werten statt mit einem Full-Page-Fatal.
 
@@ -153,25 +151,17 @@ Direkte Warnmeldungen aus `DashboardModule::getAlerts()`:
 - Kommentare in Moderation
 - erhöhte Zahl fehlgeschlagener Logins
 
-Seit `2.9.760` zusätzlich:
-
-- fehlende oder inkonsistente Pflichtseitenbasis (Impressum, Datenschutzerklärung, Cookie-Hinweis) mit Deep-Link zu `/admin/legal-sites`
-
 ### Attention Items
 
 Zusätzliche Systemhinweise aus `DashboardService::getAttentionItems()`.
 
 Diese zweite Ebene bündelt situationsabhängige Punkte, die besondere Aufmerksamkeit brauchen.
 
-Seit `2.9.760` speist `DashboardModule` hier zusätzlich einen eigenen Recht-/Transparenz-Hinweis ein, wenn die Pflichtseiten-Prüfung Lücken findet. Damit erscheint der Befund nicht nur einmalig als Alert, sondern auch im regulären Arbeitskontext der Attention-Liste.
-
 ### Fallback-Warnung bei degradierten Statistikquellen
 
 Kann ein einzelnes Dashboard-Segment nicht geladen werden, ergänzt `DashboardModule` einen zusätzlichen `warning`-Hinweis mit Deep-Link auf `/admin/cms-logs`.
 
 Damit wird der degradierte Zustand sichtbar, ohne den übrigen Dashboard-Renderpfad zu blockieren.
-
-Dasselbe Prinzip gilt für die Pflichtseiten-Prüfung: Fehlen Settings oder veröffentlichte Seiten temporär, bleibt das Dashboard renderbar und degradiert höchstens den einzelnen Prüfblock fail-soft.
 
 ---
 

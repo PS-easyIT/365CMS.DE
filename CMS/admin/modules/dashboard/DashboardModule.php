@@ -22,17 +22,6 @@ use CMS\AuditLogger;
 
 class DashboardModule
 {
-    private const DASHBOARD_REQUIRED_LEGAL_CHECKS = [
-        'imprint' => [
-            'label' => 'Impressum',
-            'setting_key' => 'imprint_page_id',
-        ],
-        'privacy' => [
-            'label' => 'Datenschutzerklärung',
-            'setting_key' => 'privacy_page_id',
-        ],
-    ];
-
     private const DASHBOARD_SECTION_DEFINITIONS = [
         'work_overview' => [
             'label' => 'Zentrale Arbeitsübersicht',
@@ -399,8 +388,6 @@ class DashboardModule
             : array_keys($favoriteShortcutDefinitions);
         $widgetDefinitions = $this->sortDefinitionMapByOrder($widgetDefinitions, $workOverviewWidgetOrder);
         $favoriteShortcutDefinitions = $this->sortDefinitionMapByOrder($favoriteShortcutDefinitions, $favoriteShortcutOrder);
-        $legalPageAudit = $this->getRequiredLegalPageAudit();
-
         return [
             'welcome'       => $this->getWelcomeData($system),
             'kpis'          => $this->buildKpis($stats, $subscriptionOrdersEnabled),
@@ -415,9 +402,8 @@ class DashboardModule
             'dashboard_preferences' => $preferences,
             'activity'      => $this->getRecentActivity(),
             'quickLinks'    => $this->getQuickLinks(),
-            'alerts'        => array_merge($this->buildDashboardHealthAlerts($meta), $this->buildRequiredLegalPageAlerts($legalPageAudit), $this->getAlerts($stats, $pendingComments)),
-            'attention'     => array_merge($this->buildRequiredLegalPageAttentionItems($legalPageAudit), $this->service->getAttentionItems($stats)),
-            'required_legal_pages' => $legalPageAudit,
+            'alerts'        => array_merge($this->buildDashboardHealthAlerts($meta), $this->getAlerts($stats, $pendingComments)),
+            'attention'     => $this->service->getAttentionItems($stats),
             'subscription_enabled' => $subscriptionEnabled,
             'recent_orders' => $subscriptionOrdersEnabled ? $this->service->getRecentOrders() : [],
             'orders'        => $orders,
@@ -1065,139 +1051,6 @@ class DashboardModule
             'type' => 'warning',
             'message' => 'Einige Dashboard-Bereiche laufen aktuell im Fallback-Modus: ' . implode(', ', $labels) . '. Details stehen in den CMS Logs.',
             'url' => '/admin/cms-logs',
-        ]];
-    }
-
-    private function getRequiredLegalPageAudit(): array
-    {
-        $settingKeys = ['imprint_page_id', 'privacy_page_id', 'cookie_consent_enabled', 'cookie_banner_enabled', 'cookie_policy_url'];
-        $settings = array_fill_keys($settingKeys, '');
-
-        try {
-            $placeholders = implode(',', array_fill(0, count($settingKeys), '?'));
-            $rows = $this->db->get_results(
-                "SELECT option_name, option_value FROM {$this->prefix}settings WHERE option_name IN ($placeholders)",
-                $settingKeys
-            ) ?: [];
-
-            foreach ($rows as $row) {
-                $key = trim((string)($row->option_name ?? ''));
-                if ($key !== '' && array_key_exists($key, $settings)) {
-                    $settings[$key] = (string)($row->option_value ?? '');
-                }
-            }
-        } catch (\Throwable) {
-            return [
-                'available' => false,
-                'missing_count' => 0,
-                'missing_labels' => [],
-                'items' => [],
-                'url' => '/admin/legal-sites',
-                'message' => 'Pflichtseiten-Prüfung ist momentan nicht verfügbar.',
-            ];
-        }
-
-        $publishedPageIds = [];
-        try {
-            $pageRows = $this->db->get_results("SELECT id FROM {$this->prefix}pages WHERE status = 'published'") ?: [];
-            foreach ($pageRows as $row) {
-                $pageId = (int)($row->id ?? 0);
-                if ($pageId > 0) {
-                    $publishedPageIds[$pageId] = true;
-                }
-            }
-        } catch (\Throwable) {
-            $publishedPageIds = [];
-        }
-
-        $items = [];
-        $missingLabels = [];
-
-        foreach (self::DASHBOARD_REQUIRED_LEGAL_CHECKS as $key => $definition) {
-            $pageId = (int)($settings[$definition['setting_key']] ?? 0);
-            $isAssigned = $pageId > 0;
-            $isPublished = $pageId > 0 && isset($publishedPageIds[$pageId]);
-            $isOk = $isAssigned && ($publishedPageIds === [] || $isPublished);
-
-            $items[$key] = [
-                'label' => (string)($definition['label'] ?? $key),
-                'ok' => $isOk,
-                'page_id' => $pageId,
-                'hint' => $isOk
-                    ? 'Seite ist zugeordnet.'
-                    : ($isAssigned ? 'Zugeordnete Seite ist nicht veröffentlicht oder nicht mehr verfügbar.' : 'Noch keine veröffentlichte Seite zugeordnet.'),
-            ];
-
-            if (!$isOk) {
-                $missingLabels[] = (string)($definition['label'] ?? $key);
-            }
-        }
-
-        $cookieConsentEnabled = ($settings['cookie_consent_enabled'] ?? $settings['cookie_banner_enabled'] ?? '0') === '1'
-            || ($settings['cookie_banner_enabled'] ?? '0') === '1';
-        $cookiePolicyUrl = trim((string)($settings['cookie_policy_url'] ?? ''));
-        $cookieHintOk = $cookieConsentEnabled && $cookiePolicyUrl !== '';
-        $items['cookie_notice'] = [
-            'label' => 'Cookie-Hinweis',
-            'ok' => $cookieHintOk,
-            'page_id' => 0,
-            'hint' => $cookieHintOk
-                ? 'Consent-Banner und Datenschutzhinweis sind verbunden.'
-                : (!$cookieConsentEnabled ? 'Cookie-/Consent-Hinweis ist nicht aktiviert.' : 'Cookie-Hinweis ist aktiv, aber ohne Datenschutzhinweis-URL.'),
-        ];
-
-        if (!$cookieHintOk) {
-            $missingLabels[] = 'Cookie-Hinweis';
-        }
-
-        return [
-            'available' => true,
-            'missing_count' => count($missingLabels),
-            'missing_labels' => $missingLabels,
-            'items' => $items,
-            'url' => '/admin/legal-sites',
-            'cookie_manager_url' => '/admin/cookie-manager',
-            'message' => $missingLabels === []
-                ? 'Impressum, Datenschutz und Cookie-Hinweis sind als Mindestprüfung vorhanden.'
-                : 'Pflichtseiten prüfen: ' . implode(', ', $missingLabels) . '.',
-        ];
-    }
-
-    private function buildRequiredLegalPageAlerts(array $legalPageAudit): array
-    {
-        if (empty($legalPageAudit['available']) || (int)($legalPageAudit['missing_count'] ?? 0) < 1) {
-            return [];
-        }
-
-        $missingLabels = array_values(array_filter(
-            is_array($legalPageAudit['missing_labels'] ?? null) ? $legalPageAudit['missing_labels'] : [],
-            static fn (mixed $label): bool => is_string($label) && trim($label) !== ''
-        ));
-
-        return [[
-            'type' => 'warning',
-            'message' => 'Pflichtseiten-Prüfung: ' . implode(', ', $missingLabels) . ' fehlen oder sind nicht korrekt verknüpft. Bitte Legal Sites und ggf. den Cookie Manager prüfen.',
-            'url' => (string)($legalPageAudit['url'] ?? '/admin/legal-sites'),
-        ]];
-    }
-
-    private function buildRequiredLegalPageAttentionItems(array $legalPageAudit): array
-    {
-        if (empty($legalPageAudit['available']) || (int)($legalPageAudit['missing_count'] ?? 0) < 1) {
-            return [];
-        }
-
-        $missingLabels = array_values(array_filter(
-            is_array($legalPageAudit['missing_labels'] ?? null) ? $legalPageAudit['missing_labels'] : [],
-            static fn (mixed $label): bool => is_string($label) && trim($label) !== ''
-        ));
-
-        return [[
-            'label' => 'Pflichtseiten im Blick behalten',
-            'hint' => 'Mindestens folgende Bereiche brauchen Nacharbeit: ' . implode(', ', $missingLabels) . '.',
-            'type' => 'warning',
-            'value' => (string)($legalPageAudit['missing_count'] ?? 0) . ' offen',
-            'url' => (string)($legalPageAudit['url'] ?? '/admin/legal-sites'),
         ]];
     }
 

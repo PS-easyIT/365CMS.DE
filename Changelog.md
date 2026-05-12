@@ -1,4 +1,4 @@
-﻿﻿**Version:** 2.9.771
+﻿﻿**Version:** 2.9.772
 
 # 365CMS Changelog
 
@@ -19,6 +19,12 @@
 ## 📜 Vollständige Versionshistorie
 
 ---
+
+### v2.9.772 — 12. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.772** | 🔴 fix | Admin/Dashboard – Pflichtseiten-Prüfung entfernt | **`CMS/admin/modules/dashboard/DashboardModule.php`, `CMS/DOC/admin/dashboard/README.md`, `CMS/DOC/admin/dashboard/DASHBOARD.md`, `CMS/DOC/audit/NiceToHave-CHECKLISTE.md`, `CMS/DOC/audit/MustHave-CHECKLISTE.md`, `CMS/core/Version.php`, `CMS/update.json`, `README.md` und `Changelog.md` entfernen die bisherige Dashboard-Pflichtseiten-Prüfung vollständig**: Das Hauptdashboard erzeugt keine speziellen Legal-Alerts oder Attention-Items für Impressum, Datenschutzerklärung und Cookie-Hinweis mehr. Der restliche Dashboard-Flow bleibt unverändert fail-soft, und es werden keine neuen Mutations- oder Tokenpfade eingeführt. |
 
 ### v2.9.771 — 12. Mai 2026
 

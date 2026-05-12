@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Überblick über die Startseite des Admin-Bereichs mit KPI-Karten, Statushinweisen, Schnellzugriffen, rollenbasierten Standardvorlagen und fail-soften Statusblöcken.
 
-Letzte Aktualisierung: 2026-05-11 · Stand: Dashboard-Pflichtseitencheck Mai 2026 · Release 2.9.760
+Letzte Aktualisierung: 2026-05-12 · Stand: Dashboard ohne Pflichtseitencheck · Release 2.9.772
 
 **Admin-Route:** `/admin`
 
@@ -27,7 +27,6 @@ Im aktuellen Stand bildet das Dashboard vor allem den Überblick über:
 - serverseitig gespeicherte Favoriten und eine lokale Liste zuletzt genutzter Admin-Ziele
 - rollenbasierte Standardvorlagen für neue oder zurückgesetzte persönliche Dashboard-Ansichten
 - persistente Reihenfolge für Arbeits-Widgets und Favoriten per Drag-&-Drop oder Pfeil-Fallback
-- read-only Pflichtseiten-Prüfung für Impressum, Datenschutzerklärung und Cookie-Hinweis mit Deep-Link zu Legal Sites
 
 ---
 
@@ -39,7 +38,6 @@ Im aktuellen Stand bildet das Dashboard vor allem den Überblick über:
 | Favoriten & zuletzt genutzt | persönliche Schnellzugriffe aus serverseitig gespeicherten Favoriten plus browserlokale Verlaufsliste zuletzt genutzter Admin-Ziele; Favoriten bleiben ebenfalls sortierbar |
 | Prioritäten | offene Bestellungen, fehlgeschlagene Logins oder HTTPS-Hinweise |
 | Dashboard-Gesundheit | Warnhinweis, wenn einzelne Statistiksegmente nur mit Fallback-Daten gerendert werden |
-| Pflichtseiten-Check | Warnung, wenn Impressum, Datenschutzerklärung oder Cookie-Hinweis fehlen bzw. nicht sauber verknüpft sind |
 | Systemstatus | PHP-, CMS- und MySQL-Version sowie Laufzeit-/Upload-Kontext |
 | Sicherheit & Performance | Security-Score, HTTPS, fehlgeschlagene Logins, RAM- und Performance-Score |
 | Schnellzugriffe | Header-Aktionen für neue Inhalte, Medien und zentrale Admin-Bereiche |
@@ -71,8 +69,6 @@ Seit `2.9.719` wird der browserlokale Recent-Block zusätzlich nachgehärtet: Be
 
 Seit `2.9.720` erhalten neue oder zurückgesetzte persönliche Ansichten zusätzlich eine **rollenbasierte Standardvorlage**. Diese Vorlage liefert pro Rolle bzw. capability-basierter Rollenfamilie sinnvolle Defaults für sichtbare Bereiche, aktive Arbeits-Widgets, Favoriten und deren Reihenfolge. Persönliche Änderungen bleiben weiterhin benutzerbezogen; über „Rollen-Vorlage wiederherstellen“ kann ein Admin jederzeit sauber auf den Standard seiner Rolle zurückfallen.
 
-Seit `2.9.760` prüft das Dashboard zusätzlich read-only, ob die betriebliche Mindestbasis für Recht/Transparenz bereits vorhanden ist: Impressum, Datenschutzerklärung und Cookie-Hinweis. Fehlt einer dieser Punkte oder ist eine zugeordnete Seite nicht mehr veröffentlicht, erscheint oben im Dashboard eine kontextuelle Warnung mit Deep-Link zu `/admin/legal-sites`; ergänzend landet derselbe Befund als Attention-Item im Bereich „Nächste Aufmerksamkeit“. Die Prüfung bleibt bewusst rein lesend und erzeugt keine neue POST-Route, keine Sicherheitstoken in URLs und keinen automatischen Reparaturpfad.
-
 Der Speichern-Flow läuft über die gemeinsame Admin-Section-Shell mit CSRF-Prüfung, normalisiert eingereichte Bereichs-, Widget- und Favoriten-Schlüssel sowie ihre Reihenfolgen serverseitig gegen eine Allowlist und schreibt einen Audit-Eintrag `dashboard.preferences.save`. Seit `2.9.705` toleriert die CSRF-Schicht mehrere parallel geöffnete Admin-Formulare derselben Action innerhalb des TTL-Fensters; der tatsächlich verwendete Token wird nach erfolgreicher Prüfung weiterhin verbraucht.
 
 ---
@@ -84,7 +80,6 @@ Der Speichern-Flow läuft über die gemeinsame Admin-Section-Shell mit CSRF-Prü
 - Warnungen auf der Startseite bleiben auf relevante `warning`-/`danger`-Fälle begrenzt, damit das Dashboard nicht zur Alert-Wand mutiert.
 - Quicklinks und Filter-/Sortierlogik gehören außerhalb einzelner Kartenblöcke, damit die Kartensammlung visuell ruhig bleibt.
 - Fällt nur eine Datenquelle aus, bleibt das Dashboard insgesamt renderbar; der degradierte Zustand wird über einen Hinweis auf `CMS Logs` transparent gemacht.
-- Die Pflichtseiten-Prüfung arbeitet ebenfalls fail-soft: Fehlen Settings oder Seitendaten temporär, bleibt das Dashboard renderbar und degradiert höchstens die Warnlogik statt die ganze Startseite abzureißen.
 - Die Personalisierung ändert nur die Sichtbarkeit optionaler Blöcke bzw. vordefinierter Widgets, nicht die zugrunde liegenden Berechtigungen oder Audit-/Warnlogik.
 - „Zuletzt genutzt“ speichert nur nicht-sensitive interne Navigationsziele im Browser; bei deaktiviertem Storage fällt der Block still auf einen leeren Zustand zurück und bereinigt beschädigte oder veraltete Einträge fail-soft.
 - Die Sortierung ist progressiv erweitert: Drag-&-Drop ist Komfort, die Pfeilbuttons sind der robuste Fallback. So bleibt die Personalisierung auch dann nutzbar, wenn Browser-DnD nicht ideal funktioniert.
@@ -99,7 +94,7 @@ Der Speichern-Flow läuft über die gemeinsame Admin-Section-Shell mit CSRF-Prü
 - Arbeits-Widgets und Attention-Items arbeiten aus derselben Stats-Basis wie Dashboard-Alerts, damit Kennzahlen konsistent bleiben
 - Bestellbezogene Blöcke erscheinen nur, wenn die zugehörigen Subscription-/Orders-Module aktiv sind
 - Statistiksegmente werden seit `2.9.615` einzeln fail-soft geladen und bei Ausfall mit strukturiertem Logger-Hinweis auf dem Kanal `dashboard` protokolliert
-- Dashboard-Sichtbarkeitsprofile werden seit `2.9.701` pro Admin-Benutzer serverseitig gespeichert, CSRF-geschützt geändert und auditierbar protokolliert; seit `2.9.716` umfasst das auch einzelne Arbeitsübersichts-Widgets, seit `2.9.717` zusätzlich serverseitig gespeicherte Favoriten-Ziele, seit `2.9.718` persistente Reihenfolgen für Widgets und Favoriten, seit `2.9.719` eine nachgehärtete browserlokale Recent-Persistenz plus cachebares Dashboard-CSS, seit `2.9.720` rollenbasierte Default-/Reset-Vorlagen für neue oder zurückgesetzte Benutzeransichten und seit `2.9.760` eine read-only Pflichtseiten-Prüfung für Impressum, Datenschutzerklärung und Cookie-Hinweis mit Deep-Link zu Legal Sites. Seit `2.9.705` ist dieser POST-Flow robuster gegen stale Tabs und parallel gerenderte Formulare
+- Dashboard-Sichtbarkeitsprofile werden seit `2.9.701` pro Admin-Benutzer serverseitig gespeichert, CSRF-geschützt geändert und auditierbar protokolliert; seit `2.9.716` umfasst das auch einzelne Arbeitsübersichts-Widgets, seit `2.9.717` zusätzlich serverseitig gespeicherte Favoriten-Ziele, seit `2.9.718` persistente Reihenfolgen für Widgets und Favoriten, seit `2.9.719` eine nachgehärtete browserlokale Recent-Persistenz plus cachebares Dashboard-CSS und seit `2.9.720` rollenbasierte Default-/Reset-Vorlagen für neue oder zurückgesetzte Benutzeransichten. Seit `2.9.705` ist dieser POST-Flow robuster gegen stale Tabs und parallel gerenderte Formulare
 
 ---
 

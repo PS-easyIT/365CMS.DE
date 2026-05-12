@@ -17,7 +17,9 @@ use CMS\SchemaManager;
 use CMS\Services\CronRunnerService;
 use CMS\Services\MailQueueService;
 use CMS\Services\MailService;
+use CMS\Services\MonitoringTrendService;
 use CMS\Services\SecurityAlertService;
+use CMS\Services\SettingsService;
 use CMS\Services\ErrorReportService;
 use CMS\Services\SystemService;
 use CMS\Services\UpdateService;
@@ -97,12 +99,14 @@ class SystemInfoModule
             'logs' => $this->getLogsData($_GET['log_file'] ?? null),
             'response-time' => [
                 'monitoring' => [
-                    'response_time' => $this->measureResponseTime(SITE_URL),
+                    'response_time' => $responseTime = $this->measureResponseTime(SITE_URL),
                 ],
                 'email_alerts' => $this->getMonitoringSettings(),
+                'trend_history' => MonitoringTrendService::getInstance()->buildResponseTimeTrendData($responseTime),
             ],
             'disk' => [
-                'disk' => $this->getDiskUsageData(),
+                'disk' => $diskUsage = $this->getDiskUsageData(),
+                'trend_history' => MonitoringTrendService::getInstance()->buildDiskUsageTrendData($diskUsage),
             ],
             'scheduled-tasks' => [
                 'scheduled_tasks' => $this->getScheduledTasksData(),
@@ -115,7 +119,8 @@ class SystemInfoModule
                 'security_alerts' => SecurityAlertService::getInstance()->getAdminSummary(),
             ],
             'cron' => [
-                'cron' => $this->getCronData(),
+                'cron' => $cronData = $this->getCronData(),
+                'trend_history' => MonitoringTrendService::getInstance()->buildCronTrendData($cronData),
             ],
             default => $this->getInfoData(),
         };
@@ -864,6 +869,7 @@ class SystemInfoModule
         }
 
         $queueConfig = MailQueueService::getInstance()->getConfiguration();
+        $lastRun = $this->getCronLastRunState();
         $cronToken = (string) ($queueConfig['cron_token'] ?? '');
         $cronWebPath = '/cron.php';
         $cronBaseUrl = defined('SITE_URL') ? rtrim((string) SITE_URL, '/') . $cronWebPath : '';
@@ -887,6 +893,7 @@ class SystemInfoModule
             'cron_file_path' => $this->normalizeDisplayedPath($cronFilePath),
             'hooks' => $mappedHooks,
             'hook_count' => count($mappedHooks),
+            'last_run' => $lastRun,
             'commands' => [
                 'cli_all' => $defaultCliCommand,
                 'cli_mail_queue' => $mailQueueCliCommand,
@@ -905,6 +912,46 @@ class SystemInfoModule
                 'default_limit' => (int) ($queueConfig['batch_size'] ?? 10),
                 'loopback_url' => $cronBaseUrl,
             ],
+        ];
+    }
+
+    /** @return array{timestamp:string,age_minutes:?int,is_due:bool,next_due_in_seconds:?int,status_label:string} */
+    private function getCronLastRunState(): array
+    {
+        $lastRunRaw = trim(SettingsService::getInstance()->getString('cron', 'hourly_last_run', ''));
+        if ($lastRunRaw === '') {
+            return [
+                'timestamp' => '',
+                'age_minutes' => null,
+                'is_due' => true,
+                'next_due_in_seconds' => null,
+                'status_label' => 'Noch kein stündlicher Lauf protokolliert',
+            ];
+        }
+
+        $lastRunTs = strtotime($lastRunRaw);
+        if ($lastRunTs === false) {
+            return [
+                'timestamp' => $lastRunRaw,
+                'age_minutes' => null,
+                'is_due' => true,
+                'next_due_in_seconds' => null,
+                'status_label' => 'Letzter Lauf konnte nicht interpretiert werden',
+            ];
+        }
+
+        $ageSeconds = max(0, time() - $lastRunTs);
+        $nextDueInSeconds = max(0, 3600 - $ageSeconds);
+        $ageMinutes = (int) floor($ageSeconds / 60);
+
+        return [
+            'timestamp' => date('Y-m-d H:i:s', $lastRunTs),
+            'age_minutes' => $ageMinutes,
+            'is_due' => $ageSeconds >= 3600,
+            'next_due_in_seconds' => $nextDueInSeconds,
+            'status_label' => $ageSeconds >= 3600
+                ? 'Überfällig seit ' . $ageMinutes . ' min'
+                : 'Zuletzt vor ' . $ageMinutes . ' min',
         ];
     }
 

@@ -1510,7 +1510,6 @@ Die Sidebar in `CMS/admin/partials/sidebar.php` ist für die Menüstruktur führ
 
 - [ ] Vorlagen / Profile für Rechtstexte.
 - [ ] Fristen- und Bearbeitungsstatus für Datenschutzanfragen.
-- [ ] Prüfung auf fehlende Pflichtseiten im Dashboard.
 
 ### Audit-Stand – Recht · Durchlauf 1
 
@@ -1522,7 +1521,7 @@ Die Sidebar in `CMS/admin/partials/sidebar.php` ist für die Menüstruktur führ
 - **Umsetzung in diesem Durchlauf:** `PrivacyRequestsModule` und `DeletionRequestsModule` schreiben Zustandswechsel für Bearbeitung, Abschluss, Ablehnung, Löschausführung und endgültiges Entfernen jetzt ins Audit-Log. Ablehnungen verlangen serverseitig eine nichtleere Begründung. Die bestehenden Plugin-Hooks `dsgvo_export_data` und `dsgvo_delete_data` bleiben dabei erhalten und sind nun in einen nachvollziehbaren Admin-Workflow eingebettet.
 - **Abhängige Bereiche:** `PrivacyRequestsModule`, `DeletionRequestsModule`, `data-requests.php`, DSGVO-Hooks `dsgvo_export_data` / `dsgvo_delete_data`, Legal-Dokumentation
 - **Offene Must-haves:** keine
-- **Offene Nice-to-haves:** Vorlagen/Profile für Rechtstexte, Fristen-/Bearbeitungsstatus für Datenschutzanfragen, Dashboard-Hinweise auf fehlende Pflichtseiten
+- **Offene Nice-to-haves:** Vorlagen/Profile für Rechtstexte, Fristen-/Bearbeitungsstatus für Datenschutzanfragen
 - **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/legal/README.md`, `CMS/DOC/admin/legal/DSGVO.md`, `CMS/DOC/admin/legal/DELETION-REQUESTS.md`
 
 ### Audit-Stand – Recht/Cookie-Manager · Matomo-Persistenzfix
@@ -1535,7 +1534,7 @@ Die Sidebar in `CMS/admin/partials/sidebar.php` ist für die Menüstruktur führ
 - **Umsetzung in diesem Durchlauf:** `CookieManagerModule` speichert globale Cookie-/Matomo-Settings atomar per `INSERT ... ON DUPLICATE KEY UPDATE` direkt gegen die prefixed `settings`-Tabelle und wirft bei Speicherfehlern eine sichtbare Modul-Fehlermeldung. `CookieConsentService` liest die gespeicherten Matomo-Werte konsistent für `/cookie-einstellungen`, nutzt bei Bedarf vorhandene SEO-Matomo-Werte als URL-/Site-ID-Fallback und rendert den Matomo-Transparenzblock nur noch bei tatsächlicher Konfiguration.
 - **Abhängige Bereiche:** `CookieManagerModule`, `CookieConsentService`, `settings`, SEO-Analytics-Matomo-Settings, Public-Routing `/cookie-einstellungen`
 - **Offene Must-haves:** keine
-- **Offene Nice-to-haves:** Rechtstext-Vorlagen/Profile, Fristen-/Bearbeitungsstatus für Datenschutzanfragen, Dashboard-Hinweise auf fehlende Pflichtseiten
+- **Offene Nice-to-haves:** Rechtstext-Vorlagen/Profile, Fristen-/Bearbeitungsstatus für Datenschutzanfragen
 - **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/legal/README.md`, `CMS/DOC/admin/legal/COOKIES.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`
 
 ### Audit-Stand – Recht/Cookie-Manager · Matomo-URL-Nachfix
@@ -1548,7 +1547,7 @@ Die Sidebar in `CMS/admin/partials/sidebar.php` ist für die Menüstruktur führ
 - **Umsetzung in diesem Durchlauf:** Admin-Modul und Public-Service nutzen jetzt dieselbe URL-Normalisierung für Matomo: Unicode-/Copy-Paste-Leerzeichen werden bereinigt, URLs ohne Schema erhalten kontrolliert `https://`, IDN-/Intranet-Hosts, `localhost`, IP-Adressen, Ports, Pfade und Query-Parameter werden akzeptiert, während Zugangsdaten sowie nicht-http(s)-Schemata weiterhin fail-closed abgelehnt werden. Zusätzlich blockiert ein leer gespeicherter Cookie-Matomo-URL-Wert den SEO-Matomo-Fallback im Public-Service nicht mehr.
 - **Abhängige Bereiche:** `CookieManagerModule`, `CookieConsentService`, `settings`, SEO-Analytics-Matomo-Settings, Public-Routing `/cookie-einstellungen`
 - **Offene Must-haves:** keine
-- **Offene Nice-to-haves:** Rechtstext-Vorlagen/Profile, Fristen-/Bearbeitungsstatus für Datenschutzanfragen, Dashboard-Hinweise auf fehlende Pflichtseiten
+- **Offene Nice-to-haves:** Rechtstext-Vorlagen/Profile, Fristen-/Bearbeitungsstatus für Datenschutzanfragen
 - **Doku aktualisiert:** `Changelog.md`, `README.md`, `CMS/DOC/admin/legal/COOKIES.md`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`
 
 ### Live-Fatal-Hotfix – SchemaManager & Default-Theme-Helfer

@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.9.771",
+  "version": "2.9.772",
   "min_php": "8.4",
   "released": "2026-05-12",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 2.9.771: Der Backup-&-Restore-Flow akzeptiert jetzt korrekt die bereits von der gemeinsamen Admin-Section-Shell geprüften CSRF-Tokens. Dadurch schlagen Aktionen in `/admin/backups` nicht mehr fälschlich mit `Keine Berechtigung für diese Aktion.` fehl, obwohl die Admin-Berechtigung vorhanden ist.",
+  "notes": "Release-Stand 2.9.772: Die Dashboard-Pflichtseiten-Prüfung für Impressum, Datenschutzerklärung und Cookie-Hinweis wurde komplett entfernt. Das Admin-Dashboard erzeugt dafür keine speziellen Legal-Alerts oder Attention-Items mehr.",
   "critical": false
 }

@@ -756,6 +756,9 @@ class Bootstrap
             Services\SeoTrendService::getInstance()->runScheduledSnapshot();
         }, 30);
         Hooks::addAction('cms_cron_hourly', static function (): void {
+            Services\MonitoringTrendService::getInstance()->runScheduledSnapshot();
+        }, 35);
+        Hooks::addAction('cms_cron_hourly', static function (): void {
             Services\SecurityAlertService::getInstance()->runScheduledScan();
         }, 40);
 
