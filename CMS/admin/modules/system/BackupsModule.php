@@ -82,7 +82,10 @@ class BackupsModule
                 return ['success' => true, 'message' => $message];
             }
 
-            return ['success' => false, 'error' => 'Backup konnte nicht erstellt werden.'];
+            return [
+                'success' => false,
+                'error' => $this->sanitizeText((string) ($result['error'] ?? 'Backup konnte nicht erstellt werden.'), self::MAX_ERROR_LENGTH),
+            ];
         } catch (\Throwable $e) {
             return $this->failResult('backup.full.create_failed', 'Vollständiges Backup konnte nicht erstellt werden.', $e);
         }
@@ -100,7 +103,10 @@ class BackupsModule
         try {
             $result = $this->service->createStandaloneDatabaseBackup();
             if (empty($result['success'])) {
-                return ['success' => false, 'error' => 'DB-Backup konnte nicht erstellt werden.'];
+                return [
+                    'success' => false,
+                    'error' => $this->sanitizeText((string) ($result['error'] ?? 'DB-Backup konnte nicht erstellt werden.'), self::MAX_ERROR_LENGTH),
+                ];
             }
 
             $backupName = $this->normalizeBackupName((string) ($result['name'] ?? ''));
@@ -192,6 +198,57 @@ class BackupsModule
         }
     }
 
+    public function validateBackup(string $name, bool $includeRestoreDryRun = false): array
+    {
+        if (!$this->assertReadableRequest()) {
+            return ['success' => false, 'error' => 'Keine Berechtigung für diese Aktion.'];
+        }
+
+        $normalizedName = $this->normalizeBackupName($name);
+        if ($normalizedName === '') {
+            return ['success' => false, 'error' => 'Kein Backup angegeben.'];
+        }
+
+        try {
+            $report = $this->service->validateBackup($normalizedName, $includeRestoreDryRun);
+            $summary = is_array($report['summary'] ?? null) ? $report['summary'] : [];
+            $status = (string) ($summary['status'] ?? 'warning');
+
+            $this->auditAction('backup.validated', 'Backup im Trockentest validiert.', [
+                'name' => $normalizedName,
+                'include_restore_dry_run' => $includeRestoreDryRun,
+                'status' => $status,
+                'blocked_count' => (int) ($summary['blocked_count'] ?? 0),
+                'warning_count' => (int) ($summary['warning_count'] ?? 0),
+            ]);
+
+            $type = match ($status) {
+                'ok' => 'success',
+                'blocked' => 'danger',
+                default => 'warning',
+            };
+
+            $message = 'Backup-Prüfung abgeschlossen: ' . $normalizedName;
+            if ($includeRestoreDryRun) {
+                $message .= ' · inklusive Restore-Dry-Run';
+            }
+
+            return [
+                'success' => $status !== 'blocked',
+                'type' => $type,
+                'message' => $message,
+                'details' => [
+                    'OK: ' . (int) ($summary['ok_count'] ?? 0),
+                    'Warnungen: ' . (int) ($summary['warning_count'] ?? 0),
+                    'Blocker: ' . (int) ($summary['blocked_count'] ?? 0),
+                ],
+                'report_payload' => $report,
+            ];
+        } catch (\Throwable $e) {
+            return $this->failResult('backup.validation_failed', 'Backup-Prüfung konnte nicht durchgeführt werden.', $e);
+        }
+    }
+
     /**
      * @return array{path:string,filename:string,content_type:string}|null
      */
@@ -265,6 +322,11 @@ class BackupsModule
         return false;
     }
 
+    private function assertReadableRequest(): bool
+    {
+        return $this->canRead() && $this->assertCsrf();
+    }
+
     private function assertWritableRequest(): bool
     {
         return $this->canWrite() && $this->assertCsrf();
@@ -272,6 +334,11 @@ class BackupsModule
 
     private function assertCsrf(): bool
     {
+        if (function_exists('cms_admin_section_shell_was_csrf_verified')
+            && cms_admin_section_shell_was_csrf_verified(self::CSRF_ACTION)) {
+            return true;
+        }
+
         return class_exists(Security::class)
             && Security::instance()->verifyToken((string)($_POST['csrf_token'] ?? ''), self::CSRF_ACTION);
     }
@@ -468,6 +535,11 @@ class BackupsModule
             'error'
         );
 
-        return ['success' => false, 'error' => $message . ' Bitte Logs prüfen.'];
+        $result = ['success' => false, 'error' => $message . ' Bitte Logs prüfen.'];
+        if ($sanitizedError !== '') {
+            $result['details'] = [$sanitizedError];
+        }
+
+        return $result;
     }
 }

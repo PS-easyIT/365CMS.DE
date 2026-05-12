@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Dokumentiert die Diagnose-Oberflächen, Monitoring-Werkzeuge und die zentrale Logzentrale für den laufenden Betrieb von 365CMS.
 
-Letzte Aktualisierung: 2026-05-09 · Version 2.9.630
+Letzte Aktualisierung: 2026-05-12 · Version 2.9.770
 
 ---
 
@@ -73,9 +73,15 @@ Bündelt übergreifende Gesundheitsprüfungen: Datenbank, beschreibbare Betriebs
 
 Konfiguriert Zieladressen und Schwellwerte für Monitoring-Benachrichtigungen per E-Mail und erlaubt einen direkten Testversand aus dem Backend über die zentrale Mail-Implementierung.
 
+Seit 2.9.763 verwaltet dieselbe Seite zusätzlich die Security-Alarmierung für Login-Brute-Force, AntiSpam-Spitzen und Firewall-Blocks. Die Auslösung läuft ausschließlich read-only über den bestehenden stündlichen Core-Cron-Hook `cms_cron_hourly`, verwendet die vorhandene Mail-Queue bzw. Mail-Pipeline weiter und ergänzt im Admin eine kleine Statusübersicht mit aktuellem Zählfenster sowie letztem Lauf-/Versandzeitpunkt.
+
 ### Logs & Protokolle
 
 `/admin/cms-logs` bündelt nicht mehr nur CMS-Dateilogs und das PHP Error-Log, sondern auch ein operatives Betriebs-Audit aus dem zentralen `audit_log`. Dadurch werden System-, Backup-, Monitoring-, Cron-/Queue- und Performance-Aktionen direkt im Diagnosekontext sichtbar. Ergänzend zeigt die Seite die persistierte Update-Historie des Update-Services, sodass erfolgreiche Core-, Theme- und Plugin-Updates nicht nur auf `/admin/updates`, sondern auch in der Diagnose-Logzentrale nachvollziehbar bleiben.
+
+Seit `2.9.769` löst dieselbe Update-Historie Benutzer-IDs serverseitig auf sprechende Labels aus `display_name` plus Rollenbezeichnung auf. Fehlende oder gelöschte Konten führen dabei nicht zu Fehlern oder leeren Zellen, sondern bleiben als `User #ID` fail-soft sichtbar.
+
+Seit `2.9.770` können `/admin/diagnose` und `/admin/cms-logs` zusätzlich einen Diagnosebericht als ZIP exportieren. Der Export bleibt im bestehenden Admin-Vertrag bewusst ein POST-/CSRF-geschützter Download, bündelt Systeminfo, Health-Check, Asset-Status, Cron-Status, geplante Tasks sowie begrenzte Logauszüge und redigiert sensible Werte wie Tokens, Passwörter, Secrets und Credentials serverseitig vor dem Schreiben ins Archiv.
 
 ---
 
@@ -86,6 +92,8 @@ Alle Diagnoseseiten folgen dem Admin-Standardmuster:
 - Zugriff nur für Administratoren
 - CSRF-Prüfung via `Security::instance()->verifyToken(..., 'admin_system_info')`
 - POST-Ergebnis als Session-Alert, Redirect auf GET-Route
+
+Ausnahme: Der Diagnosebericht-Export streamt nach erfolgreicher CSRF-Prüfung direkt den ZIP-Download zurück, ohne eine neue GET-Download-Route oder Token-URL einzuführen.
 
 ---
 

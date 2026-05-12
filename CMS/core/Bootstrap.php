@@ -755,6 +755,9 @@ class Bootstrap
         Hooks::addAction('cms_cron_hourly', static function (): void {
             Services\SeoTrendService::getInstance()->runScheduledSnapshot();
         }, 30);
+        Hooks::addAction('cms_cron_hourly', static function (): void {
+            Services\SecurityAlertService::getInstance()->runScheduledScan();
+        }, 40);
 
         Services\OpcacheWarmupService::getInstance()->maybeWarmAfterDeploy(30);
         Debug::checkpoint('bootstrap.opcache_checked');

@@ -10,6 +10,10 @@ if (!defined('CMS_ADMIN_SYSTEM_VIEW')) {
 }
 
 $settings = $data['email_alerts'] ?? [];
+$securityAlerts = is_array($data['security_alerts'] ?? null) ? $data['security_alerts'] : [];
+$securitySnapshot = is_array($securityAlerts['snapshot'] ?? null) ? $securityAlerts['snapshot'] : [];
+$securityLastRun = is_array($securityAlerts['last_run'] ?? null) ? $securityAlerts['last_run'] : [];
+$securityLastSent = is_array($securityAlerts['last_sent'] ?? null) ? $securityAlerts['last_sent'] : [];
 ?>
 <div class="page-header d-print-none">
 	<div class="container-xl">
@@ -17,7 +21,7 @@ $settings = $data['email_alerts'] ?? [];
 			<div class="col">
 				<div class="page-pretitle">Diagnose</div>
 				<h2 class="page-title">E-Mail-Benachrichtigungen</h2>
-				<div class="text-secondary mt-1">Konfiguriert Schwellenwerte und Empfängeradresse für künftige Performance-/Health-Warnungen.</div>
+				<div class="text-secondary mt-1">Konfiguriert Empfängeradresse, Monitoring-Schwellenwerte und Security-Alarmierung über die zentrale Mail-Pipeline.</div>
 			</div>
 		</div>
 	</div>
@@ -34,6 +38,7 @@ $settings = $data['email_alerts'] ?? [];
 				<div class="card h-100">
 					<div class="card-header"><h3 class="card-title">Alert-Konfiguration</h3></div>
 					<div class="card-body">
+						<div class="text-secondary small mb-4">Monitoring- und Security-Mails verwenden dieselbe Zieladresse und dieselbe bestehende Queue-/Mail-Infrastruktur. Die Auslösung bleibt read-only über den stündlichen Cron-Pfad; es werden keine Tokens in URLs eingebaut.</div>
 						<form method="post">
 							<input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>">
 							<input type="hidden" name="action" value="save_monitoring_alerts">
@@ -75,6 +80,59 @@ $settings = $data['email_alerts'] ?? [];
 								<input class="form-control" type="text" name="monitor_health_endpoint_path" value="<?php echo htmlspecialchars((string)($settings['monitor_health_endpoint_path'] ?? '/health')); ?>">
 							</div>
 
+							<hr class="my-4">
+
+							<div class="d-flex align-items-start justify-content-between gap-3 flex-wrap mb-3">
+								<div>
+									<h3 class="card-title mb-1">Security-Alarmierung</h3>
+									<div class="text-secondary small">Schwellenwert-basierte Mails für Login-Brute-Force, AntiSpam-Spitzen und Firewall-Blocks. Der Lauf verwendet die vorhandene Monitoring-Mail-Pipeline und den stündlichen Core-Cron.</div>
+								</div>
+								<span class="badge <?php echo !empty($securityAlerts['enabled']) ? 'bg-green-lt text-green' : 'bg-secondary-lt text-secondary'; ?>">
+									<?php echo !empty($securityAlerts['enabled']) ? 'Aktiv' : 'Inaktiv'; ?>
+								</span>
+							</div>
+
+							<label class="form-check form-switch mb-4">
+								<input class="form-check-input" type="checkbox" name="security_email_notifications_enabled" value="1" <?php echo ($settings['security_email_notifications_enabled'] ?? '0') === '1' ? 'checked' : ''; ?>>
+								<span class="form-check-label">Security-Alarmierung aktivieren</span>
+							</label>
+
+							<div class="row">
+								<div class="col-md-4">
+									<div class="mb-3">
+										<label class="form-label">Betrachtungsfenster (Min.)</label>
+										<input class="form-control" type="number" min="5" max="1440" name="security_alert_window_minutes" value="<?php echo htmlspecialchars((string)($settings['security_alert_window_minutes'] ?? '60')); ?>">
+									</div>
+								</div>
+								<div class="col-md-4">
+									<div class="mb-3">
+										<label class="form-label">Cooldown (Min.)</label>
+										<input class="form-control" type="number" min="15" max="10080" name="security_alert_cooldown_minutes" value="<?php echo htmlspecialchars((string)($settings['security_alert_cooldown_minutes'] ?? '180')); ?>">
+									</div>
+								</div>
+							</div>
+
+							<div class="row">
+								<div class="col-md-4">
+									<div class="mb-3">
+										<label class="form-label">Login-Brute-Force ab</label>
+										<input class="form-control" type="number" min="1" max="10000" name="security_alert_bruteforce_threshold" value="<?php echo htmlspecialchars((string)($settings['security_alert_bruteforce_threshold'] ?? '15')); ?>">
+									</div>
+								</div>
+								<div class="col-md-4">
+									<div class="mb-3">
+										<label class="form-label">AntiSpam-Spitze ab</label>
+										<input class="form-control" type="number" min="1" max="10000" name="security_alert_antispam_threshold" value="<?php echo htmlspecialchars((string)($settings['security_alert_antispam_threshold'] ?? '10')); ?>">
+									</div>
+								</div>
+								<div class="col-md-4">
+									<div class="mb-3">
+										<label class="form-label">Firewall-Blocks ab</label>
+										<input class="form-control" type="number" min="1" max="10000" name="security_alert_firewall_threshold" value="<?php echo htmlspecialchars((string)($settings['security_alert_firewall_threshold'] ?? '10')); ?>">
+									</div>
+								</div>
+							</div>
+
 							<button type="submit" class="btn btn-primary">Einstellungen speichern</button>
 						</form>
 					</div>
@@ -82,7 +140,7 @@ $settings = $data['email_alerts'] ?? [];
 			</div>
 
 			<div class="col-12 col-xl-4">
-				<div class="card h-100">
+				<div class="card mb-4">
 					<div class="card-header"><h3 class="card-title">Test-E-Mail</h3></div>
 					<div class="card-body">
 						<p class="text-secondary small">Prüft direkt im Backend, ob die zentrale Mail-Implementierung des CMS Nachrichten an die konfigurierte Monitoring-Adresse versenden kann.</p>
@@ -98,6 +156,43 @@ $settings = $data['email_alerts'] ?? [];
 
 							<button type="submit" class="btn btn-outline-primary">Test-E-Mail senden</button>
 						</form>
+					</div>
+				</div>
+
+				<div class="card h-100">
+					<div class="card-header"><h3 class="card-title">Security-Alert-Status</h3></div>
+					<div class="card-body">
+						<div class="small text-secondary mb-3">Aktuelles Fenster: <?php echo (int)($securityAlerts['window_minutes'] ?? 60); ?> Minuten</div>
+						<div class="list-group list-group-flush">
+							<div class="list-group-item px-0 d-flex justify-content-between">
+								<span>Login-Brute-Force</span>
+								<strong><?php echo (int)($securitySnapshot['bruteforce']['count'] ?? 0); ?></strong>
+							</div>
+							<div class="list-group-item px-0 d-flex justify-content-between">
+								<span>AntiSpam-Rejections</span>
+								<strong><?php echo (int)($securitySnapshot['antispam']['count'] ?? 0); ?></strong>
+							</div>
+							<div class="list-group-item px-0 d-flex justify-content-between">
+								<span>Firewall-Blocks</span>
+								<strong><?php echo (int)($securitySnapshot['firewall']['count'] ?? 0); ?></strong>
+							</div>
+						</div>
+
+						<div class="mt-4 small text-secondary">
+							<div><strong>Letzter Scan:</strong> <?php echo htmlspecialchars((string)($securityLastRun['executed_at'] ?? 'Noch keiner')); ?></div>
+							<div class="mt-1"><strong>Letzte Mail:</strong>
+								<?php
+								$lastSentTimes = [];
+								foreach ($securityLastSent as $type => $entry) {
+									if (!is_array($entry) || empty($entry['sent_at'])) {
+										continue;
+									}
+									$lastSentTimes[] = (string)$entry['sent_at'] . ' (' . (string)$type . ')';
+								}
+								echo htmlspecialchars($lastSentTimes !== [] ? implode(', ', $lastSentTimes) : 'Noch keine', ENT_QUOTES, 'UTF-8');
+								?>
+							</div>
+						</div>
 					</div>
 				</div>
 			</div>

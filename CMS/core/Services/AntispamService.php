@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace CMS\Services;
 
 use CMS\Database;
+use CMS\Logger;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -48,24 +49,24 @@ final class AntispamService
 
         $honeypotValue = trim((string) ($context['honeypot_value'] ?? ''));
         if (($settings['antispam_honeypot'] ?? '0') === '1' && $honeypotValue !== '') {
-            return $this->reject('honeypot', 'Spam erkannt.');
+            return $this->rejectAndLog('honeypot', 'Spam erkannt.', $context);
         }
 
         $minimumSeconds = max(0, min(60, (int) ($settings['antispam_min_time'] ?? 0)));
         $startedAt = (int) ($context['started_at'] ?? 0);
         if ($minimumSeconds > 0 && $startedAt > 0 && time() - $startedAt < $minimumSeconds) {
-            return $this->reject('minimum_time', 'Bitte warten Sie einen Moment und senden Sie das Formular erneut.');
+            return $this->rejectAndLog('minimum_time', 'Bitte warten Sie einen Moment und senden Sie das Formular erneut.', $context);
         }
 
         $userAgent = trim((string) ($context['user_agent'] ?? ($_SERVER['HTTP_USER_AGENT'] ?? '')));
         if (($settings['antispam_block_empty_ua'] ?? '0') === '1' && $userAgent === '') {
-            return $this->reject('empty_user_agent', 'Die Anfrage wurde aus Sicherheitsgründen blockiert.');
+            return $this->rejectAndLog('empty_user_agent', 'Die Anfrage wurde aus Sicherheitsgründen blockiert.', $context);
         }
 
         $content = trim((string) ($context['content'] ?? ''));
         $maxLinks = max(0, min(50, (int) ($settings['antispam_max_links'] ?? 0)));
         if ($maxLinks > 0 && $this->countLinks($content) > $maxLinks) {
-            return $this->reject('max_links', 'Zu viele Links in der Anfrage.');
+            return $this->rejectAndLog('max_links', 'Zu viele Links in der Anfrage.', $context);
         }
 
         $email = trim((string) ($context['email'] ?? ''));
@@ -73,7 +74,7 @@ final class AntispamService
         $ipAddress = $this->normalizeIpAddress((string) ($context['ip_address'] ?? ''));
 
         if ($this->matchesSpamBlacklist($email, $ipAddress, $authorName, $content)) {
-            return $this->reject('blacklist', 'Die Anfrage wurde aus Sicherheitsgründen blockiert.');
+            return $this->rejectAndLog('blacklist', 'Die Anfrage wurde aus Sicherheitsgründen blockiert.', $context);
         }
 
         return $this->allow();
@@ -209,5 +210,62 @@ final class AntispamService
     private function reject(string $reason, string $message): array
     {
         return ['rejected' => true, 'reason' => $reason, 'message' => $message];
+    }
+
+    /**
+     * @param array<string, mixed> $context
+     * @return array{rejected:true,reason:string,message:string}
+     */
+    private function rejectAndLog(string $reason, string $message, array $context): array
+    {
+        $this->logRejection($reason, $context);
+
+        return $this->reject($reason, $message);
+    }
+
+    /** @param array<string, mixed> $context */
+    private function logRejection(string $reason, array $context): void
+    {
+        $ipAddress = $this->normalizeIpAddress((string) ($context['ip_address'] ?? ''));
+        $requestUri = $this->sanitizeRequestPath((string) ($_SERVER['REQUEST_URI'] ?? '/'));
+        $userAgent = $this->sanitizeLogText((string) ($context['user_agent'] ?? ($_SERVER['HTTP_USER_AGENT'] ?? '')), 500);
+        $source = $this->sanitizeLogText((string) ($context['source'] ?? 'runtime'), 40);
+
+        try {
+            $this->db->insert('security_log', [
+                'action' => 'antispam_rejected',
+                'ip_address' => $ipAddress !== '' ? $ipAddress : null,
+                'request_uri' => $requestUri,
+                'user_agent' => $userAgent,
+                'rule_matched' => 'antispam:' . $this->sanitizeLogText($reason, 40),
+                'user_id' => isset($_SESSION['user_id']) ? (int) $_SESSION['user_id'] : null,
+                'extra' => json_encode([
+                    'reason' => $this->sanitizeLogText($reason, 40),
+                    'source' => $source !== '' ? $source : 'runtime',
+                ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            ]);
+        } catch (\Throwable $e) {
+            Logger::instance()->withChannel('security.antispam')->warning('AntiSpam-Rejection konnte nicht protokolliert werden.', [
+                'reason' => $reason,
+                'exception' => $e::class,
+            ]);
+        }
+    }
+
+    private function sanitizeRequestPath(string $requestUri): string
+    {
+        $path = (string) parse_url($requestUri, PHP_URL_PATH);
+        if ($path === '') {
+            $path = '/';
+        }
+
+        return $this->sanitizeLogText($path, 255);
+    }
+
+    private function sanitizeLogText(string $value, int $maxLength): string
+    {
+        $value = trim(preg_replace('/[\x00-\x1F\x7F]+/u', ' ', $value) ?? '');
+
+        return function_exists('mb_substr') ? mb_substr($value, 0, $maxLength, 'UTF-8') : substr($value, 0, $maxLength);
     }
 }

@@ -1,4 +1,4 @@
-﻿﻿**Version:** 2.9.762
+﻿﻿**Version:** 2.9.771
 
 # 365CMS Changelog
 
@@ -19,6 +19,60 @@
 ## 📜 Vollständige Versionshistorie
 
 ---
+
+### v2.9.771 — 12. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.771** | 🔴 fix | Admin/System – Backup-/Restore-Berechtigungsfehler | **`CMS/admin/modules/system/BackupsModule.php`, `CMS/core/Version.php`, `CMS/update.json`, `README.md` und `Changelog.md` beheben den fälschlichen Berechtigungsfehler im Backup-Bereich**: Der Backup-&-Restore-Pfad akzeptiert jetzt korrekt CSRF-Tokens, die bereits von der gemeinsamen Admin-Section-Shell validiert wurden. Dadurch schlagen Aktionen in `/admin/backups` nicht mehr mit `Keine Berechtigung für diese Aktion.` fehl, nur weil der Einmal-Token im Shell-Flow schon geprüft wurde. Die eigentliche Rechteprüfung bleibt unverändert, es werden keine neuen GET-Mutationen oder Token-URLs eingeführt. |
+
+### v2.9.770 — 12. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.770** | 🟢 feat | Admin/Diagnose – ZIP-Export für Diagnoseberichte | **`CMS/admin/system-monitor-page.php`, `CMS/admin/modules/system/SystemInfoModule.php`, `CMS/admin/views/system/diagnose.php`, `CMS/admin/views/system/cms-logs.php`, `CMS/DOC/admin/diagnose/DIAGNOSE.md`, `CMS/DOC/admin/diagnose/README.md`, `CMS/DOC/audit/NiceToHave-CHECKLISTE.md`, `CMS/core/Version.php`, `CMS/update.json`, `README.md` und `Changelog.md` schließen das nächste offene Diagnose-Nice-to-have ab**: `/admin/diagnose` und `/admin/cms-logs` erzeugen jetzt einen Diagnosebericht als ZIP direkt im bestehenden POST-/CSRF-Vertrag. Das Archiv bündelt Systeminfo, Health-Check, Asset-Status, Cron-Status, geplante Tasks sowie begrenzte Error-/CMS-/Audit-/Update-Logauszüge in separaten Dateien. Sensible Werte wie Tokens, Passwörter, Secrets und Credentials werden serverseitig redigiert, der Download benötigt keine Token-URL und fehlende Datenquellen fallen fail-soft auf leere Abschnitte zurück. |
+
+### v2.9.769 — 12. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.769** | 🟢 feat | Admin/Diagnose & Updates – sprechende Benutzerlabels in der Update-Historie | **`CMS/core/Services/UpdateService.php`, `CMS/admin/modules/system/SystemInfoModule.php`, `CMS/admin/views/system/updates.php`, `CMS/DOC/admin/system-settings/UPDATES.md`, `CMS/DOC/admin/diagnose/DIAGNOSE.md`, `CMS/DOC/admin/diagnose/README.md`, `CMS/DOC/audit/NiceToHave-CHECKLISTE.md`, `CMS/core/Version.php`, `CMS/update.json`, `README.md` und `Changelog.md` schließen den nächsten Diagnose-Nice-to-have-Punkt ab**: Die persistierte Update-Historie löst Benutzer-IDs jetzt serverseitig auf `display_name` plus Rollenbezeichnung auf. Dadurch zeigen `/admin/updates` und `/admin/cms-logs` nachvollziehbare Benutzerangaben statt roher IDs; bei gelöschten Konten bleibt der Verlauf fail-soft über `User #ID` lesbar. Die Umsetzung führt keine neuen GET-Mutationen, keine Token-URLs und keine zusätzlichen 500-anfälligen Pflichtpfade ein. |
+
+### v2.9.768 — 12. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.768** | 🔴 fix | Admin/System – Backup-/Restore-Robustheit | **`CMS/core/Services/BackupService.php`, `CMS/admin/modules/system/BackupsModule.php`, `CMS/DOC/admin/system-settings/BACKUP.md`, `CMS/core/Version.php`, `CMS/update.json`, `README.md` und `Changelog.md` härten die operative Backup-Strecke nach**: Datenbank-Backups und SQL-Restores verarbeiten Dumps jetzt streaming-basiert statt komplette Dateien erst in den Arbeitsspeicher zu laden. Das reduziert Fehler bei größeren Datenbanken sowohl beim Erstellen als auch beim Restore. Zusätzlich werden konkrete Servicefehler im Admin besser zurückgegeben, damit `/admin/backups` bei Problemen nicht mehr nur mit einer zu knappen Standardmeldung antwortet. |
+
+### v2.9.767 — 12. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.767** | 🟢 feat | Admin/System – Backup-Validierung & Restore-Dry-Run | **`CMS/core/Services/BackupService.php`, `CMS/admin/modules/system/BackupsModule.php`, `CMS/admin/backups.php`, `CMS/admin/views/system/backups.php`, `CMS/DOC/admin/system-settings/BACKUP.md`, `CMS/DOC/admin/system-settings/README.md`, `CMS/DOC/audit/NiceToHave-CHECKLISTE.md`, `CMS/core/Version.php`, `CMS/update.json`, `README.md` und `Changelog.md` schließen das nächste offene System-&-Doku-Nice-to-have ab**: `/admin/backups` ergänzt jetzt eine echte Backup-Validierung im bestehenden POST-/PRG-Flow. Pro Sicherung werden Manifest/Prüfsummen, SQL-Dump-Integrität, ein Probe-Lesen wichtiger Tabellen und optional ein Restore-Dry-Run in eine temporäre Wegwerf-Datenbank mit Vergleichsbericht geprüft. Die Ergebnisse bleiben read-only im Admin sichtbar, nutzen keine Token-URLs und führen keine neue öffentliche GET-Mutation ein. Zusätzlich wurden die bislang fehlenden internen Verzeichnis-Helfer im Restore-Pfad vervollständigt, damit Restore und Dry-Run nicht in undefinierte Methoden laufen. |
+
+### v2.9.766 — 12. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.766** | 🟢 feat | Admin/System – blockierende Update-Vorabprüfung | **`CMS/core/Services/UpdateService.php`, `CMS/admin/modules/system/UpdatesModule.php`, `CMS/admin/views/system/updates.php`, `CMS/DOC/admin/system-settings/UPDATES.md`, `CMS/DOC/admin/system-settings/README.md`, `CMS/DOC/audit/NiceToHave-CHECKLISTE.md`, `CMS/core/Version.php`, `CMS/update.json`, `README.md` und `Changelog.md` schließen das nächste offene System-&-Doku-Nice-to-have ab**: `/admin/updates` ergänzt jetzt eine echte Vorabprüfung vor automatischen Core-, Theme- und Plugin-Updates. Geprüft werden PHP- und Datenbankversion, notwendige PHP-Erweiterungen, freier Speicherplatz sowie Schreibrechte für `cache/`, `backups/`, `logs/`, `assets/` und die jeweiligen Update-Zielpfade. Blockierende Befunde werden sichtbar im Admin dargestellt, deaktivieren die Installationsbuttons und werden zusätzlich serverseitig vor dem eigentlichen Update-Lauf abgefangen. Damit bleibt der Update-Pfad fail-soft und nachvollziehbar, ohne neue GET-Mutationen, ohne Sicherheitstoken in URLs und ohne zusätzliche 500-anfällige Nebenpfade. |
+
+### v2.9.765 — 12. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.765** | 🔴 fix | Admin/Nice-to-have-Nachprüfung ab 2.9.725 | **`CMS/admin/backups.php`, `CMS/admin/views/system/email-alerts.php`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`, `CMS/DOC/audit/NiceToHave-CHECKLISTE.md`, `CMS/core/Version.php`, `CMS/update.json`, `README.md` und `Changelog.md` schließen die erneute Nachprüfung der Nice-to-haves ab 2.9.725 ab**: Die im Changelog referenzierten PHP-/JSON-Dateien wurden inventarisiert und automatisiert gelintet, typische Token-URL-, GET-Mutations-, Redirect-, SQL-/MariaDB- und rohe Ausgabe-Muster wurden geprüft. Als konkrete Nachhärtung validiert `/admin/backups` den finalen Downloadpfad vor dem Chunk-Streaming nochmals per `realpath()` gegen den Backup-Root, sodass Pfad-Traversal-/SSRF-Scanner und Laufzeit denselben fail-closed Vertrag sehen. Zusätzlich wurde der historische Doku-Anker `CMS/DOC/admin/PRUEF-CHECKLISTE.md` als Kompatibilitätsindex wiederhergestellt und eine kleine Einrückung in der Security-Alert-Konfiguration bereinigt. Es wurden keine neuen GET-Mutationen, Token-URLs oder zusätzlichen 500-anfälligen Pflichtpfade eingeführt. |
+
+### v2.9.764 — 11. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.764** | 🟢 feat | Admin/Sicherheit – Firewall-Härtungsprofile & Diagnose | **`CMS/admin/firewall.php`, `CMS/admin/modules/security/FirewallModule.php`, `CMS/admin/views/security/firewall.php`, `CMS/DOC/admin/security/README.md`, `CMS/DOC/admin/security/FIREWALL.md`, `CMS/DOC/audit/NiceToHave-CHECKLISTE.md`, `CMS/core/Version.php`, `CMS/update.json`, `README.md` und `Changelog.md` schließen das nächste Sicherheits-Nice-to-have ab**: `/admin/firewall` zeigt jetzt Sicherheitsbaseline-Profile für Entwicklung, Staging und Produktion mit empfohlenen Firewall-Basiswerten, read-only Diff gegen den aktuellen Zustand und optionaler Profilanwendung per bestehendem POST-/CSRF-Pfad. Ergänzend wurde eine Firewall-Diagnose integriert, die Runtime-Verdrahtung, Aktivschalter, Logging, aktive Regeln, Simulationsvorschau und Block-Log fail-soft sichtbar macht. Die Umsetzung erzeugt keine neue GET-Mutation, keine Token-URLs und keine zusätzlichen 500-anfälligen Pflichtpfade; Profilanwendungen werden im Audit-Log nachvollziehbar protokolliert. |
+
+### v2.9.763 — 11. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.763** | 🟢 feat | Admin/Sicherheit & Diagnose – Schwellenwert-Mailalarme | **`CMS/core/Services/SecurityAlertService.php`, `CMS/core/Services/AntispamService.php`, `CMS/core/Services/CommentService.php`, `CMS/core/Bootstrap.php`, `CMS/admin/modules/system/SystemInfoModule.php`, `CMS/admin/views/system/email-alerts.php`, `CMS/DOC/admin/security/README.md`, `CMS/DOC/admin/security/FIREWALL.md`, `CMS/DOC/admin/diagnose/README.md`, `CMS/DOC/admin/diagnose/DIAGNOSE.md`, `CMS/DOC/audit/NiceToHave-CHECKLISTE.md`, `CMS/core/Version.php`, `CMS/update.json`, `README.md` und `Changelog.md` schließen das nächste offene Sicherheits-Nice-to-have ab**: `/admin/monitor-email-alerts` verwaltet jetzt zusätzlich eine echte Security-Alarmierung für Login-Brute-Force, AntiSpam-Spitzen und Firewall-Blocks. Die Auslösung nutzt bewusst die bestehende Monitoring-Mail-Pipeline samt Mail-Queue weiter, läuft read-only über den vorhandenen `cms_cron_hourly`-Hook und begrenzt Wiederholungen über einen konfigurierbaren Cooldown. Dafür protokolliert der zentrale `AntispamService` Runtime-Rejections fail-soft im bestehenden `security_log`, während Login-Fehlversuche und Firewall-Blocks aus bereits vorhandenen Datenquellen verdichtet werden. Die Admin-Seite zeigt ergänzend einen kleinen Statusüberblick mit aktuellem Fenster sowie letztem Scan-/Versandzeitpunkt. Die Umsetzung vermeidet neue GET-Mutationen, Tokens in URLs und zusätzliche 500-anfällige Sonderpfade. |
 
 ### v2.9.762 — 11. Mai 2026
 

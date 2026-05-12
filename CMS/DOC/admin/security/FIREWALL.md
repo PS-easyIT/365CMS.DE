@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Schutz vor missbräuchlichen Anfragen, IP-Sperren, Blockregeln, Simulationsläufen und sicherheitsrelevanten Zugriffsmustern.
 
-Letzte Aktualisierung: 2026-05-11 · Version 2.9.761
+Letzte Aktualisierung: 2026-05-11 · Version 2.9.764
 
 **Admin-Route:** `/admin/firewall`
 
@@ -25,11 +25,17 @@ Typische Aufgaben:
 - neue Blockregeln zunächst nur simulieren
 - Treffer read-only über ein konfigurierbares Vorschaufenster auswerten
 - Regeln anschließend explizit scharfschalten
+- Sicherheitsbaseline-Profile vergleichen und optional anwenden
+- Firewall-Diagnose read-only prüfen
 - regelbasierte Filter pflegen
 - Sperren aktivieren oder aufheben
 - sicherheitsrelevante Änderungen protokollieren
 
 Seit 2.9.248 werden aktive Firewall-Regeln nicht nur verwaltet, sondern im Core-Runtime-Pfad serverseitig ausgewertet. Blockentscheidungen laufen damit unabhängig von der Admin-Oberfläche.
+
+Seit 2.9.763 speisen `blocked`- und `rate_limited`-Ereignisse zusätzlich die zentrale Security-Alarmierung, sofern diese unter `/admin/monitor-email-alerts` aktiviert ist. Der Alert-Lauf bleibt read-only, nutzt keine Token-URLs und verwendet die bestehende Monitoring-Mail-Pipeline.
+
+Seit 2.9.764 enthält `/admin/firewall` zusätzlich eine Sicherheitsbaseline mit den Profilen `Entwicklung`, `Staging` und `Produktion`. Die Ansicht zeigt einen read-only Diff zwischen aktuellem Zustand und Profilwerten sowie eine Firewall-Diagnose zu Runtime-Verdrahtung, Schalter, Logging, Regelbestand, Simulationsvorschau und Block-Log. Das Anwenden eines Profils ist optional und erfolgt ausschließlich per CSRF-geschütztem POST; bestehende Regeln werden dabei nicht gelöscht oder automatisch neu angelegt.
 
 ---
 
@@ -43,6 +49,26 @@ Seit 2.9.248 werden aktive Firewall-Regeln nicht nur verwaltet, sondern im Core-
 | `firewall_rules` | benutzerdefinierte Firewall-Regeln |
 | `security_log` (`action = simulated`) | read-only Treffervorschau für Simulationsregeln |
 | `audit_log` | Nachvollziehbarkeit von Admin-Aktionen |
+
+---
+
+## Sicherheitsbaseline seit 2.9.764
+
+Die Baseline-Ansicht ist Teil der Firewall-Seite und erzeugt keine neue öffentliche Route. Sie enthält drei Profile:
+
+| Profil | Zweck |
+|---|---|
+| `Entwicklung` | lockere Limits, aktives Logging, kurze Sperrdauer für lokale Tests |
+| `Staging` | produktionsnaher Mittelweg mit moderaten Limits und 24h-Simulationsfenster |
+| `Produktion` | strengeres Betriebsprofil mit aktivem Logging, 60 Requests pro Minute und 48h-Simulationsfenster |
+
+Wichtige Sicherheitsgrenzen:
+
+- Diff-Anzeige ist read-only und benötigt keinen Token in URLs.
+- Profilanwendung ist optional und CSRF-geschützt.
+- Profile ändern nur Firewall-Basiseinstellungen, nicht den Regelbestand.
+- Jede Anwendung wird im `audit_log` protokolliert.
+- Die Diagnose fällt bei fehlenden Logs oder nicht lesbaren Dateien weich auf Warnstatus zurück.
 
 ---
 

@@ -1,5 +1,5 @@
 # 365CMS – Offene Nice-to-haves · Konsolidierte Restliste
-> **Stand:** 2026-05-11 | **Quelle:** PRUEF-CHECKLISTE.md | **Scope:** ohne Plugins und ohne weitere Theme-Erweiterungen
+> **Stand:** 2026-05-12 | **Quelle:** PRUEF-CHECKLISTE.md | **Scope:** ohne Plugins und ohne weitere Theme-Erweiterungen
 
 ## Zweck
 
@@ -10,6 +10,12 @@ ausgeklammert. Reihenfolge folgt dem Wirkungspfad: zuerst Inhalte, dann Betrieb,
 querschnittliche Komfortfunktionen.
 
 Nachprüfung 2.9.760: Die zuletzt umgesetzten Nice-to-haves ab 2.9.725 wurden erneut mit Fokus auf bekannte Fehler, unvollständige Übernahmepfade, Security-/Token-Verträge, Best Practice und Performance geprüft. Konkret wurde der 404-Monitor-Übernahmeflow nachgehärtet, damit ungelöste 404-Logs wieder als neue Redirect-Regel gespeichert werden und keine 404-Log-ID als Redirect-ID missverstanden wird. Zusätzlich bleibt das Performance-Sicherheitsnetz auf reinen GET-Seiten fail-soft, weil Rollback-Verzeichnisse erst bei tatsächlichen Snapshot-Mutationen angelegt werden. Die SEO-Audit-Datenquelle ist nun serverseitig begrenzt, damit Dashboard, Trend-Live-Fallback und Broken-Link-Report auch bei großen Inhaltsbeständen nicht ungebremst alle Seiten und Beiträge synchron analysieren. Live-Log-Nacharbeit: MariaDB-kritische `SHOW TABLES LIKE ?`-Prüfungen wurden auf PDO-quotierte read-only Checks umgestellt, fehlende SEO-Trendtabellen erzeugen im Dashboard keine vorbereiteten SELECT-Fehler mehr, Paket-Historien nutzen ein robustes LIKE-Escape-Zeichen und die Medienbibliothek schützt ihre View-Helper gegen doppelte Includes. Neu hinzu kommt ein read-only Kapazitäts-Pre-Check im Performance-Center, der freie Disk-Kapazität, Last und erkannte parallele Hintergrundjobs vor Cache-, DB- und Medien-Massenaktionen sichtbar macht und dieselben Werte in die Bestätigungsdialoge übernimmt. Im Recht-Bereich ergänzt `/admin/legal-sites` nun versionierte DACH-Vorlagenprofile für Impressum, Datenschutz, Widerruf und AGB-Skelett inklusive einzelner Anwendung pro Legal-Site, gespeicherter Profil-/Versionsmetadaten und klarer Hinweise, dass die technischen Vorlagen keine Rechtsberatung ersetzen. `/admin/data-requests` zeigt für Auskunfts- und Löschanfragen einen berechneten Fristenstatus mit 30-Tage-Pflichtfrist, 7-Tage-Warnfenster, Überfällig-Markierung und CSRF-geschützter Admin-Mail-Eskalation über die bestehende Mail-Queue. Neu ergänzt das Hauptdashboard jetzt eine read-only Pflichtseiten-Prüfung für Impressum, Datenschutzerklärung und Cookie-Hinweis mit Deep-Link zu Legal Sites; parallel akzeptiert die gemeinsame Section-Shell modulare Array-Container, sodass Auskunft & Löschen wieder sauber initialisieren, und der neutrale Admin-Hintergrund ist leicht abgedunkelt, damit Karten klarer lesbar bleiben – ohne neue GET-Mutationen, Token-URLs oder zusätzliche 500-anfällige Pflichtpfade.
+
+Nachprüfung 2.9.763: Die offene Security-Alarmierung ist jetzt über die bestehende Monitoring-Mail-Pipeline angeschlossen. Ein neuer, fail-softer Security-Alert-Lauf verdichtet Login-Fehlversuche aus `login_attempts`, Firewall-Blocks aus `security_log` sowie neue AntiSpam-Runtime-Rejections im selben Logpfad über ein konfigurierbares Zeitfenster und löst bei Überschreiten der Schwellwerte eine Mail über Queue oder Direktversand aus. Die Konfiguration hängt bewusst an `/admin/monitor-email-alerts`, die Auslösung erfolgt read-only über `cms_cron_hourly`, Cooldowns begrenzen Alert-Fluten, und es entstehen weder neue GET-Mutationen noch Tokens in URLs oder zusätzliche 500-anfällige Pflichtpfade.
+
+Nachprüfung 2.9.764: Die Sicherheitsbaseline ist jetzt direkt in `/admin/firewall` sichtbar. Entwicklung, Staging und Produktion werden als Härtungsprofile mit read-only Diff gegen die aktuelle Firewall-Konfiguration angezeigt; eine optionale Anwendung läuft ausschließlich über den bestehenden Admin-POST-/CSRF-Pfad und protokolliert sich im Audit-Log. Zusätzlich zeigt dieselbe Firewall-Seite eine Diagnose-Untersektion für Runtime-Verdrahtung, Aktivschalter, Logging, aktive Regeln, Simulationsvorschau und Block-Log. Es gibt keine neuen GET-Mutationen, keine Token-URLs und keine zusätzlichen Pflichtpfade, die bei fehlenden Logs einen 500 erzeugen könnten.
+
+Nachprüfung 2.9.765: Die Nice-to-haves ab 2.9.725 wurden erneut automatisiert inventarisiert und geprüft. Der Changelog-Verweisbestand wurde gegen existierende Dateien abgeglichen, 96 referenzierte PHP-Dateien wurden per `php -l` geprüft, `update.json` wurde validiert und zusätzliche Pattern-Scans suchten nach Token-URLs, GET-Schreibaktionen, rohen Request-Ausgaben, MariaDB-kritischen Schema-Checks, Redirect-Flows ohne `exit` und bekannten TODO-/Temporär-Markern. Konkrete Nacharbeit: `/admin/backups` prüft den finalen Downloadpfad unmittelbar vor dem Chunk-Streaming nochmals per `realpath()` gegen den Backup-Root, der historische Doku-Anker `CMS/DOC/admin/PRUEF-CHECKLISTE.md` wurde als Kompatibilitätsindex wiederhergestellt, und die Security-Alert-View wurde geringfügig bereinigt. `CMS/config/media-processing-job.json` bleibt bewusst eine optionale Laufzeitdatei und muss ohne aktiven Medienjob nicht existieren. Externe URLs wurden in dieser Nachprüfung nicht vom Nutzer bereitgestellt; damit war kein zusätzlicher `fetch_webpage`-Abruf erforderlich. Es entstanden keine neuen GET-Mutationen, Token-URLs oder 500-anfälligen Pflichtpfade.
 
 ---
 
@@ -70,37 +76,63 @@ Nachprüfung 2.9.760: Die zuletzt umgesetzten Nice-to-haves ab 2.9.725 wurden er
 - [x] **Simulationsmodus für Firewall-Regeln**
   - [x] Neue Regel zunächst nur loggen, nicht blockieren
   - [x] Read-only Treffervorschau über X Stunden, dann scharfschalten
-- [ ] **Alarmierung bei sicherheitsrelevanten Ereignissen**
-  - [ ] Schwellenwert-basierte Mail-Alerts für Login-Brute-Force, AntiSpam-Spitzen, Firewall-Blocks
-  - [ ] Wiederverwendung der bestehenden Monitoring-Mail-Pipeline
-- [ ] **Sicherheitsbaseline / Härtungsprofil pro Umgebung**
-  - [ ] Profile „Entwicklung", „Staging", „Produktion" mit empfohlenen Einstellungen
-  - [ ] Diff-Ansicht zwischen aktivem Zustand und Profil, Anwendung optional
-  - [ ] Diagnose Untersite bei der Firewall um zu sehen das diese auch funktioniert und was bewirkt!
+- [x] **Alarmierung bei sicherheitsrelevanten Ereignissen**
+  - [x] Schwellenwert-basierte Mail-Alerts für Login-Brute-Force, AntiSpam-Spitzen, Firewall-Blocks
+  - [x] Wiederverwendung der bestehenden Monitoring-Mail-Pipeline
+- [x] **Sicherheitsbaseline / Härtungsprofil pro Umgebung**
+  - [x] Profile „Entwicklung", „Staging", „Produktion" mit empfohlenen Einstellungen
+  - [x] Diff-Ansicht zwischen aktivem Zustand und Profil, Anwendung optional
+  - [x] Diagnose Untersite bei der Firewall um zu sehen das diese auch funktioniert und was bewirkt!
 
 ## 6. System & Doku – Konfigurationsdisziplin
 
-- [ ] **Backup-Validierung / Restore-Check im Trockentest**
-  - [ ] Hash-Verifikation der Sicherung, Probe-Lesen der wichtigsten Tabellen
-  - [ ] Optionaler Restore in temporäre Datenbank, Vergleichsbericht als read-only Ergebnis
-- [ ] **Update-Vorabprüfung auf Abhängigkeiten und Schreibrechte**
-  - [ ] PHP-Version, Erweiterungen, Disk-Space, Schreibrechte für `cache/`, `backups/`, `logs/`, `assets/`
-  - [ ] Blockierender Pre-Flight-Check mit klarer Anweisung pro Befund
+- [x] **Backup-Validierung / Restore-Check im Trockentest**
+  - [x] Hash-Verifikation der Sicherung, Probe-Lesen der wichtigsten Tabellen
+  - [x] Optionaler Restore in temporäre Datenbank, Vergleichsbericht als read-only Ergebnis
+- [x] **Update-Vorabprüfung auf Abhängigkeiten und Schreibrechte**
+  - [x] PHP-Version, Erweiterungen, Disk-Space, Schreibrechte für `cache/`, `backups/`, `logs/`, `assets/`
+  - [x] Blockierender Pre-Flight-Check mit klarer Anweisung pro Befund
+
+### Nachprüfung 2.9.767
+
+- `/admin/backups` ergänzt jetzt eine echte Backup-Validierung im bestehenden POST-/PRG-Flow.
+- Geprüft werden Manifest/Prüfsummen, SQL-Dump-Integrität, Probe-Lesen wichtiger Tabellen sowie optional ein Restore-Dry-Run in eine temporäre Wegwerf-Datenbank mit Vergleichsbericht.
+- Die Prüfergebnisse bleiben read-only sichtbar, verwenden keine Token-URLs und führen keine neue öffentliche GET-Mutation ein.
+- Zusätzlich wurden die bislang fehlenden internen Verzeichnis-Helfer im Restore-Pfad vervollständigt, damit Backup-Restore und Dry-Run nicht in undefinierte Methoden laufen.
+
+### Nachprüfung 2.9.766
+
+- `/admin/updates` zeigt jetzt eine echte, blockierende Vorabprüfung für automatische Core-, Theme- und Plugin-Updates.
+- Geprüft werden PHP-/DB-Version, notwendige PHP-Erweiterungen, freier Speicher sowie Schreibrechte auf `cache/`, `backups/`, `logs/`, `assets/` und den jeweiligen Zielpfaden.
+- Blockierende Befunde deaktivieren Installationsbuttons sichtbar und werden zusätzlich serverseitig vor dem eigentlichen Installationslauf abgefangen.
+- Keine neuen GET-Mutationen, keine Tokens in URLs; Installationen bleiben im bestehenden POST-/CSRF-Vertrag.
 
 ## 7. Diagnose – Beobachtbarkeit ausbauen
 
 - [ ] **Trendhistorie für Response-Time, Cron und Speicherverbrauch**
   - [ ] Aggregation über 24 h, 7 d, 30 d mit Sparklines
   - [ ] Datenquelle: bestehende Monitoring-Sammler, Persistenz in eigener Trend-Tabelle
-- [ ] **Export/Download für Diagnoseberichte**
-  - [ ] Bündelt Systeminfo, Health-Check, letzte Logs, Asset-Status, Cron-Status als ZIP
-  - [ ] Sensible Werte (Keys, DB-Passwort, Mail-Credentials) werden serverseitig redacted
+- [x] **Export/Download für Diagnoseberichte**
+  - [x] Bündelt Systeminfo, Health-Check, letzte Logs, Asset-Status, Cron-Status als ZIP
+  - [x] Sensible Werte (Keys, DB-Passwort, Mail-Credentials) werden serverseitig redacted
 - [ ] **Sammelansicht für kritische Systemwarnungen**
   - [ ] Eine Seite mit allen aktiven Warnungen aus Performance, Security, Diagnose, Updates, Recht
   - [ ] Direkt-Action pro Warnung (lösen, ignorieren mit Begründung, später erinnern)
-- [ ] **Sprechende Benutzeranzeige in der Update-Historie**
-  - [ ] User-ID auflösen auf `display_name` plus Rolle, Fallback auf ID bei gelöschten Benutzern
-  - [ ] Konsistent in `/admin/cms-logs` und Update-Center
+- [x] **Sprechende Benutzeranzeige in der Update-Historie**
+  - [x] User-ID auflösen auf `display_name` plus Rolle, Fallback auf ID bei gelöschten Benutzern
+  - [x] Konsistent in `/admin/cms-logs` und Update-Center
+
+### Nachprüfung 2.9.769
+
+- Die persistierte Update-Historie löst Benutzer-IDs jetzt serverseitig auf sprechende Labels aus `display_name` plus Rollenbezeichnung auf.
+- `/admin/updates` und `/admin/cms-logs` verwenden denselben aufbereiteten Datenpfad und zeigen bei gelöschten Konten fail-soft weiterhin `User #ID` an.
+- Es wurden keine neuen GET-Mutationen, keine Token-URLs und keine zusätzlichen 500-anfälligen Pflichtpfade eingeführt.
+
+### Nachprüfung 2.9.770
+
+- `/admin/diagnose` und `/admin/cms-logs` bieten jetzt einen POST-/CSRF-geschützten ZIP-Export für Diagnoseberichte direkt aus dem bestehenden Admin-Kontext an.
+- Das Archiv bündelt Systeminformationen, Health-Check, Asset-Status, Cron-Status, geplante Tasks sowie begrenzte Error-/CMS-/Audit-/Update-Logauszüge in getrennten Dateien.
+- Sensible Werte wie Tokens, Passwörter, Secrets und Credentials werden serverseitig redigiert; es gibt keine Token-URLs, keine neue GET-Mutation und fehlende Datenquellen fallen fail-soft auf leere Abschnitte zurück.
 
 ## 8. Cross-Bereich · Inhalte ↔ Medien ↔ SEO
 

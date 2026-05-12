@@ -2,11 +2,11 @@
 
 Kurzbeschreibung: Überblick über Konfiguration, Updates, Backups, Info-Ansichten, Diagnose und die inzwischen eingehängte AI-Steuerung im Admin-Bereich.
 
-Letzte Aktualisierung: 2026-05-09 · Version 2.9.703
+Letzte Aktualisierung: 2026-05-12 · Version 2.9.767
 
 Der Bereich „System" wurde in mehrere klar getrennte Einstiege aufgeteilt.
 
-Die Übersicht bezieht sich auf die aktuelle 2.9.703-Bedienstruktur. Für Runtime-Fragen zu Konfiguration, Bootstrap, Logs oder Dateisystempfaden ergänzen `DOC/INSTALLATION.md`, `DOC/core/ARCHITECTURE.md` und `DOC/FILELIST.md` diese Seite.
+Die Übersicht bezieht sich auf die aktuelle 2.9.767-Bedienstruktur. Für Runtime-Fragen zu Konfiguration, Bootstrap, Logs oder Dateisystempfaden ergänzen `DOC/INSTALLATION.md`, `DOC/core/ARCHITECTURE.md` und `DOC/FILELIST.md` diese Seite.
 
 ### System-Gruppe
 
@@ -14,8 +14,8 @@ Die Übersicht bezieht sich auf die aktuelle 2.9.703-Bedienstruktur. Für Runtim
 |---|---|
 | `/admin/settings` | allgemeine Systemeinstellungen inkl. SMTP-/Mail-Status und Testversand |
 | `/admin/ai-services` | zentrale AI-Settings für Provider, Feature-Gates, Translation, Prompt-Vorlagen, Logging, Monitoring und Quotas |
-| `/admin/backups` | Backups erstellen, auflisten, herunterladen, wiederherstellen und löschen |
-| `/admin/updates` | Core-, Theme- und Plugin-Updates zentral prüfen und installieren |
+| `/admin/backups` | Backups erstellen, auflisten, herunterladen, validieren, im Dry-Run prüfen, wiederherstellen und löschen |
+| `/admin/updates` | Core-, Theme- und Plugin-Updates zentral prüfen, Vorabbedingungen validieren und installieren |
 | `/admin/cms-logs` | konfigurierte CMS-Logdateien, PHP Error-Log, operatives Audit und Update-Historie |
 
 Wichtig: Der Bereich **AI Services** ist inzwischen als **Admin-, Settings- und erste Runtime-Schicht** implementiert. Ollama und Azure AI sind als Live-Provider verdrahtet, Editor.js-Übersetzungen laufen mit verpflichtendem Preview-/Diff-Workflow, und Prompt-Vorlagen werden seit `2.9.703` je Bereich verwaltet.

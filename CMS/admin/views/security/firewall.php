@@ -9,6 +9,9 @@ $stats    = $d['stats'] ?? [];
 $settings = $d['settings'] ?? [];
 $simulation = $d['simulation'] ?? [];
 $recentBlocks = is_array($d['recent_blocks'] ?? null) ? $d['recent_blocks'] : [];
+$baseline = is_array($d['baseline'] ?? null) ? $d['baseline'] : [];
+$baselineProfiles = is_array($baseline['profiles'] ?? null) ? $baseline['profiles'] : [];
+$firewallDiagnostics = is_array($baseline['diagnostics'] ?? null) ? $baseline['diagnostics'] : [];
 $typeLabels = [
     'block_ip'      => 'IP blockieren',
     'block_range'   => 'IP-Bereich blockieren',
@@ -59,7 +62,7 @@ $recentSimulationHits = is_array($simulation['recent_hits'] ?? null) ? $simulati
         <div class="security-page-intro">
             <div class="security-page-intro__text">
                 <p class="security-page-intro__title">Regeln kontrolliert ausrollen und nachvollziehbar scharfschalten</p>
-                <p class="security-page-intro__copy">Die Firewall kombiniert klassische Blockregeln, Rate-Limit-Schutz und einen Simulationsmodus für sichere Rollouts. Tabellen, Vorschauen und Aktionen sind bewusst read-only oder POST-geschützt getrennt.</p>
+                <p class="security-page-intro__copy">Die Firewall kombiniert klassische Blockregeln, Rate-Limit-Schutz, Härtungsprofile und einen Simulationsmodus für sichere Rollouts. Tabellen, Vorschauen und Diagnosewerte sind read-only; Änderungen laufen ausschließlich POST-/CSRF-geschützt.</p>
             </div>
         </div>
 
@@ -94,6 +97,106 @@ $recentSimulationHits = is_array($simulation['recent_hits'] ?? null) ? $simulati
                         <div class="subheader">Simulationsregeln</div>
                         <div class="h1 mb-0 text-warning"><?php echo (int)($stats['simulated_rules'] ?? 0); ?></div>
                         <div class="security-kpi-note">Allow-Regeln: <?php echo (int)($stats['allowed_ips'] ?? 0); ?></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row row-deck row-cards mb-4">
+            <div class="col-12">
+                <div class="card security-panel-card">
+                    <div class="card-header">
+                        <div class="card-title-wrap">
+                            <p class="card-eyebrow">Härtung</p>
+                            <h3 class="card-title">Sicherheitsbaseline & Firewall-Diagnose</h3>
+                            <div class="card-title-meta">Profile für Entwicklung, Staging und Produktion mit read-only Diff gegen den aktuellen Zustand. Anwendung ist optional und POST-geschützt.</div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3 mb-4">
+                            <?php foreach ($firewallDiagnostics as $diagnostic): ?>
+                                <?php
+                                $status = (string)($diagnostic['status'] ?? 'warning');
+                                $badgeClass = match ($status) {
+                                    'ok' => 'bg-success',
+                                    'critical' => 'bg-danger',
+                                    default => 'bg-warning text-dark',
+                                };
+                                ?>
+                                <div class="col-md-6 col-xl-4">
+                                    <div class="security-mini-stat h-100">
+                                        <div class="d-flex justify-content-between gap-2 align-items-start mb-2">
+                                            <div class="security-mini-stat__label"><?php echo htmlspecialchars((string)($diagnostic['label'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></div>
+                                            <span class="badge <?php echo $badgeClass; ?>"><?php echo htmlspecialchars($status, ENT_QUOTES, 'UTF-8'); ?></span>
+                                        </div>
+                                        <div class="text-secondary small"><?php echo htmlspecialchars((string)($diagnostic['detail'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></div>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+
+                        <?php if (empty($baselineProfiles)): ?>
+                            <div class="alert alert-warning mb-0" role="alert">Keine Härtungsprofile verfügbar. Die Firewall-Regeln bleiben davon unberührt.</div>
+                        <?php else: ?>
+                            <div class="accordion" id="firewallBaselineProfiles">
+                                <?php foreach ($baselineProfiles as $profileKey => $profile): ?>
+                                    <?php
+                                    $profileId = 'baseline-profile-' . preg_replace('/[^a-z0-9_-]/i', '-', (string)$profileKey);
+                                    $diffRows = is_array($profile['diff'] ?? null) ? $profile['diff'] : [];
+                                    $diffCount = (int)($profile['diff_count'] ?? 0);
+                                    ?>
+                                    <div class="accordion-item">
+                                        <h2 class="accordion-header" id="<?php echo htmlspecialchars($profileId, ENT_QUOTES, 'UTF-8'); ?>-header">
+                                            <button class="accordion-button <?php echo $profileKey === 'production' ? '' : 'collapsed'; ?>" type="button" data-bs-toggle="collapse" data-bs-target="#<?php echo htmlspecialchars($profileId, ENT_QUOTES, 'UTF-8'); ?>" aria-expanded="<?php echo $profileKey === 'production' ? 'true' : 'false'; ?>" aria-controls="<?php echo htmlspecialchars($profileId, ENT_QUOTES, 'UTF-8'); ?>">
+                                                <span class="fw-semibold me-2"><?php echo htmlspecialchars((string)($profile['label'] ?? $profileKey), ENT_QUOTES, 'UTF-8'); ?></span>
+                                                <span class="badge <?php echo $diffCount === 0 ? 'bg-success' : 'bg-warning text-dark'; ?>"><?php echo $diffCount === 0 ? 'konform' : $diffCount . ' Abweichungen'; ?></span>
+                                            </button>
+                                        </h2>
+                                        <div id="<?php echo htmlspecialchars($profileId, ENT_QUOTES, 'UTF-8'); ?>" class="accordion-collapse collapse <?php echo $profileKey === 'production' ? 'show' : ''; ?>" aria-labelledby="<?php echo htmlspecialchars($profileId, ENT_QUOTES, 'UTF-8'); ?>-header" data-bs-parent="#firewallBaselineProfiles">
+                                            <div class="accordion-body">
+                                                <p class="text-secondary small mb-3"><?php echo htmlspecialchars((string)($profile['description'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></p>
+
+                                                <div class="table-responsive security-table-wrap mb-3">
+                                                    <table class="table table-sm table-vcenter security-table-modern mb-0">
+                                                        <thead>
+                                                            <tr>
+                                                                <th>Einstellung</th>
+                                                                <th>Aktuell</th>
+                                                                <th>Profil</th>
+                                                                <th>Status</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            <?php foreach ($diffRows as $row): ?>
+                                                                <tr>
+                                                                    <td><?php echo htmlspecialchars((string)($row['label'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
+                                                                    <td><?php echo htmlspecialchars((string)($row['current'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
+                                                                    <td><?php echo htmlspecialchars((string)($row['recommended'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
+                                                                    <td>
+                                                                        <?php if (!empty($row['matches'])): ?>
+                                                                            <span class="badge bg-success">OK</span>
+                                                                        <?php else: ?>
+                                                                            <span class="badge bg-warning text-dark">Abweichend</span>
+                                                                        <?php endif; ?>
+                                                                    </td>
+                                                                </tr>
+                                                            <?php endforeach; ?>
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+
+                                                <form method="post" class="d-flex justify-content-end">
+                                                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? '', ENT_QUOTES, 'UTF-8'); ?>">
+                                                    <input type="hidden" name="action" value="apply_baseline_profile">
+                                                    <input type="hidden" name="baseline_profile" value="<?php echo htmlspecialchars((string)$profileKey, ENT_QUOTES, 'UTF-8'); ?>">
+                                                    <button type="button" class="btn btn-outline-primary btn-sm" onclick="applyFirewallBaseline(this.form, <?php echo htmlspecialchars(json_encode((string)($profile['label'] ?? $profileKey), JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?: '"Profil"', ENT_QUOTES, 'UTF-8'); ?>)">Profil anwenden</button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>
@@ -466,6 +569,18 @@ function changeFirewallRuleMode(form, targetMode) {
         message: 'Diese Regel soll Treffer künftig aktiv blockieren. Wirklich scharfschalten?',
         confirmText: 'Scharfschalten',
         confirmClass: 'btn-danger',
+        onConfirm: function() {
+            submitWithFallback(form);
+        }
+    });
+}
+
+function applyFirewallBaseline(form, profileLabel) {
+    cmsConfirm({
+        title: 'Härtungsprofil anwenden',
+        message: 'Das Profil „' + profileLabel + '“ überschreibt die Firewall-Basiseinstellungen. Regeln werden nicht gelöscht oder neu angelegt. Fortfahren?',
+        confirmText: 'Profil anwenden',
+        confirmClass: 'btn-primary',
         onConfirm: function() {
             submitWithFallback(form);
         }

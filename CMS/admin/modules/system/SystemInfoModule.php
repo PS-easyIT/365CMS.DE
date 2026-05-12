@@ -17,6 +17,7 @@ use CMS\SchemaManager;
 use CMS\Services\CronRunnerService;
 use CMS\Services\MailQueueService;
 use CMS\Services\MailService;
+use CMS\Services\SecurityAlertService;
 use CMS\Services\ErrorReportService;
 use CMS\Services\SystemService;
 use CMS\Services\UpdateService;
@@ -28,6 +29,8 @@ class SystemInfoModule
     private const MAX_AUDIT_STRING_LENGTH = 240;
     private const OPERATIONAL_AUDIT_LIMIT = 40;
     private const UPDATE_HISTORY_LIMIT = 12;
+    private const DIAGNOSTIC_REPORT_CMS_LOG_LIMIT = 5;
+    private const DIAGNOSTIC_REPORT_LOG_ENTRY_LIMIT = 40;
 
     private const MONITOR_DEFAULTS = [
         'monitor_email_notifications_enabled' => '0',
@@ -36,6 +39,12 @@ class SystemInfoModule
         'monitor_disk_threshold_percent' => '85',
         'monitor_health_endpoint_enabled' => '0',
         'monitor_health_endpoint_path' => '/health',
+        'security_email_notifications_enabled' => '0',
+        'security_alert_bruteforce_threshold' => '15',
+        'security_alert_antispam_threshold' => '10',
+        'security_alert_firewall_threshold' => '10',
+        'security_alert_window_minutes' => '60',
+        'security_alert_cooldown_minutes' => '180',
     ];
 
     private SystemService $service;
@@ -63,6 +72,7 @@ class SystemInfoModule
             'scheduled_tasks' => $this->getScheduledTasksData(),
             'health' => $this->getHealthChecksData(),
             'email_alerts' => $this->getMonitoringSettings(),
+            'security_alerts' => SecurityAlertService::getInstance()->getAdminSummary(),
         ];
     }
 
@@ -102,6 +112,7 @@ class SystemInfoModule
             ],
             'email-alerts' => [
                 'email_alerts' => $this->getMonitoringSettings(),
+                'security_alerts' => SecurityAlertService::getInstance()->getAdminSummary(),
             ],
             'cron' => [
                 'cron' => $this->getCronData(),
@@ -172,6 +183,7 @@ class SystemInfoModule
         return match ($action) {
             'clear_cache' => $this->clearCache(),
             'optimize_db' => $this->optimizeDatabase(),
+            'export_diagnostic_report' => $this->exportDiagnosticReport(),
             'clear_logs' => $this->clearLogs(),
             'clear_cms_log' => $this->clearCmsLog($post),
             'clear_all_cms_logs' => $this->clearAllCmsLogs(),
@@ -335,6 +347,74 @@ class SystemInfoModule
                 'Die CMS-Logdateien konnten nicht vollständig gelöscht werden.',
                 $e,
                 'log'
+            );
+        }
+    }
+
+    private function exportDiagnosticReport(): array
+    {
+        if (!extension_loaded('zip')) {
+            return ['success' => false, 'error' => 'Die ZIP-Erweiterung ist auf diesem System nicht verfügbar.'];
+        }
+
+        $tempFile = '';
+
+        try {
+            $tempFile = rtrim(sys_get_temp_dir(), '/\\') . DIRECTORY_SEPARATOR
+                . '365cms-diagnostic-report-' . date('Ymd-His') . '-' . bin2hex(random_bytes(4)) . '.zip';
+            $report = $this->buildDiagnosticReportPayload();
+            $zip = new \ZipArchive();
+            $openResult = $zip->open($tempFile, \ZipArchive::CREATE | \ZipArchive::OVERWRITE);
+            if ($openResult !== true) {
+                throw new \RuntimeException('Diagnose-Archiv konnte nicht erstellt werden.');
+            }
+
+            $this->addDiagnosticReportTextFile($zip, 'README.txt', $this->buildDiagnosticReportReadme($report));
+            $this->addDiagnosticReportJsonFile($zip, 'manifest.json', $report['manifest'] ?? []);
+            $this->addDiagnosticReportJsonFile($zip, 'system-info.json', $report['system_info'] ?? []);
+            $this->addDiagnosticReportJsonFile($zip, 'health-check.json', $report['health_check'] ?? []);
+            $this->addDiagnosticReportJsonFile($zip, 'asset-status.json', $report['asset_status'] ?? []);
+            $this->addDiagnosticReportJsonFile($zip, 'cron-status.json', $report['cron_status'] ?? []);
+            $this->addDiagnosticReportJsonFile($zip, 'scheduled-tasks.json', $report['scheduled_tasks'] ?? []);
+            $this->addDiagnosticReportJsonFile($zip, 'logs/error-log.json', $report['logs']['error_log'] ?? []);
+            $this->addDiagnosticReportJsonFile($zip, 'logs/cms-log-summary.json', $report['logs']['cms_log_summary'] ?? []);
+            $this->addDiagnosticReportJsonFile($zip, 'logs/recent-cms-logs.json', $report['logs']['recent_cms_logs'] ?? []);
+            $this->addDiagnosticReportJsonFile($zip, 'logs/operational-audit.json', $report['logs']['operational_audit'] ?? []);
+            $this->addDiagnosticReportJsonFile($zip, 'logs/update-history.json', $report['logs']['update_history'] ?? []);
+            if (!$zip->close()) {
+                throw new \RuntimeException('Diagnose-Archiv konnte nicht finalisiert werden.');
+            }
+
+            $fileSize = @filesize($tempFile);
+            if (!is_int($fileSize) || $fileSize <= 0) {
+                throw new \RuntimeException('Diagnose-Archiv ist leer oder nicht lesbar.');
+            }
+
+            AuditLogger::instance()->log(
+                AuditLogger::CAT_SYSTEM,
+                'system.diagnostic_report.exported',
+                'Diagnosebericht als ZIP exportiert.',
+                'diagnose',
+                null,
+                [
+                    'format' => 'zip',
+                    'size_bytes' => $fileSize,
+                    'cms_log_files' => (int) ($report['manifest']['cms_log_file_count'] ?? 0),
+                ],
+                'warning'
+            );
+
+            $this->sendDiagnosticReportDownload($tempFile, $this->buildDiagnosticReportFilename());
+        } catch (\Throwable $e) {
+            if (is_file($tempFile)) {
+                @unlink($tempFile);
+            }
+
+            return $this->buildActionFailureResponse(
+                'system.diagnostic_report.export_failed',
+                'Der Diagnosebericht konnte nicht erstellt werden.',
+                $e,
+                'diagnose'
             );
         }
     }
@@ -566,6 +646,21 @@ class SystemInfoModule
         $settings['monitor_disk_threshold_percent'] = (string)min(99, max(1, (int)($post['monitor_disk_threshold_percent'] ?? $settings['monitor_disk_threshold_percent'])));
         $settings['monitor_health_endpoint_enabled'] = !empty($post['monitor_health_endpoint_enabled']) ? '1' : '0';
         $settings['monitor_health_endpoint_path'] = $this->normalizeHealthEndpointPath($post['monitor_health_endpoint_path'] ?? $settings['monitor_health_endpoint_path']);
+        $settings['security_email_notifications_enabled'] = !empty($post['security_email_notifications_enabled']) ? '1' : '0';
+        $settings['security_alert_bruteforce_threshold'] = (string)max(1, min(10000, (int)($post['security_alert_bruteforce_threshold'] ?? $settings['security_alert_bruteforce_threshold'])));
+        $settings['security_alert_antispam_threshold'] = (string)max(1, min(10000, (int)($post['security_alert_antispam_threshold'] ?? $settings['security_alert_antispam_threshold'])));
+        $settings['security_alert_firewall_threshold'] = (string)max(1, min(10000, (int)($post['security_alert_firewall_threshold'] ?? $settings['security_alert_firewall_threshold'])));
+        $settings['security_alert_window_minutes'] = (string)max(5, min(1440, (int)($post['security_alert_window_minutes'] ?? $settings['security_alert_window_minutes'])));
+        $settings['security_alert_cooldown_minutes'] = (string)max(15, min(10080, (int)($post['security_alert_cooldown_minutes'] ?? $settings['security_alert_cooldown_minutes'])));
+
+        if ($settings['monitor_alert_email'] !== '' && filter_var($settings['monitor_alert_email'], FILTER_VALIDATE_EMAIL) === false) {
+            return ['success' => false, 'error' => 'Bitte eine gültige Empfänger-E-Mail-Adresse für Alerts hinterlegen.'];
+        }
+
+        if (($settings['monitor_email_notifications_enabled'] === '1' || $settings['security_email_notifications_enabled'] === '1')
+            && $settings['monitor_alert_email'] === '') {
+            return ['success' => false, 'error' => 'Für aktivierte Alert-E-Mails wird eine Empfängeradresse benötigt.'];
+        }
 
         try {
             $db = Database::instance();
@@ -636,6 +731,84 @@ class SystemInfoModule
             'response_time' => $this->measureResponseTime(SITE_URL),
             'cron_hooks' => count($this->getCronData()['hooks'] ?? []),
             'disk' => $this->getDiskUsageData(),
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function buildDiagnosticReportPayload(): array
+    {
+        $systemInfo = [
+            'system' => $this->getSystemInfoSafe(),
+            'database' => $this->getDatabaseStatusSafe(),
+            'permissions' => $this->getPermissionsSafe(),
+            'directories' => $this->getDirectorySizesSafe(),
+            'statistics' => $this->getStatisticsSafe(),
+            'security' => $this->getSecurityStatusSafe(),
+            'runtime' => $this->getRuntimeTelemetrySafe(),
+        ];
+        $healthCheck = $this->getHealthChecksData();
+        $assetStatus = $this->getAssetsData();
+        $cronStatus = $this->getCronData();
+        $scheduledTasks = $this->getScheduledTasksData();
+        $logs = $this->buildDiagnosticReportLogPayload();
+
+        $report = [
+            'manifest' => [
+                'generated_at' => date('c'),
+                'cms_version' => defined('CMS_VERSION') ? (string) CMS_VERSION : (defined('CMS\\Version::CURRENT') ? (string) \CMS\Version::CURRENT : 'unknown'),
+                'report_type' => 'diagnostic-export',
+                'redaction_notice' => 'Sensible Werte wie Token, Passwörter, Secrets, Autorisierungsdaten und Credentials wurden serverseitig redigiert.',
+                'cms_log_file_count' => count((array) ($logs['cms_log_summary']['files'] ?? [])),
+            ],
+            'system_info' => $systemInfo,
+            'health_check' => $healthCheck,
+            'asset_status' => $assetStatus,
+            'cron_status' => $cronStatus,
+            'scheduled_tasks' => $scheduledTasks,
+            'logs' => $logs,
+        ];
+
+        return $this->redactDiagnosticExportData($report);
+    }
+
+    /** @return array<string, mixed> */
+    private function buildDiagnosticReportLogPayload(): array
+    {
+        $logsData = $this->getLogsData(null);
+        $files = array_slice((array) ($logsData['files'] ?? []), 0, self::DIAGNOSTIC_REPORT_CMS_LOG_LIMIT);
+        $recentCmsLogs = [];
+
+        foreach ($files as $fileInfo) {
+            if (!is_array($fileInfo)) {
+                continue;
+            }
+
+            $filename = (string) ($fileInfo['filename'] ?? '');
+            if ($filename === '') {
+                continue;
+            }
+
+            $recentCmsLogs[] = [
+                'file' => $filename,
+                'channel' => (string) ($fileInfo['channel'] ?? ''),
+                'modified_at' => (string) ($fileInfo['modified_at'] ?? ''),
+                'entries' => $this->service->getCmsLogEntries($filename, self::DIAGNOSTIC_REPORT_LOG_ENTRY_LIMIT),
+            ];
+        }
+
+        return [
+            'error_log' => [
+                'file_exists' => !empty($logsData['error_log_exists']),
+                'entries' => array_slice((array) ($logsData['error_log_entries'] ?? []), 0, self::DIAGNOSTIC_REPORT_LOG_ENTRY_LIMIT),
+            ],
+            'cms_log_summary' => [
+                'directory_exists' => !empty($logsData['log_directory_exists']),
+                'directory_writable' => !empty($logsData['log_directory_writable']),
+                'files' => $files,
+            ],
+            'recent_cms_logs' => $recentCmsLogs,
+            'operational_audit' => array_slice((array) ($logsData['operational_audit_entries'] ?? []), 0, self::OPERATIONAL_AUDIT_LIMIT),
+            'update_history' => array_slice((array) ($logsData['update_history_entries'] ?? []), 0, self::UPDATE_HISTORY_LIMIT),
         ];
     }
 
@@ -1208,12 +1381,14 @@ class SystemInfoModule
                 continue;
             }
 
+            $userLabel = (string) ($entry['user_label'] ?? $entry['user'] ?? 'System');
+
             $entries[] = [
                 'timestamp' => $this->sanitizeAuditString((string) ($entry['timestamp'] ?? ''), 40),
                 'type' => $this->sanitizeAuditString((string) ($entry['type'] ?? 'update'), 40),
                 'name' => $this->sanitizeAuditString((string) ($entry['name'] ?? ''), 120),
                 'version' => $this->sanitizeAuditString((string) ($entry['version'] ?? ''), 60),
-                'user' => $this->sanitizeAuditString((string) ($entry['user'] ?? 'System'), 80),
+                'user' => $this->sanitizeAuditString($userLabel, 120),
             ];
         }
 
@@ -1379,5 +1554,125 @@ class SystemInfoModule
         $filename = trim((string) $value);
 
         return preg_match('/^[A-Za-z0-9._-]+\.log$/', $filename) === 1 ? $filename : '';
+    }
+
+    /** @param array<string, mixed> $payload */
+    private function addDiagnosticReportJsonFile(\ZipArchive $zip, string $path, array $payload): void
+    {
+        $json = json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        if (!is_string($json)) {
+            throw new \RuntimeException('Diagnosebericht konnte nicht serialisiert werden.');
+        }
+
+        if (!$zip->addFromString($path, $json)) {
+            throw new \RuntimeException('Diagnosebericht-Datei konnte nicht dem ZIP hinzugefügt werden: ' . $path);
+        }
+    }
+
+    private function addDiagnosticReportTextFile(\ZipArchive $zip, string $path, string $content): void
+    {
+        if (!$zip->addFromString($path, $content)) {
+            throw new \RuntimeException('Diagnosebericht-Textdatei konnte nicht dem ZIP hinzugefügt werden: ' . $path);
+        }
+    }
+
+    /** @param array<string, mixed> $report */
+    private function buildDiagnosticReportReadme(array $report): string
+    {
+        return implode("\n", [
+            '365CMS Diagnosebericht',
+            '====================',
+            '',
+            'Erstellt: ' . (string) ($report['manifest']['generated_at'] ?? date('c')),
+            'CMS-Version: ' . (string) ($report['manifest']['cms_version'] ?? 'unknown'),
+            '',
+            'Enthaltene Bereiche:',
+            '- Systeminformationen',
+            '- Health-Check',
+            '- Asset-Status',
+            '- Cron-Status',
+            '- Geplante Tasks',
+            '- Letzte Logs inkl. Error-Log, CMS-Log-Summary, Betriebs-Audit und Update-Historie',
+            '',
+            'Redaction-Hinweis:',
+            (string) ($report['manifest']['redaction_notice'] ?? 'Sensible Werte wurden serverseitig redigiert.'),
+            '',
+            'Sicherheitsvertrag:',
+            '- Export wird ausschließlich per POST/CSRF erzeugt.',
+            '- Keine Tokens in Download-URLs.',
+            '- Fehlende Datenquellen fallen fail-soft auf leere Abschnitte zurück.',
+        ]) . "\n";
+    }
+
+    private function buildDiagnosticReportFilename(): string
+    {
+        return '365cms-diagnosebericht-' . date('Y-m-d_H-i-s') . '.zip';
+    }
+
+    private function sendDiagnosticReportDownload(string $path, string $filename): never
+    {
+        $handle = fopen($path, 'rb');
+        if ($handle === false) {
+            throw new \RuntimeException('Diagnosebericht konnte nicht zum Download geöffnet werden.');
+        }
+
+        header('Content-Type: application/zip');
+        header('Content-Disposition: attachment; filename="' . str_replace('"', '', $filename) . '"');
+        header('Content-Length: ' . (string) filesize($path));
+        header('Cache-Control: private, no-store, no-cache, must-revalidate');
+        header('Pragma: no-cache');
+        header('X-Content-Type-Options: nosniff');
+
+        while (!feof($handle)) {
+            echo fread($handle, 8192);
+        }
+        fclose($handle);
+
+        @unlink($path);
+        exit;
+    }
+
+    private function redactDiagnosticExportData(mixed $value, string $key = ''): mixed
+    {
+        if (is_array($value)) {
+            $redacted = [];
+            foreach ($value as $childKey => $childValue) {
+                $normalizedKey = is_string($childKey) ? $childKey : (string) $childKey;
+                if ($this->isSensitiveDiagnosticExportKey($normalizedKey)) {
+                    $redacted[$childKey] = '[redacted]';
+                    continue;
+                }
+
+                $redacted[$childKey] = $this->redactDiagnosticExportData($childValue, $normalizedKey);
+            }
+
+            return $redacted;
+        }
+
+        if (is_string($value)) {
+            return $this->redactDiagnosticExportString($value, $key);
+        }
+
+        return $value;
+    }
+
+    private function isSensitiveDiagnosticExportKey(string $key): bool
+    {
+        return preg_match('/(^|_|-)(token|password|pass|secret|api_key|private_key|authorization|credential|smtp_pass|mail_password|db_pass)($|_|-)/i', $key) === 1;
+    }
+
+    private function redactDiagnosticExportString(string $value, string $key = ''): string
+    {
+        if ($this->isSensitiveDiagnosticExportKey($key)) {
+            return '[redacted]';
+        }
+
+        $value = preg_replace('/([?&](?:token|password|pass|secret|api_key|signature|sig|authorization)=)[^&\s]+/iu', '$1[redacted]', $value) ?? $value;
+        $value = preg_replace('/((?:token|password|pass|secret|api_key|authorization|smtp_pass|mail_password|db_pass)"?\s*[:=]\s*")([^"]*)(")/iu', '$1[redacted]$3', $value) ?? $value;
+        $value = preg_replace('/((?:token|password|pass|secret|api_key|authorization|smtp_pass|mail_password|db_pass)\s*[:=]\s*)([^\s,;]+)/iu', '$1[redacted]', $value) ?? $value;
+        $value = preg_replace('/(Authorization:\s*)(.+)$/imu', '$1[redacted]', $value) ?? $value;
+        $value = preg_replace('/(Bearer\s+)[A-Za-z0-9._\-~=+\/]+/u', '$1[redacted]', $value) ?? $value;
+
+        return $value;
     }
 }

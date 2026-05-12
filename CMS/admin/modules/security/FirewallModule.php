@@ -27,7 +27,55 @@ class FirewallModule
         'firewall_simulation_preview_hours',
     ];
 
-    private const SUPPORTED_ACTIONS = ['save_settings', 'add_rule', 'delete_rule', 'toggle_rule', 'set_rule_mode'];
+    private const SUPPORTED_ACTIONS = ['save_settings', 'apply_baseline_profile', 'add_rule', 'delete_rule', 'toggle_rule', 'set_rule_mode'];
+
+    private const BASELINE_PROFILES = [
+        'development' => [
+            'label' => 'Entwicklung',
+            'description' => 'Lockerere Rate-Limits, aktives Logging und kurze Sperren für lokale Tests ohne harte Blockade-Spiralen.',
+            'settings' => [
+                'firewall_enabled' => '1',
+                'firewall_rate_limit' => '300',
+                'firewall_rate_window' => '60',
+                'firewall_block_duration' => '300',
+                'firewall_log_enabled' => '1',
+                'firewall_simulation_preview_hours' => '12',
+            ],
+        ],
+        'staging' => [
+            'label' => 'Staging',
+            'description' => 'Produktionsnahes Verhalten mit moderaten Limits, aktivem Logging und ausreichend langer Simulationsauswertung.',
+            'settings' => [
+                'firewall_enabled' => '1',
+                'firewall_rate_limit' => '120',
+                'firewall_rate_window' => '60',
+                'firewall_block_duration' => '1800',
+                'firewall_log_enabled' => '1',
+                'firewall_simulation_preview_hours' => '24',
+            ],
+        ],
+        'production' => [
+            'label' => 'Produktion',
+            'description' => 'Strengeres Betriebsprofil mit aktiver Firewall, Logging, längerer Sperrdauer und erweitertem Simulationsfenster.',
+            'settings' => [
+                'firewall_enabled' => '1',
+                'firewall_rate_limit' => '60',
+                'firewall_rate_window' => '60',
+                'firewall_block_duration' => '3600',
+                'firewall_log_enabled' => '1',
+                'firewall_simulation_preview_hours' => '48',
+            ],
+        ],
+    ];
+
+    private const BASELINE_SETTING_LABELS = [
+        'firewall_enabled' => 'Firewall aktiv',
+        'firewall_rate_limit' => 'Rate Limit',
+        'firewall_rate_window' => 'Zeitfenster',
+        'firewall_block_duration' => 'Sperrdauer',
+        'firewall_log_enabled' => 'Zugriffs-Logging',
+        'firewall_simulation_preview_hours' => 'Simulationsvorschau',
+    ];
 
     private readonly \CMS\Database $db;
     private readonly string $prefix;
@@ -128,6 +176,7 @@ class FirewallModule
             'settings'      => $settings,
             'recent_blocks' => array_map(fn($r) => (array)$r, $recentBlocks),
             'simulation'    => $simulationPreview,
+            'baseline'      => $this->buildBaselineData($settings, $normalizedRules, $simulationPreview, $recentBlocks),
         ];
     }
 
@@ -143,14 +192,7 @@ class FirewallModule
         ];
 
         try {
-            foreach ($keys as $key => $value) {
-                $exists = $this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}settings WHERE option_name = ?", [$key]);
-                if ($exists) {
-                    $this->db->update('settings', ['option_value' => $value], ['option_name' => $key]);
-                } else {
-                    $this->db->insert('settings', ['option_name' => $key, 'option_value' => $value]);
-                }
-            }
+            $this->persistSettings($keys);
             // ADDED: Änderungen an Security-Einstellungen zentral protokollieren.
             AuditLogger::instance()->log(
                 AuditLogger::CAT_SECURITY,
@@ -169,6 +211,46 @@ class FirewallModule
             ]);
 
             return ['success' => false, 'error' => 'Firewall-Einstellungen konnten nicht gespeichert werden.'];
+        }
+    }
+
+    public function applyBaselineProfile(string $profileKey): array
+    {
+        $profileKey = $this->normalizeBaselineProfileKey($profileKey);
+        if ($profileKey === '') {
+            return ['success' => false, 'error' => 'Unbekanntes Härtungsprofil.'];
+        }
+
+        $profile = self::BASELINE_PROFILES[$profileKey];
+        $settings = $profile['settings'] ?? [];
+        if (!is_array($settings) || $settings === []) {
+            return ['success' => false, 'error' => 'Härtungsprofil enthält keine anwendbaren Einstellungen.'];
+        }
+
+        try {
+            $this->persistSettings($settings);
+            AuditLogger::instance()->log(
+                AuditLogger::CAT_SECURITY,
+                'firewall.baseline.apply',
+                'Firewall-Härtungsprofil angewendet',
+                'setting',
+                null,
+                [
+                    'profile' => $profileKey,
+                    'label' => (string)($profile['label'] ?? $profileKey),
+                    'settings' => array_keys($settings),
+                ],
+                'warning'
+            );
+
+            return ['success' => true, 'message' => 'Härtungsprofil „' . (string)($profile['label'] ?? $profileKey) . '“ wurde angewendet.'];
+        } catch (\Throwable $e) {
+            $this->logFailure('firewall.baseline.apply_failed', 'Firewall-Härtungsprofil konnte nicht angewendet werden.', [
+                'profile' => $profileKey,
+                'exception' => $e::class,
+            ]);
+
+            return ['success' => false, 'error' => 'Härtungsprofil konnte nicht angewendet werden.'];
         }
     }
 
@@ -410,6 +492,158 @@ class FirewallModule
         }
 
         return $settings;
+    }
+
+    /** @param array<string,string> $settings */
+    private function persistSettings(array $settings): void
+    {
+        foreach ($settings as $key => $value) {
+            if (!in_array($key, self::SETTING_KEYS, true)) {
+                continue;
+            }
+
+            $exists = $this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}settings WHERE option_name = ?", [$key]);
+            if ($exists) {
+                $this->db->update('settings', ['option_value' => (string)$value], ['option_name' => $key]);
+            } else {
+                $this->db->insert('settings', ['option_name' => $key, 'option_value' => (string)$value]);
+            }
+        }
+    }
+
+    /**
+     * @param array<string,string> $settings
+     * @param array<int,array<string,mixed>> $rules
+     * @param array<string,mixed> $simulation
+     * @param array<int,mixed> $recentBlocks
+     * @return array<string,mixed>
+     */
+    private function buildBaselineData(array $settings, array $rules, array $simulation, array $recentBlocks): array
+    {
+        $profiles = [];
+        foreach (self::BASELINE_PROFILES as $key => $profile) {
+            $profileSettings = is_array($profile['settings'] ?? null) ? $profile['settings'] : [];
+            $diff = $this->buildProfileDiff($settings, $profileSettings);
+            $profiles[$key] = [
+                'key' => $key,
+                'label' => (string)($profile['label'] ?? $key),
+                'description' => (string)($profile['description'] ?? ''),
+                'settings' => $profileSettings,
+                'diff' => $diff,
+                'match_count' => count(array_filter($diff, static fn(array $item): bool => !empty($item['matches']))),
+                'diff_count' => count(array_filter($diff, static fn(array $item): bool => empty($item['matches']))),
+            ];
+        }
+
+        return [
+            'profiles' => $profiles,
+            'diagnostics' => $this->buildFirewallDiagnostics($settings, $rules, $simulation, $recentBlocks),
+        ];
+    }
+
+    /**
+     * @param array<string,string> $current
+     * @param array<string,string> $recommended
+     * @return array<int,array<string,mixed>>
+     */
+    private function buildProfileDiff(array $current, array $recommended): array
+    {
+        $diff = [];
+        foreach ($recommended as $key => $recommendedValue) {
+            $currentValue = (string)($current[$key] ?? '');
+            $recommendedValue = (string)$recommendedValue;
+            $diff[] = [
+                'key' => $key,
+                'label' => self::BASELINE_SETTING_LABELS[$key] ?? $key,
+                'current' => $this->formatBaselineValue($key, $currentValue),
+                'recommended' => $this->formatBaselineValue($key, $recommendedValue),
+                'matches' => $currentValue === $recommendedValue,
+            ];
+        }
+
+        return $diff;
+    }
+
+    /**
+     * @param array<string,string> $settings
+     * @param array<int,array<string,mixed>> $rules
+     * @param array<string,mixed> $simulation
+     * @param array<int,mixed> $recentBlocks
+     * @return array<int,array<string,string>>
+     */
+    private function buildFirewallDiagnostics(array $settings, array $rules, array $simulation, array $recentBlocks): array
+    {
+        $runtimeActive = class_exists('\CMS\Services\SecurityRuntimeService')
+            && defined('ABSPATH')
+            && $this->fileContains((string)ABSPATH . 'core/Bootstrap.php', 'SecurityRuntimeService::getInstance()->handleRequest()');
+        $activeRules = count(array_filter($rules, static fn(array $rule): bool => (int)($rule['is_active'] ?? 0) === 1));
+        $enforcedRules = count(array_filter($rules, static fn(array $rule): bool => (int)($rule['is_active'] ?? 0) === 1 && ($rule['rule_mode'] ?? '') === self::RULE_MODE_ENFORCE));
+
+        return [
+            [
+                'label' => 'Runtime-Verdrahtung',
+                'status' => $runtimeActive ? 'ok' : 'critical',
+                'detail' => $runtimeActive ? 'SecurityRuntimeService ist im Bootstrap-Pfad aktiv.' : 'SecurityRuntimeService wurde im Bootstrap-Pfad nicht erkannt.',
+            ],
+            [
+                'label' => 'Firewall-Schalter',
+                'status' => ($settings['firewall_enabled'] ?? '0') === '1' ? 'ok' : 'warning',
+                'detail' => ($settings['firewall_enabled'] ?? '0') === '1' ? 'Firewall ist aktiviert.' : 'Firewall ist aktuell deaktiviert.',
+            ],
+            [
+                'label' => 'Logging',
+                'status' => ($settings['firewall_log_enabled'] ?? '0') === '1' ? 'ok' : 'warning',
+                'detail' => ($settings['firewall_log_enabled'] ?? '0') === '1' ? 'Firewall-Logging ist aktiviert.' : 'Ohne Logging bleiben Diagnose und Alerting eingeschränkt.',
+            ],
+            [
+                'label' => 'Aktive Regeln',
+                'status' => $activeRules > 0 ? 'ok' : 'warning',
+                'detail' => $activeRules . ' aktive Regeln, davon ' . $enforcedRules . ' scharfgeschaltet.',
+            ],
+            [
+                'label' => 'Simulationsvorschau',
+                'status' => ($simulation['available'] ?? true) === true ? 'ok' : 'warning',
+                'detail' => 'Treffer im Fenster: ' . (int)($simulation['total_hits'] ?? 0) . ', Regeln mit Treffern: ' . (int)($simulation['rules_with_hits'] ?? 0) . '.',
+            ],
+            [
+                'label' => 'Block-Log',
+                'status' => count($recentBlocks) > 0 ? 'ok' : 'warning',
+                'detail' => count($recentBlocks) > 0 ? 'Aktuelle Block-/Rate-Limit-Ereignisse vorhanden.' : 'Noch keine aktuellen Block- oder Rate-Limit-Ereignisse protokolliert.',
+            ],
+        ];
+    }
+
+    private function normalizeBaselineProfileKey(string $profileKey): string
+    {
+        $profileKey = strtolower(trim($profileKey));
+
+        return array_key_exists($profileKey, self::BASELINE_PROFILES) ? $profileKey : '';
+    }
+
+    private function formatBaselineValue(string $key, string $value): string
+    {
+        if (in_array($key, ['firewall_enabled', 'firewall_log_enabled'], true)) {
+            return $value === '1' ? 'Aktiv' : 'Inaktiv';
+        }
+
+        return match ($key) {
+            'firewall_rate_limit' => $value . ' Anfragen',
+            'firewall_rate_window' => $value . ' Sekunden',
+            'firewall_block_duration' => $value . ' Sekunden',
+            'firewall_simulation_preview_hours' => $value . ' Stunden',
+            default => $value,
+        };
+    }
+
+    private function fileContains(string $path, string $needle): bool
+    {
+        if (!is_file($path) || !is_readable($path)) {
+            return false;
+        }
+
+        $content = file_get_contents($path, false, null, 0, 131072);
+
+        return is_string($content) && str_contains($content, $needle);
     }
 
     private function sanitizeText(string $value, int $maxLength): string

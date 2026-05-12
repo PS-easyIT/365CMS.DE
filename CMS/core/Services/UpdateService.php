@@ -26,6 +26,9 @@ if (!defined('ABSPATH')) {
 
 class UpdateService
 {
+    private const UPDATE_MIN_FREE_DISK_BYTES = 1073741824;
+    private const UPDATE_WARN_FREE_DISK_BYTES = 2147483648;
+
     private const ALLOWED_UPDATE_HOSTS = [
         '365cms.de',
         'www.365cms.de',
@@ -1022,8 +1025,8 @@ class UpdateService
                     $history[] = $data;
                 }
             }
-            
-            return $history;
+
+            return $this->enrichUpdateHistoryEntries($history);
         } catch (\Exception $e) {
             Logger::instance()->withChannel('updates.service')->warning('Update history could not be loaded.', [
                 'limit' => $limit,
@@ -1239,12 +1242,21 @@ class UpdateService
      */
     public function logUpdate(string $type, string $name, string $version): bool
     {
+        $userId = isset($_SESSION['user_id']) ? max(0, (int) $_SESSION['user_id']) : 0;
+        $userDisplayName = trim((string) ($_SESSION['user_display_name'] ?? ''));
+        $username = trim((string) ($_SESSION['username'] ?? ''));
+        $userRole = $this->normalizeUpdateHistoryRoleSlug((string) ($_SESSION['user_role'] ?? ''));
+
         $logEntry = [
             'type' => $type,
             'name' => $name,
             'version' => $version,
             'timestamp' => date('Y-m-d H:i:s'),
-            'user' => $_SESSION['user_id'] ?? 'System',
+            'user' => $userId > 0 ? $userId : 'System',
+            'user_id' => $userId > 0 ? $userId : null,
+            'user_display_name' => $userDisplayName,
+            'username' => $username,
+            'user_role' => $userRole,
         ];
         
         $optionName = sprintf(
@@ -1270,6 +1282,184 @@ class UpdateService
             return false;
         }
     }
+
+    /**
+     * @param array<int, array<string, mixed>> $history
+     * @return array<int, array<string, mixed>>
+     */
+    private function enrichUpdateHistoryEntries(array $history): array
+    {
+        if ($history === []) {
+            return [];
+        }
+
+        $userMap = $this->loadUpdateHistoryUserMap($history);
+        $normalized = [];
+
+        foreach ($history as $entry) {
+            $normalized[] = $this->normalizeUpdateHistoryEntry($entry, $userMap);
+        }
+
+        return $normalized;
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $history
+     * @return array<int, array<string, mixed>>
+     */
+    private function loadUpdateHistoryUserMap(array $history): array
+    {
+        $userIds = [];
+
+        foreach ($history as $entry) {
+            $userId = $this->normalizeUpdateHistoryUserId($entry['user_id'] ?? ($entry['user'] ?? null));
+            if ($userId > 0) {
+                $userIds[] = $userId;
+            }
+        }
+
+        $userIds = array_values(array_unique($userIds));
+        if ($userIds === []) {
+            return [];
+        }
+
+        $placeholders = implode(', ', array_fill(0, count($userIds), '?'));
+        $statement = $this->db->execute(
+            "SELECT id, username, display_name, role FROM {$this->db->getPrefix()}users WHERE id IN ({$placeholders})",
+            $userIds
+        );
+
+        $userMap = [];
+        foreach ($statement->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+            $userId = isset($row['id']) ? (int) $row['id'] : 0;
+            if ($userId <= 0) {
+                continue;
+            }
+
+            $displayName = trim((string) ($row['display_name'] ?? ''));
+            $username = trim((string) ($row['username'] ?? ''));
+            $role = $this->normalizeUpdateHistoryRoleSlug((string) ($row['role'] ?? ''));
+
+            $userMap[$userId] = [
+                'user_id' => $userId,
+                'user_display_name' => $displayName !== '' ? $displayName : ($username !== '' ? $username : 'User #' . $userId),
+                'username' => $username,
+                'user_role' => $role,
+                'user_role_label' => $role !== '' ? $this->humanizeUpdateHistoryRoleSlug($role) : '',
+                'user_exists' => true,
+            ];
+        }
+
+        return $userMap;
+    }
+
+    /**
+     * @param array<string, mixed> $entry
+     * @param array<int, array<string, mixed>> $userMap
+     * @return array<string, mixed>
+     */
+    private function normalizeUpdateHistoryEntry(array $entry, array $userMap): array
+    {
+        $userId = $this->normalizeUpdateHistoryUserId($entry['user_id'] ?? ($entry['user'] ?? null));
+
+        if ($userId <= 0) {
+            $entry['user_id'] = null;
+            $entry['user_display_name'] = 'System';
+            $entry['user_role'] = '';
+            $entry['user_role_label'] = '';
+            $entry['user_exists'] = true;
+            $entry['user_label'] = 'System';
+
+            return $entry;
+        }
+
+        if (isset($userMap[$userId])) {
+            $resolved = $userMap[$userId];
+            $entry = array_merge($entry, $resolved);
+            $entry['user_label'] = $this->buildResolvedUpdateHistoryUserLabel(
+                (string) ($resolved['user_display_name'] ?? ''),
+                (string) ($resolved['user_role_label'] ?? '')
+            );
+
+            return $entry;
+        }
+
+        $entry['user_id'] = $userId;
+        $entry['user_display_name'] = 'User #' . $userId;
+        $entry['user_role'] = $this->normalizeUpdateHistoryRoleSlug((string) ($entry['user_role'] ?? ''));
+        $entry['user_role_label'] = $entry['user_role'] !== '' ? $this->humanizeUpdateHistoryRoleSlug((string) $entry['user_role']) : '';
+        $entry['user_exists'] = false;
+        $entry['user_label'] = 'User #' . $userId;
+
+        return $entry;
+    }
+
+    private function normalizeUpdateHistoryUserId(mixed $value): int
+    {
+        if (is_int($value)) {
+            return max(0, $value);
+        }
+
+        if (is_string($value) && preg_match('/^\d+$/', trim($value)) === 1) {
+            return max(0, (int) trim($value));
+        }
+
+        return 0;
+    }
+
+    private function buildResolvedUpdateHistoryUserLabel(string $displayName, string $roleLabel): string
+    {
+        $displayName = trim($displayName);
+        $roleLabel = trim($roleLabel);
+
+        if ($displayName === '') {
+            $displayName = 'System';
+        }
+
+        if ($roleLabel === '') {
+            return $displayName;
+        }
+
+        return $displayName . ' · ' . $roleLabel;
+    }
+
+    private function normalizeUpdateHistoryRoleSlug(string $role): string
+    {
+        if (function_exists('cms_normalize_role_slug')) {
+            return (string) cms_normalize_role_slug($role);
+        }
+
+        $role = strtolower(trim($role));
+        if ($role === 'administrator') {
+            $role = 'admin';
+        }
+
+        $role = preg_replace('/[^a-z0-9_-]+/', '-', $role) ?? '';
+
+        return trim($role, '-_');
+    }
+
+    private function humanizeUpdateHistoryRoleSlug(string $role): string
+    {
+        $role = $this->normalizeUpdateHistoryRoleSlug($role);
+        if ($role === '') {
+            return '';
+        }
+
+        if (function_exists('get_role')) {
+            $roleObject = get_role($role);
+            $displayName = trim((string) ($roleObject->display_name ?? ''));
+            if ($displayName !== '') {
+                return $displayName;
+            }
+        }
+
+        if (function_exists('cms_humanize_role_slug')) {
+            return (string) cms_humanize_role_slug($role);
+        }
+
+        return ucwords(str_replace(['_', '-', '.'], ' ', $role));
+    }
     
     /**
      * Get system requirements (REAL DATA)
@@ -1277,32 +1467,128 @@ class UpdateService
     public function getSystemRequirements(): array
     {
         $requiredPhpVersion = defined('CMS_MIN_PHP_VERSION') ? CMS_MIN_PHP_VERSION : '8.4.0';
+        $mysqlVersion = $this->getMySQLVersion();
+        $mysqlVersionDetected = preg_match('/^\d+\.\d+\.\d+/', $mysqlVersion) === 1;
+        $extensionChecks = $this->buildExtensionRequirements();
+        $extensions = [];
+
+        foreach ($extensionChecks as $key => $extension) {
+            $extensions[$key] = !empty($extension['loaded']);
+        }
 
         return [
             'php_version' => [
                 'required' => $requiredPhpVersion,
                 'current' => PHP_VERSION,
                 'met' => version_compare(PHP_VERSION, $requiredPhpVersion, '>='),
+                'instruction' => 'PHP auf mindestens ' . $requiredPhpVersion . ' anheben, bevor Updates installiert werden.',
             ],
             'mysql_version' => [
                 'required' => '5.7.0',
-                'current' => $this->getMySQLVersion(),
-                'met' => version_compare($this->getMySQLVersion(), '5.7.0', '>='),
+                'current' => $mysqlVersion,
+                'detected' => $mysqlVersionDetected,
+                'met' => $mysqlVersionDetected ? version_compare($mysqlVersion, '5.7.0', '>=') : null,
+                'instruction' => 'MySQL/MariaDB auf eine unterstützte Version aktualisieren oder die DB-Version im Diagnosepfad prüfen.',
             ],
-            'extensions' => [
-                'pdo' => extension_loaded('pdo'),
-                'pdo_mysql' => extension_loaded('pdo_mysql'),
-                'mbstring' => extension_loaded('mbstring'),
-                'json' => extension_loaded('json'),
-                'zip' => extension_loaded('zip'),
-                'curl' => extension_loaded('curl'),
-                'gd' => extension_loaded('gd'),
-            ],
+            'extensions' => $extensions,
+            'extension_checks' => $extensionChecks,
             'permissions' => [
                 'uploads_writable' => is_writable(ABSPATH . 'uploads'),
                 'cache_writable' => is_writable(ABSPATH . 'cache'),
                 'logs_writable' => is_writable(ABSPATH . 'logs'),
+                'backups_writable' => is_writable(ABSPATH . 'backups'),
+                'assets_writable' => is_writable(ABSPATH . 'assets'),
+                'paths' => [
+                    'runtime' => $this->buildRuntimePathRequirements(),
+                    'targets' => $this->buildInstallTargetRequirements(),
+                ],
             ],
+            'disk_space' => $this->buildDiskSpaceRequirement(ABSPATH),
+        ];
+    }
+
+    private function buildExtensionRequirements(): array
+    {
+        $definitions = [
+            'pdo' => ['label' => 'PDO', 'required' => true, 'instruction' => 'PHP-Erweiterung PDO aktivieren.'],
+            'pdo_mysql' => ['label' => 'PDO MySQL', 'required' => true, 'instruction' => 'PHP-Erweiterung pdo_mysql aktivieren.'],
+            'mbstring' => ['label' => 'mbstring', 'required' => true, 'instruction' => 'PHP-Erweiterung mbstring aktivieren.'],
+            'json' => ['label' => 'json', 'required' => true, 'instruction' => 'PHP-Erweiterung json aktivieren.'],
+            'zip' => ['label' => 'zip', 'required' => true, 'instruction' => 'PHP-Erweiterung zip für Update-Pakete aktivieren.'],
+            'curl' => ['label' => 'curl', 'required' => true, 'instruction' => 'PHP-Erweiterung curl für Update-Checks und Downloads aktivieren.'],
+            'gd' => ['label' => 'GD', 'required' => false, 'instruction' => 'PHP-Erweiterung GD für Bild- und Medienfunktionen aktivieren.'],
+        ];
+
+        $extensions = [];
+        foreach ($definitions as $key => $definition) {
+            $extensions[$key] = [
+                'label' => (string) $definition['label'],
+                'required' => !empty($definition['required']),
+                'loaded' => extension_loaded($key),
+                'instruction' => (string) $definition['instruction'],
+            ];
+        }
+
+        return $extensions;
+    }
+
+    private function buildRuntimePathRequirements(): array
+    {
+        return [
+            'cache' => $this->buildPathRequirement('Cache', ABSPATH . 'cache', 'Schreibrechte für `cache/` vergeben oder das Verzeichnis anlegen.'),
+            'backups' => $this->buildPathRequirement('Backups', ABSPATH . 'backups', 'Schreibrechte für `backups/` vergeben oder das Verzeichnis anlegen.'),
+            'logs' => $this->buildPathRequirement('Logs', ABSPATH . 'logs', 'Schreibrechte für `logs/` vergeben oder das Verzeichnis anlegen.'),
+            'assets' => $this->buildPathRequirement('Assets', ABSPATH . 'assets', 'Schreibrechte für `assets/` vergeben oder das Verzeichnis anlegen.'),
+        ];
+    }
+
+    private function buildInstallTargetRequirements(): array
+    {
+        $coreRoot = rtrim((string) ABSPATH, '/\\');
+        $coreParent = dirname($coreRoot);
+
+        return [
+            'core_root' => $this->buildPathRequirement('CMS-Root', $coreRoot, 'Das CMS-Root muss für Core-Updates schreibbar sein.'),
+            'core_parent' => $this->buildPathRequirement('Core-Staging-Parent', $coreParent, 'Das Verzeichnis oberhalb des CMS-Roots muss für Staging/Rollback schreibbar sein.'),
+            'plugins_root' => $this->buildPathRequirement('Plugin-Verzeichnis', defined('PLUGIN_PATH') ? (string) PLUGIN_PATH : ABSPATH . 'plugins', 'Das Plugin-Verzeichnis muss für automatische Plugin-Updates schreibbar sein.'),
+            'themes_root' => $this->buildPathRequirement('Theme-Verzeichnis', defined('THEME_PATH') ? (string) THEME_PATH : ABSPATH . 'themes', 'Das Theme-Verzeichnis muss für automatische Theme-Updates schreibbar sein.'),
+        ];
+    }
+
+    private function buildPathRequirement(string $label, string $path, string $instruction): array
+    {
+        $normalizedPath = rtrim(str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $path), DIRECTORY_SEPARATOR);
+        $exists = $normalizedPath !== '' && (is_dir($normalizedPath) || is_file($normalizedPath));
+        $writable = $exists && is_writable($normalizedPath);
+
+        return [
+            'label' => $label,
+            'path' => $normalizedPath,
+            'exists' => $exists,
+            'writable' => $writable,
+            'met' => $exists && $writable,
+            'instruction' => $instruction,
+        ];
+    }
+
+    private function buildDiskSpaceRequirement(string $path): array
+    {
+        $freeBytes = @disk_free_space($path);
+        $totalBytes = @disk_total_space($path);
+        $detected = $freeBytes !== false && $totalBytes !== false;
+        $met = $detected ? $freeBytes >= self::UPDATE_MIN_FREE_DISK_BYTES : null;
+        $warning = $detected ? ($freeBytes < self::UPDATE_WARN_FREE_DISK_BYTES) : true;
+
+        return [
+            'path' => rtrim(str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $path), DIRECTORY_SEPARATOR),
+            'detected' => $detected,
+            'free_bytes' => $detected ? (int) $freeBytes : null,
+            'total_bytes' => $detected ? (int) $totalBytes : null,
+            'required_free_bytes' => self::UPDATE_MIN_FREE_DISK_BYTES,
+            'recommended_free_bytes' => self::UPDATE_WARN_FREE_DISK_BYTES,
+            'met' => $met,
+            'warning' => $warning,
+            'instruction' => 'Freien Speicher des CMS-Volumes erhöhen; für Staging, Download und Rollback sollte mindestens 1 GB frei sein.',
         ];
     }
     

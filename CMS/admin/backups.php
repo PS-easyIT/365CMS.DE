@@ -46,6 +46,7 @@ function cms_admin_backups_allowed_actions(): array
     return [
         'create_full' => true,
         'create_db' => true,
+        'validate' => true,
         'restore' => true,
         'delete' => true,
     ];
@@ -93,15 +94,44 @@ function cms_admin_backups_redirect(string $path = '/admin/backups'): never
     exit;
 }
 
-function cms_admin_backups_send_download(array $download): never
+function cms_admin_backups_resolve_safe_download_path(string $path): ?string
 {
-    header('Content-Type: ' . (string) ($download['content_type'] ?? 'application/octet-stream'));
-    header('Content-Disposition: attachment; filename="' . str_replace('"', '', (string) ($download['filename'] ?? 'backup.bin')) . '"');
-    header('Content-Length: ' . (string) filesize((string) $download['path']));
+    $resolvedPath = realpath($path);
+    $backupRoot = realpath((string) ABSPATH . 'backups');
+
+    if (!is_string($resolvedPath) || !is_string($backupRoot)) {
+        return null;
+    }
+
+    $backupRoot = rtrim($backupRoot, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+    $normalizedPath = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $resolvedPath);
+    $normalizedRoot = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $backupRoot);
+
+    if (!(is_file($normalizedPath)
+        && is_readable($normalizedPath)
+        && str_starts_with($normalizedPath, $normalizedRoot))) {
+        return null;
+    }
+
+    return $normalizedPath;
+}
+
+function cms_admin_backups_send_download(string $path, string $filename, string $contentType = 'application/octet-stream'): never
+{
+    header('Content-Type: ' . $contentType);
+    header('Content-Disposition: attachment; filename="' . str_replace('"', '', $filename) . '"');
+    header('Content-Length: ' . (string) filesize($path));
     header('Cache-Control: private, no-store, no-cache, must-revalidate');
     header('Pragma: no-cache');
     header('X-Content-Type-Options: nosniff');
-    readfile((string) $download['path']);
+
+    $handle = fopen($path, 'rb');
+    if ($handle !== false) {
+        while (!feof($handle)) {
+            echo fread($handle, 8192);
+        }
+        fclose($handle);
+    }
     exit;
 }
 
@@ -113,6 +143,10 @@ function cms_admin_backups_action_handlers(BackupsModule $module): array
     return [
         'create_full' => static fn (array $post): array => $module->createFullBackup(),
         'create_db' => static fn (array $post): array => $module->createDatabaseBackup(),
+        'validate' => static fn (array $post): array => $module->validateBackup(
+            cms_admin_backups_normalize_backup_name($post),
+            !empty($post['include_restore_dry_run'])
+        ),
         'restore' => static fn (array $post): array => $module->restoreBackup(cms_admin_backups_normalize_backup_name($post)),
         'delete' => static fn (array $post): array => $module->deleteBackup(cms_admin_backups_normalize_backup_name($post)),
     ];
@@ -130,7 +164,17 @@ if (cms_admin_backups_can_access() && $_SERVER['REQUEST_METHOD'] === 'GET' && is
         cms_admin_backups_redirect();
     }
 
-    cms_admin_backups_send_download($download);
+    $safePath = cms_admin_backups_resolve_safe_download_path((string) $download['path']);
+    if ($safePath === null) {
+        cms_admin_backups_flash(['type' => 'danger', 'message' => 'Backup-Datei konnte nicht sicher zum Download vorbereitet werden.']);
+        cms_admin_backups_redirect();
+    }
+
+    cms_admin_backups_send_download(
+        $safePath,
+        str_replace('"', '', (string) ($download['filename'] ?? 'backup.bin')),
+        (string) ($download['content_type'] ?? 'application/octet-stream')
+    );
 }
 
 $sectionPageConfig = [

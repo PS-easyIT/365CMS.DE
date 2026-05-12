@@ -15,6 +15,7 @@ use CMS\Services\CoreModuleService;
 
 const CMS_ADMIN_FIREWALL_ALLOWED_ACTIONS = [
     'save_settings',
+    'apply_baseline_profile',
     'add_rule',
     'delete_rule',
     'toggle_rule',
@@ -23,6 +24,7 @@ const CMS_ADMIN_FIREWALL_ALLOWED_ACTIONS = [
 
 const CMS_ADMIN_FIREWALL_ACTION_CAPABILITIES = [
     'save_settings' => 'manage_settings',
+    'apply_baseline_profile' => 'manage_settings',
     'add_rule' => 'manage_settings',
     'delete_rule' => 'manage_settings',
     'toggle_rule' => 'manage_settings',
@@ -57,6 +59,7 @@ function cms_admin_firewall_handle_action(FirewallModule $module, string $action
 {
     return match ($action) {
         'save_settings' => $module->saveSettings($post),
+        'apply_baseline_profile' => $module->applyBaselineProfile((string)($post['baseline_profile'] ?? '')),
         'add_rule' => $module->addRule($post),
         'delete_rule' => $module->deleteRule(cms_admin_firewall_normalize_positive_id($post['id'] ?? 0)),
         'toggle_rule' => $module->toggleRule(cms_admin_firewall_normalize_positive_id($post['id'] ?? 0)),

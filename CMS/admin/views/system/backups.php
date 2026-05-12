@@ -17,6 +17,19 @@ if (!defined('CMS_ADMIN_SYSTEM_VIEW')) {
 
 $backups = $data['backups'];
 $history = $data['history'];
+$validationReport = is_array($alert['report_payload'] ?? null) ? $alert['report_payload'] : [];
+
+if (!function_exists('cms_admin_backups_render_status_badge')) {
+    function cms_admin_backups_render_status_badge(string $status): string
+    {
+        return match ($status) {
+            'ok' => '<span class="badge bg-success-lt text-success">OK</span>',
+            'blocked' => '<span class="badge bg-danger-lt text-danger">Blockiert</span>',
+            'skipped' => '<span class="badge bg-secondary-lt text-secondary">Übersprungen</span>',
+            default => '<span class="badge bg-warning-lt text-warning">Hinweis</span>',
+        };
+    }
+}
 ?>
 
 <div class="container-xl">
@@ -51,6 +64,130 @@ $history = $data['history'];
 
     <?php if (!empty($alert)): ?>
         <?php $alertData = $alert; $alertMarginClass = 'mb-4'; require __DIR__ . '/../partials/flash-alert.php'; ?>
+    <?php endif; ?>
+
+    <?php if ($validationReport !== []): ?>
+        <?php
+        $validationBackup = is_array($validationReport['backup'] ?? null) ? $validationReport['backup'] : [];
+        $validationSummary = is_array($validationReport['summary'] ?? null) ? $validationReport['summary'] : [];
+        $validationChecks = is_array($validationReport['checks'] ?? null) ? $validationReport['checks'] : [];
+        $validationTables = is_array($validationReport['table_probes'] ?? null) ? $validationReport['table_probes'] : [];
+        $restoreDryRun = is_array($validationReport['restore_dry_run'] ?? null) ? $validationReport['restore_dry_run'] : [];
+        ?>
+        <div class="card mb-4">
+            <div class="card-header">
+                <h3 class="card-title">Backup-Validierungsbericht</h3>
+                <div class="card-actions d-flex gap-2 align-items-center">
+                    <?php echo cms_admin_backups_render_status_badge((string) ($validationSummary['status'] ?? 'warning')); ?>
+                    <span class="badge bg-blue-lt"><?php echo htmlspecialchars((string) ($validationBackup['name'] ?? 'Backup')); ?></span>
+                </div>
+            </div>
+            <div class="card-body">
+                <p class="text-secondary small mb-3">Die Validierung prüft Integrität, zentrale Tabellen im SQL-Dump und optional einen Restore-Trockentest in eine temporäre Datenbank. Dabei werden keine öffentlichen GET-Mutationen und keine Token-URLs eingeführt.</p>
+
+                <div class="row g-3 mb-4">
+                    <div class="col-md-3"><div class="text-secondary small">Typ</div><div class="fw-semibold"><?php echo htmlspecialchars((string) ($validationBackup['type'] ?? '-')); ?></div></div>
+                    <div class="col-md-3"><div class="text-secondary small">Datum</div><div class="fw-semibold"><?php echo htmlspecialchars((string) ($validationBackup['date'] ?? '-')); ?></div></div>
+                    <div class="col-md-3"><div class="text-secondary small">Größe</div><div class="fw-semibold"><?php echo htmlspecialchars((string) ($validationBackup['size_formatted'] ?? '-')); ?></div></div>
+                    <div class="col-md-3"><div class="text-secondary small">CMS-Version im Backup</div><div class="fw-semibold"><?php echo htmlspecialchars((string) ($validationBackup['cms_version'] ?? '-')); ?></div></div>
+                </div>
+
+                <div class="table-responsive mb-4">
+                    <table class="table table-vcenter card-table">
+                        <thead>
+                            <tr>
+                                <th>Check</th>
+                                <th>Aktuell</th>
+                                <th>Erwartet</th>
+                                <th>Status</th>
+                                <th>Hinweis</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($validationChecks as $check): ?>
+                                <?php if (!is_array($check)) { continue; } ?>
+                                <tr>
+                                    <td class="fw-semibold"><?php echo htmlspecialchars((string) ($check['label'] ?? 'Check')); ?></td>
+                                    <td><?php echo htmlspecialchars((string) ($check['current'] ?? '—')); ?></td>
+                                    <td><?php echo htmlspecialchars((string) ($check['expected'] ?? '—')); ?></td>
+                                    <td><?php echo cms_admin_backups_render_status_badge((string) ($check['status'] ?? 'warning')); ?></td>
+                                    <td class="text-secondary small"><?php echo htmlspecialchars((string) ($check['detail'] ?? '')); ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+
+                <?php if ($validationTables !== []): ?>
+                    <h4 class="mb-3">Probe-Lesen wichtiger Tabellen</h4>
+                    <div class="table-responsive mb-4">
+                        <table class="table table-vcenter card-table">
+                            <thead>
+                                <tr>
+                                    <th>Tabelle</th>
+                                    <th>Status</th>
+                                    <th>Ergebnis</th>
+                                    <th>Hinweis</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($validationTables as $tableCheck): ?>
+                                    <?php if (!is_array($tableCheck)) { continue; } ?>
+                                    <tr>
+                                        <td>
+                                            <div class="fw-semibold"><?php echo htmlspecialchars((string) ($tableCheck['label'] ?? $tableCheck['table'] ?? 'Tabelle')); ?></div>
+                                            <div class="text-secondary small"><code><?php echo htmlspecialchars((string) ($tableCheck['table'] ?? '')); ?></code></div>
+                                        </td>
+                                        <td><?php echo cms_admin_backups_render_status_badge((string) ($tableCheck['status'] ?? 'warning')); ?></td>
+                                        <td><?php echo htmlspecialchars((string) ($tableCheck['current'] ?? '—')); ?></td>
+                                        <td class="text-secondary small"><?php echo htmlspecialchars((string) ($tableCheck['detail'] ?? '')); ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                <?php endif; ?>
+
+                <?php if (!empty($restoreDryRun['requested'])): ?>
+                    <h4 class="mb-3">Restore-Dry-Run</h4>
+                    <div class="mb-3 d-flex gap-2 align-items-center flex-wrap">
+                        <?php echo cms_admin_backups_render_status_badge((string) ($restoreDryRun['status'] ?? 'warning')); ?>
+                        <span class="text-secondary small"><?php echo htmlspecialchars((string) ($restoreDryRun['message'] ?? '')); ?></span>
+                    </div>
+
+                    <?php if (!empty($restoreDryRun['tables']) && is_array($restoreDryRun['tables'])): ?>
+                        <div class="table-responsive">
+                            <table class="table table-vcenter card-table">
+                                <thead>
+                                    <tr>
+                                        <th>Tabelle</th>
+                                        <th>Live-Zeilen</th>
+                                        <th>Dry-Run-Zeilen</th>
+                                        <th>Status</th>
+                                        <th>Hinweis</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($restoreDryRun['tables'] as $tableCheck): ?>
+                                        <?php if (!is_array($tableCheck)) { continue; } ?>
+                                        <tr>
+                                            <td>
+                                                <div class="fw-semibold"><?php echo htmlspecialchars((string) ($tableCheck['label'] ?? $tableCheck['table'] ?? 'Tabelle')); ?></div>
+                                                <div class="text-secondary small"><code><?php echo htmlspecialchars((string) ($tableCheck['table'] ?? '')); ?></code></div>
+                                            </td>
+                                            <td><?php echo htmlspecialchars((string) (($tableCheck['live_rows'] ?? null) === null ? '—' : (string) $tableCheck['live_rows'])); ?></td>
+                                            <td><?php echo htmlspecialchars((string) (($tableCheck['restored_rows'] ?? null) === null ? '—' : (string) $tableCheck['restored_rows'])); ?></td>
+                                            <td><?php echo cms_admin_backups_render_status_badge((string) ($tableCheck['status'] ?? 'warning')); ?></td>
+                                            <td class="text-secondary small"><?php echo htmlspecialchars((string) ($tableCheck['detail'] ?? '')); ?></td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    <?php endif; ?>
+                <?php endif; ?>
+            </div>
+        </div>
     <?php endif; ?>
 
     <!-- Vorhandene Backups -->
@@ -100,6 +237,22 @@ $history = $data['history'];
                                         <?php if ($canDownloadFiles): ?>
                                             <a class="btn btn-sm btn-outline-primary" href="/admin/backups?download=<?php echo rawurlencode((string) $name); ?>&amp;part=files">Dateien</a>
                                         <?php endif; ?>
+                                        <form method="post" class="d-inline">
+                                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
+                                            <input type="hidden" name="action" value="validate">
+                                            <input type="hidden" name="backup_name" value="<?php echo htmlspecialchars($name); ?>">
+                                            <button type="submit" class="btn btn-sm btn-outline-secondary">Prüfen</button>
+                                        </form>
+                                        <form method="post" class="d-inline">
+                                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
+                                            <input type="hidden" name="action" value="validate">
+                                            <input type="hidden" name="backup_name" value="<?php echo htmlspecialchars($name); ?>">
+                                            <input type="hidden" name="include_restore_dry_run" value="1">
+                                            <button type="button" class="btn btn-sm btn-outline-warning"
+                                                    onclick="cmsConfirm({title:'Restore-Dry-Run starten?',message:'<?php echo htmlspecialchars($name); ?> wird testweise in eine temporäre Datenbank eingespielt und danach wieder entfernt.',confirmText:'Dry-Run starten',confirmClass:'btn-warning',onConfirm:()=>this.closest('form').submit()})">
+                                                Dry-Run
+                                            </button>
+                                        </form>
                                         <?php if ($canRestore): ?>
                                             <form method="post" class="d-inline">
                                                 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">

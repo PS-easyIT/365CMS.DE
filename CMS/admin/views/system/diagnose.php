@@ -53,6 +53,11 @@ foreach ($tables as $tableInfo) {
                     <input type="hidden" name="action" value="optimize_db">
                     <button type="submit" class="btn btn-outline-primary">DB optimieren</button>
                 </form>
+                <form method="post" class="d-inline">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>">
+                    <input type="hidden" name="action" value="export_diagnostic_report">
+                    <button type="submit" class="btn btn-outline-success">Diagnosebericht exportieren</button>
+                </form>
                 <a href="<?php echo htmlspecialchars('/admin/monitor-assets', ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-outline-secondary">Assets öffnen</a>
                 <a href="<?php echo htmlspecialchars('/admin/cms-logs', ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-outline-secondary">Logs &amp; Protokolle</a>
             </div>

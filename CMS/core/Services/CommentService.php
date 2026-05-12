@@ -495,6 +495,7 @@ class CommentService
             'author_name' => $authorName,
             'content' => $content,
             'user_agent' => (string) ($_SERVER['HTTP_USER_AGENT'] ?? ''),
+            'source' => 'comment',
         ]);
 
         return !empty($result['rejected']);

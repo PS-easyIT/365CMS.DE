@@ -23,6 +23,7 @@ class UpdatesModule
     private ?array $themeData = null;
     private ?array $historyData = null;
     private ?array $requirementsData = null;
+    private ?array $preflightData = null;
 
     public function __construct()
     {
@@ -44,6 +45,7 @@ class UpdatesModule
             'theme'    => $theme,
             'history'  => $this->getHistoryData(),
             'requirements' => $this->getRequirementsData(),
+            'preflight' => $this->getPreflightData(),
             'has_updates'  => ($core['update_available'] ?? false)
                 || !empty(array_filter($plugins, fn($p) => !empty($p['new_version'])))
                 || ($theme['update_available'] ?? false),
@@ -95,6 +97,11 @@ class UpdatesModule
                 return ['success' => false, 'error' => 'Kein Core-Update verfügbar.'];
             }
 
+            $preflightError = $this->getPreflightBlockMessage('core');
+            if ($preflightError !== null) {
+                return ['success' => false, 'error' => $preflightError];
+            }
+
             $downloadUrl = $check['download_url'] ?? '';
             $sha256      = $check['sha256'] ?? '';
             $version     = $check['latest_version'] ?? '';
@@ -138,6 +145,11 @@ class UpdatesModule
                 return ['success' => false, 'error' => 'Kein Update für dieses Plugin verfügbar.'];
             }
 
+            $preflightError = $this->getPreflightBlockMessage('plugin', $slug);
+            if ($preflightError !== null) {
+                return ['success' => false, 'error' => $preflightError];
+            }
+
             $plugin = $plugins[$slug];
             if (empty($plugin['install_supported'])) {
                 return ['success' => false, 'error' => 'Für dieses Plugin ist nur ein manueller Update-Prozess verfügbar.'];
@@ -179,6 +191,11 @@ class UpdatesModule
             $theme = $this->getThemeData();
             if (empty($theme['update_available'])) {
                 return ['success' => false, 'error' => 'Kein Theme-Update verfügbar.'];
+            }
+
+            $preflightError = $this->getPreflightBlockMessage('theme');
+            if ($preflightError !== null) {
+                return ['success' => false, 'error' => $preflightError];
             }
 
             if (empty($theme['install_supported'])) {
@@ -299,11 +316,260 @@ class UpdatesModule
         return $this->requirementsData ??= $this->getRequirementsSafe();
     }
 
+    private function getPreflightData(): array
+    {
+        if ($this->preflightData !== null) {
+            return $this->preflightData;
+        }
+
+        $requirements = $this->getRequirementsData();
+        $core = $this->getCoreData();
+        $plugins = $this->getPluginData();
+        $theme = $this->getThemeData();
+
+        $globalChecks = [];
+
+        $phpCheck = is_array($requirements['php_version'] ?? null) ? $requirements['php_version'] : [];
+        if ($phpCheck !== []) {
+            $globalChecks[] = [
+                'label' => 'PHP-Version',
+                'current' => (string) ($phpCheck['current'] ?? '—'),
+                'required' => (string) ($phpCheck['required'] ?? '—'),
+                'status' => !empty($phpCheck['met']) ? 'ok' : 'blocked',
+                'instruction' => (string) ($phpCheck['instruction'] ?? ''),
+            ];
+        }
+
+        $mysqlCheck = is_array($requirements['mysql_version'] ?? null) ? $requirements['mysql_version'] : [];
+        if ($mysqlCheck !== []) {
+            $globalChecks[] = [
+                'label' => 'MySQL / MariaDB',
+                'current' => (string) ($mysqlCheck['current'] ?? '—'),
+                'required' => (string) ($mysqlCheck['required'] ?? '—'),
+                'status' => array_key_exists('met', $mysqlCheck) && $mysqlCheck['met'] === false ? 'blocked' : 'ok',
+                'instruction' => (string) ($mysqlCheck['instruction'] ?? ''),
+            ];
+        }
+
+        $extensionChecks = (array) ($requirements['extension_checks'] ?? []);
+        foreach ($extensionChecks as $extensionKey => $extension) {
+            if (!is_array($extension)) {
+                continue;
+            }
+
+            $required = !empty($extension['required']);
+            $loaded = !empty($extension['loaded']);
+            $globalChecks[] = [
+                'label' => 'PHP-Erweiterung: ' . (string) ($extension['label'] ?? $extensionKey),
+                'current' => $loaded ? 'Aktiv' : 'Fehlt',
+                'required' => $required ? 'Erforderlich' : 'Empfohlen',
+                'status' => $loaded ? 'ok' : ($required ? 'blocked' : 'warning'),
+                'instruction' => (string) ($extension['instruction'] ?? ''),
+            ];
+        }
+
+        $diskCheck = is_array($requirements['disk_space'] ?? null) ? $requirements['disk_space'] : [];
+        if ($diskCheck !== []) {
+            $freeBytes = $this->formatBytesLabel($diskCheck['free_bytes'] ?? null);
+            $requiredBytes = $this->formatBytesLabel($diskCheck['required_free_bytes'] ?? null);
+            $status = 'warning';
+            if (($diskCheck['met'] ?? null) === true && empty($diskCheck['warning'])) {
+                $status = 'ok';
+            } elseif (($diskCheck['met'] ?? null) === false) {
+                $status = 'blocked';
+            }
+
+            $globalChecks[] = [
+                'label' => 'Freier Speicher',
+                'current' => $freeBytes,
+                'required' => 'mind. ' . $requiredBytes,
+                'status' => $status,
+                'instruction' => (string) ($diskCheck['instruction'] ?? ''),
+                'path' => (string) ($diskCheck['path'] ?? ''),
+            ];
+        }
+
+        $runtimePaths = (array) (($requirements['permissions']['paths']['runtime'] ?? []));
+        foreach ($runtimePaths as $pathCheck) {
+            if (!is_array($pathCheck)) {
+                continue;
+            }
+
+            $exists = !empty($pathCheck['exists']);
+            $writable = !empty($pathCheck['writable']);
+            $globalChecks[] = [
+                'label' => (string) ($pathCheck['label'] ?? 'Verzeichnis'),
+                'current' => $writable ? 'Beschreibbar' : ($exists ? 'Nicht beschreibbar' : 'Fehlt'),
+                'required' => 'Beschreibbar',
+                'status' => !empty($pathCheck['met']) ? 'ok' : 'blocked',
+                'instruction' => (string) ($pathCheck['instruction'] ?? ''),
+                'path' => (string) ($pathCheck['path'] ?? ''),
+            ];
+        }
+
+        $globalBlockingMessages = [];
+        foreach ($globalChecks as $check) {
+            if (($check['status'] ?? 'warning') === 'blocked') {
+                $globalBlockingMessages[] = (string) ($check['label'] ?? 'Prüfung') . ': ' . (string) ($check['instruction'] ?? 'Bitte prüfen.');
+            }
+        }
+        $globalBlockingMessages = array_values(array_unique($globalBlockingMessages));
+
+        $pluginPreflight = [];
+        foreach ($plugins as $slug => $plugin) {
+            $pluginPreflight[$slug] = $this->buildComponentPreflight('plugin', (array) $plugin, $requirements, $globalBlockingMessages);
+        }
+
+        return $this->preflightData = [
+            'global' => [
+                'ready' => $globalBlockingMessages === [],
+                'checks' => $globalChecks,
+                'blocking_messages' => $globalBlockingMessages,
+            ],
+            'core' => $this->buildComponentPreflight('core', $core, $requirements, $globalBlockingMessages),
+            'theme' => $this->buildComponentPreflight('theme', $theme, $requirements, $globalBlockingMessages),
+            'plugins' => $pluginPreflight,
+        ];
+    }
+
+    private function buildComponentPreflight(string $component, array $payload, array $requirements, array $globalBlockingMessages): array
+    {
+        $checks = [];
+        $blockingMessages = $globalBlockingMessages;
+
+        foreach ($this->getTargetChecksForComponent($component, $requirements) as $targetCheck) {
+            if (!is_array($targetCheck)) {
+                continue;
+            }
+
+            $exists = !empty($targetCheck['exists']);
+            $writable = !empty($targetCheck['writable']);
+            $status = !empty($targetCheck['met']) ? 'ok' : 'blocked';
+
+            $checks[] = [
+                'label' => (string) ($targetCheck['label'] ?? 'Zielpfad'),
+                'current' => $writable ? 'Beschreibbar' : ($exists ? 'Nicht beschreibbar' : 'Fehlt'),
+                'required' => 'Beschreibbar',
+                'status' => $status,
+                'instruction' => (string) ($targetCheck['instruction'] ?? ''),
+            ];
+
+            if ($status === 'blocked') {
+                $blockingMessages[] = (string) ($targetCheck['label'] ?? 'Zielpfad') . ': ' . (string) ($targetCheck['instruction'] ?? 'Bitte prüfen.');
+            }
+        }
+
+        $requiresPhp = trim((string) ($payload['requires_php'] ?? ''));
+        if ($requiresPhp !== '') {
+            $phpMet = version_compare(PHP_VERSION, $requiresPhp, '>=');
+            $checks[] = [
+                'label' => 'Paketanforderung: PHP',
+                'current' => PHP_VERSION,
+                'required' => $requiresPhp,
+                'status' => $phpMet ? 'ok' : 'blocked',
+                'instruction' => 'PHP auf mindestens ' . $requiresPhp . ' aktualisieren, bevor dieses Update installiert wird.',
+            ];
+
+            if (!$phpMet) {
+                $blockingMessages[] = 'Paketanforderung PHP: mindestens ' . $requiresPhp . ' erforderlich.';
+            }
+        }
+
+        $requiresCms = trim((string) ($payload['requires_cms'] ?? ''));
+        if ($requiresCms !== '') {
+            $currentCmsVersion = defined('CMS_VERSION') ? (string) CMS_VERSION : (string) \CMS\Version::CURRENT;
+            $cmsMet = version_compare($currentCmsVersion, $requiresCms, '>=');
+            $checks[] = [
+                'label' => 'Paketanforderung: 365CMS',
+                'current' => $currentCmsVersion,
+                'required' => $requiresCms,
+                'status' => $cmsMet ? 'ok' : 'blocked',
+                'instruction' => 'Zuerst den Core auf mindestens ' . $requiresCms . ' anheben oder ein passendes Paket verwenden.',
+            ];
+
+            if (!$cmsMet) {
+                $blockingMessages[] = 'Paketanforderung 365CMS: mindestens ' . $requiresCms . ' erforderlich.';
+            }
+        }
+
+        $blockingMessages = array_values(array_unique($blockingMessages));
+
+        return [
+            'ready' => $blockingMessages === [],
+            'checks' => $checks,
+            'blocking_messages' => $blockingMessages,
+        ];
+    }
+
+    private function getTargetChecksForComponent(string $component, array $requirements): array
+    {
+        $targetChecks = is_array($requirements['permissions']['paths']['targets'] ?? null)
+            ? $requirements['permissions']['paths']['targets']
+            : [];
+
+        return match ($component) {
+            'core' => array_values(array_filter([
+                $targetChecks['core_root'] ?? null,
+                $targetChecks['core_parent'] ?? null,
+            ], 'is_array')),
+            'theme' => array_values(array_filter([
+                $targetChecks['themes_root'] ?? null,
+            ], 'is_array')),
+            'plugin' => array_values(array_filter([
+                $targetChecks['plugins_root'] ?? null,
+            ], 'is_array')),
+            default => [],
+        };
+    }
+
+    private function getPreflightBlockMessage(string $component, ?string $slug = null): ?string
+    {
+        $preflight = $this->getPreflightData();
+
+        $entry = match ($component) {
+            'core' => is_array($preflight['core'] ?? null) ? $preflight['core'] : [],
+            'theme' => is_array($preflight['theme'] ?? null) ? $preflight['theme'] : [],
+            'plugin' => ($slug !== null && is_array($preflight['plugins'][$slug] ?? null)) ? $preflight['plugins'][$slug] : [],
+            default => [],
+        };
+
+        if (!empty($entry['ready'])) {
+            return null;
+        }
+
+        $messages = array_values(array_filter((array) ($entry['blocking_messages'] ?? []), static fn ($message): bool => is_string($message) && trim($message) !== ''));
+
+        if ($messages === []) {
+            return 'Die Update-Vorabprüfung blockiert diese Installation. Bitte die Systemhinweise prüfen.';
+        }
+
+        return 'Die Update-Vorabprüfung blockiert diese Installation: ' . implode(' | ', $messages);
+    }
+
+    private function formatBytesLabel(mixed $bytes): string
+    {
+        if (!is_numeric($bytes) || (float) $bytes < 0) {
+            return '—';
+        }
+
+        $units = ['B', 'KB', 'MB', 'GB', 'TB'];
+        $value = (float) $bytes;
+        $unitIndex = 0;
+
+        while ($value >= 1024 && $unitIndex < count($units) - 1) {
+            $value /= 1024;
+            ++$unitIndex;
+        }
+
+        return number_format($value, $unitIndex === 0 ? 0 : 1, ',', '.') . ' ' . $units[$unitIndex];
+    }
+
     private function refreshUpdateSnapshot(): void
     {
         $this->coreData = $this->getCoreSafe();
         $this->pluginData = $this->getPluginsSafe();
         $this->themeData = $this->getThemeSafe();
+        $this->preflightData = null;
     }
 
     private function normalizePluginSlug(string $slug): string

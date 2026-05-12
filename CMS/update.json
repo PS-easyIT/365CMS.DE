@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.9.762",
+  "version": "2.9.771",
   "min_php": "8.4",
-  "released": "2026-05-11",
+  "released": "2026-05-12",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 2.9.762: Die zentrale Admin-Oberfläche wurde visuell neu austariert. Der Seitenhintergrund ist jetzt spürbar heller, läuft mit einem dezenten Verlauf von leicht dunkler oben zu heller unten und alle zentralen Oberflächen – Karten, Tabellen, Buttons, Auswahlzustände, Eingaben, Switches und Checkboxes – greifen auf ein harmonisiertes, Tabler-nahes Surface-System mit sanfteren Kontrasten zurück. Die Änderung bleibt reines CSS ohne neue Mutationspfade, Tokens in URLs oder zusätzliche 500-Risiken.",
+  "notes": "Release-Stand 2.9.771: Der Backup-&-Restore-Flow akzeptiert jetzt korrekt die bereits von der gemeinsamen Admin-Section-Shell geprüften CSRF-Tokens. Dadurch schlagen Aktionen in `/admin/backups` nicht mehr fälschlich mit `Keine Berechtigung für diese Aktion.` fehl, obwohl die Admin-Berechtigung vorhanden ist.",
   "critical": false
 }
