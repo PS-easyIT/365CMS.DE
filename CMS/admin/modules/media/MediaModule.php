@@ -23,6 +23,49 @@ use CMS\Services\MediaUsageService;
 use CMS\Services\ErrorReportService;
 use CMS\WP_Error;
 
+if (!function_exists('cms_admin_media_module_load_core_dependencies')) {
+    function cms_admin_media_module_load_core_dependencies(): void
+    {
+        $corePath = defined('CORE_PATH')
+            ? rtrim((string) CORE_PATH, '/\\') . DIRECTORY_SEPARATOR
+            : dirname(__DIR__, 3) . DIRECTORY_SEPARATOR . 'core' . DIRECTORY_SEPARATOR;
+
+        $dependencies = [
+            CMS\Contracts\LoggerInterface::class => $corePath . 'Contracts' . DIRECTORY_SEPARATOR . 'LoggerInterface.php',
+            CMS\WP_Error::class => $corePath . 'WP_Error.php',
+            CMS\Json::class => $corePath . 'Json.php',
+            CMS\Logger::class => $corePath . 'Logger.php',
+            CMS\AuditLogger::class => $corePath . 'AuditLogger.php',
+            CMS\CacheManager::class => $corePath . 'CacheManager.php',
+            CMS\Database::class => $corePath . 'Database.php',
+            CMS\Auth::class => $corePath . 'Auth.php',
+            MediaDeliveryService::class => $corePath . 'Services' . DIRECTORY_SEPARATOR . 'MediaDeliveryService.php',
+            ErrorReportService::class => $corePath . 'Services' . DIRECTORY_SEPARATOR . 'ErrorReportService.php',
+            CMS\Services\Media\ImageProcessor::class => $corePath . 'Services' . DIRECTORY_SEPARATOR . 'Media' . DIRECTORY_SEPARATOR . 'ImageProcessor.php',
+            CMS\Services\Media\MediaRepository::class => $corePath . 'Services' . DIRECTORY_SEPARATOR . 'Media' . DIRECTORY_SEPARATOR . 'MediaRepository.php',
+            CMS\Services\Media\UploadHandler::class => $corePath . 'Services' . DIRECTORY_SEPARATOR . 'Media' . DIRECTORY_SEPARATOR . 'UploadHandler.php',
+            MediaUsageService::class => $corePath . 'Services' . DIRECTORY_SEPARATOR . 'MediaUsageService.php',
+            MediaService::class => $corePath . 'Services' . DIRECTORY_SEPARATOR . 'MediaService.php',
+        ];
+
+        foreach ($dependencies as $className => $filePath) {
+            if (class_exists($className, false) || interface_exists($className, false)) {
+                continue;
+            }
+
+            if (is_file($filePath)) {
+                require_once $filePath;
+            }
+        }
+
+        if (!class_exists(MediaService::class, false) || !class_exists(MediaUsageService::class, false)) {
+            throw new RuntimeException('Medien-Services konnten nicht geladen werden. Bitte Core-Dateien und OPcache prüfen.');
+        }
+    }
+}
+
+cms_admin_media_module_load_core_dependencies();
+
 class MediaModule
 {
     private const MAX_UPLOAD_FILENAME_LENGTH = 180;

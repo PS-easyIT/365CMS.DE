@@ -142,6 +142,13 @@ Nachprüfung 2.9.765: Die Nice-to-haves ab 2.9.725 wurden erneut automatisiert i
 - Jede Warnung besitzt einen direkten Lösungs-/Öffnen-Link in den zuständigen Adminbereich; Ignorieren und Wiedervorlage laufen ausschließlich über den bestehenden POST-/CSRF-Vertrag mit serverseitig gespeicherten Zuständen.
 - GET-Seiten bleiben read-only, es werden keine Tokens in URLs erzeugt und fehlende Teilquellen fallen fail-soft weg, statt die Warnzentrale mit einem HTTP 500 zu blockieren.
 
+### Nachprüfung 2.9.777
+
+- `/admin/cms-logs` bereinigt PHP-Error-Log und CMS-Dateilogs jetzt robuster: Das PHP-Error-Log wird sicher geleert, CMS-Dateilogs werden bevorzugt entfernt und bei gesperrten Handles sicher geleert; leere Logdateien werden nicht mehr als scheinbar ungelöschte Einträge angezeigt.
+- Die Sammelaktion meldet Fehlschläge ehrlich zurück, räumt operative Audit-Spuren und Update-Historie weiter ausschließlich über den bestehenden POST-/CSRF-Vertrag auf und erzeugt keine GET-Mutation oder Token-URL.
+- `/admin/diagnose` ergänzt eine eigene POST-/CSRF-geschützte Bereinigung für gespeicherte Fehlerreports, damit Diagnose-Logs nicht dauerhaft stehen bleiben.
+- Der Medien-Admin lädt zentrale Medien-Services defensiv nach, um Deployment-/OPcache-Drift um `CMS\\Services\\MediaService` abzufangen; `System → Einstellungen` rendert die allgemeinen Kacheln einspaltig untereinander.
+
 ## 8. Cross-Bereich · Inhalte ↔ Medien ↔ SEO
 
 - [x] **Featured-Image-Konsistenz prüfen**

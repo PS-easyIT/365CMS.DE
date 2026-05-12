@@ -184,6 +184,15 @@ final class ErrorReportService
         }
     }
 
+    public function clearReports(): int
+    {
+        $this->ensureTable();
+
+        $statement = $this->db->execute("DELETE FROM {$this->prefix}error_reports");
+
+        return $statement->rowCount();
+    }
+
     private function ensureTable(): void
     {
         $this->db->getPdo()->exec(

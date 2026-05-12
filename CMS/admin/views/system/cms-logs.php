@@ -15,6 +15,7 @@ $logDirectoryExists = !empty($logsData['log_directory_exists']);
 $logDirectoryWritable = !empty($logsData['log_directory_writable']);
 $errorLogFile = (string) ($logsData['error_log_file'] ?? '');
 $errorLogExists = !empty($logsData['error_log_exists']);
+$errorLogHasContent = !empty($logsData['error_log_has_content']);
 $logFiles = is_array($logsData['files'] ?? null) ? $logsData['files'] : [];
 $selectedFile = (string) ($logsData['selected_file'] ?? '');
 $selectedFileInfo = is_array($logsData['selected_file_info'] ?? null) ? $logsData['selected_file_info'] : [];
@@ -65,7 +66,7 @@ ksort($channelSummary);
                 <form method="post" class="d-inline" data-confirm-message="PHP Error-Log wirklich leeren?" data-confirm-title="PHP Error-Log leeren" data-confirm-text="Leeren" data-confirm-class="btn-warning" data-confirm-status-class="bg-warning">
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? '', ENT_QUOTES, 'UTF-8'); ?>">
                     <input type="hidden" name="action" value="clear_logs">
-                    <button type="submit" class="btn btn-outline-warning"<?php echo !$errorLogExists ? ' disabled' : ''; ?>>PHP Error-Log leeren</button>
+                    <button type="submit" class="btn btn-outline-warning"<?php echo !$errorLogHasContent ? ' disabled' : ''; ?>>PHP Error-Log leeren</button>
                 </form>
                 <form method="post" class="d-inline" data-confirm-message="Wirklich alle CMS-Logs, das operative Diagnose-Audit und die Update-Historie bereinigen?" data-confirm-title="Logs &amp; Protokolle bereinigen" data-confirm-text="Bereinigen" data-confirm-class="btn-danger" data-confirm-status-class="bg-danger">
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? '', ENT_QUOTES, 'UTF-8'); ?>">
@@ -92,7 +93,7 @@ ksort($channelSummary);
             <div class="col-sm-6 col-lg-3"><div class="card"><div class="card-body"><div class="subheader">Log-Verzeichnis</div><div class="h1 mb-0 <?php echo $logDirectoryExists ? 'text-success' : 'text-danger'; ?>"><?php echo $logDirectoryExists ? 'OK' : 'Fehlt'; ?></div><div class="text-secondary small mt-1 text-break"><code><?php echo htmlspecialchars($logDirectory, ENT_QUOTES, 'UTF-8'); ?></code></div></div></div></div>
             <div class="col-sm-6 col-lg-3"><div class="card"><div class="card-body"><div class="subheader">Beschreibbar</div><div class="h1 mb-0 <?php echo $logDirectoryWritable ? 'text-success' : 'text-warning'; ?>"><?php echo $logDirectoryWritable ? 'Ja' : 'Nein'; ?></div></div></div></div>
             <div class="col-sm-6 col-lg-3"><div class="card"><div class="card-body"><div class="subheader">Logdateien</div><div class="h1 mb-0"><?php echo count($logFiles); ?></div></div></div></div>
-            <div class="col-sm-6 col-lg-3"><div class="card"><div class="card-body"><div class="subheader">Kanäle</div><div class="h1 mb-0"><?php echo count($channelSummary); ?></div><div class="text-secondary small mt-1"><?php echo $errorLogExists ? 'PHP Error-Log vorhanden' : 'PHP Error-Log fehlt'; ?></div></div></div></div>
+            <div class="col-sm-6 col-lg-3"><div class="card"><div class="card-body"><div class="subheader">Kanäle</div><div class="h1 mb-0"><?php echo count($channelSummary); ?></div><div class="text-secondary small mt-1"><?php echo $errorLogHasContent ? 'PHP Error-Log mit Inhalt' : ($errorLogExists ? 'PHP Error-Log leer' : 'PHP Error-Log fehlt'); ?></div></div></div></div>
         </div>
 
         <div class="row row-cards mb-4">

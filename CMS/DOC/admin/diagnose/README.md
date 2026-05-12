@@ -1,5 +1,5 @@
 # 365CMS – Diagnose & Monitoring
-> **Stand:** 2026-05-12 | **Version:** 2.9.775 | **Status:** Aktuell
+> **Stand:** 2026-05-12 | **Version:** 2.9.777 | **Status:** Aktuell
 
 <!-- UPDATED: 2026-05-12 -->
 
@@ -19,7 +19,8 @@ Die Monitor-Seiten folgen dem üblichen Admin-Flow mit geschütztem Zugriff und 
 | Warnzentrale | Gemeinsame Sammelansicht aktiver Warnungen aus Performance, Security, Diagnose, Updates und Recht mit Direktlink, Ignore-Begründung und Wiedervorlage |
 | Security-Alerts | Schwellenwert-Mails für Login-Brute-Force, AntiSpam-Spitzen und Firewall-Blocks über die bestehende Mail-Queue |
 | Monitoring-Trendhistorie | Read-only Verlauf für Response-Time, Disk-Auslastung und Cron-Lag über 24 h, 7 d und 30 d |
-| Logs & Protokolle | CMS-Dateilogs, PHP Error-Log, operatives Audit für System/Backups/Performance sowie Update-Historie mit sprechender Benutzeranzeige |
+| Logs & Protokolle | CMS-Dateilogs, PHP Error-Log, operatives Audit für System/Backups/Performance sowie Update-Historie mit sprechender Benutzeranzeige und robuster POST-/CSRF-Bereinigung |
+| Fehlerreport-Bereinigung | POST-/CSRF-geschütztes Löschen gespeicherter Diagnose-Fehlerreports direkt auf `/admin/diagnose` |
 | Diagnosebericht-Export | POST-/CSRF-geschützter ZIP-Export mit Systeminfo, Health-Check, Asset-/Cron-Status, geplanten Tasks und redigierten Log-Auszügen |
 | PHP / MySQL Info | Laufzeitumgebung und Datenbankstatus |
 

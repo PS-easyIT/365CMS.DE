@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Dokumentiert die Diagnose-Oberflächen, Monitoring-Werkzeuge und die zentrale Logzentrale für den laufenden Betrieb von 365CMS.
 
-Letzte Aktualisierung: 2026-05-12 · Version 2.9.775
+Letzte Aktualisierung: 2026-05-12 · Version 2.9.777
 
 ---
 
@@ -101,6 +101,8 @@ Seit 2.9.763 verwaltet dieselbe Seite zusätzlich die Security-Alarmierung für 
 Seit `2.9.769` löst dieselbe Update-Historie Benutzer-IDs serverseitig auf sprechende Labels aus `display_name` plus Rollenbezeichnung auf. Fehlende oder gelöschte Konten führen dabei nicht zu Fehlern oder leeren Zellen, sondern bleiben als `User #ID` fail-soft sichtbar.
 
 Seit `2.9.770` können `/admin/diagnose` und `/admin/cms-logs` zusätzlich einen Diagnosebericht als ZIP exportieren. Der Export bleibt im bestehenden Admin-Vertrag bewusst ein POST-/CSRF-geschützter Download, bündelt Systeminfo, Health-Check, Asset-Status, Cron-Status, geplante Tasks sowie begrenzte Logauszüge und redigiert sensible Werte wie Tokens, Passwörter, Secrets und Credentials serverseitig vor dem Schreiben ins Archiv.
+
+Seit `2.9.777` sind die Bereinigungsaktionen der Logzentrale robuster: Das PHP-Error-Log wird sicher geleert, CMS-Dateilogs werden bevorzugt entfernt und bei gesperrten Dateien sicher geleert, leere Dateien tauchen nicht mehr als scheinbar ungelöschte Logdateien auf, und Fehlzustände werden als Fehler zurückgegeben statt als Erfolgsmeldung. Die Sammelaktion räumt zusätzlich operative Diagnose-Protokolle und Update-Historie weiter im bestehenden POST-/CSRF-Vertrag auf. `/admin/diagnose` ergänzt außerdem eine eigene POST-/CSRF-geschützte Aktion zum Löschen gespeicherter Fehlerreports.
 
 ### Technischer Vertrag der Trendhistorie
 

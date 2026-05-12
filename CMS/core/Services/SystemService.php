@@ -96,6 +96,8 @@ class SystemService {
     public function getDatabaseStatus(): array {
         $pdo = $this->db->getConnection();
         $prefix = $this->db->getPrefix();
+        $dbNameLiteral = $pdo->quote((string) DB_NAME);
+        $prefixLikeLiteral = $pdo->quote($prefix . '%');
         
         $status = [
             'connected' => false,
@@ -118,7 +120,7 @@ class SystemService {
                 SELECT 
                     SUM(data_length + index_length) as size
                 FROM information_schema.TABLES 
-                WHERE table_schema = '" . DB_NAME . "'
+                WHERE table_schema = {$dbNameLiteral}
             ");
             
             if ($result && $row = $result->fetch(PDO::FETCH_ASSOC)) {
@@ -129,7 +131,7 @@ class SystemService {
             $result = $pdo->query("
                 SELECT COUNT(*) as total 
                 FROM information_schema.TABLES 
-                WHERE table_schema = '" . DB_NAME . "'
+                WHERE table_schema = {$dbNameLiteral}
             ");
             
             if ($result && $row = $result->fetch(PDO::FETCH_ASSOC)) {
@@ -140,8 +142,8 @@ class SystemService {
             $result = $pdo->query("
                 SELECT COUNT(*) as total 
                 FROM information_schema.TABLES 
-                WHERE table_schema = '" . DB_NAME . "'
-                AND table_name LIKE '{$prefix}%'
+                WHERE table_schema = {$dbNameLiteral}
+                AND table_name LIKE {$prefixLikeLiteral}
             ");
             
             if ($result && $row = $result->fetch(PDO::FETCH_ASSOC)) {
@@ -207,6 +209,8 @@ class SystemService {
         
         foreach ($tables as $table => $label) {
             $full_table = $prefix . $table;
+            $fullTableLiteral = $pdo->quote($full_table);
+            $dbNameLiteral = $pdo->quote((string) DB_NAME);
             $status = [
                 'name' => $table,
                 'label' => $label,
@@ -219,7 +223,7 @@ class SystemService {
             
             try {
                 // Check if table exists
-                $result = $pdo->query("SHOW TABLES LIKE '{$full_table}'");
+                $result = $pdo->query("SHOW TABLES LIKE {$fullTableLiteral}");
                 if ($result && $result->rowCount() > 0) {
                     $status['exists'] = true;
                     
@@ -234,8 +238,8 @@ class SystemService {
                         SELECT 
                             data_length + index_length as size
                         FROM information_schema.TABLES 
-                        WHERE table_schema = '" . DB_NAME . "'
-                        AND table_name = '{$full_table}'
+                        WHERE table_schema = {$dbNameLiteral}
+                        AND table_name = {$fullTableLiteral}
                     ");
                     
                     if ($result && $row = $result->fetch(PDO::FETCH_ASSOC)) {
@@ -649,6 +653,15 @@ class SystemService {
             $lines = $this->readLastLogLines($log_file, $limit);
             
             foreach ($lines as $line) {
+                if (preg_match('/^\[(.*?)\]\s+PHP\s+([^:]+):\s+(.*)$/i', $line, $matches)) {
+                    $logs[] = [
+                        'timestamp' => $matches[1],
+                        'type' => strtoupper(trim($matches[2])),
+                        'message' => $matches[3]
+                    ];
+                    continue;
+                }
+
                 // Parse log line (format: [YYYY-MM-DD HH:MM:SS] TYPE: Message)
                 if (preg_match('/^\[(.*?)\]\s+(\w+):\s+(.*)$/', $line, $matches)) {
                     $logs[] = [
@@ -677,15 +690,8 @@ class SystemService {
      */
     public function clearErrorLogs(): bool {
         $log_file = $this->getConfiguredErrorLogFile();
-        
-        try {
-            if (file_exists($log_file)) {
-                return file_put_contents($log_file, '') !== false;
-            }
-            return true;
-        } catch (\Exception $e) {
-            return false;
-        }
+
+        return $this->clearLogPath($log_file, false);
     }
 
     /**
@@ -714,6 +720,10 @@ class SystemService {
 
             $filename = basename($path);
             $size = filesize($path);
+            if ($size === false || (int) $size <= 0) {
+                continue;
+            }
+
             $modifiedAt = filemtime($path);
             $channel = preg_replace('/-\d{4}-\d{2}-\d{2}\.log$/', '', $filename) ?? $filename;
 
@@ -821,7 +831,7 @@ class SystemService {
         $logFile = $logDir . $filename;
 
         if (file_exists($logFile)) {
-            return unlink($logFile);
+            return $this->clearLogPath($logFile, true);
         }
 
         return true;
@@ -829,15 +839,94 @@ class SystemService {
 
     public function clearAllCmsLogFiles(): int
     {
+        return (int) $this->clearAllCmsLogFilesDetailed()['cleared'];
+    }
+
+    /**
+     * @return array{cleared:int, failed:list<string>}
+     */
+    public function clearAllCmsLogFilesDetailed(): array
+    {
         $deleted = 0;
+        $failed = [];
+
         foreach ($this->getCmsLogFiles() as $fileInfo) {
             $filename = (string) ($fileInfo['filename'] ?? '');
-            if ($filename !== '' && $this->clearCmsLogFile($filename)) {
-                $deleted++;
+            if ($filename === '') {
+                continue;
             }
+
+            if ($this->clearCmsLogFile($filename)) {
+                $deleted++;
+                continue;
+            }
+
+            $failed[] = $filename;
         }
 
-        return $deleted;
+        return [
+            'cleared' => $deleted,
+            'failed' => $failed,
+        ];
+    }
+
+    private function clearLogPath(string $path, bool $removeFile): bool
+    {
+        $path = trim($path);
+        if ($path === '') {
+            return false;
+        }
+
+        $directory = dirname($path);
+        if (!$this->ensureWritableLogDirectory($directory)) {
+            return false;
+        }
+
+        if (!file_exists($path)) {
+            return true;
+        }
+
+        if (!is_file($path)) {
+            return false;
+        }
+
+        if ($removeFile && @unlink($path)) {
+            clearstatcache(true, $path);
+            return true;
+        }
+
+        return $this->truncateLogPath($path);
+    }
+
+    private function truncateLogPath(string $path): bool
+    {
+        $handle = @fopen($path, 'c+b');
+        if ($handle === false) {
+            return false;
+        }
+
+        try {
+            $locked = @flock($handle, LOCK_EX);
+            $truncated = @ftruncate($handle, 0);
+            @fflush($handle);
+            if ($locked) {
+                @flock($handle, LOCK_UN);
+            }
+
+            clearstatcache(true, $path);
+            return $truncated === true;
+        } finally {
+            @fclose($handle);
+        }
+    }
+
+    private function ensureWritableLogDirectory(string $directory): bool
+    {
+        if (is_dir($directory)) {
+            return true;
+        }
+
+        return @mkdir($directory, 0750, true) || is_dir($directory);
     }
 
     private function isSafeLogFilename(string $filename): bool {

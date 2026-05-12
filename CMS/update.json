@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.9.776",
+  "version": "2.9.777",
   "min_php": "8.4",
   "released": "2026-05-12",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 2.9.776: /admin/media?tab=featured ergänzt einen read-only Konsistenz-Check für Beiträge und Seiten ohne Featured Image oder mit defekter Referenz. Die Liste verweist nur in bestehende Editor- und Replace-Flows, bleibt ohne Token-URLs und ohne neue GET-Mutationen und zeigt geteilte defekte Referenzen gezielt für den zentralen Replace-in-place-Pfad an.",
+  "notes": "Release-Stand 2.9.777: Log- und Diagnose-Bereinigungen leeren das PHP-Error-Log, entfernen bzw. leeren CMS-Dateilogs und bereinigen operative Protokolle, Update-Historie sowie Fehlerreports robuster mit ehrlicher Fehleranzeige. Der Medien-Admin lädt seine Core-Services defensiv nach, und System/Einstellungen zeigt die Kacheln einspaltig untereinander.",
   "critical": false
 }

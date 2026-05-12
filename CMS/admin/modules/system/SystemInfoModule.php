@@ -155,6 +155,8 @@ class SystemInfoModule
     {
         $logDirectory = $this->service->getConfiguredLogDirectory();
         $logFiles = $this->service->getCmsLogFiles();
+        $errorLogFile = $this->service->getConfiguredErrorLogFile();
+        $errorLogSize = is_file($errorLogFile) ? filesize($errorLogFile) : false;
         $selectedFilename = $this->normalizeLogFilename($selectedFile);
         $selectedFileInfo = null;
         $operationalAuditEntries = $this->getOperationalAuditEntries();
@@ -174,8 +176,9 @@ class SystemInfoModule
             'log_directory' => $logDirectory,
             'log_directory_exists' => is_dir($logDirectory),
             'log_directory_writable' => is_dir($logDirectory) && is_writable($logDirectory),
-            'error_log_file' => $this->service->getConfiguredErrorLogFile(),
-            'error_log_exists' => file_exists($this->service->getConfiguredErrorLogFile()),
+            'error_log_file' => $errorLogFile,
+            'error_log_exists' => is_file($errorLogFile),
+            'error_log_has_content' => is_int($errorLogSize) && $errorLogSize > 0,
             'error_log_entries' => $this->service->getErrorLogs(120),
             'files' => $logFiles,
             'selected_file' => $selectedFilename,
@@ -200,6 +203,7 @@ class SystemInfoModule
             'clear_logs' => $this->clearLogs(),
             'clear_cms_log' => $this->clearCmsLog($post),
             'clear_all_cms_logs' => $this->clearAllCmsLogs(),
+            'clear_error_reports' => $this->clearErrorReports(),
             'create_tables' => $this->createMissingTables(),
             'repair_tables' => $this->repairTables(),
             'save_monitoring_alerts' => $this->saveMonitoringSettings($post),
@@ -285,17 +289,24 @@ class SystemInfoModule
     public function clearLogs(): array
     {
         try {
-            $this->service->clearErrorLogs();
+            if (!$this->service->clearErrorLogs()) {
+                return [
+                    'success' => false,
+                    'error' => 'Das PHP Error-Log konnte nicht geleert werden.',
+                    'details' => ['Pfad: ' . $this->service->getConfiguredErrorLogFile()],
+                ];
+            }
+
             AuditLogger::instance()->log(
                 AuditLogger::CAT_SYSTEM,
                 'system.logs.clear',
-                'Fehlerlogs aus dem Diagnosebereich gelöscht',
+                'PHP Error-Log aus dem Diagnosebereich geleert',
                 'log',
                 null,
-                [],
+                ['file' => basename($this->service->getConfiguredErrorLogFile())],
                 'warning'
             );
-            return ['success' => true, 'message' => 'Fehlerlogs gelöscht.'];
+            return ['success' => true, 'message' => 'PHP Error-Log geleert.'];
         } catch (\Throwable $e) {
             return $this->buildActionFailureResponse(
                 'system.logs.clear_failed',
@@ -321,7 +332,7 @@ class SystemInfoModule
             AuditLogger::instance()->log(
                 AuditLogger::CAT_SYSTEM,
                 'system.logs.clear_file',
-                'Einzelne CMS-Logdatei gelöscht',
+                'Einzelne CMS-Logdatei gelöscht oder geleert',
                 'log',
                 null,
                 ['file' => $filename],
@@ -342,9 +353,29 @@ class SystemInfoModule
     private function clearAllCmsLogs(): array
     {
         try {
-            $deletedFiles = $this->service->clearAllCmsLogFiles();
+            $phpErrorFile = $this->service->getConfiguredErrorLogFile();
+            $phpErrorSize = is_file($phpErrorFile) ? filesize($phpErrorFile) : false;
+            $phpErrorHadContent = is_int($phpErrorSize) && $phpErrorSize > 0;
+            $fileClearResult = method_exists($this->service, 'clearAllCmsLogFilesDetailed')
+                ? $this->service->clearAllCmsLogFilesDetailed()
+                : ['cleared' => $this->service->clearAllCmsLogFiles(), 'failed' => []];
+            $deletedFiles = (int) ($fileClearResult['cleared'] ?? 0);
+            $failedFiles = is_array($fileClearResult['failed'] ?? null) ? $fileClearResult['failed'] : [];
+            $phpErrorCleared = $this->service->clearErrorLogs();
             $deletedAuditEntries = $this->clearOperationalAuditEntries();
             $deletedUpdateEntries = UpdateService::getInstance()->clearUpdateHistory();
+
+            if (!$phpErrorCleared || $failedFiles !== []) {
+                return [
+                    'success' => false,
+                    'error' => 'Die CMS-Logs und Protokolle konnten nicht vollständig bereinigt werden.',
+                    'details' => array_merge(
+                        ['Bereinigte CMS-Logdateien: ' . $deletedFiles],
+                        !$phpErrorCleared ? ['PHP Error-Log konnte nicht bereinigt werden: ' . $this->service->getConfiguredErrorLogFile()] : [],
+                        $failedFiles !== [] ? ['Nicht bereinigte Dateien: ' . implode(', ', array_map('strval', $failedFiles))] : []
+                    ),
+                ];
+            }
 
             AuditLogger::instance()->log(
                 AuditLogger::CAT_SYSTEM,
@@ -354,13 +385,14 @@ class SystemInfoModule
                 null,
                 [
                     'deleted_files' => $deletedFiles,
+                    'php_error_log_cleared' => $phpErrorCleared,
                     'deleted_audit_entries' => $deletedAuditEntries,
                     'deleted_update_entries' => $deletedUpdateEntries,
                 ],
                 'warning'
             );
 
-            if ($deletedFiles === 0 && $deletedAuditEntries === 0 && $deletedUpdateEntries === 0) {
+            if ($deletedFiles === 0 && $deletedAuditEntries === 0 && $deletedUpdateEntries === 0 && !$phpErrorHadContent) {
                 return ['success' => true, 'message' => 'Es waren keine CMS-Logs oder Diagnose-Protokolle zum Löschen vorhanden.'];
             }
 
@@ -368,7 +400,8 @@ class SystemInfoModule
                 'success' => true,
                 'message' => 'CMS-Logs und Diagnose-Protokolle wurden bereinigt.',
                 'details' => [
-                    'Gelöschte CMS-Logdateien: ' . $deletedFiles,
+                    'Bereinigte CMS-Logdateien: ' . $deletedFiles,
+                    'PHP Error-Log: ' . ($phpErrorHadContent ? 'bereinigt' : 'leer oder nicht vorhanden'),
                     'Gelöschte Audit-Einträge: ' . $deletedAuditEntries,
                     'Gelöschte Update-Historien: ' . $deletedUpdateEntries,
                 ],
@@ -379,6 +412,38 @@ class SystemInfoModule
                 'Die CMS-Logdateien konnten nicht vollständig gelöscht werden.',
                 $e,
                 'log'
+            );
+        }
+    }
+
+    private function clearErrorReports(): array
+    {
+        try {
+            $deletedReports = ErrorReportService::getInstance()->clearReports();
+
+            AuditLogger::instance()->log(
+                AuditLogger::CAT_SYSTEM,
+                'system.logs.clear_error_reports',
+                'Fehlerreports aus dem Diagnosebereich gelöscht',
+                'error_report',
+                null,
+                ['deleted_reports' => $deletedReports],
+                'warning'
+            );
+
+            return [
+                'success' => true,
+                'message' => $deletedReports > 0
+                    ? $deletedReports . ' Fehlerreport(s) gelöscht.'
+                    : 'Es waren keine Fehlerreports zum Löschen vorhanden.',
+                'details' => ['Gelöschte Fehlerreports: ' . $deletedReports],
+            ];
+        } catch (\Throwable $e) {
+            return $this->buildActionFailureResponse(
+                'system.logs.clear_error_reports_failed',
+                'Die Fehlerreports konnten nicht gelöscht werden.',
+                $e,
+                'error_report'
             );
         }
     }

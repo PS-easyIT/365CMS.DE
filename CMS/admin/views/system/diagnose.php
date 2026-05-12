@@ -91,9 +91,16 @@ foreach ($tables as $tableInfo) {
         </div>
 
         <div class="card mb-4">
-            <div class="card-header d-flex align-items-center justify-content-between">
-                <h3 class="card-title mb-0">Fehlerreports</h3>
-                <div class="text-secondary small">Reports aus CMS_Error-Alerts und Debug-Ausgaben</div>
+            <div class="card-header d-flex align-items-center justify-content-between gap-3 flex-wrap">
+                <div>
+                    <h3 class="card-title mb-0">Fehlerreports</h3>
+                    <div class="text-secondary small">Reports aus CMS_Error-Alerts und Debug-Ausgaben</div>
+                </div>
+                <form method="post" class="d-inline" data-confirm-message="Wirklich alle gespeicherten Fehlerreports löschen?" data-confirm-title="Fehlerreports löschen" data-confirm-text="Löschen" data-confirm-class="btn-danger" data-confirm-status-class="bg-danger">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? '', ENT_QUOTES, 'UTF-8'); ?>">
+                    <input type="hidden" name="action" value="clear_error_reports">
+                    <button type="submit" class="btn btn-outline-danger btn-sm"<?php echo empty($errorReports) ? ' disabled' : ''; ?>>Fehlerreports löschen</button>
+                </form>
             </div>
             <div class="table-responsive">
                 <table class="table table-vcenter card-table table-striped">

@@ -118,7 +118,7 @@ $settingsHeading = $currentTab === 'content' ? 'Beiträge & Sites – Einstellun
         <?php if ($currentTab === 'general'): ?>
         <div class="row">
             <!-- Website-Grunddaten -->
-            <div class="col-lg-6 mb-4">
+            <div class="col-12 mb-4">
                 <div class="card">
                     <div class="card-header"><h3 class="card-title">Website</h3></div>
                     <div class="card-body">
@@ -251,7 +251,7 @@ $settingsHeading = $currentTab === 'content' ? 'Beiträge & Sites – Einstellun
             </div>
 
             <!-- Lokalisierung -->
-            <div class="col-lg-6 mb-4">
+            <div class="col-12 mb-4">
                 <div class="card">
                     <div class="card-header"><h3 class="card-title">Lokalisierung</h3></div>
                     <div class="card-body">
@@ -293,7 +293,7 @@ $settingsHeading = $currentTab === 'content' ? 'Beiträge & Sites – Einstellun
                 </div>
             </div>
 
-            <div class="col-lg-6 mb-4">
+            <div class="col-12 mb-4">
                 <div class="card h-100">
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <h3 class="card-title mb-0">Mail-System</h3>
@@ -332,7 +332,7 @@ $settingsHeading = $currentTab === 'content' ? 'Beiträge & Sites – Einstellun
             </div>
 
             <!-- Inhalte -->
-            <div class="col-lg-6 mb-4">
+            <div class="col-12 mb-4">
                 <div class="card">
                     <div class="card-header"><h3 class="card-title">Inhalte</h3></div>
                     <div class="card-body">
@@ -363,7 +363,7 @@ $settingsHeading = $currentTab === 'content' ? 'Beiträge & Sites – Einstellun
                 </div>
             </div>
 
-            <div class="col-lg-6 mb-4">
+            <div class="col-12 mb-4">
                 <div class="card h-100">
                     <div class="card-header"><h3 class="card-title">Marketplace &amp; Updates</h3></div>
                     <div class="card-body">
@@ -415,7 +415,7 @@ $settingsHeading = $currentTab === 'content' ? 'Beiträge & Sites – Einstellun
             </div>
 
             <!-- Wartung -->
-            <div class="col-lg-6 mb-4">
+            <div class="col-12 mb-4">
                 <div class="card">
                     <div class="card-header"><h3 class="card-title">Wartungsmodus</h3></div>
                     <div class="card-body">
@@ -435,7 +435,7 @@ $settingsHeading = $currentTab === 'content' ? 'Beiträge & Sites – Einstellun
             </div>
 
             <!-- Erweitert -->
-            <div class="col-lg-6 mb-4">
+            <div class="col-12 mb-4">
                 <div class="card">
                     <div class="card-header"><h3 class="card-title">Erweitert</h3></div>
                     <div class="card-body">
