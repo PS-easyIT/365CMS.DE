@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Dokumentiert die Diagnose-Oberflächen, Monitoring-Werkzeuge und die zentrale Logzentrale für den laufenden Betrieb von 365CMS.
 
-Letzte Aktualisierung: 2026-05-12 · Version 2.9.770
+Letzte Aktualisierung: 2026-05-12 · Version 2.9.773
 
 ---
 
@@ -51,15 +51,21 @@ Die Einstiegsseite `/admin/diagnose` fokussiert sich auf die Prüfung der Datenb
 
 Misst und protokolliert Antwortzeiten des Systems, um Engpässe frühzeitig zu erkennen.
 
+Seit `2.9.773` ergänzt die Seite eine Trendhistorie mit `24 h`, `7 d` und `30 d` inklusive Sparkline, Min-/Max-/Ø-Werten und Delta zum letzten Punkt. Die aktuelle Kennzahl wird weiterhin live gegen `SITE_URL` gemessen; die Historie kommt aus stündlichen Snapshots der Tabelle `monitoring_trends`.
+
 ### Cron-Job Status
 
 Zeigt den aktuellen Status von Cron-Jobs, letzte Ausführung und eventuelle Fehler.
 
 Zusätzlich wird geprüft, ob eine zentrale Datei `cron.php` im CMS-Webroot vorhanden ist. Darüber kann u. a. der Hook `cms_cron_mail_queue` für die Mail-Queue-Verarbeitung per Web-Cron oder CLI ausgelöst werden.
 
+Seit `2.9.773` visualisiert dieselbe Seite zusätzlich den `Cron-Lag`, also den Abstand zum zuletzt dokumentierten stündlichen Core-Cron-Lauf. Dadurch bleibt sichtbar, ob der Hourly-Takt stabil läuft oder ob der nächste Lauf überfällig wird. Auch hier gibt es `24 h`-, `7 d`- und `30 d`-Verläufe mit Sparkline und Statistik.
+
 ### Disk-Usage
 
 Schlüsselt den Speicherverbrauch nach Verzeichnissen auf und warnt bei kritischen Schwellwerten.
+
+Seit `2.9.773` besitzt auch die Disk-Usage-Seite eine Trendhistorie für die Dateisystem-Auslastung in Prozent. Die Live-Werte für Gesamt-/Frei-Speicher und Verzeichnisgrößen bleiben davon getrennt und werden nicht über die Trendansicht mutiert.
 
 ### Scheduled Tasks
 
@@ -82,6 +88,18 @@ Seit 2.9.763 verwaltet dieselbe Seite zusätzlich die Security-Alarmierung für 
 Seit `2.9.769` löst dieselbe Update-Historie Benutzer-IDs serverseitig auf sprechende Labels aus `display_name` plus Rollenbezeichnung auf. Fehlende oder gelöschte Konten führen dabei nicht zu Fehlern oder leeren Zellen, sondern bleiben als `User #ID` fail-soft sichtbar.
 
 Seit `2.9.770` können `/admin/diagnose` und `/admin/cms-logs` zusätzlich einen Diagnosebericht als ZIP exportieren. Der Export bleibt im bestehenden Admin-Vertrag bewusst ein POST-/CSRF-geschützter Download, bündelt Systeminfo, Health-Check, Asset-Status, Cron-Status, geplante Tasks sowie begrenzte Logauszüge und redigiert sensible Werte wie Tokens, Passwörter, Secrets und Credentials serverseitig vor dem Schreiben ins Archiv.
+
+### Technischer Vertrag der Trendhistorie
+
+Die Monitoring-Trendhistorie basiert auf einem kleinen, eigenständigen Service `MonitoringTrendService`.
+
+- Snapshot-Takt: über den bestehenden Hook `cms_cron_hourly`
+- Persistenz: eigene Tabelle `monitoring_trends`
+- Live-Pfad: read-only, ohne Tabellenanlage und ohne Schreibzugriff im GET-Request
+- Fallback: fehlen Snapshots oder optionale Daten, bleiben die Seiten über Live-Werte und neutrale Hinweise bedienbar
+- Keine Token in URLs, keine neue GET-Mutation, keine zusätzliche öffentliche Route
+
+Für Cron wird bewusst nicht eine starre Hook-Anzahl getrendet, sondern der zeitliche Abstand zum letzten dokumentierten stündlichen Lauf. Das liefert im Betrieb die aussagekräftigere Metrik.
 
 ---
 

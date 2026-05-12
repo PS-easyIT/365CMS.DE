@@ -1,4 +1,4 @@
-﻿﻿**Version:** 2.9.772
+﻿﻿**Version:** 2.9.773
 
 # 365CMS Changelog
 
@@ -19,6 +19,12 @@
 ## 📜 Vollständige Versionshistorie
 
 ---
+
+### v2.9.773 — 12. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.773** | 🟢 feat | Admin/Diagnose – Trendhistorie für Response-Time, Disk und Cron | **`CMS/core/Services/MonitoringTrendService.php`, `CMS/core/Bootstrap.php`, `CMS/admin/modules/system/SystemInfoModule.php`, `CMS/admin/views/system/response-time.php`, `CMS/admin/views/system/disk-usage.php`, `CMS/admin/views/system/cron-status.php`, `CMS/DOC/admin/diagnose/README.md`, `CMS/DOC/admin/diagnose/DIAGNOSE.md`, `CMS/DOC/audit/NiceToHave-CHECKLISTE.md`, `CMS/core/Version.php`, `CMS/update.json`, `README.md` und `Changelog.md` schließen das nächste offene Diagnose-Nice-to-have ab**: Die dedizierten Monitoring-Seiten für Response-Time, Disk-Usage und Cron-Status zeigen jetzt zusätzlich eine read-only Trendhistorie über `24 h`, `7 d` und `30 d` mit Sparklines sowie Min-/Max-/Ø-Werten. Eine neue, kleine Snapshot-Persistenz verdichtet die Kennzahlen stündlich über den bestehenden Hook `cms_cron_hourly` in `monitoring_trends`; Live-Werte bleiben parallel direkt sichtbar. Für Cron wird bewusst der Abstand zum zuletzt dokumentierten stündlichen Lauf als `Cron-Lag` visualisiert. Die Umsetzung führt keine neue GET-Mutation, keine Token-URL und keinen zusätzlichen 500-anfälligen Pflichtpfad ein; fehlen Snapshots, fallen die Seiten fail-soft auf Live-Werte und Hinweise zurück. |
 
 ### v2.9.772 — 12. Mai 2026
 

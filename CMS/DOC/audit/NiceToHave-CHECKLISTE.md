@@ -105,9 +105,9 @@ Nachprüfung 2.9.765: Die Nice-to-haves ab 2.9.725 wurden erneut automatisiert i
 
 ## 7. Diagnose – Beobachtbarkeit ausbauen
 
-- [ ] **Trendhistorie für Response-Time, Cron und Speicherverbrauch**
-  - [ ] Aggregation über 24 h, 7 d, 30 d mit Sparklines
-  - [ ] Datenquelle: bestehende Monitoring-Sammler, Persistenz in eigener Trend-Tabelle
+- [x] **Trendhistorie für Response-Time, Cron und Speicherverbrauch**
+  - [x] Aggregation über 24 h, 7 d, 30 d mit Sparklines
+  - [x] Datenquelle: bestehende Monitoring-Sammler, Persistenz in eigener Trend-Tabelle
 - [x] **Export/Download für Diagnoseberichte**
   - [x] Bündelt Systeminfo, Health-Check, letzte Logs, Asset-Status, Cron-Status als ZIP
   - [x] Sensible Werte (Keys, DB-Passwort, Mail-Credentials) werden serverseitig redacted
@@ -129,6 +129,12 @@ Nachprüfung 2.9.765: Die Nice-to-haves ab 2.9.725 wurden erneut automatisiert i
 - `/admin/diagnose` und `/admin/cms-logs` bieten jetzt einen POST-/CSRF-geschützten ZIP-Export für Diagnoseberichte direkt aus dem bestehenden Admin-Kontext an.
 - Das Archiv bündelt Systeminformationen, Health-Check, Asset-Status, Cron-Status, geplante Tasks sowie begrenzte Error-/CMS-/Audit-/Update-Logauszüge in getrennten Dateien.
 - Sensible Werte wie Tokens, Passwörter, Secrets und Credentials werden serverseitig redigiert; es gibt keine Token-URLs, keine neue GET-Mutation und fehlende Datenquellen fallen fail-soft auf leere Abschnitte zurück.
+
+### Nachprüfung 2.9.773
+
+- `/admin/monitor-response-time`, `/admin/monitor-disk-usage` und `/admin/monitor-cron-status` zeigen jetzt eine read-only Trendhistorie über 24 Stunden, 7 Tage und 30 Tage mit Sparklines und Bereichsstatistiken.
+- Die Persistenz läuft stündlich über den bestehenden Hook `cms_cron_hourly` in eine eigene Tabelle `monitoring_trends`; Live-Werte bleiben zusätzlich direkt aus den bestehenden Monitoring-Sammlern sichtbar.
+- Für Cron wird bewusst der Abstand zum zuletzt dokumentierten stündlichen Lauf als `Cron-Lag` visualisiert. Die Umsetzung bleibt ohne neue GET-Mutationen, ohne Token-URLs und fällt bei fehlenden Snapshots oder optionalen Daten fail-soft auf Live-Werte zurück.
 
 ## 8. Cross-Bereich · Inhalte ↔ Medien ↔ SEO
 
