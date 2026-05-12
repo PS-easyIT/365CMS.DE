@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.9.774",
+  "version": "2.9.775",
   "min_php": "8.4",
   "released": "2026-05-12",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 2.9.774: 404-Protokolle und Diagnose-Logs lassen sich jetzt robuster bereinigen. Der 404-Clear-Pfad nutzt kein privilegiertes TRUNCATE mehr, Diagnose-Clears entfernen auf Wunsch auch operative Audit- und Update-Historien, self-clearing Audit-Ereignisse tauchen nicht sofort wieder in der Diagnose-Liste auf und Redeclare-/gridjs-Hotspots wurden zusätzlich gehärtet.",
+  "notes": "Release-Stand 2.9.775: Die neue Warnzentrale unter /admin/monitor-warnings bündelt aktive Hinweise aus Performance, Security, Diagnose, Updates und Recht. Jede Warnung führt direkt in den zuständigen Adminbereich; Ignorieren mit Begründung und Wiedervorlage laufen serverseitig über POST/CSRF und bleiben ohne Token-URLs oder neue GET-Mutationen fail-soft eingebunden.",
   "critical": false
 }

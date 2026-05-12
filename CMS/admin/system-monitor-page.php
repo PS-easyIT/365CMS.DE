@@ -8,6 +8,7 @@ if (!defined('ABSPATH')) {
 const CMS_ADMIN_SYSTEM_MONITOR_SECTION_ACTIONS = [
     'info' => [],
     'diagnose' => ['clear_cache', 'optimize_db', 'create_tables', 'repair_tables', 'export_diagnostic_report'],
+    'warnings' => ['ignore_warning_center_warning', 'snooze_warning_center_warning', 'restore_warning_center_warning'],
     'assets' => [],
     'logs' => ['clear_logs', 'clear_cms_log', 'clear_all_cms_logs', 'export_diagnostic_report'],
     'response-time' => [],
@@ -30,6 +31,12 @@ const CMS_ADMIN_SYSTEM_MONITOR_PAGE_CONFIGS = [
         'view_file' => __DIR__ . '/views/system/diagnose.php',
         'page_title' => 'Diagnose · Datenbank',
         'active_page' => 'diagnose',
+    ],
+    'warnings' => [
+        'route_path' => '/admin/monitor-warnings',
+        'view_file' => __DIR__ . '/views/system/warnings.php',
+        'page_title' => 'Diagnose · Warnzentrale',
+        'active_page' => 'monitor-warnings',
     ],
     'assets' => [
         'route_path' => '/admin/monitor-assets',

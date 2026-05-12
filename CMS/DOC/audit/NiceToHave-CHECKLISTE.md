@@ -111,9 +111,9 @@ Nachprüfung 2.9.765: Die Nice-to-haves ab 2.9.725 wurden erneut automatisiert i
 - [x] **Export/Download für Diagnoseberichte**
   - [x] Bündelt Systeminfo, Health-Check, letzte Logs, Asset-Status, Cron-Status als ZIP
   - [x] Sensible Werte (Keys, DB-Passwort, Mail-Credentials) werden serverseitig redacted
-- [ ] **Sammelansicht für kritische Systemwarnungen**
-  - [ ] Eine Seite mit allen aktiven Warnungen aus Performance, Security, Diagnose, Updates, Recht
-  - [ ] Direkt-Action pro Warnung (lösen, ignorieren mit Begründung, später erinnern)
+- [x] **Sammelansicht für kritische Systemwarnungen**
+  - [x] Eine Seite mit allen aktiven Warnungen aus Performance, Security, Diagnose, Updates, Recht
+  - [x] Direkt-Action pro Warnung (lösen, ignorieren mit Begründung, später erinnern)
 - [x] **Sprechende Benutzeranzeige in der Update-Historie**
   - [x] User-ID auflösen auf `display_name` plus Rolle, Fallback auf ID bei gelöschten Benutzern
   - [x] Konsistent in `/admin/cms-logs` und Update-Center
@@ -135,6 +135,12 @@ Nachprüfung 2.9.765: Die Nice-to-haves ab 2.9.725 wurden erneut automatisiert i
 - `/admin/monitor-response-time`, `/admin/monitor-disk-usage` und `/admin/monitor-cron-status` zeigen jetzt eine read-only Trendhistorie über 24 Stunden, 7 Tage und 30 Tage mit Sparklines und Bereichsstatistiken.
 - Die Persistenz läuft stündlich über den bestehenden Hook `cms_cron_hourly` in eine eigene Tabelle `monitoring_trends`; Live-Werte bleiben zusätzlich direkt aus den bestehenden Monitoring-Sammlern sichtbar.
 - Für Cron wird bewusst der Abstand zum zuletzt dokumentierten stündlichen Lauf als `Cron-Lag` visualisiert. Die Umsetzung bleibt ohne neue GET-Mutationen, ohne Token-URLs und fällt bei fehlenden Snapshots oder optionalen Daten fail-soft auf Live-Werte zurück.
+
+### Nachprüfung 2.9.775
+
+- `/admin/monitor-warnings` bündelt aktive Hinweise aus Performance, Security, Diagnose, Updates und Recht in einer gemeinsamen Warnzentrale auf Basis bestehender Module und Services.
+- Jede Warnung besitzt einen direkten Lösungs-/Öffnen-Link in den zuständigen Adminbereich; Ignorieren und Wiedervorlage laufen ausschließlich über den bestehenden POST-/CSRF-Vertrag mit serverseitig gespeicherten Zuständen.
+- GET-Seiten bleiben read-only, es werden keine Tokens in URLs erzeugt und fehlende Teilquellen fallen fail-soft weg, statt die Warnzentrale mit einem HTTP 500 zu blockieren.
 
 ## 8. Cross-Bereich · Inhalte ↔ Medien ↔ SEO
 

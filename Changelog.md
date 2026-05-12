@@ -1,4 +1,4 @@
-﻿﻿**Version:** 2.9.774
+﻿﻿**Version:** 2.9.775
 
 # 365CMS Changelog
 
@@ -20,66 +20,20 @@
 
 ---
 
-### v2.9.773 — 12. Mai 2026
-
-### v2.9.774 — 12. Mai 2026
+### v2.9.775 — 12. Mai 2026
 
 | Version | Typ | Bereich | Beschreibung |
 |---------|-----|---------|-------------|
+| **2.9.775** | 🟢 feat | Admin/Diagnose – Warnzentrale für aktive Systemhinweise | **`CMS/admin/system-monitor-page.php`, `CMS/admin/monitor-warnings.php`, `CMS/admin/modules/system/SystemInfoModule.php`, `CMS/admin/views/system/subnav.php`, `CMS/admin/views/system/diagnose.php`, `CMS/admin/views/system/warnings.php`, `CMS/DOC/admin/diagnose/README.md`, `CMS/DOC/admin/diagnose/DIAGNOSE.md`, `CMS/DOC/audit/NiceToHave-CHECKLISTE.md`, `CMS/core/Version.php`, `CMS/update.json`, `README.md` und `Changelog.md` schließen das nächste offene Diagnose-Nice-to-have ab**: `/admin/monitor-warnings` bündelt aktive Warnungen aus den bestehenden Bereichen Performance, Security, Diagnose, Updates und Recht in einer gemeinsamen Sammelansicht. Die Seite selbst bleibt read-only im GET-Pfad und liest ausschließlich vorhandene Module/Services zusammen; pro Warnung gibt es einen direkten Link in den zuständigen Adminbereich sowie POST-/CSRF-geschützte Aktionen zum Ignorieren mit Begründung oder zur Wiedervorlage. Unterdrückte Warnungen werden serverseitig klein per `SettingsService` gespeichert, nur für aktuell bekannte Warn-IDs berücksichtigt und erscheinen getrennt als unterdrückter Bestand. Die Umsetzung vermeidet neue GET-Mutationen, Tokens in URLs und 500-anfällige Pflichtpfade, weil unlesbare Teilquellen fail-soft lediglich aus der Sammelansicht herausfallen. |
 | **2.9.774** | 🔴 fix | Diagnose/SEO/Theme-Runtime – Log-Clears & Redeclare-Härtung | **`CMS/core/Services/RedirectService.php`, `CMS/core/Services/UpdateService.php`, `CMS/admin/modules/system/SystemInfoModule.php`, `CMS/admin/views/system/cms-logs.php`, `CMS/admin/posts.php`, `CMS/core/Routing/ThemeRouter.php`, `CMS/themes/cms-default/functions.php`, `CMS/core/Version.php`, `CMS/update.json`, `README.md` und `Changelog.md` beheben den aktuellen Diagnose-/Live-Fehlerblock**: Der 404-Monitor leert sein Protokoll jetzt über einen robusteren `DELETE`-Pfad statt über `TRUNCATE`, sodass das Bereinigen nicht an restriktiveren DB-Rechten scheitert und das Ergebnis als echte Anzahl zurückmeldet. In `/admin/cms-logs` bereinigt die Sammelaktion nun neben CMS-Logdateien auch die im Diagnosekontext angezeigten operativen Audit-Spuren und die Update-Historie; gleichzeitig werden reine `system.logs.clear*`-Selbstprotokolle aus der operativen Diagnose-Liste ausgeblendet, damit eine erfolgreiche Löschaktion nicht sofort wieder als scheinbar „nicht bereinigt“ auftaucht. Zusätzlich wurden die gemeldeten Redeclare-Hotspots um `CMS\Routing\ThemeRouter` und die Theme-Helfer weiter gehärtet, und der tote `gridjs`-Inline-Rest im Beitrags-Entry-Point wurde entfernt, um unnötige PHP-Hotspots im Live-Betrieb zu entschärfen. |
-
-### v2.9.773 — 12. Mai 2026
-
-| Version | Typ | Bereich | Beschreibung |
-|---------|-----|---------|-------------|
 | **2.9.773** | 🟢 feat | Admin/Diagnose – Trendhistorie für Response-Time, Disk und Cron | **`CMS/core/Services/MonitoringTrendService.php`, `CMS/core/Bootstrap.php`, `CMS/admin/modules/system/SystemInfoModule.php`, `CMS/admin/views/system/response-time.php`, `CMS/admin/views/system/disk-usage.php`, `CMS/admin/views/system/cron-status.php`, `CMS/DOC/admin/diagnose/README.md`, `CMS/DOC/admin/diagnose/DIAGNOSE.md`, `CMS/DOC/audit/NiceToHave-CHECKLISTE.md`, `CMS/core/Version.php`, `CMS/update.json`, `README.md` und `Changelog.md` schließen das nächste offene Diagnose-Nice-to-have ab**: Die dedizierten Monitoring-Seiten für Response-Time, Disk-Usage und Cron-Status zeigen jetzt zusätzlich eine read-only Trendhistorie über `24 h`, `7 d` und `30 d` mit Sparklines sowie Min-/Max-/Ø-Werten. Eine neue, kleine Snapshot-Persistenz verdichtet die Kennzahlen stündlich über den bestehenden Hook `cms_cron_hourly` in `monitoring_trends`; Live-Werte bleiben parallel direkt sichtbar. Für Cron wird bewusst der Abstand zum zuletzt dokumentierten stündlichen Lauf als `Cron-Lag` visualisiert. Die Umsetzung führt keine neue GET-Mutation, keine Token-URL und keinen zusätzlichen 500-anfälligen Pflichtpfad ein; fehlen Snapshots, fallen die Seiten fail-soft auf Live-Werte und Hinweise zurück. |
-
-### v2.9.772 — 12. Mai 2026
-
-| Version | Typ | Bereich | Beschreibung |
-|---------|-----|---------|-------------|
 | **2.9.772** | 🔴 fix | Admin/Dashboard – Pflichtseiten-Prüfung entfernt | **`CMS/admin/modules/dashboard/DashboardModule.php`, `CMS/DOC/admin/dashboard/README.md`, `CMS/DOC/admin/dashboard/DASHBOARD.md`, `CMS/DOC/audit/NiceToHave-CHECKLISTE.md`, `CMS/DOC/audit/MustHave-CHECKLISTE.md`, `CMS/core/Version.php`, `CMS/update.json`, `README.md` und `Changelog.md` entfernen die bisherige Dashboard-Pflichtseiten-Prüfung vollständig**: Das Hauptdashboard erzeugt keine speziellen Legal-Alerts oder Attention-Items für Impressum, Datenschutzerklärung und Cookie-Hinweis mehr. Der restliche Dashboard-Flow bleibt unverändert fail-soft, und es werden keine neuen Mutations- oder Tokenpfade eingeführt. |
-
-### v2.9.771 — 12. Mai 2026
-
-| Version | Typ | Bereich | Beschreibung |
-|---------|-----|---------|-------------|
 | **2.9.771** | 🔴 fix | Admin/System – Backup-/Restore-Berechtigungsfehler | **`CMS/admin/modules/system/BackupsModule.php`, `CMS/core/Version.php`, `CMS/update.json`, `README.md` und `Changelog.md` beheben den fälschlichen Berechtigungsfehler im Backup-Bereich**: Der Backup-&-Restore-Pfad akzeptiert jetzt korrekt CSRF-Tokens, die bereits von der gemeinsamen Admin-Section-Shell validiert wurden. Dadurch schlagen Aktionen in `/admin/backups` nicht mehr mit `Keine Berechtigung für diese Aktion.` fehl, nur weil der Einmal-Token im Shell-Flow schon geprüft wurde. Die eigentliche Rechteprüfung bleibt unverändert, es werden keine neuen GET-Mutationen oder Token-URLs eingeführt. |
-
-### v2.9.770 — 12. Mai 2026
-
-| Version | Typ | Bereich | Beschreibung |
-|---------|-----|---------|-------------|
 | **2.9.770** | 🟢 feat | Admin/Diagnose – ZIP-Export für Diagnoseberichte | **`CMS/admin/system-monitor-page.php`, `CMS/admin/modules/system/SystemInfoModule.php`, `CMS/admin/views/system/diagnose.php`, `CMS/admin/views/system/cms-logs.php`, `CMS/DOC/admin/diagnose/DIAGNOSE.md`, `CMS/DOC/admin/diagnose/README.md`, `CMS/DOC/audit/NiceToHave-CHECKLISTE.md`, `CMS/core/Version.php`, `CMS/update.json`, `README.md` und `Changelog.md` schließen das nächste offene Diagnose-Nice-to-have ab**: `/admin/diagnose` und `/admin/cms-logs` erzeugen jetzt einen Diagnosebericht als ZIP direkt im bestehenden POST-/CSRF-Vertrag. Das Archiv bündelt Systeminfo, Health-Check, Asset-Status, Cron-Status, geplante Tasks sowie begrenzte Error-/CMS-/Audit-/Update-Logauszüge in separaten Dateien. Sensible Werte wie Tokens, Passwörter, Secrets und Credentials werden serverseitig redigiert, der Download benötigt keine Token-URL und fehlende Datenquellen fallen fail-soft auf leere Abschnitte zurück. |
-
-### v2.9.769 — 12. Mai 2026
-
-| Version | Typ | Bereich | Beschreibung |
-|---------|-----|---------|-------------|
 | **2.9.769** | 🟢 feat | Admin/Diagnose & Updates – sprechende Benutzerlabels in der Update-Historie | **`CMS/core/Services/UpdateService.php`, `CMS/admin/modules/system/SystemInfoModule.php`, `CMS/admin/views/system/updates.php`, `CMS/DOC/admin/system-settings/UPDATES.md`, `CMS/DOC/admin/diagnose/DIAGNOSE.md`, `CMS/DOC/admin/diagnose/README.md`, `CMS/DOC/audit/NiceToHave-CHECKLISTE.md`, `CMS/core/Version.php`, `CMS/update.json`, `README.md` und `Changelog.md` schließen den nächsten Diagnose-Nice-to-have-Punkt ab**: Die persistierte Update-Historie löst Benutzer-IDs jetzt serverseitig auf `display_name` plus Rollenbezeichnung auf. Dadurch zeigen `/admin/updates` und `/admin/cms-logs` nachvollziehbare Benutzerangaben statt roher IDs; bei gelöschten Konten bleibt der Verlauf fail-soft über `User #ID` lesbar. Die Umsetzung führt keine neuen GET-Mutationen, keine Token-URLs und keine zusätzlichen 500-anfälligen Pflichtpfade ein. |
-
-### v2.9.768 — 12. Mai 2026
-
-| Version | Typ | Bereich | Beschreibung |
-|---------|-----|---------|-------------|
 | **2.9.768** | 🔴 fix | Admin/System – Backup-/Restore-Robustheit | **`CMS/core/Services/BackupService.php`, `CMS/admin/modules/system/BackupsModule.php`, `CMS/DOC/admin/system-settings/BACKUP.md`, `CMS/core/Version.php`, `CMS/update.json`, `README.md` und `Changelog.md` härten die operative Backup-Strecke nach**: Datenbank-Backups und SQL-Restores verarbeiten Dumps jetzt streaming-basiert statt komplette Dateien erst in den Arbeitsspeicher zu laden. Das reduziert Fehler bei größeren Datenbanken sowohl beim Erstellen als auch beim Restore. Zusätzlich werden konkrete Servicefehler im Admin besser zurückgegeben, damit `/admin/backups` bei Problemen nicht mehr nur mit einer zu knappen Standardmeldung antwortet. |
-
-### v2.9.767 — 12. Mai 2026
-
-| Version | Typ | Bereich | Beschreibung |
-|---------|-----|---------|-------------|
 | **2.9.767** | 🟢 feat | Admin/System – Backup-Validierung & Restore-Dry-Run | **`CMS/core/Services/BackupService.php`, `CMS/admin/modules/system/BackupsModule.php`, `CMS/admin/backups.php`, `CMS/admin/views/system/backups.php`, `CMS/DOC/admin/system-settings/BACKUP.md`, `CMS/DOC/admin/system-settings/README.md`, `CMS/DOC/audit/NiceToHave-CHECKLISTE.md`, `CMS/core/Version.php`, `CMS/update.json`, `README.md` und `Changelog.md` schließen das nächste offene System-&-Doku-Nice-to-have ab**: `/admin/backups` ergänzt jetzt eine echte Backup-Validierung im bestehenden POST-/PRG-Flow. Pro Sicherung werden Manifest/Prüfsummen, SQL-Dump-Integrität, ein Probe-Lesen wichtiger Tabellen und optional ein Restore-Dry-Run in eine temporäre Wegwerf-Datenbank mit Vergleichsbericht geprüft. Die Ergebnisse bleiben read-only im Admin sichtbar, nutzen keine Token-URLs und führen keine neue öffentliche GET-Mutation ein. Zusätzlich wurden die bislang fehlenden internen Verzeichnis-Helfer im Restore-Pfad vervollständigt, damit Restore und Dry-Run nicht in undefinierte Methoden laufen. |
-
-### v2.9.766 — 12. Mai 2026
-
-| Version | Typ | Bereich | Beschreibung |
-|---------|-----|---------|-------------|
 | **2.9.766** | 🟢 feat | Admin/System – blockierende Update-Vorabprüfung | **`CMS/core/Services/UpdateService.php`, `CMS/admin/modules/system/UpdatesModule.php`, `CMS/admin/views/system/updates.php`, `CMS/DOC/admin/system-settings/UPDATES.md`, `CMS/DOC/admin/system-settings/README.md`, `CMS/DOC/audit/NiceToHave-CHECKLISTE.md`, `CMS/core/Version.php`, `CMS/update.json`, `README.md` und `Changelog.md` schließen das nächste offene System-&-Doku-Nice-to-have ab**: `/admin/updates` ergänzt jetzt eine echte Vorabprüfung vor automatischen Core-, Theme- und Plugin-Updates. Geprüft werden PHP- und Datenbankversion, notwendige PHP-Erweiterungen, freier Speicherplatz sowie Schreibrechte für `cache/`, `backups/`, `logs/`, `assets/` und die jeweiligen Update-Zielpfade. Blockierende Befunde werden sichtbar im Admin dargestellt, deaktivieren die Installationsbuttons und werden zusätzlich serverseitig vor dem eigentlichen Update-Lauf abgefangen. Damit bleibt der Update-Pfad fail-soft und nachvollziehbar, ohne neue GET-Mutationen, ohne Sicherheitstoken in URLs und ohne zusätzliche 500-anfällige Nebenpfade. |
-
-### v2.9.765 — 12. Mai 2026
-
-| Version | Typ | Bereich | Beschreibung |
-|---------|-----|---------|-------------|
 | **2.9.765** | 🔴 fix | Admin/Nice-to-have-Nachprüfung ab 2.9.725 | **`CMS/admin/backups.php`, `CMS/admin/views/system/email-alerts.php`, `CMS/DOC/admin/PRUEF-CHECKLISTE.md`, `CMS/DOC/audit/NiceToHave-CHECKLISTE.md`, `CMS/core/Version.php`, `CMS/update.json`, `README.md` und `Changelog.md` schließen die erneute Nachprüfung der Nice-to-haves ab 2.9.725 ab**: Die im Changelog referenzierten PHP-/JSON-Dateien wurden inventarisiert und automatisiert gelintet, typische Token-URL-, GET-Mutations-, Redirect-, SQL-/MariaDB- und rohe Ausgabe-Muster wurden geprüft. Als konkrete Nachhärtung validiert `/admin/backups` den finalen Downloadpfad vor dem Chunk-Streaming nochmals per `realpath()` gegen den Backup-Root, sodass Pfad-Traversal-/SSRF-Scanner und Laufzeit denselben fail-closed Vertrag sehen. Zusätzlich wurde der historische Doku-Anker `CMS/DOC/admin/PRUEF-CHECKLISTE.md` als Kompatibilitätsindex wiederhergestellt und eine kleine Einrückung in der Security-Alert-Konfiguration bereinigt. Es wurden keine neuen GET-Mutationen, Token-URLs oder zusätzlichen 500-anfälligen Pflichtpfade eingeführt. |
 
 ### v2.9.764 — 11. Mai 2026

@@ -33,6 +33,10 @@ class SystemInfoModule
     private const UPDATE_HISTORY_LIMIT = 12;
     private const DIAGNOSTIC_REPORT_CMS_LOG_LIMIT = 5;
     private const DIAGNOSTIC_REPORT_LOG_ENTRY_LIMIT = 40;
+    private const WARNING_CENTER_SETTINGS_GROUP = 'system_warning_center';
+    private const WARNING_CENTER_SETTINGS_KEY = 'states';
+    private const WARNING_CENTER_MAX_REASON_LENGTH = 240;
+    private const WARNING_CENTER_SNOOZE_DAYS = [1, 3, 7, 14, 30];
 
     private const MONITOR_DEFAULTS = [
         'monitor_email_notifications_enabled' => '0',
@@ -95,6 +99,7 @@ class SystemInfoModule
         return match ($section) {
             'info' => $this->getInfoData(),
             'diagnose' => $this->getDiagnosticsData(),
+            'warnings' => $this->getWarningCenterData(),
             'assets' => $this->getAssetsData(),
             'logs' => $this->getLogsData($_GET['log_file'] ?? null),
             'response-time' => [
@@ -188,6 +193,9 @@ class SystemInfoModule
         return match ($action) {
             'clear_cache' => $this->clearCache(),
             'optimize_db' => $this->optimizeDatabase(),
+            'ignore_warning_center_warning' => $this->ignoreWarningCenterWarning($post),
+            'snooze_warning_center_warning' => $this->snoozeWarningCenterWarning($post),
+            'restore_warning_center_warning' => $this->restoreWarningCenterWarning($post),
             'export_diagnostic_report' => $this->exportDiagnosticReport(),
             'clear_logs' => $this->clearLogs(),
             'clear_cms_log' => $this->clearCmsLog($post),
@@ -747,6 +755,1001 @@ class SystemInfoModule
         );
 
         return $result;
+    }
+
+    private function getWarningCenterData(): array
+    {
+        $snapshot = $this->buildWarningCenterSnapshot();
+
+        return [
+            'warnings' => $snapshot['active'],
+            'suppressed_warnings' => $snapshot['suppressed'],
+            'summary' => $snapshot['summary'],
+            'source_summary' => $snapshot['source_summary'],
+            'snooze_days' => self::WARNING_CENTER_SNOOZE_DAYS,
+            'notes' => [
+                'Alle Hinweise stammen aus bestehenden Modulen und bleiben im GET-Pfad read-only.',
+                '„Lösen / öffnen“ springt direkt in den zuständigen Adminbereich; Ignorieren und Erinnern erfolgt ausschließlich per POST/CSRF.',
+            ],
+        ];
+    }
+
+    private function ignoreWarningCenterWarning(array $post): array
+    {
+        $warningId = $this->normalizeWarningCenterId($post['warning_id'] ?? '');
+        $reason = $this->sanitizeWarningCenterReason($post['warning_reason'] ?? '');
+
+        if ($warningId === '') {
+            return ['success' => false, 'error' => 'Keine gültige Warnung ausgewählt.'];
+        }
+
+        if ($reason === '') {
+            return ['success' => false, 'error' => 'Zum Ignorieren wird eine Begründung benötigt.'];
+        }
+
+        $warnings = $this->collectWarningCenterEntries();
+        if (!isset($warnings[$warningId])) {
+            return ['success' => false, 'error' => 'Die ausgewählte Warnung ist nicht mehr aktiv.'];
+        }
+
+        $states = $this->pruneWarningCenterStates($this->loadWarningCenterStates(), array_keys($warnings));
+        $states[$warningId] = [
+            'mode' => 'ignored',
+            'reason' => $reason,
+            'until' => null,
+            'updated_at' => date('c'),
+            'updated_by' => $this->getWarningCenterActorId(),
+        ];
+
+        if (!$this->storeWarningCenterStates($states)) {
+            return ['success' => false, 'error' => 'Warnungsstatus konnte nicht gespeichert werden.'];
+        }
+
+        $warning = $warnings[$warningId];
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_SYSTEM,
+            'system.warning_center.ignore',
+            'Warnung in der Diagnose-Warnzentrale ignoriert',
+            'monitoring',
+            null,
+            [
+                'warning_id' => $warningId,
+                'source' => $warning['source'] ?? 'system',
+                'title' => $this->sanitizeAuditString((string)($warning['title'] ?? 'Warnung')),
+                'reason' => $reason,
+            ],
+            'warning'
+        );
+
+        return [
+            'success' => true,
+            'message' => 'Warnung wurde ignoriert.',
+            'details' => ['Begründung: ' . $reason],
+        ];
+    }
+
+    private function snoozeWarningCenterWarning(array $post): array
+    {
+        $warningId = $this->normalizeWarningCenterId($post['warning_id'] ?? '');
+        $days = (int)($post['warning_snooze_days'] ?? 0);
+        $note = $this->sanitizeWarningCenterReason($post['warning_snooze_note'] ?? '');
+
+        if ($warningId === '') {
+            return ['success' => false, 'error' => 'Keine gültige Warnung ausgewählt.'];
+        }
+
+        if (!in_array($days, self::WARNING_CENTER_SNOOZE_DAYS, true)) {
+            return ['success' => false, 'error' => 'Bitte ein gültiges Erinnerungsintervall wählen.'];
+        }
+
+        $warnings = $this->collectWarningCenterEntries();
+        if (!isset($warnings[$warningId])) {
+            return ['success' => false, 'error' => 'Die ausgewählte Warnung ist nicht mehr aktiv.'];
+        }
+
+        $until = (new \DateTimeImmutable('now'))->modify('+' . $days . ' days');
+        $states = $this->pruneWarningCenterStates($this->loadWarningCenterStates(), array_keys($warnings));
+        $states[$warningId] = [
+            'mode' => 'snoozed',
+            'reason' => $note,
+            'until' => $until->format(DATE_ATOM),
+            'updated_at' => date('c'),
+            'updated_by' => $this->getWarningCenterActorId(),
+        ];
+
+        if (!$this->storeWarningCenterStates($states)) {
+            return ['success' => false, 'error' => 'Warnungsstatus konnte nicht gespeichert werden.'];
+        }
+
+        $warning = $warnings[$warningId];
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_SYSTEM,
+            'system.warning_center.snooze',
+            'Warnung in der Diagnose-Warnzentrale vertagt',
+            'monitoring',
+            null,
+            [
+                'warning_id' => $warningId,
+                'source' => $warning['source'] ?? 'system',
+                'title' => $this->sanitizeAuditString((string)($warning['title'] ?? 'Warnung')),
+                'days' => $days,
+                'until' => $until->format('Y-m-d H:i:s'),
+                'note' => $note,
+            ],
+            'info'
+        );
+
+        return [
+            'success' => true,
+            'message' => 'Warnung wird später erneut eingeblendet.',
+            'details' => ['Erinnerung am ' . $until->format('d.m.Y H:i') . '.'],
+        ];
+    }
+
+    private function restoreWarningCenterWarning(array $post): array
+    {
+        $warningId = $this->normalizeWarningCenterId($post['warning_id'] ?? '');
+        if ($warningId === '') {
+            return ['success' => false, 'error' => 'Keine gültige Warnung ausgewählt.'];
+        }
+
+        $states = $this->loadWarningCenterStates();
+        if (!isset($states[$warningId])) {
+            return ['success' => true, 'message' => 'Für diese Warnung ist kein unterdrückter Status gespeichert.'];
+        }
+
+        unset($states[$warningId]);
+
+        if (!$this->storeWarningCenterStates($states)) {
+            return ['success' => false, 'error' => 'Warnungsstatus konnte nicht zurückgesetzt werden.'];
+        }
+
+        AuditLogger::instance()->log(
+            AuditLogger::CAT_SYSTEM,
+            'system.warning_center.restore',
+            'Warnung in der Diagnose-Warnzentrale wieder aktiviert',
+            'monitoring',
+            null,
+            ['warning_id' => $warningId],
+            'info'
+        );
+
+        return ['success' => true, 'message' => 'Warnung wird wieder aktiv angezeigt.'];
+    }
+
+    /**
+     * @return array{
+     *     active: array<int, array<string, mixed>>,
+     *     suppressed: array<int, array<string, mixed>>,
+     *     summary: array<string, int>,
+     *     source_summary: array<int, array<string, mixed>>
+     * }
+     */
+    private function buildWarningCenterSnapshot(): array
+    {
+        $warnings = $this->collectWarningCenterEntries();
+        $states = $this->pruneWarningCenterStates($this->loadWarningCenterStates(), array_keys($warnings));
+        $active = [];
+        $suppressed = [];
+        $sourceSummary = [];
+
+        foreach ($warnings as $warningId => $warning) {
+            $suppression = $this->resolveWarningCenterSuppression($states[$warningId] ?? null);
+            $warning['suppression'] = $suppression;
+
+            if (!empty($suppression['suppressed'])) {
+                $suppressed[] = $warning;
+                continue;
+            }
+
+            $active[] = $warning;
+            $source = (string)($warning['source'] ?? 'system');
+            if (!isset($sourceSummary[$source])) {
+                $sourceSummary[$source] = [
+                    'source' => $source,
+                    'label' => (string)($warning['source_label'] ?? ucfirst($source)),
+                    'active_count' => 0,
+                    'critical_count' => 0,
+                ];
+            }
+
+            $sourceSummary[$source]['active_count']++;
+            if (($warning['severity'] ?? 'warning') === 'critical') {
+                $sourceSummary[$source]['critical_count']++;
+            }
+        }
+
+        usort($active, fn(array $left, array $right): int => $this->compareWarningCenterEntries($left, $right));
+        usort($suppressed, fn(array $left, array $right): int => $this->compareSuppressedWarningCenterEntries($left, $right));
+        usort($sourceSummary, static function (array $left, array $right): int {
+            $criticalCompare = (int)($right['critical_count'] ?? 0) <=> (int)($left['critical_count'] ?? 0);
+            if ($criticalCompare !== 0) {
+                return $criticalCompare;
+            }
+
+            $activeCompare = (int)($right['active_count'] ?? 0) <=> (int)($left['active_count'] ?? 0);
+            if ($activeCompare !== 0) {
+                return $activeCompare;
+            }
+
+            return strcmp((string)($left['label'] ?? ''), (string)($right['label'] ?? ''));
+        });
+
+        $criticalTotal = count(array_filter($active, static fn(array $warning): bool => ($warning['severity'] ?? 'warning') === 'critical'));
+
+        return [
+            'active' => $active,
+            'suppressed' => $suppressed,
+            'summary' => [
+                'active_total' => count($active),
+                'critical_total' => $criticalTotal,
+                'warning_total' => max(0, count($active) - $criticalTotal),
+                'suppressed_total' => count($suppressed),
+                'source_total' => count($sourceSummary),
+            ],
+            'source_summary' => array_values($sourceSummary),
+        ];
+    }
+
+    /** @return array<string, array<string, mixed>> */
+    private function collectWarningCenterEntries(): array
+    {
+        $warnings = [];
+
+        foreach ($this->collectPerformanceWarnings() as $warning) {
+            $this->pushWarningCenterEntry($warnings, $warning);
+        }
+        foreach ($this->collectSecurityWarnings() as $warning) {
+            $this->pushWarningCenterEntry($warnings, $warning);
+        }
+        foreach ($this->collectDiagnoseWarnings() as $warning) {
+            $this->pushWarningCenterEntry($warnings, $warning);
+        }
+        foreach ($this->collectUpdateWarnings() as $warning) {
+            $this->pushWarningCenterEntry($warnings, $warning);
+        }
+        foreach ($this->collectLegalWarnings() as $warning) {
+            $this->pushWarningCenterEntry($warnings, $warning);
+        }
+
+        return $warnings;
+    }
+
+    /** @return list<array<string, mixed>> */
+    private function collectPerformanceWarnings(): array
+    {
+        $warnings = [];
+
+        try {
+            require_once dirname(__DIR__) . '/seo/PerformanceModule.php';
+            $module = new \PerformanceModule();
+
+            $cacheSection = $module->getSectionData('cache');
+            $cacheCapacity = is_array($cacheSection['capacity'] ?? null) ? $cacheSection['capacity'] : [];
+            foreach ((array)($cacheCapacity['warnings'] ?? []) as $capacityWarning) {
+                if (!is_array($capacityWarning)) {
+                    continue;
+                }
+
+                $title = trim((string)($capacityWarning['title'] ?? 'Performance-Kapazität beobachten'));
+                $detail = trim((string)($capacityWarning['detail'] ?? ''));
+                if ($title === '' || $detail === '') {
+                    continue;
+                }
+
+                $warnings[] = $this->buildWarningCenterEntry(
+                    'performance.cache.' . $this->slugifyWarningCenterSegment($title),
+                    'performance',
+                    (($capacityWarning['level'] ?? 'warning') === 'danger') ? 'critical' : 'warning',
+                    $title,
+                    $detail,
+                    '/admin/performance-cache',
+                    'Performance-Cache öffnen'
+                );
+            }
+
+            $databaseSection = $module->getSectionData('database');
+            $database = is_array($databaseSection['database'] ?? null) ? $databaseSection['database'] : [];
+            $databaseOverhead = (int)($database['total_overhead_bytes'] ?? 0);
+            if ($databaseOverhead >= 20 * 1024 * 1024) {
+                $warnings[] = $this->buildWarningCenterEntry(
+                    'performance.database.overhead',
+                    'performance',
+                    $databaseOverhead >= 100 * 1024 * 1024 ? 'critical' : 'warning',
+                    'Datenbank-Overhead im Performance-Bereich',
+                    'Die Datenbank reserviert aktuell ' . $this->formatBytesLabel($databaseOverhead) . ' Overhead und sollte bereinigt werden.',
+                    '/admin/performance-database',
+                    'Performance-Datenbank öffnen'
+                );
+            }
+
+            $expiredSessions = (int)($database['expired_sessions'] ?? 0);
+            $expiredCacheEntries = (int)($database['expired_cache_entries'] ?? 0);
+            if ($expiredSessions > 0 || $expiredCacheEntries > 0) {
+                $warnings[] = $this->buildWarningCenterEntry(
+                    'performance.database.cleanup-backlog',
+                    'performance',
+                    ($expiredSessions >= 100 || $expiredCacheEntries >= 100) ? 'critical' : 'warning',
+                    'Bereinigungsrückstau in Performance-Daten',
+                    $expiredSessions . ' abgelaufene Sessions und ' . $expiredCacheEntries . ' Cache-Einträge warten auf Bereinigung.',
+                    '/admin/performance-database',
+                    'Performance-Datenbank öffnen'
+                );
+            }
+
+            $mediaSection = $module->getSectionData('media');
+            $media = is_array($mediaSection['media'] ?? null) ? $mediaSection['media'] : [];
+            $oversizedImages = (int)($media['oversized_images'] ?? 0);
+            if ($oversizedImages > 0) {
+                $warnings[] = $this->buildWarningCenterEntry(
+                    'performance.media.oversized-images',
+                    'performance',
+                    $oversizedImages >= 10 ? 'critical' : 'warning',
+                    'Überdimensionierte Medien gefunden',
+                    $oversizedImages . ' Bilddatei(en) überschreiten die Performance-Empfehlungen für Größe oder Auflösung.',
+                    '/admin/performance-media',
+                    'Performance-Medien öffnen'
+                );
+            }
+        } catch (\Throwable) {
+            return $warnings;
+        }
+
+        return $warnings;
+    }
+
+    /** @return list<array<string, mixed>> */
+    private function collectSecurityWarnings(): array
+    {
+        $warnings = [];
+
+        try {
+            require_once dirname(__DIR__) . '/security/SecurityAuditModule.php';
+            $module = new \SecurityAuditModule();
+            $data = $module->getData();
+            foreach ((array)($data['checks'] ?? []) as $check) {
+                if (!is_array($check) || ($check['status'] ?? 'ok') === 'ok') {
+                    continue;
+                }
+
+                $name = trim((string)($check['name'] ?? 'Security-Check'));
+                $detail = trim((string)($check['detail'] ?? ''));
+                if ($name === '' || $detail === '') {
+                    continue;
+                }
+
+                $warnings[] = $this->buildWarningCenterEntry(
+                    'security.audit.' . $this->slugifyWarningCenterSegment($name),
+                    'security',
+                    ($check['status'] ?? 'warning') === 'critical' ? 'critical' : 'warning',
+                    'Security-Audit: ' . $name,
+                    $detail,
+                    '/admin/security-audit',
+                    'Security-Audit öffnen'
+                );
+            }
+        } catch (\Throwable) {
+        }
+
+        $settings = $this->getMonitoringSettings();
+        $summary = SecurityAlertService::getInstance()->getAdminSummary();
+        $windowMinutes = (int)($summary['window_minutes'] ?? (int)($settings['security_alert_window_minutes'] ?? 60));
+        $snapshot = is_array($summary['snapshot'] ?? null) ? $summary['snapshot'] : [];
+        $dynamicAlertDefinitions = [
+            'bruteforce' => [
+                'threshold' => (int)($settings['security_alert_bruteforce_threshold'] ?? 15),
+                'count' => (int)($snapshot['bruteforce']['count'] ?? 0),
+                'severity' => 'critical',
+                'title' => 'Security-Alert: Login-Brute-Force-Schwelle überschritten',
+                'url' => '/admin/security-audit',
+                'label' => 'Security-Audit öffnen',
+            ],
+            'antispam' => [
+                'threshold' => (int)($settings['security_alert_antispam_threshold'] ?? 10),
+                'count' => (int)($snapshot['antispam']['count'] ?? 0),
+                'severity' => 'warning',
+                'title' => 'Security-Alert: AntiSpam-Spitze erkannt',
+                'url' => '/admin/security-audit',
+                'label' => 'Security-Audit öffnen',
+            ],
+            'firewall' => [
+                'threshold' => (int)($settings['security_alert_firewall_threshold'] ?? 10),
+                'count' => (int)($snapshot['firewall']['count'] ?? 0),
+                'severity' => 'warning',
+                'title' => 'Security-Alert: Firewall-Schwelle überschritten',
+                'url' => '/admin/firewall',
+                'label' => 'Firewall öffnen',
+            ],
+        ];
+
+        foreach ($dynamicAlertDefinitions as $type => $definition) {
+            if ((int)$definition['count'] < (int)$definition['threshold']) {
+                continue;
+            }
+
+            $details = [];
+            foreach (array_slice((array)($snapshot[$type]['samples'] ?? []), 0, 3) as $sample) {
+                if (!is_array($sample)) {
+                    continue;
+                }
+
+                $sampleParts = array_values(array_filter([
+                    trim((string)($sample['ip'] ?? '')),
+                    trim((string)($sample['path'] ?? '')),
+                    trim((string)($sample['last_event'] ?? '')),
+                ], static fn(string $value): bool => $value !== ''));
+                if ($sampleParts !== []) {
+                    $details[] = implode(' · ', $sampleParts);
+                }
+            }
+
+            $warnings[] = $this->buildWarningCenterEntry(
+                'security.alert.' . $type,
+                'security',
+                (string)$definition['severity'],
+                (string)$definition['title'],
+                (int)$definition['count'] . ' Ereignis(se) in den letzten ' . $windowMinutes . ' Minuten (Schwelle: ' . (int)$definition['threshold'] . ').',
+                (string)$definition['url'],
+                (string)$definition['label'],
+                $details
+            );
+        }
+
+        return $warnings;
+    }
+
+    /** @return list<array<string, mixed>> */
+    private function collectDiagnoseWarnings(): array
+    {
+        $warnings = [];
+        $health = $this->getHealthChecksData();
+
+        $healthActionMap = [
+            'Datenbank' => ['/admin/diagnose', 'Diagnose öffnen'],
+            'Cache-Verzeichnis' => ['/admin/monitor-assets', 'Assets öffnen'],
+            'Uploads-Verzeichnis' => ['/admin/monitor-assets', 'Assets öffnen'],
+            'Logs-Verzeichnis' => ['/admin/cms-logs', 'Logs öffnen'],
+            'Response Time' => ['/admin/monitor-response-time', 'Response-Time öffnen'],
+            'Disk-Auslastung' => ['/admin/monitor-disk-usage', 'Disk-Usage öffnen'],
+            'Health-Endpunkt' => ['/admin/monitor-health-check', 'Health-Check öffnen'],
+        ];
+        $criticalHealthLabels = ['Datenbank', 'Cache-Verzeichnis', 'Uploads-Verzeichnis', 'Logs-Verzeichnis'];
+
+        foreach ((array)($health['checks'] ?? []) as $check) {
+            if (!is_array($check) || !empty($check['passed'])) {
+                continue;
+            }
+
+            $label = trim((string)($check['label'] ?? 'Diagnose-Check'));
+            $detail = trim((string)($check['detail'] ?? ''));
+            if ($label === '' || $detail === '') {
+                continue;
+            }
+
+            [$actionUrl, $actionLabel] = $healthActionMap[$label] ?? ['/admin/monitor-health-check', 'Health-Check öffnen'];
+            $warnings[] = $this->buildWarningCenterEntry(
+                'diagnose.health.' . $this->slugifyWarningCenterSegment($label),
+                'diagnose',
+                in_array($label, $criticalHealthLabels, true) ? 'critical' : 'warning',
+                'Diagnose-Check: ' . $label,
+                $detail,
+                $actionUrl,
+                $actionLabel
+            );
+        }
+
+        $errorReports = ErrorReportService::getInstance()->getRecentReports(15);
+        if (count($errorReports) > 0) {
+            $details = [];
+            foreach (array_slice($errorReports, 0, 3) as $report) {
+                if (!is_array($report)) {
+                    continue;
+                }
+
+                $title = trim((string)($report['title'] ?? 'Fehlerreport'));
+                $createdAt = trim((string)($report['created_at'] ?? ''));
+                $details[] = trim($title . ($createdAt !== '' ? ' · ' . $createdAt : ''));
+            }
+
+            $warnings[] = $this->buildWarningCenterEntry(
+                'diagnose.error-reports',
+                'diagnose',
+                count($errorReports) >= 3 ? 'critical' : 'warning',
+                'Offene Diagnose-Fehlerreports vorhanden',
+                count($errorReports) . ' Fehlerreport(s) wurden zuletzt im Diagnosebereich protokolliert.',
+                '/admin/diagnose',
+                'Diagnose öffnen',
+                $details
+            );
+        }
+
+        return $warnings;
+    }
+
+    /** @return list<array<string, mixed>> */
+    private function collectUpdateWarnings(): array
+    {
+        $warnings = [];
+
+        try {
+            require_once __DIR__ . '/UpdatesModule.php';
+            $module = new UpdatesModule();
+            $data = $module->getData();
+            $core = is_array($data['core'] ?? null) ? $data['core'] : [];
+            $plugins = is_array($data['plugins'] ?? null) ? $data['plugins'] : [];
+            $theme = is_array($data['theme'] ?? null) ? $data['theme'] : [];
+            $preflight = is_array($data['preflight'] ?? null) ? $data['preflight'] : [];
+
+            $pluginUpdateCount = count(array_filter($plugins, static fn(array $plugin): bool => !empty($plugin['new_version'])));
+            $updateParts = [];
+            if (!empty($core['update_available'])) {
+                $updateParts[] = 'Core ' . (string)($core['latest_version'] ?? 'Update');
+            }
+            if ($pluginUpdateCount > 0) {
+                $updateParts[] = $pluginUpdateCount . ' Plugin-Update(s)';
+            }
+            if (!empty($theme['update_available'])) {
+                $updateParts[] = 'Theme ' . (string)($theme['latest_version'] ?? 'Update');
+            }
+
+            if ($updateParts !== []) {
+                $warnings[] = $this->buildWarningCenterEntry(
+                    'updates.available',
+                    'updates',
+                    'warning',
+                    'Updates verfügbar',
+                    implode(' · ', $updateParts),
+                    '/admin/updates',
+                    'Updates öffnen'
+                );
+            }
+
+            $globalPreflight = is_array($preflight['global'] ?? null) ? $preflight['global'] : [];
+            foreach ((array)($globalPreflight['checks'] ?? []) as $check) {
+                if (!is_array($check) || ($check['status'] ?? 'ok') === 'ok') {
+                    continue;
+                }
+
+                $label = trim((string)($check['label'] ?? 'Vorabprüfung'));
+                $warnings[] = $this->buildWarningCenterEntry(
+                    'updates.preflight.global.' . $this->slugifyWarningCenterSegment($label),
+                    'updates',
+                    ($check['status'] ?? 'warning') === 'blocked' ? 'critical' : 'warning',
+                    'Update-Vorabprüfung: ' . $label,
+                    $this->buildUpdatePreflightDetail($check),
+                    '/admin/updates',
+                    'Updates öffnen'
+                );
+            }
+
+            $corePreflight = is_array($preflight['core'] ?? null) ? $preflight['core'] : [];
+            if (!empty($core['update_available']) && empty($corePreflight['ready']) && !empty($corePreflight['blocking_messages'])) {
+                $warnings[] = $this->buildWarningCenterEntry(
+                    'updates.preflight.core-blocked',
+                    'updates',
+                    'critical',
+                    'Core-Update wird durch die Vorabprüfung blockiert',
+                    implode(' | ', array_map('strval', array_slice((array)$corePreflight['blocking_messages'], 0, 3))),
+                    '/admin/updates',
+                    'Updates öffnen',
+                    array_slice(array_map('strval', (array)$corePreflight['blocking_messages']), 0, 5)
+                );
+            }
+
+            $themePreflight = is_array($preflight['theme'] ?? null) ? $preflight['theme'] : [];
+            if (!empty($theme['update_available']) && empty($themePreflight['ready']) && !empty($themePreflight['blocking_messages'])) {
+                $warnings[] = $this->buildWarningCenterEntry(
+                    'updates.preflight.theme-blocked',
+                    'updates',
+                    'warning',
+                    'Theme-Update wird durch die Vorabprüfung blockiert',
+                    implode(' | ', array_map('strval', array_slice((array)$themePreflight['blocking_messages'], 0, 3))),
+                    '/admin/updates',
+                    'Updates öffnen',
+                    array_slice(array_map('strval', (array)$themePreflight['blocking_messages']), 0, 5)
+                );
+            }
+
+            $blockedPlugins = [];
+            foreach ($plugins as $slug => $plugin) {
+                if (empty($plugin['new_version'])) {
+                    continue;
+                }
+
+                $pluginPreflight = is_array($preflight['plugins'][$slug] ?? null) ? $preflight['plugins'][$slug] : [];
+                if (!empty($pluginPreflight['ready']) || empty($pluginPreflight['blocking_messages'])) {
+                    continue;
+                }
+
+                $blockedPlugins[] = (string)$slug . ': ' . implode(' | ', array_map('strval', array_slice((array)$pluginPreflight['blocking_messages'], 0, 2)));
+            }
+
+            if ($blockedPlugins !== []) {
+                $warnings[] = $this->buildWarningCenterEntry(
+                    'updates.preflight.plugins-blocked',
+                    'updates',
+                    count($blockedPlugins) >= 3 ? 'critical' : 'warning',
+                    'Plugin-Updates werden durch die Vorabprüfung blockiert',
+                    count($blockedPlugins) . ' Plugin-Update(s) sind derzeit nicht installierbar.',
+                    '/admin/updates',
+                    'Updates öffnen',
+                    array_slice($blockedPlugins, 0, 5)
+                );
+            }
+        } catch (\Throwable) {
+            return $warnings;
+        }
+
+        return $warnings;
+    }
+
+    /** @return list<array<string, mixed>> */
+    private function collectLegalWarnings(): array
+    {
+        $warnings = [];
+
+        try {
+            require_once dirname(__DIR__) . '/legal/PrivacyRequestsModule.php';
+            $privacyModule = new \PrivacyRequestsModule();
+            $privacyData = $privacyModule->getData();
+            $privacyStats = is_array($privacyData['stats'] ?? null) ? $privacyData['stats'] : [];
+
+            $privacyOverdue = (int)($privacyStats['overdue'] ?? 0);
+            if ($privacyOverdue > 0) {
+                $warnings[] = $this->buildWarningCenterEntry(
+                    'legal.privacy.overdue',
+                    'legal',
+                    'critical',
+                    'DSGVO-Auskunftsanfragen sind überfällig',
+                    $privacyOverdue . ' Anfrage(n) haben die gesetzliche Frist überschritten.',
+                    '/admin/data-requests',
+                    'Datenanfragen öffnen'
+                );
+            }
+
+            $privacyDueSoon = (int)($privacyStats['due_soon'] ?? 0);
+            if ($privacyDueSoon > 0) {
+                $warnings[] = $this->buildWarningCenterEntry(
+                    'legal.privacy.due-soon',
+                    'legal',
+                    'warning',
+                    'DSGVO-Auskunftsanfragen bald fällig',
+                    $privacyDueSoon . ' Anfrage(n) erreichen bald die gesetzliche Frist.',
+                    '/admin/data-requests',
+                    'Datenanfragen öffnen'
+                );
+            }
+        } catch (\Throwable) {
+        }
+
+        try {
+            require_once dirname(__DIR__) . '/legal/DeletionRequestsModule.php';
+            $deletionModule = new \DeletionRequestsModule();
+            $deletionData = $deletionModule->getData();
+            $deletionStats = is_array($deletionData['stats'] ?? null) ? $deletionData['stats'] : [];
+
+            $deletionOverdue = (int)($deletionStats['overdue'] ?? 0);
+            if ($deletionOverdue > 0) {
+                $warnings[] = $this->buildWarningCenterEntry(
+                    'legal.deletion.overdue',
+                    'legal',
+                    'critical',
+                    'DSGVO-Löschanträge sind überfällig',
+                    $deletionOverdue . ' Antrag/Anträge haben die gesetzliche Frist überschritten.',
+                    '/admin/data-requests',
+                    'Datenanfragen öffnen'
+                );
+            }
+
+            $deletionDueSoon = (int)($deletionStats['due_soon'] ?? 0);
+            if ($deletionDueSoon > 0) {
+                $warnings[] = $this->buildWarningCenterEntry(
+                    'legal.deletion.due-soon',
+                    'legal',
+                    'warning',
+                    'DSGVO-Löschanträge bald fällig',
+                    $deletionDueSoon . ' Antrag/Anträge erreichen bald die gesetzliche Frist.',
+                    '/admin/data-requests',
+                    'Datenanfragen öffnen'
+                );
+            }
+        } catch (\Throwable) {
+        }
+
+        return $warnings;
+    }
+
+    /** @param array<string, array<string, mixed>> $warnings */
+    private function pushWarningCenterEntry(array &$warnings, array $warning): void
+    {
+        $warningId = $this->normalizeWarningCenterId($warning['id'] ?? '');
+        if ($warningId === '') {
+            return;
+        }
+
+        if (!isset($warnings[$warningId])) {
+            $warnings[$warningId] = $warning;
+            return;
+        }
+
+        $existingSeverityWeight = $this->getWarningCenterSeverityWeight((string)($warnings[$warningId]['severity'] ?? 'warning'));
+        $incomingSeverityWeight = $this->getWarningCenterSeverityWeight((string)($warning['severity'] ?? 'warning'));
+        if ($incomingSeverityWeight > $existingSeverityWeight) {
+            $warnings[$warningId] = array_merge($warnings[$warningId], $warning);
+        } else {
+            $warnings[$warningId]['details'] = array_values(array_unique(array_merge(
+                is_array($warnings[$warningId]['details'] ?? null) ? $warnings[$warningId]['details'] : [],
+                is_array($warning['details'] ?? null) ? $warning['details'] : []
+            )));
+        }
+    }
+
+    /** @return array<string, mixed> */
+    private function buildWarningCenterEntry(
+        string $id,
+        string $source,
+        string $severity,
+        string $title,
+        string $detail,
+        string $actionUrl,
+        string $actionLabel,
+        array $details = []
+    ): array {
+        $severity = $severity === 'critical' ? 'critical' : 'warning';
+
+        return [
+            'id' => $this->normalizeWarningCenterId($id),
+            'source' => $source,
+            'source_label' => $this->getWarningCenterSourceLabel($source),
+            'severity' => $severity,
+            'severity_label' => $severity === 'critical' ? 'Kritisch' : 'Warnung',
+            'title' => trim($title),
+            'detail' => trim($detail),
+            'action_url' => trim($actionUrl),
+            'action_label' => trim($actionLabel),
+            'details' => array_values(array_filter(array_map(static fn(mixed $value): string => trim((string)$value), $details), static fn(string $value): bool => $value !== '')),
+        ];
+    }
+
+    /** @return array<string, array<string, mixed>> */
+    private function loadWarningCenterStates(): array
+    {
+        try {
+            $states = SettingsService::getInstance()->get(self::WARNING_CENTER_SETTINGS_GROUP, self::WARNING_CENTER_SETTINGS_KEY, []);
+        } catch (\Throwable) {
+            return [];
+        }
+
+        if (!is_array($states)) {
+            return [];
+        }
+
+        $normalized = [];
+        foreach ($states as $warningId => $state) {
+            if (!is_array($state)) {
+                continue;
+            }
+
+            $normalizedId = $this->normalizeWarningCenterId($warningId);
+            $mode = (string)($state['mode'] ?? '');
+            if ($normalizedId === '' || !in_array($mode, ['ignored', 'snoozed'], true)) {
+                continue;
+            }
+
+            $until = trim((string)($state['until'] ?? ''));
+            if ($mode === 'snoozed' && strtotime($until) === false) {
+                continue;
+            }
+
+            $normalized[$normalizedId] = [
+                'mode' => $mode,
+                'reason' => $this->sanitizeWarningCenterReason($state['reason'] ?? ''),
+                'until' => $until !== '' ? date(DATE_ATOM, (int)strtotime($until)) : null,
+                'updated_at' => trim((string)($state['updated_at'] ?? '')),
+                'updated_by' => isset($state['updated_by']) ? (int)$state['updated_by'] : 0,
+            ];
+        }
+
+        return $normalized;
+    }
+
+    /** @param array<string, array<string, mixed>> $states */
+    private function storeWarningCenterStates(array $states): bool
+    {
+        try {
+            return SettingsService::getInstance()->set(
+                self::WARNING_CENTER_SETTINGS_GROUP,
+                self::WARNING_CENTER_SETTINGS_KEY,
+                $states,
+                false,
+                0
+            );
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    /** @param array<string, array<string, mixed>> $states @param list<string> $warningIds @return array<string, array<string, mixed>> */
+    private function pruneWarningCenterStates(array $states, array $warningIds): array
+    {
+        $allowed = array_fill_keys($warningIds, true);
+
+        return array_filter(
+            $states,
+            static fn(string $warningId): bool => isset($allowed[$warningId]),
+            ARRAY_FILTER_USE_KEY
+        );
+    }
+
+    /** @return array<string, mixed> */
+    private function resolveWarningCenterSuppression(?array $state): array
+    {
+        if (!is_array($state)) {
+            return [
+                'suppressed' => false,
+                'mode' => 'active',
+                'label' => '',
+                'reason' => '',
+                'until' => null,
+                'until_label' => '',
+                'updated_at' => '',
+                'updated_by' => 0,
+            ];
+        }
+
+        $mode = (string)($state['mode'] ?? 'active');
+        $reason = $this->sanitizeWarningCenterReason($state['reason'] ?? '');
+        $until = trim((string)($state['until'] ?? ''));
+        $updatedAt = trim((string)($state['updated_at'] ?? ''));
+        $updatedBy = (int)($state['updated_by'] ?? 0);
+
+        if ($mode === 'ignored') {
+            return [
+                'suppressed' => true,
+                'mode' => 'ignored',
+                'label' => 'Ignoriert',
+                'reason' => $reason,
+                'until' => null,
+                'until_label' => '',
+                'updated_at' => $updatedAt,
+                'updated_by' => $updatedBy,
+            ];
+        }
+
+        $untilTimestamp = strtotime($until);
+        if ($mode === 'snoozed' && $untilTimestamp !== false && $untilTimestamp > time()) {
+            return [
+                'suppressed' => true,
+                'mode' => 'snoozed',
+                'label' => 'Erinnere später',
+                'reason' => $reason,
+                'until' => date('Y-m-d H:i:s', $untilTimestamp),
+                'until_label' => date('d.m.Y H:i', $untilTimestamp),
+                'updated_at' => $updatedAt,
+                'updated_by' => $updatedBy,
+            ];
+        }
+
+        return [
+            'suppressed' => false,
+            'mode' => 'active',
+            'label' => '',
+            'reason' => '',
+            'until' => null,
+            'until_label' => '',
+            'updated_at' => $updatedAt,
+            'updated_by' => $updatedBy,
+        ];
+    }
+
+    private function compareWarningCenterEntries(array $left, array $right): int
+    {
+        $severityCompare = $this->getWarningCenterSeverityWeight((string)($right['severity'] ?? 'warning'))
+            <=> $this->getWarningCenterSeverityWeight((string)($left['severity'] ?? 'warning'));
+        if ($severityCompare !== 0) {
+            return $severityCompare;
+        }
+
+        $sourceCompare = strcmp((string)($left['source_label'] ?? ''), (string)($right['source_label'] ?? ''));
+        if ($sourceCompare !== 0) {
+            return $sourceCompare;
+        }
+
+        return strcmp((string)($left['title'] ?? ''), (string)($right['title'] ?? ''));
+    }
+
+    private function compareSuppressedWarningCenterEntries(array $left, array $right): int
+    {
+        $leftUntil = strtotime((string)($left['suppression']['until'] ?? '')) ?: 0;
+        $rightUntil = strtotime((string)($right['suppression']['until'] ?? '')) ?: 0;
+        $untilCompare = $leftUntil <=> $rightUntil;
+        if ($untilCompare !== 0) {
+            return $untilCompare;
+        }
+
+        $leftUpdated = strtotime((string)($left['suppression']['updated_at'] ?? '')) ?: 0;
+        $rightUpdated = strtotime((string)($right['suppression']['updated_at'] ?? '')) ?: 0;
+        $updatedCompare = $rightUpdated <=> $leftUpdated;
+        if ($updatedCompare !== 0) {
+            return $updatedCompare;
+        }
+
+        return strcmp((string)($left['title'] ?? ''), (string)($right['title'] ?? ''));
+    }
+
+    private function getWarningCenterSeverityWeight(string $severity): int
+    {
+        return $severity === 'critical' ? 2 : 1;
+    }
+
+    private function getWarningCenterSourceLabel(string $source): string
+    {
+        return match ($source) {
+            'performance' => 'Performance',
+            'security' => 'Security',
+            'diagnose' => 'Diagnose',
+            'updates' => 'Updates',
+            'legal' => 'Recht',
+            default => 'System',
+        };
+    }
+
+    private function buildUpdatePreflightDetail(array $check): string
+    {
+        $segments = [];
+        $current = trim((string)($check['current'] ?? ''));
+        $required = trim((string)($check['required'] ?? ''));
+        $instruction = trim((string)($check['instruction'] ?? ''));
+
+        if ($current !== '') {
+            $segments[] = 'Aktuell: ' . $current;
+        }
+        if ($required !== '') {
+            $segments[] = 'Erwartet: ' . $required;
+        }
+        if ($instruction !== '') {
+            $segments[] = $instruction;
+        }
+
+        return implode(' · ', $segments);
+    }
+
+    private function normalizeWarningCenterId(mixed $value): string
+    {
+        $id = strtolower(trim((string)$value));
+        $id = preg_replace('/[^a-z0-9._-]+/', '-', $id) ?? '';
+        $id = trim($id, '-');
+
+        return $id;
+    }
+
+    private function slugifyWarningCenterSegment(string $value): string
+    {
+        $normalized = strtolower(trim($value));
+        $normalized = preg_replace('/[^a-z0-9]+/', '-', $normalized) ?? '';
+        $normalized = trim($normalized, '-');
+
+        return $normalized !== '' ? $normalized : 'warning';
+    }
+
+    private function sanitizeWarningCenterReason(mixed $value): string
+    {
+        $reason = preg_replace('/[\x00-\x1F\x7F]+/u', ' ', trim(strip_tags((string)$value))) ?? '';
+
+        return function_exists('mb_substr')
+            ? mb_substr($reason, 0, self::WARNING_CENTER_MAX_REASON_LENGTH)
+            : substr($reason, 0, self::WARNING_CENTER_MAX_REASON_LENGTH);
+    }
+
+    private function getWarningCenterActorId(): int
+    {
+        try {
+            $user = \CMS\Auth::instance()->currentUser();
+
+            return (int)($user->id ?? $_SESSION['user_id'] ?? 0);
+        } catch (\Throwable) {
+            return (int)($_SESSION['user_id'] ?? 0);
+        }
     }
 
     private function getMonitoringOverview(): array

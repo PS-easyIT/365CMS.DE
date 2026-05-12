@@ -1,5 +1,5 @@
 # 365CMS – Diagnose & Monitoring
-> **Stand:** 2026-05-12 | **Version:** 2.9.773 | **Status:** Aktuell
+> **Stand:** 2026-05-12 | **Version:** 2.9.775 | **Status:** Aktuell
 
 <!-- UPDATED: 2026-05-12 -->
 
@@ -16,6 +16,7 @@ Die Monitor-Seiten folgen dem üblichen Admin-Flow mit geschütztem Zugriff und 
 | Cron-Status | Überwachung geplanter Aufgaben und Laufzeiten |
 | Disk Usage | Speicherverbrauch nach Verzeichnissen und Medien |
 | Health-Checks | Automatisierte Prüfungen kritischer Systemkomponenten inklusive realem lokalem Health-Endpunkt-Check |
+| Warnzentrale | Gemeinsame Sammelansicht aktiver Warnungen aus Performance, Security, Diagnose, Updates und Recht mit Direktlink, Ignore-Begründung und Wiedervorlage |
 | Security-Alerts | Schwellenwert-Mails für Login-Brute-Force, AntiSpam-Spitzen und Firewall-Blocks über die bestehende Mail-Queue |
 | Monitoring-Trendhistorie | Read-only Verlauf für Response-Time, Disk-Auslastung und Cron-Lag über 24 h, 7 d und 30 d |
 | Logs & Protokolle | CMS-Dateilogs, PHP Error-Log, operatives Audit für System/Backups/Performance sowie Update-Historie mit sprechender Benutzeranzeige |
@@ -33,6 +34,15 @@ Seit `2.9.773` ergänzen die drei dedizierten Monitoring-Seiten für Response-Ti
 - Sicherheitsvertrag: keine neue GET-Mutation, keine Token-URL, fail-soft bei fehlenden Snapshots
 
 Die aktuelle Kennzahl bleibt auf jeder Seite zusätzlich live sichtbar. Die Historie ergänzt also die Sofortdiagnose, ersetzt sie aber nicht.
+
+## Warnzentrale
+
+Seit `2.9.775` ergänzt `/admin/monitor-warnings` den Diagnosebereich um eine zentrale Sammelansicht aktiver Systemwarnungen.
+
+- Quellen: bestehende Module und Services aus `Performance`, `Security`, `Diagnose`, `Updates` und `Recht`
+- Aktionen: pro Warnung ein direkter Link zum zuständigen Adminbereich sowie POST-/CSRF-geschütztes `Ignorieren` mit Begründung oder `Später erinnern`
+- Persistenz: serverseitig in `SettingsService` unter einer kleinen JSON-Struktur für unterdrückte Warnungen
+- Sicherheitsvertrag: keine GET-Mutation, keine Token-URL, fail-soft bei temporär unlesbaren Teilquellen
 
 ## Benötigte Rechte
 

@@ -43,6 +43,7 @@ foreach ($tables as $tableInfo) {
                 <div class="text-secondary mt-1">Wartungsaktionen, Tabellenprüfung und technische Datenbank-/Runtime-Diagnose für das System.</div>
             </div>
             <div class="col-auto d-flex gap-2 flex-wrap">
+                <a href="<?php echo htmlspecialchars('/admin/monitor-warnings', ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-warning">Warnzentrale</a>
                 <form method="post" class="d-inline">
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>">
                     <input type="hidden" name="action" value="clear_cache">

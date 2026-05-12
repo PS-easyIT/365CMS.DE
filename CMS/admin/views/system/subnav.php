@@ -16,6 +16,7 @@ $sectionNavGroups = [
         'items' => [
             ['slug' => 'info', 'label' => 'Übersicht', 'url' => '/admin/info'],
             ['slug' => 'diagnose', 'label' => 'Datenbank', 'url' => '/admin/diagnose'],
+            ['slug' => 'monitor-warnings', 'label' => 'Warnzentrale', 'url' => '/admin/monitor-warnings'],
             ['slug' => 'monitor-assets', 'label' => 'Assets', 'url' => '/admin/monitor-assets'],
             ['slug' => 'monitor-response-time', 'label' => 'Response-Time', 'url' => '/admin/monitor-response-time'],
             ['slug' => 'monitor-cron-status', 'label' => 'Cron-Status', 'url' => '/admin/monitor-cron-status'],

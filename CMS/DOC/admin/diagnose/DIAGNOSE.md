@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Dokumentiert die Diagnose-Oberflächen, Monitoring-Werkzeuge und die zentrale Logzentrale für den laufenden Betrieb von 365CMS.
 
-Letzte Aktualisierung: 2026-05-12 · Version 2.9.773
+Letzte Aktualisierung: 2026-05-12 · Version 2.9.775
 
 ---
 
@@ -25,6 +25,7 @@ Der Diagnosebereich umfasst eine zentrale Einstiegsseite, mehrere spezialisierte
 | Route | View | Zweck |
 |---|---|---|
 | `/admin/diagnose` | `views/system/diagnose.php` | Datenbank-Diagnose, Tabellenprüfung |
+| `/admin/monitor-warnings` | `views/system/warnings.php` | Zentrale Sammelansicht aktiver Warnungen mit Ignore-/Wiedervorlage-Status |
 | `/admin/monitor-response-time` | `views/system/response-time.php` | Antwortzeiten-Monitoring |
 | `/admin/monitor-cron-status` | `views/system/cron-status.php` | Cron-Job-Übersicht und -Status |
 | `/admin/monitor-disk-usage` | `views/system/disk-usage.php` | Speicher- und Verzeichnisnutzung |
@@ -46,6 +47,18 @@ Die Einstiegsseite `/admin/diagnose` fokussiert sich auf die Prüfung der Datenb
 ---
 
 ## Monitoring-Werkzeuge
+
+### Warnzentrale
+
+`/admin/monitor-warnings` bündelt aktive Hinweise aus den bereits vorhandenen Modulen für Performance, Security, Diagnose, Updates und Recht. Die Seite selbst bleibt read-only im GET-Pfad; sie liest ausschließlich bestehende Datenquellen zusammen und erzeugt keine neuen Scan- oder Schreibpfade beim bloßen Öffnen.
+
+Pro Warnung gibt es:
+
+- einen direkten Link in den zuständigen Adminbereich (`Lösen / öffnen`)
+- eine POST-/CSRF-geschützte Ignore-Aktion mit Begründung
+- eine POST-/CSRF-geschützte Wiedervorlage (`Später erinnern`)
+
+Die Unterdrückungszustände werden serverseitig klein in `SettingsService` gespeichert und nur für aktuell bekannte Warn-IDs berücksichtigt. Fallen Teilquellen aus oder sind einzelne Module temporär nicht lesbar, arbeitet die Warnzentrale fail-soft weiter und blendet nur die restlichen Quellen ein.
 
 ### Response-Time Monitoring
 
@@ -110,6 +123,7 @@ Alle Diagnoseseiten folgen dem Admin-Standardmuster:
 - Zugriff nur für Administratoren
 - CSRF-Prüfung via `Security::instance()->verifyToken(..., 'admin_system_info')`
 - POST-Ergebnis als Session-Alert, Redirect auf GET-Route
+- Unterdrückte Warnungen werden ausschließlich per POST gespeichert; Links zum eigentlichen Lösungsbereich bleiben tokenfrei und rein navigierend
 
 Ausnahme: Der Diagnosebericht-Export streamt nach erfolgreicher CSRF-Prüfung direkt den ZIP-Download zurück, ohne eine neue GET-Download-Route oder Token-URL einzuführen.
 
