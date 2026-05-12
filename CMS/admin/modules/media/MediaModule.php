@@ -445,6 +445,7 @@ class MediaModule
         $highlightPath = $this->normalizeRelativePath((string) ($_GET['highlight'] ?? ''));
         $highlightActive = ((string) ($_GET['replaced'] ?? '') === '1') && $highlightPath !== '';
         $featuredUsageMap = $this->usageService->buildFeaturedImageMap();
+        $consistencyData = $this->buildFeaturedConsistencyData($search, $usageScope, $featuredUsageMap);
         $items = [];
         $totalReferences = 0;
         $postReferences = 0;
@@ -531,6 +532,154 @@ class MediaModule
             'help_text' => 'Hier sehen Sie ausschließlich die Bilder, die aktuell als Beitragsbild oder Seitenbild verwendet werden. Beim Ersetzen bleibt die gleiche Medien-Referenz bestehen – alle verknüpften Beiträge und Seiten ziehen also automatisch das neue Bild.',
             'highlight_path' => $highlightPath,
             'highlight_active' => $highlightActive,
+            'consistency' => $consistencyData,
+        ];
+    }
+
+    /**
+     * @param array<string, list<array<string, mixed>>> $featuredUsageMap
+     * @return array<string, mixed>
+     */
+    private function buildFeaturedConsistencyData(string $search, string $usageScope, array $featuredUsageMap): array
+    {
+        $items = [];
+        $missingAssignments = 0;
+        $brokenReferences = 0;
+        $pathExistsCache = [];
+
+        foreach ($this->usageService->buildFeaturedImageContentList() as $contentItem) {
+            if (!$this->featuredConsistencyMatchesScope($contentItem, $usageScope)) {
+                continue;
+            }
+
+            $rawReference = trim((string) ($contentItem['featured_image'] ?? ''));
+            $normalizedPath = $this->normalizeRelativePath((string) ($contentItem['featured_image_path'] ?? ''));
+            $hasFeaturedImage = !empty($contentItem['has_featured_image']);
+
+            $status = '';
+            $statusLabel = '';
+            $statusClass = '';
+            $statusTextClass = '';
+            $referenceDisplay = '';
+            $recommendation = '';
+            $primaryActionLabel = '';
+            $replaceUrl = '';
+            $replaceLabel = '';
+            $sharedUsageCount = 0;
+
+            if (!$hasFeaturedImage) {
+                $status = 'missing';
+                $statusLabel = 'Kein Bild hinterlegt';
+                $statusClass = 'bg-warning-lt';
+                $statusTextClass = 'text-warning';
+                $referenceDisplay = 'Keine Referenz gespeichert';
+                $recommendation = 'Öffnen Sie den Editor und wählen Sie über den bestehenden Featured-Image-Picker ein Bild direkt aus der Medienbibliothek aus.';
+                $primaryActionLabel = 'Im Editor auswählen';
+            } else {
+                $pathExists = false;
+
+                if ($normalizedPath !== '') {
+                    if (!array_key_exists($normalizedPath, $pathExistsCache)) {
+                        $pathExistsCache[$normalizedPath] = $this->service->pathExists($normalizedPath);
+                    }
+
+                    $pathExists = (bool) $pathExistsCache[$normalizedPath];
+                }
+
+                if ($normalizedPath === '' || !$pathExists) {
+                    $status = 'broken';
+                    $statusLabel = 'Defekte Referenz';
+                    $statusClass = 'bg-danger-lt';
+                    $statusTextClass = 'text-danger';
+                    $referenceDisplay = $normalizedPath !== '' ? $normalizedPath : $rawReference;
+                    $primaryActionLabel = 'Im Editor neu wählen';
+
+                    $sharedUsageItems = $normalizedPath !== ''
+                        ? $this->filterFeaturedUsageItemsByScope($featuredUsageMap[$normalizedPath] ?? [], $usageScope)
+                        : [];
+                    $sharedUsageCount = count($sharedUsageItems);
+
+                    $recommendation = $sharedUsageCount > 1
+                        ? 'Die defekte Referenz wird von ' . $sharedUsageCount . ' Inhalten geteilt. Sie können sie zentral im Featured-Medien-Tab ersetzen oder pro Inhalt im Editor neu auswählen.'
+                        : 'Öffnen Sie den Editor und wählen Sie über den bestehenden Featured-Image-Picker ein neues Bild aus der Medienbibliothek. Bei identischer Referenz können Sie die Datei auch zentral im Featured-Medien-Tab ersetzen.';
+
+                    if ($normalizedPath !== '' && isset($featuredUsageMap[$normalizedPath])) {
+                        $replaceQuery = http_build_query([
+                            'tab' => 'featured',
+                            'q' => $normalizedPath,
+                            'usage_scope' => $usageScope,
+                        ]);
+                        $replaceUrl = '/admin/media?' . $replaceQuery . '#featured-replacements';
+                        $replaceLabel = 'Zentral ersetzen';
+                    }
+                }
+            }
+
+            if ($status === '') {
+                continue;
+            }
+
+            if ($search !== '' && !$this->featuredConsistencyMatchesSearch($contentItem, $statusLabel, $referenceDisplay, $search)) {
+                continue;
+            }
+
+            if ($status === 'missing') {
+                $missingAssignments++;
+            } elseif ($status === 'broken') {
+                $brokenReferences++;
+            }
+
+            $items[] = [
+                'content_type' => (string) ($contentItem['content_type'] ?? ''),
+                'content_type_label' => (string) ($contentItem['content_type_label'] ?? 'Inhalt'),
+                'title' => (string) ($contentItem['title'] ?? 'Ohne Titel'),
+                'edit_url' => (string) ($contentItem['edit_url'] ?? '#'),
+                'status' => $status,
+                'status_label' => $statusLabel,
+                'status_class' => $statusClass,
+                'status_text_class' => $statusTextClass,
+                'reference_display' => $referenceDisplay,
+                'recommendation' => $recommendation,
+                'primary_action_label' => $primaryActionLabel,
+                'replace_url' => $replaceUrl,
+                'replace_label' => $replaceLabel,
+                'shared_usage_count' => $sharedUsageCount,
+            ];
+        }
+
+        usort($items, static function (array $left, array $right): int {
+            $statusRank = ['broken' => 0, 'missing' => 1];
+            $leftRank = $statusRank[(string) ($left['status'] ?? '')] ?? 99;
+            $rightRank = $statusRank[(string) ($right['status'] ?? '')] ?? 99;
+
+            if ($leftRank !== $rightRank) {
+                return $leftRank <=> $rightRank;
+            }
+
+            $typeCompare = strcasecmp((string) ($left['content_type_label'] ?? ''), (string) ($right['content_type_label'] ?? ''));
+            if ($typeCompare !== 0) {
+                return $typeCompare;
+            }
+
+            return strcasecmp((string) ($left['title'] ?? ''), (string) ($right['title'] ?? ''));
+        });
+
+        return [
+            'items' => $items,
+            'stats' => [
+                'issue_count' => count($items),
+                'missing_assignment_count' => $missingAssignments,
+                'broken_reference_count' => $brokenReferences,
+            ],
+            'empty_state' => [
+                'title' => $search !== ''
+                    ? 'Keine offenen Featured-Image-Probleme zum Filter gefunden'
+                    : 'Keine offenen Featured-Image-Probleme gefunden',
+                'subtitle' => $search !== ''
+                    ? 'Bitte Suchbegriff anpassen oder zurücksetzen.'
+                    : 'Alle aktuell gefilterten Beiträge und Seiten besitzen eine funktionierende Featured-Image-Referenz.',
+            ],
+            'help_text' => 'Die Liste bleibt read-only: Sie zeigt Inhalte ohne Bild oder mit defekter Referenz und führt direkt in den bestehenden Editor-Pfad mit Medienbibliothek bzw. in den zentralen Ersetzen-Flow.',
         ];
     }
 
@@ -3447,6 +3596,46 @@ class MediaModule
             $haystacks[] = strtolower((string) ($usageItem['content_type_label'] ?? ''));
             $haystacks[] = strtolower((string) ($usageItem['field_label'] ?? ''));
         }
+
+        foreach ($haystacks as $haystack) {
+            if ($haystack !== '' && str_contains($haystack, $needle)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param array<string, mixed> $contentItem
+     */
+    private function featuredConsistencyMatchesScope(array $contentItem, string $usageScope): bool
+    {
+        if ($usageScope === 'all') {
+            return true;
+        }
+
+        $targetType = $usageScope === 'posts' ? 'post' : 'page';
+
+        return (string) ($contentItem['content_type'] ?? '') === $targetType;
+    }
+
+    /**
+     * @param array<string, mixed> $contentItem
+     */
+    private function featuredConsistencyMatchesSearch(array $contentItem, string $statusLabel, string $referenceDisplay, string $search): bool
+    {
+        $needle = strtolower(trim($search));
+        if ($needle === '') {
+            return true;
+        }
+
+        $haystacks = [
+            strtolower((string) ($contentItem['title'] ?? '')),
+            strtolower((string) ($contentItem['content_type_label'] ?? '')),
+            strtolower($statusLabel),
+            strtolower($referenceDisplay),
+        ];
 
         foreach ($haystacks as $haystack) {
             if ($haystack !== '' && str_contains($haystack, $needle)) {

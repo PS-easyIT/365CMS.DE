@@ -144,15 +144,21 @@ Nachprüfung 2.9.765: Die Nice-to-haves ab 2.9.725 wurden erneut automatisiert i
 
 ## 8. Cross-Bereich · Inhalte ↔ Medien ↔ SEO
 
-- [ ] **Featured-Image-Konsistenz prüfen**
-  - [ ] Read-only Liste der Inhalte mit fehlendem oder gebrochenem Featured Image
-  - [ ] Vorschlag zur Direktauswahl aus der Medienbibliothek
+- [x] **Featured-Image-Konsistenz prüfen**
+  - [x] Read-only Liste der Inhalte mit fehlendem oder gebrochenem Featured Image
+  - [x] Vorschlag zur Direktauswahl aus der Medienbibliothek
 - [ ] **SEO-Felder vs. globale Templates**
   - [ ] Erkennung, wenn lokale Felder das globale Template ungewollt überschreiben
   - [ ] Hinweis im Editor mit Option „auf globalen Default zurücksetzen"
 - [ ] **Kategorie-/Tag-Filter und Redirects gemeinsam pflegen**
   - [ ] Ein Verwaltungspfad für Slug-Änderungen, der Redirects automatisch erzeugt und alte Filter-Links auflöst
   - [ ] Bereits in 2.9.617 grundgelegt, hier als sichtbare Admin-Funktion finalisieren
+
+### Nachprüfung 2.9.776
+
+- `/admin/media?tab=featured` ergänzt jetzt einen read-only Konsistenz-Check für Beiträge und Seiten ohne Featured Image oder mit defekter Featured-Image-Referenz.
+- Die Liste bleibt ein reiner GET-/Lesepfad und verlinkt nur in bestehende, bereits abgesicherte Editor- und Medien-Flows: Auswahl über den vorhandenen Featured-Image-Picker im Editor bzw. zentrales Replace-in-place für geteilte defekte Referenzen.
+- Es entstehen keine neuen Token-URLs, keine GET-Mutationen und keine zusätzlichen 500-anfälligen Pflichtpfade; beschädigte oder lokale Legacy-Referenzen werden lediglich sichtbar gemacht statt automatisch umgeschrieben.
 
 ## 9. Cross-Bereich · Benutzer ↔ Rollen ↔ Gruppen ↔ Member
 

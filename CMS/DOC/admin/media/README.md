@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Überblick über Medienbibliothek, Upload-Workflows, Schutzbereiche, Admin-Tabs und verknüpfte Member-/Asset-Dokumentation.
 
-Letzte Aktualisierung: 2026-05-10 · Version 2.9.745
+Letzte Aktualisierung: 2026-05-12 · Version 2.9.776
 
 Die Medienverwaltung ist unter `/admin/media` erreichbar und bündelt Bibliothek, Beitrags-/Site-Medien, Kategorien und Einstellungen über Query-Tabs statt über getrennte Legacy-Routen.
 
@@ -13,7 +13,7 @@ Die Medienverwaltung ist unter `/admin/media` erreichbar und bündelt Bibliothek
 | Route | Zweck |
 |---|---|
 | `/admin/media` | Bibliothek mit Listen-/Grid-Ansicht, Upload, Suche, erweiterten Filtern, Rename/Move/Delete |
-| `/admin/media?tab=featured` | fokussierte Übersicht aller als Beitrags- oder Seitenbild verwendeten Medien mit Ersetzen-Workflow |
+| `/admin/media?tab=featured` | fokussierte Übersicht aller als Beitrags- oder Seitenbild verwendeten Medien mit Konsistenz-Check und Ersetzen-Workflow |
 | `/admin/media?tab=categories` | Medien-Kategorien anlegen und pflegen |
 | `/admin/media?tab=settings` | Upload-Limits, erlaubte Typen und globale Medienoptionen |
 
@@ -46,6 +46,7 @@ Die Medienverwaltung ist unter `/admin/media` erreichbar und bündelt Bibliothek
 - chunkbasierte WebP-/Thumbnail-Nachverarbeitung für bestehende Bilder unter `/admin/media?tab=settings`, inklusive Fortschritt, Fehlerzählung und Abbruchmöglichkeit ohne lange Einzelrequests
 - Medienjob-Statusdateien werden beim Laden größen- und schema-validiert, damit beschädigte Jobdaten den Settings-Tab nicht destabilisieren
 - Unterpunkt **Beitrags & Site Medien** für Featured Images aus Beiträgen und Seiten inklusive Suche, Filter nach Beiträgen/Seiten, Drag-&-Drop-Ersetzen, lokaler Mini-Vorschau und Erfolgshinweis pro Bild
+- read-only Konsistenzliste für Beiträge und Seiten ohne Bild oder mit defekter Featured-Image-Referenz inklusive Deep-Link in den bestehenden Editor-Pfad mit Medienbibliothek
 - der Featured-Replace-Flow erzwingt seinen Bildvertrag seit `2.9.618` serverseitig unabhängig von den allgemeinen Bibliotheks-Typ-Häkchen, damit Beitrags-/Seitenbilder immer nur als JPG/JPEG, PNG, GIF, WebP, BMP oder ICO ersetzt werden
 
 ---
@@ -98,10 +99,13 @@ Der Unterpunkt `/admin/media?tab=featured` zeigt ausschließlich Medienpfade, di
 
 - Suchfeld für Dateiname, Pfad, Inhaltstitel und Inhaltstyp
 - Filter auf **alle**, **nur Beiträge** oder **nur Seiten**
+- zusätzlicher read-only Konsistenz-Check für Inhalte ohne Bild oder mit defekter Referenz
 - Verwendungsnachweis mit Direktlinks in die jeweilige Bearbeitung
 - globales Ersetzen unter derselben Medienreferenz, sodass alle verknüpften Beiträge und Seiten automatisch die neue Datei anzeigen
 - Drag-&-Drop oder klassische Dateiauswahl mit lokaler Mini-Vorschau vor dem Speichern
 - PRG-Redirect mit Erfolgshinweis an der ersetzten Bildzeile
+
+Seit `2.9.776` beginnt derselbe Tab mit einer read-only Prüfliste für Beiträge und Seiten, die aktuell kein Featured Image besitzen oder deren referenzierte Datei nicht mehr sauber aufgelöst werden kann. Die Empfehlung bleibt bewusst innerhalb bestehender Pfade: Entweder direkt im Editor über den vorhandenen Featured-Image-Picker aus der Medienbibliothek auswählen oder – bei geteilten defekten Referenzen – den darunterliegenden Replace-in-place-Flow nutzen. Es gibt keine neue Schreibroute, keinen zusätzlichen Token in URLs und keinen automatischen Massen-Fix im GET-Pfad.
 
 Sicherheitsvertrag:
 

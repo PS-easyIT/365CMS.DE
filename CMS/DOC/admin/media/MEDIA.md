@@ -142,6 +142,13 @@ Der Spezialtab `/admin/media?tab=featured` ist für Bilder gedacht, die im Heade
 
 Der Replace-Flow ersetzt die Datei am bestehenden verwalteten Medienpfad. Dadurch müssen Beiträge und Seiten nicht massenhaft umgeschrieben werden: Alle Inhalte, die denselben Pfad referenzieren, zeigen nach dem Austausch automatisch die neue Datei.
 
+Seit `2.9.776` ergänzt derselbe Tab zusätzlich einen read-only Konsistenz-Check. Er listet Beiträge und Seiten auf,
+
+- die noch gar kein Featured Image hinterlegt haben,
+- oder deren gespeicherte Referenz auf keine vorhandene lokale Mediendatei mehr zeigt.
+
+Die Seite bleibt dabei bewusst ein reiner GET-/Lesepfad: Die Liste selbst schreibt nichts um, sondern verweist nur in bestehende, bereits abgesicherte Arbeitswege – entweder in den Editor mit dem vorhandenen Featured-Image-Picker aus der Medienbibliothek oder bei geteilten defekten Referenzen in den bestehenden Replace-in-place-Flow derselben Ansicht.
+
 Absicherungen und UX-Details:
 
 - `replace_item` akzeptiert serverseitig nur Pfade aus der aktuellen Featured-Image-Usage-Map.
@@ -151,6 +158,7 @@ Absicherungen und UX-Details:
 - Drag-&-Drop wird auf genau eine Datei begrenzt; ungültige Drops außerhalb der Zielzone werden abgefangen, damit der Browser keine Datei versehentlich öffnet.
 - Vor dem Speichern wird lokal eine Mini-Vorschau über Objekt-URL bzw. FileReader gezeigt und beim Seitenwechsel wieder freigegeben.
 - Nach erfolgreichem POST springt die Ansicht per Redirect zurück und markiert die ersetzte Bildzeile mit Erfolgshinweis.
+- Der Konsistenz-Check zeigt fehlende oder gebrochene Referenzen nur an; es gibt bewusst keinen automatischen GET-Fix, keine Token-URL und keinen verdeckten Massen-Update-Pfad.
 
 ---
 

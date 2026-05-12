@@ -106,6 +106,41 @@ final class MediaUsageService
     }
 
     /**
+     * @return list<array<string, mixed>>
+     */
+    public function buildFeaturedImageContentList(): array
+    {
+        $items = [];
+
+        $this->collectFeaturedContentItems(
+            $items,
+            $this->fetchPosts(),
+            'post',
+            'Beitrag',
+            '/admin/posts?action=edit&id='
+        );
+
+        $this->collectFeaturedContentItems(
+            $items,
+            $this->fetchPages(),
+            'page',
+            'Seite',
+            '/admin/pages?action=edit&id='
+        );
+
+        usort($items, static function (array $left, array $right): int {
+            $typeCompare = strcasecmp((string) ($left['content_type_label'] ?? ''), (string) ($right['content_type_label'] ?? ''));
+            if ($typeCompare !== 0) {
+                return $typeCompare;
+            }
+
+            return strcasecmp((string) ($left['title'] ?? ''), (string) ($right['title'] ?? ''));
+        });
+
+        return $items;
+    }
+
+    /**
      * @param array<int, string> $relativePaths
      * @return list<string>
      */
@@ -189,6 +224,35 @@ final class MediaUsageService
                     'edit_url' => $editUrl,
                 ];
             }
+        }
+    }
+
+    /**
+     * @param list<array<string, mixed>> $items
+     * @param array<int, object> $rows
+     */
+    private function collectFeaturedContentItems(array &$items, array $rows, string $contentType, string $contentTypeLabel, string $editBaseUrl): void
+    {
+        foreach ($rows as $row) {
+            $contentId = (int) ($row->id ?? 0);
+            if ($contentId <= 0) {
+                continue;
+            }
+
+            $title = $this->buildContentTitle((string) ($row->title ?? ''), (string) ($row->slug ?? ''), $contentTypeLabel, $contentId);
+            $reference = trim((string) ($row->featured_image ?? ''));
+            $relativePaths = $this->extractRelativeMediaPaths($reference);
+
+            $items[] = [
+                'content_type' => $contentType,
+                'content_type_label' => $contentTypeLabel,
+                'content_id' => $contentId,
+                'title' => $title,
+                'edit_url' => $editBaseUrl . $contentId,
+                'featured_image' => $reference,
+                'featured_image_path' => (string) ($relativePaths[0] ?? ''),
+                'has_featured_image' => $reference !== '',
+            ];
         }
     }
 

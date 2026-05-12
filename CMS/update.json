@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.9.775",
+  "version": "2.9.776",
   "min_php": "8.4",
   "released": "2026-05-12",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 2.9.775: Die neue Warnzentrale unter /admin/monitor-warnings bündelt aktive Hinweise aus Performance, Security, Diagnose, Updates und Recht. Jede Warnung führt direkt in den zuständigen Adminbereich; Ignorieren mit Begründung und Wiedervorlage laufen serverseitig über POST/CSRF und bleiben ohne Token-URLs oder neue GET-Mutationen fail-soft eingebunden.",
+  "notes": "Release-Stand 2.9.776: /admin/media?tab=featured ergänzt einen read-only Konsistenz-Check für Beiträge und Seiten ohne Featured Image oder mit defekter Referenz. Die Liste verweist nur in bestehende Editor- und Replace-Flows, bleibt ohne Token-URLs und ohne neue GET-Mutationen und zeigt geteilte defekte Referenzen gezielt für den zentralen Replace-in-place-Pfad an.",
   "critical": false
 }
