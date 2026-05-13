@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Dokumentiert die vollständige SEO-Suite mit Dashboard, Analytics, Audit, Meta-Daten, Social Media, Schema, Sitemap, technischem SEO und Redirect-Manager.
 
-Letzte Aktualisierung: 2026-05-11 · Version 2.9.748
+Letzte Aktualisierung: 2026-05-12 · Version 2.9.778
 
 ---
 
@@ -151,7 +151,9 @@ Zusätzlich ergänzt der Editor jetzt eine nicht blockierende **Live-Hinweis-Zei
 - Keyphrase
 - Bild-Alt-Texte
 
-Diese Karten greifen auf die globalen SEO-Einstellungen zurück. Für die echte Frontend-Ausgabe gilt zusätzlich: globale Social-Defaults aus dem SEO-Center sind jetzt mit dem Head-Renderer verbunden und wirken als Fallback, solange kein inhaltsspezifischer Social-Meta-Wert vorhanden ist. Auf `/admin/seo-meta` steht ergänzend ein read-only Vorschau-Modus zur Verfügung, der dieselben Meta-Defaults für Startseite, Archive und Taxonomien live gegen den aktuellen Template-Stand spiegelt.
+Zusätzlich zeigen Seiten- und Beitragseditoren jetzt einen read-only **Override-Hinweis**, sobald lokale Meta-Felder aktive Defaults überschreiben. Der Hinweis trennt bewusst zwischen individuell gesetzten Overrides und redundantem Überschreiben ohne Mehrwert: Entspricht ein lokaler Meta-Titel bereits dem globalen Titel-Template oder eine lokale Meta-Beschreibung bereits dem automatisch aus Kurzfassung, erstem Absatz oder Inhalt abgeleiteten Default, kann das jeweilige Feld direkt im Editor auf den Standard zurückgesetzt werden. Technisch geschieht das ausschließlich durch Leeren des lokalen Feldes im bestehenden Formular – ohne neue Route, ohne Token in URLs und ohne separaten Schreibpfad.
+
+Diese Karten greifen auf die globalen SEO-Einstellungen zurück. Für die echte Frontend-Ausgabe gilt zusätzlich: globale Social-Defaults aus dem SEO-Center sind jetzt mit dem Head-Renderer verbunden und wirken als Fallback, solange kein inhaltsspezifischer Social-Meta-Wert vorhanden ist. Auf `/admin/seo-meta` steht ergänzend ein read-only Vorschau-Modus zur Verfügung, der dieselben Meta-Defaults für Startseite, Archive und Taxonomien live gegen den aktuellen Template-Stand spiegelt. Die Editor-Vorschau folgt dabei demselben Resolver-Vertrag wie die Runtime: Meta-Beschreibungen nutzen bei Beiträgen zuerst die Kurzfassung, danach den ersten Absatz und erst danach den restlichen Inhalt.
 
 Die Hinweise sind ausdrücklich empfehlend: Sie ändern weder den POST-/CSRF-Vertrag des Editors noch blockieren sie Speichern oder Veröffentlichen. Für die H1-Prüfung wird der sichtbare Titel als primäre Überschrift mitberücksichtigt; bei Seiten mit aktivem `hide_title` muss die eindeutige H1 daher aus dem Inhalt selbst kommen.
 

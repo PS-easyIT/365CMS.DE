@@ -171,6 +171,7 @@ $getRoleColor = static function (string $role) use ($roleColors): string {
                             <th>E-Mail</th>
                             <th>Rolle</th>
                             <th>Gruppen</th>
+                            <th>Support-Kontext</th>
                             <th>Status</th>
                             <th>Registriert</th>
                             <th class="w-1"></th>
@@ -179,7 +180,7 @@ $getRoleColor = static function (string $role) use ($roleColors): string {
                     <tbody>
                     <?php if (empty($users)): ?>
                         <?php
-                        $emptyStateColspan = 8;
+                        $emptyStateColspan = 9;
                         $emptyStateMessage = 'Keine Benutzer gefunden.';
                         $emptyStateSubtitle = 'Prüfen Sie Filter oder Suche – die serverseitige Liste liefert aktuell keine Einträge.';
                         $emptyStateIcon = 'users';
@@ -197,6 +198,20 @@ $getRoleColor = static function (string $role) use ($roleColors): string {
                             $createdAt = trim((string)($user->created_at ?? ''));
                             $roleLabel = (string)($availableRoles[$role] ?? ucfirst($role));
                             $groupCount = (int)($user->group_count ?? 0);
+                            $supportContext = is_array($user->support_context ?? null) ? $user->support_context : [];
+                            $directPackage = trim((string)($supportContext['direct_package'] ?? ''));
+                            $groupPackages = is_array($supportContext['group_packages'] ?? null) ? $supportContext['group_packages'] : [];
+                            $groupPackageCount = (int)($supportContext['group_package_count'] ?? count($groupPackages));
+                            $memberModules = is_array($supportContext['member_modules'] ?? null) ? $supportContext['member_modules'] : [];
+                            $memberModuleCount = (int)($supportContext['member_module_count'] ?? count($memberModules));
+                            $contractLabel = trim((string)($supportContext['contract_label'] ?? 'Keine aktive Frist'));
+                            $contractSeverity = trim((string)($supportContext['contract_severity'] ?? 'secondary'));
+                            $contractBadgeClass = match ($contractSeverity) {
+                                'danger' => 'bg-red-lt text-red',
+                                'warning' => 'bg-yellow-lt text-yellow',
+                                'info' => 'bg-blue-lt text-blue',
+                                default => 'bg-secondary-lt text-secondary',
+                            };
                             $statusLabel = match ($status) {
                                 'active' => 'Aktiv',
                                 'inactive' => 'Inaktiv',
@@ -234,6 +249,30 @@ $getRoleColor = static function (string $role) use ($roleColors): string {
                                     <span class="badge <?php echo $groupCount > 0 ? 'bg-blue-lt text-blue' : 'bg-secondary-lt text-secondary'; ?>">
                                         <?php echo $groupCount > 0 ? (int)$groupCount . ' Gruppen' : 'Keine'; ?>
                                     </span>
+                                </td>
+                                <td>
+                                    <div class="d-flex flex-column gap-1 small">
+                                        <div class="d-flex flex-wrap gap-1 align-items-center">
+                                            <span class="badge <?php echo $directPackage !== '' ? 'bg-purple-lt text-purple' : 'bg-secondary-lt text-secondary'; ?>">
+                                                <?php echo htmlspecialchars($directPackage !== '' ? $directPackage : 'Kein Direktpaket'); ?>
+                                            </span>
+                                            <span class="badge <?php echo htmlspecialchars($contractBadgeClass); ?>">
+                                                <?php echo htmlspecialchars($contractLabel !== '' ? $contractLabel : 'Keine aktive Frist'); ?>
+                                            </span>
+                                        </div>
+                                        <div class="text-secondary">
+                                            Gruppenpakete:
+                                            <?php if ($groupPackages === []): ?>
+                                                keine
+                                            <?php else: ?>
+                                                <?php echo htmlspecialchars(implode(', ', array_map('strval', $groupPackages))); ?><?php if ($groupPackageCount > count($groupPackages)): ?>, +<?php echo $groupPackageCount - count($groupPackages); ?> weitere<?php endif; ?>
+                                            <?php endif; ?>
+                                        </div>
+                                        <div class="text-secondary">
+                                            Member-Module:
+                                            <?php echo htmlspecialchars($memberModules !== [] ? implode(', ', array_map('strval', $memberModules)) : 'keine'); ?><?php if ($memberModuleCount > count($memberModules)): ?>, +<?php echo $memberModuleCount - count($memberModules); ?> weitere<?php endif; ?>
+                                        </div>
+                                    </div>
                                 </td>
                                 <td><span class="badge <?php echo htmlspecialchars($statusClass); ?>"><?php echo htmlspecialchars($statusLabel); ?></span></td>
                                 <td class="text-secondary"><?php echo htmlspecialchars($createdAt !== '' ? substr($createdAt, 0, 10) : '–'); ?></td>

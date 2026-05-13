@@ -441,6 +441,16 @@ $additionalCategoryIds = array_values(array_filter(
                                 <textarea class="form-control" id="metaDesc" name="meta_description" rows="4" maxlength="160"><?php echo htmlspecialchars($postMetaDescriptionValue); ?></textarea>
                                 <span class="form-hint"><span id="metaDescCount">0</span>/160 Zeichen</span>
                             </div>
+                            <div id="postSeoOverrideNotice" class="alert alert-info d-none" role="status" aria-live="polite">
+                                <div class="fw-semibold mb-2">SEO-Default-Hinweis</div>
+                                <div class="small mb-2" id="postSeoOverrideSummary"></div>
+                                <ul class="small ps-3 mb-3" id="postSeoOverrideList"></ul>
+                                <div class="btn-list">
+                                    <button type="button" class="btn btn-sm btn-outline-primary d-none" id="postSeoResetMetaTitle">Meta-Titel auf Default zurücksetzen</button>
+                                    <button type="button" class="btn btn-sm btn-outline-primary d-none" id="postSeoResetMetaDescription">Meta-Beschreibung auf Default zurücksetzen</button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary d-none" id="postSeoResetAllMetaDefaults">Alle lokalen SEO-Felder auf Default zurücksetzen</button>
+                                </div>
+                            </div>
                             <div class="mb-3">
                                 <label class="form-label" for="canonicalUrl">Kanonische URL</label>
                                 <input type="text" class="form-control" id="canonicalUrl" name="canonical_url" value="<?php echo $canonicalUrl; ?>" placeholder="Automatisch self-referencing, wenn leer">
@@ -700,6 +710,7 @@ $additionalCategoryIds = array_values(array_filter(
             'formId' => 'postForm',
             'titleId' => $activeTitleInputId,
             'slugId' => $activeSlugInputId,
+            'excerptId' => $activeExcerptInputId,
             'metaTitleId' => 'metaTitle',
             'metaDescId' => 'metaDesc',
             'focusKeyphraseId' => 'focusKeyphrase',
@@ -736,6 +747,12 @@ $additionalCategoryIds = array_values(array_filter(
             'readabilityBadgeId' => 'postReadabilityBadge',
             'readabilitySummaryId' => 'postReadabilitySummary',
             'hintBadgeContainerId' => 'postSeoHintBadges',
+            'overrideNoticeId' => 'postSeoOverrideNotice',
+            'overrideSummaryId' => 'postSeoOverrideSummary',
+            'overrideListId' => 'postSeoOverrideList',
+            'resetMetaTitleId' => 'postSeoResetMetaTitle',
+            'resetMetaDescriptionId' => 'postSeoResetMetaDescription',
+            'resetAllMetaDefaultsId' => 'postSeoResetAllMetaDefaults',
             'titleCreatesH1' => true,
             'previewBaseUrl' => '/blog/',
             'previewUrlTemplate' => $activePostPreviewUrlTemplate,

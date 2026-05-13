@@ -135,6 +135,8 @@ Zusätzlich ist der Public-Vertrag des Default-Themes für Taxonomie-Navigation 
 
 Seit `2.9.617` gilt das auch bei späteren Slug-Änderungen: Kategorie- und Tag-Slugs erzeugen automatische Archiv-Redirects, und die Query-basierten Blog-Filter können alte Slugs über diese Redirect-Spur wieder auf den aktuellen Archiv-Slug auflösen, statt mit 404 zu enden.
 
+Seit `2.9.779` ist dieser Vertrag im Admin direkt sichtbar: Die Edit-Formulare für Kategorien und Tags zeigen die aktuellen Archivpfade der jeweiligen Taxonomie, erläutern am Slug-Feld den Redirect- und Legacy-Filter-Vertrag und geben nach einer tatsächlichen Slug-Änderung die automatisch gepflegten Archiv-Weiterleitungen als Erfolgsdetails aus. Der Redirect-Manager bleibt dabei die zentrale Pflegeoberfläche für Regeln; die Taxonomie-Verwaltung öffnet keinen konkurrierenden Spezialpfad, sondern macht die bereits vorhandene Automatik transparent.
+
 ---
 
 ## Kommentare- und TOC-Vertrag

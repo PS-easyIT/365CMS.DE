@@ -127,6 +127,15 @@ $groupField = static function (mixed $group, string $key, mixed $default = ''): 
                     $groupPlanName = (string) $groupField($group, 'plan_name', '');
                     $groupMembers = $groupField($group, 'members', []);
                     $groupMemberIds = $groupField($group, 'member_ids', []);
+                    $supportContext = $groupField($group, 'support_context', []);
+                    $supportContext = is_array($supportContext) ? $supportContext : [];
+                    $planModules = is_array($supportContext['plan_modules'] ?? null) ? $supportContext['plan_modules'] : [];
+                    $planModuleCount = (int)($supportContext['plan_module_count'] ?? count($planModules));
+                    $memberModules = is_array($supportContext['member_modules'] ?? null) ? $supportContext['member_modules'] : [];
+                    $memberModuleCount = (int)($supportContext['member_module_count'] ?? count($memberModules));
+                    $expiringContracts = is_array($supportContext['expiring_contracts'] ?? null) ? $supportContext['expiring_contracts'] : [];
+                    $expiringContractCount = (int)($supportContext['expiring_contract_count'] ?? count($expiringContracts));
+                    $overdueContractCount = (int)($supportContext['overdue_contract_count'] ?? 0);
                     ?>
                     <div class="col-md-6 col-lg-4">
                         <div class="card h-100">
@@ -152,6 +161,46 @@ $groupField = static function (mixed $group, string $key, mixed $default = ''): 
                                 <?php if ($groupDescription !== ''): ?>
                                     <p class="text-secondary mb-3"><?php echo htmlspecialchars($groupDescription); ?></p>
                                 <?php endif; ?>
+                                <div class="border rounded p-2 mb-3 bg-light-subtle">
+                                    <div class="small fw-semibold mb-2">Support-Kontext</div>
+                                    <div class="d-flex flex-wrap gap-1 mb-2">
+                                        <span class="badge <?php echo $groupPlanId > 0 ? 'bg-purple-lt text-purple' : 'bg-secondary-lt text-secondary'; ?>">
+                                            <?php echo htmlspecialchars($groupPlanId > 0 && $groupPlanName !== '' ? 'Paket: ' . $groupPlanName : 'Kein Gruppenpaket'); ?>
+                                        </span>
+                                        <span class="badge <?php echo $expiringContractCount > 0 ? ($overdueContractCount > 0 ? 'bg-red-lt text-red' : 'bg-yellow-lt text-yellow') : 'bg-secondary-lt text-secondary'; ?>">
+                                            <?php if ($expiringContractCount > 0): ?>
+                                                <?php echo $expiringContractCount; ?> fällige Verträge<?php echo $overdueContractCount > 0 ? ' · ' . $overdueContractCount . ' überfällig' : ''; ?>
+                                            <?php else: ?>
+                                                Keine fälligen Verträge
+                                            <?php endif; ?>
+                                        </span>
+                                    </div>
+                                    <div class="small text-secondary mb-1">
+                                        Paketmodule:
+                                        <?php echo htmlspecialchars($planModules !== [] ? implode(', ', array_map('strval', $planModules)) : 'keine Paketmodule'); ?><?php if ($planModuleCount > count($planModules)): ?>, +<?php echo $planModuleCount - count($planModules); ?> weitere<?php endif; ?>
+                                    </div>
+                                    <div class="small text-secondary mb-2">
+                                        Member-Module:
+                                        <?php echo htmlspecialchars($memberModules !== [] ? implode(', ', array_map('strval', $memberModules)) : 'keine'); ?><?php if ($memberModuleCount > count($memberModules)): ?>, +<?php echo $memberModuleCount - count($memberModules); ?> weitere<?php endif; ?>
+                                    </div>
+                                    <?php if ($expiringContracts !== []): ?>
+                                        <div class="small text-secondary">Nächste Vertragsfristen:</div>
+                                        <ul class="small ps-3 mb-0">
+                                            <?php foreach ($expiringContracts as $contract): ?>
+                                                <?php
+                                                $contractSeverity = (string)($contract['severity'] ?? 'warning');
+                                                $contractClass = $contractSeverity === 'danger' ? 'text-red' : 'text-yellow';
+                                                ?>
+                                                <li class="<?php echo htmlspecialchars($contractClass); ?>">
+                                                    <?php echo htmlspecialchars((string)($contract['user_label'] ?? 'Benutzer')); ?> · <?php echo htmlspecialchars((string)($contract['plan_label'] ?? 'Paket')); ?> · <?php echo htmlspecialchars((string)($contract['label'] ?? 'fällig')); ?>
+                                                </li>
+                                            <?php endforeach; ?>
+                                            <?php if ($expiringContractCount > count($expiringContracts)): ?>
+                                                <li class="text-secondary">+<?php echo $expiringContractCount - count($expiringContracts); ?> weitere fällige Verträge</li>
+                                            <?php endif; ?>
+                                        </ul>
+                                    <?php endif; ?>
+                                </div>
                                 <?php if (!empty($groupMembers) && is_array($groupMembers)): ?>
                                     <div class="d-flex flex-wrap gap-1">
                                         <?php foreach (array_slice($groupMembers, 0, 4) as $member): ?>

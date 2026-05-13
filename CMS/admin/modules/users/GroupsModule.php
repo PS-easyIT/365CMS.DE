@@ -35,7 +35,7 @@ class GroupsModule
     public function getData(): array
     {
         $groups = $this->db->get_results(
-            "SELECT g.*, sp.name AS plan_name,
+            "SELECT g.*, sp.name AS plan_name, sp.slug AS plan_slug,
                     (
                         SELECT COUNT(*)
                         FROM {$this->prefix}user_group_members ugm
@@ -45,6 +45,17 @@ class GroupsModule
              LEFT JOIN {$this->prefix}subscription_plans sp ON sp.id = g.plan_id
              ORDER BY g.is_active DESC, g.name ASC"
         ) ?: [];
+
+        $groupIds = array_values(array_filter(array_map(
+            static fn(object $group): int => (int)($group->id ?? 0),
+            $groups
+        ), static fn(int $groupId): bool => $groupId > 0));
+        $expiringContractsByGroup = $this->loadExpiringContractsByGroup($groupIds);
+        $planIds = array_values(array_unique(array_filter(array_map(
+            static fn(object $group): int => (int)($group->plan_id ?? 0),
+            $groups
+        ), static fn(int $planId): bool => $planId > 0)));
+        $planModulesById = $this->loadPlanModulesById($planIds);
 
         $memberRows = $this->db->get_results(
             "SELECT ugm.group_id, u.id, u.username, u.display_name, u.email, u.status
@@ -77,6 +88,8 @@ class GroupsModule
             $group->is_active = (int)($group->is_active ?? 1);
             $group->members = $members;
             $group->member_ids = array_values(array_map(static fn (array $member): int => (int)$member['id'], $members));
+            $planId = (int)($group->plan_id ?? 0);
+            $group->support_context = $this->buildGroupSupportContext($group, $expiringContractsByGroup[$groupId] ?? [], $planModulesById[$planId] ?? []);
             $normalizedGroups[] = $group;
         }
 
@@ -85,6 +98,258 @@ class GroupsModule
             'userOptions' => $this->getUserOptions(),
             'planOptions' => $this->getPlanOptions(),
         ];
+    }
+
+    /**
+     * @param array<int,int> $groupIds
+     * @return array<int,array<int,array<string,string>>>
+     */
+    private function loadExpiringContractsByGroup(array $groupIds): array
+    {
+        $groupIds = array_values(array_unique(array_filter(array_map('intval', $groupIds), static fn(int $id): bool => $id > 0)));
+        if ($groupIds === []) {
+            return [];
+        }
+
+        $placeholders = implode(', ', array_fill(0, count($groupIds), '?'));
+        $cutoff = (new \DateTimeImmutable('today'))->modify('+14 days')->format('Y-m-d 23:59:59');
+
+        try {
+            $rows = $this->db->get_results(
+                "SELECT ugm.group_id, us.user_id, us.status, us.end_date, us.next_billing_date,
+                        u.username, u.display_name, sp.name AS plan_name
+                   FROM {$this->prefix}user_group_members ugm
+                   INNER JOIN {$this->prefix}user_subscriptions us ON us.user_id = ugm.user_id
+                   INNER JOIN {$this->prefix}users u ON u.id = ugm.user_id
+                   LEFT JOIN {$this->prefix}subscription_plans sp ON sp.id = us.plan_id
+                  WHERE ugm.group_id IN ({$placeholders})
+                    AND us.status IN ('active', 'trial')
+                    AND COALESCE(us.next_billing_date, us.end_date) IS NOT NULL
+                    AND COALESCE(us.next_billing_date, us.end_date) <= ?
+                  ORDER BY COALESCE(us.next_billing_date, us.end_date) ASC",
+                array_merge($groupIds, [$cutoff])
+            ) ?: [];
+        } catch (\Throwable) {
+            return [];
+        }
+
+        $byGroup = [];
+        foreach ($rows as $row) {
+            $groupId = (int)($row->group_id ?? 0);
+            if ($groupId <= 0) {
+                continue;
+            }
+
+            $dueAt = $this->normalizeScalarText((string)(($row->next_billing_date ?? '') ?: ($row->end_date ?? '')), 40);
+            $state = $this->buildContractState($dueAt);
+            $displayName = $this->normalizeScalarText((string)($row->display_name ?? ''), 80);
+            if ($displayName === '') {
+                $displayName = $this->normalizeScalarText((string)($row->username ?? 'Benutzer'), 80);
+            }
+
+            $byGroup[$groupId][] = [
+                'user_label' => $displayName !== '' ? $displayName : 'Benutzer',
+                'plan_label' => $this->normalizeScalarText((string)($row->plan_name ?? 'Paket'), 80),
+                'due_at' => $dueAt,
+                'label' => $state['label'],
+                'severity' => $state['severity'],
+            ];
+        }
+
+        return $byGroup;
+    }
+
+    /**
+     * @param array<int,array<string,string>> $expiringContracts
+     * @param array<int,string> $planModules
+     * @return array<string,mixed>
+     */
+    private function buildGroupSupportContext(object $group, array $expiringContracts, array $planModules): array
+    {
+        $planName = $this->normalizeScalarText((string)($group->plan_name ?? ''), 120);
+        $memberAreaModules = $this->getGlobalMemberAreaLabels();
+        $overdueCount = 0;
+
+        foreach ($expiringContracts as $contract) {
+            if (($contract['severity'] ?? '') === 'danger') {
+                $overdueCount++;
+            }
+        }
+
+        return [
+            'plan_label' => $planName,
+            'plan_modules' => array_slice($planModules, 0, 5),
+            'plan_module_count' => count($planModules),
+            'member_modules' => array_slice($memberAreaModules, 0, 5),
+            'member_module_count' => count($memberAreaModules),
+            'expiring_contracts' => array_slice($expiringContracts, 0, 3),
+            'expiring_contract_count' => count($expiringContracts),
+            'overdue_contract_count' => $overdueCount,
+        ];
+    }
+
+    /**
+     * @param array<int,int> $planIds
+     * @return array<int,array<int,string>>
+     */
+    private function loadPlanModulesById(array $planIds): array
+    {
+        $planIds = array_values(array_unique(array_filter(array_map('intval', $planIds), static fn(int $id): bool => $id > 0)));
+        if ($planIds === []) {
+            return [];
+        }
+
+        $map = [
+            'plugin_experts' => 'Experten',
+            'plugin_companies' => 'Companies',
+            'plugin_events' => 'Events',
+            'plugin_speakers' => 'Speaker',
+            'feature_analytics' => 'Analytics',
+            'feature_api_access' => 'API-Zugriff',
+            'feature_priority_support' => 'Priority Support',
+            'feature_export_data' => 'Datenexport',
+            'feature_integrations' => 'Integrationen',
+            'feature_custom_branding' => 'Branding',
+        ];
+
+        $availableColumns = $this->getExistingColumns('subscription_plans', array_keys($map));
+        if ($availableColumns === []) {
+            return [];
+        }
+
+        $selectColumns = array_values(array_intersect(array_keys($map), $availableColumns));
+        $placeholders = implode(', ', array_fill(0, count($planIds), '?'));
+
+        try {
+            $rows = $this->db->get_results(
+                "SELECT id, " . implode(', ', $selectColumns) . "
+                   FROM {$this->prefix}subscription_plans
+                  WHERE id IN ({$placeholders})",
+                $planIds
+            ) ?: [];
+        } catch (\Throwable) {
+            return [];
+        }
+
+        $modulesById = [];
+        foreach ($rows as $row) {
+            $planId = (int)($row->id ?? 0);
+            if ($planId <= 0) {
+                continue;
+            }
+
+            foreach ($selectColumns as $field) {
+                if (!empty($row->{$field})) {
+                    $modulesById[$planId][] = $map[$field];
+                }
+            }
+        }
+
+        return $modulesById;
+    }
+
+    /**
+     * @param array<int,string> $candidates
+     * @return array<int,string>
+     */
+    private function getExistingColumns(string $table, array $candidates): array
+    {
+        $candidateLookup = array_fill_keys($candidates, true);
+        if ($candidateLookup === []) {
+            return [];
+        }
+
+        try {
+            $rows = $this->db->get_results("SHOW COLUMNS FROM {$this->prefix}{$table}") ?: [];
+        } catch (\Throwable) {
+            return [];
+        }
+
+        $columns = [];
+        foreach ($rows as $row) {
+            $field = (string)($row->Field ?? '');
+            if ($field !== '' && isset($candidateLookup[$field])) {
+                $columns[] = $field;
+            }
+        }
+
+        return $columns;
+    }
+
+    /** @return array<int,string> */
+    private function getGlobalMemberAreaLabels(): array
+    {
+        $labels = ['Profil', 'Sicherheit', 'Benachrichtigungen', 'Nachrichten', 'Dateien', 'Favoriten', 'Datenschutz'];
+
+        if ($this->isSettingEnabled('member_dashboard_enabled', true)
+            && $this->isCoreModuleEnabled('member_dashboard', true)) {
+            array_unshift($labels, 'Dashboard');
+        }
+
+        if ($this->isSettingEnabled('member_subscription_visible', true)
+            && $this->isCoreModuleEnabled('subscription_member_area', true)) {
+            $labels[] = 'Abo & Bestellungen';
+        }
+
+        return array_values(array_unique($labels));
+    }
+
+    private function isSettingEnabled(string $key, bool $default): bool
+    {
+        try {
+            $value = $this->db->get_var(
+                "SELECT option_value FROM {$this->prefix}settings WHERE option_name = ? LIMIT 1",
+                [$key]
+            );
+        } catch (\Throwable) {
+            return $default;
+        }
+
+        if ($value === null) {
+            return $default;
+        }
+
+        return !in_array(strtolower(trim((string)$value)), ['0', 'false', 'off', 'no'], true);
+    }
+
+    private function isCoreModuleEnabled(string $module, bool $default): bool
+    {
+        if (!class_exists('CMS\\Services\\CoreModuleService')) {
+            return $default;
+        }
+
+        try {
+            return \CMS\Services\CoreModuleService::getInstance()->isModuleEnabled($module);
+        } catch (\Throwable) {
+            return $default;
+        }
+    }
+
+    /** @return array{label:string,severity:string} */
+    private function buildContractState(string $dueAt): array
+    {
+        $dueAt = trim($dueAt);
+        if ($dueAt === '') {
+            return ['label' => 'Keine Laufzeitfrist', 'severity' => 'secondary'];
+        }
+
+        try {
+            $dueDate = new \DateTimeImmutable($dueAt);
+            $today = new \DateTimeImmutable('today');
+        } catch (\Throwable) {
+            return ['label' => 'Frist unlesbar', 'severity' => 'secondary'];
+        }
+
+        $days = (int)$today->diff($dueDate->setTime(0, 0))->format('%r%a');
+        if ($days < 0) {
+            return ['label' => 'Überfällig seit ' . abs($days) . ' Tag' . (abs($days) === 1 ? '' : 'en'), 'severity' => 'danger'];
+        }
+
+        if ($days === 0) {
+            return ['label' => 'Heute fällig', 'severity' => 'warning'];
+        }
+
+        return ['label' => 'Fällig in ' . $days . ' Tag' . ($days === 1 ? '' : 'en'), 'severity' => 'warning'];
     }
 
     private function normalizeScalarText(mixed $value, int $maxLength): string

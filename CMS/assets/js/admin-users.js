@@ -393,10 +393,121 @@
         });
     }
 
+    function initUserRoleImpactPreview() {
+        var dataElement = document.getElementById('userRoleImpactPreviewData');
+        var roleSelect = document.getElementById('role');
+
+        if (!dataElement || !roleSelect) {
+            return;
+        }
+
+        var previewData;
+        try {
+            previewData = JSON.parse(dataElement.textContent || '{}');
+        } catch (error) {
+            return;
+        }
+
+        if (!previewData || !previewData.available || !previewData.roles) {
+            return;
+        }
+
+        function byId(id) {
+            return document.getElementById(id);
+        }
+
+        function setText(id, value) {
+            var element = byId(id);
+            if (element) {
+                element.textContent = value || '–';
+            }
+        }
+
+        function fillBadges(id, items, className, emptyText) {
+            var container = byId(id);
+            if (!container) {
+                return;
+            }
+
+            container.textContent = '';
+            if (!Array.isArray(items) || items.length === 0) {
+                var empty = document.createElement('span');
+                empty.className = 'text-secondary small';
+                empty.textContent = emptyText || 'Keine Änderungen.';
+                container.appendChild(empty);
+                return;
+            }
+
+            items.forEach(function (item) {
+                var badge = document.createElement('span');
+                badge.className = className;
+                badge.textContent = String(item || '');
+                container.appendChild(badge);
+            });
+        }
+
+        function formatDiff(added, removed, addedLabel, removedLabel) {
+            var parts = [];
+            if (Array.isArray(added) && added.length > 0) {
+                parts.push(addedLabel + ': ' + added.join(', '));
+            }
+            if (Array.isArray(removed) && removed.length > 0) {
+                parts.push(removedLabel + ': ' + removed.join(', '));
+            }
+            return parts.length > 0 ? parts.join(' · ') : 'Keine Änderung gegenüber der aktuellen Rolle.';
+        }
+
+        function setPackageBox(summary) {
+            summary = summary || {};
+            var box = byId('roleImpactPackageBox');
+            if (box) {
+                var severity = String(summary.severity || 'secondary');
+                if (['info', 'warning', 'danger', 'success', 'secondary'].indexOf(severity) === -1) {
+                    severity = 'secondary';
+                }
+                box.className = 'alert alert-' + severity + ' mb-0 py-2 px-3';
+            }
+
+            setText('roleImpactPackageTitle', String(summary.title || 'Paketwirkung'));
+            setText('roleImpactPackageMessage', String(summary.message || 'Keine automatische Paketänderung.'));
+
+            var current = String(summary.current_package || '–');
+            if (Array.isArray(summary.group_packages) && summary.group_packages.length > 0) {
+                current += ' · Gruppen: ' + summary.group_packages.join(', ');
+            }
+            setText('roleImpactPackageCurrent', 'Aktuell: ' + current);
+        }
+
+        function render() {
+            var selectedRole = roleSelect.value || previewData.current_role || '';
+            var role = previewData.roles[selectedRole] || previewData.roles[previewData.current_role] || null;
+            if (!role) {
+                return;
+            }
+
+            setText('roleImpactTargetLabel', String(role.label || selectedRole));
+            setText('roleImpactGainedCount', String(role.gained_count || 0));
+            setText('roleImpactLostCount', String(role.lost_count || 0));
+
+            fillBadges('roleImpactMemberAreas', role.member_areas, 'badge bg-secondary-lt text-secondary', 'Keine Member-Bereiche sichtbar.');
+            fillBadges('roleImpactPluginWidgets', role.plugin_widgets, 'badge bg-indigo-lt text-indigo', 'Keine Plugin-Widgets sichtbar oder registriert.');
+            fillBadges('roleImpactGainedCaps', role.gained_capabilities, 'badge bg-success-lt text-success', 'Keine neuen Rechte.');
+            fillBadges('roleImpactLostCaps', role.lost_capabilities, 'badge bg-warning-lt text-warning', 'Keine entfallenden Rechte.');
+
+            setText('roleImpactMemberDiff', formatDiff(role.added_member_areas, role.removed_member_areas, 'Neu sichtbar', 'Nicht mehr sichtbar'));
+            setText('roleImpactPluginDiff', formatDiff(role.added_plugin_widgets, role.removed_plugin_widgets, 'Neu sichtbar', 'Nicht mehr sichtbar'));
+            setPackageBox(role.package_summary);
+        }
+
+        roleSelect.addEventListener('change', render);
+        render();
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
         initUsersFilters();
         initUsersBulkActions();
         initUserDeleteActions();
+        initUserRoleImpactPreview();
         initRolesUi();
     });
 })();

@@ -17,6 +17,12 @@ $availableRoles = $data['availableRoles'] ?? [];
 $availableStatuses = $data['availableStatuses'] ?? [];
 $securityEvents = is_array($data['securityEvents'] ?? null) ? $data['securityEvents'] : [];
 $securityEventsUnavailable = !empty($data['securityEventsUnavailable']);
+$roleImpactPreview = is_array($data['roleImpactPreview'] ?? null) ? $data['roleImpactPreview'] : [];
+$roleImpactAvailable = !empty($roleImpactPreview['available']) && is_array($roleImpactPreview['roles'] ?? null);
+$selectedRole = (string)($user->role ?? ($roleImpactPreview['current_role'] ?? 'member'));
+$selectedRoleImpact = $roleImpactAvailable && isset($roleImpactPreview['roles'][$selectedRole]) && is_array($roleImpactPreview['roles'][$selectedRole])
+    ? $roleImpactPreview['roles'][$selectedRole]
+    : null;
 $usersAdminPath = '/admin/users';
 $userId = (int)($user->id ?? 0);
 $userName = trim((string)($user->username ?? ''));
@@ -136,6 +142,74 @@ $roleColors = [
                                         </option>
                                     <?php endforeach; ?>
                                 </select>
+                            </div>
+
+                            <div class="border rounded p-3 bg-light-subtle" id="userRoleImpactPreview" aria-live="polite">
+                                <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
+                                    <div>
+                                        <div class="fw-semibold">Wirkungsvorschau</div>
+                                        <div class="text-secondary small">Read-only Diff vor dem Speichern – keine Änderung ohne Submit.</div>
+                                    </div>
+                                    <span class="badge bg-blue-lt" id="roleImpactTargetLabel">
+                                        <?php echo htmlspecialchars((string)($selectedRoleImpact['label'] ?? ($availableRoles[$selectedRole] ?? $selectedRole))); ?>
+                                    </span>
+                                </div>
+
+                                <?php if ($roleImpactAvailable): ?>
+                                    <script type="application/json" id="userRoleImpactPreviewData"><?php echo json_encode($roleImpactPreview, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?></script>
+                                    <div class="row g-2 mb-3">
+                                        <div class="col-6">
+                                            <div class="small text-secondary">Neue Rechte</div>
+                                            <div class="h3 mb-0 text-success" id="roleImpactGainedCount"><?php echo (int)($selectedRoleImpact['gained_count'] ?? 0); ?></div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="small text-secondary">Entfallende Rechte</div>
+                                            <div class="h3 mb-0 text-warning" id="roleImpactLostCount"><?php echo (int)($selectedRoleImpact['lost_count'] ?? 0); ?></div>
+                                        </div>
+                                    </div>
+
+                                    <div class="small fw-semibold mb-1">Member-Bereiche</div>
+                                    <div class="d-flex flex-wrap gap-1 mb-2" id="roleImpactMemberAreas">
+                                        <?php foreach ((array)($selectedRoleImpact['member_areas'] ?? []) as $areaLabel): ?>
+                                            <span class="badge bg-secondary-lt text-secondary"><?php echo htmlspecialchars((string)$areaLabel); ?></span>
+                                        <?php endforeach; ?>
+                                    </div>
+                                    <div class="small text-secondary mb-3" id="roleImpactMemberDiff">Änderungen werden beim Rollenwechsel hier markiert.</div>
+
+                                    <div class="small fw-semibold mb-1">Plugin-Widgets</div>
+                                    <div class="d-flex flex-wrap gap-1 mb-2" id="roleImpactPluginWidgets">
+                                        <?php foreach ((array)($selectedRoleImpact['plugin_widgets'] ?? []) as $widgetLabel): ?>
+                                            <span class="badge bg-indigo-lt text-indigo"><?php echo htmlspecialchars((string)$widgetLabel); ?></span>
+                                        <?php endforeach; ?>
+                                    </div>
+                                    <div class="small text-secondary mb-3" id="roleImpactPluginDiff">Plugin-Widget-Unterschiede werden hier angezeigt.</div>
+
+                                    <div class="alert alert-secondary mb-0 py-2 px-3" id="roleImpactPackageBox">
+                                        <div class="fw-semibold" id="roleImpactPackageTitle"><?php echo htmlspecialchars((string)($selectedRoleImpact['package_summary']['title'] ?? 'Paketwirkung')); ?></div>
+                                        <div class="small" id="roleImpactPackageMessage"><?php echo htmlspecialchars((string)($selectedRoleImpact['package_summary']['message'] ?? 'Keine automatische Paketänderung.')); ?></div>
+                                        <div class="small text-secondary mt-1" id="roleImpactPackageCurrent">
+                                            Aktuell: <?php echo htmlspecialchars((string)($selectedRoleImpact['package_summary']['current_package'] ?? '–')); ?>
+                                        </div>
+                                    </div>
+
+                                    <details class="mt-3">
+                                        <summary class="small text-secondary">Capability-Details anzeigen</summary>
+                                        <div class="row g-2 mt-2">
+                                            <div class="col-12">
+                                                <div class="small fw-semibold text-success">Hinzu</div>
+                                                <div class="d-flex flex-wrap gap-1" id="roleImpactGainedCaps"></div>
+                                            </div>
+                                            <div class="col-12">
+                                                <div class="small fw-semibold text-warning">Wegfall</div>
+                                                <div class="d-flex flex-wrap gap-1" id="roleImpactLostCaps"></div>
+                                            </div>
+                                        </div>
+                                    </details>
+                                <?php else: ?>
+                                    <div class="text-secondary small">
+                                        Die Wirkungsvorschau ist aktuell nicht verfügbar. Die Benutzerbearbeitung bleibt davon unberührt.
+                                    </div>
+                                <?php endif; ?>
                             </div>
                         </div>
                         <div class="card-footer">

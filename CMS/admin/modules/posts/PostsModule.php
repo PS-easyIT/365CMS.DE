@@ -1027,9 +1027,13 @@ class PostsModule
                     "UPDATE {$this->prefix}post_categories SET name = ?, slug = ?, parent_id = ?, alias_domains_json = ?, replacement_category_id = ? WHERE id = ?",
                     [$name, $slug, $parentId > 0 ? $parentId : null, $domainsJson, $replacementCategoryId > 0 ? $replacementCategoryId : null, $id]
                 );
-                $this->createTaxonomyArchiveRedirectsIfNeeded('category', $previousSlug, $slug);
+                $redirectDetails = $this->createTaxonomyArchiveRedirectsIfNeeded('category', $previousSlug, $slug);
                 $this->clearContentCacheIfEnabled('post_category_update', $id);
-                return ['success' => true, 'message' => 'Kategorie aktualisiert.'];
+                return [
+                    'success' => true,
+                    'message' => $redirectDetails !== [] ? 'Kategorie aktualisiert. Archiv-Weiterleitungen wurden geprüft.' : 'Kategorie aktualisiert.',
+                    'details' => $redirectDetails,
+                ];
             } else {
                 $this->db->execute(
                     "INSERT INTO {$this->prefix}post_categories (name, slug, parent_id, alias_domains_json, replacement_category_id) VALUES (?, ?, ?, ?, ?)",
@@ -1485,11 +1489,15 @@ class PostsModule
                     [$name, $slug, $id]
                 );
 
-                $this->createTaxonomyArchiveRedirectsIfNeeded('tag', $previousSlug, $slug);
+                $redirectDetails = $this->createTaxonomyArchiveRedirectsIfNeeded('tag', $previousSlug, $slug);
 
                 $this->clearContentCacheIfEnabled('post_tag_update', $id);
 
-                return ['success' => true, 'message' => 'Tag aktualisiert.'];
+                return [
+                    'success' => true,
+                    'message' => $redirectDetails !== [] ? 'Tag aktualisiert. Archiv-Weiterleitungen wurden geprüft.' : 'Tag aktualisiert.',
+                    'details' => $redirectDetails,
+                ];
             }
 
             $this->db->execute(
@@ -2883,23 +2891,46 @@ class PostsModule
         ) ?: ''));
     }
 
-    private function createTaxonomyArchiveRedirectsIfNeeded(string $archiveType, string $oldSlug, string $newSlug): void
+    private function createTaxonomyArchiveRedirectsIfNeeded(string $archiveType, string $oldSlug, string $newSlug): array
     {
-        $oldSlug = $this->normalizeSlug($oldSlug);
-        $newSlug = $this->normalizeSlug($newSlug);
-
-        if ($oldSlug === '' || $newSlug === '' || $oldSlug === $newSlug) {
-            return;
-        }
-
-        if (!function_exists('cms_get_archive_locales') || !function_exists('cms_get_archive_base')) {
-            return;
+        $redirectPairs = $this->getTaxonomyArchiveRedirectPairs($archiveType, $oldSlug, $newSlug);
+        if ($redirectPairs === []) {
+            return [];
         }
 
         $notes = $archiveType === 'tag'
             ? 'Automatisch bei Tag-Slug-Änderung angelegt'
             : 'Automatisch bei Kategorie-Slug-Änderung angelegt';
-        $paths = [];
+
+        foreach ($redirectPairs as $redirectPair) {
+            RedirectService::getInstance()->createAutomaticRedirect(
+                (string) ($redirectPair['source_path'] ?? ''),
+                (string) ($redirectPair['target_path'] ?? ''),
+                $notes
+            );
+        }
+
+        return $this->buildTaxonomyRedirectDetails($archiveType, $oldSlug, $newSlug, $redirectPairs);
+    }
+
+    /**
+     * @return array<int, array{source_path:string,target_path:string}>
+     */
+    private function getTaxonomyArchiveRedirectPairs(string $archiveType, string $oldSlug, string $newSlug): array
+    {
+        $oldSlug = $this->normalizeSlug($oldSlug);
+        $newSlug = $this->normalizeSlug($newSlug);
+
+        if ($oldSlug === '' || $newSlug === '' || $oldSlug === $newSlug) {
+            return [];
+        }
+
+        if (!function_exists('cms_get_archive_locales') || !function_exists('cms_get_archive_base')) {
+            return [];
+        }
+
+        $pairs = [];
+        $seenPaths = [];
 
         foreach (cms_get_archive_locales() as $locale) {
             $archiveBase = trim((string) cms_get_archive_base($archiveType, (string) $locale), '/');
@@ -2910,13 +2941,44 @@ class PostsModule
             $sourcePath = '/' . $archiveBase . '/' . $oldSlug;
             $targetPath = '/' . $archiveBase . '/' . $newSlug;
 
-            if (isset($paths[$sourcePath])) {
+            if (isset($seenPaths[$sourcePath])) {
                 continue;
             }
 
-            $paths[$sourcePath] = true;
-            RedirectService::getInstance()->createAutomaticRedirect($sourcePath, $targetPath, $notes);
+            $seenPaths[$sourcePath] = true;
+            $pairs[] = [
+                'source_path' => $sourcePath,
+                'target_path' => $targetPath,
+            ];
         }
+
+        return $pairs;
+    }
+
+    /**
+     * @param array<int, array{source_path:string,target_path:string}> $redirectPairs
+     * @return array<int, string>
+     */
+    private function buildTaxonomyRedirectDetails(string $archiveType, string $oldSlug, string $newSlug, array $redirectPairs): array
+    {
+        $oldSlug = $this->normalizeSlug($oldSlug);
+        $newSlug = $this->normalizeSlug($newSlug);
+
+        if ($redirectPairs === [] || $oldSlug === '' || $newSlug === '') {
+            return [];
+        }
+
+        $details = array_map(
+            static fn(array $redirectPair): string => (string) ($redirectPair['source_path'] ?? '') . ' → ' . (string) ($redirectPair['target_path'] ?? ''),
+            $redirectPairs
+        );
+
+        $details[] = $archiveType === 'tag'
+            ? 'Legacy-/Theme-Links mit ?tag=' . $oldSlug . ' bleiben weiterhin auf den aktuellen Archiv-Slug auflösbar.'
+            : 'Legacy-/Theme-Links mit ?category=' . $oldSlug . ' bleiben weiterhin auf den aktuellen Archiv-Slug auflösbar.';
+        $details[] = 'Die Redirect-Regeln werden weiter zentral über den Redirect-Manager geführt.';
+
+        return $details;
     }
 
     /**

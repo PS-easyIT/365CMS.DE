@@ -32,6 +32,21 @@
         return String(text || '').replace(/\s+/g, ' ').trim();
     }
 
+    function truncateText(value, maxLength) {
+        var normalized = String(value || '').trim();
+        var characters = Array.from(normalized);
+
+        if (characters.length <= maxLength) {
+            return normalized;
+        }
+
+        return characters.slice(0, Math.max(0, maxLength - 1)).join('').trim() + '…';
+    }
+
+    function normalizeComparableText(text) {
+        return toLower(normalizeVisibleText(text));
+    }
+
     function buildEmptyAnalysis() {
         return {
             plainText: '',
@@ -525,6 +540,108 @@
         });
     }
 
+    function summarizeOverrideValue(value, fallback) {
+        var resolved = truncateText(value, 120);
+
+        return resolved !== '' ? resolved : String(fallback || '—');
+    }
+
+    function buildDescriptionDefaultSource(excerpt, firstParagraph) {
+        if (normalizeVisibleText(excerpt) !== '') {
+            return 'Kurzfassung';
+        }
+
+        if (normalizeVisibleText(firstParagraph) !== '') {
+            return 'ersten Absatz';
+        }
+
+        return 'Inhalt';
+    }
+
+    function resolveMetaDescription(metaDescription, excerpt, analysis) {
+        var explicit = String(metaDescription || '').trim();
+        var excerptValue = String(excerpt || '').trim();
+        var firstParagraph = extractFirstParagraph(analysis);
+        var plainText = analysis && typeof analysis.plainText === 'string' ? analysis.plainText : '';
+
+        if (explicit !== '') {
+            return explicit;
+        }
+
+        if (excerptValue !== '') {
+            return truncateText(excerptValue, 155);
+        }
+
+        if (firstParagraph !== '') {
+            return truncateText(firstParagraph, 155);
+        }
+
+        return truncateText(plainText, 155);
+    }
+
+    function renderOverrideNotice(container, summaryElement, listElement, items, buttons) {
+        if (!container || !summaryElement || !listElement) {
+            return;
+        }
+
+        if (!Array.isArray(items) || items.length === 0) {
+            container.classList.add('d-none');
+            container.classList.remove('alert-warning', 'alert-info');
+            summaryElement.textContent = '';
+            clearElement(listElement);
+
+            if (buttons && buttons.title) {
+                buttons.title.classList.add('d-none');
+            }
+            if (buttons && buttons.description) {
+                buttons.description.classList.add('d-none');
+            }
+            if (buttons && buttons.all) {
+                buttons.all.classList.add('d-none');
+            }
+
+            return;
+        }
+
+        var redundantCount = items.filter(function (item) {
+            return !!item.redundant;
+        }).length;
+
+        container.classList.remove('d-none', 'alert-warning', 'alert-info');
+        container.classList.add(redundantCount > 0 ? 'alert-warning' : 'alert-info');
+
+        if (redundantCount === items.length) {
+            summaryElement.textContent = 'Mindestens ein lokales SEO-Feld entspricht bereits dem aktiven Default und kann ohne zusätzlichen Schreibpfad auf den Standard zurückgesetzt werden.';
+        } else if (redundantCount > 0) {
+            summaryElement.textContent = 'Ein Teil der lokalen SEO-Felder überschreibt die Defaults ohne erkennbaren Mehrwert; andere Werte sind bewusst individuell gesetzt.';
+        } else {
+            summaryElement.textContent = 'Lokale SEO-Felder überschreiben aktuell Standardwerte. Das ist erlaubt — hier siehst du transparent, welcher Default ohne den lokalen Wert greifen würde.';
+        }
+
+        clearElement(listElement);
+        items.forEach(function (item) {
+            var listItem = document.createElement('li');
+            listItem.textContent = String(item.message || 'Lokales SEO-Feld aktiv.');
+            listElement.appendChild(listItem);
+        });
+
+        if (buttons && buttons.title) {
+            buttons.title.classList.toggle('d-none', !items.some(function (item) {
+                return item.key === 'meta_title';
+            }));
+        }
+
+        if (buttons && buttons.description) {
+            buttons.description.classList.toggle('d-none', !items.some(function (item) {
+                return item.key === 'meta_description';
+            }));
+        }
+
+        if (buttons && buttons.all) {
+            buttons.all.classList.toggle('d-none', items.length < 2);
+        }
+    }
+
     function resolveMetaTitle(metaTitle, title, siteName, format, separator) {
         if (metaTitle) {
             return metaTitle;
@@ -549,6 +666,7 @@
 
         var titleInput = document.getElementById(config.titleId);
         var slugInput = document.getElementById(config.slugId);
+        var excerptInput = config.excerptId ? document.getElementById(config.excerptId) : null;
         var metaTitleInput = document.getElementById(config.metaTitleId);
         var metaDescInput = document.getElementById(config.metaDescId);
         var focusInput = document.getElementById(config.focusKeyphraseId);
@@ -585,11 +703,63 @@
         var readabilityBadge = document.getElementById(config.readabilityBadgeId);
         var readabilitySummary = document.getElementById(config.readabilitySummaryId);
         var hintBadgeContainer = document.getElementById(config.hintBadgeContainerId);
+        var overrideNotice = document.getElementById(config.overrideNoticeId);
+        var overrideSummary = document.getElementById(config.overrideSummaryId);
+        var overrideList = document.getElementById(config.overrideListId);
+        var resetTitleButton = document.getElementById(config.resetMetaTitleId);
+        var resetDescriptionButton = document.getElementById(config.resetMetaDescriptionId);
+        var resetAllButton = document.getElementById(config.resetAllMetaDefaultsId);
         var hideTitleInput = document.getElementById(config.hideTitleId);
+
+        function clearFieldAndRefresh(field) {
+            if (!field) {
+                return;
+            }
+
+            field.value = '';
+            field.dispatchEvent(new Event('input', { bubbles: true }));
+            field.dispatchEvent(new Event('change', { bubbles: true }));
+            field.focus();
+        }
+
+        if (resetTitleButton && metaTitleInput) {
+            resetTitleButton.addEventListener('click', function () {
+                clearFieldAndRefresh(metaTitleInput);
+            });
+        }
+
+        if (resetDescriptionButton && metaDescInput) {
+            resetDescriptionButton.addEventListener('click', function () {
+                clearFieldAndRefresh(metaDescInput);
+            });
+        }
+
+        if (resetAllButton && (metaTitleInput || metaDescInput)) {
+            resetAllButton.addEventListener('click', function () {
+                if (metaTitleInput) {
+                    metaTitleInput.value = '';
+                    metaTitleInput.dispatchEvent(new Event('input', { bubbles: true }));
+                    metaTitleInput.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+
+                if (metaDescInput) {
+                    metaDescInput.value = '';
+                    metaDescInput.dispatchEvent(new Event('input', { bubbles: true }));
+                    metaDescInput.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+
+                if (metaTitleInput) {
+                    metaTitleInput.focus();
+                } else if (metaDescInput) {
+                    metaDescInput.focus();
+                }
+            });
+        }
 
         var update = function () {
             var title = titleInput ? titleInput.value.trim() : '';
             var slug = slugInput ? slugInput.value.trim().replace(/^\/+/, '') : '';
+            var excerpt = excerptInput ? excerptInput.value.trim() : '';
             var metaTitle = metaTitleInput ? metaTitleInput.value.trim() : '';
             var metaDesc = metaDescInput ? metaDescInput.value.trim() : '';
             var focusPhrase = focusInput ? focusInput.value.trim().split(/[,;\n]+/)[0].trim() : '';
@@ -598,8 +768,11 @@
             var rawContent = contentInput ? contentInput.value : '';
             var analysis = analyzeContent(rawContent, editorContainer);
             var plainText = analysis.plainText;
-            var resolvedTitle = resolveMetaTitle(metaTitle, title, config.siteName, config.siteTitleFormat, config.titleSeparator);
-            var resolvedDesc = metaDesc || extractFirstParagraph(analysis);
+            var templateTitle = resolveMetaTitle('', title, config.siteName, config.siteTitleFormat, config.titleSeparator);
+            var resolvedTitle = metaTitle || templateTitle;
+            var firstParagraph = extractFirstParagraph(analysis);
+            var defaultDescription = resolveMetaDescription('', excerpt, analysis);
+            var resolvedDesc = resolveMetaDescription(metaDesc, excerpt, analysis);
             var words = wordCount(plainText);
             var density = focusPhrase ? (countPhrase(plainText, focusPhrase) / Math.max(words, 1)) * 100 : 0;
             var intro = plainText.slice(0, Math.max(120, Math.round(plainText.length * 0.1)));
@@ -627,6 +800,47 @@
             var ogImage = (ogImageInput && ogImageInput.value.trim()) || (twitterImageInput && twitterImageInput.value.trim()) || (featuredInput && featuredInput.value.trim()) || '';
             var socialResolvedTitle = ogTitle || (twitterTitleInput && twitterTitleInput.value.trim()) || resolvedTitle || config.siteName;
             var socialResolvedDesc = ogDescription || (twitterDescriptionInput && twitterDescriptionInput.value.trim()) || resolvedDesc || 'Social Preview';
+            var descriptionSource = buildDescriptionDefaultSource(excerpt, firstParagraph);
+            var descriptionSourceLabel = descriptionSource === 'Kurzfassung'
+                ? 'der Kurzfassung'
+                : (descriptionSource === 'ersten Absatz' ? 'dem ersten Absatz' : 'dem Inhalt');
+            var overrideItems = [];
+
+            if (metaTitle !== '') {
+                var comparableMetaTitle = normalizeComparableText(metaTitle);
+                var comparableTemplateTitle = normalizeComparableText(templateTitle);
+                var titleRedundant = comparableTemplateTitle !== '' && comparableMetaTitle === comparableTemplateTitle;
+
+                overrideItems.push({
+                    key: 'meta_title',
+                    redundant: titleRedundant,
+                    message: titleRedundant
+                        ? 'Meta-Titel: Der lokale Wert entspricht bereits dem globalen Titel-Template („' + summarizeOverrideValue(templateTitle, config.siteName || '—') + '“).'
+                        : 'Meta-Titel: Der lokale Wert überschreibt das globale Titel-Template. Template-Default wäre aktuell „' + summarizeOverrideValue(templateTitle, config.siteName || '—') + '“.'
+                });
+            }
+
+            if (metaDesc !== '') {
+                var comparableMetaDescription = normalizeComparableText(metaDesc);
+                var comparableDefaultDescription = normalizeComparableText(defaultDescription);
+                var descriptionRedundant = comparableDefaultDescription !== '' && comparableMetaDescription === comparableDefaultDescription;
+
+                overrideItems.push({
+                    key: 'meta_description',
+                    redundant: descriptionRedundant,
+                    message: descriptionRedundant
+                        ? 'Meta-Beschreibung: Der lokale Wert entspricht bereits dem automatischen Default aus ' + descriptionSourceLabel + ' („' + summarizeOverrideValue(defaultDescription, 'aktuell leer') + '“).'
+                        : (comparableDefaultDescription !== ''
+                            ? 'Meta-Beschreibung: Der lokale Wert überschreibt den automatischen Default aus ' + descriptionSourceLabel + '. Default wäre aktuell „' + summarizeOverrideValue(defaultDescription, 'aktuell leer') + '“.'
+                            : 'Meta-Beschreibung: Der lokale Wert ist aktiv; ohne ihn gäbe es aktuell keinen automatisch ableitbaren Description-Text.')
+                });
+            }
+
+            renderOverrideNotice(overrideNotice, overrideSummary, overrideList, overrideItems, {
+                title: resetTitleButton,
+                description: resetDescriptionButton,
+                all: resetAllButton
+            });
 
             var rules = [
                 createRule('meta_title', 'Meta-Titel', resolvedTitle.length >= 30 && resolvedTitle.length <= 60, resolvedTitle.length + ' Zeichen', 10),
@@ -753,8 +967,8 @@
             }
             if (warningBox) {
                 var requiredMissing = [];
-                if (!metaTitle) { requiredMissing.push('Meta-Titel'); }
-                if (!metaDesc) { requiredMissing.push('Meta-Beschreibung'); }
+                if (!resolvedTitle) { requiredMissing.push('Meta-Titel'); }
+                if (!resolvedDesc) { requiredMissing.push('Meta-Beschreibung'); }
                 if (!ogImage) { requiredMissing.push('OG-Bild'); }
                 warningBox.textContent = requiredMissing.length ? 'Vor Veröffentlichung fehlen: ' + requiredMissing.join(', ') : 'SEO-Pflichtfelder für die Veröffentlichung sind gesetzt.';
                 warningBox.className = 'alert ' + (requiredMissing.length ? 'alert-warning' : 'alert-success');
@@ -764,7 +978,7 @@
             form.dataset.seoScore = String(score);
         };
 
-        [titleInput, slugInput, metaTitleInput, metaDescInput, focusInput, ogTitleInput, ogDescriptionInput, ogImageInput, twitterTitleInput, twitterDescriptionInput, twitterImageInput, featuredInput, statusInput, contentInput].forEach(function (el) {
+        [titleInput, slugInput, excerptInput, metaTitleInput, metaDescInput, focusInput, ogTitleInput, ogDescriptionInput, ogImageInput, twitterTitleInput, twitterDescriptionInput, twitterImageInput, featuredInput, statusInput, contentInput].forEach(function (el) {
             if (!el) {
                 return;
             }

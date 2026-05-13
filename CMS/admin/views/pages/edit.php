@@ -361,6 +361,16 @@ $isEnglishEditorView = $editorLocale === 'en';
                                 <textarea name="meta_description" class="form-control" rows="3" id="pageMetaDescription" placeholder="Kurze Beschreibung für Suchmaschinen…" maxlength="160"><?= htmlspecialchars($pageMetaDescriptionValue) ?></textarea>
                                 <small class="form-hint"><span id="metaDescriptionCount">0</span>/160 Zeichen</small>
                             </div>
+                            <div id="pageSeoOverrideNotice" class="alert alert-info d-none" role="status" aria-live="polite">
+                                <div class="fw-semibold mb-2">SEO-Default-Hinweis</div>
+                                <div class="small mb-2" id="pageSeoOverrideSummary"></div>
+                                <ul class="small ps-3 mb-3" id="pageSeoOverrideList"></ul>
+                                <div class="btn-list">
+                                    <button type="button" class="btn btn-sm btn-outline-primary d-none" id="pageSeoResetMetaTitle">Meta-Titel auf Default zurücksetzen</button>
+                                    <button type="button" class="btn btn-sm btn-outline-primary d-none" id="pageSeoResetMetaDescription">Meta-Beschreibung auf Default zurücksetzen</button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary d-none" id="pageSeoResetAllMetaDefaults">Alle lokalen SEO-Felder auf Default zurücksetzen</button>
+                                </div>
+                            </div>
                             <div class="mb-3">
                                 <label class="form-label" for="pageCanonicalUrl">Kanonische URL</label>
                                 <input type="text" name="canonical_url" id="pageCanonicalUrl" class="form-control" value="<?= htmlspecialchars($pageCanonicalUrlValue) ?>" placeholder="Automatisch self-referencing, wenn leer">
@@ -643,6 +653,12 @@ $isEnglishEditorView = $editorLocale === 'en';
             'readabilityBadgeId' => 'pageReadabilityBadge',
             'readabilitySummaryId' => 'pageReadabilitySummary',
             'hintBadgeContainerId' => 'pageSeoHintBadges',
+            'overrideNoticeId' => 'pageSeoOverrideNotice',
+            'overrideSummaryId' => 'pageSeoOverrideSummary',
+            'overrideListId' => 'pageSeoOverrideList',
+            'resetMetaTitleId' => 'pageSeoResetMetaTitle',
+            'resetMetaDescriptionId' => 'pageSeoResetMetaDescription',
+            'resetAllMetaDefaultsId' => 'pageSeoResetAllMetaDefaults',
             'hideTitleId' => 'hideTitle',
             'titleCreatesH1' => true,
             'previewBaseUrl' => '/',

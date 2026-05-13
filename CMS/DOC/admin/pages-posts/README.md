@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Überblick über die Content-Module im Admin-Bereich und ihre aktuelle Aufgabenverteilung.
 
-Letzte Aktualisierung: 2026-05-10 · Version 2.9.709
+Letzte Aktualisierung: 2026-05-12 · Version 2.9.779
 
 Der Content-Bereich ist auf mehrere spezialisierte Bereiche verteilt:
 
@@ -57,6 +57,7 @@ Die SEO-spezifischen Global-Einstellungen liegen nicht mehr in einem alten Monol
 - Der Beitrags-Editor nutzt im Top-Bereich jetzt eine kompaktere Kartenverteilung: Kategorie und Tags sitzen direkt beim Slug, während Speichern und öffentliche DE-/EN-Vorschau in einer eigenen Aktions-Card unter dem Beitragsbild liegen.
 - Beiträge arbeiten im Editor aktuell mit **einer primären Kategorie**; die frühere UI für zusätzliche Kategorien wird nicht mehr angeboten.
 - Slug-Änderungen an Kategorien und Tags halten den öffentlichen Taxonomie-Vertrag jetzt ebenfalls stabil: dedizierte Archivpfade und alte `?category=`/`?tag=`-Filterwerte werden weiter auf den aktuellen Slug aufgelöst.
+- Die Kategorie- und Tag-Editoren machen diesen Vertrag inzwischen sichtbar: aktuelle Archivpfade, Redirect-Hinweis direkt am Slug-Feld und Erfolgsdetails zu automatisch gepflegten Archiv-Weiterleitungen sorgen dafür, dass die Cross-Verkabelung im Admin nachvollziehbar bleibt.
 - Kategorien und Tags unterstützen seit `2.9.706` Bulk-Löschaktionen in den jeweiligen Listen. Bei Beitragsbezug erzwingt der Server gültige Ersatzkategorien bzw. Ersatztags, verhindert Ersatzwerte aus der Lösch-Auswahl und protokolliert erfolgreiche Sammelaktionen im Audit-Trail.
 - Seit `2.9.707` leeren erfolgreiche Bulk-Löschungen für Kategorien und Tags den Content-Cache erst nach erfolgreichem Commit einmalig statt pro Einzellöschung innerhalb der offenen Transaktion. Das reduziert unnötige Cache-Invalidierungen und hält den Löschpfad bei Rollbacks konsistenter.
 - Hub-Sites reservieren nun auch statische Public-Routen und Archivbasen als Slugs, damit neu angelegte Hubs nicht an `/contact`, `/authors`, `/feed`, `/category`, `/tag` oder ähnlichen Frontend-Routen unsichtbar vorbeiplanen.

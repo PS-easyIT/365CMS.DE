@@ -49,11 +49,13 @@ class UsersModule
             'orderby' => 'created_at',
             'order'   => 'DESC',
         ]);
+        $users = is_array($result['users'] ?? null) ? $result['users'] : [];
+        $users = $this->attachUserSupportContexts($users);
 
         $stats = $this->userService->getStatistics();
 
         return [
-            'users'          => $result['users'],
+            'users'          => $users,
             'total'          => $result['total'],
             'stats'          => $stats,
             'availableRoles' => $this->userService->getAvailableRoles(),
@@ -66,11 +68,187 @@ class UsersModule
     }
 
     /**
+     * Reichert die Benutzerliste um eine read-only Support-Zeile an.
+     *
+     * @param array<int,object> $users
+     * @return array<int,object>
+     */
+    private function attachUserSupportContexts(array $users): array
+    {
+        $userIds = [];
+        foreach ($users as $user) {
+            $userId = (int)($user->id ?? 0);
+            if ($userId > 0) {
+                $userIds[$userId] = $userId;
+            }
+        }
+
+        if ($userIds === []) {
+            return $users;
+        }
+
+        $directSubscriptions = $this->loadDirectSubscriptionSummaries(array_values($userIds));
+        $groupSummaries = $this->loadUserGroupSupportSummaries(array_values($userIds));
+
+        foreach ($users as $user) {
+            $userId = (int)($user->id ?? 0);
+            $role = (string)($user->role ?? 'member');
+            $capabilities = $this->loadRoleCapabilityLookup($role);
+            $memberAreas = $this->buildMemberAreaListForRole($role, $capabilities);
+            $directSubscription = $directSubscriptions[$userId] ?? null;
+            $groupPlans = $groupSummaries[$userId] ?? [];
+            $moduleLabels = array_values(array_column($memberAreas, 'label'));
+
+            $user->support_context = [
+                'direct_package' => $directSubscription['label'] ?? '',
+                'direct_package_status' => $directSubscription['status'] ?? '',
+                'group_packages' => array_slice($groupPlans, 0, 3),
+                'group_package_count' => count($groupPlans),
+                'member_modules' => array_slice($moduleLabels, 0, 4),
+                'member_module_count' => count($moduleLabels),
+                'contract_label' => $directSubscription['contract_label'] ?? 'Keine aktive Frist',
+                'contract_severity' => $directSubscription['contract_severity'] ?? 'secondary',
+                'contract_due_at' => $directSubscription['due_at'] ?? '',
+            ];
+        }
+
+        return $users;
+    }
+
+    /**
+     * @param array<int,int> $userIds
+     * @return array<int,array<string,string>>
+     */
+    private function loadDirectSubscriptionSummaries(array $userIds): array
+    {
+        $userIds = array_values(array_unique(array_filter(array_map('intval', $userIds), static fn(int $id): bool => $id > 0)));
+        if ($userIds === []) {
+            return [];
+        }
+
+        $placeholders = implode(', ', array_fill(0, count($userIds), '?'));
+
+        try {
+            $rows = $this->db->get_results(
+                "SELECT us.user_id, us.status, us.billing_cycle, us.end_date, us.next_billing_date,
+                        sp.name AS plan_name, sp.slug AS plan_slug
+                   FROM {$this->prefix}user_subscriptions us
+                   INNER JOIN {$this->prefix}subscription_plans sp ON sp.id = us.plan_id
+                  WHERE us.user_id IN ({$placeholders})
+                    AND us.status IN ('active', 'trial')
+                    AND (us.end_date IS NULL OR us.end_date > NOW())
+                  ORDER BY us.user_id ASC, us.created_at DESC",
+                $userIds
+            ) ?: [];
+        } catch (\Throwable) {
+            return [];
+        }
+
+        $summaries = [];
+        foreach ($rows as $row) {
+            $userId = (int)($row->user_id ?? 0);
+            if ($userId <= 0 || isset($summaries[$userId])) {
+                continue;
+            }
+
+            $dueAt = $this->safeUiText((string)(($row->next_billing_date ?? '') ?: ($row->end_date ?? '')), 40);
+            $contractState = $this->buildContractState($dueAt);
+            $summaries[$userId] = [
+                'label' => $this->safeUiText((string)($row->plan_name ?? 'Aktives Paket'), 120, 'Aktives Paket'),
+                'status' => $this->safeUiText((string)($row->status ?? 'active'), 30, 'active'),
+                'billing_cycle' => $this->safeUiText((string)($row->billing_cycle ?? ''), 30),
+                'due_at' => $dueAt,
+                'contract_label' => $contractState['label'],
+                'contract_severity' => $contractState['severity'],
+            ];
+        }
+
+        return $summaries;
+    }
+
+    /**
+     * @param array<int,int> $userIds
+     * @return array<int,array<int,string>>
+     */
+    private function loadUserGroupSupportSummaries(array $userIds): array
+    {
+        $userIds = array_values(array_unique(array_filter(array_map('intval', $userIds), static fn(int $id): bool => $id > 0)));
+        if ($userIds === []) {
+            return [];
+        }
+
+        $placeholders = implode(', ', array_fill(0, count($userIds), '?'));
+
+        try {
+            $rows = $this->db->get_results(
+                "SELECT ugm.user_id, ug.name AS group_name, ug.is_active, sp.name AS plan_name
+                   FROM {$this->prefix}user_group_members ugm
+                   INNER JOIN {$this->prefix}user_groups ug ON ug.id = ugm.group_id
+                   LEFT JOIN {$this->prefix}subscription_plans sp ON sp.id = ug.plan_id
+                  WHERE ugm.user_id IN ({$placeholders})
+                  ORDER BY ug.is_active DESC, ug.name ASC",
+                $userIds
+            ) ?: [];
+        } catch (\Throwable) {
+            return [];
+        }
+
+        $summaries = [];
+        foreach ($rows as $row) {
+            $userId = (int)($row->user_id ?? 0);
+            if ($userId <= 0) {
+                continue;
+            }
+
+            $groupName = $this->safeUiText((string)($row->group_name ?? 'Gruppe'), 80, 'Gruppe');
+            $planName = $this->safeUiText((string)($row->plan_name ?? ''), 80);
+            $inactiveSuffix = (int)($row->is_active ?? 0) === 1 ? '' : ' (inaktiv)';
+            $summaries[$userId][] = $planName !== ''
+                ? $groupName . ' → ' . $planName . $inactiveSuffix
+                : $groupName . ' → kein Paket' . $inactiveSuffix;
+        }
+
+        return $summaries;
+    }
+
+    /** @return array{label:string,severity:string} */
+    private function buildContractState(string $dueAt): array
+    {
+        $dueAt = trim($dueAt);
+        if ($dueAt === '') {
+            return ['label' => 'Keine Laufzeitfrist', 'severity' => 'secondary'];
+        }
+
+        try {
+            $dueDate = new \DateTimeImmutable($dueAt);
+            $today = new \DateTimeImmutable('today');
+        } catch (\Throwable) {
+            return ['label' => 'Frist unlesbar', 'severity' => 'secondary'];
+        }
+
+        $days = (int)$today->diff($dueDate->setTime(0, 0))->format('%r%a');
+        if ($days < 0) {
+            return ['label' => 'Überfällig seit ' . abs($days) . ' Tag' . (abs($days) === 1 ? '' : 'en'), 'severity' => 'danger'];
+        }
+
+        if ($days === 0) {
+            return ['label' => 'Heute fällig', 'severity' => 'warning'];
+        }
+
+        if ($days <= 14) {
+            return ['label' => 'Läuft in ' . $days . ' Tag' . ($days === 1 ? '' : 'en') . ' aus', 'severity' => 'warning'];
+        }
+
+        return ['label' => 'Läuft am ' . $dueDate->format('d.m.Y') . ' aus', 'severity' => 'info'];
+    }
+
+    /**
      * Daten für die Edit-Ansicht
      */
     public function getEditData(?int $id): array
     {
         $user = null;
+        $availableRoles = $this->userService->getAvailableRoles();
         $securityEventsState = [
             'events' => [],
             'unavailable' => false,
@@ -84,11 +262,488 @@ class UsersModule
         return [
             'user'              => $user,
             'isNew'             => $user === null,
-            'availableRoles'    => $this->userService->getAvailableRoles(),
+            'availableRoles'    => $availableRoles,
             'availableStatuses' => $this->userService->getAvailableStatuses(),
             'securityEvents'    => $securityEventsState['events'],
             'securityEventsUnavailable' => (bool) $securityEventsState['unavailable'],
+            'roleImpactPreview' => $this->buildRoleImpactPreview($user, $availableRoles),
         ];
+    }
+
+    /**
+     * Erstellt eine read-only Wirkungsvorschau für Rollenwechsel im Benutzerprofil.
+     *
+     * Der Pfad schreibt keine Daten, nutzt keine Token-URLs und fällt bei optionalen
+     * Tabellen/Plugin-Registries kontrolliert auf Hinweise zurück.
+     *
+     * @param array<string,string> $availableRoles
+     * @return array<string,mixed>
+     */
+    private function buildRoleImpactPreview(?object $user, array $availableRoles): array
+    {
+        if ($availableRoles === []) {
+            return [
+                'available' => false,
+                'message' => 'Es sind aktuell keine Rollen verfügbar.',
+                'roles' => [],
+            ];
+        }
+
+        $currentRole = $this->normalizeKnownRole((string)($user->role ?? 'member'), $availableRoles);
+        $currentCapabilities = $this->loadRoleCapabilityLookup($currentRole);
+        $currentMemberAreas = $this->buildMemberAreaListForRole($currentRole, $currentCapabilities);
+        $pluginWidgets = $this->getPluginWidgetDefinitions();
+        $currentPluginWidgets = $this->filterPluginWidgetsForRole($pluginWidgets, $currentRole, $currentCapabilities);
+        $packageContext = $this->getUserPackageContext((int)($user->id ?? 0));
+
+        $roles = [];
+        foreach ($availableRoles as $role => $label) {
+            $targetRole = $this->normalizeKnownRole((string)$role, $availableRoles);
+            if ($targetRole === '' || isset($roles[$targetRole])) {
+                continue;
+            }
+
+            $targetCapabilities = $this->loadRoleCapabilityLookup($targetRole);
+            $targetMemberAreas = $this->buildMemberAreaListForRole($targetRole, $targetCapabilities);
+            $targetPluginWidgets = $this->filterPluginWidgetsForRole($pluginWidgets, $targetRole, $targetCapabilities);
+
+            $gainedCapabilities = array_values(array_diff(array_keys($targetCapabilities), array_keys($currentCapabilities)));
+            $lostCapabilities = array_values(array_diff(array_keys($currentCapabilities), array_keys($targetCapabilities)));
+            sort($gainedCapabilities, SORT_NATURAL | SORT_FLAG_CASE);
+            sort($lostCapabilities, SORT_NATURAL | SORT_FLAG_CASE);
+
+            $roles[$targetRole] = [
+                'role' => $targetRole,
+                'label' => $this->safeUiText((string)$label, 80, $targetRole),
+                'capability_count' => count($targetCapabilities),
+                'gained_count' => count($gainedCapabilities),
+                'lost_count' => count($lostCapabilities),
+                'gained_capabilities' => $this->limitPreviewValues($gainedCapabilities),
+                'lost_capabilities' => $this->limitPreviewValues($lostCapabilities),
+                'member_areas' => array_values(array_column($targetMemberAreas, 'label')),
+                'added_member_areas' => $this->diffLabeledPreviewItems($targetMemberAreas, $currentMemberAreas),
+                'removed_member_areas' => $this->diffLabeledPreviewItems($currentMemberAreas, $targetMemberAreas),
+                'plugin_widgets' => array_values(array_column($targetPluginWidgets, 'label')),
+                'added_plugin_widgets' => $this->diffLabeledPreviewItems($targetPluginWidgets, $currentPluginWidgets),
+                'removed_plugin_widgets' => $this->diffLabeledPreviewItems($currentPluginWidgets, $targetPluginWidgets),
+                'package_summary' => $this->buildRolePackageImpact($currentRole, $targetRole, $packageContext, (int)($user->id ?? 0) > 0),
+            ];
+        }
+
+        return [
+            'available' => true,
+            'current_role' => $currentRole,
+            'current_label' => $this->safeUiText((string)($availableRoles[$currentRole] ?? $currentRole), 80, $currentRole),
+            'is_existing_user' => (int)($user->id ?? 0) > 0,
+            'plugin_widgets_unavailable' => $pluginWidgets === [],
+            'roles' => $roles,
+        ];
+    }
+
+    /** @param array<string,string> $availableRoles */
+    private function normalizeKnownRole(string $role, array $availableRoles): string
+    {
+        $role = strtolower(trim($role));
+        $role = preg_replace('/[^a-z0-9_-]+/', '-', $role) ?? '';
+        $role = trim($role, '-_');
+
+        if ($role !== '' && array_key_exists($role, $availableRoles)) {
+            return $role;
+        }
+
+        if (array_key_exists('member', $availableRoles)) {
+            return 'member';
+        }
+
+        $firstRole = array_key_first($availableRoles);
+        return is_string($firstRole) ? $firstRole : '';
+    }
+
+    /** @return array<string,bool> */
+    private function loadRoleCapabilityLookup(string $role): array
+    {
+        $capabilities = [];
+
+        foreach ($this->userService->getRoleCapabilities($role) as $capability) {
+            $normalized = $this->normalizeCapabilityName((string)$capability);
+            if ($normalized !== '') {
+                $capabilities[$normalized] = true;
+            }
+        }
+
+        ksort($capabilities, SORT_NATURAL | SORT_FLAG_CASE);
+
+        return $capabilities;
+    }
+
+    private function normalizeCapabilityName(string $capability): string
+    {
+        if (function_exists('cms_normalize_role_capability')) {
+            return cms_normalize_role_capability($capability);
+        }
+
+        $capability = strtolower(trim($capability));
+        $capability = str_replace(['\\', '/', ':'], '.', $capability);
+        $capability = preg_replace('/\s+/', '.', $capability) ?? '';
+        $capability = preg_replace('/[^a-z0-9._-]+/', '-', $capability) ?? '';
+        $capability = preg_replace('/\.{2,}/', '.', $capability) ?? '';
+
+        return trim($capability, '.-_');
+    }
+
+    /**
+     * @param array<string,bool> $capabilities
+     * @return array<int,array{slug:string,label:string}>
+     */
+    private function buildMemberAreaListForRole(string $role, array $capabilities): array
+    {
+        $areas = [];
+        $dashboardEnabled = $this->isSettingEnabled('member_dashboard_enabled', true)
+            && $this->isCoreModuleEnabled('member_dashboard', true);
+
+        if ($dashboardEnabled) {
+            $areas[] = ['slug' => 'dashboard', 'label' => 'Member-Dashboard'];
+        }
+
+        $areas[] = ['slug' => 'profile', 'label' => 'Profil'];
+        $areas[] = ['slug' => 'security', 'label' => 'Sicherheit'];
+        $areas[] = ['slug' => 'notifications', 'label' => 'Benachrichtigungen'];
+        $areas[] = ['slug' => 'messages', 'label' => 'Nachrichten'];
+        $areas[] = ['slug' => 'media', 'label' => 'Member-Dateien'];
+        $areas[] = ['slug' => 'favorites', 'label' => 'Favoriten'];
+        $areas[] = ['slug' => 'privacy', 'label' => 'Datenschutz'];
+
+        if ($this->isSettingEnabled('member_subscription_visible', true)
+            && $this->isCoreModuleEnabled('subscription_member_area', true)) {
+            $areas[] = ['slug' => 'subscription', 'label' => 'Abo & Bestellungen'];
+        }
+
+        if ($role === 'admin'
+            || !empty($capabilities['adminportal'])
+            || !empty($capabilities['admin.portal'])
+            || !empty($capabilities['admin-portal'])) {
+            $areas[] = ['slug' => 'admin', 'label' => 'Adminmenü im Member-Bereich'];
+        }
+
+        return $areas;
+    }
+
+    private function isSettingEnabled(string $key, bool $default): bool
+    {
+        try {
+            $value = $this->db->get_var(
+                "SELECT option_value FROM {$this->prefix}settings WHERE option_name = ? LIMIT 1",
+                [$key]
+            );
+        } catch (\Throwable) {
+            return $default;
+        }
+
+        if ($value === null) {
+            return $default;
+        }
+
+        return !in_array(strtolower(trim((string)$value)), ['0', 'false', 'off', 'no'], true);
+    }
+
+    private function isCoreModuleEnabled(string $module, bool $default): bool
+    {
+        if (!class_exists('CMS\\Services\\CoreModuleService')) {
+            return $default;
+        }
+
+        try {
+            return \CMS\Services\CoreModuleService::getInstance()->isModuleEnabled($module);
+        } catch (\Throwable) {
+            return $default;
+        }
+    }
+
+    /**
+     * @return array<int,array{slug:string,plugin:string,label:string,capability:string}>
+     */
+    private function getPluginWidgetDefinitions(): array
+    {
+        if (!class_exists('CMS\\Member\\PluginDashboardRegistry') && defined('ABSPATH')) {
+            $registryFile = ABSPATH . 'core/Member/PluginDashboardRegistry.php';
+            if (is_file($registryFile)) {
+                require_once $registryFile;
+            }
+        }
+
+        if (!class_exists('CMS\\Member\\PluginDashboardRegistry')) {
+            return [];
+        }
+
+        try {
+            $registry = \CMS\Member\PluginDashboardRegistry::instance();
+            $registry->init();
+            $sections = $registry->getAll();
+        } catch (\Throwable $e) {
+            Logger::instance()->withChannel('admin.users')->warning('Plugin-Widget-Wirkungsvorschau konnte nicht geladen werden.', [
+                'exception' => $e::class,
+            ]);
+
+            return [];
+        }
+
+        $widgets = [];
+        foreach ($sections as $section) {
+            if (!is_array($section) || !empty($section['parent_slug']) || ($section['dashboard_widget'] ?? null) === false) {
+                continue;
+            }
+
+            $slug = $this->safeUiText((string)($section['slug'] ?? ''), 80);
+            if ($slug === '') {
+                continue;
+            }
+
+            $widgets[] = [
+                'slug' => $slug,
+                'plugin' => $this->safeUiText((string)($section['plugin'] ?? $slug), 100, $slug),
+                'label' => $this->safeUiText((string)($section['label'] ?? $slug), 120, $slug),
+                'capability' => $this->normalizeCapabilityName((string)($section['capability'] ?? '')),
+            ];
+        }
+
+        return $widgets;
+    }
+
+    /**
+     * @param array<int,array{slug:string,plugin:string,label:string,capability:string}> $widgets
+     * @param array<string,bool> $capabilities
+     * @return array<int,array{slug:string,label:string}>
+     */
+    private function filterPluginWidgetsForRole(array $widgets, string $role, array $capabilities): array
+    {
+        $visible = [];
+
+        foreach ($widgets as $widget) {
+            $requiredCapability = (string)($widget['capability'] ?? '');
+            $isVisible = $requiredCapability === ''
+                || $role === 'admin'
+                || !empty($capabilities[$requiredCapability]);
+
+            if (!$isVisible) {
+                continue;
+            }
+
+            $visible[] = [
+                'slug' => (string)$widget['slug'],
+                'label' => (string)$widget['label'],
+            ];
+        }
+
+        return $visible;
+    }
+
+    /**
+     * @param array<int,array{slug:string,label:string}> $left
+     * @param array<int,array{slug:string,label:string}> $right
+     * @return array<int,string>
+     */
+    private function diffLabeledPreviewItems(array $left, array $right): array
+    {
+        $rightSlugs = array_fill_keys(array_values(array_map(static fn(array $item): string => (string)$item['slug'], $right)), true);
+        $diff = [];
+
+        foreach ($left as $item) {
+            $slug = (string)$item['slug'];
+            if ($slug !== '' && !isset($rightSlugs[$slug])) {
+                $diff[] = (string)$item['label'];
+            }
+        }
+
+        return $diff;
+    }
+
+    /** @return array<int,string> */
+    private function limitPreviewValues(array $values, int $limit = 12): array
+    {
+        $values = array_values(array_filter(array_map(
+            fn($value): string => $this->safeUiText((string)$value, 100),
+            $values
+        )));
+
+        if (count($values) <= $limit) {
+            return $values;
+        }
+
+        $remaining = count($values) - $limit;
+        $values = array_slice($values, 0, $limit);
+        $values[] = '+' . $remaining . ' weitere';
+
+        return $values;
+    }
+
+    /** @return array<string,mixed> */
+    private function getUserPackageContext(int $userId): array
+    {
+        return [
+            'direct_subscription' => $userId > 0 ? $this->getDirectSubscriptionSummary($userId) : null,
+            'group_plans' => $userId > 0 ? $this->getGroupPlanSummaries($userId) : [],
+            'default_plan' => $this->getConfiguredDefaultPlanSummary(),
+        ];
+    }
+
+    /** @return array<string,string>|null */
+    private function getDirectSubscriptionSummary(int $userId): ?array
+    {
+        try {
+            $row = $this->db->get_row(
+                "SELECT us.status, us.billing_cycle, us.end_date, us.next_billing_date, sp.name AS plan_name
+                   FROM {$this->prefix}user_subscriptions us
+                   INNER JOIN {$this->prefix}subscription_plans sp ON sp.id = us.plan_id
+                  WHERE us.user_id = ?
+                    AND us.status IN ('active', 'trial')
+                    AND (us.end_date IS NULL OR us.end_date > NOW())
+                  ORDER BY us.created_at DESC
+                  LIMIT 1",
+                [$userId]
+            );
+        } catch (\Throwable) {
+            return null;
+        }
+
+        if (!$row) {
+            return null;
+        }
+
+        return [
+            'label' => $this->safeUiText((string)($row->plan_name ?? 'Aktives Paket'), 120, 'Aktives Paket'),
+            'status' => $this->safeUiText((string)($row->status ?? 'active'), 30, 'active'),
+            'billing_cycle' => $this->safeUiText((string)($row->billing_cycle ?? ''), 30),
+            'due_at' => $this->safeUiText((string)(($row->next_billing_date ?? '') ?: ($row->end_date ?? '')), 40),
+        ];
+    }
+
+    /** @return array<int,string> */
+    private function getGroupPlanSummaries(int $userId): array
+    {
+        try {
+            $rows = $this->db->get_results(
+                "SELECT ug.name AS group_name, ug.is_active, sp.name AS plan_name
+                   FROM {$this->prefix}user_group_members ugm
+                   INNER JOIN {$this->prefix}user_groups ug ON ug.id = ugm.group_id
+                   LEFT JOIN {$this->prefix}subscription_plans sp ON sp.id = ug.plan_id
+                  WHERE ugm.user_id = ?
+                  ORDER BY ug.is_active DESC, ug.name ASC",
+                [$userId]
+            ) ?: [];
+        } catch (\Throwable) {
+            return [];
+        }
+
+        $summaries = [];
+        foreach ($rows as $row) {
+            $groupName = $this->safeUiText((string)($row->group_name ?? 'Gruppe'), 100, 'Gruppe');
+            $planName = $this->safeUiText((string)($row->plan_name ?? ''), 100);
+            $suffix = ((int)($row->is_active ?? 0) === 1) ? '' : ' (inaktiv)';
+            $summaries[] = $planName !== ''
+                ? $groupName . ' → ' . $planName . $suffix
+                : $groupName . ' → kein Paket' . $suffix;
+        }
+
+        return $summaries;
+    }
+
+    /** @return array<string,string>|null */
+    private function getConfiguredDefaultPlanSummary(): ?array
+    {
+        try {
+            $planId = (int)($this->db->get_var(
+                "SELECT option_value FROM {$this->prefix}settings WHERE option_name = ? LIMIT 1",
+                ['subscription_default_plan_id']
+            ) ?? 0);
+
+            if ($planId <= 0) {
+                return null;
+            }
+
+            $row = $this->db->get_row(
+                "SELECT name, slug FROM {$this->prefix}subscription_plans WHERE id = ? AND is_active = 1 LIMIT 1",
+                [$planId]
+            );
+        } catch (\Throwable) {
+            return null;
+        }
+
+        if (!$row) {
+            return null;
+        }
+
+        return [
+            'label' => $this->safeUiText((string)($row->name ?? 'Standardpaket'), 120, 'Standardpaket'),
+            'slug' => $this->safeUiText((string)($row->slug ?? ''), 100),
+        ];
+    }
+
+    /**
+     * @param array<string,mixed> $packageContext
+     * @return array<string,mixed>
+     */
+    private function buildRolePackageImpact(string $currentRole, string $targetRole, array $packageContext, bool $isExistingUser): array
+    {
+        $directSubscription = is_array($packageContext['direct_subscription'] ?? null) ? $packageContext['direct_subscription'] : null;
+        $groupPlans = is_array($packageContext['group_plans'] ?? null) ? $packageContext['group_plans'] : [];
+        $defaultPlan = is_array($packageContext['default_plan'] ?? null) ? $packageContext['default_plan'] : null;
+        $currentPackage = $directSubscription['label'] ?? 'Kein direktes aktives Paket';
+
+        if (!$isExistingUser) {
+            if ($targetRole === 'member' && $defaultPlan !== null) {
+                return [
+                    'severity' => 'info',
+                    'title' => 'Standardpaket bei Neuanlage',
+                    'message' => 'Beim Erstellen mit Rolle „Mitglied“ wird automatisch das konfigurierte Standardpaket „' . $defaultPlan['label'] . '“ zugewiesen, sofern noch kein aktives Abo besteht.',
+                    'current_package' => 'Neuer Benutzer',
+                    'group_packages' => [],
+                    'default_package' => $defaultPlan['label'],
+                ];
+            }
+
+            return [
+                'severity' => 'secondary',
+                'title' => 'Keine automatische Paketzuweisung',
+                'message' => $targetRole === 'member'
+                    ? 'Für neue Mitglieder ist kein aktives Standardpaket konfiguriert oder verfügbar.'
+                    : 'Automatische Standardpakete werden nur bei Neuanlage mit Zielrolle „Mitglied“ vergeben.',
+                'current_package' => 'Neuer Benutzer',
+                'group_packages' => [],
+                'default_package' => $defaultPlan['label'] ?? '',
+            ];
+        }
+
+        $message = 'Der Rollenwechsel ändert bestehende direkte Abos, Gruppenpakete oder Laufzeiten nicht automatisch.';
+        $severity = 'secondary';
+        if ($currentRole !== $targetRole && $targetRole === 'member' && $directSubscription === null && $defaultPlan !== null) {
+            $message = 'Beim Bearbeiten bestehender Benutzer wird kein Standardpaket nachträglich automatisch vergeben. Falls gewünscht, Paket oder Gruppe separat prüfen.';
+            $severity = 'warning';
+        } elseif ($currentRole !== $targetRole && $currentRole === 'member' && $targetRole !== 'member') {
+            $message = 'Bestehende Mitgliedspakete bleiben trotz Rollenwechsel erhalten. Falls der Zugriff enden soll, Abo oder Gruppenzuordnung separat anpassen.';
+            $severity = 'warning';
+        }
+
+        return [
+            'severity' => $severity,
+            'title' => 'Paketwirkung',
+            'message' => $message,
+            'current_package' => $currentPackage,
+            'group_packages' => array_values(array_map('strval', $groupPlans)),
+            'default_package' => $defaultPlan['label'] ?? '',
+        ];
+    }
+
+    private function safeUiText(string $value, int $maxLength = 160, string $fallback = ''): string
+    {
+        $value = trim(strip_tags($value));
+        $value = preg_replace('/[\x00-\x1F\x7F]+/u', '', $value) ?? '';
+        if ($value === '') {
+            $value = $fallback;
+        }
+
+        return function_exists('mb_substr')
+            ? mb_substr($value, 0, $maxLength)
+            : substr($value, 0, $maxLength);
     }
 
     /**

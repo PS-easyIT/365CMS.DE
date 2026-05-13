@@ -41,6 +41,30 @@ $replacementCategoryDeletePreview = array_values(array_filter(array_map(
     $categories
 )));
 $replacementCategoryDeletePreview = array_slice($replacementCategoryDeletePreview, 0, 5);
+$buildCategoryArchivePreviewPaths = static function (string $slug): array {
+    $slug = trim((string) $slug, '/');
+    if ($slug === '' || !function_exists('cms_get_archive_locales') || !function_exists('cms_get_archive_base')) {
+        return [];
+    }
+
+    $paths = [];
+    foreach (cms_get_archive_locales() as $locale) {
+        $archiveBase = trim((string) cms_get_archive_base('category', (string) $locale), '/');
+        if ($archiveBase === '') {
+            continue;
+        }
+
+        $path = '/' . $archiveBase . '/' . $slug;
+        if (in_array($path, $paths, true)) {
+            continue;
+        }
+
+        $paths[] = $path;
+    }
+
+    return $paths;
+};
+$categoryArchivePreviewPaths = $buildCategoryArchivePreviewPaths($editCategorySlug);
 ?>
 
 <div class="page-header d-print-none">
@@ -109,6 +133,21 @@ $replacementCategoryDeletePreview = array_slice($replacementCategoryDeletePrevie
                             <div class="mb-3">
                                 <label class="form-label" for="postCategorySlug">Slug</label>
                                 <input type="text" class="form-control" id="postCategorySlug" name="cat_slug" value="<?php echo htmlspecialchars($editCategorySlug, ENT_QUOTES); ?>" placeholder="wird automatisch generiert">
+                            </div>
+                            <div class="alert alert-info">
+                                <div class="fw-semibold mb-1">Archiv- &amp; Redirect-Vertrag</div>
+                                <div class="small text-secondary">Slug-Änderungen erzeugen automatisch Archiv-Weiterleitungen. Ältere Theme- und Blog-Filter mit <code>/blog?category=&lt;slug&gt;</code> bleiben weiterhin auf den aktuellen Kategorie-Slug auflösbar.</div>
+                                <?php if ($categoryArchivePreviewPaths !== []): ?>
+                                    <div class="small text-secondary mt-2">Aktuelle Archivpfade dieser Kategorie:</div>
+                                    <ul class="small ps-3 mb-2">
+                                        <?php foreach ($categoryArchivePreviewPaths as $archivePath): ?>
+                                            <li><code><?php echo htmlspecialchars($archivePath, ENT_QUOTES); ?></code></li>
+                                        <?php endforeach; ?>
+                                    </ul>
+                                <?php endif; ?>
+                                <div class="btn-list">
+                                    <a href="/admin/redirect-manager" class="btn btn-sm btn-outline-primary">Redirect-Manager öffnen</a>
+                                </div>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label" for="postCategoryParent">Elternkategorie</label>

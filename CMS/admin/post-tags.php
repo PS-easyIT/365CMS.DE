@@ -31,13 +31,15 @@ function cms_admin_post_tags_create_module(): object
 
 /**
  * @param array<string,mixed> $post
+ * @param array<int,string> $details
  */
-function cms_admin_post_tags_store_form_state(array $post, string $message): void
+function cms_admin_post_tags_store_form_state(array $post, string $message, array $details = []): void
 {
     $_SESSION[CMS_ADMIN_POST_TAGS_FORM_SESSION_KEY] = [
         'alert' => [
             'type' => 'danger',
             'message' => $message,
+            'details' => array_values(array_filter(array_map('strval', $details), static fn(string $detail): bool => trim($detail) !== '')),
         ],
         'values' => [
             'tag_id' => max(0, (int) ($post['tag_id'] ?? 0)),
@@ -107,7 +109,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'save_tag' && empty($result['success'])) {
         cms_admin_post_tags_store_form_state(
             $_POST,
-            (string) ($result['message'] ?? $result['error'] ?? 'Tag konnte nicht gespeichert werden.')
+            (string) ($result['message'] ?? $result['error'] ?? 'Tag konnte nicht gespeichert werden.'),
+            is_array($result['details'] ?? null) ? $result['details'] : []
         );
 
         cms_admin_post_tags_redirect($redirectEditId > 0 ? $redirectEditId : null);
@@ -116,6 +119,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $_SESSION['admin_alert'] = [
         'type' => !empty($result['success']) ? 'success' : 'danger',
         'message' => (string) ($result['message'] ?? $result['error'] ?? 'Aktion abgeschlossen.'),
+        'details' => is_array($result['details'] ?? null) ? $result['details'] : [],
     ];
 
     cms_admin_post_tags_redirect(!empty($result['success']) ? null : ($redirectEditId > 0 ? $redirectEditId : null));

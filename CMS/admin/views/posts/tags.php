@@ -20,6 +20,30 @@ $deleteTagOptions = array_values(array_filter(
     static fn(array $tagOption): bool => (int) ($tagOption['id'] ?? 0) > 0
 ));
 $deleteTagSubmitDisabled = count($deleteTagOptions) <= 1;
+$buildTagArchivePreviewPaths = static function (string $slug): array {
+    $slug = trim((string) $slug, '/');
+    if ($slug === '' || !function_exists('cms_get_archive_locales') || !function_exists('cms_get_archive_base')) {
+        return [];
+    }
+
+    $paths = [];
+    foreach (cms_get_archive_locales() as $locale) {
+        $archiveBase = trim((string) cms_get_archive_base('tag', (string) $locale), '/');
+        if ($archiveBase === '') {
+            continue;
+        }
+
+        $path = '/' . $archiveBase . '/' . $slug;
+        if (in_array($path, $paths, true)) {
+            continue;
+        }
+
+        $paths[] = $path;
+    }
+
+    return $paths;
+};
+$tagArchivePreviewPaths = $buildTagArchivePreviewPaths($editTagSlug);
 ?>
 
 <div class="page-header d-print-none">
@@ -88,6 +112,21 @@ $deleteTagSubmitDisabled = count($deleteTagOptions) <= 1;
                             <div class="mb-3">
                                 <label class="form-label" for="postTagSlug">Slug</label>
                                 <input type="text" class="form-control" id="postTagSlug" name="tag_slug" value="<?php echo htmlspecialchars($editTagSlug, ENT_QUOTES); ?>" placeholder="wird automatisch generiert">
+                            </div>
+                            <div class="alert alert-info">
+                                <div class="fw-semibold mb-1">Archiv- &amp; Redirect-Vertrag</div>
+                                <div class="small text-secondary">Slug-Änderungen erzeugen automatisch Archiv-Weiterleitungen. Ältere Theme- und Blog-Filter mit <code>/blog?tag=&lt;slug&gt;</code> bleiben weiterhin auf den aktuellen Tag-Slug auflösbar.</div>
+                                <?php if ($tagArchivePreviewPaths !== []): ?>
+                                    <div class="small text-secondary mt-2">Aktuelle Archivpfade dieses Tags:</div>
+                                    <ul class="small ps-3 mb-2">
+                                        <?php foreach ($tagArchivePreviewPaths as $archivePath): ?>
+                                            <li><code><?php echo htmlspecialchars($archivePath, ENT_QUOTES); ?></code></li>
+                                        <?php endforeach; ?>
+                                    </ul>
+                                <?php endif; ?>
+                                <div class="btn-list">
+                                    <a href="/admin/redirect-manager" class="btn btn-sm btn-outline-primary">Redirect-Manager öffnen</a>
+                                </div>
                             </div>
                             <div class="d-flex gap-2">
                                 <button type="submit" class="btn btn-primary flex-fill"><?php echo $isEditing ? 'Tag aktualisieren' : 'Tag speichern'; ?></button>

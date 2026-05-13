@@ -154,12 +154,12 @@ Nachprüfung 2.9.765: Die Nice-to-haves ab 2.9.725 wurden erneut automatisiert i
 - [x] **Featured-Image-Konsistenz prüfen**
   - [x] Read-only Liste der Inhalte mit fehlendem oder gebrochenem Featured Image
   - [x] Vorschlag zur Direktauswahl aus der Medienbibliothek
-- [ ] **SEO-Felder vs. globale Templates**
-  - [ ] Erkennung, wenn lokale Felder das globale Template ungewollt überschreiben
-  - [ ] Hinweis im Editor mit Option „auf globalen Default zurücksetzen"
-- [ ] **Kategorie-/Tag-Filter und Redirects gemeinsam pflegen**
-  - [ ] Ein Verwaltungspfad für Slug-Änderungen, der Redirects automatisch erzeugt und alte Filter-Links auflöst
-  - [ ] Bereits in 2.9.617 grundgelegt, hier als sichtbare Admin-Funktion finalisieren
+- [x] **SEO-Felder vs. globale Templates**
+  - [x] Erkennung, wenn lokale Felder das globale Template ungewollt überschreiben
+  - [x] Hinweis im Editor mit Option „auf globalen Default zurücksetzen"
+- [x] **Kategorie-/Tag-Filter und Redirects gemeinsam pflegen**
+  - [x] Ein Verwaltungspfad für Slug-Änderungen, der Redirects automatisch erzeugt und alte Filter-Links auflöst
+  - [x] Bereits in 2.9.617 grundgelegt, hier als sichtbare Admin-Funktion finalisieren
 
 ### Nachprüfung 2.9.776
 
@@ -167,15 +167,43 @@ Nachprüfung 2.9.765: Die Nice-to-haves ab 2.9.725 wurden erneut automatisiert i
 - Die Liste bleibt ein reiner GET-/Lesepfad und verlinkt nur in bestehende, bereits abgesicherte Editor- und Medien-Flows: Auswahl über den vorhandenen Featured-Image-Picker im Editor bzw. zentrales Replace-in-place für geteilte defekte Referenzen.
 - Es entstehen keine neuen Token-URLs, keine GET-Mutationen und keine zusätzlichen 500-anfälligen Pflichtpfade; beschädigte oder lokale Legacy-Referenzen werden lediglich sichtbar gemacht statt automatisch umgeschrieben.
 
+### Nachprüfung 2.9.778
+
+- Seiten- und Beitragseditoren zeigen jetzt transparent an, wenn lokale Meta-Titel oder Meta-Beschreibungen aktive SEO-Defaults überschreiben.
+- Redundante lokale Werte können direkt im bestehenden Editor-Formular auf den Standard zurückgesetzt werden; dafür wird bewusst nur das lokale Feld geleert und kein neuer Schreibpfad eingeführt.
+- Die Live-Preview folgt dem echten Resolver-Vertrag: Bei Beiträgen wird die Meta-Beschreibung zuerst aus der Kurzfassung, danach aus dem ersten Absatz und erst dann aus dem restlichen Inhalt abgeleitet.
+- Es entstehen keine neuen GET-Mutationen, keine Token-URLs und keine zusätzlichen 500-anfälligen Pflichtpfade.
+
+### Nachprüfung 2.9.779
+
+- Die Kategorie- und Tag-Editoren zeigen den Redirect- und Legacy-Filter-Vertrag jetzt direkt am Slug-Feld an und listen die aktuellen Archivpfade der jeweiligen Taxonomie sichtbar auf.
+- Nach einer Slug-Änderung liefern die Admin-Alerts die konkret gepflegten Archiv-Weiterleitungen als Erfolgsdetails zurück, sodass die bisher unsichtbare Redirect-Automatik nachvollziehbar wird.
+- Die Redirect-Regeln bleiben bewusst zentral im Redirect-Manager geführt; es gibt keinen neuen Spezial-Schreibpfad, keine GET-Mutation und keine Token-URL.
+- Alte Theme-/Blog-Filter mit `?category=` bzw. `?tag=` bleiben weiterhin auf den aktuellen Archiv-Slug auflösbar.
+
 ## 9. Cross-Bereich · Benutzer ↔ Rollen ↔ Gruppen ↔ Member
 
-- [ ] **Wirkungsvorschau bei Rollenänderungen**
-  - [ ] Anzeige, welche Member-Bereiche, Plugin-Widgets und Pakete sich für einen Benutzer ändern
-  - [ ] Vor dem Speichern als read-only Diff
-- [ ] **Gruppen-/Paketbezüge sichtbar machen**
-  - [ ] Pro Benutzer und pro Gruppe eine Zeile mit aktiven Paketen, Member-Modulen und ablaufenden Verträgen
-  - [ ] Reduziert Suchaufwand bei Support-Fällen
+- [x] **Wirkungsvorschau bei Rollenänderungen**
+  - [x] Anzeige, welche Member-Bereiche, Plugin-Widgets und Pakete sich für einen Benutzer ändern
+  - [x] Vor dem Speichern als read-only Diff
+- [x] **Gruppen-/Paketbezüge sichtbar machen**
+  - [x] Pro Benutzer und pro Gruppe eine Zeile mit aktiven Paketen, Member-Modulen und ablaufenden Verträgen
+  - [x] Reduziert Suchaufwand bei Support-Fällen
 - [ ] **Profilfeld-Kompatibilität bei Auth-Settings-Änderungen**
   - [ ] Pflichtfeld-Änderungen warnen vorab, welche Benutzer dadurch unvollständig werden
   - [ ] Optionaler Onboarding-Re-Trigger für betroffene Benutzer
+
+### Nachprüfung 2.9.780
+
+- `/admin/users?action=edit&id=...` zeigt direkt am Rollenfeld eine read-only Wirkungsvorschau für die aktuell ausgewählte Zielrolle.
+- Die Vorschau vergleicht Capabilities, sichtbar werdende bzw. entfallende Member-Bereiche, Plugin-Dashboard-Widgets und Paket-/Abo-Auswirkungen, bevor der bestehende Benutzer-POST gespeichert wird.
+- Bestehende Pakete, Gruppenpakete und Laufzeiten werden bewusst nicht automatisch verändert; die UI weist nur auf notwendige manuelle Prüfungen hin.
+- Der Ausbau nutzt keine AJAX-Route, keine Token-URL und keine neue GET-Mutation. Optionale Tabellen und Plugin-Registries fallen fail-soft auf neutrale Hinweise zurück, damit der Benutzer-Editor nicht mit HTTP 500 blockiert.
+
+### Nachprüfung 2.9.781
+
+- `/admin/users` zeigt pro sichtbarem Benutzer eine Support-Kontext-Zeile mit direktem Paket, Gruppenpaketen, sichtbaren Member-Bereichen und Vertragsfriststatus.
+- `/admin/groups` zeigt pro Gruppe den Paketbezug, Paketmodule, globale Member-Bereiche sowie fällige oder überfällige Verträge der Gruppenmitglieder direkt in der Gruppenkarte.
+- Die Daten werden serverseitig begrenzt und read-only voraggregiert; fehlende Abo-/Gruppentabellen oder unlesbare Vertragsdaten fallen fail-soft auf neutrale Hinweise zurück.
+- Es entstehen keine neuen GET-Mutationen, keine Token-URLs und keine automatischen Paket- oder Vertragsänderungen. Der bestehende POST-/CSRF-Vertrag für Benutzer- und Gruppenänderungen bleibt unverändert.
 

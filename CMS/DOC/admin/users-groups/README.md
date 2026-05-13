@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Überblick über die aktuelle Benutzerverwaltung mit dynamischen Rollen, Gruppen und Rechtezuordnung.
 
-Letzte Aktualisierung: 2026-05-10 · Version 2.9.731
+Letzte Aktualisierung: 2026-05-13 · Version 2.9.781
 
 Der Bereich ist im aktuellen Stand auf vier Hauptbereiche verteilt:
 
@@ -31,6 +31,8 @@ Der Bereich ist im aktuellen Stand auf vier Hauptbereiche verteilt:
 - Rollen werden nicht mehr starr aus lokalen Auth-Hartcodes abgeleitet, sondern über die gemeinsame Rollenmatrix geladen.
 - `/admin/roles` enthält seit `2.9.729` einen read-only Rollenvergleich, der gemeinsame und abweichende Capabilities zweier Rollen gruppiert anzeigt, ohne die Rechte-Matrix zu speichern.
 - Benutzerprofile unter `/admin/users?action=edit&id=...` zeigen seit `2.9.730` begrenzte Login- und Sicherheitsereignisse aus `audit_log`, ohne Roh-Metadaten, Tokens oder Session-Daten offenzulegen.
+- Benutzerprofile unter `/admin/users?action=edit&id=...` zeigen seit `2.9.780` am Rollenfeld eine read-only Wirkungsvorschau: Capabilities, Member-Bereiche, Plugin-Widgets und Paket-/Abo-Auswirkungen werden für die gewählte Zielrolle sichtbar, bevor der bestehende POST-/CSRF-Speicherpfad ausgelöst wird.
+- `/admin/users` und `/admin/groups` zeigen seit `2.9.781` direkt in den Übersichten einen read-only Support-Kontext mit aktiven Paketen, Gruppenpaketen, Member-Bereichen, Paketmodulen und fälligen Vertragsfristen, ohne Pakete oder Verträge automatisch zu verändern.
 - Seit `2.9.731` passt das Audit-Log-Schema zum tatsächlich genutzten Severity-Wert `error`, und interne Exception-Texte aus Benutzer-Speichern/-Löschen sowie Rollen-/Rechte-Schreibaktionen werden nicht mehr in Admin-Alerts oder Fehlerreports zurückgegeben.
 - `Auth::hasCapability()` löst Nicht-Admin-Capabilities über dieselbe Rollenquelle auf wie Rollenverwaltung und Benutzer-Service, inklusive der weiterhin produktiv genutzten Legacy-Core-Capabilities wie `manage_settings`, `manage_users`, `manage_pages`, `edit_all_posts` oder `manage_media`.
 - Filter- und Dropdown-Logik der Benutzerverwaltung nutzt dieselbe Rollenquelle wie die Rechteverwaltung.
