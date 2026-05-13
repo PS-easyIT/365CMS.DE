@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Zentrale Admin-Seite für Registrierung, rollenbezogene Standardwerte und technische Auth-Provider-Informationen – ergänzt durch die neue Core-Auth-Strecke über die CMS Loginpage.
 
-Letzte Aktualisierung: 2026-05-10 · Version 2.9.710
+Letzte Aktualisierung: 2026-05-13 · Version 2.9.782
 
 Route: `/admin/user-settings`
 
@@ -72,6 +72,7 @@ Diese Werte kommen aktuell überwiegend aus `CMS/config/app.php` oder aus den je
 |---|---|
 | `/admin/user-settings` | Registrierung, Authentifizierung, Provider-Status |
 | `/admin/member-dashboard-general` | Dashboard-Aktivierung, Begrüßung, Header, Onboarding-nahe Texte |
+| `/admin/member-dashboard-profile-fields` | Profilfeld-/Completion-Felder inklusive read-only Kompatibilitätsvorschau und optionalem Onboarding-Re-Trigger |
 | `/admin/settings` | Allgemeine System-, Inhalts- und Website-Einstellungen |
 
 ---
@@ -83,3 +84,4 @@ Diese Werte kommen aktuell überwiegend aus `CMS/config/app.php` oder aus den je
 - Fehler beim Speichern der Einstellungen werden generisch an die UI zurückgegeben; technische Details landen nur im Server-Log.
 - LDAP-, JWT- und Login-Limit-Parameter bleiben aktuell in der Systemkonfiguration (`CMS/config/app.php`).
 - MFA-, Backup-Code-, Passkey- und LDAP-Logins finalisieren seit `2.9.0` dieselbe Session wie der klassische Passwort-Login. Wenn ein MFA-Nutzer also früher auf die Startseite zurückfiel: genau dieser kleine Zirkus wurde hiermit beendet.
+- Profilfeld-Änderungen mit Auswirkungen auf den Profilabschluss werden seit `2.9.782` nicht mehr blind gespeichert: `/admin/member-dashboard-profile-fields` zeigt vorab aggregierte Auswirkungen und begrenzte Beispielkonten. Der optionale Onboarding-Re-Trigger läuft nur über den vorhandenen POST-/CSRF-Pfad und verändert keine Benutzerprofile.

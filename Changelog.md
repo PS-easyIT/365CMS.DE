@@ -1,4 +1,4 @@
-﻿﻿﻿﻿**Version:** 2.9.781
+﻿﻿﻿﻿**Version:** 2.9.782
 
 # 365CMS Changelog
 
@@ -19,6 +19,12 @@
 ## 📜 Vollständige Versionshistorie
 
 ---
+
+### v2.9.782 — 13. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.782** | 🟢 feat | Admin/Member Dashboard – Profilfeld-Kompatibilität | **`CMS/admin/modules/member/MemberDashboardModule.php`, `CMS/admin/views/member/profile-fields.php`, `CMS/DOC/admin/member/README.md`, `CMS/DOC/admin/users-groups/AUTH-SETTINGS.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/audit/NiceToHave-CHECKLISTE.md`, `CMS/core/Version.php`, `CMS/update.json`, `README.md` und `Changelog.md` schließen das nächste Cross-Bereich-Nice-to-have ab**: `/admin/member-dashboard-profile-fields` zeigt jetzt vor dem Speichern eine read-only Kompatibilitätsvorschau für Profilfeld-/Completion-Änderungen. Admins sehen aktive Konten, aktuell unvollständige Profile, neu ausgewählte Feldrisiken und begrenzte Beispielkonten mit fehlenden Werten, ohne personenbezogene Volltabellenlisten auszugeben. Optional kann derselbe bestehende POST-/CSRF-Speicherpfad den vorhandenen Onboarding-/Profilabschluss-Hinweis reaktivieren; es werden keine Benutzerprofile geändert, keine E-Mails versendet, keine GET-Mutationen eingeführt und keine Token-URLs erzeugt. |
 
 ### v2.9.781 — 13. Mai 2026
 

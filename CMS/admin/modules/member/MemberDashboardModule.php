@@ -266,6 +266,7 @@ class MemberDashboardModule
             'profile-fields' => [
                 'settings' => $settings,
                 'profileFields' => $this->getProfileFieldDefinitions(),
+                'profileFieldCompatibility' => $this->buildProfileFieldCompatibility($settings),
             ],
             'notifications' => [
                 'settings' => $settings,
@@ -408,9 +409,21 @@ class MemberDashboardModule
                 'member_subscription_visible' => !empty($post['subscription_visible']) ? '1' : '0',
             ];
 
+            $retriggerOnboarding = !empty($post['profile_fields_retrigger_onboarding']);
+            if ($retriggerOnboarding) {
+                $values['member_dashboard_onboarding_enabled'] = '1';
+                $values['member_dashboard_show_onboarding_panel'] = '1';
+                $values['member_dashboard_onboarding_require_profile_completion'] = '1';
+            }
+
             $this->persistSettings($values);
 
-            return ['success' => true, 'message' => 'Profil-Felder und Navigationssichtbarkeit gespeichert.'];
+            return [
+                'success' => true,
+                'message' => $retriggerOnboarding
+                    ? 'Profil-Felder gespeichert und Onboarding-Hinweis für unvollständige Profile aktiviert.'
+                    : 'Profil-Felder und Navigationssichtbarkeit gespeichert.',
+            ];
         } catch (\Throwable $e) {
 			return $this->failResult('member.dashboard.profile.save_failed', 'Profil-Felder konnten nicht gespeichert werden.', $e);
         }
@@ -694,6 +707,208 @@ class MemberDashboardModule
     private function getProfileFieldDefinitions(): array
     {
         return self::PROFILE_FIELDS;
+    }
+
+    /**
+     * Baut eine read-only Kompatibilitätsvorschau für Profilfeld-Änderungen.
+     *
+     * Die Analyse bleibt bewusst begrenzt: Counts laufen aggregiert über aktive Konten,
+     * Beispielnutzer werden limitiert ausgegeben. Fehler in optionalen Meta-Tabellen
+     * dürfen die Admin-Seite nicht blockieren.
+     *
+     * @param array<string,mixed> $settings
+     * @return array<string,mixed>
+     */
+    private function buildProfileFieldCompatibility(array $settings): array
+    {
+        $selectedFields = array_values(array_intersect(
+            array_keys(self::PROFILE_FIELDS),
+            array_map('strval', (array)($settings['profile_fields'] ?? []))
+        ));
+
+        $result = [
+            'available' => true,
+            'active_user_count' => 0,
+            'current_fields' => $selectedFields,
+            'current_incomplete_count' => 0,
+            'current_incomplete_samples' => [],
+            'onboarding_require_profile_completion' => !empty($settings['onboarding']['require_profile_completion']),
+            'onboarding_enabled' => !empty($settings['onboarding']['enabled']),
+            'onboarding_panel_visible' => !empty($settings['frontend_modules']['show_onboarding_panel']),
+            'fields' => [],
+        ];
+
+        foreach (self::PROFILE_FIELDS as $fieldKey => $definition) {
+            $result['fields'][$fieldKey] = [
+                'key' => $fieldKey,
+                'label' => (string)($definition['label'] ?? $fieldKey),
+                'missing_count' => 0,
+                'missing_samples' => [],
+                'currently_selected' => in_array($fieldKey, $selectedFields, true),
+            ];
+        }
+
+        try {
+            $result['active_user_count'] = (int)$this->db->get_var(
+                "SELECT COUNT(*) FROM {$this->prefix}users WHERE status = 'active'"
+            );
+
+            if ($result['active_user_count'] < 1) {
+                return $result;
+            }
+
+            foreach (array_keys(self::PROFILE_FIELDS) as $fieldKey) {
+                $fieldSummary = $this->getProfileFieldMissingSummary((string)$fieldKey);
+                $result['fields'][$fieldKey]['missing_count'] = $fieldSummary['missing_count'];
+                $result['fields'][$fieldKey]['missing_samples'] = $fieldSummary['missing_samples'];
+            }
+
+            if ($selectedFields !== []) {
+                $currentSummary = $this->getProfileSelectionIncompleteSummary($selectedFields);
+                $result['current_incomplete_count'] = $currentSummary['incomplete_count'];
+                $result['current_incomplete_samples'] = $currentSummary['incomplete_samples'];
+            }
+        } catch (\Throwable $e) {
+            $this->logger->warning('Profilfeld-Kompatibilitätsvorschau konnte nicht vollständig geladen werden.', [
+                'action' => 'member.dashboard.profile.compatibility_failed',
+                'exception_class' => $e::class,
+            ]);
+
+            $result['available'] = false;
+            $result['message'] = 'Die Kompatibilitätsvorschau konnte nicht vollständig geladen werden. Die Profilfeld-Speicherung bleibt verfügbar.';
+        }
+
+        return $result;
+    }
+
+    /** @return array{missing_count:int,missing_samples:array<int,array{id:int,label:string,email:string}>} */
+    private function getProfileFieldMissingSummary(string $fieldKey): array
+    {
+        $fieldKey = $this->normalizeProfileFieldKey($fieldKey);
+        if ($fieldKey === '') {
+            return ['missing_count' => 0, 'missing_samples' => []];
+        }
+
+        try {
+            $missingCount = (int)$this->db->get_var(
+                "SELECT COUNT(*)
+                   FROM {$this->prefix}users u
+                   LEFT JOIN {$this->prefix}user_meta um
+                          ON um.user_id = u.id AND um.meta_key = ?
+                  WHERE u.status = 'active'
+                    AND (um.meta_value IS NULL OR TRIM(um.meta_value) = '')",
+                [$fieldKey]
+            );
+
+            return [
+                'missing_count' => $missingCount,
+                'missing_samples' => $this->getProfileFieldMissingSamples([$fieldKey], 8),
+            ];
+        } catch (\Throwable) {
+            return ['missing_count' => 0, 'missing_samples' => []];
+        }
+    }
+
+    /** @param array<int,string> $selectedFields */
+    private function getProfileSelectionIncompleteSummary(array $selectedFields): array
+    {
+        $selectedFields = array_values(array_filter(array_map([$this, 'normalizeProfileFieldKey'], $selectedFields)));
+        if ($selectedFields === []) {
+            return ['incomplete_count' => 0, 'incomplete_samples' => []];
+        }
+
+        $missingClauses = [];
+        $params = [];
+        foreach ($selectedFields as $fieldKey) {
+            $missingClauses[] = "NOT EXISTS (
+                SELECT 1
+                  FROM {$this->prefix}user_meta um
+                 WHERE um.user_id = u.id
+                   AND um.meta_key = ?
+                   AND TRIM(um.meta_value) <> ''
+            )";
+            $params[] = $fieldKey;
+        }
+
+        try {
+            $incompleteCount = (int)$this->db->get_var(
+                "SELECT COUNT(*)
+                   FROM {$this->prefix}users u
+                  WHERE u.status = 'active'
+                    AND (" . implode(' OR ', $missingClauses) . ')',
+                $params
+            );
+
+            return [
+                'incomplete_count' => $incompleteCount,
+                'incomplete_samples' => $this->getProfileFieldMissingSamples($selectedFields, 8),
+            ];
+        } catch (\Throwable) {
+            return ['incomplete_count' => 0, 'incomplete_samples' => []];
+        }
+    }
+
+    /**
+     * @param array<int,string> $fieldKeys
+     * @return array<int,array{id:int,label:string,email:string}>
+     */
+    private function getProfileFieldMissingSamples(array $fieldKeys, int $limit): array
+    {
+        $fieldKeys = array_values(array_filter(array_map([$this, 'normalizeProfileFieldKey'], $fieldKeys)));
+        if ($fieldKeys === []) {
+            return [];
+        }
+
+        $limit = max(1, min(20, $limit));
+        $missingClauses = [];
+        $params = [];
+        foreach ($fieldKeys as $fieldKey) {
+            $missingClauses[] = "NOT EXISTS (
+                SELECT 1
+                  FROM {$this->prefix}user_meta um
+                 WHERE um.user_id = u.id
+                   AND um.meta_key = ?
+                   AND TRIM(um.meta_value) <> ''
+            )";
+            $params[] = $fieldKey;
+        }
+
+        try {
+            $rows = $this->db->get_results(
+                "SELECT u.id, u.username, u.display_name, u.email
+                   FROM {$this->prefix}users u
+                  WHERE u.status = 'active'
+                    AND (" . implode(' OR ', $missingClauses) . ")
+                  ORDER BY u.username ASC
+                  LIMIT {$limit}",
+                $params
+            ) ?: [];
+        } catch (\Throwable) {
+            return [];
+        }
+
+        $samples = [];
+        foreach ($rows as $row) {
+            $label = $this->sanitizeTextSetting((string)($row->display_name ?? ''), 120);
+            if ($label === '') {
+                $label = $this->sanitizeTextSetting((string)($row->username ?? ''), 120);
+            }
+
+            $samples[] = [
+                'id' => (int)($row->id ?? 0),
+                'label' => $label !== '' ? $label : 'Benutzer #' . (int)($row->id ?? 0),
+                'email' => $this->sanitizeTextSetting((string)($row->email ?? ''), 190),
+            ];
+        }
+
+        return $samples;
+    }
+
+    private function normalizeProfileFieldKey(string $fieldKey): string
+    {
+        $fieldKey = trim($fieldKey);
+
+        return isset(self::PROFILE_FIELDS[$fieldKey]) ? $fieldKey : '';
     }
 
     private function getAvailableRoles(): array

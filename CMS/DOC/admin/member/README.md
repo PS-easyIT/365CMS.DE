@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Beschreibt die aktuelle Admin-Konfiguration des Member-Dashboards mit Sektionen, gespeicherten Einstellungen und der Trennung zwischen Verwaltungsoberfläche und Frontend-Mitgliederbereich.
 
-Letzte Aktualisierung: 2026-05-10 · Version 2.9.735
+Letzte Aktualisierung: 2026-05-13 · Version 2.9.782
 
 ## Überblick
 
@@ -30,6 +30,8 @@ Seit `2.9.734` lassen sich Kern-Widgets, eigene Info-Widgets und Plugin-Widgets 
 
 Seit `2.9.735` zeigt `/admin/member-dashboard-onboarding` zusätzlich read-only Onboarding-Analytics mit aggregierter Abschlussrate. Die Kennzahlen werden aus bestehenden Signalen wie aktuell aktiven Konten, konfigurierten Profilfeldern, MFA-/Passkey-Adoption und erfolgreichen Logins der letzten 30 Tage abgeleitet. Es gibt bewusst keine neue Tracking-Tabelle, keine zusätzliche Schreibroute und keine personenbezogene Einzelauflistung.
 
+Seit `2.9.782` zeigt `/admin/member-dashboard-profile-fields` zusätzlich eine read-only Kompatibilitätsvorschau für Profilfeld-Änderungen. Admins sehen vor dem Speichern, wie viele aktive Konten durch neue Completion-Felder voraussichtlich unvollständig werden und erhalten begrenzte Beispielkonten zur Support-Orientierung. Optional kann im bestehenden POST-/CSRF-Speicherpfad der vorhandene Onboarding-/Profilabschluss-Hinweis reaktiviert werden; dabei werden keine Profile geändert und keine E-Mails versendet.
+
 ## Aktuelle Konfigurationsbereiche
 
 Das Modul unterstützt derzeit insbesondere diese Sektionen:
@@ -52,6 +54,7 @@ Je nach Sektion werden unter anderem folgende Aspekte gepflegt:
 - allgemeine Aktivierung und Basisoptionen des Member-Bereichs
 - verfügbare Dashboard-Widgets
 - zusätzliche oder optionale Profilfelder
+- Kompatibilitätsvorschau für Profilfeld-/Completion-Änderungen mit optionalem Onboarding-Re-Trigger
 - Design- und Layout-Optionen für Member-Seiten
 - aktivierbare Frontend-Module
 - Benachrichtigungslogik und Standardtexte
@@ -78,6 +81,8 @@ Der Preview-Modus ist dagegen ein reiner GET-/Lesepfad. Er liest gespeicherte Se
 Die neue Widget-Sortierung bleibt davon getrennt: Sie läuft ausschließlich über den vorhandenen `save`-POST, nutzt denselben CSRF-Kontext `admin_member_dashboard`, nimmt nur bekannte Widget-Keys bzw. Slot-IDs an, entfernt Duplikate, ergänzt fehlende bekannte Werte kontrolliert und bleibt dadurch auch bei unvollständigen Browserdaten oder deaktivierten Erweiterungen fail-soft.
 
 Die Onboarding-Analytics folgen demselben read-only Prinzip: Sie lesen nur bereits vorhandene Datenquellen (`users`, `user_meta`, optional `passkey_credentials`, optional `activity_log`), verdichten diese serverseitig zu Quoten/KPIs und fallen bei fehlenden optionalen Tabellen auf sichere Defaultwerte zurück. Technische Fehlerdetails bleiben serverseitig geloggt und erscheinen nicht roh im Admin-UI.
+
+Die Profilfeld-Kompatibilitätsvorschau folgt demselben Sicherheitsvertrag: Sie liest `users` und `user_meta` aggregiert, begrenzt Beispielkonten pro Feld, schreibt keine Profildaten und nutzt für den optionalen Onboarding-Re-Trigger ausschließlich den bestehenden `save`-POST mit `admin_member_dashboard`-CSRF. Der Re-Trigger setzt nur die vorhandenen Onboarding-/Profilabschluss-Schalter, statt Benutzer einzeln zu markieren oder Mails zu versenden.
 
 ## Verhältnis zum Frontend
 
@@ -114,6 +119,7 @@ Die Admin-Konfiguration folgt dem Standardmuster:
 | `CMS/admin/views/member/dashboard.php` | Ausgabe der Admin-Oberfläche |
 | Route `/admin/member-dashboard?preview=1` | read-only Vorschau der gespeicherten Runtime-Konfiguration |
 | `CMS/admin/views/member/onboarding.php` | Onboarding-Konfiguration plus read-only Analytics-/Abschlussraten-Karten |
+| `CMS/admin/views/member/profile-fields.php` | Profilfeld-Auswahl mit read-only Kompatibilitätsvorschau und optionalem Onboarding-Re-Trigger |
 | `CMS/admin/views/member/widgets.php` | Kern-Widgets, Spalten, Bereichsreihenfolge und sortierbare Info-Widgets |
 | `CMS/admin/views/member/plugin-widgets.php` | Plugin-Widgets mit Sichtbarkeit und sortierbarer Reihenfolge |
 | `CMS/assets/js/admin-member-dashboard.js` | Drag-&-Drop- und Button-Fallback für Widget-Sortierung |

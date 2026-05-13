@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.9.781",
+  "version": "2.9.782",
   "min_php": "8.4",
   "released": "2026-05-13",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 2.9.781: Benutzer- und Gruppenübersichten zeigen jetzt read-only Support-Kontexte mit Direktpaketen, Gruppenpaketen, sichtbaren Member-Bereichen, Paketmodulen sowie fälligen oder überfälligen Vertragsfristen. Die Daten werden serverseitig begrenzt voraggregiert, ändern keine Pakete oder Laufzeiten automatisch und bleiben ohne neue GET-Mutationen, Token-URLs oder zusätzliche Schreibpfade fail-soft nutzbar.",
+  "notes": "Release-Stand 2.9.782: /admin/member-dashboard-profile-fields zeigt vor dem Speichern eine read-only Kompatibilitätsvorschau für Profilfeld-/Completion-Änderungen. Admins sehen aktive Konten, aktuell unvollständige Profile, Feldrisiken und begrenzte Beispielkonten; optional kann über den bestehenden POST-/CSRF-Speicherpfad der vorhandene Onboarding-/Profilabschluss-Hinweis reaktiviert werden. Es entstehen keine GET-Mutationen, Token-URLs, Profil-Mutationen oder Mail-Side-Effects.",
   "critical": false
 }

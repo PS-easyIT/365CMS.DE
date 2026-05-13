@@ -189,9 +189,9 @@ Nachprüfung 2.9.765: Die Nice-to-haves ab 2.9.725 wurden erneut automatisiert i
 - [x] **Gruppen-/Paketbezüge sichtbar machen**
   - [x] Pro Benutzer und pro Gruppe eine Zeile mit aktiven Paketen, Member-Modulen und ablaufenden Verträgen
   - [x] Reduziert Suchaufwand bei Support-Fällen
-- [ ] **Profilfeld-Kompatibilität bei Auth-Settings-Änderungen**
-  - [ ] Pflichtfeld-Änderungen warnen vorab, welche Benutzer dadurch unvollständig werden
-  - [ ] Optionaler Onboarding-Re-Trigger für betroffene Benutzer
+- [x] **Profilfeld-Kompatibilität bei Auth-Settings-Änderungen**
+  - [x] Pflichtfeld-Änderungen warnen vorab, welche Benutzer dadurch unvollständig werden
+  - [x] Optionaler Onboarding-Re-Trigger für betroffene Benutzer
 
 ### Nachprüfung 2.9.780
 
@@ -206,4 +206,11 @@ Nachprüfung 2.9.765: Die Nice-to-haves ab 2.9.725 wurden erneut automatisiert i
 - `/admin/groups` zeigt pro Gruppe den Paketbezug, Paketmodule, globale Member-Bereiche sowie fällige oder überfällige Verträge der Gruppenmitglieder direkt in der Gruppenkarte.
 - Die Daten werden serverseitig begrenzt und read-only voraggregiert; fehlende Abo-/Gruppentabellen oder unlesbare Vertragsdaten fallen fail-soft auf neutrale Hinweise zurück.
 - Es entstehen keine neuen GET-Mutationen, keine Token-URLs und keine automatischen Paket- oder Vertragsänderungen. Der bestehende POST-/CSRF-Vertrag für Benutzer- und Gruppenänderungen bleibt unverändert.
+
+### Nachprüfung 2.9.782
+
+- `/admin/member-dashboard-profile-fields` zeigt vor dem Speichern eine read-only Kompatibilitätsvorschau für Profilfeld-/Completion-Änderungen.
+- Die Vorschau zählt aktive Konten, aktuell unvollständige Profile und pro neu ausgewähltem Feld begrenzte Beispielkonten mit fehlenden Werten, ohne Benutzerprofile zu ändern oder personenbezogene Volltabellenlisten auszugeben.
+- Ein optionaler Re-Trigger aktiviert ausschließlich über den bestehenden POST-/CSRF-Speicherpfad den vorhandenen Onboarding-/Profilabschluss-Hinweis im Member-Dashboard; es werden keine E-Mails versendet und keine einzelnen Benutzer mutiert.
+- Fehlende optionale Datenquellen fallen fail-soft auf neutrale Hinweise zurück. Es entstehen keine neuen GET-Mutationen, keine Token-URLs und kein zusätzlicher 500-anfälliger Spezialpfad.
 
