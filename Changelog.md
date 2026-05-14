@@ -1,4 +1,4 @@
-﻿﻿﻿﻿**Version:** 2.9.784
+﻿﻿﻿﻿**Version:** 2.9.785
 
 # 365CMS Changelog
 
@@ -19,6 +19,12 @@
 ## 📜 Vollständige Versionshistorie
 
 ---
+
+### v2.9.785 — 14. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.785** | 🔴 fix | Snyk-Audit & Installer-Sync | **`CMS/admin/backups.php`, `CMS/admin/modules/system/SystemInfoModule.php`, `CMS/admin/modules/pages/PagesModule.php`, `CMS/admin/modules/posts/PostsModule.php`, `CMS/admin/views/media/featured.php`, `CMS/admin/views/media/library.php`, `CMS/assets/js/member-dashboard.js`, `CMS/themes/cms-default/js/theme.js`, `CMS/install.php`, `CMS/install/InstallerController.php`, `CMS/install/InstallerService.php`, `CMS/install/views/*.php`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `CMS/DOC/audit/NiceToHave-CHECKLISTE.md`, `CMS/DOC/INSTALLATION.md`, `README.md` und `Changelog.md` synchronisieren den Snyk-Audit-Stand und den Installer auf die aktuelle Runtime**: First-Party-Funde aus Snyk Code wurden in Downloadpfaden, Diagnose-Exports, Member-Mediennavigation, Default-Theme-Cookies sowie Seiten-/Beitrags-/Medien-Hashpfaden nachgehärtet. MedCarePro-Templates vermeiden dynamische Login-Redirects, escapen Request- und Suchausgaben direkt am Sink und normalisieren Ergebnis-URLs; der PTC-Customizer whitelisted Tabs und escaped dynamische Formular-/Navigationswerte. Der Installer setzt Session-Cookies nun mit `HttpOnly`, `SameSite=Lax` und HTTPS-abhängigem `Secure`, schützt alle POST-Schritte per CSRF-Token, validiert Site-URL, E-Mail, Admin-Benutzernamen und 12-Zeichen-Passwörter strenger und legt Neuinstallationen mit `cms-default` sowie dem gewählten Site-Namen als `site_title` an. Verbleibende Scanner-Hinweise betreffen akzeptierte Wrapper-/Tool-False-Positives, Drittanbieter-Code oder protokollgebundene HMAC-SHA1-Pfade wie TOTP/S3; neue GET-Mutationen oder Token-URLs wurden nicht eingeführt. |
 
 ### v2.9.784 — 14. Mai 2026
 

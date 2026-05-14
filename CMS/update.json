@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.9.784",
+  "version": "2.9.785",
   "min_php": "8.4",
-  "released": "2026-05-13",
+  "released": "2026-05-14",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 2.9.784: Editor.js-Komplettaudit gegen Upstream 2.31.6, bekannte Plugin-/Tool-Risiken, Best Practice, Sicherheit und Performance. Gespeicherte Inline- und Raw-HTML-Inhalte werden serverseitig attributsicher bereinigt, der Renderer gibt Raw-Blöcke nicht mehr ungefiltert aus, Editor.js-Media-/Upload-Fehler leaken keine technischen Details mehr, der Legacy-Submit-Pfad nutzt native Submitter statt form.submit(), Remote-/Bibliotheks-Bildformate sind mit der zentralen Medienvalidierung konsolidiert und die SEO-Liveanalyse ist bei großen Editor.js-Dokumenten gedrosselt.",
+  "notes": "Release-Stand 2.9.785: Snyk-Audit und Installer-Sync. First-Party-Funde wurden in Core-Admin, Member-Mediennavigation, Default-Theme-JS sowie MedCarePro/PTC-Theme-Templates nachgehärtet; Redirect-, XSS-, Cookie-, Downloadpfad- und Hash-Hinweise sind reduziert bzw. bewusst auf sichere/protokollgebundene Restfälle begrenzt. Der Installer nutzt jetzt gehärtete Session-Cookies, CSRF-Tokens für POST-Schritte, strengere URL-/E-Mail-/Admin-Passwortvalidierung und aktuelle Default-Settings wie cms-default und site_name als Site-Titel.",
   "critical": false
 }

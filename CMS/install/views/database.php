@@ -59,6 +59,7 @@ if (!defined('ABSPATH')) {
         <?php endif; ?>
 
         <form method="post">
+            <input type="hidden" name="csrf_token" value="<?php echo $escape($csrfToken); ?>">
             <input type="hidden" name="test_db" value="1">
             <input type="hidden" name="reinstall_flag" value="<?php echo $isReinstall ? '1' : '0'; ?>">
             <div class="form-group">

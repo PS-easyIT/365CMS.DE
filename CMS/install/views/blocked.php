@@ -10,7 +10,7 @@ if (!defined('ABSPATH')) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Installer deaktiviert</title>
+    <title><?php echo $escape($blockedTitle ?? 'Installer deaktiviert'); ?></title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -49,11 +49,11 @@ if (!defined('ABSPATH')) {
 </head>
 <body>
     <div class="card">
-        <h1>🔒 Installer deaktiviert</h1>
-        <p>Für bestehende Installationen ist <code>install.php</code> öffentlich gesperrt.</p>
+        <h1>🔒 <?php echo $escape($blockedTitle ?? 'Installer deaktiviert'); ?></h1>
+        <p><?php echo $escape($blockedMessage ?? 'Für bestehende Installationen ist install.php öffentlich gesperrt.'); ?></p>
         <p>Der Zugriff ist nur noch für bereits angemeldete Administratoren oder über die CLI vorgesehen.</p>
         <div class="hint">
-            Wenn Wartung nötig ist, melden Sie sich zuerst im Admin-Bereich an oder entfernen Sie den Installer vollständig aus dem öffentlichen Deployment.
+            <?php echo $escape($blockedHint ?? 'Wenn Wartung nötig ist, melden Sie sich zuerst im Admin-Bereich an oder entfernen Sie den Installer vollständig aus dem öffentlichen Deployment.'); ?>
         </div>
     </div>
 </body>

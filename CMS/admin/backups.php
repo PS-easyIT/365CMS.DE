@@ -118,20 +118,20 @@ function cms_admin_backups_resolve_safe_download_path(string $path): ?string
 
 function cms_admin_backups_send_download(string $path, string $filename, string $contentType = 'application/octet-stream'): never
 {
+    $safePath = cms_admin_backups_resolve_safe_download_path($path);
+    if ($safePath === null) {
+        http_response_code(404);
+        exit;
+    }
+
     header('Content-Type: ' . $contentType);
     header('Content-Disposition: attachment; filename="' . str_replace('"', '', $filename) . '"');
-    header('Content-Length: ' . (string) filesize($path));
+    header('Content-Length: ' . (string) filesize($safePath));
     header('Cache-Control: private, no-store, no-cache, must-revalidate');
     header('Pragma: no-cache');
     header('X-Content-Type-Options: nosniff');
 
-    $handle = fopen($path, 'rb');
-    if ($handle !== false) {
-        while (!feof($handle)) {
-            echo fread($handle, 8192);
-        }
-        fclose($handle);
-    }
+    readfile($safePath);
     exit;
 }
 

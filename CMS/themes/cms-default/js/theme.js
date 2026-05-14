@@ -223,7 +223,8 @@
     function setCookie(name, value, days) {
         const d = new Date();
         d.setTime(d.getTime() + days * 24 * 60 * 60 * 1000);
-        document.cookie = `${name}=${value};expires=${d.toUTCString()};path=/;SameSite=Lax`;
+        const secure = window.location.protocol === 'https:' ? ';Secure' : '';
+        document.cookie = `${encodeURIComponent(name)}=${encodeURIComponent(value)};expires=${d.toUTCString()};path=/;SameSite=Lax${secure}`;
     }
 
     function getCookie(name) {

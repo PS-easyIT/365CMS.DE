@@ -1,5 +1,5 @@
 # 365CMS – Installation
-> **Stand:** 2026-04-07 | **Version:** 2.9.0 | **Status:** Aktuell
+> **Stand:** 2026-05-14 | **Version:** 2.9.785 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Überblick](#überblick)
@@ -14,18 +14,18 @@
 - [Troubleshooting](#troubleshooting)
 
 ---
-<!-- UPDATED: 2026-04-07 -->
+<!-- UPDATED: 2026-05-14 -->
 
 ## Überblick
 
 Für neue Installationen gibt es aktuell zwei praktikable Wege:
 
-1. **Repository-Checkout / manuelle Einrichtung**  
-   Ihr bearbeitet `CMS/config/app.php` direkt und ersetzt die Platzhalterwerte.
-2. **Deployment mit Installer**  
-   Einige Deployment-Pakete oder Build-Artefakte enthalten zusätzlich einen Installer, der `CMS/config/app.php` beschreibt. Im reinen Repository-Checkout ist dieser Installer nicht zwingend enthalten.
+1. **Web-Installer über `CMS/install.php`**  
+   Der Installer prüft PHP/MySQL-Schreibfähigkeit, fragt Datenbank-, Site- und Admin-Daten ab, schreibt `CMS/config/app.php`, erstellt das zentrale Schema über `CMS\SchemaManager` und setzt sichere Default-Settings.
+2. **Repository-Checkout / manuelle Einrichtung**  
+   Alternativ kann `CMS/config/app.php` direkt bearbeitet werden. Alle Platzhalterwerte und Security-Keys müssen dann manuell ersetzt werden.
 
-Wenn ihr direkt aus diesem Repository deployt, ist der **manuelle Weg über `CMS/config/app.php` der verlässlich dokumentierte Pfad**.
+Der bevorzugte Einstieg für frische Deployments ist der Installer. Nach erfolgreicher Installation sollte `install.php` aus öffentlichen Deployments entfernt oder mindestens nur für angemeldete Administratoren erreichbar gehalten werden.
 
 Wichtig für Betrieb und Doku: Das Repository soll den tatsächlich per FTP bzw. Deployment ausgerollten Runtime-Zustand widerspiegeln. Produktiv maßgeblich ist also immer die installierte Struktur unter `CMS/`.
 
@@ -81,6 +81,8 @@ FLUSH PRIVILEGES;
 ```
 
 Die Kern-Tabellen werden anschließend beim ersten erfolgreichen Start über `CMS\SchemaManager` erzeugt.
+
+Bei Nutzung von `CMS/install.php` werden dieselben zentralen Schema-Queries bereits während der Installation ausgeführt. Der Installer legt neue Installationen mit dem Theme `cms-default`, dem gewählten Site-Namen als `site_title` und den ausgewählten Core-Modulen an.
 
 ---
 
@@ -176,6 +178,8 @@ Nach korrekter Konfiguration:
 Vor Schritt 4 validiert der Bootstrap zusätzlich die produktiv gebündelten Composer-Manifeste von `mailer`, `mime` und `translation` gegen die offizielle Mindestplattform. So wird eine nicht unterstützte PHP-Laufzeit nicht erst mitten im Mail- oder Translation-Pfad sichtbar.
 
 Wichtig: Der erste generierte Admin-Zugang wird vom Schema-Setup in die Logs geschrieben. Prüft nach dem Erststart daher insbesondere `CMS/logs/` bzw. die temporären Zugangsdaten und ändert das Kennwort sofort.
+
+Bei der Installation über `CMS/install.php` wird das erste Admin-Konto direkt im Installer angelegt. Die Formularschritte sind CSRF-geschützt, die Installer-Session nutzt `HttpOnly`, `SameSite=Lax` und bei HTTPS zusätzlich `Secure`, und das Admin-Passwort muss mindestens 12 Zeichen lang sein.
 
 ---
 

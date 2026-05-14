@@ -283,8 +283,8 @@ if (!function_exists('cms_admin_media_render_featured_usage_list')) {
                                     $path = (string)($item['path'] ?? '');
                                     $usageItems = is_array($item['usage_items'] ?? null) ? $item['usage_items'] : [];
                                     $fileExists = !empty($item['exists']);
-                                    $fieldId = 'replacement-file-' . md5($path);
-                                    $statusId = 'replacement-status-' . md5($path);
+                                    $fieldId = 'replacement-file-' . hash('sha256', $path);
+                                    $statusId = 'replacement-status-' . hash('sha256', $path);
                                     $isHighlighted = !empty($item['is_highlighted']) && $isSuccessAlert;
                                     $defaultSelectedFileMessage = 'Noch keine Datei ausgewählt.';
                                     $defaultStatusMessage = $fileExists

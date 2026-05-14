@@ -183,14 +183,21 @@
     }
 
     function redirectToMemberMediaPath(path) {
-        var url = new URL(window.location.href);
-        if (path) {
-            url.searchParams.set('path', path);
+        var params = new URLSearchParams(window.location.search);
+        var normalizedPath = String(path || '').replace(/\\/g, '/').replace(/^\/+|\/+$/g, '');
+        var safeSegments = normalizedPath.split('/').filter(function (segment) {
+            return segment && segment !== '.' && segment !== '..';
+        });
+        var safePath = safeSegments.join('/');
+
+        if (safePath) {
+            params.set('path', safePath);
         } else {
-            url.searchParams.delete('path');
+            params.delete('path');
         }
 
-        window.location.assign(url.toString());
+        var queryString = params.toString();
+        window.location.search = queryString ? '?' + queryString : '';
     }
 
     function initMemberUploads() {

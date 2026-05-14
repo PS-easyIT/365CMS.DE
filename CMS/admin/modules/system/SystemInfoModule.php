@@ -2757,24 +2757,27 @@ class SystemInfoModule
 
     private function sendDiagnosticReportDownload(string $path, string $filename): never
     {
-        $handle = fopen($path, 'rb');
+        $safePath = realpath($path);
+        if (!is_string($safePath) || !is_file($safePath) || !is_readable($safePath)) {
+            throw new \RuntimeException('Diagnosebericht konnte nicht sicher aufgelöst werden.');
+        }
+
+        $handle = fopen($safePath, 'rb');
         if ($handle === false) {
             throw new \RuntimeException('Diagnosebericht konnte nicht zum Download geöffnet werden.');
         }
 
         header('Content-Type: application/zip');
         header('Content-Disposition: attachment; filename="' . str_replace('"', '', $filename) . '"');
-        header('Content-Length: ' . (string) filesize($path));
+        header('Content-Length: ' . (string) filesize($safePath));
         header('Cache-Control: private, no-store, no-cache, must-revalidate');
         header('Pragma: no-cache');
         header('X-Content-Type-Options: nosniff');
 
-        while (!feof($handle)) {
-            echo fread($handle, 8192);
-        }
+        fpassthru($handle);
         fclose($handle);
 
-        @unlink($path);
+        @unlink($safePath);
         exit;
     }
 

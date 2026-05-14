@@ -52,13 +52,14 @@ if (!defined('ABSPATH')) {
         </div>
 
         <form method="post">
+            <input type="hidden" name="csrf_token" value="<?php echo $escape($csrfToken); ?>">
             <input type="hidden" name="run_update" value="1">
             <hr class="section-divider">
             <p style="font-weight: 700; color: #1e293b; margin-bottom: 1rem;">Site-Konfiguration prüfen / anpassen</p>
 
-            <div class="form-group"><label>Site-Name</label><input type="text" name="site_name" value="<?php echo $fSiteName; ?>" required></div>
-            <div class="form-group"><label>Site-URL</label><input type="url" name="site_url" value="<?php echo $fSiteUrl; ?>" required><p class="help-text">Ohne abschließenden Slash — wird aus bestehender Config übernommen.</p></div>
-            <div class="form-group"><label>Admin E-Mail</label><input type="email" name="admin_email" value="<?php echo $fAdminEmail; ?>" required></div>
+            <div class="form-group"><label>Site-Name</label><input type="text" name="site_name" value="<?php echo $escape($fSiteName); ?>" required></div>
+            <div class="form-group"><label>Site-URL</label><input type="url" name="site_url" value="<?php echo $escape($fSiteUrl); ?>" required><p class="help-text">Ohne abschließenden Slash — wird aus bestehender Config übernommen.</p></div>
+            <div class="form-group"><label>Admin E-Mail</label><input type="email" name="admin_email" value="<?php echo $escape($fAdminEmail); ?>" required></div>
             <div class="form-group"><div class="checkbox-group"><input type="checkbox" name="debug_mode" id="debug_mode" <?php echo $fDebugMode ? 'checked' : ''; ?>><label for="debug_mode" style="margin: 0;">Debug-Modus aktivieren</label></div><p class="help-text">Nur für Entwicklung — in Produktion deaktivieren!</p></div>
 
             <hr class="section-divider">

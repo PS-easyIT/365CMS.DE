@@ -29,6 +29,15 @@ final class InstallerController
 
         $step = (string) ($_POST['step'] ?? $_GET['step'] ?? '1');
 
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$this->verifyCsrfToken((string) ($_POST['csrf_token'] ?? ''))) {
+            http_response_code(403);
+            $this->render('blocked', [
+                'blockedTitle' => 'Sicherheitscheck fehlgeschlagen',
+                'blockedMessage' => 'Der Installer hat die Anfrage verworfen, weil der Formular-Token fehlt oder abgelaufen ist.',
+                'blockedHint' => 'Bitte die Installationsseite neu laden und den Schritt erneut absenden.',
+            ]);
+        }
+
         match ($step) {
             '1' => $this->renderWelcome(),
             'update' => $this->handleUpdate(),
@@ -85,21 +94,37 @@ final class InstallerController
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['run_update'])) {
             $newSiteName = trim((string) ($_POST['site_name'] ?? $this->existingConfig['site_name'] ?? ''));
-            $newSiteUrl = rtrim(trim((string) ($_POST['site_url'] ?? $this->existingConfig['site_url'] ?? '')), '/');
+            $newSiteUrl = $this->normalizeSiteUrl((string) ($_POST['site_url'] ?? $this->existingConfig['site_url'] ?? ''));
             $newAdminEmail = trim((string) ($_POST['admin_email'] ?? $this->existingConfig['admin_email'] ?? ''));
             $newDebugMode = isset($_POST['debug_mode']) ? 'true' : 'false';
 
-            $configResult = $this->service->updateConfigFile($this->existingConfig, [
+            if ($newSiteName === '') {
+                $updateErrors[] = 'Site-Name darf nicht leer sein.';
+            }
+
+            if ($newSiteUrl === '') {
+                $updateErrors[] = 'Site-URL muss eine gültige http(s)-URL ohne abschließenden Slash sein.';
+            }
+
+            if (!filter_var($newAdminEmail, FILTER_VALIDATE_EMAIL)) {
+                $updateErrors[] = 'Admin E-Mail ist ungültig.';
+            }
+
+            $configResult = $updateErrors === [] ? $this->service->updateConfigFile($this->existingConfig, [
                 'site_name' => $newSiteName,
                 'site_url' => $newSiteUrl,
                 'admin_email' => $newAdminEmail,
                 'debug_mode' => $newDebugMode,
-            ]);
+            ]) : 'validation_failed';
 
-            if ($configResult !== true) {
+            if ($configResult !== true && $configResult !== 'validation_failed') {
                 $updateErrors[] = 'Config-Update fehlgeschlagen: ' . $configResult;
             } else {
                 try {
+                    if ($updateErrors !== []) {
+                        throw new \RuntimeException('Validierung fehlgeschlagen');
+                    }
+
                     $dsn = "mysql:host={$this->existingConfig['db_host']};dbname={$this->existingConfig['db_name']};charset=utf8mb4";
                     $pdo = new PDO($dsn, $this->existingConfig['db_user'], $this->existingConfig['db_pass'], [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
                     $tableResults = $this->service->createDatabaseTables($pdo, $this->existingConfig['db_prefix'] ?? 'cms_');
@@ -130,6 +155,7 @@ final class InstallerController
                         'tables_created' => $newTables,
                     ];
                     $this->redirect('?step=5');
+                } catch (\RuntimeException) {
                 } catch (PDOException $e) {
                     $updateErrors[] = 'Datenbankfehler: ' . $e->getMessage();
                 }
@@ -140,9 +166,9 @@ final class InstallerController
             'updateErrors' => $updateErrors,
             'tableResults' => $tableResults,
             'existingConfig' => $this->existingConfig,
-            'fSiteName' => htmlspecialchars((string) ($this->existingConfig['site_name'] ?? 'IT Expert Network')),
-            'fSiteUrl' => htmlspecialchars((string) ($this->existingConfig['site_url'] ?? $this->service->autoDetectUrl())),
-            'fAdminEmail' => htmlspecialchars((string) ($this->existingConfig['admin_email'] ?? '')),
+            'fSiteName' => (string) ($_POST['site_name'] ?? $this->existingConfig['site_name'] ?? 'IT Expert Network'),
+            'fSiteUrl' => (string) ($_POST['site_url'] ?? $this->existingConfig['site_url'] ?? $this->service->autoDetectUrl()),
+            'fAdminEmail' => (string) ($_POST['admin_email'] ?? $this->existingConfig['admin_email'] ?? ''),
             'fDebugMode' => (($this->existingConfig['debug_mode'] ?? 'false') === 'true'),
         ]);
     }
@@ -215,14 +241,32 @@ final class InstallerController
         $availableCoreModules = $this->service->getInstallableCoreModules();
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['site_config'])) {
-            $_SESSION['site_config'] = [
-                'site_name' => trim((string) ($_POST['site_name'] ?? '')),
-                'site_url' => rtrim(trim((string) ($_POST['site_url'] ?? '')), '/'),
-                'admin_email' => trim((string) ($_POST['admin_email'] ?? '')),
+            $siteName = trim((string) ($_POST['site_name'] ?? ''));
+            $siteUrl = $this->normalizeSiteUrl((string) ($_POST['site_url'] ?? ''));
+            $adminEmail = trim((string) ($_POST['admin_email'] ?? ''));
+
+            if ($siteName === '') {
+                $this->errors[] = 'Website-Name darf nicht leer sein.';
+            }
+
+            if ($siteUrl === '') {
+                $this->errors[] = 'Website-URL muss eine gültige http(s)-URL ohne abschließenden Slash sein.';
+            }
+
+            if (!filter_var($adminEmail, FILTER_VALIDATE_EMAIL)) {
+                $this->errors[] = 'Administrator E-Mail ist ungültig.';
+            }
+
+            if ($this->errors === []) {
+                $_SESSION['site_config'] = [
+                'site_name' => $siteName,
+                'site_url' => $siteUrl,
+                'admin_email' => $adminEmail,
                 'debug_mode' => isset($_POST['debug_mode']) ? 'true' : 'false',
                 'core_modules' => $this->service->normalizeInstallableCoreModuleStates($_POST['core_modules'] ?? []),
-            ];
-            $this->redirect('?step=4');
+                ];
+                $this->redirect('?step=4');
+            }
         }
 
         $isReinstall = !empty($_SESSION['is_reinstall']);
@@ -255,10 +299,14 @@ final class InstallerController
 
             if ($adminUsername === '' || $adminEmail === '' || $adminPassword === '') {
                 $this->errors[] = 'Alle Felder sind erforderlich';
+            } elseif (!preg_match('/^[a-zA-Z0-9_.-]{3,60}$/', $adminUsername)) {
+                $this->errors[] = 'Benutzername darf nur Buchstaben, Zahlen, Punkt, Unterstrich und Bindestrich enthalten und muss 3–60 Zeichen lang sein';
+            } elseif (!filter_var($adminEmail, FILTER_VALIDATE_EMAIL)) {
+                $this->errors[] = 'E-Mail-Adresse ist ungültig';
             } elseif ($adminPassword !== $adminPasswordConfirm) {
                 $this->errors[] = 'Passwörter stimmen nicht überein';
-            } elseif (strlen($adminPassword) < 8) {
-                $this->errors[] = 'Passwort muss mindestens 8 Zeichen lang sein';
+            } elseif (mb_strlen($adminPassword) < 12) {
+                $this->errors[] = 'Passwort muss mindestens 12 Zeichen lang sein';
             } else {
                 $dbConfig = $_SESSION['db_config'];
                 $siteConfig = $_SESSION['site_config'];
@@ -342,6 +390,7 @@ final class InstallerController
             throw new \RuntimeException('Installer-View nicht gefunden: ' . $view);
         }
 
+        $data['csrfToken'] = $this->getCsrfToken();
         $escape = static fn (mixed $value): string => htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
         extract($data, EXTR_SKIP);
         require $viewPath;
@@ -352,5 +401,36 @@ final class InstallerController
     {
         header('Location: ' . $location);
         exit;
+    }
+
+    private function getCsrfToken(): string
+    {
+        if (empty($_SESSION['installer_csrf_token']) || !is_string($_SESSION['installer_csrf_token'])) {
+            $_SESSION['installer_csrf_token'] = bin2hex(random_bytes(32));
+        }
+
+        return $_SESSION['installer_csrf_token'];
+    }
+
+    private function verifyCsrfToken(string $token): bool
+    {
+        return isset($_SESSION['installer_csrf_token'])
+            && is_string($_SESSION['installer_csrf_token'])
+            && hash_equals($_SESSION['installer_csrf_token'], $token);
+    }
+
+    private function normalizeSiteUrl(string $url): string
+    {
+        $normalized = rtrim(trim($url), '/');
+        if ($normalized === '' || filter_var($normalized, FILTER_VALIDATE_URL) === false) {
+            return '';
+        }
+
+        $scheme = strtolower((string) parse_url($normalized, PHP_URL_SCHEME));
+        if (!in_array($scheme, ['http', 'https'], true)) {
+            return '';
+        }
+
+        return $normalized;
     }
 }

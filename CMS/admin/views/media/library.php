@@ -801,10 +801,10 @@ function renderMediaDuplicateSummary(array $file, bool $compact = false): string
                                     <div class="media-grid-label"><?php echo htmlspecialchars((string)($file['name'] ?? '')); ?></div>
                                     <?php if ($altTextBulkAvailable): ?>
                                         <div class="px-2 pt-2">
-                                            <label class="form-label form-label-sm mb-1" for="mediaAltTextGrid-<?php echo md5($filePath); ?>">Alt-Text</label>
+                                            <label class="form-label form-label-sm mb-1" for="mediaAltTextGrid-<?php echo hash('sha256', $filePath); ?>">Alt-Text</label>
                                             <input
                                                 class="form-control form-control-sm"
-                                                id="mediaAltTextGrid-<?php echo md5($filePath); ?>"
+                                                id="mediaAltTextGrid-<?php echo hash('sha256', $filePath); ?>"
                                                 form="mediaBulkForm"
                                                 type="text"
                                                 name="alt_texts[<?php echo htmlspecialchars($filePath, ENT_QUOTES); ?>]"
@@ -910,10 +910,10 @@ function renderMediaDuplicateSummary(array $file, bool $compact = false): string
                                                 </a>
                                                 <?php if ($altTextBulkAvailable): ?>
                                                     <div class="mt-2">
-                                                        <label class="form-label form-label-sm mb-1" for="mediaAltTextList-<?php echo md5($filePath); ?>">Alt-Text</label>
+                                                        <label class="form-label form-label-sm mb-1" for="mediaAltTextList-<?php echo hash('sha256', $filePath); ?>">Alt-Text</label>
                                                         <input
                                                             class="form-control form-control-sm"
-                                                            id="mediaAltTextList-<?php echo md5($filePath); ?>"
+                                                            id="mediaAltTextList-<?php echo hash('sha256', $filePath); ?>"
                                                             form="mediaBulkForm"
                                                             type="text"
                                                             name="alt_texts[<?php echo htmlspecialchars($filePath, ENT_QUOTES); ?>]"

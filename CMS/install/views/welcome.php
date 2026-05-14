@@ -85,6 +85,7 @@ if (!defined('ABSPATH')) {
 
             <?php if ($isReinstall): ?>
             <form method="post" action="?step=update" style="margin-top: 1.5rem;">
+                <input type="hidden" name="csrf_token" value="<?php echo $escape($csrfToken); ?>">
                 <button type="submit" class="btn" style="background: linear-gradient(135deg,#10b981 0%,#059669 100%);" <?php echo (!$phpCompatible || !$mysqlAvailable || !$writePermission) ? 'disabled' : ''; ?>>
                     🔄 Update / Schema-Reparatur (bestehende Daten bleiben erhalten)
                 </button>
@@ -98,6 +99,7 @@ if (!defined('ABSPATH')) {
                         <strong>ACHTUNG:</strong> Löscht <strong>alle Datenbank-Tabellen</strong> unwiderruflich! Bitte vorher ein Backup erstellen.
                     </p>
                     <form method="post" action="?step=2">
+                        <input type="hidden" name="csrf_token" value="<?php echo $escape($csrfToken); ?>">
                         <input type="hidden" name="reinstall" value="1">
                         <button type="submit" class="btn" style="background: linear-gradient(135deg,#ef4444 0%,#b91c1c 100%);" <?php echo (!$phpCompatible || !$mysqlAvailable || !$writePermission) ? 'disabled' : ''; ?>>
                             ❌ Ja, komplett neu installieren (alle Daten löschen)
@@ -107,6 +109,7 @@ if (!defined('ABSPATH')) {
             </details>
             <?php else: ?>
             <form method="post" action="?step=2" style="margin-top: 1.5rem;">
+                <input type="hidden" name="csrf_token" value="<?php echo $escape($csrfToken); ?>">
                 <button type="submit" class="btn" <?php echo (!$phpCompatible || !$mysqlAvailable || !$writePermission) ? 'disabled' : ''; ?>>
                     Weiter zu Schritt 2 →
                 </button>

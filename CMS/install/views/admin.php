@@ -53,6 +53,7 @@ if (!defined('ABSPATH')) {
         <?php endif; ?>
 
         <form method="post">
+            <input type="hidden" name="csrf_token" value="<?php echo $escape($csrfToken); ?>">
             <input type="hidden" name="install" value="1">
             <div class="form-group">
                 <label for="admin_username">Benutzername</label>
@@ -67,7 +68,7 @@ if (!defined('ABSPATH')) {
             <div class="form-group">
                 <label for="admin_password">Passwort</label>
                 <input type="password" id="admin_password" name="admin_password" required autocomplete="new-password">
-                <div class="help-text">Mindestens 8 Zeichen. Ein starkes Passwort spart später graue Haare.</div>
+                <div class="help-text">Mindestens 12 Zeichen. Ein starkes Passwort spart später graue Haare.</div>
             </div>
 
             <div class="form-group">

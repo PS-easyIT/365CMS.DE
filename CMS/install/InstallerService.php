@@ -782,14 +782,14 @@ final class InstallerService
                 : $this->getDefaultInstallableCoreModuleStates();
 
             $settings = [
-                ['site_title', '365CMS'],
+                ['site_title', $siteName],
                 ['site_tagline', 'Content Management System'],
                 ['site_name', $siteName],
                 ['admin_email', $adminEmail],
                 ['timezone', 'Europe/Berlin'],
                 ['date_format', 'd.m.Y'],
                 ['time_format', 'H:i'],
-                ['active_theme', 'default'],
+                ['active_theme', 'cms-default'],
                 ['active_plugins', '[]'],
                 ['landing_page_content', ''],
             ];

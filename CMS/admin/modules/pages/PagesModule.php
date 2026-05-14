@@ -640,7 +640,7 @@ class PagesModule
         $normalizedPreview = preg_replace('/\s+/u', ' ', trim($stringValue)) ?? '';
         $summary = [
             'length' => strlen($stringValue),
-            'sha1' => sha1($stringValue),
+            'sha256' => hash('sha256', $stringValue),
             'is_empty' => trim($stringValue) === '',
             'preview' => substr($normalizedPreview, 0, 180),
         ];

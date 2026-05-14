@@ -61,6 +61,7 @@ if (!defined('ABSPATH')) {
         <?php endif; ?>
 
         <form method="post">
+            <input type="hidden" name="csrf_token" value="<?php echo $escape($csrfToken); ?>">
             <input type="hidden" name="site_config" value="1">
             <div class="form-group">
                 <label for="site_name">Website-Name</label>
