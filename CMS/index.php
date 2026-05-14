@@ -208,11 +208,13 @@ try {
     error_log('CMS Fatal Error: ' . $sanitizeFatalLog($e->getMessage(), 800));
     error_log('Stack trace: ' . $sanitizeFatalLog($e->getTraceAsString(), 4000));
 
-    if (class_exists('CMS\\CacheManager')) {
+    if (class_exists('CMS\\CacheManager') && !headers_sent()) {
         CMS\CacheManager::instance()->sendResponseHeaders('private');
     }
     
-    http_response_code(500);
+    if (!headers_sent()) {
+        http_response_code(500);
+    }
 
     $defaultTheme = defined('DEFAULT_THEME') && is_string(DEFAULT_THEME) && trim(DEFAULT_THEME) !== ''
         ? (preg_replace('/[^a-zA-Z0-9_-]/', '', trim(DEFAULT_THEME)) ?: 'cms-default')
@@ -231,7 +233,9 @@ try {
         }
     }
 
-    header('Content-Type: text/html; charset=utf-8');
+    if (!headers_sent()) {
+        header('Content-Type: text/html; charset=utf-8');
+    }
     echo '<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>365CMS – Fehler</title></head><body><h1>Interner Fehler</h1><p>365CMS konnte die Anfrage gerade nicht verarbeiten.</p></body></html>';
     exit;
 }

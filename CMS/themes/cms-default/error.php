@@ -15,7 +15,9 @@ $errorCode    = $errorCode    ?? 500;
 $errorTitle   = $errorTitle   ?? 'Serverfehler';
 $errorMessage = $errorMessage ?? 'Ein unerwarteter Fehler ist aufgetreten. Bitte versuche es später erneut.';
 
-http_response_code((int)$errorCode);
+if (!headers_sent()) {
+    http_response_code((int)$errorCode);
+}
 ?>
 
 <div class="container">

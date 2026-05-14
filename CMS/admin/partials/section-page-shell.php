@@ -206,7 +206,9 @@ function cms_admin_section_shell_has_valid_module_container(mixed $module): bool
 
 function cms_admin_section_shell_render_bootstrap_failure(string $pageTitle, string $activePage, array $pageAssets, string $message): never
 {
-    http_response_code(500);
+    if (!headers_sent()) {
+        http_response_code(500);
+    }
 
     $alert = [
         'type' => 'danger',
@@ -227,6 +229,53 @@ function cms_admin_section_shell_render_bootstrap_failure(string $pageTitle, str
 
     require __DIR__ . '/footer.php';
     exit;
+}
+
+function cms_admin_section_shell_sanitize_error_detail(string $value, int $maxLength = 260): string
+{
+    $value = preg_replace('/([?&](?:token|csrf_token|nonce|key|secret|password|pass)=)[^&\s]+/i', '$1***', $value) ?? $value;
+    $value = preg_replace('/\b(Bearer\s+)[A-Za-z0-9._~+\/-]+=*/i', '$1***', $value) ?? $value;
+    $value = preg_replace('/(password|passwd|secret|token|credential|api[_-]?key)(\s*[=:]\s*)\S+/i', '$1$2***', $value) ?? $value;
+    $value = trim(preg_replace('/[\x00-\x1F\x7F]+/u', ' ', $value) ?? '');
+
+    return function_exists('mb_substr') ? mb_substr($value, 0, $maxLength, 'UTF-8') : substr($value, 0, $maxLength);
+}
+
+function cms_admin_section_shell_render_view_failure(\Throwable $exception, string $routePath, string $viewFile, string $pageTitle): void
+{
+    Logger::instance()->withChannel('admin.section_shell')->error('Admin-Section-View konnte nicht gerendert werden.', [
+        'route_path' => $routePath,
+        'view_file' => $viewFile,
+        'page_title' => $pageTitle,
+        'exception_class' => get_debug_type($exception),
+        'exception' => $exception->getMessage(),
+    ]);
+
+    $message = 'Die Admin-Seite konnte nicht vollständig geladen werden. Bitte Logs prüfen und Cache/OPcache leeren.';
+    $safeMessage = htmlspecialchars($message, ENT_QUOTES, 'UTF-8');
+    $safeRoute = htmlspecialchars($routePath, ENT_QUOTES, 'UTF-8');
+    $safeView = htmlspecialchars(basename($viewFile), ENT_QUOTES, 'UTF-8');
+    $safeException = htmlspecialchars(
+        cms_admin_section_shell_sanitize_error_detail(get_debug_type($exception) . ': ' . $exception->getMessage()),
+        ENT_QUOTES,
+        'UTF-8'
+    );
+    $safeLocation = htmlspecialchars(
+        basename($exception->getFile()) . ':' . (int) $exception->getLine(),
+        ENT_QUOTES,
+        'UTF-8'
+    );
+
+    echo '<div class="page-body"><div class="container-xl">';
+    echo '<div class="alert alert-danger" role="alert">';
+    echo '<div class="d-flex"><div>';
+    echo '<h4 class="alert-title">Admin-Ansicht konnte nicht geladen werden</h4>';
+    echo '<div class="text-secondary">' . $safeMessage . '</div>';
+    echo '<div class="small text-muted mt-2">Route: <code>' . $safeRoute . '</code> · View: <code>' . $safeView . '</code></div>';
+    echo '<div class="small text-muted mt-1">Fehler: <code>' . $safeException . '</code> · Quelle: <code>' . $safeLocation . '</code></div>';
+    echo '</div></div>';
+    echo '</div>';
+    echo '</div></div>';
 }
 
 $sectionPageConfig = is_array($sectionPageConfig ?? null) ? $sectionPageConfig : [];
@@ -381,5 +430,23 @@ if ($templateVars !== []) {
 
 require __DIR__ . '/header.php';
 require __DIR__ . '/sidebar.php';
-require $viewFile;
-require __DIR__ . '/footer.php';
+try {
+    require $viewFile;
+} catch (\Throwable $exception) {
+    cms_admin_section_shell_render_view_failure($exception, $routePath, $viewFile, $pageTitle);
+}
+try {
+    require __DIR__ . '/footer.php';
+} catch (\Throwable $exception) {
+    Logger::instance()->withChannel('admin.section_shell')->error('Admin-Section-Footer konnte nicht gerendert werden.', [
+        'route_path' => $routePath,
+        'view_file' => $viewFile,
+        'page_title' => $pageTitle,
+        'exception_class' => get_debug_type($exception),
+        'exception' => $exception->getMessage(),
+    ]);
+
+    echo '</div><!-- /.page-wrapper -->';
+    echo '</div><!-- /.page -->';
+    echo '</body></html>';
+}
