@@ -259,11 +259,11 @@ final class InstallerController
 
             if ($this->errors === []) {
                 $_SESSION['site_config'] = [
-                'site_name' => $siteName,
-                'site_url' => $siteUrl,
-                'admin_email' => $adminEmail,
-                'debug_mode' => isset($_POST['debug_mode']) ? 'true' : 'false',
-                'core_modules' => $this->service->normalizeInstallableCoreModuleStates($_POST['core_modules'] ?? []),
+                    'site_name' => $siteName,
+                    'site_url' => $siteUrl,
+                    'admin_email' => $adminEmail,
+                    'debug_mode' => isset($_POST['debug_mode']) ? 'true' : 'false',
+                    'core_modules' => $this->service->normalizeInstallableCoreModuleStates($_POST['core_modules'] ?? []),
                 ];
                 $this->redirect('?step=4');
             }
