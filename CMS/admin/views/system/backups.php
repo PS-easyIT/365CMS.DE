@@ -218,6 +218,12 @@ if (!function_exists('cms_admin_backups_render_status_badge')) {
                             $canDownloadDatabase = !empty($backup['can_download_database']);
                             $canDownloadFiles = !empty($backup['can_download_files']);
                             $canRestore = !empty($backup['can_restore']);
+                            $downloadDatabaseToken = $canDownloadDatabase && function_exists('cms_admin_backups_create_download_token')
+                                ? cms_admin_backups_create_download_token((string) $name, 'database')
+                                : '';
+                            $downloadFilesToken = $canDownloadFiles && function_exists('cms_admin_backups_create_download_token')
+                                ? cms_admin_backups_create_download_token((string) $name, 'files')
+                                : '';
                             if (is_numeric($size)) {
                                 $size = round($size / 1024 / 1024, 2) . ' MB';
                             }
@@ -231,11 +237,21 @@ if (!function_exists('cms_admin_backups_render_status_badge')) {
                                 <td class="text-muted"><?php echo htmlspecialchars((string)$date); ?></td>
                                 <td>
                                     <div class="d-flex justify-content-end gap-2 flex-wrap">
-                                        <?php if ($canDownloadDatabase): ?>
-                                            <a class="btn btn-sm btn-outline-primary" href="/admin/backups?download=<?php echo rawurlencode((string) $name); ?>&amp;part=database">DB</a>
+                                        <?php if ($canDownloadDatabase && $downloadDatabaseToken !== ''): ?>
+                                            <form method="post" class="d-inline">
+                                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
+                                                <input type="hidden" name="action" value="download">
+                                                <input type="hidden" name="download_token" value="<?php echo htmlspecialchars($downloadDatabaseToken); ?>">
+                                                <button type="submit" class="btn btn-sm btn-outline-primary">DB</button>
+                                            </form>
                                         <?php endif; ?>
-                                        <?php if ($canDownloadFiles): ?>
-                                            <a class="btn btn-sm btn-outline-primary" href="/admin/backups?download=<?php echo rawurlencode((string) $name); ?>&amp;part=files">Dateien</a>
+                                        <?php if ($canDownloadFiles && $downloadFilesToken !== ''): ?>
+                                            <form method="post" class="d-inline">
+                                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
+                                                <input type="hidden" name="action" value="download">
+                                                <input type="hidden" name="download_token" value="<?php echo htmlspecialchars($downloadFilesToken); ?>">
+                                                <button type="submit" class="btn btn-sm btn-outline-primary">Dateien</button>
+                                            </form>
                                         <?php endif; ?>
                                         <form method="post" class="d-inline">
                                             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">

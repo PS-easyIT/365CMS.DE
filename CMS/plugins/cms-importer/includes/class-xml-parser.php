@@ -550,7 +550,7 @@ class CMS_Importer_XML_Parser
             return $base . ':source:' . $sourceIndex;
         }
 
-        return $base . ':' . md5($pattern . '|' . $sourceIndex);
+        return $base . ':' . substr(hash('sha256', $pattern . '|' . $sourceIndex), 0, 32);
     }
 
     private function parse_authors(\SimpleXMLElement $channel, string $ns): array

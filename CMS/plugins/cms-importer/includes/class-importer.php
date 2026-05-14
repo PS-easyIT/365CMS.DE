@@ -1190,7 +1190,7 @@ class CMS_Importer_Service
         $filename = basename($path);
         $filename = preg_replace('/[^a-zA-Z0-9._-]/', '-', $filename) ?? 'image';
         $filename = trim($filename, '-');
-        return $filename !== '' ? $filename : 'image-' . substr(md5($url), 0, 8);
+        return $filename !== '' ? $filename : 'image-' . substr(hash('sha256', $url), 0, 12);
     }
 
     /**
@@ -2179,7 +2179,7 @@ class CMS_Importer_Service
 
         return 'wp-comment:'
             . (int) ($item['wp_id'] ?? 0)
-            . ':' . md5(
+            . ':' . substr(hash('sha256',
                 (string) ($comment['author_email'] ?? '')
                 . '|'
                 . (string) ($comment['author'] ?? '')
@@ -2187,7 +2187,7 @@ class CMS_Importer_Service
                 . (string) ($comment['date'] ?? '')
                 . '|'
                 . (string) ($comment['content'] ?? '')
-            );
+            ), 0, 32);
     }
 
     private function sanitize_imported_comment_author(string $author): string
@@ -2478,7 +2478,7 @@ class CMS_Importer_Service
 
     private function ensure_unique_filename(string $filename, string $url, array &$usedNames): string
     {
-        $filename = $filename !== '' ? $filename : 'image-' . substr(md5($url), 0, 8) . '.jpg';
+        $filename = $filename !== '' ? $filename : 'image-' . substr(hash('sha256', $url), 0, 12) . '.jpg';
         $name = pathinfo($filename, PATHINFO_FILENAME);
         $ext = pathinfo($filename, PATHINFO_EXTENSION);
         $candidate = $filename;

@@ -36,6 +36,7 @@ class BackupService
     private const LEGACY_DATABASE_BACKUP_PATTERN = '/^database_[0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9]{2}-[0-9]{2}-[0-9]{2}\.sql(?:\.gz)?$/i';
     private const S3_BUCKET_PATTERN = '/^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$/';
     private const S3_ENDPOINT_PATTERN = '/^[a-z0-9.-]+$/i';
+    private const S3_REGION_PATTERN = '/^[a-z0-9-]{2,40}$/i';
     private const FILE_BACKUP_DIRECTORIES = ['uploads', 'themes', 'plugins', 'assets'];
     private const ALLOWED_DOWNLOAD_PARTS = ['database', 'files'];
     private const BACKUP_HASH_ALGORITHM = 'sha256';
@@ -518,9 +519,16 @@ class BackupService
             return false;
         }
 
-        // Simplified S3 upload via PUT request
+        $bucket = strtolower(trim((string) $config['bucket']));
+        $endpoint = strtolower(trim((string) $config['endpoint']));
+        $region = strtolower(trim((string) ($config['region'] ?? 'us-east-1')));
+        $accessKey = trim((string) $config['access_key']);
+        $secretKey = (string) $config['secret_key'];
+
         $objectKey = basename($filePath);
-        $url = "https://{$config['bucket']}.{$config['endpoint']}/{$objectKey}";
+        $encodedObjectKey = str_replace('%2F', '/', rawurlencode($objectKey));
+        $host = $bucket . '.' . $endpoint;
+        $url = 'https://' . $host . '/' . $encodedObjectKey;
 
         $fileSize = filesize($filePath);
         if ($fileSize === false || $fileSize < 1 || $fileSize > self::MAX_S3_REST_UPLOAD_BYTES) {
@@ -532,21 +540,36 @@ class BackupService
             return false;
         }
 
-        $timestamp = gmdate('D, d M Y H:i:s T');
-        
-        // Create signature
-        $stringToSign = "PUT\n\n{$this->getMimeType($filePath)}\n{$timestamp}\n/{$config['bucket']}/{$objectKey}";
-        $signature = base64_encode(hash_hmac('sha1', $stringToSign, $config['secret_key'], true));
+        $contentType = $this->getMimeType($filePath);
+        $payloadHash = hash('sha256', $fileContent);
+        $amzDate = gmdate('Ymd\THis\Z');
+        $dateStamp = gmdate('Ymd');
+
+        $canonicalHeaders = 'content-type:' . $contentType . "\n"
+            . 'host:' . $host . "\n"
+            . 'x-amz-content-sha256:' . $payloadHash . "\n"
+            . 'x-amz-date:' . $amzDate . "\n";
+        $signedHeaders = 'content-type;host;x-amz-content-sha256;x-amz-date';
+        $canonicalRequest = "PUT\n/{$encodedObjectKey}\n\n{$canonicalHeaders}\n{$signedHeaders}\n{$payloadHash}";
+        $credentialScope = $dateStamp . '/' . $region . '/s3/aws4_request';
+        $stringToSign = "AWS4-HMAC-SHA256\n{$amzDate}\n{$credentialScope}\n" . hash('sha256', $canonicalRequest);
+        $signingKey = $this->getS3SignatureV4Key($secretKey, $dateStamp, $region);
+        $signature = hash_hmac('sha256', $stringToSign, $signingKey);
+        $authorization = 'AWS4-HMAC-SHA256 Credential=' . $accessKey . '/' . $credentialScope
+            . ', SignedHeaders=' . $signedHeaders
+            . ', Signature=' . $signature;
         
         try {
             $result = $this->httpClient->put($url, $fileContent, [
                 'timeout' => 120,
                 'connectTimeout' => 10,
                 'headers' => [
-                    'Date: ' . $timestamp,
-                    'Content-Type: ' . $this->getMimeType($filePath),
+                    'Content-Type: ' . $contentType,
                     'Content-Length: ' . $fileSize,
-                    'Authorization: AWS ' . $config['access_key'] . ':' . $signature,
+                    'Host: ' . $host,
+                    'X-Amz-Content-Sha256: ' . $payloadHash,
+                    'X-Amz-Date: ' . $amzDate,
+                    'Authorization: ' . $authorization,
                 ],
                 'userAgent' => '365CMS-BackupService/1.0',
                 'maxBytes' => 1048576,
@@ -599,6 +622,15 @@ class BackupService
             ]);
             return [];
         }
+    }
+
+    private function getS3SignatureV4Key(string $secretKey, string $dateStamp, string $region): string
+    {
+        $dateKey = hash_hmac('sha256', $dateStamp, 'AWS4' . $secretKey, true);
+        $dateRegionKey = hash_hmac('sha256', $region, $dateKey, true);
+        $dateRegionServiceKey = hash_hmac('sha256', 's3', $dateRegionKey, true);
+
+        return hash_hmac('sha256', 'aws4_request', $dateRegionServiceKey, true);
     }
     
     /**
@@ -2030,6 +2062,17 @@ class BackupService
 
         if (str_contains($endpoint, '/') || str_contains($endpoint, '@') || str_contains($endpoint, ':')) {
             return false;
+        }
+
+        $region = strtolower(trim((string) ($config['region'] ?? '')));
+        if ($region === '' || preg_match(self::S3_REGION_PATTERN, $region) !== 1) {
+            return false;
+        }
+
+        foreach (['access_key', 'secret_key'] as $key) {
+            if (trim((string) ($config[$key] ?? '')) === '') {
+                return false;
+            }
         }
 
         return true;

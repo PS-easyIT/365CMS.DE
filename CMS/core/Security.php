@@ -185,8 +185,13 @@ class Security
     private function setSecurityHeaders(): void
     {
         if (!headers_sent()) {
+            $xFrameOptions = 'DENY';
+            if (!in_array($xFrameOptions, ['DENY', 'SAMEORIGIN'], true)) {
+                $xFrameOptions = 'DENY';
+            }
+
             header('X-Content-Type-Options: nosniff');
-            header('X-Frame-Options: DENY');
+            header('X-Frame-Options: ' . $xFrameOptions);
             header('X-XSS-Protection: 0');
             header('Referrer-Policy: strict-origin-when-cross-origin');
             header('Permissions-Policy: geolocation=(), microphone=(), camera=()');

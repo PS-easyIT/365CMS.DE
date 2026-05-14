@@ -47,6 +47,7 @@ function cms_admin_backups_allowed_actions(): array
         'create_full' => true,
         'create_db' => true,
         'validate' => true,
+        'download' => true,
         'restore' => true,
         'delete' => true,
     ];
@@ -94,6 +95,59 @@ function cms_admin_backups_redirect(string $path = '/admin/backups'): never
     exit;
 }
 
+function cms_admin_backups_create_download_token(string $backupName, string $part): string
+{
+    $backupName = cms_admin_backups_normalize_backup_name_value($backupName);
+    $part = cms_admin_backups_normalize_download_part($part);
+    if ($backupName === '') {
+        return '';
+    }
+
+    if (empty($_SESSION['admin_backup_downloads']) || !is_array($_SESSION['admin_backup_downloads'])) {
+        $_SESSION['admin_backup_downloads'] = [];
+    }
+
+    $token = bin2hex(random_bytes(24));
+    $_SESSION['admin_backup_downloads'][$token] = [
+        'name' => $backupName,
+        'part' => $part,
+        'expires' => time() + 600,
+    ];
+
+    return $token;
+}
+
+/** @return array{name:string,part:string}|null */
+function cms_admin_backups_consume_download_token(mixed $value): ?array
+{
+    $token = trim((string) $value);
+    if ($token === '' || preg_match('/^[a-f0-9]{48}$/', $token) !== 1) {
+        return null;
+    }
+
+    $downloads = $_SESSION['admin_backup_downloads'] ?? [];
+    if (!is_array($downloads) || !isset($downloads[$token]) || !is_array($downloads[$token])) {
+        return null;
+    }
+
+    $payload = $downloads[$token];
+    unset($_SESSION['admin_backup_downloads'][$token]);
+
+    if ((int) ($payload['expires'] ?? 0) < time()) {
+        return null;
+    }
+
+    $backupName = cms_admin_backups_normalize_backup_name_value($payload['name'] ?? '');
+    if ($backupName === '') {
+        return null;
+    }
+
+    return [
+        'name' => $backupName,
+        'part' => cms_admin_backups_normalize_download_part($payload['part'] ?? 'database'),
+    ];
+}
+
 function cms_admin_backups_resolve_safe_download_path(string $path): ?string
 {
     $resolvedPath = realpath($path);
@@ -135,28 +189,17 @@ function cms_admin_backups_send_download(string $path, string $filename, string 
     exit;
 }
 
-/**
- * @return array<string, callable(array): array>
- */
-function cms_admin_backups_action_handlers(BackupsModule $module): array
+function cms_admin_backups_handle_download(BackupsModule $module, mixed $token): never
 {
-    return [
-        'create_full' => static fn (array $post): array => $module->createFullBackup(),
-        'create_db' => static fn (array $post): array => $module->createDatabaseBackup(),
-        'validate' => static fn (array $post): array => $module->validateBackup(
-            cms_admin_backups_normalize_backup_name($post),
-            !empty($post['include_restore_dry_run'])
-        ),
-        'restore' => static fn (array $post): array => $module->restoreBackup(cms_admin_backups_normalize_backup_name($post)),
-        'delete' => static fn (array $post): array => $module->deleteBackup(cms_admin_backups_normalize_backup_name($post)),
-    ];
-}
+    $downloadRequest = cms_admin_backups_consume_download_token($token);
+    if ($downloadRequest === null) {
+        cms_admin_backups_flash(['type' => 'danger', 'message' => 'Download-Token ist ungültig oder abgelaufen.']);
+        cms_admin_backups_redirect();
+    }
 
-if (cms_admin_backups_can_access() && $_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['download'])) {
-    $module = new BackupsModule();
     $download = $module->getDownloadableBackupFile(
-        cms_admin_backups_normalize_backup_name_value($_GET['download'] ?? ''),
-        cms_admin_backups_normalize_download_part($_GET['part'] ?? 'database')
+        $downloadRequest['name'],
+        $downloadRequest['part']
     );
 
     if (!is_array($download) || empty($download['path'])) {
@@ -175,6 +218,23 @@ if (cms_admin_backups_can_access() && $_SERVER['REQUEST_METHOD'] === 'GET' && is
         str_replace('"', '', (string) ($download['filename'] ?? 'backup.bin')),
         (string) ($download['content_type'] ?? 'application/octet-stream')
     );
+}
+
+/**
+ * @return array<string, callable(array): array>
+ */
+function cms_admin_backups_action_handlers(BackupsModule $module): array
+{
+    return [
+        'create_full' => static fn (array $post): array => $module->createFullBackup(),
+        'create_db' => static fn (array $post): array => $module->createDatabaseBackup(),
+        'validate' => static fn (array $post): array => $module->validateBackup(
+            cms_admin_backups_normalize_backup_name($post),
+            !empty($post['include_restore_dry_run'])
+        ),
+        'restore' => static fn (array $post): array => $module->restoreBackup(cms_admin_backups_normalize_backup_name($post)),
+        'delete' => static fn (array $post): array => $module->deleteBackup(cms_admin_backups_normalize_backup_name($post)),
+    ];
 }
 
 $sectionPageConfig = [
@@ -204,13 +264,21 @@ $sectionPageConfig = [
             return ['success' => false, 'error' => 'Backup-Modul konnte nicht initialisiert werden.'];
         }
 
-        if (!cms_admin_backups_can_mutate()) {
-            return ['success' => false, 'error' => 'Keine Berechtigung für Backup-Mutationen.'];
-        }
-
         $action = cms_admin_backups_normalize_action($postData['action'] ?? null);
         if ($action === null) {
             return ['success' => false, 'error' => 'Unbekannte Aktion.'];
+        }
+
+        if ($action === 'download') {
+            if (!cms_admin_backups_can_access()) {
+                return ['success' => false, 'error' => 'Keine Berechtigung für Backup-Downloads.'];
+            }
+
+            cms_admin_backups_handle_download($module, $postData['download_token'] ?? '');
+        }
+
+        if (!cms_admin_backups_can_mutate()) {
+            return ['success' => false, 'error' => 'Keine Berechtigung für Backup-Mutationen.'];
         }
 
         if (in_array($action, ['delete', 'restore'], true) && cms_admin_backups_normalize_backup_name($postData) === '') {

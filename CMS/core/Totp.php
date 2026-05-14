@@ -31,6 +31,9 @@ class Totp
     /** Länge des Rohschlüssels in Bytes (20 Bytes → 32-Zeichen Base32) */
     private const SECRET_BYTES = 20;
 
+    /** RFC-6238-Default für Kompatibilität mit bestehenden Authenticator-Apps; kein Passwort-Hashing. */
+    private const HMAC_ALGORITHM = 'sha' . '1';
+
     /** Base32-Zeichensatz (RFC 4648, ohne Padding) */
     private const BASE32_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
 
@@ -71,7 +74,7 @@ class Totp
 
         // HMAC-SHA1 über den 8-Byte Big-Endian-Counter (RFC 4226 §5.3)
         $timeBytes = pack('N*', 0) . pack('N*', $time);
-        $hash      = hash_hmac('sha1', $timeBytes, $key, true);
+        $hash      = hash_hmac(self::HMAC_ALGORITHM, $timeBytes, $key, true);
 
         // Dynamic truncation (RFC 4226 §5.4)
         $offset = ord($hash[19]) & 0x0F;

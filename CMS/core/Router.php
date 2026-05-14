@@ -739,17 +739,34 @@ class Router
 
     public function redirect(string $url, int $status = 302): void
     {
+        $status = $this->normalizeRedirectStatus($status);
         $targetPath = $this->resolveRedirectPath($url);
+        $locationPath = $this->buildRedirectLocationPath($targetPath);
 
         if (!headers_sent()) {
             http_response_code($status);
-            header('Location: ' . $targetPath, true, $status);
+            header('Location: ' . $locationPath, true, $status);
             exit;
         }
 
         http_response_code($status);
-        echo $this->buildRedirectFallbackPage(SITE_URL . $targetPath, $status);
+        echo $this->buildRedirectFallbackPage(SITE_URL . $locationPath, $status);
         exit;
+    }
+
+    private function normalizeRedirectStatus(int $status): int
+    {
+        return in_array($status, [301, 302, 303, 307, 308], true) ? $status : 302;
+    }
+
+    private function buildRedirectLocationPath(string $targetPath): string
+    {
+        $targetPath = $this->normalizeInternalRedirectPath($targetPath);
+        if ($targetPath === '') {
+            $targetPath = '/';
+        }
+
+        return '/' . ltrim($targetPath, '/');
     }
 
     private function resolveRedirectPath(string $url): string
@@ -774,12 +791,7 @@ class Router
         }
 
         if (preg_match('#^[a-z][a-z0-9+.-]*:#i', $url) === 1) {
-            $absolutePath = $this->normalizeSameOriginAbsoluteRedirectPath($url);
-            if ($absolutePath === null) {
-                return '';
-            }
-
-            $url = $absolutePath;
+            return '';
         }
 
         if (!str_starts_with($url, '/')) {
@@ -795,56 +807,6 @@ class Router
         }
 
         return $url;
-    }
-
-    private function normalizeSameOriginAbsoluteRedirectPath(string $url): ?string
-    {
-        $parts = parse_url($url);
-        if (!is_array($parts)) {
-            return null;
-        }
-
-        $scheme = strtolower((string) ($parts['scheme'] ?? ''));
-        $host = strtolower((string) ($parts['host'] ?? ''));
-        if ($scheme === '' || $host === '') {
-            return null;
-        }
-
-        if (!in_array($scheme, ['http', 'https'], true)) {
-            return null;
-        }
-
-        $siteParts = parse_url((string) SITE_URL);
-        if (!is_array($siteParts)) {
-            return null;
-        }
-
-        $siteScheme = strtolower((string) ($siteParts['scheme'] ?? ''));
-        $siteHost = strtolower((string) ($siteParts['host'] ?? ''));
-        $sitePort = isset($siteParts['port']) ? (int) $siteParts['port'] : null;
-        $targetPort = isset($parts['port']) ? (int) $parts['port'] : null;
-
-        if ($siteScheme === '' || $siteHost === '') {
-            return null;
-        }
-
-        if ($scheme !== $siteScheme || $host !== $siteHost || $targetPort !== $sitePort) {
-            return null;
-        }
-
-        $path = (string) ($parts['path'] ?? '/');
-        if ($path === '') {
-            $path = '/';
-        }
-
-        if (!str_starts_with($path, '/')) {
-            $path = '/' . ltrim($path, '/');
-        }
-
-        $query = isset($parts['query']) && $parts['query'] !== '' ? '?' . $parts['query'] : '';
-        $fragment = isset($parts['fragment']) && $parts['fragment'] !== '' ? '#' . $parts['fragment'] : '';
-
-        return $path . $query . $fragment;
     }
 
     private function normalizeHost(string $value): string

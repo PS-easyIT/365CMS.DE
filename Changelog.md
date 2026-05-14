@@ -1,4 +1,4 @@
-﻿﻿﻿﻿**Version:** 2.9.785
+﻿﻿﻿﻿**Version:** 2.9.786
 
 # 365CMS Changelog
 
@@ -19,6 +19,12 @@
 ## 📜 Vollständige Versionshistorie
 
 ---
+
+### v2.9.786 — 14. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **2.9.786** | 🔴 fix | Core-Snyk-Code-Cleanup ohne ASSETS | **`CMS/admin/backups.php`, `CMS/admin/views/system/backups.php`, `CMS/core/Router.php`, `CMS/core/Security.php`, `CMS/core/Services/BackupService.php`, `CMS/core/Totp.php`, `CMS/plugins/cms-importer/includes/class-importer.php`, `CMS/plugins/cms-importer/includes/class-xml-parser.php`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `CMS/DOC/audit/NiceToHave-CHECKLISTE.md`, `CMS/DOC/INSTALLATION.md`, `README.md` und `Changelog.md` schließen den erneuten Snyk-Code-Durchlauf für den 365CMS-Core außerhalb `ASSETS`, `CMS/assets`, `CMS/vendor`, `BACKUP` und `RELEASE` ab**: Backup-Downloads verwenden nun kurzlebige, serverseitig gespeicherte Download-Tokens im bestehenden CSRF-geschützten POST-Vertrag statt Dateinamen/Parts direkt aus der URL; die finale Datei bleibt zusätzlich per `realpath()`, Backup-Root-Allowlist, `is_file()` und `is_readable()` abgesichert. Router-Redirects akzeptieren für zentrale `Location`-Header nur noch interne Pfade und lehnen absolute URL-Schemata konsequent ab. Nicht-kryptografische Importer-Referenzen und Fallback-Dateinamen nutzen SHA-256 statt MD5, der S3-REST-Fallback signiert Uploads per AWS Signature V4/HMAC-SHA256 statt Signature V2/HMAC-SHA1, und der X-Frame-Schutz bleibt mit validiertem `DENY` plus bestehendem CSP `frame-ancestors 'none'` eindeutig restriktiv. Der TOTP-Pfad bleibt bewusst RFC-6238-kompatibel für bestehende Authenticator-Apps und wird klar als Protokoll-HMAC, nicht als Passwort-Hashing, gekapselt. Der abschließende Snyk-Code-Scan meldet nach Filterung der ausgeschlossenen Drittanbieter-/Runtime-Pfade `0` First-Party-Findings; neue Token-URLs wurden nicht eingeführt. |
 
 ### v2.9.785 — 14. Mai 2026
 

@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.9.785",
+  "version": "2.9.786",
   "min_php": "8.4",
   "released": "2026-05-14",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 2.9.785: Snyk-Audit und Installer-Sync. First-Party-Funde wurden in Core-Admin, Member-Mediennavigation, Default-Theme-JS sowie MedCarePro/PTC-Theme-Templates nachgehärtet; Redirect-, XSS-, Cookie-, Downloadpfad- und Hash-Hinweise sind reduziert bzw. bewusst auf sichere/protokollgebundene Restfälle begrenzt. Der Installer nutzt jetzt gehärtete Session-Cookies, CSRF-Tokens für POST-Schritte, strengere URL-/E-Mail-/Admin-Passwortvalidierung und aktuelle Default-Settings wie cms-default und site_name als Site-Titel.",
+  "notes": "Release-Stand 2.9.786: Der 365CMS-Core ist nach erneutem Snyk-Code-Scan außerhalb ASSETS, CMS/assets, CMS/vendor, BACKUP und RELEASE ohne First-Party-Findings. Backup-Downloads nutzen kurzlebige serverseitige Download-Tokens ausschließlich im CSRF-geschützten POST, Router-Redirects akzeptieren nur noch interne Pfade, Importer-Referenzhashes verwenden SHA-256, S3-REST-Uploads signieren per AWS Signature V4/HMAC-SHA256 und Security-Header bleiben mit X-Frame-Options DENY plus CSP frame-ancestors 'none' gehärtet.",
   "critical": false
 }
