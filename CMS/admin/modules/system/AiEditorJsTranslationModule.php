@@ -15,6 +15,8 @@ final class AiEditorJsTranslationModule
     private const int MAX_TITLE_LENGTH = 255;
     private const int MAX_SLUG_LENGTH = 255;
     private const int MAX_EDITOR_JSON_LENGTH = 250000;
+    private const int MAX_EDITOR_BLOCKS = 120;
+    private const int MAX_BLOCK_TYPE_LENGTH = 80;
 
     private AiProviderGateway $gateway;
 
@@ -150,6 +152,41 @@ final class AiEditorJsTranslationModule
             throw new \InvalidArgumentException('Die Editor.js-Payload ist für die AI-Übersetzung zu groß.');
         }
 
-        return $value;
+        try {
+            $decoded = json_decode($value, true, 64, JSON_THROW_ON_ERROR);
+        } catch (\JsonException) {
+            throw new \InvalidArgumentException('Die Editor.js-Payload ist kein gültiges JSON.');
+        }
+
+        if (!is_array($decoded)) {
+            throw new \InvalidArgumentException('Die Editor.js-Payload hat eine ungültige Struktur.');
+        }
+
+        $blocks = $decoded['blocks'] ?? [];
+        if (!is_array($blocks) || count($blocks) > self::MAX_EDITOR_BLOCKS) {
+            throw new \InvalidArgumentException('Die Editor.js-Payload enthält zu viele oder ungültige Blöcke.');
+        }
+
+        foreach ($blocks as $block) {
+            if (!is_array($block)) {
+                throw new \InvalidArgumentException('Die Editor.js-Payload enthält ungültige Blockdaten.');
+            }
+
+            $type = trim((string) ($block['type'] ?? ''));
+            if ($type === ''
+                || strlen($type) > self::MAX_BLOCK_TYPE_LENGTH
+                || preg_match('/^[a-zA-Z0-9_-]+$/', $type) !== 1
+                || (isset($block['data']) && !is_array($block['data']))
+            ) {
+                throw new \InvalidArgumentException('Die Editor.js-Payload enthält ungültige Block-Metadaten.');
+            }
+        }
+
+        $encoded = json_encode($decoded, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        if (!is_string($encoded) || $encoded === '') {
+            throw new \InvalidArgumentException('Die Editor.js-Payload konnte nicht normalisiert werden.');
+        }
+
+        return $encoded;
     }
 }

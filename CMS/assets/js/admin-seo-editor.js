@@ -1,6 +1,10 @@
 (function () {
     'use strict';
 
+    var MAX_ANALYSIS_JSON_LENGTH = 250000;
+    var MAX_ANALYSIS_BLOCKS = 120;
+    var MAX_HTML_FRAGMENT_LENGTH = 100000;
+
     function toLower(value) {
         return String(value || '').toLocaleLowerCase('de-DE');
     }
@@ -109,12 +113,18 @@
     }
 
     function parseHtmlDocument(html) {
+        var safeHtml = String(html || '');
+
+        if (safeHtml.length > MAX_HTML_FRAGMENT_LENGTH) {
+            safeHtml = safeHtml.slice(0, MAX_HTML_FRAGMENT_LENGTH);
+        }
+
         if (typeof DOMParser === 'function') {
-            return new DOMParser().parseFromString(String(html || ''), 'text/html');
+            return new DOMParser().parseFromString(safeHtml, 'text/html');
         }
 
         var fallbackDocument = document.implementation.createHTMLDocument('');
-        fallbackDocument.body.textContent = String(html || '');
+        fallbackDocument.body.textContent = safeHtml;
         return fallbackDocument;
     }
 
@@ -333,10 +343,16 @@
     }
 
     function analyzeEditorJson(raw) {
-        try {
-            var parsed = JSON.parse(raw);
+        var source = String(raw || '');
 
-            if (!parsed || !Array.isArray(parsed.blocks)) {
+        if (source.length > MAX_ANALYSIS_JSON_LENGTH) {
+            return null;
+        }
+
+        try {
+            var parsed = JSON.parse(source);
+
+            if (!parsed || !Array.isArray(parsed.blocks) || parsed.blocks.length > MAX_ANALYSIS_BLOCKS) {
                 return null;
             }
 

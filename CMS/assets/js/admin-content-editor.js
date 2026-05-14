@@ -1543,18 +1543,60 @@
             return params;
         }
 
+        function resolveSameOriginUrl(url) {
+            var resolved;
+
+            try {
+                resolved = new URL(String(url || ''), window.location.origin);
+            } catch (_error) {
+                return '';
+            }
+
+            if (resolved.origin !== window.location.origin) {
+                return '';
+            }
+
+            return resolved.href;
+        }
+
         function requestJson(url, body) {
-            return fetch(url, {
+            var endpointUrl = resolveSameOriginUrl(url);
+            var controller = typeof AbortController === 'function' ? new AbortController() : null;
+            var timeoutId = null;
+            var maxResponseLength = 1048576;
+
+            if (endpointUrl === '') {
+                return Promise.reject(new Error('AI-Übersetzungsendpunkt ist ungültig.'));
+            }
+
+            if (controller) {
+                timeoutId = window.setTimeout(function () {
+                    controller.abort();
+                }, 45000);
+            }
+
+            return fetch(endpointUrl, {
                 method: 'POST',
                 credentials: 'same-origin',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
                     'X-Requested-With': 'XMLHttpRequest'
                 },
-                body: body.toString()
+                body: body.toString(),
+                signal: controller ? controller.signal : undefined
             }).then(function (response) {
+                var declaredLength = Number(response.headers && response.headers.get('Content-Length'));
+
+                if (Number.isFinite(declaredLength) && declaredLength > maxResponseLength) {
+                    throw new Error('AI-Übersetzungsantwort ist zu groß.');
+                }
+
                 return response.text().then(function (text) {
                     var data = null;
+
+                    if (String(text || '').length > maxResponseLength) {
+                        throw new Error('AI-Übersetzungsantwort ist zu groß.');
+                    }
 
                     try {
                         data = JSON.parse(text);
@@ -1566,9 +1608,19 @@
                         ok: response.ok,
                         status: response.status,
                         data: data,
-                        rawText: text
+                        rawText: ''
                     };
                 });
+            }).catch(function (error) {
+                if (error && error.name === 'AbortError') {
+                    throw new Error('AI-Übersetzung hat das Zeitlimit überschritten.');
+                }
+
+                throw error;
+            }).finally(function () {
+                if (timeoutId !== null) {
+                    window.clearTimeout(timeoutId);
+                }
             });
         }
 
