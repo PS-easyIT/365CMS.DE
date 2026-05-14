@@ -28,6 +28,9 @@ class UpdateService
 {
     private const UPDATE_MIN_FREE_DISK_BYTES = 1073741824;
     private const UPDATE_WARN_FREE_DISK_BYTES = 2147483648;
+    private const UPDATE_MAX_ARCHIVE_ENTRIES = 5000;
+    private const UPDATE_MAX_ARCHIVE_FILE_BYTES = 268435456;
+    private const UPDATE_MAX_ARCHIVE_UNCOMPRESSED_BYTES = 536870912;
 
     private const ALLOWED_UPDATE_HOSTS = [
         '365cms.de',
@@ -1207,7 +1210,11 @@ class UpdateService
 
             $zip->close();
 
-            $installSource = $this->detectExtractedInstallRoot($stagingRoot);
+            $installSource = $this->resolveSafeStagedDirectory($stagingRoot, $this->detectExtractedInstallRoot($stagingRoot));
+            if ($installSource === '') {
+                throw new \RuntimeException('Update-Paket enthält keine sichere Staging-Struktur.');
+            }
+
             if (!$this->directoryHasContents($installSource)) {
                 throw new \RuntimeException('Update-Paket enthält keine installierbaren Dateien.');
             }
@@ -1707,6 +1714,11 @@ class UpdateService
     private function validateZipEntries(\ZipArchive $zip): bool
     {
         $hasEntries = false;
+        $totalUncompressedSize = 0;
+
+        if ($zip->numFiles <= 0 || $zip->numFiles > self::UPDATE_MAX_ARCHIVE_ENTRIES) {
+            return false;
+        }
 
         for ($index = 0; $index < $zip->numFiles; $index++) {
             $entryName = $zip->getNameIndex($index);
@@ -1716,13 +1728,40 @@ class UpdateService
 
             $normalized = str_replace('\\', '/', $entryName);
             $normalized = ltrim($normalized, '/');
+            $parts = array_values(array_filter(explode('/', $normalized), static fn (string $part): bool => $part !== ''));
 
             if ($normalized === ''
+                || $normalized !== $entryName
                 || str_contains($normalized, '../')
                 || str_contains($normalized, '..\\')
+                || in_array('..', $parts, true)
+                || in_array('.', $parts, true)
                 || preg_match('~^[A-Za-z]:/~', $normalized) === 1
+                || preg_match('/[\x00-\x1F\x7F]/', $normalized) === 1
             ) {
                 return false;
+            }
+
+            $stat = $zip->statIndex($index);
+            if (is_array($stat)) {
+                $size = max(0, (int) ($stat['size'] ?? 0));
+                if ($size > self::UPDATE_MAX_ARCHIVE_FILE_BYTES) {
+                    return false;
+                }
+
+                $totalUncompressedSize += $size;
+                if ($totalUncompressedSize > self::UPDATE_MAX_ARCHIVE_UNCOMPRESSED_BYTES) {
+                    return false;
+                }
+            }
+
+            $opsys = 0;
+            $attributes = 0;
+            if ($zip->getExternalAttributesIndex($index, $opsys, $attributes) && $opsys === \ZipArchive::OPSYS_UNIX) {
+                $mode = ($attributes >> 16) & 0xF000;
+                if ($mode === 0xA000) {
+                    return false;
+                }
             }
 
             $hasEntries = true;
@@ -1765,6 +1804,60 @@ class UpdateService
         }
 
         return $stagingRoot;
+    }
+
+    private function resolveSafeStagedDirectory(string $stagingRoot, string $candidate): string
+    {
+        $realStagingRoot = realpath($stagingRoot);
+        $realCandidate = realpath($candidate);
+
+        if ($realStagingRoot === false || $realCandidate === false || !is_dir($realCandidate) || is_link($realCandidate)) {
+            return '';
+        }
+
+        $normalizedRoot = rtrim(str_replace('\\', '/', $realStagingRoot), '/') . '/';
+        $normalizedCandidate = rtrim(str_replace('\\', '/', $realCandidate), '/') . '/';
+        if (!str_starts_with($normalizedCandidate, $normalizedRoot)) {
+            return '';
+        }
+
+        return $this->isDirectoryTreeInsideRootAndLinkFree($realCandidate, $realStagingRoot) ? $realCandidate : '';
+    }
+
+    private function isDirectoryTreeInsideRootAndLinkFree(string $directory, string $root): bool
+    {
+        $normalizedRoot = rtrim(str_replace('\\', '/', $root), '/') . '/';
+
+        try {
+            $iterator = new \RecursiveIteratorIterator(
+                new \RecursiveDirectoryIterator($directory, \FilesystemIterator::SKIP_DOTS),
+                \RecursiveIteratorIterator::SELF_FIRST
+            );
+        } catch (\UnexpectedValueException) {
+            return false;
+        }
+
+        foreach ($iterator as $item) {
+            if (!$item instanceof \SplFileInfo) {
+                return false;
+            }
+
+            if ($item->isLink()) {
+                return false;
+            }
+
+            $realPath = realpath($item->getPathname());
+            if ($realPath === false) {
+                return false;
+            }
+
+            $normalizedPath = str_replace('\\', '/', $realPath);
+            if (!str_starts_with($normalizedPath, $normalizedRoot)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private function directoryHasContents(string $directory): bool
@@ -1952,7 +2045,15 @@ class UpdateService
             return false;
         }
 
-        if ($targetDir !== $normalizedRoot && !str_starts_with($targetDir, $normalizedRoot . DIRECTORY_SEPARATOR)) {
+        if ($targetDir === $normalizedRoot || !str_starts_with($targetDir, $normalizedRoot . DIRECTORY_SEPARATOR)) {
+            return false;
+        }
+
+        $relativeTarget = substr($targetDir, strlen($normalizedRoot) + 1);
+        if ($relativeTarget === ''
+            || str_contains($relativeTarget, DIRECTORY_SEPARATOR)
+            || preg_match('/^[A-Za-z0-9][A-Za-z0-9_-]*$/', $relativeTarget) !== 1
+        ) {
             return false;
         }
 
@@ -1961,15 +2062,20 @@ class UpdateService
         }
 
         $parentDir = dirname($targetDir);
+        $realParentDir = realpath($parentDir);
+        $realRoot = realpath($normalizedRoot);
 
-        return $parentDir !== '' && !is_link($parentDir);
+        return $realParentDir !== false && $realRoot !== false && $realParentDir === $realRoot && !is_link($parentDir);
     }
 
     private function failInstallResult(string $action, string $message, array $context = [], ?\Throwable $exception = null): array
     {
         if ($exception !== null) {
-            $context['exception'] = $exception->getMessage();
+            $context['exception_type'] = get_class($exception);
+            $context['exception_message'] = $this->sanitizeInstallDiagnostic($exception->getMessage());
         }
+
+        $context = $this->sanitizeInstallContext($context);
 
         \CMS\Logger::instance()->withChannel('updates.service')->error($message, $context);
         \CMS\AuditLogger::instance()->log(
@@ -1997,6 +2103,82 @@ class UpdateService
         }
 
         return str_ends_with($host, '.githubusercontent.com');
+    }
+
+    private function sanitizeInstallDiagnostic(string $value): string
+    {
+        $value = preg_replace('/[\x00-\x1F\x7F]+/u', ' ', trim($value)) ?? '';
+        $value = preg_replace('/(password|passwd|pwd|token|secret|apikey|api_key|access_token|refresh_token)=([^\s&]+)/i', '$1=[redacted]', $value) ?? $value;
+
+        if (function_exists('mb_substr')) {
+            return (string) mb_substr($value, 0, 500, 'UTF-8');
+        }
+
+        return substr($value, 0, 500);
+    }
+
+    private function sanitizeInstallContext(array $context): array
+    {
+        $sanitized = [];
+
+        foreach ($context as $key => $value) {
+            $normalizedKey = strtolower((string) $key);
+
+            if (is_array($value)) {
+                $sanitized[$key] = $this->sanitizeInstallContext($value);
+                continue;
+            }
+
+            if (str_contains($normalizedKey, 'password')
+                || str_contains($normalizedKey, 'token')
+                || str_contains($normalizedKey, 'secret')
+                || str_contains($normalizedKey, 'api_key')
+            ) {
+                $sanitized[$key] = '[redacted]';
+                continue;
+            }
+
+            $stringValue = $this->sanitizeInstallDiagnostic((string) $value);
+            $sanitized[$key] = str_contains($normalizedKey, 'url') ? $this->sanitizeUrlForInstallLog($stringValue) : $stringValue;
+        }
+
+        return $sanitized;
+    }
+
+    private function sanitizeUrlForInstallLog(string $url): string
+    {
+        $parts = parse_url($url);
+        if (!is_array($parts)) {
+            return $url;
+        }
+
+        $scheme = (string) ($parts['scheme'] ?? '');
+        $host = (string) ($parts['host'] ?? '');
+        if ($scheme === '' || $host === '') {
+            return $url;
+        }
+
+        $safeUrl = $scheme . '://' . $host . (string) ($parts['path'] ?? '');
+        if (!empty($parts['query'])) {
+            parse_str((string) $parts['query'], $queryParams);
+            foreach ($queryParams as $queryKey => $queryValue) {
+                $queryKeyString = strtolower((string) $queryKey);
+                if (str_contains($queryKeyString, 'token')
+                    || str_contains($queryKeyString, 'secret')
+                    || str_contains($queryKeyString, 'signature')
+                    || str_contains($queryKeyString, 'key')
+                ) {
+                    $queryParams[$queryKey] = '[redacted]';
+                }
+            }
+
+            $safeQuery = http_build_query($queryParams, '', '&', PHP_QUERY_RFC3986);
+            if ($safeQuery !== '') {
+                $safeUrl .= '?' . $safeQuery;
+            }
+        }
+
+        return $safeUrl;
     }
 }
 

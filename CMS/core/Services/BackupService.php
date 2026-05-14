@@ -44,6 +44,9 @@ class BackupService
     private const BACKUP_HASH_ALGORITHM = 'sha256';
     private const VALIDATION_CRITICAL_TABLE_SUFFIXES = ['users', 'settings', 'pages', 'posts'];
     private const VALIDATION_MAX_CRITICAL_TABLES = 6;
+    private const RESTORE_MAX_ARCHIVE_ENTRIES = 5000;
+    private const RESTORE_MAX_ARCHIVE_FILE_BYTES = 268435456;
+    private const RESTORE_MAX_ARCHIVE_UNCOMPRESSED_BYTES = 536870912;
     
     /**
      * Singleton instance
@@ -1060,7 +1063,13 @@ class BackupService
             $zip->close();
         }
 
-        $sourceRoot = $this->resolveRestoreArchiveRoot($stagingRoot);
+        $sourceRoot = $this->resolveSafeRestoreArchiveRoot($stagingRoot, $this->resolveRestoreArchiveRoot($stagingRoot));
+        if ($sourceRoot === '') {
+            $this->removeDirectory($stagingRoot);
+            $this->removeDirectory($rollbackRoot);
+            throw new \RuntimeException('Backup-Archiv enthält keine sichere Restore-Struktur.');
+        }
+
         $entries = $this->listDirectoryEntries($sourceRoot);
         if ($entries === []) {
             $this->removeDirectory($stagingRoot);
@@ -1406,6 +1415,11 @@ class BackupService
     private function validateRestoreArchiveEntries(\ZipArchive $zip): bool
     {
         $hasEntries = false;
+        $totalUncompressedSize = 0;
+
+        if ($zip->numFiles <= 0 || $zip->numFiles > self::RESTORE_MAX_ARCHIVE_ENTRIES) {
+            return false;
+        }
 
         for ($index = 0; $index < $zip->numFiles; $index++) {
             $entryName = $zip->getNameIndex($index);
@@ -1415,13 +1429,40 @@ class BackupService
 
             $normalized = str_replace('\\', '/', $entryName);
             $normalized = ltrim($normalized, '/');
+            $parts = array_values(array_filter(explode('/', $normalized), static fn (string $part): bool => $part !== ''));
 
             if ($normalized === ''
+                || $normalized !== $entryName
                 || str_contains($normalized, '../')
                 || str_contains($normalized, '..\\')
+                || in_array('..', $parts, true)
+                || in_array('.', $parts, true)
                 || preg_match('~^[A-Za-z]:/~', $normalized) === 1
+                || preg_match('/[\x00-\x1F\x7F]/', $normalized) === 1
             ) {
                 return false;
+            }
+
+            $stat = $zip->statIndex($index);
+            if (is_array($stat)) {
+                $size = max(0, (int) ($stat['size'] ?? 0));
+                if ($size > self::RESTORE_MAX_ARCHIVE_FILE_BYTES) {
+                    return false;
+                }
+
+                $totalUncompressedSize += $size;
+                if ($totalUncompressedSize > self::RESTORE_MAX_ARCHIVE_UNCOMPRESSED_BYTES) {
+                    return false;
+                }
+            }
+
+            $opsys = 0;
+            $attributes = 0;
+            if ($zip->getExternalAttributesIndex($index, $opsys, $attributes) && $opsys === \ZipArchive::OPSYS_UNIX) {
+                $mode = ($attributes >> 16) & 0xF000;
+                if ($mode === 0xA000) {
+                    return false;
+                }
             }
 
             $hasEntries = true;
@@ -1456,6 +1497,59 @@ class BackupService
         }
 
         return $stagingRoot;
+    }
+
+    private function resolveSafeRestoreArchiveRoot(string $stagingRoot, string $candidate): string
+    {
+        $realStagingRoot = realpath($stagingRoot);
+        $realCandidate = realpath($candidate);
+
+        if ($realStagingRoot === false || $realCandidate === false || !is_dir($realCandidate) || is_link($realCandidate)) {
+            return '';
+        }
+
+        $normalizedRoot = rtrim(str_replace('\\', '/', $realStagingRoot), '/') . '/';
+        $normalizedCandidate = rtrim(str_replace('\\', '/', $realCandidate), '/') . '/';
+        if (!str_starts_with($normalizedCandidate, $normalizedRoot)) {
+            return '';
+        }
+
+        return $this->isDirectoryTreeInsideRootAndLinkFree($realCandidate, $realStagingRoot) ? $realCandidate : '';
+    }
+
+    private function isDirectoryTreeInsideRootAndLinkFree(string $directory, string $root): bool
+    {
+        $normalizedRoot = rtrim(str_replace('\\', '/', $root), '/') . '/';
+
+        try {
+            $iterator = new \RecursiveIteratorIterator(
+                new \RecursiveDirectoryIterator($directory, \FilesystemIterator::SKIP_DOTS),
+                \RecursiveIteratorIterator::SELF_FIRST
+            );
+        } catch (\UnexpectedValueException) {
+            return false;
+        }
+
+        foreach ($iterator as $item) {
+            if (!$item instanceof \SplFileInfo) {
+                return false;
+            }
+
+            if ($item->isLink()) {
+                return false;
+            }
+
+            $realPath = realpath($item->getPathname());
+            if ($realPath === false) {
+                return false;
+            }
+
+            if (!str_starts_with(str_replace('\\', '/', $realPath), $normalizedRoot)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private function createManagedTemporaryDirectory(string $parentDir, string $prefix): string
