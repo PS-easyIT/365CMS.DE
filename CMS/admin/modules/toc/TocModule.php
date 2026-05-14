@@ -139,7 +139,15 @@ class TocModule
             }
             return ['success' => true, 'message' => 'Einstellungen gespeichert.'];
         } catch (\Throwable $e) {
-            return ['success' => false, 'error' => 'Fehler beim Speichern: ' . $e->getMessage()];
+            \CMS\Logger::instance()->withChannel('toc')->error(
+                'Inhaltsverzeichnis-Einstellungen konnten nicht gespeichert werden.',
+                [
+                    'exception' => $e::class,
+                    'message' => $e->getMessage(),
+                ]
+            );
+
+            return ['success' => false, 'error' => 'Einstellungen konnten nicht gespeichert werden.'];
         }
     }
 

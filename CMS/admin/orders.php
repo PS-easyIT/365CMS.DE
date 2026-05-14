@@ -153,7 +153,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['export'])) {
     try {
         (new OrdersModule())->streamCsvExport($exportType, $statusFilter);
     } catch (\RuntimeException $e) {
-        cms_admin_orders_flash('danger', $e->getMessage());
+        \CMS\Logger::instance()->withChannel('orders')->warning(
+            'CSV-Export konnte nicht vorbereitet werden.',
+            [
+                'export_type' => $exportType,
+                'status_filter' => $statusFilter,
+                'exception' => $e::class,
+                'message' => $e->getMessage(),
+            ]
+        );
+        cms_admin_orders_flash('danger', 'Der Export konnte nicht vorbereitet werden.');
     } catch (\Throwable) {
         cms_admin_orders_flash('danger', 'Der Export konnte nicht vorbereitet werden.');
     }

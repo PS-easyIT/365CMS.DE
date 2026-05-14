@@ -642,16 +642,13 @@ class ThemeEditorModule
         $this->logFailure($action, $message, $exception, $context);
 
         $errorData = $context;
-        if ($exception !== null) {
-            $errorData['exception'] = $this->sanitizeErrorContext($exception->getMessage());
-        }
 
         return [
             'success' => false,
             'error' => $message . ' Bitte Logs prüfen.',
             'details' => array_values(array_filter([
                 !empty($context['file']) ? 'Datei: ' . (string) $context['file'] : '',
-                $exception !== null ? 'Ursache: ' . $this->sanitizeErrorContext($exception->getMessage()) : '',
+                $exception !== null ? 'Technische Details wurden serverseitig protokolliert.' : '',
             ])),
             'error_details' => [
                 'code' => $action,

@@ -13,6 +13,7 @@ declare(strict_types=1);
 namespace CMS\Services;
 
 use CMS\Json;
+use CMS\Services\EditorJs\EditorJsHtmlSanitizer;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -314,7 +315,7 @@ final class EditorJsRenderer
     /** @param array<string,mixed> $data */
     private function renderRaw(array $data): string
     {
-        $html = (string)($data['html'] ?? '');
+        $html = EditorJsHtmlSanitizer::sanitizeRawBlock((string)($data['html'] ?? ''));
         return $html !== '' ? '<div class="editorjs-block editorjs-raw">' . $html . '</div>' : '';
     }
 
@@ -407,8 +408,8 @@ final class EditorJsRenderer
     /** @param array<string,mixed> $data */
     private function renderLinkTool(array $data): string
     {
-        $link = (string)($data['link'] ?? '');
-        if (!filter_var($link, FILTER_VALIDATE_URL)) {
+        $link = EditorJsHtmlSanitizer::sanitizeUrl((string)($data['link'] ?? ''), ['http', 'https', 'mailto', 'tel'], false);
+        if ($link === '') {
             return '';
         }
 
@@ -433,8 +434,8 @@ final class EditorJsRenderer
     /** @param array<string,mixed> $data */
     private function renderEmbed(array $data): string
     {
-        $sourceUrl = (string)($data['source'] ?? $data['embed'] ?? '');
-        if (!filter_var($sourceUrl, FILTER_VALIDATE_URL)) {
+        $sourceUrl = EditorJsHtmlSanitizer::sanitizeUrl((string)($data['source'] ?? $data['embed'] ?? ''), ['http', 'https'], false);
+        if ($sourceUrl === '') {
             return '';
         }
 
@@ -948,7 +949,7 @@ final class EditorJsRenderer
 
     private function sanitizeInline(string $html): string
     {
-        $sanitized = strip_tags($html, '<b><i><u><a><code><mark><sub><sup><br><strong><em><span>');
+        $sanitized = EditorJsHtmlSanitizer::sanitizeInline($html);
         return preg_replace(
             '/<span class="tg-spoiler">(.*?)<\/span>/is',
             '<span class="tg-spoiler" style="background:#111827;color:transparent;border-radius:0.25rem;padding:0 0.2rem;">$1</span>',
@@ -963,8 +964,11 @@ final class EditorJsRenderer
             return '';
         }
 
-        if ($allowDataImage && str_starts_with($url, 'data:image/')) {
-            return $url;
+        if ($allowDataImage) {
+            $dataImage = EditorJsHtmlSanitizer::sanitizeUrl($url, [], false, true);
+            if ($dataImage !== '') {
+                return $dataImage;
+            }
         }
 
         $normalizedUrl = \CMS\Services\MediaDeliveryService::getInstance()->normalizeUrl($url, $preferInline);
@@ -974,8 +978,9 @@ final class EditorJsRenderer
             return '';
         }
 
-        if (filter_var($normalizedUrl, FILTER_VALIDATE_URL)) {
-            return $normalizedUrl;
+        $absoluteUrl = EditorJsHtmlSanitizer::sanitizeUrl($normalizedUrl, ['http', 'https'], false);
+        if ($absoluteUrl !== '') {
+            return $absoluteUrl;
         }
 
         return preg_match('#^/(?:media-file(?:\?|$)|uploads(?:/|$))#', $normalizedUrl) === 1

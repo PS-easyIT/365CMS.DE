@@ -31,14 +31,12 @@
             return;
         }
 
-        if (typeof HTMLFormElement !== 'undefined'
-            && HTMLFormElement.prototype
-            && typeof HTMLFormElement.prototype.submit === 'function') {
-            HTMLFormElement.prototype.submit.call(formElement);
-            return;
-        }
-
-        formElement.submit();
+        var fallbackSubmitter = document.createElement('button');
+        fallbackSubmitter.type = 'submit';
+        fallbackSubmitter.hidden = true;
+        formElement.appendChild(fallbackSubmitter);
+        fallbackSubmitter.click();
+        fallbackSubmitter.remove();
     }
 
     function clearElement(element) {

@@ -750,7 +750,12 @@
                 }
 
                 prepareFormSubmission(false);
-                form.submit();
+                var fallbackSubmitter = document.createElement('button');
+                fallbackSubmitter.type = 'submit';
+                fallbackSubmitter.hidden = true;
+                form.appendChild(fallbackSubmitter);
+                fallbackSubmitter.click();
+                fallbackSubmitter.remove();
             });
         }
 

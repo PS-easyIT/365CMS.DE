@@ -52,7 +52,14 @@
             return;
         }
 
-        form.submit();
+        const fallbackSubmitter = document.createElement('button');
+        fallbackSubmitter.type = 'submit';
+        fallbackSubmitter.hidden = true;
+        fallbackSubmitter.tabIndex = -1;
+        fallbackSubmitter.setAttribute('aria-hidden', 'true');
+        form.appendChild(fallbackSubmitter);
+        fallbackSubmitter.click();
+        form.removeChild(fallbackSubmitter);
     }
 
     function normalizePublicKeyOptions(options) {

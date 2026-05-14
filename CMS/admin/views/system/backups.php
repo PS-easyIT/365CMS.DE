@@ -248,8 +248,8 @@ if (!function_exists('cms_admin_backups_render_status_badge')) {
                                             <input type="hidden" name="action" value="validate">
                                             <input type="hidden" name="backup_name" value="<?php echo htmlspecialchars($name); ?>">
                                             <input type="hidden" name="include_restore_dry_run" value="1">
-                                            <button type="button" class="btn btn-sm btn-outline-warning"
-                                                    onclick="cmsConfirm({title:'Restore-Dry-Run starten?',message:'<?php echo htmlspecialchars($name); ?> wird testweise in eine temporäre Datenbank eingespielt und danach wieder entfernt.',confirmText:'Dry-Run starten',confirmClass:'btn-warning',onConfirm:()=>this.closest('form').submit()})">
+                                                <button type="button" class="btn btn-sm btn-outline-warning"
+                                                    onclick="cmsAdminBackupsConfirmSubmit(this, 'dry_run', <?php echo htmlspecialchars(json_encode((string) $name, JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?: '"Backup"', ENT_QUOTES, 'UTF-8'); ?>)">
                                                 Dry-Run
                                             </button>
                                         </form>
@@ -259,7 +259,7 @@ if (!function_exists('cms_admin_backups_render_status_badge')) {
                                                 <input type="hidden" name="action" value="restore">
                                                 <input type="hidden" name="backup_name" value="<?php echo htmlspecialchars($name); ?>">
                                                 <button type="button" class="btn btn-sm btn-warning"
-                                                        onclick="cmsConfirm({title:'Backup wiederherstellen?',message:'<?php echo htmlspecialchars($name); ?> wird eingespielt. Vorher wird automatisch ein Rollback-Snapshot erstellt.',confirmText:'Wiederherstellen',confirmClass:'btn-warning',onConfirm:()=>this.closest('form').submit()})">
+                                                    onclick="cmsAdminBackupsConfirmSubmit(this, 'restore', <?php echo htmlspecialchars(json_encode((string) $name, JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?: '"Backup"', ENT_QUOTES, 'UTF-8'); ?>)">
                                                     Restore
                                                 </button>
                                             </form>
@@ -268,8 +268,8 @@ if (!function_exists('cms_admin_backups_render_status_badge')) {
                                             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
                                             <input type="hidden" name="action" value="delete">
                                             <input type="hidden" name="backup_name" value="<?php echo htmlspecialchars($name); ?>">
-                                            <button type="button" class="btn btn-sm btn-outline-danger"
-                                                    onclick="cmsConfirm({title:'Backup löschen?',message:'<?php echo htmlspecialchars($name); ?> wird unwiderruflich gelöscht.',confirmText:'Löschen',confirmClass:'btn-danger',onConfirm:()=>this.closest('form').submit()})">
+                                                <button type="button" class="btn btn-sm btn-outline-danger"
+                                                    onclick="cmsAdminBackupsConfirmSubmit(this, 'delete', <?php echo htmlspecialchars(json_encode((string) $name, JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?: '"Backup"', ENT_QUOTES, 'UTF-8'); ?>)">
                                                 <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M4 7l16 0"/><path d="M10 11l0 6"/><path d="M14 11l0 6"/><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12"/><path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3"/></svg>
                                             </button>
                                         </form>
@@ -327,3 +327,61 @@ if (!function_exists('cms_admin_backups_render_status_badge')) {
         </div>
     <?php endif; ?>
 </div>
+
+<script>
+function cmsAdminBackupsSubmitForm(form) {
+    if (window.cmsSubmitFormSafely) {
+        window.cmsSubmitFormSafely(form);
+        return;
+    }
+
+    if (form && typeof form.requestSubmit === 'function') {
+        form.requestSubmit();
+        return;
+    }
+
+    if (!form) {
+        return;
+    }
+
+    var fallbackSubmitter = document.createElement('button');
+    fallbackSubmitter.type = 'submit';
+    fallbackSubmitter.hidden = true;
+    form.appendChild(fallbackSubmitter);
+    fallbackSubmitter.click();
+    fallbackSubmitter.remove();
+}
+
+function cmsAdminBackupsConfirmSubmit(button, kind, backupName) {
+    var form = button ? button.closest('form') : null;
+    var title = 'Backup-Aktion bestätigen';
+    var message = 'Backup „' + backupName + '“ wirklich verarbeiten?';
+    var confirmText = 'Bestätigen';
+    var confirmClass = 'btn-warning';
+
+    if (kind === 'dry_run') {
+        title = 'Restore-Dry-Run starten?';
+        message = backupName + ' wird testweise in eine temporäre Datenbank eingespielt und danach wieder entfernt.';
+        confirmText = 'Dry-Run starten';
+    } else if (kind === 'restore') {
+        title = 'Backup wiederherstellen?';
+        message = backupName + ' wird eingespielt. Vorher wird automatisch ein Rollback-Snapshot erstellt.';
+        confirmText = 'Wiederherstellen';
+    } else if (kind === 'delete') {
+        title = 'Backup löschen?';
+        message = backupName + ' wird unwiderruflich gelöscht.';
+        confirmText = 'Löschen';
+        confirmClass = 'btn-danger';
+    }
+
+    cmsConfirm({
+        title: title,
+        message: message,
+        confirmText: confirmText,
+        confirmClass: confirmClass,
+        onConfirm: function() {
+            cmsAdminBackupsSubmitForm(form);
+        }
+    });
+}
+</script>

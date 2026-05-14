@@ -88,7 +88,22 @@
         document.querySelectorAll('.js-pages-filter-submit').forEach(function (element) {
             element.addEventListener('change', function () {
                 if (element.form) {
-                    element.form.submit();
+                    if (window.cmsSubmitFormSafely) {
+                        window.cmsSubmitFormSafely(element.form);
+                        return;
+                    }
+
+                    if (typeof element.form.requestSubmit === 'function') {
+                        element.form.requestSubmit();
+                        return;
+                    }
+
+                    var fallbackSubmitter = document.createElement('button');
+                    fallbackSubmitter.type = 'submit';
+                    fallbackSubmitter.hidden = true;
+                    element.form.appendChild(fallbackSubmitter);
+                    fallbackSubmitter.click();
+                    fallbackSubmitter.remove();
                 }
             });
         });

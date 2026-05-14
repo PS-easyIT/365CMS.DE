@@ -19,6 +19,41 @@ function closeModal(id) {
     }
 }
 
+function cmsSubmitFormSafely(form, submitter) {
+    if (!(form instanceof HTMLFormElement)) {
+        return;
+    }
+
+    if (submitter && typeof form.requestSubmit === 'function') {
+        try {
+            form.requestSubmit(submitter);
+            return;
+        } catch (error) {
+            // Fällt auf einen generischen nativen Submitter zurück.
+        }
+    }
+
+    if (typeof form.requestSubmit === 'function') {
+        form.requestSubmit();
+        return;
+    }
+
+    var fallbackSubmitter = document.createElement('button');
+    fallbackSubmitter.type = 'submit';
+    fallbackSubmitter.hidden = true;
+
+    if (submitter && submitter.name) {
+        fallbackSubmitter.name = submitter.name;
+        fallbackSubmitter.value = submitter.value;
+    }
+
+    form.appendChild(fallbackSubmitter);
+    fallbackSubmitter.click();
+    fallbackSubmitter.remove();
+}
+
+window.cmsSubmitFormSafely = cmsSubmitFormSafely;
+
 function initPostCategoryDeleteFlow() {
     var modalElement = document.getElementById('deleteCategoryModal');
     var deleteCategoryForms = document.querySelectorAll('.js-delete-category-form');
@@ -305,20 +340,7 @@ function initConfirmForms() {
             }
         }
 
-        if (typeof form.requestSubmit === 'function') {
-            form.requestSubmit();
-            return;
-        }
-
-        if (submitter && submitter.name) {
-            var hiddenSubmitter = document.createElement('input');
-            hiddenSubmitter.type = 'hidden';
-            hiddenSubmitter.name = submitter.name;
-            hiddenSubmitter.value = submitter.value;
-            form.appendChild(hiddenSubmitter);
-        }
-
-        form.submit();
+        cmsSubmitFormSafely(form, submitter);
     }
 
     confirmForms.forEach(function(form) {

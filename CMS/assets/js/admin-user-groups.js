@@ -33,20 +33,15 @@
         form.appendChild(submitter);
         submitter.click();
         submitter.remove();
-
-        if (form.dataset.submitting === '1') {
-            return;
-        }
-
-        form.submit();
     }
 
-    function submitFormDirectly(form) {
+    function submitFormAfterConfirmation(form) {
         if (!form) {
             return;
         }
 
-        HTMLFormElement.prototype.submit.call(form);
+        form.dataset.confirmedSubmit = '1';
+        submitWithTemporarySubmitter(form);
     }
 
     function initGroupsBulkActions() {
@@ -160,6 +155,11 @@
         }
 
         bulkForm.addEventListener('submit', function (event) {
+            if (bulkForm.dataset.confirmedSubmit === '1') {
+                bulkForm.dataset.confirmedSubmit = '0';
+                return;
+            }
+
             if (bulkForm.dataset.submitting === '1') {
                 event.preventDefault();
                 return;
@@ -199,7 +199,7 @@
                 });
 
                 setSubmittingState(bulkForm, true);
-                submitFormDirectly(bulkForm);
+                submitFormAfterConfirmation(bulkForm);
             };
 
             if (bulkActionSelect.value === 'delete') {

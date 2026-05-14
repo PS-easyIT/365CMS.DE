@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.9.782",
+  "version": "2.9.784",
   "min_php": "8.4",
   "released": "2026-05-13",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 2.9.782: /admin/member-dashboard-profile-fields zeigt vor dem Speichern eine read-only Kompatibilitätsvorschau für Profilfeld-/Completion-Änderungen. Admins sehen aktive Konten, aktuell unvollständige Profile, Feldrisiken und begrenzte Beispielkonten; optional kann über den bestehenden POST-/CSRF-Speicherpfad der vorhandene Onboarding-/Profilabschluss-Hinweis reaktiviert werden. Es entstehen keine GET-Mutationen, Token-URLs, Profil-Mutationen oder Mail-Side-Effects.",
+  "notes": "Release-Stand 2.9.784: Editor.js-Komplettaudit gegen Upstream 2.31.6, bekannte Plugin-/Tool-Risiken, Best Practice, Sicherheit und Performance. Gespeicherte Inline- und Raw-HTML-Inhalte werden serverseitig attributsicher bereinigt, der Renderer gibt Raw-Blöcke nicht mehr ungefiltert aus, Editor.js-Media-/Upload-Fehler leaken keine technischen Details mehr, der Legacy-Submit-Pfad nutzt native Submitter statt form.submit(), Remote-/Bibliotheks-Bildformate sind mit der zentralen Medienvalidierung konsolidiert und die SEO-Liveanalyse ist bei großen Editor.js-Dokumenten gedrosselt.",
   "critical": false
 }

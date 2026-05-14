@@ -7,7 +7,17 @@
         }
 
         inputElement.value = value;
-        formElement.submit();
+        if (typeof formElement.requestSubmit === 'function') {
+            formElement.requestSubmit();
+            return;
+        }
+
+        var fallbackSubmitter = document.createElement('button');
+        fallbackSubmitter.type = 'submit';
+        fallbackSubmitter.hidden = true;
+        formElement.appendChild(fallbackSubmitter);
+        fallbackSubmitter.click();
+        fallbackSubmitter.remove();
     }
 
     function showConfirm(options, fallbackMessage, onConfirm) {

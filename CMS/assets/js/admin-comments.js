@@ -41,14 +41,12 @@
                 return;
             }
 
-            if (typeof HTMLFormElement !== 'undefined'
-                && HTMLFormElement.prototype
-                && typeof HTMLFormElement.prototype.submit === 'function') {
-                HTMLFormElement.prototype.submit.call(form);
-                return;
-            }
-
-            form.submit();
+            var fallbackSubmitter = document.createElement('button');
+            fallbackSubmitter.type = 'submit';
+            fallbackSubmitter.hidden = true;
+            form.appendChild(fallbackSubmitter);
+            fallbackSubmitter.click();
+            fallbackSubmitter.remove();
         }
 
         function updateBulkBar() {

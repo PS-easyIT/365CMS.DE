@@ -23,12 +23,13 @@
         return true;
     }
 
-    function submitFormDirectly(form) {
+    function submitFormAfterConfirmation(form) {
         if (!form) {
             return;
         }
 
-        HTMLFormElement.prototype.submit.call(form);
+        form.dataset.confirmedSubmit = '1';
+        submitWithTemporarySubmitter(form);
     }
 
     function setSubmittingState(form, isSubmitting) {
@@ -284,6 +285,11 @@
 
         document.querySelectorAll('.js-delete-role-form').forEach(function (form) {
             form.addEventListener('submit', function (event) {
+                if (form.dataset.confirmedSubmit === '1') {
+                    form.dataset.confirmedSubmit = '0';
+                    return;
+                }
+
                 if (form.dataset.submitting === '1') {
                     event.preventDefault();
                     return;
@@ -294,7 +300,7 @@
 
                 var confirmDelete = function () {
                     setSubmittingState(form, true);
-                    submitFormDirectly(form);
+                    submitFormAfterConfirmation(form);
                 };
 
                 event.preventDefault();
@@ -320,6 +326,11 @@
 
         document.querySelectorAll('.js-delete-capability-form').forEach(function (form) {
             form.addEventListener('submit', function (event) {
+                if (form.dataset.confirmedSubmit === '1') {
+                    form.dataset.confirmedSubmit = '0';
+                    return;
+                }
+
                 if (form.dataset.submitting === '1') {
                     event.preventDefault();
                     return;
@@ -330,7 +341,7 @@
 
                 var confirmDelete = function () {
                     setSubmittingState(form, true);
-                    submitFormDirectly(form);
+                    submitFormAfterConfirmation(form);
                 };
 
                 event.preventDefault();

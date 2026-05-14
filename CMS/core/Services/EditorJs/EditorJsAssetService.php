@@ -242,6 +242,42 @@ final class EditorJsAssetService
 
                 var form = holderEl.closest('form');
                 if (form) {
+                    var lastSubmitter = null;
+                    var submitFormSafely = function(submitter) {
+                        var resolvedSubmitter = submitter && submitter.form === form ? submitter : null;
+
+                        if (typeof window.cmsSubmitFormSafely === 'function') {
+                            window.cmsSubmitFormSafely(form, resolvedSubmitter);
+                            return;
+                        }
+
+                        if (typeof form.requestSubmit === 'function') {
+                            form.requestSubmit(resolvedSubmitter || undefined);
+                            return;
+                        }
+
+                        var fallbackSubmitter = document.createElement('button');
+                        fallbackSubmitter.type = 'submit';
+                        fallbackSubmitter.hidden = true;
+                        fallbackSubmitter.setAttribute('aria-hidden', 'true');
+                        form.appendChild(fallbackSubmitter);
+                        fallbackSubmitter.click();
+                        fallbackSubmitter.remove();
+                    };
+
+                    form.addEventListener('click', function(event) {
+                        var target = event.target && event.target.closest ? event.target.closest('button, input') : null;
+                        if (!target || target.form !== form) {
+                            return;
+                        }
+
+                        var tagName = String(target.tagName || '').toLowerCase();
+                        var type = String(target.getAttribute('type') || (tagName === 'button' ? 'submit' : '')).toLowerCase();
+                        if (type === 'submit' || type === 'image') {
+                            lastSubmitter = target;
+                        }
+                    }, true);
+
                     form.addEventListener('submit', function(e) {
                         if (form.dataset.editorjsSaving === 'true') {
                             return;
@@ -249,14 +285,14 @@ final class EditorJsAssetService
 
                         e.preventDefault();
                         form.dataset.editorjsSaving = 'true';
+                        var submitter = e.submitter || lastSubmitter;
 
                         editor.save().then(function(outputData) {
                             hiddenEl.value = JSON.stringify(outputData);
-                            form.submit();
+                            submitFormSafely(submitter);
                         }).catch(function(err) {
                             console.error('Editor.js save error:', err);
-                            form.dataset.editorjsSaving = '';
-                            form.submit();
+                            submitFormSafely(submitter);
                         });
                     });
                 }

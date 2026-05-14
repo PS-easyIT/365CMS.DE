@@ -96,7 +96,7 @@ final class AiEditorJsTranslationModule
 
             return [
                 'success' => false,
-                'error' => $this->sanitizeText($e->getMessage(), 180) ?: 'Editor.js-AI-Übersetzung konnte nicht verarbeitet werden.',
+                'error' => 'Editor.js-AI-Übersetzung konnte nicht verarbeitet werden. Bitte Logs prüfen.',
             ];
         }
     }

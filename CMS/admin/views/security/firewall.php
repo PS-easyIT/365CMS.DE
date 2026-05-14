@@ -538,12 +538,22 @@ $recentSimulationHits = is_array($simulation['recent_hits'] ?? null) ? $simulati
 
 <script>
 function submitWithFallback(form) {
+    if (window.cmsSubmitFormSafely) {
+        window.cmsSubmitFormSafely(form);
+        return;
+    }
+
     if (typeof form.requestSubmit === 'function') {
         form.requestSubmit();
         return;
     }
 
-    form.submit();
+    var fallbackSubmitter = document.createElement('button');
+    fallbackSubmitter.type = 'submit';
+    fallbackSubmitter.hidden = true;
+    form.appendChild(fallbackSubmitter);
+    fallbackSubmitter.click();
+    fallbackSubmitter.remove();
 }
 
 function deleteFirewallRule(form) {

@@ -112,7 +112,15 @@ class DesignSettingsModule
 
             return ['success' => true, 'message' => 'Design-Einstellungen gespeichert.'];
         } catch (\Throwable $e) {
-            return ['success' => false, 'error' => 'Fehler: ' . $e->getMessage()];
+            \CMS\Logger::instance()->withChannel('design-settings')->error(
+                'Design-Einstellungen konnten nicht gespeichert werden.',
+                [
+                    'exception' => $e::class,
+                    'message' => $e->getMessage(),
+                ]
+            );
+
+            return ['success' => false, 'error' => 'Design-Einstellungen konnten nicht gespeichert werden.'];
         }
     }
 

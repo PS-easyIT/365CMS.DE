@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace CMS\Services\EditorJs;
 
+use CMS\Logger;
 use CMS\Services\MediaDeliveryService;
 use CMS\Services\MediaService;
 
@@ -104,9 +105,15 @@ final class EditorJsUploadService
         $storedFile = MediaService::getInstance()->uploadFile($file, trim($targetPath, '/'));
 
         if ($storedFile instanceof \CMS\WP_Error) {
+            Logger::instance()->withChannel('editorjs.upload')->warning('Editor.js-Upload wurde abgelehnt', [
+                'error_code' => $storedFile->get_error_code(),
+                'error_message' => $this->sanitizeLogMessage($storedFile->get_error_message()),
+                'target_path' => trim($targetPath, '/'),
+            ]);
+
             return [
                 'success' => 0,
-                'message' => $storedFile->get_error_message(),
+                'message' => 'Datei konnte nicht hochgeladen werden. Bitte Dateityp, Größe und Bildinhalt prüfen.',
             ];
         }
 
@@ -285,6 +292,14 @@ final class EditorJsUploadService
         return function_exists('mb_substr')
             ? mb_substr($value, 0, 80)
             : substr($value, 0, 80);
+    }
+
+    private function sanitizeLogMessage(string $message): string
+    {
+        $message = str_replace(["\r", "\n", "\0"], ' ', $message);
+        $message = preg_replace('/\s+/u', ' ', $message) ?? $message;
+
+        return function_exists('mb_substr') ? mb_substr(trim($message), 0, 300) : substr(trim($message), 0, 300);
     }
 
     /**

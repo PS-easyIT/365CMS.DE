@@ -756,7 +756,13 @@
             });
         }
 
+        var updateTimer = null;
         var update = function () {
+            if (updateTimer !== null) {
+                window.clearTimeout(updateTimer);
+                updateTimer = null;
+            }
+
             var title = titleInput ? titleInput.value.trim() : '';
             var slug = slugInput ? slugInput.value.trim().replace(/^\/+/, '') : '';
             var excerpt = excerptInput ? excerptInput.value.trim() : '';
@@ -978,16 +984,24 @@
             form.dataset.seoScore = String(score);
         };
 
+        var scheduleUpdate = function () {
+            if (updateTimer !== null) {
+                window.clearTimeout(updateTimer);
+            }
+
+            updateTimer = window.setTimeout(update, 120);
+        };
+
         [titleInput, slugInput, excerptInput, metaTitleInput, metaDescInput, focusInput, ogTitleInput, ogDescriptionInput, ogImageInput, twitterTitleInput, twitterDescriptionInput, twitterImageInput, featuredInput, statusInput, contentInput].forEach(function (el) {
             if (!el) {
                 return;
             }
-            el.addEventListener('input', update);
-            el.addEventListener('change', update);
+            el.addEventListener('input', scheduleUpdate);
+            el.addEventListener('change', scheduleUpdate);
         });
 
         if (editorContainer && window.MutationObserver) {
-            new MutationObserver(update).observe(editorContainer, { childList: true, subtree: true, characterData: true });
+            new MutationObserver(scheduleUpdate).observe(editorContainer, { childList: true, subtree: true, characterData: true });
         }
 
         form.addEventListener('submit', function () {

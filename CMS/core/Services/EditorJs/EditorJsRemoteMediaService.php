@@ -49,7 +49,7 @@ final class EditorJsRemoteMediaService
             ];
         }
 
-        $download = $this->downloadRemoteFile($url, ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/avif', 'image/bmp']);
+        $download = $this->downloadRemoteFile($url, ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp']);
         if ($download['success'] !== true) {
             return [
                 'success' => 0,
@@ -153,7 +153,6 @@ final class EditorJsRemoteMediaService
                 'image/png' => 'png',
                 'image/gif' => 'gif',
                 'image/webp' => 'webp',
-                'image/avif' => 'avif',
                 'image/bmp' => 'bmp',
                 default => 'jpg',
             };

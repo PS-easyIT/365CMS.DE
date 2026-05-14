@@ -76,15 +76,15 @@ final class EditorJsSanitizer
 
     private function sanitizeBlockData(string $type, array $data): array
     {
-        $inlineAllowed = '<b><i><u><a><code><mark><sub><sup><br><strong><em><span>';
+        $cleanInline = static fn(mixed $value): string => EditorJsHtmlSanitizer::sanitizeInline((string) $value);
 
         switch ($type) {
             case 'paragraph':
-                $data['text'] = strip_tags((string) ($data['text'] ?? ''), $inlineAllowed);
+                $data['text'] = $cleanInline($data['text'] ?? '');
                 break;
 
             case 'header':
-                $data['text'] = strip_tags((string) ($data['text'] ?? ''), $inlineAllowed);
+                $data['text'] = $cleanInline($data['text'] ?? '');
                 $data['level'] = max(1, min(6, (int) ($data['level'] ?? 2)));
                 break;
 
@@ -96,27 +96,27 @@ final class EditorJsSanitizer
                 break;
 
             case 'checklist':
-                $data['items'] = array_values(array_filter(array_map(static function ($item) use ($inlineAllowed) {
+                $data['items'] = array_values(array_filter(array_map(static function ($item) use ($cleanInline) {
                     if (!is_array($item)) {
                         return null;
                     }
 
                     return [
-                        'text' => strip_tags((string) ($item['text'] ?? ''), $inlineAllowed),
+                        'text' => $cleanInline($item['text'] ?? ''),
                         'checked' => !empty($item['checked']),
                     ];
                 }, is_array($data['items'] ?? null) ? $data['items'] : [])));
                 break;
 
             case 'quote':
-                $data['text'] = strip_tags((string) ($data['text'] ?? ''), $inlineAllowed);
-                $data['caption'] = strip_tags((string) ($data['caption'] ?? ''), $inlineAllowed);
+                $data['text'] = $cleanInline($data['text'] ?? '');
+                $data['caption'] = $cleanInline($data['caption'] ?? '');
                 $data['alignment'] = in_array(($data['alignment'] ?? 'left'), ['left', 'center'], true) ? (string) $data['alignment'] : 'left';
                 break;
 
             case 'warning':
-                $data['title'] = strip_tags((string) ($data['title'] ?? ''), $inlineAllowed);
-                $data['message'] = strip_tags((string) ($data['message'] ?? ''), $inlineAllowed);
+                $data['title'] = $cleanInline($data['title'] ?? '');
+                $data['message'] = $cleanInline($data['message'] ?? '');
                 break;
 
             case 'code':
@@ -127,23 +127,23 @@ final class EditorJsSanitizer
                 break;
 
             case 'raw':
-                $data['html'] = strip_tags((string) ($data['html'] ?? ''), '<p><a><strong><em><ul><ol><li><br><h1><h2><h3><h4><h5><h6><div><span><img><table><tr><td><th><thead><tbody><blockquote><pre><code><hr><figure><figcaption><iframe>');
+                $data['html'] = EditorJsHtmlSanitizer::sanitizeRawBlock((string) ($data['html'] ?? ''));
                 break;
 
             case 'table':
                 $data['withHeadings'] = !empty($data['withHeadings']);
-                $data['content'] = array_values(array_map(function ($row) use ($inlineAllowed) {
+                $data['content'] = array_values(array_map(function ($row) use ($cleanInline) {
                     if (!is_array($row)) {
                         return [];
                     }
 
-                    return array_values(array_map(static fn($cell) => strip_tags((string) $cell, $inlineAllowed), $row));
+                    return array_values(array_map(static fn($cell) => $cleanInline($cell), $row));
                 }, is_array($data['content'] ?? null) ? $data['content'] : []));
                 break;
 
             case 'image':
                 $data['file'] = $this->sanitizeFileInfo(is_array($data['file'] ?? null) ? $data['file'] : []);
-                $data['caption'] = strip_tags((string) ($data['caption'] ?? ''), $inlineAllowed);
+                $data['caption'] = $cleanInline($data['caption'] ?? '');
                 $data['withBorder'] = !empty($data['withBorder']);
                 $data['withBackground'] = !empty($data['withBackground']);
                 $data['stretched'] = !empty($data['stretched']);
@@ -151,21 +151,21 @@ final class EditorJsSanitizer
 
             case 'attaches':
                 $data['file'] = $this->sanitizeFileInfo(is_array($data['file'] ?? null) ? $data['file'] : []);
-                $data['title'] = strip_tags((string) ($data['title'] ?? ''), $inlineAllowed);
+                $data['title'] = $cleanInline($data['title'] ?? '');
                 break;
 
             case 'linkTool':
-                $data['link'] = filter_var((string) ($data['link'] ?? ''), FILTER_VALIDATE_URL) ?: '';
+                $data['link'] = EditorJsHtmlSanitizer::sanitizeUrl((string) ($data['link'] ?? ''), ['http', 'https', 'mailto', 'tel'], false);
                 $data['meta'] = $this->sanitizeLinkMeta(is_array($data['meta'] ?? null) ? $data['meta'] : []);
                 break;
 
             case 'embed':
                 $data['service'] = preg_replace('/[^a-z0-9\-]/i', '', (string) ($data['service'] ?? 'embed'));
-                $data['source'] = filter_var((string) ($data['source'] ?? ''), FILTER_VALIDATE_URL) ?: '';
-                $data['embed'] = filter_var((string) ($data['embed'] ?? ''), FILTER_VALIDATE_URL) ?: '';
+                $data['source'] = EditorJsHtmlSanitizer::sanitizeUrl((string) ($data['source'] ?? ''), ['http', 'https'], false);
+                $data['embed'] = EditorJsHtmlSanitizer::sanitizeUrl((string) ($data['embed'] ?? ''), ['http', 'https'], false);
                 $data['width'] = max(0, (int) ($data['width'] ?? 0));
                 $data['height'] = max(0, (int) ($data['height'] ?? 0));
-                $data['caption'] = strip_tags((string) ($data['caption'] ?? ''), $inlineAllowed);
+                $data['caption'] = $cleanInline($data['caption'] ?? '');
                 break;
 
             case 'imageGallery':
@@ -174,7 +174,7 @@ final class EditorJsSanitizer
                     $columns = 3;
                 }
 
-                $images = array_values(array_filter(array_map(function ($item) use ($inlineAllowed) {
+                $images = array_values(array_filter(array_map(function ($item) use ($cleanInline) {
                     if (!is_array($item)) {
                         return null;
                     }
@@ -186,7 +186,7 @@ final class EditorJsSanitizer
 
                     return [
                         'file' => $file,
-                        'caption' => strip_tags((string) ($item['caption'] ?? ''), $inlineAllowed),
+                        'caption' => $cleanInline($item['caption'] ?? ''),
                     ];
                 }, is_array($data['images'] ?? null) ? $data['images'] : [])));
 
@@ -221,8 +221,8 @@ final class EditorJsSanitizer
                 $variant = (string) ($data['variant'] ?? 'info');
                 $data = [
                     'variant' => in_array($variant, ['info', 'warning', 'success'], true) ? $variant : 'info',
-                    'title' => strip_tags((string) ($data['title'] ?? ''), $inlineAllowed),
-                    'message' => strip_tags((string) ($data['message'] ?? ''), $inlineAllowed),
+                    'title' => $cleanInline($data['title'] ?? ''),
+                    'message' => $cleanInline($data['message'] ?? ''),
                 ];
                 break;
 
@@ -230,7 +230,7 @@ final class EditorJsSanitizer
                 $shell = (string) ($data['shell'] ?? 'bash');
                 $data = [
                     'shell' => in_array($shell, ['bash', 'sh', 'zsh', 'powershell', 'cmd'], true) ? $shell : 'bash',
-                    'title' => strip_tags((string) ($data['title'] ?? ''), $inlineAllowed),
+                    'title' => $cleanInline($data['title'] ?? ''),
                     'command' => (string) ($data['command'] ?? ''),
                     'output' => (string) ($data['output'] ?? ''),
                 ];
@@ -258,16 +258,16 @@ final class EditorJsSanitizer
                 }, is_array($data['tabs'] ?? null) ? $data['tabs'] : [])));
 
                 $data = [
-                    'title' => strip_tags((string) ($data['title'] ?? ''), $inlineAllowed),
+                    'title' => $cleanInline($data['title'] ?? ''),
                     'tabs' => array_slice($tabs, 0, 8),
                 ];
                 break;
 
             case 'mermaid':
                 $data = [
-                    'title' => strip_tags((string) ($data['title'] ?? ''), $inlineAllowed),
+                    'title' => $cleanInline($data['title'] ?? ''),
                     'code' => (string) ($data['code'] ?? ''),
-                    'caption' => strip_tags((string) ($data['caption'] ?? ''), $inlineAllowed),
+                    'caption' => $cleanInline($data['caption'] ?? ''),
                 ];
                 break;
 
@@ -276,8 +276,8 @@ final class EditorJsSanitizer
                 $data = [
                     'method' => in_array($method, ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'], true) ? $method : 'GET',
                     'path' => strip_tags((string) ($data['path'] ?? ''), ''),
-                    'summary' => strip_tags((string) ($data['summary'] ?? ''), $inlineAllowed),
-                    'auth' => strip_tags((string) ($data['auth'] ?? ''), $inlineAllowed),
+                    'summary' => $cleanInline($data['summary'] ?? ''),
+                    'auth' => $cleanInline($data['auth'] ?? ''),
                     'requestExample' => (string) ($data['requestExample'] ?? ''),
                     'responseExample' => (string) ($data['responseExample'] ?? ''),
                 ];
@@ -285,7 +285,7 @@ final class EditorJsSanitizer
 
             case 'changelog':
                 $data = [
-                    'title' => strip_tags((string) ($data['title'] ?? ''), $inlineAllowed),
+                    'title' => $cleanInline($data['title'] ?? ''),
                     'version' => strip_tags((string) ($data['version'] ?? ''), ''),
                     'date' => strip_tags((string) ($data['date'] ?? ''), ''),
                     'items' => array_values(array_filter(array_map(static fn($item) => trim(strip_tags((string) $item, '')), is_array($data['items'] ?? null) ? $data['items'] : []))),
@@ -294,16 +294,16 @@ final class EditorJsSanitizer
 
             case 'prosCons':
                 $data = [
-                    'title' => strip_tags((string) ($data['title'] ?? ''), $inlineAllowed),
-                    'prosTitle' => strip_tags((string) ($data['prosTitle'] ?? 'Vorteile'), $inlineAllowed),
-                    'consTitle' => strip_tags((string) ($data['consTitle'] ?? 'Nachteile'), $inlineAllowed),
-                    'pros' => array_values(array_filter(array_map(static fn($item) => trim(strip_tags((string) $item, $inlineAllowed)), is_array($data['pros'] ?? null) ? $data['pros'] : []))),
-                    'cons' => array_values(array_filter(array_map(static fn($item) => trim(strip_tags((string) $item, $inlineAllowed)), is_array($data['cons'] ?? null) ? $data['cons'] : []))),
+                    'title' => $cleanInline($data['title'] ?? ''),
+                    'prosTitle' => $cleanInline($data['prosTitle'] ?? 'Vorteile'),
+                    'consTitle' => $cleanInline($data['consTitle'] ?? 'Nachteile'),
+                    'pros' => array_values(array_filter(array_map(static fn($item) => trim($cleanInline($item)), is_array($data['pros'] ?? null) ? $data['pros'] : []))),
+                    'cons' => array_values(array_filter(array_map(static fn($item) => trim($cleanInline($item)), is_array($data['cons'] ?? null) ? $data['cons'] : []))),
                 ];
                 break;
 
             case 'carousel':
-                $data = array_values(array_filter(array_map(function ($item) use ($inlineAllowed) {
+                $data = array_values(array_filter(array_map(function ($item) use ($cleanInline) {
                     if (!is_array($item)) {
                         return null;
                     }
@@ -315,7 +315,7 @@ final class EditorJsSanitizer
 
                     return [
                         'url' => $url,
-                        'caption' => strip_tags((string) ($item['caption'] ?? ''), $inlineAllowed),
+                        'caption' => $cleanInline($item['caption'] ?? ''),
                     ];
                 }, $data)));
                 break;
@@ -337,7 +337,7 @@ final class EditorJsSanitizer
                     'blockCount' => max(1, min(10, (int) ($settings['blockCount'] ?? 3))),
                     'defaultExpanded' => !empty($settings['defaultExpanded']),
                 ];
-                $data['title'] = strip_tags((string) ($data['title'] ?? ''), $inlineAllowed);
+                $data['title'] = $cleanInline($data['title'] ?? '');
                 break;
 
             case 'drawingTool':
@@ -401,13 +401,13 @@ final class EditorJsSanitizer
 
     private function sanitizeListItems(array $items, string $style): array
     {
-        $inlineAllowed = '<b><i><u><a><code><mark><sub><sup><br><strong><em><span>';
+        $cleanInline = static fn(mixed $value): string => EditorJsHtmlSanitizer::sanitizeInline((string) $value);
         $cleanItems = [];
 
         foreach ($items as $item) {
             if (is_string($item)) {
                 $cleanItems[] = [
-                    'content' => strip_tags($item, $inlineAllowed),
+                    'content' => $cleanInline($item),
                     'meta' => $style === 'checklist' ? ['checked' => false] : [],
                     'items' => [],
                 ];
@@ -419,7 +419,7 @@ final class EditorJsSanitizer
             }
 
             $cleanItems[] = [
-                'content' => strip_tags((string) ($item['content'] ?? $item['text'] ?? ''), $inlineAllowed),
+                'content' => $cleanInline($item['content'] ?? $item['text'] ?? ''),
                 'meta' => $this->sanitizeListMeta($style, is_array($item['meta'] ?? null) ? $item['meta'] : []),
                 'items' => $this->sanitizeListItems(is_array($item['items'] ?? null) ? $item['items'] : [], $style),
             ];
@@ -458,14 +458,14 @@ final class EditorJsSanitizer
 
     private function sanitizeLinkMeta(array $meta): array
     {
-        $inlineAllowed = '<b><i><u><a><code><mark><sub><sup><br><strong><em><span>';
+        $cleanInline = static fn(mixed $value): string => EditorJsHtmlSanitizer::sanitizeInline((string) $value);
 
         return [
-            'title' => strip_tags((string) ($meta['title'] ?? ''), $inlineAllowed),
-            'description' => strip_tags((string) ($meta['description'] ?? ''), $inlineAllowed),
-            'site_name' => strip_tags((string) ($meta['site_name'] ?? ''), $inlineAllowed),
+            'title' => $cleanInline($meta['title'] ?? ''),
+            'description' => $cleanInline($meta['description'] ?? ''),
+            'site_name' => $cleanInline($meta['site_name'] ?? ''),
             'image' => [
-                'url' => filter_var((string) ($meta['image']['url'] ?? ''), FILTER_VALIDATE_URL) ?: '',
+                'url' => EditorJsHtmlSanitizer::sanitizeUrl((string) ($meta['image']['url'] ?? ''), ['http', 'https'], false),
             ],
         ];
     }
@@ -496,8 +496,8 @@ final class EditorJsSanitizer
             return '';
         }
 
-        if ($allowDataImage && preg_match('#^data:image/[a-z0-9.+-]+;base64,#i', $url) === 1) {
-            return $url;
+        if ($allowDataImage && ($dataUrl = EditorJsHtmlSanitizer::sanitizeUrl($url, [], false, true)) !== '') {
+            return $dataUrl;
         }
 
         if (str_starts_with($url, 'media-file?')) {
@@ -508,6 +508,6 @@ final class EditorJsSanitizer
             return $url;
         }
 
-        return filter_var($url, FILTER_VALIDATE_URL) !== false ? $url : '';
+        return EditorJsHtmlSanitizer::sanitizeUrl($url, ['http', 'https'], false);
     }
 }
