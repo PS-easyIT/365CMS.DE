@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "2.9.788",
+  "version": "3.00.00",
   "min_php": "8.4",
   "released": "2026-05-14",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 2.9.788: Der 365CMS-Core behebt Live-Log-/Diagnose-Hotspots um doppelt geladene Backup- und Performance-Klassen, HTMLPurifier-HTML5-Warnings sowie Debug-/PHP-Error-Log-Spam. BackupService und PerformanceModule sind gegen erneute Includes geschützt, der zentrale Purifier registriert benötigte HTML5-Elemente und Attribute ohne Header-brechende Warnings, erfolgreiche DB-Verbindungen schreiben keine PHP-Error-Log-Einträge mehr und SQL-Debug-Ausgaben landen nur noch bei langsamen Queries oder explizitem Opt-in im Datei-Log.",
+  "notes": "Release-Stand 3.00.00: Der 365CMS-Core schließt den finalen Core-only Auditlauf samt zweitem Durchlauf ab. Low-Level-Datenbank-, Audit-, Fatal-, Installer-, Security-, Cache- und Schema-Logs redigieren Diagnosewerte konsequenter, DB-Verbindungsfehler geben nach außen keine sensiblen Details mehr preis, Admin-Fehlerreport-Kontexte werden vor Anzeige und Weitergabe redigiert und Runtime-Schema-Upgrades validieren interne Tabellen-/Spalten-/Definitionen strenger. Die historische 2.x-Changelog-Historie liegt in Changelog_old.md, die neue Changelog.md startet bei 3.00.00.",
   "critical": false
 }

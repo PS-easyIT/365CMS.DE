@@ -74,6 +74,16 @@ final class InstallerService
     {
     }
 
+    private function sanitizeDiagnosticText(string $value, int $maxLength = 500): string
+    {
+        $value = preg_replace('/([?&](?:token|csrf_token|nonce|key|secret|password|pass)=)[^&\s]+/i', '$1***', $value) ?? $value;
+        $value = preg_replace('/\b(Bearer\s+)[A-Za-z0-9._~+\/-]+=*/i', '$1***', $value) ?? $value;
+        $value = preg_replace('/(password|passwd|secret|token|credential|api[_-]?key)(\s*[=:]\s*)\S+/i', '$1$2***', $value) ?? $value;
+        $value = trim(preg_replace('/[\x00-\x1F\x7F]+/u', ' ', $value) ?? '');
+
+        return function_exists('mb_substr') ? mb_substr($value, 0, $maxLength, 'UTF-8') : substr($value, 0, $maxLength);
+    }
+
     public function autoDetectUrl(): string
     {
         $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https://' : 'http://';
@@ -181,7 +191,7 @@ final class InstallerService
 
             return class_exists('CMS\\Auth') && \CMS\Auth::isAdmin();
         } catch (Throwable $e) {
-            error_log('install.php admin-guard failed: ' . $e->getMessage());
+            error_log('install.php admin-guard failed: ' . $this->sanitizeDiagnosticText($e->getMessage()));
             return false;
         }
     }
@@ -914,7 +924,7 @@ final class InstallerService
 
             return true;
         } catch (PDOException $e) {
-            error_log('Landing Page Initialization Error: ' . $e->getMessage());
+            error_log('Landing Page Initialization Error: ' . $this->sanitizeDiagnosticText($e->getMessage()));
             return false;
         }
     }

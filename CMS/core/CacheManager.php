@@ -37,6 +37,16 @@ class CacheManager implements CacheInterface
         }
         return self::$instance;
     }
+
+    private function sanitizeDiagnosticText(string $value, int $maxLength = 500): string
+    {
+        $value = preg_replace('/([?&](?:token|csrf_token|nonce|key|secret|password|pass)=)[^&\s]+/i', '$1***', $value) ?? $value;
+        $value = preg_replace('/\b(Bearer\s+)[A-Za-z0-9._~+\/-]+=*/i', '$1***', $value) ?? $value;
+        $value = preg_replace('/(password|passwd|secret|token|credential|api[_-]?key)(\s*[=:]\s*)\S+/i', '$1$2***', $value) ?? $value;
+        $value = trim(preg_replace('/[\x00-\x1F\x7F]+/u', ' ', $value) ?? '');
+
+        return function_exists('mb_substr') ? mb_substr($value, 0, $maxLength, 'UTF-8') : substr($value, 0, $maxLength);
+    }
     
     private function __construct()
     {
@@ -174,7 +184,7 @@ class CacheManager implements CacheInterface
             $hmac    = hash_hmac('sha256', $payload, $this->getHmacKey());
             return (bool) file_put_contents($file, $hmac . ':' . base64_encode($payload), LOCK_EX);
         } catch (\JsonException $e) {
-            error_log('CacheManager::set() JSON error: ' . $e->getMessage());
+            error_log('CacheManager::set() JSON error: ' . $this->sanitizeDiagnosticText($e->getMessage()));
             return false;
         }
     }

@@ -38,6 +38,16 @@ class Security
         return self::$instance;
     }
 
+    private static function sanitizeDiagnosticText(string $value, int $maxLength = 500): string
+    {
+        $value = preg_replace('/([?&](?:token|csrf_token|nonce|key|secret|password|pass)=)[^&\s]+/i', '$1***', $value) ?? $value;
+        $value = preg_replace('/\b(Bearer\s+)[A-Za-z0-9._~+\/-]+=*/i', '$1***', $value) ?? $value;
+        $value = preg_replace('/(password|passwd|secret|token|credential|api[_-]?key)(\s*[=:]\s*)\S+/i', '$1$2***', $value) ?? $value;
+        $value = trim(preg_replace('/[\x00-\x1F\x7F]+/u', ' ', $value) ?? '');
+
+        return function_exists('mb_substr') ? mb_substr($value, 0, $maxLength, 'UTF-8') : substr($value, 0, $maxLength);
+    }
+
     /**
      * CSP-Nonce für inline <script nonce="..."> und <style nonce="..."> zurückgeben (H-03)
      */
@@ -558,7 +568,7 @@ class Security
             return $count < $maxAttempts;
 
         } catch (\Throwable $e) {
-            error_log('Security::checkDbRateLimit() Fehler (Fallback auf Session): ' . $e->getMessage());
+            error_log('Security::checkDbRateLimit() Fehler (Fallback auf Session): ' . self::sanitizeDiagnosticText($e->getMessage()));
             // Fallback auf Session-basiertes Rate-Limiting wenn DB nicht verfügbar
             return self::checkRateLimit('db_rl_' . $action . '_' . $ip, $maxAttempts, $timeWindow);
         }
@@ -581,7 +591,7 @@ class Security
             $stmt = $db->prepare("INSERT INTO {$prefix}login_attempts (username, ip_address, action, attempted_at) VALUES (?, ?, ?, NOW())");
             $stmt->execute([substr($username, 0, 190), $ip, substr($action, 0, 50)]);
         } catch (\Throwable $e) {
-            error_log('Security::recordDbRateLimitAttempt() Fehler: ' . $e->getMessage());
+            error_log('Security::recordDbRateLimitAttempt() Fehler: ' . self::sanitizeDiagnosticText($e->getMessage()));
         }
     }
 

@@ -140,6 +140,14 @@ $resolveConfiguredSessionGcLifetime = static function (): int {
 };
 
 $sessionGcMaxLifetime = $resolveConfiguredSessionGcLifetime();
+$sanitizeFatalLog = static function (string $value, int $maxLength = 4000): string {
+    $value = preg_replace('/([?&](?:token|csrf_token|nonce|key|secret|password|pass)=)[^&\s]+/i', '$1***', $value) ?? $value;
+    $value = preg_replace('/\b(Bearer\s+)[A-Za-z0-9._~+\/-]+=*/i', '$1***', $value) ?? $value;
+    $value = preg_replace('/(password|passwd|secret|token|credential|api[_-]?key)(\s*[=:]\s*)\S+/i', '$1$2***', $value) ?? $value;
+    $value = trim(preg_replace('/[\x00-\x1F\x7F]+/u', ' ', $value) ?? '');
+
+    return function_exists('mb_substr') ? mb_substr($value, 0, $maxLength, 'UTF-8') : substr($value, 0, $maxLength);
+};
 
 // Start session with secure settings
 // Alle ini_set MÜSSEN vor session_start() gesetzt werden (Security::startSession() prüft nur ob Session noch nicht gestartet ist)
@@ -197,8 +205,8 @@ try {
     $app->run();
 } catch (Throwable $e) {
     // Log error and show friendly message
-    error_log('CMS Fatal Error: ' . $e->getMessage());
-    error_log('Stack trace: ' . $e->getTraceAsString());
+    error_log('CMS Fatal Error: ' . $sanitizeFatalLog($e->getMessage(), 800));
+    error_log('Stack trace: ' . $sanitizeFatalLog($e->getTraceAsString(), 4000));
 
     if (class_exists('CMS\\CacheManager')) {
         CMS\CacheManager::instance()->sendResponseHeaders('private');

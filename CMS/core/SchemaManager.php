@@ -788,7 +788,7 @@ class SchemaManager
             try {
                 $pdo->exec($query);
             } catch (PDOException $e) {
-                error_log('SchemaManager::createTables() failed: ' . $e->getMessage());
+                error_log('SchemaManager::createTables() failed: ' . $this->sanitizeDiagnosticText($e->getMessage()));
             }
         }
 
@@ -840,15 +840,18 @@ class SchemaManager
                     'status'       => 'active',
                 ]);
 
-                // Log the generated password so the admin can retrieve it
-                error_log('[365CMS] Default admin created. Temp password: ' . $randomPassword);
                 // Write to a one-time file for first login
                 $credFile = dirname(__DIR__) . '/logs/admin-credentials.txt';
-                @file_put_contents($credFile, "Default Admin Password: {$randomPassword}\nGenerated: " . date('Y-m-d H:i:s') . "\nDELETE THIS FILE AFTER FIRST LOGIN!\n");
-                @chmod($credFile, 0600);
+                $credentialWritten = @file_put_contents($credFile, "Default Admin Password: {$randomPassword}\nGenerated: " . date('Y-m-d H:i:s') . "\nDELETE THIS FILE AFTER FIRST LOGIN!\n") !== false;
+                if ($credentialWritten) {
+                    @chmod($credFile, 0600);
+                    error_log('[365CMS] Default admin created. Temp credential written to logs/admin-credentials.txt.');
+                } else {
+                    error_log('[365CMS] Default admin created, but temp credential file could not be written.');
+                }
             }
         } catch (\Exception $e) {
-            error_log('SchemaManager::createDefaultAdmin() Error: ' . $e->getMessage());
+            error_log('SchemaManager::createDefaultAdmin() Error: ' . $this->sanitizeDiagnosticText($e->getMessage()));
         }
     }
 
@@ -901,7 +904,7 @@ class SchemaManager
             try {
                 $this->db->getPdo()->exec($siteTablesSql);
             } catch (\Throwable $e) {
-                error_log('SchemaManager::ensureRuntimeSchema() site_tables failed: ' . $e->getMessage());
+                error_log('SchemaManager::ensureRuntimeSchema() site_tables failed: ' . $this->sanitizeDiagnosticText($e->getMessage()));
             }
         }
 
@@ -916,7 +919,7 @@ class SchemaManager
             try {
                 $this->db->getPdo()->exec($ordersSql);
             } catch (\Throwable $e) {
-                error_log('SchemaManager::ensureRuntimeSchema() orders failed: ' . $e->getMessage());
+                error_log('SchemaManager::ensureRuntimeSchema() orders failed: ' . $this->sanitizeDiagnosticText($e->getMessage()));
             }
         }
 
@@ -931,7 +934,7 @@ class SchemaManager
         try {
             $this->db->query("ALTER TABLE {$table} MODIFY COLUMN severity ENUM('info','warning','error','critical') NOT NULL DEFAULT 'info'");
         } catch (\Throwable $e) {
-            error_log('SchemaManager::ensureAuditLogRuntimeSchema() severity failed: ' . $e->getMessage());
+            error_log('SchemaManager::ensureAuditLogRuntimeSchema() severity failed: ' . $this->sanitizeDiagnosticText($e->getMessage()));
         }
     }
 
@@ -1048,8 +1051,18 @@ class SchemaManager
         try {
             $this->db->query("ALTER TABLE {$table} MODIFY COLUMN status VARCHAR(20) NOT NULL DEFAULT 'pending'");
         } catch (\Throwable $e) {
-            error_log('SchemaManager::ensureOrdersRuntimeSchema() status failed: ' . $e->getMessage());
+            error_log('SchemaManager::ensureOrdersRuntimeSchema() status failed: ' . $this->sanitizeDiagnosticText($e->getMessage()));
         }
+    }
+
+    private function sanitizeDiagnosticText(string $value, int $maxLength = 500): string
+    {
+        $value = preg_replace('/([?&](?:token|csrf_token|nonce|key|secret|password|pass)=)[^&\s]+/i', '$1***', $value) ?? $value;
+        $value = preg_replace('/\b(Bearer\s+)[A-Za-z0-9._~+\/-]+=*/i', '$1***', $value) ?? $value;
+        $value = preg_replace('/(password|passwd|secret|token|credential|api[_-]?key)(\s*[=:]\s*)\S+/i', '$1$2***', $value) ?? $value;
+        $value = trim(preg_replace('/[\x00-\x1F\x7F]+/u', ' ', $value) ?? '');
+
+        return function_exists('mb_substr') ? mb_substr($value, 0, $maxLength, 'UTF-8') : substr($value, 0, $maxLength);
     }
 
     /**
@@ -1057,13 +1070,22 @@ class SchemaManager
      */
     private function ensureColumnExists(string $table, string $column, string $alterSql): void
     {
+        if (!preg_match('/^[a-zA-Z0-9_]+$/', $table) || !preg_match('/^[a-zA-Z0-9_]+$/', $column)) {
+            return;
+        }
+
+        $expectedPrefix = 'ALTER TABLE ' . $table . ' ADD COLUMN ' . $column . ' ';
+        if (!str_starts_with($alterSql, $expectedPrefix)) {
+            return;
+        }
+
         try {
             $stmt = $this->db->query("SHOW COLUMNS FROM {$table} LIKE '{$column}'");
             if ($stmt instanceof \PDOStatement && !$stmt->fetch()) {
                 $this->db->query($alterSql);
             }
         } catch (\Throwable $e) {
-            error_log(sprintf('SchemaManager::ensureColumnExists(%s.%s) failed: %s', $table, $column, $e->getMessage()));
+            error_log(sprintf('SchemaManager::ensureColumnExists(%s.%s) failed: %s', $table, $column, $this->sanitizeDiagnosticText($e->getMessage())));
         }
     }
 }
