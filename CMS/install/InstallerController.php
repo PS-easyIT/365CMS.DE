@@ -12,6 +12,8 @@ if (!defined('ABSPATH')) {
 
 final class InstallerController
 {
+    private const ALLOWED_REDIRECTS = ['?step=1', '?step=2', '?step=3', '?step=4', '?step=5'];
+
     private array|bool $existingConfig;
     private bool $isReinstall;
     /** @var list<string> */
@@ -399,6 +401,10 @@ final class InstallerController
 
     private function redirect(string $location): never
     {
+        if (!in_array($location, self::ALLOWED_REDIRECTS, true)) {
+            $location = '?step=1';
+        }
+
         header('Location: ' . $location);
         exit;
     }
