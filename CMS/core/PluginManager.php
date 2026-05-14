@@ -645,6 +645,7 @@ class PluginManager
 
         try {
             if (!$zip->extractTo($stagingRoot)) {
+                $this->removeInstallDirectory($stagingRoot);
                 return 'Plugin konnte nicht entpackt werden.';
             }
         } finally {
