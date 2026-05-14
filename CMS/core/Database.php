@@ -58,7 +58,7 @@ class Database implements DatabaseInterface
         try {
             (new SchemaManager($this))->createTables();
         } catch (\Exception $e) {
-            error_log('Database: SchemaManager::createTables() warning: ' . $e->getMessage());
+            error_log('Database: SchemaManager::createTables() warning: ' . $this->sanitizeDiagnosticText($e->getMessage()));
             // Nicht werfen – App soll weiterlaufen
         }
     }
@@ -92,9 +92,9 @@ class Database implements DatabaseInterface
             $this->pdo = new PDO($dsn, DB_USER, DB_PASS, $options);
             
         } catch (PDOException $e) {
-            error_log('Database connection failed: ' . $e->getMessage());
+            error_log('Database connection failed: ' . $this->sanitizeDiagnosticText($e->getMessage()));
             $this->pdo = null;
-            throw new \RuntimeException('Database connection failed: ' . $e->getMessage());
+            throw new \RuntimeException('Database connection failed. Please check the database configuration.', 0, $e);
         }
     }
     
@@ -141,23 +141,23 @@ class Database implements DatabaseInterface
     {
         if ($this->pdo === null) {
             error_log('Database::prepare() - CRITICAL: PDO connection is null!');
-            error_log('SQL attempted: ' . $sql);
-            error_log('DB Config - Host: ' . DB_HOST . ', Name: ' . DB_NAME . ', User: ' . DB_USER);
+            error_log('SQL attempted: ' . $this->summarizeSqlForLog($sql));
+            error_log('DB Config - Host: ' . $this->sanitizeDiagnosticText((string)DB_HOST, 160) . ', Name: ' . $this->sanitizeDiagnosticText((string)DB_NAME, 160));
             throw new \RuntimeException('Database connection is not available. PDO is null.');
         }
         
         try {
             $stmt = $this->pdo->prepare($sql);
             if ($stmt === false) {
-                error_log('Database::prepare() - prepare() returned false: ' . $sql);
+                error_log('Database::prepare() - prepare() returned false: ' . $this->summarizeSqlForLog($sql));
                 $errorInfo = $this->pdo->errorInfo();
-                error_log('PDO Error: ' . json_encode($errorInfo));
-                throw new \RuntimeException('PDO prepare failed: ' . ($errorInfo[2] ?? 'Unknown error'));
+                error_log('PDO Error: ' . $this->formatPdoErrorInfo($errorInfo));
+                throw new \RuntimeException('PDO prepare failed: ' . $this->sanitizeDiagnosticText((string)($errorInfo[2] ?? 'Unknown error')));
             }
             return $stmt;
         } catch (\PDOException $e) {
-            error_log('Database::prepare() Exception: ' . $e->getMessage() . ' | SQL: ' . $sql);
-            throw new \RuntimeException('Database prepare error: ' . $e->getMessage());
+            error_log('Database::prepare() Exception: ' . $this->sanitizeDiagnosticText($e->getMessage()) . ' | SQL: ' . $this->summarizeSqlForLog($sql));
+            throw new \RuntimeException('Database prepare error: ' . $this->sanitizeDiagnosticText($e->getMessage()), 0, $e);
         }
     }
     
@@ -433,6 +433,42 @@ class Database implements DatabaseInterface
     public function getPrefix(): string
     {
         return $this->prefix;
+    }
+
+    private function sanitizeDiagnosticText(string $value, int $maxLength = 500): string
+    {
+        $value = $this->maskInlineSecrets($value);
+        $value = trim(preg_replace('/[\x00-\x1F\x7F]+/u', ' ', $value) ?? '');
+
+        return function_exists('mb_substr') ? mb_substr($value, 0, $maxLength, 'UTF-8') : substr($value, 0, $maxLength);
+    }
+
+    private function summarizeSqlForLog(string $sql): string
+    {
+        $sql = preg_replace('/\s+/', ' ', $sql) ?? $sql;
+
+        return $this->sanitizeDiagnosticText($sql, 800);
+    }
+
+    /** @param array<int|string,mixed> $errorInfo */
+    private function formatPdoErrorInfo(array $errorInfo): string
+    {
+        $safe = [];
+        foreach ($errorInfo as $key => $value) {
+            $safe[$key] = is_string($value) ? $this->sanitizeDiagnosticText($value, 240) : $value;
+        }
+
+        $json = json_encode($safe, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        return is_string($json) ? $json : '[unserializable pdo error]';
+    }
+
+    private function maskInlineSecrets(string $value): string
+    {
+        $value = preg_replace('/([?&](?:token|csrf_token|nonce|key|secret|password|pass|db_pass)=)[^&\s]+/i', '$1***', $value) ?? $value;
+        $value = preg_replace('/\b(Bearer\s+)[A-Za-z0-9._~+\/-]+=*/i', '$1***', $value) ?? $value;
+        $value = preg_replace('/(password|passwd|secret|token|credential|api[_-]?key)(\s*[=:]\s*)\S+/i', '$1$2***', $value) ?? $value;
+
+        return $value;
     }
 
     /**

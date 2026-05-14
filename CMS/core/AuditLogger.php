@@ -103,7 +103,7 @@ class AuditLogger
             );
         } catch (\Throwable $e) {
             // Audit-Logging darf die Anwendung nie zum Absturz bringen
-            error_log('AuditLogger::log() failed: ' . $e->getMessage());
+            error_log('AuditLogger::log() failed: ' . $this->sanitizeLogText($this->maskInlineSecrets($e->getMessage()), 500));
         }
     }
 
@@ -251,7 +251,7 @@ class AuditLogger
 
             return $stmt->fetchAll(\PDO::FETCH_OBJ) ?: [];
         } catch (\Throwable $e) {
-            error_log('AuditLogger::getRecent() failed: ' . $e->getMessage());
+            error_log('AuditLogger::getRecent() failed: ' . $this->sanitizeLogText($this->maskInlineSecrets($e->getMessage()), 500));
             return [];
         }
     }

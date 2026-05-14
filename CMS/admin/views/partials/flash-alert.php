@@ -37,6 +37,46 @@ $alertTypeMap = [
     'secondary' => 'secondary',
 ];
 $alertClass = $alertTypeMap[$alertType] ?? 'info';
+$maskInlineSecrets = static function (string $value): string {
+    $value = preg_replace('/([?&](?:token|csrf_token|nonce|key|secret|password|pass)=)[^&\s]+/i', '$1***', $value) ?? $value;
+    $value = preg_replace('/\b(Bearer\s+)[A-Za-z0-9._~+\/-]+=*/i', '$1***', $value) ?? $value;
+    $value = preg_replace('/(password|passwd|secret|token|credential|api[_-]?key)(\s*[=:]\s*)\S+/i', '$1$2***', $value) ?? $value;
+
+    return trim(preg_replace('/[\x00-\x1F\x7F]+/u', ' ', $value) ?? '');
+};
+$redactAlertValue = static function (mixed $value, string $key = '') use (&$redactAlertValue, $maskInlineSecrets): mixed {
+    if (preg_match('/(password|passwd|secret|token|nonce|csrf|auth|mfa|key|credential|cookie|session)/i', $key) === 1) {
+        return '***';
+    }
+
+    if (is_array($value)) {
+        $redacted = [];
+        foreach ($value as $childKey => $childValue) {
+            $redacted[$childKey] = $redactAlertValue($childValue, (string)$childKey);
+        }
+
+        return $redacted;
+    }
+
+    if (is_string($value)) {
+        return $maskInlineSecrets($value);
+    }
+
+    if ($value instanceof \Throwable) {
+        return $value::class;
+    }
+
+    return $value;
+};
+$formatAlertJson = static function (array $value): string {
+    $json = json_encode($value, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
+    return is_string($json) ? $json : '[nicht serialisierbar]';
+};
+$errorData = $redactAlertValue($errorData, 'error_data');
+$errorData = is_array($errorData) ? $errorData : [];
+$errorContext = $redactAlertValue($errorContext, 'context');
+$errorContext = is_array($errorContext) ? $errorContext : [];
 ?>
 <div class="alert alert-<?php echo htmlspecialchars($alertClass, ENT_QUOTES, 'UTF-8'); ?><?php echo $alertDismissible ? ' alert-dismissible' : ''; ?> <?php echo htmlspecialchars($alertMarginClass, ENT_QUOTES, 'UTF-8'); ?>" role="alert">
     <div class="d-flex">
@@ -58,11 +98,11 @@ $alertClass = $alertTypeMap[$alertType] ?? 'info';
                     <?php endif; ?>
                     <?php if ($errorData !== []): ?>
                         <div class="mt-2"><strong>Daten:</strong></div>
-                        <pre class="bg-body-tertiary border rounded p-2 mb-0 mt-1"><?php echo htmlspecialchars((string)(json_encode($errorData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: print_r($errorData, true)), ENT_QUOTES, 'UTF-8'); ?></pre>
+                        <pre class="bg-body-tertiary border rounded p-2 mb-0 mt-1"><?php echo htmlspecialchars($formatAlertJson($errorData), ENT_QUOTES, 'UTF-8'); ?></pre>
                     <?php endif; ?>
                     <?php if ($errorContext !== []): ?>
                         <div class="mt-2"><strong>Kontext:</strong></div>
-                        <pre class="bg-body-tertiary border rounded p-2 mb-0 mt-1"><?php echo htmlspecialchars((string)(json_encode($errorContext, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: print_r($errorContext, true)), ENT_QUOTES, 'UTF-8'); ?></pre>
+                        <pre class="bg-body-tertiary border rounded p-2 mb-0 mt-1"><?php echo htmlspecialchars($formatAlertJson($errorContext), ENT_QUOTES, 'UTF-8'); ?></pre>
                     <?php endif; ?>
                 </div>
             <?php endif; ?>

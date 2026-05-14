@@ -911,6 +911,15 @@ final class RedirectService
 
     private function ensureColumnExists(string $table, string $column, string $definition): void
     {
+        $allowedDefinitions = [
+            'redirect_rules.site_scope' => "VARCHAR(255) NOT NULL DEFAULT '' AFTER source_path",
+            'not_found_logs.request_host' => "VARCHAR(255) NOT NULL DEFAULT '' AFTER request_path",
+        ];
+        $schemaKey = $table . '.' . $column;
+        if (!isset($allowedDefinitions[$schemaKey]) || $allowedDefinitions[$schemaKey] !== $definition) {
+            return;
+        }
+
         try {
             $exists = $this->db->get_var("SHOW COLUMNS FROM {$this->prefix}{$table} LIKE '{$column}'");
             if ($exists === null) {
