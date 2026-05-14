@@ -435,10 +435,11 @@ class Debug {
      * Datenbank-Query loggen
      */
     public static function query(string $sql, ?array $params = null, float $execution_time = 0): void {
+        $executionTimeMs = round($execution_time * 1000, 2);
         $payload = [
             'sql' => $sql,
             'params' => $params,
-            'execution_time_ms' => round($execution_time * 1000, 2)
+            'execution_time_ms' => $executionTimeMs
         ];
 
         if (self::$enabled) {
@@ -453,7 +454,10 @@ class Debug {
             }
         }
 
-        self::log('SQL Query', 'info', $payload);
+        $logAllQueries = defined('CMS_DEBUG_LOG_ALL_QUERIES') && CMS_DEBUG_LOG_ALL_QUERIES;
+        if ($logAllQueries || $executionTimeMs >= self::SLOW_QUERY_THRESHOLD_MS) {
+            self::log('SQL Query', $executionTimeMs >= self::SLOW_QUERY_THRESHOLD_MS ? 'warning' : 'info', $payload);
+        }
     }
     
     /**

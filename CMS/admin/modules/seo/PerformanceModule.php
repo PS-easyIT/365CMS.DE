@@ -12,6 +12,8 @@ use CMS\Services\MediaService;
 use CMS\Services\OpcacheWarmupService;
 use CMS\Services\PerformanceSafetyNetService;
 
+if (!class_exists('PerformanceModule', false)) {
+
 final class PerformanceModule
 {
     private const MEDIA_EXCLUDED_PATH_PARTS = [
@@ -2255,4 +2257,6 @@ final class PerformanceModule
             restore_error_handler();
         }
     }
+}
+
 }

@@ -779,7 +779,7 @@ class UsersModule
                 continue;
             }
 
-            $metadataIdentityClauses[] = '(category = ? AND metadata LIKE ? ESCAPE \'\\\')';
+            $metadataIdentityClauses[] = "(category = ? AND metadata LIKE ? ESCAPE '!')";
             $params[] = 'auth';
             $params[] = '%"username":"' . $this->escapeSqlLike($identity) . '"%';
         }
@@ -816,7 +816,7 @@ class UsersModule
 
     private function escapeSqlLike(string $value): string
     {
-        return addcslashes($value, "\\%_");
+        return str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $value);
     }
 
     public function hasUser(int $id): bool

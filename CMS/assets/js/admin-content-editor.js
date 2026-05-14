@@ -1811,6 +1811,11 @@
                 return;
             }
 
+            if (keys.length === 0) {
+                pendingSubmitter = null;
+                return;
+            }
+
             event.preventDefault();
 
             if (submitLocked) {
@@ -1818,11 +1823,6 @@
             }
 
             clearNotice();
-
-            if (keys.length === 0) {
-                dispatchValidatedSubmit(submitter);
-                return;
-            }
 
             submitLocked = true;
 

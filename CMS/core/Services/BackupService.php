@@ -21,6 +21,8 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+if (!class_exists(BackupService::class, false)) {
+
 class BackupService
 {
     private static ?self $instance = null;
@@ -2077,4 +2079,6 @@ class BackupService
 
         return true;
     }
+}
+
 }

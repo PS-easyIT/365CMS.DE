@@ -141,7 +141,7 @@ final class PublicRouter
 
         if (!$security->verifyToken($_POST['csrf_token'] ?? '', 'login')) {
             $_SESSION['error'] = 'Sicherheitsüberprüfung fehlgeschlagen.';
-            $this->router->redirect($loginPagePath);
+            $this->router->redirect($this->appendLoginErrorCode($loginPagePath, 'security'));
             return;
         }
 
@@ -153,7 +153,7 @@ final class PublicRouter
 
             if ($challenge === '') {
                 $_SESSION['error'] = 'Die Passkey-Challenge ist abgelaufen. Bitte erneut versuchen.';
-                $this->router->redirect($loginPagePath);
+                $this->router->redirect($this->appendLoginErrorCode($loginPagePath, 'passkey'));
                 return;
             }
 
@@ -164,7 +164,7 @@ final class PublicRouter
 
             if ($clientDataJson === '' || $authenticatorData === '' || $signature === '' || $credentialId === '') {
                 $_SESSION['error'] = 'Die Passkey-Antwort war unvollständig. Bitte erneut versuchen.';
-                $this->router->redirect($loginPagePath);
+                $this->router->redirect($this->appendLoginErrorCode($loginPagePath, 'passkey'));
                 return;
             }
 
@@ -187,7 +187,7 @@ final class PublicRouter
                 'username' => (string)($_POST['username'] ?? ''),
                 'email' => (string)($_POST['email'] ?? ''),
             ]);
-            $this->router->redirect($loginPagePath);
+            $this->router->redirect($this->appendLoginErrorCode($loginPagePath, 'passkey'));
             return;
         }
 
@@ -206,7 +206,7 @@ final class PublicRouter
                 'username' => (string)$loginInput,
                 'remember' => !empty($_POST['remember']) ? '1' : '0',
             ]);
-            $this->router->redirect($loginPagePath);
+            $this->router->redirect($this->appendLoginErrorCode($loginPagePath, 'invalid'));
         }
     }
 
@@ -698,6 +698,17 @@ final class PublicRouter
         }
 
         return $path . '?redirect=' . urlencode($safeRedirect);
+    }
+
+    private function appendLoginErrorCode(string $path, string $code): string
+    {
+        $code = match ($code) {
+            'security', 'invalid', 'passkey', 'session_required' => $code,
+            default => 'invalid',
+        };
+
+        $separator = str_contains($path, '?') ? '&' : '?';
+        return $path . $separator . 'login_error=' . rawurlencode($code);
     }
 
     private function getPublicAuthPath(string $page): string

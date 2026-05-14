@@ -380,9 +380,74 @@ final class InstallerController
         }
 
         $success = $_SESSION['install_success'];
+        $this->expireInstallerSessionCookies((string) ($success['site_url'] ?? ''));
+        $_SESSION = [];
         session_destroy();
 
         $this->render('success', ['success' => $success]);
+    }
+
+    private function expireInstallerSessionCookies(string $siteUrl): void
+    {
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            return;
+        }
+
+        $isHttps = (!empty($_SERVER['HTTPS']) && strtolower((string) $_SERVER['HTTPS']) !== 'off')
+            || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && strtolower((string) $_SERVER['HTTP_X_FORWARDED_PROTO']) === 'https')
+            || strtolower((string) ($_SERVER['HTTP_X_FORWARDED_SSL'] ?? '')) === 'on';
+
+        $baseOptions = [
+            'expires' => time() - 42000,
+            'path' => '/',
+            'secure' => $isHttps,
+            'httponly' => true,
+            'samesite' => 'Lax',
+        ];
+
+        setcookie(session_name(), '', $baseOptions);
+        setcookie('cms_device', '', $baseOptions);
+
+        foreach ($this->resolveSessionCookieCleanupDomains($siteUrl) as $domain) {
+            $domainOptions = $baseOptions;
+            $domainOptions['domain'] = $domain;
+            setcookie(session_name(), '', $domainOptions);
+            setcookie('cms_device', '', $domainOptions);
+        }
+
+        unset($_COOKIE[session_name()], $_COOKIE['cms_device']);
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function resolveSessionCookieCleanupDomains(string $siteUrl): array
+    {
+        $hosts = [
+            (string) ($_SERVER['HTTP_HOST'] ?? ''),
+            (string) (parse_url($siteUrl, PHP_URL_HOST) ?? ''),
+        ];
+        $domains = [];
+
+        foreach ($hosts as $host) {
+            $host = strtolower(trim($host));
+            if ($host === '') {
+                continue;
+            }
+
+            if (str_contains($host, ':')) {
+                $host = explode(':', $host, 2)[0];
+            }
+
+            $host = preg_replace('/^www\./i', '', $host) ?? '';
+            if ($host === '' || $host === 'localhost' || filter_var($host, FILTER_VALIDATE_IP)) {
+                continue;
+            }
+
+            $domains[] = $host;
+        }
+
+        return array_values(array_unique($domains));
     }
 
     private function render(string $view, array $data): never

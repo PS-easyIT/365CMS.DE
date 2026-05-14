@@ -261,6 +261,10 @@ final class CmsAuthPageService
         $flashSuccess = trim((string) ($_SESSION['success'] ?? ''));
         unset($_SESSION['error'], $_SESSION['success']);
 
+        if ($flashError === '' && $pageType === 'login') {
+            $flashError = $this->resolveLoginErrorFallback((string) ($_GET['login_error'] ?? ''));
+        }
+
         $oldInputBag = is_array($_SESSION['auth_form_old'] ?? null) ? $_SESSION['auth_form_old'] : [];
         $oldInput = is_array($oldInputBag[$pageType] ?? null) ? $oldInputBag[$pageType] : [];
         unset($_SESSION['auth_form_old'][$pageType]);
@@ -312,6 +316,17 @@ final class CmsAuthPageService
 
         require $viewFile;
         exit;
+    }
+
+    private function resolveLoginErrorFallback(string $code): string
+    {
+        return match ($code) {
+            'security' => 'Sicherheitsüberprüfung fehlgeschlagen. Bitte die Loginseite neu laden und erneut versuchen.',
+            'passkey' => 'Die Passkey-Anmeldung konnte nicht abgeschlossen werden. Bitte erneut versuchen oder Passwort-Login nutzen.',
+            'session_required' => 'Bitte melden Sie sich an, um den geschützten Bereich zu öffnen.',
+            'invalid' => 'Anmeldung fehlgeschlagen. Bitte Zugangsdaten prüfen.',
+            default => '',
+        };
     }
 
     /** @return array{success:bool,message:string} */

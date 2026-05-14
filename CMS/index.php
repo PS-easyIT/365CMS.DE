@@ -77,7 +77,14 @@ $resolveSessionCookieDomain = static function (): string {
     return $normalizedHost;
 };
 
-$sessionCookieDomain = $resolveSessionCookieDomain();
+$legacySessionCookieDomain = $resolveSessionCookieDomain();
+
+$isAuthEntryPath = static function (): bool {
+    $path = (string) (parse_url((string) ($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_PATH) ?? '/');
+    $path = '/' . trim($path, '/');
+
+    return preg_match('#^/(?:[a-z]{2}(?:-[a-z]{2})?/)?(?:cms-login|login)$#i', $path) === 1;
+};
 
 $resolveConfiguredSessionGcLifetime = static function (): int {
     $adminLifetime = 28_800;
@@ -142,8 +149,24 @@ ini_set('session.use_only_cookies', '1');
 ini_set('session.use_strict_mode', '1');  // Verhindert Session-Fixation (H-03-Ergänzung)
 ini_set('session.cookie_samesite', 'Strict');  // CSRF-Zusatzschutz
 ini_set('session.gc_maxlifetime', (string) $sessionGcMaxLifetime);
-if ($sessionCookieDomain !== '') {
-    ini_set('session.cookie_domain', $sessionCookieDomain);
+
+// Nach Neuinstallationen können vom Installer Host-only-Cookies und vom CMS ältere
+// Domain-Cookies mit demselben Namen parallel existieren. Browser senden dann ggf.
+// das falsche PHPSESSID-Cookie; CSRF-Token und Login-Session wirken dadurch „still“
+// verloren. Der Runtime-Login nutzt deshalb bewusst Host-only-Cookies und löscht auf
+// Auth-Einstiegspfaden alte Domain-Cookies im Browser, ohne das eingehende Cookie
+// vor session_start() zu verwerfen.
+if ($legacySessionCookieDomain !== '' && $isAuthEntryPath()) {
+    $expiredCookieOptions = [
+        'expires' => time() - 42000,
+        'path' => '/',
+        'domain' => $legacySessionCookieDomain,
+        'secure' => $isHttpsRequest(),
+        'httponly' => true,
+        'samesite' => 'Strict',
+    ];
+    setcookie(session_name(), '', $expiredCookieOptions);
+    setcookie('cms_device', '', $expiredCookieOptions);
 }
 session_start();
 

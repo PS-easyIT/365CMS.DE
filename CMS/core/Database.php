@@ -91,10 +91,6 @@ class Database implements DatabaseInterface
             
             $this->pdo = new PDO($dsn, DB_USER, DB_PASS, $options);
             
-            if (CMS_DEBUG) {
-                error_log('Database connected successfully');
-            }
-            
         } catch (PDOException $e) {
             error_log('Database connection failed: ' . $e->getMessage());
             $this->pdo = null;

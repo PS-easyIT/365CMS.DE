@@ -134,7 +134,7 @@ $additionalCategoryIds = array_values(array_filter(
 
         <form method="post" id="postForm">
             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
-            <input type="hidden" name="action" value="save">
+            <input type="hidden" name="_action" value="save">
             <input type="hidden" name="editor_locale" value="<?php echo htmlspecialchars($editorLocale); ?>">
             <?php if (!$isNew): ?>
                 <input type="hidden" name="id" value="<?php echo (int)$post['id']; ?>">
@@ -297,7 +297,7 @@ $additionalCategoryIds = array_values(array_filter(
                                     <h3 class="card-title">Aktionen</h3>
                                 </div>
                                 <div class="card-body d-flex flex-column gap-2">
-                                    <button type="submit" class="btn btn-primary w-100">
+                                    <button type="submit" name="_action" value="save" class="btn btn-primary w-100">
                                         <?php echo $isNew ? 'Erstellen' : 'Aktualisieren'; ?>
                                     </button>
                                     <?php if (!$isNew): ?>

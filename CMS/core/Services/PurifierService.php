@@ -30,6 +30,7 @@ if (!defined('ABSPATH')) {
 class PurifierService
 {
     private static ?self $instance = null;
+    private const HTML_DEFINITION_REVISION = 2026051403;
 
     /** @var array<string, \HTMLPurifier> Gecachte Purifier-Instanzen pro Profil */
     private array $purifiers = [];
@@ -150,6 +151,8 @@ class PurifierService
 
         // Encoding
         $config->set('Core.Encoding', 'UTF-8');
+        $config->set('HTML.DefinitionID', '365cms-' . preg_replace('/[^a-z0-9_-]/i', '-', $profile));
+        $config->set('HTML.DefinitionRev', self::HTML_DEFINITION_REVISION);
 
         // Erlaubte HTML-Elemente und -Attribute
         $config->set('HTML.Allowed', $this->buildAllowedString($profileConfig));
@@ -170,8 +173,73 @@ class PurifierService
         $config->set('AutoFormat.RemoveEmpty', true);
         $config->set('AutoFormat.AutoParagraph', false);
 
+        $this->configureHtmlDefinition($config);
+
         $this->purifiers[$profile] = new \HTMLPurifier($config);
         return $this->purifiers[$profile];
+    }
+
+    private function configureHtmlDefinition(\HTMLPurifier_Config $config): void
+    {
+        $definition = $config->maybeGetRawHTMLDefinition();
+        if (!$definition instanceof \HTMLPurifier_HTMLDefinition) {
+            return;
+        }
+
+        foreach (['section', 'article', 'nav', 'aside', 'header', 'footer', 'main', 'figure', 'figcaption'] as $element) {
+            $this->ensureHtmlElement($definition, $element, 'Block', 'Flow', 'Common');
+        }
+
+        $this->ensureHtmlElement($definition, 'details', 'Block', 'Flow', 'Common', [
+            'open' => 'Bool',
+        ]);
+
+        foreach (['summary', 'mark'] as $element) {
+            $this->ensureHtmlElement($definition, $element, 'Inline', 'Inline', 'Common');
+        }
+
+        $this->ensureHtmlElement($definition, 'video', 'Block', 'Flow', 'Common', [
+            'src'      => 'URI',
+            'controls' => 'Bool',
+            'width'    => 'Length',
+            'height'   => 'Length',
+        ]);
+        $this->ensureHtmlElement($definition, 'audio', 'Block', 'Flow', 'Common', [
+            'src'      => 'URI',
+            'controls' => 'Bool',
+        ]);
+        $this->ensureHtmlElement($definition, 'source', 'Inline', 'Empty', 'Common', [
+            'src'  => 'URI',
+            'type' => 'Text',
+        ]);
+
+        $this->ensureHtmlAttribute($definition, 'img', 'loading', 'Enum#lazy,eager,auto');
+        $this->ensureHtmlAttribute($definition, 'img', 'fetchpriority', 'Enum#high,low,auto');
+        $this->ensureHtmlAttribute($definition, 'img', 'decoding', 'Enum#async,sync,auto');
+    }
+
+    /**
+     * @param array<string,string> $attributes
+     */
+    private function ensureHtmlElement(\HTMLPurifier_HTMLDefinition $definition, string $element, string $type, string $contents, string $attrCollections, array $attributes = []): void
+    {
+        if (isset($definition->info[$element])) {
+            foreach ($attributes as $attribute => $attributeDefinition) {
+                $this->ensureHtmlAttribute($definition, $element, $attribute, $attributeDefinition);
+            }
+            return;
+        }
+
+        $definition->addElement($element, $type, $contents, $attrCollections, $attributes);
+    }
+
+    private function ensureHtmlAttribute(\HTMLPurifier_HTMLDefinition $definition, string $element, string $attribute, string $attributeDefinition): void
+    {
+        if (isset($definition->info[$element]->attr[$attribute])) {
+            return;
+        }
+
+        $definition->addAttribute($element, $attribute, $attributeDefinition);
     }
 
     /**

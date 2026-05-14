@@ -83,7 +83,7 @@ $isEnglishEditorView = $editorLocale === 'en';
 
         <form method="post" id="pageForm">
             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
-            <input type="hidden" name="action" value="save">
+            <input type="hidden" name="_action" value="save">
             <input type="hidden" name="editor_locale" value="<?= htmlspecialchars($editorLocale) ?>">
             <?php if (!$isNew): ?>
                 <input type="hidden" name="id" value="<?= (int)$page->id ?>">
@@ -227,7 +227,7 @@ $isEnglishEditorView = $editorLocale === 'en';
                                     <h3 class="card-title">Aktionen</h3>
                                 </div>
                                 <div class="card-body d-flex flex-column gap-2">
-                                    <button type="submit" class="btn btn-primary w-100">
+                                    <button type="submit" name="_action" value="save" class="btn btn-primary w-100">
                                         <?= $isNew ? 'Seite erstellen' : 'Speichern' ?>
                                     </button>
                                     <?php if (!$isNew): ?>

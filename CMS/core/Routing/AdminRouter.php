@@ -197,7 +197,7 @@ final class AdminRouter
             $requestUri = (string) ($_SERVER['REQUEST_URI'] ?? '/admin');
             $requestUri = $requestUri !== '' ? $requestUri : '/admin';
             $loginPath = CmsAuthPageService::getInstance()->getPublicPath('login', $this->router->getRequestLocale());
-            $this->router->redirect($loginPath . '?redirect=' . urlencode($requestUri));
+            $this->router->redirect($loginPath . '?redirect=' . urlencode($requestUri) . '&login_error=session_required');
             return;
         }
 
