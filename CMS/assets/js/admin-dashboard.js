@@ -134,15 +134,6 @@
         }
     }
 
-    function escapeHtml(value) {
-        return String(value)
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#39;');
-    }
-
     function initRecentLinks() {
         var recentRoot = document.getElementById('dashboard-recent-links');
         if (!recentRoot) {
@@ -152,7 +143,12 @@
         var emptyText = recentRoot.dataset.emptyText || 'Noch keine zuletzt genutzten Admin-Ziele gespeichert.';
 
         function renderEmpty(message) {
-            recentRoot.innerHTML = '<div class="text-secondary">' + escapeHtml(message) + '</div>';
+            recentRoot.replaceChildren();
+
+            var emptyNode = document.createElement('div');
+            emptyNode.className = 'text-secondary';
+            emptyNode.textContent = message;
+            recentRoot.appendChild(emptyNode);
         }
 
         function renderRecentLinks() {
@@ -168,19 +164,30 @@
                 return;
             }
 
-            recentRoot.innerHTML = '<div class="list-group list-group-flush">'
-                + entries.map(function (entry) {
-                    var timestamp = formatRecentTimestamp(entry.ts);
+            recentRoot.replaceChildren();
 
-                    return '<a class="list-group-item list-group-item-action" href="'
-                        + escapeHtml(entry.url)
-                        + '"><div class="fw-semibold">'
-                        + escapeHtml(entry.label)
-                        + '</div><div class="small text-secondary">'
-                        + escapeHtml(timestamp)
-                        + '</div></a>';
-                }).join('')
-                + '</div>';
+            var list = document.createElement('div');
+            list.className = 'list-group list-group-flush';
+
+            entries.forEach(function (entry) {
+                var timestamp = formatRecentTimestamp(entry.ts);
+                var link = document.createElement('a');
+                var label = document.createElement('div');
+                var time = document.createElement('div');
+
+                link.className = 'list-group-item list-group-item-action';
+                link.href = entry.url;
+                label.className = 'fw-semibold';
+                label.textContent = entry.label;
+                time.className = 'small text-secondary';
+                time.textContent = timestamp;
+
+                link.appendChild(label);
+                link.appendChild(time);
+                list.appendChild(link);
+            });
+
+            recentRoot.appendChild(list);
         }
 
         renderRecentLinks();

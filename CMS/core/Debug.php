@@ -79,6 +79,9 @@ class Debug {
         if (!self::$enabled) {
             return;
         }
+
+        $message = self::sanitizeDiagnosticText($message);
+        $data = self::redactDiagnosticValue($data);
         
         $entry = [
             'time' => microtime(true),
@@ -124,6 +127,40 @@ class Debug {
         $line .= PHP_EOL;
         
         file_put_contents($logFile, $line, FILE_APPEND | LOCK_EX);
+    }
+
+    private static function sanitizeDiagnosticText(string $value, int $maxLength = 1000): string {
+        $value = preg_replace('/([?&](?:token|csrf_token|nonce|key|secret|password|pass)=)[^&\s]+/i', '$1***', $value) ?? $value;
+        $value = preg_replace('/\b(Bearer\s+)[A-Za-z0-9._~+\/-]+=*/i', '$1***', $value) ?? $value;
+        $value = preg_replace('/(password|passwd|secret|token|credential|api[_-]?key)(\s*[=:]\s*)\S+/i', '$1$2***', $value) ?? $value;
+        $value = trim(preg_replace('/[\x00-\x1F\x7F]+/u', ' ', $value) ?? '');
+
+        return function_exists('mb_substr') ? mb_substr($value, 0, $maxLength, 'UTF-8') : substr($value, 0, $maxLength);
+    }
+
+    private static function redactDiagnosticValue(mixed $value, string $key = ''): mixed {
+        if (preg_match('/(password|passwd|secret|token|nonce|csrf|auth|mfa|key|credential|cookie|session)/i', $key) === 1) {
+            return '***';
+        }
+
+        if (is_array($value)) {
+            $redacted = [];
+            foreach ($value as $childKey => $childValue) {
+                $redacted[$childKey] = self::redactDiagnosticValue($childValue, (string)$childKey);
+            }
+
+            return $redacted;
+        }
+
+        if (is_string($value)) {
+            return self::sanitizeDiagnosticText($value, 2000);
+        }
+
+        if ($value instanceof \Throwable) {
+            return $value::class;
+        }
+
+        return $value;
     }
     
     /**
@@ -376,7 +413,8 @@ class Debug {
                     }
                 }
                 $html .= '<pre style="margin: 0.5rem 0 0 0; padding: 0.5rem; background: #f1f5f9; overflow-x: auto;">';
-                $html .= htmlspecialchars(print_r($entry['data'], true));
+                $debugDataJson = json_encode($entry['data'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                $html .= htmlspecialchars(is_string($debugDataJson) ? $debugDataJson : '[nicht serialisierbar]');
                 $html .= '</pre>';
             }
 

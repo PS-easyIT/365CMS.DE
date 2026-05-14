@@ -412,9 +412,15 @@ class PluginManager
             return 'Plugin-Verzeichnis nicht gefunden.';
         }
 
-        // Lookbehind (?<!->) / (?<!::) excludes method/static calls like
-        // $pdo->exec(), PDO::exec(), $stmt->execute() etc.
-        // \b prevents partial matches like "hexec".
+        return $this->securityScanPluginDirectory($plugin, $pluginDir);
+    }
+
+    private function securityScanPluginDirectory(string $plugin, string $pluginDir): bool|string
+    {
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($pluginDir, \FilesystemIterator::SKIP_DOTS)
+        );
+
         $dangerousFunctions = [
             'eval'       => '/(?<!->)(?<!::)\beval\s*\(/i',
             'exec'       => '/(?<!->)(?<!::)\bexec\s*\(/i',
@@ -425,10 +431,6 @@ class PluginManager
             'proc_open'  => '/(?<!->)(?<!::)\bproc_open\s*\(/i',
             'pcntl_exec' => '/(?<!->)(?<!::)\bpcntl_exec\s*\(/i',
         ];
-
-        $iterator = new \RecursiveIteratorIterator(
-            new \RecursiveDirectoryIterator($pluginDir, \FilesystemIterator::SKIP_DOTS)
-        );
 
         foreach ($iterator as $file) {
             if ($file->getExtension() !== 'php') {
@@ -611,38 +613,176 @@ class PluginManager
             return 'ZIP-Datei konnte nicht geöffnet werden.';
         }
 
-        // ZIP-Slip-Schutz: Alle Pfade validieren bevor entpackt wird
         $realPluginPath = realpath(PLUGIN_PATH);
         if ($realPluginPath === false) {
             $zip->close();
             return 'Plugin-Verzeichnis nicht gefunden.';
         }
 
-        for ($i = 0; $i < $zip->numFiles; $i++) {
-            $entryName = $zip->getNameIndex($i);
-            if ($entryName === false) {
-                continue;
-            }
-            // Path-Traversal-Prüfung: kein .., kein absoluter Pfad
-            $fullPath = realpath(PLUGIN_PATH) . DIRECTORY_SEPARATOR . $entryName;
-            $resolved = realpath(dirname(PLUGIN_PATH . DIRECTORY_SEPARATOR . $entryName));
-            // Für neue Verzeichnisse: normalisierten Pfad prüfen
-            $normalized = PLUGIN_PATH . DIRECTORY_SEPARATOR . $entryName;
-            if (str_contains($entryName, '..') || str_starts_with($entryName, '/') || str_starts_with($entryName, '\\')) {
-                $zip->close();
-                return 'ZIP-Archiv enthält unsichere Pfade.';
-            }
-        }
-
-        if (!$zip->extractTo(PLUGIN_PATH)) {
+        $validation = $this->validateUploadedPluginArchive($zip);
+        if (!$validation['success']) {
             $zip->close();
-            return 'Plugin konnte nicht entpackt werden.';
+            return $validation['error'];
         }
 
-        $zip->close();
+        $pluginSlug = $validation['slug'];
+        if ($this->isProtectedPlugin($pluginSlug)) {
+            $zip->close();
+            return 'Dieses Kern-Plugin kann nicht per Upload überschrieben werden.';
+        }
+
+        $targetDir = rtrim($realPluginPath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $pluginSlug;
+        if (file_exists($targetDir)) {
+            $zip->close();
+            return 'Plugin ist bereits installiert. Bitte zuerst deinstallieren oder den Update-Workflow verwenden.';
+        }
+
+        $stagingRoot = rtrim($realPluginPath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . '.plugin-install-' . bin2hex(random_bytes(8));
+        if (!mkdir($stagingRoot, 0750, true) && !is_dir($stagingRoot)) {
+            $zip->close();
+            return 'Temporäres Plugin-Verzeichnis konnte nicht erstellt werden.';
+        }
+
+        try {
+            if (!$zip->extractTo($stagingRoot)) {
+                return 'Plugin konnte nicht entpackt werden.';
+            }
+        } finally {
+            $zip->close();
+        }
+
+        $stagedPluginDir = $stagingRoot . DIRECTORY_SEPARATOR . $pluginSlug;
+        $realStagedPluginDir = realpath($stagedPluginDir);
+        $normalizedStagingRoot = rtrim((string) realpath($stagingRoot), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+
+        if ($realStagedPluginDir === false || !str_starts_with($realStagedPluginDir . DIRECTORY_SEPARATOR, $normalizedStagingRoot)) {
+            $this->removeInstallDirectory($stagingRoot);
+            return 'Plugin-Archiv enthält keine sichere Plugin-Struktur.';
+        }
+
+        $bootstrapFile = $realStagedPluginDir . DIRECTORY_SEPARATOR . $pluginSlug . '.php';
+        if (!is_file($bootstrapFile)) {
+            $this->removeInstallDirectory($stagingRoot);
+            return 'Plugin-Archiv enthält keine passende Hauptdatei.';
+        }
+
+        $scanResult = $this->securityScanPluginDirectory($pluginSlug, $realStagedPluginDir);
+        if ($scanResult !== true) {
+            $this->removeInstallDirectory($stagingRoot);
+            return $scanResult;
+        }
+
+        if (!rename($realStagedPluginDir, $targetDir)) {
+            $this->removeInstallDirectory($stagingRoot);
+            return 'Plugin konnte nicht in das Zielverzeichnis verschoben werden.';
+        }
+
+        $this->removeInstallDirectory($stagingRoot);
         Hooks::doAction('plugin_installed');
 
         return true;
+    }
+
+    /** @return array{success: bool, slug: string, error: string} */
+    private function validateUploadedPluginArchive(\ZipArchive $zip): array
+    {
+        $topLevelSlug = '';
+        $hasBootstrap = false;
+        $totalUncompressedSize = 0;
+
+        if ($zip->numFiles <= 0 || $zip->numFiles > 2000) {
+            return ['success' => false, 'slug' => '', 'error' => 'ZIP-Archiv enthält keine gültige Plugin-Struktur.'];
+        }
+
+        for ($i = 0; $i < $zip->numFiles; $i++) {
+            $entryName = $zip->getNameIndex($i);
+            if (!is_string($entryName) || $entryName === '') {
+                return ['success' => false, 'slug' => '', 'error' => 'ZIP-Archiv enthält ungültige Einträge.'];
+            }
+
+            $normalized = str_replace('\\', '/', $entryName);
+            $normalized = ltrim($normalized, '/');
+            $parts = array_values(array_filter(explode('/', $normalized), static fn(string $part): bool => $part !== ''));
+
+            if ($parts === []
+                || $normalized !== $entryName
+                || str_contains($normalized, '../')
+                || in_array('..', $parts, true)
+                || preg_match('~^[A-Za-z]:/~', $normalized) === 1
+                || preg_match('/[\x00-\x1F\x7F]/', $normalized) === 1
+            ) {
+                return ['success' => false, 'slug' => '', 'error' => 'ZIP-Archiv enthält unsichere Pfade.'];
+            }
+
+            $slug = strtolower((string) ($parts[0] ?? ''));
+            if (!$this->isValidPluginSlug($slug)) {
+                return ['success' => false, 'slug' => '', 'error' => 'ZIP-Archiv enthält keinen gültigen Plugin-Ordner.'];
+            }
+
+            if ($topLevelSlug === '') {
+                $topLevelSlug = $slug;
+            } elseif ($topLevelSlug !== $slug) {
+                return ['success' => false, 'slug' => '', 'error' => 'ZIP-Archiv darf nur ein Plugin-Verzeichnis enthalten.'];
+            }
+
+            $stat = $zip->statIndex($i);
+            if (is_array($stat)) {
+                $size = max(0, (int) ($stat['size'] ?? 0));
+                if ($size > 100 * 1024 * 1024) {
+                    return ['success' => false, 'slug' => '', 'error' => 'ZIP-Archiv enthält zu große Einzeldateien.'];
+                }
+                $totalUncompressedSize += $size;
+                if ($totalUncompressedSize > 200 * 1024 * 1024) {
+                    return ['success' => false, 'slug' => '', 'error' => 'ZIP-Archiv ist entpackt zu groß.'];
+                }
+            }
+
+            $opsys = 0;
+            $attributes = 0;
+            if ($zip->getExternalAttributesIndex($i, $opsys, $attributes) && $opsys === \ZipArchive::OPSYS_UNIX) {
+                $mode = ($attributes >> 16) & 0xF000;
+                if ($mode === 0xA000) {
+                    return ['success' => false, 'slug' => '', 'error' => 'ZIP-Archiv enthält symbolische Links.'];
+                }
+            }
+
+            if (count($parts) === 2 && strtolower($parts[1]) === $slug . '.php') {
+                $hasBootstrap = true;
+            }
+        }
+
+        if ($topLevelSlug === '' || !$hasBootstrap) {
+            return ['success' => false, 'slug' => '', 'error' => 'ZIP-Archiv enthält keine passende Plugin-Hauptdatei.'];
+        }
+
+        return ['success' => true, 'slug' => $topLevelSlug, 'error' => ''];
+    }
+
+    private function removeInstallDirectory(string $dir): void
+    {
+        if (!file_exists($dir)) {
+            return;
+        }
+
+        if (is_link($dir) || is_file($dir)) {
+            @unlink($dir);
+            return;
+        }
+
+        $entries = scandir($dir);
+        if (!is_array($entries)) {
+            return;
+        }
+
+        foreach ($entries as $entry) {
+            if ($entry === '.' || $entry === '..') {
+                continue;
+            }
+
+            $this->removeInstallDirectory($dir . DIRECTORY_SEPARATOR . $entry);
+        }
+
+        @rmdir($dir);
     }
 
     /**

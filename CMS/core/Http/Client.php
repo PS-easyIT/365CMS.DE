@@ -130,6 +130,15 @@ final class Client
             return $this->failure('Nur HTTP- und HTTPS-URLs sind erlaubt.');
         }
 
+        if ((string) parse_url($url, PHP_URL_USER) !== '' || (string) parse_url($url, PHP_URL_PASS) !== '') {
+            return $this->failure('URLs mit eingebetteten Zugangsdaten sind nicht erlaubt.');
+        }
+
+        $port = parse_url($url, PHP_URL_PORT);
+        if ($port !== null && ((int) $port < 1 || (int) $port > 65535)) {
+            return $this->failure('URL-Port ist ungültig.');
+        }
+
         if (!(bool) ($options['allowPrivateHosts'] ?? false) && !$this->isSafeExternalUrl($url, (bool) ($options['allowUnresolvedHosts'] ?? false))) {
             return $this->failure('URL wurde durch den SSRF-Schutz blockiert.');
         }
@@ -139,6 +148,8 @@ final class Client
         }
 
         $responseHeaders = [];
+        $body = '';
+        $maxBytes = max(0, (int) ($options['maxBytes'] ?? 0));
         $curlHeaders = ['User-Agent: ' . ($options['userAgent'] ?? '365CMS-HttpClient/1.0')];
 
         foreach ((array) ($options['headers'] ?? []) as $header) {
@@ -149,7 +160,7 @@ final class Client
 
         $ch = curl_init($url);
         $curlOptions = [
-            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_RETURNTRANSFER => false,
             CURLOPT_FOLLOWLOCATION => false,
             CURLOPT_CONNECTTIMEOUT => max(1, (int) ($options['connectTimeout'] ?? 5)),
             CURLOPT_TIMEOUT        => max(1, (int) ($options['timeout'] ?? 10)),
@@ -168,7 +179,24 @@ final class Client
 
                 return strlen($headerLine);
             },
+            CURLOPT_WRITEFUNCTION => static function ($curl, string $chunk) use (&$body, $maxBytes): int {
+                $body .= $chunk;
+
+                if ($maxBytes > 0 && strlen($body) > $maxBytes) {
+                    return 0;
+                }
+
+                return strlen($chunk);
+            },
         ];
+
+        if (defined('CURLOPT_PROTOCOLS') && defined('CURLPROTO_HTTP') && defined('CURLPROTO_HTTPS')) {
+            $curlOptions[CURLOPT_PROTOCOLS] = CURLPROTO_HTTP | CURLPROTO_HTTPS;
+        }
+
+        if (defined('CURLOPT_REDIR_PROTOCOLS') && defined('CURLPROTO_HTTP') && defined('CURLPROTO_HTTPS')) {
+            $curlOptions[CURLOPT_REDIR_PROTOCOLS] = CURLPROTO_HTTP | CURLPROTO_HTTPS;
+        }
 
         $normalizedMethod = strtoupper($method);
 
@@ -185,18 +213,25 @@ final class Client
         $curlError = curl_error($ch);
         $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $contentType = strtolower(trim((string) curl_getinfo($ch, CURLINFO_CONTENT_TYPE)));
+        $primaryIp = defined('CURLINFO_PRIMARY_IP') ? trim((string) curl_getinfo($ch, CURLINFO_PRIMARY_IP)) : '';
         curl_close($ch);
 
         if ($contentType !== '' && str_contains($contentType, ';')) {
             $contentType = trim((string) strtok($contentType, ';'));
         }
 
+        if ($response === false && $maxBytes > 0 && strlen($body) > $maxBytes) {
+            return $this->failure('HTTP-Response überschreitet die erlaubte Maximalgröße.', $status, $responseHeaders, '', $contentType);
+        }
+
         if ($response === false) {
             return $this->failure('HTTP-Request fehlgeschlagen: ' . $curlError, $status, $responseHeaders, '', $contentType);
         }
 
-        $body = (string) $response;
-        $maxBytes = max(0, (int) ($options['maxBytes'] ?? 0));
+        if (!(bool) ($options['allowPrivateHosts'] ?? false) && $primaryIp !== '' && $this->isPrivateOrReservedIp($primaryIp)) {
+            return $this->failure('HTTP-Request wurde durch den SSRF-Schutz blockiert.', $status, $responseHeaders, '', $contentType);
+        }
+
         if ($maxBytes > 0 && strlen($body) > $maxBytes) {
             return $this->failure('HTTP-Response überschreitet die erlaubte Maximalgröße.', $status, $responseHeaders, '', $contentType);
         }
@@ -275,7 +310,7 @@ final class Client
         if ($resolvedIps === []) {
             \CMS\Logger::instance()->withChannel('http-client')->warning('External HTTP request blocked because the host could not be resolved safely.', [
                 'host' => $host,
-                'url' => $url,
+                'url' => $this->sanitizeUrlForLog($url),
             ]);
             return $allowUnresolvedHosts;
         }
@@ -285,13 +320,20 @@ final class Client
                 \CMS\Logger::instance()->withChannel('http-client')->warning('External HTTP request blocked because the host resolved to a private IP.', [
                     'host' => $host,
                     'ip' => $ip,
-                    'url' => $url,
+                    'url' => $this->sanitizeUrlForLog($url),
                 ]);
                 return false;
             }
         }
 
         return true;
+    }
+
+    private function sanitizeUrlForLog(string $url): string
+    {
+        $url = preg_replace('/([?&](?:token|csrf_token|nonce|key|secret|password|pass|code)=)[^&\s]+/i', '$1***', $url) ?? $url;
+
+        return (string) preg_replace('/[\x00-\x1F\x7F]+/u', '', $url);
     }
 
     /**
