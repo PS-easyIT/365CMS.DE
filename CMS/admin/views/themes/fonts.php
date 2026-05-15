@@ -379,6 +379,18 @@ $fontManagerConfig = [
                     require __DIR__ . '/../partials/flash-alert.php';
                     ?>
 
+                    <?php if ((string) $activeThemeSlug === 'cms-phinit'): ?>
+                        <?php
+                        $alertData = [
+                            'type' => 'info',
+                            'message' => 'Empfohlener Satz für `cms-phinit`: Inter für Body/UI, Space Grotesk für Headings, Sora als weichere Display-Alternative und JetBrains Mono bzw. Fira Code für Code-Blöcke. Cascadia Code bleibt zusätzlich als lokale Windows-Mono-Option hinterlegt. Diese Familien sind jetzt auch im zentralen Font Manager hinterlegt.',
+                        ];
+                        $alertDismissible = false;
+                        $alertMarginClass = 'mb-3';
+                        require __DIR__ . '/../partials/flash-alert.php';
+                        ?>
+                    <?php endif; ?>
+
                     <?php foreach ($fontCatalog as $category => $fonts): ?>
                         <div class="mb-4">
                             <h4 class="mb-3"><?php echo htmlspecialchars($category); ?></h4>
@@ -517,6 +529,9 @@ $fontManagerConfig = [
                             </select>
                         </div>
                     </div>
+                    <?php if ((string) $activeThemeSlug === 'cms-phinit'): ?>
+                        <div class="form-hint mb-3">Tipp für `cms-phinit`: <strong>Body/UI = Inter</strong>, <strong>Headings = Space Grotesk</strong>. Für Code-Blöcke bleiben <strong>JetBrains Mono</strong> und <strong>Fira Code</strong> ideale Self-Host-Kandidaten; <strong>Cascadia Code</strong> ist zusätzlich als lokale Mono-Option für Windows-Setups hinterlegt.</div>
+                    <?php endif; ?>
                     <div class="row">
                         <div class="col-md-6">
                             <label class="form-label">Basis-Schriftgröße (px)</label>
