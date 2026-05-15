@@ -1,4 +1,4 @@
-﻿﻿**Version:** 3.0.2
+﻿﻿**Version:** 3.0.3
 
 # 365CMS Changelog
 
@@ -19,6 +19,12 @@
 ## 📜 Aktuelle Versionshistorie ab 3.0.0
 
 > Die vollständige historische 2.x-Historie wurde in [`Changelog_old.md`](Changelog_old.md) archiviert.
+
+### v3.0.3 — 15. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.0.3** | 🟢 feat | Admin/Medien | **`CMS/admin/media.php`, `CMS/admin/modules/media/MediaModule.php`, `CMS/admin/views/media/featured.php`, `CMS/admin/views/media/check.php`, `CMS/admin/partials/sidebar.php`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `CMS/DOC/admin/media/README.md`, `CMS/DOC/admin/media/MEDIA.md`, `README.md` und `Changelog.md` verschieben den Featured-Image-Konsistenz-Check in den neuen Unterpunkt `Medien Check`.** Dadurch bleibt `Beitrags & Site Medien` auf die tatsächlich verwendeten Featured Images und den Replace-in-place-Flow fokussiert, während die read-only Prüfliste für fehlende oder defekte Zuordnungen separat gefiltert und direkt aus dem Medienmenü erreichbar ist. |
 
 ### v3.0.2 — 15. Mai 2026
 

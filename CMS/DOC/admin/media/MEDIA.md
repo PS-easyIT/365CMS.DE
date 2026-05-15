@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Verwaltung hochgeladener Dateien und Ordner, Kategorien, Medieneinstellungen und kontrollierter Auslieferung über interne Services.
 
-Letzte Aktualisierung: 2026-05-10 · Version 2.9.745
+Letzte Aktualisierung: 2026-05-15 · Version 3.0.3
 
 ---
 
@@ -20,6 +20,7 @@ Die Medienverwaltung bündelt Bibliothek, Beitrags-/Site-Medien, Kategorien und 
 |---|---|---|
 | `/admin/media` | `views/media/library.php` | Dateibrowser, Upload, Suche, Bulk-Aktionen und Vorschau |
 | `/admin/media?tab=featured` | `views/media/featured.php` | Beitrags- und Seitenbilder finden, filtern und global unter stabiler Referenz ersetzen |
+| `/admin/media?tab=check` | `views/media/check.php` | fehlende oder defekte Featured-Image-Zuordnungen read-only prüfen |
 | `/admin/media?tab=categories` | `views/media/categories.php` | Medien-Kategorien anlegen und pflegen |
 | `/admin/media?tab=settings` | `views/media/settings.php` | Upload-Limits, erlaubte Typen und globale Medienoptionen |
 
@@ -46,6 +47,7 @@ Die Medienverwaltung bündelt Bibliothek, Beitrags-/Site-Medien, Kategorien und 
 | Verwaltete Bildverarbeitung | Maximalmaße, Thumbnail-Sätze und optionale WebP-Derivate |
 | WebP-/Thumbnail-Jobs | fortsetzbare Bestandsverarbeitung mit Fortschritt und kleinen Server-Batches |
 | Beitrags-/Site-Medien | fokussierte Übersicht der in Beiträgen und Seiten hinterlegten Featured Images mit globalem Replace-in-place |
+| Medien Check | read-only Prüfliste für fehlende oder defekte Featured-Image-Zuordnungen mit Deep-Links in bestehende Arbeitswege |
 
 Der gemeinsame Featured-Image-Picker für Seiten und Beiträge akzeptiert nur die Backend-Bildformate JPG, PNG, GIF, WebP, BMP und ICO. Bei neuen Inhalten werden Uploads temporär abgelegt und beim Speichern in den Slug-Ordner verschoben; Verschiebe- oder Metadatenfehler werden protokolliert, sollen aber keine leeren HTTP-500-Antworten nach erfolgreicher Bildübernahme mehr verursachen.
 
@@ -142,12 +144,16 @@ Der Spezialtab `/admin/media?tab=featured` ist für Bilder gedacht, die im Heade
 
 Der Replace-Flow ersetzt die Datei am bestehenden verwalteten Medienpfad. Dadurch müssen Beiträge und Seiten nicht massenhaft umgeschrieben werden: Alle Inhalte, die denselben Pfad referenzieren, zeigen nach dem Austausch automatisch die neue Datei.
 
-Seit `2.9.776` ergänzt derselbe Tab zusätzlich einen read-only Konsistenz-Check. Er listet Beiträge und Seiten auf,
+Seit `3.0.3` bleibt dieser Tab bewusst auf die Übersicht der verwendeten Featured Images, Filterung nach Beiträgen/Seiten und den Replace-in-place-Flow fokussiert. Die Konsistenzprüfung wurde in den separaten Unterpunkt `/admin/media?tab=check` ausgelagert.
+
+## Medien Check
+
+Der Unterpunkt `/admin/media?tab=check` listet Beiträge und Seiten auf,
 
 - die noch gar kein Featured Image hinterlegt haben,
 - oder deren gespeicherte Referenz auf keine vorhandene lokale Mediendatei mehr zeigt.
 
-Die Seite bleibt dabei bewusst ein reiner GET-/Lesepfad: Die Liste selbst schreibt nichts um, sondern verweist nur in bestehende, bereits abgesicherte Arbeitswege – entweder in den Editor mit dem vorhandenen Featured-Image-Picker aus der Medienbibliothek oder bei geteilten defekten Referenzen in den bestehenden Replace-in-place-Flow derselben Ansicht.
+Die Seite bleibt dabei bewusst ein reiner GET-/Lesepfad: Die Liste selbst schreibt nichts um, sondern verweist nur in bestehende, bereits abgesicherte Arbeitswege – entweder in den Editor mit dem vorhandenen Featured-Image-Picker aus der Medienbibliothek oder bei geteilten defekten Referenzen in den bestehenden Replace-in-place-Flow unter `/admin/media?tab=featured`.
 
 Absicherungen und UX-Details:
 
@@ -158,7 +164,7 @@ Absicherungen und UX-Details:
 - Drag-&-Drop wird auf genau eine Datei begrenzt; ungültige Drops außerhalb der Zielzone werden abgefangen, damit der Browser keine Datei versehentlich öffnet.
 - Vor dem Speichern wird lokal eine Mini-Vorschau über Objekt-URL bzw. FileReader gezeigt und beim Seitenwechsel wieder freigegeben.
 - Nach erfolgreichem POST springt die Ansicht per Redirect zurück und markiert die ersetzte Bildzeile mit Erfolgshinweis.
-- Der Konsistenz-Check zeigt fehlende oder gebrochene Referenzen nur an; es gibt bewusst keinen automatischen GET-Fix, keine Token-URL und keinen verdeckten Massen-Update-Pfad.
+- Der Medien Check zeigt fehlende oder gebrochene Referenzen nur an; es gibt bewusst keinen automatischen GET-Fix, keine Token-URL und keinen verdeckten Massen-Update-Pfad.
 
 ---
 

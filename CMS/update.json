@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "3.0.2",
+  "version": "3.0.3",
   "min_php": "8.4",
   "released": "2026-05-15",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 3.0.2: Admin-Audit-Funde behoben. Das Runtime-Schema legt password_resets zuverlässig an, Medienlinks im Admin verwenden den kontrollierten /media-file-Endpunkt, versteckte Punkt-Dateien werden in der Medienbibliothek ausgeblendet, das HSTS-Audit berücksichtigt den Apache-/Proxy-Fallback und die CMS-Loginpage trennt Passwort-Label und Passwort-vergessen-Link barriereärmer.",
+  "notes": "Release-Stand 3.0.3: Der Featured-Image-Konsistenz-Check lebt jetzt als eigener Unterpunkt \"Medien Check\". Damit bleibt \"Beitrags & Site Medien\" auf verwendete Featured Images und den Replace-in-place-Flow fokussiert, während fehlende oder defekte Zuordnungen separat read-only geprüft werden können.",
   "critical": false
 }

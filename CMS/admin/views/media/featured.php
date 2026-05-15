@@ -9,6 +9,7 @@ $items = is_array($data['items'] ?? null) ? $data['items'] : [];
 $search = (string)($data['search'] ?? '');
 $stats = is_array($data['stats'] ?? null) ? $data['stats'] : [];
 $baseUrl = (string)($data['base_url'] ?? '/admin/media');
+$checkUrl = (string)($data['check_url'] ?? '/admin/media?tab=check');
 $constraints = is_array($data['constraints'] ?? null) ? $data['constraints'] : [];
 $usageScope = (string)($data['usage_scope'] ?? 'all');
 $usageScopeOptions = is_array($data['usage_scope_options'] ?? null) ? $data['usage_scope_options'] : [];
@@ -16,14 +17,6 @@ $emptyState = is_array($data['empty_state'] ?? null) ? $data['empty_state'] : [
     'title' => 'Keine Medien gefunden',
     'subtitle' => 'Sobald Beiträge oder Seiten ein Bild erhalten, erscheinen sie hier.',
 ];
-$consistency = is_array($data['consistency'] ?? null) ? $data['consistency'] : [];
-$consistencyItems = is_array($consistency['items'] ?? null) ? $consistency['items'] : [];
-$consistencyStats = is_array($consistency['stats'] ?? null) ? $consistency['stats'] : [];
-$consistencyEmptyState = is_array($consistency['empty_state'] ?? null) ? $consistency['empty_state'] : [
-    'title' => 'Keine offenen Featured-Image-Probleme gefunden',
-    'subtitle' => 'Alle aktuell gefilterten Inhalte besitzen eine funktionierende Referenz.',
-];
-$consistencyHelpText = (string)($consistency['help_text'] ?? '');
 $helpText = (string)($data['help_text'] ?? '');
 $isSuccessAlert = is_array($alert ?? null) && (string)($alert['type'] ?? '') === 'success';
 
@@ -74,6 +67,9 @@ if (!function_exists('cms_admin_media_render_featured_usage_list')) {
                 <?php if ($helpText !== ''): ?>
                     <div class="text-secondary mt-1"><?php echo htmlspecialchars($helpText); ?></div>
                 <?php endif; ?>
+            </div>
+            <div class="col-auto ms-auto">
+                <a href="<?php echo htmlspecialchars($checkUrl, ENT_QUOTES); ?>" class="btn btn-outline-secondary">Medien Check</a>
             </div>
         </div>
     </div>
@@ -162,99 +158,6 @@ if (!function_exists('cms_admin_media_render_featured_usage_list')) {
                         <?php endif; ?>
                     </div>
                 </form>
-            </div>
-        </div>
-
-        <div class="card mb-4">
-            <div class="card-header">
-                <div>
-                    <h3 class="card-title mb-1">Konsistenz-Check für Featured Images</h3>
-                    <?php if ($consistencyHelpText !== ''): ?>
-                        <div class="text-secondary small"><?php echo htmlspecialchars($consistencyHelpText); ?></div>
-                    <?php endif; ?>
-                </div>
-            </div>
-            <div class="card-body">
-                <div class="d-flex flex-wrap gap-2 mb-3">
-                    <span class="badge bg-blue-lt"><?php echo (int)($consistencyStats['issue_count'] ?? 0); ?> offene Auffälligkeiten</span>
-                    <span class="badge bg-warning-lt text-warning"><?php echo (int)($consistencyStats['missing_assignment_count'] ?? 0); ?> ohne Bild</span>
-                    <span class="badge bg-danger-lt text-danger"><?php echo (int)($consistencyStats['broken_reference_count'] ?? 0); ?> defekte Referenzen</span>
-                </div>
-
-                <?php if ($consistencyItems === []): ?>
-                    <div class="empty py-4">
-                        <div class="empty-img">✅</div>
-                        <p class="empty-title"><?php echo htmlspecialchars((string)($consistencyEmptyState['title'] ?? 'Keine offenen Featured-Image-Probleme gefunden')); ?></p>
-                        <p class="empty-subtitle text-secondary"><?php echo htmlspecialchars((string)($consistencyEmptyState['subtitle'] ?? 'Alle aktuell gefilterten Inhalte besitzen eine funktionierende Referenz.')); ?></p>
-                    </div>
-                <?php else: ?>
-                    <div class="table-responsive">
-                        <table class="table table-vcenter card-table">
-                            <thead>
-                                <tr>
-                                    <th>Inhalt</th>
-                                    <th>Status</th>
-                                    <th>Aktuelle Referenz</th>
-                                    <th>Empfehlung</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach ($consistencyItems as $issue): ?>
-                                    <?php
-                                    $issueTitle = (string)($issue['title'] ?? 'Ohne Titel');
-                                    $issueTypeLabel = (string)($issue['content_type_label'] ?? 'Inhalt');
-                                    $issueStatusLabel = (string)($issue['status_label'] ?? 'Auffälligkeit');
-                                    $issueStatusClass = (string)($issue['status_class'] ?? 'bg-secondary-lt');
-                                    $issueStatusTextClass = (string)($issue['status_text_class'] ?? 'text-secondary');
-                                    $issueReference = (string)($issue['reference_display'] ?? '');
-                                    $issueRecommendation = (string)($issue['recommendation'] ?? '');
-                                    $issueEditUrl = (string)($issue['edit_url'] ?? '#');
-                                    $issuePrimaryActionLabel = (string)($issue['primary_action_label'] ?? 'Öffnen');
-                                    $issueReplaceUrl = (string)($issue['replace_url'] ?? '');
-                                    $issueReplaceLabel = (string)($issue['replace_label'] ?? '');
-                                    $sharedUsageCount = (int)($issue['shared_usage_count'] ?? 0);
-                                    ?>
-                                    <tr>
-                                        <td>
-                                            <div class="d-flex flex-column gap-1">
-                                                <div class="d-flex flex-wrap align-items-center gap-2">
-                                                    <span class="badge bg-blue-lt"><?php echo htmlspecialchars($issueTypeLabel); ?></span>
-                                                    <span class="fw-semibold"><?php echo htmlspecialchars($issueTitle); ?></span>
-                                                </div>
-                                                <?php if ($sharedUsageCount > 1): ?>
-                                                    <div class="small text-secondary">Die aktuelle Referenz wird von <?php echo $sharedUsageCount; ?> Inhalten gemeinsam genutzt.</div>
-                                                <?php endif; ?>
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <span class="badge <?php echo htmlspecialchars($issueStatusClass, ENT_QUOTES); ?> <?php echo htmlspecialchars($issueStatusTextClass, ENT_QUOTES); ?>">
-                                                <?php echo htmlspecialchars($issueStatusLabel); ?>
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <?php if ($issueReference !== ''): ?>
-                                                <code class="small"><?php echo htmlspecialchars($issueReference); ?></code>
-                                            <?php else: ?>
-                                                <span class="text-secondary small">Keine Referenz gespeichert</span>
-                                            <?php endif; ?>
-                                        </td>
-                                        <td>
-                                            <div class="d-flex flex-wrap gap-2 mb-2">
-                                                <a href="<?php echo htmlspecialchars($issueEditUrl, ENT_QUOTES); ?>" class="btn btn-outline-primary btn-sm"><?php echo htmlspecialchars($issuePrimaryActionLabel); ?></a>
-                                                <?php if ($issueReplaceUrl !== '' && $issueReplaceLabel !== ''): ?>
-                                                    <a href="<?php echo htmlspecialchars($issueReplaceUrl, ENT_QUOTES); ?>" class="btn btn-outline-secondary btn-sm"><?php echo htmlspecialchars($issueReplaceLabel); ?></a>
-                                                <?php endif; ?>
-                                            </div>
-                                            <?php if ($issueRecommendation !== ''): ?>
-                                                <div class="small text-secondary"><?php echo htmlspecialchars($issueRecommendation); ?></div>
-                                            <?php endif; ?>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                <?php endif; ?>
             </div>
         </div>
 

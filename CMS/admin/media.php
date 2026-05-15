@@ -9,7 +9,7 @@ if (!defined('ABSPATH')) {
  * Media – Entry Point
  * Route: /admin/media
  *
- * Tabs: library (Standard), categories, settings
+ * Tabs: library (Standard), featured, check, categories, settings
  */
 
 use CMS\Auth;
@@ -804,6 +804,13 @@ function cms_admin_media_view_config(MediaModule $module, string $tab): array
             ],
             'data' => $module->getFeaturedMediaData(),
         ],
+        'check' => [
+            'section' => 'check',
+            'view_file' => __DIR__ . '/views/media/check.php',
+            'page_title' => 'Medien – Medien Check',
+            'active_page' => 'media-check',
+            'data' => $module->getMediaCheckData(),
+        ],
         'categories' => [
             'section' => 'categories',
             'view_file' => __DIR__ . '/views/media/categories.php',
@@ -895,6 +902,7 @@ $sectionPageConfig = [
 
         return match ($module->normalizeTab($section)) {
             'featured' => cms_admin_media_build_featured_redirect_url($module),
+            'check' => cms_admin_media_build_redirect_url($module, 'check', ''),
             'categories' => CMS_ADMIN_MEDIA_ROUTE_PATH . '?tab=categories',
             'settings' => CMS_ADMIN_MEDIA_ROUTE_PATH . '?tab=settings',
             default => cms_admin_media_build_redirect_url($module, 'library', $module->normalizePath((string) ($_GET['path'] ?? ''))),

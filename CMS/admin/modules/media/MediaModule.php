@@ -132,7 +132,7 @@ class MediaModule
     private ?array $categoriesCache = null;
 
     private const ALLOWED_VIEWS = ['list', 'grid'];
-    private const ALLOWED_TABS = ['library', 'featured', 'categories', 'settings'];
+    private const ALLOWED_TABS = ['library', 'featured', 'check', 'categories', 'settings'];
     private const ALLOWED_USAGE_FILTERS = ['all', 'used', 'unused'];
     private const ALLOWED_FILE_TYPE_FILTERS = ['all', 'image', 'document', 'video', 'audio', 'archive', 'other'];
     private const ALLOWED_SIZE_FILTERS = ['all', 'tiny', 'small', 'medium', 'large', 'huge'];
@@ -488,7 +488,6 @@ class MediaModule
         $highlightPath = $this->normalizeRelativePath((string) ($_GET['highlight'] ?? ''));
         $highlightActive = ((string) ($_GET['replaced'] ?? '') === '1') && $highlightPath !== '';
         $featuredUsageMap = $this->usageService->buildFeaturedImageMap();
-        $consistencyData = $this->buildFeaturedConsistencyData($search, $usageScope, $featuredUsageMap);
         $items = [];
         $totalReferences = 0;
         $postReferences = 0;
@@ -561,22 +560,72 @@ class MediaModule
             'constraints' => [
                 'search_max_length' => self::SEARCH_MAX_LENGTH,
             ],
-            'usage_scope_options' => [
-                ['value' => 'all', 'label' => 'Beiträge & Seiten'],
-                ['value' => 'posts', 'label' => 'Nur Beiträge'],
-                ['value' => 'pages', 'label' => 'Nur Seiten'],
-            ],
+            'usage_scope_options' => $this->buildFeaturedUsageScopeOptions(),
             'empty_state' => [
                 'title' => $search !== '' ? 'Keine passenden Beitrags- oder Seitenbilder gefunden' : 'Noch keine Beitrags- oder Seitenbilder hinterlegt',
                 'subtitle' => $search !== ''
                     ? 'Bitte Suchbegriff anpassen oder zurücksetzen.'
                     : 'Sobald Beiträge oder Seiten ein Titelbild haben, erscheinen sie hier gesammelt zur schnellen Pflege.',
             ],
-            'help_text' => 'Hier sehen Sie ausschließlich die Bilder, die aktuell als Beitragsbild oder Seitenbild verwendet werden. Beim Ersetzen bleibt die gleiche Medien-Referenz bestehen – alle verknüpften Beiträge und Seiten ziehen also automatisch das neue Bild.',
+            'help_text' => 'Hier sehen Sie ausschließlich die Bilder, die aktuell als Beitragsbild oder Seitenbild verwendet werden. Beim Ersetzen bleibt die gleiche Medien-Referenz bestehen – alle verknüpften Beiträge und Seiten ziehen also automatisch das neue Bild. Für fehlende oder defekte Zuordnungen steht jetzt der Unterpunkt „Medien Check“ bereit.',
             'highlight_path' => $highlightPath,
             'highlight_active' => $highlightActive,
+            'check_url' => $this->buildMediaTabUrl('check', $search, $usageScope),
+        ];
+    }
+
+    /**
+     * Daten für den read-only Medien-Check rund um fehlende oder defekte Featured-Image-Referenzen.
+     */
+    public function getMediaCheckData(): array
+    {
+        $search = $this->sanitizeSearch((string) ($_GET['q'] ?? ''));
+        $usageScope = $this->normalizeFeaturedUsageScope((string) ($_GET['usage_scope'] ?? 'all'));
+        $featuredUsageMap = $this->usageService->buildFeaturedImageMap();
+        $consistencyData = $this->buildFeaturedConsistencyData($search, $usageScope, $featuredUsageMap);
+
+        return [
+            'search' => $search,
+            'usage_scope' => $usageScope,
+            'base_url' => '/admin/media',
+            'stats' => is_array($consistencyData['stats'] ?? null) ? $consistencyData['stats'] : [],
+            'constraints' => [
+                'search_max_length' => self::SEARCH_MAX_LENGTH,
+            ],
+            'usage_scope_options' => $this->buildFeaturedUsageScopeOptions(),
+            'help_text' => 'Hier prüfen Sie Beiträge und Seiten ohne Featured Image oder mit defekter Medienreferenz. Der Bereich bleibt bewusst read-only und führt nur in bestehende Editor- und Replace-Flows.',
+            'featured_url' => $this->buildMediaTabUrl('featured', $search, $usageScope),
             'consistency' => $consistencyData,
         ];
+    }
+
+    /**
+     * @return list<array{value:string,label:string}>
+     */
+    private function buildFeaturedUsageScopeOptions(): array
+    {
+        return [
+            ['value' => 'all', 'label' => 'Beiträge & Seiten'],
+            ['value' => 'posts', 'label' => 'Nur Beiträge'],
+            ['value' => 'pages', 'label' => 'Nur Seiten'],
+        ];
+    }
+
+    private function buildMediaTabUrl(string $tab, string $search = '', string $usageScope = 'all'): string
+    {
+        $params = ['tab' => $this->normalizeTab($tab)];
+        $normalizedSearch = $this->sanitizeSearch($search);
+        $normalizedUsageScope = $this->normalizeFeaturedUsageScope($usageScope);
+
+        if ($normalizedSearch !== '') {
+            $params['q'] = $normalizedSearch;
+        }
+
+        if ($normalizedUsageScope !== 'all') {
+            $params['usage_scope'] = $normalizedUsageScope;
+        }
+
+        return $this->buildAdminUrl($params);
     }
 
     /**
