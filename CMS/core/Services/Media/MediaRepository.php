@@ -387,6 +387,10 @@ final class MediaRepository
                     continue;
                 }
 
+                if (str_starts_with((string) $item, '.')) {
+                    continue;
+                }
+
                 $itemPath = $fullPath . DIRECTORY_SEPARATOR . $item;
                 $relativePath = trim($path . '/' . $item, '/');
                 $keyPath = str_replace('\\', '/', $relativePath);

@@ -2574,8 +2574,9 @@ class MediaModule
         foreach ($files as $file) {
             $fileName = (string)($file['name'] ?? '');
             $filePath = (string)($file['path'] ?? trim(($path !== '' ? $path . '/' : '') . $fileName, '/'));
-            $fileUrl = (string)($file['url'] ?? (UPLOAD_URL . '/' . $filePath));
-            $previewUrl = (string)($file['preview_url'] ?? $fileUrl);
+            $mediaDelivery = MediaDeliveryService::getInstance();
+            $fileUrl = $mediaDelivery->buildDeliveryUrl($filePath, 'attachment');
+            $previewUrl = $mediaDelivery->buildPreviewUrl($filePath);
             $fileType = $this->detectFileType($fileName);
             $usageItems = array_values(array_filter(
                 is_array($usageMap[$filePath] ?? null) ? $usageMap[$filePath] : [],

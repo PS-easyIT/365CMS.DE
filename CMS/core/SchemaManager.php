@@ -31,7 +31,7 @@ if (!class_exists(__NAMESPACE__ . '\\SchemaManager', false)) {
 class SchemaManager
 {
     /** Flag-Datei-Version – erhöhen wenn Schema geändert wird */
-    public const SCHEMA_VERSION = 'v19';
+    public const SCHEMA_VERSION = 'v20';
 
     private Database $db;
     private string $prefix;
@@ -123,6 +123,17 @@ class SchemaManager
                 last_used_at TIMESTAMP NULL DEFAULT NULL,
                 INDEX idx_user (user_id),
                 UNIQUE INDEX idx_cred_id (credential_id(255))
+            ) ENGINE=InnoDB DEFAULT CHARSET={$c}",
+
+            'password_resets' => "CREATE TABLE IF NOT EXISTS {$p}password_resets (
+                id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                email VARCHAR(190) NOT NULL,
+                token CHAR(64) NOT NULL,
+                expires_at DATETIME NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY idx_token (token),
+                INDEX idx_email (email),
+                INDEX idx_expires_at (expires_at)
             ) ENGINE=InnoDB DEFAULT CHARSET={$c}",
 
             'pages' => "CREATE TABLE IF NOT EXISTS {$p}pages (
@@ -899,6 +910,15 @@ class SchemaManager
 
     private function ensureRuntimeSchema(): void
     {
+        $passwordResetSql = self::getSchemaQueries($this->prefix, $this->charset)['password_resets'] ?? '';
+        if ($passwordResetSql !== '') {
+            try {
+                $this->db->getPdo()->exec($passwordResetSql);
+            } catch (\Throwable $e) {
+                error_log('SchemaManager::ensureRuntimeSchema() password_resets failed: ' . $this->sanitizeDiagnosticText($e->getMessage()));
+            }
+        }
+
         $siteTablesSql = self::getSchemaQueries($this->prefix, $this->charset)['site_tables'] ?? '';
         if ($siteTablesSql !== '') {
             try {

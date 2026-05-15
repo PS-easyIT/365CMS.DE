@@ -241,6 +241,17 @@ $passwordPolicyHint = 'Mindestens 12 Zeichen sowie Groß-/Kleinbuchstabe, Zahl u
             font-size: 0.95rem;
             font-weight: 600;
         }
+        .cms-auth-label-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            margin-bottom: 0.45rem;
+            font-size: 0.95rem;
+        }
+        .cms-auth-label-row label {
+            margin-bottom: 0;
+        }
         .cms-auth-link-inline,
         .cms-auth-footer a {
             color: var(--cms-auth-link);
@@ -409,10 +420,12 @@ $passwordPolicyHint = 'Mindestens 12 Zeichen sowie Groß-/Kleinbuchstabe, Zahl u
                     </div>
 
                     <div class="cms-auth-field">
-                        <label for="cms-login-password">
+                        <div class="cms-auth-label-row">
+                            <label for="cms-login-password">
                             <span><?php echo htmlspecialchars($loginPasswordLabel, ENT_QUOTES, 'UTF-8'); ?></span>
+                            </label>
                             <a class="cms-auth-link-inline" href="<?php echo htmlspecialchars($forgotUrl, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($loginForgotLinkText, ENT_QUOTES, 'UTF-8'); ?></a>
-                        </label>
+                        </div>
                         <input class="cms-auth-input" type="password" id="cms-login-password" name="password" autocomplete="current-password" required placeholder="<?php echo htmlspecialchars($loginPasswordPlaceholder, ENT_QUOTES, 'UTF-8'); ?>">
                     </div>
 

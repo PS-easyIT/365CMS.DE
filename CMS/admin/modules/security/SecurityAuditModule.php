@@ -212,19 +212,23 @@ class SecurityAuditModule
                     : 'Trusted Types sind nicht konfiguriert.')
         );
 
+        $hstsRuntimeOk = !empty($headerProfile['hsts_enabled']) && !empty($headerProfile['hsts_include_subdomains']) && !empty($headerProfile['hsts_preload']);
+        $hstsFallbackOk = !empty($htaccessStatus['hsts_include_subdomains']) && !empty($htaccessStatus['hsts_preload']) && !empty($htaccessStatus['proxy_https_detection']);
         $hstsStatus = !$isHttps
             ? 'warning'
-            : (!empty($headerProfile['hsts_enabled']) && !empty($headerProfile['hsts_include_subdomains']) && !empty($headerProfile['hsts_preload']) ? 'ok' : 'critical');
+            : (($hstsRuntimeOk || $hstsFallbackOk) ? 'ok' : 'critical');
         $checks[] = $this->buildCheck(
             'Strict-Transport-Security (HSTS)',
             $hstsStatus,
             !$isHttps
                 ? 'HSTS kann erst bei aktivem HTTPS vollständig bewertet werden.'
-                : (!empty($headerProfile['hsts_enabled'])
+                : ($hstsRuntimeOk
                     ? 'HSTS aktiv mit includeSubDomains und preload.'
+                    : ($hstsFallbackOk
+                        ? 'HSTS wird über den Apache-/Proxy-Fallback mit includeSubDomains und preload gesetzt.'
                     : ($debugOn
                         ? 'HSTS ist im Debug-Modus absichtlich nicht erzwungen.'
-                        : 'HSTS ist für HTTPS-Anfragen nicht vollständig aktiv.'))
+                        : 'HSTS ist für HTTPS-Anfragen nicht vollständig aktiv.')))
         );
 
         $fallbackStatus = !$htaccessStatus['exists']

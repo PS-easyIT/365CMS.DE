@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "3.0.1",
+  "version": "3.0.2",
   "min_php": "8.4",
   "released": "2026-05-15",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 3.0.1: Öffentliche HTML-Antworten mit aktiver Auth-/MFA-/Device-Session werden jetzt konsequent als private no-store ausgeliefert und nutzen keine öffentlichen 304-Validatoren. Dadurch kann personalisiertes Header-/Member-Menü-HTML nicht mehr in Public-/LiteSpeed-/Proxy-Caches landen und anonymen Besuchern angezeigt werden. Die historische 2.x-Changelog-Historie liegt in Changelog_old.md, die neue Changelog.md startet bei 3.0.0.",
+  "notes": "Release-Stand 3.0.2: Admin-Audit-Funde behoben. Das Runtime-Schema legt password_resets zuverlässig an, Medienlinks im Admin verwenden den kontrollierten /media-file-Endpunkt, versteckte Punkt-Dateien werden in der Medienbibliothek ausgeblendet, das HSTS-Audit berücksichtigt den Apache-/Proxy-Fallback und die CMS-Loginpage trennt Passwort-Label und Passwort-vergessen-Link barriereärmer.",
   "critical": false
 }

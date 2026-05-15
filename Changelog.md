@@ -1,4 +1,4 @@
-﻿﻿**Version:** 3.0.1
+﻿﻿**Version:** 3.0.2
 
 # 365CMS Changelog
 
@@ -19,6 +19,12 @@
 ## 📜 Aktuelle Versionshistorie ab 3.0.0
 
 > Die vollständige historische 2.x-Historie wurde in [`Changelog_old.md`](Changelog_old.md) archiviert.
+
+### v3.0.2 — 15. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.0.2** | 🔴 fix | Admin-Audit / Auth, Media & Security | **`CMS/core/SchemaManager.php`, `CMS/core/Services/MediaDeliveryService.php`, `CMS/core/Services/Media/MediaRepository.php`, `CMS/admin/modules/media/MediaModule.php`, `CMS/admin/modules/security/SecurityAuditModule.php`, `CMS/views/auth/cms-auth.php`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md` und `Changelog.md` beheben die im Live-Admin-Audit gefundenen Core-Fehler.** Das Runtime-Schema erstellt die für Passwort-Resets benötigte Tabelle `password_resets` auch auf bestehenden Installationen, Admin-Medienlinks zeigen Originaldateien über den kontrollierten `/media-file`-Endpunkt statt potenziell blockierter Direkt-Upload-URLs, versteckte Punkt-Dateien wie `.htaccess` erscheinen nicht mehr als normale Medien, das HSTS-Audit bewertet vorhandene Apache-/Proxy-Fallback-Header korrekt und die CMS-Loginpage trennt Passwort-Label und Passwort-vergessen-Link für Screenreader sauberer. |
 
 ### v3.0.1 — 15. Mai 2026
 
