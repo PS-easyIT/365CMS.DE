@@ -553,7 +553,73 @@ class Bootstrap
 
         // Frontend: CookieConsent im Theme-Footer ausgeben
         if ($this->mode === 'web') {
-            $shouldLoadPhotoSwipe = static function (): bool {
+            $resolveCurrentHubPage = static function (): ?array {
+                $page = $GLOBALS['page'] ?? null;
+
+                if (is_object($page)) {
+                    $page = (array) $page;
+                }
+
+                return is_array($page) ? $page : null;
+            };
+
+            $isHubPagePayload = static function (?array $page): bool {
+                if (!is_array($page)) {
+                    return false;
+                }
+
+                $contentType = strtolower(trim((string) ($page['content_type'] ?? '')));
+                if ($contentType === 'hub') {
+                    return true;
+                }
+
+                $content = (string) ($page['content'] ?? '');
+
+                return $content !== '' && str_contains($content, 'cms-hub-site');
+            };
+
+            $isCurrentHubFrontendRequest = static function () use ($resolveCurrentHubPage, $isHubPagePayload): bool {
+                $requestUri = (string) (strtok($_SERVER['REQUEST_URI'] ?? '/', '?') ?: '/');
+                $path = $requestUri;
+
+                try {
+                    $context = Services\ContentLocalizationService::getInstance()->resolveRequestContext($requestUri);
+                    $baseUri = (string) ($context['base_uri'] ?? $requestUri);
+                    if ($baseUri !== '') {
+                        $path = $baseUri;
+                    }
+                } catch (\Throwable) {
+                }
+
+                if (
+                    in_array($path, ['/blog', '/search', '/404', '/error', '/login', '/register', '/cms-login', '/cms-register', '/cms-password-forgot'], true)
+                    || str_starts_with($path, '/member')
+                    || str_starts_with($path, '/dashboard')
+                    || \cms_is_archive_request_path($path, 'category')
+                    || \cms_is_archive_request_path($path, 'tag')
+                    || str_starts_with($path, '/author/')
+                    || $path === '/authors'
+                    || $path === '/autoren'
+                ) {
+                    return false;
+                }
+
+                if ($isHubPagePayload($resolveCurrentHubPage())) {
+                    return true;
+                }
+
+                if ($path === '/' || $path === '') {
+                    return false;
+                }
+
+                try {
+                    return SiteTableHubRenderer::isHubRequestUri($requestUri);
+                } catch (\Throwable) {
+                    return false;
+                }
+            };
+
+            $shouldLoadPhotoSwipe = static function () use ($isCurrentHubFrontendRequest): bool {
                 try {
                     $enabled = Services\ThemeCustomizer::instance()->get('performance', 'enable_photoswipe', true);
                     if (!filter_var($enabled, FILTER_VALIDATE_BOOLEAN)) {
@@ -574,7 +640,7 @@ class Bootstrap
                 } catch (\Throwable) {
                 }
 
-                if (SiteTableHubRenderer::isHubRequestUri($requestUri)) {
+                if ($isCurrentHubFrontendRequest()) {
                     return true;
                 }
 
@@ -594,16 +660,6 @@ class Bootstrap
                 }
 
                 if ($path === '/') {
-                    try {
-                        $host = strtolower(trim((string) ($_SERVER['HTTP_HOST'] ?? ''), '.'));
-                        if ($host !== '') {
-                            $siteTableService = Services\SiteTableService::getInstance();
-                            return $siteTableService->getHubPageByDomain($host, 'de') !== null
-                                || $siteTableService->getHubPageByDomain($host, 'en') !== null;
-                        }
-                    } catch (\Throwable) {
-                    }
-
                     return false;
                 }
 
@@ -649,10 +705,10 @@ class Bootstrap
                 echo '<noscript><link rel="stylesheet" href="' . $href . '"></noscript>' . "\n";
             }, 30);
 
-            Hooks::addAction('head', static function (): void {
+            Hooks::addAction('head', static function () use ($isCurrentHubFrontendRequest): void {
                 static $hubStylesRendered = false;
 
-                if ($hubStylesRendered) {
+                if ($hubStylesRendered || !$isCurrentHubFrontendRequest()) {
                     return;
                 }
 
