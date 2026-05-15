@@ -39,6 +39,11 @@ class FontManagerModule
     private const MANAGED_FONT_FILE_EXTENSIONS = ['woff', 'woff2', 'ttf', 'otf'];
     private const TEMP_FONT_FILE_PREFIX = 'cmsfont_';
     private const LOCAL_FONT_ALLOWED_SUBSETS = ['latin', 'latin-ext'];
+    private const FONT_SLUG_ALIASES = [
+        'exo 2' => 'exo2',
+        'source code pro' => 'source-code',
+        'source sans 3' => 'source-sans',
+    ];
 
     private const SYSTEM_FONTS = [
         'system-ui'       => 'System UI (Standard)',
@@ -1954,6 +1959,11 @@ class FontManagerModule
 
     private function normalizeFontSlug(string $fontFamily): string
     {
+        $lookupKey = $this->normalizeFontLookupKey($fontFamily);
+        if (isset(self::FONT_SLUG_ALIASES[$lookupKey])) {
+            return self::FONT_SLUG_ALIASES[$lookupKey];
+        }
+
         $slug = strtolower(preg_replace('/[^a-z0-9]+/', '-', strtolower($fontFamily)) ?? '');
         $slug = trim($slug, '-');
 
