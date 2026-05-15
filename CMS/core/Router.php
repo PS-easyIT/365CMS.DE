@@ -516,6 +516,11 @@ class Router
             return;
         }
 
+        if ($this->requestHasPersonalizedAuthState()) {
+            $cache->sendResponseHeaders('private');
+            return;
+        }
+
         foreach (['/admin', '/member', '/api'] as $prefix) {
             if ($routingUri === $prefix || str_starts_with($routingUri, $prefix . '/')) {
                 $cache->sendResponseHeaders('private');
@@ -535,6 +540,28 @@ class Router
         }
 
         $cache->sendResponseHeaders('public', $publicHtmlTtl);
+    }
+
+    private function requestHasPersonalizedAuthState(): bool
+    {
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            if ((int)($_SESSION['user_id'] ?? 0) > 0) {
+                return true;
+            }
+
+            if ((int)($_SESSION['mfa_pending_user_id'] ?? 0) > 0) {
+                return true;
+            }
+        }
+
+        try {
+            if (Auth::instance()->isLoggedIn()) {
+                return true;
+            }
+        } catch (\Throwable) {
+        }
+
+        return trim((string)($_COOKIE['cms_device'] ?? '')) !== '';
     }
 
     private function resolvePublicHtmlCacheTtl(): int
@@ -581,6 +608,10 @@ class Router
     private function sendConditionalPublicPageHeaders(string $type, array $resource, string $locale): bool
     {
         if (!in_array($this->requestMethod, ['GET', 'HEAD'], true)) {
+            return true;
+        }
+
+        if ($this->requestHasPersonalizedAuthState()) {
             return true;
         }
 

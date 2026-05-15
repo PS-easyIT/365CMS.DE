@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Dokumentiert das Performance-Center mit seinen sechs Unterseiten für Cache, Medien, Datenbank, Settings und Sessions.
 
-Letzte Aktualisierung: 2026-05-11 · Version 2.9.756
+Letzte Aktualisierung: 2026-05-15 · Version 3.0.1
 
 ---
 
@@ -54,6 +54,7 @@ Die globalen Cache-Schalter wirken auf die Runtime-Header:
 - Ist der HTML-/Seiten-Cache deaktiviert, sendet der öffentliche Router `public, no-cache, must-revalidate, max-age=0` statt weiterhin eine kurze positive TTL zu setzen.
 - Ist Browser-Caching für Medien deaktiviert, verwendet die Medienauslieferung denselben Revalidierungsmodus statt fünf Minuten Public-Cache und liefert weiterhin `ETag`/`Last-Modified`, damit Browser nach HTTP-Best-Practice validieren statt blind erneut übertragen.
 - Admin-, Member-, API- und Auth-Flows bleiben privat bzw. `no-store`.
+- Öffentliche GET-/HEAD-Antworten mit aktiver Auth-, MFA- oder Device-Session werden ebenfalls privat (`no-store`) ausgeliefert und überspringen öffentliche 304-Validatoren, damit personalisiertes Header-/Member-Menü-HTML nicht in Public-/LiteSpeed-/Proxy-Caches landet.
 - Bei Seiten- und Beitragsänderungen leert der Schalter „Cache bei Inhaltsänderungen automatisch leeren“ den CMS-Datei-/APCu-Cache, ohne OPcache oder Server-Caches unnötig zurückzusetzen.
 - Die globale Einstellungsseite speichert nur ihre eigenen Felder; Medien-spezifische WebP-/EXIF-Schalter werden nicht mehr versehentlich beim Speichern der globalen Seite überschrieben.
 

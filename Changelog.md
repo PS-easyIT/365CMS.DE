@@ -1,4 +1,4 @@
-﻿﻿**Version:** 3.0.0
+﻿﻿**Version:** 3.0.1
 
 # 365CMS Changelog
 
@@ -19,6 +19,12 @@
 ## 📜 Aktuelle Versionshistorie ab 3.0.0
 
 > Die vollständige historische 2.x-Historie wurde in [`Changelog_old.md`](Changelog_old.md) archiviert.
+
+### v3.0.1 — 15. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.0.1** | 🔴 fix | Public HTML Cache / Auth-Header | **`CMS/core/Router.php`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `CMS/DOC/admin/performance/PERFORMANCE.md` und `Changelog.md` verhindern das Ausliefern gecachter Member-Header an anonyme Besucher.** Öffentliche GET-/HEAD-Responses werden jetzt auf echte Auth-, MFA- oder Device-Session-Signale geprüft. Sobald personalisierte Auth-State-Daten vorhanden sind, sendet der Router private `no-store`-Header und überspringt öffentliche 304-Validatoren. Dadurch können öffentliche Seiten weiterhin gecacht werden, aber angemeldete Varianten mit Member-Bar, Dashboard-Link oder Benachrichtigungsbadge landen nicht mehr in Public-/LiteSpeed-/Proxy-Caches. |
 
 ### v3.0.0 — 14. Mai 2026
 

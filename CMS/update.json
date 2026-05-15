@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "min_php": "8.4",
-  "released": "2026-05-14",
+  "released": "2026-05-15",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 3.0.0: Der 365CMS-Core schließt den finalen Core-only Auditlauf inklusive zweitem und drittem Durchlauf ab. Low-Level-Datenbank-, Audit-, Debug-, Fatal-, Installer-, Security-, Cache- und Schema-Logs redigieren Diagnosewerte konsequenter, DB-Verbindungsfehler geben nach außen keine sensiblen Details mehr preis, Admin-Fehlerreport-Kontexte werden vor Anzeige und Weitergabe redigiert, Runtime-Schema-Upgrades validieren interne Tabellen-/Spalten-/Definitionen strenger, Plugin-ZIP-Uploads laufen über geprüftes Staging und der HTTP-Client begrenzt Remote-Antworten mit zusätzlichem SSRF-/Rebinding-Schutz. Admin-Section-Views wie der Theme-Editor fangen Runtime-Fehler inline ab und vermeiden Header-Warnings nach bereits gestarteter Ausgabe. Die historische 2.x-Changelog-Historie liegt in Changelog_old.md, die neue Changelog.md startet bei 3.0.0.",
+  "notes": "Release-Stand 3.0.1: Öffentliche HTML-Antworten mit aktiver Auth-/MFA-/Device-Session werden jetzt konsequent als private no-store ausgeliefert und nutzen keine öffentlichen 304-Validatoren. Dadurch kann personalisiertes Header-/Member-Menü-HTML nicht mehr in Public-/LiteSpeed-/Proxy-Caches landen und anonymen Besuchern angezeigt werden. Die historische 2.x-Changelog-Historie liegt in Changelog_old.md, die neue Changelog.md startet bei 3.0.0.",
   "critical": false
 }
