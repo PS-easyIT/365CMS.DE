@@ -128,7 +128,7 @@ if (!array_key_exists($browserCacheTtl, $browserCacheTtlOptions)) {
                                 <label class="form-label">Bildauslieferung Cache-TTL</label>
                                 <select class="form-select" name="perf_browser_cache_ttl">
                                     <?php foreach ($browserCacheTtlOptions as $ttlValue => $ttlLabel): ?>
-                                        <option value="<?php echo htmlspecialchars($ttlValue, ENT_QUOTES); ?>" <?php echo $browserCacheTtl === $ttlValue ? 'selected' : ''; ?>><?php echo htmlspecialchars($ttlLabel, ENT_QUOTES); ?></option>
+                                        <option value="<?php echo htmlspecialchars((string) $ttlValue, ENT_QUOTES); ?>" <?php echo $browserCacheTtl === (string) $ttlValue ? 'selected' : ''; ?>><?php echo htmlspecialchars((string) $ttlLabel, ENT_QUOTES); ?></option>
                                     <?php endforeach; ?>
                                 </select>
                                 <div class="form-text">Steuert die Browser-Cache-Dauer für öffentlich ausgelieferte Medien über <code>/media-file</code> und direkte <code>/uploads</code>-Bilder per Upload-<code>.htaccess</code>. Standard sind 7 Tage.</div>

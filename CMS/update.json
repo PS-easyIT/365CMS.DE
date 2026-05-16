@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "3.0.10",
+  "version": "3.0.11",
   "min_php": "8.4",
   "released": "2026-05-16",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 3.0.10: Medien-Uploads landen standardmäßig im aktuell geöffneten Ordner; optional kann die Medienverwaltung darunter automatisch Jahr/Monat/Tag-Ordner anlegen.",
+  "notes": "Release-Stand 3.0.11: Performance-Adminseiten casten Medien-Cache-TTL-Werte robust und Page-Schema-Kompatibilitätsprüfungen schließen SHOW-COLUMNS-Cursor vor ALTER-Queries.",
   "critical": false
 }

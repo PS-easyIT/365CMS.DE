@@ -1,4 +1,4 @@
-﻿﻿**Version:** 3.0.10
+﻿﻿**Version:** 3.0.11
 
 # 365CMS Changelog
 
@@ -19,6 +19,12 @@
 ## 📜 Aktuelle Versionshistorie ab 3.0.0
 
 > Die vollständige historische 2.x-Historie wurde in [`Changelog_old.md`](Changelog_old.md) archiviert.
+
+### v3.0.11 — 16. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.0.11** | 🔴 fix | Admin/Performance & Page-Schema | **`CMS/admin/views/performance/settings.php`, `CMS/admin/views/performance/media.php`, `CMS/core/PageManager.php`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md` und `Changelog.md` stabilisieren Performance-Adminseiten und Schema-Kompatibilitätsprüfungen.** Medien-Cache-TTL-Optionen werden vor `htmlspecialchars()` und beim Selected-Vergleich explizit als String behandelt, damit numerische PHP-Array-Keys keinen TypeError auslösen. Page-Schema-Prüfungen schließen `SHOW COLUMNS`-Cursor nun vor anschließenden `ALTER TABLE`-Queries und vermeiden dadurch unbuffered-query-Konflikte. |
 
 ### v3.0.10 — 16. Mai 2026
 
