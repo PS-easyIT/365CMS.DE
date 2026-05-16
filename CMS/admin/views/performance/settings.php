@@ -131,7 +131,7 @@ if (!array_key_exists($browserCacheTtl, $browserCacheTtlOptions)) {
                                         <option value="<?php echo htmlspecialchars($ttlValue, ENT_QUOTES); ?>" <?php echo $browserCacheTtl === $ttlValue ? 'selected' : ''; ?>><?php echo htmlspecialchars($ttlLabel, ENT_QUOTES); ?></option>
                                     <?php endforeach; ?>
                                 </select>
-                                <div class="form-text">Steuert die Browser-Cache-Dauer für öffentlich ausgelieferte Medien über <code>/media-file</code>. Standard sind 7 Tage.</div>
+                                <div class="form-text">Steuert die Browser-Cache-Dauer für öffentlich ausgelieferte Medien über <code>/media-file</code> und direkte <code>/uploads</code>-Bilder per Upload-<code>.htaccess</code>. Standard sind 7 Tage.</div>
                             </div>
                             <div class="mb-0">
                                 <label class="form-label">HTML-/Seiten-Cache TTL (Sekunden)</label>

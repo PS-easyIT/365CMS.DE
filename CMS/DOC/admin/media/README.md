@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Überblick über Medienbibliothek, Upload-Workflows, Schutzbereiche, Admin-Tabs und verknüpfte Member-/Asset-Dokumentation.
 
-Letzte Aktualisierung: 2026-05-16 · Version 3.0.6
+Letzte Aktualisierung: 2026-05-16 · Version 3.0.10
 
 Die Medienverwaltung ist unter `/admin/media` erreichbar und bündelt Bibliothek, Beitrags-/Site-Medien, Medien-Check, Kategorien und Einstellungen über Query-Tabs statt über getrennte Legacy-Routen.
 
@@ -34,7 +34,7 @@ Die Medienverwaltung ist unter `/admin/media` erreichbar und bündelt Bibliothek
 - verwaltete Upload-Pipeline für Bibliothek und Member-Bereich mit Maximalmaßen, optionalen Thumbnails und Auto-WebP
 - gemeinsamer Featured-Image-Picker für Beiträge und Seiten mit fail-soft Verschiebung temporärer Uploads beim Speichern
 - hashbasierte Wiederverwendung identischer permanenter Beitrags-/Seitenbilder im Featured-Image-Upload, damit gleiche Titelbilder nicht mehrfach physisch abgelegt werden
-- Rücksprung in den **tatsächlich verwendeten** Zielordner, wenn Uploads automatisch in Jahres-/Monats-Unterordner einsortiert werden
+- Rücksprung in den **tatsächlich verwendeten** Zielordner: standardmäßig der aktuell geöffnete Ordner, optional der automatisch angelegte `YYYY/MM/DD`-Unterordner
 - strengere Dateinamens-Härtung mit Längenlimit und ohne irreführende Mehrfach-Punkte im Basenamen
 - read-only Duplikat-Erkennung in der Bibliothek: sichtbare gleich große Dateien werden per SHA-256-Inhalts-Hash verglichen und als identische Gruppen markiert
 - erweiterte Bibliotheksfilter nach Dateityp, Endung, Größenklasse und Änderungszeitraum; ungültige GET-Werte werden allowlist-basiert auf sichere Defaults normalisiert
@@ -72,7 +72,7 @@ Uploads laufen über native Formulare und interne APIs. Die konkrete Laufzeit-Va
 Für die Medienbibliothek und den Member-Bereich gilt jetzt ein gemeinsamer verwalteter Upload-Vertrag:
 
 - Uploads über `/admin/media` und `/api/upload` respektieren die Einstellungen aus `config/media-settings.json` direkt in der Laufzeit
-- `organize_month_year` hängt bei Bibliotheks-/Member-Uploads automatisch `YYYY/MM` an den gewählten Zielpfad an
+- `organize_month_year` ist standardmäßig aus und speichert Bibliotheks-/Member-Uploads im aktuell geöffneten Ordner; aktiv legt es darunter automatisch `YYYY/MM/DD` an
 - `sanitize_filenames`, `lowercase_filenames` und `unique_filenames` steuern den gespeicherten Dateinamen und das Verhalten bei Kollisionen
 - gespeicherte Dateinamen werden zusätzlich auf eine sichere Maximal­länge begrenzt; mehrdeutige Basenamen wie `bild.php.jpg` werden serverseitig auf einen eindeutigen, ungefährlichen Speichername reduziert
 - `max_width` und `max_height` skalieren zu große Bilder nach dem Speichern auf die konfigurierte Obergrenze herunter
@@ -135,7 +135,7 @@ Typische Stellschrauben:
 - Dateinamen-Sanitisierung / Eindeutigkeit
 - Auto-WebP / EXIF-Strip
 - Thumbnail-Generierung
-- automatische Ordnerorganisation nach Jahr/Monat
+- automatische Ordnerorganisation nach Jahr/Monat/Tag oder direkter Upload in den aktuellen Ordner
 
 ---
 
@@ -186,7 +186,7 @@ Seit `2.9.727` ist die Verwendungsanzeige nicht mehr nur ein Filterkriterium: Je
 
 Seit `2.9.728` werden diese Bearbeitungslinks zusätzlich direkt im Renderpfad auf interne `/admin/posts?action=edit&id=...`- und `/admin/pages?action=edit&id=...`-Ziele normalisiert. Unerwartete oder beschädigte Zielwerte werden als reine Textreferenz angezeigt.
 
-Bei erfolgreich hochgeladenen Dateien bleibt die Oberfläche nicht mehr am alten Pfad hängen, sondern aktualisiert auf den effektiven Zielordner. Das ist besonders relevant, wenn `organize_month_year` aktiv ist.
+Bei erfolgreich hochgeladenen Dateien bleibt die Oberfläche nicht mehr am alten Pfad hängen, sondern aktualisiert auf den effektiven Zielordner. Ohne Datumsorganisation ist das der aktuell geöffnete Ordner; mit aktivem `organize_month_year` ist es der automatisch verwendete `YYYY/MM/DD`-Unterordner.
 
 ---
 

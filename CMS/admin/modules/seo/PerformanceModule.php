@@ -84,6 +84,8 @@ final class PerformanceModule
         'save_media_settings' => [
             'perf_lazy_loading',
             'perf_lazy_loading_eager_images',
+            'perf_browser_cache',
+            'perf_browser_cache_ttl',
             'perf_webp_uploads',
             'perf_strip_exif',
         ],
@@ -1880,6 +1882,13 @@ final class PerformanceModule
                 $mediaResult = $mediaService->saveSettings($mediaSettings);
                 if ($mediaResult instanceof \CMS\WP_Error) {
                     throw new \RuntimeException($mediaResult->get_error_message());
+                }
+            }
+
+            if (array_key_exists('perf_browser_cache', $settingsToSave) || array_key_exists('perf_browser_cache_ttl', $settingsToSave)) {
+                $policyResult = MediaService::getInstance()->syncUploadDirectoryPolicy();
+                if ($policyResult instanceof \CMS\WP_Error) {
+                    throw new \RuntimeException($policyResult->get_error_message());
                 }
             }
         } catch (\Throwable $e) {

@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Verwaltung hochgeladener Dateien und Ordner, Kategorien, Medieneinstellungen und kontrollierter Auslieferung über interne Services.
 
-Letzte Aktualisierung: 2026-05-16 · Version 3.0.6
+Letzte Aktualisierung: 2026-05-16 · Version 3.0.10
 
 ---
 
@@ -126,7 +126,7 @@ Die Medien-Einstellungen unter `/admin/media?tab=settings` wirken für Bibliothe
 |---|---|
 | `max_upload_size` / `member_max_upload_size` | Byte-Limit für Admin- bzw. Member-Uploads |
 | `allowed_types` / `member_allowed_types` | Extension-/Typgruppen-Allowlist |
-| `organize_month_year` | hängt `YYYY/MM` an den Zielpfad von Bibliotheks-/Member-Uploads an |
+| `organize_month_year` | Standard `false`: Uploads landen im aktuell geöffneten Ordner; bei `true` legt der verwaltete Upload darunter automatisch `YYYY/MM/DD` an |
 | `sanitize_filenames` | bereinigt Dateinamen auf den serverseitig erlaubten Zeichensatz |
 | zusätzliche Dateinamens-Härtung | begrenzt die Speicherlänge und entfernt mehrdeutige Zusatzpunkte im Basenamen |
 | `lowercase_filenames` | speichert Dateinamen optional vollständig in Kleinschreibung |
@@ -176,7 +176,7 @@ Absicherungen und UX-Details:
 
 ## UI-Vertrag nach erfolgreichem Upload
 
-Sowohl das Admin-Upload-Modal als auch der Member-Uploader aktualisieren nach erfolgreichen Uploads nun den tatsächlich verwendeten Zielordner. Dadurch bleiben automatisch angelegte Jahres-/Monats-Unterordner nicht mehr „unsichtbar“, sondern der View springt direkt dorthin zurück.
+Sowohl das Admin-Upload-Modal als auch der Member-Uploader aktualisieren nach erfolgreichen Uploads nun den tatsächlich verwendeten Zielordner. Standardmäßig ist das der aktuell geöffnete Ordner; bei aktivierter Datumsorganisation springt der View direkt in den automatisch verwendeten `YYYY/MM/DD`-Unterordner zurück.
 
 Zusätzlich benennt die Bulk-Schaltfläche in der Bibliothek die ausgewählte Aktion jetzt explizit und bleibt gesperrt, bis Auswahl **und** gültige Aktion zusammenpassen.
 

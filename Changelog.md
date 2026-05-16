@@ -1,4 +1,4 @@
-﻿﻿**Version:** 3.0.7
+﻿﻿**Version:** 3.0.10
 
 # 365CMS Changelog
 
@@ -19,6 +19,24 @@
 ## 📜 Aktuelle Versionshistorie ab 3.0.0
 
 > Die vollständige historische 2.x-Historie wurde in [`Changelog_old.md`](Changelog_old.md) archiviert.
+
+### v3.0.10 — 16. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.0.10** | 🟢 feat | Admin/Medien Uploadpfad | **`CMS/core/Services/MediaService.php`, `CMS/core/Services/Media/UploadHandler.php`, `CMS/admin/modules/media/MediaModule.php`, `CMS/admin/views/media/settings.php`, `CMS/DOC/admin/media/MEDIA.md`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md` und `Changelog.md` machen den Medien-Upload-Zielmodus explizit steuerbar.** Standardmäßig werden Uploads jetzt in den aktuell geöffneten Medienordner geschrieben. Wird die Option „Datumsordner Jahr/Monat/Tag anlegen“ aktiviert, erzeugt der verwaltete Uploadpfad darunter automatisch `YYYY/MM/DD` und verhindert eine doppelte Datumsverschachtelung, wenn man bereits in einem Datumsordner steht. |
+
+### v3.0.9 — 16. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.0.9** | 🔴 fix | Medien / Cache & WebP | **`CMS/core/Services/MediaService.php`, `CMS/admin/modules/seo/PerformanceModule.php`, `CMS/admin/views/performance/settings.php`, `CMS/admin/views/performance/media.php`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md` und `Changelog.md` stellen WebP-Begleitdateien und sichtbare Medien-Cache-TTL wieder her.** Originalerhaltende Uploads verändern die hochgeladene Datei weiterhin nicht, erzeugen bei aktivierter WebP-Option aber wieder kleinere `.webp`-Begleitdateien. Die Medien-Optimierung zeigt die Browser-Cache-TTL jetzt direkt an und synchronisiert die Performance-TTL zusätzlich in die Upload-`.htaccess`, damit PHINITs direkte `/uploads`-Bilder dieselbe Cache-Policy wie `/media-file` erhalten. |
+
+### v3.0.8 — 16. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.0.8** | 🔴 fix | Medien / Originaldateien | **`CMS/core/Services/MediaService.php`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md` und `Changelog.md` bewahren Medienbibliothek-, Editor- und Beitragsbild-Uploads als echte Originaldateien.** Originalerhaltende Bild-Uploads und Replace-in-place überspringen jetzt das verlustbehaftete Re-Encoding, Maximalmaß-Resize sowie automatische WebP-/Thumbnail-Erzeugung, damit die gespeicherte Upload-Datei nicht größer oder anders codiert wird als die hochgeladene Datei und keine zusätzlichen Derivate entstehen. |
 
 ### v3.0.7 — 16. Mai 2026
 

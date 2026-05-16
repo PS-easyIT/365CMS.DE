@@ -23,6 +23,8 @@ class MediaService {
     private const DERIVATIVE_PROCESSING_IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
     private const GENERATED_VARIANT_SUFFIXES = ['small', 'medium', 'large', 'banner'];
     private const DUPLICATE_HASH_MAX_BYTES = 268435456;
+    private const DEFAULT_PUBLIC_UPLOAD_CACHE_TTL = 604800;
+    private const PUBLIC_UPLOAD_CACHE_TTL_OPTIONS = [259200, 604800, 2678400];
 
     private static array $instances = [];
     private const ATOMIC_FILE_MODE = 0640;
@@ -141,7 +143,7 @@ class MediaService {
             'jpeg_quality' => 85,
             'max_width' => 2560,
             'max_height' => 2560,
-            'organize_month_year' => true,
+            'organize_month_year' => false,
             'sanitize_filenames' => true,
             'unique_filenames' => true,
             'lowercase_filenames' => false,
@@ -809,6 +811,13 @@ class MediaService {
         $this->saveMeta($meta);
     }
 
+    public function syncUploadDirectoryPolicy(): bool|WP_Error
+    {
+        $settings = $this->getSettings();
+
+        return $this->syncUploadsProtection((bool) ($settings['protect_uploads_dir'] ?? false));
+    }
+
     private function syncUploadsProtection(bool $enabled): bool|WP_Error {
         $htaccessPath = $this->uploadPath . DIRECTORY_SEPARATOR . '.htaccess';
 
@@ -820,6 +829,15 @@ class MediaService {
             return true;
         }
 
+        $cachePolicy = $this->resolvePublicUploadCachePolicy();
+        $cacheTtl = (int) ($cachePolicy['ttl'] ?? self::DEFAULT_PUBLIC_UPLOAD_CACHE_TTL);
+        $cacheHeader = !empty($cachePolicy['enabled'])
+            ? 'public, max-age=' . $cacheTtl . ', s-maxage=' . $cacheTtl . ', stale-while-revalidate=60, stale-if-error=300'
+            : 'public, no-cache, must-revalidate, max-age=0';
+        $expiresRule = !empty($cachePolicy['enabled'])
+            ? 'access plus ' . $cacheTtl . ' seconds'
+            : 'access plus 0 seconds';
+
         $content = "Options -Indexes\n"
             . "<IfModule mod_headers.c>\n"
             . "    Header always set X-Content-Type-Options \"nosniff\"\n"
@@ -829,6 +847,12 @@ class MediaService {
             . "    <IfModule mod_headers.c>\n"
             . "        Header always unset Content-Disposition\n"
             . "        Header always set Content-Disposition \"inline\"\n"
+            . "        Header always set Cache-Control \"" . $cacheHeader . "\"\n"
+            . "        Header always set Vary \"Accept-Encoding\"\n"
+            . "    </IfModule>\n"
+            . "    <IfModule mod_expires.c>\n"
+            . "        ExpiresActive On\n"
+            . "        ExpiresDefault \"" . $expiresRule . "\"\n"
             . "    </IfModule>\n"
             . "</FilesMatch>\n"
             . "<FilesMatch \"\\.(php|php3|php4|php5|phtml|phar|cgi|pl|py|sh)$\">\n"
@@ -840,6 +864,40 @@ class MediaService {
         }
 
         return true;
+    }
+
+    /** @return array{enabled:bool,ttl:int} */
+    private function resolvePublicUploadCachePolicy(): array
+    {
+        $enabled = true;
+        $ttl = self::DEFAULT_PUBLIC_UPLOAD_CACHE_TTL;
+
+        try {
+            $db = \CMS\Database::instance();
+            $rows = $db->get_results(
+                "SELECT option_name, option_value FROM {$db->getPrefix()}settings WHERE option_name IN ('perf_browser_cache', 'perf_browser_cache_ttl')"
+            ) ?: [];
+
+            foreach ($rows as $row) {
+                $name = (string) ($row->option_name ?? '');
+                $value = (string) ($row->option_value ?? '');
+
+                if ($name === 'perf_browser_cache') {
+                    $enabled = $value !== '0';
+                }
+
+                if ($name === 'perf_browser_cache_ttl') {
+                    $configuredTtl = (int) $value;
+                    if (in_array($configuredTtl, self::PUBLIC_UPLOAD_CACHE_TTL_OPTIONS, true)) {
+                        $ttl = $configuredTtl;
+                    }
+                }
+            }
+        } catch (\Throwable) {
+            return ['enabled' => $enabled, 'ttl' => $ttl];
+        }
+
+        return ['enabled' => $enabled, 'ttl' => $ttl];
     }
 
     private function reEncodeImage(string $path, string $ext, int $quality): bool {
@@ -897,7 +955,7 @@ class MediaService {
     /**
      * @param array<string,mixed> $settings
      */
-    private function processManagedImageUpload(string $absolutePath, string $storedName, array $settings): void
+    private function processManagedImageUpload(string $absolutePath, string $storedName, array $settings, bool $preserveOriginalImage = true): void
     {
         $extension = strtolower((string) pathinfo($storedName, PATHINFO_EXTENSION));
         if (!$this->isImageExtension($extension) || !is_file($absolutePath)) {
@@ -906,21 +964,23 @@ class MediaService {
 
         $quality = max(60, min(100, (int) ($settings['jpeg_quality'] ?? 85)));
 
-        $this->repairUploadedBrowserImage($absolutePath, $storedName, $settings);
+        if (!$preserveOriginalImage) {
+            $this->repairUploadedBrowserImage($absolutePath, $storedName, $settings);
 
-        $maxWidth = max(1, (int) ($settings['max_width'] ?? 2560));
-        $maxHeight = max(1, (int) ($settings['max_height'] ?? 2560));
+            $maxWidth = max(1, (int) ($settings['max_width'] ?? 2560));
+            $maxHeight = max(1, (int) ($settings['max_height'] ?? 2560));
 
-        $resizeResult = $this->imageProcessor->resizeToFit($absolutePath, $maxWidth, $maxHeight, $quality);
-        if ($resizeResult instanceof WP_Error) {
-            $this->logger->warning('Originalbild konnte nach dem Upload nicht auf Maximalmaße skaliert werden.', [
-                'path' => $absolutePath,
-                'error_code' => $resizeResult->get_error_code(),
-                'error_message' => $resizeResult->get_error_message(),
-            ]);
+            $resizeResult = $this->imageProcessor->resizeToFit($absolutePath, $maxWidth, $maxHeight, $quality);
+            if ($resizeResult instanceof WP_Error) {
+                $this->logger->warning('Originalbild konnte nach dem Upload nicht auf Maximalmaße skaliert werden.', [
+                    'path' => $absolutePath,
+                    'error_code' => $resizeResult->get_error_code(),
+                    'error_message' => $resizeResult->get_error_message(),
+                ]);
+            }
         }
 
-        if (!empty($settings['generate_thumbnails'])) {
+        if (!$preserveOriginalImage && !empty($settings['generate_thumbnails'])) {
             $thumbnailResult = $this->imageProcessor->generateThumbnails($absolutePath, $this->buildThumbnailSizes($settings), $quality);
             if ($thumbnailResult instanceof WP_Error) {
                 $this->logger->warning('Bild-Thumbnails konnten nach dem Upload nicht erzeugt werden.', [
@@ -932,14 +992,58 @@ class MediaService {
         }
 
         if (!empty($settings['auto_webp'])) {
-            $webpResult = $this->imageProcessor->convertToWebP($absolutePath, $quality);
-            if ($webpResult instanceof WP_Error) {
-                $this->logger->warning('WebP-Konvertierung nach Upload fehlgeschlagen.', [
-                    'path' => $absolutePath,
-                    'error_code' => $webpResult->get_error_code(),
-                    'error_message' => $webpResult->get_error_message(),
-                ]);
+            $this->generateUploadWebpDerivative($absolutePath, $quality);
+        }
+    }
+
+    private function generateUploadWebpDerivative(string $absolutePath, int $quality): void
+    {
+        if (!is_file($absolutePath) || !is_readable($absolutePath)) {
+            return;
+        }
+
+        $extension = strtolower((string) pathinfo($absolutePath, PATHINFO_EXTENSION));
+        if (!in_array($extension, ['jpg', 'jpeg', 'png', 'gif'], true)) {
+            return;
+        }
+
+        $webpPath = preg_replace('/\.[^.]+$/', '.webp', $absolutePath);
+        if (!is_string($webpPath) || $webpPath === '' || $webpPath === $absolutePath) {
+            return;
+        }
+
+        clearstatcache(true, $absolutePath);
+        $sourceSize = (int) (filesize($absolutePath) ?: 0);
+
+        if (is_file($webpPath)) {
+            clearstatcache(true, $webpPath);
+            $webpTime = (int) (filemtime($webpPath) ?: 0);
+            $sourceTime = (int) (filemtime($absolutePath) ?: 0);
+            if ($webpTime >= $sourceTime) {
+                $existingWebpSize = (int) (filesize($webpPath) ?: 0);
+                if ($sourceSize > 0 && $existingWebpSize > 0 && $existingWebpSize >= $sourceSize) {
+                    @unlink($webpPath);
+                }
+
+                return;
             }
+        }
+
+        $webpResult = $this->imageProcessor->convertToWebP($absolutePath, $quality);
+        if ($webpResult instanceof WP_Error) {
+            $this->logger->warning('WebP-Begleitdatei konnte nach dem Upload nicht erzeugt werden.', [
+                'path' => $absolutePath,
+                'error_code' => $webpResult->get_error_code(),
+                'error_message' => $webpResult->get_error_message(),
+            ]);
+
+            return;
+        }
+
+        clearstatcache(true, $webpPath);
+        $webpSize = is_file($webpPath) ? (int) (filesize($webpPath) ?: 0) : 0;
+        if ($sourceSize > 0 && $webpSize > 0 && $webpSize >= $sourceSize) {
+            @unlink($webpPath);
         }
     }
 
@@ -1257,7 +1361,7 @@ class MediaService {
         $result = $this->uploadHandler->uploadFile(
             $file,
             $targetPath,
-            (bool) ($settings['auto_webp'] ?? false),
+            false,
             $validationSettings
         );
         if ($result instanceof WP_Error) {
@@ -1270,6 +1374,11 @@ class MediaService {
 
         if (!$preserveOriginalImage) {
             $this->repairUploadedBrowserImage($storedAbsolutePath, $storedName, $settings);
+        }
+
+        if (!empty($settings['auto_webp'])) {
+            $quality = max(60, min(100, (int) ($settings['jpeg_quality'] ?? 85)));
+            $this->generateUploadWebpDerivative($storedAbsolutePath, $quality);
         }
 
         return $storedName;
@@ -1298,7 +1407,7 @@ class MediaService {
         }
 
         $storedAbsolutePath = rtrim($this->uploadPath, '/\\') . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $storedRelativePath);
-        $this->processManagedImageUpload($storedAbsolutePath, (string) ($result['name'] ?? basename($storedRelativePath)), $settings);
+        $this->processManagedImageUpload($storedAbsolutePath, (string) ($result['name'] ?? basename($storedRelativePath)), $settings, true);
 
         return $result;
     }
@@ -1365,7 +1474,7 @@ class MediaService {
             }
 
             @chmod($targetAbsolutePath, self::ATOMIC_FILE_MODE);
-            $this->processManagedImageUpload($targetAbsolutePath, basename($normalizedTargetPath), $settings);
+            $this->processManagedImageUpload($targetAbsolutePath, basename($normalizedTargetPath), $settings, true);
             $this->syncReplacedFileMeta($normalizedTargetPath, (string) ($file['name'] ?? basename($normalizedTargetPath)));
 
             if ($backupPath !== null && is_file($backupPath)) {

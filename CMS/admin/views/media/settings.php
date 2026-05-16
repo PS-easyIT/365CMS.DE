@@ -84,8 +84,9 @@ $s = is_array($settings) ? $settings : [];
                                 <div class="col-sm-6">
                                     <label class="form-check form-switch mb-2">
                                         <input type="checkbox" class="form-check-input" name="organize_month_year" value="1" <?php echo !empty($s['organize_month_year']) ? 'checked' : ''; ?>>
-                                        <span class="form-check-label">Nach Monat/Jahr organisieren</span>
+                                        <span class="form-check-label">Datumsordner Jahr/Monat/Tag anlegen</span>
                                     </label>
+                                    <div class="form-hint mb-2">Aus = Upload in den aktuell geöffneten Ordner (Standard). An = legt darunter automatisch <code>YYYY/MM/DD</code> an.</div>
                                 </div>
                                 <div class="col-sm-6">
                                     <label class="form-check form-switch mb-2">

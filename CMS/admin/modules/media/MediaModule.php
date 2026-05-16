@@ -93,7 +93,7 @@ class MediaModule
     private const SETTINGS_DEFAULTS = [
         'max_upload_size' => '64M',
         'allowed_types' => ['image', 'document', 'archive', 'video', 'audio'],
-        'organize_month_year' => true,
+        'organize_month_year' => false,
         'sanitize_filenames' => true,
         'unique_filenames' => true,
         'lowercase_filenames' => false,
