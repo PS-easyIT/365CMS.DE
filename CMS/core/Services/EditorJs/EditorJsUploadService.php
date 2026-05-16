@@ -126,7 +126,7 @@ final class EditorJsUploadService
     /**
      * @param array<string,mixed> $post
      * @param array<string,mixed> $files
-     * @return array{success:int,file?:array<string,mixed>,message?:string,temp_path?:string,target_folder?:string,is_temp?:bool,expected_folder?:string}
+     * @return array{success:int,file?:array<string,mixed>,message?:string,temp_path?:string,target_folder?:string,is_temp?:bool,expected_folder?:string,reused_existing?:bool}
      */
     public function uploadFeaturedImage(array $post = [], array $files = []): array
     {
@@ -154,12 +154,44 @@ final class EditorJsUploadService
 
         $file = $this->normalizeImageUploadFile($file);
         $extension = strtolower((string) pathinfo((string) ($file['name'] ?? ''), PATHINFO_EXTENSION));
+        if (!$this->isAllowedImageExtension($extension)) {
+            return [
+                'success' => 0,
+                'message' => 'Nur Bilddateien sind erlaubt.',
+            ];
+        }
+
         $file['name'] = self::FEATURED_IMAGE_FILENAME_PREFIX . $slug . ($extension !== '' ? '.' . $extension : '');
+
+        $mediaService = MediaService::getInstance();
+        $existingDuplicate = $mediaService->findManagedDuplicateForUpload(
+            $file,
+            ['articles', 'pages'],
+            ['articles/temp', 'pages/temp'],
+            [self::FEATURED_IMAGE_FILENAME_PREFIX]
+        );
+
+        if ($existingDuplicate !== null) {
+            $relativePath = trim((string) ($existingDuplicate['path'] ?? ''), '/');
+            if ($relativePath !== '') {
+                $mediaService->ensureCategory('PhinIT-Cover', 'phinit-cover');
+                $mediaService->assignCategory($relativePath, 'phinit-cover');
+
+                return [
+                    'success' => 1,
+                    'file' => $this->buildExistingFilePayload($relativePath),
+                    'temp_path' => '',
+                    'target_folder' => trim(str_replace('\\', '/', dirname($relativePath)), '/.'),
+                    'is_temp' => false,
+                    'expected_folder' => $baseFolder . '/' . $slug,
+                    'reused_existing' => true,
+                ];
+            }
+        }
 
         $result = $this->storeUploadedFile($file, true, $targetPath);
 
         if ($result['success'] === 1 && isset($result['file']['url'])) {
-            $mediaService = MediaService::getInstance();
             $mediaService->ensureCategory('PhinIT-Cover', 'phinit-cover');
 
             $relativePath = $this->extractRelativeMediaPath((string) $result['file']['url']);
@@ -318,6 +350,33 @@ final class EditorJsUploadService
             'name' => basename($storedFile),
             'size' => file_exists($fullPath) ? (int) filesize($fullPath) : 0,
             'extension' => strtolower((string) pathinfo($storedFile, PATHINFO_EXTENSION)),
+        ];
+    }
+
+    /**
+     * @return array{url:string,name:string,size:int,extension:string}
+     */
+    private function buildExistingFilePayload(string $relativePath): array
+    {
+        $relativePath = trim(str_replace('\\', '/', $relativePath), '/');
+        if ($relativePath === '' || str_contains($relativePath, '..') || preg_match('/[\x00-\x1F\x7F]/', $relativePath) === 1) {
+            return [
+                'url' => '',
+                'name' => '',
+                'size' => 0,
+                'extension' => '',
+            ];
+        }
+
+        $fullPath = rtrim((string) UPLOAD_PATH, '/\\') . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relativePath);
+        $mediaDelivery = MediaDeliveryService::getInstance();
+        $accessUrl = $this->toRelativeMediaUrl($mediaDelivery->buildDeliveryUrl($relativePath, 'inline'));
+
+        return [
+            'url' => $accessUrl,
+            'name' => basename($relativePath),
+            'size' => is_file($fullPath) ? (int) filesize($fullPath) : 0,
+            'extension' => strtolower((string) pathinfo($relativePath, PATHINFO_EXTENSION)),
         ];
     }
 

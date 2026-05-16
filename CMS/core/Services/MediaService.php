@@ -582,6 +582,81 @@ class MediaService {
         return preg_match('#^[A-Za-z0-9._\-/]+$#', $path) === 1 ? $path : '';
     }
 
+    /**
+     * @param array<int,string> $prefixes
+     * @return list<string>
+     */
+    private function normalizeManagedRelativePrefixes(array $prefixes): array
+    {
+        $normalizedPrefixes = [];
+
+        foreach ($prefixes as $prefix) {
+            $normalizedPrefix = $this->normalizeManagedRelativePath((string) $prefix);
+            if ($normalizedPrefix !== '') {
+                $normalizedPrefixes[$normalizedPrefix] = true;
+            }
+        }
+
+        return array_keys($normalizedPrefixes);
+    }
+
+    /**
+     * @param array<int,string> $prefixes
+     */
+    private function pathMatchesManagedPrefixes(string $relativePath, array $prefixes): bool
+    {
+        foreach ($prefixes as $prefix) {
+            if ($relativePath === $prefix || str_starts_with($relativePath, $prefix . '/')) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param array<int,string> $prefixes
+     * @return list<string>
+     */
+    private function normalizeFilenamePrefixes(array $prefixes): array
+    {
+        $normalizedPrefixes = [];
+
+        foreach ($prefixes as $prefix) {
+            $normalizedPrefix = trim((string) $prefix);
+            if ($normalizedPrefix !== '' && strlen($normalizedPrefix) <= 120 && preg_match('/^[A-Za-z0-9._-]+$/', $normalizedPrefix) === 1) {
+                $normalizedPrefixes[$normalizedPrefix] = true;
+            }
+        }
+
+        return array_keys($normalizedPrefixes);
+    }
+
+    /**
+     * @param array<int,string> $prefixes
+     */
+    private function filenameMatchesPrefixes(string $filename, array $prefixes): bool
+    {
+        foreach ($prefixes as $prefix) {
+            if (str_starts_with($filename, $prefix)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function containsHiddenManagedSegment(string $relativePath): bool
+    {
+        foreach (explode('/', trim($relativePath, '/')) as $segment) {
+            if ($segment !== '' && str_starts_with($segment, '.')) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private function resolveManagedAbsolutePath(string $relativePath): string|WP_Error
     {
         $normalizedRelativePath = $this->normalizeManagedRelativePath($relativePath);
@@ -1061,6 +1136,110 @@ class MediaService {
         }
 
         return $inventory;
+    }
+
+    /**
+     * Findet eine bereits verwaltete Datei mit identischem Inhalt zu einer eingehenden Upload-Datei.
+     *
+     * Der Pfad bleibt bewusst read-only: Es wird nichts verschoben, gelöscht oder umgeschrieben. Aufrufer
+     * können die gefundene Medienreferenz direkt wiederverwenden und dadurch doppelte physische Dateien
+     * vermeiden.
+     *
+     * @param array<string,mixed> $file
+     * @param array<int,string> $candidatePrefixes Relative Ordnerpräfixe, die durchsucht werden sollen. Leer = alle verwalteten Dateien.
+     * @param array<int,string> $excludedPrefixes Relative Ordnerpräfixe, die übersprungen werden sollen.
+     * @param array<int,string> $candidateFilenamePrefixes Optionale Dateinamenspräfixe für zusätzliche Eingrenzung.
+     * @return array{name:string,path:string,size:int,type:string}|null
+     */
+    public function findManagedDuplicateForUpload(array $file, array $candidatePrefixes = [], array $excludedPrefixes = [], array $candidateFilenamePrefixes = []): ?array
+    {
+        $sourcePath = (string) ($file['tmp_name'] ?? '');
+        if ($sourcePath === '' || !is_file($sourcePath) || !is_readable($sourcePath)) {
+            return null;
+        }
+
+        $sourceSize = filesize($sourcePath);
+        if ($sourceSize === false || $sourceSize <= 0 || $sourceSize > self::DUPLICATE_HASH_MAX_BYTES) {
+            return null;
+        }
+
+        $sourceHash = @hash_file('sha256', $sourcePath);
+        if (!is_string($sourceHash) || $sourceHash === '') {
+            return null;
+        }
+
+        $root = rtrim($this->uploadPath, '/\\');
+        if (!is_dir($root) || !is_readable($root)) {
+            return null;
+        }
+
+        $candidatePrefixes = $this->normalizeManagedRelativePrefixes($candidatePrefixes);
+        $excludedPrefixes = $this->normalizeManagedRelativePrefixes($excludedPrefixes);
+        $candidateFilenamePrefixes = $this->normalizeFilenamePrefixes($candidateFilenamePrefixes);
+        $normalizedRoot = rtrim(str_replace('\\', '/', $root), '/') . '/';
+
+        try {
+            $iterator = new \RecursiveIteratorIterator(
+                new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS),
+                \RecursiveIteratorIterator::LEAVES_ONLY
+            );
+        } catch (\Throwable $exception) {
+            $this->logger->warning('Medien-Duplikatsuche konnte nicht initialisiert werden.', [
+                'exception' => $exception->getMessage(),
+            ]);
+
+            return null;
+        }
+
+        foreach ($iterator as $item) {
+            if (!$item instanceof \SplFileInfo || !$item->isFile() || !$item->isReadable()) {
+                continue;
+            }
+
+            $absolutePath = $item->getPathname();
+            $normalizedAbsolutePath = str_replace('\\', '/', $absolutePath);
+            if (!str_starts_with($normalizedAbsolutePath, $normalizedRoot)) {
+                continue;
+            }
+
+            $relativePath = ltrim(substr($normalizedAbsolutePath, strlen($normalizedRoot)), '/');
+            $normalizedPath = $this->normalizeManagedRelativePath($relativePath);
+            if ($normalizedPath === '' || $this->containsHiddenManagedSegment($normalizedPath)) {
+                continue;
+            }
+
+            if ($this->pathMatchesManagedPrefixes($normalizedPath, $excludedPrefixes)) {
+                continue;
+            }
+
+            if ($candidatePrefixes !== [] && !$this->pathMatchesManagedPrefixes($normalizedPath, $candidatePrefixes)) {
+                continue;
+            }
+
+            if ($candidateFilenamePrefixes !== [] && !$this->filenameMatchesPrefixes(basename($normalizedPath), $candidateFilenamePrefixes)) {
+                continue;
+            }
+
+            if ((int) $item->getSize() !== (int) $sourceSize) {
+                continue;
+            }
+
+            $candidateHash = @hash_file('sha256', $absolutePath);
+            if (!is_string($candidateHash) || !hash_equals($sourceHash, $candidateHash)) {
+                continue;
+            }
+
+            $mimeType = function_exists('mime_content_type') ? @mime_content_type($absolutePath) : '';
+
+            return [
+                'name' => basename($normalizedPath),
+                'path' => $normalizedPath,
+                'size' => (int) $sourceSize,
+                'type' => is_string($mimeType) ? $mimeType : '',
+            ];
+        }
+
+        return null;
     }
 
     /**

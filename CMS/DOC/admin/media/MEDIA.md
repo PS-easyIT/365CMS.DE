@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Verwaltung hochgeladener Dateien und Ordner, Kategorien, Medieneinstellungen und kontrollierter Auslieferung über interne Services.
 
-Letzte Aktualisierung: 2026-05-15 · Version 3.0.3
+Letzte Aktualisierung: 2026-05-16 · Version 3.0.4
 
 ---
 
@@ -48,8 +48,9 @@ Die Medienverwaltung bündelt Bibliothek, Beitrags-/Site-Medien, Kategorien und 
 | WebP-/Thumbnail-Jobs | fortsetzbare Bestandsverarbeitung mit Fortschritt und kleinen Server-Batches |
 | Beitrags-/Site-Medien | fokussierte Übersicht der in Beiträgen und Seiten hinterlegten Featured Images mit globalem Replace-in-place |
 | Medien Check | read-only Prüfliste für fehlende oder defekte Featured-Image-Zuordnungen mit Deep-Links in bestehende Arbeitswege |
+| Featured-Image-Deduplizierung | Wiederverwendung bereits vorhandener permanenter Beitrags-/Seitenbilder bei identischem SHA-256-Inhalts-Hash |
 
-Der gemeinsame Featured-Image-Picker für Seiten und Beiträge akzeptiert nur die Backend-Bildformate JPG, PNG, GIF, WebP, BMP und ICO. Bei neuen Inhalten werden Uploads temporär abgelegt und beim Speichern in den Slug-Ordner verschoben; Verschiebe- oder Metadatenfehler werden protokolliert, sollen aber keine leeren HTTP-500-Antworten nach erfolgreicher Bildübernahme mehr verursachen.
+Der gemeinsame Featured-Image-Picker für Seiten und Beiträge akzeptiert nur die Backend-Bildformate JPG, PNG, GIF, WebP, BMP und ICO. Bei neuen Inhalten werden Uploads temporär abgelegt und beim Speichern in den Slug-Ordner verschoben; Verschiebe- oder Metadatenfehler werden protokolliert, sollen aber keine leeren HTTP-500-Antworten nach erfolgreicher Bildübernahme mehr verursachen. Seit `3.0.4` wird vor dem temporären Speichern zusätzlich geprüft, ob derselbe Bildinhalt bereits als permanentes Beitrags- oder Seitenbild existiert. In diesem Fall wird die vorhandene Medienreferenz zurückgegeben, statt denselben Inhalt ein weiteres Mal abzulegen.
 
 ---
 
@@ -90,6 +91,8 @@ Zusätzliche derivative Dateien entstehen – abhängig von den Einstellungen �
 Der fortsetzbare Medienjob speichert seinen aktuellen Fortschritt in `CMS/config/media-processing-job.json`. Diese Datei enthält nur relative Medienpfade, Zähler, Status und letzte begrenzte Fehlerhinweise; sie ersetzt keinen dauerhaften Metadatenindex und kann durch einen neuen Job überschrieben werden. Beim Laden wird die Jobdatei größen- und schema-validiert; beschädigte, übergroße oder pfadseitig ungültige Zustände werden ignoriert, statt den Einstellungs-Tab zu brechen. Unerwartete Exceptions werden serverseitig protokolliert und im UI generisch angezeigt.
 
 Die Duplikat-Erkennung arbeitet nicht als dauerhafter Metadatenindex, sondern wird in der aktuellen Bibliotheksansicht read-only berechnet: sichtbare Dateien werden zuerst nach Byte-Größe gruppiert; nur Gruppen mit mindestens zwei gleich großen Dateien werden anschließend per `hash_file('sha256', ...)` auf identische Inhalte geprüft. Fehlende, nicht lesbare, ungültige oder sehr große Pfade werden übersprungen, damit die Bibliothek fail-soft sichtbar und auch bei großen Upload-Beständen bedienbar bleibt.
+
+Der Featured-Image-Upload nutzt denselben Grundgedanken gezielt vor dem Schreiben: Bereits vorhandene permanente Dateien unter `articles/` und `pages/` mit dem erwarteten `ArtikelRahmen_`-Dateinamensvertrag werden nach Größe und SHA-256 geprüft. Temporäre Draft-Pfade (`articles/temp`, `pages/temp`) bleiben ausgeschlossen, damit unsichere Entwurfsuploads nicht von anderen Inhalten übernommen werden.
 
 ---
 

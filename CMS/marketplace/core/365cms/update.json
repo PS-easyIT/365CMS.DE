@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "3.0.3",
+  "version": "3.0.4",
   "min_php": "8.4",
-  "released": "2026-05-15",
+  "released": "2026-05-16",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 3.0.3: Der Featured-Image-Konsistenz-Check lebt jetzt als eigener Unterpunkt \"Medien Check\". Damit bleibt \"Beitrags & Site Medien\" auf verwendete Featured Images und den Replace-in-place-Flow fokussiert, während fehlende oder defekte Zuordnungen separat read-only geprüft werden können.",
+  "notes": "Release-Stand 3.0.4: Featured-Image-Uploads prüfen vorhandene permanente Beitrags-/Seitenbilder jetzt per SHA-256-Inhalts-Hash und verwenden identische Medienreferenzen wieder, statt dasselbe Titelbild mehrfach physisch abzulegen.",
   "critical": false
 }

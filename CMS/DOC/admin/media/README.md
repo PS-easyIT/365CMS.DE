@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Überblick über Medienbibliothek, Upload-Workflows, Schutzbereiche, Admin-Tabs und verknüpfte Member-/Asset-Dokumentation.
 
-Letzte Aktualisierung: 2026-05-15 · Version 3.0.3
+Letzte Aktualisierung: 2026-05-16 · Version 3.0.4
 
 Die Medienverwaltung ist unter `/admin/media` erreichbar und bündelt Bibliothek, Beitrags-/Site-Medien, Medien-Check, Kategorien und Einstellungen über Query-Tabs statt über getrennte Legacy-Routen.
 
@@ -33,6 +33,7 @@ Die Medienverwaltung ist unter `/admin/media` erreichbar und bündelt Bibliothek
 - geschützte Systempfade mit zusätzlicher Member-Bestätigung am `member`-Bereich
 - verwaltete Upload-Pipeline für Bibliothek und Member-Bereich mit Maximalmaßen, optionalen Thumbnails und Auto-WebP
 - gemeinsamer Featured-Image-Picker für Beiträge und Seiten mit fail-soft Verschiebung temporärer Uploads beim Speichern
+- hashbasierte Wiederverwendung identischer permanenter Beitrags-/Seitenbilder im Featured-Image-Upload, damit gleiche Titelbilder nicht mehrfach physisch abgelegt werden
 - Rücksprung in den **tatsächlich verwendeten** Zielordner, wenn Uploads automatisch in Jahres-/Monats-Unterordner einsortiert werden
 - strengere Dateinamens-Härtung mit Längenlimit und ohne irreführende Mehrfach-Punkte im Basenamen
 - read-only Duplikat-Erkennung in der Bibliothek: sichtbare gleich große Dateien werden per SHA-256-Inhalts-Hash verglichen und als identische Gruppen markiert

@@ -1,4 +1,4 @@
-﻿﻿**Version:** 3.0.3
+﻿﻿**Version:** 3.0.4
 
 # 365CMS Changelog
 
@@ -19,6 +19,12 @@
 ## 📜 Aktuelle Versionshistorie ab 3.0.0
 
 > Die vollständige historische 2.x-Historie wurde in [`Changelog_old.md`](Changelog_old.md) archiviert.
+
+### v3.0.4 — 16. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.0.4** | 🔴 fix | Admin/Medien | **`CMS/core/Services/MediaService.php`, `CMS/core/Services/EditorJs/EditorJsUploadService.php`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `CMS/DOC/admin/media/README.md`, `CMS/DOC/admin/media/MEDIA.md`, `README.md` und `Changelog.md` verhindern doppelte physische Ablagen identischer Beitrags- und Seitenbilder.** Der Featured-Image-Upload prüft vorhandene permanente `articles/`- und `pages/`-Titelbilder jetzt größen- und SHA-256-basiert, überspringt temporäre Draft-Pfade und gibt bei identischem Inhalt direkt die bestehende Medienreferenz zurück. Dadurch können mehrere Beiträge oder Seiten dasselbe ausgewählte Titelbild teilen, ohne neue Kopien wie `ArtikelRahmen_slug-1.jpg` zu erzeugen. |
 
 ### v3.0.3 — 15. Mai 2026
 
