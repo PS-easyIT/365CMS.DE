@@ -18,6 +18,8 @@ final class MediaDeliveryService
     private const INLINE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'ico', 'avif'];
     private const ELFINDER_TMB_PREFIX = '.elfinder/.tmb/';
     private const STREAM_CHUNK_BYTES = 8192;
+    private const DEFAULT_PUBLIC_CACHE_TTL = 604800;
+    private const PUBLIC_CACHE_TTL_OPTIONS = [259200, 604800, 2678400];
 
     private static ?self $instance = null;
 
@@ -453,7 +455,7 @@ final class MediaDeliveryService
 
     private function resolvePublicCacheTtl(bool $inline): int
     {
-        $ttl = $inline ? 3600 : 300;
+        $ttl = self::DEFAULT_PUBLIC_CACHE_TTL;
 
         try {
             $db = Database::instance();
@@ -483,7 +485,9 @@ final class MediaDeliveryService
             return $ttl;
         }
 
-        return max(300, min(31536000, $ttl));
+        return in_array($ttl, self::PUBLIC_CACHE_TTL_OPTIONS, true)
+            ? $ttl
+            : self::DEFAULT_PUBLIC_CACHE_TTL;
     }
 
     private function detectMimeType(string $absolutePath): string

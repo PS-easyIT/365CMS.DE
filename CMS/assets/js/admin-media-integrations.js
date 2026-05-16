@@ -1322,11 +1322,127 @@
 
                 defaultMessage = getDefaultMessage(target);
                 target.textContent = file
-                    ? 'Ausgewählt: ' + String(file.name || 'Bilddatei') + '. Mit „Bild ersetzen“ übernehmen Sie die neue Datei für alle verknüpften Inhalte.'
+                    ? 'Ausgewählt: ' + String(file.name || 'Bilddatei') + '. Mit „Bild ersetzen“ übernehmen Sie alle aktuell vorbereiteten Bild-Ersetzungen gemeinsam.'
                     : defaultMessage;
             });
 
             updateLocalPreview(form, file);
+        }
+
+        function getFeaturedReplacementFile(form) {
+            var fileInput = form ? form.querySelector('input[type="file"][name="replacement_file"]') : null;
+
+            return fileInput && fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
+        }
+
+        function getFeaturedReplacementPath(form) {
+            var pathInput = form ? form.querySelector('input[name="item_path"]') : null;
+
+            return pathInput ? String(pathInput.value || '').trim() : '';
+        }
+
+        function collectPreparedReplacementForms() {
+            return Array.prototype.slice.call(forms).filter(function (form) {
+                return getFeaturedReplacementPath(form) !== '' && getFeaturedReplacementFile(form) !== null;
+            });
+        }
+
+        function clearFeaturedBatchPayload(form) {
+            if (!form) {
+                return;
+            }
+
+            form.querySelectorAll('[data-featured-batch-temp="1"]').forEach(function (element) {
+                element.remove();
+            });
+
+            forms.forEach(function (replaceForm) {
+                var fileInput = replaceForm.querySelector('input[type="file"][name="replacement_file"]');
+                if (fileInput) {
+                    fileInput.disabled = false;
+                    fileInput.removeAttribute('aria-disabled');
+                }
+            });
+
+            delete form.dataset.featuredBatchPrepared;
+        }
+
+        function createFeaturedBatchFileInput(file) {
+            var dataTransfer;
+            var input;
+
+            if (typeof window.DataTransfer !== 'function') {
+                return null;
+            }
+
+            try {
+                dataTransfer = new window.DataTransfer();
+                dataTransfer.items.add(file);
+                input = document.createElement('input');
+                input.type = 'file';
+                input.name = 'replacement_files[]';
+                input.files = dataTransfer.files;
+                input.setAttribute('data-featured-batch-temp', '1');
+                input.tabIndex = -1;
+                input.setAttribute('aria-hidden', 'true');
+                input.style.position = 'absolute';
+                input.style.left = '-9999px';
+                input.style.width = '1px';
+                input.style.height = '1px';
+                input.style.opacity = '0';
+            } catch (error) {
+                return null;
+            }
+
+            return input;
+        }
+
+        function appendFeaturedBatchPathInput(form, path) {
+            var input = document.createElement('input');
+
+            input.type = 'hidden';
+            input.name = 'item_paths[]';
+            input.value = path;
+            input.setAttribute('data-featured-batch-temp', '1');
+            form.appendChild(input);
+        }
+
+        function prepareFeaturedBatchSubmit(targetForm, selectedForms) {
+            var actionInput = targetForm ? targetForm.querySelector('input[name="action"]') : null;
+
+            if (!targetForm || !actionInput || !selectedForms.length) {
+                return false;
+            }
+
+            clearFeaturedBatchPayload(targetForm);
+            actionInput.value = 'replace_items';
+
+            for (var index = 0; index < selectedForms.length; index++) {
+                var selectedForm = selectedForms[index];
+                var selectedPath = getFeaturedReplacementPath(selectedForm);
+                var selectedFile = getFeaturedReplacementFile(selectedForm);
+                var batchFileInput = selectedFile ? createFeaturedBatchFileInput(selectedFile) : null;
+
+                if (!selectedPath || !selectedFile || !batchFileInput) {
+                    clearFeaturedBatchPayload(targetForm);
+                    actionInput.value = 'replace_item';
+                    return false;
+                }
+
+                appendFeaturedBatchPathInput(targetForm, selectedPath);
+                targetForm.appendChild(batchFileInput);
+            }
+
+            forms.forEach(function (replaceForm) {
+                var fileInput = replaceForm.querySelector('input[type="file"][name="replacement_file"]');
+                if (fileInput) {
+                    fileInput.disabled = true;
+                    fileInput.setAttribute('aria-disabled', 'true');
+                }
+            });
+
+            targetForm.dataset.featuredBatchPrepared = '1';
+            return true;
         }
 
         if (!cleanupRegistered) {
@@ -1502,9 +1618,35 @@
                 }
             });
 
-            form.addEventListener('submit', function () {
+            form.addEventListener('submit', function (event) {
+                var selectedForms;
+
                 setDropzoneState(dropzone, false);
                 dragDepth = 0;
+
+                if (form.dataset.featuredBatchPrepared === '1') {
+                    return;
+                }
+
+                selectedForms = collectPreparedReplacementForms();
+                if (selectedForms.length <= 1) {
+                    return;
+                }
+
+                if (!prepareFeaturedBatchSubmit(form, selectedForms)) {
+                    event.preventDefault();
+                    showMessage('danger', 'Die Mehrfach-Ersetzung konnte in diesem Browser nicht vorbereitet werden. Bitte die Bilder einzeln ersetzen oder einen aktuellen Browser verwenden.');
+                    return;
+                }
+
+                selectedForms.forEach(function (replaceForm) {
+                    var statusTargets = replaceForm.querySelectorAll('[data-featured-replace-status]');
+                    statusTargets.forEach(function (target) {
+                        if (!target.classList.contains('alert')) {
+                            target.textContent = selectedForms.length + ' vorbereitete Bild-Ersetzungen werden gemeinsam verarbeitet …';
+                        }
+                    });
+                });
             });
         });
     }

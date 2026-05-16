@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Verwaltung hochgeladener Dateien und Ordner, Kategorien, Medieneinstellungen und kontrollierter Auslieferung über interne Services.
 
-Letzte Aktualisierung: 2026-05-16 · Version 3.0.4
+Letzte Aktualisierung: 2026-05-16 · Version 3.0.6
 
 ---
 
@@ -46,7 +46,7 @@ Die Medienverwaltung bündelt Bibliothek, Beitrags-/Site-Medien, Kategorien und 
 | Vorschaulogik | robuste Dateivorschau und Proxy-/Preview-URLs |
 | Verwaltete Bildverarbeitung | Maximalmaße, Thumbnail-Sätze und optionale WebP-Derivate |
 | WebP-/Thumbnail-Jobs | fortsetzbare Bestandsverarbeitung mit Fortschritt und kleinen Server-Batches |
-| Beitrags-/Site-Medien | fokussierte Übersicht der in Beiträgen und Seiten hinterlegten Featured Images mit globalem Replace-in-place |
+| Beitrags-/Site-Medien | fokussierte Übersicht der in Beiträgen und Seiten hinterlegten Featured Images mit globalem Einzel- und Mehrfach-Replace-in-place |
 | Medien Check | read-only Prüfliste für fehlende oder defekte Featured-Image-Zuordnungen mit Deep-Links in bestehende Arbeitswege |
 | Featured-Image-Deduplizierung | Wiederverwendung bereits vorhandener permanenter Beitrags-/Seitenbilder bei identischem SHA-256-Inhalts-Hash |
 
@@ -147,6 +147,8 @@ Der Spezialtab `/admin/media?tab=featured` ist für Bilder gedacht, die im Heade
 
 Der Replace-Flow ersetzt die Datei am bestehenden verwalteten Medienpfad. Dadurch müssen Beiträge und Seiten nicht massenhaft umgeschrieben werden: Alle Inhalte, die denselben Pfad referenzieren, zeigen nach dem Austausch automatisch die neue Datei.
 
+Seit `3.0.6` kann derselbe Flow mehrere vorbereitete Zeilen gesammelt verarbeiten. Admins wählen dazu in mehreren Zeilen über „Durchsuchen“ oder Drag-&-Drop je ein Ersatzbild aus; ein Klick auf eine beliebige „Bild ersetzen“-Schaltfläche sammelt die vorbereiteten Zielpfad-/Datei-Paare clientseitig in einen gemeinsamen Multipart-POST (`replace_items`). Serverseitig wird jedes Paar weiter über den bestehenden `MediaService::replaceManagedFile()`-Vertrag validiert und ersetzt, damit Bildtypprüfung, Backup-/Restore-Pfad, Größenlimit und Featured-Image-Usage-Check identisch zur Einzel-Ersetzung bleiben.
+
 Seit `3.0.3` bleibt dieser Tab bewusst auf die Übersicht der verwendeten Featured Images, Filterung nach Beiträgen/Seiten und den Replace-in-place-Flow fokussiert. Die Konsistenzprüfung wurde in den separaten Unterpunkt `/admin/media?tab=check` ausgelagert.
 
 ## Medien Check
@@ -160,7 +162,8 @@ Die Seite bleibt dabei bewusst ein reiner GET-/Lesepfad: Die Liste selbst schrei
 
 Absicherungen und UX-Details:
 
-- `replace_item` akzeptiert serverseitig nur Pfade aus der aktuellen Featured-Image-Usage-Map.
+- `replace_item` und `replace_items` akzeptieren serverseitig nur Pfade aus der aktuellen Featured-Image-Usage-Map.
+- Mehrfach-Ersetzungen bleiben geordnete Paare aus `item_paths[]` und `replacement_files[]`; ungültige, fehlende oder doppelte Zielpfade werden begrenzt als Fehlerdetails gemeldet.
 - Uploadvalidierung bleibt im `MediaService`: erlaubte Extension, MIME-/Signaturprüfung, Bilddatenprüfung, Größenlimit und SVG-Block.
 - Seit `2.9.618` hängt dieser Spezialpfad dabei nicht mehr an den allgemeinen `allowed_types` der Bibliothek, sondern erzwingt serverseitig immer die feste Bild-Allowlist `jpg`, `jpeg`, `png`, `gif`, `webp`, `bmp`, `ico`.
 - Die Oberfläche nennt nur die serverseitig unterstützten Bildformate JPG/JPEG, PNG, GIF, WebP, BMP und ICO; `accept` ist dabei nur ein Browser-Hinweis und ersetzt keine Serverprüfung.

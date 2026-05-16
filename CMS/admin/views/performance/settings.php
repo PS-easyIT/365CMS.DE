@@ -5,6 +5,15 @@ if (!defined('CMS_ADMIN_PERFORMANCE_VIEW')) exit;
 
 $settings = $data['settings'] ?? [];
 $phpInfo = $data['php_info'] ?? [];
+$browserCacheTtl = (string)($settings['perf_browser_cache_ttl'] ?? '604800');
+$browserCacheTtlOptions = [
+    '259200' => '3 Tage',
+    '604800' => '7 Tage (Standard)',
+    '2678400' => '31 Tage',
+];
+if (!array_key_exists($browserCacheTtl, $browserCacheTtlOptions)) {
+    $browserCacheTtl = '604800';
+}
 ?>
 <div class="page-header d-print-none">
     <div class="container-xl">
@@ -116,8 +125,13 @@ $phpInfo = $data['php_info'] ?? [];
                             </label>
 
                             <div class="mb-3">
-                                <label class="form-label">Browser-Cache TTL (Sekunden)</label>
-                                <input type="number" min="0" max="31536000" step="1" class="form-control" name="perf_browser_cache_ttl" value="<?php echo htmlspecialchars((string)($settings['perf_browser_cache_ttl'] ?? '604800')); ?>">
+                                <label class="form-label">Bildauslieferung Cache-TTL</label>
+                                <select class="form-select" name="perf_browser_cache_ttl">
+                                    <?php foreach ($browserCacheTtlOptions as $ttlValue => $ttlLabel): ?>
+                                        <option value="<?php echo htmlspecialchars($ttlValue, ENT_QUOTES); ?>" <?php echo $browserCacheTtl === $ttlValue ? 'selected' : ''; ?>><?php echo htmlspecialchars($ttlLabel, ENT_QUOTES); ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <div class="form-text">Steuert die Browser-Cache-Dauer für öffentlich ausgelieferte Medien über <code>/media-file</code>. Standard sind 7 Tage.</div>
                             </div>
                             <div class="mb-0">
                                 <label class="form-label">HTML-/Seiten-Cache TTL (Sekunden)</label>

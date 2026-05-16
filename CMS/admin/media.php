@@ -18,6 +18,7 @@ use CMS\Security;
 const CMS_ADMIN_MEDIA_ALLOWED_ACTIONS = [
     'upload',
     'replace_item',
+    'replace_items',
     'save_filter_preset',
     'delete_filter_preset',
     'create_folder',
@@ -226,6 +227,25 @@ function cms_admin_media_normalize_paths(MediaModule $module, mixed $paths): arr
 }
 
 /**
+ * @param mixed $paths
+ * @return list<string>
+ */
+function cms_admin_media_normalize_ordered_paths(MediaModule $module, mixed $paths): array
+{
+    if (!is_array($paths)) {
+        return [];
+    }
+
+    $normalizedPaths = [];
+
+    foreach ($paths as $path) {
+        $normalizedPaths[] = $module->normalizePath((string) $path);
+    }
+
+    return $normalizedPaths;
+}
+
+/**
  * @param mixed $altTexts
  * @return array<string, string>
  */
@@ -304,6 +324,9 @@ function cms_admin_media_normalize_action_payload(MediaModule $module, string $a
         'replace_item' => [
             'item_path' => $module->normalizePath((string) ($post['item_path'] ?? '')),
         ],
+        'replace_items' => [
+            'item_paths' => cms_admin_media_normalize_ordered_paths($module, $post['item_paths'] ?? []),
+        ],
         'save_filter_preset' => [
             'preset_label' => $module->normalizeFilterPresetLabel((string) ($post['preset_label'] ?? '')),
             'preset_view' => $module->normalizeView((string) ($post['preset_view'] ?? 'list')),
@@ -365,6 +388,7 @@ function cms_admin_media_validate_action_payload(string $action, array $payload)
 {
     return match ($action) {
         'replace_item' => ($payload['item_path'] ?? '') === '' ? 'Ungültiger Bildpfad.' : null,
+        'replace_items' => array_values(array_filter((array) ($payload['item_paths'] ?? []), static fn (mixed $path): bool => trim((string) $path) !== '')) === [] ? 'Bitte mindestens einen gültigen Bildpfad übermitteln.' : null,
         'save_filter_preset' => ($payload['preset_label'] ?? '') === '' ? 'Bitte einen Namen für das Filter-Preset angeben.' : null,
         'delete_filter_preset' => ($payload['preset_slug'] ?? '') === '' ? 'Ungültiges Filter-Preset.' : null,
         'create_folder' => ($payload['folder_name'] ?? '') === '' ? 'Bitte einen gültigen Ordnernamen angeben.' : null,
@@ -491,7 +515,7 @@ function cms_admin_media_build_redirect_url(MediaModule $module, string $tab, st
 
 function cms_admin_media_action_redirect_path(MediaModule $module, string $action, string $tab, string $path): string
 {
-    if ($action === 'replace_item' && $module->normalizeTab($tab) === 'featured') {
+    if (in_array($action, ['replace_item', 'replace_items'], true) && $module->normalizeTab($tab) === 'featured') {
         return cms_admin_media_build_featured_redirect_url($module);
     }
 
@@ -680,6 +704,47 @@ function cms_admin_media_handle_action(MediaModule $module, string $action, stri
                 $module,
                 (string) ($result['highlight_path'] ?? ($post['item_path'] ?? '')),
                 true
+            );
+        }
+
+        return [
+            'result' => $result,
+            'redirect_path' => $redirectPath,
+        ];
+    }
+
+    if ($action === 'replace_items') {
+        $uploadBatch = cms_admin_media_normalize_upload_batch($_FILES, 'replacement_files');
+        if (isset($uploadBatch['error'])) {
+            return [
+                'result' => cms_admin_media_build_failure_result(
+                    (string) $uploadBatch['error'],
+                    ['Bitte die ausgewählten Ersatzbilder und Dateigrößen prüfen.'],
+                    ['Der Mehrfach-Bildersatz enthielt ungültige Upload-Daten.'],
+                    [
+                        'title' => 'Mehrfach-Bildersatz fehlgeschlagen',
+                        'source' => '/admin/media?tab=featured',
+                        'status' => 'warning',
+                        'context' => [
+                            'module' => 'media',
+                            'operation' => 'replace_items',
+                        ],
+                    ]
+                ),
+                'redirect_path' => $redirectPath,
+            ];
+        }
+
+        $result = $module->replaceItems(
+            is_array($post['item_paths'] ?? null) ? $post['item_paths'] : [],
+            $uploadBatch['files']
+        );
+
+        if (!empty($result['success'])) {
+            $redirectPath = cms_admin_media_build_featured_redirect_url(
+                $module,
+                (string) ($result['highlight_path'] ?? ''),
+                (string) ($result['highlight_path'] ?? '') !== ''
             );
         }
 

@@ -31,6 +31,7 @@ final class PerformanceModule
     private const CAPACITY_CRITICAL_LOAD = 8.0;
     private const ACTIVE_QUEUE_LOCK_WINDOW_MINUTES = 15;
     private const MEDIA_JOB_STATUS_MAX_FILE_BYTES = 1048576;
+    private const BROWSER_CACHE_TTL_OPTIONS = ['259200', '604800', '2678400'];
 
     private const DEFAULT_SETTINGS = [
         'perf_lazy_loading' => '1',
@@ -1847,7 +1848,7 @@ final class PerformanceModule
             }
 
             $settingsToSave[$key] = match ($key) {
-                'perf_browser_cache_ttl' => (string)max(0, min(31536000, (int)($post[$key] ?? $default))),
+                'perf_browser_cache_ttl' => $this->normalizeBrowserCacheTtl($post[$key] ?? $default),
                 'perf_html_cache_ttl' => (string)max(0, min(86400, (int)($post[$key] ?? $default))),
                 'perf_lazy_loading_eager_images' => (string)max(0, min(5, (int)($post[$key] ?? $default))),
                 'perf_session_timeout_admin' => (string)max(300, min(604800, (int)($post[$key] ?? $default))),
@@ -1906,6 +1907,15 @@ final class PerformanceModule
         );
 
         return ['success' => true, 'message' => 'Performance-Einstellungen gespeichert.'];
+    }
+
+    private function normalizeBrowserCacheTtl(mixed $value): string
+    {
+        $ttl = (string) max(0, (int) $value);
+
+        return in_array($ttl, self::BROWSER_CACHE_TTL_OPTIONS, true)
+            ? $ttl
+            : self::DEFAULT_SETTINGS['perf_browser_cache_ttl'];
     }
 
     /** @param list<string> $keys @return array<string, true> */

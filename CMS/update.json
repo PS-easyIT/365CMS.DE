@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "3.0.4",
+  "version": "3.0.6",
   "min_php": "8.4",
   "released": "2026-05-16",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 3.0.4: Featured-Image-Uploads prüfen vorhandene permanente Beitrags-/Seitenbilder jetzt per SHA-256-Inhalts-Hash und verwenden identische Medienreferenzen wieder, statt dasselbe Titelbild mehrfach physisch abzulegen.",
+  "notes": "Release-Stand 3.0.6: Der Beitrags-&-Site-Medien-Tab ersetzt mehrere vorbereitete Featured-Image-Dateien jetzt gemeinsam, sobald bei einer Zeile 'Bild ersetzen' ausgelöst wird.",
   "critical": false
 }

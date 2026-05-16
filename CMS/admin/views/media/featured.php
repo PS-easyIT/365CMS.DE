@@ -191,8 +191,8 @@ if (!function_exists('cms_admin_media_render_featured_usage_list')) {
                                     $isHighlighted = !empty($item['is_highlighted']) && $isSuccessAlert;
                                     $defaultSelectedFileMessage = 'Noch keine Datei ausgewählt.';
                                     $defaultStatusMessage = $fileExists
-                                        ? 'Die Datei wird an derselben Medien-Referenz ersetzt. Alle verknüpften Beiträge und Seiten übernehmen automatisch das neue Bild.'
-                                        : 'Diese Referenz ist aktuell defekt. Laden Sie hier ein neues Bild an derselben Stelle hoch, um alle Verknüpfungen wiederherzustellen.';
+                                        ? 'Die Datei wird an derselben Medien-Referenz ersetzt. Alle verknüpften Beiträge und Seiten übernehmen automatisch das neue Bild. Wenn in weiteren Zeilen neue Bilder ausgewählt sind, werden sie beim Klick auf „Bild ersetzen“ gemeinsam verarbeitet.'
+                                        : 'Diese Referenz ist aktuell defekt. Laden Sie hier ein neues Bild an derselben Stelle hoch, um alle Verknüpfungen wiederherzustellen. Weitere vorbereitete Zeilen werden beim Klick auf „Bild ersetzen“ gemeinsam verarbeitet.';
                                     ?>
                                     <tr<?php echo !$fileExists ? ' class="table-warning"' : ($isHighlighted ? ' class="table-success"' : ''); ?>>
                                         <td>
@@ -233,7 +233,7 @@ if (!function_exists('cms_admin_media_render_featured_usage_list')) {
                                                 <div class="card card-sm border-0 bg-body-tertiary" data-featured-dropzone="1" role="button" tabindex="0" aria-controls="<?php echo htmlspecialchars($fieldId, ENT_QUOTES); ?>">
                                                     <div class="card-body py-3">
                                                         <div class="fw-medium">Bild hier ablegen oder per Klick auswählen</div>
-                                                        <div class="text-secondary small mt-1">Ziehen Sie genau ein JPG, PNG, GIF, WebP, BMP oder ICO direkt auf diese Karte. Danach können Sie es sofort ersetzen.</div>
+                                                        <div class="text-secondary small mt-1">Ziehen Sie genau ein JPG, PNG, GIF, WebP, BMP oder ICO direkt auf diese Karte. Bereiten Sie mehrere Zeilen vor, um sie mit einem Klick gemeinsam zu ersetzen.</div>
                                                         <div class="small text-success mt-2" data-featured-selected-file data-default-message="<?php echo htmlspecialchars($defaultSelectedFileMessage, ENT_QUOTES); ?>" aria-live="polite"><?php echo htmlspecialchars($defaultSelectedFileMessage); ?></div>
                                                         <div class="mt-3" data-featured-local-preview hidden>
                                                             <div class="d-flex align-items-center gap-3">

@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Überblick über Medienbibliothek, Upload-Workflows, Schutzbereiche, Admin-Tabs und verknüpfte Member-/Asset-Dokumentation.
 
-Letzte Aktualisierung: 2026-05-16 · Version 3.0.4
+Letzte Aktualisierung: 2026-05-16 · Version 3.0.6
 
 Die Medienverwaltung ist unter `/admin/media` erreichbar und bündelt Bibliothek, Beitrags-/Site-Medien, Medien-Check, Kategorien und Einstellungen über Query-Tabs statt über getrennte Legacy-Routen.
 
@@ -47,7 +47,7 @@ Die Medienverwaltung ist unter `/admin/media` erreichbar und bündelt Bibliothek
 - Nachhärtung der direkten Verwendungsanzeige: Bearbeitungslinks werden in der View fail-closed auf interne Beitrags-/Seiten-Edit-Routen begrenzt
 - chunkbasierte WebP-/Thumbnail-Nachverarbeitung für bestehende Bilder unter `/admin/media?tab=settings`, inklusive Fortschritt, Fehlerzählung und Abbruchmöglichkeit ohne lange Einzelrequests
 - Medienjob-Statusdateien werden beim Laden größen- und schema-validiert, damit beschädigte Jobdaten den Settings-Tab nicht destabilisieren
-- Unterpunkt **Beitrags & Site Medien** für Featured Images aus Beiträgen und Seiten inklusive Suche, Filter nach Beiträgen/Seiten, Drag-&-Drop-Ersetzen, lokaler Mini-Vorschau und Erfolgshinweis pro Bild
+- Unterpunkt **Beitrags & Site Medien** für Featured Images aus Beiträgen und Seiten inklusive Suche, Filter nach Beiträgen/Seiten, Drag-&-Drop-Ersetzen, lokaler Mini-Vorschau, Mehrfach-Ersetzung vorbereiteter Zeilen und Erfolgshinweis pro Bild
 - eigener Unterpunkt **Medien Check** für die read-only Konsistenzliste von Beiträgen und Seiten ohne Bild oder mit defekter Featured-Image-Referenz inklusive Deep-Link in den bestehenden Editor-Pfad mit Medienbibliothek
 - der Featured-Replace-Flow erzwingt seinen Bildvertrag seit `2.9.618` serverseitig unabhängig von den allgemeinen Bibliotheks-Typ-Häkchen, damit Beitrags-/Seitenbilder immer nur als JPG/JPEG, PNG, GIF, WebP, BMP oder ICO ersetzt werden
 
@@ -104,9 +104,12 @@ Der Unterpunkt `/admin/media?tab=featured` zeigt ausschließlich Medienpfade, di
 - Verwendungsnachweis mit Direktlinks in die jeweilige Bearbeitung
 - globales Ersetzen unter derselben Medienreferenz, sodass alle verknüpften Beiträge und Seiten automatisch die neue Datei anzeigen
 - Drag-&-Drop oder klassische Dateiauswahl mit lokaler Mini-Vorschau vor dem Speichern
+- Mehrfach-Ersetzung: Wenn in mehreren Zeilen neue Dateien ausgewählt wurden, verarbeitet ein Klick auf „Bild ersetzen“ alle vorbereiteten Zielpfad-/Datei-Paare gemeinsam über denselben POST-/CSRF-/PRG-Vertrag
 - PRG-Redirect mit Erfolgshinweis an der ersetzten Bildzeile
 
 Seit `3.0.3` bleibt dieser Tab bewusst auf tatsächlich verwendete Featured Images und den Replace-in-place-Flow fokussiert. Die bisher hier mitgerenderte read-only Prüfliste lebt nun separat unter `/admin/media?tab=check`, damit Suche, Filter und Navigation im Redaktionsalltag klarer getrennt sind.
+
+Seit `3.0.6` kann dieser Replace-in-place-Flow mehrere vorbereitete Zeilen in einem Request ausführen. Die Browseroberfläche sammelt dafür alle per „Durchsuchen“ bzw. Drag-&-Drop ausgewählten Dateien in `replacement_files[]` und übermittelt die passenden `item_paths[]`; der Server verarbeitet sie über `replace_items` einzeln weiter, sodass Teilfehler begrenzt gemeldet werden und erfolgreiche Ersetzungen trotzdem erhalten bleiben.
 
 ## Medien Check
 
@@ -120,6 +123,7 @@ Die Empfehlung bleibt bewusst innerhalb bestehender Pfade: Entweder direkt im Ed
 Sicherheitsvertrag:
 
 - Replace-POSTs werden serverseitig nur für Pfade akzeptiert, die in der aktuellen Beitrags-/Seitenbild-Karte vorkommen.
+- Mehrfach-Replace-POSTs akzeptieren nur geordnete Paare aus erlaubtem Featured-Image-Pfad und Upload-Datei; doppelte Zielpfade werden übersprungen.
 - Die Client-Auswahl erlaubt nur die vom Backend unterstützten Bildendungen JPG/JPEG, PNG, GIF, WebP, BMP und ICO.
 - Der Browser-MIME-Typ ist nur ein UX-Signal; die verbindliche Prüfung erfolgt weiterhin serverseitig über Extension-Allowlist, MIME-/Signaturprüfung, Größenlimit, Bildvalidierung sowie den blockierten SVG-Typ.
 - Ersatzdateien überschreiben die bestehende verwaltete Datei mit Backup-/Restore-Pfad, damit die Referenz in Beiträgen und Seiten stabil bleibt.

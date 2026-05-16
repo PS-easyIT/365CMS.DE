@@ -1,5 +1,5 @@
 # 365CMS – Performance-Center
-> **Stand:** 2026-05-09 | **Version:** 2.9.624 | **Status:** Aktuell
+> **Stand:** 2026-05-16 | **Version:** 3.0.5 | **Status:** Aktuell
 
 <!-- UPDATED: 2026-05-09 -->
 
@@ -23,6 +23,8 @@ Im aktuellen Stand ist der Bereich zugleich Diagnose- und Tuning-Zentrale für C
 | Settings | Allgemeine Performance-Einstellungen und Tuning ohne dekorativen GZIP-Schalter |
 | Sessions | Aktive Sitzungen verwalten und bereinigen |
 | Übersicht | Dashboard mit zentralen Performance-Kennzahlen |
+
+Die Performance-Einstellungen bieten für die öffentliche Bildauslieferung über `/media-file` feste Browser-Cache-TTLs von `3 Tage`, `7 Tage` oder `31 Tage`; Standard und Fallback sind `7 Tage`.
 
 ## Benötigte Rechte
 

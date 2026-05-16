@@ -1,4 +1,4 @@
-﻿﻿**Version:** 3.0.4
+﻿﻿**Version:** 3.0.6
 
 # 365CMS Changelog
 
@@ -19,6 +19,18 @@
 ## 📜 Aktuelle Versionshistorie ab 3.0.0
 
 > Die vollständige historische 2.x-Historie wurde in [`Changelog_old.md`](Changelog_old.md) archiviert.
+
+### v3.0.6 — 16. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.0.6** | 🟢 feat | Admin/Medien | **`CMS/admin/media.php`, `CMS/admin/modules/media/MediaModule.php`, `CMS/admin/views/media/featured.php`, `CMS/assets/js/admin-media-integrations.js`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `CMS/DOC/admin/media/README.md`, `CMS/DOC/admin/media/MEDIA.md`, `README.md` und `Changelog.md` erweitern den Beitrags-&-Site-Medien-Replace-Flow um Mehrfach-Ersetzung.** Admins können in mehreren Zeilen per „Durchsuchen“ Ersatzbilder vorbereiten; sobald bei einer Zeile „Bild ersetzen“ geklickt wird, sammelt die Oberfläche alle vorbereiteten Dateien in einen gemeinsamen CSRF-geschützten Multipart-POST. Serverseitig verarbeitet die neue `replace_items`-Aktion die Paare aus Zielpfad und Datei weiter über denselben validierten Replace-in-place-Vertrag wie die Einzel-Ersetzung. |
+
+### v3.0.5 — 16. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.0.5** | 🟠 perf | Core/Performance Mediencache | **`CMS/admin/modules/seo/PerformanceModule.php`, `CMS/admin/views/performance/settings.php`, `CMS/core/Services/MediaDeliveryService.php`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `CMS/DOC/admin/performance/PERFORMANCE.md`, `README.md` und `Changelog.md` ergänzen die Bildauslieferungs-Cache-TTL als feste Performance-Auswahl.** Admins können für öffentlich ausgelieferte Medien jetzt 3, 7 oder 31 Tage wählen; 7 Tage ist Standard und Fallback für fehlende oder alte Werte. Die `/media-file`-Delivery nutzt diese TTL für öffentliche Bilder und liefert dadurch Lighthouse-freundliche `Cache-Control`-/`Expires`-Header, während deaktiviertes Browser-Caching weiterhin im Revalidierungsmodus bleibt. |
 
 ### v3.0.4 — 16. Mai 2026
 

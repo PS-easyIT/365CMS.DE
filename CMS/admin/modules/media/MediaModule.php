@@ -878,6 +878,90 @@ class MediaModule
             return ['success' => false, 'error' => 'Bitte eine neue Bilddatei auswählen.'];
         }
 
+        return $this->replaceFeaturedItemWithFile($normalizedPath, $replacementFile, $featuredUsageMap);
+    }
+
+    /**
+     * Mehrere Beitrags-/Seitenbilder in einem Request ersetzen.
+     *
+     * @param list<string> $paths
+     * @param list<array{name:string,type:string,tmp_name:string,error:int,size:int}> $replacementFiles
+     */
+    public function replaceItems(array $paths, array $replacementFiles): array
+    {
+        if ($paths === [] || $replacementFiles === []) {
+            return ['success' => false, 'error' => 'Bitte mindestens eine neue Bilddatei auswählen.'];
+        }
+
+        $featuredUsageMap = $this->usageService->buildFeaturedImageMap();
+        $successCount = 0;
+        $details = [];
+        $errorDetails = [];
+        $highlightPath = '';
+        $seenPaths = [];
+        $maxPairs = max(count($paths), count($replacementFiles));
+
+        for ($index = 0; $index < $maxPairs; $index++) {
+            $normalizedPath = $this->normalizeRelativePath((string) ($paths[$index] ?? ''));
+            $replacementFile = is_array($replacementFiles[$index] ?? null) ? $replacementFiles[$index] : null;
+
+            if ($normalizedPath === '') {
+                $errorDetails[] = 'Ein Bildpfad im Mehrfach-Request ist ungültig.';
+                continue;
+            }
+
+            if (isset($seenPaths[$normalizedPath])) {
+                $errorDetails[] = basename($normalizedPath) . ': Diese Referenz wurde im Request doppelt übermittelt und übersprungen.';
+                continue;
+            }
+            $seenPaths[$normalizedPath] = true;
+
+            if ($replacementFile === null || (int) ($replacementFile['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+                $errorDetails[] = basename($normalizedPath) . ': Keine Ersatzdatei übermittelt.';
+                continue;
+            }
+
+            $result = $this->replaceFeaturedItemWithFile($normalizedPath, $replacementFile, $featuredUsageMap);
+            if (!empty($result['success'])) {
+                $successCount++;
+                $highlightPath = $highlightPath === '' ? $normalizedPath : $highlightPath;
+                foreach ((array) ($result['details'] ?? []) as $detail) {
+                    $details[] = (string) $detail;
+                }
+                continue;
+            }
+
+            $errorDetails[] = basename($normalizedPath) . ': ' . trim((string) ($result['error'] ?? 'Bild konnte nicht ersetzt werden.'));
+        }
+
+        if ($successCount === 0) {
+            return [
+                'success' => false,
+                'error' => 'Keines der vorbereiteten Bilder konnte ersetzt werden.',
+                'details' => [],
+                'error_details' => array_slice($errorDetails, 0, 8),
+            ];
+        }
+
+        return [
+            'success' => true,
+            'message' => $successCount === 1 ? '1 Bild ersetzt.' : $successCount . ' Bilder ersetzt.',
+            'highlight_path' => $highlightPath,
+            'details' => array_slice($details, 0, 8),
+            'error_details' => array_slice($errorDetails, 0, 8),
+        ];
+    }
+
+    /**
+     * @param array<string,mixed> $replacementFile
+     * @param array<string, list<array<string, mixed>>> $featuredUsageMap
+     */
+    private function replaceFeaturedItemWithFile(string $normalizedPath, array $replacementFile, array $featuredUsageMap): array
+    {
+        if (!array_key_exists($normalizedPath, $featuredUsageMap)) {
+            return ['success' => false, 'error' => 'Dieses Bild ist aktuell nicht als Beitrags- oder Seitenbild registriert. Bitte die Medienansicht neu laden.'];
+        }
+
         $result = $this->service->replaceManagedFile($replacementFile, $normalizedPath);
         if ($result instanceof WP_Error) {
             return $this->buildGenericFailureFromWpError($result, [
