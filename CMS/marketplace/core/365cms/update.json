@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "3.0.6",
+  "version": "3.0.7",
   "min_php": "8.4",
   "released": "2026-05-16",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 3.0.6: Der Beitrags-&-Site-Medien-Tab ersetzt mehrere vorbereitete Featured-Image-Dateien jetzt gemeinsam, sobald bei einer Zeile 'Bild ersetzen' ausgelöst wird.",
+  "notes": "Release-Stand 3.0.7: Editor-Bilduploads bewahren die hochgeladene Originaldatei ohne verlustbehaftetes Re-Encoding; der Beitragsbild-Picker zeigt alle ArtikelRahmen*-Medien.",
   "critical": false
 }

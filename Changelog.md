@@ -1,4 +1,4 @@
-﻿﻿**Version:** 3.0.6
+﻿﻿**Version:** 3.0.7
 
 # 365CMS Changelog
 
@@ -19,6 +19,12 @@
 ## 📜 Aktuelle Versionshistorie ab 3.0.0
 
 > Die vollständige historische 2.x-Historie wurde in [`Changelog_old.md`](Changelog_old.md) archiviert.
+
+### v3.0.7 — 16. Mai 2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.0.7** | 🔴 fix | Editor/Medien | **`CMS/core/Services/MediaService.php`, `CMS/core/Services/EditorJs/EditorJsUploadService.php`, `CMS/admin/views/partials/featured-image-picker.php`, `CMS/core/Services/EditorJs/EditorJsImageLibraryService.php`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md` und `Changelog.md` bewahren Editor-Bilduploads als echte Originaldateien und erweitern den Beitragsbild-Picker.** Bild-Uploads aus Beiträgen und Seiten überspringen jetzt das verlustbehaftete Re-Encoding des gespeicherten Originals; optionale WebP-Dateien bleiben nur Derivate. Der Beitragsbild-Picker nutzt `ArtikelRahmen` als breiteren Standardpräfix, akzeptiert `ArtikelRahmen*` als Prefix-Syntax und kappt explizit gefilterte Treffer nicht mehr bei 250 Einträgen. |
 
 ### v3.0.6 — 16. Mai 2026
 

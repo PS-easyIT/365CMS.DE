@@ -1252,7 +1252,7 @@ class MediaService {
     /**
      * Upload a file
      */
-    public function uploadFile(array $file, string $targetPath = '', ?array $validationSettings = null): string|WP_Error {
+    public function uploadFile(array $file, string $targetPath = '', ?array $validationSettings = null, bool $preserveOriginalImage = false): string|WP_Error {
         $settings = $this->getSettings();
         $result = $this->uploadHandler->uploadFile(
             $file,
@@ -1268,7 +1268,9 @@ class MediaService {
         $storedRelativePath = trim(($targetPath !== '' ? trim($targetPath, '/\\') . '/' : '') . $storedName, '/');
         $storedAbsolutePath = rtrim($this->uploadPath, '/\\') . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $storedRelativePath);
 
-        $this->repairUploadedBrowserImage($storedAbsolutePath, $storedName, $settings);
+        if (!$preserveOriginalImage) {
+            $this->repairUploadedBrowserImage($storedAbsolutePath, $storedName, $settings);
+        }
 
         return $storedName;
     }

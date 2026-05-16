@@ -102,7 +102,7 @@ final class EditorJsUploadService
             ];
         }
 
-        $storedFile = MediaService::getInstance()->uploadFile($file, trim($targetPath, '/'));
+        $storedFile = MediaService::getInstance()->uploadFile($file, trim($targetPath, '/'), null, $imagesOnly);
 
         if ($storedFile instanceof \CMS\WP_Error) {
             Logger::instance()->withChannel('editorjs.upload')->warning('Editor.js-Upload wurde abgelehnt', [
