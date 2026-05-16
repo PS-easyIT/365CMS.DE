@@ -17,7 +17,7 @@ $pickerDialogTitle = (string)($pickerDialogTitle ?? 'Bild auswählen');
 $pickerToken = (string)($editorMediaToken ?? '');
 $pickerIsNew = isset($pickerIsNew) ? (bool)$pickerIsNew : true;
 $pickerContentType = (string)($pickerContentType ?? 'post'); // 'post' | 'page'
-$pickerFilenamePrefix = (string)($pickerFilenamePrefix ?? 'ArtikelRahmen_');
+$pickerFilenamePrefix = (string)($pickerFilenamePrefix ?? 'ArtikelRahmen');
 ?>
 
 <div class="modal modal-blur fade" id="<?= htmlspecialchars($pickerModalId) ?>" tabindex="-1" aria-hidden="true">

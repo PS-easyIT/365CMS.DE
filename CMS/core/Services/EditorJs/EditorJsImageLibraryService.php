@@ -17,6 +17,8 @@ if (!defined('ABSPATH')) {
 
 final class EditorJsImageLibraryService
 {
+    private const MAX_UNFILTERED_ITEMS = 250;
+
     /**
      * @return array{success:int,items?:array<int,array<string,mixed>>,message?:string}
      */
@@ -87,13 +89,18 @@ final class EditorJsImageLibraryService
 
         return [
             'success' => 1,
-            'items' => array_slice($items, 0, 250),
+            'items' => $filenamePrefix !== '' ? $items : array_slice($items, 0, self::MAX_UNFILTERED_ITEMS),
         ];
     }
 
     private function normalizeFilenamePrefix(string $filenamePrefix): ?string
     {
         $filenamePrefix = trim($filenamePrefix);
+        if ($filenamePrefix === '') {
+            return '';
+        }
+
+        $filenamePrefix = rtrim($filenamePrefix, '*');
         if ($filenamePrefix === '') {
             return '';
         }
