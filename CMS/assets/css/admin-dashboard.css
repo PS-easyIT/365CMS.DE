@@ -456,6 +456,154 @@
 	color: #475569;
 }
 
+/* Compact dashboard overrides (1080p target) */
+.dashboard-page-title {
+	line-height: 1.1;
+}
+
+.dashboard-header-line {
+	font-size: 0.82rem;
+	line-height: 1.2;
+	margin-top: 0.15rem;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	max-height: 40px;
+}
+
+.dashboard-section + .dashboard-section {
+	margin-top: 16px;
+	padding-top: 16px;
+}
+
+.dashboard-section .card-header {
+	padding: 0.5rem 0.875rem;
+	min-height: 40px;
+}
+
+.dashboard-section .card-body,
+.dashboard-section .card-footer {
+	padding: 12px 14px;
+}
+
+.dashboard-section-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.5rem;
+	width: 100%;
+}
+
+.dashboard-primary-metrics {
+	gap: 0.6rem;
+}
+
+.dashboard-primary-metric {
+	min-height: 64px;
+	padding: 0.6rem 0.7rem;
+	gap: 0.2rem;
+}
+
+.dashboard-primary-metric-head {
+	margin-bottom: 0.1rem;
+}
+
+.dashboard-primary-metric-label {
+	font-size: 11px;
+}
+
+.dashboard-primary-metric-value {
+	font-size: 22px;
+	line-height: 1;
+}
+
+.dashboard-primary-metric-hint,
+.dashboard-primary-metric-empty {
+	font-size: 12px;
+	line-height: 1.2;
+}
+
+.dashboard-personalize-collapse .card-body {
+	padding: 12px 14px;
+}
+
+.dashboard-work-card .card-body,
+.dashboard-context-tile {
+	padding: 12px 14px;
+}
+
+.dashboard-work-grid {
+	gap: 0.55rem;
+	margin-top: 0.6rem !important;
+}
+
+.dashboard-context-tile {
+	gap: 0.35rem;
+}
+
+.dashboard-context-sub,
+.dashboard-context-detail-list {
+	font-size: 12px;
+	line-height: 1.3;
+}
+
+.dashboard-overview-grid {
+	gap: 0.65rem;
+}
+
+.dashboard-favorite-grid {
+	gap: 0.5rem;
+}
+
+.dashboard-favorite-grid .btn {
+	min-height: 2.35rem;
+	padding-top: 0.35rem;
+	padding-bottom: 0.35rem;
+}
+
+.dashboard-overview-card .card {
+	min-height: 130px;
+}
+
+.dashboard-compact-card {
+	min-height: 130px;
+}
+
+.dashboard-mini-stat {
+	padding: 0.5rem 0.6rem;
+}
+
+.dashboard-section--lower .list-group-item {
+	padding: 0.5rem 0.7rem;
+}
+
+.dashboard-section--lower .card-header {
+	min-height: 38px;
+}
+
+.dashboard-section--lower .card-title {
+	font-size: 11px;
+}
+
+.dashboard-section--lower .h2 {
+	font-size: 1.2rem;
+}
+
+.dashboard-section--lower .dashboard-mini-stat .small,
+.dashboard-section--lower .small {
+	font-size: 11px;
+}
+
+.dashboard-section .table.card-table th,
+.dashboard-section .table.card-table td {
+	padding-top: 0.4rem;
+	padding-bottom: 0.4rem;
+}
+
+.dashboard-section .table.card-table tbody tr {
+	height: 32px;
+}
+
 @media (max-width: 767.98px) {
 	.dashboard-section {
 		margin-top: 1.8rem;

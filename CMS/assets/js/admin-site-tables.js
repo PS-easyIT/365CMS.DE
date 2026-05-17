@@ -39,6 +39,16 @@
         fallbackSubmitter.remove();
     }
 
+    function showToast(message, type) {
+        if (typeof cmsShowTopToast === 'function') {
+            cmsShowTopToast(message);
+            return;
+        }
+        if (typeof cmsAlert === 'function') {
+            cmsAlert(type || 'info', message);
+        }
+    }
+
     function clearElement(element) {
         if (!element) {
             return;
@@ -63,8 +73,23 @@
 
                 event.preventDefault();
                 var query = input.value.trim();
-                var baseUrl = input.getAttribute('data-search-url') || '';
+                var baseUrl = input.getAttribute('data-search-url') || window.location.pathname;
                 window.location.href = baseUrl + (query !== '' ? '?q=' + encodeURIComponent(query) : '');
+            });
+        });
+
+        document.querySelectorAll('.js-copy-table-shortcode').forEach(function (button) {
+            button.addEventListener('click', function () {
+                var text = button.getAttribute('data-copy-text') || '';
+                if (!navigator.clipboard || typeof navigator.clipboard.writeText !== 'function') {
+                    showToast('Kopieren wird von diesem Browser leider nicht unterstützt.', 'warning');
+                    return;
+                }
+                navigator.clipboard.writeText(text).then(function () {
+                    showToast('Shortcode wurde in die Zwischenablage kopiert.', 'success');
+                }).catch(function () {
+                    showToast('Shortcode konnte nicht kopiert werden.', 'danger');
+                });
             });
         });
 

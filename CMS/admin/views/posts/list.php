@@ -98,7 +98,7 @@ $postsHasMultipleAuthors = count($postsAuthorKeys) > 1;
                             <span class="input-group-text">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-sm" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><circle cx="10" cy="10" r="7"/><path d="M21 21l-6 -6"/></svg>
                             </span>
-                            <input type="text" class="form-control form-control-sm" id="searchInput" name="q" placeholder="Titel, Slug oder Autor"
+                            <input type="text" class="form-control form-control-sm" id="searchInput" name="q" placeholder="Titel, Slug oder Autor suchen"
                                    value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>"
                                    onkeydown="if(event.key==='Enter'){event.preventDefault();applyFilters();}">
                             <button type="button" class="btn btn-outline-secondary" onclick="applyFilters()">Suchen</button>
@@ -206,7 +206,7 @@ $postsHasMultipleAuthors = count($postsAuthorKeys) > 1;
                             if ($postUpdatedAt !== '') {
                                 $postUpdatedTimestamp = strtotime($postUpdatedAt);
                                 if ($postUpdatedTimestamp !== false) {
-                                    $postUpdatedAtLabel = date('d.m.Y H:i', $postUpdatedTimestamp);
+                                    $postUpdatedAtLabel = date('d.m.Y · H:i', $postUpdatedTimestamp);
                                 }
                             }
                             $postUpdatedSort = $postUpdatedTimestamp ?? strtotime((string)($post['created_at'] ?? '')) ?? 0;
@@ -409,7 +409,7 @@ function applyFilters() {
         var from = totalRows === 0 ? 0 : startIndex + 1;
         var to = totalRows === 0 ? 0 : endIndex;
         if (rangeSummary) {
-            rangeSummary.textContent = 'Zeige ' + from + '-' + to + ' von ' + totalRows + ' Einträgen';
+            rangeSummary.textContent = 'Seite ' + currentPage + '/' + totalPages + ' · Zeige ' + from + '-' + to + ' von ' + totalRows + ' Einträgen';
         }
         if (prevPageButton) {
             prevPageButton.disabled = currentPage <= 1;
@@ -576,10 +576,29 @@ function applyFilters() {
                 ? 'Soll der ausgewählte Beitrag wirklich gelöscht werden?'
                 : 'Sollen die ' + checkedBoxes.length + ' ausgewählten Beiträge wirklich gelöscht werden?';
 
-            if (!window.confirm(deleteMessage)) {
-                event.preventDefault();
+            if (bulkForm.dataset.bulkDeleteConfirmed === '1') {
+                bulkForm.dataset.bulkDeleteConfirmed = '0';
                 return;
             }
+            event.preventDefault();
+            if (typeof cmsConfirm === 'function') {
+                cmsConfirm({
+                    title: 'Beiträge gesammelt löschen?',
+                    message: deleteMessage,
+                    confirmText: 'Löschen',
+                    confirmClass: 'btn-danger',
+                    onConfirm: function () {
+                        bulkForm.dataset.bulkDeleteConfirmed = '1';
+                        cmsSubmitFormSafely(bulkForm);
+                    }
+                });
+                return;
+            }
+            if (window.confirm(deleteMessage)) {
+                bulkForm.dataset.bulkDeleteConfirmed = '1';
+                cmsSubmitFormSafely(bulkForm);
+            }
+            return;
         }
     });
 

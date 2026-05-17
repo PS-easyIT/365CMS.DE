@@ -20,7 +20,7 @@ $packagePayload = static fn (array $package): string => htmlspecialchars((string
 $formatHistoryDateTime = static function (?string $dateValue): string {
     $timestamp = $dateValue !== null ? strtotime($dateValue) : false;
 
-    return $timestamp !== false ? date('d.m.Y H:i', $timestamp) : '–';
+    return $timestamp !== false ? date('d.m.Y · H:i', $timestamp) : '–';
 };
 $packageHistorySeverityMeta = static function (string $severity): array {
     return match ($severity) {
@@ -108,7 +108,7 @@ $packageHistorySeverityMeta = static function (string $severity): array {
                 </div>
             </div>
         <?php else: ?>
-            <div class="row row-deck row-cards">
+            <div class="row row-deck row-cards subscription-package-grid">
                 <?php foreach ($packages as $pkg): ?>
                     <?php
                     $monthlyPrice = (float)($pkg['price_monthly'] ?? $pkg['price'] ?? 0);
@@ -116,8 +116,8 @@ $packageHistorySeverityMeta = static function (string $severity): array {
                     $currency     = strtoupper((string)($pkg['currency'] ?? 'EUR'));
                     $currencyUnit = $currency === 'EUR' ? '€' : $currency;
                     ?>
-                    <div class="col-sm-6 col-lg-4">
-                        <div class="card<?= (int)$pkg['is_featured'] ? ' border-primary' : '' ?><?= !(int)$pkg['is_active'] ? ' opacity-50' : '' ?>">
+                    <div class="col-sm-6 col-xl-4">
+                        <div class="card subscription-package-card<?= (int)$pkg['is_featured'] ? ' border-primary' : '' ?><?= !(int)$pkg['is_active'] ? ' opacity-50' : '' ?>">
                             <?php if ((int)$pkg['is_featured']): ?>
                                 <div class="card-status-top bg-primary"></div>
                             <?php endif; ?>
@@ -216,9 +216,13 @@ $packageHistorySeverityMeta = static function (string $severity): array {
                     </thead>
                     <tbody>
                         <?php if ($packageHistoryEvents === []): ?>
-                            <tr>
-                                <td colspan="5" class="text-center text-secondary py-4"><?= htmlspecialchars($packageHistoryUnavailable ? 'Keine Historie verfügbar.' : 'Noch keine passenden Pakethistorien vorhanden.', ENT_QUOTES, 'UTF-8') ?></td>
-                            </tr>
+                            <?php
+                            $emptyStateColspan = 5;
+                            $emptyStateMessage = $packageHistoryUnavailable ? 'Keine Historie verfügbar.' : 'Noch keine passenden Pakethistorien vorhanden.';
+                            $emptyStateSubtitle = 'Sobald Änderungen an Paketen erfolgen, erscheinen sie hier automatisch.';
+                            $emptyStateIcon = 'default';
+                            require __DIR__ . '/../partials/empty-table-row.php';
+                            ?>
                         <?php else: ?>
                             <?php foreach ($packageHistoryEvents as $historyEvent): ?>
                                 <?php $historyMeta = $packageHistorySeverityMeta((string) ($historyEvent['severity'] ?? 'info')); ?>
@@ -249,6 +253,7 @@ $packageHistorySeverityMeta = static function (string $severity): array {
 
                             <div class="row g-3">
                                 <div class="col-md-6">
+                                    <div class="subscription-settings-label">Kernsteuerung</div>
                                     <label class="form-check form-switch mb-3">
                                         <input type="checkbox" name="subscription_enabled" class="form-check-input" <?= ($settings['subscription_enabled'] ?? '0') === '1' ? 'checked' : '' ?>>
                                         <span class="form-check-label">Aboverwaltung sichtbar/aktiv</span>
@@ -348,7 +353,7 @@ $packageHistorySeverityMeta = static function (string $severity): array {
                     </div>
                     <div class="card-body">
                         <div class="alert alert-primary" role="alert">
-                            Über <strong>Einstellungen</strong> in der Sidebar können Sie die <strong>Limit-Durchsetzung komplett deaktivieren</strong>. Dann greifen im gesamten CMS keine Abo-Limits mehr – praktisch, wenn Sie intern testen oder das System temporär ohne Restriktionen nutzen möchten.
+                            Über <strong>Einstellungen</strong> in der Sidebar können Sie die <strong>Limit-Durchsetzung komplett deaktivieren</strong>. Dann greifen im gesamten CMS keine Abo-Limits mehr. Das ist sinnvoll für interne Tests oder für einen temporären Betrieb ohne Restriktionen.
                         </div>
                         <ul class="text-secondary mb-0">
                             <li>Standardpakete legen die 6 üblichen Tarife an.</li>

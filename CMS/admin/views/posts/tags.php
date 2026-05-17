@@ -44,6 +44,21 @@ $buildTagArchivePreviewPaths = static function (string $slug): array {
     return $paths;
 };
 $tagArchivePreviewPaths = $buildTagArchivePreviewPaths($editTagSlug);
+$panelState = [
+    'open' => $isEditing || !empty($formAlert),
+    'mode' => $isEditing ? 'edit' : 'create',
+    'successMessage' => (is_array($alert ?? null) && (($alert['type'] ?? '') === 'success')) ? (string) ($alert['message'] ?? '') : '',
+    'formError' => is_array($formAlert) ? [
+        'message' => (string) ($formAlert['message'] ?? 'Tag konnte nicht gespeichert werden.'),
+        'details' => array_values(array_filter(array_map('strval', (array) ($formAlert['details'] ?? [])), static fn(string $detail): bool => trim($detail) !== '')),
+    ] : null,
+    'values' => [
+        'tag_id' => $editTagId,
+        'tag_name' => $editTagName,
+        'tag_slug' => $editTagSlug,
+    ],
+];
+$panelStateJson = htmlspecialchars((string) json_encode($panelState, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), ENT_QUOTES);
 ?>
 
 <div class="page-header d-print-none">
@@ -57,63 +72,20 @@ $tagArchivePreviewPaths = $buildTagArchivePreviewPaths($editTagSlug);
                     <span><?php echo (int) ($counts['assigned_posts'] ?? 0); ?> Tag-Zuweisungen</span>
                 </div>
             </div>
+            <button type="button" class="btn btn-primary d-print-none" data-taxonomy-open>
+                <i class="ti ti-plus" style="font-size:15px;" aria-hidden="true"></i>
+                Neues Tag anlegen
+            </button>
         </div>
     </div>
 </div>
 
-<div class="page-body">
+<div class="page-body" data-taxonomy-panel-root data-taxonomy-list-url="/admin/post-tags">
     <div class="container-xl">
         <?php if (!empty($alert)): ?>
             <?php $alertData = $alert; $alertMarginClass = 'mb-3'; require __DIR__ . '/../partials/flash-alert.php'; ?>
         <?php endif; ?>
-
-        <div class="content-entity-layout">
-            <div class="content-entity-layout__aside">
-                <div class="card content-entity-form-card">
-                    <div class="card-header"><h3 class="card-title"><?php echo $isEditing ? 'Tag bearbeiten' : 'Neuen Tag anlegen'; ?></h3></div>
-                    <div class="card-body">
-                        <?php if (!empty($formAlert)): ?>
-                            <?php $alertData = $formAlert; $alertMarginClass = 'mb-3'; $alertDismissible = false; require __DIR__ . '/../partials/flash-alert.php'; ?>
-                        <?php endif; ?>
-
-                        <form method="post">
-                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES); ?>">
-                            <input type="hidden" name="action" value="save_tag">
-                            <input type="hidden" name="tag_id" value="<?php echo $editTagId; ?>">
-                            <div class="mb-3">
-                                <label class="form-label" for="postTagName">Name</label>
-                                <input type="text" class="form-control" id="postTagName" name="tag_name" value="<?php echo htmlspecialchars($editTagName, ENT_QUOTES); ?>" required>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label" for="postTagSlug">Slug</label>
-                                <input type="text" class="form-control" id="postTagSlug" name="tag_slug" value="<?php echo htmlspecialchars($editTagSlug, ENT_QUOTES); ?>" placeholder="wird automatisch generiert">
-                            </div>
-                            <div class="alert alert-info content-entity-contract">
-                                <h4 class="content-entity-contract__title">Archiv- &amp; Redirect-Vertrag</h4>
-                                <p class="content-entity-contract__description small text-secondary">Slug-Änderungen erzeugen automatisch Archiv-Weiterleitungen. Ältere Theme- und Blog-Filter mit <code>/blog?tag=&lt;slug&gt;</code> bleiben weiterhin auf den aktuellen Tag-Slug auflösbar.</p>
-                                <?php if ($tagArchivePreviewPaths !== []): ?>
-                                    <div class="small text-secondary mt-2">Aktuelle Archivpfade dieses Tags:</div>
-                                    <ul class="small ps-3 mb-2">
-                                        <?php foreach ($tagArchivePreviewPaths as $archivePath): ?>
-                                            <li><code><?php echo htmlspecialchars($archivePath, ENT_QUOTES); ?></code></li>
-                                        <?php endforeach; ?>
-                                    </ul>
-                                <?php endif; ?>
-                                <div class="btn-list content-entity-contract__actions">
-                                    <a href="/admin/redirect-manager" class="btn btn-sm btn-outline-primary content-entity-contract__action-btn">Redirect-Manager öffnen</a>
-                                </div>
-                            </div>
-                            <div class="d-flex gap-2">
-                                <button type="submit" class="btn btn-primary flex-fill"><?php echo $isEditing ? 'Tag aktualisieren' : 'Tag speichern'; ?></button>
-                                <?php if ($isEditing): ?>
-                                    <a href="/admin/post-tags" class="btn btn-outline-secondary">Abbrechen</a>
-                                <?php endif; ?>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-            <div class="content-entity-layout__main">
+        <div class="content-taxonomy-list">
                 <div class="card content-listing-card content-listing-toolbar content-entity-toolbar">
                     <div class="card-body">
                         <div class="content-listing-toolbar__label">Filter &amp; Aktionen</div>
@@ -193,10 +165,53 @@ $tagArchivePreviewPaths = $buildTagArchivePreviewPaths($editTagSlug);
                         </table>
                     </div>
                 </div>
-            </div>
         </div>
     </div>
 </div>
+
+<div class="taxonomy-slide-backdrop" data-taxonomy-backdrop></div>
+<aside class="taxonomy-slide-panel" data-taxonomy-panel aria-hidden="true">
+    <form method="post" action="/admin/post-tags" data-taxonomy-form novalidate>
+        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES); ?>">
+        <input type="hidden" name="action" value="save_tag">
+        <input type="hidden" name="tag_id" value="<?php echo $editTagId; ?>" data-taxonomy-field="tag_id">
+        <div class="taxonomy-slide-panel__header">
+            <h3 class="card-title mb-0" data-taxonomy-title><?php echo $isEditing ? 'Tag bearbeiten' : 'Neues Tag anlegen'; ?></h3>
+            <button type="button" class="btn btn-icon btn-ghost-secondary" data-taxonomy-close aria-label="Schließen">
+                <i class="ti ti-x" style="font-size:18px;" aria-hidden="true"></i>
+            </button>
+        </div>
+        <div class="taxonomy-slide-panel__body">
+            <div class="alert alert-danger taxonomy-form-error d-none" data-taxonomy-form-error role="alert"></div>
+            <div class="mb-3">
+                <label class="form-label required" for="postTagPanelName">Name</label>
+                <input type="text" class="form-control" id="postTagPanelName" name="tag_name" value="<?php echo htmlspecialchars($editTagName, ENT_QUOTES); ?>" data-taxonomy-field="tag_name" data-taxonomy-name required>
+                <div class="taxonomy-validation-error d-none" data-taxonomy-error-for="tag_name"></div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label" for="postTagPanelSlug">Slug</label>
+                <div class="input-group">
+                    <span class="input-group-text">/</span>
+                    <input type="text" class="form-control" id="postTagPanelSlug" name="tag_slug" value="<?php echo htmlspecialchars($editTagSlug, ENT_QUOTES); ?>" placeholder="wird automatisch generiert" data-taxonomy-field="tag_slug" data-taxonomy-slug>
+                </div>
+                <div class="taxonomy-validation-error d-none" data-taxonomy-error-for="tag_slug"></div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label" for="postTagPanelDescription">Beschreibung</label>
+                <textarea class="form-control" id="postTagPanelDescription" rows="2" name="tag_description" data-taxonomy-field="tag_description"></textarea>
+            </div>
+            <label class="form-check form-switch mb-0">
+                <input type="checkbox" class="form-check-input" name="publish_now" value="1" data-taxonomy-field="publish_now">
+                <span class="form-check-label">Sofort veröffentlichen</span>
+            </label>
+        </div>
+        <div class="taxonomy-slide-panel__footer">
+            <button type="button" class="btn btn-outline-secondary" data-taxonomy-cancel>Abbrechen</button>
+            <button type="submit" class="btn btn-primary" data-taxonomy-submit>Anlegen</button>
+        </div>
+    </form>
+    <div hidden data-taxonomy-panel-state="<?php echo $panelStateJson; ?>"></div>
+</aside>
 
 <div class="modal modal-blur fade" id="deleteTagModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">

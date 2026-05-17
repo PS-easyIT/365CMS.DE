@@ -31,6 +31,16 @@
         }
     }
 
+    function showToast(message, type) {
+        if (typeof cmsShowTopToast === 'function') {
+            cmsShowTopToast(message);
+            return;
+        }
+        if (typeof cmsAlert === 'function') {
+            cmsAlert(type || 'info', message);
+        }
+    }
+
     function absoluteUrlFromPath(path) {
         var normalizedPath = String(path || '').trim();
 
@@ -63,7 +73,7 @@
 
                 event.preventDefault();
                 var query = input.value.trim();
-                var baseUrl = input.getAttribute('data-search-url') || '';
+                var baseUrl = input.getAttribute('data-search-url') || window.location.pathname;
                 window.location.href = baseUrl + (query !== '' ? '?q=' + encodeURIComponent(query) : '');
             });
         });
@@ -72,20 +82,14 @@
             button.addEventListener('click', function () {
                 var publicUrl = absoluteUrlFromPath(button.getAttribute('data-hub-public-path') || '');
                 if (!navigator.clipboard || typeof navigator.clipboard.writeText !== 'function') {
-                    if (typeof cmsAlert === 'function') {
-                        cmsAlert('warning', 'Kopieren wird von diesem Browser leider nicht unterstützt.');
-                    }
+                    showToast('Kopieren wird von diesem Browser leider nicht unterstützt.', 'warning');
                     return;
                 }
 
                 navigator.clipboard.writeText(publicUrl).then(function () {
-                    if (typeof cmsAlert === 'function') {
-                        cmsAlert('success', 'Public URL wurde in die Zwischenablage kopiert.');
-                    }
+                    showToast('Public-URL wurde in die Zwischenablage kopiert.', 'success');
                 }).catch(function () {
-                    if (typeof cmsAlert === 'function') {
-                        cmsAlert('danger', 'Public URL konnte nicht kopiert werden.');
-                    }
+                    showToast('Public-URL konnte nicht kopiert werden.', 'danger');
                 });
             });
         });
@@ -103,7 +107,7 @@
                 showConfirm(
                     {
                         title: 'Routing / Hub Site löschen',
-                        message: 'Routing / Hub Site <strong>' + siteName + '</strong> wirklich löschen?',
+                        message: 'Routing / Hub-Site "' + siteName + '" wirklich löschen?',
                         confirmText: 'Löschen',
                         confirmClass: 'btn-danger',
                     },

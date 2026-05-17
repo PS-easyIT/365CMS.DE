@@ -196,25 +196,6 @@ if ($siteDomain === '') {
     $siteDomain = trim((string) preg_replace('~/.*$~', '', $siteDomain));
 }
 
-$sidebarSecurityScore = 86;
-try {
-    $_securityScoreRow = \CMS\Database::instance()->get_row(
-        "SELECT option_value FROM " . \CMS\Database::instance()->getPrefix() . "settings WHERE option_name = 'security_score'"
-    );
-    if ($_securityScoreRow !== null) {
-        $sidebarSecurityScore = max(0, min(100, (int) $_securityScoreRow->option_value));
-    }
-} catch (\Throwable) {
-    $sidebarSecurityScore = 86;
-}
-
-$sidebarSecurityClass = 'admin-sidebar__status-score--green';
-if ($sidebarSecurityScore < 60) {
-    $sidebarSecurityClass = 'admin-sidebar__status-score--red';
-} elseif ($sidebarSecurityScore < 80) {
-    $sidebarSecurityClass = 'admin-sidebar__status-score--amber';
-}
-
 $subscriptionSidebarChildren = [
     ['label' => 'Pakete & Abo-Einstellungen', 'slug' => 'packages', 'url' => $siteUrl . '/admin/packages'],
     ['label' => 'Bestellungen & Zuweisung', 'slug' => 'orders', 'url' => $siteUrl . '/admin/orders'],
@@ -231,17 +212,17 @@ $subscriptionSidebarSlugs = array_values(array_map(
 ));
 
 $themeSidebarChildren = [
-    ['label' => 'Theme - Verwaltung', 'slug' => 'themes', 'url' => $siteUrl . '/admin/themes'],
-    ['label' => 'Theme - Editor', 'slug' => 'theme-editor', 'url' => $siteUrl . '/admin/theme-editor'],
-    ['label' => 'Theme - Explorer', 'slug' => 'theme-explorer', 'url' => $siteUrl . '/admin/theme-explorer'],
-    ['label' => 'Theme - Menü', 'slug' => 'menu-editor', 'url' => $siteUrl . '/admin/menu-editor'],
-    ['label' => 'Landing Page', 'slug' => 'landing-page', 'url' => $siteUrl . '/admin/landing-page'],
-    ['label' => 'Font Manager', 'slug' => 'font-manager', 'url' => $siteUrl . '/admin/font-manager'],
-    ['label' => 'CMS Loginpage', 'slug' => 'cms-loginpage', 'url' => $siteUrl . '/admin/cms-loginpage'],
+    ['label' => 'Theme-Verwaltung', 'slug' => 'themes', 'url' => $siteUrl . '/admin/themes'],
+    ['label' => 'Theme-Editor', 'slug' => 'theme-editor', 'url' => $siteUrl . '/admin/theme-editor'],
+    ['label' => 'Theme-Explorer', 'slug' => 'theme-explorer', 'url' => $siteUrl . '/admin/theme-explorer'],
+    ['label' => 'Theme-Menü', 'slug' => 'menu-editor', 'url' => $siteUrl . '/admin/menu-editor'],
+    ['label' => 'Landingpage', 'slug' => 'landing-page', 'url' => $siteUrl . '/admin/landing-page'],
+    ['label' => 'Schriftverwaltung', 'slug' => 'font-manager', 'url' => $siteUrl . '/admin/font-manager'],
+    ['label' => 'CMS-Loginseite', 'slug' => 'cms-loginpage', 'url' => $siteUrl . '/admin/cms-loginpage'],
 ];
 
 if ($_marketplaceEnabled) {
-    $themeSidebarChildren[] = ['label' => 'Theme - Marketplace', 'slug' => 'theme-marketplace', 'url' => $siteUrl . '/admin/theme-marketplace'];
+    $themeSidebarChildren[] = ['label' => 'Theme-Marktplatz', 'slug' => 'theme-marketplace', 'url' => $siteUrl . '/admin/theme-marketplace'];
 }
 
 if ($coreModuleService instanceof \CMS\Services\CoreModuleService) {
@@ -275,10 +256,10 @@ $memberDashboardSidebarSlugs = array_values(array_map(
 ));
 
 $aiSidebarChildren = [
-    ['label' => 'AI Dashboard', 'slug' => 'ai-services', 'url' => $siteUrl . '/admin/ai-services'],
+    ['label' => 'KI-Dashboard', 'slug' => 'ai-services', 'url' => $siteUrl . '/admin/ai-services'],
     ['label' => 'Übersetzung', 'slug' => 'ai-translation', 'url' => $siteUrl . '/admin/ai-translation'],
-    ['label' => 'Content Creator', 'slug' => 'ai-content-creator', 'url' => $siteUrl . '/admin/ai-content-creator'],
-    ['label' => 'SEO Creator', 'slug' => 'ai-seo-creator', 'url' => $siteUrl . '/admin/ai-seo-creator'],
+    ['label' => 'Inhaltsassistent', 'slug' => 'ai-content-creator', 'url' => $siteUrl . '/admin/ai-content-creator'],
+    ['label' => 'SEO-Assistent', 'slug' => 'ai-seo-creator', 'url' => $siteUrl . '/admin/ai-seo-creator'],
     ['label' => 'Einstellungen', 'slug' => 'ai-settings', 'url' => $siteUrl . '/admin/ai-settings'],
 ];
 
@@ -292,11 +273,11 @@ $aiSidebarSlugs = array_values(array_map(
 ));
 
 $seoSidebarChildren = [
-    ['label' => 'SEO Dashboard', 'slug' => 'seo-dashboard', 'url' => $siteUrl . '/admin/seo-dashboard'],
-    ['label' => 'Analytics', 'slug' => 'analytics', 'url' => $siteUrl . '/admin/analytics'],
-    ['label' => 'SEO Audit', 'slug' => 'seo-audit', 'url' => $siteUrl . '/admin/seo-audit'],
+    ['label' => 'SEO-Dashboard', 'slug' => 'seo-dashboard', 'url' => $siteUrl . '/admin/seo-dashboard'],
+    ['label' => 'Analysen', 'slug' => 'analytics', 'url' => $siteUrl . '/admin/analytics'],
+    ['label' => 'SEO-Prüfung', 'slug' => 'seo-audit', 'url' => $siteUrl . '/admin/seo-audit'],
     ['label' => 'Meta-Daten', 'slug' => 'seo-meta', 'url' => $siteUrl . '/admin/seo-meta'],
-    ['label' => 'Social Media', 'slug' => 'seo-social', 'url' => $siteUrl . '/admin/seo-social'],
+    ['label' => 'Soziale Medien', 'slug' => 'seo-social', 'url' => $siteUrl . '/admin/seo-social'],
     ['label' => 'Strukturierte Daten', 'slug' => 'seo-schema', 'url' => $siteUrl . '/admin/seo-schema'],
     ['label' => 'Sitemap & robots.txt', 'slug' => 'seo-sitemap', 'url' => $siteUrl . '/admin/seo-sitemap'],
     ['label' => 'Technisches SEO', 'slug' => 'seo-technical', 'url' => $siteUrl . '/admin/seo-technical'],
@@ -332,7 +313,7 @@ $performanceSidebarSlugs = array_values(array_map(
 ));
 
 $legalSidebarChildren = [
-    ['label' => 'Legal Sites', 'slug' => 'legal-sites', 'url' => $siteUrl . '/admin/legal-sites'],
+    ['label' => 'Rechtsseiten', 'slug' => 'legal-sites', 'url' => $siteUrl . '/admin/legal-sites'],
     ['label' => 'Cookie-Manager', 'slug' => 'cookie-manager', 'url' => $siteUrl . '/admin/cookie-manager'],
     ['label' => 'Auskunft & Löschen', 'slug' => 'data-requests', 'url' => $siteUrl . '/admin/data-requests'],
 ];
@@ -347,7 +328,7 @@ $legalSidebarSlugs = array_values(array_map(
 ));
 
 $securitySidebarChildren = [
-    ['label' => 'AntiSpam', 'slug' => 'antispam', 'url' => $siteUrl . '/admin/antispam'],
+    ['label' => 'Anti-Spam', 'slug' => 'antispam', 'url' => $siteUrl . '/admin/antispam'],
     ['label' => 'Firewall', 'slug' => 'firewall', 'url' => $siteUrl . '/admin/firewall'],
     ['label' => 'Audit', 'slug' => 'security-audit', 'url' => $siteUrl . '/admin/security-audit'],
 ];
@@ -407,10 +388,10 @@ $menuGroups = [
         'icon'  => sidebarTopLevelIcon('dashboard'),
     ],
 
-    // ─── AI Services ────────────────
+    // ─── KI-Dienste ────────────────
     [
         'type'     => 'group',
-        'label'    => 'AI Services',
+        'label'    => 'KI-Dienste',
         'icon'     => sidebarTopLevelIcon('ai-services'),
         'slugs'    => $aiSidebarSlugs,
         'children' => $aiSidebarChildren,
@@ -464,10 +445,10 @@ $menuGroups = [
         ],
     ],
 
-    // ─── Member Dashboard ─────────────
+    // ─── Mitglieder-Dashboard ─────────────
     [
         'type'     => 'group',
-        'label'    => 'Member Dashboard',
+        'label'    => 'Mitglieder-Dashboard',
         'icon'     => sidebarTopLevelIcon('member-dashboard'),
         'slugs'    => $memberDashboardSidebarSlugs,
         'children' => $memberDashboardSidebarChildren,
@@ -485,7 +466,7 @@ $menuGroups = [
     // ─── Themes & Design ──────────────
     [
         'type'     => 'group',
-        'label'    => 'Themes & Design',
+        'label'    => 'Themes & Gestaltung',
         'icon'     => sidebarTopLevelIcon('themes'),
         'slugs'    => $themeSidebarSlugs,
         'children' => $themeSidebarChildren,
@@ -536,10 +517,10 @@ $menuGroups = [
         'children' => $pluginSidebarChildren,
     ],
 
-    // ─── Logs & Audit ──────────────────────
+    // ─── Protokolle & Audit ──────────────────────
     [
         'type'     => 'group',
-        'label'    => 'Logs & Audit',
+        'label'    => 'Protokolle & Audit',
         'icon'     => sidebarTopLevelIcon('logs-audit'),
         'slugs'    => $logsAuditSidebarSlugs,
         'children' => $logsAuditSidebarChildren,
@@ -549,7 +530,7 @@ $menuGroups = [
     // ─── System & Einstellungen ───────
     [
         'type'     => 'group',
-        'label'    => 'System & Doku',
+        'label'    => 'System & Dokumentation',
         'icon'     => sidebarTopLevelIcon('system'),
         'slugs'    => $systemSidebarSlugs,
         'children' => $systemSidebarChildren,
@@ -565,11 +546,11 @@ $menuGroups = [
             ['label' => 'Übersicht', 'slug' => 'info', 'url' => $siteUrl . '/admin/info'],
             ['label' => 'Datenbank', 'slug' => 'diagnose', 'url' => $siteUrl . '/admin/diagnose'],
             ['label' => 'Assets', 'slug' => 'monitor-assets', 'url' => $siteUrl . '/admin/monitor-assets'],
-            ['label' => 'Response-Time Monitoring', 'slug' => 'monitor-response-time', 'url' => $siteUrl . '/admin/monitor-response-time'],
-            ['label' => 'Cron-Job Status', 'slug' => 'monitor-cron-status', 'url' => $siteUrl . '/admin/monitor-cron-status'],
-            ['label' => 'Disk-Usage', 'slug' => 'monitor-disk-usage', 'url' => $siteUrl . '/admin/monitor-disk-usage'],
-            ['label' => 'Scheduled Tasks', 'slug' => 'monitor-scheduled-tasks', 'url' => $siteUrl . '/admin/monitor-scheduled-tasks'],
-            ['label' => 'Health-Check', 'slug' => 'monitor-health-check', 'url' => $siteUrl . '/admin/monitor-health-check'],
+            ['label' => 'Antwortzeit-Monitoring', 'slug' => 'monitor-response-time', 'url' => $siteUrl . '/admin/monitor-response-time'],
+            ['label' => 'Cron-Job-Status', 'slug' => 'monitor-cron-status', 'url' => $siteUrl . '/admin/monitor-cron-status'],
+            ['label' => 'Speichernutzung', 'slug' => 'monitor-disk-usage', 'url' => $siteUrl . '/admin/monitor-disk-usage'],
+            ['label' => 'Geplante Aufgaben', 'slug' => 'monitor-scheduled-tasks', 'url' => $siteUrl . '/admin/monitor-scheduled-tasks'],
+            ['label' => 'Systemprüfung', 'slug' => 'monitor-health-check', 'url' => $siteUrl . '/admin/monitor-health-check'],
             ['label' => 'E-Mail-Benachrichtigungen', 'slug' => 'monitor-email-alerts', 'url' => $siteUrl . '/admin/monitor-email-alerts'],
         ],
     ],
@@ -609,11 +590,11 @@ if ($pluginMenuGroups !== []) {
 }
 
 $sectionMap = [
-    'dashboard' => ['label' => 'Core', 'class' => 'nav-section-label--core'],
-    'pages-posts' => ['label' => 'Content', 'class' => 'nav-section-label--content'],
+    'dashboard' => ['label' => 'Kernsystem', 'class' => 'nav-section-label--core'],
+    'pages-posts' => ['label' => 'Inhalte', 'class' => 'nav-section-label--content'],
     'users' => ['label' => 'Benutzer', 'class' => 'nav-section-label--users'],
-    'themes' => ['label' => 'Marketing & Design', 'class' => 'nav-section-label--design'],
-    'legal-sites' => ['label' => 'Sicherheit & Logs', 'class' => 'nav-section-label--security'],
+    'themes' => ['label' => 'Marketing & Gestaltung', 'class' => 'nav-section-label--design'],
+    'legal-sites' => ['label' => 'Sicherheit & Protokolle', 'class' => 'nav-section-label--security'],
     'plugins' => ['label' => 'System', 'class' => 'nav-section-label--system'],
 ];
 $menuGroupsWithSections = [];
@@ -673,32 +654,91 @@ if (!function_exists('sidebarChildIcon')) {
         $iconMap = [
             'pages' => 'file-text',
             'posts' => 'article',
+            'post-categories' => 'tags',
+            'post-tags' => 'tags',
             'comments' => 'message-circle',
+            'table-of-contents' => 'list',
+            'hub-sites' => 'layout-dashboard',
+            'site-tables' => 'table',
+            'content-settings' => 'settings',
             'media' => 'photo',
+            'media-featured' => 'star',
+            'media-check' => 'circle-check',
+            'media-categories' => 'folder',
+            'media-settings' => 'settings',
             'users' => 'users',
             'groups' => 'users',
             'roles' => 'shield-check',
+            'user-settings' => 'settings',
+            'member-dashboard' => 'layout-dashboard',
+            'member-dashboard-general' => 'settings',
+            'member-dashboard-design' => 'palette',
+            'member-dashboard-frontend-modules' => 'apps',
+            'member-dashboard-widgets' => 'layout-grid',
+            'member-dashboard-plugin-widgets' => 'plug',
+            'member-dashboard-profile-fields' => 'id-badge-2',
+            'member-dashboard-notifications' => 'bell',
+            'member-dashboard-onboarding' => 'layout-dashboard',
             'orders' => 'shopping-cart',
             'packages' => 'package',
+            'subscription-settings' => 'settings',
+            'themes' => 'palette',
+            'theme-editor' => 'code',
+            'theme-explorer' => 'folder',
+            'menu-editor' => 'list',
+            'landing-page' => 'layout-dashboard',
+            'font-manager' => 'typography',
+            'cms-loginpage' => 'settings',
+            'theme-marketplace' => 'plug',
+            'ai-services' => 'sparkles',
+            'ai-translation' => 'language',
+            'ai-content-creator' => 'article',
+            'ai-seo-creator' => 'sparkles',
+            'ai-settings' => 'settings',
             'analytics' => 'chart-bar',
             'seo-dashboard' => 'chart-pie',
+            'seo-audit' => 'shield',
+            'seo-meta' => 'file-text',
+            'seo-social' => 'messages',
+            'seo-schema' => 'code',
+            'seo-sitemap' => 'list',
+            'seo-technical' => 'settings',
+            'redirect-manager' => 'refresh',
+            'not-found-monitor' => 'stethoscope',
+            'performance' => 'gauge',
+            'performance-cache' => 'database',
+            'performance-media' => 'photo',
+            'performance-database' => 'database',
+            'performance-settings' => 'settings',
+            'performance-sessions' => 'clock',
+            'legal-sites' => 'scale',
+            'cookie-manager' => 'settings',
+            'data-requests' => 'clipboard-list',
+            'antispam' => 'shield',
+            'firewall' => 'shield',
+            'security-audit' => 'shield-check',
             'documentation' => 'book',
             'settings' => 'settings',
             'mail-settings' => 'mail',
             'updates' => 'refresh',
             'backups' => 'database',
-            'cms-logs' => 'file-report',
+            'info' => 'stethoscope',
+            'diagnose' => 'stethoscope',
             'logs-overview' => 'clipboard-list',
             'logs-operational' => 'activity',
             'logs-security-audit' => 'shield-check',
             'logs-php-errors' => 'code',
             'logs-channels' => 'messages',
             'modules' => 'apps',
-            'themes' => 'palette',
-            'theme-editor' => 'code',
-            'theme-explorer' => 'folder',
-            'menu-editor' => 'list',
-            'font-manager' => 'typography',
+            'plugins' => 'plug',
+            'plugin-marketplace' => 'plug',
+            'monitor-assets' => 'package',
+            'monitor-response-time' => 'activity',
+            'monitor-cron-status' => 'clock',
+            'monitor-disk-usage' => 'database',
+            'monitor-scheduled-tasks' => 'list',
+            'monitor-health-check' => 'stethoscope',
+            'monitor-email-alerts' => 'mail',
         ];
 
         $icon = $iconMap[$slug] ?? 'chevron-right';
@@ -767,12 +807,6 @@ $topbarUnreadNotifications = max(0, (int) ($_SESSION['admin_unread_notifications
                     <?= htmlspecialchars((string) $siteDomain, ENT_QUOTES, 'UTF-8') ?>
                 </span>
             </div>
-            <div class="admin-sidebar__status-strip">
-                <span class="admin-sidebar__status-live">System läuft</span>
-                <span class="admin-sidebar__status-score <?= htmlspecialchars($sidebarSecurityClass, ENT_QUOTES, 'UTF-8') ?>">
-                    Security <?= $sidebarSecurityScore ?>
-                </span>
-            </div>
         </div>
         <div class="admin-sidebar__divider" aria-hidden="true"></div>
 
@@ -834,7 +868,9 @@ $topbarUnreadNotifications = max(0, (int) ($_SESSION['admin_unread_notifications
                                 <?php foreach ($item['children'] as $child): ?>
                                     <a class="dropdown-item<?= isSlugActive((string) ($child['slug'] ?? ''), $activePage) ? ' active' : '' ?>"
                                        href="<?= htmlspecialchars((string) ($child['url'] ?? '#')) ?>">
-                                        <span class="dropdown-item-dot" aria-hidden="true"></span>
+                                        <span class="dropdown-item-icon" aria-hidden="true">
+                                            <?= sidebarChildIcon((string) ($child['slug'] ?? '')) ?>
+                                        </span>
                                         <span class="dropdown-item-title"><?= htmlspecialchars((string) ($child['label'] ?? '')) ?></span>
                                     </a>
                                 <?php endforeach; ?>

@@ -153,7 +153,7 @@ require __DIR__ . '/../partials/flash-alert.php';
                                             <button class="btn btn-ghost-danger btn-sm" type="submit">Löschen</button>
                                         </form>
                                     <?php elseif ($isSystem): ?>
-                                        <span class="admin-plugin-system-lock text-secondary" title="Systemintegration — kann nicht gelöscht werden.">
+                                        <span class="admin-plugin-system-lock text-secondary">
                                             <i class="ti ti-lock" aria-hidden="true"></i>
                                         </span>
                                     <?php endif; ?>

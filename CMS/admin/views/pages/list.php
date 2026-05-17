@@ -102,7 +102,7 @@ $pagesHasMultipleAuthors = count($pagesAuthorKeys) > 1;
                             <span class="input-group-text">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><circle cx="10" cy="10" r="7"/><path d="M21 21l-6 -6"/></svg>
                             </span>
-                            <input id="pagesSearchInput" type="text" name="q" form="pagesFilterForm" class="form-control form-control-sm" placeholder="Titel, Slug oder Autor" value="<?= htmlspecialchars($search) ?>">
+                            <input id="pagesSearchInput" type="text" name="q" form="pagesFilterForm" class="form-control form-control-sm" placeholder="Titel, Slug oder Autor suchen" value="<?= htmlspecialchars($search) ?>">
                             <button type="submit" form="pagesFilterForm" class="btn btn-outline-secondary">Suchen</button>
                         </div>
                     </div>
@@ -195,7 +195,7 @@ $pagesHasMultipleAuthors = count($pagesAuthorKeys) > 1;
                             if ($pageUpdatedAt !== '') {
                                 $pageUpdatedTimestamp = strtotime($pageUpdatedAt);
                                 if ($pageUpdatedTimestamp !== false) {
-                                    $pageUpdatedAtLabel = date('d.m.Y H:i', $pageUpdatedTimestamp);
+                                    $pageUpdatedAtLabel = date('d.m.Y · H:i', $pageUpdatedTimestamp);
                                 }
                             }
                             $pageUpdatedSort = $pageUpdatedTimestamp ?? strtotime((string)($page->created_at ?? '')) ?? 0;
@@ -234,7 +234,7 @@ $pagesHasMultipleAuthors = count($pagesAuthorKeys) > 1;
                                     </a>
                                     <span class="content-listing-id-badge">#<?= $pageId ?></span>
                                     <?php if ($pageIsEnglishOnly): ?>
-                                        <span class="badge bg-blue-lt ms-2">EN only</span>
+                                        <span class="badge bg-blue-lt ms-2">Nur EN</span>
                                     <?php elseif ($pageHasEnglishVariant): ?>
                                         <span class="badge bg-secondary-lt ms-2">EN</span>
                                     <?php endif; ?>
@@ -397,7 +397,7 @@ document.addEventListener('DOMContentLoaded', function () {
         var from = totalRows === 0 ? 0 : startIndex + 1;
         var to = totalRows === 0 ? 0 : endIndex;
         if (rangeSummary) {
-            rangeSummary.textContent = 'Zeige ' + from + '-' + to + ' von ' + totalRows + ' Einträgen';
+            rangeSummary.textContent = 'Seite ' + currentPage + '/' + totalPages + ' · Zeige ' + from + '-' + to + ' von ' + totalRows + ' Einträgen';
         }
         if (prevPageButton) {
             prevPageButton.disabled = currentPage <= 1;
@@ -638,12 +638,31 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             if (bulkAction.value === 'delete') {
+                if (bulkForm.dataset.bulkDeleteConfirmed === '1') {
+                    bulkForm.dataset.bulkDeleteConfirmed = '0';
+                    return;
+                }
                 var deleteMessage = selectedCheckboxes.length === 1
                     ? 'Soll die ausgewählte Seite wirklich gelöscht werden?'
                     : 'Sollen die ' + selectedCheckboxes.length + ' ausgewählten Seiten wirklich gelöscht werden?';
 
-                if (!window.confirm(deleteMessage)) {
-                    event.preventDefault();
+                event.preventDefault();
+                if (typeof cmsConfirm === 'function') {
+                    cmsConfirm({
+                        title: 'Seiten gesammelt löschen?',
+                        message: deleteMessage,
+                        confirmText: 'Löschen',
+                        confirmClass: 'btn-danger',
+                        onConfirm: function () {
+                            bulkForm.dataset.bulkDeleteConfirmed = '1';
+                            cmsSubmitFormSafely(bulkForm);
+                        }
+                    });
+                    return;
+                }
+                if (window.confirm(deleteMessage)) {
+                    bulkForm.dataset.bulkDeleteConfirmed = '1';
+                    cmsSubmitFormSafely(bulkForm);
                 }
             }
         });

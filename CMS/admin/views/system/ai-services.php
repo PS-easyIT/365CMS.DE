@@ -56,8 +56,8 @@ $currentSection = $currentSection ?? 'overview';
 $navItems = [
     'overview' => ['label' => 'Dashboard', 'url' => '/admin/ai-services'],
     'translation' => ['label' => 'Übersetzung', 'url' => '/admin/ai-translation'],
-    'content_creator' => ['label' => 'Content Creator', 'url' => '/admin/ai-content-creator'],
-    'seo_creator' => ['label' => 'SEO Creator', 'url' => '/admin/ai-seo-creator'],
+    'content_creator' => ['label' => 'Inhaltsassistent', 'url' => '/admin/ai-content-creator'],
+    'seo_creator' => ['label' => 'SEO-Assistent', 'url' => '/admin/ai-seo-creator'],
     'settings' => ['label' => 'Einstellungen', 'url' => '/admin/ai-settings'],
 ];
 $providerProfiles = [
@@ -168,19 +168,27 @@ $renderPromptTemplateForm = static function (string $action, array $template, st
 $translationReadyProviders = array_values(array_filter($providers, static fn (array $provider): bool => !empty($provider['enabled']) && !empty($provider['translation_enabled'])));
 $contentAssistProviders = array_values(array_filter($providers, static fn (array $provider): bool => !empty($provider['enabled']) && (!empty($provider['rewrite_enabled']) || !empty($provider['summary_enabled']))));
 $seoAssistProviders = array_values(array_filter($providers, static fn (array $provider): bool => !empty($provider['enabled']) && !empty($provider['seo_meta_enabled'])));
+$showAiSubtitle = $isCurrentSection('overview');
+$aiBlockingBadges = [];
+if (empty($features['ai_services_enabled'])) {
+    $aiBlockingBadges[] = 'KI global deaktiviert';
+}
+if (empty($summary['translation_ready'])) {
+    $aiBlockingBadges[] = 'Übersetzung blockiert';
+}
 ?>
 
 <div class="container-xl">
     <div class="page-header d-print-none mb-4">
         <div class="row align-items-center g-3">
             <div class="col">
-                <div class="page-pretitle">AI Services</div>
+                <?php if ($showAiSubtitle): ?>
+                    <div class="page-pretitle">KI-Dienste</div>
+                <?php endif; ?>
                 <h2 class="page-title"><?php echo htmlspecialchars((string) ($navItems[$currentSection]['label'] ?? 'AI Services')); ?></h2>
-                <div class="text-secondary mt-1">Eigener Admin-Bereich für AI-Workflows, Provider-Leitplanken und produktive Übergaben zwischen Übersetzung, Content-Assist und SEO-Helfern.</div>
-            </div>
-            <div class="col-auto d-flex gap-2 flex-wrap">
-                <?php $renderBadge($statusBadge(!empty($summary['translation_ready'])), !empty($summary['translation_ready']) ? 'Translation-Ready' : 'Translation blockiert'); ?>
-                <?php $renderBadge(!empty($features['ai_services_enabled']) ? 'success' : 'secondary', !empty($features['ai_services_enabled']) ? 'AI aktiv' : 'AI deaktiviert'); ?>
+                <?php if ($showAiSubtitle): ?>
+                    <div class="text-secondary mt-1">Eigener Admin-Bereich für KI-Workflows, Provider-Leitplanken und produktive Übergaben zwischen Übersetzung, Inhalts- und SEO-Assistenten.</div>
+                <?php endif; ?>
             </div>
         </div>
     </div>
@@ -198,6 +206,17 @@ $seoAssistProviders = array_values(array_filter($providers, static fn (array $pr
             </a>
         <?php endforeach; ?>
     </div>
+
+    <?php if ($aiBlockingBadges !== []): ?>
+        <div class="alert alert-warning py-2 mb-4">
+            <div class="d-flex flex-wrap gap-2 align-items-center">
+                <strong>Blocker</strong>
+                <?php foreach ($aiBlockingBadges as $badgeLabel): ?>
+                    <span class="badge bg-warning text-dark"><?php echo htmlspecialchars((string) $badgeLabel); ?></span>
+                <?php endforeach; ?>
+            </div>
+        </div>
+    <?php endif; ?>
 
     <?php if ($isCurrentSection('overview')): ?>
         <div class="row row-cards mb-4">
@@ -229,8 +248,11 @@ $seoAssistProviders = array_values(array_filter($providers, static fn (array $pr
         <div class="row row-cards">
             <div class="col-12 col-xl-7">
                 <div class="card h-100">
-                    <div class="card-header"><h3 class="card-title">Aktueller Umsetzungsstand</h3></div>
-                    <div class="card-body">
+                    <div class="card-header d-flex align-items-center justify-content-between gap-2">
+                        <h3 class="card-title mb-0">Aktueller Umsetzungsstand</h3>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#aiImplementationStatus" aria-expanded="false" aria-controls="aiImplementationStatus">Details</button>
+                    </div>
+                    <div class="card-body collapse show" id="aiImplementationStatus">
                         <ul class="list-unstyled mb-0 small text-secondary">
                             <li class="mb-2">✅ AI Services laufen jetzt als eigener Hauptbereich mit separaten Unterseiten.</li>
                             <li class="mb-2">✅ Provider-, Feature-, Translation-, Logging- und Quota-Persistenz ist im Core verdrahtet.</li>
@@ -267,8 +289,11 @@ $seoAssistProviders = array_values(array_filter($providers, static fn (array $pr
             </div>
             <div class="col-12">
                 <div class="card">
-                    <div class="card-header"><h3 class="card-title">Kanonische Doku</h3></div>
-                    <div class="card-body text-secondary small">
+                    <div class="card-header d-flex align-items-center justify-content-between gap-2">
+                        <h3 class="card-title mb-0">Kanonische Doku</h3>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#aiCanonicalDocs" aria-expanded="false" aria-controls="aiCanonicalDocs">Ein-/ausklappen</button>
+                    </div>
+                    <div class="card-body text-secondary small collapse show" id="aiCanonicalDocs">
                         Die fachliche Hauptdoku liegt in <code>DOC/ai/AI-SERVICES.md</code>. Dieser Bereich bildet den aktuellen Settings-, Routing-, Monitoring- und Readiness-Rahmen im Core ab.
                     </div>
                 </div>
@@ -607,15 +632,17 @@ $seoAssistProviders = array_values(array_filter($providers, static fn (array $pr
                     </div>
                     <div class="card-body">
                         <div class="row row-cards">
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <?php $renderSwitch('ai_services_enabled', 'AI Services global aktivieren', !empty($features['ai_services_enabled']), 'Master-Schalter für alle AI-bezogenen Workflows.'); ?>
                                 <?php $renderSwitch('ai_translation_enabled', 'Übersetzung erlauben', !empty($features['ai_translation_enabled'])); ?>
-                                <?php $renderSwitch('ai_editorjs_enabled', 'Editor.js-Integration erlauben', !empty($features['ai_editorjs_enabled'])); ?>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <?php $renderSwitch('ai_rewrite_enabled', 'Rewrite erlauben', !empty($features['ai_rewrite_enabled'])); ?>
                                 <?php $renderSwitch('ai_summary_enabled', 'Zusammenfassungen erlauben', !empty($features['ai_summary_enabled'])); ?>
+                            </div>
+                            <div class="col-md-4">
                                 <?php $renderSwitch('ai_seo_meta_enabled', 'SEO-/Meta-Helfer erlauben', !empty($features['ai_seo_meta_enabled'])); ?>
+                                <?php $renderSwitch('ai_editorjs_enabled', 'Editor.js-Integration erlauben', !empty($features['ai_editorjs_enabled'])); ?>
                             </div>
                         </div>
                     </div>

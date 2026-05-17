@@ -143,9 +143,8 @@ foreach ($workOverviewWidgets as $widgetKey => $widget) {
     <div class="container-xl">
         <div class="row g-2 align-items-center">
             <div class="col">
-                <div class="page-pretitle">Übersicht</div>
-                <h2 class="page-title">Dashboard</h2>
-                <div class="text-secondary mt-1">
+                <h2 class="page-title dashboard-page-title mb-0">Dashboard</h2>
+                <div class="text-secondary dashboard-header-line">
                     <?php echo htmlspecialchars((string) ($welcome['greeting'] ?? 'Willkommen')); ?>,
                     <?php echo htmlspecialchars((string) ($welcome['display_name'] ?? 'im Admin')); ?> ·
                     <?php echo htmlspecialchars((string) ($welcome['date_label'] ?? date('d.m.Y'))); ?> ·
@@ -202,9 +201,11 @@ foreach ($workOverviewWidgets as $widgetKey => $widget) {
         <section class="dashboard-section dashboard-section--kpi">
         <div class="card">
             <div class="card-header">
-                <div>
-                    <div class="dashboard-section-label">AT A GLANCE</div>
-                    <h3 class="card-title mb-0">Kernkennzahlen</h3>
+                <div class="dashboard-section-row">
+                    <div class="dashboard-section-label mb-0">Kernkennzahlen</div>
+                    <?php if ($dashboardSections !== []): ?>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="collapse" data-bs-target="#dashboardPersonalizePanel" aria-expanded="false" aria-controls="dashboardPersonalizePanel">Dashboard personalisieren</button>
+                    <?php endif; ?>
                 </div>
             </div>
             <div class="card-body">
@@ -233,11 +234,8 @@ foreach ($workOverviewWidgets as $widgetKey => $widget) {
         <?php endif; ?>
 
         <?php if ($dashboardSections !== []): ?>
-            <details class="card mb-4">
-                <summary class="card-header cursor-pointer">
-                    <span class="card-title mb-0">Dashboard personalisieren</span>
-                    <span class="text-secondary small ms-2">Sichtbare Bereiche pro Admin-Benutzer festlegen</span>
-                </summary>
+            <div class="collapse dashboard-personalize-collapse mb-3" id="dashboardPersonalizePanel">
+            <div class="card">
                 <form method="post" class="card-body" aria-describedby="dashboard-preferences-help">
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? '', ENT_QUOTES, 'UTF-8'); ?>">
                     <p id="dashboard-preferences-help" class="text-secondary small mb-3">
@@ -355,7 +353,8 @@ foreach ($workOverviewWidgets as $widgetKey => $widget) {
                         <span class="text-secondary small" role="status" aria-live="polite">Speicherung erfolgt per CSRF-geschütztem POST.</span>
                     </div>
                 </form>
-            </details>
+            </div>
+            </div>
         <?php endif; ?>
 
         <?php if (dashboardSectionVisible($visibleDashboardSections, 'work_overview')): ?>
@@ -442,39 +441,35 @@ foreach ($workOverviewWidgets as $widgetKey => $widget) {
         <?php if (dashboardSectionVisible($visibleDashboardSections, 'favorites_recent')): ?>
         <section class="dashboard-section dashboard-section--favorites">
         <div class="dashboard-overview-grid">
-            <div class="dashboard-overview-card">
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title">Favoriten</h3>
-                    </div>
-                    <div class="card-body">
-                        <?php if ($favoriteShortcuts !== []): ?>
-                            <div class="dashboard-favorite-grid">
-                                <?php foreach ($favoriteShortcuts as $shortcut): ?>
-                                    <a href="<?= htmlspecialchars(dashboardUrl((string) ($shortcut['url'] ?? ''), '/admin')) ?>" class="btn btn-outline-primary">
-                                        <?= dashIcon((string) ($shortcut['icon'] ?? 'settings')) ?>
-                                        <?= htmlspecialchars((string) ($shortcut['label'] ?? 'Favorit')) ?>
-                                    </a>
-                                <?php endforeach; ?>
-                            </div>
-                        <?php else: ?>
-                            <div class="dashboard-empty-state">
-                                <p class="text-secondary mb-1">Noch keine Favoriten gespeichert.</p>
-                                <p class="dashboard-empty-hint mb-0">Alles ruhig - du kannst Favoriten oben in "Dashboard personalisieren" auswaehlen.</p>
-                            </div>
-                        <?php endif; ?>
-                    </div>
+            <div class="card dashboard-compact-card">
+                <div class="card-header">
+                    <h3 class="card-title">Favoriten</h3>
+                </div>
+                <div class="card-body">
+                    <?php if ($favoriteShortcuts !== []): ?>
+                        <div class="dashboard-favorite-grid">
+                            <?php foreach ($favoriteShortcuts as $shortcut): ?>
+                                <a href="<?= htmlspecialchars(dashboardUrl((string) ($shortcut['url'] ?? ''), '/admin')) ?>" class="btn btn-outline-primary">
+                                    <?= dashIcon((string) ($shortcut['icon'] ?? 'settings')) ?>
+                                    <?= htmlspecialchars((string) ($shortcut['label'] ?? 'Favorit')) ?>
+                                </a>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php else: ?>
+                        <div class="dashboard-empty-state">
+                            <p class="text-secondary mb-1">Noch keine Favoriten gespeichert.</p>
+                            <p class="dashboard-empty-hint mb-0">Alles ruhig - du kannst Favoriten oben in "Dashboard personalisieren" auswaehlen.</p>
+                        </div>
+                    <?php endif; ?>
                 </div>
             </div>
 
-            <div class="dashboard-overview-card">
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title">Zuletzt genutzt</h3>
-                    </div>
-                    <div class="card-body dashboard-recent-list" id="dashboard-recent-links" aria-live="polite" data-empty-text="Noch keine zuletzt genutzten Admin-Ziele gespeichert.">
-                        <div class="text-secondary">Zuletzt genutzte Ziele werden geladen ...</div>
-                    </div>
+            <div class="card dashboard-compact-card">
+                <div class="card-header">
+                    <h3 class="card-title">Zuletzt genutzt</h3>
+                </div>
+                <div class="card-body dashboard-recent-list" id="dashboard-recent-links" aria-live="polite" data-empty-text="Noch keine zuletzt genutzten Admin-Ziele gespeichert.">
+                    <div class="text-secondary">Zuletzt genutzte Ziele werden geladen ...</div>
                 </div>
             </div>
         </div>
@@ -675,7 +670,7 @@ foreach ($workOverviewWidgets as $widgetKey => $widget) {
                             </tr>
                         </thead>
                         <tbody>
-                            <?php foreach ($activityEntries as $entry): ?>
+                            <?php foreach (array_slice($activityEntries, 0, 6) as $entry): ?>
                                 <tr>
                                     <td>
                                         <span class="badge bg-blue-lt"><?= htmlspecialchars((string) ($entry->action ?? '')) ?></span>
@@ -688,6 +683,9 @@ foreach ($workOverviewWidgets as $widgetKey => $widget) {
                             <?php endforeach; ?>
                         </tbody>
                     </table>
+                </div>
+                <div class="card-footer py-2">
+                    <a href="/admin/logs" class="btn btn-sm btn-outline-secondary">Alle Aktivitäten anzeigen</a>
                 </div>
             <?php else: ?>
                 <div class="card-body">

@@ -58,7 +58,7 @@ $buildHubPublicPath = static fn (string $slug): string => '/' . ltrim($slug, '/'
                 <div class="content-listing-filters">
                     <div class="content-listing-filters__search">
                         <label class="form-label mb-0 small text-secondary" for="hubSitesSearchInput">Schnellsuche</label>
-                        <input type="text" class="form-control form-control-sm js-hub-sites-search-input" id="hubSitesSearchInput" value="<?php echo htmlspecialchars($search); ?>" placeholder="Name oder Slug suchen…"
+                        <input type="text" class="form-control form-control-sm js-hub-sites-search-input" id="hubSitesSearchInput" value="<?php echo htmlspecialchars($search); ?>" placeholder="Name oder Slug suchen"
                                data-search-url="<?php echo htmlspecialchars($hubBaseUrl, ENT_QUOTES); ?>">
                     </div>
                     <div class="content-listing-filters__actions">
@@ -100,21 +100,21 @@ $buildHubPublicPath = static fn (string $slug): string => '/' . ltrim($slug, '/'
                                         <code>/<?php echo htmlspecialchars((string)($site['hub_slug'] ?? '')); ?></code>
                                     </div>
                                     <?php if ($publicPath !== ''): ?>
-                                        <div class="mt-2">
+                                        <div class="content-shortcode-chip-wrap mt-2">
                                             <button type="button"
-                                                    class="btn btn-outline-secondary btn-sm me-1 js-copy-hub-url"
+                                                    class="content-shortcode-chip js-copy-hub-url"
                                                     data-hub-public-path="<?php echo htmlspecialchars($publicPath, ENT_QUOTES); ?>">
-                                                Slug kopieren
+                                                Pfad kopieren
                                             </button>
-                                            <a href="<?php echo htmlspecialchars($publicPath); ?>" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary btn-sm">
-                                                Public Site öffnen
+                                            <a href="<?php echo htmlspecialchars($publicPath); ?>" target="_blank" rel="noopener noreferrer" class="content-shortcode-chip">
+                                                Öffnen
                                             </a>
                                         </div>
                                     <?php endif; ?>
                                 </td>
                                 <td><span class="badge bg-azure-lt"><?php echo htmlspecialchars((string)($templateOptions[$site['template']] ?? $site['template'])); ?></span></td>
                                 <td><?php echo (int)$site['card_count']; ?></td>
-                                <td class="text-secondary"><?php echo htmlspecialchars(date('d.m.Y', strtotime((string)$site['updated_at']))); ?></td>
+                                <td class="text-secondary"><?php echo htmlspecialchars(date('d.m.Y · H:i', strtotime((string) $site['updated_at']))); ?></td>
                                 <td class="table-actions content-listing-table__actions-cell">
                                     <div class="dropdown">
                                         <button class="btn btn-ghost-secondary btn-icon btn-sm" data-bs-toggle="dropdown">

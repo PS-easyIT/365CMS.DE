@@ -65,6 +65,24 @@ $buildCategoryArchivePreviewPaths = static function (string $slug): array {
     return $paths;
 };
 $categoryArchivePreviewPaths = $buildCategoryArchivePreviewPaths($editCategorySlug);
+$panelState = [
+    'open' => $isEditing || !empty($formAlert),
+    'mode' => $isEditing ? 'edit' : 'create',
+    'successMessage' => (is_array($alert ?? null) && (($alert['type'] ?? '') === 'success')) ? (string) ($alert['message'] ?? '') : '',
+    'formError' => is_array($formAlert) ? [
+        'message' => (string) ($formAlert['message'] ?? 'Kategorie konnte nicht gespeichert werden.'),
+        'details' => array_values(array_filter(array_map('strval', (array) ($formAlert['details'] ?? [])), static fn(string $detail): bool => trim($detail) !== '')),
+    ] : null,
+    'values' => [
+        'cat_id' => $editCategoryId,
+        'cat_name' => $editCategoryName,
+        'cat_slug' => $editCategorySlug,
+        'parent_id' => $editCategoryParentId,
+        'replacement_category_id' => $editCategoryReplacementId,
+        'cat_domains' => $editCategoryDomains,
+    ],
+];
+$panelStateJson = htmlspecialchars((string) json_encode($panelState, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), ENT_QUOTES);
 ?>
 
 <div class="page-header d-print-none">
@@ -78,96 +96,20 @@ $categoryArchivePreviewPaths = $buildCategoryArchivePreviewPaths($editCategorySl
                     <span><?php echo (int) ($counts['assigned_posts'] ?? 0); ?> Beitragszuweisungen</span>
                 </div>
             </div>
+            <button type="button" class="btn btn-primary d-print-none" data-taxonomy-open>
+                <i class="ti ti-plus" style="font-size:15px;" aria-hidden="true"></i>
+                Neue Kategorie anlegen
+            </button>
         </div>
     </div>
 </div>
 
-<div class="page-body">
+<div class="page-body" data-taxonomy-panel-root data-taxonomy-list-url="/admin/post-categories">
     <div class="container-xl">
         <?php if (!empty($alert)): ?>
             <?php $alertData = $alert; $alertMarginClass = 'mb-3'; require __DIR__ . '/../partials/flash-alert.php'; ?>
         <?php endif; ?>
-
-        <div class="content-entity-layout">
-            <div class="content-entity-layout__aside">
-                <div class="card content-entity-form-card">
-                    <div class="card-header"><h3 class="card-title"><?php echo $isEditing ? 'Kategorie bearbeiten' : 'Neue Kategorie'; ?></h3></div>
-                    <div class="card-body">
-                        <?php if (!empty($formAlert)): ?>
-                            <?php $alertData = $formAlert; $alertMarginClass = 'mb-3'; $alertDismissible = false; require __DIR__ . '/../partials/flash-alert.php'; ?>
-                        <?php endif; ?>
-
-                        <form method="post">
-                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES); ?>">
-                            <input type="hidden" name="action" value="save_category">
-                            <input type="hidden" name="cat_id" value="<?php echo $editCategoryId; ?>">
-                            <div class="mb-3">
-                                <label class="form-label" for="postCategoryName">Name</label>
-                                <input type="text" class="form-control" id="postCategoryName" name="cat_name" value="<?php echo htmlspecialchars($editCategoryName, ENT_QUOTES); ?>" required>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label" for="postCategorySlug">Slug</label>
-                                <input type="text" class="form-control" id="postCategorySlug" name="cat_slug" value="<?php echo htmlspecialchars($editCategorySlug, ENT_QUOTES); ?>" placeholder="wird automatisch generiert">
-                            </div>
-                            <div class="alert alert-info content-entity-contract">
-                                <h4 class="content-entity-contract__title">Archiv- &amp; Redirect-Vertrag</h4>
-                                <p class="content-entity-contract__description small text-secondary">Slug-Änderungen erzeugen automatisch Archiv-Weiterleitungen. Ältere Theme- und Blog-Filter mit <code>/blog?category=&lt;slug&gt;</code> bleiben weiterhin auf den aktuellen Kategorie-Slug auflösbar.</p>
-                                <?php if ($categoryArchivePreviewPaths !== []): ?>
-                                    <div class="small text-secondary mt-2">Aktuelle Archivpfade dieser Kategorie:</div>
-                                    <ul class="small ps-3 mb-2">
-                                        <?php foreach ($categoryArchivePreviewPaths as $archivePath): ?>
-                                            <li><code><?php echo htmlspecialchars($archivePath, ENT_QUOTES); ?></code></li>
-                                        <?php endforeach; ?>
-                                    </ul>
-                                <?php endif; ?>
-                                <div class="btn-list content-entity-contract__actions">
-                                    <a href="/admin/redirect-manager" class="btn btn-sm btn-outline-primary content-entity-contract__action-btn">Redirect-Manager öffnen</a>
-                                </div>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label" for="postCategoryParent">Elternkategorie</label>
-                                <select class="form-select" id="postCategoryParent" name="parent_id">
-                                    <option value="0">— Hauptkategorie —</option>
-                                    <?php foreach ($categoryOptions as $categoryOption): ?>
-                                        <?php $optionId = (int) ($categoryOption['id'] ?? 0); ?>
-                                        <?php if ($optionId === $editCategoryId) { continue; } ?>
-                                        <option value="<?php echo $optionId; ?>" <?php if ($editCategoryParentId === $optionId) echo 'selected'; ?>>
-                                            <?php echo htmlspecialchars((string) ($categoryOption['option_label'] ?? $categoryOption['name'] ?? ''), ENT_QUOTES); ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                                <div class="form-hint">Unterkategorien können keine Fremddomain-Zuordnung erhalten.</div>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label" for="postCategoryDomains">Fremd-Domains für diese Hauptkategorie</label>
-                                <textarea class="form-control" id="postCategoryDomains" name="cat_domains" rows="4" placeholder="kategorie.example.de&#10;thema.example.org"><?php echo htmlspecialchars($editCategoryDomains, ENT_QUOTES); ?></textarea>
-                                <div class="form-hint">Nur für Hauptkategorien. Aufrufe der Domain werden auf das Kategorie-Archiv umgeleitet.</div>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label" for="postCategoryReplacement">Ersatzkategorie beim Löschen</label>
-                                <select class="form-select" id="postCategoryReplacement" name="replacement_category_id">
-                                    <option value="0">— Keine automatische Ersatzkategorie —</option>
-                                    <?php foreach ($categoryOptions as $categoryOption): ?>
-                                        <?php $optionId = (int) ($categoryOption['id'] ?? 0); ?>
-                                        <?php if ($optionId === $editCategoryId) { continue; } ?>
-                                        <option value="<?php echo $optionId; ?>" <?php if ($editCategoryReplacementId === $optionId) echo 'selected'; ?>>
-                                            <?php echo htmlspecialchars((string) ($categoryOption['option_label'] ?? $categoryOption['name'] ?? ''), ENT_QUOTES); ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                                <div class="form-hint">Beim Löschen dieser Kategorie werden zugeordnete Beiträge automatisch in diese Ersatzkategorie verschoben.</div>
-                            </div>
-                            <div class="d-flex gap-2">
-                                <button type="submit" class="btn btn-primary flex-fill"><?php echo $isEditing ? 'Kategorie aktualisieren' : 'Kategorie speichern'; ?></button>
-                                <?php if ($isEditing): ?>
-                                    <a href="/admin/post-categories" class="btn btn-outline-secondary">Abbrechen</a>
-                                <?php endif; ?>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-            <div class="content-entity-layout__main">
+        <div class="content-taxonomy-list">
                 <div class="card content-listing-card content-listing-toolbar content-entity-toolbar">
                     <div class="card-body">
                         <div class="content-listing-toolbar__label">Filter &amp; Aktionen</div>
@@ -294,10 +236,72 @@ $categoryArchivePreviewPaths = $buildCategoryArchivePreviewPaths($editCategorySl
                         </table>
                     </div>
                 </div>
-            </div>
         </div>
     </div>
 </div>
+
+<div class="taxonomy-slide-backdrop" data-taxonomy-backdrop></div>
+<aside class="taxonomy-slide-panel" data-taxonomy-panel aria-hidden="true">
+    <form method="post" action="/admin/post-categories" data-taxonomy-form novalidate>
+        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES); ?>">
+        <input type="hidden" name="action" value="save_category">
+        <input type="hidden" name="cat_id" value="<?php echo $editCategoryId; ?>" data-taxonomy-field="cat_id">
+        <input type="hidden" name="replacement_category_id" value="<?php echo $editCategoryReplacementId; ?>" data-taxonomy-field="replacement_category_id">
+        <input type="hidden" name="cat_domains" value="<?php echo htmlspecialchars($editCategoryDomains, ENT_QUOTES); ?>" data-taxonomy-field="cat_domains">
+        <div class="taxonomy-slide-panel__header">
+            <h3 class="card-title mb-0" data-taxonomy-title><?php echo $isEditing ? 'Kategorie bearbeiten' : 'Neue Kategorie anlegen'; ?></h3>
+            <button type="button" class="btn btn-icon btn-ghost-secondary" data-taxonomy-close aria-label="Schließen">
+                <i class="ti ti-x" style="font-size:18px;" aria-hidden="true"></i>
+            </button>
+        </div>
+        <div class="taxonomy-slide-panel__body">
+            <div class="alert alert-danger taxonomy-form-error d-none" data-taxonomy-form-error role="alert"></div>
+            <div class="mb-3">
+                <label class="form-label required" for="postCategoryPanelName">Name</label>
+                <input type="text" class="form-control" id="postCategoryPanelName" name="cat_name" value="<?php echo htmlspecialchars($editCategoryName, ENT_QUOTES); ?>" data-taxonomy-field="cat_name" data-taxonomy-name required>
+                <div class="taxonomy-validation-error d-none" data-taxonomy-error-for="cat_name"></div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label" for="postCategoryPanelSlug">Slug</label>
+                <div class="input-group">
+                    <span class="input-group-text">/</span>
+                    <input type="text" class="form-control" id="postCategoryPanelSlug" name="cat_slug" value="<?php echo htmlspecialchars($editCategorySlug, ENT_QUOTES); ?>" placeholder="wird automatisch generiert" data-taxonomy-field="cat_slug" data-taxonomy-slug>
+                </div>
+                <div class="taxonomy-validation-error d-none" data-taxonomy-error-for="cat_slug"></div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label" for="postCategoryPanelDescription">Beschreibung</label>
+                <textarea class="form-control" id="postCategoryPanelDescription" rows="3" name="cat_description" data-taxonomy-field="cat_description"></textarea>
+            </div>
+            <div class="mb-3">
+                <label class="form-label" for="postCategoryPanelParent">Übergeordnete Kategorie</label>
+                <select class="form-select" id="postCategoryPanelParent" name="parent_id" data-taxonomy-field="parent_id">
+                    <option value="0">Keine</option>
+                    <?php foreach ($categoryOptions as $categoryOption): ?>
+                        <?php $optionId = (int) ($categoryOption['id'] ?? 0); ?>
+                        <?php if ($optionId === $editCategoryId) { continue; } ?>
+                        <option value="<?php echo $optionId; ?>" <?php if ($editCategoryParentId === $optionId) echo 'selected'; ?>>
+                            <?php echo htmlspecialchars((string) ($categoryOption['option_label'] ?? $categoryOption['name'] ?? ''), ENT_QUOTES); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label" for="postCategoryPanelColor">Farbe</label>
+                <input type="color" class="form-control form-control-color" id="postCategoryPanelColor" name="cat_color" value="#2563eb" data-taxonomy-field="cat_color">
+            </div>
+            <label class="form-check form-switch mb-0">
+                <input type="checkbox" class="form-check-input" name="publish_now" value="1" data-taxonomy-field="publish_now">
+                <span class="form-check-label">Sofort veröffentlichen</span>
+            </label>
+        </div>
+        <div class="taxonomy-slide-panel__footer">
+            <button type="button" class="btn btn-outline-secondary" data-taxonomy-cancel>Abbrechen</button>
+            <button type="submit" class="btn btn-primary" data-taxonomy-submit>Anlegen</button>
+        </div>
+    </form>
+    <div hidden data-taxonomy-panel-state="<?php echo $panelStateJson; ?>"></div>
+</aside>
 
 <div class="modal modal-blur fade" id="deleteCategoryModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">

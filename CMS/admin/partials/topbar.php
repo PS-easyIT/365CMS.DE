@@ -50,16 +50,10 @@ if (in_array((string) ($activePage ?? ''), $pagesSlugs, true)) {
         <span class="admin-topbar__site-name"><?= htmlspecialchars($topbarSiteName, ENT_QUOTES, 'UTF-8') ?></span>
         <span class="admin-topbar__separator" aria-hidden="true">·</span>
         <span class="admin-topbar__crumb"><?= htmlspecialchars($topbarSectionLabel, ENT_QUOTES, 'UTF-8') ?></span>
-        <i class="ti ti-chevron-right" aria-hidden="true"></i>
+        <span class="admin-topbar__separator" aria-hidden="true">·</span>
         <span class="admin-topbar__crumb admin-topbar__crumb--current"><?= htmlspecialchars($topbarCurrentPageLabel, ENT_QUOTES, 'UTF-8') ?></span>
     </div>
     <div class="admin-topbar__actions">
-        <button type="button" class="admin-topbar__icon-btn" aria-label="Benachrichtigungen">
-            <i class="ti ti-bell"></i>
-            <?php if ($topbarUnreadNotifications > 0): ?>
-                <span class="admin-topbar__unread-dot" aria-hidden="true"></span>
-            <?php endif; ?>
-        </button>
         <a class="admin-topbar__help-btn" href="/admin/documentation">
             <i class="ti ti-help-circle" aria-hidden="true"></i>
             <span>Hilfe</span>
@@ -68,13 +62,21 @@ if (in_array((string) ($activePage ?? ''), $pagesSlugs, true)) {
             <i class="ti ti-plus" aria-hidden="true"></i>
             <span><?= htmlspecialchars($topbarCtaLabel, ENT_QUOTES, 'UTF-8') ?></span>
         </a>
-        <div class="dropdown">
-            <button class="admin-topbar__avatar-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Profilmenü">
-                <span class="admin-topbar__avatar-initials"><?= htmlspecialchars($topbarInitials, ENT_QUOTES, 'UTF-8') ?></span>
+        <div class="admin-topbar__identity">
+            <button type="button" class="admin-topbar__icon-btn" aria-label="Benachrichtigungen">
+                <i class="ti ti-bell"></i>
+                <?php if ($topbarUnreadNotifications > 0): ?>
+                    <span class="admin-topbar__unread-dot" aria-hidden="true"></span>
+                <?php endif; ?>
             </button>
-            <div class="dropdown-menu dropdown-menu-end">
-                <a class="dropdown-item" href="/admin/user-settings">Profil</a>
-                <a class="dropdown-item text-danger" href="<?= htmlspecialchars((string) $siteUrl, ENT_QUOTES, 'UTF-8') ?>/logout">Abmelden</a>
+            <div class="dropdown">
+                <button class="admin-topbar__avatar-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Profilmenü">
+                    <span class="admin-topbar__avatar-initials"><?= htmlspecialchars($topbarInitials, ENT_QUOTES, 'UTF-8') ?></span>
+                </button>
+                <div class="dropdown-menu dropdown-menu-end">
+                    <a class="dropdown-item" href="/admin/user-settings">Profil</a>
+                    <a class="dropdown-item text-danger" href="<?= htmlspecialchars((string) $siteUrl, ENT_QUOTES, 'UTF-8') ?>/logout">Abmelden</a>
+                </div>
             </div>
         </div>
     </div>

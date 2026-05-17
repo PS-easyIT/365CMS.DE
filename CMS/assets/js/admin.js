@@ -320,6 +320,10 @@ function initReplacementCategoryBulkDeleteFlow() {
 
     bulkDeleteForms.forEach(function(form) {
         form.addEventListener('submit', function(event) {
+            if (form.dataset.deleteConfirmed === '1') {
+                form.dataset.deleteConfirmed = '0';
+                return;
+            }
             var deleteCount = parseInt(form.getAttribute('data-delete-count') || '0', 10);
             var previewRaw = String(form.getAttribute('data-delete-preview') || '');
             var previewItems = previewRaw === ''
@@ -342,8 +346,23 @@ function initReplacementCategoryBulkDeleteFlow() {
 
             message += '\n\nDie zugeordneten Beiträge werden automatisch in die jeweilige Ersatzkategorie verschoben.';
 
-            if (!window.confirm(message)) {
-                event.preventDefault();
+            event.preventDefault();
+            if (typeof cmsConfirm === 'function') {
+                cmsConfirm({
+                    title: 'Löschen bestätigen',
+                    message: message,
+                    confirmText: 'Löschen',
+                    confirmClass: 'btn-danger',
+                    onConfirm: function () {
+                        form.dataset.deleteConfirmed = '1';
+                        cmsSubmitFormSafely(form);
+                    }
+                });
+                return;
+            }
+            if (window.confirm(message)) {
+                form.dataset.deleteConfirmed = '1';
+                cmsSubmitFormSafely(form);
             }
         });
     });
@@ -505,6 +524,36 @@ function initGlobalEmptyTablePattern() {
     });
 }
 
+function initAdminSearchFallbacks() {
+    var searchInputs = document.querySelectorAll('.content-listing-filters__search input[type="search"], .content-listing-filters__search input[type="text"]');
+    if (!searchInputs.length) {
+        return;
+    }
+
+    searchInputs.forEach(function (input) {
+        if (!(input instanceof HTMLInputElement)) {
+            return;
+        }
+
+        if ((input.placeholder || '').trim() === '') {
+            input.placeholder = 'Suche';
+        }
+
+        input.addEventListener('keydown', function (event) {
+            if (event.key !== 'Enter') {
+                return;
+            }
+
+            var formId = input.getAttribute('form');
+            var form = formId ? document.getElementById(formId) : input.form;
+            if (form instanceof HTMLFormElement) {
+                event.preventDefault();
+                cmsSubmitFormSafely(form);
+            }
+        });
+    });
+}
+
 function cleanupStaleGlobalOverlays() {
     var activeBlockingOverlay = document.querySelector('.cms-modal.active, .cms-unsaved-modal.is-open, .cms-editor-image-picker.is-open');
     var activeBootstrapModal = document.querySelector('.modal.show');
@@ -519,6 +568,301 @@ function cleanupStaleGlobalOverlays() {
 
     document.body.classList.remove('modal-open');
     document.body.style.removeProperty('padding-right');
+}
+
+function cmsShowTopToast(message, durationMs) {
+    var text = String(message || '').trim();
+    if (text === '') {
+        return;
+    }
+
+    var root = document.querySelector('.cms-top-toast-wrap');
+    if (!(root instanceof HTMLElement)) {
+        root = document.createElement('div');
+        root.className = 'cms-top-toast-wrap';
+        document.body.appendChild(root);
+    }
+
+    var toast = document.createElement('div');
+    toast.className = 'cms-top-toast';
+    toast.textContent = text;
+    root.appendChild(toast);
+
+    requestAnimationFrame(function () {
+        toast.classList.add('is-visible');
+    });
+
+    window.setTimeout(function () {
+        toast.classList.remove('is-visible');
+        window.setTimeout(function () {
+            toast.remove();
+        }, 160);
+    }, Math.max(1200, Number(durationMs) || 3000));
+}
+
+function initTaxonomySlideovers() {
+    var roots = document.querySelectorAll('[data-taxonomy-panel-root]');
+    if (!roots.length) {
+        return;
+    }
+
+    function slugify(value) {
+        return String(value || '')
+            .normalize('NFKD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-+|-+$/g, '');
+    }
+
+    function parseStateFromNode(node) {
+        if (!(node instanceof HTMLElement)) {
+            return {};
+        }
+
+        var payload = node.getAttribute('data-taxonomy-panel-state') || '{}';
+        try {
+            var parsed = JSON.parse(payload);
+            return parsed && typeof parsed === 'object' ? parsed : {};
+        } catch (error) {
+            return {};
+        }
+    }
+
+    function applyFieldValue(form, field, value) {
+        var target = form.querySelector('[data-taxonomy-field="' + field + '"]');
+        if (!(target instanceof HTMLElement)) {
+            return;
+        }
+
+        if (target instanceof HTMLInputElement) {
+            if (target.type === 'checkbox') {
+                target.checked = value === true || value === 1 || value === '1';
+            } else {
+                target.value = value == null ? '' : String(value);
+            }
+            return;
+        }
+
+        if (target instanceof HTMLSelectElement || target instanceof HTMLTextAreaElement) {
+            target.value = value == null ? '' : String(value);
+        }
+    }
+
+    function showInlineError(form, field, message) {
+        var input = form.querySelector('[data-taxonomy-field="' + field + '"]');
+        var hint = form.querySelector('[data-taxonomy-error-for="' + field + '"]');
+        if (input instanceof HTMLElement) {
+            input.classList.add('is-invalid');
+        }
+        if (hint instanceof HTMLElement) {
+            hint.textContent = String(message || '');
+            hint.classList.remove('d-none');
+        }
+    }
+
+    function clearInlineErrors(form) {
+        form.querySelectorAll('.is-invalid').forEach(function (el) {
+            el.classList.remove('is-invalid');
+        });
+        form.querySelectorAll('[data-taxonomy-error-for]').forEach(function (el) {
+            el.textContent = '';
+            el.classList.add('d-none');
+        });
+        var formError = form.querySelector('[data-taxonomy-form-error]');
+        if (formError instanceof HTMLElement) {
+            formError.classList.add('d-none');
+            formError.textContent = '';
+        }
+    }
+
+    roots.forEach(function (root) {
+        var panel = document.querySelector('[data-taxonomy-panel]');
+        var backdrop = document.querySelector('[data-taxonomy-backdrop]');
+        var openButton = root.querySelector('[data-taxonomy-open]');
+        var isTagPanel = String(root.getAttribute('data-taxonomy-list-url') || '').indexOf('post-tags') > -1;
+        var form = panel instanceof HTMLElement ? panel.querySelector('[data-taxonomy-form]') : null;
+        if (!(panel instanceof HTMLElement) || !(backdrop instanceof HTMLElement) || !(openButton instanceof HTMLElement) || !(form instanceof HTMLFormElement)) {
+            return;
+        }
+
+        var closeButtons = panel.querySelectorAll('[data-taxonomy-close], [data-taxonomy-cancel]');
+        var submitButton = form.querySelector('[data-taxonomy-submit]');
+        var titleNode = panel.querySelector('[data-taxonomy-title]');
+        var nameInput = form.querySelector('[data-taxonomy-name]');
+        var slugInput = form.querySelector('[data-taxonomy-slug]');
+        var stateNode = panel.querySelector('[data-taxonomy-panel-state]');
+        var initialState = parseStateFromNode(stateNode);
+        var initialValues = initialState.values && typeof initialState.values === 'object' ? initialState.values : {};
+
+        Object.keys(initialValues).forEach(function (field) {
+            applyFieldValue(form, field, initialValues[field]);
+        });
+
+        function setMode(mode) {
+            var isEdit = mode === 'edit';
+            if (titleNode instanceof HTMLElement) {
+                titleNode.textContent = isTagPanel
+                    ? (isEdit ? 'Tag bearbeiten' : 'Neues Tag anlegen')
+                    : (isEdit ? 'Kategorie bearbeiten' : 'Neue Kategorie anlegen');
+            }
+            if (submitButton instanceof HTMLElement) {
+                submitButton.textContent = isEdit ? 'Speichern' : 'Anlegen';
+            }
+        }
+
+        function openPanel() {
+            panel.classList.add('is-open');
+            backdrop.classList.add('is-open');
+            panel.setAttribute('aria-hidden', 'false');
+            document.body.classList.add('overflow-hidden');
+        }
+
+        function closePanel() {
+            panel.classList.remove('is-open');
+            backdrop.classList.remove('is-open');
+            panel.setAttribute('aria-hidden', 'true');
+            document.body.classList.remove('overflow-hidden');
+            clearInlineErrors(form);
+        }
+
+        setMode(initialState.mode || 'create');
+        if (initialState.open) {
+            openPanel();
+        }
+
+        if (initialState.formError && typeof initialState.formError === 'object') {
+            var formError = form.querySelector('[data-taxonomy-form-error]');
+            if (formError instanceof HTMLElement) {
+                var details = Array.isArray(initialState.formError.details) ? initialState.formError.details : [];
+                formError.innerHTML = [String(initialState.formError.message || '')].concat(details).filter(Boolean).join('<br>');
+                formError.classList.remove('d-none');
+            }
+        }
+
+        openButton.addEventListener('click', function () {
+            openPanel();
+            if (nameInput instanceof HTMLElement) {
+                nameInput.focus();
+            }
+        });
+
+        closeButtons.forEach(function (button) {
+            button.addEventListener('click', function () {
+                closePanel();
+            });
+        });
+
+        backdrop.addEventListener('click', closePanel);
+
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape' && panel.classList.contains('is-open')) {
+                closePanel();
+            }
+        });
+
+        if (nameInput instanceof HTMLInputElement && slugInput instanceof HTMLInputElement) {
+            slugInput.addEventListener('input', function () {
+                slugInput.dataset.manual = '1';
+            });
+            nameInput.addEventListener('blur', function () {
+                if ((slugInput.dataset.manual || '') === '1' && slugInput.value.trim() !== '') {
+                    return;
+                }
+                slugInput.value = slugify(nameInput.value);
+            });
+        }
+
+        form.addEventListener('submit', function (event) {
+            event.preventDefault();
+            clearInlineErrors(form);
+
+            var hasError = false;
+            if (nameInput instanceof HTMLInputElement && nameInput.value.trim() === '') {
+                showInlineError(form, nameInput.getAttribute('name') || 'name', 'Dieses Feld ist erforderlich.');
+                hasError = true;
+            }
+
+            if (hasError) {
+                return;
+            }
+
+            var currentSubmitter = submitButton instanceof HTMLButtonElement ? submitButton : null;
+            if (currentSubmitter) {
+                currentSubmitter.disabled = true;
+            }
+
+            var postUrl = form.getAttribute('action') || window.location.pathname;
+            var payload = new FormData(form);
+            fetch(postUrl, {
+                method: 'POST',
+                body: payload,
+                credentials: 'same-origin',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+                .then(function (response) {
+                    return response.text();
+                })
+                .then(function (html) {
+                    var parser = new DOMParser();
+                    var nextDoc = parser.parseFromString(html, 'text/html');
+                    var nextStateNode = nextDoc.querySelector('[data-taxonomy-panel-state]');
+                    var nextState = parseStateFromNode(nextStateNode);
+                    var fallbackDangerAlert = nextDoc.querySelector('.alert.alert-danger, .alert-danger');
+
+                    if (nextState && nextState.formError) {
+                        var formError = form.querySelector('[data-taxonomy-form-error]');
+                        if (formError instanceof HTMLElement) {
+                            var details = Array.isArray(nextState.formError.details) ? nextState.formError.details : [];
+                            formError.innerHTML = [String(nextState.formError.message || '')].concat(details).filter(Boolean).join('<br>');
+                            formError.classList.remove('d-none');
+                        }
+
+                        var loweredError = String(nextState.formError.message || '').toLowerCase();
+                        if (loweredError.indexOf('name') > -1) {
+                            showInlineError(form, nameInput ? nameInput.getAttribute('name') || '' : '', String(nextState.formError.message || ''));
+                        } else if (loweredError.indexOf('slug') > -1 && slugInput instanceof HTMLInputElement) {
+                            showInlineError(form, slugInput.getAttribute('name') || 'slug', String(nextState.formError.message || ''));
+                        }
+
+                        var nextValues = nextState.values && typeof nextState.values === 'object' ? nextState.values : {};
+                        Object.keys(nextValues).forEach(function (field) {
+                            applyFieldValue(form, field, nextValues[field]);
+                        });
+                        openPanel();
+                        return;
+                    }
+
+                    if (fallbackDangerAlert instanceof HTMLElement) {
+                        var fallbackError = form.querySelector('[data-taxonomy-form-error]');
+                        if (fallbackError instanceof HTMLElement) {
+                            fallbackError.textContent = String(fallbackDangerAlert.textContent || 'Speichern fehlgeschlagen.').trim();
+                            fallbackError.classList.remove('d-none');
+                        }
+                        openPanel();
+                        return;
+                    }
+
+                    closePanel();
+                    cmsShowTopToast(nextState && nextState.successMessage ? String(nextState.successMessage) : 'Erfolgreich gespeichert.', 3000);
+                    window.setTimeout(function () {
+                        window.location.reload();
+                    }, 3000);
+                })
+                .catch(function () {
+                    var formError = form.querySelector('[data-taxonomy-form-error]');
+                    if (formError instanceof HTMLElement) {
+                        formError.textContent = 'Die Anfrage konnte nicht abgeschlossen werden. Bitte erneut versuchen.';
+                        formError.classList.remove('d-none');
+                    }
+                })
+                .finally(function () {
+                    if (currentSubmitter) {
+                        currentSubmitter.disabled = false;
+                    }
+                });
+        });
+    });
 }
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -550,5 +894,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initConfirmForms();
     initResponsiveTableDropdowns();
     initGlobalEmptyTablePattern();
+    initAdminSearchFallbacks();
+    initTaxonomySlideovers();
     
 });

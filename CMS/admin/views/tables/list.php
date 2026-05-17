@@ -66,7 +66,7 @@ $buildSiteTablesEditUrl = static fn (int $id): string => $siteTablesBaseUrl . '?
                             <span class="input-group-text">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><circle cx="10" cy="10" r="7"/><path d="M21 21l-6 -6"/></svg>
                             </span>
-                            <input type="text" class="form-control form-control-sm js-site-tables-search-input" id="searchInput" placeholder="Tabellenname suchen…"
+                            <input type="text" class="form-control form-control-sm js-site-tables-search-input" id="searchInput" placeholder="Tabellenname suchen"
                                    value="<?php echo htmlspecialchars($search); ?>"
                                    data-search-url="<?php echo htmlspecialchars($siteTablesBaseUrl, ENT_QUOTES); ?>">
                         </div>
@@ -107,10 +107,9 @@ $buildSiteTablesEditUrl = static fn (int $id): string => $siteTablesBaseUrl . '?
                                     <a href="<?php echo htmlspecialchars($buildSiteTablesEditUrl((int)$t['id'])); ?>" class="text-reset fw-medium">
                                         <?php echo htmlspecialchars($t['table_name']); ?>
                                     </a>
-                                    <div class="text-secondary small">
-                                        <code>[site-table id="<?php echo (int)$t['id']; ?>"]</code>
-                                        <span aria-hidden="true">·</span>
-                                        <code>[table id=<?php echo (int)$t['id']; ?> /]</code>
+                                    <div class="content-shortcode-chip-wrap mt-1">
+                                        <button type="button" class="content-shortcode-chip js-copy-table-shortcode" data-copy-text='[site-table id="<?php echo (int) $t['id']; ?>"]'>[site-table]</button>
+                                        <button type="button" class="content-shortcode-chip js-copy-table-shortcode" data-copy-text='[table id=<?php echo (int) $t['id']; ?> /]'>[table]</button>
                                     </div>
                                 </td>
                                 <td class="text-secondary text-truncate" style="max-width:200px;"><?php echo htmlspecialchars((string)($t['description_excerpt'] ?? '')); ?></td>
