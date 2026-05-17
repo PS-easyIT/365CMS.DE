@@ -32,27 +32,31 @@ $statusLabels = [
     'draft'     => ['Entwurf',        'bg-yellow-lt text-yellow'],
     'private'   => ['Privat',         'bg-purple-lt text-purple'],
 ];
+
+$pagesHasActiveFilters = ($filter !== '') || ($catFilter > 0) || ($search !== '');
 ?>
 
-<!-- Page Header -->
 <div class="page-header d-print-none">
     <div class="container-xl">
-        <div class="row g-2 align-items-center">
-            <div class="col">
+        <div class="content-listing-header">
+            <div>
                 <div class="page-pretitle">Seiten & Beiträge</div>
-                <h2 class="page-title">Seiten</h2>
+                <h2 class="page-title mb-1">Seiten</h2>
+                <div class="content-listing-header__meta">
+                    <span><?php echo (int)($counts['total'] ?? 0); ?> Einträge</span>
+                    <span>Veröffentlicht: <?php echo (int)($counts['published'] ?? 0); ?></span>
+                    <span>Entwurf: <?php echo (int)($counts['drafts'] ?? 0); ?></span>
+                    <span>Privat: <?php echo (int)($counts['private'] ?? 0); ?></span>
+                </div>
             </div>
-            <div class="col-auto ms-auto d-print-none">
-                <a href="<?= $pagesAdminBaseUrl ?>?action=edit" class="btn btn-primary">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 5l0 14"/><path d="M5 12l14 0"/></svg>
-                    Neue Seite
-                </a>
-            </div>
+            <a href="<?= $pagesAdminBaseUrl ?>?action=edit" class="btn btn-primary d-print-none">
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 5l0 14"/><path d="M5 12l14 0"/></svg>
+                Neue Seite
+            </a>
         </div>
     </div>
 </div>
 
-<!-- Page Body -->
 <div class="page-body">
     <div class="container-xl">
 
@@ -62,111 +66,48 @@ $statusLabels = [
         include __DIR__ . '/../partials/flash-alert.php';
         ?>
 
-        <!-- KPI-Karten -->
-        <div class="row row-deck row-cards mb-4">
-            <div class="col-sm-6 col-lg-3">
-                <div class="card card-sm">
-                    <div class="card-body">
-                        <div class="row align-items-center">
-                            <div class="col-auto">
-                                <span class="bg-primary text-white avatar">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M7 4h10a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-10a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2"/><path d="M11 8h4"/><path d="M9 12h6"/><path d="M9 16h6"/></svg>
-                                </span>
-                            </div>
-                            <div class="col">
-                                <div class="font-weight-medium"><?php echo (int)($counts['total'] ?? 0); ?> Seiten</div>
-                                <div class="text-secondary">Gesamt</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-sm-6 col-lg-3">
-                <div class="card card-sm">
-                    <div class="card-body">
-                        <div class="row align-items-center">
-                            <div class="col-auto">
-                                <span class="bg-success text-white avatar">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 12l5 5l10 -10"/></svg>
-                                </span>
-                            </div>
-                            <div class="col">
-                                <div class="font-weight-medium"><?php echo (int)($counts['published'] ?? 0); ?></div>
-                                <div class="text-secondary">Veröffentlicht</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-sm-6 col-lg-3">
-                <div class="card card-sm">
-                    <div class="card-body">
-                        <div class="row align-items-center">
-                            <div class="col-auto">
-                                <span class="bg-warning text-white avatar">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 9v4"/><path d="M12 16v.01"/><path d="M5.07 19h13.86a2 2 0 0 0 1.74 -3l-6.93 -12a2 2 0 0 0 -3.48 0l-6.93 12a2 2 0 0 0 1.74 3"/></svg>
-                                </span>
-                            </div>
-                            <div class="col">
-                                <div class="font-weight-medium"><?php echo (int)($counts['drafts'] ?? 0); ?></div>
-                                <div class="text-secondary">Entwürfe</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-sm-6 col-lg-3">
-                <div class="card card-sm">
-                    <div class="card-body">
-                        <div class="row align-items-center">
-                            <div class="col-auto">
-                                <span class="bg-purple text-white avatar">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><rect x="5" y="11" width="14" height="10" rx="2"/><circle cx="12" cy="16" r="1"/><path d="M8 11v-3a4 4 0 1 1 8 0v3"/></svg>
-                                </span>
-                            </div>
-                            <div class="col">
-                                <div class="font-weight-medium"><?php echo (int)($counts['private'] ?? 0); ?></div>
-                                <div class="text-secondary">Privat</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Toolbar: Filter + Suche + Bulk -->
-        <div class="card">
-            <div class="card-header">
-                <div class="row w-100 g-2 align-items-center">
-                    <div class="col-auto">
-                        <select name="status" form="pagesFilterForm" class="form-select form-select-sm js-pages-filter-submit">
+        <div class="card content-listing-card">
+            <div class="card-header content-listing-toolbar">
+                <div class="content-listing-toolbar__label">Filter &amp; Suche</div>
+                <div class="content-listing-filters">
+                    <div class="content-listing-filters__group">
+                        <label for="pagesStatusFilter" class="form-label mb-0 small text-secondary">Status</label>
+                        <select id="pagesStatusFilter" name="status" form="pagesFilterForm" class="form-select form-select-sm js-pages-filter-submit">
                             <option value="">Alle Status</option>
                             <option value="published"<?= $filter === 'published' ? ' selected' : '' ?>>Veröffentlicht</option>
                             <option value="draft"<?= $filter === 'draft' ? ' selected' : '' ?>>Entwurf</option>
                             <option value="private"<?= $filter === 'private' ? ' selected' : '' ?>>Privat</option>
                         </select>
                     </div>
-                    <div class="col-auto">
-                        <select name="category" form="pagesFilterForm" class="form-select form-select-sm js-pages-filter-submit">
+                    <div class="content-listing-filters__group">
+                        <label for="pagesCategoryFilter" class="form-label mb-0 small text-secondary">Kategorie</label>
+                        <select id="pagesCategoryFilter" name="category" form="pagesFilterForm" class="form-select form-select-sm js-pages-filter-submit">
                             <option value="0">Alle Kategorien</option>
                             <?php foreach ($categories as $category): ?>
                                 <option value="<?= (int)($category['id'] ?? 0) ?>"<?= $catFilter === (int)($category['id'] ?? 0) ? ' selected' : '' ?>><?= htmlspecialchars((string)($category['option_label'] ?? $category['name'] ?? '')) ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
-                    <div class="col-auto ms-auto">
-                        <div class="input-icon">
-                            <span class="input-icon-addon">
+                    <div class="content-listing-filters__search">
+                        <label for="pagesSearchInput" class="form-label mb-0 small text-secondary">Suche</label>
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><circle cx="10" cy="10" r="7"/><path d="M21 21l-6 -6"/></svg>
                             </span>
-                            <input type="text" name="q" form="pagesFilterForm" class="form-control form-control-sm" placeholder="Suchen…" value="<?= htmlspecialchars($search) ?>">
+                            <input id="pagesSearchInput" type="text" name="q" form="pagesFilterForm" class="form-control form-control-sm" placeholder="Titel, Slug oder Autor" value="<?= htmlspecialchars($search) ?>">
+                            <button type="submit" form="pagesFilterForm" class="btn btn-outline-secondary">Suchen</button>
                         </div>
+                    </div>
+                    <div class="content-listing-filters__actions">
+                        <?php if ($pagesHasActiveFilters): ?>
+                            <a href="<?= $pagesAdminBaseUrl ?>" class="btn btn-sm btn-outline-secondary">Filter zurücksetzen</a>
+                        <?php endif; ?>
                     </div>
                 </div>
                 <form method="get" action="<?= $pagesAdminBaseUrl ?>" id="pagesFilterForm" class="js-pages-filter-form"></form>
             </div>
 
-            <div class="card-body border-bottom py-2 d-none" id="bulkBarPages">
+            <div class="card-body border-bottom py-2 d-none content-listing-bulkbar" id="bulkBarPages">
                 <form method="post" id="bulkFormPages" class="d-flex flex-wrap align-items-center gap-2">
                     <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
                     <input type="hidden" name="action" value="bulk">
@@ -191,18 +132,18 @@ $statusLabels = [
             </div>
 
             <div class="table-responsive">
-                <table class="table table-vcenter card-table">
+                <table class="table table-vcenter card-table content-listing-table">
                     <thead>
                         <tr>
                             <th class="w-1">
                                 <input class="form-check-input" type="checkbox" id="pagesSelectAll" aria-label="Alle Seiten auswählen">
                             </th>
-                            <th>Titel</th>
+                            <th class="content-listing-table__title-col">Titel</th>
                             <th>Slug</th>
-                            <th>Kategorie</th>
-                            <th>Status</th>
-                            <th>Autor</th>
-                            <th>Aktualisiert</th>
+                            <th class="text-nowrap">Kategorie</th>
+                            <th class="text-nowrap">Status</th>
+                            <th class="text-nowrap">Autor</th>
+                            <th class="text-nowrap">Aktualisiert</th>
                             <th class="w-1"></th>
                         </tr>
                     </thead>
@@ -237,11 +178,11 @@ $statusLabels = [
                             $pageHasEnglishVariant = !empty($page->has_english_variant);
                             $pageIsEnglishOnly = !empty($page->is_english_only);
                             ?>
-                            <tr>
+                            <tr class="content-listing-table__row">
                                 <td>
                                     <input class="form-check-input" type="checkbox" name="ids[]" value="<?= $pageId ?>" form="bulkFormPages">
                                 </td>
-                                <td>
+                                <td class="content-listing-table__title-cell">
                                     <a href="<?= $pagesAdminBaseUrl ?>?action=edit&id=<?= $pageId ?>" class="text-reset fw-medium">
                                         <?= htmlspecialchars($pageTitle !== '' ? $pageTitle : 'Ohne Titel') ?>
                                     </a>
@@ -250,8 +191,9 @@ $statusLabels = [
                                     <?php elseif ($pageHasEnglishVariant): ?>
                                         <span class="badge bg-secondary-lt ms-2">EN</span>
                                     <?php endif; ?>
+                                    <div class="text-secondary small mt-1">ID: <?= $pageId ?></div>
                                 </td>
-                                <td class="text-secondary">
+                                <td class="text-secondary content-listing-table__slug-cell">
                                     /<?= htmlspecialchars($pageSlug) ?>
                                     <?php if ($pageSlugEn !== '' && $pageSlugEn !== $pageSlug): ?>
                                         <div class="small mt-1">/en/<?= htmlspecialchars($pageSlugEn) ?></div>
@@ -269,7 +211,7 @@ $statusLabels = [
                                 </td>
                                 <td><?= htmlspecialchars($pageAuthor !== '' ? $pageAuthor : '–') ?></td>
                                 <td class="text-secondary"><?= htmlspecialchars($pageUpdatedAtLabel !== '' ? $pageUpdatedAtLabel : '–') ?></td>
-                                <td class="table-actions">
+                                <td class="table-actions content-listing-table__actions-cell">
                                     <div class="table-row-actions table-row-actions--icons">
                                         <a href="<?= $pagesAdminBaseUrl ?>?action=edit&id=<?= $pageId ?>" class="btn btn-outline-primary btn-sm btn-icon" aria-label="Seite bearbeiten" title="Bearbeiten">
                                             <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M7 7h10v10H7z" opacity="0"/><path d="M16.474 5.408a2.077 2.077 0 1 1 2.937 2.937l-9.19 9.19a6 6 0 0 1 -2.52 1.51l-2.093 .698l.698 -2.093a6 6 0 0 1 1.51 -2.52z"/><path d="M14.474 7.408l2.118 2.118"/></svg>

@@ -200,28 +200,6 @@ $isEnglishEditorView = $editorLocale === 'en';
                         <div class="col-12 d-flex">
                             <div class="card cms-edit-card cms-edit-top-card w-100">
                                 <div class="card-header">
-                                    <h3 class="card-title">Contentheader Bild</h3>
-                                </div>
-                                <div class="card-body d-flex flex-column gap-2">
-                                    <div class="small text-secondary mb-2">Erscheint links vom Seitentitel im Content-Header.</div>
-                                    <div id="featuredImagePreview">
-                                        <?php if ($pageFeaturedImageValue !== ''): ?>
-                                            <img src="<?= htmlspecialchars(\CMS\Services\MediaDeliveryService::getInstance()->normalizeUrl($pageFeaturedImageValue, true)) ?>" alt="" class="img-fluid rounded" style="max-height:120px;object-fit:cover;width:100%;">
-                                        <?php endif; ?>
-                                    </div>
-                                    <input type="hidden" name="featured_image" id="featuredImageInput" value="<?= htmlspecialchars($pageFeaturedImageValue) ?>">
-                                    <input type="hidden" name="featured_image_temp_path" id="featuredImageInput_temp_path" value="">
-                                    <div id="featuredImageEmpty" class="text-secondary small <?= $pageFeaturedImageValue !== '' ? 'd-none' : '' ?>">Noch kein Bild ausgewählt.</div>
-                                    <div class="d-flex gap-2 mt-auto">
-                                        <button type="button" class="btn btn-sm btn-outline-primary w-100" id="featuredImageBtn">Bild auswählen</button>
-                                        <button type="button" class="btn btn-sm btn-outline-secondary <?= $pageFeaturedImageValue === '' ? 'd-none' : '' ?>" id="featuredImageRemove">Entfernen</button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-12 d-flex">
-                            <div class="card cms-edit-card cms-edit-top-card w-100">
-                                <div class="card-header">
                                     <h3 class="card-title">Aktionen</h3>
                                 </div>
                                 <div class="card-body d-flex flex-column gap-2">
@@ -251,6 +229,28 @@ $isEnglishEditorView = $editorLocale === 'en';
                                             >Seite löschen</button>
                                         </div>
                                     <?php endif; ?>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 d-flex">
+                            <div class="card cms-edit-card cms-edit-top-card w-100">
+                                <div class="card-header">
+                                    <h3 class="card-title">Contentheader Bild</h3>
+                                </div>
+                                <div class="card-body d-flex flex-column gap-2">
+                                    <div class="small text-secondary mb-2">Erscheint links vom Seitentitel im Content-Header.</div>
+                                    <div id="featuredImagePreview">
+                                        <?php if ($pageFeaturedImageValue !== ''): ?>
+                                            <img src="<?= htmlspecialchars(\CMS\Services\MediaDeliveryService::getInstance()->normalizeUrl($pageFeaturedImageValue, true)) ?>" alt="" class="img-fluid rounded" style="max-height:120px;object-fit:cover;width:100%;">
+                                        <?php endif; ?>
+                                    </div>
+                                    <input type="hidden" name="featured_image" id="featuredImageInput" value="<?= htmlspecialchars($pageFeaturedImageValue) ?>">
+                                    <input type="hidden" name="featured_image_temp_path" id="featuredImageInput_temp_path" value="">
+                                    <div id="featuredImageEmpty" class="text-secondary small <?= $pageFeaturedImageValue !== '' ? 'd-none' : '' ?>">Noch kein Bild ausgewählt.</div>
+                                    <div class="d-flex gap-2 mt-auto">
+                                        <button type="button" class="btn btn-sm btn-outline-primary w-100" id="featuredImageBtn">Bild auswählen</button>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary <?= $pageFeaturedImageValue === '' ? 'd-none' : '' ?>" id="featuredImageRemove">Entfernen</button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
