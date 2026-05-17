@@ -9,7 +9,7 @@ $sectionNavGroups = is_array($sectionNavGroups ?? null) ? $sectionNavGroups : []
 $currentSectionPage = (string)($currentSectionPage ?? '');
 $hasMultipleGroups = count($sectionNavGroups) > 1;
 ?>
-<div class="card mb-4">
+<div class="card mb-4 admin-redesign-toolbar-card">
     <div class="card-body py-3">
         <div class="row g-3 align-items-start">
             <?php foreach ($sectionNavGroups as $group): ?>

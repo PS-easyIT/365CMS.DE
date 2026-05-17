@@ -16,7 +16,7 @@ $statusIcon = [
 $statusBadge = ['ok' => 'bg-success', 'warning' => 'bg-warning', 'critical' => 'bg-danger'];
 ?>
 
-<div class="page-header d-print-none">
+<div class="page-header d-print-none admin-redesign-header">
     <div class="container-xl">
         <div class="row g-2 align-items-center">
             <div class="col">
@@ -27,8 +27,8 @@ $statusBadge = ['ok' => 'bg-success', 'warning' => 'bg-warning', 'critical' => '
     </div>
 </div>
 
-<div class="page-body">
-    <div class="container-xl">
+<div class="page-body admin-redesign-page">
+    <div class="container-xl admin-redesign-shell">
 
 <?php if (!empty($alert)): ?>
     <?php
@@ -36,6 +36,19 @@ $statusBadge = ['ok' => 'bg-success', 'warning' => 'bg-warning', 'critical' => '
     require dirname(__DIR__) . '/partials/flash-alert.php';
     ?>
 <?php endif; ?>
+
+<div class="card admin-redesign-toolbar-card">
+    <div class="card-body d-flex flex-wrap justify-content-between align-items-start gap-3">
+        <div class="admin-redesign-info-box flex-fill">
+            <p class="admin-redesign-info-box__title">Audit-Fokus</p>
+            <p class="admin-redesign-info-box__text">Prüfungen priorisieren, kritische Punkte zuerst lösen, Änderungen im Audit-Log anschließend nachvollziehen.</p>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="/admin/firewall" class="btn btn-outline-secondary btn-sm">Firewall</a>
+            <a href="/admin/antispam" class="btn btn-outline-primary btn-sm">AntiSpam</a>
+        </div>
+    </div>
+</div>
 
 <div class="security-page-intro">
     <div class="security-page-intro__text">

@@ -27,7 +27,7 @@ $trackingSettings = $analytics['tracking_settings'] ?? [];
 $hasTable = $analytics['has_page_views'] ?? false;
 ?>
 
-<div class="page-header d-print-none">
+<div class="page-header d-print-none admin-redesign-header">
     <div class="container-xl">
         <div class="content-listing-header">
             <div>
@@ -46,8 +46,8 @@ $hasTable = $analytics['has_page_views'] ?? false;
     </div>
 </div>
 
-<div class="page-body">
-    <div class="container-xl">
+<div class="page-body admin-redesign-page">
+    <div class="container-xl admin-redesign-shell">
 
         <?php $alertData = $alert; $alertMarginClass = 'mb-4'; require __DIR__ . '/../partials/flash-alert.php'; ?>
 

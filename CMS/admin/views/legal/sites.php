@@ -33,7 +33,7 @@ $legalSitesConfig = [
 ];
 ?>
 
-<div class="page-header d-print-none">
+<div class="page-header d-print-none admin-redesign-header">
     <div class="container-xl">
         <div class="content-listing-header">
             <div>
@@ -52,8 +52,8 @@ $legalSitesConfig = [
     </div>
 </div>
 
-<div class="page-body admin-legal-sites-page">
-    <div class="container-xl admin-legal-sites-layout">
+<div class="page-body admin-legal-sites-page admin-redesign-page">
+    <div class="container-xl admin-legal-sites-layout admin-redesign-shell">
         <div class="row row-deck row-cards mb-4 admin-metric-grid">
             <div class="col-md-4">
                 <div class="card"><div class="card-body"><div class="subheader">Bereiche</div><div class="h1 mb-0"><?php echo (int) ($stats['areas'] ?? count($tabKeys)); ?></div></div></div>

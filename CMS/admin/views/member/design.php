@@ -78,12 +78,12 @@ $design = $settings['design'] ?? [];
                             <h3 class="card-title">Live-Stimmung</h3>
                         </div>
                         <div class="card-body">
-                            <div style="background:<?php echo htmlspecialchars((string)($design['bg'] ?? '#f1f5f9')); ?>; border:1px solid <?php echo htmlspecialchars((string)($design['border'] ?? '#e2e8f0')); ?>; border-radius:12px; padding:1rem;">
-                                <div style="background:linear-gradient(135deg, <?php echo htmlspecialchars((string)($design['primary'] ?? '#6366f1')); ?> 0%, <?php echo htmlspecialchars((string)($design['accent'] ?? '#8b5cf6')); ?> 100%); color:#fff; border-radius:10px; padding:1rem; margin-bottom:1rem;">
+                            <div style="background:<?php echo htmlspecialchars((string)($design['bg'] ?? '#f1f5f9')); ?>; border:1px solid <?php echo htmlspecialchars((string)($design['border'] ?? '#e2e8f0')); ?>; border-radius:2px; padding:1rem;">
+                                <div style="background:linear-gradient(135deg, <?php echo htmlspecialchars((string)($design['primary'] ?? '#6366f1')); ?> 0%, <?php echo htmlspecialchars((string)($design['accent'] ?? '#8b5cf6')); ?> 100%); color:#fff; border-radius:2px; padding:1rem; margin-bottom:1rem;">
                                     <strong>Willkommen im Member-Hub</strong><br>
                                     <small>Deine Farbwelt für das Frontend</small>
                                 </div>
-                                <div style="background:<?php echo htmlspecialchars((string)($design['card_bg'] ?? '#ffffff')); ?>; border:1px solid <?php echo htmlspecialchars((string)($design['border'] ?? '#e2e8f0')); ?>; color:<?php echo htmlspecialchars((string)($design['text'] ?? '#1e293b')); ?>; border-radius:10px; padding:1rem;">
+                                <div style="background:<?php echo htmlspecialchars((string)($design['card_bg'] ?? '#ffffff')); ?>; border:1px solid <?php echo htmlspecialchars((string)($design['border'] ?? '#e2e8f0')); ?>; color:<?php echo htmlspecialchars((string)($design['text'] ?? '#1e293b')); ?>; border-radius:2px; padding:1rem;">
                                     Karten, Panels und Statistiken übernehmen diese Tokens direkt im Member-Dashboard.
                                 </div>
                             </div>

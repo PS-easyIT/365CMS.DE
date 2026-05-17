@@ -67,8 +67,8 @@ $buildRuntimePublicUrl = static function (string $path): string {
     return rtrim((string) SITE_URL, '/') . $normalizedPath;
 };
 ?>
-<div class="page-header d-print-none"><div class="container-xl"><div class="content-listing-header"><div><div class="page-pretitle">SEO</div><h2 class="page-title mb-1">Meta-Daten & Variablen</h2><div class="content-listing-header__meta"><span>Site: <?= htmlspecialchars($siteName) ?></span><span>Kontexte: <?= count($previewContexts) ?></span></div></div><div class="admin-section-toolbar__actions"><a href="/admin/seo-audit" class="btn btn-outline-secondary btn-sm">Audit</a><a href="/admin/seo-social" class="btn btn-outline-primary btn-sm">Social</a></div></div></div></div>
-<div class="page-body"><div class="container-xl">
+<div class="page-header d-print-none admin-redesign-header"><div class="container-xl"><div class="content-listing-header"><div><div class="page-pretitle">SEO</div><h2 class="page-title mb-1">Meta-Daten & Variablen</h2><div class="content-listing-header__meta"><span>Site: <?= htmlspecialchars($siteName) ?></span><span>Kontexte: <?= count($previewContexts) ?></span></div></div><div class="admin-section-toolbar__actions"><a href="/admin/seo-audit" class="btn btn-outline-secondary btn-sm">Audit</a><a href="/admin/seo-social" class="btn btn-outline-primary btn-sm">Social</a></div></div></div></div>
+<div class="page-body admin-redesign-page"><div class="container-xl admin-redesign-shell">
     <?php if (!empty($alert)): ?>
         <?php
         $alertData = is_array($alert ?? null) ? $alert : [];

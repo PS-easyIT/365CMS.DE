@@ -15,7 +15,7 @@ if (!array_key_exists($browserCacheTtl, $browserCacheTtlOptions)) {
     $browserCacheTtl = '604800';
 }
 ?>
-<div class="page-header d-print-none">
+<div class="page-header d-print-none admin-redesign-header">
     <div class="container-xl">
         <div class="content-listing-header">
             <div>
@@ -34,8 +34,8 @@ if (!array_key_exists($browserCacheTtl, $browserCacheTtlOptions)) {
     </div>
 </div>
 
-<div class="page-body admin-performance-page">
-    <div class="container-xl cms-settings-page">
+<div class="page-body admin-performance-page admin-redesign-page">
+    <div class="container-xl cms-settings-page admin-redesign-shell">
         <?php if (!empty($alert)): ?>
             <div class="alert alert-<?php echo htmlspecialchars($alert['type'] ?? 'info'); ?> mb-4"><?php echo htmlspecialchars($alert['message'] ?? ''); ?></div>
         <?php endif; ?>

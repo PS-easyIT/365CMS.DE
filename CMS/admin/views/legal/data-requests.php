@@ -72,7 +72,6 @@ $dataRequestsConfig = [
                 <div class="content-listing-toolbar__label">Status-Überblick</div>
                 <div class="content-listing-filters">
                     <div class="content-listing-filters__actions">
-                        <span class="badge bg-secondary-lt text-secondary data-requests-toolbar-note">Designstand 17.05.2026</span>
                         <span class="text-secondary small">Auskunft gesamt: <strong><?php echo (int)($privacyStats['total'] ?? 0); ?></strong></span>
                         <span class="text-secondary small">Löschanträge gesamt: <strong><?php echo (int)($deletionStats['total'] ?? 0); ?></strong></span>
                         <span class="text-secondary small">Offen: <strong><?php echo (int)(($privacyStats['pending'] ?? 0) + ($deletionStats['pending'] ?? 0)); ?></strong></span>
@@ -85,7 +84,7 @@ $dataRequestsConfig = [
                     <div class="col-sm-6 col-lg-3"><div class="card admin-request-kpi"><div class="card-body"><div class="subheader">Pflichtfrist</div><div class="h2 mb-0"><?php echo $deadlineDays; ?> Tage</div><div class="text-secondary small">Warnfenster ab <?php echo $warningBeforeDays; ?> Tagen Restlaufzeit.</div></div></div></div>
                     <div class="col-sm-6 col-lg-3"><div class="card admin-request-kpi"><div class="card-body"><div class="subheader">Frist läuft ab</div><div class="h2 mb-0 text-warning"><?php echo (int)(($privacyStats['due_soon'] ?? 0) + ($deletionStats['due_soon'] ?? 0)); ?></div><div class="text-secondary small">Offene Vorgänge im Warnfenster.</div></div></div></div>
                     <div class="col-sm-6 col-lg-3"><div class="card admin-request-kpi"><div class="card-body"><div class="subheader">Überfällig</div><div class="h2 mb-0 text-danger"><?php echo (int)(($privacyStats['overdue'] ?? 0) + ($deletionStats['overdue'] ?? 0)); ?></div><div class="text-secondary small">Sofort prüfen und dokumentieren.</div></div></div></div>
-                    <div class="col-sm-6 col-lg-3"><div class="card admin-request-kpi"><div class="card-body"><div class="subheader">Admin-Eskalation</div><div class="text-secondary small"><?php echo $adminEscalationEmail !== '' ? htmlspecialchars($adminEscalationEmail) : 'Keine gültige Admin-Mail konfiguriert'; ?></div><div class="small text-muted mt-2">Eskalation erfolgt nur per CSRF-geschützter POST-Aktion in die Mail-Queue.</div></div></div></div>
+                    <div class="col-sm-6 col-lg-3"><div class="card admin-request-kpi"><div class="card-body"><div class="subheader">Admin-Eskalation</div><div class="text-secondary small"><?php echo $adminEscalationEmail !== '' ? htmlspecialchars($adminEscalationEmail) : 'Keine gültige Admin-Mail konfiguriert'; ?></div><div class="small text-muted mt-2">Überfällige Anfragen lassen sich direkt an die konfigurierte Admin-Adresse eskalieren.</div></div></div></div>
                 </div>
             </div>
         </div>

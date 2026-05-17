@@ -82,7 +82,7 @@ $formatDelta = static function (int $delta): string {
 };
 ?>
 
-<div class="page-header d-print-none">
+<div class="page-header d-print-none admin-redesign-header">
     <div class="container-xl">
         <div class="content-listing-header">
             <div>
@@ -101,8 +101,8 @@ $formatDelta = static function (int $delta): string {
     </div>
 </div>
 
-<div class="page-body admin-seo-dashboard-page">
-    <div class="container-xl">
+<div class="page-body admin-seo-dashboard-page admin-redesign-page">
+    <div class="container-xl admin-redesign-shell">
 
         <?php if (!empty($alert)): ?>
             <?php

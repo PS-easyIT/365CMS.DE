@@ -1,7 +1,7 @@
 # 365CMS – SEO-Center
 > **Stand:** 17.05.2026 | **Version:** 3.0.11 | **Status:** Aktuell
 
-<!-- UPDATED: 2026-05-09 -->
+<!-- UPDATED: 2026-05-17 -->
 
 ## Überblick
 
@@ -18,6 +18,8 @@ Die SEO-Hauptseiten folgen einer einheitlichen Struktur:
 - nüchterne Metazeilen statt dekorativer KPI-Schwerpunkte
 - klare Aktionsbereiche in Tabellen- und Listenansichten
 - persistente Hinweisbereiche mit kurzer, wartbarer Textführung und overflow-sicheren Aktionen
+- alle SEO-Unterseiten (`Dashboard`, `Analytics`, `Audit`, `Meta`, `Social`, `Schema`, `Sitemap`, `Technisches SEO`, `Weiterleitungen`, `404-Monitor`) wurden am 17.05.2026 sichtbar auf denselben Layoutvertrag harmonisiert
+- globaler UI-Hard-Standard (17.05.2026): Buttons und Karten-/Boxcontainer bleiben adminweit bei maximal 2px Radius; verschachtelte Boxen sind durch leicht kontrastierenden Hintergrund klar von der Hauptbox getrennt
 
 Alle SEO-Services, Cron-/Audit-Pfade und Schreibaktionen bleiben unverändert.
 

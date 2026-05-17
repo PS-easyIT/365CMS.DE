@@ -15,7 +15,7 @@ $distribution = $schema['distribution'] ?? [];
 $supportedTypes = $schema['supported_types'] ?? [];
 $renderer = $schema['renderer'] ?? [];
 ?>
-<div class="page-header d-print-none">
+<div class="page-header d-print-none admin-redesign-header">
     <div class="container-xl">
         <div class="row g-2 align-items-center">
             <div class="col">
@@ -26,8 +26,8 @@ $renderer = $schema['renderer'] ?? [];
     </div>
 </div>
 
-<div class="page-body">
-    <div class="container-xl">
+<div class="page-body admin-redesign-page">
+    <div class="container-xl admin-redesign-shell">
         <?php if (!empty($alert)): ?>
             <?php
             $alertData = is_array($alert ?? null) ? $alert : [];

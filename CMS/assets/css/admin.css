@@ -5967,3 +5967,149 @@ input:checked + .slider:before { transform: translateX(22px); }
         min-height: 12rem;
     }
 }
+
+/* ==========================================================
+   Admin redesign (Legal / Security / SEO / Performance)
+   ========================================================== */
+.admin-redesign-header .container-xl {
+    padding-top: 0.35rem;
+    padding-bottom: 0.35rem;
+}
+
+.admin-redesign-header .content-listing-header,
+.admin-redesign-header .row.align-items-center {
+    padding: 0.9rem 1rem;
+    border: 1px solid #dce5f0;
+    border-radius: 0.75rem;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+}
+
+.admin-redesign-page .admin-redesign-shell {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.admin-redesign-toolbar-card {
+    border: 1px solid #dce5f0;
+    background: #f8fbff;
+}
+
+.admin-redesign-toolbar-card .btn-list {
+    row-gap: 0.45rem;
+}
+
+.admin-redesign-toolbar-card .btn {
+    border-radius: 999px;
+}
+
+.admin-redesign-page .admin-metric-grid .card,
+.admin-redesign-page .admin-content-card,
+.admin-redesign-page .card {
+    border-color: #dce5f0;
+    box-shadow: none;
+}
+
+.admin-redesign-page .card-header {
+    background: #f9fbff;
+    border-bottom-color: #dce5f0;
+}
+
+.admin-redesign-page .table thead th {
+    font-size: 0.73rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #5f6f86;
+    background: #f4f7fc;
+}
+
+.admin-redesign-page .table td code,
+.admin-redesign-page .table th code {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.admin-redesign-page .list-group-item {
+    border-color: #e6edf6;
+}
+
+.admin-redesign-info-box {
+    border: 1px solid #cfe0f5;
+    border-radius: 0.75rem;
+    background: #f5f9ff;
+    padding: 0.85rem 1rem;
+}
+
+.admin-redesign-info-box__title {
+    margin: 0 0 0.25rem;
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: #3e5778;
+}
+
+.admin-redesign-info-box__text {
+    margin: 0;
+    font-size: 0.86rem;
+    color: #4a5d78;
+    overflow-wrap: anywhere;
+}
+
+@media (min-width: 1200px) {
+    .admin-redesign-page .admin-redesign-split {
+        display: grid;
+        grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+        gap: 1rem;
+        align-items: start;
+    }
+}
+
+@media (max-width: 991.98px) {
+    .admin-redesign-header .content-listing-header,
+    .admin-redesign-header .row.align-items-center {
+        padding: 0.8rem 0.85rem;
+    }
+
+    .admin-redesign-page .admin-redesign-shell {
+        gap: 0.85rem;
+    }
+}
+
+/* ──────────────────────────────────────────────────────────
+   Global Admin UI Hardening (17.05.2026)
+   Buttons/Karten: max. 2px Radius + Nested-Kontrast
+   ────────────────────────────────────────────────────────── */
+body.admin-body {
+    --cms-admin-radius-hard: 2px;
+}
+
+body.admin-body .btn,
+body.admin-body .btn-group > .btn,
+body.admin-body .btn-group-vertical > .btn,
+body.admin-body .table .btn,
+body.admin-body .card-table .btn,
+body.admin-body .gridjs-cms .gridjs-table .btn,
+body.admin-body .gridjs-table-actions .gridjs-action-btn {
+    border-radius: var(--cms-admin-radius-hard) !important;
+}
+
+body.admin-body .rounded,
+body.admin-body .rounded-1,
+body.admin-body .rounded-2,
+body.admin-body .rounded-3,
+body.admin-body .rounded-4,
+body.admin-body .rounded-5,
+body.admin-body .rounded-pill {
+    border-radius: var(--cms-admin-radius-hard) !important;
+}
+
+body.admin-body :is(.card, .admin-card, .admin-section, .stat-card, .info-card, .quick-actions, .users-table-container, .empty-state, .plugin-card, .theme-card, .table-responsive, .alert, .admin-redesign-info-box, .preview-box, .preview-card, .svc-card, .dw-panel, .dw-card, .data-box, .backup-item, .backup-list) {
+    border-radius: var(--cms-admin-radius-hard) !important;
+}
+
+body.admin-body :is(.card, .admin-card, .admin-section, .stat-card, .info-card, .quick-actions, .users-table-container, .admin-redesign-info-box)
+    :is(.card, .admin-card, .admin-section, .stat-card, .info-card, .quick-actions, .users-table-container, .border.rounded, .border.rounded-1, .border.rounded-2, .border.rounded-3, .border.rounded-4, .border.rounded-5, .alert, .table-responsive, .preview-box, .preview-card, .svc-card, .dw-card, .data-box) {
+    background: #f3f7fb;
+    border-color: #c7d3e0 !important;
+}

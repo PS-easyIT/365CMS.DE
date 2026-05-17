@@ -34,7 +34,7 @@ $currentSectionPage = (string) ($activePage ?? 'seo-dashboard');
 ?>
 <?php require dirname(__DIR__) . '/partials/section-subnav.php'; ?>
 
-<div class="card mb-4">
+<div class="card mb-4 admin-redesign-toolbar-card">
     <div class="card-body py-3">
         <div class="d-flex flex-wrap gap-2 justify-content-lg-end">
             <form method="post" action="<?= htmlspecialchars($seoActionEndpoint) ?>" class="d-inline">

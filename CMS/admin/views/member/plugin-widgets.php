@@ -72,7 +72,7 @@ if ($order !== []) {
                                         <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
                                             <div class="d-flex align-items-start gap-3">
                                                 <span class="badge bg-secondary-lt dashboard-sortable-handle mt-1" data-sort-handle="1" aria-hidden="true">⇅</span>
-                                                <div style="width:44px;height:44px;border-radius:10px;background:<?php echo htmlspecialchars((string)($widget['color'] ?? '#4f46e5')); ?>20;display:flex;align-items:center;justify-content:center;font-size:1.25rem;">
+                                                <div style="width:44px;height:44px;border-radius:2px;background:<?php echo htmlspecialchars((string)($widget['color'] ?? '#4f46e5')); ?>20;display:flex;align-items:center;justify-content:center;font-size:1.25rem;">
                                                     <?php echo htmlspecialchars((string)($widget['icon'] ?? '🔌')); ?>
                                                 </div>
                                                 <div class="flex-fill">

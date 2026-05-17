@@ -38,7 +38,7 @@ $simulationWindowHours = (int)($simulation['window_hours'] ?? 24);
 $recentSimulationHits = is_array($simulation['recent_hits'] ?? null) ? $simulation['recent_hits'] : [];
 ?>
 
-<div class="page-header d-print-none">
+<div class="page-header d-print-none admin-redesign-header">
     <div class="container-xl">
         <div class="row g-2 align-items-center">
             <div class="col">
@@ -49,8 +49,8 @@ $recentSimulationHits = is_array($simulation['recent_hits'] ?? null) ? $simulati
     </div>
 </div>
 
-<div class="page-body">
-    <div class="container-xl">
+<div class="page-body admin-redesign-page">
+    <div class="container-xl admin-redesign-shell">
 
         <?php
         $alertData = $alert ?? [];
@@ -58,6 +58,19 @@ $recentSimulationHits = is_array($simulation['recent_hits'] ?? null) ? $simulati
         $alertMarginClass = 'mb-3';
         require __DIR__ . '/../partials/flash-alert.php';
         ?>
+
+        <div class="card admin-redesign-toolbar-card">
+            <div class="card-body d-flex flex-wrap justify-content-between align-items-start gap-3">
+                <div class="admin-redesign-info-box flex-fill">
+                    <p class="admin-redesign-info-box__title">Rollout-Logik</p>
+                    <p class="admin-redesign-info-box__text">Neue Regeln erst simulieren, Treffer prüfen, danach gezielt scharfschalten und im Runtime-Log kontrollieren.</p>
+                </div>
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="/admin/antispam" class="btn btn-outline-secondary btn-sm">AntiSpam</a>
+                    <a href="/admin/security-audit" class="btn btn-outline-primary btn-sm">Audit</a>
+                </div>
+            </div>
+        </div>
 
         <div class="security-page-intro">
             <div class="security-page-intro__text">

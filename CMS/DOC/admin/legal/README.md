@@ -23,6 +23,8 @@ Die zentralen Legal-Seiten sind einheitlich strukturiert:
 - tabellarische/listenbasierte Arbeitsflächen mit robustem Button-/Text-Wrapping
 - auch die Legacy-Einzelrouten `/admin/privacy-requests` und `/admin/deletion-requests` folgen derselben Header-/Toolbar-/Listenstruktur
 - die Sammelansicht `/admin/data-requests` besitzt zusätzlich eine eigene Status-/Toolbarzone mit reduzierter KPI-Kachelwirkung und persistentem Fristen-Hinweis
+- die Kernscreens `/admin/legal-sites` und `/admin/cookie-manager` wurden am 17.05.2026 vollständig im selben Backend-Vertrag nachgezogen (Header, Toolbar, Inhaltszonen, Aktionsflächen)
+- globaler UI-Hard-Standard (17.05.2026): Buttons sowie Karten-/Boxcontainer sind adminweit auf maximal 2px Radius begrenzt; verschachtelte Boxen heben sich durch einen leicht abgesetzten Hintergrund eindeutig von der umgebenden Hauptbox ab
 
 Die DSGVO-, Cookie- und Legal-Workflows bleiben funktional unverändert.
 

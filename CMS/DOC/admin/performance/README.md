@@ -1,7 +1,7 @@
 # 365CMS – Performance-Center
 > **Stand:** 17.05.2026 | **Version:** 3.0.11 | **Status:** Aktuell
 
-<!-- UPDATED: 2026-05-09 -->
+<!-- UPDATED: 2026-05-17 -->
 
 ## Überblick
 
@@ -21,6 +21,8 @@ Die Performance-Seiten folgen einer konsistenten Bedienstruktur:
 - getrennte Toolbar-/Steuerzonen vor den Inhaltskarten
 - saubere Tabellen-/Listendarstellung für operative Maßnahmen
 - persistente Info-Bereiche mit kurzen Texten und robustem Action-Wrapping
+- alle Performance-Unterseiten (`Übersicht`, `Cache-Verwaltung`, `Medien-Optimierung`, `Datenbank-Wartung`, `Performance-Einstellungen`, `Session-Verwaltung`) wurden am 17.05.2026 sichtbar im gleichen Strukturvertrag überarbeitet
+- globaler UI-Hard-Standard (17.05.2026): Buttons sowie Karten-/Boxcontainer nutzen adminweit maximal 2px Radius; verschachtelte Boxen/Panels sind durch einen leicht helleren oder dunkleren Hintergrund klar hierarchisch getrennt
 
 Betriebslogik (Cache-, DB-, Medien- und Session-Aktionen) bleibt unverändert.
 

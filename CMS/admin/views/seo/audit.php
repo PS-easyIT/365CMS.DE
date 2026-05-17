@@ -17,7 +17,7 @@ $scoreLabels = ['good' => 'Gut', 'warning' => 'Warnung', 'bad' => 'Kritisch'];
 $schemaTypeOptions = ['Article', 'BlogPosting', 'NewsArticle', 'WebPage', 'FAQPage', 'HowTo', 'Person', 'Event', 'BreadcrumbList', 'Organization'];
 $twitterCardOptions = ['summary_large_image', 'summary'];
 ?>
-<div class="page-header d-print-none">
+<div class="page-header d-print-none admin-redesign-header">
     <div class="container-xl">
         <div class="row g-2 align-items-center">
             <div class="col">
@@ -28,8 +28,8 @@ $twitterCardOptions = ['summary_large_image', 'summary'];
     </div>
 </div>
 
-<div class="page-body">
-    <div class="container-xl">
+<div class="page-body admin-redesign-page">
+    <div class="container-xl admin-redesign-shell">
         <?php if (!empty($alert)): ?>
             <?php
             $alertData = is_array($alert ?? null) ? $alert : [];

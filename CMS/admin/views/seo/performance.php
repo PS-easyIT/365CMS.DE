@@ -32,7 +32,7 @@ $formatDuration = static function (?int $durationMs): string {
 };
 ?>
 
-<div class="page-header d-print-none">
+<div class="page-header d-print-none admin-redesign-header">
     <div class="container-xl">
         <div class="row g-2 align-items-center">
             <div class="col">
@@ -44,8 +44,8 @@ $formatDuration = static function (?int $durationMs): string {
     </div>
 </div>
 
-<div class="page-body">
-<div class="container-xl">
+<div class="page-body admin-redesign-page">
+<div class="container-xl admin-redesign-shell">
     <?php if (!empty($alert)): ?>
         <div class="alert alert-<?php echo htmlspecialchars($alert['type'] ?? 'info'); ?> mb-4" role="alert">
             <?php echo htmlspecialchars($alert['message'] ?? ''); ?>

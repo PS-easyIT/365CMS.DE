@@ -1327,3 +1327,60 @@ body.admin-body .gridjs-cms .gridjs-table th.gridjs-action-cell {
         display: block;
     }
 }
+
+/* ═══════════════════════════════════════════════════════
+   GLOBAL ADMIN UI HARDENING (17.05.2026)
+   ─ Buttons/Karten max. 2px Radius
+   ─ Verschachtelte Boxen mit Kontrast
+   ═══════════════════════════════════════════════════════ */
+
+body.admin-body {
+    --cms-admin-radius-hard: 2px;
+    --tblr-border-radius: 2px;
+    --tblr-border-radius-sm: 2px;
+    --tblr-border-radius-lg: 2px;
+    --tblr-border-radius-xl: 2px;
+    --tblr-border-radius-pill: 2px;
+}
+
+body.admin-body .btn,
+body.admin-body .btn-group > .btn,
+body.admin-body .btn-group-vertical > .btn,
+body.admin-body .table .btn,
+body.admin-body .gridjs-cms .gridjs-table .btn,
+body.admin-body .card-table .btn,
+body.admin-body .gridjs-table-actions .gridjs-action-btn {
+    border-radius: var(--cms-admin-radius-hard) !important;
+}
+
+body.admin-body .rounded,
+body.admin-body .rounded-1,
+body.admin-body .rounded-2,
+body.admin-body .rounded-3,
+body.admin-body .rounded-4,
+body.admin-body .rounded-5,
+body.admin-body .rounded-pill {
+    border-radius: var(--cms-admin-radius-hard) !important;
+}
+
+body.admin-body .card,
+body.admin-body .admin-card,
+body.admin-body .admin-section,
+body.admin-body .stat-card,
+body.admin-body .info-card,
+body.admin-body .quick-actions,
+body.admin-body .users-table-container,
+body.admin-body .empty-state,
+body.admin-body .plugin-card,
+body.admin-body .theme-card,
+body.admin-body .table-responsive,
+body.admin-body .gridjs-cms .gridjs-wrapper,
+body.admin-body .alert {
+    border-radius: var(--cms-admin-radius-hard) !important;
+}
+
+body.admin-body :is(.card, .admin-card, .admin-section, .info-card, .stat-card, .quick-actions, .users-table-container)
+    :is(.card, .admin-card, .admin-section, .info-card, .stat-card, .quick-actions, .users-table-container, .border.rounded, .border.rounded-1, .border.rounded-2, .border.rounded-3, .border.rounded-4, .border.rounded-5, .alert, .table-responsive) {
+    background: var(--cms-admin-card-bg-soft);
+    border-color: var(--cms-admin-border-strong) !important;
+}

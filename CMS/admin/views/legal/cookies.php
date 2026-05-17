@@ -16,7 +16,7 @@ $cookieManagerConfig = [
 ];
 ?>
 
-<div class="page-header d-print-none">
+<div class="page-header d-print-none admin-redesign-header">
     <div class="container-xl">
         <div class="content-listing-header">
             <div>
@@ -35,8 +35,8 @@ $cookieManagerConfig = [
     </div>
 </div>
 
-<div class="page-body admin-cookie-manager-page">
-    <div class="container-xl">
+<div class="page-body admin-cookie-manager-page admin-redesign-page">
+    <div class="container-xl admin-redesign-shell">
         <?php
         $alertData = $alert ?? [];
         $alertDismissible = false;

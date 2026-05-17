@@ -38,8 +38,8 @@ $loadLabel = ($capacity['load_1m'] ?? null) !== null
     : 'nicht verfügbar';
 $hasRollback = !empty($safety['available']) && empty($safety['is_expired']) && empty($safety['rolled_back_at']);
 ?>
-<div class="page-header d-print-none"><div class="container-xl"><div class="row g-2 align-items-center"><div class="col"><div class="page-pretitle">Performance</div><h2 class="page-title">Datenbank-Wartung</h2><div class="text-secondary mt-1">Tabellengrößen, Overhead, Revisionen und Wartungsaktionen für die Datenbank.</div></div></div></div></div>
-<div class="page-body"><div class="container-xl">
+<div class="page-header d-print-none admin-redesign-header"><div class="container-xl"><div class="row g-2 align-items-center"><div class="col"><div class="page-pretitle">Performance</div><h2 class="page-title">Datenbank-Wartung</h2><div class="text-secondary mt-1">Tabellengrößen, Overhead, Revisionen und Wartungsaktionen für die Datenbank.</div></div></div></div></div>
+<div class="page-body admin-redesign-page"><div class="container-xl admin-redesign-shell">
     <?php if (!empty($alert)): ?><div class="alert alert-<?php echo htmlspecialchars($alert['type'] ?? 'info'); ?> mb-4"><?php echo htmlspecialchars($alert['message'] ?? ''); ?></div><?php endif; ?>
     <?php require __DIR__ . '/subnav.php'; ?>
 
