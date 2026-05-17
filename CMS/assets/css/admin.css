@@ -5917,3 +5917,7 @@ input:checked + .slider:before { transform: translateX(22px); }
     flex-wrap: wrap;
     gap: 0.75rem;
 }
+
+.data-requests-toolbar-note {
+    align-self: center;
+}

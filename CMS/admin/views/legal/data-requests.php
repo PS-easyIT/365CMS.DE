@@ -72,6 +72,7 @@ $dataRequestsConfig = [
                 <div class="content-listing-toolbar__label">Status-Überblick</div>
                 <div class="content-listing-filters">
                     <div class="content-listing-filters__actions">
+                        <span class="badge bg-secondary-lt text-secondary data-requests-toolbar-note">Designstand 17.05.2026</span>
                         <span class="text-secondary small">Auskunft gesamt: <strong><?php echo (int)($privacyStats['total'] ?? 0); ?></strong></span>
                         <span class="text-secondary small">Löschanträge gesamt: <strong><?php echo (int)($deletionStats['total'] ?? 0); ?></strong></span>
                         <span class="text-secondary small">Offen: <strong><?php echo (int)(($privacyStats['pending'] ?? 0) + ($deletionStats['pending'] ?? 0)); ?></strong></span>

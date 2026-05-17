@@ -72,6 +72,7 @@ $escape = static fn (mixed $value): string => htmlspecialchars((string) $value, 
             <div class="content-listing-toolbar__label">Installierte Themes</div>
             <div class="content-listing-filters">
                 <div class="content-listing-filters__actions">
+                    <span class="badge bg-secondary-lt text-secondary">Designstand 17.05.2026</span>
                     <span class="text-secondary small">Aktiv: <strong><?php echo $activeCount; ?></strong></span>
                     <span class="text-secondary small">Inaktiv: <strong><?php echo $inactiveCount; ?></strong></span>
                     <span class="text-secondary small">Alle installierten Themes mit Aktivierungs- und Verwaltungsaktionen.</span>

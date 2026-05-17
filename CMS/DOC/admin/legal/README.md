@@ -26,6 +26,8 @@ Die zentralen Legal-Seiten folgen jetzt demselben Backend-Stil wie andere Admin-
 
 Die DSGVO-, Cookie- und Legal-Workflows bleiben funktional unverändert.
 
+Hinweis zur Designrunde 17.05.2026: Der Kernscreen `/admin/data-requests` zeigt den Statusüberblick jetzt als eigene Toolbar-Ebene statt als lose Kachelreihen.
+
 ---
 
 ## Recht
