@@ -57,6 +57,20 @@ $getRoleColor = static function (string $role) use ($roleColors): string {
             <?php $alertData = $alert; $alertMarginClass = 'mb-3'; require __DIR__ . '/../partials/flash-alert.php'; ?>
         <?php endif; ?>
 
+        <div class="cms-admin-info-box mb-3" role="note">
+            <div class="cms-admin-info-box__head">
+                <h3 class="cms-admin-info-box__title">Benutzerverwaltung</h3>
+                <div class="cms-admin-info-box__actions">
+                    <a href="/admin/groups" class="btn btn-sm btn-outline-secondary">Gruppen</a>
+                    <a href="/admin/roles" class="btn btn-sm btn-outline-secondary">Rollen</a>
+                    <a href="/admin/user-settings" class="btn btn-sm btn-outline-secondary">Einstellungen</a>
+                </div>
+            </div>
+            <p class="cms-admin-info-box__text">
+                Filter, Suche und Bulk-Aktionen arbeiten auf derselben serverseitigen Datenbasis und bleiben unabhängig vom Anzeigeformat stabil.
+            </p>
+        </div>
+
         <!-- KPI-Karten -->
         <div class="row row-deck row-cards mb-4">
             <div class="col-sm-6 col-lg-3">

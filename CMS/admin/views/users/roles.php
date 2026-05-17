@@ -80,7 +80,7 @@ $renderCapabilityDiffList = static function (array $groupedCapabilities) use ($g
     <div class="container-xl">
         <div class="row g-2 align-items-center">
             <div class="col">
-                <div class="page-pretitle">Benutzer</div>
+                <div class="page-pretitle">Benutzer &amp; Gruppen</div>
                 <h2 class="page-title">Rollen &amp; Rechte</h2>
                 <div class="text-secondary mt-1">Berechtigungsmatrix für alle Benutzerrollen</div>
             </div>
@@ -101,10 +101,22 @@ $renderCapabilityDiffList = static function (array $groupedCapabilities) use ($g
 <div class="page-body">
     <div class="container-xl">
         <?php if (!empty($alert)): ?>
-            <div class="alert alert-<?php echo htmlspecialchars($alert['type'] ?? 'info'); ?> mb-4" role="alert">
-                <?php echo htmlspecialchars($alert['message'] ?? ''); ?>
-            </div>
+            <?php $alertData = $alert; $alertMarginClass = 'mb-4'; require __DIR__ . '/../partials/flash-alert.php'; ?>
         <?php endif; ?>
+
+        <div class="cms-admin-info-box mb-4" role="note">
+            <div class="cms-admin-info-box__head">
+                <h3 class="cms-admin-info-box__title">Rollenmatrix und Custom-Rechte</h3>
+                <div class="cms-admin-info-box__actions">
+                    <a href="/admin/users" class="btn btn-sm btn-outline-secondary">Benutzer</a>
+                    <a href="/admin/groups" class="btn btn-sm btn-outline-secondary">Gruppen</a>
+                    <a href="/admin/user-settings" class="btn btn-sm btn-outline-secondary">Einstellungen</a>
+                </div>
+            </div>
+            <p class="cms-admin-info-box__text">
+                Änderungen an Rollen und Capabilities wirken zentral. Die Vergleichsansicht bleibt read-only und verändert keine Berechtigungen.
+            </p>
+        </div>
 
         <div class="row row-cards mb-4">
             <div class="col-lg-6">

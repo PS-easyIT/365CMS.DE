@@ -43,10 +43,15 @@ $mediaCategoriesConfig = [
             <?php $alertData = $alert; $alertMarginClass = 'mb-3'; require __DIR__ . '/../partials/flash-alert.php'; ?>
         <?php endif; ?>
 
-        <div class="alert alert-info mb-3" role="alert">
-            Kategorienamen sind bis <?php echo (int)($constraints['category_name_max_length'] ?? 80); ?> Zeichen,
-            Slugs bis <?php echo (int)($constraints['category_slug_max_length'] ?? 80); ?> Zeichen erlaubt.
-            System-Slugs bleiben geschützt und können hier nicht gelöscht werden.
+        <div class="cms-admin-info-box mb-3" role="note">
+            <div class="cms-admin-info-box__head">
+                <h3 class="cms-admin-info-box__title">Regeln für Medienkategorien</h3>
+            </div>
+            <p class="cms-admin-info-box__text">
+                Kategorienamen sind bis <?php echo (int)($constraints['category_name_max_length'] ?? 80); ?> Zeichen,
+                Slugs bis <?php echo (int)($constraints['category_slug_max_length'] ?? 80); ?> Zeichen erlaubt.
+                System-Slugs bleiben geschützt und können hier nicht gelöscht werden.
+            </p>
         </div>
 
         <div class="row">

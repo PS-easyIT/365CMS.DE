@@ -404,16 +404,16 @@ function renderMediaDuplicateSummary(array $file, bool $compact = false): string
         <div class="card">
             <div class="card-header">
                 <div class="w-100">
-                        <div class="alert alert-info mb-3" role="alert">
-                        <div class="d-flex">
-                            <div>
-                                    <strong>Bibliotheks-Grenzen:</strong>
-                                maximal <?php echo (int)($constraints['max_upload_files'] ?? 0); ?> Dateien pro Upload,
-                                Gesamtpaket bis <?php echo htmlspecialchars((string)($constraints['max_upload_batch_label'] ?? '—')); ?>,
-                                Suchbegriff bis <?php echo (int)($constraints['search_max_length'] ?? 120); ?> Zeichen
-                                und Ordnernamen bis <?php echo (int)($constraints['folder_name_max_length'] ?? 120); ?> Zeichen.
-                            </div>
+                    <div class="cms-admin-info-box mb-3" role="note">
+                        <div class="cms-admin-info-box__head">
+                            <h3 class="cms-admin-info-box__title">Bibliotheks-Grenzen</h3>
                         </div>
+                        <p class="cms-admin-info-box__text">
+                            Maximal <?php echo (int)($constraints['max_upload_files'] ?? 0); ?> Dateien pro Upload,
+                            Gesamtpaket bis <?php echo htmlspecialchars((string)($constraints['max_upload_batch_label'] ?? '—')); ?>,
+                            Suchbegriff bis <?php echo (int)($constraints['search_max_length'] ?? 120); ?> Zeichen
+                            und Ordnernamen bis <?php echo (int)($constraints['folder_name_max_length'] ?? 120); ?> Zeichen.
+                        </p>
                     </div>
                     <div class="media-toolbar">
                         <nav aria-label="Breadcrumb">
@@ -663,17 +663,26 @@ function renderMediaDuplicateSummary(array $file, bool $compact = false): string
                         </div>
                     <?php endif; ?>
                     <?php if ($hasAdvancedMediaFilters): ?>
-                        <div class="alert alert-info mb-0 mt-3" role="status">
-                            <strong>Erweiterte Filter aktiv:</strong>
-                            Dateityp, Endung, Größe und Änderungszeitraum werden serverseitig per Allowlist geprüft. Ordner bleiben sichtbar, damit die Navigation auch bei leeren Trefferlisten erhalten bleibt.
+                        <div class="cms-admin-info-box mb-0 mt-3" role="status">
+                            <div class="cms-admin-info-box__head">
+                                <h3 class="cms-admin-info-box__title">Erweiterte Filter aktiv</h3>
+                            </div>
+                            <p class="cms-admin-info-box__text">
+                                Dateityp, Endung, Größe und Änderungszeitraum werden serverseitig per Allowlist geprüft.
+                                Ordner bleiben sichtbar, damit die Navigation auch bei leeren Trefferlisten erhalten bleibt.
+                            </p>
                         </div>
                     <?php endif; ?>
                     <?php if ((int)($stats['duplicate_file_count'] ?? 0) > 0): ?>
-                        <div class="alert alert-warning mb-0 mt-3" role="status">
-                            <strong>Duplikat-Erkennung:</strong>
-                            <?php echo (int)($stats['duplicate_file_count'] ?? 0); ?> sichtbare Datei(en)
-                            gehören zu <?php echo (int)($stats['duplicate_group_count'] ?? 0); ?> identischen Hash-Gruppe(n).
-                            Die Erkennung ist read-only; Löschen oder Verschieben bleibt eine bewusste Admin-Aktion.
+                        <div class="cms-admin-info-box cms-admin-info-box--warning mb-0 mt-3" role="status">
+                            <div class="cms-admin-info-box__head">
+                                <h3 class="cms-admin-info-box__title">Duplikat-Erkennung</h3>
+                            </div>
+                            <p class="cms-admin-info-box__text">
+                                <?php echo (int)($stats['duplicate_file_count'] ?? 0); ?> sichtbare Datei(en)
+                                gehören zu <?php echo (int)($stats['duplicate_group_count'] ?? 0); ?> identischen Hash-Gruppe(n).
+                                Die Erkennung ist read-only; Löschen oder Verschieben bleibt eine bewusste Admin-Aktion.
+                            </p>
                         </div>
                     <?php endif; ?>
                 </div>

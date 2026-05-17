@@ -66,6 +66,19 @@ $roleColors = [
             <?php $alertData = $alert; $alertMarginClass = 'mb-4'; require __DIR__ . '/../partials/flash-alert.php'; ?>
         <?php endif; ?>
 
+        <div class="cms-admin-info-box mb-3" role="note">
+            <div class="cms-admin-info-box__head">
+                <h3 class="cms-admin-info-box__title"><?php echo $isNew ? 'Neues Benutzerkonto' : 'Benutzerprofil bearbeiten'; ?></h3>
+                <div class="cms-admin-info-box__actions">
+                    <a href="/admin/groups" class="btn btn-sm btn-outline-secondary">Gruppen</a>
+                    <a href="/admin/roles" class="btn btn-sm btn-outline-secondary">Rollen</a>
+                </div>
+            </div>
+            <p class="cms-admin-info-box__text">
+                Rollenwechsel und Statusänderungen bleiben serverseitig validiert; die Wirkungsvorschau dient nur der Orientierung vor dem Speichern.
+            </p>
+        </div>
+
         <form method="post" action="<?php echo htmlspecialchars($currentRequestUri, ENT_QUOTES); ?>" id="userForm">
             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
             <?php if (!$isNew): ?>

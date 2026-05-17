@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Überblick über die aktuelle Benutzerverwaltung mit dynamischen Rollen, Gruppen und Rechtezuordnung.
 
-Letzte Aktualisierung: 2026-05-13 · Version 2.9.781
+Letzte Aktualisierung: 17.05.2026 · Version 3.0.11
 
 Der Bereich ist im aktuellen Stand auf vier Hauptbereiche verteilt:
 
@@ -43,4 +43,6 @@ Der Bereich ist im aktuellen Stand auf vier Hauptbereiche verteilt:
 - Gruppen pflegen nun neben Name/Beschreibung auch Slug, Paketbezug, Aktiv-Status und Mitgliedschaften direkt in `/admin/groups`.
 - `/admin/groups` unterstützt zusätzlich Sammelaktionen für Aktivieren, Deaktivieren, Paket zuweisen/entfernen und Löschen; IDs und Aktionsnamen werden serverseitig per Allowlist normalisiert, und Sammellöschungen bereinigen Mitgliedschaften transaktional mit.
 - Passkeys/WebAuthn, MFA/TOTP, Backup-Codes, LDAP und Session-/Registrierungsparameter werden im aktuellen Stand als zusammenhängender Auth-/Provider-Kontext gelesen.
+- Die Teilbereiche `/admin/users`, `/admin/groups`, `/admin/roles` und `/admin/user-settings` nutzen jetzt denselben zurückhaltenden Info-Box-Stil mit Titelzeile über optionalen Aktionsbuttons und kurzen, stabil umbrechenden Hinweisen.
+- Hinweise im Admin werden nicht automatisch ausgeblendet und bleiben sichtbar, bis sie aktiv geschlossen werden.
 

@@ -168,6 +168,38 @@ $categoryArchivePreviewPaths = $buildCategoryArchivePreviewPaths($editCategorySl
                 </div>
             </div>
             <div class="content-entity-layout__main">
+                <div class="card content-listing-card content-listing-toolbar content-entity-toolbar">
+                    <div class="card-body">
+                        <div class="content-listing-toolbar__label">Filter &amp; Aktionen</div>
+                        <div class="content-entity-toolbar__grid">
+                            <div class="content-entity-toolbar__group">
+                                <label class="form-label mb-0 small text-secondary" for="bulkCategoryReplacementSelect">Ersatzkategorie für Auswahl</label>
+                                <select class="form-select form-select-sm" id="bulkCategoryReplacementSelect" form="bulkCategoryForm" name="bulk_replacement_category_id" aria-label="Gemeinsame Ersatzkategorie">
+                                    <option value="0">Ersatz je Kategorie nutzen</option>
+                                    <?php foreach ($deleteCategoryOptions as $categoryOption): ?>
+                                        <option value="<?php echo (int) ($categoryOption['id'] ?? 0); ?>">
+                                            <?php echo htmlspecialchars((string) ($categoryOption['option_label'] ?? $categoryOption['name'] ?? ''), ENT_QUOTES); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="content-entity-toolbar__actions">
+                                <button type="submit" form="bulkCategoryForm" class="btn btn-outline-danger btn-sm">Ausgewählte löschen</button>
+                                <?php if ($replacementCategoryDeleteCount > 0): ?>
+                                    <form method="post" class="d-inline-flex js-delete-replacement-categories-form"
+                                          data-delete-count="<?php echo $replacementCategoryDeleteCount; ?>"
+                                          data-delete-preview="<?php echo htmlspecialchars(implode('|', $replacementCategoryDeletePreview), ENT_QUOTES); ?>">
+                                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES); ?>">
+                                        <input type="hidden" name="action" value="delete_categories_with_replacement">
+                                        <button type="submit" class="btn btn-outline-danger btn-sm">
+                                            <?php echo $replacementCategoryDeleteCount; ?> Kategorien mit Ersatz löschen
+                                        </button>
+                                    </form>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 <div class="card content-listing-card content-entity-list-card">
                       <form method="post" id="bulkCategoryForm"
                           data-confirm-title="Kategorien gesammelt löschen"
@@ -175,36 +207,14 @@ $categoryArchivePreviewPaths = $buildCategoryArchivePreviewPaths($editCategorySl
                           data-confirm-text="Kategorien löschen"
                           data-confirm-class="btn-danger"
                           data-confirm-status-class="bg-danger"></form>
-                    <div class="card-header content-listing-toolbar d-flex flex-column gap-3">
+                    <div class="card-header">
                         <div>
                             <h3 class="card-title content-entity-card-title">Vorhandene Kategorien</h3>
                             <p class="content-entity-card-subtitle">Ausgewählte Kategorien können gesammelt gelöscht werden; bei Beitragsbezug ist eine Ersatzkategorie Pflicht.</p>
                         </div>
-                        <div class="content-entity-list-actions">
-                            <input type="hidden" form="bulkCategoryForm" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES); ?>">
-                            <input type="hidden" form="bulkCategoryForm" name="action" value="bulk_delete_categories">
-                            <select class="form-select form-select-sm" form="bulkCategoryForm" name="bulk_replacement_category_id" aria-label="Gemeinsame Ersatzkategorie">
-                                <option value="0">Ersatz je Kategorie nutzen</option>
-                                <?php foreach ($deleteCategoryOptions as $categoryOption): ?>
-                                    <option value="<?php echo (int) ($categoryOption['id'] ?? 0); ?>">
-                                        <?php echo htmlspecialchars((string) ($categoryOption['option_label'] ?? $categoryOption['name'] ?? ''), ENT_QUOTES); ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                            <button type="submit" form="bulkCategoryForm" class="btn btn-outline-danger btn-sm">Ausgewählte löschen</button>
-                        </div>
-                        <?php if ($replacementCategoryDeleteCount > 0): ?>
-                            <form method="post" class="d-inline-flex js-delete-replacement-categories-form"
-                                  data-delete-count="<?php echo $replacementCategoryDeleteCount; ?>"
-                                  data-delete-preview="<?php echo htmlspecialchars(implode('|', $replacementCategoryDeletePreview), ENT_QUOTES); ?>">
-                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES); ?>">
-                                <input type="hidden" name="action" value="delete_categories_with_replacement">
-                                <button type="submit" class="btn btn-outline-danger btn-sm">
-                                    <?php echo $replacementCategoryDeleteCount; ?> Kategorien mit Ersatz löschen
-                                </button>
-                            </form>
-                        <?php endif; ?>
                     </div>
+                    <input type="hidden" form="bulkCategoryForm" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES); ?>">
+                    <input type="hidden" form="bulkCategoryForm" name="action" value="bulk_delete_categories">
                     <div class="table-responsive">
                         <table class="table table-vcenter card-table content-listing-table content-entity-table">
                             <thead>

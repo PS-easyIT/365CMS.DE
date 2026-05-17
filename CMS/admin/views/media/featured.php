@@ -81,6 +81,15 @@ if (!function_exists('cms_admin_media_render_featured_usage_list')) {
             <?php $alertData = $alert; $alertMarginClass = 'mb-3'; require __DIR__ . '/../partials/flash-alert.php'; ?>
         <?php endif; ?>
 
+        <div class="cms-admin-info-box mb-3" role="note">
+            <div class="cms-admin-info-box__head">
+                <h3 class="cms-admin-info-box__title">Replace-Flow für Beitrags- und Seitenmedien</h3>
+            </div>
+            <p class="cms-admin-info-box__text">
+                Ersetzungen arbeiten referenzstabil auf denselben Medienpfad. Damit bleiben alle verknüpften Inhalte konsistent, auch bei Mehrfach-Ersetzung.
+            </p>
+        </div>
+
         <div class="row row-deck row-cards mb-4">
             <div class="col-sm-6 col-lg">
                 <div class="card card-sm">

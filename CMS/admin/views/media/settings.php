@@ -41,11 +41,16 @@ $s = is_array($settings) ? $settings : [];
             <?php $alertData = $alert; $alertMarginClass = 'mb-3'; require __DIR__ . '/../partials/flash-alert.php'; ?>
         <?php endif; ?>
 
-        <div class="alert alert-info mb-3" role="alert">
-            Upload-Größen liegen zwischen <?php echo (int)($constraints['min_upload_size_mb'] ?? 1); ?> und <?php echo (int)($constraints['max_upload_size_mb'] ?? 256); ?> MB,
-            JPEG-Qualität zwischen <?php echo (int)($constraints['jpeg_quality_min'] ?? 60); ?> und <?php echo (int)($constraints['jpeg_quality_max'] ?? 100); ?>,
-            Bildmaße zwischen <?php echo (int)($constraints['dimension_min'] ?? 1); ?> und <?php echo (int)($constraints['dimension_max'] ?? 8000); ?> px
-            sowie Thumbnail-Kanten zwischen <?php echo (int)($constraints['thumbnail_min'] ?? 50); ?> und <?php echo (int)($constraints['thumbnail_max'] ?? 6000); ?> px.
+        <div class="cms-admin-info-box mb-3" role="note">
+            <div class="cms-admin-info-box__head">
+                <h3 class="cms-admin-info-box__title">Grenzwerte für Upload und Verarbeitung</h3>
+            </div>
+            <p class="cms-admin-info-box__text">
+                Upload-Größen liegen zwischen <?php echo (int)($constraints['min_upload_size_mb'] ?? 1); ?> und <?php echo (int)($constraints['max_upload_size_mb'] ?? 256); ?> MB,
+                JPEG-Qualität zwischen <?php echo (int)($constraints['jpeg_quality_min'] ?? 60); ?> und <?php echo (int)($constraints['jpeg_quality_max'] ?? 100); ?>,
+                Bildmaße zwischen <?php echo (int)($constraints['dimension_min'] ?? 1); ?> und <?php echo (int)($constraints['dimension_max'] ?? 8000); ?> px
+                sowie Thumbnail-Kanten zwischen <?php echo (int)($constraints['thumbnail_min'] ?? 50); ?> und <?php echo (int)($constraints['thumbnail_max'] ?? 6000); ?> px.
+            </p>
         </div>
 
         <form method="post">

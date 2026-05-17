@@ -78,7 +78,7 @@ $errorData = is_array($errorData) ? $errorData : [];
 $errorContext = $redactAlertValue($errorContext, 'context');
 $errorContext = is_array($errorContext) ? $errorContext : [];
 ?>
-<div class="alert alert-<?php echo htmlspecialchars($alertClass, ENT_QUOTES, 'UTF-8'); ?><?php echo $alertDismissible ? ' alert-dismissible' : ''; ?> <?php echo htmlspecialchars($alertMarginClass, ENT_QUOTES, 'UTF-8'); ?>" role="alert">
+<div class="alert cms-admin-alert alert-<?php echo htmlspecialchars($alertClass, ENT_QUOTES, 'UTF-8'); ?><?php echo $alertDismissible ? ' alert-dismissible' : ''; ?> <?php echo htmlspecialchars($alertMarginClass, ENT_QUOTES, 'UTF-8'); ?>" role="alert">
     <div class="d-flex">
         <div class="w-100">
             <div><?php echo htmlspecialchars($alertMessage, ENT_QUOTES, 'UTF-8'); ?></div>

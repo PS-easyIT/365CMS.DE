@@ -53,6 +53,20 @@ $groupField = static function (mixed $group, string $key, mixed $default = ''): 
             <?php $alertData = $alert; $alertMarginClass = 'mb-3'; require __DIR__ . '/../partials/flash-alert.php'; ?>
         <?php endif; ?>
 
+        <div class="cms-admin-info-box mb-3" role="note">
+            <div class="cms-admin-info-box__head">
+                <h3 class="cms-admin-info-box__title">Gruppen und Mitgliedschaften</h3>
+                <div class="cms-admin-info-box__actions">
+                    <a href="/admin/users" class="btn btn-sm btn-outline-secondary">Benutzer</a>
+                    <a href="/admin/roles" class="btn btn-sm btn-outline-secondary">Rollen</a>
+                    <a href="/admin/user-settings" class="btn btn-sm btn-outline-secondary">Einstellungen</a>
+                </div>
+            </div>
+            <p class="cms-admin-info-box__text">
+                Gruppenkarten und Sammelaktionen bleiben synchron: Auswahl, Plan-Zuweisung und Löschlogik nutzen denselben CSRF-geschützten Pfad.
+            </p>
+        </div>
+
         <?php if (!empty($groups)): ?>
             <div class="card mb-4">
                 <div class="card-body d-flex flex-wrap align-items-center gap-3">

@@ -46,6 +46,15 @@ $consistencyHelpText = (string)($consistency['help_text'] ?? '');
             <?php $alertData = $alert; $alertMarginClass = 'mb-3'; require __DIR__ . '/../partials/flash-alert.php'; ?>
         <?php endif; ?>
 
+        <div class="cms-admin-info-box mb-3" role="note">
+            <div class="cms-admin-info-box__head">
+                <h3 class="cms-admin-info-box__title">Read-only Konsistenzprüfung</h3>
+            </div>
+            <p class="cms-admin-info-box__text">
+                Diese Ansicht markiert nur Auffälligkeiten. Korrekturen erfolgen bewusst über bestehende Editor- oder Replace-Pfade.
+            </p>
+        </div>
+
         <div class="row row-deck row-cards mb-4">
             <div class="col-sm-6 col-lg-4">
                 <div class="card card-sm">

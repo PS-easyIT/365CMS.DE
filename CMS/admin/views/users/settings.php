@@ -60,10 +60,22 @@ $passwordPolicyTesterConfig = [
 <div class="page-body">
     <div class="container-xl cms-settings-page">
         <?php if (!empty($alert)): ?>
-            <div class="alert alert-<?php echo htmlspecialchars($alert['type'] ?? 'info'); ?> mb-4" role="alert">
-                <?php echo htmlspecialchars($alert['message'] ?? ''); ?>
-            </div>
+            <?php $alertData = $alert; $alertMarginClass = 'mb-4'; require __DIR__ . '/../partials/flash-alert.php'; ?>
         <?php endif; ?>
+
+        <div class="cms-admin-info-box mb-4" role="note">
+            <div class="cms-admin-info-box__head">
+                <h3 class="cms-admin-info-box__title">Auth- und Registrierungssteuerung</h3>
+                <div class="cms-admin-info-box__actions">
+                    <a href="/admin/users" class="btn btn-sm btn-outline-secondary">Benutzer</a>
+                    <a href="/admin/groups" class="btn btn-sm btn-outline-secondary">Gruppen</a>
+                    <a href="/admin/roles" class="btn btn-sm btn-outline-secondary">Rollen</a>
+                </div>
+            </div>
+            <p class="cms-admin-info-box__text">
+                Dieser Bereich bündelt Registrierung, Passwort-Policy und Provider-Status. Technische Runtime-Werte bleiben bewusst read-only.
+            </p>
+        </div>
 
         <div class="row row-deck row-cards mb-4">
             <div class="col-sm-6 col-lg-3">

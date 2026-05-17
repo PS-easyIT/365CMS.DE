@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Überblick über Medienbibliothek, Upload-Workflows, Schutzbereiche, Admin-Tabs und verknüpfte Member-/Asset-Dokumentation.
 
-Letzte Aktualisierung: 2026-05-16 · Version 3.0.10
+Letzte Aktualisierung: 17.05.2026 · Version 3.0.11
 
 Die Medienverwaltung ist unter `/admin/media` erreichbar und bündelt Bibliothek, Beitrags-/Site-Medien, Medien-Check, Kategorien und Einstellungen über Query-Tabs statt über getrennte Legacy-Routen.
 
@@ -50,6 +50,8 @@ Die Medienverwaltung ist unter `/admin/media` erreichbar und bündelt Bibliothek
 - Unterpunkt **Beitrags & Site Medien** für Featured Images aus Beiträgen und Seiten inklusive Suche, Filter nach Beiträgen/Seiten, Drag-&-Drop-Ersetzen, lokaler Mini-Vorschau, Mehrfach-Ersetzung vorbereiteter Zeilen und Erfolgshinweis pro Bild
 - eigener Unterpunkt **Medien Check** für die read-only Konsistenzliste von Beiträgen und Seiten ohne Bild oder mit defekter Featured-Image-Referenz inklusive Deep-Link in den bestehenden Editor-Pfad mit Medienbibliothek
 - der Featured-Replace-Flow erzwingt seinen Bildvertrag seit `2.9.618` serverseitig unabhängig von den allgemeinen Bibliotheks-Typ-Häkchen, damit Beitrags-/Seitenbilder immer nur als JPG/JPEG, PNG, GIF, WebP, BMP oder ICO ersetzt werden
+- Info- und Hinweisboxen folgen im gesamten Medienbereich einem einheitlichen Layout mit Titelzeile oberhalb optionaler Aktionen, kurzen Texten und robustem Wrapping ohne Horizontal-Overflow
+- Admin-Hinweise werden nicht mehr automatisch ausgeblendet; sie bleiben sichtbar, bis sie bewusst geschlossen werden
 
 ---
 

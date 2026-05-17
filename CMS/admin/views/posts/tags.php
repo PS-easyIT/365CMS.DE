@@ -114,6 +114,27 @@ $tagArchivePreviewPaths = $buildTagArchivePreviewPaths($editTagSlug);
                 </div>
             </div>
             <div class="content-entity-layout__main">
+                <div class="card content-listing-card content-listing-toolbar content-entity-toolbar">
+                    <div class="card-body">
+                        <div class="content-listing-toolbar__label">Filter &amp; Aktionen</div>
+                        <div class="content-entity-toolbar__grid">
+                            <div class="content-entity-toolbar__group">
+                                <label class="form-label mb-0 small text-secondary" for="bulkTagReplacementSelect">Ersatztag für Auswahl</label>
+                                <select class="form-select form-select-sm" id="bulkTagReplacementSelect" form="bulkTagForm" name="bulk_replacement_tag_id" aria-label="Gemeinsamer Ersatztag">
+                                    <option value="0">Ohne Ersatztag</option>
+                                    <?php foreach ($deleteTagOptions as $tagOption): ?>
+                                        <option value="<?php echo (int) ($tagOption['id'] ?? 0); ?>">
+                                            <?php echo htmlspecialchars((string) ($tagOption['name'] ?? ''), ENT_QUOTES); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="content-entity-toolbar__actions">
+                                <button type="submit" form="bulkTagForm" class="btn btn-outline-danger btn-sm">Ausgewählte löschen</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 <div class="card content-listing-card content-entity-list-card">
                       <form method="post" id="bulkTagForm"
                           data-confirm-title="Tags gesammelt löschen"
@@ -121,25 +142,14 @@ $tagArchivePreviewPaths = $buildTagArchivePreviewPaths($editTagSlug);
                           data-confirm-text="Tags löschen"
                           data-confirm-class="btn-danger"
                           data-confirm-status-class="bg-danger"></form>
-                    <div class="card-header content-listing-toolbar d-flex flex-column gap-3">
+                    <div class="card-header">
                         <div>
                             <h3 class="card-title content-entity-card-title mb-0">Vorhandene Tags</h3>
                             <p class="content-entity-card-subtitle">Ausgewählte Tags können gesammelt gelöscht werden; bei Beitragsbezug ist ein Ersatztag Pflicht.</p>
                         </div>
-                        <div class="content-entity-list-actions">
-                            <input type="hidden" form="bulkTagForm" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES); ?>">
-                            <input type="hidden" form="bulkTagForm" name="action" value="bulk_delete_tags">
-                            <select class="form-select form-select-sm" form="bulkTagForm" name="bulk_replacement_tag_id" aria-label="Gemeinsamer Ersatztag">
-                                <option value="0">Ohne Ersatztag</option>
-                                <?php foreach ($deleteTagOptions as $tagOption): ?>
-                                    <option value="<?php echo (int) ($tagOption['id'] ?? 0); ?>">
-                                        <?php echo htmlspecialchars((string) ($tagOption['name'] ?? ''), ENT_QUOTES); ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                            <button type="submit" form="bulkTagForm" class="btn btn-outline-danger btn-sm">Ausgewählte löschen</button>
-                        </div>
                     </div>
+                    <input type="hidden" form="bulkTagForm" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES); ?>">
+                    <input type="hidden" form="bulkTagForm" name="action" value="bulk_delete_tags">
                     <div class="table-responsive">
                         <table class="table table-vcenter card-table content-listing-table content-entity-table">
                             <thead>
