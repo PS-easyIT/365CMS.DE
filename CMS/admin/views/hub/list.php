@@ -18,12 +18,16 @@ $buildHubPublicPath = static fn (string $slug): string => '/' . ltrim($slug, '/'
 
 <div class="page-header d-print-none">
     <div class="container-xl">
-        <div class="row align-items-center">
-            <div class="col-auto">
+        <div class="content-listing-header">
+            <div>
                 <div class="page-pretitle">Seiten &amp; Beiträge</div>
-                <h2 class="page-title">Hub-Sites</h2>
+                <h2 class="page-title mb-1">Hub-Sites</h2>
+                <div class="content-listing-header__meta">
+                    <span><?php echo $total; ?> Hub-Sites</span>
+                    <span>Routing- und Sammelseiten mit zentralen Templates</span>
+                </div>
             </div>
-            <div class="col-auto ms-auto">
+            <div>
                 <a href="<?php echo htmlspecialchars($hubCreateUrl); ?>" class="btn btn-primary">
                     <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 5l0 14"/><path d="M5 12l14 0"/></svg>
                     Neue Hub Site
@@ -35,11 +39,6 @@ $buildHubPublicPath = static fn (string $slug): string => '/' . ltrim($slug, '/'
 
 <div class="page-body">
     <div class="container-xl">
-        <ul class="nav nav-tabs mb-4">
-            <li class="nav-item"><a class="nav-link active" href="<?php echo htmlspecialchars($hubBaseUrl); ?>">Content</a></li>
-            <li class="nav-item"><a class="nav-link" href="<?php echo htmlspecialchars($hubTemplatesUrl); ?>">Templates</a></li>
-        </ul>
-
         <?php
         $alertData = $alert ?? [];
         $alertDismissible = true;
@@ -47,31 +46,28 @@ $buildHubPublicPath = static fn (string $slug): string => '/' . ltrim($slug, '/'
         require __DIR__ . '/../partials/flash-alert.php';
         ?>
 
-        <div class="row row-deck row-cards mb-4">
-            <div class="col-sm-6 col-lg-4">
-                <div class="card card-sm">
-                    <div class="card-body">
-                        <div class="font-weight-medium"><?php echo $total; ?> Hub Sites</div>
-                        <div class="text-secondary">Mit 5 Layout-Varianten für Routing- und Sammelseiten</div>
-                    </div>
-                </div>
+        <div class="card content-listing-card">
+            <div class="card-header content-listing-toolbar">
+                <ul class="nav nav-tabs card-header-tabs">
+                    <li class="nav-item"><a class="nav-link active" href="<?php echo htmlspecialchars($hubBaseUrl); ?>">Content</a></li>
+                    <li class="nav-item"><a class="nav-link" href="<?php echo htmlspecialchars($hubTemplatesUrl); ?>">Templates</a></li>
+                </ul>
             </div>
-        </div>
-
-        <div class="card">
-            <div class="card-header">
-                <div class="row w-100 g-2 align-items-center">
-                    <div class="col">
-                        <span class="text-secondary">Öffentliche Hub-Sites laufen direkt über ihren Slug im Frontend.</span>
-                    </div>
-                    <div class="col-auto">
-                        <input type="text" class="form-control form-control-sm js-hub-sites-search-input" value="<?php echo htmlspecialchars($search); ?>" placeholder="Suchen…"
+            <div class="card-body border-bottom">
+                <div class="content-listing-toolbar__label">Filter &amp; Suche</div>
+                <div class="content-listing-filters">
+                    <div class="content-listing-filters__search">
+                        <label class="form-label mb-0 small text-secondary" for="hubSitesSearchInput">Schnellsuche</label>
+                        <input type="text" class="form-control form-control-sm js-hub-sites-search-input" id="hubSitesSearchInput" value="<?php echo htmlspecialchars($search); ?>" placeholder="Name oder Slug suchen…"
                                data-search-url="<?php echo htmlspecialchars($hubBaseUrl, ENT_QUOTES); ?>">
+                    </div>
+                    <div class="content-listing-filters__actions">
+                        <span class="text-secondary small">Öffentliche Hub-Sites laufen direkt über ihren Slug im Frontend.</span>
                     </div>
                 </div>
             </div>
             <div class="table-responsive">
-                <table class="table table-vcenter card-table">
+                <table class="table table-vcenter card-table content-listing-table">
                     <thead>
                         <tr>
                             <th>ID</th>
@@ -94,10 +90,10 @@ $buildHubPublicPath = static fn (string $slug): string => '/' . ltrim($slug, '/'
                     <?php else: ?>
                         <?php foreach ($sites as $site): ?>
                             <?php $publicPath = !empty($site['hub_slug']) ? $buildHubPublicPath((string)$site['hub_slug']) : ''; ?>
-                            <tr>
+                            <tr class="content-listing-table__row">
                                 <td class="text-secondary"><?php echo (int)$site['id']; ?></td>
                                 <td>
-                                    <a href="<?php echo htmlspecialchars($buildHubEditUrl((int)$site['id'])); ?>" class="text-reset font-weight-medium">
+                                    <a href="<?php echo htmlspecialchars($buildHubEditUrl((int)$site['id'])); ?>" class="text-reset fw-medium">
                                         <?php echo htmlspecialchars((string)$site['table_name']); ?>
                                     </a>
                                     <div class="text-secondary small">
@@ -119,7 +115,7 @@ $buildHubPublicPath = static fn (string $slug): string => '/' . ltrim($slug, '/'
                                 <td><span class="badge bg-azure-lt"><?php echo htmlspecialchars((string)($templateOptions[$site['template']] ?? $site['template'])); ?></span></td>
                                 <td><?php echo (int)$site['card_count']; ?></td>
                                 <td class="text-secondary"><?php echo htmlspecialchars(date('d.m.Y', strtotime((string)$site['updated_at']))); ?></td>
-                                <td>
+                                <td class="table-actions content-listing-table__actions-cell">
                                     <div class="dropdown">
                                         <button class="btn btn-ghost-secondary btn-icon btn-sm" data-bs-toggle="dropdown">
                                             <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/><circle cx="12" cy="5" r="1"/></svg>

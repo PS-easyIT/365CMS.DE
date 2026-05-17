@@ -69,10 +69,14 @@ $categoryArchivePreviewPaths = $buildCategoryArchivePreviewPaths($editCategorySl
 
 <div class="page-header d-print-none">
     <div class="container-xl">
-        <div class="row align-items-center">
-            <div class="col-auto">
+        <div class="content-listing-header">
+            <div>
                 <div class="page-pretitle">Seiten &amp; Beiträge</div>
-                <h2 class="page-title">Beitrags-Kategorien</h2>
+                <h2 class="page-title mb-1">Beitrags-Kategorien</h2>
+                <div class="content-listing-header__meta">
+                    <span><?php echo (int) ($counts['total'] ?? 0); ?> Kategorien</span>
+                    <span><?php echo (int) ($counts['assigned_posts'] ?? 0); ?> Beitragszuweisungen</span>
+                </div>
             </div>
         </div>
     </div>
@@ -84,38 +88,9 @@ $categoryArchivePreviewPaths = $buildCategoryArchivePreviewPaths($editCategorySl
             <?php $alertData = $alert; $alertMarginClass = 'mb-3'; require __DIR__ . '/../partials/flash-alert.php'; ?>
         <?php endif; ?>
 
-        <div class="row row-deck row-cards mb-4">
-            <div class="col-sm-6 col-lg-4">
-                <div class="card card-sm">
-                    <div class="card-body">
-                        <div class="row align-items-center">
-                            <div class="col-auto"><span class="bg-primary text-white avatar">#</span></div>
-                            <div class="col">
-                                <div class="font-weight-medium"><?php echo (int) ($counts['total'] ?? 0); ?> Kategorien</div>
-                                <div class="text-secondary">Gesamt</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-sm-6 col-lg-4">
-                <div class="card card-sm">
-                    <div class="card-body">
-                        <div class="row align-items-center">
-                            <div class="col-auto"><span class="bg-azure text-white avatar">📝</span></div>
-                            <div class="col">
-                                <div class="font-weight-medium"><?php echo (int) ($counts['assigned_posts'] ?? 0); ?></div>
-                                <div class="text-secondary">Beitragszuweisungen</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="row row-cards">
-            <div class="col-lg-4">
-                <div class="card">
+        <div class="content-entity-layout">
+            <div class="content-entity-layout__aside">
+                <div class="card content-entity-form-card">
                     <div class="card-header"><h3 class="card-title"><?php echo $isEditing ? 'Kategorie bearbeiten' : 'Neue Kategorie'; ?></h3></div>
                     <div class="card-body">
                         <?php if (!empty($formAlert)): ?>
@@ -192,20 +167,20 @@ $categoryArchivePreviewPaths = $buildCategoryArchivePreviewPaths($editCategorySl
                     </div>
                 </div>
             </div>
-            <div class="col-lg-8">
-                <div class="card">
+            <div class="content-entity-layout__main">
+                <div class="card content-listing-card content-entity-list-card">
                       <form method="post" id="bulkCategoryForm"
                           data-confirm-title="Kategorien gesammelt löschen"
                           data-confirm-message="Ausgewählte Kategorien wirklich löschen? Kategorien mit Beitragsbezug werden nur gelöscht, wenn eine gültige Ersatzkategorie vorhanden ist."
                           data-confirm-text="Kategorien löschen"
                           data-confirm-class="btn-danger"
                           data-confirm-status-class="bg-danger"></form>
-                    <div class="card-header d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+                    <div class="card-header content-listing-toolbar d-flex flex-column gap-3">
                         <div>
-                            <h3 class="card-title mb-1">Vorhandene Kategorien</h3>
-                            <div class="text-secondary small">Ausgewählte Kategorien können gesammelt gelöscht werden; bei Beitragsbezug ist eine Ersatzkategorie Pflicht.</div>
+                            <h3 class="card-title content-entity-card-title">Vorhandene Kategorien</h3>
+                            <p class="content-entity-card-subtitle">Ausgewählte Kategorien können gesammelt gelöscht werden; bei Beitragsbezug ist eine Ersatzkategorie Pflicht.</p>
                         </div>
-                        <div class="d-flex flex-column flex-xl-row gap-2 align-items-stretch align-items-xl-center">
+                        <div class="content-entity-list-actions">
                             <input type="hidden" form="bulkCategoryForm" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES); ?>">
                             <input type="hidden" form="bulkCategoryForm" name="action" value="bulk_delete_categories">
                             <select class="form-select form-select-sm" form="bulkCategoryForm" name="bulk_replacement_category_id" aria-label="Gemeinsame Ersatzkategorie">
@@ -231,7 +206,7 @@ $categoryArchivePreviewPaths = $buildCategoryArchivePreviewPaths($editCategorySl
                         <?php endif; ?>
                     </div>
                     <div class="table-responsive">
-                        <table class="table table-vcenter card-table">
+                        <table class="table table-vcenter card-table content-listing-table content-entity-table">
                             <thead>
                                 <tr>
                                     <th class="w-1">Auswahl</th>
@@ -249,7 +224,7 @@ $categoryArchivePreviewPaths = $buildCategoryArchivePreviewPaths($editCategorySl
                                     <tr><td colspan="8" class="text-secondary text-center py-4">Noch keine Kategorien vorhanden.</td></tr>
                                 <?php endif; ?>
                                 <?php foreach ($categories as $category): ?>
-                                    <tr>
+                                    <tr class="content-listing-table__row">
                                         <td>
                                             <input class="form-check-input" type="checkbox" form="bulkCategoryForm" name="category_ids[]" value="<?php echo (int) ($category['id'] ?? 0); ?>" aria-label="Kategorie auswählen: <?php echo htmlspecialchars((string) ($category['name'] ?? ''), ENT_QUOTES); ?>">
                                         </td>
@@ -288,9 +263,9 @@ $categoryArchivePreviewPaths = $buildCategoryArchivePreviewPaths($editCategorySl
                                                 <div class="text-secondary small">direkt: <?php echo (int) ($category['post_count_direct'] ?? 0); ?></div>
                                             <?php endif; ?>
                                         </td>
-                                        <td>
-                                            <div class="d-flex gap-2">
-                                                <a href="<?php echo htmlspecialchars('/admin/post-categories?edit=' . (int) ($category['id'] ?? 0), ENT_QUOTES); ?>" class="btn btn-outline-primary btn-sm">Bearbeiten</a>
+                                        <td class="table-actions content-listing-table__actions-cell">
+                                            <div class="table-row-actions">
+                                                <a href="<?php echo htmlspecialchars('/admin/post-categories?edit=' . (int) ($category['id'] ?? 0), ENT_QUOTES); ?>" class="btn btn-outline-secondary btn-sm">Bearbeiten</a>
                                                 <form method="post" class="js-delete-category-form"
                                                       data-category-id="<?php echo (int) ($category['id'] ?? 0); ?>"
                                                       data-category-name="<?php echo htmlspecialchars((string) ($category['name'] ?? ''), ENT_QUOTES); ?>"

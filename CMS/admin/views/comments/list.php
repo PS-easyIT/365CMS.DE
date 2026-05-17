@@ -49,10 +49,16 @@ $actionClass = static function (string $variant): string {
 
 <div class="page-header d-print-none">
     <div class="container-xl">
-        <div class="row align-items-center">
-            <div class="col-auto">
+        <div class="content-listing-header">
+            <div>
                 <div class="page-pretitle">Seiten &amp; Beiträge</div>
-                <h2 class="page-title">Kommentare</h2>
+                <h2 class="page-title mb-1">Kommentare</h2>
+                <div class="content-listing-header__meta">
+                    <span><?php echo (int) ($counts['total'] ?? 0); ?> gesamt</span>
+                    <span><?php echo (int) ($counts['pending'] ?? 0); ?> offen</span>
+                    <span><?php echo (int) ($counts['approved'] ?? 0); ?> freigegeben</span>
+                    <span><?php echo (int) ($counts['spam'] ?? 0); ?> Spam</span>
+                </div>
             </div>
         </div>
     </div>
@@ -68,28 +74,9 @@ $actionClass = static function (string $variant): string {
         require __DIR__ . '/../partials/flash-alert.php';
         ?>
 
-        <!-- KPIs -->
-        <div class="row row-deck row-cards mb-4">
-            <?php foreach ($summaryCards as $card): ?>
-                <div class="col-sm-6 col-lg-3">
-                    <div class="card card-sm">
-                        <div class="card-body">
-                            <div class="row align-items-center">
-                                <div class="col-auto"><span class="avatar <?php echo htmlspecialchars((string) ($card['avatar_class'] ?? 'bg-secondary text-white')); ?>"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><?php echo $renderCommentIcon((string) ($card['icon'] ?? 'comments')); ?></svg></span></div>
-                                <div class="col">
-                                    <div class="font-weight-medium"><?php echo (int) ($card['count'] ?? 0); ?></div>
-                                    <div class="text-secondary"><?php echo htmlspecialchars((string) ($card['label'] ?? '')); ?></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            <?php endforeach; ?>
-        </div>
-
-        <!-- Tab-Navigation -->
-        <div class="card">
-            <div class="card-header">
+        <div class="card content-listing-card">
+            <div class="card-header content-listing-toolbar">
+                <div class="content-listing-toolbar__label">Status</div>
                 <ul class="nav nav-tabs card-header-tabs">
                     <?php foreach ($tabs as $tab): ?>
                         <?php
@@ -112,49 +99,50 @@ $actionClass = static function (string $variant): string {
             </div>
 
             <div class="card-body border-bottom">
-                <form method="get" action="<?php echo htmlspecialchars($commentsBaseUrl); ?>" class="row g-2 align-items-end">
-                    <div class="col-12 col-lg-5">
-                        <label for="comment-search" class="form-label mb-1">Schnellsuche</label>
+                <div class="content-listing-toolbar__label">Filter &amp; Suche</div>
+                <form method="get" action="<?php echo htmlspecialchars($commentsBaseUrl); ?>" class="content-listing-filters comments-listing-filters">
+                    <div class="content-listing-filters__search">
+                        <label for="comment-search" class="form-label mb-0 small text-secondary">Schnellsuche</label>
                         <input
                             type="search"
-                            class="form-control"
+                            class="form-control form-control-sm"
                             id="comment-search"
                             name="q"
                             maxlength="80"
                             value="<?php echo htmlspecialchars((string) ($filters['query'] ?? ''), ENT_QUOTES); ?>"
                             placeholder="Autor, E-Mail, Kommentartext oder Beitrag suchen">
                     </div>
-                    <div class="col-12 col-md-6 col-lg-3">
-                        <label for="comment-author-scope" class="form-label mb-1">Autorentyp</label>
-                        <select class="form-select" id="comment-author-scope" name="author_scope">
+                    <div class="content-listing-filters__group">
+                        <label for="comment-author-scope" class="form-label mb-0 small text-secondary">Autorentyp</label>
+                        <select class="form-select form-select-sm" id="comment-author-scope" name="author_scope">
                             <?php foreach ((array) ($filterMeta['author_scope_options'] ?? []) as $scopeValue => $scopeLabel): ?>
                                 <option value="<?php echo htmlspecialchars((string) $scopeValue, ENT_QUOTES); ?>" <?php echo ((string) ($filters['author_scope'] ?? 'all') === (string) $scopeValue) ? 'selected' : ''; ?>><?php echo htmlspecialchars((string) $scopeLabel); ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
-                    <div class="col-12 col-md-6 col-lg-3">
-                        <label for="comment-link-scope" class="form-label mb-1">Beitragsbezug</label>
-                        <select class="form-select" id="comment-link-scope" name="link_scope">
+                    <div class="content-listing-filters__group">
+                        <label for="comment-link-scope" class="form-label mb-0 small text-secondary">Beitragsbezug</label>
+                        <select class="form-select form-select-sm" id="comment-link-scope" name="link_scope">
                             <?php foreach ((array) ($filterMeta['link_scope_options'] ?? []) as $scopeValue => $scopeLabel): ?>
                                 <option value="<?php echo htmlspecialchars((string) $scopeValue, ENT_QUOTES); ?>" <?php echo ((string) ($filters['link_scope'] ?? 'all') === (string) $scopeValue) ? 'selected' : ''; ?>><?php echo htmlspecialchars((string) $scopeLabel); ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
-                    <div class="col-12 col-md-6 col-lg-2">
-                        <label for="comment-content-view" class="form-label mb-1">Kommentarinhalt</label>
-                        <select class="form-select" id="comment-content-view" name="content_view">
+                    <div class="content-listing-filters__group">
+                        <label for="comment-content-view" class="form-label mb-0 small text-secondary">Kommentarinhalt</label>
+                        <select class="form-select form-select-sm" id="comment-content-view" name="content_view">
                             <?php foreach ((array) ($filterMeta['content_view_options'] ?? []) as $scopeValue => $scopeLabel): ?>
                                 <option value="<?php echo htmlspecialchars((string) $scopeValue, ENT_QUOTES); ?>" <?php echo ($contentView === (string) $scopeValue) ? 'selected' : ''; ?>><?php echo htmlspecialchars((string) $scopeLabel); ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
-                    <div class="col-12 col-lg-1 d-flex gap-2">
+                    <div class="content-listing-filters__actions">
                         <?php if ($status !== 'all'): ?>
                             <input type="hidden" name="status" value="<?php echo htmlspecialchars((string) $status, ENT_QUOTES); ?>">
                         <?php endif; ?>
-                        <button type="submit" class="btn btn-primary w-100">Filtern</button>
+                        <button type="submit" class="btn btn-sm btn-primary">Filtern</button>
                     </div>
-                    <div class="col-12 d-flex flex-wrap align-items-center gap-2 mt-2">
+                    <div class="d-flex flex-wrap align-items-center gap-2 mt-2">
                         <?php if ($activeFilters !== []): ?>
                             <span class="text-secondary small"><?php echo (int) ($filterMeta['active_filter_count'] ?? count($activeFilters)); ?> aktive Filter:</span>
                             <?php foreach ($activeFilters as $activeFilter): ?>
@@ -170,7 +158,7 @@ $actionClass = static function (string $variant): string {
 
             <!-- Bulk-Aktionen -->
             <?php if ($canBulkActions): ?>
-                <div class="card-body py-2 d-none" id="bulkBar">
+                <div class="card-body py-2 d-none content-listing-bulkbar" id="bulkBar">
                     <form method="post" id="bulkForm">
                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
                         <input type="hidden" name="action" value="bulk">
@@ -196,7 +184,7 @@ $actionClass = static function (string $variant): string {
 
             <!-- Tabelle -->
             <div class="table-responsive comments-table-responsive">
-                <table class="table table-vcenter card-table">
+                <table class="table table-vcenter card-table content-listing-table">
                     <thead>
                         <tr>
                             <?php if ($canBulkActions): ?>
@@ -231,7 +219,7 @@ $actionClass = static function (string $variant): string {
                             $cPostTitle = (string)($c['post_title'] ?? '');
                             $cPostUrl   = (string)($c['post_url'] ?? '');
                             ?>
-                            <tr>
+                            <tr class="content-listing-table__row">
                                 <?php if ($canBulkActions): ?>
                                     <td>
                                         <input class="form-check-input row-check" type="checkbox" name="ids[]" value="<?php echo $cId; ?>" form="bulkForm">
@@ -283,7 +271,7 @@ $actionClass = static function (string $variant): string {
                                 </td>
                                 <td class="text-secondary"><?php echo htmlspecialchars((string)($c['formatted_date'] ?? '–')); ?></td>
                                 <?php if ($showActionColumn): ?>
-                                    <td>
+                                    <td class="table-actions content-listing-table__actions-cell">
                                         <div class="dropdown">
                                             <button class="btn btn-ghost-secondary btn-icon btn-sm comment-row-menu-trigger" data-bs-toggle="dropdown" aria-expanded="false">
                                                 <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/><circle cx="12" cy="5" r="1"/></svg>

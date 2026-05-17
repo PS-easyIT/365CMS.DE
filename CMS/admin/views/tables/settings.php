@@ -14,18 +14,21 @@ $siteTablesCreateUrl = $siteTablesBaseUrl . '?action=edit';
 
 <div class="page-header d-print-none">
     <div class="container-xl">
-        <div class="row align-items-center">
-            <div class="col-auto">
-                <a href="<?php echo htmlspecialchars($siteTablesBaseUrl); ?>" class="btn btn-ghost-secondary btn-sm me-2">
+        <div class="content-listing-header">
+            <div class="d-flex align-items-center gap-2">
+                <a href="<?php echo htmlspecialchars($siteTablesBaseUrl); ?>" class="btn btn-ghost-secondary btn-sm">
                     <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M15 6l-6 6l6 6"/></svg>
                     Zurück
                 </a>
+                <div>
+                    <div class="page-pretitle">Seiten &amp; Beiträge</div>
+                    <h2 class="page-title mb-1">Tabellen-Einstellungen</h2>
+                    <div class="content-listing-header__meta">
+                        <span>Globale Vorgaben für Site Tables</span>
+                    </div>
+                </div>
             </div>
-            <div class="col">
-                <div class="page-pretitle">Seiten &amp; Beiträge</div>
-                <h2 class="page-title">Tabellen-Einstellungen</h2>
-            </div>
-            <div class="col-auto">
+            <div class="btn-list">
                 <a href="<?php echo htmlspecialchars($siteTablesCreateUrl); ?>" class="btn btn-primary btn-sm">Neue Tabelle</a>
             </div>
         </div>

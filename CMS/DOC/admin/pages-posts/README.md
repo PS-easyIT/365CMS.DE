@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Überblick über die Content-Module im Admin-Bereich und ihre aktuelle Aufgabenverteilung.
 
-Letzte Aktualisierung: 2026-05-12 · Version 2.9.779
+Letzte Aktualisierung: 17.05.2026 · Version 3.0.11
 
 Der Content-Bereich ist auf mehrere spezialisierte Bereiche verteilt:
 
@@ -65,5 +65,6 @@ Die SEO-spezifischen Global-Einstellungen liegen nicht mehr in einem alten Monol
 - Der Unterbereich „Einstellungen“ lebt technisch unter `/admin/settings?tab=content`, bündelt jetzt auch Permalink-/Archiv-Basen direkt im Inhalts-Tab und behält Formulareingaben bei Validierungsfehlern über den Redirect hinweg.
 - Listenansichten mit Mehrfachauswahl machen die beabsichtigte Bulk-Aktion jetzt direkt am Button sichtbar; destruktive Aktionen werden so nicht mehr hinter einem generischen „Anwenden“ versteckt. Gleichzeitig öffnen Aktions-Dropdowns in scrollbaren Tabellen sichtbar, statt in der horizontalen Overflow-Zone abgeschnitten zu werden.
 - Die Kommentar-Moderation kombiniert Status-Tabs jetzt mit serverseitiger Schnellsuche, Autorentyp- und Beitragsbezug-Filtern; aktive Filter bleiben über Moderationsaktionen hinweg erhalten, und der sichtbare Batch-Modus deaktiviert parallele Zeilenaktionen bewusst.
+- Kategorien, Tags, Kommentare, Inhaltsverzeichnis, Hub-Sites und Tabellen folgen jetzt demselben nüchternen Backend-Rahmen wie bereits Seiten/Beiträge: funktionaler Header statt KPI-Kacheln, konsistente Toolbars/Filterzonen, zurückhaltende Tabellenaktionen und responsive Breakpoints auf Basis der zentralen Admin-CSS-Bausteine.
 - Seiten- und Beitragseditor zeigen die letzten gespeicherten Revisionen jetzt direkt im Admin und vergleichen Titel, Slugs, Status sowie DE/EN-Inhalts-Snapshots mit dem aktuellen Stand, ohne alte Fassungen versehentlich sofort zurückzuschreiben.
 - Historische Verweise auf `/admin/seo.php` oder alte Monolith-Seiten sind in diesem Bereich nicht mehr korrekt.

@@ -19,11 +19,16 @@ $s = $settings;
 
 <div class="page-header d-print-none">
     <div class="container-xl">
-        <div class="row align-items-center">
-            <div class="col-auto">
+        <div class="content-listing-header">
+            <div>
                 <div class="page-pretitle">Seiten &amp; Beiträge</div>
-                <h2 class="page-title">Inhaltsverzeichnis</h2>
+                <h2 class="page-title mb-1">Inhaltsverzeichnis</h2>
+                <div class="content-listing-header__meta">
+                    <span>Zentrale TOC-Standards</span>
+                    <span>Darstellung, Scroll-Verhalten und Sonderregeln</span>
+                </div>
             </div>
+            <button type="submit" form="tocSettingsForm" class="btn btn-primary">Einstellungen speichern</button>
         </div>
     </div>
 </div>
@@ -40,7 +45,7 @@ $s = $settings;
             ?>
         <?php endif; ?>
 
-        <form method="post" action="<?php echo htmlspecialchars('/admin/table-of-contents'); ?>">
+        <form method="post" action="<?php echo htmlspecialchars('/admin/table-of-contents'); ?>" id="tocSettingsForm">
             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
             <input type="hidden" name="action" value="save">
 

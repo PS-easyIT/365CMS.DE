@@ -48,10 +48,14 @@ $tagArchivePreviewPaths = $buildTagArchivePreviewPaths($editTagSlug);
 
 <div class="page-header d-print-none">
     <div class="container-xl">
-        <div class="row align-items-center">
-            <div class="col-auto">
+        <div class="content-listing-header">
+            <div>
                 <div class="page-pretitle">Seiten &amp; Beiträge</div>
-                <h2 class="page-title">Beitrags-Tags</h2>
+                <h2 class="page-title mb-1">Beitrags-Tags</h2>
+                <div class="content-listing-header__meta">
+                    <span><?php echo (int) ($counts['total'] ?? 0); ?> Tags</span>
+                    <span><?php echo (int) ($counts['assigned_posts'] ?? 0); ?> Tag-Zuweisungen</span>
+                </div>
             </div>
         </div>
     </div>
@@ -63,38 +67,9 @@ $tagArchivePreviewPaths = $buildTagArchivePreviewPaths($editTagSlug);
             <?php $alertData = $alert; $alertMarginClass = 'mb-3'; require __DIR__ . '/../partials/flash-alert.php'; ?>
         <?php endif; ?>
 
-        <div class="row row-deck row-cards mb-4">
-            <div class="col-sm-6 col-lg-4">
-                <div class="card card-sm">
-                    <div class="card-body">
-                        <div class="row align-items-center">
-                            <div class="col-auto"><span class="bg-indigo text-white avatar">#</span></div>
-                            <div class="col">
-                                <div class="font-weight-medium"><?php echo (int) ($counts['total'] ?? 0); ?> Tags</div>
-                                <div class="text-secondary">Gesamt</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-sm-6 col-lg-4">
-                <div class="card card-sm">
-                    <div class="card-body">
-                        <div class="row align-items-center">
-                            <div class="col-auto"><span class="bg-purple text-white avatar">🏷️</span></div>
-                            <div class="col">
-                                <div class="font-weight-medium"><?php echo (int) ($counts['assigned_posts'] ?? 0); ?></div>
-                                <div class="text-secondary">Tag-Zuweisungen</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="row row-cards">
-            <div class="col-lg-4">
-                <div class="card">
+        <div class="content-entity-layout">
+            <div class="content-entity-layout__aside">
+                <div class="card content-entity-form-card">
                     <div class="card-header"><h3 class="card-title"><?php echo $isEditing ? 'Tag bearbeiten' : 'Neuen Tag anlegen'; ?></h3></div>
                     <div class="card-body">
                         <?php if (!empty($formAlert)): ?>
@@ -138,20 +113,20 @@ $tagArchivePreviewPaths = $buildTagArchivePreviewPaths($editTagSlug);
                     </div>
                 </div>
             </div>
-            <div class="col-lg-8">
-                <div class="card">
+            <div class="content-entity-layout__main">
+                <div class="card content-listing-card content-entity-list-card">
                       <form method="post" id="bulkTagForm"
                           data-confirm-title="Tags gesammelt löschen"
                           data-confirm-message="Ausgewählte Tags wirklich löschen? Tags mit Beitragsbezug benötigen einen gültigen Ersatztag."
                           data-confirm-text="Tags löschen"
                           data-confirm-class="btn-danger"
                           data-confirm-status-class="bg-danger"></form>
-                    <div class="card-header d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+                    <div class="card-header content-listing-toolbar d-flex flex-column gap-3">
                         <div>
-                            <h3 class="card-title mb-1">Vorhandene Tags</h3>
-                            <div class="text-secondary small">Ausgewählte Tags können gesammelt gelöscht werden; bei Beitragsbezug ist ein Ersatztag Pflicht.</div>
+                            <h3 class="card-title content-entity-card-title mb-0">Vorhandene Tags</h3>
+                            <p class="content-entity-card-subtitle">Ausgewählte Tags können gesammelt gelöscht werden; bei Beitragsbezug ist ein Ersatztag Pflicht.</p>
                         </div>
-                        <div class="d-flex flex-column flex-xl-row gap-2 align-items-stretch align-items-xl-center">
+                        <div class="content-entity-list-actions">
                             <input type="hidden" form="bulkTagForm" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES); ?>">
                             <input type="hidden" form="bulkTagForm" name="action" value="bulk_delete_tags">
                             <select class="form-select form-select-sm" form="bulkTagForm" name="bulk_replacement_tag_id" aria-label="Gemeinsamer Ersatztag">
@@ -166,7 +141,7 @@ $tagArchivePreviewPaths = $buildTagArchivePreviewPaths($editTagSlug);
                         </div>
                     </div>
                     <div class="table-responsive">
-                        <table class="table table-vcenter card-table">
+                        <table class="table table-vcenter card-table content-listing-table content-entity-table">
                             <thead>
                                 <tr>
                                     <th class="w-1">Auswahl</th>
@@ -181,16 +156,16 @@ $tagArchivePreviewPaths = $buildTagArchivePreviewPaths($editTagSlug);
                                     <tr><td colspan="5" class="text-secondary text-center py-4">Noch keine Tags vorhanden.</td></tr>
                                 <?php endif; ?>
                                 <?php foreach ($tags as $tag): ?>
-                                    <tr>
+                                    <tr class="content-listing-table__row">
                                         <td>
                                             <input class="form-check-input" type="checkbox" form="bulkTagForm" name="tag_ids[]" value="<?php echo (int) ($tag['id'] ?? 0); ?>" aria-label="Tag auswählen: <?php echo htmlspecialchars((string) ($tag['name'] ?? ''), ENT_QUOTES); ?>">
                                         </td>
                                         <td class="fw-medium"><?php echo htmlspecialchars((string) ($tag['name'] ?? ''), ENT_QUOTES); ?></td>
                                         <td><code><?php echo htmlspecialchars((string) ($tag['slug'] ?? ''), ENT_QUOTES); ?></code></td>
                                         <td><?php echo (int) ($tag['post_count'] ?? 0); ?></td>
-                                        <td>
-                                            <div class="d-flex gap-2">
-                                                <a href="<?php echo htmlspecialchars('/admin/post-tags?edit=' . (int) ($tag['id'] ?? 0), ENT_QUOTES); ?>" class="btn btn-outline-primary btn-sm">Bearbeiten</a>
+                                        <td class="table-actions content-listing-table__actions-cell">
+                                            <div class="table-row-actions">
+                                                <a href="<?php echo htmlspecialchars('/admin/post-tags?edit=' . (int) ($tag['id'] ?? 0), ENT_QUOTES); ?>" class="btn btn-outline-secondary btn-sm">Bearbeiten</a>
                                                 <form method="post" class="js-delete-tag-form"
                                                       data-tag-id="<?php echo (int) ($tag['id'] ?? 0); ?>"
                                                       data-tag-name="<?php echo htmlspecialchars((string) ($tag['name'] ?? ''), ENT_QUOTES); ?>"
