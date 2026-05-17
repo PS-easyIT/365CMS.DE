@@ -31,6 +31,21 @@
         }
     }
 
+    function logEditor(level, message, payload) {
+        var method = level === 'warn' ? 'warn' : (level === 'error' ? 'error' : 'log');
+
+        if (typeof console === 'undefined' || typeof console[method] !== 'function') {
+            return;
+        }
+
+        if (typeof payload === 'undefined') {
+            console[method]('[EditorJS] ' + String(message || ''));
+            return;
+        }
+
+        console[method]('[EditorJS] ' + String(message || ''), payload);
+    }
+
     function clearElement(element) {
         if (!element) {
             return;
@@ -413,6 +428,7 @@
         var form;
         var editors = {};
         var editorDefinitions = {};
+        var plainEditorStates = {};
         var submitLocked = false;
         var nativeSubmitPending = false;
         var pendingSubmitter = null;
@@ -422,6 +438,11 @@
         var suppressInitialCopyForKeys = {};
         var editorMutationState = {};
         var editorUiState = {};
+        var editorInitWatchdogs = {};
+        var editorEmergencyFallbackTimers = {};
+        var editorRuntimeRetryQueue = {};
+        var EDITOR_INIT_WATCHDOG_MS = 5000;
+        var EDITOR_EMERGENCY_FALLBACK_MS = 1800;
 
         if (!config) {
             return;
@@ -441,12 +462,214 @@
             element.dispatchEvent(new Event('change', { bubbles: true }));
         }
 
+        function logEditor(level, message, payload) {
+            var method = level === 'warn' ? 'warn' : (level === 'error' ? 'error' : 'log');
+
+            if (typeof console === 'undefined' || typeof console[method] !== 'function') {
+                return;
+            }
+
+            if (typeof payload === 'undefined') {
+                console[method]('[EditorJS] ' + String(message || ''));
+                return;
+            }
+
+            console[method]('[EditorJS] ' + String(message || ''), payload);
+        }
+
+        function ensureEditorDebugChannel() {
+            if (!window.cmsEditorDebug || typeof window.cmsEditorDebug !== 'object') {
+                window.cmsEditorDebug = {};
+            }
+            if (!window.cmsEditorDebug.timestamps || typeof window.cmsEditorDebug.timestamps !== 'object') {
+                window.cmsEditorDebug.timestamps = {};
+            }
+            if (!window.cmsEditorDebug.bindings || typeof window.cmsEditorDebug.bindings !== 'object') {
+                window.cmsEditorDebug.bindings = {};
+            }
+
+            return window.cmsEditorDebug;
+        }
+
+        function getDefinitionDebugKey(definition) {
+            if (!definition) {
+                return 'unknown';
+            }
+
+            return String(definition.holderId || definition.key || definition.inputId || 'unknown');
+        }
+
+        function updateEditorDiagnosticView(definition, state, reason) {
+            var holder = getElement(definition && definition.holderId ? definition.holderId : '');
+            var diagnostics = queryElements('[data-cms-editor-diagnostic]');
+            var holderId = definition && definition.holderId ? String(definition.holderId) : '';
+            var nextState = String(state || 'loading');
+            var nextReason = String(reason || '');
+            var debug = ensureEditorDebugChannel();
+            var coreReadyAt = debug.timestamps && debug.timestamps.coreReady ? String(debug.timestamps.coreReady) : '';
+            var createAvailableAt = debug.timestamps && debug.timestamps.createCmsEditorAvailable ? String(debug.timestamps.createCmsEditorAvailable) : '';
+
+            diagnostics.forEach(function (node) {
+                var targetHolder = String(node.getAttribute('data-editor-holder') || '');
+                if (targetHolder !== '' && holderId !== '' && targetHolder !== holderId) {
+                    return;
+                }
+
+                node.setAttribute('data-editor-final-state', nextState);
+                node.setAttribute('data-editor-final-reason', nextReason);
+                node.setAttribute('data-editor-last-update', new Date().toISOString());
+                node.setAttribute('data-editor-core-ready-at', coreReadyAt);
+                node.setAttribute('data-editor-factory-ready-at', createAvailableAt);
+                node.textContent = 'Editor-Diagnose: state=' + nextState
+                    + (nextReason ? ' (' + nextReason + ')' : '')
+                    + (coreReadyAt ? ' | core=' + coreReadyAt : '')
+                    + (createAvailableAt ? ' | factory=' + createAvailableAt : '');
+            });
+
+            if (holder) {
+                holder.setAttribute('data-editor-final-state', nextState);
+                holder.setAttribute('data-editor-final-reason', nextReason);
+                holder.setAttribute('data-editor-last-update', new Date().toISOString());
+                holder.setAttribute('data-editor-core-ready-at', coreReadyAt);
+                holder.setAttribute('data-editor-factory-ready-at', createAvailableAt);
+            }
+        }
+
+        function recordEditorBindingMilestone(definition, stage, details) {
+            var debug = ensureEditorDebugChannel();
+            var key = getDefinitionDebugKey(definition);
+            var bindingState = debug.bindings[key] || {};
+            var timestampKey = String(stage || 'event');
+            var timestamp = new Date().toISOString();
+            var payload = details && typeof details === 'object' ? details : {};
+            var holder = getElement(definition && definition.holderId ? definition.holderId : '');
+            var wrap = holder && holder.closest ? holder.closest('.editorjs-wrap') : null;
+
+            bindingState[timestampKey] = timestamp;
+            bindingState[timestampKey + 'Details'] = payload;
+            debug.bindings[key] = bindingState;
+
+            if (holder) {
+                holder.setAttribute('data-editor-last-stage', timestampKey);
+                holder.setAttribute('data-editor-last-stage-at', timestamp);
+                if (timestampKey === 'bindStart') {
+                    holder.setAttribute('data-editor-bind-start-at', timestamp);
+                } else if (timestampKey === 'bindEnd') {
+                    holder.setAttribute('data-editor-bind-end-at', timestamp);
+                }
+            }
+            if (wrap) {
+                wrap.setAttribute('data-editor-last-stage', timestampKey);
+                wrap.setAttribute('data-editor-last-stage-at', timestamp);
+                if (timestampKey === 'bindStart') {
+                    wrap.setAttribute('data-editor-bind-start-at', timestamp);
+                } else if (timestampKey === 'bindEnd') {
+                    wrap.setAttribute('data-editor-bind-end-at', timestamp);
+                }
+            }
+
+            if (typeof console !== 'undefined' && typeof console.info === 'function') {
+                console.info('[EditorJS][Debug] ' + key + ' ' + timestampKey + ' @ ' + timestamp, payload);
+            }
+        }
+
         function hasEditorFactory() {
             return typeof window.createCmsEditor === 'function';
         }
 
         function hasEditorCore() {
             return typeof window.EditorJS === 'function';
+        }
+
+        function hasEditorRuntime() {
+            return hasEditorFactory() && hasEditorCore();
+        }
+
+        function waitForEditorRuntimeAvailability(maxWaitMs) {
+            var readyPromise = window.cmsEditorJsCoreReady;
+            var startedAt = Date.now();
+            var waitLimit = typeof maxWaitMs === 'number' && maxWaitMs > 0 ? maxWaitMs : 7000;
+            var pollDelay = 80;
+
+            function pollRuntime() {
+                if (hasEditorRuntime()) {
+                    return Promise.resolve(true);
+                }
+
+                if (Date.now() - startedAt >= waitLimit) {
+                    return Promise.resolve(false);
+                }
+
+                return new Promise(function (resolve) {
+                    window.setTimeout(resolve, pollDelay);
+                }).then(pollRuntime);
+            }
+
+            if (readyPromise && typeof readyPromise.then === 'function') {
+                return Promise.resolve(readyPromise).catch(function () {
+                    return false;
+                }).then(function () {
+                    return pollRuntime();
+                });
+            }
+
+            return pollRuntime();
+        }
+
+        function setEditorStateMarker(definition, state, reason) {
+            var holder = getElement(definition && definition.holderId ? definition.holderId : '');
+            var wrap = holder && holder.closest ? holder.closest('.editorjs-wrap') : null;
+            var input = getElement(definition && definition.inputId ? definition.inputId : '');
+            var plainState = getPlainEditorState(definition, input);
+            var resolvedState = state === 'editor' || state === 'fallback' ? state : 'loading';
+            var resolvedReason = reason ? String(reason) : '';
+
+            if (wrap) {
+                wrap.setAttribute('data-editor-state', resolvedState);
+                if (resolvedReason !== '') {
+                    wrap.setAttribute('data-editor-state-reason', resolvedReason);
+                } else {
+                    wrap.removeAttribute('data-editor-state-reason');
+                }
+            }
+
+            if (plainState && plainState.wrap) {
+                plainState.wrap.setAttribute('data-editor-state', resolvedState);
+                if (resolvedReason !== '') {
+                    plainState.wrap.setAttribute('data-editor-state-reason', resolvedReason);
+                } else {
+                    plainState.wrap.removeAttribute('data-editor-state-reason');
+                }
+            }
+
+            updateEditorDiagnosticView(definition, resolvedState, resolvedReason);
+        }
+
+        function clearHolderFallbackUi(definition) {
+            var holder = getElement(definition && definition.holderId ? definition.holderId : '');
+            var wrap = holder && holder.closest ? holder.closest('.editorjs-wrap') : null;
+
+            if (!holder) {
+                return;
+            }
+
+            holder.classList.remove('cms-editor-fallback-active');
+            holder.removeAttribute('data-cms-editor-fallback-bound');
+
+            Array.prototype.slice.call(holder.querySelectorAll('.cms-editor-fallback-warning')).forEach(function (warning) {
+                if (warning && warning.parentNode === holder) {
+                    warning.parentNode.removeChild(warning);
+                }
+            });
+            Array.prototype.slice.call(holder.querySelectorAll('textarea[aria-label="EditorJS Fallback Text"]')).forEach(function (textarea) {
+                if (textarea && textarea.parentNode === holder) {
+                    textarea.parentNode.removeChild(textarea);
+                }
+            });
+
+            if (wrap) {
+                wrap.classList.remove('cms-editor-wrap-fallback-active');
+            }
         }
 
         function createPlaintextFallbackData(value) {
@@ -493,29 +716,214 @@
             return textParts.join('\n\n');
         }
 
+        function getPlainEditorState(definition, input) {
+            var stateKey;
+            var textarea;
+            var wrap;
+            var normalizedData;
+            var fallbackText;
+
+            if (!definition || !definition.plainTextareaId) {
+                return null;
+            }
+
+            stateKey = String(definition.key || definition.holderId || definition.inputId || definition.plainTextareaId);
+            if (plainEditorStates[stateKey]) {
+                return plainEditorStates[stateKey];
+            }
+
+            textarea = getElement(definition.plainTextareaId);
+            if (!textarea) {
+                return null;
+            }
+
+            wrap = definition.plainWrapperId ? getElement(definition.plainWrapperId) : null;
+            if (!wrap && textarea.closest) {
+                wrap = textarea.closest('.cms-editor-plain-wrap');
+            }
+
+            normalizedData = normalizeEditorData(safeParseEditorInput(input));
+            fallbackText = extractFallbackTextareaValue(normalizedData);
+            if (!textarea.value && fallbackText) {
+                textarea.value = fallbackText;
+            }
+
+            plainEditorStates[stateKey] = {
+                key: stateKey,
+                definition: definition,
+                input: input || null,
+                textarea: textarea,
+                wrap: wrap || null,
+                originalName: textarea.getAttribute('name') || ''
+            };
+
+            textarea.addEventListener('input', function () {
+                syncPlainEditorState(plainEditorStates[stateKey], true);
+            });
+
+            return plainEditorStates[stateKey];
+        }
+
+        function syncPlainEditorState(state, shouldEmit) {
+            if (!state || !state.input || !state.textarea) {
+                return;
+            }
+
+            state.input.value = JSON.stringify(createPlaintextFallbackData(state.textarea.value));
+            if (shouldEmit) {
+                emitChangeEvents(state.input);
+            }
+        }
+
+        function setPlainEditorEnhancedState(definition, isEnhanced) {
+            var input = getElement(definition && definition.inputId ? definition.inputId : '');
+            var state = getPlainEditorState(definition, input);
+
+            if (!state || !state.textarea) {
+                return;
+            }
+
+            if (isEnhanced) {
+                if (state.wrap) {
+                    state.wrap.classList.add('cms-editor-plain-wrap--enhanced');
+                    state.wrap.setAttribute('hidden', 'hidden');
+                    state.wrap.setAttribute('aria-hidden', 'true');
+                    state.wrap.style.setProperty('display', 'none', 'important');
+                    state.wrap.style.setProperty('visibility', 'hidden');
+                    state.wrap.style.setProperty('opacity', '0');
+                }
+                state.textarea.disabled = true;
+                state.textarea.removeAttribute('name');
+                return;
+            }
+
+            if (state.wrap) {
+                state.wrap.classList.remove('cms-editor-plain-wrap--enhanced');
+                state.wrap.removeAttribute('hidden');
+                state.wrap.removeAttribute('aria-hidden');
+                state.wrap.style.setProperty('display', 'block', 'important');
+                state.wrap.style.setProperty('visibility', 'visible');
+                state.wrap.style.setProperty('opacity', '1');
+            }
+            state.textarea.disabled = false;
+            if (state.originalName) {
+                state.textarea.setAttribute('name', state.originalName);
+            }
+        }
+
+        function syncAllPlainEditors() {
+            Object.keys(editorDefinitions).forEach(function (definitionKey) {
+                var definition = editorDefinitions[definitionKey];
+                var input = definition ? getElement(definition.inputId) : null;
+                var state = getPlainEditorState(definition, input);
+                syncPlainEditorState(state, true);
+            });
+        }
+
+        function suppressPlainEditorSubmitNames() {
+            var restoreEntries = [];
+
+            Object.keys(editorDefinitions).forEach(function (definitionKey) {
+                var definition = editorDefinitions[definitionKey];
+                var input = definition ? getElement(definition.inputId) : null;
+                var state = getPlainEditorState(definition, input);
+                var textarea;
+                var currentName;
+                var wasDisabled;
+
+                if (!state || !state.textarea) {
+                    return;
+                }
+
+                textarea = state.textarea;
+                currentName = textarea.getAttribute('name') || '';
+                wasDisabled = !!textarea.disabled;
+
+                restoreEntries.push({
+                    textarea: textarea,
+                    name: currentName,
+                    disabled: wasDisabled
+                });
+
+                textarea.disabled = true;
+                textarea.removeAttribute('name');
+            });
+
+            return function restoreSuppressedNames() {
+                restoreEntries.forEach(function (entry) {
+                    if (!entry || !entry.textarea) {
+                        return;
+                    }
+
+                    entry.textarea.disabled = entry.disabled;
+                    if (entry.name) {
+                        entry.textarea.setAttribute('name', entry.name);
+                    } else {
+                        entry.textarea.removeAttribute('name');
+                    }
+                });
+            };
+        }
+
         function renderEditorUnavailableFallback(definition, input, reason) {
             var holder = getElement(definition && definition.holderId ? definition.holderId : '');
             var wrap = holder && holder.closest ? holder.closest('.editorjs-wrap') : null;
+            var pane = holder && holder.closest ? holder.closest('[data-lang-pane], .tab-pane') : null;
+            var plainState = getPlainEditorState(definition, input);
             var warning;
             var textarea;
             var normalizedData;
             var fallbackText;
+            var trigger;
 
             if (!holder || !input) {
                 return;
             }
 
-            if (holder.dataset.cmsEditorFallbackBound === '1') {
+            setEditorStateMarker(definition, 'fallback', reason || 'fallback');
+            recordEditorBindingMilestone(definition, 'bindEnd', { finalState: 'fallback', reason: String(reason || 'fallback') });
+            setPlainEditorEnhancedState(definition, false);
+            if (plainState) {
+                warning = plainState.wrap ? plainState.wrap.querySelector('.cms-editor-plain-warning') : null;
+                if (!warning && plainState.wrap) {
+                    warning = document.createElement('div');
+                    warning.className = 'alert alert-warning cms-editor-plain-warning';
+                    plainState.wrap.insertBefore(warning, plainState.wrap.firstChild);
+                }
+                if (warning) {
+                    warning.textContent = 'EditorJS konnte nicht initialisiert werden (' + String(reason || 'unknown') + '). Das Plain-Textfeld bleibt aktiv und wird beim Speichern übernommen.';
+                }
+                syncPlainEditorState(plainState, true);
+                return;
+            }
+
+            if (holder.dataset.cmsEditorFallbackBound === '1' && holder.querySelector('textarea')) {
                 return;
             }
 
             holder.dataset.cmsEditorFallbackBound = '1';
             holder.classList.add('cms-editor-fallback-active');
-            holder.style.display = '';
-            holder.style.minHeight = holder.style.minHeight || '320px';
+            holder.removeAttribute('hidden');
+            holder.style.setProperty('display', 'block', 'important');
+            holder.style.setProperty('min-height', holder.style.minHeight || '320px');
+            holder.style.setProperty('opacity', '1');
+            holder.style.setProperty('visibility', 'visible');
             if (wrap) {
                 wrap.classList.add('cms-editor-wrap-fallback-active');
-                wrap.style.display = '';
+                wrap.removeAttribute('hidden');
+                wrap.style.setProperty('display', 'block', 'important');
+                wrap.style.setProperty('opacity', '1');
+                wrap.style.setProperty('visibility', 'visible');
+            }
+            if (pane) {
+                trigger = definition && definition.activateButtonId ? getElement(definition.activateButtonId) : null;
+                if (!trigger || trigger.getAttribute('aria-pressed') === 'true') {
+                    pane.classList.remove('d-none');
+                    pane.removeAttribute('hidden');
+                    pane.style.setProperty('display', 'block', 'important');
+                    pane.style.setProperty('opacity', '1');
+                    pane.style.setProperty('visibility', 'visible');
+                }
             }
             clearElement(holder);
 
@@ -542,6 +950,103 @@
             });
 
             holder.appendChild(textarea);
+            input.value = JSON.stringify(createPlaintextFallbackData(textarea.value));
+            emitChangeEvents(input);
+            logEditor('warn', 'Fallback editor activated for "' + String(definition && definition.holderId || 'unknown') + '" (' + String(reason || 'unknown') + ').');
+        }
+
+        function ensureHolderVisible(holder) {
+            var wrap;
+            var pane;
+
+            if (!holder) {
+                return;
+            }
+
+            wrap = holder.closest ? holder.closest('.editorjs-wrap') : null;
+            pane = holder.closest ? holder.closest('[data-lang-pane], .tab-pane') : null;
+
+            holder.removeAttribute('hidden');
+            holder.style.setProperty('display', 'block', 'important');
+            holder.style.setProperty('visibility', 'visible');
+            holder.style.setProperty('opacity', '1');
+            if (!holder.style.minHeight) {
+                holder.style.minHeight = '320px';
+            }
+
+            if (wrap) {
+                wrap.removeAttribute('hidden');
+                wrap.style.setProperty('display', 'block', 'important');
+                wrap.style.setProperty('visibility', 'visible');
+                wrap.style.setProperty('opacity', '1');
+            }
+
+            if (pane && pane.classList.contains('d-none')) {
+                pane.classList.remove('d-none');
+                pane.removeAttribute('hidden');
+                pane.style.setProperty('display', 'block', 'important');
+                pane.style.setProperty('visibility', 'visible');
+                pane.style.setProperty('opacity', '1');
+            }
+        }
+
+        function clearEditorEmergencyFallback(definitionKey) {
+            if (!definitionKey || !editorEmergencyFallbackTimers[definitionKey]) {
+                return;
+            }
+
+            window.clearTimeout(editorEmergencyFallbackTimers[definitionKey]);
+            delete editorEmergencyFallbackTimers[definitionKey];
+        }
+
+        function scheduleEditorEmergencyFallback(definition, input) {
+            var definitionKey;
+            var holder;
+
+            if (!definition || !definition.key || !input) {
+                return;
+            }
+
+            definitionKey = definition.key;
+            clearEditorEmergencyFallback(definitionKey);
+
+            editorEmergencyFallbackTimers[definitionKey] = window.setTimeout(function () {
+                var currentEntry = editors[definitionKey];
+                var currentHolder = getElement(definition.holderId);
+                var hasRenderedEditor;
+                var hasFallbackTextarea;
+
+                delete editorEmergencyFallbackTimers[definitionKey];
+
+                if (!currentHolder) {
+                    return;
+                }
+
+                ensureHolderVisible(currentHolder);
+                hasRenderedEditor = !!currentHolder.querySelector('.codex-editor, .ce-block, .codex-editor__redactor');
+                hasFallbackTextarea = !!currentHolder.querySelector('textarea');
+
+                if (hasRenderedEditor || hasFallbackTextarea) {
+                    return;
+                }
+
+                if (currentEntry && currentEntry.ready) {
+                    return;
+                }
+
+                if (currentEntry && currentEntry.instance && hasEditorRuntime()) {
+                    // Runtime exists but rendering is still in-flight; leave loading visible and let watchdog decide.
+                    return;
+                }
+
+                logEditor('warn', 'EditorJS emergency visibility fallback triggered for "' + String(definition.holderId || '') + '".');
+                renderEditorUnavailableFallback(definition, input, 'empty-runtime');
+            }, EDITOR_EMERGENCY_FALLBACK_MS);
+
+            holder = getElement(definition.holderId);
+            if (holder) {
+                ensureHolderVisible(holder);
+            }
         }
 
         function waitForNextPaint() {
@@ -600,6 +1105,121 @@
             }
         }
 
+        function getEditorAvailableTools(editorEntry) {
+            return editorEntry
+                && editorEntry.instance
+                && Array.isArray(editorEntry.instance.cmsAvailableTools)
+                ? editorEntry.instance.cmsAvailableTools
+                : [];
+        }
+
+        function isEditorToolAvailable(editorEntry, blockType) {
+            var availableTools = getEditorAvailableTools(editorEntry);
+
+            return availableTools.length === 0 || availableTools.indexOf(blockType) !== -1;
+        }
+
+        function getEditorHistory(entry) {
+            var undo = entry && entry.instance && entry.instance.cmsPlugins ? entry.instance.cmsPlugins.undo : null;
+
+            return {
+                undo: undo,
+                canUndo: !!(undo && typeof undo.canUndo === 'function' && undo.canUndo()),
+                canRedo: !!(undo && typeof undo.canRedo === 'function' && undo.canRedo())
+            };
+        }
+
+        function getEditorBlockGroups() {
+            return [
+                {
+                    label: 'Text',
+                    className: 'basis',
+                    buttons: [
+                        { label: 'Überschrift', icon: 'H2', block: 'header', data: { level: 2 }, description: 'Abschnitt mit H2 starten' },
+                        { label: 'Text', icon: '¶', block: 'paragraph', description: 'Normaler Absatz' },
+                        { label: 'Liste', icon: '•', block: 'list', description: 'Aufzählung oder Nummerierung' },
+                        { label: 'Checkliste', icon: '☑', block: 'list', data: { style: 'checklist', items: [{ content: '', meta: { checked: false }, items: [] }] }, description: 'Aufgabenliste' },
+                        { label: 'Zitat', icon: '“”', block: 'quote', description: 'Zitat mit Quelle' }
+                    ]
+                },
+                {
+                    label: 'Medien',
+                    className: 'media',
+                    buttons: [
+                        { label: 'Bild', icon: '▧', block: 'image', description: 'Bild hochladen oder URL nutzen' },
+                        { label: 'Galerie', icon: '▦', block: 'imageGallery', description: 'Mehrere Bilder als Galerie' },
+                        { label: 'Embed', icon: '▶', block: 'embed', description: 'YouTube/Vimeo/Codepen usw.' },
+                        { label: 'Link-Karte', icon: '↗', block: 'linkTool', description: 'Link mit Vorschau' },
+                        { label: 'Anhang', icon: '⎙', block: 'attaches', description: 'Download-Datei anhängen' }
+                    ]
+                },
+                {
+                    label: 'Layout & Spezial',
+                    className: 'more',
+                    buttons: [
+                        { label: 'Tabelle', icon: '▦', block: 'table', description: 'Strukturierte Daten' },
+                        { label: 'Hinweis', icon: '!', block: 'warning', description: 'Info-/Warnbox' },
+                        { label: 'Akkordeon', icon: '⌄', block: 'accordion', description: 'Aufklappbarer Abschnitt' },
+                        { label: 'Code', icon: '</>', block: 'code', description: 'Code-Beispiel' },
+                        { label: 'HTML', icon: '{}', block: 'raw', description: 'Sanitizter HTML-Block' },
+                        { label: 'Trenner', icon: '—', block: 'delimiter', description: 'Visueller Abschnittstrenner' }
+                    ]
+                }
+            ];
+        }
+
+        function createEditorToolbarButton(item, editorEntry, options) {
+            var button;
+            var icon;
+            var text;
+            var insertOptions = options && typeof options === 'object' ? options : {};
+
+            if (!isEditorToolAvailable(editorEntry, item.block)) {
+                return null;
+            }
+
+            button = document.createElement('button');
+            button.type = 'button';
+            button.dataset.cmsEditorUi = 'true';
+            button.dataset.mutationFree = 'true';
+            button.dataset.block = item.block;
+
+            icon = document.createElement('span');
+            icon.className = 'cms-editor-toolbar-icon';
+            icon.setAttribute('aria-hidden', 'true');
+            icon.textContent = item.icon || '+';
+
+            text = document.createElement('span');
+            text.className = 'cms-editor-toolbar-label';
+            text.textContent = item.label;
+
+            button.appendChild(icon);
+            button.appendChild(text);
+
+            if (item.description) {
+                button.title = item.description;
+            }
+
+            button.addEventListener('click', function (event) {
+                var index;
+
+                event.preventDefault();
+                if (!editorEntry.instance || !editorEntry.instance.blocks) {
+                    return;
+                }
+
+                index = typeof insertOptions.index === 'number'
+                    ? insertOptions.index
+                    : editorEntry.instance.blocks.getBlocksCount();
+                insertBlockAt(editorEntry.instance, index, item.block, item.data || {});
+                if (editorEntry.instance.caret && typeof editorEntry.instance.caret.setToBlock === 'function') {
+                    editorEntry.instance.caret.setToBlock(Math.max(0, index), 'start');
+                }
+            });
+
+            return button;
+        }
+
         function setupImageHoverOverlay(holder, editorInstance) {
             queryElements('#' + holder.id + ' .ce-block .image-tool').forEach(function (toolElement) {
                 var block = toolElement.closest('.ce-block');
@@ -615,6 +1235,8 @@
                 if (!overlay) {
                     overlay = document.createElement('div');
                     overlay.className = 'cms-image-hover-overlay';
+                    overlay.dataset.cmsEditorUi = 'true';
+                    overlay.dataset.mutationFree = 'true';
                     overlay.innerHTML = ''
                         + '<input type="text" class="form-control form-control-sm" placeholder="Alt-Text eingeben...">'
                         + '<button type="button" class="btn btn-sm btn-danger" aria-label="Bild entfernen"><i class="ti ti-x"></i></button>';
@@ -653,44 +1275,260 @@
 
         function renderEditorBlockUi(definition, editorEntry) {
             var holder = getElement(definition.holderId);
+            var state = getEditorUiState(definition.holderId);
             var redactor;
             var blocks;
+            var signature;
 
             if (!holder || !editorEntry || !editorEntry.instance) {
+                return;
+            }
+
+            if (state.rendering) {
                 return;
             }
 
             redactor = holder.querySelector('.codex-editor__redactor') || holder;
             blocks = holder.querySelectorAll('.ce-block');
 
-            queryElements('#' + holder.id + ' .cms-editor-insert-between').forEach(function (button) {
-                button.remove();
+            signature = Array.prototype.slice.call(blocks).map(function (block, index) {
+                return [
+                    block.getAttribute('data-id') || String(index),
+                    resolveBlockLabel(block)
+                ].join(':');
+            }).join('|');
+
+            if (state.signature === signature
+                    && holder.querySelectorAll('.cms-editor-insert-between').length === Math.max(0, blocks.length - 1)) {
+                setupImageHoverOverlay(holder, editorEntry.instance);
+                return;
+            }
+
+            state.rendering = true;
+
+            try {
+                queryElements('#' + holder.id + ' .cms-editor-insert-between').forEach(function (button) {
+                    button.remove();
+                });
+
+                blocks.forEach(function (block, index) {
+                    var nextBlock = blocks[index + 1];
+                    var insertButton;
+
+                    block.classList.add('cms-editor-block-shell');
+                    block.setAttribute('data-cms-block-label', resolveBlockLabel(block));
+
+                    if (!nextBlock) {
+                        return;
+                    }
+
+                    insertButton = document.createElement('button');
+                    insertButton.type = 'button';
+                    insertButton.className = 'cms-editor-insert-between';
+                    insertButton.dataset.cmsEditorUi = 'true';
+                    insertButton.dataset.mutationFree = 'true';
+                    insertButton.setAttribute('aria-label', 'Block hier einfügen');
+                    insertButton.textContent = '+';
+                    insertButton.addEventListener('click', function (event) {
+                        event.preventDefault();
+                        insertBlockAt(editorEntry.instance, index + 1, 'paragraph', { text: '' });
+                    });
+                    redactor.insertBefore(insertButton, nextBlock);
+                });
+
+                setupImageHoverOverlay(holder, editorEntry.instance);
+                state.signature = signature;
+            } finally {
+                state.rendering = false;
+            }
+        }
+
+        function getEditorUiState(holderId) {
+            if (!editorUiState[holderId] || editorUiState[holderId] === true) {
+                editorUiState[holderId] = {
+                    observed: false,
+                    rendering: false,
+                    scheduled: false,
+                    signature: ''
+                };
+            }
+
+            return editorUiState[holderId];
+        }
+
+        function isEditorUiNode(node) {
+            var element = node && node.nodeType === 1 ? node : (node && node.parentElement ? node.parentElement : null);
+
+            if (!element || typeof element.matches !== 'function') {
+                return false;
+            }
+
+            return element.matches('[data-cms-editor-ui="true"], .cms-editor-insert-between, .cms-image-hover-overlay')
+                || !!element.querySelector('[data-cms-editor-ui="true"], .cms-editor-insert-between, .cms-image-hover-overlay');
+        }
+
+        function isOnlyEditorUiMutation(mutations) {
+            return Array.prototype.slice.call(mutations || []).every(function (mutation) {
+                var nodes = Array.prototype.slice.call(mutation.addedNodes || [])
+                    .concat(Array.prototype.slice.call(mutation.removedNodes || []));
+
+                return nodes.length > 0 && nodes.every(isEditorUiNode);
             });
+        }
 
-            blocks.forEach(function (block, index) {
-                var nextBlock = blocks[index + 1];
-                var insertButton;
+        function ensureEditorCommandbar(definition, editorEntry) {
+            var holder = getElement(definition.holderId);
+            var wrap = holder ? holder.closest('.editorjs-wrap') : null;
+            var commandbar;
+            var inserterButton;
+            var undoButton;
+            var redoButton;
+            var expandButton;
+            var pluginBadge;
+            var panel;
 
-                block.classList.add('cms-editor-block-shell');
-                block.setAttribute('data-cms-block-label', resolveBlockLabel(block));
+            if (!holder || !wrap || wrap.querySelector('.cms-editor-commandbar')) {
+                return;
+            }
 
-                if (!nextBlock) {
+            commandbar = document.createElement('div');
+            commandbar.className = 'cms-editor-commandbar';
+            commandbar.dataset.cmsEditorUi = 'true';
+            commandbar.dataset.mutationFree = 'true';
+
+            commandbar.innerHTML = ''
+                + '<div class="cms-editor-commandbar__left">'
+                + '<button type="button" class="cms-editor-commandbar__primary" data-role="inserter" aria-expanded="false">+ Block hinzufügen</button>'
+                + '<div class="cms-editor-commandbar__title"><span>EditorJS</span><strong>Block-Editor</strong></div>'
+                + '</div>'
+                + '<div class="cms-editor-commandbar__right">'
+                + '<span class="cms-editor-commandbar__badge" data-role="plugin-badge">Plugins werden geladen …</span>'
+                + '<button type="button" class="cms-editor-commandbar__icon" data-role="undo" title="Rückgängig" disabled>↶</button>'
+                + '<button type="button" class="cms-editor-commandbar__icon" data-role="redo" title="Wiederholen" disabled>↷</button>'
+                + '<button type="button" class="cms-editor-commandbar__mode" data-role="expand" aria-pressed="false">Breit</button>'
+                + '</div>';
+
+            panel = document.createElement('div');
+            panel.className = 'cms-editor-inserter-panel';
+            panel.dataset.cmsEditorUi = 'true';
+            panel.dataset.mutationFree = 'true';
+            panel.setAttribute('hidden', 'hidden');
+
+            getEditorBlockGroups().forEach(function (group) {
+                var section = document.createElement('div');
+                var title = document.createElement('div');
+                var grid = document.createElement('div');
+                var hasButtons = false;
+
+                section.className = 'cms-editor-inserter-panel__section cms-editor-inserter-panel__section--' + group.className;
+                title.className = 'cms-editor-inserter-panel__title';
+                title.textContent = group.label;
+                grid.className = 'cms-editor-inserter-panel__grid';
+
+                group.buttons.forEach(function (item) {
+                    var button = createEditorToolbarButton(item, editorEntry);
+                    var description;
+
+                    if (!button) {
+                        return;
+                    }
+
+                    button.className = 'cms-editor-inserter-card';
+                    if (item.description) {
+                        description = document.createElement('small');
+                        description.textContent = item.description;
+                        button.appendChild(description);
+                    }
+                    hasButtons = true;
+                    grid.appendChild(button);
+                });
+
+                if (!hasButtons) {
                     return;
                 }
 
-                insertButton = document.createElement('button');
-                insertButton.type = 'button';
-                insertButton.className = 'cms-editor-insert-between';
-                insertButton.setAttribute('aria-label', 'Block hier einfügen');
-                insertButton.textContent = '+';
-                insertButton.addEventListener('click', function (event) {
-                    event.preventDefault();
-                    insertBlockAt(editorEntry.instance, index + 1, 'paragraph', { text: '' });
-                });
-                redactor.insertBefore(insertButton, nextBlock);
+                section.appendChild(title);
+                section.appendChild(grid);
+                panel.appendChild(section);
             });
 
-            setupImageHoverOverlay(holder, editorEntry.instance);
+            inserterButton = commandbar.querySelector('[data-role="inserter"]');
+            undoButton = commandbar.querySelector('[data-role="undo"]');
+            redoButton = commandbar.querySelector('[data-role="redo"]');
+            expandButton = commandbar.querySelector('[data-role="expand"]');
+            pluginBadge = commandbar.querySelector('[data-role="plugin-badge"]');
+
+            function setPanelOpen(open) {
+                panel.toggleAttribute('hidden', !open);
+                panel.classList.toggle('is-open', open);
+                if (inserterButton) {
+                    inserterButton.setAttribute('aria-expanded', open ? 'true' : 'false');
+                }
+            }
+
+            function updateCommandbarState() {
+                var history = getEditorHistory(editorEntry);
+                var plugins = editorEntry.instance && editorEntry.instance.cmsPlugins ? Object.keys(editorEntry.instance.cmsPlugins) : [];
+
+                if (undoButton) {
+                    undoButton.disabled = !history.canUndo;
+                }
+                if (redoButton) {
+                    redoButton.disabled = !history.canRedo;
+                }
+                if (pluginBadge) {
+                    pluginBadge.textContent = plugins.length > 0 ? plugins.join(' · ') : 'Basis-Tools aktiv';
+                }
+            }
+
+            if (inserterButton) {
+                inserterButton.addEventListener('click', function (event) {
+                    event.preventDefault();
+                    setPanelOpen(panel.hasAttribute('hidden'));
+                });
+            }
+
+            if (undoButton) {
+                undoButton.addEventListener('click', function (event) {
+                    var history = getEditorHistory(editorEntry);
+                    event.preventDefault();
+                    if (history.undo && typeof history.undo.undo === 'function') {
+                        history.undo.undo();
+                    }
+                });
+            }
+
+            if (redoButton) {
+                redoButton.addEventListener('click', function (event) {
+                    var history = getEditorHistory(editorEntry);
+                    event.preventDefault();
+                    if (history.undo && typeof history.undo.redo === 'function') {
+                        history.undo.redo();
+                    }
+                });
+            }
+
+            if (expandButton) {
+                expandButton.addEventListener('click', function (event) {
+                    var isExpanded;
+                    event.preventDefault();
+                    isExpanded = !wrap.classList.contains('editorjs-wrap--expanded');
+                    wrap.classList.toggle('editorjs-wrap--expanded', isExpanded);
+                    expandButton.setAttribute('aria-pressed', isExpanded ? 'true' : 'false');
+                    expandButton.textContent = isExpanded ? 'Normal' : 'Breit';
+                });
+            }
+
+            holder.addEventListener('cms-editor-plugin-state', updateCommandbarState);
+            document.addEventListener('click', function (event) {
+                if (!wrap.contains(event.target)) {
+                    setPanelOpen(false);
+                }
+            });
+
+            commandbar.appendChild(panel);
+            wrap.insertBefore(commandbar, wrap.firstChild || null);
+            updateCommandbarState();
         }
 
         function ensureGroupedToolbar(definition, editorEntry) {
@@ -705,63 +1543,13 @@
                 return;
             }
 
-            groups = [
-                {
-                    className: 'basis',
-                    buttons: [
-                        { label: 'H2', block: 'header', data: { level: 2 } },
-                        { label: 'Text', block: 'paragraph' },
-                        { label: 'Liste', block: 'list' },
-                        { label: 'Checklist', block: 'checklist' },
-                        { label: 'Bild', block: 'image' },
-                        { label: 'Trenner', block: 'delimiter' },
-                        { label: 'Abstand', block: 'spacer', data: { height: 15, preset: '15px' } }
-                    ]
-                },
-                {
-                    className: 'tech',
-                    buttons: [
-                        { label: 'Code', block: 'code' },
-                        { label: 'Tabelle', block: 'table' },
-                        { label: 'Embed', block: 'embed' },
-                        { label: 'Link', block: 'linkTool' },
-                        { label: 'Datei', block: 'attaches' },
-                        { label: 'Gallery', block: 'imageGallery', data: { columns: 3 } }
-                    ]
-                },
-                {
-                    className: 'erweitert',
-                    buttons: [
-                        { label: 'Callout', block: 'callout' },
-                        { label: 'Details', block: 'details' },
-                        { label: 'Zitat', block: 'quote' },
-                        { label: 'Akkordion', block: 'accordion' }
-                    ]
-                }
-            ];
+            groups = getEditorBlockGroups();
 
             toolbar = document.createElement('div');
             toolbar.className = 'editorjs-toolbar cms-editor-toolbar-grouped';
 
             function buildButton(item) {
-                var button = document.createElement('button');
-                var availableTools = editorEntry
-                    && editorEntry.instance
-                    && Array.isArray(editorEntry.instance.cmsAvailableTools)
-                    ? editorEntry.instance.cmsAvailableTools
-                    : [];
-                var isAvailable = availableTools.length === 0 || availableTools.indexOf(item.block) !== -1;
-
-                if (!isAvailable) {
-                    return null;
-                }
-
-                button.type = 'button';
-                button.textContent = item.label;
-                button.addEventListener('click', function () {
-                    insertBlockAt(editorEntry.instance, editorEntry.instance.blocks.getBlocksCount(), item.block, item.data || {});
-                });
-                return button;
+                return createEditorToolbarButton(item, editorEntry);
             }
 
             groups.slice(0, 2).forEach(function (group, groupIndex) {
@@ -791,41 +1579,66 @@
             overflowButton.textContent = '···';
             overflowPanel = document.createElement('div');
             overflowPanel.className = 'cms-editor-toolbar-overflow-panel';
-            groups[2].buttons.forEach(function (item) {
-                var button = buildButton(item);
-                if (button) {
-                    overflowPanel.appendChild(button);
+            groups.slice(2).forEach(function (group) {
+                if (!group || !Array.isArray(group.buttons)) {
+                    return;
                 }
-            });
-            overflowButton.addEventListener('click', function (event) {
-                event.preventDefault();
-                overflowPanel.classList.toggle('is-open');
-            });
-            document.addEventListener('click', function (event) {
-                if (!toolbar.contains(event.target)) {
-                    overflowPanel.classList.remove('is-open');
-                }
+
+                group.buttons.forEach(function (item) {
+                    var button = buildButton(item);
+                    if (button) {
+                        overflowPanel.appendChild(button);
+                    }
+                });
             });
 
-            toolbar.appendChild(document.createElement('span')).className = 'cms-editor-toolbar-divider';
-            toolbar.appendChild(overflowButton);
-            toolbar.appendChild(overflowPanel);
-            wrap.insertBefore(toolbar, wrap.firstChild || null);
+            if (overflowPanel.children.length > 0) {
+                overflowButton.addEventListener('click', function (event) {
+                    event.preventDefault();
+                    overflowPanel.classList.toggle('is-open');
+                });
+                document.addEventListener('click', function (event) {
+                    if (!toolbar.contains(event.target)) {
+                        overflowPanel.classList.remove('is-open');
+                    }
+                });
+
+                toolbar.appendChild(document.createElement('span')).className = 'cms-editor-toolbar-divider';
+                toolbar.appendChild(overflowButton);
+                toolbar.appendChild(overflowPanel);
+            }
+            wrap.insertBefore(toolbar, wrap.querySelector('.editorjs-holder') || wrap.firstChild || null);
         }
 
         function ensureEditorUi(definition, editorEntry) {
             var holder = getElement(definition.holderId);
+            var state;
             if (!holder || !editorEntry || !editorEntry.instance) {
                 return;
             }
 
+            state = getEditorUiState(definition.holderId);
+
+            ensureEditorCommandbar(definition, editorEntry);
             ensureGroupedToolbar(definition, editorEntry);
             renderEditorBlockUi(definition, editorEntry);
 
-            if (!editorUiState[definition.holderId]) {
-                editorUiState[definition.holderId] = true;
-                new MutationObserver(function () {
-                    renderEditorBlockUi(definition, editorEntry);
+            if (!state.observed) {
+                state.observed = true;
+                state.observer = new MutationObserver(function (mutations) {
+                    if (state.rendering || isOnlyEditorUiMutation(mutations)) {
+                        return;
+                    }
+
+                    if (state.scheduled) {
+                        return;
+                    }
+
+                    state.scheduled = true;
+                    window.requestAnimationFrame(function () {
+                        state.scheduled = false;
+                        renderEditorBlockUi(definition, editorEntry);
+                    });
                 }).observe(holder, { childList: true, subtree: true });
             }
         }
@@ -1760,31 +2573,88 @@
                 }
             }
 
+            if (editorInitWatchdogs[key]) {
+                window.clearTimeout(editorInitWatchdogs[key]);
+                delete editorInitWatchdogs[key];
+            }
+            clearEditorEmergencyFallback(key);
+
             delete editors[key];
         }
 
         function bindEditor(definition, forceRecreate) {
             var holder = getElement(definition.holderId);
             var input = getElement(definition.inputId);
+            var plainState = getPlainEditorState(definition, input);
             var createdInstance;
+            var entry;
+            var warning;
 
             if (!definition || !holder || !input) {
                 return null;
             }
 
-            if (!hasEditorFactory() || !hasEditorCore()) {
-                if (typeof console !== 'undefined' && typeof console.error === 'function') {
-                    console.error('[cms-editor] EditorJS bind skipped for holder "' + definition.holderId + '".', {
-                        hasFactory: hasEditorFactory(),
-                        hasCore: hasEditorCore()
+            if (plainState && plainState.wrap) {
+                warning = plainState.wrap.querySelector('.cms-editor-plain-warning');
+                if (warning) {
+                    warning.remove();
+                }
+            }
+
+            setEditorStateMarker(definition, 'loading', 'bind-start');
+            recordEditorBindingMilestone(definition, 'bindStart', {
+                forceRecreate: !!forceRecreate,
+                hasFactory: hasEditorFactory(),
+                hasCore: hasEditorCore()
+            });
+            clearHolderFallbackUi(definition);
+            ensureHolderVisible(holder);
+            setPlainEditorEnhancedState(definition, true);
+
+            if (!hasEditorRuntime()) {
+                setEditorStateMarker(definition, 'loading', 'runtime-missing-waiting');
+                recordEditorBindingMilestone(definition, 'runtimeWaitStart', {
+                    hasFactory: hasEditorFactory(),
+                    hasCore: hasEditorCore()
+                });
+                logEditor('error', '[EJS-CHAIN-BIND-RUNTIME-MISSING] EditorJS bind skipped for holder "' + definition.holderId + '".', {
+                    hasFactory: hasEditorFactory(),
+                    hasCore: hasEditorCore()
+                });
+
+                if (!editorRuntimeRetryQueue[definition.key]) {
+                    editorRuntimeRetryQueue[definition.key] = true;
+                    waitForEditorRuntimeAvailability(8000).then(function (runtimeReady) {
+                        var retryInput = getElement(definition.inputId);
+
+                        delete editorRuntimeRetryQueue[definition.key];
+
+                        if (!retryInput || !getElement(definition.holderId)) {
+                            return;
+                        }
+
+                        if (runtimeReady) {
+                            recordEditorBindingMilestone(definition, 'runtimeWaitEnd', { runtimeReady: true });
+                            bindEditor(definition, true);
+                            return;
+                        }
+
+                        recordEditorBindingMilestone(definition, 'runtimeWaitEnd', {
+                            runtimeReady: false,
+                            fallbackReason: hasEditorFactory() ? 'core-missing' : 'factory-missing'
+                        });
+                        renderEditorUnavailableFallback(definition, retryInput, hasEditorFactory() ? 'core-missing' : 'factory-missing');
                     });
                 }
 
-                renderEditorUnavailableFallback(definition, input, hasEditorFactory() ? 'core-missing' : 'factory-missing');
                 return null;
             }
 
             if (editors[definition.key] && !forceRecreate) {
+                setEditorStateMarker(definition, 'editor', 'reuse-existing-instance');
+                recordEditorBindingMilestone(definition, 'bindEnd', { finalState: 'editor', reason: 'reuse-existing-instance' });
+                clearHolderFallbackUi(definition);
+                setPlainEditorEnhancedState(definition, true);
                 ensureEditorUi(definition, editors[definition.key]);
                 return editors[definition.key];
             }
@@ -1796,6 +2666,7 @@
             registerEditorMutationTracking(definition.key, holder);
 
             try {
+                logEditor('info', '[EJS-CHAIN-BIND-CREATE] Calling createCmsEditor for "' + definition.holderId + '".');
                 createdInstance = window.createCmsEditor(definition.holderId, input.value || '', config.mediaUploadUrl, config.csrfToken, {
                     getUploadContext: buildUploadContext,
                     onChange: function (output) {
@@ -1810,18 +2681,77 @@
                     }
                 });
             } catch (error) {
-                if (typeof console !== 'undefined' && typeof console.error === 'function') {
-                    console.error('[cms-editor] EditorJS init failed for holder "' + definition.holderId + '".', error);
-                }
+                logEditor('error', '[EJS-CHAIN-BIND-CREATE-FAILED] EditorJS init failed for holder "' + definition.holderId + '".', error);
 
                 renderEditorUnavailableFallback(definition, input, 'init-failed');
                 return null;
             }
 
-            editors[definition.key] = {
+            entry = {
                 input: input,
-                instance: createdInstance
+                instance: createdInstance,
+                ready: false
             };
+            editors[definition.key] = entry;
+
+            if (editorInitWatchdogs[definition.key]) {
+                window.clearTimeout(editorInitWatchdogs[definition.key]);
+            }
+
+            editorInitWatchdogs[definition.key] = window.setTimeout(function () {
+                var activeEntry = editors[definition.key];
+
+                if (!activeEntry || activeEntry !== entry || activeEntry.ready) {
+                    return;
+                }
+
+                delete editorInitWatchdogs[definition.key];
+                setEditorStateMarker(definition, 'loading', 'init-timeout');
+                recordEditorBindingMilestone(definition, 'initTimeout', { fallbackActivated: false });
+                logEditor('warn', 'EditorJS init watchdog timed out for "' + definition.holderId + '"; keeping live editor mounted instead of showing fallback.');
+            }, EDITOR_INIT_WATCHDOG_MS);
+
+            if (createdInstance && createdInstance.isReady && typeof createdInstance.isReady.then === 'function') {
+                createdInstance.isReady.then(function () {
+                    clearEditorEmergencyFallback(definition.key);
+                    if (editorInitWatchdogs[definition.key]) {
+                        window.clearTimeout(editorInitWatchdogs[definition.key]);
+                        delete editorInitWatchdogs[definition.key];
+                    }
+                    if (editors[definition.key] === entry) {
+                        entry.ready = true;
+                        clearHolderFallbackUi(definition);
+                        ensureHolderVisible(holder);
+                        setEditorStateMarker(definition, 'editor', 'ready-resolved');
+                        recordEditorBindingMilestone(definition, 'bindEnd', { finalState: 'editor', reason: 'ready-resolved' });
+                        setPlainEditorEnhancedState(definition, true);
+                    }
+                }).catch(function (error) {
+                    var activeEntry = editors[definition.key];
+                    clearEditorEmergencyFallback(definition.key);
+                    if (editorInitWatchdogs[definition.key]) {
+                        window.clearTimeout(editorInitWatchdogs[definition.key]);
+                        delete editorInitWatchdogs[definition.key];
+                    }
+                    if (activeEntry !== entry) {
+                        return;
+                    }
+                    logEditor('error', 'EditorJS reported readiness error for "' + definition.holderId + '".', error);
+                    delete editors[definition.key];
+                    renderEditorUnavailableFallback(definition, input, 'ready-rejected');
+                });
+            } else {
+                entry.ready = true;
+                clearEditorEmergencyFallback(definition.key);
+                if (editorInitWatchdogs[definition.key]) {
+                    window.clearTimeout(editorInitWatchdogs[definition.key]);
+                    delete editorInitWatchdogs[definition.key];
+                }
+                clearHolderFallbackUi(definition);
+                setEditorStateMarker(definition, 'editor', 'ready-sync');
+                recordEditorBindingMilestone(definition, 'bindEnd', { finalState: 'editor', reason: 'ready-sync' });
+                setPlainEditorEnhancedState(definition, true);
+            }
 
             ensureEditorUi(definition, editors[definition.key]);
 
@@ -2223,6 +3153,7 @@
         function dispatchValidatedSubmit(submitter) {
             var resolvedSubmitter = isFormSubmitter(submitter) ? submitter : null;
             var fallbackButton;
+            var restoreSuppressedPlainEditors = suppressPlainEditorSubmitNames();
 
             if (typeof form.requestSubmit === 'function') {
                 nativeSubmitPending = true;
@@ -2236,12 +3167,14 @@
                 } finally {
                     nativeSubmitPending = false;
                     pendingSubmitter = null;
+                    restoreSuppressedPlainEditors();
                 }
 
                 return;
             }
 
             if (typeof form.reportValidity === 'function' && !form.reportValidity()) {
+                restoreSuppressedPlainEditors();
                 return;
             }
 
@@ -2256,6 +3189,7 @@
                 fallbackButton.remove();
                 nativeSubmitPending = false;
                 pendingSubmitter = null;
+                restoreSuppressedPlainEditors();
             }
         }
 
@@ -2354,6 +3288,8 @@
 
         (Array.isArray(config.editors) ? config.editors : []).forEach(function (definition) {
             editorDefinitions[definition.key] = definition;
+            getPlainEditorState(definition, getElement(definition.inputId));
+            setEditorStateMarker(definition, 'loading');
 
             if (!definition.lazy) {
                 bindEditor(definition);
@@ -2438,6 +3374,7 @@
             clearNotice();
 
             submitLocked = true;
+            syncAllPlainEditors();
 
             Promise.all(keys.map(function (key) {
                 return saveEditorContent(key, false);
@@ -2491,22 +3428,27 @@
         }
 
         if (!hasEditorDefinitions) {
+                logEditor('info', '[EJS-CHAIN-NO-EDITORS] No EditorJS definitions found in config.');
             return Promise.resolve(true);
         }
 
         if (hasEditorRuntime()) {
+                logEditor('info', '[EJS-CHAIN-RUNTIME-READY] Runtime already available before wait.');
             return Promise.resolve(true);
         }
 
         if (!readyPromise || typeof readyPromise.then !== 'function') {
+                logEditor('warn', '[EJS-CHAIN-PROMISE-MISSING] cmsEditorJsCoreReady missing, using polling fallback.');
             return waitForRuntimePolling();
         }
 
+            logEditor('info', '[EJS-CHAIN-WAIT-START] Waiting for cmsEditorJsCoreReady promise.');
         return readyPromise.then(function () {
+                logEditor('info', '[EJS-CHAIN-WAIT-PROMISE-RESOLVED] Core promise resolved.');
             return waitForRuntimePolling();
         }).catch(function (error) {
             if (typeof console !== 'undefined' && typeof console.error === 'function') {
-                console.error('[cms-editor] EditorJS core readiness failed.', error);
+                    console.error('[EditorJS][EJS-CHAIN-WAIT-PROMISE-FAILED] Core readiness failed.', error);
             }
 
             return waitForRuntimePolling();
@@ -2527,9 +3469,11 @@
         initUi(uiConfig);
         initSeo(seoConfig);
         waitForEditorJsCore(editorJsConfig).then(function () {
+            logEditor('info', '[EJS-CHAIN-INIT-START] Starting EditorJS init after wait.');
             initEditorJs(editorJsConfig);
             initLanguageTabCompleteness(editorJsConfig);
         }, function () {
+            logEditor('warn', '[EJS-CHAIN-INIT-FALLBACK] Wait rejected, trying init anyway.');
             initEditorJs(editorJsConfig);
             initLanguageTabCompleteness(editorJsConfig);
         });

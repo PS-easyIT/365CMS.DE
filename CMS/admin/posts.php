@@ -14,7 +14,6 @@ use CMS\Auth;
 use CMS\Security;
 use CMS\Services\CoreModuleService;
 use CMS\Services\EditorJsService;
-use CMS\Services\EditorService;
 
 const CMS_ADMIN_POSTS_ALLOWED_ACTIONS = ['save', 'delete', 'bulk', 'save_category', 'delete_category', 'switch_locale'];
 const CMS_ADMIN_POSTS_ALLOWED_VIEWS = ['list', 'edit'];
@@ -306,14 +305,11 @@ function cms_admin_posts_view_config(object $module, string $view, ?array $overr
             cms_admin_posts_redirect();
         }
 
-        $useEditorJs = EditorService::isEditorJs();
+        // Page/Post edit routes use the local EditorJS runtime by default; fallback is handled client-side only after init failure.
+        $useEditorJs = true;
         $pageAssets = [];
 
-        if ($useEditorJs) {
-            $pageAssets = EditorJsService::getInstance()->getPageAssets();
-        } else {
-            EditorService::getInstance();
-        }
+        $pageAssets = EditorJsService::getInstance()->getPageAssets();
 
         $pageAssets['css'] = $pageAssets['css'] ?? [];
         $pageAssets['js'] = $pageAssets['js'] ?? [];
@@ -328,10 +324,10 @@ function cms_admin_posts_view_config(object $module, string $view, ?array $overr
             'page_title' => (!empty($editData['isNew']) ? 'Neuer Beitrag' : 'Beitrag bearbeiten') . ($editorLocale === 'en' ? ' · EN' : ''),
             'active_page' => 'posts',
             'page_assets' => $pageAssets,
-            'template_vars' => $baseTemplateVars + [
+            'template_vars' => array_replace($baseTemplateVars, [
                 'useEditorJs' => $useEditorJs,
                 'editData' => $editData,
-            ],
+            ]),
             'data' => $editData,
         ];
     }
@@ -344,9 +340,9 @@ function cms_admin_posts_view_config(object $module, string $view, ?array $overr
         'page_title' => 'Beiträge',
         'active_page' => 'posts',
         'page_assets' => [],
-        'template_vars' => $baseTemplateVars + [
+        'template_vars' => array_replace($baseTemplateVars, [
             'listData' => $listData,
-        ],
+        ]),
         'data' => $listData,
     ];
 }

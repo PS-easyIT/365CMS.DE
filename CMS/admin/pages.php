@@ -18,7 +18,6 @@ use CMS\Auth;
 use CMS\Security;
 use CMS\Services\CoreModuleService;
 use CMS\Services\EditorJsService;
-use CMS\Services\EditorService;
 
 const CMS_ADMIN_PAGES_ALLOWED_ACTIONS = ['save', 'delete', 'bulk', 'switch_locale'];
 const CMS_ADMIN_PAGES_ALLOWED_VIEWS = ['list', 'edit'];
@@ -209,14 +208,11 @@ function cms_admin_pages_view_config(PagesModule $module, string $view, ?array $
     ];
 
     if ($normalizedView === 'edit') {
-        $useEditorJs = EditorService::isEditorJs();
+        // Page/Post edit routes use the local EditorJS runtime by default; fallback is handled client-side only after init failure.
+        $useEditorJs = true;
         $pageAssets = [];
 
-        if ($useEditorJs) {
-            $pageAssets = EditorJsService::getInstance()->getPageAssets();
-        } else {
-            EditorService::getInstance();
-        }
+        $pageAssets = EditorJsService::getInstance()->getPageAssets();
 
         $pageAssets['css'] = $pageAssets['css'] ?? [];
         $pageAssets['js'] = $pageAssets['js'] ?? [];
@@ -242,10 +238,10 @@ function cms_admin_pages_view_config(PagesModule $module, string $view, ?array $
             'page_title' => ($editData['isNew'] ? 'Neue Seite' : 'Seite bearbeiten') . ($editorLocale === 'en' ? ' · EN' : ''),
             'active_page' => 'pages',
             'page_assets' => $pageAssets,
-            'template_vars' => $baseTemplateVars + [
+            'template_vars' => array_replace($baseTemplateVars, [
                 'useEditorJs' => $useEditorJs,
                 'editData' => $editData,
-            ],
+            ]),
             'data' => $editData,
         ];
     }
@@ -261,9 +257,9 @@ function cms_admin_pages_view_config(PagesModule $module, string $view, ?array $
             'css' => [],
             'js' => [],
         ],
-        'template_vars' => $baseTemplateVars + [
+        'template_vars' => array_replace($baseTemplateVars, [
             'listData' => $listData,
-        ],
+        ]),
         'data' => $listData,
     ];
 }

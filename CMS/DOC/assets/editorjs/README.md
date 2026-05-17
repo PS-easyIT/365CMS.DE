@@ -6,7 +6,8 @@
 
 ## Quellordner
 
-- `CMS/assets/editorjs/`
+- Originalquelle: `ASSETS/editor.js-2.31.6/editorjs.umd.js`
+- Runtime-Ziel: `CMS/assets/editorjs/editorjs.umd.js`
 
 ## Verwendung in 365CMS
 
@@ -16,23 +17,27 @@
 
 ## Verfügbare Tools (Stand 17.05.2026)
 
-- **Inhaltsstruktur**: `header` (H2-H5), `paragraph`, `list`, `checklist`, `quote`, `delimiter`, `spacer`, `details` (Toggle/Disclosure), `callout`.
-- **Tech-Content**: `code` (mit Sprachfeld), `table` (Header-Zeile umschaltbar), `embed`, `linkTool` (Link-Karte), `raw`.
-- **Medien & Dateien**: `image` (Mediathek + Upload + URL), `imageGallery` (Mehrfach-Upload + URL-Import), `attaches` (Datei-Upload), `carousel`.
-- **Inline-Formatting**: `bold`, `italic`, `underline`, `inlineCode`, `spoiler`, `marker/highlight`, `link`.
+- Aktive Page/Post-Basis-Tools: `paragraph`, `header`, `list` (inkl. `checklist`-Style), `image`, `quote`, `code`, `table`, `delimiter`.
+- Zusätzlich aktivierte lokale Erweiterungen: `embed`, `linkTool`, `attaches`, `warning`, `raw`, `accordion`, `imageGallery` sowie Inline-Tools `inlineCode`, `underline`, `spoiler`.
+- Produktive Editor-Plugins: `editorjs-undo` für Undo/Redo inkl. Toolbar-Buttons und `editorjs-drag-drop` für Block-Reordering per Drag&Drop. Beide werden lokal als UMD-Dateien geladen und defensiv initialisiert.
+- Der Admin-Editor bietet eine WordPress/Gutenberg-ähnlichere Oberfläche: Commandbar mit Block-Inserter, Undo/Redo, Breitenmodus und gruppierte Blockkarten für Text, Medien sowie Layout/Spezialblöcke.
+- Der Core wird bytegleich aus `ASSETS/editor.js-2.31.6/editorjs.umd.js` in `CMS/assets/editorjs/editorjs.umd.js` bereitgestellt.
+- Die Page/Post-Tools werden als lokale UMD-Dateien aus `CMS/assets/editorjs/` geladen: Core, Basis-Tools und stabile Erweiterungen werden deterministisch vor `CMS/assets/js/editor-init.js` eingebunden.
+- `CMS/assets/js/editor-init.js` ist nur noch die 365CMS-Factory/Normalizer-Schicht: Sie verdrahtet die UMD-Globals (`Paragraph`, `Header`, `EditorjsList`, `ImageTool`, `Quote`, `CodeTool`, `Table`, `Delimiter`, `Embed`, `LinkTool`, `AttachesTool`, `Warning`, `RawTool`, `Accordion`, `ImageGallery`, `InlineCode`, `Underline`, `TgSpoilerEditorJS`) sowie die Plugin-Globals (`Undo`, `DragDrop`) mit Upload-, Save-, History- und Legacy-Datenkompatibilität.
+- Plugin-Registrierung ist defensiv: optionale Tools werden nur aktiviert, wenn ihr lokales UMD-Global tatsächlich vorhanden ist. Dadurch gibt es keine toten Toolbar-Buttons und keine parallelen Modul-/Eval-Loader.
 
 ## Save-/Render-/Sanitizer-Vertrag
 
 - Neue und bestehende Blöcke werden serverseitig über `EditorJsSanitizer` validiert/sanitized; unbekannte oder ungültige Typen werden verworfen.
 - Das Frontend rendert über `EditorJsRenderer` typ-spezifisch und sanitizt Inline-/Raw-Inhalte erneut.
 - Legacy-Inhalte (JSON-String, HTML-Fallback, Plaintext) werden clientseitig in `editor-init.js` rückwärtskompatibel in Blockdaten normalisiert.
-- Upload- und Link-Requests laufen weiterhin über den bestehenden `/api/media`-Flow inkl. CSRF-Header.
+- Bild-Uploads laufen weiterhin über den bestehenden `/api/media?action=upload_image`-Flow inkl. CSRF-Header; alternativ kann das Bild-Tool eine vorhandene URL speichern.
 
 ## Bekannte Grenzen
 
 - ToC wird aktuell über `header`-Blöcke/Anker im Frontend-Kontext aufgebaut; ein separater ToC-Editorblock ist noch nicht vorhanden.
 - Externe Embed-Provider werden aus Sicherheitsgründen als sichere Link-Embeds (statt unsandboxed iFrame-HTML) ausgegeben.
-- Einige UMD-Plugins wurden durch stabile interne Fallback-Tools ersetzt, damit Save/Render ohne defekte Asset-404s funktioniert.
+- Fallback-Textareas in Page/Post-Edit-Views sind hidden/disabled und werden nur eingeblendet, wenn die EditorJS-Initialisierung oder Readiness wirklich fehlschlägt.
 
 ## Sicherheits- und Betriebsvertrag
 

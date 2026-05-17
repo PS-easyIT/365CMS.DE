@@ -20,18 +20,31 @@ final class EditorJsAssetService
 
     /** @var string[] */
     private const EDITOR_JS_FILES = [
-        'header.umd.js',
+        'editorjs.umd.js',
         'paragraph.umd.js',
+        'header.umd.js',
+        'editorjs-list.umd.js',
+        'image.umd.js',
+        'quote.umd.js',
         'code.umd.js',
+        'table.umd.js',
+        'delimiter.umd.js',
+        'embed.umd.js',
+        'link.umd.js',
+        'attaches.umd.js',
+        'warning.umd.js',
         'raw.umd.js',
-        'carousel.umd.js',
+        'inline-code.umd.js',
+        'underline.umd.js',
         'spoiler.umd.js',
+        'accordion.umd.js',
+        'image-gallery.umd.js',
+        'undo.umd.js',
+        'drag-drop.umd.js',
     ];
 
     /** @var string[] */
-    private const EDITOR_CSS_FILES = [
-        'cropper-tune.css',
-    ];
+    private const EDITOR_CSS_FILES = [];
 
     public function render(string $name, string $content = '', array $settings = []): string
     {
@@ -82,38 +95,6 @@ final class EditorJsAssetService
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="1.5"/><path d="M3 16l5-5c1-.9 2.1-.9 3 0l5 5"/><path d="M14 14l1-1c1-.9 2.1-.9 3 0l3 3"/></svg>
                     <span>Bild</span>
                 </button>
-                <button type="button" data-block="imageGallery" data-columns="3" title="Gallery">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 9h.01"/><path d="M21 15l-4.5-4.5a1.5 1.5 0 00-2.12 0L9 15.88"/><path d="M3 17l4.5-4.5a1.5 1.5 0 012.12 0L13 16"/></svg>
-                    <span>Gallery</span>
-                </button>
-                <button type="button" data-block="checklist" title="Checklist">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6h11"/><path d="M9 12h11"/><path d="M9 18h11"/><path d="M4 6l1.5 1.5L7.5 5.5"/><path d="M4 12l1.5 1.5L7.5 11.5"/><path d="M4 18l1.5 1.5L7.5 17.5"/></svg>
-                    <span>Checklist</span>
-                </button>
-                <button type="button" data-block="callout" title="Callout / Hinweisbox">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.29 3.86l-7.5 13A2 2 0 004.53 20h14.94a2 2 0 001.74-3.14l-7.5-13a2 2 0 00-3.46 0z"/></svg>
-                    <span>Callout</span>
-                </button>
-                <button type="button" data-block="details" title="Toggle / Details">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
-                    <span>Details</span>
-                </button>
-                <button type="button" data-block="embed" title="Embed / externer Inhalt">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l-6-6 6-6"/><path d="M15 6l6 6-6 6"/></svg>
-                    <span>Embed</span>
-                </button>
-                <button type="button" data-block="linkTool" title="Link-Karte">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.07 0l2.83-2.83a5 5 0 00-7.07-7.07L10 5"/><path d="M14 11a5 5 0 00-7.07 0L4.1 13.83a5 5 0 007.07 7.07L14 19"/></svg>
-                    <span>Link</span>
-                </button>
-                <button type="button" data-block="attaches" title="Datei anhängen">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><path d="M16 3h5v5"/><path d="M10 14L21 3"/></svg>
-                    <span>Datei</span>
-                </button>
-                <button type="button" data-block="accordion" title="Accordion">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 7h14"/><path d="M5 12h14"/><path d="M9 17h6"/></svg>
-                    <span>Akk.</span>
-                </button>
                 <button type="button" data-block="table" title="Tabelle (3×3)">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/><path d="M9 3v18"/></svg>
                     <span>Tabelle</span>
@@ -125,10 +106,6 @@ final class EditorJsAssetService
                 <button type="button" data-block="delimiter" title="Trennlinie">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h16"/></svg>
                     <span>Trenner</span>
-                </button>
-                <button type="button" data-block="spacer" data-height="15" title="Leerraum / Abstand">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4v16"/><path d="M8 8l4-4l4 4"/><path d="M8 16l4 4l4-4"/></svg>
-                    <span>Abstand</span>
                 </button>
             </div>
 
@@ -312,9 +289,6 @@ final class EditorJsAssetService
             echo '<script src="' . htmlspecialchars($jsUrl, ENT_QUOTES, 'UTF-8') . '"></script>' . "\n";
         }
 
-        $editorCoreUrl = $this->buildAssetUrl('editorjs/editorjs.mjs');
-        echo '<script type="module">import EditorJS from ' . json_encode($editorCoreUrl, JSON_UNESCAPED_SLASHES) . '; window.EditorJS = EditorJS;</script>' . "\n";
-
         echo "<!-- /Editor.js Assets -->\n\n";
         $this->assetsEnqueued = true;
     }
@@ -330,7 +304,6 @@ final class EditorJsAssetService
             $urls[] = $this->buildAssetUrl('editorjs/' . $file);
         }
 
-        $urls[] = $this->buildAssetUrl('js/editorjs-core-loader.js');
         $urls[] = $this->buildAssetUrl('js/editor-init.js');
 
         return $urls;

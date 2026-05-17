@@ -5,7 +5,6 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-use CMS\Services\EditorService;
 
 $aiTranslationEnabled = !empty($aiTranslationEnabled);
 
@@ -51,6 +50,31 @@ $slug       = htmlspecialchars($post['slug'] ?? '');
 $slugEn     = htmlspecialchars($post['slug_en'] ?? '');
 $content    = $post['content'] ?? '';
 $contentEn  = $post['content_en'] ?? '';
+$extractEditorPlainText = static function (string $rawContent): string {
+    $rawContent = trim($rawContent);
+    if ($rawContent === '') {
+        return '';
+    }
+
+    $decoded = json_decode($rawContent, true);
+    if (!is_array($decoded) || !isset($decoded['blocks']) || !is_array($decoded['blocks'])) {
+        return strip_tags($rawContent);
+    }
+
+    $parts = [];
+    foreach ($decoded['blocks'] as $block) {
+        $data = is_array($block['data'] ?? null) ? $block['data'] : [];
+        foreach (['text', 'message', 'title', 'code', 'caption', 'content', 'html'] as $key) {
+            $value = isset($data[$key]) ? trim((string) $data[$key]) : '';
+            if ($value !== '') {
+                $parts[] = trim(strip_tags(str_replace('<br>', "\n", $value)));
+                break;
+            }
+        }
+    }
+
+    return trim(implode("\n\n", array_filter($parts, static fn(string $part): bool => $part !== '')));
+};
 $excerpt    = htmlspecialchars($post['excerpt'] ?? '');
 $excerptEn  = htmlspecialchars($post['excerpt_en'] ?? '');
 $status     = $post['status'] ?? $postDefaultStatus;
@@ -146,6 +170,8 @@ $additionalCategoryIds = array_values(array_filter(
             $postSlugEnValue = (string)($post['slug_en'] ?? '');
             $postContentValue = (string)$content;
             $postContentEnValue = (string)$contentEn;
+            $postContentPlainValue = $extractEditorPlainText($postContentValue);
+            $postContentPlainEnValue = $extractEditorPlainText($postContentEnValue);
             $postExcerptValue = (string)($post['excerpt'] ?? '');
             $postTitleEnValue = (string)($post['title_en'] ?? '');
             $postExcerptEnValue = (string)($post['excerpt_en'] ?? '');
@@ -178,8 +204,13 @@ $additionalCategoryIds = array_values(array_filter(
             $activeTitleInputId = $isEnglishEditorView ? 'titleEn' : 'title';
             $activeSlugInputId = $isEnglishEditorView ? 'slugEn' : 'slug';
             $activeExcerptInputId = $isEnglishEditorView ? 'excerptEn' : 'excerpt';
-            $activeContentInputId = $isEnglishEditorView ? 'contentInputEn' : 'contentInput';
+            $activeContentInputId = $isEnglishEditorView ? 'postPlainEditorEn' : 'postPlainEditorDe';
             $activeEditorHolderId = $isEnglishEditorView ? 'editorjsEn' : 'editorjs';
+            $activeContentFieldName = $isEnglishEditorView ? 'content_en' : 'content';
+            $activeContentPlainTextValue = $isEnglishEditorView ? $postContentPlainEnValue : $postContentPlainValue;
+            $activeContentLabel = $isEnglishEditorView ? 'EditorJS Notfall-Fallback (EN)' : 'EditorJS Notfall-Fallback (DE)';
+            $postEditorHasValidActiveMapping = ($isEnglishEditorView && $activeContentInputId === 'postPlainEditorEn')
+                || (!$isEnglishEditorView && $activeContentInputId === 'postPlainEditorDe');
             $postPermalinkHint = $permalinkService !== null
                 ? $permalinkService->getPostPermalinkStructure()
                 : '/blog/%postname%';
@@ -199,19 +230,17 @@ $additionalCategoryIds = array_values(array_filter(
                 <input type="hidden" name="title" id="title" value="<?php echo htmlspecialchars($postTitleValue); ?>">
                 <input type="hidden" name="slug" id="slug" value="<?php echo htmlspecialchars($postSlugValue); ?>">
                 <input type="hidden" name="excerpt" id="excerpt" value="<?php echo htmlspecialchars($postExcerptValue); ?>">
-                <input type="hidden" name="content" id="contentInput" value="<?php echo htmlspecialchars($postContentValue); ?>">
-                <?php if (!empty($useEditorJs)): ?>
-                <input type="hidden" name="content_en" id="contentInputEn" value="<?php echo htmlspecialchars($postContentEnValue); ?>">
-                <?php endif; ?>
+                <input type="hidden" id="contentInput" name="content" value="<?php echo htmlspecialchars($postContentValue); ?>">
+                <input type="hidden" id="contentInputEn" name="content_en" value="<?php echo htmlspecialchars($postContentEnValue); ?>">
             <?php else: ?>
                 <input type="hidden" name="title_en" id="titleEn" value="<?php echo htmlspecialchars($postTitleEnValue); ?>">
                 <input type="hidden" name="slug_en" id="slugEn" value="<?php echo htmlspecialchars($postSlugEnValue); ?>">
                 <input type="hidden" name="excerpt_en" id="excerptEn" value="<?php echo htmlspecialchars($postExcerptEnValue); ?>">
-                <?php if (!empty($useEditorJs)): ?>
-                <input type="hidden" name="content" id="contentInput" value="<?php echo htmlspecialchars($postContentValue); ?>">
-                <?php endif; ?>
-                <input type="hidden" name="content_en" id="contentInputEn" value="<?php echo htmlspecialchars($postContentEnValue); ?>">
+                <input type="hidden" id="contentInput" name="content" value="<?php echo htmlspecialchars($postContentValue); ?>">
+                <input type="hidden" id="contentInputEn" name="content_en" value="<?php echo htmlspecialchars($postContentEnValue); ?>">
             <?php endif; ?>
+            <input type="hidden" name="content_original" value="<?php echo htmlspecialchars($postContentValue); ?>">
+            <input type="hidden" name="content_en_original" value="<?php echo htmlspecialchars($postContentEnValue); ?>">
 
             <div class="row g-3 cms-content-editor-layout cms-content-editor-layout--post <?php echo $isNew ? 'cms-content-editor-layout--post-new' : 'cms-content-editor-layout--post-existing'; ?>">
                 <div class="col-lg-4 d-flex cms-editor-sidebar-slot">
@@ -376,43 +405,44 @@ $additionalCategoryIds = array_values(array_filter(
                                     <div class="text-secondary small">Die englische Version ist unter <code><?php echo htmlspecialchars($postPreviewUrlEn); ?></code> erreichbar.</div>
                                     <div class="btn-list">
                                         <button type="button" class="btn btn-outline-secondary btn-sm" id="copyPostDeToEnButton">DE nach EN kopieren</button>
-                                        <?php if ($aiTranslationEnabled && !empty($useEditorJs)): ?>
+                                        <?php if ($aiTranslationEnabled): ?>
                                             <button type="button" class="btn btn-primary btn-sm" id="translatePostDeToEnButton">Mit AI nach EN übersetzen</button>
                                         <?php endif; ?>
                                     </div>
                                 </div>
                                 <div class="mb-3 text-secondary small">Die EN-Bearbeitung wird aktuell direkt gepflegt. Vorhandene Medien bleiben dabei wie gewohnt nur referenziert und werden nicht erneut hochgeladen.</div>
-                                <?php if (!empty($useEditorJs)): ?>
-                                <div class="editorjs-wrap editorjs-wrap--post cms-editor-live-wrap"
-                                     style="--editorjs-content-width:<?php echo (int)$postEditorWidth; ?>px; --editorjs-content-padding-x:50px; --editorjs-content-width-expanded:1100px;">
-                                    <div id="editorjsEn" class="editorjs-holder cms-editor-live-holder" style="min-height:300px;"></div>
-                                </div>
-                                <?php else: ?>
-                                    <?php echo EditorService::getInstance()->render('content_en', $postContentEnValue, [
-                                        'height' => '420',
-                                        'context' => 'post',
-                                        'content_width' => $postEditorWidth,
-                                        'content_width_expanded' => 1100,
-                                        'content_padding_x' => 50,
-                                    ]); ?>
-                                <?php endif; ?>
                             <?php else: ?>
                                 <div class="mb-3 text-secondary small">Standardansicht unter <code><?php echo htmlspecialchars($postPreviewUrl); ?></code></div>
-                                <?php if (!empty($useEditorJs)): ?>
-                                <div class="editorjs-wrap editorjs-wrap--post cms-editor-live-wrap"
-                                     style="--editorjs-content-width:<?php echo (int)$postEditorWidth; ?>px; --editorjs-content-padding-x:50px; --editorjs-content-width-expanded:1100px;">
-                                    <div id="editorjs" class="editorjs-holder cms-editor-live-holder" style="min-height:300px;"></div>
-                                </div>
-                                <?php else: ?>
-                                    <?php echo EditorService::getInstance()->render('content', $postContentValue, [
-                                        'height' => '420',
-                                        'context' => 'post',
-                                        'content_width' => $postEditorWidth,
-                                        'content_width_expanded' => 1100,
-                                        'content_padding_x' => 50,
-                                    ]); ?>
-                                <?php endif; ?>
                             <?php endif; ?>
+
+                            <div
+                                class="cms-editor-plain-wrap mb-3<?php echo !empty($useEditorJs) ? ' cms-editor-plain-wrap--enhanced' : ''; ?>"
+                                id="<?php echo htmlspecialchars($isEnglishEditorView ? 'postPlainEditorWrapEn' : 'postPlainEditorWrapDe'); ?>"
+                                <?php echo !empty($useEditorJs) ? 'hidden' : ''; ?>
+                            >
+                                <label class="form-label" for="<?php echo htmlspecialchars($activeContentInputId); ?>"><?php echo htmlspecialchars($activeContentLabel); ?></label>
+                                <textarea
+                                    class="form-control cms-editor-plain-textarea"
+                                    id="<?php echo htmlspecialchars($activeContentInputId); ?>"
+                                    name="<?php echo htmlspecialchars($activeContentFieldName); ?>"
+                                    rows="14"
+                                    <?php echo !empty($useEditorJs) ? 'disabled' : ''; ?>
+                                ><?php echo htmlspecialchars($activeContentPlainTextValue); ?></textarea>
+                            </div>
+                            <?php if (!empty($useEditorJs)): ?>
+                                <div class="editorjs-wrap mb-3" id="<?php echo htmlspecialchars($isEnglishEditorView ? 'editorjsEn_wrap' : 'editorjs_wrap'); ?>" data-editor-state="loading">
+                                    <div
+                                        id="<?php echo htmlspecialchars($isEnglishEditorView ? 'editorjsEn' : 'editorjs'); ?>"
+                                        class="editorjs-holder"
+                                        style="min-height:320px;"
+                                    ></div>
+                                </div>
+                                <div class="d-none" aria-hidden="true">
+                                    <div id="postHiddenEditorDe"></div>
+                                    <div id="postHiddenEditorEn"></div>
+                                </div>
+                            <?php endif; ?>
+
                         </div>
                     </div>
                 </div>
@@ -775,7 +805,7 @@ $additionalCategoryIds = array_values(array_filter(
             'formId' => 'postForm',
             'copyAction' => $isEnglishEditorView ? [
                 'buttonId' => 'copyPostDeToEnButton',
-                'contentMode' => !empty($useEditorJs) ? 'editorjs' : 'legacy-html',
+                'contentMode' => 'editorjs',
                 'sourceEditorKey' => 'de',
                 'targetEditorKey' => 'en',
                 'sourceTitleId' => null,
@@ -785,10 +815,10 @@ $additionalCategoryIds = array_values(array_filter(
                 'sourceExcerptId' => 'excerpt',
                 'targetExcerptId' => 'excerptEn',
                 'sourceContentFieldId' => 'contentInput',
-                'targetContentFieldId' => !empty($useEditorJs) ? 'contentInputEn' : null,
-                'targetContentFieldName' => !empty($useEditorJs) ? null : 'content_en',
+                'targetContentFieldId' => 'contentInputEn',
+                'targetContentFieldName' => null,
             ] : null,
-            'aiTranslation' => ($aiTranslationEnabled && $isEnglishEditorView && !empty($useEditorJs)) ? [
+            'aiTranslation' => ($aiTranslationEnabled && $isEnglishEditorView) ? [
                 'buttonId' => 'translatePostDeToEnButton',
                 'endpointUrl' => (string) ($aiTranslationUrl ?? '/admin/ai-translate-editorjs'),
                 'csrfToken' => (string) ($aiTranslationToken ?? ''),
@@ -807,28 +837,26 @@ $additionalCategoryIds = array_values(array_filter(
             'editors' => [],
         ];
 
-        if (!empty($useEditorJs)) {
-            $postContentEditorJsConfig['mediaUploadUrl'] = '/api/media';
-            $postContentEditorJsConfig['csrfToken'] = $editorMediaToken ?? '';
-            $postContentEditorJsConfig['uploadContext'] = [
-                'contentType' => 'post',
-                'isNew' => $isNew,
-                'draftKey' => $postEditorDraftKey,
-                'slugInputId' => 'slug',
-                'slugFallbackInputId' => 'slugEn',
-                'titleInputId' => 'title',
-                'titleFallbackInputId' => 'titleEn',
+        $postContentEditorJsConfig['mediaUploadUrl'] = '/api/media';
+        $postContentEditorJsConfig['csrfToken'] = $editorMediaToken ?? '';
+        $postContentEditorJsConfig['uploadContext'] = [
+            'contentType' => 'post',
+            'isNew' => $isNew,
+            'draftKey' => $postEditorDraftKey,
+            'slugInputId' => 'slug',
+            'slugFallbackInputId' => 'slugEn',
+            'titleInputId' => 'title',
+            'titleFallbackInputId' => 'titleEn',
+        ];
+        $postContentEditorJsConfig['editors'] = $isEnglishEditorView
+            ? [
+                ['key' => 'de', 'holderId' => 'postHiddenEditorDe', 'inputId' => 'contentInput', 'lazy' => true],
+                ['key' => 'en', 'holderId' => 'editorjsEn', 'inputId' => 'contentInputEn', 'lazy' => false, 'plainTextareaId' => 'postPlainEditorEn', 'plainWrapperId' => 'postPlainEditorWrapEn'],
+            ]
+            : [
+                ['key' => 'de', 'holderId' => 'editorjs', 'inputId' => 'contentInput', 'lazy' => false, 'plainTextareaId' => 'postPlainEditorDe', 'plainWrapperId' => 'postPlainEditorWrapDe'],
+                ['key' => 'en', 'holderId' => 'postHiddenEditorEn', 'inputId' => 'contentInputEn', 'lazy' => true],
             ];
-            $postContentEditorJsConfig['editors'] = $isEnglishEditorView
-                ? [
-                    ['key' => 'de', 'holderId' => 'postHiddenEditorDe', 'inputId' => 'contentInput', 'lazy' => true],
-                    ['key' => 'en', 'holderId' => 'editorjsEn', 'inputId' => 'contentInputEn', 'lazy' => false],
-                ]
-                : [
-                    ['key' => 'de', 'holderId' => 'editorjs', 'inputId' => 'contentInput', 'lazy' => false],
-                    ['key' => 'en', 'holderId' => 'postHiddenEditorEn', 'inputId' => 'contentInputEn', 'lazy' => true],
-                ];
-        }
         ?>
 
         <input type="hidden" id="contentEditorUiConfig" value="<?php echo htmlspecialchars((string) json_encode($postContentUiConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), ENT_QUOTES); ?>">

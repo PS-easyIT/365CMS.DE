@@ -17,7 +17,6 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-use CMS\Services\EditorService;
 use CMS\Services\ContentLocalizationService;
 
 $aiTranslationEnabled = !empty($aiTranslationEnabled);
@@ -50,6 +49,31 @@ $pageDefaultStatus = function_exists('get_option') ? (string)get_option('setting
 if (!in_array($pageDefaultStatus, ['draft', 'published', 'private'], true)) {
     $pageDefaultStatus = 'draft';
 }
+$extractEditorPlainText = static function (string $rawContent): string {
+    $rawContent = trim($rawContent);
+    if ($rawContent === '') {
+        return '';
+    }
+
+    $decoded = json_decode($rawContent, true);
+    if (!is_array($decoded) || !isset($decoded['blocks']) || !is_array($decoded['blocks'])) {
+        return strip_tags($rawContent);
+    }
+
+    $parts = [];
+    foreach ($decoded['blocks'] as $block) {
+        $data = is_array($block['data'] ?? null) ? $block['data'] : [];
+        foreach (['text', 'message', 'title', 'code', 'caption', 'content', 'html'] as $key) {
+            $value = isset($data[$key]) ? trim((string) $data[$key]) : '';
+            if ($value !== '') {
+                $parts[] = trim(strip_tags(str_replace('<br>', "\n", $value)));
+                break;
+            }
+        }
+    }
+
+    return trim(implode("\n\n", array_filter($parts, static fn(string $part): bool => $part !== '')));
+};
 $editorLocale = (($editorLocale ?? 'de') === 'en') ? 'en' : 'de';
 $isEnglishEditorView = $editorLocale === 'en';
 ?>
@@ -97,6 +121,8 @@ $isEnglishEditorView = $editorLocale === 'en';
             $pageContentValue = (string)($page->content ?? '');
             $pageTitleEnValue = (string)($page->title_en ?? '');
             $pageContentEnValue = (string)($page->content_en ?? '');
+            $pageContentPlainValue = $extractEditorPlainText($pageContentValue);
+            $pageContentPlainEnValue = $extractEditorPlainText($pageContentEnValue);
             $pageHideTitleValue = (int)($page->hide_title ?? 0);
             $pageCategoryIdValue = (int)($page->category_id ?? 0);
             $pageMetaTitleValue = (string)($page->meta_title ?? '');
@@ -123,8 +149,13 @@ $isEnglishEditorView = $editorLocale === 'en';
                 : ($pageSlugValue !== '' ? $pageSlugValue : 'seite');
             $activePageTitleInputId = $isEnglishEditorView ? 'pageTitleEn' : 'pageTitle';
             $activePageSlugInputId = $isEnglishEditorView ? 'pageSlugEn' : 'pageSlug';
-            $activePageContentInputId = $isEnglishEditorView ? 'editorContentEn' : 'editorContent';
+            $activePageContentInputId = $isEnglishEditorView ? 'pagePlainEditorEn' : 'pagePlainEditorDe';
             $activePageEditorHolderId = $isEnglishEditorView ? 'editorjsEn' : 'editorjs';
+            $activePageContentFieldName = $isEnglishEditorView ? 'content_en' : 'content';
+            $activePageContentPlainTextValue = $isEnglishEditorView ? $pageContentPlainEnValue : $pageContentPlainValue;
+            $activePageContentLabel = $isEnglishEditorView ? 'EditorJS Notfall-Fallback (EN)' : 'EditorJS Notfall-Fallback (DE)';
+            $pageEditorHasValidActiveMapping = ($isEnglishEditorView && $activePageContentInputId === 'pagePlainEditorEn')
+                || (!$isEnglishEditorView && $activePageContentInputId === 'pagePlainEditorDe');
             $pageFocusKeyphraseValue = (string)($seoMeta['focus_keyphrase'] ?? '');
             $pageCanonicalUrlValue = (string)($seoMeta['canonical_url'] ?? '');
             $pageRobotsIndexValue = !array_key_exists('robots_index', $seoMeta) || !empty($seoMeta['robots_index']);
@@ -148,18 +179,16 @@ $isEnglishEditorView = $editorLocale === 'en';
             <?php if ($isEnglishEditorView): ?>
                 <input type="hidden" name="title" id="pageTitle" value="<?= htmlspecialchars($pageTitleValue) ?>">
                 <input type="hidden" name="slug" id="pageSlug" value="<?= htmlspecialchars($pageSlugValue) ?>">
-                <input type="hidden" name="content" id="editorContent" value="<?= htmlspecialchars($pageContentValue) ?>">
-                <?php if (!empty($useEditorJs)): ?>
-                <input type="hidden" name="content_en" id="editorContentEn" value="<?= htmlspecialchars($pageContentEnValue) ?>">
-                <?php endif; ?>
+                <input type="hidden" id="editorContent" name="content" value="<?= htmlspecialchars($pageContentValue) ?>">
+                <input type="hidden" id="editorContentEn" name="content_en" value="<?= htmlspecialchars($pageContentEnValue) ?>">
             <?php else: ?>
                 <input type="hidden" name="title_en" id="pageTitleEn" value="<?= htmlspecialchars($pageTitleEnValue) ?>">
                 <input type="hidden" name="slug_en" id="pageSlugEn" value="<?= htmlspecialchars($pageSlugEnValue) ?>">
-                <?php if (!empty($useEditorJs)): ?>
-                <input type="hidden" name="content" id="editorContent" value="<?= htmlspecialchars($pageContentValue) ?>">
-                <?php endif; ?>
-                <input type="hidden" name="content_en" id="editorContentEn" value="<?= htmlspecialchars($pageContentEnValue) ?>">
+                <input type="hidden" id="editorContent" name="content" value="<?= htmlspecialchars($pageContentValue) ?>">
+                <input type="hidden" id="editorContentEn" name="content_en" value="<?= htmlspecialchars($pageContentEnValue) ?>">
             <?php endif; ?>
+            <input type="hidden" name="content_original" value="<?= htmlspecialchars($pageContentValue) ?>">
+            <input type="hidden" name="content_en_original" value="<?= htmlspecialchars($pageContentEnValue) ?>">
 
             <div class="row g-3 cms-content-editor-layout cms-content-editor-layout--page <?php echo $isNew ? 'cms-content-editor-layout--page-new' : 'cms-content-editor-layout--page-existing'; ?>">
                 <div class="col-lg-4 d-flex cms-editor-sidebar-slot">
@@ -300,43 +329,46 @@ $isEnglishEditorView = $editorLocale === 'en';
                                     <div class="text-secondary small">Die englische Version ist unter <code><?= htmlspecialchars($pagePreviewUrlEn) ?></code> erreichbar.</div>
                                     <div class="btn-list">
                                         <button type="button" class="btn btn-outline-secondary btn-sm" id="copyPageDeToEnButton">DE nach EN kopieren</button>
-                                        <?php if ($aiTranslationEnabled && !empty($useEditorJs)): ?>
+                                        <?php if ($aiTranslationEnabled): ?>
                                             <button type="button" class="btn btn-primary btn-sm" id="translatePageDeToEnButton">Mit AI nach EN übersetzen</button>
                                         <?php endif; ?>
                                     </div>
                                 </div>
                                 <div class="mb-3 text-secondary small">Die EN-Bearbeitung läuft als eigene Admin-Seite. Die deutsche Fassung bleibt parallel erhalten und wird beim Speichern nicht durch einen In-Page-Tabwechsel gefährdet.</div>
-                                <?php if (!empty($useEditorJs)): ?>
-                                <div class="editorjs-wrap editorjs-wrap--page cms-editor-live-wrap"
-                                       style="--editorjs-content-width:<?= (int)$pageEditorWidth ?>px; --editorjs-content-padding-x:50px;">
-                                    <div id="editorjsEn" class="editorjs-holder cms-editor-live-holder" style="min-height: 300px;"></div>
-                                </div>
-                                <?php else: ?>
-                                    <?= EditorService::getInstance()->render('content_en', $pageContentEnValue, [
-                                        'height' => '420',
-                                        'context' => 'page',
-                                        'content_width' => $pageEditorWidth,
-                                        'content_padding_x' => 50,
-                                    ]) ?>
-                                <?php endif; ?>
                             <?php else: ?>
                                 <div class="mb-3">
                                     <div class="text-secondary small mb-2">Standardansicht unter <code><?= htmlspecialchars($pagePreviewUrl) ?></code></div>
                                 </div>
-                                <?php if (!empty($useEditorJs)): ?>
-                                <div class="editorjs-wrap editorjs-wrap--page cms-editor-live-wrap"
-                                       style="--editorjs-content-width:<?= (int)$pageEditorWidth ?>px; --editorjs-content-padding-x:50px;">
-                                    <div id="editorjs" class="editorjs-holder cms-editor-live-holder" style="min-height: 300px;"></div>
-                                </div>
-                                <?php else: ?>
-                                    <?= EditorService::getInstance()->render('content', $pageContentValue, [
-                                        'height' => '420',
-                                        'context' => 'page',
-                                        'content_width' => $pageEditorWidth,
-                                        'content_padding_x' => 50,
-                                    ]) ?>
-                                <?php endif; ?>
                             <?php endif; ?>
+
+                            <div
+                                class="cms-editor-plain-wrap mb-3<?= !empty($useEditorJs) ? ' cms-editor-plain-wrap--enhanced' : '' ?>"
+                                id="<?= htmlspecialchars($isEnglishEditorView ? 'pagePlainEditorWrapEn' : 'pagePlainEditorWrapDe') ?>"
+                                <?= !empty($useEditorJs) ? 'hidden' : '' ?>
+                            >
+                                <label class="form-label" for="<?= htmlspecialchars($activePageContentInputId) ?>"><?= htmlspecialchars($activePageContentLabel) ?></label>
+                                <textarea
+                                    class="form-control cms-editor-plain-textarea"
+                                    id="<?= htmlspecialchars($activePageContentInputId) ?>"
+                                    name="<?= htmlspecialchars($activePageContentFieldName) ?>"
+                                    rows="14"
+                                    <?= !empty($useEditorJs) ? 'disabled' : '' ?>
+                                ><?= htmlspecialchars($activePageContentPlainTextValue) ?></textarea>
+                            </div>
+                            <?php if (!empty($useEditorJs)): ?>
+                                <div class="editorjs-wrap mb-3" id="<?= htmlspecialchars($isEnglishEditorView ? 'editorjsEn_wrap' : 'editorjs_wrap') ?>" data-editor-state="loading">
+                                    <div
+                                        id="<?= htmlspecialchars($isEnglishEditorView ? 'editorjsEn' : 'editorjs') ?>"
+                                        class="editorjs-holder"
+                                        style="min-height:320px;"
+                                    ></div>
+                                </div>
+                                <div class="d-none" aria-hidden="true">
+                                    <div id="pageHiddenEditorDe"></div>
+                                    <div id="pageHiddenEditorEn"></div>
+                                </div>
+                            <?php endif; ?>
+
                         </div>
                     </div>
                 </div>
@@ -680,7 +712,7 @@ $isEnglishEditorView = $editorLocale === 'en';
             'formId' => 'pageForm',
             'copyAction' => $isEnglishEditorView ? [
                 'buttonId' => 'copyPageDeToEnButton',
-                'contentMode' => !empty($useEditorJs) ? 'editorjs' : 'legacy-html',
+                'contentMode' => 'editorjs',
                 'sourceEditorKey' => 'de',
                 'targetEditorKey' => 'en',
                 'sourceTitleId' => null,
@@ -688,10 +720,10 @@ $isEnglishEditorView = $editorLocale === 'en';
                 'sourceSlugId' => null,
                 'targetSlugId' => null,
                 'sourceContentFieldId' => 'editorContent',
-                'targetContentFieldId' => !empty($useEditorJs) ? 'editorContentEn' : null,
-                'targetContentFieldName' => !empty($useEditorJs) ? null : 'content_en',
+                'targetContentFieldId' => 'editorContentEn',
+                'targetContentFieldName' => null,
             ] : null,
-            'aiTranslation' => ($aiTranslationEnabled && $isEnglishEditorView && !empty($useEditorJs)) ? [
+            'aiTranslation' => ($aiTranslationEnabled && $isEnglishEditorView) ? [
                 'buttonId' => 'translatePageDeToEnButton',
                 'endpointUrl' => (string) ($aiTranslationUrl ?? '/admin/ai-translate-editorjs'),
                 'csrfToken' => (string) ($aiTranslationToken ?? ''),
@@ -708,28 +740,26 @@ $isEnglishEditorView = $editorLocale === 'en';
             'editors' => [],
         ];
 
-        if (!empty($useEditorJs)) {
-            $pageContentEditorJsConfig['mediaUploadUrl'] = '/api/media';
-            $pageContentEditorJsConfig['csrfToken'] = $editorMediaToken ?? '';
-            $pageContentEditorJsConfig['uploadContext'] = [
-                'contentType' => 'page',
-                'isNew' => $isNew,
-                'draftKey' => $pageEditorDraftKey,
-                'slugInputId' => 'pageSlug',
-                'slugFallbackInputId' => 'pageSlugEn',
-                'titleInputId' => 'pageTitle',
-                'titleFallbackInputId' => 'pageTitleEn',
+        $pageContentEditorJsConfig['mediaUploadUrl'] = '/api/media';
+        $pageContentEditorJsConfig['csrfToken'] = $editorMediaToken ?? '';
+        $pageContentEditorJsConfig['uploadContext'] = [
+            'contentType' => 'page',
+            'isNew' => $isNew,
+            'draftKey' => $pageEditorDraftKey,
+            'slugInputId' => 'pageSlug',
+            'slugFallbackInputId' => 'pageSlugEn',
+            'titleInputId' => 'pageTitle',
+            'titleFallbackInputId' => 'pageTitleEn',
+        ];
+        $pageContentEditorJsConfig['editors'] = $isEnglishEditorView
+            ? [
+                ['key' => 'de', 'holderId' => 'pageHiddenEditorDe', 'inputId' => 'editorContent', 'lazy' => true],
+                ['key' => 'en', 'holderId' => 'editorjsEn', 'inputId' => 'editorContentEn', 'lazy' => false, 'plainTextareaId' => 'pagePlainEditorEn', 'plainWrapperId' => 'pagePlainEditorWrapEn'],
+            ]
+            : [
+                ['key' => 'de', 'holderId' => 'editorjs', 'inputId' => 'editorContent', 'lazy' => false, 'plainTextareaId' => 'pagePlainEditorDe', 'plainWrapperId' => 'pagePlainEditorWrapDe'],
+                ['key' => 'en', 'holderId' => 'pageHiddenEditorEn', 'inputId' => 'editorContentEn', 'lazy' => true],
             ];
-            $pageContentEditorJsConfig['editors'] = $isEnglishEditorView
-                ? [
-                    ['key' => 'de', 'holderId' => 'pageHiddenEditorDe', 'inputId' => 'editorContent', 'lazy' => true],
-                    ['key' => 'en', 'holderId' => 'editorjsEn', 'inputId' => 'editorContentEn', 'lazy' => false],
-                ]
-                : [
-                    ['key' => 'de', 'holderId' => 'editorjs', 'inputId' => 'editorContent', 'lazy' => false],
-                    ['key' => 'en', 'holderId' => 'pageHiddenEditorEn', 'inputId' => 'editorContentEn', 'lazy' => true],
-                ];
-        }
         ?>
 
         <input type="hidden" id="contentEditorUiConfig" value="<?= htmlspecialchars((string) json_encode($pageContentUiConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), ENT_QUOTES) ?>">

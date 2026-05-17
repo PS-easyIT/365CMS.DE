@@ -39,7 +39,8 @@ final class EditorJsService
         $this->mediaService = new EditorJsMediaService();
         $this->sanitizer = new EditorJsSanitizer();
 
-        \CMS\Hooks::addAction('admin_head', [$this->assetService, 'enqueueEditorAssets']);
+        // Assets are injected explicitly via page_assets to guarantee deterministic
+        // order with deferred admin scripts and avoid duplicate runtime bootstraps.
     }
 
     /**

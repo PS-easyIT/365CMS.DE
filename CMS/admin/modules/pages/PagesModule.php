@@ -332,9 +332,9 @@ class PagesModule
         $status = in_array((string)($post['status'] ?? ''), ['published', 'draft', 'private'], true)
             ? (string)$post['status']
             : $defaultStatus;
-        $content    = $post['content'] ?? '';
+        $content    = $this->preserveOriginalEditorContentIfUnchanged($post['content'] ?? '', $post['content_original'] ?? '');
         $titleEn    = $this->sanitizePlainText((string)($post['title_en'] ?? ''), 255);
-        $contentEn  = $post['content_en'] ?? '';
+        $contentEn  = $this->preserveOriginalEditorContentIfUnchanged($post['content_en'] ?? '', $post['content_en_original'] ?? '');
         $hideTitle  = (int)($post['hide_title'] ?? 0);
         $categoryId = (int)($post['category_id'] ?? 0);
         $featuredImage = $this->sanitizeMediaReference((string)($post['featured_image'] ?? ''));
@@ -622,6 +622,54 @@ class PagesModule
         return function_exists('mb_substr')
             ? mb_substr($value, 0, $maxLength)
             : substr($value, 0, $maxLength);
+    }
+
+    private function preserveOriginalEditorContentIfUnchanged(mixed $submittedValue, mixed $originalValue): string
+    {
+        $submitted = (string) $submittedValue;
+        $original = (string) $originalValue;
+
+        if ($original === '') {
+            return $submitted;
+        }
+
+        $decodedOriginal = json_decode(trim($original), true);
+        if (!is_array($decodedOriginal) || !isset($decodedOriginal['blocks']) || !is_array($decodedOriginal['blocks'])) {
+            return $submitted;
+        }
+
+        if ($this->extractPlainTextFromContentPayload($submitted) === $this->extractPlainTextFromContentPayload($original)) {
+            return $original;
+        }
+
+        return $submitted;
+    }
+
+    private function extractPlainTextFromContentPayload(string $rawContent): string
+    {
+        $rawContent = trim($rawContent);
+        if ($rawContent === '') {
+            return '';
+        }
+
+        $decoded = json_decode($rawContent, true);
+        if (!is_array($decoded) || !isset($decoded['blocks']) || !is_array($decoded['blocks'])) {
+            return trim(strip_tags(str_replace('<br>', "\n", $rawContent)));
+        }
+
+        $parts = [];
+        foreach ($decoded['blocks'] as $block) {
+            $data = is_array($block['data'] ?? null) ? $block['data'] : [];
+            foreach (['text', 'message', 'title', 'code', 'caption', 'content', 'html'] as $key) {
+                $value = isset($data[$key]) ? trim((string) $data[$key]) : '';
+                if ($value !== '') {
+                    $parts[] = trim(strip_tags(str_replace('<br>', "\n", $value)));
+                    break;
+                }
+            }
+        }
+
+        return trim(implode("\n\n", array_filter($parts, static fn(string $part): bool => $part !== '')));
     }
 
     /**
