@@ -18,7 +18,7 @@ $groups = is_array($data['groups'] ?? null) ? $data['groups'] : [];
             <div class="col">
                 <div class="page-pretitle">System</div>
                 <h2 class="page-title">Module</h2>
-                <div class="text-secondary mt-1">Kernmodule sind fest in 365CMS integriert und werden zentral vom Entwickler gesteuert – deutlich mehr Maschinenraum als bei normalen Plugins.</div>
+                <div class="text-secondary mt-1">Kernmodule sind fest in 365CMS integriert und werden zentral verwaltet.</div>
             </div>
         </div>
     </div>
@@ -36,7 +36,7 @@ $groups = is_array($data['groups'] ?? null) ? $data['groups'] : [];
                 <div class="d-flex flex-column flex-lg-row gap-3 justify-content-between align-items-lg-center">
                     <div>
                         <h3 class="card-title mb-1">Core statt Plugin</h3>
-                        <div class="text-secondary">Hier sind bewusst nur die echten Root-Core-Module schaltbar. Interne Untermodule und Abhängigkeitsverträge bleiben verborgen, damit ein Root-Schalter seinen ganzen Bereich sauber, fail-closed und ohne Mikromanagement ein- oder ausschaltet.</div>
+                        <div class="text-secondary">Hier sind nur die zentralen Core-Module schaltbar. Interne Untermodule und Abhängigkeiten bleiben ausgeblendet, damit pro Bereich ein verlässlicher Hauptschalter ausreicht.</div>
                     </div>
                     <button type="submit" class="btn btn-primary">Module speichern</button>
                 </div>

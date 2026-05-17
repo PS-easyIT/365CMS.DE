@@ -48,6 +48,8 @@ $security = is_array($data['security'] ?? null) ? $data['security'] : [];
 $performance = is_array($data['performance'] ?? null) ? $data['performance'] : [];
 $system = is_array($data['system'] ?? null) ? $data['system'] : [];
 $highlights = is_array($data['highlights'] ?? null) ? $data['highlights'] : [];
+$failedLoginsCount = max(0, (int) ($security['failed_logins_24h'] ?? 0));
+$hasFailedLogins = $failedLoginsCount > 0;
 $subscriptionEnabled = (bool) ($data['subscription_enabled'] ?? true);
 $quickLinks = is_array($data['quickLinks'] ?? null) ? $data['quickLinks'] : [];
 $dashboardAlerts = array_values(array_filter(
@@ -197,9 +199,13 @@ foreach ($workOverviewWidgets as $widgetKey => $widget) {
         ?>
 
         <?php if ($highlights !== []): ?>
-        <div class="card mb-4">
+        <section class="dashboard-section dashboard-section--kpi">
+        <div class="card">
             <div class="card-header">
-                <h3 class="card-title mb-0">Kernkennzahlen</h3>
+                <div>
+                    <div class="dashboard-section-label">AT A GLANCE</div>
+                    <h3 class="card-title mb-0">Kernkennzahlen</h3>
+                </div>
             </div>
             <div class="card-body">
                 <div class="dashboard-primary-metrics">
@@ -216,6 +222,7 @@ foreach ($workOverviewWidgets as $widgetKey => $widget) {
                 </div>
             </div>
         </div>
+        </section>
         <?php endif; ?>
 
         <?php if ($dashboardSections !== []): ?>
@@ -345,18 +352,19 @@ foreach ($workOverviewWidgets as $widgetKey => $widget) {
         <?php endif; ?>
 
         <?php if (dashboardSectionVisible($visibleDashboardSections, 'work_overview')): ?>
-        <div class="card card-lg mb-4 dashboard-work-card">
+        <section class="dashboard-section dashboard-section--work">
+        <div class="card card-lg dashboard-work-card">
             <div class="card-body">
                 <div class="d-flex align-items-center gap-2 text-secondary mb-2">
                     <?= dashIcon('activity') ?>
-                    <span class="fw-semibold">Zentrale Arbeitsübersicht</span>
+                    <span class="dashboard-section-label">ZENTRALE ARBEITSUEBERSICHT</span>
                 </div>
-                <h3 class="mb-2">Aktuelle Prioritäten</h3>
+                <h3 class="mb-2">Aktiver Arbeitskontext</h3>
                 <p class="text-secondary mb-0">
-                    Direkter Zugriff auf die wichtigsten Arbeitsbereiche mit den für deinen Alltag aktivierten Widgets.
+                    Kontextbezogene Widgets mit direkten Einstiegen fuer den aktuellen Admin-Alltag.
                 </p>
 
-                <div class="dashboard-kpi-grid mt-4">
+                <div class="dashboard-context-grid mt-4">
                     <?php if ($activeWorkOverviewWidgets !== []): ?>
                         <?php foreach ($activeWorkOverviewWidgets as $widget): ?>
                             <?php
@@ -364,42 +372,49 @@ foreach ($workOverviewWidgets as $widgetKey => $widget) {
                                 is_array($widget['details'] ?? null) ? $widget['details'] : [],
                                 static fn ($detail): bool => trim((string) $detail) !== ''
                             ));
+                            $widgetValue = trim((string) ($widget['value'] ?? ''));
                             ?>
-                            <a href="<?= htmlspecialchars(dashboardUrl((string) ($widget['url'] ?? ''), '/admin')) ?>" class="dashboard-kpi-tile text-reset text-decoration-none">
-                                <div class="dashboard-kpi-header">
-                                    <div class="subheader mb-0 dashboard-kpi-label"><?= htmlspecialchars((string) ($widget['label'] ?? 'Widget')) ?></div>
-                                    <span class="dashboard-kpi-icon"><?= dashIcon((string) ($widget['icon'] ?? 'activity')) ?></span>
+                            <a href="<?= htmlspecialchars(dashboardUrl((string) ($widget['url'] ?? ''), '/admin')) ?>" class="dashboard-context-tile text-reset text-decoration-none">
+                                <div class="dashboard-context-header">
+                                    <div class="dashboard-section-label mb-0 dashboard-context-label"><?= htmlspecialchars((string) ($widget['label'] ?? 'Widget')) ?></div>
+                                    <span class="dashboard-context-icon"><?= dashIcon((string) ($widget['icon'] ?? 'activity')) ?></span>
                                 </div>
-                                <div class="dashboard-kpi-value<?= !empty($widget['value_class']) ? ' ' . htmlspecialchars((string) $widget['value_class']) : '' ?>"><?= htmlspecialchars((string) ($widget['value'] ?? '0')) ?></div>
-                                <p class="small text-secondary dashboard-kpi-sub"><?= htmlspecialchars((string) ($widget['hint'] ?? '')) ?></p>
+                                <p class="dashboard-context-sub"><?= htmlspecialchars((string) ($widget['hint'] ?? '')) ?></p>
+                                <?php if ($widgetValue !== '' && $widgetValue !== '0'): ?>
+                                    <div class="dashboard-context-meta">
+                                        <span class="badge bg-secondary-lt"><?= htmlspecialchars($widgetValue) ?></span>
+                                    </div>
+                                <?php endif; ?>
                                 <?php if ($widgetDetails !== []): ?>
-                                    <ul class="dashboard-kpi-detail-list">
+                                    <ul class="dashboard-context-detail-list">
                                         <?php foreach ($widgetDetails as $detail): ?>
                                             <li><?= htmlspecialchars((string) $detail) ?></li>
                                         <?php endforeach; ?>
                                     </ul>
                                 <?php endif; ?>
-                                <div class="fw-semibold text-primary dashboard-kpi-footer"><?= htmlspecialchars((string) ($widget['footer_label'] ?? 'Öffnen →')) ?></div>
+                                <div class="fw-semibold text-primary dashboard-context-footer"><?= htmlspecialchars((string) ($widget['footer_label'] ?? 'Oeffnen ->')) ?></div>
                             </a>
                         <?php endforeach; ?>
                     <?php else: ?>
-                        <div class="dashboard-kpi-tile">
-                            <div class="dashboard-kpi-header">
-                                <div class="subheader mb-0 dashboard-kpi-label">Keine Arbeits-Widgets aktiv</div>
-                                <span class="dashboard-kpi-icon"><?= dashIcon('settings') ?></span>
+                        <div class="dashboard-context-tile dashboard-empty-state">
+                            <div class="dashboard-context-header">
+                                <div class="dashboard-section-label mb-0 dashboard-context-label">Keine Arbeits-Widgets aktiv</div>
+                                <span class="dashboard-context-icon"><?= dashIcon('settings') ?></span>
                             </div>
-                            <div class="dashboard-kpi-value is-highlight">0 sichtbar</div>
-                            <p class="small text-secondary dashboard-kpi-sub">Aktiviere im Bereich „Dashboard personalisieren“ die Karten, die du in deiner Zentrale Arbeitsübersicht sehen möchtest.</p>
-                            <div class="fw-semibold text-primary dashboard-kpi-footer">Personalisierung oben öffnen ↑</div>
+                            <p class="dashboard-context-sub">Aktiviere im Bereich "Dashboard personalisieren" die Karten, die du in deiner zentralen Arbeitsuebersicht sehen moechtest.</p>
+                            <div class="dashboard-empty-hint">Alles ruhig - aktuell keine kontextbezogenen Widgets aktiv.</div>
+                            <div class="fw-semibold text-primary dashboard-context-footer">Personalisierung oben oeffnen</div>
                         </div>
                     <?php endif; ?>
                 </div>
             </div>
         </div>
+        </section>
         <?php endif; ?>
 
         <?php if (dashboardSectionVisible($visibleDashboardSections, 'favorites_recent')): ?>
-        <div class="dashboard-overview-grid mb-4">
+        <section class="dashboard-section dashboard-section--favorites">
+        <div class="dashboard-overview-grid">
             <div class="dashboard-overview-card">
                 <div class="card">
                     <div class="card-header">
@@ -416,7 +431,10 @@ foreach ($workOverviewWidgets as $widgetKey => $widget) {
                                 <?php endforeach; ?>
                             </div>
                         <?php else: ?>
-                            <p class="text-secondary mb-0">Noch keine Favoriten gespeichert. Du kannst sie oben im Bereich „Dashboard personalisieren“ auswählen.</p>
+                            <div class="dashboard-empty-state">
+                                <p class="text-secondary mb-1">Noch keine Favoriten gespeichert.</p>
+                                <p class="dashboard-empty-hint mb-0">Alles ruhig - du kannst Favoriten oben in "Dashboard personalisieren" auswaehlen.</p>
+                            </div>
                         <?php endif; ?>
                     </div>
                 </div>
@@ -428,14 +446,16 @@ foreach ($workOverviewWidgets as $widgetKey => $widget) {
                         <h3 class="card-title">Zuletzt genutzt</h3>
                     </div>
                     <div class="card-body dashboard-recent-list" id="dashboard-recent-links" aria-live="polite" data-empty-text="Noch keine zuletzt genutzten Admin-Ziele gespeichert.">
-                        <div class="text-secondary">Zuletzt genutzte Ziele werden geladen …</div>
+                        <div class="text-secondary">Zuletzt genutzte Ziele werden geladen ...</div>
                     </div>
                 </div>
             </div>
         </div>
+        </section>
         <?php endif; ?>
 
-        <div class="dashboard-overview-grid mb-4">
+        <section class="dashboard-section dashboard-section--lower">
+        <div class="dashboard-overview-grid">
             <?php if (dashboardSectionVisible($visibleDashboardSections, 'attention')): ?>
             <div class="dashboard-overview-card">
                 <div class="card">
@@ -458,7 +478,10 @@ foreach ($workOverviewWidgets as $widgetKey => $widget) {
                                 </a>
                             <?php endforeach; ?>
                         <?php else: ?>
-                            <div class="list-group-item text-secondary">Aktuell gibt es keine offenen Prioritäten. Das ist die gute Sorte Ruhe.</div>
+                            <div class="list-group-item dashboard-empty-state">
+                                <div class="text-secondary">Aktuell gibt es keine offenen Prioritaeten.</div>
+                                <div class="dashboard-empty-hint">Alles ruhig - derzeit ist kein Eingreifen noetig.</div>
+                            </div>
                         <?php endif; ?>
                     </div>
                 </div>
@@ -499,7 +522,10 @@ foreach ($workOverviewWidgets as $widgetKey => $widget) {
                                 </a>
                             </div>
                         <?php else: ?>
-                            <div class="card-body text-secondary">Noch keine Bestellungen gefunden.</div>
+                            <div class="card-body dashboard-empty-state">
+                                <div class="text-secondary">Noch keine Bestellungen gefunden.</div>
+                                <div class="dashboard-empty-hint">Alles ruhig - neue Bestellungen erscheinen hier automatisch.</div>
+                            </div>
                         <?php endif; ?>
                     </div>
                 </div>
@@ -553,7 +579,7 @@ foreach ($workOverviewWidgets as $widgetKey => $widget) {
 
             <?php if (dashboardSectionVisible($visibleDashboardSections, 'security_performance')): ?>
             <div class="dashboard-overview-card">
-                <div class="card">
+                <div class="card dashboard-security-card<?= $hasFailedLogins ? ' is-danger' : '' ?>">
                     <div class="card-header">
                         <h3 class="card-title">Sicherheit & Performance</h3>
                     </div>
@@ -577,7 +603,12 @@ foreach ($workOverviewWidgets as $widgetKey => $widget) {
                             <div class="col-6">
                                 <div class="dashboard-mini-stat h-100">
                                     <div class="text-secondary small mb-1">Failed Logins</div>
-                                    <div class="fw-semibold"><?= htmlspecialchars((string) ($security['failed_logins_24h'] ?? 0)) ?> / 24h</div>
+                                    <div class="dashboard-failed-login-line">
+                                        <span class="fw-semibold"><?= htmlspecialchars((string) $failedLoginsCount) ?> / 24h</span>
+                                        <span class="dashboard-failed-login-badge<?= $hasFailedLogins ? ' is-active' : '' ?>" aria-label="Fehlgeschlagene Logins in den letzten 24 Stunden">
+                                            <?= htmlspecialchars((string) $failedLoginsCount) ?>
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
                             <div class="col-6">
@@ -598,6 +629,7 @@ foreach ($workOverviewWidgets as $widgetKey => $widget) {
             </div>
             <?php endif; ?>
         </div>
+        </section>
 
         <?php if (dashboardSectionVisible($visibleDashboardSections, 'recent_activity')): ?>
         <!-- ─── Letzte Aktivitäten ─────────────────────────────── -->

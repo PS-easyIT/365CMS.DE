@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Beschreibt die aktuelle Startseite des Admin-Bereichs inklusive Kennzahlen, Schnellzugriffen, Warnhinweisen und segmentweisem Fail-Soft-Verhalten.
 
-Letzte Aktualisierung: 2026-05-12 · Version 2.9.772
+Letzte Aktualisierung: 2026-05-17 · Version 3.0.11
 
 ---
 
@@ -23,6 +23,8 @@ Seit `2.9.718` lässt sich die Reihenfolge der Arbeits-Widgets und Favoriten zus
 Seit `2.9.719` wird dieser Pfad zusätzlich nachgehärtet: Die browserlokale Recent-Liste wird vor Anzeige und Speicherung bereinigt, dedupliziert und größenbegrenzt, Drop-Zustände werden im Sortier-JS robuster zurückgesetzt und das Dashboard-CSS wird als cachebares Seiten-Asset statt inline ausgeliefert.
 
 Seit `2.9.720` ergänzt das Dashboard darauf aufbauend rollenbasierte Standardvorlagen: Neue oder auf Standard zurückgesetzte persönliche Ansichten übernehmen pro Rolle bzw. capability-basierter Rollenfamilie sinnvolle Defaults für sichtbare Bereiche, aktive Arbeits-Widgets, Favoriten und deren Reihenfolge. Persönliche Anpassungen bleiben dabei bewusst benutzerbezogen und überschreiben nicht die zugrunde liegende Rollen-Vorlage.
+
+Seit `3.0.11` ist die visuelle Hierarchie gezielt nachgeschärft: Die Top-Kernkennzahlen bleiben als einzige dominante KPI-Reihe sichtbar, während die frühere zweite Zahlenreihe in kontextbezogene Arbeits-Widgets ohne redundante KPI-Dopplung umgestellt wurde. Zusätzlich nutzt das Dashboard eine klarere Typografieskala (dominante KPI-Werte, strukturierende Abschnittslabels, 14px-Body), mehr vertikalen Abstand zwischen Hauptsektionen, differenzierte Empty-States mit Mikrohinweis "Alles ruhig" sowie ein robustes Grid-Layout mit 5/3/2-Spaltenfluss auf größeren Breakpoints.
 
 Seit `2.9.615` wird jeder Statistikblock einzeln geladen. Fällt z. B. die Sicherheits-, Sessions- oder Orders-Datenquelle aus, bleibt die Startseite renderbar und arbeitet für den betroffenen Block mit neutralen Fallback-Werten statt mit einem Full-Page-Fatal.
 

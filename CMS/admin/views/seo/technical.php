@@ -283,8 +283,8 @@ $brokenLinkNotes = is_array($brokenLinkReport['notes'] ?? null) ? $brokenLinkRep
 
                     <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
                         <div>
-                            <div class="fw-semibold">Debug: geprüfte Root-Pfade</div>
-                            <div class="text-secondary small">Hier siehst du exakt, welche Kandidaten aktuell geprüft wurden und woran die ausgewählte TXT-Datei scheitert.</div>
+                            <div class="fw-semibold">Prüfdetails: Root-Pfade</div>
+                            <div class="text-secondary small">Diese Übersicht zeigt, welche Kandidaten geprüft wurden und wie die ausgewählte TXT-Datei bewertet wurde.</div>
                         </div>
                         <span class="badge bg-info-lt text-info"><?= count($indexNowDebugCandidates) ?> Pfad<?= count($indexNowDebugCandidates) === 1 ? '' : 'e' ?></span>
                     </div>
@@ -312,7 +312,7 @@ $brokenLinkNotes = is_array($brokenLinkReport['notes'] ?? null) ? $brokenLinkRep
                             <tbody>
                                 <?php if (empty($indexNowDebugCandidates)): ?>
                                     <tr>
-                                        <td colspan="4" class="text-center text-secondary py-3">Noch keine Root-Debugdaten verfügbar.</td>
+                                        <td colspan="4" class="text-center text-secondary py-3">Noch keine Root-Prüfdaten verfügbar.</td>
                                     </tr>
                                 <?php else: ?>
                                     <?php foreach ($indexNowDebugCandidates as $candidate): ?>

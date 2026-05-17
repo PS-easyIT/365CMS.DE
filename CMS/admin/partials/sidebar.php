@@ -558,6 +558,39 @@ if (!function_exists('isGroupActive')) {
     }
 }
 
+if (!function_exists('sidebarChildIcon')) {
+    function sidebarChildIcon(string $slug): string {
+        $iconMap = [
+            'pages' => 'file-text',
+            'posts' => 'article',
+            'comments' => 'message-circle',
+            'media' => 'photo',
+            'users' => 'users',
+            'groups' => 'users',
+            'roles' => 'shield-check',
+            'orders' => 'shopping-cart',
+            'packages' => 'package',
+            'analytics' => 'chart-bar',
+            'seo-dashboard' => 'chart-pie',
+            'documentation' => 'book',
+            'settings' => 'settings',
+            'mail-settings' => 'mail',
+            'updates' => 'refresh',
+            'backups' => 'database',
+            'cms-logs' => 'file-report',
+            'modules' => 'apps',
+            'themes' => 'palette',
+            'theme-editor' => 'code',
+            'theme-explorer' => 'folder',
+            'menu-editor' => 'list',
+            'font-manager' => 'typography',
+        ];
+
+        $icon = $iconMap[$slug] ?? 'chevron-right';
+        return '<i class="ti ti-' . htmlspecialchars($icon, ENT_QUOTES, 'UTF-8') . '" aria-hidden="true"></i>';
+    }
+}
+
 ?>
 <aside class="navbar navbar-vertical navbar-expand-lg" data-bs-theme="dark">
     <div class="container-fluid">
@@ -620,6 +653,7 @@ if (!function_exists('isGroupActive')) {
                                 <?php foreach ($item['children'] as $child): ?>
                                     <a class="dropdown-item<?= isSlugActive((string) ($child['slug'] ?? ''), $activePage) ? ' active' : '' ?>"
                                        href="<?= htmlspecialchars((string) ($child['url'] ?? '#')) ?>">
+                                        <span class="dropdown-item-icon" aria-hidden="true"><?= sidebarChildIcon((string) ($child['slug'] ?? '')) ?></span>
                                         <?= htmlspecialchars((string) ($child['label'] ?? '')) ?>
                                     </a>
                                 <?php endforeach; ?>

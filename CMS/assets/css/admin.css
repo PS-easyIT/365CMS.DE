@@ -5980,7 +5980,7 @@ input:checked + .slider:before { transform: translateX(22px); }
 .admin-redesign-header .row.align-items-center {
     padding: 0.9rem 1rem;
     border: 1px solid #dce5f0;
-    border-radius: 0.75rem;
+    border-radius: 2px;
     background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
 }
 
@@ -5995,12 +5995,26 @@ input:checked + .slider:before { transform: translateX(22px); }
     background: #f8fbff;
 }
 
+.admin-redesign-toolbar-card .card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
 .admin-redesign-toolbar-card .btn-list {
-    row-gap: 0.45rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
 }
 
 .admin-redesign-toolbar-card .btn {
-    border-radius: 999px;
+    border-radius: 2px;
+}
+
+.admin-redesign-toolbar-card .row.g-3 > [class*="col-"] {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
 }
 
 .admin-redesign-page .admin-metric-grid .card,
@@ -6035,7 +6049,7 @@ input:checked + .slider:before { transform: translateX(22px); }
 
 .admin-redesign-info-box {
     border: 1px solid #cfe0f5;
-    border-radius: 0.75rem;
+    border-radius: 2px;
     background: #f5f9ff;
     padding: 0.85rem 1rem;
 }
@@ -6082,6 +6096,11 @@ input:checked + .slider:before { transform: translateX(22px); }
    ────────────────────────────────────────────────────────── */
 body.admin-body {
     --cms-admin-radius-hard: 2px;
+    --tblr-border-radius: 2px;
+    --tblr-border-radius-sm: 2px;
+    --tblr-border-radius-lg: 2px;
+    --tblr-border-radius-xl: 2px;
+    --tblr-border-radius-pill: 2px;
 }
 
 body.admin-body .btn,
@@ -6090,7 +6109,10 @@ body.admin-body .btn-group-vertical > .btn,
 body.admin-body .table .btn,
 body.admin-body .card-table .btn,
 body.admin-body .gridjs-cms .gridjs-table .btn,
-body.admin-body .gridjs-table-actions .gridjs-action-btn {
+body.admin-body .gridjs-table-actions .gridjs-action-btn,
+body.admin-body .badge,
+body.admin-body .status-badge,
+body.admin-body .role-badge {
     border-radius: var(--cms-admin-radius-hard) !important;
 }
 
@@ -6112,4 +6134,42 @@ body.admin-body :is(.card, .admin-card, .admin-section, .stat-card, .info-card, 
     :is(.card, .admin-card, .admin-section, .stat-card, .info-card, .quick-actions, .users-table-container, .border.rounded, .border.rounded-1, .border.rounded-2, .border.rounded-3, .border.rounded-4, .border.rounded-5, .alert, .table-responsive, .preview-box, .preview-card, .svc-card, .dw-card, .data-box) {
     background: #f3f7fb;
     border-color: #c7d3e0 !important;
+    box-shadow: inset 0 0 0 1px rgba(183, 197, 214, 0.28);
+}
+
+body.admin-body .admin-section-toolbar,
+body.admin-body .cms-settings-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+body.admin-body .admin-section-toolbar__filters,
+body.admin-body .admin-section-toolbar__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Sidebar: konsistente Child-Icons fuer Gruppen-Items */
+#sidebar-menu .dropdown-menu .dropdown-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+#sidebar-menu .dropdown-menu .dropdown-item .dropdown-item-icon {
+    display: inline-flex;
+    width: 1rem;
+    min-width: 1rem;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.62);
+}
+
+#sidebar-menu .dropdown-menu .dropdown-item.active .dropdown-item-icon {
+    color: rgba(255, 255, 255, 0.94);
 }

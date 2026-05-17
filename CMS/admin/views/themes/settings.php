@@ -237,11 +237,17 @@ $customCss   = $data['custom_css'];
                 <h3 class="card-title">Vorschau</h3>
             </div>
             <div class="card-body">
-                <div id="design-preview" class="p-4 rounded" style="border: 1px solid var(--tblr-border-color);">
-                    <div class="d-flex gap-3 mb-3">
-                        <div class="rounded p-3 text-white text-center" id="preview-primary" style="background: <?php echo htmlspecialchars($colors['primary']); ?>; min-width: 100px;">Primär</div>
-                        <div class="rounded p-3 text-white text-center" id="preview-secondary" style="background: <?php echo htmlspecialchars($colors['secondary']); ?>; min-width: 100px;">Sekundär</div>
-                        <div class="rounded p-3 text-white text-center" id="preview-accent" style="background: <?php echo htmlspecialchars($colors['accent']); ?>; min-width: 100px;">Akzent</div>
+                <div id="design-preview" class="p-4 rounded border" style="border-color: var(--tblr-border-color); background: #f7faff;">
+                    <div class="row g-2 mb-3">
+                        <div class="col-sm-4">
+                            <div class="p-3 text-white text-center border rounded" id="preview-primary" style="background: <?php echo htmlspecialchars($colors['primary']); ?>; border-color: rgba(15, 23, 42, 0.16);">Primär</div>
+                        </div>
+                        <div class="col-sm-4">
+                            <div class="p-3 text-white text-center border rounded" id="preview-secondary" style="background: <?php echo htmlspecialchars($colors['secondary']); ?>; border-color: rgba(15, 23, 42, 0.16);">Sekundär</div>
+                        </div>
+                        <div class="col-sm-4">
+                            <div class="p-3 text-white text-center border rounded" id="preview-accent" style="background: <?php echo htmlspecialchars($colors['accent']); ?>; border-color: rgba(15, 23, 42, 0.16);">Akzent</div>
+                        </div>
                     </div>
                     <p id="preview-text" style="color: <?php echo htmlspecialchars($colors['text']); ?>;">Beispieltext in der gewählten Textfarbe.</p>
                 </div>

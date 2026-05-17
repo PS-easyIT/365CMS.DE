@@ -146,9 +146,33 @@
             recentRoot.replaceChildren();
 
             var emptyNode = document.createElement('div');
-            emptyNode.className = 'text-secondary';
-            emptyNode.textContent = message;
+            var messageNode = document.createElement('div');
+            var hintNode = document.createElement('div');
+            emptyNode.className = 'dashboard-empty-state';
+            messageNode.className = 'text-secondary';
+            messageNode.textContent = message;
+            hintNode.className = 'dashboard-empty-hint';
+            hintNode.textContent = 'Alles ruhig - sobald du Admin-Bereiche nutzt, erscheinen sie hier.';
+            emptyNode.appendChild(messageNode);
+            emptyNode.appendChild(hintNode);
             recentRoot.appendChild(emptyNode);
+        }
+
+        function getRecentType(label) {
+            var normalized = typeof label === 'string' ? label.trim() : '';
+            if (normalized === '') {
+                return 'Admin';
+            }
+
+            if (normalized.indexOf('·') > -1) {
+                return normalized.split('·')[0].trim();
+            }
+
+            if (normalized.indexOf('-') > -1) {
+                return normalized.split('-')[0].trim();
+            }
+
+            return normalized.split(/\s+/)[0].trim();
         }
 
         function renderRecentLinks() {
@@ -172,17 +196,24 @@
             entries.forEach(function (entry) {
                 var timestamp = formatRecentTimestamp(entry.ts);
                 var link = document.createElement('a');
+                var row = document.createElement('div');
+                var type = document.createElement('span');
                 var label = document.createElement('div');
                 var time = document.createElement('div');
 
                 link.className = 'list-group-item list-group-item-action';
                 link.href = entry.url;
+                row.className = 'dashboard-recent-row';
+                type.className = 'dashboard-recent-type';
+                type.textContent = getRecentType(entry.label || '');
                 label.className = 'fw-semibold';
                 label.textContent = entry.label;
                 time.className = 'small text-secondary';
                 time.textContent = timestamp;
 
-                link.appendChild(label);
+                row.appendChild(type);
+                row.appendChild(label);
+                link.appendChild(row);
                 link.appendChild(time);
                 list.appendChild(link);
             });

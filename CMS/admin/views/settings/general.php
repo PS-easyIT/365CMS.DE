@@ -178,7 +178,7 @@ $settingsHeading = $currentTab === 'content' ? 'Beiträge & Sites – Einstellun
                                 data-input-id="siteLogoInput"
                                 <?php echo empty($s['site_logo']) ? 'hidden' : ''; ?>>
                                 <?php if (!empty($s['site_logo'])): ?>
-                                    <img src="<?php echo htmlspecialchars($s['site_logo']); ?>" alt="Website-Logo Vorschau" style="max-height:48px; max-width:220px; border-radius:6px; border:1px solid var(--tblr-border-color); padding:6px; background:#fff;">
+                                    <img src="<?php echo htmlspecialchars($s['site_logo']); ?>" alt="Website-Logo Vorschau" style="max-height:48px; max-width:220px; border-radius:2px; border:1px solid var(--tblr-border-color); padding:6px; background:#fff;">
                                 <?php endif; ?>
                             </div>
                         </div>
@@ -220,7 +220,7 @@ $settingsHeading = $currentTab === 'content' ? 'Beiträge & Sites – Einstellun
                                 data-input-id="siteFaviconInput"
                                 <?php echo empty($s['site_favicon']) ? 'hidden' : ''; ?>>
                                 <?php if (!empty($s['site_favicon'])): ?>
-                                    <img src="<?php echo htmlspecialchars($s['site_favicon']); ?>" alt="Favicon Vorschau" width="32" height="32" style="border-radius:8px; border:1px solid var(--tblr-border-color); padding:4px; background:#fff; object-fit:contain;">
+                                    <img src="<?php echo htmlspecialchars($s['site_favicon']); ?>" alt="Favicon Vorschau" width="32" height="32" style="border-radius:2px; border:1px solid var(--tblr-border-color); padding:4px; background:#fff; object-fit:contain;">
                                     <code><?php echo htmlspecialchars((string)$s['site_favicon']); ?></code>
                                 <?php endif; ?>
                             </div>
