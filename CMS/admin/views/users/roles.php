@@ -118,7 +118,7 @@ $renderCapabilityDiffList = static function (array $groupedCapabilities) use ($g
                 </div>
             </div>
             <p class="cms-admin-info-box__text">
-                Änderungen an Rollen und Capabilities wirken zentral. Die Vergleichsansicht bleibt read-only und verändert keine Berechtigungen.
+                Rechte klar steuern und Rollen sicher im Team zuweisen.
             </p>
         </div>
 
@@ -301,8 +301,8 @@ $renderCapabilityDiffList = static function (array $groupedCapabilities) use ($g
                         Speichern
                     </button>
                 </div>
-                <div class="table-responsive">
-                    <table class="table table-vcenter card-table table-striped">
+                <div class="table-responsive roles-permissions-matrix-wrap">
+                    <table class="table table-vcenter card-table table-striped roles-permissions-matrix">
                         <thead>
                             <tr>
                                 <th style="min-width: 200px;">Berechtigung</th>
@@ -364,6 +364,9 @@ $renderCapabilityDiffList = static function (array $groupedCapabilities) use ($g
                     </button>
                 </div>
             </div>
+            <button type="submit" class="btn btn-primary roles-floating-save" aria-label="Berechtigungen speichern">
+                Speichern
+            </button>
         </form>
     </div>
 </div>

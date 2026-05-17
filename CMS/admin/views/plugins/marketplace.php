@@ -129,26 +129,29 @@ $escape = static fn (mixed $value): string => htmlspecialchars((string) $value, 
                     </div>
                 <?php endif; ?>
                 <?php if ($allowedHosts !== [] || !empty($constraints['manifest_max_bytes_label']) || !empty($constraints['archive_uncompressed_limit_label'])): ?>
-                    <div class="small text-muted mb-3">
-                        <?php if ($allowedHosts !== []): ?>
-                            Erlaubte Hosts: <?php echo $escape(implode(', ', $allowedHosts)); ?>
-                        <?php endif; ?>
-                        <?php if ($allowedHosts !== [] && (!empty($constraints['manifest_max_bytes_label']) || !empty($constraints['archive_uncompressed_limit_label']))): ?>
-                            <br>
-                        <?php endif; ?>
-                        <?php if (!empty($constraints['manifest_max_bytes_label'])): ?>
-                            Manifest bis <?php echo $escape((string) ($constraints['manifest_max_bytes_label'] ?? '')); ?>
-                        <?php endif; ?>
-                        <?php if (!empty($constraints['manifest_max_bytes_label']) && !empty($constraints['archive_uncompressed_limit_label'])): ?>
-                            ·
-                        <?php endif; ?>
-                        <?php if (!empty($constraints['archive_uncompressed_limit_label'])): ?>
-                            Archiv entpackt bis <?php echo $escape((string) ($constraints['archive_uncompressed_limit_label'] ?? '')); ?>
-                        <?php endif; ?>
-                        <?php if ($allowedArchiveExtensions !== []): ?>
-                            <br>Erlaubte Archiv-Endungen: <?php echo $escape(implode(', ', $allowedArchiveExtensions)); ?>
-                        <?php endif; ?>
-                    </div>
+                    <details class="admin-plugin-marketplace-rules mb-3">
+                        <summary class="small text-muted">Technische Installationsregeln ▸</summary>
+                        <div class="small text-muted mt-2">
+                            <?php if ($allowedHosts !== []): ?>
+                                Erlaubte Hosts: <?php echo $escape(implode(', ', $allowedHosts)); ?>
+                            <?php endif; ?>
+                            <?php if ($allowedHosts !== [] && (!empty($constraints['manifest_max_bytes_label']) || !empty($constraints['archive_uncompressed_limit_label']))): ?>
+                                <br>
+                            <?php endif; ?>
+                            <?php if (!empty($constraints['manifest_max_bytes_label'])): ?>
+                                Manifest bis <?php echo $escape((string) ($constraints['manifest_max_bytes_label'] ?? '')); ?>
+                            <?php endif; ?>
+                            <?php if (!empty($constraints['manifest_max_bytes_label']) && !empty($constraints['archive_uncompressed_limit_label'])): ?>
+                                ·
+                            <?php endif; ?>
+                            <?php if (!empty($constraints['archive_uncompressed_limit_label'])): ?>
+                                Archiv entpackt bis <?php echo $escape((string) ($constraints['archive_uncompressed_limit_label'] ?? '')); ?>
+                            <?php endif; ?>
+                            <?php if ($allowedArchiveExtensions !== []): ?>
+                                <br>Erlaubte Archiv-Endungen: <?php echo $escape(implode(', ', $allowedArchiveExtensions)); ?>
+                            <?php endif; ?>
+                        </div>
+                    </details>
                 <?php endif; ?>
                 <div class="row g-3">
                     <div class="col-md-8">

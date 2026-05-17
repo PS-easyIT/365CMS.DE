@@ -210,12 +210,19 @@ foreach ($workOverviewWidgets as $widgetKey => $widget) {
             <div class="card-body">
                 <div class="dashboard-primary-metrics">
                     <?php foreach ($highlights as $highlight): ?>
+                        <?php
+                        $highlightValue = trim((string) ($highlight['value'] ?? '0'));
+                        $isZeroHighlight = preg_match('/^\s*0(?:[.,]0+)?\s*$/', $highlightValue) === 1;
+                        ?>
                         <a href="<?= htmlspecialchars(dashboardUrl((string) ($highlight['url'] ?? ''), '/admin')) ?>" class="dashboard-primary-metric text-reset text-decoration-none">
                             <div class="dashboard-primary-metric-head">
                                 <span class="dashboard-primary-metric-label"><?= htmlspecialchars((string) ($highlight['label'] ?? 'Kennzahl')) ?></span>
                                 <span class="dashboard-primary-metric-icon"><?= dashIcon((string) ($highlight['icon'] ?? 'activity')) ?></span>
                             </div>
-                            <div class="dashboard-primary-metric-value"><?= htmlspecialchars((string) ($highlight['value'] ?? '0')) ?></div>
+                            <div class="dashboard-primary-metric-value<?= $isZeroHighlight ? ' is-zero' : ' is-positive' ?>"><?= htmlspecialchars($highlightValue === '' ? '0' : $highlightValue) ?></div>
+                            <?php if ($isZeroHighlight): ?>
+                                <p class="dashboard-primary-metric-empty mb-0"><?= htmlspecialchars((string) ($highlight['empty_hint'] ?? 'Keine neuen Eintraege')) ?></p>
+                            <?php endif; ?>
                             <p class="dashboard-primary-metric-hint mb-0"><?= htmlspecialchars((string) ($highlight['hint'] ?? '')) ?></p>
                         </a>
                     <?php endforeach; ?>
@@ -359,53 +366,73 @@ foreach ($workOverviewWidgets as $widgetKey => $widget) {
                     <?= dashIcon('activity') ?>
                     <span class="dashboard-section-label">ZENTRALE ARBEITSUEBERSICHT</span>
                 </div>
-                <h3 class="mb-2">Aktiver Arbeitskontext</h3>
+                <h3 class="mb-2">Aktuelle Prioritaeten</h3>
                 <p class="text-secondary mb-0">
-                    Kontextbezogene Widgets mit direkten Einstiegen fuer den aktuellen Admin-Alltag.
+                    Schnellaktionen und Aktivitaetszusammenfassung statt doppelter Kennzahlen.
                 </p>
 
-                <div class="dashboard-context-grid mt-4">
-                    <?php if ($activeWorkOverviewWidgets !== []): ?>
-                        <?php foreach ($activeWorkOverviewWidgets as $widget): ?>
-                            <?php
-                            $widgetDetails = array_values(array_filter(
-                                is_array($widget['details'] ?? null) ? $widget['details'] : [],
-                                static fn ($detail): bool => trim((string) $detail) !== ''
-                            ));
-                            $widgetValue = trim((string) ($widget['value'] ?? ''));
-                            ?>
-                            <a href="<?= htmlspecialchars(dashboardUrl((string) ($widget['url'] ?? ''), '/admin')) ?>" class="dashboard-context-tile text-reset text-decoration-none">
-                                <div class="dashboard-context-header">
-                                    <div class="dashboard-section-label mb-0 dashboard-context-label"><?= htmlspecialchars((string) ($widget['label'] ?? 'Widget')) ?></div>
-                                    <span class="dashboard-context-icon"><?= dashIcon((string) ($widget['icon'] ?? 'activity')) ?></span>
-                                </div>
-                                <p class="dashboard-context-sub"><?= htmlspecialchars((string) ($widget['hint'] ?? '')) ?></p>
-                                <?php if ($widgetValue !== '' && $widgetValue !== '0'): ?>
-                                    <div class="dashboard-context-meta">
-                                        <span class="badge bg-secondary-lt"><?= htmlspecialchars($widgetValue) ?></span>
-                                    </div>
-                                <?php endif; ?>
-                                <?php if ($widgetDetails !== []): ?>
-                                    <ul class="dashboard-context-detail-list">
-                                        <?php foreach ($widgetDetails as $detail): ?>
-                                            <li><?= htmlspecialchars((string) $detail) ?></li>
-                                        <?php endforeach; ?>
-                                    </ul>
-                                <?php endif; ?>
-                                <div class="fw-semibold text-primary dashboard-context-footer"><?= htmlspecialchars((string) ($widget['footer_label'] ?? 'Oeffnen ->')) ?></div>
-                            </a>
-                        <?php endforeach; ?>
-                    <?php else: ?>
-                        <div class="dashboard-context-tile dashboard-empty-state">
-                            <div class="dashboard-context-header">
-                                <div class="dashboard-section-label mb-0 dashboard-context-label">Keine Arbeits-Widgets aktiv</div>
-                                <span class="dashboard-context-icon"><?= dashIcon('settings') ?></span>
-                            </div>
-                            <p class="dashboard-context-sub">Aktiviere im Bereich "Dashboard personalisieren" die Karten, die du in deiner zentralen Arbeitsuebersicht sehen moechtest.</p>
-                            <div class="dashboard-empty-hint">Alles ruhig - aktuell keine kontextbezogenen Widgets aktiv.</div>
-                            <div class="fw-semibold text-primary dashboard-context-footer">Personalisierung oben oeffnen</div>
+                <div class="dashboard-work-grid mt-4">
+                    <div class="dashboard-context-tile">
+                        <div class="dashboard-context-header">
+                            <div class="dashboard-section-label mb-0 dashboard-context-label">Schnellaktionen</div>
+                            <span class="dashboard-context-icon"><?= dashIcon('file-plus') ?></span>
                         </div>
-                    <?php endif; ?>
+                        <p class="dashboard-context-sub">Direkte Einstiege fuer wiederkehrende Aufgaben.</p>
+                        <?php if ($favoriteShortcuts !== []): ?>
+                            <div class="dashboard-work-action-list">
+                                <?php foreach (array_slice($favoriteShortcuts, 0, 4) as $shortcut): ?>
+                                    <a href="<?= htmlspecialchars(dashboardUrl((string) ($shortcut['url'] ?? ''), '/admin')) ?>" class="dashboard-work-action">
+                                        <?= dashIcon((string) ($shortcut['icon'] ?? 'settings')) ?>
+                                        <span><?= htmlspecialchars((string) ($shortcut['label'] ?? 'Aktion')) ?></span>
+                                    </a>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php else: ?>
+                            <div class="dashboard-context-sub">Keine Schnellaktionen gespeichert.</div>
+                            <div class="dashboard-empty-hint">Gueltiger Leerzustand - Favoriten koennen jederzeit hinzugefuegt werden.</div>
+                        <?php endif; ?>
+                    </div>
+                    <div class="dashboard-context-tile">
+                        <div class="dashboard-context-header">
+                            <div class="dashboard-section-label mb-0 dashboard-context-label">Letzte Aktivitaet</div>
+                            <span class="dashboard-context-icon"><?= dashIcon('activity') ?></span>
+                        </div>
+                        <p class="dashboard-context-sub">Zuletzt ausgefuehrte Aktionen im System.</p>
+                        <?php if ($activityEntries !== []): ?>
+                            <ul class="dashboard-context-detail-list">
+                                <?php foreach (array_slice($activityEntries, 0, 4) as $entry): ?>
+                                    <li>
+                                        <strong><?= htmlspecialchars((string) ($entry->action ?? 'Aktion')) ?></strong>
+                                        <span class="text-secondary"> · <?= htmlspecialchars((string) ($entry->created_at ?? 'soeben')) ?></span>
+                                    </li>
+                                <?php endforeach; ?>
+                            </ul>
+                        <?php else: ?>
+                            <div class="dashboard-context-sub">Keine neuen Aktivitaeten vorhanden.</div>
+                            <div class="dashboard-empty-hint">Gueltiger Leerzustand - neue Ereignisse erscheinen automatisch.</div>
+                        <?php endif; ?>
+                    </div>
+                    <div class="dashboard-context-tile">
+                        <div class="dashboard-context-header">
+                            <div class="dashboard-section-label mb-0 dashboard-context-label">Offene Prioritaeten</div>
+                            <span class="dashboard-context-icon"><?= dashIcon('alert-triangle') ?></span>
+                        </div>
+                        <p class="dashboard-context-sub">Themen mit noetigem Handlungsbedarf.</p>
+                        <?php if ($attentionItems !== []): ?>
+                            <ul class="dashboard-context-detail-list">
+                                <?php foreach (array_slice($attentionItems, 0, 4) as $item): ?>
+                                    <li>
+                                        <a href="<?= htmlspecialchars(dashboardUrl((string) ($item['url'] ?? ''), '/admin')) ?>" class="text-reset text-decoration-none">
+                                            <?= htmlspecialchars((string) ($item['label'] ?? 'Hinweis')) ?>
+                                        </a>
+                                    </li>
+                                <?php endforeach; ?>
+                            </ul>
+                        <?php else: ?>
+                            <div class="dashboard-context-sub">0 offene Prioritaeten.</div>
+                            <div class="dashboard-empty-hint">Gueltiger Leerzustand - aktuell ist kein Eingreifen noetig.</div>
+                        <?php endif; ?>
+                    </div>
                 </div>
             </div>
         </div>

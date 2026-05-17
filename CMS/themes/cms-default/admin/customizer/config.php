@@ -7,7 +7,7 @@ if (!defined('ABSPATH')) {
 
 return [
     'header' => [
-        'title' => '🖼️ Header & Logo',
+        'title' => 'Header & Logo',
         'sections' => [
             'logo_type' => [
                 'label' => 'Logo Typ',
@@ -68,7 +68,7 @@ return [
         ],
     ],
     'navigation' => [
-        'title' => '🗂️ Navigation',
+        'title' => 'Navigation',
         'sections' => [
             'header_bar_mode' => [
                 'label' => 'Leiste unter Header',
@@ -107,7 +107,7 @@ return [
         ],
     ],
     'layout' => [
-        'title' => '📐 Layout & Design',
+        'title' => 'Layout & Design',
         'sections' => [
             'max_width' => [
                 'label' => 'Maximale Seiten-Breite (px)',
@@ -155,7 +155,7 @@ return [
         ],
     ],
     'colors' => [
-        'title' => '🎨 Farben',
+        'title' => 'Farben',
         'sections' => [
             'accent_color' => [
                 'label' => 'Akzentfarbe (Haupt-Highlight)',
@@ -247,7 +247,7 @@ return [
         ],
     ],
     'typography' => [
-        'title' => '✏️ Typografie',
+        'title' => 'Typografie',
         'sections' => [
             'font_size_base' => [
                 'label' => 'Basis Schriftgröße (px)',
@@ -323,7 +323,7 @@ return [
         ],
     ],
     'footer' => [
-        'title' => '🔻 Footer',
+        'title' => 'Footer',
         'sections' => [
             'footer_description' => [
                 'label' => 'Footer Beschreibungstext (Brand-Spalte)',
@@ -394,7 +394,7 @@ return [
         ],
     ],
     'blog' => [
-        'title' => '📰 Blog & Artikel',
+        'title' => 'Blog & Artikel',
         'sections' => [
             'posts_per_page' => [
                 'label' => 'Artikel pro Seite',
@@ -441,7 +441,7 @@ return [
         ],
     ],
     'homepage' => [
-        'title' => '🏠 Startseite',
+        'title' => 'Startseite',
         'sections' => [
             'homepage_mode' => [
                 'label' => 'Startseiten-Modus',
@@ -496,7 +496,7 @@ return [
         ],
     ],
     'advanced' => [
-        'title' => '🔧 Erweitert',
+        'title' => 'Erweitert',
         'sections' => [
             'custom_css' => [
                 'label' => 'Eigenes CSS',

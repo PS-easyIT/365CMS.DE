@@ -115,8 +115,8 @@ $alertDetails = is_array($alert['details'] ?? null) ? $alert['details'] : [];
                     method="post"
                     class="row g-3 align-items-end"
                     data-confirm-title="Slug-Regeln löschen?"
-                    data-confirm-message="Passende Weiterleitungen für diesen Slug wirklich löschen?"
-                    data-confirm-text="Jetzt löschen"
+                    data-confirm-message="Alle Weiterleitungen mit diesem Slug-Muster löschen?"
+                    data-confirm-text="Löschen"
                     data-confirm-class="btn-danger"
                     data-confirm-status-class="bg-danger"
                 >
@@ -137,7 +137,7 @@ $alertDetails = is_array($alert['details'] ?? null) ? $alert['details'] : [];
                     <div class="col-md-4 col-lg-3">
                         <button
                             type="submit"
-                            class="btn btn-outline-danger w-100"
+                            class="btn btn-outline-danger w-100 admin-danger-outline-btn"
                         >Slug-Regeln löschen</button>
                     </div>
                 </form>

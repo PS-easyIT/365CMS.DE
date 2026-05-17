@@ -68,7 +68,7 @@ $groupField = static function (mixed $group, string $key, mixed $default = ''): 
                 </div>
             </div>
             <p class="cms-admin-info-box__text">
-                Gruppenkarten und Sammelaktionen bleiben synchron: Auswahl, Plan-Zuweisung und Löschlogik nutzen denselben CSRF-geschützten Pfad.
+                Gruppen zentral pflegen und Mitglieder übersichtlich organisieren.
             </p>
         </div>
 
@@ -124,9 +124,9 @@ $groupField = static function (mixed $group, string $key, mixed $default = ''): 
             </div>
         <?php endif; ?>
 
-        <div class="row row-cards" id="groupsListRoot">
+        <div class="groups-grid" id="groupsListRoot">
             <?php if (empty($groups)): ?>
-                <div class="col-12">
+                <div class="groups-grid__empty">
                     <div class="card">
                         <div class="card-body">
                             <div class="empty">
@@ -159,8 +159,8 @@ $groupField = static function (mixed $group, string $key, mixed $default = ''): 
                     $expiringContractCount = (int)($supportContext['expiring_contract_count'] ?? count($expiringContracts));
                     $overdueContractCount = (int)($supportContext['overdue_contract_count'] ?? 0);
                     ?>
-                    <div class="col-md-6 col-lg-4">
-                        <div class="card h-100">
+                    <div class="groups-grid__item">
+                        <div class="card h-100 group-card">
                             <div class="card-body">
                                 <div class="d-flex align-items-center mb-3">
                                     <span class="avatar bg-blue-lt me-3">
@@ -263,7 +263,7 @@ $groupField = static function (mixed $group, string $key, mixed $default = ''): 
                                             data-group-modal-title="Gruppe bearbeiten">
                                         Bearbeiten
                                     </button>
-                                    <button type="button" class="btn btn-outline-danger btn-sm js-delete-group"
+                                    <button type="button" class="btn btn-outline-danger btn-sm js-delete-group group-card__delete-btn"
                                             data-group-id="<?php echo $groupId; ?>"
                                             data-group-name="<?php echo htmlspecialchars($groupName, ENT_QUOTES); ?>">
                                         Löschen

@@ -54,6 +54,12 @@ $legalSitesConfig = [
 
 <div class="page-body admin-legal-sites-page admin-redesign-page">
     <div class="container-xl admin-legal-sites-layout admin-redesign-shell">
+        <div class="admin-legal-sites-global-save mb-3">
+            <button type="button" class="btn btn-primary" id="js-legal-sites-save-all">
+                Alle Standardwerte speichern &amp; Dokumente aktualisieren
+            </button>
+        </div>
+
         <div class="row row-deck row-cards mb-4 admin-metric-grid">
             <div class="col-md-4">
                 <div class="card"><div class="card-body"><div class="subheader">Bereiche</div><div class="h1 mb-0"><?php echo (int) ($stats['areas'] ?? count($tabKeys)); ?></div></div></div>
@@ -131,12 +137,30 @@ $legalSitesConfig = [
                 </form>
             </div>
             <div class="card-body">
-                <form method="post">
+                <form method="post" data-legal-bulk-save-part="profile">
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>">
                     <input type="hidden" name="action" value="save_profile">
 
-                    <div class="row g-3 mb-4">
-                        <div class="col-12">
+                    <ul class="nav nav-tabs card-header-tabs legal-sites-profile-tabs mb-3" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" type="button" data-legal-profile-tab="profile">Unternehmensprofil</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" type="button" data-legal-profile-tab="contact">Adresse &amp; Kontakt</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" type="button" data-legal-profile-tab="register">Register &amp; Pflichtangaben</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" type="button" data-legal-profile-tab="privacy">Datenschutz-Setup</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" type="button" data-legal-profile-tab="features">Website-Funktionen</button>
+                        </li>
+                    </ul>
+
+                    <div class="row g-3 mb-4 legal-sites-profile-sections">
+                        <div class="col-12" data-legal-profile-section="profile">
                             <div class="border rounded p-3 bg-light-subtle">
                                 <div class="row g-3 align-items-end">
                                     <div class="col-md-4">
@@ -169,7 +193,7 @@ $legalSitesConfig = [
                             </div>
                         </div>
 
-                        <div class="col-12 col-lg-6">
+                        <div class="col-12 col-lg-6" data-legal-profile-section="profile">
                             <div class="border rounded p-3 h-100 bg-light-subtle">
                                 <div class="subheader mb-2">Unternehmen</div>
                                 <div class="row g-3">
@@ -197,7 +221,7 @@ $legalSitesConfig = [
                             </div>
                         </div>
 
-                        <div class="col-12 col-lg-6">
+                        <div class="col-12 col-lg-6" data-legal-profile-section="contact">
                             <div class="border rounded p-3 h-100 bg-light-subtle">
                                 <div class="subheader mb-2">Adresse & Kontakt</div>
                                 <div class="row g-3">
@@ -233,7 +257,7 @@ $legalSitesConfig = [
                             </div>
                         </div>
 
-                        <div class="col-12 col-lg-6">
+                        <div class="col-12 col-lg-6" data-legal-profile-section="register">
                             <div class="border rounded p-3 h-100 bg-light-subtle">
                                 <div class="subheader mb-2">Register & Pflichtangaben</div>
                                 <div class="row g-3">
@@ -260,7 +284,7 @@ $legalSitesConfig = [
                             </div>
                         </div>
 
-                        <div class="col-12 col-lg-6">
+                        <div class="col-12 col-lg-6" data-legal-profile-section="privacy">
                             <div class="border rounded p-3 h-100 bg-light-subtle">
                                 <div class="subheader mb-2">Datenschutz-Setup</div>
                                 <div class="row g-3">
@@ -319,7 +343,7 @@ $legalSitesConfig = [
                             </div>
                         </div>
 
-                        <div class="col-12">
+                        <div class="col-12" data-legal-profile-section="features">
                             <div class="border rounded p-3 bg-light-subtle">
                                 <div class="subheader mb-2">Funktionsbezogene Datenschutz-Angaben</div>
                                 <div class="text-secondary small mb-3">Sobald du unter „Aktive Website-Funktionen“ etwas aktivierst, erscheinen hier passende Datenschutz-Bausteine und Zusatzangaben.</div>
@@ -458,7 +482,7 @@ $legalSitesConfig = [
                             </div>
                         </div>
 
-                        <div class="col-12 col-lg-6">
+                        <div class="col-12 col-lg-6" data-legal-profile-section="features">
                             <div class="border rounded p-3 h-100 bg-light-subtle">
                                 <div class="subheader mb-2">AGB & Widerruf</div>
                                 <div class="row g-3">
@@ -496,7 +520,7 @@ $legalSitesConfig = [
                             </div>
                         </div>
 
-                        <div class="col-12">
+                        <div class="col-12" data-legal-profile-section="features">
                             <div class="border rounded p-3 bg-light-subtle">
                                 <div class="subheader mb-2">Aktive Website-Funktionen</div>
                                 <div class="row g-3">
@@ -526,9 +550,23 @@ $legalSitesConfig = [
                         </div>
                     </div>
 
-                    <div class="d-flex gap-2 flex-wrap admin-card-actions">
+                    <div class="legal-sites-tab-save" data-legal-profile-save="profile">
                         <button type="submit" class="btn btn-primary">Standardwerte speichern</button>
-                        <span class="text-secondary small align-self-center">Hinweis: Die Texte sind eine technische Vorlage und ersetzen keine rechtliche Prüfung.</span>
+                    </div>
+                    <div class="legal-sites-tab-save d-none" data-legal-profile-save="contact">
+                        <button type="submit" class="btn btn-primary">Standardwerte speichern</button>
+                    </div>
+                    <div class="legal-sites-tab-save d-none" data-legal-profile-save="register">
+                        <button type="submit" class="btn btn-primary">Standardwerte speichern</button>
+                    </div>
+                    <div class="legal-sites-tab-save d-none" data-legal-profile-save="privacy">
+                        <button type="submit" class="btn btn-primary">Standardwerte speichern</button>
+                    </div>
+                    <div class="legal-sites-tab-save d-none" data-legal-profile-save="features">
+                        <button type="submit" class="btn btn-primary">Standardwerte speichern</button>
+                    </div>
+                    <div class="text-secondary small mt-2">
+                        Hinweis: Die Texte sind eine technische Vorlage und ersetzen keine rechtliche Prüfung.
                     </div>
                 </form>
             </div>
@@ -596,13 +634,19 @@ $legalSitesConfig = [
                         </div>
                     </div>
 
-                    <form method="post">
+                    <form method="post" data-legal-bulk-save-part="document">
                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>">
                         <input type="hidden" name="action" value="save">
                         <div class="row g-3">
                             <div class="col-12 col-xl-8">
+                                <div class="legal-sites-editor-toggle mb-2" role="tablist" aria-label="Editor-Ansicht">
+                                    <button type="button" class="btn btn-sm btn-outline-primary active" data-legal-view-mode="edit" data-legal-view-target="legal-<?php echo htmlspecialchars($key); ?>">HTML bearbeiten</button>
+                                    <span class="text-secondary small">|</span>
+                                    <button type="button" class="btn btn-sm btn-outline-primary" data-legal-view-mode="preview" data-legal-view-target="legal-<?php echo htmlspecialchars($key); ?>">Vorschau</button>
+                                </div>
                                 <label class="form-label">Inhalt (HTML)</label>
-                                <textarea name="<?php echo htmlspecialchars($key); ?>" id="legal-<?php echo htmlspecialchars($key); ?>" class="form-control" rows="12"><?php echo htmlspecialchars($p['content'] ?? ''); ?></textarea>
+                                <textarea name="<?php echo htmlspecialchars($key); ?>" id="legal-<?php echo htmlspecialchars($key); ?>" class="form-control" rows="12" data-legal-html-source><?php echo htmlspecialchars($p['content'] ?? ''); ?></textarea>
+                                <div class="legal-sites-html-preview d-none" data-legal-html-preview></div>
                                 <?php if (!empty($constraints['max_legal_html_length']) || $templateType !== ''): ?>
                                     <small class="form-hint">
                                         <?php if (!empty($constraints['max_legal_html_length'])): ?>
@@ -631,7 +675,7 @@ $legalSitesConfig = [
                             </div>
                         </div>
                         <div class="d-flex gap-2 flex-wrap mt-3">
-                            <button type="submit" class="btn btn-primary">Bereich speichern</button>
+                            <button type="submit" class="btn btn-outline-primary">Bereich speichern</button>
                             <?php if (empty($p['content']) && $defaultTemplate !== ''): ?>
                                 <span class="text-secondary small align-self-center">Tipp: Erst Vorlage generieren, dann anpassen.</span>
                             <?php endif; ?>

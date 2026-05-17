@@ -103,8 +103,9 @@ $inlineJs   = $inlineJs ?? '';
         const msgEl = document.getElementById('confirmModalMessage');
         const btnEl = document.getElementById('confirmModalBtn');
         const statusEl = modal.querySelector('.modal-status');
+        const cancelBtn = modal.querySelector('[data-bs-dismiss="modal"]');
 
-        if (!titleEl || !msgEl || !btnEl || !statusEl) {
+        if (!titleEl || !msgEl || !btnEl || !statusEl || !cancelBtn) {
             return fallbackConfirm();
         }
 
@@ -112,6 +113,7 @@ $inlineJs   = $inlineJs ?? '';
         msgEl.textContent = options.message || '';
         btnEl.textContent = options.confirmText || 'Bestätigen';
         btnEl.className = 'btn w-100 ' + (options.confirmClass || 'btn-danger');
+        cancelBtn.className = 'btn w-100 ' + (options.cancelClass || 'btn-outline-secondary');
         statusEl.className = 'modal-status ' + (options.statusClass || 'bg-danger');
 
         // Clone button to remove old listeners

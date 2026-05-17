@@ -36,6 +36,9 @@ $modeBadges = [
 ];
 $simulationWindowHours = (int)($simulation['window_hours'] ?? 24);
 $recentSimulationHits = is_array($simulation['recent_hits'] ?? null) ? $simulation['recent_hits'] : [];
+$showRuleCreateSimulatedSuccess = isset($alert['type'], $alert['message'])
+    && (string)$alert['type'] === 'success'
+    && stripos((string)$alert['message'], 'simulationsmodus') !== false;
 ?>
 
 <div class="page-header d-print-none admin-redesign-header">
@@ -237,18 +240,21 @@ $recentSimulationHits = is_array($simulation['recent_hits'] ?? null) ? $simulati
 
                             <div class="mb-3">
                                 <label class="form-label">Rate Limit (Anfragen)</label>
-                                <input type="number" name="firewall_rate_limit" class="form-control" min="10" max="1000" value="<?php echo (int)($settings['firewall_rate_limit'] ?? 60); ?>">
+                                <input type="number" name="firewall_rate_limit" class="form-control" min="10" max="1000" value="<?php echo (int)($settings['firewall_rate_limit'] ?? 60); ?>" data-firewall-rate-limit>
                                 <small class="form-hint">Max. Anfragen pro Zeitfenster</small>
+                                <div class="firewall-seconds-hint" data-firewall-rate-limit-hint></div>
                             </div>
 
                             <div class="mb-3">
                                 <label class="form-label">Zeitfenster (Sekunden)</label>
-                                <input type="number" name="firewall_rate_window" class="form-control" min="60" max="3600" value="<?php echo (int)($settings['firewall_rate_window'] ?? 60); ?>">
+                                <input type="number" name="firewall_rate_window" class="form-control" min="60" max="3600" value="<?php echo (int)($settings['firewall_rate_window'] ?? 60); ?>" data-firewall-seconds>
+                                <div class="firewall-seconds-hint" data-firewall-seconds-hint-for="firewall_rate_window"></div>
                             </div>
 
                             <div class="mb-3">
                                 <label class="form-label">Sperrdauer (Sekunden)</label>
-                                <input type="number" name="firewall_block_duration" class="form-control" min="60" max="86400" value="<?php echo (int)($settings['firewall_block_duration'] ?? 3600); ?>">
+                                <input type="number" name="firewall_block_duration" class="form-control" min="60" max="86400" value="<?php echo (int)($settings['firewall_block_duration'] ?? 3600); ?>" data-firewall-seconds>
+                                <div class="firewall-seconds-hint" data-firewall-seconds-hint-for="firewall_block_duration"></div>
                             </div>
 
                             <label class="form-check form-switch mb-3">
@@ -282,42 +288,58 @@ $recentSimulationHits = is_array($simulation['recent_hits'] ?? null) ? $simulati
                         </div>
                     </div>
                     <div class="card-body">
-                        <form method="post">
-                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? '', ENT_QUOTES, 'UTF-8'); ?>">
-                            <input type="hidden" name="action" value="add_rule">
-                            <div class="row g-3">
-                                <div class="col-md-3">
-                                    <label class="form-label">Typ</label>
-                                    <select name="rule_type" class="form-select">
-                                        <?php foreach ($typeLabels as $value => $label): ?>
-                                            <option value="<?php echo htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?></option>
-                                        <?php endforeach; ?>
-                                    </select>
+                        <div class="firewall-create-rule-card">
+                            <form method="post" id="firewallRuleCreateForm">
+                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? '', ENT_QUOTES, 'UTF-8'); ?>">
+                                <input type="hidden" name="action" value="add_rule">
+                                <input type="hidden" name="expires_at" value="" data-firewall-expires-at>
+                                <div class="row g-3">
+                                    <div class="col-md-3">
+                                        <label class="form-label">Typ</label>
+                                        <select name="rule_type" class="form-select">
+                                            <?php foreach ($typeLabels as $value => $label): ?>
+                                                <option value="<?php echo htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?></option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">Wert (IP / Pattern)</label>
+                                        <input type="text" name="rule_value" class="form-control" required placeholder="192.168.1.1">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label class="form-label">Modus</label>
+                                        <select name="rule_mode" class="form-select">
+                                            <option value="simulate" selected>Simulation</option>
+                                            <option value="enforce">Scharf</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label class="form-label">Grund</label>
+                                        <input type="text" name="rule_reason" class="form-control" placeholder="Optional">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label class="form-label">Ablauf</label>
+                                        <select class="form-select" data-firewall-expiration-preset>
+                                            <option value="0" selected>Kein Ablauf</option>
+                                            <option value="3600">1 Stunde</option>
+                                            <option value="14400">4 Stunden</option>
+                                            <option value="28800">8 Stunden</option>
+                                            <option value="86400">24 Stunden</option>
+                                            <option value="172800">48 Stunden</option>
+                                            <option value="259200">3 Tage</option>
+                                            <option value="604800">1 Woche</option>
+                                            <option value="1209600">2 Wochen</option>
+                                        </select>
+                                    </div>
                                 </div>
-                                <div class="col-md-3">
-                                    <label class="form-label">Wert (IP / Pattern)</label>
-                                    <input type="text" name="rule_value" class="form-control" required placeholder="192.168.1.1">
+                                <div class="mt-3 d-flex justify-content-between align-items-center gap-2 flex-wrap">
+                                    <div class="firewall-create-success<?php echo $showRuleCreateSimulatedSuccess ? ' is-visible' : ''; ?>" data-firewall-rule-success>
+                                        Regel wurde im Simulationsmodus angelegt.
+                                    </div>
+                                    <button type="submit" class="btn btn-primary">Regel anlegen</button>
                                 </div>
-                                <div class="col-md-2">
-                                    <label class="form-label">Modus</label>
-                                    <select name="rule_mode" class="form-select">
-                                        <option value="simulate" selected>Simulation</option>
-                                        <option value="enforce">Scharf</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-2">
-                                    <label class="form-label">Grund</label>
-                                    <input type="text" name="rule_reason" class="form-control" placeholder="Optional">
-                                </div>
-                                <div class="col-md-2">
-                                    <label class="form-label">Ablauf</label>
-                                    <input type="datetime-local" name="expires_at" class="form-control">
-                                </div>
-                            </div>
-                            <div class="mt-3 d-flex justify-content-end">
-                                <button type="submit" class="btn btn-primary">Regel anlegen</button>
-                            </div>
-                        </form>
+                            </form>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -609,4 +631,98 @@ function applyFirewallBaseline(form, profileLabel) {
         }
     });
 }
+
+(function initFirewallUiHelpers() {
+    var formatSeconds = typeof window.formatSeconds === 'function'
+        ? window.formatSeconds
+        : function fallbackFormatSeconds(value) {
+            var numericValue = Number(value);
+            if (!Number.isFinite(numericValue)) {
+                numericValue = 0;
+            }
+
+            var seconds = Math.max(0, Math.floor(numericValue));
+            if (seconds >= 86400) {
+                return String(seconds / 86400) + ' Tage';
+            }
+            if (seconds >= 3600) {
+                return String(seconds / 3600) + ' Stunden';
+            }
+            if (seconds >= 60) {
+                return String(seconds / 60) + ' Minuten';
+            }
+            return String(seconds) + ' Sekunden';
+        };
+
+    var rateWindowInput = document.querySelector('input[name="firewall_rate_window"]');
+    var rateLimitInput = document.querySelector('input[name="firewall_rate_limit"]');
+    var rateLimitHint = document.querySelector('[data-firewall-rate-limit-hint]');
+
+    document.querySelectorAll('input[data-firewall-seconds]').forEach(function(input) {
+        var hint = document.querySelector('[data-firewall-seconds-hint-for="' + input.name + '"]');
+        if (!hint) {
+            return;
+        }
+
+        var refreshSecondsHint = function() {
+            var secondsValue = Number.parseInt(input.value, 10) || 0;
+            hint.textContent = '= ' + formatSeconds(secondsValue);
+        };
+
+        input.addEventListener('input', refreshSecondsHint);
+        input.addEventListener('change', refreshSecondsHint);
+        refreshSecondsHint();
+    });
+
+    var refreshRateLimitHint = function() {
+        if (!rateLimitHint || !rateLimitInput || !rateWindowInput) {
+            return;
+        }
+
+        var requests = Number.parseInt(rateLimitInput.value, 10) || 0;
+        var seconds = Number.parseInt(rateWindowInput.value, 10) || 0;
+        rateLimitHint.textContent = '= ' + requests + ' Anfragen je ' + formatSeconds(seconds);
+    };
+
+    if (rateLimitInput && rateWindowInput && rateLimitHint) {
+        rateLimitInput.addEventListener('input', refreshRateLimitHint);
+        rateLimitInput.addEventListener('change', refreshRateLimitHint);
+        rateWindowInput.addEventListener('input', refreshRateLimitHint);
+        rateWindowInput.addEventListener('change', refreshRateLimitHint);
+        refreshRateLimitHint();
+    }
+
+    var createRuleForm = document.getElementById('firewallRuleCreateForm');
+    var expirationPreset = createRuleForm ? createRuleForm.querySelector('[data-firewall-expiration-preset]') : null;
+    var expiresAtInput = createRuleForm ? createRuleForm.querySelector('input[data-firewall-expires-at]') : null;
+    var successMessage = document.querySelector('[data-firewall-rule-success]');
+
+    if (createRuleForm && expirationPreset && expiresAtInput) {
+        createRuleForm.addEventListener('submit', function() {
+            var selectedSeconds = Number.parseInt(expirationPreset.value, 10) || 0;
+            if (selectedSeconds <= 0) {
+                expiresAtInput.value = '';
+                return;
+            }
+
+            var expirationDate = new Date(Date.now() + (selectedSeconds * 1000));
+            var year = expirationDate.getFullYear();
+            var month = String(expirationDate.getMonth() + 1).padStart(2, '0');
+            var day = String(expirationDate.getDate()).padStart(2, '0');
+            var hours = String(expirationDate.getHours()).padStart(2, '0');
+            var minutes = String(expirationDate.getMinutes()).padStart(2, '0');
+            expiresAtInput.value = year + '-' + month + '-' + day + 'T' + hours + ':' + minutes;
+        });
+    }
+
+    if (successMessage && successMessage.classList.contains('is-visible')) {
+        window.setTimeout(function() {
+            successMessage.classList.add('is-fading');
+        }, 3000);
+        window.setTimeout(function() {
+            successMessage.classList.remove('is-visible');
+            successMessage.classList.remove('is-fading');
+        }, 3400);
+    }
+})();
 </script>

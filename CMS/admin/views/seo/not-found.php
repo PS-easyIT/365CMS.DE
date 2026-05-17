@@ -14,6 +14,18 @@ $stats   = $data['stats'] ?? [];
 $targets = $data['targets'] ?? ['pages' => [], 'posts' => [], 'hubs' => []];
 $sites   = $data['sites'] ?? [];
 $alertDetails = is_array($alert['details'] ?? null) ? $alert['details'] : [];
+$sortedLogs = is_array($logs) ? $logs : [];
+usort($sortedLogs, static function (array $left, array $right): int {
+    $leftHits = (int)($left['hit_count'] ?? 0);
+    $rightHits = (int)($right['hit_count'] ?? 0);
+    if ($leftHits !== $rightHits) {
+        return $rightHits <=> $leftHits;
+    }
+
+    $leftTime = strtotime((string)($left['last_seen_at'] ?? '')) ?: 0;
+    $rightTime = strtotime((string)($right['last_seen_at'] ?? '')) ?: 0;
+    return $rightTime <=> $leftTime;
+});
 ?>
 
 <div class="page-header d-print-none admin-redesign-header">
@@ -97,13 +109,13 @@ $alertDetails = is_array($alert['details'] ?? null) ? $alert['details'] : [];
                         </tr>
                     </thead>
                     <tbody>
-                        <?php if (empty($logs)): ?>
+                        <?php if (empty($sortedLogs)): ?>
                             <tr><td colspan="7" class="text-center text-secondary py-4">Noch keine 404-Einträge protokolliert.</td></tr>
                         <?php else: ?>
                             <tr class="js-hidden-resolved-empty" hidden>
                                 <td colspan="7" class="text-center text-secondary py-4">Alle sichtbaren Einträge sind bereits übernommen.</td>
                             </tr>
-                            <?php foreach ($logs as $log): ?>
+                            <?php foreach ($sortedLogs as $log): ?>
                                 <?php $resolved = !empty($log['redirect_id']); ?>
                                 <tr class="<?= $resolved ? 'table-success' : '' ?>" data-log-resolved="<?= $resolved ? '1' : '0' ?>">
                                     <td>
@@ -135,6 +147,10 @@ $alertDetails = is_array($alert['details'] ?? null) ? $alert['details'] : [];
                                             class="btn btn-sm <?= $resolved ? 'btn-outline-secondary' : 'btn-outline-primary' ?> js-takeover-log"
                                             data-log="<?= htmlspecialchars((string) json_encode($log, JSON_HEX_APOS | JSON_HEX_QUOT | JSON_INVALID_UTF8_SUBSTITUTE), ENT_QUOTES) ?>"
                                         ><?= $resolved ? 'Bearbeiten' : 'Übernehmen' ?></button>
+                                        <a
+                                            class="admin-redirect-quick-link"
+                                            href="<?= htmlspecialchars('/admin/redirect-manager?prefill_source=' . rawurlencode((string)($log['request_path'] ?? '')) . '&prefill_site=' . rawurlencode((string)($log['site_scope_suggestion'] ?? '')) . '&focus_target=1') ?>"
+                                        >Weiterleitung anlegen →</a>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>

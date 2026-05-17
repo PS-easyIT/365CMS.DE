@@ -173,10 +173,52 @@
         });
     }
 
+    function bindFontSearch() {
+        var searchInput = document.getElementById('fontManagerSearch');
+        if (!searchInput) {
+            return;
+        }
+
+        var items = Array.prototype.slice.call(document.querySelectorAll('[data-font-search-item]'));
+        var activeEmptyState = document.querySelector('[data-font-manager-active-empty]');
+        var accordionGroups = Array.prototype.slice.call(document.querySelectorAll('[data-font-accordion-group]'));
+
+        function applySearch() {
+            var query = String(searchInput.value || '').trim().toLowerCase();
+            var visibleActiveItems = 0;
+
+            items.forEach(function (item) {
+                var searchText = String(item.getAttribute('data-font-search-text') || '').toLowerCase();
+                var matches = query === '' || searchText.indexOf(query) !== -1;
+                item.style.display = matches ? '' : 'none';
+
+                if (matches && item.getAttribute('data-font-section') === 'active') {
+                    visibleActiveItems += 1;
+                }
+            });
+
+            if (activeEmptyState) {
+                activeEmptyState.style.display = visibleActiveItems > 0 ? 'none' : '';
+            }
+
+            accordionGroups.forEach(function (group) {
+                var availableItems = group.querySelectorAll('[data-font-search-item][data-font-section="available"]');
+                var hasVisibleAvailableItem = Array.prototype.some.call(availableItems, function (item) {
+                    return item.style.display !== 'none';
+                });
+                group.style.display = hasVisibleAvailableItem ? '' : 'none';
+            });
+        }
+
+        searchInput.addEventListener('input', applySearch);
+        applySearch();
+    }
+
     function init() {
         var config = parseConfig('font-manager-config') || {};
         bindActionForms();
         bindDeleteButtons(config);
+        bindFontSearch();
     }
 
     if (document.readyState === 'loading') {

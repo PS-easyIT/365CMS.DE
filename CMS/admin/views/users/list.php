@@ -31,6 +31,45 @@ $roleColors = [
 $getRoleColor = static function (string $role) use ($roleColors): string {
     return $roleColors[$role] ?? 'azure';
 };
+
+$formatGermanDate = static function (string $dateValue): string {
+    if ($dateValue === '') {
+        return '–';
+    }
+
+    $timestamp = strtotime($dateValue);
+    if ($timestamp === false) {
+        return htmlspecialchars($dateValue);
+    }
+
+    return date('d.m.Y', $timestamp);
+};
+
+$renderInlineToggleList = static function (array $items, string $emptyLabel, int $collapsedCount = 3): string {
+    $cleanItems = array_values(array_filter(
+        array_map(static fn (mixed $item): string => trim((string)$item), $items),
+        static fn (string $item): bool => $item !== ''
+    ));
+
+    if ($cleanItems === []) {
+        return htmlspecialchars($emptyLabel);
+    }
+
+    if (count($cleanItems) <= $collapsedCount) {
+        return htmlspecialchars(implode(', ', $cleanItems));
+    }
+
+    $collapsedItems = array_slice($cleanItems, 0, $collapsedCount);
+    $collapsedText = implode(', ', $collapsedItems);
+    $fullText = implode(', ', $cleanItems);
+
+    return sprintf(
+        '<span class="js-inline-toggle-list" data-collapsed="%s" data-expanded="%s"><span class="js-inline-toggle-list-text">%s</span> <button type="button" class="btn btn-link p-0 align-baseline js-inline-toggle-list-button" data-expand-label="Alle anzeigen" data-collapse-label="Weniger anzeigen" aria-expanded="false">Alle anzeigen</button></span>',
+        htmlspecialchars($collapsedText, ENT_QUOTES),
+        htmlspecialchars($fullText, ENT_QUOTES),
+        htmlspecialchars($collapsedText)
+    );
+};
 ?>
 
 <div class="page-header d-print-none">
@@ -73,7 +112,7 @@ $getRoleColor = static function (string $role) use ($roleColors): string {
                 </div>
             </div>
             <p class="cms-admin-info-box__text">
-                Filter, Suche und Bulk-Aktionen arbeiten auf derselben serverseitigen Datenbasis und bleiben unabhängig vom Anzeigeformat stabil.
+                Nutzer schnell finden, filtern und direkt im Alltag verwalten.
             </p>
         </div>
 
@@ -233,17 +272,23 @@ $getRoleColor = static function (string $role) use ($roleColors): string {
                                             <?php if ($groupPackages === []): ?>
                                                 keine
                                             <?php else: ?>
-                                                <?php echo htmlspecialchars(implode(', ', array_map('strval', $groupPackages))); ?><?php if ($groupPackageCount > count($groupPackages)): ?>, +<?php echo $groupPackageCount - count($groupPackages); ?> weitere<?php endif; ?>
+                                                <?php echo $renderInlineToggleList($groupPackages, 'keine'); ?>
+                                                <?php if ($groupPackageCount > count($groupPackages)): ?>
+                                                    <span class="text-muted"> (insgesamt <?php echo $groupPackageCount; ?>)</span>
+                                                <?php endif; ?>
                                             <?php endif; ?>
                                         </div>
                                         <div class="text-secondary">
                                             Member-Module:
-                                            <?php echo htmlspecialchars($memberModules !== [] ? implode(', ', array_map('strval', $memberModules)) : 'keine'); ?><?php if ($memberModuleCount > count($memberModules)): ?>, +<?php echo $memberModuleCount - count($memberModules); ?> weitere<?php endif; ?>
+                                            <?php echo $renderInlineToggleList($memberModules, 'keine'); ?>
+                                            <?php if ($memberModuleCount > count($memberModules)): ?>
+                                                <span class="text-muted"> (insgesamt <?php echo $memberModuleCount; ?>)</span>
+                                            <?php endif; ?>
                                         </div>
                                     </div>
                                 </td>
                                 <td><span class="badge <?php echo htmlspecialchars($statusClass); ?>"><?php echo htmlspecialchars($statusLabel); ?></span></td>
-                                <td class="text-secondary"><?php echo htmlspecialchars($createdAt !== '' ? substr($createdAt, 0, 10) : '–'); ?></td>
+                                <td class="text-secondary"><?php echo $formatGermanDate($createdAt); ?></td>
                                 <td>
                                     <div class="d-flex gap-2 justify-content-end">
                                         <a href="<?php echo htmlspecialchars($usersAdminPath); ?>?action=edit&amp;id=<?php echo $userId; ?>" class="btn btn-sm btn-outline-primary">Bearbeiten</a>

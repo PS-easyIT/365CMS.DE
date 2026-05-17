@@ -141,6 +141,177 @@
         });
     }
 
+    function initProfileTabs() {
+        var tabButtons = Array.prototype.slice.call(document.querySelectorAll('[data-legal-profile-tab]'));
+        var tabSections = Array.prototype.slice.call(document.querySelectorAll('[data-legal-profile-section]'));
+        var tabSaves = Array.prototype.slice.call(document.querySelectorAll('[data-legal-profile-save]'));
+
+        if (!tabButtons.length || !tabSections.length) {
+            return;
+        }
+
+        function activateTab(tabKey) {
+            tabButtons.forEach(function (button) {
+                var isActive = button.getAttribute('data-legal-profile-tab') === tabKey;
+                button.classList.toggle('active', isActive);
+                button.setAttribute('aria-selected', isActive ? 'true' : 'false');
+            });
+
+            tabSections.forEach(function (section) {
+                var isVisible = section.getAttribute('data-legal-profile-section') === tabKey;
+                section.classList.toggle('d-none', !isVisible);
+            });
+
+            tabSaves.forEach(function (saveBar) {
+                var isVisible = saveBar.getAttribute('data-legal-profile-save') === tabKey;
+                saveBar.classList.toggle('d-none', !isVisible);
+            });
+        }
+
+        tabButtons.forEach(function (button) {
+            button.addEventListener('click', function () {
+                activateTab(button.getAttribute('data-legal-profile-tab') || 'profile');
+            });
+        });
+
+        activateTab('profile');
+    }
+
+    function sanitizePreviewHtml(rawHtml) {
+        var parser = new DOMParser();
+        var parsedDocument = parser.parseFromString(rawHtml || '', 'text/html');
+
+        parsedDocument.querySelectorAll('script, iframe, object, embed, link[rel="import"], base').forEach(function (node) {
+            node.remove();
+        });
+
+        parsedDocument.querySelectorAll('*').forEach(function (node) {
+            Array.prototype.slice.call(node.attributes).forEach(function (attribute) {
+                if (/^on/i.test(attribute.name)) {
+                    node.removeAttribute(attribute.name);
+                }
+            });
+        });
+
+        return parsedDocument.body.innerHTML;
+    }
+
+    function initHtmlPreviewToggles() {
+        document.querySelectorAll('.legal-sites-editor-toggle').forEach(function (toggle) {
+            var buttons = toggle.querySelectorAll('[data-legal-view-mode]');
+            if (!buttons.length) {
+                return;
+            }
+
+            var targetId = buttons[0].getAttribute('data-legal-view-target');
+            if (!targetId) {
+                return;
+            }
+
+            var textarea = document.getElementById(targetId);
+            if (!textarea) {
+                return;
+            }
+
+            var preview = textarea.parentElement ? textarea.parentElement.querySelector('[data-legal-html-preview]') : null;
+            if (!preview) {
+                return;
+            }
+
+            function updatePreviewContent() {
+                preview.innerHTML = sanitizePreviewHtml(textarea.value || '');
+            }
+
+            function setMode(mode) {
+                var isPreview = mode === 'preview';
+                textarea.classList.toggle('d-none', isPreview);
+                preview.classList.toggle('d-none', !isPreview);
+
+                buttons.forEach(function (button) {
+                    var isActive = button.getAttribute('data-legal-view-mode') === mode;
+                    button.classList.toggle('active', isActive);
+                });
+
+                if (isPreview) {
+                    updatePreviewContent();
+                }
+            }
+
+            buttons.forEach(function (button) {
+                button.addEventListener('click', function () {
+                    setMode(button.getAttribute('data-legal-view-mode') || 'edit');
+                });
+            });
+
+            textarea.addEventListener('input', function () {
+                if (!preview.classList.contains('d-none')) {
+                    updatePreviewContent();
+                }
+            });
+        });
+    }
+
+    function serializeForm(form) {
+        return new URLSearchParams(new FormData(form));
+    }
+
+    function initGlobalSaveAction() {
+        var saveAllButton = document.getElementById('js-legal-sites-save-all');
+        if (!saveAllButton) {
+            return;
+        }
+
+        saveAllButton.addEventListener('click', function () {
+            var profileForm = document.querySelector('form[data-legal-bulk-save-part="profile"]');
+            var documentForms = Array.prototype.slice.call(document.querySelectorAll('form[data-legal-bulk-save-part="document"]'));
+            var createAllForm = document.querySelector('form input[name="action"][value="create_all_pages"]')
+                ? document.querySelector('form input[name="action"][value="create_all_pages"]').form
+                : null;
+            var forms = [];
+
+            if (profileForm) {
+                forms.push(profileForm);
+            }
+            Array.prototype.push.apply(forms, documentForms);
+            if (createAllForm) {
+                forms.push(createAllForm);
+            }
+
+            if (!forms.length) {
+                return;
+            }
+
+            saveAllButton.disabled = true;
+            saveAllButton.textContent = 'Speichere ...';
+
+            var chain = Promise.resolve();
+            forms.forEach(function (form) {
+                chain = chain.then(function () {
+                    return fetch(window.location.href, {
+                        method: 'POST',
+                        credentials: 'same-origin',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
+                        },
+                        body: serializeForm(form)
+                    }).then(function (response) {
+                        if (!response.ok) {
+                            throw new Error('Speichern fehlgeschlagen');
+                        }
+                    });
+                });
+            });
+
+            chain.then(function () {
+                window.location.reload();
+            }).catch(function () {
+                saveAllButton.disabled = false;
+                saveAllButton.textContent = 'Alle Standardwerte speichern & Dokumente aktualisieren';
+                window.alert('Mindestens ein Speicherschritt ist fehlgeschlagen. Bitte erneut versuchen.');
+            });
+        });
+    }
+
     function initSubmitGuards() {
         document.querySelectorAll('form[method="post"]').forEach(function (form) {
             form.addEventListener('submit', function (event) {
@@ -158,8 +329,11 @@
         var config = parseConfig('legal-sites-config');
 
         initLegalProfileRequirements(config);
+        initProfileTabs();
         initPrivacyFeatureDetails();
         initTemplateInsertButtons(config);
+        initHtmlPreviewToggles();
+        initGlobalSaveAction();
         initSubmitGuards();
     });
 })();

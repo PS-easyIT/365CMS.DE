@@ -113,7 +113,7 @@ $additionalCategoryIds = array_values(array_filter(
     <div class="container-xl">
         <div class="row align-items-center">
             <div class="col-auto">
-                <a href="/admin/posts" class="btn btn-ghost-secondary btn-sm me-2">
+                <a href="/admin/posts" class="btn btn-ghost-secondary btn-sm me-2" id="postBackToList">
                     <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M15 6l-6 6l6 6"/></svg>
                     Zurück
                 </a>
@@ -328,7 +328,7 @@ $additionalCategoryIds = array_values(array_filter(
                 </div>
 
                 <div class="col-lg-4 d-flex cms-editor-sidebar-slot">
-                    <div class="card cms-edit-card cms-edit-top-card h-100 w-100">
+                    <div class="card cms-edit-card cms-edit-top-card h-100 w-100 cms-publication-card">
                         <div class="card-header">
                             <h3 class="card-title">Veröffentlichung</h3>
                         </div>
@@ -366,8 +366,8 @@ $additionalCategoryIds = array_values(array_filter(
                         <div class="card-header d-flex justify-content-between align-items-center gap-3 flex-wrap">
                             <h3 class="card-title"><?php echo $isEnglishEditorView ? 'Inhalt · English' : 'Inhalt · Deutsch'; ?></h3>
                             <div class="btn-group" role="group" aria-label="Inhaltssprache wählen">
-                                <a class="btn <?php echo $isEnglishEditorView ? 'btn-outline-primary' : 'btn-primary'; ?>" href="<?php echo htmlspecialchars($postEditUrlDe); ?>" aria-current="<?php echo $isEnglishEditorView ? 'false' : 'page'; ?>">Deutsch</a>
-                                <a class="btn <?php echo $isEnglishEditorView ? 'btn-primary' : 'btn-outline-primary'; ?>" href="<?php echo htmlspecialchars($postEditUrlEn); ?>" aria-current="<?php echo $isEnglishEditorView ? 'page' : 'false'; ?>">English</a>
+                                <a class="btn <?php echo $isEnglishEditorView ? 'btn-outline-primary' : 'btn-primary'; ?>" href="<?php echo htmlspecialchars($postEditUrlDe); ?>" aria-current="<?php echo $isEnglishEditorView ? 'false' : 'page'; ?>" data-lang-tab="de">Deutsch</a>
+                                <a class="btn <?php echo $isEnglishEditorView ? 'btn-primary' : 'btn-outline-primary'; ?>" href="<?php echo htmlspecialchars($postEditUrlEn); ?>" aria-current="<?php echo $isEnglishEditorView ? 'page' : 'false'; ?>" data-lang-tab="en">English</a>
                             </div>
                         </div>
                         <div class="card-body">
@@ -676,6 +676,8 @@ $additionalCategoryIds = array_values(array_filter(
 
         $postContentUiConfig = [
             'formId' => 'postForm',
+            'titleSelector' => '.page-header .page-title',
+            'backLinkId' => 'postBackToList',
             'removeButtonId' => 'btnRemoveImage',
             'imageInputId' => 'featuredInput',
             'tempPathInputId' => 'featuredInput_temp_path',

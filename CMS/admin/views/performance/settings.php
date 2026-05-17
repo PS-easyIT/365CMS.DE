@@ -48,7 +48,6 @@ if (!array_key_exists($browserCacheTtl, $browserCacheTtlOptions)) {
 
             <div class="cms-settings-actions">
                 <span class="text-secondary small me-auto">Primäre Schalter zuerst aktivieren, danach TTL- und Session-Werte anpassen.</span>
-                <button type="submit" class="btn btn-primary">Einstellungen speichern</button>
             </div>
 
             <div class="row g-4 mb-4 performance-delivery-grid">
@@ -167,11 +166,13 @@ if (!array_key_exists($browserCacheTtl, $browserCacheTtlOptions)) {
                         <div class="card-body">
                             <div class="mb-3">
                                 <label class="form-label">Admin-Session Timeout (Sekunden)</label>
-                                <input type="number" min="300" max="604800" step="1" class="form-control" name="perf_session_timeout_admin" value="<?php echo htmlspecialchars((string)($settings['perf_session_timeout_admin'] ?? '28800')); ?>">
+                                <input type="number" min="300" max="604800" step="1" class="form-control" name="perf_session_timeout_admin" value="<?php echo htmlspecialchars((string)($settings['perf_session_timeout_admin'] ?? '28800')); ?>" data-timeout-human>
+                                <div class="performance-timeout-hint" data-timeout-hint-for="perf_session_timeout_admin"></div>
                             </div>
                             <div class="mb-0">
                                 <label class="form-label">Member-Session Timeout (Sekunden)</label>
-                                <input type="number" min="300" max="31536000" step="1" class="form-control" name="perf_session_timeout_member" value="<?php echo htmlspecialchars((string)($settings['perf_session_timeout_member'] ?? '2592000')); ?>">
+                                <input type="number" min="300" max="31536000" step="1" class="form-control" name="perf_session_timeout_member" value="<?php echo htmlspecialchars((string)($settings['perf_session_timeout_member'] ?? '2592000')); ?>" data-timeout-human>
+                                <div class="performance-timeout-hint" data-timeout-hint-for="perf_session_timeout_member"></div>
                             </div>
                         </div>
                     </div>
@@ -184,3 +185,48 @@ if (!array_key_exists($browserCacheTtl, $browserCacheTtlOptions)) {
         </form>
     </div>
 </div>
+<script>
+(() => {
+    const formatTimeoutHint = (secondsValue) => {
+        if (!Number.isFinite(secondsValue)) {
+            return '= 0 Sekunden';
+        }
+
+        const seconds = Math.max(0, Math.floor(secondsValue));
+        let unit = 'Sekunden';
+        let value = seconds;
+
+        if (seconds >= 86400) {
+            unit = 'Tage';
+            value = seconds / 86400;
+        } else if (seconds >= 3600) {
+            unit = 'Stunden';
+            value = seconds / 3600;
+        } else if (seconds >= 60) {
+            unit = 'Minuten';
+            value = seconds / 60;
+        }
+
+        const formatted = Number.isInteger(value)
+            ? String(value)
+            : value.toLocaleString('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+
+        return `= ${formatted} ${unit}`;
+    };
+
+    document.querySelectorAll('input[data-timeout-human]').forEach((input) => {
+        const hint = document.querySelector(`[data-timeout-hint-for="${input.name}"]`);
+        if (!hint) {
+            return;
+        }
+
+        const refresh = () => {
+            hint.textContent = formatTimeoutHint(Number.parseInt(input.value, 10) || 0);
+        };
+
+        input.addEventListener('input', refresh);
+        input.addEventListener('change', refresh);
+        refresh();
+    });
+})();
+</script>

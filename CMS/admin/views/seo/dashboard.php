@@ -80,6 +80,29 @@ $formatDelta = static function (int $delta): string {
 
     return '±0';
 };
+
+$normalizeIssueFilter = static function (string $issueLabel): string {
+    $label = strtolower(trim($issueLabel));
+    $map = [
+        'meta title fehlt' => 'meta-title',
+        'meta-title fehlt' => 'meta-title',
+        'meta beschreibung fehlt' => 'meta-description',
+        'meta-beschreibung fehlt' => 'meta-description',
+        'h1 fehlt' => 'h1',
+        'zu wenig text' => 'content-length',
+        'zu kurze inhalte' => 'content-length',
+        'interne links fehlen' => 'internal-links',
+        'alt-text fehlt' => 'image-alt',
+        'alt text fehlt' => 'image-alt',
+    ];
+    if (isset($map[$label])) {
+        return $map[$label];
+    }
+
+    $slug = preg_replace('/[^a-z0-9]+/', '-', $label);
+    $slug = trim((string)$slug, '-');
+    return $slug !== '' ? $slug : 'issue';
+};
 ?>
 
 <div class="page-header d-print-none admin-redesign-header">
@@ -247,11 +270,15 @@ $formatDelta = static function (int $delta): string {
                         <?php else: ?>
                             <div class="list-group list-group-flush">
                                 <?php foreach ($topIssues as $issue => $count): ?>
-                                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    <?php $filter = $normalizeIssueFilter((string)$issue); ?>
+                                    <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" href="<?= htmlspecialchars('/admin/seo-audit?filter=' . rawurlencode($filter)) ?>">
                                         <span><?= htmlspecialchars((string)$issue) ?></span>
                                         <span class="badge bg-warning-lt text-warning"><?= (int)$count ?></span>
-                                    </div>
+                                    </a>
                                 <?php endforeach; ?>
+                            </div>
+                            <div class="mt-2 text-end">
+                                <a class="admin-seo-audit-link-all" href="<?= htmlspecialchars('/admin/seo-audit') ?>">Alle im Audit ansehen →</a>
                             </div>
                         <?php endif; ?>
                     </div>
@@ -273,7 +300,20 @@ $formatDelta = static function (int $delta): string {
                                     <?php foreach ($recentCritical as $item): ?>
                                         <tr>
                                             <td><?= htmlspecialchars((string)($item['title'] ?? '')) ?><div class="text-secondary small"><?= htmlspecialchars((string)($item['type'] ?? '')) ?> · <?= htmlspecialchars((string)($item['slug'] ?? '')) ?></div></td>
-                                            <td><span class="badge bg-danger"><?= (int)($item['seo_score_value'] ?? 0) ?></span></td>
+                                            <td>
+                                                <?php $itemScore = max(0, min(100, (int)($item['seo_score_value'] ?? 0))); ?>
+                                                <?php
+                                                $itemScoreToneClass = $itemScore < 40
+                                                    ? 'is-danger'
+                                                    : ($itemScore <= 70 ? 'is-warning' : 'is-success');
+                                                ?>
+                                                <div class="admin-seo-score-cell">
+                                                    <div class="admin-seo-score-cell__value"><?= $itemScore ?>/100</div>
+                                                    <div class="admin-seo-score-progress <?= $itemScoreToneClass ?>" style="--seo-score: <?= $itemScore ?>;">
+                                                        <span class="admin-seo-score-progress__fill" aria-hidden="true"></span>
+                                                    </div>
+                                                </div>
+                                            </td>
                                             <td>
                                                 <?php foreach (array_slice((array)($item['seo_issues'] ?? []), 0, 3) as $issue): ?>
                                                     <div class="small text-warning"><?= htmlspecialchars((string)($issue['msg'] ?? '')) ?></div>

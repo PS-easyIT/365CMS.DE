@@ -88,9 +88,84 @@
         });
     }
 
+    function parsePreviewCandidates(imageElement) {
+        if (!imageElement) {
+            return [];
+        }
+
+        try {
+            var parsed = JSON.parse(imageElement.getAttribute('data-preview-candidates') || '[]');
+            return Array.isArray(parsed) ? parsed.filter(Boolean) : [];
+        } catch (error) {
+            return [];
+        }
+    }
+
+    function bindThemePreviewFallbacks() {
+        var previewRoots = document.querySelectorAll('[data-theme-preview-root]');
+        if (!previewRoots.length) {
+            return;
+        }
+
+        previewRoots.forEach(function (root) {
+            var image = root.querySelector('[data-theme-preview-image]');
+            var fallback = root.querySelector('[data-theme-preview-fallback]');
+            var candidates = parsePreviewCandidates(image);
+            var candidateIndex = 0;
+
+            function showFallback() {
+                if (image) {
+                    image.hidden = true;
+                }
+                if (fallback) {
+                    fallback.hidden = false;
+                }
+            }
+
+            function loadNextCandidate() {
+                if (!image) {
+                    return;
+                }
+
+                if (candidateIndex >= candidates.length) {
+                    showFallback();
+                    return;
+                }
+
+                image.hidden = false;
+                image.src = candidates[candidateIndex];
+                candidateIndex += 1;
+            }
+
+            if (!image) {
+                return;
+            }
+
+            image.addEventListener('error', loadNextCandidate);
+            image.addEventListener('load', function () {
+                if (fallback) {
+                    fallback.hidden = true;
+                }
+                image.hidden = false;
+            });
+
+            if (candidates.length === 0) {
+                showFallback();
+                return;
+            }
+
+            if (!image.getAttribute('src')) {
+                loadNextCandidate();
+            } else {
+                candidateIndex = 1;
+            }
+        });
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
         var config = parseConfig('theme-marketplace-config');
         bindMarketplaceFilter(config);
         bindMarketplaceInstallForms(config);
+        bindThemePreviewFallbacks();
     });
 })();

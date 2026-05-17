@@ -18,6 +18,9 @@ $runtimeBaseUrl = function_exists('home_url') ? rtrim((string) home_url(), '/') 
 $buildRuntimePublicUrl = static function (string $path) use ($runtimeBaseUrl): string {
     return $runtimeBaseUrl . '/' . ltrim($path, '/');
 };
+$hasGenerationError = in_array((string)($alert['type'] ?? ''), ['danger', 'error'], true);
+$imageSitemapEnabled = !empty($settings['seo_sitemap_image_enabled']);
+$newsSitemapEnabled = !empty($settings['seo_sitemap_news_enabled']);
 ?>
 <div class="page-header d-print-none admin-redesign-header">
     <div class="container-xl">
@@ -66,7 +69,26 @@ $buildRuntimePublicUrl = static function (string $path) use ($runtimeBaseUrl): s
                             </thead>
                             <tbody>
                                 <?php foreach ($files as $name => $file): ?>
-                                    <?php $publicFileUrl = $buildRuntimePublicUrl((string) $name); ?>
+                                    <?php
+                                    $publicFileUrl = $buildRuntimePublicUrl((string) $name);
+                                    $fileName = (string)$name;
+                                    $isFileEnabled = true;
+                                    if ($fileName === 'images.xml') {
+                                        $isFileEnabled = $imageSitemapEnabled;
+                                    } elseif ($fileName === 'news.xml') {
+                                        $isFileEnabled = $newsSitemapEnabled;
+                                    }
+                                    $statusTooltip = '';
+                                    if (empty($file['exists'])) {
+                                        if (!$isFileEnabled) {
+                                            $statusTooltip = 'Deaktiviert — in Einstellungen aktivieren';
+                                        } elseif ($hasGenerationError) {
+                                            $statusTooltip = 'Generierungsfehler — Logs prüfen';
+                                        } else {
+                                            $statusTooltip = 'Noch nicht generiert — Sitemaps generieren klicken';
+                                        }
+                                    }
+                                    ?>
                                     <tr>
                                         <td>
                                             <div><code><?= htmlspecialchars((string) $name) ?></code></div>
@@ -80,7 +102,7 @@ $buildRuntimePublicUrl = static function (string $path) use ($runtimeBaseUrl): s
                                             <?php if (!empty($file['exists'])): ?>
                                                 <span class="badge bg-success">vorhanden</span>
                                             <?php else: ?>
-                                                <span class="badge bg-danger">fehlt</span>
+                                                <span class="badge bg-danger" title="<?= htmlspecialchars($statusTooltip) ?>">fehlt</span>
                                             <?php endif; ?>
                                         </td>
                                         <td><?= htmlspecialchars((string) ($file['updated_at'] ?? '—')) ?></td>

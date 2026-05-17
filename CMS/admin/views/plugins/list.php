@@ -6,6 +6,7 @@ if (!defined('ABSPATH')) exit;
 $d       = $data ?? [];
 $plugins = $d['plugins'] ?? [];
 $stats   = $d['stats'] ?? [];
+$activeCount = (int)($stats['active'] ?? 0);
 $pluginMarketplaceUrl = '/admin/plugin-marketplace';
 ?>
 
@@ -50,10 +51,13 @@ require __DIR__ . '/../partials/flash-alert.php';
         </div>
     </div>
     <div class="col-sm-6 col-lg-4">
-        <div class="card">
+        <div class="card <?php echo $activeCount === 0 ? 'admin-plugin-kpi-active--empty' : ''; ?>">
             <div class="card-body">
                 <div class="subheader">Aktiv</div>
-                <div class="h1 mb-0 text-success"><?php echo (int)($stats['active'] ?? 0); ?></div>
+                <div class="h1 mb-0 <?php echo $activeCount === 0 ? 'text-secondary' : 'text-success'; ?>"><?php echo $activeCount; ?></div>
+                <?php if ($activeCount === 0): ?>
+                <div class="admin-plugin-kpi-note">Plugins über den Schieberegler aktivieren</div>
+                <?php endif; ?>
             </div>
         </div>
     </div>
@@ -95,11 +99,20 @@ require __DIR__ . '/../partials/flash-alert.php';
                         ?>
                         <?php else: ?>
                         <?php foreach ($plugins as $p): ?>
-                        <tr>
+                        <?php
+                        $isActive = !empty($p['active']);
+                        $isSystem = !empty($p['is_system']) || !empty($p['protected']);
+                        $pluginName = (string)($p['name'] ?? '');
+                        $deleteConfirmMessage = 'Plugin [' . $pluginName . '] und alle zugehörigen Daten werden entfernt. Diese Aktion kann nicht rückgängig gemacht werden.';
+                        ?>
+                        <tr class="admin-plugin-row">
                             <td>
                                 <div class="fw-bold"><?php echo htmlspecialchars($p['name']); ?></div>
                                 <?php if (!empty($p['description'])): ?>
-                                <div class="text-secondary small"><?php echo htmlspecialchars($p['description']); ?></div>
+                                <div class="text-secondary small admin-plugin-description js-plugin-description">
+                                    <span class="admin-plugin-description__text"><?php echo htmlspecialchars($p['description']); ?></span>
+                                    <button type="button" class="btn btn-link btn-sm p-0 admin-plugin-description__toggle js-plugin-description-toggle d-none">... mehr</button>
+                                </div>
                                 <?php endif; ?>
                                 <div class="text-secondary small"><code><?php echo htmlspecialchars($p['slug']); ?></code></div>
                             </td>
@@ -107,12 +120,9 @@ require __DIR__ . '/../partials/flash-alert.php';
                             <td><?php echo htmlspecialchars($p['author'] ?? '-'); ?></td>
                             <td>
                                 <div class="d-flex flex-column gap-1 align-items-start">
-                                    <span class="badge <?php echo $p['active'] ? 'bg-success' : 'bg-secondary'; ?>"><?php echo $p['active'] ? 'Aktiv' : 'Inaktiv'; ?></span>
-                                    <?php if (!empty($p['protected'])): ?>
+                                    <span class="badge <?php echo $isActive ? 'bg-success' : 'bg-secondary'; ?>"><?php echo $isActive ? 'Aktiv' : 'Inaktiv'; ?></span>
+                                    <?php if ($isSystem): ?>
                                     <span class="badge bg-blue-lt text-primary">Mitgeliefert</span>
-                                    <span class="text-secondary small">Mit dem CMS ausgeliefert – kann deaktiviert, aber nicht gelöscht werden.</span>
-                                    <?php else: ?>
-                                    <span class="text-secondary small"><?php echo $p['active'] ? 'Im System geladen und einsatzbereit.' : 'Deaktiviert – kann per Schieberegler aktiviert werden.'; ?></span>
                                     <?php endif; ?>
                                 </div>
                             </td>
@@ -120,21 +130,32 @@ require __DIR__ . '/../partials/flash-alert.php';
                                 <div class="d-flex align-items-center gap-2 justify-content-end flex-wrap">
                                     <form method="post" class="m-0">
                                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>">
-                                        <input type="hidden" name="action" value="<?php echo $p['active'] ? 'deactivate' : 'activate'; ?>">
+                                        <input type="hidden" name="action" value="<?php echo $isActive ? 'deactivate' : 'activate'; ?>">
                                         <input type="hidden" name="slug" value="<?php echo htmlspecialchars($p['slug']); ?>">
-                                        <label class="form-check form-switch m-0" title="<?php echo $p['active'] ? 'Plugin deaktivieren' : 'Plugin aktivieren'; ?>">
-                                            <input class="form-check-input js-plugin-toggle-submit" type="checkbox" <?php echo $p['active'] ? 'checked' : ''; ?>>
+                                        <label class="form-check form-switch m-0" title="<?php echo $isActive ? 'Plugin deaktivieren' : 'Plugin aktivieren'; ?>">
+                                            <input class="form-check-input js-plugin-toggle-submit" type="checkbox" <?php echo $isActive ? 'checked' : ''; ?>>
                                         </label>
                                     </form>
-                                    <?php if (!$p['active'] && empty($p['protected'])): ?>
-                                        <form method="post" class="m-0" data-confirm-message="Plugin endgültig löschen?" data-confirm-title="Plugin löschen" data-confirm-text="Löschen" data-confirm-class="btn-danger" data-confirm-status-class="bg-danger">
+                                    <span class="admin-plugin-toggle-status js-plugin-toggle-status <?php echo $isActive ? 'is-active' : 'is-inactive'; ?>">
+                                        <?php echo $isActive ? 'Aktiv' : 'Inaktiv'; ?>
+                                    </span>
+                                    <?php if (!$isActive && !$isSystem): ?>
+                                        <form method="post" class="m-0 admin-plugin-delete-form"
+                                              data-confirm-message="<?php echo htmlspecialchars($deleteConfirmMessage); ?>"
+                                              data-confirm-title="Plugin deinstallieren?"
+                                              data-confirm-text="Deinstallieren"
+                                              data-confirm-cancel-class="btn-outline-secondary"
+                                              data-confirm-class="btn-danger"
+                                              data-confirm-status-class="bg-danger">
                                             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>">
                                             <input type="hidden" name="action" value="delete">
                                             <input type="hidden" name="slug" value="<?php echo htmlspecialchars($p['slug']); ?>">
-                                            <button class="btn btn-ghost-danger btn-sm">Löschen</button>
+                                            <button class="btn btn-ghost-danger btn-sm" type="submit">Löschen</button>
                                         </form>
-                                    <?php elseif (!empty($p['protected'])): ?>
-                                        <span class="text-muted small">Systembestandteil</span>
+                                    <?php elseif ($isSystem): ?>
+                                        <span class="admin-plugin-system-lock text-secondary" title="Systemintegration — kann nicht gelöscht werden.">
+                                            <i class="ti ti-lock" aria-hidden="true"></i>
+                                        </span>
                                     <?php endif; ?>
                                 </div>
                             </td>

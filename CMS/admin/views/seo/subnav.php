@@ -32,7 +32,9 @@ $sectionNavGroups = [[
 
 $currentSectionPage = (string) ($activePage ?? 'seo-dashboard');
 ?>
-<?php require dirname(__DIR__) . '/partials/section-subnav.php'; ?>
+<div class="admin-seo-subnav">
+    <?php require dirname(__DIR__) . '/partials/section-subnav.php'; ?>
+</div>
 
 <div class="card mb-4 admin-redesign-toolbar-card">
     <div class="card-body py-3">

@@ -63,7 +63,7 @@ $isEnglishEditorView = $editorLocale === 'en';
                 <h2 class="page-title"><?= $isNew ? 'Neue Seite' : 'Seite bearbeiten' ?></h2>
             </div>
             <div class="col-auto ms-auto">
-                <a href="<?= $pageAdminBaseUrl ?>" class="btn btn-outline-secondary">
+                <a href="<?= $pageAdminBaseUrl ?>" class="btn btn-outline-secondary" id="pageBackToList">
                     ← Zurück zur Liste
                 </a>
             </div>
@@ -258,7 +258,7 @@ $isEnglishEditorView = $editorLocale === 'en';
                 </div>
 
                 <div class="col-lg-4 d-flex cms-editor-sidebar-slot">
-                    <div class="card cms-edit-card cms-edit-top-card h-100 w-100">
+                    <div class="card cms-edit-card cms-edit-top-card h-100 w-100 cms-publication-card">
                         <div class="card-header">
                             <h3 class="card-title">Veröffentlichung</h3>
                         </div>
@@ -290,8 +290,8 @@ $isEnglishEditorView = $editorLocale === 'en';
                         <div class="card-header d-flex justify-content-between align-items-center gap-3 flex-wrap">
                             <h3 class="card-title"><?= $isEnglishEditorView ? 'Inhalt · English' : 'Inhalt · Deutsch' ?></h3>
                             <div class="btn-group" role="group" aria-label="Inhaltssprache wählen">
-                                <a class="btn <?= $isEnglishEditorView ? 'btn-outline-primary' : 'btn-primary' ?>" href="<?= htmlspecialchars($pageEditUrlDe) ?>" aria-current="<?= $isEnglishEditorView ? 'false' : 'page' ?>">Deutsch</a>
-                                <a class="btn <?= $isEnglishEditorView ? 'btn-primary' : 'btn-outline-primary' ?>" href="<?= htmlspecialchars($pageEditUrlEn) ?>" aria-current="<?= $isEnglishEditorView ? 'page' : 'false' ?>">English</a>
+                                <a class="btn <?= $isEnglishEditorView ? 'btn-outline-primary' : 'btn-primary' ?>" href="<?= htmlspecialchars($pageEditUrlDe) ?>" aria-current="<?= $isEnglishEditorView ? 'false' : 'page' ?>" data-lang-tab="de">Deutsch</a>
+                                <a class="btn <?= $isEnglishEditorView ? 'btn-primary' : 'btn-outline-primary' ?>" href="<?= htmlspecialchars($pageEditUrlEn) ?>" aria-current="<?= $isEnglishEditorView ? 'page' : 'false' ?>" data-lang-tab="en">English</a>
                             </div>
                         </div>
                         <div class="card-body">
@@ -590,6 +590,8 @@ $isEnglishEditorView = $editorLocale === 'en';
 
         $pageContentUiConfig = [
             'formId' => 'pageForm',
+            'titleSelector' => '.page-header .page-title',
+            'backLinkId' => 'pageBackToList',
             'removeButtonId' => 'featuredImageRemove',
             'imageInputId' => 'featuredImageInput',
             'tempPathInputId' => 'featuredImageInput_temp_path',

@@ -77,7 +77,8 @@ $mediaLibraryConfig = [
     'bulkTagsWrapId' => 'mediaBulkTagsWrap',
     'bulkTagsFieldId' => 'mediaBulkTags',
 ];
-$hasAdvancedMediaFilters = $fileTypeFilter !== 'all' || $extensionFilter !== '' || $sizeFilter !== 'all' || $modifiedFilter !== 'all';
+$hasAdvancedMediaFilters = $orphanDays > 0 || $fileTypeFilter !== 'all' || $extensionFilter !== '' || $sizeFilter !== 'all' || $modifiedFilter !== 'all';
+$showAdvancedMediaFilters = $hasAdvancedMediaFilters;
 
 // Dateityp-Icon Helper
 if (!function_exists('mediaTypeIcon')) {
@@ -104,6 +105,31 @@ function renderMoveTargetOptions(array $targets, string $selectedPath = ''): str
     }
 
     return $html;
+}
+}
+
+if (!function_exists('findFilterOptionLabel')) {
+function findFilterOptionLabel(array $options, string $selectedValue, string $fallbackLabel): string {
+    foreach ($options as $option) {
+        if ((string)($option['value'] ?? '') === $selectedValue) {
+            return (string)($option['label'] ?? $fallbackLabel);
+        }
+    }
+
+    return $fallbackLabel;
+}
+}
+
+if (!function_exists('buildMediaFilterUrl')) {
+function buildMediaFilterUrl(string $baseUrl, array $params): string {
+    $filtered = array_filter(
+        $params,
+        static function ($value): bool {
+            return $value !== '' && $value !== null;
+        }
+    );
+
+    return $filtered === [] ? $baseUrl : $baseUrl . '?' . http_build_query($filtered);
 }
 }
 
@@ -295,6 +321,87 @@ function renderMediaDuplicateSummary(array $file, bool $compact = false): string
 
 ?>
 
+<?php
+$baseFilterParams = [
+    'path' => $path,
+    'view' => $view,
+];
+if ($confirmMember) {
+    $baseFilterParams['confirm_member'] = '1';
+}
+$activeAdvancedFilterChips = [];
+if ($orphanDays > 0) {
+    $activeAdvancedFilterChips[] = [
+        'label' => 'Orphan-Prüfung: ' . findFilterOptionLabel($orphanDayOptions, (string)$orphanDays, $orphanDays . ' Tage'),
+        'url' => buildMediaFilterUrl($baseUrl, array_merge($baseFilterParams, [
+            'category' => $category,
+            'usage_filter' => $usageFilter,
+            'q' => $search,
+            'file_type' => $fileTypeFilter,
+            'extension' => $extensionFilter,
+            'size_filter' => $sizeFilter,
+            'modified_filter' => $modifiedFilter,
+        ])),
+    ];
+}
+if ($fileTypeFilter !== 'all') {
+    $activeAdvancedFilterChips[] = [
+        'label' => 'Dateityp: ' . findFilterOptionLabel($fileTypeFilterOptions, $fileTypeFilter, $fileTypeFilter),
+        'url' => buildMediaFilterUrl($baseUrl, array_merge($baseFilterParams, [
+            'category' => $category,
+            'usage_filter' => $usageFilter,
+            'q' => $search,
+            'orphan_days' => $orphanDays > 0 ? (string)$orphanDays : '',
+            'extension' => $extensionFilter,
+            'size_filter' => $sizeFilter,
+            'modified_filter' => $modifiedFilter,
+        ])),
+    ];
+}
+if ($extensionFilter !== '') {
+    $activeAdvancedFilterChips[] = [
+        'label' => 'Endung: ' . findFilterOptionLabel($extensionFilterOptions, $extensionFilter, $extensionFilter),
+        'url' => buildMediaFilterUrl($baseUrl, array_merge($baseFilterParams, [
+            'category' => $category,
+            'usage_filter' => $usageFilter,
+            'q' => $search,
+            'orphan_days' => $orphanDays > 0 ? (string)$orphanDays : '',
+            'file_type' => $fileTypeFilter,
+            'size_filter' => $sizeFilter,
+            'modified_filter' => $modifiedFilter,
+        ])),
+    ];
+}
+if ($sizeFilter !== 'all') {
+    $activeAdvancedFilterChips[] = [
+        'label' => 'Größe: ' . findFilterOptionLabel($sizeFilterOptions, $sizeFilter, $sizeFilter),
+        'url' => buildMediaFilterUrl($baseUrl, array_merge($baseFilterParams, [
+            'category' => $category,
+            'usage_filter' => $usageFilter,
+            'q' => $search,
+            'orphan_days' => $orphanDays > 0 ? (string)$orphanDays : '',
+            'file_type' => $fileTypeFilter,
+            'extension' => $extensionFilter,
+            'modified_filter' => $modifiedFilter,
+        ])),
+    ];
+}
+if ($modifiedFilter !== 'all') {
+    $activeAdvancedFilterChips[] = [
+        'label' => 'Änderung: ' . findFilterOptionLabel($modifiedFilterOptions, $modifiedFilter, $modifiedFilter),
+        'url' => buildMediaFilterUrl($baseUrl, array_merge($baseFilterParams, [
+            'category' => $category,
+            'usage_filter' => $usageFilter,
+            'q' => $search,
+            'orphan_days' => $orphanDays > 0 ? (string)$orphanDays : '',
+            'file_type' => $fileTypeFilter,
+            'extension' => $extensionFilter,
+            'size_filter' => $sizeFilter,
+        ])),
+    ];
+}
+?>
+
 <div class="page-header d-print-none">
     <div class="container-xl">
         <div class="content-listing-header">
@@ -307,6 +414,14 @@ function renderMediaDuplicateSummary(array $file, bool $compact = false): string
                     <span><?php echo (int)($stats['category_count'] ?? count($categories)); ?> Kategorien</span>
                     <span><?php echo (int)($stats['used_file_count'] ?? 0); ?> eingebunden</span>
                     <span>Speicher: <?php echo htmlspecialchars((string)($stats['storage_label'] ?? ($diskUsage['formatted'] ?? '0 B'))); ?></span>
+                </div>
+                <div class="media-constraints-inline">
+                    <i class="ti ti-info-circle" aria-hidden="true"></i>
+                    <span>
+                        Max. <?php echo (int)($constraints['max_upload_files'] ?? 0); ?> Dateien/Upload ·
+                        <?php echo htmlspecialchars((string)($constraints['max_upload_batch_label'] ?? '—')); ?> Gesamtpaket ·
+                        Suchbegriff <?php echo (int)($constraints['search_max_length'] ?? 120); ?> Zeichen
+                    </span>
                 </div>
             </div>
             <div class="d-flex flex-wrap gap-2">
@@ -335,21 +450,6 @@ function renderMediaDuplicateSummary(array $file, bool $compact = false): string
             <div class="card-header content-listing-toolbar">
                 <div class="content-listing-toolbar__label">Ordner, Filter &amp; Suche</div>
                 <div class="w-100">
-                    <div class="cms-admin-info-box mb-3" role="note">
-                        <div class="cms-admin-info-box__head">
-                            <h3 class="cms-admin-info-box__title">Bibliotheks-Grenzen</h3>
-                            <div class="cms-admin-info-box__actions">
-                                <a href="/admin/media?tab=settings" class="btn btn-sm btn-outline-secondary">Einstellungen</a>
-                                <a href="/admin/media?tab=categories" class="btn btn-sm btn-outline-secondary">Kategorien</a>
-                            </div>
-                        </div>
-                        <p class="cms-admin-info-box__text">
-                            Maximal <?php echo (int)($constraints['max_upload_files'] ?? 0); ?> Dateien pro Upload,
-                            Gesamtpaket bis <?php echo htmlspecialchars((string)($constraints['max_upload_batch_label'] ?? '—')); ?>,
-                            Suchbegriff bis <?php echo (int)($constraints['search_max_length'] ?? 120); ?> Zeichen
-                            und Ordnernamen bis <?php echo (int)($constraints['folder_name_max_length'] ?? 120); ?> Zeichen.
-                        </p>
-                    </div>
                     <div class="media-toolbar">
                         <nav aria-label="Breadcrumb">
                             <ol class="breadcrumb mb-0 media-breadcrumb">
@@ -367,73 +467,95 @@ function renderMediaDuplicateSummary(array $file, bool $compact = false): string
                         </nav>
 
                         <div class="media-toolbar-right media-toolbar-right--browse">
-                            <form method="get" action="<?php echo htmlspecialchars($baseUrl); ?>" class="media-filters">
+                            <form method="get" action="<?php echo htmlspecialchars($baseUrl); ?>" class="media-filters media-filters--collapsible" data-media-filter-form>
                                 <input type="hidden" name="path" value="<?php echo htmlspecialchars($path); ?>">
                                 <input type="hidden" name="view" value="<?php echo htmlspecialchars($view); ?>">
                                 <?php if ($confirmMember): ?>
                                     <input type="hidden" name="confirm_member" value="1">
                                 <?php endif; ?>
-                                <select class="form-select form-select-sm media-filter-category" name="category" data-media-auto-submit-select="1">
-                                    <option value="">Alle Kategorien</option>
-                                    <?php foreach ($categoryOptions as $cat): ?>
-                                        <option value="<?php echo htmlspecialchars((string)($cat['slug'] ?? '')); ?>" <?php echo $category === ($cat['slug'] ?? '') ? 'selected' : ''; ?>>
-                                            <?php echo htmlspecialchars((string)($cat['name'] ?? '')); ?> (<?php echo (int)($cat['count'] ?? 0); ?>)
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                                <select class="form-select form-select-sm media-filter-category" name="usage_filter" data-media-auto-submit-select="1">
-                                    <?php foreach ($usageFilterOptions as $option): ?>
-                                        <option value="<?php echo htmlspecialchars((string)($option['value'] ?? 'all')); ?>" <?php echo $usageFilter === ($option['value'] ?? 'all') ? 'selected' : ''; ?>>
-                                            <?php echo htmlspecialchars((string)($option['label'] ?? 'Alle Medien')); ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                                <select class="form-select form-select-sm media-filter-category" name="orphan_days" data-media-auto-submit-select="1" aria-label="Verwaiste Medien nach Alter filtern">
-                                    <?php foreach ($orphanDayOptions as $option): ?>
-                                        <option value="<?php echo htmlspecialchars((string)($option['value'] ?? '0')); ?>" <?php echo (string)$orphanDays === (string)($option['value'] ?? '0') ? 'selected' : ''; ?>>
-                                            <?php echo htmlspecialchars((string)($option['label'] ?? 'Keine Orphan-Prüfung')); ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                                <select class="form-select form-select-sm media-filter-category" name="file_type" data-media-auto-submit-select="1" aria-label="Dateityp filtern">
-                                    <?php foreach ($fileTypeFilterOptions as $option): ?>
-                                        <option value="<?php echo htmlspecialchars((string)($option['value'] ?? 'all')); ?>" <?php echo $fileTypeFilter === ($option['value'] ?? 'all') ? 'selected' : ''; ?>>
-                                            <?php echo htmlspecialchars((string)($option['label'] ?? 'Alle Dateitypen')); ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                                <select class="form-select form-select-sm media-filter-category" name="extension" data-media-auto-submit-select="1" aria-label="Dateiendung filtern">
-                                    <option value="">Alle Endungen</option>
-                                    <?php foreach ($extensionFilterOptions as $option): ?>
-                                        <option value="<?php echo htmlspecialchars((string)($option['value'] ?? ''), ENT_QUOTES); ?>" <?php echo $extensionFilter === ($option['value'] ?? '') ? 'selected' : ''; ?>>
-                                            <?php echo htmlspecialchars((string)($option['label'] ?? '')); ?> (<?php echo (int)($option['count'] ?? 0); ?>)
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                                <select class="form-select form-select-sm media-filter-category" name="size_filter" data-media-auto-submit-select="1" aria-label="Dateigröße filtern">
-                                    <?php foreach ($sizeFilterOptions as $option): ?>
-                                        <option value="<?php echo htmlspecialchars((string)($option['value'] ?? 'all')); ?>" <?php echo $sizeFilter === ($option['value'] ?? 'all') ? 'selected' : ''; ?>>
-                                            <?php echo htmlspecialchars((string)($option['label'] ?? 'Alle Größen')); ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                                <select class="form-select form-select-sm media-filter-category" name="modified_filter" data-media-auto-submit-select="1" aria-label="Änderungszeitraum filtern">
-                                    <?php foreach ($modifiedFilterOptions as $option): ?>
-                                        <option value="<?php echo htmlspecialchars((string)($option['value'] ?? 'all')); ?>" <?php echo $modifiedFilter === ($option['value'] ?? 'all') ? 'selected' : ''; ?>>
-                                            <?php echo htmlspecialchars((string)($option['label'] ?? 'Alle Änderungsdaten')); ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                                <div class="input-group input-group-sm media-filter-search">
-                                    <input type="search" class="form-control" name="q" placeholder="Dateien suchen …" value="<?php echo htmlspecialchars($search); ?>" maxlength="<?php echo (int)($constraints['search_max_length'] ?? 120); ?>">
-                                    <button type="submit" class="btn btn-icon">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0"/><path d="M21 21l-6 -6"/></svg>
+                                <div class="media-filters-primary">
+                                    <select class="form-select form-select-sm media-filter-category" name="category" data-media-auto-submit-select="1">
+                                        <option value="">Alle Kategorien</option>
+                                        <?php foreach ($categoryOptions as $cat): ?>
+                                            <option value="<?php echo htmlspecialchars((string)($cat['slug'] ?? '')); ?>" <?php echo $category === ($cat['slug'] ?? '') ? 'selected' : ''; ?>>
+                                                <?php echo htmlspecialchars((string)($cat['name'] ?? '')); ?> (<?php echo (int)($cat['count'] ?? 0); ?>)
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <select class="form-select form-select-sm media-filter-category" name="usage_filter" data-media-auto-submit-select="1">
+                                        <?php foreach ($usageFilterOptions as $option): ?>
+                                            <option value="<?php echo htmlspecialchars((string)($option['value'] ?? 'all')); ?>" <?php echo $usageFilter === ($option['value'] ?? 'all') ? 'selected' : ''; ?>>
+                                                <?php echo htmlspecialchars((string)($option['label'] ?? 'Alle Medien')); ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <div class="input-group input-group-sm media-filter-search">
+                                        <input type="search" class="form-control" name="q" placeholder="Dateien suchen …" value="<?php echo htmlspecialchars($search); ?>" maxlength="<?php echo (int)($constraints['search_max_length'] ?? 120); ?>">
+                                        <button type="submit" class="btn btn-icon">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0"/><path d="M21 21l-6 -6"/></svg>
+                                        </button>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        class="btn btn-sm btn-outline-secondary media-advanced-toggle"
+                                        data-media-advanced-toggle="1"
+                                        aria-expanded="<?php echo $showAdvancedMediaFilters ? 'true' : 'false'; ?>">
+                                        Erweiterte Filter <?php echo $showAdvancedMediaFilters ? '▴' : '▾'; ?>
                                     </button>
                                 </div>
-                                <?php if ($hasAdvancedMediaFilters || $category !== '' || $usageFilter !== 'all' || $search !== '' || $orphanDays > 0): ?>
+                                <div class="media-filters-advanced <?php echo $showAdvancedMediaFilters ? 'is-open' : ''; ?>" data-media-advanced-panel="1">
+                                    <select class="form-select form-select-sm media-filter-category" name="orphan_days" data-media-auto-submit-select="1" aria-label="Verwaiste Medien nach Alter filtern">
+                                        <?php foreach ($orphanDayOptions as $option): ?>
+                                            <option value="<?php echo htmlspecialchars((string)($option['value'] ?? '0')); ?>" <?php echo (string)$orphanDays === (string)($option['value'] ?? '0') ? 'selected' : ''; ?>>
+                                                <?php echo htmlspecialchars((string)($option['label'] ?? 'Keine Orphan-Prüfung')); ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <select class="form-select form-select-sm media-filter-category" name="file_type" data-media-auto-submit-select="1" aria-label="Dateityp filtern">
+                                        <?php foreach ($fileTypeFilterOptions as $option): ?>
+                                            <option value="<?php echo htmlspecialchars((string)($option['value'] ?? 'all')); ?>" <?php echo $fileTypeFilter === ($option['value'] ?? 'all') ? 'selected' : ''; ?>>
+                                                <?php echo htmlspecialchars((string)($option['label'] ?? 'Alle Dateitypen')); ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <select class="form-select form-select-sm media-filter-category" name="extension" data-media-auto-submit-select="1" aria-label="Dateiendung filtern">
+                                        <option value="">Alle Endungen</option>
+                                        <?php foreach ($extensionFilterOptions as $option): ?>
+                                            <option value="<?php echo htmlspecialchars((string)($option['value'] ?? ''), ENT_QUOTES); ?>" <?php echo $extensionFilter === ($option['value'] ?? '') ? 'selected' : ''; ?>>
+                                                <?php echo htmlspecialchars((string)($option['label'] ?? '')); ?> (<?php echo (int)($option['count'] ?? 0); ?>)
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <select class="form-select form-select-sm media-filter-category" name="size_filter" data-media-auto-submit-select="1" aria-label="Dateigröße filtern">
+                                        <?php foreach ($sizeFilterOptions as $option): ?>
+                                            <option value="<?php echo htmlspecialchars((string)($option['value'] ?? 'all')); ?>" <?php echo $sizeFilter === ($option['value'] ?? 'all') ? 'selected' : ''; ?>>
+                                                <?php echo htmlspecialchars((string)($option['label'] ?? 'Alle Größen')); ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <select class="form-select form-select-sm media-filter-category" name="modified_filter" data-media-auto-submit-select="1" aria-label="Änderungszeitraum filtern">
+                                        <?php foreach ($modifiedFilterOptions as $option): ?>
+                                            <option value="<?php echo htmlspecialchars((string)($option['value'] ?? 'all')); ?>" <?php echo $modifiedFilter === ($option['value'] ?? 'all') ? 'selected' : ''; ?>>
+                                                <?php echo htmlspecialchars((string)($option['label'] ?? 'Alle Änderungsdaten')); ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                                <?php if ($hasAdvancedMediaFilters || $category !== '' || $usageFilter !== 'all' || $search !== ''): ?>
                                     <a href="<?php echo htmlspecialchars($resetFilterUrl, ENT_QUOTES); ?>" class="btn btn-sm btn-outline-secondary">Filter zurücksetzen</a>
                                 <?php endif; ?>
                             </form>
+                            <?php if ($activeAdvancedFilterChips !== []): ?>
+                                <div class="media-filter-chips" role="status" aria-live="polite">
+                                    <?php foreach ($activeAdvancedFilterChips as $chip): ?>
+                                        <a href="<?php echo htmlspecialchars((string)($chip['url'] ?? $resetFilterUrl), ENT_QUOTES); ?>" class="media-filter-chip">
+                                            <span class="media-filter-chip__remove" aria-hidden="true">×</span>
+                                            <?php echo htmlspecialchars((string)($chip['label'] ?? 'Filter')); ?>
+                                        </a>
+                                    <?php endforeach; ?>
+                                    <a href="<?php echo htmlspecialchars($resetFilterUrl, ENT_QUOTES); ?>" class="media-filter-reset-link">Alle zurücksetzen</a>
+                                </div>
+                            <?php endif; ?>
 
                             <div class="btn-group" role="group" aria-label="Ansicht umschalten">
                                 <a href="<?php echo htmlspecialchars($listUrl); ?>" class="btn btn-outline-primary <?php echo $view === 'list' ? 'active' : ''; ?>">
@@ -573,6 +695,17 @@ function renderMediaDuplicateSummary(array $file, bool $compact = false): string
                                             <option value="<?php echo htmlspecialchars((string)($bulkAction['value'] ?? ''), ENT_QUOTES); ?>"><?php echo htmlspecialchars((string)($bulkAction['label'] ?? '')); ?></option>
                                         <?php endforeach; ?>
                                     </select>
+                                    <?php if ($altTextBulkAvailable): ?>
+                                        <button
+                                            type="button"
+                                            class="btn btn-icon btn-outline-secondary"
+                                            data-bs-toggle="tooltip"
+                                            data-bs-placement="top"
+                                            title="Alt-Texte werden direkt pro sichtbarer Datei gepflegt und nur für ausgewählte Dateien gespeichert."
+                                            aria-label="Hinweis zu Alt-Text Bulk-Aktionen">
+                                            <i class="ti ti-info-circle" aria-hidden="true"></i>
+                                        </button>
+                                    <?php endif; ?>
                                     <div class="d-none" id="mediaBulkMoveWrap">
                                         <select class="form-select" id="mediaBulkTarget" name="target_parent_path" style="min-width: 18rem; max-width: 24rem;">
                                             <?php echo renderMoveTargetOptions($moveTargets, $path); ?>
@@ -599,12 +732,7 @@ function renderMediaDuplicateSummary(array $file, bool $compact = false): string
                                             style="min-width: 18rem; max-width: 26rem;"
                                             disabled>
                                     </div>
-                                    <?php if ($altTextBulkAvailable): ?>
-                                        <div class="text-secondary small">
-                                            Alt-Texte werden direkt pro sichtbarer Datei gepflegt und nur für ausgewählte Dateien gespeichert.
-                                        </div>
-                                    <?php endif; ?>
-                                    <button type="submit" class="btn btn-primary" aria-disabled="true" disabled>Diesen Medien-Batch ausführen</button>
+                                    <button type="submit" class="btn btn-primary" aria-disabled="true" disabled>Ausführen</button>
                                 </div>
                             </form>
                         </div>
@@ -613,8 +741,8 @@ function renderMediaDuplicateSummary(array $file, bool $compact = false): string
                             <?php foreach ($folders as $folder): ?>
                                 <?php $folderPath = (string)($folder['path'] ?? ''); ?>
                                 <div class="media-grid-item media-grid-folder">
-                                    <?php if (empty($folder['is_system'])): ?>
-                                        <div class="p-2 pb-0 d-flex justify-content-between align-items-start gap-2">
+                                    <div class="p-2 pb-0 d-flex justify-content-between align-items-start gap-2">
+                                        <?php if (empty($folder['is_system'])): ?>
                                             <label class="form-check m-0">
                                                 <input class="form-check-input bulk-row-check" type="checkbox" name="item_paths[]" form="mediaBulkForm" value="<?php echo htmlspecialchars($folderPath, ENT_QUOTES); ?>" aria-label="Ordner <?php echo htmlspecialchars((string)($folder['name'] ?? 'Ordner'), ENT_QUOTES); ?> auswählen">
                                             </label>
@@ -628,8 +756,19 @@ function renderMediaDuplicateSummary(array $file, bool $compact = false): string
                                                     <button type="button" class="dropdown-item text-danger js-media-delete" data-delete-path="<?php echo htmlspecialchars($folderPath, ENT_QUOTES); ?>" data-delete-name="<?php echo htmlspecialchars((string)($folder['name'] ?? 'Ordner'), ENT_QUOTES); ?>" data-delete-type="Ordner">Löschen</button>
                                                 </div>
                                             </div>
-                                        </div>
-                                    <?php endif; ?>
+                                        <?php else: ?>
+                                            <span class="badge bg-secondary-lt" title="Systemordner – wird automatisch verwaltet">
+                                                <i class="ti ti-lock" aria-hidden="true"></i>
+                                                System
+                                            </span>
+                                            <div class="dropdown">
+                                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" disabled aria-disabled="true">Aktionen</button>
+                                                <div class="dropdown-menu dropdown-menu-end">
+                                                    <span class="dropdown-item disabled">Keine Aktionen verfügbar</span>
+                                                </div>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
                                     <a href="<?php echo htmlspecialchars((string)($folder['url'] ?? $rootUrl)); ?>" class="text-decoration-none text-reset media-folder-link" <?php echo !empty($folder['requires_confirmation']) ? 'data-member-folder-confirm="1" data-confirm-url="' . htmlspecialchars((string)($folder['confirm_url'] ?? ''), ENT_QUOTES) . '"' : ''; ?>>
                                         <div class="media-grid-thumb"><span class="folder-icon">📁</span></div>
                                         <div class="media-grid-label"><?php echo htmlspecialchars((string)($folder['name'] ?? '')); ?></div>
@@ -702,9 +841,9 @@ function renderMediaDuplicateSummary(array $file, bool $compact = false): string
                                         <th style="width: 60px;">Typ</th>
                                         <th>Name</th>
                                         <th>Kategorie</th>
-                                        <th>Tags</th>
-                                        <th>Eingebunden in</th>
-                                        <th>Größe</th>
+                                        <th class="media-col-tags">Tags</th>
+                                        <th class="media-col-usage">Eingebunden in</th>
+                                        <th class="media-col-size-header" id="mediaSizeColumnLabel">Größe</th>
                                         <th>Geändert</th>
                                         <th class="w-1">Aktionen</th>
                                     </tr>
@@ -712,7 +851,7 @@ function renderMediaDuplicateSummary(array $file, bool $compact = false): string
                                 <tbody>
                                     <?php foreach ($folders as $folder): ?>
                                         <?php $folderPath = (string)($folder['path'] ?? ''); ?>
-                                        <tr>
+                                        <tr class="media-row media-row-folder" data-media-row-type="folder">
                                             <td>
                                                 <?php if (empty($folder['is_system'])): ?>
                                                     <label class="form-check m-0">
@@ -733,22 +872,43 @@ function renderMediaDuplicateSummary(array $file, bool $compact = false): string
                                                     <span class="text-secondary">—</span>
                                                 <?php endif; ?>
                                             </td>
-                                            <td><span class="text-secondary">—</span></td>
-                                            <td><span class="text-secondary">—</span></td>
-                                            <td class="text-secondary"><?php echo (int)($folder['items_count'] ?? 0); ?> Einträge</td>
+                                            <td class="media-col-tags"><span class="text-secondary">—</span></td>
+                                            <td class="media-col-usage"><span class="text-secondary">—</span></td>
+                                            <td class="text-secondary media-col-size media-folder-entry-count"><?php echo (int)($folder['items_count'] ?? 0); ?> Einträge</td>
                                             <td class="text-secondary"><?php echo htmlspecialchars((string)($folder['modified_label'] ?? '—')); ?></td>
-                                            <td>
+                                            <td class="media-col-actions">
                                                 <?php if (empty($folder['is_system'])): ?>
-                                                    <div class="dropdown">
-                                                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">Aktionen</button>
-                                                        <div class="dropdown-menu dropdown-menu-end">
-                                                            <button type="button" class="dropdown-item js-media-open-rename" data-bs-toggle="modal" data-bs-target="#mediaRenameModal" data-media-path="<?php echo htmlspecialchars($folderPath, ENT_QUOTES); ?>" data-media-name="<?php echo htmlspecialchars((string)($folder['name'] ?? ''), ENT_QUOTES); ?>" data-media-kind="Ordner">Umbenennen</button>
-                                                            <button type="button" class="dropdown-item js-media-open-move" data-bs-toggle="modal" data-bs-target="#mediaMoveModal" data-media-path="<?php echo htmlspecialchars($folderPath, ENT_QUOTES); ?>" data-media-name="<?php echo htmlspecialchars((string)($folder['name'] ?? ''), ENT_QUOTES); ?>" data-media-kind="Ordner" data-media-target="<?php echo htmlspecialchars($path, ENT_QUOTES); ?>">Verschieben</button>
-                                                            <button type="button" class="dropdown-item text-danger js-media-delete" data-delete-path="<?php echo htmlspecialchars($folderPath, ENT_QUOTES); ?>" data-delete-name="<?php echo htmlspecialchars((string)($folder['name'] ?? 'Ordner'), ENT_QUOTES); ?>" data-delete-type="Ordner">Löschen</button>
+                                                    <div class="media-row-actions">
+                                                        <div class="media-row-quick-actions" aria-hidden="true">
+                                                            <button type="button" class="btn btn-icon btn-sm btn-ghost-secondary js-media-open-rename" data-bs-toggle="modal" data-bs-target="#mediaRenameModal" data-media-path="<?php echo htmlspecialchars($folderPath, ENT_QUOTES); ?>" data-media-name="<?php echo htmlspecialchars((string)($folder['name'] ?? ''), ENT_QUOTES); ?>" data-media-kind="Ordner" aria-label="Ordner umbenennen">
+                                                                <i class="ti ti-edit" aria-hidden="true"></i>
+                                                            </button>
+                                                            <button type="button" class="btn btn-icon btn-sm btn-ghost-secondary media-row-quick-delete js-media-delete" data-delete-path="<?php echo htmlspecialchars($folderPath, ENT_QUOTES); ?>" data-delete-name="<?php echo htmlspecialchars((string)($folder['name'] ?? 'Ordner'), ENT_QUOTES); ?>" data-delete-type="Ordner" aria-label="Ordner löschen">
+                                                                <i class="ti ti-trash" aria-hidden="true"></i>
+                                                            </button>
+                                                        </div>
+                                                        <div class="dropdown">
+                                                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">Aktionen</button>
+                                                            <div class="dropdown-menu dropdown-menu-end">
+                                                                <button type="button" class="dropdown-item js-media-open-rename" data-bs-toggle="modal" data-bs-target="#mediaRenameModal" data-media-path="<?php echo htmlspecialchars($folderPath, ENT_QUOTES); ?>" data-media-name="<?php echo htmlspecialchars((string)($folder['name'] ?? ''), ENT_QUOTES); ?>" data-media-kind="Ordner">Umbenennen</button>
+                                                                <button type="button" class="dropdown-item js-media-open-move" data-bs-toggle="modal" data-bs-target="#mediaMoveModal" data-media-path="<?php echo htmlspecialchars($folderPath, ENT_QUOTES); ?>" data-media-name="<?php echo htmlspecialchars((string)($folder['name'] ?? ''), ENT_QUOTES); ?>" data-media-kind="Ordner" data-media-target="<?php echo htmlspecialchars($path, ENT_QUOTES); ?>">Verschieben</button>
+                                                                <button type="button" class="dropdown-item text-danger js-media-delete" data-delete-path="<?php echo htmlspecialchars($folderPath, ENT_QUOTES); ?>" data-delete-name="<?php echo htmlspecialchars((string)($folder['name'] ?? 'Ordner'), ENT_QUOTES); ?>" data-delete-type="Ordner">Löschen</button>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 <?php else: ?>
-                                                    <span class="badge bg-secondary-lt">System</span>
+                                                    <div class="media-row-actions">
+                                                        <span class="badge bg-secondary-lt" title="Systemordner – wird automatisch verwaltet">
+                                                            <i class="ti ti-lock" aria-hidden="true"></i>
+                                                            System
+                                                        </span>
+                                                        <div class="dropdown">
+                                                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" disabled aria-disabled="true">Aktionen</button>
+                                                            <div class="dropdown-menu dropdown-menu-end">
+                                                                <span class="dropdown-item disabled">Keine Aktionen verfügbar</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                 <?php endif; ?>
                                             </td>
                                         </tr>
@@ -756,7 +916,7 @@ function renderMediaDuplicateSummary(array $file, bool $compact = false): string
 
                                     <?php foreach ($files as $file): ?>
                                         <?php $filePath = (string)($file['path'] ?? ''); ?>
-                                        <tr>
+                                        <tr class="media-row media-row-file" data-media-row-type="file">
                                             <td>
                                                 <label class="form-check m-0">
                                                     <input class="form-check-input bulk-row-check" type="checkbox" name="item_paths[]" form="mediaBulkForm" value="<?php echo htmlspecialchars($filePath, ENT_QUOTES); ?>" aria-label="Datei <?php echo htmlspecialchars((string)($file['name'] ?? 'Datei'), ENT_QUOTES); ?> auswählen">
@@ -808,17 +968,27 @@ function renderMediaDuplicateSummary(array $file, bool $compact = false): string
                                                     </select>
                                                 </form>
                                             </td>
-                                            <td><?php echo renderMediaTags($file); ?></td>
-                                            <td><?php echo renderMediaUsageList((array)($file['usage_items'] ?? []), is_array($file['usage_summary'] ?? null) ? $file['usage_summary'] : []); ?></td>
-                                            <td class="text-secondary"><?php echo htmlspecialchars((string)($file['formatted_size'] ?? '—')); ?></td>
+                                            <td class="media-col-tags"><?php echo renderMediaTags($file); ?></td>
+                                            <td class="media-col-usage"><?php echo renderMediaUsageList((array)($file['usage_items'] ?? []), is_array($file['usage_summary'] ?? null) ? $file['usage_summary'] : []); ?></td>
+                                            <td class="text-secondary media-col-size"><?php echo htmlspecialchars((string)($file['formatted_size'] ?? '—')); ?></td>
                                             <td class="text-secondary"><?php echo htmlspecialchars((string)($file['modified_label'] ?? '—')); ?></td>
-                                            <td>
-                                                <div class="dropdown">
-                                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">Aktionen</button>
-                                                    <div class="dropdown-menu dropdown-menu-end">
-                                                        <button type="button" class="dropdown-item js-media-open-rename" data-bs-toggle="modal" data-bs-target="#mediaRenameModal" data-media-path="<?php echo htmlspecialchars($filePath, ENT_QUOTES); ?>" data-media-name="<?php echo htmlspecialchars((string)($file['name'] ?? ''), ENT_QUOTES); ?>" data-media-kind="Datei">Umbenennen</button>
-                                                        <button type="button" class="dropdown-item js-media-open-move" data-bs-toggle="modal" data-bs-target="#mediaMoveModal" data-media-path="<?php echo htmlspecialchars($filePath, ENT_QUOTES); ?>" data-media-name="<?php echo htmlspecialchars((string)($file['name'] ?? ''), ENT_QUOTES); ?>" data-media-kind="Datei" data-media-target="<?php echo htmlspecialchars($path, ENT_QUOTES); ?>">Verschieben</button>
-                                                        <button type="button" class="dropdown-item text-danger js-media-delete" data-delete-path="<?php echo htmlspecialchars($filePath, ENT_QUOTES); ?>" data-delete-name="<?php echo htmlspecialchars((string)($file['name'] ?? 'Datei'), ENT_QUOTES); ?>" data-delete-type="Datei">Löschen</button>
+                                            <td class="media-col-actions">
+                                                <div class="media-row-actions">
+                                                    <div class="media-row-quick-actions" aria-hidden="true">
+                                                        <button type="button" class="btn btn-icon btn-sm btn-ghost-secondary js-media-open-rename" data-bs-toggle="modal" data-bs-target="#mediaRenameModal" data-media-path="<?php echo htmlspecialchars($filePath, ENT_QUOTES); ?>" data-media-name="<?php echo htmlspecialchars((string)($file['name'] ?? ''), ENT_QUOTES); ?>" data-media-kind="Datei" aria-label="Datei umbenennen">
+                                                            <i class="ti ti-edit" aria-hidden="true"></i>
+                                                        </button>
+                                                        <button type="button" class="btn btn-icon btn-sm btn-ghost-secondary media-row-quick-delete js-media-delete" data-delete-path="<?php echo htmlspecialchars($filePath, ENT_QUOTES); ?>" data-delete-name="<?php echo htmlspecialchars((string)($file['name'] ?? 'Datei'), ENT_QUOTES); ?>" data-delete-type="Datei" aria-label="Datei löschen">
+                                                            <i class="ti ti-trash" aria-hidden="true"></i>
+                                                        </button>
+                                                    </div>
+                                                    <div class="dropdown">
+                                                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">Aktionen</button>
+                                                        <div class="dropdown-menu dropdown-menu-end">
+                                                            <button type="button" class="dropdown-item js-media-open-rename" data-bs-toggle="modal" data-bs-target="#mediaRenameModal" data-media-path="<?php echo htmlspecialchars($filePath, ENT_QUOTES); ?>" data-media-name="<?php echo htmlspecialchars((string)($file['name'] ?? ''), ENT_QUOTES); ?>" data-media-kind="Datei">Umbenennen</button>
+                                                            <button type="button" class="dropdown-item js-media-open-move" data-bs-toggle="modal" data-bs-target="#mediaMoveModal" data-media-path="<?php echo htmlspecialchars($filePath, ENT_QUOTES); ?>" data-media-name="<?php echo htmlspecialchars((string)($file['name'] ?? ''), ENT_QUOTES); ?>" data-media-kind="Datei" data-media-target="<?php echo htmlspecialchars($path, ENT_QUOTES); ?>">Verschieben</button>
+                                                            <button type="button" class="dropdown-item text-danger js-media-delete" data-delete-path="<?php echo htmlspecialchars($filePath, ENT_QUOTES); ?>" data-delete-name="<?php echo htmlspecialchars((string)($file['name'] ?? 'Datei'), ENT_QUOTES); ?>" data-delete-type="Datei">Löschen</button>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </td>

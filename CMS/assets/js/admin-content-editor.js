@@ -71,6 +71,171 @@
         return sanitizedSlug !== '' ? sanitizedBase + '/' + sanitizedSlug : sanitizedBase + '/';
     }
 
+    function parseEditorContentLength(rawValue) {
+        var normalized = String(rawValue || '').trim();
+        var parsed;
+        var blockText = '';
+
+        if (normalized === '') {
+            return 0;
+        }
+
+        try {
+            parsed = JSON.parse(normalized);
+        } catch (_error) {
+            return extractTextFromHtml(normalized).trim().length;
+        }
+
+        if (!parsed || !Array.isArray(parsed.blocks)) {
+            return extractTextFromHtml(normalized).trim().length;
+        }
+
+        parsed.blocks.forEach(function (block) {
+            var data = block && block.data && typeof block.data === 'object' ? block.data : {};
+            ['text', 'caption', 'title', 'message', 'code', 'html', 'content'].forEach(function (key) {
+                if (typeof data[key] === 'string') {
+                    blockText += ' ' + extractTextFromHtml(data[key]);
+                }
+            });
+        });
+
+        return blockText.trim().length;
+    }
+
+    function initLanguageTabCompleteness(editorConfig) {
+        var editors = editorConfig && Array.isArray(editorConfig.editors) ? editorConfig.editors : [];
+        var tabs = queryElements('[data-lang-tab]');
+        var lengths = { de: 0, en: 0 };
+
+        editors.forEach(function (definition) {
+            var input = getElement(definition && definition.inputId ? definition.inputId : '');
+            var key = definition && definition.key === 'en' ? 'en' : 'de';
+            if (input) {
+                lengths[key] = parseEditorContentLength(input.value);
+            }
+        });
+
+        tabs.forEach(function (tab) {
+            var locale = tab.getAttribute('data-lang-tab') === 'en' ? 'en' : 'de';
+            var dot = tab.querySelector('.cms-lang-status-dot');
+            if (!dot) {
+                dot = document.createElement('span');
+                dot.className = 'cms-lang-status-dot';
+                dot.setAttribute('aria-hidden', 'true');
+                tab.appendChild(dot);
+            }
+            dot.classList.toggle('is-complete', lengths[locale] > 0);
+        });
+    }
+
+    function initUnsavedChangesGuard(uiConfig) {
+        var form = getElement(uiConfig.formId);
+        var title = queryElements(uiConfig.titleSelector || '.page-header .page-title')[0] || null;
+        var backLink = getElement(uiConfig.backLinkId);
+        var indicator;
+        var modal;
+        var modalCancel;
+        var modalDiscard;
+        var hasUnsavedChanges = false;
+        var skipGuard = false;
+
+        if (!form || !title) {
+            return;
+        }
+
+        indicator = document.createElement('span');
+        indicator.className = 'cms-unsaved-indicator';
+        indicator.innerHTML = '<span class="cms-unsaved-indicator__dot" aria-hidden="true"></span><span>Ungespeicherte Änderungen</span>';
+        title.insertBefore(indicator, title.firstChild);
+
+        modal = document.createElement('div');
+        modal.className = 'cms-unsaved-modal';
+        modal.innerHTML = ''
+            + '<div class="cms-unsaved-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="cmsUnsavedTitle">'
+            + '<h3 id="cmsUnsavedTitle" class="cms-unsaved-modal__title">Änderungen verwerfen?</h3>'
+            + '<div class="cms-unsaved-modal__actions">'
+            + '<button type="button" class="btn btn-outline-secondary btn-sm" data-role="cancel">Abbrechen</button>'
+            + '<button type="button" class="btn btn-danger btn-sm" data-role="discard">Verwerfen</button>'
+            + '</div>'
+            + '</div>';
+        document.body.appendChild(modal);
+
+        modalCancel = modal.querySelector('[data-role="cancel"]');
+        modalDiscard = modal.querySelector('[data-role="discard"]');
+
+        function renderIndicator() {
+            indicator.classList.toggle('is-visible', hasUnsavedChanges);
+        }
+
+        function markUnsaved() {
+            if (skipGuard) {
+                return;
+            }
+            hasUnsavedChanges = true;
+            renderIndicator();
+        }
+
+        function clearUnsaved() {
+            hasUnsavedChanges = false;
+            renderIndicator();
+        }
+
+        form.addEventListener('input', markUnsaved);
+        form.addEventListener('change', markUnsaved);
+        form.addEventListener('submit', function () {
+            skipGuard = true;
+            clearUnsaved();
+        });
+
+        if (backLink) {
+            backLink.addEventListener('click', function (event) {
+                if (!hasUnsavedChanges) {
+                    return;
+                }
+
+                event.preventDefault();
+                modal.classList.add('is-open');
+
+                if (modalDiscard) {
+                    modalDiscard.onclick = function () {
+                        skipGuard = true;
+                        window.location.href = backLink.href;
+                    };
+                }
+            });
+        }
+
+        if (modalCancel) {
+            modalCancel.addEventListener('click', function () {
+                modal.classList.remove('is-open');
+            });
+        }
+
+        modal.addEventListener('click', function (event) {
+            if (event.target === modal) {
+                modal.classList.remove('is-open');
+            }
+        });
+
+        window.addEventListener('beforeunload', function (event) {
+            if (!hasUnsavedChanges || skipGuard) {
+                return;
+            }
+            event.preventDefault();
+            event.returnValue = '';
+        });
+    }
+
+    function enforceAccordionDefaults() {
+        queryElements('.cms-collapsible-card').forEach(function (card) {
+            if (card.classList.contains('cms-publication-card')) {
+                card.open = true;
+                return;
+            }
+            card.open = false;
+        });
+    }
+
     function initUi(config) {
         var form = getElement(config.formId);
         var removeButton = getElement(config.removeButtonId);
@@ -256,6 +421,7 @@
         var pendingLazyBindings = {};
         var suppressInitialCopyForKeys = {};
         var editorMutationState = {};
+        var editorUiState = {};
 
         if (!config) {
             return;
@@ -290,6 +456,253 @@
 
                 window.setTimeout(resolve, 0);
             });
+        }
+
+        function resolveBlockLabel(blockElement) {
+            if (!blockElement || !blockElement.querySelector) {
+                return 'Block';
+            }
+
+            if (blockElement.querySelector('.ce-header')) { return 'H2'; }
+            if (blockElement.querySelector('.ce-paragraph')) { return 'Text'; }
+            if (blockElement.querySelector('.cdx-list')) { return 'Liste'; }
+            if (blockElement.querySelector('.image-tool')) { return 'Bild'; }
+            if (blockElement.querySelector('.ce-delimiter')) { return 'Trenner'; }
+            if (blockElement.querySelector('.editorjs-spacer-tool')) { return 'Abstand'; }
+            if (blockElement.querySelector('.cdx-warning')) { return 'Callout'; }
+            if (blockElement.querySelector('.ce-code')) { return 'Code'; }
+            if (blockElement.querySelector('.tc-wrap')) { return 'Tabelle'; }
+            if (blockElement.querySelector('.cdx-quote')) { return 'Zitat'; }
+            if (blockElement.querySelector('.gg-box')) { return 'Gallery'; }
+            return 'Block';
+        }
+
+        function getBlockIndex(holder, blockElement) {
+            var blocks = holder ? holder.querySelectorAll('.ce-block') : [];
+            return Array.prototype.indexOf.call(blocks, blockElement);
+        }
+
+        function insertBlockAt(editorInstance, index, type, data) {
+            var blockType = type || 'paragraph';
+            var blockData = data || {};
+
+            if (!editorInstance || !editorInstance.blocks) {
+                return;
+            }
+
+            try {
+                editorInstance.blocks.insert(blockType, blockData, undefined, index, true);
+            } catch (_error) {
+                editorInstance.blocks.insert(blockType, blockData);
+            }
+        }
+
+        function setupImageHoverOverlay(holder, editorInstance) {
+            queryElements('#' + holder.id + ' .ce-block .image-tool').forEach(function (toolElement) {
+                var block = toolElement.closest('.ce-block');
+                var overlay = toolElement.querySelector('.cms-image-hover-overlay');
+                var captionField = toolElement.querySelector('input.cdx-input, textarea.cdx-input');
+                var removeButton;
+                var altInput;
+
+                if (!block) {
+                    return;
+                }
+
+                if (!overlay) {
+                    overlay = document.createElement('div');
+                    overlay.className = 'cms-image-hover-overlay';
+                    overlay.innerHTML = ''
+                        + '<input type="text" class="form-control form-control-sm" placeholder="Alt-Text eingeben...">'
+                        + '<button type="button" class="btn btn-sm btn-danger" aria-label="Bild entfernen"><i class="ti ti-x"></i></button>';
+                    toolElement.appendChild(overlay);
+                }
+
+                removeButton = overlay.querySelector('button');
+                altInput = overlay.querySelector('input');
+
+                if (captionField && altInput && altInput.value !== captionField.value) {
+                    altInput.value = captionField.value || '';
+                }
+
+                if (captionField && altInput && altInput.dataset.cmsBound !== '1') {
+                    altInput.dataset.cmsBound = '1';
+                    altInput.addEventListener('input', function () {
+                        captionField.value = altInput.value;
+                        captionField.dispatchEvent(new Event('input', { bubbles: true }));
+                        captionField.dispatchEvent(new Event('change', { bubbles: true }));
+                    });
+                }
+
+                if (removeButton && removeButton.dataset.cmsBound !== '1') {
+                    removeButton.dataset.cmsBound = '1';
+                    removeButton.addEventListener('click', function (event) {
+                        var index = getBlockIndex(holder, block);
+                        event.preventDefault();
+                        if (index < 0 || !editorInstance || !editorInstance.blocks || typeof editorInstance.blocks.delete !== 'function') {
+                            return;
+                        }
+                        editorInstance.blocks.delete(index);
+                    });
+                }
+            });
+        }
+
+        function renderEditorBlockUi(definition, editorEntry) {
+            var holder = getElement(definition.holderId);
+            var redactor;
+            var blocks;
+
+            if (!holder || !editorEntry || !editorEntry.instance) {
+                return;
+            }
+
+            redactor = holder.querySelector('.codex-editor__redactor') || holder;
+            blocks = holder.querySelectorAll('.ce-block');
+
+            queryElements('#' + holder.id + ' .cms-editor-insert-between').forEach(function (button) {
+                button.remove();
+            });
+
+            blocks.forEach(function (block, index) {
+                var nextBlock = blocks[index + 1];
+                var insertButton;
+
+                block.classList.add('cms-editor-block-shell');
+                block.setAttribute('data-cms-block-label', resolveBlockLabel(block));
+
+                if (!nextBlock) {
+                    return;
+                }
+
+                insertButton = document.createElement('button');
+                insertButton.type = 'button';
+                insertButton.className = 'cms-editor-insert-between';
+                insertButton.setAttribute('aria-label', 'Block hier einfügen');
+                insertButton.textContent = '+';
+                insertButton.addEventListener('click', function (event) {
+                    event.preventDefault();
+                    insertBlockAt(editorEntry.instance, index + 1, 'paragraph', { text: '' });
+                });
+                redactor.insertBefore(insertButton, nextBlock);
+            });
+
+            setupImageHoverOverlay(holder, editorEntry.instance);
+        }
+
+        function ensureGroupedToolbar(definition, editorEntry) {
+            var holder = getElement(definition.holderId);
+            var wrap = holder ? holder.closest('.editorjs-wrap') : null;
+            var toolbar;
+            var overflowButton;
+            var overflowPanel;
+            var groups;
+
+            if (!holder || !wrap || wrap.querySelector('.editorjs-toolbar.cms-editor-toolbar-grouped')) {
+                return;
+            }
+
+            groups = [
+                {
+                    className: 'basis',
+                    buttons: [
+                        { label: 'H2', block: 'header', data: { level: 2 } },
+                        { label: 'Text', block: 'paragraph' },
+                        { label: 'Liste', block: 'list' },
+                        { label: 'Bild', block: 'image' },
+                        { label: 'Trenner', block: 'delimiter' },
+                        { label: 'Abstand', block: 'spacer', data: { height: 15, preset: '15px' } }
+                    ]
+                },
+                {
+                    className: 'medien',
+                    buttons: [
+                        { label: 'Medien+Text', block: 'mediaText' },
+                        { label: 'Gallery', block: 'imageGallery', data: { columns: 3 } },
+                        { label: 'Code Tabs', block: 'codeTabs' }
+                    ]
+                },
+                {
+                    className: 'erweitert',
+                    buttons: [
+                        { label: 'Callout', block: 'callout' },
+                        { label: 'Terminal', block: 'terminal' },
+                        { label: 'Mermaid', block: 'mermaid' },
+                        { label: 'API', block: 'apiEndpoint' },
+                        { label: 'Changelog', block: 'changelog' },
+                        { label: 'Pros/Cons', block: 'prosCons' },
+                        { label: 'Akkordion', block: 'accordion' },
+                        { label: 'Tabelle', block: 'table' },
+                        { label: 'Zitat', block: 'quote' }
+                    ]
+                }
+            ];
+
+            toolbar = document.createElement('div');
+            toolbar.className = 'editorjs-toolbar cms-editor-toolbar-grouped';
+
+            function buildButton(item) {
+                var button = document.createElement('button');
+                button.type = 'button';
+                button.textContent = item.label;
+                button.addEventListener('click', function () {
+                    insertBlockAt(editorEntry.instance, editorEntry.instance.blocks.getBlocksCount(), item.block, item.data || {});
+                });
+                return button;
+            }
+
+            groups.slice(0, 2).forEach(function (group, groupIndex) {
+                var groupEl = document.createElement('div');
+                groupEl.className = 'cms-editor-toolbar-group cms-editor-toolbar-group--' + group.className;
+                group.buttons.forEach(function (item) {
+                    groupEl.appendChild(buildButton(item));
+                });
+                toolbar.appendChild(groupEl);
+                if (groupIndex < 1) {
+                    toolbar.appendChild(document.createElement('span')).className = 'cms-editor-toolbar-divider';
+                }
+            });
+
+            overflowButton = document.createElement('button');
+            overflowButton.type = 'button';
+            overflowButton.className = 'cms-editor-toolbar-overflow';
+            overflowButton.textContent = '···';
+            overflowPanel = document.createElement('div');
+            overflowPanel.className = 'cms-editor-toolbar-overflow-panel';
+            groups[2].buttons.forEach(function (item) {
+                overflowPanel.appendChild(buildButton(item));
+            });
+            overflowButton.addEventListener('click', function (event) {
+                event.preventDefault();
+                overflowPanel.classList.toggle('is-open');
+            });
+            document.addEventListener('click', function (event) {
+                if (!toolbar.contains(event.target)) {
+                    overflowPanel.classList.remove('is-open');
+                }
+            });
+
+            toolbar.appendChild(document.createElement('span')).className = 'cms-editor-toolbar-divider';
+            toolbar.appendChild(overflowButton);
+            toolbar.appendChild(overflowPanel);
+            wrap.insertBefore(toolbar, wrap.firstChild || null);
+        }
+
+        function ensureEditorUi(definition, editorEntry) {
+            var holder = getElement(definition.holderId);
+            if (!holder || !editorEntry || !editorEntry.instance) {
+                return;
+            }
+
+            ensureGroupedToolbar(definition, editorEntry);
+            renderEditorBlockUi(definition, editorEntry);
+
+            if (!editorUiState[definition.holderId]) {
+                editorUiState[definition.holderId] = true;
+                new MutationObserver(function () {
+                    renderEditorBlockUi(definition, editorEntry);
+                }).observe(holder, { childList: true, subtree: true });
+            }
         }
 
         function trackPendingLazyBinding(key, promise) {
@@ -1238,6 +1651,7 @@
             }
 
             if (editors[definition.key] && !forceRecreate) {
+                ensureEditorUi(definition, editors[definition.key]);
                 return editors[definition.key];
             }
 
@@ -1263,6 +1677,8 @@
                     }
                 })
             };
+
+            ensureEditorUi(definition, editors[definition.key]);
 
             return editors[definition.key];
         }
@@ -1913,8 +2329,11 @@
             return;
         }
 
+        initUnsavedChangesGuard(uiConfig);
+        enforceAccordionDefaults();
         initUi(uiConfig);
         initSeo(seoConfig);
         initEditorJs(editorJsConfig);
+        initLanguageTabCompleteness(editorJsConfig);
     });
 })();

@@ -8,9 +8,12 @@ if (!defined('ABSPATH')) {
 <style>
 .customizer-layout { display: flex; gap: 2rem; align-items: flex-start; }
 .customizer-nav { width: 240px; flex-shrink: 0; background: #fff; border-radius: var(--tblr-border-radius-lg, 12px); border: 1px solid var(--tblr-border-color, #e6e7e9); overflow: hidden; }
-.customizer-nav a { display: block; padding: 1rem 1.5rem; color: #64748b; text-decoration: none; border-left: 3px solid transparent; transition: all .2s; }
+.customizer-nav a { display: flex; align-items: center; gap: .5rem; padding: 1rem 1.25rem; color: #64748b; text-decoration: none; border-left: 3px solid transparent; transition: all .2s; }
 .customizer-nav a:hover { background: #f8fafc; color: var(--tblr-primary, #206bc4); }
 .customizer-nav a.active { background: #eff6ff; color: var(--tblr-primary, #206bc4); border-left-color: var(--tblr-primary, #206bc4); font-weight: 600; }
+.customizer-nav__icon { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; flex: 0 0 16px; }
+.customizer-nav__icon .ti { font-size: 16px; line-height: 1; }
+.customizer-nav__label { min-width: 0; }
 .customizer-content { flex: 1; }
 .customizer-alert + .customizer-alert { margin-top: .75rem; }
 .customizer-checkbox-row { display: flex; align-items: center; gap: .5rem; margin-top: .5rem; }

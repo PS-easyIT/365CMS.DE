@@ -44,6 +44,80 @@
         submitWithTemporarySubmitter(form);
     }
 
+    function openModal(modalId) {
+        var modalElement = document.getElementById(modalId);
+        if (!modalElement || typeof bootstrap === 'undefined' || !bootstrap.Modal) {
+            return null;
+        }
+
+        return bootstrap.Modal.getOrCreateInstance(modalElement);
+    }
+
+    function ensureDeleteConfirmationModal() {
+        var existingModal = document.getElementById('adminDeleteConfirmModal');
+        if (existingModal) {
+            return existingModal;
+        }
+
+        var wrapper = document.createElement('div');
+        wrapper.innerHTML = ''
+            + '<div class="modal modal-blur fade" id="adminDeleteConfirmModal" tabindex="-1" aria-hidden="true">'
+            + '  <div class="modal-dialog modal-dialog-centered">'
+            + '    <div class="modal-content">'
+            + '      <div class="modal-header">'
+            + '        <h5 class="modal-title">Wirklich löschen?</h5>'
+            + '        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Schließen"></button>'
+            + '      </div>'
+            + '      <div class="modal-body">'
+            + '        <p class="mb-2"><strong id="adminDeleteConfirmEntity"></strong></p>'
+            + '        <p class="text-secondary mb-0">Diese Aktion kann nicht rückgängig gemacht werden.</p>'
+            + '      </div>'
+            + '      <div class="modal-footer">'
+            + '        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Abbrechen</button>'
+            + '        <button type="button" class="btn btn-danger" id="adminDeleteConfirmAccept">Löschen</button>'
+            + '      </div>'
+            + '    </div>'
+            + '  </div>'
+            + '</div>';
+
+        document.body.appendChild(wrapper.firstElementChild);
+        return document.getElementById('adminDeleteConfirmModal');
+    }
+
+    function requestDeleteConfirmation(entityLabel, onConfirm) {
+        var modalElement = ensureDeleteConfirmationModal();
+        var entityElement = document.getElementById('adminDeleteConfirmEntity');
+        var acceptButton = document.getElementById('adminDeleteConfirmAccept');
+        if (typeof onConfirm !== 'function') {
+            return;
+        }
+
+        if (!modalElement || !entityElement || !acceptButton) {
+            if (window.confirm('Wirklich löschen?\n\n' + (entityLabel || 'Ausgewählter Eintrag') + '\n\nDiese Aktion kann nicht rückgängig gemacht werden.')) {
+                onConfirm();
+            }
+            return;
+        }
+
+        entityElement.textContent = entityLabel || 'Ausgewählter Eintrag';
+        var modal = openModal('adminDeleteConfirmModal');
+        if (!modal) {
+            if (window.confirm('Wirklich löschen?\n\n' + (entityLabel || 'Ausgewählter Eintrag') + '\n\nDiese Aktion kann nicht rückgängig gemacht werden.')) {
+                onConfirm();
+            }
+            return;
+        }
+
+        var handleConfirm = function () {
+            acceptButton.removeEventListener('click', handleConfirm);
+            modal.hide();
+            onConfirm();
+        };
+
+        acceptButton.addEventListener('click', handleConfirm);
+        modal.show();
+    }
+
     function initGroupsBulkActions() {
         var root = document.getElementById('groupsListRoot');
         var bulkForm = document.getElementById('bulkFormGroups');
@@ -204,24 +278,7 @@
 
             if (bulkActionSelect.value === 'delete') {
                 event.preventDefault();
-
-                if (typeof cmsConfirm === 'function') {
-                    cmsConfirm({
-                        title: 'Gruppen löschen',
-                        message: 'Die ausgewählten Gruppen werden gelöscht. Zugeordnete Mitgliedschaften werden dabei ebenfalls entfernt. Wirklich fortfahren?',
-                        confirmText: 'Löschen',
-                        confirmClass: 'btn-danger',
-                        onConfirm: submitBulk
-                    });
-                    return;
-                }
-
-                if (window.confirm('Die ausgewählten Gruppen werden gelöscht. Zugeordnete Mitgliedschaften werden dabei ebenfalls entfernt. Wirklich fortfahren?')) {
-                    submitBulk();
-                } else {
-                    setSubmittingState(bulkForm, false);
-                }
-
+                requestDeleteConfirmation('Ausgewählte Gruppen (' + selectedIds.size + ')', submitBulk);
                 return;
             }
 
@@ -312,8 +369,6 @@
             button.addEventListener('click', function () {
                 var groupId = button.getAttribute('data-group-id') || '0';
                 var groupName = button.getAttribute('data-group-name') || '';
-                var message = 'Gruppe "' + groupName + '" wirklich löschen? Zugeordnete Mitgliedschaften werden dabei ebenfalls entfernt.';
-
                 if (!deleteGroupIdInput || !deleteGroupForm) {
                     return;
                 }
@@ -328,20 +383,7 @@
                     submitWithTemporarySubmitter(deleteGroupForm);
                 };
 
-                if (typeof cmsConfirm === 'function') {
-                    cmsConfirm({
-                        title: 'Gruppe löschen',
-                        message: message,
-                        confirmText: 'Löschen',
-                        confirmClass: 'btn-danger',
-                        onConfirm: submitDelete,
-                    });
-                    return;
-                }
-
-                if (window.confirm(message)) {
-                    submitDelete();
-                }
+                requestDeleteConfirmation(groupName, submitDelete);
             });
         });
 

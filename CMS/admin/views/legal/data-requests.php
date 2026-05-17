@@ -96,6 +96,12 @@ $dataRequestsConfig = [
             <p class="cms-admin-info-box__text">
                 Eingegangen → In Bearbeitung → Erledigt oder abgelehnt. Nach Art. 12 DSGVO ist grundsätzlich ohne unangemessene Verzögerung und spätestens innerhalb eines Monats zu reagieren; 365CMS bewertet dies konservativ als <?php echo $deadlineDays; ?>-Tage-Frist und markiert offene Anfragen ab <?php echo $warningBeforeDays; ?> Tagen Restlaufzeit.
             </p>
+            <div class="admin-request-status-filters">
+                <button type="button" class="btn btn-sm btn-outline-primary js-request-status-chip" data-request-status="pending">Eingegangen</button>
+                <button type="button" class="btn btn-sm btn-outline-primary js-request-status-chip" data-request-status="processing">In Bearbeitung</button>
+                <button type="button" class="btn btn-sm btn-outline-primary js-request-status-chip" data-request-status="completed">Erledigt</button>
+                <a href="#" class="small js-request-status-reset">Alle anzeigen</a>
+            </div>
         </div>
 
         <div class="row row-cards">
@@ -131,7 +137,7 @@ $dataRequestsConfig = [
                                 <?php else: ?>
                                     <?php foreach ($privacyRows as $row): ?>
                                         <?php $deadline = is_array($row['deadline'] ?? null) ? $row['deadline'] : []; ?>
-                                        <tr>
+                                        <tr class="js-request-filter-row" data-request-status="<?php echo htmlspecialchars((string)($row['status'] ?? '')); ?>">
                                             <td><?php echo (int)($row['id'] ?? 0); ?></td>
                                             <td>
                                                 <div><?php echo htmlspecialchars((string)($row['name'] ?? '-')); ?></div>
@@ -173,6 +179,23 @@ $dataRequestsConfig = [
                                         </tr>
                                     <?php endforeach; ?>
                                 <?php endif; ?>
+                                <tr class="d-none js-request-filter-empty">
+                                    <td colspan="6" class="py-4">
+                                        <div class="admin-empty-table-state text-center">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="icon text-secondary mb-2" width="32" height="32" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                                <path d="M9 6l11 0"/>
+                                                <path d="M9 12l11 0"/>
+                                                <path d="M9 18l11 0"/>
+                                                <path d="M5 6l0 .01"/>
+                                                <path d="M5 12l0 .01"/>
+                                                <path d="M5 18l0 .01"/>
+                                            </svg>
+                                            <div class="fw-bold">Keine Auskunftsanfragen vorhanden.</div>
+                                            <div class="text-secondary small">Sobald passende Vorgänge den gewählten Status haben, erscheinen sie hier.</div>
+                                        </div>
+                                    </td>
+                                </tr>
                             </tbody>
                         </table>
                     </div>
@@ -211,7 +234,7 @@ $dataRequestsConfig = [
                                 <?php else: ?>
                                     <?php foreach ($deletionRows as $row): ?>
                                         <?php $deadline = is_array($row['deadline'] ?? null) ? $row['deadline'] : []; ?>
-                                        <tr>
+                                        <tr class="js-request-filter-row" data-request-status="<?php echo htmlspecialchars((string)($row['status'] ?? '')); ?>">
                                             <td><?php echo (int)($row['id'] ?? 0); ?></td>
                                             <td>
                                                 <div><?php echo htmlspecialchars((string)($row['name'] ?? '-')); ?></div>
@@ -250,6 +273,23 @@ $dataRequestsConfig = [
                                         </tr>
                                     <?php endforeach; ?>
                                 <?php endif; ?>
+                                <tr class="d-none js-request-filter-empty">
+                                    <td colspan="6" class="py-4">
+                                        <div class="admin-empty-table-state text-center">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="icon text-secondary mb-2" width="32" height="32" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                                <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                                <path d="M9 6l11 0"/>
+                                                <path d="M9 12l11 0"/>
+                                                <path d="M9 18l11 0"/>
+                                                <path d="M5 6l0 .01"/>
+                                                <path d="M5 12l0 .01"/>
+                                                <path d="M5 18l0 .01"/>
+                                            </svg>
+                                            <div class="fw-bold">Keine Löschanträge vorhanden.</div>
+                                            <div class="text-secondary small">Sobald passende Vorgänge den gewählten Status haben, erscheinen sie hier.</div>
+                                        </div>
+                                    </td>
+                                </tr>
                             </tbody>
                         </table>
                     </div>

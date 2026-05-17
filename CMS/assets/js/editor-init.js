@@ -1714,6 +1714,7 @@
                 this.cmsImagePicker = uploadUrl ? createEditorImagePicker(uploadUrl, csrfToken, uploadContext) : null;
                 this.cmsGalleryStatus = null;
                 this.cmsGalleryUploadInput = null;
+                this.cmsGalleryImportButton = null;
             }
 
             _isImgUrl(url) {
@@ -1757,7 +1758,36 @@
                     return null;
                 }
 
+                let manualContainer = this.wrapper.querySelector('.cms-editor-gallery__manual');
+                let manualToggle = this.wrapper.querySelector('.cms-editor-gallery__manual-toggle');
+                let manualBody = this.wrapper.querySelector('.cms-editor-gallery__manual-body');
                 let textarea = this.wrapper.querySelector('textarea.image-gallery-' + this.blockIndex);
+                if (!manualContainer) {
+                    manualContainer = document.createElement('div');
+                    manualContainer.className = 'cms-editor-gallery__manual';
+
+                    manualToggle = document.createElement('button');
+                    manualToggle.type = 'button';
+                    manualToggle.className = 'cms-editor-gallery__manual-toggle';
+                    manualToggle.textContent = 'URLs manuell eingeben ▾';
+                    manualToggle.addEventListener('click', (event) => {
+                        event.preventDefault();
+                        manualContainer.classList.toggle('is-open');
+                        manualToggle.textContent = manualContainer.classList.contains('is-open')
+                            ? 'URLs manuell eingeben ▴'
+                            : 'URLs manuell eingeben ▾';
+                        if (this.cmsGalleryImportButton) {
+                            this.cmsGalleryImportButton.classList.toggle('is-visible', manualContainer.classList.contains('is-open'));
+                        }
+                    });
+
+                    manualBody = document.createElement('div');
+                    manualBody.className = 'cms-editor-gallery__manual-body';
+                    manualContainer.appendChild(manualToggle);
+                    manualContainer.appendChild(manualBody);
+                    this.wrapper.insertBefore(manualContainer, this.wrapper.firstChild || null);
+                }
+
                 if (textarea) {
                     textarea.value = this.cmsGetUrls().join('\n');
                     return textarea;
@@ -1774,7 +1804,11 @@
                     }, false);
                 });
 
-                this.wrapper.insertBefore(textarea, this.wrapper.firstChild || null);
+                if (manualBody) {
+                    manualBody.appendChild(textarea);
+                } else {
+                    this.wrapper.insertBefore(textarea, this.wrapper.firstChild || null);
+                }
 
                 return textarea;
             }
@@ -1801,6 +1835,7 @@
                 importButton.type = 'button';
                 importButton.className = 'cms-editor-gallery__button';
                 importButton.textContent = 'URLs importieren';
+                importButton.classList.add('cms-editor-gallery__manual-import');
 
                 const uploadInput = document.createElement('input');
                 uploadInput.type = 'file';
@@ -1885,6 +1920,7 @@
 
                 this.cmsGalleryStatus = status;
                 this.cmsGalleryUploadInput = uploadInput;
+                this.cmsGalleryImportButton = importButton;
             }
 
             cmsParseTextareaUrls() {
@@ -1927,6 +1963,8 @@
                 if (typeof this._acceptTuneView === 'function') {
                     this._acceptTuneView();
                 }
+
+                this.cmsDecorateGalleryItems();
             }
 
             cmsAppendUrls(urls, updateTextarea) {
@@ -1940,6 +1978,78 @@
 
                 this.cmsGalleryStatus.textContent = String(message || '');
                 this.cmsGalleryStatus.classList.toggle('is-error', Boolean(isError));
+            }
+
+            cmsDecorateGalleryItems() {
+                if (!this.wrapper) {
+                    return;
+                }
+
+                const galleryImages = Array.from(this.wrapper.querySelectorAll('.gg-box > img'));
+                const normalizedData = normalizeImageGalleryData(this.data || {});
+
+                galleryImages.forEach((imageElement, index) => {
+                    const parent = imageElement.parentElement;
+                    let overlay;
+                    let altInput;
+                    let removeButton;
+
+                    if (!parent) {
+                        return;
+                    }
+
+                    parent.classList.add('cms-editor-gallery-item');
+                    parent.dataset.cmsGalleryIndex = String(index);
+
+                    overlay = parent.querySelector('.cms-editor-gallery-item__overlay');
+                    if (!overlay) {
+                        overlay = document.createElement('div');
+                        overlay.className = 'cms-editor-gallery-item__overlay';
+                        overlay.innerHTML = ''
+                            + '<input type="text" class="form-control form-control-sm" placeholder="Alt-Text eingeben...">'
+                            + '<button type="button" class="btn btn-sm btn-danger" aria-label="Bild entfernen"><i class="ti ti-x"></i></button>';
+                        parent.appendChild(overlay);
+                    }
+
+                    altInput = overlay.querySelector('input');
+                    removeButton = overlay.querySelector('button');
+
+                    if (altInput) {
+                        const currentCaption = normalizedData.images[index] && typeof normalizedData.images[index].caption === 'string'
+                            ? normalizedData.images[index].caption
+                            : '';
+                        altInput.value = currentCaption;
+                        if (altInput.dataset.cmsBound !== '1') {
+                            altInput.dataset.cmsBound = '1';
+                            altInput.addEventListener('input', () => {
+                                const currentIndex = Number.parseInt(parent.dataset.cmsGalleryIndex || '-1', 10);
+                                if (!Number.isInteger(currentIndex) || currentIndex < 0) {
+                                    return;
+                                }
+                                if (!this.data.images[currentIndex]) {
+                                    return;
+                                }
+                                this.data.images[currentIndex].caption = altInput.value;
+                            });
+                        }
+                    }
+
+                    if (removeButton && removeButton.dataset.cmsBound !== '1') {
+                        removeButton.dataset.cmsBound = '1';
+                        removeButton.addEventListener('click', (event) => {
+                            const currentIndex = Number.parseInt(parent.dataset.cmsGalleryIndex || '-1', 10);
+                            const urls = this.cmsGetUrls();
+
+                            event.preventDefault();
+                            if (!Number.isInteger(currentIndex) || currentIndex < 0 || currentIndex >= urls.length) {
+                                return;
+                            }
+
+                            urls.splice(currentIndex, 1);
+                            this.cmsApplyUrls(urls, true);
+                        });
+                    }
+                });
             }
         }
 

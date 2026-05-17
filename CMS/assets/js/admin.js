@@ -54,6 +54,36 @@ function cmsSubmitFormSafely(form, submitter) {
 
 window.cmsSubmitFormSafely = cmsSubmitFormSafely;
 
+function formatSeconds(value) {
+    var numericValue = Number(value);
+    if (!Number.isFinite(numericValue)) {
+        numericValue = 0;
+    }
+
+    var seconds = Math.max(0, Math.floor(numericValue));
+    var unit = 'Sekunden';
+    var displayValue = seconds;
+
+    if (seconds >= 86400) {
+        unit = 'Tage';
+        displayValue = seconds / 86400;
+    } else if (seconds >= 3600) {
+        unit = 'Stunden';
+        displayValue = seconds / 3600;
+    } else if (seconds >= 60) {
+        unit = 'Minuten';
+        displayValue = seconds / 60;
+    }
+
+    var formattedValue = Number.isInteger(displayValue)
+        ? String(displayValue)
+        : displayValue.toLocaleString('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+
+    return formattedValue + ' ' + unit;
+}
+
+window.formatSeconds = formatSeconds;
+
 function initPostCategoryDeleteFlow() {
     var modalElement = document.getElementById('deleteCategoryModal');
     var deleteCategoryForms = document.querySelectorAll('.js-delete-category-form');
@@ -364,6 +394,7 @@ function initConfirmForms() {
             var message = form.dataset.confirmMessage || '';
             var title = form.dataset.confirmTitle || 'Bitte bestätigen';
             var confirmText = form.dataset.confirmText || 'Bestätigen';
+            var cancelClass = form.dataset.confirmCancelClass || '';
             var confirmClass = form.dataset.confirmClass || 'btn-danger';
             var statusClass = form.dataset.confirmStatusClass || 'bg-danger';
 
@@ -373,6 +404,7 @@ function initConfirmForms() {
                         title: title,
                         message: message,
                         confirmText: confirmText,
+                        cancelClass: cancelClass,
                         confirmClass: confirmClass,
                         statusClass: statusClass,
                         onConfirm: function() {
@@ -425,6 +457,54 @@ function initResponsiveTableDropdowns() {
     });
 }
 
+function initGlobalEmptyTablePattern() {
+    var emptyRowCandidates = document.querySelectorAll('table tbody tr td[colspan]');
+    if (!emptyRowCandidates.length) {
+        return;
+    }
+
+    function toEntityLabel(rawText) {
+        var normalized = String(rawText || '').replace(/\s+/g, ' ').trim();
+        var match = normalized.match(/^(?:Noch\s+)?Keine\s+(.+?)\s+(?:vorhanden|angelegt|registriert|konfiguriert|protokolliert|gefunden|verfügbar|vorliegend)\.?$/i);
+        if (!match || !match[1]) {
+            return 'Einträge';
+        }
+        return match[1].trim();
+    }
+
+    emptyRowCandidates.forEach(function(cell) {
+        if (!(cell instanceof HTMLElement)) {
+            return;
+        }
+        if (cell.querySelector('.admin-empty-table-state, .empty')) {
+            return;
+        }
+
+        var text = (cell.textContent || '').replace(/\s+/g, ' ').trim();
+        if (!/^(noch\s+)?keine\b/i.test(text)) {
+            return;
+        }
+
+        var entity = toEntityLabel(text);
+        cell.classList.remove('text-center', 'text-secondary', 'py-3', 'py-4');
+        cell.classList.add('py-4');
+        cell.innerHTML = '' +
+            '<div class="admin-empty-table-state text-center">' +
+                '<svg xmlns="http://www.w3.org/2000/svg" class="icon text-secondary mb-2" width="32" height="32" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">' +
+                    '<path stroke="none" d="M0 0h24v24H0z" fill="none"></path>' +
+                    '<path d="M9 6l11 0"></path>' +
+                    '<path d="M9 12l11 0"></path>' +
+                    '<path d="M9 18l11 0"></path>' +
+                    '<path d="M5 6l0 .01"></path>' +
+                    '<path d="M5 12l0 .01"></path>' +
+                    '<path d="M5 18l0 .01"></path>' +
+                '</svg>' +
+                '<div class="fw-bold">Keine ' + entity + ' vorhanden.</div>' +
+                '<div class="text-secondary small">Sobald neue Daten vorliegen, erscheinen sie hier automatisch.</div>' +
+            '</div>';
+    });
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     
     // Confirmation for destructive actions
@@ -452,5 +532,6 @@ document.addEventListener('DOMContentLoaded', function() {
     initReplacementCategoryBulkDeleteFlow();
     initConfirmForms();
     initResponsiveTableDropdowns();
+    initGlobalEmptyTablePattern();
     
 });

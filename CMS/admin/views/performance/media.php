@@ -46,6 +46,23 @@ $recommendedReserveLabel = $formatBytes((int) ($capacity['recommended_free_bytes
 $loadLabel = ($capacity['load_1m'] ?? null) !== null
     ? number_format((float) $capacity['load_1m'], 2, ',', '.')
     : 'nicht verfügbar';
+$rollbackManifestFileCount = 0;
+$manifestFiles = glob(ABSPATH . 'cache/performance-webp-manifests/*.json') ?: [];
+if ($manifestFiles !== []) {
+    usort($manifestFiles, static fn(string $a, string $b): int => filemtime($b) <=> filemtime($a));
+    $latestManifestPath = $manifestFiles[0] ?? null;
+    if (is_string($latestManifestPath) && is_file($latestManifestPath)) {
+        $manifestPayload = json_decode((string) file_get_contents($latestManifestPath), true);
+        if (is_array($manifestPayload) && is_array($manifestPayload['entries'] ?? null)) {
+            $rollbackManifestFileCount = count($manifestPayload['entries']);
+        }
+    }
+}
+$rollbackConfirmMessage = sprintf(
+    'Im letzten Rollback-Manifest sind %d Datei%s erfasst. Wirklich diese WebP-Konvertierung zurückrollen? Referenzen werden zurückgesetzt und gesicherte Originale wiederhergestellt.',
+    $rollbackManifestFileCount,
+    $rollbackManifestFileCount === 1 ? '' : 'en'
+);
 ?>
 <div class="page-header d-print-none admin-redesign-header"><div class="container-xl"><div class="row g-2 align-items-center"><div class="col"><div class="page-pretitle">Performance</div><h2 class="page-title">Medien-Optimierung</h2><div class="text-secondary mt-1">Bildbibliothek, Alt-Texte, Dateigrößen und WebP-/EXIF-Strategie im Blick.</div></div></div></div></div>
 <div class="page-body admin-redesign-page"><div class="container-xl admin-redesign-shell">
@@ -106,7 +123,7 @@ $loadLabel = ($capacity['load_1m'] ?? null) !== null
                 <h3 class="card-title">WebP-Massenkonvertierung</h3>
                 <div class="text-secondary small">Konvertiert geeignete Bilder batchweise, unterstützt Dry-Run und legt für ersetzte Originale ein Rollback-Manifest an.</div>
             </div>
-            <form method="post" class="m-0" data-confirm-title="Letzte WebP-Konvertierung zurückrollen" data-confirm-message="Wirklich die letzte WebP-Konvertierung anhand des Manifests zurückrollen? Referenzen werden zurückgesetzt und gesicherte Originale wiederhergestellt." data-confirm-text="Rollback starten" data-confirm-class="btn-warning" data-confirm-status-class="bg-warning">
+            <form method="post" class="m-0" data-confirm-title="WebP-Konvertierung rückgängig machen?" data-confirm-message="<?php echo htmlspecialchars($rollbackConfirmMessage, ENT_QUOTES); ?>" data-confirm-text="Zurückrollen" data-confirm-class="btn-danger" data-confirm-status-class="bg-danger">
                 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>">
                 <input type="hidden" name="action" value="rollback_webp_conversion">
                 <button type="submit" class="btn btn-outline-warning">Letzte Konvertierung zurückrollen</button>

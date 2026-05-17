@@ -848,6 +848,33 @@ body.admin-body .gridjs-cms .gridjs-table th.gridjs-action-cell {
     font-size: 0.84rem;
 }
 
+.firewall-seconds-hint {
+    font-size: 12px;
+    color: var(--color-text-secondary);
+    margin-top: 4px;
+}
+
+.firewall-create-rule-card {
+    background: var(--color-background-primary);
+    border: 0.5px solid var(--color-border-tertiary);
+    border-radius: var(--border-radius-lg);
+    padding: 1rem 1.25rem;
+}
+
+.firewall-create-success {
+    color: var(--color-text-success);
+    opacity: 0;
+    transition: opacity 0.35s ease;
+}
+
+.firewall-create-success.is-visible {
+    opacity: 1;
+}
+
+.firewall-create-success.is-visible.is-fading {
+    opacity: 0;
+}
+
 .security-stack-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));

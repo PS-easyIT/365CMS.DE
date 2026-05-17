@@ -71,310 +71,175 @@ $renderSelect = static function (string $name, string $label, array $options, st
                     <form method="POST">
                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars((string) $csrfToken, ENT_QUOTES, 'UTF-8'); ?>">
 
-                        <h3 class="h5 mb-3">Grundlayout</h3>
-                        <div class="row g-3 mb-4">
-                            <div class="col-md-6">
-                                <label class="form-label" for="brand_name">Brandname</label>
-                                <input class="form-control" id="brand_name" name="brand_name" type="text" maxlength="80" value="<?php echo htmlspecialchars((string) ($settings['brand_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label" for="logo_url">Logo-URL</label>
-                                <input class="form-control" id="logo_url" name="logo_url" type="text" value="<?php echo htmlspecialchars((string) ($settings['logo_url'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" placeholder="https://example.com/logo.svg oder /uploads/theme/logo.svg">
-                                <div class="form-hint">Erlaubt sind absolute HTTP(S)-URLs sowie interne Pfade wie <code>/uploads/...</code>.</div>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label" for="layout_variant">Layout</label>
-                                <select class="form-select" id="layout_variant" name="layout_variant">
-                                    <option value="centered" <?php echo ($settings['layout_variant'] ?? 'centered') === 'centered' ? 'selected' : ''; ?>>Centered Card</option>
-                                    <option value="split" <?php echo ($settings['layout_variant'] ?? 'centered') === 'split' ? 'selected' : ''; ?>>Split Layout</option>
-                                </select>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label" for="auth_slug_mode">Öffentliche Auth-Slugs</label>
-                                <select class="form-select" id="auth_slug_mode" name="auth_slug_mode">
-                                    <option value="cms" <?php echo ($settings['auth_slug_mode'] ?? 'cms') === 'cms' ? 'selected' : ''; ?>>CMS-Slugs (/cms-login, /cms-register, ...)</option>
-                                    <option value="legacy" <?php echo ($settings['auth_slug_mode'] ?? 'cms') === 'legacy' ? 'selected' : ''; ?>>Legacy-Slugs (/login, /register, ...)</option>
-                                </select>
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label" for="card_width">Kartenbreite (px)</label>
-                                <input class="form-control" id="card_width" name="card_width" type="number" min="380" max="960" value="<?php echo htmlspecialchars((string) ($settings['card_width'] ?? '520'), ENT_QUOTES, 'UTF-8'); ?>">
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label" for="footer_note">Footer-Hinweis</label>
-                                <input class="form-control" id="footer_note" name="footer_note" type="text" maxlength="120" value="<?php echo htmlspecialchars((string) ($settings['footer_note'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
-                            </div>
-                        </div>
+                        <ul class="nav nav-tabs card-header-tabs cms-loginpage-tabs" role="tablist">
+                            <li class="nav-item"><a class="nav-link active" href="#cms-login-tab-layout" data-login-tab="layout">Layout &amp; Grunddaten</a></li>
+                            <li class="nav-item"><a class="nav-link" href="#cms-login-tab-colors" data-login-tab="colors">Farben</a></li>
+                            <li class="nav-item"><a class="nav-link" href="#cms-login-tab-texts" data-login-tab="texts">Texte &amp; Labels</a></li>
+                            <li class="nav-item"><a class="nav-link" href="#cms-login-tab-registration" data-login-tab="registration">Registrierung</a></li>
+                            <li class="nav-item"><a class="nav-link" href="#cms-login-tab-forgot" data-login-tab="forgot">Passwort-Reset</a></li>
+                            <li class="nav-item"><a class="nav-link" href="#cms-login-tab-email" data-login-tab="email">E-Mail-Templates</a></li>
+                        </ul>
 
-                        <h3 class="h5 mb-3">Farben</h3>
-                        <div class="row g-3 mb-4">
-                            <div class="col-md-4">
-                                <label class="form-label" for="background_start">Background Start</label>
-                                <input class="form-control form-control-color" id="background_start" name="background_start" type="color" value="<?php echo htmlspecialchars((string) ($settings['background_start'] ?? '#0f172a'), ENT_QUOTES, 'UTF-8'); ?>">
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label" for="background_end">Background Ende</label>
-                                <input class="form-control form-control-color" id="background_end" name="background_end" type="color" value="<?php echo htmlspecialchars((string) ($settings['background_end'] ?? '#1d4ed8'), ENT_QUOTES, 'UTF-8'); ?>">
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label" for="card_background">Card Hintergrund</label>
-                                <input class="form-control form-control-color" id="card_background" name="card_background" type="color" value="<?php echo htmlspecialchars((string) ($settings['card_background'] ?? '#ffffff'), ENT_QUOTES, 'UTF-8'); ?>">
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label" for="text_color">Textfarbe</label>
-                                <input class="form-control form-control-color" id="text_color" name="text_color" type="color" value="<?php echo htmlspecialchars((string) ($settings['text_color'] ?? '#0f172a'), ENT_QUOTES, 'UTF-8'); ?>">
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label" for="muted_color">Muted Text</label>
-                                <input class="form-control form-control-color" id="muted_color" name="muted_color" type="color" value="<?php echo htmlspecialchars((string) ($settings['muted_color'] ?? '#475569'), ENT_QUOTES, 'UTF-8'); ?>">
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label" for="link_color">Linkfarbe</label>
-                                <input class="form-control form-control-color" id="link_color" name="link_color" type="color" value="<?php echo htmlspecialchars((string) ($settings['link_color'] ?? '#1d4ed8'), ENT_QUOTES, 'UTF-8'); ?>">
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label" for="primary_color">Primary Button</label>
-                                <input class="form-control form-control-color" id="primary_color" name="primary_color" type="color" value="<?php echo htmlspecialchars((string) ($settings['primary_color'] ?? '#2563eb'), ENT_QUOTES, 'UTF-8'); ?>">
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label" for="primary_text_color">Primary Text</label>
-                                <input class="form-control form-control-color" id="primary_text_color" name="primary_text_color" type="color" value="<?php echo htmlspecialchars((string) ($settings['primary_text_color'] ?? '#ffffff'), ENT_QUOTES, 'UTF-8'); ?>">
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label" for="input_background">Input Hintergrund</label>
-                                <input class="form-control form-control-color" id="input_background" name="input_background" type="color" value="<?php echo htmlspecialchars((string) ($settings['input_background'] ?? '#f8fafc'), ENT_QUOTES, 'UTF-8'); ?>">
-                            </div>
-                            <div class="col-md-4">
-                                <label class="form-label" for="input_border">Input Border</label>
-                                <input class="form-control form-control-color" id="input_border" name="input_border" type="color" value="<?php echo htmlspecialchars((string) ($settings['input_border'] ?? '#cbd5e1'), ENT_QUOTES, 'UTF-8'); ?>">
-                            </div>
-                        </div>
-
-                        <h3 class="h5 mb-3">Texte & Bereiche</h3>
-                        <div class="row g-3 mb-4">
-                            <div class="col-12">
-                                <label class="form-label" for="headline_login">Headline Login</label>
-                                <input class="form-control" id="headline_login" name="headline_login" type="text" maxlength="120" value="<?php echo htmlspecialchars((string) ($settings['headline_login'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label" for="subheadline_login">Subheadline Login</label>
-                                <textarea class="form-control" id="subheadline_login" name="subheadline_login" rows="2"><?php echo htmlspecialchars((string) ($settings['subheadline_login'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></textarea>
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label" for="headline_register">Headline Register</label>
-                                <input class="form-control" id="headline_register" name="headline_register" type="text" maxlength="120" value="<?php echo htmlspecialchars((string) ($settings['headline_register'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label" for="subheadline_register">Subheadline Register</label>
-                                <textarea class="form-control" id="subheadline_register" name="subheadline_register" rows="2"><?php echo htmlspecialchars((string) ($settings['subheadline_register'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></textarea>
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label" for="headline_forgot">Headline Passwort-Reset</label>
-                                <input class="form-control" id="headline_forgot" name="headline_forgot" type="text" maxlength="120" value="<?php echo htmlspecialchars((string) ($settings['headline_forgot'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label" for="subheadline_forgot">Subheadline Passwort-Reset</label>
-                                <textarea class="form-control" id="subheadline_forgot" name="subheadline_forgot" rows="2"><?php echo htmlspecialchars((string) ($settings['subheadline_forgot'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></textarea>
-                            </div>
-                        </div>
-
-                        <div class="row g-4 mb-4">
-                            <div class="col-12">
-                                <div class="border rounded p-3 h-100">
-                                    <h4 class="h6 mb-3">Login</h4>
-                                    <div class="row g-3">
-                                        <div class="col-md-6">
-                                            <label class="form-label" for="login_label_identifier">Label Benutzerfeld</label>
-                                            <input class="form-control" id="login_label_identifier" name="login_label_identifier" type="text" value="<?php echo htmlspecialchars((string) ($settings['login_label_identifier'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label class="form-label" for="login_label_password">Label Passwortfeld</label>
-                                            <input class="form-control" id="login_label_password" name="login_label_password" type="text" value="<?php echo htmlspecialchars((string) ($settings['login_label_password'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label class="form-label" for="login_identifier_placeholder">Placeholder Benutzerfeld</label>
-                                            <input class="form-control" id="login_identifier_placeholder" name="login_identifier_placeholder" type="text" value="<?php echo htmlspecialchars((string) ($settings['login_identifier_placeholder'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label class="form-label" for="login_password_placeholder">Placeholder Passwortfeld</label>
-                                            <input class="form-control" id="login_password_placeholder" name="login_password_placeholder" type="text" value="<?php echo htmlspecialchars((string) ($settings['login_password_placeholder'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
-                                        </div>
-                                        <div class="col-md-4">
-                                            <label class="form-label" for="login_button_text">Button Login</label>
-                                            <input class="form-control" id="login_button_text" name="login_button_text" type="text" value="<?php echo htmlspecialchars((string) ($settings['login_button_text'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
-                                        </div>
-                                        <div class="col-md-4">
-                                            <label class="form-label" for="login_forgot_link_text">Link Passwort vergessen</label>
-                                            <input class="form-control" id="login_forgot_link_text" name="login_forgot_link_text" type="text" value="<?php echo htmlspecialchars((string) ($settings['login_forgot_link_text'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
-                                        </div>
-                                        <div class="col-md-4">
-                                            <label class="form-label" for="login_remember_label">Label „Angemeldet bleiben“</label>
-                                            <input class="form-control" id="login_remember_label" name="login_remember_label" type="text" value="<?php echo htmlspecialchars((string) ($settings['login_remember_label'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label class="form-label" for="login_passkey_button_text">Passkey-Button</label>
-                                            <input class="form-control" id="login_passkey_button_text" name="login_passkey_button_text" type="text" value="<?php echo htmlspecialchars((string) ($settings['login_passkey_button_text'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
-                                        </div>
-                                        <div class="col-md-3 d-flex align-items-end">
-                                            <div class="form-check">
-                                                <input class="form-check-input" id="login_show_remember" name="login_show_remember" type="checkbox" value="1" <?php echo ($settings['login_show_remember'] ?? '1') === '1' ? 'checked' : ''; ?>>
-                                                <label class="form-check-label" for="login_show_remember">„Angemeldet bleiben“ anzeigen</label>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-3 d-flex align-items-end">
-                                            <div class="form-check">
-                                                <input class="form-check-input" id="login_show_passkey" name="login_show_passkey" type="checkbox" value="1" <?php echo ($settings['login_show_passkey'] ?? '1') === '1' ? 'checked' : ''; ?>>
-                                                <label class="form-check-label" for="login_show_passkey">Passkey-Login anzeigen</label>
-                                            </div>
-                                        </div>
-                                    </div>
+                        <div class="cms-loginpage-tab-panel is-active" id="cms-login-tab-layout" role="tabpanel">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label" for="brand_name">Brandname</label>
+                                    <input class="form-control" id="brand_name" name="brand_name" type="text" maxlength="80" value="<?php echo htmlspecialchars((string) ($settings['brand_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label" for="logo_url">Logo-URL</label>
+                                    <input class="form-control" id="logo_url" name="logo_url" type="text" value="<?php echo htmlspecialchars((string) ($settings['logo_url'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" placeholder="https://example.com/logo.svg oder /uploads/theme/logo.svg">
+                                    <div class="form-hint">Erlaubt sind absolute HTTP(S)-URLs sowie interne Pfade wie <code>/uploads/...</code>.</div>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label" for="layout_variant">Layout</label>
+                                    <select class="form-select" id="layout_variant" name="layout_variant">
+                                        <option value="centered" <?php echo ($settings['layout_variant'] ?? 'centered') === 'centered' ? 'selected' : ''; ?>>Centered Card</option>
+                                        <option value="split" <?php echo ($settings['layout_variant'] ?? 'centered') === 'split' ? 'selected' : ''; ?>>Split Layout</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label" for="auth_slug_mode">Öffentliche Auth-Slugs</label>
+                                    <select class="form-select" id="auth_slug_mode" name="auth_slug_mode">
+                                        <option value="cms" <?php echo ($settings['auth_slug_mode'] ?? 'cms') === 'cms' ? 'selected' : ''; ?>>CMS-Slugs (/cms-login, /cms-register, ...)</option>
+                                        <option value="legacy" <?php echo ($settings['auth_slug_mode'] ?? 'cms') === 'legacy' ? 'selected' : ''; ?>>Legacy-Slugs (/login, /register, ...)</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label" for="card_width">Kartenbreite (px)</label>
+                                    <input class="form-control" id="card_width" name="card_width" type="number" min="380" max="960" value="<?php echo htmlspecialchars((string) ($settings['card_width'] ?? '520'), ENT_QUOTES, 'UTF-8'); ?>">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label" for="footer_note">Footer-Hinweis</label>
+                                    <input class="form-control" id="footer_note" name="footer_note" type="text" maxlength="120" value="<?php echo htmlspecialchars((string) ($settings['footer_note'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
                                 </div>
                             </div>
+                            <div class="cms-loginpage-tab-save d-flex flex-wrap gap-2">
+                                <button class="btn btn-primary" type="submit">Speichern</button>
+                                <a class="btn btn-outline-primary" href="<?php echo htmlspecialchars((string) ($previewUrls['login'] ?? '/cms-login'), ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer">Login ansehen</a>
+                                <a class="btn btn-outline-primary" href="<?php echo htmlspecialchars((string) ($previewUrls['register'] ?? '/cms-register'), ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer">Register ansehen</a>
+                                <a class="btn btn-outline-primary" href="<?php echo htmlspecialchars((string) ($previewUrls['forgot_password'] ?? '/cms-password-forgot'), ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer">Reset ansehen</a>
+                            </div>
+                        </div>
 
-                            <div class="col-12">
-                                <div class="border rounded p-3 h-100">
-                                    <h4 class="h6 mb-3">Registrierung</h4>
-                                    <div class="row g-3">
-                                        <div class="col-md-6 d-flex align-items-end">
-                                            <div class="form-check">
-                                                <input class="form-check-input" id="registration_enabled" name="registration_enabled" type="checkbox" value="1" <?php echo ($settings['registration_enabled'] ?? '1') === '1' ? 'checked' : ''; ?>>
-                                                <label class="form-check-label" for="registration_enabled">Globale Registrierung aktivieren</label>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-6 d-flex align-items-end">
-                                            <div class="form-check">
-                                                <input class="form-check-input" id="member_registration_enabled" name="member_registration_enabled" type="checkbox" value="1" <?php echo ($settings['member_registration_enabled'] ?? '1') === '1' ? 'checked' : ''; ?>>
-                                                <label class="form-check-label" for="member_registration_enabled">Mitglieder-Registrierung erlauben</label>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label class="form-label" for="register_label_email">Label E-Mail</label>
-                                            <input class="form-control" id="register_label_email" name="register_label_email" type="text" value="<?php echo htmlspecialchars((string) ($settings['register_label_email'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label class="form-label" for="register_label_username">Label Benutzername</label>
-                                            <input class="form-control" id="register_label_username" name="register_label_username" type="text" value="<?php echo htmlspecialchars((string) ($settings['register_label_username'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label class="form-label" for="register_label_password">Label Passwort</label>
-                                            <input class="form-control" id="register_label_password" name="register_label_password" type="text" value="<?php echo htmlspecialchars((string) ($settings['register_label_password'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label class="form-label" for="register_label_password_confirm">Label Passwort bestätigen</label>
-                                            <input class="form-control" id="register_label_password_confirm" name="register_label_password_confirm" type="text" value="<?php echo htmlspecialchars((string) ($settings['register_label_password_confirm'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label class="form-label" for="register_email_placeholder">Placeholder E-Mail</label>
-                                            <input class="form-control" id="register_email_placeholder" name="register_email_placeholder" type="text" value="<?php echo htmlspecialchars((string) ($settings['register_email_placeholder'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label class="form-label" for="register_username_placeholder">Placeholder Benutzername</label>
-                                            <input class="form-control" id="register_username_placeholder" name="register_username_placeholder" type="text" value="<?php echo htmlspecialchars((string) ($settings['register_username_placeholder'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label class="form-label" for="register_button_text">Button Registrierung</label>
-                                            <input class="form-control" id="register_button_text" name="register_button_text" type="text" value="<?php echo htmlspecialchars((string) ($settings['register_button_text'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
-                                        </div>
-                                        <div class="col-md-6 d-flex align-items-end">
-                                            <div class="form-check">
-                                                <input class="form-check-input" id="register_require_terms" name="register_require_terms" type="checkbox" value="1" <?php echo ($settings['register_require_terms'] ?? '1') === '1' ? 'checked' : ''; ?>>
-                                                <label class="form-check-label" for="register_require_terms">Rechts-Häkchen erzwingen</label>
-                                            </div>
-                                        </div>
-                                        <div class="col-12">
-                                            <label class="form-label" for="register_terms_label">Text für Rechts-Häkchen</label>
-                                            <textarea class="form-control" id="register_terms_label" name="register_terms_label" rows="2"><?php echo htmlspecialchars((string) ($settings['register_terms_label'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></textarea>
-                                        </div>
-                                        <div class="col-12">
-                                            <label class="form-label" for="register_disabled_message">Hinweis bei deaktivierter Registrierung</label>
-                                            <textarea class="form-control" id="register_disabled_message" name="register_disabled_message" rows="2"><?php echo htmlspecialchars((string) ($settings['register_disabled_message'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></textarea>
-                                        </div>
-                                    </div>
+                        <div class="cms-loginpage-tab-panel" id="cms-login-tab-colors" role="tabpanel">
+                            <div class="row g-3">
+                                <div class="col-md-4"><label class="form-label" for="background_start">Background Start</label><input class="form-control form-control-color" id="background_start" name="background_start" type="color" value="<?php echo htmlspecialchars((string) ($settings['background_start'] ?? '#0f172a'), ENT_QUOTES, 'UTF-8'); ?>"></div>
+                                <div class="col-md-4"><label class="form-label" for="background_end">Background Ende</label><input class="form-control form-control-color" id="background_end" name="background_end" type="color" value="<?php echo htmlspecialchars((string) ($settings['background_end'] ?? '#1d4ed8'), ENT_QUOTES, 'UTF-8'); ?>"></div>
+                                <div class="col-md-4"><label class="form-label" for="card_background">Card Hintergrund</label><input class="form-control form-control-color" id="card_background" name="card_background" type="color" value="<?php echo htmlspecialchars((string) ($settings['card_background'] ?? '#ffffff'), ENT_QUOTES, 'UTF-8'); ?>"></div>
+                                <div class="col-md-4"><label class="form-label" for="text_color">Textfarbe</label><input class="form-control form-control-color" id="text_color" name="text_color" type="color" value="<?php echo htmlspecialchars((string) ($settings['text_color'] ?? '#0f172a'), ENT_QUOTES, 'UTF-8'); ?>"></div>
+                                <div class="col-md-4"><label class="form-label" for="muted_color">Muted Text</label><input class="form-control form-control-color" id="muted_color" name="muted_color" type="color" value="<?php echo htmlspecialchars((string) ($settings['muted_color'] ?? '#475569'), ENT_QUOTES, 'UTF-8'); ?>"></div>
+                                <div class="col-md-4"><label class="form-label" for="link_color">Linkfarbe</label><input class="form-control form-control-color" id="link_color" name="link_color" type="color" value="<?php echo htmlspecialchars((string) ($settings['link_color'] ?? '#1d4ed8'), ENT_QUOTES, 'UTF-8'); ?>"></div>
+                                <div class="col-md-4"><label class="form-label" for="primary_color">Primary Button</label><input class="form-control form-control-color" id="primary_color" name="primary_color" type="color" value="<?php echo htmlspecialchars((string) ($settings['primary_color'] ?? '#2563eb'), ENT_QUOTES, 'UTF-8'); ?>"></div>
+                                <div class="col-md-4"><label class="form-label" for="primary_text_color">Primary Text</label><input class="form-control form-control-color" id="primary_text_color" name="primary_text_color" type="color" value="<?php echo htmlspecialchars((string) ($settings['primary_text_color'] ?? '#ffffff'), ENT_QUOTES, 'UTF-8'); ?>"></div>
+                                <div class="col-md-4"><label class="form-label" for="input_background">Input Hintergrund</label><input class="form-control form-control-color" id="input_background" name="input_background" type="color" value="<?php echo htmlspecialchars((string) ($settings['input_background'] ?? '#f8fafc'), ENT_QUOTES, 'UTF-8'); ?>"></div>
+                                <div class="col-md-4"><label class="form-label" for="input_border">Input Border</label><input class="form-control form-control-color" id="input_border" name="input_border" type="color" value="<?php echo htmlspecialchars((string) ($settings['input_border'] ?? '#cbd5e1'), ENT_QUOTES, 'UTF-8'); ?>"></div>
+                            </div>
+                            <div class="cms-loginpage-tab-save d-flex flex-wrap gap-2">
+                                <button class="btn btn-primary" type="submit">Speichern</button>
+                                <a class="btn btn-outline-primary" href="<?php echo htmlspecialchars((string) ($previewUrls['login'] ?? '/cms-login'), ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer">Login ansehen</a>
+                            </div>
+                        </div>
+
+                        <div class="cms-loginpage-tab-panel" id="cms-login-tab-texts" role="tabpanel">
+                            <div class="row g-3 mb-4">
+                                <div class="col-12"><label class="form-label" for="headline_login">Headline Login</label><input class="form-control" id="headline_login" name="headline_login" type="text" maxlength="120" value="<?php echo htmlspecialchars((string) ($settings['headline_login'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"></div>
+                                <div class="col-12"><label class="form-label" for="subheadline_login">Subheadline Login</label><textarea class="form-control" id="subheadline_login" name="subheadline_login" rows="2"><?php echo htmlspecialchars((string) ($settings['subheadline_login'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></textarea></div>
+                                <div class="col-12"><label class="form-label" for="headline_register">Headline Register</label><input class="form-control" id="headline_register" name="headline_register" type="text" maxlength="120" value="<?php echo htmlspecialchars((string) ($settings['headline_register'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"></div>
+                                <div class="col-12"><label class="form-label" for="subheadline_register">Subheadline Register</label><textarea class="form-control" id="subheadline_register" name="subheadline_register" rows="2"><?php echo htmlspecialchars((string) ($settings['subheadline_register'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></textarea></div>
+                                <div class="col-12"><label class="form-label" for="headline_forgot">Headline Passwort-Reset</label><input class="form-control" id="headline_forgot" name="headline_forgot" type="text" maxlength="120" value="<?php echo htmlspecialchars((string) ($settings['headline_forgot'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"></div>
+                                <div class="col-12"><label class="form-label" for="subheadline_forgot">Subheadline Passwort-Reset</label><textarea class="form-control" id="subheadline_forgot" name="subheadline_forgot" rows="2"><?php echo htmlspecialchars((string) ($settings['subheadline_forgot'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></textarea></div>
+                            </div>
+                            <div class="border rounded p-3 mb-4">
+                                <h4 class="h6 mb-3">Login Labels</h4>
+                                <div class="row g-3">
+                                    <div class="col-md-6"><label class="form-label" for="login_label_identifier">Label Benutzerfeld</label><input class="form-control" id="login_label_identifier" name="login_label_identifier" type="text" value="<?php echo htmlspecialchars((string) ($settings['login_label_identifier'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"></div>
+                                    <div class="col-md-6"><label class="form-label" for="login_label_password">Label Passwortfeld</label><input class="form-control" id="login_label_password" name="login_label_password" type="text" value="<?php echo htmlspecialchars((string) ($settings['login_label_password'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"></div>
+                                    <div class="col-md-6"><label class="form-label" for="login_identifier_placeholder">Placeholder Benutzerfeld</label><input class="form-control" id="login_identifier_placeholder" name="login_identifier_placeholder" type="text" value="<?php echo htmlspecialchars((string) ($settings['login_identifier_placeholder'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"></div>
+                                    <div class="col-md-6"><label class="form-label" for="login_password_placeholder">Placeholder Passwortfeld</label><input class="form-control" id="login_password_placeholder" name="login_password_placeholder" type="text" value="<?php echo htmlspecialchars((string) ($settings['login_password_placeholder'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"></div>
+                                    <div class="col-md-4"><label class="form-label" for="login_button_text">Button Login</label><input class="form-control" id="login_button_text" name="login_button_text" type="text" value="<?php echo htmlspecialchars((string) ($settings['login_button_text'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"></div>
+                                    <div class="col-md-4"><label class="form-label" for="login_forgot_link_text">Link Passwort vergessen</label><input class="form-control" id="login_forgot_link_text" name="login_forgot_link_text" type="text" value="<?php echo htmlspecialchars((string) ($settings['login_forgot_link_text'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"></div>
+                                    <div class="col-md-4"><label class="form-label" for="login_remember_label">Label „Angemeldet bleiben“</label><input class="form-control" id="login_remember_label" name="login_remember_label" type="text" value="<?php echo htmlspecialchars((string) ($settings['login_remember_label'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"></div>
+                                    <div class="col-md-6"><label class="form-label" for="login_passkey_button_text">Passkey-Button</label><input class="form-control" id="login_passkey_button_text" name="login_passkey_button_text" type="text" value="<?php echo htmlspecialchars((string) ($settings['login_passkey_button_text'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"></div>
+                                    <div class="col-md-3 d-flex align-items-end"><div class="form-check"><input class="form-check-input" id="login_show_remember" name="login_show_remember" type="checkbox" value="1" <?php echo ($settings['login_show_remember'] ?? '1') === '1' ? 'checked' : ''; ?>><label class="form-check-label" for="login_show_remember">„Angemeldet bleiben“ anzeigen</label></div></div>
+                                    <div class="col-md-3 d-flex align-items-end"><div class="form-check"><input class="form-check-input" id="login_show_passkey" name="login_show_passkey" type="checkbox" value="1" <?php echo ($settings['login_show_passkey'] ?? '1') === '1' ? 'checked' : ''; ?>><label class="form-check-label" for="login_show_passkey">Passkey-Login anzeigen</label></div></div>
                                 </div>
                             </div>
-
-                            <div class="col-12">
-                                <div class="border rounded p-3 h-100">
-                                    <h4 class="h6 mb-3">Passwort vergessen</h4>
-                                    <div class="row g-3">
-                                        <div class="col-md-6">
-                                            <label class="form-label" for="forgot_label_email">Label E-Mail</label>
-                                            <input class="form-control" id="forgot_label_email" name="forgot_label_email" type="text" value="<?php echo htmlspecialchars((string) ($settings['forgot_label_email'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label class="form-label" for="forgot_email_placeholder">Placeholder E-Mail</label>
-                                            <input class="form-control" id="forgot_email_placeholder" name="forgot_email_placeholder" type="text" value="<?php echo htmlspecialchars((string) ($settings['forgot_email_placeholder'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
-                                        </div>
-                                        <div class="col-md-4">
-                                            <label class="form-label" for="forgot_request_button_text">Button Reset anfordern</label>
-                                            <input class="form-control" id="forgot_request_button_text" name="forgot_request_button_text" type="text" value="<?php echo htmlspecialchars((string) ($settings['forgot_request_button_text'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
-                                        </div>
-                                        <div class="col-md-4">
-                                            <label class="form-label" for="forgot_reset_button_text">Button Passwort ändern</label>
-                                            <input class="form-control" id="forgot_reset_button_text" name="forgot_reset_button_text" type="text" value="<?php echo htmlspecialchars((string) ($settings['forgot_reset_button_text'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
-                                        </div>
-                                        <div class="col-md-4">
-                                            <label class="form-label" for="forgot_done_button_text">Button nach Erfolg</label>
-                                            <input class="form-control" id="forgot_done_button_text" name="forgot_done_button_text" type="text" value="<?php echo htmlspecialchars((string) ($settings['forgot_done_button_text'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
-                                        </div>
-                                        <div class="col-12">
-                                            <label class="form-label" for="forgot_request_success_message">Erfolgsmeldung Link-Anforderung</label>
-                                            <textarea class="form-control" id="forgot_request_success_message" name="forgot_request_success_message" rows="2"><?php echo htmlspecialchars((string) ($settings['forgot_request_success_message'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></textarea>
-                                        </div>
-                                        <div class="col-12">
-                                            <label class="form-label" for="forgot_reset_success_message">Erfolgsmeldung Passwort-Reset</label>
-                                            <textarea class="form-control" id="forgot_reset_success_message" name="forgot_reset_success_message" rows="2"><?php echo htmlspecialchars((string) ($settings['forgot_reset_success_message'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></textarea>
-                                        </div>
-                                    </div>
+                            <div class="border rounded p-3">
+                                <h4 class="h6 mb-3">Recht &amp; Footer-Links</h4>
+                                <div class="row g-3">
+                                    <?php $renderSelect('privacy_page_id', 'Datenschutzerklärung', $pageOptions, (string) ($settings['privacy_page_id'] ?? '0')); ?>
+                                    <?php $renderSelect('terms_page_id', 'Nutzungsbedingungen', $pageOptions, (string) ($settings['terms_page_id'] ?? '0')); ?>
+                                    <?php $renderSelect('imprint_page_id', 'Impressum', $pageOptions, (string) ($settings['imprint_page_id'] ?? '0')); ?>
+                                    <div class="col-md-3"><label class="form-label" for="footer_link_login">Footer-Link Login</label><input class="form-control" id="footer_link_login" name="footer_link_login" type="text" value="<?php echo htmlspecialchars((string) ($settings['footer_link_login'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"></div>
+                                    <div class="col-md-3"><label class="form-label" for="footer_link_register">Footer-Link Registrierung</label><input class="form-control" id="footer_link_register" name="footer_link_register" type="text" value="<?php echo htmlspecialchars((string) ($settings['footer_link_register'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"></div>
+                                    <div class="col-md-3"><label class="form-label" for="footer_link_forgot">Footer-Link Reset</label><input class="form-control" id="footer_link_forgot" name="footer_link_forgot" type="text" value="<?php echo htmlspecialchars((string) ($settings['footer_link_forgot'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"></div>
+                                    <div class="col-md-3"><label class="form-label" for="footer_link_home">Footer-Link Startseite</label><input class="form-control" id="footer_link_home" name="footer_link_home" type="text" value="<?php echo htmlspecialchars((string) ($settings['footer_link_home'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"></div>
                                 </div>
                             </div>
-                        </div>
-
-                        <h3 class="h5 mb-3">Recht & Footer-Links</h3>
-                        <div class="row g-3 mb-4">
-                            <?php $renderSelect('privacy_page_id', 'Datenschutzerklärung', $pageOptions, (string) ($settings['privacy_page_id'] ?? '0')); ?>
-                            <?php $renderSelect('terms_page_id', 'Nutzungsbedingungen', $pageOptions, (string) ($settings['terms_page_id'] ?? '0')); ?>
-                            <?php $renderSelect('imprint_page_id', 'Impressum', $pageOptions, (string) ($settings['imprint_page_id'] ?? '0')); ?>
-                            <div class="col-md-3">
-                                <label class="form-label" for="footer_link_login">Footer-Link Login</label>
-                                <input class="form-control" id="footer_link_login" name="footer_link_login" type="text" value="<?php echo htmlspecialchars((string) ($settings['footer_link_login'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label" for="footer_link_register">Footer-Link Registrierung</label>
-                                <input class="form-control" id="footer_link_register" name="footer_link_register" type="text" value="<?php echo htmlspecialchars((string) ($settings['footer_link_register'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label" for="footer_link_forgot">Footer-Link Reset</label>
-                                <input class="form-control" id="footer_link_forgot" name="footer_link_forgot" type="text" value="<?php echo htmlspecialchars((string) ($settings['footer_link_forgot'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label" for="footer_link_home">Footer-Link Startseite</label>
-                                <input class="form-control" id="footer_link_home" name="footer_link_home" type="text" value="<?php echo htmlspecialchars((string) ($settings['footer_link_home'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
+                            <div class="cms-loginpage-tab-save d-flex flex-wrap gap-2">
+                                <button class="btn btn-primary" type="submit">Speichern</button>
+                                <a class="btn btn-outline-primary" href="<?php echo htmlspecialchars((string) ($previewUrls['login'] ?? '/cms-login'), ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer">Login ansehen</a>
                             </div>
                         </div>
 
-                        <h3 class="h5 mb-3">Reset-E-Mail</h3>
-                        <div class="row g-3">
-                            <div class="col-md-4">
-                                <label class="form-label" for="password_reset_expiry_minutes">Link gültig (Minuten)</label>
-                                <input class="form-control" id="password_reset_expiry_minutes" name="password_reset_expiry_minutes" type="number" min="5" max="1440" value="<?php echo htmlspecialchars((string) ($settings['password_reset_expiry_minutes'] ?? '60'), ENT_QUOTES, 'UTF-8'); ?>">
+                        <div class="cms-loginpage-tab-panel" id="cms-login-tab-registration" role="tabpanel">
+                            <div class="border rounded p-3">
+                                <h4 class="h6 mb-3">Registrierung</h4>
+                                <div class="row g-3">
+                                    <div class="col-md-6 d-flex align-items-end"><div class="form-check"><input class="form-check-input" id="registration_enabled" name="registration_enabled" type="checkbox" value="1" <?php echo ($settings['registration_enabled'] ?? '1') === '1' ? 'checked' : ''; ?>><label class="form-check-label" for="registration_enabled">Globale Registrierung aktivieren</label></div></div>
+                                    <div class="col-md-6 d-flex align-items-end"><div class="form-check"><input class="form-check-input" id="member_registration_enabled" name="member_registration_enabled" type="checkbox" value="1" <?php echo ($settings['member_registration_enabled'] ?? '1') === '1' ? 'checked' : ''; ?>><label class="form-check-label" for="member_registration_enabled">Mitglieder-Registrierung erlauben</label></div></div>
+                                    <div class="col-md-6"><label class="form-label" for="register_label_email">Label E-Mail</label><input class="form-control" id="register_label_email" name="register_label_email" type="text" value="<?php echo htmlspecialchars((string) ($settings['register_label_email'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"></div>
+                                    <div class="col-md-6"><label class="form-label" for="register_label_username">Label Benutzername</label><input class="form-control" id="register_label_username" name="register_label_username" type="text" value="<?php echo htmlspecialchars((string) ($settings['register_label_username'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"></div>
+                                    <div class="col-md-6"><label class="form-label" for="register_label_password">Label Passwort</label><input class="form-control" id="register_label_password" name="register_label_password" type="text" value="<?php echo htmlspecialchars((string) ($settings['register_label_password'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"></div>
+                                    <div class="col-md-6"><label class="form-label" for="register_label_password_confirm">Label Passwort bestätigen</label><input class="form-control" id="register_label_password_confirm" name="register_label_password_confirm" type="text" value="<?php echo htmlspecialchars((string) ($settings['register_label_password_confirm'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"></div>
+                                    <div class="col-md-6"><label class="form-label" for="register_email_placeholder">Placeholder E-Mail</label><input class="form-control" id="register_email_placeholder" name="register_email_placeholder" type="text" value="<?php echo htmlspecialchars((string) ($settings['register_email_placeholder'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"></div>
+                                    <div class="col-md-6"><label class="form-label" for="register_username_placeholder">Placeholder Benutzername</label><input class="form-control" id="register_username_placeholder" name="register_username_placeholder" type="text" value="<?php echo htmlspecialchars((string) ($settings['register_username_placeholder'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"></div>
+                                    <div class="col-md-6"><label class="form-label" for="register_button_text">Button Registrierung</label><input class="form-control" id="register_button_text" name="register_button_text" type="text" value="<?php echo htmlspecialchars((string) ($settings['register_button_text'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"></div>
+                                    <div class="col-md-6 d-flex align-items-end"><div class="form-check"><input class="form-check-input" id="register_require_terms" name="register_require_terms" type="checkbox" value="1" <?php echo ($settings['register_require_terms'] ?? '1') === '1' ? 'checked' : ''; ?>><label class="form-check-label" for="register_require_terms">Rechts-Häkchen erzwingen</label></div></div>
+                                    <div class="col-12"><label class="form-label" for="register_terms_label">Text für Rechts-Häkchen</label><textarea class="form-control" id="register_terms_label" name="register_terms_label" rows="2"><?php echo htmlspecialchars((string) ($settings['register_terms_label'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></textarea></div>
+                                    <div class="col-12"><label class="form-label" for="register_disabled_message">Hinweis bei deaktivierter Registrierung</label><textarea class="form-control" id="register_disabled_message" name="register_disabled_message" rows="2"><?php echo htmlspecialchars((string) ($settings['register_disabled_message'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></textarea></div>
+                                </div>
                             </div>
-                            <div class="col-12">
-                                <label class="form-label" for="password_reset_email_subject">Mail-Betreff</label>
-                                <input class="form-control" id="password_reset_email_subject" name="password_reset_email_subject" type="text" value="<?php echo htmlspecialchars((string) ($settings['password_reset_email_subject'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label" for="password_reset_email_body">Mail-Text</label>
-                                <textarea class="form-control" id="password_reset_email_body" name="password_reset_email_body" rows="8"><?php echo htmlspecialchars((string) ($settings['password_reset_email_body'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></textarea>
-                                <div class="form-hint">Verfügbare Platzhalter: <code>{site_name}</code>, <code>{brand_name}</code>, <code>{expires_minutes}</code>, <code>{reset_url}</code></div>
+                            <div class="cms-loginpage-tab-save d-flex flex-wrap gap-2">
+                                <button class="btn btn-primary" type="submit">Speichern</button>
+                                <a class="btn btn-outline-primary" href="<?php echo htmlspecialchars((string) ($previewUrls['register'] ?? '/cms-register'), ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer">Register ansehen</a>
                             </div>
                         </div>
 
-                        <div class="mt-4 d-flex flex-wrap gap-2">
-                            <button class="btn btn-primary" type="submit">Speichern</button>
-                            <a class="btn btn-outline-primary" href="<?php echo htmlspecialchars((string) ($previewUrls['login'] ?? '/cms-login'), ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer">Login ansehen</a>
-                            <a class="btn btn-outline-primary" href="<?php echo htmlspecialchars((string) ($previewUrls['register'] ?? '/cms-register'), ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer">Register ansehen</a>
-                            <a class="btn btn-outline-primary" href="<?php echo htmlspecialchars((string) ($previewUrls['forgot_password'] ?? '/cms-password-forgot'), ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer">Reset ansehen</a>
+                        <div class="cms-loginpage-tab-panel" id="cms-login-tab-forgot" role="tabpanel">
+                            <div class="border rounded p-3">
+                                <h4 class="h6 mb-3">Passwort vergessen</h4>
+                                <div class="row g-3">
+                                    <div class="col-md-6"><label class="form-label" for="forgot_label_email">Label E-Mail</label><input class="form-control" id="forgot_label_email" name="forgot_label_email" type="text" value="<?php echo htmlspecialchars((string) ($settings['forgot_label_email'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"></div>
+                                    <div class="col-md-6"><label class="form-label" for="forgot_email_placeholder">Placeholder E-Mail</label><input class="form-control" id="forgot_email_placeholder" name="forgot_email_placeholder" type="text" value="<?php echo htmlspecialchars((string) ($settings['forgot_email_placeholder'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"></div>
+                                    <div class="col-md-4"><label class="form-label" for="forgot_request_button_text">Button Reset anfordern</label><input class="form-control" id="forgot_request_button_text" name="forgot_request_button_text" type="text" value="<?php echo htmlspecialchars((string) ($settings['forgot_request_button_text'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"></div>
+                                    <div class="col-md-4"><label class="form-label" for="forgot_reset_button_text">Button Passwort ändern</label><input class="form-control" id="forgot_reset_button_text" name="forgot_reset_button_text" type="text" value="<?php echo htmlspecialchars((string) ($settings['forgot_reset_button_text'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"></div>
+                                    <div class="col-md-4"><label class="form-label" for="forgot_done_button_text">Button nach Erfolg</label><input class="form-control" id="forgot_done_button_text" name="forgot_done_button_text" type="text" value="<?php echo htmlspecialchars((string) ($settings['forgot_done_button_text'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"></div>
+                                    <div class="col-12"><label class="form-label" for="forgot_request_success_message">Erfolgsmeldung Link-Anforderung</label><textarea class="form-control" id="forgot_request_success_message" name="forgot_request_success_message" rows="2"><?php echo htmlspecialchars((string) ($settings['forgot_request_success_message'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></textarea></div>
+                                    <div class="col-12"><label class="form-label" for="forgot_reset_success_message">Erfolgsmeldung Passwort-Reset</label><textarea class="form-control" id="forgot_reset_success_message" name="forgot_reset_success_message" rows="2"><?php echo htmlspecialchars((string) ($settings['forgot_reset_success_message'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></textarea></div>
+                                </div>
+                            </div>
+                            <div class="cms-loginpage-tab-save d-flex flex-wrap gap-2">
+                                <button class="btn btn-primary" type="submit">Speichern</button>
+                                <a class="btn btn-outline-primary" href="<?php echo htmlspecialchars((string) ($previewUrls['forgot_password'] ?? '/cms-password-forgot'), ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer">Reset ansehen</a>
+                            </div>
+                        </div>
+
+                        <div class="cms-loginpage-tab-panel" id="cms-login-tab-email" role="tabpanel">
+                            <div class="row g-3">
+                                <div class="col-md-4"><label class="form-label" for="password_reset_expiry_minutes">Link gültig (Minuten)</label><input class="form-control" id="password_reset_expiry_minutes" name="password_reset_expiry_minutes" type="number" min="5" max="1440" value="<?php echo htmlspecialchars((string) ($settings['password_reset_expiry_minutes'] ?? '60'), ENT_QUOTES, 'UTF-8'); ?>"></div>
+                                <div class="col-12"><label class="form-label" for="password_reset_email_subject">Mail-Betreff</label><input class="form-control" id="password_reset_email_subject" name="password_reset_email_subject" type="text" value="<?php echo htmlspecialchars((string) ($settings['password_reset_email_subject'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>"></div>
+                                <div class="col-12">
+                                    <label class="form-label" for="password_reset_email_body">Mail-Text</label>
+                                    <textarea class="form-control" id="password_reset_email_body" name="password_reset_email_body" rows="8"><?php echo htmlspecialchars((string) ($settings['password_reset_email_body'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></textarea>
+                                    <div class="form-hint">Verfügbare Platzhalter: <code>{site_name}</code>, <code>{brand_name}</code>, <code>{expires_minutes}</code>, <code>{reset_url}</code></div>
+                                </div>
+                            </div>
+                            <div class="cms-loginpage-tab-save d-flex flex-wrap gap-2">
+                                <button class="btn btn-primary" type="submit">Speichern</button>
+                                <a class="btn btn-outline-primary" href="<?php echo htmlspecialchars((string) ($previewUrls['forgot_password'] ?? '/cms-password-forgot'), ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer">Reset ansehen</a>
+                            </div>
                         </div>
                     </form>
                 </div>
@@ -401,3 +266,30 @@ $renderSelect = static function (string $name, string $label, array $options, st
     </div>
 </div>
 </div>
+<script>
+(function () {
+    var tabLinks = Array.prototype.slice.call(document.querySelectorAll('[data-login-tab]'));
+    var panels = Array.prototype.slice.call(document.querySelectorAll('.cms-loginpage-tab-panel'));
+
+    function activateTab(tabKey) {
+        tabLinks.forEach(function (link) {
+            var isActive = link.getAttribute('data-login-tab') === tabKey;
+            link.classList.toggle('active', isActive);
+            link.setAttribute('aria-current', isActive ? 'page' : 'false');
+        });
+
+        panels.forEach(function (panel) {
+            var panelKey = panel.id.replace('cms-login-tab-', '');
+            panel.classList.toggle('is-active', panelKey === tabKey);
+        });
+    }
+
+    tabLinks.forEach(function (link) {
+        link.addEventListener('click', function (event) {
+            event.preventDefault();
+            var tabKey = link.getAttribute('data-login-tab') || 'layout';
+            activateTab(tabKey);
+        });
+    });
+})();
+</script>

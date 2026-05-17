@@ -30,6 +30,23 @@ $formatDuration = static function (?int $durationMs): string {
 
     return number_format($durationMs, 0, ',', '.') . ' ms';
 };
+$normalizeScore = static function (mixed $score): int {
+    return max(0, min(100, (int) $score));
+};
+$resolveScoreClass = static function (int $score): string {
+    if ($score >= 80) {
+        return 'is-success';
+    }
+    if ($score >= 60) {
+        return 'is-warning';
+    }
+
+    return 'is-danger';
+};
+$cacheScore = $normalizeScore($cache['health_score'] ?? 0);
+$mediaScore = $normalizeScore($media['health_score'] ?? 0);
+$databaseScore = $normalizeScore($database['health_score'] ?? 0);
+$sessionScore = $normalizeScore($sessions['health_score'] ?? 0);
 ?>
 
 <div class="page-header d-print-none admin-redesign-header">
@@ -55,10 +72,10 @@ $formatDuration = static function (?int $durationMs): string {
     <?php require dirname(__DIR__) . '/performance/subnav.php'; ?>
 
     <div class="row row-deck row-cards mb-4">
-        <div class="col-sm-6 col-lg-3"><div class="card"><div class="card-body"><div class="subheader">Cache-Health</div><div class="h1 mb-0"><?php echo (int)($cache['health_score'] ?? 0); ?></div><div class="text-secondary"><?php echo (int)($cache['file_cache']['files'] ?? 0); ?> Dateien</div></div></div></div>
-        <div class="col-sm-6 col-lg-3"><div class="card"><div class="card-body"><div class="subheader">Medien-Health</div><div class="h1 mb-0"><?php echo (int)($media['health_score'] ?? 0); ?></div><div class="text-secondary"><?php echo (int)($media['library']['missing_alt'] ?? 0); ?> fehlende Alt-Texte</div></div></div></div>
-        <div class="col-sm-6 col-lg-3"><div class="card"><div class="card-body"><div class="subheader">DB-Health</div><div class="h1 mb-0"><?php echo (int)($database['health_score'] ?? 0); ?></div><div class="text-secondary"><?php echo htmlspecialchars($formatBytes((int)($database['total_overhead_bytes'] ?? 0))); ?> Overhead</div></div></div></div>
-        <div class="col-sm-6 col-lg-3"><div class="card"><div class="card-body"><div class="subheader">Session-Health</div><div class="h1 mb-0"><?php echo (int)($sessions['health_score'] ?? 0); ?></div><div class="text-secondary"><?php echo (int)($sessions['active_sessions'] ?? 0); ?> aktiv</div></div></div></div>
+        <div class="col-sm-6 col-lg-3"><div class="card"><div class="card-body"><div class="subheader">Cache-Health</div><div class="h1 mb-0"><?php echo $cacheScore; ?></div><div class="performance-health-progress <?php echo $resolveScoreClass($cacheScore); ?>" style="--performance-score: <?php echo $cacheScore; ?>"><span class="performance-health-progress__fill"></span></div><div class="text-secondary"><?php echo (int)($cache['file_cache']['files'] ?? 0); ?> Dateien</div></div></div></div>
+        <div class="col-sm-6 col-lg-3"><div class="card"><div class="card-body"><div class="subheader">Medien-Health</div><div class="h1 mb-0"><?php echo $mediaScore; ?></div><div class="performance-health-progress <?php echo $resolveScoreClass($mediaScore); ?>" style="--performance-score: <?php echo $mediaScore; ?>"><span class="performance-health-progress__fill"></span></div><div class="text-secondary"><?php echo (int)($media['library']['missing_alt'] ?? 0); ?> fehlende Alt-Texte</div></div></div></div>
+        <div class="col-sm-6 col-lg-3"><div class="card"><div class="card-body"><div class="subheader">DB-Health</div><div class="h1 mb-0"><?php echo $databaseScore; ?></div><div class="performance-health-progress <?php echo $resolveScoreClass($databaseScore); ?>" style="--performance-score: <?php echo $databaseScore; ?>"><span class="performance-health-progress__fill"></span></div><div class="text-secondary"><?php echo htmlspecialchars($formatBytes((int)($database['total_overhead_bytes'] ?? 0))); ?> Overhead</div></div></div></div>
+        <div class="col-sm-6 col-lg-3"><div class="card"><div class="card-body"><div class="subheader">Session-Health</div><div class="h1 mb-0"><?php echo $sessionScore; ?></div><div class="performance-health-progress <?php echo $resolveScoreClass($sessionScore); ?>" style="--performance-score: <?php echo $sessionScore; ?>"><span class="performance-health-progress__fill"></span></div><div class="text-secondary"><?php echo (int)($sessions['active_sessions'] ?? 0); ?> aktiv</div></div></div></div>
     </div>
 
     <div class="row row-cards mb-4">

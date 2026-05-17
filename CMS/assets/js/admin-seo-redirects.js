@@ -380,7 +380,42 @@
         }
     }
 
+    function initRedirectQuickPrefill() {
+        const sourceField = document.getElementById('quick-source-path');
+        const siteScopeField = document.getElementById('quick-site-scope');
+        const targetField = document.getElementById('quick-target-url');
+        if (!sourceField || !targetField) {
+            return;
+        }
+
+        const url = new URL(window.location.href);
+        const sourcePath = (url.searchParams.get('prefill_source') || '').trim();
+        const siteScope = (url.searchParams.get('prefill_site') || '').trim();
+        const focusTarget = url.searchParams.get('focus_target') === '1';
+        if (!sourcePath && !siteScope && !focusTarget) {
+            return;
+        }
+
+        if (sourcePath) {
+            sourceField.value = sourcePath;
+        }
+        if (siteScopeField && siteScope) {
+            const match = Array.from(siteScopeField.options || []).find(
+                (option) => String(option.value || '') === siteScope
+            );
+            if (match) {
+                siteScopeField.value = siteScope;
+            }
+        }
+        if (focusTarget || sourcePath) {
+            targetField.focus();
+            targetField.select();
+        }
+    }
+
     function init() {
+        initRedirectQuickPrefill();
+
         const redirectConfig = parseConfig('seo-redirect-manager-config');
         if (redirectConfig) {
             initRedirectEditor({

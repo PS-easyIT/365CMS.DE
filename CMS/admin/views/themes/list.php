@@ -24,6 +24,32 @@ foreach ($themes as $themeItem) {
 }
 $inactiveCount = max(0, (int)$totalThemes - $activeCount);
 $escape = static fn (mixed $value): string => htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
+$resolvePreviewColor = static function (array $theme): string {
+    $candidates = [
+        $theme['primary_color'] ?? null,
+        $theme['color_primary'] ?? null,
+        $theme['accent_color'] ?? null,
+        $theme['json']['primary_color'] ?? null,
+        $theme['json']['color_primary'] ?? null,
+    ];
+
+    if (isset($theme['json']['settings']['color']['palette']) && is_array($theme['json']['settings']['color']['palette'])) {
+        foreach ($theme['json']['settings']['color']['palette'] as $paletteColor) {
+            if (is_array($paletteColor) && isset($paletteColor['color'])) {
+                $candidates[] = $paletteColor['color'];
+            }
+        }
+    }
+
+    foreach ($candidates as $candidate) {
+        $value = trim((string) $candidate);
+        if (preg_match('/^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/', $value) === 1) {
+            return $value;
+        }
+    }
+
+    return '#64748b';
+};
 ?>
 
 <div class="page-header d-print-none">
@@ -79,21 +105,42 @@ $escape = static fn (mixed $value): string => htmlspecialchars((string) $value, 
             </div>
         </div>
         <div class="card-body">
-    <div class="row row-cards admin-theme-list-grid">
+    <div class="admin-theme-list-grid">
         <?php foreach ($themes as $slug => $theme): ?>
-            <div class="col-sm-6 col-lg-4">
-                <div class="card h-100 admin-theme-list-card<?php echo !empty($theme['isActive']) ? ' border-primary' : ''; ?>">
-                    <!-- Screenshot -->
-                    <div class="card-img-top admin-theme-preview">
-                        <?php if (!empty($theme['screenshot'])): ?>
-                            <img src="<?php echo htmlspecialchars($theme['screenshot']); ?>" alt="<?php echo htmlspecialchars($theme['name'] ?? $slug); ?>" class="admin-theme-preview__image">
-                        <?php else: ?>
-                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-palette" width="48" height="48" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.3;"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 21a9 9 0 0 1 0 -18c4.97 0 9 3.582 9 8c0 1.06 -.474 2.078 -1.318 2.828c-.844 .75 -1.989 1.172 -3.182 1.172h-2.5a2 2 0 0 0 -1 3.75a1.3 1.3 0 0 1 -1 2.25"/><path d="M8.5 10.5m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M12.5 7.5m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M16.5 10.5m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/></svg>
-                        <?php endif; ?>
+            <?php
+            $themeName = (string) ($theme['name'] ?? $slug);
+            $themeFolder = (string) ($theme['folder'] ?? $slug);
+            $previewCandidates = [];
+            $configuredScreenshot = trim((string) ($theme['screenshot'] ?? ''));
+            if ($configuredScreenshot !== '') {
+                $previewCandidates[] = $configuredScreenshot;
+            }
+            $previewCandidates[] = '/themes/' . rawurlencode($themeFolder) . '/screenshot.png';
+            $previewCandidates[] = '/themes/' . rawurlencode($themeFolder) . '/preview.png';
+            $previewCandidates = array_values(array_unique(array_filter(array_map('strval', $previewCandidates))));
+            $previewPrimaryColor = $resolvePreviewColor(is_array($theme) ? $theme : []);
+            $previewGradientEnd = 'rgba(15, 23, 42, 0.82)';
+            ?>
+            <div class="card h-100 admin-theme-list-card<?php echo !empty($theme['isActive']) ? ' border-primary' : ''; ?>">
+                    <div class="card-img-top admin-theme-preview" data-theme-preview-root>
+                        <img
+                            src="<?php echo $escape($previewCandidates[0] ?? ''); ?>"
+                            alt="<?php echo $escape($themeName); ?>"
+                            class="admin-theme-preview__image"
+                            data-theme-preview-image
+                            data-preview-candidates="<?php echo $escape((string) json_encode($previewCandidates, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)); ?>"
+                            <?php echo $previewCandidates === [] ? 'hidden' : ''; ?>
+                        >
+                        <div class="admin-theme-preview__fallback"
+                             data-theme-preview-fallback
+                             style="background:linear-gradient(135deg, <?php echo $escape($previewPrimaryColor); ?> 0%, <?php echo $escape($previewGradientEnd); ?> 100%);"
+                             <?php echo $previewCandidates === [] ? '' : 'hidden'; ?>>
+                            <span class="admin-theme-preview__fallback-text"><?php echo $escape($themeName); ?></span>
+                        </div>
                     </div>
                     <div class="card-body">
                         <div class="d-flex align-items-center mb-2">
-                            <h3 class="card-title mb-0"><?php echo $escape($theme['name'] ?? $slug); ?></h3>
+                            <h3 class="card-title mb-0"><?php echo $escape($themeName); ?></h3>
                             <?php if (!empty($theme['isActive'])): ?>
                                 <span class="badge bg-primary ms-2">Aktiv</span>
                             <?php endif; ?>
@@ -139,7 +186,6 @@ $escape = static fn (mixed $value): string => htmlspecialchars((string) $value, 
                         <?php endif; ?>
                     </div>
                 </div>
-            </div>
         <?php endforeach; ?>
     </div>
         </div>

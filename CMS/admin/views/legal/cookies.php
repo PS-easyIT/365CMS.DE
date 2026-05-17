@@ -7,6 +7,7 @@ $d               = $data ?? [];
 $categories      = $d['categories'] ?? [];
 $services        = $d['services'] ?? [];
 $settings        = $d['settings'] ?? [];
+$consentEnabled  = ($settings['cookie_consent_enabled'] ?? '0') === '1';
 $scanResults     = $d['scan_results'] ?? [];
 $curatedServices = $d['curated_services'] ?? [];
 $cookieSettingsPublicUrl = '/cookie-einstellungen';
@@ -55,7 +56,17 @@ $cookieManagerConfig = [
                 <div class="card"><div class="card-body"><div class="subheader">Scanner-Treffer</div><div class="h1 mb-0"><?= count($scanResults) ?></div></div></div>
             </div>
             <div class="col-sm-6 col-lg-3">
-                <div class="card"><div class="card-body"><div class="subheader">Consent aktiv</div><div class="h1 mb-0 <?= ($settings['cookie_consent_enabled'] ?? '0') === '1' ? 'text-success' : 'text-secondary' ?>"><?= ($settings['cookie_consent_enabled'] ?? '0') === '1' ? 'Ja' : 'Nein' ?></div></div></div>
+                <div class="card admin-consent-kpi <?php echo $consentEnabled ? '' : 'admin-consent-kpi--inactive'; ?>">
+                    <div class="card-body">
+                        <div class="subheader">Consent aktiv</div>
+                        <div class="h1 mb-0 <?php echo $consentEnabled ? '' : 'admin-consent-kpi__value--warning'; ?>">
+                            <?php echo $consentEnabled ? 'Ja' : 'Nein'; ?>
+                        </div>
+                        <?php if (!$consentEnabled): ?>
+                            <div class="admin-consent-kpi__subtitle">Cookie-Consent deaktiviert — DSGVO-Pflicht prüfen</div>
+                        <?php endif; ?>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -189,13 +200,16 @@ $cookieManagerConfig = [
                                     <div class="card bg-light-lt h-100">
                                         <div class="card-body">
                                             <div class="fw-semibold mb-2">Empfohlene Transparenzangaben</div>
-                                            <ul class="mb-0 text-secondary small ps-3">
-                                                <li>Self-Hosted-URL und Site-ID</li>
-                                                <li>Hosting-Region / EU-Bezug</li>
-                                                <li>IP-Anonymisierung</li>
-                                                <li>Do-Not-Track / cookieloser Betrieb</li>
-                                                <li>klare Log-Aufbewahrungsdauer</li>
-                                            </ul>
+                                            <details class="admin-matomo-params">
+                                                <summary>Dokumentierte Parameter ▸</summary>
+                                                <ul class="mb-0 mt-2 text-secondary small ps-3">
+                                                    <li>Self-Hosted-URL und Site-ID</li>
+                                                    <li>Hosting-Region / EU-Bezug</li>
+                                                    <li>IP-Anonymisierung</li>
+                                                    <li>Do-Not-Track / cookieloser Betrieb</li>
+                                                    <li>klare Log-Aufbewahrungsdauer</li>
+                                                </ul>
+                                            </details>
                                         </div>
                                     </div>
                                 </div>

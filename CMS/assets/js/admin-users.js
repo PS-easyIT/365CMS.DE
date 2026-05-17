@@ -55,6 +55,71 @@
         return bootstrap.Modal.getOrCreateInstance(modalElement);
     }
 
+    function ensureDeleteConfirmationModal() {
+        var existingModal = document.getElementById('adminDeleteConfirmModal');
+        if (existingModal) {
+            return existingModal;
+        }
+
+        var wrapper = document.createElement('div');
+        wrapper.innerHTML = ''
+            + '<div class="modal modal-blur fade" id="adminDeleteConfirmModal" tabindex="-1" aria-hidden="true">'
+            + '  <div class="modal-dialog modal-dialog-centered">'
+            + '    <div class="modal-content">'
+            + '      <div class="modal-header">'
+            + '        <h5 class="modal-title">Wirklich löschen?</h5>'
+            + '        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Schließen"></button>'
+            + '      </div>'
+            + '      <div class="modal-body">'
+            + '        <p class="mb-2"><strong id="adminDeleteConfirmEntity"></strong></p>'
+            + '        <p class="text-secondary mb-0">Diese Aktion kann nicht rückgängig gemacht werden.</p>'
+            + '      </div>'
+            + '      <div class="modal-footer">'
+            + '        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Abbrechen</button>'
+            + '        <button type="button" class="btn btn-danger" id="adminDeleteConfirmAccept">Löschen</button>'
+            + '      </div>'
+            + '    </div>'
+            + '  </div>'
+            + '</div>';
+
+        document.body.appendChild(wrapper.firstElementChild);
+        return document.getElementById('adminDeleteConfirmModal');
+    }
+
+    function requestDeleteConfirmation(entityLabel, onConfirm) {
+        var modalElement = ensureDeleteConfirmationModal();
+        var entityElement = document.getElementById('adminDeleteConfirmEntity');
+        var acceptButton = document.getElementById('adminDeleteConfirmAccept');
+        if (typeof onConfirm !== 'function') {
+            return;
+        }
+
+        if (!modalElement || !entityElement || !acceptButton) {
+            if (window.confirm('Wirklich löschen?\n\n' + (entityLabel || 'Ausgewählter Eintrag') + '\n\nDiese Aktion kann nicht rückgängig gemacht werden.')) {
+                onConfirm();
+            }
+            return;
+        }
+
+        entityElement.textContent = entityLabel || 'Ausgewählter Eintrag';
+        var modal = openModal('adminDeleteConfirmModal');
+        if (!modal) {
+            if (window.confirm('Wirklich löschen?\n\n' + (entityLabel || 'Ausgewählter Eintrag') + '\n\nDiese Aktion kann nicht rückgängig gemacht werden.')) {
+                onConfirm();
+            }
+            return;
+        }
+
+        var handleConfirm = function () {
+            acceptButton.removeEventListener('click', handleConfirm);
+            modal.hide();
+            onConfirm();
+        };
+
+        acceptButton.addEventListener('click', handleConfirm);
+        modal.show();
+    }
+
     function initUsersFilters() {
         var roleSelect = document.querySelector('.js-users-filter-role');
         var statusSelect = document.querySelector('.js-users-filter-status');
@@ -187,20 +252,27 @@
                 return;
             }
 
-            if (bulkActionSelect.value === 'hard_delete' && !window.confirm('Die ausgewählten Benutzer wirklich dauerhaft löschen?')) {
+            var applyBulkSelection = function () {
+                selectedIds.forEach(function (id) {
+                    var input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = 'ids[]';
+                    input.value = id;
+                    bulkForm.appendChild(input);
+                });
+            };
+
+            if (bulkActionSelect.value === 'hard_delete') {
                 event.preventDefault();
-                setSubmittingState(bulkForm, false);
+                requestDeleteConfirmation('Ausgewählte Benutzer (' + selectedIds.size + ')', function () {
+                    applyBulkSelection();
+                    setSubmittingState(bulkForm, true);
+                    submitFormAfterConfirmation(bulkForm);
+                });
                 return;
             }
 
-            selectedIds.forEach(function (id) {
-                var input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = 'ids[]';
-                input.value = id;
-                bulkForm.appendChild(input);
-            });
-
+            applyBulkSelection();
             setSubmittingState(bulkForm, true);
         });
 
@@ -295,8 +367,7 @@
                     return;
                 }
 
-                var roleLabel = form.getAttribute('data-role-label') || 'diese Rolle';
-                var message = 'Die Rolle "' + roleLabel + '" wird gelöscht. Zugeordnete Benutzer werden automatisch auf die Rolle "member" umgestellt. Wirklich fortfahren?';
+                var roleLabel = form.getAttribute('data-role-label') || 'Rolle';
 
                 var confirmDelete = function () {
                     setSubmittingState(form, true);
@@ -305,22 +376,7 @@
 
                 event.preventDefault();
 
-                if (typeof cmsConfirm === 'function') {
-                    cmsConfirm({
-                        title: 'Rolle löschen',
-                        message: message,
-                        confirmText: 'Löschen',
-                        confirmClass: 'btn-danger',
-                        onConfirm: confirmDelete
-                    });
-                    return;
-                }
-
-                if (window.confirm(message)) {
-                    confirmDelete();
-                } else {
-                    setSubmittingState(form, false);
-                }
+                requestDeleteConfirmation(roleLabel, confirmDelete);
             });
         });
 
@@ -336,8 +392,7 @@
                     return;
                 }
 
-                var capabilityLabel = form.getAttribute('data-capability-label') || 'dieses Recht';
-                var message = 'Das Recht "' + capabilityLabel + '" wird aus allen Rollen entfernt. Wirklich fortfahren?';
+                var capabilityLabel = form.getAttribute('data-capability-label') || 'Recht';
 
                 var confirmDelete = function () {
                     setSubmittingState(form, true);
@@ -346,22 +401,36 @@
 
                 event.preventDefault();
 
-                if (typeof cmsConfirm === 'function') {
-                    cmsConfirm({
-                        title: 'Recht löschen',
-                        message: message,
-                        confirmText: 'Löschen',
-                        confirmClass: 'btn-danger',
-                        onConfirm: confirmDelete
-                    });
+                requestDeleteConfirmation(capabilityLabel, confirmDelete);
+            });
+        });
+    }
+
+    function initInlineToggleLists() {
+        document.querySelectorAll('.js-inline-toggle-list').forEach(function (container) {
+            var textElement = container.querySelector('.js-inline-toggle-list-text');
+            var toggleButton = container.querySelector('.js-inline-toggle-list-button');
+            if (!textElement || !toggleButton) {
+                return;
+            }
+
+            toggleButton.addEventListener('click', function () {
+                var isExpanded = toggleButton.getAttribute('aria-expanded') === 'true';
+                var collapsedText = container.getAttribute('data-collapsed') || '';
+                var expandedText = container.getAttribute('data-expanded') || '';
+                var expandLabel = toggleButton.getAttribute('data-expand-label') || 'Alle anzeigen';
+                var collapseLabel = toggleButton.getAttribute('data-collapse-label') || 'Weniger anzeigen';
+
+                if (isExpanded) {
+                    textElement.textContent = collapsedText;
+                    toggleButton.textContent = expandLabel;
+                    toggleButton.setAttribute('aria-expanded', 'false');
                     return;
                 }
 
-                if (window.confirm(message)) {
-                    confirmDelete();
-                } else {
-                    setSubmittingState(form, false);
-                }
+                textElement.textContent = expandedText;
+                toggleButton.textContent = collapseLabel;
+                toggleButton.setAttribute('aria-expanded', 'true');
             });
         });
     }
@@ -380,27 +449,13 @@
             }
 
             var userName = deleteButton.getAttribute('data-user-delete-name') || 'Benutzer';
-            var message = 'Der Benutzer "' + userName + '" wird dauerhaft gelöscht. Wirklich fortfahren?';
 
             var confirmDelete = function () {
                 deleteForm.dataset.submitting = '1';
                 submitWithTemporarySubmitter(deleteForm);
             };
 
-            if (typeof cmsConfirm === 'function') {
-                cmsConfirm({
-                    title: 'Benutzer löschen',
-                    message: message,
-                    confirmText: 'Löschen',
-                    confirmClass: 'btn-danger',
-                    onConfirm: confirmDelete
-                });
-                return;
-            }
-
-            if (window.confirm(message)) {
-                confirmDelete();
-            }
+            requestDeleteConfirmation(userName, confirmDelete);
         });
     }
 
@@ -520,5 +575,6 @@
         initUserDeleteActions();
         initUserRoleImpactPreview();
         initRolesUi();
+        initInlineToggleLists();
     });
 })();

@@ -388,119 +388,121 @@ $fontManagerConfig = [
                         require __DIR__ . '/../partials/flash-alert.php';
                         ?>
                     <?php endif; ?>
+                    <div class="font-manager-search">
+                        <label class="form-label mb-1" for="fontManagerSearch">Schriftensuche</label>
+                        <input type="search" id="fontManagerSearch" class="form-control" placeholder="Schriften in aktiven und verfügbaren Bereichen filtern …" autocomplete="off" spellcheck="false">
+                    </div>
 
-                    <?php foreach ($fontCatalog as $category => $fonts): ?>
-                        <div class="mb-4">
-                            <h4 class="mb-3"><?php echo htmlspecialchars($category); ?></h4>
-                            <div class="row row-cards">
-                                <?php foreach ($fonts as $font): ?>
-                                    <div class="col-md-6">
-                                        <div class="card card-sm mb-2">
-                                            <div class="card-body">
-                                                <div class="d-flex align-items-start justify-content-between gap-3">
-                                                    <div>
-                                                        <div class="fw-semibold"><?php echo htmlspecialchars($font['name']); ?></div>
-                                                        <div class="text-muted small mb-1"><?php echo htmlspecialchars($font['style']); ?></div>
-                                                        <div class="small"><?php echo htmlspecialchars($font['reason']); ?></div>
-                                                    </div>
-                                                    <div class="text-end">
-                                                        <?php if (!empty($font['installed'])): ?>
-                                                            <span class="badge bg-green mb-2">Lokal</span>
-                                                        <?php else: ?>
-                                                            <form method="post" data-font-manager-form="download-library-font">
-                                                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
-                                                                <input type="hidden" name="action" value="download_google_font">
-                                                                <input type="hidden" name="google_font_family" value="<?php echo htmlspecialchars($font['name']); ?>">
-                                                                <button type="submit" class="btn btn-outline-primary btn-sm" data-pending-text="Lädt …">Self-Host</button>
-                                                            </form>
-                                                        <?php endif; ?>
-                                                    </div>
-                                                </div>
+                    <h4 class="font-manager-section-title">Aktive Schriften</h4>
+                    <?php if (!empty($customFontRows)): ?>
+                        <div class="list-group mb-4" data-font-manager-active-section>
+                            <?php foreach ($customFontRows as $font): ?>
+                                <?php
+                                $fontName = (string) ($font['name'] ?? '');
+                                $fontFormat = (string) ($font['format'] ?? '');
+                                $fontSourceLabel = (($font['source'] ?? '') === 'google-fonts-local') ? 'Google (lokal)' : 'Manuell';
+                                $fontSearchText = strtolower(trim($fontName . ' ' . $fontFormat . ' ' . $fontSourceLabel));
+                                ?>
+                                <div class="list-group-item" data-font-search-item data-font-section="active" data-font-search-text="<?php echo htmlspecialchars($fontSearchText, ENT_QUOTES, 'UTF-8'); ?>">
+                                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+                                        <div>
+                                            <div class="fw-semibold"><?php echo htmlspecialchars($fontName, ENT_QUOTES, 'UTF-8'); ?></div>
+                                            <div class="text-muted small">
+                                                <?php echo htmlspecialchars($fontFormat, ENT_QUOTES, 'UTF-8'); ?>
+                                                · <?php echo htmlspecialchars($fontSourceLabel, ENT_QUOTES, 'UTF-8'); ?>
+                                                <?php if (!empty($font['file_size_label'])): ?>
+                                                    · <?php echo htmlspecialchars((string) ($font['file_size_label'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>
+                                                <?php endif; ?>
                                             </div>
                                         </div>
+                                        <form method="post" data-font-manager-form="delete-font">
+                                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
+                                            <input type="hidden" name="action" value="delete_font">
+                                            <input type="hidden" name="font_id" value="<?php echo (int)($font['id'] ?? 0); ?>">
+                                            <button type="button" class="btn btn-outline-danger btn-sm js-font-delete" data-font-name="<?php echo htmlspecialchars((string) ($font['name'] ?? ''), ENT_QUOTES); ?>" data-pending-text="Löscht …">Löschen</button>
+                                        </form>
                                     </div>
-                                <?php endforeach; ?>
-                            </div>
+                                </div>
+                            <?php endforeach; ?>
                         </div>
-                    <?php endforeach; ?>
+                    <?php else: ?>
+                        <div class="text-muted small mb-4" data-font-manager-active-empty>Noch keine lokal aktiven Schriften vorhanden.</div>
+                    <?php endif; ?>
+
+                    <hr class="my-4">
+
+                    <h4 class="font-manager-section-title">Verfügbare Schriften</h4>
+                    <?php
+                    $fontCatalogGroups = [
+                        'Serif' => [],
+                        'Sans-Serif' => [],
+                        'Monospace' => [],
+                        'Display' => [],
+                    ];
+                    foreach ($fontCatalog as $category => $fonts) {
+                        if (!isset($fontCatalogGroups[$category]) || !is_array($fonts)) {
+                            continue;
+                        }
+                        $fontCatalogGroups[$category] = $fonts;
+                    }
+                    ?>
+                    <div class="accordion" id="fontCatalogAccordion" data-font-manager-available-section>
+                        <?php foreach ($fontCatalogGroups as $category => $fonts): ?>
+                            <?php $collapseId = 'fontCatalog-' . strtolower(str_replace(' ', '-', $category)); ?>
+                            <div class="accordion-item" data-font-accordion-group>
+                                <h2 class="accordion-header" id="<?php echo htmlspecialchars($collapseId . '-heading', ENT_QUOTES, 'UTF-8'); ?>">
+                                    <button class="accordion-button <?php echo $category === 'Serif' ? '' : 'collapsed'; ?>" type="button" data-bs-toggle="collapse" data-bs-target="#<?php echo htmlspecialchars($collapseId, ENT_QUOTES, 'UTF-8'); ?>" aria-expanded="<?php echo $category === 'Serif' ? 'true' : 'false'; ?>" aria-controls="<?php echo htmlspecialchars($collapseId, ENT_QUOTES, 'UTF-8'); ?>">
+                                        <?php echo htmlspecialchars($category, ENT_QUOTES, 'UTF-8'); ?>
+                                    </button>
+                                </h2>
+                                <div id="<?php echo htmlspecialchars($collapseId, ENT_QUOTES, 'UTF-8'); ?>" class="accordion-collapse collapse <?php echo $category === 'Serif' ? 'show' : ''; ?>" aria-labelledby="<?php echo htmlspecialchars($collapseId . '-heading', ENT_QUOTES, 'UTF-8'); ?>" data-bs-parent="#fontCatalogAccordion">
+                                    <div class="accordion-body">
+                                        <?php if ($fonts === []): ?>
+                                            <div class="text-muted small">Keine Schriften in dieser Kategorie vorhanden.</div>
+                                        <?php else: ?>
+                                            <div class="row row-cards">
+                                                <?php foreach ($fonts as $font): ?>
+                                                    <?php
+                                                    $fontName = (string) ($font['name'] ?? '');
+                                                    $fontStyle = (string) ($font['style'] ?? '');
+                                                    $fontReason = (string) ($font['reason'] ?? '');
+                                                    $fontSearchText = strtolower(trim($fontName . ' ' . $fontStyle . ' ' . $fontReason . ' ' . $category));
+                                                    ?>
+                                                    <div class="col-md-6" data-font-search-item data-font-section="available" data-font-search-text="<?php echo htmlspecialchars($fontSearchText, ENT_QUOTES, 'UTF-8'); ?>">
+                                                        <div class="card card-sm mb-2">
+                                                            <div class="card-body">
+                                                                <div class="d-flex align-items-start justify-content-between gap-3">
+                                                                    <div>
+                                                                        <div class="fw-semibold"><?php echo htmlspecialchars($fontName, ENT_QUOTES, 'UTF-8'); ?></div>
+                                                                        <div class="text-muted small mb-1"><?php echo htmlspecialchars($fontStyle, ENT_QUOTES, 'UTF-8'); ?></div>
+                                                                        <div class="small"><?php echo htmlspecialchars($fontReason, ENT_QUOTES, 'UTF-8'); ?></div>
+                                                                    </div>
+                                                                    <div class="text-end">
+                                                                        <?php if (!empty($font['installed'])): ?>
+                                                                            <span class="badge bg-green mb-2">Lokal</span>
+                                                                        <?php else: ?>
+                                                                            <form method="post" data-font-manager-form="download-library-font">
+                                                                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
+                                                                                <input type="hidden" name="action" value="download_google_font">
+                                                                                <input type="hidden" name="google_font_family" value="<?php echo htmlspecialchars($fontName, ENT_QUOTES, 'UTF-8'); ?>">
+                                                                                <button type="submit" class="btn btn-outline-primary btn-sm" data-pending-text="Lädt …">Self-Host</button>
+                                                                            </form>
+                                                                        <?php endif; ?>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                <?php endforeach; ?>
+                                            </div>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
                 </div>
             </div>
-
-            <?php if (!empty($customFontRows)): ?>
-                <div class="card mb-3">
-                    <div class="card-header">
-                        <h3 class="card-title">Lokale Schriftarten</h3>
-                    </div>
-                    <div class="table-responsive">
-                        <table class="table table-vcenter card-table">
-                            <thead>
-                                <tr>
-                                    <th>Name</th>
-                                    <th>Format</th>
-                                    <th>Quelle</th>
-                                    <th>Datei</th>
-                                    <th class="w-1"></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach ($customFontRows as $font): ?>
-                                    <tr>
-                                        <td>
-                                            <div class="fw-semibold"><?php echo htmlspecialchars((string) ($font['name'] ?? '')); ?></div>
-                                            <?php if (!empty($font['file_size_label'])): ?>
-                                                <div class="text-muted small"><?php echo htmlspecialchars((string) ($font['file_size_label'] ?? '')); ?></div>
-                                            <?php endif; ?>
-                                        </td>
-                                        <td><span class="badge bg-azure"><?php echo htmlspecialchars((string) ($font['format'] ?? '')); ?></span></td>
-                                        <td>
-                                            <?php if (($font['source'] ?? '') === 'google-fonts-local'): ?>
-                                                <span class="badge bg-green">Google (lokal)</span>
-                                            <?php else: ?>
-                                                <span class="badge bg-secondary">Manuell</span>
-                                            <?php endif; ?>
-                                            <?php if (($font['asset_status'] ?? '') === 'warning'): ?>
-                                                <span class="badge bg-warning-lt">Assets prüfen</span>
-                                            <?php endif; ?>
-                                            <?php if (!empty($font['linked_asset_count'])): ?>
-                                                <span class="badge bg-azure-lt"><?php echo (int) ($font['linked_asset_count'] ?? 0); ?> verknüpft</span>
-                                            <?php endif; ?>
-                                            <?php if (!empty($font['missing_linked_asset_count'])): ?>
-                                                <span class="badge bg-danger-lt"><?php echo (int) ($font['missing_linked_asset_count'] ?? 0); ?> fehlen</span>
-                                            <?php endif; ?>
-                                        </td>
-                                        <td class="text-muted small">
-                                            <div><?php echo htmlspecialchars((string) ($font['file_path'] ?? '')); ?></div>
-                                            <?php if (!empty($font['css_path'])): ?>
-                                                <div>CSS: <?php echo htmlspecialchars((string) ($font['css_path'] ?? '')); ?></div>
-                                            <?php endif; ?>
-                                            <div>
-                                                Datei <?php echo !empty($font['file_exists']) ? 'vorhanden' : 'fehlt'; ?>
-                                                <?php if (($font['css_path'] ?? '') !== ''): ?>
-                                                    · CSS <?php echo !empty($font['css_exists']) ? 'vorhanden' : 'fehlt'; ?>
-                                                <?php endif; ?>
-                                                <?php if (!empty($font['linked_asset_count'])): ?>
-                                                    · Verknüpfte Dateien <?php echo (int) ($font['linked_asset_count'] ?? 0); ?>
-                                                <?php endif; ?>
-                                                <?php if (!empty($font['missing_linked_asset_count'])): ?>
-                                                    · Fehlend <?php echo (int) ($font['missing_linked_asset_count'] ?? 0); ?>
-                                                <?php endif; ?>
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <form method="post" class="d-inline" data-font-manager-form="delete-font">
-                                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
-                                                <input type="hidden" name="action" value="delete_font">
-                                                <input type="hidden" name="font_id" value="<?php echo (int)($font['id'] ?? 0); ?>">
-                                                <button type="button" class="btn btn-outline-danger btn-sm js-font-delete" data-font-name="<?php echo htmlspecialchars((string) ($font['name'] ?? ''), ENT_QUOTES); ?>" data-pending-text="Löscht …">Löschen</button>
-                                            </form>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            <?php endif; ?>
 
             <form method="post" class="card mb-3" data-font-manager-form="save-assignments">
                 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">

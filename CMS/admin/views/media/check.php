@@ -28,6 +28,13 @@ $consistencyHelpText = (string)($consistency['help_text'] ?? '');
         <div class="content-listing-header">
             <div>
                 <div class="page-pretitle">Medienverwaltung</div>
+                <nav class="cms-media-tabs" aria-label="Medienverwaltung Navigation">
+                    <a href="/admin/media" class="cms-media-tabs__tab">Medien</a>
+                    <a href="<?php echo htmlspecialchars($featuredUrl, ENT_QUOTES); ?>" class="cms-media-tabs__tab">Beitrags- &amp; Site Medien</a>
+                    <a href="<?php echo htmlspecialchars($baseUrl . '?tab=check', ENT_QUOTES); ?>" class="cms-media-tabs__tab is-active" aria-current="page">Medien Check</a>
+                    <a href="<?php echo htmlspecialchars($baseUrl . '?tab=categories', ENT_QUOTES); ?>" class="cms-media-tabs__tab">Kategorien</a>
+                    <a href="<?php echo htmlspecialchars($baseUrl . '?tab=settings', ENT_QUOTES); ?>" class="cms-media-tabs__tab">Einstellungen</a>
+                </nav>
                 <h2 class="page-title mb-1">Medien Check</h2>
                 <div class="content-listing-header__meta">
                     <span><?php echo (int)($stats['issue_count'] ?? $consistencyStats['issue_count'] ?? 0); ?> Auffälligkeiten</span>
@@ -37,9 +44,6 @@ $consistencyHelpText = (string)($consistency['help_text'] ?? '');
                 <?php if ($helpText !== ''): ?>
                     <div class="text-secondary mt-1"><?php echo htmlspecialchars($helpText); ?></div>
                 <?php endif; ?>
-            </div>
-            <div>
-                <a href="<?php echo htmlspecialchars($featuredUrl, ENT_QUOTES); ?>" class="btn btn-outline-secondary">Beitrags &amp; Site Medien</a>
             </div>
         </div>
     </div>
@@ -54,10 +58,6 @@ $consistencyHelpText = (string)($consistency['help_text'] ?? '');
         <div class="cms-admin-info-box mb-3" role="note">
             <div class="cms-admin-info-box__head">
                 <h3 class="cms-admin-info-box__title">Read-only Konsistenzprüfung</h3>
-                <div class="cms-admin-info-box__actions">
-                    <a href="<?php echo htmlspecialchars($featuredUrl, ENT_QUOTES); ?>" class="btn btn-sm btn-outline-secondary">Zum Replace-Flow</a>
-                    <a href="/admin/media" class="btn btn-sm btn-outline-secondary">Zur Bibliothek</a>
-                </div>
             </div>
             <p class="cms-admin-info-box__text">
                 Diese Ansicht markiert nur Auffälligkeiten. Korrekturen erfolgen bewusst über bestehende Editor- oder Replace-Pfade.
@@ -105,6 +105,7 @@ $consistencyHelpText = (string)($consistency['help_text'] ?? '');
             <div class="card-header">
                 <div>
                     <h3 class="card-title mb-1">Konsistenz-Check für Featured Images</h3>
+                    <div class="media-check-results-hint">Korrekturen erfolgen idealerweise direkt im jeweiligen Inhaltseintrag, damit Referenz und Kontext konsistent bleiben.</div>
                     <?php if ($consistencyHelpText !== ''): ?>
                         <div class="text-secondary small"><?php echo htmlspecialchars($consistencyHelpText); ?></div>
                     <?php endif; ?>
@@ -124,7 +125,8 @@ $consistencyHelpText = (string)($consistency['help_text'] ?? '');
                         <p class="empty-subtitle text-secondary"><?php echo htmlspecialchars((string)($consistencyEmptyState['subtitle'] ?? 'Alle aktuell gefilterten Inhalte besitzen eine funktionierende Referenz.')); ?></p>
                     </div>
                 <?php else: ?>
-                    <div class="table-responsive">
+                    <div class="media-check-results-wrap">
+                        <div class="table-responsive">
                         <table class="table table-vcenter card-table">
                             <thead>
                                 <tr>
@@ -143,7 +145,6 @@ $consistencyHelpText = (string)($consistency['help_text'] ?? '');
                                     $issueStatusClass = (string)($issue['status_class'] ?? 'bg-secondary-lt');
                                     $issueStatusTextClass = (string)($issue['status_text_class'] ?? 'text-secondary');
                                     $issueReference = (string)($issue['reference_display'] ?? '');
-                                    $issueRecommendation = (string)($issue['recommendation'] ?? '');
                                     $issueEditUrl = (string)($issue['edit_url'] ?? '#');
                                     $issuePrimaryActionLabel = (string)($issue['primary_action_label'] ?? 'Öffnen');
                                     $issueReplaceUrl = (string)($issue['replace_url'] ?? '');
@@ -181,14 +182,12 @@ $consistencyHelpText = (string)($consistency['help_text'] ?? '');
                                                     <a href="<?php echo htmlspecialchars($issueReplaceUrl, ENT_QUOTES); ?>" class="btn btn-outline-secondary btn-sm"><?php echo htmlspecialchars($issueReplaceLabel); ?></a>
                                                 <?php endif; ?>
                                             </div>
-                                            <?php if ($issueRecommendation !== ''): ?>
-                                                <div class="small text-secondary"><?php echo htmlspecialchars($issueRecommendation); ?></div>
-                                            <?php endif; ?>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
                             </tbody>
                         </table>
+                    </div>
                     </div>
                 <?php endif; ?>
             </div>

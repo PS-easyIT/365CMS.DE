@@ -188,21 +188,24 @@ $menuEditorBaseUrl = '/admin/menu-editor';
                         </div>
                         <?php if (!empty($pagePickerOptions)): ?>
                             <div class="mt-3">
-                                <div class="row g-2 align-items-end">
-                                    <div class="col-md-8">
-                                        <label class="form-label small text-muted" for="pagePickerSelect">Oder veröffentlichte Seite übernehmen:</label>
-                                        <select id="pagePickerSelect" class="form-select form-select-sm">
-                                            <option value="">Seite auswählen …</option>
-                                            <?php foreach ($pagePickerOptions as $option): ?>
-                                                <option value="<?php echo $escape((string) ($option['url'] ?? '')); ?>"
-                                                        data-title="<?php echo $escape((string) ($option['title'] ?? '')); ?>">
-                                                    <?php echo $escape((string) ($option['title'] ?? '')); ?>
-                                                </option>
-                                            <?php endforeach; ?>
-                                        </select>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <button type="button" class="btn btn-outline-secondary btn-sm w-100" id="btnAddPageItem">Seite übernehmen</button>
+                                <div class="menu-page-picker-highlight">
+                                    <span class="menu-page-picker-highlight__label">Schnellauswahl</span>
+                                    <div class="row g-2 align-items-end">
+                                        <div class="col-md-8">
+                                            <label class="form-label small text-muted" for="pagePickerSelect">Oder veröffentlichte Seite übernehmen:</label>
+                                            <select id="pagePickerSelect" class="form-select form-select-sm">
+                                                <option value="">Seite auswählen …</option>
+                                                <?php foreach ($pagePickerOptions as $option): ?>
+                                                    <option value="<?php echo $escape((string) ($option['url'] ?? '')); ?>"
+                                                            data-title="<?php echo $escape((string) ($option['title'] ?? '')); ?>">
+                                                        <?php echo $escape((string) ($option['title'] ?? '')); ?>
+                                                    </option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <button type="button" class="btn btn-outline-secondary btn-sm w-100" id="btnAddPageItem">Seite übernehmen</button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

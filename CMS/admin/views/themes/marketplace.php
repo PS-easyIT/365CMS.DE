@@ -39,6 +39,22 @@ $normalizeSearchName = static function (mixed $value): string {
 
     return strtolower($string);
 };
+$resolvePreviewColor = static function (array $theme): string {
+    $candidates = [
+        $theme['primary_color'] ?? null,
+        $theme['color_primary'] ?? null,
+        $theme['accent_color'] ?? null,
+    ];
+
+    foreach ($candidates as $candidate) {
+        $value = trim((string) $candidate);
+        if (preg_match('/^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/', $value) === 1) {
+            return $value;
+        }
+    }
+
+    return '#64748b';
+};
 ?>
 
 <div class="page-header d-print-none">
@@ -197,7 +213,7 @@ $normalizeSearchName = static function (mixed $value): string {
             </div>
         </div>
 
-        <div class="row row-deck row-cards">
+        <div class="theme-marketplace-grid">
             <?php foreach ($catalog as $theme):
                 $slug = $theme['slug'] ?? '';
                 $name = $theme['name'] ?? $slug;
@@ -218,17 +234,40 @@ $normalizeSearchName = static function (mixed $value): string {
                     : (!empty($theme['installed'])
                         ? 'installed'
                         : (!empty($theme['install_supported']) ? 'installable' : 'manual'));
+                $previewCandidates = [];
+                $configuredScreenshot = trim((string) ($theme['screenshot'] ?? ''));
+                if ($configuredScreenshot !== '') {
+                    $previewCandidates[] = $configuredScreenshot;
+                }
+                $localFolder = trim((string) ($theme['local_folder'] ?? ''));
+                $localSlug = trim((string) $slug);
+                $themeFolder = $localFolder !== '' ? $localFolder : $localSlug;
+                if ($themeFolder !== '') {
+                    $previewCandidates[] = '/themes/' . rawurlencode($themeFolder) . '/screenshot.png';
+                    $previewCandidates[] = '/themes/' . rawurlencode($themeFolder) . '/preview.png';
+                }
+                $previewCandidates = array_values(array_unique(array_filter(array_map('strval', $previewCandidates))));
+                $previewPrimaryColor = $resolvePreviewColor($theme);
             ?>
-                <div class="col-sm-6 col-lg-4 theme-marketplace-card"
+                <div class="theme-marketplace-card"
                      data-name="<?php echo $escape($searchText); ?>"
                      data-status="<?php echo $escape($status); ?>">
                     <div class="card">
-                        <div class="card-img-top" style="height: 180px; background: var(--tblr-bg-surface-secondary); display: flex; align-items: center; justify-content: center;">
-                            <?php if (!empty($theme['screenshot'])): ?>
-                                <img src="<?php echo $escape($theme['screenshot']); ?>" alt="<?php echo $escape($name); ?>" style="width: 100%; height: 100%; object-fit: cover;">
-                            <?php else: ?>
-                                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-palette" width="48" height="48" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.3;"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 21a9 9 0 0 1 0 -18c4.97 0 9 3.582 9 8c0 1.06 -.474 2.078 -1.318 2.828c-.844 .75 -1.989 1.172 -3.182 1.172h-2.5a2 2 0 0 0 -1 3.75a1.3 1.3 0 0 1 -1 2.25"/><path d="M8.5 10.5m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M12.5 7.5m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M16.5 10.5m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/></svg>
-                            <?php endif; ?>
+                        <div class="card-img-top theme-marketplace-preview" data-theme-preview-root>
+                            <img
+                                src="<?php echo $escape($previewCandidates[0] ?? ''); ?>"
+                                alt="<?php echo $escape($name); ?>"
+                                class="theme-marketplace-preview__image"
+                                data-theme-preview-image
+                                data-preview-candidates="<?php echo $escape((string) json_encode($previewCandidates, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)); ?>"
+                                <?php echo $previewCandidates === [] ? 'hidden' : ''; ?>
+                            >
+                            <div class="admin-theme-preview__fallback"
+                                 data-theme-preview-fallback
+                                 style="background:linear-gradient(135deg, <?php echo $escape($previewPrimaryColor); ?> 0%, rgba(15, 23, 42, 0.82) 100%);"
+                                 <?php echo $previewCandidates === [] ? '' : 'hidden'; ?>>
+                                <span class="admin-theme-preview__fallback-text"><?php echo $escape($name); ?></span>
+                            </div>
                         </div>
                         <div class="card-body">
                             <div class="d-flex align-items-center mb-2">

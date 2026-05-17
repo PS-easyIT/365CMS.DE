@@ -222,7 +222,14 @@ $hasTable = $analytics['has_page_views'] ?? false;
                 <div class="card mb-3">
                     <div class="card-header d-flex align-items-center justify-content-between">
                         <h3 class="card-title mb-0">Core Web Vitals (Felddaten)</h3>
-                        <span class="badge bg-blue-lt"><?= number_format((int)($coreWebVitals['sample_count'] ?? 0)) ?> Samples</span>
+                        <div class="d-inline-flex align-items-center gap-2">
+                            <span class="badge bg-blue-lt"><?= number_format((int)($coreWebVitals['sample_count'] ?? 0)) ?> Samples</span>
+                            <i
+                                class="ti ti-info-circle text-secondary admin-cwv-hint-icon"
+                                aria-label="Hinweis zu Core Web Vitals Felddaten"
+                                title="Felddaten werden erst nach ausreichend realen Seitenbesuchen im CrUX-Datensatz verfügbar."
+                            ></i>
+                        </div>
                     </div>
                     <div class="card-body">
                         <div class="datagrid mb-3">
