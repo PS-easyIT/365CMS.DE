@@ -437,15 +437,19 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
-    // Auto-hide alerts after 5 seconds
-    const alerts = document.querySelectorAll('.alert');
-    alerts.forEach(alert => {
-        setTimeout(() => {
-            alert.style.transition = 'opacity 0.5s';
-            alert.style.opacity = '0';
-            setTimeout(() => alert.remove(), 500);
-        }, 5000);
-    });
+    // Alerts bleiben in Seiten-/Beitragseditoren sichtbar.
+    const isContentEditorContext = Boolean(document.getElementById('postForm') || document.getElementById('pageForm'));
+
+    if (!isContentEditorContext) {
+        const alerts = document.querySelectorAll('.alert');
+        alerts.forEach(alert => {
+            setTimeout(() => {
+                alert.style.transition = 'opacity 0.5s';
+                alert.style.opacity = '0';
+                setTimeout(() => alert.remove(), 500);
+            }, 5000);
+        });
+    }
     
     // Active nav highlighting
     const navItems = document.querySelectorAll('.nav-item');

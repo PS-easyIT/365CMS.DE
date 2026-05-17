@@ -21,7 +21,7 @@ $seoScorePanel = $seoScorePanel ?? [];
 $summaryCards = is_array($seoScorePanel['summaryCards'] ?? null) ? $seoScorePanel['summaryCards'] : [];
 $hintBadgeContainerId = trim((string) ($seoScorePanel['hintBadgeContainerId'] ?? ''));
 ?>
-<details class="card cms-edit-card" open>
+<details class="card cms-edit-card">
     <summary class="card-header" style="cursor:pointer; list-style:none;">
         <div class="d-flex align-items-center justify-content-between w-100">
             <h3 class="card-title mb-0">SEO-Score &amp; Checkliste</h3>

@@ -444,14 +444,14 @@ $isEnglishEditorView = $editorLocale === 'en';
 
                 <?php if (!$isNew): ?>
                 <div class="col-12">
-                    <div class="card cms-edit-card">
-                        <div class="card-header d-flex justify-content-between align-items-center gap-3 flex-wrap">
+                    <details class="card cms-edit-card">
+                        <summary class="card-header d-flex justify-content-between align-items-center gap-3 flex-wrap" style="cursor:pointer; list-style:none;">
                             <div>
                                 <h3 class="card-title mb-0">Revisionen & Vergleich</h3>
                                 <div class="text-secondary small mt-1">Gespeicherte Snapshots zeigen Unterschiede zwischen aktuellem Stand und früheren Versionen der Seite – inklusive DE/EN-Titel, Slugs und Inhalte.</div>
                             </div>
                             <span class="badge bg-blue-lt text-blue"><?= (int) ($revisionHistory['total'] ?? 0) ?> Revision(en)</span>
-                        </div>
+                        </summary>
                         <div class="card-body">
                             <?php if ($pageRevisionItems === []): ?>
                                 <div class="text-secondary">Noch keine gespeicherten Revisionen vorhanden. Beim nächsten inhaltlichen Speichern wird automatisch ein Snapshot angelegt.</div>
@@ -524,7 +524,7 @@ $isEnglishEditorView = $editorLocale === 'en';
                                 <?php endif; ?>
                             <?php endif; ?>
                         </div>
-                    </div>
+                    </details>
                 </div>
                 <?php endif; ?>
 

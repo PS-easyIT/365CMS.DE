@@ -27,8 +27,10 @@ if (!defined('ABSPATH')) {
 $previewCard = $previewCard ?? [];
 $socialImageVisible = !empty($previewCard['socialImageVisible']);
 ?>
-<div class="card cms-edit-card h-100 w-100">
-    <div class="card-header"><h3 class="card-title">SERP- &amp; Social-Vorschau</h3></div>
+<details class="card cms-edit-card h-100 w-100">
+    <summary class="card-header" style="cursor:pointer; list-style:none;">
+        <h3 class="card-title mb-0">SERP- &amp; Social-Vorschau</h3>
+    </summary>
     <div class="card-body d-flex flex-column gap-4">
         <div>
             <div class="text-uppercase text-secondary small mb-2">Google Desktop</div>
@@ -64,4 +66,4 @@ $socialImageVisible = !empty($previewCard['socialImageVisible']);
             </div>
         </div>
     </div>
-</div>
+</details>
