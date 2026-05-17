@@ -23,14 +23,26 @@ $blockedFunctions = array_values(array_filter(array_map('strval', is_array($cons
 $themesLink = (string) ($links['themes'] ?? '/admin/themes');
 $explorerLink = (string) ($links['explorer'] ?? '/admin/theme-explorer');
 ?>
-<div class="container-xl">
-    <div class="page-header d-flex align-items-center mb-4">
-        <div>
-            <h2 class="page-title">Theme Editor</h2>
-            <div class="text-muted mt-1">Das aktive Theme stellt keinen direkt ladbaren Customizer bereit.</div>
+<div class="page-header d-print-none">
+    <div class="container-xl">
+        <div class="content-listing-header">
+            <div>
+                <div class="page-pretitle">Themes</div>
+                <h2 class="page-title mb-1">Theme Editor</h2>
+                <div class="content-listing-header__meta">
+                    <span>Fallback aktiv</span>
+                    <?php if ($activeThemeSlug !== ''): ?><span>Theme: <?php echo htmlspecialchars($activeThemeSlug, ENT_QUOTES); ?></span><?php endif; ?>
+                </div>
+            </div>
+            <div class="admin-section-toolbar__actions">
+                <a href="<?php echo htmlspecialchars($themesLink, ENT_QUOTES); ?>" class="btn btn-outline-secondary btn-sm">Theme-Verwaltung</a>
+            </div>
         </div>
     </div>
+</div>
 
+<div class="page-body">
+<div class="container-xl">
     <?php
     $alertData = [
         'type' => 'warning',
@@ -62,7 +74,7 @@ $explorerLink = (string) ($links['explorer'] ?? '/admin/theme-explorer');
     require __DIR__ . '/../partials/flash-alert.php';
     ?>
 
-    <div class="card">
+    <div class="card admin-content-card">
         <div class="card-body">
             <p class="mb-3">Falls das Theme einen eigenen Customizer erhalten soll, erwartet der Admin-Pfad eine sichere Datei <code><?php echo htmlspecialchars($expectedCustomizerPath, ENT_QUOTES); ?></code> innerhalb des aktiven Theme-Verzeichnisses.</p>
             <div class="small text-muted mb-3">
@@ -75,4 +87,5 @@ $explorerLink = (string) ($links['explorer'] ?? '/admin/theme-explorer');
             </div>
         </div>
     </div>
+</div>
 </div>

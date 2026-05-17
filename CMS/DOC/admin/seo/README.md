@@ -1,5 +1,5 @@
 # 365CMS – SEO-Center
-> **Stand:** 2026-05-12 | **Version:** 2.9.778 | **Status:** Aktuell
+> **Stand:** 17.05.2026 | **Version:** 3.0.11 | **Status:** Aktuell
 
 <!-- UPDATED: 2026-05-09 -->
 
@@ -9,6 +9,17 @@ Das SEO-Center ist eine mehrteilige Suite mit spezialisierten Unterseiten.
 Die Fachlogik verteilt sich auf mehrere Admin- und Service-Pfade für Dashboard, Analytics, Audit, Redirects und klassische SEO-Konfiguration.
 
 Der Einstieg erfolgt über die SEO-Gruppe der Sidebar, in der Praxis typischerweise über `/admin/seo-dashboard`.
+
+## UI-Vertrag (Admin-Designrunde 17.05.2026)
+
+Die SEO-Hauptseiten wurden visuell auf den gemeinsamen CMS-Backend-Vertrag gezogen:
+
+- `Header → Toolbar/Filter → Inhalt` als feste Seitenstruktur
+- nüchterne Metazeilen statt dekorativer KPI-Schwerpunkte
+- klare Aktionsbereiche in Tabellen- und Listenansichten
+- persistente Hinweisbereiche mit kurzer, wartbarer Textführung und overflow-sicheren Aktionen
+
+Alle SEO-Services, Cron-/Audit-Pfade und Schreibaktionen bleiben unverändert.
 
 ## Verfügbare Funktionen
 

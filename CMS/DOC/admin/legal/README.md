@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Überblick über die aktuellen Legal-, Privacy- und Security-Module im Admin-Bereich.
 
-Letzte Aktualisierung: 2026-05-11 · Version 2.9.759
+Letzte Aktualisierung: 17.05.2026 · Version 3.0.11
 
 Der Bereich ist in zwei Gruppen gegliedert:
 
@@ -10,6 +10,19 @@ Der Bereich ist in zwei Gruppen gegliedert:
 - **Sicherheit**
 
 Die Menüstruktur wird aus `CMS/admin/partials/sidebar.php` gespeist. Dadurch gelten die folgenden Routen als maßgeblich.
+
+---
+
+## UI-Vertrag (Admin-Designrunde 17.05.2026)
+
+Die zentralen Legal-Seiten folgen jetzt demselben Backend-Stil wie andere Admin-Kernmodule:
+
+- einheitlicher Seitenkopf mit Metadaten
+- klare Trennung von Steuerzone (Toolbar/Filter/Aktionen) und Inhaltsbereich
+- persistente Info-Boxen mit kurzer, titelgeführter Kommunikation
+- tabellarische/listenbasierte Arbeitsflächen mit robustem Button-/Text-Wrapping
+
+Die DSGVO-, Cookie- und Legal-Workflows bleiben funktional unverändert.
 
 ---
 

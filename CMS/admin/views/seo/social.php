@@ -14,7 +14,7 @@ $settings = $social['settings'] ?? [];
 $examples = $social['examples'] ?? [];
 $coverage = $social['coverage'] ?? [];
 ?>
-<div class="page-header d-print-none"><div class="container-xl"><div class="row g-2 align-items-center"><div class="col"><div class="page-pretitle">SEO</div><h2 class="page-title">Social Media & Open Graph</h2></div></div></div></div>
+<div class="page-header d-print-none"><div class="container-xl"><div class="content-listing-header"><div><div class="page-pretitle">SEO</div><h2 class="page-title mb-1">Social Media & Open Graph</h2><div class="content-listing-header__meta"><span>OG-Bilder: <?= (int)($coverage['og_images'] ?? 0) ?></span><span>Twitter-Titel: <?= (int)($coverage['twitter_titles'] ?? 0) ?></span></div></div><div class="admin-section-toolbar__actions"><a href="/admin/seo-meta" class="btn btn-outline-secondary btn-sm">Meta</a><a href="/admin/seo-schema" class="btn btn-outline-primary btn-sm">Schema</a></div></div></div></div>
 <div class="page-body"><div class="container-xl">
     <?php if (!empty($alert)): ?>
         <?php

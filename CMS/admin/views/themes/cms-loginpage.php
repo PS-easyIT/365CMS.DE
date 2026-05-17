@@ -28,10 +28,30 @@ $renderSelect = static function (string $name, string $label, array $options, st
     <?php
 };
 ?>
+<div class="page-header d-print-none">
+    <div class="container-xl">
+        <div class="content-listing-header">
+            <div>
+                <div class="page-pretitle">Themes</div>
+                <h2 class="page-title mb-1">CMS Loginpage</h2>
+                <div class="content-listing-header__meta">
+                    <span>Registrierung: <?php echo $registrationEnabled ? 'aktiv' : 'deaktiviert'; ?></span>
+                    <span>Passkey: <?php echo $passkeyEnabled ? 'sichtbar' : 'ausgeblendet'; ?></span>
+                </div>
+            </div>
+            <div class="admin-section-toolbar__actions">
+                <a class="btn btn-outline-secondary btn-sm" href="<?php echo htmlspecialchars((string) ($previewUrls['login'] ?? '/cms-login'), ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer">Login-Preview</a>
+                <a class="btn btn-outline-primary btn-sm" href="/admin/themes">Themes</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="page-body">
 <div class="container-xl py-3">
     <div class="row g-4">
         <div class="col-12 col-xxl-8">
-            <div class="card">
+            <div class="card admin-content-card">
                 <div class="card-header">
                     <h2 class="card-title mb-0">CMS Loginpage</h2>
                 </div>
@@ -379,4 +399,5 @@ $renderSelect = static function (string $name, string $label, array $options, st
             </div>
         </div>
     </div>
+</div>
 </div>

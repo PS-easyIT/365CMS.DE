@@ -18,12 +18,16 @@ $alertDetails = is_array($alert['details'] ?? null) ? $alert['details'] : [];
 
 <div class="page-header d-print-none">
     <div class="container-xl">
-        <div class="row g-2 align-items-center">
-            <div class="col">
+        <div class="content-listing-header">
+            <div>
                 <div class="page-pretitle">SEO</div>
-                <h2 class="page-title">Weiterleitungen</h2>
+                <h2 class="page-title mb-1">Weiterleitungen</h2>
+                <div class="content-listing-header__meta">
+                    <span>Regeln: <?= (int)($stats['redirects_total'] ?? 0) ?></span>
+                    <span>Aktiv: <?= (int)($stats['redirects_active'] ?? 0) ?></span>
+                </div>
             </div>
-            <div class="col-auto ms-auto d-flex gap-2">
+            <div class="admin-section-toolbar__actions">
                 <a href="<?= htmlspecialchars('/admin/not-found-monitor') ?>" class="btn btn-outline-primary">Zum 404-Monitor</a>
                 <button type="button" class="btn btn-primary js-create-redirect">Erweitert anlegen</button>
             </div>

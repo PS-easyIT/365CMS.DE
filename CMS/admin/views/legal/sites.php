@@ -35,10 +35,18 @@ $legalSitesConfig = [
 
 <div class="page-header d-print-none">
     <div class="container-xl">
-        <div class="row g-2 align-items-center">
-            <div class="col">
+        <div class="content-listing-header">
+            <div>
                 <div class="page-pretitle">Recht</div>
-                <h2 class="page-title">Legal Sites</h2>
+                <h2 class="page-title mb-1">Legal Sites</h2>
+                <div class="content-listing-header__meta">
+                    <span>Bereiche: <?php echo (int) ($stats['areas'] ?? count($tabKeys)); ?></span>
+                    <span>Zugewiesen: <?php echo (int) ($stats['assigned_pages'] ?? count(array_filter($assigned))); ?></span>
+                </div>
+            </div>
+            <div class="admin-section-toolbar__actions">
+                <a href="/admin/cookie-manager" class="btn btn-outline-secondary btn-sm">Cookie-Manager</a>
+                <a href="/admin/data-requests" class="btn btn-outline-primary btn-sm">Auskunft &amp; Löschen</a>
             </div>
         </div>
     </div>
@@ -46,7 +54,7 @@ $legalSitesConfig = [
 
 <div class="page-body">
     <div class="container-xl">
-        <div class="row row-deck row-cards mb-4">
+        <div class="row row-deck row-cards mb-4 admin-metric-grid">
             <div class="col-md-4">
                 <div class="card"><div class="card-body"><div class="subheader">Bereiche</div><div class="h1 mb-0"><?php echo (int) ($stats['areas'] ?? count($tabKeys)); ?></div></div></div>
             </div>
@@ -97,7 +105,7 @@ $legalSitesConfig = [
             ?>
         <?php endif; ?>
 
-        <div class="card mb-4">
+        <div class="card mb-4 admin-content-card">
             <div class="card-header d-flex align-items-center justify-content-between gap-3 flex-wrap">
                 <div>
                     <h3 class="card-title mb-1">Standardwerte & Generator</h3>
@@ -532,7 +540,7 @@ $legalSitesConfig = [
             <?php $templateType = $templateTypes[$key] ?? ''; ?>
             <?php $defaultTemplate = $templateDefaults[$templateType] ?? ''; ?>
             <?php $meta = is_array($templateMeta[$templateType] ?? null) ? $templateMeta[$templateType] : []; ?>
-            <div class="card mb-3">
+            <div class="card mb-3 admin-content-card">
                 <div class="card-header d-flex align-items-center justify-content-between">
                     <div class="d-flex align-items-center gap-2 flex-wrap">
                         <?php echo $tabIcons[$key] ?? ''; ?>

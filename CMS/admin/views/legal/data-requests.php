@@ -42,11 +42,17 @@ $dataRequestsConfig = [
 
 <div class="page-header d-print-none">
     <div class="container-xl">
-        <div class="row g-2 align-items-center">
-            <div class="col">
+        <div class="content-listing-header">
+            <div>
                 <div class="page-pretitle">Recht</div>
-                <h2 class="page-title">Auskunft &amp; Löschen</h2>
-                <div class="text-secondary mt-1">DSGVO-Anfragen für Auskunft und Löschung auf einer zentralen Arbeitsseite.</div>
+                <h2 class="page-title mb-1">Auskunft &amp; Löschen</h2>
+                <div class="content-listing-header__meta">
+                    <span>Offen: <?php echo (int)(($privacyStats['pending'] ?? 0) + ($deletionStats['pending'] ?? 0)); ?></span>
+                    <span>In Bearbeitung: <?php echo (int)(($privacyStats['processing'] ?? 0) + ($deletionStats['processing'] ?? 0)); ?></span>
+                </div>
+            </div>
+            <div class="admin-section-toolbar__actions">
+                <a href="/admin/legal-sites" class="btn btn-outline-secondary btn-sm">Legal Sites</a>
             </div>
         </div>
     </div>
@@ -61,14 +67,14 @@ $dataRequestsConfig = [
         require __DIR__ . '/../partials/flash-alert.php';
         ?>
 
-        <div class="row row-deck row-cards mb-4">
+        <div class="row row-deck row-cards mb-4 admin-metric-grid">
             <div class="col-sm-6 col-lg-3"><div class="card"><div class="card-body"><div class="subheader">Auskunft gesamt</div><div class="h1 mb-0"><?php echo (int)($privacyStats['total'] ?? 0); ?></div></div></div></div>
             <div class="col-sm-6 col-lg-3"><div class="card"><div class="card-body"><div class="subheader">Löschanträge gesamt</div><div class="h1 mb-0"><?php echo (int)($deletionStats['total'] ?? 0); ?></div></div></div></div>
             <div class="col-sm-6 col-lg-3"><div class="card"><div class="card-body"><div class="subheader">Offen</div><div class="h1 mb-0 text-warning"><?php echo (int)(($privacyStats['pending'] ?? 0) + ($deletionStats['pending'] ?? 0)); ?></div></div></div></div>
             <div class="col-sm-6 col-lg-3"><div class="card"><div class="card-body"><div class="subheader">In Bearbeitung</div><div class="h1 mb-0 text-primary"><?php echo (int)(($privacyStats['processing'] ?? 0) + ($deletionStats['processing'] ?? 0)); ?></div></div></div></div>
         </div>
 
-        <div class="row row-deck row-cards mb-4">
+        <div class="row row-deck row-cards mb-4 admin-metric-grid">
             <div class="col-sm-6 col-lg-3"><div class="card"><div class="card-body"><div class="subheader">Pflichtfrist</div><div class="h1 mb-0"><?php echo $deadlineDays; ?> Tage</div><div class="text-secondary small">Warnfenster ab <?php echo $warningBeforeDays; ?> Tagen Restlaufzeit.</div></div></div></div>
             <div class="col-sm-6 col-lg-3"><div class="card"><div class="card-body"><div class="subheader">Frist läuft ab</div><div class="h1 mb-0 text-warning"><?php echo (int)(($privacyStats['due_soon'] ?? 0) + ($deletionStats['due_soon'] ?? 0)); ?></div><div class="text-secondary small">Offene Vorgänge im Warnfenster.</div></div></div></div>
             <div class="col-sm-6 col-lg-3"><div class="card"><div class="card-body"><div class="subheader">Überfällig</div><div class="h1 mb-0 text-danger"><?php echo (int)(($privacyStats['overdue'] ?? 0) + ($deletionStats['overdue'] ?? 0)); ?></div><div class="text-secondary small">Sofort prüfen und dokumentieren.</div></div></div></div>
@@ -81,7 +87,7 @@ $dataRequestsConfig = [
 
         <div class="row row-cards">
             <div class="col-12 col-xl-6">
-                <div class="card">
+                <div class="card admin-content-card">
                     <div class="card-header">
                         <h3 class="card-title">Datenschutz-Auskunft</h3>
                     </div>
@@ -161,7 +167,7 @@ $dataRequestsConfig = [
             </div>
 
             <div class="col-12 col-xl-6">
-                <div class="card">
+                <div class="card admin-content-card">
                     <div class="card-header">
                         <h3 class="card-title">Löschanträge</h3>
                     </div>

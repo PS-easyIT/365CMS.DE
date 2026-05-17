@@ -84,10 +84,18 @@ $formatDelta = static function (int $delta): string {
 
 <div class="page-header d-print-none">
     <div class="container-xl">
-        <div class="row g-2 align-items-center">
-            <div class="col">
+        <div class="content-listing-header">
+            <div>
                 <div class="page-pretitle">SEO</div>
-                <h2 class="page-title">SEO Dashboard</h2>
+                <h2 class="page-title mb-1">SEO Dashboard</h2>
+                <div class="content-listing-header__meta">
+                    <span>Inhalte geprüft: <?= (int)$total ?></span>
+                    <span>Kritisch: <?= (int)($scores['bad'] ?? 0) ?></span>
+                </div>
+            </div>
+            <div class="admin-section-toolbar__actions">
+                <a class="btn btn-outline-secondary btn-sm" href="/admin/seo-audit">Audit</a>
+                <a class="btn btn-outline-primary btn-sm" href="/admin/seo-technical">Technik</a>
             </div>
         </div>
     </div>
@@ -105,7 +113,7 @@ $formatDelta = static function (int $delta): string {
 
         <?php require __DIR__ . '/subnav.php'; ?>
 
-        <div class="row row-deck row-cards mb-4">
+        <div class="row row-deck row-cards mb-4 admin-metric-grid">
             <div class="col-sm-6 col-lg-3">
                 <div class="card">
                     <div class="card-body">
@@ -218,7 +226,7 @@ $formatDelta = static function (int $delta): string {
 
         <div class="row row-cards mb-4">
             <div class="col-lg-6">
-                <div class="card h-100">
+                <div class="card h-100 admin-content-card">
                     <div class="card-header"><h3 class="card-title">Content-Status</h3></div>
                     <div class="card-body">
                         <div class="list-group list-group-flush">
@@ -231,7 +239,7 @@ $formatDelta = static function (int $delta): string {
                 </div>
             </div>
             <div class="col-lg-6">
-                <div class="card h-100">
+                <div class="card h-100 admin-content-card">
                     <div class="card-header"><h3 class="card-title">Häufigste SEO-Probleme</h3></div>
                     <div class="card-body">
                         <?php if (empty($topIssues)): ?>
@@ -253,7 +261,7 @@ $formatDelta = static function (int $delta): string {
 
         <div class="row g-4">
             <div class="col-lg-7">
-                <div class="card h-100">
+                <div class="card h-100 admin-content-card">
                     <div class="card-header"><h3 class="card-title">Kritische Inhalte</h3></div>
                     <div class="table-responsive">
                         <table class="table table-vcenter card-table">
@@ -280,7 +288,7 @@ $formatDelta = static function (int $delta): string {
                 </div>
             </div>
             <div class="col-lg-5">
-                <div class="card h-100">
+                <div class="card h-100 admin-content-card">
                     <div class="card-header"><h3 class="card-title">Schnellzugriffe</h3></div>
                     <div class="list-group list-group-flush">
                         <a class="list-group-item list-group-item-action" href="<?= htmlspecialchars('/admin/seo-audit') ?>">SEO Audit & Bulk-Editor</a>

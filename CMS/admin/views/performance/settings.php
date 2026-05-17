@@ -17,11 +17,18 @@ if (!array_key_exists($browserCacheTtl, $browserCacheTtlOptions)) {
 ?>
 <div class="page-header d-print-none">
     <div class="container-xl">
-        <div class="row g-2 align-items-center">
-            <div class="col">
+        <div class="content-listing-header">
+            <div>
                 <div class="page-pretitle">Performance</div>
-                <h2 class="page-title">Performance-Einstellungen</h2>
-                <div class="text-secondary mt-1">Frontend-Auslieferung, Fonts, Minifizierung, Lazy Loading, Caching und Session-Lebensdauer zentral steuern.</div>
+                <h2 class="page-title mb-1">Performance-Einstellungen</h2>
+                <div class="content-listing-header__meta">
+                    <span>Frontend-Auslieferung</span>
+                    <span>Caching &amp; Sessions zentral</span>
+                </div>
+            </div>
+            <div class="admin-section-toolbar__actions">
+                <a class="btn btn-outline-secondary btn-sm" href="/admin/performance">Übersicht</a>
+                <a class="btn btn-outline-primary btn-sm" href="/admin/performance-cache">Cache</a>
             </div>
         </div>
     </div>
@@ -35,7 +42,7 @@ if (!array_key_exists($browserCacheTtl, $browserCacheTtlOptions)) {
 
         <?php require __DIR__ . '/subnav.php'; ?>
 
-        <form method="post">
+        <form method="post" class="admin-content-card">
             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>">
             <input type="hidden" name="action" value="save_settings">
 

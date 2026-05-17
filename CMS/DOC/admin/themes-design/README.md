@@ -2,7 +2,20 @@
 
 Kurzbeschreibung: Übersicht über die aktuell produktiven Theme-, Design- und Frontend-Werkzeuge im Admin-Bereich – inklusive der Core-eigenen CMS Loginpage.
 
-Letzte Aktualisierung: 2026-05-10 · Version 2.9.739
+Letzte Aktualisierung: 17.05.2026 · Version 3.0.11
+
+---
+
+## UI-Vertrag (Admin-Designrunde 17.05.2026)
+
+Für die Kernansichten in Themes/Design gilt jetzt konsistent:
+
+- Struktur: `Header → Toolbar/Filter → Inhalt`
+- reduzierte KPI-Darstellung mit sachlicher Metazeile statt dekorativer Kacheloptik
+- persistente Hinweis-/Info-Blöcke mit Titel oben und kurzen Texten
+- Aktionen/Buttons mit robustem Wrapping (overflow-sicher in schmalen Spalten)
+
+Die überarbeitete Oberfläche ist rein visuell; bestehende Theme-, Explorer-, Marketplace- und Loginpage-Logik bleibt unverändert.
 
 ---
 

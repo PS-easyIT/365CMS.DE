@@ -1,5 +1,5 @@
 # 365CMS – Performance-Center
-> **Stand:** 2026-05-16 | **Version:** 3.0.5 | **Status:** Aktuell
+> **Stand:** 17.05.2026 | **Version:** 3.0.11 | **Status:** Aktuell
 
 <!-- UPDATED: 2026-05-09 -->
 
@@ -12,6 +12,17 @@ das `PerformanceModule` und den CSRF-Kontext `admin_performance`.
 Der Einstieg erfolgt über `/admin/performance`.
 
 Im aktuellen Stand ist der Bereich zugleich Diagnose- und Tuning-Zentrale für Cache, Medien, DB, Sessions und Laufzeit-Snapshots.
+
+## UI-Vertrag (Admin-Designrunde 17.05.2026)
+
+Die Performance-Seiten folgen jetzt konsistent dem professionellen Admin-Layoutvertrag:
+
+- klarer Seitenkopf mit Metazeile
+- getrennte Toolbar-/Steuerzonen vor den Inhaltskarten
+- saubere Tabellen-/Listendarstellung für operative Maßnahmen
+- persistente Info-Bereiche mit kurzen Texten und robustem Action-Wrapping
+
+Betriebslogik (Cache-, DB-, Medien- und Session-Aktionen) bleibt unverändert.
 
 ## Verfügbare Funktionen
 

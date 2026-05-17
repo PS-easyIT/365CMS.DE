@@ -29,10 +29,18 @@ $hasTable = $analytics['has_page_views'] ?? false;
 
 <div class="page-header d-print-none">
     <div class="container-xl">
-        <div class="row g-2 align-items-center">
-            <div class="col">
+        <div class="content-listing-header">
+            <div>
                 <div class="page-pretitle">SEO</div>
-                <h2 class="page-title">Analytics Übersicht</h2>
+                <h2 class="page-title mb-1">Analytics Übersicht</h2>
+                <div class="content-listing-header__meta">
+                    <span>Page Views 30 Tage: <?= number_format((int)($stats['total'] ?? 0)) ?></span>
+                    <span>Unique: <?= number_format((int)($stats['unique'] ?? 0)) ?></span>
+                </div>
+            </div>
+            <div class="admin-section-toolbar__actions">
+                <a class="btn btn-outline-secondary btn-sm" href="/admin/seo-dashboard">Dashboard</a>
+                <a class="btn btn-outline-primary btn-sm" href="/admin/seo-technical">Technik</a>
             </div>
         </div>
     </div>
@@ -59,7 +67,7 @@ $hasTable = $analytics['has_page_views'] ?? false;
             </div>
         <?php endif; ?>
 
-        <div class="row row-deck row-cards mb-4">
+        <div class="row row-deck row-cards mb-4 admin-metric-grid">
             <div class="col-6 col-lg-3">
                 <div class="card">
                     <div class="card-body">
