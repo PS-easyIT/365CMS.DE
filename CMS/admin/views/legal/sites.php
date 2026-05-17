@@ -52,8 +52,8 @@ $legalSitesConfig = [
     </div>
 </div>
 
-<div class="page-body">
-    <div class="container-xl">
+<div class="page-body admin-legal-sites-page">
+    <div class="container-xl admin-legal-sites-layout">
         <div class="row row-deck row-cards mb-4 admin-metric-grid">
             <div class="col-md-4">
                 <div class="card"><div class="card-body"><div class="subheader">Bereiche</div><div class="h1 mb-0"><?php echo (int) ($stats['areas'] ?? count($tabKeys)); ?></div></div></div>
@@ -526,7 +526,7 @@ $legalSitesConfig = [
                         </div>
                     </div>
 
-                    <div class="d-flex gap-2 flex-wrap">
+                    <div class="d-flex gap-2 flex-wrap admin-card-actions">
                         <button type="submit" class="btn btn-primary">Standardwerte speichern</button>
                         <span class="text-secondary small align-self-center">Hinweis: Die Texte sind eine technische Vorlage und ersetzen keine rechtliche Prüfung.</span>
                     </div>

@@ -30,7 +30,7 @@ $pluginMarketplaceUrl = '/admin/plugin-marketplace';
     </div>
 </div>
 
-<div class="page-body">
+<div class="page-body admin-plugins-page">
     <div class="container-xl">
 
 <?php
@@ -67,7 +67,7 @@ require __DIR__ . '/../partials/flash-alert.php';
     </div>
 </div>
 
-<div class="row row-cards">
+<div class="row row-cards admin-plugins-workspace">
     <div class="col-12 col-xxl-9">
         <div class="card admin-content-card">
             <div class="card-header">

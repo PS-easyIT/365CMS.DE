@@ -5922,7 +5922,6 @@ input:checked + .slider:before { transform: translateX(22px); }
     align-self: center;
 }
 
-/* Admin UX pass: legal/cookie/performance/seo/plugins */
 .admin-content-card .card-header .btn,
 .admin-content-card .card-header .btn-sm {
     max-width: 100%;
@@ -5942,6 +5941,25 @@ input:checked + .slider:before { transform: translateX(22px); }
 
 .admin-legal-panels .card textarea.form-control {
     min-height: 15rem;
+}
+
+.admin-legal-sites-page .admin-card-actions .btn {
+    flex: 0 1 auto;
+}
+
+.admin-cookie-services-layout .admin-content-card,
+.admin-seo-status-grid .admin-content-card,
+.admin-plugins-workspace .admin-content-card {
+    height: 100%;
+}
+
+.performance-settings-form .card {
+    border-color: #dbe3ee;
+}
+
+.performance-delivery-grid .card-header,
+.performance-runtime-grid .card-header {
+    background: #fcfdff;
 }
 
 @media (max-width: 1399.98px) {

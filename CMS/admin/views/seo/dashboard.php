@@ -101,7 +101,7 @@ $formatDelta = static function (int $delta): string {
     </div>
 </div>
 
-<div class="page-body">
+<div class="page-body admin-seo-dashboard-page">
     <div class="container-xl">
 
         <?php if (!empty($alert)): ?>
@@ -193,7 +193,7 @@ $formatDelta = static function (int $delta): string {
             </div>
         <?php endif; ?>
 
-        <div class="row g-3 mb-4">
+        <div class="row g-3 mb-4 admin-seo-status-grid">
             <div class="col-md-6">
                 <div class="card admin-content-card h-100">
                     <div class="card-body d-flex align-items-center gap-3">

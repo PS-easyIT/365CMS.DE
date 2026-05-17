@@ -10,9 +10,9 @@ Die Fachlogik verteilt sich auf mehrere Admin- und Service-Pfade für Dashboard,
 
 Der Einstieg erfolgt über die SEO-Gruppe der Sidebar, in der Praxis typischerweise über `/admin/seo-dashboard`.
 
-## UI-Vertrag (Admin-Designrunde 17.05.2026)
+## Seitenstruktur
 
-Die SEO-Hauptseiten wurden visuell auf den gemeinsamen CMS-Backend-Vertrag gezogen:
+Die SEO-Hauptseiten folgen einer einheitlichen Struktur:
 
 - `Header → Toolbar/Filter → Inhalt` als feste Seitenstruktur
 - nüchterne Metazeilen statt dekorativer KPI-Schwerpunkte

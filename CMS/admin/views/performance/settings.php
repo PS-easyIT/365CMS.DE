@@ -34,7 +34,7 @@ if (!array_key_exists($browserCacheTtl, $browserCacheTtlOptions)) {
     </div>
 </div>
 
-<div class="page-body">
+<div class="page-body admin-performance-page">
     <div class="container-xl cms-settings-page">
         <?php if (!empty($alert)): ?>
             <div class="alert alert-<?php echo htmlspecialchars($alert['type'] ?? 'info'); ?> mb-4"><?php echo htmlspecialchars($alert['message'] ?? ''); ?></div>
@@ -42,7 +42,7 @@ if (!array_key_exists($browserCacheTtl, $browserCacheTtlOptions)) {
 
         <?php require __DIR__ . '/subnav.php'; ?>
 
-        <form method="post" class="admin-content-card">
+        <form method="post" class="admin-content-card performance-settings-form">
             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>">
             <input type="hidden" name="action" value="save_settings">
 
@@ -51,7 +51,7 @@ if (!array_key_exists($browserCacheTtl, $browserCacheTtlOptions)) {
                 <button type="submit" class="btn btn-primary">Einstellungen speichern</button>
             </div>
 
-            <div class="row g-4 mb-4">
+            <div class="row g-4 mb-4 performance-delivery-grid">
                 <div class="col-12">
                     <h3 class="cms-settings-section-heading">Auslieferung und Frontend</h3>
                 </div>
@@ -119,7 +119,7 @@ if (!array_key_exists($browserCacheTtl, $browserCacheTtlOptions)) {
                 </div>
             </div>
 
-            <div class="row g-4 mb-4">
+            <div class="row g-4 mb-4 performance-runtime-grid">
                 <div class="col-12">
                     <h3 class="cms-settings-section-heading">Caching und Sessions</h3>
                 </div>

@@ -35,7 +35,7 @@ $cookieManagerConfig = [
     </div>
 </div>
 
-<div class="page-body">
+<div class="page-body admin-cookie-manager-page">
     <div class="container-xl">
         <?php
         $alertData = $alert ?? [];
@@ -370,7 +370,7 @@ $cookieManagerConfig = [
             </div>
         </div>
 
-        <div class="row row-cards">
+        <div class="row row-cards admin-cookie-services-layout">
             <div class="col-12 col-xxl-9">
                 <div class="card admin-content-card">
                     <div class="card-header d-flex align-items-center justify-content-between gap-2 flex-wrap">

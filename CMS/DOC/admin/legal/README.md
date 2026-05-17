@@ -13,20 +13,20 @@ Die Menüstruktur wird aus `CMS/admin/partials/sidebar.php` gespeist. Dadurch ge
 
 ---
 
-## UI-Vertrag (Admin-Designrunde 17.05.2026)
+## Seitenstruktur
 
-Die zentralen Legal-Seiten folgen jetzt demselben Backend-Stil wie andere Admin-Kernmodule:
+Die zentralen Legal-Seiten sind einheitlich strukturiert:
 
 - einheitlicher Seitenkopf mit Metadaten
 - klare Trennung von Steuerzone (Toolbar/Filter/Aktionen) und Inhaltsbereich
 - persistente Info-Boxen mit kurzer, titelgeführter Kommunikation
 - tabellarische/listenbasierte Arbeitsflächen mit robustem Button-/Text-Wrapping
-- auch die Legacy-Einzelrouten `/admin/privacy-requests` und `/admin/deletion-requests` wurden sichtbar auf denselben Header-/Toolbar-/Listenvertrag nachgezogen
+- auch die Legacy-Einzelrouten `/admin/privacy-requests` und `/admin/deletion-requests` folgen derselben Header-/Toolbar-/Listenstruktur
 - die Sammelansicht `/admin/data-requests` besitzt zusätzlich eine eigene Status-/Toolbarzone mit reduzierter KPI-Kachelwirkung und persistentem Fristen-Hinweis
 
 Die DSGVO-, Cookie- und Legal-Workflows bleiben funktional unverändert.
 
-Hinweis zur Designrunde 17.05.2026: Der Kernscreen `/admin/data-requests` zeigt den Statusüberblick jetzt als eigene Toolbar-Ebene statt als lose Kachelreihen.
+Der Kernscreen `/admin/data-requests` zeigt den Statusüberblick als eigene Toolbar-Ebene statt als lose Kachelreihen.
 
 ---
 

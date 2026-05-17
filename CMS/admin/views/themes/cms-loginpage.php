@@ -50,7 +50,7 @@ $renderSelect = static function (string $name, string $label, array $options, st
 <div class="page-body">
 <div class="container-xl py-3">
     <div class="row g-4">
-        <div class="col-12 col-xxl-8">
+        <div class="col-12">
             <div class="card admin-content-card">
                 <div class="card-header">
                     <h2 class="card-title mb-0">CMS Loginpage</h2>
@@ -381,7 +381,7 @@ $renderSelect = static function (string $name, string $label, array $options, st
             </div>
         </div>
 
-        <div class="col-12 col-xxl-4">
+        <div class="col-12">
             <div class="card">
                 <div class="card-header">
                     <h3 class="card-title mb-0">Hinweise</h3>

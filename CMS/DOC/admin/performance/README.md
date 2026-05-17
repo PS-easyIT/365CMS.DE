@@ -13,9 +13,9 @@ Der Einstieg erfolgt über `/admin/performance`.
 
 Im aktuellen Stand ist der Bereich zugleich Diagnose- und Tuning-Zentrale für Cache, Medien, DB, Sessions und Laufzeit-Snapshots.
 
-## UI-Vertrag (Admin-Designrunde 17.05.2026)
+## Seitenstruktur
 
-Die Performance-Seiten folgen jetzt konsistent dem professionellen Admin-Layoutvertrag:
+Die Performance-Seiten folgen einer konsistenten Bedienstruktur:
 
 - klarer Seitenkopf mit Metazeile
 - getrennte Toolbar-/Steuerzonen vor den Inhaltskarten
