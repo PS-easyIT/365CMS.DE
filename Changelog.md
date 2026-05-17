@@ -1,4 +1,4 @@
-﻿﻿**Version:** 3.0.11
+﻿**Version:** 3.0.11
 
 # 365CMS Changelog
 
@@ -25,6 +25,7 @@
 | Version | Typ | Bereich | Beschreibung |
 |---------|-----|---------|-------------|
 | **3.0.11** | 🔴 fix | Admin/Performance & Page-Schema | **`CMS/admin/views/performance/settings.php`, `CMS/admin/views/performance/media.php`, `CMS/core/PageManager.php`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md` und `Changelog.md` stabilisieren Performance-Adminseiten und Schema-Kompatibilitätsprüfungen.** Medien-Cache-TTL-Optionen werden vor `htmlspecialchars()` und beim Selected-Vergleich explizit als String behandelt, damit numerische PHP-Array-Keys keinen TypeError auslösen. Page-Schema-Prüfungen schließen `SHOW COLUMNS`-Cursor nun vor anschließenden `ALTER TABLE`-Queries und vermeiden dadurch unbuffered-query-Konflikte. |
+| **3.0.11** | 🔴 fix | Admin/Editor-Layout (Seiten & Beiträge) | **`CMS/assets/css/admin.css`, `README.md` und `Changelog.md` korrigieren den Desktop-Layoutflow im Seiten-/Beitragseditor.** Der bisherige Grid-Flow koppelte die Sidebar-Zeilenhöhe an den Editor-Track, wodurch der Editor sichtbar zu weit unten startete und zwischen Sidebar-Panels große Leerzonen entstanden. Das Desktop-Layout nutzt jetzt einen stabilen Zwei-Spalten-Flow mit oben bündigem Editorstart und kompakter, konsistenter Sidebar-Stapelung; Mobile-Breakpoints bleiben unverändert. |
 
 ### v3.0.10 — 16. Mai 2026
 

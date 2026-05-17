@@ -3987,26 +3987,37 @@ input:checked + .slider:before { transform: translateX(22px); }
 
 @media (min-width: 1200px) {
     .cms-content-editor-layout {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) minmax(340px, var(--cms-editor-sidebar-width));
-        gap: 1rem;
-        align-items: start;
+        display: block;
+        --cms-editor-sidebar-gap: 1rem;
+    }
+
+    .cms-content-editor-layout::after {
+        content: "";
+        display: block;
+        clear: both;
     }
 
     .cms-content-editor-layout > [class*="col-"] {
-        width: auto;
+        float: right;
+        clear: right;
+        width: min(100%, var(--cms-editor-sidebar-width));
         max-width: none;
         padding-left: 0;
         padding-right: 0;
         margin: 0;
+        margin-bottom: var(--cms-editor-sidebar-gap);
     }
 
     .cms-content-editor-layout > :not(.cms-editor-primary) {
-        grid-column: 2;
+        float: right;
+        clear: right;
     }
 
     .cms-content-editor-layout > .cms-editor-primary {
-        grid-column: 1;
+        float: left;
+        clear: left;
+        width: calc(100% - var(--cms-editor-sidebar-width) - var(--cms-editor-sidebar-gap));
+        margin-bottom: 0;
     }
 
     .cms-content-editor-layout > .cms-editor-primary .cms-editor-card {
@@ -4015,6 +4026,11 @@ input:checked + .slider:before { transform: translateX(22px); }
 
     .cms-content-editor-layout > :not(.cms-editor-primary) .cms-edit-card {
         background: #fbfcfe;
+    }
+
+    .cms-content-editor-layout > :not(.cms-editor-primary) .row.h-100,
+    .cms-content-editor-layout > :not(.cms-editor-primary) .cms-edit-card.h-100 {
+        height: auto !important;
     }
 }
 
