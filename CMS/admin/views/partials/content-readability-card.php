@@ -17,11 +17,14 @@ if (!defined('ABSPATH')) {
 $readabilityCard = $readabilityCard ?? [];
 $readabilityMetrics = is_array($readabilityCard['metrics'] ?? null) ? $readabilityCard['metrics'] : [];
 ?>
-<div class="card cms-edit-card h-100 w-100">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <h3 class="card-title">Lesbarkeits-Card</h3>
-        <span class="badge bg-danger-lt text-danger" id="<?php echo htmlspecialchars((string)($readabilityCard['badgeId'] ?? '')); ?>">Kritisch</span>
-    </div>
+<details class="card cms-edit-card h-100 w-100 cms-collapsible-card">
+    <summary class="card-header d-flex justify-content-between align-items-center cms-collapsible-card__summary">
+        <h3 class="card-title mb-0">Lesbarkeits-Card</h3>
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-danger-lt text-danger" id="<?php echo htmlspecialchars((string)($readabilityCard['badgeId'] ?? '')); ?>">Kritisch</span>
+            <span class="cms-collapsible-card__chevron" aria-hidden="true"></span>
+        </div>
+    </summary>
     <div class="card-body">
         <div class="text-secondary small mb-3" id="<?php echo htmlspecialchars((string)($readabilityCard['summaryId'] ?? '')); ?>">0 Wörter · 0 lange Sätze · 0 lange Absätze</div>
         <div class="row g-3">
@@ -35,4 +38,4 @@ $readabilityMetrics = is_array($readabilityCard['metrics'] ?? null) ? $readabili
             <?php endforeach; ?>
         </div>
     </div>
-</div>
+</details>

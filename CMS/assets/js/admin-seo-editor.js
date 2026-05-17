@@ -596,15 +596,19 @@
     }
 
     function renderOverrideNotice(container, summaryElement, listElement, items, buttons) {
-        if (!container || !summaryElement || !listElement) {
+        if (!container) {
             return;
         }
 
         if (!Array.isArray(items) || items.length === 0) {
             container.classList.add('d-none');
             container.classList.remove('alert-warning', 'alert-info');
-            summaryElement.textContent = '';
-            clearElement(listElement);
+            if (summaryElement) {
+                summaryElement.textContent = '';
+            }
+            if (listElement) {
+                clearElement(listElement);
+            }
 
             if (buttons && buttons.title) {
                 buttons.title.classList.add('d-none');
@@ -626,20 +630,13 @@
         container.classList.remove('d-none', 'alert-warning', 'alert-info');
         container.classList.add(redundantCount > 0 ? 'alert-warning' : 'alert-info');
 
-        if (redundantCount === items.length) {
-            summaryElement.textContent = 'Mindestens ein lokales SEO-Feld entspricht bereits dem aktiven Default und kann ohne zusätzlichen Schreibpfad auf den Standard zurückgesetzt werden.';
-        } else if (redundantCount > 0) {
-            summaryElement.textContent = 'Ein Teil der lokalen SEO-Felder überschreibt die Defaults ohne erkennbaren Mehrwert; andere Werte sind bewusst individuell gesetzt.';
-        } else {
-            summaryElement.textContent = 'Lokale SEO-Felder überschreiben aktuell Standardwerte. Das ist erlaubt — hier siehst du transparent, welcher Default ohne den lokalen Wert greifen würde.';
+        if (summaryElement) {
+            summaryElement.textContent = '';
         }
 
-        clearElement(listElement);
-        items.forEach(function (item) {
-            var listItem = document.createElement('li');
-            listItem.textContent = String(item.message || 'Lokales SEO-Feld aktiv.');
-            listElement.appendChild(listItem);
-        });
+        if (listElement) {
+            clearElement(listElement);
+        }
 
         if (buttons && buttons.title) {
             buttons.title.classList.toggle('d-none', !items.some(function (item) {

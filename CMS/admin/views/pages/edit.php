@@ -161,27 +161,25 @@ $isEnglishEditorView = $editorLocale === 'en';
                 <input type="hidden" name="content_en" id="editorContentEn" value="<?= htmlspecialchars($pageContentEnValue) ?>">
             <?php endif; ?>
 
-            <div class="row g-3 cms-content-editor-layout">
-                <div class="col-lg-4 d-flex">
+            <div class="row g-3 cms-content-editor-layout cms-content-editor-layout--page <?php echo $isNew ? 'cms-content-editor-layout--page-new' : 'cms-content-editor-layout--page-existing'; ?>">
+                <div class="col-lg-4 d-flex cms-editor-sidebar-slot">
                     <div class="card cms-edit-card cms-edit-top-card h-100 w-100">
                         <div class="card-body">
-                            <div class="row g-3 align-items-end mb-3">
-                                <div class="col-md-8">
-                                     <label class="form-label<?= $isEnglishEditorView ? '' : ' required' ?>" for="<?= htmlspecialchars($activePageTitleInputId) ?>"><?= $isEnglishEditorView ? 'Englischer Titel' : 'Titel' ?></label>
-                                     <input type="text" name="<?= $isEnglishEditorView ? 'title_en' : 'title' ?>" id="<?= htmlspecialchars($activePageTitleInputId) ?>" class="form-control form-control-lg"
-                                           placeholder="<?= htmlspecialchars($isEnglishEditorView ? 'English page title' : 'Seitentitel') ?>"
-                                           value="<?= htmlspecialchars($activePageTitleValue) ?>"<?= $isEnglishEditorView ? '' : ' required' ?>>
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label d-block">&nbsp;</label>
-                                    <label class="form-check mb-0 mt-md-2">
-                                        <input type="checkbox" name="hide_title" value="1"
-                                               class="form-check-input"
-                                               id="hideTitle"
-                                                 <?= $pageHideTitleValue === 1 ? 'checked' : '' ?>>
-                                        <span class="form-check-label">Titel ausblenden</span>
-                                    </label>
-                                </div>
+                            <div class="mb-3">
+                                <label class="form-label<?= $isEnglishEditorView ? '' : ' required' ?>" for="<?= htmlspecialchars($activePageTitleInputId) ?>"><?= $isEnglishEditorView ? 'Englischer Titel' : 'Titel' ?></label>
+                                <input type="text" name="<?= $isEnglishEditorView ? 'title_en' : 'title' ?>" id="<?= htmlspecialchars($activePageTitleInputId) ?>" class="form-control"
+                                       placeholder="<?= htmlspecialchars($isEnglishEditorView ? 'English page title' : 'Seitentitel') ?>"
+                                       value="<?= htmlspecialchars($activePageTitleValue) ?>"<?= $isEnglishEditorView ? '' : ' required' ?>>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-check mb-0">
+                                    <input type="checkbox" name="hide_title" value="1"
+                                           class="form-check-input"
+                                           id="hideTitle"
+                                             <?= $pageHideTitleValue === 1 ? 'checked' : '' ?>>
+                                    <span class="form-check-label">Titel ausblenden</span>
+                                </label>
+                                <div class="form-hint">Blendet den sichtbaren Seitentitel im Frontend aus, ohne SEO-/Navigationsdaten zu entfernen.</div>
                             </div>
                             <div class="mb-0">
                                 <label class="form-label" for="<?= htmlspecialchars($activePageSlugInputId) ?>"><?= $isEnglishEditorView ? 'Englischer Slug' : 'Slug' ?></label>
@@ -197,16 +195,16 @@ $isEnglishEditorView = $editorLocale === 'en';
                     </div>
                 </div>
 
-                <div class="col-lg-4">
+                <div class="col-lg-4 cms-editor-sidebar-slot">
                     <div class="row g-3 h-100">
                         <div class="col-12 d-flex">
                             <div class="card cms-edit-card cms-edit-top-card w-100">
                                 <div class="card-header">
                                     <h3 class="card-title">Contentheader Bild</h3>
                                 </div>
-                                <div class="card-body flex-fill">
+                                <div class="card-body d-flex flex-column gap-2">
                                     <div class="small text-secondary mb-2">Erscheint links vom Seitentitel im Content-Header.</div>
-                                    <div id="featuredImagePreview" class="mb-2">
+                                    <div id="featuredImagePreview">
                                         <?php if ($pageFeaturedImageValue !== ''): ?>
                                             <img src="<?= htmlspecialchars(\CMS\Services\MediaDeliveryService::getInstance()->normalizeUrl($pageFeaturedImageValue, true)) ?>" alt="" class="img-fluid rounded" style="max-height:120px;object-fit:cover;width:100%;">
                                         <?php endif; ?>
@@ -214,8 +212,8 @@ $isEnglishEditorView = $editorLocale === 'en';
                                     <input type="hidden" name="featured_image" id="featuredImageInput" value="<?= htmlspecialchars($pageFeaturedImageValue) ?>">
                                     <input type="hidden" name="featured_image_temp_path" id="featuredImageInput_temp_path" value="">
                                     <div id="featuredImageEmpty" class="text-secondary small <?= $pageFeaturedImageValue !== '' ? 'd-none' : '' ?>">Noch kein Bild ausgewählt.</div>
-                                    <div class="btn-list mt-2">
-                                        <button type="button" class="btn btn-sm btn-outline-primary" id="featuredImageBtn">Bild auswählen</button>
+                                    <div class="d-flex gap-2 mt-auto">
+                                        <button type="button" class="btn btn-sm btn-outline-primary w-100" id="featuredImageBtn">Bild auswählen</button>
                                         <button type="button" class="btn btn-sm btn-outline-secondary <?= $pageFeaturedImageValue === '' ? 'd-none' : '' ?>" id="featuredImageRemove">Entfernen</button>
                                     </div>
                                 </div>
@@ -259,7 +257,7 @@ $isEnglishEditorView = $editorLocale === 'en';
                     </div>
                 </div>
 
-                <div class="col-lg-4 d-flex">
+                <div class="col-lg-4 d-flex cms-editor-sidebar-slot">
                     <div class="card cms-edit-card cms-edit-top-card h-100 w-100">
                         <div class="card-header">
                             <h3 class="card-title">Veröffentlichung</h3>
@@ -344,8 +342,11 @@ $isEnglishEditorView = $editorLocale === 'en';
                 </div>
 
                 <div class="col-xl-4 d-flex">
-                    <div class="card cms-edit-card h-100 w-100">
-                        <div class="card-header"><h3 class="card-title">SEO-Card</h3></div>
+                    <details class="card cms-edit-card h-100 w-100 cms-collapsible-card cms-collapsible-card--seo" open>
+                        <summary class="card-header cms-collapsible-card__summary">
+                            <h3 class="card-title mb-0">SEO-Card</h3>
+                            <span class="cms-collapsible-card__chevron" aria-hidden="true"></span>
+                        </summary>
                         <div class="card-body">
                             <div class="mb-3">
                                 <label class="form-label" for="pageFocusKeyphrase">Fokus-Keyphrase</label>
@@ -361,11 +362,11 @@ $isEnglishEditorView = $editorLocale === 'en';
                                 <textarea name="meta_description" class="form-control" rows="3" id="pageMetaDescription" placeholder="Kurze Beschreibung für Suchmaschinen…" maxlength="160"><?= htmlspecialchars($pageMetaDescriptionValue) ?></textarea>
                                 <small class="form-hint"><span id="metaDescriptionCount">0</span>/160 Zeichen</small>
                             </div>
-                            <div id="pageSeoOverrideNotice" class="alert alert-info d-none" role="status" aria-live="polite">
-                                <div class="fw-semibold mb-2">SEO-Default-Hinweis</div>
-                                <div class="small mb-2" id="pageSeoOverrideSummary"></div>
-                                <ul class="small ps-3 mb-3" id="pageSeoOverrideList"></ul>
-                                <div class="btn-list">
+                            <div id="pageSeoOverrideNotice" class="alert alert-info d-none cms-seo-override-notice" role="status" aria-live="polite">
+                                <div class="cms-seo-override-header">
+                                    <div class="fw-semibold cms-seo-override-title">SEO-Default-Hinweis</div>
+                                </div>
+                                <div class="cms-seo-override-actions">
                                     <button type="button" class="btn btn-sm btn-outline-primary d-none" id="pageSeoResetMetaTitle">Meta-Titel auf Default zurücksetzen</button>
                                     <button type="button" class="btn btn-sm btn-outline-primary d-none" id="pageSeoResetMetaDescription">Meta-Beschreibung auf Default zurücksetzen</button>
                                     <button type="button" class="btn btn-sm btn-outline-secondary d-none" id="pageSeoResetAllMetaDefaults">Alle lokalen SEO-Felder auf Default zurücksetzen</button>
@@ -379,7 +380,7 @@ $isEnglishEditorView = $editorLocale === 'en';
                             <div class="form-control-plaintext text-break small mb-3" id="pagePreviewUrl"><?= htmlspecialchars($activePagePreviewUrl) ?></div>
                             <div id="pagePublishWarning" class="alert alert-warning mb-0" role="alert"></div>
                         </div>
-                    </div>
+                    </details>
                 </div>
 
                 <div class="col-xl-4 d-flex">

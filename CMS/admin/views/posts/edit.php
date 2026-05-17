@@ -213,8 +213,8 @@ $additionalCategoryIds = array_values(array_filter(
                 <input type="hidden" name="content_en" id="contentInputEn" value="<?php echo htmlspecialchars($postContentEnValue); ?>">
             <?php endif; ?>
 
-            <div class="row g-3 cms-content-editor-layout">
-                <div class="col-lg-4 d-flex">
+            <div class="row g-3 cms-content-editor-layout cms-content-editor-layout--post <?php echo $isNew ? 'cms-content-editor-layout--post-new' : 'cms-content-editor-layout--post-existing'; ?>">
+                <div class="col-lg-4 d-flex cms-editor-sidebar-slot">
                     <div class="card cms-edit-card cms-edit-top-card h-100 w-100">
                         <div class="card-body">
                             <div class="mb-3">
@@ -272,7 +272,7 @@ $additionalCategoryIds = array_values(array_filter(
                     </div>
                 </div>
 
-                <div class="col-lg-4">
+                <div class="col-lg-4 cms-editor-sidebar-slot">
                     <div class="row g-3 h-100">
                         <div class="col-12 d-flex">
                             <div class="card cms-edit-card cms-edit-top-card w-100">
@@ -327,7 +327,7 @@ $additionalCategoryIds = array_values(array_filter(
                     </div>
                 </div>
 
-                <div class="col-lg-4 d-flex">
+                <div class="col-lg-4 d-flex cms-editor-sidebar-slot">
                     <div class="card cms-edit-card cms-edit-top-card h-100 w-100">
                         <div class="card-header">
                             <h3 class="card-title">Veröffentlichung</h3>
@@ -418,8 +418,11 @@ $additionalCategoryIds = array_values(array_filter(
                 </div>
 
                 <div class="col-xl-4 d-flex">
-                    <div class="card cms-edit-card h-100 w-100">
-                        <div class="card-header"><h3 class="card-title">SEO-Card</h3></div>
+                    <details class="card cms-edit-card h-100 w-100 cms-collapsible-card cms-collapsible-card--seo" open>
+                        <summary class="card-header cms-collapsible-card__summary">
+                            <h3 class="card-title mb-0">SEO-Card</h3>
+                            <span class="cms-collapsible-card__chevron" aria-hidden="true"></span>
+                        </summary>
                         <div class="card-body">
                             <div class="mb-3">
                                 <label class="form-label" for="<?php echo htmlspecialchars($activeExcerptInputId); ?>"><?php echo $isEnglishEditorView ? 'Englische Kurzfassung' : 'Kurzfassung'; ?></label>
@@ -441,11 +444,11 @@ $additionalCategoryIds = array_values(array_filter(
                                 <textarea class="form-control" id="metaDesc" name="meta_description" rows="4" maxlength="160"><?php echo htmlspecialchars($postMetaDescriptionValue); ?></textarea>
                                 <span class="form-hint"><span id="metaDescCount">0</span>/160 Zeichen</span>
                             </div>
-                            <div id="postSeoOverrideNotice" class="alert alert-info d-none" role="status" aria-live="polite">
-                                <div class="fw-semibold mb-2">SEO-Default-Hinweis</div>
-                                <div class="small mb-2" id="postSeoOverrideSummary"></div>
-                                <ul class="small ps-3 mb-3" id="postSeoOverrideList"></ul>
-                                <div class="btn-list">
+                            <div id="postSeoOverrideNotice" class="alert alert-info d-none cms-seo-override-notice" role="status" aria-live="polite">
+                                <div class="cms-seo-override-header">
+                                    <div class="fw-semibold cms-seo-override-title">SEO-Default-Hinweis</div>
+                                </div>
+                                <div class="cms-seo-override-actions">
                                     <button type="button" class="btn btn-sm btn-outline-primary d-none" id="postSeoResetMetaTitle">Meta-Titel auf Default zurücksetzen</button>
                                     <button type="button" class="btn btn-sm btn-outline-primary d-none" id="postSeoResetMetaDescription">Meta-Beschreibung auf Default zurücksetzen</button>
                                     <button type="button" class="btn btn-sm btn-outline-secondary d-none" id="postSeoResetAllMetaDefaults">Alle lokalen SEO-Felder auf Default zurücksetzen</button>
@@ -462,7 +465,7 @@ $additionalCategoryIds = array_values(array_filter(
                             <div class="form-control-plaintext text-break small mb-3" id="postPreviewUrl"><?php echo htmlspecialchars($activePostPreviewUrl); ?></div>
                             <div id="postPublishWarning" class="alert <?php echo $isScheduledPost ? 'alert-info' : 'alert-warning'; ?> mb-0<?php echo $isScheduledPost ? '' : ' d-none'; ?>" role="alert"><?php echo $isScheduledPost ? 'Dieser Beitrag ist geplant und wird automatisch zum gewählten Termin veröffentlicht.' : ''; ?></div>
                         </div>
-                    </div>
+                    </details>
                 </div>
 
                 <div class="col-xl-4 d-flex">

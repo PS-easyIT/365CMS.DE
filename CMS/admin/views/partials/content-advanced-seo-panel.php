@@ -48,11 +48,14 @@ if (!defined('ABSPATH')) {
 
 $advancedSeoPanel = $advancedSeoPanel ?? [];
 ?>
-<details class="card cms-edit-card">
-    <summary class="card-header" style="cursor:pointer; list-style:none;">
+<details class="card cms-edit-card cms-collapsible-card">
+    <summary class="card-header cms-collapsible-card__summary">
         <div class="d-flex align-items-center justify-content-between w-100">
             <h3 class="card-title mb-0">Erweitertes SEO &amp; Social</h3>
-            <span class="text-secondary small">Canonical, Robots, Social, Schema, Sitemap, Bilder</span>
+            <div class="d-flex align-items-center gap-2">
+                <span class="text-secondary small">Canonical, Robots, Social, Schema, Sitemap, Bilder</span>
+                <span class="cms-collapsible-card__chevron" aria-hidden="true"></span>
+            </div>
         </div>
     </summary>
     <div class="card-body">
