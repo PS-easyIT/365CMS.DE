@@ -33,6 +33,8 @@ $siteName   = function_exists('cms_get_site_name') ? cms_get_site_name() : (defi
 
     <!-- Tabler Core CSS -->
     <link rel="stylesheet" href="<?= htmlspecialchars(cms_asset_url('tabler/css/tabler.min.css'), ENT_QUOTES) ?>">
+    <!-- Tabler Icons Webfont (required for .ti .ti-* icons in sidebar/topbar) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.41.1/dist/tabler-icons.min.css">
 
     <!-- 365CMS Tabler Bridge / Legacy-Mappings -->
     <link rel="stylesheet" href="<?= htmlspecialchars(cms_asset_url('css/admin-tabler.css'), ENT_QUOTES) ?>">

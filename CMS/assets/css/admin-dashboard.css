@@ -476,6 +476,15 @@
 	padding-top: 16px;
 }
 
+/* Clear separation between KPI and work overview area
+ * Use general-sibling selector because non-section wrappers (e.g. collapse panel)
+ * can sit between both sections and break adjacent-sibling (+) matching.
+ */
+.dashboard-section--kpi ~ .dashboard-section--work {
+	margin-top: 32px;
+	padding-top: 28px;
+}
+
 .dashboard-section .card-header {
 	padding: 0.5rem 0.875rem;
 	min-height: 40px;
@@ -611,6 +620,11 @@
 
 	.dashboard-section + .dashboard-section {
 		padding-top: 1.5rem;
+	}
+
+	.dashboard-section--kpi ~ .dashboard-section--work {
+		margin-top: 1.5rem;
+		padding-top: 1.25rem;
 	}
 
 	.dashboard-context-tile {

@@ -7472,7 +7472,7 @@ body.admin-body .admin-section-toolbar__actions {
 /* Admin Sidebar + Topbar Redesign */
 .navbar-vertical.navbar-expand-lg {
     width: var(--cms-sidebar-width, 240px);
-    background: #0f172a;
+    background: linear-gradient(180deg, #101a2e 0%, #0d1628 100%);
     border-right: 1px solid rgba(255, 255, 255, 0.07);
 }
 
@@ -7528,15 +7528,15 @@ body.admin-body .admin-section-toolbar__actions {
 }
 
 #sidebar-menu .navbar-nav {
-    gap: 2px;
+    gap: 3px;
 }
 
 #sidebar-menu .nav-section-label {
-    padding: 10px 14px 4px;
-    color: rgba(203, 213, 225, 0.74);
+    padding: 11px 14px 5px;
+    color: rgba(191, 209, 233, 0.78);
     font-size: 10px;
     font-weight: 700;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.11em;
     text-transform: uppercase;
 }
 
@@ -7546,39 +7546,42 @@ body.admin-body .admin-section-toolbar__actions {
 }
 
 #sidebar-menu .nav-link {
-    min-height: 36px;
-    margin: 0 8px;
-    border-radius: 8px;
-    color: rgba(226, 232, 240, 0.86);
+    min-height: 38px;
+    margin: 0 9px;
+    border-radius: 2px;
+    color: rgba(215, 228, 244, 0.86);
     font-size: 13px;
-    font-weight: 500;
-    padding: 8px 10px 8px 12px;
-    gap: 9px;
+    font-weight: 600;
+    padding: 8px 11px 8px 12px;
+    gap: 10px;
     position: relative;
-    transition: background-color 0.2s ease, color 0.2s ease;
+    border: 1px solid transparent;
+    transition: background-color 0.18s ease, color 0.18s ease, border-color 0.18s ease;
 }
 
 #sidebar-menu .nav-link:hover {
-    color: #f8fafc;
-    background: rgba(255, 255, 255, 0.06);
+    color: #f4f8ff;
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(143, 167, 201, 0.16);
 }
 
 #sidebar-menu .nav-item.active > .nav-link,
 #sidebar-menu .nav-item.is-active-parent > .nav-link {
-    color: #ffffff;
-    background: rgba(59, 130, 246, 0.18);
+    color: #f3f8ff;
+    background: linear-gradient(90deg, rgba(41, 58, 86, 0.9), rgba(37, 54, 81, 0.92));
+    border-color: rgba(129, 160, 202, 0.48);
 }
 
 #sidebar-menu .nav-item.active > .nav-link::before,
 #sidebar-menu .nav-item.is-active-parent > .nav-link::before {
     content: "";
     position: absolute;
-    left: -8px;
-    top: 7px;
-    width: 3px;
-    height: calc(100% - 14px);
-    border-radius: 3px;
-    background: #60a5fa;
+    left: 0;
+    top: 6px;
+    width: 2px;
+    height: calc(100% - 12px);
+    border-radius: 2px;
+    background: #8ab0e0;
 }
 
 #sidebar-menu .nav-link .nav-link-icon {
@@ -7588,11 +7591,19 @@ body.admin-body .admin-section-toolbar__actions {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    color: rgba(175, 198, 229, 0.9);
 }
 
 #sidebar-menu .nav-link .nav-link-icon i {
     font-size: 18px;
     line-height: 1;
+    display: inline-block;
+}
+
+#sidebar-menu .nav-link:hover .nav-link-icon,
+#sidebar-menu .nav-item.active > .nav-link .nav-link-icon,
+#sidebar-menu .nav-item.is-active-parent > .nav-link .nav-link-icon {
+    color: #e5f0ff;
 }
 
 #sidebar-menu .nav-link .nav-link-title {
@@ -7610,7 +7621,7 @@ body.admin-body .admin-section-toolbar__actions {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    color: rgba(203, 213, 225, 0.78);
+    color: rgba(184, 203, 227, 0.72);
     transition: transform 0.2s ease;
 }
 
@@ -7653,11 +7664,11 @@ body.admin-body .admin-section-toolbar__actions {
 }
 
 #sidebar-menu .dropdown-menu {
-    margin: 4px 12px 8px 26px;
+    margin: 5px 12px 9px 26px;
     padding: 4px 0;
     background: transparent;
     border: 0;
-    border-left: 1px solid rgba(148, 163, 184, 0.34);
+    border-left: 1px solid rgba(151, 173, 204, 0.34);
     box-shadow: none;
 }
 
@@ -7666,10 +7677,11 @@ body.admin-body .admin-section-toolbar__actions {
     align-items: center;
     gap: 8px;
     padding: 7px 8px 7px 12px;
-    color: rgba(203, 213, 225, 0.82);
+    color: rgba(198, 214, 236, 0.85);
     font-size: 12px;
-    border-radius: 6px;
-    transition: background-color 0.2s ease, color 0.2s ease;
+    border-radius: 2px;
+    border: 1px solid transparent;
+    transition: background-color 0.18s ease, color 0.18s ease, border-color 0.18s ease;
 }
 
 #sidebar-menu .dropdown-item .dropdown-item-icon {
@@ -7679,27 +7691,30 @@ body.admin-body .admin-section-toolbar__actions {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    color: rgba(203, 213, 225, 0.82);
+    color: rgba(177, 198, 227, 0.9);
 }
 
 #sidebar-menu .dropdown-item .dropdown-item-icon i {
     font-size: 14px;
     line-height: 1;
+    display: inline-block;
 }
 
 #sidebar-menu .dropdown-item:hover {
-    color: #f8fafc;
-    background: rgba(255, 255, 255, 0.06);
+    color: #f4f8ff;
+    background: rgba(255, 255, 255, 0.045);
+    border-color: rgba(143, 167, 201, 0.15);
 }
 
 #sidebar-menu .dropdown-item.active {
-    color: #93c5fd;
-    background: rgba(59, 130, 246, 0.16);
+    color: #d7e7ff;
+    background: rgba(57, 78, 113, 0.7);
+    border-color: rgba(135, 166, 206, 0.38);
     font-weight: 600;
 }
 
 #sidebar-menu .dropdown-item.active .dropdown-item-icon {
-    color: #93c5fd;
+    color: #dceaff;
 }
 
 .admin-sidebar__footer {
