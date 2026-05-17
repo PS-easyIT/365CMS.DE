@@ -17,6 +17,8 @@ Für die Kernansichten in Themes/Design gilt jetzt konsistent:
 
 Die überarbeitete Oberfläche ist rein visuell; bestehende Theme-, Explorer-, Marketplace- und Loginpage-Logik bleibt unverändert.
 
+Im Bereich `/admin/themes` wurde die Listenansicht zusätzlich auf einen klaren Arbeitsvertrag nachgezogen: persistente Info-Box oben, deutliche Toolbar-Zone und ruhigeres Kartenbild für installierte Themes.
+
 ---
 
 ## Überblick

@@ -47,24 +47,37 @@ $escape = static fn (mixed $value): string => htmlspecialchars((string) $value, 
         ?>
     <?php endif; ?>
 
-    <div class="card mb-4">
-        <div class="card-header">
-            <div class="admin-section-toolbar mb-0">
-                <div>
-                    <h3 class="card-title mb-1">Installierte Themes</h3>
-                    <div class="admin-section-toolbar__meta">Alle installierten Themes mit Aktivierungs- und Verwaltungsaktionen.</div>
+    <div class="cms-admin-info-box mb-3" role="note">
+        <div class="cms-admin-info-box__head">
+            <h3 class="cms-admin-info-box__title">Theme-Runtime und Verwaltung</h3>
+            <div class="cms-admin-info-box__actions">
+                <a href="/admin/theme-editor" class="btn btn-sm btn-outline-secondary">Theme-Editor</a>
+                <a href="/admin/theme-explorer" class="btn btn-sm btn-outline-secondary">Theme-Explorer</a>
+            </div>
+        </div>
+        <p class="cms-admin-info-box__text">
+            Aktivierung und Löschung nutzen denselben serverseitigen Theme-Manager mit unverändertem Prüf- und Auditpfad.
+        </p>
+    </div>
+
+    <div class="card content-listing-card mb-4">
+        <div class="card-header content-listing-toolbar">
+            <div class="content-listing-toolbar__label">Installierte Themes</div>
+            <div class="content-listing-filters">
+                <div class="content-listing-filters__actions">
+                    <span class="text-secondary small">Alle installierten Themes mit Aktivierungs- und Verwaltungsaktionen.</span>
                 </div>
             </div>
         </div>
         <div class="card-body">
-    <div class="row row-deck row-cards admin-metric-grid">
+    <div class="row row-cards admin-theme-list-grid">
         <?php foreach ($themes as $slug => $theme): ?>
             <div class="col-sm-6 col-lg-4">
-                <div class="card<?php echo !empty($theme['isActive']) ? ' border-primary' : ''; ?>">
+                <div class="card h-100 admin-theme-list-card<?php echo !empty($theme['isActive']) ? ' border-primary' : ''; ?>">
                     <!-- Screenshot -->
-                    <div class="card-img-top" style="height: 200px; background: var(--tblr-bg-surface-secondary); display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                    <div class="card-img-top admin-theme-preview">
                         <?php if (!empty($theme['screenshot'])): ?>
-                            <img src="<?php echo htmlspecialchars($theme['screenshot']); ?>" alt="<?php echo htmlspecialchars($theme['name'] ?? $slug); ?>" style="width: 100%; height: 100%; object-fit: cover;">
+                            <img src="<?php echo htmlspecialchars($theme['screenshot']); ?>" alt="<?php echo htmlspecialchars($theme['name'] ?? $slug); ?>" class="admin-theme-preview__image">
                         <?php else: ?>
                             <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-palette" width="48" height="48" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.3;"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 21a9 9 0 0 1 0 -18c4.97 0 9 3.582 9 8c0 1.06 -.474 2.078 -1.318 2.828c-.844 .75 -1.989 1.172 -3.182 1.172h-2.5a2 2 0 0 0 -1 3.75a1.3 1.3 0 0 1 -1 2.25"/><path d="M8.5 10.5m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M12.5 7.5m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M16.5 10.5m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/></svg>
                         <?php endif; ?>

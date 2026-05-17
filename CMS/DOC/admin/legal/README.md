@@ -21,6 +21,7 @@ Die zentralen Legal-Seiten folgen jetzt demselben Backend-Stil wie andere Admin-
 - klare Trennung von Steuerzone (Toolbar/Filter/Aktionen) und Inhaltsbereich
 - persistente Info-Boxen mit kurzer, titelgeführter Kommunikation
 - tabellarische/listenbasierte Arbeitsflächen mit robustem Button-/Text-Wrapping
+- auch die Legacy-Einzelrouten `/admin/privacy-requests` und `/admin/deletion-requests` wurden sichtbar auf denselben Header-/Toolbar-/Listenvertrag nachgezogen
 
 Die DSGVO-, Cookie- und Legal-Workflows bleiben funktional unverändert.
 

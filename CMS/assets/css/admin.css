@@ -5844,3 +5844,60 @@ input:checked + .slider:before { transform: translateX(22px); }
     white-space: normal;
     overflow-wrap: anywhere;
 }
+
+/* Non-settings redesign pass: legal requests + theme list */
+.admin-request-kpi-grid .admin-request-kpi {
+    border: 1px solid #dbe3ee;
+    box-shadow: none;
+    background: #ffffff;
+}
+
+.admin-request-kpi-grid .admin-request-kpi .subheader {
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #64748b;
+}
+
+.admin-request-toolbar {
+    border-bottom: 1px solid #dbe3ee;
+}
+
+.admin-request-table td,
+.admin-request-table th {
+    vertical-align: top;
+}
+
+.admin-request-table .fw-medium {
+    font-weight: 600;
+}
+
+.admin-theme-list-grid {
+    row-gap: 1rem;
+}
+
+.admin-theme-list-card {
+    border: 1px solid #dbe3ee;
+    box-shadow: none;
+    background: #fff;
+}
+
+.admin-theme-list-card .card-body {
+    background: #fcfdff;
+}
+
+.admin-theme-preview {
+    height: 190px;
+    background: #f3f6fb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border-bottom: 1px solid #e5eaf2;
+}
+
+.admin-theme-preview__image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}

@@ -15,44 +15,6 @@
         }
     }
 
-    function bindPreview(config) {
-        var fontStacks = config && typeof config.fontStacks === 'object' && config.fontStacks !== null
-            ? config.fontStacks
-            : {};
-        var headingSelect = document.getElementById('headingFontSelect');
-        var bodySelect = document.getElementById('bodyFontSelect');
-        var previewHeading = document.getElementById('previewHeading');
-        var previewSubheading = document.getElementById('previewSubheading');
-        var previewBody = document.getElementById('previewBody');
-        var previewSmall = document.getElementById('previewSmall');
-
-        if (!headingSelect || !bodySelect) {
-            return;
-        }
-
-        function updatePreview() {
-            var headingStack = fontStacks[headingSelect.value] || 'sans-serif';
-            var bodyStack = fontStacks[bodySelect.value] || 'sans-serif';
-
-            if (previewHeading) {
-                previewHeading.style.fontFamily = headingStack;
-            }
-            if (previewSubheading) {
-                previewSubheading.style.fontFamily = headingStack;
-            }
-            if (previewBody) {
-                previewBody.style.fontFamily = bodyStack;
-            }
-            if (previewSmall) {
-                previewSmall.style.fontFamily = bodyStack;
-            }
-        }
-
-        headingSelect.addEventListener('change', updatePreview);
-        bodySelect.addEventListener('change', updatePreview);
-        updatePreview();
-    }
-
     function setPendingButtonState(button, pendingText) {
         if (!button) {
             return;
@@ -213,7 +175,6 @@
 
     function init() {
         var config = parseConfig('font-manager-config') || {};
-        bindPreview(config);
         bindActionForms();
         bindDeleteButtons(config);
     }

@@ -14,7 +14,6 @@ if (!defined('ABSPATH')) {
  */
 
 $systemFonts  = $data['systemFonts'] ?? [];
-$fontStacks   = $data['fontStacks'] ?? [];
 $customFonts  = $data['customFonts'] ?? [];
 $customFontRows = is_array($data['customFontRows'] ?? null) ? $data['customFontRows'] : [];
 $headingFont  = $data['headingFont'] ?? 'system-ui';
@@ -35,7 +34,6 @@ $fontUsageConfigured = is_array($fontUsageAnalysis['configured_fonts'] ?? null) 
 $fontUsageEntries = is_array($fontUsageAnalysis['font_entries'] ?? null) ? $fontUsageAnalysis['font_entries'] : [];
 $fontUsageWarnings = is_array($fontUsageAnalysis['warnings'] ?? null) ? $fontUsageAnalysis['warnings'] : [];
 $fontManagerConfig = [
-    'fontStacks' => is_array($fontStacks) ? $fontStacks : [],
     'deleteModal' => [
         'title' => 'Schriftart löschen',
         'confirmText' => 'Löschen',
@@ -64,7 +62,7 @@ $fontManagerConfig = [
     <?php endif; ?>
 
     <div class="row">
-        <div class="col-lg-8">
+        <div class="col-12">
             <div class="card mb-3">
                 <div class="card-header d-flex align-items-center justify-content-between">
                     <div>
@@ -581,19 +579,6 @@ $fontManagerConfig = [
             </div>
         </div>
 
-        <div class="col-lg-4">
-            <div class="card sticky-top" style="top: 1rem;">
-                <div class="card-header">
-                    <h3 class="card-title">Vorschau</h3>
-                </div>
-                <div class="card-body" id="fontPreview">
-                    <h2 class="mb-2" id="previewHeading">Überschrift Beispiel</h2>
-                    <h4 class="mb-3" id="previewSubheading">Unterüberschrift</h4>
-                    <p id="previewBody">Dies ist ein Beispieltext, um die ausgewählte Schriftart zu zeigen. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
-                    <p id="previewSmall" class="text-muted small">Kleinerer Text für Beschreibungen und Meta-Informationen.</p>
-                </div>
-            </div>
-        </div>
     </div>
 </div>
 </div>
