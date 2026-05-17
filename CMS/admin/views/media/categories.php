@@ -27,10 +27,14 @@ $mediaCategoriesConfig = [
 
 <div class="page-header d-print-none">
     <div class="container-xl">
-        <div class="row align-items-center">
-            <div class="col-auto">
+        <div class="content-listing-header">
+            <div>
                 <div class="page-pretitle">Medienverwaltung</div>
-                <h2 class="page-title">Kategorien</h2>
+                <h2 class="page-title mb-1">Kategorien</h2>
+                <div class="content-listing-header__meta">
+                    <span><?php echo count($categories); ?> Kategorien</span>
+                    <span><?php echo count($systemSlugs); ?> geschützte System-Slugs</span>
+                </div>
             </div>
         </div>
     </div>
@@ -54,9 +58,21 @@ $mediaCategoriesConfig = [
             </p>
         </div>
 
-        <div class="row">
-            <!-- Neue Kategorie -->
-            <div class="col-lg-4">
+        <div class="card content-listing-card content-listing-toolbar mb-3">
+            <div class="card-body">
+                <div class="content-listing-toolbar__label">Navigation &amp; Aktionen</div>
+                <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between">
+                    <span class="text-secondary small">Kategorieverwaltung folgt dem klassischen Ablauf Formular links und Liste rechts.</span>
+                    <div class="d-flex flex-wrap gap-2">
+                        <a href="/admin/media" class="btn btn-sm btn-outline-secondary">Zur Bibliothek</a>
+                        <a href="/admin/media?tab=settings" class="btn btn-sm btn-outline-secondary">Medien-Einstellungen</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="content-entity-layout">
+            <div class="content-entity-layout__aside">
                 <div class="card">
                     <div class="card-header"><h3 class="card-title">Neue Kategorie</h3></div>
                     <div class="card-body">
@@ -78,8 +94,7 @@ $mediaCategoriesConfig = [
                 </div>
             </div>
 
-            <!-- Kategorien-Liste -->
-            <div class="col-lg-8">
+            <div class="content-entity-layout__main">
                 <div class="card">
                     <div class="card-header"><h3 class="card-title">Kategorien</h3></div>
                     <?php if (empty($categories)): ?>

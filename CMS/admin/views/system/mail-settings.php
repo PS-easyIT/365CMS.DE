@@ -51,19 +51,15 @@ $renderStatusBadge = static function (string $badgeClass, string $label): void {
 };
 $renderMetricCard = static function (string $label, int $value, string $valueClass = ''): void {
     ?>
-    <div class="col-sm-6 col-lg-3">
-        <div class="card">
-            <div class="card-body">
-                <div class="subheader"><?php echo htmlspecialchars($label); ?></div>
-                <div class="h1 mb-0<?php echo $valueClass !== '' ? ' ' . htmlspecialchars($valueClass, ENT_QUOTES) : ''; ?>"><?php echo $value; ?></div>
-            </div>
-        </div>
+    <div class="cms-settings-metric">
+        <div class="cms-settings-metric__label"><?php echo htmlspecialchars($label); ?></div>
+        <div class="cms-settings-metric__value<?php echo $valueClass !== '' ? ' ' . htmlspecialchars($valueClass, ENT_QUOTES) : ''; ?>"><?php echo $value; ?></div>
     </div>
     <?php
 };
 $renderMetricCardsRow = static function (array $cards) use ($renderMetricCard): void {
     ?>
-    <div class="row row-cards mb-4">
+    <div class="cms-settings-metrics">
         <?php foreach ($cards as $card): ?>
             <?php $renderMetricCard((string) ($card['label'] ?? ''), (int) ($card['value'] ?? 0), (string) ($card['class'] ?? '')); ?>
         <?php endforeach; ?>
@@ -168,7 +164,7 @@ $queueLastRunText = !empty($queueLastRun['executed_at'])
                 <div class="text-secondary mt-1">Zentraler Mailversand, Microsoft 365 SMTP-XOAUTH2, Graph-Zugang und Versandprotokolle.</div>
             </div>
             <div class="col-auto">
-                <?php $renderStatusBadge(!empty($transportInfo['uses_smtp']) ? 'success' : 'warning', (string) ($transportInfo['transport_label'] ?? 'Mailversand')); ?>
+                <span class="text-secondary small"><?php echo htmlspecialchars((string) ($transportInfo['transport_label'] ?? 'Mailversand')); ?></span>
             </div>
         </div>
     </div>
@@ -178,7 +174,7 @@ $queueLastRunText = !empty($queueLastRun['executed_at'])
     include __DIR__ . '/../partials/flash-alert.php';
     ?>
 
-    <div class="mb-4">
+    <div class="cms-settings-toolbar">
         <ul class="nav nav-tabs">
             <?php foreach ($mailTabs as $tab => $label): ?>
                 <li class="nav-item">
@@ -188,6 +184,10 @@ $queueLastRunText = !empty($queueLastRun['executed_at'])
                 </li>
             <?php endforeach; ?>
         </ul>
+        <div class="cms-settings-actions">
+            <span class="text-secondary small me-auto">Konfiguration, Protokolle und Queue laufen in einem zentralen Mail-Backend.</span>
+            <a href="/admin/settings" class="btn btn-outline-secondary">Allgemeine Einstellungen</a>
+        </div>
     </div>
 
     <?php if ($isCurrentTab('transport')): ?>

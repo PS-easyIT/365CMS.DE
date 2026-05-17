@@ -60,15 +60,22 @@ if (!function_exists('cms_admin_media_render_featured_usage_list')) {
 
 <div class="page-header d-print-none">
     <div class="container-xl">
-        <div class="row g-2 align-items-center">
-            <div class="col">
+        <div class="content-listing-header">
+            <div>
                 <div class="page-pretitle">Medienverwaltung</div>
-                <h2 class="page-title">Beitrags- &amp; Site Medien</h2>
+                <h2 class="page-title mb-1">Beitrags- &amp; Site Medien</h2>
+                <div class="content-listing-header__meta">
+                    <span><?php echo (int)($stats['image_count'] ?? 0); ?> Bildreferenzen</span>
+                    <span><?php echo (int)($stats['reference_count'] ?? 0); ?> aktive Verknüpfungen</span>
+                    <span><?php echo (int)($stats['post_reference_count'] ?? 0); ?> Beiträge</span>
+                    <span><?php echo (int)($stats['page_reference_count'] ?? 0); ?> Seiten</span>
+                    <span><?php echo (int)($stats['missing_count'] ?? 0); ?> fehlende Dateien</span>
+                </div>
                 <?php if ($helpText !== ''): ?>
                     <div class="text-secondary mt-1"><?php echo htmlspecialchars($helpText); ?></div>
                 <?php endif; ?>
             </div>
-            <div class="col-auto ms-auto">
+            <div>
                 <a href="<?php echo htmlspecialchars($checkUrl, ENT_QUOTES); ?>" class="btn btn-outline-secondary">Medien Check</a>
             </div>
         </div>
@@ -84,57 +91,18 @@ if (!function_exists('cms_admin_media_render_featured_usage_list')) {
         <div class="cms-admin-info-box mb-3" role="note">
             <div class="cms-admin-info-box__head">
                 <h3 class="cms-admin-info-box__title">Replace-Flow für Beitrags- und Seitenmedien</h3>
+                <div class="cms-admin-info-box__actions">
+                    <a href="<?php echo htmlspecialchars($checkUrl, ENT_QUOTES); ?>" class="btn btn-sm btn-outline-secondary">Zum Medien Check</a>
+                    <a href="/admin/media" class="btn btn-sm btn-outline-secondary">Zur Bibliothek</a>
+                </div>
             </div>
             <p class="cms-admin-info-box__text">
                 Ersetzungen arbeiten referenzstabil auf denselben Medienpfad. Damit bleiben alle verknüpften Inhalte konsistent, auch bei Mehrfach-Ersetzung.
             </p>
         </div>
-
-        <div class="row row-deck row-cards mb-4">
-            <div class="col-sm-6 col-lg">
-                <div class="card card-sm">
-                    <div class="card-body">
-                        <div class="h2 mb-1"><?php echo (int)($stats['image_count'] ?? 0); ?></div>
-                        <div class="text-secondary">Eindeutige Bildreferenzen</div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-sm-6 col-lg">
-                <div class="card card-sm">
-                    <div class="card-body">
-                        <div class="h2 mb-1"><?php echo (int)($stats['reference_count'] ?? 0); ?></div>
-                        <div class="text-secondary">Aktive Verknüpfungen</div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-sm-6 col-lg">
-                <div class="card card-sm">
-                    <div class="card-body">
-                        <div class="h2 mb-1"><?php echo (int)($stats['post_reference_count'] ?? 0); ?></div>
-                        <div class="text-secondary">Beitrags-Verknüpfungen</div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-sm-6 col-lg">
-                <div class="card card-sm">
-                    <div class="card-body">
-                        <div class="h2 mb-1"><?php echo (int)($stats['page_reference_count'] ?? 0); ?></div>
-                        <div class="text-secondary">Seiten-Verknüpfungen</div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-sm-6 col-lg">
-                <div class="card card-sm">
-                    <div class="card-body">
-                        <div class="h2 mb-1"><?php echo (int)($stats['missing_count'] ?? 0); ?></div>
-                        <div class="text-secondary">Fehlende Dateien</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="card mb-4">
-            <div class="card-body">
+        <div class="card content-listing-card mb-4">
+            <div class="card-header content-listing-toolbar">
+                <div class="content-listing-toolbar__label">Filter &amp; Suche</div>
                 <form method="get" action="<?php echo htmlspecialchars($baseUrl, ENT_QUOTES); ?>" class="row g-2 align-items-end">
                     <input type="hidden" name="tab" value="featured">
                     <div class="col-md-6 col-lg-5">

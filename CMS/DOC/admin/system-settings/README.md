@@ -2,9 +2,11 @@
 
 Kurzbeschreibung: Überblick über Konfiguration, Updates, Backups, Info-Ansichten, Diagnose und die inzwischen eingehängte AI-Steuerung im Admin-Bereich.
 
-Letzte Aktualisierung: 2026-05-12 · Version 2.9.767
+Letzte Aktualisierung: 17.05.2026 · Version 3.0.11
 
 Der Bereich „System" wurde in mehrere klar getrennte Einstiege aufgeteilt.
+
+Seit `17.05.2026` folgen die meistgenutzten System-Oberflächen (`/admin/settings` und `/admin/mail-settings`) einem einheitlichen Backend-Vertrag im klassischen CMS-Stil: klarer Aufbau `Header → Toolbar/Tabs → Inhalt`, reduzierte Badge-/Kachel-Anmutung, konsistente Tabellen-/Kartenabstände und persistente Info-Boxen mit robuster Button-Umbruchlogik.
 
 Die Übersicht bezieht sich auf die aktuelle 2.9.767-Bedienstruktur. Für Runtime-Fragen zu Konfiguration, Bootstrap, Logs oder Dateisystempfaden ergänzen `DOC/INSTALLATION.md`, `DOC/core/ARCHITECTURE.md` und `DOC/FILELIST.md` diese Seite.
 

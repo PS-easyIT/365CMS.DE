@@ -98,8 +98,8 @@ $settingsHeading = $currentTab === 'content' ? 'Beiträge & Sites – Einstellun
         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
         <input type="hidden" name="tab" value="<?php echo htmlspecialchars($currentTab); ?>">
 
-        <?php if (!$hideSettingsTabs): ?>
-        <div class="mb-4">
+        <div class="cms-settings-toolbar">
+            <?php if (!$hideSettingsTabs): ?>
             <ul class="nav nav-tabs">
                 <li class="nav-item">
                     <a class="nav-link <?php echo $currentTab === 'general' ? 'active' : ''; ?>" href="<?php echo htmlspecialchars($settingsBaseUrl); ?>">
@@ -112,14 +112,14 @@ $settingsHeading = $currentTab === 'content' ? 'Beiträge & Sites – Einstellun
                     </a>
                 </li>
             </ul>
-        </div>
-        <?php endif; ?>
+            <?php endif; ?>
 
-        <div class="cms-settings-actions">
-            <span class="text-secondary small me-auto">Änderungen werden zentral in den Systemeinstellungen gespeichert.</span>
-            <button type="submit" class="btn btn-primary" name="action" value="save">
-                Einstellungen speichern
-            </button>
+            <div class="cms-settings-actions">
+                <span class="text-secondary small me-auto">Änderungen werden zentral in den Systemeinstellungen gespeichert.</span>
+                <button type="submit" class="btn btn-primary" name="action" value="save">
+                    Einstellungen speichern
+                </button>
+            </div>
         </div>
 
         <?php if ($currentTab === 'general'): ?>
@@ -307,9 +307,7 @@ $settingsHeading = $currentTab === 'content' ? 'Beiträge & Sites – Einstellun
                 <div class="card h-100">
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <h3 class="card-title mb-0">Mail-System</h3>
-                        <span class="badge bg-<?php echo !empty($mail['uses_smtp']) ? 'success' : 'warning'; ?>-lt">
-                            <?php echo htmlspecialchars((string)($mail['transport_label'] ?? 'Mailversand')); ?>
-                        </span>
+                        <span class="text-secondary small"><?php echo htmlspecialchars((string)($mail['transport_label'] ?? 'Mailversand')); ?></span>
                     </div>
                     <div class="card-body">
                         <div class="row g-3 mb-3">
@@ -327,10 +325,15 @@ $settingsHeading = $currentTab === 'content' ? 'Beiträge & Sites – Einstellun
                             </div>
                         </div>
 
-                        <div class="alert alert-info mb-3" role="alert">
-                            Mail-Transport, Azure OAuth2, Microsoft Graph und Versand-Logs werden jetzt zentral unter
-                            <a href="<?php echo htmlspecialchars($mailSettingsUrl); ?>" class="alert-link">System → Mail &amp; Azure OAuth2</a>
-                            verwaltet.
+                        <div class="cms-admin-info-box mb-3" role="note">
+                            <div class="cms-admin-info-box__head">
+                                <h3 class="cms-admin-info-box__title">Mail- und OAuth2-Steuerung</h3>
+                            </div>
+                            <p class="cms-admin-info-box__text">
+                                Mail-Transport, Azure OAuth2, Microsoft Graph und Versand-Logs werden zentral unter
+                                <a href="<?php echo htmlspecialchars($mailSettingsUrl); ?>">System → Mail &amp; Azure OAuth2</a>
+                                verwaltet.
+                            </p>
                         </div>
 
                         <div class="d-flex flex-wrap gap-2 align-items-center">
@@ -351,10 +354,15 @@ $settingsHeading = $currentTab === 'content' ? 'Beiträge & Sites – Einstellun
                             <input type="number" name="posts_per_page" class="form-control" value="<?php echo (int)$s['posts_per_page']; ?>" min="1" max="100">
                         </div>
                         <div class="mb-3">
-                            <div class="alert alert-info mb-0" role="alert">
-                                Benutzer-, Registrierungs- und Authentifizierungsoptionen werden jetzt unter
-                                <a href="<?php echo htmlspecialchars($userSettingsUrl); ?>" class="alert-link">Benutzer &amp; Gruppen → Einstellungen</a>
-                                verwaltet.
+                            <div class="cms-admin-info-box mb-0" role="note">
+                                <div class="cms-admin-info-box__head">
+                                    <h3 class="cms-admin-info-box__title">Benutzer- und Auth-Optionen</h3>
+                                </div>
+                                <p class="cms-admin-info-box__text">
+                                    Benutzer-, Registrierungs- und Authentifizierungsoptionen werden unter
+                                    <a href="<?php echo htmlspecialchars($userSettingsUrl); ?>">Benutzer &amp; Gruppen → Einstellungen</a>
+                                    verwaltet.
+                                </p>
                             </div>
                         </div>
                         <div>
@@ -377,17 +385,19 @@ $settingsHeading = $currentTab === 'content' ? 'Beiträge & Sites – Einstellun
                 <div class="card h-100">
                     <div class="card-header"><h3 class="card-title">Marketplace &amp; Updates</h3></div>
                     <div class="card-body">
-                        <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
-                            <span class="badge bg-green-lt text-green">Offizielle 365CMS-Endpunkte</span>
-                            <span class="text-secondary small">Empfohlene produktive Standardwerte für Plugin-Marketplace, Theme-Katalog und Core-Updates.</span>
+                        <div class="cms-admin-info-box mb-3" role="note">
+                            <div class="cms-admin-info-box__head">
+                                <h3 class="cms-admin-info-box__title">Offizielle 365CMS-Endpunkte</h3>
+                            </div>
+                            <p class="cms-admin-info-box__text">Empfohlene produktive Standardwerte für Plugin-Marketplace, Theme-Katalog und Core-Updates.</p>
                         </div>
                         <div class="mb-3">
                             <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-1">
                                 <label class="form-label mb-0">Plugin-Registry</label>
                                 <?php if ($usesDefaultPluginRegistry): ?>
-                                    <span class="badge bg-azure-lt text-azure">Produktiv-Standard aktiv</span>
+                                    <span class="text-secondary small">Produktiv-Standard aktiv</span>
                                 <?php else: ?>
-                                    <span class="badge bg-yellow-lt text-yellow">Individuell überschrieben</span>
+                                    <span class="text-warning small fw-semibold">Individuell überschrieben</span>
                                 <?php endif; ?>
                             </div>
                             <input type="url" name="plugin_registry_url" class="form-control" value="<?php echo htmlspecialchars((string)($s['plugin_registry_url'] ?? 'https://365cms.de/marketplace/plugins/index.json')); ?>" placeholder="https://365cms.de/marketplace/plugins/index.json">
@@ -397,9 +407,9 @@ $settingsHeading = $currentTab === 'content' ? 'Beiträge & Sites – Einstellun
                             <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-1">
                                 <label class="form-label mb-0">Theme-Marketplace-Basis</label>
                                 <?php if ($usesDefaultThemeMarketplace): ?>
-                                    <span class="badge bg-azure-lt text-azure">Produktiv-Standard aktiv</span>
+                                    <span class="text-secondary small">Produktiv-Standard aktiv</span>
                                 <?php else: ?>
-                                    <span class="badge bg-yellow-lt text-yellow">Individuell überschrieben</span>
+                                    <span class="text-warning small fw-semibold">Individuell überschrieben</span>
                                 <?php endif; ?>
                             </div>
                             <input type="url" name="theme_marketplace_url" class="form-control" value="<?php echo htmlspecialchars((string)($s['theme_marketplace_url'] ?? 'https://365cms.de/marketplace/themes')); ?>" placeholder="https://365cms.de/marketplace/themes">
@@ -409,16 +419,19 @@ $settingsHeading = $currentTab === 'content' ? 'Beiträge & Sites – Einstellun
                             <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-1">
                                 <label class="form-label mb-0">Core-Update-Feed</label>
                                 <?php if ($usesDefaultCoreUpdate): ?>
-                                    <span class="badge bg-azure-lt text-azure">Produktiv-Standard aktiv</span>
+                                    <span class="text-secondary small">Produktiv-Standard aktiv</span>
                                 <?php else: ?>
-                                    <span class="badge bg-yellow-lt text-yellow">Individuell überschrieben</span>
+                                    <span class="text-warning small fw-semibold">Individuell überschrieben</span>
                                 <?php endif; ?>
                             </div>
                             <input type="url" name="core_update_url" class="form-control" value="<?php echo htmlspecialchars((string)($s['core_update_url'] ?? 'https://365cms.de/marketplace/core/365cms/update.json')); ?>" placeholder="https://365cms.de/marketplace/core/365cms/update.json">
                             <div class="form-hint">Expliziter Feed für 365CMS-Core-Updates. Offizieller Standard: <code><?php echo htmlspecialchars($defaultCoreUpdateUrl); ?></code>.</div>
                         </div>
-                        <div class="alert alert-info mb-0" role="alert">
-                            Diese Felder machen die aktuell verwendeten zentralen Marketplace-Endpunkte sichtbar. Leere oder ungültige Werte fallen beim Speichern automatisch wieder auf die offiziellen 365CMS-Defaults zurück. So bleibt das System produktionssicher, auch wenn jemand hier einmal kreativ wird.
+                        <div class="cms-admin-info-box mb-0" role="note">
+                            <div class="cms-admin-info-box__head">
+                                <h3 class="cms-admin-info-box__title">Fallback bleibt aktiv</h3>
+                            </div>
+                            <p class="cms-admin-info-box__text">Diese Felder zeigen die aktuell verwendeten zentralen Marketplace-Endpunkte. Leere oder ungültige Werte fallen beim Speichern automatisch auf die offiziellen 365CMS-Defaults zurück.</p>
                         </div>
                     </div>
                 </div>
@@ -467,8 +480,11 @@ $settingsHeading = $currentTab === 'content' ? 'Beiträge & Sites – Einstellun
         <?php else: ?>
         <div class="row">
             <div class="col-12 mb-4">
-                <div class="alert alert-info mb-0" role="status">
-                    Diese Einstellungen steuern Standard-Editor, Veröffentlichungs-Defaults und die öffentlichen URL-Basen für neue Seiten, Beiträge und Archive. Bei Validierungsfehlern bleiben deine Eingaben nach dem Redirect erhalten.
+                <div class="cms-admin-info-box mb-0" role="status">
+                    <div class="cms-admin-info-box__head">
+                        <h3 class="cms-admin-info-box__title">Inhalts-Standardwerte</h3>
+                    </div>
+                    <p class="cms-admin-info-box__text">Diese Einstellungen steuern Standard-Editor, Veröffentlichungs-Defaults und die öffentlichen URL-Basen für neue Seiten, Beiträge und Archive. Bei Validierungsfehlern bleiben Eingaben nach dem Redirect erhalten.</p>
                 </div>
             </div>
             <div class="col-12">
@@ -591,10 +607,14 @@ $settingsHeading = $currentTab === 'content' ? 'Beiträge & Sites – Einstellun
                             </div>
                         </div>
                         <div id="settingsArchiveBaseHint" class="form-hint mb-3">Die Archive werden sprachabhängig auf dieselben Theme-Templates <code>category.php</code> und <code>tag.php</code> geleitet. Beispiel: <code>/<?php echo htmlspecialchars((string)($s['category_base_de'] ?? 'kategorie')); ?>/azure</code> bzw. <code>/en/<?php echo htmlspecialchars((string)($s['category_base_en'] ?? 'category')); ?>/azure</code>.</div>
-                        <div class="alert alert-info mb-3" role="status">
-                            <div class="fw-semibold mb-1">Aktive Beispiel-URL</div>
-                            <code><?php echo htmlspecialchars((string)($s['post_permalink_example'] ?? '/blog/beispielbeitrag')); ?></code>
-                            <div class="small mt-1">Die Blog-Übersicht bleibt weiterhin unter <code>/blog</code> erreichbar.</div>
+                        <div class="cms-admin-info-box mb-3" role="status">
+                            <div class="cms-admin-info-box__head">
+                                <h3 class="cms-admin-info-box__title">Aktive Beispiel-URL</h3>
+                            </div>
+                            <p class="cms-admin-info-box__text">
+                                <code><?php echo htmlspecialchars((string)($s['post_permalink_example'] ?? '/blog/beispielbeitrag')); ?></code><br>
+                                <span class="small">Die Blog-Übersicht bleibt weiterhin unter <code>/blog</code> erreichbar.</span>
+                            </p>
                         </div>
                         <div class="border rounded p-3 bg-light">
                             <div class="fw-semibold mb-1">Manuelle Nachkorrektur importierter Slugs</div>

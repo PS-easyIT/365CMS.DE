@@ -51,6 +51,8 @@ Die Medienverwaltung ist unter `/admin/media` erreichbar und bündelt Bibliothek
 - eigener Unterpunkt **Medien Check** für die read-only Konsistenzliste von Beiträgen und Seiten ohne Bild oder mit defekter Featured-Image-Referenz inklusive Deep-Link in den bestehenden Editor-Pfad mit Medienbibliothek
 - der Featured-Replace-Flow erzwingt seinen Bildvertrag seit `2.9.618` serverseitig unabhängig von den allgemeinen Bibliotheks-Typ-Häkchen, damit Beitrags-/Seitenbilder immer nur als JPG/JPEG, PNG, GIF, WebP, BMP oder ICO ersetzt werden
 - Info- und Hinweisboxen folgen im gesamten Medienbereich einem einheitlichen Layout mit Titelzeile oberhalb optionaler Aktionen, kurzen Texten und robustem Wrapping ohne Horizontal-Overflow
+- Bibliothek, Beitrags-/Site-Medien und Medien-Check folgen im UI nun konsistent dem Ablauf `Header → Toolbar/Filter → Inhalt`; dekorative KPI-Kachelreihen wurden zugunsten kompakter Header-Metaangaben reduziert
+- Der Tab `/admin/media?tab=categories` ist auf denselben Aufbau nachgezogen: Header-Metazeile, klarer Toolbar-Bereich mit Navigationsaktionen und stabile 2-Spalten-Struktur aus Formular (links) und Kategorienliste (rechts)
 - Admin-Hinweise werden nicht mehr automatisch ausgeblendet; sie bleiben sichtbar, bis sie bewusst geschlossen werden
 
 ---

@@ -297,12 +297,19 @@ function renderMediaDuplicateSummary(array $file, bool $compact = false): string
 
 <div class="page-header d-print-none">
     <div class="container-xl">
-        <div class="row align-items-center">
-            <div class="col-auto">
+        <div class="content-listing-header">
+            <div>
                 <div class="page-pretitle">Medienverwaltung</div>
-                <h2 class="page-title">Medien</h2>
+                <h2 class="page-title mb-1">Medien</h2>
+                <div class="content-listing-header__meta">
+                    <span><?php echo (int)($stats['file_count'] ?? ($diskUsage['count'] ?? 0)); ?> Dateien</span>
+                    <span><?php echo (int)($stats['folder_count'] ?? count($folders)); ?> Ordner</span>
+                    <span><?php echo (int)($stats['category_count'] ?? count($categories)); ?> Kategorien</span>
+                    <span><?php echo (int)($stats['used_file_count'] ?? 0); ?> eingebunden</span>
+                    <span>Speicher: <?php echo htmlspecialchars((string)($stats['storage_label'] ?? ($diskUsage['formatted'] ?? '0 B'))); ?></span>
+                </div>
             </div>
-            <div class="col-auto ms-auto d-flex gap-2">
+            <div class="d-flex flex-wrap gap-2">
                 <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#newFolderModal">
                     <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 19h-7a2 2 0 0 1 -2 -2v-11a2 2 0 0 1 2 -2h4l3 3h7a2 2 0 0 1 2 2v3"/><path d="M16 19h6"/><path d="M19 16v6"/></svg>
                     Neuer Ordner
@@ -323,82 +330,18 @@ function renderMediaDuplicateSummary(array $file, bool $compact = false): string
             <?php $alertData = $alert; $alertMarginClass = 'mb-3'; require __DIR__ . '/../partials/flash-alert.php'; ?>
         <?php endif; ?>
 
-        <!-- KPIs -->
-        <div class="row row-deck row-cards mb-4">
-            <div class="col-sm-6 col-lg">
-                <div class="card card-sm">
-                    <div class="card-body">
-                        <div class="row align-items-center">
-                            <div class="col-auto"><span class="bg-primary text-white avatar"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z"/></svg></span></div>
-                            <div class="col">
-                                <div class="font-weight-medium"><?php echo (int)($stats['file_count'] ?? ($diskUsage['count'] ?? 0)); ?></div>
-                                <div class="text-secondary">Dateien</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-sm-6 col-lg">
-                <div class="card card-sm">
-                    <div class="card-body">
-                        <div class="row align-items-center">
-                            <div class="col-auto"><span class="bg-green text-white avatar"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10 14a3.5 3.5 0 0 0 5 0l4 -4a3.5 3.5 0 0 0 -5 -5l-.5 .5"/><path d="M14 10a3.5 3.5 0 0 0 -5 0l-4 4a3.5 3.5 0 0 0 5 5l.5 -.5"/></svg></span></div>
-                            <div class="col">
-                                <div class="font-weight-medium"><?php echo (int)($stats['used_file_count'] ?? 0); ?> / <?php echo (int)($stats['visible_file_count'] ?? count($files)); ?></div>
-                                <div class="text-secondary">sichtbar eingebunden</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-sm-6 col-lg">
-                <div class="card card-sm">
-                    <div class="card-body">
-                        <div class="row align-items-center">
-                            <div class="col-auto"><span class="bg-azure text-white avatar"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M6 6h3.5l1.5 -1.5h2l1.5 1.5h3.5v12h-12z"/></svg></span></div>
-                            <div class="col">
-                                <div class="font-weight-medium"><?php echo htmlspecialchars((string)($stats['storage_label'] ?? ($diskUsage['formatted'] ?? '0 B'))); ?></div>
-                                <div class="text-secondary">Speicher</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-sm-6 col-lg">
-                <div class="card card-sm">
-                    <div class="card-body">
-                        <div class="row align-items-center">
-                            <div class="col-auto"><span class="bg-yellow text-white avatar"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 4h4l3 3h7a2 2 0 0 1 2 2v8a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-11a2 2 0 0 1 2 -2"/></svg></span></div>
-                            <div class="col">
-                                <div class="font-weight-medium"><?php echo (int)($stats['folder_count'] ?? count($folders)); ?></div>
-                                <div class="text-secondary">Ordner</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-sm-6 col-lg">
-                <div class="card card-sm">
-                    <div class="card-body">
-                        <div class="row align-items-center">
-                            <div class="col-auto"><span class="bg-teal text-white avatar"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M7 7h-1a2 2 0 0 0 -2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2 -2v-1"/><rect x="9" y="3" width="12" height="12" rx="2"/></svg></span></div>
-                            <div class="col">
-                                <div class="font-weight-medium"><?php echo (int)($stats['category_count'] ?? count($categories)); ?></div>
-                                <div class="text-secondary">Kategorien</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
         <!-- Breadcrumb & Filter -->
-        <div class="card">
-            <div class="card-header">
+        <div class="card content-listing-card">
+            <div class="card-header content-listing-toolbar">
+                <div class="content-listing-toolbar__label">Ordner, Filter &amp; Suche</div>
                 <div class="w-100">
                     <div class="cms-admin-info-box mb-3" role="note">
                         <div class="cms-admin-info-box__head">
                             <h3 class="cms-admin-info-box__title">Bibliotheks-Grenzen</h3>
+                            <div class="cms-admin-info-box__actions">
+                                <a href="/admin/media?tab=settings" class="btn btn-sm btn-outline-secondary">Einstellungen</a>
+                                <a href="/admin/media?tab=categories" class="btn btn-sm btn-outline-secondary">Kategorien</a>
+                            </div>
                         </div>
                         <p class="cms-admin-info-box__text">
                             Maximal <?php echo (int)($constraints['max_upload_files'] ?? 0); ?> Dateien pro Upload,

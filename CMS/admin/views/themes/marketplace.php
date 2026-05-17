@@ -41,20 +41,26 @@ $normalizeSearchName = static function (mixed $value): string {
 };
 ?>
 
-<div class="container-xl">
-    <!-- Header -->
-    <div class="page-header d-flex align-items-center mb-4">
-        <div>
-            <h2 class="page-title">Theme Marketplace</h2>
-            <div class="text-muted mt-1"><?php echo $total; ?> Theme<?php echo $total !== 1 ? 's' : ''; ?> verfügbar</div>
-        </div>
-        <div class="ms-auto">
-            <a href="/admin/themes" class="btn btn-outline-primary">
-                Zur Theme-Verwaltung
-            </a>
+<div class="page-header d-print-none">
+    <div class="container-xl">
+        <div class="content-listing-header">
+            <div>
+                <div class="page-pretitle">Themes</div>
+                <h2 class="page-title mb-1">Theme Marketplace</h2>
+                <div class="content-listing-header__meta">
+                    <span><?php echo $total; ?> verfügbar</span>
+                    <span>Installierbar: <?php echo (int) ($stats['installable'] ?? 0); ?></span>
+                </div>
+            </div>
+            <div class="admin-section-toolbar__actions">
+                <a href="/admin/themes" class="btn btn-outline-primary btn-sm">Zur Theme-Verwaltung</a>
+            </div>
         </div>
     </div>
+</div>
 
+<div class="page-body">
+<div class="container-xl">
     <?php if (!empty($alert)): ?>
         <?php
         $alertData = is_array($alert ?? null) ? $alert : [];
@@ -86,7 +92,7 @@ $normalizeSearchName = static function (mixed $value): string {
             </div>
         </div>
     <?php else: ?>
-        <div class="row row-deck row-cards mb-4">
+        <div class="row row-deck row-cards mb-4 admin-metric-grid">
             <div class="col-sm-6 col-lg-4">
                 <div class="card">
                     <div class="card-body">
@@ -121,7 +127,7 @@ $normalizeSearchName = static function (mixed $value): string {
             </div>
         </div>
 
-        <div class="card mb-4">
+        <div class="card mb-4 admin-content-card">
             <div class="card-body">
                 <?php if (!empty($constraints['package_size_limit_label']) || !empty($constraints['catalog_cache_ttl'])): ?>
                     <div class="small text-muted mb-3">
@@ -329,5 +335,6 @@ $normalizeSearchName = static function (mixed $value): string {
             </div>
         </div>
     <?php endif; ?>
+</div>
 </div>
 <script type="application/json" id="theme-marketplace-config"><?php echo json_encode($themeMarketplaceConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?></script>

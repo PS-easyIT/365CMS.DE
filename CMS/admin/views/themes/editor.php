@@ -68,15 +68,26 @@ $renderFileTree = static function (array $items, string $currentFile, string $ba
 };
 ?>
 
-<div class="container-xl">
-    <!-- Header -->
-    <div class="page-header d-flex align-items-center mb-4">
-        <div>
-            <h2 class="page-title">Theme Explorer</h2>
-            <div class="text-muted mt-1">Aktives Theme: <strong><?php echo htmlspecialchars($themeSlug); ?></strong></div>
+<div class="page-header d-print-none">
+    <div class="container-xl">
+        <div class="content-listing-header">
+            <div>
+                <div class="page-pretitle">Themes</div>
+                <h2 class="page-title mb-1">Theme Explorer</h2>
+                <div class="content-listing-header__meta">
+                    <span>Aktiv: <?php echo htmlspecialchars($themeSlug); ?></span>
+                    <span>Dateibaum: <?php echo (int) ($treeSummary['items'] ?? 0); ?> Einträge</span>
+                </div>
+            </div>
+            <div class="admin-section-toolbar__actions">
+                <a href="/admin/themes" class="btn btn-outline-secondary btn-sm">Theme-Liste</a>
+            </div>
         </div>
     </div>
+</div>
 
+<div class="page-body">
+<div class="container-xl">
     <?php if (!empty($alert)): ?>
         <?php $alertData = $alert; $alertMarginClass = 'mb-4'; require __DIR__ . '/../partials/flash-alert.php'; ?>
     <?php endif; ?>
@@ -103,6 +114,16 @@ $renderFileTree = static function (array $items, string $currentFile, string $ba
         ?>
     <?php endif; ?>
 
+    <div class="card mb-4 admin-content-card">
+        <div class="card-header">
+            <div class="admin-section-toolbar mb-0">
+                <div>
+                    <h3 class="card-title mb-1">Dateien und Editor</h3>
+                    <div class="admin-section-toolbar__meta">Links Dateibaum und Suche, rechts Bearbeitung mit klarer Statusanzeige.</div>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
     <div class="row">
         <!-- File Tree -->
         <div class="col-md-3">
@@ -215,6 +236,9 @@ $renderFileTree = static function (array $items, string $currentFile, string $ba
             <?php endif; ?>
         </div>
     </div>
+        </div>
+    </div>
+</div>
 </div>
 
 <script type="application/json" id="theme-explorer-config"><?php echo htmlspecialchars((string) json_encode($themeExplorerConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT), ENT_NOQUOTES, 'UTF-8'); ?></script>

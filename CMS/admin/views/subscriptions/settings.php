@@ -35,6 +35,17 @@ $isSelectedPlan = static fn (int $planId): string => $defaultPlanId === $planId 
 
         <?php require __DIR__ . '/../partials/flash-alert.php'; ?>
 
+        <div class="cms-admin-info-box mb-4" role="note">
+            <div class="cms-admin-info-box__head">
+                <h3 class="cms-admin-info-box__title">Abo-Steuerung und Standardzuweisung</h3>
+                <div class="cms-admin-info-box__actions">
+                    <a href="/admin/subscriptions/packages" class="btn btn-sm btn-outline-secondary">Pakete</a>
+                    <a href="/admin/orders" class="btn btn-sm btn-outline-secondary">Bestellungen</a>
+                </div>
+            </div>
+            <p class="cms-admin-info-box__text">Hier werden nur globale Schalter und das Standardverhalten der Aboverwaltung gepflegt. Tarifinhalte und Bestellprozesse bleiben in den Fachbereichen.</p>
+        </div>
+
         <form method="post" data-subscription-submit-lock="1">
             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
             <input type="hidden" name="action" value="save_settings">
@@ -91,16 +102,12 @@ $isSelectedPlan = static fn (int $planId): string => $defaultPlanId === $planId 
                                     <?php endforeach; ?>
                                 </select>
                             </div>
-                            <?php
-                            $alertData = [
-                                'type' => 'warning',
-                                'message' => 'Dieser Bereich enthält bewusst nur Standardverhalten der Aboverwaltung.',
-                                'details' => ['Paketdetails, Preise, Testphase, Steuern und Bestellprozesse pflegen Sie direkt auf den Bereichen Pakete & Abo-Einstellungen sowie Bestellungen & Zuweisung.'],
-                            ];
-                            $alertDismissible = false;
-                            $alertMarginClass = 'mb-0';
-                            require __DIR__ . '/../partials/flash-alert.php';
-                            ?>
+                            <div class="cms-admin-info-box cms-admin-info-box--warning mb-0" role="note">
+                                <div class="cms-admin-info-box__head">
+                                    <h3 class="cms-admin-info-box__title">Fachbereiche bleiben getrennt</h3>
+                                </div>
+                                <p class="cms-admin-info-box__text">Paketdetails, Preise, Testphase, Steuern und Bestellprozesse werden weiterhin direkt in den Bereichen Pakete &amp; Abo-Einstellungen sowie Bestellungen &amp; Zuweisung gepflegt.</p>
+                            </div>
                         </div>
                     </div>
                 </div>

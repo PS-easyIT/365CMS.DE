@@ -109,9 +109,9 @@ $categoryArchivePreviewPaths = $buildCategoryArchivePreviewPaths($editCategorySl
                                 <label class="form-label" for="postCategorySlug">Slug</label>
                                 <input type="text" class="form-control" id="postCategorySlug" name="cat_slug" value="<?php echo htmlspecialchars($editCategorySlug, ENT_QUOTES); ?>" placeholder="wird automatisch generiert">
                             </div>
-                            <div class="alert alert-info">
-                                <div class="fw-semibold mb-1">Archiv- &amp; Redirect-Vertrag</div>
-                                <div class="small text-secondary">Slug-Änderungen erzeugen automatisch Archiv-Weiterleitungen. Ältere Theme- und Blog-Filter mit <code>/blog?category=&lt;slug&gt;</code> bleiben weiterhin auf den aktuellen Kategorie-Slug auflösbar.</div>
+                            <div class="alert alert-info content-entity-contract">
+                                <h4 class="content-entity-contract__title">Archiv- &amp; Redirect-Vertrag</h4>
+                                <p class="content-entity-contract__description small text-secondary">Slug-Änderungen erzeugen automatisch Archiv-Weiterleitungen. Ältere Theme- und Blog-Filter mit <code>/blog?category=&lt;slug&gt;</code> bleiben weiterhin auf den aktuellen Kategorie-Slug auflösbar.</p>
                                 <?php if ($categoryArchivePreviewPaths !== []): ?>
                                     <div class="small text-secondary mt-2">Aktuelle Archivpfade dieser Kategorie:</div>
                                     <ul class="small ps-3 mb-2">
@@ -120,8 +120,8 @@ $categoryArchivePreviewPaths = $buildCategoryArchivePreviewPaths($editCategorySl
                                         <?php endforeach; ?>
                                     </ul>
                                 <?php endif; ?>
-                                <div class="btn-list">
-                                    <a href="/admin/redirect-manager" class="btn btn-sm btn-outline-primary">Redirect-Manager öffnen</a>
+                                <div class="btn-list content-entity-contract__actions">
+                                    <a href="/admin/redirect-manager" class="btn btn-sm btn-outline-primary content-entity-contract__action-btn">Redirect-Manager öffnen</a>
                                 </div>
                             </div>
                             <div class="mb-3">

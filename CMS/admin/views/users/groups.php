@@ -31,12 +31,17 @@ $groupField = static function (mixed $group, string $key, mixed $default = ''): 
 
 <div class="page-header d-print-none">
     <div class="container-xl">
-        <div class="row align-items-center">
-            <div class="col-auto">
+        <div class="content-listing-header">
+            <div>
                 <div class="page-pretitle">Benutzer & Gruppen</div>
-                <h2 class="page-title">Gruppen</h2>
+                <h2 class="page-title mb-1">Gruppen</h2>
+                <div class="content-listing-header__meta">
+                    <span><?php echo count($groups); ?> Gruppen</span>
+                    <span><?php echo count($userOptions); ?> verfügbare Benutzer</span>
+                    <span><?php echo count($planOptions); ?> Paketoptionen</span>
+                </div>
             </div>
-            <div class="col-auto ms-auto">
+            <div>
                 <button type="button" class="btn btn-primary js-group-modal-trigger" data-bs-toggle="modal" data-bs-target="#groupModal" data-group-mode="create" data-group-id="0" data-group-name="" data-group-description="" data-group-modal-title="Neue Gruppe">
                     <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 5l0 14"/><path d="M5 12l14 0"/></svg>
                     Neue Gruppe
@@ -68,50 +73,53 @@ $groupField = static function (mixed $group, string $key, mixed $default = ''): 
         </div>
 
         <?php if (!empty($groups)): ?>
-            <div class="card mb-4">
-                <div class="card-body d-flex flex-wrap align-items-center gap-3">
-                    <label class="form-check m-0">
-                        <input type="checkbox" class="form-check-input js-groups-bulk-all" aria-label="Alle sichtbaren Gruppen auswählen">
-                        <span class="form-check-label">Alle auswählen</span>
-                    </label>
+            <div class="card content-listing-card mb-4">
+                <div class="card-header content-listing-toolbar">
+                    <div class="content-listing-toolbar__label">Sammelaktionen</div>
+                    <div class="d-flex flex-wrap align-items-center gap-3">
+                        <label class="form-check m-0">
+                            <input type="checkbox" class="form-check-input js-groups-bulk-all" aria-label="Alle sichtbaren Gruppen auswählen">
+                            <span class="form-check-label">Alle auswählen</span>
+                        </label>
 
-                    <button type="button" class="btn btn-sm btn-outline-secondary js-groups-bulk-clear" disabled aria-disabled="true">Auswahl leeren</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary js-groups-bulk-clear" disabled aria-disabled="true">Auswahl leeren</button>
 
-                    <form method="post" id="bulkFormGroups" class="d-flex flex-wrap align-items-center gap-2 ms-lg-auto">
-                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
-                        <input type="hidden" name="action" value="bulk">
+                        <form method="post" id="bulkFormGroups" class="d-flex flex-wrap align-items-center gap-2 ms-lg-auto">
+                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
+                            <input type="hidden" name="action" value="bulk">
 
-                        <span class="text-secondary"><strong id="selectedCountGroups">0</strong> ausgewählt</span>
+                            <span class="text-secondary"><strong id="selectedCountGroups">0</strong> ausgewählt</span>
 
-                        <select name="bulk_action" class="form-select form-select-sm w-auto" id="bulkActionGroups" aria-label="Bulk-Aktion für ausgewählte Gruppen">
-                            <option value="">Aktion wählen…</option>
-                            <option value="activate">Gruppen aktivieren</option>
-                            <option value="deactivate">Gruppen deaktivieren</option>
-                            <?php if (!empty($planOptions)): ?>
-                                <option value="set_plan">Paket zuweisen</option>
-                            <?php endif; ?>
-                            <option value="clear_plan">Paket entfernen</option>
-                            <option value="delete">Gruppen löschen</option>
-                        </select>
-
-                        <div class="d-none" id="bulkGroupsPlanWrap">
-                            <select name="bulk_plan_id" class="form-select form-select-sm w-auto" id="bulkGroupsPlanSelect" aria-label="Paket für Sammelaktion auswählen">
-                                <option value="0">Paket wählen…</option>
-                                <?php foreach ($planOptions as $planOption): ?>
-                                    <?php
-                                    $planOptionId = (int)($planOption['id'] ?? 0);
-                                    $planOptionName = trim((string)($planOption['name'] ?? ''));
-                                    $planOptionActive = (int)($planOption['is_active'] ?? 0) === 1;
-                                    ?>
-                                    <option value="<?php echo $planOptionId; ?>">
-                                        <?php echo htmlspecialchars($planOptionName !== '' ? $planOptionName : ('Plan #' . $planOptionId)); ?><?php echo $planOptionActive ? '' : ' (inaktiv)'; ?>
-                                    </option>
-                                <?php endforeach; ?>
+                            <select name="bulk_action" class="form-select form-select-sm w-auto" id="bulkActionGroups" aria-label="Bulk-Aktion für ausgewählte Gruppen">
+                                <option value="">Aktion wählen…</option>
+                                <option value="activate">Gruppen aktivieren</option>
+                                <option value="deactivate">Gruppen deaktivieren</option>
+                                <?php if (!empty($planOptions)): ?>
+                                    <option value="set_plan">Paket zuweisen</option>
+                                <?php endif; ?>
+                                <option value="clear_plan">Paket entfernen</option>
+                                <option value="delete">Gruppen löschen</option>
                             </select>
-                        </div>
 
-                        <button type="submit" class="btn btn-sm btn-primary" disabled aria-disabled="true">Aktion wählen…</button>
-                    </form>
+                            <div class="d-none" id="bulkGroupsPlanWrap">
+                                <select name="bulk_plan_id" class="form-select form-select-sm w-auto" id="bulkGroupsPlanSelect" aria-label="Paket für Sammelaktion auswählen">
+                                    <option value="0">Paket wählen…</option>
+                                    <?php foreach ($planOptions as $planOption): ?>
+                                        <?php
+                                        $planOptionId = (int)($planOption['id'] ?? 0);
+                                        $planOptionName = trim((string)($planOption['name'] ?? ''));
+                                        $planOptionActive = (int)($planOption['is_active'] ?? 0) === 1;
+                                        ?>
+                                        <option value="<?php echo $planOptionId; ?>">
+                                            <?php echo htmlspecialchars($planOptionName !== '' ? $planOptionName : ('Plan #' . $planOptionId)); ?><?php echo $planOptionActive ? '' : ' (inaktiv)'; ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+
+                            <button type="submit" class="btn btn-sm btn-primary" disabled aria-disabled="true">Aktion wählen…</button>
+                        </form>
+                    </div>
                 </div>
             </div>
         <?php endif; ?>

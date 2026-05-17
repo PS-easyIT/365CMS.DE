@@ -341,7 +341,7 @@ $isEnglishEditorView = $editorLocale === 'en';
                     </div>
                 </div>
 
-                <div class="col-xl-4 d-flex">
+                <div class="col-xl-4 d-flex cms-editor-sidebar-slot cms-editor-sidebar-slot--seo">
                     <details class="card cms-edit-card h-100 w-100 cms-collapsible-card cms-collapsible-card--seo">
                         <summary class="card-header cms-collapsible-card__summary">
                             <h3 class="card-title mb-0">SEO-Card</h3>
@@ -383,7 +383,7 @@ $isEnglishEditorView = $editorLocale === 'en';
                     </details>
                 </div>
 
-                <div class="col-xl-4 d-flex">
+                <div class="col-xl-4 d-flex cms-editor-sidebar-slot cms-editor-sidebar-slot--seo">
                     <?php
                     $readabilityCard = [
                         'badgeId' => 'pageReadabilityBadge',
@@ -403,7 +403,7 @@ $isEnglishEditorView = $editorLocale === 'en';
                     ?>
                 </div>
 
-                <div class="col-xl-4 d-flex">
+                <div class="col-xl-4 d-flex cms-editor-sidebar-slot cms-editor-sidebar-slot--seo">
                     <?php
                     $previewCard = [
                         'serpTitleId' => 'pageSerpTitle',
@@ -424,7 +424,7 @@ $isEnglishEditorView = $editorLocale === 'en';
                     ?>
                 </div>
 
-                <div class="col-12">
+                <div class="col-12 cms-editor-sidebar-slot cms-editor-sidebar-slot--seo">
                     <?php
                     $seoScorePanel = [
                         'badgeId' => 'pageSeoScoreBadge',
@@ -444,7 +444,7 @@ $isEnglishEditorView = $editorLocale === 'en';
                 </div>
 
                 <?php if (!$isNew): ?>
-                <div class="col-12">
+                <div class="col-12 cms-editor-sidebar-slot cms-editor-sidebar-slot--seo">
                     <details class="card cms-edit-card">
                         <summary class="card-header d-flex justify-content-between align-items-center gap-3 flex-wrap" style="cursor:pointer; list-style:none;">
                             <div>
@@ -529,7 +529,7 @@ $isEnglishEditorView = $editorLocale === 'en';
                 </div>
                 <?php endif; ?>
 
-                <div class="col-12">
+                <div class="col-12 cms-editor-sidebar-slot cms-editor-sidebar-slot--seo">
                     <?php
                     $advancedSeoPanel = [
                         'hint' => 'Das Contentheader-Bild wird oben im Formular unter Contentheader Bild gesetzt. Hier kann ein abweichendes OG-Bild für Social Media hinterlegt werden.',

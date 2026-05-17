@@ -1,5 +1,5 @@
 # 365CMS – Admin-Bereich
-> **Stand:** 2026-05-13 | **Version:** 2.9.782 | **Status:** Aktuell
+> **Stand:** 17.05.2026 | **Version:** 3.0.11 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Überblick](#überblick)
@@ -13,7 +13,7 @@ Die Struktur folgt der aktuellen Sidebar-Konfiguration aus `CMS/admin/partials/s
 Für Detailfragen gilt die reale Sidebar- und Routing-Laufzeit als führend; diese Datei ist die verdichtete 2.9.738-Übersicht, nicht der einzige Wahrheitsspeicher.
 
 ---
-<!-- UPDATED: 2026-05-09 -->
+<!-- UPDATED: 17.05.2026 -->
 
 ## Überblick
 
@@ -41,14 +41,14 @@ Wichtige Grundsätze:
 | Medienverwaltung | `/admin/media`, `/admin/media?tab=featured`, `/admin/media?tab=categories`, `/admin/media?tab=settings` | Bibliothek, Beitrags-/Site-Medien, Kategorien, Medieneinstellungen mit festem Bildvertrag im Replace-in-place-Flow, direkt sichtbaren Beitrags-/Seitenverwendungen pro Medium, serverseitig erweiterten GET-Filtern, per-Admin speicherbaren Filter-Presets, tokenfreiem Filter-Link für den aktuellen Bibliothekszustand, globaler read-only Orphan-Prüfung für nirgends verwendete ältere Medien, Bulk-Kategorisierung, Bulk-Tagging und Bulk-Alt-Texte mit Audit-Zählwerten, opportunistisch begrenzter read-only Duplikat-Erkennung per Inhalts-Hash und chunkbasierten WebP-/Thumbnail-Jobs mit validierter Statusdatei, Fortschritt und generischen UI-Fehlern ohne rohe Exception-Texte |
 | Benutzer & Gruppen | `/admin/users`, `/admin/groups`, `/admin/roles`, `/admin/user-settings` | Benutzer, Teams, Rechte und Auth-Einstellungen mit gemeinsamer Rollenmatrix, read-only Capability-Diff für Rollenvergleiche, rollenbezogener Wirkungsvorschau im Benutzer-Editor für Capabilities, Member-Bereiche, Plugin-Widgets und Pakete, Support-Kontexten in Benutzer- und Gruppenübersicht für aktive Pakete, Member-Module und Vertragsfristen, begrenzten Profil-Sicherheitsereignissen aus `audit_log`, schema-seitig unterstützter `error`-Severity, einheitlicher 12-Zeichen-Passwort-Policy, lokalem Policy-Tester und allowlist-basierten Gruppen-Sammelaktionen für Aktivstatus, Paketzuweisung und Löschung |
 | Member Dashboard | `/admin/member-dashboard` und Folgeseiten | Konfiguration des Mitgliederbereichs mit getrenntem Runtime-Settings-Pfad für das öffentliche `/member`-Frontend und read-only Preview-Modus unter `/admin/member-dashboard?preview=1`, inklusive sichtbarer Bereichsreihenfolge, einmaligem Plugin-Widget-Metadatenladen pro Übersicht, persistenter Widget-Sortierung per Drag-&-Drop oder Pfeil-Fallback, read-only Onboarding-Analytics mit aggregierter Abschlussrate auf `/admin/member-dashboard-onboarding` sowie Profilfeld-Kompatibilitätsvorschau mit optionalem Onboarding-Re-Trigger auf `/admin/member-dashboard-profile-fields` |
-| Aboverwaltung | `/admin/packages`, `/admin/orders`, `/admin/subscription-settings` | Pakete, Bestellungen, Zuweisungen, automatische Standardpaket-Zuweisung für neue Mitglieder, read-only Ablaufwarnungen und Renewal-Hinweise aus echten Vertragsdaten, sichere CSV-Exporte für Bestellungen und Paketnutzung sowie begrenzte auditbasierte Historien pro Paket und Bestellung |
+| Aboverwaltung | `/admin/packages`, `/admin/orders`, `/admin/subscription-settings` | Pakete, Bestellungen, Zuweisungen, automatische Standardpaket-Zuweisung für neue Mitglieder, read-only Ablaufwarnungen und Renewal-Hinweise aus echten Vertragsdaten, sichere CSV-Exporte für Bestellungen und Paketnutzung sowie begrenzte auditbasierte Historien pro Paket und Bestellung; die Einstellungsseite folgt seit `17.05.2026` dem klassischen `Header → Toolbar → Inhalt`-Vertrag mit persistenten Info-Boxen |
 | Themes & Design | `/admin/themes`, `/admin/theme-editor`, `/admin/theme-explorer`, `/admin/menu-editor`, `/admin/landing-page`, `/admin/font-manager` | Design, Navigation, Fonts, read-only Font-Nutzungsanalyse und Landing-Page-Plugin-Overrides mit echten Header-/Content-/Footer-Zuweisungen |
 | SEO | `/admin/seo-dashboard`, `/admin/analytics`, `/admin/seo-audit`, `/admin/seo-meta`, `/admin/seo-social`, `/admin/seo-schema`, `/admin/seo-sitemap`, `/admin/seo-technical`, `/admin/redirect-manager` | Suchmaschinenoptimierung mit echten globalen Social-Fallbacks für Frontend-Head-Tags, Editor-Vorschau für Google Desktop/Mobile plus Social-OG, globalem Live-Preview-Modus für Startseite, Archive und Taxonomien sowie lokalem Broken-Link-Report mit Cron-/Rerun-/Ignore-Vertrag |
 | Performance | `/admin/performance`, `/admin/performance-cache`, `/admin/performance-media`, `/admin/performance-database`, `/admin/performance-settings`, `/admin/performance-sessions` | Laufzeit- und Ressourcenoptimierung mit ehrlichem Server-Kompressionsstatus statt dekorativem CMS-Schalter |
 | Recht | `/admin/legal-sites`, `/admin/cookie-manager`, `/admin/data-requests` | Legal Sites, Cookie-Management mit atomar gespeicherten Consent-/Matomo-Self-Hosted-Settings und auditierbare DSGVO-Anfragen mit Begründungspflicht bei Ablehnungen |
 | Sicherheit | `/admin/antispam`, `/admin/firewall`, `/admin/security-audit` | Schutzmaßnahmen und Auditing mit zentralem AntiSpam-Vertrag für Kommentare und aktive Kontaktformulare |
 | Plugins | `/admin/plugins`, `/admin/plugin-marketplace` sowie Plugin-Unterseiten | Plugin-Lifecycle mit stabiler, request-idempotenter Menü-Registry für dynamische Sidebar- und Submenü-Einträge |
-| System | `/admin/settings`, `/admin/backups`, `/admin/updates`, `/admin/cms-logs` | Konfiguration, Backups mit Download/Restore, Updates inklusive zentralem Theme-Installpfad, zentrale CMS-Logs mit Betriebs-Audit und Update-Historie |
+| System | `/admin/settings`, `/admin/backups`, `/admin/updates`, `/admin/cms-logs` | Konfiguration, Backups mit Download/Restore, Updates inklusive zentralem Theme-Installpfad, zentrale CMS-Logs mit Betriebs-Audit und Update-Historie; die Kernseiten `Settings` und `Mail & Azure OAuth2` sind seit `17.05.2026` visuell vereinheitlicht (reduzierte Badge-/Kacheloptik, konsistente Toolbar-/Content-Struktur) |
 | Info | `/admin/info`, `/admin/documentation` | Systeminfo und lokale Dokuansicht |
 | Diagnose | `/admin/diagnose` sowie Monitoring-Seiten | technische Prüfungen und Monitoring mit realem lokalem Health-Endpunkt-Check statt dekorativer Markierung sowie nachvollziehbaren Betriebs- und Update-Spuren in `/admin/cms-logs` |
 

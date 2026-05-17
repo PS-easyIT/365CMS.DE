@@ -47,11 +47,16 @@ $passwordPolicyTesterConfig = [
 
 <div class="page-header d-print-none">
     <div class="container-xl">
-        <div class="row g-2 align-items-center">
-            <div class="col">
+        <div class="content-listing-header">
+            <div>
                 <div class="page-pretitle">Benutzer &amp; Gruppen</div>
-                <h2 class="page-title">Einstellungen</h2>
-                <div class="text-muted mt-1">Zentrale Steuerung für Registrierung, Authentifizierung und technische Login-Provider.</div>
+                <h2 class="page-title mb-1">Einstellungen</h2>
+                <div class="content-listing-header__meta">
+                    <span><?php echo (int)($stats['total_users'] ?? 0); ?> Benutzer gesamt</span>
+                    <span><?php echo (int)($stats['mfa_users'] ?? 0); ?> mit MFA</span>
+                    <span><?php echo (int)($stats['passkey_credentials'] ?? 0); ?> Passkeys</span>
+                    <span><?php echo (int)($stats['backup_code_users'] ?? 0); ?> Backup-Code-Sets</span>
+                </div>
             </div>
         </div>
     </div>
@@ -75,57 +80,6 @@ $passwordPolicyTesterConfig = [
             <p class="cms-admin-info-box__text">
                 Dieser Bereich bündelt Registrierung, Passwort-Policy und Provider-Status. Technische Runtime-Werte bleiben bewusst read-only.
             </p>
-        </div>
-
-        <div class="row row-deck row-cards mb-4">
-            <div class="col-sm-6 col-lg-3">
-                <div class="card card-sm">
-                    <div class="card-body">
-                        <div class="d-flex align-items-center justify-content-between">
-                            <div>
-                                <div class="font-weight-medium"><?php echo (int)($stats['total_users'] ?? 0); ?></div>
-                                <div class="text-secondary">Benutzer gesamt</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-sm-6 col-lg-3">
-                <div class="card card-sm">
-                    <div class="card-body">
-                        <div class="d-flex align-items-center justify-content-between">
-                            <div>
-                                <div class="font-weight-medium"><?php echo (int)($stats['mfa_users'] ?? 0); ?></div>
-                                <div class="text-secondary">MFA aktiviert</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-sm-6 col-lg-3">
-                <div class="card card-sm">
-                    <div class="card-body">
-                        <div class="d-flex align-items-center justify-content-between">
-                            <div>
-                                <div class="font-weight-medium"><?php echo (int)($stats['passkey_credentials'] ?? 0); ?></div>
-                                <div class="text-secondary">Passkeys registriert</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-sm-6 col-lg-3">
-                <div class="card card-sm">
-                    <div class="card-body">
-                        <div class="d-flex align-items-center justify-content-between">
-                            <div>
-                                <div class="font-weight-medium"><?php echo (int)($stats['backup_code_users'] ?? 0); ?></div>
-                                <div class="text-secondary">Backup-Code-Sets</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
 
         <form method="post">

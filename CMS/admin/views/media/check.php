@@ -25,15 +25,20 @@ $consistencyHelpText = (string)($consistency['help_text'] ?? '');
 
 <div class="page-header d-print-none">
     <div class="container-xl">
-        <div class="row g-2 align-items-center">
-            <div class="col">
+        <div class="content-listing-header">
+            <div>
                 <div class="page-pretitle">Medienverwaltung</div>
-                <h2 class="page-title">Medien Check</h2>
+                <h2 class="page-title mb-1">Medien Check</h2>
+                <div class="content-listing-header__meta">
+                    <span><?php echo (int)($stats['issue_count'] ?? $consistencyStats['issue_count'] ?? 0); ?> Auffälligkeiten</span>
+                    <span><?php echo (int)($stats['missing_assignment_count'] ?? $consistencyStats['missing_assignment_count'] ?? 0); ?> ohne Bild</span>
+                    <span><?php echo (int)($stats['broken_reference_count'] ?? $consistencyStats['broken_reference_count'] ?? 0); ?> defekte Referenzen</span>
+                </div>
                 <?php if ($helpText !== ''): ?>
                     <div class="text-secondary mt-1"><?php echo htmlspecialchars($helpText); ?></div>
                 <?php endif; ?>
             </div>
-            <div class="col-auto ms-auto">
+            <div>
                 <a href="<?php echo htmlspecialchars($featuredUrl, ENT_QUOTES); ?>" class="btn btn-outline-secondary">Beitrags &amp; Site Medien</a>
             </div>
         </div>
@@ -49,41 +54,18 @@ $consistencyHelpText = (string)($consistency['help_text'] ?? '');
         <div class="cms-admin-info-box mb-3" role="note">
             <div class="cms-admin-info-box__head">
                 <h3 class="cms-admin-info-box__title">Read-only Konsistenzprüfung</h3>
+                <div class="cms-admin-info-box__actions">
+                    <a href="<?php echo htmlspecialchars($featuredUrl, ENT_QUOTES); ?>" class="btn btn-sm btn-outline-secondary">Zum Replace-Flow</a>
+                    <a href="/admin/media" class="btn btn-sm btn-outline-secondary">Zur Bibliothek</a>
+                </div>
             </div>
             <p class="cms-admin-info-box__text">
                 Diese Ansicht markiert nur Auffälligkeiten. Korrekturen erfolgen bewusst über bestehende Editor- oder Replace-Pfade.
             </p>
         </div>
-
-        <div class="row row-deck row-cards mb-4">
-            <div class="col-sm-6 col-lg-4">
-                <div class="card card-sm">
-                    <div class="card-body">
-                        <div class="h2 mb-1"><?php echo (int)($stats['issue_count'] ?? $consistencyStats['issue_count'] ?? 0); ?></div>
-                        <div class="text-secondary">Offene Auffälligkeiten</div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-sm-6 col-lg-4">
-                <div class="card card-sm">
-                    <div class="card-body">
-                        <div class="h2 mb-1"><?php echo (int)($stats['missing_assignment_count'] ?? $consistencyStats['missing_assignment_count'] ?? 0); ?></div>
-                        <div class="text-secondary">Ohne Bild</div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-sm-6 col-lg-4">
-                <div class="card card-sm">
-                    <div class="card-body">
-                        <div class="h2 mb-1"><?php echo (int)($stats['broken_reference_count'] ?? $consistencyStats['broken_reference_count'] ?? 0); ?></div>
-                        <div class="text-secondary">Defekte Referenzen</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="card mb-4">
-            <div class="card-body">
+        <div class="card content-listing-card mb-4">
+            <div class="card-header content-listing-toolbar">
+                <div class="content-listing-toolbar__label">Filter &amp; Suche</div>
                 <form method="get" action="<?php echo htmlspecialchars($baseUrl, ENT_QUOTES); ?>" class="row g-2 align-items-end">
                     <input type="hidden" name="tab" value="check">
                     <div class="col-md-6 col-lg-5">

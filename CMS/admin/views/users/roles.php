@@ -78,13 +78,17 @@ $renderCapabilityDiffList = static function (array $groupedCapabilities) use ($g
 
 <div class="page-header d-print-none">
     <div class="container-xl">
-        <div class="row g-2 align-items-center">
-            <div class="col">
+        <div class="content-listing-header">
+            <div>
                 <div class="page-pretitle">Benutzer &amp; Gruppen</div>
-                <h2 class="page-title">Rollen &amp; Rechte</h2>
-                <div class="text-secondary mt-1">Berechtigungsmatrix für alle Benutzerrollen</div>
+                <h2 class="page-title mb-1">Rollen &amp; Rechte</h2>
+                <div class="content-listing-header__meta">
+                    <span><?php echo count($roles); ?> Rollen</span>
+                    <span><?php echo count($customRoles); ?> eigene Rollen</span>
+                    <span><?php echo count($customCapabilities); ?> eigene Rechte</span>
+                </div>
             </div>
-            <div class="col-auto ms-auto d-print-none">
+            <div class="d-print-none">
                 <div class="btn-list">
                     <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addRoleModal">
                         Neue Rolle
@@ -116,25 +120,6 @@ $renderCapabilityDiffList = static function (array $groupedCapabilities) use ($g
             <p class="cms-admin-info-box__text">
                 Änderungen an Rollen und Capabilities wirken zentral. Die Vergleichsansicht bleibt read-only und verändert keine Berechtigungen.
             </p>
-        </div>
-
-        <div class="row row-cards mb-4">
-            <div class="col-lg-6">
-                <div class="card h-100">
-                    <div class="card-body">
-                        <h3 class="card-title mb-2">Neue Rolle anlegen</h3>
-                        <p class="text-muted mb-0">Legt eine zusätzliche Benutzerrolle an. Optional können die Rechte einer bestehenden Rolle als Vorlage übernommen werden.</p>
-                    </div>
-                </div>
-            </div>
-            <div class="col-lg-6">
-                <div class="card h-100">
-                    <div class="card-body">
-                        <h3 class="card-title mb-2">Neues Recht anlegen</h3>
-                        <p class="text-muted mb-0">Neue Rechte werden im Format <code>bereich.aktion</code> angelegt, z. B. <code>shop.orders.view</code>. Trennzeichen wie Leerzeichen, <code>/</code> oder <code>:</code> werden automatisch in Punkte umgewandelt. Administratoren erhalten neue Rechte automatisch.</p>
-                    </div>
-                </div>
-            </div>
         </div>
 
         <div class="row row-cards mb-4">
@@ -224,23 +209,6 @@ $renderCapabilityDiffList = static function (array $groupedCapabilities) use ($g
                     </div>
                 </div>
             </div>
-        </div>
-
-        <!-- Role Overview Cards -->
-        <div class="row row-deck row-cards mb-4">
-            <?php foreach ($roles as $role): ?>
-                <div class="col-sm-6 col-lg-3">
-                    <div class="card">
-                        <div class="card-body">
-                            <div class="d-flex align-items-center">
-                                <div class="subheader"><?php echo htmlspecialchars($roleLabels[$role] ?? $role); ?></div>
-                            </div>
-                            <div class="h1 mb-0 mt-2"><?php echo (int)($roleCounts[$role] ?? 0); ?></div>
-                            <div class="text-muted">Benutzer</div>
-                        </div>
-                    </div>
-                </div>
-            <?php endforeach; ?>
         </div>
 
         <?php if (!empty($roleComparison['available'])): ?>

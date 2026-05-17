@@ -44,16 +44,23 @@ $roleColors = [
 
 <div class="page-header d-print-none">
     <div class="container-xl">
-        <div class="row align-items-center">
-            <div class="col-auto">
+        <div class="content-listing-header">
+            <div class="d-flex align-items-start gap-2">
                 <a href="<?php echo htmlspecialchars($usersAdminPath); ?>" class="btn btn-ghost-secondary btn-sm me-2">
                     <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M15 6l-6 6l6 6"/></svg>
                     Zurück
                 </a>
-            </div>
-            <div class="col">
-                <div class="page-pretitle">Benutzer & Gruppen</div>
-                <h2 class="page-title"><?php echo $isNew ? 'Neuer Benutzer' : 'Benutzer bearbeiten'; ?></h2>
+                <div>
+                    <div class="page-pretitle">Benutzer & Gruppen</div>
+                    <h2 class="page-title mb-1"><?php echo $isNew ? 'Neuer Benutzer' : 'Benutzer bearbeiten'; ?></h2>
+                    <?php if (!$isNew): ?>
+                        <div class="content-listing-header__meta">
+                            <span>ID <?php echo $userId; ?></span>
+                            <span>Benutzer: <?php echo htmlspecialchars($userName !== '' ? $userName : 'Unbekannt', ENT_QUOTES); ?></span>
+                            <span>Status: <?php echo htmlspecialchars((string)($user->status ?? '—'), ENT_QUOTES); ?></span>
+                        </div>
+                    <?php endif; ?>
+                </div>
             </div>
         </div>
     </div>

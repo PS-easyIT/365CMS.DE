@@ -19,15 +19,27 @@ $totalThemes = $data['totalThemes'] ?? 0;
 $escape = static fn (mixed $value): string => htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
 ?>
 
-<div class="container-xl">
-    <!-- Header -->
-    <div class="page-header d-flex align-items-center mb-4">
-        <div>
-            <h2 class="page-title">Themes</h2>
-            <div class="text-muted mt-1"><?php echo (int) $totalThemes; ?> Theme<?php echo (int) $totalThemes !== 1 ? 's' : ''; ?> installiert</div>
+<div class="page-header d-print-none">
+    <div class="container-xl">
+        <div class="content-listing-header">
+            <div>
+                <div class="page-pretitle">Themes</div>
+                <h2 class="page-title mb-1">Theme-Verwaltung</h2>
+                <div class="content-listing-header__meta">
+                    <span><?php echo (int) $totalThemes; ?> installiert</span>
+                    <span>Aktiv: <?php echo $escape($activeSlug !== '' ? $activeSlug : 'unbekannt'); ?></span>
+                </div>
+            </div>
+            <div class="admin-section-toolbar__actions">
+                <a href="/admin/theme-marketplace" class="btn btn-outline-primary btn-sm">Marketplace</a>
+                <a href="/admin/theme-settings" class="btn btn-outline-secondary btn-sm">Design-Einstellungen</a>
+            </div>
         </div>
     </div>
+</div>
 
+<div class="page-body">
+<div class="container-xl">
     <?php if (!empty($alert)): ?>
         <?php
         $alertData = is_array($alert ?? null) ? $alert : [];
@@ -35,8 +47,17 @@ $escape = static fn (mixed $value): string => htmlspecialchars((string) $value, 
         ?>
     <?php endif; ?>
 
-    <!-- Themes Grid -->
-    <div class="row row-deck row-cards">
+    <div class="card mb-4">
+        <div class="card-header">
+            <div class="admin-section-toolbar mb-0">
+                <div>
+                    <h3 class="card-title mb-1">Installierte Themes</h3>
+                    <div class="admin-section-toolbar__meta">Alle installierten Themes mit Aktivierungs- und Verwaltungsaktionen.</div>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+    <div class="row row-deck row-cards admin-metric-grid">
         <?php foreach ($themes as $slug => $theme): ?>
             <div class="col-sm-6 col-lg-4">
                 <div class="card<?php echo !empty($theme['isActive']) ? ' border-primary' : ''; ?>">
@@ -99,4 +120,7 @@ $escape = static fn (mixed $value): string => htmlspecialchars((string) $value, 
             </div>
         <?php endforeach; ?>
     </div>
+        </div>
+    </div>
+</div>
 </div>

@@ -1,13 +1,15 @@
 # 365CMS – Abo-Verwaltung
-> **Stand:** 2026-05-10 | **Version:** 2.9.738 | **Status:** Aktuell
+> **Stand:** 17.05.2026 | **Version:** 3.0.11 | **Status:** Aktuell
 
-<!-- UPDATED: 2026-05-10 -->
+<!-- UPDATED: 17.05.2026 -->
 
 ## Überblick
 
 Das Abo-System verbindet Paketdefinitionen, manuelle oder prozessgesteuerte Zuweisungen
 und eine systemweite Limitlogik. Die Verwaltung erfolgt über drei Admin-Routen und
 bildet die Grundlage für den Member-Bereich.
+
+Seit `17.05.2026` nutzt `/admin/subscription-settings` dieselbe reduzierte Admin-Hierarchie wie andere Kernbereiche: klare Toolbar vor dem Inhalt, zurückhaltende Kartenoptik und persistente Hinweisboxen mit sauberem Action-Wrapping statt dekorativer Badge-/Alert-Inseln.
 
 Seit `2.9.621` wirkt das unter `/admin/subscription-settings` konfigurierte Standardpaket für neue Mitglieder wieder in der echten Laufzeit: Öffentliche Registrierungen und neu im Admin angelegte Member-Konten erhalten das referenzierte aktive Paket automatisch, ohne dass bestehende aktive oder Trial-Abos überschrieben werden.
 
