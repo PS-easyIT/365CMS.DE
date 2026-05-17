@@ -55,7 +55,7 @@ if (!array_key_exists($browserCacheTtl, $browserCacheTtlOptions)) {
                 <div class="col-12">
                     <h3 class="cms-settings-section-heading">Auslieferung und Frontend</h3>
                 </div>
-                <div class="col-12">
+                <div class="col-12 col-xl-8">
                     <div class="card h-100">
                         <div class="card-header">
                             <h3 class="card-title">Frontend-Auslieferung</h3>
@@ -78,7 +78,7 @@ if (!array_key_exists($browserCacheTtl, $browserCacheTtlOptions)) {
                                     <div class="alert alert-info mb-0">
                                         <div class="fw-semibold mb-1">Server-Kompression</div>
                                         <div class="text-secondary small">
-                                            GZIP/Brotli wird serverseitig über Apache-/Proxy-Konfiguration bereitgestellt und hier bewusst nur als Status angezeigt – nicht als dekorativer CMS-Schalter.
+                                            GZIP/Brotli wird serverseitig über Apache-/Proxy-Konfiguration bereitgestellt und hier als Status angezeigt.
                                         </div>
                                     </div>
                                 </div>
@@ -101,7 +101,7 @@ if (!array_key_exists($browserCacheTtl, $browserCacheTtlOptions)) {
                     </div>
                 </div>
 
-                <div class="col-12">
+                <div class="col-12 col-xl-4">
                     <div class="card h-100">
                         <div class="card-header">
                             <h3 class="card-title">Betriebsleitfaden</h3>
@@ -123,7 +123,7 @@ if (!array_key_exists($browserCacheTtl, $browserCacheTtlOptions)) {
                 <div class="col-12">
                     <h3 class="cms-settings-section-heading">Caching und Sessions</h3>
                 </div>
-                <div class="col-12">
+                <div class="col-12 col-xl-8">
                     <div class="card h-100">
                         <div class="card-header">
                             <h3 class="card-title">Caching</h3>
@@ -159,7 +159,7 @@ if (!array_key_exists($browserCacheTtl, $browserCacheTtlOptions)) {
                     </div>
                 </div>
 
-                <div class="col-12">
+                <div class="col-12 col-xl-4">
                     <div class="card h-100">
                         <div class="card-header">
                             <h3 class="card-title">Sessions</h3>

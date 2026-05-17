@@ -127,7 +127,7 @@ $legalSitesConfig = [
                 <form method="post" class="d-inline">
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>">
                     <input type="hidden" name="action" value="create_all_pages">
-                    <button type="submit" class="btn btn-primary">Alle Rechtstext-Seiten erstellen/aktualisieren</button>
+                    <button type="submit" class="btn btn-primary text-wrap">Alle Rechtstext-Seiten erstellen/aktualisieren</button>
                 </form>
             </div>
             <div class="card-body">
@@ -534,9 +534,9 @@ $legalSitesConfig = [
             </div>
         </div>
 
-        <div class="row row-cards">
+        <div class="row row-cards admin-legal-panels">
         <?php foreach ($tabKeys as $i => $key): $p = $pages[$key] ?? []; ?>
-        <div class="col-12">
+        <div class="col-12 col-xxl-6">
             <?php $templateType = $templateTypes[$key] ?? ''; ?>
             <?php $defaultTemplate = $templateDefaults[$templateType] ?? ''; ?>
             <?php $meta = is_array($templateMeta[$templateType] ?? null) ? $templateMeta[$templateType] : []; ?>
@@ -599,36 +599,38 @@ $legalSitesConfig = [
                     <form method="post">
                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>">
                         <input type="hidden" name="action" value="save">
-                        <div class="mb-3">
-                            <label class="form-label">Inhalt (HTML)</label>
-                            <textarea name="<?php echo htmlspecialchars($key); ?>" id="legal-<?php echo htmlspecialchars($key); ?>" class="form-control" rows="12"><?php echo htmlspecialchars($p['content'] ?? ''); ?></textarea>
-                            <?php if (!empty($constraints['max_legal_html_length']) || $templateType !== ''): ?>
-                                <small class="form-hint">
-                                    <?php if (!empty($constraints['max_legal_html_length'])): ?>
-                                        Max. <?php echo number_format((int) $constraints['max_legal_html_length'], 0, ',', '.'); ?> HTML-Zeichen
-                                    <?php endif; ?>
-                                    <?php if (!empty($constraints['max_legal_html_length']) && $templateType !== ''): ?>
-                                        ·
-                                    <?php endif; ?>
-                                    <?php if ($templateType !== ''): ?>
-                                        Generator-Typ: <?php echo htmlspecialchars($templateType); ?>
-                                    <?php endif; ?>
-                                </small>
-                            <?php endif; ?>
+                        <div class="row g-3">
+                            <div class="col-12 col-xl-8">
+                                <label class="form-label">Inhalt (HTML)</label>
+                                <textarea name="<?php echo htmlspecialchars($key); ?>" id="legal-<?php echo htmlspecialchars($key); ?>" class="form-control" rows="12"><?php echo htmlspecialchars($p['content'] ?? ''); ?></textarea>
+                                <?php if (!empty($constraints['max_legal_html_length']) || $templateType !== ''): ?>
+                                    <small class="form-hint">
+                                        <?php if (!empty($constraints['max_legal_html_length'])): ?>
+                                            Max. <?php echo number_format((int) $constraints['max_legal_html_length'], 0, ',', '.'); ?> HTML-Zeichen
+                                        <?php endif; ?>
+                                        <?php if (!empty($constraints['max_legal_html_length']) && $templateType !== ''): ?>
+                                            ·
+                                        <?php endif; ?>
+                                        <?php if ($templateType !== ''): ?>
+                                            Generator-Typ: <?php echo htmlspecialchars($templateType); ?>
+                                        <?php endif; ?>
+                                    </small>
+                                <?php endif; ?>
+                            </div>
+                            <div class="col-12 col-xl-4">
+                                <label class="form-label">Zugewiesene Seite</label>
+                                <select name="<?php echo htmlspecialchars($pageIdKeys[$key] ?? ''); ?>" class="form-select">
+                                    <option value="0">– Keine Seite –</option>
+                                    <?php foreach ($allPages as $pg): ?>
+                                        <option value="<?php echo (int)$pg['id']; ?>" <?php echo ($assigned[$pageIdKeys[$key] ?? ''] ?? '') == $pg['id'] ? 'selected' : ''; ?>>
+                                            <?php echo htmlspecialchars($pg['title']); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <small class="form-hint">Ordne eine bestehende Seite zu, die diesen Rechtstext anzeigt.</small>
+                            </div>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label">Zugewiesene Seite</label>
-                            <select name="<?php echo htmlspecialchars($pageIdKeys[$key] ?? ''); ?>" class="form-select">
-                                <option value="0">– Keine Seite –</option>
-                                <?php foreach ($allPages as $pg): ?>
-                                    <option value="<?php echo (int)$pg['id']; ?>" <?php echo ($assigned[$pageIdKeys[$key] ?? ''] ?? '') == $pg['id'] ? 'selected' : ''; ?>>
-                                        <?php echo htmlspecialchars($pg['title']); ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                            <small class="form-hint">Ordne eine bestehende Seite zu, die diesen Rechtstext anzeigt.</small>
-                        </div>
-                        <div class="d-flex gap-2">
+                        <div class="d-flex gap-2 flex-wrap mt-3">
                             <button type="submit" class="btn btn-primary">Bereich speichern</button>
                             <?php if (empty($p['content']) && $defaultTemplate !== ''): ?>
                                 <span class="text-secondary small align-self-center">Tipp: Erst Vorlage generieren, dann anpassen.</span>

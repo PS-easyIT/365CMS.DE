@@ -370,64 +370,83 @@ $cookieManagerConfig = [
             </div>
         </div>
 
-        <div class="card">
-            <div class="card-header d-flex align-items-center justify-content-between">
-                <h3 class="card-title">Konfigurierte Services</h3>
-                <button type="button" class="btn btn-primary btn-sm js-cookie-service-create">Service hinzufügen</button>
-            </div>
-            <div class="table-responsive">
-                <table class="table table-vcenter card-table">
-                    <thead>
-                        <tr>
-                            <th>Service</th>
-                            <th>Kategorie</th>
-                            <th>Status</th>
-                            <th>Cookie-Namen</th>
-                            <th class="w-1"></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php if (empty($services)): ?>
-                            <tr><td colspan="5" class="text-center text-secondary py-4">Noch keine Services konfiguriert.</td></tr>
-                        <?php else: ?>
-                            <?php foreach ($services as $service): ?>
+        <div class="row row-cards">
+            <div class="col-12 col-xxl-9">
+                <div class="card admin-content-card">
+                    <div class="card-header d-flex align-items-center justify-content-between gap-2 flex-wrap">
+                        <h3 class="card-title">Konfigurierte Services</h3>
+                        <button type="button" class="btn btn-primary btn-sm js-cookie-service-create">Service hinzufügen</button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-vcenter card-table">
+                            <thead>
                                 <tr>
-                                    <td>
-                                        <div class="fw-bold"><?php echo htmlspecialchars($service['name']); ?></div>
-                                        <div class="text-secondary small"><?php echo htmlspecialchars($service['provider'] ?? ''); ?></div>
-                                    </td>
-                                    <td><span class="badge bg-azure-lt"><?php echo htmlspecialchars($service['category_slug']); ?></span></td>
-                                    <td>
-                                        <?php if ((int)$service['is_essential'] === 1): ?>
-                                            <span class="badge bg-blue">Essenziell</span>
-                                        <?php elseif ((int)$service['is_active'] === 1): ?>
-                                            <span class="badge bg-success">Aktiv</span>
-                                        <?php else: ?>
-                                            <span class="badge bg-secondary">Inaktiv</span>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td class="text-secondary small"><?php echo htmlspecialchars((string)($service['cookie_names'] ?? '')); ?></td>
-                                    <td>
-                                        <div class="dropdown">
-                                            <button class="btn btn-ghost-secondary btn-icon btn-sm" data-bs-toggle="dropdown"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 12m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M12 19m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M12 5m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/></svg></button>
-                                            <div class="dropdown-menu dropdown-menu-end">
-                                                <button type="button" class="dropdown-item js-cookie-service-edit" data-cookie-service="<?php echo htmlspecialchars((string) json_encode($service, JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_TAG | JSON_HEX_AMP), ENT_QUOTES); ?>">Bearbeiten</button>
-                                                <?php if (!(int)$service['is_essential']): ?>
-                                                    <form method="post" class="d-inline" data-confirm-message="Service wirklich löschen?" data-confirm-title="Service löschen" data-confirm-text="Löschen" data-confirm-class="btn-danger" data-confirm-status-class="bg-danger">
-                                                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>">
-                                                        <input type="hidden" name="action" value="delete_service">
-                                                        <input type="hidden" name="id" value="<?php echo (int)$service['id']; ?>">
-                                                        <button type="submit" class="dropdown-item text-danger">Löschen</button>
-                                                    </form>
-                                                <?php endif; ?>
-                                            </div>
-                                        </div>
-                                    </td>
+                                    <th>Service</th>
+                                    <th>Kategorie</th>
+                                    <th>Status</th>
+                                    <th>Cookie-Namen</th>
+                                    <th class="w-1"></th>
                                 </tr>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                    </tbody>
-                </table>
+                            </thead>
+                            <tbody>
+                                <?php if (empty($services)): ?>
+                                    <tr><td colspan="5" class="text-center text-secondary py-4">Noch keine Services konfiguriert.</td></tr>
+                                <?php else: ?>
+                                    <?php foreach ($services as $service): ?>
+                                        <tr>
+                                            <td>
+                                                <div class="fw-bold"><?php echo htmlspecialchars($service['name']); ?></div>
+                                                <div class="text-secondary small"><?php echo htmlspecialchars($service['provider'] ?? ''); ?></div>
+                                            </td>
+                                            <td><span class="badge bg-azure-lt"><?php echo htmlspecialchars($service['category_slug']); ?></span></td>
+                                            <td>
+                                                <?php if ((int)$service['is_essential'] === 1): ?>
+                                                    <span class="badge bg-blue">Essenziell</span>
+                                                <?php elseif ((int)$service['is_active'] === 1): ?>
+                                                    <span class="badge bg-success">Aktiv</span>
+                                                <?php else: ?>
+                                                    <span class="badge bg-secondary">Inaktiv</span>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td class="text-secondary small"><?php echo htmlspecialchars((string)($service['cookie_names'] ?? '')); ?></td>
+                                            <td>
+                                                <div class="dropdown">
+                                                    <button class="btn btn-ghost-secondary btn-icon btn-sm" data-bs-toggle="dropdown"><svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 12m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M12 19m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/><path d="M12 5m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"/></svg></button>
+                                                    <div class="dropdown-menu dropdown-menu-end">
+                                                        <button type="button" class="dropdown-item js-cookie-service-edit" data-cookie-service="<?php echo htmlspecialchars((string) json_encode($service, JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_TAG | JSON_HEX_AMP), ENT_QUOTES); ?>">Bearbeiten</button>
+                                                        <?php if (!(int)$service['is_essential']): ?>
+                                                            <form method="post" class="d-inline" data-confirm-message="Service wirklich löschen?" data-confirm-title="Service löschen" data-confirm-text="Löschen" data-confirm-class="btn-danger" data-confirm-status-class="bg-danger">
+                                                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>">
+                                                                <input type="hidden" name="action" value="delete_service">
+                                                                <input type="hidden" name="id" value="<?php echo (int)$service['id']; ?>">
+                                                                <button type="submit" class="dropdown-item text-danger">Löschen</button>
+                                                            </form>
+                                                        <?php endif; ?>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-xxl-3">
+                <div class="card h-100 admin-content-card">
+                    <div class="card-header">
+                        <h3 class="card-title">Arbeitsweise</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="text-secondary small mb-3">
+                            Pflege Kategorien zuerst und ordne Services danach eindeutig zu. Essenzielle Services bleiben immer aktiv.
+                        </div>
+                        <a href="<?php echo htmlspecialchars($cookieSettingsPublicUrl, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer" class="btn btn-outline-primary btn-sm w-100">
+                            Consent-Seite öffnen
+                        </a>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

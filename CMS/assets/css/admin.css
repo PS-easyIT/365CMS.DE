@@ -5921,3 +5921,31 @@ input:checked + .slider:before { transform: translateX(22px); }
 .data-requests-toolbar-note {
     align-self: center;
 }
+
+/* Admin UX pass: legal/cookie/performance/seo/plugins */
+.admin-content-card .card-header .btn,
+.admin-content-card .card-header .btn-sm {
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.admin-content-card .card-body .alert .btn {
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.admin-legal-panels .card {
+    height: 100%;
+}
+
+.admin-legal-panels .card textarea.form-control {
+    min-height: 15rem;
+}
+
+@media (max-width: 1399.98px) {
+    .admin-legal-panels .card textarea.form-control {
+        min-height: 12rem;
+    }
+}
