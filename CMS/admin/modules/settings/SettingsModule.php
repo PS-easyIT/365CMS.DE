@@ -518,7 +518,7 @@ class SettingsModule
             ? \CMS\Services\PermalinkService::inferPostStructurePreset($postPermalinkStructure)
             : 'blog';
         $postPermalinkCustom = trim((string)($settings['setting_post_permalink_custom'] ?? ''));
-        if ($postPermalinkPreset !== 'custom' && $postPermalinkCustom === '') {
+        if ($postPermalinkCustom === '') {
             $postPermalinkCustom = $postPermalinkStructure;
         }
 
