@@ -80,7 +80,7 @@ class CMS_Importer_XML_Parser
         $xml = simplexml_load_file(
             $file_path,
             'SimpleXMLElement',
-            LIBXML_NOCDATA | LIBXML_NONET | LIBXML_DTDATTR
+            LIBXML_NOCDATA | LIBXML_NONET
         );
         $xml_errors = libxml_get_errors();
         libxml_clear_errors();

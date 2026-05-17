@@ -546,7 +546,7 @@
         }
 
         previewPanel.hidden = false;
-        previewSummary.innerHTML = [
+        previewSummary.replaceChildren(
             buildPreviewStat('Gesamt', result.total || 0, ''),
             buildPreviewStat('Würde importieren', result.would_import || 0, 'ci-preview-stat--ok'),
             buildPreviewStat('Würde überspringen', result.would_skip || 0, 'ci-preview-stat--warn'),
@@ -555,7 +555,7 @@
             buildPreviewStat('SEO-Settings', ((result.preview_counts && result.preview_counts.settings) || 0), ''),
             buildPreviewStat('Bildkandidaten', result.images_detected || 0, 'ci-preview-stat--img'),
             buildPreviewStat('Meta-Keys offen', result.meta_keys || 0, 'ci-preview-stat--meta')
-        ].join('');
+        );
 
         renderPreviewReasons(result.skip_reasons || {});
         renderPreviewItems(result.items || []);
@@ -590,41 +590,46 @@
         var keys = Object.keys(normalizedReasons);
         if (!keys.length) {
             previewReasons.hidden = true;
-            previewReasons.innerHTML = '';
+            previewReasons.replaceChildren();
             return;
         }
 
-        var html = '<h4 class="ci-preview-reasons__title">Überspring-Gründe</h4><ul class="ci-preview-reasons__list">';
+        var title = createTextElement('h4', 'ci-preview-reasons__title', 'Überspring-Gründe');
+        var list = document.createElement('ul');
+        list.className = 'ci-preview-reasons__list';
+
         keys.forEach(function (key) {
-            html += '<li><span>' + escapeHtml(key) + '</span><strong>' + escapeHtml(normalizedReasons[key]) + '</strong></li>';
+            var item = document.createElement('li');
+            item.appendChild(createTextElement('span', '', key));
+            item.appendChild(createTextElement('strong', '', normalizedReasons[key]));
+            list.appendChild(item);
         });
-        html += '</ul>';
-        previewReasons.innerHTML = html;
+        previewReasons.replaceChildren(title, list);
         previewReasons.hidden = false;
     }
 
     function renderPreviewItems(items) {
         if (!items.length) {
-            previewTableBody.innerHTML = '';
+            previewTableBody.replaceChildren();
             previewTableWrap.hidden = true;
             return;
         }
 
-        var rows = [];
+        var fragment = document.createDocumentFragment();
         items.forEach(function (item) {
             var tagText = Array.isArray(item.tags) ? item.tags.join(', ') : '';
             var reasonText = ((item.reason || '').trim() || (item.action === 'skip' ? 'Unbekannter Überspring-Grund' : (item.target_hint || '')));
-            var sourceMetaParts = [escapeHtml(item.source_label || item.source_type || '')];
+            var sourceMetaParts = [item.source_label || item.source_type || ''];
             var detectedLocale = ((item.detected_locale || '').trim() || '').toLowerCase();
             var sourceWpId = Number(item.source_wp_id || 0);
             if (sourceWpId > 0) {
-                sourceMetaParts.push('WP-ID ' + escapeHtml(sourceWpId));
+                sourceMetaParts.push('WP-ID ' + sourceWpId);
             }
             if ((item.source_status || '').trim() !== '') {
-                sourceMetaParts.push('Status ' + escapeHtml(item.source_status || ''));
+                sourceMetaParts.push('Status ' + (item.source_status || ''));
             }
             if (detectedLocale) {
-                sourceMetaParts.push('Sprache ' + escapeHtml(detectedLocale.toUpperCase()));
+                sourceMetaParts.push('Sprache ' + detectedLocale.toUpperCase());
             }
             var hideTargetForLocaleSkip = item.action === 'skip' && reasonText === 'Nur /en/-Inhalte ausgewählt';
             var targetSlugText = hideTargetForLocaleSkip ? '—' : (item.target_slug || '—');
@@ -632,50 +637,88 @@
                 ? (item.target_hint || 'Kein Importziel – vom /en/-Filter ausgeschlossen')
                 : (item.target_url || item.target_hint || '');
             var details = [];
-            if (item.category) { details.push('Kategorie: ' + escapeHtml(item.category)); }
-            if (tagText) { details.push('Tags: ' + escapeHtml(tagText)); }
-            if (item.author_label) { details.push('365CMS-Autor: ' + escapeHtml(item.author_label)); }
-            if (item.author_display_name) { details.push('Anzeigename im Artikel: ' + escapeHtml(item.author_display_name)); }
-            if (item.image_candidates) { details.push('Bildkandidaten: ' + escapeHtml(item.image_candidates)); }
-            if (item.featured_image) { details.push('Featured: ' + escapeHtml(item.featured_image)); }
-            if (item.table_shortcodes_found) { details.push('Tabellen-Shortcodes: ' + escapeHtml(item.table_shortcodes_found) + ' / auflösbar: ' + escapeHtml(item.table_shortcodes_resolved || 0)); }
-            if (item.table_rows || item.table_columns) { details.push('Tabellenstruktur: ' + escapeHtml(item.table_columns || 0) + ' Spalten, ' + escapeHtml(item.table_rows || 0) + ' Zeilen'); }
-            if (item.comments_total) { details.push('Kommentare: ' + escapeHtml(item.comments_total) + ' / importierbar: ' + escapeHtml(item.comments_importable || 0) + ' / übersprungen: ' + escapeHtml(item.comments_skipped || 0)); }
-            if (item.unknown_meta_count) { details.push('Unbekannte Meta-Felder: ' + escapeHtml(item.unknown_meta_count)); }
-            if (Array.isArray(item.table_targets) && item.table_targets.length) { details.push('Kurzcode-Ziele: ' + escapeHtml(item.table_targets.join(', '))); }
-            if (item.source_comparison) { details.push('Vergleich: ' + escapeHtml(item.source_comparison)); }
-            if (item.redirect_type) { details.push('HTTP-Status: ' + escapeHtml(item.redirect_type)); }
-            if (item.redirect_state) { details.push('Status: ' + escapeHtml(item.redirect_state)); }
-            if (item.redirect_hits) { details.push('Hits: ' + escapeHtml(item.redirect_hits)); }
-            if (item.last_hit_at) { details.push('Letzter Treffer: ' + escapeHtml(item.last_hit_at)); }
-            if (item.settings_keys_count) { details.push('Settings-Schlüssel: ' + escapeHtml(item.settings_keys_count)); }
-            if (Array.isArray(item.settings_labels) && item.settings_labels.length) { details.push('Settings-Felder: ' + escapeHtml(item.settings_labels.join(', '))); }
+            if (item.category) { details.push('Kategorie: ' + item.category); }
+            if (tagText) { details.push('Tags: ' + tagText); }
+            if (item.author_label) { details.push('365CMS-Autor: ' + item.author_label); }
+            if (item.author_display_name) { details.push('Anzeigename im Artikel: ' + item.author_display_name); }
+            if (item.image_candidates) { details.push('Bildkandidaten: ' + item.image_candidates); }
+            if (item.featured_image) { details.push('Featured: ' + item.featured_image); }
+            if (item.table_shortcodes_found) { details.push('Tabellen-Shortcodes: ' + item.table_shortcodes_found + ' / auflösbar: ' + (item.table_shortcodes_resolved || 0)); }
+            if (item.table_rows || item.table_columns) { details.push('Tabellenstruktur: ' + (item.table_columns || 0) + ' Spalten, ' + (item.table_rows || 0) + ' Zeilen'); }
+            if (item.comments_total) { details.push('Kommentare: ' + item.comments_total + ' / importierbar: ' + (item.comments_importable || 0) + ' / übersprungen: ' + (item.comments_skipped || 0)); }
+            if (item.unknown_meta_count) { details.push('Unbekannte Meta-Felder: ' + item.unknown_meta_count); }
+            if (Array.isArray(item.table_targets) && item.table_targets.length) { details.push('Kurzcode-Ziele: ' + item.table_targets.join(', ')); }
+            if (item.source_comparison) { details.push('Vergleich: ' + item.source_comparison); }
+            if (item.redirect_type) { details.push('HTTP-Status: ' + item.redirect_type); }
+            if (item.redirect_state) { details.push('Status: ' + item.redirect_state); }
+            if (item.redirect_hits) { details.push('Hits: ' + item.redirect_hits); }
+            if (item.last_hit_at) { details.push('Letzter Treffer: ' + item.last_hit_at); }
+            if (item.settings_keys_count) { details.push('Settings-Schlüssel: ' + item.settings_keys_count); }
+            if (Array.isArray(item.settings_labels) && item.settings_labels.length) { details.push('Settings-Felder: ' + item.settings_labels.join(', ')); }
 
-            rows.push(
-                '<tr>' +
-                    '<td><strong>' + escapeHtml(item.source_title || '(ohne Titel)') + '</strong><div class="ci-preview-meta">' + sourceMetaParts.join(' · ') + '</div></td>' +
-                    '<td><strong>' + escapeHtml(item.target_type || '') + '</strong><div class="ci-preview-meta">Slug: ' + escapeHtml(targetSlugText) + '</div><div class="ci-preview-meta">' + escapeHtml(targetInfoText) + '</div></td>' +
-                    '<td><span class="ci-preview-pill ' + (item.action === 'import' ? 'ci-preview-pill--ok' : 'ci-preview-pill--warn') + '">' + (item.action === 'import' ? 'Würde importieren' : 'Würde überspringen') + '</span><div class="ci-preview-meta">' + escapeHtml(reasonText) + '</div></td>' +
-                    '<td>' + (details.length ? '<ul class="ci-preview-details"><li>' + details.join('</li><li>') + '</li></ul>' : '<span class="ci-muted">Keine Zusatzdetails</span>') + '</td>' +
-                '</tr>'
-            );
+            var row = document.createElement('tr');
+
+            var sourceCell = document.createElement('td');
+            sourceCell.appendChild(createTextElement('strong', '', item.source_title || '(ohne Titel)'));
+            sourceCell.appendChild(createTextElement('div', 'ci-preview-meta', sourceMetaParts.join(' · ')));
+
+            var targetCell = document.createElement('td');
+            targetCell.appendChild(createTextElement('strong', '', item.target_type || ''));
+            targetCell.appendChild(createTextElement('div', 'ci-preview-meta', 'Slug: ' + targetSlugText));
+            targetCell.appendChild(createTextElement('div', 'ci-preview-meta', targetInfoText));
+
+            var actionCell = document.createElement('td');
+            var pill = createTextElement('span', 'ci-preview-pill ' + (item.action === 'import' ? 'ci-preview-pill--ok' : 'ci-preview-pill--warn'), item.action === 'import' ? 'Würde importieren' : 'Würde überspringen');
+            actionCell.appendChild(pill);
+            actionCell.appendChild(createTextElement('div', 'ci-preview-meta', reasonText));
+
+            var detailCell = document.createElement('td');
+            if (details.length) {
+                var list = document.createElement('ul');
+                list.className = 'ci-preview-details';
+                details.forEach(function (detail) {
+                    list.appendChild(createTextElement('li', '', detail));
+                });
+                detailCell.appendChild(list);
+            } else {
+                detailCell.appendChild(createTextElement('span', 'ci-muted', 'Keine Zusatzdetails'));
+            }
+
+            row.appendChild(sourceCell);
+            row.appendChild(targetCell);
+            row.appendChild(actionCell);
+            row.appendChild(detailCell);
+            fragment.appendChild(row);
         });
 
-        previewTableBody.innerHTML = rows.join('');
+        previewTableBody.replaceChildren(fragment);
         previewTableWrap.hidden = false;
     }
 
     function hidePreview() {
         if (previewPanel) { previewPanel.hidden = true; }
-        if (previewSummary) { previewSummary.innerHTML = ''; }
-        if (previewReasons) { previewReasons.innerHTML = ''; previewReasons.hidden = true; }
-        if (previewTableBody) { previewTableBody.innerHTML = ''; }
+        if (previewSummary) { previewSummary.replaceChildren(); }
+        if (previewReasons) { previewReasons.replaceChildren(); previewReasons.hidden = true; }
+        if (previewTableBody) { previewTableBody.replaceChildren(); }
         if (previewTableWrap) { previewTableWrap.hidden = true; }
         if (previewNote) { previewNote.textContent = ''; previewNote.hidden = true; }
     }
 
     function buildPreviewStat(label, value, extraClass) {
-        return '<div class="ci-preview-stat ' + (extraClass || '') + '"><span class="ci-preview-stat__value">' + escapeHtml(value) + '</span><span class="ci-preview-stat__label">' + escapeHtml(label) + '</span></div>';
+        var item = document.createElement('div');
+        item.className = 'ci-preview-stat' + (extraClass ? ' ' + extraClass : '');
+        item.appendChild(createTextElement('span', 'ci-preview-stat__value', value));
+        item.appendChild(createTextElement('span', 'ci-preview-stat__label', label));
+        return item;
+    }
+
+    function createTextElement(tagName, className, value) {
+        var element = document.createElement(tagName);
+        if (className) {
+            element.className = className;
+        }
+        element.textContent = String(value === undefined || value === null ? '' : value);
+        return element;
     }
 
     function parseJson(text) {

@@ -38,6 +38,9 @@ class CMS_Importer_Admin
     /** Erlaubte MIME-Typen für XML-/JSON-Uploads */
     private const ALLOWED_MIMES = ['text/xml', 'application/xml', 'application/rss+xml', 'application/json', 'text/json', 'text/plain'];
 
+    /** Erlaubte Import-Dateiendungen */
+    private const ALLOWED_EXTENSIONS = ['xml', 'json'];
+
     public static function instance(): self
     {
         if (self::$instance === null) {
@@ -300,11 +303,13 @@ class CMS_Importer_Admin
         }
 
         $finfo    = finfo_open(FILEINFO_MIME_TYPE);
-        $detected = finfo_file($finfo, $file['tmp_name']);
-        finfo_close($finfo);
+        $detected = $finfo !== false ? finfo_file($finfo, $file['tmp_name']) : false;
+        if ($finfo !== false) {
+            finfo_close($finfo);
+        }
 
         $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-        if (!in_array($ext, ['xml', 'json'], true) && !in_array($detected, self::ALLOWED_MIMES, true)) {
+        if (!in_array($ext, self::ALLOWED_EXTENSIONS, true) || !in_array($detected, self::ALLOWED_MIMES, true)) {
             echo json_encode(['success' => false, 'error' => 'Ungültiger Dateityp. Nur WordPress-WXR (.xml) oder Rank-Math-JSON (.json) sind erlaubt.']);
             exit;
         }
@@ -317,8 +322,13 @@ class CMS_Importer_Admin
 
         $this->ensure_import_dir();
 
-        $filename   = basename($file['name']);
-        $saved_path = $import_dir . $filename;
+        $filename = $this->sanitize_import_filename((string) $file['name']);
+        if ($filename === '') {
+            echo json_encode(['success' => false, 'error' => 'Ungültiger Dateiname.']);
+            exit;
+        }
+
+        $saved_path = $this->build_unique_import_path($import_dir, $filename);
 
         if (!move_uploaded_file($file['tmp_name'], $saved_path)) {
             echo json_encode(['success' => false, 'error' => 'Datei konnte nicht in den Import-Ordner gespeichert werden.']);
@@ -327,7 +337,7 @@ class CMS_Importer_Admin
 
         echo json_encode([
             'success'  => true,
-            'filename' => $filename,
+            'filename' => basename($saved_path),
             'size'     => $this->format_bytes($file['size']),
         ]);
         exit;
@@ -378,7 +388,8 @@ class CMS_Importer_Admin
         }
 
         $filename = basename($path);
-        if ($format === 'md') {
+        $extension = strtolower((string) pathinfo($path, PATHINFO_EXTENSION));
+        if ($extension === 'md') {
             header('Content-Type: text/markdown; charset=utf-8');
             header('Content-Disposition: attachment; filename="' . $filename . '"');
         } else {
@@ -415,11 +426,13 @@ class CMS_Importer_Admin
         }
 
         $finfo    = finfo_open(FILEINFO_MIME_TYPE);
-        $detected = finfo_file($finfo, $file['tmp_name']);
-        finfo_close($finfo);
+        $detected = $finfo !== false ? finfo_file($finfo, $file['tmp_name']) : false;
+        if ($finfo !== false) {
+            finfo_close($finfo);
+        }
 
         $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-        if (!in_array($ext, ['xml', 'json'], true) && !in_array($detected, self::ALLOWED_MIMES, true)) {
+        if (!in_array($ext, self::ALLOWED_EXTENSIONS, true) || !in_array($detected, self::ALLOWED_MIMES, true)) {
             return ['Ungültiger Dateityp. Nur WordPress-WXR (.xml) oder Rank-Math-JSON (.json) sind erlaubt. (Erkannt: ' . $detected . ')', 'error', null];
         }
 
@@ -429,9 +442,21 @@ class CMS_Importer_Admin
 
         if ($save_to_folder) {
             $import_dir   = $this->get_import_dir();
-            $saved_path   = $import_dir . basename($file['name']);
+            if ($import_dir === '') {
+                return ['Import-Verzeichnis nicht konfiguriert (UPLOAD_PATH fehlt).', 'error', null];
+            }
+
+            $this->ensure_import_dir();
+            $filename = $this->sanitize_import_filename((string) $file['name']);
+            if ($filename === '') {
+                return ['Ungültiger Dateiname.', 'error', null];
+            }
+
+            $saved_path = $this->build_unique_import_path($import_dir, $filename);
             if (move_uploaded_file($file['tmp_name'], $saved_path)) {
                 $import_path = $saved_path;
+            } else {
+                return ['Datei konnte nicht in den Import-Ordner gespeichert werden.', 'error', null];
             }
         }
 
@@ -672,13 +697,19 @@ class CMS_Importer_Admin
             return ['', '', 'Ungültige Import-Quelle.'];
         }
 
-        $filename = basename($raw_name);
-        $filePath = rtrim((string) $source['path'], DIRECTORY_SEPARATOR . '/') . '/' . $filename;
-        if (!file_exists($filePath)) {
+        $filename = $this->sanitize_import_filename($raw_name);
+        if ($filename === '') {
+            return ['', '', 'Ungültiger Dateiname.'];
+        }
+
+        $sourcePath = (string) $source['path'];
+        $filePath = rtrim($sourcePath, DIRECTORY_SEPARATOR . '/') . '/' . $filename;
+        $validatedPath = $this->validate_import_file_path($filePath, $sourcePath);
+        if ($validatedPath === null) {
             return ['', '', 'Datei nicht gefunden: ' . htmlspecialchars($filename)];
         }
 
-        return [$filePath, $filename, null];
+        return [$validatedPath, $filename, null];
     }
 
     // ── Import-Ordner ─────────────────────────────────────────────────────────
@@ -805,12 +836,16 @@ class CMS_Importer_Admin
             return null;
         }
 
-        if ($format === 'md') {
-            return $path;
+        $format = strtolower($format) === 'md' ? 'md' : 'html';
+        $candidate = $format === 'md'
+            ? (string) $path
+            : (preg_replace('/\.md$/i', '.html', (string) $path) ?? (string) $path);
+
+        if ($format === 'html' && !file_exists($candidate)) {
+            $candidate = (string) $path;
         }
 
-        $htmlPath = preg_replace('/\.md$/i', '.html', $path) ?? $path;
-        return file_exists($htmlPath) ? $htmlPath : $path;
+        return $this->validate_report_path($candidate);
     }
 
     private function get_recent_logs(int $limit = 10): array
@@ -894,7 +929,7 @@ class CMS_Importer_Admin
     private function is_valid_request_token(string $token, string $action): bool
     {
         if (!class_exists('CMS\Security')) {
-            return true;
+            return false;
         }
 
         $security = CMS\Security::instance();
@@ -937,7 +972,7 @@ class CMS_Importer_Admin
             }
         }
 
-        $contents = @file_get_contents($file_path);
+        $contents = @file_get_contents($file_path, false, null, 0, 262144);
         if ($contents === false) {
             return false;
         }
@@ -954,5 +989,78 @@ class CMS_Importer_Admin
             || str_contains($contents, '<wp:wxr_version>')
             || str_contains($contents, 'xmlns:wp="http://wordpress.org/export/')
             || str_contains($contents, "xmlns:wp='http://wordpress.org/export/");
+    }
+
+    private function sanitize_import_filename(string $filename): string
+    {
+        $filename = basename(str_replace('\\', '/', $filename));
+        $filename = preg_replace('/[^A-Za-z0-9._-]/', '-', $filename) ?? '';
+        $filename = trim($filename, '.-_');
+        $extension = strtolower((string) pathinfo($filename, PATHINFO_EXTENSION));
+
+        if ($filename === '' || !in_array($extension, self::ALLOWED_EXTENSIONS, true)) {
+            return '';
+        }
+
+        $name = (string) pathinfo($filename, PATHINFO_FILENAME);
+        $name = trim(preg_replace('/-+/', '-', $name) ?? '', '-_');
+        if ($name === '') {
+            $name = 'import';
+        }
+
+        return mb_substr($name, 0, 120) . '.' . $extension;
+    }
+
+    private function build_unique_import_path(string $directory, string $filename): string
+    {
+        $directory = rtrim($directory, DIRECTORY_SEPARATOR . '/') . '/';
+        $base = (string) pathinfo($filename, PATHINFO_FILENAME);
+        $extension = strtolower((string) pathinfo($filename, PATHINFO_EXTENSION));
+        $candidate = $directory . $filename;
+
+        if (!file_exists($candidate)) {
+            return $candidate;
+        }
+
+        $suffix = date('Ymd-His') . '-' . bin2hex(random_bytes(4));
+        return $directory . mb_substr($base, 0, 96) . '-' . $suffix . '.' . $extension;
+    }
+
+    private function validate_import_file_path(string $filePath, string $sourceDirectory): ?string
+    {
+        $realDirectory = realpath($sourceDirectory);
+        $realFile = realpath($filePath);
+
+        if ($realDirectory === false || $realFile === false || !is_file($realFile) || !is_readable($realFile)) {
+            return null;
+        }
+
+        $directory = rtrim(str_replace('\\', '/', $realDirectory), '/') . '/';
+        $file = str_replace('\\', '/', $realFile);
+        if (!str_starts_with($file, $directory)) {
+            return null;
+        }
+
+        $extension = strtolower((string) pathinfo($file, PATHINFO_EXTENSION));
+        return in_array($extension, self::ALLOWED_EXTENSIONS, true) ? $realFile : null;
+    }
+
+    private function validate_report_path(string $path): ?string
+    {
+        $reportDir = realpath(CMS_IMPORTER_PLUGIN_DIR . 'reports/');
+        $realPath = realpath($path);
+
+        if ($reportDir === false || $realPath === false || !is_file($realPath) || !is_readable($realPath)) {
+            return null;
+        }
+
+        $directory = rtrim(str_replace('\\', '/', $reportDir), '/') . '/';
+        $file = str_replace('\\', '/', $realPath);
+        if (!str_starts_with($file, $directory)) {
+            return null;
+        }
+
+        $extension = strtolower((string) pathinfo($file, PATHINFO_EXTENSION));
+        return in_array($extension, ['md', 'html'], true) ? $realPath : null;
     }
 }
