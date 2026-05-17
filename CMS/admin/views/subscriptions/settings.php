@@ -31,7 +31,7 @@ $isSelectedPlan = static fn (int $planId): string => $defaultPlanId === $planId 
 </div>
 
 <div class="page-body">
-    <div class="container-xl">
+    <div class="container-xl cms-settings-page">
 
         <?php require __DIR__ . '/../partials/flash-alert.php'; ?>
 
@@ -39,8 +39,16 @@ $isSelectedPlan = static fn (int $planId): string => $defaultPlanId === $planId 
             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
             <input type="hidden" name="action" value="save_settings">
 
+            <div class="cms-settings-actions">
+                <span class="text-secondary small me-auto">Globale Abo-Steuerung und Standardzuweisung verwalten.</span>
+                <button type="submit" class="btn btn-primary">Einstellungen speichern</button>
+            </div>
+
             <div class="row g-4">
-                <div class="col-lg-6">
+                <div class="col-12">
+                    <h3 class="cms-settings-section-heading">Kernsteuerung</h3>
+                </div>
+                <div class="col-12">
                     <div class="card">
                         <div class="card-header"><h3 class="card-title">Betriebsmodus</h3></div>
                         <div class="card-body">
@@ -68,7 +76,7 @@ $isSelectedPlan = static fn (int $planId): string => $defaultPlanId === $planId 
                     </div>
                 </div>
 
-                <div class="col-lg-6">
+                <div class="col-12">
                     <div class="card">
                         <div class="card-header"><h3 class="card-title">Standard-Zuweisung</h3></div>
                         <div class="card-body">
@@ -97,7 +105,7 @@ $isSelectedPlan = static fn (int $planId): string => $defaultPlanId === $planId 
                     </div>
                 </div>
 
-                <div class="col-lg-6">
+                <div class="col-12">
                     <div class="card">
                         <div class="card-header"><h3 class="card-title">Hinweis bei Deaktivierung</h3></div>
                         <div class="card-body">
@@ -108,9 +116,9 @@ $isSelectedPlan = static fn (int $planId): string => $defaultPlanId === $planId 
                     </div>
                 </div>
 
-                <div class="col-lg-6">
+                <div class="col-12">
                     <div class="card">
-                        <div class="card-header"><h3 class="card-title">Kurzüberblick</h3></div>
+                        <div class="card-header"><h3 class="card-title">Orientierung</h3></div>
                         <div class="card-body">
                             <ul class="mb-0 text-secondary">
                                 <li><strong>Pakete &amp; Abo-Einstellungen</strong>: Preise, Limits, Trial, Steuern, AGB-Links.</li>
@@ -122,7 +130,7 @@ $isSelectedPlan = static fn (int $planId): string => $defaultPlanId === $planId 
                 </div>
             </div>
 
-            <div class="mt-4">
+            <div class="cms-settings-actions cms-settings-actions-bottom">
                 <button type="submit" class="btn btn-primary">Einstellungen speichern</button>
             </div>
         </form>

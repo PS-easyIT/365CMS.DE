@@ -29,7 +29,7 @@ $s = $settings;
 </div>
 
 <div class="page-body">
-    <div class="container-xl">
+    <div class="container-xl cms-settings-page">
 
         <?php if (!empty($alert)): ?>
             <?php
@@ -44,9 +44,15 @@ $s = $settings;
             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
             <input type="hidden" name="action" value="save">
 
+            <div class="cms-settings-actions">
+                <span class="text-secondary small me-auto">TOC-Standardverhalten zuerst festlegen, Darstellung und Sonderfälle danach.</span>
+                <button type="submit" class="btn btn-primary">Einstellungen speichern</button>
+            </div>
+
             <div class="row">
                 <!-- Hauptbereich -->
-                <div class="col-lg-8">
+                <div class="col-12">
+                    <h3 class="cms-settings-section-heading">Primäre Einstellungen</h3>
 
                     <!-- Allgemein -->
                     <div class="card mb-3">
@@ -203,7 +209,8 @@ $s = $settings;
                 </div>
 
                 <!-- Sidebar -->
-                <div class="col-lg-4">
+                <div class="col-12">
+                    <h3 class="cms-settings-section-heading">Erweiterte Optionen</h3>
 
                     <!-- Scroll -->
                     <div class="card mb-3">
@@ -266,16 +273,11 @@ $s = $settings;
                         </div>
                     </div>
 
-                    <!-- Speichern -->
-                    <div class="card">
-                        <div class="card-body">
-                            <button type="submit" class="btn btn-primary w-100">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M6 4h10l4 4v10a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2"/><path d="M12 14m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"/><path d="M14 4l0 4l-6 0l0 -4"/></svg>
-                                Einstellungen speichern
-                            </button>
-                        </div>
-                    </div>
                 </div>
+            </div>
+
+            <div class="cms-settings-actions cms-settings-actions-bottom">
+                <button type="submit" class="btn btn-primary">Einstellungen speichern</button>
             </div>
 
         </form>

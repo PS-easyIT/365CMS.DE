@@ -73,7 +73,7 @@ $settingsPretitle = $currentTab === 'content' ? 'Seiten & Beiträge' : 'System';
 $settingsHeading = $currentTab === 'content' ? 'Beiträge & Sites – Einstellungen' : 'Allgemeine Einstellungen';
 ?>
 
-<div class="container-xl">
+<div class="container-xl cms-settings-page">
     <div class="page-header d-print-none mb-4">
         <div class="row align-items-center">
             <div class="col-auto">
@@ -115,8 +115,18 @@ $settingsHeading = $currentTab === 'content' ? 'Beiträge & Sites – Einstellun
         </div>
         <?php endif; ?>
 
+        <div class="cms-settings-actions">
+            <span class="text-secondary small me-auto">Änderungen werden zentral in den Systemeinstellungen gespeichert.</span>
+            <button type="submit" class="btn btn-primary" name="action" value="save">
+                Einstellungen speichern
+            </button>
+        </div>
+
         <?php if ($currentTab === 'general'): ?>
         <div class="row">
+            <div class="col-12">
+                <h3 class="cms-settings-section-heading">Kerneinstellungen</h3>
+            </div>
             <!-- Website-Grunddaten -->
             <div class="col-12 mb-4">
                 <div class="card">
@@ -414,6 +424,9 @@ $settingsHeading = $currentTab === 'content' ? 'Beiträge & Sites – Einstellun
                 </div>
             </div>
 
+            <div class="col-12">
+                <h3 class="cms-settings-section-heading">Erweiterte Optionen</h3>
+            </div>
             <!-- Wartung -->
             <div class="col-12 mb-4">
                 <div class="card">
@@ -455,11 +468,14 @@ $settingsHeading = $currentTab === 'content' ? 'Beiträge & Sites – Einstellun
         <div class="row">
             <div class="col-12 mb-4">
                 <div class="alert alert-info mb-0" role="status">
-                    Diese Einstellungen steuern Standard-Editor, Veröffentlichungs-Defaults und die öffentlichen URL-Basen für neue Seiten, Beiträge und Archive. Bei Validierungsfehlern bleiben deine Eingaben nach dem Redirect erhalten – diesmal ohne Magier-Act.
+                    Diese Einstellungen steuern Standard-Editor, Veröffentlichungs-Defaults und die öffentlichen URL-Basen für neue Seiten, Beiträge und Archive. Bei Validierungsfehlern bleiben deine Eingaben nach dem Redirect erhalten.
                 </div>
             </div>
+            <div class="col-12">
+                <h3 class="cms-settings-section-heading">Kernoptionen für Inhalte</h3>
+            </div>
 
-            <div class="col-lg-6 mb-4">
+            <div class="col-12 mb-4">
                 <div class="card h-100">
                     <div class="card-header"><h3 class="card-title">Editor</h3></div>
                     <div class="card-body">
@@ -483,7 +499,7 @@ $settingsHeading = $currentTab === 'content' ? 'Beiträge & Sites – Einstellun
                 </div>
             </div>
 
-            <div class="col-lg-6 mb-4">
+            <div class="col-12 mb-4">
                 <div class="card h-100">
                     <div class="card-header"><h3 class="card-title">Standard beim Speichern</h3></div>
                     <div class="card-body">
@@ -508,7 +524,7 @@ $settingsHeading = $currentTab === 'content' ? 'Beiträge & Sites – Einstellun
                 </div>
             </div>
 
-            <div class="col-lg-6 mb-4">
+            <div class="col-12 mb-4">
                 <div class="card h-100">
                     <div class="card-header"><h3 class="card-title">Seiten-Editor</h3></div>
                     <div class="card-body">
@@ -524,7 +540,7 @@ $settingsHeading = $currentTab === 'content' ? 'Beiträge & Sites – Einstellun
                 </div>
             </div>
 
-            <div class="col-lg-6 mb-4">
+            <div class="col-12 mb-4">
                 <div class="card h-100">
                     <div class="card-header"><h3 class="card-title">URL-Struktur &amp; Archive</h3></div>
                     <div class="card-body">
@@ -591,7 +607,10 @@ $settingsHeading = $currentTab === 'content' ? 'Beiträge & Sites – Einstellun
                 </div>
             </div>
 
-            <div class="col-lg-6 mb-4">
+            <div class="col-12">
+                <h3 class="cms-settings-section-heading">Hinweise und Kontext</h3>
+            </div>
+            <div class="col-12 mb-4">
                 <div class="card h-100">
                     <div class="card-header"><h3 class="card-title">Hinweise</h3></div>
                     <div class="card-body">
@@ -607,7 +626,7 @@ $settingsHeading = $currentTab === 'content' ? 'Beiträge & Sites – Einstellun
         </div>
         <?php endif; ?>
 
-        <div class="d-flex justify-content-end">
+        <div class="cms-settings-actions cms-settings-actions-bottom">
             <button type="submit" class="btn btn-primary" name="action" value="save">
                 <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-device-floppy me-1" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M6 4h10l4 4v10a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2"/><path d="M12 14m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"/><path d="M14 4l0 4l-6 0l0 -4"/></svg>
                 Einstellungen speichern

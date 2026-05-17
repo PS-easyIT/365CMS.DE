@@ -213,7 +213,7 @@ $additionalCategoryIds = array_values(array_filter(
                 <input type="hidden" name="content_en" id="contentInputEn" value="<?php echo htmlspecialchars($postContentEnValue); ?>">
             <?php endif; ?>
 
-            <div class="row g-3">
+            <div class="row g-3 cms-content-editor-layout">
                 <div class="col-lg-4 d-flex">
                     <div class="card cms-edit-card cms-edit-top-card h-100 w-100">
                         <div class="card-body">
@@ -361,7 +361,7 @@ $additionalCategoryIds = array_values(array_filter(
                     </div>
                 </div>
 
-                <div class="col-12">
+                <div class="col-12 cms-editor-primary">
                     <div class="card cms-edit-card cms-editor-card mb-3">
                         <div class="card-header d-flex justify-content-between align-items-center gap-3 flex-wrap">
                             <h3 class="card-title"><?php echo $isEnglishEditorView ? 'Inhalt · English' : 'Inhalt · Deutsch'; ?></h3>

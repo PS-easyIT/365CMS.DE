@@ -58,7 +58,7 @@ $passwordPolicyTesterConfig = [
 </div>
 
 <div class="page-body">
-    <div class="container-xl">
+    <div class="container-xl cms-settings-page">
         <?php if (!empty($alert)): ?>
             <div class="alert alert-<?php echo htmlspecialchars($alert['type'] ?? 'info'); ?> mb-4" role="alert">
                 <?php echo htmlspecialchars($alert['message'] ?? ''); ?>
@@ -74,7 +74,6 @@ $passwordPolicyTesterConfig = [
                                 <div class="font-weight-medium"><?php echo (int)($stats['total_users'] ?? 0); ?></div>
                                 <div class="text-secondary">Benutzer gesamt</div>
                             </div>
-                            <span class="badge bg-blue-lt">Konten</span>
                         </div>
                     </div>
                 </div>
@@ -87,7 +86,6 @@ $passwordPolicyTesterConfig = [
                                 <div class="font-weight-medium"><?php echo (int)($stats['mfa_users'] ?? 0); ?></div>
                                 <div class="text-secondary">MFA aktiviert</div>
                             </div>
-                            <span class="badge bg-green-lt">TOTP</span>
                         </div>
                     </div>
                 </div>
@@ -100,7 +98,6 @@ $passwordPolicyTesterConfig = [
                                 <div class="font-weight-medium"><?php echo (int)($stats['passkey_credentials'] ?? 0); ?></div>
                                 <div class="text-secondary">Passkeys registriert</div>
                             </div>
-                            <span class="badge bg-purple-lt">WebAuthn</span>
                         </div>
                     </div>
                 </div>
@@ -113,7 +110,6 @@ $passwordPolicyTesterConfig = [
                                 <div class="font-weight-medium"><?php echo (int)($stats['backup_code_users'] ?? 0); ?></div>
                                 <div class="text-secondary">Backup-Code-Sets</div>
                             </div>
-                            <span class="badge bg-azure-lt">Recovery</span>
                         </div>
                     </div>
                 </div>
@@ -123,9 +119,14 @@ $passwordPolicyTesterConfig = [
         <form method="post">
             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
             <input type="hidden" name="action" value="save">
+            <div class="cms-settings-actions">
+                <span class="text-secondary small me-auto">Registrierung und Authentifizierung zentral steuern; technische Provider bleiben schreibgeschuetzt.</span>
+                <button type="submit" class="btn btn-primary">Einstellungen speichern</button>
+            </div>
 
             <div class="row row-cards">
-                <div class="col-lg-8">
+                <div class="col-12">
+                    <h3 class="cms-settings-section-heading">Kernkonfiguration</h3>
                     <div class="card mb-4">
                         <div class="card-header d-flex justify-content-between align-items-center">
                             <h3 class="card-title mb-0">Registrierung &amp; Konten</h3>
@@ -248,8 +249,8 @@ $passwordPolicyTesterConfig = [
                         <div class="card-body">
                             <div class="row g-3">
                                 <?php foreach ($providerLabels as $key => $label): ?>
-                                    <div class="col-md-6">
-                                        <div class="border rounded p-3 h-100 d-flex justify-content-between align-items-center gap-3">
+                                    <div class="col-12">
+                                        <div class="py-2 d-flex justify-content-between align-items-center gap-3 border-bottom">
                                             <div>
                                                 <div class="fw-semibold"><?php echo htmlspecialchars($label); ?></div>
                                                 <div class="text-secondary small">Provider: <?php echo htmlspecialchars($key); ?></div>
@@ -263,7 +264,10 @@ $passwordPolicyTesterConfig = [
                     </div>
 
                     <div class="row row-cards">
-                        <div class="col-lg-6">
+                        <div class="col-12">
+                            <h3 class="cms-settings-section-heading">Technischer Status</h3>
+                        </div>
+                        <div class="col-12">
                             <div class="card h-100">
                                 <div class="card-header d-flex justify-content-between align-items-center">
                                     <h3 class="card-title mb-0">LDAP</h3>
@@ -305,7 +309,7 @@ $passwordPolicyTesterConfig = [
                             </div>
                         </div>
 
-                        <div class="col-lg-6">
+                        <div class="col-12">
                             <div class="card h-100">
                                 <div class="card-header d-flex justify-content-between align-items-center">
                                     <h3 class="card-title mb-0">JWT &amp; API</h3>
@@ -330,8 +334,8 @@ $passwordPolicyTesterConfig = [
                     </div>
                 </div>
 
-                <div class="col-lg-4">
-                    <div class="card sticky-top" style="top: 1rem;">
+                <div class="col-12">
+                    <div class="card">
                         <div class="card-header">
                             <h3 class="card-title">Speichern &amp; Hinweise</h3>
                         </div>
@@ -357,11 +361,13 @@ $passwordPolicyTesterConfig = [
 
                             <div class="text-secondary small mb-3">Der LDAP-Erstsync nutzt die aktuelle LDAP-Konfiguration und legt fehlende lokale Konten automatisch mit der konfigurierten Standardrolle an.</div>
 
-                            <button type="submit" class="btn btn-primary w-100 mb-2">Einstellungen speichern</button>
                             <a href="<?php echo htmlspecialchars($memberDashboardGeneralUrl, ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-outline-secondary w-100">Member-Dashboard öffnen</a>
                         </div>
                     </div>
                 </div>
+            </div>
+            <div class="cms-settings-actions cms-settings-actions-bottom">
+                <button type="submit" class="btn btn-primary">Einstellungen speichern</button>
             </div>
         </form>
     </div>

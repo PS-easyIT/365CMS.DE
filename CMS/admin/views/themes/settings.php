@@ -18,10 +18,11 @@ $performance = $data['performance'];
 $customCss   = $data['custom_css'];
 ?>
 
-<div class="container-xl">
+<div class="container-xl cms-settings-page">
     <div class="page-header d-print-none mb-4">
         <div class="row align-items-center">
             <div class="col-auto">
+                <div class="page-pretitle">Themes</div>
                 <h2 class="page-title">
                     <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-palette me-2" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 21a9 9 0 0 1 0 -18c4.97 0 9 3.582 9 8c0 1.06 -.474 2.078 -1.318 2.828c-.844 .75 -1.989 1.172 -3.182 1.172h-2.5a2 2 0 0 0 -1 3.75a1.3 1.3 0 0 1 -1 2.25" /><path d="M8.5 10.5m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" /><path d="M12.5 7.5m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" /><path d="M16.5 10.5m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" /></svg>
                     Design-Einstellungen
@@ -34,9 +35,17 @@ $customCss   = $data['custom_css'];
         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
         <input type="hidden" name="action" value="save">
 
+        <div class="cms-settings-actions">
+            <span class="text-secondary small me-auto">Theme-Defaults mit klarem Fokus auf Farb- und Layout-Grundwerte.</span>
+            <button type="submit" class="btn btn-primary">Einstellungen speichern</button>
+        </div>
+
         <div class="row">
+            <div class="col-12">
+                <h3 class="cms-settings-section-heading">Kernparameter</h3>
+            </div>
             <!-- Farben -->
-            <div class="col-lg-6 mb-4">
+            <div class="col-12 mb-4">
                 <div class="card">
                     <div class="card-header">
                         <h3 class="card-title">Farbschema</h3>
@@ -91,7 +100,7 @@ $customCss   = $data['custom_css'];
             </div>
 
             <!-- Layout -->
-            <div class="col-lg-6 mb-4">
+            <div class="col-12 mb-4">
                 <div class="card">
                     <div class="card-header">
                         <h3 class="card-title">Layout</h3>
@@ -123,7 +132,7 @@ $customCss   = $data['custom_css'];
             </div>
 
             <!-- Header -->
-            <div class="col-lg-6 mb-4">
+            <div class="col-12 mb-4">
                 <div class="card">
                     <div class="card-header">
                         <h3 class="card-title">Header</h3>
@@ -152,7 +161,7 @@ $customCss   = $data['custom_css'];
             </div>
 
             <!-- Footer -->
-            <div class="col-lg-6 mb-4">
+            <div class="col-12 mb-4">
                 <div class="card">
                     <div class="card-header">
                         <h3 class="card-title">Footer</h3>
@@ -177,7 +186,7 @@ $customCss   = $data['custom_css'];
             </div>
 
             <!-- Performance -->
-            <div class="col-lg-6 mb-4">
+            <div class="col-12 mb-4">
                 <div class="card">
                     <div class="card-header">
                         <h3 class="card-title">Performance</h3>
@@ -206,7 +215,10 @@ $customCss   = $data['custom_css'];
             </div>
 
             <!-- Custom CSS -->
-            <div class="col-lg-6 mb-4">
+            <div class="col-12">
+                <h3 class="cms-settings-section-heading">Erweiterte Optionen</h3>
+            </div>
+            <div class="col-12 mb-4">
                 <div class="card">
                     <div class="card-header">
                         <h3 class="card-title">Eigenes CSS</h3>
@@ -236,7 +248,7 @@ $customCss   = $data['custom_css'];
             </div>
         </div>
 
-        <div class="d-flex justify-content-end">
+        <div class="cms-settings-actions cms-settings-actions-bottom">
             <button type="submit" class="btn btn-primary">
                 <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-device-floppy me-1" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M6 4h10l4 4v10a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2" /><path d="M12 14m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0" /><path d="M14 4l0 4l-6 0l0 -4" /></svg>
                 Einstellungen speichern

@@ -2125,6 +2125,84 @@
 .settings-card > .card-header h3 { margin: 0; font-size: 1.1rem; color: #1e293b; }
 .settings-card > .card-header p { margin: 0.25rem 0 0; font-size: 0.85rem; color: #64748b; }
 .settings-card > .card-body { padding: 1.5rem; flex: 1; }
+.cms-settings-page {
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+}
+
+/* Keep settings content away from admin content edges */
+body.admin-body .container-xl.cms-settings-page {
+    padding-left: max(1.875rem, calc(var(--tblr-gutter-x, 1.5rem) * 0.5));
+    padding-right: max(1.875rem, calc(var(--tblr-gutter-x, 1.5rem) * 0.5));
+}
+.cms-settings-page .card {
+    border: 1px solid #d7dee9;
+    border-radius: 6px;
+    box-shadow: none;
+    margin-bottom: 1rem;
+}
+.cms-settings-page .card-header {
+    background: #f8fafc;
+    border-bottom: 1px solid #d7dee9;
+    padding: 0.75rem 1rem;
+}
+.cms-settings-page .card-body {
+    padding: 1rem;
+}
+.cms-settings-page .card-footer {
+    border-top: 1px solid #dfe5ed;
+    background: #fff;
+    padding: 0.75rem 1rem;
+}
+.cms-settings-page .card-title {
+    color: #243447;
+    font-weight: 600;
+}
+.cms-settings-page .text-secondary,
+.cms-settings-page .text-muted {
+    color: #5f6f82 !important;
+}
+.cms-settings-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    background: #f8fafc;
+    border: 1px solid #d7dee9;
+    border-radius: 6px;
+    padding: 0.625rem 0.75rem;
+    margin-bottom: 1rem;
+}
+.cms-settings-actions-bottom {
+    margin-top: 1rem;
+    margin-bottom: 0;
+}
+.cms-settings-section-heading {
+    margin: 1.25rem 0 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #d7dee9;
+    color: #4f5f72;
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+}
+.cms-settings-section-heading:first-child {
+    margin-top: 0;
+}
+.cms-settings-page .form-check {
+    min-height: 2rem;
+}
+.cms-settings-page .form-check-label {
+    cursor: pointer;
+}
+.cms-settings-page :is(.btn, .form-control, .form-select, .form-check-input, a):focus-visible {
+    outline: 2px solid #6b8bb2;
+    outline-offset: 1px;
+}
 .sc-header {
     padding: 1rem 1.5rem;
     background: #e2e4e6;
@@ -3902,6 +3980,43 @@ input:checked + .slider:before { transform: translateX(22px); }
 /* ============================================
    EDITOR.JS – Wrapper, Toolbar, Statusbar
    ============================================ */
+
+.cms-content-editor-layout {
+    --cms-editor-sidebar-width: 390px;
+}
+
+@media (min-width: 1200px) {
+    .cms-content-editor-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(340px, var(--cms-editor-sidebar-width));
+        gap: 1rem;
+        align-items: start;
+    }
+
+    .cms-content-editor-layout > [class*="col-"] {
+        width: auto;
+        max-width: none;
+        padding-left: 0;
+        padding-right: 0;
+        margin: 0;
+    }
+
+    .cms-content-editor-layout > :not(.cms-editor-primary) {
+        grid-column: 2;
+    }
+
+    .cms-content-editor-layout > .cms-editor-primary {
+        grid-column: 1;
+    }
+
+    .cms-content-editor-layout > .cms-editor-primary .cms-editor-card {
+        margin-bottom: 0;
+    }
+
+    .cms-content-editor-layout > :not(.cms-editor-primary) .cms-edit-card {
+        background: #fbfcfe;
+    }
+}
 
 .cms-edit-card {
     border: 1px solid #e7edf5;

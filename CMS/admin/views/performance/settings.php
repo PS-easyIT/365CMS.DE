@@ -28,7 +28,7 @@ if (!array_key_exists($browserCacheTtl, $browserCacheTtlOptions)) {
 </div>
 
 <div class="page-body">
-    <div class="container-xl">
+    <div class="container-xl cms-settings-page">
         <?php if (!empty($alert)): ?>
             <div class="alert alert-<?php echo htmlspecialchars($alert['type'] ?? 'info'); ?> mb-4"><?php echo htmlspecialchars($alert['message'] ?? ''); ?></div>
         <?php endif; ?>
@@ -39,8 +39,16 @@ if (!array_key_exists($browserCacheTtl, $browserCacheTtlOptions)) {
             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>">
             <input type="hidden" name="action" value="save_settings">
 
+            <div class="cms-settings-actions">
+                <span class="text-secondary small me-auto">Primäre Schalter zuerst aktivieren, danach TTL- und Session-Werte anpassen.</span>
+                <button type="submit" class="btn btn-primary">Einstellungen speichern</button>
+            </div>
+
             <div class="row g-4 mb-4">
-                <div class="col-lg-8">
+                <div class="col-12">
+                    <h3 class="cms-settings-section-heading">Auslieferung und Frontend</h3>
+                </div>
+                <div class="col-12">
                     <div class="card h-100">
                         <div class="card-header">
                             <h3 class="card-title">Frontend-Auslieferung</h3>
@@ -86,10 +94,10 @@ if (!array_key_exists($browserCacheTtl, $browserCacheTtlOptions)) {
                     </div>
                 </div>
 
-                <div class="col-lg-4">
+                <div class="col-12">
                     <div class="card h-100">
                         <div class="card-header">
-                            <h3 class="card-title">Empfohlener Start</h3>
+                            <h3 class="card-title">Betriebsleitfaden</h3>
                         </div>
                         <div class="card-body">
                             <ul class="list-unstyled mb-0 text-secondary">
@@ -105,7 +113,10 @@ if (!array_key_exists($browserCacheTtl, $browserCacheTtlOptions)) {
             </div>
 
             <div class="row g-4 mb-4">
-                <div class="col-lg-6">
+                <div class="col-12">
+                    <h3 class="cms-settings-section-heading">Caching und Sessions</h3>
+                </div>
+                <div class="col-12">
                     <div class="card h-100">
                         <div class="card-header">
                             <h3 class="card-title">Caching</h3>
@@ -141,7 +152,7 @@ if (!array_key_exists($browserCacheTtl, $browserCacheTtlOptions)) {
                     </div>
                 </div>
 
-                <div class="col-lg-6">
+                <div class="col-12">
                     <div class="card h-100">
                         <div class="card-header">
                             <h3 class="card-title">Sessions</h3>
@@ -160,7 +171,7 @@ if (!array_key_exists($browserCacheTtl, $browserCacheTtlOptions)) {
                 </div>
             </div>
 
-            <div class="d-flex justify-content-end">
+            <div class="cms-settings-actions cms-settings-actions-bottom">
                 <button type="submit" class="btn btn-primary">Einstellungen speichern</button>
             </div>
         </form>

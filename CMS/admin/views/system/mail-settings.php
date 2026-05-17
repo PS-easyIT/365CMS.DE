@@ -159,7 +159,7 @@ $queueLastRunText = !empty($queueLastRun['executed_at'])
     )
     : 'Noch kein Worker-Lauf protokolliert.';
 ?>
-<div class="container-xl" data-mail-api-token="<?php echo htmlspecialchars((string) ($apiCsrfToken ?? '')); ?>">
+<div class="container-xl cms-settings-page" data-mail-api-token="<?php echo htmlspecialchars((string) ($apiCsrfToken ?? '')); ?>">
     <div class="page-header d-print-none mb-4">
         <div class="row align-items-center g-3">
             <div class="col">
@@ -191,11 +191,17 @@ $queueLastRunText = !empty($queueLastRun['executed_at'])
     </div>
 
     <?php if ($isCurrentTab('transport')): ?>
+        <h3 class="cms-settings-section-heading">Transport und Laufzeit</h3>
         <div class="row row-cards">
-            <div class="col-12 col-xl-8">
+            <div class="col-12">
                 <form method="post" class="card">
                     <?php $renderFormContext('transport'); ?>
                     <?php $renderCardHeaderTitle('Transport-Konfiguration'); ?>
+                    <div class="card-body border-bottom">
+                        <div class="cms-settings-actions mb-0">
+                            <?php $renderActionButton('save_transport', 'Transport speichern'); ?>
+                        </div>
+                    </div>
                     <div class="card-body">
                         <div class="row g-3">
                             <div class="col-md-4">
@@ -257,7 +263,7 @@ $queueLastRunText = !empty($queueLastRun['executed_at'])
                     </div>
                 </form>
             </div>
-            <div class="col-12 col-xl-4">
+            <div class="col-12">
                 <div class="card h-100">
                     <?php $renderCardHeaderTitle('Aktive Laufzeit'); ?>
                     <div class="card-body">
@@ -278,11 +284,17 @@ $queueLastRunText = !empty($queueLastRun['executed_at'])
             </div>
         </div>
     <?php elseif ($isCurrentTab('azure')): ?>
+        <h3 class="cms-settings-section-heading">Azure OAuth2</h3>
         <div class="row row-cards">
-            <div class="col-12 col-xl-8">
+            <div class="col-12">
                 <form method="post" class="card">
                     <?php $renderFormContext('azure'); ?>
                     <?php $renderStatusCardHeader('Azure SMTP OAuth2', !empty($azure['configured'])); ?>
+                    <div class="card-body border-bottom">
+                        <div class="cms-settings-actions mb-0">
+                            <?php $renderActionButton('save_azure', 'Azure speichern'); ?>
+                        </div>
+                    </div>
                     <div class="card-body">
                         <div class="row g-3">
                             <div class="col-md-6">
@@ -318,7 +330,7 @@ $queueLastRunText = !empty($queueLastRun['executed_at'])
                     </div>
                 </form>
             </div>
-            <div class="col-12 col-xl-4">
+            <div class="col-12">
                 <?php $renderInfoCard('Hinweise', static function (): void { ?>
                     <ul class="text-secondary small ps-3 mb-0">
                         <li class="mb-2">SMTP-Auth-Modus im Transport auf <strong>Azure OAuth2 / XOAUTH2</strong> stellen.</li>
@@ -330,11 +342,17 @@ $queueLastRunText = !empty($queueLastRun['executed_at'])
             </div>
         </div>
     <?php elseif ($isCurrentTab('graph')): ?>
+        <h3 class="cms-settings-section-heading">Microsoft Graph</h3>
         <div class="row row-cards">
-            <div class="col-12 col-xl-8">
+            <div class="col-12">
                 <form method="post" class="card">
                     <?php $renderFormContext('graph'); ?>
                     <?php $renderStatusCardHeader('Microsoft Graph', !empty($graph['configured'])); ?>
+                    <div class="card-body border-bottom">
+                        <div class="cms-settings-actions mb-0">
+                            <?php $renderActionButton('save_graph', 'Graph speichern'); ?>
+                        </div>
+                    </div>
                     <div class="card-body">
                         <div class="row g-3">
                             <div class="col-md-6">
@@ -371,7 +389,7 @@ $queueLastRunText = !empty($queueLastRun['executed_at'])
                     </div>
                 </form>
             </div>
-            <div class="col-12 col-xl-4">
+            <div class="col-12">
                 <?php $renderInfoCard('Lokal integrierte Basis', static function (): void { ?>
                     <p class="text-secondary small mb-3">Die Graph-Anbindung läuft bewusst mit schlankem cURL-Client, damit die Deployment-Struktur von 365CMS ohne zusätzliche Composer-Abhängigkeiten stabil bleibt.</p>
                     <div class="small text-secondary">Empfohlenes Standard-Scope: <code>https://graph.microsoft.com/.default</code></div>
@@ -379,6 +397,7 @@ $queueLastRunText = !empty($queueLastRun['executed_at'])
             </div>
         </div>
     <?php elseif ($isCurrentTab('logs')): ?>
+        <h3 class="cms-settings-section-heading">Mail-Logs und Kennzahlen</h3>
         <?php $renderMetricCardsRow($logMetricCards); ?>
 
         <div class="card">
@@ -426,13 +445,19 @@ $queueLastRunText = !empty($queueLastRun['executed_at'])
             </div>
         </div>
     <?php else: ?>
+        <h3 class="cms-settings-section-heading">Queue-Betrieb</h3>
         <?php $renderMetricCardsRow($queueMetricCards); ?>
 
         <div class="row row-cards mb-4">
-            <div class="col-12 col-xl-6">
+            <div class="col-12">
                 <form method="post" class="card h-100">
                     <?php $renderFormContext('queue'); ?>
                     <?php $renderCardHeaderTitle('Queue-Konfiguration'); ?>
+                    <div class="card-body border-bottom">
+                        <div class="cms-settings-actions mb-0">
+                            <?php $renderActionButton('save_queue', 'Queue speichern'); ?>
+                        </div>
+                    </div>
                     <div class="card-body">
                         <div class="row g-3">
                             <div class="col-12">
@@ -479,7 +504,7 @@ $queueLastRunText = !empty($queueLastRun['executed_at'])
                     </div>
                 </form>
             </div>
-            <div class="col-12 col-xl-6">
+            <div class="col-12">
                 <div class="card h-100">
                     <?php $renderCardHeaderTitle('Worker & Cron'); ?>
                     <div class="card-body">

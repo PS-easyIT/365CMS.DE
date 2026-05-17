@@ -33,7 +33,7 @@ $siteTablesCreateUrl = $siteTablesBaseUrl . '?action=edit';
 </div>
 
 <div class="page-body">
-    <div class="container-xl">
+    <div class="container-xl cms-settings-page">
         <?php
         $alertData = $alert ?? [];
         $alertDismissible = true;
@@ -44,6 +44,11 @@ $siteTablesCreateUrl = $siteTablesBaseUrl . '?action=edit';
         <form method="post">
             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
             <input type="hidden" name="action" value="save_settings">
+
+            <div class="cms-settings-actions">
+                <span class="text-secondary small me-auto">Standarddarstellung und Editor-Optionen für alle Content-Tabellen.</span>
+                <button type="submit" class="btn btn-primary">Einstellungen speichern</button>
+            </div>
 
             <div class="row row-deck row-cards mb-4">
                 <div class="col-sm-6 col-lg-4">
@@ -73,7 +78,8 @@ $siteTablesCreateUrl = $siteTablesBaseUrl . '?action=edit';
             </div>
 
             <div class="row">
-                <div class="col-lg-8">
+                <div class="col-12">
+                    <h3 class="cms-settings-section-heading">Primäre Anzeigeeinstellungen</h3>
                     <div class="card mb-3">
                         <div class="card-header">
                             <h3 class="card-title">Anzeige &amp; Meta-Infos</h3>
@@ -110,9 +116,9 @@ $siteTablesCreateUrl = $siteTablesBaseUrl . '?action=edit';
                             <div class="row g-3">
                                 <?php foreach ($styleOptions as $styleKey => $style): ?>
                                     <div class="col-md-6">
-                                        <label class="form-check border rounded p-3 h-100">
+                                        <label class="form-check py-2">
                                             <input class="form-check-input mt-1" type="checkbox" name="enabled_styles[]" value="<?php echo htmlspecialchars((string)$styleKey); ?>" <?php echo in_array($styleKey, $settings['enabled_styles'] ?? [], true) ? 'checked' : ''; ?>>
-                                            <span class="form-check-label d-block ms-2">
+                                            <span class="form-check-label d-block ms-1">
                                                 <span class="fw-semibold d-block"><?php echo htmlspecialchars((string)($style['label'] ?? $styleKey)); ?></span>
                                                 <span class="text-secondary small d-block mt-1"><?php echo htmlspecialchars((string)($style['description'] ?? '')); ?></span>
                                             </span>
@@ -124,7 +130,8 @@ $siteTablesCreateUrl = $siteTablesBaseUrl . '?action=edit';
                     </div>
                 </div>
 
-                <div class="col-lg-4">
+                <div class="col-12">
+                    <h3 class="cms-settings-section-heading">Sekundäre Vorgaben</h3>
                     <div class="card mb-3">
                         <div class="card-header">
                             <h3 class="card-title">Standard-Style</h3>
@@ -142,12 +149,10 @@ $siteTablesCreateUrl = $siteTablesBaseUrl . '?action=edit';
                         </div>
                     </div>
 
-                    <div class="card">
-                        <div class="card-body">
-                            <button type="submit" class="btn btn-primary w-100">Einstellungen speichern</button>
-                        </div>
-                    </div>
                 </div>
+            </div>
+            <div class="cms-settings-actions cms-settings-actions-bottom">
+                <button type="submit" class="btn btn-primary">Einstellungen speichern</button>
             </div>
         </form>
     </div>
