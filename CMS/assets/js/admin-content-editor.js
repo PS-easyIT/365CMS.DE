@@ -445,6 +445,97 @@
             return typeof window.createCmsEditor === 'function';
         }
 
+        function hasEditorCore() {
+            return typeof window.EditorJS === 'function';
+        }
+
+        function createPlaintextFallbackData(value) {
+            var normalizedValue = String(value || '').trim();
+
+            if (normalizedValue === '') {
+                return { blocks: [] };
+            }
+
+            return {
+                time: Date.now(),
+                version: 'cms-editor-fallback',
+                blocks: [
+                    {
+                        type: 'paragraph',
+                        data: { text: normalizedValue.replace(/\n/g, '<br>') }
+                    }
+                ]
+            };
+        }
+
+        function extractFallbackTextareaValue(data) {
+            var blocks = data && Array.isArray(data.blocks) ? data.blocks : [];
+            var textParts = [];
+
+            blocks.forEach(function (block) {
+                var blockData = block && typeof block.data === 'object' ? block.data : {};
+                var value = '';
+
+                ['text', 'message', 'title', 'code', 'caption', 'content', 'html'].some(function (key) {
+                    if (typeof blockData[key] !== 'string' || blockData[key].trim() === '') {
+                        return false;
+                    }
+
+                    value = extractTextFromHtml(blockData[key]);
+                    return true;
+                });
+
+                if (value.trim() !== '') {
+                    textParts.push(value.trim());
+                }
+            });
+
+            return textParts.join('\n\n');
+        }
+
+        function renderEditorUnavailableFallback(definition, input, reason) {
+            var holder = getElement(definition && definition.holderId ? definition.holderId : '');
+            var warning;
+            var textarea;
+            var normalizedData;
+            var fallbackText;
+
+            if (!holder || !input) {
+                return;
+            }
+
+            if (holder.dataset.cmsEditorFallbackBound === '1') {
+                return;
+            }
+
+            holder.dataset.cmsEditorFallbackBound = '1';
+            clearElement(holder);
+
+            warning = document.createElement('div');
+            warning.className = 'alert alert-warning cms-editor-fallback-warning';
+            warning.textContent = 'EditorJS konnte nicht geladen werden. Fallback-Textfeld aktiv (' + String(reason || 'unknown') + ').';
+            holder.appendChild(warning);
+
+            textarea = document.createElement('textarea');
+            textarea.className = 'form-control';
+            textarea.rows = 14;
+            textarea.setAttribute('aria-label', 'EditorJS Fallback Text');
+
+            normalizedData = normalizeEditorData(safeParseEditorInput(input));
+            fallbackText = extractFallbackTextareaValue(normalizedData);
+            if (fallbackText === '') {
+                fallbackText = extractTextFromHtml(String(input.value || ''));
+            }
+            textarea.value = fallbackText;
+
+            textarea.addEventListener('input', function () {
+                input.value = JSON.stringify(createPlaintextFallbackData(textarea.value));
+                emitChangeEvents(input);
+            });
+
+            holder.appendChild(textarea);
+        }
+
         function waitForNextPaint() {
             return new Promise(function (resolve) {
                 if (typeof window.requestAnimationFrame === 'function') {
@@ -1667,12 +1758,21 @@
         function bindEditor(definition, forceRecreate) {
             var holder = getElement(definition.holderId);
             var input = getElement(definition.inputId);
+            var createdInstance;
 
             if (!definition || !holder || !input) {
                 return null;
             }
 
-            if (!hasEditorFactory()) {
+            if (!hasEditorFactory() || !hasEditorCore()) {
+                if (typeof console !== 'undefined' && typeof console.error === 'function') {
+                    console.error('[cms-editor] EditorJS bind skipped for holder "' + definition.holderId + '".', {
+                        hasFactory: hasEditorFactory(),
+                        hasCore: hasEditorCore()
+                    });
+                }
+
+                renderEditorUnavailableFallback(definition, input, hasEditorFactory() ? 'core-missing' : 'factory-missing');
                 return null;
             }
 
@@ -1687,9 +1787,8 @@
 
             registerEditorMutationTracking(definition.key, holder);
 
-            editors[definition.key] = {
-                input: input,
-                instance: window.createCmsEditor(definition.holderId, input.value || '', config.mediaUploadUrl, config.csrfToken, {
+            try {
+                createdInstance = window.createCmsEditor(definition.holderId, input.value || '', config.mediaUploadUrl, config.csrfToken, {
                     getUploadContext: buildUploadContext,
                     onChange: function (output) {
                         var currentEntry = editors[definition.key];
@@ -1701,7 +1800,19 @@
                         input.value = JSON.stringify(normalizeEditorData(output));
                         emitChangeEvents(input);
                     }
-                })
+                });
+            } catch (error) {
+                if (typeof console !== 'undefined' && typeof console.error === 'function') {
+                    console.error('[cms-editor] EditorJS init failed for holder "' + definition.holderId + '".', error);
+                }
+
+                renderEditorUnavailableFallback(definition, input, 'init-failed');
+                return null;
+            }
+
+            editors[definition.key] = {
+                input: input,
+                instance: createdInstance
             };
 
             ensureEditorUi(definition, editors[definition.key]);
@@ -2346,6 +2457,33 @@
         });
     }
 
+    function waitForEditorJsCore(editorJsConfig) {
+        var hasEditorDefinitions = !!(editorJsConfig && Array.isArray(editorJsConfig.editors) && editorJsConfig.editors.length > 0);
+        var readyPromise = window.cmsEditorJsCoreReady;
+
+        if (!hasEditorDefinitions) {
+            return Promise.resolve(true);
+        }
+
+        if (typeof window.EditorJS === 'function') {
+            return Promise.resolve(true);
+        }
+
+        if (!readyPromise || typeof readyPromise.then !== 'function') {
+            return Promise.resolve(false);
+        }
+
+        return readyPromise.then(function () {
+            return typeof window.EditorJS === 'function';
+        }).catch(function (error) {
+            if (typeof console !== 'undefined' && typeof console.error === 'function') {
+                console.error('[cms-editor] EditorJS core readiness failed.', error);
+            }
+
+            return false;
+        });
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
         var uiConfig = parseJsonInput('contentEditorUiConfig', null);
         var seoConfig = parseJsonInput('contentEditorSeoConfig', null);
@@ -2359,7 +2497,12 @@
         enforceAccordionDefaults();
         initUi(uiConfig);
         initSeo(seoConfig);
-        initEditorJs(editorJsConfig);
-        initLanguageTabCompleteness(editorJsConfig);
+        waitForEditorJsCore(editorJsConfig).then(function () {
+            initEditorJs(editorJsConfig);
+            initLanguageTabCompleteness(editorJsConfig);
+        }, function () {
+            initEditorJs(editorJsConfig);
+            initLanguageTabCompleteness(editorJsConfig);
+        });
     });
 })();
