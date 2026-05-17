@@ -242,6 +242,9 @@ try {
         'mode' => PHP_SAPI === 'cli' ? 'cli' : 'web',
         'source' => 'cron.php',
     ]);
+    $runnerResult['scheduler_library'] = class_exists(\Poliander\Cron\CronExpression::class)
+        ? 'poliander/cron'
+        : 'fallback-interval';
 
     $statusCode = match ((string) ($runnerResult['error_code'] ?? '')) {
         'invalid_task' => 400,

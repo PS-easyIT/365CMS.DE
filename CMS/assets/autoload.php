@@ -70,6 +70,25 @@ spl_autoload_register(function (string $class): void {
     }
 });
 
+// ─── poliander/cron ────────────────────────────────────────────────────────
+// PSR-4: Poliander\Cron\ → cron/
+spl_autoload_register(function (string $class): void {
+    $prefix = 'Poliander\\Cron\\';
+    $baseDir = CMS_VENDOR_PATH . 'cron' . DIRECTORY_SEPARATOR;
+
+    $len = strlen($prefix);
+    if (strncmp($prefix, $class, $len) !== 0) {
+        return;
+    }
+
+    $relativeClass = substr($class, $len);
+    $file = $baseDir . str_replace('\\', DIRECTORY_SEPARATOR, $relativeClass) . '.php';
+
+    if (file_exists($file)) {
+        require_once $file;
+    }
+});
+
 // ─── TNTSearch ─────────────────────────────────────────────────────────────
 // PSR-4: TeamTNT\TNTSearch\ → tntsearchsrc/
 spl_autoload_register(function (string $class): void {

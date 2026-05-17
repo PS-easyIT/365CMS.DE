@@ -15,6 +15,7 @@ use CMS\Database;
 use CMS\Http\Client as HttpClient;
 use CMS\SchemaManager;
 use CMS\Services\CronRunnerService;
+use CMS\Services\CronExpressionAdapter;
 use CMS\Services\MailQueueService;
 use CMS\Services\MailService;
 use CMS\Services\MonitoringTrendService;
@@ -1956,7 +1957,11 @@ class SystemInfoModule
         }
 
         $queueConfig = MailQueueService::getInstance()->getConfiguration();
-        $lastRun = $this->getCronLastRunState();
+        $scheduleExpression = trim(SettingsService::getInstance()->getString('cron', 'hourly_expression', '0 * * * *'));
+        if ($scheduleExpression === '') {
+            $scheduleExpression = '0 * * * *';
+        }
+        $lastRun = $this->getCronLastRunState($scheduleExpression);
         $cronToken = (string) ($queueConfig['cron_token'] ?? '');
         $cronWebPath = '/cron.php';
         $cronBaseUrl = defined('SITE_URL') ? rtrim((string) SITE_URL, '/') . $cronWebPath : '';
@@ -1993,6 +1998,11 @@ class SystemInfoModule
                 'batch_size' => (int) ($queueConfig['batch_size'] ?? 10),
                 'enabled' => !empty($queueConfig['enabled']),
             ],
+            'scheduler' => [
+                'hourly_expression' => $scheduleExpression,
+                'uses_external_library' => CronExpressionAdapter::getInstance()->isLibraryAvailable(),
+                'expression_valid' => CronExpressionAdapter::getInstance()->isValid($scheduleExpression),
+            ],
             'runner' => [
                 'tasks' => ['all', 'mail-queue', 'hourly'],
                 'default_task' => 'all',
@@ -2002,9 +2012,13 @@ class SystemInfoModule
         ];
     }
 
-    /** @return array{timestamp:string,age_minutes:?int,is_due:bool,next_due_in_seconds:?int,status_label:string} */
-    private function getCronLastRunState(): array
+    /** @return array{timestamp:string,age_minutes:?int,is_due:bool,next_due_in_seconds:?int,status_label:string,schedule_expression:string,scheduler:string} */
+    private function getCronLastRunState(string $scheduleExpression): array
     {
+        $adapter = CronExpressionAdapter::getInstance();
+        $scheduler = ($adapter->isLibraryAvailable() && $adapter->isValid($scheduleExpression))
+            ? 'poliander-cron'
+            : 'fallback-interval';
         $lastRunRaw = trim(SettingsService::getInstance()->getString('cron', 'hourly_last_run', ''));
         if ($lastRunRaw === '') {
             return [
@@ -2013,6 +2027,8 @@ class SystemInfoModule
                 'is_due' => true,
                 'next_due_in_seconds' => null,
                 'status_label' => 'Noch kein stündlicher Lauf protokolliert',
+                'schedule_expression' => $scheduleExpression,
+                'scheduler' => $scheduler,
             ];
         }
 
@@ -2024,21 +2040,35 @@ class SystemInfoModule
                 'is_due' => true,
                 'next_due_in_seconds' => null,
                 'status_label' => 'Letzter Lauf konnte nicht interpretiert werden',
+                'schedule_expression' => $scheduleExpression,
+                'scheduler' => $scheduler,
             ];
         }
 
         $ageSeconds = max(0, time() - $lastRunTs);
         $nextDueInSeconds = max(0, 3600 - $ageSeconds);
+        $isDue = $ageSeconds >= 3600;
+
+        if ($scheduler === 'poliander-cron') {
+            $nextRunTs = $adapter->getNextRunTimestamp($scheduleExpression, $lastRunTs);
+            if ($nextRunTs !== null) {
+                $nextDueInSeconds = max(0, $nextRunTs - time());
+                $isDue = $nextDueInSeconds === 0;
+            }
+        }
+
         $ageMinutes = (int) floor($ageSeconds / 60);
 
         return [
             'timestamp' => date('Y-m-d H:i:s', $lastRunTs),
             'age_minutes' => $ageMinutes,
-            'is_due' => $ageSeconds >= 3600,
+            'is_due' => $isDue,
             'next_due_in_seconds' => $nextDueInSeconds,
-            'status_label' => $ageSeconds >= 3600
+            'status_label' => $isDue
                 ? 'Überfällig seit ' . $ageMinutes . ' min'
                 : 'Zuletzt vor ' . $ageMinutes . ' min',
+            'schedule_expression' => $scheduleExpression,
+            'scheduler' => $scheduler,
         ];
     }
 

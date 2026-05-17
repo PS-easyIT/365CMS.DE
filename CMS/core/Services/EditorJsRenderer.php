@@ -143,6 +143,7 @@ final class EditorJsRenderer
             'apiEndpoint' => $this->renderApiEndpoint($data),
             'changelog' => $this->renderChangelog($data),
             'prosCons' => $this->renderProsCons($data),
+            'details' => $this->renderDetails($data),
             default => '',
         };
     }
@@ -790,6 +791,22 @@ final class EditorJsRenderer
         $html .= '</div></section>';
 
         return $html;
+    }
+
+    /** @param array<string,mixed> $data */
+    private function renderDetails(array $data): string
+    {
+        $summary = $this->sanitizeInline((string)($data['summary'] ?? ''));
+        $content = $this->sanitizeInline((string)($data['content'] ?? ''));
+
+        if ($summary === '' && $content === '') {
+            return '';
+        }
+
+        $resolvedSummary = $summary !== '' ? $summary : 'Details';
+        $resolvedContent = $content !== '' ? $content : '<br>';
+
+        return '<div class="editorjs-block editorjs-details"><details><summary>' . $resolvedSummary . '</summary><div class="editorjs-details__content"><p>' . $resolvedContent . '</p></div></details></div>';
     }
 
     /** @param array<string,mixed> $data */

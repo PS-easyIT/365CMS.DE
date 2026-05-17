@@ -14,6 +14,26 @@
 - Rendering in `CMS/core/Services/EditorJsRenderer.php`
 - Nutzung über Theme-/Frontend-Integration
 
+## Verfügbare Tools (Stand 17.05.2026)
+
+- **Inhaltsstruktur**: `header` (H2-H5), `paragraph`, `list`, `checklist`, `quote`, `delimiter`, `spacer`, `details` (Toggle/Disclosure), `callout`.
+- **Tech-Content**: `code` (mit Sprachfeld), `table` (Header-Zeile umschaltbar), `embed`, `linkTool` (Link-Karte), `raw`.
+- **Medien & Dateien**: `image` (Mediathek + Upload + URL), `imageGallery` (Mehrfach-Upload + URL-Import), `attaches` (Datei-Upload), `carousel`.
+- **Inline-Formatting**: `bold`, `italic`, `underline`, `inlineCode`, `spoiler`, `marker/highlight`, `link`.
+
+## Save-/Render-/Sanitizer-Vertrag
+
+- Neue und bestehende Blöcke werden serverseitig über `EditorJsSanitizer` validiert/sanitized; unbekannte oder ungültige Typen werden verworfen.
+- Das Frontend rendert über `EditorJsRenderer` typ-spezifisch und sanitizt Inline-/Raw-Inhalte erneut.
+- Legacy-Inhalte (JSON-String, HTML-Fallback, Plaintext) werden clientseitig in `editor-init.js` rückwärtskompatibel in Blockdaten normalisiert.
+- Upload- und Link-Requests laufen weiterhin über den bestehenden `/api/media`-Flow inkl. CSRF-Header.
+
+## Bekannte Grenzen
+
+- ToC wird aktuell über `header`-Blöcke/Anker im Frontend-Kontext aufgebaut; ein separater ToC-Editorblock ist noch nicht vorhanden.
+- Externe Embed-Provider werden aus Sicherheitsgründen als sichere Link-Embeds (statt unsandboxed iFrame-HTML) ausgegeben.
+- Einige UMD-Plugins wurden durch stabile interne Fallback-Tools ersetzt, damit Save/Render ohne defekte Asset-404s funktioniert.
+
 ## Sicherheits- und Betriebsvertrag
 
 - Gebündelte Core-Version: `Editor.js 2.31.6` (Upstream-Stand im Audit: `v2.31.6`).

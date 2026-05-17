@@ -23,6 +23,12 @@ if (!defined('ABSPATH')) {
 
 final class ApiRouter
 {
+    private const WEB_VITALS_MAX_BODY_BYTES = 8192;
+    private const WEB_VITALS_RATE_LIMIT_WINDOW_SECONDS = 60;
+    private const WEB_VITALS_RATE_LIMIT_MAX_REQUESTS = 40;
+    private const WEB_VITALS_ALLOWED_EFFECTIVE_TYPES = ['slow-2g', '2g', '3g', '4g', '5g', 'unknown', ''];
+    private const WEB_VITALS_ALLOWED_NAVIGATION_TYPES = ['navigate', 'reload', 'back_forward', 'prerender', 'unknown', ''];
+
     public function __construct(private readonly Router $router)
     {
     }
@@ -68,25 +74,43 @@ final class ApiRouter
     public function captureWebVitals(): void
     {
         if (!$this->isSameOriginRequest()) {
-            http_response_code(204);
+            http_response_code(403);
             exit;
         }
 
         $raw = file_get_contents('php://input');
-        $payload = [];
-
-        if (is_string($raw) && trim($raw) !== '') {
-            $decoded = json_decode($raw, true);
-            if (is_array($decoded)) {
-                $payload = $decoded;
-            }
+        if (!is_string($raw) || trim($raw) === '') {
+            http_response_code(422);
+            exit;
+        }
+        if (strlen($raw) > self::WEB_VITALS_MAX_BODY_BYTES) {
+            http_response_code(413);
+            exit;
+        }
+        if (!$this->consumeWebVitalsRateLimitToken()) {
+            http_response_code(429);
+            exit;
         }
 
-        if ($payload === []) {
-            $payload = $_POST;
+        try {
+            $decoded = json_decode($raw, true, 32, JSON_THROW_ON_ERROR);
+        } catch (\Throwable) {
+            http_response_code(422);
+            exit;
         }
 
-        Services\CoreWebVitalsService::getInstance()->storeReport(is_array($payload) ? $payload : []);
+        if (!is_array($decoded)) {
+            http_response_code(422);
+            exit;
+        }
+
+        $payload = $this->normalizeWebVitalsPayload($decoded);
+        if ($payload === null) {
+            http_response_code(422);
+            exit;
+        }
+
+        Services\CoreWebVitalsService::getInstance()->storeReport($payload);
         http_response_code(204);
         exit;
     }
@@ -447,25 +471,133 @@ final class ApiRouter
 
     private function isSameOriginRequest(): bool
     {
-        $siteHost = (string)parse_url((string)SITE_URL, PHP_URL_HOST);
-        if ($siteHost === '') {
+        $siteUrl = (string) SITE_URL;
+        $siteHost = strtolower((string) parse_url($siteUrl, PHP_URL_HOST));
+        $siteScheme = strtolower((string) parse_url($siteUrl, PHP_URL_SCHEME));
+        if ($siteHost === '' || $siteScheme === '') {
             return false;
         }
 
+        $hasOriginSignals = false;
         foreach (['HTTP_ORIGIN', 'HTTP_REFERER'] as $header) {
             $value = trim((string)($_SERVER[$header] ?? ''));
             if ($value === '') {
                 continue;
             }
+            $hasOriginSignals = true;
 
-            $host = (string)parse_url($value, PHP_URL_HOST);
-            if ($host === '' || strcasecmp($host, $siteHost) !== 0) {
+            $host = strtolower((string) parse_url($value, PHP_URL_HOST));
+            $scheme = strtolower((string) parse_url($value, PHP_URL_SCHEME));
+            if ($host === '' || $scheme === '' || $host !== $siteHost || $scheme !== $siteScheme) {
                 return false;
             }
-
-            return true;
         }
 
+        return $hasOriginSignals;
+    }
+
+    private function consumeWebVitalsRateLimitToken(): bool
+    {
+        $window = (int) floor(time() / self::WEB_VITALS_RATE_LIMIT_WINDOW_SECONDS);
+        $ip = trim((string) ($_SERVER['REMOTE_ADDR'] ?? ''));
+        $session = session_id();
+        $userAgent = trim((string) ($_SERVER['HTTP_USER_AGENT'] ?? ''));
+        $fingerprint = hash('sha256', $ip . '|' . $session . '|' . mb_substr($userAgent, 0, 180));
+        $cacheFile = rtrim((string) sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR
+            . '365cms-web-vitals-rate-' . hash('sha256', ABSPATH) . '.json';
+
+        $buckets = [];
+        if (is_file($cacheFile)) {
+            $raw = @file_get_contents($cacheFile);
+            $decoded = is_string($raw) ? json_decode($raw, true) : null;
+            if (is_array($decoded)) {
+                $buckets = $decoded;
+            }
+        }
+
+        $key = $window . ':' . $fingerprint;
+        $count = isset($buckets[$key]) ? (int) $buckets[$key] : 0;
+        if ($count >= self::WEB_VITALS_RATE_LIMIT_MAX_REQUESTS) {
+            return false;
+        }
+        $buckets[$key] = $count + 1;
+
+        $minWindow = $window - 2;
+        foreach (array_keys($buckets) as $bucketKey) {
+            $parts = explode(':', (string) $bucketKey, 2);
+            $bucketWindow = isset($parts[0]) ? (int) $parts[0] : 0;
+            if ($bucketWindow < $minWindow) {
+                unset($buckets[$bucketKey]);
+            }
+        }
+
+        @file_put_contents($cacheFile, json_encode($buckets, JSON_UNESCAPED_SLASHES));
+
         return true;
+    }
+
+    private function normalizeWebVitalsPayload(array $payload): ?array
+    {
+        $path = trim((string) ($payload['path'] ?? ''));
+        if ($path === '' || !str_starts_with($path, '/')) {
+            return null;
+        }
+
+        $normalized = [
+            'path' => mb_substr((string) parse_url($path, PHP_URL_PATH), 0, 500),
+            'title' => mb_substr(trim((string) ($payload['title'] ?? '')), 0, 255),
+            'ttfb' => $this->normalizeMetricNumber($payload['ttfb'] ?? null, 60000),
+            'lcp' => $this->normalizeMetricNumber($payload['lcp'] ?? null, 60000),
+            'inp' => $this->normalizeMetricNumber($payload['inp'] ?? null, 60000),
+            'cls' => $this->normalizeMetricFloat($payload['cls'] ?? null, 10.0),
+            'effective_type' => $this->normalizeAllowedString($payload['effective_type'] ?? '', self::WEB_VITALS_ALLOWED_EFFECTIVE_TYPES, 32),
+            'navigation_type' => $this->normalizeAllowedString($payload['navigation_type'] ?? '', self::WEB_VITALS_ALLOWED_NAVIGATION_TYPES, 32),
+            'viewport_width' => $this->normalizeMetricNumber($payload['viewport_width'] ?? null, 10000),
+            'viewport_height' => $this->normalizeMetricNumber($payload['viewport_height'] ?? null, 10000),
+        ];
+
+        if ($normalized['path'] === '') {
+            return null;
+        }
+        if ($normalized['ttfb'] === null && $normalized['lcp'] === null && $normalized['inp'] === null && $normalized['cls'] === null) {
+            return null;
+        }
+
+        return $normalized;
+    }
+
+    private function normalizeMetricNumber(mixed $value, int $max): ?int
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        $number = (int) round((float) $value);
+        if ($number < 0 || $number > $max) {
+            return null;
+        }
+
+        return $number;
+    }
+
+    private function normalizeMetricFloat(mixed $value, float $max): ?float
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        $number = round((float) $value, 3);
+        if ($number < 0 || $number > $max) {
+            return null;
+        }
+
+        return $number;
+    }
+
+    private function normalizeAllowedString(mixed $value, array $allowed, int $maxLength): string
+    {
+        $normalized = mb_substr(strtolower(trim((string) $value)), 0, $maxLength);
+
+        return in_array($normalized, $allowed, true) ? $normalized : '';
     }
 }

@@ -14,6 +14,7 @@ if (!defined('ABSPATH')) {
 final class CronRunnerService
 {
     private static ?self $instance = null;
+    private const HOURLY_CRON_EXPRESSION = '0 * * * *';
 
     /**
      * @return list<string>
@@ -241,18 +242,22 @@ final class CronRunnerService
 
     private function runHourlyHooks(SettingsService $settings, bool $forceRun): array
     {
+        $scheduleExpression = $this->getHourlyScheduleExpression($settings);
+        $cronAdapter = CronExpressionAdapter::getInstance();
         $lastRunRaw = $settings->getString('cron', 'hourly_last_run', '');
         $lastRunTs = $lastRunRaw !== '' ? strtotime($lastRunRaw) : false;
-        $isDue = $forceRun || $lastRunTs === false || (time() - $lastRunTs) >= 3600;
+        $isDueResult = $this->resolveHourlyDueState($cronAdapter, $scheduleExpression, $lastRunTs, $forceRun);
 
-        if (!$isDue) {
+        if (!$isDueResult['is_due']) {
             return [
                 'success' => true,
                 'executed' => false,
                 'skipped' => true,
                 'reason' => 'Stündlicher Hook ist noch nicht fällig.',
                 'last_run' => $lastRunRaw,
-                'next_due_in_seconds' => max(0, 3600 - (time() - (int) $lastRunTs)),
+                'next_due_in_seconds' => $isDueResult['next_due_in_seconds'],
+                'schedule_expression' => $scheduleExpression,
+                'scheduler' => $isDueResult['scheduler'],
             ];
         }
 
@@ -266,7 +271,84 @@ final class CronRunnerService
             'executed' => true,
             'skipped' => false,
             'executed_at' => $executedAt,
+            'schedule_expression' => $scheduleExpression,
+            'scheduler' => $isDueResult['scheduler'],
+            'next_due_in_seconds' => $this->computeNextDueInSeconds($cronAdapter, $scheduleExpression, time()),
         ];
+    }
+
+    private function getHourlyScheduleExpression(SettingsService $settings): string
+    {
+        $configured = trim($settings->getString('cron', 'hourly_expression', self::HOURLY_CRON_EXPRESSION));
+
+        return $configured !== '' ? $configured : self::HOURLY_CRON_EXPRESSION;
+    }
+
+    /**
+     * @return array{is_due:bool,next_due_in_seconds:?int,scheduler:string}
+     */
+    private function resolveHourlyDueState(CronExpressionAdapter $adapter, string $expression, int|false $lastRunTs, bool $forceRun): array
+    {
+        if ($forceRun) {
+            return [
+                'is_due' => true,
+                'next_due_in_seconds' => 0,
+                'scheduler' => 'forced',
+            ];
+        }
+
+        if ($adapter->isLibraryAvailable() && $adapter->isValid($expression)) {
+            if ($lastRunTs === false) {
+                return [
+                    'is_due' => true,
+                    'next_due_in_seconds' => 0,
+                    'scheduler' => 'poliander-cron',
+                ];
+            }
+
+            $nextRun = $adapter->getNextRunTimestamp($expression, (int) $lastRunTs);
+            if ($nextRun === null) {
+                return [
+                    'is_due' => true,
+                    'next_due_in_seconds' => null,
+                    'scheduler' => 'fallback-interval',
+                ];
+            }
+
+            $remaining = max(0, $nextRun - time());
+            return [
+                'is_due' => $remaining === 0,
+                'next_due_in_seconds' => $remaining,
+                'scheduler' => 'poliander-cron',
+            ];
+        }
+
+        if ($lastRunTs === false) {
+            return [
+                'is_due' => true,
+                'next_due_in_seconds' => null,
+                'scheduler' => 'fallback-interval',
+            ];
+        }
+
+        $ageSeconds = max(0, time() - (int) $lastRunTs);
+        return [
+            'is_due' => $ageSeconds >= 3600,
+            'next_due_in_seconds' => max(0, 3600 - $ageSeconds),
+            'scheduler' => 'fallback-interval',
+        ];
+    }
+
+    private function computeNextDueInSeconds(CronExpressionAdapter $adapter, string $expression, int $anchorTimestamp): ?int
+    {
+        if ($adapter->isLibraryAvailable() && $adapter->isValid($expression)) {
+            $nextRun = $adapter->getNextRunTimestamp($expression, $anchorTimestamp);
+            if ($nextRun !== null) {
+                return max(0, $nextRun - time());
+            }
+        }
+
+        return 3600;
     }
 
     private function runGenericHook(string $hookName, ?int $limit, bool $forceRun, string $mode, string $source): array

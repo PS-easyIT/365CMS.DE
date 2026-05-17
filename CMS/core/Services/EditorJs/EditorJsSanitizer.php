@@ -52,7 +52,7 @@ final class EditorJsSanitizer
             'paragraph', 'header', 'list', 'checklist', 'quote', 'warning',
             'code', 'raw', 'table', 'image', 'attaches', 'linkTool', 'delimiter',
             'embed', 'imageGallery', 'carousel', 'columns', 'accordion', 'drawingTool', 'spacer', 'mediaText',
-            'callout', 'terminal', 'codeTabs', 'mermaid', 'apiEndpoint', 'changelog', 'prosCons',
+            'callout', 'terminal', 'codeTabs', 'mermaid', 'apiEndpoint', 'changelog', 'prosCons', 'details',
         ];
 
         $type = (string) ($block['type'] ?? '');
@@ -299,6 +299,13 @@ final class EditorJsSanitizer
                     'consTitle' => $cleanInline($data['consTitle'] ?? 'Nachteile'),
                     'pros' => array_values(array_filter(array_map(static fn($item) => trim($cleanInline($item)), is_array($data['pros'] ?? null) ? $data['pros'] : []))),
                     'cons' => array_values(array_filter(array_map(static fn($item) => trim($cleanInline($item)), is_array($data['cons'] ?? null) ? $data['cons'] : []))),
+                ];
+                break;
+
+            case 'details':
+                $data = [
+                    'summary' => $cleanInline($data['summary'] ?? ''),
+                    'content' => $cleanInline($data['content'] ?? ''),
                 ];
                 break;
 

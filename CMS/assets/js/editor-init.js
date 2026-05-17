@@ -1478,9 +1478,659 @@
         };
     }
 
+    function createInlineExecToolClass(commandName, title, icon, className) {
+        return class InlineExecTool {
+            static get isInline() {
+                return true;
+            }
+
+            static get title() {
+                return title;
+            }
+
+            render() {
+                this.button = document.createElement('button');
+                this.button.type = 'button';
+                this.button.className = 'ce-inline-tool' + (className ? ' ' + className : '');
+                this.button.innerHTML = icon;
+                return this.button;
+            }
+
+            surround() {
+                document.execCommand(commandName);
+            }
+
+            checkState() {
+                const state = document.queryCommandState(commandName);
+                if (this.button) {
+                    this.button.classList.toggle('ce-inline-tool--active', Boolean(state));
+                }
+                return state;
+            }
+        };
+    }
+
+    function createMarkerToolClass() {
+        return class MarkerTool {
+            static get isInline() {
+                return true;
+            }
+
+            static get title() {
+                return 'Highlight';
+            }
+
+            static get sanitize() {
+                return { mark: {} };
+            }
+
+            render() {
+                this.button = document.createElement('button');
+                this.button.type = 'button';
+                this.button.className = 'ce-inline-tool';
+                this.button.innerHTML = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20h4l10-10-4-4L4 16v4z"/><path d="M14 6l4 4"/></svg>';
+                return this.button;
+            }
+
+            surround() {
+                const selection = window.getSelection();
+                if (!selection || selection.rangeCount === 0 || selection.isCollapsed) {
+                    return;
+                }
+
+                const range = selection.getRangeAt(0);
+                const mark = document.createElement('mark');
+                try {
+                    range.surroundContents(mark);
+                } catch (_error) {
+                    const content = range.extractContents();
+                    mark.appendChild(content);
+                    range.insertNode(mark);
+                }
+            }
+
+            checkState() {
+                const selection = window.getSelection();
+                let current = selection && selection.anchorNode ? selection.anchorNode : null;
+                let active = false;
+                while (current) {
+                    if (current.nodeType === Node.ELEMENT_NODE && String(current.nodeName).toLowerCase() === 'mark') {
+                        active = true;
+                        break;
+                    }
+                    current = current.parentNode;
+                }
+                if (this.button) {
+                    this.button.classList.toggle('ce-inline-tool--active', active);
+                }
+                return active;
+            }
+        };
+    }
+
+    function createSimpleInlineCodeToolClass() {
+        return class SimpleInlineCodeTool {
+            static get isInline() {
+                return true;
+            }
+
+            static get title() {
+                return 'Inline code';
+            }
+
+            static get sanitize() {
+                return { code: {} };
+            }
+
+            render() {
+                this.button = document.createElement('button');
+                this.button.type = 'button';
+                this.button.className = 'ce-inline-tool';
+                this.button.innerHTML = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 17l-5-5 5-5"/><path d="M16 7l5 5-5 5"/></svg>';
+                return this.button;
+            }
+
+            surround() {
+                const selection = window.getSelection();
+                if (!selection || selection.rangeCount === 0 || selection.isCollapsed) {
+                    return;
+                }
+                const range = selection.getRangeAt(0);
+                const code = document.createElement('code');
+                try {
+                    range.surroundContents(code);
+                } catch (_error) {
+                    const content = range.extractContents();
+                    code.appendChild(content);
+                    range.insertNode(code);
+                }
+            }
+
+            checkState() {
+                const selection = window.getSelection();
+                let current = selection && selection.anchorNode ? selection.anchorNode : null;
+                let active = false;
+                while (current) {
+                    if (current.nodeType === Node.ELEMENT_NODE && String(current.nodeName).toLowerCase() === 'code') {
+                        active = true;
+                        break;
+                    }
+                    current = current.parentNode;
+                }
+                if (this.button) {
+                    this.button.classList.toggle('ce-inline-tool--active', active);
+                }
+                return active;
+            }
+        };
+    }
+
+    function createSimpleListToolClass() {
+        return class SimpleListTool {
+            static get toolbox() {
+                return { title: 'Liste', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6h11"/><path d="M9 12h11"/><path d="M9 18h11"/><circle cx="5" cy="6" r="1"/><circle cx="5" cy="12" r="1"/><circle cx="5" cy="18" r="1"/></svg>' };
+            }
+
+            constructor({ data }) {
+                this.data = data && typeof data === 'object' ? data : {};
+            }
+
+            render() {
+                const wrapper = document.createElement('div');
+                this.style = document.createElement('select');
+                this.style.className = 'form-select form-select-sm mb-2';
+                this.style.innerHTML = '<option value="unordered">Aufzählung</option><option value="ordered">Nummeriert</option>';
+                this.style.value = this.data.style === 'ordered' ? 'ordered' : 'unordered';
+                this.textarea = document.createElement('textarea');
+                this.textarea.className = 'form-control';
+                this.textarea.rows = 4;
+                const sourceItems = Array.isArray(this.data.items) ? this.data.items : [];
+                this.textarea.value = sourceItems.map((item) => {
+                    if (typeof item === 'string') {
+                        return item;
+                    }
+                    return String(item && (item.content || item.text) ? item.content || item.text : '');
+                }).filter(Boolean).join('\n');
+                wrapper.appendChild(this.style);
+                wrapper.appendChild(this.textarea);
+                return wrapper;
+            }
+
+            save() {
+                const style = this.style && this.style.value === 'ordered' ? 'ordered' : 'unordered';
+                const lines = String(this.textarea ? this.textarea.value : '').split(/\r?\n+/).map((line) => line.trim()).filter(Boolean);
+                return {
+                    style,
+                    meta: style === 'ordered' ? { start: 1, counterType: 'numeric' } : {},
+                    items: lines.map((line) => ({ content: line, items: [], meta: {} })),
+                };
+            }
+        };
+    }
+
+    function createSimpleQuoteToolClass() {
+        return class SimpleQuoteTool {
+            static get toolbox() {
+                return { title: 'Zitat', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 11H6a1 1 0 01-1-1V7a1 1 0 011-1h3a1 1 0 011 1v6c0 2.6-1.2 4.2-4 5"/><path d="M19 11h-4a1 1 0 01-1-1V7a1 1 0 011-1h3a1 1 0 011 1v6c0 2.6-1.2 4.2-4 5"/></svg>' };
+            }
+
+            constructor({ data }) {
+                this.data = data && typeof data === 'object' ? data : {};
+            }
+
+            render() {
+                const wrapper = document.createElement('div');
+                this.quote = document.createElement('textarea');
+                this.quote.className = 'form-control mb-2';
+                this.quote.rows = 3;
+                this.quote.placeholder = 'Zitat ...';
+                this.quote.value = String(this.data.text || '');
+                this.caption = document.createElement('input');
+                this.caption.className = 'form-control form-control-sm';
+                this.caption.placeholder = 'Quelle / Autor';
+                this.caption.value = String(this.data.caption || '');
+                wrapper.appendChild(this.quote);
+                wrapper.appendChild(this.caption);
+                return wrapper;
+            }
+
+            save() {
+                return {
+                    text: String(this.quote ? this.quote.value : ''),
+                    caption: String(this.caption ? this.caption.value : ''),
+                    alignment: 'left',
+                };
+            }
+        };
+    }
+
+    function createSimpleDelimiterToolClass() {
+        return class SimpleDelimiterTool {
+            static get toolbox() {
+                return { title: 'Trenner', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h16"/></svg>' };
+            }
+
+            render() {
+                const hr = document.createElement('hr');
+                hr.style.margin = '0.75rem 0';
+                return hr;
+            }
+
+            save() {
+                return {};
+            }
+        };
+    }
+
+    function createSimpleChecklistToolClass() {
+        return class SimpleChecklistTool {
+            static get toolbox() {
+                return { title: 'Checklist', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6h11"/><path d="M9 12h11"/><path d="M9 18h11"/><path d="M4 6l1.5 1.5L7.5 5.5"/><path d="M4 12l1.5 1.5L7.5 11.5"/><path d="M4 18l1.5 1.5L7.5 17.5"/></svg>' };
+            }
+
+            constructor({ data }) {
+                this.data = data && typeof data === 'object' ? data : {};
+            }
+
+            render() {
+                this.textarea = document.createElement('textarea');
+                this.textarea.className = 'form-control';
+                this.textarea.rows = 4;
+                this.textarea.placeholder = '[x] Bereits erledigt\n[ ] Noch offen';
+                const sourceItems = Array.isArray(this.data.items) ? this.data.items : [];
+                this.textarea.value = sourceItems.map((item) => {
+                    const checked = item && item.checked ? 'x' : ' ';
+                    return `[${checked}] ${String(item && item.text ? item.text : '')}`;
+                }).join('\n');
+                return this.textarea;
+            }
+
+            save() {
+                const lines = String(this.textarea ? this.textarea.value : '').split(/\r?\n+/).map((line) => line.trim()).filter(Boolean);
+                const items = lines.map((line) => {
+                    const match = line.match(/^\[(x| )\]\s*(.+)$/i);
+                    if (!match) {
+                        return { text: line, checked: false };
+                    }
+                    return { text: String(match[2] || '').trim(), checked: String(match[1] || '').toLowerCase() === 'x' };
+                }).filter((item) => item.text !== '');
+                return { items };
+            }
+        };
+    }
+
+    function createSimpleTableToolClass() {
+        return class SimpleTableTool {
+            static get toolbox() {
+                return { title: 'Tabelle', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18"/><path d="M3 9h18"/><path d="M3 15h18"/><path d="M9 3v18"/></svg>' };
+            }
+
+            constructor({ data }) {
+                this.data = data && typeof data === 'object' ? data : {};
+            }
+
+            render() {
+                const wrapper = document.createElement('div');
+                this.heading = document.createElement('label');
+                this.heading.className = 'form-check mb-2';
+                this.heading.innerHTML = '<input type="checkbox" class="form-check-input"><span class="form-check-label">Erste Zeile als Header</span>';
+                this.heading.querySelector('input').checked = Boolean(this.data.withHeadings);
+                this.textarea = document.createElement('textarea');
+                this.textarea.className = 'form-control';
+                this.textarea.rows = 5;
+                this.textarea.placeholder = 'Spalte A | Spalte B | Spalte C';
+                const rows = Array.isArray(this.data.content) ? this.data.content : [];
+                this.textarea.value = rows.map((row) => (Array.isArray(row) ? row : []).join(' | ')).join('\n');
+                wrapper.appendChild(this.heading);
+                wrapper.appendChild(this.textarea);
+                return wrapper;
+            }
+
+            save() {
+                const rows = String(this.textarea ? this.textarea.value : '').split(/\r?\n+/).map((line) => line.trim()).filter(Boolean).map((line) => line.split('|').map((cell) => String(cell || '').trim()));
+                return {
+                    withHeadings: Boolean(this.heading && this.heading.querySelector('input') && this.heading.querySelector('input').checked),
+                    content: rows,
+                };
+            }
+        };
+    }
+
+    function createSimpleCodeToolClass() {
+        return class SimpleCodeTool {
+            static get toolbox() {
+                return { title: 'Code', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 17l-5-5 5-5"/><path d="M16 7l5 5-5 5"/><path d="M13 4l-2 16"/></svg>' };
+            }
+
+            constructor({ data }) {
+                this.data = data && typeof data === 'object' ? data : {};
+            }
+
+            render() {
+                const wrapper = document.createElement('div');
+                this.lang = document.createElement('input');
+                this.lang.className = 'form-control form-control-sm mb-2';
+                this.lang.placeholder = 'Sprache (z.B. bash, php, js)';
+                this.lang.value = String(this.data.language || '');
+                this.code = document.createElement('textarea');
+                this.code.className = 'form-control';
+                this.code.rows = 8;
+                this.code.placeholder = 'Code...';
+                this.code.value = String(this.data.code || '');
+                wrapper.appendChild(this.lang);
+                wrapper.appendChild(this.code);
+                return wrapper;
+            }
+
+            save() {
+                return {
+                    language: String(this.lang ? this.lang.value : '').trim().toLowerCase().replace(/[^a-z0-9_\-+#]/g, ''),
+                    code: String(this.code ? this.code.value : ''),
+                };
+            }
+        };
+    }
+
+    function createSimpleEmbedToolClass() {
+        return class SimpleEmbedTool {
+            static get toolbox() {
+                return { title: 'Embed', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l-6-6 6-6"/><path d="M15 6l6 6-6 6"/></svg>' };
+            }
+
+            constructor({ data }) {
+                this.data = data && typeof data === 'object' ? data : {};
+            }
+
+            render() {
+                const wrapper = document.createElement('div');
+                this.url = document.createElement('input');
+                this.url.className = 'form-control form-control-sm mb-2';
+                this.url.placeholder = 'https://...';
+                this.url.value = String(this.data.source || this.data.embed || '');
+                this.caption = document.createElement('input');
+                this.caption.className = 'form-control form-control-sm';
+                this.caption.placeholder = 'Caption (optional)';
+                this.caption.value = String(this.data.caption || '');
+                wrapper.appendChild(this.url);
+                wrapper.appendChild(this.caption);
+                return wrapper;
+            }
+
+            save() {
+                const source = String(this.url ? this.url.value : '').trim();
+                return {
+                    service: 'embed',
+                    source,
+                    embed: source,
+                    width: 0,
+                    height: 0,
+                    caption: String(this.caption ? this.caption.value : ''),
+                };
+            }
+        };
+    }
+
+    function createSimpleLinkToolClass() {
+        return class SimpleLinkTool {
+            static get toolbox() {
+                return { title: 'Link', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.07 0l2.83-2.83a5 5 0 00-7.07-7.07L10 5"/><path d="M14 11a5 5 0 00-7.07 0L4.1 13.83a5 5 0 007.07 7.07L14 19"/></svg>' };
+            }
+
+            constructor({ data }) {
+                this.data = data && typeof data === 'object' ? data : {};
+            }
+
+            render() {
+                const wrapper = document.createElement('div');
+                this.url = document.createElement('input');
+                this.url.className = 'form-control form-control-sm mb-2';
+                this.url.placeholder = 'https://...';
+                this.url.value = String(this.data.link || '');
+                this.title = document.createElement('input');
+                this.title.className = 'form-control form-control-sm mb-2';
+                this.title.placeholder = 'Titel';
+                this.title.value = String(this.data.meta && this.data.meta.title ? this.data.meta.title : '');
+                this.description = document.createElement('textarea');
+                this.description.className = 'form-control form-control-sm';
+                this.description.rows = 2;
+                this.description.placeholder = 'Kurzbeschreibung';
+                this.description.value = String(this.data.meta && this.data.meta.description ? this.data.meta.description : '');
+                wrapper.appendChild(this.url);
+                wrapper.appendChild(this.title);
+                wrapper.appendChild(this.description);
+                return wrapper;
+            }
+
+            save() {
+                return {
+                    link: String(this.url ? this.url.value : '').trim(),
+                    meta: {
+                        title: String(this.title ? this.title.value : ''),
+                        description: String(this.description ? this.description.value : ''),
+                        site_name: '',
+                        image: { url: '' },
+                    },
+                };
+            }
+        };
+    }
+
+    function createSimpleAttachesToolClass(uploadUrl, csrfToken) {
+        return class SimpleAttachesTool {
+            static get toolbox() {
+                return { title: 'Datei', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><path d="M16 3h5v5"/><path d="M10 14L21 3"/></svg>' };
+            }
+
+            constructor({ data }) {
+                this.data = data && typeof data === 'object' ? data : {};
+            }
+
+            render() {
+                const wrapper = document.createElement('div');
+                this.fileInput = document.createElement('input');
+                this.fileInput.type = 'file';
+                this.fileInput.className = 'form-control form-control-sm mb-2';
+                this.title = document.createElement('input');
+                this.title.className = 'form-control form-control-sm';
+                this.title.placeholder = 'Label';
+                this.title.value = String(this.data.title || '');
+                this.status = document.createElement('div');
+                this.status.className = 'small text-secondary mt-2';
+                this.currentFile = this.data.file && typeof this.data.file === 'object' ? this.data.file : {};
+                if (this.currentFile.url) {
+                    this.status.textContent = 'Aktuell: ' + String(this.currentFile.name || this.currentFile.url);
+                }
+                this.fileInput.addEventListener('change', () => {
+                    const file = this.fileInput.files && this.fileInput.files[0] ? this.fileInput.files[0] : null;
+                    if (!file || !uploadUrl) {
+                        return;
+                    }
+                    const formData = new FormData();
+                    formData.append('action', 'upload_file');
+                    formData.append('file', file);
+                    fetchJson(uploadUrl, {
+                        method: 'POST',
+                        headers: buildHeaders(csrfToken),
+                        credentials: 'same-origin',
+                        body: formData,
+                    }).then((payload) => {
+                        if (!payload || Number(payload.success) !== 1 || !payload.file || !payload.file.url) {
+                            throw new Error(payload && payload.message ? payload.message : 'Upload fehlgeschlagen.');
+                        }
+                        this.currentFile = payload.file;
+                        this.status.textContent = 'Hochgeladen: ' + String(payload.file.name || payload.file.url);
+                    }).catch((error) => {
+                        this.status.textContent = error && error.message ? error.message : 'Datei konnte nicht hochgeladen werden.';
+                    });
+                });
+                wrapper.appendChild(this.fileInput);
+                wrapper.appendChild(this.title);
+                wrapper.appendChild(this.status);
+                return wrapper;
+            }
+
+            save() {
+                return {
+                    title: String(this.title ? this.title.value : ''),
+                    file: this.currentFile && typeof this.currentFile === 'object'
+                        ? {
+                            url: String(this.currentFile.url || ''),
+                            name: String(this.currentFile.name || ''),
+                            size: Number(this.currentFile.size || 0),
+                            extension: String(this.currentFile.extension || ''),
+                        }
+                        : { url: '', name: '', size: 0, extension: '' },
+                };
+            }
+        };
+    }
+
+    function createSimpleCalloutToolClass() {
+        return class SimpleCalloutTool {
+            static get toolbox() {
+                return { title: 'Callout', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.29 3.86L1.82 18a2 2 0 001.73 3h16.9a2 2 0 001.73-3l-8.47-14.14a2 2 0 00-3.42 0z"/></svg>' };
+            }
+
+            constructor({ data }) {
+                this.data = data && typeof data === 'object' ? data : {};
+            }
+
+            render() {
+                const wrapper = document.createElement('div');
+                this.variant = document.createElement('select');
+                this.variant.className = 'form-select form-select-sm mb-2';
+                this.variant.innerHTML = '<option value="info">Info</option><option value="warning">Warnung</option><option value="success">Erfolg</option>';
+                this.variant.value = ['info', 'warning', 'success'].includes(String(this.data.variant || '')) ? String(this.data.variant) : 'info';
+                this.title = document.createElement('input');
+                this.title.className = 'form-control form-control-sm mb-2';
+                this.title.placeholder = 'Titel';
+                this.title.value = String(this.data.title || '');
+                this.message = document.createElement('textarea');
+                this.message.className = 'form-control form-control-sm';
+                this.message.rows = 3;
+                this.message.placeholder = 'Hinweistext';
+                this.message.value = String(this.data.message || '');
+                wrapper.appendChild(this.variant);
+                wrapper.appendChild(this.title);
+                wrapper.appendChild(this.message);
+                return wrapper;
+            }
+
+            save() {
+                return {
+                    variant: String(this.variant ? this.variant.value : 'info'),
+                    title: String(this.title ? this.title.value : ''),
+                    message: String(this.message ? this.message.value : ''),
+                };
+            }
+        };
+    }
+
+    function createSimpleDetailsToolClass() {
+        return class SimpleDetailsTool {
+            static get toolbox() {
+                return { title: 'Details', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>' };
+            }
+
+            constructor({ data }) {
+                this.data = data && typeof data === 'object' ? data : {};
+            }
+
+            render() {
+                const wrapper = document.createElement('div');
+                this.summary = document.createElement('input');
+                this.summary.className = 'form-control form-control-sm mb-2';
+                this.summary.placeholder = 'Zusammenfassung (Klick-Titel)';
+                this.summary.value = String(this.data.summary || '');
+                this.content = document.createElement('textarea');
+                this.content.className = 'form-control form-control-sm';
+                this.content.rows = 4;
+                this.content.placeholder = 'Inhalt';
+                this.content.value = String(this.data.content || '');
+                wrapper.appendChild(this.summary);
+                wrapper.appendChild(this.content);
+                return wrapper;
+            }
+
+            save() {
+                return {
+                    summary: String(this.summary ? this.summary.value : ''),
+                    content: String(this.content ? this.content.value : ''),
+                };
+            }
+        };
+    }
+
     function createImageToolConfig(imageClass, uploadUrl, csrfToken, cropperTuneKey, uploadContext) {
-        if (!imageClass || !uploadUrl) {
+        if (!uploadUrl) {
             return null;
+        }
+
+        if (!imageClass) {
+            return {
+                class: class SimpleImageTool {
+                    static get toolbox() {
+                        return { title: 'Bild', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18"/><circle cx="9" cy="9" r="1.5"/><path d="M3 16l5-5c1-.9 2.1-.9 3 0l5 5"/></svg>' };
+                    }
+
+                    constructor({ data }) {
+                        this.data = data && typeof data === 'object' ? data : {};
+                        this.currentPayload = this.data;
+                    }
+
+                    render() {
+                        const wrapper = document.createElement('div');
+                        this.urlInput = document.createElement('input');
+                        this.urlInput.className = 'form-control form-control-sm mb-2';
+                        this.urlInput.placeholder = 'Bild-URL oder Upload';
+                        this.urlInput.value = String(this.data.file && this.data.file.url ? this.data.file.url : '');
+                        this.captionInput = document.createElement('input');
+                        this.captionInput.className = 'form-control form-control-sm mb-2';
+                        this.captionInput.placeholder = 'Caption / Alt-Text';
+                        this.captionInput.value = String(this.data.caption || '');
+                        this.fileInput = document.createElement('input');
+                        this.fileInput.type = 'file';
+                        this.fileInput.accept = 'image/*';
+                        this.fileInput.className = 'form-control form-control-sm';
+                        this.fileInput.addEventListener('change', () => {
+                            const file = this.fileInput.files && this.fileInput.files[0] ? this.fileInput.files[0] : null;
+                            if (!file) {
+                                return;
+                            }
+                            uploadEditorImageFile(uploadUrl, csrfToken, file, uploadContext).then((payload) => {
+                                const nextUrl = payload && payload.file && payload.file.url ? String(payload.file.url) : '';
+                                if (nextUrl !== '') {
+                                    this.urlInput.value = nextUrl;
+                                    this.currentPayload = payload;
+                                }
+                            }).catch((error) => {
+                                console.error('Editor.js simple image upload failed', error);
+                            });
+                        });
+                        wrapper.appendChild(this.urlInput);
+                        wrapper.appendChild(this.captionInput);
+                        wrapper.appendChild(this.fileInput);
+                        return wrapper;
+                    }
+
+                    save() {
+                        const fileUrl = String(this.urlInput ? this.urlInput.value : '').trim();
+                        return {
+                            file: {
+                                url: fileUrl,
+                                name: this.currentPayload && this.currentPayload.file ? String(this.currentPayload.file.name || '') : '',
+                                size: this.currentPayload && this.currentPayload.file ? Number(this.currentPayload.file.size || 0) : 0,
+                                extension: this.currentPayload && this.currentPayload.file ? String(this.currentPayload.file.extension || '') : '',
+                            },
+                            caption: String(this.captionInput ? this.captionInput.value : ''),
+                            withBorder: false,
+                            withBackground: false,
+                            stretched: false,
+                        };
+                    }
+                },
+                inlineToolbar: ['link', 'bold', 'italic', 'marker'],
+            };
         }
 
         const imagePicker = createEditorImagePicker(uploadUrl, csrfToken, uploadContext);
@@ -1597,7 +2247,7 @@
 
         const config = {
             class: CmsImageTool,
-            inlineToolbar: ['link', 'bold', 'italic'],
+            inlineToolbar: ['link', 'bold', 'italic', 'underline', 'inlineCode', 'marker', 'spoiler'],
             config: {
                 features: {
                     border: true,
@@ -1630,8 +2280,14 @@
     }
 
     function createAttachesToolConfig(attachesClass, uploadUrl, csrfToken) {
-        if (!attachesClass || !uploadUrl) {
+        if (!uploadUrl) {
             return null;
+        }
+
+        if (!attachesClass) {
+            return {
+                class: createSimpleAttachesToolClass(uploadUrl, csrfToken),
+            };
         }
 
         return {
@@ -1644,8 +2300,15 @@
     }
 
     function createLinkToolConfig(linkToolClass, uploadUrl, csrfToken) {
-        if (!linkToolClass || !uploadUrl) {
+        if (!uploadUrl) {
             return null;
+        }
+
+        if (!linkToolClass) {
+            return {
+                class: createSimpleLinkToolClass(),
+                inlineToolbar: ['link', 'bold', 'italic', 'underline', 'inlineCode', 'marker'],
+            };
         }
 
         return {
@@ -1668,6 +2331,13 @@
             config: {
                 levelPresets: [1, 2, 3, 4, 5],
             },
+        };
+    }
+
+    function createEmbedToolConfig(embedClass) {
+        return {
+            class: embedClass || createSimpleEmbedToolClass(),
+            inlineToolbar: ['link', 'bold', 'italic', 'underline', 'inlineCode', 'marker'],
         };
     }
 
@@ -1700,7 +2370,54 @@
 
     function createImageGalleryConfig(galleryClass, uploadUrl, csrfToken, uploadContext) {
         if (!galleryClass) {
-            return null;
+            return {
+                class: class SimpleImageGalleryTool {
+                    static get toolbox() {
+                        return { title: 'Gallery', icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 9h.01"/><path d="M21 15l-4.5-4.5a1.5 1.5 0 00-2.12 0L9 15.88"/></svg>' };
+                    }
+
+                    constructor({ data }) {
+                        this.data = normalizeImageGalleryData(data && typeof data === 'object' ? data : {});
+                    }
+
+                    render() {
+                        const wrapper = document.createElement('div');
+                        this.textarea = document.createElement('textarea');
+                        this.textarea.className = 'form-control mb-2';
+                        this.textarea.rows = 5;
+                        this.textarea.placeholder = 'Eine Bild-URL pro Zeile';
+                        this.textarea.value = this.data.urls.join('\n');
+                        this.upload = document.createElement('input');
+                        this.upload.type = 'file';
+                        this.upload.accept = 'image/*';
+                        this.upload.multiple = true;
+                        this.upload.className = 'form-control form-control-sm';
+                        this.upload.addEventListener('change', () => {
+                            const files = Array.from(this.upload.files || []);
+                            if (files.length === 0 || !uploadUrl) {
+                                return;
+                            }
+                            uploadImageGalleryFiles(uploadUrl, csrfToken, files, uploadContext).then((urls) => {
+                                const nextUrls = normalizeImageGalleryUrlList(this.textarea.value.split(/\r?\n+/).concat(urls));
+                                this.textarea.value = nextUrls.join('\n');
+                            }).catch((error) => {
+                                console.error('Editor.js simple gallery upload failed', error);
+                            });
+                        });
+                        wrapper.appendChild(this.textarea);
+                        wrapper.appendChild(this.upload);
+                        return wrapper;
+                    }
+
+                    save() {
+                        return normalizeImageGalleryData({
+                            columns: 3,
+                            urls: String(this.textarea ? this.textarea.value : '').split(/\r?\n+/),
+                        });
+                    }
+                },
+                inlineToolbar: true,
+            };
         }
 
         class CmsImageGalleryTool extends galleryClass {
@@ -2152,16 +2869,19 @@
             header: resolveClass(['Header']),
             paragraph: resolveClass(['Paragraph']),
             list: resolveClass(['EditorjsList', 'List']),
+            checklist: resolveClass(['Checklist']),
             quote: resolveClass(['Quote']),
             warning: resolveClass(['Warning']),
             code: resolveClass(['CodeTool', 'Code']),
             raw: resolveClass(['RawTool', 'Raw']),
             table: resolveClass(['Table']),
             inlineCode: resolveClass(['InlineCode']),
+            marker: resolveClass(['Marker']),
             underline: resolveClass(['Underline']),
             delimiter: resolveClass(['Delimiter']),
             image: resolveClass(['ImageTool']),
             linkTool: resolveClass(['LinkTool']),
+            embed: resolveClass(['Embed']),
             attaches: resolveClass(['AttachesTool']),
             accordion: resolveClass(['AccordionBlock']),
             carousel: resolveClass(['Carousel']),
@@ -2178,6 +2898,19 @@
         const holder = document.getElementById(holderId);
         const resolved = buildResolvedRegistry();
         const spacerToolClass = createSpacerToolClass();
+        const fallbackTools = {
+            list: createSimpleListToolClass(),
+            checklist: createSimpleChecklistToolClass(),
+            quote: createSimpleQuoteToolClass(),
+            table: createSimpleTableToolClass(),
+            delimiter: createSimpleDelimiterToolClass(),
+            code: createSimpleCodeToolClass(),
+            inlineCode: createSimpleInlineCodeToolClass(),
+            underline: createInlineExecToolClass('underline', 'Unterstreichen', '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 4v6a6 6 0 0012 0V4"/><path d="M4 20h16"/></svg>'),
+            marker: createMarkerToolClass(),
+            callout: createSimpleCalloutToolClass(),
+            details: createSimpleDetailsToolClass(),
+        };
         const editorOptions = options && typeof options === 'object' ? options : {};
         const getUploadContext = typeof editorOptions.getUploadContext === 'function'
             ? editorOptions.getUploadContext
@@ -2200,52 +2933,65 @@
         const baseTools = pruneUnavailableTools({
             header: {
                 class: resolved.header,
-                inlineToolbar: ['link', 'bold', 'italic', 'underline', 'spoiler'],
+                inlineToolbar: ['link', 'bold', 'italic', 'underline', 'inlineCode', 'marker', 'spoiler'],
                 config: { levels: [2, 3, 4, 5], defaultLevel: 2 },
                 shortcut: 'CMD+SHIFT+H',
             },
             paragraph: {
                 class: resolved.paragraph,
-                inlineToolbar: ['link', 'bold', 'italic', 'underline', 'inlineCode', 'spoiler'],
+                inlineToolbar: ['link', 'bold', 'italic', 'underline', 'inlineCode', 'marker', 'spoiler'],
                 config: { preserveBlank: true },
             },
             list: {
-                class: resolved.list,
-                inlineToolbar: ['link', 'bold', 'italic', 'underline', 'spoiler'],
+                class: resolved.list || fallbackTools.list,
+                inlineToolbar: ['link', 'bold', 'italic', 'underline', 'inlineCode', 'marker', 'spoiler'],
                 config: {
                     defaultStyle: 'unordered',
                     maxLevel: 3,
                 },
             },
+            checklist: {
+                class: resolved.checklist || fallbackTools.checklist,
+                inlineToolbar: ['link', 'bold', 'italic', 'underline', 'inlineCode', 'marker', 'spoiler'],
+            },
             quote: {
-                class: resolved.quote,
-                inlineToolbar: ['link', 'bold', 'italic', 'spoiler'],
+                class: resolved.quote || fallbackTools.quote,
+                inlineToolbar: ['link', 'bold', 'italic', 'underline', 'inlineCode', 'marker', 'spoiler'],
                 config: {
                     quotePlaceholder: 'Zitat eingeben',
                     captionPlaceholder: 'Quelle / Autor',
                 },
             },
             warning: {
-                class: resolved.warning,
+                class: resolved.warning || fallbackTools.callout,
                 inlineToolbar: ['link', 'bold', 'italic'],
                 config: {
                     titlePlaceholder: 'Hinweis-Titel',
                     messagePlaceholder: 'Hinweistext',
                 },
             },
+            callout: {
+                class: fallbackTools.callout,
+                inlineToolbar: ['link', 'bold', 'italic', 'underline', 'inlineCode', 'marker', 'spoiler'],
+            },
+            details: {
+                class: fallbackTools.details,
+                inlineToolbar: ['link', 'bold', 'italic', 'underline', 'inlineCode', 'marker', 'spoiler'],
+            },
             code: {
-                class: resolved.code,
+                class: resolved.code || fallbackTools.code,
                 shortcut: 'CMD+ALT+C',
             },
             raw: { class: resolved.raw },
             table: {
-                class: resolved.table,
+                class: resolved.table || fallbackTools.table,
                 inlineToolbar: true,
                 config: { rows: 3, cols: 3 },
             },
-            inlineCode: { class: resolved.inlineCode, shortcut: 'CMD+SHIFT+M' },
-            underline: { class: resolved.underline, shortcut: 'CMD+U' },
-            delimiter: { class: resolved.delimiter },
+            inlineCode: { class: resolved.inlineCode || fallbackTools.inlineCode, shortcut: 'CMD+SHIFT+M' },
+            marker: { class: resolved.marker || fallbackTools.marker },
+            underline: { class: resolved.underline || fallbackTools.underline, shortcut: 'CMD+U' },
+            delimiter: { class: resolved.delimiter || fallbackTools.delimiter },
             spacer: {
                 class: spacerToolClass,
                 config: {
@@ -2261,6 +3007,7 @@
             ...baseTools,
             image: createImageToolConfig(resolved.image, uploadUrl, csrfToken, cropperTuneKey, getUploadContext),
             linkTool: createLinkToolConfig(resolved.linkTool, uploadUrl, csrfToken),
+            embed: createEmbedToolConfig(resolved.embed),
             attaches: createAttachesToolConfig(resolved.attaches, uploadUrl, csrfToken),
             accordion: createAccordionConfig(resolved.accordion),
             carousel: createCarouselConfig(resolved.carousel, uploadUrl, csrfToken, getUploadContext),
@@ -2275,7 +3022,7 @@
             minHeight: 320,
             placeholder: 'Inhalt schreiben … mit / öffnest du die Blockauswahl.',
             defaultBlock: 'paragraph',
-            inlineToolbar: ['link', 'bold', 'italic', 'underline', 'inlineCode', 'spoiler'],
+            inlineToolbar: ['link', 'bold', 'italic', 'underline', 'inlineCode', 'marker', 'spoiler'],
             tools,
             onReady: function () {
                 addReadyEnhancers(editor, resolved);
@@ -2300,6 +3047,8 @@
                 }, 180);
             },
         });
+
+        editor.cmsAvailableTools = Object.keys(tools);
 
         return editor;
     }

@@ -138,6 +138,10 @@ $renderSparkline = static function (array $points, string $strokeColor, string $
 						<?php if (!empty($lastRun['timestamp'])): ?>
 							<div class="text-secondary mt-2 small"><?php echo htmlspecialchars((string)$lastRun['timestamp']); ?></div>
 						<?php endif; ?>
+						<div class="text-secondary mt-1 small">
+							Schedule: <code><?php echo htmlspecialchars((string) ($lastRun['schedule_expression'] ?? '0 * * * *')); ?></code>
+							· <?php echo htmlspecialchars((string) ($lastRun['scheduler'] ?? 'fallback-interval')); ?>
+						</div>
 					</div>
 				</div>
 			</div>

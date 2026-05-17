@@ -466,7 +466,11 @@
             if (blockElement.querySelector('.ce-header')) { return 'H2'; }
             if (blockElement.querySelector('.ce-paragraph')) { return 'Text'; }
             if (blockElement.querySelector('.cdx-list')) { return 'Liste'; }
+            if (blockElement.querySelector('.cdx-checklist')) { return 'Checklist'; }
             if (blockElement.querySelector('.image-tool')) { return 'Bild'; }
+            if (blockElement.querySelector('.editorjs-link')) { return 'Link'; }
+            if (blockElement.querySelector('.editorjs-embed')) { return 'Embed'; }
+            if (blockElement.querySelector('.editorjs-details')) { return 'Details'; }
             if (blockElement.querySelector('.ce-delimiter')) { return 'Trenner'; }
             if (blockElement.querySelector('.editorjs-spacer-tool')) { return 'Abstand'; }
             if (blockElement.querySelector('.cdx-warning')) { return 'Callout'; }
@@ -609,31 +613,30 @@
                         { label: 'H2', block: 'header', data: { level: 2 } },
                         { label: 'Text', block: 'paragraph' },
                         { label: 'Liste', block: 'list' },
+                        { label: 'Checklist', block: 'checklist' },
                         { label: 'Bild', block: 'image' },
                         { label: 'Trenner', block: 'delimiter' },
                         { label: 'Abstand', block: 'spacer', data: { height: 15, preset: '15px' } }
                     ]
                 },
                 {
-                    className: 'medien',
+                    className: 'tech',
                     buttons: [
-                        { label: 'Medien+Text', block: 'mediaText' },
-                        { label: 'Gallery', block: 'imageGallery', data: { columns: 3 } },
-                        { label: 'Code Tabs', block: 'codeTabs' }
+                        { label: 'Code', block: 'code' },
+                        { label: 'Tabelle', block: 'table' },
+                        { label: 'Embed', block: 'embed' },
+                        { label: 'Link', block: 'linkTool' },
+                        { label: 'Datei', block: 'attaches' },
+                        { label: 'Gallery', block: 'imageGallery', data: { columns: 3 } }
                     ]
                 },
                 {
                     className: 'erweitert',
                     buttons: [
                         { label: 'Callout', block: 'callout' },
-                        { label: 'Terminal', block: 'terminal' },
-                        { label: 'Mermaid', block: 'mermaid' },
-                        { label: 'API', block: 'apiEndpoint' },
-                        { label: 'Changelog', block: 'changelog' },
-                        { label: 'Pros/Cons', block: 'prosCons' },
-                        { label: 'Akkordion', block: 'accordion' },
-                        { label: 'Tabelle', block: 'table' },
-                        { label: 'Zitat', block: 'quote' }
+                        { label: 'Details', block: 'details' },
+                        { label: 'Zitat', block: 'quote' },
+                        { label: 'Akkordion', block: 'accordion' }
                     ]
                 }
             ];
@@ -643,6 +646,17 @@
 
             function buildButton(item) {
                 var button = document.createElement('button');
+                var availableTools = editorEntry
+                    && editorEntry.instance
+                    && Array.isArray(editorEntry.instance.cmsAvailableTools)
+                    ? editorEntry.instance.cmsAvailableTools
+                    : [];
+                var isAvailable = availableTools.length === 0 || availableTools.indexOf(item.block) !== -1;
+
+                if (!isAvailable) {
+                    return null;
+                }
+
                 button.type = 'button';
                 button.textContent = item.label;
                 button.addEventListener('click', function () {
@@ -653,10 +667,19 @@
 
             groups.slice(0, 2).forEach(function (group, groupIndex) {
                 var groupEl = document.createElement('div');
+                var hasButtons = false;
                 groupEl.className = 'cms-editor-toolbar-group cms-editor-toolbar-group--' + group.className;
                 group.buttons.forEach(function (item) {
-                    groupEl.appendChild(buildButton(item));
+                    var button = buildButton(item);
+                    if (!button) {
+                        return;
+                    }
+                    hasButtons = true;
+                    groupEl.appendChild(button);
                 });
+                if (!hasButtons) {
+                    return;
+                }
                 toolbar.appendChild(groupEl);
                 if (groupIndex < 1) {
                     toolbar.appendChild(document.createElement('span')).className = 'cms-editor-toolbar-divider';
@@ -670,7 +693,10 @@
             overflowPanel = document.createElement('div');
             overflowPanel.className = 'cms-editor-toolbar-overflow-panel';
             groups[2].buttons.forEach(function (item) {
-                overflowPanel.appendChild(buildButton(item));
+                var button = buildButton(item);
+                if (button) {
+                    overflowPanel.appendChild(button);
+                }
             });
             overflowButton.addEventListener('click', function (event) {
                 event.preventDefault();
