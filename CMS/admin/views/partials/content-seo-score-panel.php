@@ -21,7 +21,7 @@ $seoScorePanel = $seoScorePanel ?? [];
 $summaryCards = is_array($seoScorePanel['summaryCards'] ?? null) ? $seoScorePanel['summaryCards'] : [];
 $hintBadgeContainerId = trim((string) ($seoScorePanel['hintBadgeContainerId'] ?? ''));
 ?>
-<details class="card cms-edit-card cms-seo-score-panel cms-collapsible-card" open>
+<details class="card cms-edit-card cms-seo-score-panel cms-collapsible-card">
     <summary class="card-header cms-collapsible-card__summary">
         <div class="d-flex align-items-center justify-content-between w-100">
             <h3 class="card-title mb-0">SEO-Score &amp; Checkliste</h3>
@@ -36,7 +36,7 @@ $hintBadgeContainerId = trim((string) ($seoScorePanel['hintBadgeContainerId'] ??
         <div class="progress progress-sm mb-3"><div class="progress-bar bg-danger" id="<?php echo htmlspecialchars((string)($seoScorePanel['scoreBarId'] ?? '')); ?>" style="width:0%"></div></div>
         <div class="row g-3 mb-3 cms-seo-score-panel__summary">
             <?php foreach ($summaryCards as $card): ?>
-                <div class="<?php echo htmlspecialchars((string)($card['width'] ?? 'col-md-3')); ?>">
+                <div class="col-12 cms-seo-score-panel__summary-item">
                     <div class="border rounded p-3 h-100 cms-seo-score-panel__summary-card">
                         <div class="text-secondary small mb-1"><?php echo htmlspecialchars((string)($card['label'] ?? '')); ?></div>
                         <?php if (!empty($card['badgeId'])): ?>

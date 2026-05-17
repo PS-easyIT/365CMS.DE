@@ -342,7 +342,7 @@ $isEnglishEditorView = $editorLocale === 'en';
                 </div>
 
                 <div class="col-xl-4 d-flex">
-                    <details class="card cms-edit-card h-100 w-100 cms-collapsible-card cms-collapsible-card--seo" open>
+                    <details class="card cms-edit-card h-100 w-100 cms-collapsible-card cms-collapsible-card--seo">
                         <summary class="card-header cms-collapsible-card__summary">
                             <h3 class="card-title mb-0">SEO-Card</h3>
                             <span class="cms-collapsible-card__chevron" aria-hidden="true"></span>

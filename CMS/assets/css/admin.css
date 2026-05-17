@@ -4133,6 +4133,9 @@ input:checked + .slider:before { transform: translateX(22px); }
 }
 
 .cms-seo-override-notice {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
     min-width: 0;
     max-width: 100%;
     overflow: hidden;
@@ -4144,13 +4147,13 @@ input:checked + .slider:before { transform: translateX(22px); }
 }
 
 .cms-seo-override-header {
-    display: flex;
-    align-items: center;
-    min-height: 2rem;
-    margin-bottom: 0.7rem;
+    display: block;
+    width: 100%;
+    margin-bottom: 0;
 }
 
 .cms-seo-override-title {
+    display: block;
     width: 100%;
     line-height: 1.3;
     padding-bottom: 0.5rem;
@@ -4158,29 +4161,36 @@ input:checked + .slider:before { transform: translateX(22px); }
 }
 
 .cms-seo-override-actions {
-    display: flex;
-    flex-wrap: nowrap;
-    align-items: stretch;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: start;
     gap: 0.6rem;
+    width: 100%;
     min-width: 0;
 }
 
 .cms-seo-override-actions .btn {
-    flex: 1 1 0;
-    min-height: 2.25rem;
-    display: inline-flex;
+    width: 100%;
+    min-width: 0;
+    min-height: 2.4rem;
+    height: auto;
+    display: flex;
     align-items: center;
     justify-content: center;
+    padding: 0.5rem 0.75rem;
     text-align: center;
-    white-space: nowrap;
+    line-height: 1.25;
+    white-space: normal;
     overflow-wrap: anywhere;
     word-break: break-word;
+    hyphens: auto;
     max-width: 100%;
 }
 
 .cms-seo-score-panel,
 .cms-seo-score-panel__body,
 .cms-seo-score-panel__summary,
+.cms-seo-score-panel__summary-item,
 .cms-seo-score-panel__summary-card,
 .cms-seo-score-panel__rules,
 .cms-seo-score-panel__live-hints,
@@ -4198,6 +4208,12 @@ input:checked + .slider:before { transform: translateX(22px); }
 .cms-seo-score-panel__hint-badges .badge {
     overflow-wrap: anywhere;
     word-break: break-word;
+}
+
+.cms-seo-score-panel__summary-item {
+    width: 100%;
+    flex: 0 0 100%;
+    max-width: 100%;
 }
 
 .cms-seo-score-panel__hint-badges .badge {
@@ -4232,18 +4248,18 @@ input:checked + .slider:before { transform: translateX(22px); }
 
 @media (max-width: 1200px) {
     .cms-seo-override-actions {
-        flex-wrap: wrap;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
 
 @media (max-width: 768px) {
     .cms-seo-override-actions {
-        flex-direction: column;
+        grid-template-columns: minmax(0, 1fr);
     }
 
     .cms-seo-override-actions .btn {
         width: 100%;
-        white-space: normal;
+        line-height: 1.3;
     }
 }
 
