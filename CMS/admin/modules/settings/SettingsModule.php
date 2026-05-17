@@ -79,6 +79,23 @@ class SettingsModule
         'routing.tag_base_de', 'routing.tag_base_en',
     ];
 
+    private const GENERAL_TAB_POST_KEYS = [
+        'site_name', 'site_description', 'site_url', 'site_logo', 'site_favicon', 'admin_email',
+        'language', 'timezone', 'date_format', 'time_format',
+        'posts_per_page', 'comments_enabled',
+        'maintenance_mode', 'maintenance_message',
+        'google_analytics', 'robots_txt', 'marketplace_enabled',
+        'plugin_registry_url', 'theme_marketplace_url', 'core_update_url',
+    ];
+
+    private const CONTENT_TAB_POST_KEYS = [
+        'editor_type', 'page_default_status', 'post_default_status',
+        'page_editor_width', 'post_editor_width',
+        'post_permalink_preset', 'post_permalink_custom',
+        'category_base_de', 'category_base_en',
+        'tag_base_de', 'tag_base_en',
+    ];
+
     private const ARCHIVE_BASE_DEFAULTS = [
         'category' => [
             'de' => 'kategorie',
@@ -214,6 +231,8 @@ class SettingsModule
             if ($existingConfig === false) {
                 return ['success' => false, 'error' => 'Die zentrale Konfigurationsdatei konnte nicht gelesen werden.'];
             }
+
+            $post = $this->hydrateMissingSettingsForTabbedSave($post, $existingConfig);
 
             $permalinkPreset = (string)($post['post_permalink_preset'] ?? 'blog');
             $permalinkCustom = trim((string)($post['post_permalink_custom'] ?? ''));
@@ -449,6 +468,92 @@ class SettingsModule
                 static fn ($detail): string => trim((string) $detail),
                 $details
             ), static fn (string $detail): bool => $detail !== '')),
+        ];
+    }
+
+    /**
+     * The settings UI is split into tabs, while the storage layer still writes
+     * the complete settings set. Preserve the other tab's values on save.
+     *
+     * @param array<string,mixed> $post
+     * @param array<string,string> $existingConfig
+     * @return array<string,mixed>
+     */
+    private function hydrateMissingSettingsForTabbedSave(array $post, array $existingConfig): array
+    {
+        $tab = (string)($post['tab'] ?? 'general');
+        if (!in_array($tab, ['general', 'content'], true)) {
+            return $post;
+        }
+
+        $keysToPreserve = $tab === 'content'
+            ? self::GENERAL_TAB_POST_KEYS
+            : self::CONTENT_TAB_POST_KEYS;
+        $currentValues = $this->buildCurrentSettingsPostValues($existingConfig);
+
+        foreach ($keysToPreserve as $key) {
+            if (!array_key_exists($key, $post)) {
+                $post[$key] = $currentValues[$key] ?? '';
+            }
+        }
+
+        return $post;
+    }
+
+    /**
+     * @param array<string,string> $existingConfig
+     * @return array<string,string>
+     */
+    private function buildCurrentSettingsPostValues(array $existingConfig): array
+    {
+        $settings = $this->loadSettings();
+        $postPermalinkStructure = class_exists('\CMS\Services\PermalinkService')
+            ? \CMS\Services\PermalinkService::normalizePostStructure((string)($settings['setting_post_permalink_structure'] ?? ''))
+            : (string)($settings['setting_post_permalink_structure'] ?? '/blog/%postname%');
+        if ($postPermalinkStructure === '') {
+            $postPermalinkStructure = '/blog/%postname%';
+        }
+
+        $postPermalinkPreset = class_exists('\CMS\Services\PermalinkService')
+            ? \CMS\Services\PermalinkService::inferPostStructurePreset($postPermalinkStructure)
+            : 'blog';
+        $postPermalinkCustom = trim((string)($settings['setting_post_permalink_custom'] ?? ''));
+        if ($postPermalinkPreset !== 'custom' && $postPermalinkCustom === '') {
+            $postPermalinkCustom = $postPermalinkStructure;
+        }
+
+        return [
+            'site_name' => (string)($settings['site_name'] ?? $existingConfig['site_name'] ?? (defined('SITE_NAME') ? SITE_NAME : '')),
+            'site_description' => (string)($settings['site_description'] ?? ''),
+            'site_url' => (string)($settings['site_url'] ?? $existingConfig['site_url'] ?? (defined('SITE_URL') ? SITE_URL : '')),
+            'site_logo' => (string)($settings['site_logo'] ?? ''),
+            'site_favicon' => (string)($settings['site_favicon'] ?? ''),
+            'admin_email' => (string)($settings['admin_email'] ?? $existingConfig['admin_email'] ?? (defined('ADMIN_EMAIL') ? ADMIN_EMAIL : '')),
+            'language' => (string)($settings['language'] ?? 'de'),
+            'timezone' => (string)($settings['timezone'] ?? 'Europe/Berlin'),
+            'date_format' => (string)($settings['date_format'] ?? 'd.m.Y'),
+            'time_format' => (string)($settings['time_format'] ?? 'H:i'),
+            'posts_per_page' => (string)($settings['posts_per_page'] ?? '10'),
+            'comments_enabled' => ($settings['comments_enabled'] ?? '1') === '1' ? '1' : '0',
+            'maintenance_mode' => ($settings['maintenance_mode'] ?? '0') === '1' ? '1' : '0',
+            'maintenance_message' => (string)($settings['maintenance_message'] ?? 'Die Website wird gerade gewartet.'),
+            'google_analytics' => (string)($settings['google_analytics'] ?? ''),
+            'robots_txt' => (string)($settings['robots_txt'] ?? ''),
+            'marketplace_enabled' => ($settings['marketplace_enabled'] ?? '1') === '1' ? '1' : '0',
+            'plugin_registry_url' => $this->getMarketplaceSetting($settings, 'plugin_registry_url'),
+            'theme_marketplace_url' => $this->getMarketplaceSetting($settings, 'theme_marketplace_url'),
+            'core_update_url' => $this->getMarketplaceSetting($settings, 'core_update_url'),
+            'editor_type' => (string)($settings['setting_editor_type'] ?? 'editorjs'),
+            'page_default_status' => (string)($settings['setting_page_default_status'] ?? 'draft'),
+            'post_default_status' => (string)($settings['setting_post_default_status'] ?? 'draft'),
+            'page_editor_width' => (string)max(320, min(1600, (int)($settings['setting_page_editor_width'] ?? 1050))),
+            'post_editor_width' => (string)max(320, min(1600, (int)($settings['setting_post_editor_width'] ?? 750))),
+            'post_permalink_preset' => $postPermalinkPreset,
+            'post_permalink_custom' => $postPermalinkCustom,
+            'category_base_de' => $this->getArchiveBaseSetting($settings, 'category', 'de'),
+            'category_base_en' => $this->getArchiveBaseSetting($settings, 'category', 'en'),
+            'tag_base_de' => $this->getArchiveBaseSetting($settings, 'tag', 'de'),
+            'tag_base_en' => $this->getArchiveBaseSetting($settings, 'tag', 'en'),
         ];
     }
 
