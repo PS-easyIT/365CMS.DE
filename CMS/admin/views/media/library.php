@@ -43,24 +43,16 @@ $orphanCandidateCount = (int)($orphanMedia['candidate_count'] ?? 0);
 $orphanScannedFileCount = (int)($orphanMedia['scanned_file_count'] ?? 0);
 $orphanEligibleFileCount = (int)($orphanMedia['eligible_file_count'] ?? 0);
 $orphanAnalysisTruncated = !empty($orphanMedia['is_truncated']);
-$filterState = is_array($data['filter_state'] ?? null) ? $data['filter_state'] : [];
-$filterPresets = is_array($data['filter_presets'] ?? null) ? $data['filter_presets'] : [];
-$currentFilterPresetState = is_array($data['current_filter_preset_state'] ?? null) ? $data['current_filter_preset_state'] : [];
-$hasFilterPresetState = !empty($data['has_filter_preset_state']);
-$filterPresetConstraints = is_array($data['filter_preset_constraints'] ?? null) ? $data['filter_preset_constraints'] : [];
 $baseUrl = (string)($data['base_url'] ?? '/admin/media');
 $listUrl = (string)($data['list_url'] ?? $baseUrl);
 $gridUrl = (string)($data['grid_url'] ?? $baseUrl);
 $rootUrl = (string)($data['root_url'] ?? $baseUrl);
 $resetFilterUrl = (string)($data['reset_filter_url'] ?? $baseUrl);
-$currentFilterPermalink = (string)($data['current_filter_permalink'] ?? $baseUrl);
 $emptyState = is_array($data['empty_state'] ?? null) ? $data['empty_state'] : ['title' => 'Dieser Ordner ist leer', 'subtitle' => 'Legen Sie einen Ordner an oder laden Sie Dateien hoch.'];
 $constraints = is_array($data['constraints'] ?? null) ? $data['constraints'] : [];
 $moveTargets = is_array($data['move_targets'] ?? null) ? $data['move_targets'] : [];
 $bulkActions = is_array($data['bulk_actions'] ?? null) ? $data['bulk_actions'] : [];
 $altTextBulkAvailable = !empty($data['alt_text_bulk_available']);
-$filterPresetNameMaxLength = (int)($filterPresetConstraints['preset_name_max_length'] ?? 60);
-$filterPresetMaxCount = (int)($filterPresetConstraints['max_presets'] ?? 8);
 $mediaLibraryConfig = [
     'memberFolderConfirmMessage' => $memberFolderConfirmMessage,
     'currentPath' => $path,
@@ -509,85 +501,6 @@ function renderMediaDuplicateSummary(array $file, bool $compact = false): string
                                     <span class="media-view-icon" aria-hidden="true">⊞</span>
                                     Grid
                                 </a>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="card card-sm mt-3">
-                        <div class="card-body">
-                            <div class="row g-3 align-items-end">
-                                <div class="col-xl-7">
-                                    <div class="fw-semibold mb-2">Gespeicherte Filter</div>
-                                    <?php if ($filterPresets !== []): ?>
-                                        <div class="d-flex flex-wrap gap-2 align-items-center">
-                                            <?php foreach ($filterPresets as $preset): ?>
-                                                <?php
-                                                $presetLabel = (string)($preset['label'] ?? 'Preset');
-                                                $presetUrl = (string)($preset['url'] ?? $baseUrl);
-                                                $presetSlug = (string)($preset['slug'] ?? '');
-                                                $presetStateLabel = (string)($preset['state_label'] ?? '');
-                                                $presetIsActive = !empty($preset['is_active']);
-                                                ?>
-                                                <div class="btn-group btn-group-sm" role="group" aria-label="Filter-Preset <?php echo htmlspecialchars($presetLabel, ENT_QUOTES); ?>">
-                                                    <a href="<?php echo htmlspecialchars($presetUrl, ENT_QUOTES); ?>" class="btn <?php echo $presetIsActive ? 'btn-primary active' : 'btn-outline-primary'; ?>" title="<?php echo htmlspecialchars($presetStateLabel, ENT_QUOTES); ?>">
-                                                        <?php echo htmlspecialchars($presetLabel); ?>
-                                                    </a>
-                                                    <form method="post" class="d-inline">
-                                                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES); ?>">
-                                                        <input type="hidden" name="action" value="delete_filter_preset">
-                                                        <input type="hidden" name="preset_slug" value="<?php echo htmlspecialchars($presetSlug, ENT_QUOTES); ?>">
-                                                        <button type="submit" class="btn <?php echo $presetIsActive ? 'btn-primary active' : 'btn-outline-secondary'; ?>" aria-label="Preset <?php echo htmlspecialchars($presetLabel, ENT_QUOTES); ?> löschen" title="Preset löschen">×</button>
-                                                    </form>
-                                                </div>
-                                            <?php endforeach; ?>
-                                        </div>
-                                    <?php else: ?>
-                                        <div class="text-secondary small">Noch keine gespeicherten Filter vorhanden.</div>
-                                    <?php endif; ?>
-                                </div>
-                                <div class="col-xl-5">
-                                    <form method="post" class="row g-2 align-items-end">
-                                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES); ?>">
-                                        <input type="hidden" name="action" value="save_filter_preset">
-                                        <input type="hidden" name="preset_view" value="<?php echo htmlspecialchars((string)($currentFilterPresetState['view'] ?? 'list'), ENT_QUOTES); ?>">
-                                        <input type="hidden" name="preset_category" value="<?php echo htmlspecialchars((string)($currentFilterPresetState['category'] ?? ''), ENT_QUOTES); ?>">
-                                        <input type="hidden" name="preset_search" value="<?php echo htmlspecialchars((string)($currentFilterPresetState['search'] ?? ''), ENT_QUOTES); ?>">
-                                        <input type="hidden" name="preset_usage_filter" value="<?php echo htmlspecialchars((string)($currentFilterPresetState['usage_filter'] ?? 'all'), ENT_QUOTES); ?>">
-                                        <input type="hidden" name="preset_file_type" value="<?php echo htmlspecialchars((string)($currentFilterPresetState['file_type'] ?? 'all'), ENT_QUOTES); ?>">
-                                        <input type="hidden" name="preset_extension" value="<?php echo htmlspecialchars((string)($currentFilterPresetState['extension'] ?? ''), ENT_QUOTES); ?>">
-                                        <input type="hidden" name="preset_size_filter" value="<?php echo htmlspecialchars((string)($currentFilterPresetState['size'] ?? 'all'), ENT_QUOTES); ?>">
-                                        <input type="hidden" name="preset_modified_filter" value="<?php echo htmlspecialchars((string)($currentFilterPresetState['modified'] ?? 'all'), ENT_QUOTES); ?>">
-                                        <input type="hidden" name="preset_orphan_days" value="<?php echo htmlspecialchars((string)($currentFilterPresetState['orphan_days'] ?? 0), ENT_QUOTES); ?>">
-                                        <div class="col-sm">
-                                            <label class="form-label mb-1" for="mediaFilterPresetLabel">Aktuellen Filter speichern</label>
-                                            <input
-                                                type="text"
-                                                class="form-control form-control-sm"
-                                                id="mediaFilterPresetLabel"
-                                                name="preset_label"
-                                                maxlength="<?php echo $filterPresetNameMaxLength; ?>"
-                                                placeholder="z. B. Nur ungenutzte Bilder"
-                                                <?php echo $hasFilterPresetState ? '' : 'disabled'; ?>>
-                                        </div>
-                                        <div class="col-sm-auto">
-                                            <button type="submit" class="btn btn-sm btn-primary" <?php echo $hasFilterPresetState ? '' : 'disabled aria-disabled="true"'; ?>>Preset speichern</button>
-                                        </div>
-                                    </form>
-                                    <div class="text-secondary small mt-2">
-                                        <?php if ($hasFilterPresetState): ?>
-                                            Bis zu <?php echo $filterPresetMaxCount; ?> Presets pro Admin-Benutzer. Bereits gespeicherte Namen oder identische Filterzustände – inklusive Verwaist-Alter – werden aktualisiert.
-                                        <?php else: ?>
-                                            Zum Speichern zuerst mindestens einen aktiven Such- oder Filterwert setzen.
-                                        <?php endif; ?>
-                                    </div>
-                                </div>
-                                <div class="col-12">
-                                    <label class="form-label mb-1" for="mediaFilterPermalink">Filter-Link</label>
-                                    <div class="input-group input-group-sm">
-                                        <input type="text" class="form-control" id="mediaFilterPermalink" value="<?php echo htmlspecialchars($currentFilterPermalink, ENT_QUOTES); ?>" readonly>
-                                        <button type="button" class="btn btn-outline-secondary" data-copy-input-target="#mediaFilterPermalink" data-copy-success-label="Kopiert">Link kopieren</button>
-                                    </div>
-                                    <div class="text-secondary small mt-1">Der Link enthält ausschließlich den aktuellen Bibliothekszustand als Query-Parameter – keine CSRF- oder Sicherheitstokens.</div>
-                                </div>
                             </div>
                         </div>
                     </div>
