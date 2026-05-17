@@ -45,7 +45,7 @@ $escape = static fn (mixed $value): string => htmlspecialchars((string) $value, 
     </div>
 </div>
 
-<div class="page-body">
+<div class="page-body themes-list-page">
 <div class="container-xl">
     <?php if (!empty($alert)): ?>
         <?php

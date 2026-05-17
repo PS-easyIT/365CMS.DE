@@ -5911,3 +5911,9 @@ input:checked + .slider:before { transform: translateX(22px); }
 .data-requests-page .admin-request-kpi-grid .card {
     height: 100%;
 }
+
+.themes-list-page .content-listing-filters__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
