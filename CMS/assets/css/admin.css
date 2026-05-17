@@ -4754,6 +4754,22 @@ input:checked + .slider:before { transform: translateX(22px); }
         linear-gradient(180deg, #ffffff 0%, #fcfdff 100%);
 }
 
+.editorjs-holder.cms-editor-fallback-active {
+    display: block !important;
+    padding: 1rem;
+    cursor: default;
+}
+
+.editorjs-wrap.cms-editor-wrap-fallback-active {
+    display: block !important;
+}
+
+.editorjs-holder.cms-editor-fallback-active textarea {
+    min-height: 300px;
+    width: 100%;
+    resize: vertical;
+}
+
 .editorjs-holder .ce-block__content {
     width: min(100%, var(--editorjs-content-width, 1100px));
     max-width: var(--editorjs-content-width, 1100px);

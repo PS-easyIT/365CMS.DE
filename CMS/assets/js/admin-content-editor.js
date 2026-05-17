@@ -495,6 +495,7 @@
 
         function renderEditorUnavailableFallback(definition, input, reason) {
             var holder = getElement(definition && definition.holderId ? definition.holderId : '');
+            var wrap = holder && holder.closest ? holder.closest('.editorjs-wrap') : null;
             var warning;
             var textarea;
             var normalizedData;
@@ -509,11 +510,18 @@
             }
 
             holder.dataset.cmsEditorFallbackBound = '1';
+            holder.classList.add('cms-editor-fallback-active');
+            holder.style.display = '';
+            holder.style.minHeight = holder.style.minHeight || '320px';
+            if (wrap) {
+                wrap.classList.add('cms-editor-wrap-fallback-active');
+                wrap.style.display = '';
+            }
             clearElement(holder);
 
             warning = document.createElement('div');
             warning.className = 'alert alert-warning cms-editor-fallback-warning';
-            warning.textContent = 'EditorJS konnte nicht geladen werden. Fallback-Textfeld aktiv (' + String(reason || 'unknown') + ').';
+            warning.textContent = 'EditorJS konnte nicht initialisiert werden (' + String(reason || 'unknown') + '). Das Fallback-Textfeld bleibt aktiv und wird beim Speichern übernommen.';
             holder.appendChild(warning);
 
             textarea = document.createElement('textarea');
@@ -2459,28 +2467,49 @@
 
     function waitForEditorJsCore(editorJsConfig) {
         var hasEditorDefinitions = !!(editorJsConfig && Array.isArray(editorJsConfig.editors) && editorJsConfig.editors.length > 0);
+        var MAX_WAIT_MS = 6000;
+        var POLL_MS = 80;
         var readyPromise = window.cmsEditorJsCoreReady;
+        var startedAt = Date.now();
+
+        function hasEditorRuntime() {
+            return typeof window.EditorJS === 'function' && typeof window.createCmsEditor === 'function';
+        }
+
+        function waitForRuntimePolling() {
+            if (hasEditorRuntime()) {
+                return Promise.resolve(true);
+            }
+
+            if (Date.now() - startedAt >= MAX_WAIT_MS) {
+                return Promise.resolve(false);
+            }
+
+            return new Promise(function (resolve) {
+                window.setTimeout(resolve, POLL_MS);
+            }).then(waitForRuntimePolling);
+        }
 
         if (!hasEditorDefinitions) {
             return Promise.resolve(true);
         }
 
-        if (typeof window.EditorJS === 'function') {
+        if (hasEditorRuntime()) {
             return Promise.resolve(true);
         }
 
         if (!readyPromise || typeof readyPromise.then !== 'function') {
-            return Promise.resolve(false);
+            return waitForRuntimePolling();
         }
 
         return readyPromise.then(function () {
-            return typeof window.EditorJS === 'function';
+            return waitForRuntimePolling();
         }).catch(function (error) {
             if (typeof console !== 'undefined' && typeof console.error === 'function') {
                 console.error('[cms-editor] EditorJS core readiness failed.', error);
             }
 
-            return false;
+            return waitForRuntimePolling();
         });
     }
 

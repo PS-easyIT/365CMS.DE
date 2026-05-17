@@ -2,7 +2,6 @@
 
 (function () {
     var READY_EVENT = 'cms:editorjs-core-ready';
-    var CORE_TIMEOUT_MS = 10000;
 
     function hasEditorCore() {
         return typeof window.EditorJS === 'function';
@@ -70,8 +69,30 @@
         console.error('[cms-editor] ' + message);
     }
 
+    function applyEditorModule(module) {
+        var EditorJS = module && typeof module.default === 'function'
+            ? module.default
+            : null;
+
+        if (typeof EditorJS !== 'function') {
+            throw new Error('EditorJS default export missing.');
+        }
+
+        window.EditorJS = EditorJS;
+        return true;
+    }
+
+    function stripSourceMapComment(source) {
+        return String(source || '')
+            .replace(/\/\/# sourceMappingURL=.*$/gm, '')
+            .trim();
+    }
+
     function parseDefaultExportSymbol(source) {
-        var match = String(source || '').match(/export\s*\{\s*([A-Za-z_$][\w$]*)\s+as\s+default\s*\}\s*;?\s*$/);
+        var normalized = stripSourceMapComment(source);
+        var match = normalized.match(/export\s*\{\s*([A-Za-z_$][\w$]*)\s+as\s+default\s*\}\s*;?\s*$/)
+            || normalized.match(/export\s+default\s+([A-Za-z_$][\w$]*)\s*;?\s*$/);
+
         return match ? match[1] : '';
     }
 
@@ -109,7 +130,7 @@
                 return false;
             }
 
-            source = String(xhr.responseText || '');
+            source = stripSourceMapComment(xhr.responseText || '');
             defaultSymbol = parseDefaultExportSymbol(source);
             runtimeSource = compileClassicBundle(source, defaultSymbol);
             if (runtimeSource === '') {
@@ -124,73 +145,53 @@
         }
     }
 
+    function loadEditorCoreFromBlob(coreUrl) {
+        if (typeof fetch !== 'function' || typeof URL === 'undefined' || typeof URL.createObjectURL !== 'function') {
+            return Promise.reject(new Error('Blob module fallback unavailable.'));
+        }
+
+        return fetch(coreUrl, {
+            method: 'GET',
+            credentials: 'same-origin',
+            cache: 'no-store'
+        }).then(function (response) {
+            if (!response.ok) {
+                throw new Error('EditorJS core fetch failed (' + String(response.status || 0) + ').');
+            }
+
+            return response.text();
+        }).then(function (source) {
+            var blobUrl;
+
+            source = stripSourceMapComment(source);
+            if (source === '') {
+                throw new Error('EditorJS core fetch returned empty source.');
+            }
+
+            blobUrl = URL.createObjectURL(new Blob([source], { type: 'text/javascript' }));
+            return import(blobUrl).then(function (module) {
+                applyEditorModule(module);
+                return true;
+            }).finally(function () {
+                URL.revokeObjectURL(blobUrl);
+            });
+        });
+    }
+
     function loadEditorCoreViaModule() {
-        return new Promise(function (resolve, reject) {
-            var bootScript;
-            var timeoutId = null;
-            var ready = false;
-            var nonce = resolveBootNonce();
+        var coreUrl = resolveCoreUrl();
 
-            function cleanup() {
-                if (timeoutId !== null) {
-                    window.clearTimeout(timeoutId);
-                    timeoutId = null;
-                }
+        if (hasEditorCore()) {
+            return Promise.resolve(true);
+        }
 
-                window.removeEventListener(READY_EVENT, onReadyEvent);
-            }
-
-            function finishWithResult(ok, error) {
-                if (ready) {
-                    return;
-                }
-
-                ready = true;
-                cleanup();
-
-                if (ok) {
-                    resolve(true);
-                    return;
-                }
-
-                reject(error instanceof Error ? error : new Error(String(error || 'EditorJS module boot failed.')));
-            }
-
-            function onReadyEvent(event) {
-                var detail = event && event.detail && typeof event.detail === 'object'
-                    ? event.detail
-                    : {};
-
-                if (detail.ok === true) {
-                    finishWithResult(true, null);
-                    return;
-                }
-
-                finishWithResult(false, detail.error || 'EditorJS module boot reported failure.');
-            }
-
-            if (hasEditorCore()) {
-                resolve(true);
-                return;
-            }
-
-            window.addEventListener(READY_EVENT, onReadyEvent, { once: false });
-
-            timeoutId = window.setTimeout(function () {
-                finishWithResult(false, new Error('EditorJS core module boot timed out.'));
-            }, CORE_TIMEOUT_MS);
-
-            bootScript = document.createElement('script');
-            bootScript.type = 'module';
-            bootScript.src = resolveBootUrl();
-            if (nonce !== '') {
-                bootScript.nonce = nonce;
-            }
-            bootScript.onerror = function () {
-                finishWithResult(false, new Error('EditorJS core boot script could not be loaded.'));
-            };
-
-            (document.head || document.documentElement).appendChild(bootScript);
+        return import(coreUrl).then(function (module) {
+            applyEditorModule(module);
+            return true;
+        }).catch(function (directImportError) {
+            return loadEditorCoreFromBlob(coreUrl).catch(function (blobImportError) {
+                throw blobImportError || directImportError;
+            });
         });
     }
 
