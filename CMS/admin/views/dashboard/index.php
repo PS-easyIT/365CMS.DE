@@ -47,6 +47,7 @@ $recentOrders = is_array($data['recent_orders'] ?? null) ? $data['recent_orders'
 $security = is_array($data['security'] ?? null) ? $data['security'] : [];
 $performance = is_array($data['performance'] ?? null) ? $data['performance'] : [];
 $system = is_array($data['system'] ?? null) ? $data['system'] : [];
+$highlights = is_array($data['highlights'] ?? null) ? $data['highlights'] : [];
 $subscriptionEnabled = (bool) ($data['subscription_enabled'] ?? true);
 $quickLinks = is_array($data['quickLinks'] ?? null) ? $data['quickLinks'] : [];
 $dashboardAlerts = array_values(array_filter(
@@ -195,6 +196,28 @@ foreach ($workOverviewWidgets as $widgetKey => $widget) {
         endif;
         ?>
 
+        <?php if ($highlights !== []): ?>
+        <div class="card mb-4">
+            <div class="card-header">
+                <h3 class="card-title mb-0">Kernkennzahlen</h3>
+            </div>
+            <div class="card-body">
+                <div class="dashboard-primary-metrics">
+                    <?php foreach ($highlights as $highlight): ?>
+                        <a href="<?= htmlspecialchars(dashboardUrl((string) ($highlight['url'] ?? ''), '/admin')) ?>" class="dashboard-primary-metric text-reset text-decoration-none">
+                            <div class="dashboard-primary-metric-head">
+                                <span class="dashboard-primary-metric-label"><?= htmlspecialchars((string) ($highlight['label'] ?? 'Kennzahl')) ?></span>
+                                <span class="dashboard-primary-metric-icon"><?= dashIcon((string) ($highlight['icon'] ?? 'activity')) ?></span>
+                            </div>
+                            <div class="dashboard-primary-metric-value"><?= htmlspecialchars((string) ($highlight['value'] ?? '0')) ?></div>
+                            <p class="dashboard-primary-metric-hint mb-0"><?= htmlspecialchars((string) ($highlight['hint'] ?? '')) ?></p>
+                        </a>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
+
         <?php if ($dashboardSections !== []): ?>
             <details class="card mb-4">
                 <summary class="card-header cursor-pointer">
@@ -322,15 +345,15 @@ foreach ($workOverviewWidgets as $widgetKey => $widget) {
         <?php endif; ?>
 
         <?php if (dashboardSectionVisible($visibleDashboardSections, 'work_overview')): ?>
-        <div class="card card-lg mb-4 bg-primary-lt border-primary-subtle">
+        <div class="card card-lg mb-4 dashboard-work-card">
             <div class="card-body">
-                <div class="d-flex align-items-center gap-2 text-primary mb-2">
+                <div class="d-flex align-items-center gap-2 text-secondary mb-2">
                     <?= dashIcon('activity') ?>
                     <span class="fw-semibold">Zentrale Arbeitsübersicht</span>
                 </div>
-                <h3 class="mb-2">Alles Wichtige auf einen Blick</h3>
+                <h3 class="mb-2">Aktuelle Prioritäten</h3>
                 <p class="text-secondary mb-0">
-                    Prüfe offene Aufgaben, springe direkt in häufige Bereiche und blende nur die Arbeitskarten ein, die für deinen Admin-Alltag wirklich relevant sind.
+                    Direkter Zugriff auf die wichtigsten Arbeitsbereiche mit den für deinen Alltag aktivierten Widgets.
                 </p>
 
                 <div class="dashboard-kpi-grid mt-4">
@@ -442,6 +465,46 @@ foreach ($workOverviewWidgets as $widgetKey => $widget) {
             </div>
             <?php endif; ?>
 
+            <?php if ($subscriptionEnabled && dashboardSectionVisible($visibleDashboardSections, 'recent_orders')): ?>
+                <div class="dashboard-overview-card">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Neueste Bestellungen</h3>
+                        </div>
+                        <?php if ($recentOrders !== []): ?>
+                            <div class="list-group list-group-flush">
+                                <?php foreach ($recentOrders as $order): ?>
+                                    <div class="list-group-item">
+                                        <div class="d-flex align-items-start justify-content-between gap-3">
+                                            <div>
+                                                <div class="fw-semibold"><?= htmlspecialchars((string) ($order->order_number ?? 'Bestellung')) ?></div>
+                                                <div class="small text-secondary"><?= htmlspecialchars((string) ($order->customer_name ?? 'Gast')) ?></div>
+                                                <div class="small text-secondary"><?= htmlspecialchars((string) ($order->created_at ?? '')) ?></div>
+                                            </div>
+                                            <div class="text-end">
+                                                <div class="fw-semibold">
+                                                    <?= htmlspecialchars(number_format((float) ($order->total_amount ?? 0), 2, ',', '.')) ?>
+                                                    <?= htmlspecialchars((string) ($order->currency ?? 'EUR')) ?>
+                                                </div>
+                                                <span class="badge bg-azure-lt"><?= htmlspecialchars((string) ($order->status ?? 'offen')) ?></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                            <div class="card-footer">
+                                <a href="/admin/orders" class="btn btn-outline-primary w-100">
+                                    <?= dashIcon('shopping-cart') ?>
+                                    Bestellungen öffnen
+                                </a>
+                            </div>
+                        <?php else: ?>
+                            <div class="card-body text-secondary">Noch keine Bestellungen gefunden.</div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            <?php endif; ?>
+
             <?php if (dashboardSectionVisible($visibleDashboardSections, 'system_status')): ?>
             <div class="dashboard-overview-card">
                 <div class="card">
@@ -533,46 +596,6 @@ foreach ($workOverviewWidgets as $widgetKey => $widget) {
                     </div>
                 </div>
             </div>
-            <?php endif; ?>
-
-            <?php if ($subscriptionEnabled && dashboardSectionVisible($visibleDashboardSections, 'recent_orders')): ?>
-                <div class="dashboard-overview-card">
-                    <div class="card">
-                        <div class="card-header">
-                            <h3 class="card-title">Neueste Bestellungen</h3>
-                        </div>
-                        <?php if ($recentOrders !== []): ?>
-                            <div class="list-group list-group-flush">
-                                <?php foreach ($recentOrders as $order): ?>
-                                    <div class="list-group-item">
-                                        <div class="d-flex align-items-start justify-content-between gap-3">
-                                            <div>
-                                                <div class="fw-semibold"><?= htmlspecialchars((string) ($order->order_number ?? 'Bestellung')) ?></div>
-                                                <div class="small text-secondary"><?= htmlspecialchars((string) ($order->customer_name ?? 'Gast')) ?></div>
-                                                <div class="small text-secondary"><?= htmlspecialchars((string) ($order->created_at ?? '')) ?></div>
-                                            </div>
-                                            <div class="text-end">
-                                                <div class="fw-semibold">
-                                                    <?= htmlspecialchars(number_format((float) ($order->total_amount ?? 0), 2, ',', '.')) ?>
-                                                    <?= htmlspecialchars((string) ($order->currency ?? 'EUR')) ?>
-                                                </div>
-                                                <span class="badge bg-azure-lt"><?= htmlspecialchars((string) ($order->status ?? 'offen')) ?></span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                <?php endforeach; ?>
-                            </div>
-                            <div class="card-footer">
-                                <a href="/admin/orders" class="btn btn-outline-primary w-100">
-                                    <?= dashIcon('shopping-cart') ?>
-                                    Bestellungen öffnen
-                                </a>
-                            </div>
-                        <?php else: ?>
-                            <div class="card-body text-secondary">Noch keine Bestellungen gefunden.</div>
-                        <?php endif; ?>
-                    </div>
-                </div>
             <?php endif; ?>
         </div>
 
