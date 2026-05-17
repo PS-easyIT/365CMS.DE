@@ -62,18 +62,21 @@ if (!function_exists('sidebarTopLevelIcon')) {
             'legal' => 'scale',
             'security' => 'shield',
             'plugins' => 'plug',
+            'logs-audit' => 'clipboard-list',
             'system' => 'settings',
             'diagnose' => 'stethoscope',
             'plugin-item' => 'plug',
         ];
 
         $icon = $iconMap[$key] ?? 'point';
-        return '<i class="ti ti-' . htmlspecialchars($icon, ENT_QUOTES, 'UTF-8') . '" aria-hidden="true"></i>';
+        $style = $key === 'logs-audit' ? ' style="font-size:18px;width:18px;height:18px;"' : '';
+        return '<i class="ti ti-' . htmlspecialchars($icon, ENT_QUOTES, 'UTF-8') . '" aria-hidden="true"' . $style . '></i>';
     }
 }
 
 $activePage = cmsNormalizeSidebarActivePage((string) ($activePage ?? ''));
 $siteUrl    = defined('SITE_URL') ? SITE_URL : '';
+$siteName   = function_exists('cms_get_site_name') ? cms_get_site_name() : (defined('SITE_NAME') ? SITE_NAME : '365CMS');
 $sidebarLogoUrl = cms_asset_url('images/LOGO_365CMS-75px.png', false);
 $sidebarLogoFallbackUrl = $sidebarLogoUrl;
 $defaultPluginIcon = '<svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M7 7h10v10h-10z"/><path d="M14 7v-3a1 1 0 0 0 -1 -1h-2a1 1 0 0 0 -1 1v3"/><path d="M7 14h-3a1 1 0 0 1 -1 -1v-2a1 1 0 0 1 1 -1h3"/><path d="M17 14h3a1 1 0 0 0 1 -1v-2a1 1 0 0 0 -1 -1h-3"/><path d="M14 17v3a1 1 0 0 1 -1 1h-2a1 1 0 0 1 -1 -1v-3"/></svg>';
@@ -187,6 +190,30 @@ foreach ($registeredPluginMenus as $menu) {
 
 $pluginSidebarChildren = array_values(array_unique($pluginSidebarChildren, SORT_REGULAR));
 $pluginSidebarSlugs = array_values(array_unique($pluginSidebarSlugs));
+$siteDomain = (string) parse_url($siteUrl, PHP_URL_HOST);
+if ($siteDomain === '') {
+    $siteDomain = preg_replace('~^https?://~i', '', trim((string) $siteUrl)) ?? '';
+    $siteDomain = trim((string) preg_replace('~/.*$~', '', $siteDomain));
+}
+
+$sidebarSecurityScore = 86;
+try {
+    $_securityScoreRow = \CMS\Database::instance()->get_row(
+        "SELECT option_value FROM " . \CMS\Database::instance()->getPrefix() . "settings WHERE option_name = 'security_score'"
+    );
+    if ($_securityScoreRow !== null) {
+        $sidebarSecurityScore = max(0, min(100, (int) $_securityScoreRow->option_value));
+    }
+} catch (\Throwable) {
+    $sidebarSecurityScore = 86;
+}
+
+$sidebarSecurityClass = 'admin-sidebar__status-score--green';
+if ($sidebarSecurityScore < 60) {
+    $sidebarSecurityClass = 'admin-sidebar__status-score--red';
+} elseif ($sidebarSecurityScore < 80) {
+    $sidebarSecurityClass = 'admin-sidebar__status-score--amber';
+}
 
 $subscriptionSidebarChildren = [
     ['label' => 'Pakete & Abo-Einstellungen', 'slug' => 'packages', 'url' => $siteUrl . '/admin/packages'],
@@ -352,6 +379,20 @@ $systemSidebarSlugs = array_values(array_map(
     $systemSidebarChildren
 ));
 
+$logsAuditSidebarChildren = [
+    ['label' => 'Übersicht', 'slug' => 'logs-overview', 'url' => $siteUrl . '/admin/logs'],
+    ['label' => 'Operativer Log', 'slug' => 'logs-operational', 'url' => $siteUrl . '/admin/logs/operational'],
+    ['label' => 'Sicherheits-Audit', 'slug' => 'logs-security-audit', 'url' => $siteUrl . '/admin/logs/security-audit'],
+    ['label' => 'PHP-Fehlerlog', 'slug' => 'logs-php-errors', 'url' => $siteUrl . '/admin/logs/php-errors'],
+    ['label' => 'Kanal-Logs & Update-Historie', 'slug' => 'logs-channels', 'url' => $siteUrl . '/admin/logs/channels'],
+];
+
+$logsAuditSidebarSlugs = array_values(array_map(
+    static fn (array $item): string => (string) ($item['slug'] ?? ''),
+    $logsAuditSidebarChildren
+));
+$logsAuditBadgeCount = max(0, (int) ($_SESSION['admin_unread_notifications'] ?? 0));
+
 
 /**
  * Menü-Struktur: Hauptpunkte mit Icons, Unterpunkte ohne Icons
@@ -495,6 +536,16 @@ $menuGroups = [
         'children' => $pluginSidebarChildren,
     ],
 
+    // ─── Logs & Audit ──────────────────────
+    [
+        'type'     => 'group',
+        'label'    => 'Logs & Audit',
+        'icon'     => sidebarTopLevelIcon('logs-audit'),
+        'slugs'    => $logsAuditSidebarSlugs,
+        'children' => $logsAuditSidebarChildren,
+        'badge'    => $logsAuditBadgeCount > 0 ? ['label' => (string) $logsAuditBadgeCount, 'tone' => 'red'] : null,
+    ],
+
     // ─── System & Einstellungen ───────
     [
         'type'     => 'group',
@@ -509,7 +560,7 @@ $menuGroups = [
         'type'     => 'group',
         'label'    => 'Diagnose',
         'icon'     => sidebarTopLevelIcon('diagnose'),
-        'slugs'    => ['info', 'diagnose', 'monitor-assets', 'monitor-response-time', 'monitor-cron-status', 'monitor-disk-usage', 'monitor-scheduled-tasks', 'monitor-health-check', 'monitor-email-alerts', 'cms-logs'],
+        'slugs'    => ['info', 'diagnose', 'monitor-assets', 'monitor-response-time', 'monitor-cron-status', 'monitor-disk-usage', 'monitor-scheduled-tasks', 'monitor-health-check', 'monitor-email-alerts'],
         'children' => [
             ['label' => 'Übersicht', 'slug' => 'info', 'url' => $siteUrl . '/admin/info'],
             ['label' => 'Datenbank', 'slug' => 'diagnose', 'url' => $siteUrl . '/admin/diagnose'],
@@ -520,7 +571,6 @@ $menuGroups = [
             ['label' => 'Scheduled Tasks', 'slug' => 'monitor-scheduled-tasks', 'url' => $siteUrl . '/admin/monitor-scheduled-tasks'],
             ['label' => 'Health-Check', 'slug' => 'monitor-health-check', 'url' => $siteUrl . '/admin/monitor-health-check'],
             ['label' => 'E-Mail-Benachrichtigungen', 'slug' => 'monitor-email-alerts', 'url' => $siteUrl . '/admin/monitor-email-alerts'],
-            ['label' => 'Logs & Protokolle', 'slug' => 'cms-logs', 'url' => $siteUrl . '/admin/cms-logs'],
         ],
     ],
 ];
@@ -557,6 +607,40 @@ if ($pluginMenuGroups !== []) {
         }
     }
 }
+
+$sectionMap = [
+    'dashboard' => ['label' => 'Core', 'class' => 'nav-section-label--core'],
+    'pages-posts' => ['label' => 'Content', 'class' => 'nav-section-label--content'],
+    'users' => ['label' => 'Benutzer', 'class' => 'nav-section-label--users'],
+    'themes' => ['label' => 'Marketing & Design', 'class' => 'nav-section-label--design'],
+    'legal-sites' => ['label' => 'Sicherheit & Logs', 'class' => 'nav-section-label--security'],
+    'plugins' => ['label' => 'System', 'class' => 'nav-section-label--system'],
+];
+$menuGroupsWithSections = [];
+$insertedSectionLabels = [];
+foreach ($menuGroups as $item) {
+    $anchorKey = '';
+    if (($item['type'] ?? '') === 'item') {
+        $anchorKey = (string) ($item['slug'] ?? '');
+    } elseif (($item['type'] ?? '') === 'group') {
+        $anchorKey = (string) (($item['slugs'][0] ?? ''));
+    }
+
+    if ($anchorKey !== '' && isset($sectionMap[$anchorKey]) && !isset($insertedSectionLabels[$anchorKey])) {
+        if ($menuGroupsWithSections !== []) {
+            $menuGroupsWithSections[] = ['type' => 'divider', 'class' => 'nav-divider--section'];
+        }
+        $menuGroupsWithSections[] = [
+            'type' => 'section-label',
+            'label' => (string) ($sectionMap[$anchorKey]['label'] ?? ''),
+            'class' => (string) ($sectionMap[$anchorKey]['class'] ?? ''),
+        ];
+        $insertedSectionLabels[$anchorKey] = true;
+    }
+
+    $menuGroupsWithSections[] = $item;
+}
+$menuGroups = $menuGroupsWithSections;
 
 $menuGroups = array_values(array_filter($menuGroups, static function (array $item): bool {
     if (($item['type'] ?? '') !== 'group') {
@@ -604,6 +688,11 @@ if (!function_exists('sidebarChildIcon')) {
             'updates' => 'refresh',
             'backups' => 'database',
             'cms-logs' => 'file-report',
+            'logs-overview' => 'clipboard-list',
+            'logs-operational' => 'activity',
+            'logs-security-audit' => 'shield-check',
+            'logs-php-errors' => 'code',
+            'logs-channels' => 'messages',
             'modules' => 'apps',
             'themes' => 'palette',
             'theme-editor' => 'code',
@@ -617,20 +706,75 @@ if (!function_exists('sidebarChildIcon')) {
     }
 }
 
+$topbarSectionLabel = 'Dashboard';
+$topbarCurrentPageLabel = 'Übersicht';
+foreach ($menuGroups as $item) {
+    if (($item['type'] ?? '') === 'item' && isSlugActive((string) ($item['slug'] ?? ''), $activePage)) {
+        $topbarSectionLabel = (string) ($item['label'] ?? $topbarSectionLabel);
+        $topbarCurrentPageLabel = (string) ($item['label'] ?? $topbarCurrentPageLabel);
+        break;
+    }
+
+    if (($item['type'] ?? '') === 'group' && is_array($item['children'] ?? null)) {
+        foreach ($item['children'] as $child) {
+            if (isSlugActive((string) ($child['slug'] ?? ''), $activePage)) {
+                $topbarSectionLabel = (string) ($item['label'] ?? $topbarSectionLabel);
+                $topbarCurrentPageLabel = (string) ($child['label'] ?? $topbarCurrentPageLabel);
+                break 2;
+            }
+        }
+
+        if (isGroupActive((array) ($item['slugs'] ?? []), $activePage)) {
+            $topbarSectionLabel = (string) ($item['label'] ?? $topbarSectionLabel);
+            $topbarCurrentPageLabel = 'Übersicht';
+        }
+    }
+}
+
+$currentAdminUser = null;
+try {
+    if (class_exists('\CMS\Auth')) {
+        $currentAdminUser = \CMS\Auth::instance()->currentUser();
+    }
+} catch (\Throwable) {
+    $currentAdminUser = null;
+}
+
+$currentAdminFirstName = trim((string) ($currentAdminUser->meta['first_name'] ?? ''));
+$currentAdminLastName = trim((string) ($currentAdminUser->meta['last_name'] ?? ''));
+if ($currentAdminFirstName === '' && !empty($_SESSION['user_display_name'])) {
+    $currentAdminFirstName = (string) $_SESSION['user_display_name'];
+}
+
+$topbarUnreadNotifications = max(0, (int) ($_SESSION['admin_unread_notifications'] ?? 0));
+
 ?>
 <aside class="navbar navbar-vertical navbar-expand-lg" data-bs-theme="dark">
     <div class="container-fluid">
 
-        <!-- Brand / Logo -->
-        <h1 class="navbar-brand navbar-brand-autodark">
-            <a href="<?= htmlspecialchars((string) $siteUrl) ?>/admin">
+        <div class="admin-sidebar__header">
+            <a class="admin-sidebar__brand" href="<?= htmlspecialchars((string) $siteUrl) ?>/admin">
                 <img src="<?= htmlspecialchars((string) $sidebarLogoUrl) ?>"
-                     alt="<?= htmlspecialchars((string) (defined('SITE_NAME') ? SITE_NAME : '365CMS')) ?>"
-                     height="75"
-                     style="height:75px;width:auto;max-width:100%;"
-                     onerror="this.onerror=null;this.src='<?= htmlspecialchars((string) $sidebarLogoFallbackUrl) ?>';this.style.height='75px';this.style.width='auto';">
+                    alt="<?= htmlspecialchars((string) $siteName) ?>"
+                    class="admin-sidebar__brand-logo"
+                    onerror="this.onerror=null;this.src='<?= htmlspecialchars((string) $sidebarLogoFallbackUrl) ?>';">
             </a>
-        </h1>
+            <div class="admin-sidebar__site-meta">
+                <strong class="admin-sidebar__site-name" title="<?= htmlspecialchars((string) $siteName, ENT_QUOTES, 'UTF-8') ?>">
+                    <?= htmlspecialchars((string) $siteName, ENT_QUOTES, 'UTF-8') ?>
+                </strong>
+                <span class="admin-sidebar__site-domain" title="<?= htmlspecialchars((string) $siteDomain, ENT_QUOTES, 'UTF-8') ?>">
+                    <?= htmlspecialchars((string) $siteDomain, ENT_QUOTES, 'UTF-8') ?>
+                </span>
+            </div>
+            <div class="admin-sidebar__status-strip">
+                <span class="admin-sidebar__status-live">System läuft</span>
+                <span class="admin-sidebar__status-score <?= htmlspecialchars($sidebarSecurityClass, ENT_QUOTES, 'UTF-8') ?>">
+                    Security <?= $sidebarSecurityScore ?>
+                </span>
+            </div>
+        </div>
+        <div class="admin-sidebar__divider" aria-hidden="true"></div>
 
         <!-- Mobile Toggle -->
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#sidebar-menu"
@@ -661,25 +805,36 @@ if (!function_exists('sidebarChildIcon')) {
                             <a class="nav-link" href="<?= htmlspecialchars((string) ($item['url'] ?? '#')) ?>">
                                 <span class="nav-link-icon"><?= $item['icon'] ?></span>
                                 <span class="nav-link-title"><?= htmlspecialchars((string) ($item['label'] ?? '')) ?></span>
+                                <?php if (is_array($item['badge'] ?? null) && trim((string) ($item['badge']['label'] ?? '')) !== ''): ?>
+                                    <span class="admin-nav-badge admin-nav-badge--<?= htmlspecialchars((string) ($item['badge']['tone'] ?? 'blue'), ENT_QUOTES, 'UTF-8') ?>">
+                                        <?= htmlspecialchars((string) ($item['badge']['label'] ?? ''), ENT_QUOTES, 'UTF-8') ?>
+                                    </span>
+                                <?php endif; ?>
                             </a>
                         </li>
 
                     <?php elseif ($item['type'] === 'group'): ?>
                         <?php $groupActive = isGroupActive($item['slugs'], $activePage); ?>
                         <!-- Gruppe mit Untermenü -->
-                        <li class="nav-item dropdown<?= $groupActive ? ' active' : '' ?><?= !empty($item['class']) ? ' ' . htmlspecialchars((string)$item['class']) : '' ?>">
+                        <li class="nav-item dropdown<?= $groupActive ? ' active is-active-parent' : '' ?><?= !empty($item['class']) ? ' ' . htmlspecialchars((string)$item['class']) : '' ?>">
                             <a class="nav-link dropdown-toggle<?= $groupActive ? ' show' : '' ?>"
                                href="#sidebar-<?= htmlspecialchars((string) ($item['slugs'][0] ?? 'group')) ?>"
                                data-bs-toggle="dropdown" data-bs-auto-close="false"
                                role="button" aria-expanded="<?= $groupActive ? 'true' : 'false' ?>">
                                 <span class="nav-link-icon"><?= $item['icon'] ?></span>
                                 <span class="nav-link-title"><?= htmlspecialchars((string) ($item['label'] ?? '')) ?></span>
+                                <?php if (is_array($item['badge'] ?? null) && trim((string) ($item['badge']['label'] ?? '')) !== ''): ?>
+                                    <span class="admin-nav-badge admin-nav-badge--<?= htmlspecialchars((string) ($item['badge']['tone'] ?? 'blue'), ENT_QUOTES, 'UTF-8') ?>">
+                                        <?= htmlspecialchars((string) ($item['badge']['label'] ?? ''), ENT_QUOTES, 'UTF-8') ?>
+                                    </span>
+                                <?php endif; ?>
+                                <span class="admin-nav-chevron" aria-hidden="true"><i class="ti ti-chevron-down"></i></span>
                             </a>
                             <div class="dropdown-menu<?= $groupActive ? ' show' : '' ?>">
                                 <?php foreach ($item['children'] as $child): ?>
                                     <a class="dropdown-item<?= isSlugActive((string) ($child['slug'] ?? ''), $activePage) ? ' active' : '' ?>"
                                        href="<?= htmlspecialchars((string) ($child['url'] ?? '#')) ?>">
-                                        <span class="dropdown-item-icon" aria-hidden="true"><?= sidebarChildIcon((string) ($child['slug'] ?? '')) ?></span>
+                                        <span class="dropdown-item-dot" aria-hidden="true"></span>
                                         <span class="dropdown-item-title"><?= htmlspecialchars((string) ($child['label'] ?? '')) ?></span>
                                     </a>
                                 <?php endforeach; ?>
@@ -694,15 +849,16 @@ if (!function_exists('sidebarChildIcon')) {
         </div>
 
         <!-- Sidebar Footer -->
-        <div class="navbar-nav flex-row d-none d-lg-flex mt-auto pb-3 px-2">
-            <div class="d-flex flex-column w-100 gap-1">
-                <a class="nav-link text-reset px-2 py-1" href="<?= $siteUrl ?>/" target="_blank" rel="noopener">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 6h-6a2 2 0 0 0 -2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-6"/><path d="M11 13l9 -9"/><path d="M15 4h5v5"/></svg>
+        <div class="navbar-nav d-none d-lg-flex mt-auto admin-sidebar__footer">
+            <div class="d-flex flex-column w-100">
+                <a class="nav-link admin-sidebar__footer-link" href="<?= htmlspecialchars((string) $siteUrl, ENT_QUOTES, 'UTF-8') ?>/" target="_blank" rel="noopener">
+                    <i class="ti ti-external-link" aria-hidden="true"></i>
                     <span class="nav-link-title">Website ansehen</span>
                 </a>
-                <a class="nav-link text-reset px-2 py-1" href="<?= $siteUrl ?>/logout">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="icon text-danger" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 8v-2a2 2 0 0 0 -2 -2h-7a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h7a2 2 0 0 0 2 -2v-2"/><path d="M9 12h12l-3 -3"/><path d="M18 15l3 -3"/></svg>
-                    <span class="nav-link-title text-danger">Abmelden</span>
+                <div class="admin-sidebar__divider admin-sidebar__divider--footer" aria-hidden="true"></div>
+                <a class="nav-link admin-sidebar__footer-link admin-sidebar__footer-link--danger" href="<?= htmlspecialchars((string) $siteUrl, ENT_QUOTES, 'UTF-8') ?>/logout">
+                    <i class="ti ti-logout" aria-hidden="true"></i>
+                    <span class="nav-link-title">Abmelden</span>
                 </a>
             </div>
         </div>
@@ -885,3 +1041,4 @@ if (!function_exists('sidebarChildIcon')) {
 </script>
 
 <div class="page-wrapper">
+    <?php require __DIR__ . '/topbar.php'; ?>

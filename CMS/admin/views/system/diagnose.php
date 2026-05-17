@@ -60,7 +60,7 @@ foreach ($tables as $tableInfo) {
                     <button type="submit" class="btn btn-outline-success">Diagnosebericht exportieren</button>
                 </form>
                 <a href="<?php echo htmlspecialchars('/admin/monitor-assets', ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-outline-secondary">Assets öffnen</a>
-                <a href="<?php echo htmlspecialchars('/admin/cms-logs', ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-outline-secondary">Logs &amp; Protokolle</a>
+                <a href="<?php echo htmlspecialchars('/admin/logs', ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-outline-secondary">Logs &amp; Audit</a>
             </div>
         </div>
     </div>

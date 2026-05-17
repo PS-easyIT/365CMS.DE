@@ -18,6 +18,8 @@ if (!defined('CMS_ADMIN_SYSTEM_VIEW')) {
 $backups = $data['backups'];
 $history = $data['history'];
 $validationReport = is_array($alert['report_payload'] ?? null) ? $alert['report_payload'] : [];
+$restoreModalId = 'backupRestoreConfirmModal';
+$errorModalId = 'backupErrorLogModal';
 
 if (!function_exists('cms_admin_backups_render_status_badge')) {
     function cms_admin_backups_render_status_badge(string $status): string
@@ -206,7 +208,11 @@ if (!function_exists('cms_admin_backups_render_status_badge')) {
                             <th>Dateiname</th>
                             <th>Größe</th>
                             <th>Datum</th>
-                            <th class="w-1"></th>
+                            <th class="w-1 text-end">AKTIONEN</th>
+                        </tr>
+                        <tr class="backup-actions-subheader">
+                            <th colspan="3"></th>
+                            <th class="w-1 text-end">DB | Dateien | Prüfen | Dry-Run | Restore | Löschen</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -215,9 +221,18 @@ if (!function_exists('cms_admin_backups_render_status_badge')) {
                             $name = is_array($backup) ? ($backup['name'] ?? $backup['filename'] ?? '') : (string)$backup;
                             $size = is_array($backup) ? ($backup['size'] ?? $backup['size_formatted'] ?? '-') : '-';
                             $date = is_array($backup) ? ($backup['date'] ?? $backup['created'] ?? '-') : '-';
+                            $statusRaw = strtolower(trim((string) (is_array($backup) ? ($backup['status'] ?? '') : '')));
+                            $isFailedBackup = in_array($statusRaw, ['failed', 'fehlgeschlagen', 'error', 'fehler'], true)
+                                || (is_array($backup) && array_key_exists('success', $backup) && empty($backup['success']));
+                            $errorLog = is_array($backup)
+                                ? (string) ($backup['error_log'] ?? $backup['error'] ?? $backup['message'] ?? 'Keine Fehlerdetails vorhanden.')
+                                : 'Keine Fehlerdetails vorhanden.';
                             $canDownloadDatabase = !empty($backup['can_download_database']);
                             $canDownloadFiles = !empty($backup['can_download_files']);
                             $canRestore = !empty($backup['can_restore']);
+                            if ($isFailedBackup) {
+                                $canRestore = false;
+                            }
                             $downloadDatabaseToken = $canDownloadDatabase && function_exists('cms_admin_backups_create_download_token')
                                 ? cms_admin_backups_create_download_token((string) $name, 'database')
                                 : '';
@@ -228,10 +243,19 @@ if (!function_exists('cms_admin_backups_render_status_badge')) {
                                 $size = round($size / 1024 / 1024, 2) . ' MB';
                             }
                             ?>
-                            <tr>
+                            <tr class="<?php echo $isFailedBackup ? 'backup-row-failed' : ''; ?>">
                                 <td>
                                     <svg xmlns="http://www.w3.org/2000/svg" class="icon me-1 text-muted" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z"/></svg>
                                     <?php echo htmlspecialchars($name); ?>
+                                    <?php if ($isFailedBackup): ?>
+                                        <i class="ti ti-alert-triangle backup-failed-icon" title="Fehlerhafter Backup-Stand" aria-hidden="true"></i>
+                                        <button
+                                            type="button"
+                                            class="badge bg-danger-lt text-danger border-0 backup-failed-badge"
+                                            onclick="cmsAdminBackupsShowErrorLog(<?php echo htmlspecialchars(json_encode((string) $name, JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?: '\"Backup\"', ENT_QUOTES, 'UTF-8'); ?>, <?php echo htmlspecialchars(json_encode((string) $errorLog, JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?: '\"Keine Fehlerdetails vorhanden.\"', ENT_QUOTES, 'UTF-8'); ?>)">
+                                            Fehlgeschlagen
+                                        </button>
+                                    <?php endif; ?>
                                 </td>
                                 <td class="text-muted"><?php echo htmlspecialchars((string)$size); ?></td>
                                 <td class="text-muted"><?php echo htmlspecialchars((string)$date); ?></td>
@@ -269,13 +293,17 @@ if (!function_exists('cms_admin_backups_render_status_badge')) {
                                                 Dry-Run
                                             </button>
                                         </form>
-                                        <?php if ($canRestore): ?>
+                                        <?php if (!empty($backup['can_restore'])): ?>
                                             <form method="post" class="d-inline">
                                                 <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
                                                 <input type="hidden" name="action" value="restore">
                                                 <input type="hidden" name="backup_name" value="<?php echo htmlspecialchars($name); ?>">
-                                                <button type="button" class="btn btn-sm btn-warning"
-                                                    onclick="cmsAdminBackupsConfirmSubmit(this, 'restore', <?php echo htmlspecialchars(json_encode((string) $name, JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?: '"Backup"', ENT_QUOTES, 'UTF-8'); ?>)">
+                                                <button
+                                                    type="button"
+                                                    class="btn btn-sm btn-warning <?php echo $canRestore ? '' : 'backup-restore-disabled'; ?>"
+                                                    title="<?php echo $canRestore ? '' : 'Backup fehlerhaft — Wiederherstellung nicht möglich'; ?>"
+                                                    onclick="cmsAdminBackupsConfirmSubmit(this, 'restore', <?php echo htmlspecialchars(json_encode((string) $name, JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?: '"Backup"', ENT_QUOTES, 'UTF-8'); ?>, <?php echo htmlspecialchars(json_encode((string) $size, JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?: '"-"', ENT_QUOTES, 'UTF-8'); ?>, <?php echo htmlspecialchars(json_encode((string) $date, JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?: '"-"', ENT_QUOTES, 'UTF-8'); ?>)"
+                                                    <?php echo $canRestore ? '' : 'aria-disabled="true"'; ?>>
                                                     Restore
                                                 </button>
                                             </form>
@@ -344,6 +372,41 @@ if (!function_exists('cms_admin_backups_render_status_badge')) {
     <?php endif; ?>
 </div>
 
+<div class="modal modal-blur fade" id="<?php echo $restoreModalId; ?>" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">System wiederherstellen?</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Schließen"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-2"><strong>Datei:</strong> <span data-restore-backup-name>-</span></p>
+                <p class="mb-2"><strong>Größe:</strong> <span data-restore-backup-size>-</span></p>
+                <p class="mb-3"><strong>Datum:</strong> <span data-restore-backup-date>-</span></p>
+                <p class="text-danger fw-semibold mb-0">Alle aktuellen Daten werden mit dem Stand dieses Backups überschrieben. Dieser Vorgang kann nicht rückgängig gemacht werden.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                <button type="button" class="btn btn-danger" data-restore-confirm-button>Wiederherstellen</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal modal-blur fade" id="<?php echo $errorModalId; ?>" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Fehlerprotokoll: <span data-backup-error-name>-</span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Schließen"></button>
+            </div>
+            <div class="modal-body">
+                <pre class="backup-error-log mb-0" data-backup-error-log>Keine Fehlerdetails vorhanden.</pre>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 function cmsAdminBackupsSubmitForm(form) {
     if (window.cmsSubmitFormSafely) {
@@ -368,7 +431,11 @@ function cmsAdminBackupsSubmitForm(form) {
     fallbackSubmitter.remove();
 }
 
-function cmsAdminBackupsConfirmSubmit(button, kind, backupName) {
+var cmsAdminBackupRestoreModal = null;
+var cmsAdminBackupRestoreModalInstance = null;
+var cmsAdminBackupRestoreForm = null;
+
+function cmsAdminBackupsConfirmSubmit(button, kind, backupName, backupSize, backupDate) {
     var form = button ? button.closest('form') : null;
     var title = 'Backup-Aktion bestätigen';
     var message = 'Backup „' + backupName + '“ wirklich verarbeiten?';
@@ -380,9 +447,12 @@ function cmsAdminBackupsConfirmSubmit(button, kind, backupName) {
         message = backupName + ' wird testweise in eine temporäre Datenbank eingespielt und danach wieder entfernt.';
         confirmText = 'Dry-Run starten';
     } else if (kind === 'restore') {
-        title = 'Backup wiederherstellen?';
-        message = backupName + ' wird eingespielt. Vorher wird automatisch ein Rollback-Snapshot erstellt.';
-        confirmText = 'Wiederherstellen';
+        if (button && button.classList.contains('backup-restore-disabled')) {
+            return;
+        }
+
+        cmsAdminBackupsOpenRestoreModal(form, backupName, backupSize, backupDate);
+        return;
     } else if (kind === 'delete') {
         title = 'Backup löschen?';
         message = backupName + ' wird unwiderruflich gelöscht.';
@@ -400,4 +470,49 @@ function cmsAdminBackupsConfirmSubmit(button, kind, backupName) {
         }
     });
 }
+
+function cmsAdminBackupsOpenRestoreModal(form, backupName, backupSize, backupDate) {
+    cmsAdminBackupRestoreModal = document.getElementById('<?php echo $restoreModalId; ?>');
+    if (!cmsAdminBackupRestoreModal || typeof bootstrap === 'undefined' || !bootstrap || typeof bootstrap.Modal !== 'function') {
+        return;
+    }
+
+    cmsAdminBackupRestoreForm = form;
+    cmsAdminBackupRestoreModal.querySelector('[data-restore-backup-name]').textContent = backupName || '-';
+    cmsAdminBackupRestoreModal.querySelector('[data-restore-backup-size]').textContent = backupSize || '-';
+    cmsAdminBackupRestoreModal.querySelector('[data-restore-backup-date]').textContent = backupDate || '-';
+
+    if (!cmsAdminBackupRestoreModalInstance) {
+        cmsAdminBackupRestoreModalInstance = new bootstrap.Modal(cmsAdminBackupRestoreModal);
+    }
+
+    cmsAdminBackupRestoreModalInstance.show();
+}
+
+function cmsAdminBackupsShowErrorLog(backupName, errorLog) {
+    var errorModal = document.getElementById('<?php echo $errorModalId; ?>');
+    if (!errorModal || typeof bootstrap === 'undefined' || !bootstrap || typeof bootstrap.Modal !== 'function') {
+        window.alert((backupName || 'Backup') + '\n\n' + (errorLog || 'Keine Fehlerdetails vorhanden.'));
+        return;
+    }
+
+    errorModal.querySelector('[data-backup-error-name]').textContent = backupName || '-';
+    errorModal.querySelector('[data-backup-error-log]').textContent = errorLog || 'Keine Fehlerdetails vorhanden.';
+    var modalInstance = new bootstrap.Modal(errorModal);
+    modalInstance.show();
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    var restoreConfirmButton = document.querySelector('[data-restore-confirm-button]');
+    if (!(restoreConfirmButton instanceof HTMLElement)) {
+        return;
+    }
+
+    restoreConfirmButton.addEventListener('click', function() {
+        if (cmsAdminBackupRestoreModalInstance) {
+            cmsAdminBackupRestoreModalInstance.hide();
+        }
+        cmsAdminBackupsSubmitForm(cmsAdminBackupRestoreForm);
+    });
+});
 </script>

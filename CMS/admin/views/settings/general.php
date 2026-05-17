@@ -116,362 +116,359 @@ $settingsHeading = $currentTab === 'content' ? 'Beiträge & Sites – Einstellun
 
             <div class="cms-settings-actions">
                 <span class="text-secondary small me-auto">Änderungen werden zentral in den Systemeinstellungen gespeichert.</span>
-                <button type="submit" class="btn btn-primary" name="action" value="save">
-                    Einstellungen speichern
-                </button>
             </div>
         </div>
 
         <?php if ($currentTab === 'general'): ?>
         <div class="row">
+            <div class="col-12 mb-3">
+                <ul class="nav nav-tabs" id="generalSettingsTabs" role="tablist">
+                    <li class="nav-item" role="presentation"><button class="nav-link active" id="tab-website-url" data-bs-toggle="tab" data-bs-target="#pane-website-url" type="button" role="tab" aria-controls="pane-website-url" aria-selected="true">Website &amp; URL</button></li>
+                    <li class="nav-item" role="presentation"><button class="nav-link" id="tab-localization" data-bs-toggle="tab" data-bs-target="#pane-localization" type="button" role="tab" aria-controls="pane-localization" aria-selected="false">Lokalisierung</button></li>
+                    <li class="nav-item" role="presentation"><button class="nav-link" id="tab-mail-system" data-bs-toggle="tab" data-bs-target="#pane-mail-system" type="button" role="tab" aria-controls="pane-mail-system" aria-selected="false">Mail-System</button></li>
+                    <li class="nav-item" role="presentation"><button class="nav-link" id="tab-content-options" data-bs-toggle="tab" data-bs-target="#pane-content-options" type="button" role="tab" aria-controls="pane-content-options" aria-selected="false">Inhalte &amp; Optionen</button></li>
+                    <li class="nav-item" role="presentation"><button class="nav-link" id="tab-marketplace-updates" data-bs-toggle="tab" data-bs-target="#pane-marketplace-updates" type="button" role="tab" aria-controls="pane-marketplace-updates" aria-selected="false">Marketplace &amp; Updates</button></li>
+                    <li class="nav-item" role="presentation"><button class="nav-link" id="tab-advanced" data-bs-toggle="tab" data-bs-target="#pane-advanced" type="button" role="tab" aria-controls="pane-advanced" aria-selected="false">Erweitert</button></li>
+                </ul>
+            </div>
             <div class="col-12">
-                <h3 class="cms-settings-section-heading">Kerneinstellungen</h3>
-            </div>
-            <!-- Website-Grunddaten -->
-            <div class="col-12 mb-4">
-                <div class="card">
-                    <div class="card-header"><h3 class="card-title">Website</h3></div>
-                    <div class="card-body">
-                        <div class="mb-3">
-                            <label class="form-label required">Website-Name</label>
-                            <input type="text" name="site_name" class="form-control" value="<?php echo htmlspecialchars($s['site_name']); ?>" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Beschreibung</label>
-                            <textarea name="site_description" class="form-control" rows="2"><?php echo htmlspecialchars($s['site_description']); ?></textarea>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Website-Logo</label>
-                            <div class="input-group">
-                                <input
-                                    type="text"
-                                    id="siteLogoInput"
-                                    name="site_logo"
-                                    class="form-control"
-                                    value="<?php echo htmlspecialchars($s['site_logo'] ?? ''); ?>"
-                                    placeholder="/uploads/logo.svg oder https://..."
-                                    data-media-target-input>
-                                <button
-                                    type="button"
-                                    class="btn btn-outline-secondary"
-                                    data-open-media-picker
-                                    data-target-input="siteLogoInput"
-                                    data-preview-id="siteLogoPreview"
-                                    data-picker-title="Website-Logo auswählen">
-                                    Medien
-                                </button>
-                                <button
-                                    type="button"
-                                    class="btn btn-outline-secondary"
-                                    data-clear-media-input
-                                    data-target-input="siteLogoInput"
-                                    data-preview-id="siteLogoPreview">
-                                    Leeren
-                                </button>
-                            </div>
-                            <div class="form-hint">Theme-unabhängiger Logo-Pfad bzw. eine URL, die Themes optional laden können.</div>
-                            <div
-                                id="siteLogoPreview"
-                                class="mt-2"
-                                data-media-preview
-                                data-preview-variant="logo"
-                                data-input-id="siteLogoInput"
-                                <?php echo empty($s['site_logo']) ? 'hidden' : ''; ?>>
-                                <?php if (!empty($s['site_logo'])): ?>
-                                    <img src="<?php echo htmlspecialchars($s['site_logo']); ?>" alt="Website-Logo Vorschau" style="max-height:48px; max-width:220px; border-radius:2px; border:1px solid var(--tblr-border-color); padding:6px; background:#fff;">
-                                <?php endif; ?>
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Favicon</label>
-                            <div class="input-group">
-                                <input
-                                    type="text"
-                                    id="siteFaviconInput"
-                                    name="site_favicon"
-                                    class="form-control"
-                                    value="<?php echo htmlspecialchars($s['site_favicon'] ?? ''); ?>"
-                                    placeholder="/uploads/favicon.ico oder /uploads/favicon.png"
-                                    data-media-target-input>
-                                <button
-                                    type="button"
-                                    class="btn btn-outline-secondary"
-                                    data-open-media-picker
-                                    data-target-input="siteFaviconInput"
-                                    data-preview-id="siteFaviconPreview"
-                                    data-picker-title="Favicon auswählen">
-                                    Medien
-                                </button>
-                                <button
-                                    type="button"
-                                    class="btn btn-outline-secondary"
-                                    data-clear-media-input
-                                    data-target-input="siteFaviconInput"
-                                    data-preview-id="siteFaviconPreview">
-                                    Leeren
-                                </button>
-                            </div>
-                            <div class="form-hint">Globales Favicon für 365CMS. Unterstützt relative Pfade unterhalb der Website oder absolute HTTPS-URLs.</div>
-                            <div
-                                id="siteFaviconPreview"
-                                class="mt-2 d-flex align-items-center gap-2"
-                                data-media-preview
-                                data-preview-variant="favicon"
-                                data-input-id="siteFaviconInput"
-                                <?php echo empty($s['site_favicon']) ? 'hidden' : ''; ?>>
-                                <?php if (!empty($s['site_favicon'])): ?>
-                                    <img src="<?php echo htmlspecialchars($s['site_favicon']); ?>" alt="Favicon Vorschau" width="32" height="32" style="border-radius:2px; border:1px solid var(--tblr-border-color); padding:4px; background:#fff; object-fit:contain;">
-                                    <code><?php echo htmlspecialchars((string)$s['site_favicon']); ?></code>
-                                <?php endif; ?>
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label required">Website-URL</label>
-                            <input type="url" name="site_url" class="form-control" value="<?php echo htmlspecialchars($s['site_url']); ?>" required>
-                            <div class="form-hint">Diese URL wird jetzt auch in der Runtime-Konfiguration (`config/app.php`) aktualisiert, damit `SITE_URL` zentral systemweit mitzieht.</div>
-                        </div>
-                        <div class="border rounded p-3 bg-light mb-0">
-                            <div class="fw-semibold mb-1">Zentrale URL-Umstellung</div>
-                            <div class="text-secondary small mb-3">
-                                Aktive Runtime-URL: <code><?php echo htmlspecialchars((string)($s['runtime_site_url'] ?? $s['site_url'])); ?></code><br>
-                                Beim Speichern kann 365CMS absolute Verweise von der alten Basis-URL auf die neue URL in Inhalten, Settings, Tabellen und Weiterleitungen mitmigrieren.
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Alte Basis-URL für Nachmigration <span class="text-secondary small">(optional)</span></label>
-                                <input type="url" class="form-control" name="migrate_from_site_url" value="" placeholder="https://alte-domain.tld">
-                                <div class="form-hint">Optional für bereits abgeschlossene Umzüge: Wenn hier eine alte Domain eingetragen wird, ersetzt 365CMS beim Speichern auch dann noch alte Bild-, Upload- und Medien-URLs zentral, selbst wenn die aktuelle Website-URL bereits korrekt gesetzt ist.</div>
-                            </div>
-                            <label class="form-check form-switch">
-                                <input type="checkbox" class="form-check-input" name="migrate_site_url_references" value="1" checked>
-                                <span class="form-check-label">Alte absolute CMS-URLs zentral auf die neue Website-URL umstellen</span>
-                            </label>
-                            <div class="mt-3 d-flex flex-wrap gap-2 align-items-center">
-                                <button type="submit" class="btn btn-outline-warning" name="action" value="run_site_url_migration">
-                                    Nur URL-Nachmigration ausführen
-                                </button>
-                                <span class="text-secondary small">Führt nur die URL-Ersetzung aus und speichert keine anderen Einstellungen neu.</span>
-                            </div>
-                        </div>
-                        <div>
-                            <label class="form-label required">Admin-E-Mail</label>
-                            <input type="email" name="admin_email" class="form-control" value="<?php echo htmlspecialchars($s['admin_email']); ?>" required>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Lokalisierung -->
-            <div class="col-12 mb-4">
-                <div class="card">
-                    <div class="card-header"><h3 class="card-title">Lokalisierung</h3></div>
-                    <div class="card-body">
-                        <div class="mb-3">
-                            <label class="form-label">Sprache</label>
-                            <select name="language" class="form-select">
-                                <?php foreach ($languages as $code => $label): ?>
-                                    <option value="<?php echo $code; ?>" <?php echo $s['language'] === $code ? 'selected' : ''; ?>><?php echo htmlspecialchars($label); ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Zeitzone</label>
-                            <select name="timezone" class="form-select">
-                                <?php foreach ($timezones as $tz): ?>
-                                    <option value="<?php echo $tz; ?>" <?php echo $s['timezone'] === $tz ? 'selected' : ''; ?>><?php echo htmlspecialchars($tz); ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                        <div class="row g-3">
-                            <div class="col-sm-6">
-                                <label class="form-label">Datumsformat</label>
-                                <select name="date_format" class="form-select">
-                                    <?php foreach (['d.m.Y' => '31.12.2025', 'Y-m-d' => '2025-12-31', 'm/d/Y' => '12/31/2025', 'd/m/Y' => '31/12/2025'] as $fmt => $example): ?>
-                                        <option value="<?php echo $fmt; ?>" <?php echo $s['date_format'] === $fmt ? 'selected' : ''; ?>><?php echo $example; ?> (<?php echo $fmt; ?>)</option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                            <div class="col-sm-6">
-                                <label class="form-label">Zeitformat</label>
-                                <select name="time_format" class="form-select">
-                                    <?php foreach (['H:i' => '14:30', 'H:i:s' => '14:30:00', 'g:i A' => '2:30 PM'] as $fmt => $example): ?>
-                                        <option value="<?php echo $fmt; ?>" <?php echo $s['time_format'] === $fmt ? 'selected' : ''; ?>><?php echo $example; ?> (<?php echo $fmt; ?>)</option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-12 mb-4">
-                <div class="card h-100">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h3 class="card-title mb-0">Mail-System</h3>
-                        <span class="text-secondary small"><?php echo htmlspecialchars((string)($mail['transport_label'] ?? 'Mailversand')); ?></span>
-                    </div>
-                    <div class="card-body">
-                        <div class="row g-3 mb-3">
-                            <div class="col-md-6">
-                                <label class="form-label">Absender</label>
-                                <input type="text" class="form-control" value="<?php echo htmlspecialchars((string)(($mail['from_name'] ?? '') !== '' ? ($mail['from_name'] . ' <' . ($mail['from_email'] ?? '') . '>') : ($mail['from_email'] ?? ''))); ?>" readonly>
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">SMTP-Host</label>
-                                <input type="text" class="form-control" value="<?php echo htmlspecialchars((string)($mail['host'] ?? '')); ?>" readonly>
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">Port / TLS</label>
-                                <input type="text" class="form-control" value="<?php echo htmlspecialchars((string)(($mail['port'] ?? '') . ' / ' . ($mail['encryption'] ?? 'none'))); ?>" readonly>
-                            </div>
-                        </div>
-
-                        <div class="cms-admin-info-box mb-3" role="note">
-                            <div class="cms-admin-info-box__head">
-                                <h3 class="cms-admin-info-box__title">Mail- und OAuth2-Steuerung</h3>
-                            </div>
-                            <p class="cms-admin-info-box__text">
-                                Mail-Transport, Azure OAuth2, Microsoft Graph und Versand-Logs werden zentral unter
-                                <a href="<?php echo htmlspecialchars($mailSettingsUrl); ?>">System → Mail &amp; Azure OAuth2</a>
-                                verwaltet.
-                            </p>
-                        </div>
-
-                        <div class="d-flex flex-wrap gap-2 align-items-center">
-                            <a href="<?php echo htmlspecialchars($mailSettingsUrl); ?>" class="btn btn-outline-primary">Mail-System öffnen</a>
-                            <span class="text-secondary small">Hier siehst du nur den aktiven Laufzeitstatus.</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Inhalte -->
-            <div class="col-12 mb-4">
-                <div class="card">
-                    <div class="card-header"><h3 class="card-title">Inhalte</h3></div>
-                    <div class="card-body">
-                        <div class="mb-3">
-                            <label class="form-label">Beiträge pro Seite</label>
-                            <input type="number" name="posts_per_page" class="form-control" value="<?php echo (int)$s['posts_per_page']; ?>" min="1" max="100">
-                        </div>
-                        <div class="mb-3">
-                            <div class="cms-admin-info-box mb-0" role="note">
-                                <div class="cms-admin-info-box__head">
-                                    <h3 class="cms-admin-info-box__title">Benutzer- und Auth-Optionen</h3>
+                <div class="tab-content">
+                    <div class="tab-pane fade show active" id="pane-website-url" role="tabpanel" aria-labelledby="tab-website-url" tabindex="0">
+                        <div class="card mb-4">
+                            <div class="card-header"><h3 class="card-title">Website</h3></div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label class="form-label required">Website-Name</label>
+                                    <input type="text" name="site_name" class="form-control" value="<?php echo htmlspecialchars($s['site_name']); ?>" required>
                                 </div>
-                                <p class="cms-admin-info-box__text">
-                                    Benutzer-, Registrierungs- und Authentifizierungsoptionen werden unter
-                                    <a href="<?php echo htmlspecialchars($userSettingsUrl); ?>">Benutzer &amp; Gruppen → Einstellungen</a>
-                                    verwaltet.
-                                </p>
+                                <div class="mb-3">
+                                    <label class="form-label">Beschreibung</label>
+                                    <textarea name="site_description" class="form-control" rows="2"><?php echo htmlspecialchars($s['site_description']); ?></textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Website-Logo</label>
+                                    <div class="input-group">
+                                        <input
+                                            type="text"
+                                            id="siteLogoInput"
+                                            name="site_logo"
+                                            class="form-control"
+                                            value="<?php echo htmlspecialchars($s['site_logo'] ?? ''); ?>"
+                                            placeholder="/uploads/logo.svg oder https://..."
+                                            data-media-target-input>
+                                        <button
+                                            type="button"
+                                            class="btn btn-outline-secondary"
+                                            data-open-media-picker
+                                            data-target-input="siteLogoInput"
+                                            data-preview-id="siteLogoPreview"
+                                            data-picker-title="Website-Logo auswählen">
+                                            Medien
+                                        </button>
+                                        <button
+                                            type="button"
+                                            class="btn btn-outline-secondary"
+                                            data-clear-media-input
+                                            data-target-input="siteLogoInput"
+                                            data-preview-id="siteLogoPreview">
+                                            Leeren
+                                        </button>
+                                    </div>
+                                    <div class="form-hint">Theme-unabhängiger Logo-Pfad bzw. eine URL, die Themes optional laden können.</div>
+                                    <div
+                                        id="siteLogoPreview"
+                                        class="mt-2"
+                                        data-media-preview
+                                        data-preview-variant="logo"
+                                        data-input-id="siteLogoInput"
+                                        <?php echo empty($s['site_logo']) ? 'hidden' : ''; ?>>
+                                        <?php if (!empty($s['site_logo'])): ?>
+                                            <img src="<?php echo htmlspecialchars($s['site_logo']); ?>" alt="Website-Logo Vorschau" style="max-height:48px; max-width:220px; border-radius:2px; border:1px solid var(--tblr-border-color); padding:6px; background:#fff;">
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Favicon</label>
+                                    <div class="input-group">
+                                        <input
+                                            type="text"
+                                            id="siteFaviconInput"
+                                            name="site_favicon"
+                                            class="form-control"
+                                            value="<?php echo htmlspecialchars($s['site_favicon'] ?? ''); ?>"
+                                            placeholder="/uploads/favicon.ico oder /uploads/favicon.png"
+                                            data-media-target-input>
+                                        <button
+                                            type="button"
+                                            class="btn btn-outline-secondary"
+                                            data-open-media-picker
+                                            data-target-input="siteFaviconInput"
+                                            data-preview-id="siteFaviconPreview"
+                                            data-picker-title="Favicon auswählen">
+                                            Medien
+                                        </button>
+                                        <button
+                                            type="button"
+                                            class="btn btn-outline-secondary"
+                                            data-clear-media-input
+                                            data-target-input="siteFaviconInput"
+                                            data-preview-id="siteFaviconPreview">
+                                            Leeren
+                                        </button>
+                                    </div>
+                                    <div class="form-hint">Globales Favicon für 365CMS. Unterstützt relative Pfade unterhalb der Website oder absolute HTTPS-URLs.</div>
+                                    <div
+                                        id="siteFaviconPreview"
+                                        class="mt-2 d-flex align-items-center gap-2"
+                                        data-media-preview
+                                        data-preview-variant="favicon"
+                                        data-input-id="siteFaviconInput"
+                                        <?php echo empty($s['site_favicon']) ? 'hidden' : ''; ?>>
+                                        <?php if (!empty($s['site_favicon'])): ?>
+                                            <img src="<?php echo htmlspecialchars($s['site_favicon']); ?>" alt="Favicon Vorschau" width="32" height="32" style="border-radius:2px; border:1px solid var(--tblr-border-color); padding:4px; background:#fff; object-fit:contain;">
+                                            <code><?php echo htmlspecialchars((string)$s['site_favicon']); ?></code>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label required">Website-URL</label>
+                                    <input type="url" name="site_url" class="form-control" value="<?php echo htmlspecialchars($s['site_url']); ?>" required>
+                                    <div class="form-hint">Diese URL wird jetzt auch in der Runtime-Konfiguration (`config/app.php`) aktualisiert, damit `SITE_URL` zentral systemweit mitzieht.</div>
+                                </div>
+                                <div class="border rounded p-3 bg-light mb-0">
+                                    <div class="fw-semibold mb-1">Zentrale URL-Umstellung</div>
+                                    <div class="text-secondary small mb-3">
+                                        Aktive Runtime-URL: <code><?php echo htmlspecialchars((string)($s['runtime_site_url'] ?? $s['site_url'])); ?></code><br>
+                                        Beim Speichern kann 365CMS absolute Verweise von der alten Basis-URL auf die neue URL in Inhalten, Settings, Tabellen und Weiterleitungen mitmigrieren.
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Alte Basis-URL für Nachmigration <span class="text-secondary small">(optional)</span></label>
+                                        <input type="url" class="form-control" name="migrate_from_site_url" value="" placeholder="https://alte-domain.tld">
+                                        <div class="form-hint">Optional für bereits abgeschlossene Umzüge: Wenn hier eine alte Domain eingetragen wird, ersetzt 365CMS beim Speichern auch dann noch alte Bild-, Upload- und Medien-URLs zentral, selbst wenn die aktuelle Website-URL bereits korrekt gesetzt ist.</div>
+                                    </div>
+                                    <label class="form-check form-switch">
+                                        <input type="checkbox" class="form-check-input" name="migrate_site_url_references" value="1" checked>
+                                        <span class="form-check-label">Alte absolute CMS-URLs zentral auf die neue Website-URL umstellen</span>
+                                    </label>
+                                    <div class="mt-3 d-flex flex-wrap gap-2 align-items-center">
+                                        <button type="submit" class="btn btn-outline-warning" name="action" value="run_site_url_migration">
+                                            Nur URL-Nachmigration ausführen
+                                        </button>
+                                        <span class="text-secondary small">Führt nur die URL-Ersetzung aus und speichert keine anderen Einstellungen neu.</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="form-label required">Admin-E-Mail</label>
+                                    <input type="email" name="admin_email" class="form-control" value="<?php echo htmlspecialchars($s['admin_email']); ?>" required>
+                                </div>
                             </div>
-                        </div>
-                        <div>
-                            <label class="form-check form-switch">
-                                <input type="checkbox" class="form-check-input" name="comments_enabled" value="1" <?php echo $s['comments_enabled'] ? 'checked' : ''; ?>>
-                                <span class="form-check-label">Kommentare aktivieren</span>
-                            </label>
-                        </div>
-                        <div class="mt-3">
-                            <label class="form-check form-switch">
-                                <input type="checkbox" class="form-check-input" name="marketplace_enabled" value="1" <?php echo $s['marketplace_enabled'] ? 'checked' : ''; ?>>
-                                <span class="form-check-label">Marketplace anzeigen (Theme- & Plugin-Marketplace)</span>
-                            </label>
                         </div>
                     </div>
-                </div>
-            </div>
 
-            <div class="col-12 mb-4">
-                <div class="card h-100">
-                    <div class="card-header"><h3 class="card-title">Marketplace &amp; Updates</h3></div>
-                    <div class="card-body">
-                        <div class="cms-admin-info-box mb-3" role="note">
-                            <div class="cms-admin-info-box__head">
-                                <h3 class="cms-admin-info-box__title">Offizielle 365CMS-Endpunkte</h3>
+                    <div class="tab-pane fade" id="pane-localization" role="tabpanel" aria-labelledby="tab-localization" tabindex="0">
+                        <div class="card mb-4">
+                            <div class="card-header"><h3 class="card-title">Lokalisierung</h3></div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label class="form-label">Sprache</label>
+                                    <select name="language" class="form-select">
+                                        <?php foreach ($languages as $code => $label): ?>
+                                            <option value="<?php echo $code; ?>" <?php echo $s['language'] === $code ? 'selected' : ''; ?>><?php echo htmlspecialchars($label); ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Zeitzone</label>
+                                    <select name="timezone" class="form-select">
+                                        <?php foreach ($timezones as $tz): ?>
+                                            <option value="<?php echo $tz; ?>" <?php echo $s['timezone'] === $tz ? 'selected' : ''; ?>><?php echo htmlspecialchars($tz); ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                                <div class="row g-3">
+                                    <div class="col-sm-6">
+                                        <label class="form-label">Datumsformat</label>
+                                        <select name="date_format" class="form-select">
+                                            <?php foreach (['d.m.Y' => '31.12.2025', 'Y-m-d' => '2025-12-31', 'm/d/Y' => '12/31/2025', 'd/m/Y' => '31/12/2025'] as $fmt => $example): ?>
+                                                <option value="<?php echo $fmt; ?>" <?php echo $s['date_format'] === $fmt ? 'selected' : ''; ?>><?php echo $example; ?> (<?php echo $fmt; ?>)</option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <label class="form-label">Zeitformat</label>
+                                        <select name="time_format" class="form-select">
+                                            <?php foreach (['H:i' => '14:30', 'H:i:s' => '14:30:00', 'g:i A' => '2:30 PM'] as $fmt => $example): ?>
+                                                <option value="<?php echo $fmt; ?>" <?php echo $s['time_format'] === $fmt ? 'selected' : ''; ?>><?php echo $example; ?> (<?php echo $fmt; ?>)</option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+                                </div>
                             </div>
-                            <p class="cms-admin-info-box__text">Empfohlene produktive Standardwerte für Plugin-Marketplace, Theme-Katalog und Core-Updates.</p>
-                        </div>
-                        <div class="mb-3">
-                            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-1">
-                                <label class="form-label mb-0">Plugin-Registry</label>
-                                <?php if ($usesDefaultPluginRegistry): ?>
-                                    <span class="text-secondary small">Produktiv-Standard aktiv</span>
-                                <?php else: ?>
-                                    <span class="text-warning small fw-semibold">Individuell überschrieben</span>
-                                <?php endif; ?>
-                            </div>
-                            <input type="url" name="plugin_registry_url" class="form-control" value="<?php echo htmlspecialchars((string)($s['plugin_registry_url'] ?? 'https://365cms.de/marketplace/plugins/index.json')); ?>" placeholder="https://365cms.de/marketplace/plugins/index.json">
-                            <div class="form-hint">Zentraler JSON-Feed für den Plugin-Marketplace im Admin. Offizieller Standard: <code><?php echo htmlspecialchars($defaultPluginRegistryUrl); ?></code></div>
-                        </div>
-                        <div class="mb-3">
-                            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-1">
-                                <label class="form-label mb-0">Theme-Marketplace-Basis</label>
-                                <?php if ($usesDefaultThemeMarketplace): ?>
-                                    <span class="text-secondary small">Produktiv-Standard aktiv</span>
-                                <?php else: ?>
-                                    <span class="text-warning small fw-semibold">Individuell überschrieben</span>
-                                <?php endif; ?>
-                            </div>
-                            <input type="url" name="theme_marketplace_url" class="form-control" value="<?php echo htmlspecialchars((string)($s['theme_marketplace_url'] ?? 'https://365cms.de/marketplace/themes')); ?>" placeholder="https://365cms.de/marketplace/themes">
-                            <div class="form-hint">Basis-URL für Theme-Katalog und Theme-Manifeste. Offizieller Standard: <code><?php echo htmlspecialchars($defaultThemeMarketplaceUrl); ?></code>. Das System ergänzt intern weiterhin <code>/index.json</code>.</div>
-                        </div>
-                        <div class="mb-3">
-                            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-1">
-                                <label class="form-label mb-0">Core-Update-Feed</label>
-                                <?php if ($usesDefaultCoreUpdate): ?>
-                                    <span class="text-secondary small">Produktiv-Standard aktiv</span>
-                                <?php else: ?>
-                                    <span class="text-warning small fw-semibold">Individuell überschrieben</span>
-                                <?php endif; ?>
-                            </div>
-                            <input type="url" name="core_update_url" class="form-control" value="<?php echo htmlspecialchars((string)($s['core_update_url'] ?? 'https://365cms.de/marketplace/core/365cms/update.json')); ?>" placeholder="https://365cms.de/marketplace/core/365cms/update.json">
-                            <div class="form-hint">Expliziter Feed für 365CMS-Core-Updates. Offizieller Standard: <code><?php echo htmlspecialchars($defaultCoreUpdateUrl); ?></code>.</div>
-                        </div>
-                        <div class="cms-admin-info-box mb-0" role="note">
-                            <div class="cms-admin-info-box__head">
-                                <h3 class="cms-admin-info-box__title">Fallback bleibt aktiv</h3>
-                            </div>
-                            <p class="cms-admin-info-box__text">Diese Felder zeigen die aktuell verwendeten zentralen Marketplace-Endpunkte. Leere oder ungültige Werte fallen beim Speichern automatisch auf die offiziellen 365CMS-Defaults zurück.</p>
                         </div>
                     </div>
-                </div>
-            </div>
 
-            <div class="col-12">
-                <h3 class="cms-settings-section-heading">Erweiterte Optionen</h3>
-            </div>
-            <!-- Wartung -->
-            <div class="col-12 mb-4">
-                <div class="card">
-                    <div class="card-header"><h3 class="card-title">Wartungsmodus</h3></div>
-                    <div class="card-body">
-                        <div class="mb-3">
-                            <label class="form-check form-switch">
-                                <input type="checkbox" class="form-check-input" name="maintenance_mode" value="1" <?php echo $s['maintenance_mode'] ? 'checked' : ''; ?>>
-                                <span class="form-check-label">Wartungsmodus aktivieren</span>
-                            </label>
-                            <small class="form-hint">Besucher sehen eine Wartungsseite. Administratoren haben weiterhin Zugriff.</small>
-                        </div>
-                        <div>
-                            <label class="form-label">Wartungsnachricht</label>
-                            <textarea name="maintenance_message" class="form-control" rows="3"><?php echo htmlspecialchars($s['maintenance_message']); ?></textarea>
+                    <div class="tab-pane fade" id="pane-mail-system" role="tabpanel" aria-labelledby="tab-mail-system" tabindex="0">
+                        <div class="card h-100 mb-4">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h3 class="card-title mb-0">Mail-System</h3>
+                                <span class="text-secondary small"><?php echo htmlspecialchars((string)($mail['transport_label'] ?? 'Mailversand')); ?></span>
+                            </div>
+                            <div class="card-body">
+                                <div class="row g-3 mb-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Absender</label>
+                                        <input type="text" class="form-control" value="<?php echo htmlspecialchars((string)(($mail['from_name'] ?? '') !== '' ? ($mail['from_name'] . ' <' . ($mail['from_email'] ?? '') . '>') : ($mail['from_email'] ?? ''))); ?>" readonly>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">SMTP-Host</label>
+                                        <input type="text" class="form-control" value="<?php echo htmlspecialchars((string)($mail['host'] ?? '')); ?>" readonly>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">Port / TLS</label>
+                                        <input type="text" class="form-control" value="<?php echo htmlspecialchars((string)(($mail['port'] ?? '') . ' / ' . ($mail['encryption'] ?? 'none'))); ?>" readonly>
+                                    </div>
+                                </div>
+
+                                <div class="cms-admin-info-box mb-3" role="note">
+                                    <div class="cms-admin-info-box__head">
+                                        <h3 class="cms-admin-info-box__title">Mail- und OAuth2-Steuerung</h3>
+                                    </div>
+                                    <p class="cms-admin-info-box__text">
+                                        Mail-Transport, Azure OAuth2, Microsoft Graph und Versand-Logs werden zentral unter
+                                        <a href="<?php echo htmlspecialchars($mailSettingsUrl); ?>">System → Mail &amp; Azure OAuth2</a>
+                                        verwaltet.
+                                    </p>
+                                </div>
+
+                                <div class="d-flex flex-wrap gap-2 align-items-center">
+                                    <a href="<?php echo htmlspecialchars($mailSettingsUrl); ?>" class="btn btn-outline-primary">Mail-System öffnen</a>
+                                    <span class="text-secondary small">Hier siehst du nur den aktiven Laufzeitstatus.</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                </div>
-            </div>
 
-            <!-- Erweitert -->
-            <div class="col-12 mb-4">
-                <div class="card">
-                    <div class="card-header"><h3 class="card-title">Erweitert</h3></div>
-                    <div class="card-body">
-                        <div class="mb-3">
-                            <label class="form-label">Google Analytics / Tag Manager ID</label>
-                            <input type="text" name="google_analytics" class="form-control" value="<?php echo htmlspecialchars($s['google_analytics']); ?>" placeholder="G-XXXXXXXXXX oder UA-XXXXXX-X">
+                    <div class="tab-pane fade" id="pane-content-options" role="tabpanel" aria-labelledby="tab-content-options" tabindex="0">
+                        <div class="card mb-4">
+                            <div class="card-header"><h3 class="card-title">Inhalte</h3></div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label class="form-label">Beiträge pro Seite</label>
+                                    <input type="number" name="posts_per_page" class="form-control" value="<?php echo (int)$s['posts_per_page']; ?>" min="1" max="100">
+                                </div>
+                                <div class="mb-3">
+                                    <div class="cms-admin-info-box mb-0" role="note">
+                                        <div class="cms-admin-info-box__head">
+                                            <h3 class="cms-admin-info-box__title">Benutzer- und Auth-Optionen</h3>
+                                        </div>
+                                        <p class="cms-admin-info-box__text">
+                                            Benutzer-, Registrierungs- und Authentifizierungsoptionen werden unter
+                                            <a href="<?php echo htmlspecialchars($userSettingsUrl); ?>">Benutzer &amp; Gruppen → Einstellungen</a>
+                                            verwaltet.
+                                        </p>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="form-check form-switch">
+                                        <input type="checkbox" class="form-check-input" name="comments_enabled" value="1" <?php echo $s['comments_enabled'] ? 'checked' : ''; ?>>
+                                        <span class="form-check-label">Kommentare aktivieren</span>
+                                    </label>
+                                </div>
+                                <div class="mt-3">
+                                    <label class="form-check form-switch">
+                                        <input type="checkbox" class="form-check-input" name="marketplace_enabled" value="1" <?php echo $s['marketplace_enabled'] ? 'checked' : ''; ?>>
+                                        <span class="form-check-label">Marketplace anzeigen (Theme- & Plugin-Marketplace)</span>
+                                    </label>
+                                </div>
+                            </div>
                         </div>
-                        <div>
-                            <label class="form-label">robots.txt</label>
-                            <textarea name="robots_txt" class="form-control" rows="5" style="font-family: monospace; font-size: 13px;" placeholder="User-agent: *&#10;Allow: /"><?php echo htmlspecialchars($s['robots_txt']); ?></textarea>
+                    </div>
+
+                    <div class="tab-pane fade" id="pane-marketplace-updates" role="tabpanel" aria-labelledby="tab-marketplace-updates" tabindex="0">
+                        <div class="card h-100 mb-4">
+                            <div class="card-header"><h3 class="card-title">Marketplace &amp; Updates</h3></div>
+                            <div class="card-body">
+                                <div class="cms-admin-info-box mb-3" role="note">
+                                    <div class="cms-admin-info-box__head">
+                                        <h3 class="cms-admin-info-box__title">Offizielle 365CMS-Endpunkte</h3>
+                                    </div>
+                                    <p class="cms-admin-info-box__text">Empfohlene produktive Standardwerte für Plugin-Marketplace, Theme-Katalog und Core-Updates.</p>
+                                </div>
+                                <div class="mb-3">
+                                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-1">
+                                        <label class="form-label mb-0">Plugin-Registry</label>
+                                        <?php if ($usesDefaultPluginRegistry): ?>
+                                            <span class="text-secondary small">Produktiv-Standard aktiv</span>
+                                        <?php else: ?>
+                                            <span class="text-warning small fw-semibold">Individuell überschrieben</span>
+                                        <?php endif; ?>
+                                    </div>
+                                    <input type="url" name="plugin_registry_url" class="form-control" value="<?php echo htmlspecialchars((string)($s['plugin_registry_url'] ?? 'https://365cms.de/marketplace/plugins/index.json')); ?>" placeholder="https://365cms.de/marketplace/plugins/index.json">
+                                    <div class="form-hint">Zentraler JSON-Feed für den Plugin-Marketplace im Admin. Offizieller Standard: <code><?php echo htmlspecialchars($defaultPluginRegistryUrl); ?></code></div>
+                                </div>
+                                <div class="mb-3">
+                                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-1">
+                                        <label class="form-label mb-0">Theme-Marketplace-Basis</label>
+                                        <?php if ($usesDefaultThemeMarketplace): ?>
+                                            <span class="text-secondary small">Produktiv-Standard aktiv</span>
+                                        <?php else: ?>
+                                            <span class="text-warning small fw-semibold">Individuell überschrieben</span>
+                                        <?php endif; ?>
+                                    </div>
+                                    <input type="url" name="theme_marketplace_url" class="form-control" value="<?php echo htmlspecialchars((string)($s['theme_marketplace_url'] ?? 'https://365cms.de/marketplace/themes')); ?>" placeholder="https://365cms.de/marketplace/themes">
+                                    <div class="form-hint">Basis-URL für Theme-Katalog und Theme-Manifeste. Offizieller Standard: <code><?php echo htmlspecialchars($defaultThemeMarketplaceUrl); ?></code>. Das System ergänzt intern weiterhin <code>/index.json</code>.</div>
+                                </div>
+                                <div class="mb-3">
+                                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-1">
+                                        <label class="form-label mb-0">Core-Update-Feed</label>
+                                        <?php if ($usesDefaultCoreUpdate): ?>
+                                            <span class="text-secondary small">Produktiv-Standard aktiv</span>
+                                        <?php else: ?>
+                                            <span class="text-warning small fw-semibold">Individuell überschrieben</span>
+                                        <?php endif; ?>
+                                    </div>
+                                    <input type="url" name="core_update_url" class="form-control" value="<?php echo htmlspecialchars((string)($s['core_update_url'] ?? 'https://365cms.de/marketplace/core/365cms/update.json')); ?>" placeholder="https://365cms.de/marketplace/core/365cms/update.json">
+                                    <div class="form-hint">Expliziter Feed für 365CMS-Core-Updates. Offizieller Standard: <code><?php echo htmlspecialchars($defaultCoreUpdateUrl); ?></code>.</div>
+                                </div>
+                                <div class="cms-admin-info-box mb-0" role="note">
+                                    <div class="cms-admin-info-box__head">
+                                        <h3 class="cms-admin-info-box__title">Fallback bleibt aktiv</h3>
+                                    </div>
+                                    <p class="cms-admin-info-box__text">Diese Felder zeigen die aktuell verwendeten zentralen Marketplace-Endpunkte. Leere oder ungültige Werte fallen beim Speichern automatisch auf die offiziellen 365CMS-Defaults zurück.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tab-pane fade" id="pane-advanced" role="tabpanel" aria-labelledby="tab-advanced" tabindex="0">
+                        <div class="card mb-4">
+                            <div class="card-header"><h3 class="card-title">Wartungsmodus</h3></div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label class="form-check form-switch">
+                                        <input type="checkbox" class="form-check-input" name="maintenance_mode" value="1" <?php echo $s['maintenance_mode'] ? 'checked' : ''; ?>>
+                                        <span class="form-check-label">Wartungsmodus aktivieren</span>
+                                    </label>
+                                    <small class="form-hint">Besucher sehen eine Wartungsseite. Administratoren haben weiterhin Zugriff.</small>
+                                </div>
+                                <div>
+                                    <label class="form-label">Wartungsnachricht</label>
+                                    <textarea name="maintenance_message" class="form-control" rows="3"><?php echo htmlspecialchars($s['maintenance_message']); ?></textarea>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card mb-4">
+                            <div class="card-header"><h3 class="card-title">Erweitert</h3></div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label class="form-label">Google Analytics / Tag Manager ID</label>
+                                    <input type="text" name="google_analytics" class="form-control" value="<?php echo htmlspecialchars($s['google_analytics']); ?>" placeholder="G-XXXXXXXXXX oder UA-XXXXXX-X">
+                                </div>
+                                <div>
+                                    <label class="form-label">robots.txt</label>
+                                    <textarea name="robots_txt" class="form-control" rows="5" style="font-family: monospace; font-size: 13px;" placeholder="User-agent: *&#10;Allow: /"><?php echo htmlspecialchars($s['robots_txt']); ?></textarea>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -646,7 +643,7 @@ $settingsHeading = $currentTab === 'content' ? 'Beiträge & Sites – Einstellun
         </div>
         <?php endif; ?>
 
-        <div class="cms-settings-actions cms-settings-actions-bottom">
+        <div class="cms-settings-actions cms-settings-actions-bottom sticky-footer">
             <button type="submit" class="btn btn-primary" name="action" value="save">
                 <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-device-floppy me-1" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M6 4h10l4 4v10a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2"/><path d="M12 14m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0"/><path d="M14 4l0 4l-6 0l0 -4"/></svg>
                 Einstellungen speichern

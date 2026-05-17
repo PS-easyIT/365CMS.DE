@@ -166,7 +166,7 @@ class DashboardModule
             'label' => 'CMS Logs',
             'description' => 'Diagnose- und Betriebsprotokolle öffnen.',
             'icon' => 'alert-triangle',
-            'url' => '/admin/cms-logs',
+            'url' => '/admin/logs',
         ],
         'settings' => [
             'label' => 'Einstellungen',
@@ -1050,7 +1050,7 @@ class DashboardModule
         return [[
             'type' => 'warning',
             'message' => 'Einige Dashboard-Bereiche laufen aktuell im Fallback-Modus: ' . implode(', ', $labels) . '. Details stehen in den CMS Logs.',
-            'url' => '/admin/cms-logs',
+            'url' => '/admin/logs',
         ]];
     }
 

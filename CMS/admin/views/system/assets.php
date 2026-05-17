@@ -41,7 +41,7 @@ $assetPermissions = array_values(array_filter($permissions, static function ($pe
             </div>
             <div class="col-auto d-flex gap-2 flex-wrap">
                 <a href="<?php echo htmlspecialchars('/admin/diagnose', ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-outline-secondary">Datenbank öffnen</a>
-                <a href="<?php echo htmlspecialchars('/admin/cms-logs', ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-outline-secondary">Logs &amp; Protokolle</a>
+                <a href="<?php echo htmlspecialchars('/admin/logs', ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-outline-secondary">Logs &amp; Audit</a>
             </div>
         </div>
     </div>
@@ -159,6 +159,10 @@ $assetPermissions = array_values(array_filter($permissions, static function ($pe
             <div class="col-12 col-xl-6">
                 <div class="card h-100">
                     <div class="card-header"><h3 class="card-title">Asset-Libraries</h3></div>
+                    <div class="card-body border-bottom pb-2">
+                        <input type="search" class="form-control" id="assetLibrarySearch" placeholder="Library suchen...">
+                        <div class="text-secondary small mt-2" id="assetLibraryCounter"><?php echo count($bundledLibraries); ?> von <?php echo count($bundledLibraries); ?> Libraries</div>
+                    </div>
                     <div class="table-responsive">
                         <table class="table table-vcenter card-table table-striped">
                             <thead>
@@ -173,7 +177,7 @@ $assetPermissions = array_values(array_filter($permissions, static function ($pe
                                     <tr><td colspan="3" class="text-center text-secondary py-4">Keine Asset-Libraries erkannt.</td></tr>
                                 <?php else: ?>
                                     <?php foreach ($bundledLibraries as $library): ?>
-                                        <tr>
+                                        <tr data-library-name="<?php echo htmlspecialchars(strtolower((string) ($library['label'] ?? $library['package'] ?? '')), ENT_QUOTES, 'UTF-8'); ?>">
                                             <td>
                                                 <div class="fw-semibold"><?php echo htmlspecialchars((string) ($library['label'] ?? $library['package'] ?? '')); ?></div>
                                                 <div class="text-secondary small"><?php echo htmlspecialchars((string) ($library['notes'] ?? '')); ?></div>
@@ -315,3 +319,31 @@ $assetPermissions = array_values(array_filter($permissions, static function ($pe
         </div>
     </div>
 </div>
+<script>
+(function () {
+    const input = document.getElementById('assetLibrarySearch');
+    const counter = document.getElementById('assetLibraryCounter');
+    if (!input || !counter) {
+        return;
+    }
+    const rows = Array.from(document.querySelectorAll('tr[data-library-name]'));
+    const total = rows.length;
+
+    function applyFilter() {
+        const term = (input.value || '').trim().toLowerCase();
+        let visible = 0;
+        rows.forEach((row) => {
+            const name = row.dataset.libraryName || '';
+            const matches = term === '' || name.includes(term);
+            row.style.display = matches ? '' : 'none';
+            if (matches) {
+                visible++;
+            }
+        });
+        counter.textContent = visible + ' von ' + total + ' Libraries';
+    }
+
+    input.addEventListener('keyup', applyFilter);
+    input.addEventListener('input', applyFilter);
+})();
+</script>

@@ -1273,7 +1273,7 @@ class SystemInfoModule
             'Datenbank' => ['/admin/diagnose', 'Diagnose öffnen'],
             'Cache-Verzeichnis' => ['/admin/monitor-assets', 'Assets öffnen'],
             'Uploads-Verzeichnis' => ['/admin/monitor-assets', 'Assets öffnen'],
-            'Logs-Verzeichnis' => ['/admin/cms-logs', 'Logs öffnen'],
+            'Logs-Verzeichnis' => ['/admin/logs', 'Logs öffnen'],
             'Response Time' => ['/admin/monitor-response-time', 'Response-Time öffnen'],
             'Disk-Auslastung' => ['/admin/monitor-disk-usage', 'Disk-Usage öffnen'],
             'Health-Endpunkt' => ['/admin/monitor-health-check', 'Health-Check öffnen'],

@@ -106,7 +106,7 @@ if (!function_exists('cms_admin_documentation_view_render_document_link')) {
                 <span class="doc-tree-file-type doc-tree-file-type-<?= htmlspecialchars($extension, ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($extension, ENT_QUOTES, 'UTF-8') ?></span>
                 <span class="doc-tree-file-title text-truncate"><?= htmlspecialchars(cms_admin_documentation_view_document_title($document), ENT_QUOTES, 'UTF-8') ?></span>
             </div>
-            <?php if (!$compact && $relativePath !== ''): ?>
+            <?php if ($relativePath !== ''): ?>
                 <div class="doc-tree-file-path text-truncate"><?= htmlspecialchars($relativePath, ENT_QUOTES, 'UTF-8') ?></div>
             <?php endif; ?>
         </a>

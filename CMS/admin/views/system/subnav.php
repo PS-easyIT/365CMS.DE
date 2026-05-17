@@ -24,10 +24,10 @@ $sectionNavGroups = [
             ['slug' => 'monitor-scheduled-tasks', 'label' => 'Scheduled Tasks', 'url' => '/admin/monitor-scheduled-tasks'],
             ['slug' => 'monitor-health-check', 'label' => 'Health-Check', 'url' => '/admin/monitor-health-check'],
             ['slug' => 'monitor-email-alerts', 'label' => 'E-Mail-Benachrichtigungen', 'url' => '/admin/monitor-email-alerts'],
-            ['slug' => 'cms-logs', 'label' => 'Logs & Protokolle', 'url' => '/admin/cms-logs'],
         ],
     ],
 ];
 $currentSectionPage = (string)$currentSystemPage;
+$sectionSubnavClass = 'admin-diagnose-subnav';
 
 require dirname(__DIR__) . '/partials/section-subnav.php';

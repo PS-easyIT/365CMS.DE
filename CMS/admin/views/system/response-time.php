@@ -12,6 +12,22 @@ $trendNote = (string)($trend['note'] ?? '');
 $trendLastCapturedAt = (string)($trend['last_captured_at'] ?? '');
 $trendUnit = (string)($trend['unit'] ?? 'ms');
 $trendColor = (string)($trend['sparkline_color'] ?? '#206bc4');
+$trendSignatures = [];
+foreach ($trendRanges as $range) {
+    if (!is_array($range)) {
+        continue;
+    }
+    $trendSignatures[] = md5(json_encode([
+        'avg' => (float) ($range['average'] ?? 0),
+        'min' => (float) ($range['min'] ?? 0),
+        'max' => (float) ($range['max'] ?? 0),
+        'delta' => (float) ($range['delta'] ?? 0),
+        'points' => is_array($range['points'] ?? null) ? array_map(static fn(array $point): float => (float) ($point['value'] ?? 0), (array) $range['points']) : [],
+    ]) ?: '');
+}
+$showNoHistoryOverlay = $trendRanges !== []
+    && str_contains($trendNote, 'Noch keine gespeicherten Monitoring-Snapshots vorhanden')
+    && count(array_unique($trendSignatures)) <= 1;
 
 $deltaToneClasses = [
 	'success' => 'bg-green-lt text-green',
@@ -132,7 +148,7 @@ $renderSparkline = static function (array $points, string $strokeColor, string $
 							$points = is_array($range['points'] ?? null) ? $range['points'] : [];
 							?>
 							<div class="col-md-4">
-								<div class="card h-100 border-0 bg-body-lt">
+								<div class="card h-100 border-0 bg-body-lt admin-monitor-trend-card">
 									<div class="card-body d-flex flex-column gap-3">
 										<div class="d-flex justify-content-between align-items-start gap-3">
 											<div>
@@ -149,6 +165,9 @@ $renderSparkline = static function (array $points, string $strokeColor, string $
 											<span class="text-secondary small"><?php echo (int)($range['point_count'] ?? 0); ?> Punkte</span>
 										</div>
 									</div>
+                                    <?php if ($showNoHistoryOverlay): ?>
+                                        <div class="admin-monitor-trend-overlay">Noch keine Verlaufsdaten</div>
+                                    <?php endif; ?>
 								</div>
 							</div>
 						<?php endforeach; ?>

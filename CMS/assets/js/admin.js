@@ -505,7 +505,24 @@ function initGlobalEmptyTablePattern() {
     });
 }
 
+function cleanupStaleGlobalOverlays() {
+    var activeBlockingOverlay = document.querySelector('.cms-modal.active, .cms-unsaved-modal.is-open, .cms-editor-image-picker.is-open');
+    var activeBootstrapModal = document.querySelector('.modal.show');
+
+    if (activeBlockingOverlay || activeBootstrapModal) {
+        return;
+    }
+
+    document.querySelectorAll('.modal-backdrop').forEach(function(backdrop) {
+        backdrop.remove();
+    });
+
+    document.body.classList.remove('modal-open');
+    document.body.style.removeProperty('padding-right');
+}
+
 document.addEventListener('DOMContentLoaded', function() {
+    cleanupStaleGlobalOverlays();
     
     // Confirmation for destructive actions
     const deleteButtons = document.querySelectorAll('[data-confirm]');
