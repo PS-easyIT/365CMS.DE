@@ -58,7 +58,7 @@ $dataRequestsConfig = [
     </div>
 </div>
 
-<div class="page-body">
+<div class="page-body data-requests-page">
     <div class="container-xl">
         <?php
         $alertData = $alert ?? [];
@@ -67,22 +67,35 @@ $dataRequestsConfig = [
         require __DIR__ . '/../partials/flash-alert.php';
         ?>
 
-        <div class="row row-deck row-cards mb-4 admin-metric-grid">
-            <div class="col-sm-6 col-lg-3"><div class="card"><div class="card-body"><div class="subheader">Auskunft gesamt</div><div class="h1 mb-0"><?php echo (int)($privacyStats['total'] ?? 0); ?></div></div></div></div>
-            <div class="col-sm-6 col-lg-3"><div class="card"><div class="card-body"><div class="subheader">Löschanträge gesamt</div><div class="h1 mb-0"><?php echo (int)($deletionStats['total'] ?? 0); ?></div></div></div></div>
-            <div class="col-sm-6 col-lg-3"><div class="card"><div class="card-body"><div class="subheader">Offen</div><div class="h1 mb-0 text-warning"><?php echo (int)(($privacyStats['pending'] ?? 0) + ($deletionStats['pending'] ?? 0)); ?></div></div></div></div>
-            <div class="col-sm-6 col-lg-3"><div class="card"><div class="card-body"><div class="subheader">In Bearbeitung</div><div class="h1 mb-0 text-primary"><?php echo (int)(($privacyStats['processing'] ?? 0) + ($deletionStats['processing'] ?? 0)); ?></div></div></div></div>
+        <div class="card content-listing-card mb-3">
+            <div class="card-header content-listing-toolbar">
+                <div class="content-listing-toolbar__label">Status-Überblick</div>
+                <div class="content-listing-filters">
+                    <div class="content-listing-filters__actions">
+                        <span class="text-secondary small">Auskunft gesamt: <strong><?php echo (int)($privacyStats['total'] ?? 0); ?></strong></span>
+                        <span class="text-secondary small">Löschanträge gesamt: <strong><?php echo (int)($deletionStats['total'] ?? 0); ?></strong></span>
+                        <span class="text-secondary small">Offen: <strong><?php echo (int)(($privacyStats['pending'] ?? 0) + ($deletionStats['pending'] ?? 0)); ?></strong></span>
+                        <span class="text-secondary small">In Bearbeitung: <strong><?php echo (int)(($privacyStats['processing'] ?? 0) + ($deletionStats['processing'] ?? 0)); ?></strong></span>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body py-3">
+                <div class="row row-cards admin-request-kpi-grid mb-0">
+                    <div class="col-sm-6 col-lg-3"><div class="card admin-request-kpi"><div class="card-body"><div class="subheader">Pflichtfrist</div><div class="h2 mb-0"><?php echo $deadlineDays; ?> Tage</div><div class="text-secondary small">Warnfenster ab <?php echo $warningBeforeDays; ?> Tagen Restlaufzeit.</div></div></div></div>
+                    <div class="col-sm-6 col-lg-3"><div class="card admin-request-kpi"><div class="card-body"><div class="subheader">Frist läuft ab</div><div class="h2 mb-0 text-warning"><?php echo (int)(($privacyStats['due_soon'] ?? 0) + ($deletionStats['due_soon'] ?? 0)); ?></div><div class="text-secondary small">Offene Vorgänge im Warnfenster.</div></div></div></div>
+                    <div class="col-sm-6 col-lg-3"><div class="card admin-request-kpi"><div class="card-body"><div class="subheader">Überfällig</div><div class="h2 mb-0 text-danger"><?php echo (int)(($privacyStats['overdue'] ?? 0) + ($deletionStats['overdue'] ?? 0)); ?></div><div class="text-secondary small">Sofort prüfen und dokumentieren.</div></div></div></div>
+                    <div class="col-sm-6 col-lg-3"><div class="card admin-request-kpi"><div class="card-body"><div class="subheader">Admin-Eskalation</div><div class="text-secondary small"><?php echo $adminEscalationEmail !== '' ? htmlspecialchars($adminEscalationEmail) : 'Keine gültige Admin-Mail konfiguriert'; ?></div><div class="small text-muted mt-2">Eskalation erfolgt nur per CSRF-geschützter POST-Aktion in die Mail-Queue.</div></div></div></div>
+                </div>
+            </div>
         </div>
 
-        <div class="row row-deck row-cards mb-4 admin-metric-grid">
-            <div class="col-sm-6 col-lg-3"><div class="card"><div class="card-body"><div class="subheader">Pflichtfrist</div><div class="h1 mb-0"><?php echo $deadlineDays; ?> Tage</div><div class="text-secondary small">Warnfenster ab <?php echo $warningBeforeDays; ?> Tagen Restlaufzeit.</div></div></div></div>
-            <div class="col-sm-6 col-lg-3"><div class="card"><div class="card-body"><div class="subheader">Frist läuft ab</div><div class="h1 mb-0 text-warning"><?php echo (int)(($privacyStats['due_soon'] ?? 0) + ($deletionStats['due_soon'] ?? 0)); ?></div><div class="text-secondary small">Offene Vorgänge im Warnfenster.</div></div></div></div>
-            <div class="col-sm-6 col-lg-3"><div class="card"><div class="card-body"><div class="subheader">Überfällig</div><div class="h1 mb-0 text-danger"><?php echo (int)(($privacyStats['overdue'] ?? 0) + ($deletionStats['overdue'] ?? 0)); ?></div><div class="text-secondary small">Sofort prüfen und dokumentieren.</div></div></div></div>
-            <div class="col-sm-6 col-lg-3"><div class="card"><div class="card-body"><div class="subheader">Admin-Eskalation</div><div class="text-secondary small"><?php echo $adminEscalationEmail !== '' ? htmlspecialchars($adminEscalationEmail) : 'Keine gültige Admin-Mail konfiguriert'; ?></div><div class="small text-muted mt-2">Eskalation erfolgt nur per CSRF-geschützter POST-Aktion in die Mail-Queue.</div></div></div></div>
-        </div>
-
-        <div class="alert alert-info mb-4">
-            <strong>Fristen-Workflow:</strong> Eingegangen → in Bearbeitung → erledigt oder abgelehnt. Nach Art. 12 DSGVO ist grundsätzlich ohne unangemessene Verzögerung und spätestens innerhalb eines Monats zu reagieren; 365CMS bewertet dies konservativ als <?php echo $deadlineDays; ?>-Tage-Frist und markiert offene Anfragen ab <?php echo $warningBeforeDays; ?> Tagen Restlaufzeit.
+        <div class="cms-admin-info-box mb-4" role="note">
+            <div class="cms-admin-info-box__head">
+                <h3 class="cms-admin-info-box__title">Fristen-Workflow</h3>
+            </div>
+            <p class="cms-admin-info-box__text">
+                Eingegangen → In Bearbeitung → Erledigt oder abgelehnt. Nach Art. 12 DSGVO ist grundsätzlich ohne unangemessene Verzögerung und spätestens innerhalb eines Monats zu reagieren; 365CMS bewertet dies konservativ als <?php echo $deadlineDays; ?>-Tage-Frist und markiert offene Anfragen ab <?php echo $warningBeforeDays; ?> Tagen Restlaufzeit.
+            </p>
         </div>
 
         <div class="row row-cards">
@@ -95,7 +108,7 @@ $dataRequestsConfig = [
                         <div class="alert alert-info mb-0"><strong>DSGVO Art. 15:</strong> Betroffene Personen haben das Recht auf Auskunft über die verarbeiteten personenbezogenen Daten. Ziel: Bearbeitung innerhalb eines Monats.</div>
                     </div>
                     <div class="table-responsive">
-                        <table class="table table-vcenter card-table">
+                        <table class="table table-vcenter card-table content-listing-table admin-request-table">
                             <thead>
                                 <tr>
                                     <th>#</th>
@@ -175,7 +188,7 @@ $dataRequestsConfig = [
                         <div class="alert alert-warning mb-0"><strong>DSGVO Art. 17:</strong> Löschungen müssen geprüft, dokumentiert und – sofern zulässig – fristgerecht umgesetzt werden.</div>
                     </div>
                     <div class="table-responsive">
-                        <table class="table table-vcenter card-table">
+                        <table class="table table-vcenter card-table content-listing-table admin-request-table">
                             <thead>
                                 <tr>
                                     <th>#</th>

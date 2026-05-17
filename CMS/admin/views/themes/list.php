@@ -16,6 +16,13 @@ if (!defined('ABSPATH')) {
 $themes      = $data['themes'] ?? [];
 $activeSlug  = $data['activeSlug'] ?? '';
 $totalThemes = $data['totalThemes'] ?? 0;
+$activeCount = 0;
+foreach ($themes as $themeItem) {
+    if (!empty($themeItem['isActive'])) {
+        $activeCount++;
+    }
+}
+$inactiveCount = max(0, (int)$totalThemes - $activeCount);
 $escape = static fn (mixed $value): string => htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
 ?>
 
@@ -65,6 +72,8 @@ $escape = static fn (mixed $value): string => htmlspecialchars((string) $value, 
             <div class="content-listing-toolbar__label">Installierte Themes</div>
             <div class="content-listing-filters">
                 <div class="content-listing-filters__actions">
+                    <span class="text-secondary small">Aktiv: <strong><?php echo $activeCount; ?></strong></span>
+                    <span class="text-secondary small">Inaktiv: <strong><?php echo $inactiveCount; ?></strong></span>
                     <span class="text-secondary small">Alle installierten Themes mit Aktivierungs- und Verwaltungsaktionen.</span>
                 </div>
             </div>
