@@ -107,6 +107,10 @@ final class EditorJsAssetService
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h16"/></svg>
                     <span>Trenner</span>
                 </button>
+                <button type="button" data-block="spacer" data-height="40" title="Abstand">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18"/><path d="M8 7l4-4l4 4"/><path d="M8 17l4 4l4-4"/></svg>
+                    <span>Abstand</span>
+                </button>
             </div>
 
             <div id="<?php echo htmlspecialchars($holderId, ENT_QUOTES); ?>"

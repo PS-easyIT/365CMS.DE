@@ -13,6 +13,78 @@ if (!isset($cms_admin_menu)) {
     $cms_admin_menu = [];
 }
 
+global $cms_admin_layout_depth;
+if (!isset($cms_admin_layout_depth)) {
+    $cms_admin_layout_depth = 0;
+}
+
+/**
+ * Startet die zentrale 365CMS Admin-Shell für Plugin-Callbacks.
+ *
+ * Viele ältere Plugins prüfen auf renderAdminLayoutStart()/End(), bevor sie
+ * eigene Header/Sidebar/Footer-Fallbacks laden. Diese Kompatibilitätsschicht
+ * verhindert doppelte HTML-Dokumente und sorgt dafür, dass Pluginseiten immer
+ * die aktuelle Admin-CSS/Sidebar erhalten.
+ */
+if (!function_exists('renderAdminLayoutStart')) {
+    function renderAdminLayoutStart(string $title = 'Admin', string $active = 'dashboard', array $assets = []): void {
+        global $cms_admin_layout_depth;
+
+        $cms_admin_layout_depth = (int) ($cms_admin_layout_depth ?? 0);
+        if ($cms_admin_layout_depth > 0) {
+            $cms_admin_layout_depth++;
+            return;
+        }
+
+        $cms_admin_layout_depth = 1;
+        $pageTitle = $title !== '' ? $title : 'Admin';
+        $activePage = $active !== '' ? $active : 'dashboard';
+        $pageAssets = $assets;
+
+        require ABSPATH . 'admin/partials/header.php';
+        require ABSPATH . 'admin/partials/sidebar.php';
+    }
+}
+
+/**
+ * Beendet die zentrale 365CMS Admin-Shell.
+ */
+if (!function_exists('renderAdminLayoutEnd')) {
+    function renderAdminLayoutEnd(): void {
+        global $cms_admin_layout_depth;
+
+        $cms_admin_layout_depth = (int) ($cms_admin_layout_depth ?? 0);
+        if ($cms_admin_layout_depth <= 0) {
+            $cms_admin_layout_depth = 0;
+            return;
+        }
+
+        if ($cms_admin_layout_depth > 1) {
+            $cms_admin_layout_depth--;
+            return;
+        }
+
+        require ABSPATH . 'admin/partials/footer.php';
+        $cms_admin_layout_depth = 0;
+    }
+}
+
+if (!function_exists('cms_admin_layout_is_active')) {
+    function cms_admin_layout_is_active(): bool {
+        global $cms_admin_layout_depth;
+
+        return (int) ($cms_admin_layout_depth ?? 0) > 0;
+    }
+}
+
+if (!function_exists('cms_admin_layout_reset')) {
+    function cms_admin_layout_reset(int $depth = 0): void {
+        global $cms_admin_layout_depth;
+
+        $cms_admin_layout_depth = max(0, $depth);
+    }
+}
+
 /**
  * Findet den Index eines registrierten Top-Level-Plugin-Menüs über seinen Slug.
  */

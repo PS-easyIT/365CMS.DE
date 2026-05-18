@@ -10,6 +10,7 @@
         'code',
         'table',
         'delimiter',
+        'spacer',
         'embed',
         'linkTool',
         'attaches',
@@ -31,6 +32,7 @@
         code: ['CodeTool'],
         table: ['Table'],
         delimiter: ['Delimiter'],
+        spacer: ['CmsSpacerTool'],
         embed: ['Embed'],
         linkTool: ['LinkTool'],
         attaches: ['AttachesTool'],
@@ -53,6 +55,7 @@
         image_gallery: 'imageGallery',
         imageGallery: 'imageGallery',
         callout: 'warning',
+        space: 'spacer',
         details: 'accordion'
     };
 
@@ -130,7 +133,28 @@
             };
         }
 
+        if (type === 'spacer') {
+            return {
+                type: type,
+                data: normalizeSpacerData(data)
+            };
+        }
+
         return { type: type, data: data };
+    }
+
+    function normalizeSpacerData(data) {
+        var allowedHeights = [15, 25, 40, 60, 75, 100];
+        var height = parseInt(data && data.height ? data.height : 40, 10) || 40;
+
+        if (allowedHeights.indexOf(height) === -1) {
+            height = 40;
+        }
+
+        return {
+            height: height,
+            preset: height + 'px'
+        };
     }
 
     function normalizeListData(data) {
@@ -569,6 +593,62 @@
         }
     }
 
+    class SpacerTool {
+        constructor(options) {
+            this.data = normalizeSpacerData(options && options.data ? options.data : {});
+            this.nodes = {};
+        }
+        static get toolbox() {
+            return { title: 'Abstand', icon: '↕' };
+        }
+        render() {
+            var wrapper = createElement('div', 'editorjs-spacer-tool');
+            var header = createElement('div', 'editorjs-spacer-tool__header');
+            var label = createElement('label', 'editorjs-spacer-tool__label', 'Abstand');
+            var select = document.createElement('select');
+            var badge = createElement('span', 'editorjs-spacer-tool__badge');
+            var preview = createElement('div', 'editorjs-spacer-tool__preview');
+            var help = createElement('div', 'form-hint', 'Fügt vertikalen Weißraum ein – ideal für saubere Abschnittsabstände.');
+
+            select.className = 'form-select form-select-sm editorjs-spacer-tool__select';
+            [15, 25, 40, 60, 75, 100].forEach(function (height) {
+                var option = document.createElement('option');
+                option.value = String(height);
+                option.textContent = height + ' px';
+                select.appendChild(option);
+            });
+            select.value = String(this.data.height || 40);
+
+            function updatePreview() {
+                var height = parseInt(select.value, 10) || 40;
+                preview.style.height = height + 'px';
+                badge.textContent = height + ' px';
+            }
+
+            select.addEventListener('input', updatePreview);
+            select.addEventListener('change', updatePreview);
+
+            header.appendChild(label);
+            header.appendChild(select);
+            wrapper.appendChild(header);
+            wrapper.appendChild(badge);
+            wrapper.appendChild(preview);
+            wrapper.appendChild(help);
+
+            this.nodes = { select: select, preview: preview, badge: badge };
+            updatePreview();
+
+            return wrapper;
+        }
+        save() {
+            return normalizeSpacerData({
+                height: this.nodes.select ? this.nodes.select.value : this.data.height
+            });
+        }
+    }
+
+    window.CmsSpacerTool = SpacerTool;
+
     function resolveToolClass(toolName) {
         var globalNames = TOOL_GLOBALS[toolName];
         var toolClass = null;
@@ -784,6 +864,7 @@
             config: { rows: 3, cols: 3, maxRows: 20, maxCols: 10, maxrows: 20, maxcols: 10 }
         }, true);
         addTool(tools, 'delimiter', {}, true);
+        addTool(tools, 'spacer', {}, true);
 
         addTool(tools, 'embed', {
             inlineToolbar: inlineToolbar,

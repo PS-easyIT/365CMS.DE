@@ -10,6 +10,8 @@ $topbarSectionLabel = trim((string) ($topbarSectionLabel ?? 'Dashboard'));
 $topbarCurrentPageLabel = trim((string) ($topbarCurrentPageLabel ?? $pageTitle ?? 'Übersicht'));
 $topbarUnreadNotifications = max(0, (int) ($topbarUnreadNotifications ?? 0));
 $siteUrl = defined('SITE_URL') ? SITE_URL : '';
+$currentAdminFirstName = (string) ($currentAdminFirstName ?? '');
+$currentAdminLastName = (string) ($currentAdminLastName ?? '');
 
 $topbarInitialSource = trim($currentAdminFirstName . ' ' . $currentAdminLastName);
 if ($topbarInitialSource === '') {

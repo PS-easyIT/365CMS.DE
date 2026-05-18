@@ -1160,6 +1160,7 @@
                         { label: 'Tabelle', icon: '▦', block: 'table', description: 'Strukturierte Daten' },
                         { label: 'Hinweis', icon: '!', block: 'warning', description: 'Info-/Warnbox' },
                         { label: 'Akkordeon', icon: '⌄', block: 'accordion', description: 'Aufklappbarer Abschnitt' },
+                        { label: 'Abstand', icon: '↕', block: 'spacer', data: { height: 40, preset: '40px' }, description: 'Vertikalen Weißraum einfügen' },
                         { label: 'Code', icon: '</>', block: 'code', description: 'Code-Beispiel' },
                         { label: 'HTML', icon: '{}', block: 'raw', description: 'Sanitizter HTML-Block' },
                         { label: 'Trenner', icon: '—', block: 'delimiter', description: 'Visueller Abschnittstrenner' }
@@ -1621,6 +1622,7 @@
 
             ensureEditorCommandbar(definition, editorEntry);
             ensureGroupedToolbar(definition, editorEntry);
+            bindClipboardImagePaste(definition, editorEntry);
             renderEditorBlockUi(definition, editorEntry);
 
             if (!state.observed) {
@@ -1908,6 +1910,171 @@
                 contentTitle: readUploadContextField(uploadContext.titleInputId),
                 contentTitleFallback: readUploadContextField(uploadContext.titleFallbackInputId)
             };
+        }
+
+        function buildEditorMediaUrl(action) {
+            var baseUrl = String(config.mediaUploadUrl || '/api/media');
+            var separator = baseUrl.indexOf('?') === -1 ? '?' : '&';
+
+            return baseUrl + separator + 'action=' + encodeURIComponent(action);
+        }
+
+        function collectClipboardImageFiles(event) {
+            var clipboardData = event && event.clipboardData ? event.clipboardData : null;
+            var files = [];
+
+            if (!clipboardData) {
+                return files;
+            }
+
+            Array.prototype.slice.call(clipboardData.items || []).forEach(function (item) {
+                var file;
+
+                if (!item || String(item.kind || '') !== 'file' || !/^image\//i.test(String(item.type || ''))) {
+                    return;
+                }
+
+                file = typeof item.getAsFile === 'function' ? item.getAsFile() : null;
+                if (file) {
+                    files.push(file);
+                }
+            });
+
+            if (files.length === 0) {
+                Array.prototype.slice.call(clipboardData.files || []).forEach(function (file) {
+                    if (file && /^image\//i.test(String(file.type || ''))) {
+                        files.push(file);
+                    }
+                });
+            }
+
+            return files;
+        }
+
+        function appendClipboardUploadContext(formData) {
+            var uploadContext = buildUploadContext();
+
+            if (uploadContext.contentType) {
+                formData.append('content_type', uploadContext.contentType);
+            }
+            if (uploadContext.draftKey) {
+                formData.append('draft_key', uploadContext.draftKey);
+            }
+            if (uploadContext.contentSlug) {
+                formData.append('content_slug', uploadContext.contentSlug);
+            }
+            if (uploadContext.contentSlugFallback) {
+                formData.append('content_slug_fallback', uploadContext.contentSlugFallback);
+            }
+            if (uploadContext.contentTitle) {
+                formData.append('content_title', uploadContext.contentTitle);
+            }
+            if (uploadContext.contentTitleFallback) {
+                formData.append('content_title_fallback', uploadContext.contentTitleFallback);
+            }
+        }
+
+        function uploadClipboardImage(file, index) {
+            var body = new FormData();
+            var fallbackName = 'clipboard-image-' + String(index + 1) + '.png';
+
+            body.append('image', file, file && file.name ? file.name : fallbackName);
+            body.append('csrf_token', String(config.csrfToken || ''));
+            appendClipboardUploadContext(body);
+
+            return fetch(buildEditorMediaUrl('upload_image'), {
+                method: 'POST',
+                body: body,
+                credentials: 'same-origin',
+                headers: config.csrfToken ? { 'X-CSRF-Token': String(config.csrfToken) } : {}
+            }).then(function (response) {
+                return response.json();
+            }).then(function (payload) {
+                var filePayload = payload && payload.file && typeof payload.file === 'object' ? payload.file : {};
+                var url = String(filePayload.url || payload && payload.url || '');
+
+                if (!payload || !payload.success || url === '') {
+                    throw new Error(String(payload && payload.message ? payload.message : 'Bild aus der Zwischenablage konnte nicht hochgeladen werden.'));
+                }
+
+                return Object.assign({}, filePayload, { url: url });
+            });
+        }
+
+        function getClipboardInsertIndex(holder, event, editorInstance) {
+            var target = event && event.target && event.target.closest ? event.target.closest('.ce-block') : null;
+            var blockIndex = target ? getBlockIndex(holder, target) : -1;
+            var currentIndex;
+
+            if (blockIndex >= 0) {
+                return blockIndex + 1;
+            }
+
+            if (editorInstance && editorInstance.blocks && typeof editorInstance.blocks.getCurrentBlockIndex === 'function') {
+                try {
+                    currentIndex = editorInstance.blocks.getCurrentBlockIndex();
+                    if (typeof currentIndex === 'number' && currentIndex >= 0) {
+                        return currentIndex + 1;
+                    }
+                } catch (_error) {
+                    // Fall back to append below.
+                }
+            }
+
+            return editorInstance && editorInstance.blocks && typeof editorInstance.blocks.getBlocksCount === 'function'
+                ? editorInstance.blocks.getBlocksCount()
+                : 0;
+        }
+
+        function bindClipboardImagePaste(definition, editorEntry) {
+            var holder = getElement(definition.holderId);
+
+            if (!holder || !editorEntry || !editorEntry.instance || holder.dataset.cmsClipboardImagePasteBound === '1') {
+                return;
+            }
+
+            holder.dataset.cmsClipboardImagePasteBound = '1';
+            holder.addEventListener('paste', function (event) {
+                var files = collectClipboardImageFiles(event);
+                var insertIndex;
+                var queue;
+
+                if (files.length === 0 || !isEditorToolAvailable(editorEntry, 'image')) {
+                    return;
+                }
+
+                event.preventDefault();
+                event.stopPropagation();
+
+                insertIndex = getClipboardInsertIndex(holder, event, editorEntry.instance);
+                showNotice('info', files.length === 1 ? 'Bild aus der Zwischenablage wird hochgeladen …' : String(files.length) + ' Bilder aus der Zwischenablage werden hochgeladen …');
+
+                queue = Promise.resolve();
+                files.forEach(function (file, index) {
+                    queue = queue.then(function () {
+                        return uploadClipboardImage(file, index).then(function (filePayload) {
+                            insertBlockAt(editorEntry.instance, insertIndex + index, 'image', {
+                                file: filePayload,
+                                caption: '',
+                                withBorder: false,
+                                withBackground: false,
+                                stretched: false
+                            });
+                        });
+                    });
+                });
+
+                queue.then(function () {
+                    markEditorMutation(definition.key);
+                    clearNotice();
+                    if (editorEntry.instance.caret && typeof editorEntry.instance.caret.setToBlock === 'function') {
+                        editorEntry.instance.caret.setToBlock(insertIndex + files.length - 1, 'end');
+                    }
+                }).catch(function (error) {
+                    showNotice('danger', error && error.message ? error.message : 'Bild aus der Zwischenablage konnte nicht eingefügt werden.');
+                    logEditor('warn', 'Clipboard image paste failed.', error);
+                });
+            }, true);
         }
 
         function isEditorInputEmpty(input) {
