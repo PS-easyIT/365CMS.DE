@@ -967,8 +967,17 @@ final class ThemeRouter
                 return;
             }
         } elseif (!\cms_post_is_publicly_visible($postRow)) {
-            $this->router->render404();
-            return;
+            if (!\CMS\Auth::instance()->isLoggedIn()) {
+                $this->router->redirect($this->buildLocalizedLoginRedirectPath(), 302);
+                return;
+            }
+
+            if (!$this->canCurrentViewerAccessUnpublishedContent($postRow, 'edit_all_posts')) {
+                $this->router->render404();
+                return;
+            }
+
+            $this->sendDraftPreviewHeaders();
         }
 
         $requestContext = $this->router->getRequestContext();
@@ -992,7 +1001,9 @@ final class ThemeRouter
         $postData = $this->attachLegacyCompatibleTagsToPost($postData);
 
         $post = (object)$postData;
-        $db->execute("UPDATE {$prefix}posts SET views = views + 1 WHERE id = ?", [(int)$post->id]);
+        if (\cms_post_is_publicly_visible($postRow)) {
+            $db->execute("UPDATE {$prefix}posts SET views = views + 1 WHERE id = ?", [(int)$post->id]);
+        }
 
         if (!empty($post->content)) {
             $post->content = $this->router->prepareRenderableContent((string)$post->content, 'post', (int)($post->id ?? 0));
@@ -1160,7 +1171,16 @@ final class ThemeRouter
                     return true;
                 }
             } elseif ($pageStatus !== 'published') {
-                return false;
+                if (!\CMS\Auth::instance()->isLoggedIn()) {
+                    $this->router->redirect($this->buildLocalizedLoginRedirectPath(), 302);
+                    return true;
+                }
+
+                if (!$this->canCurrentViewerAccessUnpublishedContent($page, 'manage_pages')) {
+                    return false;
+                }
+
+                $this->sendDraftPreviewHeaders();
             }
 
             $page = Services\ContentLocalizationService::getInstance()->localizePage($page, $locale);
@@ -1415,6 +1435,38 @@ final class ThemeRouter
         $loginPath = CmsAuthPageService::getInstance()->getPublicPath('login', $this->router->getRequestLocale());
 
         return $loginPath . '?redirect=' . urlencode($requestUri);
+    }
+
+    /** @param array<string,mixed>|object $content */
+    private function canCurrentViewerAccessUnpublishedContent(array|object $content, string $capability): bool
+    {
+        $auth = \CMS\Auth::instance();
+        $viewer = $auth->currentUser();
+        $viewerId = (int) ($viewer->id ?? 0);
+        $authorId = is_array($content)
+            ? (int) ($content['author_id'] ?? 0)
+            : (int) ($content->author_id ?? 0);
+
+        if ($viewerId <= 0) {
+            return false;
+        }
+
+        if (\CMS\Auth::isAdmin() || $auth->hasCapability($capability)) {
+            return true;
+        }
+
+        return $authorId > 0 && $authorId === $viewerId;
+    }
+
+    private function sendDraftPreviewHeaders(): void
+    {
+        if (headers_sent()) {
+            return;
+        }
+
+        header('X-Robots-Tag: noindex, nofollow', true);
+        header('Cache-Control: private, no-store, no-cache, must-revalidate', true);
+        header('Pragma: no-cache', true);
     }
 
 

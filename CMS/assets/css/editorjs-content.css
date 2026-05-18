@@ -1,0 +1,347 @@
+/*
+ * 365CMS EditorJS public content styles
+ * Scoped to rendered EditorJS blocks so active themes keep control over global typography.
+ */
+
+.editorjs-block {
+    --cms-editorjs-default-space-after: 1.1rem;
+    --cms-editorjs-space-before: 0rem;
+    --cms-editorjs-space-after: var(--cms-editorjs-default-space-after);
+    box-sizing: border-box;
+    display: block;
+    max-width: 100%;
+    margin-block-start: var(--cms-editorjs-space-before) !important;
+    margin-block-end: var(--cms-editorjs-space-after) !important;
+}
+
+.editorjs-block + .editorjs-block {
+    margin-block-start: 0 !important;
+}
+
+:where(.page-content, .post-content, .entry-content, .cms-content, .site-content, .article-content, .blog-content, .page-body, .post-body, .single-content, .content-area, .article-body, .post-single__content, .single-post__content, .cms-page-content):has(> .editorjs-block) {
+    gap: 0 !important;
+    row-gap: 0 !important;
+}
+
+:where(.page-content, .post-content, .entry-content, .cms-content, .site-content, .article-content, .blog-content, .page-body, .post-body, .single-content, .content-area, .article-body, .post-single__content, .single-post__content, .cms-page-content) > .editorjs-block {
+    margin-block-start: var(--cms-editorjs-space-before) !important;
+    margin-block-end: var(--cms-editorjs-space-after) !important;
+}
+
+:where(.page-content, .post-content, .entry-content, .cms-content, .site-content, .article-content, .blog-content, .page-body, .post-body, .single-content, .content-area, .article-body, .post-single__content, .single-post__content, .cms-page-content) > .editorjs-block + .editorjs-block {
+    margin-block-start: 0 !important;
+}
+
+.editorjs-block:first-child {
+    margin-block-start: 0 !important;
+}
+
+.editorjs-block:last-child {
+    margin-block-end: 0 !important;
+}
+
+.editorjs-paragraph p,
+.editorjs-header :is(h1, h2, h3, h4, h5, h6) {
+    margin: 0;
+}
+
+.editorjs-paragraph--align-left,
+.editorjs-header--align-left {
+    text-align: left;
+}
+
+.editorjs-paragraph--align-center,
+.editorjs-header--align-center {
+    text-align: center;
+}
+
+.editorjs-paragraph--align-right,
+.editorjs-header--align-right {
+    text-align: right;
+}
+
+.editorjs-paragraph--align-justify,
+.editorjs-header--align-justify {
+    text-align: justify;
+}
+
+.editorjs-paragraph--spacing-compact,
+.editorjs-header--spacing-compact {
+    --cms-editorjs-space-after: .25rem;
+    margin-block-end: .25rem !important;
+}
+
+.editorjs-paragraph--spacing-normal,
+.editorjs-header--spacing-normal {
+    --cms-editorjs-space-after: .65rem;
+    margin-block-end: .65rem !important;
+}
+
+.editorjs-paragraph--spacing-relaxed,
+.editorjs-header--spacing-relaxed {
+    --cms-editorjs-space-after: 1rem;
+    margin-block-end: 1rem !important;
+}
+
+.editorjs-paragraph--spacing-loose,
+.editorjs-header--spacing-loose {
+    --cms-editorjs-space-after: 1.6rem;
+    margin-block-end: 1.6rem !important;
+}
+
+.editorjs-list :is(ul, ol),
+.editorjs-checklist ul {
+    margin: 0;
+    padding-left: 1.35rem;
+}
+
+.editorjs-list__items {
+    display: grid;
+    gap: .45rem;
+}
+
+.editorjs-list__items .editorjs-list__items {
+    margin-top: .45rem;
+}
+
+.editorjs-list__item {
+    padding-left: .1rem;
+}
+
+.editorjs-list__items--checklist,
+.editorjs-checklist ul {
+    padding-left: 0;
+    list-style: none;
+}
+
+.editorjs-checklist__label,
+.editorjs-checklist label {
+    display: inline-flex;
+    align-items: flex-start;
+    gap: .55rem;
+}
+
+.editorjs-checklist__label input,
+.editorjs-checklist input[type="checkbox"] {
+    flex: 0 0 auto;
+    margin-top: .2em;
+}
+
+.editorjs-quote blockquote {
+    margin: 0;
+    padding: 1rem 1.2rem;
+    border-left: 4px solid var(--primary-color, var(--accent, #2563eb));
+    background: color-mix(in srgb, var(--primary-color, #2563eb) 7%, transparent);
+    border-radius: 12px;
+}
+
+.editorjs-quote--center blockquote {
+    text-align: center;
+    border-left: 0;
+    border-top: 4px solid var(--primary-color, var(--accent, #2563eb));
+}
+
+.editorjs-quote cite {
+    display: block;
+    margin-top: .65rem;
+    color: var(--text-secondary, #64748b);
+    font-size: .92em;
+}
+
+.editorjs-delimiter hr {
+    margin: 1.75rem auto;
+    width: min(100%, 180px);
+    border: 0;
+    border-top: 2px solid var(--border-color, #e2e8f0);
+}
+
+.editorjs-code pre,
+.editorjs-terminal pre,
+.editorjs-mermaid pre,
+.editorjs-api-endpoint pre {
+    max-width: 100%;
+    overflow: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.editorjs-code pre {
+    margin: 0;
+    padding: 1rem 1.1rem;
+    border-radius: 14px;
+    background: #0f172a;
+    color: #e2e8f0;
+}
+
+.editorjs-code code {
+    font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace);
+    font-size: .92em;
+}
+
+.editorjs-table {
+    overflow-x: auto;
+}
+
+.editorjs-table table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 420px;
+}
+
+.editorjs-table :is(th, td) {
+    padding: .72rem .85rem;
+    border: 1px solid var(--border-color, #e2e8f0);
+    vertical-align: top;
+}
+
+.editorjs-table th {
+    background: var(--bg-secondary, #f8fafc);
+    font-weight: 700;
+}
+
+.editorjs-image {
+    margin-inline: 0;
+}
+
+.editorjs-image img,
+.editorjs-gallery img,
+.editorjs-carousel img,
+.editorjs-drawing img,
+.editorjs-media-text img {
+    max-width: 100%;
+    height: auto;
+}
+
+.editorjs-image figcaption,
+.editorjs-gallery figcaption,
+.editorjs-embed figcaption,
+.editorjs-carousel figcaption,
+.editorjs-mermaid figcaption {
+    margin-top: .65rem;
+    color: var(--text-secondary, #64748b);
+    font-size: .92em;
+    line-height: 1.55;
+}
+
+.editorjs-image--rounded img,
+.editorjs-gallery img {
+    border-radius: 12px;
+}
+
+.editorjs-image--shadow img {
+    box-shadow: 0 18px 40px rgba(15, 23, 42, .16);
+}
+
+.editorjs-image--background {
+    background: var(--bg-secondary, #f8fafc);
+}
+
+.editorjs-gallery {
+    min-width: 0;
+}
+
+.editorjs-link a,
+.editorjs-attaches a,
+.editorjs-embed--link-only a {
+    display: flex;
+    gap: 1rem;
+    align-items: stretch;
+    padding: 1rem;
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 14px;
+    background: var(--bg-primary, #fff);
+    color: inherit;
+    text-decoration: none;
+    overflow: hidden;
+}
+
+.editorjs-link a:hover,
+.editorjs-attaches a:hover,
+.editorjs-embed--link-only a:hover {
+    border-color: var(--primary-color, var(--accent, #2563eb));
+}
+
+.editorjs-link__image {
+    flex: 0 0 140px;
+    max-width: 34%;
+}
+
+.editorjs-link__image img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    min-height: 96px;
+    object-fit: cover;
+    border-radius: 10px;
+}
+
+.editorjs-link__content {
+    min-width: 0;
+}
+
+.editorjs-link__content small {
+    display: block;
+    margin-top: .35rem;
+    color: var(--text-secondary, #64748b);
+    overflow-wrap: anywhere;
+}
+
+.editorjs-warning,
+.editorjs-callout,
+.editorjs-details details,
+.editorjs-accordion details {
+    padding: 1rem 1.1rem;
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 14px;
+    background: var(--bg-secondary, #f8fafc);
+}
+
+.editorjs-warning .warning-title {
+    margin-bottom: .35rem;
+    font-weight: 700;
+}
+
+.editorjs-details summary,
+.editorjs-accordion summary {
+    cursor: pointer;
+    font-weight: 700;
+}
+
+.editorjs-details__content,
+.editorjs-accordion__content {
+    margin-top: .8rem;
+}
+
+.editorjs-spacer {
+    --cms-editorjs-space-after: 0rem;
+    margin-block: 0;
+}
+
+.tg-spoiler {
+    background: #111827;
+    color: transparent;
+    border-radius: .25rem;
+    padding: 0 .2rem;
+}
+
+.tg-spoiler:hover,
+.tg-spoiler:focus {
+    color: #fff;
+}
+
+@media (max-width: 768px) {
+    .editorjs-block {
+        --cms-editorjs-default-space-after: .9rem;
+    }
+
+    .editorjs-link a,
+    .editorjs-attaches a,
+    .editorjs-embed--link-only a {
+        flex-direction: column;
+    }
+
+    .editorjs-link__image {
+        flex-basis: auto;
+        max-width: none;
+    }
+}

@@ -111,9 +111,14 @@ final class EditorJsRenderer
      */
     private function renderBlock(array $block): string
     {
-        $type = (string)($block['type'] ?? '');
+        $type = $this->normalizeBlockType((string)($block['type'] ?? ''));
         $data = is_array($block['data'] ?? null) ? $block['data'] : [];
         $tunes = is_array($block['tunes'] ?? null) ? $block['tunes'] : [];
+        $data = $this->applyVisualTuneData($data, $tunes);
+
+        if ((string)($block['type'] ?? '') === 'checklist') {
+            $data['style'] = 'checklist';
+        }
 
         return match ($type) {
             'paragraph' => $this->renderParagraph($data),
@@ -144,8 +149,75 @@ final class EditorJsRenderer
             'changelog' => $this->renderChangelog($data),
             'prosCons' => $this->renderProsCons($data),
             'details' => $this->renderDetails($data),
-            default => '',
+            default => $this->renderUnknownBlockFallback($data),
         };
+    }
+
+    private function normalizeBlockType(string $type): string
+    {
+        return match ($type) {
+            'checklist' => 'list',
+            'link' => 'linkTool',
+            'gallery', 'image_gallery' => 'imageGallery',
+            'space' => 'spacer',
+            default => $type,
+        };
+    }
+
+    /**
+     * @param array<string,mixed> $data
+     * @param array<string,mixed> $tunes
+     * @return array<string,mixed>
+     */
+    private function applyVisualTuneData(array $data, array $tunes): array
+    {
+        $visualTune = $this->extractVisualTuneData($tunes);
+
+        if (!isset($data['spacing']) && isset($visualTune['spacing'])) {
+            $data['spacing'] = $visualTune['spacing'];
+        }
+        if (!isset($data['alignment']) && isset($visualTune['alignment'])) {
+            $data['alignment'] = $visualTune['alignment'];
+        }
+
+        return $data;
+    }
+
+    /**
+     * @param array<string,mixed> $tunes
+     * @return array{spacing?:string,alignment?:string}
+     */
+    private function extractVisualTuneData(array $tunes): array
+    {
+        $sources = [];
+        foreach (['cmsVisual', 'cmsSpacing', 'spacing', 'spacingTune', 'alignmentTune'] as $key) {
+            if (isset($tunes[$key]) && is_array($tunes[$key])) {
+                $sources[] = $tunes[$key];
+            }
+        }
+
+        $visual = [];
+        foreach ($sources as $source) {
+            $spacing = (string)($source['spacing'] ?? $source['space'] ?? '');
+            if ($spacing !== '' && in_array($spacing, ['compact', 'normal', 'relaxed', 'loose'], true)) {
+                $visual['spacing'] = $spacing;
+            }
+
+            $alignment = (string)($source['alignment'] ?? $source['align'] ?? '');
+            if ($alignment !== '' && in_array($alignment, ['left', 'center', 'right', 'justify'], true)) {
+                $visual['alignment'] = $alignment;
+            }
+        }
+
+        return $visual;
+    }
+
+    /** @param array<string,mixed> $data */
+    private function renderUnknownBlockFallback(array $data): string
+    {
+        $text = $this->sanitizeInline((string)($data['text'] ?? $data['content'] ?? $data['html'] ?? $data['caption'] ?? ''));
+
+        return $text !== '' ? '<div class="editorjs-block editorjs-unknown"><p>' . $text . '</p></div>' : '';
     }
 
     /** @param array<string,mixed> $data */
@@ -153,14 +225,15 @@ final class EditorJsRenderer
     {
         $rawText = (string)($data['text'] ?? '');
         $text = $this->sanitizeInline($rawText);
+        $attributes = $this->buildTextBlockAttributes($data, 'editorjs-paragraph');
 
         if ($text === '') {
             return array_key_exists('text', $data)
-                ? '<div class="editorjs-block editorjs-paragraph"><p><br></p></div>'
+                ? '<div' . $attributes . '><p><br></p></div>'
                 : '';
         }
 
-        return '<div class="editorjs-block editorjs-paragraph"><p>' . $text . '</p></div>';
+        return '<div' . $attributes . '><p>' . $text . '</p></div>';
     }
 
     /** @param array<string,mixed> $data */
@@ -168,7 +241,42 @@ final class EditorJsRenderer
     {
         $text = $this->sanitizeInline((string)($data['text'] ?? ''));
         $level = max(1, min(6, (int)($data['level'] ?? 2)));
-        return $text !== '' ? '<div class="editorjs-block editorjs-header"><h' . $level . '>' . $text . '</h' . $level . '></div>' : '';
+        $attributes = $this->buildTextBlockAttributes($data, 'editorjs-header');
+
+        return $text !== '' ? '<div' . $attributes . '><h' . $level . '>' . $text . '</h' . $level . '></div>' : '';
+    }
+
+    /** @param array<string,mixed> $data */
+    private function buildTextBlockAttributes(array $data, string $baseClass): string
+    {
+        $alignment = (string)($data['alignment'] ?? 'left');
+        $spacing = (string)($data['spacing'] ?? 'normal');
+        $classes = ['editorjs-block', $baseClass];
+        $styles = [];
+
+        if (!in_array($alignment, ['left', 'center', 'right', 'justify'], true)) {
+            $alignment = 'left';
+        }
+        if (!in_array($spacing, ['compact', 'normal', 'relaxed', 'loose'], true)) {
+            $spacing = 'normal';
+        }
+
+        $classes[] = $baseClass . '--align-' . $alignment;
+        $classes[] = $baseClass . '--spacing-' . $spacing;
+        $styles[] = 'text-align:' . $alignment;
+        $styles[] = '--cms-editorjs-space-before:0rem';
+        $styles[] = '--cms-editorjs-space-after:' . match ($spacing) {
+            'compact' => '0.25rem',
+            'relaxed' => '1rem',
+            'loose' => '1.6rem',
+            default => '0.65rem',
+        };
+        $styles[] = 'margin-top:0';
+        $styles[] = 'margin-bottom:var(--cms-editorjs-space-after)';
+        $styles[] = 'margin-block-start:0';
+        $styles[] = 'margin-block-end:var(--cms-editorjs-space-after)';
+
+        return ' class="' . htmlspecialchars(implode(' ', $classes), ENT_QUOTES, 'UTF-8') . '" data-cms-editorjs-spacing="' . htmlspecialchars($spacing, ENT_QUOTES, 'UTF-8') . '" data-cms-editorjs-align="' . htmlspecialchars($alignment, ENT_QUOTES, 'UTF-8') . '" style="' . htmlspecialchars(implode(';', $styles), ENT_QUOTES, 'UTF-8') . '"';
     }
 
     /** @param array<string,mixed> $data */
@@ -229,7 +337,7 @@ final class EditorJsRenderer
 
             $html .= '<li class="editorjs-list__item">';
             if ($style === 'checklist') {
-                $checked = !empty($itemMeta['checked']) ? ' checked' : '';
+                $checked = (!empty($itemMeta['checked']) || !empty($item['checked'])) ? ' checked' : '';
                 $html .= '<span class="editorjs-checklist__label"><input type="checkbox" disabled' . $checked . '><span>' . $content . '</span></span>';
             } else {
                 $html .= $content;
@@ -354,7 +462,7 @@ final class EditorJsRenderer
     private function renderImage(array $data, array $tunes = []): string
     {
         $file = is_array($data['file'] ?? null) ? $data['file'] : [];
-        $imageUrl = $this->normalizeRenderableAssetUrl((string)($file['url'] ?? ''), true);
+        $imageUrl = $this->normalizeRenderableAssetUrl((string)($file['url'] ?? $data['url'] ?? ''), true);
 
         foreach (['Cropper', 'CropperTune'] as $tuneKey) {
             $croppedImage = $this->normalizeRenderableAssetUrl((string) ($tunes[$tuneKey]['croppedImage'] ?? ''), true);
@@ -370,18 +478,82 @@ final class EditorJsRenderer
 
         $caption = $this->sanitizeInline((string)($data['caption'] ?? ''));
         $classes = ['editorjs-block', 'editorjs-image'];
-        if (!empty($data['withBorder'])) {
+        $alignment = (string) ($data['alignment'] ?? $data['align'] ?? 'center');
+        $size = (string) ($data['size'] ?? $data['widthPreset'] ?? (!empty($data['stretched']) ? 'full' : 'normal'));
+        $borderStyle = (string) ($data['borderStyle'] ?? (!empty($data['withBorder']) ? 'thin' : 'none'));
+        $figureStyles = [];
+        $imageStyles = ['display:block', 'height:auto', 'box-sizing:border-box'];
+
+        if (!in_array($alignment, ['left', 'center', 'right'], true)) {
+            $alignment = 'center';
+        }
+        if (!in_array($size, ['normal', 'wide', 'full'], true)) {
+            $size = 'normal';
+        }
+        if (!in_array($borderStyle, ['none', 'thin', 'medium', 'thick'], true)) {
+            $borderStyle = !empty($data['withBorder']) ? 'thin' : 'none';
+        }
+
+        $classes[] = 'editorjs-image--align-' . $alignment;
+        $classes[] = 'editorjs-image--' . $size;
+
+        if ($borderStyle !== 'none') {
             $classes[] = 'editorjs-image--border';
+            $classes[] = 'editorjs-image--border-' . $borderStyle;
         }
         if (!empty($data['withBackground'])) {
             $classes[] = 'editorjs-image--background';
+            $figureStyles[] = 'padding:1rem';
+            $figureStyles[] = 'background:#f8fafc';
+            $figureStyles[] = 'border-radius:16px';
         }
-        if (!empty($data['stretched'])) {
+        if ($size === 'full' || !empty($data['stretched'])) {
             $classes[] = 'editorjs-image--stretched';
         }
+        if (array_key_exists('rounded', $data) ? !empty($data['rounded']) : false) {
+            $classes[] = 'editorjs-image--rounded';
+            $imageStyles[] = 'border-radius:12px';
+        }
+        if (!empty($data['shadow'])) {
+            $classes[] = 'editorjs-image--shadow';
+            $imageStyles[] = 'box-shadow:0 18px 40px rgba(15,23,42,.16)';
+        }
 
-        $html = '<figure class="' . implode(' ', $classes) . '">';
-        $html .= '<img src="' . htmlspecialchars($imageUrl, ENT_QUOTES, 'UTF-8') . '" alt="' . htmlspecialchars(strip_tags($caption), ENT_QUOTES, 'UTF-8') . '"' . $this->getLazyLoadingAttribute() . '>';
+        if ($size === 'full') {
+            $imageStyles[] = 'width:100%';
+            $imageStyles[] = 'max-width:100%';
+        } elseif ($size === 'wide') {
+            $imageStyles[] = 'width:min(100%,960px)';
+            $imageStyles[] = 'max-width:100%';
+        } else {
+            $imageStyles[] = 'width:auto';
+            $imageStyles[] = 'max-width:100%';
+        }
+
+        if ($alignment === 'left') {
+            $figureStyles[] = 'text-align:left';
+            $imageStyles[] = 'margin-left:0';
+            $imageStyles[] = 'margin-right:auto';
+        } elseif ($alignment === 'right') {
+            $figureStyles[] = 'text-align:right';
+            $imageStyles[] = 'margin-left:auto';
+            $imageStyles[] = 'margin-right:0';
+        } else {
+            $figureStyles[] = 'text-align:center';
+            $imageStyles[] = 'margin-left:auto';
+            $imageStyles[] = 'margin-right:auto';
+        }
+
+        $borderWidths = ['thin' => '1px', 'medium' => '2px', 'thick' => '4px'];
+        if (isset($borderWidths[$borderStyle])) {
+            $imageStyles[] = 'border:' . $borderWidths[$borderStyle] . ' solid #cbd5e1';
+        }
+
+        $styleAttr = $figureStyles !== [] ? ' style="' . htmlspecialchars(implode(';', $figureStyles), ENT_QUOTES, 'UTF-8') . '"' : '';
+        $imageStyleAttr = ' style="' . htmlspecialchars(implode(';', $imageStyles), ENT_QUOTES, 'UTF-8') . '"';
+
+        $html = '<figure class="' . implode(' ', $classes) . '"' . $styleAttr . '>';
+        $html .= '<img src="' . htmlspecialchars($imageUrl, ENT_QUOTES, 'UTF-8') . '" alt="' . htmlspecialchars(strip_tags($caption), ENT_QUOTES, 'UTF-8') . '"' . $imageStyleAttr . $this->getLazyLoadingAttribute() . '>';
         if ($caption !== '') {
             $html .= '<figcaption>' . $caption . '</figcaption>';
         }
@@ -399,7 +571,7 @@ final class EditorJsRenderer
             return '';
         }
 
-        $name = htmlspecialchars((string)($file['name'] ?? 'Download'), ENT_QUOTES, 'UTF-8');
+        $name = htmlspecialchars((string)($data['title'] ?? $file['name'] ?? 'Download'), ENT_QUOTES, 'UTF-8');
         $size = max(0, (int)($file['size'] ?? 0));
         $sizeLabel = $size > 0 ? ' <span>(' . $this->formatFileSize($size) . ')</span>' : '';
 
@@ -436,12 +608,26 @@ final class EditorJsRenderer
     private function renderEmbed(array $data): string
     {
         $sourceUrl = EditorJsHtmlSanitizer::sanitizeUrl((string)($data['source'] ?? $data['embed'] ?? ''), ['http', 'https'], false);
+        $embedUrl = EditorJsHtmlSanitizer::sanitizeUrl((string)($data['embed'] ?? ''), ['https'], false);
         if ($sourceUrl === '') {
             return '';
         }
 
         $caption = $this->sanitizeInline((string)($data['caption'] ?? ''));
         $label = $caption !== '' ? $caption : htmlspecialchars($sourceUrl, ENT_QUOTES, 'UTF-8');
+
+        if ($embedUrl !== '') {
+            $width = max(200, min(1920, (int)($data['width'] ?? 640)));
+            $height = max(120, min(1080, (int)($data['height'] ?? 360)));
+            $ratio = round(($height / max(1, $width)) * 100, 4);
+
+            return '<figure class="editorjs-block editorjs-embed">'
+                . '<div class="editorjs-embed__frame" style="position:relative;width:100%;padding-top:' . $ratio . '%;overflow:hidden;border-radius:14px;background:#0f172a;">'
+                . '<iframe src="' . htmlspecialchars($embedUrl, ENT_QUOTES, 'UTF-8') . '" title="' . htmlspecialchars(strip_tags($label), ENT_QUOTES, 'UTF-8') . '" loading="lazy" allowfullscreen sandbox="allow-scripts allow-same-origin allow-presentation" referrerpolicy="strict-origin-when-cross-origin" style="position:absolute;inset:0;width:100%;height:100%;border:0;"></iframe>'
+                . '</div>'
+                . ($caption !== '' ? '<figcaption>' . $caption . '</figcaption>' : '')
+                . '</figure>';
+        }
 
         return '<div class="editorjs-block editorjs-embed editorjs-embed--link-only"><a href="'
             . htmlspecialchars($sourceUrl, ENT_QUOTES, 'UTF-8')
@@ -796,8 +982,8 @@ final class EditorJsRenderer
     /** @param array<string,mixed> $data */
     private function renderDetails(array $data): string
     {
-        $summary = $this->sanitizeInline((string)($data['summary'] ?? ''));
-        $content = $this->sanitizeInline((string)($data['content'] ?? ''));
+        $summary = $this->sanitizeInline((string)($data['summary'] ?? $data['title'] ?? ''));
+        $content = $this->sanitizeInline((string)($data['content'] ?? $data['text'] ?? $data['description'] ?? ''));
 
         if ($summary === '' && $content === '') {
             return '';
@@ -867,6 +1053,14 @@ final class EditorJsRenderer
     private function renderAccordion(array $data, array $nestedBlocks): string
     {
         $title = $this->sanitizeInline((string)($data['title'] ?? 'Accordion'));
+        if ($nestedBlocks === []) {
+            $content = $this->renderAccordionDataContent($data);
+            if ($content !== '') {
+                $open = !empty($data['settings']['defaultExpanded']) || !empty($data['open']) ? ' open' : '';
+                return '<div class="editorjs-block editorjs-accordion"><details' . $open . '><summary>' . $title . '</summary><div class="editorjs-accordion__content">' . $content . '</div></details></div>';
+            }
+        }
+
         $content = $this->renderBlocks($nestedBlocks);
         if ($content === '') {
             return '';
@@ -874,6 +1068,22 @@ final class EditorJsRenderer
 
         $open = !empty($data['settings']['defaultExpanded']) ? ' open' : '';
         return '<div class="editorjs-block editorjs-accordion"><details' . $open . '><summary>' . $title . '</summary><div class="editorjs-accordion__content">' . $content . '</div></details></div>';
+    }
+
+    /** @param array<string,mixed> $data */
+    private function renderAccordionDataContent(array $data): string
+    {
+        if (isset($data['content']) && is_array($data['content'])) {
+            return $this->render($data['content']);
+        }
+
+        if (isset($data['blocks']) && is_array($data['blocks'])) {
+            return $this->render(['blocks' => $data['blocks']]);
+        }
+
+        $html = $this->sanitizeInline((string)($data['content'] ?? $data['text'] ?? $data['description'] ?? ''));
+
+        return $html !== '' ? '<p>' . $html . '</p>' : '';
     }
 
     /** @param array<string,mixed> $data */

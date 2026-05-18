@@ -49,6 +49,73 @@ $pageDefaultStatus = function_exists('get_option') ? (string)get_option('setting
 if (!in_array($pageDefaultStatus, ['draft', 'published', 'private'], true)) {
     $pageDefaultStatus = 'draft';
 }
+$cmsEditorThemeTypographyConfig = static function (): array {
+    $fontStacks = [
+        'system-ui' => 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+        'inter' => '"Inter", system-ui, sans-serif',
+        'space-grotesk' => '"Space Grotesk", "Sora", "Inter", system-ui, sans-serif',
+        'sora' => '"Sora", "Space Grotesk", "Inter", system-ui, sans-serif',
+        'barlow' => '"Barlow", system-ui, sans-serif',
+        'barlow-condensed' => '"Barlow Condensed", "Barlow", system-ui, sans-serif',
+        'roboto' => '"Roboto", system-ui, sans-serif',
+        'roboto-condensed' => '"Roboto Condensed", "Roboto", Arial, sans-serif',
+        'open-sans' => '"Open Sans", system-ui, sans-serif',
+        'lato' => '"Lato", system-ui, sans-serif',
+        'montserrat' => '"Montserrat", system-ui, sans-serif',
+        'poppins' => '"Poppins", system-ui, sans-serif',
+        'source-sans' => '"Source Sans 3", "Inter", system-ui, sans-serif',
+        'nunito' => '"Nunito", system-ui, sans-serif',
+        'oswald' => '"Oswald", "Roboto Condensed", Arial, sans-serif',
+        'rajdhani' => '"Rajdhani", "Barlow Condensed", "Inter", sans-serif',
+        'exo2' => '"Exo 2", "Inter", system-ui, sans-serif',
+        'dm-sans' => '"DM Sans", system-ui, sans-serif',
+        'libre-baskerville' => '"Libre Baskerville", Georgia, serif',
+        'playfair-display' => '"Playfair Display", Georgia, serif',
+        'merriweather' => '"Merriweather", Georgia, serif',
+        'jetbrains-mono' => '"JetBrains Mono", "Fira Code", "Cascadia Code", monospace',
+        'fira-code' => '"Fira Code", "JetBrains Mono", "Cascadia Code", monospace',
+        'source-code' => '"Source Code Pro", "Fira Code", monospace',
+        'cascadia' => '"Cascadia Code", "JetBrains Mono", monospace',
+        'system-mono' => '"Cascadia Code", Consolas, "Courier New", monospace',
+        'arial' => 'Arial, "Helvetica Neue", Helvetica, sans-serif',
+    ];
+    $resolveStack = static function (string $key) use ($fontStacks): string {
+        $key = strtolower(trim($key));
+        $customStack = function_exists('get_option') ? trim((string) get_option('font_stack_' . $key, '')) : '';
+        $stack = $customStack !== '' ? $customStack : ($fontStacks[$key] ?? $fontStacks['system-ui']);
+
+        return preg_replace('/[^a-z0-9\s\'",.\-]/i', '', $stack) ?? $fontStacks['system-ui'];
+    };
+
+    $bodyKey = function_exists('get_option') ? (string) get_option('font_body', 'system-ui') : 'system-ui';
+    $headingKey = function_exists('get_option') ? (string) get_option('font_heading', $bodyKey) : $bodyKey;
+    $fontSize = function_exists('get_option') ? (int) get_option('font_size_base', 16) : 16;
+    $lineHeight = function_exists('get_option') ? (float) get_option('font_line_height', 1.6) : 1.6;
+    $activeThemeSlug = '';
+    $themeStylesheetUrl = '';
+
+    try {
+        $themeManager = \CMS\ThemeManager::instance();
+        $activeThemeSlug = $themeManager->getActiveThemeSlug();
+        $themeStylesheetPath = rtrim($themeManager->getThemePath(), '/\\') . DIRECTORY_SEPARATOR . 'style.css';
+        $themeStylesheetUrl = rtrim($themeManager->getThemeUrl(), '/') . '/style.css';
+        if (is_file($themeStylesheetPath)) {
+            $themeStylesheetUrl .= '?v=' . filemtime($themeStylesheetPath);
+        }
+    } catch (\Throwable) {
+        $activeThemeSlug = '';
+        $themeStylesheetUrl = '';
+    }
+
+    return [
+        'bodyFontStack' => $resolveStack($bodyKey),
+        'headingFontStack' => $resolveStack($headingKey),
+        'fontSize' => max(12, min(24, $fontSize)) . 'px',
+        'lineHeight' => (string) max(1.1, min(2.2, $lineHeight)),
+        'activeThemeSlug' => $activeThemeSlug,
+        'themeStylesheetUrl' => $themeStylesheetUrl,
+    ];
+};
 $extractEditorPlainText = static function (string $rawContent): string {
     $rawContent = trim($rawContent);
     if ($rawContent === '') {
@@ -742,6 +809,7 @@ $isEnglishEditorView = $editorLocale === 'en';
 
         $pageContentEditorJsConfig['mediaUploadUrl'] = '/api/media';
         $pageContentEditorJsConfig['csrfToken'] = $editorMediaToken ?? '';
+        $pageContentEditorJsConfig['themeTypography'] = $cmsEditorThemeTypographyConfig();
         $pageContentEditorJsConfig['uploadContext'] = [
             'contentType' => 'page',
             'isNew' => $isNew,

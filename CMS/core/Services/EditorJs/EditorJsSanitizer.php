@@ -81,11 +81,19 @@ final class EditorJsSanitizer
         switch ($type) {
             case 'paragraph':
                 $data['text'] = $cleanInline($data['text'] ?? '');
+                $alignment = (string) ($data['alignment'] ?? 'left');
+                $spacing = (string) ($data['spacing'] ?? 'normal');
+                $data['alignment'] = in_array($alignment, ['left', 'center', 'right', 'justify'], true) ? $alignment : 'left';
+                $data['spacing'] = in_array($spacing, ['compact', 'normal', 'relaxed', 'loose'], true) ? $spacing : 'normal';
                 break;
 
             case 'header':
                 $data['text'] = $cleanInline($data['text'] ?? '');
                 $data['level'] = max(1, min(6, (int) ($data['level'] ?? 2)));
+                $alignment = (string) ($data['alignment'] ?? 'left');
+                $spacing = (string) ($data['spacing'] ?? 'normal');
+                $data['alignment'] = in_array($alignment, ['left', 'center', 'right', 'justify'], true) ? $alignment : 'left';
+                $data['spacing'] = in_array($spacing, ['compact', 'normal', 'relaxed', 'loose'], true) ? $spacing : 'normal';
                 break;
 
             case 'list':
@@ -144,9 +152,30 @@ final class EditorJsSanitizer
             case 'image':
                 $data['file'] = $this->sanitizeFileInfo(is_array($data['file'] ?? null) ? $data['file'] : []);
                 $data['caption'] = $cleanInline($data['caption'] ?? '');
-                $data['withBorder'] = !empty($data['withBorder']);
+                $alignment = (string) ($data['alignment'] ?? $data['align'] ?? 'center');
+                if (!in_array($alignment, ['left', 'center', 'right'], true)) {
+                    $alignment = 'center';
+                }
+
+                $size = (string) ($data['size'] ?? $data['widthPreset'] ?? (!empty($data['stretched']) ? 'full' : 'normal'));
+                if (!in_array($size, ['normal', 'wide', 'full'], true)) {
+                    $size = 'normal';
+                }
+
+                $borderStyle = (string) ($data['borderStyle'] ?? (!empty($data['withBorder']) ? 'thin' : 'none'));
+                if (!in_array($borderStyle, ['none', 'thin', 'medium', 'thick'], true)) {
+                    $borderStyle = !empty($data['withBorder']) ? 'thin' : 'none';
+                }
+
+                $data['alignment'] = $alignment;
+                $data['size'] = $size;
+                $data['widthPreset'] = $size;
+                $data['borderStyle'] = $borderStyle;
+                $data['withBorder'] = $borderStyle !== 'none';
                 $data['withBackground'] = !empty($data['withBackground']);
-                $data['stretched'] = !empty($data['stretched']);
+                $data['stretched'] = $size === 'full' || !empty($data['stretched']);
+                $data['rounded'] = array_key_exists('rounded', $data) ? !empty($data['rounded']) : true;
+                $data['shadow'] = !empty($data['shadow']);
                 break;
 
             case 'attaches':
@@ -387,11 +416,16 @@ final class EditorJsSanitizer
 
     private function sanitizeTunes(string $type, array $tunes): array
     {
-        if ($type !== 'image') {
-            return [];
+        $cleanTunes = [];
+        $visualTune = $this->sanitizeVisualTune($tunes);
+        if ($visualTune !== []) {
+            $cleanTunes['cmsVisual'] = $visualTune;
         }
 
-        $cleanTunes = [];
+        if ($type !== 'image') {
+            return $cleanTunes;
+        }
+
         foreach (['Cropper', 'CropperTune'] as $key) {
             if (!isset($tunes[$key]) || !is_array($tunes[$key])) {
                 continue;
@@ -404,6 +438,35 @@ final class EditorJsSanitizer
         }
 
         return $cleanTunes;
+    }
+
+    /**
+     * @param array<string,mixed> $tunes
+     * @return array{spacing?:string,alignment?:string}
+     */
+    private function sanitizeVisualTune(array $tunes): array
+    {
+        $sources = [];
+        foreach (['cmsVisual', 'cmsSpacing', 'spacing', 'spacingTune', 'alignmentTune'] as $key) {
+            if (isset($tunes[$key]) && is_array($tunes[$key])) {
+                $sources[] = $tunes[$key];
+            }
+        }
+
+        $visualTune = [];
+        foreach ($sources as $source) {
+            $spacing = (string) ($source['spacing'] ?? $source['space'] ?? '');
+            if ($spacing !== '' && in_array($spacing, ['compact', 'normal', 'relaxed', 'loose'], true)) {
+                $visualTune['spacing'] = $spacing;
+            }
+
+            $alignment = (string) ($source['alignment'] ?? $source['align'] ?? '');
+            if ($alignment !== '' && in_array($alignment, ['left', 'center', 'right', 'justify'], true)) {
+                $visualTune['alignment'] = $alignment;
+            }
+        }
+
+        return $visualTune;
     }
 
     private function sanitizeListItems(array $items, string $style): array

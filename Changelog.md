@@ -1,4 +1,4 @@
-﻿**Version:** 3.0.11
+﻿**Version:** 3.0.12
 
 # 365CMS Changelog
 
@@ -19,6 +19,15 @@
 ## 📜 Aktuelle Versionshistorie ab 3.0.0
 
 > Die vollständige historische 2.x-Historie wurde in [`Changelog_old.md`](Changelog_old.md) archiviert.
+
+### v3.0.12 — 18.05.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.0.12** | 🔴 fix | EditorJS – Abstände in Live-/Draft-Ausgabe | **`CMS/assets/js/admin-content-editor.js`, `CMS/core/Services/EditorJsRenderer.php`, `CMS/core/Services/EditorJs/EditorJsSanitizer.php`, `CMS/assets/css/editorjs-content.css` und `Changelog.md` gleichen den sichtbaren Editor-Abstand mit der öffentlichen Ausgabe ab.** Die Textformat-Bubble signalisiert Abstands-/Ausrichtungsänderungen jetzt als echte Editor-Änderung, der Renderer gibt sichere CSS-Variablen und `margin-top:0`/Spacing-Werte aus, visuelle Tune-Daten werden allowlisted übernommen, und die Public-CSS neutralisiert generische Theme-Top-Margins für EditorJS-Blöcke, damit `kompakt`, `normal`, `mehr Abstand`, `großer Abstand` und Spacer-Blöcke auf Live- und Entwurfsseiten sichtbar wie im Editor wirken. |
+| **3.0.12** | 🔴 fix | EditorJS – Live-/Entwurfs-Rendering | **`CMS/core/Services/EditorJsRenderer.php`, `CMS/assets/css/editorjs-content.css`, `CMS/core/Bootstrap.php` und `Changelog.md` schließen die Lücke zwischen Admin-Editor und Public-Ausgabe.** Der Renderer akzeptiert jetzt zusätzliche reale EditorJS-Datenformen und Aliase, rendert Bild-URLs auch außerhalb von `file.url`, übernimmt ältere Checklist-States, nutzt Attachment-Titel, gibt sichere responsive Embeds aus und verarbeitet Accordion-Inhalte auch ohne nachfolgende Nested-Blöcke. Zusätzlich lädt das Frontend eine kleine, globale EditorJS-Content-CSS, damit Blöcke, Inline-Formatierungen, Tabellen, Bilder, Galerien, Details, Warnungen und Codeblöcke auf Live- und Draft-Seiten sichtbar dem Editor-Ergebnis entsprechen. |
+| **3.0.12** | 🟢 feat | Public Draft Preview | **`CMS/core/Routing/ThemeRouter.php`, `CMS/admin/views/posts/edit.php`, `CMS/admin/views/pages/edit.php`, `CMS/assets/js/editor-init.js`, `CMS/assets/css/admin.css` und `Changelog.md` verbessern den redaktionellen Vorschaupfad.** Entwürfe und noch nicht öffentlich sichtbare Inhalte sind im Public-Bereich für angemeldete Autoren, Admins und passende Capabilities sichtbar, werden aber mit `noindex` und privaten No-Store-Headern geschützt; öffentliche Listen/Archive bleiben published-only. Die EditorJS-Admin-Preview liest zusätzlich das aktive Theme-Stylesheet aus und übernimmt relevante Typography- und Heading-Werte scoped in den Editor. |
+| **3.0.12** | 🔵 docs | README & Produktdokumentation | **`README.md` und `Changelog.md` trennen Produktübersicht und Versionshistorie wieder sauber.** Die README wurde vollständig neu strukturiert, nimmt den WordPress-ähnlichen EditorJS prominent als Kernfeature auf und bleibt bewusst frei von Changelog-Einträgen; konkrete Versionsdetails stehen ausschließlich im Changelog. |
 
 ### v3.0.11 — 17.05.2026
 

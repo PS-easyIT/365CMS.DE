@@ -717,6 +717,18 @@ class Bootstrap
                 echo '<link rel="stylesheet" href="' . $href . '">' . "\n";
             }, 12);
 
+            Hooks::addAction('head', static function (): void {
+                static $editorJsContentStylesRendered = false;
+
+                if ($editorJsContentStylesRendered) {
+                    return;
+                }
+
+                $editorJsContentStylesRendered = true;
+                $href = htmlspecialchars(cms_asset_url('css/editorjs-content.css'), ENT_QUOTES, 'UTF-8');
+                echo '<link rel="stylesheet" href="' . $href . '">' . "\n";
+            }, 95);
+
             // Custom Fonts (DSGVO-konform lokal gespeicherte Schriften)
             Hooks::addAction('head', function () {
                 try {

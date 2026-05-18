@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "3.0.11",
+  "version": "3.0.12",
   "min_php": "8.4",
-  "released": "2026-05-16",
+  "released": "2026-05-18",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 3.0.11: Performance-Adminseiten casten Medien-Cache-TTL-Werte robust und Page-Schema-Kompatibilitätsprüfungen schließen SHOW-COLUMNS-Cursor vor ALTER-Queries.",
+  "notes": "Release-Stand 3.0.12: EditorJS-Live-/Entwurfsrendering übernimmt mehr Block- und Formatierungsdaten, Public-Draft-Preview ist für berechtigte Autoren/Admins geschützt sichtbar und die README ist ohne Changelog-Einträge neu strukturiert.",
   "critical": false
 }

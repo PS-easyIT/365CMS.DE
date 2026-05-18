@@ -2143,6 +2143,18 @@ class PostsModule
             return $submitted;
         }
 
+        if ($submitted === $original) {
+            return $original;
+        }
+
+        $decodedSubmitted = json_decode(trim($submitted), true);
+        $submittedIsEditorPayload = is_array($decodedSubmitted) && isset($decodedSubmitted['blocks']) && is_array($decodedSubmitted['blocks']);
+        $submittedIsFallbackPayload = $submittedIsEditorPayload && (string) ($decodedSubmitted['version'] ?? '') === 'cms-editor-fallback';
+
+        if ($submittedIsEditorPayload && !$submittedIsFallbackPayload) {
+            return $submitted;
+        }
+
         $decodedOriginal = json_decode(trim($original), true);
         if (!is_array($decodedOriginal) || !isset($decodedOriginal['blocks']) || !is_array($decodedOriginal['blocks'])) {
             return $submitted;
