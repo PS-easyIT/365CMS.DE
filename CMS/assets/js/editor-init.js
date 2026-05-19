@@ -219,6 +219,45 @@
         return template.innerHTML;
     }
 
+    function getInlineSanitizeConfig() {
+        return {
+            a: {
+                href: true,
+                title: true,
+                target: true,
+                rel: true
+            },
+            b: {},
+            strong: {},
+            i: {},
+            em: {},
+            u: {},
+            code: {
+                class: true
+            },
+            mark: {},
+            sub: {},
+            sup: {},
+            br: true,
+            span: function (element) {
+                return /\btg-spoiler\b/.test(String(element && element.getAttribute ? element.getAttribute('class') || '' : ''))
+                    ? { class: true }
+                    : {};
+            }
+        };
+    }
+
+    function isImageUrlCandidate(value) {
+        var url = String(value || '').trim();
+
+        if (url === '' || /\s/.test(url) || sanitizeEditableUrl(url) === '') {
+            return false;
+        }
+
+        return /^(?:https?:\/\/|\/|\.\/|\.\.\/)/i.test(url)
+            && (/\.(?:jpe?g|png|gif|webp|bmp|ico)(?:[?#].*)?$/i.test(url) || /^\/media-file\?/i.test(url));
+    }
+
     function validateEditorImageFile(file) {
         var maxSize = 25 * 1024 * 1024;
         var mimeType = file ? String(file.type || '') : '';
@@ -848,14 +887,16 @@
         return element;
     }
 
-    function createEditable(className, html, placeholder, api) {
+    function createEditable(className, html, placeholder, api, readOnly) {
         var element = createElement('div', className);
-        element.contentEditable = 'true';
+        element.contentEditable = readOnly ? 'false' : 'true';
         element.innerHTML = sanitizeEditableHtml(html || '');
         if (placeholder) {
             element.dataset.placeholder = placeholder;
         }
-        bindEditablePasteBehavior(element, api || null);
+        if (!readOnly) {
+            bindEditablePasteBehavior(element, api || null);
+        }
         return element;
     }
 
@@ -1002,6 +1043,15 @@
 
             structuredBlocks = getStructuredPasteBlocks(html);
             if (structuredBlocks.length > 0 && insertEditorBlocksFromPaste(api, editable, structuredBlocks)) {
+                event.preventDefault();
+                event.stopPropagation();
+                return;
+            }
+
+            if (html === '' && isImageUrlCandidate(text) && insertEditorBlocksFromPaste(api, editable, [{
+                type: 'image',
+                data: { file: { url: text.trim() }, caption: '' }
+            }])) {
                 event.preventDefault();
                 event.stopPropagation();
                 return;
@@ -1170,12 +1220,24 @@
 
     class ParagraphTool {
         constructor(options) {
+            options = options || {};
             this.data = normalizeTextBlockData(options.data || {}, 'paragraph');
             this.api = options.api || null;
+            this.readOnly = !!options.readOnly;
             this.nodes = {};
         }
         static get toolbox() {
             return { title: 'Text', icon: '¶' };
+        }
+        static get sanitize() {
+            return {
+                text: getInlineSanitizeConfig(),
+                alignment: false,
+                spacing: false
+            };
+        }
+        static get isReadOnlySupported() {
+            return true;
         }
         static get conversionConfig() {
             return {
@@ -1185,11 +1247,13 @@
         }
         render() {
             var wrapper = createElement('div', 'cms-editorjs-tool cms-editorjs-tool--paragraph');
-            var text = createEditable('form-control cms-editorjs-editable cms-editorjs-paragraph', this.data.text || '', 'Text schreiben ...', this.api);
+            var text = createEditable('form-control cms-editorjs-editable cms-editorjs-paragraph', this.data.text || '', 'Text schreiben ...', this.api, this.readOnly);
 
             wrapper.appendChild(text);
             this.nodes = { wrapper: wrapper, text: text };
-            bindEditableEnterBehavior(text, this.api);
+            if (!this.readOnly) {
+                bindEditableEnterBehavior(text, this.api);
+            }
             applyTextBlockPresentation(wrapper, text, this.data.alignment || 'left', this.data.spacing || 'normal');
 
             return wrapper;
@@ -1207,12 +1271,25 @@
 
     class HeaderTool {
         constructor(options) {
+            options = options || {};
             this.data = normalizeTextBlockData(options.data || {}, 'header');
             this.api = options.api || null;
+            this.readOnly = !!options.readOnly;
             this.nodes = {};
         }
         static get toolbox() {
             return { title: 'Überschrift', icon: '<b>H</b>' };
+        }
+        static get sanitize() {
+            return {
+                text: getInlineSanitizeConfig(),
+                level: false,
+                alignment: false,
+                spacing: false
+            };
+        }
+        static get isReadOnlySupported() {
+            return true;
         }
         static get conversionConfig() {
             return {
@@ -1222,18 +1299,20 @@
         }
         render() {
             var wrapper = createElement('div', 'cms-editorjs-tool cms-editorjs-tool--header');
-            var text = createEditable('form-control cms-editorjs-editable cms-editorjs-header', this.data.text || '', 'Überschrift', this.api);
-            var options = this.createHeaderOptions(wrapper, text);
+            var text = createEditable('form-control cms-editorjs-editable cms-editorjs-header', this.data.text || '', 'Überschrift', this.api, this.readOnly);
+            var options = this.createHeaderOptions(wrapper, text, this.readOnly);
 
             wrapper.appendChild(text);
             wrapper.appendChild(options);
             this.nodes = { wrapper: wrapper, text: text };
-            bindEditableEnterBehavior(text, this.api);
+            if (!this.readOnly) {
+                bindEditableEnterBehavior(text, this.api);
+            }
             applyTextBlockPresentation(wrapper, text, this.data.alignment || 'left', this.data.spacing || 'normal');
             applyHeaderLevelPresentation(wrapper, text, this.data.level || 2);
             return wrapper;
         }
-        createHeaderOptions(wrapper, text) {
+        createHeaderOptions(wrapper, text, readOnly) {
             var options = createElement('div', 'cms-editorjs-floating-options cms-editorjs-header-options');
             var label = createElement('span', 'cms-editorjs-floating-options__label', 'Überschrift');
 
@@ -1244,8 +1323,12 @@
             [2, 3, 4].forEach(function (level) {
                 var button = createElement('button', 'cms-editorjs-floating-options__button', 'H' + level);
                 button.type = 'button';
+                button.disabled = !!readOnly;
                 button.addEventListener('click', function (event) {
                     event.preventDefault();
+                    if (readOnly) {
+                        return;
+                    }
                     applyHeaderLevelPresentation(wrapper, text, level);
                 });
                 options.appendChild(button);
@@ -1267,11 +1350,23 @@
 
     class ListTool {
         constructor(options) {
+            options = options || {};
             this.data = normalizeListData(options.data || {});
+            this.readOnly = !!options.readOnly;
             this.nodes = {};
         }
         static get toolbox() {
             return { title: 'Liste', icon: '☰' };
+        }
+        static get sanitize() {
+            return {
+                style: false,
+                meta: {},
+                items: getInlineSanitizeConfig()
+            };
+        }
+        static get isReadOnlySupported() {
+            return true;
         }
         static get conversionConfig() {
             return {
@@ -1300,8 +1395,10 @@
             });
             style.className = 'form-select form-select-sm mb-2';
             style.value = this.data.style === 'ordered' ? 'ordered' : 'unordered';
+            style.disabled = this.readOnly;
             textarea.className = 'form-control';
             textarea.rows = 5;
+            textarea.readOnly = this.readOnly;
             textarea.value = Array.isArray(this.data.items) ? this.data.items.map(function (item) {
                 return stripTags(item && typeof item === 'object' ? item.content : item);
             }).join('\n') : '';
@@ -1325,12 +1422,44 @@
 
     class ImageTool {
         constructor(options) {
+            options = options || {};
             this.data = normalizeImageData(options.data || {});
             this.config = options.config || {};
+            this.readOnly = !!options.readOnly;
             this.nodes = {};
         }
         static get toolbox() {
             return { title: 'Bild', icon: '▧' };
+        }
+        static get sanitize() {
+            return {
+                url: false,
+                caption: false,
+                alignment: false,
+                size: false,
+                widthPreset: false,
+                borderStyle: false,
+                withBorder: false,
+                withBackground: false,
+                stretched: false,
+                rounded: false,
+                shadow: false
+            };
+        }
+        static get pasteConfig() {
+            return {
+                tags: ['IMG'],
+                files: {
+                    mimeTypes: ['image/*'],
+                    extensions: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'ico']
+                },
+                patterns: {
+                    image: /^(?:https?:\/\/|\/|\.\/|\.\.\/).+\.(?:jpe?g|png|gif|webp|bmp|ico)(?:[?#].*)?$/i
+                }
+            };
+        }
+        static get isReadOnlySupported() {
+            return true;
         }
         render() {
             var wrapper = createElement('div', 'cms-editorjs-tool cms-editorjs-tool--image');
@@ -1367,10 +1496,16 @@
             optionsPanel.dataset.cmsEditorUi = 'true';
             optionsPanel.dataset.mutationFree = 'true';
             upload.accept = 'image/*';
+            upload.disabled = this.readOnly;
             upload.addEventListener('change', this.uploadSelectedFile.bind(this, url, status));
 
             caption.classList.add('cms-editorjs-image-caption');
             caption.setAttribute('aria-label', 'Bildunterschrift');
+            caption.readOnly = this.readOnly;
+
+            [alignment, size, borderStyle, withBackground.input, rounded.input, shadow.input].forEach((control) => {
+                control.disabled = this.readOnly;
+            });
 
             settings.appendChild(this.createSetting('Ausrichtung', alignment));
             settings.appendChild(this.createSetting('Breite', size));
@@ -1469,24 +1604,52 @@
         }
         uploadSelectedFile(urlInput, status, event) {
             var file = event.target.files && event.target.files[0] ? event.target.files[0] : null;
-            var endpoint = this.config.uploadUrl || '';
             var validationError = validateEditorImageFile(file);
-            var body;
 
             if (validationError !== '') {
                 status.textContent = validationError;
                 return;
             }
 
-            if (!file || !endpoint || typeof fetch !== 'function') {
+            if (!file) {
                 return;
             }
+
+            status.textContent = 'Upload läuft ...';
+            this.uploadImageFile(file).then(function (filePayload) {
+                urlInput.value = filePayload.url || '';
+                urlInput.dispatchEvent(new Event('input', { bubbles: true }));
+                status.textContent = 'Upload abgeschlossen.';
+            }).catch(function (error) {
+                status.textContent = error && error.message ? error.message : 'Upload fehlgeschlagen.';
+                logWarn('Image upload failed.', error);
+            });
+        }
+        uploadImageFile(file) {
+            var endpoint = this.config.uploadUrl || '';
+            var validationError = validateEditorImageFile(file);
+            var body;
+
+            if (validationError !== '') {
+                return Promise.reject(new Error(validationError));
+            }
+
+            if (this.config.uploader && typeof this.config.uploader.uploadByFile === 'function') {
+                return this.config.uploader.uploadByFile(file).then(function (payload) {
+                    return normalizeImageResponse(payload).file;
+                });
+            }
+
+            if (!file || !endpoint || typeof fetch !== 'function') {
+                return Promise.reject(new Error('Upload-Endpunkt ist nicht verfügbar.'));
+            }
+
             body = new FormData();
             body.append('action', 'upload_image');
             body.append('image', file);
             body.append('csrf_token', this.config.csrfToken || '');
-            status.textContent = 'Upload läuft ...';
-            fetch(endpoint, {
+
+            return fetch(endpoint, {
                 method: 'POST',
                 body: body,
                 credentials: 'same-origin',
@@ -1494,17 +1657,94 @@
             }).then(function (response) {
                 return response.json();
             }).then(function (payload) {
-                var uploadedUrl = payload && payload.file && payload.file.url ? payload.file.url : '';
-                if (!uploadedUrl) {
-                    throw new Error(payload && payload.message ? payload.message : 'Upload ohne Bild-URL.');
-                }
-                urlInput.value = uploadedUrl;
-                urlInput.dispatchEvent(new Event('input', { bubbles: true }));
-                status.textContent = 'Upload abgeschlossen.';
-            }).catch(function (error) {
-                status.textContent = error && error.message ? error.message : 'Upload fehlgeschlagen.';
-                logWarn('Image upload failed.', error);
+                return normalizeImageResponse(payload).file;
             });
+        }
+        setImageUrl(url, caption) {
+            var cleanUrl = sanitizeEditableUrl(url);
+
+            if (cleanUrl === '') {
+                return;
+            }
+
+            this.data = normalizeImageData(Object.assign({}, this.data, {
+                file: Object.assign({}, this.data.file || {}, { url: cleanUrl }),
+                caption: typeof caption === 'string' && caption !== '' ? caption : this.data.caption
+            }));
+
+            if (this.nodes.url) {
+                this.nodes.url.value = cleanUrl;
+            }
+            if (this.nodes.caption && typeof caption === 'string' && caption !== '') {
+                this.nodes.caption.value = caption;
+            }
+            if (this.nodes.url) {
+                this.nodes.url.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+            if (this.nodes.status) {
+                this.nodes.status.textContent = 'Bild eingefügt.';
+            }
+        }
+        handlePastedImageUrl(url, caption) {
+            var cleanUrl = sanitizeEditableUrl(url);
+            var self = this;
+
+            if (cleanUrl === '') {
+                return;
+            }
+
+            if (this.nodes.status) {
+                this.nodes.status.textContent = 'Bild wird übernommen ...';
+            }
+
+            if (this.config.uploader && typeof this.config.uploader.uploadByUrl === 'function' && /^https?:\/\//i.test(cleanUrl)) {
+                this.config.uploader.uploadByUrl(cleanUrl).then(function (payload) {
+                    var filePayload = normalizeImageResponse(payload).file;
+                    self.setImageUrl(filePayload.url, caption || '');
+                }).catch(function (error) {
+                    logWarn('Image URL upload failed, using original URL.', error);
+                    self.setImageUrl(cleanUrl, caption || '');
+                });
+                return;
+            }
+
+            this.setImageUrl(cleanUrl, caption || '');
+        }
+        onPaste(event) {
+            var detail = event && event.detail ? event.detail : {};
+            var pastedNode;
+            var file;
+            var self = this;
+
+            if (this.readOnly) {
+                return;
+            }
+
+            if (event.type === 'tag') {
+                pastedNode = detail.data;
+                this.handlePastedImageUrl(pastedNode && pastedNode.getAttribute ? pastedNode.getAttribute('src') || '' : '', pastedNode && pastedNode.getAttribute ? pastedNode.getAttribute('alt') || '' : '');
+                return;
+            }
+
+            if (event.type === 'pattern') {
+                this.handlePastedImageUrl(detail.data || '', '');
+                return;
+            }
+
+            if (event.type === 'file') {
+                file = detail.file || null;
+                if (this.nodes.status) {
+                    this.nodes.status.textContent = 'Bild wird hochgeladen ...';
+                }
+                this.uploadImageFile(file).then(function (filePayload) {
+                    self.setImageUrl(filePayload.url || '', '');
+                }).catch(function (error) {
+                    if (self.nodes.status) {
+                        self.nodes.status.textContent = error && error.message ? error.message : 'Upload fehlgeschlagen.';
+                    }
+                    logWarn('Pasted image upload failed.', error);
+                });
+            }
         }
         save() {
             var size = this.nodes.size ? this.nodes.size.value : 'normal';
@@ -1530,13 +1770,33 @@
 
     class ImageGalleryTool {
         constructor(options) {
+            options = options || {};
             this.data = normalizeGalleryData(options.data || {});
             this.config = options.config || {};
+            this.readOnly = !!options.readOnly;
             this.nodes = {};
             this.images = this.data.images.slice();
         }
         static get toolbox() {
             return { title: 'Galerie', icon: '▦' };
+        }
+        static get sanitize() {
+            return {
+                columns: false,
+                urls: false
+            };
+        }
+        static get pasteConfig() {
+            return {
+                tags: ['IMG'],
+                files: {
+                    mimeTypes: ['image/*'],
+                    extensions: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'ico']
+                }
+            };
+        }
+        static get isReadOnlySupported() {
+            return true;
         }
         render() {
             var wrapper = createElement('div', 'cms-editorjs-tool cms-editorjs-tool--gallery');
@@ -1554,7 +1814,10 @@
             controls.dataset.mutationFree = 'true';
             upload.accept = 'image/*';
             upload.multiple = true;
+            upload.disabled = this.readOnly;
             okButton.type = 'button';
+            okButton.disabled = this.readOnly;
+            columns.disabled = this.readOnly;
 
             controls.appendChild(controlsLabel);
             controls.appendChild(this.createGalleryField('Spalten', columns));
@@ -1594,6 +1857,10 @@
             return label;
         }
         uploadSelectedFiles(event) {
+            if (this.readOnly) {
+                return;
+            }
+
             var files = Array.prototype.slice.call(event.target.files || []).filter(function (file) {
                 return file && validateEditorImageFile(file) === '';
             });
@@ -1675,10 +1942,11 @@
                 var chooseButton = createElement('button', 'btn btn-sm btn-primary', 'Bilder auswählen');
 
                 chooseButton.type = 'button';
+                chooseButton.disabled = this.readOnly;
                 chooseButton.addEventListener('click', function (event) {
                     event.preventDefault();
                     event.stopPropagation();
-                    if (self.nodes.upload) {
+                    if (!self.readOnly && self.nodes.upload) {
                         self.nodes.upload.click();
                     }
                 });
@@ -1693,22 +1961,62 @@
                 var item = createElement('div', 'cms-editorjs-gallery__item');
                 var thumb = document.createElement('img');
                 var caption = createInput('text', 'form-control form-control-sm', image.caption || '', 'Bildunterschrift');
+                var moveUp = createElement('button', 'btn btn-sm btn-outline-secondary', 'Hoch');
+                var moveDown = createElement('button', 'btn btn-sm btn-outline-secondary', 'Runter');
                 var remove = createElement('button', 'btn btn-sm btn-outline-danger', 'Entfernen');
 
                 thumb.src = image.file && image.file.url ? image.file.url : '';
                 thumb.alt = image.caption || '';
+                moveUp.type = 'button';
+                moveDown.type = 'button';
                 remove.type = 'button';
+                caption.readOnly = self.readOnly;
+                moveUp.disabled = self.readOnly || index === 0;
+                moveDown.disabled = self.readOnly || index >= self.images.length - 1;
+                remove.disabled = self.readOnly;
                 caption.addEventListener('input', function () {
+                    if (self.readOnly) {
+                        return;
+                    }
                     self.images[index].caption = caption.value;
                     thumb.alt = caption.value;
                 });
+                moveUp.addEventListener('click', function () {
+                    var previous;
+
+                    if (self.readOnly || index <= 0) {
+                        return;
+                    }
+
+                    previous = self.images[index - 1];
+                    self.images[index - 1] = self.images[index];
+                    self.images[index] = previous;
+                    self.renderImageList();
+                });
+                moveDown.addEventListener('click', function () {
+                    var next;
+
+                    if (self.readOnly || index >= self.images.length - 1) {
+                        return;
+                    }
+
+                    next = self.images[index + 1];
+                    self.images[index + 1] = self.images[index];
+                    self.images[index] = next;
+                    self.renderImageList();
+                });
                 remove.addEventListener('click', function () {
+                    if (self.readOnly) {
+                        return;
+                    }
                     self.images.splice(index, 1);
                     self.renderImageList();
                 });
 
                 item.appendChild(thumb);
                 item.appendChild(caption);
+                item.appendChild(moveUp);
+                item.appendChild(moveDown);
                 item.appendChild(remove);
                 self.nodes.list.appendChild(item);
             });
@@ -1719,18 +2027,70 @@
                 images: this.images
             });
         }
+        onPaste(event) {
+            var detail = event && event.detail ? event.detail : {};
+            var pastedNode;
+            var pastedUrl;
+            var file;
+            var self = this;
+
+            if (this.readOnly) {
+                return;
+            }
+
+            if (event.type === 'tag') {
+                pastedNode = detail.data;
+                pastedUrl = pastedNode && pastedNode.getAttribute ? sanitizeEditableUrl(pastedNode.getAttribute('src') || '') : '';
+                if (pastedUrl !== '') {
+                    this.images.push({ file: { url: pastedUrl }, caption: pastedNode.getAttribute('alt') || '' });
+                    this.renderImageList();
+                }
+                return;
+            }
+
+            if (event.type === 'file') {
+                file = detail.file || null;
+                if (this.nodes.status) {
+                    this.nodes.status.textContent = 'Bild wird hochgeladen ...';
+                }
+                this.uploadGalleryImage(file).then(function (filePayload) {
+                    self.images.push({ file: filePayload, caption: '' });
+                    self.renderImageList();
+                    if (self.nodes.status) {
+                        self.nodes.status.textContent = 'Bild eingefügt.';
+                    }
+                }).catch(function (error) {
+                    if (self.nodes.status) {
+                        self.nodes.status.textContent = error && error.message ? error.message : 'Galerie-Upload fehlgeschlagen.';
+                    }
+                    logWarn('Pasted gallery image upload failed.', error);
+                });
+            }
+        }
     }
 
     window.CmsImageGalleryTool = ImageGalleryTool;
 
     class QuoteTool {
         constructor(options) {
+            options = options || {};
             this.data = options.data || {};
             this.api = options.api || null;
+            this.readOnly = !!options.readOnly;
             this.nodes = {};
         }
         static get toolbox() {
             return { title: 'Zitat', icon: '“”' };
+        }
+        static get sanitize() {
+            return {
+                text: getInlineSanitizeConfig(),
+                caption: false,
+                alignment: false
+            };
+        }
+        static get isReadOnlySupported() {
+            return true;
         }
         static get conversionConfig() {
             return {
@@ -1740,8 +2100,9 @@
         }
         render() {
             var wrapper = createElement('div', 'cms-editorjs-tool cms-editorjs-tool--quote');
-            var text = createEditable('form-control cms-editorjs-editable mb-2', this.data.text || '', 'Zitat', this.api);
+            var text = createEditable('form-control cms-editorjs-editable mb-2', this.data.text || '', 'Zitat', this.api, this.readOnly);
             var caption = createInput('text', 'form-control', this.data.caption || '', 'Quelle');
+            caption.readOnly = this.readOnly;
             wrapper.appendChild(text);
             wrapper.appendChild(caption);
             this.nodes = { text: text, caption: caption };
@@ -1760,11 +2121,24 @@
 
     class CodeTool {
         constructor(options) {
+            options = options || {};
             this.data = options.data || {};
+            this.readOnly = !!options.readOnly;
             this.nodes = {};
         }
         static get toolbox() {
             return { title: 'Code', icon: '&lt;/&gt;' };
+        }
+        static get sanitize() {
+            return {
+                code: false
+            };
+        }
+        static get enableLineBreaks() {
+            return true;
+        }
+        static get isReadOnlySupported() {
+            return true;
         }
         static get conversionConfig() {
             return {
@@ -1777,6 +2151,7 @@
             textarea.className = 'form-control font-monospace cms-editorjs-code-textarea';
             textarea.rows = 1;
             textarea.value = this.data.code || '';
+            textarea.readOnly = this.readOnly;
             this.nodes.textarea = textarea;
             autoresizeTextarea(textarea, 1);
             return textarea;
@@ -1790,17 +2165,29 @@
 
     class TableTool {
         constructor(options) {
+            options = options || {};
             this.data = options.data || {};
+            this.readOnly = !!options.readOnly;
             this.nodes = {};
         }
         static get toolbox() {
             return { title: 'Tabelle', icon: '▦' };
+        }
+        static get sanitize() {
+            return {
+                withHeadings: false,
+                content: false
+            };
+        }
+        static get isReadOnlySupported() {
+            return true;
         }
         render() {
             var textarea = document.createElement('textarea');
             var rows = Array.isArray(this.data.content) && this.data.content.length > 0 ? this.data.content : [['', '', ''], ['', '', ''], ['', '', '']];
             textarea.className = 'form-control font-monospace cms-editorjs-table-textarea';
             textarea.rows = Math.max(4, rows.length);
+            textarea.readOnly = this.readOnly;
             textarea.value = rows.map(function (row) {
                 return (Array.isArray(row) ? row : []).join(' | ');
             }).join('\n');
@@ -1827,6 +2214,12 @@
         static get toolbox() {
             return { title: 'Trenner', icon: '---' };
         }
+        static get sanitize() {
+            return {};
+        }
+        static get isReadOnlySupported() {
+            return true;
+        }
         render() {
             return createElement('hr', 'cms-editorjs-delimiter');
         }
@@ -1837,11 +2230,22 @@
 
     class SpacerTool {
         constructor(options) {
+            options = options || {};
             this.data = normalizeSpacerData(options && options.data ? options.data : {});
+            this.readOnly = !!options.readOnly;
             this.nodes = {};
         }
         static get toolbox() {
             return { title: 'Abstand', icon: '↕' };
+        }
+        static get sanitize() {
+            return {
+                height: false,
+                preset: false
+            };
+        }
+        static get isReadOnlySupported() {
+            return true;
         }
         render() {
             var wrapper = createElement('div', 'editorjs-spacer-tool');
@@ -1857,6 +2261,7 @@
 
             select.className = 'form-select form-select-sm editorjs-spacer-tool__select';
             select.setAttribute('aria-label', 'Abstandshöhe wählen');
+            select.disabled = this.readOnly;
             [15, 25, 40, 60, 75, 100].forEach(function (height) {
                 var option = document.createElement('option');
                 option.value = String(height);
@@ -2254,6 +2659,7 @@
             data: normalizedData,
             tools: tools,
             defaultBlock: 'paragraph',
+            logLevel: resolvedOptions.logLevel || 'ERROR',
             minHeight: 160,
             autofocus: false,
             placeholder: 'Schreibe Inhalt oder wähle einen Block ...',
