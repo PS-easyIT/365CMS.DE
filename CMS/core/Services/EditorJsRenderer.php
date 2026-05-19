@@ -640,13 +640,15 @@ final class EditorJsRenderer
     private function renderSpacer(array $data): string
     {
         $allowedHeights = [15, 25, 40, 60, 75, 100];
-        $height = (int)($data['height'] ?? 15);
+        $height = (int)($data['height'] ?? 40);
 
         if (!in_array($height, $allowedHeights, true)) {
-            $height = 15;
+            $height = 40;
         }
 
-        return '<div class="editorjs-block editorjs-spacer" aria-hidden="true" data-height="' . $height . '" style="height:' . $height . 'px"></div>';
+        $style = 'display:block;clear:both;width:100%;height:' . $height . 'px!important;min-height:' . $height . 'px!important;margin:0!important;padding:0!important;line-height:0;font-size:0;overflow:hidden;box-sizing:border-box';
+
+        return '<div class="editorjs-block editorjs-spacer" aria-hidden="true" role="presentation" data-height="' . $height . '" style="' . htmlspecialchars($style, ENT_QUOTES, 'UTF-8') . '"><span class="editorjs-spacer__marker" aria-hidden="true">&#8203;</span></div>';
     }
 
     /** @param array<string,mixed> $data */

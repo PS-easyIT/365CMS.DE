@@ -314,7 +314,33 @@
 
 .editorjs-spacer {
     --cms-editorjs-space-after: 0rem;
-    margin-block: 0;
+    --cms-editorjs-spacer-height: 40px;
+    box-sizing: border-box;
+    display: block !important;
+    clear: both;
+    flex: 0 0 auto;
+    width: 100%;
+    height: var(--cms-editorjs-spacer-height) !important;
+    min-height: var(--cms-editorjs-spacer-height) !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    line-height: 0;
+    font-size: 0;
+    overflow: hidden;
+}
+
+.editorjs-spacer[data-height="15"] { --cms-editorjs-spacer-height: 15px; }
+.editorjs-spacer[data-height="25"] { --cms-editorjs-spacer-height: 25px; }
+.editorjs-spacer[data-height="40"] { --cms-editorjs-spacer-height: 40px; }
+.editorjs-spacer[data-height="60"] { --cms-editorjs-spacer-height: 60px; }
+.editorjs-spacer[data-height="75"] { --cms-editorjs-spacer-height: 75px; }
+.editorjs-spacer[data-height="100"] { --cms-editorjs-spacer-height: 100px; }
+
+.editorjs-spacer__marker {
+    display: block;
+    width: 0;
+    height: 0;
+    overflow: hidden;
 }
 
 .tg-spoiler {

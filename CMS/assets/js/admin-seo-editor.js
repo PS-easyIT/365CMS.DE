@@ -305,8 +305,18 @@
                 collectImageAnalysis(data, analysis);
                 break;
             case 'imageGallery':
+                var galleryImages = Array.isArray(data.images) ? data.images : [];
+                galleryImages.forEach(function (item) {
+                    collectImageAnalysis(item, analysis);
+                });
+                if (galleryImages.length === 0) {
+                    (Array.isArray(data.urls) ? data.urls : []).forEach(function (url) {
+                        collectImageAnalysis({ url: url }, analysis);
+                    });
+                }
+                break;
             case 'carousel':
-                (Array.isArray(data.items) ? data.items : []).forEach(function (item) {
+                (Array.isArray(data.items) ? data.items : (Array.isArray(data) ? data : [])).forEach(function (item) {
                     collectImageAnalysis(item, analysis);
                 });
                 break;

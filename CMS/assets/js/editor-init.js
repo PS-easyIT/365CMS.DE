@@ -29,8 +29,8 @@
         header: ['CmsHeaderTool', 'Header'],
         list: ['EditorjsList', 'List', 'CmsListTool'],
         image: ['CmsImageTool', 'ImageTool'],
-        quote: ['Quote'],
-        code: ['CodeTool'],
+        quote: ['CmsQuoteTool', 'Quote'],
+        code: ['CmsCodeTool', 'CodeTool'],
         table: ['Table'],
         delimiter: ['Delimiter'],
         spacer: ['CmsSpacerTool'],
@@ -682,12 +682,31 @@
 
     function htmlToBlocks(value) {
         var root = document.createElement('div');
+        var source;
         var blocks = [];
 
         root.innerHTML = String(value || '');
-        Array.prototype.slice.call(root.children).forEach(function (child) {
+        source = root.querySelector('body') || root;
+
+        function hasConvertibleBlockChildren(element) {
+            return Array.prototype.slice.call(element.children || []).some(function (child) {
+                return /^(?:h[1-6]|p|div|section|article|main|ul|ol|blockquote|pre|table|img|figure|hr)$/i.test(String(child.tagName || ''));
+            });
+        }
+
+        function appendElementBlock(child) {
             var tag = String(child.tagName || '').toLowerCase();
             var text = child.innerHTML || child.textContent || '';
+
+            if (['div', 'section', 'article', 'main'].indexOf(tag) !== -1 && hasConvertibleBlockChildren(child)) {
+                Array.prototype.slice.call(child.children || []).forEach(appendElementBlock);
+                return;
+            }
+
+            if (tag === 'figure' && hasConvertibleBlockChildren(child)) {
+                Array.prototype.slice.call(child.children || []).forEach(appendElementBlock);
+                return;
+            }
 
             if (/^h[1-6]$/.test(tag)) {
                 blocks.push({
@@ -736,7 +755,9 @@
             if (stripTags(text) !== '') {
                 blocks.push({ type: 'paragraph', data: { text: text } });
             }
-        });
+        }
+
+        Array.prototype.slice.call(source.children).forEach(appendElementBlock);
 
         if (blocks.length === 0 && stripTags(value) !== '') {
             return textToBlocks(stripTags(value));
@@ -827,14 +848,178 @@
         return element;
     }
 
-    function createEditable(className, html, placeholder) {
+    function createEditable(className, html, placeholder, api) {
         var element = createElement('div', className);
         element.contentEditable = 'true';
         element.innerHTML = sanitizeEditableHtml(html || '');
         if (placeholder) {
             element.dataset.placeholder = placeholder;
         }
+        bindEditablePasteBehavior(element, api || null);
         return element;
+    }
+
+    function clipboardHasImageFile(clipboardData) {
+        if (!clipboardData) {
+            return false;
+        }
+
+        return Array.prototype.slice.call(clipboardData.items || []).some(function (item) {
+            return item && String(item.kind || '') === 'file' && /^image\//i.test(String(item.type || ''));
+        });
+    }
+
+    function insertHtmlAtSelection(editable, html) {
+        var selection = window.getSelection ? window.getSelection() : null;
+        var range;
+        var fragment;
+        var lastNode;
+        var wrapper;
+
+        if (!selection || selection.rangeCount === 0 || !editable.contains(selection.anchorNode)) {
+            editable.focus();
+            selection = window.getSelection ? window.getSelection() : null;
+        }
+
+        if (!selection || selection.rangeCount === 0 || !editable.contains(selection.anchorNode)) {
+            editable.insertAdjacentHTML('beforeend', html);
+            return;
+        }
+
+        range = selection.getRangeAt(0);
+        range.deleteContents();
+        wrapper = document.createElement('div');
+        wrapper.innerHTML = html;
+        fragment = document.createDocumentFragment();
+
+        while (wrapper.firstChild) {
+            lastNode = fragment.appendChild(wrapper.firstChild);
+        }
+
+        range.insertNode(fragment);
+        if (lastNode) {
+            range.setStartAfter(lastNode);
+            range.collapse(true);
+            selection.removeAllRanges();
+            selection.addRange(range);
+        }
+    }
+
+    function htmlContainsBlockFormatting(html) {
+        return /<(?:h[1-6]|p|div|section|article|ul|ol|li|blockquote|pre|table|tr|img|figure|hr)\b/i.test(String(html || ''));
+    }
+
+    function getStructuredPasteBlocks(html) {
+        var blocks;
+
+        if (!html || !htmlContainsBlockFormatting(html)) {
+            return [];
+        }
+
+        blocks = htmlToBlocks(html).map(normalizeBlock).filter(function (block) {
+            return block && typeof block.type === 'string';
+        });
+
+        if (blocks.length === 0) {
+            return [];
+        }
+
+        if (blocks.length > 1 || blocks[0].type !== 'paragraph') {
+            return blocks;
+        }
+
+        return /<(?:h[1-6]|ul|ol|blockquote|pre|table|tr|img|figure|hr)\b/i.test(String(html || ''))
+            ? blocks
+            : [];
+    }
+
+    function insertEditorBlocksFromPaste(api, editable, blocks) {
+        var blocksApi = api && api.blocks ? api.blocks : null;
+        var currentIndex = -1;
+        var shouldReplaceCurrent = stripTags(editable ? editable.innerHTML || '' : '').trim() === '';
+        var insertIndex;
+
+        if (!blocksApi || typeof blocksApi.insert !== 'function' || !Array.isArray(blocks) || blocks.length === 0) {
+            return false;
+        }
+
+        if (typeof blocksApi.getCurrentBlockIndex === 'function') {
+            try {
+                currentIndex = blocksApi.getCurrentBlockIndex();
+            } catch (_error) {
+                currentIndex = -1;
+            }
+        }
+
+        insertIndex = currentIndex >= 0 ? currentIndex + 1 : undefined;
+
+        if (shouldReplaceCurrent && currentIndex >= 0 && typeof blocksApi.delete === 'function') {
+            try {
+                blocksApi.delete(currentIndex);
+                insertIndex = currentIndex;
+            } catch (_error) {
+                insertIndex = currentIndex + 1;
+            }
+        }
+
+        blocks.forEach(function (block, offset) {
+            try {
+                blocksApi.insert(block.type, block.data || {}, undefined, typeof insertIndex === 'number' ? insertIndex + offset : undefined, true);
+            } catch (_error) {
+                blocksApi.insert(block.type, block.data || {});
+            }
+        });
+
+        if (api && api.caret && typeof api.caret.setToBlock === 'function') {
+            window.setTimeout(function () {
+                try {
+                    api.caret.setToBlock(typeof insertIndex === 'number' ? insertIndex + blocks.length - 1 : currentIndex + blocks.length, 'end');
+                } catch (_error) {
+                    // Caret placement is a UX enhancement; inserted blocks already exist.
+                }
+            }, 0);
+        }
+
+        return true;
+    }
+
+    function bindEditablePasteBehavior(editable, api) {
+        if (!editable || editable.dataset.cmsPasteBound === '1') {
+            return;
+        }
+
+        editable.dataset.cmsPasteBound = '1';
+        editable.addEventListener('paste', function (event) {
+            var clipboardData = event.clipboardData || window.clipboardData || null;
+            var html = clipboardData && typeof clipboardData.getData === 'function' ? clipboardData.getData('text/html') : '';
+            var text = clipboardData && typeof clipboardData.getData === 'function' ? clipboardData.getData('text/plain') : '';
+            var structuredBlocks;
+            var insertHtml;
+
+            if (!clipboardData || clipboardHasImageFile(clipboardData) || (html === '' && text === '')) {
+                return;
+            }
+
+            structuredBlocks = getStructuredPasteBlocks(html);
+            if (structuredBlocks.length > 0 && insertEditorBlocksFromPaste(api, editable, structuredBlocks)) {
+                event.preventDefault();
+                event.stopPropagation();
+                return;
+            }
+
+            insertHtml = html !== ''
+                ? sanitizeEditableHtml(html)
+                : escapeHtml(text).replace(/\r\n|\r|\n/g, '<br>');
+
+            if (insertHtml === '') {
+                return;
+            }
+
+            event.preventDefault();
+            event.stopPropagation();
+            insertHtmlAtSelection(editable, insertHtml);
+            editable.dispatchEvent(new Event('input', { bubbles: true }));
+        }, true);
     }
 
     function createInput(type, className, value, placeholder) {
@@ -1000,7 +1185,7 @@
         }
         render() {
             var wrapper = createElement('div', 'cms-editorjs-tool cms-editorjs-tool--paragraph');
-            var text = createEditable('form-control cms-editorjs-editable cms-editorjs-paragraph', this.data.text || '', 'Text schreiben ...');
+            var text = createEditable('form-control cms-editorjs-editable cms-editorjs-paragraph', this.data.text || '', 'Text schreiben ...', this.api);
 
             wrapper.appendChild(text);
             this.nodes = { wrapper: wrapper, text: text };
@@ -1037,7 +1222,7 @@
         }
         render() {
             var wrapper = createElement('div', 'cms-editorjs-tool cms-editorjs-tool--header');
-            var text = createEditable('form-control cms-editorjs-editable cms-editorjs-header', this.data.text || '', 'Überschrift');
+            var text = createEditable('form-control cms-editorjs-editable cms-editorjs-header', this.data.text || '', 'Überschrift', this.api);
             var options = this.createHeaderOptions(wrapper, text);
 
             wrapper.appendChild(text);
@@ -1485,7 +1670,22 @@
                 this.nodes.wrapper.classList.toggle('is-empty', this.images.length === 0);
             }
             if (this.images.length === 0) {
-                this.nodes.list.appendChild(createElement('div', 'cms-editorjs-gallery__empty', 'Bilder auswählen – die Galerie erscheint danach direkt hier.'));
+                var empty = createElement('div', 'cms-editorjs-gallery__empty');
+                var emptyText = createElement('span', '', 'Noch keine Bilder in dieser Galerie.');
+                var chooseButton = createElement('button', 'btn btn-sm btn-primary', 'Bilder auswählen');
+
+                chooseButton.type = 'button';
+                chooseButton.addEventListener('click', function (event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    if (self.nodes.upload) {
+                        self.nodes.upload.click();
+                    }
+                });
+
+                empty.appendChild(emptyText);
+                empty.appendChild(chooseButton);
+                this.nodes.list.appendChild(empty);
                 return;
             }
 
@@ -1526,14 +1726,21 @@
     class QuoteTool {
         constructor(options) {
             this.data = options.data || {};
+            this.api = options.api || null;
             this.nodes = {};
         }
         static get toolbox() {
             return { title: 'Zitat', icon: '“”' };
         }
+        static get conversionConfig() {
+            return {
+                export: function (data) { return stripTags(data && data.text ? data.text : ''); },
+                import: function (text) { return { text: sanitizeEditableHtml(text || ''), caption: '', alignment: 'left' }; }
+            };
+        }
         render() {
             var wrapper = createElement('div', 'cms-editorjs-tool cms-editorjs-tool--quote');
-            var text = createEditable('form-control cms-editorjs-editable mb-2', this.data.text || '', 'Zitat');
+            var text = createEditable('form-control cms-editorjs-editable mb-2', this.data.text || '', 'Zitat', this.api);
             var caption = createInput('text', 'form-control', this.data.caption || '', 'Quelle');
             wrapper.appendChild(text);
             wrapper.appendChild(caption);
@@ -1549,6 +1756,8 @@
         }
     }
 
+    window.CmsQuoteTool = QuoteTool;
+
     class CodeTool {
         constructor(options) {
             this.data = options.data || {};
@@ -1556,6 +1765,12 @@
         }
         static get toolbox() {
             return { title: 'Code', icon: '&lt;/&gt;' };
+        }
+        static get conversionConfig() {
+            return {
+                export: function (data) { return String(data && data.code ? data.code : ''); },
+                import: function (text) { return { code: stripTags(text || '') }; }
+            };
         }
         render() {
             var textarea = document.createElement('textarea');
@@ -1570,6 +1785,8 @@
             return { code: this.nodes.textarea ? this.nodes.textarea.value : '' };
         }
     }
+
+    window.CmsCodeTool = CodeTool;
 
     class TableTool {
         constructor(options) {
@@ -1628,47 +1845,60 @@
         }
         render() {
             var wrapper = createElement('div', 'editorjs-spacer-tool');
-            var header = createElement('div', 'editorjs-spacer-tool__header');
-            var label = createElement('label', 'editorjs-spacer-tool__label', 'Abstand');
-            var select = document.createElement('select');
             var badge = createElement('span', 'editorjs-spacer-tool__badge');
+            var controls = createElement('div', 'editorjs-spacer-tool__controls');
+            var label = createElement('span', 'editorjs-spacer-tool__control-label', 'Größe');
+            var select = document.createElement('select');
             var preview = createElement('div', 'editorjs-spacer-tool__preview');
-            var help = createElement('div', 'form-hint', 'Fügt vertikalen Weißraum ein – ideal für saubere Abschnittsabstände.');
+
+            wrapper.setAttribute('role', 'group');
+            wrapper.setAttribute('aria-label', 'Abstand');
+            wrapper.setAttribute('title', 'Abstand – Höhe per Hover-Auswahl ändern');
 
             select.className = 'form-select form-select-sm editorjs-spacer-tool__select';
+            select.setAttribute('aria-label', 'Abstandshöhe wählen');
             [15, 25, 40, 60, 75, 100].forEach(function (height) {
                 var option = document.createElement('option');
                 option.value = String(height);
                 option.textContent = height + ' px';
                 select.appendChild(option);
             });
-            select.value = String(this.data.height || 40);
+            select.addEventListener('input', () => this.setHeight(select.value));
+            select.addEventListener('change', () => this.setHeight(select.value));
 
-            function updatePreview() {
-                var height = parseInt(select.value, 10) || 40;
-                preview.style.height = height + 'px';
-                badge.textContent = height + ' px';
-            }
-
-            select.addEventListener('input', updatePreview);
-            select.addEventListener('change', updatePreview);
-
-            header.appendChild(label);
-            header.appendChild(select);
-            wrapper.appendChild(header);
+            controls.appendChild(label);
+            controls.appendChild(select);
             wrapper.appendChild(badge);
+            wrapper.appendChild(controls);
             wrapper.appendChild(preview);
-            wrapper.appendChild(help);
 
-            this.nodes = { select: select, preview: preview, badge: badge };
-            updatePreview();
+            this.nodes = { wrapper: wrapper, preview: preview, badge: badge, select: select };
+            this.updatePreview();
 
             return wrapper;
         }
+        setHeight(height) {
+            this.data = normalizeSpacerData({ height: height });
+            this.updatePreview();
+        }
+        updatePreview() {
+            var height = parseInt(this.data && this.data.height ? this.data.height : 40, 10) || 40;
+
+            if (this.nodes.wrapper) {
+                this.nodes.wrapper.dataset.height = String(height);
+            }
+            if (this.nodes.preview) {
+                this.nodes.preview.style.height = height + 'px';
+            }
+            if (this.nodes.badge) {
+                this.nodes.badge.textContent = height + ' px';
+            }
+            if (this.nodes.select && this.nodes.select.value !== String(height)) {
+                this.nodes.select.value = String(height);
+            }
+        }
         save() {
-            return normalizeSpacerData({
-                height: this.nodes.select ? this.nodes.select.value : this.data.height
-            });
+            return normalizeSpacerData(this.data);
         }
     }
 
@@ -1933,7 +2163,7 @@
                 uploadUrl: uploadUrl,
                 csrfToken: csrfToken
             }
-        }, false);
+        }, true);
 
         return tools;
     }

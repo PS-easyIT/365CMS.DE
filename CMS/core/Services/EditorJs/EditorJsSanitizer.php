@@ -399,9 +399,9 @@ final class EditorJsSanitizer
 
             case 'spacer':
                 $allowedHeights = [15, 25, 40, 60, 75, 100];
-                $height = (int) ($data['height'] ?? 15);
+                $height = (int) ($data['height'] ?? 40);
                 if (!in_array($height, $allowedHeights, true)) {
-                    $height = 15;
+                    $height = 40;
                 }
 
                 $data = [

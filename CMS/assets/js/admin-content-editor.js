@@ -1090,7 +1090,7 @@
             if (blockElement.querySelector('.ce-code')) { return 'Code'; }
             if (blockElement.querySelector('.tc-wrap')) { return 'Tabelle'; }
             if (blockElement.querySelector('.cdx-quote')) { return 'Zitat'; }
-            if (blockElement.querySelector('.gg-box')) { return 'Gallery'; }
+            if (blockElement.querySelector('.gg-box, .cms-editorjs-gallery')) { return 'Gallery'; }
             return 'Block';
         }
 
@@ -1112,210 +1112,6 @@
             } catch (_error) {
                 editorInstance.blocks.insert(blockType, blockData);
             }
-        }
-
-        function escapeEditorHtml(value) {
-            return String(value || '')
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;')
-                .replace(/'/g, '&#039;');
-        }
-
-        function getListItemLines(items, depth) {
-            var currentDepth = typeof depth === 'number' ? depth : 0;
-            var lines = [];
-
-            (Array.isArray(items) ? items : []).forEach(function (item) {
-                var source = item && typeof item === 'object' ? item : { content: String(item || '') };
-                var content = typeof source.content === 'string'
-                    ? source.content
-                    : (typeof source.text === 'string' ? source.text : '');
-                var plain = extractTextFromHtml(content).trim();
-
-                if (plain !== '') {
-                    lines.push(new Array(currentDepth + 1).join('  ') + plain);
-                }
-
-                lines = lines.concat(getListItemLines(source.items, currentDepth + 1));
-            });
-
-            return lines;
-        }
-
-        function getBlockHtmlForConversion(block) {
-            var data = block && block.data && typeof block.data === 'object' ? block.data : {};
-            var type = String(block && block.type ? block.type : 'paragraph');
-            var values;
-
-            if (type === 'paragraph' || type === 'header') {
-                return String(data.text || '');
-            }
-
-            if (type === 'list') {
-                return getListItemLines(data.items, 0).map(escapeEditorHtml).join('<br>');
-            }
-
-            if (type === 'quote') {
-                return String(data.text || data.caption || '');
-            }
-
-            if (type === 'warning') {
-                values = [data.title, data.message].filter(function (value) {
-                    return String(value || '').trim() !== '';
-                });
-                return values.map(function (value) { return String(value || ''); }).join('<br>');
-            }
-
-            if (type === 'code') {
-                return escapeEditorHtml(String(data.code || ''));
-            }
-
-            if (type === 'table' && Array.isArray(data.content)) {
-                return data.content.map(function (row) {
-                    return (Array.isArray(row) ? row : []).map(function (cell) {
-                        return extractTextFromHtml(cell).trim();
-                    }).filter(Boolean).join(' | ');
-                }).filter(Boolean).map(escapeEditorHtml).join('<br>');
-            }
-
-            values = ['text', 'message', 'title', 'caption', 'content', 'html'].map(function (key) {
-                return typeof data[key] === 'string' ? data[key] : '';
-            }).filter(function (value) {
-                return value.trim() !== '';
-            });
-
-            return values.length > 0 ? values.join('<br>') : '';
-        }
-
-        function buildConvertedBlockData(sourceBlock, targetType) {
-            var html = getBlockHtmlForConversion(sourceBlock).trim();
-            var plain = extractTextFromHtml(html.replace(/<br\s*\/?\s*>/gi, '\n')).trim();
-            var lines = plain.split(/\r?\n/).map(function (line) {
-                return line.trim();
-            }).filter(Boolean);
-
-            if (targetType === 'header') {
-                return { text: html || escapeEditorHtml(plain), level: 2 };
-            }
-
-            if (targetType === 'list') {
-                if (sourceBlock && sourceBlock.type === 'list' && sourceBlock.data) {
-                    return sourceBlock.data;
-                }
-
-                return {
-                    style: 'unordered',
-                    items: (lines.length > 0 ? lines : [plain]).filter(Boolean).map(function (line) {
-                        return { content: escapeEditorHtml(line), meta: {}, items: [] };
-                    })
-                };
-            }
-
-            if (targetType === 'quote') {
-                return { text: html || escapeEditorHtml(plain), caption: '' };
-            }
-
-            if (targetType === 'code') {
-                return { code: plain };
-            }
-
-            return { text: html || escapeEditorHtml(plain) };
-        }
-
-        function getBlockConvertOptions(editorEntry) {
-            return [
-                { value: 'paragraph', label: 'In Text umwandeln' },
-                { value: 'header', label: 'In Überschrift umwandeln' },
-                { value: 'list', label: 'In Liste umwandeln' },
-                { value: 'quote', label: 'In Zitat umwandeln' },
-                { value: 'code', label: 'In Code umwandeln' }
-            ].filter(function (item) {
-                return isEditorToolAvailable(editorEntry, item.value);
-            });
-        }
-
-        function convertEditorBlock(definition, editorEntry, holder, block, targetType) {
-            var editorInstance = editorEntry && editorEntry.instance ? editorEntry.instance : null;
-            var blocksApi = editorInstance && editorInstance.blocks ? editorInstance.blocks : null;
-            var index = getBlockIndex(holder, block);
-
-            if (!blocksApi || typeof blocksApi.delete !== 'function' || index < 0 || !targetType) {
-                return;
-            }
-
-            saveEditorContent(definition.key, false).then(function (editorData) {
-                var sourceBlock = editorData && Array.isArray(editorData.blocks) ? editorData.blocks[index] : null;
-                var convertedData = buildConvertedBlockData(sourceBlock || {}, targetType);
-
-                closeInlineInserters(holder);
-                blocksApi.delete(index);
-                insertBlockAt(editorInstance, index, targetType, convertedData);
-                markEditorMutation(definition.key);
-
-                window.setTimeout(function () {
-                    ensureEditorSaved(definition.key).catch(function (error) {
-                        logEditor('warn', 'EditorJS block conversion sync failed.', error);
-                    });
-                }, 0);
-
-                if (editorInstance.caret && typeof editorInstance.caret.setToBlock === 'function') {
-                    window.setTimeout(function () {
-                        try {
-                            editorInstance.caret.setToBlock(index, 'start');
-                        } catch (_error) {
-                            // Non-text targets may reject caret placement.
-                        }
-                    }, 0);
-                }
-
-                window.requestAnimationFrame(function () {
-                    renderEditorBlockUi(definition, editorEntry);
-                });
-            }).catch(function (error) {
-                logEditor('warn', 'EditorJS block conversion failed.', error);
-                showNotice('danger', 'Block konnte nicht umgewandelt werden. Bitte erneut versuchen.');
-            });
-        }
-
-        function createBlockActions(definition, editorEntry, holder, block, index) {
-            var actions = document.createElement('div');
-            var select = document.createElement('select');
-            var placeholder = document.createElement('option');
-
-            actions.className = 'cms-editor-block-actions';
-            actions.dataset.cmsEditorUi = 'true';
-            actions.dataset.mutationFree = 'true';
-            actions.setAttribute('aria-label', 'Block-Aktionen');
-
-            select.className = 'cms-editor-block-actions__select';
-            select.setAttribute('aria-label', 'Block umwandeln');
-            placeholder.value = '';
-            placeholder.textContent = 'Umwandeln …';
-            select.appendChild(placeholder);
-
-            getBlockConvertOptions(editorEntry).forEach(function (item) {
-                var option = document.createElement('option');
-                option.value = item.value;
-                option.textContent = item.label;
-                select.appendChild(option);
-            });
-
-            select.addEventListener('change', function (event) {
-                var targetType = event.target.value;
-
-                event.preventDefault();
-                event.stopPropagation();
-                if (targetType !== '') {
-                    convertEditorBlock(definition, editorEntry, holder, block, targetType);
-                }
-                select.value = '';
-            });
-
-            actions.appendChild(select);
-            actions.dataset.blockIndex = String(index);
-            return actions;
         }
 
         function getEditorAvailableTools(editorEntry) {
@@ -1643,7 +1439,7 @@
 
             if (state.signature === signature
                     && holder.querySelectorAll('.cms-editor-insert-between').length === Math.max(0, blocks.length - 1)
-                    && holder.querySelectorAll('.cms-editor-block-actions').length === blocks.length) {
+                    && holder.querySelectorAll('.cms-editor-block-actions').length === 0) {
                 setupImageHoverOverlay(holder, editorEntry.instance);
                 return;
             }
@@ -1665,7 +1461,6 @@
 
                     block.classList.add('cms-editor-block-shell');
                     block.setAttribute('data-cms-block-label', resolveBlockLabel(block));
-                    block.appendChild(createBlockActions(definition, editorEntry, holder, block, index));
 
                     if (!nextBlock) {
                         return;
