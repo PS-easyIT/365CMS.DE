@@ -96,7 +96,9 @@ Seit 2.9.763 verwaltet dieselbe Seite zusätzlich die Security-Alarmierung für 
 
 ### Logs & Protokolle
 
-`/admin/cms-logs` bündelt nicht mehr nur CMS-Dateilogs und das PHP Error-Log, sondern auch ein operatives Betriebs-Audit aus dem zentralen `audit_log`. Dadurch werden System-, Backup-, Monitoring-, Cron-/Queue- und Performance-Aktionen direkt im Diagnosekontext sichtbar. Ergänzend zeigt die Seite die persistierte Update-Historie des Update-Services, sodass erfolgreiche Core-, Theme- und Plugin-Updates nicht nur auf `/admin/updates`, sondern auch in der Diagnose-Logzentrale nachvollziehbar bleiben.
+`/admin/logs` bündelt nicht mehr nur CMS-Dateilogs und das PHP Error-Log, sondern auch ein operatives Betriebs-Audit aus dem zentralen `audit_log`. Dadurch werden System-, Backup-, Monitoring-, Cron-/Queue- und Performance-Aktionen direkt im Diagnosekontext sichtbar. Ergänzend zeigt die Seite die persistierte Update-Historie des Update-Services, sodass erfolgreiche Core-, Theme- und Plugin-Updates nicht nur auf `/admin/updates`, sondern auch in der Diagnose-Logzentrale nachvollziehbar bleiben. Der ältere Einstieg `/admin/cms-logs` bleibt als Redirect-Alias erhalten.
+
+Seit `3.0.14` löst der Admin-Router auch die verschachtelten Unterseiten `/admin/logs/operational`, `/admin/logs/security-audit`, `/admin/logs/php-errors` und `/admin/logs/channels` direkt auf. Die Sidebar-Einträge im Bereich **Protokolle & Audit** führen dadurch wieder auf die jeweiligen Teilansichten statt auf die 404-Seite.
 
 Seit `2.9.769` löst dieselbe Update-Historie Benutzer-IDs serverseitig auf sprechende Labels aus `display_name` plus Rollenbezeichnung auf. Fehlende oder gelöschte Konten führen dabei nicht zu Fehlern oder leeren Zellen, sondern bleiben als `User #ID` fail-soft sichtbar.
 

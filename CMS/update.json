@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "3.0.12",
+  "version": "3.0.14",
   "min_php": "8.4",
-  "released": "2026-05-18",
+  "released": "2026-05-20",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 3.0.12: EditorJS-Live-/Entwurfsrendering übernimmt mehr Block- und Formatierungsdaten, Public-Draft-Preview ist für berechtigte Autoren/Admins geschützt sichtbar und die README ist ohne Changelog-Einträge neu strukturiert.",
+  "notes": "Release-Stand 3.0.14: Admin-Router löst die verschachtelten Protokolle-&-Audit-Unterseiten unter /admin/logs/operational, /admin/logs/security-audit, /admin/logs/php-errors und /admin/logs/channels wieder direkt auf; die EditorJS-/Public-Sanitizer-Nachträge aus 3.0.13 bleiben enthalten.",
   "critical": false
 }

@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Überblick über die Content-Module im Admin-Bereich und ihre aktuelle Aufgabenverteilung.
 
-Letzte Aktualisierung: 17.05.2026 · Version 3.0.11
+Letzte Aktualisierung: 20.05.2026 · Version 3.0.13
 
 Der Content-Bereich ist auf mehrere spezialisierte Bereiche verteilt:
 
@@ -25,11 +25,14 @@ Im aktuellen Stand nutzt 365CMS im Content-Bereich mehrere Editorkomponenten:
 
 - **SunEditor** für klassische Rich-Text-Bearbeitung
 - **Editor.js** für blockbasierte Inhalte
+- **WordPress-like Block-/Blockly-Verhalten** im EditorJS-Canvas: gruppierter Block-Inserter, Commandbar, Drag-&-Drop-Reordering, Undo/Redo, Breitenmodus und Blockkarten für Text-, Medien-, Layout- und Spezialblöcke
 - **SEO-/Readability-/Preview-Karten** unter Seiten und Beiträgen für Meta-Daten, Inhaltsqualität und Vorschau
 - **Lazy Language Switching** im Beitrags-Editor mit einmaliger DE→EN-Initialkopie bei leerer englischer Fassung
 - **Read-only Revisionsvergleich** in Seiten- und Beitragseditor für die letzten gespeicherten Snapshots des aktuellen Inhalts
 
 Die SEO-spezifischen Global-Einstellungen liegen nicht mehr in einem alten Monolithen `seo.php`, sondern im [SEO-Center](../seo/SEO.md).
+
+Seit `3.0.13` ist das WordPress-ähnliche EditorJS-Bedienverhalten explizit Teil des Content-Vertrags: Redaktionen arbeiten im Admin mit einem blockorientierten Canvas, gruppierten Einfüge-Karten, Schnellaktionen und Drag-&-Drop, während der Save-Pfad weiterhin strukturierte EditorJS-Daten schreibt. Public-Rendering, Sanitizer und Themes verarbeiten diese Daten serverseitig kontrolliert weiter.
 
 ---
 

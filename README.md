@@ -1,6 +1,6 @@
 # 365CMS.DE
 
-**Version:** [3.0.12](Changelog.md) · **Status:** Stable · **PHP:** 8.4+ · **MySQL:** 5.7+ · **MariaDB:** 10.3+
+**Version:** [3.0.14](Changelog.md) · **Status:** Stable · **PHP:** 8.4+ · **MySQL:** 5.7+ · **MariaDB:** 10.3+
 
 <div align="center">
 
@@ -43,14 +43,18 @@ Für reine Mini-Onepager ohne Ausbauperspektive ist 365CMS bewusst mehr Plattfor
 
 Der Seiten- und Beitragseditor basiert auf EditorJS und wurde für einen WordPress-ähnlichen Redaktionsfluss erweitert. Ziel ist ein Block-Editor, der Inhalte strukturiert speichert, aber im Admin vertraut bedienbar bleibt.
 
+Das Bedienverhalten orientiert sich bewusst an einem Gutenberg-/WordPress-Canvas: Redakteurinnen und Redakteure fügen Blöcke über einen gruppierten Inserter oder eine Commandbar ein, verschieben Blöcke per Drag & Drop, nutzen Undo/Redo für schnelle Korrekturen und wählen je nach Inhalt Text-, Medien-, Layout- oder Spezialblöcke aus. Der Editor bleibt dabei datengetrieben: gespeichert wird strukturiertes EditorJS-JSON, nicht ungeprüftes HTML.
+
 Wichtige Eigenschaften:
 
 - Blockbasierter Editor für Seiten und Beiträge
 - Text, Überschriften, Listen, Checklisten, Zitate, Tabellen, Code, Trennlinien und Abstände
+- Abstandsblöcke mit normalisierten Presets oder Pixelwerten, die im Public-Rendering erhalten bleiben
 - Bildblöcke mit Upload, Live-Vorschau, Ausrichtung, Breite, Rahmen, Rundung, Hintergrund und Schatten
-- Mehrbild-Galerien mit Upload, Vorschau und Spaltensteuerung
+- Mehrbild-Galerien mit Upload, Vorschau, Sortierung und Spaltensteuerung
 - Inline-Formatierungen wie fett, kursiv, unterstrichen, Code, Links und Spoiler
-- WordPress-ähnlichere Admin-Bedienung mit Block-Inserter, Commandbar, Drag & Drop und Undo/Redo
+- WordPress-ähnlichere Admin-Bedienung mit Block-Inserter, Commandbar, Drag & Drop, Undo/Redo und Read-only-kompatiblen Tool-Kontexten
+- Blockkarten und Schnellaktionen für typische Redaktionsmuster statt technischer JSON-Bearbeitung
 - Theme-nahe Editor-Vorschau durch Auswertung des aktiven Themes
 - Public-Rendering über einen eigenen Sanitizer/Renderer statt ungeprüfter HTML-Ausgabe
 - Entwurfsanzeige im Public-Bereich für angemeldete Autoren und berechtigte Admins
@@ -147,6 +151,8 @@ It is designed for projects that need more than a basic page editor: editorial w
 
 The page and post editor is built on EditorJS and extended towards a WordPress-like block editing experience.
 
+The editing flow intentionally behaves like a Gutenberg-style canvas: authors insert blocks through grouped block cards or a command bar, reorder content via drag & drop, use undo/redo for quick corrections and choose between text, media, layout and special-purpose blocks. The stored format remains structured EditorJS JSON rather than unchecked HTML.
+
 Highlights:
 
 - block-based editing for pages and posts
@@ -154,7 +160,8 @@ Highlights:
 - image blocks with upload, live preview, alignment, width, borders, rounding, background and shadow
 - multi-image galleries with preview and column control
 - inline formatting such as bold, italic, underline, code, links and spoiler text
-- block inserter, commandbar, drag & drop and undo/redo
+- grouped block inserter, commandbar, drag & drop, undo/redo and width modes
+- block cards and quick actions for editorial workflows instead of raw JSON editing
 - editor preview aligned with the active theme where possible
 - sanitized server-side rendering for live and draft pages
 - public draft preview for logged-in authors and authorized admins

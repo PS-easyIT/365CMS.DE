@@ -1,5 +1,5 @@
 # 365CMS – Services-Referenz
-> **Stand:** 2026-04-07 | **Version:** 2.9.0 | **Status:** Aktuell
+> **Stand:** 2026-05-20 | **Version:** 3.0.13 | **Status:** Aktuell
 
 Vollständige Dokumentation des Service-Layers. Alle Service-Klassen liegen im Namespace `CMS\Services` unter `core/Services/`. Der `CacheManager` befindet sich im Root-Namespace `CMS` unter `core/CacheManager.php`.
 
@@ -8,7 +8,7 @@ Vollständige Dokumentation des Service-Layers. Alle Service-Klassen liegen im N
 <!-- UPDATED: 2026-04-07 -->
 ## 1 · Übersicht
 
-Die Übersicht folgt der produktiven 2.9.0-Laufzeit. Einzelne Services greifen direkt auf Dateien unter `CMS/assets/`, `CMS/config/`, `CMS/cache/`, `CMS/uploads/` und `CMS/logs/` zu; die Kombination aus Service-Klasse plus realem Runtime-Pfad ist für Fehlersuche und Betrieb immer gemeinsam zu betrachten.
+Die Übersicht folgt der produktiven 3.0.13-Laufzeit. Einzelne Services greifen direkt auf Dateien unter `CMS/assets/`, `CMS/config/`, `CMS/cache/`, `CMS/uploads/` und `CMS/logs/` zu; die Kombination aus Service-Klasse plus realem Runtime-Pfad ist für Fehlersuche und Betrieb immer gemeinsam zu betrachten.
 
 | Klasse | Datei | Aufgabe |
 |--------|-------|---------|
@@ -560,6 +560,8 @@ $result = CMS\Services\ErrorReportService::getInstance()->createReport($payload)
 
 Editor.js-Integration. `EditorJsService` verwaltet Block-Daten; `EditorJsRenderer` konvertiert JSON-Blöcke in HTML.
 
+Seit dem Nachtrag vom `19.05.2026` ist der EditorJS-Vertrag explizit dreigeteilt: `editor-init.js` normalisiert lokale Tool-Daten und Read-only-Kontexte im Admin, `EditorJsSanitizer` validiert gespeicherte Blockdaten inklusive Spacer-Höhen und Bild-/Galerieoptionen serverseitig, und `EditorJsRenderer` gibt nur kontrollierte HTML-/Datenattribute aus. Spacer-Höhen werden auf sichere Pixelwerte bis `200px` begrenzt; Bild-/Galerieoptionen wie Ausrichtung, Größe, Rahmen, Hintergrund, Rundung und Schatten werden über Datenattribute statt freier HTML-Fragmente an Themes übergeben.
+
 ### EditorService
 
 **Datei:** `core/Services/EditorService.php`
@@ -645,7 +647,9 @@ PDF-Generierung aus HTML via DomPDF (Rechnungen, Zertifikate).
 
 **Datei:** `core/Services/PurifierService.php`
 
-HTML-Bereinigung via HTMLPurifier. Entfernt unsichere Tags/Attribute.
+HTML-Bereinigung via HTMLPurifier. Entfernt unsichere Tags/Attribute und stellt profilabhängig kontrollierte HTML5-, ARIA- und Datenattribute bereit.
+
+Seit `3.0.13` erlauben die öffentlichen Profile zusätzlich sichere EditorJS-/Theme-Attribute wie `div.data-height`, `div.role`, `div.aria-hidden`, `div.data-cms-editorjs-spacing`, `div.data-cms-editorjs-align` und `span.aria-hidden`. Dadurch bleiben Spacer-Höhen und presentation-Markup im Public-Rendering erhalten, ohne allgemeine Event- oder Script-Attribute freizugeben. Änderungen an erlaubten Attributen müssen mit einer neuen HTML-Definition-Revision ausgeliefert werden, damit gecachte Purifier-Definitionen neu aufgebaut werden.
 
 ### RedirectService
 

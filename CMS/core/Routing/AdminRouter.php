@@ -34,6 +34,8 @@ final class AdminRouter
         $this->router->addRoute('POST', '/admin', [$this, 'renderAdmin']);
         $this->router->addRoute('GET', '/admin/:page', [$this, 'renderAdminPage']);
         $this->router->addRoute('POST', '/admin/:page', [$this, 'renderAdminPage']);
+        $this->router->addRoute('GET', '/admin/logs/:section', [$this, 'renderAdminLogsSection']);
+        $this->router->addRoute('POST', '/admin/logs/:section', [$this, 'renderAdminLogsSection']);
         $this->router->addRoute('GET', '/admin/plugins/:plugin/:page', [$this, 'renderPluginPage']);
         $this->router->addRoute('POST', '/admin/plugins/:plugin/:page', [$this, 'renderPluginPage']);
     }
@@ -86,6 +88,28 @@ final class AdminRouter
                 require_once $file;
                 return;
             }
+        }
+
+        $this->router->render404();
+    }
+
+    public function renderAdminLogsSection(string $section): void
+    {
+        if (!Auth::instance()->isAdmin()) {
+            $this->redirectUnauthorized();
+            return;
+        }
+
+        if (!preg_match('/^[a-zA-Z0-9_-]+$/', $section)) {
+            $this->router->render404();
+            return;
+        }
+
+        $file = ABSPATH . 'admin/logs/' . $section . '.php';
+        if (is_file($file)) {
+            $this->trackAdminFeature('logs-' . $section, '/admin/logs/' . $section, 'Logs ' . $this->humanizeSlug($section));
+            require_once $file;
+            return;
         }
 
         $this->router->render404();

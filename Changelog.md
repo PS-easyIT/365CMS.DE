@@ -1,4 +1,4 @@
-﻿**Version:** 3.0.12
+﻿**Version:** 3.0.14
 
 # 365CMS Changelog
 
@@ -19,6 +19,23 @@
 ## 📜 Aktuelle Versionshistorie ab 3.0.0
 
 > Die vollständige historische 2.x-Historie wurde in [`Changelog_old.md`](Changelog_old.md) archiviert.
+
+### v3.0.14 — 20.05.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.0.14** | 🔴 fix | Admin-Routing – Protokolle & Audit | **`CMS/core/Routing/AdminRouter.php`, `CMS/admin/logs/*.php`, `README.md`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json` und `Changelog.md` stellen die verschachtelten Log-Unterseiten wieder her.** Neben der Übersicht `/admin/logs` werden jetzt auch `/admin/logs/operational`, `/admin/logs/security-audit`, `/admin/logs/php-errors` und `/admin/logs/channels` direkt vom Admin-Router aufgelöst, sodass die Sidebar-Unterpunkte nicht mehr in der 404-Seite landen. |
+
+### v3.0.13 — 20.05.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.0.13** | 🟢 feat | EditorJS – WordPress-like Block-/Blockly-Verhalten | **`CMS/assets/js/admin-content-editor.js`, `CMS/assets/js/editor-init.js`, `CMS/assets/css/admin.css`, `README.md`, `CMS/DOC/assets/editorjs/README.md` und `CMS/DOC/admin/pages-posts/README.md` dokumentieren die Bedienlogik des WordPress-ähnlichen Blockeditors nach.** Der Admin-Editor ist nicht nur ein JSON-Editor, sondern ein blockorientierter Redaktions-Canvas mit gruppiertem Inserter, Commandbar, stabiler Blockauswahl, Drag-&-Drop-Reordering, Undo/Redo, Breitenmodus, Blockkarten für Text/Medien/Layout/Spezialblöcke und read-only-fähigen Vorschaukontexten. |
+| **3.0.13** | 🟢 feat | EditorJS – Nachtrag 19.05.2026: Spacer, Galerie & Admin-Integration | **`CMS/assets/js/editor-init.js`, `CMS/assets/js/admin-content-editor.js`, `CMS/assets/css/admin.css`, `CMS/assets/css/editorjs-content.css`, `CMS/core/Services/EditorJsRenderer.php`, `CMS/core/Services/EditorJs/EditorJsSanitizer.php` und `Changelog.md` dokumentieren die gestrige EditorJS-Ausbaustufe vollständig nach.** Der Editor unterstützt nun robuste Spacer-Höhen inklusive Preset-/Pixel-Normalisierung bis `200px`, stabilere Galerie-/Bilddaten, Editor-nahe Admin-Styles und ein Public-CSS, das Spacer, Bilder und Medienblöcke näher am gespeicherten Editorzustand rendert. |
+| **3.0.13** | 🟢 feat | EditorJS – Nachtrag 19.05.2026: Read-only & Bildhandling | **`CMS/assets/js/editor-init.js` ergänzt Read-only-Unterstützung und defensiveres Bildhandling für lokale Editor.js-Tools.** Tools werden so initialisiert, dass Vorschau-/Read-only-Kontexte nicht durch editierbare UI-Annahmen brechen; Bilddaten werden kompatibler normalisiert, damit Upload-, URL-, Caption- und Darstellungsoptionen im Save-/Render-Pfad konsistent bleiben. |
+| **3.0.13** | 🟡 refactor | EditorJS – Nachtrag 19.05.2026: Renderer-/Sanitizer-Struktur | **`CMS/core/Services/EditorJsRenderer.php`, `CMS/core/Services/EditorJs/EditorJsSanitizer.php`, `CMS/DOC/assets/editorjs/README.md` und begleitende Strukturdateien ziehen die interne EditorJS-Verarbeitung nach.** Spacer-Normalisierung, Bild-/Medienattribute, Sanitizer-Allowlist und Renderer-Ausgabe sind klarer getrennt, damit Admin-Save, Public-Render und Theme-CSS denselben Datenvertrag verwenden. |
+| **3.0.13** | 🔴 fix | EditorJS / Public-Sanitizer | **`CMS/core/Services/PurifierService.php`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md` und `Changelog.md` stabilisieren den Public-Vertrag für EditorJS-Abstände und Theme-TOC-Anker.** Der zentrale HTMLPurifier erlaubt jetzt sichere EditorJS-Attribute wie `data-height`, `role`, `aria-hidden` und CMS-Spacing-Datenattribute in den relevanten Profilen und nutzt eine neue HTML-Definition-Revision, damit öffentliche Themes gespeicherte Spacer-Höhen sowie nachgelagerte Überschriften-IDs nicht mehr durch eine finale Sanitizer-Stufe verlieren. |
+| **3.0.13** | 🔵 docs | EditorJS & Services | **`CMS/DOC/assets/editorjs/README.md` und `CMS/DOC/core/SERVICES.md` dokumentieren den aktuellen Save-/Render-/Sanitizer-Vertrag.** Die Dokumentation benennt explizit, dass EditorJS-Spacer über sichere `data-height`-Attribute und theme-seitige CSS-Fallbacks gerendert werden und dass Purifier-Profile HTML5-/ARIA-/Datenattribute nur kontrolliert freigeben. |
 
 ### v3.0.12 — 18.05.2026
 
