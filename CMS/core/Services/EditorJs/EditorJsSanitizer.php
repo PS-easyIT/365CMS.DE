@@ -398,10 +398,10 @@ final class EditorJsSanitizer
                 break;
 
             case 'spacer':
-                $allowedHeights = [15, 25, 40, 60, 75, 100];
-                $height = (int) ($data['height'] ?? 40);
+                $allowedHeights = [0, 8, 15, 16, 24, 25, 32, 40, 48, 56, 60, 64, 72, 75, 80, 96, 100, 120, 140, 160, 180, 200];
+                $height = $this->normalizeSpacerHeight($data);
                 if (!in_array($height, $allowedHeights, true)) {
-                    $height = 40;
+                    $height = max(0, min(200, $height));
                 }
 
                 $data = [
@@ -412,6 +412,33 @@ final class EditorJsSanitizer
         }
 
         return $data;
+    }
+
+    private function normalizeSpacerHeight(array $data): int
+    {
+        $presetMap = [
+            'none' => 0,
+            'xs' => 8,
+            'small' => 15,
+            'sm' => 15,
+            'medium' => 40,
+            'md' => 40,
+            'normal' => 40,
+            'large' => 75,
+            'lg' => 75,
+            'xl' => 100,
+            'xlarge' => 100,
+            'huge' => 140,
+            'xxl' => 160,
+        ];
+
+        $raw = (string) ($data['height'] ?? $data['size'] ?? $data['value'] ?? $data['spacer'] ?? $data['space'] ?? $data['preset'] ?? '40');
+        $key = strtolower(preg_replace('/\s+/', '', trim($raw)) ?? trim($raw));
+        if (isset($presetMap[$key])) {
+            return $presetMap[$key];
+        }
+
+        return (int) preg_replace('/[^0-9]/', '', $key);
     }
 
     private function sanitizeTunes(string $type, array $tunes): array

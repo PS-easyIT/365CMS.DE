@@ -1095,22 +1095,69 @@
         }
 
         function getBlockIndex(holder, blockElement) {
-            var blocks = holder ? holder.querySelectorAll('.ce-block') : [];
+            var redactor = blockElement && blockElement.closest ? blockElement.closest('.codex-editor__redactor') : null;
+            var scope = redactor || holder;
+            var blocks = scope ? scope.querySelectorAll('.ce-block') : [];
             return Array.prototype.indexOf.call(blocks, blockElement);
+        }
+
+        function getEventBlock(holder, event) {
+            var path = event && typeof event.composedPath === 'function' ? event.composedPath() : [];
+            var activeElement = document.activeElement || null;
+            var candidates = path.length > 0 ? path : [event && event.target ? event.target : null, activeElement];
+            var block = null;
+
+            candidates.some(function (candidate) {
+                var candidateBlock;
+
+                if (!candidate || !candidate.closest) {
+                    return false;
+                }
+
+                candidateBlock = candidate.closest('.ce-block');
+                if (!candidateBlock || (holder && !holder.contains(candidateBlock))) {
+                    return false;
+                }
+
+                block = candidateBlock;
+                return true;
+            });
+
+            if (!block && activeElement && activeElement.closest) {
+                block = activeElement.closest('.ce-block');
+                if (block && holder && !holder.contains(block)) {
+                    block = null;
+                }
+            }
+
+            return block;
         }
 
         function insertBlockAt(editorInstance, index, type, data) {
             var blockType = type || 'paragraph';
             var blockData = data || {};
+            var hasExplicitIndex = typeof index === 'number' && index >= 0;
 
-            if (!editorInstance || !editorInstance.blocks) {
-                return;
+            if (!editorInstance || !editorInstance.blocks || typeof editorInstance.blocks.insert !== 'function') {
+                return false;
             }
 
             try {
-                editorInstance.blocks.insert(blockType, blockData, undefined, index, true);
-            } catch (_error) {
-                editorInstance.blocks.insert(blockType, blockData);
+                editorInstance.blocks.insert(blockType, blockData, undefined, hasExplicitIndex ? index : undefined, true);
+                return true;
+            } catch (error) {
+                if (hasExplicitIndex) {
+                    logEditor('warn', 'EditorJS indexed block insert failed.', error);
+                    return false;
+                }
+
+                try {
+                    editorInstance.blocks.insert(blockType, blockData);
+                    return true;
+                } catch (fallbackError) {
+                    logEditor('warn', 'EditorJS block insert failed.', fallbackError);
+                    return false;
+                }
             }
         }
 
@@ -1770,6 +1817,7 @@
             ensureGroupedToolbar(definition, editorEntry);
             bindClipboardImagePaste(definition, editorEntry);
             bindKeyboardBlockDelete(definition, editorEntry);
+            bindKeyboardBlockEnter(definition, editorEntry);
             bindTextSelectionBubble(definition, editorEntry);
             renderEditorBlockUi(definition, editorEntry);
 
@@ -1885,7 +1933,7 @@
                 return;
             }
 
-            ['beforeinput', 'input', 'paste', 'drop', 'cut', 'keyup', 'compositionend'].forEach(function (eventName) {
+            ['beforeinput', 'input', 'change', 'paste', 'drop', 'cut', 'keyup', 'compositionend', 'cms-editorjs-tool-change'].forEach(function (eventName) {
                 holder.addEventListener(eventName, function () {
                     markEditorMutation(key);
                 }, true);
@@ -2162,7 +2210,7 @@
         }
 
         function getClipboardInsertIndex(holder, event, editorInstance) {
-            var target = event && event.target && event.target.closest ? event.target.closest('.ce-block') : null;
+            var target = getEventBlock(holder, event);
             var blockIndex = target ? getBlockIndex(holder, target) : -1;
             var currentIndex;
 
@@ -2213,13 +2261,15 @@
                 files.forEach(function (file, index) {
                     queue = queue.then(function () {
                         return uploadClipboardImage(file, index).then(function (filePayload) {
-                            insertBlockAt(editorEntry.instance, insertIndex + index, 'image', {
+                            if (!insertBlockAt(editorEntry.instance, insertIndex + index, 'image', {
                                 file: filePayload,
                                 caption: '',
                                 withBorder: false,
                                 withBackground: false,
                                 stretched: false
-                            });
+                            })) {
+                                throw new Error('Bild konnte nicht an der aktuellen Blockposition eingefügt werden.');
+                            }
                         });
                     });
                 });
@@ -2243,6 +2293,10 @@
 
         function isNativeInputTarget(target) {
             return !!(target && target.closest && target.closest('input, textarea, select, button'));
+        }
+
+        function isEditableTextTarget(target) {
+            return !!(target && target.closest && target.closest('[contenteditable="true"]'));
         }
 
         function getCurrentEditorBlock(holder, editorInstance) {
@@ -2353,6 +2407,79 @@
             });
 
             return true;
+        }
+
+        function insertEmptyParagraphAfterBlock(definition, editorEntry, holder, block) {
+            var editorInstance = editorEntry && editorEntry.instance ? editorEntry.instance : null;
+            var blocksApi = editorInstance && editorInstance.blocks ? editorInstance.blocks : null;
+            var index = getBlockIndex(holder, block);
+            var insertIndex = index + 1;
+
+            if (!blocksApi || typeof blocksApi.insert !== 'function' || index < 0) {
+                return false;
+            }
+
+            closeInlineInserters(holder);
+            if (!insertBlockAt(editorInstance, insertIndex, 'paragraph', { text: '' })) {
+                return false;
+            }
+            markEditorMutation(definition.key);
+
+            window.requestAnimationFrame(function () {
+                if (editorInstance.caret && typeof editorInstance.caret.setToBlock === 'function') {
+                    try {
+                        editorInstance.caret.setToBlock(insertIndex, 'start');
+                    } catch (_error) {
+                        // EditorJS may reject caret placement briefly while rendering; insertion still succeeded.
+                    }
+                }
+
+                renderEditorBlockUi(definition, editorEntry);
+            });
+
+            return true;
+        }
+
+        function bindKeyboardBlockEnter(definition, editorEntry) {
+            var holder = getElement(definition.holderId);
+
+            if (!holder || !editorEntry || !editorEntry.instance || holder.dataset.cmsKeyboardEnterBound === '1') {
+                return;
+            }
+
+            holder.dataset.cmsKeyboardEnterBound = '1';
+            holder.addEventListener('keydown', function (event) {
+                var target = event.target;
+                var selectedBlock;
+                var targetBlock;
+                var blockToInsertAfter = null;
+
+                if (event.key !== 'Enter' || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey || event.isComposing) {
+                    return;
+                }
+
+                if (isEditorUiTarget(target) || isNativeInputTarget(target) || isEditableTextTarget(target)) {
+                    return;
+                }
+
+                selectedBlock = getSelectedEditorBlock(holder);
+                targetBlock = getEventBlock(holder, event) || getCurrentEditorBlock(holder, editorEntry.instance);
+
+                if (selectedBlock) {
+                    blockToInsertAfter = selectedBlock;
+                } else if (targetBlock) {
+                    blockToInsertAfter = targetBlock;
+                }
+
+                if (!blockToInsertAfter) {
+                    return;
+                }
+
+                event.preventDefault();
+                event.stopPropagation();
+
+                insertEmptyParagraphAfterBlock(definition, editorEntry, holder, blockToInsertAfter);
+            }, true);
         }
 
         function bindKeyboardBlockDelete(definition, editorEntry) {

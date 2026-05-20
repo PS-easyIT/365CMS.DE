@@ -482,7 +482,7 @@ final class EditorJsRenderer
         $size = (string) ($data['size'] ?? $data['widthPreset'] ?? (!empty($data['stretched']) ? 'full' : 'normal'));
         $borderStyle = (string) ($data['borderStyle'] ?? (!empty($data['withBorder']) ? 'thin' : 'none'));
         $figureStyles = [];
-        $imageStyles = ['display:block', 'height:auto', 'box-sizing:border-box'];
+        $imageStyles = ['display:block', 'height:auto!important', 'box-sizing:border-box'];
 
         if (!in_array($alignment, ['left', 'center', 'right'], true)) {
             $alignment = 'center';
@@ -520,14 +520,14 @@ final class EditorJsRenderer
         }
 
         if ($size === 'full') {
-            $imageStyles[] = 'width:100%';
-            $imageStyles[] = 'max-width:100%';
+            $imageStyles[] = 'width:100%!important';
+            $imageStyles[] = 'max-width:100%!important';
         } elseif ($size === 'wide') {
-            $imageStyles[] = 'width:min(100%,960px)';
-            $imageStyles[] = 'max-width:100%';
+            $imageStyles[] = 'width:min(100%,960px)!important';
+            $imageStyles[] = 'max-width:100%!important';
         } else {
             $imageStyles[] = 'width:auto';
-            $imageStyles[] = 'max-width:100%';
+            $imageStyles[] = 'max-width:100%!important';
         }
 
         if ($alignment === 'left') {
@@ -546,13 +546,19 @@ final class EditorJsRenderer
 
         $borderWidths = ['thin' => '1px', 'medium' => '2px', 'thick' => '4px'];
         if (isset($borderWidths[$borderStyle])) {
-            $imageStyles[] = 'border:' . $borderWidths[$borderStyle] . ' solid #cbd5e1';
+            $imageStyles[] = 'border:' . $borderWidths[$borderStyle] . ' solid #cbd5e1!important';
         }
 
         $styleAttr = $figureStyles !== [] ? ' style="' . htmlspecialchars(implode(';', $figureStyles), ENT_QUOTES, 'UTF-8') . '"' : '';
         $imageStyleAttr = ' style="' . htmlspecialchars(implode(';', $imageStyles), ENT_QUOTES, 'UTF-8') . '"';
+        $dataAttributes = ' data-align="' . htmlspecialchars($alignment, ENT_QUOTES, 'UTF-8') . '"'
+            . ' data-size="' . htmlspecialchars($size, ENT_QUOTES, 'UTF-8') . '"'
+            . ' data-border="' . htmlspecialchars($borderStyle, ENT_QUOTES, 'UTF-8') . '"'
+            . ' data-background="' . (!empty($data['withBackground']) ? '1' : '0') . '"'
+            . ' data-rounded="' . ((array_key_exists('rounded', $data) ? !empty($data['rounded']) : false) ? '1' : '0') . '"'
+            . ' data-shadow="' . (!empty($data['shadow']) ? '1' : '0') . '"';
 
-        $html = '<figure class="' . implode(' ', $classes) . '"' . $styleAttr . '>';
+        $html = '<figure class="' . implode(' ', $classes) . '"' . $dataAttributes . $styleAttr . '>';
         $html .= '<img src="' . htmlspecialchars($imageUrl, ENT_QUOTES, 'UTF-8') . '" alt="' . htmlspecialchars(strip_tags($caption), ENT_QUOTES, 'UTF-8') . '"' . $imageStyleAttr . $this->getLazyLoadingAttribute() . '>';
         if ($caption !== '') {
             $html .= '<figcaption>' . $caption . '</figcaption>';
@@ -639,16 +645,43 @@ final class EditorJsRenderer
     /** @param array<string,mixed> $data */
     private function renderSpacer(array $data): string
     {
-        $allowedHeights = [15, 25, 40, 60, 75, 100];
-        $height = (int)($data['height'] ?? 40);
+        $allowedHeights = [0, 8, 15, 16, 24, 25, 32, 40, 48, 56, 60, 64, 72, 75, 80, 96, 100, 120, 140, 160, 180, 200];
+        $height = $this->normalizeSpacerHeight($data);
 
         if (!in_array($height, $allowedHeights, true)) {
-            $height = 40;
+            $height = max(0, min(200, $height));
         }
 
         $style = 'display:block;clear:both;width:100%;height:' . $height . 'px!important;min-height:' . $height . 'px!important;margin:0!important;padding:0!important;line-height:0;font-size:0;overflow:hidden;box-sizing:border-box';
 
         return '<div class="editorjs-block editorjs-spacer" aria-hidden="true" role="presentation" data-height="' . $height . '" style="' . htmlspecialchars($style, ENT_QUOTES, 'UTF-8') . '"><span class="editorjs-spacer__marker" aria-hidden="true">&#8203;</span></div>';
+    }
+
+    /** @param array<string,mixed> $data */
+    private function normalizeSpacerHeight(array $data): int
+    {
+        $presetMap = [
+            'none' => 0,
+            'xs' => 8,
+            'small' => 15,
+            'sm' => 15,
+            'medium' => 40,
+            'md' => 40,
+            'normal' => 40,
+            'large' => 75,
+            'lg' => 75,
+            'xl' => 100,
+            'xlarge' => 100,
+            'huge' => 140,
+            'xxl' => 160,
+        ];
+        $raw = (string)($data['height'] ?? $data['size'] ?? $data['value'] ?? $data['spacer'] ?? $data['space'] ?? $data['preset'] ?? '40');
+        $key = strtolower(preg_replace('/\s+/', '', trim($raw)) ?? trim($raw));
+        if (isset($presetMap[$key])) {
+            return $presetMap[$key];
+        }
+
+        return (int)preg_replace('/[^0-9]/', '', $key);
     }
 
     /** @param array<string,mixed> $data */

@@ -635,11 +635,29 @@
     }
 
     function normalizeSpacerData(data) {
-        var allowedHeights = [15, 25, 40, 60, 75, 100];
-        var height = parseInt(data && data.height ? data.height : 40, 10) || 40;
+        var allowedHeights = [0, 8, 15, 16, 24, 25, 32, 40, 48, 56, 60, 64, 72, 75, 80, 96, 100, 120, 140, 160, 180, 200];
+        var presetMap = {
+            none: 0,
+            xs: 8,
+            small: 15,
+            sm: 15,
+            medium: 40,
+            md: 40,
+            normal: 40,
+            large: 75,
+            lg: 75,
+            xl: 100,
+            xlarge: 100,
+            huge: 140,
+            xxl: 160
+        };
+        var source = data && typeof data === 'object' ? data : {};
+        var raw = source.height || source.size || source.value || source.spacer || source.space || source.preset || 40;
+        var presetKey = String(raw || '').toLowerCase().replace(/\s+/g, '');
+        var height = Object.prototype.hasOwnProperty.call(presetMap, presetKey) ? presetMap[presetKey] : parseInt(presetKey.replace('px', ''), 10) || 40;
 
         if (allowedHeights.indexOf(height) === -1) {
-            height = 40;
+            height = Math.max(0, Math.min(200, height));
         }
 
         return {
@@ -900,6 +918,18 @@
         return element;
     }
 
+    function notifyToolChanged(element) {
+        if (!element || typeof element.dispatchEvent !== 'function') {
+            return;
+        }
+
+        element.dispatchEvent(new Event('input', { bubbles: true }));
+        element.dispatchEvent(new Event('change', { bubbles: true }));
+        if (typeof window.CustomEvent === 'function') {
+            element.dispatchEvent(new CustomEvent('cms-editorjs-tool-change', { bubbles: true }));
+        }
+    }
+
     function clipboardHasImageFile(clipboardData) {
         if (!clipboardData) {
             return false;
@@ -974,9 +1004,25 @@
             : [];
     }
 
+    function getBlockIndexFromElement(element) {
+        var blockElement = element && element.closest ? element.closest('.ce-block') : null;
+        var editorRoot = blockElement && blockElement.closest ? blockElement.closest('.codex-editor') : null;
+        var redactor = editorRoot && editorRoot.querySelector ? editorRoot.querySelector('.codex-editor__redactor') : null;
+        var blockScope = redactor || editorRoot || (blockElement ? blockElement.parentElement : null);
+        var blocks;
+
+        if (!blockElement || !blockScope || !blockScope.querySelectorAll) {
+            return -1;
+        }
+
+        blocks = Array.prototype.slice.call(blockScope.querySelectorAll('.ce-block'));
+        return blocks.indexOf(blockElement);
+    }
+
     function insertEditorBlocksFromPaste(api, editable, blocks) {
         var blocksApi = api && api.blocks ? api.blocks : null;
-        var currentIndex = -1;
+        var domIndex = getBlockIndexFromElement(editable);
+        var currentIndex = domIndex;
         var shouldReplaceCurrent = stripTags(editable ? editable.innerHTML || '' : '').trim() === '';
         var insertIndex;
 
@@ -984,7 +1030,7 @@
             return false;
         }
 
-        if (typeof blocksApi.getCurrentBlockIndex === 'function') {
+        if (currentIndex < 0 && typeof blocksApi.getCurrentBlockIndex === 'function') {
             try {
                 currentIndex = blocksApi.getCurrentBlockIndex();
             } catch (_error) {
@@ -1006,8 +1052,17 @@
         blocks.forEach(function (block, offset) {
             try {
                 blocksApi.insert(block.type, block.data || {}, undefined, typeof insertIndex === 'number' ? insertIndex + offset : undefined, true);
-            } catch (_error) {
-                blocksApi.insert(block.type, block.data || {});
+            } catch (error) {
+                if (typeof insertIndex === 'number') {
+                    logWarn('Indexed paste block insert failed.', error);
+                    return;
+                }
+
+                try {
+                    blocksApi.insert(block.type, block.data || {});
+                } catch (fallbackError) {
+                    logWarn('Paste block insert failed.', fallbackError);
+                }
             }
         });
 
@@ -1158,16 +1213,16 @@
         return afterHtml;
     }
 
-    function insertParagraphAfterCurrent(api, text) {
+    function insertParagraphAfterCurrent(api, editable, text) {
         var blocks = api && api.blocks ? api.blocks : null;
-        var index = -1;
+        var index = getBlockIndexFromElement(editable);
 
         if (!blocks || typeof blocks.insert !== 'function') {
             insertLineBreakAtSelection();
             return;
         }
 
-        if (typeof blocks.getCurrentBlockIndex === 'function') {
+        if (index < 0 && typeof blocks.getCurrentBlockIndex === 'function') {
             try {
                 index = blocks.getCurrentBlockIndex();
             } catch (_error) {
@@ -1177,8 +1232,18 @@
 
         try {
             blocks.insert('paragraph', { text: sanitizeEditableHtml(text || '') }, undefined, Math.max(0, index + 1), true);
-        } catch (_error) {
-            blocks.insert('paragraph', { text: sanitizeEditableHtml(text || '') });
+        } catch (error) {
+            if (index >= 0) {
+                logWarn('Indexed paragraph insert failed.', error);
+                return;
+            }
+
+            try {
+                blocks.insert('paragraph', { text: sanitizeEditableHtml(text || '') });
+            } catch (fallbackError) {
+                logWarn('Paragraph insert failed.', fallbackError);
+                return;
+            }
         }
 
         if (api && api.caret && typeof api.caret.setToBlock === 'function') {
@@ -1214,7 +1279,7 @@
             }
 
             trailingHtml = splitEditableAtSelection(editable);
-            insertParagraphAfterCurrent(api, trailingHtml);
+            insertParagraphAfterCurrent(api, editable, trailingHtml);
         });
     }
 
@@ -1330,6 +1395,7 @@
                         return;
                     }
                     applyHeaderLevelPresentation(wrapper, text, level);
+                    notifyToolChanged(wrapper);
                 });
                 options.appendChild(button);
             });
@@ -1492,6 +1558,7 @@
             var shadow = this.createCheckbox('Leichter Schatten', !!this.data.shadow);
             var status = createElement('div', 'form-hint mt-1');
             var updatePreview = this.updatePreview.bind(this, wrapper, preview, previewImage, url, caption, alignment, size, borderStyle, withBackground.input, rounded.input, shadow.input);
+            var self = this;
 
             optionsPanel.dataset.cmsEditorUi = 'true';
             optionsPanel.dataset.mutationFree = 'true';
@@ -1516,8 +1583,13 @@
 
             preview.appendChild(previewImage);
             [url, caption, alignment, size, borderStyle, withBackground.input, rounded.input, shadow.input].forEach(function (element) {
-                element.addEventListener('input', updatePreview);
-                element.addEventListener('change', updatePreview);
+                var handleControlChange = function () {
+                    updatePreview();
+                    notifyToolChanged(self.nodes.wrapper || wrapper);
+                };
+
+                element.addEventListener('input', handleControlChange);
+                element.addEventListener('change', handleControlChange);
             });
 
             wrapper.appendChild(url);
@@ -1529,6 +1601,7 @@
             wrapper.appendChild(optionsPanel);
             wrapper.appendChild(status);
             this.nodes = {
+                wrapper: wrapper,
                 url: url,
                 caption: caption,
                 alignment: alignment,
@@ -1684,6 +1757,7 @@
             if (this.nodes.status) {
                 this.nodes.status.textContent = 'Bild eingefügt.';
             }
+            notifyToolChanged(this.nodes.wrapper);
         }
         handlePastedImageUrl(url, caption) {
             var cleanUrl = sanitizeEditableUrl(url);
@@ -1897,6 +1971,12 @@
 
             if (validationError !== '') {
                 return Promise.reject(new Error(validationError));
+            }
+
+            if (this.config.uploader && typeof this.config.uploader.uploadByFile === 'function') {
+                return this.config.uploader.uploadByFile(file).then(function (payload) {
+                    return normalizeImageResponse(payload).file;
+                });
             }
 
             if (!endpoint || typeof fetch !== 'function') {
@@ -2285,6 +2365,7 @@
         setHeight(height) {
             this.data = normalizeSpacerData({ height: height });
             this.updatePreview();
+            notifyToolChanged(this.nodes.wrapper);
         }
         updatePreview() {
             var height = parseInt(this.data && this.data.height ? this.data.height : 40, 10) || 40;
@@ -2385,6 +2466,55 @@
         return String(baseUrl) + separator + 'action=' + encodeURIComponent(action);
     }
 
+    function resolveUploadContext(getUploadContext) {
+        var context;
+
+        if (typeof getUploadContext !== 'function') {
+            return {};
+        }
+
+        try {
+            context = getUploadContext();
+        } catch (error) {
+            logWarn('Upload context could not be resolved.', error);
+            return {};
+        }
+
+        return context && typeof context === 'object' ? context : {};
+    }
+
+    function normalizeUploadContextKeys(context) {
+        var normalized = {};
+
+        Object.keys(context || {}).forEach(function (key) {
+            var value = context[key];
+            var normalizedKey;
+
+            if (value === null || typeof value === 'undefined' || value === false || value === '') {
+                return;
+            }
+
+            normalizedKey = key.replace(/[A-Z]/g, function (match) {
+                return '_' + match.toLowerCase();
+            });
+            normalized[normalizedKey] = value === true ? '1' : String(value);
+        });
+
+        return normalized;
+    }
+
+    function appendUploadContext(formData, getUploadContext) {
+        var context = normalizeUploadContextKeys(resolveUploadContext(getUploadContext));
+
+        Object.keys(context).forEach(function (key) {
+            formData.append(key, context[key]);
+        });
+    }
+
+    function buildUploadJsonPayload(basePayload, getUploadContext) {
+        return Object.assign({}, normalizeUploadContextKeys(resolveUploadContext(getUploadContext)), basePayload || {});
+    }
+
     function normalizeImageResponse(payload) {
         var response = payload && typeof payload === 'object' ? payload : {};
         var file = response.file && typeof response.file === 'object' ? response.file : {};
@@ -2400,7 +2530,7 @@
         };
     }
 
-    function buildImageUploader(uploadUrl, csrfToken) {
+    function buildImageUploader(uploadUrl, csrfToken, getUploadContext) {
         return {
             uploadByFile: function (file) {
                 var body = new FormData();
@@ -2412,6 +2542,7 @@
 
                 body.append('image', file);
                 body.append('csrf_token', csrfToken || '');
+                appendUploadContext(body, getUploadContext);
 
                 return fetch(buildMediaUrl(uploadUrl, 'upload_image'), {
                     method: 'POST',
@@ -2430,7 +2561,7 @@
                         'Content-Type': 'application/json',
                         'X-Requested-With': 'XMLHttpRequest'
                     }, csrfToken ? { 'X-CSRF-Token': csrfToken } : {}),
-                    body: JSON.stringify({ url: String(url || '') })
+                    body: JSON.stringify(buildUploadJsonPayload({ url: String(url || '') }, getUploadContext))
                 }).then(function (response) {
                     return response.json();
                 }).then(normalizeImageResponse);
@@ -2438,7 +2569,7 @@
         };
     }
 
-    function buildFileUploader(uploadUrl, csrfToken) {
+    function buildFileUploader(uploadUrl, csrfToken, getUploadContext) {
         return {
             uploadByFile: function (file) {
                 var body = new FormData();
@@ -2446,6 +2577,7 @@
                 body.append('file', file);
                 body.append('attachment', file);
                 body.append('csrf_token', csrfToken || '');
+                appendUploadContext(body, getUploadContext);
 
                 return fetch(buildMediaUrl(uploadUrl, 'upload_file'), {
                     method: 'POST',
@@ -2475,9 +2607,11 @@
         };
     }
 
-    function buildTools(uploadUrl, csrfToken) {
+    function buildTools(uploadUrl, csrfToken, options) {
         var tools = {};
         var inlineToolbar = ['bold', 'italic', 'link'];
+        var resolvedOptions = options && typeof options === 'object' ? options : {};
+        var getUploadContext = typeof resolvedOptions.getUploadContext === 'function' ? resolvedOptions.getUploadContext : null;
 
         if (addTool(tools, 'inlineCode', {}, false)) {
             inlineToolbar.push('inlineCode');
@@ -2511,7 +2645,7 @@
             config: {
                 uploadUrl: uploadUrl,
                 csrfToken: csrfToken,
-                uploader: buildImageUploader(uploadUrl, csrfToken),
+                uploader: buildImageUploader(uploadUrl, csrfToken, getUploadContext),
                 captionPlaceholder: 'Bildunterschrift',
                 buttonContent: 'Bild auswählen'
             }
@@ -2551,7 +2685,7 @@
         }, false);
         addTool(tools, 'attaches', {
             config: {
-                uploader: buildFileUploader(uploadUrl, csrfToken),
+                uploader: buildFileUploader(uploadUrl, csrfToken, getUploadContext),
                 buttonText: 'Datei auswählen'
             }
         }, false);
@@ -2566,7 +2700,8 @@
         addTool(tools, 'imageGallery', {
             config: {
                 uploadUrl: uploadUrl,
-                csrfToken: csrfToken
+                csrfToken: csrfToken,
+                uploader: buildImageUploader(uploadUrl, csrfToken, getUploadContext)
             }
         }, true);
 
@@ -2640,6 +2775,8 @@
         var normalizedData;
         var tools;
         var resolvedOptions = options && typeof options === 'object' ? options : {};
+        var toolChangeSyncTimer = null;
+        var syncEditorChange;
 
         if (!holder) {
             throw new Error('EditorJS holder missing: ' + holderId);
@@ -2650,9 +2787,39 @@
         }
 
         normalizedData = normalizeInitialData(initialData);
-        tools = buildTools(uploadUrl, csrfToken);
+        tools = buildTools(uploadUrl, csrfToken, resolvedOptions);
         holder.dataset.editorState = 'loading';
         applyEditorPreviewTypography(holder, resolvedOptions.themeTypography || resolvedOptions.typography || {});
+
+        syncEditorChange = function () {
+            if (typeof resolvedOptions.onChange !== 'function') {
+                return;
+            }
+
+            if (toolChangeSyncTimer !== null) {
+                window.clearTimeout(toolChangeSyncTimer);
+            }
+
+            toolChangeSyncTimer = window.setTimeout(function () {
+                toolChangeSyncTimer = null;
+                editor.save().then(function (output) {
+                    resolvedOptions.onChange(normalizeInitialData(output));
+                }).catch(function (error) {
+                    logWarn('Change sync failed.', error);
+                });
+            }, 80);
+        };
+
+        if (holder.cmsEditorToolChangeHandler) {
+            holder.removeEventListener('cms-editorjs-tool-change', holder.cmsEditorToolChangeHandler);
+        }
+        if (holder.cmsEditorNativeChangeHandler) {
+            holder.removeEventListener('change', holder.cmsEditorNativeChangeHandler, true);
+        }
+        holder.cmsEditorToolChangeHandler = syncEditorChange;
+        holder.cmsEditorNativeChangeHandler = syncEditorChange;
+        holder.addEventListener('cms-editorjs-tool-change', syncEditorChange);
+        holder.addEventListener('change', syncEditorChange, true);
 
         editor = new window.EditorJS({
             holder: holderId,
@@ -2669,14 +2836,7 @@
                 logInfo('Editor ready.', { holderId: holderId, tools: TOOL_NAMES });
             },
             onChange: function () {
-                if (typeof resolvedOptions.onChange !== 'function') {
-                    return;
-                }
-                editor.save().then(function (output) {
-                    resolvedOptions.onChange(normalizeInitialData(output));
-                }).catch(function (error) {
-                    logWarn('Change sync failed.', error);
-                });
+                syncEditorChange();
             }
         });
         editor.cmsAvailableTools = Object.keys(tools);

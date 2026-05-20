@@ -32,6 +32,9 @@
 - Das Frontend rendert über `EditorJsRenderer` typ-spezifisch und sanitizt Inline-/Raw-Inhalte erneut.
 - Legacy-Inhalte (JSON-String, HTML-Fallback, Plaintext) werden clientseitig in `editor-init.js` rückwärtskompatibel in Blockdaten normalisiert.
 - Bild-Uploads laufen weiterhin über den bestehenden `/api/media?action=upload_image`-Flow inkl. CSRF-Header; alternativ kann das Bild-Tool eine vorhandene URL speichern.
+- Page-/Post-Uploads reichen den Editor-Kontext (`content_type`, Slug-/Titel-Fallbacks, `draft_key`) an `/api/media` weiter, damit Bilder direkt in `uploads/articles/...`, `uploads/pages/...` oder temporäre Draft-Ordner einsortiert werden.
+- Die lokalen 365CMS-Tools definieren ergänzende Editor.js-Client-Sanitizer, Paste-Substitutionen für Bilder/Bild-URLs sowie Read-only-Support; serverseitige Validierung bleibt verbindlich.
+- Die lokale Galerie unterstützt Mehrfachupload, Caption-Pflege und Sortierung per `Hoch`/`Runter`, ohne zusätzliche SortableJS-Abhängigkeit.
 
 ## Bekannte Grenzen
 
