@@ -726,7 +726,10 @@ class Bootstrap
 
                 $editorJsContentStylesRendered = true;
                 $href = htmlspecialchars(cms_asset_url('css/editorjs-content.css'), ENT_QUOTES, 'UTF-8');
-                echo '<link rel="stylesheet" href="' . $href . '">' . "\n";
+                $criticalCss = '.editorjs-block{--cms-editorjs-default-space-after:1.1rem;--cms-editorjs-space-before:0rem;--cms-editorjs-space-after:var(--cms-editorjs-default-space-after);box-sizing:border-box;display:block;max-width:100%;margin-block-start:var(--cms-editorjs-space-before)!important;margin-block-end:var(--cms-editorjs-space-after)!important}.editorjs-block+.editorjs-block,.editorjs-block:first-child{margin-block-start:0!important}.editorjs-block:last-child{margin-block-end:0!important}.editorjs-image img,.editorjs-gallery img,.editorjs-carousel img,.editorjs-drawing img,.editorjs-media-text img{box-sizing:border-box;max-width:100%!important;height:auto!important}.editorjs-table{overflow-x:auto}.editorjs-spacer{--cms-editorjs-space-after:0rem;--cms-editorjs-spacer-height:40px;display:block!important;clear:both;width:100%;height:var(--cms-editorjs-spacer-height)!important;min-height:var(--cms-editorjs-spacer-height)!important;margin:0!important;padding:0!important;line-height:0;font-size:0;overflow:hidden}';
+                echo '<style id="cms-editorjs-critical-css">' . $criticalCss . '</style>' . "\n";
+                echo '<link rel="preload" as="style" href="' . $href . '" onload="this.onload=null;this.rel=\'stylesheet\'">' . "\n";
+                echo '<noscript><link rel="stylesheet" href="' . $href . '"></noscript>' . "\n";
             }, 95);
 
             // Custom Fonts (DSGVO-konform lokal gespeicherte Schriften)

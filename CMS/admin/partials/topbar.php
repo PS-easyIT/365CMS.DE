@@ -76,7 +76,7 @@ if (in_array((string) ($activePage ?? ''), $pagesSlugs, true)) {
                     <span class="admin-topbar__avatar-initials"><?= htmlspecialchars($topbarInitials, ENT_QUOTES, 'UTF-8') ?></span>
                 </button>
                 <div class="dropdown-menu dropdown-menu-end">
-                    <a class="dropdown-item" href="/admin/user-settings">Profil</a>
+                    <a class="dropdown-item" href="<?= htmlspecialchars((string) $siteUrl, ENT_QUOTES, 'UTF-8') ?>/member/profile">Mein Profil</a>
                     <a class="dropdown-item text-danger" href="<?= htmlspecialchars((string) $siteUrl, ENT_QUOTES, 'UTF-8') ?>/logout">Abmelden</a>
                 </div>
             </div>

@@ -117,7 +117,7 @@ $info = $mail->getTransportInfo();
 
 ### Mail-Queue (asynchroner Versand)
 
-`MailQueueService` verarbeitet Mails im Hintergrund via Cron mit Retry-Backoff:
+`MailQueueService` verarbeitet Mails im Hintergrund via Cron mit Retry-Backoff. Kommentare, der globale Helper `cms_mail()` und Plugins wie `cms-contact` legen ihre Mails bei aktiver Queue in denselben Worker, sodass ein einziger Cron-Tick die offenen Benachrichtigungen abarbeitet.
 
 ```php
 $queue = CMS\Services\MailQueueService::getInstance();
@@ -125,9 +125,11 @@ $queue = CMS\Services\MailQueueService::getInstance();
 // Mail in Queue einreihen (statt sofort senden)
 $queue->enqueue('empfaenger@example.com', 'Betreff', '<p>Inhalt</p>');
 
-// Queue verarbeiten (via Cron-Hook cms_cron_mail_queue)
-$queue->processQueue();
+// Queue verarbeiten (z. B. im Cron-Kontext)
+$queue->processDueJobs(limit: 25, worker: 'cron');
 ```
+
+Für Web-Crons ist der Header `X-CMS-Cron-Token` gegenüber Token-URLs vorzuziehen. Die vom Admin angezeigte Legacy-URL mit `token=...` bleibt für einfache Shared-Hosting-Cronjobs verfügbar; bei Query-Token ohne HTTPS schreibt `CMS/cron.php` eine Warnung in den Cron-Log.
 
 ### Versandprotokoll
 
@@ -560,7 +562,7 @@ $result = CMS\Services\ErrorReportService::getInstance()->createReport($payload)
 
 Editor.js-Integration. `EditorJsService` verwaltet Block-Daten; `EditorJsRenderer` konvertiert JSON-Blöcke in HTML.
 
-Seit dem Nachtrag vom `19.05.2026` ist der EditorJS-Vertrag explizit dreigeteilt: `editor-init.js` normalisiert lokale Tool-Daten und Read-only-Kontexte im Admin, `EditorJsSanitizer` validiert gespeicherte Blockdaten inklusive Spacer-Höhen und Bild-/Galerieoptionen serverseitig, und `EditorJsRenderer` gibt nur kontrollierte HTML-/Datenattribute aus. Spacer-Höhen werden auf sichere Pixelwerte bis `200px` begrenzt; Bild-/Galerieoptionen wie Ausrichtung, Größe, Rahmen, Hintergrund, Rundung und Schatten werden über Datenattribute statt freier HTML-Fragmente an Themes übergeben.
+Seit dem Nachtrag vom `19.05.2026` ist der EditorJS-Vertrag explizit dreigeteilt: `editor-init.js` normalisiert lokale Tool-Daten und Read-only-Kontexte im Admin, `EditorJsSanitizer` validiert gespeicherte Blockdaten inklusive Spacer-Höhen und Bild-/Galerieoptionen serverseitig, und `EditorJsRenderer` gibt nur kontrollierte HTML-/Datenattribute aus. Spacer-Höhen werden auf sichere Pixelwerte bis `200px` begrenzt; Bild-/Galerieoptionen wie Ausrichtung, Größe, Rahmen, Hintergrund, Rundung und Schatten werden über Datenattribute statt freier HTML-Fragmente an Themes übergeben. Seit `3.0.15` gilt derselbe Inline-Sanitizer-Vertrag auch für Rich-Text-Hinweisboxen (`warning`/`callout`): Titel und Nachricht dürfen sichere Inline-Tags behalten, während die Box-Variante auf erlaubte Werte normalisiert wird.
 
 ### EditorService
 

@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Dokumentiert die Diagnose-Oberflächen, Monitoring-Werkzeuge und die zentrale Logzentrale für den laufenden Betrieb von 365CMS.
 
-Letzte Aktualisierung: 2026-05-12 · Version 2.9.777
+Letzte Aktualisierung: 2026-05-21 · Version 3.0.19
 
 ---
 
@@ -70,7 +70,9 @@ Seit `2.9.773` ergänzt die Seite eine Trendhistorie mit `24 h`, `7 d` und `30 d
 
 Zeigt den aktuellen Status von Cron-Jobs, letzte Ausführung und eventuelle Fehler.
 
-Zusätzlich wird geprüft, ob eine zentrale Datei `cron.php` im CMS-Webroot vorhanden ist. Darüber kann u. a. der Hook `cms_cron_mail_queue` für die Mail-Queue-Verarbeitung per Web-Cron oder CLI ausgelöst werden.
+Zusätzlich wird geprüft, ob eine zentrale Datei `cron.php` im CMS-Webroot vorhanden ist. Darüber kann u. a. der Hook `cms_cron_mail_queue` für die Mail-Queue-Verarbeitung per Web-Cron oder CLI ausgelöst werden. Empfohlen ist ein Web-Cron-Aufruf mit Header `X-CMS-Cron-Token`; die Token-URL bleibt nur als kompatibler Fallback für Cron-Dienste ohne Header-Unterstützung erhalten.
+
+Seit `3.0.19` sendet der öffentliche Cron-Entry-Point private No-Store-/No-Referrer-/Noindex-Header, protokolliert Entry-Point-Ausnahmen intern und warnt im Cron-Log, wenn ein Query-Token ohne HTTPS verwendet wird. Ein deaktivierter Mail-Queue-Worker gilt außerdem als sauber übersprungener Lauf, damit Systeme mit Direktversand keinen falschen Cron-Fehlerstatus erzeugen. Fehlt `config/app.php` oder enthält die Konfiguration noch Platzhalter, antwortet der Cron-Kontext mit einem knappen Fehler statt mit Installer-HTML.
 
 Seit `2.9.773` visualisiert dieselbe Seite zusätzlich den `Cron-Lag`, also den Abstand zum zuletzt dokumentierten stündlichen Core-Cron-Lauf. Dadurch bleibt sichtbar, ob der Hourly-Takt stabil läuft oder ob der nächste Lauf überfällig wird. Auch hier gibt es `24 h`-, `7 d`- und `30 d`-Verläufe mit Sparkline und Statistik.
 
@@ -114,7 +116,7 @@ Die Monitoring-Trendhistorie basiert auf einem kleinen, eigenständigen Service 
 - Persistenz: eigene Tabelle `monitoring_trends`
 - Live-Pfad: read-only, ohne Tabellenanlage und ohne Schreibzugriff im GET-Request
 - Fallback: fehlen Snapshots oder optionale Daten, bleiben die Seiten über Live-Werte und neutrale Hinweise bedienbar
-- Keine Token in URLs, keine neue GET-Mutation, keine zusätzliche öffentliche Route
+- Header-Token bevorzugt; Token-URLs nur als Legacy-Fallback, keine neue GET-Mutation, keine zusätzliche öffentliche Route
 
 Für Cron wird bewusst nicht eine starre Hook-Anzahl getrendet, sondern der zeitliche Abstand zum letzten dokumentierten stündlichen Lauf. Das liefert im Betrieb die aussagekräftigere Metrik.
 

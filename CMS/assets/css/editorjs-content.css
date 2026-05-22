@@ -337,9 +337,40 @@
     background: var(--bg-secondary, #f8fafc);
 }
 
+.editorjs-warning {
+    border-left: 5px solid var(--primary-color, #2563eb);
+    background: color-mix(in srgb, var(--primary-color, #2563eb) 7%, var(--bg-primary, #fff));
+}
+
+.editorjs-warning--warning,
+.editorjs-warning[data-variant="warning"] {
+    border-color: #fde68a;
+    border-left-color: #d97706;
+    background: #fffbeb;
+}
+
+.editorjs-warning--success,
+.editorjs-warning[data-variant="success"] {
+    border-color: #bbf7d0;
+    border-left-color: #16a34a;
+    background: #f0fdf4;
+}
+
+.editorjs-warning--danger,
+.editorjs-warning[data-variant="danger"] {
+    border-color: #fecaca;
+    border-left-color: #dc2626;
+    background: #fef2f2;
+}
+
 .editorjs-warning .warning-title {
     margin-bottom: .35rem;
     font-weight: 700;
+}
+
+.editorjs-warning .warning-message :is(strong, b),
+.editorjs-warning .warning-title :is(strong, b) {
+    font-weight: 800;
 }
 
 .editorjs-details summary,

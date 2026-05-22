@@ -64,11 +64,32 @@ class MemberService
      * Profildaten aktualisieren.
      *
      * @param int   $userId
-    * @param array $data  Keys: display_name, first_name, last_name, email, bio, website, phone, company, position, birth_date
+    * @param array $data  Keys: display_name, username, first_name, last_name, email, bio, website, phone, company, position, birth_date
      * @return true|string  true bei Erfolg, Fehlermeldung als String
      */
     public function updateProfile(int $userId, array $data): bool|string
     {
+        if (array_key_exists('username', $data)) {
+            $username = trim((string)($data['username'] ?? ''));
+            if ($username === '') {
+                return 'Benutzername darf nicht leer sein.';
+            }
+            if (strlen($username) < 3 || strlen($username) > 50 || preg_match('/^[a-zA-Z0-9_]+$/', $username) !== 1) {
+                return 'Benutzername muss 3–50 Zeichen lang sein und darf nur Buchstaben, Zahlen und Unterstriche enthalten.';
+            }
+            $conflict = $this->db->get_var(
+                "SELECT id FROM {$this->prefix}users WHERE username = ? AND id != ?",
+                [$username, $userId]
+            );
+            if ($conflict) {
+                return 'Benutzername wird bereits verwendet.';
+            }
+            $this->db->execute(
+                "UPDATE {$this->prefix}users SET username = ? WHERE id = ?",
+                [$username, $userId]
+            );
+        }
+
         // E-Mail-Uniqueness prüfen
         if (!empty($data['email'])) {
             $email = filter_var($data['email'], FILTER_VALIDATE_EMAIL);

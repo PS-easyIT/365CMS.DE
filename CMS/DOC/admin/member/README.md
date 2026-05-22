@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Beschreibt die aktuelle Admin-Konfiguration des Member-Dashboards mit Sektionen, gespeicherten Einstellungen und der Trennung zwischen Verwaltungsoberfläche und Frontend-Mitgliederbereich.
 
-Letzte Aktualisierung: 2026-05-13 · Version 2.9.782
+Letzte Aktualisierung: 2026-05-20 · Version 3.0.17
 
 ## Überblick
 
@@ -32,6 +32,8 @@ Seit `2.9.735` zeigt `/admin/member-dashboard-onboarding` zusätzlich read-only 
 
 Seit `2.9.782` zeigt `/admin/member-dashboard-profile-fields` zusätzlich eine read-only Kompatibilitätsvorschau für Profilfeld-Änderungen. Admins sehen vor dem Speichern, wie viele aktive Konten durch neue Completion-Felder voraussichtlich unvollständig werden und erhalten begrenzte Beispielkonten zur Support-Orientierung. Optional kann im bestehenden POST-/CSRF-Speicherpfad der vorhandene Onboarding-/Profilabschluss-Hinweis reaktiviert werden; dabei werden keine Profile geändert und keine E-Mails versendet.
 
+Seit `3.0.17` verwaltet `/admin/member-dashboard-profile-fields` Profilfelder nicht mehr nur als sichtbar/unsichtbar, sondern zusätzlich als optional oder verpflichtend. Die Standardfelder sind Vorname, Nachname, Benutzername, Geburtsdatum, Mailadresse, Website und SocialMedia; verpflichtend und gesperrt sind standardmäßig nur Benutzername und Mailadresse. Zusätzlich können Admins projektbezogene Custom-Felder mit Schlüssel, Label, Typ, Hinweis, Sichtbarkeit und Pflichtstatus definieren. Diese Felder werden im Member-Profil dynamisch gerendert und als sichere `user_meta`-Werte gespeichert.
+
 ## Aktuelle Konfigurationsbereiche
 
 Das Modul unterstützt derzeit insbesondere diese Sektionen:
@@ -54,6 +56,8 @@ Je nach Sektion werden unter anderem folgende Aspekte gepflegt:
 - allgemeine Aktivierung und Basisoptionen des Member-Bereichs
 - verfügbare Dashboard-Widgets
 - zusätzliche oder optionale Profilfelder
+- Pflicht-/Optionalstatus für Profilfelder inklusive gesperrter Pflichtfelder Benutzername und Mailadresse
+- zusätzliche Custom-Profilfelder mit Typen `Text`, `Mehrzeilig`, `URL` und `Datum`
 - Kompatibilitätsvorschau für Profilfeld-/Completion-Änderungen mit optionalem Onboarding-Re-Trigger
 - Design- und Layout-Optionen für Member-Seiten
 - aktivierbare Frontend-Module
@@ -83,6 +87,8 @@ Die neue Widget-Sortierung bleibt davon getrennt: Sie läuft ausschließlich üb
 Die Onboarding-Analytics folgen demselben read-only Prinzip: Sie lesen nur bereits vorhandene Datenquellen (`users`, `user_meta`, optional `passkey_credentials`, optional `activity_log`), verdichten diese serverseitig zu Quoten/KPIs und fallen bei fehlenden optionalen Tabellen auf sichere Defaultwerte zurück. Technische Fehlerdetails bleiben serverseitig geloggt und erscheinen nicht roh im Admin-UI.
 
 Die Profilfeld-Kompatibilitätsvorschau folgt demselben Sicherheitsvertrag: Sie liest `users` und `user_meta` aggregiert, begrenzt Beispielkonten pro Feld, schreibt keine Profildaten und nutzt für den optionalen Onboarding-Re-Trigger ausschließlich den bestehenden `save`-POST mit `admin_member_dashboard`-CSRF. Der Re-Trigger setzt nur die vorhandenen Onboarding-/Profilabschluss-Schalter, statt Benutzer einzeln zu markieren oder Mails zu versenden.
+
+Custom-Profilfelder werden serverseitig normalisiert: Schlüssel erhalten bei Bedarf das Präfix `custom_`, Labels/Hinweise werden auf Text reduziert und URL-/Datumswerte im Member-Profil typgerecht validiert. Pflichtfelder werden beim Speichern des Member-Profils geprüft; ausgeblendete Profilfelder werden nicht ungewollt geleert.
 
 ## Verhältnis zum Frontend
 
@@ -119,11 +125,12 @@ Die Admin-Konfiguration folgt dem Standardmuster:
 | `CMS/admin/views/member/dashboard.php` | Ausgabe der Admin-Oberfläche |
 | Route `/admin/member-dashboard?preview=1` | read-only Vorschau der gespeicherten Runtime-Konfiguration |
 | `CMS/admin/views/member/onboarding.php` | Onboarding-Konfiguration plus read-only Analytics-/Abschlussraten-Karten |
-| `CMS/admin/views/member/profile-fields.php` | Profilfeld-Auswahl mit read-only Kompatibilitätsvorschau und optionalem Onboarding-Re-Trigger |
+| `CMS/admin/views/member/profile-fields.php` | Profilfeld-Auswahl mit Pflicht-/Optionalstatus, Custom-Feldern, read-only Kompatibilitätsvorschau und optionalem Onboarding-Re-Trigger |
 | `CMS/admin/views/member/widgets.php` | Kern-Widgets, Spalten, Bereichsreihenfolge und sortierbare Info-Widgets |
 | `CMS/admin/views/member/plugin-widgets.php` | Plugin-Widgets mit Sichtbarkeit und sortierbarer Reihenfolge |
 | `CMS/assets/js/admin-member-dashboard.js` | Drag-&-Drop- und Button-Fallback für Widget-Sortierung |
-| `CMS/member/includes/class-member-controller.php` | Runtime-Laden der Member-Einstellungen für `/member/...` |
+| `CMS/member/includes/class-member-controller.php` | Runtime-Laden der Member-Einstellungen für `/member/...`, dynamische Profilfelder und Pflichtfeldprüfung |
+| `CMS/member/profile.php` | Dynamisches Member-Profilformular aus den gespeicherten Profilfelddefinitionen |
 
 ## Verwandte Dokumente
 

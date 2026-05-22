@@ -1,6 +1,6 @@
 # 365CMS.DE
 
-**Version:** [3.0.14](Changelog.md) · **Status:** Stable · **PHP:** 8.4+ · **MySQL:** 5.7+ · **MariaDB:** 10.3+
+**Version:** [3.0.21](Changelog.md) · **Status:** Stable · **PHP:** 8.4+ · **MySQL:** 5.7+ · **MariaDB:** 10.3+
 
 <div align="center">
 
@@ -53,6 +53,7 @@ Wichtige Eigenschaften:
 - Bildblöcke mit Upload, Live-Vorschau, Ausrichtung, Breite, Rahmen, Rundung, Hintergrund und Schatten
 - Mehrbild-Galerien mit Upload, Vorschau, Sortierung und Spaltensteuerung
 - Inline-Formatierungen wie fett, kursiv, unterstrichen, Code, Links und Spoiler
+- Rich-Text-Hinweisboxen mit Info-/Warn-/Erfolg-/Kritisch-Varianten, deren Titel und Inhalt Inline-Formatierungen behalten
 - WordPress-ähnlichere Admin-Bedienung mit Block-Inserter, Commandbar, Drag & Drop, Undo/Redo und Read-only-kompatiblen Tool-Kontexten
 - Blockkarten und Schnellaktionen für typische Redaktionsmuster statt technischer JSON-Bearbeitung
 - Theme-nahe Editor-Vorschau durch Auswertung des aktiven Themes
@@ -67,7 +68,7 @@ Die gespeicherten EditorJS-Daten werden serverseitig sanitisiert und im Frontend
 |---|---|
 | **Content & Publishing** | Seiten, Beiträge, Kategorien, Tags, Revisionen, Entwürfe, Public-Preview und EditorJS-Blockinhalte |
 | **Medien** | Medienbibliothek, Uploads, Ordner, Kategorien, Bildverwendung, Beitrags-/Seitenbilder und kontrollierte Medienauslieferung |
-| **Mitglieder** | Member-Dashboard, Profile, Nachrichten, Benachrichtigungen, Favoriten und geschützte Bereiche |
+| **Mitglieder** | Member-Dashboard, konfigurierbare Profile mit Pflicht-/Optionalfeldern, Nachrichten, Benachrichtigungen, Favoriten und geschützte Bereiche |
 | **Benutzer & Rollen** | Rollen, Capabilities, Gruppen, Rechteprüfung und sichere Auth-Flows |
 | **Business & Pakete** | Pakete, Bestellungen, Abos, Limits, Gruppenlogik und Zugriffskontrolle |
 | **SEO** | Meta-Daten, Social-Daten, Sitemap, Robots, Redirects, 404-Monitoring, IndexNow und strukturierte Daten |
@@ -78,13 +79,14 @@ Die gespeicherten EditorJS-Daten werden serverseitig sanitisiert und im Frontend
 
 ### Admin-Erlebnis
 
-Der Admin-Bereich folgt einem klassischen professionellen Backend-Flow: klare Header, nachvollziehbare Toolbars, ruhige Tabellen, stabile Sidebars und reduzierte UI. 365CMS priorisiert Arbeitsgeschwindigkeit, Lesbarkeit und robuste Bedienung auf Desktop und Mobile.
+Der Admin-Bereich folgt einem klassischen professionellen Backend-Flow: klare Header, nachvollziehbare Toolbars, ruhige Tabellen, stabile Sidebars und reduzierte UI. 365CMS priorisiert Arbeitsgeschwindigkeit, Lesbarkeit und robuste Bedienung auf Desktop und Mobile. Die Admin-Sidebar hält den Logo-Bereich bewusst kompakt; Page-/Post-Editoren vermeiden künstliche Leerstrecken unterhalb des Inhaltsbereichs.
 
 Typische Workflows:
 
 - Inhalte mit EditorJS erstellen, prüfen, als Entwurf ansehen und veröffentlichen
 - Medien hochladen, organisieren und in Inhalten wiederverwenden
 - Rollen, Benutzer und Gruppen verwalten
+- Member-Profile zentral konfigurieren: Standardfelder, Pflichtfelder und zusätzliche projektbezogene Eingabefelder
 - SEO, Social Preview und technische Sichtbarkeit optimieren
 - Datenschutzseiten und Consent-Prozesse pflegen
 - Themes, Menüs und lokale Fonts anpassen

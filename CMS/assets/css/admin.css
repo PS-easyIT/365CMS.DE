@@ -4301,7 +4301,7 @@ input:checked + .slider:before { transform: translateX(22px); }
         display: grid;
         grid-template-columns: minmax(0, 1fr) minmax(320px, var(--cms-editor-sidebar-width));
         column-gap: 1rem;
-        row-gap: 1rem;
+        row-gap: 0.75rem;
         grid-auto-rows: max-content;
         align-items: start;
     }
@@ -4394,10 +4394,11 @@ input:checked + .slider:before { transform: translateX(22px); }
 .cms-content-editor-layout--post > .cms-editor-primary,
 .cms-content-editor-layout--page > .cms-editor-primary {
     /*
-     * Keep editor on the left track without defining the first row height.
-     * Otherwise row 1 grows to editor height and pushes sidebar card 2 down.
+     * Keep the editor on the left track while avoiding the old span-999
+     * masonry workaround. A huge span creates hundreds of implicit grid gaps
+     * and therefore several thousand pixels of empty page height.
      */
-    grid-row: 1 / span 999;
+    grid-row: 1 / span 12;
     flex: 1 1 auto;
     min-width: 0;
 }
@@ -5430,6 +5431,65 @@ input:checked + .slider:before { transform: translateX(22px); }
 
 .editorjs-holder .cms-editorjs-tool--image {
     gap: 0.75rem;
+}
+
+.editorjs-holder .cms-editorjs-tool--warning {
+    gap: 0.55rem;
+    padding: 1rem 1.1rem;
+    border: 1px solid #bfdbfe;
+    border-left: 5px solid #2563eb;
+    border-radius: 16px;
+    background: linear-gradient(180deg, #eff6ff 0%, #f8fbff 100%);
+}
+
+.editorjs-holder .cms-editorjs-tool--warning-warning {
+    border-color: #fde68a;
+    border-left-color: #d97706;
+    background: linear-gradient(180deg, #fffbeb 0%, #fff7ed 100%);
+}
+
+.editorjs-holder .cms-editorjs-tool--warning-success {
+    border-color: #bbf7d0;
+    border-left-color: #16a34a;
+    background: linear-gradient(180deg, #f0fdf4 0%, #f7fee7 100%);
+}
+
+.editorjs-holder .cms-editorjs-tool--warning-danger {
+    border-color: #fecaca;
+    border-left-color: #dc2626;
+    background: linear-gradient(180deg, #fef2f2 0%, #fff7f7 100%);
+}
+
+.editorjs-holder .cms-editorjs-warning__title,
+.editorjs-holder .cms-editorjs-warning__message {
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    color: #1e293b;
+    background: transparent;
+    box-shadow: none;
+}
+
+.editorjs-holder .cms-editorjs-warning__title {
+    font-weight: 800;
+    font-size: 0.98rem;
+}
+
+.editorjs-holder .cms-editorjs-warning__message {
+    color: #334155;
+}
+
+.editorjs-holder .cms-editorjs-warning__title:focus,
+.editorjs-holder .cms-editorjs-warning__message:focus {
+    outline: 2px solid rgba(37, 99, 235, 0.18);
+    outline-offset: 3px;
+}
+
+.editorjs-holder .cms-editorjs-warning__title:empty::before,
+.editorjs-holder .cms-editorjs-warning__message:empty::before {
+    content: attr(data-placeholder);
+    color: #94a3b8;
+    pointer-events: none;
 }
 
 .editorjs-holder .cms-editorjs-gallery {
@@ -8286,26 +8346,29 @@ body.admin-body .admin-section-toolbar__actions {
 }
 
 .admin-sidebar__header {
-    padding: 16px 14px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 14px 6px;
 }
 
 .admin-sidebar__brand {
-    display: inline-flex;
-    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    margin-bottom: 0;
 }
 
 .admin-sidebar__brand-logo {
     width: auto;
-    max-height: 34px;
-    max-width: 156px;
+    max-height: 42px;
+    max-width: 168px;
     object-fit: contain;
 }
 
 .admin-sidebar__site-meta {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-    gap: 2px;
+    display: none;
 }
 
 .admin-sidebar__site-name,
@@ -8328,7 +8391,7 @@ body.admin-body .admin-section-toolbar__actions {
 
 .admin-sidebar__divider {
     height: 1px;
-    margin: 0 12px 8px;
+    margin: 4px 12px 4px;
     background: rgba(255, 255, 255, 0.08);
 }
 
@@ -8338,6 +8401,7 @@ body.admin-body .admin-section-toolbar__actions {
 
 #sidebar-menu .navbar-nav {
     gap: 3px;
+    padding-top: 0.25rem !important;
 }
 
 #sidebar-menu .nav-section-label {

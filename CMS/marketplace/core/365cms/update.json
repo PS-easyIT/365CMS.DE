@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "3.0.14",
+  "version": "3.0.21",
   "min_php": "8.4",
-  "released": "2026-05-20",
+  "released": "2026-05-22",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 3.0.14: Admin-Router löst die verschachtelten Protokolle-&-Audit-Unterseiten unter /admin/logs/operational, /admin/logs/security-audit, /admin/logs/php-errors und /admin/logs/channels wieder direkt auf; die EditorJS-/Public-Sanitizer-Nachträge aus 3.0.13 bleiben enthalten.",
+  "notes": "Release-Stand 3.0.21: Das globale EditorJS-Public-CSS wird im Frontend nicht mehr als render-blockierendes Stylesheet im Head geladen. Ein kleiner Inline-Basisstil stabilisiert Blöcke, Bilder, Tabellen und Spacer im First Paint; die vollständige editorjs-content.css lädt danach per preload/onload mit noscript-Fallback nach.",
   "critical": false
 }

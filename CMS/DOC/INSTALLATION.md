@@ -1,5 +1,5 @@
 # 365CMS – Installation
-> **Stand:** 2026-05-14 | **Version:** 2.9.786 | **Status:** Aktuell
+> **Stand:** 2026-05-21 | **Version:** 3.0.20 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Überblick](#überblick)
@@ -14,7 +14,7 @@
 - [Troubleshooting](#troubleshooting)
 
 ---
-<!-- UPDATED: 2026-05-14 -->
+<!-- UPDATED: 2026-05-21 -->
 
 ## Überblick
 
@@ -144,6 +144,12 @@ Voraussetzungen:
 - `mod_rewrite` aktiv
 - `AllowOverride All` für das Webroot
 - Verzeichnisindexe deaktiviert
+
+Die ausgelieferte `CMS/.htaccess` nutzt bewusst keine `<Directory>`-Blöcke, weil diese in `.htaccess`-Kontexten nicht erlaubt sind. Upload-Ausführungsschutz, private Runtime-Pfade (`config/`, `core/`, `logs/`, `backups/`, `cache/`) und Installer-Interna werden stattdessen über Rewrite-/Files-Regeln geschützt. `php_value`-Limits sind nur innerhalb von `mod_php` gekapselt; bei PHP-FPM/CGI müssen Upload-Limits in `php.ini`, Pool-Config oder Hosting-Panel gesetzt werden.
+
+Der private Cache-Bereich bleibt grundsätzlich gesperrt. Eine enge Ausnahme gilt nur für vom `AssetOptimizerService` erzeugte öffentliche CSS-/JS-Dateien unter `cache/optimized-assets/<hash>.min.css` und `cache/optimized-assets/<hash>.min.js`; diese Dateien müssen auslieferbar sein, wenn CSS-/JS-Minifizierung aktiv ist.
+
+Öffentliche Uploads bleiben als direkte URLs erreichbar. Die `.htaccess` blockiert nur ausführbare Uploads und versteckte Dateien, lässt normale Dateien unter `uploads/` aber durch. Für lokale FontManager-Schriften unter `uploads/fonts/` werden WOFF/WOFF2/TTF/OTF-MIME-Typen explizit gesetzt, damit Browser die Schriften auch mit `X-Content-Type-Options: nosniff` korrekt laden.
 
 ### Nginx
 

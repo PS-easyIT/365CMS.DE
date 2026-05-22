@@ -394,8 +394,10 @@ final class InstallerController
         }
 
         $isHttps = (!empty($_SERVER['HTTPS']) && strtolower((string) $_SERVER['HTTPS']) !== 'off')
-            || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && strtolower((string) $_SERVER['HTTP_X_FORWARDED_PROTO']) === 'https')
-            || strtolower((string) ($_SERVER['HTTP_X_FORWARDED_SSL'] ?? '')) === 'on';
+            || (int) ($_SERVER['SERVER_PORT'] ?? 0) === 443
+            || in_array(strtolower((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')), ['https', 'wss'], true)
+            || in_array(strtolower((string) ($_SERVER['HTTP_X_FORWARDED_SSL'] ?? '')), ['on', '1', 'true'], true)
+            || in_array(strtolower((string) ($_SERVER['HTTP_FRONT_END_HTTPS'] ?? '')), ['on', '1'], true);
 
         $baseOptions = [
             'expires' => time() - 42000,

@@ -398,13 +398,18 @@ final class EditorJsRenderer
     /** @param array<string,mixed> $data */
     private function renderWarning(array $data): string
     {
+        $variant = (string)($data['variant'] ?? $data['type'] ?? $data['tone'] ?? 'info');
         $title = $this->sanitizeInline((string)($data['title'] ?? 'Hinweis'));
         $message = $this->sanitizeInline((string)($data['message'] ?? ''));
         if ($title === '' && $message === '') {
             return '';
         }
 
-        return '<div class="editorjs-block editorjs-warning"><div class="warning-title">' . $title . '</div><div class="warning-message">' . $message . '</div></div>';
+        if (!in_array($variant, ['info', 'warning', 'success', 'danger'], true)) {
+            $variant = 'info';
+        }
+
+        return '<div class="editorjs-block editorjs-warning editorjs-warning--' . htmlspecialchars($variant, ENT_QUOTES, 'UTF-8') . '" data-variant="' . htmlspecialchars($variant, ENT_QUOTES, 'UTF-8') . '"><div class="warning-title">' . ($title !== '' ? $title : 'Hinweis') . '</div><div class="warning-message">' . $message . '</div></div>';
     }
 
     /** @param array<string,mixed> $data */
@@ -792,6 +797,7 @@ final class EditorJsRenderer
             'info' => ['class' => 'callout-info', 'icon' => 'ℹ️'],
             'warning' => ['class' => 'callout-warn', 'icon' => '⚠️'],
             'success' => ['class' => 'callout-ok', 'icon' => '✅'],
+            'danger' => ['class' => 'callout-danger', 'icon' => '⛔'],
         ];
         $resolved = $variantMap[$variant] ?? $variantMap['info'];
 

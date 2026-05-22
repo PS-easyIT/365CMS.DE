@@ -570,6 +570,11 @@ final class PublicRouter
 
     public function renderOrder(): void
     {
+        if (!$this->isPublicOrderingEnabled()) {
+            $this->router->render404();
+            return;
+        }
+
         $GLOBALS['cms_form_guard_csrf'] = Security::instance()->generateToken('form_guard');
 
         $file = ABSPATH . 'member/order_public.php';
@@ -583,6 +588,11 @@ final class PublicRouter
 
     public function handleOrder(): void
     {
+        if (!$this->isPublicOrderingEnabled()) {
+            $this->router->render404();
+            return;
+        }
+
         $file = ABSPATH . 'member/order_public.php';
         if (file_exists($file)) {
             require_once $file;
@@ -590,6 +600,23 @@ final class PublicRouter
         }
 
         $this->router->render404();
+    }
+
+    private function isPublicOrderingEnabled(): bool
+    {
+        if (!class_exists(Services\CoreModuleService::class)) {
+            return true;
+        }
+
+        try {
+            $modules = Services\CoreModuleService::getInstance();
+
+            return $modules->isModuleEnabled('subscriptions')
+                && $modules->isModuleEnabled('subscription_public_pricing')
+                && $modules->isModuleEnabled('subscription_ordering');
+        } catch (\Throwable) {
+            return false;
+        }
     }
 
     public function handleCommentPost(): void

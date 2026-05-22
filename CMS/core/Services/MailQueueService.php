@@ -63,7 +63,9 @@ class MailQueueService
         $lastRun = $this->settings->get(self::GROUP, self::SETTINGS_LAST_RUN, []);
         $cronFilePath = ABSPATH . 'cron.php';
         $cronWebPath = '/cron.php';
-        $cronUrl = (defined('SITE_URL') ? rtrim((string) SITE_URL, '/') : '') . $cronWebPath . '?task=mail-queue&quiet=1&token=' . rawurlencode($token);
+        $siteUrl = defined('SITE_URL') ? rtrim((string) SITE_URL, '/') : '';
+        $cronUrl = $siteUrl . $cronWebPath . '?task=mail-queue&quiet=1';
+        $cronUrlWithToken = $cronUrl . '&token=' . rawurlencode($token);
 
         return [
             'enabled' => $this->settings->getBool(self::GROUP, 'queue_enabled', true),
@@ -74,6 +76,9 @@ class MailQueueService
             'lock_timeout_seconds' => $lockTimeout,
             'cron_token' => $token,
             'cron_url' => $cronUrl,
+            'cron_url_with_token' => $cronUrlWithToken,
+            'cron_header_name' => 'X-CMS-Cron-Token',
+            'cron_header_value' => $token,
             'cli_command' => 'php ' . escapeshellarg($cronFilePath) . ' --task=mail-queue --limit=' . $batchSize . ' --quiet',
             'last_run' => is_array($lastRun) ? $lastRun : [],
         ];
@@ -272,15 +277,16 @@ class MailQueueService
     }
 
     /**
-     * @return array{success:bool,message?:string,error?:string,worker:string,claimed:int,sent:int,retried:int,failed_final:int,released_stale:int,processed:int}
+     * @return array{success:bool,message?:string,error?:string,worker:string,claimed:int,sent:int,retried:int,failed_final:int,released_stale:int,processed:int,skipped?:bool}
      */
     public function processDueJobs(?int $limit = null, string $worker = 'cron', bool $force = false): array
     {
         $config = $this->getConfiguration();
         if (empty($config['enabled']) && !$force) {
             return [
-                'success' => false,
-                'error' => 'Mail-Queue ist deaktiviert.',
+                'success' => true,
+                'skipped' => true,
+                'message' => 'Mail-Queue ist deaktiviert; Cron-Worker übersprungen.',
                 'worker' => $worker,
                 'claimed' => 0,
                 'sent' => 0,
@@ -394,7 +400,7 @@ class MailQueueService
 
     /**
      * @param array<string, mixed> $payload
-     * @return array{success:bool,message?:string,error?:string,worker:string,claimed:int,sent:int,retried:int,failed_final:int,released_stale:int,processed:int}
+    * @return array{success:bool,message?:string,error?:string,worker:string,claimed:int,sent:int,retried:int,failed_final:int,released_stale:int,processed:int,skipped?:bool}
      */
     public function handleCronHook(array $payload = []): array
     {

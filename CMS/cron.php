@@ -7,7 +7,11 @@ $truncateForLog = static function (string $value, int $limit = 400): string {
         return '';
     }
 
-    return mb_substr($value, 0, $limit);
+    if (function_exists('mb_substr')) {
+        return (string) mb_substr($value, 0, $limit, 'UTF-8');
+    }
+
+    return substr($value, 0, $limit);
 };
 
 $normalizeCronTask = static function (mixed $task): string {
@@ -37,13 +41,21 @@ $normalizeCronLimit = static function (mixed $limit): ?int {
     return min(100, max(1, (int) $normalized));
 };
 
-$getWebCronToken = static function (): string {
+$webCronTokenSource = 'none';
+
+$getWebCronToken = static function () use (&$webCronTokenSource): string {
     $headerToken = trim((string) ($_SERVER['HTTP_X_CMS_CRON_TOKEN'] ?? $_SERVER['HTTP_X_CRON_TOKEN'] ?? ''));
     if ($headerToken !== '') {
+        $webCronTokenSource = 'header';
         return $headerToken;
     }
 
-    return trim((string) ($_GET['token'] ?? ''));
+    $queryToken = trim((string) ($_GET['token'] ?? ''));
+    if ($queryToken !== '') {
+        $webCronTokenSource = 'query';
+    }
+
+    return $queryToken;
 };
 
 $isHttpsRequest = static function (): bool {
@@ -86,6 +98,10 @@ $normalizeOutputMode = static function (mixed $mode, bool $isCli): string {
 
 ob_start();
 
+if (!defined('CMS_CRON_RUNNING')) {
+    define('CMS_CRON_RUNNING', true);
+}
+
 require_once __DIR__ . '/config.php';
 
 spl_autoload_register(function ($class) {
@@ -120,6 +136,10 @@ $respond = static function (array $payload, int $statusCode = 200) use (&$output
 
     if (PHP_SAPI !== 'cli' && !headers_sent()) {
         http_response_code($outputMode === 'quiet' && $statusCode >= 200 && $statusCode < 300 ? 204 : $statusCode);
+        header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+        header('Pragma: no-cache');
+        header('Referrer-Policy: no-referrer');
+        header('X-Content-Type-Options: nosniff');
         header('X-Robots-Tag: noindex, nofollow, noarchive');
     }
 
@@ -214,6 +234,17 @@ try {
         $force = !empty($_GET['force']);
         $token = $getWebCronToken();
 
+        if ($webCronTokenSource === 'query' && !$isHttpsRequest()) {
+            if (class_exists('CMS\\Logger')) {
+                CMS\Logger::instance()->withChannel('cron')->warning('Web-Cron wurde mit Query-Token ohne HTTPS aufgerufen. Header-Token über X-CMS-Cron-Token wird empfohlen.', [
+                    'task' => $task,
+                    'remote_addr' => (string) ($_SERVER['REMOTE_ADDR'] ?? ''),
+                ]);
+            } else {
+                error_log('365CMS Cron: Query-Token ohne HTTPS verwendet. Header-Token wird empfohlen.');
+            }
+        }
+
         if (!empty($_GET['verbose'])) {
             $outputMode = 'json';
         } elseif (!empty($_GET['text'])) {
@@ -254,6 +285,18 @@ try {
 
     $respond($runnerResult, $statusCode);
 } catch (Throwable $e) {
+    $message = $truncateForLog($e->getMessage());
+    if (class_exists('CMS\\Logger')) {
+        CMS\Logger::instance()->withChannel('cron')->error('Cron entrypoint failed.', [
+            'exception_class' => get_class($e),
+            'exception_message' => $message,
+            'file' => $truncateForLog($e->getFile(), 220),
+            'line' => (int) $e->getLine(),
+        ]);
+    } else {
+        error_log('365CMS Cron entrypoint failed: ' . get_class($e) . ' - ' . $message);
+    }
+
     $respond([
         'success' => false,
         'error' => 'Cron-Lauf fehlgeschlagen. Details wurden intern protokolliert.',

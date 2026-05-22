@@ -11,6 +11,9 @@ if (!defined('CMS_ADMIN_MEMBER_VIEW')) {
 
 $settings = $data['settings'] ?? [];
 $profileFields = $data['profileFields'] ?? [];
+$selectedProfileFields = array_map('strval', (array)($settings['profile_fields'] ?? []));
+$requiredProfileFields = array_map('strval', (array)($settings['required_profile_fields'] ?? ['username', 'email']));
+$customProfileFields = is_array($settings['custom_profile_fields'] ?? null) ? $settings['custom_profile_fields'] : [];
 $profileFieldCompatibility = is_array($data['profileFieldCompatibility'] ?? null) ? $data['profileFieldCompatibility'] : [];
 $compatibilityAvailable = !empty($profileFieldCompatibility['available']);
 $currentIncompleteSamples = is_array($profileFieldCompatibility['current_incomplete_samples'] ?? null) ? $profileFieldCompatibility['current_incomplete_samples'] : [];
@@ -93,29 +96,97 @@ $currentIncompleteSamples = is_array($profileFieldCompatibility['current_incompl
                         </div>
                     </div>
 
-                    <div class="card">
+                    <div class="card mb-4">
                         <div class="card-header">
-                            <h3 class="card-title">Sichtbare Profil-Felder</h3>
+                            <h3 class="card-title">Standard-Profilfelder</h3>
                         </div>
                         <div class="card-body">
+                            <div class="alert alert-info" role="note">
+                                Standardmäßig stehen Vorname, Nachname, Benutzername, Geburtsdatum, Mailadresse, Website und SocialMedia bereit. Pflichtfelder sind nur <strong>Benutzername</strong> und <strong>Mailadresse</strong>; weitere Felder können optional oder verpflichtend markiert werden.
+                            </div>
                             <div class="row row-cards">
                                 <?php foreach ($profileFields as $key => $field): ?>
+                                    <?php if (!empty($field['custom'])) { continue; } ?>
+                                    <?php $isLockedRequired = !empty($field['locked']) || in_array($key, ['username', 'email'], true); ?>
                                     <div class="col-md-6">
-                                        <label class="card card-sm cursor-pointer h-100">
+                                        <div class="card card-sm h-100">
                                             <div class="card-body">
                                                 <div class="form-check mb-2">
-                                                    <input type="checkbox" class="form-check-input" name="profile_fields[<?php echo htmlspecialchars((string)$key); ?>]" value="1" data-profile-field-checkbox data-profile-field-key="<?php echo htmlspecialchars((string)$key, ENT_QUOTES); ?>" <?php echo in_array($key, $settings['profile_fields'] ?? [], true) ? 'checked' : ''; ?>>
+                                                    <input type="checkbox" class="form-check-input" name="profile_fields[<?php echo htmlspecialchars((string)$key); ?>]" value="1" data-profile-field-checkbox data-profile-field-key="<?php echo htmlspecialchars((string)$key, ENT_QUOTES); ?>" <?php echo in_array($key, $selectedProfileFields, true) ? 'checked' : ''; ?> <?php echo $isLockedRequired ? 'checked disabled' : ''; ?>>
+                                                    <?php if ($isLockedRequired): ?>
+                                                        <input type="hidden" name="profile_fields[<?php echo htmlspecialchars((string)$key); ?>]" value="1">
+                                                    <?php endif; ?>
                                                     <span class="form-check-label fw-semibold"><?php echo htmlspecialchars((string)($field['label'] ?? $key)); ?></span>
                                                 </div>
                                                 <div class="text-muted small mb-2"><?php echo htmlspecialchars((string)($field['description'] ?? '')); ?></div>
+                                                <label class="form-check form-switch mb-0">
+                                                    <input type="checkbox" class="form-check-input" name="required_profile_fields[<?php echo htmlspecialchars((string)$key); ?>]" value="1" <?php echo in_array($key, $requiredProfileFields, true) ? 'checked' : ''; ?> <?php echo $isLockedRequired ? 'checked disabled' : ''; ?>>
+                                                    <?php if ($isLockedRequired): ?>
+                                                        <input type="hidden" name="required_profile_fields[<?php echo htmlspecialchars((string)$key); ?>]" value="1">
+                                                    <?php endif; ?>
+                                                    <span class="form-check-label">Pflichtfeld</span>
+                                                </label>
                                                 <?php if (!empty($field['recommended'])): ?>
-                                                    <span class="badge bg-green-lt text-green">Empfohlen</span>
+                                                    <span class="badge bg-green-lt text-green mt-2">Empfohlen</span>
                                                 <?php endif; ?>
                                             </div>
-                                        </label>
+                                        </div>
                                     </div>
                                 <?php endforeach; ?>
                             </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Zusätzliche Eingabefelder</h3>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-secondary small">Definiere projektspezifische Profilfelder. Der Schlüssel wird als User-Meta-Key gespeichert; ohne Präfix ergänzt 365CMS automatisch <code>custom_</code>.</p>
+                            <?php $customRows = array_values(array_merge($customProfileFields, array_fill(0, max(1, 5 - count($customProfileFields)), []))); ?>
+                            <div class="d-flex flex-column gap-3">
+                                <?php foreach ($customRows as $index => $customField): ?>
+                                    <?php
+                                    $customKey = (string)($customField['key'] ?? '');
+                                    $customSelected = $customKey !== '' && in_array($customKey, $selectedProfileFields, true);
+                                    ?>
+                                    <div class="border rounded p-3">
+                                        <div class="row g-3 align-items-end">
+                                            <div class="col-md-3">
+                                                <label class="form-label" for="customProfileLabel<?php echo (int)$index; ?>">Label</label>
+                                                <input class="form-control" id="customProfileLabel<?php echo (int)$index; ?>" name="custom_profile_fields[<?php echo (int)$index; ?>][label]" value="<?php echo htmlspecialchars((string)($customField['label'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" placeholder="z. B. Kundennummer">
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label class="form-label" for="customProfileKey<?php echo (int)$index; ?>">Schlüssel</label>
+                                                <input class="form-control" id="customProfileKey<?php echo (int)$index; ?>" name="custom_profile_fields[<?php echo (int)$index; ?>][key]" value="<?php echo htmlspecialchars($customKey, ENT_QUOTES, 'UTF-8'); ?>" placeholder="custom_kundennummer" pattern="[a-zA-Z0-9_]+">
+                                            </div>
+                                            <div class="col-md-2">
+                                                <label class="form-label" for="customProfileType<?php echo (int)$index; ?>">Typ</label>
+                                                <select class="form-select" id="customProfileType<?php echo (int)$index; ?>" name="custom_profile_fields[<?php echo (int)$index; ?>][type]">
+                                                    <?php foreach (['text' => 'Text', 'textarea' => 'Mehrzeilig', 'url' => 'URL', 'date' => 'Datum'] as $type => $label): ?>
+                                                        <option value="<?php echo htmlspecialchars($type, ENT_QUOTES, 'UTF-8'); ?>" <?php echo (($customField['type'] ?? 'text') === $type) ? 'selected' : ''; ?>><?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?></option>
+                                                    <?php endforeach; ?>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-2">
+                                                <label class="form-check mb-2">
+                                                    <input type="checkbox" class="form-check-input" name="custom_profile_fields[<?php echo (int)$index; ?>][enabled]" value="1" <?php echo ($customSelected || !empty($customField['enabled'])) ? 'checked' : ''; ?>>
+                                                    <span class="form-check-label">Anzeigen</span>
+                                                </label>
+                                                <label class="form-check mb-0">
+                                                    <input type="checkbox" class="form-check-input" name="custom_profile_fields[<?php echo (int)$index; ?>][required]" value="1" <?php echo !empty($customField['required']) ? 'checked' : ''; ?>>
+                                                    <span class="form-check-label">Pflicht</span>
+                                                </label>
+                                            </div>
+                                            <div class="col-md-2">
+                                                <label class="form-label" for="customProfileDescription<?php echo (int)$index; ?>">Hinweis</label>
+                                                <input class="form-control" id="customProfileDescription<?php echo (int)$index; ?>" name="custom_profile_fields[<?php echo (int)$index; ?>][description]" value="<?php echo htmlspecialchars((string)($customField['description'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" placeholder="Optionaler Hilfetext">
+                                            </div>
+                                        </div>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                            <div class="form-hint mt-3">Neue Custom-Felder bitte einmal speichern; danach kann „Anzeigen“ zuverlässig über den normalisierten Schlüssel gesteuert werden.</div>
                         </div>
                     </div>
                 </div>

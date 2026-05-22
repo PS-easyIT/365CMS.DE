@@ -123,6 +123,12 @@ final class EditorJsSanitizer
                 break;
 
             case 'warning':
+                $variant = (string) ($data['variant'] ?? $data['type'] ?? $data['tone'] ?? 'info');
+                if (!in_array($variant, ['info', 'warning', 'success', 'danger'], true)) {
+                    $variant = 'info';
+                }
+
+                $data['variant'] = $variant;
                 $data['title'] = $cleanInline($data['title'] ?? '');
                 $data['message'] = $cleanInline($data['message'] ?? '');
                 break;
@@ -249,7 +255,7 @@ final class EditorJsSanitizer
             case 'callout':
                 $variant = (string) ($data['variant'] ?? 'info');
                 $data = [
-                    'variant' => in_array($variant, ['info', 'warning', 'success'], true) ? $variant : 'info',
+                    'variant' => in_array($variant, ['info', 'warning', 'success', 'danger'], true) ? $variant : 'info',
                     'title' => $cleanInline($data['title'] ?? ''),
                     'message' => $cleanInline($data['message'] ?? ''),
                 ];

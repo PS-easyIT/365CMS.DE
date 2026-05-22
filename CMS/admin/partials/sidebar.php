@@ -190,11 +190,6 @@ foreach ($registeredPluginMenus as $menu) {
 
 $pluginSidebarChildren = array_values(array_unique($pluginSidebarChildren, SORT_REGULAR));
 $pluginSidebarSlugs = array_values(array_unique($pluginSidebarSlugs));
-$siteDomain = (string) parse_url($siteUrl, PHP_URL_HOST);
-if ($siteDomain === '') {
-    $siteDomain = preg_replace('~^https?://~i', '', trim((string) $siteUrl)) ?? '';
-    $siteDomain = trim((string) preg_replace('~/.*$~', '', $siteDomain));
-}
 
 $subscriptionSidebarChildren = [
     ['label' => 'Pakete & Abo-Einstellungen', 'slug' => 'packages', 'url' => $siteUrl . '/admin/packages'],
@@ -799,14 +794,6 @@ $topbarUnreadNotifications = max(0, (int) ($_SESSION['admin_unread_notifications
                     class="admin-sidebar__brand-logo"
                     onerror="this.onerror=null;this.src='<?= htmlspecialchars((string) $sidebarLogoFallbackUrl) ?>';">
             </a>
-            <div class="admin-sidebar__site-meta">
-                <strong class="admin-sidebar__site-name" title="<?= htmlspecialchars((string) $siteName, ENT_QUOTES, 'UTF-8') ?>">
-                    <?= htmlspecialchars((string) $siteName, ENT_QUOTES, 'UTF-8') ?>
-                </strong>
-                <span class="admin-sidebar__site-domain" title="<?= htmlspecialchars((string) $siteDomain, ENT_QUOTES, 'UTF-8') ?>">
-                    <?= htmlspecialchars((string) $siteDomain, ENT_QUOTES, 'UTF-8') ?>
-                </span>
-            </div>
         </div>
         <div class="admin-sidebar__divider" aria-hidden="true"></div>
 

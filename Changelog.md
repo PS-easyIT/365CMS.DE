@@ -1,4 +1,4 @@
-﻿**Version:** 3.0.14
+﻿**Version:** 3.0.21
 
 # 365CMS Changelog
 
@@ -19,6 +19,48 @@
 ## 📜 Aktuelle Versionshistorie ab 3.0.0
 
 > Die vollständige historische 2.x-Historie wurde in [`Changelog_old.md`](Changelog_old.md) archiviert.
+
+### v3.0.21 — 22.05.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.0.21** | 🟠 perf | EditorJS / Frontend-CSS | **`CMS/core/Bootstrap.php`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `CMS/DOC/assets/editorjs/README.md`, `README.md` und `Changelog.md` entfernen das globale `editorjs-content.css` aus dem render-blockierenden Head-Pfad.** Der Frontend-Bootstrap gibt nun nur noch einen kleinen Inline-Basisstil für EditorJS-Blöcke, Bilder, Tabellen und Spacer aus und lädt die vollständige Public-CSS anschließend per `preload`/`onload` mit `noscript`-Fallback nach. Dadurch bleibt das sichtbare Content-Rendering stabil, während Lighthouse die bisherige Render-Blocking-Anfrage auf `assets/css/editorjs-content.css` nicht mehr als LCP-/FCP-Bremse im kritischen Pfad bewertet. |
+
+### v3.0.20 — 21.05.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.0.20** | 🔴 fix | Theme-Assets / Apache Rewrite | **`CMS/.htaccess`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `CMS/DOC/INSTALLATION.md`, `README.md` und `Changelog.md` beheben die Asset-Regression nach der .htaccess-Härtung.** Die private Cache-Sperre bleibt bestehen, aber die vom `AssetOptimizerService` erzeugten öffentlichen Dateien `cache/optimized-assets/<hash>.min.css` und `cache/optimized-assets/<hash>.min.js` werden wieder eng begrenzt ausgeliefert. Zusätzlich bleiben öffentliche Upload-Direkt-URLs erreichbar: ausführbare und versteckte Uploads werden weiterhin blockiert, während normale Medien/Downloads und die vom FontManager erzeugten `uploads/fonts/*.css`, `*.woff`, `*.woff2`, `*.ttf` und `*.otf` über korrekte MIME-Typen sowie Font-spezifische CORS/CORP-Header laden. Dadurch funktionieren Theme-Styles, Theme-Skripte und lokale Schriften bei aktivierter CSS-/JS-Minifizierung wieder korrekt, ohne private Cache- oder Runtime-Bereiche zu öffnen. |
+
+### v3.0.19 — 21.05.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.0.19** | 🛡️ security | Cron/MailQueue/Plugin-Trigger | **`CMS/cron.php`, `CMS/config.php`, `CMS/install/InstallerService.php`, `CMS/core/Services/CronRunnerService.php`, `CMS/core/Services/MailQueueService.php`, `CMS/admin/views/system/mail-settings.php`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `CMS/DOC/admin/diagnose/DIAGNOSE.md`, `CMS/DOC/core/SERVICES.md`, `CMS/DOC/assets/cron/README.md`, `README.md` und `Changelog.md` härten den Cron- und Mail-Worker-Vertrag nach.** Der Web-Cron sendet nun No-Store-/No-Referrer-/Noindex-Header, loggt Entry-Point-Ausnahmen intern, nutzt den vorhandenen Proxy-aware HTTPS-Check für Query-Token-Warnungen und dokumentiert den Header-Token `X-CMS-Cron-Token` als bevorzugten Weg. Deaktivierte Mail-Queues erzeugen keinen Cron-Fehler mehr, sondern einen sauberen Skip, Cron-Aufrufe mit fehlender/platzhalterhafter Konfiguration liefern keinen Installer-HTML-Body mehr, Feed-Recovery-Fehler werden öffentlich generisch zurückgegeben, und die Mailpfade für Kommentare, `cms_mail()` und `cms-contact` bleiben über `cms_cron_mail_queue` zuverlässig verarbeitbar. |
+
+### v3.0.18 — 21.05.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.0.18** | 🛡️ security | Apache/Installer/Bestellrouting | **`CMS/.htaccess`, `CMS/install.php`, `CMS/install/InstallerController.php`, `CMS/install/InstallerService.php`, `CMS/core/Routing/PublicRouter.php`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `CMS/DOC/INSTALLATION.md`, `README.md` und `Changelog.md` ziehen den Webserver- und Installationsvertrag nach.** Die `.htaccess` verwendet keine in `.htaccess` unzulässigen `<Directory>`-Blöcke mehr, schützt private Runtime-Verzeichnisse und ausführbare Uploads per Rewrite-Regeln, kapselt `php_value`-Limits auf `mod_php` und vermeidet dadurch PHP-FPM/CGI-500er. Der Installer erkennt HTTPS hinter Reverse Proxies konsistent, schreibt beim Installieren/Updaten wieder den aktuellen gehärteten `config.php`-Stub und die öffentliche `/order`-Route respektiert jetzt die Core-Modulschalter für Abos, öffentliche Paketkommunikation und Bestellprozesse. |
+
+### v3.0.17 — 20.05.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.0.17** | 🟢 feat | Member-Profile – Pflicht-/Optionalfelder & Custom-Felder | **`CMS/admin/modules/member/MemberDashboardModule.php`, `CMS/admin/views/member/profile-fields.php`, `CMS/member/includes/class-member-controller.php`, `CMS/member/profile.php`, `CMS/core/Services/MemberService.php`, `CMS/admin/partials/topbar.php`, `CMS/DOC/admin/member/README.md`, `README.md`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json` und `Changelog.md` reparieren den Admin-Profilpfad und erweitern die Profilfeldverwaltung.** Der Avatar-Dropdown-Link „Mein Profil“ führt wieder zur echten `/member/profile`-Seite; die Admin-Konfiguration unterscheidet sichtbare und verpflichtende Profilfelder, setzt Benutzername und Mailadresse als feste Pflichtfelder, ergänzt die gewünschten Standardfelder Vorname, Nachname, Benutzername, Geburtsdatum, Mailadresse, Website und SocialMedia und erlaubt zusätzliche projektbezogene Custom-Felder mit Typ, Hinweis, optionalem Pflichtstatus und sicherer User-Meta-Speicherung. |
+
+### v3.0.16 — 20.05.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.0.16** | 🔴 fix | Admin-Layout – Sidebar & Editor-Leerraum | **`CMS/admin/partials/sidebar.php`, `CMS/assets/css/admin.css`, `CMS/core/Version.php`, `README.md`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json` und `Changelog.md` straffen die Admin-Sidebar und den Page-/Post-Editor.** Der Site-Name/Domain-Text unter dem Sidebar-Logo wird nicht mehr ausgegeben, das Logo sitzt mittig mit geringem Abstand zum Menü, und der Editor-Grid-Span wurde von `999` auf einen begrenzten Wert reduziert, damit unterhalb des Inhaltsbereichs keine mehrere tausend Pixel hohe Leerfläche entsteht. |
+
+### v3.0.15 — 20.05.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.0.15** | 🟢 feat | EditorJS – Rich-Text-Hinweisboxen | **`CMS/assets/js/editor-init.js`, `CMS/assets/css/admin.css`, `CMS/core/Services/EditorJsRenderer.php`, `CMS/core/Services/EditorJs/EditorJsSanitizer.php`, `CMS/assets/css/editorjs-content.css`, `README.md`, `CMS/DOC/assets/editorjs/README.md`, `CMS/update.json` und `CMS/marketplace/core/365cms/update.json` machen Info-/Warn-/Erfolg-/Kritisch-Boxen rich-editierbar.** Das lokale `CmsWarningTool` ersetzt die bisherigen nativen Eingabefelder durch contenteditable Titel und Inhalte, sodass fett, kursiv, unterstrichen, Inline-Code, Links und Spoiler im Admin auswählbar sind und nach Save/Sanitizer/Public-Rendering erhalten bleiben. |
 
 ### v3.0.14 — 20.05.2026
 

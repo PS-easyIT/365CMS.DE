@@ -15,7 +15,16 @@ $pageAssets = [];
 $user = $controller->getCurrentUser();
 $meta = \CMS\Services\MemberService::getInstance()->getUserMeta($controller->getUserId());
 $profileFields = (array)($settings['profile_fields'] ?? []);
+$profileFieldDefinitions = is_array($settings['profile_field_definitions'] ?? null) ? $settings['profile_field_definitions'] : $controller->getProfileFieldDefinitions();
+$requiredProfileFields = array_map('strval', (array)($settings['required_profile_fields'] ?? ['username', 'email']));
 $profileCompletion = $controller->getProfileCompletion();
+$profileValue = static function (string $field) use ($user, $meta): string {
+    return match ($field) {
+        'username' => (string)($user->username ?? ''),
+        'email' => (string)($user->email ?? ''),
+        default => (string)($meta[$field] ?? ''),
+    };
+};
 
 include __DIR__ . '/partials/header.php';
 ?>
@@ -30,49 +39,31 @@ include __DIR__ . '/partials/header.php';
             <div class="card-body">
                 <div class="row g-3">
                     <div class="col-md-6">
-                        <label class="form-label" for="first_name">Vorname</label>
-                        <input class="form-control" id="first_name" name="first_name" type="text" value="<?= htmlspecialchars((string)($meta['first_name'] ?? '')) ?>">
+                        <label class="form-label" for="display_name">Anzeigename</label>
+                        <input class="form-control" id="display_name" name="display_name" type="text" value="<?= htmlspecialchars((string)($user->display_name ?? ''), ENT_QUOTES, 'UTF-8') ?>">
                     </div>
-                    <div class="col-md-6">
-                        <label class="form-label" for="last_name">Nachname</label>
-                        <input class="form-control" id="last_name" name="last_name" type="text" value="<?= htmlspecialchars((string)($meta['last_name'] ?? '')) ?>">
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label" for="email">E-Mail</label>
-                        <input class="form-control" id="email" name="email" type="email" value="<?= htmlspecialchars((string)($user->email ?? '')) ?>">
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label" for="phone">Telefon</label>
-                        <input class="form-control" id="phone" name="phone" type="text" value="<?= htmlspecialchars((string)($meta['phone'] ?? '')) ?>">
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label" for="company">Unternehmen</label>
-                        <input class="form-control" id="company" name="company" type="text" value="<?= htmlspecialchars((string)($meta['company'] ?? '')) ?>">
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label" for="position">Position</label>
-                        <input class="form-control" id="position" name="position" type="text" value="<?= htmlspecialchars((string)($meta['position'] ?? '')) ?>">
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label" for="website">Website</label>
-                        <input class="form-control" id="website" name="website" type="url" value="<?= htmlspecialchars((string)($meta['website'] ?? '')) ?>">
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label" for="location">Ort</label>
-                        <input class="form-control" id="location" name="location" type="text" value="<?= htmlspecialchars((string)($meta['location'] ?? '')) ?>">
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label" for="social">Social / Profil-Link</label>
-                        <input class="form-control" id="social" name="social" type="url" value="<?= htmlspecialchars((string)($meta['social'] ?? '')) ?>">
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label" for="avatar">Avatar-URL</label>
-                        <input class="form-control" id="avatar" name="avatar" type="url" value="<?= htmlspecialchars((string)($meta['avatar'] ?? '')) ?>">
-                    </div>
-                    <div class="col-12">
-                        <label class="form-label" for="bio">Kurzbiografie</label>
-                        <textarea class="form-control" id="bio" name="bio" rows="6"><?= htmlspecialchars((string)($meta['bio'] ?? '')) ?></textarea>
-                    </div>
+                    <?php foreach ($profileFields as $field): ?>
+                        <?php
+                        $field = (string)$field;
+                        $definition = is_array($profileFieldDefinitions[$field] ?? null) ? $profileFieldDefinitions[$field] : ['label' => $field, 'type' => 'text'];
+                        $label = (string)($definition['label'] ?? $field);
+                        $type = (string)($definition['type'] ?? 'text');
+                        $isRequired = in_array($field, $requiredProfileFields, true) || !empty($definition['required']);
+                        $value = $profileValue($field);
+                        $inputType = in_array($type, ['email', 'url', 'date'], true) ? $type : 'text';
+                        $columnClass = $type === 'textarea' ? 'col-12' : 'col-md-6';
+                        ?>
+                        <div class="<?= htmlspecialchars($columnClass, ENT_QUOTES, 'UTF-8') ?>">
+                            <label class="form-label" for="<?= htmlspecialchars($field, ENT_QUOTES, 'UTF-8') ?>">
+                                <?= htmlspecialchars($label, ENT_QUOTES, 'UTF-8') ?><?php if ($isRequired): ?> <span class="text-danger" aria-label="Pflichtfeld">*</span><?php endif; ?>
+                            </label>
+                            <?php if ($type === 'textarea'): ?>
+                                <textarea class="form-control" id="<?= htmlspecialchars($field, ENT_QUOTES, 'UTF-8') ?>" name="<?= htmlspecialchars($field, ENT_QUOTES, 'UTF-8') ?>" rows="6" <?= $isRequired ? 'required' : '' ?>><?= htmlspecialchars($value, ENT_QUOTES, 'UTF-8') ?></textarea>
+                            <?php else: ?>
+                                <input class="form-control" id="<?= htmlspecialchars($field, ENT_QUOTES, 'UTF-8') ?>" name="<?= htmlspecialchars($field, ENT_QUOTES, 'UTF-8') ?>" type="<?= htmlspecialchars($inputType, ENT_QUOTES, 'UTF-8') ?>" value="<?= htmlspecialchars($value, ENT_QUOTES, 'UTF-8') ?>" <?= $isRequired ? 'required' : '' ?>>
+                            <?php endif; ?>
+                        </div>
+                    <?php endforeach; ?>
                 </div>
             </div>
             <div class="card-footer text-end">
@@ -104,9 +95,13 @@ include __DIR__ . '/partials/header.php';
                 </div>
                 <ul class="list-unstyled mb-0">
                     <?php foreach ($profileFields as $field): ?>
-                        <?php $hasValue = trim((string)($meta[$field] ?? '')) !== ''; ?>
+                        <?php
+                        $field = (string)$field;
+                        $definition = is_array($profileFieldDefinitions[$field] ?? null) ? $profileFieldDefinitions[$field] : ['label' => $field];
+                        $hasValue = trim($profileValue($field)) !== '';
+                        ?>
                         <li class="d-flex justify-content-between py-1">
-                            <span><?= htmlspecialchars(ucwords(str_replace('_', ' ', (string)$field))) ?></span>
+                            <span><?= htmlspecialchars((string)($definition['label'] ?? ucwords(str_replace('_', ' ', $field))), ENT_QUOTES, 'UTF-8') ?></span>
                             <span class="badge <?= $hasValue ? 'bg-green-lt text-green' : 'bg-secondary-lt text-secondary' ?>">
                                 <?= $hasValue ? 'Erledigt' : 'Offen' ?>
                             </span>

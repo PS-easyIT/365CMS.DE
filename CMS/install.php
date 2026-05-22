@@ -29,8 +29,11 @@ if (PHP_SAPI !== 'cli') {
 
 // Session für mehrstufiges Formular
 if (session_status() !== PHP_SESSION_ACTIVE) {
-    $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
-        || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && strtolower((string) $_SERVER['HTTP_X_FORWARDED_PROTO']) === 'https');
+    $isHttps = (!empty($_SERVER['HTTPS']) && strtolower((string) $_SERVER['HTTPS']) !== 'off')
+        || (int) ($_SERVER['SERVER_PORT'] ?? 0) === 443
+        || in_array(strtolower((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')), ['https', 'wss'], true)
+        || in_array(strtolower((string) ($_SERVER['HTTP_X_FORWARDED_SSL'] ?? '')), ['on', '1', 'true'], true)
+        || in_array(strtolower((string) ($_SERVER['HTTP_FRONT_END_HTTPS'] ?? '')), ['on', '1'], true);
 
     ini_set('session.use_strict_mode', '1');
     session_set_cookie_params([

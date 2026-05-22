@@ -25,6 +25,8 @@ if (!defined('ABSPATH')) {
 final class MemberController
 {
     private const MEMBER_MEDIA_MOVE_TARGET_MAX_NODES = 500;
+    private const DEFAULT_PROFILE_FIELDS = ['first_name', 'last_name', 'username', 'birth_date', 'email', 'website', 'social'];
+    private const REQUIRED_PROFILE_FIELDS = ['username', 'email'];
 
     private static ?self $instance = null;
 
@@ -114,6 +116,7 @@ final class MemberController
                 }
 
                 if (is_array($this->settings)) {
+                    $this->settings = $this->normalizeProfileSettings($this->settings);
                     $this->settings['dashboard_enabled'] = $memberDashboardModuleEnabled
                         && !empty($this->settings['dashboard_enabled']);
                     return $this->settings;
@@ -129,7 +132,10 @@ final class MemberController
             'welcome_message' => '',
             'default_role' => 'member',
             'widgets' => ['profile', 'activity', 'notifications', 'quick_links'],
-            'profile_fields' => ['first_name', 'last_name', 'bio', 'website', 'avatar'],
+            'profile_fields' => self::DEFAULT_PROFILE_FIELDS,
+            'required_profile_fields' => self::REQUIRED_PROFILE_FIELDS,
+            'custom_profile_fields' => [],
+            'profile_field_definitions' => $this->getProfileFieldDefinitions(),
             'dashboard_columns' => 3,
             'section_order' => 'quick_start,stats,widgets,plugins',
             'dashboard_logo' => '',
@@ -175,7 +181,93 @@ final class MemberController
             'plugin_widget_order' => [],
         ];
 
+        $this->settings = $this->normalizeProfileSettings($this->settings);
+
         return $this->settings;
+    }
+
+    /**
+     * @return array<string,array<string,mixed>>
+     */
+    public function getProfileFieldDefinitions(): array
+    {
+        $settings = $this->settings ?? [];
+        if (is_array($settings['profile_field_definitions'] ?? null) && $settings['profile_field_definitions'] !== []) {
+            return $settings['profile_field_definitions'];
+        }
+
+        $definitions = [
+            'first_name' => ['label' => 'Vorname', 'type' => 'text'],
+            'last_name' => ['label' => 'Nachname', 'type' => 'text'],
+            'username' => ['label' => 'Benutzername', 'type' => 'text', 'required' => true, 'locked' => true],
+            'birth_date' => ['label' => 'Geburtsdatum', 'type' => 'date'],
+            'email' => ['label' => 'Mailadresse', 'type' => 'email', 'required' => true, 'locked' => true],
+            'website' => ['label' => 'Website', 'type' => 'url'],
+            'social' => ['label' => 'SocialMedia', 'type' => 'url'],
+            'bio' => ['label' => 'Biografie', 'type' => 'textarea'],
+            'phone' => ['label' => 'Telefon', 'type' => 'text'],
+            'company' => ['label' => 'Firma', 'type' => 'text'],
+            'position' => ['label' => 'Position', 'type' => 'text'],
+            'location' => ['label' => 'Standort', 'type' => 'text'],
+            'avatar' => ['label' => 'Profilbild', 'type' => 'url'],
+        ];
+
+        foreach ((array)($settings['custom_profile_fields'] ?? []) as $field) {
+            if (!is_array($field)) {
+                continue;
+            }
+            $key = (string)($field['key'] ?? '');
+            if ($key === '' || isset($definitions[$key])) {
+                continue;
+            }
+            $definitions[$key] = [
+                'label' => (string)($field['label'] ?? $key),
+                'type' => (string)($field['type'] ?? 'text'),
+                'required' => !empty($field['required']),
+                'custom' => true,
+            ];
+        }
+
+        return $definitions;
+    }
+
+    /**
+     * @param array<string,mixed> $settings
+     * @return array<string,mixed>
+     */
+    private function normalizeProfileSettings(array $settings): array
+    {
+        $definitions = $this->getProfileFieldDefinitionsFromSettings($settings);
+        $profileFields = array_values(array_intersect(
+            array_keys($definitions),
+            array_map('strval', (array)($settings['profile_fields'] ?? self::DEFAULT_PROFILE_FIELDS))
+        ));
+        if ($profileFields === []) {
+            $profileFields = self::DEFAULT_PROFILE_FIELDS;
+        }
+        $settings['profile_fields'] = array_values(array_unique(array_merge($profileFields, self::REQUIRED_PROFILE_FIELDS)));
+        $settings['required_profile_fields'] = array_values(array_unique(array_merge(
+            array_intersect($settings['profile_fields'], array_map('strval', (array)($settings['required_profile_fields'] ?? self::REQUIRED_PROFILE_FIELDS))),
+            self::REQUIRED_PROFILE_FIELDS
+        )));
+        $settings['custom_profile_fields'] = is_array($settings['custom_profile_fields'] ?? null) ? $settings['custom_profile_fields'] : [];
+        $settings['profile_field_definitions'] = $definitions;
+
+        return $settings;
+    }
+
+    /**
+     * @param array<string,mixed> $settings
+     * @return array<string,array<string,mixed>>
+     */
+    private function getProfileFieldDefinitionsFromSettings(array $settings): array
+    {
+        $currentSettings = $this->settings;
+        $this->settings = $settings;
+        $definitions = $this->getProfileFieldDefinitions();
+        $this->settings = $currentSettings;
+
+        return $definitions;
     }
 
     public function csrfToken(string $action): string
@@ -408,6 +500,7 @@ final class MemberController
     {
         $settings = $this->getSettings();
         $meta = $this->memberService->getUserMeta($this->getUserId());
+        $user = $this->getCurrentUser();
         $selectedFields = (array)($settings['profile_fields'] ?? []);
         $completed = 0;
         $missing = [];
@@ -415,6 +508,8 @@ final class MemberController
 
         foreach ($selectedFields as $field) {
             $value = match ($field) {
+                'username' => $user->username ?? '',
+                'email' => $user->email ?? '',
                 'avatar' => $meta['avatar'] ?? '',
                 'social' => $meta['social'] ?? '',
                 default => $meta[$field] ?? '',
@@ -854,17 +949,29 @@ final class MemberController
             $this->redirect('/member/profile');
         }
 
+        $settings = $this->getSettings();
+        $profileDefinitions = is_array($settings['profile_field_definitions'] ?? null)
+            ? $settings['profile_field_definitions']
+            : $this->getProfileFieldDefinitions();
+        $requiredFields = array_values(array_unique(array_merge(
+            ['username', 'email'],
+            array_map('strval', (array)($settings['required_profile_fields'] ?? []))
+        )));
+        $currentUser = $this->getCurrentUser();
+        $currentMeta = $this->memberService->getUserMeta($this->getUserId());
+
         $data = [
-            'display_name' => trim((string)($_POST['display_name'] ?? '')),
-            'first_name' => trim((string)($_POST['first_name'] ?? '')),
-            'last_name' => trim((string)($_POST['last_name'] ?? '')),
-            'email' => trim((string)($_POST['email'] ?? '')),
-            'bio' => trim((string)($_POST['bio'] ?? '')),
-            'website' => $this->sanitizeProfileUrl((string)($_POST['website'] ?? '')),
-            'phone' => trim((string)($_POST['phone'] ?? '')),
-            'company' => trim((string)($_POST['company'] ?? '')),
-            'position' => trim((string)($_POST['position'] ?? '')),
-            'birth_date' => trim((string)($_POST['birth_date'] ?? '')),
+            'display_name' => trim((string)($_POST['display_name'] ?? ($currentUser->display_name ?? ''))),
+            'username' => trim((string)($_POST['username'] ?? ($currentUser->username ?? ''))),
+            'first_name' => trim((string)($_POST['first_name'] ?? ($currentMeta['first_name'] ?? ''))),
+            'last_name' => trim((string)($_POST['last_name'] ?? ($currentMeta['last_name'] ?? ''))),
+            'email' => trim((string)($_POST['email'] ?? ($currentUser->email ?? ''))),
+            'bio' => trim((string)($_POST['bio'] ?? ($currentMeta['bio'] ?? ''))),
+            'website' => $this->sanitizeProfileUrl((string)($_POST['website'] ?? ($currentMeta['website'] ?? ''))),
+            'phone' => trim((string)($_POST['phone'] ?? ($currentMeta['phone'] ?? ''))),
+            'company' => trim((string)($_POST['company'] ?? ($currentMeta['company'] ?? ''))),
+            'position' => trim((string)($_POST['position'] ?? ($currentMeta['position'] ?? ''))),
+            'birth_date' => trim((string)($_POST['birth_date'] ?? ($currentMeta['birth_date'] ?? ''))),
         ];
 
         if (trim((string)($_POST['website'] ?? '')) !== '' && $data['website'] === '') {
@@ -872,22 +979,55 @@ final class MemberController
             $this->redirect('/member/profile');
         }
 
-        $social = $this->sanitizeProfileUrl((string)($_POST['social'] ?? ''));
+        $social = $this->sanitizeProfileUrl((string)($_POST['social'] ?? ($currentMeta['social'] ?? '')));
         if (trim((string)($_POST['social'] ?? '')) !== '' && $social === '') {
             $this->flash('danger', 'Bitte einen gültigen Social-/Profil-Link mit http:// oder https:// angeben.');
             $this->redirect('/member/profile');
         }
 
-        $avatar = $this->normalizeProfileMediaUrl((string)($_POST['avatar'] ?? ''));
+        $avatar = $this->normalizeProfileMediaUrl((string)($_POST['avatar'] ?? ($currentMeta['avatar'] ?? '')));
         if (trim((string)($_POST['avatar'] ?? '')) !== '' && $avatar === '') {
             $this->flash('danger', 'Bitte eine gültige Avatar-URL oder einen erlaubten relativen Medienpfad angeben.');
             $this->redirect('/member/profile');
+        }
+
+        $customValues = [];
+        foreach ($profileDefinitions as $fieldKey => $definition) {
+            if (empty($definition['custom'])) {
+                continue;
+            }
+
+            $customValues[(string)$fieldKey] = $this->sanitizeDynamicProfileFieldValue(
+                (string)($_POST[(string)$fieldKey] ?? ($currentMeta[(string)$fieldKey] ?? '')),
+                (string)($definition['type'] ?? 'text')
+            );
+
+            if (trim((string)($_POST[(string)$fieldKey] ?? '')) !== '' && (string)($definition['type'] ?? 'text') === 'url' && $customValues[(string)$fieldKey] === '') {
+                $this->flash('danger', 'Bitte eine gültige URL für „' . (string)($definition['label'] ?? $fieldKey) . '“ mit http:// oder https:// angeben.');
+                $this->redirect('/member/profile');
+            }
+        }
+
+        $submittedValues = array_merge($data, [
+            'location' => trim((string)($_POST['location'] ?? '')),
+            'social' => $social,
+            'avatar' => $avatar,
+        ], $customValues);
+        foreach ($requiredFields as $requiredField) {
+            if (trim((string)($submittedValues[$requiredField] ?? '')) === '') {
+                $label = (string)($profileDefinitions[$requiredField]['label'] ?? $requiredField);
+                $this->flash('danger', 'Bitte das Pflichtfeld „' . $label . '“ ausfüllen.');
+                $this->redirect('/member/profile');
+            }
         }
 
         $result = $this->memberService->updateProfile($this->getUserId(), $data);
         $this->upsertUserMeta('location', trim((string)($_POST['location'] ?? '')));
         $this->upsertUserMeta('social', $social);
         $this->upsertUserMeta('avatar', $avatar);
+        foreach ($customValues as $fieldKey => $fieldValue) {
+            $this->upsertUserMeta($fieldKey, $fieldValue);
+        }
 
         if ($result === true) {
             $this->flash('success', 'Dein Profil wurde aktualisiert.');
@@ -896,6 +1036,21 @@ final class MemberController
         }
 
         $this->redirect('/member/profile');
+    }
+
+    private function sanitizeDynamicProfileFieldValue(string $value, string $type): string
+    {
+        $value = trim($value);
+        if ($value === '') {
+            return '';
+        }
+
+        return match ($type) {
+            'textarea' => trim(strip_tags($value)),
+            'url' => $this->sanitizeProfileUrl($value),
+            'date' => preg_match('/^\d{4}-\d{2}-\d{2}$/', $value) === 1 ? $value : '',
+            default => trim(strip_tags($value)),
+        };
     }
 
     public function handleNotificationsRequest(): void

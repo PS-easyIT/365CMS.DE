@@ -75,6 +75,18 @@ $_cmsAppConfig = __DIR__ . '/config/app.php';
 if (!file_exists($_cmsAppConfig)) {
     // Noch keine Installation – direkt zum Installer
     if (!defined('CMS_INSTALLER_RUNNING')) {
+        if (defined('CMS_CRON_RUNNING')) {
+            if (PHP_SAPI === 'cli') {
+                fwrite(STDERR, '365CMS Cron kann nicht starten: config/app.php fehlt. Bitte Installation abschließen.' . PHP_EOL);
+                exit(1);
+            }
+
+            http_response_code(503);
+            header('Content-Type: text/plain; charset=UTF-8');
+            echo '365CMS Cron kann nicht starten: Installation nicht abgeschlossen.';
+            exit;
+        }
+
         header('Location: ' . rtrim(dirname($_SERVER['SCRIPT_NAME'] ?? ''), '/') . '/install.php');
         exit;
     }
@@ -94,6 +106,18 @@ if (!defined('CMS_INSTALLER_RUNNING')
         || str_contains(DB_NAME, 'YOUR_')
     )
 ) {
+    if (defined('CMS_CRON_RUNNING')) {
+        if (PHP_SAPI === 'cli') {
+            fwrite(STDERR, '365CMS Cron kann nicht starten: Datenbank-Konfiguration enthält Platzhalter. Bitte Installation abschließen.' . PHP_EOL);
+            exit(1);
+        }
+
+        http_response_code(503);
+        header('Content-Type: text/plain; charset=UTF-8');
+        echo '365CMS Cron kann nicht starten: Konfiguration nicht abgeschlossen.';
+        exit;
+    }
+
     http_response_code(503);
     ?>
     <!DOCTYPE html>

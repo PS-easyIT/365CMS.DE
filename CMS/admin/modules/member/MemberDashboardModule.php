@@ -40,9 +40,12 @@ class MemberDashboardModule
         'member_registration_enabled',
         'member_email_verification',
         'member_welcome_message',
-        'member_dashboard_widgets',
         'member_default_role',
+        'member_dashboard_widgets',
         'member_profile_fields',
+        'member_required_profile_fields',
+        'member_custom_profile_fields',
+        'member_subscription_visible',
         'member_dashboard_columns',
         'member_dashboard_section_order',
         'member_dashboard_custom_widget_order',
@@ -50,7 +53,6 @@ class MemberDashboardModule
         'member_dashboard_greeting',
         'member_dashboard_welcome_text',
         'member_dashboard_show_welcome',
-        'member_subscription_visible',
         'member_widget_1_title',
         'member_widget_1_content',
         'member_widget_1_icon',
@@ -114,56 +116,91 @@ class MemberDashboardModule
         'weekly' => 'Wöchentlich',
     ];
 
+    private const DEFAULT_PROFILE_FIELDS = ['first_name', 'last_name', 'username', 'birth_date', 'email', 'website', 'social'];
+    private const REQUIRED_PROFILE_FIELDS = ['username', 'email'];
+
     private const PROFILE_FIELDS = [
         'first_name' => [
-            'label'       => 'Vorname',
-            'description' => 'Pflichtnahes Basisfeld für persönliche Ansprache.',
+            'label' => 'Vorname',
+            'description' => 'Basisfeld für persönliche Ansprache.',
             'recommended' => true,
+            'type' => 'text',
         ],
         'last_name' => [
-            'label'       => 'Nachname',
+            'label' => 'Nachname',
             'description' => 'Für vollständige Profile und Verzeichnisse sinnvoll.',
             'recommended' => true,
+            'type' => 'text',
         ],
-        'bio' => [
-            'label'       => 'Biografie',
-            'description' => 'Kurzbeschreibung für Mitgliederprofil oder Netzwerkseiten.',
+        'username' => [
+            'label' => 'Benutzername',
+            'description' => 'Eindeutiger Login- und Profilname. Immer Pflichtfeld.',
             'recommended' => true,
+            'required' => true,
+            'locked' => true,
+            'type' => 'text',
+        ],
+        'birth_date' => [
+            'label' => 'Geburtsdatum',
+            'description' => 'Optionales Datumsfeld für Mitgliedsprofile.',
+            'recommended' => false,
+            'type' => 'date',
+        ],
+        'email' => [
+            'label' => 'Mailadresse',
+            'description' => 'Eindeutige Kontakt- und Login-Adresse. Immer Pflichtfeld.',
+            'recommended' => true,
+            'required' => true,
+            'locked' => true,
+            'type' => 'email',
         ],
         'website' => [
-            'label'       => 'Website',
+            'label' => 'Website',
             'description' => 'Externe Website oder Portfolio verlinken.',
             'recommended' => false,
-        ],
-        'phone' => [
-            'label'       => 'Telefon',
-            'description' => 'Nur aktivieren, wenn Kontaktdaten im Portal sichtbar sein sollen.',
-            'recommended' => false,
-        ],
-        'company' => [
-            'label'       => 'Firma',
-            'description' => 'Hilfreich für Branchen-, Speaker- oder Expertenprofile.',
-            'recommended' => false,
-        ],
-        'position' => [
-            'label'       => 'Position',
-            'description' => 'Berufsbezeichnung oder Rolle im Unternehmen.',
-            'recommended' => false,
-        ],
-        'location' => [
-            'label'       => 'Standort',
-            'description' => 'Ort oder Region für Community- und Netzwerkfunktionen.',
-            'recommended' => false,
+            'type' => 'url',
         ],
         'social' => [
-            'label'       => 'Social-Media-Links',
+            'label' => 'Social-Media-Links',
             'description' => 'Zeigt zusätzliche Social-Profile im Member-Bereich.',
             'recommended' => false,
+            'type' => 'url',
+        ],
+        'bio' => [
+            'label' => 'Biografie',
+            'description' => 'Kurzbeschreibung für Mitgliederprofil oder Netzwerkseiten.',
+            'recommended' => false,
+            'type' => 'textarea',
+        ],
+        'phone' => [
+            'label' => 'Telefon',
+            'description' => 'Nur aktivieren, wenn Kontaktdaten im Portal sichtbar sein sollen.',
+            'recommended' => false,
+            'type' => 'text',
+        ],
+        'company' => [
+            'label' => 'Firma',
+            'description' => 'Hilfreich für Branchen-, Speaker- oder Expertenprofile.',
+            'recommended' => false,
+            'type' => 'text',
+        ],
+        'position' => [
+            'label' => 'Position',
+            'description' => 'Berufsbezeichnung oder Rolle im Unternehmen.',
+            'recommended' => false,
+            'type' => 'text',
+        ],
+        'location' => [
+            'label' => 'Standort',
+            'description' => 'Ort oder Region für Community- und Netzwerkfunktionen.',
+            'recommended' => false,
+            'type' => 'text',
         ],
         'avatar' => [
-            'label'       => 'Profilbild',
+            'label' => 'Profilbild',
             'description' => 'Wichtig für persönliche Darstellung und Wiedererkennung.',
-            'recommended' => true,
+            'recommended' => false,
+            'type' => 'url',
         ],
     ];
 
@@ -187,7 +224,7 @@ class MemberDashboardModule
         $settings = $this->getSettings($settingsMap);
         $stats    = $this->getMemberStats();
         $widgets  = $this->getAvailableWidgets();
-        $profileFields = $this->getProfileFieldDefinitions();
+        $profileFields = $this->getProfileFieldDefinitions($settings['custom_profile_fields'] ?? []);
         $pluginWidgets = $this->getPluginWidgets($settingsMap);
 
         return [
@@ -246,7 +283,7 @@ class MemberDashboardModule
                 'settings' => $settings,
                 'stats' => $this->getMemberStats(),
                 'widgets' => $this->getAvailableWidgets(),
-                'profileFields' => $this->getProfileFieldDefinitions(),
+                'profileFields' => $this->getProfileFieldDefinitions($settings['custom_profile_fields'] ?? []),
                 'pluginWidgets' => $pluginWidgets,
                 'overview' => $this->buildOverviewData($settings, $settingsMap, $pluginWidgets),
                 'dashboardPreview' => $this->buildDashboardPreviewData($settings, $settingsMap, $pluginWidgets),
@@ -265,7 +302,7 @@ class MemberDashboardModule
             ],
             'profile-fields' => [
                 'settings' => $settings,
-                'profileFields' => $this->getProfileFieldDefinitions(),
+                'profileFields' => $this->getProfileFieldDefinitions($settings['custom_profile_fields'] ?? []),
                 'profileFieldCompatibility' => $this->buildProfileFieldCompatibility($settings),
             ],
             'notifications' => [
@@ -399,13 +436,34 @@ class MemberDashboardModule
     private function saveProfileSettings(array $post): array
     {
         try {
+            $customProfileFields = $this->normalizeCustomProfileFields($post['custom_profile_fields'] ?? []);
+            $profileFieldDefinitions = $this->getProfileFieldDefinitions($customProfileFields);
             $selectedFields = array_values(array_intersect(
-                array_keys(self::PROFILE_FIELDS),
+                array_keys($profileFieldDefinitions),
                 array_keys(array_filter($post['profile_fields'] ?? []))
             ));
+            foreach ($customProfileFields as $customField) {
+                if (!empty($customField['enabled'])) {
+                    $selectedFields[] = (string)$customField['key'];
+                }
+            }
+            $selectedFields = array_values(array_unique(array_merge($selectedFields, self::REQUIRED_PROFILE_FIELDS)));
+
+            $requiredFields = array_values(array_intersect(
+                $selectedFields,
+                array_keys(array_filter($post['required_profile_fields'] ?? []))
+            ));
+            foreach ($customProfileFields as $customField) {
+                if (!empty($customField['required']) && in_array((string)$customField['key'], $selectedFields, true)) {
+                    $requiredFields[] = (string)$customField['key'];
+                }
+            }
+            $requiredFields = array_values(array_unique(array_merge($requiredFields, self::REQUIRED_PROFILE_FIELDS)));
 
             $values = [
                 'member_profile_fields'       => json_encode($selectedFields, JSON_UNESCAPED_UNICODE),
+                'member_required_profile_fields' => json_encode($requiredFields, JSON_UNESCAPED_UNICODE),
+                'member_custom_profile_fields' => json_encode($customProfileFields, JSON_UNESCAPED_UNICODE),
                 'member_subscription_visible' => !empty($post['subscription_visible']) ? '1' : '0',
             ];
 
@@ -575,6 +633,24 @@ class MemberDashboardModule
             $settings = $this->loadSettingsMap();
         }
 
+        $customProfileFields = $this->normalizeCustomProfileFields(
+            \CMS\Json::decodeArray($settings['member_custom_profile_fields'] ?? null, [])
+        );
+        $profileFieldDefinitions = $this->getProfileFieldDefinitions($customProfileFields);
+        $selectedProfileFields = array_values(array_intersect(
+            array_keys($profileFieldDefinitions),
+            array_map('strval', \CMS\Json::decodeArray($settings['member_profile_fields'] ?? null, self::DEFAULT_PROFILE_FIELDS))
+        ));
+        if ($selectedProfileFields === []) {
+            $selectedProfileFields = self::DEFAULT_PROFILE_FIELDS;
+        }
+        $selectedProfileFields = array_values(array_unique(array_merge($selectedProfileFields, self::REQUIRED_PROFILE_FIELDS)));
+        $requiredProfileFields = array_values(array_intersect(
+            $selectedProfileFields,
+            array_map('strval', \CMS\Json::decodeArray($settings['member_required_profile_fields'] ?? null, self::REQUIRED_PROFILE_FIELDS))
+        ));
+        $requiredProfileFields = array_values(array_unique(array_merge($requiredProfileFields, self::REQUIRED_PROFILE_FIELDS)));
+
         return [
             'dashboard_enabled'    => ($settings['member_dashboard_enabled'] ?? '1') === '1',
             'registration_enabled' => ($settings['member_registration_enabled'] ?? '1') === '1',
@@ -582,7 +658,10 @@ class MemberDashboardModule
             'welcome_message'      => $settings['member_welcome_message'] ?? '',
             'default_role'         => $settings['member_default_role'] ?? 'member',
             'widgets'              => \CMS\Json::decodeArray($settings['member_dashboard_widgets'] ?? null, []),
-            'profile_fields'       => \CMS\Json::decodeArray($settings['member_profile_fields'] ?? null, []),
+            'profile_fields'       => $selectedProfileFields,
+            'required_profile_fields' => $requiredProfileFields,
+            'custom_profile_fields' => $customProfileFields,
+            'profile_field_definitions' => $profileFieldDefinitions,
             'dashboard_columns'    => (int)($settings['member_dashboard_columns'] ?? 3),
             'section_order'        => $settings['member_dashboard_section_order'] ?? 'stats,widgets,plugins',
             'custom_widget_order'  => $this->normalizeOrderedValues(
@@ -704,9 +783,80 @@ class MemberDashboardModule
         ];
     }
 
-    private function getProfileFieldDefinitions(): array
+    private function getProfileFieldDefinitions(array $customProfileFields = []): array
     {
-        return self::PROFILE_FIELDS;
+        $definitions = self::PROFILE_FIELDS;
+
+        foreach ($this->normalizeCustomProfileFields($customProfileFields) as $field) {
+            $key = (string)($field['key'] ?? '');
+            if ($key === '' || isset($definitions[$key])) {
+                continue;
+            }
+
+            $definitions[$key] = [
+                'label' => (string)($field['label'] ?? $key),
+                'description' => (string)($field['description'] ?? 'Zusätzliches Profilfeld.'),
+                'recommended' => false,
+                'type' => (string)($field['type'] ?? 'text'),
+                'required' => !empty($field['required']),
+                'custom' => true,
+            ];
+        }
+
+        return $definitions;
+    }
+
+    /**
+     * @param mixed $rawFields
+    * @return array<int,array{key:string,label:string,type:string,required:bool,enabled:bool,description:string}>
+     */
+    private function normalizeCustomProfileFields(mixed $rawFields): array
+    {
+        $rows = is_array($rawFields) ? $rawFields : [];
+        $fields = [];
+        $usedKeys = array_fill_keys(array_keys(self::PROFILE_FIELDS), true);
+
+        foreach ($rows as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+
+            $label = $this->sanitizeTextSetting((string)($row['label'] ?? ''), 80);
+            $rawKey = strtolower(trim((string)($row['key'] ?? '')));
+            if ($rawKey === '' && $label !== '') {
+                $rawKey = strtolower(trim((string)preg_replace('/[^a-zA-Z0-9]+/', '_', $label), '_'));
+            }
+
+            $key = strtolower((string)preg_replace('/[^a-z0-9_]/', '_', $rawKey));
+            $key = trim((string)preg_replace('/_+/', '_', $key), '_');
+            if ($key === '' || $label === '') {
+                continue;
+            }
+            if (!str_starts_with($key, 'custom_')) {
+                $key = 'custom_' . $key;
+            }
+            $key = substr($key, 0, 64);
+            if (isset($usedKeys[$key])) {
+                continue;
+            }
+
+            $type = (string)($row['type'] ?? 'text');
+            if (!in_array($type, ['text', 'textarea', 'url', 'date'], true)) {
+                $type = 'text';
+            }
+
+            $usedKeys[$key] = true;
+            $fields[] = [
+                'key' => $key,
+                'label' => $label,
+                'type' => $type,
+                'required' => !empty($row['required']),
+                'enabled' => !empty($row['enabled']),
+                'description' => $this->sanitizeTextSetting((string)($row['description'] ?? 'Zusätzliches Profilfeld.'), 160),
+            ];
+        }
+
+        return $fields;
     }
 
     /**
@@ -721,8 +871,9 @@ class MemberDashboardModule
      */
     private function buildProfileFieldCompatibility(array $settings): array
     {
+        $profileFieldDefinitions = $this->getProfileFieldDefinitions($settings['custom_profile_fields'] ?? []);
         $selectedFields = array_values(array_intersect(
-            array_keys(self::PROFILE_FIELDS),
+            array_keys($profileFieldDefinitions),
             array_map('strval', (array)($settings['profile_fields'] ?? []))
         ));
 
@@ -738,7 +889,7 @@ class MemberDashboardModule
             'fields' => [],
         ];
 
-        foreach (self::PROFILE_FIELDS as $fieldKey => $definition) {
+        foreach ($profileFieldDefinitions as $fieldKey => $definition) {
             $result['fields'][$fieldKey] = [
                 'key' => $fieldKey,
                 'label' => (string)($definition['label'] ?? $fieldKey),
@@ -757,7 +908,7 @@ class MemberDashboardModule
                 return $result;
             }
 
-            foreach (array_keys(self::PROFILE_FIELDS) as $fieldKey) {
+            foreach (array_keys($profileFieldDefinitions) as $fieldKey) {
                 $fieldSummary = $this->getProfileFieldMissingSummary((string)$fieldKey);
                 $result['fields'][$fieldKey]['missing_count'] = $fieldSummary['missing_count'];
                 $result['fields'][$fieldKey]['missing_samples'] = $fieldSummary['missing_samples'];
@@ -790,6 +941,20 @@ class MemberDashboardModule
         }
 
         try {
+            if (in_array($fieldKey, ['username', 'email'], true)) {
+                $missingCount = (int)$this->db->get_var(
+                    "SELECT COUNT(*)
+                       FROM {$this->prefix}users u
+                      WHERE u.status = 'active'
+                        AND (u.{$fieldKey} IS NULL OR TRIM(u.{$fieldKey}) = '')"
+                );
+
+                return [
+                    'missing_count' => $missingCount,
+                    'missing_samples' => $this->getProfileFieldMissingSamples([$fieldKey], 8),
+                ];
+            }
+
             $missingCount = (int)$this->db->get_var(
                 "SELECT COUNT(*)
                    FROM {$this->prefix}users u
@@ -820,14 +985,19 @@ class MemberDashboardModule
         $missingClauses = [];
         $params = [];
         foreach ($selectedFields as $fieldKey) {
-            $missingClauses[] = "NOT EXISTS (
-                SELECT 1
-                  FROM {$this->prefix}user_meta um
-                 WHERE um.user_id = u.id
-                   AND um.meta_key = ?
-                   AND TRIM(um.meta_value) <> ''
-            )";
-            $params[] = $fieldKey;
+                        if (in_array($fieldKey, ['username', 'email'], true)) {
+                                $missingClauses[] = "(u.{$fieldKey} IS NULL OR TRIM(u.{$fieldKey}) = '')";
+                                continue;
+                        }
+
+                        $missingClauses[] = "NOT EXISTS (
+                                SELECT 1
+                                    FROM {$this->prefix}user_meta um
+                                 WHERE um.user_id = u.id
+                                     AND um.meta_key = ?
+                                     AND TRIM(um.meta_value) <> ''
+                        )";
+                        $params[] = $fieldKey;
         }
 
         try {
@@ -863,14 +1033,19 @@ class MemberDashboardModule
         $missingClauses = [];
         $params = [];
         foreach ($fieldKeys as $fieldKey) {
-            $missingClauses[] = "NOT EXISTS (
-                SELECT 1
-                  FROM {$this->prefix}user_meta um
-                 WHERE um.user_id = u.id
-                   AND um.meta_key = ?
-                   AND TRIM(um.meta_value) <> ''
-            )";
-            $params[] = $fieldKey;
+                        if (in_array($fieldKey, ['username', 'email'], true)) {
+                                $missingClauses[] = "(u.{$fieldKey} IS NULL OR TRIM(u.{$fieldKey}) = '')";
+                                continue;
+                        }
+
+                        $missingClauses[] = "NOT EXISTS (
+                                SELECT 1
+                                    FROM {$this->prefix}user_meta um
+                                 WHERE um.user_id = u.id
+                                     AND um.meta_key = ?
+                                     AND TRIM(um.meta_value) <> ''
+                        )";
+                        $params[] = $fieldKey;
         }
 
         try {
@@ -908,7 +1083,10 @@ class MemberDashboardModule
     {
         $fieldKey = trim($fieldKey);
 
-        return isset(self::PROFILE_FIELDS[$fieldKey]) ? $fieldKey : '';
+        $settings = $this->loadSettingsMap();
+        $customFields = \CMS\Json::decodeArray($settings['member_custom_profile_fields'] ?? null, []);
+
+        return isset($this->getProfileFieldDefinitions($customFields)[$fieldKey]) ? $fieldKey : '';
     }
 
     private function getAvailableRoles(): array
@@ -1392,7 +1570,7 @@ class MemberDashboardModule
     {
         $frontendModules = is_array($settings['frontend_modules'] ?? null) ? $settings['frontend_modules'] : [];
         $availableWidgets = $this->getAvailableWidgets();
-        $profileFieldDefinitions = $this->getProfileFieldDefinitions();
+        $profileFieldDefinitions = $this->getProfileFieldDefinitions($settings['custom_profile_fields'] ?? []);
         $pluginWidgets ??= $this->getPluginWidgets($settingsMap);
         $pluginWidgets = $this->sortPluginWidgetsByStoredOrder($pluginWidgets, (array)($settings['plugin_widget_order'] ?? []));
         $customWidgetOrder = $this->normalizeOrderedValues(
@@ -1529,8 +1707,9 @@ class MemberDashboardModule
     {
         $analytics = $this->emptyOnboardingAnalytics();
 
+        $profileFieldDefinitions = $this->getProfileFieldDefinitions($settings['custom_profile_fields'] ?? []);
         $selectedProfileFields = array_values(array_intersect(
-            array_keys(self::PROFILE_FIELDS),
+            array_keys($profileFieldDefinitions),
             array_map('strval', (array)($settings['profile_fields'] ?? []))
         ));
 

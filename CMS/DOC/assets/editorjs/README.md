@@ -21,6 +21,7 @@
 - Zusätzlich aktivierte lokale Erweiterungen: `embed`, `linkTool`, `attaches`, `warning`, `raw`, `accordion`, `imageGallery` sowie Inline-Tools `inlineCode`, `underline`, `spoiler`.
 - Produktive Editor-Plugins: `editorjs-undo` für Undo/Redo inkl. Toolbar-Buttons und `editorjs-drag-drop` für Block-Reordering per Drag&Drop. Beide werden lokal als UMD-Dateien geladen und defensiv initialisiert.
 - Der Admin-Editor bietet eine WordPress/Gutenberg-ähnlichere Oberfläche: Commandbar mit Block-Inserter, Undo/Redo, Breitenmodus und gruppierte Blockkarten für Text, Medien sowie Layout/Spezialblöcke.
+- Hinweis-/Warnboxen werden seit `3.0.15` über das lokale `CmsWarningTool` gerendert: Titel und Inhalt sind contenteditable, unterstützen sichere Inline-Formatierungen und können als `Info`, `Warnung`, `Erfolg` oder `Kritisch` gespeichert werden.
 - Nachtrag 19.05.2026: Die lokale Tool-Schicht unterstützt Read-only-Kontexte defensiver, sodass Vorschau- und geschützte Ansichten nicht mehr von editierbaren UI-Annahmen abhängen.
 - Der Core wird bytegleich aus `ASSETS/editor.js-2.31.6/editorjs.umd.js` in `CMS/assets/editorjs/editorjs.umd.js` bereitgestellt.
 - Die Page/Post-Tools werden als lokale UMD-Dateien aus `CMS/assets/editorjs/` geladen: Core, Basis-Tools und stabile Erweiterungen werden deterministisch vor `CMS/assets/js/editor-init.js` eingebunden.
@@ -46,8 +47,10 @@ Damit entsteht ein WordPress-ähnliches Blockgefühl, während Sanitizer, Render
 - Das Frontend rendert über `EditorJsRenderer` typ-spezifisch und sanitizt Inline-/Raw-Inhalte erneut.
 - Nachtrag 19.05.2026: `EditorJsSanitizer` normalisiert Spacer-Höhen aus Presets und Pixelwerten in einen begrenzten Bereich bis `200px`; ungültige Werte fallen auf sichere Defaults zurück.
 - Spacer-Blöcke werden im Public-HTML mit kontrolliertem `data-height`, `role="presentation"` und `aria-hidden="true"` ausgegeben; der zentrale Purifier erlaubt diese Attribute, damit Themes die gespeicherte Höhe per CSS-Fallback sichtbar abbilden können.
+- Das globale Public-Stylesheet `CMS/assets/css/editorjs-content.css` lädt im Frontend seit `3.0.21` nicht mehr render-blockierend: `CMS/core/Bootstrap.php` injiziert einen kleinen Inline-Basisstil für Blöcke, Medien, Tabellen und Spacer und lädt die vollständige CSS anschließend per `preload`/`onload` mit `noscript`-Fallback nach.
 - Themes, die eigene Rich-Content-Abstände setzen, müssen `.editorjs-spacer[data-height]` aus generischen Absatz-/Block-Margins ausnehmen und die Höhe explizit über `height`/`min-height` oder eine CSS-Variable respektieren.
 - Bild- und Galerieblöcke behalten Darstellungsoptionen wie Ausrichtung, Größe, Rahmen, Hintergrund, Rundung und Schatten über normalisierte Datenattribute, damit Themes gezielt stylen können, ohne unsichere HTML-Fragmente zu übernehmen.
+- Hinweis-/Warnboxen speichern `variant`, `title` und `message`; Titel und Nachricht laufen durch denselben Inline-Sanitizer wie Textblöcke, sodass erlaubte Markups wie `<strong>`, `<em>`, `<u>`, `<code>`, sichere Links und Spoiler erhalten bleiben.
 - Legacy-Inhalte (JSON-String, HTML-Fallback, Plaintext) werden clientseitig in `editor-init.js` rückwärtskompatibel in Blockdaten normalisiert.
 - Bild-Uploads laufen weiterhin über den bestehenden `/api/media?action=upload_image`-Flow inkl. CSRF-Header; alternativ kann das Bild-Tool eine vorhandene URL speichern.
 - Page-/Post-Uploads reichen den Editor-Kontext (`content_type`, Slug-/Titel-Fallbacks, `draft_key`) an `/api/media` weiter, damit Bilder direkt in `uploads/articles/...`, `uploads/pages/...` oder temporäre Draft-Ordner einsortiert werden.

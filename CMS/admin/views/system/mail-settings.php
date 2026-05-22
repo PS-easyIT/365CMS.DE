@@ -140,7 +140,9 @@ $queueMetricCards = [
     ['label' => 'Final fehlgeschlagen', 'value' => (int) ($queueStats['failed'] ?? 0), 'class' => 'text-danger'],
 ];
 $workerReadonlyFields = [
-    ['label' => 'Webhook-/Cron-URL', 'value' => (string) ($queueConfig['cron_url'] ?? '')],
+    ['label' => 'Webhook-/Cron-URL (Header-Token empfohlen)', 'value' => (string) ($queueConfig['cron_url'] ?? '')],
+    ['label' => 'HTTP-Header', 'value' => (string) ($queueConfig['cron_header_name'] ?? 'X-CMS-Cron-Token') . ': ' . (string) ($queueConfig['cron_header_value'] ?? '')],
+    ['label' => 'Legacy-URL mit Token', 'value' => (string) ($queueConfig['cron_url_with_token'] ?? '')],
     ['label' => 'CLI-Beispiel', 'value' => (string) ($queueConfig['cli_command'] ?? '')],
 ];
 $queueLastRunText = !empty($queueLastRun['executed_at'])
@@ -512,7 +514,7 @@ $queueLastRunText = !empty($queueLastRun['executed_at'])
                             <?php $renderReadonlyField($field['label'], $field['value']); ?>
                         <?php endforeach; ?>
                         <div class="mb-3 small text-secondary">
-                            Der Worker verarbeitet <code>cms_mail_queue</code> über die zentrale Datei <code>cron.php</code> im CMS-Webroot. In FTP-/Shared-Hosting-Setups liegt das System typischerweise direkt unter <code>public_html</code>, sodass der Cronjob auf <code>/cron.php</code> zeigt und weiterhin abgestufte Retries für Netzwerk-, SMTP- und OAuth2-Transientfehler nutzt.
+                            Der Worker verarbeitet <code>cms_cron_mail_queue</code> über die zentrale Datei <code>cron.php</code> im CMS-Webroot. Wenn der Cron-Dienst HTTP-Header unterstützt, sollte der Token über <code>X-CMS-Cron-Token</code> gesendet werden; die Token-URL bleibt nur als kompatibler Fallback für einfache Shared-Hosting-Cronjobs erhalten.
                         </div>
                         <hr>
                         <form method="post" class="row g-3 align-items-end">

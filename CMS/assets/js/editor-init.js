@@ -22,7 +22,7 @@
     var INLINE_TOOL_NAMES = ['inlineCode', 'underline', 'spoiler'];
     var PLUGIN_NAMES = ['undo', 'dragDrop'];
     var TOOL_NAMES = BLOCK_TOOL_NAMES.concat(INLINE_TOOL_NAMES);
-    var VERSION = 'cms-editorjs-org-assets-2026-05-17';
+    var VERSION = 'cms-editorjs-org-assets-2026-05-20-box-formatting';
     var THEME_PREVIEW_STYLE_CACHE = {};
     var TOOL_GLOBALS = {
         paragraph: ['CmsParagraphTool', 'Paragraph'],
@@ -37,7 +37,7 @@
         embed: ['Embed'],
         linkTool: ['LinkTool'],
         attaches: ['AttachesTool'],
-        warning: ['Warning'],
+        warning: ['CmsWarningTool', 'Warning'],
         raw: ['RawTool'],
         accordion: ['Accordion'],
         imageGallery: ['CmsImageGalleryTool', 'ImageGallery'],
@@ -513,13 +513,7 @@
         }
 
         if (type === 'warning') {
-            return {
-                type: type,
-                data: {
-                    title: stripTags(data.title || data.caption || 'Hinweis'),
-                    message: data.message || data.text || data.content || ''
-                }
-            };
+            return { type: type, data: normalizeWarningData(data) };
         }
 
         if (type === 'raw') {
@@ -561,6 +555,21 @@
             spacing: spacing,
             level: type === 'header' ? Math.min(4, Math.max(2, parseInt(value.level || 2, 10) || 2)) : value.level
         });
+    }
+
+    function normalizeWarningData(data) {
+        var source = data && typeof data === 'object' ? data : {};
+        var variant = String(source.variant || source.type || source.tone || 'info').toLowerCase();
+
+        if (['info', 'warning', 'success', 'danger'].indexOf(variant) === -1) {
+            variant = 'info';
+        }
+
+        return {
+            variant: variant,
+            title: sanitizeEditableHtml(source.title || source.caption || 'Hinweis'),
+            message: sanitizeEditableHtml(source.message || source.text || source.content || '')
+        };
     }
 
     function normalizeImageData(data) {
@@ -1280,6 +1289,43 @@
 
             trailingHtml = splitEditableAtSelection(editable);
             insertParagraphAfterCurrent(api, editable, trailingHtml);
+        });
+    }
+
+    function bindEditableLineBreakEnterBehavior(editable) {
+        if (!editable || editable.dataset.cmsLineBreakEnterBound === '1') {
+            return;
+        }
+
+        editable.dataset.cmsLineBreakEnterBound = '1';
+        editable.addEventListener('keydown', function (event) {
+            if (event.key !== 'Enter' || event.isComposing) {
+                return;
+            }
+
+            event.preventDefault();
+            event.stopPropagation();
+            insertLineBreakAtSelection();
+            notifyToolChanged(editable);
+        });
+    }
+
+    function bindEditableFocusNextOnEnter(editable, nextEditable) {
+        if (!editable || editable.dataset.cmsFocusNextEnterBound === '1') {
+            return;
+        }
+
+        editable.dataset.cmsFocusNextEnterBound = '1';
+        editable.addEventListener('keydown', function (event) {
+            if (event.key !== 'Enter' || event.isComposing) {
+                return;
+            }
+
+            event.preventDefault();
+            event.stopPropagation();
+            if (nextEditable && typeof nextEditable.focus === 'function') {
+                nextEditable.focus();
+            }
         });
     }
 
@@ -2198,6 +2244,104 @@
     }
 
     window.CmsQuoteTool = QuoteTool;
+
+    class WarningTool {
+        constructor(options) {
+            options = options || {};
+            this.data = normalizeWarningData(options.data || {});
+            this.api = options.api || null;
+            this.readOnly = !!options.readOnly;
+            this.nodes = {};
+        }
+        static get toolbox() {
+            return { title: 'Hinweisbox', icon: '!' };
+        }
+        static get sanitize() {
+            return {
+                variant: false,
+                title: getInlineSanitizeConfig(),
+                message: getInlineSanitizeConfig()
+            };
+        }
+        static get isReadOnlySupported() {
+            return true;
+        }
+        static get conversionConfig() {
+            return {
+                export: function (data) {
+                    var normalized = normalizeWarningData(data || {});
+                    return [stripTags(normalized.title || ''), stripTags(normalized.message || '')].filter(Boolean).join('\n');
+                },
+                import: function (text) {
+                    return normalizeWarningData({ title: 'Hinweis', message: sanitizeEditableHtml(text || ''), variant: 'info' });
+                }
+            };
+        }
+        render() {
+            var wrapper = createElement('div', 'cms-editorjs-tool cms-editorjs-tool--warning');
+            var title = createEditable('cms-editorjs-editable cms-editorjs-warning__title', this.data.title || '', 'Titel der Box', this.api, this.readOnly);
+            var message = createEditable('cms-editorjs-editable cms-editorjs-warning__message', this.data.message || '', 'Hinweistext schreiben ...', this.api, this.readOnly);
+            var options = createElement('div', 'cms-editorjs-floating-options cms-editorjs-warning-options');
+            var label = createElement('span', 'cms-editorjs-floating-options__label', 'Box');
+            var variant = document.createElement('select');
+            var self = this;
+
+            options.dataset.cmsEditorUi = 'true';
+            options.dataset.mutationFree = 'true';
+            variant.className = 'form-select form-select-sm cms-editorjs-warning__variant';
+            variant.disabled = this.readOnly;
+            [
+                ['info', 'Info'],
+                ['warning', 'Warnung'],
+                ['success', 'Erfolg'],
+                ['danger', 'Kritisch']
+            ].forEach(function (item) {
+                var option = document.createElement('option');
+                option.value = item[0];
+                option.textContent = item[1];
+                variant.appendChild(option);
+            });
+            variant.value = this.data.variant || 'info';
+            variant.addEventListener('change', function () {
+                self.updateVariant(wrapper, variant.value);
+                notifyToolChanged(wrapper);
+            });
+
+            options.appendChild(label);
+            options.appendChild(variant);
+            wrapper.appendChild(title);
+            wrapper.appendChild(message);
+            wrapper.appendChild(options);
+            this.nodes = { wrapper: wrapper, title: title, message: message, variant: variant };
+
+            if (!this.readOnly) {
+                bindEditableFocusNextOnEnter(title, message);
+                bindEditableLineBreakEnterBehavior(message);
+            }
+            this.updateVariant(wrapper, variant.value);
+            return wrapper;
+        }
+        updateVariant(wrapper, variant) {
+            var safeVariant = ['info', 'warning', 'success', 'danger'].indexOf(variant) !== -1 ? variant : 'info';
+
+            if (!wrapper) {
+                return;
+            }
+
+            wrapper.dataset.variant = safeVariant;
+            wrapper.classList.remove('cms-editorjs-tool--warning-info', 'cms-editorjs-tool--warning-warning', 'cms-editorjs-tool--warning-success', 'cms-editorjs-tool--warning-danger');
+            wrapper.classList.add('cms-editorjs-tool--warning-' + safeVariant);
+        }
+        save() {
+            return normalizeWarningData({
+                variant: this.nodes.variant ? this.nodes.variant.value : 'info',
+                title: this.nodes.title ? this.nodes.title.innerHTML.trim() : '',
+                message: this.nodes.message ? this.nodes.message.innerHTML.trim() : ''
+            });
+        }
+    }
+
+    window.CmsWarningTool = WarningTool;
 
     class CodeTool {
         constructor(options) {

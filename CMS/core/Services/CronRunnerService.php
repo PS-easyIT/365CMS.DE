@@ -88,8 +88,13 @@ final class CronRunnerService
 
             $queue = MailQueueService::getInstance();
             $settings = SettingsService::getInstance();
+            $isMailQueueTask = in_array($task, ['mail-queue', 'cms_cron_mail_queue'], true);
+            $isHourlyTask = in_array($task, ['hourly', 'cms_cron_hourly'], true);
+            $isAllTask = $task === 'all';
+            $shouldRunLegacyHourlyBridge = $task === 'mail-queue'
+                && $settings->getBool('cron', 'mail_queue_triggers_hourly', true);
 
-            if ($task === 'mail-queue' || $task === 'cms_cron_mail_queue' || $task === 'all') {
+            if ($isMailQueueTask || $isAllTask) {
                 $result['mail_queue'] = $queue->handleCronHook([
                     'limit' => $limit,
                     'force' => $force,
@@ -104,8 +109,11 @@ final class CronRunnerService
                 ]);
             }
 
-            if ($task === 'hourly' || $task === 'cms_cron_hourly' || $task === 'all' || $task === 'mail-queue' || $task === 'cms_cron_mail_queue') {
+            if ($isHourlyTask || $isAllTask || $shouldRunLegacyHourlyBridge) {
                 $result['hourly'] = $this->runHourlyHooks($settings, $force);
+                if ($shouldRunLegacyHourlyBridge && is_array($result['hourly'])) {
+                    $result['hourly']['compatibility_mode'] = 'mail_queue_triggers_hourly';
+                }
             }
 
             if (is_array($result['hourly'])
@@ -117,7 +125,7 @@ final class CronRunnerService
                 ]);
             }
 
-            if (($task === 'mail-queue' || $task === 'cms_cron_mail_queue' || $task === 'all')
+            if (($isMailQueueTask || $isAllTask)
                 && (!is_array($result['hourly']) || !empty($result['hourly']['skipped']))) {
                 $result['feed_queue_recovery'] = $this->repairFeedProcessingQueue();
                 $result['feed_queue'] = $this->runLegacyFeedQueueBridge();
@@ -407,7 +415,7 @@ final class CronRunnerService
                 'success' => false,
                 'requeued' => 0,
                 'mode' => 'core-feed-queue-recovery',
-                'error' => $e->getMessage(),
+                'error' => 'Feed-Queue-Recovery fehlgeschlagen. Details wurden intern protokolliert.',
             ];
         }
     }
