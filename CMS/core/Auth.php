@@ -147,7 +147,7 @@ class Auth
         
         $username = $security->sanitize($username);
         
-        $stmt = $db->prepare("SELECT * FROM {$db->getPrefix()}users WHERE username = ? OR email = ? LIMIT 1");
+        $stmt = $db->prepare("SELECT id, username, email, password, display_name, role, status FROM {$db->getPrefix()}users WHERE username = ? OR email = ? LIMIT 1");
         $stmt->execute([$username, $username]);
         $user = $stmt->fetchObject();
         
@@ -555,7 +555,7 @@ class Auth
     private function getUserById(int $id): ?object
     {
         $db = Database::instance();
-        $stmt = $db->prepare("SELECT * FROM {$db->getPrefix()}users WHERE id = ? AND status = 'active' LIMIT 1");
+        $stmt = $db->prepare("SELECT id, username, email, display_name, role, status FROM {$db->getPrefix()}users WHERE id = ? AND status = 'active' LIMIT 1");
         $stmt->execute([$id]);
         
         return $stmt->fetch() ?: null;
@@ -786,7 +786,7 @@ class Auth
             'domain' => $cookieDomain,
             'secure' => (bool)($params['secure'] ?? false),
             'httponly' => true,
-            'samesite' => (string)($params['samesite'] ?? 'Lax'),
+            'samesite' => (string)($params['samesite'] ?? 'Strict'),
         ]);
         $_COOKIE[self::DEVICE_COOKIE_NAME] = $value;
     }
@@ -801,7 +801,7 @@ class Auth
             'domain' => $cookieDomain,
             'secure' => (bool)($params['secure'] ?? false),
             'httponly' => true,
-            'samesite' => (string)($params['samesite'] ?? 'Lax'),
+            'samesite' => (string)($params['samesite'] ?? 'Strict'),
         ]);
         unset($_COOKIE[self::DEVICE_COOKIE_NAME]);
     }
@@ -835,7 +835,7 @@ class Auth
             'domain' => $params['domain'] ?? '',
             'secure' => (bool) ($params['secure'] ?? false),
             'httponly' => (bool) ($params['httponly'] ?? true),
-            'samesite' => (string) ($params['samesite'] ?? 'Lax'),
+            'samesite' => (string) ($params['samesite'] ?? 'Strict'),
         ]);
     }
 

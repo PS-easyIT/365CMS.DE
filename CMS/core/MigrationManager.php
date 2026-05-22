@@ -30,7 +30,7 @@ class MigrationManager
      * Aktuelle Schema-Version – erhöhen wenn neue Migrations hinzukommen.
      * Wird in cms_settings (option_name = 'db_schema_version') gespeichert.
      */
-    private const SCHEMA_VERSION = 'v12';
+    private const SCHEMA_VERSION = 'v13';
 
     public function __construct(Database $db)
     {
@@ -176,6 +176,8 @@ class MigrationManager
                          SET `published_at` = COALESCE(`created_at`, NOW())
                          WHERE `status` = 'published'
                              AND `published_at` IS NULL",
+            // v13: Notification-Center liest pro User chronologisch absteigend.
+            "ALTER TABLE `{$p}notifications` ADD INDEX `idx_user_created` (`user_id`, `created_at`)",
         ];
 
         foreach ($migrations as $sql) {

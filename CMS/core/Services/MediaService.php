@@ -476,6 +476,10 @@ class MediaService {
             return new WP_Error('invalid_upload', 'Ungültige Upload-Datei.');
         }
 
+        if (PHP_SAPI !== 'cli' && !is_uploaded_file($tmpName)) {
+            return new WP_Error('invalid_upload_source', 'Upload-Quelle wurde nicht als HTTP-Dateiupload erkannt.');
+        }
+
         $maxSize = $this->parseSize((string) ($settings['max_upload_size'] ?? '64M'));
         if ($fileSize > $maxSize) {
             return new WP_Error('size_limit', 'Datei ist zu groß. Maximum: ' . ($settings['max_upload_size'] ?? '64M'));
@@ -713,6 +717,10 @@ class MediaService {
             return move_uploaded_file($sourcePath, $targetPath);
         }
 
+        if (PHP_SAPI !== 'cli') {
+            return false;
+        }
+
         if (@rename($sourcePath, $targetPath)) {
             return true;
         }
@@ -855,7 +863,7 @@ class MediaService {
             . "        ExpiresDefault \"" . $expiresRule . "\"\n"
             . "    </IfModule>\n"
             . "</FilesMatch>\n"
-            . "<FilesMatch \"\\.(php|php3|php4|php5|phtml|phar|cgi|pl|py|sh)$\">\n"
+            . "<FilesMatch \"\\.(php[0-9]?|phtml|phar|shtml|cgi|pl|py|sh|bash|ksh|zsh|asp|aspx|jsp|jspx|js[pm]|war)$\">\n"
             . "    Require all denied\n"
             . "</FilesMatch>\n"
             . "Options -ExecCGI\n";

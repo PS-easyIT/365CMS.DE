@@ -36,7 +36,7 @@ Options +FollowSymLinks
 
     # Disable executable uploads without Apache Directory-Container, because
     # those containers are not allowed in .htaccess context.
-    RewriteRule ^uploads/.*\.(?:php[0-9]?|phtml|phar|shtml|cgi|pl|asp|aspx|jsp)$ - [F,L,NC]
+    RewriteRule ^uploads/.*\.(?:php[0-9]?|phtml|phar|shtml|cgi|pl|py|sh|bash|ksh|zsh|asp|aspx|jsp|jspx|js[pm]|war)$ - [F,L,NC]
     RewriteRule ^uploads/(?:.*?/)?\. - [F,L,NC]
 
     # Public uploads must remain directly reachable by URL (media library,

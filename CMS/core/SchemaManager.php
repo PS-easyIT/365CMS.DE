@@ -700,6 +700,7 @@ class SchemaManager
                 INDEX idx_user_id (user_id),
                 INDEX idx_is_read (is_read),
                 INDEX idx_type (type),
+                INDEX idx_user_created (user_id, created_at),
                 INDEX idx_created_at (created_at),
                 FOREIGN KEY (user_id) REFERENCES {$p}users(id) ON DELETE CASCADE
             ) ENGINE=InnoDB DEFAULT CHARSET={$c} COMMENT='Member-Benachrichtigungen'",

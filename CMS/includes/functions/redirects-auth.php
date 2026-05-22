@@ -247,7 +247,7 @@ function dd(...$vars): void {
 
     echo '<pre style="background: #1e293b; color: #e2e8f0; padding: 1rem; border-radius: 8px; margin: 1rem;">';
     foreach ($vars as $var) {
-        var_dump($var);
+        echo htmlspecialchars(var_export($var, true), ENT_QUOTES, 'UTF-8') . "\n";
     }
     echo '</pre>';
     exit;

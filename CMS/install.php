@@ -41,7 +41,7 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
         'path' => '/',
         'secure' => $isHttps,
         'httponly' => true,
-        'samesite' => 'Lax',
+        'samesite' => 'Strict',
     ]);
     session_start();
 }

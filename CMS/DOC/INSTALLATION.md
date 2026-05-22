@@ -185,7 +185,7 @@ Vor Schritt 4 validiert der Bootstrap zusätzlich die produktiv gebündelten Com
 
 Wichtig: Der erste generierte Admin-Zugang wird vom Schema-Setup in die Logs geschrieben. Prüft nach dem Erststart daher insbesondere `CMS/logs/` bzw. die temporären Zugangsdaten und ändert das Kennwort sofort.
 
-Bei der Installation über `CMS/install.php` wird das erste Admin-Konto direkt im Installer angelegt. Die Formularschritte sind CSRF-geschützt, die Installer-Session nutzt `HttpOnly`, `SameSite=Lax` und bei HTTPS zusätzlich `Secure`, und das Admin-Passwort muss mindestens 12 Zeichen lang sein.
+Bei der Installation über `CMS/install.php` wird das erste Admin-Konto direkt im Installer angelegt. Die Formularschritte sind CSRF-geschützt, die Installer-Session nutzt `HttpOnly`, `SameSite=Strict` und bei HTTPS zusätzlich `Secure`, und das Admin-Passwort muss mindestens 12 Zeichen lang sein.
 
 ---
 

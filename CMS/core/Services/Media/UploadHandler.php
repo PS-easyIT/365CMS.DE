@@ -493,6 +493,10 @@ final class UploadHandler
             return move_uploaded_file($sourcePath, $targetPath);
         }
 
+        if (PHP_SAPI !== 'cli') {
+            return false;
+        }
+
         if (!is_writable(dirname($sourcePath))) {
             return false;
         }

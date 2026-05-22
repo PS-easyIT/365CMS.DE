@@ -294,7 +294,7 @@ final class EditorJsAssetService
         }
 
         foreach ($this->getEditorJsUrls() as $jsUrl) {
-            echo '<script src="' . htmlspecialchars($jsUrl, ENT_QUOTES, 'UTF-8') . '"></script>' . "\n";
+            echo '<script src="' . htmlspecialchars($jsUrl, ENT_QUOTES, 'UTF-8') . '" defer></script>' . "\n";
         }
 
         echo "<!-- /Editor.js Assets -->\n\n";

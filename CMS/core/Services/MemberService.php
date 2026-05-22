@@ -260,7 +260,7 @@ class MemberService
         // Tabelle kann optional fehlen
         try {
             $rows = $this->db->get_results(
-                "SELECT * FROM {$table} WHERE user_id = ? ORDER BY created_at DESC LIMIT ?",
+                "SELECT id, user_id, type, title, message, url, is_read, read_at, created_at FROM {$table} WHERE user_id = ? ORDER BY created_at DESC LIMIT ?",
                 [$userId, $limit]
             );
             return (array)$rows;

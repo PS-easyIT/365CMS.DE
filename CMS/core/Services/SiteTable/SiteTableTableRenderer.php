@@ -154,7 +154,7 @@ final class SiteTableTableRenderer
 
         if (!empty($interactiveConfig['interactiveEnabled']) && !self::$frontendScriptIncluded) {
             self::$frontendScriptIncluded = true;
-            $html .= '<script src="' . htmlspecialchars(cms_asset_url('js/site-tables.js'), ENT_QUOTES, 'UTF-8') . '"></script>';
+            $html .= '<script src="' . htmlspecialchars(cms_asset_url('js/site-tables.js'), ENT_QUOTES, 'UTF-8') . '" defer></script>';
         }
 
         return $html;

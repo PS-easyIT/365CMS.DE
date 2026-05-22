@@ -252,8 +252,8 @@ class EditorService
         
         echo "\n<!-- SunEditor Assets -->\n";
         echo '<link rel="stylesheet" href="' . htmlspecialchars($siteUrl) . '/assets/suneditor/css/suneditor.min.css">' . "\n";
-        echo '<script src="' . htmlspecialchars($siteUrl) . '/assets/suneditor/suneditor.min.js"></script>' . "\n";
-        echo '<script src="' . htmlspecialchars($siteUrl) . '/assets/suneditor/lang/de.js"></script>' . "\n";
+        echo '<script src="' . htmlspecialchars($siteUrl) . '/assets/suneditor/suneditor.min.js" defer></script>' . "\n";
+        echo '<script src="' . htmlspecialchars($siteUrl) . '/assets/suneditor/lang/de.js" defer></script>' . "\n";
         echo "<!-- /SunEditor Assets -->\n\n";
         
         self::$assetsEnqueued = true;

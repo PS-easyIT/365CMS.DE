@@ -404,7 +404,7 @@ final class InstallerController
             'path' => '/',
             'secure' => $isHttps,
             'httponly' => true,
-            'samesite' => 'Lax',
+            'samesite' => 'Strict',
         ];
 
         setcookie(session_name(), '', $baseOptions);

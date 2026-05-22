@@ -231,7 +231,7 @@ final class FileUploadService
             return false;
         }
 
-        if (!is_uploaded_file($tmpName) && !is_file($tmpName)) {
+        if (!is_uploaded_file($tmpName)) {
             return false;
         }
 
