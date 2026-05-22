@@ -1,4 +1,4 @@
-﻿**Version:** 3.0.22
+﻿**Version:** 3.0.23
 
 # 365CMS Changelog
 
@@ -19,6 +19,12 @@
 ## 📜 Aktuelle Versionshistorie ab 3.0.0
 
 > Die vollständige historische 2.x-Historie wurde in [`Changelog_old.md`](Changelog_old.md) archiviert.
+
+### v3.0.23 — 22.05.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.0.23** | 🔴 fix | Medien / Featured Images | **`CMS/core/Services/MediaService.php`, `CMS/core/Services/Media/UploadHandler.php`, `CMS/core/Services/MediaDeliveryService.php`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json` und `Changelog.md` beheben browserlokale 403-Fehler direkt nach dem Aktualisieren von Beitrags- oder Seitenbildern.** Öffentliche Uploads unter `articles/`, `pages/`, `editorjs/`, Theme-/Medienordnern und deren WebP-/Thumbnail-Derivate werden nun nach Upload, Replace-in-place und Derivat-Jobs explizit mit webserverlesbaren Rechten gespeichert; bestehende öffentliche Direktdateien werden beim Erzeugen der `/uploads/...`-URL defensiv nachgezogen. Private Member-Uploads und versteckte Runtime-Pfade behalten die restriktiven Rechte und laufen weiterhin über den geschützten Delivery-Pfad. |
 
 ### v3.0.22 — 22.05.2026
 

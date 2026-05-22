@@ -16,6 +16,8 @@ final class UploadHandler
 {
     private const MAX_STORED_FILENAME_LENGTH = 180;
     private const MAX_EXTENSION_LENGTH = 16;
+    private const PUBLIC_FILE_MODE = 0644;
+    private const PRIVATE_FILE_MODE = 0640;
 
     private LoggerInterface $logger;
     private ?\Closure $uploadValidator;
@@ -118,9 +120,9 @@ final class UploadHandler
             return new WP_Error('upload_move_failed', 'Datei konnte nicht verschoben werden');
         }
 
-        @chmod($targetPath, 0640);
-
         $relativePath = trim(($effectivePath !== '' ? trim($effectivePath, '/\\') . '/' : '') . basename($targetPath), '/');
+        @chmod($targetPath, $this->resolveUploadFileMode($relativePath));
+
         $category = $this->repository->detectSystemCategory($relativePath);
         $meta = $this->repository->loadMeta();
         $currentUser = Auth::getCurrentUser();
@@ -464,6 +466,23 @@ final class UploadHandler
     {
         $mimeType = mime_content_type($filePath) ?: '';
         return in_array($mimeType, ['image/jpeg', 'image/png', 'image/gif'], true);
+    }
+
+    private function resolveUploadFileMode(string $relativePath): int
+    {
+        $normalizedPath = trim(str_replace('\\', '/', $relativePath), '/');
+
+        if ($normalizedPath === '' || str_starts_with($normalizedPath, 'member/') || $normalizedPath === 'member') {
+            return self::PRIVATE_FILE_MODE;
+        }
+
+        foreach (explode('/', $normalizedPath) as $segment) {
+            if ($segment !== '' && str_starts_with($segment, '.')) {
+                return self::PRIVATE_FILE_MODE;
+            }
+        }
+
+        return self::PUBLIC_FILE_MODE;
     }
 
     private function ensureDirectoryExists(string $directory, string $errorCode, string $message): true|WP_Error

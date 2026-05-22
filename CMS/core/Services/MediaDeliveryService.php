@@ -20,6 +20,7 @@ final class MediaDeliveryService
     private const STREAM_CHUNK_BYTES = 8192;
     private const DEFAULT_PUBLIC_CACHE_TTL = 604800;
     private const PUBLIC_CACHE_TTL_OPTIONS = [259200, 604800, 2678400];
+    private const DIRECT_UPLOAD_FILE_MODE = 0644;
 
     private static ?self $instance = null;
 
@@ -46,6 +47,8 @@ final class MediaDeliveryService
         if ($this->containsHiddenSegment($normalizedPath)) {
             return $this->buildDeliveryUrl($normalizedPath, 'inline');
         }
+
+        $this->ensureDirectUploadFileReadable($normalizedPath);
 
         return $this->buildDirectUploadUrl($normalizedPath);
     }
@@ -269,6 +272,21 @@ final class MediaDeliveryService
     {
         $segments = array_map(static fn(string $segment): string => rawurlencode($segment), explode('/', $relativePath));
         return rtrim((string) UPLOAD_URL, '/') . '/' . implode('/', $segments);
+    }
+
+    private function ensureDirectUploadFileReadable(string $relativePath): void
+    {
+        $absolutePath = $this->resolveAbsolutePath($relativePath);
+        if ($absolutePath instanceof WP_Error || !is_file($absolutePath)) {
+            return;
+        }
+
+        $permissions = @fileperms($absolutePath);
+        if ($permissions !== false && ($permissions & 0004) === 0004) {
+            return;
+        }
+
+        @chmod($absolutePath, self::DIRECT_UPLOAD_FILE_MODE);
     }
 
     private function normalizeRelativePath(string $relativePath): string

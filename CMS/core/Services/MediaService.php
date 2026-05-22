@@ -28,6 +28,8 @@ class MediaService {
 
     private static array $instances = [];
     private const ATOMIC_FILE_MODE = 0640;
+    private const PUBLIC_MEDIA_FILE_MODE = 0644;
+    private const PRIVATE_MEDIA_FILE_MODE = 0640;
 
     private string $uploadPath;
     private string $uploadUrl;
@@ -663,6 +665,64 @@ class MediaService {
         return false;
     }
 
+    private function resolveManagedMediaFileMode(string $relativePath): int
+    {
+        $normalizedPath = $this->normalizeManagedRelativePath($relativePath);
+        if ($normalizedPath === '' || $this->containsHiddenManagedSegment($normalizedPath) || $this->pathMatchesManagedPrefixes($normalizedPath, ['member'])) {
+            return self::PRIVATE_MEDIA_FILE_MODE;
+        }
+
+        return self::PUBLIC_MEDIA_FILE_MODE;
+    }
+
+    private function applyManagedMediaFileMode(string $absolutePath, string $relativePath): void
+    {
+        if (!is_file($absolutePath)) {
+            return;
+        }
+
+        @chmod($absolutePath, $this->resolveManagedMediaFileMode($relativePath));
+    }
+
+    private function absoluteManagedPathToRelativePath(string $absolutePath): string
+    {
+        $normalizedRoot = rtrim(str_replace('\\', '/', $this->uploadPath), '/') . '/';
+        $normalizedPath = str_replace('\\', '/', $absolutePath);
+
+        if (!str_starts_with($normalizedPath, $normalizedRoot)) {
+            return '';
+        }
+
+        return $this->normalizeManagedRelativePath(substr($normalizedPath, strlen($normalizedRoot)));
+    }
+
+    private function applyManagedMediaFileModeByAbsolutePath(string $absolutePath): void
+    {
+        $relativePath = $this->absoluteManagedPathToRelativePath($absolutePath);
+        if ($relativePath === '') {
+            return;
+        }
+
+        $this->applyManagedMediaFileMode($absolutePath, $relativePath);
+    }
+
+    private function applyGeneratedImageFileModes(string $absolutePath): void
+    {
+        $paths = [$absolutePath];
+        $webpPath = preg_replace('/\.[^.]+$/', '.webp', $absolutePath);
+        if (is_string($webpPath) && $webpPath !== '' && $webpPath !== $absolutePath) {
+            $paths[] = $webpPath;
+        }
+
+        foreach ($this->getGeneratedVariantPaths($absolutePath) as $variantPath) {
+            $paths[] = $variantPath;
+        }
+
+        foreach (array_unique($paths) as $path) {
+            $this->applyManagedMediaFileModeByAbsolutePath($path);
+        }
+    }
+
     private function resolveManagedAbsolutePath(string $relativePath): string|WP_Error
     {
         $normalizedRelativePath = $this->normalizeManagedRelativePath($relativePath);
@@ -1002,6 +1062,8 @@ class MediaService {
         if (!empty($settings['auto_webp'])) {
             $this->generateUploadWebpDerivative($absolutePath, $quality);
         }
+
+        $this->applyGeneratedImageFileModes($absolutePath);
     }
 
     private function generateUploadWebpDerivative(string $absolutePath, int $quality): void
@@ -1389,6 +1451,8 @@ class MediaService {
             $this->generateUploadWebpDerivative($storedAbsolutePath, $quality);
         }
 
+        $this->applyGeneratedImageFileModes($storedAbsolutePath);
+
         return $storedName;
     }
 
@@ -1416,6 +1480,7 @@ class MediaService {
 
         $storedAbsolutePath = rtrim($this->uploadPath, '/\\') . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $storedRelativePath);
         $this->processManagedImageUpload($storedAbsolutePath, (string) ($result['name'] ?? basename($storedRelativePath)), $settings, true);
+        $this->applyManagedMediaFileMode($storedAbsolutePath, $storedRelativePath);
 
         return $result;
     }
@@ -1481,7 +1546,7 @@ class MediaService {
                 return new WP_Error('replacement_write_failed', 'Die neue Bilddatei konnte nicht gespeichert werden.');
             }
 
-            @chmod($targetAbsolutePath, self::ATOMIC_FILE_MODE);
+            $this->applyManagedMediaFileMode($targetAbsolutePath, $normalizedTargetPath);
             $this->processManagedImageUpload($targetAbsolutePath, basename($normalizedTargetPath), $settings, true);
             $this->syncReplacedFileMeta($normalizedTargetPath, (string) ($file['name'] ?? basename($normalizedTargetPath)));
 
@@ -1796,6 +1861,8 @@ class MediaService {
                 }
             }
         }
+
+        $this->applyGeneratedImageFileModes($absolutePath);
 
         if ($errors !== []) {
             $this->logger->warning('Medien-Derivat-Job konnte ein Bild nicht vollständig verarbeiten.', [

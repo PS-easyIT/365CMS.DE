@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "3.0.22",
+  "version": "3.0.23",
   "min_php": "8.4",
   "released": "2026-05-22",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 3.0.22: Security-, Performance- und Best-Practice-Audit mit direkter Härtung. Session-Cookies nutzen Strict-SameSite-Fallbacks, Uploads akzeptieren im Web nur echte HTTP-Upload-Quellen, ausführbare Upload-Erweiterungen werden breiter blockiert, zentrale User-/Notification-Queries laden nur benötigte Spalten, Notification-Feeds erhalten einen passenden Composite-Index und ausgewählte Frontend-/Admin-Skripte laden nicht mehr render-blockierend.",
+  "notes": "Release-Stand 3.0.23: Öffentliche Medien-Uploads, ersetzte Beitrags-/Seitenbilder und bestehende direkte /uploads/-Referenzen werden mit webserverlesbaren Dateirechten abgesichert, während private Member- und Hidden-Pfade restriktiv bleiben. Dadurch vermeiden Bildaktualisierungen browserlokale 403-Fehler.",
   "critical": false
 }
