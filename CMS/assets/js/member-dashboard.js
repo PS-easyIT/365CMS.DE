@@ -171,24 +171,24 @@
     }
 
     function resolveMediaParentPath(path) {
-        var normalized = String(path || '').replace(/\\/g, '/').replace(/^\/+|\/+$/g, '');
+        const normalized = String(path || '').replace(/\\/g, '/').replace(/^\/+|\/+$/g, '');
         if (!normalized) {
             return '';
         }
 
-        var segments = normalized.split('/');
+        const segments = normalized.split('/');
         segments.pop();
 
         return segments.join('/');
     }
 
     function redirectToMemberMediaPath(path) {
-        var params = new URLSearchParams(window.location.search);
-        var normalizedPath = String(path || '').replace(/\\/g, '/').replace(/^\/+|\/+$/g, '');
-        var safeSegments = normalizedPath.split('/').filter(function (segment) {
+        const params = new URLSearchParams(window.location.search);
+        const normalizedPath = String(path || '').replace(/\\/g, '/').replace(/^\/+|\/+$/g, '');
+        const safeSegments = normalizedPath.split('/').filter(function (segment) {
             return segment && segment !== '.' && segment !== '..';
         });
-        var safePath = safeSegments.join('/');
+        const safePath = safeSegments.join('/');
 
         if (safePath) {
             params.set('path', safePath);
@@ -196,7 +196,7 @@
             params.delete('path');
         }
 
-        var queryString = params.toString();
+        const queryString = params.toString();
         window.location.search = queryString ? '?' + queryString : '';
     }
 

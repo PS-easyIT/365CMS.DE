@@ -841,6 +841,8 @@ class Auth
 
     private function completeAuthenticatedSession(object $user, bool $remember): void
     {
+        unset($user->password);
+
         session_regenerate_id(true);
         $_SESSION['user_id'] = $user->id;
         $_SESSION['user_role'] = $user->role;

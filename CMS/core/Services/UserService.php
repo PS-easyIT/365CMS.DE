@@ -328,7 +328,7 @@ class UserService {
      */
     public function getUserById(int $user_id): ?object {
         $user = $this->db->get_row(
-            "SELECT * FROM {$this->prefix}users WHERE id = ?",
+            "SELECT id, username, email, display_name, role, status, created_at, updated_at, last_login FROM {$this->prefix}users WHERE id = ?",
             [$user_id]
         );
         

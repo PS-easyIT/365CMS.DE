@@ -1,4 +1,4 @@
-﻿**Version:** 3.0.21
+﻿**Version:** 3.0.22
 
 # 365CMS Changelog
 
@@ -19,6 +19,14 @@
 ## 📜 Aktuelle Versionshistorie ab 3.0.0
 
 > Die vollständige historische 2.x-Historie wurde in [`Changelog_old.md`](Changelog_old.md) archiviert.
+
+### v3.0.22 — 22.05.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.0.22** | 🛡️ security | Sessions / Uploads / Pfadauflösung | **`CMS/core/Security.php`, `CMS/core/Auth.php`, `CMS/install.php`, `CMS/install/InstallerController.php`, `CMS/core/Services/FileUploadService.php`, `CMS/core/Services/MediaService.php`, `CMS/core/Services/Media/UploadHandler.php` und `CMS/.htaccess` härten Session- und Upload-Grenzen nach.** Session-Cookies verwenden nun Strict-SameSite-Fallbacks, Geräte-/Session-Cookies werden konsistent mit Strict erneuert, Web-Uploads akzeptieren nur echte `is_uploaded_file()`-Quellen, Upload-Moves erlauben `rename`/`copy` nur noch in CLI-Kontexten, Pfade werden kanonisch gegen das Upload-Basisverzeichnis geprüft und ausführbare Upload-Endungen wie `phar`, `shtml`, Shell-/CGI-/ASP-/JSP-/War-Dateien werden zusätzlich blockiert. |
+| **3.0.22** | 🟠 perf | DB / Assets | **`CMS/core/Auth.php`, `CMS/core/Services/UserService.php`, `CMS/core/Services/MemberService.php`, `CMS/core/SchemaManager.php`, `CMS/core/MigrationManager.php`, `CMS/core/Services/EditorJs/EditorJsAssetService.php`, `CMS/core/Services/SiteTable/SiteTableTableRenderer.php` und `CMS/core/Services/EditorService.php` reduzieren unnötige Last im Request-Pfad.** Auth-, User- und Notification-Hotpaths laden keine kompletten Datensätze mehr per `SELECT *`, Passwort-Hashes werden nach erfolgreicher Prüfung nicht im aktuellen User-Objekt gehalten, das Notification-Center erhält den Composite-Index `idx_user_created (user_id, created_at)`, und EditorJS-/SiteTable-/SunEditor-Skripte werden mit `defer` ausgegeben. |
+| **3.0.22** | 🟡 refactor | Code-Qualität / Accessibility | **`CMS/includes/functions/redirects-auth.php`, `CMS/assets/js/member-dashboard.js`, `CMS/core/Services/SEO/SeoAnalyticsRenderer.php`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md` und `Changelog.md` schließen Best-Practice- und A11y-Funde.** Der Debug-Helfer nutzt kein `var_dump()` mehr, kleine First-Party-JS-Pfade verwenden blockscoped `const`, Meta-Pixel-Noscript-Bilder erhalten ein dekoratives `alt=""`, das versteckte GTM-Iframe bekommt einen Titel, und der Audit-Batch ist als Release `3.0.22` dokumentiert. |
 
 ### v3.0.21 — 22.05.2026
 

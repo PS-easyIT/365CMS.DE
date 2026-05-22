@@ -120,7 +120,7 @@ final class UploadHandler
 
         @chmod($targetPath, 0640);
 
-    $relativePath = trim(($effectivePath !== '' ? trim($effectivePath, '/\\') . '/' : '') . basename($targetPath), '/');
+        $relativePath = trim(($effectivePath !== '' ? trim($effectivePath, '/\\') . '/' : '') . basename($targetPath), '/');
         $category = $this->repository->detectSystemCategory($relativePath);
         $meta = $this->repository->loadMeta();
         $currentUser = Auth::getCurrentUser();
@@ -278,21 +278,42 @@ final class UploadHandler
 
     private function resolvePath(string $path): string|WP_Error
     {
-        $path = str_replace(['\\', '/'], DIRECTORY_SEPARATOR, trim($path));
-        if (strpos($path, '..') !== false) {
+        $basePath = $this->normalizeFilesystemPath((string) (realpath($this->uploadPath) ?: $this->uploadPath));
+        $path = trim(str_replace('\\', '/', $path));
+
+        if ($path !== '' && ($path[0] === '/' || preg_match('/^[A-Za-z]:/', $path) === 1)) {
+            return new WP_Error('security_violation', 'Absolute Pfade sind nicht erlaubt');
+        }
+
+        $path = trim($path, '/');
+        if ($path !== '' && preg_match('/(?:^|\/)\.\.?(?:\/|$)|[\x00-\x1F\x7F]/u', $path) === 1) {
             return new WP_Error('security_violation', 'Ungültiger Pfad');
         }
 
-        $fullPath = $this->uploadPath;
+        $fullPath = $basePath;
         if ($path !== '') {
-            $fullPath .= DIRECTORY_SEPARATOR . trim($path, DIRECTORY_SEPARATOR);
+            $fullPath .= DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $path);
         }
 
-        if (strpos($fullPath, $this->uploadPath) !== 0) {
+        $existingPath = file_exists($fullPath) ? realpath($fullPath) : realpath(dirname($fullPath));
+        if (is_string($existingPath) && !$this->isPathInsideBase($existingPath, $basePath)) {
             return new WP_Error('security_violation', 'Pfad außerhalb des Upload-Verzeichnisses');
         }
 
         return $fullPath;
+    }
+
+    private function normalizeFilesystemPath(string $path): string
+    {
+        return rtrim(str_replace(['\\', '/'], DIRECTORY_SEPARATOR, $path), DIRECTORY_SEPARATOR);
+    }
+
+    private function isPathInsideBase(string $path, string $basePath): bool
+    {
+        $normalizedPath = $this->normalizeFilesystemPath($path);
+        $normalizedBase = $this->normalizeFilesystemPath($basePath);
+
+        return $normalizedPath === $normalizedBase || str_starts_with($normalizedPath, $normalizedBase . DIRECTORY_SEPARATOR);
     }
 
     private function sanitizeFileName(string $fileName, array $settings = []): string
