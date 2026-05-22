@@ -287,15 +287,20 @@ class TableOfContents
                 continue;
             }
 
-            $anchor    = $this->makeAnchor($text, $usedAnchors, $counter, $prefix);
+            $existingId = $this->extractExistingId($attrs);
+            $anchor     = $existingId !== ''
+                ? $this->reserveExistingAnchor($existingId, $usedAnchors)
+                : $this->makeAnchor($text, $usedAnchors, $counter, $prefix);
+
             $headings[] = [
-                'tag'      => $tag,
-                'level'    => (int)substr($tag, 1),
-                'text'     => $text,
-                'anchor'   => $anchor,
-                'attrs'    => $attrs,
-                'original' => $match[0],
-                'children' => [],
+                'tag'         => $tag,
+                'level'       => (int)substr($tag, 1),
+                'text'        => $text,
+                'anchor'      => $anchor,
+                'existing_id' => $existingId,
+                'attrs'       => $attrs,
+                'original'    => $match[0],
+                'children'    => [],
             ];
             $counter++;
         }
@@ -317,8 +322,12 @@ class TableOfContents
             'ù'=>'u','ú'=>'u','û'=>'u','ý'=>'y',
         ];
 
-        $anchor = (bool) ($this->settings['lowercase'] ?? true) ? $this->lowerUtf8($text) : $text;
+        $lowercase = (bool) ($this->settings['lowercase'] ?? true);
+        $anchor = $lowercase ? $this->lowerUtf8($text) : $text;
         $anchor = str_replace(array_keys($map), array_values($map), $anchor);
+        if ($lowercase) {
+            $anchor = strtolower($anchor);
+        }
         $separator = (bool) ($this->settings['hyphenate'] ?? true) ? '-' : '_';
         $anchor = (string)preg_replace('/[^\p{L}\p{N}\s\-_]/u', '', $anchor);
         $anchor = (string)preg_replace('/[\s\-_]+/u', $separator, $anchor);
@@ -350,33 +359,79 @@ class TableOfContents
         return $anchor;
     }
 
+    private function extractExistingId(string $attrs): string
+    {
+        if (preg_match('/\bid\s*=\s*(["\'])(.*?)\1/i', $attrs, $match) !== 1) {
+            return '';
+        }
+
+        return trim(html_entity_decode((string) ($match[2] ?? ''), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+    }
+
+    private function reserveExistingAnchor(string $anchor, array &$used): string
+    {
+        $anchor = trim($anchor);
+        if ($anchor === '') {
+            $anchor = 'heading-' . count($used);
+        }
+
+        $base = $anchor;
+        $usedKeys = array_map([$this, 'lowerUtf8'], $used);
+        $suffix = 1;
+        while (in_array($this->lowerUtf8($anchor), $usedKeys, true)) {
+            $anchor = $base . '-' . $suffix++;
+        }
+
+        $used[] = $anchor;
+
+        return $anchor;
+    }
+
     // ─── Add Anchors to Content ───────────────────────────────────────────────
 
     private function addAnchors(string $html, array $headings): string
     {
+        $searchOffset = 0;
+
         foreach ($headings as $h) {
-            // Überspringen wenn id= bereits vorhanden
-            if (preg_match('/\bid\s*=/i', $h['attrs'])) {
+            $anchor   = htmlspecialchars($h['anchor'], ENT_QUOTES, 'UTF-8');
+            $original = $h['original'];
+            $existingId = (string) ($h['existing_id'] ?? '');
+
+            $pos = strpos($html, $original, $searchOffset);
+            if ($pos === false) {
                 continue;
             }
 
-            $anchor   = htmlspecialchars($h['anchor'], ENT_QUOTES, 'UTF-8');
-            $original = $h['original'];
+            if ($existingId !== '' && $existingId === (string) $h['anchor']) {
+                $searchOffset = $pos + strlen($original);
+                continue;
+            }
 
-            // id="" als erstes Attribut direkt nach dem Tag-Namen einfügen
-            $replaced = (string)preg_replace(
-                '/<(' . preg_quote($h['tag'], '/') . ')([ >])/i',
-                '<$1 id="' . $anchor . '"$2',
-                $original,
-                1
-            );
+            if ($existingId !== '') {
+                $replaced = (string)preg_replace_callback(
+                    '/\bid\s*=\s*(["\'])(.*?)\1/i',
+                    static fn(): string => 'id="' . $anchor . '"',
+                    $original,
+                    1
+                );
+            } else {
+                // id="" als erstes Attribut direkt nach dem Tag-Namen einfügen
+                $replaced = (string)preg_replace(
+                    '/<(' . preg_quote($h['tag'], '/') . ')([ >])/i',
+                    '<$1 id="' . $anchor . '"$2',
+                    $original,
+                    1
+                );
+            }
 
             if ($replaced !== $original) {
-                $pos = strpos($html, $original);
-                if ($pos !== false) {
-                    $html = substr_replace($html, $replaced, $pos, strlen($original));
-                }
+                $html = substr_replace($html, $replaced, $pos, strlen($original));
+                $searchOffset = $pos + strlen($replaced);
+                continue;
             }
+
+            $searchOffset = $pos + strlen($original);
         }
         return $html;
     }

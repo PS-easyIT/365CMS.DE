@@ -1,4 +1,4 @@
-﻿**Version:** 3.0.23
+﻿**Version:** 3.0.24
 
 # 365CMS Changelog
 
@@ -19,6 +19,12 @@
 ## 📜 Aktuelle Versionshistorie ab 3.0.0
 
 > Die vollständige historische 2.x-Historie wurde in [`Changelog_old.md`](Changelog_old.md) archiviert.
+
+### v3.0.24 — 22.05.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.0.24** | 🔴 fix | Medien / Featured Images | **`CMS/core/Services/EditorJs/EditorJsImageLibraryService.php`, `CMS/core/Services/EditorJs/EditorJsUploadService.php`, `CMS/core/Services/Media/UploadHandler.php`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `CMS/DOC/admin/media/MEDIA.md` und `Changelog.md` schließen den Editor-Picker-Pfad für 403-Fehler nach Beitrags-/Seitenbildwechseln.** Die Featured-Image-Bibliothek und neue EditorJS-Uploads geben öffentliche Medien jetzt als hostneutrale direkte `/uploads/...`-URLs zurück, wodurch gespeicherte Formularwerte keine unnötigen `/media-file?...`-Delivery-Queries mehr durch den Update-POST tragen. Zusätzlich setzt der Medien-Move beim Verschieben temporärer Uploads in den finalen Slug-Ordner die Ziel-Datei explizit auf den passenden öffentlichen bzw. privaten Dateimodus. |
 
 ### v3.0.23 — 22.05.2026
 

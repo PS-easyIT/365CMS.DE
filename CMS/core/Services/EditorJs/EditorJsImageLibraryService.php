@@ -77,7 +77,7 @@ final class EditorJsImageLibraryService
             $items[] = [
                 'name' => $file->getFilename(),
                 'path' => $relativePath,
-                'url' => $this->toRelativeMediaUrl($mediaDelivery->buildDeliveryUrl($relativePath, 'inline')),
+                'url' => $this->toRelativeMediaUrl($mediaDelivery->buildAccessUrl($relativePath, true)),
                 'size' => $file->getSize(),
                 'modified' => $file->getMTime(),
             ];
@@ -136,7 +136,8 @@ final class EditorJsImageLibraryService
         }
 
         $path = (string) ($parts['path'] ?? '');
-        if ($path === '' || ($path !== '/media-file' && !str_starts_with($path, '/uploads/'))) {
+        $uploadPath = '/' . trim((string) (parse_url((string) UPLOAD_URL, PHP_URL_PATH) ?? 'uploads'), '/');
+        if ($path === '' || ($path !== '/media-file' && !str_starts_with($path, '/uploads/') && !str_starts_with($path, $uploadPath . '/'))) {
             return $trimmedUrl;
         }
 

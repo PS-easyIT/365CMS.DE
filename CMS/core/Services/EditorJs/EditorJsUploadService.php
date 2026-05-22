@@ -343,7 +343,7 @@ final class EditorJsUploadService
         $relativePath = ($normalizedTargetPath !== '' ? $normalizedTargetPath . '/' : '') . ltrim($storedFile, '/');
         $fullPath = rtrim((string) UPLOAD_PATH, '/\\') . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relativePath);
         $mediaDelivery = MediaDeliveryService::getInstance();
-        $accessUrl = $this->toRelativeMediaUrl($mediaDelivery->buildDeliveryUrl($relativePath, 'inline'));
+        $accessUrl = $this->toRelativeMediaUrl($mediaDelivery->buildAccessUrl($relativePath, true));
 
         return [
             'url' => $accessUrl,
@@ -370,7 +370,7 @@ final class EditorJsUploadService
 
         $fullPath = rtrim((string) UPLOAD_PATH, '/\\') . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relativePath);
         $mediaDelivery = MediaDeliveryService::getInstance();
-        $accessUrl = $this->toRelativeMediaUrl($mediaDelivery->buildDeliveryUrl($relativePath, 'inline'));
+        $accessUrl = $this->toRelativeMediaUrl($mediaDelivery->buildAccessUrl($relativePath, true));
 
         return [
             'url' => $accessUrl,
@@ -393,7 +393,8 @@ final class EditorJsUploadService
         }
 
         $path = (string) ($parts['path'] ?? '');
-        if ($path === '' || ($path !== '/media-file' && !str_starts_with($path, '/uploads/'))) {
+        $uploadPath = '/' . trim((string) (parse_url((string) UPLOAD_URL, PHP_URL_PATH) ?? 'uploads'), '/');
+        if ($path === '' || ($path !== '/media-file' && !str_starts_with($path, '/uploads/') && !str_starts_with($path, $uploadPath . '/'))) {
             return $trimmedUrl;
         }
 

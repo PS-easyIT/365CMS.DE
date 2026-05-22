@@ -183,6 +183,10 @@ final class UploadHandler
             return new WP_Error('move_failed', 'Element konnte nicht verschoben werden');
         }
 
+        if (is_file($targetFullPath)) {
+            @chmod($targetFullPath, $this->resolveUploadFileMode($targetPath));
+        }
+
         $this->repository->renameMetaPath($sourcePath, $targetPath);
         return true;
     }

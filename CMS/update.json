@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "3.0.23",
+  "version": "3.0.24",
   "min_php": "8.4",
   "released": "2026-05-22",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 3.0.23: Öffentliche Medien-Uploads, ersetzte Beitrags-/Seitenbilder und bestehende direkte /uploads/-Referenzen werden mit webserverlesbaren Dateirechten abgesichert, während private Member- und Hidden-Pfade restriktiv bleiben. Dadurch vermeiden Bildaktualisierungen browserlokale 403-Fehler.",
+  "notes": "Release-Stand 3.0.24: Der Beitrags-/Seitenbild-Picker liefert öffentliche Medien wieder als direkte /uploads/-Referenzen aus und setzt verschobene Upload-Dateien beim Speichern explizit auf webserverlesbare Rechte. Dadurch werden 403-Fehler nach dem Aktualisieren von Beitrags- oder Seitenbildern auch im Editor-Auswahlpfad vermieden.",
   "critical": false
 }
