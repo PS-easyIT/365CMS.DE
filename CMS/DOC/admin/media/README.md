@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Überblick über Medienbibliothek, Upload-Workflows, Schutzbereiche, Admin-Tabs und verknüpfte Member-/Asset-Dokumentation.
 
-Letzte Aktualisierung: 17.05.2026 · Version 3.0.11
+Letzte Aktualisierung: 22.05.2026 · Version 3.0.24
 
 Die Medienverwaltung ist unter `/admin/media` erreichbar und bündelt Bibliothek, Beitrags-/Site-Medien, Medien-Check, Kategorien und Einstellungen über Query-Tabs statt über getrennte Legacy-Routen.
 
@@ -32,7 +32,7 @@ Die Medienverwaltung ist unter `/admin/media` erreichbar und bündelt Bibliothek
 - serverseitig normalisierte Pfade, CSRF-geschützte POST-Flows und PRG-Redirects
 - geschützte Systempfade mit zusätzlicher Member-Bestätigung am `member`-Bereich
 - verwaltete Upload-Pipeline für Bibliothek und Member-Bereich mit Maximalmaßen, optionalen Thumbnails und Auto-WebP
-- gemeinsamer Featured-Image-Picker für Beiträge und Seiten mit fail-soft Verschiebung temporärer Uploads beim Speichern
+- gemeinsamer Featured-Image-Picker für Beiträge und Seiten mit fail-soft Verschiebung temporärer Uploads beim Speichern, direkten öffentlichen `/uploads/...`-Referenzen und nachgezogenen Dateirechten im finalen Slug-Ordner
 - hashbasierte Wiederverwendung identischer permanenter Beitrags-/Seitenbilder im Featured-Image-Upload, damit gleiche Titelbilder nicht mehrfach physisch abgelegt werden
 - Rücksprung in den **tatsächlich verwendeten** Zielordner: standardmäßig der aktuell geöffnete Ordner, optional der automatisch angelegte `YYYY/MM/DD`-Unterordner
 - strengere Dateinamens-Härtung mit Längenlimit und ohne irreführende Mehrfach-Punkte im Basenamen
@@ -50,6 +50,7 @@ Die Medienverwaltung ist unter `/admin/media` erreichbar und bündelt Bibliothek
 - Unterpunkt **Beitrags & Site Medien** für Featured Images aus Beiträgen und Seiten inklusive Suche, Filter nach Beiträgen/Seiten, Drag-&-Drop-Ersetzen, lokaler Mini-Vorschau, Mehrfach-Ersetzung vorbereiteter Zeilen und Erfolgshinweis pro Bild
 - eigener Unterpunkt **Medien Check** für die read-only Konsistenzliste von Beiträgen und Seiten ohne Bild oder mit defekter Featured-Image-Referenz inklusive Deep-Link in den bestehenden Editor-Pfad mit Medienbibliothek
 - der Featured-Replace-Flow erzwingt seinen Bildvertrag seit `2.9.618` serverseitig unabhängig von den allgemeinen Bibliotheks-Typ-Häkchen, damit Beitrags-/Seitenbilder immer nur als JPG/JPEG, PNG, GIF, WebP, BMP oder ICO ersetzt werden
+- seit `3.0.24` liefern Featured-Image-Picker und EditorJS-Upload-Payloads öffentliche Bilder hostneutral als direkte `/uploads/...`-URLs aus; `/media-file?...` bleibt für geschützte/private bzw. explizite Delivery-Fälle zuständig
 - Info- und Hinweisboxen folgen im gesamten Medienbereich einem einheitlichen Layout mit Titelzeile oberhalb optionaler Aktionen, kurzen Texten und robustem Wrapping ohne Horizontal-Overflow
 - Bibliothek, Beitrags-/Site-Medien und Medien-Check folgen im UI nun konsistent dem Ablauf `Header → Toolbar/Filter → Inhalt`; dekorative KPI-Kachelreihen wurden zugunsten kompakter Header-Metaangaben reduziert
 - Der Tab `/admin/media?tab=categories` ist auf denselben Aufbau nachgezogen: Header-Metazeile, klarer Toolbar-Bereich mit Navigationsaktionen und stabile 2-Spalten-Struktur aus Formular (links) und Kategorienliste (rechts)
@@ -114,6 +115,8 @@ Der Unterpunkt `/admin/media?tab=featured` zeigt ausschließlich Medienpfade, di
 Seit `3.0.3` bleibt dieser Tab bewusst auf tatsächlich verwendete Featured Images und den Replace-in-place-Flow fokussiert. Die bisher hier mitgerenderte read-only Prüfliste lebt nun separat unter `/admin/media?tab=check`, damit Suche, Filter und Navigation im Redaktionsalltag klarer getrennt sind.
 
 Seit `3.0.6` kann dieser Replace-in-place-Flow mehrere vorbereitete Zeilen in einem Request ausführen. Die Browseroberfläche sammelt dafür alle per „Durchsuchen“ bzw. Drag-&-Drop ausgewählten Dateien in `replacement_files[]` und übermittelt die passenden `item_paths[]`; der Server verarbeitet sie über `replace_items` einzeln weiter, sodass Teilfehler begrenzt gemeldet werden und erfolgreiche Ersetzungen trotzdem erhalten bleiben.
+
+Seit `3.0.24` speichert der Editor-Picker öffentliche Beitrags- und Seitenbilder wieder als direkte relative `/uploads/...`-Referenzen. Beim finalen Verschieben aus `articles/temp` bzw. `pages/temp` in den Slug-Ordner setzt der Medien-Layer die Ziel-Datei zusätzlich auf den passenden Dateimodus. Dadurch bleiben öffentliche Coverbilder nach dem Aktualisieren unmittelbar browserlesbar, ohne private Member- oder Hidden-Pfade zu öffnen.
 
 ## Medien Check
 

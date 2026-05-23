@@ -25,7 +25,7 @@ Seiten bilden die statischen Inhalte des Systems, etwa Startseite, Kontakt, Impr
 | Featured Image | Vorschaubild für Cards und Social Preview |
 | SEO-Felder | seitenspezifische Meta-Informationen |
 
-Neue Seitenbilder laufen über den gemeinsamen Featured-Image-Picker: Uploads landen bei neuen Seiten zunächst temporär und werden beim Speichern in den Slug-Ordner verschoben. Fehler in diesem Verschiebe-/Metadaten-Schritt werden geloggt und dürfen den Save-Flow nicht mehr als HTTP-500 abbrechen.
+Neue Seitenbilder laufen über den gemeinsamen Featured-Image-Picker: Uploads landen bei neuen Seiten zunächst temporär und werden beim Speichern in den Slug-Ordner verschoben. Fehler in diesem Verschiebe-/Metadaten-Schritt werden geloggt und dürfen den Save-Flow nicht mehr als HTTP-500 abbrechen. Öffentliche Seitenbilder werden als direkte relative `/uploads/...`-Referenzen gespeichert und nach dem Verschieben nochmals mit webserverlesbaren Dateirechten versehen, damit die Seite nach dem Aktualisieren nicht an browserlokalen 403-Fehlern auf dem Bild scheitert.
 
 ---
 

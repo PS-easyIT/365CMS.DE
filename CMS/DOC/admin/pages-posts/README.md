@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Überblick über die Content-Module im Admin-Bereich und ihre aktuelle Aufgabenverteilung.
 
-Letzte Aktualisierung: 20.05.2026 · Version 3.0.13
+Letzte Aktualisierung: 22.05.2026 · Version 3.0.24
 
 Der Content-Bereich ist auf mehrere spezialisierte Bereiche verteilt:
 
@@ -56,7 +56,7 @@ Seit `3.0.13` ist das WordPress-ähnliche EditorJS-Bedienverhalten explizit Teil
 
 - Lösch-Workflows für Seiten und Beiträge folgen im aktuellen Stand dem konsolidierten Admin-Flow mit Redirects, Alerts und serverseitiger Validierung.
 - Featured Images, Slugs und Redaktionshilfen sind stärker mit SEO und Medienverwaltung verzahnt; verwendete Beitrags- und Seitenbilder können unter `/admin/media?tab=featured` gezielt gefunden und global am bestehenden Medienpfad ersetzt werden.
-- Neue Beitrags- und Seitenbilder werden zuerst temporär hochgeladen und beim Speichern in den Slug-Ordner verschoben; der Save-Flow ist dabei fail-soft gegen Metadaten-/Dateisystemfehler und verhindert leere 500er nach erfolgreicher Bildübernahme.
+- Neue Beitrags- und Seitenbilder werden zuerst temporär hochgeladen und beim Speichern in den Slug-Ordner verschoben; der Save-Flow ist dabei fail-soft gegen Metadaten-/Dateisystemfehler, setzt öffentliche Zielbilder webserverlesbar und speichert hostneutrale direkte `/uploads/...`-Referenzen statt unnötiger Delivery-Query-URLs.
 - Der Beitrags-Editor nutzt im Top-Bereich jetzt eine kompaktere Kartenverteilung: Kategorie und Tags sitzen direkt beim Slug, während Speichern und öffentliche DE-/EN-Vorschau in einer eigenen Aktions-Card unter dem Beitragsbild liegen.
 - Beiträge arbeiten im Editor aktuell mit **einer primären Kategorie**; die frühere UI für zusätzliche Kategorien wird nicht mehr angeboten.
 - Slug-Änderungen an Kategorien und Tags halten den öffentlichen Taxonomie-Vertrag jetzt ebenfalls stabil: dedizierte Archivpfade und alte `?category=`/`?tag=`-Filterwerte werden weiter auf den aktuellen Slug aufgelöst.

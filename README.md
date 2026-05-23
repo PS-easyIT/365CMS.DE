@@ -1,6 +1,6 @@
 # 365CMS.DE
 
-**Version:** [3.0.22](Changelog.md) · **Status:** Stable · **PHP:** 8.4+ · **MySQL:** 5.7+ · **MariaDB:** 10.3+
+**Version:** [3.0.25](Changelog.md) · **Status:** Stable · **PHP:** 8.4+ · **MySQL:** 5.7+ · **MariaDB:** 10.3+
 
 <div align="center">
 
@@ -67,7 +67,7 @@ Die gespeicherten EditorJS-Daten werden serverseitig sanitisiert und im Frontend
 | Bereich | Was 365CMS liefert |
 |---|---|
 | **Content & Publishing** | Seiten, Beiträge, Kategorien, Tags, Revisionen, Entwürfe, Public-Preview und EditorJS-Blockinhalte |
-| **Medien** | Medienbibliothek, Uploads, Ordner, Kategorien, Bildverwendung, Beitrags-/Seitenbilder und kontrollierte Medienauslieferung |
+| **Medien** | Medienbibliothek, Uploads, Ordner, Kategorien, Bildverwendung, Beitrags-/Seitenbilder, direkte öffentliche `/uploads/...`-Referenzen und geschützte Medienauslieferung für private Pfade |
 | **Mitglieder** | Member-Dashboard, konfigurierbare Profile mit Pflicht-/Optionalfeldern, Nachrichten, Benachrichtigungen, Favoriten und geschützte Bereiche |
 | **Benutzer & Rollen** | Rollen, Capabilities, Gruppen, Rechteprüfung und sichere Auth-Flows |
 | **Business & Pakete** | Pakete, Bestellungen, Abos, Limits, Gruppenlogik und Zugriffskontrolle |
@@ -95,7 +95,7 @@ Typische Workflows:
 
 ### Sicherheit und Betrieb
 
-365CMS ist auf produktive Self-hosted-Umgebungen ausgelegt. Dazu gehören CSRF-Schutz, serverseitige Sanitizer, rollenbasierte Berechtigungen, sichere Upload-Pfade, kontrollierte Medienauslieferung, Datenschutzfunktionen, Diagnosewerkzeuge und klare Update-Pfade.
+365CMS ist auf produktive Self-hosted-Umgebungen ausgelegt. Dazu gehören CSRF-Schutz, serverseitige Sanitizer, rollenbasierte Berechtigungen, sichere Upload-Pfade, kontrollierte Medienauslieferung, Datenschutzfunktionen, Diagnosewerkzeuge und klare Update-Pfade. Öffentliche Beitrags-/Seitenbilder werden im aktuellen Stand als hostneutrale direkte `/uploads/...`-Referenzen gespeichert und mit webserverlesbaren Dateirechten abgesichert; private Member- und Hidden-Pfade bleiben geschützt und laufen über den kontrollierten Delivery-Pfad.
 
 Performance wird nicht als Deko-Schalter verstanden, sondern als Zusammenspiel aus Cache, Medienauslieferung, schlanken Assets, Cron, Monitoring, Datenbankpflege und sauberem Frontend-Rendering.
 

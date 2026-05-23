@@ -30,7 +30,7 @@ if (!defined('ABSPATH')) {
 class PurifierService
 {
     private static ?self $instance = null;
-    private const HTML_DEFINITION_REVISION = 2026051901;
+    private const HTML_DEFINITION_REVISION = 2026052302;
 
     /** @var array<string, \HTMLPurifier> Gecachte Purifier-Instanzen pro Profil */
     private array $purifiers = [];
@@ -48,11 +48,11 @@ class PurifierService
      */
     private const PROFILES = [
         'default' => [
-            'elements'   => 'p,a,strong,b,em,i,u,ul,ol,li,br,h1,h2,h3,h4,h5,h6,blockquote,pre,code,img,table,thead,tbody,tfoot,tr,th,td,hr,span,div,figure,figcaption,dl,dt,dd,sub,sup,abbr,mark,del,ins,details,summary,video,source,audio',
-            'attributes' => 'a.href,a.title,a.target,a.rel,img.src,img.alt,img.width,img.height,img.loading,img.fetchpriority,img.decoding,img.class,figure.class,figcaption.class,td.colspan,td.rowspan,th.colspan,th.rowspan,span.class,span.aria-hidden,div.class,div.id,div.role,div.aria-hidden,div.data-height,div.data-cms-editorjs-spacing,div.data-cms-editorjs-align,pre.class,code.class,h1.id,h2.id,h3.id,h4.id,h5.id,h6.id,video.src,video.controls,video.width,video.height,source.src,source.type,audio.src,audio.controls,details.open',
+            'elements'   => 'p,a,strong,b,em,i,u,ul,ol,li,br,h1,h2,h3,h4,h5,h6,blockquote,pre,code,img,table,caption,thead,tbody,tfoot,tr,th,td,hr,span,div,figure,figcaption,dl,dt,dd,sub,sup,abbr,mark,del,ins,details,summary,video,source,audio',
+            'attributes' => 'a.href,a.title,a.target,a.rel,img.src,img.alt,img.width,img.height,img.loading,img.fetchpriority,img.decoding,img.class,figure.class,figcaption.class,caption.class,td.colspan,td.rowspan,th.colspan,th.rowspan,span.class,span.aria-hidden,div.class,div.id,div.role,div.aria-hidden,div.data-height,div.data-cms-editorjs-spacing,div.data-cms-editorjs-align,pre.class,code.class,h1.id,h2.id,h3.id,h4.id,h5.id,h6.id,video.src,video.controls,video.width,video.height,source.src,source.type,audio.src,audio.controls,details.open',
         ],
         'hub' => [
-            'elements'   => 'section,article,nav,aside,header,footer,main,p,a,strong,b,em,i,u,ul,ol,li,br,h1,h2,h3,h4,h5,h6,blockquote,pre,code,img,table,thead,tbody,tfoot,tr,th,td,hr,span,div,figure,figcaption,dl,dt,dd,sub,sup,abbr,mark,del,ins,details,summary,video,source,audio,small',
+            'elements'   => 'section,article,nav,aside,header,footer,main,p,a,strong,b,em,i,u,ul,ol,li,br,h1,h2,h3,h4,h5,h6,blockquote,pre,code,img,table,caption,thead,tbody,tfoot,tr,th,td,hr,span,div,figure,figcaption,dl,dt,dd,sub,sup,abbr,mark,del,ins,details,summary,video,source,audio,small',
             'attributes' => 'a.href,a.title,a.target,a.rel,a.class,a.aria-label,a.aria-current,img.src,img.alt,img.width,img.height,img.loading,img.fetchpriority,img.decoding,img.class,td.colspan,td.rowspan,td.class,th.colspan,th.rowspan,th.class,span.class,span.aria-hidden,div.class,div.id,div.role,div.aria-hidden,div.data-height,div.data-cms-editorjs-spacing,div.data-cms-editorjs-align,p.class,section.class,section.id,article.class,article.id,nav.class,nav.id,nav.aria-label,aside.class,aside.id,header.class,header.id,footer.class,footer.id,main.class,main.id,figure.class,figcaption.class,ul.class,ol.class,li.class,pre.class,code.class,h1.id,h1.class,h2.id,h2.class,h3.id,h3.class,h4.id,h4.class,h5.id,h5.class,h6.id,h6.class,details.open,details.class,summary.class,video.src,video.controls,video.width,video.height,source.src,source.type,audio.src,audio.controls,table.class,thead.class,tbody.class,tfoot.class,tr.class,caption.class',
         ],
         'table' => [
@@ -217,6 +217,9 @@ class PurifierService
         $this->ensureHtmlAttribute($definition, 'img', 'fetchpriority', 'Enum#high,low,auto');
         $this->ensureHtmlAttribute($definition, 'img', 'decoding', 'Enum#async,sync,auto');
 
+        $this->ensureHtmlAttribute($definition, 'a', 'aria-label', 'Text');
+        $this->ensureHtmlAttribute($definition, 'a', 'aria-current', 'Text');
+        $this->ensureHtmlAttribute($definition, 'nav', 'aria-label', 'Text');
         $this->ensureHtmlAttribute($definition, 'div', 'role', 'Text');
         $this->ensureHtmlAttribute($definition, 'div', 'aria-hidden', 'Enum#true,false');
         $this->ensureHtmlAttribute($definition, 'div', 'data-height', 'Text');

@@ -1,4 +1,4 @@
-﻿**Version:** 3.0.24
+﻿**Version:** 3.0.25
 
 # 365CMS Changelog
 
@@ -19,6 +19,12 @@
 ## 📜 Aktuelle Versionshistorie ab 3.0.0
 
 > Die vollständige historische 2.x-Historie wurde in [`Changelog_old.md`](Changelog_old.md) archiviert.
+
+### v3.0.25 — 23.05.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.0.25** | 🔴 fix | Site Tables / Public-Sanitizer | **`CMS/core/Services/PurifierService.php`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md` und `Changelog.md` erhalten zentral aktivierte Tabellen-Captions im Public-Renderpfad.** Die Default- und Hub-Profile erlauben nun das sichere `<caption>`-Element samt `class`-Attribut und nutzen eine neue HTML-Definition-Revision, damit Site-Table-Überschriften oberhalb der Tabelle nicht mehr durch nachgelagerte Theme-Sanitizer-Läufe entfernt werden. |
 
 ### v3.0.24 — 22.05.2026
 
