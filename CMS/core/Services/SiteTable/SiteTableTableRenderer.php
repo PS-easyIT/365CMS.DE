@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace CMS\Services\SiteTable;
 
 use CMS\Database;
+use CMS\Hooks;
 use CMS\Json;
 use CMS\Services\PurifierService;
 
@@ -13,6 +14,8 @@ if (!defined('ABSPATH')) {
 
 final class SiteTableTableRenderer
 {
+    private const PAGINATION_ROW_THRESHOLD = 20;
+
     /** @var array<string,mixed>|null */
     private static ?array $displaySettings = null;
 
@@ -45,7 +48,7 @@ final class SiteTableTableRenderer
             : (string) $displaySettings['default_style'];
         $themeClass = $themeClassMap[$activeStyle] ?? $themeClassMap['default'];
         $wrapperClasses = ['cms-site-table-wrap'];
-        $interactiveConfig = $this->buildInteractiveConfig($settings);
+        $interactiveConfig = $this->buildInteractiveConfig($settings, count($rows));
         if (!empty($settings['responsive']) && !empty($displaySettings['responsive_default'])) {
             $wrapperClasses[] = 'cms-site-table-wrap--responsive';
         }
@@ -288,7 +291,7 @@ final class SiteTableTableRenderer
 
     private function renderToolbar(array $interactiveConfig): string
     {
-        if (empty($interactiveConfig['searchEnabled']) && empty($interactiveConfig['paginationEnabled'])) {
+        if (empty($interactiveConfig['searchEnabled'])) {
             return '';
         }
 
@@ -430,7 +433,7 @@ final class SiteTableTableRenderer
     }
 
     /** @return array<string,mixed> */
-    private function buildInteractiveConfig(array $settings): array
+    private function buildInteractiveConfig(array $settings, int $rowCount): array
     {
         $locale = $this->resolveCurrentLocale();
         $labels = $locale === 'en'
@@ -467,15 +470,36 @@ final class SiteTableTableRenderer
         if ($pageSize < 5 || $pageSize > 100) {
             $pageSize = 10;
         }
+        $pageSize = max($pageSize, self::PAGINATION_ROW_THRESHOLD);
 
-        return [
-            'searchEnabled' => !empty($settings['enable_search']),
-            'sortingEnabled' => !empty($settings['enable_sorting']),
-            'paginationEnabled' => !empty($settings['enable_pagination']),
+        $searchEnabled = !empty($settings['enable_search']);
+        $sortingEnabled = !empty($settings['enable_sorting']);
+        $paginationEnabled = !empty($settings['enable_pagination'])
+            && $rowCount > self::PAGINATION_ROW_THRESHOLD
+            && $rowCount > $pageSize;
+
+        $config = [
+            'searchEnabled' => $searchEnabled,
+            'sortingEnabled' => $sortingEnabled,
+            'paginationEnabled' => $paginationEnabled,
             'pageSize' => $pageSize,
-            'interactiveEnabled' => !empty($settings['enable_search']) || !empty($settings['enable_sorting']) || !empty($settings['enable_pagination']),
+            'rowCount' => $rowCount,
+            'paginationRowThreshold' => self::PAGINATION_ROW_THRESHOLD,
+            'interactiveEnabled' => $searchEnabled || $sortingEnabled || $paginationEnabled,
             'labels' => $labels,
         ];
+
+        $filteredConfig = Hooks::applyFilters('site_table_interactive_config', $config, $settings, $rowCount);
+        if (is_array($filteredConfig)) {
+            $config = array_merge($config, $filteredConfig);
+        }
+
+        $config['searchEnabled'] = !empty($config['searchEnabled']);
+        $config['sortingEnabled'] = !empty($config['sortingEnabled']);
+        $config['paginationEnabled'] = !empty($config['paginationEnabled']);
+        $config['interactiveEnabled'] = $config['searchEnabled'] || $config['sortingEnabled'] || $config['paginationEnabled'];
+
+        return $config;
     }
 
     private function resolveCurrentLocale(): string

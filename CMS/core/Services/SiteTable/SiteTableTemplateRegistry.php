@@ -65,6 +65,21 @@ final class SiteTableTemplateRegistry
                 ['title' => 'Betriebsmodelle', 'text' => 'Platzhalter für Managed Services, Support-Level, SLA-Modelle und Betriebsverantwortung.', 'actionLabel' => 'Betrieb ansehen', 'actionUrl' => '#betrieb'],
             ],
         ],
+        'services' => [
+            'links' => [
+                ['label' => 'Beratung', 'url' => '#beratung'],
+                ['label' => 'Microsoft 365', 'url' => '#microsoft-365'],
+                ['label' => 'CMS & Web', 'url' => '#cms-web'],
+                ['label' => 'Betrieb', 'url' => '#betrieb'],
+                ['label' => 'Workshops', 'url' => '#workshops'],
+                ['label' => 'Kontakt', 'url' => '/contact'],
+            ],
+            'sections' => [
+                ['title' => 'Von der Idee zur belastbaren Roadmap', 'text' => 'Strukturierte Beratung, Bestandsaufnahme und Priorisierung für Microsoft 365, Security, Web-Plattformen und Automatisierung.', 'actionLabel' => 'Roadmap starten', 'actionUrl' => '#beratung'],
+                ['title' => 'Umsetzung mit Betriebsblick', 'text' => 'Technische Umsetzung, Dokumentation, Übergabe und optionaler Betrieb werden von Anfang an zusammen gedacht.', 'actionLabel' => 'Delivery ansehen', 'actionUrl' => '#betrieb'],
+                ['title' => 'Enablement statt Blackbox', 'text' => 'Workshops, Runbooks und klare Entscheidungsgrundlagen sorgen dafür, dass Teams Lösungen auch nach dem Projekt souverän betreiben können.', 'actionLabel' => 'Workshops planen', 'actionUrl' => '#workshops'],
+            ],
+        ],
         'general-table' => [
             'links' => [
                 ['label' => 'Übersicht', 'url' => '#uebersicht'],
@@ -177,6 +192,7 @@ final class SiteTableTemplateRegistry
 
     private const DEFAULT_TEMPLATE_CARD_DESIGN = [
         'general-it' => ['layout' => 'standard', 'image_position' => 'top', 'image_fit' => 'cover', 'image_ratio' => 'wide', 'meta_layout' => 'split', 'card_radius' => 20],
+        'services' => ['layout' => 'feature', 'image_position' => 'top', 'image_fit' => 'cover', 'image_ratio' => 'wide', 'meta_layout' => 'split', 'card_radius' => 18],
         'general-table' => ['layout' => 'standard', 'image_position' => 'top', 'image_fit' => 'cover', 'image_ratio' => 'wide', 'meta_layout' => 'split', 'card_radius' => 20],
         'microsoft-365' => ['layout' => 'feature', 'image_position' => 'left', 'image_fit' => 'cover', 'image_ratio' => 'wide', 'meta_layout' => 'split', 'card_radius' => 20],
         'm365-table' => ['layout' => 'standard', 'image_position' => 'top', 'image_fit' => 'cover', 'image_ratio' => 'wide', 'meta_layout' => 'split', 'card_radius' => 20],
@@ -370,7 +386,7 @@ final class SiteTableTemplateRegistry
 
     public function templateSupportsFeatureCards(string $template): bool
     {
-        return in_array($template, ['general-it', 'microsoft-365', 'datenschutz', 'compliance'], true);
+        return in_array($template, ['general-it', 'services', 'microsoft-365', 'datenschutz', 'compliance'], true);
     }
 
     public function getTemplateContentLanguage(string $template, string $locale = 'de'): array
@@ -384,6 +400,15 @@ final class SiteTableTemplateRegistry
                     'section_icons' => ['☁', '✓'],
                     'section_modifiers' => ['spotlight', 'stacked'],
                     'section_notes' => ['Workloads & journeys', 'Policies & rollout'],
+                ],
+                'services' => [
+                    'meta_icons' => ['audience' => '◎', 'owner' => '◆', 'update_cycle' => '↺', 'focus' => '✦', 'kpi' => '↑'],
+                    'quicklink_icons' => ['C', 'M', 'W', 'O', 'E', '@'],
+                    'section_eyebrows' => ['Consulting', 'Delivery', 'Enablement'],
+                    'section_icons' => ['◆', '▲', '✓'],
+                    'section_modifiers' => ['spotlight', 'stacked', 'spotlight'],
+                    'section_notes' => ['Discovery & roadmap', 'Implementation & operations', 'Workshops & handover'],
+                    'card_cta_label' => 'Request service',
                 ],
                 'm365-table' => [
                     'meta_icons' => ['audience' => '◈', 'owner' => '☁', 'update_cycle' => '↺', 'focus' => '▦', 'kpi' => '↑'],
@@ -471,6 +496,15 @@ final class SiteTableTemplateRegistry
                 'section_modifiers' => ['spotlight', 'stacked'],
                 'section_notes' => ['Workloads & Journeys', 'Policies & Rollout'],
                 'card_cta_label' => '… weiter Lesen',
+            ],
+            'services' => [
+                'meta_icons' => ['audience' => '◎', 'owner' => '◆', 'update_cycle' => '↺', 'focus' => '✦', 'kpi' => '↑'],
+                'quicklink_icons' => ['B', 'M', 'W', 'O', 'E', '@'],
+                'section_eyebrows' => ['Beratung', 'Umsetzung', 'Enablement'],
+                'section_icons' => ['◆', '▲', '✓'],
+                'section_modifiers' => ['spotlight', 'stacked', 'spotlight'],
+                'section_notes' => ['Discovery & Roadmap', 'Implementierung & Betrieb', 'Workshops & Übergabe'],
+                'card_cta_label' => 'Leistung anfragen',
             ],
             'm365-table' => [
                 'meta_icons' => ['audience' => '◈', 'owner' => '☁', 'update_cycle' => '↺', 'focus' => '▦', 'kpi' => '↑'],
@@ -720,6 +754,7 @@ final class SiteTableTemplateRegistry
     {
         return match ($template) {
             'microsoft-365' => ['hero_start' => '#2d547a', 'hero_end' => '#1e3a5f', 'accent' => '#14b8a6', 'surface' => '#ffffff', 'card_background' => '#ffffff', 'card_text' => '#1e293b', 'section_background' => '#eef4fb', 'table_header_start' => '#2d547a', 'table_header_end' => '#1e3a5f'],
+            'services' => ['hero_start' => '#0f2240', 'hero_end' => '#1e3a5f', 'accent' => '#e8a838', 'surface' => '#f8fafc', 'card_background' => '#ffffff', 'card_text' => '#1e293b', 'section_background' => '#f1f5f9', 'table_header_start' => '#0f2240', 'table_header_end' => '#1e3a5f'],
             'm365-table' => ['hero_start' => '#2d547a', 'hero_end' => '#1e3a5f', 'accent' => '#14b8a6', 'surface' => '#ffffff', 'card_background' => '#ffffff', 'card_text' => '#1e293b', 'section_background' => '#eef4fb', 'table_header_start' => '#2d547a', 'table_header_end' => '#1e3a5f'],
             'powershell-table' => ['hero_start' => '#0f2240', 'hero_end' => '#2d547a', 'accent' => '#14b8a6', 'surface' => '#111827', 'card_background' => '#162030', 'card_text' => '#f8fafc', 'section_background' => '#111827', 'table_header_start' => '#2d547a', 'table_header_end' => '#14b8a6'],
             'general-table' => ['hero_start' => '#1e3a5f', 'hero_end' => '#0f2240', 'accent' => '#0d9488', 'surface' => '#ffffff', 'card_background' => '#ffffff', 'card_text' => '#1e293b', 'section_background' => '#f1f5f9', 'table_header_start' => '#0f2240', 'table_header_end' => '#2d547a'],

@@ -9,6 +9,7 @@ final class HubTemplateProfileCatalog
 {
     private const TEMPLATE_OPTIONS = [
         'general-it' => 'IT Themen Allgemein',
+        'services' => 'Dienstleistungen / Landing Hub',
         'general-table' => 'Allg. Table',
         'microsoft-365' => 'Microsoft 365',
         'm365-table' => 'M365 Table',
@@ -41,6 +42,31 @@ final class HubTemplateProfileCatalog
             'sections' => [
                 ['title' => 'Roadmap & Architektur', 'text' => 'Platzhalter für Zielbilder, Modernisierung, Plattformentscheidungen und operative Prioritäten.', 'actionLabel' => 'Roadmap ansehen', 'actionUrl' => '#roadmap'],
                 ['title' => 'Services & Betriebsmodelle', 'text' => 'Platzhalter für Managed Services, Service-Catalog, SLA-Modelle und Zuständigkeiten.', 'actionLabel' => 'Services öffnen', 'actionUrl' => '#services'],
+            ],
+        ],
+        'services' => [
+            'summary' => 'Landing-Hub für Beratungs-, Umsetzungs- und Betriebsleistungen mit klaren Service-Kacheln, Kontakt-CTA und PHINIT-naher Akzentführung.',
+            'navigation' => ['toc_enabled' => true],
+            'card_design' => ['layout' => 'feature', 'image_position' => 'top', 'image_fit' => 'cover', 'image_ratio' => 'wide', 'meta_layout' => 'split', 'card_radius' => 18],
+            'meta' => [
+                'audience' => 'KMU, IT-Leitung & Fachbereiche',
+                'owner' => 'phinIT Consulting',
+                'update_cycle' => 'Quartalsweise',
+                'focus' => 'Beratung, Umsetzung & Betrieb',
+                'kpi' => 'Time-to-Value',
+            ],
+            'links' => [
+                ['label' => 'Beratung', 'url' => '#beratung'],
+                ['label' => 'Microsoft 365', 'url' => '#microsoft-365'],
+                ['label' => 'CMS & Web', 'url' => '#cms-web'],
+                ['label' => 'Betrieb', 'url' => '#betrieb'],
+                ['label' => 'Workshops', 'url' => '#workshops'],
+                ['label' => 'Kontakt', 'url' => '/contact'],
+            ],
+            'sections' => [
+                ['title' => 'Von der Idee zur belastbaren Roadmap', 'text' => 'Strukturierte Beratung, Bestandsaufnahme und Priorisierung für Microsoft 365, Security, Web-Plattformen und Automatisierung.', 'actionLabel' => 'Roadmap starten', 'actionUrl' => '#beratung'],
+                ['title' => 'Umsetzung mit Betriebsblick', 'text' => 'Technische Umsetzung, Dokumentation, Übergabe und optionaler Betrieb werden von Anfang an zusammen gedacht.', 'actionLabel' => 'Delivery ansehen', 'actionUrl' => '#betrieb'],
+                ['title' => 'Enablement statt Blackbox', 'text' => 'Workshops, Runbooks und klare Entscheidungsgrundlagen sorgen dafür, dass Teams Lösungen auch nach dem Projekt souverän betreiben können.', 'actionLabel' => 'Workshops planen', 'actionUrl' => '#workshops'],
             ],
         ],
         'general-table' => [
@@ -335,6 +361,13 @@ final class HubTemplateProfileCatalog
                 'focus' => 'Policy Area',
                 'kpi' => 'Readiness',
             ],
+            'services' => [
+                'audience' => 'Zielgruppe',
+                'owner' => 'Ansprechpartner',
+                'update_cycle' => 'Aktualität',
+                'focus' => 'Leistungsschwerpunkt',
+                'kpi' => 'Ergebnis',
+            ],
             default => [
                 'audience' => 'Zielgruppe',
                 'owner' => 'Verantwortlich',
@@ -391,6 +424,17 @@ final class HubTemplateProfileCatalog
                 'image_alt_label' => 'Bild-Alt',
                 'button_text_label' => 'Button-Text',
                 'button_link_label' => 'Button-Link',
+            ],
+            'services' => [
+                'title_label' => 'Dienstleistung',
+                'summary_label' => 'Nutzen / Beschreibung',
+                'badge_label' => 'Service-Bereich',
+                'meta_left_label' => 'Format',
+                'meta_right_label' => 'Ergebnis',
+                'image_label' => 'Service-Visual',
+                'image_alt_label' => 'Visual-Alt',
+                'button_text_label' => 'CTA-Text',
+                'button_link_label' => 'CTA-Link',
             ],
             'datenschutz' => [
                 'title_label' => 'Nachweis / Thema',
@@ -467,6 +511,7 @@ final class HubTemplateProfileCatalog
     {
         return match ($template) {
             'microsoft-365' => ['hero_start' => '#2d547a', 'hero_end' => '#1e3a5f', 'accent' => '#14b8a6', 'surface' => '#ffffff', 'card_background' => '#ffffff', 'card_text' => '#1e293b', 'section_background' => '#eef4fb', 'table_header_start' => '#2d547a', 'table_header_end' => '#1e3a5f'],
+            'services' => ['hero_start' => '#0f2240', 'hero_end' => '#1e3a5f', 'accent' => '#e8a838', 'surface' => '#f8fafc', 'card_background' => '#ffffff', 'card_text' => '#1e293b', 'section_background' => '#f1f5f9', 'table_header_start' => '#0f2240', 'table_header_end' => '#1e3a5f'],
             'm365-table' => ['hero_start' => '#2d547a', 'hero_end' => '#1e3a5f', 'accent' => '#14b8a6', 'surface' => '#ffffff', 'card_background' => '#ffffff', 'card_text' => '#1e293b', 'section_background' => '#eef4fb', 'table_header_start' => '#2d547a', 'table_header_end' => '#1e3a5f'],
             'powershell-table' => ['hero_start' => '#0f2240', 'hero_end' => '#2d547a', 'accent' => '#14b8a6', 'surface' => '#111827', 'card_background' => '#162030', 'card_text' => '#f8fafc', 'section_background' => '#111827', 'table_header_start' => '#2d547a', 'table_header_end' => '#14b8a6'],
             'general-table' => ['hero_start' => '#1e3a5f', 'hero_end' => '#0f2240', 'accent' => '#0d9488', 'surface' => '#ffffff', 'card_background' => '#ffffff', 'card_text' => '#1e293b', 'section_background' => '#f1f5f9', 'table_header_start' => '#0f2240', 'table_header_end' => '#2d547a'],
@@ -486,6 +531,11 @@ final class HubTemplateProfileCatalog
                 ['title' => 'Teams & Meetings', 'summary' => 'Platzhalter für Collaboration-, Meeting-, Calling- und Workspace-Szenarien mit klarem Business-Nutzen.', 'badge' => 'Teams', 'meta_left' => 'Enablement', 'meta_right' => 'Rollout', 'image_url' => '', 'image_alt' => '', 'button_text' => 'Use Case öffnen', 'button_link' => '#teams', 'url' => '#teams'],
                 ['title' => 'SharePoint & Intranet', 'summary' => 'Platzhalter für Wissensräume, Dokumentenmanagement, Intranet-Strecken und Content Governance.', 'badge' => 'SharePoint', 'meta_left' => 'Owner', 'meta_right' => 'Lifecycle', 'image_url' => '', 'image_alt' => '', 'button_text' => 'Workspace öffnen', 'button_link' => '#sharepoint', 'url' => '#sharepoint'],
                 ['title' => 'Copilot & Automation', 'summary' => 'Platzhalter für Prompts, Agenten, Power Platform und Automation entlang echter Workflows.', 'badge' => 'Copilot', 'meta_left' => 'Scenario', 'meta_right' => 'Value', 'image_url' => '', 'image_alt' => '', 'button_text' => 'Automation ansehen', 'button_link' => '#copilot', 'url' => '#copilot'],
+            ],
+            'services' => [
+                ['title' => 'IT-Strategie & Architektur', 'summary' => 'Bestandsaufnahme, Zielbild, Roadmap und priorisierte Maßnahmen für moderne IT- und Cloud-Umgebungen.', 'badge' => 'Consulting', 'meta_left' => 'Workshop', 'meta_right' => 'Roadmap', 'image_url' => '', 'image_alt' => '', 'button_text' => 'Beratung anfragen', 'button_link' => '/contact', 'url' => '#beratung'],
+                ['title' => 'Microsoft 365 & Security', 'summary' => 'Governance, Identitäten, Teams, SharePoint, Exchange, Security-Baselines und Adoption sauber zusammengedacht.', 'badge' => 'Microsoft 365', 'meta_left' => 'Projekt', 'meta_right' => 'Secure Rollout', 'image_url' => '', 'image_alt' => '', 'button_text' => 'M365 besprechen', 'button_link' => '/contact', 'url' => '#microsoft-365'],
+                ['title' => '365CMS & Web-Plattformen', 'summary' => 'Konzeption, Theme-Anpassung, Performance, Inhalte und sichere CMS-Prozesse für professionelle Websites.', 'badge' => 'CMS', 'meta_left' => 'Build', 'meta_right' => 'Go-live', 'image_url' => '', 'image_alt' => '', 'button_text' => 'CMS-Projekt starten', 'button_link' => '/contact', 'url' => '#cms-web'],
             ],
             'm365-table' => [
                 ['title' => 'Lizenzmatrix', 'summary' => 'Platzhalter für Microsoft-365-Lizenzvergleiche, Feature-Matrizen oder eingebettete Tabellen per Shortcode.', 'badge' => 'Lizenz', 'meta_left' => 'M365', 'meta_right' => 'Stand', 'image_url' => '', 'image_alt' => '', 'button_text' => 'Matrix öffnen', 'button_link' => '#lizenzen', 'url' => '#lizenzen'],

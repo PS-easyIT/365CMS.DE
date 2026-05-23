@@ -1,4 +1,4 @@
-﻿**Version:** 3.0.25
+﻿**Version:** 3.0.28
 
 # 365CMS Changelog
 
@@ -19,6 +19,24 @@
 ## 📜 Aktuelle Versionshistorie ab 3.0.0
 
 > Die vollständige historische 2.x-Historie wurde in [`Changelog_old.md`](Changelog_old.md) archiviert.
+
+### v3.0.28 — 23.05.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.0.28** | 🔴 fix | Site Tables / Pagination | **`CMS/core/Services/SiteTable/SiteTableTableRenderer.php`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md` und `Changelog.md` korrigieren die Frontend-Pagination auf echte 20-Zeilen-Seiten.** Der Renderer hebt konfigurierte kleinere Seitengrößen wie `15` auf mindestens `20` an und aktiviert Pagination erst bei mehr als 20 Zeilen; exakt 20 Zeilen bleiben damit ohne Pagination. |
+
+### v3.0.27 — 23.05.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.0.27** | 🔴 fix | Site Tables / Toolbar | **`CMS/core/Services/SiteTable/SiteTableTableRenderer.php`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md` und `Changelog.md` entfernen die reine Pagination-Metazeile oberhalb der Tabelle.** Der Toolbar-Block wird nur noch gerendert, wenn Suche aktiv ist; bei reiner Pagination erscheint keine Zeilen-/Seitenstatusinfo mehr unterhalb des Tabellentitels, während die eigentliche Pagination weiterhin unter der Tabelle gerendert wird. |
+
+### v3.0.26 — 23.05.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.0.26** | 🔴 fix | Site Tables / Interaktion | **`CMS/core/Services/SiteTable/SiteTableTableRenderer.php`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md` und `Changelog.md` begrenzen die Frontend-Pagination auf wirklich lange Tabellen.** Der Renderer aktiviert Pagination nur noch, wenn die Tabelle mindestens 20 Zeilen besitzt und mehr Zeilen als die konfigurierte Seitengröße enthält; zusätzlich steht mit `site_table_interactive_config` ein Filter bereit, damit Themes die Such-/Sortier-/Pagination-Konfiguration ohne Markup-Hacks anpassen können. |
 
 ### v3.0.25 — 23.05.2026
 
