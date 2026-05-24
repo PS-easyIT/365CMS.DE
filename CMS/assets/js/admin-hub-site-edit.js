@@ -274,7 +274,10 @@
         featureCards = Array.isArray(featureCards) ? featureCards : [];
 
         function templateSupportsFeatureCards(templateKey) {
-            return ['general-it', 'microsoft-365', 'datenschutz', 'compliance'].indexOf(templateKey) !== -1;
+            var profile = templateProfiles[templateKey] || {};
+            var baseTemplate = String(profile.base_template || templateKey || 'general-it');
+
+            return ['general-it', 'services', 'microsoft-365', 'datenschutz', 'compliance'].indexOf(baseTemplate) !== -1;
         }
 
         function getTemplateProfile() {
@@ -680,7 +683,7 @@
             emptyState.classList.toggle('d-none', cards.length !== 0);
 
             if (cardSchemaHint) {
-                cardSchemaHint.textContent = 'Template-Vorgabe: ' + schema.columns + ' Kachel' + (schema.columns === 1 ? '' : 'n') + ' pro Reihe. Aktive Sprachansicht: ' + (activeLanguage === 'en' ? 'English' : 'Deutsch') + '. ' + (featureSupported ? 'Per Schalter kannst du jede Kachel als Feature-Kachel in Vollbreite markieren.' : 'Dieses Template rendert markierte Feature-Kacheln aktuell wie normale Kacheln.');
+                cardSchemaHint.textContent = 'Template-Vorgabe: ' + schema.columns + ' Kachel' + (schema.columns === 1 ? '' : 'n') + ' pro Reihe. Aktive Sprachansicht: ' + (activeLanguage === 'en' ? 'English' : 'Deutsch') + '. ' + (featureSupported ? 'Per Schalter kannst du jede Kachel als Feature-Kachel in Vollbreite markieren — ideal für Dienstleistungs-Highlights.' : 'Dieses Template rendert markierte Feature-Kacheln aktuell wie normale Kacheln.');
             }
 
             renderOptions = {

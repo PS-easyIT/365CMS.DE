@@ -258,6 +258,7 @@ $hubPublicEnPath = $hubPublicPath !== '' ? ContentLocalizationService::getInstan
                         <div class="card-body">
                             <ul class="list-unstyled mb-0 d-flex flex-column gap-2">
                                 <li><strong>IT Themen Allgemein</strong><br><span class="text-secondary small">Breit, neutral, editorial.</span></li>
+                                <li><strong>Dienstleistungen</strong><br><span class="text-secondary small">Landing-Hub mit Service-Kacheln, CTA und Feature-Highlights.</span></li>
                                 <li><strong>Microsoft 365</strong><br><span class="text-secondary small">Azure-/M365-Optik, modern.</span></li>
                                 <li><strong>Datenschutz</strong><br><span class="text-secondary small">Vertrauen, Schutz, strukturierte Hinweise.</span></li>
                                 <li><strong>Compliance</strong><br><span class="text-secondary small">Governance, Policies, Nachvollziehbarkeit.</span></li>

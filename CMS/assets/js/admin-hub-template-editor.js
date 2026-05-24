@@ -443,6 +443,19 @@
                     sectionStyles: ['trust', 'checklist'],
                     sectionNotes: ['Dokumentation & Belege', 'Fristen & Maßnahmen']
                 },
+                'services': {
+                    badge: 'Dienstleistungen',
+                    sectionTitle: 'Services & Delivery',
+                    sectionText: 'Beratung, Umsetzung und Betrieb bekommen hier eine landingpage-nahe Struktur mit klaren Service-Kacheln und CTA-Fokus.',
+                    cardPrefix: 'Service',
+                    mediaLabel: 'Service',
+                    metaIcons: { audience: '◎', owner: '◆', update_cycle: '↺', focus: '✦', kpi: '✓' },
+                    linkIcons: ['B', 'M', 'W', 'K'],
+                    sectionEyebrows: ['Roadmap', 'Delivery'],
+                    sectionIcons: ['◆', '✓'],
+                    sectionStyles: ['spotlight', 'stacked'],
+                    sectionNotes: ['Beratung & Zielbild', 'Umsetzung & Betrieb']
+                },
                 'linux': {
                     badge: 'Linux',
                     sectionTitle: 'Platform & Ops',

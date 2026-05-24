@@ -1,4 +1,4 @@
-﻿**Version:** 3.0.29
+﻿**Version:** 3.0.30
 
 # 365CMS Changelog
 
@@ -19,6 +19,12 @@
 ## 📜 Aktuelle Versionshistorie ab 3.0.0
 
 > Die vollständige historische 2.x-Historie wurde in [`Changelog_old.md`](Changelog_old.md) archiviert.
+
+### v3.0.30 — 24.05.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.0.30** | 🔴 fix | Hub-Sites / Dienstleistungen | **`CMS/admin/views/hub/edit.php`, `CMS/assets/js/admin-hub-site-edit.js`, `CMS/assets/js/admin-hub-template-editor.js`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md`, `Changelog.md` und `CMS/DOC/admin/pages-posts/HUBSITES.md` machen das Dienstleistungs-Profil im HubSite-Admin vollständig nutzbar.** `services` erscheint sichtbar in den Template-Varianten, services-basierte Templates unterstützen Feature-Kacheln in Vollbreite, und die Template-Vorschau nutzt passende Service-/Delivery-Texte statt auf General-IT zurückzufallen. |
 
 ### v3.0.29 — 23.05.2026
 
