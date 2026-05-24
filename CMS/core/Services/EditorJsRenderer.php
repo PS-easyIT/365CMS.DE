@@ -120,18 +120,20 @@ final class EditorJsRenderer
         $data = is_array($block['data'] ?? null) ? $block['data'] : [];
         $tunes = is_array($block['tunes'] ?? null) ? $block['tunes'] : [];
         $data = $this->applyVisualTuneData($data, $tunes);
+        $html = '';
 
         if ((string)($block['type'] ?? '') === 'checklist') {
             $data['style'] = 'checklist';
         }
 
-        return match ($type) {
+        $html = match ($type) {
             'paragraph' => $this->renderParagraph($data),
             'header' => $this->renderHeader($data),
             'list' => $this->renderList($data),
             'checklist' => $this->renderChecklist($data),
             'quote' => $this->renderQuote($data),
             'warning' => $this->renderWarning($data),
+            'alert' => $this->renderAlert($data),
             'code' => $this->renderCode($data),
             'raw' => $this->renderRaw($data),
             'table' => $this->renderTable($data),
@@ -156,6 +158,8 @@ final class EditorJsRenderer
             'details' => $this->renderDetails($data),
             default => $this->renderUnknownBlockFallback($data),
         };
+
+        return $this->applyBlockTuneAttributes($html, $tunes);
     }
 
     private function normalizeBlockType(string $type): string
@@ -175,6 +179,95 @@ final class EditorJsRenderer
             'core/separator', 'wp:separator' => 'delimiter',
             default => $type,
         };
+    }
+
+    /**
+     * @param array<string,mixed> $tunes
+     */
+    private function applyBlockTuneAttributes(string $html, array $tunes): string
+    {
+        if ($html === '' || $tunes === []) {
+            return $html;
+        }
+
+        $attributes = [];
+        $classes = [];
+        $styles = [];
+        $anchor = $this->sanitizeAnchorTune($tunes['anchor'] ?? null);
+        $textVariant = $this->sanitizeTextVariantTune($tunes['textVariant'] ?? null);
+        $indentLevel = $this->sanitizeIndentLevel($tunes['indentTune'] ?? null);
+
+        if ($anchor !== '') {
+            $attributes[] = 'id="' . htmlspecialchars($anchor, ENT_QUOTES, 'UTF-8') . '"';
+            $attributes[] = 'data-editorjs-anchor="' . htmlspecialchars($anchor, ENT_QUOTES, 'UTF-8') . '"';
+        }
+
+        if ($textVariant !== '') {
+            $classes[] = 'editorjs-text-variant';
+            $classes[] = 'editorjs-text-variant--' . $textVariant;
+            $attributes[] = 'data-editorjs-text-variant="' . htmlspecialchars($textVariant, ENT_QUOTES, 'UTF-8') . '"';
+        }
+
+        if ($indentLevel > 0) {
+            $classes[] = 'editorjs-indent';
+            $classes[] = 'editorjs-indent--' . $indentLevel;
+            $attributes[] = 'data-editorjs-indent="' . $indentLevel . '"';
+            $styles[] = 'margin-left:' . ($indentLevel * 1.5) . 'rem';
+        }
+
+        if ($attributes === [] && $classes === [] && $styles === []) {
+            return $html;
+        }
+
+        if ($attributes !== []) {
+            $html = (string) preg_replace('/^<([a-z][a-z0-9:-]*)(\s[^>]*)?>/i', '<$1$2 ' . implode(' ', $attributes) . '>', $html, 1);
+        }
+
+        if ($classes !== []) {
+            $classValue = htmlspecialchars(implode(' ', $classes), ENT_QUOTES, 'UTF-8');
+            if (preg_match('/^<[^>]+\sclass="[^"]*"/i', $html) === 1) {
+                $html = (string) preg_replace('/^(<[^>]+\sclass=")([^"]*)(")/i', '$1$2 ' . $classValue . '$3', $html, 1);
+            } else {
+                $html = (string) preg_replace('/^<([a-z][a-z0-9:-]*)(\s[^>]*)?>/i', '<$1$2 class="' . $classValue . '">', $html, 1);
+            }
+        }
+
+        if ($styles !== []) {
+            $styleValue = htmlspecialchars(implode(';', $styles), ENT_QUOTES, 'UTF-8');
+            if (preg_match('/^<[^>]+\sstyle="[^"]*"/i', $html) === 1) {
+                $html = (string) preg_replace('/^(<[^>]+\sstyle=")([^"]*)(")/i', '$1$2;' . $styleValue . '$3', $html, 1);
+            } else {
+                $html = (string) preg_replace('/^<([a-z][a-z0-9:-]*)(\s[^>]*)?>/i', '<$1$2 style="' . $styleValue . '">', $html, 1);
+            }
+        }
+
+        return $html;
+    }
+
+    private function sanitizeAnchorTune(mixed $value): string
+    {
+        $anchor = strtolower(trim((string) $value));
+        $anchor = (string) preg_replace('/\s+/', '-', $anchor);
+        $anchor = (string) preg_replace('/[^a-z0-9_-]/', '', $anchor);
+        $anchor = trim($anchor, '-_');
+
+        return substr($anchor, 0, 80);
+    }
+
+    private function sanitizeTextVariantTune(mixed $value): string
+    {
+        $variant = (string) $value;
+
+        return in_array($variant, ['call-out', 'citation', 'details'], true) ? $variant : '';
+    }
+
+    private function sanitizeIndentLevel(mixed $value): int
+    {
+        if (!is_array($value)) {
+            return 0;
+        }
+
+        return max(0, min(8, (int) ($value['indentLevel'] ?? 0)));
     }
 
     /**
@@ -423,6 +516,39 @@ final class EditorJsRenderer
         }
 
         return '<div class="editorjs-block editorjs-warning editorjs-warning--' . htmlspecialchars($variant, ENT_QUOTES, 'UTF-8') . '" data-variant="' . htmlspecialchars($variant, ENT_QUOTES, 'UTF-8') . '"><div class="warning-title">' . ($title !== '' ? $title : 'Hinweis') . '</div><div class="warning-message">' . $message . '</div></div>';
+    }
+
+    /** @param array<string,mixed> $data */
+    private function renderAlert(array $data): string
+    {
+        $type = strtolower((string) ($data['type'] ?? $data['variant'] ?? 'info'));
+        $align = strtolower((string) ($data['align'] ?? $data['alignment'] ?? 'left'));
+        $message = $this->sanitizeInline((string) ($data['message'] ?? $data['text'] ?? ''));
+
+        if ($message === '') {
+            return '';
+        }
+
+        if (!in_array($type, ['primary', 'secondary', 'info', 'success', 'warning', 'danger', 'light', 'dark'], true)) {
+            $type = 'info';
+        }
+        if (!in_array($align, ['left', 'center', 'right'], true)) {
+            $align = 'left';
+        }
+
+        $variantMap = [
+            'primary' => 'info',
+            'secondary' => 'info',
+            'light' => 'info',
+            'dark' => 'info',
+            'info' => 'info',
+            'success' => 'success',
+            'warning' => 'warning',
+            'danger' => 'danger',
+        ];
+        $warningVariant = $variantMap[$type] ?? 'info';
+
+        return '<div class="editorjs-block editorjs-alert editorjs-alert--' . htmlspecialchars($type, ENT_QUOTES, 'UTF-8') . ' editorjs-alert--align-' . htmlspecialchars($align, ENT_QUOTES, 'UTF-8') . ' editorjs-warning editorjs-warning--' . htmlspecialchars($warningVariant, ENT_QUOTES, 'UTF-8') . '" data-variant="' . htmlspecialchars($type, ENT_QUOTES, 'UTF-8') . '" style="text-align:' . htmlspecialchars($align, ENT_QUOTES, 'UTF-8') . ';"><div class="warning-message">' . $message . '</div></div>';
     }
 
     /** @param array<string,mixed> $data */

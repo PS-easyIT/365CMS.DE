@@ -1915,6 +1915,11 @@
                 toolbar.appendChild(overflowPanel);
             }
             wrap.insertBefore(toolbar, wrap.querySelector('.editorjs-holder') || wrap.firstChild || null);
+            registerEditorUiCleanup(definition.holderId, function () {
+                if (toolbar.parentNode) {
+                    toolbar.parentNode.removeChild(toolbar);
+                }
+            });
         }
 
         function ensureEditorUi(definition, editorEntry) {
@@ -1935,8 +1940,10 @@
             renderEditorBlockUi(definition, editorEntry);
 
             if (!state.observed) {
+                var observer;
+
                 state.observed = true;
-                state.observer = new MutationObserver(function (mutations) {
+                observer = new MutationObserver(function (mutations) {
                     if (state.rendering || isOnlyEditorUiMutation(mutations)) {
                         return;
                     }
@@ -1950,7 +1957,9 @@
                         state.scheduled = false;
                         renderEditorBlockUi(definition, editorEntry);
                     });
-                }).observe(holder, { childList: true, subtree: true });
+                });
+                observer.observe(holder, { childList: true, subtree: true });
+                state.observer = observer;
             }
         }
 
@@ -2349,13 +2358,14 @@
 
         function bindClipboardImagePaste(definition, editorEntry) {
             var holder = getElement(definition.holderId);
+            var handlePaste;
 
             if (!holder || !editorEntry || !editorEntry.instance || holder.dataset.cmsClipboardImagePasteBound === '1') {
                 return;
             }
 
             holder.dataset.cmsClipboardImagePasteBound = '1';
-            holder.addEventListener('paste', function (event) {
+            handlePaste = function (event) {
                 var files = collectClipboardImageFiles(event);
                 var insertIndex;
                 var queue;
@@ -2397,7 +2407,12 @@
                     showNotice('danger', error && error.message ? error.message : 'Bild aus der Zwischenablage konnte nicht eingefügt werden.');
                     logEditor('warn', 'Clipboard image paste failed.', error);
                 });
-            }, true);
+            };
+            holder.addEventListener('paste', handlePaste, true);
+            registerEditorUiCleanup(definition.holderId, function () {
+                holder.removeEventListener('paste', handlePaste, true);
+                delete holder.dataset.cmsClipboardImagePasteBound;
+            });
         }
 
         function isEditorUiTarget(target) {
@@ -2555,13 +2570,14 @@
 
         function bindKeyboardBlockEnter(definition, editorEntry) {
             var holder = getElement(definition.holderId);
+            var handleKeydown;
 
             if (!holder || !editorEntry || !editorEntry.instance || holder.dataset.cmsKeyboardEnterBound === '1') {
                 return;
             }
 
             holder.dataset.cmsKeyboardEnterBound = '1';
-            holder.addEventListener('keydown', function (event) {
+            handleKeydown = function (event) {
                 var target = event.target;
                 var selectedBlock;
                 var targetBlock;
@@ -2592,18 +2608,24 @@
                 event.stopPropagation();
 
                 insertEmptyParagraphAfterBlock(definition, editorEntry, holder, blockToInsertAfter);
-            }, true);
+            };
+            holder.addEventListener('keydown', handleKeydown, true);
+            registerEditorUiCleanup(definition.holderId, function () {
+                holder.removeEventListener('keydown', handleKeydown, true);
+                delete holder.dataset.cmsKeyboardEnterBound;
+            });
         }
 
         function bindKeyboardBlockDelete(definition, editorEntry) {
             var holder = getElement(definition.holderId);
+            var handleKeydown;
 
             if (!holder || !editorEntry || !editorEntry.instance || holder.dataset.cmsKeyboardDeleteBound === '1') {
                 return;
             }
 
             holder.dataset.cmsKeyboardDeleteBound = '1';
-            holder.addEventListener('keydown', function (event) {
+            handleKeydown = function (event) {
                 var target = event.target;
                 var isDeleteKey = event.key === 'Delete' || event.key === 'Backspace';
                 var selectedBlock;
@@ -2639,7 +2661,12 @@
                 if (!removeEditorBlock(definition, editorEntry, holder, blockToDelete)) {
                     return;
                 }
-            }, true);
+            };
+            holder.addEventListener('keydown', handleKeydown, true);
+            registerEditorUiCleanup(definition.holderId, function () {
+                holder.removeEventListener('keydown', handleKeydown, true);
+                delete holder.dataset.cmsKeyboardDeleteBound;
+            });
         }
 
         function getSelectionElement(selection) {
@@ -2819,6 +2846,9 @@
         function bindTextSelectionBubble(definition, editorEntry) {
             var holder = getElement(definition.holderId);
             var bubble;
+            var handleMouseup;
+            var handleKeyup;
+            var handleBlur;
 
             if (!holder || !editorEntry || !editorEntry.instance || holder.dataset.cmsSelectionBubbleBound === '1') {
                 return;
@@ -2851,9 +2881,22 @@
             }
 
             document.addEventListener('selectionchange', updateBubble);
-            holder.addEventListener('mouseup', function () { window.setTimeout(updateBubble, 0); });
-            holder.addEventListener('keyup', function () { window.setTimeout(updateBubble, 0); });
-            holder.addEventListener('blur', function () { bubble.setAttribute('hidden', 'hidden'); }, true);
+            handleMouseup = function () { window.setTimeout(updateBubble, 0); };
+            handleKeyup = function () { window.setTimeout(updateBubble, 0); };
+            handleBlur = function () { bubble.setAttribute('hidden', 'hidden'); };
+            holder.addEventListener('mouseup', handleMouseup);
+            holder.addEventListener('keyup', handleKeyup);
+            holder.addEventListener('blur', handleBlur, true);
+            registerEditorUiCleanup(definition.holderId, function () {
+                document.removeEventListener('selectionchange', updateBubble);
+                holder.removeEventListener('mouseup', handleMouseup);
+                holder.removeEventListener('keyup', handleKeyup);
+                holder.removeEventListener('blur', handleBlur, true);
+                if (bubble.parentNode) {
+                    bubble.parentNode.removeChild(bubble);
+                }
+                delete holder.dataset.cmsSelectionBubbleBound;
+            });
         }
 
         function isEditorInputEmpty(input) {
@@ -3504,6 +3547,10 @@
                 return;
             }
 
+            if (definition) {
+                cleanupEditorUi(definition.holderId);
+            }
+
             try {
                 if (current.instance && typeof current.instance.destroy === 'function') {
                     current.instance.destroy();
@@ -3615,7 +3662,14 @@
                 logEditor('info', '[EJS-CHAIN-BIND-CREATE] Calling createCmsEditor for "' + definition.holderId + '".');
                 createdInstance = window.createCmsEditor(definition.holderId, input.value || '', config.mediaUploadUrl, config.csrfToken, {
                     getUploadContext: buildUploadContext,
+                    readOnly: !!(definition.readOnly || config.readOnly),
                     themeTypography: config.themeTypography || {},
+                    onError: function (error, context) {
+                        logEditor('error', 'EditorJS runtime error for "' + definition.holderId + '".', {
+                            context: context || {},
+                            error: error || null
+                        });
+                    },
                     onChange: function (output) {
                         var currentEntry = editors[definition.key];
 

@@ -1,4 +1,4 @@
-﻿**Version:** 3.3.5
+﻿**Version:** 3.3.6
 
 # 365CMS Changelog
 
@@ -19,6 +19,12 @@
 ## 📜 Aktuelle Versionshistorie ab 3.0.0
 
 > Die vollständige historische 2.x-Historie wurde in [`Changelog_old.md`](Changelog_old.md) archiviert.
+
+### v3.3.6 — 24.05.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.3.6** | 🛡️ security | EditorJS / Audit & Stabilität | **`CMS/assets/js/editor-init.js`, `CMS/assets/js/admin-content-editor.js`, `CMS/core/Services/EditorJs/EditorJsAssetService.php`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md` und `Changelog.md` schließen die EditorJS-Audit-Funde.** Der Editor registriert ein lokales Marker-Inline-Tool, reicht ReadOnly- und Fehler-Callbacks bis zur Factory durch, versieht Holder und Toolbars mit ARIA-Status, bricht Standalone-Formular-Submits bei `editor.save()`-Fehlern sicher ab, normalisiert Save-Ausgaben vor der Persistenz und räumt eigene Admin-UI-Listener, Selection-Bubbles sowie MutationObserver beim Recreate sauber auf. |
 
 ### v3.3.5 — 24.05.2026
 

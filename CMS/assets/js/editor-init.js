@@ -15,15 +15,17 @@
         'linkTool',
         'attaches',
         'warning',
+        'alert',
         'raw',
         'accordion',
         'imageGallery',
         'mediaText'
     ];
-    var INLINE_TOOL_NAMES = ['inlineCode', 'underline', 'marker', 'spoiler'];
+    var INLINE_TOOL_NAMES = ['inlineCode', 'underline', 'marker', 'spoiler', 'textColor'];
+    var TUNE_TOOL_NAMES = ['anchor', 'alignmentTune', 'indentTune', 'textVariant'];
     var PLUGIN_NAMES = ['undo', 'dragDrop'];
-    var TOOL_NAMES = BLOCK_TOOL_NAMES.concat(INLINE_TOOL_NAMES);
-    var VERSION = 'cms-editorjs-org-assets-2026-05-24-gallery-runtime-3-3-4';
+    var TOOL_NAMES = BLOCK_TOOL_NAMES.concat(INLINE_TOOL_NAMES, TUNE_TOOL_NAMES);
+    var VERSION = 'cms-editorjs-org-assets-2026-05-24-tools-setup-3-3-6';
     var THEME_PREVIEW_STYLE_CACHE = {};
     var TOOL_GLOBALS = {
         paragraph: ['CmsParagraphTool', 'Paragraph'],
@@ -39,6 +41,7 @@
         linkTool: ['LinkTool'],
         attaches: ['AttachesTool'],
         warning: ['CmsWarningTool', 'Warning'],
+        alert: ['Alert'],
         raw: ['RawTool'],
         accordion: ['Accordion'],
         imageGallery: ['CmsImageGalleryTool'],
@@ -46,7 +49,12 @@
         inlineCode: ['InlineCode'],
         underline: ['Underline'],
         marker: ['CmsMarkerTool', 'Marker'],
-        spoiler: ['TgSpoilerEditorJS', 'Spoiler']
+        spoiler: ['TgSpoilerEditorJS', 'Spoiler'],
+        textColor: ['ColorPlugin'],
+        anchor: ['Anchor'],
+        alignmentTune: ['AlignmentBlockTune'],
+        indentTune: ['IndentPlugin'],
+        textVariant: ['TextVariantTune']
     };
     var PLUGIN_GLOBALS = {
         undo: ['Undo'],
@@ -113,6 +121,50 @@
         return /^(https?:|mailto:|tel:)$/i.test(parser.protocol) ? url : '';
     }
 
+    function sanitizeEditableColor(value) {
+        var color = String(value || '').trim();
+
+        if (/^#[0-9a-f]{3,8}$/i.test(color)) {
+            return color;
+        }
+
+        if (/^rgba?\(\s*(?:\d{1,3}\s*,\s*){2}\d{1,3}(?:\s*,\s*(?:0|1|0?\.\d+))?\s*\)$/i.test(color)) {
+            return color;
+        }
+
+        if (/^var\(--[a-z0-9_-]+\)$/i.test(color)) {
+            return color;
+        }
+
+        return '';
+    }
+
+    function sanitizeEditableColorStyle(value) {
+        var declarations = [];
+
+        String(value || '').split(';').forEach(function (declaration) {
+            var separatorIndex = declaration.indexOf(':');
+            var property;
+            var color;
+
+            if (separatorIndex <= 0) {
+                return;
+            }
+
+            property = declaration.slice(0, separatorIndex).trim().toLowerCase();
+            if (['color', 'background-color'].indexOf(property) === -1) {
+                return;
+            }
+
+            color = sanitizeEditableColor(declaration.slice(separatorIndex + 1));
+            if (color !== '') {
+                declarations.push(property + ': ' + color);
+            }
+        });
+
+        return declarations.join('; ');
+    }
+
     function sanitizeEditableNode(node, allowBlocks) {
         var allowedTags = {
             a: true,
@@ -123,6 +175,7 @@
             u: true,
             code: true,
             mark: true,
+            font: true,
             sub: true,
             sup: true,
             br: true,
@@ -210,6 +263,18 @@
                 if (/\btg-spoiler\b/.test(className)) {
                     child.setAttribute('class', 'tg-spoiler');
                 }
+
+                var style = sanitizeEditableColorStyle(originalAttributes.style || '');
+                if (style !== '') {
+                    child.setAttribute('style', style);
+                }
+            }
+
+            if (tagName === 'font') {
+                var color = sanitizeEditableColor(originalAttributes.color || originalAttributes.style || '');
+                if (color !== '') {
+                    child.setAttribute('color', color);
+                }
             }
 
             if (tagName === 'code') {
@@ -259,13 +324,21 @@
                 class: true
             },
             mark: {},
+            font: {
+                color: true
+            },
             sub: {},
             sup: {},
             br: true,
             span: function (element) {
-                return /\btg-spoiler\b/.test(String(element && element.getAttribute ? element.getAttribute('class') || '' : ''))
-                    ? { class: true }
-                    : {};
+                var className = String(element && element.getAttribute ? element.getAttribute('class') || '' : '');
+                var style = String(element && element.getAttribute ? element.getAttribute('style') || '' : '');
+
+                if (/\btg-spoiler\b/.test(className)) {
+                    return { class: true };
+                }
+
+                return sanitizeEditableColorStyle(style) !== '' ? { style: true } : {};
             }
         };
     }
@@ -506,62 +579,124 @@
     function normalizeBlock(block) {
         var type = block && typeof block.type === 'string' ? block.type : 'paragraph';
         var data = block && block.data && typeof block.data === 'object' ? block.data : {};
+        var normalizedBlock;
 
         type = TOOL_ALIASES[type] || type;
 
         if (block && block.type === 'checklist') {
-            return {
+            normalizedBlock = {
                 type: 'list',
                 data: normalizeListData(Object.assign({}, data, { style: 'checklist' }))
             };
+            return appendNormalizedTunes(block, normalizedBlock);
         }
 
         if (BLOCK_TOOL_NAMES.indexOf(type) === -1) {
-            return {
+            normalizedBlock = {
                 type: 'paragraph',
                 data: { text: stripTags(data.text || data.content || data.html || data.caption || '') }
             };
+            return appendNormalizedTunes(block, normalizedBlock);
         }
 
         if (type === 'list') {
-            return { type: type, data: normalizeListData(data) };
+            normalizedBlock = { type: type, data: normalizeListData(data) };
+            return appendNormalizedTunes(block, normalizedBlock);
         }
 
         if (type === 'paragraph' || type === 'header') {
-            return { type: type, data: normalizeTextBlockData(data, type) };
+            normalizedBlock = { type: type, data: normalizeTextBlockData(data, type) };
+            return appendNormalizedTunes(block, normalizedBlock);
         }
 
         if (type === 'image') {
-            return { type: type, data: normalizeImageData(data) };
+            normalizedBlock = { type: type, data: normalizeImageData(data) };
+            return appendNormalizedTunes(block, normalizedBlock);
         }
 
         if (type === 'mediaText') {
-            return { type: type, data: normalizeMediaTextData(data) };
+            normalizedBlock = { type: type, data: normalizeMediaTextData(data) };
+            return appendNormalizedTunes(block, normalizedBlock);
         }
 
         if (type === 'warning') {
-            return { type: type, data: normalizeWarningData(data) };
+            normalizedBlock = { type: type, data: normalizeWarningData(data) };
+            return appendNormalizedTunes(block, normalizedBlock);
+        }
+
+        if (type === 'alert') {
+            normalizedBlock = { type: type, data: normalizeAlertData(data) };
+            return appendNormalizedTunes(block, normalizedBlock);
         }
 
         if (type === 'raw') {
-            return { type: type, data: { html: String(data.html || data.text || data.content || '') } };
+            normalizedBlock = { type: type, data: { html: String(data.html || data.text || data.content || '') } };
+            return appendNormalizedTunes(block, normalizedBlock);
         }
 
         if (type === 'imageGallery') {
-            return {
+            normalizedBlock = {
                 type: type,
                 data: normalizeGalleryData(data)
             };
+            return appendNormalizedTunes(block, normalizedBlock);
         }
 
         if (type === 'spacer') {
-            return {
+            normalizedBlock = {
                 type: type,
                 data: normalizeSpacerData(data)
             };
+            return appendNormalizedTunes(block, normalizedBlock);
         }
 
-        return { type: type, data: data };
+        return appendNormalizedTunes(block, { type: type, data: data });
+    }
+
+    function appendNormalizedTunes(sourceBlock, normalizedBlock) {
+        var tunes = normalizeBlockTunes(sourceBlock && sourceBlock.tunes);
+
+        if (Object.keys(tunes).length > 0) {
+            normalizedBlock.tunes = tunes;
+        }
+
+        return normalizedBlock;
+    }
+
+    function normalizeBlockTunes(tunes) {
+        var source = tunes && typeof tunes === 'object' ? tunes : {};
+        var normalized = {};
+        var anchor = sanitizeAnchorValue(source.anchor);
+        var alignmentTune = source.alignmentTune && typeof source.alignmentTune === 'object' ? source.alignmentTune : {};
+        var indentTune = source.indentTune && typeof source.indentTune === 'object' ? source.indentTune : {};
+        var textVariant = sanitizeTextVariantValue(source.textVariant);
+        var alignment = String(alignmentTune.alignment || alignmentTune.align || '');
+        var indentLevel = parseInt(indentTune.indentLevel || 0, 10) || 0;
+
+        if (anchor !== '') {
+            normalized.anchor = anchor;
+        }
+        if (['left', 'center', 'right', 'justify'].indexOf(alignment) !== -1) {
+            normalized.alignmentTune = { alignment: alignment };
+        }
+        if (indentLevel > 0) {
+            normalized.indentTune = { indentLevel: Math.max(0, Math.min(8, indentLevel)) };
+        }
+        if (textVariant !== '') {
+            normalized.textVariant = textVariant;
+        }
+
+        return normalized;
+    }
+
+    function sanitizeAnchorValue(value) {
+        return String(value || '').trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9_-]/g, '').replace(/^-+|-+$/g, '').slice(0, 80);
+    }
+
+    function sanitizeTextVariantValue(value) {
+        var variant = String(value || '').trim();
+
+        return ['call-out', 'citation', 'details'].indexOf(variant) !== -1 ? variant : '';
     }
 
     function normalizeTextBlockData(data, type) {
@@ -595,6 +730,25 @@
         return {
             variant: variant,
             title: sanitizeEditableHtml(source.title || source.caption || 'Hinweis'),
+            message: sanitizeEditableHtml(source.message || source.text || source.content || '')
+        };
+    }
+
+    function normalizeAlertData(data) {
+        var source = data && typeof data === 'object' ? data : {};
+        var type = String(source.type || source.variant || 'info').toLowerCase();
+        var align = String(source.align || source.alignment || 'left').toLowerCase();
+
+        if (['primary', 'secondary', 'info', 'success', 'warning', 'danger', 'light', 'dark'].indexOf(type) === -1) {
+            type = 'info';
+        }
+        if (['left', 'center', 'right'].indexOf(align) === -1) {
+            align = 'left';
+        }
+
+        return {
+            type: type,
+            align: align,
             message: sanitizeEditableHtml(source.message || source.text || source.content || '')
         };
     }
@@ -3387,6 +3541,22 @@
         return true;
     }
 
+    function getAvailableBlockTunes(tools) {
+        return TUNE_TOOL_NAMES.filter(function (tuneName) {
+            return !!tools[tuneName];
+        });
+    }
+
+    function withBlockTunes(definition, tunes) {
+        var resolvedDefinition = Object.assign({}, definition || {});
+
+        if (Array.isArray(tunes) && tunes.length > 0) {
+            resolvedDefinition.tunes = tunes.slice();
+        }
+
+        return resolvedDefinition;
+    }
+
     function buildMediaUrl(uploadUrl, action) {
         var baseUrl = uploadUrl || '/api/media';
         var separator = String(baseUrl).indexOf('?') === -1 ? '?' : '&';
@@ -3540,28 +3710,60 @@
         var inlineToolbar = false;
         var resolvedOptions = options && typeof options === 'object' ? options : {};
         var getUploadContext = typeof resolvedOptions.getUploadContext === 'function' ? resolvedOptions.getUploadContext : null;
+        var availableBlockTunes;
 
         addTool(tools, 'inlineCode', {}, false);
         addTool(tools, 'underline', {}, false);
         addTool(tools, 'marker', {}, false);
         addTool(tools, 'spoiler', {}, false);
+        addTool(tools, 'textColor', {
+            config: {
+                colorCollections: ['#111827', '#2563eb', '#7c3aed', '#dc2626', '#ea580c', '#16a34a', '#64748b', '#ffffff'],
+                defaultColor: '#2563eb',
+                type: 'text',
+                customPicker: true
+            }
+        }, false);
 
-        addTool(tools, 'paragraph', {
+        addTool(tools, 'anchor', { config: { maxWords: 4, maxChars: 80 } }, false);
+        addTool(tools, 'alignmentTune', {
+            config: {
+                default: 'left',
+                blocks: {
+                    header: 'left',
+                    paragraph: 'left',
+                    quote: 'left'
+                }
+            }
+        }, false);
+        addTool(tools, 'indentTune', {
+            config: {
+                version: window.EditorJS && window.EditorJS.version ? window.EditorJS.version : '2.31',
+                indentSize: 24,
+                maxIndent: 6,
+                minIndent: 0,
+                handleShortcut: false
+            }
+        }, false);
+        addTool(tools, 'textVariant', {}, false);
+        availableBlockTunes = getAvailableBlockTunes(tools);
+
+        addTool(tools, 'paragraph', withBlockTunes({
             inlineToolbar: inlineToolbar,
             config: { placeholder: 'Text schreiben ...' }
-        }, true);
+        }, availableBlockTunes), true);
 
-        addTool(tools, 'header', {
+        addTool(tools, 'header', withBlockTunes({
             inlineToolbar: inlineToolbar,
             config: { levels: [2, 3, 4], defaultLevel: 2 }
-        }, true);
+        }, availableBlockTunes), true);
 
-        addTool(tools, 'list', {
+        addTool(tools, 'list', withBlockTunes({
             inlineToolbar: inlineToolbar,
             config: { defaultStyle: 'unordered', maxLevel: 4 }
-        }, true);
+        }, availableBlockTunes), true);
 
-        addTool(tools, 'image', {
+        addTool(tools, 'image', withBlockTunes({
             inlineToolbar: inlineToolbar,
             config: {
                 uploadUrl: uploadUrl,
@@ -3570,25 +3772,25 @@
                 captionPlaceholder: 'Bildunterschrift',
                 buttonContent: 'Bild auswählen'
             }
-        }, true);
+        }, availableBlockTunes), true);
 
-        addTool(tools, 'quote', {
+        addTool(tools, 'quote', withBlockTunes({
             inlineToolbar: inlineToolbar,
             config: {
                 quotePlaceholder: 'Zitat',
                 captionPlaceholder: 'Quelle'
             }
-        }, true);
+        }, availableBlockTunes), true);
 
-        addTool(tools, 'code', {}, true);
-        addTool(tools, 'table', {
+        addTool(tools, 'code', withBlockTunes({}, availableBlockTunes), true);
+        addTool(tools, 'table', withBlockTunes({
             inlineToolbar: inlineToolbar,
             config: { rows: 3, cols: 3, maxRows: 20, maxCols: 10, maxrows: 20, maxcols: 10 }
-        }, true);
-        addTool(tools, 'delimiter', {}, true);
-        addTool(tools, 'spacer', {}, true);
+        }, availableBlockTunes), true);
+        addTool(tools, 'delimiter', withBlockTunes({}, availableBlockTunes), true);
+        addTool(tools, 'spacer', withBlockTunes({}, availableBlockTunes), true);
 
-        addTool(tools, 'embed', {
+        addTool(tools, 'embed', withBlockTunes({
             inlineToolbar: inlineToolbar,
             config: {
                 services: {
@@ -3599,41 +3801,51 @@
                     codepen: true
                 }
             }
-        }, false);
-        addTool(tools, 'linkTool', {
+        }, availableBlockTunes), false);
+        addTool(tools, 'linkTool', withBlockTunes({
             inlineToolbar: inlineToolbar,
             config: { endpoint: buildMediaUrl(uploadUrl, 'fetch_link') }
-        }, false);
-        addTool(tools, 'attaches', {
+        }, availableBlockTunes), false);
+        addTool(tools, 'attaches', withBlockTunes({
             config: {
                 uploader: buildFileUploader(uploadUrl, csrfToken, getUploadContext),
                 buttonText: 'Datei auswählen'
             }
-        }, false);
-        addTool(tools, 'warning', {
+        }, availableBlockTunes), false);
+        addTool(tools, 'warning', withBlockTunes({
             inlineToolbar: inlineToolbar,
             config: { titlePlaceholder: 'Titel', messagePlaceholder: 'Hinweistext' }
-        }, false);
-        addTool(tools, 'raw', {}, false);
-        addTool(tools, 'accordion', {
+        }, availableBlockTunes), false);
+        addTool(tools, 'alert', withBlockTunes({
+            inlineToolbar: inlineToolbar,
+            shortcut: 'CMD+SHIFT+A',
+            config: {
+                alertTypes: ['primary', 'secondary', 'info', 'success', 'warning', 'danger', 'light', 'dark'],
+                defaultType: 'info',
+                defaultAlign: 'left',
+                messagePlaceholder: 'Hinweistext'
+            }
+        }, availableBlockTunes), false);
+        addTool(tools, 'raw', withBlockTunes({}, availableBlockTunes), false);
+        addTool(tools, 'accordion', withBlockTunes({
             inlineToolbar: inlineToolbar
-        }, false);
-        addTool(tools, 'imageGallery', {
+        }, availableBlockTunes), false);
+        addTool(tools, 'imageGallery', withBlockTunes({
             config: {
                 uploadUrl: uploadUrl,
                 csrfToken: csrfToken,
                 uploader: buildImageUploader(uploadUrl, csrfToken, getUploadContext)
             }
-        }, true);
+        }, availableBlockTunes), true);
 
-        addTool(tools, 'mediaText', {
+        addTool(tools, 'mediaText', withBlockTunes({
             inlineToolbar: inlineToolbar,
             config: {
                 uploadUrl: uploadUrl,
                 csrfToken: csrfToken,
                 uploader: buildImageUploader(uploadUrl, csrfToken, getUploadContext)
             }
-        }, true);
+        }, availableBlockTunes), true);
 
         return tools;
     }
@@ -3732,6 +3944,9 @@
         holder.setAttribute('role', holder.getAttribute('role') || 'region');
         holder.setAttribute('aria-label', holder.getAttribute('aria-label') || 'Block-Editor');
         holder.setAttribute('aria-busy', 'true');
+        if (!holder.hasAttribute('tabindex')) {
+            holder.tabIndex = -1;
+        }
         applyEditorPreviewTypography(holder, resolvedOptions.themeTypography || resolvedOptions.typography || {});
 
         syncEditorChange = function () {

@@ -47,7 +47,7 @@ final class EditorJsSanitizer
     private function sanitizeBlock(array $block): ?array
     {
         $allowedTypes = [
-            'paragraph', 'header', 'list', 'checklist', 'quote', 'warning',
+            'paragraph', 'header', 'list', 'checklist', 'quote', 'warning', 'alert',
             'code', 'raw', 'table', 'image', 'attaches', 'linkTool', 'delimiter',
             'embed', 'imageGallery', 'carousel', 'columns', 'accordion', 'drawingTool', 'spacer', 'mediaText',
             'callout', 'terminal', 'codeTabs', 'mermaid', 'apiEndpoint', 'changelog', 'prosCons', 'details',
@@ -129,6 +129,16 @@ final class EditorJsSanitizer
                 $data['variant'] = $variant;
                 $data['title'] = $cleanInline($data['title'] ?? '');
                 $data['message'] = $cleanInline($data['message'] ?? '');
+                break;
+
+            case 'alert':
+                $type = strtolower((string) ($data['type'] ?? $data['variant'] ?? 'info'));
+                $align = strtolower((string) ($data['align'] ?? $data['alignment'] ?? 'left'));
+                $data = [
+                    'type' => in_array($type, ['primary', 'secondary', 'info', 'success', 'warning', 'danger', 'light', 'dark'], true) ? $type : 'info',
+                    'align' => in_array($align, ['left', 'center', 'right'], true) ? $align : 'left',
+                    'message' => $cleanInline($data['message'] ?? $data['text'] ?? ''),
+                ];
                 break;
 
             case 'code':
@@ -454,6 +464,21 @@ final class EditorJsSanitizer
             $cleanTunes['cmsVisual'] = $visualTune;
         }
 
+        $anchor = $this->sanitizeAnchorTune($tunes['anchor'] ?? null);
+        if ($anchor !== '') {
+            $cleanTunes['anchor'] = $anchor;
+        }
+
+        $indentTune = $this->sanitizeIndentTune($tunes['indentTune'] ?? null);
+        if ($indentTune !== []) {
+            $cleanTunes['indentTune'] = $indentTune;
+        }
+
+        $textVariant = $this->sanitizeTextVariantTune($tunes['textVariant'] ?? null);
+        if ($textVariant !== '') {
+            $cleanTunes['textVariant'] = $textVariant;
+        }
+
         if ($type !== 'image') {
             return $cleanTunes;
         }
@@ -470,6 +495,34 @@ final class EditorJsSanitizer
         }
 
         return $cleanTunes;
+    }
+
+    private function sanitizeAnchorTune(mixed $value): string
+    {
+        $anchor = strtolower(trim((string) $value));
+        $anchor = (string) preg_replace('/\s+/', '-', $anchor);
+        $anchor = (string) preg_replace('/[^a-z0-9_-]/', '', $anchor);
+        $anchor = trim($anchor, '-_');
+
+        return substr($anchor, 0, 80);
+    }
+
+    /** @return array{indentLevel?:int} */
+    private function sanitizeIndentTune(mixed $value): array
+    {
+        if (!is_array($value)) {
+            return [];
+        }
+
+        $indentLevel = max(0, min(8, (int) ($value['indentLevel'] ?? 0)));
+        return $indentLevel > 0 ? ['indentLevel' => $indentLevel] : [];
+    }
+
+    private function sanitizeTextVariantTune(mixed $value): string
+    {
+        $variant = (string) $value;
+
+        return in_array($variant, ['call-out', 'citation', 'details'], true) ? $variant : '';
     }
 
     /**

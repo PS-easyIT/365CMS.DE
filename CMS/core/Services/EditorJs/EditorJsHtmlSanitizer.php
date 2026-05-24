@@ -45,6 +45,7 @@ final class EditorJsHtmlSanitizer
         'u' => true,
         'code' => true,
         'mark' => true,
+        'font' => true,
         'sub' => true,
         'sup' => true,
         'br' => true,
@@ -64,6 +65,7 @@ final class EditorJsHtmlSanitizer
         'u' => true,
         'code' => true,
         'mark' => true,
+        'font' => true,
         'sub' => true,
         'sup' => true,
         'br' => true,
@@ -254,6 +256,20 @@ final class EditorJsHtmlSanitizer
                 $element->setAttribute('class', 'tg-spoiler');
             }
 
+            $style = self::sanitizeColorStyle((string) ($originalAttributes['style'] ?? ''));
+            if ($style !== '') {
+                $element->setAttribute('style', $style);
+            }
+
+            return;
+        }
+
+        if ($tagName === 'font') {
+            $color = self::sanitizeColorValue((string) ($originalAttributes['color'] ?? ''));
+            if ($color !== '') {
+                $element->setAttribute('color', $color);
+            }
+
             return;
         }
 
@@ -333,6 +349,51 @@ final class EditorJsHtmlSanitizer
         }
 
         $element->setAttribute($name, (string) $value);
+    }
+
+    private static function sanitizeColorValue(string $value): string
+    {
+        $color = trim($value);
+        if ($color === '') {
+            return '';
+        }
+
+        if (preg_match('/^#[0-9a-f]{3,8}$/i', $color) === 1) {
+            return $color;
+        }
+
+        if (preg_match('/^rgba?\(\s*(?:\d{1,3}\s*,\s*){2}\d{1,3}(?:\s*,\s*(?:0|1|0?\.\d+))?\s*\)$/i', $color) === 1) {
+            return $color;
+        }
+
+        if (preg_match('/^var\(--[a-z0-9_-]+\)$/i', $color) === 1) {
+            return $color;
+        }
+
+        return '';
+    }
+
+    private static function sanitizeColorStyle(string $style): string
+    {
+        $declarations = [];
+        foreach (explode(';', $style) as $declaration) {
+            $parts = explode(':', $declaration, 2);
+            if (count($parts) !== 2) {
+                continue;
+            }
+
+            $property = strtolower(trim($parts[0]));
+            if (!in_array($property, ['color', 'background-color'], true)) {
+                continue;
+            }
+
+            $color = self::sanitizeColorValue($parts[1]);
+            if ($color !== '') {
+                $declarations[] = $property . ': ' . $color;
+            }
+        }
+
+        return implode('; ', $declarations);
     }
 
     private static function unwrapElement(\DOMElement $element): void

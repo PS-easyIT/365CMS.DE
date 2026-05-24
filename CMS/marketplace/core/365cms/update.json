@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "3.3.5",
+  "version": "3.3.6",
   "min_php": "8.4",
   "released": "2026-05-24",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 3.3.5: EditorJS-Bilder und Bild-Text-Blöcke rendern im Public-Frontend wieder näher an der Admin-Vorschau; normale/wide Bilder sind gedeckelt und MediaText bleibt layoutstabil neben dem Text.",
+  "notes": "Release-Stand 3.3.6: EditorJS wurde umfassend auditiert und stabilisiert: Marker-Inline-Tool, ReadOnly-/A11y-Initialisierung, sicherer Save-Abbruch bei Serialisierungsfehlern sowie sauberes Cleanup eigener Admin-UI-Listener.",
   "critical": false
 }
