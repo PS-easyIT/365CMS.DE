@@ -1,6 +1,6 @@
 # 365CMS.DE
 
-**Version:** [3.0.35](Changelog.md) · **Status:** Stable · **PHP:** 8.4+ · **MySQL:** 5.7+ · **MariaDB:** 10.3+
+**Version:** [3.3.5](Changelog.md) · **Status:** Stable · **PHP:** 8.4+ · **MySQL:** 5.7+ · **MariaDB:** 10.3+
 
 <div align="center">
 
@@ -51,8 +51,8 @@ Wichtige Eigenschaften:
 - Text, Überschriften, Listen, Checklisten, Zitate, Tabellen, Code, Trennlinien und Abstände
 - Abstandsblöcke mit normalisierten Presets oder Pixelwerten, die im Public-Rendering erhalten bleiben
 - Bildblöcke mit Upload, Live-Vorschau, Ausrichtung, Breite, Rahmen, Rundung, Hintergrund und Schatten
-- Bild-Text-Blöcke mit Bild links oder rechts neben formatiertem Text und responsivem Public-Layout
-- Fehlertolerantes Public-Rendering mit WordPress-/Gutenberg-Block-Übersetzung, inklusive `wp:media-text`, selbstschließenden Bildblöcken und sicheren Media-Text-Absätzen/Listen
+- Bild-Text-Blöcke mit Bild links oder rechts neben formatiertem Text und responsivem Public-Layout, das die Admin-Vorschau-Breiten auch im Theme-Frontend respektiert
+- Fehlertolerantes Public-Rendering mit WordPress-/Gutenberg-Block-Übersetzung, inklusive `wp:media-text`, `wp:gallery`, selbstschließenden Bildblöcken und sicheren Media-Text-/Gallery-Inhalten
 - Mehrbild-Galerien mit Upload, Vorschau, Sortierung und Spaltensteuerung
 - Inline-Formatierungen wie fett, kursiv, unterstrichen, Code, Links und Spoiler
 - Rich-Text-Hinweisboxen mit Info-/Warn-/Erfolg-/Kritisch-Varianten, deren Titel und Inhalt Inline-Formatierungen behalten

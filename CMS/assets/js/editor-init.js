@@ -23,7 +23,7 @@
     var INLINE_TOOL_NAMES = ['inlineCode', 'underline', 'spoiler'];
     var PLUGIN_NAMES = ['undo', 'dragDrop'];
     var TOOL_NAMES = BLOCK_TOOL_NAMES.concat(INLINE_TOOL_NAMES);
-    var VERSION = 'cms-editorjs-org-assets-2026-05-24-media-text';
+    var VERSION = 'cms-editorjs-org-assets-2026-05-24-gallery-runtime-3-3-4';
     var THEME_PREVIEW_STYLE_CACHE = {};
     var TOOL_GLOBALS = {
         paragraph: ['CmsParagraphTool', 'Paragraph'],
@@ -41,7 +41,7 @@
         warning: ['CmsWarningTool', 'Warning'],
         raw: ['RawTool'],
         accordion: ['Accordion'],
-        imageGallery: ['CmsImageGalleryTool', 'ImageGallery'],
+        imageGallery: ['CmsImageGalleryTool'],
         mediaText: ['CmsMediaTextTool'],
         inlineCode: ['InlineCode'],
         underline: ['Underline'],
@@ -632,23 +632,27 @@
 
     function normalizeGalleryData(data) {
         var galleryData = data && typeof data === 'object' ? data : {};
-        var columns = parseInt(galleryData.columns || 3, 10) || 3;
-        var images = Array.isArray(galleryData.images) ? galleryData.images : [];
+        var columns = parseInt(galleryData.columns || galleryData.cols || galleryData.columnCount || 3, 10) || 3;
+        var images = [];
 
         if ([2, 3, 4, 6].indexOf(columns) === -1) {
             columns = 3;
         }
 
-        if (images.length === 0 && Array.isArray(galleryData.urls)) {
-            images = galleryData.urls.map(function (url) {
-                return { file: { url: String(url || '') }, caption: '' };
-            });
-        }
+        ['images', 'items', 'files', 'gallery', 'urls'].forEach(function (key) {
+            if (Array.isArray(galleryData[key])) {
+                images = images.concat(galleryData[key]);
+            } else if (typeof galleryData[key] === 'string') {
+                images = images.concat(galleryData[key].split(/[\n,]+/).map(function (url) {
+                    return url.trim();
+                }).filter(Boolean));
+            }
+        });
 
         images = images.map(function (item) {
-            var source = item && typeof item === 'object' ? item : {};
+            var source = item && typeof item === 'object' ? item : { url: String(item || '') };
             var file = source.file && typeof source.file === 'object' ? source.file : source;
-            var url = String(file.url || source.url || '');
+            var url = String(file.url || source.url || source.src || source.source || '');
 
             if (url === '') {
                 return null;
@@ -656,7 +660,7 @@
 
             return {
                 file: Object.assign({}, file, { url: url }),
-                caption: String(source.caption || file.caption || '')
+                caption: String(source.caption || source.alt || source.title || file.caption || '')
             };
         }).filter(Boolean);
 
@@ -991,6 +995,16 @@
             element.textContent = text;
         }
         return element;
+    }
+
+    function clearElement(element) {
+        if (!element) {
+            return;
+        }
+
+        while (element.firstChild) {
+            element.removeChild(element.firstChild);
+        }
     }
 
     function createEditable(className, html, placeholder, api, readOnly) {
@@ -1982,6 +1996,7 @@
         static get sanitize() {
             return {
                 columns: false,
+                images: false,
                 urls: false
             };
         }
@@ -2163,6 +2178,12 @@
             }
 
             this.images.forEach(function (image, index) {
+                var imageUrl = image && image.file && image.file.url ? image.file.url : '';
+
+                if (imageUrl === '') {
+                    return;
+                }
+
                 var item = createElement('div', 'cms-editorjs-gallery__item');
                 var thumb = document.createElement('img');
                 var caption = createInput('text', 'form-control form-control-sm', image.caption || '', 'Bildunterschrift');
@@ -2170,7 +2191,7 @@
                 var moveDown = createElement('button', 'btn btn-sm btn-outline-secondary', 'Runter');
                 var remove = createElement('button', 'btn btn-sm btn-outline-danger', 'Entfernen');
 
-                thumb.src = image.file && image.file.url ? image.file.url : '';
+                thumb.src = imageUrl;
                 thumb.alt = image.caption || '';
                 moveUp.type = 'button';
                 moveDown.type = 'button';

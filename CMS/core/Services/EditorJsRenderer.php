@@ -541,10 +541,10 @@ final class EditorJsRenderer
             $imageStyles[] = 'width:100%!important';
             $imageStyles[] = 'max-width:100%!important';
         } elseif ($size === 'wide') {
-            $imageStyles[] = 'width:min(100%,960px)!important';
+            $imageStyles[] = 'width:min(100%,var(--cms-editorjs-image-wide-width,760px))!important';
             $imageStyles[] = 'max-width:100%!important';
         } else {
-            $imageStyles[] = 'width:auto';
+            $imageStyles[] = 'width:min(100%,var(--cms-editorjs-image-normal-width,760px))!important';
             $imageStyles[] = 'max-width:100%!important';
         }
 
@@ -712,27 +712,25 @@ final class EditorJsRenderer
 
         $images = [];
         foreach ((is_array($data['images'] ?? null) ? $data['images'] : []) as $item) {
-            if (!is_array($item)) {
-                continue;
-            }
-
-            $file = is_array($item['file'] ?? null) ? $item['file'] : [];
-            $url = $this->normalizeRenderableAssetUrl((string)($file['url'] ?? ''), true);
+            $itemData = is_array($item) ? $item : ['url' => (string)$item];
+            $file = is_array($itemData['file'] ?? null) ? $itemData['file'] : [];
+            $url = $this->normalizeRenderableAssetUrl((string)($file['url'] ?? $itemData['url'] ?? $itemData['src'] ?? ''), true);
             if ($url === '') {
                 continue;
             }
 
             $images[] = [
                 'url' => $url,
-                'caption' => $this->sanitizeInline((string)($item['caption'] ?? '')),
-                'alt' => htmlspecialchars((string)($item['caption'] ?? ''), ENT_QUOTES, 'UTF-8'),
+                'caption' => $this->sanitizeInline((string)($itemData['caption'] ?? $itemData['alt'] ?? '')),
+                'alt' => htmlspecialchars(strip_tags((string)($itemData['caption'] ?? $itemData['alt'] ?? '')), ENT_QUOTES, 'UTF-8'),
             ];
         }
 
         if ($images === []) {
             $urls = is_array($data['urls'] ?? null) ? $data['urls'] : [];
             foreach ($urls as $url) {
-                $normalizedUrl = $this->normalizeRenderableAssetUrl((string)$url, true);
+                $urlValue = is_array($url) ? (string)($url['url'] ?? $url['src'] ?? $url['file']['url'] ?? '') : (string)$url;
+                $normalizedUrl = $this->normalizeRenderableAssetUrl($urlValue, true);
                 if ($normalizedUrl === '') {
                     continue;
                 }
@@ -795,9 +793,9 @@ final class EditorJsRenderer
             'editorjs-media-text--image-' . $imagePosition,
             'editorjs-media-text--image-width-' . $imageWidth,
         ];
-        $style = '--cms-editorjs-media-text-image-width:' . $imageWidth . '%;display:flex;flex-wrap:wrap;align-items:flex-start;gap:24px;';
-        $mediaStyle = 'margin:0;flex:0 1 var(--cms-editorjs-media-text-image-width);min-width:220px;max-width:100%;';
-        $contentStyle = 'flex:1 1 calc(100% - var(--cms-editorjs-media-text-image-width) - 24px);min-width:260px;';
+        $style = '--cms-editorjs-media-text-image-width:' . $imageWidth . '%;display:flex;flex-wrap:nowrap;align-items:flex-start;gap:24px;width:100%;max-width:100%;min-width:0;box-sizing:border-box;';
+        $mediaStyle = 'margin:0;flex:0 0 var(--cms-editorjs-media-text-image-width);width:var(--cms-editorjs-media-text-image-width);min-width:0;max-width:var(--cms-editorjs-media-text-image-width);box-sizing:border-box;';
+        $contentStyle = 'flex:1 1 0;min-width:0;box-sizing:border-box;';
 
         $html = '<section class="' . htmlspecialchars(implode(' ', $classes), ENT_QUOTES, 'UTF-8') . '" data-image-position="' . htmlspecialchars($imagePosition, ENT_QUOTES, 'UTF-8') . '" data-image-width="' . htmlspecialchars($imageWidth, ENT_QUOTES, 'UTF-8') . '" style="' . htmlspecialchars($style, ENT_QUOTES, 'UTF-8') . '">';
         if ($imageUrl !== '') {

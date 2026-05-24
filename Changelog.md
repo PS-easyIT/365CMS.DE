@@ -1,4 +1,4 @@
-﻿**Version:** 3.0.35
+﻿**Version:** 3.3.5
 
 # 365CMS Changelog
 
@@ -20,47 +20,65 @@
 
 > Die vollständige historische 2.x-Historie wurde in [`Changelog_old.md`](Changelog_old.md) archiviert.
 
-### v3.0.35 — 24.05.2026
+### v3.3.5 — 24.05.2026
 
 | Version | Typ | Bereich | Beschreibung |
 |---------|-----|---------|-------------|
-| **3.0.35** | 🔴 fix | EditorJS / Audit-Härtung | **`CMS/core/Services/EditorJs/EditorJsContentNormalizer.php`, `CMS/core/Services/EditorJsRenderer.php`, `CMS/core/Services/EditorJs/EditorJsSanitizer.php`, `CMS/core/Services/EditorService.php`, `CMS/assets/js/editor-init.js`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md` und `Changelog.md` schließen die Audit-Lücken aus dem EditorJS-/Gutenberg-Follow-up.** Gültige EditorJS-Listen-, Bild-, Text- und Zitat-Metadaten bleiben beim Normalisieren erhalten, selbstschließende Gutenberg-Blöcke wie `wp:image` werden in der richtigen Reihenfolge konvertiert, Media-Text-Blöcke behalten sichere Absätze und Listen, der Admin-Importer erkennt `.wp-block-media-text`, und der letzte Legacy-Fallback gibt keine unsanitisierten Fehler-/Import-Fragmente mehr aus. |
+| **3.3.5** | 🔴 fix | EditorJS / Public-Bildlayout | **`CMS/core/Services/EditorJsRenderer.php`, `CMS/assets/css/editorjs-content.css`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md` und `Changelog.md` gleichen EditorJS-Bilder und Bild-Text-Blöcke im Public-Frontend an die Admin-Vorschau an.** Normale und breite Bildblöcke werden nicht mehr auf große Public-Container aufgeblasen, sondern nutzen dieselbe 760px-Deckelung wie der Editor; `mediaText` rendert mit stabilen Flex-Spalten, `min-width: 0` und klaren Breitenvariablen, sodass Theme-Regeln für globale `figure`-/`img`-Elemente Bild und Text nicht mehr auseinanderziehen. |
 
-### v3.0.34 — 24.05.2026
-
-| Version | Typ | Bereich | Beschreibung |
-|---------|-----|---------|-------------|
-| **3.0.34** | 🔴 fix | EditorJS / WordPress-Blöcke | **`CMS/core/Services/EditorJs/EditorJsContentNormalizer.php`, `CMS/core/Services/EditorJsRenderer.php`, `CMS/core/Services/EditorJs/EditorJsSanitizer.php`, `CMS/core/Services/EditorService.php`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md` und `Changelog.md` machen Public-Rendering und Speichern von EditorJS-Inhalten fehlertoleranter.** Einzelne defekte Blöcke brechen nicht mehr den kompletten Artikel ab, importiertes WordPress-/Gutenberg-HTML wird in 365CMS-EditorJS-Blöcke normalisiert, und `wp:media-text` beziehungsweise `.wp-block-media-text` wird als nativer Bild-Text-Block mit Bild links/rechts und Breitenmapping gerendert. |
-
-### v3.0.33 — 24.05.2026
+### v3.3.4 — 24.05.2026
 
 | Version | Typ | Bereich | Beschreibung |
 |---------|-----|---------|-------------|
-| **3.0.33** | 🟢 feat | EditorJS / Medienblöcke | **`CMS/assets/js/editor-init.js`, `CMS/assets/js/admin-content-editor.js`, `CMS/assets/css/admin.css`, `CMS/assets/css/editorjs-content.css`, `CMS/core/Services/EditorJsRenderer.php`, `CMS/core/Services/EditorJs/EditorJsSanitizer.php`, `CMS/core/Services/EditorJs/EditorJsAssetService.php`, `CMS/core/Bootstrap.php`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md` und `Changelog.md` ergänzen einen nativen EditorJS-Block „Bild + Text“.** Redakteure können ein Bild links oder rechts neben formatiertem Text platzieren, die Bildbreite wählen, Alt-Text pflegen und den Block responsive oberhalb/innerhalb normaler Inhalte rendern lassen. |
+| **3.3.4** | 🔴 fix | EditorJS / Galerie-Runtime | **`CMS/assets/js/editor-init.js`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md` und `Changelog.md` beheben den verbliebenen Admin-Stub bei `imageGallery`-Blöcken.** Das lokale `CmsImageGalleryTool` besitzt nun die fehlende DOM-Cleanup-Hilfsfunktion, akzeptiert auch stringbasierte Legacy-URL-Listen und nutzt eine neue interne EditorJS-Datenversion, damit Browser nicht weiter den alten fehlerhaften Initialisierer aus dem Cache verwenden. |
 
-### v3.0.32 — 24.05.2026
-
-| Version | Typ | Bereich | Beschreibung |
-|---------|-----|---------|-------------|
-| **3.0.32** | 🟢 feat | Beiträge / Templates | **`CMS/admin/modules/posts/PostsModule.php`, `CMS/admin/views/posts/edit.php`, `CMS/assets/js/admin-content-editor.js`, `CMS/core/SchemaManager.php`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md` und `Changelog.md` ergänzen Theme-gesteuerte Beitrags-Templates im Editor.** Beiträge speichern `post_template` und `post_meta_json`; der Editor liest `post_templates` aus dem aktiven Theme, zeigt templateabhängige Zusatzfelder an und persistiert nur befüllte Felder typgerecht. |
-
-### v3.0.31 — 24.05.2026
+### v3.3.3 — 24.05.2026
 
 | Version | Typ | Bereich | Beschreibung |
 |---------|-----|---------|-------------|
-| **3.0.31** | 🟢 feat | Hub-Sites / Template-Design | **`CMS/admin/views/hub/template-edit/main-column.php`, `CMS/assets/js/admin-hub-template-editor.js`, `CMS/assets/css/admin-hub-template-editor.css`, `CMS/admin/views/hub/edit.php`, `CMS/admin/modules/hub/HubSitesModule.php`, `CMS/core/Services/SiteTable/SiteTableTemplateRegistry.php`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md`, `Changelog.md` und `CMS/DOC/admin/pages-posts/HUBSITES.md` machen die Card-Rundung für HubSite-Templates vollständig steuerbar.** Der Template-Editor erhält eine deutlich sichtbare Zahl-/Slider-Steuerung mit Live-Preview, Basis-Template-Wechsel übernehmen den jeweiligen Radius-Default korrekt, und einzelne HubSites können den Template-Radius optional mit `hub_card_radius` überschreiben. |
+| **3.3.3** | 🔴 fix | EditorJS / WordPress-Galerien | **`CMS/core/Services/EditorJs/EditorJsContentNormalizer.php`, `CMS/core/Services/EditorJsRenderer.php`, `CMS/core/Services/EditorJs/EditorJsSanitizer.php`, `CMS/assets/js/editor-init.js`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md` und `Changelog.md` stabilisieren alte WordPress-Seiten mit Galerien.** `wp:gallery` und `.wp-block-gallery` werden als nativer `imageGallery`-Block mit allen Bildern und Captions normalisiert, Legacy-Datenformen mit `urls`, `images` als Strings oder `src`-Objekten bleiben im Public-Renderer und Sanitizer erhalten, und der Admin-Editor nutzt konsequent das lokale robuste Gallery-Tool statt auf den inkompatiblen externen `ImageGallery`-Datenvertrag zurückzufallen. Dadurch erscheinen alte WP-Seiten nicht mehr nur mit Content-Header und der Editor zeigt Galerien wieder statt des Stub-Fehlers „The block can not be displayed correctly“. |
 
-### v3.0.30 — 24.05.2026
-
-| Version | Typ | Bereich | Beschreibung |
-|---------|-----|---------|-------------|
-| **3.0.30** | 🔴 fix | Hub-Sites / Dienstleistungen | **`CMS/admin/views/hub/edit.php`, `CMS/assets/js/admin-hub-site-edit.js`, `CMS/assets/js/admin-hub-template-editor.js`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md`, `Changelog.md` und `CMS/DOC/admin/pages-posts/HUBSITES.md` machen das Dienstleistungs-Profil im HubSite-Admin vollständig nutzbar.** `services` erscheint sichtbar in den Template-Varianten, services-basierte Templates unterstützen Feature-Kacheln in Vollbreite, und die Template-Vorschau nutzt passende Service-/Delivery-Texte statt auf General-IT zurückzufallen. |
-
-### v3.0.29 — 23.05.2026
+### v3.3.2 — 24.05.2026
 
 | Version | Typ | Bereich | Beschreibung |
 |---------|-----|---------|-------------|
-| **3.0.29** | 🟢 feat | Hub-Sites / Services | **`CMS/admin/modules/hub/HubTemplateProfileCatalog.php`, `CMS/core/Services/SiteTable/SiteTableTemplateRegistry.php`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md`, `Changelog.md` und `CMS/DOC/admin/pages-posts/HUBSITES.md` ergänzen ein neues HubSite-Template-Profil `services`.** Das Profil ist für Dienstleistungs-/Landing-Hubs ausgelegt und bringt passende Meta-Labels, Quicklinks, drei Einstiegsektionen, PHINIT-nahe Farbwerte sowie Starter-Kacheln für Beratung, Microsoft 365 und 365CMS/Web-Plattformen mit. |
+| **3.3.2** | 🔴 fix | EditorJS / Audit-Härtung | **`CMS/core/Services/EditorJs/EditorJsContentNormalizer.php`, `CMS/core/Services/EditorJsRenderer.php`, `CMS/core/Services/EditorJs/EditorJsSanitizer.php`, `CMS/core/Services/EditorService.php`, `CMS/assets/js/editor-init.js`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md` und `Changelog.md` schließen die Audit-Lücken aus dem EditorJS-/Gutenberg-Follow-up.** Gültige EditorJS-Listen-, Bild-, Text- und Zitat-Metadaten bleiben beim Normalisieren erhalten, selbstschließende Gutenberg-Blöcke wie `wp:image` werden in der richtigen Reihenfolge konvertiert, Media-Text-Blöcke behalten sichere Absätze und Listen, der Admin-Importer erkennt `.wp-block-media-text`, und der letzte Legacy-Fallback gibt keine unsanitisierten Fehler-/Import-Fragmente mehr aus. |
+
+### v3.3.1 — 24.05.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.3.1** | 🔴 fix | EditorJS / WordPress-Blöcke | **`CMS/core/Services/EditorJs/EditorJsContentNormalizer.php`, `CMS/core/Services/EditorJsRenderer.php`, `CMS/core/Services/EditorJs/EditorJsSanitizer.php`, `CMS/core/Services/EditorService.php`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md` und `Changelog.md` machen Public-Rendering und Speichern von EditorJS-Inhalten fehlertoleranter.** Einzelne defekte Blöcke brechen nicht mehr den kompletten Artikel ab, importiertes WordPress-/Gutenberg-HTML wird in 365CMS-EditorJS-Blöcke normalisiert, und `wp:media-text` beziehungsweise `.wp-block-media-text` wird als nativer Bild-Text-Block mit Bild links/rechts und Breitenmapping gerendert. |
+
+### v3.3.0 — 24.05.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.3.0** | 🟢 feat | EditorJS / Medienblöcke | **`CMS/assets/js/editor-init.js`, `CMS/assets/js/admin-content-editor.js`, `CMS/assets/css/admin.css`, `CMS/assets/css/editorjs-content.css`, `CMS/core/Services/EditorJsRenderer.php`, `CMS/core/Services/EditorJs/EditorJsSanitizer.php`, `CMS/core/Services/EditorJs/EditorJsAssetService.php`, `CMS/core/Bootstrap.php`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md` und `Changelog.md` ergänzen einen nativen EditorJS-Block „Bild + Text“.** Redakteure können ein Bild links oder rechts neben formatiertem Text platzieren, die Bildbreite wählen, Alt-Text pflegen und den Block responsive oberhalb/innerhalb normaler Inhalte rendern lassen. |
+
+### v3.2.0 — 24.05.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.2.0** | 🟢 feat | Beiträge / Templates | **`CMS/admin/modules/posts/PostsModule.php`, `CMS/admin/views/posts/edit.php`, `CMS/assets/js/admin-content-editor.js`, `CMS/core/SchemaManager.php`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md` und `Changelog.md` ergänzen Theme-gesteuerte Beitrags-Templates im Editor.** Beiträge speichern `post_template` und `post_meta_json`; der Editor liest `post_templates` aus dem aktiven Theme, zeigt templateabhängige Zusatzfelder an und persistiert nur befüllte Felder typgerecht. |
+
+### v3.1.2 — 24.05.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.1.2** | 🟢 feat | Hub-Sites / Template-Design | **`CMS/admin/views/hub/template-edit/main-column.php`, `CMS/assets/js/admin-hub-template-editor.js`, `CMS/assets/css/admin-hub-template-editor.css`, `CMS/admin/views/hub/edit.php`, `CMS/admin/modules/hub/HubSitesModule.php`, `CMS/core/Services/SiteTable/SiteTableTemplateRegistry.php`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md`, `Changelog.md` und `CMS/DOC/admin/pages-posts/HUBSITES.md` machen die Card-Rundung für HubSite-Templates vollständig steuerbar.** Der Template-Editor erhält eine deutlich sichtbare Zahl-/Slider-Steuerung mit Live-Preview, Basis-Template-Wechsel übernehmen den jeweiligen Radius-Default korrekt, und einzelne HubSites können den Template-Radius optional mit `hub_card_radius` überschreiben. |
+
+### v3.1.1 — 24.05.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.1.1** | 🔴 fix | Hub-Sites / Dienstleistungen | **`CMS/admin/views/hub/edit.php`, `CMS/assets/js/admin-hub-site-edit.js`, `CMS/assets/js/admin-hub-template-editor.js`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md`, `Changelog.md` und `CMS/DOC/admin/pages-posts/HUBSITES.md` machen das Dienstleistungs-Profil im HubSite-Admin vollständig nutzbar.** `services` erscheint sichtbar in den Template-Varianten, services-basierte Templates unterstützen Feature-Kacheln in Vollbreite, und die Template-Vorschau nutzt passende Service-/Delivery-Texte statt auf General-IT zurückzufallen. |
+
+### v3.1.0 — 23.05.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.1.0** | 🟢 feat | Hub-Sites / Services | **`CMS/admin/modules/hub/HubTemplateProfileCatalog.php`, `CMS/core/Services/SiteTable/SiteTableTemplateRegistry.php`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md`, `Changelog.md` und `CMS/DOC/admin/pages-posts/HUBSITES.md` ergänzen ein neues HubSite-Template-Profil `services`.** Das Profil ist für Dienstleistungs-/Landing-Hubs ausgelegt und bringt passende Meta-Labels, Quicklinks, drei Einstiegsektionen, PHINIT-nahe Farbwerte sowie Starter-Kacheln für Beratung, Microsoft 365 und 365CMS/Web-Plattformen mit. |
 
 ### v3.0.28 — 23.05.2026
 

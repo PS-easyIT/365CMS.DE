@@ -121,6 +121,8 @@ final class EditorJsContentNormalizer
             'gallery' => 'imageGallery',
             'image_gallery' => 'imageGallery',
             'image-gallery' => 'imageGallery',
+            'core/gallery' => 'imageGallery',
+            'wp:gallery' => 'imageGallery',
             'media-text' => 'mediaText',
             'media_text' => 'mediaText',
             'mediatext' => 'mediaText',
@@ -179,6 +181,7 @@ final class EditorJsContentNormalizer
                 'spacing' => self::normalizeTextSpacing((string) ($data['spacing'] ?? 'normal')),
             ],
             'image' => self::normalizeImageData($data),
+            'imageGallery' => self::normalizeGalleryData($data),
             'mediaText' => self::normalizeMediaTextData($data),
             'list' => self::normalizeListData($data),
             'quote' => [
@@ -257,6 +260,67 @@ final class EditorJsContentNormalizer
             'text' => self::sanitizeMediaTextContent((string) ($data['text'] ?? $data['content'] ?? '')),
             'imagePosition' => in_array($position, ['left', 'right'], true) ? $position : 'left',
             'imageWidth' => self::normalizeMediaWidth($width),
+        ];
+    }
+
+    /** @return array<string,mixed> */
+    private static function normalizeGalleryData(array $data): array
+    {
+        $columns = (int) ($data['columns'] ?? $data['cols'] ?? $data['columnCount'] ?? 3);
+        if (!in_array($columns, [2, 3, 4, 6], true)) {
+            $columns = 3;
+        }
+
+        $sources = [];
+        foreach (['images', 'items', 'files', 'gallery'] as $key) {
+            if (isset($data[$key]) && is_array($data[$key])) {
+                $sources = array_merge($sources, $data[$key]);
+            }
+        }
+        if (isset($data['urls']) && is_array($data['urls'])) {
+            $sources = array_merge($sources, $data['urls']);
+        }
+
+        $images = [];
+        $seen = [];
+        foreach ($sources as $item) {
+            $image = self::normalizeGalleryItem($item);
+            $url = (string) ($image['file']['url'] ?? '');
+            if ($url === '' || isset($seen[$url])) {
+                continue;
+            }
+
+            $seen[$url] = true;
+            $images[] = $image;
+        }
+
+        return [
+            'columns' => $columns,
+            'images' => $images,
+            'urls' => array_values(array_map(static fn(array $item): string => (string) ($item['file']['url'] ?? ''), $images)),
+        ];
+    }
+
+    /** @return array{file:array<string,mixed>,caption:string} */
+    private static function normalizeGalleryItem(mixed $item): array
+    {
+        if (is_string($item)) {
+            return [
+                'file' => ['url' => trim($item)],
+                'caption' => '',
+            ];
+        }
+
+        if (!is_array($item)) {
+            return ['file' => ['url' => ''], 'caption' => ''];
+        }
+
+        $file = is_array($item['file'] ?? null) ? $item['file'] : [];
+        $url = (string) ($file['url'] ?? $item['url'] ?? $item['src'] ?? $item['source'] ?? '');
+
+        return [
+            'file' => array_merge($file, ['url' => trim($url)]),
+            'caption' => self::sanitizeInline((string) ($item['caption'] ?? $item['alt'] ?? $item['title'] ?? '')),
         ];
     }
 
@@ -387,6 +451,11 @@ final class EditorJsContentNormalizer
     /** @return array<int,array<string,mixed>> */
     private static function wordpressSelfClosingBlockToBlocks(string $type, array $attrs): array
     {
+        if ($type === 'imageGallery') {
+            $gallery = self::normalizeGalleryData($attrs);
+            return ($gallery['images'] ?? []) !== [] ? [['type' => 'imageGallery', 'data' => $gallery]] : [];
+        }
+
         if ($type === 'image') {
             $image = self::normalizeImageData([
                 'file' => ['url' => (string) ($attrs['url'] ?? $attrs['src'] ?? '')],
@@ -411,6 +480,9 @@ final class EditorJsContentNormalizer
     /** @return array<int,array<string,mixed>> */
     private static function wordpressBlockToBlocks(string $type, array $attrs, string $innerHtml): array
     {
+        if ($type === 'imageGallery') {
+            return [self::extractGalleryBlock($innerHtml, $attrs)];
+        }
         if ($type === 'mediaText') {
             return [self::extractMediaTextBlock($innerHtml, $attrs)];
         }
@@ -469,6 +541,9 @@ final class EditorJsContentNormalizer
         $tag = strtolower($node->tagName);
         $class = ' ' . strtolower($node->getAttribute('class')) . ' ';
 
+        if (self::isGalleryClass($class)) {
+            return [self::extractGalleryBlockFromElement($node, [])];
+        }
         if (str_contains($class, ' wp-block-media-text ')) {
             return [self::extractMediaTextBlockFromElement($node, [])];
         }
@@ -536,6 +611,58 @@ final class EditorJsContentNormalizer
         }
 
         return self::extractMediaTextBlockFromElement($root, $attrs);
+    }
+
+    /** @return array<string,mixed> */
+    private static function extractGalleryBlock(string $html, array $attrs): array
+    {
+        $doc = self::createDomDocument($html);
+        $root = self::getNormalizerRoot($doc);
+        if ($root === null) {
+            return ['type' => 'imageGallery', 'data' => self::normalizeGalleryData($attrs)];
+        }
+
+        foreach ($root->getElementsByTagName('*') as $element) {
+            if (!$element instanceof \DOMElement) {
+                continue;
+            }
+
+            if (self::isGalleryClass(' ' . strtolower($element->getAttribute('class')) . ' ')) {
+                return self::extractGalleryBlockFromElement($element, $attrs);
+            }
+        }
+
+        return self::extractGalleryBlockFromElement($root, $attrs);
+    }
+
+    /** @return array<string,mixed> */
+    private static function extractGalleryBlockFromElement(\DOMElement $element, array $attrs): array
+    {
+        $items = [];
+        foreach ($element->getElementsByTagName('img') as $image) {
+            if (!$image instanceof \DOMElement) {
+                continue;
+            }
+
+            $url = trim($image->getAttribute('src'));
+            if ($url === '') {
+                $url = trim($image->getAttribute('data-src'));
+            }
+            if ($url === '') {
+                continue;
+            }
+
+            $figure = self::closestElementByTag($image, 'figure', $element);
+            $caption = $figure instanceof \DOMElement ? self::firstElementByTag($figure, 'figcaption') : null;
+            $items[] = [
+                'file' => ['url' => $url],
+                'caption' => $caption instanceof \DOMElement ? self::innerHtml($caption) : $image->getAttribute('alt'),
+            ];
+        }
+
+        $attrs['images'] = array_merge(is_array($attrs['images'] ?? null) ? $attrs['images'] : [], $items);
+
+        return ['type' => 'imageGallery', 'data' => self::normalizeGalleryData($attrs)];
     }
 
     /** @return array<string,mixed> */
@@ -663,6 +790,32 @@ final class EditorJsContentNormalizer
         }
 
         return null;
+    }
+
+    private static function closestElementByTag(\DOMElement $node, string $tagName, \DOMElement $stopAt): ?\DOMElement
+    {
+        $tagName = strtolower($tagName);
+        $current = $node;
+        while ($current->parentNode instanceof \DOMElement) {
+            $current = $current->parentNode;
+            if (strtolower($current->tagName) === $tagName) {
+                return $current;
+            }
+            if ($current === $stopAt) {
+                break;
+            }
+        }
+
+        return null;
+    }
+
+    private static function isGalleryClass(string $class): bool
+    {
+        return str_contains($class, ' wp-block-gallery ')
+            || str_contains($class, ' blocks-gallery-grid ')
+            || str_contains($class, ' gallery ')
+            || str_contains($class, ' gallery-grid ')
+            || str_contains($class, ' tiled-gallery ');
     }
 
     private static function innerHtml(\DOMNode $node): string

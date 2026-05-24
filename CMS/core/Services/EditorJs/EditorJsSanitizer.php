@@ -208,18 +208,15 @@ final class EditorJsSanitizer
                 }
 
                 $images = array_values(array_filter(array_map(function ($item) use ($cleanInline) {
-                    if (!is_array($item)) {
-                        return null;
-                    }
-
-                    $file = $this->sanitizeFileInfo(is_array($item['file'] ?? null) ? $item['file'] : $item);
+                    $itemData = is_array($item) ? $item : ['url' => (string) $item];
+                    $file = $this->sanitizeFileInfo(is_array($itemData['file'] ?? null) ? $itemData['file'] : $itemData);
                     if ($file['url'] === '') {
                         return null;
                     }
 
                     return [
                         'file' => $file,
-                        'caption' => $cleanInline($item['caption'] ?? ''),
+                        'caption' => $cleanInline($itemData['caption'] ?? $itemData['alt'] ?? ''),
                     ];
                 }, is_array($data['images'] ?? null) ? $data['images'] : [])));
 
