@@ -203,7 +203,7 @@ final class EditorJsSanitizer
 
             case 'imageGallery':
                 $columns = (int) ($data['columns'] ?? 3);
-                if (!in_array($columns, [2, 3, 4, 6], true)) {
+                if (!in_array($columns, [2, 3, 4, 5, 6], true)) {
                     $columns = 3;
                 }
 

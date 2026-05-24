@@ -2749,7 +2749,7 @@
                 }
 
                 bubble.style.left = Math.max(8, rect.left + window.scrollX + (rect.width / 2)) + 'px';
-                bubble.style.top = Math.max(8, rect.top + window.scrollY - 48) + 'px';
+                bubble.style.top = Math.max(8, rect.bottom + window.scrollY + 10) + 'px';
                 bubble.removeAttribute('hidden');
             }
 

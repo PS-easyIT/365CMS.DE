@@ -635,7 +635,7 @@
         var columns = parseInt(galleryData.columns || galleryData.cols || galleryData.columnCount || 3, 10) || 3;
         var images = [];
 
-        if ([2, 3, 4, 6].indexOf(columns) === -1) {
+        if ([2, 3, 4, 5, 6].indexOf(columns) === -1) {
             columns = 3;
         }
 
@@ -1238,6 +1238,219 @@
             input.placeholder = placeholder;
         }
         return input;
+    }
+
+    function normalizeLibraryImageItem(item) {
+        var source = item && typeof item === 'object' ? item : {};
+        var url = sanitizeEditableUrl(source.url || source.src || source.path || '');
+
+        if (url === '') {
+            return null;
+        }
+
+        return {
+            file: {
+                url: url,
+                name: String(source.name || source.filename || '').trim(),
+                path: String(source.path || '').trim(),
+                size: Number(source.size || 0) || 0
+            },
+            caption: String(source.caption || source.alt || source.title || '').trim()
+        };
+    }
+
+    function fetchImageLibraryItems(config) {
+        var settings = config && typeof config === 'object' ? config : {};
+        var endpoint = settings.uploadUrl || '';
+        var headers = { 'X-Requested-With': 'XMLHttpRequest' };
+
+        if (settings.csrfToken) {
+            headers['X-CSRF-Token'] = settings.csrfToken;
+        }
+
+        if (!endpoint || typeof fetch !== 'function') {
+            return Promise.reject(new Error('Mediathek-Endpunkt ist nicht verfügbar.'));
+        }
+
+        return fetch(buildMediaUrl(endpoint, 'list_images'), {
+            method: 'GET',
+            credentials: 'same-origin',
+            headers: headers
+        }).then(function (response) {
+            return response.json();
+        }).then(function (payload) {
+            if (!payload || !payload.success) {
+                throw new Error(String(payload && payload.message ? payload.message : 'Mediathek konnte nicht geladen werden.'));
+            }
+
+            return (Array.isArray(payload.items) ? payload.items : []).map(normalizeLibraryImageItem).filter(Boolean);
+        });
+    }
+
+    function createImageLibraryPicker(config, options) {
+        var settings = options && typeof options === 'object' ? options : {};
+        var multiple = settings.multiple !== false;
+        var selectedUrls = new Set(Array.isArray(settings.selectedUrls) ? settings.selectedUrls : []);
+        var selectedItems = new Map();
+        var overlay = createElement('div', 'cms-editorjs-media-picker');
+        var dialog = createElement('div', 'cms-editorjs-media-picker__dialog');
+        var header = createElement('div', 'cms-editorjs-media-picker__header');
+        var title = createElement('strong', '', settings.title || 'Bild aus Mediathek auswählen');
+        var closeButton = createElement('button', 'btn btn-sm btn-outline-secondary', 'Schließen');
+        var search = createInput('search', 'form-control form-control-sm', '', 'Mediathek durchsuchen ...');
+        var status = createElement('div', 'cms-editorjs-media-picker__status', 'Lade Mediathek ...');
+        var grid = createElement('div', 'cms-editorjs-media-picker__grid');
+        var footer = createElement('div', 'cms-editorjs-media-picker__footer');
+        var applyButton = createElement('button', 'btn btn-sm btn-primary', multiple ? 'Auswahl übernehmen' : 'Bild übernehmen');
+        var items = [];
+
+        function closePicker() {
+            overlay.remove();
+            document.removeEventListener('keydown', handleKeydown);
+        }
+
+        function handleKeydown(event) {
+            if (event.key === 'Escape') {
+                closePicker();
+            }
+        }
+
+        function applySelection() {
+            var selection = Array.from(selectedItems.values());
+
+            if (!multiple && selection.length === 0 && items.length > 0) {
+                selection = [items[0]];
+            }
+
+            if (selection.length === 0) {
+                status.textContent = 'Bitte mindestens ein Bild auswählen.';
+                return;
+            }
+
+            if (typeof settings.onSelect === 'function') {
+                settings.onSelect(selection);
+            }
+            closePicker();
+        }
+
+        function updateApplyButtonLabel() {
+            if (!multiple) {
+                return;
+            }
+
+            applyButton.textContent = selectedItems.size > 0
+                ? 'Auswahl übernehmen (' + selectedItems.size + ')'
+                : 'Auswahl übernehmen';
+        }
+
+        function filterItems() {
+            var query = String(search.value || '').trim().toLowerCase();
+
+            return query === '' ? items : items.filter(function (item) {
+                var file = item.file || {};
+                var haystack = [file.name || '', file.path || '', item.caption || '', file.url || ''].join(' ').toLowerCase();
+
+                return haystack.indexOf(query) !== -1;
+            });
+        }
+
+        function renderItems() {
+            var filteredItems = filterItems();
+
+            clearElement(grid);
+            status.textContent = filteredItems.length + (filteredItems.length === 1 ? ' Bild verfügbar' : ' Bilder verfügbar');
+
+            if (filteredItems.length === 0) {
+                grid.appendChild(createElement('div', 'cms-editorjs-media-picker__empty', 'Keine passenden Bilder gefunden.'));
+                return;
+            }
+
+            filteredItems.forEach(function (item) {
+                var file = item.file || {};
+                var url = String(file.url || '');
+                var button = createElement('button', 'cms-editorjs-media-picker__item');
+                var image = document.createElement('img');
+                var label = createElement('span', '', file.name || file.path || 'Bild');
+                var isSelected = selectedItems.has(url) || selectedUrls.has(url);
+
+                if (isSelected) {
+                    selectedItems.set(url, item);
+                }
+
+                button.type = 'button';
+                button.classList.toggle('is-selected', isSelected);
+                button.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
+                image.src = url;
+                image.alt = item.caption || file.name || '';
+                button.appendChild(image);
+                button.appendChild(label);
+                button.addEventListener('click', function () {
+                    if (!multiple) {
+                        selectedItems.clear();
+                        selectedItems.set(url, item);
+                        applySelection();
+                        return;
+                    }
+
+                    if (selectedItems.has(url)) {
+                        selectedItems.delete(url);
+                        selectedUrls.delete(url);
+                        button.classList.remove('is-selected');
+                        button.setAttribute('aria-pressed', 'false');
+                    } else {
+                        selectedItems.set(url, item);
+                        selectedUrls.add(url);
+                        button.classList.add('is-selected');
+                        button.setAttribute('aria-pressed', 'true');
+                    }
+                    updateApplyButtonLabel();
+                });
+                grid.appendChild(button);
+            });
+
+            updateApplyButtonLabel();
+        }
+
+        overlay.dataset.cmsEditorUi = 'true';
+        overlay.dataset.mutationFree = 'true';
+        dialog.setAttribute('role', 'dialog');
+        dialog.setAttribute('aria-modal', 'true');
+        dialog.setAttribute('aria-label', settings.title || 'Mediathek');
+        closeButton.type = 'button';
+        applyButton.type = 'button';
+
+        header.appendChild(title);
+        header.appendChild(closeButton);
+        footer.appendChild(status);
+        if (multiple) {
+            footer.appendChild(applyButton);
+        }
+        dialog.appendChild(header);
+        dialog.appendChild(search);
+        dialog.appendChild(grid);
+        dialog.appendChild(footer);
+        overlay.appendChild(dialog);
+        document.body.appendChild(overlay);
+        document.addEventListener('keydown', handleKeydown);
+
+        closeButton.addEventListener('click', closePicker);
+        overlay.addEventListener('click', function (event) {
+            if (event.target === overlay) {
+                closePicker();
+            }
+        });
+        search.addEventListener('input', renderItems);
+        applyButton.addEventListener('click', applySelection);
+
+        fetchImageLibraryItems(config).then(function (loadedItems) {
+            items = loadedItems;
+            renderItems();
+            search.focus({ preventScroll: true });
+        }).catch(function (error) {
+            status.textContent = error && error.message ? error.message : 'Mediathek konnte nicht geladen werden.';
+            clearElement(grid);
+            grid.appendChild(createElement('div', 'cms-editorjs-media-picker__empty', status.textContent));
+        });
     }
 
     function applyTextBlockPresentation(wrapper, editable, alignment, spacing) {
@@ -2018,9 +2231,11 @@
             var controlsLabel = createElement('span', 'cms-editorjs-floating-options__label', 'Galerie');
             var columns = this.createColumnsSelect();
             var upload = createInput('file', 'form-control form-control-sm', '', '');
+            var libraryButton = createElement('button', 'btn btn-sm btn-outline-primary', 'Aus Mediathek wählen');
             var okButton = createElement('button', 'btn btn-sm btn-primary', 'OK – Galerie übernehmen');
             var status = createElement('div', 'form-hint');
             var list = createElement('div', 'cms-editorjs-gallery__grid');
+            var self = this;
 
             wrapper.classList.add('cms-editorjs-gallery');
             wrapper.classList.toggle('is-empty', this.images.length === 0);
@@ -2029,24 +2244,37 @@
             upload.accept = 'image/*';
             upload.multiple = true;
             upload.disabled = this.readOnly;
+            libraryButton.type = 'button';
+            libraryButton.disabled = this.readOnly;
             okButton.type = 'button';
             okButton.disabled = this.readOnly;
             columns.disabled = this.readOnly;
 
             controls.appendChild(controlsLabel);
             controls.appendChild(this.createGalleryField('Spalten', columns));
-            controls.appendChild(this.createGalleryField('Bilder auswählen', upload));
+            controls.appendChild(this.createGalleryField('Upload', upload));
+            controls.appendChild(libraryButton);
             controls.appendChild(okButton);
             controls.appendChild(status);
             wrapper.appendChild(list);
             wrapper.appendChild(controls);
 
-            this.nodes = { wrapper: wrapper, columns: columns, upload: upload, okButton: okButton, status: status, list: list };
+            this.nodes = { wrapper: wrapper, columns: columns, upload: upload, libraryButton: libraryButton, okButton: okButton, status: status, list: list };
+            this.updateGalleryLayout();
             this.renderImageList();
 
             upload.addEventListener('change', this.uploadSelectedFiles.bind(this));
+            libraryButton.addEventListener('click', function (event) {
+                event.preventDefault();
+                self.openImageLibraryPicker();
+            });
+            columns.addEventListener('change', function () {
+                self.updateGalleryLayout();
+                notifyToolChanged(wrapper);
+            });
             okButton.addEventListener('click', function () {
                 status.textContent = 'Galerie übernommen.';
+                notifyToolChanged(wrapper);
             });
 
             return wrapper;
@@ -2054,7 +2282,7 @@
         createColumnsSelect() {
             var select = document.createElement('select');
             select.className = 'form-select form-select-sm';
-            [2, 3, 4, 6].forEach(function (columns) {
+            [2, 3, 4, 5, 6].forEach(function (columns) {
                 var option = document.createElement('option');
                 option.value = String(columns);
                 option.textContent = String(columns) + ' Spalten';
@@ -2063,12 +2291,72 @@
             select.value = String(this.data.columns || 3);
             return select;
         }
+        updateGalleryLayout() {
+            var columns = parseInt(this.nodes.columns ? this.nodes.columns.value : this.data.columns || 3, 10) || 3;
+
+            if ([2, 3, 4, 5, 6].indexOf(columns) === -1) {
+                columns = 3;
+            }
+
+            if (this.nodes.wrapper) {
+                this.nodes.wrapper.dataset.columns = String(columns);
+            }
+            if (this.nodes.list) {
+                this.nodes.list.style.setProperty('--cms-editor-gallery-columns', String(columns));
+            }
+        }
         createGalleryField(labelText, control) {
             var label = createElement('label', 'cms-editorjs-gallery__field');
             var text = createElement('span', '', labelText);
             label.appendChild(text);
             label.appendChild(control);
             return label;
+        }
+        openImageLibraryPicker() {
+            var self = this;
+
+            if (this.readOnly) {
+                return;
+            }
+
+            createImageLibraryPicker(this.config, {
+                multiple: true,
+                title: 'Galerie-Bilder aus Mediathek auswählen',
+                selectedUrls: this.images.map(function (image) {
+                    return image && image.file ? String(image.file.url || '') : '';
+                }).filter(Boolean),
+                onSelect: function (items) {
+                    self.addLibraryImages(items);
+                }
+            });
+        }
+        addLibraryImages(items) {
+            var seen = new Set(this.images.map(function (image) {
+                return image && image.file ? String(image.file.url || '') : '';
+            }).filter(Boolean));
+            var added = 0;
+            var self = this;
+
+            (Array.isArray(items) ? items : []).forEach(function (item) {
+                var normalized = normalizeGalleryData({ images: [item] }).images[0] || null;
+                var url = normalized && normalized.file ? String(normalized.file.url || '') : '';
+
+                if (!normalized || url === '' || seen.has(url)) {
+                    return;
+                }
+
+                seen.add(url);
+                self.images.push(normalized);
+                added += 1;
+            });
+
+            this.renderImageList();
+            if (this.nodes.status) {
+                this.nodes.status.textContent = added > 0
+                    ? added + (added === 1 ? ' Bild aus der Mediathek eingefügt.' : ' Bilder aus der Mediathek eingefügt.')
+                    : 'Keine neuen Bilder eingefügt.';
+            }
+            notifyToolChanged(this.nodes.wrapper);
         }
         uploadSelectedFiles(event) {
             if (this.readOnly) {
@@ -2099,6 +2387,7 @@
             queue.then(function () {
                 self.nodes.status.textContent = 'Auswahl bereit. Weitere Bilder wählen oder mit OK bestätigen.';
                 self.nodes.upload.value = '';
+                notifyToolChanged(self.nodes.wrapper);
             }).catch(function (error) {
                 self.nodes.status.textContent = error && error.message ? error.message : 'Galerie-Upload fehlgeschlagen.';
                 logWarn('Gallery upload failed.', error);
@@ -2153,6 +2442,7 @@
             }
 
             clearElement(this.nodes.list);
+            this.updateGalleryLayout();
             if (this.nodes.wrapper) {
                 this.nodes.wrapper.classList.toggle('is-empty', this.images.length === 0);
             }
@@ -2206,6 +2496,7 @@
                     }
                     self.images[index].caption = caption.value;
                     thumb.alt = caption.value;
+                    notifyToolChanged(self.nodes.wrapper);
                 });
                 moveUp.addEventListener('click', function () {
                     var previous;
@@ -2218,6 +2509,7 @@
                     self.images[index - 1] = self.images[index];
                     self.images[index] = previous;
                     self.renderImageList();
+                    notifyToolChanged(self.nodes.wrapper);
                 });
                 moveDown.addEventListener('click', function () {
                     var next;
@@ -2230,6 +2522,7 @@
                     self.images[index + 1] = self.images[index];
                     self.images[index] = next;
                     self.renderImageList();
+                    notifyToolChanged(self.nodes.wrapper);
                 });
                 remove.addEventListener('click', function () {
                     if (self.readOnly) {
@@ -2237,6 +2530,7 @@
                     }
                     self.images.splice(index, 1);
                     self.renderImageList();
+                    notifyToolChanged(self.nodes.wrapper);
                 });
 
                 item.appendChild(thumb);
@@ -2270,6 +2564,7 @@
                 if (pastedUrl !== '') {
                     this.images.push({ file: { url: pastedUrl }, caption: pastedNode.getAttribute('alt') || '' });
                     this.renderImageList();
+                    notifyToolChanged(this.nodes.wrapper);
                 }
                 return;
             }
@@ -2282,6 +2577,7 @@
                 this.uploadGalleryImage(file).then(function (filePayload) {
                     self.images.push({ file: filePayload, caption: '' });
                     self.renderImageList();
+                    notifyToolChanged(self.nodes.wrapper);
                     if (self.nodes.status) {
                         self.nodes.status.textContent = 'Bild eingefügt.';
                     }
@@ -2349,6 +2645,7 @@
             var controls = createElement('div', 'cms-editorjs-floating-options cms-editorjs-media-text-options');
             var label = createElement('span', 'cms-editorjs-floating-options__label', 'Bild + Text');
             var upload = createInput('file', 'form-control form-control-sm', '', '');
+            var libraryButton = createElement('button', 'btn btn-sm btn-outline-primary', 'Aus Mediathek wählen');
             var position = this.createSelect([
                 ['left', 'Bild links'],
                 ['right', 'Bild rechts']
@@ -2367,6 +2664,8 @@
             controls.dataset.mutationFree = 'true';
             upload.accept = 'image/*';
             upload.disabled = this.readOnly;
+            libraryButton.type = 'button';
+            libraryButton.disabled = this.readOnly;
             position.disabled = this.readOnly;
             width.disabled = this.readOnly;
             alt.readOnly = this.readOnly;
@@ -2377,7 +2676,8 @@
             preview.appendChild(content);
 
             controls.appendChild(label);
-            controls.appendChild(this.createSetting('Bild', upload));
+            controls.appendChild(this.createSetting('Upload', upload));
+            controls.appendChild(libraryButton);
             controls.appendChild(this.createSetting('Position', position));
             controls.appendChild(this.createSetting('Breite', width));
             controls.appendChild(this.createSetting('Alt', alt));
@@ -2392,6 +2692,7 @@
                 element.addEventListener('change', handleChange);
             });
             upload.addEventListener('change', this.uploadSelectedFile.bind(this, url, status));
+            libraryButton.addEventListener('click', this.openImageLibraryPicker.bind(this));
             content.addEventListener('input', function () {
                 notifyToolChanged(wrapper);
             });
@@ -2404,7 +2705,7 @@
             wrapper.appendChild(preview);
             wrapper.appendChild(controls);
             wrapper.appendChild(status);
-            this.nodes = { wrapper: wrapper, preview: preview, media: media, image: image, content: content, url: url, position: position, width: width, alt: alt, status: status };
+            this.nodes = { wrapper: wrapper, preview: preview, media: media, image: image, content: content, url: url, libraryButton: libraryButton, position: position, width: width, alt: alt, status: status };
             updatePreview();
 
             return wrapper;
@@ -2508,6 +2809,28 @@
                 return normalizeImageResponse(payload).file;
             });
         }
+        openImageLibraryPicker(event) {
+            var self = this;
+
+            if (event) {
+                event.preventDefault();
+            }
+            if (this.readOnly) {
+                return;
+            }
+
+            createImageLibraryPicker(this.config, {
+                multiple: false,
+                title: 'Bild für Bild-Text-Block auswählen',
+                selectedUrls: this.nodes.url && this.nodes.url.value ? [this.nodes.url.value] : [],
+                onSelect: function (items) {
+                    var item = Array.isArray(items) && items[0] ? items[0] : null;
+                    var file = item && item.file ? item.file : {};
+
+                    self.setImageUrl(file.url || '', item ? (item.caption || file.name || '') : '');
+                }
+            });
+        }
         setImageUrl(url, alt) {
             var cleanUrl = sanitizeEditableUrl(url);
 
@@ -2515,12 +2838,13 @@
                 return;
             }
 
+            if (this.nodes.alt && typeof alt === 'string' && alt !== '') {
+                this.nodes.alt.value = alt;
+                this.nodes.alt.dispatchEvent(new Event('input', { bubbles: true }));
+            }
             if (this.nodes.url) {
                 this.nodes.url.value = cleanUrl;
                 this.nodes.url.dispatchEvent(new Event('input', { bubbles: true }));
-            }
-            if (this.nodes.alt && typeof alt === 'string' && alt !== '') {
-                this.nodes.alt.value = alt;
             }
             if (this.nodes.status) {
                 this.nodes.status.textContent = 'Bild eingefügt.';
@@ -3132,21 +3456,13 @@
 
     function buildTools(uploadUrl, csrfToken, options) {
         var tools = {};
-        var inlineToolbar = ['bold', 'italic', 'link'];
+        var inlineToolbar = false;
         var resolvedOptions = options && typeof options === 'object' ? options : {};
         var getUploadContext = typeof resolvedOptions.getUploadContext === 'function' ? resolvedOptions.getUploadContext : null;
 
-        if (addTool(tools, 'inlineCode', {}, false)) {
-            inlineToolbar.push('inlineCode');
-        }
-
-        if (addTool(tools, 'underline', {}, false)) {
-            inlineToolbar.push('underline');
-        }
-
-        if (addTool(tools, 'spoiler', {}, false)) {
-            inlineToolbar.push('spoiler');
-        }
+        addTool(tools, 'inlineCode', {}, false);
+        addTool(tools, 'underline', {}, false);
+        addTool(tools, 'spoiler', {}, false);
 
         addTool(tools, 'paragraph', {
             inlineToolbar: inlineToolbar,
