@@ -137,7 +137,7 @@ $hubPublicEnPath = $hubPublicPath !== '' ? ContentLocalizationService::getInstan
                         <div class="card-header"><h3 class="card-title">Hero / Einstieg</h3></div>
                         <div class="card-body">
                             <div class="row g-3">
-                                <div class="col-md-6">
+                                <div class="col-md-5">
                                     <label class="form-label">Template-Profil</label>
                                     <select class="form-select" name="hub_template" id="hubTemplateSelect">
                                         <?php foreach ($templateOptions as $value => $label): ?>
@@ -146,7 +146,12 @@ $hubPublicEnPath = $hubPublicPath !== '' ? ContentLocalizationService::getInstan
                                     </select>
                                     <div class="form-hint">Layouts, Header-Links und Designvorgaben bearbeitest du zentral im Tab <strong>Templates</strong>. Beim Neuanlegen werden die Starter-Kacheln des gewählten Templates automatisch übernommen.</div>
                                 </div>
-                                <div class="col-md-6">
+                                <div class="col-md-3">
+                                    <label class="form-label">Card-Rundung (px)</label>
+                                    <input type="number" class="form-control" name="hub_card_radius" min="0" max="48" step="1" value="<?php echo htmlspecialchars((string)($settings['hub_card_radius'] ?? ''), ENT_QUOTES); ?>" placeholder="Template">
+                                    <div class="form-hint">Leer = Wert aus dem Template-Profil. 0 = eckig, 48 = sehr rund.</div>
+                                </div>
+                                <div class="col-md-4">
                                     <label class="form-label">CTA URL</label>
                                     <input type="text" class="form-control" name="hub_cta_url" value="<?php echo htmlspecialchars((string)($settings['hub_cta_url'] ?? '')); ?>" placeholder="/themen">
                                 </div>

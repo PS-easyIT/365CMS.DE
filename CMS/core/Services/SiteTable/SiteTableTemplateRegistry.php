@@ -50,6 +50,7 @@ final class SiteTableTemplateRegistry
         'hub_card_image_fit' => 'cover',
         'hub_card_image_ratio' => 'wide',
         'hub_card_meta_layout' => 'split',
+        'hub_card_radius' => '',
     ];
 
     private const TEMPLATE_PLACEHOLDERS = [

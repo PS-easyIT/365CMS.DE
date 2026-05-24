@@ -148,8 +148,17 @@ if (!defined('ABSPATH')) {
                 <div class="col-md-4"><label class="form-label">Meta-Layout</label><select class="form-select" name="hub_card_meta_layout"><option value="split" <?php echo (($cardDesign['meta_layout'] ?? 'split') === 'split') ? 'selected' : ''; ?>>Links / Rechts</option><option value="stacked" <?php echo (($cardDesign['meta_layout'] ?? '') === 'stacked') ? 'selected' : ''; ?>>Gestapelt</option></select></div>
                 <div class="col-md-4">
                     <label class="form-label">Card-Rundung (px)</label>
-                    <input type="number" class="form-control" name="template_card_radius" min="0" max="48" step="1" value="<?php echo (int)($cardDesign['card_radius'] ?? 20); ?>">
-                    <div class="form-hint">0 = eckig, höhere Werte = deutlich runder. Ganz ohne Card-Ballett.</div>
+                    <div class="hub-card-radius-control" data-hub-card-radius-control>
+                        <div class="input-group input-group-sm">
+                            <input type="number" class="form-control" name="template_card_radius" min="0" max="48" step="1" value="<?php echo (int)($cardDesign['card_radius'] ?? 20); ?>" data-hub-card-radius-number>
+                            <span class="input-group-text">px</span>
+                        </div>
+                        <input type="range" class="form-range mt-2" min="0" max="48" step="1" value="<?php echo (int)($cardDesign['card_radius'] ?? 20); ?>" aria-label="Card-Rundung als Slider" data-hub-card-radius-range>
+                        <div class="d-flex align-items-center justify-content-between gap-2 form-hint mb-0">
+                            <span>0 = eckig, 48 = sehr rund.</span>
+                            <span class="badge bg-azure-lt" data-hub-card-radius-label><?php echo (int)($cardDesign['card_radius'] ?? 20); ?> px</span>
+                        </div>
+                    </div>
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">Bildposition</label>

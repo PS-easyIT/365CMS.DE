@@ -149,6 +149,21 @@
     font-size: .67rem;
 }
 
+.hub-card-radius-control {
+    padding: .7rem;
+    border: 1px solid rgba(15, 23, 42, .08);
+    border-radius: .9rem;
+    background: linear-gradient(180deg, #fff, #f8fafc);
+}
+
+.hub-card-radius-control .form-range {
+    cursor: pointer;
+}
+
+.hub-card-radius-control .badge {
+    white-space: nowrap;
+}
+
 .hub-template-preview__hero {
     background: linear-gradient(135deg, var(--hub-preview-hero-start), var(--hub-preview-hero-end));
     color: #fff;

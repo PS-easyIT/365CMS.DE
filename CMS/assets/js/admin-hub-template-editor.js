@@ -265,6 +265,72 @@
             }
         }
 
+        function clampCardRadius(value) {
+            var parsed = parseInt(value, 10);
+            if (Number.isNaN(parsed)) {
+                parsed = 20;
+            }
+
+            return Math.max(0, Math.min(48, parsed));
+        }
+
+        function getCardRadiusLabel(value) {
+            if (value === 0) {
+                return 'eckig';
+            }
+            if (value <= 10) {
+                return 'soft';
+            }
+            if (value <= 24) {
+                return 'rund';
+            }
+
+            return 'extra rund';
+        }
+
+        function updateCardRadiusControls() {
+            form.querySelectorAll('[data-hub-card-radius-control]').forEach(function (control) {
+                var numberInput = control.querySelector('[data-hub-card-radius-number]');
+                var rangeInput = control.querySelector('[data-hub-card-radius-range]');
+                var label = control.querySelector('[data-hub-card-radius-label]');
+
+                if (!numberInput) {
+                    return;
+                }
+
+                var value = clampCardRadius(numberInput.value);
+                numberInput.value = String(value);
+
+                if (rangeInput) {
+                    rangeInput.value = String(value);
+                }
+                if (label) {
+                    label.textContent = value + ' px - ' + getCardRadiusLabel(value);
+                }
+            });
+        }
+
+        function bindCardRadiusControls() {
+            form.querySelectorAll('[data-hub-card-radius-control]').forEach(function (control) {
+                var numberInput = control.querySelector('[data-hub-card-radius-number]');
+                var rangeInput = control.querySelector('[data-hub-card-radius-range]');
+
+                if (!numberInput) {
+                    return;
+                }
+
+                numberInput.addEventListener('input', updateCardRadiusControls);
+                numberInput.addEventListener('change', updateCardRadiusControls);
+
+                if (rangeInput) {
+                    rangeInput.addEventListener('input', function () {
+                        numberInput.value = rangeInput.value;
+                        updateCardRadiusControls();
+                    });
+                }
+            });
+        }
+
         function bindSwitchers() {
             form.querySelectorAll('[data-switcher]').forEach(function (switcher) {
                 switcher.addEventListener('click', function (event) {
@@ -365,7 +431,7 @@
                 }
             });
 
-            ['template_card_columns', 'hub_card_layout', 'hub_card_image_position', 'hub_card_image_fit', 'hub_card_image_ratio', 'hub_card_meta_layout'].forEach(function (fieldName) {
+            ['template_card_columns', 'hub_card_layout', 'hub_card_image_position', 'hub_card_image_fit', 'hub_card_image_ratio', 'hub_card_meta_layout', 'template_card_radius'].forEach(function (fieldName) {
                 var field = form.querySelector('[name="' + fieldName + '"]');
                 if (!field) {
                     return;
@@ -377,7 +443,8 @@
                     hub_card_image_position: cardDesignDefaults.image_position,
                     hub_card_image_fit: cardDesignDefaults.image_fit,
                     hub_card_image_ratio: cardDesignDefaults.image_ratio,
-                    hub_card_meta_layout: cardDesignDefaults.meta_layout
+                    hub_card_meta_layout: cardDesignDefaults.meta_layout,
+                    template_card_radius: cardDesignDefaults.card_radius
                 };
 
                 if (valueMap[fieldName] !== undefined && valueMap[fieldName] !== null && valueMap[fieldName] !== '') {
@@ -560,7 +627,8 @@
             preview.style.setProperty('--hub-preview-card-text', getValue('template_color_card_text', '#1e293b'));
             preview.style.setProperty('--hub-preview-table-head-start', getValue('template_color_table_header_start', getValue('template_color_hero_start', '#1e3a5f')));
             preview.style.setProperty('--hub-preview-table-head-end', getValue('template_color_table_header_end', getValue('template_color_hero_end', '#0f2240')));
-            preview.style.setProperty('--hub-preview-radius', Math.max(0, Math.min(48, parseInt(getValue('template_card_radius', '20'), 10) || 20)) + 'px');
+            updateCardRadiusControls();
+            preview.style.setProperty('--hub-preview-radius', clampCardRadius(getValue('template_card_radius', '20')) + 'px');
             preview.className = 'hub-template-preview hub-template-preview--' + baseTemplate;
 
             previewBadge.textContent = templateProfile.badge;
@@ -781,6 +849,8 @@
         });
 
         bindSwitchers();
+        bindCardRadiusControls();
+        updateCardRadiusControls();
         if (isNewTemplate) {
             applyBaseTemplateDefaults(getValue('base_template', 'general-it'), true);
         }

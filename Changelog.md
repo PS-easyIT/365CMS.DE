@@ -1,4 +1,4 @@
-﻿**Version:** 3.0.30
+﻿**Version:** 3.0.31
 
 # 365CMS Changelog
 
@@ -19,6 +19,12 @@
 ## 📜 Aktuelle Versionshistorie ab 3.0.0
 
 > Die vollständige historische 2.x-Historie wurde in [`Changelog_old.md`](Changelog_old.md) archiviert.
+
+### v3.0.31 — 24.05.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.0.31** | 🟢 feat | Hub-Sites / Template-Design | **`CMS/admin/views/hub/template-edit/main-column.php`, `CMS/assets/js/admin-hub-template-editor.js`, `CMS/assets/css/admin-hub-template-editor.css`, `CMS/admin/views/hub/edit.php`, `CMS/admin/modules/hub/HubSitesModule.php`, `CMS/core/Services/SiteTable/SiteTableTemplateRegistry.php`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md`, `Changelog.md` und `CMS/DOC/admin/pages-posts/HUBSITES.md` machen die Card-Rundung für HubSite-Templates vollständig steuerbar.** Der Template-Editor erhält eine deutlich sichtbare Zahl-/Slider-Steuerung mit Live-Preview, Basis-Template-Wechsel übernehmen den jeweiligen Radius-Default korrekt, und einzelne HubSites können den Template-Radius optional mit `hub_card_radius` überschreiben. |
 
 ### v3.0.30 — 24.05.2026
 

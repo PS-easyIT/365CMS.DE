@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Verwaltung thematischer Hub-Sites und Landing-Hubs über `/admin/hub-sites`.
 
-Letzte Aktualisierung: 2026-05-24 · Version 3.0.30
+Letzte Aktualisierung: 2026-05-24 · Version 3.0.31
 
 ---
 
@@ -43,6 +43,8 @@ Seit `3.0.29` gibt es das HubSite-Template-Profil `services` für Dienstleistung
 - Starter-Kacheln für IT-Strategie, Microsoft 365 & Security sowie 365CMS/Web-Plattformen
 
 Seit `3.0.30` ist das Profil im HubSite-Admin zusätzlich sichtbar in den Template-Varianten beschrieben. Services-basierte Templates unterstützen im Card-Editor Feature-Kacheln in Vollbreite und zeigen in der Template-Vorschau eigene Dienstleistungs-/Delivery-Beschriftungen.
+
+Seit `3.0.31` kann die Card-Rundung direkt im HubSite-Template per Zahlfeld und Slider angepasst werden. Der Live-Preview übernimmt den Radius sofort, neue Templates ziehen den Radius-Default des gewählten Basis-Layouts nach, und einzelne HubSites können den Template-Wert optional mit einem eigenen Radius überschreiben.
 
 Themes können das Profil über die vorhandenen HubSite-CSS-Klassen, insbesondere `.cms-hub-site--services`, visuell weiter zuschneiden.
 

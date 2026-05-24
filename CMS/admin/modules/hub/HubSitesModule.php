@@ -67,6 +67,7 @@ class HubSitesModule
         'hub_card_image_fit' => 'cover',
         'hub_card_image_ratio' => 'wide',
         'hub_card_meta_layout' => 'split',
+        'hub_card_radius' => '',
     ];
 
     public function __construct()
@@ -254,6 +255,9 @@ class HubSitesModule
                 : '',
             'hub_card_meta_layout' => array_key_exists('hub_card_meta_layout', $post)
                 ? $this->normalizeSetting((string)$post['hub_card_meta_layout'], self::ALLOWED_META_LAYOUTS, 'split')
+                : '',
+            'hub_card_radius' => array_key_exists('hub_card_radius', $post) && trim((string)$post['hub_card_radius']) !== ''
+                ? $this->normalizeNumber((int)$post['hub_card_radius'], 0, 48, 20)
                 : '',
         ];
 
@@ -532,6 +536,9 @@ class HubSitesModule
         $settings['hub_card_image_fit'] = $this->normalizeSetting((string) ($settings['hub_card_image_fit'] ?? 'cover'), self::ALLOWED_IMAGE_FITS, 'cover');
         $settings['hub_card_image_ratio'] = $this->normalizeSetting((string) ($settings['hub_card_image_ratio'] ?? 'wide'), self::ALLOWED_IMAGE_RATIOS, 'wide');
         $settings['hub_card_meta_layout'] = $this->normalizeSetting((string) ($settings['hub_card_meta_layout'] ?? 'split'), self::ALLOWED_META_LAYOUTS, 'split');
+        $settings['hub_card_radius'] = trim((string) ($settings['hub_card_radius'] ?? '')) !== ''
+            ? $this->normalizeNumber((int) $settings['hub_card_radius'], 0, 48, 20)
+            : '';
 
         if (!empty($site['table_slug']) && trim((string) ($settings['hub_slug'] ?? '')) === '') {
             $settings['hub_slug'] = (string) $site['table_slug'];
