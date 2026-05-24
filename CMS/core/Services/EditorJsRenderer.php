@@ -772,7 +772,7 @@ final class EditorJsRenderer
         $file = is_array($data['file'] ?? null) ? $data['file'] : [];
         $imageUrl = $this->normalizeRenderableAssetUrl((string)($file['url'] ?? ''), true);
 
-        $textHtml = $this->renderInlineTextContent((string)($data['text'] ?? ''));
+        $textHtml = $this->renderMediaTextContent((string)($data['text'] ?? ''));
         if ($imageUrl === '' && $textHtml === '') {
             return '';
         }
@@ -1365,6 +1365,26 @@ final class EditorJsRenderer
         }
 
         return '<p>' . $sanitized . '</p>';
+    }
+
+    private function renderMediaTextContent(string $html): string
+    {
+        $raw = trim($html);
+        if ($raw === '') {
+            return '';
+        }
+
+        $blockHtml = trim(EditorJsHtmlSanitizer::sanitizeRawBlock($raw));
+        if ($blockHtml === '') {
+            return '';
+        }
+
+        if (preg_match('/<(?:p|div|ul|ol|blockquote|pre|table|h[1-6]|hr)\b/i', $blockHtml) === 1) {
+            return $blockHtml;
+        }
+
+        $inline = trim($this->sanitizeInline($raw));
+        return $inline !== '' ? '<p>' . $inline . '</p>' : '';
     }
 
     private function formatFileSize(int $bytes): string

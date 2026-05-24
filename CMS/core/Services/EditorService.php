@@ -14,6 +14,7 @@ namespace CMS\Services;
 
 use CMS\Json;
 use CMS\Services\EditorJs\EditorJsContentNormalizer;
+use CMS\Services\EditorJs\EditorJsHtmlSanitizer;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -374,7 +375,10 @@ class EditorService
             }
         }
 
-        // Letzter Fallback: reguläres HTML (SunEditor-/Legacy-Inhalt) nicht verlieren.
-        return $content;
+        // Letzter Fallback: reguläres HTML (SunEditor-/Legacy-Inhalt) nicht verlieren,
+        // aber niemals unsanitisierte Import-/Fehler-Fragmente ins Frontend kippen.
+        return str_contains($content, '<')
+            ? EditorJsHtmlSanitizer::sanitizeRawBlock($content)
+            : htmlspecialchars($content, ENT_QUOTES, 'UTF-8');
     }
 }

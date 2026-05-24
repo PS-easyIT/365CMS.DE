@@ -1,4 +1,4 @@
-﻿**Version:** 3.0.34
+﻿**Version:** 3.0.35
 
 # 365CMS Changelog
 
@@ -19,6 +19,12 @@
 ## 📜 Aktuelle Versionshistorie ab 3.0.0
 
 > Die vollständige historische 2.x-Historie wurde in [`Changelog_old.md`](Changelog_old.md) archiviert.
+
+### v3.0.35 — 24.05.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.0.35** | 🔴 fix | EditorJS / Audit-Härtung | **`CMS/core/Services/EditorJs/EditorJsContentNormalizer.php`, `CMS/core/Services/EditorJsRenderer.php`, `CMS/core/Services/EditorJs/EditorJsSanitizer.php`, `CMS/core/Services/EditorService.php`, `CMS/assets/js/editor-init.js`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md` und `Changelog.md` schließen die Audit-Lücken aus dem EditorJS-/Gutenberg-Follow-up.** Gültige EditorJS-Listen-, Bild-, Text- und Zitat-Metadaten bleiben beim Normalisieren erhalten, selbstschließende Gutenberg-Blöcke wie `wp:image` werden in der richtigen Reihenfolge konvertiert, Media-Text-Blöcke behalten sichere Absätze und Listen, der Admin-Importer erkennt `.wp-block-media-text`, und der letzte Legacy-Fallback gibt keine unsanitisierten Fehler-/Import-Fragmente mehr aus. |
 
 ### v3.0.34 — 24.05.2026
 

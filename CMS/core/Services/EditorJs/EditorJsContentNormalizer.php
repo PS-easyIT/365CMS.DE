@@ -125,17 +125,28 @@ final class EditorJsContentNormalizer
             'media_text' => 'mediaText',
             'mediatext' => 'mediaText',
             'core/media-text' => 'mediaText',
+            'wp:media-text' => 'mediaText',
             'core/image' => 'image',
+            'wp:image' => 'image',
             'core/paragraph' => 'paragraph',
+            'wp:paragraph' => 'paragraph',
             'core/heading' => 'header',
+            'heading' => 'header',
+            'wp:heading' => 'header',
             'core/list' => 'list',
+            'wp:list' => 'list',
             'core/quote' => 'quote',
+            'wp:quote' => 'quote',
             'core/html' => 'raw',
+            'html' => 'raw',
+            'wp:html' => 'raw',
             'core/separator' => 'delimiter',
+            'separator' => 'delimiter',
+            'wp:separator' => 'delimiter',
             'space' => 'spacer',
         ];
 
-        return $aliases[$type] ?? $type;
+        return $aliases[$type] ?? $aliases[strtolower($type)] ?? $type;
     }
 
     private static function guessTypeFromData(array $data): string
@@ -160,10 +171,12 @@ final class EditorJsContentNormalizer
     private static function normalizeBlockData(string $type, array $data): array
     {
         return match ($type) {
-            'paragraph' => ['text' => self::sanitizeInline((string) ($data['text'] ?? $data['content'] ?? $data['html'] ?? ''))],
+            'paragraph' => self::normalizeTextBlockData($data),
             'header' => [
                 'text' => self::sanitizeInline((string) ($data['text'] ?? $data['content'] ?? '')),
                 'level' => max(1, min(6, (int) ($data['level'] ?? 2))),
+                'alignment' => self::normalizeTextAlignment((string) ($data['alignment'] ?? 'left')),
+                'spacing' => self::normalizeTextSpacing((string) ($data['spacing'] ?? 'normal')),
             ],
             'image' => self::normalizeImageData($data),
             'mediaText' => self::normalizeMediaTextData($data),
@@ -171,12 +184,22 @@ final class EditorJsContentNormalizer
             'quote' => [
                 'text' => self::sanitizeInline((string) ($data['text'] ?? $data['content'] ?? '')),
                 'caption' => self::sanitizeInline((string) ($data['caption'] ?? $data['cite'] ?? '')),
-                'alignment' => 'left',
+                'alignment' => in_array(($data['alignment'] ?? 'left'), ['left', 'center'], true) ? (string) $data['alignment'] : 'left',
             ],
             'raw' => ['html' => EditorJsHtmlSanitizer::sanitizeRawBlock((string) ($data['html'] ?? $data['content'] ?? $data['text'] ?? ''))],
             'delimiter' => [],
             default => $data,
         };
+    }
+
+    /** @return array<string,mixed> */
+    private static function normalizeTextBlockData(array $data): array
+    {
+        return [
+            'text' => self::sanitizeInline((string) ($data['text'] ?? $data['content'] ?? $data['html'] ?? '')),
+            'alignment' => self::normalizeTextAlignment((string) ($data['alignment'] ?? 'left')),
+            'spacing' => self::normalizeTextSpacing((string) ($data['spacing'] ?? 'normal')),
+        ];
     }
 
     /** @return array<string,mixed> */
@@ -187,20 +210,38 @@ final class EditorJsContentNormalizer
         $caption = (string) ($data['caption'] ?? $data['alt'] ?? '');
         $alignment = (string) ($data['alignment'] ?? $data['align'] ?? 'center');
         $size = (string) ($data['size'] ?? $data['widthPreset'] ?? 'normal');
+        $borderStyle = (string) ($data['borderStyle'] ?? (!empty($data['withBorder']) ? 'thin' : 'none'));
         if (!in_array($alignment, ['left', 'center', 'right'], true)) {
             $alignment = 'center';
+        }
+        if (!empty($data['stretched'])) {
+            $size = 'full';
         }
         if (!in_array($size, ['normal', 'wide', 'full'], true)) {
             $size = 'normal';
         }
+        if (!in_array($borderStyle, ['none', 'thin', 'medium', 'thick'], true)) {
+            $borderStyle = !empty($data['withBorder']) ? 'thin' : 'none';
+        }
 
-        return [
-            'file' => ['url' => $url],
+        $normalized = [
+            'file' => array_merge($file, ['url' => $url]),
             'caption' => self::sanitizeInline($caption),
             'alignment' => $alignment,
             'size' => $size,
             'widthPreset' => $size,
+            'borderStyle' => $borderStyle,
+            'withBorder' => $borderStyle !== 'none',
+            'withBackground' => !empty($data['withBackground']),
+            'stretched' => $size === 'full' || !empty($data['stretched']),
+            'shadow' => !empty($data['shadow']),
         ];
+
+        if (array_key_exists('rounded', $data)) {
+            $normalized['rounded'] = !empty($data['rounded']);
+        }
+
+        return $normalized;
     }
 
     /** @return array<string,mixed> */
@@ -211,9 +252,9 @@ final class EditorJsContentNormalizer
         $width = (string) ($data['imageWidth'] ?? $data['mediaWidth'] ?? '40');
 
         return [
-            'file' => ['url' => (string) ($file['url'] ?? $data['url'] ?? $data['src'] ?? '')],
+            'file' => array_merge($file, ['url' => (string) ($file['url'] ?? $data['url'] ?? $data['src'] ?? '')]),
             'alt' => strip_tags((string) ($data['alt'] ?? $data['caption'] ?? ''), ''),
-            'text' => self::sanitizeInline((string) ($data['text'] ?? $data['content'] ?? '')),
+            'text' => self::sanitizeMediaTextContent((string) ($data['text'] ?? $data['content'] ?? '')),
             'imagePosition' => in_array($position, ['left', 'right'], true) ? $position : 'left',
             'imageWidth' => self::normalizeMediaWidth($width),
         ];
@@ -231,28 +272,51 @@ final class EditorJsContentNormalizer
 
         return [
             'style' => $style,
-            'items' => self::normalizeListItems($items),
+            'meta' => self::normalizeListMeta($style, is_array($data['meta'] ?? null) ? $data['meta'] : []),
+            'items' => self::normalizeListItems($items, $style),
         ];
     }
 
     /** @param array<int,mixed> $items @return array<int,array<string,mixed>> */
-    private static function normalizeListItems(array $items): array
+    private static function normalizeListItems(array $items, string $style = 'unordered'): array
     {
         $normalized = [];
         foreach ($items as $item) {
             if (is_string($item)) {
-                $normalized[] = ['content' => self::sanitizeInline($item), 'items' => []];
+                $normalized[] = [
+                    'content' => self::sanitizeInline($item),
+                    'meta' => self::normalizeListMeta($style, []),
+                    'items' => [],
+                ];
                 continue;
             }
             if (is_array($item)) {
                 $normalized[] = [
                     'content' => self::sanitizeInline((string) ($item['content'] ?? $item['text'] ?? '')),
-                    'items' => self::normalizeListItems(is_array($item['items'] ?? null) ? $item['items'] : []),
+                    'meta' => self::normalizeListMeta($style, is_array($item['meta'] ?? null) ? $item['meta'] : (!empty($item['checked']) ? ['checked' => true] : [])),
+                    'items' => self::normalizeListItems(is_array($item['items'] ?? null) ? $item['items'] : [], $style),
                 ];
             }
         }
 
         return $normalized;
+    }
+
+    /** @return array<string,mixed> */
+    private static function normalizeListMeta(string $style, array $meta): array
+    {
+        $counterType = (string) ($meta['counterType'] ?? 'numeric');
+
+        return match ($style) {
+            'ordered' => [
+                'start' => max(1, (int) ($meta['start'] ?? 1)),
+                'counterType' => in_array($counterType, ['numeric', 'lower-roman', 'upper-roman', 'lower-alpha', 'upper-alpha'], true)
+                    ? $counterType
+                    : 'numeric',
+            ],
+            'checklist' => ['checked' => !empty($meta['checked'])],
+            default => [],
+        };
     }
 
     /** @return array<int,array<string,mixed>> */
@@ -261,6 +325,39 @@ final class EditorJsContentNormalizer
         $blocks = [];
         $offset = 0;
         $pattern = '/<!--\s+wp:([a-z0-9_\-\/]+)(\s+(\{.*?\}))?\s*-->(.*?)<!--\s+\/wp:\1\s+-->/is';
+
+        if (preg_match_all($pattern, $html, $matches, PREG_SET_ORDER | PREG_OFFSET_CAPTURE) === 0) {
+            return self::wordpressSelfClosingHtmlToBlocks($html);
+        }
+
+        foreach ($matches as $match) {
+            $start = (int) $match[0][1];
+            if ($start > $offset) {
+                $blocks = array_merge($blocks, self::wordpressSelfClosingHtmlToBlocks(substr($html, $offset, $start - $offset)));
+            }
+
+            $name = self::normalizeType((string) $match[1][0]);
+            $attrs = isset($match[3][0]) && trim((string) $match[3][0]) !== ''
+                ? Json::decodeArray((string) $match[3][0], [])
+                : [];
+            $innerHtml = (string) ($match[4][0] ?? '');
+            $blocks = array_merge($blocks, self::wordpressBlockToBlocks($name, is_array($attrs) ? $attrs : [], $innerHtml));
+            $offset = $start + strlen((string) $match[0][0]);
+        }
+
+        if ($offset < strlen($html)) {
+            $blocks = array_merge($blocks, self::wordpressSelfClosingHtmlToBlocks(substr($html, $offset)));
+        }
+
+        return $blocks;
+    }
+
+    /** @return array<int,array<string,mixed>> */
+    private static function wordpressSelfClosingHtmlToBlocks(string $html): array
+    {
+        $blocks = [];
+        $offset = 0;
+        $pattern = '/<!--\s+wp:([a-z0-9_\-\/]+)(\s+(\{.*?\}))?\s+\/-->/is';
 
         if (preg_match_all($pattern, $html, $matches, PREG_SET_ORDER | PREG_OFFSET_CAPTURE) === 0) {
             return self::htmlToBlocks($html);
@@ -276,8 +373,7 @@ final class EditorJsContentNormalizer
             $attrs = isset($match[3][0]) && trim((string) $match[3][0]) !== ''
                 ? Json::decodeArray((string) $match[3][0], [])
                 : [];
-            $innerHtml = (string) ($match[4][0] ?? '');
-            $blocks = array_merge($blocks, self::wordpressBlockToBlocks($name, is_array($attrs) ? $attrs : [], $innerHtml));
+            $blocks = array_merge($blocks, self::wordpressSelfClosingBlockToBlocks($name, is_array($attrs) ? $attrs : []));
             $offset = $start + strlen((string) $match[0][0]);
         }
 
@@ -286,6 +382,30 @@ final class EditorJsContentNormalizer
         }
 
         return $blocks;
+    }
+
+    /** @return array<int,array<string,mixed>> */
+    private static function wordpressSelfClosingBlockToBlocks(string $type, array $attrs): array
+    {
+        if ($type === 'image') {
+            $image = self::normalizeImageData([
+                'file' => ['url' => (string) ($attrs['url'] ?? $attrs['src'] ?? '')],
+                'caption' => (string) ($attrs['caption'] ?? $attrs['alt'] ?? ''),
+                'alt' => (string) ($attrs['alt'] ?? ''),
+            ]);
+
+            return ($image['file']['url'] ?? '') !== '' ? [['type' => 'image', 'data' => $image]] : [];
+        }
+
+        if ($type === 'delimiter') {
+            return [['type' => 'delimiter', 'data' => []]];
+        }
+
+        if ($type === 'spacer') {
+            return [['type' => 'spacer', 'data' => ['height' => max(0, min(200, (int) ($attrs['height'] ?? 40)))]]];
+        }
+
+        return [];
     }
 
     /** @return array<int,array<string,mixed>> */
@@ -483,10 +603,32 @@ final class EditorJsContentNormalizer
                 continue;
             }
 
-            $items[] = ['content' => self::sanitizeInline(self::innerHtml($child)), 'items' => []];
+            $clone = $child->cloneNode(true);
+            $nested = [];
+            if ($clone instanceof \DOMElement) {
+                foreach (iterator_to_array($clone->childNodes) as $nestedChild) {
+                    if (!$nestedChild instanceof \DOMElement || !in_array(strtolower($nestedChild->tagName), ['ul', 'ol'], true)) {
+                        continue;
+                    }
+                    $nested = array_merge($nested, self::listElementToItems($nestedChild));
+                    $nestedChild->parentNode?->removeChild($nestedChild);
+                }
+            }
+
+            $items[] = ['content' => self::sanitizeInline($clone instanceof \DOMElement ? self::innerHtml($clone) : self::innerHtml($child)), 'items' => $nested];
         }
 
         return $items;
+    }
+
+    private static function normalizeTextAlignment(string $alignment): string
+    {
+        return in_array($alignment, ['left', 'center', 'right', 'justify'], true) ? $alignment : 'left';
+    }
+
+    private static function normalizeTextSpacing(string $spacing): string
+    {
+        return in_array($spacing, ['compact', 'normal', 'relaxed', 'loose'], true) ? $spacing : 'normal';
     }
 
     private static function createDomDocument(string $html): \DOMDocument
@@ -577,5 +719,10 @@ final class EditorJsContentNormalizer
     private static function sanitizeInline(string $html): string
     {
         return EditorJsHtmlSanitizer::sanitizeInline($html);
+    }
+
+    private static function sanitizeMediaTextContent(string $html): string
+    {
+        return EditorJsHtmlSanitizer::sanitizeRawBlock($html);
     }
 }

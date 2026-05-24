@@ -112,7 +112,7 @@
         return /^(https?:|mailto:|tel:)$/i.test(parser.protocol) ? url : '';
     }
 
-    function sanitizeEditableNode(node) {
+    function sanitizeEditableNode(node, allowBlocks) {
         var allowedTags = {
             a: true,
             b: true,
@@ -143,6 +143,12 @@
             link: true,
             meta: true
         };
+        if (allowBlocks) {
+            ['p', 'ul', 'ol', 'li', 'blockquote'].forEach(function (tagName) {
+                allowedTags[tagName] = true;
+            });
+        }
+
         var children = Array.prototype.slice.call(node.childNodes || []);
 
         children.forEach(function (child) {
@@ -157,7 +163,7 @@
             }
 
             tagName = String(child.tagName || '').toLowerCase();
-            sanitizeEditableNode(child);
+            sanitizeEditableNode(child, allowBlocks);
 
             if (blockedTags[tagName]) {
                 child.parentNode.removeChild(child);
@@ -214,13 +220,25 @@
         });
     }
 
-    function sanitizeEditableHtml(html) {
+    function sanitizeEditableHtml(html, allowBlocks) {
         var template = document.createElement('template');
 
         template.innerHTML = String(html || '');
-        sanitizeEditableNode(template.content);
+        sanitizeEditableNode(template.content, !!allowBlocks);
 
         return template.innerHTML;
+    }
+
+    function getMediaTextSanitizeConfig() {
+        var config = getInlineSanitizeConfig();
+
+        config.p = true;
+        config.ul = {};
+        config.ol = {};
+        config.li = true;
+        config.blockquote = true;
+
+        return config;
     }
 
     function getInlineSanitizeConfig() {
@@ -655,22 +673,32 @@
         var source = data && typeof data === 'object' ? data : {};
         var file = source.file && typeof source.file === 'object' ? source.file : {};
         var position = String(source.imagePosition || source.position || source.mediaPosition || 'left');
-        var width = String(source.imageWidth || source.mediaWidth || '40');
+        var width = normalizeMediaWidthValue(source.imageWidth || source.mediaWidth || '40');
 
         if (['left', 'right'].indexOf(position) === -1) {
             position = 'left';
-        }
-        if (['33', '40', '50'].indexOf(width) === -1) {
-            width = '40';
         }
 
         return {
             file: Object.assign({}, file, { url: String(file.url || source.url || '') }),
             alt: String(source.alt || source.caption || ''),
-            text: sanitizeEditableHtml(source.text || source.content || ''),
+            text: sanitizeEditableHtml(source.text || source.content || '', true),
             imagePosition: position,
             imageWidth: width
         };
+    }
+
+    function normalizeMediaWidthValue(value) {
+        var width = parseInt(String(value || '').replace(/[^0-9]/g, ''), 10) || 40;
+
+        if (width <= 36) {
+            return '33';
+        }
+        if (width >= 46) {
+            return '50';
+        }
+
+        return '40';
     }
 
     function normalizeSpacerData(data) {
@@ -794,6 +822,11 @@
             var tag = String(child.tagName || '').toLowerCase();
             var text = child.innerHTML || child.textContent || '';
 
+            if (child.classList && child.classList.contains('wp-block-media-text')) {
+                blocks.push({ type: 'mediaText', data: mediaTextElementToData(child) });
+                return;
+            }
+
             if (['div', 'section', 'article', 'main'].indexOf(tag) !== -1 && hasConvertibleBlockChildren(child)) {
                 Array.prototype.slice.call(child.children || []).forEach(appendElementBlock);
                 return;
@@ -860,6 +893,22 @@
         }
 
         return blocks;
+    }
+
+    function mediaTextElementToData(element) {
+        var image = element.querySelector('img');
+        var content = element.querySelector('.wp-block-media-text__content');
+        var position = element.classList && element.classList.contains('has-media-on-the-right') ? 'right' : 'left';
+        var style = element.getAttribute('style') || '';
+        var widthMatch = style.match(/(?:grid-template-columns|width)\s*:\s*([0-9]{1,3})%/i);
+
+        return normalizeMediaTextData({
+            file: { url: image ? image.getAttribute('src') || '' : '' },
+            alt: image ? image.getAttribute('alt') || '' : '',
+            text: content ? content.innerHTML || content.textContent || '' : element.textContent || '',
+            imagePosition: position,
+            imageWidth: widthMatch ? widthMatch[1] : '40'
+        });
     }
 
     function listElementToItems(list, style) {
@@ -2243,7 +2292,7 @@
             return {
                 file: false,
                 alt: false,
-                text: getInlineSanitizeConfig(),
+                text: getMediaTextSanitizeConfig(),
                 imagePosition: false,
                 imageWidth: false
             };
