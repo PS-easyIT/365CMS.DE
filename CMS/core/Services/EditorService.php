@@ -13,6 +13,7 @@ declare(strict_types=1);
 namespace CMS\Services;
 
 use CMS\Json;
+use CMS\Services\EditorJs\EditorJsContentNormalizer;
 
 if (!defined('ABSPATH')) {
     exit;
@@ -355,13 +356,25 @@ class EditorService
             return '';
         }
 
-        // Prüfe ob der Inhalt ein Editor.js JSON-Objekt ist
+        // Prüfe ob der Inhalt ein Editor.js JSON-Objekt ist.
+        // Fehlerhafte Einzelblöcke werden im Renderer isoliert, damit der Artikel
+        // nicht komplett leer bleibt.
         $decoded = Json::decodeArray($content, []);
         if (is_array($decoded) && isset($decoded['blocks'])) {
-            return EditorJsRenderer::getInstance()->render($decoded);
+            return EditorJsRenderer::getInstance()->render(EditorJsContentNormalizer::normalize($decoded));
         }
 
-        // Fallback: reguläres HTML (SunEditor-Inhalt)
+        // WordPress/Gutenberg-Blöcke und importiertes HTML in 365CMS-EditorJS-Blöcke
+        // übersetzen. Wichtig für wp:media-text / Bild + Text nebeneinander.
+        $normalized = EditorJsContentNormalizer::normalize($content);
+        if (($normalized['blocks'] ?? []) !== []) {
+            $html = EditorJsRenderer::getInstance()->render($normalized);
+            if ($html !== '') {
+                return $html;
+            }
+        }
+
+        // Letzter Fallback: reguläres HTML (SunEditor-/Legacy-Inhalt) nicht verlieren.
         return $content;
     }
 }

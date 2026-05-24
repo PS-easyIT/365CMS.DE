@@ -12,7 +12,7 @@ declare(strict_types=1);
 
 namespace CMS\Services;
 
-use CMS\Json;
+use CMS\Services\EditorJs\EditorJsContentNormalizer;
 use CMS\Services\EditorJs\EditorJsHtmlSanitizer;
 
 if (!defined('ABSPATH')) {
@@ -50,11 +50,9 @@ final class EditorJsRenderer
 
         $this->renderDepth++;
 
-        if (is_string($data)) {
-            $data = Json::decodeArray($data, []);
-        }
+        $data = is_string($data) ? EditorJsContentNormalizer::normalize($data) : EditorJsContentNormalizer::normalize($data);
 
-        if (!is_array($data) || !isset($data['blocks']) || !is_array($data['blocks'])) {
+        if (!isset($data['blocks']) || !is_array($data['blocks'])) {
             $this->renderDepth = max(0, $this->renderDepth - 1);
             return '';
         }
@@ -94,13 +92,20 @@ final class EditorJsRenderer
                     }
                     $nestedBlocks[] = $nextBlock;
                 }
-
-                $html .= $this->renderAccordion($data, $nestedBlocks);
+                try {
+                    $html .= $this->renderAccordion($data, $nestedBlocks);
+                } catch (\Throwable) {
+                    $html .= $this->renderUnknownBlockFallback($data);
+                }
                 $index += count($nestedBlocks);
                 continue;
             }
 
-            $html .= $this->renderBlock($block);
+            try {
+                $html .= $this->renderBlock($block);
+            } catch (\Throwable) {
+                $html .= $this->renderUnknownBlockFallback($data);
+            }
         }
 
         return $html;
@@ -158,8 +163,16 @@ final class EditorJsRenderer
         return match ($type) {
             'checklist' => 'list',
             'link' => 'linkTool',
-            'gallery', 'image_gallery' => 'imageGallery',
+            'gallery', 'image_gallery', 'image-gallery' => 'imageGallery',
             'space' => 'spacer',
+            'media-text', 'media_text', 'mediatext', 'core/media-text', 'wp:media-text' => 'mediaText',
+            'core/image', 'wp:image' => 'image',
+            'core/paragraph', 'wp:paragraph' => 'paragraph',
+            'core/heading', 'wp:heading' => 'header',
+            'core/list', 'wp:list' => 'list',
+            'core/quote', 'wp:quote' => 'quote',
+            'core/html', 'wp:html' => 'raw',
+            'core/separator', 'wp:separator' => 'delimiter',
             default => $type,
         };
     }
@@ -1258,7 +1271,11 @@ final class EditorJsRenderer
             }
         }
 
-        $normalizedUrl = \CMS\Services\MediaDeliveryService::getInstance()->normalizeUrl($url, $preferInline);
+        try {
+            $normalizedUrl = \CMS\Services\MediaDeliveryService::getInstance()->normalizeUrl($url, $preferInline);
+        } catch (\Throwable) {
+            $normalizedUrl = $url;
+        }
         $normalizedUrl = trim($normalizedUrl);
 
         if ($normalizedUrl === '') {

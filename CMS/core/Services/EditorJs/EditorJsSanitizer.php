@@ -9,8 +9,6 @@ declare(strict_types=1);
 
 namespace CMS\Services\EditorJs;
 
-use CMS\Json;
-
 if (!defined('ABSPATH')) {
     exit;
 }
@@ -19,8 +17,8 @@ final class EditorJsSanitizer
 {
     public function sanitize(string $json): string
     {
-        $data = Json::decodeArray($json, []);
-        if (!is_array($data) || empty($data['blocks']) || !is_array($data['blocks'])) {
+        $data = EditorJsContentNormalizer::normalize($json);
+        if (empty($data['blocks']) || !is_array($data['blocks'])) {
             return '{"blocks":[]}';
         }
 

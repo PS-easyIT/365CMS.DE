@@ -1,4 +1,4 @@
-﻿**Version:** 3.0.33
+﻿**Version:** 3.0.34
 
 # 365CMS Changelog
 
@@ -19,6 +19,12 @@
 ## 📜 Aktuelle Versionshistorie ab 3.0.0
 
 > Die vollständige historische 2.x-Historie wurde in [`Changelog_old.md`](Changelog_old.md) archiviert.
+
+### v3.0.34 — 24.05.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.0.34** | 🔴 fix | EditorJS / WordPress-Blöcke | **`CMS/core/Services/EditorJs/EditorJsContentNormalizer.php`, `CMS/core/Services/EditorJsRenderer.php`, `CMS/core/Services/EditorJs/EditorJsSanitizer.php`, `CMS/core/Services/EditorService.php`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md` und `Changelog.md` machen Public-Rendering und Speichern von EditorJS-Inhalten fehlertoleranter.** Einzelne defekte Blöcke brechen nicht mehr den kompletten Artikel ab, importiertes WordPress-/Gutenberg-HTML wird in 365CMS-EditorJS-Blöcke normalisiert, und `wp:media-text` beziehungsweise `.wp-block-media-text` wird als nativer Bild-Text-Block mit Bild links/rechts und Breitenmapping gerendert. |
 
 ### v3.0.33 — 24.05.2026
 
