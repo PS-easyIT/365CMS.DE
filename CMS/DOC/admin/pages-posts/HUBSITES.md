@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Verwaltung thematischer Hub-Sites und Landing-Hubs über `/admin/hub-sites`.
 
-Letzte Aktualisierung: 2026-05-03 · Version 2.9.507
+Letzte Aktualisierung: 2026-05-23 · Version 3.0.29
 
 ---
 
@@ -32,6 +32,17 @@ Hub-Sites nutzen denselben Basisspeicher wie Site Tables, unterscheiden sich abe
 - optionale Quicklinks und Inhaltsverzeichnis-Daten
 
 Die Public-Ausgabe wird nicht als einfache Tabelle gerendert, sondern als Hub-Seite mit Hero, Kartenlisten, Quicklinks und optionalem Inhaltsverzeichnis.
+
+### Template-Profil `services`
+
+Seit `3.0.29` gibt es das HubSite-Template-Profil `services` für Dienstleistungs- und Landing-Hubs. Es liefert:
+
+- service-orientierte Meta-Labels (`Zielgruppe`, `Ansprechpartner`, `Aktualität`, `Leistungsschwerpunkt`, `Ergebnis`)
+- Quicklinks für Beratung, Microsoft 365, CMS/Web, Betrieb, Workshops und Kontakt
+- drei Einstiegsektionen für Roadmap, Umsetzung/Betrieb und Enablement
+- Starter-Kacheln für IT-Strategie, Microsoft 365 & Security sowie 365CMS/Web-Plattformen
+
+Themes können das Profil über die vorhandenen HubSite-CSS-Klassen, insbesondere `.cms-hub-site--services`, visuell weiter zuschneiden.
 
 ---
 

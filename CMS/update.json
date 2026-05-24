@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "3.0.28",
+  "version": "3.0.29",
   "min_php": "8.4",
   "released": "2026-05-23",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 3.0.28: SiteTable-Pagination nutzt im Frontend mindestens 20 Zeilen pro Seite und bleibt bei exakt 20 Zeilen aus. Konfigurierte kleinere Seitengrößen wie 15 lösen damit keine frühe Pagination mehr aus.",
+  "notes": "Release-Stand 3.0.29: Hub-Sites erhalten ein neues Template-Profil services für Dienstleistungs-/Landing-Hubs mit passenden Meta-Feldern, Quicklinks, Sektionen und Starter-Kacheln.",
   "critical": false
 }

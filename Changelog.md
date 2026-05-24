@@ -1,4 +1,4 @@
-﻿**Version:** 3.0.28
+﻿**Version:** 3.0.29
 
 # 365CMS Changelog
 
@@ -19,6 +19,12 @@
 ## 📜 Aktuelle Versionshistorie ab 3.0.0
 
 > Die vollständige historische 2.x-Historie wurde in [`Changelog_old.md`](Changelog_old.md) archiviert.
+
+### v3.0.29 — 23.05.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.0.29** | 🟢 feat | Hub-Sites / Services | **`CMS/admin/modules/hub/HubTemplateProfileCatalog.php`, `CMS/core/Services/SiteTable/SiteTableTemplateRegistry.php`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md`, `Changelog.md` und `CMS/DOC/admin/pages-posts/HUBSITES.md` ergänzen ein neues HubSite-Template-Profil `services`.** Das Profil ist für Dienstleistungs-/Landing-Hubs ausgelegt und bringt passende Meta-Labels, Quicklinks, drei Einstiegsektionen, PHINIT-nahe Farbwerte sowie Starter-Kacheln für Beratung, Microsoft 365 und 365CMS/Web-Plattformen mit. |
 
 ### v3.0.28 — 23.05.2026
 
