@@ -384,6 +384,8 @@ class SchemaManager
                 status ENUM('draft','published','trash') NOT NULL DEFAULT 'draft',
                 author_id INT UNSIGNED NOT NULL,
                 author_display_name VARCHAR(150) DEFAULT NULL,
+                post_template VARCHAR(80) DEFAULT NULL,
+                post_meta_json TEXT DEFAULT NULL,
                 category_id INT UNSIGNED DEFAULT NULL,
                 tags VARCHAR(500) COMMENT 'Kommagetrennte Tags',
                 views INT UNSIGNED DEFAULT 0,

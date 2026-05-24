@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "3.0.31",
+  "version": "3.0.33",
   "min_php": "8.4",
   "released": "2026-05-24",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 3.0.31: HubSite-Templates können die Card-Rundung per Zahl und Slider live anpassen; Basis-Template-Defaults übernehmen den Radius korrekt und einzelne HubSites können den Template-Wert optional überschreiben.",
+  "notes": "Release-Stand 3.0.33: EditorJS erhält einen Bild-Text-Block mit Bild links oder rechts neben formatiertem Text inklusive Upload, Alt-Text und responsive Public-Rendering.",
   "critical": false
 }

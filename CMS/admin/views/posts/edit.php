@@ -21,6 +21,24 @@ $categories = $data['categories'] ?? [];
 $assignedCategoryIds = array_values(array_unique(array_map('intval', (array) ($data['assignedCategoryIds'] ?? []))));
 $availableTags = $data['tags'] ?? [];
 $postTagsData  = $data['postTags'] ?? [];
+$postTemplates = is_array($data['postTemplates'] ?? null) ? $data['postTemplates'] : [];
+if ($postTemplates === []) {
+    $postTemplates = [['id' => 'default', 'label' => 'Standard', 'description' => '', 'meta_fields' => []]];
+}
+$postTemplateValue = trim((string) ($post['post_template'] ?? 'default'));
+$postTemplateIds = array_values(array_filter(array_map(static fn(array $template): string => trim((string) ($template['id'] ?? '')), $postTemplates)));
+if ($postTemplateValue === '' || !in_array($postTemplateValue, $postTemplateIds, true)) {
+    $postTemplateValue = in_array('default', $postTemplateIds, true) ? 'default' : (string) ($postTemplateIds[0] ?? 'default');
+}
+$postTemplateMetaValues = [];
+try {
+    $decodedPostTemplateMeta = json_decode((string) ($post['post_meta_json'] ?? ''), true, 512, JSON_THROW_ON_ERROR);
+    if (is_array($decodedPostTemplateMeta)) {
+        $postTemplateMetaValues = $decodedPostTemplateMeta;
+    }
+} catch (\Throwable) {
+    $postTemplateMetaValues = [];
+}
 $revisionHistory = is_array($data['revisionHistory'] ?? null) ? $data['revisionHistory'] : ['total' => 0, 'displayed' => 0, 'has_more' => false, 'items' => []];
 $postRevisionItems = is_array($revisionHistory['items'] ?? null) ? $revisionHistory['items'] : [];
 $postRevisionContentMeta = static function (array $summary): string {
@@ -457,6 +475,94 @@ $additionalCategoryIds = array_values(array_filter(
                     </div>
                 </div>
 
+                <div class="col-12 cms-editor-sidebar-slot">
+                    <details class="card cms-edit-card cms-collapsible-card cms-collapsible-card--post-template" open>
+                        <summary class="card-header cms-collapsible-card__summary">
+                            <h3 class="card-title mb-0">Beitrags-Template & Zusatzkarte</h3>
+                            <span class="cms-collapsible-card__chevron" aria-hidden="true"></span>
+                        </summary>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-lg-4">
+                                    <label class="form-label" for="postTemplate">Beitrags-Template</label>
+                                    <select class="form-select" id="postTemplate" name="post_template">
+                                        <?php foreach ($postTemplates as $template): ?>
+                                            <?php
+                                            $templateId = trim((string) ($template['id'] ?? ''));
+                                            if ($templateId === '') {
+                                                continue;
+                                            }
+                                            ?>
+                                            <option value="<?php echo htmlspecialchars($templateId, ENT_QUOTES); ?>" <?php echo $templateId === $postTemplateValue ? 'selected' : ''; ?>>
+                                                <?php echo htmlspecialchars((string) ($template['label'] ?? $templateId), ENT_QUOTES); ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <div class="form-hint">Das aktive Theme steuert, welche Templates und Zusatzfelder verfügbar sind.</div>
+                                </div>
+
+                                <div class="col-lg-8">
+                                    <?php foreach ($postTemplates as $template): ?>
+                                        <?php
+                                        $templateId = trim((string) ($template['id'] ?? ''));
+                                        $templateLabel = trim((string) ($template['label'] ?? $templateId));
+                                        $templateDescription = trim((string) ($template['description'] ?? ''));
+                                        $metaFields = is_array($template['meta_fields'] ?? null) ? $template['meta_fields'] : [];
+                                        if ($templateId === '' || $metaFields === []) {
+                                            continue;
+                                        }
+                                        ?>
+                                        <div class="border rounded-3 p-3" data-post-template-meta-panel="<?php echo htmlspecialchars($templateId, ENT_QUOTES); ?>" <?php echo $templateId === $postTemplateValue ? '' : 'hidden'; ?>>
+                                            <div class="fw-semibold mb-1"><?php echo htmlspecialchars($templateLabel, ENT_QUOTES); ?> – Zusatzkarte</div>
+                                            <?php if ($templateDescription !== ''): ?>
+                                                <div class="text-secondary small mb-3"><?php echo htmlspecialchars($templateDescription, ENT_QUOTES); ?></div>
+                                            <?php endif; ?>
+                                            <div class="row g-3">
+                                                <?php foreach ($metaFields as $fieldKey => $field): ?>
+                                                    <?php
+                                                    if (!is_array($field)) {
+                                                        continue;
+                                                    }
+                                                    $fieldKey = preg_replace('/[^a-z0-9_-]/i', '', (string) $fieldKey) ?? '';
+                                                    if ($fieldKey === '') {
+                                                        continue;
+                                                    }
+                                                    $fieldId = 'postMeta_' . $templateId . '_' . $fieldKey;
+                                                    $fieldType = strtolower(trim((string) ($field['type'] ?? 'text')));
+                                                    $fieldLabel = trim((string) ($field['label'] ?? $fieldKey));
+                                                    $fieldPlaceholder = trim((string) ($field['placeholder'] ?? ''));
+                                                    $fieldValue = $postTemplateMetaValues[$fieldKey] ?? '';
+                                                    $fieldStringValue = is_array($fieldValue) ? implode("\n", array_map('strval', $fieldValue)) : (string) $fieldValue;
+                                                    ?>
+                                                    <div class="col-md-6">
+                                                        <label class="form-label" for="<?php echo htmlspecialchars($fieldId, ENT_QUOTES); ?>"><?php echo htmlspecialchars($fieldLabel, ENT_QUOTES); ?></label>
+                                                        <?php if ($fieldType === 'textarea' || $fieldType === 'array'): ?>
+                                                            <textarea class="form-control" id="<?php echo htmlspecialchars($fieldId, ENT_QUOTES); ?>" name="post_meta[<?php echo htmlspecialchars($fieldKey, ENT_QUOTES); ?>]" rows="<?php echo $fieldType === 'array' ? 3 : 4; ?>" placeholder="<?php echo htmlspecialchars($fieldPlaceholder, ENT_QUOTES); ?>"><?php echo htmlspecialchars($fieldStringValue); ?></textarea>
+                                                            <?php if ($fieldType === 'array'): ?><div class="form-hint">Ein Eintrag pro Zeile oder per Komma getrennt.</div><?php endif; ?>
+                                                        <?php elseif ($fieldType === 'select'): ?>
+                                                            <select class="form-select" id="<?php echo htmlspecialchars($fieldId, ENT_QUOTES); ?>" name="post_meta[<?php echo htmlspecialchars($fieldKey, ENT_QUOTES); ?>]">
+                                                                <option value="">Nicht anzeigen</option>
+                                                                <?php foreach ((array) ($field['options'] ?? []) as $option): ?>
+                                                                    <?php $optionValue = (string) $option; ?>
+                                                                    <option value="<?php echo htmlspecialchars($optionValue, ENT_QUOTES); ?>" <?php echo $fieldStringValue === $optionValue ? 'selected' : ''; ?>><?php echo htmlspecialchars($optionValue, ENT_QUOTES); ?></option>
+                                                                <?php endforeach; ?>
+                                                            </select>
+                                                        <?php else: ?>
+                                                            <?php $inputType = in_array($fieldType, ['date', 'url'], true) ? $fieldType : 'text'; ?>
+                                                            <input type="<?php echo htmlspecialchars($inputType, ENT_QUOTES); ?>" class="form-control" id="<?php echo htmlspecialchars($fieldId, ENT_QUOTES); ?>" name="post_meta[<?php echo htmlspecialchars($fieldKey, ENT_QUOTES); ?>]" value="<?php echo htmlspecialchars($fieldStringValue, ENT_QUOTES); ?>" placeholder="<?php echo htmlspecialchars($fieldPlaceholder, ENT_QUOTES); ?>">
+                                                        <?php endif; ?>
+                                                    </div>
+                                                <?php endforeach; ?>
+                                            </div>
+                                        </div>
+                                    <?php endforeach; ?>
+                                    <div class="text-secondary small" data-post-template-meta-empty <?php echo array_filter($postTemplates, static fn(array $template): bool => (string) ($template['id'] ?? '') === $postTemplateValue && !empty($template['meta_fields'])) ? 'hidden' : ''; ?>>Für dieses Template sind keine Zusatzfelder definiert.</div>
+                                </div>
+                            </div>
+                        </div>
+                    </details>
+                </div>
+
                 <div class="col-12 cms-editor-primary">
                     <div class="card cms-edit-card cms-editor-card mb-3">
                         <div class="card-header d-flex justify-content-between align-items-center gap-3 flex-wrap">
@@ -793,6 +899,9 @@ $additionalCategoryIds = array_values(array_filter(
             'statusBadgeId' => 'postStatusBadge',
             'categorySelectId' => 'categoryId',
             'categoryLabelId' => 'postCategoryLabel',
+            'templateSelectId' => 'postTemplate',
+            'templateMetaPanelSelector' => '[data-post-template-meta-panel]',
+            'templateMetaEmptySelector' => '[data-post-template-meta-empty]',
             'statusMap' => [
                 'draft' => ['label' => 'Entwurf', 'className' => 'badge bg-yellow-lt text-yellow'],
                 'published' => ['label' => 'Veröffentlicht', 'className' => 'badge bg-green-lt text-green'],

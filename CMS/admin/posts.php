@@ -232,6 +232,10 @@ function cms_admin_posts_build_inline_edit_data(object $module, array $post): ar
         'meta_title' => (string) ($post['meta_title'] ?? ($existingPost['meta_title'] ?? '')),
         'meta_description' => (string) ($post['meta_description'] ?? ($existingPost['meta_description'] ?? '')),
         'author_display_name' => (string) ($post['author_display_name'] ?? ($existingPost['author_display_name'] ?? '')),
+        'post_template' => (string) ($post['post_template'] ?? ($existingPost['post_template'] ?? 'default')),
+        'post_meta_json' => is_array($post['post_meta'] ?? null)
+            ? (string) json_encode((array) $post['post_meta'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+            : (string) ($existingPost['post_meta_json'] ?? ''),
         'published_at' => $publishedAt,
     ]);
 

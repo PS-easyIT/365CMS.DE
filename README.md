@@ -1,6 +1,6 @@
 # 365CMS.DE
 
-**Version:** [3.0.31](Changelog.md) · **Status:** Stable · **PHP:** 8.4+ · **MySQL:** 5.7+ · **MariaDB:** 10.3+
+**Version:** [3.0.33](Changelog.md) · **Status:** Stable · **PHP:** 8.4+ · **MySQL:** 5.7+ · **MariaDB:** 10.3+
 
 <div align="center">
 
@@ -51,6 +51,7 @@ Wichtige Eigenschaften:
 - Text, Überschriften, Listen, Checklisten, Zitate, Tabellen, Code, Trennlinien und Abstände
 - Abstandsblöcke mit normalisierten Presets oder Pixelwerten, die im Public-Rendering erhalten bleiben
 - Bildblöcke mit Upload, Live-Vorschau, Ausrichtung, Breite, Rahmen, Rundung, Hintergrund und Schatten
+- Bild-Text-Blöcke mit Bild links oder rechts neben formatiertem Text und responsivem Public-Layout
 - Mehrbild-Galerien mit Upload, Vorschau, Sortierung und Spaltensteuerung
 - Inline-Formatierungen wie fett, kursiv, unterstrichen, Code, Links und Spoiler
 - Rich-Text-Hinweisboxen mit Info-/Warn-/Erfolg-/Kritisch-Varianten, deren Titel und Inhalt Inline-Formatierungen behalten

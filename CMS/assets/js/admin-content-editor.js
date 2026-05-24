@@ -243,7 +243,7 @@
 
     function enforceAccordionDefaults() {
         queryElements('.cms-collapsible-card').forEach(function (card) {
-            if (card.classList.contains('cms-publication-card')) {
+            if (card.classList.contains('cms-publication-card') || card.classList.contains('cms-collapsible-card--post-template')) {
                 card.open = true;
                 return;
             }
@@ -267,6 +267,9 @@
         var statusBadge = getElement(config.statusBadgeId);
         var categorySelect = getElement(config.categorySelectId);
         var categoryLabel = getElement(config.categoryLabelId);
+        var templateSelect = getElement(config.templateSelectId);
+        var templateMetaPanels = queryElements(config.templateMetaPanelSelector);
+        var templateMetaEmpty = queryElements(config.templateMetaEmptySelector)[0] || null;
         var toggleButtons = queryElements(config.languageToggleSelector);
         var languagePanes = queryElements(config.languagePaneSelector);
         var statusMap = config.statusMap || {};
@@ -312,6 +315,9 @@
         }
 
         function updateUi() {
+            var activeTemplate = templateSelect ? String(templateSelect.value || 'default') : 'default';
+            var hasVisibleTemplateMetaPanel = false;
+
             countBindings.forEach(function (binding) {
                 var source = getElement(binding.sourceId);
                 var target = getElement(binding.targetId);
@@ -350,6 +356,18 @@
                 categoryLabel.textContent = categorySelect.options[categorySelect.selectedIndex]
                     ? categorySelect.options[categorySelect.selectedIndex].text
                     : 'Keine Kategorie';
+            }
+
+            templateMetaPanels.forEach(function (panel) {
+                var isActive = String(panel.getAttribute('data-post-template-meta-panel') || '') === activeTemplate;
+                panel.hidden = !isActive;
+                if (isActive) {
+                    hasVisibleTemplateMetaPanel = true;
+                }
+            });
+
+            if (templateMetaEmpty) {
+                templateMetaEmpty.hidden = hasVisibleTemplateMetaPanel;
             }
         }
 
@@ -404,6 +422,11 @@
         if (categorySelect) {
             categorySelect.addEventListener('input', updateUi);
             categorySelect.addEventListener('change', updateUi);
+        }
+
+        if (templateSelect) {
+            templateSelect.addEventListener('input', updateUi);
+            templateSelect.addEventListener('change', updateUi);
         }
 
         toggleButtons.forEach(function (button) {
@@ -1080,6 +1103,7 @@
             if (blockElement.querySelector('.ce-paragraph')) { return 'Text'; }
             if (blockElement.querySelector('.cdx-list')) { return 'Liste'; }
             if (blockElement.querySelector('.cdx-checklist')) { return 'Checklist'; }
+            if (blockElement.querySelector('.cms-editorjs-tool--media-text')) { return 'Bild + Text'; }
             if (blockElement.querySelector('.image-tool, .cms-editorjs-tool--image')) { return 'Bild'; }
             if (blockElement.querySelector('.editorjs-link')) { return 'Link'; }
             if (blockElement.querySelector('.editorjs-embed')) { return 'Embed'; }
@@ -1203,6 +1227,7 @@
                     className: 'media',
                     buttons: [
                         { label: 'Bild', icon: '▧', block: 'image', description: 'Bild hochladen oder URL nutzen' },
+                        { label: 'Bild + Text', icon: '▣', block: 'mediaText', data: { imagePosition: 'left', imageWidth: '40' }, description: 'Bild links oder rechts neben Text' },
                         { label: 'Galerie', icon: '▦', block: 'imageGallery', description: 'Mehrere Bilder als Galerie' },
                         { label: 'Embed', icon: '▶', block: 'embed', description: 'YouTube/Vimeo/Codepen usw.' },
                         { label: 'Link-Karte', icon: '↗', block: 'linkTool', description: 'Link mit Vorschau' },

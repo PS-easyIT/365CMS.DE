@@ -123,6 +123,8 @@ class PostsModule
             'meta_title' => "ALTER TABLE {$this->prefix}posts ADD COLUMN meta_title VARCHAR(255) DEFAULT NULL AFTER allow_comments",
             'meta_description' => "ALTER TABLE {$this->prefix}posts ADD COLUMN meta_description TEXT DEFAULT NULL AFTER meta_title",
             'author_display_name' => "ALTER TABLE {$this->prefix}posts ADD COLUMN author_display_name VARCHAR(150) DEFAULT NULL AFTER author_id",
+            'post_template' => "ALTER TABLE {$this->prefix}posts ADD COLUMN post_template VARCHAR(80) DEFAULT NULL AFTER author_display_name",
+            'post_meta_json' => "ALTER TABLE {$this->prefix}posts ADD COLUMN post_meta_json TEXT DEFAULT NULL AFTER post_template",
         ];
 
         foreach ($columns as $column => $sql) {
@@ -478,6 +480,7 @@ class PostsModule
             'assignedCategoryIds' => $postData !== null ? $this->getPostCategoryIds((int) ($postData['id'] ?? 0)) : [],
             'tags'       => array_map(fn($t) => (array)$t, $tags),
             'postTags'   => array_map(fn($t) => (array)$t, $postTags),
+            'postTemplates' => $this->getPostTemplateDefinitions(),
             'seoMeta'    => $id !== null ? SEOService::getInstance()->getContentMeta('post', $id) : SEOService::getInstance()->getContentMeta('post', 0),
             'revisionHistory' => $this->buildPostRevisionHistory($postData, array_map(fn($t) => (array) $t, $postTags)),
         ];
@@ -588,6 +591,9 @@ class PostsModule
         $metaTitle  = $this->sanitizePlainText((string)($post['meta_title'] ?? ''), 255);
         $metaDesc   = $this->sanitizePlainText((string)($post['meta_description'] ?? ''), 2000);
         $authorDisplayName = $this->sanitizeAuthorDisplayName((string)($post['author_display_name'] ?? ''));
+        $postTemplates = $this->getPostTemplateDefinitions();
+        $postTemplate = $this->sanitizePostTemplate((string)($post['post_template'] ?? ''), $postTemplates);
+        $postMetaJson = $this->sanitizePostTemplateMeta($post['post_meta'] ?? [], $postTemplate, $postTemplates);
         $rawTags    = $post['tags'] ?? '';
 
         if ($id > 0 && $existingPost === []) {
@@ -672,6 +678,8 @@ class PostsModule
             'meta_title' => $metaTitle,
             'meta_description' => $metaDesc,
             'author_display_name' => $authorDisplayName,
+            'post_template' => $postTemplate,
+            'post_meta_json' => $postMetaJson,
             'published_at' => $publishedAtInput['value'],
         ];
 
@@ -700,7 +708,7 @@ class PostsModule
                     "UPDATE {$this->prefix}posts 
                      SET title = ?, title_en = ?, slug = ?, slug_en = ?, content = ?, content_en = ?, excerpt = ?, excerpt_en = ?, status = ?,
                          category_id = ?, featured_image = ?, tags = ?,
-                         meta_title = ?, meta_description = ?, author_display_name = ?, published_at = ?,
+                         meta_title = ?, meta_description = ?, author_display_name = ?, post_template = ?, post_meta_json = ?, published_at = ?,
                          updated_at = NOW()
                      WHERE id = ?",
                     [
@@ -719,6 +727,8 @@ class PostsModule
                         (string)$savePayload['meta_title'],
                         (string)$savePayload['meta_description'],
                         (string)($savePayload['author_display_name'] ?? ''),
+                        (string)($savePayload['post_template'] ?? 'default'),
+                        $savePayload['post_meta_json'],
                         $resolvedPublishedAt,
                         $id,
                     ]
@@ -744,8 +754,8 @@ class PostsModule
                 $resolvedPublishedAt = $this->resolvePublishedAtValue((string) $savePayload['status'], $savePayload['published_at'], null);
                 $this->db->execute(
                     "INSERT INTO {$this->prefix}posts
-                     (title, title_en, slug, slug_en, content, content_en, excerpt, excerpt_en, status, category_id, featured_image, tags, meta_title, meta_description, author_id, author_display_name, published_at, created_at, updated_at)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())",
+                     (title, title_en, slug, slug_en, content, content_en, excerpt, excerpt_en, status, category_id, featured_image, tags, meta_title, meta_description, author_id, author_display_name, post_template, post_meta_json, published_at, created_at, updated_at)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())",
                     [
                         (string)$savePayload['title'],
                         (string)($savePayload['title_en'] ?? ''),
@@ -763,6 +773,8 @@ class PostsModule
                         (string)$savePayload['meta_description'],
                         $userId,
                         (string)($savePayload['author_display_name'] ?? ''),
+                        (string)($savePayload['post_template'] ?? 'default'),
+                        $savePayload['post_meta_json'],
                         $resolvedPublishedAt,
                     ]
                 );
@@ -2085,6 +2097,238 @@ class PostsModule
         return function_exists('mb_substr')
             ? mb_substr($value, 0, 150)
             : substr($value, 0, 150);
+    }
+
+    /**
+     * @return array<int,array<string,mixed>>
+     */
+    private function getPostTemplateDefinitions(): array
+    {
+        $definitions = [];
+
+        try {
+            $themePath = rtrim(\CMS\ThemeManager::instance()->getThemePath(), "\\/") . DIRECTORY_SEPARATOR;
+            $themeJson = $themePath . 'theme.json';
+            if (is_file($themeJson)) {
+                $decoded = json_decode((string) file_get_contents($themeJson), true, 512, JSON_THROW_ON_ERROR);
+                $templates = is_array($decoded['post_templates'] ?? null) ? $decoded['post_templates'] : [];
+
+                foreach ($templates as $template) {
+                    if (!is_array($template)) {
+                        continue;
+                    }
+
+                    $id = $this->sanitizeTemplateIdentifier((string) ($template['id'] ?? ''));
+                    if ($id === '') {
+                        continue;
+                    }
+
+                    $metaFields = is_array($template['meta_fields'] ?? null) ? $template['meta_fields'] : [];
+                    $definitions[] = [
+                        'id' => $id,
+                        'label' => $this->sanitizePlainText((string) ($template['label'] ?? $id), 120),
+                        'description' => $this->sanitizePlainText((string) ($template['description'] ?? ''), 500),
+                        'file' => $this->sanitizePlainText((string) ($template['file'] ?? ''), 160),
+                        'meta_fields' => $this->normalizeTemplateMetaFieldDefinitions($metaFields),
+                    ];
+                }
+            }
+        } catch (\Throwable $e) {
+            Logger::instance()->withChannel('admin.posts')->warning('Beitrags-Templates konnten nicht aus dem aktiven Theme gelesen werden.', [
+                'exception' => $e->getMessage(),
+            ]);
+        }
+
+        if ($definitions === []) {
+            $definitions[] = [
+                'id' => 'default',
+                'label' => 'Standard',
+                'description' => '',
+                'file' => 'post.php',
+                'meta_fields' => [],
+            ];
+        }
+
+        return $definitions;
+    }
+
+    private function sanitizeTemplateIdentifier(string $value): string
+    {
+        $value = strtolower(trim($value));
+        $value = preg_replace('/[^a-z0-9_-]/', '', $value) ?? '';
+
+        return $this->truncateText($value, 80);
+    }
+
+    /**
+     * @param array<string,mixed> $fields
+     * @return array<string,array<string,mixed>>
+     */
+    private function normalizeTemplateMetaFieldDefinitions(array $fields): array
+    {
+        $normalized = [];
+
+        foreach ($fields as $key => $field) {
+            if (!is_array($field)) {
+                continue;
+            }
+
+            $fieldKey = $this->sanitizeTemplateIdentifier((string) $key);
+            if ($fieldKey === '') {
+                continue;
+            }
+
+            $type = strtolower(trim((string) ($field['type'] ?? 'text')));
+            if (!in_array($type, ['text', 'textarea', 'date', 'url', 'select', 'array'], true)) {
+                $type = 'text';
+            }
+
+            $options = [];
+            foreach ((array) ($field['options'] ?? []) as $optionKey => $optionValue) {
+                $optionValue = is_array($optionValue) ? ($optionValue['value'] ?? '') : $optionValue;
+                $option = $this->sanitizePlainText((string) (is_string($optionKey) ? $optionKey : $optionValue), 120);
+                if ($option !== '') {
+                    $options[] = $option;
+                }
+            }
+
+            $normalized[$fieldKey] = [
+                'label' => $this->sanitizePlainText((string) ($field['label'] ?? $fieldKey), 160),
+                'type' => $type,
+                'placeholder' => $this->sanitizePlainText((string) ($field['placeholder'] ?? ''), 200),
+                'options' => array_values(array_unique($options)),
+            ];
+        }
+
+        return $normalized;
+    }
+
+    /**
+     * @param array<int,array<string,mixed>> $templates
+     */
+    private function sanitizePostTemplate(string $value, array $templates): string
+    {
+        $candidate = $this->sanitizeTemplateIdentifier($value);
+        $allowed = [];
+
+        foreach ($templates as $template) {
+            $id = $this->sanitizeTemplateIdentifier((string) ($template['id'] ?? ''));
+            if ($id !== '') {
+                $allowed[$id] = true;
+            }
+        }
+
+        if ($candidate !== '' && isset($allowed[$candidate])) {
+            return $candidate;
+        }
+
+        return isset($allowed['default']) ? 'default' : (string) array_key_first($allowed ?: ['default' => true]);
+    }
+
+    /**
+     * @param array<int,array<string,mixed>> $templates
+     */
+    private function sanitizePostTemplateMeta(mixed $rawMeta, string $templateId, array $templates): ?string
+    {
+        $selectedFields = [];
+        foreach ($templates as $template) {
+            if ((string) ($template['id'] ?? '') === $templateId && is_array($template['meta_fields'] ?? null)) {
+                $selectedFields = $template['meta_fields'];
+                break;
+            }
+        }
+
+        if ($selectedFields === [] || !is_array($rawMeta)) {
+            return null;
+        }
+
+        $normalized = [];
+        foreach ($selectedFields as $key => $field) {
+            if (!is_array($field)) {
+                continue;
+            }
+
+            $fieldKey = $this->sanitizeTemplateIdentifier((string) $key);
+            if ($fieldKey === '') {
+                continue;
+            }
+
+            $type = (string) ($field['type'] ?? 'text');
+            $value = $rawMeta[$fieldKey] ?? null;
+            $normalizedValue = $this->sanitizePostTemplateMetaValue($value, $type, (array) ($field['options'] ?? []));
+
+            if (is_array($normalizedValue)) {
+                if ($normalizedValue !== []) {
+                    $normalized[$fieldKey] = $normalizedValue;
+                }
+                continue;
+            }
+
+            if ($normalizedValue !== '') {
+                $normalized[$fieldKey] = $normalizedValue;
+            }
+        }
+
+        if ($normalized === []) {
+            return null;
+        }
+
+        $json = json_encode($normalized, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
+        return is_string($json) ? $json : null;
+    }
+
+    /**
+     * @param array<int,string> $options
+     * @return string|array<int,string>
+     */
+    private function sanitizePostTemplateMetaValue(mixed $value, string $type, array $options = []): string|array
+    {
+        $type = strtolower(trim($type));
+
+        if ($type === 'array') {
+            $entries = is_array($value) ? $value : (preg_split('/[\r\n,;]+/', (string) $value) ?: []);
+            $normalized = [];
+            foreach ($entries as $entry) {
+                $text = $this->sanitizePlainText((string) $entry, 180);
+                if ($text !== '') {
+                    $normalized[] = $text;
+                }
+            }
+
+            return array_values(array_unique($normalized));
+        }
+
+        $stringValue = is_scalar($value) || $value === null ? trim((string) $value) : '';
+
+        if ($type === 'url') {
+            if ($stringValue === '') {
+                return '';
+            }
+
+            $scheme = strtolower((string) parse_url($stringValue, PHP_URL_SCHEME));
+            if ($scheme === '' || !in_array($scheme, ['http', 'https'], true)) {
+                return '';
+            }
+
+            return filter_var($stringValue, FILTER_VALIDATE_URL) ? $this->truncateText($stringValue, 500) : '';
+        }
+
+        if ($type === 'date') {
+            if ($stringValue === '' || preg_match('/^\d{4}-\d{2}-\d{2}$/', $stringValue) !== 1) {
+                return '';
+            }
+
+            return $stringValue;
+        }
+
+        if ($type === 'select') {
+            $allowed = array_fill_keys(array_map('strval', $options), true);
+
+            return isset($allowed[$stringValue]) ? $stringValue : '';
+        }
+
+        return $this->sanitizePlainText($stringValue, $type === 'textarea' ? 2000 : 500);
     }
 
     /**

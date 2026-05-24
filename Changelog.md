@@ -1,4 +1,4 @@
-﻿**Version:** 3.0.31
+﻿**Version:** 3.0.33
 
 # 365CMS Changelog
 
@@ -19,6 +19,18 @@
 ## 📜 Aktuelle Versionshistorie ab 3.0.0
 
 > Die vollständige historische 2.x-Historie wurde in [`Changelog_old.md`](Changelog_old.md) archiviert.
+
+### v3.0.33 — 24.05.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.0.33** | 🟢 feat | EditorJS / Medienblöcke | **`CMS/assets/js/editor-init.js`, `CMS/assets/js/admin-content-editor.js`, `CMS/assets/css/admin.css`, `CMS/assets/css/editorjs-content.css`, `CMS/core/Services/EditorJsRenderer.php`, `CMS/core/Services/EditorJs/EditorJsSanitizer.php`, `CMS/core/Services/EditorJs/EditorJsAssetService.php`, `CMS/core/Bootstrap.php`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md` und `Changelog.md` ergänzen einen nativen EditorJS-Block „Bild + Text“.** Redakteure können ein Bild links oder rechts neben formatiertem Text platzieren, die Bildbreite wählen, Alt-Text pflegen und den Block responsive oberhalb/innerhalb normaler Inhalte rendern lassen. |
+
+### v3.0.32 — 24.05.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.0.32** | 🟢 feat | Beiträge / Templates | **`CMS/admin/modules/posts/PostsModule.php`, `CMS/admin/views/posts/edit.php`, `CMS/assets/js/admin-content-editor.js`, `CMS/core/SchemaManager.php`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md` und `Changelog.md` ergänzen Theme-gesteuerte Beitrags-Templates im Editor.** Beiträge speichern `post_template` und `post_meta_json`; der Editor liest `post_templates` aus dem aktiven Theme, zeigt templateabhängige Zusatzfelder an und persistiert nur befüllte Felder typgerecht. |
 
 ### v3.0.31 — 24.05.2026
 

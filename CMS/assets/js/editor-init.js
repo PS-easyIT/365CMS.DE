@@ -17,12 +17,13 @@
         'warning',
         'raw',
         'accordion',
-        'imageGallery'
+        'imageGallery',
+        'mediaText'
     ];
     var INLINE_TOOL_NAMES = ['inlineCode', 'underline', 'spoiler'];
     var PLUGIN_NAMES = ['undo', 'dragDrop'];
     var TOOL_NAMES = BLOCK_TOOL_NAMES.concat(INLINE_TOOL_NAMES);
-    var VERSION = 'cms-editorjs-org-assets-2026-05-20-box-formatting';
+    var VERSION = 'cms-editorjs-org-assets-2026-05-24-media-text';
     var THEME_PREVIEW_STYLE_CACHE = {};
     var TOOL_GLOBALS = {
         paragraph: ['CmsParagraphTool', 'Paragraph'],
@@ -41,6 +42,7 @@
         raw: ['RawTool'],
         accordion: ['Accordion'],
         imageGallery: ['CmsImageGalleryTool', 'ImageGallery'],
+        mediaText: ['CmsMediaTextTool'],
         inlineCode: ['InlineCode'],
         underline: ['Underline'],
         spoiler: ['TgSpoilerEditorJS', 'Spoiler']
@@ -55,6 +57,8 @@
         gallery: 'imageGallery',
         image_gallery: 'imageGallery',
         imageGallery: 'imageGallery',
+        media_text: 'mediaText',
+        mediatext: 'mediaText',
         callout: 'warning',
         space: 'spacer',
         details: 'accordion'
@@ -512,6 +516,10 @@
             return { type: type, data: normalizeImageData(data) };
         }
 
+        if (type === 'mediaText') {
+            return { type: type, data: normalizeMediaTextData(data) };
+        }
+
         if (type === 'warning') {
             return { type: type, data: normalizeWarningData(data) };
         }
@@ -640,6 +648,28 @@
             urls: images.map(function (item) {
                 return item.file.url;
             })
+        };
+    }
+
+    function normalizeMediaTextData(data) {
+        var source = data && typeof data === 'object' ? data : {};
+        var file = source.file && typeof source.file === 'object' ? source.file : {};
+        var position = String(source.imagePosition || source.position || source.mediaPosition || 'left');
+        var width = String(source.imageWidth || source.mediaWidth || '40');
+
+        if (['left', 'right'].indexOf(position) === -1) {
+            position = 'left';
+        }
+        if (['33', '40', '50'].indexOf(width) === -1) {
+            width = '40';
+        }
+
+        return {
+            file: Object.assign({}, file, { url: String(file.url || source.url || '') }),
+            alt: String(source.alt || source.caption || ''),
+            text: sanitizeEditableHtml(source.text || source.content || ''),
+            imagePosition: position,
+            imageWidth: width
         };
     }
 
@@ -2197,6 +2227,285 @@
 
     window.CmsImageGalleryTool = ImageGalleryTool;
 
+    class MediaTextTool {
+        constructor(options) {
+            options = options || {};
+            this.data = normalizeMediaTextData(options.data || {});
+            this.config = options.config || {};
+            this.api = options.api || null;
+            this.readOnly = !!options.readOnly;
+            this.nodes = {};
+        }
+        static get toolbox() {
+            return { title: 'Bild + Text', icon: '▣' };
+        }
+        static get sanitize() {
+            return {
+                file: false,
+                alt: false,
+                text: getInlineSanitizeConfig(),
+                imagePosition: false,
+                imageWidth: false
+            };
+        }
+        static get pasteConfig() {
+            return {
+                tags: ['IMG'],
+                files: {
+                    mimeTypes: ['image/*'],
+                    extensions: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'ico']
+                },
+                patterns: {
+                    image: /^(?:https?:\/\/|\/|\.\/|\.\.\/).+\.(?:jpe?g|png|gif|webp|bmp|ico)(?:[?#].*)?$/i
+                }
+            };
+        }
+        static get isReadOnlySupported() {
+            return true;
+        }
+        static get conversionConfig() {
+            return {
+                export: function (data) { return stripTags(data && data.text ? data.text : ''); },
+                import: function (text) { return normalizeMediaTextData({ text: sanitizeEditableHtml(text || '') }); }
+            };
+        }
+        render() {
+            var wrapper = createElement('div', 'cms-editorjs-tool cms-editorjs-tool--media-text');
+            var preview = createElement('div', 'cms-editorjs-media-text-preview');
+            var media = createElement('figure', 'cms-editorjs-media-text-preview__media');
+            var image = document.createElement('img');
+            var content = createEditable('cms-editorjs-editable cms-editorjs-media-text-preview__content', this.data.text || '', 'Text neben dem Bild schreiben ...', this.api, this.readOnly);
+            var url = createInput('hidden', '', (this.data.file && this.data.file.url) || '', '');
+            var controls = createElement('div', 'cms-editorjs-floating-options cms-editorjs-media-text-options');
+            var label = createElement('span', 'cms-editorjs-floating-options__label', 'Bild + Text');
+            var upload = createInput('file', 'form-control form-control-sm', '', '');
+            var position = this.createSelect([
+                ['left', 'Bild links'],
+                ['right', 'Bild rechts']
+            ], this.data.imagePosition || 'left');
+            var width = this.createSelect([
+                ['33', 'Bild 33 %'],
+                ['40', 'Bild 40 %'],
+                ['50', 'Bild 50 %']
+            ], this.data.imageWidth || '40');
+            var alt = createInput('text', 'form-control form-control-sm', this.data.alt || '', 'Alt-Text');
+            var status = createElement('div', 'form-hint');
+            var updatePreview = this.updatePreview.bind(this, wrapper, preview, image, url, alt, position, width);
+
+            wrapper.classList.add('is-empty');
+            controls.dataset.cmsEditorUi = 'true';
+            controls.dataset.mutationFree = 'true';
+            upload.accept = 'image/*';
+            upload.disabled = this.readOnly;
+            position.disabled = this.readOnly;
+            width.disabled = this.readOnly;
+            alt.readOnly = this.readOnly;
+            content.setAttribute('aria-label', 'Text neben Bild');
+
+            media.appendChild(image);
+            preview.appendChild(media);
+            preview.appendChild(content);
+
+            controls.appendChild(label);
+            controls.appendChild(this.createSetting('Bild', upload));
+            controls.appendChild(this.createSetting('Position', position));
+            controls.appendChild(this.createSetting('Breite', width));
+            controls.appendChild(this.createSetting('Alt', alt));
+
+            [url, alt, position, width].forEach(function (element) {
+                var handleChange = function () {
+                    updatePreview();
+                    notifyToolChanged(wrapper);
+                };
+
+                element.addEventListener('input', handleChange);
+                element.addEventListener('change', handleChange);
+            });
+            upload.addEventListener('change', this.uploadSelectedFile.bind(this, url, status));
+            content.addEventListener('input', function () {
+                notifyToolChanged(wrapper);
+            });
+
+            if (!this.readOnly) {
+                bindEditableLineBreakEnterBehavior(content);
+            }
+
+            wrapper.appendChild(url);
+            wrapper.appendChild(preview);
+            wrapper.appendChild(controls);
+            wrapper.appendChild(status);
+            this.nodes = { wrapper: wrapper, preview: preview, media: media, image: image, content: content, url: url, position: position, width: width, alt: alt, status: status };
+            updatePreview();
+
+            return wrapper;
+        }
+        createSelect(options, value) {
+            var select = document.createElement('select');
+            select.className = 'form-select form-select-sm';
+            options.forEach(function (item) {
+                var option = document.createElement('option');
+                option.value = item[0];
+                option.textContent = item[1];
+                select.appendChild(option);
+            });
+            select.value = value;
+            return select;
+        }
+        createSetting(labelText, control) {
+            var label = createElement('label', 'cms-editorjs-media-text-options__field');
+            var text = createElement('span', '', labelText);
+            label.appendChild(text);
+            label.appendChild(control);
+            return label;
+        }
+        updatePreview(wrapper, preview, image, urlInput, altInput, positionInput, widthInput) {
+            var url = String(urlInput.value || '').trim();
+            var position = ['left', 'right'].indexOf(positionInput.value) !== -1 ? positionInput.value : 'left';
+            var width = ['33', '40', '50'].indexOf(widthInput.value) !== -1 ? widthInput.value : '40';
+
+            preview.dataset.imagePosition = position;
+            preview.dataset.imageWidth = width;
+            preview.classList.toggle('cms-editorjs-media-text-preview--image-right', position === 'right');
+            preview.style.setProperty('--cms-media-text-image-width', width + '%');
+
+            if (url !== '') {
+                image.src = url;
+                image.alt = String(altInput.value || '');
+                preview.classList.add('has-image');
+                wrapper.classList.remove('is-empty');
+            } else {
+                image.removeAttribute('src');
+                image.alt = '';
+                preview.classList.remove('has-image');
+                wrapper.classList.add('is-empty');
+            }
+        }
+        uploadSelectedFile(urlInput, status, event) {
+            var file = event.target.files && event.target.files[0] ? event.target.files[0] : null;
+            var validationError = validateEditorImageFile(file);
+
+            if (validationError !== '') {
+                status.textContent = validationError;
+                return;
+            }
+
+            if (!file) {
+                return;
+            }
+
+            status.textContent = 'Upload läuft ...';
+            this.uploadImageFile(file).then(function (filePayload) {
+                urlInput.value = filePayload.url || '';
+                urlInput.dispatchEvent(new Event('input', { bubbles: true }));
+                status.textContent = 'Upload abgeschlossen.';
+            }).catch(function (error) {
+                status.textContent = error && error.message ? error.message : 'Upload fehlgeschlagen.';
+                logWarn('MediaText image upload failed.', error);
+            });
+        }
+        uploadImageFile(file) {
+            var endpoint = this.config.uploadUrl || '';
+            var validationError = validateEditorImageFile(file);
+            var body;
+
+            if (validationError !== '') {
+                return Promise.reject(new Error(validationError));
+            }
+
+            if (this.config.uploader && typeof this.config.uploader.uploadByFile === 'function') {
+                return this.config.uploader.uploadByFile(file).then(function (payload) {
+                    return normalizeImageResponse(payload).file;
+                });
+            }
+
+            if (!file || !endpoint || typeof fetch !== 'function') {
+                return Promise.reject(new Error('Upload-Endpunkt ist nicht verfügbar.'));
+            }
+
+            body = new FormData();
+            body.append('action', 'upload_image');
+            body.append('image', file);
+            body.append('csrf_token', this.config.csrfToken || '');
+
+            return fetch(endpoint, {
+                method: 'POST',
+                body: body,
+                credentials: 'same-origin',
+                headers: this.config.csrfToken ? { 'X-CSRF-Token': this.config.csrfToken } : {}
+            }).then(function (response) {
+                return response.json();
+            }).then(function (payload) {
+                return normalizeImageResponse(payload).file;
+            });
+        }
+        setImageUrl(url, alt) {
+            var cleanUrl = sanitizeEditableUrl(url);
+
+            if (cleanUrl === '') {
+                return;
+            }
+
+            if (this.nodes.url) {
+                this.nodes.url.value = cleanUrl;
+                this.nodes.url.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+            if (this.nodes.alt && typeof alt === 'string' && alt !== '') {
+                this.nodes.alt.value = alt;
+            }
+            if (this.nodes.status) {
+                this.nodes.status.textContent = 'Bild eingefügt.';
+            }
+            notifyToolChanged(this.nodes.wrapper);
+        }
+        onPaste(event) {
+            var detail = event && event.detail ? event.detail : {};
+            var pastedNode;
+            var file;
+            var self = this;
+
+            if (this.readOnly) {
+                return;
+            }
+
+            if (event.type === 'tag') {
+                pastedNode = detail.data;
+                this.setImageUrl(pastedNode && pastedNode.getAttribute ? pastedNode.getAttribute('src') || '' : '', pastedNode && pastedNode.getAttribute ? pastedNode.getAttribute('alt') || '' : '');
+                return;
+            }
+
+            if (event.type === 'pattern') {
+                this.setImageUrl(detail.data || '', '');
+                return;
+            }
+
+            if (event.type === 'file') {
+                file = detail.file || null;
+                if (this.nodes.status) {
+                    this.nodes.status.textContent = 'Bild wird hochgeladen ...';
+                }
+                this.uploadImageFile(file).then(function (filePayload) {
+                    self.setImageUrl(filePayload.url || '', '');
+                }).catch(function (error) {
+                    if (self.nodes.status) {
+                        self.nodes.status.textContent = error && error.message ? error.message : 'Upload fehlgeschlagen.';
+                    }
+                    logWarn('Pasted MediaText image upload failed.', error);
+                });
+            }
+        }
+        save() {
+            return normalizeMediaTextData({
+                file: { url: this.nodes.url ? this.nodes.url.value.trim() : '' },
+                alt: this.nodes.alt ? this.nodes.alt.value.trim() : '',
+                text: this.nodes.content ? this.nodes.content.innerHTML.trim() : '',
+                imagePosition: this.nodes.position ? this.nodes.position.value : 'left',
+                imageWidth: this.nodes.width ? this.nodes.width.value : '40'
+            });
+        }
+    }
+
+    window.CmsMediaTextTool = MediaTextTool;
+
     class QuoteTool {
         constructor(options) {
             options = options || {};
@@ -2842,6 +3151,15 @@
             inlineToolbar: inlineToolbar
         }, false);
         addTool(tools, 'imageGallery', {
+            config: {
+                uploadUrl: uploadUrl,
+                csrfToken: csrfToken,
+                uploader: buildImageUploader(uploadUrl, csrfToken, getUploadContext)
+            }
+        }, true);
+
+        addTool(tools, 'mediaText', {
+            inlineToolbar: inlineToolbar,
             config: {
                 uploadUrl: uploadUrl,
                 csrfToken: csrfToken,

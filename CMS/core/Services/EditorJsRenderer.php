@@ -759,22 +759,41 @@ final class EditorJsRenderer
         $file = is_array($data['file'] ?? null) ? $data['file'] : [];
         $imageUrl = $this->normalizeRenderableAssetUrl((string)($file['url'] ?? ''), true);
 
-        $textHtml = $this->renderPlainTextContent((string)($data['text'] ?? ''));
+        $textHtml = $this->renderInlineTextContent((string)($data['text'] ?? ''));
         if ($imageUrl === '' && $textHtml === '') {
             return '';
         }
 
         $altText = trim((string)($data['alt'] ?? ''));
         $alt = htmlspecialchars($altText, ENT_QUOTES, 'UTF-8');
+        $imagePosition = (string)($data['imagePosition'] ?? $data['position'] ?? $data['mediaPosition'] ?? 'left');
+        $imageWidth = (string)($data['imageWidth'] ?? $data['mediaWidth'] ?? '40');
 
-        $html = '<section class="editorjs-block editorjs-media-text" style="display:flex;flex-wrap:wrap;align-items:flex-start;gap:24px;">';
+        if (!in_array($imagePosition, ['left', 'right'], true)) {
+            $imagePosition = 'left';
+        }
+        if (!in_array($imageWidth, ['33', '40', '50'], true)) {
+            $imageWidth = '40';
+        }
+
+        $classes = [
+            'editorjs-block',
+            'editorjs-media-text',
+            'editorjs-media-text--image-' . $imagePosition,
+            'editorjs-media-text--image-width-' . $imageWidth,
+        ];
+        $style = '--cms-editorjs-media-text-image-width:' . $imageWidth . '%;display:flex;flex-wrap:wrap;align-items:flex-start;gap:24px;';
+        $mediaStyle = 'margin:0;flex:0 1 var(--cms-editorjs-media-text-image-width);min-width:220px;max-width:100%;';
+        $contentStyle = 'flex:1 1 calc(100% - var(--cms-editorjs-media-text-image-width) - 24px);min-width:260px;';
+
+        $html = '<section class="' . htmlspecialchars(implode(' ', $classes), ENT_QUOTES, 'UTF-8') . '" data-image-position="' . htmlspecialchars($imagePosition, ENT_QUOTES, 'UTF-8') . '" data-image-width="' . htmlspecialchars($imageWidth, ENT_QUOTES, 'UTF-8') . '" style="' . htmlspecialchars($style, ENT_QUOTES, 'UTF-8') . '">';
         if ($imageUrl !== '') {
-            $html .= '<figure class="editorjs-media-text__media" style="margin:0;flex:0 1 30%;min-width:220px;max-width:360px;">';
+            $html .= '<figure class="editorjs-media-text__media" style="' . htmlspecialchars($mediaStyle, ENT_QUOTES, 'UTF-8') . '">';
             $html .= '<img src="' . htmlspecialchars($imageUrl, ENT_QUOTES, 'UTF-8') . '" alt="' . $alt . '"' . $this->getLazyLoadingAttribute() . ' style="display:block;width:100%;height:auto;aspect-ratio:4/3;object-fit:cover;border-radius:14px;">';
             $html .= '</figure>';
         }
 
-        $html .= '<div class="editorjs-media-text__content" style="flex:1 1 360px;min-width:260px;">';
+        $html .= '<div class="editorjs-media-text__content" style="' . htmlspecialchars($contentStyle, ENT_QUOTES, 'UTF-8') . '">';
         $html .= $textHtml !== '' ? $textHtml : '<p></p>';
         $html .= '</div>';
         $html .= '</section>';
@@ -1319,6 +1338,16 @@ final class EditorJsRenderer
         }
 
         return $html;
+    }
+
+    private function renderInlineTextContent(string $html): string
+    {
+        $sanitized = trim($this->sanitizeInline($html));
+        if ($sanitized === '') {
+            return '';
+        }
+
+        return '<p>' . $sanitized . '</p>';
     }
 
     private function formatFileSize(int $bytes): string

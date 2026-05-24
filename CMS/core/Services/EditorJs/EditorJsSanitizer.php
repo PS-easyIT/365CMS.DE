@@ -249,7 +249,11 @@ final class EditorJsSanitizer
             case 'mediaText':
                 $data['file'] = $this->sanitizeFileInfo(is_array($data['file'] ?? null) ? $data['file'] : []);
                 $data['alt'] = strip_tags((string) ($data['alt'] ?? ''), '');
-                $data['text'] = trim((string) ($data['text'] ?? ''));
+                $data['text'] = $cleanInline($data['text'] ?? '');
+                $imagePosition = (string) ($data['imagePosition'] ?? $data['position'] ?? $data['mediaPosition'] ?? 'left');
+                $imageWidth = (string) ($data['imageWidth'] ?? $data['mediaWidth'] ?? '40');
+                $data['imagePosition'] = in_array($imagePosition, ['left', 'right'], true) ? $imagePosition : 'left';
+                $data['imageWidth'] = in_array($imageWidth, ['33', '40', '50'], true) ? $imageWidth : '40';
                 break;
 
             case 'callout':
