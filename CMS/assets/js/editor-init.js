@@ -20,7 +20,7 @@
         'imageGallery',
         'mediaText'
     ];
-    var INLINE_TOOL_NAMES = ['inlineCode', 'underline', 'spoiler'];
+    var INLINE_TOOL_NAMES = ['inlineCode', 'underline', 'marker', 'spoiler'];
     var PLUGIN_NAMES = ['undo', 'dragDrop'];
     var TOOL_NAMES = BLOCK_TOOL_NAMES.concat(INLINE_TOOL_NAMES);
     var VERSION = 'cms-editorjs-org-assets-2026-05-24-gallery-runtime-3-3-4';
@@ -45,6 +45,7 @@
         mediaText: ['CmsMediaTextTool'],
         inlineCode: ['InlineCode'],
         underline: ['Underline'],
+        marker: ['CmsMarkerTool', 'Marker'],
         spoiler: ['TgSpoilerEditorJS', 'Spoiler']
     };
     var PLUGIN_GLOBALS = {
@@ -3237,6 +3238,86 @@
 
     window.CmsSpacerTool = SpacerTool;
 
+    class MarkerTool {
+        constructor(options) {
+            options = options || {};
+            this.api = options.api || null;
+            this.button = null;
+            this.tag = 'MARK';
+        }
+        static get isInline() {
+            return true;
+        }
+        static get title() {
+            return 'Markieren';
+        }
+        static get sanitize() {
+            return {
+                mark: {}
+            };
+        }
+        render() {
+            this.button = document.createElement('button');
+            this.button.type = 'button';
+            this.button.className = 'ce-inline-tool cms-editorjs-marker-tool';
+            this.button.textContent = 'Mark';
+            this.button.setAttribute('aria-label', 'Text markieren');
+
+            return this.button;
+        }
+        surround(range) {
+            var selection = window.getSelection ? window.getSelection() : null;
+            var marker;
+            var closestMark;
+
+            if (!range || range.collapsed) {
+                return;
+            }
+
+            closestMark = this.findClosestMark(selection && selection.anchorNode ? selection.anchorNode : range.commonAncestorContainer);
+            if (closestMark) {
+                this.unwrap(closestMark);
+                return;
+            }
+
+            marker = document.createElement(this.tag);
+            marker.appendChild(range.extractContents());
+            range.insertNode(marker);
+
+            if (selection) {
+                selection.removeAllRanges();
+                range.selectNodeContents(marker);
+                selection.addRange(range);
+            }
+        }
+        checkState(selection) {
+            var active = !!this.findClosestMark(selection && selection.anchorNode ? selection.anchorNode : null);
+
+            if (this.button) {
+                this.button.classList.toggle('ce-inline-tool--active', active);
+            }
+
+            return active;
+        }
+        findClosestMark(node) {
+            var element = node && node.nodeType === 1 ? node : (node && node.parentElement ? node.parentElement : null);
+
+            return element && typeof element.closest === 'function' ? element.closest('mark') : null;
+        }
+        unwrap(element) {
+            if (!element || !element.parentNode) {
+                return;
+            }
+
+            while (element.firstChild) {
+                element.parentNode.insertBefore(element.firstChild, element);
+            }
+            element.parentNode.removeChild(element);
+        }
+    }
+
+    window.CmsMarkerTool = MarkerTool;
+
     function resolveToolClass(toolName) {
         var globalNames = TOOL_GLOBALS[toolName];
         var toolClass = null;
@@ -3462,6 +3543,7 @@
 
         addTool(tools, 'inlineCode', {}, false);
         addTool(tools, 'underline', {}, false);
+        addTool(tools, 'marker', {}, false);
         addTool(tools, 'spoiler', {}, false);
 
         addTool(tools, 'paragraph', {
@@ -3624,7 +3706,17 @@
         var tools;
         var resolvedOptions = options && typeof options === 'object' ? options : {};
         var toolChangeSyncTimer = null;
+        var originalDestroy;
         var syncEditorChange;
+        var reportEditorError = function (stage, error) {
+            if (typeof resolvedOptions.onError === 'function') {
+                try {
+                    resolvedOptions.onError(error, { holderId: holderId, stage: stage });
+                } catch (callbackError) {
+                    logWarn('Editor onError callback failed.', callbackError);
+                }
+            }
+        };
 
         if (!holder) {
             throw new Error('EditorJS holder missing: ' + holderId);
@@ -3637,6 +3729,9 @@
         normalizedData = normalizeInitialData(initialData);
         tools = buildTools(uploadUrl, csrfToken, resolvedOptions);
         holder.dataset.editorState = 'loading';
+        holder.setAttribute('role', holder.getAttribute('role') || 'region');
+        holder.setAttribute('aria-label', holder.getAttribute('aria-label') || 'Block-Editor');
+        holder.setAttribute('aria-busy', 'true');
         applyEditorPreviewTypography(holder, resolvedOptions.themeTypography || resolvedOptions.typography || {});
 
         syncEditorChange = function () {
@@ -3650,10 +3745,14 @@
 
             toolChangeSyncTimer = window.setTimeout(function () {
                 toolChangeSyncTimer = null;
+                if (!editor || typeof editor.save !== 'function') {
+                    return;
+                }
                 editor.save().then(function (output) {
                     resolvedOptions.onChange(normalizeInitialData(output));
                 }).catch(function (error) {
                     logWarn('Change sync failed.', error);
+                    reportEditorError('change-sync', error);
                 });
             }, 80);
         };
@@ -3669,25 +3768,65 @@
         holder.addEventListener('cms-editorjs-tool-change', syncEditorChange);
         holder.addEventListener('change', syncEditorChange, true);
 
-        editor = new window.EditorJS({
-            holder: holderId,
-            data: normalizedData,
-            tools: tools,
-            defaultBlock: 'paragraph',
-            logLevel: resolvedOptions.logLevel || 'ERROR',
-            minHeight: 160,
-            autofocus: false,
-            placeholder: 'Schreibe Inhalt oder wähle einen Block ...',
-            onReady: function () {
-                holder.dataset.editorState = 'editor';
-                initializeEditorPlugins(editor, holder, normalizedData);
-                logInfo('Editor ready.', { holderId: holderId, tools: TOOL_NAMES });
-            },
-            onChange: function () {
-                syncEditorChange();
-            }
-        });
+        try {
+            editor = new window.EditorJS({
+                holder: holderId,
+                data: normalizedData,
+                tools: tools,
+                defaultBlock: 'paragraph',
+                readOnly: !!resolvedOptions.readOnly,
+                logLevel: resolvedOptions.logLevel || 'ERROR',
+                minHeight: 160,
+                autofocus: false,
+                placeholder: 'Schreibe Inhalt oder wähle einen Block ...',
+                onReady: function () {
+                    holder.dataset.editorState = 'editor';
+                    holder.setAttribute('aria-busy', 'false');
+                    initializeEditorPlugins(editor, holder, normalizedData);
+                    logInfo('Editor ready.', { holderId: holderId, tools: TOOL_NAMES });
+                },
+                onChange: function () {
+                    syncEditorChange();
+                },
+                onError: function (error) {
+                    reportEditorError('runtime', error);
+                }
+            });
+        } catch (error) {
+            holder.dataset.editorState = 'error';
+            holder.setAttribute('aria-busy', 'false');
+            reportEditorError('init', error);
+            throw error;
+        }
         editor.cmsAvailableTools = Object.keys(tools);
+        editor.cmsReadOnly = !!resolvedOptions.readOnly;
+
+        if (editor.isReady && typeof editor.isReady.then === 'function') {
+            editor.isReady.catch(function (error) {
+                holder.dataset.editorState = 'error';
+                holder.setAttribute('aria-busy', 'false');
+                reportEditorError('ready', error);
+            });
+        }
+
+        originalDestroy = typeof editor.destroy === 'function' ? editor.destroy.bind(editor) : null;
+        editor.destroy = function () {
+            if (toolChangeSyncTimer !== null) {
+                window.clearTimeout(toolChangeSyncTimer);
+                toolChangeSyncTimer = null;
+            }
+            holder.removeEventListener('cms-editorjs-tool-change', syncEditorChange);
+            holder.removeEventListener('change', syncEditorChange, true);
+            if (holder.cmsEditorToolChangeHandler === syncEditorChange) {
+                delete holder.cmsEditorToolChangeHandler;
+            }
+            if (holder.cmsEditorNativeChangeHandler === syncEditorChange) {
+                delete holder.cmsEditorNativeChangeHandler;
+            }
+            holder.removeAttribute('aria-busy');
+
+            return originalDestroy ? originalDestroy() : undefined;
+        };
 
         return editor;
     }

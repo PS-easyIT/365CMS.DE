@@ -1281,6 +1281,7 @@
             if (item.description) {
                 button.title = item.description;
             }
+            button.setAttribute('aria-label', item.description ? item.label + ' – ' + item.description : item.label);
 
             button.addEventListener('click', function (event) {
                 var index;
@@ -1318,12 +1319,15 @@
         }
 
         function bindInlineInserterDismiss(holder) {
+            var handleDocumentClick;
+            var handleDocumentKeydown;
+
             if (!holder || holder.dataset.cmsInlineInserterDismissBound === '1') {
                 return;
             }
 
             holder.dataset.cmsInlineInserterDismissBound = '1';
-            document.addEventListener('click', function (event) {
+            handleDocumentClick = function (event) {
                 var target = event.target;
 
                 if (!holder.querySelector('.cms-editor-inline-inserter')) {
@@ -1335,12 +1339,20 @@
                 }
 
                 closeInlineInserters(holder);
-            });
+            };
 
-            document.addEventListener('keydown', function (event) {
+            handleDocumentKeydown = function (event) {
                 if (event.key === 'Escape') {
                     closeInlineInserters(holder);
                 }
+            };
+
+            document.addEventListener('click', handleDocumentClick);
+            document.addEventListener('keydown', handleDocumentKeydown);
+            registerEditorUiCleanup(holder.id, function () {
+                document.removeEventListener('click', handleDocumentClick);
+                document.removeEventListener('keydown', handleDocumentKeydown);
+                delete holder.dataset.cmsInlineInserterDismissBound;
             });
         }
 
@@ -1566,13 +1578,62 @@
             if (!editorUiState[holderId] || editorUiState[holderId] === true) {
                 editorUiState[holderId] = {
                     observed: false,
+                    observer: null,
                     rendering: false,
                     scheduled: false,
-                    signature: ''
+                    signature: '',
+                    cleanups: []
                 };
             }
 
             return editorUiState[holderId];
+        }
+
+        function registerEditorUiCleanup(holderId, cleanup) {
+            var state;
+
+            if (!holderId || typeof cleanup !== 'function') {
+                return;
+            }
+
+            state = getEditorUiState(holderId);
+            if (!Array.isArray(state.cleanups)) {
+                state.cleanups = [];
+            }
+
+            state.cleanups.push(cleanup);
+        }
+
+        function cleanupEditorUi(holderId) {
+            var state = holderId ? editorUiState[holderId] : null;
+            var holder = holderId ? getElement(holderId) : null;
+
+            if (!state || state === true) {
+                return;
+            }
+
+            if (state.observer && typeof state.observer.disconnect === 'function') {
+                state.observer.disconnect();
+            }
+
+            (Array.isArray(state.cleanups) ? state.cleanups : []).forEach(function (cleanup) {
+                try {
+                    cleanup();
+                } catch (error) {
+                    logEditor('warn', 'EditorJS UI cleanup failed.', error);
+                }
+            });
+
+            if (holder) {
+                delete holder.dataset.cmsSelectionBubbleBound;
+                delete holder.dataset.cmsInlineInserterDismissBound;
+                delete holder.dataset.cmsClipboardImagePasteBound;
+                delete holder.dataset.cmsKeyboardDeleteBound;
+                delete holder.dataset.cmsKeyboardEnterBound;
+                closeInlineInserters(holder);
+            }
+
+            delete editorUiState[holderId];
         }
 
         function isEditorUiNode(node) {
@@ -1614,6 +1675,8 @@
             commandbar.className = 'cms-editor-commandbar';
             commandbar.dataset.cmsEditorUi = 'true';
             commandbar.dataset.mutationFree = 'true';
+            commandbar.setAttribute('role', 'toolbar');
+            commandbar.setAttribute('aria-label', 'EditorJS Werkzeuge');
 
             commandbar.innerHTML = ''
                 + '<div class="cms-editor-commandbar__left">'
@@ -1739,9 +1802,17 @@
             }
 
             holder.addEventListener('cms-editor-plugin-state', updateCommandbarState);
-            document.addEventListener('click', function (event) {
+            var handleDocumentClick = function (event) {
                 if (!wrap.contains(event.target)) {
                     setPanelOpen(false);
+                }
+            };
+            document.addEventListener('click', handleDocumentClick);
+            registerEditorUiCleanup(definition.holderId, function () {
+                holder.removeEventListener('cms-editor-plugin-state', updateCommandbarState);
+                document.removeEventListener('click', handleDocumentClick);
+                if (commandbar.parentNode) {
+                    commandbar.parentNode.removeChild(commandbar);
                 }
             });
 
@@ -1766,6 +1837,10 @@
 
             toolbar = document.createElement('div');
             toolbar.className = 'editorjs-toolbar cms-editor-toolbar-grouped';
+            toolbar.dataset.cmsEditorUi = 'true';
+            toolbar.dataset.mutationFree = 'true';
+            toolbar.setAttribute('role', 'toolbar');
+            toolbar.setAttribute('aria-label', 'EditorJS Schnellwerkzeuge');
 
             function buildButton(item) {
                 return createEditorToolbarButton(item, editorEntry);
@@ -1812,13 +1887,26 @@
             });
 
             if (overflowPanel.children.length > 0) {
+                var handleOverflowDocumentClick;
+
+                overflowButton.setAttribute('aria-label', 'Weitere EditorJS-Blöcke anzeigen');
+                overflowButton.setAttribute('aria-expanded', 'false');
                 overflowButton.addEventListener('click', function (event) {
                     event.preventDefault();
                     overflowPanel.classList.toggle('is-open');
+                    overflowButton.setAttribute('aria-expanded', overflowPanel.classList.contains('is-open') ? 'true' : 'false');
                 });
-                document.addEventListener('click', function (event) {
+                handleOverflowDocumentClick = function (event) {
                     if (!toolbar.contains(event.target)) {
                         overflowPanel.classList.remove('is-open');
+                        overflowButton.setAttribute('aria-expanded', 'false');
+                    }
+                };
+                document.addEventListener('click', handleOverflowDocumentClick);
+                registerEditorUiCleanup(definition.holderId, function () {
+                    document.removeEventListener('click', handleOverflowDocumentClick);
+                    if (toolbar.parentNode) {
+                        toolbar.parentNode.removeChild(toolbar);
                     }
                 });
 
@@ -2647,6 +2735,11 @@
                 return;
             }
 
+            if (command === 'marker') {
+                document.execCommand('insertHTML', false, '<mark>' + escapeEditorSelectionText(String(window.getSelection ? window.getSelection() : '')) + '</mark>');
+                return;
+            }
+
             if (command === 'alignment') {
                 document.execCommand(value === 'center' ? 'justifyCenter' : (value === 'right' ? 'justifyRight' : (value === 'justify' ? 'justifyFull' : 'justifyLeft')), false, null);
                 applyCurrentTextBlockData(definition, editorEntry, holder, 'alignment', value);
@@ -2668,6 +2761,7 @@
                     { label: 'B', title: 'Fett', command: 'bold' },
                     { label: 'I', title: 'Kursiv', command: 'italic' },
                     { label: 'U', title: 'Unterstrichen', command: 'underline' },
+                    { label: 'Mark', title: 'Markieren', command: 'marker' },
                     { label: '</>', title: 'Inline-Code', command: 'inlineCode' }
                 ],
                 [
@@ -2691,6 +2785,8 @@
             bubble.className = 'cms-editor-selection-bubble';
             bubble.dataset.cmsEditorUi = 'true';
             bubble.dataset.mutationFree = 'true';
+            bubble.setAttribute('role', 'toolbar');
+            bubble.setAttribute('aria-label', 'Textformatierung');
             bubble.setAttribute('hidden', 'hidden');
 
             groups.forEach(function (items) {
@@ -2702,6 +2798,7 @@
                     button.type = 'button';
                     button.textContent = item.label;
                     button.title = item.title;
+                    button.setAttribute('aria-label', item.title);
                     button.addEventListener('mousedown', function (event) {
                         event.preventDefault();
                     });
