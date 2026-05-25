@@ -1,4 +1,4 @@
-﻿**Version:** 3.3.11
+﻿**Version:** 3.3.12
 
 # 365CMS Changelog
 
@@ -19,6 +19,12 @@
 ## 📜 Aktuelle Versionshistorie ab 3.0.0
 
 > Die vollständige historische 2.x-Historie wurde in [`Changelog_old.md`](Changelog_old.md) archiviert.
+
+### v3.3.12 — 25.05.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.3.12** | 🛡️ security | EditorJS / Runtime-Audit | **`CMS/assets/js/editor-init.js`, `CMS/core/Services/EditorJs/EditorJsAssetService.php`, `CMS/core/Services/AI/AiSettingsService.php`, `CMS/admin/modules/system/AiServicesModule.php`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md`, `CMS/DOC/assets/editorjs/README.md` und `Changelog.md` schließen den umfassenden EditorJS-Audit nach Core-Setup, Tool-Registry, Uploads, Persistenz, Cleanup, Public-Rendering und UX.** `createCmsEditor()` reicht `onReady` jetzt ebenso konsistent durch wie `onChange` und `onError`; der generische Standalone-Editor synchronisiert sein Hidden-JSON bereits bei Editor-Änderungen und zerstört die Instanz defensiv bei `pagehide`. AI-/Admin-Blocktyp-Fallbacks liefern keine Alias-Duplikate mehr. Der bestehende Upload-Vertrag bleibt bei `{ success: 1, file: { url } }`, nutzt Same-Origin-Requests mit CSRF und klaren Fehlerpfaden; Public-Renderer und Sanitizer decken alle aktiven Blocktools ab. |
 
 ### v3.3.11 — 25.05.2026
 

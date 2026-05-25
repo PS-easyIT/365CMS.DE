@@ -196,6 +196,12 @@ final class EditorJsAssetService
                 }
 
                 var editor;
+                var syncHiddenValue = function(outputData) {
+                    var normalizedOutput = typeof window.cmsNormalizeEditorJsData === 'function'
+                        ? window.cmsNormalizeEditorJsData(outputData)
+                        : outputData;
+                    hiddenEl.value = JSON.stringify(normalizedOutput);
+                };
                 try {
                     editor = window.createCmsEditor(
                         '<?php echo $holderId; ?>',
@@ -204,6 +210,9 @@ final class EditorJsAssetService
                         '<?php echo htmlspecialchars($csrfToken, ENT_QUOTES); ?>',
                         {
                             readOnly: <?php echo $readOnly ? 'true' : 'false'; ?>,
+                            onChange: function(outputData) {
+                                syncHiddenValue(outputData);
+                            },
                             onError: function(error, context) {
                                 console.error('Editor.js runtime error:', context || {}, error || null);
                             }
@@ -303,6 +312,17 @@ final class EditorJsAssetService
                     window.clearInterval(intervalId);
                 }, 300000);
 
+                window.addEventListener('pagehide', function() {
+                    window.clearInterval(intervalId);
+                    if (editor && typeof editor.destroy === 'function') {
+                        try {
+                            editor.destroy();
+                        } catch (error) {
+                            console.warn('Editor.js destroy during pagehide failed:', error);
+                        }
+                    }
+                }, { once: true });
+
                 var form = holderEl.closest('form');
                 if (form) {
                     var lastSubmitter = null;
@@ -351,10 +371,7 @@ final class EditorJsAssetService
                         var submitter = e.submitter || lastSubmitter;
 
                         editor.save().then(function(outputData) {
-                            var normalizedOutput = typeof window.cmsNormalizeEditorJsData === 'function'
-                                ? window.cmsNormalizeEditorJsData(outputData)
-                                : outputData;
-                            hiddenEl.value = JSON.stringify(normalizedOutput);
+                            syncHiddenValue(outputData);
                             submitFormSafely(submitter);
                         }).catch(function(err) {
                             console.error('Editor.js save error:', err);

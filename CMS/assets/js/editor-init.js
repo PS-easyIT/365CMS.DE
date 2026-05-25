@@ -25,7 +25,7 @@
     var TUNE_TOOL_NAMES = ['anchor', 'alignmentTune', 'indentTune', 'textVariant'];
     var PLUGIN_NAMES = ['undo', 'dragDrop'];
     var TOOL_NAMES = BLOCK_TOOL_NAMES.concat(INLINE_TOOL_NAMES, TUNE_TOOL_NAMES);
-    var VERSION = 'cms-editorjs-org-assets-2026-05-25-spacer-assets-3-3-11';
+    var VERSION = 'cms-editorjs-org-assets-2026-05-25-audit-3-3-12';
     var THEME_PREVIEW_STYLE_CACHE = {};
     var TOOL_GLOBALS = {
         paragraph: ['CmsParagraphTool', 'Paragraph'],
@@ -4182,6 +4182,14 @@
                     holder.setAttribute('aria-busy', 'false');
                     initializeEditorPlugins(editor, holder, normalizedData);
                     logInfo('Editor ready.', { holderId: holderId, tools: TOOL_NAMES });
+                    if (typeof resolvedOptions.onReady === 'function') {
+                        try {
+                            resolvedOptions.onReady(editor, { holderId: holderId, tools: Object.keys(tools) });
+                        } catch (callbackError) {
+                            logWarn('Editor onReady callback failed.', callbackError);
+                            reportEditorError('ready-callback', callbackError);
+                        }
+                    }
                 },
                 onChange: function () {
                     syncEditorChange();

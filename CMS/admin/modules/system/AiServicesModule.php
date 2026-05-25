@@ -1003,7 +1003,9 @@ final class AiServicesModule
             $resolvedFallback[$canonical] = $canonical;
         }
 
-        return $resolvedFallback !== [] ? array_values($resolvedFallback) : array_values(self::SUPPORTED_EDITORJS_BLOCK_TYPES);
+        return $resolvedFallback !== []
+            ? array_values($resolvedFallback)
+            : array_values(array_unique(self::SUPPORTED_EDITORJS_BLOCK_TYPES));
     }
 
     private function sanitizeLocale(string $value, string $fallback): string

@@ -62,6 +62,7 @@ Damit entsteht ein WordPress-ähnliches Blockgefühl, während Sanitizer, Render
 - Native EditorJS-Zahnrad-/Popover-Menüs besitzen im Admin eine hohe Stacking-Ebene mit sichtbarem Overflow im Editor-Rahmen. Dadurch bleiben Block-Einstellungen auch bei langen Medien-/Textstrecken vor nachfolgenden Blöcken anklickbar.
 - Asset-Bereinigung 25.05.2026: Der Runtime-Ordner `CMS/assets/editorjs/` enthält nur noch registrierte Core-/Tool-/Tune-/Plugin-Bundles. Nicht geladene Bundles wie `checklist.umd.js`, `carousel.umd.js`, `columns.umd.js`, der alte `editorjs.mjs`-Duplicate sowie Cropper-/Drawing-Dateien wurden entfernt. Public-Renderer und Sanitizer behalten Legacy-Support für alte gespeicherte Carousel-/Columns-/Drawing-Daten, laden dafür aber keine Editor-GUI-Bundles mehr.
 - UX-Feinschliff 25.05.2026: Blockrahmen im Admin erscheinen nur beim Hover; Fokus/Selection bleiben mit minimalem Hintergrund sichtbar. Dadurch ähnelt der Editor-Canvas stärker der Public-Ausgabe und behält dennoch genug Orientierung für längere Inhalte.
+- Audit-Nachtrag 25.05.2026: `createCmsEditor()` reicht `onReady`, `onChange` und `onError` konsistent durch. Der generische `EditorJsAssetService` synchronisiert Hidden-JSON nicht erst beim Submit, sondern auch bei Editor-Änderungen, und zerstört die Instanz bei `pagehide` defensiv.
 
 ## Bekannte Grenzen
 

@@ -854,7 +854,9 @@ final class AiSettingsService
             $resolvedFallback[$canonical] = $canonical;
         }
 
-        return $resolvedFallback !== [] ? array_values($resolvedFallback) : array_values(self::SUPPORTED_EDITORJS_BLOCK_TYPES);
+        return $resolvedFallback !== []
+            ? array_values($resolvedFallback)
+            : array_values(array_unique(self::SUPPORTED_EDITORJS_BLOCK_TYPES));
     }
 
     private function normalizeLocale(string $value, string $fallback): string
