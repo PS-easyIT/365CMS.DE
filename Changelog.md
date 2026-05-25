@@ -1,4 +1,4 @@
-﻿**Version:** 3.3.24
+﻿**Version:** 3.3.25
 
 # 365CMS Changelog
 
@@ -19,6 +19,12 @@
 ## 📜 Aktuelle Versionshistorie ab 3.0.0
 
 > Die vollständige historische 2.x-Historie wurde in [`Changelog_old.md`](Changelog_old.md) archiviert.
+
+### v3.3.25 — 25.05.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.3.25** | 🛡️ security | EditorJS / Audit LinkTool & Normalizer | **`CMS/assets/js/editor-init.js`, `CMS/core/Services/EditorJs/EditorJsContentNormalizer.php`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md`, `CMS/DOC/assets/editorjs/README.md` und `Changelog.md` schließen den aktuellen EditorJS-Audit-Fund.** `linkTool` übergibt den `X-CSRF-Token` jetzt auch an das lokale Metadaten-GET für `fetch_link`, wodurch Linkkarten nicht mehr am Media-Guard scheitern. Der Content-Normalizer erkennt zusätzlich bereits gerendertes `.editorjs-media-text`- und `.editorjs-gallery`-HTML, übernimmt Position, Breite, Bildskalierung, Überschrift, Rahmen und Abstände strukturerhaltend und verhindert so Double-Render-Zerlegung in Einzelblöcke. Die interne Runtime-/Debug-Version ist auf `3.3.25` aktualisiert. |
 
 ### v3.3.24 — 25.05.2026
 

@@ -75,6 +75,7 @@ Damit entsteht ein WordPress-ähnliches Blockgefühl, während Sanitizer, Render
 - Paste-Fix 25.05.2026 (`3.3.22`): Reiner formatierter HTML-Inhalt im Textbereich eines `mediaText`-/Text+Bild-Blocks wird nun direkt an der Cursorposition eingefügt. Listen, Absätze und erlaubte Inline-Formatierungen bleiben im bestehenden Block erhalten; nur externe Block-Editables ohne eigenen Handler nutzen weiterhin den generischen strukturierten Paste-Pfad.
 - Audit-Fix 25.05.2026 (`3.3.23`): Der Page/Post-Submit wartet jetzt vor jedem Editor-Save zuerst auf ausstehende Lazy-Bindings. Das gilt auch, wenn für einen Hidden-/Sprach-Editor noch keine EditorJS-Instanz im lokalen Registry-Objekt existiert, aber bereits eine Aktivierung, Kopie oder Übersetzungsübernahme läuft.
 - Public-Fix 25.05.2026 (`3.3.24`): Der Renderer blendet bereits gespeicherte dateinamenartige Captions bei Bild-, Galerie- und Carousel-Blöcken aus, damit Grafik-/Dateinamen nicht mehr als sichtbare Bildunterschrift erscheinen.
+- Audit-Fix 25.05.2026 (`3.3.25`): `linkTool` sendet den `X-CSRF-Token` nun auch bei Metadaten-GETs an `/api/media?action=fetch_link`; außerdem erkennt der Content-Normalizer bereits gerendertes `.editorjs-media-text`- und `.editorjs-gallery`-HTML, damit doppelte Render-/Theme-Pipelines Bild+Text/Galerien nicht mehr in Einzelblöcke zerlegen.
 
 ## Bekannte Grenzen
 

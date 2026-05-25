@@ -25,7 +25,7 @@
     var TUNE_TOOL_NAMES = ['anchor', 'alignmentTune', 'indentTune', 'textVariant'];
     var PLUGIN_NAMES = ['undo', 'dragDrop'];
     var TOOL_NAMES = BLOCK_TOOL_NAMES.concat(INLINE_TOOL_NAMES, TUNE_TOOL_NAMES);
-    var VERSION = 'cms-editorjs-org-assets-2026-05-25-media-text-inline-paste-3-3-22';
+    var VERSION = 'cms-editorjs-org-assets-2026-05-25-audit-linktool-normalizer-3-3-25';
     var THEME_PREVIEW_STYLE_CACHE = {};
     var TOOL_GLOBALS = {
         paragraph: ['CmsParagraphTool', 'Paragraph'],
@@ -4386,7 +4386,10 @@
         }, availableBlockTunes), false);
         addTool(tools, 'linkTool', withBlockTunes({
             inlineToolbar: inlineToolbar,
-            config: { endpoint: buildMediaUrl(uploadUrl, 'fetch_link') }
+            config: {
+                endpoint: buildMediaUrl(uploadUrl, 'fetch_link'),
+                headers: csrfToken ? { 'X-CSRF-Token': csrfToken } : {}
+            }
         }, availableBlockTunes), false);
         addTool(tools, 'attaches', withBlockTunes({
             config: {

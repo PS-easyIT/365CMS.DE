@@ -609,7 +609,7 @@ final class EditorJsContentNormalizer
         if (self::isGalleryClass($class)) {
             return [self::extractGalleryBlockFromElement($node, [])];
         }
-        if (str_contains($class, ' wp-block-media-text ')) {
+        if (self::isMediaTextClass($class)) {
             return [self::extractMediaTextBlockFromElement($node, [])];
         }
         if (preg_match('/^h([1-6])$/', $tag, $levelMatch) === 1) {
@@ -670,7 +670,7 @@ final class EditorJsContentNormalizer
         }
 
         foreach ($root->getElementsByTagName('*') as $element) {
-            if ($element instanceof \DOMElement && str_contains(' ' . strtolower($element->getAttribute('class')) . ' ', ' wp-block-media-text ')) {
+            if ($element instanceof \DOMElement && self::isMediaTextClass(' ' . strtolower($element->getAttribute('class')) . ' ')) {
                 return self::extractMediaTextBlockFromElement($element, $attrs);
             }
         }
@@ -734,10 +734,28 @@ final class EditorJsContentNormalizer
     private static function extractMediaTextBlockFromElement(\DOMElement $element, array $attrs): array
     {
         $image = self::firstElementByTag($element, 'img');
-        $contentElement = self::firstElementByClass($element, 'wp-block-media-text__content');
+        $contentElement = self::firstElementByClass($element, 'wp-block-media-text__content')
+            ?? self::firstElementByClass($element, 'editorjs-media-text__content');
+        $headingElement = self::firstElementByClass($element, 'editorjs-media-text__heading');
         $class = ' ' . strtolower($element->getAttribute('class')) . ' ';
-        $position = str_contains($class, ' has-media-on-the-right ') ? 'right' : (string) ($attrs['mediaPosition'] ?? $attrs['imagePosition'] ?? 'left');
-        $width = self::normalizeMediaWidth((string) ($attrs['mediaWidth'] ?? $attrs['imageWidth'] ?? self::extractWidthFromStyle($element->getAttribute('style'))));
+        $position = self::resolveMediaTextPosition($element, $attrs, $class);
+        $width = self::resolveMediaTextWidth($element, $attrs);
+        $imageFit = self::resolveMediaTextImageFit($element, $attrs, $class);
+        $spacingTop = (string) ($attrs['spacingTop'] ?? $attrs['marginTop'] ?? $attrs['blockSpacingTop'] ?? '');
+        if ($spacingTop === '') {
+            $spacingTop = $element->getAttribute('data-spacing-top');
+        }
+        if ($spacingTop === '') {
+            $spacingTop = '10';
+        }
+
+        $spacingBottom = (string) ($attrs['spacingBottom'] ?? $attrs['marginBottom'] ?? $attrs['blockSpacingBottom'] ?? '');
+        if ($spacingBottom === '') {
+            $spacingBottom = $element->getAttribute('data-spacing-bottom');
+        }
+        if ($spacingBottom === '') {
+            $spacingBottom = '10';
+        }
         $text = $contentElement instanceof \DOMElement ? self::innerHtml($contentElement) : self::innerTextWithoutFirstImage($element);
 
         return [
@@ -745,9 +763,14 @@ final class EditorJsContentNormalizer
             'data' => self::normalizeMediaTextData([
                 'file' => ['url' => $image instanceof \DOMElement ? $image->getAttribute('src') : ''],
                 'alt' => $image instanceof \DOMElement ? $image->getAttribute('alt') : '',
+                'heading' => $headingElement instanceof \DOMElement ? trim((string) $headingElement->textContent) : (string) ($attrs['heading'] ?? ''),
                 'text' => $text,
                 'imagePosition' => $position,
                 'imageWidth' => $width,
+                'imageFit' => $imageFit,
+                'showBorder' => !empty($attrs['showBorder']) || str_contains($class, ' editorjs-media-text--bordered '),
+                'spacingTop' => $spacingTop,
+                'spacingBottom' => $spacingBottom,
             ]),
         ];
     }
@@ -848,8 +871,10 @@ final class EditorJsContentNormalizer
 
     private static function firstElementByClass(\DOMElement $root, string $className): ?\DOMElement
     {
+        $className = strtolower($className);
+
         foreach ($root->getElementsByTagName('*') as $node) {
-            if ($node instanceof \DOMElement && str_contains(' ' . $node->getAttribute('class') . ' ', ' ' . $className . ' ')) {
+            if ($node instanceof \DOMElement && str_contains(' ' . strtolower($node->getAttribute('class')) . ' ', ' ' . $className . ' ')) {
                 return $node;
             }
         }
@@ -877,10 +902,49 @@ final class EditorJsContentNormalizer
     private static function isGalleryClass(string $class): bool
     {
         return str_contains($class, ' wp-block-gallery ')
+            || str_contains($class, ' editorjs-gallery ')
             || str_contains($class, ' blocks-gallery-grid ')
             || str_contains($class, ' gallery ')
             || str_contains($class, ' gallery-grid ')
             || str_contains($class, ' tiled-gallery ');
+    }
+
+    private static function isMediaTextClass(string $class): bool
+    {
+        return str_contains($class, ' wp-block-media-text ')
+            || str_contains($class, ' editorjs-media-text ');
+    }
+
+    /** @param array<string,mixed> $attrs */
+    private static function resolveMediaTextPosition(\DOMElement $element, array $attrs, string $class): string
+    {
+        $position = (string) ($attrs['mediaPosition'] ?? $attrs['imagePosition'] ?? $element->getAttribute('data-image-position') ?: 'left');
+
+        if (str_contains($class, ' has-media-on-the-right ') || str_contains($class, ' editorjs-media-text--image-right ')) {
+            $position = 'right';
+        }
+
+        return in_array($position, ['left', 'right'], true) ? $position : 'left';
+    }
+
+    /** @param array<string,mixed> $attrs */
+    private static function resolveMediaTextWidth(\DOMElement $element, array $attrs): string
+    {
+        $width = (string) ($attrs['mediaWidth'] ?? $attrs['imageWidth'] ?? $element->getAttribute('data-image-width') ?: self::extractWidthFromStyle($element->getAttribute('style')));
+
+        return self::normalizeMediaWidth($width);
+    }
+
+    /** @param array<string,mixed> $attrs */
+    private static function resolveMediaTextImageFit(\DOMElement $element, array $attrs, string $class): string
+    {
+        $fit = (string) ($attrs['imageFit'] ?? $attrs['objectFit'] ?? $attrs['fit'] ?? $element->getAttribute('data-image-fit') ?: 'cover');
+
+        if (preg_match('/ editorjs-media-text--image-fit-([a-z-]+) /', $class, $match) === 1) {
+            $fit = (string) $match[1];
+        }
+
+        return self::normalizeImageFit($fit, 'cover');
     }
 
     private static function innerHtml(\DOMNode $node): string
