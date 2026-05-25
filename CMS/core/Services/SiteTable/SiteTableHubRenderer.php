@@ -128,6 +128,9 @@ final class SiteTableHubRenderer
         $pageSlug = trim((string) ($settings['hub_slug'] ?? ''));
         $heroTitle = trim((string) ($settings['hub_hero_title'] ?? '')) ?: (string) ($table['name'] ?? 'Hub Site');
         $heroText = trim((string) ($settings['hub_hero_text'] ?? '')) ?: trim((string) ($table['description'] ?? ''));
+        if ($heroText === '') {
+            $heroText = trim((string) ($templateProfile['summary'] ?? ''));
+        }
         $heroBadge = trim((string) ($settings['hub_badge'] ?? ''));
         $ctaLabel = trim((string) ($settings['hub_cta_label'] ?? ''));
         $ctaUrl = trim((string) ($settings['hub_cta_url'] ?? ''));
@@ -175,7 +178,8 @@ final class SiteTableHubRenderer
             'card_cta_label' => $locale === 'en' ? '… read more' : '… weiterlesen',
         ], $this->templateRegistry->getTemplateContentLanguage($template, $locale));
 
-        $html = '<section class="cms-hub-site cms-hub-site--' . htmlspecialchars($template, ENT_QUOTES, 'UTF-8') . '"';
+        $templateClass = htmlspecialchars($template, ENT_QUOTES, 'UTF-8');
+        $html = '<section class="hubsite hubsite--' . $templateClass . ' cms-hub-site cms-hub-site--' . $templateClass . '"';
         if ($pageSlug !== '') {
             $html .= ' data-hub-slug="' . htmlspecialchars($pageSlug, ENT_QUOTES, 'UTF-8') . '"';
         }
@@ -197,15 +201,15 @@ final class SiteTableHubRenderer
 
     private function renderHero(string $heroBadge, string $heroTitle, string $heroText, array $metaItems, string $ctaLabel, string $ctaUrl, int $currentTableId): string
     {
-        $html = '<div class="cms-hub-site__hero"><div class="cms-hub-site__hero-inner">';
+        $html = '<div class="hubsite-hero cms-hub-site__hero"><div class="hubsite-hero__inner cms-hub-site__hero-inner">';
         if ($heroBadge !== '') {
-            $html .= '<span class="cms-hub-site__badge">' . htmlspecialchars($heroBadge, ENT_QUOTES, 'UTF-8') . '</span>';
+            $html .= '<span class="hubsite-hero__breadcrumb cms-hub-site__badge">' . htmlspecialchars($heroBadge, ENT_QUOTES, 'UTF-8') . '</span>';
         }
-        $html .= '<h2 class="cms-hub-site__title">' . htmlspecialchars($heroTitle, ENT_QUOTES, 'UTF-8') . '</h2>';
+        $html .= '<h1 class="hubsite-hero__title cms-hub-site__title">' . htmlspecialchars($heroTitle, ENT_QUOTES, 'UTF-8') . '</h1>';
         if ($heroText !== '') {
             $heroTextHtml = $this->renderCardSummary($heroText, $currentTableId);
             if ($heroTextHtml !== '') {
-                $html .= '<div class="cms-hub-site__lead">' . $heroTextHtml . '</div>';
+                $html .= '<div class="hubsite-hero__intro cms-hub-site__lead">' . $heroTextHtml . '</div>';
             }
         }
         if ($metaItems !== []) {
@@ -222,7 +226,7 @@ final class SiteTableHubRenderer
             $html .= '</div>';
         }
         if ($ctaLabel !== '' && $ctaUrl !== '') {
-            $html .= '<a class="cms-hub-site__cta" href="' . htmlspecialchars($ctaUrl, ENT_QUOTES, 'UTF-8') . '">' . htmlspecialchars($ctaLabel, ENT_QUOTES, 'UTF-8') . '</a>';
+            $html .= '<a class="hubsite-card__cta hubsite-hero__cta cms-hub-site__cta" href="' . htmlspecialchars($ctaUrl, ENT_QUOTES, 'UTF-8') . '">' . htmlspecialchars($ctaLabel, ENT_QUOTES, 'UTF-8') . '</a>';
         }
 
         return $html . '</div></div>';
@@ -344,7 +348,7 @@ final class SiteTableHubRenderer
         $featureCardInsertMap = $this->buildFeatureCardInsertMap($featureCards, $featureCardInterval, $supportsFeatureCards);
         $renderedStandardCards = 0;
 
-        $html = '<div class="cms-hub-site__grid cms-hub-site__grid--' . htmlspecialchars($cardLayout, ENT_QUOTES, 'UTF-8') . ' cms-hub-site__grid--cols-' . $cardColumns . '">';
+        $html = '<div class="hubsite-grid hubsite-grid--' . htmlspecialchars($cardLayout, ENT_QUOTES, 'UTF-8') . ' hubsite-grid--cols-' . $cardColumns . ' cms-hub-site__grid cms-hub-site__grid--' . htmlspecialchars($cardLayout, ENT_QUOTES, 'UTF-8') . ' cms-hub-site__grid--cols-' . $cardColumns . '">';
         foreach ($cards as $index => $card) {
             $isFeatureCard = $supportsFeatureCards && $this->isFeatureCard($card);
 
@@ -369,7 +373,7 @@ final class SiteTableHubRenderer
             $cardTarget = $buttonLink !== '' ? $buttonLink : html_entity_decode($url, ENT_QUOTES | ENT_HTML5, 'UTF-8');
             $cardTarget = trim($cardTarget) !== '' ? trim($cardTarget) : '#';
             $cardButtonLabel = $buttonText !== '' ? $buttonText : ($cardTarget !== '#' ? $defaultCardCtaLabel : '');
-            $cardArticleClass = 'cms-hub-site__card';
+            $cardArticleClass = 'hubsite-card cms-hub-site__card';
             $cardLinkClass = 'cms-hub-site__card-link';
 
             if ($hasImage) {
@@ -378,7 +382,7 @@ final class SiteTableHubRenderer
             }
             $cardArticleClass .= ' cms-hub-site__card--meta-' . htmlspecialchars($cardMetaLayout, ENT_QUOTES, 'UTF-8');
             if ($isTableTemplate) {
-                $cardArticleClass .= ' cms-hub-site__card--table';
+                $cardArticleClass .= ' hubsite-card--table cms-hub-site__card--table';
             }
 
             $cardAnchor = trim((string) ($tocEntries[$index]['anchor'] ?? ''));
@@ -388,7 +392,7 @@ final class SiteTableHubRenderer
             }
             $html .= '>';
             if ($isTableTemplate) {
-                $html .= '<div class="cms-hub-site__card-table-head">';
+                $html .= '<div class="hubsite-card__header cms-hub-site__card-table-head">';
                 if ($badge !== '') {
                     $html .= '<span class="cms-hub-site__card-badge cms-hub-site__card-badge--table">' . $badge . '</span>';
                 }
@@ -413,12 +417,12 @@ final class SiteTableHubRenderer
                     $html .= '</a>';
                 }
             }
-            $html .= '<div class="cms-hub-site__card-content">';
+            $html .= '<div class="hubsite-card__body cms-hub-site__card-content">';
             if ($badge !== '' && !$isTableTemplate) {
                 $html .= '<span class="cms-hub-site__card-badge">' . $badge . '</span>';
             }
             if (!$isTableTemplate) {
-                $html .= '<h3 class="cms-hub-site__card-title">';
+                $html .= '<h3 class="hubsite-card__header cms-hub-site__card-title">';
                 if ($url !== '#') {
                     $html .= '<a class="cms-hub-site__card-title-link" href="' . $url . '">' . $title . '</a>';
                 } else {
@@ -427,9 +431,9 @@ final class SiteTableHubRenderer
                 $html .= '</h3>';
             }
             if ($summary !== '') {
-                $html .= '<div class="cms-hub-site__card-summary">' . $summary . '</div>';
+                $html .= '<div class="hubsite-card__content cms-hub-site__card-summary">' . $summary . '</div>';
             }
-            $html .= '<div class="cms-hub-site__card-footer cms-hub-site__card-footer--' . htmlspecialchars($cardMetaLayout, ENT_QUOTES, 'UTF-8') . '">';
+            $html .= '<div class="hubsite-card__footer cms-hub-site__card-footer cms-hub-site__card-footer--' . htmlspecialchars($cardMetaLayout, ENT_QUOTES, 'UTF-8') . '">';
             $html .= '<div class="cms-hub-site__card-meta-row">';
             if ($metaLeft !== '') {
                 $html .= '<span class="cms-hub-site__card-meta cms-hub-site__card-meta--left">' . $metaLeft . '</span>';
@@ -444,9 +448,9 @@ final class SiteTableHubRenderer
                 $buttonLabel = htmlspecialchars($cardButtonLabel, ENT_QUOTES, 'UTF-8');
                 $buttonHref = htmlspecialchars($cardTarget, ENT_QUOTES, 'UTF-8');
                 if ($buttonHref !== '#') {
-                    $html .= '<a class="cms-hub-site__card-button" href="' . $buttonHref . '">' . $buttonLabel . '</a>';
+                    $html .= '<a class="hubsite-card__cta cms-hub-site__card-button" href="' . $buttonHref . '">' . $buttonLabel . '</a>';
                 } else {
-                    $html .= '<span class="cms-hub-site__card-button">' . $buttonLabel . '</span>';
+                    $html .= '<span class="hubsite-card__cta cms-hub-site__card-button">' . $buttonLabel . '</span>';
                 }
             }
             $html .= '</div>';
@@ -562,32 +566,32 @@ final class SiteTableHubRenderer
             return '';
         }
 
-        $html = '<article class="cms-hub-site__feature-card"';
+        $html = '<article class="hubsite-card hubsite-card--featured cms-hub-site__feature-card"';
         if ($featureSpacingTop > 0) {
             $html .= ' style="margin-top: ' . $featureSpacingTop . 'px"';
         }
         $html .= '>';
         if ($imageUrl !== '') {
-            $html .= '<div class="cms-hub-site__feature-card-media">';
-            $html .= '<img src="' . htmlspecialchars($imageUrl, ENT_QUOTES, 'UTF-8') . '" alt="' . $imageAlt . '" loading="lazy">';
+            $html .= '<div class="hubsite-card__media cms-hub-site__feature-card-media">';
+            $html .= '<img class="hubsite-card__image" src="' . htmlspecialchars($imageUrl, ENT_QUOTES, 'UTF-8') . '" alt="' . $imageAlt . '" loading="lazy">';
             $html .= '</div>';
         }
-        $html .= '<div class="cms-hub-site__feature-card-content">';
+        $html .= '<div class="hubsite-card__body cms-hub-site__feature-card-content">';
         if ($badge !== '') {
             $html .= '<span class="cms-hub-site__card-badge">' . $badge . '</span>';
         }
         if ($title !== '') {
-            $html .= '<h3 class="cms-hub-site__feature-card-title">' . $title . '</h3>';
+            $html .= '<h3 class="hubsite-card__title cms-hub-site__feature-card-title">' . $title . '</h3>';
         }
         if ($text !== '') {
-            $html .= '<div class="cms-hub-site__feature-card-text">' . $text . '</div>';
+            $html .= '<div class="hubsite-card__content cms-hub-site__feature-card-text">' . $text . '</div>';
         }
         if ($buttonLabel !== '') {
             $html .= '<div class="cms-hub-site__feature-card-actions">';
             if ($buttonTarget !== '#') {
-                $html .= '<a class="cms-hub-site__card-button" href="' . htmlspecialchars($buttonTarget, ENT_QUOTES, 'UTF-8') . '">' . htmlspecialchars($buttonLabel, ENT_QUOTES, 'UTF-8') . '</a>';
+                $html .= '<a class="hubsite-card__cta cms-hub-site__card-button" href="' . htmlspecialchars($buttonTarget, ENT_QUOTES, 'UTF-8') . '">' . htmlspecialchars($buttonLabel, ENT_QUOTES, 'UTF-8') . '</a>';
             } else {
-                $html .= '<span class="cms-hub-site__card-button">' . htmlspecialchars($buttonLabel, ENT_QUOTES, 'UTF-8') . '</span>';
+                $html .= '<span class="hubsite-card__cta cms-hub-site__card-button">' . htmlspecialchars($buttonLabel, ENT_QUOTES, 'UTF-8') . '</span>';
             }
             $html .= '</div>';
         }

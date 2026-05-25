@@ -1,4 +1,4 @@
-﻿**Version:** 3.3.33
+﻿**Version:** 3.3.35
 
 # 365CMS Changelog
 
@@ -15,6 +15,18 @@
 | 🛡️ | `security` | Sicherheits- und Audit-Härtung |
 
 ---
+
+### v3.3.35 — 25.05.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.3.35** | 🔴 fix | HubSites / Hero-Beschreibung | **`CMS/core/Services/SiteTable/SiteTableHubRenderer.php`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md` und `Changelog.md` sichern die HubSite-Hero-Beschreibung ab.** Wenn weder ein expliziter Hero-Text noch eine Tabellenbeschreibung gesetzt ist, nutzt der Renderer jetzt zusätzlich die Template-Profil-Beschreibung. Dadurch erscheint etwa bei Datenschutz-HubSites die in den Einstellungen hinterlegte Beschreibung zuverlässig unter dem HubSite-Haupttitel. |
+
+### v3.3.34 — 25.05.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.3.34** | 🟡 refactor | HubSites / Renderer-BEM | **`CMS/core/Services/SiteTable/SiteTableHubRenderer.php`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md` und `Changelog.md` ergänzen eine stabile BEM-Styling-API für HubSites.** Der Renderer gibt zusätzlich zu den bestehenden `cms-hub-site*` Klassen neue Klassen wie `hubsite`, `hubsite-grid`, `hubsite-card`, `hubsite-card__header`, `hubsite-card__cta`, `hubsite-card--featured` und `hubsite-hero` aus. Dadurch können Themes alle HubSite-Varianten über eine gemeinsame, modifierfähige Struktur gestalten, ohne bestehende Integrationen zu brechen. |
 
 ### v3.3.33 — 25.05.2026
 
