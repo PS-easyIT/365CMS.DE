@@ -75,7 +75,7 @@ Die Security-Zweitprüfung für `2.9.248` hat folgende Punkte gehärtet:
 - Default-Theme lädt Google-Fonts nur noch optional, wenn lokale Fonts nicht aktiv sind und der Theme-Customizer den Fallback erlaubt.
 - PHP-CSP und Apache-Fallback erlauben genehmigte Google-Font-Hosts wieder als optionalen Fallback; `img-src` bleibt auf `self`, `data:` und `blob:` begrenzt.
 - Der Font Manager kann erkannte Google-Fonts weiterhin lokal spiegeln; aktivierte lokale Fonts unterdrücken anschließend den Remote-Fallback im Frontend.
-- Editor.js lädt die externen `embed.umd.js`- und `columns.umd.js`-Bundles nicht mehr; bestehende Embed-Blöcke rendern nur noch als sicherer Link statt als Iframe.
+- Editor.js lädt keine nicht registrierten Columns-/Drawing-/Cropper-Bundles mehr; aktive Embed-Blöcke bleiben über die lokale Tool-Kette verfügbar und werden im Frontend nur mit sanitisierten URLs bzw. sandboxed Frames ausgegeben.
 - AntiSpam bewirbt keine externen CAPTCHA-Dienste mehr und bleibt lokal: Honeypot, Mindestzeit, Linklimit, User-Agent und Blacklist.
 - Security-Audit prüft zusätzlich Firewall-Runtime, AntiSpam-Runtime und Fremdasset-Indikatoren.
 - Öffentliche `cms-contact`-Formulare nutzen jetzt ebenfalls den zentralen `AntispamService` und erzwingen damit globale Regeln wie Mindestzeit, Linklimit, leere User-Agents und Blacklist nicht nur bei Kommentaren, sondern auch im Kontaktpfad.

@@ -101,6 +101,10 @@ final class EditorJsAssetService
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6h11"/><path d="M9 12h11"/><path d="M9 18h11"/><circle cx="5" cy="6" r="1" fill="currentColor"/><circle cx="5" cy="12" r="1" fill="currentColor"/><circle cx="5" cy="18" r="1" fill="currentColor"/></svg>
                     <span>Liste</span>
                 </button>
+                <button type="button" data-block="list" data-style="checklist" title="Checkliste" aria-label="Checkliste einfügen">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6h11"/><path d="M9 12h11"/><path d="M9 18h11"/><path d="M4 6l1 1l2-2"/><path d="M4 12l1 1l2-2"/><path d="M4 18l1 1l2-2"/></svg>
+                    <span>Check</span>
+                </button>
                 <button type="button" data-block="image" title="Bild" aria-label="Bild einfügen">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="1.5"/><path d="M3 16l5-5c1-.9 2.1-.9 3 0l5 5"/><path d="M14 14l1-1c1-.9 2.1-.9 3 0l3 3"/></svg>
                     <span>Bild</span>
@@ -113,13 +117,41 @@ final class EditorJsAssetService
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
                     <span>Galerie</span>
                 </button>
+                <button type="button" data-block="embed" title="Embed" aria-label="Embed einfügen">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 5v14l11-7z"/><path d="M3 5h2v14H3z"/></svg>
+                    <span>Embed</span>
+                </button>
+                <button type="button" data-block="linkTool" title="Link-Karte" aria-label="Link-Karte einfügen">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.07 0l2-2a5 5 0 0 0-7.07-7.07l-1.15 1.15"/><path d="M14 11a5 5 0 0 0-7.07 0l-2 2A5 5 0 0 0 12 20.07l1.15-1.15"/></svg>
+                    <span>Link</span>
+                </button>
+                <button type="button" data-block="attaches" title="Anhang" aria-label="Anhang einfügen">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.82-2.83l8.48-8.48"/></svg>
+                    <span>Anhang</span>
+                </button>
                 <button type="button" data-block="table" title="Tabelle (3×3)" aria-label="Tabelle einfügen">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/><path d="M9 3v18"/></svg>
                     <span>Tabelle</span>
                 </button>
+                <button type="button" data-block="code" title="Code" aria-label="Code-Block einfügen">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 18l6-6l-6-6"/><path d="M8 6l-6 6l6 6"/></svg>
+                    <span>Code</span>
+                </button>
                 <button type="button" data-block="quote" title="Zitat" aria-label="Zitat einfügen">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 11h-4a1 1 0 01-1-1v-3a1 1 0 011-1h3a1 1 0 011 1v6c0 2.667-1.333 4.333-4 5"/><path d="M19 11h-4a1 1 0 01-1-1v-3a1 1 0 011-1h3a1 1 0 011 1v6c0 2.667-1.333 4.333-4 5"/></svg>
                     <span>Zitat</span>
+                </button>
+                <button type="button" data-block="warning" title="Hinweis" aria-label="Hinweisbox einfügen">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+                    <span>Hinweis</span>
+                </button>
+                <button type="button" data-block="alert" data-variant="info" title="Alert" aria-label="Alert-Box einfügen">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v12H5.17L4 17.17z"/><path d="M8 8h8"/><path d="M8 12h5"/></svg>
+                    <span>Alert</span>
+                </button>
+                <button type="button" data-block="accordion" title="Akkordeon" aria-label="Akkordeon einfügen">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6l6-6"/><path d="M4 4h16"/><path d="M4 20h16"/></svg>
+                    <span>Akkordeon</span>
                 </button>
                 <button type="button" data-block="delimiter" title="Trennlinie" aria-label="Trennlinie einfügen">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12h16"/></svg>
@@ -128,6 +160,10 @@ final class EditorJsAssetService
                 <button type="button" data-block="spacer" data-height="40" title="Abstand" aria-label="Abstand einfügen">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18"/><path d="M8 7l4-4l4 4"/><path d="M8 17l4 4l4-4"/></svg>
                     <span>Abstand</span>
+                </button>
+                <button type="button" data-block="raw" title="HTML" aria-label="HTML-Block einfügen">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 9l-4 3l4 3"/><path d="M16 9l4 3l-4 3"/><path d="M14 4l-4 16"/></svg>
+                    <span>HTML</span>
                 </button>
             </div>
 
@@ -199,8 +235,16 @@ final class EditorJsAssetService
                         var level = btn.getAttribute('data-level');
                         var height = btn.getAttribute('data-height');
                         var columns = btn.getAttribute('data-columns');
+                        var style = btn.getAttribute('data-style');
+                        var variant = btn.getAttribute('data-variant');
                         if (level) {
                             blockData.level = parseInt(level, 10);
+                        }
+                        if (style) {
+                            blockData.style = style;
+                            if (blockType === 'list' && style === 'checklist') {
+                                blockData.items = [{ content: '', meta: { checked: false }, items: [] }];
+                            }
                         }
                         if (height) {
                             blockData.height = parseInt(height, 10);
@@ -208,6 +252,13 @@ final class EditorJsAssetService
                         }
                         if (columns) {
                             blockData.columns = parseInt(columns, 10);
+                        }
+                        if (variant) {
+                            blockData.variant = variant;
+                            if (blockType === 'alert') {
+                                blockData.type = variant;
+                                blockData.align = 'left';
+                            }
                         }
                         try {
                             editor.blocks.insert(blockType, blockData);

@@ -191,8 +191,42 @@ final class EditorJsContentNormalizer
             ],
             'raw' => ['html' => EditorJsHtmlSanitizer::sanitizeRawBlock((string) ($data['html'] ?? $data['content'] ?? $data['text'] ?? ''))],
             'delimiter' => self::normalizeDelimiterData($data),
+            'spacer' => self::normalizeSpacerData($data),
             default => $data,
         };
+    }
+
+    /** @return array<string,mixed> */
+    private static function normalizeSpacerData(array $data): array
+    {
+        $allowedHeights = [0, 8, 10, 15, 16, 24, 25, 32, 40, 48, 56, 60, 64, 72, 75, 80, 96, 100, 120, 140, 150, 160, 180, 200];
+        $presetMap = [
+            'none' => 0,
+            'xs' => 8,
+            'small' => 15,
+            'sm' => 15,
+            'medium' => 40,
+            'md' => 40,
+            'normal' => 40,
+            'large' => 75,
+            'lg' => 75,
+            'xl' => 100,
+            'xlarge' => 100,
+            'huge' => 140,
+            'xxl' => 160,
+        ];
+
+        $raw = (string) ($data['height'] ?? $data['size'] ?? $data['value'] ?? $data['spacer'] ?? $data['space'] ?? $data['preset'] ?? '40');
+        $key = strtolower(preg_replace('/\s+/', '', trim($raw)) ?? trim($raw));
+        $height = $presetMap[$key] ?? (int) preg_replace('/[^0-9]/', '', $key);
+        if (!in_array($height, $allowedHeights, true)) {
+            $height = max(0, min(200, $height));
+        }
+
+        return [
+            'height' => $height,
+            'preset' => $height . 'px',
+        ];
     }
 
     /** @return array<string,mixed> */

@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "3.4.4",
+  "version": "3.3.11",
   "min_php": "8.4",
   "released": "2026-05-25",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 3.4.4: EditorJS öffnet große Seiten und Beiträge stabiler, lädt Admin-Bildvorschauen lazy/async, reduziert eigene Inline-Einfüge-Overlays bei sehr vielen Blöcken und hebt native Zahnrad-/Popover-Menüs zuverlässig über nachfolgende Blöcke.",
+  "notes": "Release-Stand 3.3.11: EditorJS ergänzt die Spacer-Auswahl um 10px, 150px und 200px, gleicht aktive Tools zwischen GUI, CMS-PHP, Sanitizer und Public-Renderer ab, reduziert Admin-Blockrahmen auf Hover und entfernt nicht registrierte EditorJS-Asset-Bundles aus dem Core-Assetordner.",
   "critical": false
 }

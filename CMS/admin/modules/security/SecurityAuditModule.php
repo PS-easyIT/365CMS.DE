@@ -340,14 +340,14 @@ class SecurityAuditModule
         );
 
         $editorAssetOk = is_file($abspath . 'core/Services/EditorJs/EditorJsAssetService.php')
-            && !$this->fileContainsAny($abspath . 'core/Services/EditorJs/EditorJsAssetService.php', ['embed.umd.js', 'columns.umd.js'])
+            && !$this->fileContainsAny($abspath . 'core/Services/EditorJs/EditorJsAssetService.php', ['columns.umd.js', 'drawing-tool.umd.js', 'cropper-tune.umd.js'])
             && !$this->fileContainsAny($abspath . 'assets/js/editor-init.js', ['createEmbedConfig', 'createColumnsConfig']);
         $checks[] = $this->buildCheck(
-            'Editor.js Fremd-Embeds deaktiviert',
+            'Editor.js Alt-Embeds gehärtet',
             $editorAssetOk ? 'ok' : 'warning',
             $editorAssetOk
-                ? 'Editor.js lädt die externen Embed-/Columns-Bundles nicht mehr in neuen Editor-Sessions.'
-                : 'Editor.js Embed-/Columns-Bundles oder Tool-Konfigurationen sind weiterhin aktiv.'
+                ? 'Editor.js lädt keine nicht registrierten Columns-/Drawing-/Cropper-Bundles; aktive Embed-Blöcke laufen über die lokale, sanitizte Tool-Kette.'
+                : 'Editor.js Alt-Bundles oder riskante Tool-Konfigurationen sind weiterhin aktiv.'
         );
 
         return $checks;

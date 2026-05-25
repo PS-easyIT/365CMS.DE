@@ -452,6 +452,7 @@ if (empty($summary['translation_ready'])) {
                             <div class="col-md-6">
                                 <label class="form-label">Unterstützte Blocktypen</label>
                                 <input type="text" class="form-control" name="supported_block_types" value="<?php echo htmlspecialchars(implode(',', (array) ($translation['supported_block_types'] ?? []))); ?>">
+                                <div class="form-text">Aktive EditorJS-Blocktypen sind u. a. paragraph, header, list/checklist, image, table, attaches, linkTool, warning, alert, accordion, imageGallery und mediaText. Strukturblöcke wie spacer, delimiter, embed, code und raw werden erhalten; übersetzt werden nur sichere Textsegmente.</div>
                             </div>
                             <div class="col-12">
                                 <label class="form-label">Ergebnis-Modus</label>

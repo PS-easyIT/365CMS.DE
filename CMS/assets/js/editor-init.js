@@ -25,7 +25,7 @@
     var TUNE_TOOL_NAMES = ['anchor', 'alignmentTune', 'indentTune', 'textVariant'];
     var PLUGIN_NAMES = ['undo', 'dragDrop'];
     var TOOL_NAMES = BLOCK_TOOL_NAMES.concat(INLINE_TOOL_NAMES, TUNE_TOOL_NAMES);
-    var VERSION = 'cms-editorjs-org-assets-2026-05-25-large-content-3-3-10';
+    var VERSION = 'cms-editorjs-org-assets-2026-05-25-spacer-assets-3-3-11';
     var THEME_PREVIEW_STYLE_CACHE = {};
     var TOOL_GLOBALS = {
         paragraph: ['CmsParagraphTool', 'Paragraph'],
@@ -926,7 +926,7 @@
     }
 
     function normalizeSpacerData(data) {
-        var allowedHeights = [0, 8, 15, 16, 24, 25, 32, 40, 48, 56, 60, 64, 72, 75, 80, 96, 100, 120, 140, 160, 180, 200];
+        var allowedHeights = [0, 8, 10, 15, 16, 24, 25, 32, 40, 48, 56, 60, 64, 72, 75, 80, 96, 100, 120, 140, 150, 160, 180, 200];
         var presetMap = {
             none: 0,
             xs: 8,
@@ -3487,7 +3487,7 @@
             select.className = 'form-select form-select-sm editorjs-spacer-tool__select';
             select.setAttribute('aria-label', 'Abstandshöhe wählen');
             select.disabled = this.readOnly;
-            [15, 25, 40, 60, 75, 100].forEach(function (height) {
+            [10, 15, 25, 40, 60, 75, 100, 150, 200].forEach(function (height) {
                 var option = document.createElement('option');
                 option.value = String(height);
                 option.textContent = height + ' px';

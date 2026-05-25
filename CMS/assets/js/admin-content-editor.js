@@ -1242,6 +1242,7 @@
                     buttons: [
                         { label: 'Tabelle', icon: '▦', block: 'table', description: 'Strukturierte Daten' },
                         { label: 'Hinweis', icon: '!', block: 'warning', description: 'Info-/Warnbox' },
+                        { label: 'Alert', icon: '⚑', block: 'alert', data: { type: 'info', align: 'left' }, description: 'Klassische Alert-Box' },
                         { label: 'Akkordeon', icon: '⌄', block: 'accordion', description: 'Aufklappbarer Abschnitt' },
                         { label: 'Abstand', icon: '↕', block: 'spacer', data: { height: 40, preset: '40px' }, description: 'Vertikalen Weißraum einfügen' },
                         { label: 'Code', icon: '</>', block: 'code', description: 'Code-Beispiel' },
@@ -2898,6 +2899,18 @@
                 return;
             }
 
+            if (command === 'spoiler') {
+                document.execCommand('insertHTML', false, '<span class="tg-spoiler">' + escapeEditorSelectionText(String(window.getSelection ? window.getSelection() : '')) + '</span>');
+                notifySelectionEditableChanged(holder, definition);
+                return;
+            }
+
+            if (command === 'textColor') {
+                document.execCommand('foreColor', false, value || '#2563eb');
+                notifySelectionEditableChanged(holder, definition);
+                return;
+            }
+
             if (command === 'alignment') {
                 document.execCommand(value === 'center' ? 'justifyCenter' : (value === 'right' ? 'justifyRight' : (value === 'justify' ? 'justifyFull' : 'justifyLeft')), false, null);
                 applyCurrentTextBlockData(definition, editorEntry, holder, 'alignment', value);
@@ -2922,6 +2935,8 @@
                     { label: 'U', title: 'Unterstrichen', command: 'underline' },
                     { label: 'S', title: 'Durchgestrichen', command: 'strikeThrough' },
                     { label: 'Mark', title: 'Markieren', command: 'marker' },
+                    { label: 'Spoiler', title: 'Spoiler', command: 'spoiler' },
+                    { label: 'Blau', title: 'Textfarbe Blau', command: 'textColor', value: '#2563eb' },
                     { label: '</>', title: 'Inline-Code', command: 'inlineCode' }
                 ],
                 [

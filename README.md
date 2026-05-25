@@ -1,6 +1,6 @@
 # 365CMS.DE
 
-**Version:** [3.4.4](Changelog.md) · **Status:** Stable · **PHP:** 8.4+ · **MySQL:** 5.7+ · **MariaDB:** 10.3+
+**Version:** [3.3.11](Changelog.md) · **Status:** Stable · **PHP:** 8.4+ · **MySQL:** 5.7+ · **MariaDB:** 10.3+
 
 <div align="center">
 
@@ -49,14 +49,16 @@ Wichtige Eigenschaften:
 
 - Blockbasierter Editor für Seiten und Beiträge
 - Text, Überschriften, Listen, Checklisten, Zitate, Tabellen, Code, dezente Trennlinien-Varianten und Abstände
-- Abstandsblöcke mit normalisierten Presets oder Pixelwerten, die im Public-Rendering erhalten bleiben
+- Abstandsblöcke mit normalisierten Presets oder Pixelwerten inklusive `10px`, `150px` und `200px`, die im Public-Rendering erhalten bleiben
 - Bildblöcke mit Upload oder Mediathek-Auswahl, Live-Vorschau, Ausrichtung, Breite, Rahmen, Rundung, Hintergrund und Schatten
 - Bild-Text-Blöcke mit Bild links oder rechts neben formatiertem Text und responsivem Public-Layout, das die Admin-Vorschau-Breiten auch im Theme-Frontend respektiert; Medien-Eigenschaften liegen im Editor dezent links neben dem Block statt als Overlay über dem Inhalt
 - Fehlertolerantes Public-Rendering mit WordPress-/Gutenberg-Block-Übersetzung, inklusive `wp:media-text`, `wp:gallery`, selbstschließenden Bildblöcken und sicheren Media-Text-/Gallery-Inhalten
 - Mehrbild-Galerien mit Upload, Mediathek-Auswahl, Vorschau, Sortierung, Spaltensteuerung und deduplizierter Save-/Reload-Normalisierung
-- Inline-Formatierungen wie fett, kursiv, unterstrichen, durchgestrichen, Code, sichere Hyperlinks und Spoiler
+- Inline-Formatierungen wie fett, kursiv, unterstrichen, durchgestrichen, Code, sichere Hyperlinks, Spoiler und Textfarbe
 - Rich-Text-Hinweisboxen mit Info-/Warn-/Erfolg-/Kritisch-Varianten, deren Titel und Inhalt Inline-Formatierungen behalten
 - WordPress-ähnlichere Admin-Bedienung mit Block-Inserter, Commandbar, Drag & Drop, Undo/Redo und Read-only-kompatiblen Tool-Kontexten
+- Abgeglichene EditorJS-Tooloberfläche: aktive Blocktools sind in der Admin-GUI und im generischen EditorJS-Service erreichbar; nicht registrierte Asset-Bundles wurden aus dem Core-Assetordner entfernt
+- Public-nahe Admin-Optik: Blockrahmen erscheinen nur noch beim Hover; Fokuszustände bleiben bewusst sehr dezent, damit der Canvas stärker der späteren Frontend-Ansicht entspricht
 - Stabilere Bearbeitung großer Seiten und Beiträge: Admin-Bildvorschauen laden lazy/async, Offscreen-Blöcke werden browserseitig geschont, massenhafte Zwischenblock-Overlays werden bei sehr vielen Blöcken reduziert und Zahnrad-/Popover-Menüs bleiben vor nachfolgenden Blöcken bedienbar
 - Blockkarten und Schnellaktionen für typische Redaktionsmuster statt technischer JSON-Bearbeitung
 - Theme-nahe Editor-Vorschau durch Auswertung des aktiven Themes

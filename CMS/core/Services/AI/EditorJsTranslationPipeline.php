@@ -158,9 +158,54 @@ final class EditorJsTranslationPipeline
                 $this->appendSegment($segments, ['blocks', $blockIndex, 'data', 'caption'], (string) ($data['caption'] ?? ''));
                 return;
 
+            case 'image':
+                $this->appendSegment($segments, ['blocks', $blockIndex, 'data', 'caption'], (string) ($data['caption'] ?? ''));
+                return;
+
+            case 'table':
+                foreach ((array) ($data['content'] ?? []) as $rowIndex => $row) {
+                    if (!is_array($row)) {
+                        continue;
+                    }
+
+                    foreach ($row as $cellIndex => $cell) {
+                        $this->appendSegment($segments, ['blocks', $blockIndex, 'data', 'content', $rowIndex, $cellIndex], (string) $cell);
+                    }
+                }
+                return;
+
+            case 'attaches':
+                $this->appendSegment($segments, ['blocks', $blockIndex, 'data', 'title'], (string) ($data['title'] ?? ''));
+                return;
+
+            case 'linkTool':
+                if (is_array($data['meta'] ?? null)) {
+                    $this->appendSegment($segments, ['blocks', $blockIndex, 'data', 'meta', 'title'], (string) ($data['meta']['title'] ?? ''));
+                    $this->appendSegment($segments, ['blocks', $blockIndex, 'data', 'meta', 'description'], (string) ($data['meta']['description'] ?? ''));
+                }
+                return;
+
             case 'warning':
                 $this->appendSegment($segments, ['blocks', $blockIndex, 'data', 'title'], (string) ($data['title'] ?? ''));
                 $this->appendSegment($segments, ['blocks', $blockIndex, 'data', 'message'], (string) ($data['message'] ?? ''));
+                return;
+
+            case 'alert':
+                $this->appendSegment($segments, ['blocks', $blockIndex, 'data', 'message'], (string) ($data['message'] ?? ''));
+                return;
+
+            case 'accordion':
+                $this->appendSegment($segments, ['blocks', $blockIndex, 'data', 'title'], (string) ($data['title'] ?? ''));
+                return;
+
+            case 'imageGallery':
+                foreach ((array) ($data['images'] ?? []) as $itemIndex => $item) {
+                    if (!is_array($item)) {
+                        continue;
+                    }
+
+                    $this->appendSegment($segments, ['blocks', $blockIndex, 'data', 'images', $itemIndex, 'caption'], (string) ($item['caption'] ?? ''));
+                }
                 return;
 
             case 'callout':

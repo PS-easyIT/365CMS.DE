@@ -433,7 +433,7 @@ final class EditorJsSanitizer
                 break;
 
             case 'spacer':
-                $allowedHeights = [0, 8, 15, 16, 24, 25, 32, 40, 48, 56, 60, 64, 72, 75, 80, 96, 100, 120, 140, 160, 180, 200];
+                $allowedHeights = [0, 8, 10, 15, 16, 24, 25, 32, 40, 48, 56, 60, 64, 72, 75, 80, 96, 100, 120, 140, 150, 160, 180, 200];
                 $height = $this->normalizeSpacerHeight($data);
                 if (!in_array($height, $allowedHeights, true)) {
                     $height = max(0, min(200, $height));

@@ -664,14 +664,14 @@ Aktuelle Beispiele:
 
 #### 7.5.1 `assets/editorjs/`
 
-Verifizierte Dateien umfassen u. a.:
+Verifizierte Runtime-Dateien umfassen u. a.:
 
-- `editorjs.umd.js`, `editorjs.mjs`
-- Block-/Tool-Dateien wie `header.umd.js`, `paragraph.umd.js`, `table.umd.js`, `quote.umd.js`, `warning.umd.js`
-- Medien- und UX-Tools wie `image.umd.js`, `image-gallery.umd.js`, `drag-drop.umd.js`, `drawing-tool.umd.js`, `undo.umd.js`
-- Zusatzdateien wie `cropper-tune.css`, `cropper-tune.umd.js`
+- `editorjs.umd.js` als einziger geladener EditorJS-Core
+- Block-/Tool-Dateien wie `header.umd.js`, `paragraph.umd.js`, `editorjs-list.umd.js`, `image.umd.js`, `table.umd.js`, `quote.umd.js`, `warning.umd.js`, `alert.umd.js`, `raw.umd.js`, `accordion.umd.js`, `image-gallery.umd.js`
+- Inline-/Tune-Dateien wie `inline-code.umd.js`, `underline.umd.js`, `strikethrough.umd.js`, `hyperlink.umd.js`, `spoiler.umd.js`, `text-color.umd.js`, `anchor.umd.js`, `alignment-tune.umd.js`, `indent-tune.umd.js`, `text-variant-tune.umd.js`
+- Produktive UX-Plugins wie `drag-drop.umd.js` und `undo.umd.js`
 
-Damit liegt hier nicht nur der Editor-Kern, sondern ein ganzer produktiver Tool-Baukasten für den Blockeditor.
+Nicht registrierte EditorJS-Altbundles (`checklist`, `carousel`, `columns`, alter ESM-Core, Cropper-/Drawing-Dateien) werden nicht mehr im Runtime-Ordner geführt. Legacy-Daten bleiben ausschließlich über Sanitizer/Renderer kompatibel.
 
 #### 7.5.2 `assets/gridjs/`
 
