@@ -1,4 +1,4 @@
-﻿**Version:** 3.3.23
+﻿**Version:** 3.3.24
 
 # 365CMS Changelog
 
@@ -19,6 +19,12 @@
 ## 📜 Aktuelle Versionshistorie ab 3.0.0
 
 > Die vollständige historische 2.x-Historie wurde in [`Changelog_old.md`](Changelog_old.md) archiviert.
+
+### v3.3.24 — 25.05.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.3.24** | 🔴 fix | EditorJS / Public Captions | **`CMS/core/Services/EditorJsRenderer.php`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md`, `CMS/DOC/assets/editorjs/README.md` und `Changelog.md` korrigieren den Public-Vertrag für EditorJS-Medien.** Bereits gespeicherte dateinamenartige Bild-, Galerie- und Carousel-Captions werden im Renderer unterdrückt, damit Grafik-/Dateinamen nicht mehr als sichtbare Bildunterschrift im Live/Public-Bereich erscheinen. |
 
 ### v3.3.23 — 25.05.2026
 

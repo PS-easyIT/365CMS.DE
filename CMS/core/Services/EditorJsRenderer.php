@@ -720,7 +720,7 @@ final class EditorJsRenderer
 
         $html = '<figure class="' . implode(' ', $classes) . '"' . $dataAttributes . $styleAttr . '>';
         $html .= '<img src="' . htmlspecialchars($imageUrl, ENT_QUOTES, 'UTF-8') . '" alt="' . htmlspecialchars(strip_tags($caption), ENT_QUOTES, 'UTF-8') . '"' . $imageStyleAttr . $this->getLazyLoadingAttribute() . '>';
-        if ($caption !== '') {
+        if ($caption !== '' && !$this->isGeneratedFilenameCaption($caption, $imageUrl)) {
             $html .= '<figcaption>' . $caption . '</figcaption>';
         }
         $html .= '</figure>';
@@ -963,7 +963,7 @@ final class EditorJsRenderer
         foreach ($images as $image) {
             $html .= '<figure class="editorjs-gallery__item" style="margin:0;flex:1 1 ' . $maxWidth . ';max-width:' . $maxWidth . ';min-width:140px;">';
             $html .= '<img src="' . htmlspecialchars($image['url'], ENT_QUOTES, 'UTF-8') . '" alt="' . $image['alt'] . '"' . $this->getLazyLoadingAttribute() . ' style="display:block;width:100%;height:auto;aspect-ratio:4/3;object-fit:cover;border-radius:12px;">';
-            if ($image['caption'] !== '') {
+            if ($image['caption'] !== '' && !$this->isGeneratedFilenameCaption($image['caption'], $image['url'])) {
                 $html .= '<figcaption style="margin-top:0.6rem;font-size:0.92rem;color:#475569;">' . $image['caption'] . '</figcaption>';
             }
             $html .= '</figure>';
@@ -1312,7 +1312,7 @@ final class EditorJsRenderer
             $caption = $this->sanitizeInline((string)($item['caption'] ?? ''));
             $html .= '<figure class="editorjs-carousel__item">';
             $html .= '<img src="' . htmlspecialchars($url, ENT_QUOTES, 'UTF-8') . '" alt=""' . $this->getLazyLoadingAttribute() . '>';
-            if ($caption !== '') {
+            if ($caption !== '' && !$this->isGeneratedFilenameCaption($caption, $url)) {
                 $html .= '<figcaption>' . $caption . '</figcaption>';
             }
             $html .= '</figure>';
@@ -1608,6 +1608,46 @@ final class EditorJsRenderer
 
         $inline = trim($this->sanitizeInline($raw));
         return $inline !== '' ? '<p>' . $inline . '</p>' : '';
+    }
+
+    private function isGeneratedFilenameCaption(string $caption, string $assetUrl): bool
+    {
+        $plainCaption = trim(html_entity_decode(strip_tags($caption), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+        if ($plainCaption === '' || $assetUrl === '') {
+            return false;
+        }
+
+        $path = (string) (parse_url($assetUrl, PHP_URL_PATH) ?: $assetUrl);
+        $basename = rawurldecode((string) basename($path));
+        if ($basename === '' || $basename === '.' || $basename === '..') {
+            return false;
+        }
+
+        $filename = pathinfo($basename, PATHINFO_FILENAME);
+        $candidates = array_filter(array_unique([
+            $basename,
+            $filename,
+            str_replace(['-', '_'], ' ', $filename),
+        ]), static fn(string $value): bool => trim($value) !== '');
+
+        $normalizedCaption = $this->normalizeFilenameCaptionComparison($plainCaption);
+        foreach ($candidates as $candidate) {
+            if ($normalizedCaption === $this->normalizeFilenameCaptionComparison($candidate)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function normalizeFilenameCaptionComparison(string $value): string
+    {
+        $value = trim(html_entity_decode($value, ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+        $value = preg_replace('/\.[a-z0-9]{2,5}$/iu', '', $value) ?? $value;
+        $value = preg_replace('/[-_]+/u', ' ', $value) ?? $value;
+        $value = preg_replace('/\s+/u', ' ', $value) ?? $value;
+
+        return function_exists('mb_strtolower') ? mb_strtolower($value, 'UTF-8') : strtolower($value);
     }
 
     private function formatFileSize(int $bytes): string
