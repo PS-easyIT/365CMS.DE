@@ -25,7 +25,7 @@
     var TUNE_TOOL_NAMES = ['anchor', 'alignmentTune', 'indentTune', 'textVariant'];
     var PLUGIN_NAMES = ['undo', 'dragDrop'];
     var TOOL_NAMES = BLOCK_TOOL_NAMES.concat(INLINE_TOOL_NAMES, TUNE_TOOL_NAMES);
-    var VERSION = 'cms-editorjs-org-assets-2026-05-25-audit-cleanup-3-3-15';
+    var VERSION = 'cms-editorjs-org-assets-2026-05-25-ready-callbacks-3-3-21';
     var THEME_PREVIEW_STYLE_CACHE = {};
     var TOOL_GLOBALS = {
         paragraph: ['CmsParagraphTool', 'Paragraph'],
@@ -423,6 +423,48 @@
         return '';
     }
 
+    function dataImageUrlToFile(value, fallbackName) {
+        var dataUrl = String(value || '').trim();
+        var match = dataUrl.match(/^data:(image\/(?:jpeg|jpg|png|gif|webp|bmp|x-icon|vnd\.microsoft\.icon));base64,([a-z0-9+/=\s]+)$/i);
+        var mimeType;
+        var extension;
+        var binary;
+        var bytes;
+        var index;
+
+        if (!match || typeof window.atob !== 'function' || typeof window.File !== 'function') {
+            return null;
+        }
+
+        mimeType = match[1].toLowerCase() === 'image/jpg' ? 'image/jpeg' : match[1].toLowerCase();
+        extension = {
+            'image/jpeg': 'jpg',
+            'image/png': 'png',
+            'image/gif': 'gif',
+            'image/webp': 'webp',
+            'image/bmp': 'bmp',
+            'image/x-icon': 'ico',
+            'image/vnd.microsoft.icon': 'ico'
+        }[mimeType] || 'png';
+
+        try {
+            binary = window.atob(match[2].replace(/\s+/g, ''));
+        } catch (_error) {
+            return null;
+        }
+
+        if (binary.length > 25 * 1024 * 1024) {
+            return null;
+        }
+
+        bytes = new Uint8Array(binary.length);
+        for (index = 0; index < binary.length; index++) {
+            bytes[index] = binary.charCodeAt(index);
+        }
+
+        return new File([bytes], (fallbackName || 'clipboard-image') + '.' + extension, { type: mimeType });
+    }
+
     function sanitizePreviewFontStack(value) {
         var stack = String(value || '').trim();
 
@@ -814,6 +856,8 @@
         var alignment = String(imageData.alignment || imageData.align || 'center');
         var size = String(imageData.size || imageData.widthPreset || (imageData.stretched ? 'full' : 'normal'));
         var borderStyle = String(imageData.borderStyle || (imageData.withBorder ? 'thin' : 'none'));
+        var imageFit = normalizeImageFitValue(imageData.imageFit || imageData.objectFit || imageData.fit || 'contain', 'contain');
+        var maxHeight = normalizeImageMaxHeightValue(imageData.maxHeight || imageData.imageMaxHeight || imageData.max_height || '0');
 
         if (['left', 'center', 'right'].indexOf(alignment) === -1) {
             alignment = 'center';
@@ -832,12 +876,32 @@
             size: size,
             widthPreset: size,
             borderStyle: borderStyle,
+            imageFit: imageFit,
+            objectFit: imageFit,
+            maxHeight: maxHeight,
             withBorder: borderStyle !== 'none',
             withBackground: !!imageData.withBackground,
             stretched: size === 'full' || !!imageData.stretched,
             rounded: imageData.rounded !== false,
             shadow: !!imageData.shadow
         });
+    }
+
+    function normalizeImageFitValue(value, fallback) {
+        var fit = String(value || fallback || 'contain');
+
+        return ['contain', 'cover', 'fill', 'none', 'scale-down'].indexOf(fit) !== -1 ? fit : (fallback || 'contain');
+    }
+
+    function normalizeImageMaxHeightValue(value) {
+        var height = parseInt(String(value || '0').replace(/[^0-9]/g, ''), 10) || 0;
+        var allowed = [0, 200, 300, 400, 500, 600, 800, 1000];
+
+        if (allowed.indexOf(height) !== -1) {
+            return String(height);
+        }
+
+        return String(Math.max(0, Math.min(1000, height)));
     }
 
     function normalizeGalleryData(data) {
@@ -901,6 +965,7 @@
         var showBorder = normalizeBooleanValue(resolveMediaTextBorderValue(source), false);
         var spacingTop = normalizeMediaTextSpacingValue(resolveMediaTextOptionValue(source, ['spacingTop', 'marginTop', 'blockSpacingTop'], '10'));
         var spacingBottom = normalizeMediaTextSpacingValue(resolveMediaTextOptionValue(source, ['spacingBottom', 'marginBottom', 'blockSpacingBottom'], '10'));
+        var imageFit = normalizeImageFitValue(source.imageFit || source.objectFit || source.fit || 'cover', 'cover');
 
         if (['left', 'right'].indexOf(position) === -1) {
             position = 'left';
@@ -913,6 +978,8 @@
             text: sanitizeEditableHtml(source.text || source.content || '', true),
             imagePosition: position,
             imageWidth: width,
+            imageFit: imageFit,
+            objectFit: imageFit,
             showBorder: showBorder,
             spacingTop: spacingTop,
             spacingBottom: spacingBottom
@@ -1349,10 +1416,10 @@
         image.alt = '';
     }
 
-    function createEditable(className, html, placeholder, api, readOnly) {
+    function createEditable(className, html, placeholder, api, readOnly, allowBlocks) {
         var element = createElement('div', className);
         element.contentEditable = readOnly ? 'false' : 'true';
-        element.innerHTML = sanitizeEditableHtml(html || '');
+        element.innerHTML = sanitizeEditableHtml(html || '', !!allowBlocks);
         if (placeholder) {
             element.dataset.placeholder = placeholder;
         }
@@ -1382,6 +1449,36 @@
         return Array.prototype.slice.call(clipboardData.items || []).some(function (item) {
             return item && String(item.kind || '') === 'file' && /^image\//i.test(String(item.type || ''));
         });
+    }
+
+    function getFirstClipboardImageFile(clipboardData) {
+        var items = clipboardData ? Array.prototype.slice.call(clipboardData.items || []) : [];
+        var files = clipboardData ? Array.prototype.slice.call(clipboardData.files || []) : [];
+        var imageFile = null;
+
+        items.some(function (item) {
+            var file;
+
+            if (!item || String(item.kind || '') !== 'file' || !/^image\//i.test(String(item.type || '')) || typeof item.getAsFile !== 'function') {
+                return false;
+            }
+
+            file = item.getAsFile();
+            if (file) {
+                imageFile = file;
+                return true;
+            }
+
+            return false;
+        });
+
+        if (imageFile) {
+            return imageFile;
+        }
+
+        return files.find(function (file) {
+            return file && /^image\//i.test(String(file.type || ''));
+        }) || null;
     }
 
     function insertHtmlAtSelection(editable, html) {
@@ -1535,6 +1632,16 @@
             var text = clipboardData && typeof clipboardData.getData === 'function' ? clipboardData.getData('text/plain') : '';
             var structuredBlocks;
             var insertHtml;
+
+            if (clipboardData && typeof editable.cmsCustomPasteHandler === 'function') {
+                try {
+                    if (editable.cmsCustomPasteHandler(event, { clipboardData: clipboardData, html: html, text: text }) === true || event.defaultPrevented) {
+                        return;
+                    }
+                } catch (error) {
+                    logWarn('Custom editable paste handler failed.', error);
+                }
+            }
 
             if (!clipboardData || clipboardHasImageFile(clipboardData) || (html === '' && text === '')) {
                 return;
@@ -2198,6 +2305,9 @@
                 size: false,
                 widthPreset: false,
                 borderStyle: false,
+                imageFit: false,
+                objectFit: false,
+                maxHeight: false,
                 withBorder: false,
                 withBackground: false,
                 stretched: false,
@@ -2247,11 +2357,13 @@
                 ['medium', 'Mittel'],
                 ['thick', 'Dick']
             ], this.data.borderStyle || (this.data.withBorder ? 'thin' : 'none'));
+            var imageFit = this.createSelect(this.getImageFitOptions(), this.data.imageFit || this.data.objectFit || 'contain');
+            var maxHeight = this.createSelect(this.getMaxHeightOptions(), this.data.maxHeight || '0');
             var withBackground = this.createCheckbox('Heller Hintergrund', !!this.data.withBackground);
             var rounded = this.createCheckbox('Ecken abrunden', this.data.rounded !== false);
             var shadow = this.createCheckbox('Leichter Schatten', !!this.data.shadow);
             var status = createElement('div', 'form-hint mt-1');
-            var updatePreview = this.updatePreview.bind(this, wrapper, preview, previewImage, url, caption, alignment, size, borderStyle, withBackground.input, rounded.input, shadow.input);
+            var updatePreview = this.updatePreview.bind(this, wrapper, preview, previewImage, url, caption, alignment, size, borderStyle, imageFit, maxHeight, withBackground.input, rounded.input, shadow.input);
             var self = this;
 
             optionsPanel.dataset.cmsEditorUi = 'true';
@@ -2267,19 +2379,21 @@
             caption.setAttribute('aria-label', 'Bildunterschrift');
             caption.readOnly = this.readOnly;
 
-            [alignment, size, borderStyle, withBackground.input, rounded.input, shadow.input].forEach((control) => {
+            [alignment, size, borderStyle, imageFit, maxHeight, withBackground.input, rounded.input, shadow.input].forEach((control) => {
                 control.disabled = this.readOnly;
             });
 
             settings.appendChild(this.createSetting('Ausrichtung', alignment));
             settings.appendChild(this.createSetting('Breite', size));
             settings.appendChild(this.createSetting('Rahmen', borderStyle));
+            settings.appendChild(this.createSetting('Skalierung', imageFit));
+            settings.appendChild(this.createSetting('Max. Höhe', maxHeight));
             settings.appendChild(withBackground.wrapper);
             settings.appendChild(rounded.wrapper);
             settings.appendChild(shadow.wrapper);
 
             preview.appendChild(previewImage);
-            [url, caption, alignment, size, borderStyle, withBackground.input, rounded.input, shadow.input].forEach(function (element) {
+            [url, caption, alignment, size, borderStyle, imageFit, maxHeight, withBackground.input, rounded.input, shadow.input].forEach(function (element) {
                 var handleControlChange = function () {
                     updatePreview();
                     notifyToolChanged(self.nodes.wrapper || wrapper);
@@ -2307,6 +2421,8 @@
                 alignment: alignment,
                 size: size,
                 borderStyle: borderStyle,
+                imageFit: imageFit,
+                maxHeight: maxHeight,
                 withBackground: withBackground.input,
                 rounded: rounded.input,
                 shadow: shadow.input,
@@ -2346,22 +2462,52 @@
             label.appendChild(text);
             return { wrapper: label, input: input };
         }
-        updatePreview(wrapper, preview, image, urlInput, captionInput, alignmentInput, sizeInput, borderInput, backgroundInput, roundedInput, shadowInput) {
+        getImageFitOptions() {
+            return [
+                ['contain', 'Anpassen'],
+                ['cover', 'Ausschnitt'],
+                ['fill', 'Strecken'],
+                ['scale-down', 'Verkleinern'],
+                ['none', 'Original']
+            ];
+        }
+        getMaxHeightOptions() {
+            return [
+                ['0', 'Automatisch'],
+                ['200', '200 px'],
+                ['300', '300 px'],
+                ['400', '400 px'],
+                ['500', '500 px'],
+                ['600', '600 px'],
+                ['800', '800 px'],
+                ['1000', '1000 px']
+            ];
+        }
+        updatePreview(wrapper, preview, image, urlInput, captionInput, alignmentInput, sizeInput, borderInput, imageFitInput, maxHeightInput, backgroundInput, roundedInput, shadowInput) {
             var url = String(urlInput.value || '').trim();
             var caption = String(captionInput.value || '').trim();
             var alignment = alignmentInput.value || 'center';
             var size = sizeInput.value || 'normal';
             var borderStyle = borderInput.value || 'none';
+            var imageFit = normalizeImageFitValue(imageFitInput.value || 'contain', 'contain');
+            var maxHeight = normalizeImageMaxHeightValue(maxHeightInput.value || '0');
 
             preview.className = [
                 'cms-editorjs-image-preview',
                 'cms-editorjs-image-preview--align-' + alignment,
                 'cms-editorjs-image-preview--' + size,
                 'cms-editorjs-image-preview--border-' + borderStyle,
+                'cms-editorjs-image-preview--fit-' + imageFit,
                 backgroundInput.checked ? 'cms-editorjs-image-preview--background' : '',
                 roundedInput.checked ? 'cms-editorjs-image-preview--rounded' : '',
                 shadowInput.checked ? 'cms-editorjs-image-preview--shadow' : ''
             ].filter(Boolean).join(' ');
+            preview.dataset.imageFit = imageFit;
+            preview.dataset.maxHeight = maxHeight;
+            preview.style.setProperty('--cms-editorjs-image-fit', imageFit);
+            image.style.objectFit = imageFit;
+            image.style.maxHeight = maxHeight !== '0' ? maxHeight + 'px' : '';
+            image.style.height = maxHeight !== '0' && ['cover', 'fill'].indexOf(imageFit) !== -1 ? maxHeight + 'px' : 'auto';
 
             if (url) {
                 setPreviewImageSource(image, url, caption);
@@ -2551,6 +2697,8 @@
                 size: size,
                 widthPreset: size,
                 borderStyle: borderStyle,
+                imageFit: this.nodes.imageFit ? this.nodes.imageFit.value : 'contain',
+                maxHeight: this.nodes.maxHeight ? this.nodes.maxHeight.value : '0',
                 withBorder: borderStyle !== 'none',
                 withBackground: !!(this.nodes.withBackground && this.nodes.withBackground.checked),
                 stretched: size === 'full',
@@ -2980,6 +3128,8 @@
                 text: getMediaTextSanitizeConfig(),
                 imagePosition: false,
                 imageWidth: false,
+                imageFit: false,
+                objectFit: false,
                 showBorder: false,
                 spacingTop: false,
                 spacingBottom: false
@@ -3012,7 +3162,7 @@
             var headingPreview = createElement('div', 'cms-editorjs-media-text-preview__heading');
             var media = createElement('figure', 'cms-editorjs-media-text-preview__media');
             var image = preparePreviewImage(document.createElement('img'), false);
-            var content = createEditable('cms-editorjs-editable cms-editorjs-media-text-preview__content', this.data.text || '', 'Text neben dem Bild schreiben ...', this.api, this.readOnly);
+            var content = createEditable('cms-editorjs-editable cms-editorjs-media-text-preview__content', this.data.text || '', 'Text neben dem Bild schreiben ...', this.api, this.readOnly, true);
             var url = createInput('hidden', '', (this.data.file && this.data.file.url) || '', '');
             var controls = createElement('div', 'cms-editorjs-floating-options cms-editorjs-media-text-options');
             var label = createElement('span', 'cms-editorjs-floating-options__label', 'Bild + Text');
@@ -3027,13 +3177,14 @@
                 ['40', 'Bild 40 %'],
                 ['50', 'Bild 50 %']
             ], this.data.imageWidth || '40');
+            var imageFit = this.createSelect(this.getImageFitOptions(), this.data.imageFit || this.data.objectFit || 'cover');
             var border = createInput('checkbox', 'form-check-input', '', '');
             var heading = createInput('text', 'form-control form-control-sm', this.data.heading || '', 'Optionale Überschrift');
             var spacingTop = this.createSelect(this.getSpacingOptions(), this.data.spacingTop || '10');
             var spacingBottom = this.createSelect(this.getSpacingOptions(), this.data.spacingBottom || '10');
             var alt = createInput('text', 'form-control form-control-sm', this.data.alt || '', 'Alt-Text');
             var status = createElement('div', 'form-hint');
-            var updatePreview = this.updatePreview.bind(this, wrapper, preview, headingPreview, image, url, alt, position, width, border, heading, spacingTop, spacingBottom);
+            var updatePreview = this.updatePreview.bind(this, wrapper, preview, headingPreview, image, url, alt, position, width, imageFit, border, heading, spacingTop, spacingBottom);
 
             wrapper.classList.add('is-empty');
             controls.dataset.cmsEditorUi = 'true';
@@ -3044,6 +3195,7 @@
             libraryButton.disabled = this.readOnly;
             position.disabled = this.readOnly;
             width.disabled = this.readOnly;
+            imageFit.disabled = this.readOnly;
             border.disabled = this.readOnly;
             border.checked = this.data.showBorder === true;
             heading.readOnly = this.readOnly;
@@ -3051,6 +3203,7 @@
             spacingBottom.disabled = this.readOnly;
             alt.readOnly = this.readOnly;
             content.setAttribute('aria-label', 'Text neben Bild');
+            content.cmsCustomPasteHandler = this.handleContentPaste.bind(this, content);
 
             preview.appendChild(headingPreview);
             media.appendChild(image);
@@ -3063,12 +3216,13 @@
             controls.appendChild(libraryButton);
             controls.appendChild(this.createSetting('Position', position));
             controls.appendChild(this.createSetting('Breite', width));
+            controls.appendChild(this.createSetting('Skalierung', imageFit));
             controls.appendChild(this.createCheckboxSetting('Dezenter Rahmen', border));
             controls.appendChild(this.createSetting('Abstand oben', spacingTop));
             controls.appendChild(this.createSetting('Abstand unten', spacingBottom));
             controls.appendChild(this.createSetting('Alt', alt));
 
-            [url, alt, position, width, border, heading, spacingTop, spacingBottom].forEach(function (element) {
+            [url, alt, position, width, imageFit, border, heading, spacingTop, spacingBottom].forEach(function (element) {
                 var handleChange = function () {
                     updatePreview();
                     notifyToolChanged(wrapper);
@@ -3091,7 +3245,7 @@
             wrapper.appendChild(preview);
             wrapper.appendChild(controls);
             wrapper.appendChild(status);
-            this.nodes = { wrapper: wrapper, preview: preview, headingPreview: headingPreview, media: media, image: image, content: content, url: url, libraryButton: libraryButton, position: position, width: width, border: border, heading: heading, spacingTop: spacingTop, spacingBottom: spacingBottom, alt: alt, status: status };
+            this.nodes = { wrapper: wrapper, preview: preview, headingPreview: headingPreview, media: media, image: image, content: content, url: url, libraryButton: libraryButton, position: position, width: width, imageFit: imageFit, border: border, heading: heading, spacingTop: spacingTop, spacingBottom: spacingBottom, alt: alt, status: status };
             updatePreview();
 
             return wrapper;
@@ -3122,6 +3276,15 @@
                 ['100', '100 px']
             ];
         }
+        getImageFitOptions() {
+            return [
+                ['cover', 'Ausschnitt'],
+                ['contain', 'Anpassen'],
+                ['fill', 'Strecken'],
+                ['scale-down', 'Verkleinern'],
+                ['none', 'Original']
+            ];
+        }
         createSetting(labelText, control) {
             var label = createElement('label', 'cms-editorjs-media-text-options__field');
             var text = createElement('span', '', labelText);
@@ -3136,10 +3299,11 @@
             label.appendChild(text);
             return label;
         }
-        updatePreview(wrapper, preview, headingPreview, image, urlInput, altInput, positionInput, widthInput, borderInput, headingInput, spacingTopInput, spacingBottomInput) {
+        updatePreview(wrapper, preview, headingPreview, image, urlInput, altInput, positionInput, widthInput, imageFitInput, borderInput, headingInput, spacingTopInput, spacingBottomInput) {
             var url = String(urlInput.value || '').trim();
             var position = ['left', 'right'].indexOf(positionInput.value) !== -1 ? positionInput.value : 'left';
             var width = ['33', '40', '50'].indexOf(widthInput.value) !== -1 ? widthInput.value : '40';
+            var imageFit = normalizeImageFitValue(imageFitInput.value || 'cover', 'cover');
             var showBorder = !!(borderInput && borderInput.checked);
             var heading = String(headingInput && headingInput.value ? headingInput.value : '').trim();
             var spacingTop = normalizeMediaTextSpacingValue(spacingTopInput && spacingTopInput.value ? spacingTopInput.value : '10');
@@ -3147,12 +3311,15 @@
 
             preview.dataset.imagePosition = position;
             preview.dataset.imageWidth = width;
+            preview.dataset.imageFit = imageFit;
             preview.classList.toggle('cms-editorjs-media-text-preview--image-right', position === 'right');
             preview.classList.toggle('cms-editorjs-media-text-preview--bordered', showBorder);
             preview.classList.toggle('has-heading', heading !== '');
             preview.style.setProperty('--cms-media-text-image-width', width + '%');
+            preview.style.setProperty('--cms-media-text-object-fit', imageFit);
             preview.style.setProperty('--cms-media-text-spacing-top', spacingTop + 'px');
             preview.style.setProperty('--cms-media-text-spacing-bottom', spacingBottom + 'px');
+            image.style.objectFit = imageFit;
 
             headingPreview.textContent = heading;
             headingPreview.hidden = heading === '';
@@ -3267,6 +3434,95 @@
             }
             notifyToolChanged(this.nodes.wrapper);
         }
+        extractMediaTextPastePayload(clipboardData, html, text) {
+            var template;
+            var image;
+            var imageUrl = '';
+            var rawImageUrl;
+            var cleanImageUrl;
+            var alt = '';
+            var contentHtml = '';
+            var imageFile = getFirstClipboardImageFile(clipboardData);
+
+            if (html !== '') {
+                template = document.createElement('template');
+                template.innerHTML = String(html || '');
+                image = template.content.querySelector ? template.content.querySelector('img[src], img[data-src]') : null;
+
+                if (image && image.getAttribute) {
+                    rawImageUrl = image.getAttribute('src') || image.getAttribute('data-src') || '';
+                    alt = String(image.getAttribute('alt') || image.getAttribute('title') || '').trim();
+                    if (!imageFile && /^data:image\//i.test(String(rawImageUrl || ''))) {
+                        imageFile = dataImageUrlToFile(rawImageUrl, 'clipboard-media-text');
+                    }
+                    cleanImageUrl = sanitizeEditableUrl(rawImageUrl);
+                    imageUrl = isImageUrlCandidate(cleanImageUrl) ? cleanImageUrl : '';
+                }
+
+                Array.prototype.slice.call(template.content.querySelectorAll ? template.content.querySelectorAll('img, source') : []).forEach(function (node) {
+                    if (node.parentNode) {
+                        node.parentNode.removeChild(node);
+                    }
+                });
+                Array.prototype.slice.call(template.content.querySelectorAll ? template.content.querySelectorAll('figure, picture') : []).forEach(function (node) {
+                    if (stripTags(node.innerHTML || '') === '' && node.parentNode) {
+                        node.parentNode.removeChild(node);
+                    }
+                });
+
+                contentHtml = sanitizeEditableHtml(template.innerHTML, true);
+            } else if (text !== '' && !isImageUrlCandidate(text)) {
+                contentHtml = escapeHtml(text).replace(/\r\n|\r|\n/g, '<br>');
+            }
+
+            return {
+                imageFile: imageFile,
+                imageUrl: imageUrl,
+                alt: alt,
+                html: contentHtml
+            };
+        }
+        handleContentPaste(editable, event, context) {
+            var payload = this.extractMediaTextPastePayload(
+                context && context.clipboardData ? context.clipboardData : null,
+                context && context.html ? context.html : '',
+                context && context.text ? context.text : ''
+            );
+            var hasImage = !!payload.imageFile || payload.imageUrl !== '';
+            var hasText = payload.html !== '' && stripTags(payload.html) !== '';
+            var self = this;
+
+            if (this.readOnly || !hasImage) {
+                return false;
+            }
+
+            event.preventDefault();
+            event.stopPropagation();
+
+            if (hasText) {
+                insertHtmlAtSelection(editable, payload.html);
+                editable.dispatchEvent(new Event('input', { bubbles: true }));
+                notifyToolChanged(this.nodes.wrapper);
+            }
+
+            if (payload.imageFile) {
+                if (this.nodes.status) {
+                    this.nodes.status.textContent = 'Bild aus Zwischenablage wird hochgeladen ...';
+                }
+                this.uploadImageFile(payload.imageFile).then(function (filePayload) {
+                    self.setImageUrl(filePayload.url || '', payload.alt || '');
+                }).catch(function (error) {
+                    if (self.nodes.status) {
+                        self.nodes.status.textContent = error && error.message ? error.message : 'Clipboard-Upload fehlgeschlagen.';
+                    }
+                    logWarn('Pasted MediaText clipboard image upload failed.', error);
+                });
+                return true;
+            }
+
+            this.setImageUrl(payload.imageUrl, payload.alt || '');
+            return true;
+        }
         onPaste(event) {
             var detail = event && event.detail ? event.detail : {};
             var pastedNode;
@@ -3311,6 +3567,7 @@
                 text: this.nodes.content ? this.nodes.content.innerHTML.trim() : '',
                 imagePosition: this.nodes.position ? this.nodes.position.value : 'left',
                 imageWidth: this.nodes.width ? this.nodes.width.value : '40',
+                imageFit: this.nodes.imageFit ? this.nodes.imageFit.value : 'cover',
                 showBorder: this.nodes.border ? this.nodes.border.checked : false,
                 spacingTop: this.nodes.spacingTop ? this.nodes.spacingTop.value : '10',
                 spacingBottom: this.nodes.spacingBottom ? this.nodes.spacingBottom.value : '10'

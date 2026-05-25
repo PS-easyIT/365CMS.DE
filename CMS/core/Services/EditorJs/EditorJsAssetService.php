@@ -195,6 +195,14 @@ final class EditorJsAssetService
                 }
 
                 var editor;
+                var countEl = document.getElementById('<?php echo $holderId; ?>_count');
+                var updateBlockCount = function() {
+                    if (!countEl || !editor || !editor.blocks) {
+                        return;
+                    }
+                    var count = editor.blocks.getBlocksCount();
+                    countEl.textContent = count + (count === 1 ? ' Block' : ' Blöcke');
+                };
                 var syncHiddenValue = function(outputData) {
                     var normalizedOutput = typeof window.cmsNormalizeEditorJsData === 'function'
                         ? window.cmsNormalizeEditorJsData(outputData)
@@ -209,6 +217,10 @@ final class EditorJsAssetService
                         '<?php echo htmlspecialchars($csrfToken, ENT_QUOTES); ?>',
                         {
                             readOnly: <?php echo $readOnly ? 'true' : 'false'; ?>,
+                            onReady: function() {
+                                holderEl.setAttribute('aria-busy', 'false');
+                                updateBlockCount();
+                            },
                             onChange: function(outputData) {
                                 syncHiddenValue(outputData);
                             },
@@ -282,15 +294,6 @@ final class EditorJsAssetService
                         }
                     });
                 }
-
-                var countEl = document.getElementById('<?php echo $holderId; ?>_count');
-                var updateBlockCount = function() {
-                    if (!countEl || !editor || !editor.blocks) {
-                        return;
-                    }
-                    var count = editor.blocks.getBlocksCount();
-                    countEl.textContent = count + (count === 1 ? ' Block' : ' Blöcke');
-                };
 
                 if (editor.isReady && typeof editor.isReady.then === 'function') {
                     editor.isReady.then(function() {

@@ -3812,6 +3812,9 @@
                     getUploadContext: buildUploadContext,
                     readOnly: !!(definition.readOnly || config.readOnly),
                     themeTypography: config.themeTypography || {},
+                    onReady: function () {
+                        logEditor('info', '[EJS-CHAIN-BIND-READY-CALLBACK] EditorJS ready callback for "' + definition.holderId + '".');
+                    },
                     onError: function (error, context) {
                         logEditor('error', 'EditorJS runtime error for "' + definition.holderId + '".', {
                             context: context || {},

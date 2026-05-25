@@ -290,6 +290,9 @@ final class EditorJsContentNormalizer
             'size' => $size,
             'widthPreset' => $size,
             'borderStyle' => $borderStyle,
+            'imageFit' => self::normalizeImageFit($data['imageFit'] ?? $data['objectFit'] ?? $data['fit'] ?? 'contain', 'contain'),
+            'objectFit' => self::normalizeImageFit($data['imageFit'] ?? $data['objectFit'] ?? $data['fit'] ?? 'contain', 'contain'),
+            'maxHeight' => self::normalizeImageMaxHeight($data['maxHeight'] ?? $data['imageMaxHeight'] ?? $data['max_height'] ?? 0),
             'withBorder' => $borderStyle !== 'none',
             'withBackground' => !empty($data['withBackground']),
             'stretched' => $size === 'full' || !empty($data['stretched']),
@@ -317,6 +320,8 @@ final class EditorJsContentNormalizer
             'text' => self::sanitizeMediaTextContent((string) ($data['text'] ?? $data['content'] ?? '')),
             'imagePosition' => in_array($position, ['left', 'right'], true) ? $position : 'left',
             'imageWidth' => self::normalizeMediaWidth($width),
+            'imageFit' => self::normalizeImageFit($data['imageFit'] ?? $data['objectFit'] ?? $data['fit'] ?? 'cover', 'cover'),
+            'objectFit' => self::normalizeImageFit($data['imageFit'] ?? $data['objectFit'] ?? $data['fit'] ?? 'cover', 'cover'),
             'showBorder' => filter_var($data['showBorder'] ?? $data['border'] ?? $data['hasBorder'] ?? false, FILTER_VALIDATE_BOOLEAN),
             'spacingTop' => self::normalizeMediaTextSpacing($data['spacingTop'] ?? $data['marginTop'] ?? $data['blockSpacingTop'] ?? 10),
             'spacingBottom' => self::normalizeMediaTextSpacing($data['spacingBottom'] ?? $data['marginBottom'] ?? $data['blockSpacingBottom'] ?? 10),
@@ -935,6 +940,25 @@ final class EditorJsContentNormalizer
         $allowed = [0, 5, 10, 15, 20, 30, 40, 60, 80, 100];
 
         return in_array($spacing, $allowed, true) ? (string) $spacing : '10';
+    }
+
+    private static function normalizeImageFit(mixed $value, string $fallback): string
+    {
+        $fit = (string) $value;
+
+        return in_array($fit, ['contain', 'cover', 'fill', 'none', 'scale-down'], true) ? $fit : $fallback;
+    }
+
+    private static function normalizeImageMaxHeight(mixed $value): string
+    {
+        $height = (int) preg_replace('/[^0-9]/', '', (string) $value);
+        $allowed = [0, 200, 300, 400, 500, 600, 800, 1000];
+
+        if (in_array($height, $allowed, true)) {
+            return (string) $height;
+        }
+
+        return (string) max(0, min(1000, $height));
     }
 
     private static function truncatePlainText(string $value, int $maxLength): string

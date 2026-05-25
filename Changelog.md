@@ -1,4 +1,4 @@
-﻿**Version:** 3.3.16
+﻿**Version:** 3.3.21
 
 # 365CMS Changelog
 
@@ -19,6 +19,36 @@
 ## 📜 Aktuelle Versionshistorie ab 3.0.0
 
 > Die vollständige historische 2.x-Historie wurde in [`Changelog_old.md`](Changelog_old.md) archiviert.
+
+### v3.3.21 — 25.05.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.3.21** | 🛡️ security | EditorJS / Audit-Callbacks | **`CMS/core/Services/EditorJs/EditorJsAssetService.php`, `CMS/assets/js/admin-content-editor.js`, `CMS/assets/js/editor-init.js`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md`, `CMS/DOC/assets/editorjs/README.md` und `Changelog.md` schließen den aktuellen EditorJS-Auditpunkt zur Core-Initialisierung ab.** Der generische EditorJS-Service und das Page/Post-Binding übergeben jetzt explizite `onReady`-Callbacks an `createCmsEditor()`, sodass `holder`/`data`/`tools` zusammen mit `onReady`, `onChange` und `onError` in allen Einstiegspunkten konsistent verdrahtet sind. Tool-/Upload-/Persistenz-/Cleanup- und Public-Renderer-Prüfung ergab keine weiteren Code-Fixes. |
+
+### v3.3.20 — 25.05.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.3.20** | 🟢 feat | EditorJS / Bildskalierung | **`CMS/assets/js/editor-init.js`, `CMS/assets/css/admin.css`, `CMS/assets/css/editorjs-content.css`, `CMS/core/Services/EditorJsRenderer.php`, `CMS/core/Services/EditorJs/EditorJsSanitizer.php`, `CMS/core/Services/EditorJs/EditorJsContentNormalizer.php`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md`, `CMS/DOC/assets/editorjs/README.md` und `Changelog.md` ergänzen kontrollierte Bildskalierungsoptionen.** Normale Bildblöcke bieten nun „Skalierung“ und „Max. Höhe“ mit sicheren Presets; Text+Bild-Blöcke können die Bildskalierung zwischen `Ausschnitt`, `Anpassen`, `Strecken`, `Verkleinern` und `Original` wählen. Client-Normalizer, Server-Sanitizer, Content-Normalizer, Public-Renderer und Admin-/Public-CSS speichern und rendern die neuen Werte konsistent. |
+
+### v3.3.19 — 25.05.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.3.19** | 🔴 fix | EditorJS / Text+Bild Clipboard-Audit | **`CMS/assets/js/editor-init.js`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md`, `CMS/DOC/assets/editorjs/README.md` und `Changelog.md` schließen den erneuten EditorJS-Audit nach Core-Setup, Tool-Vollständigkeit, Uploads, Persistenz, Cleanup, Public-Rendering und UX ab.** Als realer Restfund wurde der `mediaText`-Clipboard-Pfad für HTML-Zwischenablagen mit eingebetteten `data:image/...;base64,...`-Quellen gehärtet: solche Bilder werden jetzt in sichere `File`-Objekte konvertiert und über den bestehenden Upload-Vertrag `{ success: 1, file: { url } }` verarbeitet, statt als nicht zulässige Base64-URL verloren zu gehen. |
+
+### v3.3.18 — 25.05.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.3.18** | 🟢 feat | EditorJS / Text+Bild Clipboard | **`CMS/assets/js/editor-init.js`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md`, `CMS/DOC/assets/editorjs/README.md` und `Changelog.md` ergänzen schlankes Clipboard-Handling für Text+Bild-Blöcke.** Fügt man im Textbereich eines `mediaText`-Blocks kombinierten Inhalt aus Bild und formatiertem Text ein, wird das Bild im selben Block gesetzt bzw. hochgeladen und der Text ohne Bild in den Contentbereich übernommen. Erlaubte Inline-/Blockformatierungen wie Links, Fett/Kursiv, Listen und Zitate bleiben durch die bestehende Sanitizer-Schicht erhalten. |
+
+### v3.3.17 — 25.05.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.3.17** | 🛡️ security | EditorJS / Audit-Abschluss | **`CMS/assets/js/editor-init.js`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md`, `CMS/DOC/assets/editorjs/README.md` und `Changelog.md` schließen den umfassenden EditorJS-Audit ab.** Core-Setup, Tool-/Asset-Registry, Upload-Response-Verträge, Hidden-JSON-Persistenz, Destroy-/Cleanup-Pfade, Readonly-/Public-Rendering und Admin-A11y wurden erneut abgeglichen; als realer Restfund meldete die interne Runtime-/Debug-Version noch den alten Audit-Stand `3.3.15`. Die Factory-Version ist nun auf den aktuellen Core-Stand gehoben, damit Browserdiagnosen und Cache-/Support-Ausgaben konsistent bleiben. |
 
 ### v3.3.16 — 25.05.2026
 

@@ -5687,6 +5687,7 @@ input:checked + .slider:before { transform: translateX(22px); }
 
 .editorjs-holder .cms-editorjs-media-text-preview {
     --cms-media-text-image-width: 40%;
+    --cms-media-text-object-fit: cover;
     --cms-media-text-spacing-top: 10px;
     --cms-media-text-spacing-bottom: 10px;
     display: flex;
@@ -5761,7 +5762,7 @@ input:checked + .slider:before { transform: translateX(22px); }
     width: 100%;
     height: auto;
     aspect-ratio: 4 / 3;
-    object-fit: cover;
+    object-fit: var(--cms-media-text-object-fit, cover);
     border-radius: 14px;
     background: #e2e8f0;
 }
@@ -5838,6 +5839,7 @@ input:checked + .slider:before { transform: translateX(22px); }
     display: block;
     max-width: 100%;
     height: auto;
+    object-fit: var(--cms-editorjs-image-fit, contain);
     box-sizing: border-box;
 }
 

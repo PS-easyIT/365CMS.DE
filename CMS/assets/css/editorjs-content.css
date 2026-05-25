@@ -259,6 +259,10 @@
     height: auto !important;
 }
 
+.editorjs-image img {
+    object-fit: var(--cms-editorjs-image-fit, contain) !important;
+}
+
 .editorjs-image[data-size="full"] img {
     width: 100% !important;
 }
@@ -317,6 +321,7 @@
 
 .editorjs-media-text {
     --cms-editorjs-media-text-image-width: 40%;
+    --cms-editorjs-media-text-image-fit: cover;
     --cms-editorjs-media-text-spacing-top: 10px;
     --cms-editorjs-media-text-spacing-bottom: 10px;
     --cms-editorjs-space-before: var(--cms-editorjs-media-text-spacing-top);
@@ -388,6 +393,10 @@
     min-width: 0;
     margin: 0;
     box-sizing: border-box;
+}
+
+.editorjs-media-text__media img {
+    object-fit: var(--cms-editorjs-media-text-image-fit, cover);
 }
 
 .editorjs-media-text__content {

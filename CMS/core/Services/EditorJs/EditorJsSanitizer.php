@@ -185,6 +185,9 @@ final class EditorJsSanitizer
                 $data['size'] = $size;
                 $data['widthPreset'] = $size;
                 $data['borderStyle'] = $borderStyle;
+                $data['imageFit'] = $this->sanitizeImageFit($data['imageFit'] ?? $data['objectFit'] ?? $data['fit'] ?? 'contain', 'contain');
+                $data['objectFit'] = $data['imageFit'];
+                $data['maxHeight'] = $this->sanitizeImageMaxHeight($data['maxHeight'] ?? $data['imageMaxHeight'] ?? $data['max_height'] ?? 0);
                 $data['withBorder'] = $borderStyle !== 'none';
                 $data['withBackground'] = !empty($data['withBackground']);
                 $data['stretched'] = $size === 'full' || !empty($data['stretched']);
@@ -280,6 +283,8 @@ final class EditorJsSanitizer
                 $imageWidth = (string) ($data['imageWidth'] ?? $data['mediaWidth'] ?? '40');
                 $data['imagePosition'] = in_array($imagePosition, ['left', 'right'], true) ? $imagePosition : 'left';
                 $data['imageWidth'] = in_array($imageWidth, ['33', '40', '50'], true) ? $imageWidth : '40';
+                $data['imageFit'] = $this->sanitizeImageFit($data['imageFit'] ?? $data['objectFit'] ?? $data['fit'] ?? 'cover', 'cover');
+                $data['objectFit'] = $data['imageFit'];
                 $data['showBorder'] = filter_var($data['showBorder'] ?? $data['border'] ?? $data['hasBorder'] ?? false, FILTER_VALIDATE_BOOLEAN);
                 $data['spacingTop'] = $this->sanitizeMediaTextSpacing($data['spacingTop'] ?? $data['marginTop'] ?? $data['blockSpacingTop'] ?? 10);
                 $data['spacingBottom'] = $this->sanitizeMediaTextSpacing($data['spacingBottom'] ?? $data['marginBottom'] ?? $data['blockSpacingBottom'] ?? 10);
@@ -674,6 +679,25 @@ final class EditorJsSanitizer
         $allowed = [0, 5, 10, 15, 20, 30, 40, 60, 80, 100];
 
         return in_array($spacing, $allowed, true) ? (string) $spacing : '10';
+    }
+
+    private function sanitizeImageFit(mixed $value, string $fallback): string
+    {
+        $fit = (string) $value;
+
+        return in_array($fit, ['contain', 'cover', 'fill', 'none', 'scale-down'], true) ? $fit : $fallback;
+    }
+
+    private function sanitizeImageMaxHeight(mixed $value): string
+    {
+        $height = (int) preg_replace('/[^0-9]/', '', (string) $value);
+        $allowed = [0, 200, 300, 400, 500, 600, 800, 1000];
+
+        if (in_array($height, $allowed, true)) {
+            return (string) $height;
+        }
+
+        return (string) max(0, min(1000, $height));
     }
 
     private function truncatePlainText(string $value, int $maxLength): string
