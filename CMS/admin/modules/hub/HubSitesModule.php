@@ -68,6 +68,9 @@ class HubSitesModule
         'hub_card_image_ratio' => 'wide',
         'hub_card_meta_layout' => 'split',
         'hub_card_radius' => '',
+        'hub_card_row_gap' => '',
+        'hub_feature_image_width' => '',
+        'hub_show_author_box' => false,
     ];
 
     public function __construct()
@@ -259,6 +262,13 @@ class HubSitesModule
             'hub_card_radius' => array_key_exists('hub_card_radius', $post) && trim((string)$post['hub_card_radius']) !== ''
                 ? $this->normalizeNumber((int)$post['hub_card_radius'], 0, 48, 20)
                 : '',
+            'hub_card_row_gap' => array_key_exists('hub_card_row_gap', $post) && trim((string)$post['hub_card_row_gap']) !== ''
+                ? $this->normalizeNumber((int)$post['hub_card_row_gap'], 30, 160, 30)
+                : '',
+            'hub_feature_image_width' => array_key_exists('hub_feature_image_width', $post) && trim((string)$post['hub_feature_image_width']) !== ''
+                ? $this->normalizeNumber((int)$post['hub_feature_image_width'], 20, 60, 34)
+                : '',
+            'hub_show_author_box' => $this->normalizeBoolean($post['hub_show_author_box'] ?? false),
         ];
 
         $filteredSettings = Hooks::applyFilters('cms_prepare_hub_settings_payload', $settings, $post, $id);
@@ -539,6 +549,13 @@ class HubSitesModule
         $settings['hub_card_radius'] = trim((string) ($settings['hub_card_radius'] ?? '')) !== ''
             ? $this->normalizeNumber((int) $settings['hub_card_radius'], 0, 48, 20)
             : '';
+        $settings['hub_card_row_gap'] = trim((string) ($settings['hub_card_row_gap'] ?? '')) !== ''
+            ? $this->normalizeNumber((int) $settings['hub_card_row_gap'], 30, 160, 30)
+            : '';
+        $settings['hub_feature_image_width'] = trim((string) ($settings['hub_feature_image_width'] ?? '')) !== ''
+            ? $this->normalizeNumber((int) $settings['hub_feature_image_width'], 20, 60, 34)
+            : '';
+        $settings['hub_show_author_box'] = $this->normalizeBoolean($formValues['hub_show_author_box'] ?? false);
 
         if (!empty($site['table_slug']) && trim((string) ($settings['hub_slug'] ?? '')) === '') {
             $settings['hub_slug'] = (string) $site['table_slug'];

@@ -139,7 +139,7 @@ $hubPublicEnPath = $hubPublicPath !== '' ? ContentLocalizationService::getInstan
                         <div class="card-header"><h3 class="card-title">Hero / Einstieg</h3></div>
                         <div class="card-body">
                             <div class="row g-3">
-                                <div class="col-md-5">
+                                <div class="col-md-4">
                                     <label class="form-label">Template-Profil</label>
                                     <select class="form-select" name="hub_template" id="hubTemplateSelect">
                                         <?php foreach ($templateOptions as $value => $label): ?>
@@ -148,10 +148,20 @@ $hubPublicEnPath = $hubPublicPath !== '' ? ContentLocalizationService::getInstan
                                     </select>
                                     <div class="form-hint">Layouts, Header-Links und Designvorgaben bearbeitest du zentral im Tab <strong>Templates</strong>. Beim Neuanlegen werden die Starter-Kacheln des gewählten Templates automatisch übernommen.</div>
                                 </div>
-                                <div class="col-md-3">
+                                <div class="col-md-2">
                                     <label class="form-label">Card-Rundung (px)</label>
                                     <input type="number" class="form-control" name="hub_card_radius" min="0" max="48" step="1" value="<?php echo htmlspecialchars((string)($settings['hub_card_radius'] ?? ''), ENT_QUOTES); ?>" placeholder="Template">
                                     <div class="form-hint">Leer = Wert aus dem Template-Profil. 0 = eckig, 48 = sehr rund.</div>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Card-Reihenabstand (px)</label>
+                                    <input type="number" class="form-control" name="hub_card_row_gap" min="30" max="160" step="1" value="<?php echo htmlspecialchars((string)($settings['hub_card_row_gap'] ?? ''), ENT_QUOTES); ?>" placeholder="Template / 30">
+                                    <div class="form-hint">Leer = Template-Wert. Gesetzte Werte werden auf mindestens 30 px normalisiert.</div>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Featured-Bildbreite (%)</label>
+                                    <input type="number" class="form-control" name="hub_feature_image_width" min="20" max="60" step="1" value="<?php echo htmlspecialchars((string)($settings['hub_feature_image_width'] ?? ''), ENT_QUOTES); ?>" placeholder="Template / 34">
+                                    <div class="form-hint">Leer = Template-Wert. Steuert Desktop-Breite des Bildbereichs in Featured-Kacheln.</div>
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label">CTA URL</label>
@@ -271,6 +281,17 @@ $hubPublicEnPath = $hubPublicPath !== '' ? ContentLocalizationService::getInstan
                                 <li><strong>Compliance</strong><br><span class="text-secondary small">Governance, Policies, Nachvollziehbarkeit.</span></li>
                                 <li><strong>Linux</strong><br><span class="text-secondary small">Technischer, dunkler, terminalnaher Charakter.</span></li>
                             </ul>
+                        </div>
+                    </div>
+
+                    <div class="card mb-3">
+                        <div class="card-header"><h3 class="card-title">Theme-Optionen</h3></div>
+                        <div class="card-body">
+                            <label class="form-check form-switch mb-0">
+                                <input class="form-check-input" type="checkbox" name="hub_show_author_box" value="1" <?php echo !empty($settings['hub_show_author_box']) ? 'checked' : ''; ?>>
+                                <span class="form-check-label">Autorenbox unter dieser HubSite anzeigen</span>
+                            </label>
+                            <div class="form-hint mt-2">Nutzt die Autorenbox- und Dienstleistungsbereich-Einstellungen aus dem PHINIT-Beitragsbereich und passt die Ausgabe optisch an HubSites an.</div>
                         </div>
                     </div>
 

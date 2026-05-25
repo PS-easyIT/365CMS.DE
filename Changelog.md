@@ -1,4 +1,4 @@
-﻿**Version:** 3.3.35
+﻿**Version:** 3.3.38
 
 # 365CMS Changelog
 
@@ -15,6 +15,24 @@
 | 🛡️ | `security` | Sicherheits- und Audit-Härtung |
 
 ---
+
+### v3.3.38 — 25.05.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.3.38** | ✨ feature | HubSites / Featured-Kacheln | **`CMS/admin/modules/hub/HubSitesModule.php`, `CMS/admin/modules/hub/HubTemplateProfileManager.php`, `CMS/admin/views/hub/edit.php`, `CMS/admin/views/hub/template-edit/main-column.php`, `CMS/core/Services/SiteTable/SiteTableTemplateRegistry.php`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md` und `Changelog.md` ergänzen die anpassbare Featured-Bildbreite.** Das neue Setting `hub_feature_image_width` ist als Prozentwert im HubSite-Editor sowie im Template-Customizer pflegbar, wird zwischen 20 % und 60 % normalisiert und als CSS-Variable `--hubsite-feature-image-width` an Themes ausgegeben. |
+
+### v3.3.37 — 25.05.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.3.37** | ✨ feature | HubSites / Card-Abstände | **`CMS/admin/modules/hub/HubSitesModule.php`, `CMS/admin/modules/hub/HubTemplateProfileManager.php`, `CMS/admin/views/hub/edit.php`, `CMS/admin/views/hub/template-edit/main-column.php`, `CMS/core/Services/SiteTable/SiteTableTemplateRegistry.php`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md` und `Changelog.md` ergänzen den anpassbaren HubSite-Card-Reihenabstand.** Das neue Setting `hub_card_row_gap` hat einen Mindestwert von 30 px, ist sowohl im einzelnen HubSite-Editor als auch im Template-Customizer pflegbar und wird als CSS-Variable `--hubsite-card-row-gap` an Themes ausgegeben. |
+
+### v3.3.36 — 25.05.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.3.36** | ✨ feature | HubSites / Theme-Optionen | **`CMS/admin/modules/hub/HubSitesModule.php`, `CMS/admin/views/hub/edit.php`, `CMS/core/Services/SiteTable/SiteTableHubRenderer.php`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md` und `Changelog.md` ergänzen eine optionale Autorenbox pro HubSite.** Die neue Einstellung `hub_show_author_box` wird in `settings_json` gespeichert, im HubSite-Admin als Checkbox angezeigt und über `hub_settings` an das Theme übergeben. Themes können damit unter einzelnen HubSites eine passende Autoren-/Dienstleistungsbox ausgeben, ohne globale HubSite-Templates zu verändern. |
 
 ### v3.3.35 — 25.05.2026
 

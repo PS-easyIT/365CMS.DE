@@ -137,6 +137,8 @@ final class HubTemplateProfileManager
                     'image_ratio' => 'wide',
                     'meta_layout' => 'split',
                     'card_radius' => 20,
+                    'card_row_gap' => 30,
+                    'feature_image_width' => 34,
                 ],
                 'starter_cards' => [],
             ];
@@ -229,6 +231,8 @@ final class HubTemplateProfileManager
                     'image_ratio' => $this->normalizeSetting((string)($post['hub_card_image_ratio'] ?? 'wide'), ['wide', 'square', 'portrait'], 'wide'),
                     'meta_layout' => $this->normalizeSetting((string)($post['hub_card_meta_layout'] ?? 'split'), ['split', 'stacked'], 'split'),
                     'card_radius' => $this->normalizeNumber((int)($post['template_card_radius'] ?? 20), 0, 48, 20),
+                    'card_row_gap' => $this->normalizeNumber((int)($post['template_card_row_gap'] ?? 30), 30, 160, 30),
+                    'feature_image_width' => $this->normalizeNumber((int)($post['template_feature_image_width'] ?? 34), 20, 60, 34),
                 ],
                 'starter_cards' => $this->normalizeStarterCards((string)($post['template_starter_cards_json'] ?? '[]')),
             ];
@@ -527,6 +531,8 @@ final class HubTemplateProfileManager
                 'image_ratio' => $this->normalizeSetting((string)($profile['card_design']['image_ratio'] ?? $fallback['card_design']['image_ratio'] ?? 'wide'), ['wide', 'square', 'portrait'], 'wide'),
                 'meta_layout' => $this->normalizeSetting((string)($profile['card_design']['meta_layout'] ?? $fallback['card_design']['meta_layout'] ?? 'split'), ['split', 'stacked'], 'split'),
                 'card_radius' => $this->normalizeNumber((int)($profile['card_design']['card_radius'] ?? $fallback['card_design']['card_radius'] ?? 20), 0, 48, 20),
+                'card_row_gap' => $this->normalizeNumber((int)($profile['card_design']['card_row_gap'] ?? $fallback['card_design']['card_row_gap'] ?? 30), 30, 160, 30),
+                'feature_image_width' => $this->normalizeNumber((int)($profile['card_design']['feature_image_width'] ?? $fallback['card_design']['feature_image_width'] ?? 34), 20, 60, 34),
             ],
             'starter_cards' => $this->normalizeStarterCards(json_encode($profile['starter_cards'] ?? $fallback['starter_cards'] ?? [], JSON_UNESCAPED_UNICODE) ?: '[]'),
         ];

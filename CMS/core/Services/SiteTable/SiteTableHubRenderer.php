@@ -103,6 +103,7 @@ final class SiteTableHubRenderer
             'content_type' => 'hub',
             'content_locale' => $locale,
             'content' => $this->renderHubMarkup($table, $locale),
+            'hub_settings' => $settings,
             'meta_description' => $this->buildHubMetaDescription(
                 trim((string) ($localizedSettings['hub_hero_text'] ?? '')) !== ''
                     ? (string) $localizedSettings['hub_hero_text']

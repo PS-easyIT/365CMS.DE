@@ -51,6 +51,8 @@ final class SiteTableTemplateRegistry
         'hub_card_image_ratio' => 'wide',
         'hub_card_meta_layout' => 'split',
         'hub_card_radius' => '',
+        'hub_card_row_gap' => '',
+        'hub_feature_image_width' => '',
     ];
 
     private const TEMPLATE_PLACEHOLDERS = [
@@ -319,6 +321,18 @@ final class SiteTableTemplateRegistry
                 48,
                 20
             ),
+            'card_row_gap' => $this->normalizeNumber(
+                $resolveNumberValue('hub_card_row_gap', 'card_row_gap', 30),
+                30,
+                160,
+                30
+            ),
+            'feature_image_width' => $this->normalizeNumber(
+                $resolveNumberValue('hub_feature_image_width', 'feature_image_width', 34),
+                20,
+                60,
+                34
+            ),
         ];
     }
 
@@ -363,6 +377,8 @@ final class SiteTableTemplateRegistry
     {
         $palette = array_merge($this->getDefaultTemplateColors('general-it'), $colors);
         $cardRadius = $this->normalizeNumber((int) ($cardDesign['card_radius'] ?? 20), 0, 48, 20);
+        $cardRowGap = $this->normalizeNumber((int) ($cardDesign['card_row_gap'] ?? 30), 30, 160, 30);
+        $featureImageWidth = $this->normalizeNumber((int) ($cardDesign['feature_image_width'] ?? 34), 20, 60, 34);
 
         $pairs = [
             '--cms-hub-hero-start' => $this->normalizeColorValue((string) ($palette['hero_start'] ?? '#1f2937'), '#1f2937'),
@@ -375,6 +391,8 @@ final class SiteTableTemplateRegistry
             '--cms-hub-table-head-start' => $this->normalizeColorValue((string) ($palette['table_header_start'] ?? $palette['hero_start'] ?? '#1f2937'), '#1f2937'),
             '--cms-hub-table-head-end' => $this->normalizeColorValue((string) ($palette['table_header_end'] ?? $palette['hero_end'] ?? '#0f172a'), '#0f172a'),
             '--cms-hub-card-radius' => $cardRadius . 'px',
+            '--hubsite-card-row-gap' => $cardRowGap . 'px',
+            '--hubsite-feature-image-width' => $featureImageWidth . '%',
         ];
 
         $chunks = [];

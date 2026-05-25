@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "3.3.35",
+  "version": "3.3.38",
   "min_php": "8.4",
   "released": "2026-05-25",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 3.3.35: HubSite-Hero-Beschreibungen fallen jetzt zusätzlich auf die Template-Profil-Beschreibung zurück, damit etwa Datenschutz-HubSites die hinterlegte Beschreibung unter dem Haupttitel zuverlässig ausgeben.",
+  "notes": "Release-Stand 3.3.38: HubSites erhalten mit hub_feature_image_width eine anpassbare Featured-Bildbreite in Prozent. Der Wert ist im HubSite-Editor und im Template-Customizer pflegbar und wird als CSS-Variable an Themes übergeben.",
   "critical": false
 }

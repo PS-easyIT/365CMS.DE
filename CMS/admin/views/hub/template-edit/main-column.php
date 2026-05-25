@@ -161,6 +161,22 @@ if (!defined('ABSPATH')) {
                     </div>
                 </div>
                 <div class="col-md-4">
+                    <label class="form-label">Card-Reihenabstand (px)</label>
+                    <div class="input-group input-group-sm">
+                        <input type="number" class="form-control" name="template_card_row_gap" min="30" max="160" step="1" value="<?php echo (int)($cardDesign['card_row_gap'] ?? 30); ?>">
+                        <span class="input-group-text">px</span>
+                    </div>
+                    <div class="form-hint">Mindestens 30 px. Gilt als Template-Default für vertikale Abstände zwischen HubSite-Card-Reihen.</div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Featured-Bildbreite (%)</label>
+                    <div class="input-group input-group-sm">
+                        <input type="number" class="form-control" name="template_feature_image_width" min="20" max="60" step="1" value="<?php echo (int)($cardDesign['feature_image_width'] ?? 34); ?>">
+                        <span class="input-group-text">%</span>
+                    </div>
+                    <div class="form-hint">Desktop-Breite des Bildbereichs in Featured-Kacheln. 34 % ist der PHINIT-Standard.</div>
+                </div>
+                <div class="col-md-4">
                     <label class="form-label">Bildposition</label>
                     <input type="hidden" name="hub_card_image_position" value="<?php echo htmlspecialchars((string)($cardDesign['image_position'] ?? 'top')); ?>">
                     <div class="hub-template-switcher" data-switcher="hub_card_image_position">
