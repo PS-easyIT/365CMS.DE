@@ -3932,11 +3932,13 @@
             var input = definition ? getElement(definition.inputId) : null;
             var activeEntry = null;
 
-            if (!entry) {
-                return Promise.resolve(normalizeEditorData(safeParseEditorInput(input)));
-            }
-
             return waitForPendingLazyBinding(key).then(function () {
+                entry = editors[key];
+
+                if (!entry) {
+                    return normalizeEditorData(safeParseEditorInput(input));
+                }
+
                 return ensureEditorReady(key, false);
             }).then(function (readyEntry) {
                 activeEntry = readyEntry || editors[key] || entry;

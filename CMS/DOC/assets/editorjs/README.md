@@ -25,7 +25,7 @@
 - Nachtrag 19.05.2026: Die lokale Tool-Schicht unterstützt Read-only-Kontexte defensiver, sodass Vorschau- und geschützte Ansichten nicht mehr von editierbaren UI-Annahmen abhängen.
 - Der Core wird bytegleich aus `ASSETS/editor.js-2.31.6/editorjs.umd.js` in `CMS/assets/editorjs/editorjs.umd.js` bereitgestellt.
 - Die Page/Post-Tools werden als lokale UMD-Dateien aus `CMS/assets/editorjs/` geladen: Core, Basis-Tools und stabile Erweiterungen werden deterministisch vor `CMS/assets/js/editor-init.js` eingebunden.
-- `CMS/assets/js/editor-init.js` ist nur noch die 365CMS-Factory/Normalizer-Schicht: Sie verdrahtet die UMD-Globals (`Paragraph`, `Header`, `EditorjsList`, `ImageTool`, `Quote`, `CodeTool`, `Table`, `Delimiter`, `Embed`, `LinkTool`, `AttachesTool`, `Warning`, `RawTool`, `Accordion`/`AccordionBlock`, `CmsImageGalleryTool`, `InlineCode`, `Underline`, `Strikethrough`, `Hyperlink`, `TgSpoilerEditorJS`, `ColorPlugin`) sowie die Plugin-Globals (`Undo`, `DragDrop`) mit Upload-, Save-, History- und Legacy-Datenkompatibilität.
+- `CMS/assets/js/editor-init.js` ist nur noch die 365CMS-Factory/Normalizer-Schicht: Sie verdrahtet die UMD-Globals (`Paragraph`, `Header`, `EditorjsList`, `ImageTool`, `Quote`, `CodeTool`, `Table`, `Delimiter`, `Embed`, `LinkTool`, `AttachesTool`, `Warning`, `RawTool`, `Accordion`/`AccordionBlock`, `CmsImageGalleryTool`, `InlineCode`, `Underline`, `Strikethrough`, `Hyperlink`, `TgSpoilerEditorJS`, `ColorPlugin`) sowie lokale Factory-Tools wie `CmsMarkerTool` und die Plugin-Globals (`Undo`, `DragDrop`) mit Upload-, Save-, History- und Legacy-Datenkompatibilität.
 - Plugin-Registrierung ist defensiv: optionale Tools werden nur aktiviert, wenn ihr lokales UMD-Global tatsächlich vorhanden ist. Dadurch gibt es keine toten Toolbar-Buttons und keine parallelen Modul-/Eval-Loader.
 
 ## WordPress-like Block-/Blockly-Verhalten
@@ -72,6 +72,8 @@ Damit entsteht ein WordPress-ähnliches Blockgefühl, während Sanitizer, Render
 - UX-Feinschliff 25.05.2026: Blockrahmen im Admin erscheinen nur beim Hover; Fokus/Selection bleiben mit minimalem Hintergrund sichtbar. Dadurch ähnelt der Editor-Canvas stärker der Public-Ausgabe und behält dennoch genug Orientierung für längere Inhalte.
 - Audit-Nachtrag 25.05.2026: `createCmsEditor()` reicht `onReady`, `onChange` und `onError` konsistent durch. Der generische `EditorJsAssetService` synchronisiert Hidden-JSON nicht erst beim Submit, sondern auch bei Editor-Änderungen, und zerstört die Instanz bei `pagehide` defensiv.
 - Audit-Nachtrag 25.05.2026 (`3.3.21`): Der generische `EditorJsAssetService` und das Page/Post-Binding übergeben nun explizite `onReady`-Callbacks an `createCmsEditor()`. Damit ist der Constructor-Vertrag aus Holder, Daten, Tools, `onReady`, `onChange` und `onError` in allen EditorJS-Einstiegspunkten konsistent verdrahtet.
+- Paste-Fix 25.05.2026 (`3.3.22`): Reiner formatierter HTML-Inhalt im Textbereich eines `mediaText`-/Text+Bild-Blocks wird nun direkt an der Cursorposition eingefügt. Listen, Absätze und erlaubte Inline-Formatierungen bleiben im bestehenden Block erhalten; nur externe Block-Editables ohne eigenen Handler nutzen weiterhin den generischen strukturierten Paste-Pfad.
+- Audit-Fix 25.05.2026 (`3.3.23`): Der Page/Post-Submit wartet jetzt vor jedem Editor-Save zuerst auf ausstehende Lazy-Bindings. Das gilt auch, wenn für einen Hidden-/Sprach-Editor noch keine EditorJS-Instanz im lokalen Registry-Objekt existiert, aber bereits eine Aktivierung, Kopie oder Übersetzungsübernahme läuft.
 
 ## Bekannte Grenzen
 

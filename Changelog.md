@@ -1,4 +1,4 @@
-﻿**Version:** 3.3.21
+﻿**Version:** 3.3.23
 
 # 365CMS Changelog
 
@@ -19,6 +19,18 @@
 ## 📜 Aktuelle Versionshistorie ab 3.0.0
 
 > Die vollständige historische 2.x-Historie wurde in [`Changelog_old.md`](Changelog_old.md) archiviert.
+
+### v3.3.23 — 25.05.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.3.23** | 🔴 fix | EditorJS / Lazy Submit-Save | **`CMS/assets/js/admin-content-editor.js`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md`, `CMS/DOC/assets/editorjs/README.md` und `Changelog.md` schließen den aktuellen EditorJS-Audit-Fund im Submit-Save-Pfad.** `saveEditorContent()` wartet jetzt zuerst auf ausstehende Lazy-Bindings, bevor es entscheidet, ob eine EditorJS-Instanz existiert oder der Hidden-JSON-Fallback verwendet wird. Dadurch werden schnell aktivierte, kopierte oder per AI-Übernahme vorbereitete DE/EN-Inhalte nicht mehr als veralteter Hidden-Input-Stand gespeichert. |
+
+### v3.3.22 — 25.05.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.3.22** | 🔴 fix | EditorJS / Text+Bild Paste | **`CMS/assets/js/editor-init.js`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md`, `CMS/DOC/assets/editorjs/README.md` und `Changelog.md` korrigieren das Paste-Verhalten im `mediaText`-/Text+Bild-Block.** Formatierter HTML-Inhalt ohne Bild, zum Beispiel Listen, Absätze und erlaubte Inline-Formatierungen, wird jetzt direkt im bestehenden Textbereich eingefügt und löst nicht mehr den generischen EditorJS-Pfad aus, der neue Text-/Listenblöcke erzeugt. Kombinierte Bild+Text-Zwischenablagen nutzen weiterhin den bestehenden Upload-/URL-Pfad und behalten den Text im selben Block. |
 
 ### v3.3.21 — 25.05.2026
 

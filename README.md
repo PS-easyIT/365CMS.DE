@@ -1,6 +1,6 @@
 # 365CMS.DE
 
-**Version:** [3.3.21](Changelog.md) · **Status:** Stable · **PHP:** 8.4+ · **MySQL:** 5.7+ · **MariaDB:** 10.3+
+**Version:** [3.3.23](Changelog.md) · **Status:** Stable · **PHP:** 8.4+ · **MySQL:** 5.7+ · **MariaDB:** 10.3+
 
 <div align="center">
 
@@ -52,7 +52,7 @@ Wichtige Eigenschaften:
 - Abstandsblöcke mit normalisierten Presets oder Pixelwerten inklusive `10px`, `150px` und `200px`, die im Public-Rendering erhalten bleiben
 - Bildblöcke mit Upload oder Mediathek-Auswahl, Live-Vorschau, Ausrichtung, Breite, Skalierungsmodus, Maxhöhe, Rahmen, Rundung, Hintergrund und Schatten
 - Bild-Text-Blöcke mit Bild links oder rechts neben formatiertem Text und responsivem Public-Layout, das die Admin-Vorschau-Breiten und den Bild-Skalierungsmodus auch im Theme-Frontend respektiert; Medien-Eigenschaften liegen im Editor dezent links neben dem Block statt als Overlay über dem Inhalt
-- Text+Bild-Blöcke übernehmen kombinierte Zwischenablagen aus Bild und formatiertem Text direkt im selben Block; Bilddateien werden hochgeladen, HTML-Bilder als sichere URL gesetzt und erlaubte Textformatierungen bleiben erhalten
+- Text+Bild-Blöcke übernehmen formatierte Zwischenablagen mit Listen, Absätzen und Inline-Formatierungen direkt im selben Block; kombinierte Bild+Text-Pastes laden Bilddateien hoch oder setzen sichere HTML-Bild-URLs, ohne den Text in neue Blöcke auszulagern
 - Eingebettete `data:image`-Quellen aus HTML-Zwischenablagen werden für Text+Bild-Blöcke sicher in Upload-Dateien umgewandelt, statt als nicht renderbare Base64-URL gespeichert zu werden
 - Fehlertolerantes Public-Rendering mit WordPress-/Gutenberg-Block-Übersetzung, inklusive `wp:media-text`, `wp:gallery`, selbstschließenden Bildblöcken und sicheren Media-Text-/Gallery-Inhalten
 - Mehrbild-Galerien mit Upload, Mediathek-Auswahl, Vorschau, Sortierung, Spaltensteuerung und deduplizierter Save-/Reload-Normalisierung
@@ -62,6 +62,7 @@ Wichtige Eigenschaften:
 - Abgeglichene EditorJS-Tooloberfläche: aktive Blocktools sind in der Admin-GUI und im generischen EditorJS-Service erreichbar; nicht registrierte Asset-Bundles wurden aus dem Core-Assetordner entfernt
 - Public-nahe Admin-Optik: Blockrahmen erscheinen nur noch beim Hover; Fokuszustände bleiben bewusst sehr dezent, damit der Canvas stärker der späteren Frontend-Ansicht entspricht
 - Auditierter Runtime-Vertrag: `onReady`/`onChange`/`onError`, Hidden-JSON-Synchronisierung, Submit-Save, Pagehide-Cleanup, Upload-Response-Formate und Public-Renderer-Abdeckung sind in Factory, Page/Post-Binding und generischem EditorJS-Service aufeinander abgestimmt
+- Robuster Submit-Save bei lazy initialisierten Sprach-/Hidden-Editoren: laufende EditorJS-Bindings werden vor dem Formular-Submit vollständig abgewartet, damit schnell kopierte oder aktivierte Inhalte nicht als alter Hidden-JSON-Stand gespeichert werden
 - Text+Bild-Blöcke unterstützen eine optionale dezente Rahmenanzeige mit maximal 2px Rundung und standardmäßig 10px Abstand nach oben und unten
 - Text+Bild-Blöcke können optional eine Überschrift anzeigen; bei aktivem Rahmen dockt diese als Band am oberen Rahmen an, während Abstand oben/unten getrennt einstellbar bleibt
 - EditorJS-Audit: Tool-/Asset-Registry ist bereinigt, Datei-Anhänge unterstützen explizit URL-Quellen und MediaText-Überschriften bleiben auch ohne `mbstring` robust

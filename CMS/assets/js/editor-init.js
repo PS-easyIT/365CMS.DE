@@ -25,7 +25,7 @@
     var TUNE_TOOL_NAMES = ['anchor', 'alignmentTune', 'indentTune', 'textVariant'];
     var PLUGIN_NAMES = ['undo', 'dragDrop'];
     var TOOL_NAMES = BLOCK_TOOL_NAMES.concat(INLINE_TOOL_NAMES, TUNE_TOOL_NAMES);
-    var VERSION = 'cms-editorjs-org-assets-2026-05-25-ready-callbacks-3-3-21';
+    var VERSION = 'cms-editorjs-org-assets-2026-05-25-media-text-inline-paste-3-3-22';
     var THEME_PREVIEW_STYLE_CACHE = {};
     var TOOL_GLOBALS = {
         paragraph: ['CmsParagraphTool', 'Paragraph'],
@@ -2560,7 +2560,7 @@
                     var item = Array.isArray(items) && items[0] ? items[0] : null;
                     var file = item && item.file ? item.file : {};
 
-                    self.setImageUrl(file.url || '', item ? (item.caption || file.name || '') : '');
+                    self.setImageUrl(file.url || '', item ? (item.caption || '') : '');
                 }
             });
         }
@@ -2608,13 +2608,13 @@
 
             this.data = normalizeImageData(Object.assign({}, this.data, {
                 file: Object.assign({}, this.data.file || {}, { url: cleanUrl }),
-                caption: typeof caption === 'string' && caption !== '' ? caption : this.data.caption
+                caption: typeof caption === 'string' ? caption : this.data.caption
             }));
 
             if (this.nodes.url) {
                 this.nodes.url.value = cleanUrl;
             }
-            if (this.nodes.caption && typeof caption === 'string' && caption !== '') {
+            if (this.nodes.caption && typeof caption === 'string') {
                 this.nodes.caption.value = caption;
             }
             if (this.nodes.url) {
@@ -3410,7 +3410,7 @@
                     var item = Array.isArray(items) && items[0] ? items[0] : null;
                     var file = item && item.file ? item.file : {};
 
-                    self.setImageUrl(file.url || '', item ? (item.caption || file.name || '') : '');
+                    self.setImageUrl(file.url || '', item ? (item.caption || '') : '');
                 }
             });
         }
@@ -3421,7 +3421,7 @@
                 return;
             }
 
-            if (this.nodes.alt && typeof alt === 'string' && alt !== '') {
+            if (this.nodes.alt && typeof alt === 'string') {
                 this.nodes.alt.value = alt;
                 this.nodes.alt.dispatchEvent(new Event('input', { bubbles: true }));
             }
@@ -3492,7 +3492,7 @@
             var hasText = payload.html !== '' && stripTags(payload.html) !== '';
             var self = this;
 
-            if (this.readOnly || !hasImage) {
+            if (this.readOnly || (!hasImage && !hasText)) {
                 return false;
             }
 
@@ -3503,6 +3503,10 @@
                 insertHtmlAtSelection(editable, payload.html);
                 editable.dispatchEvent(new Event('input', { bubbles: true }));
                 notifyToolChanged(this.nodes.wrapper);
+            }
+
+            if (!hasImage) {
+                return true;
             }
 
             if (payload.imageFile) {
