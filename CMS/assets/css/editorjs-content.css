@@ -317,18 +317,56 @@
 
 .editorjs-media-text {
     --cms-editorjs-media-text-image-width: 40%;
+    --cms-editorjs-media-text-spacing-top: 10px;
+    --cms-editorjs-media-text-spacing-bottom: 10px;
+    --cms-editorjs-space-before: var(--cms-editorjs-media-text-spacing-top);
+    --cms-editorjs-space-after: var(--cms-editorjs-media-text-spacing-bottom);
     display: flex;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     align-items: flex-start;
     gap: 1.5rem;
+    margin: var(--cms-editorjs-media-text-spacing-top) 0 var(--cms-editorjs-media-text-spacing-bottom);
+    padding: 0;
+    border: 0 solid transparent;
+    border-radius: 2px;
     width: 100%;
     max-width: 100%;
     min-width: 0;
     box-sizing: border-box;
 }
 
+.editorjs-media-text--bordered {
+    padding: 1rem;
+    border-width: 1px;
+    border-color: rgba(100, 116, 139, .32);
+    box-shadow: 0 1px 2px rgba(15, 23, 42, .035);
+}
+
 .editorjs-media-text--image-right {
     flex-direction: row-reverse;
+}
+
+.editorjs-media-text__heading {
+    flex: 0 0 100%;
+    order: -2;
+    margin: 0 0 .25rem;
+    color: var(--text-primary, #0f172a);
+    font-size: 1.1rem;
+    font-weight: 800;
+    line-height: 1.25;
+}
+
+.editorjs-media-text--bordered.editorjs-media-text--has-heading {
+    padding-top: 0;
+}
+
+.editorjs-media-text--bordered .editorjs-media-text__heading {
+    flex-basis: calc(100% + 2rem);
+    margin: 0 -1rem .25rem;
+    padding: .55rem 1rem;
+    border-bottom: 1px solid rgba(100, 116, 139, .22);
+    border-radius: 2px 2px 0 0;
+    background: var(--bg-secondary, #f8fafc);
 }
 
 .editorjs-media-text--image-width-33 {

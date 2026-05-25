@@ -46,7 +46,6 @@ final class EditorJsAssetService
         'indent-tune.umd.js',
         'text-variant-tune.umd.js',
         'accordion.umd.js',
-        'image-gallery.umd.js',
         'undo.umd.js',
         'drag-drop.umd.js',
     ];

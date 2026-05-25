@@ -862,6 +862,23 @@ final class EditorJsRenderer
         return (int)preg_replace('/[^0-9]/', '', $key);
     }
 
+    private function normalizeMediaTextSpacing(mixed $value): string
+    {
+        $spacing = (int) preg_replace('/[^0-9]/', '', (string) $value);
+        $allowed = [0, 5, 10, 15, 20, 30, 40, 60, 80, 100];
+
+        return in_array($spacing, $allowed, true) ? (string) $spacing : '10';
+    }
+
+    private function truncatePlainText(string $value, int $maxLength): string
+    {
+        $value = trim($value);
+
+        return function_exists('mb_substr')
+            ? mb_substr($value, 0, $maxLength, 'UTF-8')
+            : substr($value, 0, $maxLength);
+    }
+
     /** @param array<string,mixed> $data */
     private function renderImageGallery(array $data): string
     {
@@ -930,8 +947,9 @@ final class EditorJsRenderer
         $file = is_array($data['file'] ?? null) ? $data['file'] : [];
         $imageUrl = $this->normalizeRenderableAssetUrl((string)($file['url'] ?? ''), true);
 
+        $heading = $this->truncatePlainText(strip_tags((string)($data['heading'] ?? $data['title'] ?? $data['headline'] ?? ''), ''), 180);
         $textHtml = $this->renderMediaTextContent((string)($data['text'] ?? ''));
-        if ($imageUrl === '' && $textHtml === '') {
+        if ($imageUrl === '' && $textHtml === '' && $heading === '') {
             return '';
         }
 
@@ -939,6 +957,9 @@ final class EditorJsRenderer
         $alt = htmlspecialchars($altText, ENT_QUOTES, 'UTF-8');
         $imagePosition = (string)($data['imagePosition'] ?? $data['position'] ?? $data['mediaPosition'] ?? 'left');
         $imageWidth = (string)($data['imageWidth'] ?? $data['mediaWidth'] ?? '40');
+        $showBorder = filter_var($data['showBorder'] ?? $data['border'] ?? $data['hasBorder'] ?? false, FILTER_VALIDATE_BOOLEAN);
+        $spacingTop = $this->normalizeMediaTextSpacing($data['spacingTop'] ?? $data['marginTop'] ?? $data['blockSpacingTop'] ?? 10);
+        $spacingBottom = $this->normalizeMediaTextSpacing($data['spacingBottom'] ?? $data['marginBottom'] ?? $data['blockSpacingBottom'] ?? 10);
 
         if (!in_array($imagePosition, ['left', 'right'], true)) {
             $imagePosition = 'left';
@@ -953,11 +974,21 @@ final class EditorJsRenderer
             'editorjs-media-text--image-' . $imagePosition,
             'editorjs-media-text--image-width-' . $imageWidth,
         ];
-        $style = '--cms-editorjs-media-text-image-width:' . $imageWidth . '%;display:flex;flex-wrap:nowrap;align-items:flex-start;gap:24px;width:100%;max-width:100%;min-width:0;box-sizing:border-box;';
+        if ($showBorder) {
+            $classes[] = 'editorjs-media-text--bordered';
+        }
+        if ($heading !== '') {
+            $classes[] = 'editorjs-media-text--has-heading';
+        }
+        $style = '--cms-editorjs-media-text-image-width:' . $imageWidth . '%;--cms-editorjs-media-text-spacing-top:' . $spacingTop . 'px;--cms-editorjs-media-text-spacing-bottom:' . $spacingBottom . 'px;--cms-editorjs-space-before:' . $spacingTop . 'px;--cms-editorjs-space-after:' . $spacingBottom . 'px;display:flex;flex-wrap:wrap;align-items:flex-start;gap:24px;margin:' . $spacingTop . 'px 0 ' . $spacingBottom . 'px;padding:' . ($showBorder ? '16px' : '0') . ';padding-top:' . ($showBorder && $heading !== '' ? '0' : ($showBorder ? '16px' : '0')) . ';border:' . ($showBorder ? '1px solid rgba(100,116,139,.32)' : '0 solid transparent') . ';border-radius:2px;width:100%;max-width:100%;min-width:0;box-sizing:border-box;';
         $mediaStyle = 'margin:0;flex:0 0 var(--cms-editorjs-media-text-image-width);width:var(--cms-editorjs-media-text-image-width);min-width:0;max-width:var(--cms-editorjs-media-text-image-width);box-sizing:border-box;';
         $contentStyle = 'flex:1 1 0;min-width:0;box-sizing:border-box;';
+        $headingStyle = 'flex:0 0 ' . ($showBorder ? 'calc(100% + 32px)' : '100%') . ';order:-2;margin:' . ($showBorder ? '0 -16px 4px' : '0 0 4px') . ';padding:' . ($showBorder ? '9px 16px' : '0') . ';border-bottom:' . ($showBorder ? '1px solid rgba(100,116,139,.22)' : '0') . ';border-radius:' . ($showBorder ? '2px 2px 0 0' : '0') . ';background:' . ($showBorder ? 'var(--bg-secondary,#f8fafc)' : 'transparent') . ';color:var(--text-primary,#0f172a);font-size:1.1rem;font-weight:800;line-height:1.25;box-sizing:border-box;';
 
-        $html = '<section class="' . htmlspecialchars(implode(' ', $classes), ENT_QUOTES, 'UTF-8') . '" data-image-position="' . htmlspecialchars($imagePosition, ENT_QUOTES, 'UTF-8') . '" data-image-width="' . htmlspecialchars($imageWidth, ENT_QUOTES, 'UTF-8') . '" style="' . htmlspecialchars($style, ENT_QUOTES, 'UTF-8') . '">';
+        $html = '<section class="' . htmlspecialchars(implode(' ', $classes), ENT_QUOTES, 'UTF-8') . '" data-image-position="' . htmlspecialchars($imagePosition, ENT_QUOTES, 'UTF-8') . '" data-image-width="' . htmlspecialchars($imageWidth, ENT_QUOTES, 'UTF-8') . '" data-spacing-top="' . $spacingTop . '" data-spacing-bottom="' . $spacingBottom . '" style="' . htmlspecialchars($style, ENT_QUOTES, 'UTF-8') . '">';
+        if ($heading !== '') {
+            $html .= '<h3 class="editorjs-media-text__heading" style="' . htmlspecialchars($headingStyle, ENT_QUOTES, 'UTF-8') . '">' . htmlspecialchars($heading, ENT_QUOTES, 'UTF-8') . '</h3>';
+        }
         if ($imageUrl !== '') {
             $html .= '<figure class="editorjs-media-text__media" style="' . htmlspecialchars($mediaStyle, ENT_QUOTES, 'UTF-8') . '">';
             $html .= '<img src="' . htmlspecialchars($imageUrl, ENT_QUOTES, 'UTF-8') . '" alt="' . $alt . '"' . $this->getLazyLoadingAttribute() . ' style="display:block;width:100%;height:auto;aspect-ratio:4/3;object-fit:cover;border-radius:14px;">';

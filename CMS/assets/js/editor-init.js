@@ -25,7 +25,7 @@
     var TUNE_TOOL_NAMES = ['anchor', 'alignmentTune', 'indentTune', 'textVariant'];
     var PLUGIN_NAMES = ['undo', 'dragDrop'];
     var TOOL_NAMES = BLOCK_TOOL_NAMES.concat(INLINE_TOOL_NAMES, TUNE_TOOL_NAMES);
-    var VERSION = 'cms-editorjs-org-assets-2026-05-25-audit-3-3-12';
+    var VERSION = 'cms-editorjs-org-assets-2026-05-25-audit-cleanup-3-3-15';
     var THEME_PREVIEW_STYLE_CACHE = {};
     var TOOL_GLOBALS = {
         paragraph: ['CmsParagraphTool', 'Paragraph'],
@@ -898,6 +898,9 @@
         var file = source.file && typeof source.file === 'object' ? source.file : {};
         var position = String(source.imagePosition || source.position || source.mediaPosition || 'left');
         var width = normalizeMediaWidthValue(source.imageWidth || source.mediaWidth || '40');
+        var showBorder = normalizeBooleanValue(resolveMediaTextBorderValue(source), false);
+        var spacingTop = normalizeMediaTextSpacingValue(resolveMediaTextOptionValue(source, ['spacingTop', 'marginTop', 'blockSpacingTop'], '10'));
+        var spacingBottom = normalizeMediaTextSpacingValue(resolveMediaTextOptionValue(source, ['spacingBottom', 'marginBottom', 'blockSpacingBottom'], '10'));
 
         if (['left', 'right'].indexOf(position) === -1) {
             position = 'left';
@@ -906,10 +909,63 @@
         return {
             file: Object.assign({}, file, { url: String(file.url || source.url || '') }),
             alt: String(source.alt || source.caption || ''),
+            heading: stripTags(source.heading || source.title || source.headline || '').slice(0, 180),
             text: sanitizeEditableHtml(source.text || source.content || '', true),
             imagePosition: position,
-            imageWidth: width
+            imageWidth: width,
+            showBorder: showBorder,
+            spacingTop: spacingTop,
+            spacingBottom: spacingBottom
         };
+    }
+
+    function resolveMediaTextBorderValue(source) {
+        if (Object.prototype.hasOwnProperty.call(source, 'showBorder')) {
+            return source.showBorder;
+        }
+        if (Object.prototype.hasOwnProperty.call(source, 'border')) {
+            return source.border;
+        }
+        if (Object.prototype.hasOwnProperty.call(source, 'hasBorder')) {
+            return source.hasBorder;
+        }
+
+        return false;
+    }
+
+    function resolveMediaTextOptionValue(source, keys, defaultValue) {
+        var index;
+        var key;
+
+        for (index = 0; index < keys.length; index += 1) {
+            key = keys[index];
+            if (Object.prototype.hasOwnProperty.call(source, key)) {
+                return source[key];
+            }
+        }
+
+        return defaultValue;
+    }
+
+    function normalizeBooleanValue(value, defaultValue) {
+        var normalized;
+
+        if (value === true || value === 1) {
+            return true;
+        }
+        if (value === false || value === 0) {
+            return false;
+        }
+
+        normalized = String(value || '').trim().toLowerCase();
+        if (['1', 'true', 'yes', 'on'].indexOf(normalized) !== -1) {
+            return true;
+        }
+        if (['0', 'false', 'no', 'off', ''].indexOf(normalized) !== -1) {
+            return false;
+        }
+
+        return !!defaultValue;
     }
 
     function normalizeMediaWidthValue(value) {
@@ -923,6 +979,17 @@
         }
 
         return '40';
+    }
+
+    function normalizeMediaTextSpacingValue(value) {
+        var spacing = parseInt(String(value || '').replace(/[^0-9]/g, ''), 10);
+        var allowed = [0, 5, 10, 15, 20, 30, 40, 60, 80, 100];
+
+        if (allowed.indexOf(spacing) !== -1) {
+            return String(spacing);
+        }
+
+        return '10';
     }
 
     function normalizeSpacerData(data) {
@@ -2909,9 +2976,13 @@
             return {
                 file: false,
                 alt: false,
+                heading: false,
                 text: getMediaTextSanitizeConfig(),
                 imagePosition: false,
-                imageWidth: false
+                imageWidth: false,
+                showBorder: false,
+                spacingTop: false,
+                spacingBottom: false
             };
         }
         static get pasteConfig() {
@@ -2938,6 +3009,7 @@
         render() {
             var wrapper = createElement('div', 'cms-editorjs-tool cms-editorjs-tool--media-text');
             var preview = createElement('div', 'cms-editorjs-media-text-preview');
+            var headingPreview = createElement('div', 'cms-editorjs-media-text-preview__heading');
             var media = createElement('figure', 'cms-editorjs-media-text-preview__media');
             var image = preparePreviewImage(document.createElement('img'), false);
             var content = createEditable('cms-editorjs-editable cms-editorjs-media-text-preview__content', this.data.text || '', 'Text neben dem Bild schreiben ...', this.api, this.readOnly);
@@ -2955,9 +3027,13 @@
                 ['40', 'Bild 40 %'],
                 ['50', 'Bild 50 %']
             ], this.data.imageWidth || '40');
+            var border = createInput('checkbox', 'form-check-input', '', '');
+            var heading = createInput('text', 'form-control form-control-sm', this.data.heading || '', 'Optionale Überschrift');
+            var spacingTop = this.createSelect(this.getSpacingOptions(), this.data.spacingTop || '10');
+            var spacingBottom = this.createSelect(this.getSpacingOptions(), this.data.spacingBottom || '10');
             var alt = createInput('text', 'form-control form-control-sm', this.data.alt || '', 'Alt-Text');
             var status = createElement('div', 'form-hint');
-            var updatePreview = this.updatePreview.bind(this, wrapper, preview, image, url, alt, position, width);
+            var updatePreview = this.updatePreview.bind(this, wrapper, preview, headingPreview, image, url, alt, position, width, border, heading, spacingTop, spacingBottom);
 
             wrapper.classList.add('is-empty');
             controls.dataset.cmsEditorUi = 'true';
@@ -2968,21 +3044,31 @@
             libraryButton.disabled = this.readOnly;
             position.disabled = this.readOnly;
             width.disabled = this.readOnly;
+            border.disabled = this.readOnly;
+            border.checked = this.data.showBorder === true;
+            heading.readOnly = this.readOnly;
+            spacingTop.disabled = this.readOnly;
+            spacingBottom.disabled = this.readOnly;
             alt.readOnly = this.readOnly;
             content.setAttribute('aria-label', 'Text neben Bild');
 
+            preview.appendChild(headingPreview);
             media.appendChild(image);
             preview.appendChild(media);
             preview.appendChild(content);
 
             controls.appendChild(label);
+            controls.appendChild(this.createSetting('Überschrift', heading));
             controls.appendChild(this.createSetting('Upload', upload));
             controls.appendChild(libraryButton);
             controls.appendChild(this.createSetting('Position', position));
             controls.appendChild(this.createSetting('Breite', width));
+            controls.appendChild(this.createCheckboxSetting('Dezenter Rahmen', border));
+            controls.appendChild(this.createSetting('Abstand oben', spacingTop));
+            controls.appendChild(this.createSetting('Abstand unten', spacingBottom));
             controls.appendChild(this.createSetting('Alt', alt));
 
-            [url, alt, position, width].forEach(function (element) {
+            [url, alt, position, width, border, heading, spacingTop, spacingBottom].forEach(function (element) {
                 var handleChange = function () {
                     updatePreview();
                     notifyToolChanged(wrapper);
@@ -3005,7 +3091,7 @@
             wrapper.appendChild(preview);
             wrapper.appendChild(controls);
             wrapper.appendChild(status);
-            this.nodes = { wrapper: wrapper, preview: preview, media: media, image: image, content: content, url: url, libraryButton: libraryButton, position: position, width: width, alt: alt, status: status };
+            this.nodes = { wrapper: wrapper, preview: preview, headingPreview: headingPreview, media: media, image: image, content: content, url: url, libraryButton: libraryButton, position: position, width: width, border: border, heading: heading, spacingTop: spacingTop, spacingBottom: spacingBottom, alt: alt, status: status };
             updatePreview();
 
             return wrapper;
@@ -3022,6 +3108,20 @@
             select.value = value;
             return select;
         }
+        getSpacingOptions() {
+            return [
+                ['0', '0 px'],
+                ['5', '5 px'],
+                ['10', '10 px'],
+                ['15', '15 px'],
+                ['20', '20 px'],
+                ['30', '30 px'],
+                ['40', '40 px'],
+                ['60', '60 px'],
+                ['80', '80 px'],
+                ['100', '100 px']
+            ];
+        }
         createSetting(labelText, control) {
             var label = createElement('label', 'cms-editorjs-media-text-options__field');
             var text = createElement('span', '', labelText);
@@ -3029,15 +3129,33 @@
             label.appendChild(control);
             return label;
         }
-        updatePreview(wrapper, preview, image, urlInput, altInput, positionInput, widthInput) {
+        createCheckboxSetting(labelText, control) {
+            var label = createElement('label', 'cms-editorjs-media-text-options__field cms-editorjs-media-text-options__field--checkbox');
+            var text = createElement('span', '', labelText);
+            label.appendChild(control);
+            label.appendChild(text);
+            return label;
+        }
+        updatePreview(wrapper, preview, headingPreview, image, urlInput, altInput, positionInput, widthInput, borderInput, headingInput, spacingTopInput, spacingBottomInput) {
             var url = String(urlInput.value || '').trim();
             var position = ['left', 'right'].indexOf(positionInput.value) !== -1 ? positionInput.value : 'left';
             var width = ['33', '40', '50'].indexOf(widthInput.value) !== -1 ? widthInput.value : '40';
+            var showBorder = !!(borderInput && borderInput.checked);
+            var heading = String(headingInput && headingInput.value ? headingInput.value : '').trim();
+            var spacingTop = normalizeMediaTextSpacingValue(spacingTopInput && spacingTopInput.value ? spacingTopInput.value : '10');
+            var spacingBottom = normalizeMediaTextSpacingValue(spacingBottomInput && spacingBottomInput.value ? spacingBottomInput.value : '10');
 
             preview.dataset.imagePosition = position;
             preview.dataset.imageWidth = width;
             preview.classList.toggle('cms-editorjs-media-text-preview--image-right', position === 'right');
+            preview.classList.toggle('cms-editorjs-media-text-preview--bordered', showBorder);
+            preview.classList.toggle('has-heading', heading !== '');
             preview.style.setProperty('--cms-media-text-image-width', width + '%');
+            preview.style.setProperty('--cms-media-text-spacing-top', spacingTop + 'px');
+            preview.style.setProperty('--cms-media-text-spacing-bottom', spacingBottom + 'px');
+
+            headingPreview.textContent = heading;
+            headingPreview.hidden = heading === '';
 
             if (url !== '') {
                 setPreviewImageSource(image, url, String(altInput.value || ''));
@@ -3189,9 +3307,13 @@
             return normalizeMediaTextData({
                 file: { url: this.nodes.url ? this.nodes.url.value.trim() : '' },
                 alt: this.nodes.alt ? this.nodes.alt.value.trim() : '',
+                heading: this.nodes.heading ? this.nodes.heading.value.trim() : '',
                 text: this.nodes.content ? this.nodes.content.innerHTML.trim() : '',
                 imagePosition: this.nodes.position ? this.nodes.position.value : 'left',
-                imageWidth: this.nodes.width ? this.nodes.width.value : '40'
+                imageWidth: this.nodes.width ? this.nodes.width.value : '40',
+                showBorder: this.nodes.border ? this.nodes.border.checked : false,
+                spacingTop: this.nodes.spacingTop ? this.nodes.spacingTop.value : '10',
+                spacingBottom: this.nodes.spacingBottom ? this.nodes.spacingBottom.value : '10'
             });
         }
     }
@@ -3863,6 +3985,22 @@
                             name: filePayload.name || (file && file.name) || 'download'
                         })
                     };
+                });
+            },
+            uploadByUrl: function (url) {
+                var cleanUrl = sanitizeEditableUrl(url);
+                var fileName = cleanUrl.split(/[?#]/)[0].split('/').pop() || 'download';
+
+                if (cleanUrl === '') {
+                    return Promise.reject(new Error('Datei-URL ist ungültig.'));
+                }
+
+                return Promise.resolve({
+                    success: 1,
+                    file: {
+                        url: cleanUrl,
+                        name: fileName
+                    }
                 });
             }
         };

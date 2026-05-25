@@ -1,4 +1,4 @@
-﻿**Version:** 3.3.12
+﻿**Version:** 3.3.16
 
 # 365CMS Changelog
 
@@ -19,6 +19,30 @@
 ## 📜 Aktuelle Versionshistorie ab 3.0.0
 
 > Die vollständige historische 2.x-Historie wurde in [`Changelog_old.md`](Changelog_old.md) archiviert.
+
+### v3.3.16 — 25.05.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.3.16** | 🔴 fix | EditorJS / Text+Bild Public-Abstände | **`CMS/core/Services/EditorJsRenderer.php`, `CMS/assets/css/editorjs-content.css`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md`, `CMS/DOC/assets/editorjs/README.md` und `Changelog.md` sorgen dafür, dass Text+Bild-Abstände oben und unten auf Publicseiten live greifen.** Ursache war, dass der Renderer zwar `margin` schrieb, die globale Public-Regel für `.editorjs-block` aber `margin-block-start/end` per `!important` aus `--cms-editorjs-space-before/after` verwendet. `mediaText` setzt diese Core-Abstandsvariablen jetzt direkt auf `spacingTop` und `spacingBottom`, sodass Theme-/Public-Margin-Regeln die eingestellten Werte übernehmen. |
+
+### v3.3.15 — 25.05.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.3.15** | 🔴 fix | EditorJS / Audit-Fixes | **`CMS/assets/js/editor-init.js`, `CMS/core/Services/EditorJs/EditorJsAssetService.php`, `CMS/assets/editorjs/image-gallery.umd.js`, `CMS/core/Services/EditorJsRenderer.php`, `CMS/core/Services/EditorJs/EditorJsSanitizer.php`, `CMS/core/Services/EditorJs/EditorJsContentNormalizer.php`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md`, `CMS/DOC/assets/editorjs/README.md` und `Changelog.md` schließen den erneuten EditorJS-Audit.** Das alte externe `ImageGallery`-UMD-Bundle wurde entfernt, weil registriert und genutzt ausschließlich das lokale `CmsImageGalleryTool` ist. Der Datei-/Attaches-Uploader besitzt jetzt zusätzlich `uploadByUrl()` mit korrektem `{ success: 1, file: { url } }`-Shape. MediaText-Überschriften werden in Sanitizer, Normalizer und Renderer über einen robusten `mb_substr`-Fallback gekürzt, damit Installationen ohne `mbstring` nicht fatal abbrechen. |
+
+### v3.3.14 — 25.05.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.3.14** | 🟢 add | EditorJS / Text+Bild | **`CMS/assets/js/editor-init.js`, `CMS/assets/css/admin.css`, `CMS/assets/css/editorjs-content.css`, `CMS/core/Services/EditorJsRenderer.php`, `CMS/core/Services/EditorJs/EditorJsSanitizer.php`, `CMS/core/Services/EditorJs/EditorJsContentNormalizer.php`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md`, `CMS/DOC/assets/editorjs/README.md` und `Changelog.md` erweitern Text+Bild-Blöcke um optionale Überschriften und getrennte Blockabstände.** Die neue Überschrift wird als `heading` gespeichert und bei aktivem dezenten Rahmen als Band am oberen Rahmen angedockt gerendert. `spacingTop` und `spacingBottom` erlauben getrennte Abstände zum Block darüber und darunter; Standard bleibt jeweils 10px. |
+
+### v3.3.13 — 25.05.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.3.13** | 🟢 add | EditorJS / Text+Bild | **`CMS/assets/js/editor-init.js`, `CMS/assets/css/admin.css`, `CMS/assets/css/editorjs-content.css`, `CMS/core/Services/EditorJsRenderer.php`, `CMS/core/Services/EditorJs/EditorJsSanitizer.php`, `CMS/core/Services/EditorJs/EditorJsContentNormalizer.php`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md`, `CMS/DOC/assets/editorjs/README.md` und `Changelog.md` ergänzen für Text+Bild-Blöcke eine optionale dezente Rahmenanzeige.** Die neue Option wird als `showBorder` gespeichert, im Admin über die Eigenschaften-Leiste bedient und im Public-Renderer mit 1px Kontur, maximal 2px Rundung sowie standardmäßig 10px Abstand nach oben und unten ausgegeben. |
 
 ### v3.3.12 — 25.05.2026
 

@@ -1,6 +1,6 @@
 # 365CMS.DE
 
-**Version:** [3.3.12](Changelog.md) · **Status:** Stable · **PHP:** 8.4+ · **MySQL:** 5.7+ · **MariaDB:** 10.3+
+**Version:** [3.3.16](Changelog.md) · **Status:** Stable · **PHP:** 8.4+ · **MySQL:** 5.7+ · **MariaDB:** 10.3+
 
 <div align="center">
 
@@ -60,6 +60,10 @@ Wichtige Eigenschaften:
 - Abgeglichene EditorJS-Tooloberfläche: aktive Blocktools sind in der Admin-GUI und im generischen EditorJS-Service erreichbar; nicht registrierte Asset-Bundles wurden aus dem Core-Assetordner entfernt
 - Public-nahe Admin-Optik: Blockrahmen erscheinen nur noch beim Hover; Fokuszustände bleiben bewusst sehr dezent, damit der Canvas stärker der späteren Frontend-Ansicht entspricht
 - Auditierter Runtime-Vertrag: `onReady`/`onChange`/`onError`, Hidden-JSON-Synchronisierung, Submit-Save, Pagehide-Cleanup, Upload-Response-Formate und Public-Renderer-Abdeckung sind aufeinander abgestimmt
+- Text+Bild-Blöcke unterstützen eine optionale dezente Rahmenanzeige mit maximal 2px Rundung und standardmäßig 10px Abstand nach oben und unten
+- Text+Bild-Blöcke können optional eine Überschrift anzeigen; bei aktivem Rahmen dockt diese als Band am oberen Rahmen an, während Abstand oben/unten getrennt einstellbar bleibt
+- EditorJS-Audit: Tool-/Asset-Registry ist bereinigt, Datei-Anhänge unterstützen explizit URL-Quellen und MediaText-Überschriften bleiben auch ohne `mbstring` robust
+- Text+Bild-Abstände oben/unten greifen auf Publicseiten über die EditorJS-Core-Abstandsvariablen und werden nicht mehr von globalen `.editorjs-block`-Margin-Regeln überstimmt
 - Stabilere Bearbeitung großer Seiten und Beiträge: Admin-Bildvorschauen laden lazy/async, Offscreen-Blöcke werden browserseitig geschont, massenhafte Zwischenblock-Overlays werden bei sehr vielen Blöcken reduziert und Zahnrad-/Popover-Menüs bleiben vor nachfolgenden Blöcken bedienbar
 - Blockkarten und Schnellaktionen für typische Redaktionsmuster statt technischer JSON-Bearbeitung
 - Theme-nahe Editor-Vorschau durch Auswertung des aktiven Themes

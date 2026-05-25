@@ -313,9 +313,13 @@ final class EditorJsContentNormalizer
         return [
             'file' => array_merge($file, ['url' => (string) ($file['url'] ?? $data['url'] ?? $data['src'] ?? '')]),
             'alt' => strip_tags((string) ($data['alt'] ?? $data['caption'] ?? ''), ''),
+            'heading' => self::truncatePlainText(strip_tags((string) ($data['heading'] ?? $data['title'] ?? $data['headline'] ?? ''), ''), 180),
             'text' => self::sanitizeMediaTextContent((string) ($data['text'] ?? $data['content'] ?? '')),
             'imagePosition' => in_array($position, ['left', 'right'], true) ? $position : 'left',
             'imageWidth' => self::normalizeMediaWidth($width),
+            'showBorder' => filter_var($data['showBorder'] ?? $data['border'] ?? $data['hasBorder'] ?? false, FILTER_VALIDATE_BOOLEAN),
+            'spacingTop' => self::normalizeMediaTextSpacing($data['spacingTop'] ?? $data['marginTop'] ?? $data['blockSpacingTop'] ?? 10),
+            'spacingBottom' => self::normalizeMediaTextSpacing($data['spacingBottom'] ?? $data['marginBottom'] ?? $data['blockSpacingBottom'] ?? 10),
         ];
     }
 
@@ -923,6 +927,23 @@ final class EditorJsContentNormalizer
         }
 
         return '40';
+    }
+
+    private static function normalizeMediaTextSpacing(mixed $value): string
+    {
+        $spacing = (int) preg_replace('/[^0-9]/', '', (string) $value);
+        $allowed = [0, 5, 10, 15, 20, 30, 40, 60, 80, 100];
+
+        return in_array($spacing, $allowed, true) ? (string) $spacing : '10';
+    }
+
+    private static function truncatePlainText(string $value, int $maxLength): string
+    {
+        $value = trim($value);
+
+        return function_exists('mb_substr')
+            ? mb_substr($value, 0, $maxLength, 'UTF-8')
+            : substr($value, 0, $maxLength);
     }
 
     private static function sanitizeInline(string $html): string

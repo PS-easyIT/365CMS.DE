@@ -5687,15 +5687,23 @@ input:checked + .slider:before { transform: translateX(22px); }
 
 .editorjs-holder .cms-editorjs-media-text-preview {
     --cms-media-text-image-width: 40%;
+    --cms-media-text-spacing-top: 10px;
+    --cms-media-text-spacing-bottom: 10px;
     display: flex;
     flex-wrap: wrap;
     align-items: flex-start;
     gap: 1rem;
+    margin: var(--cms-media-text-spacing-top) 0 var(--cms-media-text-spacing-bottom);
     padding: 0.85rem;
     border: 1px solid transparent;
-    border-radius: 16px;
+    border-radius: 2px;
     background: #ffffff;
     transition: border-color 0.14s ease, box-shadow 0.14s ease;
+}
+
+.editorjs-holder .cms-editorjs-media-text-preview--bordered {
+    border-color: rgba(100, 116, 139, 0.32);
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.035);
 }
 
 .editorjs-holder .cms-editorjs-tool--media-text:hover .cms-editorjs-media-text-preview,
@@ -5706,6 +5714,34 @@ input:checked + .slider:before { transform: translateX(22px); }
 
 .editorjs-holder .cms-editorjs-media-text-preview--image-right {
     flex-direction: row-reverse;
+}
+
+.editorjs-holder .cms-editorjs-media-text-preview__heading {
+    flex: 0 0 100%;
+    order: -2;
+    margin: 0 0 0.15rem;
+    padding: 0;
+    color: #0f172a;
+    font-size: 1rem;
+    font-weight: 800;
+    line-height: 1.25;
+}
+
+.editorjs-holder .cms-editorjs-media-text-preview__heading[hidden] {
+    display: none;
+}
+
+.editorjs-holder .cms-editorjs-media-text-preview--bordered.has-heading {
+    padding-top: 0;
+}
+
+.editorjs-holder .cms-editorjs-media-text-preview--bordered .cms-editorjs-media-text-preview__heading {
+    flex-basis: calc(100% + 1.7rem);
+    margin: 0 -0.85rem 0.1rem;
+    padding: 0.5rem 0.85rem;
+    border-bottom: 1px solid rgba(100, 116, 139, 0.22);
+    border-radius: 2px 2px 0 0;
+    background: rgba(248, 250, 252, 0.96);
 }
 
 .editorjs-holder .cms-editorjs-media-text-preview__media {
@@ -5771,6 +5807,19 @@ input:checked + .slider:before { transform: translateX(22px); }
     color: #334155;
     font-size: 0.78rem;
     font-weight: 700;
+}
+
+.editorjs-holder .cms-editorjs-media-text-options__field--checkbox {
+    flex-direction: row;
+    align-items: center;
+    min-width: 142px;
+    padding-bottom: 0.32rem;
+}
+
+.editorjs-holder .cms-editorjs-media-text-options__field--checkbox input {
+    width: 1rem;
+    height: 1rem;
+    margin: 0;
 }
 
 .editorjs-holder .cms-editorjs-image-preview {

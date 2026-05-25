@@ -274,11 +274,15 @@ final class EditorJsSanitizer
             case 'mediaText':
                 $data['file'] = $this->sanitizeFileInfo(is_array($data['file'] ?? null) ? $data['file'] : []);
                 $data['alt'] = strip_tags((string) ($data['alt'] ?? ''), '');
+                $data['heading'] = $this->truncatePlainText(strip_tags((string) ($data['heading'] ?? $data['title'] ?? $data['headline'] ?? ''), ''), 180);
                 $data['text'] = EditorJsHtmlSanitizer::sanitizeRawBlock((string) ($data['text'] ?? ''));
                 $imagePosition = (string) ($data['imagePosition'] ?? $data['position'] ?? $data['mediaPosition'] ?? 'left');
                 $imageWidth = (string) ($data['imageWidth'] ?? $data['mediaWidth'] ?? '40');
                 $data['imagePosition'] = in_array($imagePosition, ['left', 'right'], true) ? $imagePosition : 'left';
                 $data['imageWidth'] = in_array($imageWidth, ['33', '40', '50'], true) ? $imageWidth : '40';
+                $data['showBorder'] = filter_var($data['showBorder'] ?? $data['border'] ?? $data['hasBorder'] ?? false, FILTER_VALIDATE_BOOLEAN);
+                $data['spacingTop'] = $this->sanitizeMediaTextSpacing($data['spacingTop'] ?? $data['marginTop'] ?? $data['blockSpacingTop'] ?? 10);
+                $data['spacingBottom'] = $this->sanitizeMediaTextSpacing($data['spacingBottom'] ?? $data['marginBottom'] ?? $data['blockSpacingBottom'] ?? 10);
                 break;
 
             case 'callout':
@@ -662,6 +666,23 @@ final class EditorJsSanitizer
     private function isValidAssetUrl(string $url): bool
     {
         return $this->sanitizeAssetUrl($url, true) !== '';
+    }
+
+    private function sanitizeMediaTextSpacing(mixed $value): string
+    {
+        $spacing = (int) preg_replace('/[^0-9]/', '', (string) $value);
+        $allowed = [0, 5, 10, 15, 20, 30, 40, 60, 80, 100];
+
+        return in_array($spacing, $allowed, true) ? (string) $spacing : '10';
+    }
+
+    private function truncatePlainText(string $value, int $maxLength): string
+    {
+        $value = trim($value);
+
+        return function_exists('mb_substr')
+            ? mb_substr($value, 0, $maxLength, 'UTF-8')
+            : substr($value, 0, $maxLength);
     }
 
     private function sanitizeAssetUrl(string $url, bool $allowDataImage = false): string

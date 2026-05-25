@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "3.3.12",
+  "version": "3.3.16",
   "min_php": "8.4",
   "released": "2026-05-25",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 3.3.12: EditorJS-Audit schließt Runtime-Lücken in onReady-Callback, Standalone-Hidden-Synchronisierung, Pagehide-Cleanup und AI-Blocktyp-Fallbacks. Tool-, Upload-, Persistenz- und Public-Renderer-Verträge bleiben vollständig auf die lokale EditorJS-Umgebung abgeglichen.",
+  "notes": "Release-Stand 3.3.16: Text+Bild-Abstände oben und unten greifen jetzt auch auf Publicseiten, weil MediaText die EditorJS-Core-Abstandsvariablen --cms-editorjs-space-before und --cms-editorjs-space-after setzt, die von den Public-Margin-Regeln mit !important genutzt werden.",
   "critical": false
 }
