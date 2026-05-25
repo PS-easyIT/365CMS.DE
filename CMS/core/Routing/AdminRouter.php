@@ -158,6 +158,14 @@ final class AdminRouter
         }
 
         if (!$callback || !is_callable($callback)) {
+            $fallback = $this->resolvePluginAdminFallback($plugin, $page);
+            if ($fallback !== null) {
+                $callback = $fallback['callback'];
+                $title = $fallback['title'];
+            }
+        }
+
+        if (!$callback || !is_callable($callback)) {
             if ($isAjax) {
                 http_response_code(404);
                 echo 'Plugin-Adminseite nicht gefunden.';
@@ -219,6 +227,41 @@ final class AdminRouter
         $stylesheetHrefs = [];
         $content = $this->extractStylesheetHrefs($content, $stylesheetHrefs);
         $this->renderPluginAdminShell($title, $page, $content, $stylesheetHrefs);
+    }
+
+    /**
+     * Plugin-spezifische Notfall-Zuordnung für Adminseiten, deren Menü-Hook in
+     * älteren Installationen nicht zuverlässig in der Sidebar-Phase befüllt ist.
+     *
+     * @return array{callback: callable, title: string}|null
+     */
+    private function resolvePluginAdminFallback(string $plugin, string $page): ?array
+    {
+        if ($plugin !== 'booking' || !class_exists('CMS_Booking_Admin_Pages')) {
+            return null;
+        }
+
+        $pages = [
+            'booking' => ['Buchungen', [\CMS_Booking_Admin_Pages::class, 'render_dashboard']],
+            'booking-dashboard' => ['Buchungen', [\CMS_Booking_Admin_Pages::class, 'render_dashboard']],
+            'bookings' => ['Buchungen verwalten', [\CMS_Booking_Admin_Pages::class, 'render_bookings']],
+            'booking-bookings' => ['Buchungen verwalten', [\CMS_Booking_Admin_Pages::class, 'render_bookings']],
+            'providers' => ['Booking Anbieter', [\CMS_Booking_Admin_Pages::class, 'render_providers']],
+            'booking-providers' => ['Booking Anbieter', [\CMS_Booking_Admin_Pages::class, 'render_providers']],
+            'services' => ['Booking Leistungen', [\CMS_Booking_Admin_Pages::class, 'render_services']],
+            'booking-services' => ['Booking Leistungen', [\CMS_Booking_Admin_Pages::class, 'render_services']],
+            'settings' => ['Booking Einstellungen', [\CMS_Booking_Admin_Pages::class, 'render_settings']],
+            'booking-settings' => ['Booking Einstellungen', [\CMS_Booking_Admin_Pages::class, 'render_settings']],
+        ];
+
+        if (!isset($pages[$page]) || !is_callable($pages[$page][1])) {
+            return null;
+        }
+
+        return [
+            'title' => $pages[$page][0],
+            'callback' => $pages[$page][1],
+        ];
     }
 
     private function ensureAdminMenuCompatibility(): void
