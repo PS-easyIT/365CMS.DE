@@ -223,12 +223,20 @@ $renderSparkline = static function (array $points, string $strokeColor, string $
 						<pre class="bg-light border rounded p-3 small text-break mb-0"><code><?php echo htmlspecialchars((string)($commands['cli_mail_queue'] ?? '')); ?></code></pre>
 					</div>
 					<div class="col-lg-6">
+						<label class="form-label">CLI – nur Feeds aktualisieren</label>
+						<pre class="bg-light border rounded p-3 small text-break mb-0"><code><?php echo htmlspecialchars((string)($commands['cli_feeds'] ?? '')); ?></code></pre>
+					</div>
+					<div class="col-lg-6">
 						<label class="form-label">URL – kompletter Lauf</label>
 						<pre class="bg-light border rounded p-3 small text-break mb-0"><code><?php echo htmlspecialchars((string)($commands['web_all'] ?? '')); ?></code></pre>
 					</div>
 					<div class="col-lg-6">
 						<label class="form-label">URL – nur Mail-Queue</label>
 						<pre class="bg-light border rounded p-3 small text-break mb-0"><code><?php echo htmlspecialchars((string)($commands['web_mail_queue'] ?? '')); ?></code></pre>
+					</div>
+					<div class="col-lg-6">
+						<label class="form-label">URL – nur Feeds aktualisieren</label>
+						<pre class="bg-light border rounded p-3 small text-break mb-0"><code><?php echo htmlspecialchars((string)($commands['web_feeds'] ?? '')); ?></code></pre>
 					</div>
 					<div class="col-lg-6">
 						<label class="form-label">cURL – JSON-Ausgabe</label>
@@ -268,7 +276,7 @@ $renderSparkline = static function (array $points, string $strokeColor, string $
 								<label class="form-label d-block">Optionen</label>
 								<label class="form-check form-switch mt-2">
 									<input class="form-check-input" type="checkbox" name="cron_force" value="1">
-									<span class="form-check-label">Stündlichen Hook erzwingen</span>
+									<span class="form-check-label">Stündlichen Hook / Feed-Task erzwingen</span>
 								</label>
 							</div>
 						</div>

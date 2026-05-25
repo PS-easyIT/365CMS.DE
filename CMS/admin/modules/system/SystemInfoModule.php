@@ -1965,14 +1965,22 @@ class SystemInfoModule
         $cronToken = (string) ($queueConfig['cron_token'] ?? '');
         $cronWebPath = '/cron.php';
         $cronBaseUrl = defined('SITE_URL') ? rtrim((string) SITE_URL, '/') . $cronWebPath : '';
+        $runnerTasks = array_values(array_filter(
+            CronRunnerService::getInstance()->getSupportedTasks(),
+            static fn (string $task): bool => !str_starts_with($task, 'cms_cron_')
+        ));
         $cronUrl = defined('SITE_URL')
             ? rtrim((string) SITE_URL, '/') . $cronWebPath . '?task=all&quiet=1&token=' . rawurlencode($cronToken)
             : '';
         $mailQueueUrl = defined('SITE_URL')
             ? rtrim((string) SITE_URL, '/') . $cronWebPath . '?task=mail-queue&quiet=1&token=' . rawurlencode($cronToken)
             : '';
+        $feedCronUrl = defined('SITE_URL')
+            ? rtrim((string) SITE_URL, '/') . $cronWebPath . '?task=feeds&quiet=1&token=' . rawurlencode($cronToken)
+            : '';
         $defaultCliCommand = 'php ' . escapeshellarg($cronFilePath) . ' --task=all --quiet';
         $mailQueueCliCommand = 'php ' . escapeshellarg($cronFilePath) . ' --task=mail-queue --limit=' . (int) ($queueConfig['batch_size'] ?? 10) . ' --quiet';
+        $feedCliCommand = 'php ' . escapeshellarg($cronFilePath) . ' --task=feeds --limit=5 --quiet';
         $curlCommand = $cronBaseUrl !== ''
             ? 'curl -fsS ' . escapeshellarg($cronBaseUrl . '?task=all&format=json&token=' . rawurlencode($cronToken))
             : '';
@@ -1989,8 +1997,10 @@ class SystemInfoModule
             'commands' => [
                 'cli_all' => $defaultCliCommand,
                 'cli_mail_queue' => $mailQueueCliCommand,
+                'cli_feeds' => $feedCliCommand,
                 'web_all' => $cronUrl,
                 'web_mail_queue' => $mailQueueUrl,
+                'web_feeds' => $feedCronUrl,
                 'curl_all' => $curlCommand,
                 'powershell_all' => $powershellCommand,
             ],
@@ -2004,7 +2014,7 @@ class SystemInfoModule
                 'expression_valid' => CronExpressionAdapter::getInstance()->isValid($scheduleExpression),
             ],
             'runner' => [
-                'tasks' => ['all', 'mail-queue', 'hourly'],
+                'tasks' => $runnerTasks,
                 'default_task' => 'all',
                 'default_limit' => (int) ($queueConfig['batch_size'] ?? 10),
                 'loopback_url' => $cronBaseUrl,
@@ -2223,7 +2233,10 @@ class SystemInfoModule
     private function normalizeCronRequest(array $post): array
     {
         $task = trim((string) ($post['cron_task'] ?? 'all'));
-        $availableTasks = ['all', 'mail-queue', 'hourly'];
+        $availableTasks = array_values(array_filter(
+            CronRunnerService::getInstance()->getSupportedTasks(),
+            static fn (string $candidate): bool => !str_starts_with($candidate, 'cms_cron_')
+        ));
         if (!in_array($task, $availableTasks, true)) {
             $task = 'all';
         }

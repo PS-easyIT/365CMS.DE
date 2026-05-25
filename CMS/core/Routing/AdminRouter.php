@@ -228,8 +228,12 @@ final class AdminRouter
             require_once $menuFunctions;
         }
 
+        if (function_exists('renderAdminLayoutStart') && function_exists('renderAdminLayoutEnd')) {
+            return;
+        }
+
         $legacyMenuPartial = ABSPATH . 'admin/partials/admin-menu.php';
-        if (is_file($legacyMenuPartial)) {
+        if (is_file($legacyMenuPartial) && !function_exists('renderAdminLayoutStart')) {
             require_once $legacyMenuPartial;
         }
     }

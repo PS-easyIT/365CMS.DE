@@ -21,7 +21,7 @@ final class CronRunnerService
      */
     public function getSupportedTasks(): array
     {
-        return ['all', 'mail-queue', 'hourly', 'cms_cron_mail_queue', 'cms_cron_hourly'];
+        return ['all', 'mail-queue', 'hourly', 'feeds', 'cms_cron_mail_queue', 'cms_cron_hourly', 'cms_cron_feeds'];
     }
 
     public static function getInstance(): self
@@ -51,6 +51,7 @@ final class CronRunnerService
             'mail_queue' => null,
             'mail_queue_after_hourly' => null,
             'hourly' => null,
+            'feeds' => null,
             'feed_queue_recovery' => null,
             'feed_queue' => null,
             'hook' => null,
@@ -66,7 +67,7 @@ final class CronRunnerService
                 'source' => $source,
                 'result' => $result,
                 'error_code' => 'invalid_task',
-                'error' => 'Unbekannte Cron-Task. Unterstützt werden aktuell "all", "mail-queue", "hourly" und generische "cms_cron_*"-Hooks.',
+                'error' => 'Unbekannte Cron-Task. Unterstützt werden aktuell "all", "mail-queue", "hourly", "feeds" und generische "cms_cron_*"-Hooks.',
             ];
         }
 
@@ -90,6 +91,7 @@ final class CronRunnerService
             $settings = SettingsService::getInstance();
             $isMailQueueTask = in_array($task, ['mail-queue', 'cms_cron_mail_queue'], true);
             $isHourlyTask = in_array($task, ['hourly', 'cms_cron_hourly'], true);
+            $isFeedTask = in_array($task, ['feeds', 'cms_cron_feeds'], true);
             $isAllTask = $task === 'all';
             $shouldRunLegacyHourlyBridge = $task === 'mail-queue'
                 && $settings->getBool('cron', 'mail_queue_triggers_hourly', true);
@@ -131,7 +133,11 @@ final class CronRunnerService
                 $result['feed_queue'] = $this->runLegacyFeedQueueBridge();
             }
 
-            if ($isGenericCronHook && !in_array($task, ['cms_cron_mail_queue', 'cms_cron_hourly'], true)) {
+            if ($isFeedTask) {
+                $result['feeds'] = $this->runFeedCronTask($limit, $force, $mode, $source);
+            }
+
+            if ($isGenericCronHook && !in_array($task, ['cms_cron_mail_queue', 'cms_cron_hourly', 'cms_cron_feeds'], true)) {
                 $result['hook'] = $this->runGenericHook($task, $limit, $force, $mode, $source);
             }
 
@@ -144,6 +150,9 @@ final class CronRunnerService
             }
             if (is_array($result['hourly']) && array_key_exists('success', $result['hourly'])) {
                 $success = $success && !empty($result['hourly']['success']);
+            }
+            if (is_array($result['feeds']) && array_key_exists('success', $result['feeds'])) {
+                $success = $success && !empty($result['feeds']['success']);
             }
             if (is_array($result['hook']) && array_key_exists('success', $result['hook'])) {
                 $success = $success && !empty($result['hook']['success']);
@@ -431,7 +440,8 @@ final class CronRunnerService
             return null;
         }
 
-        if (Hooks::hasAction('cms_cron_mail_queue', [$feedCron, 'drain_pending_queue'], 20)) {
+        if (Hooks::hasAction('cms_cron_mail_queue', [$feedCron, 'run_cron_tick'], 20)
+            || Hooks::hasAction('cms_cron_mail_queue', [$feedCron, 'drain_pending_queue'], 20)) {
             return null;
         }
 
@@ -443,6 +453,55 @@ final class CronRunnerService
             'mode' => 'legacy-core-bridge',
             'result' => $result,
         ];
+    }
+
+    private function runFeedCronTask(?int $limit, bool $forceRun, string $mode, string $source): array
+    {
+        if (!class_exists('CMS_Feed_Cron')) {
+            return [
+                'success' => true,
+                'executed' => false,
+                'mode' => 'feed-cron-not-loaded',
+                'message' => 'CMS Feed ist nicht geladen oder nicht aktiv.',
+            ];
+        }
+
+        try {
+            $feedCron = \CMS_Feed_Cron::instance();
+            if (method_exists($feedCron, 'run_cron_tick')) {
+                $feedResult = $feedCron->run_cron_tick([
+                    'limit' => $limit,
+                    'force' => $forceRun,
+                    'source' => 'cron.php',
+                    'mode' => $mode,
+                    'task' => 'feeds',
+                ]);
+            } else {
+                $feedResult = method_exists($feedCron, 'process_queue') ? $feedCron->process_queue() : [];
+            }
+
+            return [
+                'success' => true,
+                'executed' => true,
+                'mode' => 'feed-cron-task',
+                'source' => $source,
+                'result' => $feedResult,
+            ];
+        } catch (\Throwable $e) {
+            \CMS\Logger::instance()->withChannel('cron')->warning('Cron feed task failed.', [
+                'exception' => $e,
+                'mode' => $mode,
+                'source' => $source,
+            ]);
+
+            return [
+                'success' => false,
+                'executed' => false,
+                'mode' => 'feed-cron-task',
+                'source' => $source,
+                'error' => 'Feed-Cron fehlgeschlagen. Details wurden intern protokolliert.',
+            ];
+        }
     }
 
     private function truncateForLog(string $value, int $limit = 400): string
