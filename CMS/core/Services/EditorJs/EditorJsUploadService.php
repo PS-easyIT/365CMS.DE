@@ -51,7 +51,7 @@ final class EditorJsUploadService
             $defaultTargetPath = 'editorjs';
         }
 
-        $contentType = in_array((string) ($post['content_type'] ?? ''), ['post', 'page'], true)
+        $contentType = in_array((string) ($post['content_type'] ?? ''), ['post', 'page', 'hub'], true)
             ? (string) $post['content_type']
             : '';
 
@@ -70,7 +70,11 @@ final class EditorJsUploadService
             $folderSlug = $this->sanitizeFolderSegment((string) ($post['content_title_fallback'] ?? ''));
         }
 
-        $baseFolder = $contentType === 'page' ? 'pages' : 'articles';
+        $baseFolder = match ($contentType) {
+            'page' => 'pages',
+            'hub' => 'hub-sites',
+            default => 'articles',
+        };
         if ($folderSlug !== '') {
             return $baseFolder . '/' . $folderSlug;
         }

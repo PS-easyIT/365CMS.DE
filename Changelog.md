@@ -1,4 +1,4 @@
-﻿**Version:** 3.3.31
+﻿**Version:** 3.3.33
 
 # 365CMS Changelog
 
@@ -19,6 +19,18 @@
 ## 📜 Aktuelle Versionshistorie ab 3.0.0
 
 > Die vollständige historische 2.x-Historie wurde in [`Changelog_old.md`](Changelog_old.md) archiviert.
+
+### v3.3.33 — 25.05.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.3.33** | 🟢 feat | HubSites / Medienauswahl | **`CMS/admin/hub-sites.php`, `CMS/admin/views/hub/edit.php`, `CMS/assets/js/admin-hub-site-edit.js`, `CMS/assets/css/admin-hub-site-edit.css`, `CMS/core/Services/EditorJs/EditorJsUploadService.php`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md`, `CMS/DOC/admin/pages-posts/HUBSITES.md` und `Changelog.md` erweitern den HubSite-Karteneditor um direkte Medienarbeit.** Neben der manuellen Bild-URL besitzen HubSite-Kacheln jetzt Upload-, Mediathek- und Leeren-Aktionen mit sofortiger Vorschau. Uploads nutzen denselben abgesicherten `/api/media`-Flow wie EditorJS-Bilder, übergeben einen HubSite-Kontext und landen dadurch in `uploads/hub-sites/<slug>`, während Mediathek-Auswahlen vorhandene Bild-URLs direkt in das Karten-JSON übernehmen. |
+
+### v3.3.32 — 25.05.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.3.32** | 🔴 fix | EditorJS / TOC-Semantik | **`CMS/core/Services/EditorJsRenderer.php`, `CMS/assets/js/editor-init.js`, `CMS/assets/css/editorjs-content.css`, `CMS/assets/css/admin.css`, `CMS/core/TableOfContents.php`, `CMS/admin/modules/toc/TocModule.php`, `CMS/assets/css/main.css`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md`, `CMS/DOC/assets/editorjs/README.md` und `Changelog.md` schärfen Text+Bild-Titel und Inhaltsverzeichnisse nach.** EditorJS-Text+Bild-Blöcke rendern optionale Titel jetzt semantisch als `h4` und nutzen im Admin sowie Public-Frontend den H4-Maßstab. Das globale TOC ist standardmäßig nicht mehr nummeriert; Header-TOCs und unnummerierte Core-TOCs nutzen ungeordnete Listen mit passenden Punkten, Pfeilen und dezenteren Markern je Einrückungsebene. |
 
 ### v3.3.31 — 25.05.2026
 

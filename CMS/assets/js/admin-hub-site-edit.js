@@ -14,10 +14,6 @@
         }
     }
 
-    function escapeHtml(value) {
-        return String(value || '');
-    }
-
     function showAlert(type, message) {
         if (typeof window.cmsAlert === 'function') {
             window.cmsAlert(type, message);
@@ -39,6 +35,39 @@
         } catch (_error) {
             return normalizedPath;
         }
+    }
+
+    function focusElement(element) {
+        if (!element || typeof element.focus !== 'function') {
+            return;
+        }
+
+        try {
+            element.focus({ preventScroll: true });
+        } catch (_error) {
+            element.focus();
+        }
+    }
+
+    function sanitizePreviewImageUrl(value) {
+        var url = String(value || '').trim();
+        var parsed;
+
+        if (url === '' || url === '#' || /[\u0000\r\n<>"']/.test(url)) {
+            return '';
+        }
+
+        if (/^(?:\/|\.\/|\.\.\/)/.test(url)) {
+            return url;
+        }
+
+        try {
+            parsed = new URL(url, window.location.origin);
+        } catch (_error) {
+            return '';
+        }
+
+        return /^(https?:)$/i.test(parsed.protocol) ? url : '';
     }
 
     function clearElement(element) {
@@ -151,6 +180,102 @@
         return column;
     }
 
+    function createImagePreview(url) {
+        var preview = createElement('div', 'hub-card-image-preview');
+        var cleanUrl = sanitizePreviewImageUrl(url);
+
+        if (cleanUrl === '') {
+            preview.classList.add('d-none');
+            return preview;
+        }
+
+        var image = document.createElement('img');
+        image.src = cleanUrl;
+        image.alt = '';
+        image.loading = 'lazy';
+        image.decoding = 'async';
+        preview.appendChild(image);
+
+        return preview;
+    }
+
+    function updateImagePreview(preview, url) {
+        if (!preview) {
+            return;
+        }
+
+        clearElement(preview);
+
+        var cleanUrl = sanitizePreviewImageUrl(url);
+        preview.classList.toggle('d-none', cleanUrl === '');
+        if (cleanUrl === '') {
+            return;
+        }
+
+        var image = document.createElement('img');
+        image.src = cleanUrl;
+        image.alt = '';
+        image.loading = 'lazy';
+        image.decoding = 'async';
+        preview.appendChild(image);
+    }
+
+    function createCardImageColumn(index, card, options) {
+        var column = createElement('div', 'col-md-8');
+        var group = createElement('div', 'input-group input-group-sm hub-card-image-control');
+        var input = createInput(card.image_url || '', { index: index, key: 'image_url' }, { placeholder: 'https://… oder /uploads/...' });
+        var uploadButton = createElement('button', 'btn btn-outline-primary', 'Upload');
+        var libraryButton = createElement('button', 'btn btn-outline-secondary', 'Mediathek');
+        var clearButton = createElement('button', 'btn btn-outline-danger', 'Leeren');
+        var fileInput = createElement('input', 'd-none');
+        var preview = createImagePreview(card.image_url || '');
+
+        uploadButton.type = 'button';
+        libraryButton.type = 'button';
+        clearButton.type = 'button';
+        fileInput.type = 'file';
+        fileInput.accept = '.jpg,.jpeg,.png,.gif,.webp,.bmp,.ico,image/jpeg,image/png,image/gif,image/webp,image/bmp,image/x-bmp,image/x-icon,image/vnd.microsoft.icon';
+
+        uploadButton.addEventListener('click', function () {
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', function () {
+            var file = fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
+            if (!file || typeof options.onUploadImage !== 'function') {
+                return;
+            }
+
+            options.onUploadImage(index, file, input, preview, uploadButton).finally(function () {
+                fileInput.value = '';
+            });
+        });
+
+        libraryButton.addEventListener('click', function () {
+            if (typeof options.onOpenImageLibrary === 'function') {
+                options.onOpenImageLibrary(index, input, preview, libraryButton);
+            }
+        });
+
+        clearButton.addEventListener('click', function () {
+            if (typeof options.onSetImageUrl === 'function') {
+                options.onSetImageUrl(index, '', input, preview);
+            }
+        });
+
+        column.appendChild(createFieldLabel(options.schema.image_label));
+        group.appendChild(input);
+        group.appendChild(uploadButton);
+        group.appendChild(libraryButton);
+        group.appendChild(clearButton);
+        column.appendChild(group);
+        column.appendChild(fileInput);
+        column.appendChild(preview);
+        column.appendChild(createFormHint('URL manuell eintragen, neues Bild hochladen oder vorhandenes Bild aus der Mediathek übernehmen.'));
+
+        return column;
+    }
+
     function createFeatureToggleColumn(index, card, featureSupported) {
         var column = createElement('div', 'col-12');
         var label = createElement('label', 'form-check form-switch mb-0');
@@ -210,7 +335,7 @@
         row.appendChild(createFieldColumn('col-md-6', options.schema.meta_right_label + suffix, createInput(card[options.metaRightKey] || '', { index: index, key: options.metaRightKey })));
         row.appendChild(createFieldColumn('col-md-6', options.schema.button_text_label + suffix, createInput(card[options.buttonTextKey] || '', { index: index, key: options.buttonTextKey })));
         row.appendChild(createFieldColumn('col-md-6', options.schema.button_link_label, createInput(card.button_link || '', { index: index, key: 'button_link' })));
-        row.appendChild(createFieldColumn('col-md-8', options.schema.image_label, createInput(card.image_url || '', { index: index, key: 'image_url' }, { placeholder: 'https://… oder /uploads/...' })));
+        row.appendChild(createCardImageColumn(index, card, options));
         row.appendChild(createFieldColumn('col-md-4', options.schema.image_alt_label + suffix, createInput(card[options.imageAltKey] || '', { index: index, key: options.imageAltKey })));
         row.appendChild(createFieldColumn(
             'col-12',
@@ -584,6 +709,288 @@
 
             return absoluteUrlFromPath(publicPath);
         }
+
+        function currentHubSlug() {
+            var slugValue = String(slugPreviewInput && slugPreviewInput.value ? slugPreviewInput.value : '').trim();
+
+            if (slugValue.charAt(0) === '/') {
+                slugValue = slugValue.slice(1);
+            }
+
+            return slugValue || slugify(titleInput ? titleInput.value : '') || 'hub-site';
+        }
+
+        function mediaApiUrl(action) {
+            var endpoint = String(siteConfig.mediaUploadUrl || '/api/media');
+            var separator = endpoint.indexOf('?') === -1 ? '?' : '&';
+
+            return endpoint + separator + 'action=' + encodeURIComponent(action);
+        }
+
+        function parseMediaPayload(response, fallbackMessage) {
+            return response.json().catch(function () {
+                throw new Error(fallbackMessage);
+            }).then(function (payload) {
+                if (!response.ok || !payload || Number(payload.success) !== 1) {
+                    throw new Error(String(payload && payload.message ? payload.message : fallbackMessage));
+                }
+
+                return payload;
+            });
+        }
+
+        function validateImageFile(file) {
+            var maxSize = 25 * 1024 * 1024;
+            var allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp', 'image/x-icon', 'image/vnd.microsoft.icon'];
+            var allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'ico'];
+            var extension = String(file && file.name ? file.name.split('.').pop() : '').toLowerCase();
+
+            if (!file) {
+                return 'Bitte eine Bilddatei auswählen.';
+            }
+            if (file.size > maxSize) {
+                return 'Das Bild ist größer als 25 MB.';
+            }
+            if (allowedTypes.indexOf(String(file.type || '').toLowerCase()) === -1 && allowedExtensions.indexOf(extension) === -1) {
+                return 'Nur JPG, PNG, GIF, WebP, BMP oder ICO sind erlaubt.';
+            }
+
+            return '';
+        }
+
+        function setCardImageUrl(index, url, input, preview) {
+            var cleanUrl = String(url || '').trim();
+
+            if (!cards[index]) {
+                return;
+            }
+
+            cards[index].image_url = cleanUrl;
+            if (input) {
+                input.value = cleanUrl;
+            }
+            updateImagePreview(preview, cleanUrl);
+            sync();
+        }
+
+        function uploadHubCardImage(index, file, input, preview, button) {
+            var validationError = validateImageFile(file);
+            var originalText = button ? button.textContent : '';
+
+            if (validationError !== '') {
+                showAlert('danger', validationError);
+                return Promise.resolve();
+            }
+
+            if (button) {
+                button.disabled = true;
+                button.textContent = 'Upload …';
+            }
+
+            var body = new FormData();
+            body.append('action', 'upload_image');
+            body.append('image', file);
+            body.append('csrf_token', siteConfig.mediaToken || '');
+            body.append('content_type', 'hub');
+            body.append('content_slug', currentHubSlug());
+            body.append('content_title', titleInput ? String(titleInput.value || '') : 'Hub Site');
+
+            return fetch(mediaApiUrl('upload_image'), {
+                method: 'POST',
+                body: body,
+                credentials: 'same-origin',
+                headers: siteConfig.mediaToken ? { 'X-CSRF-Token': siteConfig.mediaToken } : {}
+            }).then(function (response) {
+                return parseMediaPayload(response, 'Bild konnte nicht hochgeladen werden.');
+            }).then(function (payload) {
+                var filePayload = payload.file || {};
+                var url = String(filePayload.url || '').trim();
+
+                if (url === '') {
+                    throw new Error('Upload erfolgreich, aber keine Bild-URL erhalten.');
+                }
+
+                setCardImageUrl(index, url, input, preview);
+                showAlert('success', 'Bild wurde hochgeladen und übernommen.');
+            }).catch(function (error) {
+                showAlert('danger', error && error.message ? error.message : 'Bild konnte nicht hochgeladen werden.');
+            }).finally(function () {
+                if (button) {
+                    button.disabled = false;
+                    button.textContent = originalText || 'Upload';
+                }
+            });
+        }
+
+        function normalizeLibraryItem(item) {
+            var source = item && typeof item === 'object' ? item : {};
+            var url = String(source.url || source.src || '').trim();
+
+            if (url === '') {
+                return null;
+            }
+
+            return {
+                url: url,
+                name: String(source.name || source.filename || 'Bild').trim(),
+                path: String(source.path || '').trim(),
+                caption: String(source.caption || source.alt || source.title || '').trim()
+            };
+        }
+
+        function fetchLibraryImages() {
+            return fetch(mediaApiUrl('list_images'), {
+                method: 'GET',
+                credentials: 'same-origin',
+                headers: siteConfig.mediaToken ? { 'X-CSRF-Token': siteConfig.mediaToken } : {}
+            }).then(function (response) {
+                return parseMediaPayload(response, 'Mediathek konnte nicht geladen werden.');
+            }).then(function (payload) {
+                return (Array.isArray(payload.items) ? payload.items : []).map(normalizeLibraryItem).filter(Boolean);
+            });
+        }
+
+        function openHubImageLibrary(index, input, preview, triggerElement) {
+            var overlay = createElement('div', 'cms-editorjs-media-picker hub-card-media-picker');
+            var dialog = createElement('div', 'cms-editorjs-media-picker__dialog');
+            var header = createElement('div', 'cms-editorjs-media-picker__header');
+            var title = createElement('strong', '', 'HubSite-Bild aus Mediathek auswählen');
+            var closeButton = createElement('button', 'btn btn-sm btn-outline-secondary', 'Schließen');
+            var search = createInput('', {}, { type: 'search', placeholder: 'Mediathek durchsuchen …' });
+            var status = createElement('div', 'cms-editorjs-media-picker__status', 'Lade Mediathek …');
+            var grid = createElement('div', 'cms-editorjs-media-picker__grid');
+            var items = [];
+            var previousFocus = document.activeElement;
+
+            search.className = 'form-control form-control-sm';
+            closeButton.type = 'button';
+            dialog.setAttribute('role', 'dialog');
+            dialog.setAttribute('aria-modal', 'true');
+            dialog.setAttribute('aria-label', 'HubSite-Bild aus Mediathek auswählen');
+
+            function closePicker() {
+                overlay.remove();
+                document.removeEventListener('keydown', handleKeydown);
+
+                if (triggerElement && document.contains(triggerElement)) {
+                    focusElement(triggerElement);
+                    return;
+                }
+                if (previousFocus && document.contains(previousFocus)) {
+                    focusElement(previousFocus);
+                }
+            }
+
+            function getFocusableElements() {
+                return Array.prototype.slice.call(dialog.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'))
+                    .filter(function (element) {
+                        return element.offsetParent !== null || element === document.activeElement;
+                    });
+            }
+
+            function handleKeydown(event) {
+                if (event.key === 'Escape') {
+                    closePicker();
+                    return;
+                }
+
+                if (event.key !== 'Tab') {
+                    return;
+                }
+
+                var focusable = getFocusableElements();
+                var first = focusable[0];
+                var last = focusable[focusable.length - 1];
+
+                if (!first || !last) {
+                    event.preventDefault();
+                    return;
+                }
+
+                if (event.shiftKey && document.activeElement === first) {
+                    event.preventDefault();
+                    focusElement(last);
+                    return;
+                }
+
+                if (!event.shiftKey && document.activeElement === last) {
+                    event.preventDefault();
+                    focusElement(first);
+                }
+            }
+
+            function filteredItems() {
+                var query = String(search.value || '').trim().toLowerCase();
+
+                if (query === '') {
+                    return items;
+                }
+
+                return items.filter(function (item) {
+                    return [item.name, item.path, item.caption, item.url].join(' ').toLowerCase().indexOf(query) !== -1;
+                });
+            }
+
+            function renderItems() {
+                var visibleItems = filteredItems();
+
+                clearElement(grid);
+                status.textContent = visibleItems.length + (visibleItems.length === 1 ? ' Bild verfügbar' : ' Bilder verfügbar');
+
+                if (visibleItems.length === 0) {
+                    grid.appendChild(createElement('div', 'cms-editorjs-media-picker__empty', 'Keine passenden Bilder gefunden.'));
+                    return;
+                }
+
+                visibleItems.forEach(function (item) {
+                    var button = createElement('button', 'cms-editorjs-media-picker__item');
+                    var image = document.createElement('img');
+                    var label = createElement('span', '', item.name || item.path || 'Bild');
+
+                    button.type = 'button';
+                    image.src = item.url;
+                    image.alt = item.caption || item.name || 'Bild';
+                    image.loading = 'lazy';
+                    image.decoding = 'async';
+                    button.appendChild(image);
+                    button.appendChild(label);
+                    button.addEventListener('click', function () {
+                        setCardImageUrl(index, item.url, input, preview);
+                        closePicker();
+                    });
+                    grid.appendChild(button);
+                });
+            }
+
+            header.appendChild(title);
+            header.appendChild(closeButton);
+            dialog.appendChild(header);
+            dialog.appendChild(search);
+            dialog.appendChild(grid);
+            dialog.appendChild(status);
+            overlay.appendChild(dialog);
+            document.body.appendChild(overlay);
+            document.addEventListener('keydown', handleKeydown);
+
+            closeButton.addEventListener('click', closePicker);
+            overlay.addEventListener('click', function (event) {
+                if (event.target === overlay) {
+                    closePicker();
+                }
+            });
+            search.addEventListener('input', renderItems);
+
+            fetchLibraryImages().then(function (loadedItems) {
+                items = loadedItems;
+                renderItems();
+                focusElement(search);
+            }).catch(function (error) {
+                status.textContent = error && error.message ? error.message : 'Mediathek konnte nicht geladen werden.';
+                clearElement(grid);
+                grid.appendChild(createElement('div', 'cms-editorjs-media-picker__empty', status.textContent));
+            });
+        }
+
         function prepareFormSubmission(resetOpenPublicAfterSave) {
             summaryEditors.forEach(function (editor, key) {
                 var textarea = document.getElementById(key);
@@ -697,7 +1104,10 @@
                 metaRightKey: metaRightKey,
                 imageAltKey: imageAltKey,
                 summaryKey: summaryKey,
-                buttonTextKey: buttonTextKey
+                buttonTextKey: buttonTextKey,
+                onSetImageUrl: setCardImageUrl,
+                onUploadImage: uploadHubCardImage,
+                onOpenImageLibrary: openHubImageLibrary
             };
 
             cards.forEach(function (card, index) {
@@ -779,6 +1189,13 @@
             collection[index][key] = key === 'is_feature'
                 ? Boolean(target.checked)
                 : target.value;
+
+            if (key === 'image_url' && source === 'cards') {
+                var imageColumn = typeof target.closest === 'function' ? target.closest('.col-md-8') : null;
+                var preview = imageColumn ? imageColumn.querySelector('.hub-card-image-preview') : null;
+                updateImagePreview(preview, target.value);
+            }
+
             sync();
         });
 

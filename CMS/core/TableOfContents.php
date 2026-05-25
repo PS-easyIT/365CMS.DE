@@ -39,7 +39,7 @@ class TableOfContents
         'header_label'         => 'Inhaltsverzeichnis',
         'allow_toggle'         => true,
         'show_hierarchy'       => true,
-        'show_counter'         => true,
+        'show_counter'         => false,
         'smooth_scroll'        => true,
         'smooth_scroll_offset' => 30,
         'mobile_scroll_offset' => 0,
@@ -372,7 +372,7 @@ class TableOfContents
             return '';
         }
 
-        $html = '<ol class="cms-page-title-toc__list' . ($nested ? ' cms-page-title-toc__list--nested' : '') . '">';
+        $html = '<ul class="cms-page-title-toc__list' . ($nested ? ' cms-page-title-toc__list--nested' : '') . '" role="list">';
         foreach ($headings as $heading) {
             $level = max(2, min(6, (int)($heading['level'] ?? 2)));
             $anchor = htmlspecialchars((string)($heading['anchor'] ?? ''), ENT_QUOTES, 'UTF-8');
@@ -389,7 +389,7 @@ class TableOfContents
             }
             $html .= '</li>';
         }
-        $html .= '</ol>';
+        $html .= '</ul>';
 
         return $html;
     }
@@ -575,7 +575,7 @@ class TableOfContents
         $label        = htmlspecialchars((string)($this->settings['header_label'] ?? 'Inhaltsverzeichnis'), ENT_QUOTES, 'UTF-8');
         $allowToggle  = (bool)($this->settings['allow_toggle']      ?? true);
         $showHier     = (bool)($this->settings['show_hierarchy']     ?? true);
-        $showCounter  = (bool)($this->settings['show_counter']       ?? true);
+        $showCounter  = (bool)($this->settings['show_counter']       ?? false);
         $smoothScroll = (bool)($this->settings['smooth_scroll']      ?? true);
         $desktopOffset = (int) ($this->settings['smooth_scroll_offset'] ?? 30);
         $mobileOffset  = (int) ($this->settings['mobile_scroll_offset'] ?? $desktopOffset);
@@ -597,6 +597,9 @@ class TableOfContents
         }
         if ($useInternalCss && $stickyToggle) {
             $classes[] = 'cms-toc--sticky';
+        }
+        if ($useInternalCss) {
+            $classes[] = $showCounter ? 'cms-toc--numbered' : 'cms-toc--unordered';
         }
 
         $inlineStyles = [];
@@ -730,7 +733,8 @@ class TableOfContents
             $scrollAttr = $smooth ? ' data-tl' : '';
             $hasKids   = !empty($h['children']);
 
-            $html .= '<li' . ($useInternalCss ? ' class="cms-toc__item' . ($hasKids ? ' has-children' : '') . '"' : '') . '>';
+            $level = max(2, min(6, (int) ($h['level'] ?? 2)));
+            $html .= '<li' . ($useInternalCss ? ' class="cms-toc__item cms-toc__item--level-' . $level . ($hasKids ? ' has-children' : '') . '"' : '') . '>';
             if ($removeLinks) {
                 $html .= '<span' . ($useInternalCss ? ' class="cms-toc__label"' : '') . '>' . $text . '</span>';
             } else {

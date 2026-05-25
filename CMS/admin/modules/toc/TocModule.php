@@ -36,7 +36,7 @@ class TocModule
         'header_label'         => 'Inhaltsverzeichnis',
         'allow_toggle'         => true,
         'show_hierarchy'       => true,
-        'show_counter'         => true,
+        'show_counter'         => false,
         'smooth_scroll'        => true,
         'smooth_scroll_offset' => 30,
         'mobile_scroll_offset' => 0,

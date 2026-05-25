@@ -380,7 +380,7 @@
     order: -2;
     margin: 0 0 .5rem;
     color: var(--text-primary, #0f172a);
-    font-size: var(--fs-h3, 1.25rem) !important;
+    font-size: var(--fs-h4, 1.125rem) !important;
     font-weight: 700;
     line-height: 1.3;
 }

@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Verwaltung thematischer Hub-Sites und Landing-Hubs über `/admin/hub-sites`.
 
-Letzte Aktualisierung: 2026-05-24 · Version 3.0.31
+Letzte Aktualisierung: 2026-05-25 · Version 3.3.33
 
 ---
 
@@ -45,6 +45,8 @@ Seit `3.0.29` gibt es das HubSite-Template-Profil `services` für Dienstleistung
 Seit `3.0.30` ist das Profil im HubSite-Admin zusätzlich sichtbar in den Template-Varianten beschrieben. Services-basierte Templates unterstützen im Card-Editor Feature-Kacheln in Vollbreite und zeigen in der Template-Vorschau eigene Dienstleistungs-/Delivery-Beschriftungen.
 
 Seit `3.0.31` kann die Card-Rundung direkt im HubSite-Template per Zahlfeld und Slider angepasst werden. Der Live-Preview übernimmt den Radius sofort, neue Templates ziehen den Radius-Default des gewählten Basis-Layouts nach, und einzelne HubSites können den Template-Wert optional mit einem eigenen Radius überschreiben.
+
+Seit `3.3.33` besitzen HubSite-Kacheln im Karteneditor neben der manuellen Bild-URL auch Upload und Auswahl aus der vorhandenen Mediathek. Neue Uploads verwenden denselben `/api/media?action=upload_image`-Flow wie EditorJS-Bilder, werden mit `content_type=hub` und dem aktuellen Hub-Slug kontextualisiert und landen damit unter `uploads/hub-sites/<slug>`. Mediathek-Auswahlen nutzen `list_images` und schreiben die gewählte Bild-URL direkt in das Karten-JSON.
 
 Themes können das Profil über die vorhandenen HubSite-CSS-Klassen, insbesondere `.cms-hub-site--services`, visuell weiter zuschneiden.
 

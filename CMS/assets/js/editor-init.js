@@ -25,7 +25,7 @@
     var TUNE_TOOL_NAMES = ['anchor', 'alignmentTune', 'indentTune', 'textVariant'];
     var PLUGIN_NAMES = ['undo', 'dragDrop'];
     var TOOL_NAMES = BLOCK_TOOL_NAMES.concat(INLINE_TOOL_NAMES, TUNE_TOOL_NAMES);
-    var VERSION = 'cms-editorjs-org-assets-2026-05-25-audit-link-checklist-3-3-31';
+    var VERSION = 'cms-editorjs-org-assets-2026-05-25-media-text-h4-toc-ul-3-3-32';
     var THEME_PREVIEW_STYLE_CACHE = {};
     var TOOL_GLOBALS = {
         paragraph: ['CmsParagraphTool', 'Paragraph'],
@@ -3183,7 +3183,7 @@
         render() {
             var wrapper = createElement('div', 'cms-editorjs-tool cms-editorjs-tool--media-text');
             var preview = createElement('div', 'cms-editorjs-media-text-preview');
-            var headingPreview = createElement('h3', 'cms-editorjs-media-text-preview__heading');
+            var headingPreview = createElement('h4', 'cms-editorjs-media-text-preview__heading');
             var media = createElement('figure', 'cms-editorjs-media-text-preview__media');
             var image = preparePreviewImage(document.createElement('img'), false);
             var content = createEditable('cms-editorjs-editable cms-editorjs-media-text-preview__content', this.data.text || '', 'Text neben dem Bild schreiben ...', this.api, this.readOnly, true);

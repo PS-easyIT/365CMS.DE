@@ -11,6 +11,7 @@ if (!defined('ABSPATH')) {
  */
 
 use CMS\Auth;
+use CMS\Security;
 
 const CMS_ADMIN_HUB_SITES_READ_CAPABILITY = 'manage_settings';
 const CMS_ADMIN_HUB_SITES_WRITE_CAPABILITY = 'manage_settings';
@@ -212,6 +213,9 @@ function cms_admin_hub_sites_view_config(HubSitesModule $module, string $viewAct
                 'data' => $data,
                 'pageTitle' => !empty($data['isNew']) ? 'Neue Hub-Site' : 'Hub-Site bearbeiten',
                 'activePage' => 'hub-sites',
+                'template_vars' => [
+                    'editorMediaToken' => Security::instance()->generateToken('editorjs_media'),
+                ],
                 'pageAssets' => [
                     'css' => [
                         cms_asset_url('suneditor/css/suneditor.min.css'),
@@ -287,6 +291,7 @@ $sectionPageConfig = [
             'page_title' => $viewConfig['pageTitle'] ?? 'Hub-Sites',
             'active_page' => $viewConfig['activePage'] ?? 'hub-sites',
             'page_assets' => $viewConfig['pageAssets'] ?? ['css' => [], 'js' => []],
+            'template_vars' => $viewConfig['template_vars'] ?? [],
         ];
     },
     'redirect_path_resolver' => static function ($module, string $section, $result): string {

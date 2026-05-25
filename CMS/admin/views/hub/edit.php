@@ -87,6 +87,8 @@ $hubPublicEnPath = $hubPublicPath !== '' ? ContentLocalizationService::getInstan
                 'isNew' => $isNew,
                 'storedSlug' => (string) ($settings['hub_slug'] ?? ''),
                 'legacyFeatureCardInterval' => (int) ($settings['hub_feature_card_interval'] ?? 0),
+                'mediaUploadUrl' => '/api/media',
+                'mediaToken' => (string) ($editorMediaToken ?? ''),
             ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), ENT_QUOTES); ?>">
 
             <div class="row g-4">

@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "3.3.31",
+  "version": "3.3.33",
   "min_php": "8.4",
   "released": "2026-05-25",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 3.3.31: EditorJS-Audit-Fixes für LinkTool-GET-URLs, Checklisten-Persistenz, Legacy-Checklist-Rendering und sichere JS-Kontext-Ausgabe im generischen EditorJS-Service.",
+  "notes": "Release-Stand 3.3.33: HubSite-Kacheln erhalten neben der manuellen Bild-URL jetzt Upload und Mediathek-Auswahl mit Vorschau; neue HubSite-Bilder werden über den bestehenden Media-API-Flow in HubSite-Ordner gespeichert.",
   "critical": false
 }
