@@ -1,6 +1,8 @@
 (function () {
     'use strict';
 
+    var CMS_EDITOR_INLINE_INSERT_MAX_BLOCKS = 80;
+
     function parseJsonInput(id, fallback) {
         var input = getElement(id);
 
@@ -1444,6 +1446,13 @@
         }
 
         function setupImageHoverOverlay(holder, editorInstance) {
+            if (holder && holder.classList.contains('cms-editor-large-document')) {
+                queryElements('#' + holder.id + ' .cms-image-hover-overlay').forEach(function (overlay) {
+                    overlay.remove();
+                });
+                return;
+            }
+
             queryElements('#' + holder.id + ' .ce-block .image-tool').forEach(function (toolElement) {
                 var block = toolElement.closest('.ce-block');
                 var overlay = toolElement.querySelector('.cms-image-hover-overlay');
@@ -1502,6 +1511,7 @@
             var redactor;
             var blocks;
             var signature;
+            var isLargeDocument;
 
             if (!holder || !editorEntry || !editorEntry.instance) {
                 return;
@@ -1513,6 +1523,8 @@
 
             redactor = holder.querySelector('.codex-editor__redactor') || holder;
             blocks = holder.querySelectorAll('.ce-block');
+            isLargeDocument = blocks.length > CMS_EDITOR_INLINE_INSERT_MAX_BLOCKS;
+            holder.classList.toggle('cms-editor-large-document', isLargeDocument);
 
             signature = Array.prototype.slice.call(blocks).map(function (block, index) {
                 return [
@@ -1520,6 +1532,40 @@
                     resolveBlockLabel(block)
                 ].join(':');
             }).join('|');
+
+            if (isLargeDocument) {
+                if (state.signature === signature
+                        && holder.querySelectorAll('.cms-editor-insert-between').length === 0
+                        && holder.querySelectorAll('.cms-editor-block-actions').length === 0) {
+                    return;
+                }
+
+                state.rendering = true;
+
+                try {
+                    queryElements('#' + holder.id + ' .cms-editor-insert-between').forEach(function (button) {
+                        button.remove();
+                    });
+                    queryElements('#' + holder.id + ' .cms-editor-block-actions').forEach(function (actions) {
+                        actions.remove();
+                    });
+                    queryElements('#' + holder.id + ' .cms-image-hover-overlay').forEach(function (overlay) {
+                        overlay.remove();
+                    });
+                    closeInlineInserters(holder);
+
+                    blocks.forEach(function (block) {
+                        block.classList.add('cms-editor-block-shell');
+                        block.setAttribute('data-cms-block-label', resolveBlockLabel(block));
+                    });
+
+                    state.signature = signature;
+                } finally {
+                    state.rendering = false;
+                }
+
+                return;
+            }
 
             if (state.signature === signature
                     && holder.querySelectorAll('.cms-editor-insert-between').length === Math.max(0, blocks.length - 1)

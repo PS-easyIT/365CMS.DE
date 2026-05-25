@@ -15,7 +15,7 @@
 - Rendering in `CMS/core/Services/EditorJsRenderer.php`
 - Nutzung über Theme-/Frontend-Integration
 
-## Verfügbare Tools (Stand 24.05.2026)
+## Verfügbare Tools (Stand 25.05.2026)
 
 - Aktive Page/Post-Basis-Tools: `paragraph`, `header`, `list` (inkl. `checklist`-Style), `image`, `quote`, `code`, `table`, `delimiter` mit `line`/`dash`/`star`-Varianten.
 - Zusätzlich aktivierte lokale Erweiterungen: `embed`, `linkTool`, `attaches`, `warning`, `raw`, `accordion`, `imageGallery`, `mediaText` sowie Inline-Tools `inlineCode`, `underline`, `strikethrough`, `hyperlink`, `marker`, `spoiler`, `textColor`.
@@ -25,7 +25,7 @@
 - Nachtrag 19.05.2026: Die lokale Tool-Schicht unterstützt Read-only-Kontexte defensiver, sodass Vorschau- und geschützte Ansichten nicht mehr von editierbaren UI-Annahmen abhängen.
 - Der Core wird bytegleich aus `ASSETS/editor.js-2.31.6/editorjs.umd.js` in `CMS/assets/editorjs/editorjs.umd.js` bereitgestellt.
 - Die Page/Post-Tools werden als lokale UMD-Dateien aus `CMS/assets/editorjs/` geladen: Core, Basis-Tools und stabile Erweiterungen werden deterministisch vor `CMS/assets/js/editor-init.js` eingebunden.
-- `CMS/assets/js/editor-init.js` ist nur noch die 365CMS-Factory/Normalizer-Schicht: Sie verdrahtet die UMD-Globals (`Paragraph`, `Header`, `EditorjsList`, `ImageTool`, `Quote`, `CodeTool`, `Table`, `Delimiter`, `Embed`, `LinkTool`, `AttachesTool`, `Warning`, `RawTool`, `Accordion`, `ImageGallery`, `CmsImageGalleryTool`, `InlineCode`, `Underline`, `Strikethrough`, `Hyperlink`, `TgSpoilerEditorJS`, `ColorPlugin`) sowie die Plugin-Globals (`Undo`, `DragDrop`) mit Upload-, Save-, History- und Legacy-Datenkompatibilität.
+- `CMS/assets/js/editor-init.js` ist nur noch die 365CMS-Factory/Normalizer-Schicht: Sie verdrahtet die UMD-Globals (`Paragraph`, `Header`, `EditorjsList`, `ImageTool`, `Quote`, `CodeTool`, `Table`, `Delimiter`, `Embed`, `LinkTool`, `AttachesTool`, `Warning`, `RawTool`, `Accordion`/`AccordionBlock`, `ImageGallery`, `CmsImageGalleryTool`, `InlineCode`, `Underline`, `Strikethrough`, `Hyperlink`, `TgSpoilerEditorJS`, `ColorPlugin`) sowie die Plugin-Globals (`Undo`, `DragDrop`) mit Upload-, Save-, History- und Legacy-Datenkompatibilität.
 - Plugin-Registrierung ist defensiv: optionale Tools werden nur aktiviert, wenn ihr lokales UMD-Global tatsächlich vorhanden ist. Dadurch gibt es keine toten Toolbar-Buttons und keine parallelen Modul-/Eval-Loader.
 
 ## WordPress-like Block-/Blockly-Verhalten
@@ -53,10 +53,13 @@ Damit entsteht ein WordPress-ähnliches Blockgefühl, während Sanitizer, Render
 - Hinweis-/Warnboxen speichern `variant`, `title` und `message`; Titel und Nachricht laufen durch denselben Inline-Sanitizer wie Textblöcke, sodass erlaubte Markups wie `<strong>`, `<em>`, `<u>`, `<code>`, sichere Links und Spoiler erhalten bleiben.
 - Delimiter-Blöcke speichern nur erlaubte Stilwerte (`line`, `dash`, `star`) sowie begrenzte Linienbreiten/-stärken; Hyperlink- und Strikethrough-Inline-Markups werden client- und serverseitig auf sichere Tags, `href`-Schemata sowie `target`/`rel`-Tokens reduziert.
 - Legacy-Inhalte (JSON-String, HTML-Fallback, Plaintext) werden clientseitig in `editor-init.js` rückwärtskompatibel in Blockdaten normalisiert.
-- Bild-Uploads laufen weiterhin über den bestehenden `/api/media?action=upload_image`-Flow inkl. CSRF-Header; alternativ kann das Bild-Tool eine vorhandene URL speichern.
+- Bild-Uploads laufen weiterhin über den bestehenden `/api/media?action=upload_image`-Flow inkl. CSRF-Header; normale Bildblöcke können zusätzlich die vorhandene Mediathek-Auswahl (`list_images`) nutzen und übernehmen URL sowie vorhandene Caption/Alt-Beschreibung in die Vorschau.
 - Page-/Post-Uploads reichen den Editor-Kontext (`content_type`, Slug-/Titel-Fallbacks, `draft_key`) an `/api/media` weiter, damit Bilder direkt in `uploads/articles/...`, `uploads/pages/...` oder temporäre Draft-Ordner einsortiert werden.
 - Die lokalen 365CMS-Tools definieren ergänzende Editor.js-Client-Sanitizer, Paste-Substitutionen für Bilder/Bild-URLs sowie Read-only-Support; serverseitige Validierung bleibt verbindlich.
-- Die lokale Galerie unterstützt Mehrfachupload, Caption-Pflege, stabile Bilddaten-Normalisierung und Sortierung per `Hoch`/`Runter`, ohne zusätzliche SortableJS-Abhängigkeit.
+- Die lokale Galerie unterstützt Mehrfachupload, Mediathek-Auswahl, Caption-Pflege, stabile Bilddaten-Normalisierung und Sortierung per `Hoch`/`Runter`, ohne zusätzliche SortableJS-Abhängigkeit. Beim Admin-Reload dedupliziert der Client parallel vorhandene `images`-/`urls`-Legacy-Felder nach URL, damit Galeriebilder nach erneutem Speichern nicht anwachsen.
+- Medienblock-Eigenschaften für `image`, `imageGallery` und `mediaText` werden im Admin als dezente linke Properties-Leiste gerendert. Sie liegen dadurch nicht mehr als Overlay über Bildvorschau oder Textfläche und bleiben auf mobilen Viewports gestapelt bedienbar.
+- Große Seiten und Beiträge werden im Admin seit `3.3.10` ressourcenschonender geöffnet: Bildvorschauen, Galerietumbnails und Mediathek-Kacheln nutzen `loading="lazy"`/`decoding="async"`, identische Preview-URLs werden nicht erneut zugewiesen, Offscreen-Blöcke werden per `content-visibility` geschont und die eigene Inline-Einfüge-UI erzeugt ab sehr vielen Blöcken keine zusätzlichen Zwischenbutton-/Hover-Overlay-Massen mehr.
+- Native EditorJS-Zahnrad-/Popover-Menüs besitzen im Admin eine hohe Stacking-Ebene mit sichtbarem Overflow im Editor-Rahmen. Dadurch bleiben Block-Einstellungen auch bei langen Medien-/Textstrecken vor nachfolgenden Blöcken anklickbar.
 
 ## Bekannte Grenzen
 

@@ -25,7 +25,7 @@
     var TUNE_TOOL_NAMES = ['anchor', 'alignmentTune', 'indentTune', 'textVariant'];
     var PLUGIN_NAMES = ['undo', 'dragDrop'];
     var TOOL_NAMES = BLOCK_TOOL_NAMES.concat(INLINE_TOOL_NAMES, TUNE_TOOL_NAMES);
-    var VERSION = 'cms-editorjs-org-assets-2026-05-24-audit-hardening-3-3-8';
+    var VERSION = 'cms-editorjs-org-assets-2026-05-25-large-content-3-3-10';
     var THEME_PREVIEW_STYLE_CACHE = {};
     var TOOL_GLOBALS = {
         paragraph: ['CmsParagraphTool', 'Paragraph'],
@@ -43,7 +43,7 @@
         warning: ['CmsWarningTool', 'Warning'],
         alert: ['Alert'],
         raw: ['RawTool'],
-        accordion: ['Accordion'],
+        accordion: ['Accordion', 'AccordionBlock'],
         imageGallery: ['CmsImageGalleryTool'],
         mediaText: ['CmsMediaTextTool'],
         inlineCode: ['InlineCode'],
@@ -844,6 +844,7 @@
         var galleryData = data && typeof data === 'object' ? data : {};
         var columns = parseInt(galleryData.columns || galleryData.cols || galleryData.columnCount || 3, 10) || 3;
         var images = [];
+        var seenUrls = new Set();
 
         if ([2, 3, 4, 5, 6].indexOf(columns) === -1) {
             columns = 3;
@@ -862,7 +863,7 @@
         images = images.map(function (item) {
             var source = item && typeof item === 'object' ? item : { url: String(item || '') };
             var file = source.file && typeof source.file === 'object' ? source.file : source;
-            var url = String(file.url || source.url || source.src || source.source || '');
+            var url = sanitizeEditableUrl(file.url || source.url || source.src || source.source || '');
 
             if (url === '') {
                 return null;
@@ -872,7 +873,16 @@
                 file: Object.assign({}, file, { url: url }),
                 caption: String(source.caption || source.alt || source.title || file.caption || '')
             };
-        }).filter(Boolean);
+        }).filter(function (item) {
+            var url = item && item.file ? String(item.file.url || '') : '';
+
+            if (url === '' || seenUrls.has(url)) {
+                return false;
+            }
+
+            seenUrls.add(url);
+            return true;
+        });
 
         return {
             columns: columns,
@@ -1238,6 +1248,40 @@
         }
     }
 
+    function preparePreviewImage(image, eager) {
+        if (!image || image.nodeName !== 'IMG') {
+            return image;
+        }
+
+        image.loading = eager ? 'eager' : 'lazy';
+        image.decoding = 'async';
+        image.draggable = false;
+        if ('fetchPriority' in image) {
+            image.fetchPriority = eager ? 'auto' : 'low';
+        }
+
+        return image;
+    }
+
+    function setPreviewImageSource(image, url, alt) {
+        var nextUrl = String(url || '');
+
+        if (!image || image.nodeName !== 'IMG') {
+            return;
+        }
+
+        if (nextUrl !== '') {
+            if (image.getAttribute('src') !== nextUrl) {
+                image.src = nextUrl;
+            }
+            image.alt = String(alt || '');
+            return;
+        }
+
+        image.removeAttribute('src');
+        image.alt = '';
+    }
+
     function createEditable(className, html, placeholder, api, readOnly) {
         var element = createElement('div', className);
         element.contentEditable = readOnly ? 'false' : 'true';
@@ -1600,7 +1644,7 @@
                 var file = item.file || {};
                 var url = String(file.url || '');
                 var button = createElement('button', 'cms-editorjs-media-picker__item');
-                var image = document.createElement('img');
+                var image = preparePreviewImage(document.createElement('img'), false);
                 var label = createElement('span', '', file.name || file.path || 'Bild');
                 var isSelected = selectedItems.has(url) || selectedUrls.has(url);
 
@@ -1611,8 +1655,7 @@
                 button.type = 'button';
                 button.classList.toggle('is-selected', isSelected);
                 button.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
-                image.src = url;
-                image.alt = item.caption || file.name || '';
+                setPreviewImageSource(image, url, item.caption || file.name || '');
                 button.appendChild(image);
                 button.appendChild(label);
                 button.addEventListener('click', function () {
@@ -2115,11 +2158,12 @@
             var url = createInput('hidden', '', (this.data.file && this.data.file.url) || this.data.url || '', '');
             var caption = createInput('text', 'form-control mb-2', this.data.caption || '', 'Bildunterschrift');
             var upload = createInput('file', 'form-control form-control-sm', '', '');
+            var libraryButton = createElement('button', 'btn btn-sm btn-outline-primary', 'Aus Mediathek wählen');
             var optionsPanel = createElement('div', 'cms-editorjs-floating-options cms-editorjs-image-options');
             var optionsLabel = createElement('span', 'cms-editorjs-floating-options__label', 'Bild');
             var settings = createElement('div', 'cms-editorjs-image-settings');
             var preview = createElement('figure', 'cms-editorjs-image-preview');
-            var previewImage = document.createElement('img');
+            var previewImage = preparePreviewImage(document.createElement('img'), false);
             var alignment = this.createSelect([
                 ['left', 'Links'],
                 ['center', 'Mittig'],
@@ -2147,7 +2191,10 @@
             optionsPanel.dataset.mutationFree = 'true';
             upload.accept = 'image/*';
             upload.disabled = this.readOnly;
+            libraryButton.type = 'button';
+            libraryButton.disabled = this.readOnly;
             upload.addEventListener('change', this.uploadSelectedFile.bind(this, url, status));
+            libraryButton.addEventListener('click', this.openImageLibraryPicker.bind(this));
 
             caption.classList.add('cms-editorjs-image-caption');
             caption.setAttribute('aria-label', 'Bildunterschrift');
@@ -2180,6 +2227,7 @@
             wrapper.appendChild(caption);
             optionsPanel.appendChild(optionsLabel);
             optionsPanel.appendChild(upload);
+            optionsPanel.appendChild(libraryButton);
             optionsPanel.appendChild(settings);
             wrapper.appendChild(optionsPanel);
             wrapper.appendChild(status);
@@ -2187,6 +2235,8 @@
                 wrapper: wrapper,
                 url: url,
                 caption: caption,
+                upload: upload,
+                libraryButton: libraryButton,
                 alignment: alignment,
                 size: size,
                 borderStyle: borderStyle,
@@ -2247,12 +2297,10 @@
             ].filter(Boolean).join(' ');
 
             if (url) {
-                image.src = url;
-                image.alt = caption;
+                setPreviewImageSource(image, url, caption);
                 preview.hidden = false;
             } else {
-                image.removeAttribute('src');
-                image.alt = '';
+                setPreviewImageSource(image, '', '');
                 preview.hidden = true;
             }
 
@@ -2279,6 +2327,28 @@
             }).catch(function (error) {
                 status.textContent = error && error.message ? error.message : 'Upload fehlgeschlagen.';
                 logWarn('Image upload failed.', error);
+            });
+        }
+        openImageLibraryPicker(event) {
+            var self = this;
+
+            if (event) {
+                event.preventDefault();
+            }
+            if (this.readOnly) {
+                return;
+            }
+
+            createImageLibraryPicker(this.config, {
+                multiple: false,
+                title: 'Bild aus Mediathek auswählen',
+                selectedUrls: this.nodes.url && this.nodes.url.value ? [this.nodes.url.value] : [],
+                onSelect: function (items) {
+                    var item = Array.isArray(items) && items[0] ? items[0] : null;
+                    var file = item && item.file ? item.file : {};
+
+                    self.setImageUrl(file.url || '', item ? (item.caption || file.name || '') : '');
+                }
             });
         }
         uploadImageFile(file) {
@@ -2706,14 +2776,13 @@
                 }
 
                 var item = createElement('div', 'cms-editorjs-gallery__item');
-                var thumb = document.createElement('img');
+                var thumb = preparePreviewImage(document.createElement('img'), false);
                 var caption = createInput('text', 'form-control form-control-sm', image.caption || '', 'Bildunterschrift');
                 var moveUp = createElement('button', 'btn btn-sm btn-outline-secondary', 'Hoch');
                 var moveDown = createElement('button', 'btn btn-sm btn-outline-secondary', 'Runter');
                 var remove = createElement('button', 'btn btn-sm btn-outline-danger', 'Entfernen');
 
-                thumb.src = imageUrl;
-                thumb.alt = image.caption || '';
+                setPreviewImageSource(thumb, imageUrl, image.caption || '');
                 moveUp.type = 'button';
                 moveDown.type = 'button';
                 remove.type = 'button';
@@ -2870,7 +2939,7 @@
             var wrapper = createElement('div', 'cms-editorjs-tool cms-editorjs-tool--media-text');
             var preview = createElement('div', 'cms-editorjs-media-text-preview');
             var media = createElement('figure', 'cms-editorjs-media-text-preview__media');
-            var image = document.createElement('img');
+            var image = preparePreviewImage(document.createElement('img'), false);
             var content = createEditable('cms-editorjs-editable cms-editorjs-media-text-preview__content', this.data.text || '', 'Text neben dem Bild schreiben ...', this.api, this.readOnly);
             var url = createInput('hidden', '', (this.data.file && this.data.file.url) || '', '');
             var controls = createElement('div', 'cms-editorjs-floating-options cms-editorjs-media-text-options');
@@ -2971,13 +3040,11 @@
             preview.style.setProperty('--cms-media-text-image-width', width + '%');
 
             if (url !== '') {
-                image.src = url;
-                image.alt = String(altInput.value || '');
+                setPreviewImageSource(image, url, String(altInput.value || ''));
                 preview.classList.add('has-image');
                 wrapper.classList.remove('is-empty');
             } else {
-                image.removeAttribute('src');
-                image.alt = '';
+                setPreviewImageSource(image, '', '');
                 preview.classList.remove('has-image');
                 wrapper.classList.add('is-empty');
             }

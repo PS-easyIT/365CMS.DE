@@ -1,4 +1,4 @@
-﻿**Version:** 3.3.8
+﻿**Version:** 3.3.10
 
 # 365CMS Changelog
 
@@ -20,17 +20,29 @@
 
 > Die vollständige historische 2.x-Historie wurde in [`Changelog_old.md`](Changelog_old.md) archiviert.
 
+### v3.4.4 — 25.05.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.3.10** | 🟠 perf | EditorJS / große Inhalte & Overlays | **`CMS/assets/js/editor-init.js`, `CMS/assets/js/admin-content-editor.js`, `CMS/assets/css/admin.css`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md`, `CMS/DOC/assets/editorjs/README.md` und `Changelog.md` stabilisieren große EditorJS-Seiten und -Beiträge im Admin.** Bildvorschauen, Galerietumbnails und Mediathek-Kacheln werden lazy/async geladen und nicht unnötig neu mit derselben URL bestückt; Offscreen-Blöcke nutzen bei großen Dokumenten browserseitige Render-Drosselung. Bei sehr vielen Blöcken erzeugt die Admin-UI keine massenhaften Inline-Einfügebuttons und alten Bild-Hover-Overlays mehr, wodurch Öffnen und Re-Rendern großer Inhalte deutlich ruhiger bleiben. Native EditorJS-Zahnrad-/Popover-Menüs erhalten eine eigene hohe Stacking-Ebene und werden nicht mehr hinter nachfolgenden Blöcken versteckt. |
+
+### v3.4.3 — 25.05.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.3.9** | 🔴 fix | EditorJS / Medienblöcke & Galerie | **`CMS/assets/js/editor-init.js`, `CMS/assets/css/admin.css`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md`, `CMS/DOC/assets/editorjs/README.md` und `Changelog.md` stabilisieren die EditorJS-Medienblöcke.** Galerie-Daten werden beim Admin-Reload nach URL dedupliziert, sodass parallel gespeicherte `images`-/`urls`-Legacy-Felder nicht mehr bei jedem Speichern mehrfach im Editor auftauchen. Bild-, Galerie- und Bild+Text-Eigenschaften erscheinen jetzt als dezente linke Properties-Leiste statt als störendes Overlay über Vorschau oder Texteingabe. Normale Bildblöcke unterstützen zusätzlich zum Upload nun auch die vorhandene Mediathek-Auswahl. |
+
 ### v3.4.2 — 24.05.2026
 
 | Version | Typ | Bereich | Beschreibung |
 |---------|-----|---------|-------------|
-| **3.3.8** | 🛡️ security | EditorJS / Audit & UX-Härtung | **`CMS/assets/js/editor-init.js`, `CMS/assets/js/admin-content-editor.js`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md` und `Changelog.md` schließen die neue EditorJS-Audit-Runde.** Upload-, Mediathek- und Attachment-Requests prüfen jetzt HTTP-Status und Nicht-JSON-Antworten, bevor Payloads normalisiert werden. Das Admin-Mutation-Tracking registriert entfernbare Listener und räumt sie beim Editor-Recreate auf. Die eigene Textformat-Bubble erzeugt sichere `http(s)`-Links mit `target="_blank" rel="noopener noreferrer"`, lehnt gefährliche Linkwerte ab und bietet Strikethrough passend zum registrierten Inline-Tool direkt an. |
+| **3.4.2 ** | 🛡️ security | EditorJS / Audit & UX-Härtung | **`CMS/assets/js/editor-init.js`, `CMS/assets/js/admin-content-editor.js`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md` und `Changelog.md` schließen die neue EditorJS-Audit-Runde.** Upload-, Mediathek- und Attachment-Requests prüfen jetzt HTTP-Status und Nicht-JSON-Antworten, bevor Payloads normalisiert werden. Das Admin-Mutation-Tracking registriert entfernbare Listener und räumt sie beim Editor-Recreate auf. Die eigene Textformat-Bubble erzeugt sichere `http(s)`-Links mit `target="_blank" rel="noopener noreferrer"`, lehnt gefährliche Linkwerte ab und bietet Strikethrough passend zum registrierten Inline-Tool direkt an. |
 
 ### v3.4.1 — 24.05.2026
 
 | Version | Typ | Bereich | Beschreibung |
 |---------|-----|---------|-------------|
-| **3.3.7** | 🟢 feat | EditorJS / Inline-Tools & Delimiter | **`ASSETS/package.json`, `CMS/assets/editorjs/delimiter.umd.js`, `CMS/assets/editorjs/strikethrough.umd.js`, `CMS/assets/editorjs/hyperlink.umd.js`, `CMS/assets/js/editor-init.js`, `CMS/core/Services/EditorJs/EditorJsAssetService.php`, `CMS/core/Services/EditorJs/EditorJsContentNormalizer.php`, `CMS/core/Services/EditorJs/EditorJsHtmlSanitizer.php`, `CMS/core/Services/EditorJs/EditorJsSanitizer.php`, `CMS/core/Services/EditorJsRenderer.php`, `CMS/assets/css/editorjs-content.css`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md` und `Changelog.md` ergänzen die kleinen EditorJS-Upgrades.** Der Delimiter nutzt jetzt die CoolBytes-Variante mit `line`, `dash` und `star`, Strikethrough speichert sichere `<s class="cdx-strikethrough">`-Inline-Markups, Hyperlinks können `target`/`rel` kontrolliert setzen, und Client-/Server-Sanitizer normalisieren Links weiterhin gegen `javascript:`- und unsichere `rel`-/`target`-Werte. |
+| **3.4.1** | 🟢 feat | EditorJS / Inline-Tools & Delimiter | **`ASSETS/package.json`, `CMS/assets/editorjs/delimiter.umd.js`, `CMS/assets/editorjs/strikethrough.umd.js`, `CMS/assets/editorjs/hyperlink.umd.js`, `CMS/assets/js/editor-init.js`, `CMS/core/Services/EditorJs/EditorJsAssetService.php`, `CMS/core/Services/EditorJs/EditorJsContentNormalizer.php`, `CMS/core/Services/EditorJs/EditorJsHtmlSanitizer.php`, `CMS/core/Services/EditorJs/EditorJsSanitizer.php`, `CMS/core/Services/EditorJsRenderer.php`, `CMS/assets/css/editorjs-content.css`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md` und `Changelog.md` ergänzen die kleinen EditorJS-Upgrades.** Der Delimiter nutzt jetzt die CoolBytes-Variante mit `line`, `dash` und `star`, Strikethrough speichert sichere `<s class="cdx-strikethrough">`-Inline-Markups, Hyperlinks können `target`/`rel` kontrolliert setzen, und Client-/Server-Sanitizer normalisieren Links weiterhin gegen `javascript:`- und unsichere `rel`-/`target`-Werte. |
 
 ### v3.3.6 — 24.05.2026
 

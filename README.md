@@ -1,6 +1,6 @@
 # 365CMS.DE
 
-**Version:** [3.4.2](Changelog.md) · **Status:** Stable · **PHP:** 8.4+ · **MySQL:** 5.7+ · **MariaDB:** 10.3+
+**Version:** [3.4.4](Changelog.md) · **Status:** Stable · **PHP:** 8.4+ · **MySQL:** 5.7+ · **MariaDB:** 10.3+
 
 <div align="center">
 
@@ -50,13 +50,14 @@ Wichtige Eigenschaften:
 - Blockbasierter Editor für Seiten und Beiträge
 - Text, Überschriften, Listen, Checklisten, Zitate, Tabellen, Code, dezente Trennlinien-Varianten und Abstände
 - Abstandsblöcke mit normalisierten Presets oder Pixelwerten, die im Public-Rendering erhalten bleiben
-- Bildblöcke mit Upload, Live-Vorschau, Ausrichtung, Breite, Rahmen, Rundung, Hintergrund und Schatten
-- Bild-Text-Blöcke mit Bild links oder rechts neben formatiertem Text und responsivem Public-Layout, das die Admin-Vorschau-Breiten auch im Theme-Frontend respektiert
+- Bildblöcke mit Upload oder Mediathek-Auswahl, Live-Vorschau, Ausrichtung, Breite, Rahmen, Rundung, Hintergrund und Schatten
+- Bild-Text-Blöcke mit Bild links oder rechts neben formatiertem Text und responsivem Public-Layout, das die Admin-Vorschau-Breiten auch im Theme-Frontend respektiert; Medien-Eigenschaften liegen im Editor dezent links neben dem Block statt als Overlay über dem Inhalt
 - Fehlertolerantes Public-Rendering mit WordPress-/Gutenberg-Block-Übersetzung, inklusive `wp:media-text`, `wp:gallery`, selbstschließenden Bildblöcken und sicheren Media-Text-/Gallery-Inhalten
-- Mehrbild-Galerien mit Upload, Vorschau, Sortierung und Spaltensteuerung
+- Mehrbild-Galerien mit Upload, Mediathek-Auswahl, Vorschau, Sortierung, Spaltensteuerung und deduplizierter Save-/Reload-Normalisierung
 - Inline-Formatierungen wie fett, kursiv, unterstrichen, durchgestrichen, Code, sichere Hyperlinks und Spoiler
 - Rich-Text-Hinweisboxen mit Info-/Warn-/Erfolg-/Kritisch-Varianten, deren Titel und Inhalt Inline-Formatierungen behalten
 - WordPress-ähnlichere Admin-Bedienung mit Block-Inserter, Commandbar, Drag & Drop, Undo/Redo und Read-only-kompatiblen Tool-Kontexten
+- Stabilere Bearbeitung großer Seiten und Beiträge: Admin-Bildvorschauen laden lazy/async, Offscreen-Blöcke werden browserseitig geschont, massenhafte Zwischenblock-Overlays werden bei sehr vielen Blöcken reduziert und Zahnrad-/Popover-Menüs bleiben vor nachfolgenden Blöcken bedienbar
 - Blockkarten und Schnellaktionen für typische Redaktionsmuster statt technischer JSON-Bearbeitung
 - Theme-nahe Editor-Vorschau durch Auswertung des aktiven Themes
 - Public-Rendering über einen eigenen Sanitizer/Renderer statt ungeprüfter HTML-Ausgabe
@@ -161,8 +162,8 @@ Highlights:
 
 - block-based editing for pages and posts
 - paragraphs, headings, lists, checklists, quotes, tables, code, subtle delimiter variants and spacers
-- image blocks with upload, live preview, alignment, width, borders, rounding, background and shadow
-- multi-image galleries with preview and column control
+- image blocks with upload or media-library selection, live preview, alignment, width, borders, rounding, background and shadow
+- multi-image galleries with upload, media-library selection, preview, column control and deduplicated save/reload normalization
 - inline formatting such as bold, italic, underline, strikethrough, code, safe hyperlinks and spoiler text
 - grouped block inserter, commandbar, drag & drop, undo/redo and width modes
 - block cards and quick actions for editorial workflows instead of raw JSON editing

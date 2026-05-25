@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "3.4.2",
+  "version": "3.4.4",
   "min_php": "8.4",
-  "released": "2026-05-24",
+  "released": "2026-05-25",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 3.4.2: EditorJS härtet Upload-/Mediathek-Antworten gegen HTTP- und Nicht-JSON-Fehler, räumt Mutation-Tracking-Listener beim Recreate sauber auf und macht die eigene Textformat-Bubble für sichere Links und Strikethrough vollständig nutzbar.",
+  "notes": "Release-Stand 3.4.4: EditorJS öffnet große Seiten und Beiträge stabiler, lädt Admin-Bildvorschauen lazy/async, reduziert eigene Inline-Einfüge-Overlays bei sehr vielen Blöcken und hebt native Zahnrad-/Popover-Menüs zuverlässig über nachfolgende Blöcke.",
   "critical": false
 }
