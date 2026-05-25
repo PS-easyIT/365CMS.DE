@@ -1,4 +1,4 @@
-﻿**Version:** 3.3.40
+﻿**Version:** 3.3.41
 
 # 365CMS Changelog
 
@@ -15,6 +15,12 @@
 | 🛡️ | `security` | Sicherheits- und Audit-Härtung |
 
 ---
+
+### v3.3.41 — 25.05.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.3.41** | 🟠 perf/fix | HubSites / Bilder & CLS | **`CMS/core/Services/SiteTable/SiteTableHubRenderer.php`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md` und `Changelog.md` ergänzen stabile Bilddimensionen für HubSite-Karten.** Normale Card-Bilder erhalten `width`-/`height`-Attribute passend zu `wide`, `square` oder `portrait`; Featured-Bilder erhalten Attribute aus der konfigurierten Featured-Bildbreite und `hub_feature_image_height`. Dadurch kann der Browser vor dem Laden der Bilddatei Platz reservieren, was CLS/PageSpeed und Bild-SEO verbessert, ohne bestehende HubSite-Inhalte oder URLs zu verändern. |
 
 ### v3.3.40 — 25.05.2026
 

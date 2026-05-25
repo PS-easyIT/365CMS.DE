@@ -348,13 +348,17 @@ final class SiteTableHubRenderer
         $supportsFeatureCards = $this->templateRegistry->templateSupportsFeatureCards($template);
         $featureCardInsertMap = $this->buildFeatureCardInsertMap($featureCards, $featureCardInterval, $supportsFeatureCards);
         $renderedStandardCards = 0;
+        $priorityImageRendered = false;
 
         $html = '<div class="hubsite-grid hubsite-grid--' . htmlspecialchars($cardLayout, ENT_QUOTES, 'UTF-8') . ' hubsite-grid--cols-' . $cardColumns . ' cms-hub-site__grid cms-hub-site__grid--' . htmlspecialchars($cardLayout, ENT_QUOTES, 'UTF-8') . ' cms-hub-site__grid--cols-' . $cardColumns . '">';
         foreach ($cards as $index => $card) {
             $isFeatureCard = $supportsFeatureCards && $this->isFeatureCard($card);
 
             if ($isFeatureCard) {
-                $html .= $this->renderFeatureCard($card, $currentTableId, $defaultCardCtaLabel);
+                $html .= $this->renderFeatureCard($card, $currentTableId, $defaultCardCtaLabel, $cardDesign, !$priorityImageRendered);
+                if ($this->normalizeRenderableImageUrl((string) ($card['image_url'] ?? '')) !== '') {
+                    $priorityImageRendered = true;
+                }
 
                 continue;
             }
@@ -368,9 +372,11 @@ final class SiteTableHubRenderer
             $metaRight = htmlspecialchars((string) ($card['meta_right'] ?? ''), ENT_QUOTES, 'UTF-8');
             $buttonText = trim((string) ($card['button_text'] ?? ''));
             $buttonLink = trim((string) ($card['button_link'] ?? ''));
-            $imageUrl = trim((string) ($card['image_url'] ?? ''));
+            $imageUrl = $this->normalizeRenderableImageUrl((string) ($card['image_url'] ?? ''));
             $imageAlt = htmlspecialchars((string) ($card['image_alt'] ?? $card['title'] ?? ''), ENT_QUOTES, 'UTF-8');
+            $imageDimensions = $this->buildCardImageDimensionAttributes($cardImageRatio);
             $hasImage = $imageUrl !== '';
+            $imageLoadingAttributes = $this->buildImageLoadingAttributes($hasImage && !$priorityImageRendered);
             $cardTarget = $buttonLink !== '' ? $buttonLink : html_entity_decode($url, ENT_QUOTES | ENT_HTML5, 'UTF-8');
             $cardTarget = trim($cardTarget) !== '' ? trim($cardTarget) : '#';
             $cardButtonLabel = $buttonText !== '' ? $buttonText : ($cardTarget !== '#' ? $defaultCardCtaLabel : '');
@@ -412,11 +418,12 @@ final class SiteTableHubRenderer
                     $html .= '<a class="cms-hub-site__card-media-link" href="' . $url . '">';
                 }
                 $html .= '<div class="cms-hub-site__card-media cms-hub-site__card-media--' . htmlspecialchars($cardImageRatio, ENT_QUOTES, 'UTF-8') . ' cms-hub-site__card-media--fit-' . htmlspecialchars($cardImageFit, ENT_QUOTES, 'UTF-8') . '">';
-                $html .= '<img src="' . htmlspecialchars($imageUrl, ENT_QUOTES, 'UTF-8') . '" alt="' . $imageAlt . '" loading="lazy">';
+                $html .= '<img src="' . htmlspecialchars($imageUrl, ENT_QUOTES, 'UTF-8') . '" alt="' . $imageAlt . '"' . $imageLoadingAttributes . $imageDimensions . '>';
                 $html .= '</div>';
                 if ($url !== '#') {
                     $html .= '</a>';
                 }
+                $priorityImageRendered = true;
             }
             $html .= '<div class="hubsite-card__body cms-hub-site__card-content">';
             if ($badge !== '' && !$isTableTemplate) {
@@ -460,7 +467,10 @@ final class SiteTableHubRenderer
             $renderedStandardCards++;
             if (isset($featureCardInsertMap[$renderedStandardCards])) {
                 foreach ($featureCardInsertMap[$renderedStandardCards] as $featureCard) {
-                    $html .= $this->renderFeatureCard($featureCard, $currentTableId, $defaultCardCtaLabel);
+                    $html .= $this->renderFeatureCard($featureCard, $currentTableId, $defaultCardCtaLabel, $cardDesign, !$priorityImageRendered);
+                    if ($this->normalizeRenderableImageUrl((string) ($featureCard['image_url'] ?? '')) !== '') {
+                        $priorityImageRendered = true;
+                    }
                 }
             }
         }
@@ -471,7 +481,10 @@ final class SiteTableHubRenderer
             }
 
             foreach ($queuedFeatureCards as $featureCard) {
-                $html .= $this->renderFeatureCard($featureCard, $currentTableId, $defaultCardCtaLabel);
+                $html .= $this->renderFeatureCard($featureCard, $currentTableId, $defaultCardCtaLabel, $cardDesign, !$priorityImageRendered);
+                if ($this->normalizeRenderableImageUrl((string) ($featureCard['image_url'] ?? '')) !== '') {
+                    $priorityImageRendered = true;
+                }
             }
         }
 
@@ -545,13 +558,15 @@ final class SiteTableHubRenderer
     }
 
 
-    private function renderFeatureCard(array $featureCard, int $currentTableId, string $defaultCardCtaLabel = ''): string
+    private function renderFeatureCard(array $featureCard, int $currentTableId, string $defaultCardCtaLabel = '', array $cardDesign = [], bool $isPriorityImage = false): string
     {
         $title = htmlspecialchars((string) ($featureCard['title'] ?? ''), ENT_QUOTES, 'UTF-8');
         $badge = htmlspecialchars((string) ($featureCard['badge'] ?? ''), ENT_QUOTES, 'UTF-8');
         $text = $this->renderCardSummary((string) ($featureCard['text'] ?? $featureCard['summary'] ?? ''), $currentTableId);
-        $imageUrl = trim((string) ($featureCard['image_url'] ?? ''));
+        $imageUrl = $this->normalizeRenderableImageUrl((string) ($featureCard['image_url'] ?? ''));
         $imageAlt = htmlspecialchars((string) ($featureCard['image_alt'] ?? $featureCard['title'] ?? ''), ENT_QUOTES, 'UTF-8');
+        $imageDimensions = $this->buildFeatureImageDimensionAttributes($cardDesign);
+        $imageLoadingAttributes = $this->buildImageLoadingAttributes($isPriorityImage);
         $featureSpacingTop = max(0, min(240, (int) ($featureCard['feature_spacing_top'] ?? 0)));
         $buttonText = trim((string) ($featureCard['button_text'] ?? ''));
         $buttonLink = trim((string) ($featureCard['button_link'] ?? ''));
@@ -574,7 +589,7 @@ final class SiteTableHubRenderer
         $html .= '>';
         if ($imageUrl !== '') {
             $html .= '<div class="hubsite-card__media cms-hub-site__feature-card-media">';
-            $html .= '<img class="hubsite-card__image" src="' . htmlspecialchars($imageUrl, ENT_QUOTES, 'UTF-8') . '" alt="' . $imageAlt . '" loading="lazy">';
+            $html .= '<img class="hubsite-card__image" src="' . htmlspecialchars($imageUrl, ENT_QUOTES, 'UTF-8') . '" alt="' . $imageAlt . '"' . $imageLoadingAttributes . $imageDimensions . '>';
             $html .= '</div>';
         }
         $html .= '<div class="hubsite-card__body cms-hub-site__feature-card-content">';
@@ -599,6 +614,42 @@ final class SiteTableHubRenderer
         $html .= '</div></article>';
 
         return $html;
+    }
+
+    private function buildCardImageDimensionAttributes(string $imageRatio): string
+    {
+        [$width, $height] = match ($imageRatio) {
+            'square' => [1000, 1000],
+            'portrait' => [800, 1000],
+            default => [1600, 900],
+        };
+
+        return ' width="' . $width . '" height="' . $height . '"';
+    }
+
+    private function buildFeatureImageDimensionAttributes(array $cardDesign): string
+    {
+        $featureWidthPercent = max(20, min(60, (int) ($cardDesign['feature_image_width'] ?? 34)));
+        $featureImageHeight = max(160, min(520, (int) ($cardDesign['feature_image_height'] ?? 260)));
+        $featureImageWidth = max(240, min(960, (int) round(1180 * ($featureWidthPercent / 100))));
+
+        return ' width="' . $featureImageWidth . '" height="' . $featureImageHeight . '"';
+    }
+
+    private function buildImageLoadingAttributes(bool $isPriorityImage): string
+    {
+        if ($isPriorityImage) {
+            return ' loading="eager" fetchpriority="high" decoding="async"';
+        }
+
+        return ' loading="lazy" decoding="async"';
+    }
+
+    private function normalizeRenderableImageUrl(string $value): string
+    {
+        $value = trim($value);
+
+        return $value === '#' ? '' : $value;
     }
 
     private function isFeatureCard(array $card): bool
