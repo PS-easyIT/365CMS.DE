@@ -16,10 +16,6 @@
 
 ---
 
-## 📜 Aktuelle Versionshistorie ab 3.0.0
-
-> Die vollständige historische 2.x-Historie wurde in [`Changelog_old.md`](Changelog_old.md) archiviert.
-
 ### v3.3.33 — 25.05.2026
 
 | Version | Typ | Bereich | Beschreibung |
@@ -483,3 +479,5 @@
 | **3.0.0** | 🛡️ security | Folgeaudit – Update-/Restore-Archivpfade | **Die priorisierten Remote-/Archiv-Hotspots wurden weiter gekapselt.** `CMS/core/Services/UpdateService.php` akzeptiert Plugin-/Theme-Installationen nun nur noch als direkte Child-Ziele unter den verwalteten Plugin-/Theme-Roots, blockiert Root-Overwrite-Szenarien, prüft Update-ZIPs zusätzlich auf Eintragszahl, Einzel-/Gesamtgröße, Kontrollzeichen, Punktsegmente und Unix-Symlinks und validiert nach dem Extract, dass der komplette Staging-Baum linkfrei innerhalb des Staging-Roots bleibt. Installationsfehler-Kontexte werden vor Logger- und Audit-Ausgabe maskiert, insbesondere bei URL-Query-Secrets. `CMS/core/Services/BackupService.php` nutzt dieselben Archivgrenzen für Restore-ZIPs und validiert entpackte Restore-Staging-Bäume vor dem Move gegen Symlinks und Root-Ausbruch. |
 | **3.0.0** | 🛡️ security | Folgeaudit – Shared Editor & AI-Translation | **Der kritische Shared-Editor-Pfad wurde gegen Client- und Server-Randfälle nachgezogen.** `CMS/assets/js/admin-content-editor.js` erzwingt für AI-Translation-Requests nun Same-Origin-Endpunkte, setzt ein clientseitiges Zeitlimit, prüft deklarierte und tatsächliche JSON-Antwortgrößen und verwirft übergroße Antworten ohne sie dauerhaft im UI-State zu halten. `CMS/admin/modules/system/AiEditorJsTranslationModule.php` validiert Editor.js-Payloads vor der AI-Pipeline zusätzlich auf gültiges JSON, maximale Blockanzahl, erlaubte Blocktyp-Metadaten und array-basierte Blockdaten. `CMS/assets/js/admin-seo-editor.js` begrenzt die Liveanalyse von Editor.js-JSON, Blockanzahl und HTML-Fragmenten defensiv, damit große oder manipulierte Inhalte die SEO-Vorschau nicht unnötig blockieren. Damit folgt der Übersetzungspfad enger dem OWASP-ASVS-Fail-Closed-Prinzip und reduziert unnötige Heap-Last bei fehlerhaften oder manipulierten Editor-Daten. |
 | **3.0.0** | ⬜ chore | Release-Schnitt & Dokumentation | **Die 2.x-Historie wurde von `Changelog.md` nach `Changelog_old.md` verschoben und eine neue, schlanke `Changelog.md` für Version `3.0.0` angelegt.** Version, Update-Metadaten und README verweisen auf den neuen Major-Release-Stand; die historische Detailspur bleibt weiterhin vollständig über `Changelog_old.md` nachvollziehbar. |
+
+> Die vollständige historische 2.x-Historie wurde in [`Changelog_old.md`](Changelog_old.md) archiviert.
