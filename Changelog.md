@@ -1,4 +1,4 @@
-﻿**Version:** 3.3.25
+﻿**Version:** 3.3.26
 
 # 365CMS Changelog
 
@@ -19,6 +19,12 @@
 ## 📜 Aktuelle Versionshistorie ab 3.0.0
 
 > Die vollständige historische 2.x-Historie wurde in [`Changelog_old.md`](Changelog_old.md) archiviert.
+
+### v3.3.26 — 25.05.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.3.26** | 🔴 fix | EditorJS / Text+Bild Abstände | **`CMS/core/Services/EditorJsRenderer.php`, `CMS/core/Services/EditorJs/EditorJsContentNormalizer.php`, `CMS/assets/css/editorjs-content.css`, `CMS/core/Bootstrap.php`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md`, `CMS/DOC/assets/editorjs/README.md` und `Changelog.md` stabilisieren die Public-Abstände von `mediaText`-/Text+Bild-Blöcken.** Der Renderer ergänzt sichere Klassen wie `editorjs-media-text--spacing-top-30` und `editorjs-media-text--spacing-bottom-30`; Core-Critical-CSS und das nachgeladene EditorJS-CSS setzen MediaText-Blöcke nicht mehr pauschal über `.editorjs-block + .editorjs-block` oder `:first-child` auf `0px`; der Normalizer übernimmt Abstandswerte zusätzlich aus diesen Klassen, falls `style` oder `data-spacing-*` in Theme-/Sanitizer-Pfaden reduziert wurden. |
 
 ### v3.3.25 — 25.05.2026
 

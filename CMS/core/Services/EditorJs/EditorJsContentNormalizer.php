@@ -746,12 +746,18 @@ final class EditorJsContentNormalizer
             $spacingTop = $element->getAttribute('data-spacing-top');
         }
         if ($spacingTop === '') {
+            $spacingTop = self::resolveMediaTextSpacingFromClass($class, 'top');
+        }
+        if ($spacingTop === '') {
             $spacingTop = '10';
         }
 
         $spacingBottom = (string) ($attrs['spacingBottom'] ?? $attrs['marginBottom'] ?? $attrs['blockSpacingBottom'] ?? '');
         if ($spacingBottom === '') {
             $spacingBottom = $element->getAttribute('data-spacing-bottom');
+        }
+        if ($spacingBottom === '') {
+            $spacingBottom = self::resolveMediaTextSpacingFromClass($class, 'bottom');
         }
         if ($spacingBottom === '') {
             $spacingBottom = '10';
@@ -945,6 +951,17 @@ final class EditorJsContentNormalizer
         }
 
         return self::normalizeImageFit($fit, 'cover');
+    }
+
+    private static function resolveMediaTextSpacingFromClass(string $class, string $edge): string
+    {
+        if (!in_array($edge, ['top', 'bottom'], true)) {
+            return '';
+        }
+
+        return preg_match('/ editorjs-media-text--spacing-' . $edge . '-([0-9]{1,3}) /', $class, $match) === 1
+            ? self::normalizeMediaTextSpacing($match[1])
+            : '';
     }
 
     private static function innerHtml(\DOMNode $node): string

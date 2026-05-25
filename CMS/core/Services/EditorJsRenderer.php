@@ -1007,6 +1007,8 @@ final class EditorJsRenderer
             'editorjs-media-text--image-' . $imagePosition,
             'editorjs-media-text--image-width-' . $imageWidth,
             'editorjs-media-text--image-fit-' . $imageFit,
+            'editorjs-media-text--spacing-top-' . $spacingTop,
+            'editorjs-media-text--spacing-bottom-' . $spacingBottom,
         ];
         if ($showBorder) {
             $classes[] = 'editorjs-media-text--bordered';
