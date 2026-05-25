@@ -31,7 +31,7 @@ final class SeoAuditService
                     p.updated_at, p.created_at,
                     sm.canonical_url, sm.robots_index, sm.robots_follow, sm.og_title, sm.og_description,
                     sm.og_image, sm.og_type, sm.twitter_card, sm.twitter_title, sm.twitter_description,
-                    sm.twitter_image, sm.focus_keyphrase, sm.schema_type, sm.sitemap_priority, sm.sitemap_changefreq,
+                    sm.twitter_image, sm.focus_keyphrase, sm.keywords, sm.schema_type, sm.sitemap_priority, sm.sitemap_changefreq,
                     sm.hreflang_group
              FROM {$this->prefix}pages p
              LEFT JOIN {$this->prefix}seo_meta sm ON sm.content_type = 'page' AND sm.content_id = p.id
@@ -45,7 +45,7 @@ final class SeoAuditService
                     p.updated_at, p.created_at,
                     sm.canonical_url, sm.robots_index, sm.robots_follow, sm.og_title, sm.og_description,
                     sm.og_image, sm.og_type, sm.twitter_card, sm.twitter_title, sm.twitter_description,
-                    sm.twitter_image, sm.focus_keyphrase, sm.schema_type, sm.sitemap_priority, sm.sitemap_changefreq,
+                    sm.twitter_image, sm.focus_keyphrase, sm.keywords, sm.schema_type, sm.sitemap_priority, sm.sitemap_changefreq,
                     sm.hreflang_group
              FROM {$this->prefix}posts p
              LEFT JOIN {$this->prefix}seo_meta sm ON sm.content_type = 'post' AND sm.content_id = p.id
@@ -94,6 +94,7 @@ final class SeoAuditService
                 'twitter_description' => (string) ($row->twitter_description ?? ''),
                 'twitter_image' => $mediaDelivery->normalizeAdminVisibleUrl((string) ($row->twitter_image ?? '')),
                 'focus_keyphrase' => (string) ($row->focus_keyphrase ?? ''),
+                'keywords' => (string) ($row->keywords ?? ''),
                 'schema_type' => (string) ($row->schema_type ?? ''),
                 'sitemap_priority' => (string) ($row->sitemap_priority ?? ''),
                 'sitemap_changefreq' => (string) ($row->sitemap_changefreq ?? ''),

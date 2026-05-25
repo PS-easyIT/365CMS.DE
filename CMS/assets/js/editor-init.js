@@ -3159,7 +3159,7 @@
         render() {
             var wrapper = createElement('div', 'cms-editorjs-tool cms-editorjs-tool--media-text');
             var preview = createElement('div', 'cms-editorjs-media-text-preview');
-            var headingPreview = createElement('div', 'cms-editorjs-media-text-preview__heading');
+            var headingPreview = createElement('h3', 'cms-editorjs-media-text-preview__heading');
             var media = createElement('figure', 'cms-editorjs-media-text-preview__media');
             var image = preparePreviewImage(document.createElement('img'), false);
             var content = createEditable('cms-editorjs-editable cms-editorjs-media-text-preview__content', this.data.text || '', 'Text neben dem Bild schreiben ...', this.api, this.readOnly, true);

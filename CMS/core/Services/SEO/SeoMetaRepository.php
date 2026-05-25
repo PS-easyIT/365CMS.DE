@@ -46,6 +46,7 @@ final class SeoMetaRepository
             'twitter_description' => (string) ($row->twitter_description ?? ''),
             'twitter_image' => (string) ($row->twitter_image ?? ''),
             'focus_keyphrase' => (string) ($row->focus_keyphrase ?? ''),
+            'keywords' => (string) ($row->keywords ?? ''),
             'schema_type' => (string) ($row->schema_type ?? ''),
             'sitemap_priority' => $row->sitemap_priority !== null ? (string) $row->sitemap_priority : '',
             'sitemap_changefreq' => (string) ($row->sitemap_changefreq ?? ''),
@@ -74,6 +75,7 @@ final class SeoMetaRepository
             'twitter_description' => $this->sanitizeLongText((string) ($data['twitter_description'] ?? '')),
             'twitter_image' => $this->sanitizeOptionalUrl((string) ($data['twitter_image'] ?? '')),
             'focus_keyphrase' => $this->sanitizeText((string) ($data['focus_keyphrase'] ?? ''), 255),
+            'keywords' => $this->sanitizeKeywords((string) ($data['keywords'] ?? $data['seo_tags'] ?? $data['meta_keywords'] ?? '')),
             'schema_type' => $this->sanitizeText((string) ($data['schema_type'] ?? 'WebPage'), 100),
             'sitemap_priority' => $this->sanitizePriority((string) ($data['sitemap_priority'] ?? '')),
             'sitemap_changefreq' => $this->sanitizeChangefreq((string) ($data['sitemap_changefreq'] ?? '')),
@@ -112,6 +114,7 @@ final class SeoMetaRepository
                 twitter_description TEXT DEFAULT NULL,
                 twitter_image VARCHAR(500) DEFAULT NULL,
                 focus_keyphrase VARCHAR(255) DEFAULT NULL,
+                keywords VARCHAR(500) DEFAULT NULL,
                 schema_type VARCHAR(100) DEFAULT NULL,
                 sitemap_priority DECIMAL(2,1) DEFAULT NULL,
                 sitemap_changefreq VARCHAR(20) DEFAULT NULL,
@@ -123,6 +126,27 @@ final class SeoMetaRepository
                 INDEX idx_focus_keyphrase (focus_keyphrase)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
         );
+
+        $this->ensureSeoMetaColumns();
+    }
+
+    private function ensureSeoMetaColumns(): void
+    {
+        $columns = [
+            'keywords' => "ALTER TABLE {$this->prefix}seo_meta ADD COLUMN keywords VARCHAR(500) DEFAULT NULL AFTER focus_keyphrase",
+        ];
+
+        foreach ($columns as $column => $sql) {
+            $stmt = $this->db->getPdo()->query("SHOW COLUMNS FROM {$this->prefix}seo_meta LIKE " . $this->db->getPdo()->quote($column));
+            $exists = $stmt instanceof \PDOStatement && $stmt->fetch(\PDO::FETCH_ASSOC) !== false;
+            if ($stmt instanceof \PDOStatement) {
+                $stmt->closeCursor();
+            }
+
+            if (!$exists) {
+                $this->db->getPdo()->exec($sql);
+            }
+        }
     }
 
     private function getDefaultMeta(): array
@@ -140,6 +164,7 @@ final class SeoMetaRepository
             'twitter_description' => '',
             'twitter_image' => '',
             'focus_keyphrase' => '',
+            'keywords' => '',
             'schema_type' => 'WebPage',
             'sitemap_priority' => '',
             'sitemap_changefreq' => '',
@@ -170,6 +195,34 @@ final class SeoMetaRepository
     private function sanitizeLongText(string $value): string
     {
         return trim(strip_tags($value));
+    }
+
+    private function sanitizeKeywords(string $value): string
+    {
+        $rawTags = preg_split('/[,;\n]+/u', $value) ?: [];
+        $keywords = [];
+
+        foreach ($rawTags as $tag) {
+            $keyword = trim(preg_replace('/\s+/u', ' ', strip_tags((string) $tag)) ?? '');
+            if ($keyword === '') {
+                continue;
+            }
+
+            $keyword = function_exists('mb_substr') ? mb_substr($keyword, 0, 60) : substr($keyword, 0, 60);
+            $lookupKey = function_exists('mb_strtolower') ? mb_strtolower($keyword) : strtolower($keyword);
+            if (isset($keywords[$lookupKey])) {
+                continue;
+            }
+
+            $keywords[$lookupKey] = $keyword;
+            if (count($keywords) >= 20) {
+                break;
+            }
+        }
+
+        $serialized = implode(', ', array_values($keywords));
+
+        return function_exists('mb_substr') ? mb_substr($serialized, 0, 500) : substr($serialized, 0, 500);
     }
 
     private function sanitizePriority(string $value): string

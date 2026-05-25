@@ -1,6 +1,6 @@
 # 365CMS.DE
 
-**Version:** [3.3.28](Changelog.md) · **Status:** Stable · **PHP:** 8.4+ · **MySQL:** 5.7+ · **MariaDB:** 10.3+
+**Version:** [3.3.30](Changelog.md) · **Status:** Stable · **PHP:** 8.4+ · **MySQL:** 5.7+ · **MariaDB:** 10.3+
 
 <div align="center">
 
@@ -65,7 +65,7 @@ Wichtige Eigenschaften:
 - Auditierter Runtime-Vertrag: `onReady`/`onChange`/`onError`, seriell ausgeführte Hidden-JSON-Synchronisierung, Submit-Save, Pagehide-Cleanup, Upload-Response-Formate, LinkTool-CSRF-Header und Public-Renderer-Abdeckung sind in Factory, Page/Post-Binding und generischem EditorJS-Service aufeinander abgestimmt
 - Robuster Submit-Save bei lazy initialisierten Sprach-/Hidden-Editoren: laufende EditorJS-Bindings werden vor dem Formular-Submit vollständig abgewartet, damit schnell kopierte oder aktivierte Inhalte nicht als alter Hidden-JSON-Stand gespeichert werden
 - Text+Bild-Blöcke unterstützen eine optionale dezente Rahmenanzeige mit maximal 2px Rundung und zuverlässig durchgesetzten Abständen nach oben und unten; `30px`-Presets werden auch gegen globale Critical-CSS-Nullabstände erhalten
-- Text+Bild-Blöcke können optional eine Überschrift anzeigen; bei aktivem Rahmen dockt diese als Band am oberen Rahmen an, während Abstand oben/unten getrennt einstellbar bleibt
+- Text+Bild-Blöcke können optional eine echte H3-Überschrift anzeigen; bei aktivem Rahmen dockt diese als Band am oberen Rahmen an, während Abstand oben/unten getrennt einstellbar bleibt
 - EditorJS-Audit: Tool-/Asset-Registry ist bereinigt, Datei-Anhänge unterstützen explizit URL-Quellen und MediaText-Überschriften bleiben auch ohne `mbstring` robust
 - EditorJS-Runtime-Audit: Core-Factory, Tool-/Asset-Registry, Upload-Vertrag, Persistenz, Cleanup und Public-Renderer sind abgeglichen; die interne Runtime-/Debug-Version entspricht wieder dem Core-Release, und bereits gerendertes `editorjs-media-text`/Galerie-HTML bleibt bei erneuter Normalisierung strukturerhaltend
 - Text+Bild-Abstände oben/unten greifen auf Publicseiten über die EditorJS-Core-Abstandsvariablen und werden nicht mehr von globalen `.editorjs-block`-Margin-Regeln überstimmt
@@ -86,7 +86,7 @@ Die gespeicherten EditorJS-Daten werden serverseitig sanitisiert und im Frontend
 | **Mitglieder** | Member-Dashboard, konfigurierbare Profile mit Pflicht-/Optionalfeldern, Nachrichten, Benachrichtigungen, Favoriten und geschützte Bereiche |
 | **Benutzer & Rollen** | Rollen, Capabilities, Gruppen, Rechteprüfung und sichere Auth-Flows |
 | **Business & Pakete** | Pakete, Bestellungen, Abos, Limits, Gruppenlogik und Zugriffskontrolle |
-| **SEO** | Meta-Daten, Social-Daten, Sitemap, Robots, Redirects, 404-Monitoring, IndexNow und strukturierte Daten |
+| **SEO** | Meta-Daten, unsichtbare Seiten-Keywords, Social-Daten, Sitemap, Robots, Redirects, 404-Monitoring, IndexNow und strukturierte Daten |
 | **Themes & Design** | Theme-System, Theme-Auswahl, Customizer, Menüs, lokale Fonts, Loginpage und Branding-Pfade |
 | **Plugins** | Hook-System, Plugin-Verwaltung, Erweiterungspunkte und modulare Integrationen |
 | **Datenschutz** | Legal-Seiten, Cookie-/Consent-Funktionen, DSGVO-Datenexporte und Löschprozesse |

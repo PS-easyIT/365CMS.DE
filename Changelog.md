@@ -1,4 +1,4 @@
-﻿**Version:** 3.3.28
+﻿**Version:** 3.3.30
 
 # 365CMS Changelog
 
@@ -19,6 +19,18 @@
 ## 📜 Aktuelle Versionshistorie ab 3.0.0
 
 > Die vollständige historische 2.x-Historie wurde in [`Changelog_old.md`](Changelog_old.md) archiviert.
+
+### v3.3.30 — 25.05.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.3.30** | 🟢 feat | Seiten / SEO-Tags | **`CMS/core/Services/SEO/SeoMetaRepository.php`, `CMS/core/Services/SEO/SeoHeadRenderer.php`, `CMS/core/Services/SEO/SeoAuditService.php`, `CMS/admin/pages.php`, `CMS/admin/views/pages/edit.php`, `CMS/admin/modules/seo/SeoSuiteModule.php`, `CMS/admin/modules/seo/SeoDashboardModule.php`, `CMS/admin/views/seo/audit.php`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md`, `CMS/DOC/admin/pages-posts/PAGES.md`, `CMS/DOC/core/DATABASE-SCHEMA.md` und `Changelog.md` ergänzen unsichtbare SEO-Tags für normale Seiten.** Seiten besitzen in der SEO-Card jetzt ein Feld „SEO-Tags / Keywords“; die Werte werden kommagetrennt normalisiert in `seo_meta.keywords` gespeichert, migrationssicher nachgerüstet, im SEO-Audit ausgelesen und als `<meta name="keywords">` im Head ausgegeben, ohne im sichtbaren Seitencontent als Tagliste zu erscheinen. |
+
+### v3.3.29 — 25.05.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.3.29** | 🔴 fix | EditorJS / Text+Bild-H3 | **`CMS/core/Services/EditorJsRenderer.php`, `CMS/assets/css/editorjs-content.css`, `CMS/assets/css/admin.css`, `CMS/assets/js/editor-init.js`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md`, `CMS/DOC/assets/editorjs/README.md` und `Changelog.md` synchronisieren optionale Titel von EditorJS-Text+Bild-Blöcken mit dem H3-Vertrag.** Der Public-Renderer gibt die Überschrift weiterhin semantisch als `<h3 class="editorjs-media-text__heading">` aus, nutzt jetzt aber H3-Typografie statt eines kleinen Sondertitels. Die Admin-Vorschau verwendet ebenfalls ein `h3`-Element, und die Core-CSS-Regeln überschreiben alte Inline-Reste robust auf den H3-Maßstab. |
 
 ### v3.3.28 — 25.05.2026
 

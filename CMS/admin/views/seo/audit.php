@@ -82,6 +82,7 @@ $twitterCardOptions = ['summary_large_image', 'summary'];
                                 </td>
                                 <td>
                                     <div class="small"><strong>Keyphrase:</strong> <?= htmlspecialchars((string)($item['focus_keyphrase'] ?? '—')) ?></div>
+                                    <div class="small"><strong>Keywords:</strong> <?= htmlspecialchars((string)($item['keywords'] ?? '—')) ?></div>
                                     <div class="small"><strong>Canonical:</strong> <?= htmlspecialchars((string)($item['canonical_url'] ?? 'automatisch')) ?></div>
                                     <div class="small"><strong>Schema:</strong> <?= htmlspecialchars((string)($item['schema_type'] ?? 'WebPage')) ?></div>
                                 </td>
@@ -104,6 +105,7 @@ $twitterCardOptions = ['summary_large_image', 'summary'];
                                                 <div class="col-12"><label class="form-label small">Meta-Titel</label><input class="form-control form-control-sm" type="text" name="meta_title" value="<?= htmlspecialchars((string)($item['meta_title'] ?? '')) ?>"></div>
                                                 <div class="col-12"><label class="form-label small">Meta-Beschreibung</label><textarea class="form-control form-control-sm" name="meta_description" rows="3"><?= htmlspecialchars((string)($item['meta_description'] ?? '')) ?></textarea></div>
                                                 <div class="col-12"><label class="form-label small">Fokus-Keyphrase</label><input class="form-control form-control-sm" type="text" name="focus_keyphrase" value="<?= htmlspecialchars((string)($item['focus_keyphrase'] ?? '')) ?>"></div>
+                                                <div class="col-12"><label class="form-label small">SEO-Tags / Keywords</label><input class="form-control form-control-sm" type="text" name="keywords" value="<?= htmlspecialchars((string)($item['keywords'] ?? '')) ?>" placeholder="Kommagetrennte Tags"></div>
                                                 <div class="col-12"><label class="form-label small">Canonical</label><input class="form-control form-control-sm" type="text" name="canonical_url" value="<?= htmlspecialchars((string)($item['canonical_url'] ?? '')) ?>"></div>
                                                 <div class="col-6">
                                                     <label class="form-label small">Schema</label>

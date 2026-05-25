@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Verwaltung statischer CMS-Seiten im Admin inklusive getrennter DE/EN-Bearbeitung, SEO-Feldern, Slugs, Redirects, Bulk-Aktionen und Delete-/Preview-Pfaden.
 
-Letzte Aktualisierung: 2026-05-25 · Release 3.3.28
+Letzte Aktualisierung: 2026-05-25 · Release 3.3.30
 
 ---
 
@@ -25,6 +25,7 @@ Seiten bilden die statischen Inhalte des Systems, etwa Startseite, Kontakt, Impr
 | Header-TOC | Optionales, standardmäßig eingeklapptes Inhaltsverzeichnis unter dem Seitentitel |
 | Featured Image | Vorschaubild für Cards und Social Preview |
 | SEO-Felder | seitenspezifische Meta-Informationen |
+| SEO-Tags / Keywords | Kommagetrennte, nicht sichtbar ausgegebene Begriffe für die SEO-Meta-Ausgabe |
 
 Neue Seitenbilder laufen über den gemeinsamen Featured-Image-Picker: Uploads landen bei neuen Seiten zunächst temporär und werden beim Speichern in den Slug-Ordner verschoben. Fehler in diesem Verschiebe-/Metadaten-Schritt werden geloggt und dürfen den Save-Flow nicht mehr als HTTP-500 abbrechen. Öffentliche Seitenbilder werden als direkte relative `/uploads/...`-Referenzen gespeichert und nach dem Verschieben nochmals mit webserverlesbaren Dateirechten versehen, damit die Seite nach dem Aktualisieren nicht an browserlokalen 403-Fehlern auf dem Bild scheitert.
 
@@ -38,6 +39,7 @@ Der Seiteneditor kombiniert im aktuellen Stand:
 - getrennte DE- und EN-Bearbeitungsseiten statt eines fragilen In-Page-Sprachwechsels
 - drei obere Karten analog zum Beiträge-Editor: Inhalt/Slug links, Bild plus Aktionen mittig, Veröffentlichung rechts
 - SEO-/Readability-/Preview-Karten unter dem Editor
+- unsichtbare SEO-Tags/Keywords in der SEO-Card; sie werden im Head als Meta-Keywords ausgegeben, aber nicht als sichtbare Tagliste gerendert
 - eine seitenspezifische Header-TOC-Option, die unabhängig vom aktiven Theme und unabhängig von den globalen TOC-Einstellungen rendert
 - read-only Revisionsvergleich der letzten gespeicherten Seiten-Snapshots direkt im Editor
 - sichtbare Public-Preview-Links für DE und EN
@@ -98,6 +100,7 @@ Bei Slug-Änderungen legt die Seitenverwaltung automatische Redirects an. Seit R
 - Einzel- und Bulk-Delete-Pfade validieren bestehende Seiten jetzt fail-closed statt still auf fragilen DB-Rückgaben zu vertrauen.
 - Inhalts-Cache-Clears greifen nicht mehr nur beim Speichern, sondern auch bei Delete- und Bulk-Mutationen.
 - Seiten-SEO und Lesbarkeitsprüfungen sind direkt im Editor sichtbar.
+- Seiten können interne SEO-Tags/Keywords speichern; sie bleiben frontend-unsichtbar und werden nur von der SEO-Meta-Ausgabe bzw. dem SEO-Audit gelesen.
 - Slug-, Redirect- und Preview-Bezüge greifen konsistent über DE/EN-Pfade ineinander.
 - Die Admin-UI bündelt Speichern, DE-/EN-Vorschau und Einzel-Löschen jetzt in einer gemeinsamen Aktionskarte mit klarer visueller Hierarchie statt in getrennten Top-/Delete-Bereichen.
 - Revisions-Snapshots lassen sich direkt im Seiteneditor gegen den aktuellen Stand vergleichen, ohne Restore-Aktionen still mitzuschleusen.

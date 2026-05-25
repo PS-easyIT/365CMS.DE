@@ -225,6 +225,7 @@ $isEnglishEditorView = $editorLocale === 'en';
             $pageEditorHasValidActiveMapping = ($isEnglishEditorView && $activePageContentInputId === 'pagePlainEditorEn')
                 || (!$isEnglishEditorView && $activePageContentInputId === 'pagePlainEditorDe');
             $pageFocusKeyphraseValue = (string)($seoMeta['focus_keyphrase'] ?? '');
+            $pageKeywordsValue = (string)($seoMeta['keywords'] ?? '');
             $pageCanonicalUrlValue = (string)($seoMeta['canonical_url'] ?? '');
             $pageRobotsIndexValue = !array_key_exists('robots_index', $seoMeta) || !empty($seoMeta['robots_index']);
             $pageRobotsFollowValue = !array_key_exists('robots_follow', $seoMeta) || !empty($seoMeta['robots_follow']);
@@ -461,6 +462,11 @@ $isEnglishEditorView = $editorLocale === 'en';
                             <div class="mb-3">
                                 <label class="form-label" for="pageFocusKeyphrase">Fokus-Keyphrase</label>
                                 <input type="text" name="focus_keyphrase" class="form-control" id="pageFocusKeyphrase" placeholder="z. B. Mitgliedschaft B2B-Netzwerk" value="<?= htmlspecialchars($pageFocusKeyphraseValue) ?>">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label" for="pageSeoKeywords">SEO-Tags / Keywords</label>
+                                <input type="text" name="keywords" class="form-control" id="pageSeoKeywords" placeholder="z. B. Microsoft 365, Managed Services, IT-Sicherheit" value="<?= htmlspecialchars($pageKeywordsValue) ?>">
+                                <small class="form-hint">Nur für SEO-Metadaten: Kommagetrennte Begriffe werden im Head als Keywords ausgegeben, aber nicht sichtbar auf der Seite angezeigt.</small>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Meta-Titel</label>

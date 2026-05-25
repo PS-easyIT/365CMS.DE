@@ -174,6 +174,7 @@ function cms_admin_pages_build_inline_edit_data(PagesModule $module, array $post
     $editData['page'] = (object) $draftPage;
     $editData['seoMeta'] = array_merge(is_array($editData['seoMeta'] ?? null) ? $editData['seoMeta'] : [], [
         'focus_keyphrase' => (string) ($post['focus_keyphrase'] ?? ''),
+        'keywords' => (string) ($post['keywords'] ?? ''),
         'canonical_url' => (string) ($post['canonical_url'] ?? ''),
         'robots_index' => !empty($post['robots_index']),
         'robots_follow' => !empty($post['robots_follow']),

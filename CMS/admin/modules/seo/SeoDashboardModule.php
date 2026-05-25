@@ -118,6 +118,7 @@ class SeoDashboardModule
         );
         SEOService::getInstance()->saveContentMeta($contentType, $id, [
             'focus_keyphrase' => (string)($post['focus_keyphrase'] ?? ''),
+            'keywords' => (string)($post['keywords'] ?? ''),
         ]);
 
         return ['success' => true, 'message' => 'SEO-Audit-Eintrag aktualisiert.'];

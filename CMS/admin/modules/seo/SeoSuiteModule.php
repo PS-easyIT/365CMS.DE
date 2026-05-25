@@ -482,6 +482,7 @@ final class SeoSuiteModule
 
 		$this->seoService->saveContentMeta($contentType, $id, [
 			'focus_keyphrase' => (string)($post['focus_keyphrase'] ?? ''),
+			'keywords' => (string)($post['keywords'] ?? ''),
 			'canonical_url' => $this->normalizeOptionalUrl((string)($post['canonical_url'] ?? ''), false),
 			'robots_index' => !empty($post['robots_index']),
 			'robots_follow' => !empty($post['robots_follow']),

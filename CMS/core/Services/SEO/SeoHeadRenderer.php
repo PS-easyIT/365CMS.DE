@@ -31,6 +31,11 @@ final class SeoHeadRenderer
             $lines[] = '<meta name="description" content="' . htmlspecialchars($metaDescription, ENT_QUOTES, 'UTF-8') . '">';
         }
 
+        $metaKeywords = trim((string) ($payload['keywords'] ?? ''));
+        if ($metaKeywords !== '') {
+            $lines[] = '<meta name="keywords" content="' . htmlspecialchars($metaKeywords, ENT_QUOTES, 'UTF-8') . '">';
+        }
+
         $robots = [];
         $robots[] = !empty($payload['robots_index']) ? 'index' : 'noindex';
         $robots[] = !empty($payload['robots_follow']) ? 'follow' : 'nofollow';
@@ -142,6 +147,7 @@ final class SeoHeadRenderer
         return [
             'title' => $title,
             'description' => $description,
+            'keywords' => (string) ($meta['keywords'] ?? ''),
             'canonical_url' => $meta['canonical_url'] !== '' ? $meta['canonical_url'] : $canonicalUrl,
             'robots_index' => $meta['robots_index'],
             'robots_follow' => $meta['robots_follow'],

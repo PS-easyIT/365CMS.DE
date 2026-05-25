@@ -507,6 +507,7 @@ Erweiterte SEO-Metadaten für beliebige Entitäten (Seiten, Posts, etc.).
 | `meta_title` | TEXT | Ja | NULL | SEO-Titel |
 | `meta_description` | TEXT | Ja | NULL | SEO-Beschreibung |
 | `canonical_url` | VARCHAR(500) | Ja | NULL | Kanonische URL |
+| `keywords` | VARCHAR(500) | Ja | NULL | Kommagetrennte SEO-Tags/Keywords, z. B. für Seiten ohne sichtbare Tagliste |
 | `og_title` | VARCHAR(255) | Ja | NULL | Open-Graph-Titel |
 | `og_description` | TEXT | Ja | NULL | Open-Graph-Beschreibung |
 | `og_image` | VARCHAR(500) | Ja | NULL | Open-Graph-Bild |
