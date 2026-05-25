@@ -304,7 +304,7 @@
 .cms-page-title-toc__summary {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-start;
     gap: 1rem;
     padding: 1rem 1.125rem;
     cursor: pointer;
@@ -320,80 +320,10 @@
     content: '';
 }
 
-.cms-page-title-toc__summary-main,
-.cms-page-title-toc__meta {
-    display: inline-flex;
-    align-items: center;
-    gap: .75rem;
-}
-
-.cms-page-title-toc__icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex: 0 0 auto;
-    width: 2.2rem;
-    height: 2.2rem;
-    border-radius: 999px;
-    background: rgba(14, 165, 233, 0.14);
-    color: var(--cms-page-title-toc-accent-strong);
-    font-weight: 800;
-    box-shadow: inset 0 0 0 1px rgba(14, 165, 233, 0.18);
-}
-
-.cms-page-title-toc__copy {
-    display: inline-flex;
-    flex-direction: column;
-    gap: .15rem;
-}
-
-.cms-page-title-toc__eyebrow {
-    color: var(--cms-page-title-toc-accent-strong);
-    font-size: .68rem;
-    font-weight: 800;
-    letter-spacing: .08em;
-    text-transform: uppercase;
-}
-
 .cms-page-title-toc__title {
     color: var(--cms-page-title-toc-text);
     font-size: 1rem;
     font-weight: 800;
-}
-
-.cms-page-title-toc__count {
-    display: inline-flex;
-    align-items: center;
-    padding: .32rem .64rem;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, .78);
-    color: var(--cms-page-title-toc-muted);
-    font-size: .74rem;
-    font-weight: 800;
-}
-
-.cms-page-title-toc__hint {
-    color: var(--cms-page-title-toc-muted);
-    font-size: .74rem;
-    font-weight: 800;
-    letter-spacing: .02em;
-}
-
-.cms-page-title-toc[open] .cms-page-title-toc__hint::before {
-    content: 'einklappen';
-}
-
-.cms-page-title-toc:not([open]) .cms-page-title-toc__hint::before {
-    content: 'anzeigen';
-}
-
-.cms-page-title-toc__chevron {
-    color: var(--cms-page-title-toc-muted);
-    transition: transform .2s ease;
-}
-
-.cms-page-title-toc[open] .cms-page-title-toc__chevron {
-    transform: rotate(180deg);
 }
 
 .cms-page-title-toc__body {
@@ -464,16 +394,6 @@
     .cms-toc__header {
         align-items: flex-start;
         flex-direction: column;
-    }
-
-    .cms-page-title-toc__summary {
-        align-items: flex-start;
-        flex-direction: column;
-    }
-
-    .cms-page-title-toc__meta {
-        width: 100%;
-        justify-content: space-between;
     }
 
     .cms-page-title-toc__link {

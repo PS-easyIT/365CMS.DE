@@ -200,6 +200,10 @@ class TableOfContents
     public function buildPageTitleToc(string $content): array
     {
         $content = str_replace('[cms_toc]', '', $content);
+        if (str_contains($content, 'cms-page-title-toc')) {
+            return ['toc' => '', 'content' => $content];
+        }
+
         if (trim($content) === '') {
             return ['toc' => '', 'content' => $content];
         }
@@ -349,21 +353,10 @@ class TableOfContents
 
         $uid = 'page-title-toc-' . $this->generateUidSuffix();
         $structured = $this->buildHierarchy($headings);
-        $count = count($headings);
 
         $html = '<details id="' . htmlspecialchars($uid, ENT_QUOTES, 'UTF-8') . '" class="cms-page-title-toc" data-cms-page-title-toc="1">';
         $html .= '<summary class="cms-page-title-toc__summary">';
-        $html .= '<span class="cms-page-title-toc__summary-main">';
-        $html .= '<span class="cms-page-title-toc__icon" aria-hidden="true">&#x2630;</span>';
-        $html .= '<span class="cms-page-title-toc__copy">';
-        $html .= '<span class="cms-page-title-toc__eyebrow">Schnellnavigation</span>';
         $html .= '<span class="cms-page-title-toc__title">Inhaltsverzeichnis</span>';
-        $html .= '</span></span>';
-        $html .= '<span class="cms-page-title-toc__meta">';
-        $html .= '<span class="cms-page-title-toc__count">' . $count . ' Punkte</span>';
-        $html .= '<span class="cms-page-title-toc__hint" aria-hidden="true"></span>';
-        $html .= '<span class="cms-page-title-toc__chevron" aria-hidden="true">&#x25BE;</span>';
-        $html .= '</span>';
         $html .= '</summary>';
         $html .= '<nav class="cms-page-title-toc__body" aria-label="Inhaltsverzeichnis der Seite">';
         $html .= $this->renderPageTitleTocList($structured);

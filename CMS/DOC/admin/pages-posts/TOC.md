@@ -38,7 +38,7 @@ Typische Optionen:
 Seit Release `3.3.28` besitzen Seiten zusätzlich die lokale Option **„Eingeklapptes Inhaltsverzeichnis unter dem Titel anzeigen“**. Diese Option liegt im Seiteneditor selbst und ist bewusst unabhängig von den globalen TOC-Einstellungen unter `/admin/table-of-contents`.
 
 - Persistenz: `cms_pages.show_title_toc`
-- Ausgabe: Core-Router injiziert ein `<details class="cms-page-title-toc">` am Anfang des vorbereiteten Seitencontents.
+- Ausgabe: Core-Router injiziert ein `<details class="cms-page-title-toc">` am Anfang des vorbereiteten Seitencontents; der eingeklappte Summary-Text zeigt nur `Inhaltsverzeichnis`.
 - Mindestumfang: mindestens zwei Überschriften (`h2` bis `h6`).
 - Standardzustand: eingeklappt.
 - Ziel: themeübergreifende Schnellnavigation direkt unter dem Seitentitel, ohne globale Auto-Insert-Regeln aktivieren zu müssen.
