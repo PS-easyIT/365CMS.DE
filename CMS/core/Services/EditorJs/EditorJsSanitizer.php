@@ -58,7 +58,13 @@ final class EditorJsSanitizer
             return null;
         }
 
-        $data = $this->sanitizeBlockData($type, is_array($block['data'] ?? null) ? $block['data'] : []);
+        $rawData = is_array($block['data'] ?? null) ? $block['data'] : [];
+        if ($type === 'checklist') {
+            $type = 'list';
+            $rawData['style'] = 'checklist';
+        }
+
+        $data = $this->sanitizeBlockData($type, $rawData);
         $cleanBlock = [
             'type' => $type,
             'data' => $data,
@@ -602,9 +608,14 @@ final class EditorJsSanitizer
                 continue;
             }
 
+            $meta = is_array($item['meta'] ?? null) ? $item['meta'] : [];
+            if ($style === 'checklist' && !array_key_exists('checked', $meta) && array_key_exists('checked', $item)) {
+                $meta['checked'] = !empty($item['checked']);
+            }
+
             $cleanItems[] = [
                 'content' => $cleanInline($item['content'] ?? $item['text'] ?? ''),
-                'meta' => $this->sanitizeListMeta($style, is_array($item['meta'] ?? null) ? $item['meta'] : []),
+                'meta' => $this->sanitizeListMeta($style, $meta),
                 'items' => $this->sanitizeListItems(is_array($item['items'] ?? null) ? $item['items'] : [], $style),
             ];
         }

@@ -1,6 +1,6 @@
 # 365CMS.DE
 
-**Version:** [3.3.30](Changelog.md) · **Status:** Stable · **PHP:** 8.4+ · **MySQL:** 5.7+ · **MariaDB:** 10.3+
+**Version:** [3.3.31](Changelog.md) · **Status:** Stable · **PHP:** 8.4+ · **MySQL:** 5.7+ · **MariaDB:** 10.3+
 
 <div align="center">
 
@@ -62,12 +62,12 @@ Wichtige Eigenschaften:
 - WordPress-ähnlichere Admin-Bedienung mit Block-Inserter, Commandbar, Drag & Drop, Undo/Redo und Read-only-kompatiblen Tool-Kontexten
 - Abgeglichene EditorJS-Tooloberfläche: aktive Blocktools sind in der Admin-GUI und im generischen EditorJS-Service erreichbar; nicht registrierte Asset-Bundles wurden aus dem Core-Assetordner entfernt
 - Public-nahe Admin-Optik: Blockrahmen erscheinen nur noch beim Hover; Fokuszustände bleiben bewusst sehr dezent, damit der Canvas stärker der späteren Frontend-Ansicht entspricht
-- Auditierter Runtime-Vertrag: `onReady`/`onChange`/`onError`, seriell ausgeführte Hidden-JSON-Synchronisierung, Submit-Save, Pagehide-Cleanup, Upload-Response-Formate, LinkTool-CSRF-Header und Public-Renderer-Abdeckung sind in Factory, Page/Post-Binding und generischem EditorJS-Service aufeinander abgestimmt
+- Auditierter Runtime-Vertrag: `onReady`/`onChange`/`onError`, seriell ausgeführte Hidden-JSON-Synchronisierung, Submit-Save, Pagehide-Cleanup, Upload-Response-Formate, LinkTool-CSRF-/GET-Parameter und Public-Renderer-Abdeckung sind in Factory, Page/Post-Binding und generischem EditorJS-Service aufeinander abgestimmt
 - Robuster Submit-Save bei lazy initialisierten Sprach-/Hidden-Editoren: laufende EditorJS-Bindings werden vor dem Formular-Submit vollständig abgewartet, damit schnell kopierte oder aktivierte Inhalte nicht als alter Hidden-JSON-Stand gespeichert werden
 - Text+Bild-Blöcke unterstützen eine optionale dezente Rahmenanzeige mit maximal 2px Rundung und zuverlässig durchgesetzten Abständen nach oben und unten; `30px`-Presets werden auch gegen globale Critical-CSS-Nullabstände erhalten
 - Text+Bild-Blöcke können optional eine echte H3-Überschrift anzeigen; bei aktivem Rahmen dockt diese als Band am oberen Rahmen an, während Abstand oben/unten getrennt einstellbar bleibt
 - EditorJS-Audit: Tool-/Asset-Registry ist bereinigt, Datei-Anhänge unterstützen explizit URL-Quellen und MediaText-Überschriften bleiben auch ohne `mbstring` robust
-- EditorJS-Runtime-Audit: Core-Factory, Tool-/Asset-Registry, Upload-Vertrag, Persistenz, Cleanup und Public-Renderer sind abgeglichen; die interne Runtime-/Debug-Version entspricht wieder dem Core-Release, und bereits gerendertes `editorjs-media-text`/Galerie-HTML bleibt bei erneuter Normalisierung strukturerhaltend
+- EditorJS-Runtime-Audit: Core-Factory, Tool-/Asset-Registry, Upload-Vertrag, Persistenz, Cleanup und Public-Renderer sind abgeglichen; die interne Runtime-/Debug-Version entspricht wieder dem Core-Release, Checklisten bleiben beim Reload/Speichern als Checklisten erhalten und bereits gerendertes `editorjs-media-text`/Galerie-HTML bleibt bei erneuter Normalisierung strukturerhaltend
 - Text+Bild-Abstände oben/unten greifen auf Publicseiten über die EditorJS-Core-Abstandsvariablen und werden nicht mehr von globalen `.editorjs-block`-Margin-Regeln überstimmt
 - Stabilere Bearbeitung großer Seiten und Beiträge: Admin-Bildvorschauen laden lazy/async, Offscreen-Blöcke werden browserseitig geschont, massenhafte Zwischenblock-Overlays werden bei sehr vielen Blöcken reduziert und Zahnrad-/Popover-Menüs bleiben vor nachfolgenden Blöcken bedienbar
 - Blockkarten und Schnellaktionen für typische Redaktionsmuster statt technischer JSON-Bearbeitung

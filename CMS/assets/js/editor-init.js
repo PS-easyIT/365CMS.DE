@@ -25,7 +25,7 @@
     var TUNE_TOOL_NAMES = ['anchor', 'alignmentTune', 'indentTune', 'textVariant'];
     var PLUGIN_NAMES = ['undo', 'dragDrop'];
     var TOOL_NAMES = BLOCK_TOOL_NAMES.concat(INLINE_TOOL_NAMES, TUNE_TOOL_NAMES);
-    var VERSION = 'cms-editorjs-org-assets-2026-05-25-audit-change-sync-3-3-27';
+    var VERSION = 'cms-editorjs-org-assets-2026-05-25-audit-link-checklist-3-3-31';
     var THEME_PREVIEW_STYLE_CACHE = {};
     var TOOL_GLOBALS = {
         paragraph: ['CmsParagraphTool', 'Paragraph'],
@@ -2253,33 +2253,57 @@
             var wrapper = createElement('div', 'cms-editorjs-tool cms-editorjs-tool--list');
             var style = document.createElement('select');
             var textarea = document.createElement('textarea');
-            ['unordered', 'ordered'].forEach(function (value) {
+            ['unordered', 'ordered', 'checklist'].forEach(function (value) {
                 var option = document.createElement('option');
                 option.value = value;
-                option.textContent = value === 'ordered' ? 'Nummeriert' : 'Aufzählung';
+                option.textContent = value === 'ordered' ? 'Nummeriert' : (value === 'checklist' ? 'Checkliste' : 'Aufzählung');
                 style.appendChild(option);
             });
             style.className = 'form-select form-select-sm mb-2';
-            style.value = this.data.style === 'ordered' ? 'ordered' : 'unordered';
+            style.value = ['ordered', 'unordered', 'checklist'].indexOf(this.data.style) !== -1 ? this.data.style : 'unordered';
             style.disabled = this.readOnly;
             textarea.className = 'form-control';
             textarea.rows = 5;
             textarea.readOnly = this.readOnly;
             textarea.value = Array.isArray(this.data.items) ? this.data.items.map(function (item) {
-                return stripTags(item && typeof item === 'object' ? item.content : item);
+                var content = stripTags(item && typeof item === 'object' ? item.content : item);
+                var checked = !!(item && typeof item === 'object' && ((item.meta && item.meta.checked) || item.checked));
+
+                return style.value === 'checklist' ? (checked ? '[x] ' : '[ ] ') + content : content;
             }).join('\n') : '';
-            textarea.placeholder = 'Ein Listenpunkt pro Zeile';
+            textarea.placeholder = 'Ein Listenpunkt pro Zeile' + (style.value === 'checklist' ? ' – optional mit [x] erledigt markieren' : '');
+            style.addEventListener('change', function () {
+                textarea.placeholder = 'Ein Listenpunkt pro Zeile' + (style.value === 'checklist' ? ' – optional mit [x] erledigt markieren' : '');
+            });
             wrapper.appendChild(style);
             wrapper.appendChild(textarea);
             this.nodes = { style: style, textarea: textarea };
             return wrapper;
         }
         save() {
+            var style = this.nodes.style ? this.nodes.style.value : 'unordered';
             return normalizeListData({
-                style: this.nodes.style ? this.nodes.style.value : 'unordered',
+                style: style,
                 items: String(this.nodes.textarea ? this.nodes.textarea.value : '').split('\n').map(function (item) {
-                    return item.trim();
-                }).filter(Boolean)
+                    var line = item.trim();
+                    var checked = /^\[(?:x|X|✓|✔)\]\s*/.test(line);
+                    var unchecked = /^\[\s\]\s*/.test(line);
+                    var content = line.replace(/^\[(?:x|X|✓|✔|\s)\]\s*/, '').trim();
+
+                    if (style === 'checklist') {
+                        return {
+                            content: content,
+                            meta: { checked: checked && !unchecked },
+                            items: []
+                        };
+                    }
+
+                    return content;
+                }).filter(function (item) {
+                    return typeof item === 'string'
+                        ? item !== ''
+                        : !!(item && stripTags(item.content || '') !== '');
+                })
             });
         }
     }

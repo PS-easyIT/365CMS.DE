@@ -76,6 +76,12 @@ final class EditorJsAssetService
         $csrfToken = class_exists(\CMS\Security::class)
             ? \CMS\Security::instance()->generateToken('editorjs_media')
             : '';
+        $jsonFlags = JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES;
+        $holderIdJs = (string) json_encode($holderId, $jsonFlags);
+        $hiddenIdJs = (string) json_encode($hiddenId, $jsonFlags);
+        $countIdJs = (string) json_encode($holderId . '_count', $jsonFlags);
+        $mediaUploadUrlJs = (string) json_encode(rtrim((string) $siteUrl, '/') . '/api/media', $jsonFlags);
+        $csrfTokenJs = (string) json_encode($csrfToken, $jsonFlags);
 
         ob_start();
         ?>
@@ -182,8 +188,8 @@ final class EditorJsAssetService
         <script>
         (function() {
             function initEditorJs<?php echo $editorNum; ?>() {
-                var holderEl = document.getElementById('<?php echo $holderId; ?>');
-                var hiddenEl = document.getElementById('<?php echo $hiddenId; ?>');
+                var holderEl = document.getElementById(<?php echo $holderIdJs; ?>);
+                var hiddenEl = document.getElementById(<?php echo $hiddenIdJs; ?>);
                 if (!holderEl || !hiddenEl) {
                     return;
                 }
@@ -195,7 +201,7 @@ final class EditorJsAssetService
                 }
 
                 var editor;
-                var countEl = document.getElementById('<?php echo $holderId; ?>_count');
+                var countEl = document.getElementById(<?php echo $countIdJs; ?>);
                 var updateBlockCount = function() {
                     if (!countEl || !editor || !editor.blocks) {
                         return;
@@ -211,10 +217,10 @@ final class EditorJsAssetService
                 };
                 try {
                     editor = window.createCmsEditor(
-                        '<?php echo $holderId; ?>',
+                        <?php echo $holderIdJs; ?>,
                         raw,
-                        '<?php echo htmlspecialchars($siteUrl, ENT_QUOTES); ?>/api/media',
-                        '<?php echo htmlspecialchars($csrfToken, ENT_QUOTES); ?>',
+                        <?php echo $mediaUploadUrlJs; ?>,
+                        <?php echo $csrfTokenJs; ?>,
                         {
                             readOnly: <?php echo $readOnly ? 'true' : 'false'; ?>,
                             onReady: function() {

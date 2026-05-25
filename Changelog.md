@@ -1,4 +1,4 @@
-﻿**Version:** 3.3.30
+﻿**Version:** 3.3.31
 
 # 365CMS Changelog
 
@@ -19,6 +19,12 @@
 ## 📜 Aktuelle Versionshistorie ab 3.0.0
 
 > Die vollständige historische 2.x-Historie wurde in [`Changelog_old.md`](Changelog_old.md) archiviert.
+
+### v3.3.31 — 25.05.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.3.31** | 🔴 fix | EditorJS / Audit LinkTool & Checklisten | **`CMS/assets/js/editor-init.js`, `CMS/core/Services/EditorJs/EditorJsMediaService.php`, `CMS/core/Services/EditorJs/EditorJsAssetService.php`, `CMS/core/Services/EditorJs/EditorJsContentNormalizer.php`, `CMS/core/Services/EditorJs/EditorJsSanitizer.php`, `CMS/core/Services/EditorJsRenderer.php`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md`, `CMS/DOC/assets/editorjs/README.md` und `Changelog.md` schließen den aktuellen umfassenden EditorJS-Audit.** `fetch_link` übernimmt jetzt auch GET-Parameter des LinkTool-Plugins, Checklisten bleiben im Admin nach Reload und Save als `list` mit `style: checklist` inklusive Checked-State erhalten, Legacy-`checklist`-Payloads rendern auch mit moderner `content`/`meta.checked`-Form korrekt, und der generische EditorJS-Service gibt Holder-/Upload-/Token-Werte im Inline-Script als sichere JSON-Literale statt als manuell gequotete JavaScript-Strings aus. |
 
 ### v3.3.30 — 25.05.2026
 

@@ -475,8 +475,9 @@ final class EditorJsRenderer
             if (!is_array($item)) {
                 continue;
             }
-            $text = $this->sanitizeInline((string)($item['text'] ?? ''));
-            $checked = !empty($item['checked']) ? ' checked' : '';
+            $itemMeta = is_array($item['meta'] ?? null) ? $item['meta'] : [];
+            $text = $this->sanitizeInline((string)($item['text'] ?? $item['content'] ?? ''));
+            $checked = (!empty($item['checked']) || !empty($itemMeta['checked'])) ? ' checked' : '';
             $html .= '<li><label><input type="checkbox" disabled' . $checked . '> ' . $text . '</label></li>';
         }
         $html .= '</ul></div>';

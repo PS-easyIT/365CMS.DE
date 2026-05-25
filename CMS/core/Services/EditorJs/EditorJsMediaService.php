@@ -39,7 +39,7 @@ final class EditorJsMediaService
 
             $action = (string) ($_REQUEST['action'] ?? '');
             $payload = $this->getJsonInput();
-            $requestContext = array_merge($_POST, $payload);
+            $requestContext = array_merge($_GET, $_POST, $payload);
 
             switch ($action) {
                 case 'list_images':

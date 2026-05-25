@@ -91,10 +91,15 @@ final class EditorJsContentNormalizer
             return null;
         }
 
-        $type = self::normalizeType((string) ($block['type'] ?? $block['name'] ?? ''));
+        $rawType = (string) ($block['type'] ?? $block['name'] ?? '');
+        $type = self::normalizeType($rawType);
         $data = is_array($block['data'] ?? null)
             ? $block['data']
             : (is_string($block['data'] ?? null) ? ['text' => (string) $block['data']] : []);
+
+        if (trim($rawType) === 'checklist' && $type === 'list' && !isset($data['style'])) {
+            $data['style'] = 'checklist';
+        }
 
         if ($type === '') {
             $type = self::guessTypeFromData($data);
