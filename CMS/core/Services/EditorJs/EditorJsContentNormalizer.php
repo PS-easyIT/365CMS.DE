@@ -190,9 +190,31 @@ final class EditorJsContentNormalizer
                 'alignment' => in_array(($data['alignment'] ?? 'left'), ['left', 'center'], true) ? (string) $data['alignment'] : 'left',
             ],
             'raw' => ['html' => EditorJsHtmlSanitizer::sanitizeRawBlock((string) ($data['html'] ?? $data['content'] ?? $data['text'] ?? ''))],
-            'delimiter' => [],
+            'delimiter' => self::normalizeDelimiterData($data),
             default => $data,
         };
+    }
+
+    /** @return array<string,mixed> */
+    private static function normalizeDelimiterData(array $data): array
+    {
+        $style = strtolower((string) ($data['style'] ?? $data['type'] ?? 'line'));
+        $lineWidth = (int) ($data['lineWidth'] ?? $data['width'] ?? 35);
+        $lineThickness = (int) ($data['lineThickness'] ?? $data['thickness'] ?? 2);
+
+        if (!in_array($style, ['star', 'dash', 'line'], true)) {
+            $style = 'line';
+        }
+        if (!in_array($lineWidth, [8, 15, 25, 35, 50, 60, 100], true)) {
+            $lineWidth = max(8, min(100, $lineWidth));
+        }
+        if (!in_array($lineThickness, [1, 2, 3, 4, 5, 6], true)) {
+            $lineThickness = max(1, min(6, $lineThickness));
+        }
+
+        return $style === 'line'
+            ? ['style' => $style, 'lineWidth' => $lineWidth, 'lineThickness' => $lineThickness]
+            : ['style' => $style];
     }
 
     /** @return array<string,mixed> */

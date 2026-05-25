@@ -1,6 +1,6 @@
 # 365CMS.DE
 
-**Version:** [3.3.6](Changelog.md) · **Status:** Stable · **PHP:** 8.4+ · **MySQL:** 5.7+ · **MariaDB:** 10.3+
+**Version:** [3.4.2](Changelog.md) · **Status:** Stable · **PHP:** 8.4+ · **MySQL:** 5.7+ · **MariaDB:** 10.3+
 
 <div align="center">
 
@@ -48,13 +48,13 @@ Das Bedienverhalten orientiert sich bewusst an einem Gutenberg-/WordPress-Canvas
 Wichtige Eigenschaften:
 
 - Blockbasierter Editor für Seiten und Beiträge
-- Text, Überschriften, Listen, Checklisten, Zitate, Tabellen, Code, Trennlinien und Abstände
+- Text, Überschriften, Listen, Checklisten, Zitate, Tabellen, Code, dezente Trennlinien-Varianten und Abstände
 - Abstandsblöcke mit normalisierten Presets oder Pixelwerten, die im Public-Rendering erhalten bleiben
 - Bildblöcke mit Upload, Live-Vorschau, Ausrichtung, Breite, Rahmen, Rundung, Hintergrund und Schatten
 - Bild-Text-Blöcke mit Bild links oder rechts neben formatiertem Text und responsivem Public-Layout, das die Admin-Vorschau-Breiten auch im Theme-Frontend respektiert
 - Fehlertolerantes Public-Rendering mit WordPress-/Gutenberg-Block-Übersetzung, inklusive `wp:media-text`, `wp:gallery`, selbstschließenden Bildblöcken und sicheren Media-Text-/Gallery-Inhalten
 - Mehrbild-Galerien mit Upload, Vorschau, Sortierung und Spaltensteuerung
-- Inline-Formatierungen wie fett, kursiv, unterstrichen, Code, Links und Spoiler
+- Inline-Formatierungen wie fett, kursiv, unterstrichen, durchgestrichen, Code, sichere Hyperlinks und Spoiler
 - Rich-Text-Hinweisboxen mit Info-/Warn-/Erfolg-/Kritisch-Varianten, deren Titel und Inhalt Inline-Formatierungen behalten
 - WordPress-ähnlichere Admin-Bedienung mit Block-Inserter, Commandbar, Drag & Drop, Undo/Redo und Read-only-kompatiblen Tool-Kontexten
 - Blockkarten und Schnellaktionen für typische Redaktionsmuster statt technischer JSON-Bearbeitung
@@ -160,10 +160,10 @@ The editing flow intentionally behaves like a Gutenberg-style canvas: authors in
 Highlights:
 
 - block-based editing for pages and posts
-- paragraphs, headings, lists, checklists, quotes, tables, code, delimiters and spacers
+- paragraphs, headings, lists, checklists, quotes, tables, code, subtle delimiter variants and spacers
 - image blocks with upload, live preview, alignment, width, borders, rounding, background and shadow
 - multi-image galleries with preview and column control
-- inline formatting such as bold, italic, underline, code, links and spoiler text
+- inline formatting such as bold, italic, underline, strikethrough, code, safe hyperlinks and spoiler text
 - grouped block inserter, commandbar, drag & drop, undo/redo and width modes
 - block cards and quick actions for editorial workflows instead of raw JSON editing
 - editor preview aligned with the active theme where possible

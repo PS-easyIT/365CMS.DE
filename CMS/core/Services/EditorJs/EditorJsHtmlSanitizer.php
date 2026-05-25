@@ -43,6 +43,9 @@ final class EditorJsHtmlSanitizer
         'i' => true,
         'em' => true,
         'u' => true,
+        's' => true,
+        'strike' => true,
+        'del' => true,
         'code' => true,
         'mark' => true,
         'font' => true,
@@ -63,6 +66,9 @@ final class EditorJsHtmlSanitizer
         'em' => true,
         'i' => true,
         'u' => true,
+        's' => true,
+        'strike' => true,
+        'del' => true,
         'code' => true,
         'mark' => true,
         'font' => true,
@@ -242,9 +248,29 @@ final class EditorJsHtmlSanitizer
                 $element->setAttribute('title', $title);
             }
 
-            if (preg_match('#^https?://#i', $href) === 1) {
-                $element->setAttribute('target', '_blank');
-                $element->setAttribute('rel', 'noopener noreferrer');
+            $target = strtolower(trim((string) ($originalAttributes['target'] ?? '')));
+            if (!in_array($target, ['_blank', '_self'], true)) {
+                $target = '';
+            }
+            if (preg_match('#^https?://#i', $href) === 1 && $target === '') {
+                $target = '_blank';
+            }
+            if ($target !== '') {
+                $element->setAttribute('target', $target);
+            }
+
+            $rel = self::sanitizeRelAttribute((string) ($originalAttributes['rel'] ?? ''), $target === '_blank');
+            if ($rel !== '') {
+                $element->setAttribute('rel', $rel);
+            }
+
+            return;
+        }
+
+        if (in_array($tagName, ['s', 'strike', 'del'], true)) {
+            $classes = preg_split('/\s+/', (string) ($originalAttributes['class'] ?? '')) ?: [];
+            if (in_array('cdx-strikethrough', $classes, true) || in_array('cdx-strikethroughs', $classes, true)) {
+                $element->setAttribute('class', 'cdx-strikethrough');
             }
 
             return;
@@ -394,6 +420,28 @@ final class EditorJsHtmlSanitizer
         }
 
         return implode('; ', $declarations);
+    }
+
+    private static function sanitizeRelAttribute(string $rel, bool $forceBlankSafety): string
+    {
+        $allowed = ['noopener', 'noreferrer', 'nofollow', 'external', 'author', 'bookmark', 'license', 'tag'];
+        $tokens = [];
+
+        foreach (preg_split('/\s+/', strtolower(trim($rel))) ?: [] as $token) {
+            if ($token !== '' && in_array($token, $allowed, true) && !in_array($token, $tokens, true)) {
+                $tokens[] = $token;
+            }
+        }
+
+        if ($forceBlankSafety) {
+            foreach (['noopener', 'noreferrer'] as $requiredToken) {
+                if (!in_array($requiredToken, $tokens, true)) {
+                    $tokens[] = $requiredToken;
+                }
+            }
+        }
+
+        return implode(' ', $tokens);
     }
 
     private static function unwrapElement(\DOMElement $element): void

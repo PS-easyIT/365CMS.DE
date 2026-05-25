@@ -2051,17 +2051,30 @@
         }
 
         function registerEditorMutationTracking(key, holder) {
+            var cleanupHandlers = [];
+
             if (!key || !holder || holder.dataset.cmsEditorMutationTracked === '1') {
                 return;
             }
 
             ['beforeinput', 'input', 'change', 'paste', 'drop', 'cut', 'keyup', 'compositionend', 'cms-editorjs-tool-change'].forEach(function (eventName) {
-                holder.addEventListener(eventName, function () {
+                var handler = function () {
                     markEditorMutation(key);
-                }, true);
+                };
+
+                holder.addEventListener(eventName, handler, true);
+                cleanupHandlers.push(function () {
+                    holder.removeEventListener(eventName, handler, true);
+                });
             });
 
             holder.dataset.cmsEditorMutationTracked = '1';
+            registerEditorUiCleanup(holder.id, function () {
+                cleanupHandlers.forEach(function (cleanup) {
+                    cleanup();
+                });
+                delete holder.dataset.cmsEditorMutationTracked;
+            });
         }
 
         function safeParseEditorInput(input) {
@@ -2318,7 +2331,23 @@
                 credentials: 'same-origin',
                 headers: config.csrfToken ? { 'X-CSRF-Token': String(config.csrfToken) } : {}
             }).then(function (response) {
-                return response.json();
+                return response.text().then(function (text) {
+                    var payload = {};
+
+                    if (String(text || '').trim() !== '') {
+                        try {
+                            payload = JSON.parse(text);
+                        } catch (_error) {
+                            throw new Error('Upload-Antwort war kein gültiges JSON.');
+                        }
+                    }
+
+                    if (!response.ok) {
+                        throw new Error(String(payload && payload.message ? payload.message : 'Bild aus der Zwischenablage konnte nicht hochgeladen werden.'));
+                    }
+
+                    return payload;
+                });
             }).then(function (payload) {
                 var filePayload = payload && payload.file && typeof payload.file === 'object' ? payload.file : {};
                 var url = String(filePayload.url || payload && payload.url || '');
@@ -2681,15 +2710,29 @@
 
         function normalizeEditorLinkUrl(value) {
             var url = String(value || '').trim();
+            var parsed;
 
             if (url === '') {
                 return '';
             }
-            if (/^(https?:|mailto:|tel:|\/|#)/i.test(url)) {
+            if (/[\u0000\r\n<>"']/.test(url)) {
+                return '';
+            }
+            if (/^(?:\/|#)/.test(url)) {
                 return url;
             }
 
-            return 'https://' + url.replace(/^\/\//, '');
+            if (!/^[a-z][a-z0-9+.-]*:/i.test(url)) {
+                url = 'https://' + url.replace(/^\/\//, '');
+            }
+
+            try {
+                parsed = new URL(url, window.location.origin);
+            } catch (_error) {
+                return '';
+            }
+
+            return /^(https?:|mailto:|tel:)$/i.test(parsed.protocol) ? url : '';
         }
 
         function escapeEditorSelectionText(value) {
@@ -2736,6 +2779,37 @@
             markEditorMutation(definition ? definition.key : '');
         }
 
+        function notifySelectionEditableChanged(holder, definition) {
+            var selection = window.getSelection ? window.getSelection() : null;
+            var element = getSelectionElement(selection);
+            var editable = element && element.closest ? element.closest('[contenteditable="true"]') : null;
+
+            if (!holder || !editable || !holder.contains(editable)) {
+                return;
+            }
+
+            editable.dispatchEvent(new Event('input', { bubbles: true }));
+            editable.dispatchEvent(new Event('change', { bubbles: true }));
+            markEditorMutation(definition ? definition.key : '');
+        }
+
+        function applySafeSelectionLinkAttributes(holder) {
+            var selection = window.getSelection ? window.getSelection() : null;
+            var element = getSelectionElement(selection);
+            var link = element && element.closest ? element.closest('a') : null;
+            var href;
+
+            if (!holder || !link || !holder.contains(link)) {
+                return;
+            }
+
+            href = String(link.getAttribute('href') || '');
+            if (/^https?:\/\//i.test(href)) {
+                link.setAttribute('target', '_blank');
+                link.setAttribute('rel', 'noopener noreferrer');
+            }
+        }
+
         function runTextSelectionCommand(definition, editorEntry, holder, command, value) {
             var normalizedUrl;
 
@@ -2749,21 +2823,32 @@
                     return;
                 }
                 document.execCommand('createLink', false, normalizedUrl);
+                applySafeSelectionLinkAttributes(holder);
+                notifySelectionEditableChanged(holder, definition);
                 return;
             }
 
             if (command === 'unlink') {
                 document.execCommand('unlink', false, null);
+                notifySelectionEditableChanged(holder, definition);
+                return;
+            }
+
+            if (command === 'strikeThrough') {
+                document.execCommand('strikeThrough', false, null);
+                notifySelectionEditableChanged(holder, definition);
                 return;
             }
 
             if (command === 'inlineCode') {
                 document.execCommand('insertHTML', false, '<code>' + escapeEditorSelectionText(String(window.getSelection ? window.getSelection() : '')) + '</code>');
+                notifySelectionEditableChanged(holder, definition);
                 return;
             }
 
             if (command === 'marker') {
                 document.execCommand('insertHTML', false, '<mark>' + escapeEditorSelectionText(String(window.getSelection ? window.getSelection() : '')) + '</mark>');
+                notifySelectionEditableChanged(holder, definition);
                 return;
             }
 
@@ -2779,6 +2864,7 @@
             }
 
             document.execCommand(command, false, value || null);
+            notifySelectionEditableChanged(holder, definition);
         }
 
         function createTextSelectionBubble(definition, editorEntry, holder) {
@@ -2788,6 +2874,7 @@
                     { label: 'B', title: 'Fett', command: 'bold' },
                     { label: 'I', title: 'Kursiv', command: 'italic' },
                     { label: 'U', title: 'Unterstrichen', command: 'underline' },
+                    { label: 'S', title: 'Durchgestrichen', command: 'strikeThrough' },
                     { label: 'Mark', title: 'Markieren', command: 'marker' },
                     { label: '</>', title: 'Inline-Code', command: 'inlineCode' }
                 ],

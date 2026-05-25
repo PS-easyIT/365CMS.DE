@@ -1,4 +1,4 @@
-﻿**Version:** 3.3.6
+﻿**Version:** 3.3.8
 
 # 365CMS Changelog
 
@@ -19,6 +19,18 @@
 ## 📜 Aktuelle Versionshistorie ab 3.0.0
 
 > Die vollständige historische 2.x-Historie wurde in [`Changelog_old.md`](Changelog_old.md) archiviert.
+
+### v3.4.2 — 24.05.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.3.8** | 🛡️ security | EditorJS / Audit & UX-Härtung | **`CMS/assets/js/editor-init.js`, `CMS/assets/js/admin-content-editor.js`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md` und `Changelog.md` schließen die neue EditorJS-Audit-Runde.** Upload-, Mediathek- und Attachment-Requests prüfen jetzt HTTP-Status und Nicht-JSON-Antworten, bevor Payloads normalisiert werden. Das Admin-Mutation-Tracking registriert entfernbare Listener und räumt sie beim Editor-Recreate auf. Die eigene Textformat-Bubble erzeugt sichere `http(s)`-Links mit `target="_blank" rel="noopener noreferrer"`, lehnt gefährliche Linkwerte ab und bietet Strikethrough passend zum registrierten Inline-Tool direkt an. |
+
+### v3.4.1 — 24.05.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.3.7** | 🟢 feat | EditorJS / Inline-Tools & Delimiter | **`ASSETS/package.json`, `CMS/assets/editorjs/delimiter.umd.js`, `CMS/assets/editorjs/strikethrough.umd.js`, `CMS/assets/editorjs/hyperlink.umd.js`, `CMS/assets/js/editor-init.js`, `CMS/core/Services/EditorJs/EditorJsAssetService.php`, `CMS/core/Services/EditorJs/EditorJsContentNormalizer.php`, `CMS/core/Services/EditorJs/EditorJsHtmlSanitizer.php`, `CMS/core/Services/EditorJs/EditorJsSanitizer.php`, `CMS/core/Services/EditorJsRenderer.php`, `CMS/assets/css/editorjs-content.css`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md` und `Changelog.md` ergänzen die kleinen EditorJS-Upgrades.** Der Delimiter nutzt jetzt die CoolBytes-Variante mit `line`, `dash` und `star`, Strikethrough speichert sichere `<s class="cdx-strikethrough">`-Inline-Markups, Hyperlinks können `target`/`rel` kontrolliert setzen, und Client-/Server-Sanitizer normalisieren Links weiterhin gegen `javascript:`- und unsichere `rel`-/`target`-Werte. |
 
 ### v3.3.6 — 24.05.2026
 

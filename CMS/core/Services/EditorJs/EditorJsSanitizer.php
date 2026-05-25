@@ -202,6 +202,26 @@ final class EditorJsSanitizer
                 $data['meta'] = $this->sanitizeLinkMeta(is_array($data['meta'] ?? null) ? $data['meta'] : []);
                 break;
 
+            case 'delimiter':
+                $style = strtolower((string) ($data['style'] ?? $data['type'] ?? 'line'));
+                $lineWidth = (int) ($data['lineWidth'] ?? $data['width'] ?? 35);
+                $lineThickness = (int) ($data['lineThickness'] ?? $data['thickness'] ?? 2);
+
+                if (!in_array($style, ['star', 'dash', 'line'], true)) {
+                    $style = 'line';
+                }
+                if (!in_array($lineWidth, [8, 15, 25, 35, 50, 60, 100], true)) {
+                    $lineWidth = max(8, min(100, $lineWidth));
+                }
+                if (!in_array($lineThickness, [1, 2, 3, 4, 5, 6], true)) {
+                    $lineThickness = max(1, min(6, $lineThickness));
+                }
+
+                $data = $style === 'line'
+                    ? ['style' => $style, 'lineWidth' => $lineWidth, 'lineThickness' => $lineThickness]
+                    : ['style' => $style];
+                break;
+
             case 'embed':
                 $data['service'] = preg_replace('/[^a-z0-9\-]/i', '', (string) ($data['service'] ?? 'embed'));
                 $data['source'] = EditorJsHtmlSanitizer::sanitizeUrl((string) ($data['source'] ?? ''), ['http', 'https'], false);

@@ -21,11 +21,11 @@
         'imageGallery',
         'mediaText'
     ];
-    var INLINE_TOOL_NAMES = ['inlineCode', 'underline', 'marker', 'spoiler', 'textColor'];
+    var INLINE_TOOL_NAMES = ['inlineCode', 'underline', 'strikethrough', 'hyperlink', 'marker', 'spoiler', 'textColor'];
     var TUNE_TOOL_NAMES = ['anchor', 'alignmentTune', 'indentTune', 'textVariant'];
     var PLUGIN_NAMES = ['undo', 'dragDrop'];
     var TOOL_NAMES = BLOCK_TOOL_NAMES.concat(INLINE_TOOL_NAMES, TUNE_TOOL_NAMES);
-    var VERSION = 'cms-editorjs-org-assets-2026-05-24-tools-setup-3-3-6';
+    var VERSION = 'cms-editorjs-org-assets-2026-05-24-audit-hardening-3-3-8';
     var THEME_PREVIEW_STYLE_CACHE = {};
     var TOOL_GLOBALS = {
         paragraph: ['CmsParagraphTool', 'Paragraph'],
@@ -48,6 +48,8 @@
         mediaText: ['CmsMediaTextTool'],
         inlineCode: ['InlineCode'],
         underline: ['Underline'],
+        strikethrough: ['Strikethrough'],
+        hyperlink: ['Hyperlink'],
         marker: ['CmsMarkerTool', 'Marker'],
         spoiler: ['TgSpoilerEditorJS', 'Spoiler'],
         textColor: ['ColorPlugin'],
@@ -173,6 +175,9 @@
             i: true,
             em: true,
             u: true,
+            s: true,
+            strike: true,
+            del: true,
             code: true,
             mark: true,
             font: true,
@@ -239,6 +244,9 @@
 
             if (tagName === 'a') {
                 href = sanitizeEditableUrl(originalAttributes.href || '');
+                var target = String(originalAttributes.target || '').trim().toLowerCase();
+                var rel = String(originalAttributes.rel || '').trim().toLowerCase();
+                var relTokens = [];
                 if (href === '') {
                     while (child.firstChild) {
                         child.parentNode.insertBefore(child.firstChild, child);
@@ -252,9 +260,39 @@
                 if (title !== '') {
                     child.setAttribute('title', title.slice(0, 160));
                 }
-                if (/^https?:\/\//i.test(href)) {
-                    child.setAttribute('target', '_blank');
-                    child.setAttribute('rel', 'noopener noreferrer');
+
+                if (['_blank', '_self'].indexOf(target) === -1) {
+                    target = '';
+                }
+                if (/^https?:\/\//i.test(href) && target === '') {
+                    target = '_blank';
+                }
+                if (target !== '') {
+                    child.setAttribute('target', target);
+                }
+
+                rel.split(/\s+/).forEach(function (token) {
+                    if (['noopener', 'noreferrer', 'nofollow', 'external', 'author', 'bookmark', 'license', 'tag'].indexOf(token) !== -1 && relTokens.indexOf(token) === -1) {
+                        relTokens.push(token);
+                    }
+                });
+                if (target === '_blank') {
+                    if (relTokens.indexOf('noopener') === -1) {
+                        relTokens.push('noopener');
+                    }
+                    if (relTokens.indexOf('noreferrer') === -1) {
+                        relTokens.push('noreferrer');
+                    }
+                }
+                if (relTokens.length > 0) {
+                    child.setAttribute('rel', relTokens.join(' '));
+                }
+            }
+
+            if (tagName === 's' || tagName === 'strike' || tagName === 'del') {
+                className = String(originalAttributes.class || '');
+                if (/\bcdx-strikethroughs?\b/.test(className) || /\bcdx-strikethrough\b/.test(className)) {
+                    child.setAttribute('class', 'cdx-strikethrough');
                 }
             }
 
@@ -320,6 +358,15 @@
             i: {},
             em: {},
             u: {},
+            s: {
+                class: true
+            },
+            strike: {
+                class: true
+            },
+            del: {
+                class: true
+            },
             code: {
                 class: true
             },
@@ -650,6 +697,14 @@
             return appendNormalizedTunes(block, normalizedBlock);
         }
 
+        if (type === 'delimiter') {
+            normalizedBlock = {
+                type: type,
+                data: normalizeDelimiterData(data)
+            };
+            return appendNormalizedTunes(block, normalizedBlock);
+        }
+
         return appendNormalizedTunes(block, { type: type, data: data });
     }
 
@@ -890,6 +945,27 @@
             height: height,
             preset: height + 'px'
         };
+    }
+
+    function normalizeDelimiterData(data) {
+        var source = data && typeof data === 'object' ? data : {};
+        var style = String(source.style || source.type || 'line').toLowerCase();
+        var lineWidth = parseInt(source.lineWidth || source.width || 35, 10) || 35;
+        var lineThickness = parseInt(source.lineThickness || source.thickness || 2, 10) || 2;
+
+        if (['star', 'dash', 'line'].indexOf(style) === -1) {
+            style = 'line';
+        }
+        if ([8, 15, 25, 35, 50, 60, 100].indexOf(lineWidth) === -1) {
+            lineWidth = Math.max(8, Math.min(100, lineWidth));
+        }
+        if ([1, 2, 3, 4, 5, 6].indexOf(lineThickness) === -1) {
+            lineThickness = Math.max(1, Math.min(6, lineThickness));
+        }
+
+        return style === 'line'
+            ? { style: style, lineWidth: lineWidth, lineThickness: lineThickness }
+            : { style: style };
     }
 
     function normalizeListData(data) {
@@ -1432,7 +1508,7 @@
             credentials: 'same-origin',
             headers: headers
         }).then(function (response) {
-            return response.json();
+            return parseEditorJsonResponse(response, 'Mediathek konnte nicht geladen werden.');
         }).then(function (payload) {
             if (!payload || !payload.success) {
                 throw new Error(String(payload && payload.message ? payload.message : 'Mediathek konnte nicht geladen werden.'));
@@ -2235,7 +2311,7 @@
                 credentials: 'same-origin',
                 headers: this.config.csrfToken ? { 'X-CSRF-Token': this.config.csrfToken } : {}
             }).then(function (response) {
-                return response.json();
+                return parseEditorJsonResponse(response, 'Bild konnte nicht hochgeladen werden.');
             }).then(function (payload) {
                 return normalizeImageResponse(payload).file;
             });
@@ -2577,7 +2653,7 @@
                 credentials: 'same-origin',
                 headers: this.config.csrfToken ? { 'X-CSRF-Token': this.config.csrfToken } : {}
             }).then(function (response) {
-                return response.json();
+                return parseEditorJsonResponse(response, 'Galeriebild konnte nicht hochgeladen werden.');
             }).then(function (payload) {
                 var filePayload = payload && payload.file && typeof payload.file === 'object' ? payload.file : {};
                 var url = String(filePayload.url || payload && payload.url || '');
@@ -2959,7 +3035,7 @@
                 credentials: 'same-origin',
                 headers: this.config.csrfToken ? { 'X-CSRF-Token': this.config.csrfToken } : {}
             }).then(function (response) {
-                return response.json();
+                return parseEditorJsonResponse(response, 'Bild konnte nicht hochgeladen werden.');
             }).then(function (payload) {
                 return normalizeImageResponse(payload).file;
             });
@@ -3628,6 +3704,26 @@
         };
     }
 
+    function parseEditorJsonResponse(response, fallbackMessage) {
+        return response.text().then(function (text) {
+            var payload = {};
+
+            if (String(text || '').trim() !== '') {
+                try {
+                    payload = JSON.parse(text);
+                } catch (_error) {
+                    throw new Error(fallbackMessage || 'EditorJS-Serverantwort war kein gültiges JSON.');
+                }
+            }
+
+            if (!response.ok) {
+                throw new Error(String(payload && payload.message ? payload.message : (fallbackMessage || 'EditorJS-Anfrage fehlgeschlagen.')));
+            }
+
+            return payload;
+        });
+    }
+
     function buildImageUploader(uploadUrl, csrfToken, getUploadContext) {
         return {
             uploadByFile: function (file) {
@@ -3648,7 +3744,7 @@
                     credentials: 'same-origin',
                     headers: csrfToken ? { 'X-CSRF-Token': csrfToken } : {}
                 }).then(function (response) {
-                    return response.json();
+                    return parseEditorJsonResponse(response, 'Bild konnte nicht hochgeladen werden.');
                 }).then(normalizeImageResponse);
             },
             uploadByUrl: function (url) {
@@ -3661,7 +3757,7 @@
                     }, csrfToken ? { 'X-CSRF-Token': csrfToken } : {}),
                     body: JSON.stringify(buildUploadJsonPayload({ url: String(url || '') }, getUploadContext))
                 }).then(function (response) {
-                    return response.json();
+                    return parseEditorJsonResponse(response, 'Bild-URL konnte nicht verarbeitet werden.');
                 }).then(normalizeImageResponse);
             }
         };
@@ -3683,7 +3779,7 @@
                     credentials: 'same-origin',
                     headers: csrfToken ? { 'X-CSRF-Token': csrfToken } : {}
                 }).then(function (response) {
-                    return response.json();
+                    return parseEditorJsonResponse(response, 'Datei konnte nicht hochgeladen werden.');
                 }).then(function (payload) {
                     var response = payload && typeof payload === 'object' ? payload : {};
                     var filePayload = response.file && typeof response.file === 'object' ? response.file : {};
@@ -3714,6 +3810,17 @@
 
         addTool(tools, 'inlineCode', {}, false);
         addTool(tools, 'underline', {}, false);
+        addTool(tools, 'strikethrough', {}, false);
+        addTool(tools, 'hyperlink', {
+            config: {
+                shortcut: 'CMD+L',
+                target: '_blank',
+                rel: 'noopener noreferrer',
+                availableTargets: ['_blank', '_self'],
+                availableRels: ['noopener noreferrer', 'nofollow', 'external'],
+                validate: false
+            }
+        }, false);
         addTool(tools, 'marker', {}, false);
         addTool(tools, 'spoiler', {}, false);
         addTool(tools, 'textColor', {
@@ -3787,7 +3894,16 @@
             inlineToolbar: inlineToolbar,
             config: { rows: 3, cols: 3, maxRows: 20, maxCols: 10, maxrows: 20, maxcols: 10 }
         }, availableBlockTunes), true);
-        addTool(tools, 'delimiter', withBlockTunes({}, availableBlockTunes), true);
+        addTool(tools, 'delimiter', withBlockTunes({
+            config: {
+                styleOptions: ['line', 'dash', 'star'],
+                defaultStyle: 'line',
+                lineWidthOptions: [8, 15, 25, 35, 50, 60, 100],
+                defaultLineWidth: 35,
+                lineThicknessOptions: [1, 2, 3, 4, 5, 6],
+                defaultLineThickness: 2
+            }
+        }, availableBlockTunes), true);
         addTool(tools, 'spacer', withBlockTunes({}, availableBlockTunes), true);
 
         addTool(tools, 'embed', withBlockTunes({

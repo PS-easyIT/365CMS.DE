@@ -37,6 +37,8 @@ final class EditorJsAssetService
         'raw.umd.js',
         'inline-code.umd.js',
         'underline.umd.js',
+        'strikethrough.umd.js',
+        'hyperlink.umd.js',
         'text-color.umd.js',
         'spoiler.umd.js',
         'anchor.umd.js',

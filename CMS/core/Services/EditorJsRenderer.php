@@ -140,7 +140,7 @@ final class EditorJsRenderer
             'image' => $this->renderImage($data, $tunes),
             'attaches' => $this->renderAttaches($data),
             'linkTool' => $this->renderLinkTool($data),
-            'delimiter' => '<div class="editorjs-block editorjs-delimiter"><hr></div>',
+            'delimiter' => $this->renderDelimiter($data),
             'spacer' => $this->renderSpacer($data),
             'embed' => $this->renderEmbed($data),
             'imageGallery' => $this->renderImageGallery($data),
@@ -235,7 +235,10 @@ final class EditorJsRenderer
         if ($styles !== []) {
             $styleValue = htmlspecialchars(implode(';', $styles), ENT_QUOTES, 'UTF-8');
             if (preg_match('/^<[^>]+\sstyle="[^"]*"/i', $html) === 1) {
-                $html = (string) preg_replace('/^(<[^>]+\sstyle=")([^"]*)(")/i', '$1$2;' . $styleValue . '$3', $html, 1);
+                $html = (string) preg_replace_callback('/^(<[^>]+\sstyle=")([^"]*)(")/i', static function (array $matches) use ($styleValue): string {
+                    $existingStyle = rtrim(trim($matches[2]), ';');
+                    return $matches[1] . ($existingStyle !== '' ? $existingStyle . ';' : '') . $styleValue . $matches[3];
+                }, $html, 1);
             } else {
                 $html = (string) preg_replace('/^<([a-z][a-z0-9:-]*)(\s[^>]*)?>/i', '<$1$2 style="' . $styleValue . '">', $html, 1);
             }
@@ -752,6 +755,37 @@ final class EditorJsRenderer
         $html .= '<small>' . htmlspecialchars($link, ENT_QUOTES, 'UTF-8') . '</small></div></a></div>';
 
         return $html;
+    }
+
+    /** @param array<string,mixed> $data */
+    private function renderDelimiter(array $data): string
+    {
+        $style = strtolower((string) ($data['style'] ?? $data['type'] ?? 'line'));
+        $lineWidth = (int) ($data['lineWidth'] ?? $data['width'] ?? 35);
+        $lineThickness = (int) ($data['lineThickness'] ?? $data['thickness'] ?? 2);
+
+        if (!in_array($style, ['line', 'dash', 'star'], true)) {
+            $style = 'line';
+        }
+        if (!in_array($lineWidth, [8, 15, 25, 35, 50, 60, 100], true)) {
+            $lineWidth = max(8, min(100, $lineWidth));
+        }
+        if (!in_array($lineThickness, [1, 2, 3, 4, 5, 6], true)) {
+            $lineThickness = max(1, min(6, $lineThickness));
+        }
+
+        $classes = ['editorjs-block', 'editorjs-delimiter', 'editorjs-delimiter--' . $style];
+        $attributes = ' class="' . htmlspecialchars(implode(' ', $classes), ENT_QUOTES, 'UTF-8') . '"'
+            . ' data-style="' . htmlspecialchars($style, ENT_QUOTES, 'UTF-8') . '"';
+
+        if ($style === 'line') {
+            $attributes .= ' data-line-width="' . $lineWidth . '" data-line-thickness="' . $lineThickness . '"'
+                . ' style="' . htmlspecialchars('--cms-editorjs-delimiter-width:' . $lineWidth . '%;--cms-editorjs-delimiter-thickness:' . $lineThickness . 'px', ENT_QUOTES, 'UTF-8') . '"';
+            return '<div' . $attributes . '><hr aria-hidden="true"></div>';
+        }
+
+        $symbol = $style === 'dash' ? '———' : '***';
+        return '<div' . $attributes . ' role="separator" aria-hidden="true"><span>' . htmlspecialchars($symbol, ENT_QUOTES, 'UTF-8') . '</span></div>';
     }
 
     /** @param array<string,mixed> $data */
