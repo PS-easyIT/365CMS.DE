@@ -45,14 +45,15 @@ final class SiteTableTemplateRegistry
         'hub_meta_kpi_en' => '',
         'hub_links_json' => '[]',
         'hub_sections_json' => '[]',
-        'hub_card_layout' => 'standard',
-        'hub_card_image_position' => 'top',
-        'hub_card_image_fit' => 'cover',
-        'hub_card_image_ratio' => 'wide',
-        'hub_card_meta_layout' => 'split',
+        'hub_card_layout' => '',
+        'hub_card_image_position' => '',
+        'hub_card_image_fit' => '',
+        'hub_card_image_ratio' => '',
+        'hub_card_meta_layout' => '',
         'hub_card_radius' => '',
         'hub_card_row_gap' => '',
         'hub_feature_image_width' => '',
+        'hub_feature_image_height' => '',
     ];
 
     private const TEMPLATE_PLACEHOLDERS = [
@@ -272,12 +273,7 @@ final class SiteTableTemplateRegistry
     {
         $defaultDesign = self::DEFAULT_TEMPLATE_CARD_DESIGN[$template] ?? self::DEFAULT_TEMPLATE_CARD_DESIGN['general-it'];
         $profileDesign = is_array($templateProfile['card_design'] ?? null) ? $templateProfile['card_design'] : [];
-        $resolveStringValue = static function (string $settingKey, string $designKey, string $fallback) use ($settings, $profileDesign, $defaultDesign): string {
-            $storedValue = trim((string) ($settings[$settingKey] ?? ''));
-            if ($storedValue !== '') {
-                return $storedValue;
-            }
-
+        $resolveProfileStringValue = static function (string $designKey, string $fallback) use ($profileDesign, $defaultDesign): string {
             return (string) ($profileDesign[$designKey] ?? $defaultDesign[$designKey] ?? $fallback);
         };
 
@@ -291,27 +287,27 @@ final class SiteTableTemplateRegistry
 
         return [
             'layout' => $this->normalizeOption(
-                $resolveStringValue('hub_card_layout', 'layout', 'standard'),
+                $resolveProfileStringValue('layout', 'standard'),
                 ['standard', 'feature', 'compact'],
                 'standard'
             ),
             'image_position' => $this->normalizeOption(
-                $resolveStringValue('hub_card_image_position', 'image_position', 'top'),
+                $resolveProfileStringValue('image_position', 'top'),
                 ['top', 'left', 'right'],
                 'top'
             ),
             'image_fit' => $this->normalizeOption(
-                $resolveStringValue('hub_card_image_fit', 'image_fit', 'cover'),
+                $resolveProfileStringValue('image_fit', 'cover'),
                 ['cover', 'contain'],
                 'cover'
             ),
             'image_ratio' => $this->normalizeOption(
-                $resolveStringValue('hub_card_image_ratio', 'image_ratio', 'wide'),
+                $resolveProfileStringValue('image_ratio', 'wide'),
                 ['wide', 'square', 'portrait'],
                 'wide'
             ),
             'meta_layout' => $this->normalizeOption(
-                $resolveStringValue('hub_card_meta_layout', 'meta_layout', 'split'),
+                $resolveProfileStringValue('meta_layout', 'split'),
                 ['split', 'stacked'],
                 'split'
             ),
@@ -332,6 +328,12 @@ final class SiteTableTemplateRegistry
                 20,
                 60,
                 34
+            ),
+            'feature_image_height' => $this->normalizeNumber(
+                $resolveNumberValue('hub_feature_image_height', 'feature_image_height', 260),
+                160,
+                520,
+                260
             ),
         ];
     }
@@ -379,6 +381,7 @@ final class SiteTableTemplateRegistry
         $cardRadius = $this->normalizeNumber((int) ($cardDesign['card_radius'] ?? 20), 0, 48, 20);
         $cardRowGap = $this->normalizeNumber((int) ($cardDesign['card_row_gap'] ?? 30), 30, 160, 30);
         $featureImageWidth = $this->normalizeNumber((int) ($cardDesign['feature_image_width'] ?? 34), 20, 60, 34);
+        $featureImageHeight = $this->normalizeNumber((int) ($cardDesign['feature_image_height'] ?? 260), 160, 520, 260);
 
         $pairs = [
             '--cms-hub-hero-start' => $this->normalizeColorValue((string) ($palette['hero_start'] ?? '#1f2937'), '#1f2937'),
@@ -393,6 +396,7 @@ final class SiteTableTemplateRegistry
             '--cms-hub-card-radius' => $cardRadius . 'px',
             '--hubsite-card-row-gap' => $cardRowGap . 'px',
             '--hubsite-feature-image-width' => $featureImageWidth . '%',
+            '--hubsite-feature-image-height' => $featureImageHeight . 'px',
         ];
 
         $chunks = [];

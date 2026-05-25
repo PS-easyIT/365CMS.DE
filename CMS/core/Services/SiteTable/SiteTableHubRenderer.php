@@ -374,7 +374,7 @@ final class SiteTableHubRenderer
             $cardTarget = $buttonLink !== '' ? $buttonLink : html_entity_decode($url, ENT_QUOTES | ENT_HTML5, 'UTF-8');
             $cardTarget = trim($cardTarget) !== '' ? trim($cardTarget) : '#';
             $cardButtonLabel = $buttonText !== '' ? $buttonText : ($cardTarget !== '#' ? $defaultCardCtaLabel : '');
-            $cardArticleClass = 'hubsite-card cms-hub-site__card';
+            $cardArticleClass = 'hubsite-card hubsite-card--layout-' . htmlspecialchars($cardLayout, ENT_QUOTES, 'UTF-8') . ' cms-hub-site__card cms-hub-site__card--layout-' . htmlspecialchars($cardLayout, ENT_QUOTES, 'UTF-8');
             $cardLinkClass = 'cms-hub-site__card-link';
 
             if ($hasImage) {

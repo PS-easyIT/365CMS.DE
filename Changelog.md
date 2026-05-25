@@ -1,4 +1,4 @@
-﻿**Version:** 3.3.38
+﻿**Version:** 3.3.40
 
 # 365CMS Changelog
 
@@ -16,11 +16,23 @@
 
 ---
 
+### v3.3.40 — 25.05.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.3.40** | ✨ feature | HubSites / Featured-Bildhöhe | **`CMS/admin/modules/hub/HubSitesModule.php`, `CMS/admin/modules/hub/HubTemplateProfileManager.php`, `CMS/admin/views/hub/edit.php`, `CMS/admin/views/hub/template-edit/main-column.php`, `CMS/core/Services/SiteTable/SiteTableTemplateRegistry.php`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md` und `Changelog.md` ergänzen eine anpassbare Featured-Bildhöhe.** Das neue Setting `hub_feature_image_height` ist im HubSite-Editor und Template-Customizer pflegbar, wird zwischen 160 px und 520 px normalisiert und als CSS-Variable `--hubsite-feature-image-height` an Themes ausgegeben. Zusammen mit `hub_feature_image_width` lassen sich Featured-Bildbereiche jetzt in Höhe und Breite steuern. |
+
+### v3.3.39 — 25.05.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.3.39** | 🔴 fix | HubSites / Kachel-Schema & Card-Layout | **`CMS/core/Services/SiteTable/SiteTableHubRenderer.php`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md` und `Changelog.md` sorgen dafür, dass Card-Layout-Werte aus dem Template-Customizer im Public Markup sichtbar werden.** HubSite-Karten erhalten nun zusätzlich `hubsite-card--layout-{standard|feature|compact}` und `cms-hub-site__card--layout-{standard|feature|compact}`, sodass Themes die im Template gewählte Layoutvariante zuverlässig stylen können. |
+
 ### v3.3.38 — 25.05.2026
 
 | Version | Typ | Bereich | Beschreibung |
 |---------|-----|---------|-------------|
-| **3.3.38** | ✨ feature | HubSites / Featured-Kacheln | **`CMS/admin/modules/hub/HubSitesModule.php`, `CMS/admin/modules/hub/HubTemplateProfileManager.php`, `CMS/admin/views/hub/edit.php`, `CMS/admin/views/hub/template-edit/main-column.php`, `CMS/core/Services/SiteTable/SiteTableTemplateRegistry.php`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md` und `Changelog.md` ergänzen die anpassbare Featured-Bildbreite.** Das neue Setting `hub_feature_image_width` ist als Prozentwert im HubSite-Editor sowie im Template-Customizer pflegbar, wird zwischen 20 % und 60 % normalisiert und als CSS-Variable `--hubsite-feature-image-width` an Themes ausgegeben. |
+| **3.3.38** | ✨ feature/fix | HubSites / Template-Vererbung & Featured-Kacheln | **`CMS/admin/modules/hub/HubSitesModule.php`, `CMS/admin/modules/hub/HubTemplateProfileManager.php`, `CMS/admin/views/hub/edit.php`, `CMS/admin/views/hub/template-edit/main-column.php`, `CMS/core/Services/SiteTable/SiteTableTemplateRegistry.php`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md` und `Changelog.md` ergänzen die anpassbare Featured-Bildbreite und reparieren die Template-Vererbung.** Das neue Setting `hub_feature_image_width` ist als Prozentwert im HubSite-Editor sowie im Template-Customizer pflegbar, wird zwischen 20 % und 60 % normalisiert und als CSS-Variable `--hubsite-feature-image-width` an Themes ausgegeben. Geerbte Card-Designwerte bleiben auf Einzel-HubSites leer und bestehende, automatisch gespeicherte Template-Werte werden beim Template-Speichern bereinigt, damit Änderungen im Template-Customizer auf neuen und bestehenden Public HubSites sichtbar werden. |
 
 ### v3.3.37 — 25.05.2026
 

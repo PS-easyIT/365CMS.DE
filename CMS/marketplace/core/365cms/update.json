@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "3.3.38",
+  "version": "3.3.40",
   "min_php": "8.4",
   "released": "2026-05-25",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 3.3.38: HubSites erhalten mit hub_feature_image_width eine anpassbare Featured-Bildbreite in Prozent. Der Wert ist im HubSite-Editor und im Template-Customizer pflegbar und wird als CSS-Variable an Themes übergeben.",
+  "notes": "Release-Stand 3.3.40: HubSites erhalten mit hub_feature_image_height eine zusätzliche Featured-Bildhöhe. Breite und Höhe von Featured-Bildern sind damit im HubSite-Editor und Template-Customizer steuerbar und werden als CSS-Variablen an Themes übergeben.",
   "critical": false
 }

@@ -139,6 +139,7 @@ final class HubTemplateProfileManager
                     'card_radius' => 20,
                     'card_row_gap' => 30,
                     'feature_image_width' => 34,
+                    'feature_image_height' => 260,
                 ],
                 'starter_cards' => [],
             ];
@@ -233,6 +234,7 @@ final class HubTemplateProfileManager
                     'card_radius' => $this->normalizeNumber((int)($post['template_card_radius'] ?? 20), 0, 48, 20),
                     'card_row_gap' => $this->normalizeNumber((int)($post['template_card_row_gap'] ?? 30), 30, 160, 30),
                     'feature_image_width' => $this->normalizeNumber((int)($post['template_feature_image_width'] ?? 34), 20, 60, 34),
+                    'feature_image_height' => $this->normalizeNumber((int)($post['template_feature_image_height'] ?? 260), 160, 520, 260),
                 ],
                 'starter_cards' => $this->normalizeStarterCards((string)($post['template_starter_cards_json'] ?? '[]')),
             ];
@@ -533,6 +535,7 @@ final class HubTemplateProfileManager
                 'card_radius' => $this->normalizeNumber((int)($profile['card_design']['card_radius'] ?? $fallback['card_design']['card_radius'] ?? 20), 0, 48, 20),
                 'card_row_gap' => $this->normalizeNumber((int)($profile['card_design']['card_row_gap'] ?? $fallback['card_design']['card_row_gap'] ?? 30), 30, 160, 30),
                 'feature_image_width' => $this->normalizeNumber((int)($profile['card_design']['feature_image_width'] ?? $fallback['card_design']['feature_image_width'] ?? 34), 20, 60, 34),
+                'feature_image_height' => $this->normalizeNumber((int)($profile['card_design']['feature_image_height'] ?? $fallback['card_design']['feature_image_height'] ?? 260), 160, 520, 260),
             ],
             'starter_cards' => $this->normalizeStarterCards(json_encode($profile['starter_cards'] ?? $fallback['starter_cards'] ?? [], JSON_UNESCAPED_UNICODE) ?: '[]'),
         ];
@@ -669,8 +672,11 @@ final class HubTemplateProfileManager
         $currentLinks = $this->normalizeComparableLinks($currentProfile['links'] ?? []);
         $previousStarterCards = $this->normalizeComparableStarterCards($previousProfile['starter_cards'] ?? []);
         $currentStarterCardsComparable = $this->normalizeComparableStarterCards($currentProfile['starter_cards'] ?? []);
+        $previousCardDesign = $this->normalizeComparableCardDesign($previousProfile['card_design'] ?? []);
+        $currentCardDesignComparable = $this->normalizeComparableCardDesign($currentProfile['card_design'] ?? []);
+        $cardDesignChanged = $previousCardDesign !== $currentCardDesignComparable;
 
-        if ($previousLinks === $currentLinks && $previousStarterCards === $currentStarterCardsComparable) {
+        if ($previousLinks === $currentLinks && $previousStarterCards === $currentStarterCardsComparable && !$cardDesignChanged) {
             return;
         }
 
@@ -713,6 +719,10 @@ final class HubTemplateProfileManager
                 $settingsChanged = true;
             }
 
+            if ($cardDesignChanged && $this->clearInheritedCardDesignOverrides($settings, $previousCardDesign)) {
+                $settingsChanged = true;
+            }
+
             $storedRowsComparable = $this->normalizeComparableSiteRows($rows);
             if ($storedRowsComparable !== [] && $storedRowsComparable === $previousStarterCards) {
                 $rows = $currentStarterCards;
@@ -744,6 +754,70 @@ final class HubTemplateProfileManager
                 );
             }
         }
+    }
+
+    /**
+     * @param array<string, mixed> $design
+     * @return array<string, int|string>
+     */
+    private function normalizeComparableCardDesign(array $design): array
+    {
+        return [
+            'layout' => $this->normalizeSetting((string)($design['layout'] ?? 'standard'), ['standard', 'feature', 'compact'], 'standard'),
+            'image_position' => $this->normalizeSetting((string)($design['image_position'] ?? 'top'), ['top', 'left', 'right'], 'top'),
+            'image_fit' => $this->normalizeSetting((string)($design['image_fit'] ?? 'cover'), ['cover', 'contain'], 'cover'),
+            'image_ratio' => $this->normalizeSetting((string)($design['image_ratio'] ?? 'wide'), ['wide', 'square', 'portrait'], 'wide'),
+            'meta_layout' => $this->normalizeSetting((string)($design['meta_layout'] ?? 'split'), ['split', 'stacked'], 'split'),
+            'card_radius' => $this->normalizeNumber((int)($design['card_radius'] ?? 20), 0, 48, 20),
+            'card_row_gap' => $this->normalizeNumber((int)($design['card_row_gap'] ?? 30), 30, 160, 30),
+            'feature_image_width' => $this->normalizeNumber((int)($design['feature_image_width'] ?? 34), 20, 60, 34),
+            'feature_image_height' => $this->normalizeNumber((int)($design['feature_image_height'] ?? 260), 160, 520, 260),
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $settings
+     * @param array<string, int|string> $previousCardDesign
+     */
+    private function clearInheritedCardDesignOverrides(array &$settings, array $previousCardDesign): bool
+    {
+        $changed = false;
+        $hiddenDesignSettings = [
+            'hub_card_layout' => 'layout',
+            'hub_card_image_position' => 'image_position',
+            'hub_card_image_fit' => 'image_fit',
+            'hub_card_image_ratio' => 'image_ratio',
+            'hub_card_meta_layout' => 'meta_layout',
+        ];
+
+        foreach ($hiddenDesignSettings as $settingKey => $designKey) {
+            if (array_key_exists($settingKey, $settings) && trim((string)$settings[$settingKey]) !== '') {
+                $settings[$settingKey] = '';
+                $changed = true;
+            }
+        }
+
+        $numericDesignSettings = [
+            'hub_card_radius' => ['design' => 'card_radius', 'min' => 0, 'max' => 48, 'fallback' => 20],
+            'hub_card_row_gap' => ['design' => 'card_row_gap', 'min' => 30, 'max' => 160, 'fallback' => 30],
+            'hub_feature_image_width' => ['design' => 'feature_image_width', 'min' => 20, 'max' => 60, 'fallback' => 34],
+            'hub_feature_image_height' => ['design' => 'feature_image_height', 'min' => 160, 'max' => 520, 'fallback' => 260],
+        ];
+
+        foreach ($numericDesignSettings as $settingKey => $limits) {
+            if (!array_key_exists($settingKey, $settings) || trim((string)$settings[$settingKey]) === '') {
+                continue;
+            }
+
+            $storedValue = $this->normalizeNumber((int)$settings[$settingKey], (int)$limits['min'], (int)$limits['max'], (int)$limits['fallback']);
+            $previousValue = (int)($previousCardDesign[(string)$limits['design']] ?? $limits['fallback']);
+            if ($storedValue === $previousValue) {
+                $settings[$settingKey] = '';
+                $changed = true;
+            }
+        }
+
+        return $changed;
     }
 
     private function normalizeUrlValue(string $value, int $maxLength): string

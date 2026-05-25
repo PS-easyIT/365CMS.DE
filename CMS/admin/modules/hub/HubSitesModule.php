@@ -62,14 +62,15 @@ class HubSitesModule
         'hub_meta_kpi_en' => '',
         'hub_links_json' => '[]',
         'hub_sections_json' => '[]',
-        'hub_card_layout' => 'standard',
-        'hub_card_image_position' => 'top',
-        'hub_card_image_fit' => 'cover',
-        'hub_card_image_ratio' => 'wide',
-        'hub_card_meta_layout' => 'split',
+        'hub_card_layout' => '',
+        'hub_card_image_position' => '',
+        'hub_card_image_fit' => '',
+        'hub_card_image_ratio' => '',
+        'hub_card_meta_layout' => '',
         'hub_card_radius' => '',
         'hub_card_row_gap' => '',
         'hub_feature_image_width' => '',
+        'hub_feature_image_height' => '',
         'hub_show_author_box' => false,
     ];
 
@@ -267,6 +268,9 @@ class HubSitesModule
                 : '',
             'hub_feature_image_width' => array_key_exists('hub_feature_image_width', $post) && trim((string)$post['hub_feature_image_width']) !== ''
                 ? $this->normalizeNumber((int)$post['hub_feature_image_width'], 20, 60, 34)
+                : '',
+            'hub_feature_image_height' => array_key_exists('hub_feature_image_height', $post) && trim((string)$post['hub_feature_image_height']) !== ''
+                ? $this->normalizeNumber((int)$post['hub_feature_image_height'], 160, 520, 260)
                 : '',
             'hub_show_author_box' => $this->normalizeBoolean($post['hub_show_author_box'] ?? false),
         ];
@@ -541,11 +545,21 @@ class HubSitesModule
         $settings['hub_meta_kpi_en'] = $this->sanitizePlainText((string) ($settings['hub_meta_kpi_en'] ?? ''), 120);
         $settings['hub_links_json'] = (string) ($formValues['hub_links_json'] ?? ($settings['hub_links_json'] ?? '[]'));
         $settings['hub_sections_json'] = (string) ($formValues['hub_sections_json'] ?? ($settings['hub_sections_json'] ?? '[]'));
-        $settings['hub_card_layout'] = $this->normalizeSetting((string) ($settings['hub_card_layout'] ?? 'standard'), self::ALLOWED_CARD_LAYOUTS, 'standard');
-        $settings['hub_card_image_position'] = $this->normalizeSetting((string) ($settings['hub_card_image_position'] ?? 'top'), self::ALLOWED_IMAGE_POSITIONS, 'top');
-        $settings['hub_card_image_fit'] = $this->normalizeSetting((string) ($settings['hub_card_image_fit'] ?? 'cover'), self::ALLOWED_IMAGE_FITS, 'cover');
-        $settings['hub_card_image_ratio'] = $this->normalizeSetting((string) ($settings['hub_card_image_ratio'] ?? 'wide'), self::ALLOWED_IMAGE_RATIOS, 'wide');
-        $settings['hub_card_meta_layout'] = $this->normalizeSetting((string) ($settings['hub_card_meta_layout'] ?? 'split'), self::ALLOWED_META_LAYOUTS, 'split');
+        $settings['hub_card_layout'] = trim((string) ($settings['hub_card_layout'] ?? '')) !== ''
+            ? $this->normalizeSetting((string) $settings['hub_card_layout'], self::ALLOWED_CARD_LAYOUTS, 'standard')
+            : '';
+        $settings['hub_card_image_position'] = trim((string) ($settings['hub_card_image_position'] ?? '')) !== ''
+            ? $this->normalizeSetting((string) $settings['hub_card_image_position'], self::ALLOWED_IMAGE_POSITIONS, 'top')
+            : '';
+        $settings['hub_card_image_fit'] = trim((string) ($settings['hub_card_image_fit'] ?? '')) !== ''
+            ? $this->normalizeSetting((string) $settings['hub_card_image_fit'], self::ALLOWED_IMAGE_FITS, 'cover')
+            : '';
+        $settings['hub_card_image_ratio'] = trim((string) ($settings['hub_card_image_ratio'] ?? '')) !== ''
+            ? $this->normalizeSetting((string) $settings['hub_card_image_ratio'], self::ALLOWED_IMAGE_RATIOS, 'wide')
+            : '';
+        $settings['hub_card_meta_layout'] = trim((string) ($settings['hub_card_meta_layout'] ?? '')) !== ''
+            ? $this->normalizeSetting((string) $settings['hub_card_meta_layout'], self::ALLOWED_META_LAYOUTS, 'split')
+            : '';
         $settings['hub_card_radius'] = trim((string) ($settings['hub_card_radius'] ?? '')) !== ''
             ? $this->normalizeNumber((int) $settings['hub_card_radius'], 0, 48, 20)
             : '';
@@ -554,6 +568,9 @@ class HubSitesModule
             : '';
         $settings['hub_feature_image_width'] = trim((string) ($settings['hub_feature_image_width'] ?? '')) !== ''
             ? $this->normalizeNumber((int) $settings['hub_feature_image_width'], 20, 60, 34)
+            : '';
+        $settings['hub_feature_image_height'] = trim((string) ($settings['hub_feature_image_height'] ?? '')) !== ''
+            ? $this->normalizeNumber((int) $settings['hub_feature_image_height'], 160, 520, 260)
             : '';
         $settings['hub_show_author_box'] = $this->normalizeBoolean($formValues['hub_show_author_box'] ?? false);
 

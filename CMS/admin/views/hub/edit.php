@@ -163,6 +163,11 @@ $hubPublicEnPath = $hubPublicPath !== '' ? ContentLocalizationService::getInstan
                                     <input type="number" class="form-control" name="hub_feature_image_width" min="20" max="60" step="1" value="<?php echo htmlspecialchars((string)($settings['hub_feature_image_width'] ?? ''), ENT_QUOTES); ?>" placeholder="Template / 34">
                                     <div class="form-hint">Leer = Template-Wert. Steuert Desktop-Breite des Bildbereichs in Featured-Kacheln.</div>
                                 </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Featured-Bildhöhe (px)</label>
+                                    <input type="number" class="form-control" name="hub_feature_image_height" min="160" max="520" step="10" value="<?php echo htmlspecialchars((string)($settings['hub_feature_image_height'] ?? ''), ENT_QUOTES); ?>" placeholder="Template / 260">
+                                    <div class="form-hint">Leer = Template-Wert. Steuert die sichtbare Mindesthöhe von Featured-Kacheln.</div>
+                                </div>
                                 <div class="col-md-4">
                                     <label class="form-label">CTA URL</label>
                                     <input type="text" class="form-control" name="hub_cta_url" value="<?php echo htmlspecialchars((string)($settings['hub_cta_url'] ?? '')); ?>" placeholder="/themen">
