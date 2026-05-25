@@ -336,6 +336,7 @@ class PagesModule
         $titleEn    = $this->sanitizePlainText((string)($post['title_en'] ?? ''), 255);
         $contentEn  = $this->preserveOriginalEditorContentIfUnchanged($post['content_en'] ?? '', $post['content_en_original'] ?? '');
         $hideTitle  = (int)($post['hide_title'] ?? 0);
+        $showTitleToc = !empty($post['show_title_toc']) ? 1 : 0;
         $categoryId = (int)($post['category_id'] ?? 0);
         $featuredImage = $this->sanitizeMediaReference((string)($post['featured_image'] ?? ''));
         $featuredImageTempPath = $this->sanitizeMediaReference((string)($post['featured_image_temp_path'] ?? ''));
@@ -408,6 +409,7 @@ class PagesModule
             'content' => $content,
             'content_en' => $contentEn,
             'hide_title' => $hideTitle,
+            'show_title_toc' => $showTitleToc,
             'category_id' => $categoryId > 0 ? $categoryId : null,
             'featured_image' => $featuredImage,
             'meta_title' => $metaTitle,
@@ -444,14 +446,15 @@ class PagesModule
                     // Update meta fields
                     $this->db->execute(
                         "UPDATE {$this->prefix}pages 
-                             SET slug = ?, slug_en = ?, title_en = ?, content_en = ?, category_id = ?, featured_image = ?, meta_title = ?, meta_description = ?
+                             SET slug = ?, slug_en = ?, title_en = ?, content_en = ?, show_title_toc = ?, category_id = ?, featured_image = ?, meta_title = ?, meta_description = ?
                          WHERE id = ?",
                         [
                             (string)$savePayload['slug'],
                             $savePayload['slug_en'],
                             (string)($savePayload['title_en'] ?? ''),
                             (string)($savePayload['content_en'] ?? ''),
-                                $savePayload['category_id'],
+                            (int)$savePayload['show_title_toc'],
+                            $savePayload['category_id'],
                             (string)$savePayload['featured_image'],
                             (string)$savePayload['meta_title'],
                             (string)$savePayload['meta_description'],

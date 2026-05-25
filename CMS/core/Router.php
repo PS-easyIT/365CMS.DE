@@ -315,7 +315,15 @@ class Router
 
                 $page = Services\ContentLocalizationService::getInstance()->localizePage($page, $locale);
                 if (!empty($page['content'])) {
-                    $page['content'] = $this->prepareRenderableContent((string)$page['content'], 'page', (int)($page['id'] ?? 0));
+                    $showTitleToc = !empty($page['show_title_toc']);
+                    $page['content'] = $this->prepareRenderableContent((string)$page['content'], 'page', (int)($page['id'] ?? 0), [
+                        'skip_toc' => $showTitleToc,
+                    ]);
+
+                    if ($showTitleToc) {
+                        $titleTocResult = TableOfContents::instance()->buildPageTitleToc((string)$page['content']);
+                        $page['content'] = (string)($titleTocResult['toc'] ?? '') . (string)($titleTocResult['content'] ?? $page['content']);
+                    }
                 }
                 if (isset($_GET['pdf']) && $_GET['pdf'] === '1') {
                     $this->streamContentAsPdf(
@@ -711,21 +719,25 @@ class Router
         return $this->requestContext;
     }
 
-    public function prepareRenderableContent(string $content, string $type, int $id = 0): string
+    public function prepareRenderableContent(string $content, string $type, int $id = 0, array $options = []): string
     {
         $content = Services\EditorService::getInstance()->renderContent($content);
         $content = Services\SiteTableService::getInstance()->replaceShortcodes($content);
 
-        $tocResult = TableOfContents::instance()->process($content, $type, $id);
-        $prepared = (string)($tocResult['content'] ?? $content);
-        $tocHtml = (string)($tocResult['toc'] ?? '');
+        if (!empty($options['skip_toc'])) {
+            $prepared = str_replace('[cms_toc]', '', $content);
+        } else {
+            $tocResult = TableOfContents::instance()->process($content, $type, $id);
+            $prepared = (string)($tocResult['content'] ?? $content);
+            $tocHtml = (string)($tocResult['toc'] ?? '');
 
-        if ($tocHtml !== '') {
-            $prepared = $this->injectTocIntoContent(
-                $prepared,
-                $tocHtml,
-                (string)TableOfContents::instance()->getSetting('position', 'before')
-            );
+            if ($tocHtml !== '') {
+                $prepared = $this->injectTocIntoContent(
+                    $prepared,
+                    $tocHtml,
+                    (string)TableOfContents::instance()->getSetting('position', 'before')
+                );
+            }
         }
 
         $prepared = (string) Hooks::applyFilters('content_render', $prepared, $type, $id);

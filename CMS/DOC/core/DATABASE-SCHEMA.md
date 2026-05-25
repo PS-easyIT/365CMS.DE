@@ -142,6 +142,7 @@ CMS-Seiten mit SEO-Feldern, Revisionen, Featured-Image-Unterstützung und option
 | `excerpt` | TEXT | Ja | NULL | Kurzfassung |
 | `status` | VARCHAR(20) | Ja | 'draft' | Veröffentlichungsstatus |
 | `hide_title` | TINYINT(1) | Nein | 0 | Titel im Frontend ausblenden |
+| `show_title_toc` | TINYINT(1) | Nein | 0 | Seitenspezifisches, eingeklapptes Inhaltsverzeichnis direkt unter dem Titel ausgeben |
 | `featured_image` | VARCHAR(500) | Ja | NULL | Pfad zum Beitragsbild |
 | `meta_title` | VARCHAR(255) | Ja | NULL | SEO-Titel |
 | `meta_description` | TEXT | Ja | NULL | SEO-Beschreibung |

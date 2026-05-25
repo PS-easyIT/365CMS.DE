@@ -76,6 +76,7 @@ Damit entsteht ein WordPress-ähnliches Blockgefühl, während Sanitizer, Render
 - Audit-Fix 25.05.2026 (`3.3.23`): Der Page/Post-Submit wartet jetzt vor jedem Editor-Save zuerst auf ausstehende Lazy-Bindings. Das gilt auch, wenn für einen Hidden-/Sprach-Editor noch keine EditorJS-Instanz im lokalen Registry-Objekt existiert, aber bereits eine Aktivierung, Kopie oder Übersetzungsübernahme läuft.
 - Public-Fix 25.05.2026 (`3.3.24`): Der Renderer blendet bereits gespeicherte dateinamenartige Captions bei Bild-, Galerie- und Carousel-Blöcken aus, damit Grafik-/Dateinamen nicht mehr als sichtbare Bildunterschrift erscheinen.
 - Audit-Fix 25.05.2026 (`3.3.25`): `linkTool` sendet den `X-CSRF-Token` nun auch bei Metadaten-GETs an `/api/media?action=fetch_link`; außerdem erkennt der Content-Normalizer bereits gerendertes `.editorjs-media-text`- und `.editorjs-gallery`-HTML, damit doppelte Render-/Theme-Pipelines Bild+Text/Galerien nicht mehr in Einzelblöcke zerlegen.
+- Audit-Fix 25.05.2026 (`3.3.27`): `createCmsEditor()` serialisiert debounced `onChange`-Saves nun über eine interne Queue. Änderungen, die während eines laufenden `editor.save()` eintreffen, werden nach dem aktuellen Save erneut gespeichert; dadurch kann ein langsamer älterer Save keinen neueren Hidden-JSON-Stand mehr überschreiben. `destroy()` fängt zusätzlich asynchrone Rejections ab, damit Pagehide-/Unmount-Cleanup keine unbehandelten Promise-Rejections erzeugt.
 
 ## Bekannte Grenzen
 

@@ -25,7 +25,7 @@
     var TUNE_TOOL_NAMES = ['anchor', 'alignmentTune', 'indentTune', 'textVariant'];
     var PLUGIN_NAMES = ['undo', 'dragDrop'];
     var TOOL_NAMES = BLOCK_TOOL_NAMES.concat(INLINE_TOOL_NAMES, TUNE_TOOL_NAMES);
-    var VERSION = 'cms-editorjs-org-assets-2026-05-25-audit-linktool-normalizer-3-3-25';
+    var VERSION = 'cms-editorjs-org-assets-2026-05-25-audit-change-sync-3-3-27';
     var THEME_PREVIEW_STYLE_CACHE = {};
     var TOOL_GLOBALS = {
         paragraph: ['CmsParagraphTool', 'Paragraph'],
@@ -4503,8 +4503,12 @@
         var tools;
         var resolvedOptions = options && typeof options === 'object' ? options : {};
         var toolChangeSyncTimer = null;
+        var changeSyncInFlight = false;
+        var changeSyncPending = false;
+        var changeSyncDestroyed = false;
         var originalDestroy;
         var syncEditorChange;
+        var runEditorChangeSync;
         var reportEditorError = function (stage, error) {
             if (typeof resolvedOptions.onError === 'function') {
                 try {
@@ -4534,6 +4538,44 @@
         }
         applyEditorPreviewTypography(holder, resolvedOptions.themeTypography || resolvedOptions.typography || {});
 
+        runEditorChangeSync = function () {
+            if (changeSyncDestroyed || typeof resolvedOptions.onChange !== 'function') {
+                return;
+            }
+
+            if (!editor || typeof editor.save !== 'function') {
+                changeSyncPending = true;
+                return;
+            }
+
+            if (changeSyncInFlight) {
+                changeSyncPending = true;
+                return;
+            }
+
+            changeSyncInFlight = true;
+            changeSyncPending = false;
+
+            editor.save().then(function (output) {
+                if (!changeSyncDestroyed) {
+                    try {
+                        resolvedOptions.onChange(normalizeInitialData(output));
+                    } catch (callbackError) {
+                        logWarn('Editor onChange callback failed.', callbackError);
+                        reportEditorError('change-callback', callbackError);
+                    }
+                }
+            }, function (error) {
+                logWarn('Change sync failed.', error);
+                reportEditorError('change-sync', error);
+            }).then(function () {
+                changeSyncInFlight = false;
+                if (changeSyncPending && !changeSyncDestroyed) {
+                    runEditorChangeSync();
+                }
+            });
+        };
+
         syncEditorChange = function () {
             if (typeof resolvedOptions.onChange !== 'function') {
                 return;
@@ -4545,15 +4587,7 @@
 
             toolChangeSyncTimer = window.setTimeout(function () {
                 toolChangeSyncTimer = null;
-                if (!editor || typeof editor.save !== 'function') {
-                    return;
-                }
-                editor.save().then(function (output) {
-                    resolvedOptions.onChange(normalizeInitialData(output));
-                }).catch(function (error) {
-                    logWarn('Change sync failed.', error);
-                    reportEditorError('change-sync', error);
-                });
+                runEditorChangeSync();
             }, 80);
         };
 
@@ -4619,6 +4653,10 @@
 
         originalDestroy = typeof editor.destroy === 'function' ? editor.destroy.bind(editor) : null;
         editor.destroy = function () {
+            var destroyResult;
+
+            changeSyncDestroyed = true;
+            changeSyncPending = false;
             if (toolChangeSyncTimer !== null) {
                 window.clearTimeout(toolChangeSyncTimer);
                 toolChangeSyncTimer = null;
@@ -4633,7 +4671,14 @@
             }
             holder.removeAttribute('aria-busy');
 
-            return originalDestroy ? originalDestroy() : undefined;
+            destroyResult = originalDestroy ? originalDestroy() : undefined;
+            if (destroyResult && typeof destroyResult.catch === 'function') {
+                return destroyResult.catch(function (error) {
+                    logWarn('Editor destroy failed.', error);
+                });
+            }
+
+            return destroyResult;
         };
 
         return editor;

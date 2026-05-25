@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Verwaltung statischer CMS-Seiten im Admin inklusive getrennter DE/EN-Bearbeitung, SEO-Feldern, Slugs, Redirects, Bulk-Aktionen und Delete-/Preview-Pfaden.
 
-Letzte Aktualisierung: 2026-05-09 · Release 2.9.708
+Letzte Aktualisierung: 2026-05-25 · Release 3.3.28
 
 ---
 
@@ -22,6 +22,7 @@ Seiten bilden die statischen Inhalte des Systems, etwa Startseite, Kontakt, Impr
 | Inhalt | Rich-Text- oder Blockinhalt |
 | Status | Redaktionsstatus |
 | Kategorie | Optionale Gruppierung für Admin-Filter und Content-Kontext |
+| Header-TOC | Optionales, standardmäßig eingeklapptes Inhaltsverzeichnis unter dem Seitentitel |
 | Featured Image | Vorschaubild für Cards und Social Preview |
 | SEO-Felder | seitenspezifische Meta-Informationen |
 
@@ -37,6 +38,7 @@ Der Seiteneditor kombiniert im aktuellen Stand:
 - getrennte DE- und EN-Bearbeitungsseiten statt eines fragilen In-Page-Sprachwechsels
 - drei obere Karten analog zum Beiträge-Editor: Inhalt/Slug links, Bild plus Aktionen mittig, Veröffentlichung rechts
 - SEO-/Readability-/Preview-Karten unter dem Editor
+- eine seitenspezifische Header-TOC-Option, die unabhängig vom aktiven Theme und unabhängig von den globalen TOC-Einstellungen rendert
 - read-only Revisionsvergleich der letzten gespeicherten Seiten-Snapshots direkt im Editor
 - sichtbare Public-Preview-Links für DE und EN
 - einen direkten Einzel-Löschpfad für bestehende Seiten innerhalb der Aktionskarte
@@ -87,7 +89,7 @@ Bei Slug-Änderungen legt die Seitenverwaltung automatische Redirects an. Seit R
 | SEO-Center | globale Templates und technisches SEO |
 | Legal Sites | rechtliche Seitenzuordnung |
 | Theme-Routing | Ausgabe über Theme-Templates |
-| Inhaltsverzeichnis | TOC-Auswertung langer Inhalte |
+| Inhaltsverzeichnis | Globale TOC-Auswertung langer Inhalte plus seitenspezifisches Header-TOC unter dem Titel |
 
 ---
 
@@ -99,6 +101,7 @@ Bei Slug-Änderungen legt die Seitenverwaltung automatische Redirects an. Seit R
 - Slug-, Redirect- und Preview-Bezüge greifen konsistent über DE/EN-Pfade ineinander.
 - Die Admin-UI bündelt Speichern, DE-/EN-Vorschau und Einzel-Löschen jetzt in einer gemeinsamen Aktionskarte mit klarer visueller Hierarchie statt in getrennten Top-/Delete-Bereichen.
 - Revisions-Snapshots lassen sich direkt im Seiteneditor gegen den aktuellen Stand vergleichen, ohne Restore-Aktionen still mitzuschleusen.
+- Seiten können ein eigenes eingeklapptes Inhaltsverzeichnis direkt unter dem Titel erzwingen; dieses nutzt `show_title_toc` und bleibt von globalen TOC-Auto-Insert-Settings unabhängig.
 
 ---
 

@@ -191,6 +191,7 @@ $isEnglishEditorView = $editorLocale === 'en';
             $pageContentPlainValue = $extractEditorPlainText($pageContentValue);
             $pageContentPlainEnValue = $extractEditorPlainText($pageContentEnValue);
             $pageHideTitleValue = (int)($page->hide_title ?? 0);
+            $pageShowTitleTocValue = (int)($page->show_title_toc ?? 0);
             $pageCategoryIdValue = (int)($page->category_id ?? 0);
             $pageMetaTitleValue = (string)($page->meta_title ?? '');
             $pageMetaDescriptionValue = (string)($page->meta_description ?? '');
@@ -276,6 +277,16 @@ $isEnglishEditorView = $editorLocale === 'en';
                                     <span class="form-check-label">Titel ausblenden</span>
                                 </label>
                                 <div class="form-hint">Blendet den sichtbaren Seitentitel im Frontend aus, ohne SEO-/Navigationsdaten zu entfernen.</div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-check mb-0">
+                                    <input type="checkbox" name="show_title_toc" value="1"
+                                           class="form-check-input"
+                                           id="showTitleToc"
+                                             <?= $pageShowTitleTocValue === 1 ? 'checked' : '' ?>>
+                                    <span class="form-check-label">Eingeklapptes Inhaltsverzeichnis unter dem Titel anzeigen</span>
+                                </label>
+                                <div class="form-hint">Seitenspezifisch: funktioniert unabhängig vom aktiven Theme und unabhängig von den globalen TOC-Einstellungen. Wird nur bei mindestens zwei Überschriften ausgegeben.</div>
                             </div>
                             <div class="mb-0">
                                 <label class="form-label" for="<?= htmlspecialchars($activePageSlugInputId) ?>"><?= $isEnglishEditorView ? 'Englischer Slug' : 'Slug' ?></label>

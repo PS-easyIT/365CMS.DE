@@ -145,6 +145,7 @@ class SchemaManager
                 excerpt TEXT,
                 status VARCHAR(20) DEFAULT 'draft',
                 hide_title TINYINT(1) NOT NULL DEFAULT 0,
+                show_title_toc TINYINT(1) NOT NULL DEFAULT 0,
                 featured_image VARCHAR(500) DEFAULT NULL,
                 meta_title VARCHAR(255) DEFAULT NULL,
                 meta_description TEXT DEFAULT NULL,

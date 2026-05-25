@@ -1,4 +1,4 @@
-﻿**Version:** 3.3.26
+﻿**Version:** 3.3.28
 
 # 365CMS Changelog
 
@@ -19,6 +19,18 @@
 ## 📜 Aktuelle Versionshistorie ab 3.0.0
 
 > Die vollständige historische 2.x-Historie wurde in [`Changelog_old.md`](Changelog_old.md) archiviert.
+
+### v3.3.28 — 25.05.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.3.28** | 🟢 feat | Seiten / Header-TOC | **`CMS/core/PageManager.php`, `CMS/core/SchemaManager.php`, `CMS/admin/pages.php`, `CMS/admin/modules/pages/PagesModule.php`, `CMS/admin/views/pages/edit.php`, `CMS/core/Router.php`, `CMS/core/TableOfContents.php`, `CMS/assets/css/main.css`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md`, `CMS/DOC/admin/pages-posts/PAGES.md`, `CMS/DOC/admin/pages-posts/TOC.md`, `CMS/DOC/core/DATABASE-SCHEMA.md` und `Changelog.md` ergänzen ein seitenspezifisches Header-Inhaltsverzeichnis.** Seiten besitzen jetzt die Option „Eingeklapptes Inhaltsverzeichnis unter dem Titel anzeigen“. Der Core speichert sie in `show_title_toc`, rendert bei mindestens zwei Überschriften ein schönes `<details>`-Widget direkt am Content-Anfang und überspringt dafür bewusst die globalen TOC-Auto-Insert-Einstellungen. Dadurch bleibt die Funktion themeübergreifend nutzbar und unabhängig von der normalen TOC-Konfiguration. |
+
+### v3.3.27 — 25.05.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.3.27** | 🔴 fix | EditorJS / Audit Change-Sync & Cleanup | **`CMS/assets/js/editor-init.js`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md`, `CMS/DOC/assets/editorjs/README.md` und `Changelog.md` schließen den aktuellen EditorJS-Auditpunkt zu Runtime-Saves und Cleanup ab.** `createCmsEditor()` führt debounced `onChange`-Serialisierung jetzt in einer Queue aus, sodass keine überlappenden `editor.save()`-Promises ältere Hidden-JSON-Stände nach neueren Änderungen zurückschreiben können. Während eines laufenden Saves eingehende Änderungen werden als Pending-Run nachgezogen. Außerdem fängt die Factory asynchrone `destroy()`-Rejections defensiv ab, damit Pagehide-/Unmount-Cleanup keine unbehandelten Promise-Rejections erzeugt. Die interne Runtime-/Debug-Version ist auf `3.3.27` aktualisiert. |
 
 ### v3.3.26 — 25.05.2026
 

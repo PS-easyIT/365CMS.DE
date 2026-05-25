@@ -154,6 +154,7 @@ function cms_admin_pages_build_inline_edit_data(PagesModule $module, array $post
         'content' => $post['content'] ?? ($existingPage['content'] ?? ''),
         'content_en' => $post['content_en'] ?? ($existingPage['content_en'] ?? ''),
         'hide_title' => !empty($post['hide_title']) ? 1 : 0,
+        'show_title_toc' => !empty($post['show_title_toc']) ? 1 : 0,
         'category_id' => cms_admin_pages_normalize_positive_id($post['category_id'] ?? ($existingPage['category_id'] ?? 0)),
         'featured_image' => (string) ($post['featured_image'] ?? ($existingPage['featured_image'] ?? '')),
         'meta_title' => (string) ($post['meta_title'] ?? ($existingPage['meta_title'] ?? '')),

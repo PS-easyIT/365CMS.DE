@@ -190,6 +190,33 @@ class TableOfContents
         return $this->buildTocHtml($headings);
     }
 
+    /**
+     * Baut ein seitenspezifisches Inhaltsverzeichnis direkt für den Bereich unter dem Seitentitel.
+     * Diese Ausgabe ist bewusst unabhängig von den globalen TOC-Einstellungen und nutzt immer
+     * h2-h6, mindestens zwei Überschriften und ein standardmäßig eingeklapptes <details>-Widget.
+     *
+     * @return array{toc:string,content:string}
+     */
+    public function buildPageTitleToc(string $content): array
+    {
+        $content = str_replace('[cms_toc]', '', $content);
+        if (trim($content) === '') {
+            return ['toc' => '', 'content' => $content];
+        }
+
+        $headings = $this->extractHeadingsForLevels($content, ['h2', 'h3', 'h4', 'h5', 'h6'], 'page');
+        if (count($headings) < 2) {
+            return ['toc' => '', 'content' => $content];
+        }
+
+        $content = $this->addAnchors($content, $headings);
+
+        return [
+            'toc' => $this->buildPageTitleTocHtml($headings),
+            'content' => $content,
+        ];
+    }
+
     private function matchesCurrentPathLimit(): bool
     {
         $limitPath = trim((string) ($this->settings['limit_path'] ?? ''));
@@ -246,6 +273,11 @@ class TableOfContents
     private function extractHeadings(string $html): array
     {
         $levels  = $this->normalizeHeadingLevels((array)($this->settings['headings'] ?? ['h2', 'h3', 'h4']));
+        return $this->extractHeadingsForLevels($html, $levels, (string)($this->settings['anchor_prefix'] ?? ''), true);
+    }
+
+    private function extractHeadingsForLevels(string $html, array $levels, string $prefix = '', bool $useConfiguredExcludes = false): array
+    {
         $usedAnchors = [];
         $counter     = 0;
         $headings    = [];
@@ -262,8 +294,7 @@ class TableOfContents
         }
 
         // Ausschluss-Liste aufbauen
-        $excludes = $this->parseExcludedHeadings((string)($this->settings['exclude_headings'] ?? ''));
-        $prefix   = (string)($this->settings['anchor_prefix'] ?? '');
+        $excludes = $useConfiguredExcludes ? $this->parseExcludedHeadings((string)($this->settings['exclude_headings'] ?? '')) : [];
 
         foreach ($matches as $match) {
             $tag      = strtolower($match[1]);
@@ -290,7 +321,9 @@ class TableOfContents
             $existingId = $this->extractExistingId($attrs);
             $anchor     = $existingId !== ''
                 ? $this->reserveExistingAnchor($existingId, $usedAnchors)
-                : $this->makeAnchor($text, $usedAnchors, $counter, $prefix);
+                : ($useConfiguredExcludes
+                    ? $this->makeAnchor($text, $usedAnchors, $counter, $prefix)
+                    : $this->makeStandaloneAnchor($text, $usedAnchors, $counter, $prefix));
 
             $headings[] = [
                 'tag'         => $tag,
@@ -306,6 +339,66 @@ class TableOfContents
         }
 
         return $headings;
+    }
+
+    private function buildPageTitleTocHtml(array $headings): string
+    {
+        if ($headings === []) {
+            return '';
+        }
+
+        $uid = 'page-title-toc-' . $this->generateUidSuffix();
+        $structured = $this->buildHierarchy($headings);
+        $count = count($headings);
+
+        $html = '<details id="' . htmlspecialchars($uid, ENT_QUOTES, 'UTF-8') . '" class="cms-page-title-toc" data-cms-page-title-toc="1">';
+        $html .= '<summary class="cms-page-title-toc__summary">';
+        $html .= '<span class="cms-page-title-toc__summary-main">';
+        $html .= '<span class="cms-page-title-toc__icon" aria-hidden="true">&#x2630;</span>';
+        $html .= '<span class="cms-page-title-toc__copy">';
+        $html .= '<span class="cms-page-title-toc__eyebrow">Schnellnavigation</span>';
+        $html .= '<span class="cms-page-title-toc__title">Inhaltsverzeichnis</span>';
+        $html .= '</span></span>';
+        $html .= '<span class="cms-page-title-toc__meta">';
+        $html .= '<span class="cms-page-title-toc__count">' . $count . ' Punkte</span>';
+        $html .= '<span class="cms-page-title-toc__hint" aria-hidden="true"></span>';
+        $html .= '<span class="cms-page-title-toc__chevron" aria-hidden="true">&#x25BE;</span>';
+        $html .= '</span>';
+        $html .= '</summary>';
+        $html .= '<nav class="cms-page-title-toc__body" aria-label="Inhaltsverzeichnis der Seite">';
+        $html .= $this->renderPageTitleTocList($structured);
+        $html .= '</nav>';
+        $html .= '</details>';
+
+        return $html;
+    }
+
+    private function renderPageTitleTocList(array $headings, bool $nested = false): string
+    {
+        if ($headings === []) {
+            return '';
+        }
+
+        $html = '<ol class="cms-page-title-toc__list' . ($nested ? ' cms-page-title-toc__list--nested' : '') . '">';
+        foreach ($headings as $heading) {
+            $level = max(2, min(6, (int)($heading['level'] ?? 2)));
+            $anchor = htmlspecialchars((string)($heading['anchor'] ?? ''), ENT_QUOTES, 'UTF-8');
+            $text = htmlspecialchars((string)($heading['text'] ?? ''), ENT_QUOTES, 'UTF-8');
+
+            if ($anchor === '' || $text === '') {
+                continue;
+            }
+
+            $html .= '<li class="cms-page-title-toc__item cms-page-title-toc__item--level-' . $level . '">';
+            $html .= '<a class="cms-page-title-toc__link" href="#' . $anchor . '">' . $text . '</a>';
+            if (!empty($heading['children']) && is_array($heading['children'])) {
+                $html .= $this->renderPageTitleTocList($heading['children'], true);
+            }
+            $html .= '</li>';
+        }
+        $html .= '</ol>';
+
+        return $html;
     }
 
     // ─── Anchor Generation ────────────────────────────────────────────────────
@@ -353,6 +446,47 @@ class TableOfContents
         $suffix = 1;
         while (in_array($this->lowerUtf8($anchor), $usedKeys, true)) {
             $anchor = $base . $separator . $suffix++;
+        }
+        $used[] = $anchor;
+
+        return $anchor;
+    }
+
+    private function makeStandaloneAnchor(string $text, array &$used, int $counter, string $prefix = ''): string
+    {
+        static $map = [
+            'ä'=>'ae','ö'=>'oe','ü'=>'ue','ß'=>'ss',
+            'Ä'=>'Ae','Ö'=>'Oe','Ü'=>'Ue',
+            'à'=>'a','á'=>'a','â'=>'a','ã'=>'a','å'=>'a',
+            'ç'=>'c','è'=>'e','é'=>'e','ê'=>'e','ë'=>'e',
+            'ì'=>'i','í'=>'i','î'=>'i','ï'=>'i',
+            'ñ'=>'n','ò'=>'o','ó'=>'o','ô'=>'o','õ'=>'o',
+            'ù'=>'u','ú'=>'u','û'=>'u','ý'=>'y',
+        ];
+
+        $anchor = strtolower(str_replace(array_keys($map), array_values($map), $text));
+        $anchor = (string)preg_replace('/[^a-z0-9\s\-_]/u', '', $anchor);
+        $anchor = (string)preg_replace('/[\s\-_]+/u', '-', $anchor);
+        $anchor = trim($anchor, '-_');
+
+        if ($prefix !== '') {
+            $anchor = rtrim($prefix, '-_') . '-' . $anchor;
+        }
+
+        if ($anchor === '' || strlen($anchor) < 2) {
+            $anchor = 'page-heading-' . $counter;
+        } elseif (preg_match('/^\d/', $anchor)) {
+            $anchor = 'page-h-' . $anchor;
+        }
+
+        if (strlen($anchor) > 60) {
+            $anchor = rtrim(substr($anchor, 0, 57), '-_');
+        }
+
+        $base = $anchor;
+        $suffix = 1;
+        while (in_array($anchor, $used, true)) {
+            $anchor = $base . '-' . $suffix++;
         }
         $used[] = $anchor;
 
