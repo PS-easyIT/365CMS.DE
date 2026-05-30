@@ -43,6 +43,7 @@ if (!function_exists('renderAdminLayoutStart')) {
 
         require ABSPATH . 'admin/partials/header.php';
         require ABSPATH . 'admin/partials/sidebar.php';
+        echo '<div class="page-body"><div class="container-xl cms-plugin-admin-content">';
     }
 }
 
@@ -64,6 +65,7 @@ if (!function_exists('renderAdminLayoutEnd')) {
             return;
         }
 
+        echo '</div></div>';
         require ABSPATH . 'admin/partials/footer.php';
         $cms_admin_layout_depth = 0;
     }

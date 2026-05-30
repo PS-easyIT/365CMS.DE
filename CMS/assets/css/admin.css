@@ -2228,8 +2228,8 @@
 
 /* Keep settings content away from admin content edges */
 body.admin-body .container-xl.cms-settings-page {
-    padding-left: max(1.875rem, calc(var(--tblr-gutter-x, 1.5rem) * 0.5));
-    padding-right: max(1.875rem, calc(var(--tblr-gutter-x, 1.5rem) * 0.5));
+    padding-left: var(--cms-admin-content-padding-x, 25px);
+    padding-right: var(--cms-admin-content-padding-x, 25px);
 }
 .cms-settings-page .card {
     border: 1px solid #d7dee9;
@@ -8706,12 +8706,22 @@ body.admin-body .admin-section-toolbar__actions {
 /* Admin Sidebar + Topbar Redesign */
 .navbar-vertical.navbar-expand-lg {
     width: var(--cms-sidebar-width, 240px);
+    height: 100vh;
+    max-height: 100vh;
     background: linear-gradient(180deg, #101a2e 0%, #0d1628 100%);
     border-right: 1px solid rgba(255, 255, 255, 0.07);
 }
 
+.navbar-vertical.navbar-expand-lg > .container-fluid {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    height: 100%;
+}
+
 .admin-sidebar__header {
     display: flex;
+    flex: 0 0 auto;
     align-items: center;
     justify-content: center;
     padding: 12px 14px 6px;
@@ -8761,7 +8771,13 @@ body.admin-body .admin-section-toolbar__actions {
 }
 
 #sidebar-menu {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
     padding-bottom: 10px;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
 }
 
 #sidebar-menu .navbar-nav {
@@ -8956,6 +8972,7 @@ body.admin-body .admin-section-toolbar__actions {
 }
 
 .admin-sidebar__footer {
+    flex: 0 0 auto;
     padding: 8px 10px 12px;
 }
 

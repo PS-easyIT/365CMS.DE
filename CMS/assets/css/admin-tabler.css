@@ -52,6 +52,7 @@
     --cms-admin-input-border:   #d5dfeb;
     --cms-admin-input-focus:    #7aa2f7;
     --cms-admin-input-ring:     rgba(59, 130, 246, 0.14);
+    --cms-admin-content-padding-x: 25px;
     --cms-admin-shadow-sm:      0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px rgba(15, 23, 42, 0.04);
     --cms-admin-shadow-md:      0 12px 28px rgba(15, 23, 42, 0.08);
 
@@ -96,8 +97,13 @@ body.admin-body .page-body {
 /* Container volle Breite im Admin (Tabler-Default 1140px ist zu schmal) */
 body.admin-body .container-xl {
     max-width: 100%;
-    padding-left: 1.25rem;
-    padding-right: 1.25rem;
+    padding-left: var(--cms-admin-content-padding-x);
+    padding-right: var(--cms-admin-content-padding-x);
+}
+
+body.admin-body .cms-plugin-admin-content {
+    padding-top: 2rem;
+    padding-bottom: 2rem;
 }
 
 /* Page wrapper offset for sidebar (override Tabler default 15rem) */
@@ -112,7 +118,7 @@ body.admin-body .container-xl {
 .navbar-vertical ~ .admin-content {
     background: transparent;
     margin-left: var(--cms-sidebar-width);
-    padding: 2rem;
+    padding: 2rem var(--cms-admin-content-padding-x);
     min-height: 100vh;
     width: calc(100% - var(--cms-sidebar-width));
     box-sizing: border-box;

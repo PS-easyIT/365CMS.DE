@@ -237,6 +237,30 @@ final class AdminRouter
      */
     private function resolvePluginAdminFallback(string $plugin, string $page): ?array
     {
+        if (in_array($plugin, ['knowledgebase-dashboard', 'cms-knowledgebase'], true) && class_exists(\CmsKnowledgebase\Admin\Pages::class)) {
+            $pages = [
+                'knowledgebase-dashboard' => ['Knowledgebase', [\CmsKnowledgebase\Admin\Pages::class, 'renderDashboard']],
+                'dashboard' => ['Knowledgebase', [\CmsKnowledgebase\Admin\Pages::class, 'renderDashboard']],
+                'knowledgebase-entries' => ['Knowledgebase-Einträge', [\CmsKnowledgebase\Admin\Pages::class, 'renderEntries']],
+                'entries' => ['Knowledgebase-Einträge', [\CmsKnowledgebase\Admin\Pages::class, 'renderEntries']],
+                'knowledgebase-categories' => ['Knowledgebase-Kategorien', [\CmsKnowledgebase\Admin\Pages::class, 'renderCategories']],
+                'categories' => ['Knowledgebase-Kategorien', [\CmsKnowledgebase\Admin\Pages::class, 'renderCategories']],
+                'knowledgebase-entry-editor' => ['Knowledgebase-Eintrag bearbeiten', [\CmsKnowledgebase\Admin\Pages::class, 'renderEntryEditor']],
+                'entry-editor' => ['Knowledgebase-Eintrag bearbeiten', [\CmsKnowledgebase\Admin\Pages::class, 'renderEntryEditor']],
+                'knowledgebase-settings' => ['Knowledgebase-Einstellungen', [\CmsKnowledgebase\Admin\Pages::class, 'renderSettings']],
+                'settings' => ['Knowledgebase-Einstellungen', [\CmsKnowledgebase\Admin\Pages::class, 'renderSettings']],
+            ];
+
+            if (!isset($pages[$page]) || !is_callable($pages[$page][1])) {
+                return null;
+            }
+
+            return [
+                'title' => $pages[$page][0],
+                'callback' => $pages[$page][1],
+            ];
+        }
+
         if ($plugin !== 'booking' || !class_exists('CMS_Booking_Admin_Pages')) {
             return null;
         }
