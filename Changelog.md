@@ -1,4 +1,4 @@
-﻿**Version:** 3.3.41
+﻿**Version:** 3.3.42
 
 # 365CMS Changelog
 
@@ -15,6 +15,12 @@
 | 🛡️ | `security` | Sicherheits- und Audit-Härtung |
 
 ---
+
+### v3.3.42 — 31.05.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.3.42** | 🔴 fix | Assets / Tabler Icons | **`CMS/admin/partials/header.php`, `CMS/assets/tabler-icons/`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md` und `Changelog.md` entfernen den Tabler-Icons-CDN-Request aus dem Admin-Header.** Die echten Icon-Webfont-Dateien werden jetzt ausschließlich lokal über `/assets/tabler-icons/tabler-icons.min.css` geladen, damit zur Laufzeit keine externen jsDelivr-/Tabler-Assets angefragt werden. |
 
 ### v3.3.41 — 25.05.2026
 

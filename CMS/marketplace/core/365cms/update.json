@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "3.3.41",
+  "version": "3.3.42",
   "min_php": "8.4",
-  "released": "2026-05-25",
+  "released": "2026-05-31",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 3.3.41: HubSite-Kartenbilder und Featured-Bilder erhalten stabile width-/height-Attribute nach Card-Ratio beziehungsweise konfigurierter Featured-Bildhöhe. Das verbessert CLS, PageSpeed und Bild-SEO, ohne bestehende HubSite-Daten anzufassen.",
+  "notes": "Release-Stand 3.3.42: Der Admin-Header lädt echte Tabler-Icon-Webfont-Assets ausschließlich lokal aus /assets/tabler-icons/. Der zuvor externe jsDelivr-Link wurde entfernt, damit zur Laufzeit keine Tabler-CDN-Requests entstehen.",
   "critical": false
 }
