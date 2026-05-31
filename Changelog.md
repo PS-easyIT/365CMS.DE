@@ -1,4 +1,4 @@
-﻿**Version:** 3.3.42
+﻿**Version:** 3.3.43
 
 # 365CMS Changelog
 
@@ -15,6 +15,12 @@
 | 🛡️ | `security` | Sicherheits- und Audit-Härtung |
 
 ---
+
+### v3.3.43 — 31.05.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.3.43** | 🟡 refactor | Kategorien / Domain-Aliase | **`CMS/core/Router.php`, `CMS/admin/post-categories.php`, `CMS/admin/modules/posts/PostsModule.php`, `CMS/admin/modules/posts/PostsCategoryViewModelBuilder.php`, `CMS/admin/views/posts/categories.php`, `CMS/admin/modules/pages/PagesModule.php`, `CMS/core/SchemaManager.php`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md` und `Changelog.md` entfernen Kategorie-Zusatzdomains vollständig aus der Beitragskategorien-Verwaltung.** Kategorien können keine Fremd-Domains mehr hinterlegen, die Admin-Spalte und das Formular-Payload-Feld sind entfernt, neue Installationen legen keine Kategorie-Domain-Spalte mehr an, und der Router führt keine Root-Domain-Weiterleitung auf Kategoriearchive mehr aus. HubSite-Domains bleiben davon unberührt. |
 
 ### v3.3.42 — 31.05.2026
 
