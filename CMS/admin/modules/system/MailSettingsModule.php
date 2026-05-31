@@ -363,6 +363,7 @@ class MailSettingsModule
             'retry_delay_seconds' => max(30, min(86400, (int) ($post['queue_retry_delay_seconds'] ?? 300))),
             'throttle_delay_seconds' => max(0, min(86400, (int) ($post['queue_throttle_delay_seconds'] ?? 900))),
             'lock_timeout_seconds' => max(60, min(86400, (int) ($post['queue_lock_timeout_seconds'] ?? 900))),
+            'rate_limit_per_minute' => max(1, min(600, (int) ($post['queue_rate_limit_per_minute'] ?? 8))),
         ];
 
         try {

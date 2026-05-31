@@ -921,8 +921,8 @@ class MailService
             $category = 'configuration';
             $retryable = false;
         } elseif ($containsAny($message, [
-            'too many requests', 'rate limit', 'throttle', 'server busy', 'try again later', 'temporarily deferred',
-            '4.7.', '429',
+            'too many requests', 'rate limit', 'rate overlimit', 'sender rate', 'overlimit', 'throttle',
+            'server busy', 'try again later', 'temporarily deferred', '4.7.', '429',
         ])) {
             $category = 'throttle';
         } elseif ($containsAny($message, [

@@ -22,6 +22,8 @@ class MailQueueService
 
     private const GROUP = 'mail';
     private const SETTINGS_LAST_RUN = 'queue_last_run';
+    private const SETTINGS_RATE_WINDOW = 'queue_rate_window';
+    private const DEFAULT_RATE_LIMIT_PER_MINUTE = 8;
     private const MAX_SUBJECT_LENGTH = 255;
 
     private static ?self $instance = null;
@@ -60,6 +62,7 @@ class MailQueueService
         $retryDelay = min(86400, max(60, $this->settings->getInt(self::GROUP, 'queue_retry_delay_seconds', 300)));
         $throttleDelay = min(86400, max(60, $this->settings->getInt(self::GROUP, 'queue_throttle_delay_seconds', 900)));
         $lockTimeout = min(86400, max(60, $this->settings->getInt(self::GROUP, 'queue_lock_timeout_seconds', 900)));
+        $rateLimitPerMinute = min(600, max(1, $this->settings->getInt(self::GROUP, 'queue_rate_limit_per_minute', self::DEFAULT_RATE_LIMIT_PER_MINUTE)));
         $lastRun = $this->settings->get(self::GROUP, self::SETTINGS_LAST_RUN, []);
         $cronFilePath = ABSPATH . 'cron.php';
         $cronWebPath = '/cron.php';
@@ -74,6 +77,7 @@ class MailQueueService
             'retry_delay_seconds' => $retryDelay,
             'throttle_delay_seconds' => $throttleDelay,
             'lock_timeout_seconds' => $lockTimeout,
+            'rate_limit_per_minute' => $rateLimitPerMinute,
             'cron_token' => $token,
             'cron_url' => $cronUrl,
             'cron_url_with_token' => $cronUrlWithToken,
@@ -277,7 +281,7 @@ class MailQueueService
     }
 
     /**
-     * @return array{success:bool,message?:string,error?:string,worker:string,claimed:int,sent:int,retried:int,failed_final:int,released_stale:int,processed:int,skipped?:bool}
+        * @return array{success:bool,message?:string,error?:string,worker:string,claimed:int,sent:int,retried:int,failed_final:int,released_stale:int,processed:int,skipped?:bool,rate_limited?:bool,next_rate_window_in_seconds?:int}
      */
     public function processDueJobs(?int $limit = null, string $worker = 'cron', bool $force = false): array
     {
@@ -299,7 +303,8 @@ class MailQueueService
 
         $limit = $limit !== null ? min(100, max(1, $limit)) : (int) $config['batch_size'];
         $releasedStale = $this->releaseStaleProcessingJobs((int) $config['lock_timeout_seconds']);
-        $jobs = $this->getDueJobs($limit);
+        $rateLimit = (int) ($config['rate_limit_per_minute'] ?? self::DEFAULT_RATE_LIMIT_PER_MINUTE);
+        $remainingRateSlots = $this->getRemainingRateLimitSlots($rateLimit);
 
         $summary = [
             'success' => true,
@@ -313,9 +318,30 @@ class MailQueueService
             'processed' => 0,
         ];
 
+        if ($remainingRateSlots <= 0) {
+            $summary['rate_limited'] = true;
+            $summary['next_rate_window_in_seconds'] = $this->getSecondsUntilNextRateWindow();
+            $summary['message'] = 'Mail-Queue pausiert: Versandlimit pro Minute erreicht.';
+            $this->persistLastRunSummary($summary, $worker);
+
+            return $summary;
+        }
+
+        $jobs = $this->getDueJobs(min($limit, $remainingRateSlots));
+
         foreach ($jobs as $job) {
             $jobId = (int) ($job->id ?? 0);
-            if ($jobId <= 0 || !$this->claimJob($jobId)) {
+            if ($jobId <= 0) {
+                continue;
+            }
+
+            if (!$this->reserveRateLimitSlot($rateLimit)) {
+                $summary['rate_limited'] = true;
+                $summary['next_rate_window_in_seconds'] = $this->getSecondsUntilNextRateWindow();
+                break;
+            }
+
+            if (!$this->claimJob($jobId)) {
                 continue;
             }
 
@@ -369,6 +395,19 @@ class MailQueueService
             $delay = $this->resolveRetryDelay($result, $config);
             $errorCategory = (string) ($result['error_category'] ?? 'temporary');
 
+            if ($errorCategory === 'throttle') {
+                $this->rescheduleJob($jobId, $error, $delay, $errorCategory);
+                $summary['retried']++;
+                $summary['rate_limited'] = true;
+                $summary['next_rate_window_in_seconds'] = max($this->getSecondsUntilNextRateWindow(), $delay);
+                $this->logger->warning('Mail-Queue-Batch wegen Provider-Drosselung pausiert.', [
+                    'job_id' => $jobId,
+                    'delay_seconds' => $delay,
+                    'error' => $this->truncateError($error),
+                ]);
+                break;
+            }
+
             if ($retryable && $attemptNumber < $maxAttempts) {
                 $this->rescheduleJob($jobId, $error, $delay, $errorCategory);
                 $summary['retried']++;
@@ -384,23 +423,18 @@ class MailQueueService
             ? 'Mail-Queue verarbeitet: ' . $summary['sent'] . ' versendet, ' . $summary['retried'] . ' erneut geplant, ' . $summary['failed_final'] . ' final fehlgeschlagen.'
             : 'Keine fälligen Queue-Jobs gefunden.';
 
-        $this->settings->set(self::GROUP, self::SETTINGS_LAST_RUN, [
-            'executed_at' => date('Y-m-d H:i:s'),
-            'worker' => $worker,
-            'claimed' => $summary['claimed'],
-            'sent' => $summary['sent'],
-            'retried' => $summary['retried'],
-            'failed_final' => $summary['failed_final'],
-            'released_stale' => $summary['released_stale'],
-            'processed' => $summary['processed'],
-        ], false, 0);
+        if (!empty($summary['rate_limited'])) {
+            $summary['message'] .= ' Versandlimit aktiv; weiterer Versand wird später fortgesetzt.';
+        }
+
+        $this->persistLastRunSummary($summary, $worker);
 
         return $summary;
     }
 
     /**
      * @param array<string, mixed> $payload
-    * @return array{success:bool,message?:string,error?:string,worker:string,claimed:int,sent:int,retried:int,failed_final:int,released_stale:int,processed:int,skipped?:bool}
+        * @return array{success:bool,message?:string,error?:string,worker:string,claimed:int,sent:int,retried:int,failed_final:int,released_stale:int,processed:int,skipped?:bool,rate_limited?:bool,next_rate_window_in_seconds?:int}
      */
     public function handleCronHook(array $payload = []): array
     {
@@ -419,6 +453,7 @@ class MailQueueService
             'queue_retry_delay_seconds' => min(86400, max(60, (int) ($config['retry_delay_seconds'] ?? 300))),
             'queue_throttle_delay_seconds' => min(86400, max(60, (int) ($config['throttle_delay_seconds'] ?? 900))),
             'queue_lock_timeout_seconds' => min(86400, max(60, (int) ($config['lock_timeout_seconds'] ?? 900))),
+            'queue_rate_limit_per_minute' => min(600, max(1, (int) ($config['rate_limit_per_minute'] ?? self::DEFAULT_RATE_LIMIT_PER_MINUTE))),
         ], [], 0);
     }
 
@@ -574,6 +609,85 @@ class MailQueueService
              WHERE id = ?",
             [$errorCategory, $this->truncateError($error), $jobId]
         );
+    }
+
+    /**
+     * @param array<string, mixed> $summary
+     */
+    private function persistLastRunSummary(array $summary, string $worker): void
+    {
+        $payload = [
+            'executed_at' => date('Y-m-d H:i:s'),
+            'worker' => $worker,
+            'claimed' => (int) ($summary['claimed'] ?? 0),
+            'sent' => (int) ($summary['sent'] ?? 0),
+            'retried' => (int) ($summary['retried'] ?? 0),
+            'failed_final' => (int) ($summary['failed_final'] ?? 0),
+            'released_stale' => (int) ($summary['released_stale'] ?? 0),
+            'processed' => (int) ($summary['processed'] ?? 0),
+        ];
+
+        if (!empty($summary['rate_limited'])) {
+            $payload['rate_limited'] = true;
+            $payload['next_rate_window_in_seconds'] = (int) ($summary['next_rate_window_in_seconds'] ?? 0);
+        }
+
+        $this->settings->set(self::GROUP, self::SETTINGS_LAST_RUN, $payload, false, 0);
+    }
+
+    private function getRemainingRateLimitSlots(int $limit): int
+    {
+        $window = $this->getCurrentRateWindow();
+        $sent = (int) ($window['sent'] ?? 0);
+
+        return max(0, $limit - $sent);
+    }
+
+    private function reserveRateLimitSlot(int $limit): bool
+    {
+        $window = $this->getCurrentRateWindow();
+        $sent = (int) ($window['sent'] ?? 0);
+        if ($sent >= $limit) {
+            return false;
+        }
+
+        $window['sent'] = $sent + 1;
+        $this->settings->set(self::GROUP, self::SETTINGS_RATE_WINDOW, $window, false, 0);
+
+        return true;
+    }
+
+    /**
+     * @return array{window_start:int,sent:int}
+     */
+    private function getCurrentRateWindow(): array
+    {
+        $now = time();
+        $window = $this->settings->get(self::GROUP, self::SETTINGS_RATE_WINDOW, []);
+        if (!is_array($window)) {
+            $window = [];
+        }
+
+        $windowStart = (int) ($window['window_start'] ?? 0);
+        if ($windowStart <= 0 || ($now - $windowStart) >= 60) {
+            return [
+                'window_start' => $now,
+                'sent' => 0,
+            ];
+        }
+
+        return [
+            'window_start' => $windowStart,
+            'sent' => max(0, (int) ($window['sent'] ?? 0)),
+        ];
+    }
+
+    private function getSecondsUntilNextRateWindow(): int
+    {
+        $window = $this->getCurrentRateWindow();
+        $windowStart = (int) ($window['window_start'] ?? time());
+
+        return max(1, 60 - (time() - $windowStart));
     }
 
     /**

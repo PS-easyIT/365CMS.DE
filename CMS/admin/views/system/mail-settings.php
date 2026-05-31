@@ -473,6 +473,11 @@ $queueLastRunText = !empty($queueLastRun['executed_at'])
                                 <input type="number" class="form-control" name="queue_batch_size" min="1" max="100" value="<?php echo (int) ($queueConfig['batch_size'] ?? 10); ?>">
                             </div>
                             <div class="col-md-6">
+                                <label class="form-label">Versandlimit pro Minute</label>
+                                <input type="number" class="form-control" name="queue_rate_limit_per_minute" min="1" max="600" value="<?php echo (int) ($queueConfig['rate_limit_per_minute'] ?? 8); ?>">
+                                <div class="form-hint">Standard 8/min schützt vor SMTP-Antworten wie „Sender rate overlimit“.</div>
+                            </div>
+                            <div class="col-md-6">
                                 <label class="form-label">Maximale Versuche pro Job</label>
                                 <input type="number" class="form-control" name="queue_max_attempts" min="1" max="20" value="<?php echo (int) ($queueConfig['max_attempts'] ?? 5); ?>">
                             </div>
