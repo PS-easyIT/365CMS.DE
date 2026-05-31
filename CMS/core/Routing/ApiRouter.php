@@ -23,7 +23,9 @@ if (!defined('ABSPATH')) {
 
 final class ApiRouter
 {
+    private const API_SEARCH_MAX_LENGTH = 120;
     private const WEB_VITALS_MAX_BODY_BYTES = 8192;
+    private const WEB_VITALS_RATE_CACHE_MAX_BYTES = 65536;
     private const WEB_VITALS_RATE_LIMIT_WINDOW_SECONDS = 60;
     private const WEB_VITALS_RATE_LIMIT_MAX_REQUESTS = 40;
     private const WEB_VITALS_ALLOWED_EFFECTIVE_TYPES = ['slow-2g', '2g', '3g', '4g', '5g', 'unknown', ''];
@@ -78,7 +80,7 @@ final class ApiRouter
             exit;
         }
 
-        $raw = file_get_contents('php://input');
+        $raw = file_get_contents('php://input', false, null, 0, self::WEB_VITALS_MAX_BODY_BYTES + 1);
         if (!is_string($raw) || trim($raw) === '') {
             http_response_code(422);
             exit;
@@ -117,13 +119,13 @@ final class ApiRouter
 
     public function jsonAdminMailLogs(): void
     {
-        $this->requireAdmin();
+        $this->requireAdminCapability('manage_settings', 'Zugriff auf die Mailprotokolle verweigert');
         header('Content-Type: application/json; charset=utf-8');
 
         $page = max(1, (int)($_GET['page'] ?? 1));
         $limit = min(200, max(10, (int)($_GET['limit'] ?? 50)));
-        $search = trim((string)($_GET['search'] ?? ''));
-        $status = trim((string)($_GET['status'] ?? ''));
+        $search = $this->normalizeSearchFilter($_GET['search'] ?? '');
+        $status = $this->normalizeTextFilter($_GET['status'] ?? '', 32);
 
         $result = Services\MailLogService::getInstance()->getRecent($limit, $page, $search, $status);
         echo json_encode($result, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
@@ -186,7 +188,7 @@ final class ApiRouter
         $page = max(1, (int)($_GET['page'] ?? 1));
         $limit = min(100, max(5, (int)($_GET['limit'] ?? 20)));
         $offset = ($page - 1) * $limit;
-        $search = trim((string)($_GET['search'] ?? ''));
+        $search = $this->normalizeSearchFilter($_GET['search'] ?? '');
         $status = trim((string)($_GET['status'] ?? 'all'));
         $category = max(0, (int)($_GET['category'] ?? 0));
         $sort = in_array($_GET['sort'] ?? '', ['title', 'status', 'published_at', 'views', 'updated_at', 'created_at'], true)
@@ -294,7 +296,7 @@ final class ApiRouter
 
     public function jsonAdminPages(): void
     {
-        $this->requireAdmin();
+        $this->requireAdminCapability('manage_pages', 'Zugriff auf die Seitenliste verweigert');
         header('Content-Type: application/json; charset=utf-8');
         $db = Database::instance();
         $prefix = $db->getPrefix();
@@ -302,8 +304,8 @@ final class ApiRouter
         $page = max(1, (int)($_GET['page'] ?? 1));
         $limit = min(100, max(5, (int)($_GET['limit'] ?? 20)));
         $offset = ($page - 1) * $limit;
-        $search = trim((string)($_GET['search'] ?? ''));
-        $status = trim((string)($_GET['status'] ?? ''));
+        $search = $this->normalizeSearchFilter($_GET['search'] ?? '');
+        $status = $this->normalizeTextFilter($_GET['status'] ?? '', 32);
         $category = max(0, (int)($_GET['category'] ?? 0));
         $sort = in_array($_GET['sort'] ?? '', ['title', 'slug', 'status', 'updated_at', 'created_at'], true)
             ? (string)$_GET['sort']
@@ -385,7 +387,7 @@ final class ApiRouter
 
     public function jsonAdminUsers(): void
     {
-        $this->requireAdmin();
+        $this->requireAdminCapability('manage_users', 'Zugriff auf die Benutzerliste verweigert');
         header('Content-Type: application/json; charset=utf-8');
         $db = Database::instance();
         $prefix = $db->getPrefix();
@@ -393,9 +395,9 @@ final class ApiRouter
         $page = max(1, (int)($_GET['page'] ?? 1));
         $limit = min(100, max(5, (int)($_GET['limit'] ?? 20)));
         $offset = ($page - 1) * $limit;
-        $search = trim((string)($_GET['search'] ?? ''));
-        $role = trim((string)($_GET['role'] ?? 'all'));
-        $status = trim((string)($_GET['status'] ?? ''));
+        $search = $this->normalizeSearchFilter($_GET['search'] ?? '');
+        $role = $this->normalizeTextFilter($_GET['role'] ?? 'all', 64);
+        $status = $this->normalizeTextFilter($_GET['status'] ?? '', 32);
         $sort = in_array($_GET['sort'] ?? '', ['username', 'email', 'display_name', 'role', 'status', 'created_at'], true)
             ? (string)$_GET['sort']
             : 'created_at';
@@ -507,7 +509,7 @@ final class ApiRouter
             . '365cms-web-vitals-rate-' . hash('sha256', ABSPATH) . '.json';
 
         $buckets = [];
-        if (is_file($cacheFile)) {
+        if (is_file($cacheFile) && (int) (filesize($cacheFile) ?: 0) <= self::WEB_VITALS_RATE_CACHE_MAX_BYTES) {
             $raw = @file_get_contents($cacheFile);
             $decoded = is_string($raw) ? json_decode($raw, true) : null;
             if (is_array($decoded)) {
@@ -531,7 +533,11 @@ final class ApiRouter
             }
         }
 
-        @file_put_contents($cacheFile, json_encode($buckets, JSON_UNESCAPED_SLASHES));
+        $encoded = json_encode($buckets, JSON_UNESCAPED_SLASHES);
+        if (is_string($encoded)) {
+            @file_put_contents($cacheFile, $encoded, LOCK_EX);
+            @chmod($cacheFile, 0600);
+        }
 
         return true;
     }
@@ -543,8 +549,14 @@ final class ApiRouter
             return null;
         }
 
+        $parsedPath = parse_url($path, PHP_URL_PATH);
+        if (!is_string($parsedPath)) {
+            return null;
+        }
+        $parsedPath = preg_replace('/[\x00-\x1F\x7F]+/u', '', $parsedPath) ?? '';
+
         $normalized = [
-            'path' => mb_substr((string) parse_url($path, PHP_URL_PATH), 0, 500),
+            'path' => mb_substr($parsedPath, 0, 500),
             'title' => mb_substr(trim((string) ($payload['title'] ?? '')), 0, 255),
             'ttfb' => $this->normalizeMetricNumber($payload['ttfb'] ?? null, 60000),
             'lcp' => $this->normalizeMetricNumber($payload['lcp'] ?? null, 60000),
@@ -599,5 +611,18 @@ final class ApiRouter
         $normalized = mb_substr(strtolower(trim((string) $value)), 0, $maxLength);
 
         return in_array($normalized, $allowed, true) ? $normalized : '';
+    }
+
+    private function normalizeSearchFilter(mixed $value): string
+    {
+        return $this->normalizeTextFilter($value, self::API_SEARCH_MAX_LENGTH);
+    }
+
+    private function normalizeTextFilter(mixed $value, int $maxLength): string
+    {
+        $normalized = trim((string) $value);
+        $normalized = preg_replace('/[\x00-\x1F\x7F]+/u', ' ', $normalized) ?? '';
+
+        return mb_substr($normalized, 0, max(1, $maxLength));
     }
 }

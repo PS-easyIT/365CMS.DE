@@ -137,7 +137,7 @@ class CacheManager implements CacheInterface
         $expectedHmac = hash_hmac('sha256', $payload, $this->getHmacKey());
         if (!hash_equals($expectedHmac, $storedHmac)) {
             if (file_exists($file)) { unlink($file); }
-            error_log('CacheManager: HMAC-Fehlschlag für Cache-Schlüssel ' . $key . ' – mögliche Manipulation!');
+            error_log('CacheManager: HMAC-Fehlschlag für Cache-Schlüssel ' . $this->sanitizeDiagnosticText($key, 120) . ' – mögliche Manipulation!');
             return $default;
         }
 
@@ -318,7 +318,7 @@ class CacheManager implements CacheInterface
         
         // 1. File-based Cache
         try {
-            $files = glob($this->cacheDir . '*');
+            $files = glob($this->cacheDir . '*') ?: [];
             $count = 0;
             foreach ($files as $file) {
                 if (is_file($file)) {
@@ -420,10 +420,11 @@ class CacheManager implements CacheInterface
     private function getCacheDirSize(): string
     {
         $bytes = 0;
-        $files = glob($this->cacheDir . '*');
+        $files = glob($this->cacheDir . '*') ?: [];
         foreach ($files as $file) {
             if (is_file($file)) {
-                $bytes += filesize($file);
+                $size = filesize($file);
+                $bytes += $size === false ? 0 : $size;
             }
         }
         
@@ -658,6 +659,6 @@ class CacheManager implements CacheInterface
      */
     private function apcuKey(string $key): string
     {
-        return '365cms:' . $key;
+        return '365cms:' . hash('sha256', $key);
     }
 }

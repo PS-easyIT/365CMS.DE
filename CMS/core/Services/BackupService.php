@@ -283,23 +283,24 @@ class BackupService
                 continue;
             }
 
-            $createStmt = $this->db->query("SHOW CREATE TABLE `{$table}`");
+            $quotedTable = $this->quoteSqlIdentifier($table);
+            $createStmt = $this->db->query("SHOW CREATE TABLE {$quotedTable}");
             $create = $createStmt->fetch(\PDO::FETCH_ASSOC);
             if (!is_array($create) || !isset($create['Create Table'])) {
                 continue;
             }
 
             $writer("-- Table: {$table}\n");
-            $writer("DROP TABLE IF EXISTS `{$table}`;\n");
+            $writer("DROP TABLE IF EXISTS {$quotedTable};\n");
             $writer($create['Create Table'] . ";\n\n");
 
-            $dataStmt = $this->db->query("SELECT * FROM `{$table}`");
+            $dataStmt = $this->db->query("SELECT * FROM {$quotedTable}");
             $wroteRows = false;
 
             while ($row = $dataStmt->fetch(\PDO::FETCH_ASSOC)) {
-                $columns = '`' . implode('`, `', array_keys($row)) . '`';
+                $columns = implode(', ', array_map(fn (string $column): string => $this->quoteSqlIdentifier($column), array_keys($row)));
                 $values = array_map(fn ($value) => $this->createSqlValueLiteral($value), array_values($row));
-                $writer("INSERT INTO `{$table}` ({$columns}) VALUES (" . implode(', ', $values) . ");\n");
+                $writer("INSERT INTO {$quotedTable} ({$columns}) VALUES (" . implode(', ', $values) . ");\n");
                 $wroteRows = true;
             }
 
@@ -325,7 +326,17 @@ class BackupService
             return $value ? '1' : '0';
         }
 
-        return "'" . addslashes((string) $value) . "'";
+        $quoted = $this->db->getPdo()->quote((string) $value);
+        if (!is_string($quoted)) {
+            throw new \RuntimeException('SQL value could not be quoted for backup export.');
+        }
+
+        return $quoted;
+    }
+
+    private function quoteSqlIdentifier(string $identifier): string
+    {
+        return '`' . str_replace('`', '``', $identifier) . '`';
     }
     
     /**
@@ -348,14 +359,7 @@ class BackupService
         }
         
         // Add directories to backup
-        $dirsToBackup = [
-            'uploads',
-            'themes',
-            'plugins',
-            'assets',
-        ];
-        
-        foreach ($dirsToBackup as $dir) {
+        foreach (self::FILE_BACKUP_DIRECTORIES as $dir) {
             $fullPath = ABSPATH . $dir;
             if (is_dir($fullPath)) {
                 $this->addDirectoryToZip($zip, $fullPath, $dir);
@@ -1403,7 +1407,7 @@ class BackupService
         }
 
         try {
-            $result = $pdo->query('SELECT COUNT(*) FROM `' . $tableName . '`');
+            $result = $pdo->query('SELECT COUNT(*) FROM ' . $this->quoteSqlIdentifier($tableName));
             $count = $result !== false ? $result->fetchColumn() : false;
 
             return $count !== false ? (int) $count : null;

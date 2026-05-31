@@ -96,8 +96,6 @@ class SystemService {
     public function getDatabaseStatus(): array {
         $pdo = $this->db->getConnection();
         $prefix = $this->db->getPrefix();
-        $dbNameLiteral = $pdo->quote((string) DB_NAME);
-        $prefixLikeLiteral = $pdo->quote($prefix . '%');
         
         $status = [
             'connected' => false,
@@ -116,35 +114,41 @@ class SystemService {
             }
             
             // Get database size
-            $result = $pdo->query("
+            $stmt = $pdo->prepare("
                 SELECT 
                     SUM(data_length + index_length) as size
                 FROM information_schema.TABLES 
-                WHERE table_schema = {$dbNameLiteral}
+                WHERE table_schema = ?
             ");
+            $stmt->execute([(string) DB_NAME]);
+            $result = $stmt;
             
             if ($result && $row = $result->fetch(PDO::FETCH_ASSOC)) {
                 $status['database_size'] = (int)($row['size'] ?? 0);
             }
             
             // Count total tables
-            $result = $pdo->query("
+            $stmt = $pdo->prepare("
                 SELECT COUNT(*) as total 
                 FROM information_schema.TABLES 
-                WHERE table_schema = {$dbNameLiteral}
+                WHERE table_schema = ?
             ");
+            $stmt->execute([(string) DB_NAME]);
+            $result = $stmt;
             
             if ($result && $row = $result->fetch(PDO::FETCH_ASSOC)) {
                 $status['total_tables'] = (int)($row['total'] ?? 0);
             }
             
             // Count CMS tables
-            $result = $pdo->query("
+            $stmt = $pdo->prepare("
                 SELECT COUNT(*) as total 
                 FROM information_schema.TABLES 
-                WHERE table_schema = {$dbNameLiteral}
-                AND table_name LIKE {$prefixLikeLiteral}
+                WHERE table_schema = ?
+                AND table_name LIKE ?
             ");
+            $stmt->execute([(string) DB_NAME, $prefix . '%']);
+            $result = $stmt;
             
             if ($result && $row = $result->fetch(PDO::FETCH_ASSOC)) {
                 $status['cms_tables'] = (int)($row['total'] ?? 0);
@@ -209,8 +213,6 @@ class SystemService {
         
         foreach ($tables as $table => $label) {
             $full_table = $prefix . $table;
-            $fullTableLiteral = $pdo->quote($full_table);
-            $dbNameLiteral = $pdo->quote((string) DB_NAME);
             $status = [
                 'name' => $table,
                 'label' => $label,
@@ -223,31 +225,35 @@ class SystemService {
             
             try {
                 // Check if table exists
-                $result = $pdo->query("SHOW TABLES LIKE {$fullTableLiteral}");
-                if ($result && $result->rowCount() > 0) {
+                $stmt = $pdo->prepare('SHOW TABLES LIKE ?');
+                $stmt->execute([$full_table]);
+                if ($stmt->fetch(PDO::FETCH_NUM) !== false) {
                     $status['exists'] = true;
+                    $quotedFullTable = $this->quoteIdentifier($full_table);
                     
                     // Count rows
-                    $result = $pdo->query("SELECT COUNT(*) as total FROM `{$full_table}`");
+                    $result = $pdo->query("SELECT COUNT(*) as total FROM {$quotedFullTable}");
                     if ($result && $row = $result->fetch(PDO::FETCH_ASSOC)) {
                         $status['rows'] = (int)($row['total'] ?? 0);
                     }
                     
                     // Get table size
-                    $result = $pdo->query("
+                    $stmt = $pdo->prepare("
                         SELECT 
                             data_length + index_length as size
                         FROM information_schema.TABLES 
-                        WHERE table_schema = {$dbNameLiteral}
-                        AND table_name = {$fullTableLiteral}
+                        WHERE table_schema = ?
+                        AND table_name = ?
                     ");
+                    $stmt->execute([(string) DB_NAME, $full_table]);
+                    $result = $stmt;
                     
                     if ($result && $row = $result->fetch(PDO::FETCH_ASSOC)) {
                         $status['size'] = (int)($row['size'] ?? 0);
                     }
                     
                     // Check table status
-                    $result = $pdo->query("CHECK TABLE `{$full_table}`");
+                    $result = $pdo->query("CHECK TABLE {$quotedFullTable}");
                     if ($result && $row = $result->fetch(PDO::FETCH_ASSOC)) {
                         $status['status'] = $row['Msg_text'] ?? 'OK';
                     }
@@ -409,40 +415,46 @@ class SystemService {
         
         try {
             // Users
-            $result = $pdo->query("SELECT COUNT(*) as total FROM `{$prefix}users`");
+            $result = $pdo->prepare("SELECT COUNT(*) as total FROM {$this->quoteIdentifier($prefix . 'users')}");
+            $result->execute();
             if ($result && $row = $result->fetch(PDO::FETCH_ASSOC)) {
                 $stats['total_users'] = (int)($row['total'] ?? 0);
             }
             
-            $result = $pdo->query("SELECT COUNT(*) as total FROM `{$prefix}users` WHERE status = 'active'");
+            $result = $pdo->prepare("SELECT COUNT(*) as total FROM {$this->quoteIdentifier($prefix . 'users')} WHERE status = ?");
+            $result->execute(['active']);
             if ($result && $row = $result->fetch(PDO::FETCH_ASSOC)) {
                 $stats['active_users'] = (int)($row['total'] ?? 0);
             }
             
             // Pages
-            $result = $pdo->query("SELECT COUNT(*) as total FROM `{$prefix}pages`");
+            $result = $pdo->prepare("SELECT COUNT(*) as total FROM {$this->quoteIdentifier($prefix . 'pages')}");
+            $result->execute();
             if ($result && $row = $result->fetch(PDO::FETCH_ASSOC)) {
                 $stats['total_pages'] = (int)($row['total'] ?? 0);
             }
             
             // Sessions
-            $result = $pdo->query("SELECT COUNT(*) as total FROM `{$prefix}sessions` WHERE expires_at > NOW()");
+            $result = $pdo->prepare("SELECT COUNT(*) as total FROM {$this->quoteIdentifier($prefix . 'sessions')} WHERE expires_at > NOW()");
+            $result->execute();
             if ($result && $row = $result->fetch(PDO::FETCH_ASSOC)) {
                 $stats['total_sessions'] = (int)($row['total'] ?? 0);
             }
             
             // Cache
-            $result = $pdo->query("SELECT COUNT(*) as total FROM `{$prefix}cache` WHERE expires_at > NOW()");
+            $result = $pdo->prepare("SELECT COUNT(*) as total FROM {$this->quoteIdentifier($prefix . 'cache')} WHERE expires_at > NOW()");
+            $result->execute();
             if ($result && $row = $result->fetch(PDO::FETCH_ASSOC)) {
                 $stats['cache_entries'] = (int)($row['total'] ?? 0);
             }
             
             // Failed logins today (Tabelle: login_attempts, enthält nur Fehlschläge)
-            $result = $pdo->query("
+            $result = $pdo->prepare("
                 SELECT COUNT(*) as total 
-                FROM `{$prefix}login_attempts` 
+                FROM {$this->quoteIdentifier($prefix . 'login_attempts')} 
                 WHERE DATE(attempted_at) = CURDATE()
             ");
+            $result->execute();
             if ($result && $row = $result->fetch(PDO::FETCH_ASSOC)) {
                 $stats['failed_logins_today'] = (int)($row['total'] ?? 0);
             }
@@ -461,14 +473,17 @@ class SystemService {
         $prefix = $this->db->getPrefix();
         
         try {
-            $pdo->exec("DELETE FROM `{$prefix}cache`");
+            $stmt = $pdo->prepare("DELETE FROM {$this->quoteIdentifier($prefix . 'cache')}");
+            $stmt->execute();
             
             // Also clear cache directory
             $cache_dir = dirname(dirname(__DIR__)) . '/cache';
             if (is_dir($cache_dir)) {
-                $files = glob($cache_dir . '/*');
+                $cacheRoot = realpath($cache_dir);
+                $files = glob($cache_dir . '/*') ?: [];
                 foreach ($files as $file) {
-                    if (is_file($file)) {
+                    $resolved = realpath($file);
+                    if ($cacheRoot !== false && $resolved !== false && str_starts_with(str_replace('\\', '/', $resolved), rtrim(str_replace('\\', '/', $cacheRoot), '/') . '/') && is_file($file)) {
                         unlink($file); // M-03: kein @, is_file vorher geprüft
                     }
                 }
@@ -488,7 +503,8 @@ class SystemService {
         $prefix = $this->db->getPrefix();
         
         try {
-            $pdo->exec("DELETE FROM `{$prefix}sessions` WHERE expires_at < NOW()");
+            $stmt = $pdo->prepare("DELETE FROM {$this->quoteIdentifier($prefix . 'sessions')} WHERE expires_at < NOW()");
+            $stmt->execute();
             return true;
         } catch (\Exception $e) {
             return false;
@@ -503,10 +519,11 @@ class SystemService {
         $prefix = $this->db->getPrefix();
         
         try {
-            $pdo->exec("
-                DELETE FROM `{$prefix}login_attempts` 
+            $stmt = $pdo->prepare("
+                DELETE FROM {$this->quoteIdentifier($prefix . 'login_attempts')} 
                 WHERE attempted_at < DATE_SUB(NOW(), INTERVAL 24 HOUR)
             ");
+            $stmt->execute();
             return true;
         } catch (\Exception $e) {
             return false;
