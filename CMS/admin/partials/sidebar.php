@@ -188,6 +188,25 @@ foreach ($registeredPluginMenus as $menu) {
     ];
 }
 
+if ($pluginMenuGroups !== []) {
+    $normalizePluginMenuLabel = static function (array $item): string {
+        $label = strip_tags((string) ($item['label'] ?? ''));
+        $label = html_entity_decode($label, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $label = preg_replace('/\s+/', ' ', trim($label)) ?? trim($label);
+
+        return function_exists('mb_strtolower') ? mb_strtolower($label, 'UTF-8') : strtolower($label);
+    };
+
+    usort($pluginMenuGroups, static function (array $left, array $right) use ($normalizePluginMenuLabel): int {
+        $labelCompare = strnatcasecmp($normalizePluginMenuLabel($left), $normalizePluginMenuLabel($right));
+        if ($labelCompare !== 0) {
+            return $labelCompare;
+        }
+
+        return strnatcasecmp((string) ($left['slug'] ?? ''), (string) ($right['slug'] ?? ''));
+    });
+}
+
 $pluginSidebarChildren = array_values(array_unique($pluginSidebarChildren, SORT_REGULAR));
 $pluginSidebarSlugs = array_values(array_unique($pluginSidebarSlugs));
 

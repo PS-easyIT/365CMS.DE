@@ -261,6 +261,43 @@ final class AdminRouter
             ];
         }
 
+        $m365Fallbacks = [
+            'm365azure' => [
+                'class' => \CMS_M365Azure_Admin_Pages::class,
+                'method' => 'render_dispatch',
+                'title' => 'M365 Azure',
+                'pages' => ['m365azure', 'm365azure-dashboard', 'dashboard'],
+            ],
+            'm365landing' => [
+                'class' => \CMS_M365Landing_Admin_Pages::class,
+                'method' => 'render_dispatch',
+                'title' => 'M365 Landing',
+                'pages' => ['m365landing', 'm365landing-dashboard', 'dashboard'],
+            ],
+            'm365matrices-dashboard' => [
+                'class' => \CMS_M365MATRICES_Admin_Pages::class,
+                'method' => 'render_dashboard',
+                'title' => 'M365 Matrixen',
+                'pages' => ['m365matrices-dashboard', 'm365matrices', 'dashboard'],
+            ],
+            'm365matrices' => [
+                'class' => \CMS_M365MATRICES_Admin_Pages::class,
+                'method' => 'render_dashboard',
+                'title' => 'M365 Matrixen',
+                'pages' => ['m365matrices-dashboard', 'm365matrices', 'dashboard'],
+            ],
+        ];
+
+        if (isset($m365Fallbacks[$plugin]) && in_array($page, (array) $m365Fallbacks[$plugin]['pages'], true)) {
+            $callback = [$m365Fallbacks[$plugin]['class'], $m365Fallbacks[$plugin]['method']];
+            if (is_callable($callback)) {
+                return [
+                    'title' => (string) $m365Fallbacks[$plugin]['title'],
+                    'callback' => $callback,
+                ];
+            }
+        }
+
         if ($plugin !== 'booking' || !class_exists('CMS_Booking_Admin_Pages')) {
             return null;
         }
@@ -353,7 +390,13 @@ final class AdminRouter
 
         require ABSPATH . 'admin/partials/header.php';
         require ABSPATH . 'admin/partials/sidebar.php';
-        echo $content;
+        if ($this->containsPageBody($content)) {
+            echo $content;
+        } else {
+            echo '<div class="page-body"><div class="container-xl cms-plugin-admin-content">';
+            echo $content;
+            echo '</div></div>';
+        }
         require ABSPATH . 'admin/partials/footer.php';
     }
 
@@ -361,10 +404,26 @@ final class AdminRouter
     {
         $normalized = strtolower($content);
 
-        return str_contains($normalized, '<html')
+        if (str_contains($normalized, '<html')
             && str_contains($normalized, '<body')
-            && str_contains($normalized, 'class="page"')
-            && str_contains($normalized, '</html>');
+            && (str_contains($normalized, 'class="page"') || str_contains($normalized, "class='page'"))
+            && str_contains($normalized, '</html>')) {
+            return true;
+        }
+
+        return str_contains($normalized, 'admin-body')
+            && str_contains($normalized, 'navbar-vertical')
+            && str_contains($normalized, 'page-wrapper');
+    }
+
+    private function containsPageBody(string $content): bool
+    {
+        $normalized = strtolower($content);
+
+        return str_contains($normalized, 'class="page-body"')
+            || str_contains($normalized, "class='page-body'")
+            || str_contains($normalized, 'class="page-body ')
+            || str_contains($normalized, "class='page-body ");
     }
 
     /**

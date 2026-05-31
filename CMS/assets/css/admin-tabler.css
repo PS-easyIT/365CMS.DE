@@ -135,6 +135,40 @@ body.admin-body .cms-plugin-admin-content {
     box-shadow: 2px 0 20px rgba(0, 0, 0, 0.4);
 }
 
+.navbar-vertical > .container-fluid {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    height: 100vh;
+    min-height: 0;
+}
+
+.navbar-vertical #sidebar-menu {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    scrollbar-color: rgba(148, 163, 184, 0.45) transparent;
+    scrollbar-width: thin;
+}
+
+.navbar-vertical #sidebar-menu::-webkit-scrollbar {
+    width: 6px;
+}
+
+.navbar-vertical #sidebar-menu::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.navbar-vertical #sidebar-menu::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.35);
+    border-radius: 999px;
+}
+
+.navbar-vertical #sidebar-menu .navbar-nav {
+    padding-bottom: 1rem;
+}
+
 /* Brand / Logo */
 .navbar-vertical .navbar-brand {
     padding: 0.6rem 0;
