@@ -439,6 +439,14 @@ final class UploadHandler
             }
 
             $itemPath = $directory . DIRECTORY_SEPARATOR . $item;
+            if (is_link($itemPath)) {
+                if (!$this->deleteFile($itemPath)) {
+                    return false;
+                }
+
+                continue;
+            }
+
             if (is_dir($itemPath)) {
                 if (!$this->deleteDirectory($itemPath)) {
                     return false;

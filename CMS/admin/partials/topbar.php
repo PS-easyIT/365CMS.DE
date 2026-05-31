@@ -10,6 +10,7 @@ $topbarSectionLabel = trim((string) ($topbarSectionLabel ?? 'Dashboard'));
 $topbarCurrentPageLabel = trim((string) ($topbarCurrentPageLabel ?? $pageTitle ?? 'Übersicht'));
 $topbarUnreadNotifications = max(0, (int) ($topbarUnreadNotifications ?? 0));
 $siteUrl = defined('SITE_URL') ? SITE_URL : '';
+$logoutUrl = rtrim((string) $siteUrl, '/') . '/logout?csrf_token=' . rawurlencode(\CMS\Security::instance()->generateToken('logout'));
 $currentAdminFirstName = (string) ($currentAdminFirstName ?? '');
 $currentAdminLastName = (string) ($currentAdminLastName ?? '');
 
@@ -77,7 +78,7 @@ if (in_array((string) ($activePage ?? ''), $pagesSlugs, true)) {
                 </button>
                 <div class="dropdown-menu dropdown-menu-end">
                     <a class="dropdown-item" href="<?= htmlspecialchars((string) $siteUrl, ENT_QUOTES, 'UTF-8') ?>/member/profile">Mein Profil</a>
-                    <a class="dropdown-item text-danger" href="<?= htmlspecialchars((string) $siteUrl, ENT_QUOTES, 'UTF-8') ?>/logout">Abmelden</a>
+                    <a class="dropdown-item text-danger" href="<?= htmlspecialchars($logoutUrl, ENT_QUOTES, 'UTF-8') ?>">Abmelden</a>
                 </div>
             </div>
         </div>

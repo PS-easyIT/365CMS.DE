@@ -68,7 +68,7 @@ $showAdminHeaderLink = \CMS\Auth::isAdmin();
 $dashboardHref = $sanitizeMemberHeaderHref('/member/dashboard', '/member/dashboard');
 $profileHref = $sanitizeMemberHeaderHref('/member/profile', '/member/profile');
 $securityHref = $sanitizeMemberHeaderHref('/member/security', '/member/security');
-$logoutHref = $sanitizeMemberHeaderHref('/logout', '/logout');
+$logoutHref = $sanitizeMemberHeaderHref('/logout?csrf_token=' . rawurlencode(\CMS\Security::instance()->generateToken('logout')), '/logout');
 $adminHref = $sanitizeMemberHeaderHref($adminPortalUrl, '/admin');
 $dashboardLogo = $sanitizeMemberHeaderAsset($settings['dashboard_logo'] ?? '');
 ?>

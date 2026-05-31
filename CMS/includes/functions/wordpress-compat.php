@@ -91,7 +91,10 @@ function wp_create_nonce(string|int $action = -1): string {
  * Check Admin Referer
  */
 function check_admin_referer(string|int $action = -1, string $query_arg = '_wpnonce'): int {
-    $nonce = $_REQUEST[$query_arg] ?? '';
+    $query_arg = preg_match('/^[A-Za-z0-9_-]{1,64}$/', $query_arg) === 1 ? $query_arg : '_wpnonce';
+    $method = strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET'));
+    $source = $method === 'POST' ? $_POST : $_GET;
+    $nonce = (string) ($source[$query_arg] ?? '');
     if (wp_verify_nonce($nonce, $action)) {
         return 1;
     }
@@ -112,7 +115,8 @@ function wp_send_json_success($data = null, ?int $status_code = null): void {
     if ($status_code) {
         http_response_code($status_code);
     }
-    echo json_encode($response);
+    $json = json_encode($response, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    echo is_string($json) ? $json : '{"success":false}';
     die;
 }
 
@@ -128,7 +132,8 @@ function wp_send_json_error($data = null, ?int $status_code = null): void {
     if ($status_code) {
         http_response_code($status_code);
     }
-    echo json_encode($response);
+    $json = json_encode($response, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    echo is_string($json) ? $json : '{"success":false}';
     die;
 }
 

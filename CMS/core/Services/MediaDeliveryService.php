@@ -292,6 +292,7 @@ final class MediaDeliveryService
     private function normalizeRelativePath(string $relativePath): string
     {
         $clean = trim(str_replace('\\', '/', $relativePath), '/');
+        $clean = preg_replace('/[\x00-\x1F\x7F]+/u', '', $clean) ?? '';
         $clean = preg_replace('#/+#', '/', $clean) ?? '';
         return trim($clean, '/');
     }
@@ -414,11 +415,26 @@ final class MediaDeliveryService
 
     private function resolveAbsolutePath(string $relativePath): string|WP_Error
     {
+        $relativePath = $this->normalizeRelativePath($relativePath);
+        if ($relativePath === ''
+            || str_starts_with($relativePath, '/')
+            || preg_match('/^[A-Za-z]:/', $relativePath) === 1
+            || preg_match('#(?:^|/)\.\.?(?:/|$)#', $relativePath) === 1
+        ) {
+            return new WP_Error('invalid_media_path', 'Der Medienpfad ist ungültig.');
+        }
+
         $absolutePath = rtrim((string) UPLOAD_PATH, '/\\') . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relativePath);
         $uploadRoot = realpath(rtrim((string) UPLOAD_PATH, '/\\'));
         $parent = realpath(dirname($absolutePath));
 
-        if ($uploadRoot === false || $parent === false || !str_starts_with($parent, $uploadRoot)) {
+        if ($uploadRoot === false || $parent === false) {
+            return new WP_Error('invalid_media_path', 'Der Medienpfad liegt außerhalb des Upload-Verzeichnisses.');
+        }
+
+        $normalizedRoot = rtrim(str_replace('\\', '/', $uploadRoot), '/') . '/';
+        $normalizedParent = rtrim(str_replace('\\', '/', $parent), '/') . '/';
+        if ($normalizedParent !== $normalizedRoot && !str_starts_with($normalizedParent, $normalizedRoot)) {
             return new WP_Error('invalid_media_path', 'Der Medienpfad liegt außerhalb des Upload-Verzeichnisses.');
         }
 
@@ -663,7 +679,7 @@ final class MediaDeliveryService
 
     private function buildSafeFilename(string $filename): string
     {
-        $safe = preg_replace('/[\r\n"]+/', '_', $filename) ?? 'download';
+        $safe = preg_replace('/[\x00-\x1F\x7F"\\\/]+/u', '_', $filename) ?? 'download';
         return $safe !== '' ? $safe : 'download';
     }
 

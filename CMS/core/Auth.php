@@ -145,7 +145,10 @@ class Auth
             return 'Zu viele Login-Versuche. Bitte warten Sie ' . (LOGIN_TIMEOUT / 60) . ' Minuten.';
         }
         
-        $username = $security->sanitize($username);
+        $username = $this->normalizeLoginIdentifier($username);
+        if ($username === '' || $password === '') {
+            return 'Ungültige Anmeldedaten.';
+        }
         
         $stmt = $db->prepare("SELECT id, username, email, password, display_name, role, status FROM {$db->getPrefix()}users WHERE username = ? OR email = ? LIMIT 1");
         $stmt->execute([$username, $username]);
@@ -259,18 +262,23 @@ class Auth
         $security = Security::instance();
         $db = Database::instance();
         $registrationRole = $this->resolveRegistrationRole($db);
+        $username = $this->normalizeRegistrationUsername($data['username'] ?? '');
+        $email = $security->sanitize($this->normalizeScalarString($data['email'] ?? '', 254), 'email');
+        $password = $this->normalizeScalarString($data['password'] ?? '', 4096);
+        $displayName = $this->normalizeDisplayName($data['display_name'] ?? $username, $username);
         
         // Validate required fields
-        $required = ['username', 'email', 'password'];
-        foreach ($required as $field) {
-            if (empty($data[$field])) {
-                return "Feld '{$field}' ist erforderlich.";
-            }
+        if ($username === '') {
+            return "Feld 'username' ist erforderlich.";
         }
-        
-        // Sanitize
-        $username = $security->sanitize($data['username']);
-        $email = $security->sanitize($data['email'], 'email');
+
+        if ($email === '') {
+            return "Feld 'email' ist erforderlich.";
+        }
+
+        if ($password === '') {
+            return "Feld 'password' ist erforderlich.";
+        }
         
         // Validate email
         if (!$security->validateEmail($email)) {
@@ -278,7 +286,7 @@ class Auth
         }
 
         // M-18: Passwort-Policy prüfen (min. 12 Zeichen, Komplexität)
-        $policyResult = self::validatePasswordPolicy($data['password']);
+        $policyResult = self::validatePasswordPolicy($password);
         if ($policyResult !== true) {
             return $policyResult;
         }
@@ -301,8 +309,8 @@ class Auth
         $userId = $db->insert('users', [
             'username' => $username,
             'email' => $email,
-            'password' => $security->hashPassword($data['password']),
-            'display_name' => $data['display_name'] ?? $username,
+            'password' => $security->hashPassword($password),
+            'display_name' => $displayName,
             'role' => $registrationRole,
             'status' => 'active'
         ]);
@@ -339,6 +347,42 @@ class Auth
         } catch (\Throwable) {
             return 'member';
         }
+    }
+
+    private function normalizeLoginIdentifier(string $value): string
+    {
+        $value = trim(strip_tags($value));
+        $value = preg_replace('/[\x00-\x1F\x7F]+/u', '', $value) ?? '';
+
+        return function_exists('mb_substr') ? mb_substr($value, 0, 254, 'UTF-8') : substr($value, 0, 254);
+    }
+
+    private function normalizeRegistrationUsername(mixed $value): string
+    {
+        $value = $this->normalizeScalarString($value, 80);
+        $value = Security::sanitize($value, 'username');
+
+        return $value !== '' ? $value : '';
+    }
+
+    private function normalizeDisplayName(mixed $value, string $fallback): string
+    {
+        $displayName = $this->normalizeScalarString($value, 120);
+        $displayName = trim(strip_tags($displayName));
+
+        return $displayName !== '' ? $displayName : $fallback;
+    }
+
+    private function normalizeScalarString(mixed $value, int $maxLength): string
+    {
+        if (!is_scalar($value)) {
+            return '';
+        }
+
+        $value = trim((string) $value);
+        $value = preg_replace('/[\x00-\x1F\x7F]+/u', '', $value) ?? '';
+
+        return function_exists('mb_substr') ? mb_substr($value, 0, max(1, $maxLength), 'UTF-8') : substr($value, 0, max(1, $maxLength));
     }
 
     /**
@@ -758,22 +802,28 @@ class Auth
 
     private function getDeviceCookieSigningKey(): string
     {
-        $jwtSecret = defined('JWT_SECRET') ? trim((string)JWT_SECRET) : '';
-        if ($jwtSecret !== '') {
-            return $jwtSecret;
-        }
-
-        $secureAuthKey = defined('SECURE_AUTH_KEY') ? trim((string)SECURE_AUTH_KEY) : '';
-        if ($secureAuthKey !== '') {
-            return $secureAuthKey;
-        }
-
-        $authKey = defined('AUTH_KEY') ? trim((string)AUTH_KEY) : '';
-        if ($authKey !== '') {
-            return $authKey;
+        foreach (['JWT_SECRET', 'SECURE_AUTH_KEY', 'AUTH_KEY'] as $constant) {
+            $secret = $this->getConfiguredSecret($constant);
+            if ($secret !== '') {
+                return $secret;
+            }
         }
 
         return hash('sha256', __FILE__ . PHP_VERSION);
+    }
+
+    private function getConfiguredSecret(string $constant): string
+    {
+        if (!defined($constant)) {
+            return '';
+        }
+
+        $value = trim((string) constant($constant));
+        if ($value === '' || str_contains($value, 'REPLACE_VIA_INSTALLER') || str_contains($value, 'YOUR_')) {
+            return '';
+        }
+
+        return $value;
     }
 
     private function setDeviceCookie(string $value, int $expiresAt): void

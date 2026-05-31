@@ -48,6 +48,7 @@ final class PublicRouter
         $this->router->addRoute('GET', '/forgot-password', [$this, 'redirectLegacyForgotPassword']);
         $this->router->addRoute('POST', '/forgot-password', [$this, 'handleForgotPassword']);
         $this->router->addRoute('GET', '/logout', [$this, 'handleLogout']);
+        $this->router->addRoute('POST', '/logout', [$this, 'handleLogout']);
 
         $this->router->addRoute('GET', '/mfa-challenge', [$this, 'renderMfaChallenge']);
         $this->router->addRoute('POST', '/mfa-challenge', [$this, 'handleMfaChallenge']);
@@ -136,16 +137,17 @@ final class PublicRouter
     {
         $security = Security::instance();
         $redirectTarget = $this->normalizeAllowedRedirectTarget($_POST['redirect'] ?? $_GET['redirect'] ?? null);
-        $defaultPendingRedirect = $this->resolvePendingLoginRedirect($redirectTarget, (string)($_POST['username'] ?? $_POST['email'] ?? ''));
+        $loginInputForRedirect = $this->requestString($_POST['username'] ?? $_POST['email'] ?? '', 254);
+        $defaultPendingRedirect = $this->resolvePendingLoginRedirect($redirectTarget, $loginInputForRedirect);
         $loginPagePath = $this->buildLoginPagePath($redirectTarget);
 
-        if (!$security->verifyToken($_POST['csrf_token'] ?? '', 'login')) {
+        if (!$security->verifyToken($this->requestString($_POST['csrf_token'] ?? '', 128), 'login')) {
             $_SESSION['error'] = 'Sicherheitsüberprüfung fehlgeschlagen.';
             $this->router->redirect($this->appendLoginErrorCode($loginPagePath, 'security'));
             return;
         }
 
-        $action = (string)($_POST['action'] ?? 'password_login');
+        $action = $this->requestString($_POST['action'] ?? 'password_login', 40);
 
         if ($action === 'passkey_login') {
             $challenge = (string)($_SESSION['login_passkey_challenge'] ?? '');
@@ -157,10 +159,10 @@ final class PublicRouter
                 return;
             }
 
-            $clientDataJson = $this->base64UrlDecode((string)($_POST['client_data_json'] ?? ''));
-            $authenticatorData = $this->base64UrlDecode((string)($_POST['authenticator_data'] ?? ''));
-            $signature = $this->base64UrlDecode((string)($_POST['signature'] ?? ''));
-            $credentialId = trim((string)($_POST['credential_id'] ?? ''));
+            $clientDataJson = $this->base64UrlDecode($this->requestString($_POST['client_data_json'] ?? '', 8192));
+            $authenticatorData = $this->base64UrlDecode($this->requestString($_POST['authenticator_data'] ?? '', 8192));
+            $signature = $this->base64UrlDecode($this->requestString($_POST['signature'] ?? '', 8192));
+            $credentialId = $this->requestString($_POST['credential_id'] ?? '', 2048);
 
             if ($clientDataJson === '' || $authenticatorData === '' || $signature === '' || $credentialId === '') {
                 $_SESSION['error'] = 'Die Passkey-Antwort war unvollständig. Bitte erneut versuchen.';
@@ -184,15 +186,16 @@ final class PublicRouter
 
             $_SESSION['error'] = (string)$result;
             $this->setAuthFormOldValues('login', [
-                'username' => (string)($_POST['username'] ?? ''),
-                'email' => (string)($_POST['email'] ?? ''),
+                'username' => $this->requestString($_POST['username'] ?? '', 254),
+                'email' => $this->requestString($_POST['email'] ?? '', 254),
             ]);
             $this->router->redirect($this->appendLoginErrorCode($loginPagePath, 'passkey'));
             return;
         }
 
-        $loginInput = $_POST['username'] ?? $_POST['email'] ?? '';
-        $result = Auth::instance()->login($loginInput, $_POST['password'] ?? '', !empty($_POST['remember']));
+        $loginInput = $this->requestString($_POST['username'] ?? $_POST['email'] ?? '', 254);
+        $password = $this->requestString($_POST['password'] ?? '', 4096, false);
+        $result = Auth::instance()->login($loginInput, $password, !empty($_POST['remember']));
 
         if ($result === true) {
             unset($_SESSION['auth_redirect_after_login']);
@@ -269,7 +272,7 @@ final class PublicRouter
             return;
         }
 
-        $code = trim((string)($_POST['totp_code'] ?? ''));
+        $code = $this->requestString($_POST['totp_code'] ?? '', 12);
         $mfaResult = \CMS\Auth\AuthManager::instance()->verifyMfa($code);
         if ($mfaResult !== true) {
             $_SESSION['error'] = is_string($mfaResult) && $mfaResult !== ''
@@ -371,7 +374,7 @@ final class PublicRouter
         }
 
         $userId = (int)$_SESSION['user_id'];
-        $code = trim((string)($_POST['totp_code'] ?? ''));
+        $code = $this->requestString($_POST['totp_code'] ?? '', 12);
 
         if (!Auth::instance()->confirmMfaSetup($userId, $code)) {
             $_SESSION['error'] = 'Ungültiger Code. Bitte erneut scannen und Code eingeben.';
@@ -430,21 +433,21 @@ final class PublicRouter
         }
 
         $security = Security::instance();
-        if (!$security->verifyToken($_POST['csrf_token'] ?? '', 'forgot_password')) {
+        if (!$security->verifyToken($this->requestString($_POST['csrf_token'] ?? '', 128), 'forgot_password')) {
             $_SESSION['error'] = 'Sicherheitsüberprüfung fehlgeschlagen.';
             $this->router->redirect($this->getPublicAuthPath('forgot-password'), 303);
             return;
         }
 
-        $action = trim((string)($_POST['forgot_password_action'] ?? 'request_reset'));
+        $action = $this->requestString($_POST['forgot_password_action'] ?? 'request_reset', 40);
         $authPageService = Services\CmsAuthPageService::getInstance();
 
         if ($action === 'reset_password') {
-            $token = (string)($_POST['reset_token'] ?? '');
+            $token = $this->requestString($_POST['reset_token'] ?? '', 200);
             $result = $authPageService->resetPassword(
                 $token,
-                (string)($_POST['new_password'] ?? ''),
-                (string)($_POST['new_password2'] ?? '')
+                $this->requestString($_POST['new_password'] ?? '', 4096, false),
+                $this->requestString($_POST['new_password2'] ?? '', 4096, false)
             );
 
             if ($result['success'] ?? false) {
@@ -458,7 +461,7 @@ final class PublicRouter
             return;
         }
 
-        $email = trim((string)($_POST['email'] ?? ''));
+        $email = $this->requestString($_POST['email'] ?? '', 254);
         $result = $authPageService->requestPasswordReset($email, $this->router->getRequestLocale());
         if ($result['success'] ?? false) {
             $_SESSION['success'] = (string)($result['message'] ?? 'Falls das Konto existiert, wurde ein Reset-Link versendet.');
@@ -475,7 +478,7 @@ final class PublicRouter
         $security = Security::instance();
         $authPageService = Services\CmsAuthPageService::getInstance();
 
-        if (!$security->verifyToken($_POST['csrf_token'] ?? '', 'register')) {
+        if (!$security->verifyToken($this->requestString($_POST['csrf_token'] ?? '', 128), 'register')) {
             $_SESSION['error'] = 'Sicherheitsüberprüfung fehlgeschlagen.';
             $this->router->redirect($this->getPublicAuthPath('register'));
             return;
@@ -489,11 +492,14 @@ final class PublicRouter
 
         $settings = $authPageService->getSettings();
 
-        if (array_key_exists('password2', $_POST) && (string)($_POST['password'] ?? '') !== (string)($_POST['password2'] ?? '')) {
+        $registerPassword = $this->requestString($_POST['password'] ?? '', 4096, false);
+        $registerPassword2 = $this->requestString($_POST['password2'] ?? '', 4096, false);
+
+        if (array_key_exists('password2', $_POST) && $registerPassword !== $registerPassword2) {
             $_SESSION['error'] = 'Die Passwörter stimmen nicht überein.';
             $this->setAuthFormOldValues('register', [
-                'email' => (string)($_POST['email'] ?? ''),
-                'username' => (string)($_POST['username'] ?? ''),
+                'email' => $this->requestString($_POST['email'] ?? '', 254),
+                'username' => $this->requestString($_POST['username'] ?? '', 80),
                 'terms' => !empty($_POST['terms']) ? '1' : '0',
             ]);
             $this->router->redirect($this->getPublicAuthPath('register'));
@@ -503,8 +509,8 @@ final class PublicRouter
         if (($settings['register_require_terms'] ?? '1') === '1' && empty($_POST['terms'])) {
             $_SESSION['error'] = 'Bitte akzeptiere die Nutzungsbedingungen und die Datenschutzerklärung.';
             $this->setAuthFormOldValues('register', [
-                'email' => (string)($_POST['email'] ?? ''),
-                'username' => (string)($_POST['username'] ?? ''),
+                'email' => $this->requestString($_POST['email'] ?? '', 254),
+                'username' => $this->requestString($_POST['username'] ?? '', 80),
                 'terms' => !empty($_POST['terms']) ? '1' : '0',
             ]);
             $this->router->redirect($this->getPublicAuthPath('register'));
@@ -519,8 +525,8 @@ final class PublicRouter
         } else {
             $_SESSION['error'] = $result;
             $this->setAuthFormOldValues('register', [
-                'email' => (string)($_POST['email'] ?? ''),
-                'username' => (string)($_POST['username'] ?? ''),
+                'email' => $this->requestString($_POST['email'] ?? '', 254),
+                'username' => $this->requestString($_POST['username'] ?? '', 80),
                 'terms' => !empty($_POST['terms']) ? '1' : '0',
             ]);
             $this->router->redirect($this->getPublicAuthPath('register'));
@@ -564,6 +570,14 @@ final class PublicRouter
 
     public function handleLogout(): void
     {
+        if (Auth::instance()->isLoggedIn()) {
+            $token = $this->requestString($_POST['csrf_token'] ?? $_GET['csrf_token'] ?? '', 128);
+            if (!Security::instance()->verifyToken($token, 'logout')) {
+                $this->router->redirect('/');
+                return;
+            }
+        }
+
         Auth::instance()->logout();
         $this->router->redirect('/');
     }
@@ -624,13 +638,13 @@ final class PublicRouter
         $postId = (int)($_POST['post_id'] ?? 0);
         $redirectTarget = $this->resolveCommentRedirect($postId);
         $commentFormValues = [
-            'author' => (string) ($_POST['author'] ?? ''),
-            'email' => (string) ($_POST['email'] ?? ''),
-            'comment' => (string) ($_POST['comment'] ?? ''),
+            'author' => $this->requestString($_POST['author'] ?? '', 120),
+            'email' => $this->requestString($_POST['email'] ?? '', 254),
+            'comment' => $this->requestString($_POST['comment'] ?? '', 5000),
             'comment_anonymous' => !empty($_POST['comment_anonymous']),
         ];
 
-        if ($postId <= 0 || !Security::instance()->verifyToken((string)($_POST['csrf_token'] ?? ''), 'comment_' . $postId)) {
+        if ($postId <= 0 || !Security::instance()->verifyToken($this->requestString($_POST['csrf_token'] ?? '', 128), 'comment_' . $postId)) {
             $this->flashCommentFormState($postId, 'error', 'Sicherheitsüberprüfung fehlgeschlagen.', $commentFormValues);
             $this->router->redirect($redirectTarget);
             return;
@@ -640,9 +654,9 @@ final class PublicRouter
         $isAnonymousComment = isset($currentUser->id) && !empty($_POST['comment_anonymous']);
         $result = Services\CommentService::getInstance()->createPendingComment(
             $postId,
-            (string)($_POST['author'] ?? ''),
-            (string)($_POST['email'] ?? ''),
-            (string)($_POST['comment'] ?? ''),
+            $this->requestString($_POST['author'] ?? '', 120),
+            $this->requestString($_POST['email'] ?? '', 254),
+            $this->requestString($_POST['comment'] ?? '', 5000),
             (string)($_SERVER['REMOTE_ADDR'] ?? ''),
             isset($currentUser->id) ? (int)$currentUser->id : null,
             $isAnonymousComment
@@ -894,6 +908,10 @@ final class PublicRouter
 
     private function resolveAllowedRedirectParts(mixed $candidate): array
     {
+        if (!is_scalar($candidate)) {
+            return ['route' => 'member', 'suffix' => '', 'query' => ''];
+        }
+
         $rawValue = trim((string) $candidate);
         if ($rawValue === '') {
             return ['route' => 'member', 'suffix' => '', 'query' => ''];
@@ -1115,5 +1133,20 @@ final class PublicRouter
         }
 
         return $allowed === [] ? '' : http_build_query($allowed, '', '&', PHP_QUERY_RFC3986);
+    }
+
+    private function requestString(mixed $value, int $maxLength, bool $stripTags = true): string
+    {
+        if (!is_scalar($value)) {
+            return '';
+        }
+
+        $value = trim((string) $value);
+        $value = preg_replace('/[\x00-\x1F\x7F]+/u', '', $value) ?? '';
+        if ($stripTags) {
+            $value = strip_tags($value);
+        }
+
+        return function_exists('mb_substr') ? mb_substr($value, 0, max(1, $maxLength), 'UTF-8') : substr($value, 0, max(1, $maxLength));
     }
 }

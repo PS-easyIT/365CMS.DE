@@ -18,6 +18,8 @@ if (!defined('ABSPATH')) {
 
 final class EditorJsMediaService
 {
+    private const MAX_JSON_BODY_BYTES = 65536;
+
     private readonly EditorJsRequestGuard $requestGuard;
     private readonly EditorJsUploadService $uploadService;
     private readonly EditorJsRemoteMediaService $remoteMediaService;
@@ -37,7 +39,7 @@ final class EditorJsMediaService
             $this->requestGuard->ensureEditorAccess();
             $this->requestGuard->verifyMediaToken();
 
-            $action = (string) ($_REQUEST['action'] ?? '');
+            $action = (string) ($_POST['action'] ?? $_GET['action'] ?? '');
             $payload = $this->getJsonInput();
             $requestContext = array_merge($_GET, $_POST, $payload);
 
@@ -80,7 +82,7 @@ final class EditorJsMediaService
             }
 
             Logger::instance()->withChannel('editorjs.media')->warning('Editor.js-Media-Anfrage fehlgeschlagen', [
-                'action' => (string) ($_REQUEST['action'] ?? ''),
+                'action' => (string) ($_POST['action'] ?? $_GET['action'] ?? ''),
                 'status' => $status,
                 'exception' => get_class($e),
                 'message' => $this->sanitizeLogMessage($e->getMessage()),
@@ -113,9 +115,13 @@ final class EditorJsMediaService
 
     private function getJsonInput(): array
     {
-        $raw = file_get_contents('php://input');
+        $raw = file_get_contents('php://input', false, null, 0, self::MAX_JSON_BODY_BYTES + 1);
         if (!is_string($raw) || trim($raw) === '') {
             return [];
+        }
+
+        if (strlen($raw) > self::MAX_JSON_BODY_BYTES) {
+            throw new \RuntimeException('Editor.js-Media-Payload ist zu groß.', 413);
         }
 
         return Json::decodeArray($raw, []);
@@ -128,7 +134,8 @@ final class EditorJsMediaService
     {
         http_response_code($status);
         header('Content-Type: application/json; charset=utf-8');
-        echo json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        $json = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        echo is_string($json) ? $json : '{"success":0,"message":"JSON-Antwort konnte nicht erzeugt werden."}';
         exit;
     }
 }

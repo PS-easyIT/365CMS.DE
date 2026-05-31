@@ -407,7 +407,13 @@ final class SecurityRuntimeService
 
     private function ensureColumn(string $table, string $column, string $alterSql): void
     {
-        $exists = $this->db->get_var("SHOW COLUMNS FROM {$table} LIKE '{$column}'") !== null;
+        if (preg_match('/^[A-Za-z0-9_]+$/', $table) !== 1 || preg_match('/^[A-Za-z0-9_]+$/', $column) !== 1) {
+            return;
+        }
+
+        $stmt = $this->db->getPdo()->prepare("SHOW COLUMNS FROM {$table} LIKE ?");
+        $stmt->execute([$column]);
+        $exists = $stmt->fetch(\PDO::FETCH_ASSOC) !== false;
         if ($exists) {
             return;
         }

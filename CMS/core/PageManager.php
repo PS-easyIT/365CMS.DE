@@ -59,7 +59,8 @@ class PageManager
             ];
 
             foreach ($columns as $column => $sql) {
-                $stmt = $this->db->query("SHOW COLUMNS FROM {$this->prefix}pages LIKE '{$column}'");
+                $stmt = $this->db->prepare("SHOW COLUMNS FROM {$this->prefix}pages LIKE ?");
+                $stmt->execute([$column]);
                 $exists = false;
                 if ($stmt instanceof \PDOStatement) {
                     $exists = $stmt->fetch(\PDO::FETCH_ASSOC) !== false;
@@ -110,7 +111,8 @@ class PageManager
             ];
 
             foreach ($columns as $column => $sql) {
-                $stmt = $this->db->query("SHOW COLUMNS FROM {$this->prefix}page_revisions LIKE '{$column}'");
+                $stmt = $this->db->prepare("SHOW COLUMNS FROM {$this->prefix}page_revisions LIKE ?");
+                $stmt->execute([$column]);
                 $exists = false;
                 if ($stmt instanceof \PDOStatement) {
                     $exists = $stmt->fetch(\PDO::FETCH_ASSOC) !== false;

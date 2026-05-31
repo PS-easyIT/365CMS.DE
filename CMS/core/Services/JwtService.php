@@ -6,7 +6,7 @@
  * für die API-Authentifizierung (Bearer-Token-Schema).
  *
  * Konfiguration:
- *   JWT_SECRET  (Pflicht)  – HMAC-Schlüssel für HS256. Standard: AUTH_KEY
+ *   JWT_SECRET  (Pflicht)  – HMAC-Schlüssel für HS256. Fallback: gültiger AUTH_KEY
  *   JWT_TTL     (Optional) – Token-Lebensdauer in Sekunden (Standard: 3600)
  *   JWT_ISSUER  (Optional) – iss-Claim (Standard: SITE_URL)
  *
@@ -53,9 +53,31 @@ final class JwtService
 
     private function __construct()
     {
-        $this->secret  = defined('JWT_SECRET') && JWT_SECRET !== '' ? JWT_SECRET : AUTH_KEY;
+        $this->secret  = $this->resolveSecret();
         $this->ttl     = defined('JWT_TTL')    ? (int)JWT_TTL    : self::DEFAULT_TTL;
         $this->issuer  = defined('JWT_ISSUER') ? JWT_ISSUER      : SITE_URL;
+    }
+
+    private function resolveSecret(): string
+    {
+        foreach (['JWT_SECRET', 'AUTH_KEY'] as $constant) {
+            if (!defined($constant)) {
+                continue;
+            }
+
+            $value = trim((string) constant($constant));
+            if ($value === '' || str_contains($value, 'REPLACE_VIA_INSTALLER') || str_contains($value, 'YOUR_')) {
+                continue;
+            }
+
+            return $value;
+        }
+
+        \CMS\Logger::instance()->withChannel('jwt')->error(
+            'JWT_SECRET/AUTH_KEY ist nicht sicher konfiguriert; JWT-Erstellung und -Validierung sind deaktiviert.'
+        );
+
+        return '';
     }
 
     // ── Öffentliche API ──────────────────────────────────────────────────────
@@ -70,6 +92,10 @@ final class JwtService
      */
     public function generateToken(int $userId, array $extraClaims = [], ?int $ttlOverride = null): string
     {
+        if ($this->secret === '') {
+            throw new \RuntimeException('JWT signing secret is not configured.');
+        }
+
         $now = time();
         $expiry = $ttlOverride ?? $this->ttl;
 
@@ -102,6 +128,10 @@ final class JwtService
      */
     public function validateToken(string $token): ?\stdClass
     {
+        if ($this->secret === '') {
+            return null;
+        }
+
         try {
             $key = new Key($this->secret, self::ALGORITHM);
             $payload = JWT::decode($token, $key);

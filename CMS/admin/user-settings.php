@@ -25,14 +25,14 @@ $module = new UserSettingsModule();
 $alert = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $postToken = $_POST['csrf_token'] ?? '';
+    $postToken = (string) ($_POST['csrf_token'] ?? '');
     if (!Security::instance()->verifyToken($postToken, 'admin_user_settings')) {
         $_SESSION['admin_alert'] = ['type' => 'danger', 'message' => 'Sicherheitstoken ungültig.'];
         header('Location: /admin/user-settings');
         exit;
     }
 
-    $action = $_POST['action'] ?? '';
+    $action = is_string($_POST['action'] ?? null) ? trim((string) $_POST['action']) : '';
     $result = match ($action) {
         'save' => $module->saveSettings($_POST),
         'sync_ldap' => $module->syncLdapUsers(),
@@ -41,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $_SESSION['admin_alert'] = [
         'type' => !empty($result['success']) ? 'success' : 'danger',
-        'message' => $result['message'] ?? $result['error'] ?? '',
+        'message' => trim((string) ($result['message'] ?? $result['error'] ?? '')),
     ];
 
     header('Location: /admin/user-settings');

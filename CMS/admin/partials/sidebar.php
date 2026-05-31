@@ -76,6 +76,7 @@ if (!function_exists('sidebarTopLevelIcon')) {
 
 $activePage = cmsNormalizeSidebarActivePage((string) ($activePage ?? ''));
 $siteUrl    = defined('SITE_URL') ? SITE_URL : '';
+$logoutUrl  = rtrim((string) $siteUrl, '/') . '/logout?csrf_token=' . rawurlencode(\CMS\Security::instance()->generateToken('logout'));
 $siteName   = function_exists('cms_get_site_name') ? cms_get_site_name() : (defined('SITE_NAME') ? SITE_NAME : '365CMS');
 $sidebarLogoUrl = cms_asset_url('images/LOGO_365CMS-75px.png', false);
 $sidebarLogoFallbackUrl = $sidebarLogoUrl;
@@ -898,7 +899,7 @@ $topbarUnreadNotifications = max(0, (int) ($_SESSION['admin_unread_notifications
                     <span class="nav-link-title">Website ansehen</span>
                 </a>
                 <div class="admin-sidebar__divider admin-sidebar__divider--footer" aria-hidden="true"></div>
-                <a class="nav-link admin-sidebar__footer-link admin-sidebar__footer-link--danger" href="<?= htmlspecialchars((string) $siteUrl, ENT_QUOTES, 'UTF-8') ?>/logout">
+                <a class="nav-link admin-sidebar__footer-link admin-sidebar__footer-link--danger" href="<?= htmlspecialchars($logoutUrl, ENT_QUOTES, 'UTF-8') ?>">
                     <i class="ti ti-logout" aria-hidden="true"></i>
                     <span class="nav-link-title">Abmelden</span>
                 </a>
