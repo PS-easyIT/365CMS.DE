@@ -1,6 +1,6 @@
 # 365CMS.DE
 
-**Version:** [3.3.43](Changelog.md) · **Status:** Stable · **PHP:** 8.4+ · **MySQL:** 5.7+ · **MariaDB:** 10.3+
+**Version:** [3.3.44](Changelog.md) · **Status:** Stable · **PHP:** 8.4+ · **MySQL:** 5.7+ · **MariaDB:** 10.3+
 
 <div align="center">
 
@@ -95,6 +95,8 @@ Die gespeicherten EditorJS-Daten werden serverseitig sanitisiert und im Frontend
 ### Admin-Erlebnis
 
 Der Admin-Bereich folgt einem klassischen professionellen Backend-Flow: klare Header, nachvollziehbare Toolbars, ruhige Tabellen, stabile Sidebars und reduzierte UI. 365CMS priorisiert Arbeitsgeschwindigkeit, Lesbarkeit und robuste Bedienung auf Desktop und Mobile. Die Admin-Sidebar hält den Logo-Bereich bewusst kompakt; Page-/Post-Editoren vermeiden künstliche Leerstrecken unterhalb des Inhaltsbereichs.
+
+Seit `3.3.44` ist der Plugin-Menüfluss im Admin explizit gehärtet: alle aktiven Plugin-Menüs werden aus der Registry gerendert, gleiche numerische Menüpositionen überschreiben keine anderen Einträge mehr, lange Plugin-Listen scrollen innerhalb der Sidebar und Plugin-Callbacks ohne vollständiges Layout erhalten automatisch den gemeinsamen Admin-Content-Wrapper. Knowledgebase- und ausgewählte M365-Pluginrouten besitzen zusätzliche Core-Fallbacks für verschachtelte `/admin/plugins/...`-Seiten.
 
 Typische Workflows:
 

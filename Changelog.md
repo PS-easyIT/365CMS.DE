@@ -1,4 +1,4 @@
-﻿**Version:** 3.3.43
+﻿**Version:** 3.3.44
 
 # 365CMS Changelog
 
@@ -15,6 +15,14 @@
 | 🛡️ | `security` | Sicherheits- und Audit-Härtung |
 
 ---
+
+### v3.3.44 — 31.05.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.3.44** | 🔴 fix | Admin-Sidebar / Plugin-Menüs | **`CMS/includes/functions/admin-menu.php`, `CMS/admin/partials/sidebar.php`, `CMS/assets/css/admin.css`, `CMS/assets/css/admin-tabler.css`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md`, `CMS/DOC/admin/README.md`, `CMS/DOC/admin/PANEL-INTEGRATION.md` und `Changelog.md` dokumentieren und stabilisieren den Plugin-Menüfluss der letzten drei Tage.** Top-Level-Menüpositionen überschreiben sich bei gleicher Position nicht mehr, sondern werden auf die nächste freie Position verschoben. Die Sidebar stapelt auch lange aktive Plugin-Menülisten sauber vertikal, hält Plugin-Dropdowns im normalen Dokumentfluss, sortiert Plugin-Gruppen natürlich nach Label und bleibt über den mittleren Menübereich scrollbar, ohne Logo oder Footer zu überdecken. |
+| **3.3.44** | 🔴 fix | Admin-Routing / Plugin-Layout | **`CMS/core/Routing/AdminRouter.php`, `CMS/admin/partials/header.php`, `CMS/includes/functions/admin-menu.php`, `CMS/assets/css/admin-tabler.css`, `CMS/DOC/admin/PANEL-INTEGRATION.md` und `Changelog.md` ziehen die Admin-Plugin-Routing-Fixes nach.** Plugin-Adminseiten erhalten automatisch den gemeinsamen `page-body`-/`container-xl`-Wrapper, wenn ihr Callback nur Seiteninhalt liefert; vollständige Layouts werden weiterhin erkannt und nicht doppelt eingebettet. Zusätzlich sind Knowledgebase- und ausgewählte M365-Adminseiten mit robusten Callback-Fallbacks abgesichert, damit verschachtelte `/admin/plugins/...`-Routen zuverlässig im Core-Layout öffnen. |
+| **3.3.44** | 🟢 feat | Übersetzungen / Netzwerk-Detailseiten | **`CMS/core/Services/TranslationService.php`, `CMS/lang/de.yaml`, `CMS/lang/en.yaml`, `CMS/DOC/core/SERVICES.md` und `Changelog.md` dokumentieren die i18n-Nacharbeit.** Der TranslationService lädt den einfachen Fallback-Katalog jetzt unabhängig vom Symfony-Translator vorab und nutzt ihn auch dann, wenn Symfony einen unbekannten Key nur unverändert zurückgibt. Die Sprachressourcen enthalten neue DE-/EN-Keys für Speaker-, Experten-, Unternehmens- und Event-Detailseiten inklusive Breadcrumbs, ARIA-Labels, CTAs, Statuswerten, Verfügbarkeiten und Abschnittsüberschriften. |
 
 ### v3.3.43 — 31.05.2026
 

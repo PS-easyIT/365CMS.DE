@@ -1,12 +1,12 @@
 # 365CMS – Systemstatus
-> **Stand:** 2026-05-02 | **Version:** 2.9.248 | **Status:** Aktuell
+> **Stand:** 2026-05-31 | **Version:** 3.3.44 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Versionsstand](#versionsstand)
 - [Core- und Plattformstatus](#core--und-plattformstatus)
 - [Datenbankschema](#datenbankschema)
 - [Aktuelle Admin-Architektur](#aktuelle-admin-architektur)
-- [Wichtige Feature-Stände](#wichtige-feature-stände-im-aktuellen-stand-29248)
+- [Wichtige Feature-Stände](#wichtige-feature-stände-im-aktuellen-stand-3344)
 - [Bekannte Grenzen](#bekannte-grenzen)
 - [Nächste geplante Features](#nächste-geplante-features)
 - [Deprecations](#deprecations)
@@ -18,10 +18,10 @@
 
 | Eigenschaft | Wert |
 |---|---|
-| CMS-Version | `2.9.248` |
+| CMS-Version | `3.3.44` |
 | Code-Referenz | `CMS/core/Version.php` |
 | Update-Metadaten | `CMS/update.json` |
-| Release-Datum | `2026-05-02` |
+| Release-Datum | `2026-05-31` |
 | Projektstandard PHP | `8.4+` |
 | Update-Metadaten `min_php` | `8.4` |
 | Datenbank | MySQL 5.7+ / MariaDB 10.3+ |
@@ -37,7 +37,7 @@
 | Routing | ✅ produktiv | Frontend-, Admin-, Member- und Systemrouten aktiv |
 | Sicherheit | ✅ produktiv | CSRF, Escaping, Rate-Limits, Audit- und Firewall-Integration |
 | Theme-System | ✅ produktiv | ThemeManager, Theme-Editor, Theme-Explorer, Customizer-Anbindung |
-| Plugin-System | ✅ produktiv | Hook-System, Plugin-Registry, Plugin-Marketplace und Admin-Einbindung |
+| Plugin-System | ✅ produktiv | Hook-System, Plugin-Registry, Plugin-Marketplace, kollisionsfreie Admin-Menüpositionen und robuste Admin-Einbindung |
 | Member-Bereich | ✅ produktiv | Dashboard, Profil, Privacy, Notifications, Security, Subscription |
 | Update-System | ✅ produktiv | GitHub-basierte Core-/Plugin-/Theme-Prüfung |
 
@@ -82,7 +82,7 @@ Maßgebliche Referenz: `CMS/admin/partials/sidebar.php`
 
 ---
 
-## Wichtige Feature-Stände im aktuellen Stand 2.9.248 <!-- UPDATED: 2026-05-02 -->
+## Wichtige Feature-Stände im aktuellen Stand 3.3.44 <!-- UPDATED: 2026-05-31 -->
 
 | Bereich | Stand |
 |---|---|
@@ -99,7 +99,8 @@ Maßgebliche Referenz: `CMS/admin/partials/sidebar.php`
 | Rollen & Rechte | ✅ dynamische Rollen, `role_permissions`, DB-basierte Capability-Prüfung |
 | Editor.js | ✅ Block-basierter Content-Editor als primärer Editor |
 | Mehrsprachige Inhalte | ✅ getrennte DE-/EN-Editorseiten mit sprachisoliertem Speichern und strengem `/en/...`-Public-Prefix-Vertrag |
-| Admin-Struktur | ✅ klarere Hauptbereiche für Hub-Sites, TOC, Beitrags-Kategorien/-Tags, Font Manager, Theme-Marketplace und gruppierte Member-Dashboard-Unterseiten |
+| Admin-Struktur | ✅ klarere Hauptbereiche für Hub-Sites, TOC, Beitrags-Kategorien/-Tags, Font Manager, Theme-Marketplace und gruppierte Member-Dashboard-Unterseiten; seit `3.3.44` zusätzlich scrollbar lange Plugin-Menüs, natürliche Plugin-Label-Sortierung, kollisionsfreie Menüpositionen und automatische Plugin-Content-Wrapper |
+| Übersetzungen | ✅ `TranslationService` mit Symfony Translation und eigenem Fallback-Katalog; seit `3.3.44` werden flache `default:`-YAML-Keys auch hinter Symfony zuverlässig aufgelöst und Detailseiten-Keys für Speaker, Experts, Companies und Events bereitgestellt |
 | WebAuthn/Passkey | ✅ FIDO2-Authentifizierung als alternative Login-Methode |
 | PDF-Export | ✅ DomPDF-Integration für Seiten- und Beitragsexport |
 | Permalinks | ✅ zentraler `PermalinkService` für Beitrags-URL-Strukturen, Slug-Extraktion und Migrationspfade |
@@ -128,6 +129,14 @@ Maßgebliche Referenz: `CMS/admin/partials/sidebar.php`
 - Public-Seiten prüfen vor der Auslieferung, ob die angefragte Sprachvariante wirklich Inhalt besitzt; EN bleibt damit strikt unter `/en/...`, DE ohne Sprachprefix.
 - Die Coverbild-Auswahl für Beiträge und Seiten listet nur noch `ArtikelRahmen_*`-Dateien, während normale Editor-Medienlisten unverändert bleiben.
 - Site Tables erlauben in Tabellenzellen nur sichere Formatierungs-Tags für Fett, Kursiv, Unterstreichung und Links; Link-Attribute werden sanitizer- und fallbackseitig auf sichere Schemata/Tabnabbing-Schutz gehärtet, aktivierte Seiten-/Beitragsquellen erzeugen Tabellen nur aus ausgewählten Inhalten oder einem Kategorie-Filter statt aus freier Eingabe.
+
+## Release-Notiz 3.3.44 <!-- ADDED: 2026-05-31 -->
+
+- Admin-Pluginmenüs überschreiben sich bei gleichen numerischen Positionen nicht mehr; belegte Positionen werden auf die nächste freie Position verschoben.
+- Lange Plugin-Menülisten bleiben in der Sidebar sichtbar und scrollbar, während Header, Footer und Dropdowns im normalen Layoutfluss bleiben.
+- Plugin-Admincallbacks ohne vollständiges Layout erhalten automatisch den gemeinsamen Core-Content-Wrapper; vollständige Layouts werden nicht doppelt eingebettet.
+- Knowledgebase- und ausgewählte M365-Adminrouten besitzen zusätzliche Core-Fallbacks für direkte verschachtelte Plugin-URLs.
+- Der TranslationService nutzt den eigenen Fallback-Katalog als zweite Stufe hinter Symfony Translation und die Sprachdateien enthalten neue Netzwerk-Detailseiten-Keys für Speaker, Experts, Companies und Events.
 
 ---
 

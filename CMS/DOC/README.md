@@ -1,15 +1,15 @@
 # 365CMS – Projektdokumentation
-> **Stand:** 2026-05-02 | **Version:** 2.9.248 | **Status:** Aktuell
+> **Stand:** 2026-05-31 | **Version:** 3.3.44 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Womit ihr anfangen solltet](#womit-ihr-anfangen-solltet)
-- [Release-Fokus 2.9.248](#release-fokus-29248)
+- [Release-Fokus 3.3.44](#release-fokus-3344)
 - [Dokumentationsbereiche](#dokumentationsbereiche)
 - [Wichtige Hinweise](#wichtige-hinweise)
 - [Verwandte Einstiege](#verwandte-einstiege)
 
 ---
-<!-- UPDATED: 2026-05-02 -->
+<!-- UPDATED: 2026-05-31 -->
 
 ## Womit ihr anfangen solltet
 
@@ -33,15 +33,17 @@
 
 ---
 
-## Release-Fokus 2.9.248
+## Release-Fokus 3.3.44
 
-Der aktuelle Release-Fokus `2.9.248` schließt die nächsten Lücken im getrennten Sprach-, Medien- und Tabellenvertrag für redaktionelle Inhalte:
+Der aktuelle Release-Fokus `3.3.44` zieht die Core-Anpassungen und Fehlerbehebungen der letzten drei Tage in der Dokumentation nach:
 
-- Beitrags- und Seiteneditoren speichern getrennte DE-/EN-Ansichten jetzt sprachisoliert: Die jeweils inaktive Sprachfassung wird bei Save und Inline-Fehlerrendering aus dem bestehenden Datensatz erhalten
-- Public-Seiten folgen analog zu Beiträgen strikt dem Prefix-Vertrag: `/en/...` liefert nur echte EN-Seitenvarianten, deutsche Pfade bleiben ohne `/en`, alte Suffix-Erkennungen werden nicht mehr als lokalisierte Route behandelt
-- Die Coverbild-Auswahl für Seiten und Beiträge zeigt nur noch Dateien mit `ArtikelRahmen_`-Prefix; normale Editor-Medienlisten bleiben unverändert, neue Cover-Uploads bekommen den Prefix automatisch
-- Site Tables erkennen in Tabellenzellen sichere Inline-HTML-Formatierungen (`b/strong`, `i/em`, `u`, `a`), härten Link-Attribute gegen unsichere Schemata/Tabnabbing und können als Seiten-/Beitragsübersicht entweder feste Zeilen aus ausgewählten Inhalten oder alle veröffentlichten Inhalte einer Kategorie ausgeben
-- `README.md`, `Changelog.md`, `CMS/core/Version.php`, `CMS/update.json`, Marketplace-Metadaten und die zentralen CMS-Dokumente bleiben dabei auf demselben Release-Stand `2.9.248`
+- Admin-Pluginmenüs werden kollisionsfrei registriert: gleiche numerische Positionen überschreiben keine anderen aktiven Plugins mehr
+- die Sidebar sortiert Plugin-Gruppen natürlich nach sichtbarem Label, bleibt bei vielen aktiven Plugins scrollbar und hält Dropdowns im normalen Dokumentfluss
+- Plugin-Callbacks ohne vollständiges Admin-Layout erhalten automatisch den gemeinsamen `page-body`-/`container-xl`-Wrapper
+- Knowledgebase- und ausgewählte M365-Pluginrouten besitzen robuste Core-Fallbacks für verschachtelte `/admin/plugins/...`-Aufrufe
+- der TranslationService nutzt den eigenen Fallback-Katalog auch hinter Symfony Translation, wenn unbekannte Keys unverändert zurückgegeben werden
+- DE-/EN-Sprachdateien enthalten neue Detailseiten-Keys für Speaker, Experts, Companies und Events
+- `README.md`, `Changelog.md`, `CMS/core/Version.php`, `CMS/update.json`, Marketplace-Metadaten und die zentralen CMS-Dokumente bleiben dabei auf demselben Release-Stand `3.3.44`
 
 ---
 
@@ -54,6 +56,7 @@ Die Kernsystem-Dokumente unter [`core/`](core/) beschreiben Bootstrap, Routing, 
 ### Admin
 
 Die Admin-Dokumente unter [`admin/`](admin/) orientieren sich an der aktuellen Sidebar- und Modulstruktur aus `CMS/admin/`.
+Seit `3.3.44` ist insbesondere die Plugin-Panel-Integration mit kollisionsfreien Menüpositionen, natürlicher Label-Sortierung, scrollbar langer Plugin-Listen und automatischem Content-Wrapper dokumentiert.
 Dazu gehören jetzt auch die **CMS Loginpage** unter `/admin/cms-loginpage` und **CMS Logs** unter `/admin/cms-logs`, die bewusst als eigene Core-Bereiche für Auth-Branding bzw. Laufzeitdiagnose dokumentiert werden.
 
 ### Member

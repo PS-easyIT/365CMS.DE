@@ -1,5 +1,5 @@
 # 365CMS – Admin-Panel-Integration
-> **Stand:** 2026-05-09 | **Version:** 2.9.627 | **Status:** Aktuell
+> **Stand:** 2026-05-31 | **Version:** 3.3.44 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Aktueller Integrationspfad](#aktueller-integrationspfad)
@@ -13,9 +13,9 @@
 - [Verwandte Dokumente](#verwandte-dokumente)
 
 ---
-<!-- UPDATED: 2026-04-07 -->
+<!-- UPDATED: 2026-05-31 -->
 
-Das Sidebar-Menü wird zentral in `CMS/admin/partials/sidebar.php` aufgebaut. Vor dem Rendern der Plugin-Menüs wird dort `CMS\Hooks::doAction('cms_admin_menu')` ausgeführt. Anschließend werden registrierte Einträge über `get_registered_admin_menus()` ausgelesen. Der Routing-Pfad für Plugin-Seiten kann denselben Hook im selben Request ebenfalls ausführen; die Menü-Registry ersetzt seit `2.9.627` vorhandene Einträge mit gleichem Slug deshalb idempotent, statt doppelte Menüs aufzubauen.
+Das Sidebar-Menü wird zentral in `CMS/admin/partials/sidebar.php` aufgebaut. Vor dem Rendern der Plugin-Menüs wird dort `CMS\Hooks::doAction('cms_admin_menu')` ausgeführt. Anschließend werden registrierte Einträge über `get_registered_admin_menus()` ausgelesen. Der Routing-Pfad für Plugin-Seiten kann denselben Hook im selben Request ebenfalls ausführen; die Menü-Registry ersetzt seit `2.9.627` vorhandene Einträge mit gleichem Slug deshalb idempotent, statt doppelte Menüs aufzubauen. Seit `3.3.44` werden zusätzlich gleiche numerische Top-Level-Positionen kollisionsfrei auf die nächste freie Position verschoben, damit mehrere aktive Plugins mit gleicher Wunschposition nicht gegenseitig aus der Registry verschwinden.
 
 Frühere Dokumentationsstände mit einem Filter `admin_menu_items` sind veraltet und gelten nicht mehr als Referenz für neue Integrationen.
 
@@ -30,6 +30,8 @@ Plugins erweitern das Admin-Menü heute typischerweise in zwei Schritten:
 
 Die Helferfunktionen liegen in `CMS/includes/functions.php`.
 
+Die sichtbaren Plugin-Gruppen werden vor dem Rendern natürlich nach bereinigtem Menülabel sortiert. Damit können Plugins ihre Menülabels bewusst mit Präfixen wie `365CMS |` oder `365NET |` strukturieren, ohne dass die technische Registrierungsreihenfolge über die Sidebar-Reihenfolge entscheidet.
+
 ## Verfügbare Helfer
 
 ### `add_menu_page()`
@@ -42,7 +44,7 @@ Registriert einen Top-Level-Menüpunkt. Relevante Parameter sind:
 - `menu_slug`
 - optionales Render-Callback
 - optionales Icon
-- optionale Position
+- optionale Position; belegte Positionen werden seit `3.3.44` nicht überschrieben, sondern auf die nächste freie Position aufgelöst
 - optional `hidden = true`, wenn nur Routing ohne Sidebar-Eintrag gewünscht ist
 
 ### `add_submenu_page()`
@@ -85,7 +87,9 @@ Eine eigene Admin-Seite sollte sich am Standardmuster der Core-Seiten orientiere
 - CSRF-Absicherung bei POST-Requests
 - Laden der gemeinsamen Layout-Teile über `partials/header.php`, `partials/sidebar.php`, `partials/footer.php`
 
-Ein manueller HTML-Komplettaufbau mit eigener Sidebar ist für neue Seiten nicht mehr der empfohlene Weg.
+Ein manueller HTML-Komplettaufbau mit eigener Sidebar ist für neue Seiten nicht mehr der empfohlene Weg. Wenn ein Plugin-Callback nur den Seiteninhalt ausgibt, ergänzt der Core seit `3.3.44` automatisch `<div class="page-body"><div class="container-xl cms-plugin-admin-content">…</div></div>`. Gibt ein Callback bereits ein vollständiges Admin-Layout oder eine eigene `page-body`-Struktur aus, wird es nicht doppelt gewrappt.
+
+Für bekannte verschachtelte Plugin-Routen besitzt der Core zusätzliche Fallbacks. Aktuell betrifft das u. a. Knowledgebase-Seiten sowie ausgewählte M365-Adminbereiche, damit direkte URLs wie `/admin/plugins/knowledgebase-dashboard/settings` oder M365-Dashboardpfade auch dann sauber gerendert werden, wenn die Registrierung im selben Request keinen passenden Callback liefert.
 
 ## Sidebar-Rendering
 
@@ -94,9 +98,10 @@ Die Sidebar führt vereinfacht diesen Ablauf aus:
 1. Core-Menüs rendern
 2. `CMS\Hooks::doAction('cms_admin_menu')`
 3. registrierte Plugin-Menüs aus `get_registered_admin_menus()` holen
-4. Plugin-Menüs rendern
+4. Plugin-Menüs nach normalisiertem Label natürlich sortieren
+5. Plugin-Menüs rendern
 
-Damit ist klar: Die Menüintegration läuft über eine Aktion plus Registry, nicht über ein vorher zusammenkopiertes Array. Wiederholte Hook-Ausführung innerhalb eines Requests muss seit `2.9.627` keine doppelte Sidebar-Struktur mehr erzeugen.
+Damit ist klar: Die Menüintegration läuft über eine Aktion plus Registry, nicht über ein vorher zusammenkopiertes Array. Wiederholte Hook-Ausführung innerhalb eines Requests muss seit `2.9.627` keine doppelte Sidebar-Struktur mehr erzeugen. Seit `3.3.44` gibt es außerdem keinen festen visuellen Grenzwert für aktive Plugin-Menüs: die Sidebar stapelt Einträge vertikal, hält Dropdowns im Dokumentfluss und scrollt den Menübereich zwischen Header und Footer.
 
 ## Sicherheitsanforderungen
 
@@ -112,6 +117,7 @@ Für Admin-Erweiterungen gelten dieselben Mindestanforderungen wie für Core-Sei
 - Menüs nur registrieren, wenn das Plugin wirklich aktiv ist
 - keine Slugs verwenden, die mit Core-Seiten kollidieren
 - für größere Plugins Top-Level-Menü plus klar benannte Unterpunkte verwenden
+- bei Labels bewusst sortierbare Präfixe nutzen, wenn Plugin-Gruppen gemeinsam erscheinen sollen
 - `hidden = true` nur nutzen, wenn eine Route bewusst ohne sichtbaren Sidebar-Eintrag gebraucht wird
 - Optik und Layout an bestehende Admin-Komponenten anlehnen statt eigene Parallelstrukturen zu bauen
 

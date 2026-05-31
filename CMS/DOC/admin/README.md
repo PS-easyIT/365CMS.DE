@@ -1,5 +1,5 @@
 # 365CMS – Admin-Bereich
-> **Stand:** 17.05.2026 | **Version:** 3.0.11 | **Status:** Aktuell
+> **Stand:** 31.05.2026 | **Version:** 3.3.44 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Überblick](#überblick)
@@ -10,10 +10,10 @@
 
 Die Struktur folgt der aktuellen Sidebar-Konfiguration aus `CMS/admin/partials/sidebar.php`. Öffentliche Admin-Routen werden in der Dokumentation bewusst ohne `.php` beschrieben.
 
-Für Detailfragen gilt die reale Sidebar- und Routing-Laufzeit als führend; diese Datei ist die verdichtete 2.9.738-Übersicht, nicht der einzige Wahrheitsspeicher.
+Für Detailfragen gilt die reale Sidebar- und Routing-Laufzeit als führend; diese Datei ist die verdichtete 3.3.44-Übersicht, nicht der einzige Wahrheitsspeicher.
 
 ---
-<!-- UPDATED: 17.05.2026 -->
+<!-- UPDATED: 31.05.2026 -->
 
 ## Überblick
 
@@ -28,6 +28,8 @@ Wichtige Grundsätze:
 - Views und Actions hängen an kleinen Request-/CSRF-Verträgen; Admin-Formulare tolerieren mehrere parallel geöffnete Tokens pro Action innerhalb des TTL-Fensters, invalidieren den verwendeten Token aber weiterhin nach erfolgreichem POST
 - Redirects folgen möglichst dem PRG-Muster (Post/Redirect/Get)
 - Legacy-Einstiege werden nur noch dokumentiert, wenn sie aktiv umleiten oder Rücksicht auf Altbestände erfordern
+- Plugin-Menüs werden seit `3.3.44` natürlich nach sichtbarem Label sortiert, überschreiben sich bei gleichen numerischen Positionen nicht mehr gegenseitig und bleiben auch bei vielen aktiven Plugins in der Sidebar scrollbar
+- Plugin-Admincallbacks, die nur Inhaltsmarkup ausgeben, werden automatisch in den gemeinsamen `page-body`-/`container-xl`-Wrapper eingebettet; vollständige Admin-Layouts werden erkannt und nicht doppelt gerendert
 
 ---
 
@@ -47,7 +49,7 @@ Wichtige Grundsätze:
 | Performance | `/admin/performance`, `/admin/performance-cache`, `/admin/performance-media`, `/admin/performance-database`, `/admin/performance-settings`, `/admin/performance-sessions` | Laufzeit- und Ressourcenoptimierung mit ehrlichem Server-Kompressionsstatus statt dekorativem CMS-Schalter |
 | Recht | `/admin/legal-sites`, `/admin/cookie-manager`, `/admin/data-requests` | Legal Sites, Cookie-Management mit atomar gespeicherten Consent-/Matomo-Self-Hosted-Settings und auditierbare DSGVO-Anfragen mit Begründungspflicht bei Ablehnungen |
 | Sicherheit | `/admin/antispam`, `/admin/firewall`, `/admin/security-audit` | Schutzmaßnahmen und Auditing mit zentralem AntiSpam-Vertrag für Kommentare und aktive Kontaktformulare |
-| Plugins | `/admin/plugins`, `/admin/plugin-marketplace` sowie Plugin-Unterseiten | Plugin-Lifecycle mit stabiler, request-idempotenter Menü-Registry für dynamische Sidebar- und Submenü-Einträge |
+| Plugins | `/admin/plugins`, `/admin/plugin-marketplace` sowie Plugin-Unterseiten | Plugin-Lifecycle mit stabiler, request-idempotenter Menü-Registry für dynamische Sidebar- und Submenü-Einträge, kollisionsfreier Positionsauflösung, natürlicher Label-Sortierung, scrollbar langer Plugin-Menülisten und Core-Layout-Fallbacks für Inhaltscallbacks |
 | System | `/admin/settings`, `/admin/backups`, `/admin/updates`, `/admin/cms-logs` | Konfiguration, Backups mit Download/Restore, Updates inklusive zentralem Theme-Installpfad, zentrale CMS-Logs mit Betriebs-Audit und Update-Historie; die Kernseiten `Settings` und `Mail & Azure OAuth2` sind seit `17.05.2026` visuell vereinheitlicht (reduzierte Badge-/Kacheloptik, konsistente Toolbar-/Content-Struktur) |
 | Info | `/admin/info`, `/admin/documentation` | Systeminfo und lokale Dokuansicht |
 | Diagnose | `/admin/diagnose` sowie Monitoring-Seiten | technische Prüfungen und Monitoring mit realem lokalem Health-Endpunkt-Check statt dekorativer Markierung sowie nachvollziehbaren Betriebs- und Update-Spuren in `/admin/cms-logs` |
@@ -115,6 +117,8 @@ Alle Einstiege folgen demselben Grundmuster:
 Für das Dashboard gilt seit `2.9.615` zusätzlich: einzelne Statistikquellen müssen fail-soft isoliert werden, damit ein ausgefallener Teilblock nicht die komplette Startseite bricht. Seit `2.9.718` bleibt die Personalisierung außerdem nicht mehr auf Sichtbarkeit beschränkt; die Reihenfolge von Arbeits-Widgets und Favoriten wird ebenfalls pro Admin-Benutzer persistiert und serverseitig allowlist-basiert normalisiert. Seit `2.9.719` werden die browserlokalen „Zuletzt genutzt“-Einträge beim Lesen und Schreiben zusätzlich bereinigt, dedupliziert und größenbegrenzt, während das Dashboard-CSS als seitenbezogenes Asset statt inline geladen wird. Seit `2.9.720` ergänzt das Dashboard darauf aufbauend rollenbasierte Standardvorlagen als Default- und Reset-Basis für Bereiche, Arbeits-Widgets, Favoriten und deren Reihenfolge, ohne persönliche Anpassungen global zurück in die Vorlage zu schreiben. Seit `3.0.11` wird die UX-Hierarchie zusätzlich über eine klare Typoskala, stärkeren vertikalen Rhythmus, nicht-redundante KPI-Struktur und scanbarere Recent-/Sidebar-Navigation fortgeführt.
 
 Das ist wichtig für konsistente Fehlerbehandlung, PRG-Flow und nachvollziehbare Audit-Einträge.
+
+Seit `3.3.44` ist außerdem der Admin-Pluginpfad gehärtet: `add_menu_page()` verschiebt belegte numerische Menüpositionen auf die nächste freie Position, die Sidebar hält Bootstrap-/Popper-Dropdowns im normalen Dokumentfluss, und der AdminRouter ergänzt Inhaltscallbacks ohne eigene `page-body`-Struktur automatisch um den zentralen Content-Wrapper. Knowledgebase- und ausgewählte M365-Pluginrouten besitzen Core-Fallbacks für verschachtelte Plugin-Unterseiten, damit direkte `/admin/plugins/...`-Aufrufe nicht am fehlenden Hook-Callback scheitern.
 
 Seit `2.9.724` sind außerdem zwei produktive Redeclare-Fatal-Pfade im Admin-/Theme-Bootstrap gehärtet: `CMS\SchemaManager` wird nur noch als konditionale Klasse deklariert, und die Default-Theme-Hilfsfunktion `meridian_nav_menu()` ist in beiden möglichen Helferdateien per `function_exists()` geschützt.
 

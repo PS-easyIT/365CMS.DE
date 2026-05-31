@@ -1,5 +1,5 @@
 # 365CMS – Dokumentationsindex
-> **Stand:** 2026-05-02 | **Version:** 2.9.248 | **Status:** Aktuell
+> **Stand:** 2026-05-31 | **Version:** 3.3.44 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Schnellstart](#schnellstart)
@@ -11,7 +11,7 @@
 - [Direktlinks für häufige Aufgaben](#direktlinks-für-häufige-aufgaben)
 
 ---
-<!-- UPDATED: 2026-05-02 -->
+<!-- UPDATED: 2026-05-31 -->
 
 ## Schnellstart
 
@@ -53,6 +53,8 @@
 | [admin/GUIDE.md](admin/GUIDE.md) | operativer Leitfaden für Administratoren |
 | [admin/FILESTRUCTURE.md](admin/FILESTRUCTURE.md) | Admin-Dateistruktur und Routing |
 | [admin/PANEL-INTEGRATION.md](admin/PANEL-INTEGRATION.md) | Integration eigener Admin-Seiten |
+
+Aktueller Nachtrag `3.3.44`: Admin-Pluginmenüs, Sidebar-Scroll, Plugin-Layout-Fallbacks und Translation-Fallbacks sind in `admin/PANEL-INTEGRATION.md`, `admin/README.md` und `core/SERVICES.md` nachgezogen.
 
 ### Wichtige Teilbereiche
 

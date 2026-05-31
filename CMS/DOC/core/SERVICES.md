@@ -1,5 +1,5 @@
 # 365CMS – Services-Referenz
-> **Stand:** 2026-05-20 | **Version:** 3.0.13 | **Status:** Aktuell
+> **Stand:** 2026-05-31 | **Version:** 3.3.44 | **Status:** Aktuell
 
 Vollständige Dokumentation des Service-Layers. Alle Service-Klassen liegen im Namespace `CMS\Services` unter `core/Services/`. Der `CacheManager` befindet sich im Root-Namespace `CMS` unter `core/CacheManager.php`.
 
@@ -17,7 +17,7 @@ Die Übersicht folgt der produktiven 3.0.13-Laufzeit. Einzelne Services greifen 
 | `MailLogService` | `MailLogService.php` | Persistente Versandprotokolle für Admin & Diagnose |
 | `AzureMailTokenProvider` | `AzureMailTokenProvider.php` | XOAUTH2-Tokenbeschaffung für Microsoft 365 SMTP |
 | `SearchService` | `SearchService.php` | Volltextsuche (TNTSearch, GermanStemmer) |
-| `TranslationService` | `TranslationService.php` | Übersetzungssystem (i18n, Symfony Translation) |
+| `TranslationService` | `TranslationService.php` | Übersetzungssystem (i18n, Symfony Translation mit eigenem Fallback-Katalog) |
 | `MediaService` | `MediaService.php` | Datei-Upload & Medienverwaltung |
 | `ImageService` | `ImageService.php` | Bildverarbeitung (Resize, WebP, Thumbnails) |
 | `FileUploadService` | `FileUploadService.php` | Upload-Validierung & sichere Dateinamen |
@@ -195,14 +195,14 @@ CMS\Hooks::addFilter('search_index_definitions', function (array $defs) {
 
 ---
 
-<!-- UPDATED: 2026-03-08 -->
+<!-- UPDATED: 2026-05-31 -->
 ## 4 · TranslationService
 
 **Datei:** `core/Services/TranslationService.php`
 **Bibliothek:** Symfony Translation (optional, Fallback für Shared-Hosting)
 **Pattern:** Singleton (`getInstance()`)
 
-Internationalisierung mit automatischer Locale-Erkennung und Sprachdateien aus `lang/`.
+Internationalisierung mit automatischer Locale-Erkennung und Sprachdateien aus `lang/`. Seit `3.3.44` wird der einfache Fallback-Katalog unabhängig vom Symfony-Translator vorab geladen. Dadurch bleiben Keys aus dem flachen `default:`-YAML-Format auch dann auflösbar, wenn Symfony Translation verfügbar ist, aber für einen unbekannten Key lediglich den Original-Key zurückgibt.
 
 ### Sprachkonfiguration
 
@@ -242,7 +242,9 @@ $i18n->setLocale('en');
 
 ### Fallback-Mechanismus
 
-Wenn Symfony Translation nicht verfügbar ist (Shared Hosting), wird automatisch der eingebaute Fallback-Katalog verwendet. Übersetzungsschlüssel, für die kein Eintrag existiert, werden in der Standard-Locale (`de`) gesucht.
+Wenn Symfony Translation nicht verfügbar ist (Shared Hosting), wird automatisch der eingebaute Fallback-Katalog verwendet. Übersetzungsschlüssel, für die kein Eintrag existiert, werden in der Standard-Locale (`de`) gesucht. Seit `3.3.44` gilt dieser Fallback auch als zweite Stufe hinter Symfony: liefert Symfony den unveränderten Message-Key zurück, versucht der Core die Auflösung über den eigenen Katalog.
+
+Die aktuellen Sprachdateien `CMS/lang/de.yaml` und `CMS/lang/en.yaml` enthalten außerdem Detailseiten-Keys für `cms_speakers`, `cms_experts`, `cms_companies` und `cms_events`, darunter Breadcrumbs, ARIA-Labels, CTA-Texte, Status-/Verfügbarkeitswerte, Format-/Kategoriebezeichnungen und Abschnittsüberschriften. Plugin-Templates können diese Keys direkt über den TranslationService abrufen und müssen nicht mehr mit hart codierten deutsch/englischen Labels arbeiten.
 
 ---
 

@@ -2,12 +2,12 @@
   "slug": "365cms-core",
   "name": "365CMS",
   "type": "core",
-  "version": "3.3.43",
+  "version": "3.3.44",
   "min_php": "8.4",
   "released": "2026-05-31",
   "download_url": "",
   "changelog_url": "https://raw.githubusercontent.com/PS-easyIT/365CMS.DE/main/Changelog.md",
   "checksum_sha256": "",
-  "notes": "Release-Stand 3.3.43: Kategorie-Zusatzdomains wurden aus der Beitragskategorien-Verwaltung und aus der Root-Domain-Weiterleitung entfernt. HubSite-Domains bleiben unverändert verfügbar.",
+  "notes": "Release-Stand 3.3.44: Admin-Sidebar und Plugin-Menüs wurden für viele aktive Plugins gehärtet, gleiche Menüpositionen überschreiben keine Einträge mehr, Plugin-Content wird automatisch in das Core-Layout eingebettet und Translation-Fallbacks plus Netzwerk-Detailseiten-Keys wurden nachgezogen.",
   "critical": false
 }
