@@ -98,6 +98,8 @@ Der Admin-Bereich folgt einem klassischen professionellen Backend-Flow: klare He
 
 Seit `3.3.44` ist der Plugin-Menüfluss im Admin explizit gehärtet: alle aktiven Plugin-Menüs werden aus der Registry gerendert, gleiche numerische Menüpositionen überschreiben keine anderen Einträge mehr, lange Plugin-Listen scrollen innerhalb der Sidebar und Plugin-Callbacks ohne vollständiges Layout erhalten automatisch den gemeinsamen Admin-Content-Wrapper. Knowledgebase- und ausgewählte M365-Pluginrouten besitzen zusätzliche Core-Fallbacks für verschachtelte `/admin/plugins/...`-Seiten.
 
+Die letzten Core-Nachträge seit dem 26.05.2026 sind dokumentiert: Seit `3.3.42` lädt der Admin keine externen Tabler-Icon-Webfonts mehr, sondern nutzt die lokale Runtime unter `CMS/assets/tabler-icons/`; seit `3.3.43` sind Kategorie-Zusatzdomains aus der Beitragskategorien-Verwaltung entfernt und bleiben klar von HubSite-Domains getrennt.
+
 Typische Workflows:
 
 - Inhalte mit EditorJS erstellen, prüfen, als Entwurf ansehen und veröffentlichen

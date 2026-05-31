@@ -106,7 +106,7 @@ Folgende Pakete liegen unter `/ASSETS`, sind aber **nicht** produktiv in `CMS/as
 - `adhocore/jwt` (`ASSETS/php-jwt_yuliyan_1.1.3/`)
 - weitere Beobachtungskandidaten wie `monolog-bundle-4.0.2`, `msgraph-sdk-php-2.56.0`
 
-Hinweis seit `3.3.42`: Tabler Icons sind nicht mehr nur Beobachtungskandidat. Die produktive Runtime nutzt die lokale Kopie unter `CMS/assets/tabler-icons/`, damit der Admin-Header keine externen jsDelivr-/Tabler-Icon-Webfonts mehr lädt.
+Hinweis seit `3.3.42`: Tabler Icons wurden aus dem Beobachtungskandidaten-Status in die produktive Runtime übernommen. Die lokale Kopie unter `CMS/assets/tabler-icons/` ersetzt externe jsDelivr-/Tabler-Icon-Webfont-Requests im Admin-Header.
 
 Für diese Kandidaten gilt:
 
