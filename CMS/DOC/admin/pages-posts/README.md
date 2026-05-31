@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Überblick über die Content-Module im Admin-Bereich und ihre aktuelle Aufgabenverteilung.
 
-Letzte Aktualisierung: 22.05.2026 · Version 3.0.24
+Letzte Aktualisierung: 31.05.2026 · Version 3.3.44
 
 Der Content-Bereich ist auf mehrere spezialisierte Bereiche verteilt:
 
@@ -59,6 +59,7 @@ Seit `3.0.13` ist das WordPress-ähnliche EditorJS-Bedienverhalten explizit Teil
 - Neue Beitrags- und Seitenbilder werden zuerst temporär hochgeladen und beim Speichern in den Slug-Ordner verschoben; der Save-Flow ist dabei fail-soft gegen Metadaten-/Dateisystemfehler, setzt öffentliche Zielbilder webserverlesbar und speichert hostneutrale direkte `/uploads/...`-Referenzen statt unnötiger Delivery-Query-URLs.
 - Der Beitrags-Editor nutzt im Top-Bereich jetzt eine kompaktere Kartenverteilung: Kategorie und Tags sitzen direkt beim Slug, während Speichern und öffentliche DE-/EN-Vorschau in einer eigenen Aktions-Card unter dem Beitragsbild liegen.
 - Beiträge arbeiten im Editor aktuell mit **einer primären Kategorie**; die frühere UI für zusätzliche Kategorien wird nicht mehr angeboten.
+- Kategorie-Zusatzdomains sind seit `3.3.43` vollständig aus der Beitragskategorien-Verwaltung entfernt. Kategorien dienen nur noch als Taxonomie-/Archivstruktur; Root-Domain-Weiterleitungen auf Kategoriearchive finden nicht mehr statt. HubSite-Domains bleiben davon unberührt.
 - Slug-Änderungen an Kategorien und Tags halten den öffentlichen Taxonomie-Vertrag jetzt ebenfalls stabil: dedizierte Archivpfade und alte `?category=`/`?tag=`-Filterwerte werden weiter auf den aktuellen Slug aufgelöst.
 - Die Kategorie- und Tag-Editoren machen diesen Vertrag inzwischen sichtbar: aktuelle Archivpfade, Redirect-Hinweis direkt am Slug-Feld und Erfolgsdetails zu automatisch gepflegten Archiv-Weiterleitungen sorgen dafür, dass die Cross-Verkabelung im Admin nachvollziehbar bleibt.
 - Kategorien und Tags unterstützen seit `2.9.706` Bulk-Löschaktionen in den jeweiligen Listen. Bei Beitragsbezug erzwingt der Server gültige Ersatzkategorien bzw. Ersatztags, verhindert Ersatzwerte aus der Lösch-Auswahl und protokolliert erfolgreiche Sammelaktionen im Audit-Trail.

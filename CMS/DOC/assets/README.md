@@ -66,6 +66,7 @@ Zusätzliche Hinweise:
 
 - `cookieconsent`, `filepond`, `elfinder` und `simplepie` sind keine aktiven Runtime-Bundles mehr
 - die produktiv eingebundenen Symfony-Bundles `mailer`, `mime` und `translation` deklarieren `PHP >= 8.4`
+- seit `3.3.42` sind Tabler Icons produktiv lokal unter `CMS/assets/tabler-icons/` eingebunden; der Admin-Header lädt keine externen jsDelivr-/Tabler-Icon-Webfonts mehr
 - `DOC/FILELIST.md` bleibt die lesbare Strukturreferenz für die aktuelle Runtime-Oberfläche
 
 ---
@@ -77,9 +78,8 @@ Neu dokumentierte, aber noch nicht produktiv integrierte Pakete:
 - `symfony/cache` unter `ASSETS/cache-8.0.8/`
 - `guzzlehttp/guzzle` unter `ASSETS/guzzle-7.10.0/`
 - `adhocore/jwt` unter `ASSETS/php-jwt_yuliyan_1.1.3/`
-- `tabler-icons-3.41.1` unter `ASSETS/tabler-core-1.4.0/tabler-icons-3.41.1/`
 
-Diese Kandidaten sind im aktuellen Core **nicht aktiv verdrahtet**. Die Code- und Laufzeitprüfung zeigte hierfür keine produktiven Referenzen in `CMS/**`; deshalb wurden sie beim Refresh nach `2.9.208` bewusst nicht in die aktive Runtime übernommen.
+Diese Kandidaten sind im aktuellen Core **nicht aktiv verdrahtet**. Die Code- und Laufzeitprüfung zeigte hierfür keine produktiven Referenzen in `CMS/**`; deshalb wurden sie beim Refresh nach `2.9.208` bewusst nicht in die aktive Runtime übernommen. Ausnahme seit `3.3.42`: Tabler Icons wurden gezielt als lokales Runtime-Bundle nach `CMS/assets/tabler-icons/` übernommen und ersetzen dort den früheren CDN-Request.
 
 Wichtig dazu: `symfony/ai-platform` gehört **nicht mehr** in diese Liste, weil die Basis jetzt bewusst produktiv unter `CMS/assets/ai-platform/` gespiegelt, über `CMS/assets/autoload.php` auflösbar gemacht und in `Diagnose -> Assets` registriert wurde.
 

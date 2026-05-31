@@ -1,5 +1,5 @@
 # 365CMS – Datenbankschema
-> **Stand:** 2026-04-07 | **Version:** 2.9.0 | **Status:** Aktuell
+> **Stand:** 2026-05-31 | **Version:** 3.3.44 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Überblick](#überblick)
@@ -22,14 +22,14 @@
 365CMS nutzt ein relationales Schema auf **MySQL / MariaDB** (Engine: InnoDB, Charset: `utf8mb4`).
 Alle Tabellen verwenden einen konfigurierbaren Präfix (Standard: `cms_`), definiert in `CMS/config/app.php` als `DB_PREFIX`.
 
-Wichtig für den Stand `2.9.0`: Nicht jede Laufzeitfunktion hängt heute primär an SQL-Tabellen. Die Medienbibliothek nutzt für Kategorien und Datei-Metadaten inzwischen vor allem `CMS/config/media-meta.json` plus Dateisystem-Repository; ältere Tabellenreferenzen sind daher als Legacy-/Migrationskontext zu lesen.
+Wichtig für den Stand `3.3.44`: Nicht jede Laufzeitfunktion hängt heute primär an SQL-Tabellen. Die Medienbibliothek nutzt für Kategorien und Datei-Metadaten inzwischen vor allem `CMS/config/media-meta.json` plus Dateisystem-Repository; ältere Tabellenreferenzen sind daher als Legacy-/Migrationskontext zu lesen. Beitragskategorien besitzen keine Kategorie-Zusatzdomains mehr; Domain-Zuordnungen bleiben Hub-Site-Funktionalität.
 
 | Eigenschaft | Wert |
 |---|---|
 | Engine | InnoDB |
 | Charset | utf8mb4 |
 | Tabellen-Präfix | konfigurierbar (`cms_` Standard) |
-| Schema-Version (SchemaManager) | `v14` |
+| Schema-Version (SchemaManager) | `v20` |
 | Schema-Version (MigrationManager) | `v11` |
 | Anzahl Core-Tabellen | 33 |
 
@@ -246,7 +246,7 @@ Versionierung von Beitragsänderungen; speichert die zuletzt ersetzten Inhalte u
 
 ### `cms_post_categories` – Blog-Kategorien
 
-Hierarchische Kategorien für Blog-Beiträge und statische Seiten (Self-Referencing via `parent_id`). Standardmäßig werden u. a. Microsoft-365-Bereiche wie Teams, SharePoint Online, Exchange Online, Copilot, Intune, Defender oder Power Platform als auswählbare Redaktionskategorien vorgehalten.
+Hierarchische Kategorien für Blog-Beiträge und statische Seiten (Self-Referencing via `parent_id`). Standardmäßig werden u. a. Microsoft-365-Bereiche wie Teams, SharePoint Online, Exchange Online, Copilot, Intune, Defender oder Power Platform als auswählbare Redaktionskategorien vorgehalten. Seit `3.3.43` enthält das Core-Schema keine Kategorie-Domain-Alias-Spalte mehr; frühere `alias_domains_json`-Bestände sind Legacy-Kontext und werden von neuen Installationen nicht mehr angelegt.
 
 | Feldname | Typ | Nullable | Default | Beschreibung |
 |---|---|---|---|---|

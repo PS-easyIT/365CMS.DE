@@ -28,13 +28,13 @@
 
 | Version | Typ | Bereich | Beschreibung |
 |---------|-----|---------|-------------|
-| **3.3.43** | 🟡 refactor | Kategorien / Domain-Aliase | **`CMS/core/Router.php`, `CMS/admin/post-categories.php`, `CMS/admin/modules/posts/PostsModule.php`, `CMS/admin/modules/posts/PostsCategoryViewModelBuilder.php`, `CMS/admin/views/posts/categories.php`, `CMS/admin/modules/pages/PagesModule.php`, `CMS/core/SchemaManager.php`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md` und `Changelog.md` entfernen Kategorie-Zusatzdomains vollständig aus der Beitragskategorien-Verwaltung.** Kategorien können keine Fremd-Domains mehr hinterlegen, die Admin-Spalte und das Formular-Payload-Feld sind entfernt, neue Installationen legen keine Kategorie-Domain-Spalte mehr an, und der Router führt keine Root-Domain-Weiterleitung auf Kategoriearchive mehr aus. HubSite-Domains bleiben davon unberührt. |
+| **3.3.43** | 🟡 refactor | Kategorien / Domain-Aliase | **`CMS/core/Router.php`, `CMS/admin/post-categories.php`, `CMS/admin/modules/posts/PostsModule.php`, `CMS/admin/modules/posts/PostsCategoryViewModelBuilder.php`, `CMS/admin/views/posts/categories.php`, `CMS/admin/modules/pages/PagesModule.php`, `CMS/core/SchemaManager.php`, `CMS/DOC/admin/pages-posts/README.md`, `CMS/DOC/admin/pages-posts/POSTS.md`, `CMS/DOC/core/DATABASE-SCHEMA.md`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md` und `Changelog.md` entfernen Kategorie-Zusatzdomains vollständig aus der Beitragskategorien-Verwaltung.** Kategorien können keine Fremd-Domains mehr hinterlegen, die Admin-Spalte und das Formular-Payload-Feld sind entfernt, neue Installationen legen keine Kategorie-Domain-Spalte mehr an, und der Router führt keine Root-Domain-Weiterleitung auf Kategoriearchive mehr aus. HubSite-Domains bleiben davon unberührt. |
 
 ### v3.3.42 — 31.05.2026
 
 | Version | Typ | Bereich | Beschreibung |
 |---------|-----|---------|-------------|
-| **3.3.42** | 🔴 fix | Assets / Tabler Icons | **`CMS/admin/partials/header.php`, `CMS/assets/tabler-icons/`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md` und `Changelog.md` entfernen den Tabler-Icons-CDN-Request aus dem Admin-Header.** Die echten Icon-Webfont-Dateien werden jetzt ausschließlich lokal über `/assets/tabler-icons/tabler-icons.min.css` geladen, damit zur Laufzeit keine externen jsDelivr-/Tabler-Assets angefragt werden. |
+| **3.3.42** | 🔴 fix | Assets / Tabler Icons | **`CMS/admin/partials/header.php`, `CMS/assets/tabler-icons/`, `CMS/DOC/assets/tabler/README.md`, `CMS/DOC/assets/README.md`, `CMS/DOC/ASSET.md`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md` und `Changelog.md` entfernen den Tabler-Icons-CDN-Request aus dem Admin-Header.** Die echten Icon-Webfont-Dateien werden jetzt ausschließlich lokal über `/assets/tabler-icons/tabler-icons.min.css` geladen, damit zur Laufzeit keine externen jsDelivr-/Tabler-Assets angefragt werden. |
 
 ### v3.3.41 — 25.05.2026
 
