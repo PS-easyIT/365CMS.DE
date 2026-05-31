@@ -17,9 +17,6 @@ $editCategoryName = (string) ($formValues['cat_name'] ?? ($editCategory['name'] 
 $editCategorySlug = (string) ($formValues['cat_slug'] ?? ($editCategory['slug'] ?? ''));
 $editCategoryParentId = (int) ($formValues['parent_id'] ?? ($editCategory['parent_id'] ?? 0));
 $editCategoryReplacementId = (int) ($formValues['replacement_category_id'] ?? ($editCategory['replacement_category_id'] ?? 0));
-$editCategoryDomains = array_key_exists('cat_domains', $formValues)
-    ? (string) $formValues['cat_domains']
-    : implode("\n", array_map('strval', $editCategory['domains'] ?? []));
 $isEditing = $editCategoryId > 0;
 $deleteCategoryOptions = array_values(array_filter(
     $categoryOptions,
@@ -79,7 +76,6 @@ $panelState = [
         'cat_slug' => $editCategorySlug,
         'parent_id' => $editCategoryParentId,
         'replacement_category_id' => $editCategoryReplacementId,
-        'cat_domains' => $editCategoryDomains,
     ],
 ];
 $panelStateJson = htmlspecialchars((string) json_encode($panelState, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), ENT_QUOTES);
@@ -166,14 +162,13 @@ $panelStateJson = htmlspecialchars((string) json_encode($panelState, JSON_UNESCA
                                     <th>Slug</th>
                                     <th>Ebene</th>
                                     <th>Ersatz</th>
-                                    <th>Fremd-Domains</th>
                                     <th>Beiträge</th>
                                     <th class="w-1"></th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <?php if ($categories === []): ?>
-                                    <tr><td colspan="8" class="text-secondary text-center py-4">Noch keine Kategorien vorhanden.</td></tr>
+                                    <tr><td colspan="7" class="text-secondary text-center py-4">Noch keine Kategorien vorhanden.</td></tr>
                                 <?php endif; ?>
                                 <?php foreach ($categories as $category): ?>
                                     <tr class="content-listing-table__row">
@@ -195,18 +190,6 @@ $panelStateJson = htmlspecialchars((string) json_encode($panelState, JSON_UNESCA
                                                 <span class="text-secondary">—</span>
                                             <?php else: ?>
                                                 <span><?php echo htmlspecialchars($replacementName, ENT_QUOTES); ?></span>
-                                            <?php endif; ?>
-                                        </td>
-                                        <td>
-                                            <?php $domains = $category['domains'] ?? []; ?>
-                                            <?php if ($domains === []): ?>
-                                                <span class="text-secondary">—</span>
-                                            <?php else: ?>
-                                                <div class="d-flex flex-column gap-1">
-                                                    <?php foreach ($domains as $domain): ?>
-                                                        <code><?php echo htmlspecialchars((string) $domain, ENT_QUOTES); ?></code>
-                                                    <?php endforeach; ?>
-                                                </div>
                                             <?php endif; ?>
                                         </td>
                                         <td>
@@ -247,7 +230,6 @@ $panelStateJson = htmlspecialchars((string) json_encode($panelState, JSON_UNESCA
         <input type="hidden" name="action" value="save_category">
         <input type="hidden" name="cat_id" value="<?php echo $editCategoryId; ?>" data-taxonomy-field="cat_id">
         <input type="hidden" name="replacement_category_id" value="<?php echo $editCategoryReplacementId; ?>" data-taxonomy-field="replacement_category_id">
-        <input type="hidden" name="cat_domains" value="<?php echo htmlspecialchars($editCategoryDomains, ENT_QUOTES); ?>" data-taxonomy-field="cat_domains">
         <div class="taxonomy-slide-panel__header">
             <h3 class="card-title mb-0" data-taxonomy-title><?php echo $isEditing ? 'Kategorie bearbeiten' : 'Neue Kategorie anlegen'; ?></h3>
             <button type="button" class="btn btn-icon btn-ghost-secondary" data-taxonomy-close aria-label="Schließen">

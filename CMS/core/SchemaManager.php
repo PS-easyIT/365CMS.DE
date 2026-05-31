@@ -368,7 +368,6 @@ class SchemaManager
                 description TEXT,
                 parent_id INT UNSIGNED DEFAULT NULL,
                 sort_order INT DEFAULT 0,
-                alias_domains_json TEXT DEFAULT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 INDEX idx_slug (slug),
                 INDEX idx_parent (parent_id)

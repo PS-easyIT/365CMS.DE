@@ -147,8 +147,7 @@ class PostsModule
         $columns = [
             'parent_id' => "ALTER TABLE {$this->prefix}post_categories ADD COLUMN parent_id INT UNSIGNED DEFAULT NULL AFTER description",
             'sort_order' => "ALTER TABLE {$this->prefix}post_categories ADD COLUMN sort_order INT DEFAULT 0 AFTER parent_id",
-            'alias_domains_json' => "ALTER TABLE {$this->prefix}post_categories ADD COLUMN alias_domains_json TEXT DEFAULT NULL AFTER sort_order",
-            'replacement_category_id' => "ALTER TABLE {$this->prefix}post_categories ADD COLUMN replacement_category_id INT UNSIGNED DEFAULT NULL AFTER alias_domains_json",
+            'replacement_category_id' => "ALTER TABLE {$this->prefix}post_categories ADD COLUMN replacement_category_id INT UNSIGNED DEFAULT NULL AFTER sort_order",
         ];
 
         foreach ($columns as $column => $sql) {
@@ -261,8 +260,8 @@ class PostsModule
 
                 if ($rootId <= 0) {
                     $this->db->execute(
-                        "INSERT INTO {$this->prefix}post_categories (name, slug, parent_id, sort_order, alias_domains_json) VALUES (?, ?, NULL, ?, ?)",
-                        [$rootName, $rootSlug, $rootSortOrder, '[]']
+                        "INSERT INTO {$this->prefix}post_categories (name, slug, parent_id, sort_order) VALUES (?, ?, NULL, ?)",
+                        [$rootName, $rootSlug, $rootSortOrder]
                     );
                     $rootId = (int) $this->db->lastInsertId();
                 } else {
@@ -278,8 +277,8 @@ class PostsModule
 
                     if ($categoryId <= 0) {
                         $this->db->execute(
-                            "INSERT INTO {$this->prefix}post_categories (name, slug, parent_id, sort_order, alias_domains_json) VALUES (?, ?, ?, ?, ?)",
-                            [(string) $name, (string) $slug, $rootId, $sortOrder, '[]']
+                            "INSERT INTO {$this->prefix}post_categories (name, slug, parent_id, sort_order) VALUES (?, ?, ?, ?)",
+                            [(string) $name, (string) $slug, $rootId, $sortOrder]
                         );
                     } else {
                         $this->db->execute(
@@ -492,7 +491,7 @@ class PostsModule
     public function getCategoryAdminData(): array
     {
         $categories = $this->db->get_results(
-            "SELECT c.id, c.name, c.slug, c.parent_id, c.sort_order, c.alias_domains_json, c.replacement_category_id,
+            "SELECT c.id, c.name, c.slug, c.parent_id, c.sort_order, c.replacement_category_id,
                     (
                         SELECT COUNT(DISTINCT p2.id)
                         FROM {$this->prefix}posts p2
@@ -501,7 +500,7 @@ class PostsModule
                     ) AS assigned_post_count
              FROM {$this->prefix}post_categories c
              LEFT JOIN {$this->prefix}posts p ON p.category_id = c.id
-             GROUP BY c.id, c.name, c.slug, c.parent_id, c.sort_order, c.alias_domains_json, c.replacement_category_id
+               GROUP BY c.id, c.name, c.slug, c.parent_id, c.sort_order, c.replacement_category_id
              ORDER BY c.sort_order ASC, c.name ASC"
         ) ?: [];
 
@@ -964,7 +963,6 @@ class PostsModule
         $slug = $this->normalizeSlug((string)($post['cat_slug'] ?? ''));
         $parentId = (int) ($post['parent_id'] ?? 0);
         $replacementCategoryId = (int) ($post['replacement_category_id'] ?? 0);
-        $normalizedDomains = $this->normalizeCategoryDomains((string) ($post['cat_domains'] ?? ''));
 
         if ($name === '') {
             return ['success' => false, 'error' => 'Kategoriename darf nicht leer sein.'];
@@ -1009,35 +1007,11 @@ class PostsModule
             }
         }
 
-        if (!empty($normalizedDomains['errors'])) {
-            return ['success' => false, 'error' => (string) $normalizedDomains['errors'][0]];
-        }
-
-        $domains = $normalizedDomains['domains'] ?? [];
-        if ($domains !== [] && $parentId > 0) {
-            return ['success' => false, 'error' => 'Zusatzdomains können nur Hauptkategorien zugeordnet werden.'];
-        }
-
-        foreach ($domains as $domain) {
-            if ($this->categoryDomainExists((string) $domain, $id > 0 ? $id : null)) {
-                return ['success' => false, 'error' => 'Die Zusatzdomain „' . $domain . '“ ist bereits einer anderen Kategorie zugeordnet.'];
-            }
-
-            if ($this->hubDomainExists((string) $domain)) {
-                return ['success' => false, 'error' => 'Die Zusatzdomain „' . $domain . '“ ist bereits einer Hub-Site zugeordnet.'];
-            }
-        }
-
-        $domainsJson = json_encode(array_values($domains), JSON_UNESCAPED_UNICODE);
-        if (!is_string($domainsJson) || $domainsJson === '') {
-            $domainsJson = '[]';
-        }
-
         try {
             if ($id > 0) {
                 $this->db->execute(
-                    "UPDATE {$this->prefix}post_categories SET name = ?, slug = ?, parent_id = ?, alias_domains_json = ?, replacement_category_id = ? WHERE id = ?",
-                    [$name, $slug, $parentId > 0 ? $parentId : null, $domainsJson, $replacementCategoryId > 0 ? $replacementCategoryId : null, $id]
+                    "UPDATE {$this->prefix}post_categories SET name = ?, slug = ?, parent_id = ?, replacement_category_id = ? WHERE id = ?",
+                    [$name, $slug, $parentId > 0 ? $parentId : null, $replacementCategoryId > 0 ? $replacementCategoryId : null, $id]
                 );
                 $redirectDetails = $this->createTaxonomyArchiveRedirectsIfNeeded('category', $previousSlug, $slug);
                 $this->clearContentCacheIfEnabled('post_category_update', $id);
@@ -1048,8 +1022,8 @@ class PostsModule
                 ];
             } else {
                 $this->db->execute(
-                    "INSERT INTO {$this->prefix}post_categories (name, slug, parent_id, alias_domains_json, replacement_category_id) VALUES (?, ?, ?, ?, ?)",
-                    [$name, $slug, $parentId > 0 ? $parentId : null, $domainsJson, $replacementCategoryId > 0 ? $replacementCategoryId : null]
+                    "INSERT INTO {$this->prefix}post_categories (name, slug, parent_id, replacement_category_id) VALUES (?, ?, ?, ?)",
+                    [$name, $slug, $parentId > 0 ? $parentId : null, $replacementCategoryId > 0 ? $replacementCategoryId : null]
                 );
                 $this->clearContentCacheIfEnabled('post_category_create', (int) $this->db->lastInsertId());
                 return ['success' => true, 'message' => 'Kategorie erstellt.'];
@@ -2672,145 +2646,6 @@ class PostsModule
 
         return (int) $this->db->get_var($sql, $params) > 0;
     }
-
-
-    /**
-     * @return array{domains: array<int,string>, errors: array<int,string>}
-     */
-    private function normalizeCategoryDomains(string $rawDomains): array
-    {
-        $entries = preg_split('/[\r\n,;]+/', $rawDomains) ?: [];
-        $domains = [];
-        $errors = [];
-
-        foreach ($entries as $entry) {
-            $normalizedHost = $this->normalizeDomainHost($entry);
-            if ($normalizedHost === '') {
-                if (trim($entry) !== '') {
-                    $errors[] = 'Die Zusatzdomain „' . trim($entry) . '“ ist ungültig.';
-                }
-                continue;
-            }
-
-            if ($this->isMainDomainHost($normalizedHost)) {
-                $errors[] = 'Die Hauptdomain darf nicht als Kategorie-Zusatzdomain verwendet werden.';
-                continue;
-            }
-
-            $domains[] = $normalizedHost;
-        }
-
-        return [
-            'domains' => array_values(array_unique($domains)),
-            'errors' => array_values(array_unique($errors)),
-        ];
-    }
-
-    /**
-     * @return array<int,string>
-     */
-    private function decodeCategoryDomains(string $json): array
-    {
-        $decoded = \CMS\Json::decodeArray($json !== '' ? $json : '[]', []);
-        if (!is_array($decoded)) {
-            return [];
-        }
-
-        $domains = [];
-        foreach ($decoded as $candidate) {
-            $host = $this->normalizeDomainHost((string) $candidate);
-            if ($host !== '') {
-                $domains[] = $host;
-            }
-        }
-
-        return array_values(array_unique($domains));
-    }
-
-    private function categoryDomainExists(string $domain, ?int $excludeId = null): bool
-    {
-        $rows = $this->db->get_results(
-            "SELECT id, alias_domains_json FROM {$this->prefix}post_categories",
-            []
-        ) ?: [];
-
-        foreach ($rows as $row) {
-            $rowId = (int) ($row->id ?? 0);
-            if ($excludeId !== null && $rowId === $excludeId) {
-                continue;
-            }
-
-            foreach ($this->decodeCategoryDomains((string) ($row->alias_domains_json ?? '')) as $candidate) {
-                if ($candidate === $domain) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    }
-
-    private function hubDomainExists(string $domain): bool
-    {
-        $rows = $this->db->get_results(
-            "SELECT settings_json
-             FROM {$this->prefix}site_tables
-             WHERE COALESCE(JSON_UNQUOTE(JSON_EXTRACT(settings_json, '$.content_mode')), 'table') = 'hub'",
-            []
-        ) ?: [];
-
-        foreach ($rows as $row) {
-            $settings = \CMS\Json::decodeArray($row->settings_json ?? null, []);
-            $domains = is_array($settings['hub_domains'] ?? null) ? $settings['hub_domains'] : [];
-            foreach ($domains as $candidate) {
-                if ($this->normalizeDomainHost((string) $candidate) === $domain) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    }
-
-    private function isMainDomainHost(string $host): bool
-    {
-        $siteHost = $this->normalizeDomainHost((string) (parse_url((string) SITE_URL, PHP_URL_HOST) ?? ''));
-        return $siteHost !== '' && $siteHost === $host;
-    }
-
-    private function normalizeDomainHost(string $value): string
-    {
-        $value = trim($value);
-        if ($value === '') {
-            return '';
-        }
-
-        $candidate = preg_match('#^https?://#i', $value) === 1 ? $value : 'https://' . ltrim($value, '/');
-        $parts = parse_url($candidate);
-        if ($parts === false) {
-            return '';
-        }
-
-        $host = strtolower(trim((string) ($parts['host'] ?? ''), '.'));
-        if ($host === '') {
-            return '';
-        }
-
-        if (isset($parts['path']) && $parts['path'] !== '' && $parts['path'] !== '/') {
-            return '';
-        }
-
-        if (isset($parts['query']) || isset($parts['fragment'])) {
-            return '';
-        }
-
-        if (!preg_match('/^(?=.{1,253}$)(?:xn--)?[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.(?:xn--)?[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$/i', $host)) {
-            return '';
-        }
-
-        return $host;
-    }
-
     private function isCategoryDescendant(int $candidateParentId, int $categoryId): bool
     {
         if ($candidateParentId <= 0 || $categoryId <= 0) {

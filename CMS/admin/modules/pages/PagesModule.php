@@ -77,7 +77,6 @@ class PagesModule
         $columns = [
             'parent_id' => "ALTER TABLE {$this->prefix}post_categories ADD COLUMN parent_id INT UNSIGNED DEFAULT NULL AFTER description",
             'sort_order' => "ALTER TABLE {$this->prefix}post_categories ADD COLUMN sort_order INT DEFAULT 0 AFTER parent_id",
-            'alias_domains_json' => "ALTER TABLE {$this->prefix}post_categories ADD COLUMN alias_domains_json TEXT DEFAULT NULL AFTER sort_order",
         ];
 
         foreach ($columns as $column => $sql) {
@@ -102,12 +101,11 @@ class PagesModule
 
             if ($rootId <= 0) {
                 $this->db->execute(
-                    "INSERT INTO {$this->prefix}post_categories (name, slug, parent_id, sort_order, alias_domains_json) VALUES (?, ?, NULL, ?, ?)",
+                    "INSERT INTO {$this->prefix}post_categories (name, slug, parent_id, sort_order) VALUES (?, ?, NULL, ?)",
                     [
                         (string) self::DEFAULT_MS365_ROOT['name'],
                         (string) self::DEFAULT_MS365_ROOT['slug'],
                         10,
-                        '[]',
                     ]
                 );
                 $rootId = (int) $this->db->lastInsertId();
@@ -124,8 +122,8 @@ class PagesModule
 
                 if ($categoryId <= 0) {
                     $this->db->execute(
-                        "INSERT INTO {$this->prefix}post_categories (name, slug, parent_id, sort_order, alias_domains_json) VALUES (?, ?, ?, ?, ?)",
-                        [$name, $slug, $rootId, $sortOrder, '[]']
+                        "INSERT INTO {$this->prefix}post_categories (name, slug, parent_id, sort_order) VALUES (?, ?, ?, ?)",
+                        [$name, $slug, $rootId, $sortOrder]
                     );
                 } else {
                     $this->db->execute(
