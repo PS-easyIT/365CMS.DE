@@ -85,7 +85,9 @@ final class TranslationService
             try {
                 /** @var string $result */
                 $result = $this->translator->trans($message, $parameters, $domain, $this->locale);
-                return $result;
+                if ($result !== $message) {
+                    return $result;
+                }
             } catch (\Throwable) {
                 // Fallback unten
             }
@@ -144,6 +146,17 @@ final class TranslationService
     {
         $available = $this->getAvailableLocales();
 
+        // Fallback-Katalog immer laden: Symfony gibt bei unbekannten Keys den
+        // Original-Key zurück, unser flaches Domain-Format liegt aber unter
+        // `default:` und muss dann weiterhin auflösbar bleiben.
+        foreach ($available as $locale) {
+            $file = $this->langPath . $locale . '.yaml';
+            if (!is_file($file)) {
+                continue;
+            }
+            $this->fallbackCatalog[$locale] = $this->parseSimpleYamlCatalog($file);
+        }
+
         $translatorClass = '\\Symfony\\Component\\Translation\\Translator';
         $yamlLoaderClass = '\\Symfony\\Component\\Translation\\Loader\\YamlFileLoader';
 
@@ -168,15 +181,6 @@ final class TranslationService
             } catch (\Throwable) {
                 $this->translator = null;
             }
-        }
-
-        // Fallback-Katalog laden
-        foreach ($available as $locale) {
-            $file = $this->langPath . $locale . '.yaml';
-            if (!is_file($file)) {
-                continue;
-            }
-            $this->fallbackCatalog[$locale] = $this->parseSimpleYamlCatalog($file);
         }
     }
 
