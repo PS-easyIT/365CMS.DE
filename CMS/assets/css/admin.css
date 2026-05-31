@@ -8781,8 +8781,19 @@ body.admin-body .admin-section-toolbar__actions {
 }
 
 #sidebar-menu .navbar-nav {
+    /* Lange Plugin-Menüs müssen in der vertikalen Sidebar stapeln und scrollen. */
+    display: flex;
+    flex-direction: column;
+    flex-wrap: nowrap;
     gap: 3px;
     padding-top: 0.25rem !important;
+}
+
+#sidebar-menu .nav-item,
+#sidebar-menu .nav-item--plugin {
+    position: relative;
+    flex: 0 0 auto;
+    min-height: 0;
 }
 
 #sidebar-menu .nav-section-label {
@@ -8918,6 +8929,13 @@ body.admin-body .admin-section-toolbar__actions {
 }
 
 #sidebar-menu .dropdown-menu {
+    /* Bootstrap/Popper-Dropdowns in der Sidebar bleiben im normalen Dokumentfluss. */
+    position: static !important;
+    inset: auto !important;
+    transform: none !important;
+    float: none;
+    min-width: 0;
+    width: auto;
     margin: 5px 12px 9px 26px;
     padding: 4px 0;
     background: transparent;

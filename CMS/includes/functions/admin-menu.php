@@ -103,6 +103,20 @@ function cms_find_admin_menu_index(string $menuSlug): int|string|null {
 }
 
 /**
+ * Ermittelt eine freie Menüposition, ohne bestehende Plugin-Menüs zu überschreiben.
+ */
+function cms_resolve_admin_menu_position(int $position): int {
+    global $cms_admin_menu;
+
+    $resolvedPosition = $position;
+    while (array_key_exists($resolvedPosition, $cms_admin_menu)) {
+        $resolvedPosition++;
+    }
+
+    return $resolvedPosition;
+}
+
+/**
  * Add a top-level menu page.
  */
 function add_menu_page(string $page_title, string $menu_title, string $capability, string $menu_slug, $function = '', string $icon_url = '', ?int $position = null, bool $hidden = false): void {
@@ -137,7 +151,7 @@ function add_menu_page(string $page_title, string $menu_title, string $capabilit
     }
 
     if ($position !== null) {
-        $cms_admin_menu[$position] = $menuItem;
+        $cms_admin_menu[cms_resolve_admin_menu_position($position)] = $menuItem;
     } else {
         $cms_admin_menu[] = $menuItem;
     }
