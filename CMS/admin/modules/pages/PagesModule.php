@@ -109,11 +109,6 @@ class PagesModule
                     ]
                 );
                 $rootId = (int) $this->db->lastInsertId();
-            } else {
-                $this->db->execute(
-                    "UPDATE {$this->prefix}post_categories SET name = ?, parent_id = NULL, sort_order = ? WHERE id = ?",
-                    [(string) self::DEFAULT_MS365_ROOT['name'], 10, $rootId]
-                );
             }
 
             $sortOrder = 20;
@@ -124,11 +119,6 @@ class PagesModule
                     $this->db->execute(
                         "INSERT INTO {$this->prefix}post_categories (name, slug, parent_id, sort_order) VALUES (?, ?, ?, ?)",
                         [$name, $slug, $rootId, $sortOrder]
-                    );
-                } else {
-                    $this->db->execute(
-                        "UPDATE {$this->prefix}post_categories SET name = ?, parent_id = ?, sort_order = ? WHERE id = ?",
-                        [$name, $rootId, $sortOrder, $categoryId]
                     );
                 }
 

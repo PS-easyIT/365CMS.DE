@@ -264,11 +264,6 @@ class PostsModule
                         [$rootName, $rootSlug, $rootSortOrder]
                     );
                     $rootId = (int) $this->db->lastInsertId();
-                } else {
-                    $this->db->execute(
-                        "UPDATE {$this->prefix}post_categories SET name = ?, parent_id = NULL, sort_order = ? WHERE id = ?",
-                        [$rootName, $rootSortOrder, $rootId]
-                    );
                 }
 
                 $sortOrder = $rootSortOrder + 10;
@@ -279,11 +274,6 @@ class PostsModule
                         $this->db->execute(
                             "INSERT INTO {$this->prefix}post_categories (name, slug, parent_id, sort_order) VALUES (?, ?, ?, ?)",
                             [(string) $name, (string) $slug, $rootId, $sortOrder]
-                        );
-                    } else {
-                        $this->db->execute(
-                            "UPDATE {$this->prefix}post_categories SET name = ?, parent_id = ?, sort_order = ? WHERE id = ?",
-                            [(string) $name, $rootId, $sortOrder, $categoryId]
                         );
                     }
 
