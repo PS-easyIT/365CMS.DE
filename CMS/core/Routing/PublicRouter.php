@@ -572,10 +572,8 @@ final class PublicRouter
     {
         if (Auth::instance()->isLoggedIn()) {
             $token = $this->requestString($_POST['csrf_token'] ?? $_GET['csrf_token'] ?? '', 128);
-            if (!Security::instance()->verifyToken($token, 'logout')) {
-                $this->router->redirect('/');
-                return;
-            }
+            // Logout must remain reliable even when a cached or stale page contains an expired token.
+            Security::instance()->verifyPersistentToken($token, 'logout');
         }
 
         Auth::instance()->logout();
