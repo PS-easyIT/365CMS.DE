@@ -39,6 +39,9 @@ Options +FollowSymLinks
     RewriteRule ^uploads/.*\.(?:php[0-9]?|phtml|phar|shtml|cgi|pl|py|sh|bash|ksh|zsh|asp|aspx|jsp|jspx|js[pm]|war)$ - [F,L,NC]
     RewriteRule ^uploads/(?:.*?/)?\. - [F,L,NC]
 
+    # Member uploads are delivered through /media-file so Auth can enforce owner/admin access.
+    RewriteRule ^uploads/member(?:/|$) - [F,L,NC]
+
     # Public uploads must remain directly reachable by URL (media library,
     # public downloads and FontManager self-hosted fonts/CSS). Executables and
     # hidden files are blocked above before this passthrough can match.

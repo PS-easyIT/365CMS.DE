@@ -148,8 +148,15 @@ final class AuthManager
             $adapter->updateSignCount((int)$credential['id'], $newCounter);
         }
 
+        $userId = (int)$credential['user_id'];
+        if ($this->sessionAuth->isMfaEnabled($userId)) {
+            $_SESSION['mfa_pending_user_id'] = $userId;
+            $_SESSION['mfa_pending_remember'] = '0';
+            return 'MFA_REQUIRED';
+        }
+
         // Session starten (ohne Passwort-Check, da Passkey verifiziert)
-        if (!$this->sessionAuth->completeLoginForUserId((int)$credential['user_id'])) {
+        if (!$this->sessionAuth->completeLoginForUserId($userId)) {
             return 'Passkey-Anmeldung konnte nicht abgeschlossen werden.';
         }
 
@@ -158,7 +165,7 @@ final class AuthManager
             'passkey_login_success',
             'Passkey-Login erfolgreich.',
             'user',
-            (int)$credential['user_id']
+            $userId
         );
 
         return true;

@@ -184,6 +184,12 @@ final class PublicRouter
                 return;
             }
 
+            if ($result === 'MFA_REQUIRED') {
+                $_SESSION['auth_redirect_after_login'] = $defaultPendingRedirect;
+                $this->router->redirect($this->getLocalizedPublicPath('/mfa-challenge'));
+                return;
+            }
+
             $_SESSION['error'] = (string)$result;
             $this->setAuthFormOldValues('login', [
                 'username' => $this->requestString($_POST['username'] ?? '', 254),
