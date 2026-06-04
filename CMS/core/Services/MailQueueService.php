@@ -25,6 +25,7 @@ class MailQueueService
     private const SETTINGS_RATE_WINDOW = 'queue_rate_window';
     private const DEFAULT_RATE_LIMIT_PER_MINUTE = 8;
     private const MAX_SUBJECT_LENGTH = 255;
+    private const MAX_ATTACHMENT_PATH_LENGTH = 500;
 
     private static ?self $instance = null;
 
@@ -177,8 +178,12 @@ class MailQueueService
 
         $attachmentName = trim($attachmentName) !== '' ? trim($attachmentName) : basename($attachmentPath);
         $attachmentMime = mime_content_type($attachmentPath) ?: 'application/octet-stream';
+        $queuedAttachmentPath = $this->spoolAttachment($attachmentPath, $attachmentName);
+        if ($queuedAttachmentPath === null) {
+            return ['success' => false, 'error' => 'Anhang konnte nicht dauerhaft für die Queue gespeichert werden.'];
+        }
 
-        return $this->enqueueMessage(
+        $result = $this->enqueueMessage(
             $recipient,
             $subject,
             $body,
@@ -187,10 +192,16 @@ class MailQueueService
             $source,
             $maxAttempts,
             $isHtml ? 'html' : 'plain',
-            $attachmentPath,
+            $queuedAttachmentPath,
             $attachmentName,
             $attachmentMime
         );
+
+        if (empty($result['success'])) {
+            $this->deleteManagedAttachment($queuedAttachmentPath);
+        }
+
+        return $result;
     }
 
     /**
@@ -386,6 +397,7 @@ class MailQueueService
 
             if (!empty($result['success'])) {
                 $this->markSent($jobId);
+                $this->deleteManagedAttachment($attachmentPath);
                 $summary['sent']++;
                 continue;
             }
@@ -415,6 +427,7 @@ class MailQueueService
             }
 
             $this->markFailed($jobId, $error, $errorCategory);
+            $this->deleteManagedAttachment($attachmentPath);
             $summary['failed_final']++;
         }
 
@@ -688,6 +701,122 @@ class MailQueueService
         $windowStart = (int) ($window['window_start'] ?? time());
 
         return max(1, 60 - (time() - $windowStart));
+    }
+
+    private function spoolAttachment(string $sourcePath, string $attachmentName): ?string
+    {
+        $directory = $this->getAttachmentSpoolDirectory();
+        if (!$this->ensurePrivateDirectory($directory)) {
+            $this->logger->error('Mail-Queue-Anhang konnte nicht vorbereitet werden', [
+                'directory' => $directory,
+            ]);
+
+            return null;
+        }
+
+        $extension = strtolower((string) pathinfo($attachmentName, PATHINFO_EXTENSION));
+        $extension = preg_match('/^[a-z0-9]{1,16}$/', $extension) === 1 ? ('.' . $extension) : '.bin';
+
+        for ($attempt = 0; $attempt < 3; $attempt++) {
+            try {
+                $target = $directory . DIRECTORY_SEPARATOR . date('YmdHis') . '-' . bin2hex(random_bytes(12)) . $extension;
+            } catch (\Throwable $e) {
+                $this->logger->error('Mail-Queue-Anhang konnte keinen sicheren Dateinamen erzeugen', [
+                    'exception' => $e,
+                ]);
+
+                return null;
+            }
+
+            if (strlen($target) > self::MAX_ATTACHMENT_PATH_LENGTH) {
+                $this->logger->error('Mail-Queue-Anhangpfad überschreitet die Datenbankgrenze', [
+                    'path_length' => strlen($target),
+                    'max_length' => self::MAX_ATTACHMENT_PATH_LENGTH,
+                ]);
+
+                return null;
+            }
+
+            if (is_file($target)) {
+                continue;
+            }
+
+            if (@copy($sourcePath, $target)) {
+                @chmod($target, 0600);
+
+                return $target;
+            }
+        }
+
+        $this->logger->error('Mail-Queue-Anhang konnte nicht in den Queue-Speicher kopiert werden', [
+            'source' => $sourcePath,
+            'directory' => $directory,
+        ]);
+
+        return null;
+    }
+
+    private function getAttachmentSpoolDirectory(): string
+    {
+        return rtrim((string) ABSPATH, '/\\')
+            . DIRECTORY_SEPARATOR . 'cache'
+            . DIRECTORY_SEPARATOR . 'mail-queue'
+            . DIRECTORY_SEPARATOR . 'attachments';
+    }
+
+    private function ensurePrivateDirectory(string $directory): bool
+    {
+        $cacheRoot = rtrim((string) ABSPATH, '/\\') . DIRECTORY_SEPARATOR . 'cache';
+        if (!is_dir($cacheRoot) && !mkdir($cacheRoot, 0755, true) && !is_dir($cacheRoot)) {
+            return false;
+        }
+
+        @chmod($cacheRoot, 0755);
+
+        foreach ([rtrim($cacheRoot, '/\\') . DIRECTORY_SEPARATOR . 'mail-queue', $directory] as $privateDirectory) {
+            if (!is_dir($privateDirectory) && !mkdir($privateDirectory, 0700, true) && !is_dir($privateDirectory)) {
+                return false;
+            }
+
+            @chmod($privateDirectory, 0700);
+        }
+
+        foreach ([dirname($directory), $directory] as $protectedDirectory) {
+            $htaccess = rtrim($protectedDirectory, '/\\') . DIRECTORY_SEPARATOR . '.htaccess';
+            if (!is_file($htaccess)) {
+                @file_put_contents($htaccess, "Require all denied\n", LOCK_EX);
+            }
+        }
+
+        return is_writable($directory);
+    }
+
+    private function deleteManagedAttachment(string $path): void
+    {
+        $path = trim($path);
+        if ($path === '' || !$this->isManagedAttachmentPath($path)) {
+            return;
+        }
+
+        if ((is_file($path) || is_link($path)) && !@unlink($path)) {
+            $this->logger->warning('Mail-Queue-Anhang konnte nicht gelöscht werden', [
+                'path' => $path,
+            ]);
+        }
+    }
+
+    private function isManagedAttachmentPath(string $path): bool
+    {
+        $spoolDirectory = realpath($this->getAttachmentSpoolDirectory());
+        $parentDirectory = realpath(dirname($path));
+        if ($spoolDirectory === false || $parentDirectory === false) {
+            return false;
+        }
+
+        return hash_equals(
+            rtrim(str_replace('\\', '/', $spoolDirectory), '/'),
+            rtrim(str_replace('\\', '/', $parentDirectory), '/')
+        );
     }
 
     /**
