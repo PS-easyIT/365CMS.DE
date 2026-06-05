@@ -327,6 +327,7 @@ final class EditorJsContentNormalizer
             'imageWidth' => self::normalizeMediaWidth($width),
             'imageFit' => self::normalizeImageFit($data['imageFit'] ?? $data['objectFit'] ?? $data['fit'] ?? 'cover', 'cover'),
             'objectFit' => self::normalizeImageFit($data['imageFit'] ?? $data['objectFit'] ?? $data['fit'] ?? 'cover', 'cover'),
+            'verticalAlignment' => self::normalizeMediaTextVerticalAlignment($data['verticalAlignment'] ?? $data['mediaVerticalAlignment'] ?? $data['imageVerticalAlignment'] ?? $data['verticalAlign'] ?? 'top'),
             'showBorder' => filter_var($data['showBorder'] ?? $data['border'] ?? $data['hasBorder'] ?? false, FILTER_VALIDATE_BOOLEAN),
             'spacingTop' => self::normalizeMediaTextSpacing($data['spacingTop'] ?? $data['marginTop'] ?? $data['blockSpacingTop'] ?? 10),
             'spacingBottom' => self::normalizeMediaTextSpacing($data['spacingBottom'] ?? $data['marginBottom'] ?? $data['blockSpacingBottom'] ?? 10),
@@ -746,6 +747,7 @@ final class EditorJsContentNormalizer
         $position = self::resolveMediaTextPosition($element, $attrs, $class);
         $width = self::resolveMediaTextWidth($element, $attrs);
         $imageFit = self::resolveMediaTextImageFit($element, $attrs, $class);
+        $verticalAlignment = self::resolveMediaTextVerticalAlignment($element, $attrs, $class);
         $spacingTop = (string) ($attrs['spacingTop'] ?? $attrs['marginTop'] ?? $attrs['blockSpacingTop'] ?? '');
         if ($spacingTop === '') {
             $spacingTop = $element->getAttribute('data-spacing-top');
@@ -779,6 +781,7 @@ final class EditorJsContentNormalizer
                 'imagePosition' => $position,
                 'imageWidth' => $width,
                 'imageFit' => $imageFit,
+                'verticalAlignment' => $verticalAlignment,
                 'showBorder' => !empty($attrs['showBorder']) || str_contains($class, ' editorjs-media-text--bordered '),
                 'spacingTop' => $spacingTop,
                 'spacingBottom' => $spacingBottom,
@@ -947,6 +950,20 @@ final class EditorJsContentNormalizer
     }
 
     /** @param array<string,mixed> $attrs */
+    private static function resolveMediaTextVerticalAlignment(\DOMElement $element, array $attrs, string $class): string
+    {
+        $alignment = (string) ($attrs['verticalAlignment'] ?? $attrs['mediaVerticalAlignment'] ?? $attrs['imageVerticalAlignment'] ?? $element->getAttribute('data-vertical-alignment') ?: 'top');
+
+        if (preg_match('/ editorjs-media-text--valign-(top|center|bottom) /', $class, $match) === 1) {
+            $alignment = (string) $match[1];
+        } elseif (preg_match('/ is-vertically-aligned-(top|center|bottom) /', $class, $match) === 1) {
+            $alignment = (string) $match[1];
+        }
+
+        return self::normalizeMediaTextVerticalAlignment($alignment);
+    }
+
+    /** @param array<string,mixed> $attrs */
     private static function resolveMediaTextImageFit(\DOMElement $element, array $attrs, string $class): string
     {
         $fit = (string) ($attrs['imageFit'] ?? $attrs['objectFit'] ?? $attrs['fit'] ?? $element->getAttribute('data-image-fit') ?: 'cover');
@@ -1026,6 +1043,18 @@ final class EditorJsContentNormalizer
         $allowed = [0, 5, 10, 15, 20, 30, 40, 60, 80, 100];
 
         return in_array($spacing, $allowed, true) ? (string) $spacing : '10';
+    }
+
+    private static function normalizeMediaTextVerticalAlignment(mixed $value): string
+    {
+        $alignment = strtolower(trim((string) $value));
+
+        return match ($alignment) {
+            'middle', 'centre', 'center' => 'center',
+            'bottom', 'end', 'flex-end' => 'bottom',
+            'top', 'start', 'flex-start' => 'top',
+            default => 'top',
+        };
     }
 
     private static function normalizeImageFit(mixed $value, string $fallback): string

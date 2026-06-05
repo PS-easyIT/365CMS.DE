@@ -884,6 +884,27 @@ final class EditorJsRenderer
         return in_array($spacing, $allowed, true) ? (string) $spacing : '10';
     }
 
+    private function normalizeMediaTextVerticalAlignment(mixed $value): string
+    {
+        $alignment = strtolower(trim((string) $value));
+
+        return match ($alignment) {
+            'middle', 'centre', 'center' => 'center',
+            'bottom', 'end', 'flex-end' => 'bottom',
+            'top', 'start', 'flex-start' => 'top',
+            default => 'top',
+        };
+    }
+
+    private function mediaTextAlignItems(string $verticalAlignment): string
+    {
+        return match ($verticalAlignment) {
+            'center' => 'center',
+            'bottom' => 'flex-end',
+            default => 'flex-start',
+        };
+    }
+
     private function normalizeImageFit(mixed $value, string $fallback): string
     {
         $fit = (string) $value;
@@ -991,6 +1012,7 @@ final class EditorJsRenderer
         $imagePosition = (string)($data['imagePosition'] ?? $data['position'] ?? $data['mediaPosition'] ?? 'left');
         $imageWidth = (string)($data['imageWidth'] ?? $data['mediaWidth'] ?? '40');
         $imageFit = $this->normalizeImageFit($data['imageFit'] ?? $data['objectFit'] ?? $data['fit'] ?? 'cover', 'cover');
+        $verticalAlignment = $this->normalizeMediaTextVerticalAlignment($data['verticalAlignment'] ?? $data['mediaVerticalAlignment'] ?? $data['imageVerticalAlignment'] ?? $data['verticalAlign'] ?? 'top');
         $showBorder = filter_var($data['showBorder'] ?? $data['border'] ?? $data['hasBorder'] ?? false, FILTER_VALIDATE_BOOLEAN);
         $spacingTop = $this->normalizeMediaTextSpacing($data['spacingTop'] ?? $data['marginTop'] ?? $data['blockSpacingTop'] ?? 10);
         $spacingBottom = $this->normalizeMediaTextSpacing($data['spacingBottom'] ?? $data['marginBottom'] ?? $data['blockSpacingBottom'] ?? 10);
@@ -1008,6 +1030,7 @@ final class EditorJsRenderer
             'editorjs-media-text--image-' . $imagePosition,
             'editorjs-media-text--image-width-' . $imageWidth,
             'editorjs-media-text--image-fit-' . $imageFit,
+            'editorjs-media-text--valign-' . $verticalAlignment,
             'editorjs-media-text--spacing-top-' . $spacingTop,
             'editorjs-media-text--spacing-bottom-' . $spacingBottom,
         ];
@@ -1017,12 +1040,13 @@ final class EditorJsRenderer
         if ($heading !== '') {
             $classes[] = 'editorjs-media-text--has-heading';
         }
-        $style = '--cms-editorjs-media-text-image-width:' . $imageWidth . '%;--cms-editorjs-media-text-image-fit:' . $imageFit . ';--cms-editorjs-media-text-spacing-top:' . $spacingTop . 'px;--cms-editorjs-media-text-spacing-bottom:' . $spacingBottom . 'px;--cms-editorjs-space-before:' . $spacingTop . 'px;--cms-editorjs-space-after:' . $spacingBottom . 'px;display:flex;flex-wrap:wrap;align-items:flex-start;gap:24px;margin:' . $spacingTop . 'px 0 ' . $spacingBottom . 'px;padding:' . ($showBorder ? '16px' : '0') . ';padding-top:' . ($showBorder && $heading !== '' ? '0' : ($showBorder ? '16px' : '0')) . ';border:' . ($showBorder ? '1px solid rgba(100,116,139,.32)' : '0 solid transparent') . ';border-radius:2px;width:100%;max-width:100%;min-width:0;box-sizing:border-box;';
+        $alignItems = $this->mediaTextAlignItems($verticalAlignment);
+        $style = '--cms-editorjs-media-text-image-width:' . $imageWidth . '%;--cms-editorjs-media-text-image-fit:' . $imageFit . ';--cms-editorjs-media-text-align-items:' . $alignItems . ';--cms-editorjs-media-text-spacing-top:' . $spacingTop . 'px;--cms-editorjs-media-text-spacing-bottom:' . $spacingBottom . 'px;--cms-editorjs-space-before:' . $spacingTop . 'px;--cms-editorjs-space-after:' . $spacingBottom . 'px;display:flex;flex-wrap:wrap;align-items:' . $alignItems . ';gap:24px;margin:' . $spacingTop . 'px 0 ' . $spacingBottom . 'px;padding:' . ($showBorder ? '16px' : '0') . ';padding-top:' . ($showBorder && $heading !== '' ? '0' : ($showBorder ? '16px' : '0')) . ';border:' . ($showBorder ? '1px solid rgba(100,116,139,.32)' : '0 solid transparent') . ';border-radius:2px;width:100%;max-width:100%;min-width:0;box-sizing:border-box;';
         $mediaStyle = 'margin:0;flex:0 0 var(--cms-editorjs-media-text-image-width);width:var(--cms-editorjs-media-text-image-width);min-width:0;max-width:var(--cms-editorjs-media-text-image-width);box-sizing:border-box;';
         $contentStyle = 'flex:1 1 0;min-width:0;box-sizing:border-box;';
         $headingStyle = 'flex:0 0 ' . ($showBorder ? 'calc(100% + 32px)' : '100%') . ';order:-2;margin:' . ($showBorder ? '0 -16px 8px' : '0 0 8px') . ';padding:' . ($showBorder ? '9px 16px' : '0') . ';border-bottom:' . ($showBorder ? '1px solid rgba(100,116,139,.22)' : '0') . ';border-radius:' . ($showBorder ? '2px 2px 0 0' : '0') . ';background:' . ($showBorder ? 'var(--bg-secondary,#f8fafc)' : 'transparent') . ';color:var(--text-primary,#0f172a);font-size:var(--fs-h4,1.125rem);font-weight:700;line-height:1.3;box-sizing:border-box;';
 
-        $html = '<section class="' . htmlspecialchars(implode(' ', $classes), ENT_QUOTES, 'UTF-8') . '" data-image-position="' . htmlspecialchars($imagePosition, ENT_QUOTES, 'UTF-8') . '" data-image-width="' . htmlspecialchars($imageWidth, ENT_QUOTES, 'UTF-8') . '" data-image-fit="' . htmlspecialchars($imageFit, ENT_QUOTES, 'UTF-8') . '" data-spacing-top="' . $spacingTop . '" data-spacing-bottom="' . $spacingBottom . '" style="' . htmlspecialchars($style, ENT_QUOTES, 'UTF-8') . '">';
+        $html = '<section class="' . htmlspecialchars(implode(' ', $classes), ENT_QUOTES, 'UTF-8') . '" data-image-position="' . htmlspecialchars($imagePosition, ENT_QUOTES, 'UTF-8') . '" data-image-width="' . htmlspecialchars($imageWidth, ENT_QUOTES, 'UTF-8') . '" data-image-fit="' . htmlspecialchars($imageFit, ENT_QUOTES, 'UTF-8') . '" data-vertical-alignment="' . htmlspecialchars($verticalAlignment, ENT_QUOTES, 'UTF-8') . '" data-spacing-top="' . $spacingTop . '" data-spacing-bottom="' . $spacingBottom . '" style="' . htmlspecialchars($style, ENT_QUOTES, 'UTF-8') . '">';
         if ($heading !== '') {
             $html .= '<h4 class="editorjs-media-text__heading" style="' . htmlspecialchars($headingStyle, ENT_QUOTES, 'UTF-8') . '">' . htmlspecialchars($heading, ENT_QUOTES, 'UTF-8') . '</h4>';
         }

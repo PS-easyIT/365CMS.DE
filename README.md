@@ -1,6 +1,6 @@
 # 365CMS.DE
 
-**Version:** [3.3.45](Changelog.md) · **Status:** Stable · **PHP:** 8.4+ · **MySQL:** 5.7+ · **MariaDB:** 10.3+
+**Version:** [3.3.47](Changelog.md) · **Status:** Stable · **PHP:** 8.4+ · **MySQL:** 5.7+ · **MariaDB:** 10.3+
 
 <div align="center">
 
@@ -52,7 +52,7 @@ Wichtige Eigenschaften:
 - Abstandsblöcke mit normalisierten Presets oder Pixelwerten inklusive `10px`, `100px` und `150px`, die im Public-Rendering über Critical-CSS und Public-CSS-Fallbacks erhalten bleiben
 - Bildblöcke mit Upload oder Mediathek-Auswahl, Live-Vorschau, Ausrichtung, Breite, Skalierungsmodus, Maxhöhe, Rahmen, Rundung, Hintergrund und Schatten
 - Mediathek-Auswahlen übernehmen nur echte vorhandene Captions/Alt-Beschreibungen; reine Dateinamen werden nicht mehr als sichtbare Bildunterschrift gespeichert und dateinamenartige Altbestände im Public-Renderer ausgeblendet.
-- Bild-Text-Blöcke mit Bild links oder rechts neben formatiertem Text und responsivem Public-Layout, das die Admin-Vorschau-Breiten und den Bild-Skalierungsmodus auch im Theme-Frontend respektiert; Medien-Eigenschaften liegen im Editor dezent links neben dem Block statt als Overlay über dem Inhalt
+- Bild-Text-Blöcke mit Bild links oder rechts neben formatiertem Text und responsivem Public-Layout, das die Admin-Vorschau-Breiten, den Bild-Skalierungsmodus und die Vertikal-Ausrichtung `oben`, `mittig` oder `unten` auch im Theme-Frontend respektiert; Medien-Eigenschaften liegen im Editor dezent links neben dem Block statt als Overlay über dem Inhalt
 - Text+Bild-Blöcke übernehmen formatierte Zwischenablagen mit Listen, Absätzen und Inline-Formatierungen direkt im selben Block; kombinierte Bild+Text-Pastes laden Bilddateien hoch oder setzen sichere HTML-Bild-URLs, ohne den Text in neue Blöcke auszulagern
 - Eingebettete `data:image`-Quellen aus HTML-Zwischenablagen werden für Text+Bild-Blöcke sicher in Upload-Dateien umgewandelt, statt als nicht renderbare Base64-URL gespeichert zu werden
 - Fehlertolerantes Public-Rendering mit WordPress-/Gutenberg-Block-Übersetzung, inklusive `wp:media-text`, `wp:gallery`, selbstschließenden Bildblöcken und sicheren Media-Text-/Gallery-Inhalten

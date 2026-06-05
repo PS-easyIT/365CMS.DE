@@ -322,13 +322,14 @@
 .editorjs-media-text {
     --cms-editorjs-media-text-image-width: 40%;
     --cms-editorjs-media-text-image-fit: cover;
+    --cms-editorjs-media-text-align-items: flex-start;
     --cms-editorjs-media-text-spacing-top: 10px;
     --cms-editorjs-media-text-spacing-bottom: 10px;
     --cms-editorjs-space-before: var(--cms-editorjs-media-text-spacing-top);
     --cms-editorjs-space-after: var(--cms-editorjs-media-text-spacing-bottom);
     display: flex;
     flex-wrap: wrap;
-    align-items: flex-start;
+    align-items: var(--cms-editorjs-media-text-align-items, flex-start);
     gap: 1.5rem;
     margin: var(--cms-editorjs-media-text-spacing-top) 0 var(--cms-editorjs-media-text-spacing-bottom) !important;
     margin-block-start: var(--cms-editorjs-media-text-spacing-top) !important;
@@ -373,6 +374,21 @@
 
 .editorjs-media-text--image-right {
     flex-direction: row-reverse;
+}
+
+.editorjs-media-text--valign-top,
+.editorjs-media-text[data-vertical-alignment="top"] {
+    --cms-editorjs-media-text-align-items: flex-start;
+}
+
+.editorjs-media-text--valign-center,
+.editorjs-media-text[data-vertical-alignment="center"] {
+    --cms-editorjs-media-text-align-items: center;
+}
+
+.editorjs-media-text--valign-bottom,
+.editorjs-media-text[data-vertical-alignment="bottom"] {
+    --cms-editorjs-media-text-align-items: flex-end;
 }
 
 .editorjs-media-text__heading {
@@ -666,6 +682,7 @@
     .editorjs-media-text,
     .editorjs-media-text--image-right {
         flex-direction: column;
+        align-items: stretch;
         gap: 1rem;
     }
 

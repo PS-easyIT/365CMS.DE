@@ -1,4 +1,4 @@
-﻿**Version:** 3.3.45
+﻿**Version:** 3.3.47
 
 # 365CMS Changelog
 
@@ -13,6 +13,22 @@
 | 🔵 | `docs` | Dokumentation |
 | ⬜ | `chore` | Wartungsarbeit / Release |
 | 🛡️ | `security` | Sicherheits- und Audit-Härtung |
+
+---
+
+### v3.3.47 — 05.06.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.3.47** | 🔴 fix | EditorJS / Bild+Text-Ausrichtung | **`CMS/assets/js/editor-init.js`, `CMS/assets/css/admin.css`, `CMS/assets/css/editorjs-content.css`, `CMS/core/Bootstrap.php`, `CMS/core/Services/EditorJsRenderer.php`, `CMS/core/Services/EditorJs/EditorJsContentNormalizer.php`, `CMS/core/Services/EditorJs/EditorJsSanitizer.php`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md`, `CMS/DOC/assets/editorjs/README.md` und `Changelog.md` synchronisieren die neue Vertikal-Ausrichtung für Text+Bild-Blöcke.** `mediaText` speichert jetzt `verticalAlignment` mit `top`, `center` oder `bottom`; Admin-Vorschau, Sanitizer, Normalizer, Public-Renderer, Critical-CSS und `editorjs-content.css` richten den Text entsprechend oben, mittig oder unten bündig zum Bild aus. WordPress-/Gutenberg-Klassen wie `is-vertically-aligned-center` bleiben beim Import erhalten. |
+
+---
+
+### v3.3.46 — 05.06.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.3.46** | 🔴 fix | HubSites / TOC Dark Mode | **`CMS/assets/css/hub-sites.css`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md` und `Changelog.md` synchronisieren den Dark-Mode-Fix für HubSite-Inhaltsverzeichnisse.** Das HubSite-TOC reagiert jetzt sowohl auf `body.dark-mode` als auch auf `html.dark-mode`, nutzt dunkle Container-/Item-Flächen, helle Titel und Labels sowie kontrastreiche Hover- und Leerzustände. |
 
 ---
 

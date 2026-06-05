@@ -291,6 +291,7 @@ final class EditorJsSanitizer
                 $data['imageWidth'] = in_array($imageWidth, ['33', '40', '50'], true) ? $imageWidth : '40';
                 $data['imageFit'] = $this->sanitizeImageFit($data['imageFit'] ?? $data['objectFit'] ?? $data['fit'] ?? 'cover', 'cover');
                 $data['objectFit'] = $data['imageFit'];
+                $data['verticalAlignment'] = $this->sanitizeMediaTextVerticalAlignment($data['verticalAlignment'] ?? $data['mediaVerticalAlignment'] ?? $data['imageVerticalAlignment'] ?? $data['verticalAlign'] ?? 'top');
                 $data['showBorder'] = filter_var($data['showBorder'] ?? $data['border'] ?? $data['hasBorder'] ?? false, FILTER_VALIDATE_BOOLEAN);
                 $data['spacingTop'] = $this->sanitizeMediaTextSpacing($data['spacingTop'] ?? $data['marginTop'] ?? $data['blockSpacingTop'] ?? 10);
                 $data['spacingBottom'] = $this->sanitizeMediaTextSpacing($data['spacingBottom'] ?? $data['marginBottom'] ?? $data['blockSpacingBottom'] ?? 10);
@@ -690,6 +691,18 @@ final class EditorJsSanitizer
         $allowed = [0, 5, 10, 15, 20, 30, 40, 60, 80, 100];
 
         return in_array($spacing, $allowed, true) ? (string) $spacing : '10';
+    }
+
+    private function sanitizeMediaTextVerticalAlignment(mixed $value): string
+    {
+        $alignment = strtolower(trim((string) $value));
+
+        return match ($alignment) {
+            'middle', 'centre', 'center' => 'center',
+            'bottom', 'end', 'flex-end' => 'bottom',
+            'top', 'start', 'flex-start' => 'top',
+            default => 'top',
+        };
     }
 
     private function sanitizeImageFit(mixed $value, string $fallback): string

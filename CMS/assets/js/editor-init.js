@@ -967,6 +967,7 @@
         var spacingTop = normalizeMediaTextSpacingValue(resolveMediaTextOptionValue(source, ['spacingTop', 'marginTop', 'blockSpacingTop'], '10'));
         var spacingBottom = normalizeMediaTextSpacingValue(resolveMediaTextOptionValue(source, ['spacingBottom', 'marginBottom', 'blockSpacingBottom'], '10'));
         var imageFit = normalizeImageFitValue(source.imageFit || source.objectFit || source.fit || 'cover', 'cover');
+        var verticalAlignment = normalizeMediaTextVerticalAlignment(resolveMediaTextOptionValue(source, ['verticalAlignment', 'mediaVerticalAlignment', 'imageVerticalAlignment', 'verticalAlign', 'alignItems'], 'top'));
 
         if (['left', 'right'].indexOf(position) === -1) {
             position = 'left';
@@ -981,6 +982,7 @@
             imageWidth: width,
             imageFit: imageFit,
             objectFit: imageFit,
+            verticalAlignment: verticalAlignment,
             showBorder: showBorder,
             spacingTop: spacingTop,
             spacingBottom: spacingBottom
@@ -1058,6 +1060,33 @@
         }
 
         return '10';
+    }
+
+    function normalizeMediaTextVerticalAlignment(value) {
+        var alignment = String(value || '').trim().toLowerCase();
+
+        if (['middle', 'center', 'centre'].indexOf(alignment) !== -1) {
+            return 'center';
+        }
+        if (['bottom', 'end', 'flex-end'].indexOf(alignment) !== -1) {
+            return 'bottom';
+        }
+        if (['top', 'start', 'flex-start'].indexOf(alignment) !== -1) {
+            return 'top';
+        }
+
+        return 'top';
+    }
+
+    function getMediaTextAlignItemsValue(verticalAlignment) {
+        if (verticalAlignment === 'center') {
+            return 'center';
+        }
+        if (verticalAlignment === 'bottom') {
+            return 'flex-end';
+        }
+
+        return 'flex-start';
     }
 
     function normalizeSpacerData(data) {
@@ -1281,13 +1310,24 @@
         var position = element.classList && element.classList.contains('has-media-on-the-right') ? 'right' : 'left';
         var style = element.getAttribute('style') || '';
         var widthMatch = style.match(/(?:grid-template-columns|width)\s*:\s*([0-9]{1,3})%/i);
+        var className = element.getAttribute('class') || '';
+        var verticalAlignment = element.getAttribute('data-vertical-alignment') || element.getAttribute('data-vertical') || 'top';
+
+        if (/\bis-vertically-aligned-center\b/i.test(className)) {
+            verticalAlignment = 'center';
+        } else if (/\bis-vertically-aligned-bottom\b/i.test(className)) {
+            verticalAlignment = 'bottom';
+        } else if (/\bis-vertically-aligned-top\b/i.test(className)) {
+            verticalAlignment = 'top';
+        }
 
         return normalizeMediaTextData({
             file: { url: image ? image.getAttribute('src') || '' : '' },
             alt: image ? image.getAttribute('alt') || '' : '',
             text: content ? content.innerHTML || content.textContent || '' : element.textContent || '',
             imagePosition: position,
-            imageWidth: widthMatch ? widthMatch[1] : '40'
+            imageWidth: widthMatch ? widthMatch[1] : '40',
+            verticalAlignment: verticalAlignment
         });
     }
 
@@ -3155,6 +3195,7 @@
                 imageWidth: false,
                 imageFit: false,
                 objectFit: false,
+                verticalAlignment: false,
                 showBorder: false,
                 spacingTop: false,
                 spacingBottom: false
@@ -3203,13 +3244,18 @@
                 ['50', 'Bild 50 %']
             ], this.data.imageWidth || '40');
             var imageFit = this.createSelect(this.getImageFitOptions(), this.data.imageFit || this.data.objectFit || 'cover');
+            var verticalAlignment = this.createSelect([
+                ['top', 'Oben bündig'],
+                ['center', 'Mittig bündig'],
+                ['bottom', 'Unten bündig']
+            ], this.data.verticalAlignment || 'top');
             var border = createInput('checkbox', 'form-check-input', '', '');
             var heading = createInput('text', 'form-control form-control-sm', this.data.heading || '', 'Optionale Überschrift');
             var spacingTop = this.createSelect(this.getSpacingOptions(), this.data.spacingTop || '10');
             var spacingBottom = this.createSelect(this.getSpacingOptions(), this.data.spacingBottom || '10');
             var alt = createInput('text', 'form-control form-control-sm', this.data.alt || '', 'Alt-Text');
             var status = createElement('div', 'form-hint');
-            var updatePreview = this.updatePreview.bind(this, wrapper, preview, headingPreview, image, url, alt, position, width, imageFit, border, heading, spacingTop, spacingBottom);
+            var updatePreview = this.updatePreview.bind(this, wrapper, preview, headingPreview, image, url, alt, position, width, imageFit, verticalAlignment, border, heading, spacingTop, spacingBottom);
 
             wrapper.classList.add('is-empty');
             controls.dataset.cmsEditorUi = 'true';
@@ -3221,6 +3267,7 @@
             position.disabled = this.readOnly;
             width.disabled = this.readOnly;
             imageFit.disabled = this.readOnly;
+            verticalAlignment.disabled = this.readOnly;
             border.disabled = this.readOnly;
             border.checked = this.data.showBorder === true;
             heading.readOnly = this.readOnly;
@@ -3242,12 +3289,13 @@
             controls.appendChild(this.createSetting('Position', position));
             controls.appendChild(this.createSetting('Breite', width));
             controls.appendChild(this.createSetting('Skalierung', imageFit));
+            controls.appendChild(this.createSetting('Vertikal', verticalAlignment));
             controls.appendChild(this.createCheckboxSetting('Dezenter Rahmen', border));
             controls.appendChild(this.createSetting('Abstand oben', spacingTop));
             controls.appendChild(this.createSetting('Abstand unten', spacingBottom));
             controls.appendChild(this.createSetting('Alt', alt));
 
-            [url, alt, position, width, imageFit, border, heading, spacingTop, spacingBottom].forEach(function (element) {
+            [url, alt, position, width, imageFit, verticalAlignment, border, heading, spacingTop, spacingBottom].forEach(function (element) {
                 var handleChange = function () {
                     updatePreview();
                     notifyToolChanged(wrapper);
@@ -3270,7 +3318,7 @@
             wrapper.appendChild(preview);
             wrapper.appendChild(controls);
             wrapper.appendChild(status);
-            this.nodes = { wrapper: wrapper, preview: preview, headingPreview: headingPreview, media: media, image: image, content: content, url: url, libraryButton: libraryButton, position: position, width: width, imageFit: imageFit, border: border, heading: heading, spacingTop: spacingTop, spacingBottom: spacingBottom, alt: alt, status: status };
+            this.nodes = { wrapper: wrapper, preview: preview, headingPreview: headingPreview, media: media, image: image, content: content, url: url, libraryButton: libraryButton, position: position, width: width, imageFit: imageFit, verticalAlignment: verticalAlignment, border: border, heading: heading, spacingTop: spacingTop, spacingBottom: spacingBottom, alt: alt, status: status };
             updatePreview();
 
             return wrapper;
@@ -3324,11 +3372,12 @@
             label.appendChild(text);
             return label;
         }
-        updatePreview(wrapper, preview, headingPreview, image, urlInput, altInput, positionInput, widthInput, imageFitInput, borderInput, headingInput, spacingTopInput, spacingBottomInput) {
+        updatePreview(wrapper, preview, headingPreview, image, urlInput, altInput, positionInput, widthInput, imageFitInput, verticalAlignmentInput, borderInput, headingInput, spacingTopInput, spacingBottomInput) {
             var url = String(urlInput.value || '').trim();
             var position = ['left', 'right'].indexOf(positionInput.value) !== -1 ? positionInput.value : 'left';
             var width = ['33', '40', '50'].indexOf(widthInput.value) !== -1 ? widthInput.value : '40';
             var imageFit = normalizeImageFitValue(imageFitInput.value || 'cover', 'cover');
+            var verticalAlignment = normalizeMediaTextVerticalAlignment(verticalAlignmentInput && verticalAlignmentInput.value ? verticalAlignmentInput.value : 'top');
             var showBorder = !!(borderInput && borderInput.checked);
             var heading = String(headingInput && headingInput.value ? headingInput.value : '').trim();
             var spacingTop = normalizeMediaTextSpacingValue(spacingTopInput && spacingTopInput.value ? spacingTopInput.value : '10');
@@ -3337,11 +3386,16 @@
             preview.dataset.imagePosition = position;
             preview.dataset.imageWidth = width;
             preview.dataset.imageFit = imageFit;
+            preview.dataset.verticalAlignment = verticalAlignment;
             preview.classList.toggle('cms-editorjs-media-text-preview--image-right', position === 'right');
+            preview.classList.toggle('cms-editorjs-media-text-preview--valign-top', verticalAlignment === 'top');
+            preview.classList.toggle('cms-editorjs-media-text-preview--valign-center', verticalAlignment === 'center');
+            preview.classList.toggle('cms-editorjs-media-text-preview--valign-bottom', verticalAlignment === 'bottom');
             preview.classList.toggle('cms-editorjs-media-text-preview--bordered', showBorder);
             preview.classList.toggle('has-heading', heading !== '');
             preview.style.setProperty('--cms-media-text-image-width', width + '%');
             preview.style.setProperty('--cms-media-text-object-fit', imageFit);
+            preview.style.setProperty('--cms-media-text-align-items', getMediaTextAlignItemsValue(verticalAlignment));
             preview.style.setProperty('--cms-media-text-spacing-top', spacingTop + 'px');
             preview.style.setProperty('--cms-media-text-spacing-bottom', spacingBottom + 'px');
             image.style.objectFit = imageFit;
@@ -3597,6 +3651,7 @@
                 imagePosition: this.nodes.position ? this.nodes.position.value : 'left',
                 imageWidth: this.nodes.width ? this.nodes.width.value : '40',
                 imageFit: this.nodes.imageFit ? this.nodes.imageFit.value : 'cover',
+                verticalAlignment: this.nodes.verticalAlignment ? this.nodes.verticalAlignment.value : 'top',
                 showBorder: this.nodes.border ? this.nodes.border.checked : false,
                 spacingTop: this.nodes.spacingTop ? this.nodes.spacingTop.value : '10',
                 spacingBottom: this.nodes.spacingBottom ? this.nodes.spacingBottom.value : '10'
