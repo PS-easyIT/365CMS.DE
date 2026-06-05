@@ -113,7 +113,7 @@ $postsHasMultipleAuthors = count($postsAuthorKeys) > 1;
             </div>
 
             <div class="card-body py-2 d-none content-listing-bulkbar" id="bulkBarPosts">
-                <form method="post" id="bulkFormPosts" class="d-flex flex-wrap align-items-center gap-2">
+                <form method="post" action="/admin/posts" id="bulkFormPosts" class="d-flex flex-wrap align-items-center gap-2">
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
                     <input type="hidden" name="action" value="bulk">
                     <span class="text-secondary"><strong id="selectedCountPosts">0</strong> ausgewählt</span>

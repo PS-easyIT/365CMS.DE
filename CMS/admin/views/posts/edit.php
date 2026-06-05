@@ -241,7 +241,7 @@ $additionalCategoryIds = array_values(array_filter(
             <?php $alertData = $alert; $alertMarginClass = 'mb-3'; require __DIR__ . '/../partials/flash-alert.php'; ?>
         <?php endif; ?>
 
-        <form method="post" id="postForm">
+        <form method="post" action="/admin/posts" id="postForm">
             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
             <input type="hidden" name="_action" value="save">
             <input type="hidden" name="editor_locale" value="<?php echo htmlspecialchars($editorLocale); ?>">
