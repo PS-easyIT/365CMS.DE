@@ -578,6 +578,9 @@
     overflow: hidden;
 }
 
+.editorjs-spacer[data-height="0"] { --cms-editorjs-spacer-height: 0px; }
+.editorjs-spacer[data-height="8"] { --cms-editorjs-spacer-height: 8px; }
+.editorjs-spacer[data-height="10"] { --cms-editorjs-spacer-height: 10px; }
 .editorjs-spacer[data-height="15"] { --cms-editorjs-spacer-height: 15px; }
 .editorjs-spacer[data-height="16"] { --cms-editorjs-spacer-height: 16px; }
 .editorjs-spacer[data-height="24"] { --cms-editorjs-spacer-height: 24px; }
@@ -595,6 +598,7 @@
 .editorjs-spacer[data-height="100"] { --cms-editorjs-spacer-height: 100px; }
 .editorjs-spacer[data-height="120"] { --cms-editorjs-spacer-height: 120px; }
 .editorjs-spacer[data-height="140"] { --cms-editorjs-spacer-height: 140px; }
+.editorjs-spacer[data-height="150"] { --cms-editorjs-spacer-height: 150px; }
 .editorjs-spacer[data-height="160"] { --cms-editorjs-spacer-height: 160px; }
 .editorjs-spacer[data-height="180"] { --cms-editorjs-spacer-height: 180px; }
 .editorjs-spacer[data-height="200"] { --cms-editorjs-spacer-height: 200px; }

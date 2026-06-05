@@ -1,4 +1,4 @@
-﻿**Version:** 3.3.44
+﻿**Version:** 3.3.45
 
 # 365CMS Changelog
 
@@ -15,6 +15,12 @@
 | 🛡️ | `security` | Sicherheits- und Audit-Härtung |
 
 ---
+
+### v3.3.45 — 05.06.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.3.45** | 🔴 fix | EditorJS / Public-Spacer | **`CMS/assets/css/editorjs-content.css`, `CMS/core/Bootstrap.php`, `CMS/core/Version.php`, `CMS/update.json`, `CMS/marketplace/core/365cms/update.json`, `README.md`, `CMS/DOC/assets/editorjs/README.md` und `Changelog.md` synchronisieren die Public-Fallbacks für EditorJS-Abstandsblöcke.** `data-height="10"`, `data-height="100"` und `data-height="150"` werden jetzt sowohl im kleinen Critical-CSS als auch im nachgeladenen `editorjs-content.css` explizit auf `10px`, `100px` und `150px` gemappt. Dadurch bleiben die im Editor gewählten Spacer auch dann korrekt sichtbar, wenn Inline-Styles durch nachgelagerte Sanitizer-/Theme-Pfade reduziert wurden. |
 
 ### v3.3.44 — 31.05.2026
 

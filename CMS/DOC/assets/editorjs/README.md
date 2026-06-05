@@ -45,7 +45,7 @@ Damit entsteht ein WordPress-ähnliches Blockgefühl, während Sanitizer, Render
 
 - Neue und bestehende Blöcke werden serverseitig über `EditorJsSanitizer` validiert/sanitized; unbekannte oder ungültige Typen werden verworfen.
 - Das Frontend rendert über `EditorJsRenderer` typ-spezifisch und sanitizt Inline-/Raw-Inhalte erneut.
-- Nachtrag 25.05.2026: `EditorJsSanitizer` normalisiert Spacer-Höhen aus Presets und Pixelwerten in einen begrenzten Bereich bis `200px`; `10px`, `150px` und `200px` sind explizit im Client, Sanitizer und Public-Renderer erlaubt. Ungültige Werte fallen auf sichere Defaults zurück.
+- Nachtrag 05.06.2026 (`3.3.45`): `EditorJsSanitizer` normalisiert Spacer-Höhen aus Presets und Pixelwerten in einen begrenzten Bereich bis `200px`; `10px`, `100px` und `150px` sind explizit im Client, Sanitizer, Public-Renderer, Critical-CSS und `editorjs-content.css` erlaubt. Ungültige Werte fallen auf sichere Defaults zurück.
 - Spacer-Blöcke werden im Public-HTML mit kontrolliertem `data-height`, `role="presentation"` und `aria-hidden="true"` ausgegeben; der zentrale Purifier erlaubt diese Attribute, damit Themes die gespeicherte Höhe per CSS-Fallback sichtbar abbilden können.
 - Das globale Public-Stylesheet `CMS/assets/css/editorjs-content.css` lädt im Frontend seit `3.0.21` nicht mehr render-blockierend: `CMS/core/Bootstrap.php` injiziert einen kleinen Inline-Basisstil für Blöcke, Medien, Tabellen und Spacer und lädt die vollständige CSS anschließend per `preload`/`onload` mit `noscript`-Fallback nach.
 - Themes, die eigene Rich-Content-Abstände setzen, müssen `.editorjs-spacer[data-height]` aus generischen Absatz-/Block-Margins ausnehmen und die Höhe explizit über `height`/`min-height` oder eine CSS-Variable respektieren.
