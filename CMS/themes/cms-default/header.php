@@ -28,7 +28,7 @@ $currentLocale = function_exists('meridian_current_request_locale') ? meridian_c
 $isLoggedIn  = meridian_is_logged_in();
 $flashMsg    = meridian_get_flash();
 $accountPath = function_exists('meridian_account_path') ? meridian_account_path() : '/member/profile';
-$logoutUrl   = $isLoggedIn ? rtrim((string) SITE_URL, '/') . '/logout?csrf_token=' . rawurlencode(\CMS\Security::instance()->generateToken('logout')) : '';
+$logoutUrl   = $isLoggedIn ? rtrim((string) SITE_URL, '/') . '/logout?csrf_token=' . rawurlencode(\CMS\Security::instance()->getSessionToken('logout')) : '';
 $logoImageUrl = $logoUrl !== '' && function_exists('meridian_normalize_public_media_url')
   ? meridian_normalize_public_media_url($logoUrl, false)
   : $logoUrl;

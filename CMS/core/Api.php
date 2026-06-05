@@ -104,6 +104,10 @@ class Api
         if ($slug) {
             $page = $pm->getPageBySlug($slug);
             if ($page) {
+                if (!$this->canCurrentViewerAccessPage($page)) {
+                    $this->sendError('Page not found', 404);
+                }
+
                 $this->sendResponse($page);
             } else {
                 $this->sendError('Page not found', 404);
@@ -114,6 +118,31 @@ class Api
             $pages = $pm->search($query);
             $this->sendResponse($pages);
         }
+    }
+
+    /**
+     * @param array<string,mixed> $page
+     */
+    private function canCurrentViewerAccessPage(array $page): bool
+    {
+        $status = (string) ($page['status'] ?? '');
+        if ($status === 'published' || $status === 'private') {
+            return true;
+        }
+
+        $auth = Auth::instance();
+        $viewer = $auth->currentUser();
+        $viewerId = (int) ($viewer->id ?? 0);
+        if ($viewerId <= 0) {
+            return false;
+        }
+
+        if (Auth::isAdmin() || $auth->hasCapability('manage_pages')) {
+            return true;
+        }
+
+        $authorId = (int) ($page['author_id'] ?? 0);
+        return $authorId > 0 && $authorId === $viewerId;
     }
     
     private function handleUsers(?string $id): void

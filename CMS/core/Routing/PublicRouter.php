@@ -572,7 +572,8 @@ final class PublicRouter
     {
         if (Auth::instance()->isLoggedIn()) {
             $token = $this->requestString($_POST['csrf_token'] ?? $_GET['csrf_token'] ?? '', 128);
-            if (!Security::instance()->verifyToken($token, 'logout')) {
+            $security = Security::instance();
+            if (!$security->verifySessionToken($token, 'logout') && !$security->verifyToken($token, 'logout')) {
                 $this->router->redirect('/');
                 return;
             }

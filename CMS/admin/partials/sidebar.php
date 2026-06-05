@@ -76,7 +76,7 @@ if (!function_exists('sidebarTopLevelIcon')) {
 
 $activePage = cmsNormalizeSidebarActivePage((string) ($activePage ?? ''));
 $siteUrl    = defined('SITE_URL') ? SITE_URL : '';
-$logoutUrl  = rtrim((string) $siteUrl, '/') . '/logout?csrf_token=' . rawurlencode(\CMS\Security::instance()->generateToken('logout'));
+$logoutUrl  = rtrim((string) $siteUrl, '/') . '/logout?csrf_token=' . rawurlencode(\CMS\Security::instance()->getSessionToken('logout'));
 $siteName   = function_exists('cms_get_site_name') ? cms_get_site_name() : (defined('SITE_NAME') ? SITE_NAME : '365CMS');
 $sidebarLogoUrl = cms_asset_url('images/LOGO_365CMS-75px.png', false);
 $sidebarLogoFallbackUrl = $sidebarLogoUrl;

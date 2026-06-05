@@ -10,7 +10,7 @@ $topbarSectionLabel = trim((string) ($topbarSectionLabel ?? 'Dashboard'));
 $topbarCurrentPageLabel = trim((string) ($topbarCurrentPageLabel ?? $pageTitle ?? 'Übersicht'));
 $topbarUnreadNotifications = max(0, (int) ($topbarUnreadNotifications ?? 0));
 $siteUrl = defined('SITE_URL') ? SITE_URL : '';
-$logoutUrl = rtrim((string) $siteUrl, '/') . '/logout?csrf_token=' . rawurlencode(\CMS\Security::instance()->generateToken('logout'));
+$logoutUrl = rtrim((string) $siteUrl, '/') . '/logout?csrf_token=' . rawurlencode(\CMS\Security::instance()->getSessionToken('logout'));
 $currentAdminFirstName = (string) ($currentAdminFirstName ?? '');
 $currentAdminLastName = (string) ($currentAdminLastName ?? '');
 

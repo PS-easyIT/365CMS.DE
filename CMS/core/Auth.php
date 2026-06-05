@@ -894,6 +894,7 @@ class Auth
         unset($user->password);
 
         session_regenerate_id(true);
+        unset($_SESSION['csrf_session_tokens']);
         $_SESSION['user_id'] = $user->id;
         $_SESSION['user_role'] = $user->role;
         $_SESSION['session_start_time'] = time();

@@ -383,6 +383,37 @@ class Security
     }
 
     /**
+     * Return a stable, session-bound token for idempotent UI actions.
+     *
+     * This is intentionally separate from one-time CSRF tokens so repeated page
+     * renders do not evict long-lived navigation actions such as logout.
+     */
+    public function getSessionToken(string $action = 'default'): string
+    {
+        if (!is_array($_SESSION['csrf_session_tokens'] ?? null)) {
+            $_SESSION['csrf_session_tokens'] = [];
+        }
+
+        $stored = $_SESSION['csrf_session_tokens'][$action] ?? null;
+        if (is_string($stored) && preg_match('/^[a-f0-9]{64}$/', $stored) === 1) {
+            return $stored;
+        }
+
+        $token = bin2hex(random_bytes(32));
+        $_SESSION['csrf_session_tokens'][$action] = $token;
+
+        return $token;
+    }
+
+    public function verifySessionToken(string $token, string $action = 'default'): bool
+    {
+        $token = trim($token);
+        $stored = $_SESSION['csrf_session_tokens'][$action] ?? null;
+
+        return $token !== '' && is_string($stored) && hash_equals($stored, $token);
+    }
+
+    /**
      * @return list<array{token:string,time:int}>
      */
     private function normalizeCsrfTokenBucket(string $action): array
