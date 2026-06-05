@@ -747,10 +747,7 @@ class DashboardService {
                 return false;
             }
 
-            $stmt = $this->db->prepare("SHOW COLUMNS FROM {$table} LIKE ?");
-            $stmt->execute([$column]);
-
-            return $stmt->fetch(\PDO::FETCH_ASSOC) !== false;
+            return $this->db->columnExists($table, $column);
         } catch (\Throwable) {
             return false;
         }

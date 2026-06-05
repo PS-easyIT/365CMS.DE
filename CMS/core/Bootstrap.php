@@ -832,6 +832,11 @@ class Bootstrap
         Hooks::addAction('cms_cron_hourly', static function (): void {
             Services\SecurityAlertService::getInstance()->runScheduledScan();
         }, 40);
+        Hooks::addAction('cms_cron_daily', static function (): void {
+            if (!Services\SEOService::getInstance()->saveSitemapBundle()) {
+                throw new \RuntimeException('SEO-Sitemap-Bundle konnte nicht aktualisiert werden.');
+            }
+        }, 20);
 
         Services\OpcacheWarmupService::getInstance()->maybeWarmAfterDeploy(30);
         Debug::checkpoint('bootstrap.opcache_checked');

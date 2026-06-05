@@ -1103,9 +1103,7 @@ class SchemaManager
         }
 
         try {
-            $stmt = $this->db->prepare("SHOW COLUMNS FROM {$table} LIKE ?");
-            $stmt->execute([$column]);
-            if ($stmt instanceof \PDOStatement && !$stmt->fetch()) {
+            if (!$this->db->columnExists($table, $column)) {
                 $this->db->query($alterSql);
             }
         } catch (\Throwable $e) {

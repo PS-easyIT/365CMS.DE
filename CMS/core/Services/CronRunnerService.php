@@ -15,13 +15,14 @@ final class CronRunnerService
 {
     private static ?self $instance = null;
     private const HOURLY_CRON_EXPRESSION = '0 * * * *';
+    private const DAILY_CRON_EXPRESSION = '15 2 * * *';
 
     /**
      * @return list<string>
      */
     public function getSupportedTasks(): array
     {
-        return ['all', 'mail-queue', 'hourly', 'feeds', 'cms_cron_mail_queue', 'cms_cron_hourly', 'cms_cron_feeds'];
+        return ['all', 'mail-queue', 'hourly', 'daily', 'feeds', 'cms_cron_mail_queue', 'cms_cron_hourly', 'cms_cron_daily', 'cms_cron_feeds'];
     }
 
     public static function getInstance(): self
@@ -35,7 +36,7 @@ final class CronRunnerService
 
     /**
      * @param array{task?:mixed,limit?:mixed,force?:mixed,mode?:mixed,source?:mixed} $options
-     * @return array{success:bool,task:string,mode:string,source:string,result:array<string,mixed>,error?:string,error_code?:string}
+        * @return array{success:bool,task:string,mode:string,source:string,result:array<string,mixed>,error?:string,error_code?:string}
      */
     public function run(array $options = []): array
     {
@@ -51,6 +52,7 @@ final class CronRunnerService
             'mail_queue' => null,
             'mail_queue_after_hourly' => null,
             'hourly' => null,
+            'daily' => null,
             'feeds' => null,
             'feed_queue_recovery' => null,
             'feed_queue' => null,
@@ -67,7 +69,7 @@ final class CronRunnerService
                 'source' => $source,
                 'result' => $result,
                 'error_code' => 'invalid_task',
-                'error' => 'Unbekannte Cron-Task. Unterstützt werden aktuell "all", "mail-queue", "hourly", "feeds" und generische "cms_cron_*"-Hooks.',
+                'error' => 'Unbekannte Cron-Task. Unterstützt werden aktuell "all", "mail-queue", "hourly", "daily", "feeds" und generische "cms_cron_*"-Hooks.',
             ];
         }
 
@@ -91,10 +93,13 @@ final class CronRunnerService
             $settings = SettingsService::getInstance();
             $isMailQueueTask = in_array($task, ['mail-queue', 'cms_cron_mail_queue'], true);
             $isHourlyTask = in_array($task, ['hourly', 'cms_cron_hourly'], true);
+            $isDailyTask = in_array($task, ['daily', 'cms_cron_daily'], true);
             $isFeedTask = in_array($task, ['feeds', 'cms_cron_feeds'], true);
             $isAllTask = $task === 'all';
             $shouldRunLegacyHourlyBridge = $task === 'mail-queue'
                 && $settings->getBool('cron', 'mail_queue_triggers_hourly', true);
+            $shouldRunLegacyDailyBridge = $task === 'mail-queue'
+                && $settings->getBool('cron', 'mail_queue_triggers_daily', true);
 
             if ($isMailQueueTask || $isAllTask) {
                 $result['mail_queue'] = $queue->handleCronHook([
@@ -118,6 +123,13 @@ final class CronRunnerService
                 }
             }
 
+            if ($isDailyTask || $isAllTask || $shouldRunLegacyDailyBridge) {
+                $result['daily'] = $this->runDailyHooks($settings, $force);
+                if ($shouldRunLegacyDailyBridge && is_array($result['daily'])) {
+                    $result['daily']['compatibility_mode'] = 'mail_queue_triggers_daily';
+                }
+            }
+
             if (is_array($result['hourly'])
                 && !empty($result['hourly']['executed'])
                 && ($queue->isEnabled() || $force)) {
@@ -137,7 +149,7 @@ final class CronRunnerService
                 $result['feeds'] = $this->runFeedCronTask($limit, $force, $mode, $source);
             }
 
-            if ($isGenericCronHook && !in_array($task, ['cms_cron_mail_queue', 'cms_cron_hourly', 'cms_cron_feeds'], true)) {
+            if ($isGenericCronHook && !in_array($task, ['cms_cron_mail_queue', 'cms_cron_hourly', 'cms_cron_daily', 'cms_cron_feeds'], true)) {
                 $result['hook'] = $this->runGenericHook($task, $limit, $force, $mode, $source);
             }
 
@@ -150,6 +162,9 @@ final class CronRunnerService
             }
             if (is_array($result['hourly']) && array_key_exists('success', $result['hourly'])) {
                 $success = $success && !empty($result['hourly']['success']);
+            }
+            if (is_array($result['daily']) && array_key_exists('success', $result['daily'])) {
+                $success = $success && !empty($result['daily']['success']);
             }
             if (is_array($result['feeds']) && array_key_exists('success', $result['feeds'])) {
                 $success = $success && !empty($result['feeds']['success']);
@@ -366,6 +381,133 @@ final class CronRunnerService
         }
 
         return 3600;
+    }
+
+    private function runDailyHooks(SettingsService $settings, bool $forceRun): array
+    {
+        $scheduleExpression = $this->getDailyScheduleExpression($settings);
+        $cronAdapter = CronExpressionAdapter::getInstance();
+        $lastRunRaw = $settings->getString('cron', 'daily_last_run', '');
+        $lastRunTs = $lastRunRaw !== '' ? strtotime($lastRunRaw) : false;
+        $isDueResult = $this->resolveDailyDueState($cronAdapter, $scheduleExpression, $lastRunTs, $forceRun);
+
+        if (!$isDueResult['is_due']) {
+            return [
+                'success' => true,
+                'executed' => false,
+                'skipped' => true,
+                'reason' => 'Täglicher Hook ist noch nicht fällig.',
+                'last_run' => $lastRunRaw,
+                'next_due_in_seconds' => $isDueResult['next_due_in_seconds'],
+                'schedule_expression' => $scheduleExpression,
+                'scheduler' => $isDueResult['scheduler'],
+            ];
+        }
+
+        try {
+            Hooks::doAction('cms_cron_daily');
+        } catch (\Throwable $e) {
+            \CMS\Logger::instance()->withChannel('cron')->warning('Cron daily hook failed.', [
+                'exception_class' => get_class($e),
+                'exception_message' => $this->truncateForLog($e->getMessage()),
+            ]);
+
+            return [
+                'success' => false,
+                'executed' => false,
+                'skipped' => false,
+                'error' => 'Täglicher Hook fehlgeschlagen. Details wurden intern protokolliert.',
+                'schedule_expression' => $scheduleExpression,
+                'scheduler' => $isDueResult['scheduler'],
+            ];
+        }
+
+        $executedAt = date('Y-m-d H:i:s');
+        $settings->set('cron', 'daily_last_run', $executedAt, false, 0);
+
+        return [
+            'success' => true,
+            'executed' => true,
+            'skipped' => false,
+            'executed_at' => $executedAt,
+            'schedule_expression' => $scheduleExpression,
+            'scheduler' => $isDueResult['scheduler'],
+            'next_due_in_seconds' => $this->computeNextDailyDueInSeconds($cronAdapter, $scheduleExpression, time()),
+        ];
+    }
+
+    private function getDailyScheduleExpression(SettingsService $settings): string
+    {
+        $configured = trim($settings->getString('cron', 'daily_expression', self::DAILY_CRON_EXPRESSION));
+
+        return $configured !== '' ? $configured : self::DAILY_CRON_EXPRESSION;
+    }
+
+    /**
+     * @return array{is_due:bool,next_due_in_seconds:?int,scheduler:string}
+     */
+    private function resolveDailyDueState(CronExpressionAdapter $adapter, string $expression, int|false $lastRunTs, bool $forceRun): array
+    {
+        if ($forceRun) {
+            return [
+                'is_due' => true,
+                'next_due_in_seconds' => 0,
+                'scheduler' => 'forced',
+            ];
+        }
+
+        if ($adapter->isLibraryAvailable() && $adapter->isValid($expression)) {
+            if ($lastRunTs === false) {
+                return [
+                    'is_due' => true,
+                    'next_due_in_seconds' => 0,
+                    'scheduler' => 'poliander-cron',
+                ];
+            }
+
+            $nextRun = $adapter->getNextRunTimestamp($expression, (int) $lastRunTs);
+            if ($nextRun === null) {
+                return [
+                    'is_due' => true,
+                    'next_due_in_seconds' => null,
+                    'scheduler' => 'fallback-interval',
+                ];
+            }
+
+            $remaining = max(0, $nextRun - time());
+            return [
+                'is_due' => $remaining === 0,
+                'next_due_in_seconds' => $remaining,
+                'scheduler' => 'poliander-cron',
+            ];
+        }
+
+        if ($lastRunTs === false) {
+            return [
+                'is_due' => true,
+                'next_due_in_seconds' => null,
+                'scheduler' => 'fallback-interval',
+            ];
+        }
+
+        $ageSeconds = max(0, time() - (int) $lastRunTs);
+        return [
+            'is_due' => $ageSeconds >= 86400,
+            'next_due_in_seconds' => max(0, 86400 - $ageSeconds),
+            'scheduler' => 'fallback-interval',
+        ];
+    }
+
+    private function computeNextDailyDueInSeconds(CronExpressionAdapter $adapter, string $expression, int $anchorTimestamp): ?int
+    {
+        if ($adapter->isLibraryAvailable() && $adapter->isValid($expression)) {
+            $nextRun = $adapter->getNextRunTimestamp($expression, $anchorTimestamp);
+            if ($nextRun !== null) {
+                return max(0, $nextRun - time());
+            }
+        }
+
+        return 86400;
     }
 
     private function runGenericHook(string $hookName, ?int $limit, bool $forceRun, string $mode, string $source): array

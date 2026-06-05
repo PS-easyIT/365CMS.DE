@@ -9,7 +9,7 @@ $commands = $cron['commands'] ?? [];
 $mailQueue = $cron['mail_queue'] ?? [];
 $runner = $cron['runner'] ?? [];
 $lastRun = is_array($cron['last_run'] ?? null) ? $cron['last_run'] : [];
-$runnerTasks = is_array($runner['tasks'] ?? null) ? $runner['tasks'] : ['all', 'mail-queue', 'hourly'];
+$runnerTasks = is_array($runner['tasks'] ?? null) ? $runner['tasks'] : ['all', 'mail-queue', 'hourly', 'daily'];
 $runnerDefaultTask = (string) ($runner['default_task'] ?? 'all');
 $runnerDefaultLimit = (int) ($runner['default_limit'] ?? ($mailQueue['batch_size'] ?? 10));
 $loopbackUrl = (string) ($runner['loopback_url'] ?? '');
@@ -276,7 +276,7 @@ $renderSparkline = static function (array $points, string $strokeColor, string $
 								<label class="form-label d-block">Optionen</label>
 								<label class="form-check form-switch mt-2">
 									<input class="form-check-input" type="checkbox" name="cron_force" value="1">
-									<span class="form-check-label">Stündlichen Hook / Feed-Task erzwingen</span>
+									<span class="form-check-label">Zeitgesteuerte Hooks / Feed-Task erzwingen</span>
 								</label>
 							</div>
 						</div>

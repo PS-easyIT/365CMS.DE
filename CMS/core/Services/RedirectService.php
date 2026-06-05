@@ -921,10 +921,7 @@ final class RedirectService
         }
 
         try {
-            $stmt = $this->db->getPdo()->prepare("SHOW COLUMNS FROM {$this->prefix}{$table} LIKE ?");
-            $stmt->execute([$column]);
-            $exists = $stmt->fetch(\PDO::FETCH_ASSOC) !== false;
-            if (!$exists) {
+            if (!$this->db->columnExists($this->prefix . $table, $column)) {
                 $this->db->getPdo()->exec("ALTER TABLE {$this->prefix}{$table} ADD COLUMN {$column} {$definition}");
             }
         } catch (\Throwable) {

@@ -225,9 +225,7 @@ class SystemService {
             
             try {
                 // Check if table exists
-                $stmt = $pdo->prepare('SHOW TABLES LIKE ?');
-                $stmt->execute([$full_table]);
-                if ($stmt->fetch(PDO::FETCH_NUM) !== false) {
+                if ($this->db->tableExists($full_table)) {
                     $status['exists'] = true;
                     $quotedFullTable = $this->quoteIdentifier($full_table);
                     

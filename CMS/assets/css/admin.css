@@ -5492,6 +5492,8 @@ input:checked + .slider:before { transform: translateX(22px); }
 }
 
 .editorjs-holder .cms-editorjs-tool--warning {
+    --cms-editorjs-warning-title-color: #1d4ed8;
+    --cms-editorjs-warning-message-color: #334155;
     gap: 0.55rem;
     padding: 1rem 1.1rem;
     border: 1px solid #bfdbfe;
@@ -5500,19 +5502,33 @@ input:checked + .slider:before { transform: translateX(22px); }
     background: linear-gradient(180deg, #eff6ff 0%, #f8fbff 100%);
 }
 
+.editorjs-holder .cms-editorjs-tool--warning-info {
+    --cms-editorjs-warning-title-color: #1d4ed8;
+    --cms-editorjs-warning-message-color: #334155;
+    border-color: #bfdbfe;
+    border-left-color: #2563eb;
+    background: linear-gradient(180deg, #eff6ff 0%, #f8fbff 100%);
+}
+
 .editorjs-holder .cms-editorjs-tool--warning-warning {
+    --cms-editorjs-warning-title-color: #92400e;
+    --cms-editorjs-warning-message-color: #713f12;
     border-color: #fde68a;
     border-left-color: #d97706;
     background: linear-gradient(180deg, #fffbeb 0%, #fff7ed 100%);
 }
 
 .editorjs-holder .cms-editorjs-tool--warning-success {
+    --cms-editorjs-warning-title-color: #166534;
+    --cms-editorjs-warning-message-color: #14532d;
     border-color: #bbf7d0;
     border-left-color: #16a34a;
     background: linear-gradient(180deg, #f0fdf4 0%, #f7fee7 100%);
 }
 
 .editorjs-holder .cms-editorjs-tool--warning-danger {
+    --cms-editorjs-warning-title-color: #991b1b;
+    --cms-editorjs-warning-message-color: #7f1d1d;
     border-color: #fecaca;
     border-left-color: #dc2626;
     background: linear-gradient(180deg, #fef2f2 0%, #fff7f7 100%);
@@ -5523,18 +5539,19 @@ input:checked + .slider:before { transform: translateX(22px); }
     min-height: 0;
     padding: 0;
     border: 0;
-    color: #1e293b;
+    color: var(--cms-editorjs-warning-message-color, #334155);
     background: transparent;
     box-shadow: none;
 }
 
 .editorjs-holder .cms-editorjs-warning__title {
+    color: var(--cms-editorjs-warning-title-color, #1e293b);
     font-weight: 800;
     font-size: 0.98rem;
 }
 
 .editorjs-holder .cms-editorjs-warning__message {
-    color: #334155;
+    color: var(--cms-editorjs-warning-message-color, #334155);
 }
 
 .editorjs-holder .cms-editorjs-warning__title:focus,

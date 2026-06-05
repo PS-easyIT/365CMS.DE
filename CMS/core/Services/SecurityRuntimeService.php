@@ -411,10 +411,7 @@ final class SecurityRuntimeService
             return;
         }
 
-        $stmt = $this->db->getPdo()->prepare("SHOW COLUMNS FROM {$table} LIKE ?");
-        $stmt->execute([$column]);
-        $exists = $stmt->fetch(\PDO::FETCH_ASSOC) !== false;
-        if ($exists) {
+        if ($this->db->columnExists($table, $column)) {
             return;
         }
 

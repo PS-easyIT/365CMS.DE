@@ -435,6 +435,47 @@ class Database implements DatabaseInterface
         return $this->prefix;
     }
 
+    /**
+     * Prüft sicher, ob eine Tabelle in der aktuellen Datenbank existiert.
+     *
+     * Wichtig: MySQL/MariaDB akzeptiert native Prepared Statements nicht zuverlässig
+     * für `SHOW TABLES/COLUMNS ... LIKE ?`. Deshalb laufen Schema-Kompatibilitätschecks
+     * über `information_schema`.
+     */
+    public function tableExists(string $table): bool
+    {
+        if (!preg_match('/^[A-Za-z0-9_]+$/', $table)) {
+            return false;
+        }
+
+        return (int)($this->get_var(
+            'SELECT COUNT(*)
+             FROM information_schema.TABLES
+             WHERE TABLE_SCHEMA = DATABASE()
+               AND TABLE_NAME = ?',
+            [$table]
+        ) ?? 0) > 0;
+    }
+
+    /**
+     * Prüft sicher, ob eine Spalte in der aktuellen Datenbank existiert.
+     */
+    public function columnExists(string $table, string $column): bool
+    {
+        if (!preg_match('/^[A-Za-z0-9_]+$/', $table) || !preg_match('/^[A-Za-z0-9_]+$/', $column)) {
+            return false;
+        }
+
+        return (int)($this->get_var(
+            'SELECT COUNT(*)
+             FROM information_schema.COLUMNS
+             WHERE TABLE_SCHEMA = DATABASE()
+               AND TABLE_NAME = ?
+               AND COLUMN_NAME = ?',
+            [$table, $column]
+        ) ?? 0) > 0;
+    }
+
     private function sanitizeDiagnosticText(string $value, int $maxLength = 500): string
     {
         $value = $this->maskInlineSecrets($value);

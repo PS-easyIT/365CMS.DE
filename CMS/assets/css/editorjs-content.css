@@ -498,33 +498,50 @@
 }
 
 .editorjs-warning {
-    border-left: 5px solid var(--primary-color, #2563eb);
-    background: color-mix(in srgb, var(--primary-color, #2563eb) 7%, var(--bg-primary, #fff));
+    --cms-editorjs-warning-border: #bfdbfe;
+    --cms-editorjs-warning-accent: #2563eb;
+    --cms-editorjs-warning-bg: #eff6ff;
+    --cms-editorjs-warning-title: #1d4ed8;
+    border-color: var(--cms-editorjs-warning-border);
+    border-left: 5px solid var(--cms-editorjs-warning-accent);
+    background: var(--cms-editorjs-warning-bg);
+}
+
+.editorjs-warning--info,
+.editorjs-warning[data-variant="info"] {
+    --cms-editorjs-warning-border: #bfdbfe;
+    --cms-editorjs-warning-accent: #2563eb;
+    --cms-editorjs-warning-bg: #eff6ff;
+    --cms-editorjs-warning-title: #1d4ed8;
 }
 
 .editorjs-warning--warning,
 .editorjs-warning[data-variant="warning"] {
-    border-color: #fde68a;
-    border-left-color: #d97706;
-    background: #fffbeb;
+    --cms-editorjs-warning-border: #fde68a;
+    --cms-editorjs-warning-accent: #d97706;
+    --cms-editorjs-warning-bg: #fffbeb;
+    --cms-editorjs-warning-title: #92400e;
 }
 
 .editorjs-warning--success,
 .editorjs-warning[data-variant="success"] {
-    border-color: #bbf7d0;
-    border-left-color: #16a34a;
-    background: #f0fdf4;
+    --cms-editorjs-warning-border: #bbf7d0;
+    --cms-editorjs-warning-accent: #16a34a;
+    --cms-editorjs-warning-bg: #f0fdf4;
+    --cms-editorjs-warning-title: #166534;
 }
 
 .editorjs-warning--danger,
 .editorjs-warning[data-variant="danger"] {
-    border-color: #fecaca;
-    border-left-color: #dc2626;
-    background: #fef2f2;
+    --cms-editorjs-warning-border: #fecaca;
+    --cms-editorjs-warning-accent: #dc2626;
+    --cms-editorjs-warning-bg: #fef2f2;
+    --cms-editorjs-warning-title: #991b1b;
 }
 
 .editorjs-warning .warning-title {
     margin-bottom: .35rem;
+    color: var(--cms-editorjs-warning-title, inherit);
     font-weight: 700;
 }
 

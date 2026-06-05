@@ -25,7 +25,7 @@
     var TUNE_TOOL_NAMES = ['anchor', 'alignmentTune', 'indentTune', 'textVariant'];
     var PLUGIN_NAMES = ['undo', 'dragDrop'];
     var TOOL_NAMES = BLOCK_TOOL_NAMES.concat(INLINE_TOOL_NAMES, TUNE_TOOL_NAMES);
-    var VERSION = 'cms-editorjs-org-assets-2026-05-25-media-text-h4-toc-ul-3-3-32';
+    var VERSION = 'cms-editorjs-org-assets-2026-06-05-paste-sanitize-warning-colors';
     var THEME_PREVIEW_STYLE_CACHE = {};
     var TOOL_GLOBALS = {
         paragraph: ['CmsParagraphTool', 'Paragraph'],
@@ -800,6 +800,7 @@
         var value = data && typeof data === 'object' ? data : {};
         var alignment = String(value.alignment || 'left');
         var spacing = String(value.spacing || 'normal');
+        var text = String(value.text || value.content || value.html || '');
 
         if (['left', 'center', 'right', 'justify'].indexOf(alignment) === -1) {
             alignment = 'left';
@@ -809,7 +810,7 @@
         }
 
         return Object.assign({}, value, {
-            text: String(value.text || ''),
+            text: sanitizeEditableHtml(text),
             alignment: alignment,
             spacing: spacing,
             level: type === 'header' ? Math.min(4, Math.max(2, parseInt(value.level || 2, 10) || 2)) : value.level
