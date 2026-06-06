@@ -89,7 +89,6 @@ $passwordPolicyHint = 'Mindestens 12 Zeichen sowie Groß-/Kleinbuchstabe, Zahl u
             margin: 0;
             min-height: 100vh;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
-            background: linear-gradient(145deg, var(--cms-auth-bg-start) 0%, var(--cms-auth-bg-end) 100%);
             color: var(--cms-auth-text);
             display: flex;
             align-items: center;
