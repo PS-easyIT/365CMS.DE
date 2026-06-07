@@ -941,6 +941,11 @@ final class EditorJsRenderer
             $columns = 3;
         }
 
+        $borderStyle = (string)($data['borderStyle'] ?? (!empty($data['withBorder']) ? 'thin' : 'none'));
+        if (!in_array($borderStyle, ['none', 'thin', 'medium', 'thick'], true)) {
+            $borderStyle = !empty($data['withBorder']) ? 'thin' : 'none';
+        }
+
         $images = [];
         foreach ((is_array($data['images'] ?? null) ? $data['images'] : []) as $item) {
             $itemData = is_array($item) ? $item : ['url' => (string)$item];
@@ -980,7 +985,12 @@ final class EditorJsRenderer
 
         $gap = 16;
 
-        $html = '<div class="editorjs-block editorjs-gallery editorjs-gallery--cols-' . $columns . '" data-columns="' . $columns . '" style="display:grid;grid-template-columns:repeat(' . $columns . ', minmax(0, 1fr));gap:' . $gap . 'px;align-items:flex-start;">';
+        $galleryClasses = ['editorjs-block', 'editorjs-gallery', 'editorjs-gallery--cols-' . $columns, 'editorjs-gallery--border-' . $borderStyle];
+        if ($borderStyle !== 'none') {
+            $galleryClasses[] = 'editorjs-gallery--border';
+        }
+
+        $html = '<div class="' . implode(' ', $galleryClasses) . '" data-columns="' . $columns . '" data-border="' . htmlspecialchars($borderStyle, ENT_QUOTES, 'UTF-8') . '" style="display:grid;grid-template-columns:repeat(' . $columns . ', minmax(0, 1fr));gap:' . $gap . 'px;align-items:flex-start;">';
         foreach ($images as $image) {
             $html .= '<figure class="editorjs-gallery__item" style="margin:0;min-width:0;">';
             $html .= '<img src="' . htmlspecialchars($image['url'], ENT_QUOTES, 'UTF-8') . '" alt="' . $image['alt'] . '"' . $this->getLazyLoadingAttribute() . ' style="display:block;width:100%;height:auto;aspect-ratio:4/3;object-fit:cover;border-radius:12px;">';

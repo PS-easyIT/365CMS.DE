@@ -338,8 +338,12 @@ final class EditorJsContentNormalizer
     private static function normalizeGalleryData(array $data): array
     {
         $columns = (int) ($data['columns'] ?? $data['cols'] ?? $data['columnCount'] ?? 3);
+        $borderStyle = (string) ($data['borderStyle'] ?? (!empty($data['withBorder']) ? 'thin' : 'none'));
         if (!in_array($columns, [2, 3, 4, 5, 6], true)) {
             $columns = 3;
+        }
+        if (!in_array($borderStyle, ['none', 'thin', 'medium', 'thick'], true)) {
+            $borderStyle = !empty($data['withBorder']) ? 'thin' : 'none';
         }
 
         $sources = [];
@@ -367,6 +371,8 @@ final class EditorJsContentNormalizer
 
         return [
             'columns' => $columns,
+            'borderStyle' => $borderStyle,
+            'withBorder' => $borderStyle !== 'none',
             'images' => $images,
             'urls' => array_values(array_map(static fn(array $item): string => (string) ($item['file']['url'] ?? ''), $images)),
         ];

@@ -908,11 +908,15 @@
     function normalizeGalleryData(data) {
         var galleryData = data && typeof data === 'object' ? data : {};
         var columns = parseInt(galleryData.columns || galleryData.cols || galleryData.columnCount || 3, 10) || 3;
+        var borderStyle = String(galleryData.borderStyle || (galleryData.withBorder ? 'thin' : 'none'));
         var images = [];
         var seenUrls = new Set();
 
         if ([2, 3, 4, 5, 6].indexOf(columns) === -1) {
             columns = 3;
+        }
+        if (['none', 'thin', 'medium', 'thick'].indexOf(borderStyle) === -1) {
+            borderStyle = galleryData.withBorder ? 'thin' : 'none';
         }
 
         ['images', 'items', 'files', 'gallery', 'urls'].forEach(function (key) {
@@ -951,6 +955,8 @@
 
         return {
             columns: columns,
+            borderStyle: borderStyle,
+            withBorder: borderStyle !== 'none',
             images: images,
             urls: images.map(function (item) {
                 return item.file.url;
@@ -2790,6 +2796,8 @@
         static get sanitize() {
             return {
                 columns: false,
+                borderStyle: false,
+                withBorder: false,
                 images: false,
                 urls: false
             };
@@ -2811,6 +2819,7 @@
             var controls = createElement('div', 'cms-editorjs-floating-options cms-editorjs-gallery__controls');
             var controlsLabel = createElement('span', 'cms-editorjs-floating-options__label', 'Galerie');
             var columns = this.createColumnsSelect();
+            var borderStyle = this.createBorderStyleSelect();
             var upload = createInput('file', 'form-control form-control-sm', '', '');
             var libraryButton = createElement('button', 'btn btn-sm btn-outline-primary', 'Aus Mediathek wählen');
             var okButton = createElement('button', 'btn btn-sm btn-primary', 'OK – Galerie übernehmen');
@@ -2830,9 +2839,11 @@
             okButton.type = 'button';
             okButton.disabled = this.readOnly;
             columns.disabled = this.readOnly;
+            borderStyle.disabled = this.readOnly;
 
             controls.appendChild(controlsLabel);
             controls.appendChild(this.createGalleryField('Spalten', columns));
+            controls.appendChild(this.createGalleryField('Gesamtrahmen', borderStyle));
             controls.appendChild(this.createGalleryField('Upload', upload));
             controls.appendChild(libraryButton);
             controls.appendChild(okButton);
@@ -2840,7 +2851,7 @@
             wrapper.appendChild(list);
             wrapper.appendChild(controls);
 
-            this.nodes = { wrapper: wrapper, columns: columns, upload: upload, libraryButton: libraryButton, okButton: okButton, status: status, list: list };
+            this.nodes = { wrapper: wrapper, columns: columns, borderStyle: borderStyle, upload: upload, libraryButton: libraryButton, okButton: okButton, status: status, list: list };
             this.updateGalleryLayout();
             this.renderImageList();
 
@@ -2850,6 +2861,10 @@
                 self.openImageLibraryPicker();
             });
             columns.addEventListener('change', function () {
+                self.updateGalleryLayout();
+                notifyToolChanged(wrapper);
+            });
+            borderStyle.addEventListener('change', function () {
                 self.updateGalleryLayout();
                 notifyToolChanged(wrapper);
             });
@@ -2872,15 +2887,39 @@
             select.value = String(this.data.columns || 3);
             return select;
         }
+        createBorderStyleSelect() {
+            var select = document.createElement('select');
+            select.className = 'form-select form-select-sm';
+            [
+                ['none', 'Kein Rahmen'],
+                ['thin', 'Dünn'],
+                ['medium', 'Mittel'],
+                ['thick', 'Dick']
+            ].forEach(function (item) {
+                var option = document.createElement('option');
+                option.value = item[0];
+                option.textContent = item[1];
+                select.appendChild(option);
+            });
+            select.value = String(this.data.borderStyle || (this.data.withBorder ? 'thin' : 'none'));
+            return select;
+        }
         updateGalleryLayout() {
             var columns = parseInt(this.nodes.columns ? this.nodes.columns.value : this.data.columns || 3, 10) || 3;
+            var borderStyle = String(this.nodes.borderStyle ? this.nodes.borderStyle.value : (this.data.borderStyle || (this.data.withBorder ? 'thin' : 'none')));
 
             if ([2, 3, 4, 5, 6].indexOf(columns) === -1) {
                 columns = 3;
             }
+            if (['none', 'thin', 'medium', 'thick'].indexOf(borderStyle) === -1) {
+                borderStyle = 'none';
+            }
 
             if (this.nodes.wrapper) {
                 this.nodes.wrapper.dataset.columns = String(columns);
+                this.nodes.wrapper.dataset.border = borderStyle;
+                this.nodes.wrapper.classList.remove('cms-editorjs-gallery--border-none', 'cms-editorjs-gallery--border-thin', 'cms-editorjs-gallery--border-medium', 'cms-editorjs-gallery--border-thick');
+                this.nodes.wrapper.classList.add('cms-editorjs-gallery--border-' + borderStyle);
             }
             if (this.nodes.list) {
                 this.nodes.list.style.setProperty('--cms-editor-gallery-columns', String(columns));
@@ -3124,6 +3163,7 @@
         save() {
             return normalizeGalleryData({
                 columns: this.nodes.columns ? this.nodes.columns.value : this.data.columns,
+                borderStyle: this.nodes.borderStyle ? this.nodes.borderStyle.value : (this.data.borderStyle || 'none'),
                 images: this.images
             });
         }
