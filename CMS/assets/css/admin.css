@@ -5999,30 +5999,37 @@ input:checked + .slider:before { transform: translateX(22px); }
 }
 
 .editorjs-holder .cms-editorjs-gallery__grid {
+    --cms-editorjs-gallery-gap: 5px;
     display: grid;
     grid-template-columns: repeat(var(--cms-editor-gallery-columns, 3), minmax(0, 1fr));
-    gap: 0.75rem;
+    gap: var(--cms-editorjs-gallery-gap);
     padding: 0;
+}
+
+@media (max-width: 768px) {
+    .editorjs-holder .cms-editorjs-gallery__grid {
+        --cms-editorjs-gallery-gap: 4px;
+    }
 }
 
 .editorjs-holder .cms-editorjs-gallery--border-thin .cms-editorjs-gallery__grid {
     border: 1px solid #cbd5e1;
     border-radius: 12px;
-    padding: 4px 8px 8px;
+    padding: 0 8px 8px;
     background: #ffffff;
 }
 
 .editorjs-holder .cms-editorjs-gallery--border-medium .cms-editorjs-gallery__grid {
     border: 2px solid #cbd5e1;
     border-radius: 12px;
-    padding: 4px 8px 8px;
+    padding: 0 8px 8px;
     background: #ffffff;
 }
 
 .editorjs-holder .cms-editorjs-gallery--border-thick .cms-editorjs-gallery__grid {
     border: 4px solid #cbd5e1;
     border-radius: 12px;
-    padding: 3px 6px 6px;
+    padding: 1px 6px 6px;
     background: #ffffff;
 }
 

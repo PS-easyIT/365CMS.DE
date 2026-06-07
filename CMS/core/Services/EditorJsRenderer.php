@@ -983,14 +983,12 @@ final class EditorJsRenderer
             return '';
         }
 
-        $gap = 16;
-
         $galleryClasses = ['editorjs-block', 'editorjs-gallery', 'editorjs-gallery--cols-' . $columns, 'editorjs-gallery--border-' . $borderStyle];
         if ($borderStyle !== 'none') {
             $galleryClasses[] = 'editorjs-gallery--border';
         }
 
-        $html = '<div class="' . implode(' ', $galleryClasses) . '" data-columns="' . $columns . '" data-border="' . htmlspecialchars($borderStyle, ENT_QUOTES, 'UTF-8') . '" style="display:grid;grid-template-columns:repeat(' . $columns . ', minmax(0, 1fr));gap:' . $gap . 'px;align-items:flex-start;">';
+        $html = '<div class="' . implode(' ', $galleryClasses) . '" data-columns="' . $columns . '" data-border="' . htmlspecialchars($borderStyle, ENT_QUOTES, 'UTF-8') . '" style="display:grid;grid-template-columns:repeat(' . $columns . ', minmax(0, 1fr));gap:var(--cms-editorjs-gallery-gap,5px);align-items:flex-start;">';
         foreach ($images as $image) {
             $html .= '<figure class="editorjs-gallery__item" style="margin:0;min-width:0;">';
             $html .= '<img src="' . htmlspecialchars($image['url'], ENT_QUOTES, 'UTF-8') . '" alt="' . $image['alt'] . '"' . $this->getLazyLoadingAttribute() . ' style="display:block;width:100%;height:auto;aspect-ratio:4/3;object-fit:cover;border-radius:12px;">';
