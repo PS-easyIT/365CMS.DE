@@ -51,7 +51,7 @@ final class EditorJsUploadService
             $defaultTargetPath = 'editorjs';
         }
 
-        $contentType = in_array((string) ($post['content_type'] ?? ''), ['post', 'page', 'hub'], true)
+        $contentType = in_array((string) ($post['content_type'] ?? ''), ['post', 'page', 'hub', 'events'], true)
             ? (string) $post['content_type']
             : '';
 
@@ -73,6 +73,7 @@ final class EditorJsUploadService
         $baseFolder = match ($contentType) {
             'page' => 'pages',
             'hub' => 'hub-sites',
+            'events' => 'events',
             default => 'articles',
         };
         if ($folderSlug !== '') {
