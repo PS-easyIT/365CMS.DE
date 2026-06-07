@@ -18,6 +18,12 @@ if (!defined('ABSPATH')) {
 class PluginManager
 {
     private const PROTECTED_PLUGINS = ['cms-importer'];
+    private const PLUGIN_SLUG_ALIASES = [
+        'cms-companies' => 'cms-365netcompanies',
+        'cms-events' => 'cms-365netevents',
+        'cms-experts' => 'cms-365netexperts',
+        'cms-speakers' => 'cms-365netspeakers',
+    ];
 
     private static ?self $instance = null;
     private array $plugins = [];
@@ -38,6 +44,7 @@ class PluginManager
      */
     public function isPluginActive(string $slug): bool
     {
+        $slug = $this->canonicalPluginSlug($slug);
         return in_array($slug, $this->activePlugins, true);
     }
 
@@ -199,7 +206,7 @@ class PluginManager
             }
 
             $plugins = array_values(array_unique(array_filter(array_map(
-                static fn($plugin): string => strtolower(trim((string) $plugin)),
+                fn($plugin): string => $this->canonicalPluginSlug((string) $plugin),
                 $plugins
             ))));
 
@@ -217,6 +224,7 @@ class PluginManager
      */
     public function activatePlugin(string $plugin): bool|string
     {
+        $plugin = $this->canonicalPluginSlug($plugin);
         $pluginFile = $this->resolvePluginBootstrapFile($plugin);
         if ($pluginFile === '' || !file_exists($pluginFile)) {
             return 'Plugin-Datei nicht gefunden.';
@@ -372,7 +380,7 @@ class PluginManager
         }
 
         if (preg_match('/^([a-z0-9][a-z0-9_-]*)/i', $dependency, $matches)) {
-            return strtolower(trim($matches[1]));
+            return $this->canonicalPluginSlug((string) $matches[1]);
         }
 
         return '';
@@ -478,6 +486,7 @@ class PluginManager
      */
     public function deactivatePlugin(string $plugin): bool|string
     {
+        $plugin = $this->canonicalPluginSlug($plugin);
         if (!in_array($plugin, $this->activePlugins)) {
             return 'Plugin ist nicht aktiviert.';
         }
@@ -496,6 +505,7 @@ class PluginManager
      */
     public function deletePlugin(string $plugin): bool|string
     {
+        $plugin = $this->canonicalPluginSlug($plugin);
         if ($this->isProtectedPlugin($plugin)) {
             return 'Das mitgelieferte Kern-Plugin „cms-importer“ kann nicht gelöscht werden.';
         }
@@ -822,7 +832,7 @@ class PluginManager
 
     private function resolvePluginDirectory(string $plugin): string
     {
-        $plugin = strtolower(trim($plugin));
+        $plugin = $this->canonicalPluginSlug($plugin);
         if (!$this->isValidPluginSlug($plugin)) {
             return '';
         }
@@ -845,7 +855,7 @@ class PluginManager
 
     private function resolvePluginBootstrapFile(string $plugin): string
     {
-        $plugin = strtolower(trim($plugin));
+        $plugin = $this->canonicalPluginSlug($plugin);
         if (!$this->isValidPluginSlug($plugin)) {
             return '';
         }
@@ -903,5 +913,15 @@ class PluginManager
         }
 
         return $map;
+    }
+
+    private function canonicalPluginSlug(string $plugin): string
+    {
+        $plugin = strtolower(trim($plugin));
+        if ($plugin === '') {
+            return '';
+        }
+
+        return self::PLUGIN_SLUG_ALIASES[$plugin] ?? $plugin;
     }
 }
