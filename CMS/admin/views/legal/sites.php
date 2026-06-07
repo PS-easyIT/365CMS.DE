@@ -4,6 +4,7 @@ if (!defined('ABSPATH')) exit;
 
 /** @var array $data */
 $d         = $data ?? [];
+$legalSitesAdminBaseUrl = '/admin/legal-sites';
 $pages     = $d['pages'] ?? [];
 $assigned  = $d['assigned_pages'] ?? [];
 $allPages  = $d['all_pages'] ?? [];
@@ -130,14 +131,14 @@ $legalSitesConfig = [
                         </div>
                     <?php endif; ?>
                 </div>
-                <form method="post" class="d-inline">
+                <form method="post" action="<?php echo htmlspecialchars($legalSitesAdminBaseUrl, ENT_QUOTES, 'UTF-8'); ?>" class="d-inline">
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>">
                     <input type="hidden" name="action" value="create_all_pages">
                     <button type="submit" class="btn btn-primary text-wrap">Alle Rechtstext-Seiten erstellen/aktualisieren</button>
                 </form>
             </div>
             <div class="card-body">
-                <form method="post" data-legal-bulk-save-part="profile">
+                <form method="post" action="<?php echo htmlspecialchars($legalSitesAdminBaseUrl, ENT_QUOTES, 'UTF-8'); ?>" data-legal-bulk-save-part="profile">
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>">
                     <input type="hidden" name="action" value="save_profile">
 
@@ -586,13 +587,13 @@ $legalSitesConfig = [
                     </div>
                     <div class="d-flex gap-2 flex-wrap">
                         <button type="button" class="btn btn-outline-primary btn-sm js-insert-template" data-target="legal-<?php echo htmlspecialchars($key); ?>" data-template="<?php echo htmlspecialchars($defaultTemplate, ENT_QUOTES); ?>">Vorlage einfügen</button>
-                        <form method="post" class="d-inline">
+                        <form method="post" action="<?php echo htmlspecialchars($legalSitesAdminBaseUrl, ENT_QUOTES, 'UTF-8'); ?>" class="d-inline">
                             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>">
                             <input type="hidden" name="action" value="generate">
                             <input type="hidden" name="template_type" value="<?php echo htmlspecialchars($templateType); ?>">
                             <button type="submit" class="btn btn-outline-secondary btn-sm">Aus Standardwerten generieren</button>
                         </form>
-                        <form method="post" class="d-inline">
+                        <form method="post" action="<?php echo htmlspecialchars($legalSitesAdminBaseUrl, ENT_QUOTES, 'UTF-8'); ?>" class="d-inline">
                             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>">
                             <input type="hidden" name="action" value="create_page">
                             <input type="hidden" name="template_type" value="<?php echo htmlspecialchars($templateType); ?>">
@@ -634,7 +635,7 @@ $legalSitesConfig = [
                         </div>
                     </div>
 
-                    <form method="post" data-legal-bulk-save-part="document">
+                    <form method="post" action="<?php echo htmlspecialchars($legalSitesAdminBaseUrl, ENT_QUOTES, 'UTF-8'); ?>" data-legal-bulk-save-part="document">
                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken ?? ''); ?>">
                         <input type="hidden" name="action" value="save">
                         <div class="row g-3">

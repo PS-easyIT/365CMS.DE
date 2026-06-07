@@ -116,7 +116,7 @@ $pagesHasMultipleAuthors = count($pagesAuthorKeys) > 1;
             </div>
 
             <div class="card-body border-bottom py-2 d-none content-listing-bulkbar" id="bulkBarPages">
-                <form method="post" id="bulkFormPages" class="d-flex flex-wrap align-items-center gap-2">
+                <form method="post" action="<?= $pagesAdminBaseUrl ?>" id="bulkFormPages" class="d-flex flex-wrap align-items-center gap-2">
                     <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
                     <input type="hidden" name="action" value="bulk">
                     <span class="text-secondary"><strong id="selectedCountPages">0</strong> ausgewählt</span>

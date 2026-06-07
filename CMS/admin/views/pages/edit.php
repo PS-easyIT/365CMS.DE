@@ -172,7 +172,7 @@ $isEnglishEditorView = $editorLocale === 'en';
         include __DIR__ . '/../partials/flash-alert.php';
         ?>
 
-        <form method="post" id="pageForm">
+        <form method="post" action="<?= htmlspecialchars($pageAdminBaseUrl, ENT_QUOTES, 'UTF-8') ?>" id="pageForm">
             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
             <input type="hidden" name="_action" value="save">
             <input type="hidden" name="editor_locale" value="<?= htmlspecialchars($editorLocale) ?>">

@@ -979,11 +979,10 @@ final class EditorJsRenderer
         }
 
         $gap = 16;
-        $maxWidth = 'calc((100% - ' . max(0, ($columns - 1) * $gap) . 'px) / ' . $columns . ')';
 
-        $html = '<div class="editorjs-block editorjs-gallery" style="display:flex;flex-wrap:wrap;gap:' . $gap . 'px;align-items:flex-start;">';
+        $html = '<div class="editorjs-block editorjs-gallery" data-columns="' . $columns . '" style="display:grid;grid-template-columns:repeat(' . $columns . ', minmax(0, 1fr));gap:' . $gap . 'px;align-items:flex-start;">';
         foreach ($images as $image) {
-            $html .= '<figure class="editorjs-gallery__item" style="margin:0;flex:1 1 ' . $maxWidth . ';max-width:' . $maxWidth . ';min-width:140px;">';
+            $html .= '<figure class="editorjs-gallery__item" style="margin:0;min-width:0;">';
             $html .= '<img src="' . htmlspecialchars($image['url'], ENT_QUOTES, 'UTF-8') . '" alt="' . $image['alt'] . '"' . $this->getLazyLoadingAttribute() . ' style="display:block;width:100%;height:auto;aspect-ratio:4/3;object-fit:cover;border-radius:12px;">';
             if ($image['caption'] !== '' && !$this->isGeneratedFilenameCaption($image['caption'], $image['url'])) {
                 $html .= '<figcaption style="margin-top:0.6rem;font-size:0.92rem;color:#475569;">' . $image['caption'] . '</figcaption>';

@@ -362,14 +362,14 @@ class EditorService
         // nicht komplett leer bleibt.
         $decoded = Json::decodeArray($content, []);
         if (is_array($decoded) && isset($decoded['blocks'])) {
-            return EditorJsRenderer::getInstance()->render(EditorJsContentNormalizer::normalize($decoded));
+            return $this->renderEditorJsNormalized(EditorJsContentNormalizer::normalize($decoded));
         }
 
         // WordPress/Gutenberg-Blöcke und importiertes HTML in 365CMS-EditorJS-Blöcke
         // übersetzen. Wichtig für wp:media-text / Bild + Text nebeneinander.
         $normalized = EditorJsContentNormalizer::normalize($content);
         if (($normalized['blocks'] ?? []) !== []) {
-            $html = EditorJsRenderer::getInstance()->render($normalized);
+            $html = $this->renderEditorJsNormalized($normalized);
             if ($html !== '') {
                 return $html;
             }
@@ -380,5 +380,80 @@ class EditorService
         return str_contains($content, '<')
             ? EditorJsHtmlSanitizer::sanitizeRawBlock($content)
             : htmlspecialchars($content, ENT_QUOTES, 'UTF-8');
+    }
+
+    /**
+     * @param array<string,mixed> $normalized
+     */
+    private function renderEditorJsNormalized(array $normalized): string
+    {
+        if (!class_exists(EditorJsRenderer::class)) {
+            $rendererFile = __DIR__ . '/EditorJsRenderer.php';
+            if (is_file($rendererFile)) {
+                require_once $rendererFile;
+            }
+        }
+
+        if (!class_exists(EditorJsRenderer::class, false)) {
+            error_log('EditorService: EditorJsRenderer not available, using plain-text fallback.');
+            return $this->renderEditorJsPlainFallback($normalized);
+        }
+
+        try {
+            return EditorJsRenderer::getInstance()->render($normalized);
+        } catch (\Throwable $e) {
+            error_log('EditorService: EditorJsRenderer failed, fallback applied. ' . $e->getMessage());
+            return $this->renderEditorJsPlainFallback($normalized);
+        }
+    }
+
+    /**
+     * @param array<string,mixed> $normalized
+     */
+    private function renderEditorJsPlainFallback(array $normalized): string
+    {
+        $blocks = is_array($normalized['blocks'] ?? null) ? $normalized['blocks'] : [];
+        if ($blocks === []) {
+            return '';
+        }
+
+        $parts = [];
+        foreach ($blocks as $block) {
+            if (!is_array($block)) {
+                continue;
+            }
+
+            $data = is_array($block['data'] ?? null) ? $block['data'] : [];
+            foreach (['text', 'title', 'message', 'caption', 'content', 'code'] as $key) {
+                $value = trim(strip_tags((string) ($data[$key] ?? '')));
+                if ($value !== '') {
+                    $parts[] = $value;
+                    break;
+                }
+            }
+
+            $items = $data['items'] ?? null;
+            if (is_array($items)) {
+                foreach ($items as $item) {
+                    $text = is_array($item)
+                        ? trim(strip_tags((string) ($item['text'] ?? $item['content'] ?? '')))
+                        : trim(strip_tags((string) $item));
+                    if ($text !== '') {
+                        $parts[] = '• ' . $text;
+                    }
+                }
+            }
+        }
+
+        if ($parts === []) {
+            return '';
+        }
+
+        $html = '';
+        foreach ($parts as $part) {
+            $html .= '<p>' . htmlspecialchars($part, ENT_QUOTES, 'UTF-8') . '</p>';
+        }
+
+        return $html;
     }
 }
