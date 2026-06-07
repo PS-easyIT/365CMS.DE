@@ -1,96 +1,118 @@
-# 365CMS – Projektdokumentation
-> **Stand:** 2026-05-31 | **Version:** 3.3.44 | **Status:** Aktuell
+# 365CMS – Dokumentation
+
+> **Stand:** 27.03.2026 | **Version:** 3.0.0 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
-- [Womit ihr anfangen solltet](#womit-ihr-anfangen-solltet)
-- [Release-Fokus 3.3.44](#release-fokus-3344)
-- [Dokumentationsbereiche](#dokumentationsbereiche)
-- [Wichtige Hinweise](#wichtige-hinweise)
-- [Verwandte Einstiege](#verwandte-einstiege)
+- [Beschreibung](#beschreibung)
+- [Systemvoraussetzungen](#systemvoraussetzungen)
+- [Installation](#installation)
+- [Verzeichnisstruktur](#verzeichnisstruktur)
+- [Schnellstart](#schnellstart)
+- [Siehe auch](#siehe-auch)
 
----
-<!-- UPDATED: 2026-05-31 -->
+## Beschreibung
 
-## Womit ihr anfangen solltet
+365CMS ist ein modulares Content-Management-System (CMS) auf Basis von PHP 8.4+, MySQL und Vanilla JavaScript. Es bietet eine flexible Architektur mit einem Hook- und Event-System für Plugins, einer klaren Trennung von MVC und Templates sowie einer integrierten Marktplatz-Funktionalität.
 
-| Wenn ihr ... | dann startet hier |
-|---|---|
-| das System neu aufsetzt | [INSTALLATION.md](INSTALLATION.md) |
-| die Runtime-Struktur aktuell verstehen wollt | [FILELIST.md](FILELIST.md) |
-| die technische Gesamtsicht braucht | [DEVLIST.md](DEVLIST.md) |
-| die Projektstruktur verstehen wollt | [core/ARCHITECTURE.md](core/ARCHITECTURE.md) |
-| einen Release-Snapshot des Core wollt | [core/STATUS.md](core/STATUS.md) |
-| das Admin-Panel nutzt | [admin/README.md](admin/README.md) |
-| die neue CMS-Loginpage steuern wollt | [admin/themes-design/CMS-LOGINPAGE.md](admin/themes-design/CMS-LOGINPAGE.md) |
-| den Member-Bereich betreut | [member/README.md](member/README.md) |
-| den Medienbereich nachvollziehen wollt | [admin/media/README.md](admin/media/README.md) |
-| Asset-/Vendor-Stände prüfen wollt | [assets/README.md](assets/README.md) |
-| neue Asset-Kandidaten bewerten wollt | [ASSETS_NEW.md](ASSETS_NEW.md) |
-| das geplante AI-/Translate-Zielbild prüfen wollt | [ai/AI-SERVICES.md](ai/AI-SERVICES.md) |
-| Fremd-Assets schrittweise ersetzen wollt | [ASSETS_OwnAssets.md](ASSETS_OwnAssets.md) |
-| Plugins entwickelt | [plugins/PLUGIN-DEVELOPMENT.md](plugins/PLUGIN-DEVELOPMENT.md) |
-| Themes entwickelt | [theme/THEME-DEVELOPMENT.md](theme/THEME-DEVELOPMENT.md) |
+Das System ist speziell für Enterprise-Umgebungen optimiert und bietet erweiterte Sicherheitsfeatures, Performance-Optimierungen und eine intuitive Benutzeroberfläche.
 
----
+## Systemvoraussetzungen
 
-## Release-Fokus 3.3.44
+| Komponente | Anforderungen |
+|------------|----------------|
+| PHP | 8.4.0 oder höher |
+| MySQL | 8.0 oder höher |
+| Webserver | Apache (mit mod_rewrite) oder Nginx |
+| Speicherplatz | Mindestens 100 MB |
+| Datenbank | UTF-8 Unterstützung |
 
-Der aktuelle Release-Fokus `3.3.44` zieht die Core-Anpassungen und Fehlerbehebungen der letzten drei Tage in der Dokumentation nach:
+### PHP-Erweiterungen
 
-- Admin-Pluginmenüs werden kollisionsfrei registriert: gleiche numerische Positionen überschreiben keine anderen aktiven Plugins mehr
-- die Sidebar sortiert Plugin-Gruppen natürlich nach sichtbarem Label, bleibt bei vielen aktiven Plugins scrollbar und hält Dropdowns im normalen Dokumentfluss
-- Plugin-Callbacks ohne vollständiges Admin-Layout erhalten automatisch den gemeinsamen `page-body`-/`container-xl`-Wrapper
-- Knowledgebase- und ausgewählte M365-Pluginrouten besitzen robuste Core-Fallbacks für verschachtelte `/admin/plugins/...`-Aufrufe
-- der TranslationService nutzt den eigenen Fallback-Katalog auch hinter Symfony Translation, wenn unbekannte Keys unverändert zurückgegeben werden
-- DE-/EN-Sprachdateien enthalten neue Detailseiten-Keys für Speaker, Experts, Companies und Events
-- `README.md`, `Changelog.md`, `CMS/core/Version.php`, `CMS/update.json`, Marketplace-Metadaten und die zentralen CMS-Dokumente bleiben dabei auf demselben Release-Stand `3.3.44`
+- `pdo_mysql`
+- `gd` oder `imagick` (für Bildverarbeitung)
+- `json`
+- `mbstring`
+- `fileinfo`
 
----
+## Installation
 
-## Dokumentationsbereiche
+Die Installation erfolgt über den integrierten Installer. Folgen Sie diesen Schritten:
 
-### Core
+1. **Dateien hochladen:** Laden Sie die 365CMS-Dateien in das gewünschte Verzeichnis auf Ihrem Server hoch.
+2. **Installer starten:** Rufen Sie die Datei `install.php` im Browser auf (z. B. `https://ihre-domain.de/install.php`).
+3. **Konfiguration:** Folgen Sie den Anweisungen des Installers, um die Datenbankverbindung und Admin-Zugangsdaten zu konfigurieren.
+4. **Abschluss:** Nach erfolgreicher Installation können Sie den Installer löschen und das CMS unter der Hauptdomain nutzen.
 
-Die Kernsystem-Dokumente unter [`core/`](core/) beschreiben Bootstrap, Routing, Datenmodell, Services, Hooks und Sicherheit.
+### Automatisierte Installation (CLI)
 
-### Admin
+Falls Sie Zugriff auf die Command Line haben, können Sie die Installation auch über die Konsole durchführen:
 
-Die Admin-Dokumente unter [`admin/`](admin/) orientieren sich an der aktuellen Sidebar- und Modulstruktur aus `CMS/admin/`.
-Seit `3.3.44` ist insbesondere die Plugin-Panel-Integration mit kollisionsfreien Menüpositionen, natürlicher Label-Sortierung, scrollbar langer Plugin-Listen und automatischem Content-Wrapper dokumentiert.
-Dazu gehören jetzt auch die **CMS Loginpage** unter `/admin/cms-loginpage` und **CMS Logs** unter `/admin/cms-logs`, die bewusst als eigene Core-Bereiche für Auth-Branding bzw. Laufzeitdiagnose dokumentiert werden.
+```bash
+php install.php --db-host=localhost --db-name=cms_db --db-user=cms_user --db-pass=password --admin-email=admin@example.com --admin-password=secure_password
+```
 
-### Member
+## Verzeichnisstruktur
 
-Die Dokumente unter [`member/`](member/) beschreiben den persönlichen Mitgliederbereich unter `/member`, einschließlich Nachrichten, Profil, Datenschutz und Plugin-Integration.
+```
+CMS/
+├── admin/                  # Backend-Interface und Admin-Funktionen
+├── assets/                 # Statische Dateien (CSS, JS, Bilder)
+├── config/                 # Konfigurationsdateien
+│   ├── app.php             # Hauptkonfiguration
+│   └── .htaccess           # Schutz für Konfigurationsdateien
+├── core/                   # Kernkomponenten des CMS
+│   ├── Bootstrap.php       # Bootstrapping und Initialisierung
+│   ├── Database.php        # Datenbankabstraktion
+│   ├── Hooks.php           # Hook- und Event-System
+│   ├── PluginManager.php   # Plugin-Verwaltung
+│   ├── Router.php          # Routing-Engine
+│   ├── Security.php        # Sicherheitsfunktionen
+│   └── ThemeManager.php    # Theme-Verwaltung
+├── DOC/                    # Dokumentation (dieser Ordner)
+├── includes/               # Globale Funktionen und Helfer
+├── install/                # Installationsskripte
+├── marketplace/            # Marktplatz für Plugins und Themes
+├── member/                 # Mitgliedschafts- und Nutzerfunktionen
+├── plugins/                # Plugin-Verzeichnis
+├── themes/                 # Theme-Verzeichnis
+├── uploads/                # Hochgeladene Dateien
+├── vendor/                 # Composer-Abhängigkeiten
+├── views/                  # MVC-Templates
+├── index.php               # Haupt-Einstiegspunkt
+├── config.php              # Konfigurationsstub
+└── install.php             # Installer
+```
 
-### Theme und Plugins
+## Schnellstart
 
-Die Bereiche [`theme/`](theme/) und [`plugins/`](plugins/) enthalten Entwicklungsleitfäden für Erweiterungen des Systems.
+### Erste Schritte nach der Installation
 
-### Workflows und Audits
+1. **Login:** Melden Sie sich im Admin-Bereich an (`/admin`).
+2. **Theme auswählen:** Wählen Sie ein Theme in den Einstellungen.
+3. **Plugins installieren:** Gehen Sie zum Marktplatz und installieren Sie benötigte Plugins.
+4. **Inhalte erstellen:** Erstellen Sie Seiten, Beiträge oder andere Inhalte.
 
-Die Ordner [`workflow/`](workflow/) und [`audit/`](audit/) dokumentieren operative Abläufe, Live-Audits und technische Bewertungen. Der Audit-Bereich ist jetzt bewusst auf **sechs Sammelaudits plus `ToDoPrüfung.md` und `BEWERTUNG.md`** verdichtet, damit die Pflege nicht mehr über dutzende Einzeldateien zerfällt.
+### Beispiel: Erste Seite erstellen
 
----
+```php
+// Beispiel für die Erstellung einer Seite über die API
+$pageManager = CMS\PageManager::instance();
+$result = $pageManager->createPage([
+    'title' => 'Willkommen',
+    'slug' => 'willkommen',
+    'content' => '<h1>Herzlich willkommen!</h1><p>Dies ist der Inhalt Ihrer ersten Seite.</p>',
+    'status' => 'publish'
+]);
 
-## Wichtige Hinweise
+if ($result) {
+    echo "Seite erfolgreich erstellt!";
+} else {
+    echo "Fehler beim Erstellen der Seite.";
+}
+```
 
-- Für **Installations- und Konfigurationsfragen** gelten immer `CMS/config.php` als Stub und `CMS/config/app.php` als eigentliche Konfigurationsdatei.
-- Für **aktuelle Admin-Routen** gilt die Sidebar-Konfiguration aus `CMS/admin/partials/sidebar.php` als Referenz.
-- Für **Datenbankaussagen** ist [core/DATABASE-SCHEMA.md](core/DATABASE-SCHEMA.md) maßgeblich.
-- Für **Release-Änderungen** ist [../Changelog.md](../Changelog.md) die führende Datei.
-- Für **Medien- und Upload-Aussagen** gelten [admin/media/README.md](admin/media/README.md), [admin/media/MEDIA.md](admin/media/MEDIA.md) und [workflow/MEDIA-UPLOAD-WORKFLOW.md](workflow/MEDIA-UPLOAD-WORKFLOW.md).
-- Für **laufende Qualitätsstände** ist der Bereich [`audit/`](audit/) die erste Anlaufstelle.
-- Für **aktuelle Strukturfragen** ist [FILELIST.md](FILELIST.md) die führende lesbare Strukturkarte.
-- Für **historisch verifizierte Vollprüfscopes** bleibt [CMSFILESTRUCTUR.md](CMSFILESTRUCTUR.md) relevant, auch wenn es bewusst nicht jede aktuelle Runtime-Unterfläche vollständig ausrollt.
+## Siehe auch
 
----
-
-## Verwandte Einstiege
-
-- [Dokumentationsindex](INDEX.md)
-- [Root-README](../README.md)
-- [Projekt-Changelog](../Changelog.md)
-- [Audit-Bewertung](audit/BEWERTUNG.md)
-
-
+- [ARCHITECTURE.md](ARCHITECTURE.md) – Architektur und technische Details
+- [SECURITY.md](SECURITY.md) – Sicherheitsfeatures und Best Practices
+- [INSTALLATION.md](INSTALLATION.md) – Detaillierte Installationsanleitung

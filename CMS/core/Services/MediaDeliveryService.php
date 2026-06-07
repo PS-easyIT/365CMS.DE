@@ -189,13 +189,24 @@ final class MediaDeliveryService
             $this->deny(403, 'Der angeforderte Medienpfad ist nicht freigegeben.');
         }
 
-        $absolutePath = $this->resolveAbsolutePath($relativePath);
-        if ($absolutePath instanceof WP_Error) {
-            $this->deny(403, $absolutePath->get_error_message());
+        $requestedRelativePath = $relativePath;
+        $resolvedPath = $this->resolveReadableMediaPath($relativePath);
+        if ($resolvedPath instanceof WP_Error) {
+            if ($resolvedPath->get_error_code() === 'invalid_media_path') {
+                $this->deny(403, $resolvedPath->get_error_message());
+            }
+
+            $this->deny(404, 'Die angeforderte Datei wurde nicht gefunden.');
         }
 
-        if (!is_file($absolutePath) || !is_readable($absolutePath)) {
-            $this->deny(404, 'Die angeforderte Datei wurde nicht gefunden.');
+        $relativePath = (string) ($resolvedPath['relative_path'] ?? '');
+        $absolutePath = (string) ($resolvedPath['absolute_path'] ?? '');
+
+        if ($requestedRelativePath !== $relativePath) {
+            Logger::instance()->withChannel('media.delivery')->notice('Medienauslieferung mit Dateifallback aufgelöst.', [
+                'requested_path' => $requestedRelativePath,
+                'resolved_path' => $relativePath,
+            ]);
         }
 
         if ($this->isPrivateMemberPath($relativePath) && !$this->canAccessPrivateMemberPath($relativePath)) {
@@ -439,6 +450,144 @@ final class MediaDeliveryService
         }
 
         return $absolutePath;
+    }
+
+    /**
+     * @return array{relative_path:string,absolute_path:string}|WP_Error
+     */
+    private function resolveReadableMediaPath(string $relativePath): array|WP_Error
+    {
+        $relativePath = $this->normalizeRelativePath($relativePath);
+        $primaryAbsolutePath = $this->resolveAbsolutePath($relativePath);
+        if ($primaryAbsolutePath instanceof WP_Error) {
+            return $primaryAbsolutePath;
+        }
+
+        foreach ($this->buildReadablePathCandidates($relativePath) as $candidatePath) {
+            $candidateAbsolutePath = $this->resolveAbsolutePath($candidatePath);
+            if ($candidateAbsolutePath instanceof WP_Error) {
+                continue;
+            }
+
+            if ($this->isReadableFile($candidateAbsolutePath)) {
+                return [
+                    'relative_path' => $candidatePath,
+                    'absolute_path' => $candidateAbsolutePath,
+                ];
+            }
+
+            $caseInsensitiveMatch = $this->resolveCaseInsensitivePath($candidatePath);
+            if ($caseInsensitiveMatch !== null) {
+                return $caseInsensitiveMatch;
+            }
+        }
+
+        return new WP_Error('media_not_found', 'Die angeforderte Datei wurde nicht gefunden.');
+    }
+
+    private function isReadableFile(string $absolutePath): bool
+    {
+        clearstatcache(true, $absolutePath);
+        return is_file($absolutePath) && is_readable($absolutePath);
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function buildReadablePathCandidates(string $relativePath): array
+    {
+        $relativePath = $this->normalizeRelativePath($relativePath);
+        if ($relativePath === '') {
+            return [];
+        }
+
+        $pathInfo = pathinfo($relativePath);
+        $filename = (string) ($pathInfo['filename'] ?? '');
+        $extension = (string) ($pathInfo['extension'] ?? '');
+        $dirname = (string) ($pathInfo['dirname'] ?? '');
+        $prefix = ($dirname !== '' && $dirname !== '.') ? $dirname . '/' : '';
+
+        $candidates = [$relativePath];
+
+        if (
+            $filename !== ''
+            && preg_match('/^(.*)-\d{2,5}x\d{2,5}$/i', $filename, $matches) === 1
+            && !empty($matches[1])
+        ) {
+            $baseFilename = trim((string) $matches[1]);
+            if ($baseFilename !== '') {
+                $candidates[] = $prefix . $baseFilename . ($extension !== '' ? '.' . $extension : '');
+            }
+        }
+
+        if (
+            $filename !== ''
+            && preg_match('/^(.*)-scaled$/i', $filename, $matches) === 1
+            && !empty($matches[1])
+        ) {
+            $baseFilename = trim((string) $matches[1]);
+            if ($baseFilename !== '') {
+                $candidates[] = $prefix . $baseFilename . ($extension !== '' ? '.' . $extension : '');
+            }
+        }
+
+        return array_values(array_unique(array_filter($candidates, static fn(string $value): bool => $value !== '')));
+    }
+
+    /**
+     * @return array{relative_path:string,absolute_path:string}|null
+     */
+    private function resolveCaseInsensitivePath(string $relativePath): ?array
+    {
+        $relativePath = $this->normalizeRelativePath($relativePath);
+        if ($relativePath === '') {
+            return null;
+        }
+
+        $pathInfo = pathinfo($relativePath);
+        $basename = (string) ($pathInfo['basename'] ?? '');
+        if ($basename === '') {
+            return null;
+        }
+
+        $dirname = (string) ($pathInfo['dirname'] ?? '');
+        $directoryPath = ($dirname !== '' && $dirname !== '.') ? $dirname : '';
+
+        $absoluteDirectory = $directoryPath === ''
+            ? rtrim((string) UPLOAD_PATH, '/\\')
+            : $this->resolveAbsolutePath($directoryPath);
+
+        if (!is_string($absoluteDirectory) || !is_dir($absoluteDirectory)) {
+            return null;
+        }
+
+        $entries = scandir($absoluteDirectory);
+        if (!is_array($entries) || $entries === []) {
+            return null;
+        }
+
+        foreach ($entries as $entry) {
+            if ($entry === '.' || $entry === '..') {
+                continue;
+            }
+
+            if (strcasecmp($entry, $basename) !== 0) {
+                continue;
+            }
+
+            $resolvedRelativePath = ($directoryPath !== '' ? $directoryPath . '/' : '') . $entry;
+            $resolvedAbsolutePath = $this->resolveAbsolutePath($resolvedRelativePath);
+            if (!is_string($resolvedAbsolutePath) || !$this->isReadableFile($resolvedAbsolutePath)) {
+                continue;
+            }
+
+            return [
+                'relative_path' => $resolvedRelativePath,
+                'absolute_path' => $resolvedAbsolutePath,
+            ];
+        }
+
+        return null;
     }
 
     private function isPrivateMemberPath(string $relativePath): bool
