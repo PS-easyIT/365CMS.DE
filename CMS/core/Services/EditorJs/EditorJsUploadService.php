@@ -85,6 +85,10 @@ final class EditorJsUploadService
             return $baseFolder . '/temp/' . $draftKey;
         }
 
+        if ($contentType === 'events') {
+            return $baseFolder;
+        }
+
         return $defaultTargetPath;
     }
 
@@ -107,7 +111,12 @@ final class EditorJsUploadService
             ];
         }
 
-        $storedFile = MediaService::getInstance()->uploadFile($file, trim($targetPath, '/'), null, $imagesOnly);
+        $validationSettings = [
+            'sanitize_filenames' => true,
+            'unique_filenames' => true,
+        ];
+
+        $storedFile = MediaService::getInstance()->uploadFile($file, trim($targetPath, '/'), $validationSettings, $imagesOnly);
 
         if ($storedFile instanceof \CMS\WP_Error) {
             Logger::instance()->withChannel('editorjs.upload')->warning('Editor.js-Upload wurde abgelehnt', [
