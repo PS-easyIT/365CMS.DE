@@ -18,17 +18,26 @@ if (!defined('ABSPATH')) {
 final class EditorJsImageLibraryService
 {
     private const MAX_UNFILTERED_ITEMS = 250;
+    private const MAX_FILTERED_ITEMS = 1000;
 
     /**
      * @return array{success:int,items?:array<int,array<string,mixed>>,message?:string}
      */
-    public function listImages(string $filenamePrefix = ''): array
+    public function listImages(string $filenamePrefix = '', string $pathPrefix = ''): array
     {
         $items = [];
         $rootPath = rtrim((string) UPLOAD_PATH, '/\\');
         $mediaDelivery = MediaDeliveryService::getInstance();
         $filenamePrefix = $this->normalizeFilenamePrefix($filenamePrefix);
+        $pathPrefix = $this->normalizePathPrefix($pathPrefix);
         if ($filenamePrefix === null) {
+            return [
+                'success' => 1,
+                'items' => [],
+            ];
+        }
+
+        if ($pathPrefix === null) {
             return [
                 'success' => 1,
                 'items' => [],
@@ -70,6 +79,10 @@ final class EditorJsImageLibraryService
                 continue;
             }
 
+            if ($pathPrefix !== '' && $relativePath !== $pathPrefix && !str_starts_with($relativePath, $pathPrefix . '/')) {
+                continue;
+            }
+
             if ($filenamePrefix !== '' && !str_starts_with($file->getFilename(), $filenamePrefix)) {
                 continue;
             }
@@ -89,7 +102,9 @@ final class EditorJsImageLibraryService
 
         return [
             'success' => 1,
-            'items' => $filenamePrefix !== '' ? $items : array_slice($items, 0, self::MAX_UNFILTERED_ITEMS),
+            'items' => ($filenamePrefix !== '' || $pathPrefix !== '')
+                ? array_slice($items, 0, self::MAX_FILTERED_ITEMS)
+                : array_slice($items, 0, self::MAX_UNFILTERED_ITEMS),
         ];
     }
 
@@ -110,6 +125,31 @@ final class EditorJsImageLibraryService
         }
 
         return $filenamePrefix;
+    }
+
+    private function normalizePathPrefix(string $pathPrefix): ?string
+    {
+        $pathPrefix = trim(str_replace('\\', '/', $pathPrefix), '/');
+        if ($pathPrefix === '') {
+            return '';
+        }
+
+        $pathPrefix = preg_replace('#/+#', '/', $pathPrefix) ?? '';
+        if ($pathPrefix === '' || str_contains($pathPrefix, '..') || preg_match('/[\x00-\x1F\x7F]/', $pathPrefix) === 1) {
+            return null;
+        }
+
+        if (preg_match('#^[A-Za-z0-9._\-/]+$#', $pathPrefix) !== 1) {
+            return null;
+        }
+
+        foreach (explode('/', $pathPrefix) as $segment) {
+            if ($segment === '' || str_starts_with($segment, '.')) {
+                return null;
+            }
+        }
+
+        return $pathPrefix;
     }
 
     private function containsHiddenSegment(string $relativePath): bool
