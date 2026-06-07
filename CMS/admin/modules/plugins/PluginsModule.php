@@ -44,10 +44,7 @@ class PluginsModule
                     continue;
                 }
 
-                $mainFile = $item->getPathname() . DIRECTORY_SEPARATOR . $directoryName . '.php';
-                if (!is_file($mainFile)) {
-                    $mainFile = $this->getPluginMainFilePath($slug);
-                }
+                $mainFile = $this->resolvePluginMainFile($slug, $item->getPathname(), $directoryName);
                 $info    = $this->parsePluginHeader($mainFile);
 
                 if (empty($info['name'])) {
@@ -88,11 +85,6 @@ class PluginsModule
         $slug = $this->normalizePluginSlug($slug);
         if ($slug === '') return ['success' => false, 'error' => 'Ungültiger Plugin-Slug.'];
 
-        $mainFile = $this->getPluginMainFilePath($slug);
-        if (!is_file($mainFile)) {
-            return ['success' => false, 'error' => 'Plugin-Hauptdatei wurde nicht gefunden.'];
-        }
-
         if (class_exists('\CMS\PluginManager')) {
             try {
                 $result = \CMS\PluginManager::instance()->activatePlugin($slug);
@@ -109,6 +101,11 @@ class PluginsModule
 
                 return ['success' => false, 'error' => 'Plugin konnte nicht aktiviert werden.'];
             }
+        }
+
+        $mainFile = $this->resolvePluginMainFile($slug);
+        if (!is_file($mainFile)) {
+            return ['success' => false, 'error' => 'Plugin-Hauptdatei wurde nicht gefunden.'];
         }
 
         $list = array_keys($this->getActivePluginsLookup());
@@ -329,7 +326,15 @@ class PluginsModule
 
     private function getPluginsDirectory(): string
     {
-        return defined('PLUGINS_PATH') ? PLUGINS_PATH : (defined('ABSPATH') ? ABSPATH . 'plugins/' : '');
+        if (defined('PLUGIN_PATH')) {
+            return (string) PLUGIN_PATH;
+        }
+
+        if (defined('PLUGINS_PATH')) {
+            return (string) PLUGINS_PATH;
+        }
+
+        return defined('ABSPATH') ? ABSPATH . 'plugins/' : '';
     }
 
     private function getPluginMainFilePath(string $slug): string
@@ -337,6 +342,73 @@ class PluginsModule
         $pluginsDir = rtrim($this->getPluginsDirectory(), '/\\');
 
         return $pluginsDir . DIRECTORY_SEPARATOR . $slug . DIRECTORY_SEPARATOR . $slug . '.php';
+    }
+
+    private function resolvePluginMainFile(string $slug, ?string $knownDirectory = null, string $rawDirectoryName = ''): string
+    {
+        $directory = $knownDirectory;
+        if ($directory === null || !is_dir($directory)) {
+            $directory = $this->resolvePluginDirectoryPath($slug);
+        }
+
+        if (!is_string($directory) || $directory === '' || !is_dir($directory)) {
+            return $this->getPluginMainFilePath($slug);
+        }
+
+        $rawDirectoryName = trim($rawDirectoryName);
+        if ($rawDirectoryName === '') {
+            $rawDirectoryName = basename($directory);
+        }
+
+        $byRawName = $directory . DIRECTORY_SEPARATOR . $rawDirectoryName . '.php';
+        if (is_file($byRawName)) {
+            return $byRawName;
+        }
+
+        $bySlugName = $directory . DIRECTORY_SEPARATOR . $slug . '.php';
+        if (is_file($bySlugName)) {
+            return $bySlugName;
+        }
+
+        $phpFiles = glob($directory . DIRECTORY_SEPARATOR . '*.php') ?: [];
+
+        foreach ($phpFiles as $candidate) {
+            if (strtolower((string) basename($candidate)) === $slug . '.php') {
+                return $candidate;
+            }
+        }
+
+        $headerCandidates = [];
+        foreach ($phpFiles as $candidate) {
+            $content = is_readable($candidate)
+                ? file_get_contents($candidate, false, null, 0, 4096)
+                : false;
+
+            if (!is_string($content) || $content === '') {
+                continue;
+            }
+
+            if (preg_match('/Plugin\s*Name\s*:/i', $content) === 1) {
+                $headerCandidates[] = $candidate;
+            }
+        }
+
+        if (count($headerCandidates) === 1) {
+            return $headerCandidates[0];
+        }
+
+        foreach ($headerCandidates as $candidate) {
+            $basename = strtolower((string) basename($candidate));
+            if (str_starts_with($basename, $slug)) {
+                return $candidate;
+            }
+        }
+
+        if (count($phpFiles) === 1) {
+            return $phpFiles[0];
+        }
+
+        return $this->getPluginMainFilePath($slug);
     }
 
     private function resolvePluginDirectoryPath(string $slug): ?string
@@ -347,8 +419,33 @@ class PluginsModule
         }
 
         $realPluginsDir = realpath($pluginsDir);
+        if ($realPluginsDir === false) {
+            return null;
+        }
+
         $realPluginPath = realpath(rtrim($pluginsDir, '/\\') . DIRECTORY_SEPARATOR . $slug);
-        if ($realPluginsDir === false || $realPluginPath === false) {
+        if ($realPluginPath === false) {
+            $entries = scandir($realPluginsDir);
+            if (is_array($entries)) {
+                foreach ($entries as $entry) {
+                    if ($entry === '.' || $entry === '..') {
+                        continue;
+                    }
+
+                    if (strtolower($entry) !== $slug) {
+                        continue;
+                    }
+
+                    $candidate = realpath($realPluginsDir . DIRECTORY_SEPARATOR . $entry);
+                    if ($candidate !== false && is_dir($candidate)) {
+                        $realPluginPath = $candidate;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if ($realPluginPath === false) {
             return null;
         }
 

@@ -23,6 +23,27 @@ class PluginManager
         'cms-events' => 'cms-365netevents',
         'cms-experts' => 'cms-365netexperts',
         'cms-speakers' => 'cms-365netspeakers',
+        'cms-365netbooking' => 'cms-booking',
+        'cms-365netcontact' => 'cms-contact',
+        'cms-365netdownloads' => 'cms-downloads',
+        'cms-365netfeed' => 'cms-feed',
+        'cms-365netforum' => 'cms-forum',
+        'cms-365netjobprofile-generator' => 'cms-jobprofile-generator',
+        'cms-365netknowledgebase' => 'cms-knowledgebase',
+        'cms-365netmarketplace' => 'cms-marketplace',
+        'cms-365netnewsletter' => 'cms-newsletter',
+        'cms-365netprojects' => 'cms-projects',
+        'cms-365netpromos' => 'cms-promos',
+        'cms-365netm365adminsites' => 'cms-m365adminsites',
+        'cms-365netm365azure' => 'cms-m365azure',
+        'cms-365netm365copilot' => 'cms-m365copilot',
+        'cms-365netm365landing' => 'cms-m365landing',
+        'cms-365netm365linkcollection' => 'cms-m365linkcollection',
+        'cms-365netm365matrices' => 'cms-m365matrices',
+        'cms-365netm365messagecenter' => 'cms-m365messagecenter',
+        'cms-365netm365price-tracker' => 'cms-m365price-tracker',
+        'cms-365netm365tools' => 'cms-m365tools',
+        'cms-365netimporter' => 'cms-importer',
     ];
 
     private static ?self $instance = null;
@@ -137,13 +158,18 @@ class PluginManager
             if ($dir === '.' || $dir === '..' || $dir === '.gitkeep') {
                 continue;
             }
-            $pluginFile = $pluginDir . $dir . '/' . $dir . '.php';
-            if (file_exists($pluginFile)) {
+            $slug = strtolower(trim((string) $dir));
+            if (!$this->isValidPluginSlug($slug)) {
+                continue;
+            }
+
+            $pluginFile = $this->resolvePluginBootstrapFile($slug);
+            if ($pluginFile !== '' && file_exists($pluginFile)) {
                 $data = $this->getPluginData($pluginFile);
                 if ($data) {
                     $data['folder'] = $dir;
-                    $data['active'] = in_array($dir, $this->activePlugins);
-                    $plugins[$dir]  = $data;
+                    $data['active'] = in_array($slug, $this->activePlugins, true);
+                    $plugins[$slug] = $data;
                 }
             }
         }
@@ -260,7 +286,11 @@ class PluginManager
      */
     private function checkDependencies(string $plugin): bool|string
     {
-        $pluginFile = PLUGIN_PATH . $plugin . '/' . $plugin . '.php';
+        $pluginFile = $this->resolvePluginBootstrapFile($plugin);
+        if ($pluginFile === '' || !file_exists($pluginFile)) {
+            return true;
+        }
+
         $data       = $this->getPluginData($pluginFile);
         $updateData = $this->getPluginUpdateData($plugin);
 
@@ -842,15 +872,46 @@ class PluginManager
             return '';
         }
 
-        $pluginDir = $pluginRoot . DIRECTORY_SEPARATOR . $plugin;
-        $realPluginDir = realpath($pluginDir);
         $normalizedRoot = rtrim($pluginRoot, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
 
-        if ($realPluginDir === false || !is_dir($realPluginDir) || !str_starts_with($realPluginDir . DIRECTORY_SEPARATOR, $normalizedRoot)) {
-            return '';
+        $pluginDir = $pluginRoot . DIRECTORY_SEPARATOR . $plugin;
+        $candidates = [$pluginDir];
+
+        if (!is_dir($pluginDir)) {
+            $entries = scandir($pluginRoot);
+            if (is_array($entries)) {
+                foreach ($entries as $entry) {
+                    if ($entry === '.' || $entry === '..') {
+                        continue;
+                    }
+
+                    if (strtolower($entry) !== $plugin) {
+                        continue;
+                    }
+
+                    $candidate = $pluginRoot . DIRECTORY_SEPARATOR . $entry;
+                    if (is_dir($candidate)) {
+                        $candidates[] = $candidate;
+                        break;
+                    }
+                }
+            }
         }
 
-        return $realPluginDir;
+        foreach ($candidates as $candidateDir) {
+            $realPluginDir = realpath($candidateDir);
+            if ($realPluginDir === false || !is_dir($realPluginDir)) {
+                continue;
+            }
+
+            if (!str_starts_with($realPluginDir . DIRECTORY_SEPARATOR, $normalizedRoot)) {
+                continue;
+            }
+
+            return $realPluginDir;
+        }
+
+        return '';
     }
 
     private function resolvePluginBootstrapFile(string $plugin): string
@@ -866,22 +927,78 @@ class PluginManager
         }
 
         $pluginFile = $pluginDir . DIRECTORY_SEPARATOR . $plugin . '.php';
-        $realPluginFile = realpath($pluginFile);
-        if ($realPluginFile === false || !is_file($realPluginFile)) {
-            return $pluginFile;
-        }
-
         $pluginRoot = realpath((string) PLUGIN_PATH);
         if ($pluginRoot === false) {
             return '';
         }
 
         $normalizedRoot = rtrim($pluginRoot, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
-        if (!str_starts_with($realPluginFile, $normalizedRoot)) {
-            return '';
+
+        // 1) Exakter Treffer <slug>.php
+        $realPluginFile = realpath($pluginFile);
+        if ($realPluginFile !== false && is_file($realPluginFile) && str_starts_with($realPluginFile, $normalizedRoot)) {
+            return $realPluginFile;
         }
 
-        return $realPluginFile;
+        // 2) Case-insensitive Treffer für <slug>.php
+        $phpFiles = glob($pluginDir . DIRECTORY_SEPARATOR . '*.php') ?: [];
+        foreach ($phpFiles as $candidate) {
+            $basename = strtolower((string) basename($candidate));
+            if ($basename !== $plugin . '.php') {
+                continue;
+            }
+
+            $realCandidate = realpath($candidate);
+            if ($realCandidate !== false && is_file($realCandidate) && str_starts_with($realCandidate, $normalizedRoot)) {
+                return $realCandidate;
+            }
+        }
+
+        // 3) Header-basierte Erkennung (Plugin Name: ...)
+        $headerCandidates = [];
+        foreach ($phpFiles as $candidate) {
+            if (!is_file($candidate) || !is_readable($candidate)) {
+                continue;
+            }
+
+            $content = file_get_contents($candidate, false, null, 0, 4096);
+            if (!is_string($content) || $content === '') {
+                continue;
+            }
+
+            if (preg_match('/Plugin\s*Name\s*:/i', $content) === 1) {
+                $headerCandidates[] = $candidate;
+            }
+        }
+
+        if (count($headerCandidates) === 1) {
+            $realCandidate = realpath($headerCandidates[0]);
+            if ($realCandidate !== false && is_file($realCandidate) && str_starts_with($realCandidate, $normalizedRoot)) {
+                return $realCandidate;
+            }
+        }
+
+        foreach ($headerCandidates as $candidate) {
+            $basename = strtolower((string) basename($candidate));
+            if (!str_starts_with($basename, $plugin)) {
+                continue;
+            }
+
+            $realCandidate = realpath($candidate);
+            if ($realCandidate !== false && is_file($realCandidate) && str_starts_with($realCandidate, $normalizedRoot)) {
+                return $realCandidate;
+            }
+        }
+
+        // 4) Wenn nur eine PHP-Datei im Root liegt, diese als Bootstrap nutzen
+        if (count($phpFiles) === 1) {
+            $realCandidate = realpath($phpFiles[0]);
+            if ($realCandidate !== false && is_file($realCandidate) && str_starts_with($realCandidate, $normalizedRoot)) {
+                return $realCandidate;
+            }
+        }
+
+        return $pluginFile;
     }
 
     /**
