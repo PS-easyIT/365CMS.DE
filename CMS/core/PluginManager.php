@@ -20,7 +20,8 @@ class PluginManager
     private const PROTECTED_PLUGINS = ['cms-importer'];
     private const PLUGIN_SLUG_ALIASES = [
         'cms-companies' => 'cms-365netcompanies',
-        'cms-events' => 'cms-365netevents',
+        'cms-events' => 'cms-365neteventsandspeaker',
+        'cms-365netevents' => 'cms-365neteventsandspeaker',
         'cms-experts' => 'cms-365netexperts',
         'cms-speakers' => 'cms-365netspeakers',
         'cms-365netbooking' => 'cms-booking',
