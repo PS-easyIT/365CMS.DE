@@ -573,13 +573,44 @@ final class PublicRouter
         if (Auth::instance()->isLoggedIn()) {
             $token = $this->requestString($_POST['csrf_token'] ?? $_GET['csrf_token'] ?? '', 128);
             if (!Security::instance()->verifyToken($token, 'logout')) {
-                $this->router->redirect('/');
+                $this->renderLogoutConfirmation();
                 return;
             }
         }
 
         Auth::instance()->logout();
         $this->router->redirect('/');
+    }
+
+    private function renderLogoutConfirmation(): void
+    {
+        $token = Security::instance()->generateToken('logout');
+        $escapedToken = htmlspecialchars($token, ENT_QUOTES, 'UTF-8');
+        $siteUrl = rtrim((string) SITE_URL, '/');
+        $logoutUrl = htmlspecialchars($siteUrl . '/logout', ENT_QUOTES, 'UTF-8');
+        $homeUrl = htmlspecialchars($siteUrl . '/', ENT_QUOTES, 'UTF-8');
+
+        if (!headers_sent()) {
+            http_response_code(200);
+            header('Content-Type: text/html; charset=utf-8');
+            header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+            header('Pragma: no-cache');
+        }
+
+        echo '<!doctype html><html lang="de"><head><meta charset="utf-8">';
+        echo '<meta name="viewport" content="width=device-width, initial-scale=1">';
+        echo '<title>Abmeldung bestätigen</title>';
+        echo '<style>body{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f6f8fb;color:#1f2937}.cms-logout-confirm{max-width:32rem;margin:1rem;padding:2rem;border-radius:1rem;background:#fff;box-shadow:0 20px 45px rgba(15,23,42,.12)}h1{margin:0 0 1rem;font-size:1.5rem}p{line-height:1.55}.cms-logout-actions{display:flex;gap:.75rem;flex-wrap:wrap;margin-top:1.5rem}.cms-button{border:0;border-radius:.5rem;padding:.75rem 1rem;font-weight:600;text-decoration:none;cursor:pointer}.cms-button--danger{background:#dc2626;color:#fff}.cms-button--secondary{background:#e5e7eb;color:#111827}</style>';
+        echo '</head><body><main class="cms-logout-confirm">';
+        echo '<h1>Abmeldung bestätigen</h1>';
+        echo '<p>Der Sicherheits-Token für die Abmeldung ist abgelaufen oder ungültig. Bitte bestätigen Sie die Abmeldung erneut.</p>';
+        echo '<form method="post" action="' . $logoutUrl . '" class="cms-logout-actions">';
+        echo '<input type="hidden" name="csrf_token" value="' . $escapedToken . '">';
+        echo '<button type="submit" class="cms-button cms-button--danger">Jetzt abmelden</button>';
+        echo '<a class="cms-button cms-button--secondary" href="' . $homeUrl . '">Angemeldet bleiben</a>';
+        echo '</form>';
+        echo '</main></body></html>';
+        exit;
     }
 
     public function renderOrder(): void
