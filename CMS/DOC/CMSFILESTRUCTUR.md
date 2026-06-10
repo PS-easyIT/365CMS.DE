@@ -9,7 +9,7 @@ Dieses Dokument ist die **kanonische Scope-Liste** für einen verifizierten Prü
 - **Aus `CMS/assets/` berücksichtigt:** nur `assets/css/` und `assets/js/`
 - **Verifizierter Gesamtbestand:** `467` Dateien
 
-Wichtig: Dieses Dokument ist **kein vollständiger Live-Strukturabzug des aktuellen 2.9.0-Runtime-Baums**. Für die aktuelle lesbare Strukturkarte und die tiefere `CMS/assets/`-Abdeckung gelten heute vor allem:
+Wichtig: Dieses Dokument ist **kein vollständiger Live-Strukturabzug des aktuellen 3.3.47-Runtime-Baums**. Für die aktuelle lesbare Strukturkarte und die tiefere `CMS/assets/`-Abdeckung gelten heute vor allem:
 
 - [`FILELIST.md`](FILELIST.md)
 - [`ASSET.md`](ASSET.md)
