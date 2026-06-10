@@ -1,5 +1,5 @@
 # 365CMS – Admin-Dateistruktur
-> **Stand:** 2026-04-07 | **Version:** 2.9.0 | **Status:** Aktuell
+> **Stand:** 2026-06-10 | **Version:** 3.3.47 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Hauptstruktur](#hauptstruktur)
@@ -18,7 +18,7 @@ Der Admin-Bereich ist in 365CMS kein flaches Sammelbecken einzelner „Alles-in-
 - **Partials** wie Header, Sidebar und Footer
 
 ---
-<!-- UPDATED: 2026-04-07 -->
+<!-- UPDATED: 2026-06-10 -->
 
 ## Hauptstruktur
 

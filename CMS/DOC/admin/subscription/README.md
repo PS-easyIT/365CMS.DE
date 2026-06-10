@@ -1,7 +1,7 @@
 # 365CMS – Abo-Verwaltung
-> **Stand:** 17.05.2026 | **Version:** 3.0.11 | **Status:** Aktuell
+> **Stand:** 2026-06-10 | **Version:** 3.3.47 | **Status:** Aktuell
 
-<!-- UPDATED: 17.05.2026 -->
+<!-- UPDATED: 2026-06-10 -->
 
 ## Überblick
 

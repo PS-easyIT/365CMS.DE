@@ -135,6 +135,6 @@ Die Admin-Konfiguration folgt dem Standardmuster:
 ## Verwandte Dokumente
 
 - [../../member/README.md](../../member/README.md)
-- [../../member/SECURITY.md](../../member/SECURITY.md)
+- [../../member/README.md](../../member/README.md)
 - [../users-groups/USERS.md](../users-groups/USERS.md)
 - [../subscription/SUBSCRIPTION-SYSTEM.md](../subscription/SUBSCRIPTION-SYSTEM.md)

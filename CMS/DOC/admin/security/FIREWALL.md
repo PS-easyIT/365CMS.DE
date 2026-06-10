@@ -137,6 +137,6 @@ Diese Aktionen werden im aktuellen Arbeitsstand zusätzlich über den `AuditLogg
 ## Verwandte Dokumente
 
 - [ANTISPAM.md](ANTISPAM.md)
-- [../../audit/AUDIT_FACHBEREICHE.md](../../audit/AUDIT_FACHBEREICHE.md)
+- [../../audit/BEWERTUNG.md](../../audit/BEWERTUNG.md)
 - [../legal/README.md](../legal/README.md)
 - [../../core/SECURITY.md](../../core/SECURITY.md)

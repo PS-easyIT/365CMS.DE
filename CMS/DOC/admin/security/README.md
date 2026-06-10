@@ -32,5 +32,14 @@ Mehrere Admin-Aktionen werden zusätzlich über das zentrale `audit_log` nachvol
 
 - [ANTISPAM.md](ANTISPAM.md)
 - [FIREWALL.md](FIREWALL.md)
-- [../../audit/AUDIT_FACHBEREICHE.md](../../audit/AUDIT_FACHBEREICHE.md)
+- [SECURITY-AUDIT.md](SECURITY-AUDIT.md)
+- [../../audit/BEWERTUNG.md](../../audit/BEWERTUNG.md)
 - [../legal/README.md](../legal/README.md)
+
+### Interne Code-Audits (2026-06-10)
+
+- [../../AUDIT_core_2026-06-10.md](../../AUDIT_core_2026-06-10.md) — Kern-Framework
+- [../../AUDIT_admin_2026-06-10.md](../../AUDIT_admin_2026-06-10.md) — Admin-Bereich
+- [../../AUDIT_member-includes-views_2026-06-10.md](../../AUDIT_member-includes-views_2026-06-10.md) — Mitgliederbereich, Helfer, Auth-View
+
+Ergebnis aller Läufe: **0 kritische Funde**; alle Defense-in-Depth-Härtungen wurden übernommen.

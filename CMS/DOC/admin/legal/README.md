@@ -64,7 +64,7 @@ Besonderheit: Frühere Einzelseiten für Privacy- und Deletion-Requests werden h
 | [DELETION-REQUESTS.md](DELETION-REQUESTS.md) | DSGVO Art. 17 – Löschanträge |
 | [../security/FIREWALL.md](../security/FIREWALL.md) | Firewall-Regeln und Blocklisten |
 | [../security/ANTISPAM.md](../security/ANTISPAM.md) | Anti-Spam-Strategien |
-| [../../audit/AUDIT_FACHBEREICHE.md](../../audit/AUDIT_FACHBEREICHE.md) | Konsolidierter Audit-Score und Prüfbereiche |
+| [../../audit/BEWERTUNG.md](../../audit/BEWERTUNG.md) | Konsolidierter Audit-Score und Prüfbereiche |
 
 ---
 

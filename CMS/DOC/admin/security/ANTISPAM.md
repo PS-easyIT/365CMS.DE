@@ -99,4 +99,4 @@ Die Seite folgt dem üblichen Admin-Muster:
 
 - [FIREWALL.md](FIREWALL.md)
 - [DSGVO.md](../legal/DSGVO.md)
-- [Member-Sicherheit](../../member/SECURITY.md)
+- [Member-Sicherheit](../../member/README.md)

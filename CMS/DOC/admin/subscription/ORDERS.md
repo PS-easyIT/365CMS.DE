@@ -177,5 +177,5 @@ Ein vollautomatisiertes Rechnungs-, Refund- oder Payment-Gateway-Backoffice ist 
 ## Verwandte Seiten
 
 - [Abo-System](SUBSCRIPTION-SYSTEM.md)
-- [Mitgliedschaften im Member-Bereich](../../member/general/SUBSCRIPTION.md)
+- [Mitgliedschaften im Member-Bereich](../../member/README.md)
 - [Aboverwaltung – Überblick](../member/README.md)

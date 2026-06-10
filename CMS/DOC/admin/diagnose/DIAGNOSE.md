@@ -139,4 +139,4 @@ Ausnahme: Der Diagnosebericht-Export streamt nach erfolgreicher CSRF-Prüfung di
 
 - [../system-settings/SYSTEM.md](../system-settings/SYSTEM.md)
 - [../system-settings/README.md](../system-settings/README.md)
-- [../../audit/AUDIT_FACHBEREICHE.md](../../audit/AUDIT_FACHBEREICHE.md)
+- [../../audit/BEWERTUNG.md](../../audit/BEWERTUNG.md)
