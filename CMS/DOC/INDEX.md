@@ -1,5 +1,5 @@
 # 365CMS – Dokumentationsindex
-> **Stand:** 2026-05-31 | **Version:** 3.3.44 | **Status:** Aktuell
+> **Stand:** 2026-06-10 | **Version:** 3.3.47 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Schnellstart](#schnellstart)
@@ -11,20 +11,21 @@
 - [Direktlinks für häufige Aufgaben](#direktlinks-für-häufige-aufgaben)
 
 ---
-<!-- UPDATED: 2026-05-31 -->
+<!-- UPDATED: 2026-06-10 -->
 
 ## Schnellstart
 
 | Ziel | Dokument |
 |---|---|
-| Projektüberblick | [README.md](README.md) |
+| Doku-Hub | [README.md](README.md) |
+| Projektüberblick (DE/EN) | [../README.md](../README.md) |
+| Changelog | [../CHANGELOG.md](../CHANGELOG.md) |
+| Installation | [INSTALLATION.md](INSTALLATION.md) |
 | Entwickler-Referenz | [DEVLIST.md](DEVLIST.md) |
 | Datei- & Strukturübersicht | [FILELIST.md](FILELIST.md) |
 | Historischer Scope-Snapshot | [CMSFILESTRUCTUR.md](CMSFILESTRUCTUR.md) |
-| Installation | [INSTALLATION.md](INSTALLATION.md) |
-| Root-README | [../README.md](../README.md) |
-| Changelog | [../Changelog.md](../Changelog.md) |
-| Audit-Stand | [audit/BEWERTUNG.md](audit/BEWERTUNG.md) |
+| Code-Audits (2026-06-10) | [AUDIT_core](AUDIT_core_2026-06-10.md) · [AUDIT_admin](AUDIT_admin_2026-06-10.md) · [AUDIT_member](AUDIT_member-includes-views_2026-06-10.md) |
+| Audit-Stand (Backlog) | [audit/BEWERTUNG.md](audit/BEWERTUNG.md) |
 
 ---
 

@@ -1,118 +1,141 @@
 # 365CMS – Dokumentation
 
-> **Stand:** 27.03.2026 | **Version:** 3.0.0 | **Status:** Aktuell
+> **Stand:** 2026-06-10 | **Version:** 3.3.47 | **Status:** Aktuell
+
+Willkommen in der Dokumentation von **365CMS** — dem modularen PHP-CMS für DACH-Profis.
+Diese Datei ist der zentrale **Doku-Hub**: Sie verlinkt in alle Fachbereiche. Für das
+Projekt-Aushängeschild (Pitch, Quick Start, Tech-Stack) siehe das
+[Root-`README.md`](../README.md), für die Versionshistorie den [`CHANGELOG.md`](../CHANGELOG.md).
 
 ## Inhaltsverzeichnis
 - [Beschreibung](#beschreibung)
+- [Schnelleinstieg](#schnelleinstieg)
 - [Systemvoraussetzungen](#systemvoraussetzungen)
-- [Installation](#installation)
-- [Verzeichnisstruktur](#verzeichnisstruktur)
-- [Schnellstart](#schnellstart)
+- [Dokumentationsstruktur](#dokumentationsstruktur)
+- [Verzeichnisstruktur des CMS](#verzeichnisstruktur-des-cms)
+- [Sicherheit & Audits](#sicherheit--audits)
 - [Siehe auch](#siehe-auch)
+
+---
 
 ## Beschreibung
 
-365CMS ist ein modulares Content-Management-System (CMS) auf Basis von PHP 8.4+, MySQL und Vanilla JavaScript. Es bietet eine flexible Architektur mit einem Hook- und Event-System für Plugins, einer klaren Trennung von MVC und Templates sowie einer integrierten Marktplatz-Funktionalität.
+365CMS ist ein modulares, eigenständiges Content-Management-System auf Basis von
+**PHP 8.4+**, **MySQL/MariaDB** und Vanilla JavaScript. Die Architektur trennt klar
+zwischen schlanken Entry-Routen, Fachmodulen und Views, bietet ein **Hook-/Event-System**
+für Plugins, ein **capability-basiertes Rechtesystem**, einen **Plugin-/Theme-Marktplatz**
+sowie integrierte **KI-Services**, eine **SEO-Suite**, einen **Mitgliederbereich** und
+**DSGVO-Bausteine**.
 
-Das System ist speziell für Enterprise-Umgebungen optimiert und bietet erweiterte Sicherheitsfeatures, Performance-Optimierungen und eine intuitive Benutzeroberfläche.
+---
+
+## Schnelleinstieg
+
+| Ich möchte … | Dokument |
+|---|---|
+| 365CMS installieren | [INSTALLATION.md](INSTALLATION.md) |
+| den Admin-Bereich verstehen | [admin/README.md](admin/README.md) |
+| Rollen & Rechte einrichten | [admin/users-groups/RBAC.md](admin/users-groups/RBAC.md) |
+| KI-Services nutzen | [ai/AI-SERVICES.md](ai/AI-SERVICES.md) |
+| SEO konfigurieren | [admin/seo/README.md](admin/seo/README.md) |
+| Sicherheit absichern | [admin/security/README.md](admin/security/README.md) |
+| die Dateistruktur nachvollziehen | [CMSFILESTRUCTUR.md](CMSFILESTRUCTUR.md) · [FILELIST.md](FILELIST.md) |
+| Assets/Bibliotheken nachschlagen | [ASSET.md](ASSET.md) |
+
+---
 
 ## Systemvoraussetzungen
 
-| Komponente | Anforderungen |
-|------------|----------------|
-| PHP | 8.4.0 oder höher |
-| MySQL | 8.0 oder höher |
-| Webserver | Apache (mit mod_rewrite) oder Nginx |
-| Speicherplatz | Mindestens 100 MB |
-| Datenbank | UTF-8 Unterstützung |
+| Komponente | Minimum | Empfohlen |
+|---|---|---|
+| PHP | 8.4 | 8.4+ |
+| MySQL / MariaDB | 8.0 / 10.6 | 8.0+ / 10.11+ |
+| Webserver | Apache 2.4 (`mod_rewrite`) / Nginx 1.18 | aktuelle stabile Version |
+| PHP-Erweiterungen | `pdo_mysql`, `mbstring`, `json`, `openssl`, `fileinfo` | + `curl`, `gd`/`imagick`, `zip`, `intl` |
+| Arbeitsspeicher | 128 MB | 256 MB+ |
 
-### PHP-Erweiterungen
+Details: [INSTALLATION.md → Systemvoraussetzungen](INSTALLATION.md#systemvoraussetzungen).
 
-- `pdo_mysql`
-- `gd` oder `imagick` (für Bildverarbeitung)
-- `json`
-- `mbstring`
-- `fileinfo`
+---
 
-## Installation
+## Dokumentationsstruktur
 
-Die Installation erfolgt über den integrierten Installer. Folgen Sie diesen Schritten:
+### 🛠️ Administration — [`admin/`](admin/README.md)
 
-1. **Dateien hochladen:** Laden Sie die 365CMS-Dateien in das gewünschte Verzeichnis auf Ihrem Server hoch.
-2. **Installer starten:** Rufen Sie die Datei `install.php` im Browser auf (z. B. `https://ihre-domain.de/install.php`).
-3. **Konfiguration:** Folgen Sie den Anweisungen des Installers, um die Datenbankverbindung und Admin-Zugangsdaten zu konfigurieren.
-4. **Abschluss:** Nach erfolgreicher Installation können Sie den Installer löschen und das CMS unter der Hauptdomain nutzen.
+| Bereich | Einstieg | Themen |
+|---|---|---|
+| Dashboard | [admin/dashboard/](admin/dashboard/README.md) | KPI-Übersicht, Widgets, Favoriten |
+| Seiten & Beiträge | [admin/pages-posts/](admin/pages-posts/README.md) | Seiten, Beiträge, Kommentare, Tabellen, TOC, Settings, Hub-Sites |
+| Medien | [admin/media/](admin/media/README.md) | Bibliothek, WebP/Thumbnails, Orphans, Duplikate |
+| Benutzer & Gruppen | [admin/users-groups/](admin/users-groups/README.md) | Users, Groups, [RBAC](admin/users-groups/RBAC.md), Auth-Settings |
+| Mitgliederbereich | [admin/member/](admin/member/README.md) | Member-Dashboard-Konfiguration |
+| Aboverwaltung | [admin/subscription/](admin/subscription/README.md) | Pakete, Bestellungen, Subscription-System |
+| Themes & Design | [admin/themes-design/](admin/themes-design/README.md) | Theme-Editor, Menüs, Fonts, Landing-Pages, Customizer, Login-Page |
+| SEO | [admin/seo/](admin/seo/README.md) | SEO, Analytics, Redirects |
+| Performance | [admin/performance/](admin/performance/README.md) | Cache, DB, Media, Sessions |
+| Recht & Datenschutz | [admin/legal/](admin/legal/README.md) | Cookies, DSGVO, Löschanfragen |
+| Sicherheit | [admin/security/](admin/security/README.md) | Firewall, AntiSpam, Security-Audit |
+| Plugins | [admin/plugins/](admin/plugins/README.md) | Plugins, Marktplatz, Updates |
+| System | [admin/system-settings/](admin/system-settings/README.md) | Settings, Backup, Updates, AI-Services, System |
+| Info & Diagnose | [admin/info/](admin/info/README.md) · [admin/diagnose/](admin/diagnose/README.md) | Systeminfo, Monitoring |
+| Landing-Page | [admin/landing-page/](admin/landing-page/README.md) | Landing-Page-Builder |
 
-### Automatisierte Installation (CLI)
+Weitere Admin-Referenzen: [Panel-Integration](admin/PANEL-INTEGRATION.md) · [Dateistruktur](admin/FILESTRUCTURE.md) · [Guide](admin/GUIDE.md) · [Prüf-Checkliste](admin/PRUEF-CHECKLISTE.md).
 
-Falls Sie Zugriff auf die Command Line haben, können Sie die Installation auch über die Konsole durchführen:
+### 🤖 KI — [`ai/`](ai/AI-SERVICES.md)
+Provider, Übersetzung, Content-/SEO-Generierung, Prompt-Vorlagen, Quotas, Logging.
 
-```bash
-php install.php --db-host=localhost --db-name=cms_db --db-user=cms_user --db-pass=password --admin-email=admin@example.com --admin-password=secure_password
-```
+### 📦 Assets — [`assets/`](ASSET.md)
+Runtime-Bibliotheken (CSS/JS/PHP-Libs), Synchronisations- und Build-Regeln.
+Übersicht: [ASSET.md](ASSET.md) · [ASSETS_NEW.md](ASSETS_NEW.md) · [ASSETS_OwnAssets.md](ASSETS_OwnAssets.md).
 
-## Verzeichnisstruktur
+### 🗂️ Struktur & Referenz
+[CMSFILESTRUCTUR.md](CMSFILESTRUCTUR.md) · [FILELIST.md](FILELIST.md) · [DEVLIST.md](DEVLIST.md) · [INDEX.md](INDEX.md).
+
+---
+
+## Verzeichnisstruktur des CMS
 
 ```
 CMS/
-├── admin/                  # Backend-Interface und Admin-Funktionen
-├── assets/                 # Statische Dateien (CSS, JS, Bilder)
-├── config/                 # Konfigurationsdateien
-│   ├── app.php             # Hauptkonfiguration
-│   └── .htaccess           # Schutz für Konfigurationsdateien
-├── core/                   # Kernkomponenten des CMS
-│   ├── Bootstrap.php       # Bootstrapping und Initialisierung
-│   ├── Database.php        # Datenbankabstraktion
-│   ├── Hooks.php           # Hook- und Event-System
-│   ├── PluginManager.php   # Plugin-Verwaltung
-│   ├── Router.php          # Routing-Engine
-│   ├── Security.php        # Sicherheitsfunktionen
-│   └── ThemeManager.php    # Theme-Verwaltung
-├── DOC/                    # Dokumentation (dieser Ordner)
-├── includes/               # Globale Funktionen und Helfer
-├── install/                # Installationsskripte
-├── marketplace/            # Marktplatz für Plugins und Themes
-├── member/                 # Mitgliedschafts- und Nutzerfunktionen
-├── plugins/                # Plugin-Verzeichnis
-├── themes/                 # Theme-Verzeichnis
-├── uploads/                # Hochgeladene Dateien
-├── vendor/                 # Composer-Abhängigkeiten
-├── views/                  # MVC-Templates
-├── index.php               # Haupt-Einstiegspunkt
-├── config.php              # Konfigurationsstub
-└── install.php             # Installer
+├── admin/         # Backend: Entry-Routen, Module (admin/modules), Views (admin/views)
+├── core/          # Kern: Router, Hooks, RBAC, Security, Manager, Services, Auth
+├── includes/      # Globale Helfer (Escaping, Roles, Redirects/Auth, Options-Runtime)
+├── member/        # Mitgliederbereich (/member)
+├── plugins/       # Plugins
+├── themes/        # Themes
+├── views/         # Auth-/Public-Templates
+├── assets/        # Runtime-Bibliotheken
+├── config/        # Konfiguration (app.php) + Schutz-.htaccess
+├── marketplace/   # Marktplatz-Manifeste (core/plugins/themes)
+├── uploads/       # Hochgeladene Dateien
+├── vendor/        # gebündelte Abhängigkeiten (u. a. dompdf)
+├── DOC/           # Diese Dokumentation
+├── index.php      # Haupt-Einstiegspunkt
+├── install.php    # Installer
+└── cron.php       # geplante Aufgaben
 ```
 
-## Schnellstart
+Ausführlich: [CMSFILESTRUCTUR.md](CMSFILESTRUCTUR.md).
 
-### Erste Schritte nach der Installation
+---
 
-1. **Login:** Melden Sie sich im Admin-Bereich an (`/admin`).
-2. **Theme auswählen:** Wählen Sie ein Theme in den Einstellungen.
-3. **Plugins installieren:** Gehen Sie zum Marktplatz und installieren Sie benötigte Plugins.
-4. **Inhalte erstellen:** Erstellen Sie Seiten, Beiträge oder andere Inhalte.
+## Sicherheit & Audits
 
-### Beispiel: Erste Seite erstellen
+365CMS folgt dem Prinzip **Security by default**. Interne Code-Audits sind dokumentiert:
 
-```php
-// Beispiel für die Erstellung einer Seite über die API
-$pageManager = CMS\PageManager::instance();
-$result = $pageManager->createPage([
-    'title' => 'Willkommen',
-    'slug' => 'willkommen',
-    'content' => '<h1>Herzlich willkommen!</h1><p>Dies ist der Inhalt Ihrer ersten Seite.</p>',
-    'status' => 'publish'
-]);
+- [AUDIT_core_2026-06-10.md](AUDIT_core_2026-06-10.md) — Kern-Framework
+- [AUDIT_admin_2026-06-10.md](AUDIT_admin_2026-06-10.md) — Admin-Bereich
+- [AUDIT_member-includes-views_2026-06-10.md](AUDIT_member-includes-views_2026-06-10.md) — Mitgliederbereich, Helfer, Auth-View
 
-if ($result) {
-    echo "Seite erfolgreich erstellt!";
-} else {
-    echo "Fehler beim Erstellen der Seite.";
-}
-```
+Ergebnis über alle Läufe: **0 kritische Funde**, alle gefundenen Defense-in-Depth-Punkte behoben.
+Sicherheitsthemen im Betrieb: [admin/security/](admin/security/README.md).
+
+---
 
 ## Siehe auch
 
-- [ARCHITECTURE.md](ARCHITECTURE.md) – Architektur und technische Details
-- [SECURITY.md](SECURITY.md) – Sicherheitsfeatures und Best Practices
-- [INSTALLATION.md](INSTALLATION.md) – Detaillierte Installationsanleitung
+- [Root-README](../README.md) — Projektüberblick (DE/EN)
+- [CHANGELOG](../CHANGELOG.md) — Versionshistorie
+- [INSTALLATION.md](INSTALLATION.md) — Installation & Produktions-Checkliste
+- [INDEX.md](INDEX.md) — vollständiger Doku-Index

@@ -1,12 +1,12 @@
 # CMS Core – Übersicht
-> **Stand:** 2026-04-07 | **Version:** 2.9.0 | **Status:** Aktuell
+> **Stand:** 2026-06-10 | **Version:** 3.3.47 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Verzeichnisstruktur](#verzeichnisstruktur)
 - [Wichtige Muster](#wichtige-muster)
 - [Dokumentation](#dokumentation)
 
-<!-- UPDATED: 2026-04-07 -->
+<!-- UPDATED: 2026-06-10 -->
 
 Das `core/`-Verzeichnis enthält alle Kernklassen des 365CMS.  
 Die meisten Klassen folgen dem **Singleton-Pattern** und sind über PSR-4 autogeladen.
@@ -42,6 +42,9 @@ core/
 ├── VendorRegistry.php        Registry für produktive Bundles und Plattformprüfung
 ├── Version.php               Zentrale Release-Konstanten (Version, Datum, Status)
 ├── WP_Error.php              WordPress-kompatible Fehlerklasse
+├── Auth/
+│   └── Passkey/
+│       └── WebAuthnAdapter.php  Passkeys / WebAuthn (passwortlose Anmeldung)
 ├── Contracts/
 │   ├── CacheInterface.php    PSR-16-ähnlicher Cache-Contract
 │   ├── DatabaseInterface.php Datenbank-Abstraktions-Contract
@@ -96,7 +99,9 @@ core/
     └── UserService.php            Benutzer-CRUD für Admin
 ```
 
-Im Stand `2.9.0` dokumentiert [STRUCTURE.md](STRUCTURE.md) zusätzlich den aktuellen Release-Snapshot des Core-/Admin-Scopes inklusive neuer Service- und Admin-Einstiege. Für die aktuelle Gesamtstruktur der Runtime ergänzt [../FILELIST.md](../FILELIST.md) diesen Core-Blick um Assets, Member, Plugins, Themes und weitere Runtime-Zonen.
+[STRUCTURE.md](STRUCTURE.md) dokumentiert zusätzlich den Release-Snapshot des Core-/Admin-Scopes inklusive Service- und Admin-Einstiege. Für die aktuelle Gesamtstruktur der Runtime ergänzt [../FILELIST.md](../FILELIST.md) diesen Core-Blick um Assets, Member, Plugins, Themes und weitere Runtime-Zonen.
+
+> **Sicherheits-Hinweis:** Die Kernschicht wurde zuletzt am 2026-06-10 auditiert — siehe [../AUDIT_core_2026-06-10.md](../AUDIT_core_2026-06-10.md). Ergebnis: 0 kritische Funde, Defense-in-Depth-Härtungen in `MailService` und `Bootstrap` (Fehler-Handling) übernommen.
 
 ---
 
@@ -140,6 +145,8 @@ $user      = UserService::getInstance();
 | [CORE-CLASSES.md](CORE-CLASSES.md) | Detailreferenz aller 22 Core-Klassen  |
 | [SERVICES.md](SERVICES.md)         | Alle 30 Service-Klassen dokumentiert  |
 | [SECURITY.md](SECURITY.md)         | Sicherheitsmodell                     |
-| [../ARCHITECTURE.md](../ARCHITECTURE.md) | Gesamt-Systemarchitektur      |
-| [../DATABASE-SCHEMA.md](../DATABASE-SCHEMA.md)   | Alle DB-Tabellen          |
-| [../HOOKS-REFERENCE.md](../HOOKS-REFERENCE.md)   | Action/Filter-Referenz    |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | Gesamt-Systemarchitektur      |
+| [DATABASE-SCHEMA.md](DATABASE-SCHEMA.md)   | Alle DB-Tabellen          |
+| [HOOKS-REFERENCE.md](HOOKS-REFERENCE.md)   | Action/Filter-Referenz    |
+| [API-REFERENCE.md](API-REFERENCE.md) | REST-API v1 Referenz |
+| [STATUS.md](STATUS.md) | Implementierungs- und Betriebsstatus |
