@@ -281,7 +281,7 @@ Kommentarsystem für Blog-Beiträge mit Moderationsstatus.
 
 ### `cms_media` – Legacy-Medienindex
 
-Historische bzw. optionale Tabellenstruktur für hochgeladene Dateien. Im aktuellen Stand `2.9.0` arbeitet die produktive Medienbibliothek jedoch primär über `CMS/core/Services/MediaService.php`, `CMS/core/Services/Media/MediaRepository.php`, das Dateisystem unter `uploads/` und `CMS/config/media-meta.json`.
+Historische bzw. optionale Tabellenstruktur für hochgeladene Dateien. Im aktuellen Stand `3.3.47` arbeitet die produktive Medienbibliothek jedoch primär über `CMS/core/Services/MediaService.php`, `CMS/core/Services/Media/MediaRepository.php`, das Dateisystem unter `uploads/` und `CMS/config/media-meta.json`.
 
 | Feldname | Typ | Nullable | Default | Beschreibung |
 |---|---|---|---|---|

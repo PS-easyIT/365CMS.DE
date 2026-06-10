@@ -28,7 +28,7 @@
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────┐
-│                      365CMS v2.9.0                                  │
+│                      365CMS v3.3.47                                  │
 │                                                                     │
 │  Presentation     → Themes (Frontend), Admin-Views, Member-Templates│
 │  Application      → Router, Hooks, PluginManager, ThemeManager      │
@@ -465,7 +465,7 @@ defined('ASSETS_PATH')   || define('ASSETS_PATH',   ABSPATH . 'assets/');
 |---|---|---|
 | `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASS` | MySQL/MariaDB-Verbindung | `localhost`, `cms_db` |
 | `SITE_URL` | Basis-URL der Installation | `https://example.com` |
-| `CMS_VERSION` | Aktuelle Version | `2.9.0` |
+| `CMS_VERSION` | Aktuelle Version | `3.3.47` |
 | `LOG_PATH` | Verzeichnis für Log-Dateien | `ABSPATH . 'logs/'` |
 | `LOG_LEVEL` | Minimaler Log-Level | `WARNING` (oder `DEBUG` bei `CMS_DEBUG=true`) |
 | `CMS_DEBUG` | Debug-Modus | `false` |
