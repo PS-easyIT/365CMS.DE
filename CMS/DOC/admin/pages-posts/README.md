@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Überblick über die Content-Module im Admin-Bereich und ihre aktuelle Aufgabenverteilung.
 
-Letzte Aktualisierung: 31.05.2026 · Version 3.3.44
+Letzte Aktualisierung: 2026-06-10 · Version 3.3.47
 
 Der Content-Bereich ist auf mehrere spezialisierte Bereiche verteilt:
 

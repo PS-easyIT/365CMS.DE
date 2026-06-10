@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Überblick über Medienbibliothek, Upload-Workflows, Schutzbereiche, Admin-Tabs und verknüpfte Member-/Asset-Dokumentation.
 
-Letzte Aktualisierung: 22.05.2026 · Version 3.0.24
+Letzte Aktualisierung: 2026-06-10 · Version 3.3.47
 
 Die Medienverwaltung ist unter `/admin/media` erreichbar und bündelt Bibliothek, Beitrags-/Site-Medien, Medien-Check, Kategorien und Einstellungen über Query-Tabs statt über getrennte Legacy-Routen.
 
