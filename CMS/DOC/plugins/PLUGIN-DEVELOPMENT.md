@@ -1,5 +1,5 @@
 # 365CMS – Plugin-Entwicklung
-> **Stand:** 2026-04-07 | **Version:** 2.9.0 | **Status:** Aktuell
+> **Stand:** 2026-06-10 | **Version:** 3.3.47 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Grundprinzipien](#grundprinzipien)
@@ -305,5 +305,5 @@ Für Frontend- oder API-Routen nutzt ihr die Router-Registrierung an einer geeig
 - [GUIDE.md](GUIDE.md)
 - [../core/HOOKS-REFERENCE.md](../core/HOOKS-REFERENCE.md)
 - [../core/SECURITY.md](../core/SECURITY.md)
-- [../member/HOOKS.md](../member/HOOKS.md)
+- [../core/HOOKS-REFERENCE.md](../core/HOOKS-REFERENCE.md)
 

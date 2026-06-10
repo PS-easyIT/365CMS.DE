@@ -1,5 +1,5 @@
 # 365CMS – Admin-Bereich
-> **Stand:** 31.05.2026 | **Version:** 3.3.44 | **Status:** Aktuell
+> **Stand:** 2026-06-10 | **Version:** 3.3.47 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Überblick](#überblick)

@@ -1,8 +1,8 @@
 # Update & Deployment Workflow – 365CMS
 
-> **Stand:** 2026-03-11 | **Version:** 2.5.30 | **Status:** Aktuell
+> **Stand:** 2026-06-10 | **Version:** 3.3.47 | **Status:** Aktuell
 >
-> **Bereich:** Updates & Deployments · **Version:** 2.5.30  
+> **Bereich:** Updates & Deployments · **Version:** 3.3.47  
 > **CMS-Update-System:** `core/Services/UpdateService.php`, `admin/updates.php`  
 > **GitHub:** PS-easyIT/365CMS.DE
 
@@ -275,5 +275,5 @@ NACH DEM UPDATE:
 
 - [admin/updates.php](../../CMS/admin/updates.php) – Update-UI
 - [core/Services/UpdateService.php](../../CMS/core/Services/UpdateService.php) – Update-Service
-- [BACKUP-RESTORE-WORKFLOW.md](BACKUP-RESTORE-WORKFLOW.md) – Backup vor Updates
-- [ROADMAP_FEB2026.md](../feature/ROADMAP_FEB2026.md) – H-15: Update-SHA256-Verfikation
+- [BACKUP-RESTORE-WORKFLOW.md](../admin/system-settings/BACKUP.md) – Backup vor Updates
+- [ROADMAP_FEB2026.md](../core/STATUS.md) – H-15: Update-SHA256-Verfikation

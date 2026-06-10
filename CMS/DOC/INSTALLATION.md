@@ -1,5 +1,5 @@
 # 365CMS – Installation
-> **Stand:** 2026-05-21 | **Version:** 3.0.20 | **Status:** Aktuell
+> **Stand:** 2026-06-10 | **Version:** 3.3.47 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Überblick](#überblick)

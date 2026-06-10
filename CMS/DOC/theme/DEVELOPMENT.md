@@ -1,5 +1,5 @@
 # 365CMS – Theme-Entwicklungsumgebung
-> **Stand:** 2026-04-07 | **Version:** 2.9.0 | **Status:** Aktuell
+> **Stand:** 2026-06-10 | **Version:** 3.3.47 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Grundstruktur](#grundstruktur)
@@ -839,7 +839,7 @@ if (!empty($customJS)) {
 ?>
 ```
 
-> **Hinweis:** Die Theme-Customization-API gehört auch in `2.9.0` zum stabilen Kernbestand. Änderungen am Customizer werden in der Tabelle `cms_theme_customizations` gespeichert.
+> **Hinweis:** Die Theme-Customization-API gehört auch in `3.3.47` zum stabilen Kernbestand. Änderungen am Customizer werden in der Tabelle `cms_theme_customizations` gespeichert.
 
 ```php
 <?php

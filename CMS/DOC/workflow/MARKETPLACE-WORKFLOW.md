@@ -1,8 +1,8 @@
 # Marketplace Workflow – 365CMS
 
-> **Stand:** 2026-04-07 | **Version:** 2.9.0 | **Status:** Referenz / teilweise konzeptionell
+> **Stand:** 2026-06-10 | **Version:** 3.3.47 | **Status:** Aktuell
 >
-> **Bereich:** Plugin & Theme Marketplace · **Version:** 2.9.0  
+> **Bereich:** Plugin & Theme Marketplace · **Version:** 3.3.47  
 > **Admin-Seiten:** `admin/plugin-marketplace.php`, `admin/plugins.php`, `admin/themes.php`  
 > **Geplantes Feature:** Offizieller Marketplace-Dienst
 
@@ -230,6 +230,6 @@ BEIM DEINSTALLIEREN:
 
 - [admin/plugins.php](../../CMS/admin/plugins.php) – Plugin-Management
 - [admin/plugin-marketplace.php](../../CMS/admin/plugin-marketplace.php) – Marketplace
-- [PLUGIN-DEVELOPMENT-WORKFLOW.md](PLUGIN-DEVELOPMENT-WORKFLOW.md) – Plugin entwickeln
-- [PLUGIN-AUDIT.md](../audits/PLUGIN-AUDIT.md) – Sicherheitsanforderungen
-- [ROADMAP_FEB2026.md](../feature/ROADMAP_FEB2026.md) – C-11: update.json SHA-256
+- [PLUGIN-DEVELOPMENT-WORKFLOW.md](../plugins/PLUGIN-DEVELOPMENT.md) – Plugin entwickeln
+- [PLUGIN-AUDIT.md](../audit/BEWERTUNG.md) – Sicherheitsanforderungen
+- [ROADMAP_FEB2026.md](../core/STATUS.md) – C-11: update.json SHA-256

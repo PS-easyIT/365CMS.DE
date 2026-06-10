@@ -1,10 +1,10 @@
 # Newsletter-Plugin Workflow – cms-newsletter
 
-> **Stand:** 2026-04-07 | **Version:** 2.9.0 | **Status:** Konzept (nicht implementiert)
+> **Stand:** 2026-06-10 | **Version:** 3.3.47 | **Status:** Aktuell
 >
 > **Bereich:** Neues Plugin-Konzept · **Status:** Konzept (nicht implementiert)  
-> **Referenz:** [NEW-PLUGIN-CONCEPTS.md](../feature/NEW-PLUGIN-CONCEPTS.md)  
-> **Entwicklungs-Workflow:** [PLUGIN-DEVELOPMENT-WORKFLOW.md](PLUGIN-DEVELOPMENT-WORKFLOW.md)
+> **Referenz:** [NEW-PLUGIN-CONCEPTS.md](../plugins/GUIDE.md)  
+> **Entwicklungs-Workflow:** [PLUGIN-DEVELOPMENT-WORKFLOW.md](../plugins/PLUGIN-DEVELOPMENT.md)
 
 ---
 <!-- UPDATED: 2026-04-07 -->
@@ -229,6 +229,6 @@ plugins/cms-newsletter/
 
 ## Referenzen
 
-- [NEW-PLUGIN-CONCEPTS.md](../feature/NEW-PLUGIN-CONCEPTS.md) – Konzept-Übersicht
-- [PLUGIN-DEVELOPMENT-WORKFLOW.md](PLUGIN-DEVELOPMENT-WORKFLOW.md) – Entwicklungsworkflow
-- [SECURITY-HARDENING-WORKFLOW.md](SECURITY-HARDENING-WORKFLOW.md) – Anti-Spam, CSRF
+- [NEW-PLUGIN-CONCEPTS.md](../plugins/GUIDE.md) – Konzept-Übersicht
+- [PLUGIN-DEVELOPMENT-WORKFLOW.md](../plugins/PLUGIN-DEVELOPMENT.md) – Entwicklungsworkflow
+- [SECURITY-HARDENING-WORKFLOW.md](../admin/security/README.md) – Anti-Spam, CSRF

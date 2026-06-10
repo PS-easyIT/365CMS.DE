@@ -1,6 +1,6 @@
 # Tabler Core
 
-> **Stand:** 2026-05-31 | **Version:** 3.3.44
+> **Stand:** 2026-06-10 | **Version:** 3.3.47 | **Status:** Aktuell
 
 ## Kurzbeschreibung
 

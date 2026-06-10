@@ -1,8 +1,8 @@
 # Content-Management Workflow – 365CMS
 
-> **Stand:** 2026-04-07 | **Version:** 2.9.0 | **Status:** Referenz / teilweise konzeptionell
+> **Stand:** 2026-06-10 | **Version:** 3.3.47 | **Status:** Aktuell
 >
-> **Bereich:** Inhalte · **Version:** 2.9.0  
+> **Bereich:** Inhalte · **Version:** 3.3.47  
 > **Services:** `EditorService`, `SEOService`, `MediaService`  
 > **Admin-Seiten:** `admin/pages.php`, `admin/posts.php`, `admin/landing-page.php`, `admin/media.php`
 
@@ -206,4 +206,4 @@ TECHNISCH:
 - [admin/posts.php](../../CMS/admin/posts.php) – Beitragsverwaltung
 - [core/Services/EditorService.php](../../CMS/core/Services/EditorService.php) – Editor-Service
 - [core/Services/SEOService.php](../../CMS/core/Services/SEOService.php) – SEO-Service
-- [AUDIT_FACHBEREICHE.md](../audit/AUDIT_FACHBEREICHE.md) – Konsolidierte Content-/Feature-Anforderungen
+- [AUDIT_FACHBEREICHE.md](../audit/BEWERTUNG.md) – Konsolidierte Content-/Feature-Anforderungen

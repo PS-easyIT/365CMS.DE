@@ -1,5 +1,5 @@
 # Microsoft Graph SDK / Referenzablage
-> **Stand:** 2026-03-28 | **Version:** 2.8.0 RC | **Status:** Referenz, nicht aktiv verdrahtet
+> **Stand:** 2026-06-10 | **Version:** 3.3.47 | **Status:** Aktuell
 
 `msgraph/` in `CMS/assets/` ist derzeit eine Referenz-/Ablageposition für Microsoft-Graph-nahe Artefakte. Eine produktive Verdrahtung im Core ist im Stand `2.8.0 RC` nicht aktiv dokumentiert.
 
