@@ -92,6 +92,7 @@ class Bootstrap
         defined('CMS_MODE') || define('CMS_MODE', $this->mode);
 
         Debug::enable(defined('CMS_DEBUG') && CMS_DEBUG);
+        $this->hardenErrorReporting(defined('CMS_DEBUG') && CMS_DEBUG);
         Debug::resetRuntimeProfile([
             'mode' => $this->mode,
             'request_uri' => (string)($_SERVER['REQUEST_URI'] ?? '/'),
@@ -246,6 +247,72 @@ class Bootstrap
         exit;
     }
     
+    /**
+     * Härtet das PHP-Fehlerverhalten auf Applikationsebene ab.
+     *
+     * Verhindert, dass Stack-Traces oder Fehlermeldungen an den Client gelangen,
+     * falls die php.ini falsch konfiguriert ist (display_errors=On in Produktion).
+     * Im Debug-Modus bleibt die volle Fehleranzeige erhalten.
+     *
+     * Registriert zusätzlich einen globalen Exception-Handler, der die vollständige
+     * Exception protokolliert, dem Client aber nur eine generische Meldung liefert.
+     */
+    private function hardenErrorReporting(bool $debug): void
+    {
+        if ($debug) {
+            // Entwicklung/Diagnose: volle Sichtbarkeit.
+            @ini_set('display_errors', '1');
+            @ini_set('display_startup_errors', '1');
+            error_reporting(E_ALL);
+        } else {
+            // Produktion: keine Ausgabe an den Client, aber vollständiges Logging.
+            @ini_set('display_errors', '0');
+            @ini_set('display_startup_errors', '0');
+            @ini_set('log_errors', '1');
+            error_reporting(E_ALL);
+        }
+
+        // Nur registrieren, wenn noch kein eigener Handler aktiv ist
+        // (set_exception_handler gibt den vorherigen Handler zurück).
+        $previous = set_exception_handler(null);
+        if ($previous !== null) {
+            set_exception_handler($previous);
+            return;
+        }
+
+        set_exception_handler(static function (\Throwable $e) use ($debug): void {
+            error_log(
+                'Uncaught ' . get_class($e) . ': ' . $e->getMessage()
+                . ' in ' . $e->getFile() . ':' . $e->getLine()
+            );
+
+            if (PHP_SAPI === 'cli') {
+                fwrite(STDERR, 'Fatal error: ' . $e->getMessage() . PHP_EOL);
+                exit(1);
+            }
+
+            if (!headers_sent()) {
+                http_response_code(500);
+            }
+
+            if ($debug) {
+                // Im Debug-Modus die Originalmeldung sichtbar machen (escaped).
+                echo 'Fatal error: ' . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8');
+            } else {
+                $requestUri = (string) ($_SERVER['REQUEST_URI'] ?? '/');
+                if (defined('CMS_AJAX_REQUEST') || str_starts_with($requestUri, '/api/')) {
+                    if (!headers_sent()) {
+                        header('Content-Type: application/json; charset=utf-8');
+                    }
+                    echo json_encode(['success' => false, 'error' => 'Internal server error'], JSON_UNESCAPED_UNICODE);
+                } else {
+                    echo 'Es ist ein interner Fehler aufgetreten. Bitte versuche es später erneut.';
+                }
+            }
+            exit(1);
+        });
+    }
+
     /**
      * Load core dependencies
      */

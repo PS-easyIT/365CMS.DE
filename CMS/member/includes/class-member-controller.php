@@ -309,11 +309,19 @@ final class MemberController
 
     public function redirect(string $path): void
     {
-        if (!preg_match('#^https?://#i', $path)) {
+        // Open-Redirect-Schutz: absolute URLs nur zulassen, wenn sie auf den
+        // eigenen Origin zeigen. Cross-Origin- oder unsichere Ziele fallen auf
+        // einen internen Pfad zurück. Relative Pfade bleiben unverändert.
+        if (preg_match('#^https?://#i', $path)) {
+            $normalized = \function_exists('cms_normalize_redirect_target')
+                ? \cms_normalize_redirect_target($path, false)
+                : null;
+            $path = ($normalized !== null && $normalized !== '') ? $normalized : '/';
+        } else {
             $path = '/' . ltrim($path, '/');
         }
 
-        header('Location: ' . $path);
+        header('Location: ' . $path, true, 302);
         exit;
     }
 
