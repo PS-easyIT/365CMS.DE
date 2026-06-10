@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Dokumentiert die Admin-Seiten für Systemübersicht und lokale Dokumentationsansicht.
 
-Letzte Aktualisierung: 2026-04-07 · Version 2.9.0
+Letzte Aktualisierung: 2026-06-10 · Version 3.3.47
 
 ---
 

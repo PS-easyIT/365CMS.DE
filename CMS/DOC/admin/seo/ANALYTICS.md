@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Dokumentiert die SEO-Analytics-Seite mit internem Tracking, Referrer-Auswertung und Tracking-Einstellungen.
 
-Letzte Aktualisierung: 2026-04-07 · Version 2.9.0
+Letzte Aktualisierung: 2026-06-10 · Version 3.3.47
 
 ---
 

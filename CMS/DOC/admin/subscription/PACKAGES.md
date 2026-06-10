@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Verwaltung der Abo-Pakete mit Preisen, Limits, Feature-Flags, Paketstatus und read-only Pakethistorie.
 
-Letzte Aktualisierung: 2026-05-10 · Version 2.9.738
+Letzte Aktualisierung: 2026-06-10 · Version 3.3.47
 
 ---
 

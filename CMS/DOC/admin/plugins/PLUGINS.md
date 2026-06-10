@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Dokumentiert die aktuelle Plugin-Verwaltung unter `/admin/plugins` mit Aktivierung, Deaktivierung, Löschung und den Datenquellen für installierte Erweiterungen.
 
-Letzte Aktualisierung: 2026-05-09 · Version 2.9.627
+Letzte Aktualisierung: 2026-06-10 · Version 3.3.47
 
 ## Überblick
 

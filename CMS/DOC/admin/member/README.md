@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Beschreibt die aktuelle Admin-Konfiguration des Member-Dashboards mit Sektionen, gespeicherten Einstellungen und der Trennung zwischen Verwaltungsoberfläche und Frontend-Mitgliederbereich.
 
-Letzte Aktualisierung: 2026-05-20 · Version 3.0.17
+Letzte Aktualisierung: 2026-06-10 · Version 3.3.47
 
 ## Überblick
 

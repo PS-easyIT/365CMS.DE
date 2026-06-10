@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Schutz vor missbräuchlichen Anfragen, IP-Sperren, Blockregeln, Simulationsläufen und sicherheitsrelevanten Zugriffsmustern.
 
-Letzte Aktualisierung: 2026-05-11 · Version 2.9.764
+Letzte Aktualisierung: 2026-06-10 · Version 3.3.47
 
 **Admin-Route:** `/admin/firewall`
 

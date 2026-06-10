@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Dokumentiert den tatsächlichen Admin-Vertrag für den Unterbereich **Seiten & Beiträge → Einstellungen**.
 
-Letzte Aktualisierung: 2026-05-03 · Version 2.9.508
+Letzte Aktualisierung: 2026-06-10 · Version 3.3.47
 
 ---
 

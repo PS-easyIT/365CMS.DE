@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Beschreibt die aktuelle Startseite des Admin-Bereichs inklusive Kennzahlen, Schnellzugriffen, Warnhinweisen und segmentweisem Fail-Soft-Verhalten.
 
-Letzte Aktualisierung: 2026-05-17 · Version 3.0.11
+Letzte Aktualisierung: 2026-06-10 · Version 3.3.47
 
 ---
 

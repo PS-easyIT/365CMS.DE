@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Lokale Sicherungen, Datenbank-Backups und Verwaltungsabläufe für Wiederherstellung und Bereinigung.
 
-Letzte Aktualisierung: 2026-05-12 · Version 2.9.768
+Letzte Aktualisierung: 2026-06-10 · Version 3.3.47
 
 ---
 

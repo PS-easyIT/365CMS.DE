@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Dokumentiert die Diagnose-Oberflächen, Monitoring-Werkzeuge und die zentrale Logzentrale für den laufenden Betrieb von 365CMS.
 
-Letzte Aktualisierung: 2026-05-21 · Version 3.0.19
+Letzte Aktualisierung: 2026-06-10 · Version 3.3.47
 
 ---
 

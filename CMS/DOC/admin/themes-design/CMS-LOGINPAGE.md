@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Themeunabhängige Core-Oberfläche für Login, Registrierung und Passwort-Reset inklusive zentraler Admin-Steuerung.
 
-Letzte Aktualisierung: 2026-05-03 · Version 2.9.513
+Letzte Aktualisierung: 2026-06-10 · Version 3.3.47
 
 Route: `/admin/cms-loginpage`
 

@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Moderation, Statuswechsel, Schnellfilter und Massenaktionen für Kommentare unter `/admin/comments`.
 
-Letzte Aktualisierung: 2026-05-09 · Version 2.9.704
+Letzte Aktualisierung: 2026-06-10 · Version 3.3.47
 
 ---
 

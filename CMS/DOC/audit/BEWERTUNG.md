@@ -1,5 +1,8 @@
 # BEWERTUNG
 
+> **⏱️ Historischer Snapshot (April 2026).** Dieses Dokument hält den Snyk-/Bewertungsstand vom **April 2026** (CMS-Stand ~2.8.x) fest und bleibt als Delta-Referenz erhalten. **Für die aktuelle First-Party-Code-Sicherheit gelten die internen Code-Audits vom 2026-06-10:**
+> [../AUDIT_core_2026-06-10.md](../AUDIT_core_2026-06-10.md) · [../AUDIT_admin_2026-06-10.md](../AUDIT_admin_2026-06-10.md) · [../AUDIT_member-includes-views_2026-06-10.md](../AUDIT_member-includes-views_2026-06-10.md) — Ergebnis: **0 kritische Funde**, alle Defense-in-Depth-Härtungen übernommen (CMS-Stand 3.3.47).
+
 > Strukturhinweis: Die frühere Verteilung auf `AdminAudit-*.md`, `AssetAudit-*.md`, `PRÜFUNG.MD` sowie einzelne Snyk-/Live-Audit-Dateien wurde in sechs Sammelaudits unter `DOC/audit/Audit-*.md` konsolidiert. Diese Datei bleibt die führende Bewertungs- und Delta-Referenz.
 
 ## Snyk-Audit — 4. April 2026

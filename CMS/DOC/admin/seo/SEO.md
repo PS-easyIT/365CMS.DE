@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Dokumentiert die vollständige SEO-Suite mit Dashboard, Analytics, Audit, Meta-Daten, Social Media, Schema, Sitemap, technischem SEO und Redirect-Manager.
 
-Letzte Aktualisierung: 2026-05-12 · Version 2.9.778
+Letzte Aktualisierung: 2026-06-10 · Version 3.3.47
 
 ---
 

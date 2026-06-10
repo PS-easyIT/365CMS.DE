@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Zentrale Admin-Seite für Registrierung, rollenbezogene Standardwerte und technische Auth-Provider-Informationen – ergänzt durch die neue Core-Auth-Strecke über die CMS Loginpage.
 
-Letzte Aktualisierung: 2026-05-13 · Version 2.9.782
+Letzte Aktualisierung: 2026-06-10 · Version 3.3.47
 
 Route: `/admin/user-settings`
 

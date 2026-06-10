@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Verwaltung wiederverwendbarer Datentabellen und dynamischer CMS-Quellen für Seiten und Beiträge über `/admin/site-tables`.
 
-Letzte Aktualisierung: 2026-05-03 · Version 2.9.507
+Letzte Aktualisierung: 2026-06-10 · Version 3.3.47
 
 ---
 

@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Beschreibt den aktuellen Plugin-Marketplace unter `/admin/plugin-marketplace`, seine Datenquellen und den Installationsablauf für katalogisierte Plugins.
 
-Letzte Aktualisierung: 2026-03-28 · Version 2.8.0 RC
+Letzte Aktualisierung: 2026-06-10 · Version 3.3.47 RC
 
 ## Überblick
 

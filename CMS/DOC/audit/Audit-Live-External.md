@@ -1,6 +1,8 @@
 # 365CMS – Audit Live & External Snapshots
 
 Stand: 2026-04-11  
+
+> **⏱️ Historischer Audit-Snapshot (April 2026).** Aktuelle First-Party-Code-Audits (Stand 3.3.47, 2026-06-10): [../AUDIT_core_2026-06-10.md](../AUDIT_core_2026-06-10.md) · [../AUDIT_admin_2026-06-10.md](../AUDIT_admin_2026-06-10.md) · [../AUDIT_member-includes-views_2026-06-10.md](../AUDIT_member-includes-views_2026-06-10.md).
 Zweck: Konsolidierter Sammelbericht für externe Prüfsichten – Snyk-Code-/SCA-Snapshots und produktive Live-Site-Audits.
 
 ## Übernommene Altdateien

@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Admin-spezifische Einordnung des Bereichs `AI Services` als **eigener Admin-Hauptbereich**. Die führende Fach- und Architektur-Dokumentation liegt unter [`../../ai/AI-SERVICES.md`](../../ai/AI-SERVICES.md); die Admin-Seiten `/admin/ai-services`, `/admin/ai-translation`, `/admin/ai-content-creator`, `/admin/ai-seo-creator` und `/admin/ai-settings` sind als Settings- und Runtime-Steuerflächen im Core eingehängt.
 
-Letzte Aktualisierung: 2026-05-09 · Version 2.9.707
+Letzte Aktualisierung: 2026-06-10 · Version 3.3.47
 
 > **Wichtig:** Diese Datei ist bewusst nur der **Admin- und Routing-Kontext**. Die vollständige Konzeption, Provider-Logik, Editor.js-Übersetzungsphase und offene Punkte werden kanonisch in [`../../ai/AI-SERVICES.md`](../../ai/AI-SERVICES.md) gepflegt.
 
