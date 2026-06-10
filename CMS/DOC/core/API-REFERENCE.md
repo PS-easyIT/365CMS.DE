@@ -1,11 +1,11 @@
 # 365CMS – API-Referenz
-> **Stand:** 2026-05-02 | **Version:** 2.9.248 | **Status:** Aktuell
+> **Stand:** 2026-06-10 | **Version:** 3.3.47 | **Status:** Aktuell
 
 Dokumentation der REST-API (`/api/v1/`) mit Authentifizierung, Endpunkten, Fehlerbehandlung und Beispielen.
 
 ---
 
-<!-- UPDATED: 2026-05-02 -->
+<!-- UPDATED: 2026-06-10 -->
 ## 1 · Übersicht
 
 Die 365CMS REST-API folgt dem Muster `/api/v1/{endpoint}/{id}`. Alle Antworten werden als `Content-Type: application/json` zurückgegeben.

@@ -1,5 +1,5 @@
 # 365CMS – Datenbankschema
-> **Stand:** 2026-05-31 | **Version:** 3.3.44 | **Status:** Aktuell
+> **Stand:** 2026-06-10 | **Version:** 3.3.47 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Überblick](#überblick)
@@ -17,7 +17,7 @@
 
 ---
 
-## Überblick <!-- UPDATED: 2026-04-07 -->
+## Überblick <!-- UPDATED: 2026-06-10 -->
 
 365CMS nutzt ein relationales Schema auf **MySQL / MariaDB** (Engine: InnoDB, Charset: `utf8mb4`).
 Alle Tabellen verwenden einen konfigurierbaren Präfix (Standard: `cms_`), definiert in `CMS/config/app.php` als `DB_PREFIX`.

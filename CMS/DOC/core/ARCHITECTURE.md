@@ -1,5 +1,5 @@
 # 365CMS – Architektur
-> **Stand:** 2026-04-07 | **Version:** 2.9.0 | **Status:** Aktuell
+> **Stand:** 2026-06-10 | **Version:** 3.3.47 | **Status:** Aktuell
 
 ## Inhaltsverzeichnis
 - [Überblick](#überblick)
@@ -12,7 +12,7 @@
 
 ---
 
-## Überblick <!-- UPDATED: 2026-04-07 -->
+## Überblick <!-- UPDATED: 2026-06-10 -->
 
 365CMS ist ein modular aufgebautes Content-Management-System, das auf **PHP 8.4+** basiert und für den Betrieb auf Shared- und Managed-Hosting optimiert ist. Die Architektur trennt sechs Schichten klar voneinander: Core, Services, Plugins, Themes, Admin und Member/API.
 

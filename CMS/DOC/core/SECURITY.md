@@ -1,11 +1,11 @@
-<!-- UPDATED: 2026-05-02 -->
+<!-- UPDATED: 2026-06-10 -->
 # 365CMS – Sicherheitsarchitektur
-> **Stand:** 2026-05-02 | **Version:** 2.9.248 | **Status:** Aktuell
+> **Stand:** 2026-06-10 | **Version:** 3.3.47 | **Status:** Aktuell
 
 Umfassende Dokumentation der Sicherheitsmechanismen, Authentifizierungsverfahren und
 Secure-Coding-Grundsätze im 365CMS.
 
-Die Datei beschreibt die aktuell beabsichtigte Sicherheitsarchitektur der 2.9.0-Laufzeit. Für Incident-Analyse und harte Wahrheit gelten immer zusätzlich die produktiven Entry-Points, Router-Prüfungen, Services und Admin-Handler der laufenden Installation.
+Die Datei beschreibt die Sicherheitsarchitektur im Stand **3.3.47** (2026-06-05), inklusive der Audit-Härtungen vom 2026-06-10 (siehe Abschnitt 1.2). Für Incident-Analyse und harte Wahrheit gelten immer zusätzlich die produktiven Entry-Points, Router-Prüfungen, Services und Admin-Handler der laufenden Installation.
 
 ---
 
@@ -81,6 +81,18 @@ Die Security-Zweitprüfung für `2.9.248` hat folgende Punkte gehärtet:
 - Öffentliche `cms-contact`-Formulare nutzen jetzt ebenfalls den zentralen `AntispamService` und erzwingen damit globale Regeln wie Mindestzeit, Linklimit, leere User-Agents und Blacklist nicht nur bei Kommentaren, sondern auch im Kontaktpfad.
 
 **Noch offen:** `security_log` ist gleichzeitig Rate-Limit-Zähler und Audit-Tabelle, was bei sehr hohem Traffic später aggregiert werden sollte.
+
+### 1.2 Code-Audit 2026-06-10 <!-- ADDED: 2026-06-10 -->
+
+Vollständige interne Code-Audits von `core/`, `admin/` sowie `member/`+`includes/`+`views/` ergaben **0 kritische, 0 hohe und 0 mittlere Schwachstellen**. Die geprüften Hochrisikoflächen (SQLi, Stored/Reflected-XSS, Auth-Bypass, Object Injection, Path-Traversal, Open Redirect, Zip-Slip/Zip-Bomb) sind sauber abgesichert. Übernommene **Defense-in-Depth-Härtungen**:
+
+- **MailService:** CRLF-Bereinigung von `$to`/`$subject` auch im `mail()`-Fallback; Anhangsnamen über `sanitizeAttachmentFilename()` gegen MIME-Header-Injection abgesichert.
+- **Bootstrap:** neues `hardenErrorReporting()` erzwingt produktiv `display_errors=0` + globaler Exception-Handler — keine Stack-Traces an den Client.
+- **`esc_js()`** (`includes/functions/escaping.php`): neutralisiert zusätzlich `</script>`-Breakout und JS-Zeilenterminatoren (CR/LF, U+2028/U+2029).
+- **`MemberController::redirect()`:** absolute URLs nur noch same-origin (Open-Redirect-Schutz via `cms_normalize_redirect_target()`).
+- **Featured-Image-Picker:** JSON im `<script>`-Block über zentrale `$jsEnc`-Closure mit `JSON_HEX_TAG|HEX_AMP|HEX_APOS|HEX_QUOT`.
+
+Detailberichte: [../AUDIT_core_2026-06-10.md](../AUDIT_core_2026-06-10.md) · [../AUDIT_admin_2026-06-10.md](../AUDIT_admin_2026-06-10.md) · [../AUDIT_member-includes-views_2026-06-10.md](../AUDIT_member-includes-views_2026-06-10.md).
 
 ---
 

@@ -1,14 +1,14 @@
 # 365CMS – Services-Referenz
-> **Stand:** 2026-05-31 | **Version:** 3.3.44 | **Status:** Aktuell
+> **Stand:** 2026-06-10 | **Version:** 3.3.47 | **Status:** Aktuell
 
 Vollständige Dokumentation des Service-Layers. Alle Service-Klassen liegen im Namespace `CMS\Services` unter `core/Services/`. Der `CacheManager` befindet sich im Root-Namespace `CMS` unter `core/CacheManager.php`.
 
 ---
 
-<!-- UPDATED: 2026-04-07 -->
+<!-- UPDATED: 2026-06-10 -->
 ## 1 · Übersicht
 
-Die Übersicht folgt der produktiven 3.0.13-Laufzeit. Einzelne Services greifen direkt auf Dateien unter `CMS/assets/`, `CMS/config/`, `CMS/cache/`, `CMS/uploads/` und `CMS/logs/` zu; die Kombination aus Service-Klasse plus realem Runtime-Pfad ist für Fehlersuche und Betrieb immer gemeinsam zu betrachten.
+Die Übersicht folgt der produktiven Laufzeit im Stand **3.3.47**. Die Service-Schicht umfasst aktuell **~60 Klassen** (eine thematisch geordnete Volldarstellung steht in Abschnitt 10 sowie in [README.md](README.md)). Einzelne Services greifen direkt auf Dateien unter `CMS/assets/`, `CMS/config/`, `CMS/cache/`, `CMS/uploads/` und `CMS/logs/` zu; die Kombination aus Service-Klasse plus realem Runtime-Pfad ist für Fehlersuche und Betrieb immer gemeinsam zu betrachten.
 
 | Klasse | Datei | Aufgabe |
 |--------|-------|---------|
@@ -768,3 +768,93 @@ $user = $users->getUserById($userId);
 $users->updateUser($userId, ['display_name' => 'Max M.']);
 $users->deleteUser($userId);
 ```
+
+---
+
+## 10 · Sicherheit, Betrieb & weitere Fachservices <!-- ADDED: 2026-06-10 -->
+
+Diese Services ergänzen die Übersicht um die seit den 2.9-/3.0-Ständen hinzugekommene
+Sicherheits-, Monitoring-, Cron- und Content-Logik. Maßgeblich ist immer der reale
+Verzeichnisstand unter `CMS/core/Services/`.
+
+### CmsAuthPageService
+
+**Datei:** `core/Services/CmsAuthPageService.php`
+
+Steuert die öffentlichen Auth-Seiten (Login, Registrierung, Passwort-vergessen/-reset). Enthält Rate-Limiting für Forgot-Password-Anfragen und -Token, Mindest-Antwortzeiten gegen User-Enumeration und die CSRF-/Flash-Verträge der Auth-Formulare.
+
+### SecurityRuntimeService
+
+**Datei:** `core/Services/SecurityRuntimeService.php`
+
+Bündelt sicherheitsrelevante Laufzeitentscheidungen (Header, Schutzschalter) für den Request-Lebenszyklus und ergänzt die statischen Kontrollen aus `core/Security.php`.
+
+### SecurityAlertService
+
+**Datei:** `core/Services/SecurityAlertService.php`
+
+Erzeugt und verteilt sicherheitsbezogene Hinweise/Benachrichtigungen (z. B. auffällige Login- oder Firewall-Ereignisse) für Admin und Audit.
+
+### AntispamService
+
+**Datei:** `core/Services/AntispamService.php`
+
+Zentraler AntiSpam-Vertrag für Kommentare und aktive Kontaktformulare. Prüft IP-, E-Mail- und Domain-Blocklisten timing-sicher (`hash_equals`) und liefert eine einheitliche Spam-Bewertung.
+
+### CronRunnerService / CronExpressionAdapter
+
+**Dateien:** `core/Services/CronRunnerService.php`, `core/Services/CronExpressionAdapter.php`
+
+Führt geplante Aufgaben aus (`cron.php`) und interpretiert Cron-Ausdrücke. Der Runner verarbeitet u. a. Mail-Queue, Monitoring und SEO-Wartungsjobs; der Adapter kapselt das Parsen/Matching der Zeitpläne.
+
+### MonitoringTrendService
+
+**Datei:** `core/Services/MonitoringTrendService.php`
+
+Liefert Verlaufsdaten (Trends) für die Monitoring-Seiten — etwa Response-Time, Disk-Usage und Cron-Status — inklusive Signatur-/Cachelogik für stabile Diagramme.
+
+### PerformanceSafetyNetService
+
+**Datei:** `core/Services/PerformanceSafetyNetService.php`
+
+Schutznetz für Performance-kritische Operationen: begrenzt teure Läufe, verhindert parallele Überlast und liefert fail-softe Fallbacks für das Performance-Center.
+
+### AssetOptimizerService
+
+**Datei:** `core/Services/AssetOptimizerService.php`
+
+Optimiert CSS/JS (Minify, Zusammenführung) und unterstützt Critical-CSS für schnellere Frontend-Auslieferung.
+
+### MediaUsageService
+
+**Datei:** `core/Services/MediaUsageService.php`
+
+Ermittelt, wo ein Medium verwendet wird (Beiträge/Seiten/Inhalte) — Basis für die direkt sichtbaren Verwendungen im Media-Manager und die read-only Orphan-Prüfung.
+
+### ContentMediaPlacementService
+
+**Datei:** `core/Services/ContentMediaPlacementService.php`
+
+Platziert/normalisiert Medienreferenzen innerhalb von Inhalten (z. B. Pfad-/URL-Auflösung) und sichert konsistente Medien-IDs im Content.
+
+### CoreModuleService
+
+**Datei:** `core/Services/CoreModuleService.php`
+
+Registry für aktivierbare Admin-Seiten/-Module (`isAdminPageEnabled()`). Steuert, welche Kernbereiche im Admin sichtbar/erreichbar sind.
+
+### SeoBrokenLinkService
+
+**Datei:** `core/Services/SeoBrokenLinkService.php`
+
+Lokaler Broken-Link-Report mit Cron-/Rerun-/Ignore-Vertrag: prüft interne/externe Links, hält Befunde vor und unterstützt das Ignorieren bekannter Fälle.
+
+### SeoTrendService
+
+**Datei:** `core/Services/SeoTrendService.php`
+
+Liefert SEO-Verlaufsdaten/Trends für das SEO-Dashboard (Score-Entwicklung, Kennzahlen über Zeit).
+
+> **Hinweis:** Die früher hier genannte „3.0.13-Laufzeit" ist überholt — die Service-Schicht
+> entspricht dem Stand **3.3.47** (2026-06-05). Für die jeweils gültige Liste gilt der reale
+> Ordner `CMS/core/Services/` als führend.
