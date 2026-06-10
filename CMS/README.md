@@ -10,6 +10,7 @@
 [![PHP](https://img.shields.io/badge/PHP-8.4%2B-777bb4.svg)](https://www.php.net/)
 [![MySQL](https://img.shields.io/badge/MySQL-8.0%2B%20%7C%20MariaDB%2010.6%2B-00758f.svg)](#)
 [![DSGVO](https://img.shields.io/badge/DSGVO-ready-16a34a.svg)](#-recht--datenschutz--legal--privacy)
+[![License](https://img.shields.io/badge/license-Source--Available%20(No--Resale)-orange.svg)](LICENSE)
 [![Made in DACH](https://img.shields.io/badge/made%20in-DACH-d4af37.svg)](https://phinit.de)
 
 **[Features](#-feature-überblick--feature-overview)** ·
@@ -278,7 +279,9 @@ Beiträge sind willkommen! Bitte beachte:
 
 ## 📄 Lizenz / License
 
-> ⚠️ **Hinweis:** Aktuell liegt dem Repository **keine `LICENSE`-Datei** bei. Bitte ergänze eine Lizenz (z. B. MIT, GPL-3.0 oder proprietär), damit Nutzungsrechte eindeutig sind. Ohne Lizenz gilt im Zweifel „alle Rechte vorbehalten".
+365CMS steht unter der **365CMS License (Source-Available, No-Resale)** — der Quellcode ist offen einsehbar und du darfst 365CMS **kostenlos nutzen, betreiben und anpassen** (auch kommerziell in eigenen Projekten und für Kunden). **Nicht erlaubt** ist, die Software — insbesondere unverändert und/oder unter eigenem Namen — zu **verkaufen oder weiterzuverkaufen**. Bezahlte Mehrwertleistungen rundherum (Hosting, Support, Integration, eigene Anpassungen) sind ok. Vollständiger Text: [`LICENSE`](LICENSE).
+
+> Hinweis: Dies ist eine quelloffene, aber **nicht OSI-„Open-Source"-Lizenz** (da der Weiterverkauf eingeschränkt ist). Für eine separate Verkaufs-/Vertriebslizenz: [phinit.de](https://phinit.de).
 
 © 2026 **PS-easyIT** · [phinit.de](https://phinit.de)
 
@@ -334,7 +337,9 @@ php install.php --db-host=localhost --db-name=cms_db \
 
 ### License
 
-> ⚠️ No `LICENSE` file is currently included. Please add one (MIT, GPL-3.0, or proprietary) to make usage rights explicit.
+365CMS is released under the **365CMS License (Source-Available, No-Resale)** — the source is open to read and you may **use, run and modify** 365CMS for free (including commercially in your own projects and for clients). You may **not sell or resell** the Software, especially not verbatim and/or under your own name. Charging for genuine value-added services around it (hosting, support, integration, custom work) is fine. Full text: [`LICENSE`](LICENSE).
+
+> Note: this is source-available but **not an OSI "open source" license** (resale is restricted). For a separate distribution/resale license, contact [phinit.de](https://phinit.de).
 
 © 2026 **PS-easyIT** · [phinit.de](https://phinit.de)
 

@@ -19,6 +19,9 @@ die Versionierung folgt [Semantic Versioning](https://semver.org/lang/de/).
 - **Mitgliederbereich:** `MemberController::redirect()` lässt absolute URLs nur noch same-origin zu (Open-Redirect-Schutz über `cms_normalize_redirect_target()`).
 - **Admin / Featured-Image-Picker:** JSON-Werte im `<script>`-Block werden über eine zentrale `$jsEnc`-Closure mit `JSON_HEX_TAG|HEX_AMP|HEX_APOS|HEX_QUOT` ausgegeben (kein Script-Breakout).
 
+### Added
+- **`LICENSE`** ergänzt: **365CMS License (Source-Available, No-Resale)** — freie Nutzung/Anpassung (auch kommerziell in eigenen Projekten), aber kein Verkauf/Weiterverkauf der Software unter eigenem Namen. README-Lizenzabschnitte (DE/EN) und Badge entsprechend gesetzt.
+
 ### Documentation
 - Neues zweisprachiges Root-`README.md` (DE/EN) als Projekt-Aushängeschild.
 - Diese `CHANGELOG.md` neu angelegt (Keep-a-Changelog / SemVer).
