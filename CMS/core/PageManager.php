@@ -53,6 +53,8 @@ class PageManager
                 'featured_image' => "ALTER TABLE {$this->prefix}pages ADD COLUMN featured_image VARCHAR(500) DEFAULT NULL AFTER show_title_toc",
                 'meta_title' => "ALTER TABLE {$this->prefix}pages ADD COLUMN meta_title VARCHAR(255) DEFAULT NULL AFTER featured_image",
                 'meta_description' => "ALTER TABLE {$this->prefix}pages ADD COLUMN meta_description TEXT DEFAULT NULL AFTER meta_title",
+                'meta_title_en' => "ALTER TABLE {$this->prefix}pages ADD COLUMN meta_title_en VARCHAR(255) DEFAULT NULL AFTER meta_description",
+                'meta_description_en' => "ALTER TABLE {$this->prefix}pages ADD COLUMN meta_description_en TEXT DEFAULT NULL AFTER meta_title_en",
                 'title_en' => "ALTER TABLE {$this->prefix}pages ADD COLUMN title_en VARCHAR(255) DEFAULT NULL AFTER title",
                 'content_en' => "ALTER TABLE {$this->prefix}pages ADD COLUMN content_en LONGTEXT DEFAULT NULL AFTER content",
                 'category_id' => "ALTER TABLE {$this->prefix}pages ADD COLUMN category_id INT UNSIGNED DEFAULT NULL AFTER author_id",
@@ -148,7 +150,7 @@ class PageManager
         $values = [];
         
         foreach ($data as $key => $value) {
-            if (in_array($key, ['title', 'title_en', 'content', 'content_en', 'status', 'slug', 'slug_en', 'hide_title', 'show_title_toc', 'featured_image', 'meta_title', 'meta_description', 'category_id'], true)) {
+            if (in_array($key, ['title', 'title_en', 'content', 'content_en', 'status', 'slug', 'slug_en', 'hide_title', 'show_title_toc', 'featured_image', 'meta_title', 'meta_description', 'meta_title_en', 'meta_description_en', 'category_id'], true)) {
                 $fields[] = "$key = ?";
                 $values[] = $value;
             }

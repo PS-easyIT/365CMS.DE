@@ -67,7 +67,7 @@ final class AiEditorJsTranslationModule
                     'duration_ms' => (int) ($telemetry['duration_ms'] ?? 0),
                     'source_hash' => (string) ($telemetry['source_hash'] ?? ''),
                     'translated_hash' => (string) ($telemetry['translated_hash'] ?? ''),
-                    'resolved_via' => (string) ($result['provider']['resolved_via'] ?? 'direct'),
+                    'selection_mode' => (string) ($result['provider']['selection_mode'] ?? 'single-provider'),
                 ], static fn (mixed $value): bool => $value !== '' && $value !== null),
                 'info'
             );

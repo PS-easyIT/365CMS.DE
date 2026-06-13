@@ -15,7 +15,7 @@ use CMS\Security;
 use CMS\Services\CoreModuleService;
 use CMS\Services\EditorJsService;
 
-const CMS_ADMIN_POSTS_ALLOWED_ACTIONS = ['save', 'delete', 'bulk', 'save_category', 'delete_category', 'switch_locale'];
+const CMS_ADMIN_POSTS_ALLOWED_ACTIONS = ['save', 'delete', 'bulk', 'save_category', 'delete_category', 'switch_locale', 'copy_de_to_en'];
 const CMS_ADMIN_POSTS_ALLOWED_VIEWS = ['list', 'edit'];
 const CMS_ADMIN_POSTS_ALLOWED_BULK_ACTIONS = [
     'delete',
@@ -165,6 +165,7 @@ function cms_admin_posts_module_contract_methods(): array
         'getListData',
         'getEditData',
         'save',
+        'copyGermanToEnglish',
         'delete',
         'bulkAction',
         'saveCategory',
@@ -231,6 +232,8 @@ function cms_admin_posts_build_inline_edit_data(object $module, array $post): ar
         'featured_image' => (string) ($post['featured_image'] ?? ($existingPost['featured_image'] ?? '')),
         'meta_title' => (string) ($post['meta_title'] ?? ($existingPost['meta_title'] ?? '')),
         'meta_description' => (string) ($post['meta_description'] ?? ($existingPost['meta_description'] ?? '')),
+        'meta_title_en' => (string) ($post['meta_title_en'] ?? ($existingPost['meta_title_en'] ?? '')),
+        'meta_description_en' => (string) ($post['meta_description_en'] ?? ($existingPost['meta_description_en'] ?? '')),
         'author_display_name' => (string) ($post['author_display_name'] ?? ($existingPost['author_display_name'] ?? '')),
         'post_template' => (string) ($post['post_template'] ?? ($existingPost['post_template'] ?? 'default')),
         'post_meta_json' => is_array($post['post_meta'] ?? null)
@@ -244,11 +247,15 @@ function cms_admin_posts_build_inline_edit_data(object $module, array $post): ar
         $draftPost['slug'] = (string) ($existingPost['slug'] ?? '');
         $draftPost['content'] = $existingPost['content'] ?? '';
         $draftPost['excerpt'] = (string) ($existingPost['excerpt'] ?? '');
+        $draftPost['meta_title'] = (string) ($existingPost['meta_title'] ?? '');
+        $draftPost['meta_description'] = (string) ($existingPost['meta_description'] ?? '');
     } else {
         $draftPost['title_en'] = (string) ($existingPost['title_en'] ?? $draftPost['title_en'] ?? '');
         $draftPost['slug_en'] = (string) ($existingPost['slug_en'] ?? $draftPost['slug_en'] ?? '');
         $draftPost['content_en'] = $existingPost['content_en'] ?? ($draftPost['content_en'] ?? '');
         $draftPost['excerpt_en'] = (string) ($existingPost['excerpt_en'] ?? $draftPost['excerpt_en'] ?? '');
+        $draftPost['meta_title_en'] = (string) ($existingPost['meta_title_en'] ?? $draftPost['meta_title_en'] ?? '');
+        $draftPost['meta_description_en'] = (string) ($existingPost['meta_description_en'] ?? $draftPost['meta_description_en'] ?? '');
     }
 
     $tagNames = array_values(array_filter(array_map(
@@ -516,6 +523,20 @@ $sectionPageConfig = [
                     'editor_locale' => $editorLocale,
                     'runtime_context' => cms_admin_posts_view_config($module, 'edit', cms_admin_posts_build_inline_edit_data($module, $post), $editorLocale),
                 ];
+
+            case 'copy_de_to_en':
+                $id = cms_admin_posts_normalize_positive_id($post['id'] ?? ($_GET['id'] ?? 0));
+                if ($id < 1) {
+                    return ['success' => false, 'error' => 'Ungültige Beitrags-ID.'];
+                }
+
+                $result = $module->copyGermanToEnglish($id);
+                if (!empty($result['success'])) {
+                    $result['editor_locale'] = 'en';
+                    $result['redirect_path'] = cms_admin_posts_target_url($id, 'en');
+                }
+
+                return $result;
 
             case 'delete':
                 $id = cms_admin_posts_normalize_positive_id($post['id'] ?? 0);

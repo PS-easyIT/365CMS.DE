@@ -40,4 +40,9 @@ return [
             'description' => 'Prüft AI/KI-Provider-Katalog, Mistral/OpenAI-kompatible Live-Adapter, Content-/SEO-Generatoren und Admin-Navigation.',
         'required' => true,
     ],
+    'content-language-copy' => [
+        'script' => __DIR__ . DIRECTORY_SEPARATOR . 'content-language-copy' . DIRECTORY_SEPARATOR . 'run.php',
+        'description' => 'Prüft den serverseitigen DE→EN-Copy-Flow für Seiten und Beiträge inklusive EditorJS, SEO, Metadaten und Admin-Actions.',
+        'required' => true,
+    ],
 ];

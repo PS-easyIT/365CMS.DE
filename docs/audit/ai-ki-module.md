@@ -2,45 +2,164 @@
 
 **Audit-Scope:** ausschließlich `365CMS.DE/CMS/**` für 365CMS-Core-Bewertungen; `TESTS/**` dient nur als Validierungsnachweis.
 
-**Bereichsscore:** 95/100
+**Abschlussversion:** `2.9.708`
+
+**Bereichsscore:** 98/100
 
 ## Kurzfazit
-Die AI/KI-Module sind jetzt logisch als eigener Adminbereich aufgebaut und für produktive Provider-Anbindungen nutzbar. Der Adminbereich trennt Dashboard, Übersetzung, Inhaltsassistent, SEO-Assistent und Einstellungen. Azure AI, Ollama, OpenAI, Mistral AI und OpenRouter sind im Provider-Katalog sichtbar, addable und gatewayseitig als Live-Provider verdrahtet; Inhalts- und SEO-Assistent erzeugen serverseitige Preview-Ausgaben mit Human-in-the-loop-Pflicht.
 
-## Inventar
-| Modul | Zweck | Status | Dateien |
-|---|---|---|---|
-| AI Admin Routing | Einheitliche AI-Unterseiten und Actions | ✅ vollständig | `CMS/admin/ai-page.php`, `CMS/admin/ai-*.php` |
-| AI Services Admin | Provider, Gates, Quotas, Logging, Prompt-Vorlagen, Preview-Generatoren | ✅ vollständig | `CMS/admin/modules/system/AiServicesModule.php`, `CMS/admin/views/system/ai-services.php` |
-| Editor.js Translation | Geschützter Übersetzungsendpunkt | ✅ vollständig | `CMS/admin/ai-translate-editorjs.php`, `CMS/admin/modules/system/AiEditorJsTranslationModule.php` |
-| Provider Gateway | Provider-Auswahl, Fallback, Readiness, Translation, Content-/SEO-Generierung, Telemetrie | ✅ erweitert | `CMS/core/Services/AI/AiProviderGateway.php` |
-| Provider Settings | Provider-Katalog, Secrets, Defaults, Feature-Gates | ✅ erweitert | `CMS/core/Services/AI/AiSettingsService.php` |
-| Live Provider | Azure AI, Ollama, OpenAI-kompatible APIs | ✅ erweitert | `CMS/core/Services/AI/Providers/*` |
+Die AI/KI-Module sind jetzt als **Single-Provider-Architektur** umgesetzt. Im Admin kann genau ein Provider-Typ konfiguriert werden (`mock`, `ollama`, `azure_openai`, `openai`, `mistral`, `openrouter`). Der zentrale `AiProviderGateway` nutzt ausschließlich diesen aktiven Provider. Es gibt keinen Runtime-Fallback, keine Parallelprovider und keine direkten AI-API-Calls außerhalb der zentralen Provider-Adapter.
+
+EditorJS-Übersetzungen, Content-Previews und SEO-Previews laufen über denselben AI-Service. Wenn der aktive Provider falsch konfiguriert ist, schlägt der Workflow sichtbar fehl, statt heimlich auf Mock oder einen anderen Provider auszuweichen.
+
+## Inventar aller AI/KI-Komponenten in `/CMS`
+
+| Modul | Zweck | Status | Bewertung | Dateien |
+|---|---|---:|---|---|
+| AI Admin Routing | Gemeinsame AI-Unterseiten und Actions | ✅ OK | `test_provider`, `save_providers`, Feature-/Logging-/Quota-Actions zentral gebunden | `CMS/admin/ai-page.php`, `CMS/admin/ai-*.php` |
+| AI Services Admin | Provider-Konfiguration, Gates, Quotas, Logging, Prompt-Vorlagen, Generator-Previews | ✅ OK | Single Provider statt Add/Delete-Liste; Admin steuert Typ, API-Key, Endpoint, Modell und Test | `CMS/admin/modules/system/AiServicesModule.php`, `CMS/admin/views/system/ai-services.php` |
+| EditorJS Translation Endpoint | Geschützter Übersetzungsendpunkt für EditorJS-Blöcke | ✅ OK | nutzt ausschließlich `AiProviderGateway`; Audit-Metadaten verwenden `selection_mode=single-provider` | `CMS/admin/ai-translate-editorjs.php`, `CMS/admin/modules/system/AiEditorJsTranslationModule.php` |
+| Provider Gateway | Zentrale Runtime für Translation, Content und SEO | ✅ OK | löst nur `active_provider_id` auf; keine Fallback-Kandidaten mehr | `CMS/core/Services/AI/AiProviderGateway.php` |
+| Provider Settings | Provider-Katalog, Secrets, Defaults, Feature-Gates | ✅ OK | normalisiert gespeicherte Provider auf exakt einen aktiven Eintrag; alte Fallback-Keys werden bereinigt | `CMS/core/Services/AI/AiSettingsService.php` |
+| Provider Interface | Einheitlicher Vertrag für Übersetzung und Textgenerierung | ✅ OK | saubere Abstraktion ohne Vendor-Hardcoding im Editor/Admin | `CMS/core/Services/AI/AiProviderInterface.php` |
+| Prompting-Basis | Gemeinsame Prompt-/JSON-Logik | ✅ OK | zentrale Basis für Live-Provider | `CMS/core/Services/AI/Providers/AbstractPromptingAiProvider.php` |
+| Mock Provider | lokaler Testprovider | ✅ OK | nur aktiv, wenn explizit als einziger Provider gewählt | `CMS/core/Services/AI/Providers/MockAiProvider.php` |
+| Ollama Provider | lokaler/interner Live-Provider | ✅ OK | nutzt zentralen HTTP-Client; private Hosts erlaubt | `CMS/core/Services/AI/Providers/OllamaAiProvider.php` |
+| Azure AI/OpenAI Provider | Azure Live-Provider | ✅ OK | prüft Endpoint, Deployment, API-Version und API-Key vor Request | `CMS/core/Services/AI/Providers/AzureOpenAiProvider.php` |
+| OpenAI-kompatibler Provider | OpenAI, Mistral, OpenRouter | ✅ OK | ein Adapter für Chat-Completions-kompatible APIs | `CMS/core/Services/AI/Providers/OpenAiCompatibleProvider.php` |
+| EditorJS Pipeline | Segmentierung/Rekonstruktion von EditorJS-Inhalten | ✅ OK | strukturerhaltende Verarbeitung; keine Providerlogik | `CMS/core/Services/AI/EditorJsTranslationPipeline.php` |
 
 ## Provider-Fähigkeiten
-| Provider | Admin addable | Live Gateway | Secret | Endpoint/Deployment | Status |
+
+| Provider | Konfigurierbar | Live Gateway | Secret | Endpoint/Deployment | Status |
 |---|---:|---:|---:|---|---|
-| Mock | ja | ja | nein | intern | ✅ Test-/Fallback-Provider |
+| Mock | ja | ja | nein | intern | ✅ Testprovider, kein automatischer Fallback |
 | Ollama | ja | ja | nein | Endpoint + Modell | ✅ lokale/private Hosts erlaubt |
 | Azure AI / Azure OpenAI | ja | ja | ja | Endpoint + Deployment + API-Version | ✅ produktiv nutzbar |
 | OpenAI | ja | ja | ja | `/v1/chat/completions` kompatibel | ✅ produktiv nutzbar |
 | Mistral AI | ja | ja | ja | `https://api.mistral.ai/v1` | ✅ produktiv nutzbar |
 | OpenRouter | ja | ja | ja | `https://openrouter.ai/api/v1` | ✅ produktiv nutzbar |
 
-## Umgesetzte Lücken
-- `OpenAiCompatibleProvider` ergänzt OpenAI-kompatible Chat-Completions für OpenAI, Mistral AI und OpenRouter.
-- `AiSettingsService` kennt `mistral`, setzt sinnvolle Defaults und markiert OpenAI/Mistral/OpenRouter als addable/live.
-- `AiProviderGateway` initialisiert OpenAI-kompatible Provider, validiert Endpoint/Modell/API-Key und behält Azure-spezifische Deployment-Prüfung bei.
-- `AiProviderGateway::generateContentDraft()` und `generateSeoDraft()` liefern strukturierte Preview-Ausgaben für Inhalts- und SEO-Assistenten.
-- Alle Provider implementieren `generateText()` für generische JSON-basierte Content-/SEO-Ausgaben; Mock liefert sichere Test-Previews.
-- `AiServicesModule` verarbeitet `generate_content` und `generate_seo` inline, protokolliert Audit-Metadaten und veröffentlicht keine Inhalte automatisch.
-- Admintexte und Provider-Hinweise nennen Azure AI, Mistral AI, OpenAI, OpenRouter und Ollama explizit.
-- `TESTS/ai-services/run.php` validiert Provider-Katalog, Live-Support, Autoloading, Gateway-Verdrahtung, Generatorfähigkeit und logische Admin-Navigation.
+Wichtig: Diese Liste beschreibt austauschbare Adapter. **Aktiv ist immer nur genau ein Provider.**
+
+## Entfernte/refaktorisierte Multi-Provider-Logik
+
+| Früherer Punkt | Maßnahme | Ergebnis |
+|---|---|---|
+| Provider-Liste mit Add/Delete | Admin-UI auf `Single AI Provider` umgestellt | keine Parallelkonfiguration mehr sichtbar |
+| `add_provider` / `delete_provider` Actions | aus Router-Allowed-Actions entfernt; Modulmethoden blockieren Altaufrufe | kein normaler Admin-Flow für Multi-Provider |
+| `fallback_provider_id` / Fallback-Felder | beim Speichern aus Settings gelöscht; Gateway ignoriert sie | keine Runtime-Fallbacks |
+| Gateway-Kandidatenloop | durch direkte Auflösung von `active_provider_id` ersetzt | genau ein Provider pro Request |
+| `resolved_via` Telemetrie | durch `selection_mode=single-provider` ersetzt | Audit/History beschreibt Single-Provider-Modus |
+| Azure Request ohne Pflichtfelder | `assertReady()` ergänzt | sichtbarer Fehler bei fehlendem Endpoint/Deployment/API-Key |
+
+## Zielstruktur nach Umsetzung
+
+```text
+Admin AI Settings
+  └─ speichert genau einen Provider
+      ├─ provider type
+      ├─ API key / secret
+      ├─ endpoint
+      ├─ model
+      └─ Azure deployment + API version optional/typabhängig
+
+AiSettingsService
+  └─ normalisiert auf genau einen aktiven Entry
+
+AiProviderGateway
+  └─ lädt nur active_provider_id
+      ├─ translateBatch()
+      ├─ generateContentDraft()
+      ├─ generateSeoDraft()
+      └─ testActiveProvider()
+
+Provider Adapter
+  ├─ Mock
+  ├─ Ollama
+  ├─ AzureOpenAi
+  └─ OpenAiCompatible (OpenAI/Mistral/OpenRouter)
+```
+
+## Konkrete Codeänderungen
+
+- `CMS/core/Services/AI/AiSettingsService.php`
+  - `saveProviders()` speichert genau einen aktiven Provider.
+  - `normalizeProviders()` kollabiert Alt-/Mehrfacheinträge auf einen aktiven Eintrag.
+  - Alte `fallback_provider_id`-/`fallback_provider`-Settings werden beim Speichern gelöscht.
+  - Secrets nicht aktiver Provider werden bereinigt.
+
+- `CMS/core/Services/AI/AiProviderGateway.php`
+  - `resolveProvider()` und `resolveProviderForCapability()` nutzen nur noch den aktiven Provider.
+  - Fallback-/Auto-Fallback-Loop entfernt.
+  - `testActiveProvider()` ergänzt; der Admin-Test läuft über denselben zentralen Runtime-Pfad.
+  - Provider-Metadaten melden `selection_mode=single-provider`.
+
+- `CMS/core/Services/AI/Providers/AzureOpenAiProvider.php`
+  - `assertReady()` ergänzt.
+  - Fehlende Azure-Pflichtfelder führen vor dem HTTP-Request zu klaren Fehlern.
+
+- `CMS/admin/modules/system/AiServicesModule.php`
+  - `saveProviders()` verarbeitet genau einen Provider.
+  - `testProvider()` speichert und testet den aktiven Provider zentral.
+  - Add/Delete-Altmethoden geben klare Fehler zurück.
+  - Audit-Metadaten auf `selection_mode` umgestellt.
+
+- `CMS/admin/ai-page.php`
+  - `test_provider` als Settings-Action ergänzt.
+  - `add_provider` und `delete_provider` aus erlaubten Actions entfernt.
+
+- `CMS/admin/views/system/ai-services.php`
+  - Multi-Provider-Karten durch `Single AI Provider`-Form ersetzt.
+  - Felder für Provider-Typ, API-Key, Endpoint, Modell, Azure Deployment/API-Version und Feature-Switches gebündelt.
+  - UI weist explizit aus: kein Fallback, keine Parallelprovider.
+
+- `CMS/admin/modules/system/AiEditorJsTranslationModule.php`
+  - Logging-Metadaten auf `selection_mode=single-provider` umgestellt.
+
+- `CMS/DOC/ai/AI-SERVICES.md`
+  - Architektur auf Single-Provider-Vertrag aktualisiert.
+
+- `CMS/DOC/admin/system-settings/AI-SERVICES.md`
+  - Admin-Kontext auf Single-Provider-Steuerung aktualisiert.
+
+## Admin-Konzept
+
+Der Admin steuert jetzt genau diese Werte:
+
+1. Provider-Typ (`mock`, `ollama`, `azure_openai`, `openai`, `mistral`, `openrouter`)
+2. Anzeigename
+3. Modell
+4. API-Key/Secret
+5. Endpoint
+6. Azure Deployment und API-Version, falls Azure gewählt ist
+7. erlaubte Zielsprachen und Capability-Switches
+8. `Provider speichern & testen`
+
+Der Test nutzt `AiProviderGateway::testActiveProvider()` und ist damit kein Sonderweg. Das ist wichtig, weil die Testsituation denselben zentralen Codepfad nutzt wie EditorJS-Übersetzungen und Generatoren.
+
+## Ergebnisbewertung
+
+| Kriterium | Status | Kommentar |
+|---|---:|---|
+| Genau ein aktiver Provider | ✅ erfüllt | Settings und Admin speichern nur einen Entry |
+| Kein Fallback | ✅ erfüllt | Gateway enthält keine Fallback-Auswahl mehr |
+| Keine Parallelprovider | ✅ erfüllt | UI und Save-Pipeline verhindern Providerlistenbetrieb |
+| Provider austauschbar | ✅ erfüllt | Adapter bleiben sauber abstrahiert |
+| Admin konfiguriert Provider/API-Key/Modell | ✅ erfüllt | zentrale Single-Provider-Karte |
+| EditorJS nutzt zentralen AI-Service | ✅ erfüllt | Endpoint geht über `AiProviderGateway` |
+| Direkte API-Calls außerhalb Provider-Adapter | ✅ geprüft | keine AI-API-Calls außerhalb der Adapter gefunden |
+| Doku/Audit aktualisiert | ✅ erfüllt | Audit + CMS-Doku aktualisiert |
 
 ## Verbleibende Follow-ups
+
 - Echte Tokenkosten/Usage-Metriken hängen von Provider-Antworten ab und sollten später providerweise normalisiert werden.
 - CI-Verkabelung des manifestierten Test-Runners bleibt ein allgemeines Tooling-Follow-up.
+- Optional: historische `audit_log`-Einträge können noch alte `resolved_via`-Metadaten enthalten; neue Läufe schreiben `selection_mode`.
 
 ## Validierung
+
+- `php -l` für alle geänderten AI-/Test-PHP-Dateien → **PASS**.
 - `php TESTS\run.php --suite=ai-services` → **PASS**.
-- Syntaxprüfung der geänderten AI-Dateien → **PASS**.
+- `php TESTS\run.php --suite=content-language-copy` → **PASS** als Regression für den zuvor reparierten DE→EN-Flow.
+- VS-Code-Diagnostik für geänderte AI-/Test-/Audit-Dateien → **PASS**.

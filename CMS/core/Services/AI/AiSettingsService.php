@@ -250,22 +250,34 @@ final class AiSettingsService
             $knownEntryIds[$providerId] = true;
         }
 
-        $entryIds = array_values(array_map(
-            static fn (array $entry): string => (string) ($entry['id'] ?? ''),
-            $sanitizedEntries
-        ));
+        $selectedProviderId = $this->sanitizeProviderId((string) ($meta['active_provider_id'] ?? ''));
+        $selectedEntry = null;
+        foreach ($sanitizedEntries as $entry) {
+            if ($selectedProviderId !== '' && (string) ($entry['id'] ?? '') === $selectedProviderId) {
+                $selectedEntry = $entry;
+                break;
+            }
+        }
 
-        $activeProviderId = $this->normalizeSelectedProviderId((string) ($meta['active_provider_id'] ?? ''), $entryIds, $sanitizedEntries);
+        if ($selectedEntry === null) {
+            $selectedEntry = $sanitizedEntries[0] ?? $this->buildProviderEntry('mock', 'mock');
+        }
+
+        $selectedEntry['enabled'] = true;
+        $sanitizedEntries = [$selectedEntry];
+        $activeProviderId = (string) ($selectedEntry['id'] ?? 'mock');
 
         $payload = [
             'active_provider_id' => $activeProviderId,
-            'fallback_provider_id' => $this->normalizeSelectedProviderId((string) ($meta['fallback_provider_id'] ?? ''), $entryIds, $sanitizedEntries, $activeProviderId),
             'entries' => $sanitizedEntries,
         ];
 
         if (!$this->settings->setMany(self::GROUP_PROVIDERS, $payload, [], 0)) {
             return false;
         }
+
+        $this->settings->forget(self::GROUP_PROVIDERS, 'fallback_provider_id');
+        $this->settings->forget(self::GROUP_PROVIDERS, 'fallback_provider');
 
         foreach ($secretValues as $providerId => $secretValue) {
             $providerId = $this->sanitizeProviderId((string) $providerId);
@@ -288,6 +300,14 @@ final class AiSettingsService
             if (!$this->settings->forget(self::GROUP_PROVIDERS, $this->buildProviderSecretKey($providerId))) {
                 return false;
             }
+        }
+
+        foreach (self::PROVIDER_SLUGS as $providerSlug) {
+            if ($providerSlug === $activeProviderId) {
+                continue;
+            }
+
+            $this->settings->forget(self::GROUP_PROVIDERS, $this->buildProviderSecretKey($providerSlug));
         }
 
         return true;
@@ -355,26 +375,34 @@ final class AiSettingsService
             $entries[] = $this->buildProviderEntry('mock', 'mock');
         }
 
-        $entryIds = array_values(array_map(
-            static fn (array $entry): string => (string) ($entry['id'] ?? ''),
-            $entries
-        ));
+        $activeProviderId = $this->sanitizeProviderId((string) ($stored['active_provider_id'] ?? $stored['active_provider'] ?? $defaults['active_provider_id']));
+        $activeEntry = null;
+        foreach ($entries as $entry) {
+            if ($activeProviderId !== '' && (string) ($entry['id'] ?? '') === $activeProviderId) {
+                $activeEntry = $entry;
+                break;
+            }
+        }
 
-        $activeProviderId = $this->normalizeSelectedProviderId(
-            (string) ($stored['active_provider_id'] ?? $stored['active_provider'] ?? $defaults['active_provider_id']),
-            $entryIds,
-            $entries
-        );
-        $fallbackProviderId = $this->normalizeSelectedProviderId(
-            (string) ($stored['fallback_provider_id'] ?? $stored['fallback_provider'] ?? $defaults['fallback_provider_id']),
-            $entryIds,
-            $entries,
-            $activeProviderId
-        );
+        if ($activeEntry === null) {
+            foreach ($entries as $entry) {
+                if (!empty($entry['enabled'])) {
+                    $activeEntry = $entry;
+                    break;
+                }
+            }
+        }
+
+        if ($activeEntry === null) {
+            $activeEntry = $entries[0] ?? $this->buildProviderEntry('mock', 'mock');
+        }
+
+        $activeEntry['enabled'] = true;
+        $entries = [$activeEntry];
+        $activeProviderId = (string) ($activeEntry['id'] ?? 'mock');
 
         return [
             'active_provider_id' => $activeProviderId,
-            'fallback_provider_id' => $fallbackProviderId,
             'entries' => $entries,
             'catalog' => $this->buildProviderCatalog(),
         ];
@@ -585,7 +613,6 @@ final class AiSettingsService
     {
         return [
             'active_provider_id' => 'mock',
-            'fallback_provider_id' => '',
         ];
     }
 

@@ -19,6 +19,7 @@ use CMS\Database;
 use CMS\Http\Request;
 use CMS\Hooks;
 use CMS\Logger;
+use CMS\Services\ContentLanguageCopyService;
 use CMS\Services\ContentLocalizationService;
 use CMS\Services\ContentMediaPlacementService;
 use CMS\Services\PermalinkService;
@@ -123,6 +124,8 @@ class PostsModule
             'excerpt_en' => "ALTER TABLE {$this->prefix}posts ADD COLUMN excerpt_en TEXT DEFAULT NULL AFTER excerpt",
             'meta_title' => "ALTER TABLE {$this->prefix}posts ADD COLUMN meta_title VARCHAR(255) DEFAULT NULL AFTER allow_comments",
             'meta_description' => "ALTER TABLE {$this->prefix}posts ADD COLUMN meta_description TEXT DEFAULT NULL AFTER meta_title",
+            'meta_title_en' => "ALTER TABLE {$this->prefix}posts ADD COLUMN meta_title_en VARCHAR(255) DEFAULT NULL AFTER meta_description",
+            'meta_description_en' => "ALTER TABLE {$this->prefix}posts ADD COLUMN meta_description_en TEXT DEFAULT NULL AFTER meta_title_en",
             'author_display_name' => "ALTER TABLE {$this->prefix}posts ADD COLUMN author_display_name VARCHAR(150) DEFAULT NULL AFTER author_id",
             'post_template' => "ALTER TABLE {$this->prefix}posts ADD COLUMN post_template VARCHAR(80) DEFAULT NULL AFTER author_display_name",
             'post_meta_json' => "ALTER TABLE {$this->prefix}posts ADD COLUMN post_meta_json TEXT DEFAULT NULL AFTER post_template",
@@ -563,7 +566,7 @@ class PostsModule
             ? strtolower(trim((string) ($post['editor_locale'] ?? 'de')))
             : 'de';
         $existingPost = $id > 0
-            ? (array) ($this->db->get_row("SELECT title, title_en, slug, slug_en, content, content_en, excerpt, excerpt_en FROM {$this->prefix}posts WHERE id = ? LIMIT 1", [$id]) ?: [])
+            ? (array) ($this->db->get_row("SELECT title, title_en, slug, slug_en, content, content_en, excerpt, excerpt_en, meta_title, meta_description, meta_title_en, meta_description_en FROM {$this->prefix}posts WHERE id = ? LIMIT 1", [$id]) ?: [])
             : [];
         $title      = $this->sanitizePlainText((string)($post['title'] ?? ''), 255);
         $slug       = trim((string)($post['slug'] ?? ''));
@@ -590,6 +593,8 @@ class PostsModule
         $publishTimeRaw = trim((string)($post['publish_time'] ?? ''));
         $metaTitle  = $this->sanitizePlainText((string)($post['meta_title'] ?? ''), 255);
         $metaDesc   = $this->sanitizePlainText((string)($post['meta_description'] ?? ''), 2000);
+        $metaTitleEn  = $this->sanitizePlainText((string)($post['meta_title_en'] ?? ''), 255);
+        $metaDescEn   = $this->sanitizePlainText((string)($post['meta_description_en'] ?? ''), 2000);
         $authorDisplayName = $this->sanitizeAuthorDisplayName((string)($post['author_display_name'] ?? ''));
         $postTemplates = $this->getPostTemplateDefinitions();
         $postTemplate = $this->sanitizePostTemplate((string)($post['post_template'] ?? ''), $postTemplates);
@@ -605,6 +610,8 @@ class PostsModule
             $slug = trim((string) ($existingPost['slug'] ?? ''));
             $content = $existingPost['content'] ?? '';
             $excerpt = $this->sanitizePlainText((string) ($existingPost['excerpt'] ?? ''), 2000);
+            $metaTitle = $this->sanitizePlainText((string) ($existingPost['meta_title'] ?? ''), 255);
+            $metaDesc = $this->sanitizePlainText((string) ($existingPost['meta_description'] ?? ''), 2000);
         }
 
         if ($editorLocale === 'de' && $existingPost !== []) {
@@ -612,6 +619,8 @@ class PostsModule
             $slugEn = trim((string) ($existingPost['slug_en'] ?? ''));
             $contentEn = $existingPost['content_en'] ?? '';
             $excerptEn = $this->sanitizePlainText((string) ($existingPost['excerpt_en'] ?? ''), 2000);
+            $metaTitleEn = $this->sanitizePlainText((string) ($existingPost['meta_title_en'] ?? ''), 255);
+            $metaDescEn = $this->sanitizePlainText((string) ($existingPost['meta_description_en'] ?? ''), 2000);
         }
 
         $slugEn     = $this->normalizeSlug($slugEn);
@@ -677,6 +686,8 @@ class PostsModule
             'tags' => $legacyTags,
             'meta_title' => $metaTitle,
             'meta_description' => $metaDesc,
+            'meta_title_en' => $metaTitleEn,
+            'meta_description_en' => $metaDescEn,
             'author_display_name' => $authorDisplayName,
             'post_template' => $postTemplate,
             'post_meta_json' => $postMetaJson,
@@ -708,7 +719,7 @@ class PostsModule
                     "UPDATE {$this->prefix}posts 
                      SET title = ?, title_en = ?, slug = ?, slug_en = ?, content = ?, content_en = ?, excerpt = ?, excerpt_en = ?, status = ?,
                          category_id = ?, featured_image = ?, tags = ?,
-                         meta_title = ?, meta_description = ?, author_display_name = ?, post_template = ?, post_meta_json = ?, published_at = ?,
+                         meta_title = ?, meta_description = ?, meta_title_en = ?, meta_description_en = ?, author_display_name = ?, post_template = ?, post_meta_json = ?, published_at = ?,
                          updated_at = NOW()
                      WHERE id = ?",
                     [
@@ -726,6 +737,8 @@ class PostsModule
                         (string)($savePayload['tags'] ?? ''),
                         (string)$savePayload['meta_title'],
                         (string)$savePayload['meta_description'],
+                        (string)($savePayload['meta_title_en'] ?? ''),
+                        (string)($savePayload['meta_description_en'] ?? ''),
                         (string)($savePayload['author_display_name'] ?? ''),
                         (string)($savePayload['post_template'] ?? 'default'),
                         $savePayload['post_meta_json'],
@@ -754,8 +767,8 @@ class PostsModule
                 $resolvedPublishedAt = $this->resolvePublishedAtValue((string) $savePayload['status'], $savePayload['published_at'], null);
                 $this->db->execute(
                     "INSERT INTO {$this->prefix}posts
-                     (title, title_en, slug, slug_en, content, content_en, excerpt, excerpt_en, status, category_id, featured_image, tags, meta_title, meta_description, author_id, author_display_name, post_template, post_meta_json, published_at, created_at, updated_at)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())",
+                     (title, title_en, slug, slug_en, content, content_en, excerpt, excerpt_en, status, category_id, featured_image, tags, meta_title, meta_description, meta_title_en, meta_description_en, author_id, author_display_name, post_template, post_meta_json, published_at, created_at, updated_at)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())",
                     [
                         (string)$savePayload['title'],
                         (string)($savePayload['title_en'] ?? ''),
@@ -771,6 +784,8 @@ class PostsModule
                         (string)($savePayload['tags'] ?? ''),
                         (string)$savePayload['meta_title'],
                         (string)$savePayload['meta_description'],
+                        (string)($savePayload['meta_title_en'] ?? ''),
+                        (string)($savePayload['meta_description_en'] ?? ''),
                         $userId,
                         (string)($savePayload['author_display_name'] ?? ''),
                         (string)($savePayload['post_template'] ?? 'default'),
@@ -793,6 +808,84 @@ class PostsModule
                 $e,
                 ['post_id' => $id, 'status' => $status, 'category_id' => $categoryId, 'user_id' => $userId]
             );
+        }
+    }
+
+    /**
+     * Kopiert die deutsche Beitragsfassung serverseitig in die englische Variante.
+     */
+    public function copyGermanToEnglish(int $id): array
+    {
+        if ($id <= 0) {
+            return ['success' => false, 'error' => 'Ungültige Beitrags-ID.'];
+        }
+
+        $post = $this->getCurrentPostRevisionSource($id);
+        if ($post === [] || !$this->postExists($id)) {
+            return ['success' => false, 'error' => 'Beitrag wurde nicht gefunden.'];
+        }
+
+        $copyService = ContentLanguageCopyService::getInstance();
+        $payload = $copyService->buildPostGermanToEnglishPayload($post);
+        if ($payload === []) {
+            return ['success' => false, 'error' => 'Die deutsche Beitragsfassung enthält keinen kopierbaren Inhalt.'];
+        }
+
+        $slugEn = trim((string)($payload['slug_en'] ?? ''));
+        if ($slugEn !== '' && $this->isLocalizedSlugTaken($slugEn, $id)) {
+            return ['success' => false, 'error' => 'Der kopierte englische Slug ist bereits vergeben.'];
+        }
+
+        $categoryIds = $this->getPostCategoryIds($id);
+        if ($categoryIds === [] && (int)($payload['category_id'] ?? 0) > 0) {
+            $categoryIds = [(int)$payload['category_id']];
+        }
+
+        try {
+            if (!$this->storePostRevisionSnapshot($post)) {
+                return $this->failResult(
+                    'posts.copy_de_to_en.revision_failed',
+                    'Beitragsrevision konnte vor der DE→EN-Kopie nicht gesichert werden.',
+                    null,
+                    ['post_id' => $id]
+                );
+            }
+
+            $this->db->execute(
+                "UPDATE {$this->prefix}posts
+                 SET title_en = ?, slug_en = ?, content_en = ?, excerpt_en = ?, status = ?, category_id = ?, featured_image = ?, tags = ?,
+                     meta_title_en = ?, meta_description_en = ?, author_display_name = ?, post_template = ?, post_meta_json = ?, published_at = ?, updated_at = NOW()
+                 WHERE id = ?",
+                [
+                    (string)($payload['title_en'] ?? ''),
+                    $payload['slug_en'],
+                    (string)($payload['content_en'] ?? ''),
+                    (string)($payload['excerpt_en'] ?? ''),
+                    (string)($payload['status'] ?? 'draft'),
+                    $payload['category_id'],
+                    (string)($payload['featured_image'] ?? ''),
+                    (string)($payload['tags'] ?? ''),
+                    (string)($payload['meta_title_en'] ?? ''),
+                    (string)($payload['meta_description_en'] ?? ''),
+                    (string)($payload['author_display_name'] ?? ''),
+                    (string)($payload['post_template'] ?? 'default'),
+                    $payload['post_meta_json'],
+                    $payload['published_at'],
+                    $id,
+                ]
+            );
+
+            $this->syncPostTags($id, (string)($payload['tags'] ?? ''));
+            $this->syncPostCategories($id, $categoryIds);
+
+            $seoMeta = SEOService::getInstance()->getContentMeta('post', $id);
+            SEOService::getInstance()->saveContentMeta('post', $id, $copyService->buildSeoRelationPayload('post', $id, $seoMeta));
+            Hooks::doAction('cms_after_post_save', $id, array_merge($post, $payload), ['copy_source_locale' => 'de', 'copy_target_locale' => 'en']);
+            $this->clearContentCacheIfEnabled('post_copy_de_to_en', $id);
+
+            return ['success' => true, 'id' => $id, 'message' => 'Deutsche Beitragsfassung wurde nach EN kopiert.'];
+        } catch (\Throwable $e) {
+            return $this->failResult('posts.copy_de_to_en.failed', 'DE→EN-Kopie des Beitrags fehlgeschlagen.', $e, ['post_id' => $id]);
         }
     }
 
@@ -1792,7 +1885,8 @@ class PostsModule
 
         $row = $this->db->get_row(
             "SELECT p.id, p.title, p.title_en, p.slug, p.slug_en, p.content, p.content_en, p.excerpt, p.excerpt_en,
-                    p.status, p.category_id, p.tags, p.author_id, p.author_display_name, p.published_at,
+                    p.status, p.category_id, p.tags, p.meta_title, p.meta_description, p.meta_title_en, p.meta_description_en,
+                    p.author_id, p.author_display_name, p.post_template, p.post_meta_json, p.published_at,
                     c.name AS category_name
              FROM {$this->prefix}posts p
              LEFT JOIN {$this->prefix}post_categories c ON c.id = p.category_id
@@ -1934,7 +2028,7 @@ class PostsModule
         $currentSummary = $this->summarizeEditorContentValue($current);
         $revisionSummary = $this->summarizeEditorContentValue($revision);
 
-        if (($currentSummary['sha1'] ?? '') === ($revisionSummary['sha1'] ?? '')) {
+        if (($currentSummary['sha256'] ?? '') === ($revisionSummary['sha256'] ?? '')) {
             return;
         }
 

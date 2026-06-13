@@ -50,6 +50,8 @@ final class AzureOpenAiProvider extends AbstractPromptingAiProvider
             return [];
         }
 
+        $this->assertReady();
+
         $prompt = $this->buildTranslationPrompt($segments, $context);
         $payload = [
             'messages' => [
@@ -96,6 +98,8 @@ final class AzureOpenAiProvider extends AbstractPromptingAiProvider
     /** @param array<string, mixed> $context */
     public function generateText(string $systemPrompt, string $userPrompt, array $context = []): string
     {
+        $this->assertReady();
+
         $payload = [
             'messages' => [
                 ['role' => 'system', 'content' => $systemPrompt],
@@ -146,6 +150,25 @@ final class AzureOpenAiProvider extends AbstractPromptingAiProvider
         return $baseEndpoint
             . '/openai/deployments/' . rawurlencode($this->deployment)
             . '/chat/completions?api-version=' . rawurlencode($this->apiVersion);
+    }
+
+    private function assertReady(): void
+    {
+        if ($this->endpoint === '') {
+            throw new \RuntimeException('Azure OpenAI: Endpoint fehlt.');
+        }
+
+        if ($this->deployment === '') {
+            throw new \RuntimeException('Azure OpenAI: Deployment fehlt.');
+        }
+
+        if ($this->apiVersion === '') {
+            throw new \RuntimeException('Azure OpenAI: API-Version fehlt.');
+        }
+
+        if ($this->apiKey === '') {
+            throw new \RuntimeException('Azure OpenAI: API-Key fehlt.');
+        }
     }
 
     /** @param array<string, mixed> $payload */

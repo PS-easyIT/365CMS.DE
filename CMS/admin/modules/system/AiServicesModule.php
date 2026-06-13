@@ -16,7 +16,6 @@ final class AiServicesModule
 {
     private const int MAX_TEXT_LENGTH = 120;
     private const int MAX_URL_LENGTH = 255;
-    private const int MAX_PROVIDER_ENTRIES = 20;
     private const int USAGE_LOOKBACK_DAYS = 30;
     private const int USAGE_HISTORY_LIMIT = 15;
     private const int USAGE_DATASET_LIMIT = 500;
@@ -107,7 +106,7 @@ final class AiServicesModule
     private function getDefaultData(): array
     {
         return [
-            'providers' => ['active_provider_id' => 'mock', 'fallback_provider_id' => '', 'entries' => [], 'catalog' => []],
+            'providers' => ['active_provider_id' => 'mock', 'entries' => [], 'catalog' => []],
             'features' => [],
             'translation' => [],
             'logging' => [],
@@ -279,7 +278,7 @@ final class AiServicesModule
             'translated_segments' => $this->normalizePositiveNullable($metadata['translated_segments'] ?? null),
             'char_count' => $this->normalizePositiveNullable($metadata['char_count'] ?? null),
             'block_count' => $this->normalizePositiveNullable($metadata['block_count'] ?? null),
-            'resolved_via' => $this->sanitizeText((string) ($metadata['resolved_via'] ?? 'direct'), self::MAX_TEXT_LENGTH) ?: 'direct',
+            'selection_mode' => $this->sanitizeText((string) ($metadata['selection_mode'] ?? 'single-provider'), self::MAX_TEXT_LENGTH) ?: 'single-provider',
             'description' => $this->sanitizeText((string) ($row->description ?? ''), self::MAX_TEXT_LENGTH),
         ];
     }
@@ -445,33 +444,27 @@ final class AiServicesModule
             }
 
             $current = $this->settings->getConfiguration();
-            $currentProviderEntries = array_values(array_filter(
-                (array) ($current['providers']['entries'] ?? []),
-                static fn (mixed $entry): bool => is_array($entry)
-            ));
             $providerEntries = $this->sanitizeProviderEntries($post, $current);
+            if ($providerEntries === []) {
+                return ['success' => false, 'error' => 'Bitte genau einen AI-Provider konfigurieren.'];
+            }
+
             $providerIds = array_values(array_map(
                 static fn (array $entry): string => (string) ($entry['id'] ?? ''),
                 $providerEntries
             ));
-            $removedProviderIds = [];
-            foreach ($currentProviderEntries as $entry) {
-                $entryId = $this->sanitizeProviderId((string) ($entry['id'] ?? ''));
-                if ($entryId !== '' && !in_array($entryId, $providerIds, true)) {
-                    $removedProviderIds[] = $entryId;
-                }
-            }
+            $activeProviderId = (string) ($providerIds[0] ?? '');
 
             $meta = [
-                'active_provider_id' => $this->resolvePrimaryProviderSelection((string) ($post['active_provider_id'] ?? ''), $providerIds),
-                'fallback_provider_id' => $this->sanitizeProviderSelection((string) ($post['fallback_provider_id'] ?? ''), $providerIds),
+                'active_provider_id' => $activeProviderId,
             ];
 
-            if ($meta['fallback_provider_id'] !== '' && $meta['fallback_provider_id'] === $meta['active_provider_id']) {
-                $meta['fallback_provider_id'] = '';
+            $secretValues = [];
+            $flatSecretValue = trim((string) ($post['provider_secret_value'] ?? ''));
+            if ($activeProviderId !== '' && $flatSecretValue !== '') {
+                $secretValues[$activeProviderId] = $flatSecretValue;
             }
 
-            $secretValues = [];
             foreach ((array) ($post['provider_secret'] ?? []) as $providerId => $secretValue) {
                 $providerId = $this->sanitizeProviderId((string) $providerId);
                 $secretValue = trim((string) $secretValue);
@@ -481,13 +474,17 @@ final class AiServicesModule
             }
 
             $clearSecrets = [];
+            if ($activeProviderId !== '' && !empty($post['clear_provider_secret_value'])) {
+                $clearSecrets[] = $activeProviderId;
+            }
+
             foreach (array_keys((array) ($post['clear_provider_secret'] ?? [])) as $providerId) {
                 $providerId = $this->sanitizeProviderId((string) $providerId);
                 if ($providerId !== '') {
                     $clearSecrets[] = $providerId;
                 }
             }
-            $clearSecrets = array_values(array_unique(array_merge($clearSecrets, $removedProviderIds)));
+            $clearSecrets = array_values(array_unique($clearSecrets));
 
             if (!$this->settings->saveProviders($meta, $providerEntries, $secretValues, $clearSecrets)) {
                 return ['success' => false, 'error' => 'Provider-Einstellungen konnten nicht gespeichert werden.'];
@@ -501,9 +498,9 @@ final class AiServicesModule
                 null,
                 [
                     'active_provider_id' => $meta['active_provider_id'],
-                    'fallback_provider_id' => $meta['fallback_provider_id'],
-                    'providers_enabled' => count(array_filter($providerEntries, static fn (array $provider): bool => !empty($provider['enabled']))),
-                    'provider_count' => count($providerEntries),
+                    'provider_type' => (string) ($providerEntries[0]['type'] ?? ''),
+                    'providers_enabled' => 1,
+                    'provider_count' => 1,
                     'secrets_updated' => count($secretValues),
                     'secrets_cleared' => $clearSecrets,
                 ],
@@ -517,134 +514,54 @@ final class AiServicesModule
     }
 
     /** @return array<string, mixed> */
-    public function addProvider(array $post): array
+    public function testProvider(array $post): array
     {
         try {
             if ($this->settings === null) {
-                return $this->runtimeUnavailableResult('Provider-Eintrag konnte nicht angelegt werden.');
+                return $this->runtimeUnavailableResult('Provider-Test konnte nicht ausgeführt werden.');
             }
 
-            $providerType = $this->sanitizeProviderType((string) ($post['provider_type'] ?? ''), true);
-            if ($providerType === '') {
-                return ['success' => false, 'error' => 'Bitte einen unterstützten Providertyp auswählen.'];
+            $saveResult = $this->saveProviders($post);
+            if (empty($saveResult['success'])) {
+                return $saveResult;
             }
 
-            $current = $this->settings->getConfiguration();
-            $providersData = is_array($current['providers'] ?? null) ? $current['providers'] : [];
-            $entries = array_values(array_filter(
-                (array) ($providersData['entries'] ?? []),
-                static fn (mixed $entry): bool => is_array($entry)
-            ));
-
-            if (count($entries) >= self::MAX_PROVIDER_ENTRIES) {
-                return ['success' => false, 'error' => 'Es können maximal ' . self::MAX_PROVIDER_ENTRIES . ' Provider-Einträge verwaltet werden.'];
-            }
-
-            $newEntry = $this->settings->buildProviderEntry($providerType);
-            $entries[] = $newEntry;
-
-            $meta = [
-                'active_provider_id' => (string) ($providersData['active_provider_id'] ?? ''),
-                'fallback_provider_id' => (string) ($providersData['fallback_provider_id'] ?? ''),
-            ];
-
-            if (($meta['active_provider_id'] ?? '') === '') {
-                $meta['active_provider_id'] = (string) ($newEntry['id'] ?? '');
-            }
-
-            if (!$this->settings->saveProviders($meta, $entries)) {
-                return ['success' => false, 'error' => 'Provider-Eintrag konnte nicht angelegt werden.'];
-            }
+            $result = AiProviderGateway::getInstance()->testActiveProvider();
 
             AuditLogger::instance()->log(
                 AuditLogger::CAT_SETTING,
-                'setting.ai.providers.add',
-                'AI-Provider-Eintrag angelegt.',
+                'setting.ai.provider.test',
+                'Aktiver AI-Provider erfolgreich getestet.',
                 'setting',
                 null,
                 [
-                    'provider_id' => (string) ($newEntry['id'] ?? ''),
-                    'provider_type' => $providerType,
+                    'provider' => (string) ($result['provider']['slug'] ?? ''),
+                    'provider_type' => (string) ($result['provider']['type'] ?? ''),
+                    'duration_ms' => (int) ($result['duration_ms'] ?? 0),
                 ],
                 'info'
             );
 
             return [
                 'success' => true,
-                'message' => 'Provider-Eintrag wurde angelegt.',
+                'message' => 'AI-Provider gespeichert und erfolgreich getestet.',
                 'redirect_section' => 'settings',
             ];
         } catch (\Throwable $e) {
-            return $this->failResult('setting.ai.providers.add_failed', 'Provider-Eintrag konnte nicht angelegt werden.', $e);
+            return $this->failResult('setting.ai.provider.test_failed', 'AI-Provider-Test fehlgeschlagen.', $e);
         }
+    }
+
+    /** @return array<string, mixed> */
+    public function addProvider(array $post): array
+    {
+        return ['success' => false, 'error' => 'Die Multi-Provider-Verwaltung wurde entfernt. Bitte den Single Provider direkt speichern.'];
     }
 
     /** @return array<string, mixed> */
     public function deleteProvider(array $post): array
     {
-        try {
-            if ($this->settings === null) {
-                return $this->runtimeUnavailableResult('Provider-Eintrag konnte nicht gelöscht werden.');
-            }
-
-            $providerId = $this->sanitizeProviderId((string) ($post['provider_id'] ?? ''));
-            if ($providerId === '') {
-                return ['success' => false, 'error' => 'Der zu löschende Provider-Eintrag ist ungültig.'];
-            }
-
-            $current = $this->settings->getConfiguration();
-            $providersData = is_array($current['providers'] ?? null) ? $current['providers'] : [];
-            $entries = array_values(array_filter(
-                (array) ($providersData['entries'] ?? []),
-                static fn (mixed $entry): bool => is_array($entry)
-            ));
-
-            $remainingEntries = array_values(array_filter(
-                $entries,
-                static fn (array $entry): bool => (string) ($entry['id'] ?? '') !== $providerId
-            ));
-
-            if (count($remainingEntries) === count($entries)) {
-                return ['success' => false, 'error' => 'Der gewählte Provider-Eintrag wurde nicht gefunden.'];
-            }
-
-            $remainingIds = array_values(array_map(
-                static fn (array $entry): string => (string) ($entry['id'] ?? ''),
-                $remainingEntries
-            ));
-
-            $meta = [
-                'active_provider_id' => $this->resolvePrimaryProviderSelection((string) ($providersData['active_provider_id'] ?? ''), $remainingIds),
-                'fallback_provider_id' => $this->sanitizeProviderSelection((string) ($providersData['fallback_provider_id'] ?? ''), $remainingIds),
-            ];
-            if ($meta['fallback_provider_id'] !== '' && $meta['fallback_provider_id'] === $meta['active_provider_id']) {
-                $meta['fallback_provider_id'] = '';
-            }
-
-            if (!$this->settings->saveProviders($meta, $remainingEntries, [], [$providerId])) {
-                return ['success' => false, 'error' => 'Provider-Eintrag konnte nicht gelöscht werden.'];
-            }
-
-            AuditLogger::instance()->log(
-                AuditLogger::CAT_SETTING,
-                'setting.ai.providers.delete',
-                'AI-Provider-Eintrag gelöscht.',
-                'setting',
-                null,
-                [
-                    'provider_id' => $providerId,
-                ],
-                'info'
-            );
-
-            return [
-                'success' => true,
-                'message' => 'Provider-Eintrag wurde gelöscht.',
-                'redirect_section' => 'settings',
-            ];
-        } catch (\Throwable $e) {
-            return $this->failResult('setting.ai.providers.delete_failed', 'Provider-Eintrag konnte nicht gelöscht werden.', $e);
-        }
+        return ['success' => false, 'error' => 'Der aktive Single Provider kann nicht gelöscht, sondern nur umkonfiguriert werden.'];
     }
 
     /** @return array<string, mixed> */
@@ -770,7 +687,7 @@ final class AiServicesModule
                 [
                     'provider' => (string) ($result['provider']['slug'] ?? ''),
                     'provider_type' => (string) ($result['provider']['type'] ?? ''),
-                    'resolved_via' => (string) ($result['provider']['resolved_via'] ?? 'direct'),
+                    'selection_mode' => (string) ($result['provider']['selection_mode'] ?? 'single-provider'),
                     'duration_ms' => (int) ($result['telemetry']['duration_ms'] ?? 0),
                     'char_count' => (int) ($result['telemetry']['char_count'] ?? 0),
                     'target_locale' => strtoupper((string) ($result['locale'] ?? 'de')),
@@ -817,7 +734,7 @@ final class AiServicesModule
                 [
                     'provider' => (string) ($result['provider']['slug'] ?? ''),
                     'provider_type' => (string) ($result['provider']['type'] ?? ''),
-                    'resolved_via' => (string) ($result['provider']['resolved_via'] ?? 'direct'),
+                    'selection_mode' => (string) ($result['provider']['selection_mode'] ?? 'single-provider'),
                     'duration_ms' => (int) ($result['telemetry']['duration_ms'] ?? 0),
                     'char_count' => (int) ($result['telemetry']['char_count'] ?? 0),
                     'target_locale' => strtoupper((string) ($result['locale'] ?? 'de')),
@@ -1235,6 +1152,12 @@ final class AiServicesModule
             (array) ($post['provider_entries'] ?? []),
             static fn (mixed $entry): bool => is_array($entry)
         ));
+        if ($rawEntries === []) {
+            $rawEntries[] = [
+                'type' => (string) ($post['provider_type'] ?? ($current['providers']['active_provider_id'] ?? 'mock')),
+            ];
+        }
+
         $currentEntries = [];
         foreach ((array) ($current['providers']['entries'] ?? []) as $entry) {
             if (is_array($entry) && !empty($entry['id'])) {
@@ -1243,15 +1166,14 @@ final class AiServicesModule
         }
 
         $entries = [];
-        $knownIds = [];
 
         foreach ($rawEntries as $rawEntry) {
-            $providerId = $this->sanitizeProviderId((string) ($rawEntry['id'] ?? ''));
             $providerType = $this->sanitizeProviderType((string) ($rawEntry['type'] ?? ''), false);
-            if ($providerId === '' || $providerType === '' || !empty($rawEntry['remove']) || isset($knownIds[$providerId])) {
+            if ($providerType === '' || !empty($rawEntry['remove'])) {
                 continue;
             }
 
+            $providerId = $this->sanitizeProviderId($providerType);
             $currentEntry = is_array($currentEntries[$providerId] ?? null) ? $currentEntries[$providerId] : [];
             $defaultEntry = $this->settings->buildProviderEntry($providerType, $providerId);
 
@@ -1273,11 +1195,7 @@ final class AiServicesModule
                 'allowed_locales' => $this->sanitizeCsvList((string) ($rawEntry['allowed_locales'] ?? implode(',', (array) ($currentEntry['allowed_locales'] ?? $defaultEntry['allowed_locales'] ?? ['en']))), ['en']),
                 'beta_only' => !empty($rawEntry['beta_only']),
             ];
-            $knownIds[$providerId] = true;
-
-            if (count($entries) >= self::MAX_PROVIDER_ENTRIES) {
-                break;
-            }
+            break;
         }
 
         return $entries;

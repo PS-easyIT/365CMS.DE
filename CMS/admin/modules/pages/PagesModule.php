@@ -20,6 +20,7 @@ use CMS\Logger;
 use CMS\PageManager;
 use CMS\Services\RedirectService;
 use CMS\Services\ContentMediaPlacementService;
+use CMS\Services\ContentLanguageCopyService;
 use CMS\Services\ContentLocalizationService;
 use CMS\Services\SEOService;
 
@@ -318,7 +319,7 @@ class PagesModule
             ? strtolower(trim((string) ($post['editor_locale'] ?? 'de')))
             : 'de';
         $existingPage = $id > 0
-            ? (array) ($this->db->get_row("SELECT title, title_en, slug, slug_en, content, content_en FROM {$this->prefix}pages WHERE id = ? LIMIT 1", [$id]) ?: [])
+            ? (array) ($this->db->get_row("SELECT title, title_en, slug, slug_en, content, content_en, meta_title, meta_description, meta_title_en, meta_description_en FROM {$this->prefix}pages WHERE id = ? LIMIT 1", [$id]) ?: [])
             : [];
         $title  = $this->sanitizePlainText((string)($post['title'] ?? ''), 255);
         $slug   = trim($post['slug'] ?? '');
@@ -341,6 +342,8 @@ class PagesModule
         $featuredImageTempPath = $this->sanitizeMediaReference((string)($post['featured_image_temp_path'] ?? ''));
         $metaTitle  = $this->sanitizePlainText((string)($post['meta_title'] ?? ''), 255);
         $metaDesc   = $this->sanitizePlainText((string)($post['meta_description'] ?? ''), 2000);
+        $metaTitleEn  = $this->sanitizePlainText((string)($post['meta_title_en'] ?? ''), 255);
+        $metaDescEn   = $this->sanitizePlainText((string)($post['meta_description_en'] ?? ''), 2000);
         if ($id > 0 && $existingPage === []) {
             return ['success' => false, 'error' => 'Die Seite existiert nicht mehr. Bitte Liste neu laden.'];
         }
@@ -349,12 +352,16 @@ class PagesModule
             $title = $this->sanitizePlainText((string) ($existingPage['title'] ?? ''), 255);
             $slug = trim((string) ($existingPage['slug'] ?? ''));
             $content = $existingPage['content'] ?? '';
+            $metaTitle = $this->sanitizePlainText((string) ($existingPage['meta_title'] ?? ''), 255);
+            $metaDesc = $this->sanitizePlainText((string) ($existingPage['meta_description'] ?? ''), 2000);
         }
 
         if ($editorLocale === 'de' && $existingPage !== []) {
             $titleEn = $this->sanitizePlainText((string) ($existingPage['title_en'] ?? ''), 255);
             $slugEn = trim((string) ($existingPage['slug_en'] ?? ''));
             $contentEn = $existingPage['content_en'] ?? '';
+            $metaTitleEn = $this->sanitizePlainText((string) ($existingPage['meta_title_en'] ?? ''), 255);
+            $metaDescEn = $this->sanitizePlainText((string) ($existingPage['meta_description_en'] ?? ''), 2000);
         }
 
         $slugEn     = $this->normalizeSlug($slugEn);
@@ -413,6 +420,8 @@ class PagesModule
             'featured_image' => $featuredImage,
             'meta_title' => $metaTitle,
             'meta_description' => $metaDesc,
+            'meta_title_en' => $metaTitleEn,
+            'meta_description_en' => $metaDescEn,
         ];
 
         $filteredPayload = Hooks::applyFilters('cms_prepare_page_save_payload', $savePayload, $post, $id, $userId);
@@ -445,7 +454,7 @@ class PagesModule
                     // Update meta fields
                     $this->db->execute(
                         "UPDATE {$this->prefix}pages 
-                             SET slug = ?, slug_en = ?, title_en = ?, content_en = ?, show_title_toc = ?, category_id = ?, featured_image = ?, meta_title = ?, meta_description = ?
+                             SET slug = ?, slug_en = ?, title_en = ?, content_en = ?, show_title_toc = ?, category_id = ?, featured_image = ?, meta_title = ?, meta_description = ?, meta_title_en = ?, meta_description_en = ?
                          WHERE id = ?",
                         [
                             (string)$savePayload['slug'],
@@ -457,6 +466,8 @@ class PagesModule
                             (string)$savePayload['featured_image'],
                             (string)$savePayload['meta_title'],
                             (string)$savePayload['meta_description'],
+                            (string)($savePayload['meta_title_en'] ?? ''),
+                            (string)($savePayload['meta_description_en'] ?? ''),
                             $newId,
                         ]
                     );
@@ -474,6 +485,48 @@ class PagesModule
                 $e,
                 ['page_id' => $id, 'status' => $status, 'category_id' => $categoryId, 'user_id' => $userId]
             );
+        }
+    }
+
+    /**
+     * Kopiert die deutsche Seitenfassung serverseitig in die englische Variante.
+     */
+    public function copyGermanToEnglish(int $id): array
+    {
+        if ($id <= 0) {
+            return ['success' => false, 'error' => 'Ungültige Seiten-ID.'];
+        }
+
+        $page = $this->pageManager->getPage($id);
+        if ($page === null) {
+            return ['success' => false, 'error' => 'Seite wurde nicht gefunden.'];
+        }
+
+        $copyService = ContentLanguageCopyService::getInstance();
+        $payload = $copyService->buildPageGermanToEnglishPayload($page);
+        if ($payload === []) {
+            return ['success' => false, 'error' => 'Die deutsche Seitenfassung enthält keinen kopierbaren Inhalt.'];
+        }
+
+        $slugEn = trim((string)($payload['slug_en'] ?? ''));
+        if ($slugEn !== '' && $this->isLocalizedSlugTaken($slugEn, $id)) {
+            return ['success' => false, 'error' => 'Der kopierte englische Slug ist bereits vergeben.'];
+        }
+
+        try {
+            $updated = $this->pageManager->updatePage($id, $payload);
+            if (!$updated) {
+                return ['success' => false, 'error' => 'Die englische Seitenfassung konnte nicht aktualisiert werden.'];
+            }
+
+            $seoMeta = SEOService::getInstance()->getContentMeta('page', $id);
+            SEOService::getInstance()->saveContentMeta('page', $id, $copyService->buildSeoRelationPayload('page', $id, $seoMeta));
+            Hooks::doAction('cms_after_page_save', $id, array_merge($page, $payload), ['copy_source_locale' => 'de', 'copy_target_locale' => 'en']);
+            $this->clearContentCacheIfEnabled('page_copy_de_to_en', $id);
+
+            return ['success' => true, 'id' => $id, 'message' => 'Deutsche Seitenfassung wurde nach EN kopiert.'];
+        } catch (\Throwable $e) {
+            return $this->failResult('pages.copy_de_to_en.failed', 'DE→EN-Kopie der Seite fehlgeschlagen.', $e, ['page_id' => $id]);
         }
     }
 
@@ -824,7 +877,7 @@ class PagesModule
         $currentSummary = $this->summarizeEditorContentValue($current);
         $revisionSummary = $this->summarizeEditorContentValue($revision);
 
-        if (($currentSummary['sha1'] ?? '') === ($revisionSummary['sha1'] ?? '')) {
+        if (($currentSummary['sha256'] ?? '') === ($revisionSummary['sha256'] ?? '')) {
             return;
         }
 

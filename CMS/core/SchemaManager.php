@@ -149,6 +149,8 @@ class SchemaManager
                 featured_image VARCHAR(500) DEFAULT NULL,
                 meta_title VARCHAR(255) DEFAULT NULL,
                 meta_description TEXT DEFAULT NULL,
+                meta_title_en VARCHAR(255) DEFAULT NULL,
+                meta_description_en TEXT DEFAULT NULL,
                 author_id INT UNSIGNED,
                 category_id INT UNSIGNED DEFAULT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -392,6 +394,8 @@ class SchemaManager
                 allow_comments TINYINT(1) NOT NULL DEFAULT 1,
                 meta_title VARCHAR(255),
                 meta_description TEXT,
+                meta_title_en VARCHAR(255) DEFAULT NULL,
+                meta_description_en TEXT DEFAULT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 published_at TIMESTAMP NULL,
@@ -890,6 +894,16 @@ class SchemaManager
             "ALTER TABLE {$this->prefix}pages ADD COLUMN meta_description TEXT DEFAULT NULL AFTER meta_title"
         );
         $this->ensureColumnExists(
+            $this->prefix . 'pages',
+            'meta_title_en',
+            "ALTER TABLE {$this->prefix}pages ADD COLUMN meta_title_en VARCHAR(255) DEFAULT NULL AFTER meta_description"
+        );
+        $this->ensureColumnExists(
+            $this->prefix . 'pages',
+            'meta_description_en',
+            "ALTER TABLE {$this->prefix}pages ADD COLUMN meta_description_en TEXT DEFAULT NULL AFTER meta_title_en"
+        );
+        $this->ensureColumnExists(
             $this->prefix . 'posts',
             'featured_image',
             "ALTER TABLE {$this->prefix}posts ADD COLUMN featured_image VARCHAR(500) DEFAULT NULL AFTER excerpt"
@@ -903,6 +917,16 @@ class SchemaManager
             $this->prefix . 'posts',
             'meta_description',
             "ALTER TABLE {$this->prefix}posts ADD COLUMN meta_description TEXT DEFAULT NULL AFTER meta_title"
+        );
+        $this->ensureColumnExists(
+            $this->prefix . 'posts',
+            'meta_title_en',
+            "ALTER TABLE {$this->prefix}posts ADD COLUMN meta_title_en VARCHAR(255) DEFAULT NULL AFTER meta_description"
+        );
+        $this->ensureColumnExists(
+            $this->prefix . 'posts',
+            'meta_description_en',
+            "ALTER TABLE {$this->prefix}posts ADD COLUMN meta_description_en TEXT DEFAULT NULL AFTER meta_title_en"
         );
         $this->ensureColumnExists(
             $this->prefix . 'posts',

@@ -19,7 +19,7 @@ use CMS\Security;
 use CMS\Services\CoreModuleService;
 use CMS\Services\EditorJsService;
 
-const CMS_ADMIN_PAGES_ALLOWED_ACTIONS = ['save', 'delete', 'bulk', 'switch_locale'];
+const CMS_ADMIN_PAGES_ALLOWED_ACTIONS = ['save', 'delete', 'bulk', 'switch_locale', 'copy_de_to_en'];
 const CMS_ADMIN_PAGES_ALLOWED_VIEWS = ['list', 'edit'];
 const CMS_ADMIN_PAGES_ALLOWED_BULK_ACTIONS = ['delete', 'publish', 'draft', 'set_category', 'clear_category'];
 const CMS_ADMIN_PAGES_WRITE_CAPABILITY = 'manage_pages';
@@ -159,16 +159,22 @@ function cms_admin_pages_build_inline_edit_data(PagesModule $module, array $post
         'featured_image' => (string) ($post['featured_image'] ?? ($existingPage['featured_image'] ?? '')),
         'meta_title' => (string) ($post['meta_title'] ?? ($existingPage['meta_title'] ?? '')),
         'meta_description' => (string) ($post['meta_description'] ?? ($existingPage['meta_description'] ?? '')),
+        'meta_title_en' => (string) ($post['meta_title_en'] ?? ($existingPage['meta_title_en'] ?? '')),
+        'meta_description_en' => (string) ($post['meta_description_en'] ?? ($existingPage['meta_description_en'] ?? '')),
     ]);
 
     if ($editorLocale === 'en') {
         $draftPage['title'] = (string) ($existingPage['title'] ?? '');
         $draftPage['slug'] = (string) ($existingPage['slug'] ?? '');
         $draftPage['content'] = $existingPage['content'] ?? '';
+        $draftPage['meta_title'] = (string) ($existingPage['meta_title'] ?? '');
+        $draftPage['meta_description'] = (string) ($existingPage['meta_description'] ?? '');
     } else {
         $draftPage['title_en'] = (string) ($existingPage['title_en'] ?? $draftPage['title_en'] ?? '');
         $draftPage['slug_en'] = (string) ($existingPage['slug_en'] ?? $draftPage['slug_en'] ?? '');
         $draftPage['content_en'] = $existingPage['content_en'] ?? ($draftPage['content_en'] ?? '');
+        $draftPage['meta_title_en'] = (string) ($existingPage['meta_title_en'] ?? $draftPage['meta_title_en'] ?? '');
+        $draftPage['meta_description_en'] = (string) ($existingPage['meta_description_en'] ?? $draftPage['meta_description_en'] ?? '');
     }
 
     $editData['page'] = (object) $draftPage;
@@ -374,6 +380,20 @@ $sectionPageConfig = [
                     'editor_locale' => $editorLocale,
                     'runtime_context' => cms_admin_pages_view_config($module, 'edit', cms_admin_pages_build_inline_edit_data($module, $post), $editorLocale),
                 ];
+
+            case 'copy_de_to_en':
+                $id = cms_admin_pages_normalize_positive_id($post['id'] ?? ($_GET['id'] ?? 0));
+                if ($id < 1) {
+                    return ['success' => false, 'error' => 'Ungültige Seiten-ID.'];
+                }
+
+                $result = $module->copyGermanToEnglish($id);
+                if (!empty($result['success'])) {
+                    $result['editor_locale'] = 'en';
+                    $result['redirect_path'] = cms_admin_pages_target_url($id, 'en');
+                }
+
+                return $result;
 
             case 'delete':
                 $id = cms_admin_pages_normalize_positive_id($post['id'] ?? 0);

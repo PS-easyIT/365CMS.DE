@@ -181,6 +181,8 @@ if ($publishedAtValue !== '') {
 $isScheduledPost = $post !== null && \cms_post_is_scheduled($post);
 $metaTitle  = htmlspecialchars($post['meta_title'] ?? '');
 $metaDesc   = htmlspecialchars($post['meta_description'] ?? '');
+$metaTitleEn  = htmlspecialchars($post['meta_title_en'] ?? '');
+$metaDescEn   = htmlspecialchars($post['meta_description_en'] ?? '');
 $authorDisplayName = htmlspecialchars($post['author_display_name'] ?? '', ENT_QUOTES);
 $tagString  = htmlspecialchars(implode(', ', array_map(static fn(array $tag): string => (string)($tag['name'] ?? ''), $postTagsData)), ENT_QUOTES);
 $seoMeta = $data['seoMeta'] ?? [];
@@ -263,6 +265,8 @@ $additionalCategoryIds = array_values(array_filter(
             $postStatusValue = (string)$status;
             $postMetaTitleValue = (string)($post['meta_title'] ?? '');
             $postMetaDescriptionValue = (string)($post['meta_description'] ?? '');
+            $postMetaTitleEnValue = (string)($post['meta_title_en'] ?? '');
+            $postMetaDescriptionEnValue = (string)($post['meta_description_en'] ?? '');
             $postFeaturedImageValue = (string)($post['featured_image'] ?? '');
             $postPreviewUrlTemplate = $permalinkService !== null
                 ? $permalinkService->buildPostUrlTemplate((string)($post['published_at'] ?? ''), (string)($post['created_at'] ?? ''))
@@ -294,6 +298,8 @@ $additionalCategoryIds = array_values(array_filter(
             $activeContentFieldName = $isEnglishEditorView ? 'content_en' : 'content';
             $activeContentPlainTextValue = $isEnglishEditorView ? $postContentPlainEnValue : $postContentPlainValue;
             $activeContentLabel = $isEnglishEditorView ? 'EditorJS Notfall-Fallback (EN)' : 'EditorJS Notfall-Fallback (DE)';
+            $activePostMetaTitleValue = $isEnglishEditorView ? $postMetaTitleEnValue : $postMetaTitleValue;
+            $activePostMetaDescriptionValue = $isEnglishEditorView ? $postMetaDescriptionEnValue : $postMetaDescriptionValue;
             $postEditorHasValidActiveMapping = ($isEnglishEditorView && $activeContentInputId === 'postPlainEditorEn')
                 || (!$isEnglishEditorView && $activeContentInputId === 'postPlainEditorDe');
             $postPermalinkHint = $permalinkService !== null
@@ -315,12 +321,16 @@ $additionalCategoryIds = array_values(array_filter(
                 <input type="hidden" name="title" id="title" value="<?php echo htmlspecialchars($postTitleValue); ?>">
                 <input type="hidden" name="slug" id="slug" value="<?php echo htmlspecialchars($postSlugValue); ?>">
                 <input type="hidden" name="excerpt" id="excerpt" value="<?php echo htmlspecialchars($postExcerptValue); ?>">
+                <input type="hidden" name="meta_title" value="<?php echo htmlspecialchars($postMetaTitleValue); ?>">
+                <input type="hidden" name="meta_description" value="<?php echo htmlspecialchars($postMetaDescriptionValue); ?>">
                 <input type="hidden" id="contentInput" name="content" value="<?php echo htmlspecialchars($postContentValue); ?>">
                 <input type="hidden" id="contentInputEn" name="content_en" value="<?php echo htmlspecialchars($postContentEnValue); ?>">
             <?php else: ?>
                 <input type="hidden" name="title_en" id="titleEn" value="<?php echo htmlspecialchars($postTitleEnValue); ?>">
                 <input type="hidden" name="slug_en" id="slugEn" value="<?php echo htmlspecialchars($postSlugEnValue); ?>">
                 <input type="hidden" name="excerpt_en" id="excerptEn" value="<?php echo htmlspecialchars($postExcerptEnValue); ?>">
+                <input type="hidden" name="meta_title_en" value="<?php echo htmlspecialchars($postMetaTitleEnValue); ?>">
+                <input type="hidden" name="meta_description_en" value="<?php echo htmlspecialchars($postMetaDescriptionEnValue); ?>">
                 <input type="hidden" id="contentInput" name="content" value="<?php echo htmlspecialchars($postContentValue); ?>">
                 <input type="hidden" id="contentInputEn" name="content_en" value="<?php echo htmlspecialchars($postContentEnValue); ?>">
             <?php endif; ?>
@@ -577,7 +587,7 @@ $additionalCategoryIds = array_values(array_filter(
                                 <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap mb-3">
                                     <div class="text-secondary small">Die englische Version ist unter <code><?php echo htmlspecialchars($postPreviewUrlEn); ?></code> erreichbar.</div>
                                     <div class="btn-list">
-                                        <button type="button" class="btn btn-outline-secondary btn-sm" id="copyPostDeToEnButton">DE nach EN kopieren</button>
+                                        <button type="submit" name="_action" value="copy_de_to_en" class="btn btn-outline-secondary btn-sm" id="copyPostDeToEnButton" form="postForm" formnovalidate data-confirm="Die aktuelle englische Beitragsfassung wird durch die deutsche Fassung ersetzt. Wirklich kopieren?">DE nach EN kopieren</button>
                                         <?php if ($aiTranslationEnabled): ?>
                                             <button type="button" class="btn btn-primary btn-sm" id="translatePostDeToEnButton">Mit AI nach EN übersetzen</button>
                                         <?php endif; ?>
@@ -639,12 +649,12 @@ $additionalCategoryIds = array_values(array_filter(
                             </div>
                             <div class="mb-3">
                                 <label class="form-label" for="metaTitle">Meta-Titel</label>
-                                <input type="text" class="form-control" id="metaTitle" name="meta_title" value="<?php echo htmlspecialchars($postMetaTitleValue); ?>" maxlength="70">
+                                <input type="text" class="form-control" id="metaTitle" name="<?php echo $isEnglishEditorView ? 'meta_title_en' : 'meta_title'; ?>" value="<?php echo htmlspecialchars($activePostMetaTitleValue); ?>" maxlength="70">
                                 <span class="form-hint"><span id="metaTitleCount">0</span>/70 Zeichen</span>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label" for="metaDesc">Meta-Beschreibung</label>
-                                <textarea class="form-control" id="metaDesc" name="meta_description" rows="4" maxlength="160"><?php echo htmlspecialchars($postMetaDescriptionValue); ?></textarea>
+                                <textarea class="form-control" id="metaDesc" name="<?php echo $isEnglishEditorView ? 'meta_description_en' : 'meta_description'; ?>" rows="4" maxlength="160"><?php echo htmlspecialchars($activePostMetaDescriptionValue); ?></textarea>
                                 <span class="form-hint"><span id="metaDescCount">0</span>/160 Zeichen</span>
                             </div>
                             <div id="postSeoOverrideNotice" class="alert alert-info d-none cms-seo-override-notice" role="status" aria-live="polite">
@@ -695,18 +705,18 @@ $additionalCategoryIds = array_values(array_filter(
                     <?php
                     $previewCard = [
                         'serpTitleId' => 'postSerpTitle',
-                        'serpTitle' => $postMetaTitleValue ?: $activePostTitleValue,
+                        'serpTitle' => $activePostMetaTitleValue ?: $activePostTitleValue,
                         'serpUrlId' => 'postSerpUrl',
                         'serpUrl' => $activePostPreviewUrl,
                         'serpDescriptionId' => 'postSerpDescription',
-                        'serpDescription' => $postMetaDescriptionValue ?: 'Meta-Beschreibung wird automatisch aus dem ersten Absatz erzeugt.',
+                        'serpDescription' => $activePostMetaDescriptionValue ?: 'Meta-Beschreibung wird automatisch aus dem ersten Absatz erzeugt.',
                         'socialImageId' => 'postSocialImage',
                         'socialImage' => $ogImage !== '' ? html_entity_decode($ogImage, ENT_QUOTES, 'UTF-8') : $postFeaturedImageValue,
                         'socialImageVisible' => $ogImage !== '' || $postFeaturedImageValue !== '',
                         'socialTitleId' => 'postSocialTitle',
-                        'socialTitle' => $ogTitle !== '' ? html_entity_decode($ogTitle, ENT_QUOTES, 'UTF-8') : ($postMetaTitleValue ?: $activePostTitleValue),
+                        'socialTitle' => $ogTitle !== '' ? html_entity_decode($ogTitle, ENT_QUOTES, 'UTF-8') : ($activePostMetaTitleValue ?: $activePostTitleValue),
                         'socialDescriptionId' => 'postSocialDescription',
-                        'socialDescription' => $ogDescription !== '' ? html_entity_decode($ogDescription, ENT_QUOTES, 'UTF-8') : ($postMetaDescriptionValue ?: 'Social-Vorschau aus SEO-Daten'),
+                        'socialDescription' => $ogDescription !== '' ? html_entity_decode($ogDescription, ENT_QUOTES, 'UTF-8') : ($activePostMetaDescriptionValue ?: 'Social-Vorschau aus SEO-Daten'),
                     ];
                     require __DIR__ . '/../partials/content-preview-card.php';
                     ?>
@@ -981,6 +991,7 @@ $additionalCategoryIds = array_values(array_filter(
             'formId' => 'postForm',
             'copyAction' => $isEnglishEditorView ? [
                 'buttonId' => 'copyPostDeToEnButton',
+                'serverSubmit' => true,
                 'contentMode' => 'editorjs',
                 'sourceEditorKey' => 'de',
                 'targetEditorKey' => 'en',

@@ -195,6 +195,8 @@ $isEnglishEditorView = $editorLocale === 'en';
             $pageCategoryIdValue = (int)($page->category_id ?? 0);
             $pageMetaTitleValue = (string)($page->meta_title ?? '');
             $pageMetaDescriptionValue = (string)($page->meta_description ?? '');
+            $pageMetaTitleEnValue = (string)($page->meta_title_en ?? '');
+            $pageMetaDescriptionEnValue = (string)($page->meta_description_en ?? '');
             $pageFeaturedImageValue = (string)($page->featured_image ?? '');
             $pagePreviewSlug = ltrim($pageSlugValue, '/');
             $pagePreviewSlugEn = ltrim($pageSlugEnValue !== '' ? $pageSlugEnValue : $pageSlugValue, '/');
@@ -222,6 +224,8 @@ $isEnglishEditorView = $editorLocale === 'en';
             $activePageContentFieldName = $isEnglishEditorView ? 'content_en' : 'content';
             $activePageContentPlainTextValue = $isEnglishEditorView ? $pageContentPlainEnValue : $pageContentPlainValue;
             $activePageContentLabel = $isEnglishEditorView ? 'EditorJS Notfall-Fallback (EN)' : 'EditorJS Notfall-Fallback (DE)';
+            $activePageMetaTitleValue = $isEnglishEditorView ? $pageMetaTitleEnValue : $pageMetaTitleValue;
+            $activePageMetaDescriptionValue = $isEnglishEditorView ? $pageMetaDescriptionEnValue : $pageMetaDescriptionValue;
             $pageEditorHasValidActiveMapping = ($isEnglishEditorView && $activePageContentInputId === 'pagePlainEditorEn')
                 || (!$isEnglishEditorView && $activePageContentInputId === 'pagePlainEditorDe');
             $pageFocusKeyphraseValue = (string)($seoMeta['focus_keyphrase'] ?? '');
@@ -248,11 +252,15 @@ $isEnglishEditorView = $editorLocale === 'en';
             <?php if ($isEnglishEditorView): ?>
                 <input type="hidden" name="title" id="pageTitle" value="<?= htmlspecialchars($pageTitleValue) ?>">
                 <input type="hidden" name="slug" id="pageSlug" value="<?= htmlspecialchars($pageSlugValue) ?>">
+                <input type="hidden" name="meta_title" value="<?= htmlspecialchars($pageMetaTitleValue) ?>">
+                <input type="hidden" name="meta_description" value="<?= htmlspecialchars($pageMetaDescriptionValue) ?>">
                 <input type="hidden" id="editorContent" name="content" value="<?= htmlspecialchars($pageContentValue) ?>">
                 <input type="hidden" id="editorContentEn" name="content_en" value="<?= htmlspecialchars($pageContentEnValue) ?>">
             <?php else: ?>
                 <input type="hidden" name="title_en" id="pageTitleEn" value="<?= htmlspecialchars($pageTitleEnValue) ?>">
                 <input type="hidden" name="slug_en" id="pageSlugEn" value="<?= htmlspecialchars($pageSlugEnValue) ?>">
+                <input type="hidden" name="meta_title_en" value="<?= htmlspecialchars($pageMetaTitleEnValue) ?>">
+                <input type="hidden" name="meta_description_en" value="<?= htmlspecialchars($pageMetaDescriptionEnValue) ?>">
                 <input type="hidden" id="editorContent" name="content" value="<?= htmlspecialchars($pageContentValue) ?>">
                 <input type="hidden" id="editorContentEn" name="content_en" value="<?= htmlspecialchars($pageContentEnValue) ?>">
             <?php endif; ?>
@@ -407,7 +415,7 @@ $isEnglishEditorView = $editorLocale === 'en';
                                 <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap mb-3">
                                     <div class="text-secondary small">Die englische Version ist unter <code><?= htmlspecialchars($pagePreviewUrlEn) ?></code> erreichbar.</div>
                                     <div class="btn-list">
-                                        <button type="button" class="btn btn-outline-secondary btn-sm" id="copyPageDeToEnButton">DE nach EN kopieren</button>
+                                        <button type="submit" name="_action" value="copy_de_to_en" class="btn btn-outline-secondary btn-sm" id="copyPageDeToEnButton" form="pageForm" formnovalidate data-confirm="Die aktuelle englische Seitenfassung wird durch die deutsche Fassung ersetzt. Wirklich kopieren?">DE nach EN kopieren</button>
                                         <?php if ($aiTranslationEnabled): ?>
                                             <button type="button" class="btn btn-primary btn-sm" id="translatePageDeToEnButton">Mit AI nach EN übersetzen</button>
                                         <?php endif; ?>
@@ -470,12 +478,12 @@ $isEnglishEditorView = $editorLocale === 'en';
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Meta-Titel</label>
-                                <input type="text" name="meta_title" class="form-control" id="pageMetaTitle" placeholder="SEO-Titel (Standard: Seitentitel)" maxlength="70" value="<?= htmlspecialchars($pageMetaTitleValue) ?>">
+                                <input type="text" name="<?= $isEnglishEditorView ? 'meta_title_en' : 'meta_title' ?>" class="form-control" id="pageMetaTitle" placeholder="SEO-Titel (Standard: Seitentitel)" maxlength="70" value="<?= htmlspecialchars($activePageMetaTitleValue) ?>">
                                 <small class="form-hint"><span id="metaTitleCount">0</span>/70 Zeichen</small>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label">Meta-Beschreibung</label>
-                                <textarea name="meta_description" class="form-control" rows="3" id="pageMetaDescription" placeholder="Kurze Beschreibung für Suchmaschinen…" maxlength="160"><?= htmlspecialchars($pageMetaDescriptionValue) ?></textarea>
+                                <textarea name="<?= $isEnglishEditorView ? 'meta_description_en' : 'meta_description' ?>" class="form-control" rows="3" id="pageMetaDescription" placeholder="Kurze Beschreibung für Suchmaschinen…" maxlength="160"><?= htmlspecialchars($activePageMetaDescriptionValue) ?></textarea>
                                 <small class="form-hint"><span id="metaDescriptionCount">0</span>/160 Zeichen</small>
                             </div>
                             <div id="pageSeoOverrideNotice" class="alert alert-info d-none cms-seo-override-notice" role="status" aria-live="polite">
@@ -523,18 +531,18 @@ $isEnglishEditorView = $editorLocale === 'en';
                     <?php
                     $previewCard = [
                         'serpTitleId' => 'pageSerpTitle',
-                        'serpTitle' => $pageMetaTitleValue ?: $activePageTitleValue,
+                        'serpTitle' => $activePageMetaTitleValue ?: $activePageTitleValue,
                         'serpUrlId' => 'pageSerpUrl',
                         'serpUrl' => $activePagePreviewUrl,
                         'serpDescriptionId' => 'pageSerpDescription',
-                        'serpDescription' => $pageMetaDescriptionValue ?: 'Meta-Beschreibung wird automatisch aus dem ersten Absatz erzeugt.',
+                        'serpDescription' => $activePageMetaDescriptionValue ?: 'Meta-Beschreibung wird automatisch aus dem ersten Absatz erzeugt.',
                         'socialImageId' => 'pageSocialImage',
                         'socialImage' => $pageOgImageValue !== '' ? $pageOgImageValue : $pageFeaturedImageValue,
                         'socialImageVisible' => $pageOgImageValue !== '' || $pageFeaturedImageValue !== '',
                         'socialTitleId' => 'pageSocialTitle',
-                        'socialTitle' => $pageOgTitleValue !== '' ? $pageOgTitleValue : ($pageMetaTitleValue ?: $activePageTitleValue),
+                        'socialTitle' => $pageOgTitleValue !== '' ? $pageOgTitleValue : ($activePageMetaTitleValue ?: $activePageTitleValue),
                         'socialDescriptionId' => 'pageSocialDescription',
-                        'socialDescription' => $pageOgDescriptionValue !== '' ? $pageOgDescriptionValue : ($pageMetaDescriptionValue ?: 'Social-Vorschau aus SEO-Daten'),
+                        'socialDescription' => $pageOgDescriptionValue !== '' ? $pageOgDescriptionValue : ($activePageMetaDescriptionValue ?: 'Social-Vorschau aus SEO-Daten'),
                     ];
                     require __DIR__ . '/../partials/content-preview-card.php';
                     ?>
@@ -796,6 +804,7 @@ $isEnglishEditorView = $editorLocale === 'en';
             'formId' => 'pageForm',
             'copyAction' => $isEnglishEditorView ? [
                 'buttonId' => 'copyPageDeToEnButton',
+                'serverSubmit' => true,
                 'contentMode' => 'editorjs',
                 'sourceEditorKey' => 'de',
                 'targetEditorKey' => 'en',

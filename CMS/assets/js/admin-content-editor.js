@@ -4103,6 +4103,10 @@
                 return;
             }
 
+            if (copyAction.serverSubmit) {
+                return;
+            }
+
             if (button) {
                 button.addEventListener('click', function (event) {
                     if (event) {

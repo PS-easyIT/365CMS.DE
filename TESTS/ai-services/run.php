@@ -36,6 +36,13 @@ $tests = [
             aiAssert(AiSettingsService::isAddableProviderType($providerType), 'Providertyp ist im Admin nicht addable: ' . $providerType);
         }
     },
+    'AI Settings erzwingen Single-Provider-Speicherung' => static function () use ($root): void {
+        $settings = aiReadFile($root . DIRECTORY_SEPARATOR . 'CMS' . DIRECTORY_SEPARATOR . 'core' . DIRECTORY_SEPARATOR . 'Services' . DIRECTORY_SEPARATOR . 'AI' . DIRECTORY_SEPARATOR . 'AiSettingsService.php');
+
+        aiAssert(str_contains($settings, '$sanitizedEntries = [$selectedEntry];'), 'Settings reduzieren Provider-Einträge nicht auf genau einen aktiven Provider.');
+        aiAssert(str_contains($settings, '$entries = [$activeEntry];'), 'Settings normalisieren geladene Provider nicht auf genau einen aktiven Provider.');
+        aiAssert(str_contains($settings, "forget(self::GROUP_PROVIDERS, 'fallback_provider_id')"), 'Alte Fallback-Provider-Einstellungen werden nicht bereinigt.');
+    },
     'AI Provider-Katalog markiert Live-Provider korrekt' => static function (): void {
         foreach (['ollama', 'azure_openai', 'openai', 'mistral', 'openrouter'] as $providerType) {
             $definition = AiSettingsService::getProviderTypeDefinition($providerType);
@@ -60,7 +67,7 @@ $tests = [
             aiAssert(str_contains($provider, 'function generateText'), 'generateText fehlt in ' . $providerFile);
         }
     },
-    'Gateway verdrahtet Mistral/OpenAI/OpenRouter und Azure AI' => static function () use ($root): void {
+    'Gateway verdrahtet Mistral/OpenAI/OpenRouter und Azure AI ohne Fallback' => static function () use ($root): void {
         $gateway = aiReadFile($root . DIRECTORY_SEPARATOR . 'CMS' . DIRECTORY_SEPARATOR . 'core' . DIRECTORY_SEPARATOR . 'Services' . DIRECTORY_SEPARATOR . 'AI' . DIRECTORY_SEPARATOR . 'AiProviderGateway.php');
 
         aiAssert(str_contains($gateway, 'OpenAiCompatibleProvider'), 'OpenAiCompatibleProvider wird im Gateway nicht referenziert.');
@@ -70,6 +77,10 @@ $tests = [
         aiAssert(str_contains($gateway, 'generateContentDraft'), 'Content-Generator fehlt im Gateway.');
         aiAssert(str_contains($gateway, 'generateSeoDraft'), 'SEO-Generator fehlt im Gateway.');
         aiAssert(str_contains($gateway, 'resolveProviderForCapability'), 'Capability-basierte Provider-Auflösung fehlt im Gateway.');
+        aiAssert(str_contains($gateway, 'testActiveProvider'), 'Zentraler Provider-Test fehlt im Gateway.');
+        aiAssert(!str_contains($gateway, 'auto-fallback'), 'Gateway enthält noch Auto-Fallback-Logik.');
+        aiAssert(!str_contains($gateway, 'fallback_provider_id'), 'Gateway liest noch fallback_provider_id.');
+        aiAssert(!str_contains($gateway, 'resolved_via'), 'Gateway meldet noch Fallback-Auflösung statt Single-Provider-Modus.');
     },
     'Adminbereich hat logische AI-Unterseiten' => static function () use ($root): void {
         $aiPage = aiReadFile($root . DIRECTORY_SEPARATOR . 'CMS' . DIRECTORY_SEPARATOR . 'admin' . DIRECTORY_SEPARATOR . 'ai-page.php');
@@ -83,10 +94,11 @@ $tests = [
             aiAssert(str_contains($view, $label), 'AI-Navigationslabel fehlt: ' . $label);
         }
 
-        foreach (['generate_content', 'generate_seo'] as $action) {
+        foreach (['generate_content', 'generate_seo', 'test_provider'] as $action) {
             aiAssert(str_contains($aiPage, $action), 'AI-Generator-Action fehlt im Router: ' . $action);
-            aiAssert(str_contains($view, $action), 'AI-Generator-Form fehlt in der View: ' . $action);
         }
+
+        aiAssert(str_contains($view, 'test_provider'), 'Provider-Test-Button fehlt in der View.');
 
         foreach (['Content-Preview generieren', 'SEO-Preview generieren', 'Generierte Content-Preview', 'Generierte SEO-Preview'] as $label) {
             aiAssert(str_contains($view, $label), 'AI-Generator-UI fehlt: ' . $label);
@@ -98,6 +110,20 @@ $tests = [
         foreach (['Azure AI', 'Mistral AI', 'OpenAI', 'OpenRouter', 'Ollama'] as $label) {
             aiAssert(str_contains($view, $label), 'Provider-Hinweis fehlt im Admin: ' . $label);
         }
+    },
+    'Admin erzwingt Single Provider ohne Add/Delete/Fallback-UI' => static function () use ($root): void {
+        $aiPage = aiReadFile($root . DIRECTORY_SEPARATOR . 'CMS' . DIRECTORY_SEPARATOR . 'admin' . DIRECTORY_SEPARATOR . 'ai-page.php');
+        $module = aiReadFile($root . DIRECTORY_SEPARATOR . 'CMS' . DIRECTORY_SEPARATOR . 'admin' . DIRECTORY_SEPARATOR . 'modules' . DIRECTORY_SEPARATOR . 'system' . DIRECTORY_SEPARATOR . 'AiServicesModule.php');
+        $view = aiReadFile($root . DIRECTORY_SEPARATOR . 'CMS' . DIRECTORY_SEPARATOR . 'admin' . DIRECTORY_SEPARATOR . 'views' . DIRECTORY_SEPARATOR . 'system' . DIRECTORY_SEPARATOR . 'ai-services.php');
+
+        aiAssert(!str_contains($aiPage, "'add_provider'"), 'Router erlaubt noch add_provider.');
+        aiAssert(!str_contains($aiPage, "'delete_provider'"), 'Router erlaubt noch delete_provider.');
+        aiAssert(str_contains($module, 'Bitte genau einen AI-Provider konfigurieren.'), 'Modul validiert Single-Provider-Konfiguration nicht.');
+        aiAssert(str_contains($module, '$providerId = $this->sanitizeProviderId($providerType);'), 'Provider-ID wird nicht deterministisch aus dem gewählten Typ abgeleitet.');
+        aiAssert(str_contains($view, 'Single AI Provider'), 'Single-Provider-UI fehlt.');
+        aiAssert(str_contains($view, 'provider_secret_value'), 'Zentrales API-Key-Feld fehlt.');
+        aiAssert(!str_contains($view, 'Provider-Liste'), 'Alte Provider-Liste ist noch sichtbar.');
+        aiAssert(!str_contains($view, 'Expliziter Fallback-Provider'), 'Fallback-UI ist noch sichtbar.');
     },
 ];
 

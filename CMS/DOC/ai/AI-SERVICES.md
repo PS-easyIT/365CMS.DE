@@ -2,9 +2,9 @@
 
 Kurzbeschreibung: Kanonische Konzept- und Architektur-Dokumentation für den Bereich **AI Services** in 365CMS. Der Fokus liegt auf Provider-Scope, Feature-Gates, Admin-Steuerung, Editor.js-Übersetzung und einem kontrollierten, ausbaufähigen KI-Betriebsmodell.
 
-Letzte Aktualisierung: 2026-06-10 · Version 3.3.47
+Letzte Aktualisierung: 2026-06-13 · Version 2.9.708
 
-> **Wichtig:** Diese Datei bleibt die führende Fach- und Architekturreferenz. Seit `2.9.210` existieren bereits eine **runtime-seitige Settings- und Admin-Hülle** unter `/admin/ai-services`, ein **Provider-Gateway** mit gezielt anlegbarer Provider-Liste, ein integrierter **`mock`-Provider**, die ersten **Live-Adapter für `ollama` und `azure_openai`**, der geschützte Endpoint **`/admin/ai-translate-editorjs`** sowie ein **bewusster Preview-/Diff-Workflow vor der EN-Übernahme**. Seit `2.9.616` ist dieser Review-Schritt serverseitig verpflichtend und kann im Admin nicht mehr abgeschaltet werden. Seit `2.9.702` verdichtet das AI-Dashboard zusätzlich request- und quota-nahe Nutzungsdaten sowie letzte Generierungsläufe aus `audit_log`, ohne Rohprompts oder Volltexte offenzulegen. Seit `2.9.703` verwaltet der Admin Prompt-Vorlagen je Bereich; die Translation-Vorlage wirkt direkt in der Editor.js-Live-Pipeline, Content- und SEO-Vorlagen bereiten kommende Generatoren vor. Seit `2.9.705` ist die Admin-Modulinitialisierung gegen DB-/Runtime-Probleme fail-soft gehärtet und nutzt die korrekte `Database::instance()`-API. Seit `2.9.707` hält die Provider-Verwaltung nach Änderungen immer wieder eine gültige aktive Standardauswahl, solange noch Provider-Einträge vorhanden sind; Secret-Felder vermeiden außerdem Browser-Autofill als unnötige Leckagequelle. **Noch nicht umgesetzt** sind feingranulare Daily-/Monthly-Quota-Erzwingung und weitere Bridge-Provider wie OpenAI/OpenRouter.
+> **Wichtig:** Diese Datei bleibt die führende Fach- und Architekturreferenz. Seit `2.9.708` gilt verbindlich die **Single-Provider-Architektur**: Im Admin wird genau ein Provider-Typ mit API-Key/Endpoint/Modell gespeichert, der Gateway nutzt ausschließlich diesen aktiven Provider, alte Fallback-Felder werden bereinigt und es gibt keinen Runtime-Fallback oder Parallelprovider mehr. Der Admin bietet zusätzlich einen Provider-Test über denselben zentralen AI-Core. Live-Adapter sind für `mock`, `ollama`, `azure_openai`, `openai`, `mistral` und `openrouter` vorhanden; aktiv ist immer nur der eine konfigurierte Provider. **Noch nicht umgesetzt** sind feingranulare Daily-/Monthly-Quota-Erzwingung und providerweise normalisierte Tokenkosten.
 
 ## Inhaltsverzeichnis
 - [Ziel und Abgrenzung](#ziel-und-abgrenzung)
@@ -459,8 +459,7 @@ Seit `2.9.2` ist die Settings-Struktur im Core bereits **konkret als persistierb
 
 Zweck:
 
-- Provider-Auswahl
-- Fallback-Logik
+- Single-Provider-Auswahl
 - providerbezogene Scopes
 - verschlüsselte Secrets
 
@@ -468,11 +467,10 @@ Gespeicherte Top-Level-Werte:
 
 | Key | Typ | Zweck |
 |---|---|---|
-| `active_provider_id` | `string` | ID des Standard-Eintrags |
-| `fallback_provider_id` | `string` | ID des bevorzugten Fallback-Eintrags |
-| `entries` | `array<provider-entry>` | gezielt angelegte Provider-Liste statt starrer Vollmatrix |
+| `active_provider_id` | `string` | ID des einzigen aktiven Providers |
+| `entries` | `array<provider-entry>` | normalisiert auf exakt einen aktiven Eintrag |
 
-Solange `entries` nicht leer ist, sollte `active_provider_id` immer auf einen vorhandenen Eintrag zeigen; seit `2.9.707` wird diese Konsistenz beim Speichern und Löschen im Admin automatisch wiederhergestellt.
+Seit `2.9.708` werden geladene und gespeicherte Providerdaten auf genau einen aktiven Eintrag reduziert. Veraltete `fallback_provider_id`-/`fallback_provider`-Werte werden beim Speichern gelöscht und vom Gateway ignoriert.
 
 Zusätzliche verschlüsselte Secret-Keys:
 
@@ -484,7 +482,7 @@ Provider-Profilstruktur pro Eintrag:
 
 | Feld | Typ | Zweck |
 |---|---|---|
-| `id` | `string` | stabile interne Eintrags-ID |
+| `id` | `string` | stabile interne Provider-ID; im Single-Provider-Modus deterministisch identisch zum Providertyp |
 | `type` | `string` | Providertyp wie `mock`, `ollama` oder `azure_openai` |
 | `label` | `string` | frei lesbarer Anzeigename |
 | `enabled` | `bool` | Provider grundsätzlich aktiv |
@@ -617,10 +615,11 @@ Bereits umgesetzt:
 - `CMS/admin/views/system/ai-services.php`
 - `CMS/core/Services/AI/Providers/OllamaAiProvider.php`
 - `CMS/core/Services/AI/Providers/AzureOpenAiProvider.php`
+- `CMS/core/Services/AI/Providers/OpenAiCompatibleProvider.php`
 - `CMS/assets/js/admin-content-editor.js` mit DE→EN-Übersetzungsworkflow für Post-/Page-Editoren inklusive Preview-/Diff-Schritt
 - Preview-/Diff-Review vor der bewussten Übernahme in EN-Felder direkt im Editor
-- Provider-Liste mit bewusstem `+`-Anlegen neuer Einträge statt fixer Komplettübersicht
-- Live-Übersetzungen über Ollama und Azure AI im bestehenden Editor.js-Workflow
+- Single-Provider-Konfiguration mit Provider-Typ, Endpoint, API-Key, optionalem Modell, Azure-Deployment/API-Version und zentralem Test-Button
+- Live-Übersetzungen über genau den aktiv konfigurierten Provider; kein Fallback auf Mock oder andere Provider
 - request- und quota-nahes Nutzungsmonitoring im AI-Dashboard auf Basis von `audit_log`
 - Verlaufstabelle der letzten AI-Generierungsläufe ohne Rohprompt-/Volltextanzeige
 - Prompt-/Vorlagenverwaltung je Bereich; die Translation-Vorlage wird direkt in `AbstractPromptingAiProvider::buildTranslationPrompt()` berücksichtigt und serverseitig mit Pflicht-Sicherheitsregeln ergänzt
@@ -629,10 +628,10 @@ Bereits umgesetzt:
 
 Der aktuelle Scope dieser Umsetzung ist bewusst:
 
-- **Settings-, Gateway- und Mock-Runtime-Implementierung**
-- **Editor.js-Translation zur Laufzeit über Mock-, Ollama- oder Azure-AI-Datenfluss**
+- **Settings-, Gateway- und Runtime-Implementierung für genau einen aktiven Provider**
+- **Editor.js-Translation zur Laufzeit ausschließlich über den zentral ausgewählten Provider**
 - **Rückführung in lokalisierte EN-Felder von Posts/Pages**
-- **keine** externen produktiven Provider-Requests
+- **keine** direkten API-Calls außerhalb des zentralen AI-Gateways/Provider-Adapters
 
 Damit steht jetzt der **betriebliche Rahmen plus eine erste echte Live-Runtime-Stufe**, auf der weitere AI-Funktionen und zusätzliche Provider später sauber aufsetzen können.
 
@@ -647,7 +646,7 @@ Ein späterer Bereich `AI Services` könnte in folgende Unterseiten zerfallen:
 | Unterseite | Zweck |
 |---|---|
 | Übersicht | Systemstatus, aktive Provider, Warnungen |
-| Provider | Provider ein-/ausschalten, Modelle und Limits |
+| Provider | exakt einen Provider-Typ wählen, API-Key/Endpoint/Modell speichern und testen |
 | Translation | Sprachziele, Editor.js-Regeln, Größenlimits |
 | Rewrite | spätere Tonalitäts- und Umformulierungsregeln |
 | Summaries | spätere Zusammenfassungsprofile |
@@ -658,7 +657,7 @@ Ein späterer Bereich `AI Services` könnte in folgende Unterseiten zerfallen:
 
 Für einen ersten Umsetzungsbatch reicht auch eine einzige Seite mit drei Bereichen:
 
-1. Provider Scope
+1. Single Provider Scope
 2. Translation Settings
 3. Status / Hinweise
 
@@ -684,7 +683,7 @@ Spätere Einsätze:
 - Social-/OG-Varianten
 - strukturierte Redaktionshilfen für FAQ/Schema
 
-### Translation-/Rewrite-Helfer mit mehreren Providern
+### Translation-/Rewrite-Helfer mit austauschbarem Single Provider
 
 Spätere Einsätze:
 
@@ -692,6 +691,7 @@ Spätere Einsätze:
 - Umformulieren nach Tonalität
 - Kürzen / Vereinfachen / Verdichten
 - Kanalvarianten für Social, Snippets, Landing-Teaser
+- Providerwechsel über Admin-Konfiguration statt Runtime-Fallback
 
 ---
 
@@ -713,13 +713,13 @@ Was `AI Services` am Anfang **nicht** sein soll:
 Folgende Punkte sind **trotz der neuen Live-Runtime-Stufe** noch nicht vollständig umgesetzt und müssten für den weiteren Ausbau ergänzt werden:
 
 1. **feingranulares Capability-Modell** für Nutzung vs. Verwaltung im echten Workflow
-2. **zusätzliche Provider-Adapter** für vorbereitete Bridge-Kandidaten wie OpenAI und OpenRouter
+2. **providerweise normalisierte Usage-/Tokenmetriken** aus Live-Antworten
 3. **Provider-spezifische Policies** für Live-Modelle, Secrets, Datenschutzfreigaben und Health-Checks
 4. **Fehler- und Statusmodell** für Teilfehler pro Block/Batches inklusive Retry-/Review-UX
 5. **produktive Datenschutz- und Audit-Integration** mit sauberer Daily-/Monthly-Quota-Erzwingung
-6. **Tests / Smoke-Checks** für Scope, Limits, Provider-Fallback, Preview-Übernahme und Blockerhaltung
+6. **Tests / Smoke-Checks** für Scope, Limits, Single-Provider-Vertrag, Preview-Übernahme und Blockerhaltung
 
-Kurz gesagt: **Struktur, Persistenz, Prompt-Vorlagen, Provider-Liste, Gateway, Preview-/Diff-Übernahme sowie erste Live-Ausführung über Ollama und Azure AI stehen jetzt – weitere Provider und tiefere Governance-Schichten folgen.**
+Kurz gesagt: **Struktur, Persistenz, Prompt-Vorlagen, Single-Provider-Gateway, Admin-Test, Preview-/Diff-Übernahme sowie Live-Ausführung über den gewählten Provider stehen jetzt – Fallbacks und Parallelprovider sind bewusst entfernt.**
 
 ---
 

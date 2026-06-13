@@ -97,7 +97,6 @@ final class AiProviderGateway
             'requested_provider' => (string) ($providerResolution['requested_provider'] ?? 'mock'),
             'resolved_provider' => $provider->getSlug(),
             'resolved_provider_type' => (string) ($providerConfig['type'] ?? 'mock'),
-            'resolved_via' => (string) ($providerResolution['resolved_via'] ?? 'direct'),
             'content_type' => $contentType,
             'source_locale' => $sourceLocale,
             'target_locale' => $targetLocale,
@@ -118,7 +117,7 @@ final class AiProviderGateway
         Logger::instance()->withChannel('ai.gateway')->info('AI Editor.js-Übersetzung wurde verarbeitet.', [
             'provider' => $provider->getSlug(),
             'provider_type' => (string) ($providerConfig['type'] ?? 'mock'),
-            'resolved_via' => (string) ($providerResolution['resolved_via'] ?? 'direct'),
+            'selection_mode' => 'single-provider',
             'content_type' => $contentType,
             'target_locale' => $targetLocale,
             'duration_ms' => (int) ($telemetry['duration_ms'] ?? 0),
@@ -133,7 +132,7 @@ final class AiProviderGateway
                 'label' => $provider->getLabel(),
                 'model' => (string) ($providerConfig['default_model'] ?? $provider->getDefaultModel()),
                 'mock' => $provider->isMock(),
-                'resolved_via' => (string) ($providerResolution['resolved_via'] ?? 'direct'),
+                'selection_mode' => 'single-provider',
             ],
             'preview_required' => !empty($translationConfig['preview_required']),
             'result_mode' => (string) ($translationConfig['result_mode'] ?? 'localized-field'),
@@ -215,7 +214,7 @@ final class AiProviderGateway
                 'prompt_template_enabled' => !empty($promptTemplate['enabled']),
                 'char_count' => $this->measureGenerationText($brief . "\n" . $context),
                 'resolved_provider' => $provider->getSlug(),
-                'resolved_via' => (string) ($providerResolution['resolved_via'] ?? 'direct'),
+                'selection_mode' => 'single-provider',
             ],
         ];
     }
@@ -275,8 +274,45 @@ final class AiProviderGateway
                 'prompt_template_enabled' => !empty($promptTemplate['enabled']),
                 'char_count' => $this->measureGenerationText($keyword . "\n" . $context),
                 'resolved_provider' => $provider->getSlug(),
-                'resolved_via' => (string) ($providerResolution['resolved_via'] ?? 'direct'),
+                'selection_mode' => 'single-provider',
             ],
+        ];
+    }
+
+    /**
+     * Testet den aktuell konfigurierten Single Provider über denselben Gateway-Pfad wie Editor.js.
+     *
+     * @return array<string, mixed>
+     */
+    public function testActiveProvider(): array
+    {
+        $startedAt = microtime(true);
+        $configuration = $this->settings->getConfiguration();
+        $providersConfig = is_array($configuration['providers'] ?? null) ? $configuration['providers'] : [];
+        $translationConfig = is_array($configuration['translation'] ?? null) ? $configuration['translation'] : [];
+        $quotaConfig = is_array($configuration['quotas'] ?? null) ? $configuration['quotas'] : [];
+        $targetLocale = $this->normalizeLocale((string) ($translationConfig['default_target_locale'] ?? 'en'), 'en');
+
+        $providerResolution = $this->resolveProvider($providersConfig, $targetLocale, $quotaConfig);
+        /** @var AiProviderInterface $provider */
+        $provider = $providerResolution['provider'];
+        $providerConfig = is_array($providerResolution['config'] ?? null) ? $providerResolution['config'] : [];
+        $translations = $provider->translateBatch(['Verbindungstest'], [
+            'content_type' => 'provider-test',
+            'source_locale' => 'de',
+            'target_locale' => $targetLocale,
+        ]);
+
+        if (trim((string) ($translations[0] ?? '')) === '') {
+            throw new \RuntimeException('Der aktive AI-Provider lieferte beim Verbindungstest keine verwertbare Antwort.');
+        }
+
+        return [
+            'success' => true,
+            'provider' => $this->buildProviderResult($provider, $providerConfig, $providerResolution),
+            'target_locale' => $targetLocale,
+            'duration_ms' => (int) round((microtime(true) - $startedAt) * 1000),
+            'sample' => (string) ($translations[0] ?? ''),
         ];
     }
 
@@ -388,7 +424,7 @@ final class AiProviderGateway
     /**
      * @param array<string, mixed> $providersConfig
      * @param array<string, mixed> $quotaConfig
-     * @return array{provider:AiProviderInterface,config:array<string,mixed>,requested_provider:string,resolved_via:string,warnings:list<string>}
+    * @return array{provider:AiProviderInterface,config:array<string,mixed>,requested_provider:string,warnings:list<string>}
      */
     private function resolveProvider(array $providersConfig, string $targetLocale, array $quotaConfig): array
     {
@@ -397,8 +433,6 @@ final class AiProviderGateway
             static fn (mixed $entry): bool => is_array($entry)
         ));
         $requestedProvider = trim((string) ($providersConfig['active_provider_id'] ?? ''));
-        $fallbackProvider = trim((string) ($providersConfig['fallback_provider_id'] ?? ''));
-        $warnings = [];
 
         $entriesById = [];
         foreach ($providerEntries as $entry) {
@@ -410,51 +444,33 @@ final class AiProviderGateway
             $entriesById[$entryId] = $entry;
         }
 
-        $candidateIds = array_values(array_unique(array_filter(array_merge(
-            [$requestedProvider, $fallbackProvider],
-            array_keys($entriesById)
-        ))));
-
-        foreach ($candidateIds as $index => $providerId) {
-            $providerConfig = is_array($entriesById[$providerId] ?? null) ? $entriesById[$providerId] : [];
-            if ($providerConfig === []) {
-                continue;
-            }
-
-            $readinessIssues = $this->collectProviderReadinessIssues($providerConfig, $targetLocale, 'translation_enabled');
-            if ($readinessIssues !== []) {
-                $warnings[] = 'Provider „' . (string) ($providerConfig['label'] ?? $providerId) . '“ wurde übersprungen: ' . implode(' ', $readinessIssues);
-                continue;
-            }
-
-            try {
-                $provider = $this->createProvider($providerConfig, $quotaConfig);
-            } catch (\Throwable $e) {
-                $warnings[] = 'Provider „' . (string) ($providerConfig['label'] ?? $providerId) . '“ konnte nicht initialisiert werden: ' . $e->getMessage();
-                continue;
-            }
-
-            if ($provider === null) {
-                $warnings[] = 'Für den Provider „' . (string) ($providerConfig['label'] ?? $providerId) . '“ existiert aktuell noch kein Live-Adapter.';
-                continue;
-            }
-
-            return [
-                'provider' => $provider,
-                'config' => $providerConfig,
-                'requested_provider' => $requestedProvider !== '' ? $requestedProvider : $providerId,
-                'resolved_via' => $index === 0 ? 'direct' : ($providerId === $fallbackProvider ? 'fallback' : 'auto-fallback'),
-                'warnings' => $warnings,
-            ];
+        if ($requestedProvider === '' || !isset($entriesById[$requestedProvider])) {
+            throw new \RuntimeException('Es ist kein aktiver AI-Provider konfiguriert. Bitte AI-Einstellungen prüfen.');
         }
 
-        throw new \RuntimeException('Kein für Editor.js-Übersetzungen freigegebener Provider ist aktuell einsatzbereit.');
+        $providerConfig = $entriesById[$requestedProvider];
+        $readinessIssues = $this->collectProviderReadinessIssues($providerConfig, $targetLocale, 'translation_enabled');
+        if ($readinessIssues !== []) {
+            throw new \RuntimeException('Aktiver AI-Provider „' . (string) ($providerConfig['label'] ?? $requestedProvider) . '“ ist nicht einsatzbereit: ' . implode(' ', $readinessIssues));
+        }
+
+        $provider = $this->createProvider($providerConfig, $quotaConfig);
+        if ($provider === null) {
+            throw new \RuntimeException('Für den aktiven AI-Provider „' . (string) ($providerConfig['label'] ?? $requestedProvider) . '“ existiert kein Adapter.');
+        }
+
+        return [
+            'provider' => $provider,
+            'config' => $providerConfig,
+            'requested_provider' => $requestedProvider,
+            'warnings' => [],
+        ];
     }
 
     /**
      * @param array<string, mixed> $providersConfig
      * @param array<string, mixed> $quotaConfig
-     * @return array{provider:AiProviderInterface,config:array<string,mixed>,requested_provider:string,resolved_via:string,warnings:list<string>}
+    * @return array{provider:AiProviderInterface,config:array<string,mixed>,requested_provider:string,warnings:list<string>}
      */
     private function resolveProviderForCapability(array $providersConfig, string $capabilityKey, string $targetLocale, array $quotaConfig): array
     {
@@ -463,8 +479,6 @@ final class AiProviderGateway
             static fn (mixed $entry): bool => is_array($entry)
         ));
         $requestedProvider = trim((string) ($providersConfig['active_provider_id'] ?? ''));
-        $fallbackProvider = trim((string) ($providersConfig['fallback_provider_id'] ?? ''));
-        $warnings = [];
 
         $entriesById = [];
         foreach ($providerEntries as $entry) {
@@ -474,45 +488,27 @@ final class AiProviderGateway
             }
         }
 
-        $candidateIds = array_values(array_unique(array_filter(array_merge(
-            [$requestedProvider, $fallbackProvider],
-            array_keys($entriesById)
-        ))));
-
-        foreach ($candidateIds as $index => $providerId) {
-            $providerConfig = is_array($entriesById[$providerId] ?? null) ? $entriesById[$providerId] : [];
-            if ($providerConfig === []) {
-                continue;
-            }
-
-            $readinessIssues = $this->collectProviderReadinessIssues($providerConfig, $targetLocale, $capabilityKey);
-            if ($readinessIssues !== []) {
-                $warnings[] = 'Provider „' . (string) ($providerConfig['label'] ?? $providerId) . '“ wurde übersprungen: ' . implode(' ', $readinessIssues);
-                continue;
-            }
-
-            try {
-                $provider = $this->createProvider($providerConfig, $quotaConfig);
-            } catch (\Throwable $e) {
-                $warnings[] = 'Provider „' . (string) ($providerConfig['label'] ?? $providerId) . '“ konnte nicht initialisiert werden: ' . $e->getMessage();
-                continue;
-            }
-
-            if ($provider === null) {
-                $warnings[] = 'Für den Provider „' . (string) ($providerConfig['label'] ?? $providerId) . '“ existiert aktuell noch kein Live-Adapter.';
-                continue;
-            }
-
-            return [
-                'provider' => $provider,
-                'config' => $providerConfig,
-                'requested_provider' => $requestedProvider !== '' ? $requestedProvider : $providerId,
-                'resolved_via' => $index === 0 ? 'direct' : ($providerId === $fallbackProvider ? 'fallback' : 'auto-fallback'),
-                'warnings' => $warnings,
-            ];
+        if ($requestedProvider === '' || !isset($entriesById[$requestedProvider])) {
+            throw new \RuntimeException('Es ist kein aktiver AI-Provider konfiguriert. Bitte AI-Einstellungen prüfen.');
         }
 
-        throw new \RuntimeException('Kein für diesen AI-Workflow freigegebener Provider ist aktuell einsatzbereit.');
+        $providerConfig = $entriesById[$requestedProvider];
+        $readinessIssues = $this->collectProviderReadinessIssues($providerConfig, $targetLocale, $capabilityKey);
+        if ($readinessIssues !== []) {
+            throw new \RuntimeException('Aktiver AI-Provider „' . (string) ($providerConfig['label'] ?? $requestedProvider) . '“ ist für diesen Workflow nicht einsatzbereit: ' . implode(' ', $readinessIssues));
+        }
+
+        $provider = $this->createProvider($providerConfig, $quotaConfig);
+        if ($provider === null) {
+            throw new \RuntimeException('Für den aktiven AI-Provider „' . (string) ($providerConfig['label'] ?? $requestedProvider) . '“ existiert kein Adapter.');
+        }
+
+        return [
+            'provider' => $provider,
+            'config' => $providerConfig,
+            'requested_provider' => $requestedProvider,
+            'warnings' => [],
+        ];
     }
 
     /** @param array<string, mixed> $providerConfig
@@ -754,7 +750,7 @@ final class AiProviderGateway
             'label' => $provider->getLabel(),
             'model' => (string) ($providerConfig['default_model'] ?? $provider->getDefaultModel()),
             'mock' => $provider->isMock(),
-            'resolved_via' => (string) ($providerResolution['resolved_via'] ?? 'direct'),
+            'selection_mode' => 'single-provider',
         ];
     }
 
