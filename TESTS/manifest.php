@@ -35,4 +35,9 @@ return [
         'description' => 'Security-Baseline für Upload-/Import-Härtung, SQL-Identifier, Cron-Token und Request-Migration.',
         'required' => true,
     ],
+    'ai-services' => [
+        'script' => __DIR__ . DIRECTORY_SEPARATOR . 'ai-services' . DIRECTORY_SEPARATOR . 'run.php',
+        'description' => 'Prüft AI/KI-Provider-Katalog, Mistral/OpenAI-kompatible Live-Adapter und Admin-Navigation.',
+        'required' => true,
+    ],
 ];

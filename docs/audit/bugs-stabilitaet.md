@@ -2,6 +2,8 @@
 
 **Bereichsscore:** 78/100
 
+**Audit-Scope:** Für 365CMS-Core-Bewertungen zählt ausschließlich `365CMS.DE/CMS/**`; `TESTS/**` dient als Validierungsnachweis.
+
 ## Kurzfazit
 Die PHP-Syntaxprüfung der fokussierten First-Party-Dateien war fehlerfrei. Stabilitätsrisiken entstehen vor allem durch unparametrisierte Low-Level-Query-Pfade, breite Seiteneffekte in Admin-Modulen und lokale Fallbacks ohne durchgängige Testabdeckung.
 

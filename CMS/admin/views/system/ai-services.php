@@ -258,7 +258,7 @@ if (empty($summary['translation_ready'])) {
                             <li class="mb-2">✅ Provider-, Feature-, Translation-, Logging- und Quota-Persistenz ist im Core verdrahtet.</li>
                             <li class="mb-2">✅ Provider erscheinen jetzt nur noch als bewusst angelegte Liste statt als starre Komplettmatrix.</li>
                             <li class="mb-2">✅ Der Editor.js-Übersetzungs-Endpoint bleibt geschützt und an die zentralen Feature-Gates gekoppelt.</li>
-                            <li class="mb-2">✅ Ollama und Azure AI sind als erste echte Live-Provider im Gateway verdrahtet.</li>
+                            <li class="mb-2">✅ Ollama, Azure AI, OpenAI, Mistral AI und OpenRouter sind als echte Live-Provider im Gateway verdrahtet.</li>
                             <li class="mb-2">✅ Translation, Content-Assist und SEO-Assist lassen sich auf Provider-Ebene getrennt schalten.</li>
                             <li class="mb-2">✅ Das AI-Dashboard zeigt jetzt request- und quota-nahe Nutzungsdaten sowie letzte Generierungsläufe aus dem Audit-Log, ohne Rohprompts oder Volltexte offenzulegen.</li>
                             <li class="mb-2">✅ Prompt-Vorlagen lassen sich je Bereich verwalten; die Translation-Vorlage wirkt direkt in der Live-Pipeline und bleibt durch serverseitige Pflicht-Leitplanken abgesichert.</li>
@@ -668,7 +668,7 @@ if (empty($summary['translation_ready'])) {
                                 </select>
                             </div>
                             <div class="col-md-7 text-secondary small">
-                                Es werden nur Provider angezeigt, die du wirklich nutzt. Neue Einträge kommen bewusst über das <strong>+</strong> in die Liste – sauber, schlank und ohne Zoo im Standardzustand.
+                                Es werden nur Provider angezeigt, die du wirklich nutzt. Neue Einträge kommen bewusst über das <strong>+</strong> in die Liste – z. B. Azure AI, Mistral AI, OpenAI, OpenRouter oder Ollama, sauber und ohne Zoo im Standardzustand.
                             </div>
                         </div>
                         <div class="row g-3 mt-1">
@@ -698,7 +698,7 @@ if (empty($summary['translation_ready'])) {
                     </div>
                     <div class="card-body">
                         <?php if ($providers === []): ?>
-                            <div class="alert alert-info mb-0">Noch keine Provider konfiguriert. Lege über das <strong>+</strong> oben gezielt Ollama, Azure AI oder einen Mock-Provider an.</div>
+                            <div class="alert alert-info mb-0">Noch keine Provider konfiguriert. Lege über das <strong>+</strong> oben gezielt Azure AI, Mistral AI, OpenAI, OpenRouter, Ollama oder einen Mock-Provider an.</div>
                         <?php else: ?>
                             <div class="row g-3 mb-4">
                                 <div class="col-md-6">

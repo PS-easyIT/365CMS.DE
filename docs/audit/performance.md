@@ -2,8 +2,10 @@
 
 **Bereichsscore:** 88/100
 
+**Audit-Scope:** Für 365CMS-Core-Bewertungen zählt ausschließlich `365CMS.DE/CMS/**`; `TESTS/**` dient als Validierungsnachweis.
+
 ## Kurzfazit
-Caching- und Monitoring-Module sind vorhanden. Die zuvor teure Homepage-Tagcloud wurde auf gecachte Aggregation mit Frische-Schlüssel umgestellt. Backup-Dumps schreiben inzwischen chunkweise/streamend mit Laufzeitlimit, synchrone DB-Wartung wird im Admin-Request begrenzt, und vendored Dependency-Wurzeln sind nun maschinenlesbar inventarisiert. Verbleibende Haupttreiber sind ein fehlendes vollständiges Queue/Resume-Modell und das weiterhin hohe Repository-/Dependency-Gewicht.
+Caching- und Monitoring-Module sind vorhanden. Die zuvor teure Homepage-Tagcloud wurde auf gecachte Aggregation mit Frische-Schlüssel umgestellt. Backup-Dumps schreiben inzwischen chunkweise/streamend mit Laufzeitlimit, synchrone DB-Wartung wird im Admin-Request begrenzt, und vendored Dependency-Wurzeln im gültigen `CMS`-Scope sind nun maschinenlesbar inventarisiert. Verbleibende Haupttreiber sind ein fehlendes vollständiges Queue/Resume-Modell und das weiterhin hohe Dependency-Gewicht innerhalb von `CMS/assets` und `CMS/vendor`.
 
 ## Score-Begründung
 - Startwert 100
@@ -78,6 +80,6 @@ Caching- und Monitoring-Module sind vorhanden. Die zuvor teure Homepage-Tagcloud
 - **Abhängigkeiten:** Release-Prozess.
 
 ## Update 2026-06-13 (Dependency-Governance)
-- `docs\audit\dependency-governance.json` ergänzt ein maschinenlesbares Inventar für `ASSETS`, `CMS\assets` und `CMS\vendor` inklusive Manifestpfaden und bekannten Governance-Lücken.
+- `docs\audit\dependency-governance.json` ergänzt ein maschinenlesbares Inventar für `CMS\assets` und `CMS\vendor` inklusive Manifestpfaden und bekannten Governance-Lücken. Root-`ASSETS` zählt gemäß Scope-Vorgabe nicht mehr als 365CMS-Core-Auditfund.
 - `TESTS\dependency-governance\run.php` prüft Inventarstruktur, JSON-validierte Manifeste und vorhandene Vendor-Roots.
 - Validiert: `php TESTS\run.php --suite=dependency-governance` → **PASS**.

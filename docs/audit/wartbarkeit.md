@@ -2,8 +2,10 @@
 
 **Bereichsscore:** 75/100
 
+**Audit-Scope:** Für 365CMS-Core-Bewertungen zählt ausschließlich `365CMS.DE/CMS/**`; `TESTS/**` dient als Validierungsnachweis.
+
 ## Kurzfazit
-Die Codebasis ist funktionsreich, aber sehr groß und historisch gewachsen. Die zentrale Test-Orchestrierung wurde inzwischen durch `TESTS\run.php` plus versioniertes `TESTS\manifest.php` nachvollziehbarer gemacht; zusätzlich dokumentiert ein Dependency-Governance-Inventar die wichtigsten vendored Wurzeln und Paketmanifeste.
+Die Codebasis ist funktionsreich, aber sehr groß und historisch gewachsen. Die zentrale Test-Orchestrierung wurde inzwischen durch `TESTS\run.php` plus versioniertes `TESTS\manifest.php` nachvollziehbarer gemacht; zusätzlich dokumentiert ein Dependency-Governance-Inventar die wichtigsten vendored Wurzeln und Paketmanifeste innerhalb des gültigen `CMS`-Scopes.
 
 ## Score-Begründung
 - Startwert 100
@@ -15,7 +17,7 @@ Die Codebasis ist funktionsreich, aber sehr groß und historisch gewachsen. Die 
 ## Findings-Tabelle
 | ID | Modul | Feature | Funktion | Schweregrad | Auswirkung | Fundstelle | Quelle |
 |---|---|---|---|---|---:|---|---|
-| MAINT-001 | Dependencies | Governance | Vendored Assets/Inventar | mittel | -7 | docs\audit\dependency-governance.json, TESTS\dependency-governance\run.php | Codefund/Test |
+| MAINT-001 | Dependencies | Governance | Vendored CMS-Assets/Inventar | mittel | -7 | docs\audit\dependency-governance.json, TESTS\dependency-governance\run.php | Codefund/Test |
 | MAINT-002 | Request Layer | Input Handling | Superglobals | hoch | -8 | Fokus-Scan: 676 direkte Superglobal-Fundstellen | Heuristik/Codefund |
 | MAINT-003 | Data Layer | SQL APIs | query/get_var/get_results | mittel | -7 | CMS\core\Database.php:164-178 und zahlreiche Aufrufer | Codefund |
 | MAINT-004 | Tests/CI | Qualitätssicherung | Runner/Manifest | niedrig | -3 | TESTS\run.php, TESTS\manifest.php | Codefund/Test |
@@ -28,7 +30,7 @@ Die Codebasis ist funktionsreich, aber sehr groß und historisch gewachsen. Die 
 - **Risiko:** reduziert; neue oder geänderte Vendor-Wurzeln können gegen ein zentrales Inventar geprüft werden.
 - **Technische Ursache:** durch maschinenlesbares Inventar und Smoke-Test teilweise entschärft; physische Trennung von Source und Release-Artefakten bleibt offen.
 - **Lösungsweg:** `docs\audit\dependency-governance.json` plus `TESTS\dependency-governance\run.php` ergänzt.
-- **Betroffene Dateien:** ASSETS\*, CMS\assets\*, CMS\vendor\*, TESTS\*.
+- **Betroffene Dateien:** CMS\assets\*, CMS\vendor\*, TESTS\*.
 - **Priorität:** P1
 - **Aufwand:** M
 - **Abhängigkeiten:** Release-/Build-Prozess.
@@ -78,6 +80,6 @@ Die Codebasis ist funktionsreich, aber sehr groß und historisch gewachsen. Die 
 - Validiert: `release-smoke`, `pdf-service` und `sitemap-service` laufen über den manifestierten Runner erfolgreich; fehlendes `mbstring` bzw. fehlende CI/Doku bleiben als SKIP markiert.
 
 ## Update 2026-06-13 (Dependency-Governance)
-- `docs\audit\dependency-governance.json` inventarisiert die bekannten Vendor-Wurzeln und referenzierten Package-Manifeste.
+- `docs\audit\dependency-governance.json` inventarisiert die bekannten Vendor-Wurzeln und referenzierten Package-Manifeste im `CMS`-Scope.
 - `TESTS\dependency-governance\run.php` ist im zentralen Manifest registriert und validiert Inventar, Manifeste und Vendor-Roots.
 - Validiert: `php TESTS\run.php --suite=dependency-governance` → **PASS**.

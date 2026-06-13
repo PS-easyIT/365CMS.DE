@@ -1,19 +1,13 @@
 {
   "schema_version": "2026-06-13",
   "purpose": "Machine-readable dependency and vendored asset governance inventory for 365CMS audits and release checks.",
-  "source_scope": "d:/00-WPwork/365CMS.DE",
+  "source_scope": "d:/00-WPwork/365CMS.DE/CMS",
   "policy": {
     "third_party_code_should_be_documented": true,
     "release_artifacts_should_not_be_added_to_source_scope": true,
     "new_vendor_roots_require_manifest_update": true
   },
   "manifests": [
-    {
-      "path": "ASSETS/package.json",
-      "type": "npm",
-      "owner": "frontend/editorjs-assets",
-      "status": "tracked"
-    },
     {
       "path": "CMS/assets/ai-platform/composer.json",
       "type": "composer-package",
@@ -59,12 +53,6 @@
   ],
   "vendor_roots": [
     {
-      "path": "ASSETS",
-      "kind": "frontend-assets",
-      "manifest": "ASSETS/package.json",
-      "release_note": "EditorJS extensions and shared frontend packages are vendored here until package management is consolidated."
-    },
-    {
       "path": "CMS/assets",
       "kind": "php-assets",
       "manifest": "multiple composer.json files below CMS/assets",
@@ -79,7 +67,7 @@
   ],
   "known_gaps": [
     "No consolidated root composer.lock/package-lock is present yet.",
-    "Vendored assets remain in source scope and should be migrated to release artifacts in a later phase.",
+    "Vendored assets below CMS/assets and CMS/vendor remain in source scope and should be migrated to release artifacts in a later phase.",
     "CI should fail when new vendor roots are added without updating this inventory."
   ]
 }

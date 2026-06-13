@@ -2,6 +2,8 @@
 
 **Bereichsscore:** 98/100
 
+**Audit-Scope:** Für 365CMS-Core-Bewertungen zählt ausschließlich `365CMS.DE/CMS/**`; `TESTS/**` dient als Validierungsnachweis.
+
 ## Kurzfazit
 Die zuvor identifizierten Implementierungslücken wurden in den produktiven Pfaden weitgehend geschlossen: Web-Cron Query-Token ist jetzt mit Sunset-Datum hart gedeckelt, Import-Uploads laufen über einen einheitlichen persistierten Lifecycle mit Job-ID, und Analytics-Konfigurationen validieren Placeholder-/Formatfehler mit sichtbarem Statusmodell (`configured/partial/missing`).
 
@@ -13,6 +15,7 @@ Die verbleibende Restlücke betrifft primär die CI-Anbindung des neuen zentrale
 - IMPL-002: 0 (abgeschlossen)
 - IMPL-003: 0 (abgeschlossen)
 - IMPL-004: -2 (niedrig, teilweise reduziert)
+- IMPL-005: 0 (abgeschlossen)
 
 ## Findings-Tabelle
 | ID | Modul | Feature | Funktion | Schweregrad | Auswirkung | Status | Fundstelle | Quelle |
@@ -21,6 +24,7 @@ Die verbleibende Restlücke betrifft primär die CI-Anbindung des neuen zentrale
 | IMPL-002 | Importer | Upload/Import | Lifecycle vereinheitlicht | niedrig | 0 | ✅ abgeschlossen | CMS\plugins\cms-importer\includes\class-admin.php (persistenter Importpfad + Job-ID) | Codefund |
 | IMPL-003 | Analytics/Consent | Tracking | Placeholder-/Formatvalidierung + Statusmodell | niedrig | 0 | ✅ abgeschlossen | CMS\admin\modules\seo\SeoSuiteModule.php; CMS\admin\views\seo\analytics.php | Codefund |
 | IMPL-004 | Tooling | Tests/Dependencies | Pipeline | niedrig | -2 | 🟨 teilweise reduziert | `TESTS\run.php` + `TESTS\bootstrap.php` als zentraler Runner vorhanden; CI-Verkabelung noch offen | Konfigurationsfund/Heuristik |
+| IMPL-005 | AI/KI | Provider Gateway | Mistral/OpenAI-kompatible Live-Adapter | niedrig | 0 | ✅ abgeschlossen | `CMS\core\Services\AI\Providers\OpenAiCompatibleProvider.php`, `CMS\core\Services\AI\AiProviderGateway.php`, `TESTS\ai-services\run.php` | Codefund/Test |
 
 ## Umsetzungsschritte
 
@@ -67,3 +71,14 @@ Die verbleibende Restlücke betrifft primär die CI-Anbindung des neuen zentrale
 - **Priorität:** P2
 - **Aufwand:** M
 - **Abhängigkeiten:** Dependency-Management.
+
+### step-005
+- **Ziel:** AI/KI-Provider-Lücke schließen.
+- **Befund:** ✅ umgesetzt.
+- **Risiko:** reduziert; OpenAI-kompatible Provider sind nicht mehr nur vorbereitet, sondern gatewayseitig produktiv verdrahtet.
+- **Technische Ursache:** Mistral fehlte im Katalog, OpenAI/OpenRouter waren nicht live/addable.
+- **Lösungsweg:** Generischer OpenAI-kompatibler Provider, Provider-Katalog-Erweiterung, Gateway-Factory und AI-Smoke-Test.
+- **Betroffene Dateien:** CMS\core\Services\AI\*, CMS\admin\views\system\ai-services.php, TESTS\ai-services\run.php.
+- **Priorität:** P1
+- **Aufwand:** M
+- **Abhängigkeiten:** API-Key/Endpoint-Konfiguration.

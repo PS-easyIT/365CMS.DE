@@ -2,6 +2,8 @@
 
 **Bereichsscore:** 94/100
 
+**Audit-Scope:** Für 365CMS-Core-Bewertungen zählt ausschließlich `365CMS.DE/CMS/**`; `TESTS/**` dient als Validierungsnachweis.
+
 ## Kurzfazit
 SEO-Module, Sitemap-Services und Analytics-/Consent-Integration sind vorhanden. Der performance-nahe Tagcloud-Hotspot auf der Startseite wurde durch Caching deutlich entschärft; zusätzlich meldet die Media-Library fehlende Bild-Alt-Texte nun als explizites Qualitätsgate. Für Sitemap-/Canonical-Konsistenz existiert eine zentrale Smoke-Suite, und der Cookie-Manager zeigt jetzt einen Tracking-/Consent-Healthcheck als Deploy-Warnung.
 

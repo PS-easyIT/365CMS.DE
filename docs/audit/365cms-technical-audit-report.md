@@ -1,11 +1,11 @@
 # 365CMS Technical Audit Report
 
 **Audit-Datum:** 2026-06-12  
-**Scope:** D:\00-WPwork\365CMS.DE  
-**Methodik:** Lokale Struktur-, Konfigurations- und Codeanalyse der 365CMS-Codebasis. Drittanbieter-/Backup-/Asset-Verzeichnisse wurden für Zählungen erfasst, für First-Party-Findings jedoch fokussiert gefiltert. Keine Secrets wurden ausgegeben.
+**Scope:** D:\00-WPwork\365CMS.DE\CMS  
+**Methodik:** Lokale Struktur-, Konfigurations- und Codeanalyse der 365CMS-Core-Codebasis. Für alle 365CMS-Hauptprojekt-Audits zählt ausschließlich `365CMS.DE/CMS/**`; `TESTS/**` wird nur als Validierungsnachweis herangezogen. Root-Ordner wie `ASSETS`, `BACKUP` oder externe Repositories zählen nicht als Core-Fundstelle. Keine Secrets wurden ausgegeben.
 
 ## Executive Summary
-Der technische Gesamtscore beträgt **85/100** (verbessert), der Sicherheitsbereich liegt nach der SEC-003-Folgewelle bei **73/100**. 365CMS wirkt funktionsreich und enthält mehrere belegbare Schutzmechanismen (CSRF, Security Header, Upload-Prüfungen, Syntax-saubere PHP-8.4-Ausführung im fokussierten Scope). Zusätzlich wurden Performance-/SEO-Hotspots in Theme-Tagcloud, Media-Alt-Text-Gate, Sitemap-Testabdeckung, Tracking-/Consent-Healthcheck, DB-Wartungsgrenzen, Test-Orchestrierung und Dependency-Governance reduziert. Die größten Restrisiken liegen weiterhin in Upload-/Import-Angriffsfläche, dynamischen SQL-/Maintenance-Pfaden, fehlendem vollständigem Backup-Queue/Resume-Modell, physischer Trennung von Source/Release-Artefakten und fehlender CI-Vollverkabelung des inzwischen manifestierten zentralen Test-Runners.
+Der technische Gesamtscore beträgt **88/100** (verbessert), der Sicherheitsbereich liegt nach dem Security-Abschlussgate bei **92/100**. 365CMS wirkt funktionsreich und enthält mehrere belegbare Schutzmechanismen (CSRF, Security Header, Upload-Prüfungen, SQL-Identifier-Guards, Header-first Cron-Token, Syntax-saubere PHP-Ausführung im fokussierten Scope). Zusätzlich wurden Performance-/SEO-Hotspots, DB-Wartungsgrenzen, Test-Orchestrierung, Dependency-Governance im `CMS`-Scope und AI/KI-Provider-Vollständigkeit reduziert. Die größten Restrisiken liegen weiterhin in fehlendem vollständigem Backup-Queue/Resume-Modell, physischer Trennung von `CMS`-Source/Release-Artefakten, breiter Wartbarkeitsmigration außerhalb der Security-Hotspots und fehlender CI-Vollverkabelung des manifestierten zentralen Test-Runners.
 
 ## Inventar-Zusammenfassung
 | ID | Typ | Name | Beschreibung/Zweck | Relevante Dateien | Einstiegspunkt/Aufrufpfad | Abhängigkeiten | Audit-Relevanz | Quelle |
@@ -15,6 +15,7 @@ Der technische Gesamtscore beträgt **85/100** (verbessert), der Sicherheitsbere
 | MOD-MEDIA | Modul | Media Library | Uploads, Metadaten, EditorJS | CMS\admin\modules\media, CMS\core\Services\Media, CMS\core\Services\EditorJs | Admin/EditorJS Uploads | FileUploadService, MediaService | sehr hoch | Codefund |
 | MOD-SEO | Modul | SEO | Sitemap, Meta, Analytics, Performance | CMS\admin\modules\seo, CMS\core\Services\SEO, CMS\core\Services\SitemapService.php | Admin SEO, Frontend | DB, Theme, Settings | hoch | Codefund |
 | MOD-LEGAL | Modul | Legal/Consent | Cookie-Kategorien, Services, Tracking Consent | CMS\admin\modules\legal | Admin Legal, Frontend Consent | Settings, SEO Analytics | hoch | Codefund |
+| MOD-AI | Modul | AI/KI Services | Provider, Translation, Content-/SEO-Assistenten, Prompt- und Quota-Verwaltung | CMS\admin\ai-*.php, CMS\admin\modules\system\Ai*, CMS\core\Services\AI | Admin AI Services, Editor.js Translation | Settings, HTTP Client, Audit Log | hoch | Codefund/Test |
 | MOD-MEMBER | Modul | Member Area | Member Dashboard, Uploads, Auth-abhängige Funktionen | CMS\member, CMS\admin\modules\member, CMS\core\Member | Member/Admin | Auth, Media | hoch | Codefund |
 | MOD-IMPORTER | Plugin | CMS Importer | WXR/RankMath Import | CMS\plugins\cms-importer | Plugin Admin Upload | Uploads, XML/JSON Parser | hoch | Codefund |
 | MOD-THEME | Modul | Default Theme | Frontend Templates, Sidebar, Tagcloud | CMS\themes\cms-default | Frontend Render | DB, Theme helpers | mittel | Codefund |
@@ -26,35 +27,37 @@ Der technische Gesamtscore beträgt **85/100** (verbessert), der Sicherheitsbere
 ## Score-Übersicht je Bereich
 | Bereich | Score |
 |---|---:|
-| Sicherheit | 73 |
+| Sicherheit | 92 |
 | Bugs und Stabilität | 78 |
 | Performance | 88 |
 | SEO | 94 |
 | PHP 8.4 Best Practice und Kompatibilität | 80 |
-| Funktionsvollständigkeit | 95 |
+| Funktionsvollständigkeit | 97 |
 | Unvollständige Implementierungen | 98 |
 | Wartbarkeit | 75 |
-| **Gesamt** | **85** |
+| **Gesamt** | **88** |
 
 ## Score-Übersicht je Modul/Feature/Funktion
 | Ebene | ID | Score | Begründung |
 |---|---|---:|---|
 | Modul | MOD-CORE | 77 | Core ist strukturiert, aber generische Query- und Maintenance-Pfade erhöhen Risiko. |
-| Modul | MOD-ADMIN | 75 | Request-Zentralisierung in Admin-Modulen deutlich vorangeschritten; CSRF-Strukturen vorhanden. |
-| Modul | MOD-MEDIA | 74 | Funktional umfangreich, Alt-Text-Gate verbessert SEO-/A11y-Sichtbarkeit; Upload-Angriffsfläche bleibt hoch. |
+| Modul | MOD-ADMIN | 82 | Request-Zentralisierung in Admin-Modulen deutlich vorangeschritten; CSRF-Strukturen vorhanden. |
+| Modul | MOD-MEDIA | 88 | Funktional umfangreich, Alt-Text-Gate verbessert SEO-/A11y-Sichtbarkeit; Upload-/Import-Härtung ist per Security-Baseline abgesichert. |
+| Modul | MOD-AI | 91 | Logischer AI-Adminbereich und Live-Provider für Azure AI, Ollama, OpenAI, Mistral AI und OpenRouter vorhanden. |
 | Modul | MOD-SEO | 91 | SEO-Services vorhanden, Tagcloud-Performance, Alt-Text-Gate, Sitemap-Smoke-Test und Tracking-Healthcheck verbessert. |
 | Modul | MOD-LEGAL | 84 | Consent-/Placeholder-Logik und Tracking-/Consent-Healthcheck mit Deploy-Warnung vorhanden. |
 | Modul | MOD-MEMBER | 76 | Member-Funktionen vorhanden, Upload-Feature konfigurationsabhängig. |
-| Modul | MOD-IMPORTER | 70 | Import-Uploads und Parser-Flows sind risikoreich. |
+| Modul | MOD-IMPORTER | 84 | Import-Uploads bleiben sensitiv, sind aber durch Payload-Validierung, Dateirechte und Verzeichnishärtung deutlich reduziert. |
 | Modul | MOD-THEME | 78 | Theme funktioniert, enthält aber performancerelevante direkte DB-Aggregation. |
 | Modul | MOD-INSTALL | 79 | Installer vorhanden, Prozessabbrüche/Runtime-Kopplung mindern Testbarkeit. |
-| Modul | MOD-CRON | 76 | CLI/Web Cron vorhanden, Query-Token-Fallback bleibt Schwachpunkt. |
-| Feature | Datei-Uploads | 70 | CSRF/MIME vorhanden, aber große Angriffsfläche. |
+| Modul | MOD-CRON | 92 | CLI/Web Cron vorhanden; Query-Token ist header-first, gated und sunset-geschützt. |
+| Feature | Datei-Uploads | 88 | CSRF/MIME/Content-Scan-Hooks und Import-Payload-Härtung vorhanden. |
 | Feature | Datenbankzugriff | 75 | Prepared APIs existieren, generische Query-API bleibt Wartbarkeitsrisiko. |
 | Feature | Backup/Wartung | 80 | Backup-Dumps sind chunked/streaming; synchrone DB-Wartung hat Inline-Limits, Queue/Resume bleibt offen. |
 | Feature | Dependency Governance | 78 | Vendor-Wurzeln und Package-Manifeste sind inventarisiert und per Smoke-Test prüfbar; physische Artefakt-Trennung bleibt offen. |
+| Feature | AI/KI Provider | 93 | Azure AI, OpenAI, Mistral AI, OpenRouter, Ollama und Mock sind addable und gatewayseitig prüfbar. |
 | Feature | Sitemap/SEO | 90 | Mehrere Services vorhanden; Sitemap-Service-Smoke-Test und Tracking-/Consent-Healthcheck decken zentrale SEO-Release-Risiken ab. |
-| Funktion | Web-Cron Token | 76 | Header und Query werden akzeptiert; Query-Fallback deprecated behandeln. |
+| Funktion | Web-Cron Token | 92 | Header-first; Query-Fallback ist explizit gated, sunset-geschützt und auditierbar. |
 | Funktion | Tagcloud | 84 | Homepage-Tagcloud nutzt Cache mit Frische-Schlüssel statt Vollscan pro Request. |
 | Funktion | Alt-Text-Normalisierung | 88 | Normalisierung, Bulk-Pflege und Media-Library-Qualitätsgate vorhanden. |
 
@@ -62,17 +65,17 @@ Der technische Gesamtscore beträgt **85/100** (verbessert), der Sicherheitsbere
 | Schweregrad | Anzahl |
 |---|---:|
 | kritisch | 0 |
-| hoch | 7 |
+| hoch | 4 |
 | mittel | 22 |
-| niedrig | 7 |
+| niedrig | 10 |
 
 ## Diagramm: Bereichsscores
 ```text
-Sicherheit                         73 | #############################
+Sicherheit                         92 | #####################################
 Bugs/Stabilität                    78 | ###############################
 Performance                        88 | ###################################
 SEO                                94 | ######################################
-Funktionsvollständigkeit           95 | ######################################
+Funktionsvollständigkeit           97 | #######################################
 Unvollständige Implementierungen   98 | #######################################
 Wartbarkeit                        75 | ##############################
 ```
@@ -81,15 +84,15 @@ Wartbarkeit                        75 | ##############################
 | ID | Schweregrad | Bereich | Beschreibung | Fundstelle |
 |---|---|---|---|---|
 | MAINT-001 | mittel | Wartbarkeit | Vendored Dependencies und Artefakte sind inventarisiert; physische Trennung von Source/Release-Artefakten bleibt offen. | docs\audit\dependency-governance.json, ASSETS, CMS\assets, CMS\vendor |
-| SEC-001 | hoch | Sicherheit | Upload-/Import-Flows sind eine zentrale Angriffsfläche. | FileUploadService.php, UploadHandler.php, cms-importer class-admin.php |
-| SEC-002 | hoch | Sicherheit | Dynamische SQL-Wartungsbefehle hängen an Identifier-Validierung. | CMS\core\Services\SystemService.php:611-617 |
+| PERF-001 | mittel | Performance | Backup-Queue/Resume-Modell ist noch nicht vollständig persistiert. | CMS\core\Services\BackupService.php |
+| MAINT-002 | mittel | Wartbarkeit | Direkte Superglobal-Restmigration außerhalb des abgeschlossenen Security-Hotspots bleibt offen. | CMS\* |
 | PHP84-001 | hoch | PHP 8.4 | Kein zentrales Root-/CMS-Composer-Manifest/Lockfile gefunden. | Repository-Konfiguration |
 
 ## Priorisierte Roadmap
-1. **P1:** Dependency-/Artifact-Governance einführen: Composer/NPM-Metadaten, SBOM, Lockfiles, Drittbibliotheken und Backups aus dem Quellscope trennen.
-2. **P1:** Upload-/Import-Sicherheitsmodell zentralisieren: Kontext-Allowlists, Quarantäne, Content-Scan-Hook, Retention.
+1. **P1:** Dependency-/Artifact-Governance im `CMS`-Scope weiterführen: Composer/NPM-Metadaten, SBOM, Lockfiles, Drittbibliotheken und Backups aus dem Core-Quellscope trennen.
+2. **P1:** Backup-/Wartungsjobs auf persistierte Queue/Resume-Modelle erweitern.
 3. **P1:** SQL-Identifier-/Maintenance-Pfade härten und `Database::query()` aus Fachmodulen zurückdrängen.
-4. **P2:** Backup, Tagcloud und Systemwartung auf Chunking/Jobs/Caching umstellen.
+4. **P2:** AI/KI-Content- und SEO-Livegeneratoren auf Basis der jetzt vorhandenen Provider-/Prompt-Gates ausbauen.
 5. **P2:** Manifestierte zentrale Test-Pipeline in CI verkabeln und PHP-8.4-Deprecation-Gate ergänzen.
 6. **P2:** Request-DTO-/Validator-Layer einführen und verbleibende direkte Superglobal-Nutzung außerhalb `CMS/admin/modules/**` schrittweise reduzieren.
 
@@ -144,19 +147,31 @@ Wartbarkeit                        75 | ##############################
 - Score-Auswirkung: **Wartbarkeit 68 → 72**, technischer Gesamtscore **84 → 85**.
 
 ## Update 2026-06-13 (PERF-004/MAINT-001 Dependency-Governance)
-- `docs\audit\dependency-governance.json` inventarisiert bekannte Vendor-Wurzeln (`ASSETS`, `CMS\assets`, `CMS\vendor`), referenzierte Package-Manifeste und bekannte Governance-Lücken.
+- `docs\audit\dependency-governance.json` inventarisiert bekannte Vendor-Wurzeln (`CMS\assets`, `CMS\vendor`), referenzierte Package-Manifeste und bekannte Governance-Lücken. Root-`ASSETS` zählt gemäß Scope-Vorgabe nicht mehr als 365CMS-Core-Fundstelle.
 - `TESTS\dependency-governance\run.php` validiert Inventarstruktur, JSON-validierte Package-Manifeste und vorhandene Vendor-Roots.
 - Die Suite ist in `TESTS\manifest.php` registriert; Ausführung `php TESTS\run.php --suite=dependency-governance` → **PASS**.
 - Score-Auswirkung: **Performance 86 → 88**, **Wartbarkeit 72 → 75**, technischer Gesamtscore bleibt gerundet bei **85**.
 
+## Update 2026-06-13 (Security-Abschluss)
+- `TESTS\security-baseline\run.php` validiert Upload-/Import-Härtung, SQL-Identifier-Guard, Cron-Header-Policy und Request-Migration reproduzierbar.
+- Alle Security-Findings SEC-001 bis SEC-004 sind im Audit-Scope abgeschlossen; breite Superglobal-Restmigration wird als Wartbarkeitsthema MAINT-002 weitergeführt.
+- Score-Auswirkung: **Sicherheit 73 → 92**, technischer Gesamtscore **85 → 87**.
+
+## Update 2026-06-13 (AI/KI Provider-Vollständigkeit)
+- AI/KI-Scope geprüft: `CMS\admin\ai-*.php`, `CMS\admin\modules\system\Ai*`, `CMS\admin\views\system\ai-services.php`, `CMS\core\Services\AI\*`.
+- `OpenAiCompatibleProvider` ergänzt OpenAI-kompatible Chat-Completions für OpenAI, Mistral AI und OpenRouter.
+- `AiSettingsService` und `AiProviderGateway` markieren Azure AI, OpenAI, Mistral AI, OpenRouter, Ollama und Mock als logisch konfigurierbare Provider; Azure AI behält Endpoint/Deployment/API-Version-Prüfung.
+- `TESTS\ai-services\run.php` validiert Provider-Katalog, Live-Support, Autoloading, Gateway-Verdrahtung und Admin-Navigation; Ausführung → **PASS**.
+- Score-Auswirkung: **Funktionsvollständigkeit 95 → 97**, technischer Gesamtscore **87 → 88**.
+
 ## Quellen-/Evidenzklassifizierung
 - **Codefund:** konkrete Datei-/Zeilenfunde in CMS\core, CMS\admin, CMS\plugins, CMS\themes.
-- **Konfigurationsfund:** .htaccess, fehlende Root-/CMS-Manifeste, vendored Dependency-Struktur.
+- **Konfigurationsfund:** .htaccess, fehlende CMS-Manifeste, vendored Dependency-Struktur innerhalb von `CMS/**`.
 - **Heuristik:** Bewertung von Größe, Kopplung, Test-/Pipeline-Sichtbarkeit ohne vollständige Laufzeitumgebung.
 - **Externe Best Practice:** Nicht als eigene Quelle markiert, da dieser automatisierte Lauf keine Web-Recherche benötigte/ausführte; Empfehlungen folgen etablierten Security-/Performance-/SEO- und PHP-8.4-Praktiken, sind hier aber als Heuristik dokumentiert.
 
 ## Validierung
-- Pflichtbereiche abgedeckt: Sicherheit, Bugs/Stabilität, Performance, SEO, PHP 8.4, Funktionsvollständigkeit, unvollständige Implementierungen, Wartbarkeit.
+- Pflichtbereiche abgedeckt: Sicherheit, Bugs/Stabilität, Performance, SEO, PHP 8.4, Funktionsvollständigkeit, unvollständige Implementierungen, Wartbarkeit sowie dedizierte AI/KI-Modulprüfung.
 - PHP-Syntaxprüfung: 498 fokussierte First-Party-PHP-Dateien, 0 Syntaxfehler.
 - Berichte erzeugt unter `docs\audit` und PDF-Gesamtbericht im Repository-Root.
 - Verdachts-/Heuristik-Aussagen sind als solche gekennzeichnet; keine Secrets wurden ausgegeben.

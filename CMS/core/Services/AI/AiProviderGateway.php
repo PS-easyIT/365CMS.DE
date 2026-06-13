@@ -9,6 +9,7 @@ use CMS\Logger;
 use CMS\Services\AI\Providers\AzureOpenAiProvider;
 use CMS\Services\AI\Providers\MockAiProvider;
 use CMS\Services\AI\Providers\OllamaAiProvider;
+use CMS\Services\AI\Providers\OpenAiCompatibleProvider;
 use CMS\Services\EditorJs\EditorJsSanitizer;
 
 if (!defined('ABSPATH')) {
@@ -335,6 +336,16 @@ final class AiProviderGateway
             }
         }
 
+        if (in_array($providerType, ['openai', 'mistral', 'openrouter'], true)) {
+            if (trim((string) ($providerConfig['endpoint'] ?? '')) === '') {
+                $issues[] = 'Der API-Endpoint fehlt.';
+            }
+
+            if (trim((string) ($providerConfig['default_model'] ?? '')) === '') {
+                $issues[] = 'Das Modell fehlt.';
+            }
+        }
+
         return $issues;
     }
 
@@ -370,7 +381,26 @@ final class AiProviderGateway
                 $this->httpClient,
                 $timeoutSeconds
             ),
+            'openai', 'mistral', 'openrouter' => new OpenAiCompatibleProvider(
+                $providerId,
+                $label,
+                $defaultModel !== '' ? $defaultModel : $this->defaultModelForOpenAiCompatibleProvider($providerType),
+                (string) ($providerConfig['endpoint'] ?? ''),
+                $this->settings->getProviderSecret($providerId, $providerType),
+                $this->httpClient,
+                $timeoutSeconds,
+                (string) ($providerConfig['type_label'] ?? $label)
+            ),
             default => null,
+        };
+    }
+
+    private function defaultModelForOpenAiCompatibleProvider(string $providerType): string
+    {
+        return match ($providerType) {
+            'mistral' => 'mistral-small-latest',
+            'openrouter' => 'openai/gpt-4.1-mini',
+            default => 'gpt-5-mini',
         };
     }
 

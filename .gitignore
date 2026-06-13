@@ -103,11 +103,13 @@ CMS/tmp-hub-template-dump.php
 !/TESTS/sitemap-service/
 !/TESTS/dependency-governance/
 !/TESTS/security-baseline/
+!/TESTS/ai-services/
 !/TESTS/release-smoke/run.php
 !/TESTS/pdf-service/run.php
 !/TESTS/sitemap-service/run.php
 !/TESTS/dependency-governance/run.php
 !/TESTS/security-baseline/run.php
+!/TESTS/ai-services/run.php
 /DOC/audit/
 /STAGING/tests/
 */Test/*

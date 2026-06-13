@@ -19,7 +19,7 @@ final class AiSettingsService
     public const GROUP_PROMPTS = 'ai.prompts';
 
     /** @var list<string> */
-    public const PROVIDER_SLUGS = ['mock', 'openai', 'azure_openai', 'ollama', 'openrouter'];
+    public const PROVIDER_SLUGS = ['mock', 'openai', 'azure_openai', 'mistral', 'ollama', 'openrouter'];
 
     private const PROVIDER_SECRET_PREFIX = 'provider_secret_';
 
@@ -51,19 +51,27 @@ final class AiSettingsService
         ],
         'openai' => [
             'label' => 'OpenAI',
-            'description' => 'Vorbereitet für spätere Bridge-Anbindung; aktuell noch kein Live-Adapter im Gateway.',
+            'description' => 'OpenAI Chat Completions API über Endpoint, Modell und API-Key.',
             'requires_secret' => true,
             'secret_label' => 'API-Key',
-            'live_supported' => false,
-            'addable' => false,
+            'live_supported' => true,
+            'addable' => true,
+        ],
+        'mistral' => [
+            'label' => 'Mistral AI',
+            'description' => 'Mistral Chat Completions API über Endpoint, Modell und API-Key.',
+            'requires_secret' => true,
+            'secret_label' => 'API-Key',
+            'live_supported' => true,
+            'addable' => true,
         ],
         'openrouter' => [
             'label' => 'OpenRouter',
-            'description' => 'Vorbereitet für spätere Bridge-Anbindung; aktuell noch kein Live-Adapter im Gateway.',
+            'description' => 'OpenRouter Chat Completions API für routingfähige OpenAI-kompatible Modelle.',
             'requires_secret' => true,
             'secret_label' => 'API-Key',
-            'live_supported' => false,
-            'addable' => false,
+            'live_supported' => true,
+            'addable' => true,
         ],
     ];
 
@@ -98,6 +106,7 @@ final class AiSettingsService
     private const PROVIDER_SECRET_KEYS = [
         'openai_api_key',
         'azure_openai_api_key',
+        'mistral_api_key',
         'openrouter_api_key',
     ];
 
@@ -632,6 +641,22 @@ final class AiSettingsService
                 'allowed_locales' => ['en'],
                 'beta_only' => true,
             ],
+            'mistral' => [
+                'label' => 'Mistral AI',
+                'enabled' => false,
+                'profile' => 'editor-translation',
+                'default_model' => 'mistral-small-latest',
+                'endpoint' => 'https://api.mistral.ai/v1',
+                'deployment' => '',
+                'api_version' => '',
+                'translation_enabled' => true,
+                'rewrite_enabled' => true,
+                'summary_enabled' => true,
+                'seo_meta_enabled' => true,
+                'editorjs_enabled' => true,
+                'allowed_locales' => ['en'],
+                'beta_only' => true,
+            ],
             'ollama' => [
                 'label' => 'Ollama',
                 'enabled' => false,
@@ -1019,6 +1044,7 @@ final class AiSettingsService
         return match ($providerType) {
             'openai' => 'openai_api_key',
             'azure_openai' => 'azure_openai_api_key',
+            'mistral' => 'mistral_api_key',
             'openrouter' => 'openrouter_api_key',
             default => '',
         };
