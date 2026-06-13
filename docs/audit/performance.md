@@ -1,16 +1,16 @@
 # Performance
 
-**Bereichsscore:** 86/100
+**Bereichsscore:** 88/100
 
 ## Kurzfazit
-Caching- und Monitoring-Module sind vorhanden. Die zuvor teure Homepage-Tagcloud wurde auf gecachte Aggregation mit Frische-Schlüssel umgestellt. Backup-Dumps schreiben inzwischen chunkweise/streamend mit Laufzeitlimit, und synchrone DB-Wartung wird im Admin-Request begrenzt. Verbleibende Haupttreiber sind ein fehlendes vollständiges Queue/Resume-Modell und das hohe Repository-/Dependency-Gewicht.
+Caching- und Monitoring-Module sind vorhanden. Die zuvor teure Homepage-Tagcloud wurde auf gecachte Aggregation mit Frische-Schlüssel umgestellt. Backup-Dumps schreiben inzwischen chunkweise/streamend mit Laufzeitlimit, synchrone DB-Wartung wird im Admin-Request begrenzt, und vendored Dependency-Wurzeln sind nun maschinenlesbar inventarisiert. Verbleibende Haupttreiber sind ein fehlendes vollständiges Queue/Resume-Modell und das weiterhin hohe Repository-/Dependency-Gewicht.
 
 ## Score-Begründung
 - Startwert 100
 - PERF-001: -4 (teilweise reduziert)
 - PERF-002: -3 (teilweise reduziert)
 - PERF-003: -3 (teilweise reduziert)
-- PERF-004: -4 (niedrig)
+- PERF-004: -2 (teilweise reduziert)
 
 ## Findings-Tabelle
 | ID | Modul | Feature | Funktion | Schweregrad | Auswirkung | Fundstelle | Quelle |
@@ -18,7 +18,7 @@ Caching- und Monitoring-Module sind vorhanden. Die zuvor teure Homepage-Tagcloud
 | PERF-001 | Backup | Datenbankdump | Chunked/streaming Dump, Queue offen | mittel | -4 | CMS\core\Services\BackupService.php (Chunking/Runtime-Guard) | Codefund |
 | PERF-002 | Theme | Tagcloud | Homepage Sidebar | niedrig | -3 | CMS\themes\cms-default\home.php (Tagcloud-Cache mit Frische-Schlüssel) | Codefund |
 | PERF-003 | System | DB Wartung/Status | Inline-Wartungslimits | niedrig | -3 | CMS\core\Services\SystemService.php (Inline-Limits/Skip großer Tabellen) | Codefund |
-| PERF-004 | Assets/Repo | Dependencies | Vendored Assets | niedrig | -4 | ASSETS, CMS\assets, CMS\vendor; 45.985 PHP-Dateien im Repo-Kontext | Heuristik |
+| PERF-004 | Assets/Repo | Dependencies | Dependency-Governance-Inventar | niedrig | -2 | docs\audit\dependency-governance.json, TESTS\dependency-governance\run.php | Codefund/Test |
 
 ## Umsetzungsschritte
 
@@ -48,7 +48,7 @@ Caching- und Monitoring-Module sind vorhanden. Die zuvor teure Homepage-Tagcloud
 - 🟨 **PERF-001** teilweise reduziert (Chunking, Writer-Streaming und Laufzeit-Guard vorhanden; vollständiges Queue/Resume-Modell offen)
 - ✅ **PERF-002** umgesetzt (Tagcloud-Caching mit Frische-Schlüssel in Theme-Homepage)
 - 🟨 **PERF-003** teilweise reduziert (Inline-Tabellenlimit und Skip großer Tabellen aktiv; Job-Auslagerung offen)
-- 🟨 **PERF-004** offen (Dependency-/Repo-Gewicht unverändert hoch)
+- 🟨 **PERF-004** teilweise reduziert (Dependency-/Vendor-Inventar und Smoke-Test aktiv; physische Repo-Verschlankung offen)
 
 ### step-003
 - **Ziel:** Systemdiagnosen begrenzen.
@@ -68,11 +68,16 @@ Caching- und Monitoring-Module sind vorhanden. Die zuvor teure Homepage-Tagcloud
 
 ### step-004
 - **Ziel:** Repository-/Build-Gewicht reduzieren.
-- **Befund:** Viele Drittbibliotheken liegen vendored in ASSETS/CMS assets/vendor.
-- **Risiko:** Langsame Scans, Releases und Deployments; schwer nachvollziehbare Dependency-Updates.
-- **Technische Ursache:** Kein zentrales Composer-/NPM-Projektmanifest auf Root/CMS-Ebene gefunden.
-- **Lösungsweg:** Dependency-Management konsolidieren, Release-Artefakte von Quellcode trennen.
+- **Befund:** 🟨 teilweise umgesetzt.
+- **Risiko:** reduziert; vendored Wurzeln und vorhandene Package-Manifeste werden maschinenlesbar geprüft.
+- **Technische Ursache:** durch Inventory/Smoke-Test teilweise entschärft; physische Trennung von Release-Artefakten bleibt offen.
+- **Lösungsweg:** `docs\audit\dependency-governance.json` dokumentiert Vendor-Roots, Manifest-Dateien und bekannte Lücken; `TESTS\dependency-governance\run.php` validiert Inventar, Manifest-JSON und Vendor-Root-Existenz.
 - **Betroffene Dateien:** ASSETS\*, CMS\assets\*, CMS\vendor\*.
 - **Priorität:** P3
 - **Aufwand:** L
 - **Abhängigkeiten:** Release-Prozess.
+
+## Update 2026-06-13 (Dependency-Governance)
+- `docs\audit\dependency-governance.json` ergänzt ein maschinenlesbares Inventar für `ASSETS`, `CMS\assets` und `CMS\vendor` inklusive Manifestpfaden und bekannten Governance-Lücken.
+- `TESTS\dependency-governance\run.php` prüft Inventarstruktur, JSON-validierte Manifeste und vorhandene Vendor-Roots.
+- Validiert: `php TESTS\run.php --suite=dependency-governance` → **PASS**.

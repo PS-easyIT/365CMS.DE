@@ -1,24 +1,37 @@
 # Wartbarkeit
 
-**Bereichsscore:** 68/100
+**Bereichsscore:** 75/100
 
 ## Kurzfazit
-Die Codebasis ist funktionsreich, aber sehr groß und historisch gewachsen.
+Die Codebasis ist funktionsreich, aber sehr groß und historisch gewachsen. Die zentrale Test-Orchestrierung wurde inzwischen durch `TESTS\run.php` plus versioniertes `TESTS\manifest.php` nachvollziehbarer gemacht; zusätzlich dokumentiert ein Dependency-Governance-Inventar die wichtigsten vendored Wurzeln und Paketmanifeste.
 
 ## Score-Begründung
 - Startwert 100
+- MAINT-001: -7 (teilweise reduziert)
 - MAINT-002: -8 (hoch)
 - MAINT-003: -7 (mittel)
-- MAINT-004: -7 (mittel)
+- MAINT-004: -3 (teilweise reduziert)
 
 ## Findings-Tabelle
 | ID | Modul | Feature | Funktion | Schweregrad | Auswirkung | Fundstelle | Quelle |
 |---|---|---|---|---|---:|---|---|
+| MAINT-001 | Dependencies | Governance | Vendored Assets/Inventar | mittel | -7 | docs\audit\dependency-governance.json, TESTS\dependency-governance\run.php | Codefund/Test |
 | MAINT-002 | Request Layer | Input Handling | Superglobals | hoch | -8 | Fokus-Scan: 676 direkte Superglobal-Fundstellen | Heuristik/Codefund |
 | MAINT-003 | Data Layer | SQL APIs | query/get_var/get_results | mittel | -7 | CMS\core\Database.php:164-178 und zahlreiche Aufrufer | Codefund |
-| MAINT-004 | Tests/CI | Qualitätssicherung | Runner/Manifest | mittel | -7 | TESTS vorhanden, aber kein Root-/CMS-Testmanifest gefunden | Heuristik |
+| MAINT-004 | Tests/CI | Qualitätssicherung | Runner/Manifest | niedrig | -3 | TESTS\run.php, TESTS\manifest.php | Codefund/Test |
 
 ## Umsetzungsschritte
+
+### step-001
+- **Ziel:** Dependency-/Artifact-Governance nachvollziehbar machen.
+- **Befund:** 🟨 teilweise umgesetzt.
+- **Risiko:** reduziert; neue oder geänderte Vendor-Wurzeln können gegen ein zentrales Inventar geprüft werden.
+- **Technische Ursache:** durch maschinenlesbares Inventar und Smoke-Test teilweise entschärft; physische Trennung von Source und Release-Artefakten bleibt offen.
+- **Lösungsweg:** `docs\audit\dependency-governance.json` plus `TESTS\dependency-governance\run.php` ergänzt.
+- **Betroffene Dateien:** ASSETS\*, CMS\assets\*, CMS\vendor\*, TESTS\*.
+- **Priorität:** P1
+- **Aufwand:** M
+- **Abhängigkeiten:** Release-/Build-Prozess.
 
 ### step-002
 - **Ziel:** Einheitlichen Request-Layer etablieren.
@@ -44,11 +57,27 @@ Die Codebasis ist funktionsreich, aber sehr groß und historisch gewachsen.
 
 ### step-004
 - **Ziel:** CI-/Teststruktur nachvollziehbar machen.
-- **Befund:** Viele Testverzeichnisse existieren, aber kein zentrales Runner-Manifest im Audit-Scope.
-- **Risiko:** Neue Entwickler können Qualitätssicherung nicht reproduzierbar ausführen.
-- **Technische Ursache:** Tests sind thematisch abgelegt, nicht über einheitliches Tooling orchestriert.
-- **Lösungsweg:** Dokumentierten Test-Entry-Point und CI-Konfiguration ergänzen.
+- **Befund:** 🟨 teilweise umgesetzt.
+- **Risiko:** reduziert; lokale Qualitätssicherung hat nun einen reproduzierbaren manifestierten Entry-Point.
+- **Technische Ursache:** durch zentrales Suite-Manifest teilweise entschärft; CI-Verkabelung bleibt offen.
+- **Lösungsweg:** `TESTS\manifest.php` ergänzt und `TESTS\run.php` auf manifestbasierte Suite-Auswahl mit Discovery-Fallback umgestellt; `--list` zeigt Suite-Beschreibungen.
 - **Betroffene Dateien:** TESTS\*, README.md, .github\*.
 - **Priorität:** P2
 - **Aufwand:** M
 - **Abhängigkeiten:** Testumgebung.
+
+## Umsetzungsstand (2026-06-13)
+- 🟨 **MAINT-001** teilweise reduziert (Dependency-Governance-Inventar und Smoke-Test aktiv; Artefakt-Auslagerung offen).
+- 🟨 **MAINT-002** teilweise reduziert im Admin-Modul-Scope (`CMS\Http\Request`), globale Restmenge bleibt offen.
+- 🟨 **MAINT-003** offen/teilweise reduziert (Prepared APIs vorhanden, generische Query-API bleibt breit genutzt).
+- 🟨 **MAINT-004** teilweise reduziert (`TESTS\manifest.php` + zentraler Runner aktiv; CI-Workflow bleibt offen).
+
+## Update 2026-06-13
+- `TESTS\manifest.php` versioniert die fokussierten Suites `release-smoke`, `pdf-service` und `sitemap-service` inklusive Beschreibung und Required-Flag.
+- `TESTS\run.php --list` nutzt das Manifest und gibt reproduzierbare Suite-Beschreibungen aus.
+- Validiert: `release-smoke`, `pdf-service` und `sitemap-service` laufen über den manifestierten Runner erfolgreich; fehlendes `mbstring` bzw. fehlende CI/Doku bleiben als SKIP markiert.
+
+## Update 2026-06-13 (Dependency-Governance)
+- `docs\audit\dependency-governance.json` inventarisiert die bekannten Vendor-Wurzeln und referenzierten Package-Manifeste.
+- `TESTS\dependency-governance\run.php` ist im zentralen Manifest registriert und validiert Inventar, Manifeste und Vendor-Roots.
+- Validiert: `php TESTS\run.php --suite=dependency-governance` → **PASS**.

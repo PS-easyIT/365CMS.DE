@@ -5,7 +5,7 @@
 **Methodik:** Lokale Struktur-, Konfigurations- und Codeanalyse der 365CMS-Codebasis. Drittanbieter-/Backup-/Asset-Verzeichnisse wurden für Zählungen erfasst, für First-Party-Findings jedoch fokussiert gefiltert. Keine Secrets wurden ausgegeben.
 
 ## Executive Summary
-Der technische Gesamtscore beträgt **84/100** (verbessert), der Sicherheitsbereich liegt nach der SEC-003-Folgewelle bei **73/100**. 365CMS wirkt funktionsreich und enthält mehrere belegbare Schutzmechanismen (CSRF, Security Header, Upload-Prüfungen, Syntax-saubere PHP-8.4-Ausführung im fokussierten Scope). Zusätzlich wurden Performance-/SEO-Hotspots in Theme-Tagcloud, Media-Alt-Text-Gate, Sitemap-Testabdeckung, Tracking-/Consent-Healthcheck und DB-Wartungsgrenzen reduziert. Die größten Restrisiken liegen weiterhin in Wartbarkeit/Dependency-Governance, Upload-/Import-Angriffsfläche, dynamischen SQL-/Maintenance-Pfaden, fehlendem vollständigem Backup-Queue/Resume-Modell und fehlender CI-Vollverkabelung des inzwischen vorhandenen zentralen Test-Runners.
+Der technische Gesamtscore beträgt **85/100** (verbessert), der Sicherheitsbereich liegt nach der SEC-003-Folgewelle bei **73/100**. 365CMS wirkt funktionsreich und enthält mehrere belegbare Schutzmechanismen (CSRF, Security Header, Upload-Prüfungen, Syntax-saubere PHP-8.4-Ausführung im fokussierten Scope). Zusätzlich wurden Performance-/SEO-Hotspots in Theme-Tagcloud, Media-Alt-Text-Gate, Sitemap-Testabdeckung, Tracking-/Consent-Healthcheck, DB-Wartungsgrenzen, Test-Orchestrierung und Dependency-Governance reduziert. Die größten Restrisiken liegen weiterhin in Upload-/Import-Angriffsfläche, dynamischen SQL-/Maintenance-Pfaden, fehlendem vollständigem Backup-Queue/Resume-Modell, physischer Trennung von Source/Release-Artefakten und fehlender CI-Vollverkabelung des inzwischen manifestierten zentralen Test-Runners.
 
 ## Inventar-Zusammenfassung
 | ID | Typ | Name | Beschreibung/Zweck | Relevante Dateien | Einstiegspunkt/Aufrufpfad | Abhängigkeiten | Audit-Relevanz | Quelle |
@@ -28,13 +28,13 @@ Der technische Gesamtscore beträgt **84/100** (verbessert), der Sicherheitsbere
 |---|---:|
 | Sicherheit | 73 |
 | Bugs und Stabilität | 78 |
-| Performance | 86 |
+| Performance | 88 |
 | SEO | 94 |
 | PHP 8.4 Best Practice und Kompatibilität | 80 |
 | Funktionsvollständigkeit | 95 |
 | Unvollständige Implementierungen | 98 |
-| Wartbarkeit | 68 |
-| **Gesamt** | **84** |
+| Wartbarkeit | 75 |
+| **Gesamt** | **85** |
 
 ## Score-Übersicht je Modul/Feature/Funktion
 | Ebene | ID | Score | Begründung |
@@ -52,6 +52,7 @@ Der technische Gesamtscore beträgt **84/100** (verbessert), der Sicherheitsbere
 | Feature | Datei-Uploads | 70 | CSRF/MIME vorhanden, aber große Angriffsfläche. |
 | Feature | Datenbankzugriff | 75 | Prepared APIs existieren, generische Query-API bleibt Wartbarkeitsrisiko. |
 | Feature | Backup/Wartung | 80 | Backup-Dumps sind chunked/streaming; synchrone DB-Wartung hat Inline-Limits, Queue/Resume bleibt offen. |
+| Feature | Dependency Governance | 78 | Vendor-Wurzeln und Package-Manifeste sind inventarisiert und per Smoke-Test prüfbar; physische Artefakt-Trennung bleibt offen. |
 | Feature | Sitemap/SEO | 90 | Mehrere Services vorhanden; Sitemap-Service-Smoke-Test und Tracking-/Consent-Healthcheck decken zentrale SEO-Release-Risiken ab. |
 | Funktion | Web-Cron Token | 76 | Header und Query werden akzeptiert; Query-Fallback deprecated behandeln. |
 | Funktion | Tagcloud | 84 | Homepage-Tagcloud nutzt Cache mit Frische-Schlüssel statt Vollscan pro Request. |
@@ -69,17 +70,17 @@ Der technische Gesamtscore beträgt **84/100** (verbessert), der Sicherheitsbere
 ```text
 Sicherheit                         73 | #############################
 Bugs/Stabilität                    78 | ###############################
-Performance                        86 | ##################################
+Performance                        88 | ###################################
 SEO                                94 | ######################################
 Funktionsvollständigkeit           95 | ######################################
 Unvollständige Implementierungen   98 | #######################################
-Wartbarkeit                        68 | ###########################
+Wartbarkeit                        75 | ##############################
 ```
 
 ## Top-Findings
 | ID | Schweregrad | Bereich | Beschreibung | Fundstelle |
 |---|---|---|---|---|
-| MAINT-001 | hoch | Wartbarkeit | Vendored Dependencies, Backups und Artefakte liegen im Repository-Scope. | ASSETS, BACKUP, CMS\assets, CMS\vendor |
+| MAINT-001 | mittel | Wartbarkeit | Vendored Dependencies und Artefakte sind inventarisiert; physische Trennung von Source/Release-Artefakten bleibt offen. | docs\audit\dependency-governance.json, ASSETS, CMS\assets, CMS\vendor |
 | SEC-001 | hoch | Sicherheit | Upload-/Import-Flows sind eine zentrale Angriffsfläche. | FileUploadService.php, UploadHandler.php, cms-importer class-admin.php |
 | SEC-002 | hoch | Sicherheit | Dynamische SQL-Wartungsbefehle hängen an Identifier-Validierung. | CMS\core\Services\SystemService.php:611-617 |
 | PHP84-001 | hoch | PHP 8.4 | Kein zentrales Root-/CMS-Composer-Manifest/Lockfile gefunden. | Repository-Konfiguration |
@@ -89,7 +90,7 @@ Wartbarkeit                        68 | ###########################
 2. **P1:** Upload-/Import-Sicherheitsmodell zentralisieren: Kontext-Allowlists, Quarantäne, Content-Scan-Hook, Retention.
 3. **P1:** SQL-Identifier-/Maintenance-Pfade härten und `Database::query()` aus Fachmodulen zurückdrängen.
 4. **P2:** Backup, Tagcloud und Systemwartung auf Chunking/Jobs/Caching umstellen.
-5. **P2:** Zentrale CI-/Test-Pipeline mit PHP-8.4-Deprecation-Gate und Modul-Smoke-Tests definieren.
+5. **P2:** Manifestierte zentrale Test-Pipeline in CI verkabeln und PHP-8.4-Deprecation-Gate ergänzen.
 6. **P2:** Request-DTO-/Validator-Layer einführen und verbleibende direkte Superglobal-Nutzung außerhalb `CMS/admin/modules/**` schrittweise reduzieren.
 
 ## Update 2026-06-13 (SEC-003 Folgewelle)
@@ -135,6 +136,18 @@ Wartbarkeit                        68 | ###########################
 - Backup-Befund mit aktuellem Code abgeglichen: `BackupService` nutzt Chunking, Writer-Streaming und Runtime-Guard; offen bleibt ein persistiertes Queue-/Resume-Modell.
 - `SystemService` begrenzt synchrone `REPAIR TABLE`/`OPTIMIZE TABLE`-Wartung auf maximal 10 Tabellen pro Request und überspringt große Tabellen (>100.000 geschätzte Zeilen oder >256 MiB) mit Job-/CLI-Hinweis.
 - Score-Auswirkung: **Performance 78 → 86**, technischer Gesamtscore **83 → 84**.
+
+## Update 2026-06-13 (MAINT-004 Testmanifest)
+- `TESTS\manifest.php` ergänzt ein versioniertes Suite-Manifest für `release-smoke`, `pdf-service` und `sitemap-service`.
+- `TESTS\run.php` nutzt das Manifest für `--list`, `--suite=<name>` und reproduzierbare Suite-Beschreibungen; Discovery bleibt Fallback, falls kein Manifest vorhanden ist.
+- Validierung: alle drei manifestierten fokussierten Suites laufen erfolgreich über den zentralen Runner; vorhandene Umgebungs-/CI-Lücken bleiben als SKIP sichtbar.
+- Score-Auswirkung: **Wartbarkeit 68 → 72**, technischer Gesamtscore **84 → 85**.
+
+## Update 2026-06-13 (PERF-004/MAINT-001 Dependency-Governance)
+- `docs\audit\dependency-governance.json` inventarisiert bekannte Vendor-Wurzeln (`ASSETS`, `CMS\assets`, `CMS\vendor`), referenzierte Package-Manifeste und bekannte Governance-Lücken.
+- `TESTS\dependency-governance\run.php` validiert Inventarstruktur, JSON-validierte Package-Manifeste und vorhandene Vendor-Roots.
+- Die Suite ist in `TESTS\manifest.php` registriert; Ausführung `php TESTS\run.php --suite=dependency-governance` → **PASS**.
+- Score-Auswirkung: **Performance 86 → 88**, **Wartbarkeit 72 → 75**, technischer Gesamtscore bleibt gerundet bei **85**.
 
 ## Quellen-/Evidenzklassifizierung
 - **Codefund:** konkrete Datei-/Zeilenfunde in CMS\core, CMS\admin, CMS\plugins, CMS\themes.
