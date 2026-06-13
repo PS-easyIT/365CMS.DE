@@ -51,6 +51,15 @@ $tests = [
     'OpenAI-kompatibler Live-Adapter ist autoloadbar' => static function (): void {
         aiAssert(class_exists(OpenAiCompatibleProvider::class), 'OpenAiCompatibleProvider ist nicht autoloadbar.');
     },
+    'AI Provider unterstützen generische Content-/SEO-Generierung' => static function () use ($root): void {
+        $interface = aiReadFile($root . DIRECTORY_SEPARATOR . 'CMS' . DIRECTORY_SEPARATOR . 'core' . DIRECTORY_SEPARATOR . 'Services' . DIRECTORY_SEPARATOR . 'AI' . DIRECTORY_SEPARATOR . 'AiProviderInterface.php');
+        aiAssert(str_contains($interface, 'generateText'), 'generateText fehlt im AI Provider Interface.');
+
+        foreach (['MockAiProvider.php', 'OpenAiCompatibleProvider.php', 'AzureOpenAiProvider.php', 'OllamaAiProvider.php'] as $providerFile) {
+            $provider = aiReadFile($root . DIRECTORY_SEPARATOR . 'CMS' . DIRECTORY_SEPARATOR . 'core' . DIRECTORY_SEPARATOR . 'Services' . DIRECTORY_SEPARATOR . 'AI' . DIRECTORY_SEPARATOR . 'Providers' . DIRECTORY_SEPARATOR . $providerFile);
+            aiAssert(str_contains($provider, 'function generateText'), 'generateText fehlt in ' . $providerFile);
+        }
+    },
     'Gateway verdrahtet Mistral/OpenAI/OpenRouter und Azure AI' => static function () use ($root): void {
         $gateway = aiReadFile($root . DIRECTORY_SEPARATOR . 'CMS' . DIRECTORY_SEPARATOR . 'core' . DIRECTORY_SEPARATOR . 'Services' . DIRECTORY_SEPARATOR . 'AI' . DIRECTORY_SEPARATOR . 'AiProviderGateway.php');
 
@@ -58,6 +67,9 @@ $tests = [
         aiAssert(str_contains($gateway, "'openai', 'mistral', 'openrouter'"), 'OpenAI/Mistral/OpenRouter-Match fehlt im Gateway.');
         aiAssert(str_contains($gateway, 'AzureOpenAiProvider'), 'AzureOpenAiProvider fehlt im Gateway.');
         aiAssert(str_contains($gateway, 'defaultModelForOpenAiCompatibleProvider'), 'Default-Modell-Auflösung für kompatible Provider fehlt.');
+        aiAssert(str_contains($gateway, 'generateContentDraft'), 'Content-Generator fehlt im Gateway.');
+        aiAssert(str_contains($gateway, 'generateSeoDraft'), 'SEO-Generator fehlt im Gateway.');
+        aiAssert(str_contains($gateway, 'resolveProviderForCapability'), 'Capability-basierte Provider-Auflösung fehlt im Gateway.');
     },
     'Adminbereich hat logische AI-Unterseiten' => static function () use ($root): void {
         $aiPage = aiReadFile($root . DIRECTORY_SEPARATOR . 'CMS' . DIRECTORY_SEPARATOR . 'admin' . DIRECTORY_SEPARATOR . 'ai-page.php');
@@ -69,6 +81,15 @@ $tests = [
 
         foreach (['Dashboard', 'Übersetzung', 'Inhaltsassistent', 'SEO-Assistent', 'Einstellungen'] as $label) {
             aiAssert(str_contains($view, $label), 'AI-Navigationslabel fehlt: ' . $label);
+        }
+
+        foreach (['generate_content', 'generate_seo'] as $action) {
+            aiAssert(str_contains($aiPage, $action), 'AI-Generator-Action fehlt im Router: ' . $action);
+            aiAssert(str_contains($view, $action), 'AI-Generator-Form fehlt in der View: ' . $action);
+        }
+
+        foreach (['Content-Preview generieren', 'SEO-Preview generieren', 'Generierte Content-Preview', 'Generierte SEO-Preview'] as $label) {
+            aiAssert(str_contains($view, $label), 'AI-Generator-UI fehlt: ' . $label);
         }
     },
     'Admin-Hinweise nennen Azure AI, Mistral AI, OpenAI, OpenRouter und Ollama' => static function () use ($root): void {
