@@ -102,10 +102,12 @@ CMS/tmp-hub-template-dump.php
 !/TESTS/pdf-service/
 !/TESTS/sitemap-service/
 !/TESTS/dependency-governance/
+!/TESTS/security-baseline/
 !/TESTS/release-smoke/run.php
 !/TESTS/pdf-service/run.php
 !/TESTS/sitemap-service/run.php
 !/TESTS/dependency-governance/run.php
+!/TESTS/security-baseline/run.php
 /DOC/audit/
 /STAGING/tests/
 */Test/*
@@ -114,6 +116,3 @@ CMS/assets/mime/Test/
 CMS/assets/mailer/Test/
 CMS/assets/ldaprecord/Testing/
 cache/htmlpurifier/HTML/4.19.0,fef47230a541ed4de15de9e2aebc5553d82b2d66,2026051901.ser
-TESTS/run.php
-TESTS/run.php
-TESTS/dependency-governance/run.php

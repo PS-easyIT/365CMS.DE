@@ -30,4 +30,9 @@ return [
         'description' => 'Prüft Dependency-/Vendor-Inventar, Manifest-Dateien und dokumentierte Vendor-Roots.',
         'required' => true,
     ],
+    'security-baseline' => [
+        'script' => __DIR__ . DIRECTORY_SEPARATOR . 'security-baseline' . DIRECTORY_SEPARATOR . 'run.php',
+        'description' => 'Security-Baseline für Upload-/Import-Härtung, SQL-Identifier, Cron-Token und Request-Migration.',
+        'required' => true,
+    ],
 ];
