@@ -23,6 +23,9 @@ use PDO;
 class SystemService {
     private static ?SystemService $instance = null;
     private Database $db;
+    private const MAX_INLINE_MAINTENANCE_TABLES = 10;
+    private const MAX_INLINE_MAINTENANCE_ROWS = 100000;
+    private const MAX_INLINE_MAINTENANCE_BYTES = 268435456; // 256 MiB
     
     /**
      * Get singleton instance
@@ -537,11 +540,17 @@ class SystemService {
         $prefix = $this->db->getPrefix();
         $supportedEngines = ['MYISAM', 'ARCHIVE', 'CSV'];
         $results = [];
+        $processedTables = 0;
 
         foreach ($this->getCmsTableMaintenanceTargets() as $target) {
             $tableName = (string)($target['table_name'] ?? '');
             $engine = strtoupper((string)($target['engine'] ?? ''));
             $key = str_starts_with($tableName, $prefix) ? substr($tableName, strlen($prefix)) : $tableName;
+
+            if ($processedTables >= self::MAX_INLINE_MAINTENANCE_TABLES) {
+                $results[$key] = $this->buildSkippedMaintenanceResult('REPAIR', 'Inline-Limit erreicht. Weitere Tabellen bitte per Job/CLI warten.');
+                continue;
+            }
 
             if (!in_array($engine, $supportedEngines, true)) {
                 $results[$key] = [
@@ -552,7 +561,14 @@ class SystemService {
                 continue;
             }
 
+            $skipReason = $this->getInlineMaintenanceSkipReason($target, 'REPAIR');
+            if ($skipReason !== null) {
+                $results[$key] = $this->buildSkippedMaintenanceResult('REPAIR', $skipReason);
+                continue;
+            }
+
             $results[$key] = $this->runTableMaintenanceStatement('REPAIR', $tableName);
+            $processedTables++;
         }
 
         return $results;
@@ -565,11 +581,17 @@ class SystemService {
         $prefix = $this->db->getPrefix();
         $supportedEngines = ['INNODB', 'MYISAM', 'ARCHIVE'];
         $results = [];
+        $processedTables = 0;
 
         foreach ($this->getCmsTableMaintenanceTargets() as $target) {
             $tableName = (string)($target['table_name'] ?? '');
             $engine = strtoupper((string)($target['engine'] ?? ''));
             $key = str_starts_with($tableName, $prefix) ? substr($tableName, strlen($prefix)) : $tableName;
+
+            if ($processedTables >= self::MAX_INLINE_MAINTENANCE_TABLES) {
+                $results[$key] = $this->buildSkippedMaintenanceResult('OPTIMIZE', 'Inline-Limit erreicht. Weitere Tabellen bitte per Job/CLI warten.');
+                continue;
+            }
 
             if (!in_array($engine, $supportedEngines, true)) {
                 $results[$key] = [
@@ -580,21 +602,31 @@ class SystemService {
                 continue;
             }
 
+            $skipReason = $this->getInlineMaintenanceSkipReason($target, 'OPTIMIZE');
+            if ($skipReason !== null) {
+                $results[$key] = $this->buildSkippedMaintenanceResult('OPTIMIZE', $skipReason);
+                continue;
+            }
+
             $results[$key] = $this->runTableMaintenanceStatement('OPTIMIZE', $tableName);
+            $processedTables++;
         }
 
         return $results;
     }
 
     /**
-     * @return list<array{table_name:string,engine:?string}>
+     * @return list<array{table_name:string,engine:?string,table_rows:int,data_length:int,index_length:int}>
      */
     private function getCmsTableMaintenanceTargets(): array {
         $pdo = $this->db->getConnection();
         $prefix = $this->db->getPrefix();
 
         $stmt = $pdo->prepare(
-            "SELECT table_name, engine
+            "SELECT table_name, engine,
+                    COALESCE(table_rows, 0) AS table_rows,
+                    COALESCE(data_length, 0) AS data_length,
+                    COALESCE(index_length, 0) AS index_length
              FROM information_schema.tables
              WHERE table_schema = DATABASE()
                AND table_type = 'BASE TABLE'
@@ -605,6 +637,46 @@ class SystemService {
 
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
         return is_array($rows) ? $rows : [];
+    }
+
+    /**
+     * @param array<string,mixed> $target
+     */
+    private function getInlineMaintenanceSkipReason(array $target, string $operation): ?string
+    {
+        $rows = max(0, (int)($target['table_rows'] ?? 0));
+        $bytes = max(0, (int)($target['data_length'] ?? 0)) + max(0, (int)($target['index_length'] ?? 0));
+        $operation = strtoupper($operation) === 'REPAIR' ? 'REPAIR' : 'OPTIMIZE';
+
+        if ($rows > self::MAX_INLINE_MAINTENANCE_ROWS) {
+            return sprintf(
+                '%s TABLE inline übersprungen: %d geschätzte Zeilen überschreiten das Limit von %d. Bitte per Job/CLI ausführen.',
+                $operation,
+                $rows,
+                self::MAX_INLINE_MAINTENANCE_ROWS
+            );
+        }
+
+        if ($bytes > self::MAX_INLINE_MAINTENANCE_BYTES) {
+            return sprintf(
+                '%s TABLE inline übersprungen: Tabellengröße überschreitet 256 MiB. Bitte per Job/CLI ausführen.',
+                $operation
+            );
+        }
+
+        return null;
+    }
+
+    /**
+     * @return array{success:bool,skipped:bool,message:string}
+     */
+    private function buildSkippedMaintenanceResult(string $operation, string $message): array
+    {
+        return [
+            'success' => false,
+            'skipped' => true,
+            'message' => $message,
+        ];
     }
 
     /**

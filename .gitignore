@@ -98,8 +98,10 @@ CMS/tmp-hub-template-dump.php
 !/TESTS/run.php
 !/TESTS/release-smoke/
 !/TESTS/pdf-service/
+!/TESTS/sitemap-service/
 !/TESTS/release-smoke/run.php
 !/TESTS/pdf-service/run.php
+!/TESTS/sitemap-service/run.php
 /DOC/audit/
 /STAGING/tests/
 */Test/*

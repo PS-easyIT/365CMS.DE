@@ -111,18 +111,42 @@ $sidebarCats = meridian_get_categories(8);
 // Sidebar: Tags sammeln
 $tagCloud = [];
 try {
-    $stmt = $pdo->query("SELECT tags FROM posts WHERE status = 'published' AND tags IS NOT NULL AND tags != ''");
-    $tagRows = $stmt->fetchAll(\PDO::FETCH_COLUMN);
-    $tagCounts = [];
-    foreach ($tagRows as $row) {
-        foreach (array_map('trim', explode(',', $row)) as $tag) {
-            if ($tag) {
-                $tagCounts[$tag] = ($tagCounts[$tag] ?? 0) + 1;
-            }
+    $cacheManager = class_exists('\\CMS\\CacheManager') ? \CMS\CacheManager::instance() : null;
+    $tagCloudCacheTtl = 900;
+
+    $metaStmt = $pdo->query("SELECT COUNT(*) AS total, MAX(COALESCE(updated_at, published_at, created_at)) AS latest FROM posts WHERE status = 'published'");
+    $meta = $metaStmt ? (array)($metaStmt->fetch(\PDO::FETCH_ASSOC) ?: []) : [];
+    $tagCloudFreshnessKey = md5(((string)($meta['total'] ?? '0')) . '|' . ((string)($meta['latest'] ?? '')));
+    $tagCloudCacheKey = 'theme.cms-default.home.tagcloud.' . $tagCloudFreshnessKey;
+
+    if ($cacheManager !== null) {
+        $cachedTagCloud = $cacheManager->get($tagCloudCacheKey, null);
+        if (is_array($cachedTagCloud)) {
+            $tagCloud = array_values(array_filter(array_map(static fn(mixed $tag): string => trim((string)$tag), $cachedTagCloud), static fn(string $tag): bool => $tag !== ''));
         }
     }
-    arsort($tagCounts);
-    $tagCloud = array_keys(array_slice($tagCounts, 0, 20));
+
+    if ($tagCloud === []) {
+        $stmt = $pdo->query("SELECT tags FROM posts WHERE status = 'published' AND tags IS NOT NULL AND tags != ''");
+        $tagRows = $stmt ? $stmt->fetchAll(\PDO::FETCH_COLUMN) : [];
+        $tagCounts = [];
+        foreach ($tagRows as $row) {
+            foreach (array_map('trim', explode(',', (string)$row)) as $tag) {
+                if ($tag !== '') {
+                    $tagCounts[$tag] = ($tagCounts[$tag] ?? 0) + 1;
+                }
+            }
+        }
+
+        if ($tagCounts !== []) {
+            arsort($tagCounts);
+            $tagCloud = array_keys(array_slice($tagCounts, 0, 20));
+        }
+
+        if ($cacheManager !== null) {
+            $cacheManager->set($tagCloudCacheKey, $tagCloud, $tagCloudCacheTtl);
+        }
+    }
 } catch (\Exception $e) {
     $tagCloud = [];
 }

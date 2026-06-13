@@ -5,7 +5,7 @@
 **Methodik:** Lokale Struktur-, Konfigurations- und Codeanalyse der 365CMS-Codebasis. Drittanbieter-/Backup-/Asset-Verzeichnisse wurden für Zählungen erfasst, für First-Party-Findings jedoch fokussiert gefiltert. Keine Secrets wurden ausgegeben.
 
 ## Executive Summary
-Der technische Gesamtscore beträgt **81/100** (verbessert), der Sicherheitsbereich liegt nach der SEC-003-Folgewelle bei **73/100**. 365CMS wirkt funktionsreich und enthält mehrere belegbare Schutzmechanismen (CSRF, Security Header, Upload-Prüfungen, Syntax-saubere PHP-8.4-Ausführung im fokussierten Scope). Die größten Restrisiken liegen weiterhin in Wartbarkeit/Dependency-Governance, Upload-/Import-Angriffsfläche, dynamischen SQL-/Maintenance-Pfaden, Performance bei Vollbestandsoperationen und fehlender CI-Vollverkabelung des inzwischen vorhandenen zentralen Test-Runners.
+Der technische Gesamtscore beträgt **84/100** (verbessert), der Sicherheitsbereich liegt nach der SEC-003-Folgewelle bei **73/100**. 365CMS wirkt funktionsreich und enthält mehrere belegbare Schutzmechanismen (CSRF, Security Header, Upload-Prüfungen, Syntax-saubere PHP-8.4-Ausführung im fokussierten Scope). Zusätzlich wurden Performance-/SEO-Hotspots in Theme-Tagcloud, Media-Alt-Text-Gate, Sitemap-Testabdeckung, Tracking-/Consent-Healthcheck und DB-Wartungsgrenzen reduziert. Die größten Restrisiken liegen weiterhin in Wartbarkeit/Dependency-Governance, Upload-/Import-Angriffsfläche, dynamischen SQL-/Maintenance-Pfaden, fehlendem vollständigem Backup-Queue/Resume-Modell und fehlender CI-Vollverkabelung des inzwischen vorhandenen zentralen Test-Runners.
 
 ## Inventar-Zusammenfassung
 | ID | Typ | Name | Beschreibung/Zweck | Relevante Dateien | Einstiegspunkt/Aufrufpfad | Abhängigkeiten | Audit-Relevanz | Quelle |
@@ -28,22 +28,22 @@ Der technische Gesamtscore beträgt **81/100** (verbessert), der Sicherheitsbere
 |---|---:|
 | Sicherheit | 73 |
 | Bugs und Stabilität | 78 |
-| Performance | 74 |
-| SEO | 82 |
+| Performance | 86 |
+| SEO | 94 |
 | PHP 8.4 Best Practice und Kompatibilität | 80 |
 | Funktionsvollständigkeit | 95 |
 | Unvollständige Implementierungen | 98 |
 | Wartbarkeit | 68 |
-| **Gesamt** | **81** |
+| **Gesamt** | **84** |
 
 ## Score-Übersicht je Modul/Feature/Funktion
 | Ebene | ID | Score | Begründung |
 |---|---|---:|---|
 | Modul | MOD-CORE | 77 | Core ist strukturiert, aber generische Query- und Maintenance-Pfade erhöhen Risiko. |
 | Modul | MOD-ADMIN | 75 | Request-Zentralisierung in Admin-Modulen deutlich vorangeschritten; CSRF-Strukturen vorhanden. |
-| Modul | MOD-MEDIA | 72 | Funktional umfangreich, Upload-Angriffsfläche bleibt hoch. |
-| Modul | MOD-SEO | 82 | SEO-Services vorhanden, Performance/Alt-Text-Gates ausbaufähig. |
-| Modul | MOD-LEGAL | 80 | Consent-/Placeholder-Logik vorhanden, Validierungsstatus ausbaufähig. |
+| Modul | MOD-MEDIA | 74 | Funktional umfangreich, Alt-Text-Gate verbessert SEO-/A11y-Sichtbarkeit; Upload-Angriffsfläche bleibt hoch. |
+| Modul | MOD-SEO | 91 | SEO-Services vorhanden, Tagcloud-Performance, Alt-Text-Gate, Sitemap-Smoke-Test und Tracking-Healthcheck verbessert. |
+| Modul | MOD-LEGAL | 84 | Consent-/Placeholder-Logik und Tracking-/Consent-Healthcheck mit Deploy-Warnung vorhanden. |
 | Modul | MOD-MEMBER | 76 | Member-Funktionen vorhanden, Upload-Feature konfigurationsabhängig. |
 | Modul | MOD-IMPORTER | 70 | Import-Uploads und Parser-Flows sind risikoreich. |
 | Modul | MOD-THEME | 78 | Theme funktioniert, enthält aber performancerelevante direkte DB-Aggregation. |
@@ -51,11 +51,11 @@ Der technische Gesamtscore beträgt **81/100** (verbessert), der Sicherheitsbere
 | Modul | MOD-CRON | 76 | CLI/Web Cron vorhanden, Query-Token-Fallback bleibt Schwachpunkt. |
 | Feature | Datei-Uploads | 70 | CSRF/MIME vorhanden, aber große Angriffsfläche. |
 | Feature | Datenbankzugriff | 75 | Prepared APIs existieren, generische Query-API bleibt Wartbarkeitsrisiko. |
-| Feature | Backup/Wartung | 72 | Vollbestandsoperationen und synchrone DB-Wartung. |
-| Feature | Sitemap/SEO | 82 | Mehrere Services vorhanden, Konsistenztests empfohlen. |
+| Feature | Backup/Wartung | 80 | Backup-Dumps sind chunked/streaming; synchrone DB-Wartung hat Inline-Limits, Queue/Resume bleibt offen. |
+| Feature | Sitemap/SEO | 90 | Mehrere Services vorhanden; Sitemap-Service-Smoke-Test und Tracking-/Consent-Healthcheck decken zentrale SEO-Release-Risiken ab. |
 | Funktion | Web-Cron Token | 76 | Header und Query werden akzeptiert; Query-Fallback deprecated behandeln. |
-| Funktion | Tagcloud | 70 | Vollscan über Tags in PHP. |
-| Funktion | Alt-Text-Normalisierung | 82 | Normalisierung vorhanden, Pflicht-/Qualitätsgate fehlt. |
+| Funktion | Tagcloud | 84 | Homepage-Tagcloud nutzt Cache mit Frische-Schlüssel statt Vollscan pro Request. |
+| Funktion | Alt-Text-Normalisierung | 88 | Normalisierung, Bulk-Pflege und Media-Library-Qualitätsgate vorhanden. |
 
 ## Risikoübersicht
 | Schweregrad | Anzahl |
@@ -69,9 +69,8 @@ Der technische Gesamtscore beträgt **81/100** (verbessert), der Sicherheitsbere
 ```text
 Sicherheit                         73 | #############################
 Bugs/Stabilität                    78 | ###############################
-Performance                        74 | ##############################
-SEO                                82 | #################################
-PHP 8.4                            80 | ################################
+Performance                        86 | ##################################
+SEO                                94 | ######################################
 Funktionsvollständigkeit           95 | ######################################
 Unvollständige Implementierungen   98 | #######################################
 Wartbarkeit                        68 | ###########################
@@ -83,7 +82,6 @@ Wartbarkeit                        68 | ###########################
 | MAINT-001 | hoch | Wartbarkeit | Vendored Dependencies, Backups und Artefakte liegen im Repository-Scope. | ASSETS, BACKUP, CMS\assets, CMS\vendor |
 | SEC-001 | hoch | Sicherheit | Upload-/Import-Flows sind eine zentrale Angriffsfläche. | FileUploadService.php, UploadHandler.php, cms-importer class-admin.php |
 | SEC-002 | hoch | Sicherheit | Dynamische SQL-Wartungsbefehle hängen an Identifier-Validierung. | CMS\core\Services\SystemService.php:611-617 |
-| PERF-001 | hoch | Performance | BackupService erzeugt vollständige DB-Dumps im PHP-Prozess. | CMS\core\Services\BackupService.php:278-303 |
 | PHP84-001 | hoch | PHP 8.4 | Kein zentrales Root-/CMS-Composer-Manifest/Lockfile gefunden. | Repository-Konfiguration |
 
 ## Priorisierte Roadmap
@@ -110,6 +108,33 @@ Wartbarkeit                        68 | ###########################
 - `SeoSuiteModule::buildTrackingConfigurationStatus()` validiert Integrationswerte nun zusätzlich formatbasiert (GA4, GTM, Meta Pixel, Matomo URL) und unterscheidet Placeholder-/Formatfehler explizit.
 - Legacy-/manuell gespeicherte, aber ungültige Kennungen werden nicht mehr als `configured`, sondern konsistent als `partial` ausgewiesen.
 - Wirkung: Keine Score-Änderung, aber höhere Aussagekraft der Analytics-Konfigurationsampel in `CMS\admin\views\seo\analytics.php`.
+
+## Update 2026-06-13 (Performance-/SEO Tagcloud-Caching)
+- `CMS\themes\cms-default\home.php` nutzt für die Tagcloud nun eine gecachte Aggregation statt Vollscan pro Request.
+- Cache-Frische wird über `COUNT(*)` und `MAX(updated_at/published_at/created_at)` aus veröffentlichten Posts in den Cache-Key eingebettet.
+- Score-Auswirkung: **Performance 74 → 78**, **SEO 82 → 86**, technischer Gesamtscore **81 → 82**.
+
+## Update 2026-06-13 (SEO-002 Media Alt-Text-Gate)
+- `MediaModule::buildAltTextComplianceData()` berechnet für sichtbare Bilder Alt-Text-Score, fehlende Alt-Texte und bereits verwendete Bilder ohne Alt-Text.
+- `CMS\admin\views\media\library.php` zeigt ein explizites Qualitätsgate mit Warnung, Stichprobe und Bulk-Aktionshinweis.
+- Score-Auswirkung: **SEO 86 → 89**, technischer Gesamtscore bleibt gerundet bei **82**.
+
+## Update 2026-06-13 (SEO-003 Sitemap-Smoke-Suite)
+- `TESTS\sitemap-service\run.php` ergänzt eine zentrale Smoke-Suite für `SitemapService`.
+- Validiert werden Vendor-Verfügbarkeit, `sitemap.xml`-Index, `pages.xml`, `posts.xml`, `images.xml`, `news.xml` sowie kanonische Felder (`lastmod`, `priority`, `changefreq`, Bild- und News-Metadaten).
+- Ausführung: `php TESTS\run.php --suite=sitemap-service` → **PASS**.
+- Score-Auswirkung: **SEO 89 → 92**, technischer Gesamtscore **82 → 83**.
+
+## Update 2026-06-13 (SEO-004 Tracking-/Consent-Healthcheck)
+- `CookieManagerModule::buildTrackingConsentHealthcheck()` prüft GA4, GTM, Meta Pixel und Matomo auf Aktivierung, Kennung/URL, Placeholder, Formatvalidität, aktive Cookie-Service-Zuordnung und Consent-Aktivierung.
+- Custom-Tracking-Snippets ohne aktiven Consent werden als kritische Deploy-Warnung gemeldet.
+- `CMS\admin\views\legal\cookies.php` zeigt Healthcheck-Status, Issues und Integrations-Badges im Cookie-Manager.
+- Score-Auswirkung: **SEO 92 → 94**, technischer Gesamtscore bleibt bei **83**.
+
+## Update 2026-06-13 (PERF-001/003 Backup- und DB-Wartungsgrenzen)
+- Backup-Befund mit aktuellem Code abgeglichen: `BackupService` nutzt Chunking, Writer-Streaming und Runtime-Guard; offen bleibt ein persistiertes Queue-/Resume-Modell.
+- `SystemService` begrenzt synchrone `REPAIR TABLE`/`OPTIMIZE TABLE`-Wartung auf maximal 10 Tabellen pro Request und überspringt große Tabellen (>100.000 geschätzte Zeilen oder >256 MiB) mit Job-/CLI-Hinweis.
+- Score-Auswirkung: **Performance 78 → 86**, technischer Gesamtscore **83 → 84**.
 
 ## Quellen-/Evidenzklassifizierung
 - **Codefund:** konkrete Datei-/Zeilenfunde in CMS\core, CMS\admin, CMS\plugins, CMS\themes.

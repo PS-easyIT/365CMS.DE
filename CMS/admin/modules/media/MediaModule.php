@@ -391,6 +391,7 @@ class MediaModule
             static fn (array $file): string => (string) ($file['path'] ?? ''),
             is_array($items['files'] ?? null) ? $items['files'] : []
         ));
+        $altTextCompliance = $this->buildAltTextComplianceData($items['files'] ?? [], $usageMap);
         $stats = $this->buildLibraryStats($items, $categories, $diskUsage, $duplicateMap, $usageMap);
         $orphanMedia = $this->buildOrphanMediaData($orphanDays);
         $altTextBulkAvailable = $this->mediaTableExists();
@@ -413,6 +414,7 @@ class MediaModule
             'confirm_member' => $confirmMember,
             'breadcrumbs' => $this->buildBreadcrumbs($path, $view, $category, $search, $usageFilter, $confirmMember, $advancedFilters, $orphanDays),
             'stats' => $stats,
+            'alt_text_compliance' => $altTextCompliance,
             'base_url' => $this->buildAdminUrl(),
             'list_url' => $this->buildAdminUrl($this->buildLibraryStateParams($path, 'list', $category, $search, $usageFilter, $confirmMember, $advancedFilters, $orphanDays)),
             'grid_url' => $this->buildAdminUrl($this->buildLibraryStateParams($path, 'grid', $category, $search, $usageFilter, $confirmMember, $advancedFilters, $orphanDays)),
@@ -2748,6 +2750,115 @@ class MediaModule
         }
 
         return $viewModels;
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $files
+     * @param array<string, list<array<string, mixed>>> $usageMap
+     * @return array<string, mixed>
+     */
+    private function buildAltTextComplianceData(array $files, array $usageMap = []): array
+    {
+        $imagePaths = [];
+        foreach ($files as $file) {
+            if (!is_array($file)) {
+                continue;
+            }
+
+            $fileName = (string)($file['name'] ?? '');
+            $filePath = (string)($file['path'] ?? $fileName);
+            if ($filePath === '' || $this->detectFileType($fileName !== '' ? $fileName : $filePath) !== 'image') {
+                continue;
+            }
+
+            $normalizedPath = $this->normalizeRelativePath($filePath);
+            if ($normalizedPath !== '') {
+                $imagePaths[$normalizedPath] = $fileName !== '' ? $fileName : basename($normalizedPath);
+            }
+        }
+
+        $imageCount = count($imagePaths);
+        if ($imageCount === 0) {
+            return [
+                'status' => 'pass',
+                'gate_passed' => true,
+                'score' => 100,
+                'image_count' => 0,
+                'missing_count' => 0,
+                'used_missing_count' => 0,
+                'message' => 'Keine Bilder in der aktuellen Ansicht.',
+                'items' => [],
+            ];
+        }
+
+        if (!$this->mediaTableExists()) {
+            return [
+                'status' => 'unavailable',
+                'gate_passed' => false,
+                'score' => 0,
+                'image_count' => $imageCount,
+                'missing_count' => $imageCount,
+                'used_missing_count' => 0,
+                'message' => 'Alt-Text-Gate nicht verfügbar, weil die Media-Metadatentabelle fehlt.',
+                'items' => [],
+            ];
+        }
+
+        $altTextMap = $this->loadMediaAltTextMap(array_keys($imagePaths));
+        $missingItems = [];
+        $usedMissingCount = 0;
+
+        foreach ($imagePaths as $path => $name) {
+            $altText = $this->normalizeAltText($altTextMap[$path] ?? '');
+            if ($altText !== '') {
+                continue;
+            }
+
+            $usageItems = array_values(array_filter(
+                is_array($usageMap[$path] ?? null) ? $usageMap[$path] : [],
+                static fn (mixed $usage): bool => is_array($usage)
+            ));
+            $usageCount = count($usageItems);
+            if ($usageCount > 0) {
+                $usedMissingCount++;
+            }
+
+            if (count($missingItems) < 10) {
+                $missingItems[] = [
+                    'name' => $name,
+                    'path' => $path,
+                    'usage_count' => $usageCount,
+                ];
+            }
+        }
+
+        $missingCount = count($imagePaths) - count($altTextMap);
+        foreach ($altTextMap as $path => $altText) {
+            if (isset($imagePaths[$path]) && $this->normalizeAltText($altText) === '') {
+                $missingCount++;
+            }
+        }
+        $missingCount = min($imageCount, $missingCount);
+        $score = (int)round((($imageCount - $missingCount) / max(1, $imageCount)) * 100);
+        $status = 'pass';
+        if ($usedMissingCount > 0) {
+            $status = 'critical';
+        } elseif ($missingCount > 0) {
+            $status = 'warning';
+        }
+
+        return [
+            'status' => $status,
+            'gate_passed' => $missingCount === 0,
+            'score' => $score,
+            'image_count' => $imageCount,
+            'missing_count' => $missingCount,
+            'used_missing_count' => $usedMissingCount,
+            'message' => $missingCount === 0
+                ? 'Alle sichtbaren Bilder haben einen Alt-Text.'
+                : $missingCount . ' sichtbare Bild(er) ohne Alt-Text gefunden.',
+            'items' => $missingItems,
+        ];
     }
 
     /**
