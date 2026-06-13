@@ -12,6 +12,7 @@ if (!defined('ABSPATH')) {
 }
 
 use CMS\Database;
+use CMS\Http\Request;
 use CMS\Hooks;
 use CMS\CacheManager;
 use CMS\AuditLogger;
@@ -209,9 +210,9 @@ class PagesModule
         $private   = (int)$this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}pages WHERE status = 'private'");
 
         // Filter
-        $statusFilter = $this->normalizeListStatus((string)($_GET['status'] ?? ''));
-        $categoryFilter = $this->normalizeExistingCategoryId((int)($_GET['category'] ?? 0));
-        $search       = $this->sanitizeSearchTerm((string)($_GET['q'] ?? ''));
+        $statusFilter = $this->normalizeListStatus((string) Request::get('status', ''));
+        $categoryFilter = $this->normalizeExistingCategoryId((int) Request::get('category', 0));
+        $search       = $this->sanitizeSearchTerm((string) Request::get('q', ''));
 
         // Query bauen
         $where  = [];

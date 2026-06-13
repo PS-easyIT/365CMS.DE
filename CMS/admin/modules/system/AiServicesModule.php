@@ -7,6 +7,7 @@ if (!defined('ABSPATH')) {
 
 use CMS\AuditLogger;
 use CMS\Database;
+use CMS\Http\Request;
 use CMS\Logger;
 use CMS\Services\AI\AiSettingsService;
 
@@ -426,7 +427,7 @@ final class AiServicesModule
 
     private function getCurrentUserId(): int
     {
-        return isset($_SESSION['user_id']) ? max(0, (int) $_SESSION['user_id']) : 0;
+        return max(0, (int) Request::session('user_id', 0));
     }
 
     /** @return array<string, mixed> */

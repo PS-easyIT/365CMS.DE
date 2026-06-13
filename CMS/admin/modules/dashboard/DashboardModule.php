@@ -19,6 +19,7 @@ use CMS\Services\DashboardService;
 use CMS\Database;
 use CMS\Auth;
 use CMS\AuditLogger;
+use CMS\Http\Request;
 
 class DashboardModule
 {
@@ -854,14 +855,14 @@ class DashboardModule
     {
         $user = Auth::instance()->currentUser();
 
-        return (int) ($user->id ?? $_SESSION['user_id'] ?? 0);
+        return (int) ($user->id ?? Request::session('user_id', 0));
     }
 
     private function getCurrentUserRole(): string
     {
         $user = Auth::instance()->currentUser();
 
-        return $this->normalizeRoleSlug((string) ($user->role ?? $_SESSION['user_role'] ?? ''));
+        return $this->normalizeRoleSlug((string) ($user->role ?? Request::session('user_role', '')));
     }
 
     private function getCurrentUserRoleLabel(string $role): string
@@ -1248,10 +1249,12 @@ class DashboardModule
         };
 
         $displayName = 'im Admin';
-        if (!empty($_SESSION['user_display_name'])) {
-            $displayName = (string) $_SESSION['user_display_name'];
-        } elseif (!empty($_SESSION['username'])) {
-            $displayName = (string) $_SESSION['username'];
+        $sessionDisplayName = trim((string) Request::session('user_display_name', ''));
+        $sessionUsername = trim((string) Request::session('username', ''));
+        if ($sessionDisplayName !== '') {
+            $displayName = $sessionDisplayName;
+        } elseif ($sessionUsername !== '') {
+            $displayName = $sessionUsername;
         }
 
         return [

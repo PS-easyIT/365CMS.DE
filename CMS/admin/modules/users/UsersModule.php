@@ -12,6 +12,7 @@ if (!defined('ABSPATH')) {
 }
 
 use CMS\Database;
+use CMS\Http\Request;
 use CMS\Logger;
 use CMS\Services\ErrorReportService;
 use CMS\Services\UserService;
@@ -34,10 +35,10 @@ class UsersModule
      */
     public function getListData(): array
     {
-        $roleFilter   = $_GET['role'] ?? '';
-        $statusFilter = $_GET['status'] ?? '';
-        $search       = trim($_GET['q'] ?? '');
-        $page         = max(1, (int)($_GET['page'] ?? 1));
+        $roleFilter   = (string) Request::get('role', '');
+        $statusFilter = (string) Request::get('status', '');
+        $search       = trim((string) Request::get('q', ''));
+        $page         = max(1, (int) Request::get('page', 1));
         $perPage      = 25;
 
         $result = $this->userService->getUsers([
@@ -1095,7 +1096,7 @@ class UsersModule
             ];
         }
 
-        $currentUserId = (int) ($_SESSION['user_id'] ?? 0);
+        $currentUserId = (int) Request::session('user_id', 0);
         if ($currentUserId > 0 && in_array($currentUserId, $existingIds, true)) {
             return [
                 'success' => false,

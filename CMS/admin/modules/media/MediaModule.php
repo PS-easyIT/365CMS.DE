@@ -16,6 +16,7 @@ if (!defined('ABSPATH')) {
 use CMS\AuditLogger;
 use CMS\Auth;
 use CMS\Database;
+use CMS\Http\Request;
 use CMS\Logger;
 use CMS\Services\MediaDeliveryService;
 use CMS\Services\MediaService;
@@ -298,19 +299,19 @@ class MediaModule
      */
     public function getLibraryData(): array
     {
-        $path     = $this->normalizeRelativePath((string)($_GET['path'] ?? ''));
-        $category = $this->normalizeCategorySlug((string)($_GET['category'] ?? ''));
-        $view     = $this->normalizeView((string)($_GET['view'] ?? 'list'));
-        $search   = $this->sanitizeSearch((string)($_GET['q'] ?? ''));
-        $usageFilter = $this->normalizeUsageFilter((string)($_GET['usage_filter'] ?? 'all'));
+        $path     = $this->normalizeRelativePath((string) Request::get('path', ''));
+        $category = $this->normalizeCategorySlug((string) Request::get('category', ''));
+        $view     = $this->normalizeView((string) Request::get('view', 'list'));
+        $search   = $this->sanitizeSearch((string) Request::get('q', ''));
+        $usageFilter = $this->normalizeUsageFilter((string) Request::get('usage_filter', 'all'));
         $advancedFilters = [
-            'file_type' => $this->normalizeFileTypeFilter((string)($_GET['file_type'] ?? 'all')),
-            'extension' => $this->normalizeExtensionFilter((string)($_GET['extension'] ?? '')),
-            'size' => $this->normalizeSizeFilter((string)($_GET['size_filter'] ?? 'all')),
-            'modified' => $this->normalizeModifiedFilter((string)($_GET['modified_filter'] ?? 'all')),
+            'file_type' => $this->normalizeFileTypeFilter((string) Request::get('file_type', 'all')),
+            'extension' => $this->normalizeExtensionFilter((string) Request::get('extension', '')),
+            'size' => $this->normalizeSizeFilter((string) Request::get('size_filter', 'all')),
+            'modified' => $this->normalizeModifiedFilter((string) Request::get('modified_filter', 'all')),
         ];
-        $orphanDays = $this->normalizeOrphanDays($_GET['orphan_days'] ?? 0);
-        $confirmMember = (string)($_GET['confirm_member'] ?? '') === '1';
+        $orphanDays = $this->normalizeOrphanDays(Request::get('orphan_days', 0));
+        $confirmMember = (string) Request::get('confirm_member', '') === '1';
 
         if ($category !== '' && !$this->categoryExists($category)) {
             $category = '';
@@ -483,10 +484,10 @@ class MediaModule
      */
     public function getFeaturedMediaData(): array
     {
-        $search = $this->sanitizeSearch((string) ($_GET['q'] ?? ''));
-        $usageScope = $this->normalizeFeaturedUsageScope((string) ($_GET['usage_scope'] ?? 'all'));
-        $highlightPath = $this->normalizeRelativePath((string) ($_GET['highlight'] ?? ''));
-        $highlightActive = ((string) ($_GET['replaced'] ?? '') === '1') && $highlightPath !== '';
+        $search = $this->sanitizeSearch((string) Request::get('q', ''));
+        $usageScope = $this->normalizeFeaturedUsageScope((string) Request::get('usage_scope', 'all'));
+        $highlightPath = $this->normalizeRelativePath((string) Request::get('highlight', ''));
+        $highlightActive = ((string) Request::get('replaced', '') === '1') && $highlightPath !== '';
         $featuredUsageMap = $this->usageService->buildFeaturedImageMap();
         $items = [];
         $totalReferences = 0;
@@ -579,8 +580,8 @@ class MediaModule
      */
     public function getMediaCheckData(): array
     {
-        $search = $this->sanitizeSearch((string) ($_GET['q'] ?? ''));
-        $usageScope = $this->normalizeFeaturedUsageScope((string) ($_GET['usage_scope'] ?? 'all'));
+        $search = $this->sanitizeSearch((string) Request::get('q', ''));
+        $usageScope = $this->normalizeFeaturedUsageScope((string) Request::get('usage_scope', 'all'));
         $featuredUsageMap = $this->usageService->buildFeaturedImageMap();
         $consistencyData = $this->buildFeaturedConsistencyData($search, $usageScope, $featuredUsageMap);
 
@@ -873,7 +874,8 @@ class MediaModule
             return ['success' => false, 'error' => 'Dieses Bild ist aktuell nicht als Beitrags- oder Seitenbild registriert. Bitte die Medienansicht neu laden.'];
         }
 
-        $replacementFile = is_array($_FILES['replacement_file'] ?? null) ? $_FILES['replacement_file'] : null;
+        $replacementInput = Request::file('replacement_file');
+        $replacementFile = is_array($replacementInput) ? $replacementInput : null;
         if ($replacementFile === null || (int) ($replacementFile['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
             return ['success' => false, 'error' => 'Bitte eine neue Bilddatei auswählen.'];
         }
@@ -3646,7 +3648,7 @@ class MediaModule
     {
         $user = Auth::instance()->currentUser();
 
-        return (int) ($user->id ?? $_SESSION['user_id'] ?? 0);
+        return (int) ($user->id ?? Request::session('user_id', 0));
     }
 
     /**

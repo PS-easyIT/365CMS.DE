@@ -25,6 +25,7 @@ use CMS\Services\ErrorReportService;
 use CMS\Services\SystemService;
 use CMS\Services\UpdateService;
 use CMS\AuditLogger;
+use CMS\Http\Request;
 use CMS\VendorRegistry;
 
 class SystemInfoModule
@@ -102,7 +103,7 @@ class SystemInfoModule
             'diagnose' => $this->getDiagnosticsData(),
             'warnings' => $this->getWarningCenterData(),
             'assets' => $this->getAssetsData(),
-            'logs' => $this->getLogsData($_GET['log_file'] ?? null),
+            'logs' => $this->getLogsData(Request::get('log_file')),
             'response-time' => [
                 'monitoring' => [
                     'response_time' => $responseTime = $this->measureResponseTime(SITE_URL),
@@ -1812,9 +1813,9 @@ class SystemInfoModule
         try {
             $user = \CMS\Auth::instance()->currentUser();
 
-            return (int)($user->id ?? $_SESSION['user_id'] ?? 0);
+            return (int)($user->id ?? Request::session('user_id', 0));
         } catch (\Throwable) {
-            return (int)($_SESSION['user_id'] ?? 0);
+            return (int) Request::session('user_id', 0);
         }
     }
 

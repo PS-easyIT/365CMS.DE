@@ -16,6 +16,7 @@ require_once __DIR__ . '/PostsCategoryViewModelBuilder.php';
 use CMS\AuditLogger;
 use CMS\CacheManager;
 use CMS\Database;
+use CMS\Http\Request;
 use CMS\Hooks;
 use CMS\Logger;
 use CMS\Services\ContentLocalizationService;
@@ -369,9 +370,9 @@ class PostsModule
         $drafts    = (int)$this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}posts WHERE status = 'draft'");
         $private   = (int)$this->db->get_var("SELECT COUNT(*) FROM {$this->prefix}posts WHERE status = 'private'");
 
-        $statusFilter   = $this->normalizeListStatus((string)($_GET['status'] ?? ''));
-        $categoryFilter = $this->normalizeExistingCategoryId((int)($_GET['category'] ?? 0));
-        $search         = $this->sanitizeSearchTerm((string)($_GET['q'] ?? ''));
+        $statusFilter   = $this->normalizeListStatus((string) Request::get('status', ''));
+        $categoryFilter = $this->normalizeExistingCategoryId((int) Request::get('category', 0));
+        $search         = $this->sanitizeSearchTerm((string) Request::get('q', ''));
 
         $where  = [];
         $params = [];

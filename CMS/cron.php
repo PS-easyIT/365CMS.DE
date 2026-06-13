@@ -43,7 +43,7 @@ $normalizeCronLimit = static function (mixed $limit): ?int {
 
 $webCronTokenSource = 'none';
 
-$getWebCronToken = static function () use (&$webCronTokenSource): string {
+$getWebCronToken = static function (bool $allowQueryFallback = false) use (&$webCronTokenSource): string {
     $headerToken = trim((string) ($_SERVER['HTTP_X_CMS_CRON_TOKEN'] ?? $_SERVER['HTTP_X_CRON_TOKEN'] ?? ''));
     if ($headerToken !== '') {
         $webCronTokenSource = 'header';
@@ -53,9 +53,13 @@ $getWebCronToken = static function () use (&$webCronTokenSource): string {
     $queryToken = trim((string) ($_GET['token'] ?? ''));
     if ($queryToken !== '') {
         $webCronTokenSource = 'query';
+
+        if ($allowQueryFallback) {
+            return $queryToken;
+        }
     }
 
-    return $queryToken;
+    return '';
 };
 
 $isHttpsRequest = static function (): bool {
@@ -96,6 +100,29 @@ $normalizeOutputMode = static function (mixed $mode, bool $isCli): string {
     };
 };
 
+$normalizeIsoDate = static function (mixed $dateValue, string $fallback): string {
+    $candidate = trim((string) $dateValue);
+    if ($candidate === '') {
+        return $fallback;
+    }
+
+    $timestamp = strtotime($candidate);
+    if ($timestamp === false) {
+        return $fallback;
+    }
+
+    return date('Y-m-d', $timestamp);
+};
+
+$queryTokenDeprecatedSince = $normalizeIsoDate(
+    defined('CMS_CRON_QUERY_TOKEN_DEPRECATED_SINCE') ? CMS_CRON_QUERY_TOKEN_DEPRECATED_SINCE : null,
+    '2026-06-13'
+);
+$queryTokenRemovalDate = $normalizeIsoDate(
+    defined('CMS_CRON_QUERY_TOKEN_REMOVAL_DATE') ? CMS_CRON_QUERY_TOKEN_REMOVAL_DATE : null,
+    '2026-10-01'
+);
+
 ob_start();
 
 if (!defined('CMS_CRON_RUNNING')) {
@@ -127,7 +154,11 @@ if (PHP_SAPI !== 'cli') {
 
 $outputMode = 'quiet';
 
-$respond = static function (array $payload, int $statusCode = 200) use (&$outputMode): void {
+$terminate = static function (int $statusCode = 200): never {
+    exit($statusCode === 200 ? 0 : 1);
+};
+
+$respond = static function (array $payload, int $statusCode = 200) use (&$outputMode, $terminate): void {
     $capturedOutput = trim((string) ob_get_clean());
 
     if ($capturedOutput !== '' && $outputMode !== 'quiet') {
@@ -144,11 +175,11 @@ $respond = static function (array $payload, int $statusCode = 200) use (&$output
     }
 
     if (PHP_SAPI !== 'cli' && strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET')) === 'HEAD') {
-        exit($statusCode === 200 ? 0 : 1);
+        $terminate($statusCode);
     }
 
     if ($outputMode === 'quiet') {
-        exit($statusCode === 200 ? 0 : 1);
+        $terminate($statusCode);
     }
 
     if ($outputMode === 'text') {
@@ -171,7 +202,7 @@ $respond = static function (array $payload, int $statusCode = 200) use (&$output
         }
 
         echo implode(PHP_EOL, $lines) . PHP_EOL;
-        exit($statusCode === 200 ? 0 : 1);
+        $terminate($statusCode);
     }
 
     if (PHP_SAPI !== 'cli' && !headers_sent()) {
@@ -184,7 +215,7 @@ $respond = static function (array $payload, int $statusCode = 200) use (&$output
     }
 
     echo $json . PHP_EOL;
-    exit($statusCode === 200 ? 0 : 1);
+    $terminate($statusCode);
 };
 
 try {
@@ -221,7 +252,7 @@ try {
             }
         }
     } else {
-        $requestMethod = strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET'));
+        $requestMethod = \CMS\Http\Request::method();
         if (!in_array($requestMethod, ['GET', 'HEAD'], true)) {
             $respond([
                 'success' => false,
@@ -229,30 +260,48 @@ try {
             ], 405);
         }
 
-        $task = $normalizeCronTask($_GET['task'] ?? 'all');
-        $limit = $normalizeCronLimit($_GET['limit'] ?? null);
-        $force = !empty($_GET['force']);
-        $token = $getWebCronToken();
+        $allowQueryTokenFallback = defined('CMS_CRON_ALLOW_QUERY_TOKEN') && CMS_CRON_ALLOW_QUERY_TOKEN;
 
-        if ($webCronTokenSource === 'query' && !$isHttpsRequest()) {
+        $task = $normalizeCronTask(\CMS\Http\Request::get('task', 'all'));
+        $limit = $normalizeCronLimit(\CMS\Http\Request::get('limit'));
+        $force = \CMS\Http\Request::boolFromGet('force', false);
+        $token = $getWebCronToken($allowQueryTokenFallback);
+
+        if ($webCronTokenSource === 'query') {
+            $queryTokenSunsetReached = strtotime('today') >= strtotime($queryTokenRemovalDate);
+
             if (class_exists('CMS\\Logger')) {
-                CMS\Logger::instance()->withChannel('cron')->warning('Web-Cron wurde mit Query-Token ohne HTTPS aufgerufen. Header-Token über X-CMS-Cron-Token wird empfohlen.', [
+                CMS\Logger::instance()->withChannel('cron')->warning('Web-Cron Query-Token ist veraltet. Bitte X-CMS-Cron-Token Header verwenden.', [
                     'task' => $task,
                     'remote_addr' => (string) ($_SERVER['REMOTE_ADDR'] ?? ''),
+                    'allow_query_fallback' => $allowQueryTokenFallback,
+                    'https' => $isHttpsRequest(),
+                    'deprecated_since' => $queryTokenDeprecatedSince,
+                    'removal_date' => $queryTokenRemovalDate,
+                    'sunset_reached' => $queryTokenSunsetReached,
                 ]);
             } else {
-                error_log('365CMS Cron: Query-Token ohne HTTPS verwendet. Header-Token wird empfohlen.');
+                error_log('365CMS Cron: Query-Token ist veraltet. Header-Token wird empfohlen.');
+            }
+
+            if (!$allowQueryTokenFallback || $queryTokenSunsetReached) {
+                $respond([
+                    'success' => false,
+                    'error' => $queryTokenSunsetReached
+                        ? 'Cron-Token via Query-Parameter ist seit ' . $queryTokenRemovalDate . ' dauerhaft deaktiviert. Bitte Header X-CMS-Cron-Token verwenden.'
+                        : 'Cron-Token via Query-Parameter ist deaktiviert. Bitte Header X-CMS-Cron-Token verwenden.',
+                ], 400);
             }
         }
 
-        if (!empty($_GET['verbose'])) {
+        if (\CMS\Http\Request::boolFromGet('verbose', false)) {
             $outputMode = 'json';
-        } elseif (!empty($_GET['text'])) {
+        } elseif (\CMS\Http\Request::boolFromGet('text', false)) {
             $outputMode = 'text';
-        } elseif (!empty($_GET['quiet'])) {
+        } elseif (\CMS\Http\Request::boolFromGet('quiet', false)) {
             $outputMode = 'quiet';
         } else {
-            $outputMode = $normalizeOutputMode($_GET['format'] ?? null, false);
+            $outputMode = $normalizeOutputMode(\CMS\Http\Request::get('format'), false);
         }
     }
     if (PHP_SAPI !== 'cli') {

@@ -86,6 +86,20 @@ CMS/tmp-seo-test/sitemap.xml
 CMS/tmp*.php
 CMS/tmp-hub-template-dump.php
 /tests/*
+
+# Zentrale modulnahe Test-Orchestrierung gezielt versionieren
+!/tests/
+!/tests/bootstrap.php
+!/tests/run.php
+!/tests/release-smoke/run.php
+!/tests/pdf-service/run.php
+!/TESTS/
+!/TESTS/bootstrap.php
+!/TESTS/run.php
+!/TESTS/release-smoke/
+!/TESTS/pdf-service/
+!/TESTS/release-smoke/run.php
+!/TESTS/pdf-service/run.php
 /DOC/audit/
 /STAGING/tests/
 */Test/*

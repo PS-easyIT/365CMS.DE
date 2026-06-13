@@ -7,8 +7,10 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+use CMS\AuditLogger;
 use CMS\Database;
 use CMS\Debug;
+use CMS\Logger;
 use CMS\Security;
 use PDO;
 
@@ -612,44 +614,155 @@ class SystemService {
         $pdo = $this->db->getConnection();
         $operation = strtoupper($operation) === 'REPAIR' ? 'REPAIR' : 'OPTIMIZE';
 
+        $normalizedTableName = $this->normalizeMaintenanceTableName($tableName);
+        if ($normalizedTableName === null) {
+            $this->logMaintenanceResult($operation, $tableName, false, [
+                ['status' => 'error', 'message' => 'Ungültiger Tabellenname für Wartungsoperation.']
+            ]);
+
+            return [
+                'success' => false,
+                'message' => 'Ungültiger Tabellenname für Wartungsoperation.',
+                'details' => [],
+            ];
+        }
+
         try {
-            $result = $pdo->query($operation . ' TABLE ' . $this->quoteIdentifier($tableName));
-            $rows = $result ? $result->fetchAll(PDO::FETCH_ASSOC) : [];
+            $statement = sprintf('%s TABLE %s', $operation, $this->quoteIdentifier($normalizedTableName));
+            $result = $pdo->query($statement);
+            $rows = $result instanceof \PDOStatement ? $result->fetchAll(PDO::FETCH_ASSOC) : [];
+            $rows = is_array($rows) ? $rows : [];
 
             if ($rows === []) {
+                $details = [[
+                    'table' => $normalizedTableName,
+                    'operation' => $operation,
+                    'status' => 'warning',
+                    'msg_type' => 'notice',
+                    'msg_text' => 'Keine Detailzeilen vom Datenbanktreiber zurückgegeben.',
+                ]];
+
+                $this->logMaintenanceResult($operation, $normalizedTableName, true, $details);
+
                 return [
-                    'success' => false,
-                    'message' => $operation === 'REPAIR' ? 'Repair fehlgeschlagen' : 'Optimierung fehlgeschlagen'
+                    'success' => true,
+                    'message' => 'Wartungsbefehl ausgeführt (ohne Detailzeilen des Treibers).',
+                    'details' => $details,
                 ];
             }
 
             $messages = [];
             $hasError = false;
+            $hasWarning = false;
+            $normalizedRows = [];
             foreach ($rows as $row) {
                 $msgType = strtolower((string)($row['Msg_type'] ?? ''));
                 $msgText = trim((string)($row['Msg_text'] ?? ''));
+
+                $status = 'ok';
                 if ($msgType === 'error') {
                     $hasError = true;
+                    $status = 'error';
+                } elseif (in_array($msgType, ['warning', 'note'], true)) {
+                    $hasWarning = true;
+                    $status = 'warning';
                 }
+
                 if ($msgText !== '') {
                     $messages[] = $msgText;
                 }
+
+                $normalizedRows[] = [
+                    'table' => (string)($row['Table'] ?? $normalizedTableName),
+                    'operation' => $operation,
+                    'status' => $status,
+                    'msg_type' => $msgType !== '' ? $msgType : 'info',
+                    'msg_text' => $msgText !== '' ? $msgText : 'OK',
+                ];
             }
 
+            $message = $messages !== [] ? implode(' | ', array_values(array_unique($messages))) : 'OK';
+            $success = !$hasError;
+
+            if ($success && $hasWarning && $message === 'OK') {
+                $message = 'Wartung abgeschlossen (mit Hinweisen).';
+            }
+
+            $this->logMaintenanceResult($operation, $normalizedTableName, $success, $normalizedRows);
+
             return [
-                'success' => !$hasError,
-                'message' => $messages !== [] ? implode(' | ', $messages) : 'OK',
-                'details' => $rows,
+                'success' => $success,
+                'message' => $message,
+                'details' => $normalizedRows,
             ];
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
+            $this->logMaintenanceResult($operation, $normalizedTableName, false, [
+                ['status' => 'error', 'message' => $e->getMessage()]
+            ]);
+
             return [
                 'success' => false,
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
+                'details' => [],
             ];
         }
     }
 
+    private function normalizeMaintenanceTableName(string $tableName): ?string
+    {
+        $tableName = trim($tableName);
+        if ($tableName === '' || preg_match('/^[A-Za-z0-9_]+$/', $tableName) !== 1) {
+            return null;
+        }
+
+        $prefix = $this->db->getPrefix();
+        if ($prefix !== '' && !str_starts_with($tableName, $prefix)) {
+            return null;
+        }
+
+        return $tableName;
+    }
+
+    /**
+     * @param array<int, array<string,mixed>> $details
+     */
+    private function logMaintenanceResult(string $operation, string $tableName, bool $success, array $details): void
+    {
+        $action = strtolower($operation) === 'repair' ? 'system.db.repair' : 'system.db.optimize';
+        $message = sprintf('%s TABLE %s: %s', $operation, $tableName, $success ? 'OK' : 'Fehler');
+
+        if (class_exists(AuditLogger::class)) {
+            AuditLogger::instance()->log(
+                AuditLogger::CAT_SYSTEM,
+                $action,
+                $message,
+                'database-table',
+                null,
+                [
+                    'table' => $tableName,
+                    'operation' => $operation,
+                    'success' => $success,
+                    'details' => $details,
+                ],
+                $success ? 'info' : 'warning'
+            );
+        }
+
+        if (class_exists(Logger::class)) {
+            $logger = Logger::instance()->withChannel('system.maintenance');
+            if ($success) {
+                $logger->info($message, ['table' => $tableName, 'operation' => $operation]);
+            } else {
+                $logger->warning($message, ['table' => $tableName, 'operation' => $operation]);
+            }
+        }
+    }
+
     private function quoteIdentifier(string $identifier): string {
+        if (preg_match('/^[A-Za-z0-9_]+$/', $identifier) !== 1) {
+            throw new \InvalidArgumentException('Ungültiger SQL-Identifier für Wartungsoperation.');
+        }
+
         return '`' . str_replace('`', '``', $identifier) . '`';
     }
     

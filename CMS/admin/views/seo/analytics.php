@@ -24,6 +24,10 @@ $coreWebVitals = $analytics['core_web_vitals'] ?? [];
 $coreWebVitalsMetrics = $coreWebVitals['metrics'] ?? [];
 $coreWebVitalsPages = $coreWebVitals['problem_pages'] ?? [];
 $trackingSettings = $analytics['tracking_settings'] ?? [];
+$trackingStatus = is_array($analytics['tracking_status'] ?? null) ? $analytics['tracking_status'] : [];
+$trackingOverall = (string)($trackingStatus['overall'] ?? 'missing');
+$trackingIssues = is_array($trackingStatus['issues'] ?? null) ? $trackingStatus['issues'] : [];
+$trackingIntegrations = is_array($trackingStatus['integrations'] ?? null) ? $trackingStatus['integrations'] : [];
 $hasTable = $analytics['has_page_views'] ?? false;
 ?>
 
@@ -301,6 +305,70 @@ $hasTable = $analytics['has_page_views'] ?? false;
                 <div class="card h-100">
                     <div class="card-header"><h3 class="card-title">Tracking & Suchmaschinen</h3></div>
                     <div class="card-body">
+                        <?php
+                        $overallBadgeClass = match ($trackingOverall) {
+                            'configured' => 'bg-green-lt text-green',
+                            'partial' => 'bg-yellow-lt text-yellow',
+                            default => 'bg-secondary-lt text-secondary',
+                        };
+                        $overallLabel = match ($trackingOverall) {
+                            'configured' => 'Konfiguriert',
+                            'partial' => 'Teilweise konfiguriert',
+                            default => 'Nicht konfiguriert',
+                        };
+                        ?>
+
+                        <div class="alert alert-secondary py-2" role="status">
+                            <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
+                                <span class="fw-semibold">Tracking-Status</span>
+                                <span class="badge <?= $overallBadgeClass ?>"><?= htmlspecialchars($overallLabel) ?></span>
+                            </div>
+                            <div class="small text-secondary mt-1">
+                                Konfiguriert: <?= (int)($trackingStatus['configured_count'] ?? 0) ?> ·
+                                Teilweise: <?= (int)($trackingStatus['partial_count'] ?? 0) ?> ·
+                                Fehlend: <?= (int)($trackingStatus['missing_count'] ?? 0) ?>
+                            </div>
+                            <?php if (!empty($trackingIssues)): ?>
+                                <ul class="mb-0 mt-2 small">
+                                    <?php foreach ($trackingIssues as $issue): ?>
+                                        <li><?= htmlspecialchars((string)$issue) ?></li>
+                                    <?php endforeach; ?>
+                                </ul>
+                            <?php endif; ?>
+                        </div>
+
+                        <?php if (!empty($trackingIntegrations)): ?>
+                            <div class="table-responsive mb-3">
+                                <table class="table table-sm table-vcenter mb-0">
+                                    <thead>
+                                        <tr><th>Integration</th><th>Status</th><th class="text-end">Aktiviert</th></tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($trackingIntegrations as $integration): ?>
+                                            <?php
+                                            $integrationStatus = (string)($integration['status'] ?? 'missing');
+                                            $integrationBadgeClass = match ($integrationStatus) {
+                                                'configured' => 'bg-green-lt text-green',
+                                                'partial' => 'bg-yellow-lt text-yellow',
+                                                default => 'bg-secondary-lt text-secondary',
+                                            };
+                                            $integrationLabel = match ($integrationStatus) {
+                                                'configured' => 'Konfiguriert',
+                                                'partial' => 'Unvollständig',
+                                                default => 'Fehlt',
+                                            };
+                                            ?>
+                                            <tr>
+                                                <td><?= htmlspecialchars((string)($integration['label'] ?? 'Integration')) ?></td>
+                                                <td><span class="badge <?= $integrationBadgeClass ?>"><?= htmlspecialchars($integrationLabel) ?></span></td>
+                                                <td class="text-end"><?= !empty($integration['enabled']) ? 'Ja' : 'Nein' ?></td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <?php endif; ?>
+
                         <form method="post" class="row g-3">
                             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
                             <input type="hidden" name="action" value="save_analytics_settings">

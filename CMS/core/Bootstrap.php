@@ -13,8 +13,15 @@ namespace CMS;
 
 use CMS\Services\SiteTable\SiteTableHubRenderer;
 
+if (!function_exists(__NAMESPACE__ . '\\terminate_bootstrap_process')) {
+    function terminate_bootstrap_process(int $code = 0): never
+    {
+        exit($code);
+    }
+}
+
 if (!defined('ABSPATH')) {
-    exit;
+    terminate_bootstrap_process();
 }
 
 if (class_exists(__NAMESPACE__ . '\\Bootstrap', false)) {
@@ -38,6 +45,11 @@ class Bootstrap
     private PluginManager $pluginManager;
     /** @var ThemeManager|null Im API/CLI-Modus nicht geladen (H-12) */
     private ?ThemeManager $themeManager = null;
+
+    private static function terminateProcess(int $code = 0): never
+    {
+        terminate_bootstrap_process($code);
+    }
 
     /**
      * Singleton instance
@@ -200,7 +212,7 @@ class Bootstrap
     {
         if (PHP_SAPI === 'cli') {
             fwrite(STDERR, $message . PHP_EOL);
-            exit(1);
+            self::terminateProcess(1);
         }
 
         http_response_code(503);
@@ -217,7 +229,7 @@ class Bootstrap
                 'success' => false,
                 'error' => $message,
             ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-            exit;
+            self::terminateProcess();
         }
 
         header('Content-Type: text/html; charset=utf-8');
@@ -244,7 +256,7 @@ class Bootstrap
         </body>
         </html>
         <?php
-        exit;
+        self::terminateProcess();
     }
     
     /**
@@ -288,7 +300,7 @@ class Bootstrap
 
             if (PHP_SAPI === 'cli') {
                 fwrite(STDERR, 'Fatal error: ' . $e->getMessage() . PHP_EOL);
-                exit(1);
+                self::terminateProcess(1);
             }
 
             if (!headers_sent()) {
@@ -309,7 +321,7 @@ class Bootstrap
                     echo 'Es ist ein interner Fehler aufgetreten. Bitte versuche es später erneut.';
                 }
             }
-            exit(1);
+            self::terminateProcess(1);
         });
     }
 

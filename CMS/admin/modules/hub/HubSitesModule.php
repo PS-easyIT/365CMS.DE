@@ -10,6 +10,7 @@ require_once __DIR__ . '/HubTemplateProfileManager.php';
 use CMS\AuditLogger;
 use CMS\Database;
 use CMS\Hooks;
+use CMS\Http\Request;
 use CMS\Logger;
 
 class HubSitesModule
@@ -83,7 +84,7 @@ class HubSitesModule
 
     public function getListData(): array
     {
-        $search = $this->sanitizeSearchTerm((string)($_GET['q'] ?? ''));
+        $search = $this->sanitizeSearchTerm((string) Request::get('q', ''));
         $where = '';
         $params = [];
         $selectSlug = $this->hasTableSlugColumn() ? 'table_slug,' : "'' AS table_slug,";

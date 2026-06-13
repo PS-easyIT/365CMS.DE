@@ -69,10 +69,14 @@ final class SeoSuiteModule
 
 	private const ANALYTICS_DEFAULTS = [
 		'seo_analytics_gsc_property' => '',
+		'seo_analytics_ga4_enabled' => '0',
 		'seo_analytics_ga4_id' => '',
+		'seo_analytics_matomo_enabled' => '0',
 		'seo_analytics_matomo_url' => '',
 		'seo_analytics_matomo_site_id' => '1',
+		'seo_analytics_gtm_enabled' => '0',
 		'seo_analytics_gtm_id' => '',
+		'seo_analytics_fb_pixel_enabled' => '0',
 		'seo_analytics_fb_pixel_id' => '',
 		'seo_analytics_exclude_admins' => '1',
 		'seo_analytics_respect_dnt' => '1',
@@ -219,7 +223,7 @@ final class SeoSuiteModule
 	public function regenerateSitemapBundle(): array
 	{
 		try {
-			$bundleSaved = (bool)$this->seoService->saveSitemapBundle();
+			$bundleSaved = $this->seoService->regenerateSitemapBundle();
 			$lastError = $this->sanitizeLogValue((string)$this->seoService->getLastSitemapError(), 240);
 
 			if (!$bundleSaved) {
@@ -364,13 +368,50 @@ final class SeoSuiteModule
 
 	public function saveAnalyticsSettings(array $post): array
 	{
+		$rawGscProperty = trim((string)($post['gsc_property'] ?? ''));
+		$rawGa4Id = trim((string)($post['ga4_id'] ?? ''));
+		$rawMatomoUrl = trim((string)($post['matomo_url'] ?? ''));
+		$rawGtmId = trim((string)($post['gtm_id'] ?? ''));
+		$rawFbPixelId = trim((string)($post['fb_pixel_id'] ?? ''));
+
+		$ga4Id = $this->normalizeTrackingId($rawGa4Id, '/^G-[A-Z0-9\-]+$/i');
+		$gtmId = $this->normalizeTrackingId($rawGtmId, '/^GTM-[A-Z0-9\-]+$/i');
+		$fbPixelId = $this->normalizeTrackingId($rawFbPixelId, '/^[0-9]{5,20}$/');
+		$matomoUrl = $this->normalizeOptionalUrl($rawMatomoUrl, false);
+
+		$validationErrors = [];
+
+		if ($rawGa4Id !== '' && ($ga4Id === '' || $this->isPlaceholderTrackingId($rawGa4Id, 'ga4'))) {
+			$validationErrors[] = 'Bitte eine gültige GA4-ID (Format: G-XXXXXXXXXX) hinterlegen.';
+		}
+
+		if ($rawGtmId !== '' && ($gtmId === '' || $this->isPlaceholderTrackingId($rawGtmId, 'gtm'))) {
+			$validationErrors[] = 'Bitte eine gültige GTM-ID (Format: GTM-XXXXXXX) hinterlegen.';
+		}
+
+		if ($rawFbPixelId !== '' && ($fbPixelId === '' || $this->isPlaceholderTrackingId($rawFbPixelId, 'fb_pixel'))) {
+			$validationErrors[] = 'Bitte eine gültige Meta-Pixel-ID (nur Ziffern, min. 5 Stellen) hinterlegen.';
+		}
+
+		if ($rawMatomoUrl !== '' && $matomoUrl === '') {
+			$validationErrors[] = 'Bitte eine gültige Matomo-URL (http/https) hinterlegen.';
+		}
+
+		if ($validationErrors !== []) {
+			return ['success' => false, 'error' => $validationErrors[0]];
+		}
+
 		$this->persistSettings([
-			'seo_analytics_gsc_property' => trim((string)($post['gsc_property'] ?? '')),
-			'seo_analytics_ga4_id' => $this->normalizeTrackingId((string)($post['ga4_id'] ?? ''), '/^G-[A-Z0-9\-]+$/i'),
-			'seo_analytics_matomo_url' => $this->normalizeOptionalUrl((string)($post['matomo_url'] ?? ''), false),
+			'seo_analytics_gsc_property' => $rawGscProperty,
+			'seo_analytics_ga4_enabled' => $ga4Id !== '' ? '1' : '0',
+			'seo_analytics_ga4_id' => $ga4Id,
+			'seo_analytics_matomo_enabled' => $matomoUrl !== '' ? '1' : '0',
+			'seo_analytics_matomo_url' => $matomoUrl,
 			'seo_analytics_matomo_site_id' => $this->normalizePositiveIntString($post['matomo_site_id'] ?? '1', '1'),
-			'seo_analytics_gtm_id' => $this->normalizeTrackingId((string)($post['gtm_id'] ?? ''), '/^GTM-[A-Z0-9\-]+$/i'),
-			'seo_analytics_fb_pixel_id' => $this->normalizeTrackingId((string)($post['fb_pixel_id'] ?? ''), '/^[0-9]{5,20}$/'),
+			'seo_analytics_gtm_enabled' => $gtmId !== '' ? '1' : '0',
+			'seo_analytics_gtm_id' => $gtmId,
+			'seo_analytics_fb_pixel_enabled' => $fbPixelId !== '' ? '1' : '0',
+			'seo_analytics_fb_pixel_id' => $fbPixelId,
 			'seo_analytics_exclude_admins' => !empty($post['exclude_admins']) ? '1' : '0',
 			'seo_analytics_respect_dnt' => !empty($post['respect_dnt']) ? '1' : '0',
 			'seo_analytics_anonymize_ip' => !empty($post['anonymize_ip']) ? '1' : '0',
@@ -379,6 +420,108 @@ final class SeoSuiteModule
 		]);
 
 		return ['success' => true, 'message' => 'Analytics- und Tracking-Einstellungen gespeichert.'];
+	}
+
+	/**
+	 * @param array<string, string> $settings
+	 * @return array<string, mixed>
+	 */
+	private function buildTrackingConfigurationStatus(array $settings): array
+	{
+		$integrations = [
+			'ga4' => [
+				'label' => 'GA4',
+				'enabled' => ($settings['seo_analytics_ga4_enabled'] ?? '0') === '1',
+				'value' => trim((string)($settings['seo_analytics_ga4_id'] ?? '')),
+				'placeholder_type' => 'ga4',
+				'validation_pattern' => '/^G-[A-Z0-9\-]+$/i',
+			],
+			'gtm' => [
+				'label' => 'GTM',
+				'enabled' => ($settings['seo_analytics_gtm_enabled'] ?? '0') === '1',
+				'value' => trim((string)($settings['seo_analytics_gtm_id'] ?? '')),
+				'placeholder_type' => 'gtm',
+				'validation_pattern' => '/^GTM-[A-Z0-9\-]+$/i',
+			],
+			'fb_pixel' => [
+				'label' => 'Meta Pixel',
+				'enabled' => ($settings['seo_analytics_fb_pixel_enabled'] ?? '0') === '1',
+				'value' => trim((string)($settings['seo_analytics_fb_pixel_id'] ?? '')),
+				'placeholder_type' => 'fb_pixel',
+				'validation_pattern' => '/^[0-9]{5,20}$/',
+			],
+			'matomo' => [
+				'label' => 'Matomo',
+				'enabled' => ($settings['seo_analytics_matomo_enabled'] ?? '0') === '1',
+				'value' => trim((string)($settings['seo_analytics_matomo_url'] ?? '')),
+				'placeholder_type' => 'none',
+				'validation_pattern' => '',
+			],
+		];
+
+		$configured = 0;
+		$partial = 0;
+		$missing = 0;
+		$issues = [];
+		$items = [];
+
+		foreach ($integrations as $key => $integration) {
+			$value = (string)($integration['value'] ?? '');
+			$enabled = !empty($integration['enabled']);
+			$placeholderType = (string)($integration['placeholder_type'] ?? 'none');
+			$hasPlaceholder = $placeholderType !== 'none' && $this->isPlaceholderTrackingId($value, $placeholderType);
+			$validationPattern = (string)($integration['validation_pattern'] ?? '');
+			$isValueValid = $value === '' ? false : match ($key) {
+				'matomo' => $this->normalizeOptionalUrl($value, false) !== '',
+				default => $validationPattern !== '' && $this->normalizeTrackingId($value, $validationPattern) !== '',
+			};
+
+			if ($enabled && $isValueValid && !$hasPlaceholder) {
+				$status = 'configured';
+				$configured++;
+			} elseif ($enabled || $hasPlaceholder) {
+				$status = 'partial';
+				$partial++;
+
+				if ($enabled && $value === '') {
+					$issues[] = (string)($integration['label'] ?? strtoupper($key)) . ': Aktiviert, aber ohne hinterlegte Kennung/URL.';
+				} elseif ($hasPlaceholder) {
+					$issues[] = (string)($integration['label'] ?? strtoupper($key)) . ': Platzhalter-Kennung erkannt (nicht produktiv).';
+				} elseif ($enabled && !$isValueValid) {
+					$issues[] = (string)($integration['label'] ?? strtoupper($key)) . ': Aktiviert, aber Kennung/URL hat ein ungültiges Format.';
+				} else {
+					$issues[] = (string)($integration['label'] ?? strtoupper($key)) . ': Aktiviert, aber ohne gültige produktive Kennung.';
+				}
+			} else {
+				$status = 'missing';
+				$missing++;
+			}
+
+			$items[$key] = [
+				'label' => (string)($integration['label'] ?? strtoupper($key)),
+				'status' => $status,
+				'enabled' => $enabled,
+				'has_value' => $value !== '',
+				'is_valid' => $isValueValid,
+				'uses_placeholder' => $hasPlaceholder,
+			];
+		}
+
+		$overall = 'missing';
+		if ($partial > 0) {
+			$overall = 'partial';
+		} elseif ($configured > 0) {
+			$overall = 'configured';
+		}
+
+		return [
+			'overall' => $overall,
+			'configured_count' => $configured,
+			'partial_count' => $partial,
+			'missing_count' => $missing,
+			'issues' => $issues,
+			'integrations' => $items,
+		];
 	}
 
 	public function saveSitemapSettings(array $post): array
@@ -635,6 +778,8 @@ final class SeoSuiteModule
 			];
 		}
 
+		$trackingSettings = $this->loadSettings(self::ANALYTICS_DEFAULTS);
+
 		return [
 			'visitor_stats' => $this->analyticsService->getVisitorStats(30),
 			'daily_traffic' => $dailyTraffic,
@@ -644,7 +789,8 @@ final class SeoSuiteModule
 			'backlinks' => $backlinks,
 			'internal_link_suggestions' => array_slice($internalLinkSuggestions, 0, 10),
 			'core_web_vitals' => $this->analyticsService->getCoreWebVitals(30),
-			'tracking_settings' => $this->loadSettings(self::ANALYTICS_DEFAULTS),
+			'tracking_settings' => $trackingSettings,
+			'tracking_status' => $this->buildTrackingConfigurationStatus($trackingSettings),
 			'has_page_views' => $hasPageViews,
 		];
 	}
@@ -1139,6 +1285,21 @@ final class SeoSuiteModule
 		}
 
 		return preg_match($pattern, $value) === 1 ? $value : '';
+	}
+
+	private function isPlaceholderTrackingId(string $value, string $type): bool
+	{
+		$value = strtoupper(trim($value));
+		if ($value === '') {
+			return false;
+		}
+
+		return match ($type) {
+			'ga4' => preg_match('/^G-[X0-9]{4,}$/', $value) === 1,
+			'gtm' => preg_match('/^GTM-[X0-9]{4,}$/', $value) === 1,
+			'fb_pixel' => preg_match('/^(?:0+|1{5,}|9{5,}|X{5,})$/', $value) === 1,
+			default => false,
+		};
 	}
 
 	private function normalizePositiveIntString(mixed $value, string $fallback): string
