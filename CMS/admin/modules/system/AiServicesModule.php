@@ -9,6 +9,7 @@ use CMS\AuditLogger;
 use CMS\Database;
 use CMS\Http\Request;
 use CMS\Logger;
+use CMS\Services\AI\AiProviderGateway;
 use CMS\Services\AI\AiSettingsService;
 
 final class AiServicesModule
@@ -213,12 +214,16 @@ final class AiServicesModule
         $rows = $this->db->get_results(
             "SELECT user_id, action, severity, description, metadata, created_at
              FROM {$this->dbPrefix}audit_log
-             WHERE action IN (?, ?) AND created_at >= ?
+             WHERE action IN (?, ?, ?, ?, ?, ?) AND created_at >= ?
              ORDER BY created_at DESC
              LIMIT ?",
             [
                 'ai.editorjs.translate.processed',
                 'ai.editorjs.translate.failed',
+                'ai.content.generate.processed',
+                'ai.content.generate.failed',
+                'ai.seo.generate.processed',
+                'ai.seo.generate.failed',
                 $since,
                 self::USAGE_DATASET_LIMIT,
             ]
@@ -255,7 +260,8 @@ final class AiServicesModule
         $providerId = $this->sanitizeProviderId((string) ($metadata['provider'] ?? ''));
         $providerLabel = $providerLabels[$providerId] ?? ($providerId !== '' ? $providerId : '—');
         $userId = isset($row->user_id) ? (int) $row->user_id : 0;
-        $status = (string) ($row->action ?? '') === 'ai.editorjs.translate.processed' ? 'success' : 'warning';
+        $rowAction = (string) ($row->action ?? '');
+        $status = str_ends_with($rowAction, '.processed') ? 'success' : 'warning';
         $targetLocale = strtolower(trim((string) ($metadata['target_locale'] ?? '')));
         $targetLocale = $targetLocale !== '' ? strtoupper($targetLocale) : '—';
 
@@ -739,6 +745,123 @@ final class AiServicesModule
     public function saveSeoPrompts(array $post): array
     {
         return $this->savePromptTemplatesForArea('seo_creator', $post, 'SEO-Creator-Prompt-Vorlage gespeichert.');
+    }
+
+    /** @return array<string, mixed> */
+    public function generateContentPreview(array $post): array
+    {
+        try {
+            $gateway = AiProviderGateway::getInstance();
+            $result = $gateway->generateContentDraft([
+                'task' => (string) ($post['content_task'] ?? 'summary'),
+                'brief' => (string) ($post['content_brief'] ?? ''),
+                'context' => (string) ($post['content_context'] ?? ''),
+                'tone' => (string) ($post['content_tone'] ?? 'professionell'),
+                'format' => (string) ($post['content_format'] ?? 'review-draft'),
+                'locale' => (string) ($post['content_locale'] ?? 'de'),
+            ]);
+
+            AuditLogger::instance()->log(
+                AuditLogger::CAT_SETTING,
+                'ai.content.generate.processed',
+                'AI-Content-Preview generiert.',
+                'setting',
+                null,
+                [
+                    'provider' => (string) ($result['provider']['slug'] ?? ''),
+                    'provider_type' => (string) ($result['provider']['type'] ?? ''),
+                    'resolved_via' => (string) ($result['provider']['resolved_via'] ?? 'direct'),
+                    'duration_ms' => (int) ($result['telemetry']['duration_ms'] ?? 0),
+                    'char_count' => (int) ($result['telemetry']['char_count'] ?? 0),
+                    'target_locale' => strtoupper((string) ($result['locale'] ?? 'de')),
+                    'block_count' => 0,
+                    'translated_blocks' => 0,
+                ],
+                'info'
+            );
+
+            return $this->inlineGenerationResult('content_creator', 'Content-Preview generiert.', 'content_result', $result);
+        } catch (\Throwable $e) {
+            AuditLogger::instance()->log(
+                AuditLogger::CAT_SETTING,
+                'ai.content.generate.failed',
+                'AI-Content-Preview fehlgeschlagen.',
+                'setting',
+                null,
+                ['exception' => $e::class],
+                'warning'
+            );
+
+            return ['success' => false, 'error' => $this->sanitizeText($e->getMessage(), 220), 'render_inline' => true];
+        }
+    }
+
+    /** @return array<string, mixed> */
+    public function generateSeoPreview(array $post): array
+    {
+        try {
+            $gateway = AiProviderGateway::getInstance();
+            $result = $gateway->generateSeoDraft([
+                'keyword' => (string) ($post['seo_keyword'] ?? ''),
+                'context' => (string) ($post['seo_context'] ?? ''),
+                'locale' => (string) ($post['seo_locale'] ?? 'de'),
+                'content_type' => (string) ($post['seo_content_type'] ?? 'page'),
+            ]);
+
+            AuditLogger::instance()->log(
+                AuditLogger::CAT_SETTING,
+                'ai.seo.generate.processed',
+                'AI-SEO-Preview generiert.',
+                'setting',
+                null,
+                [
+                    'provider' => (string) ($result['provider']['slug'] ?? ''),
+                    'provider_type' => (string) ($result['provider']['type'] ?? ''),
+                    'resolved_via' => (string) ($result['provider']['resolved_via'] ?? 'direct'),
+                    'duration_ms' => (int) ($result['telemetry']['duration_ms'] ?? 0),
+                    'char_count' => (int) ($result['telemetry']['char_count'] ?? 0),
+                    'target_locale' => strtoupper((string) ($result['locale'] ?? 'de')),
+                    'block_count' => 0,
+                    'translated_blocks' => 0,
+                ],
+                'info'
+            );
+
+            return $this->inlineGenerationResult('seo_creator', 'SEO-Preview generiert.', 'seo_result', $result);
+        } catch (\Throwable $e) {
+            AuditLogger::instance()->log(
+                AuditLogger::CAT_SETTING,
+                'ai.seo.generate.failed',
+                'AI-SEO-Preview fehlgeschlagen.',
+                'setting',
+                null,
+                ['exception' => $e::class],
+                'warning'
+            );
+
+            return ['success' => false, 'error' => $this->sanitizeText($e->getMessage(), 220), 'render_inline' => true];
+        }
+    }
+
+    /** @return array<string, mixed> */
+    private function inlineGenerationResult(string $section, string $message, string $resultKey, array $result): array
+    {
+        $data = $this->getData($section);
+        $data[$resultKey] = $result;
+
+        return [
+            'success' => true,
+            'message' => $message,
+            'render_inline' => true,
+            'runtime_context' => [
+                'section' => $section,
+                'data' => $data,
+                'template_vars' => [
+                    'currentSection' => $section,
+                    'currentRoutePath' => $section === 'seo_creator' ? '/admin/ai-seo-creator' : '/admin/ai-content-creator',
+                ],
+            ],
+        ];
     }
 
     /** @return array<string, mixed> */

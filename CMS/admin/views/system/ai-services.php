@@ -52,6 +52,8 @@ $generationHistory = array_values(array_filter(
     (array) ($data['generation_history'] ?? []),
     static fn (mixed $entry): bool => is_array($entry)
 ));
+$contentGenerationResult = is_array($data['content_result'] ?? null) ? $data['content_result'] : [];
+$seoGenerationResult = is_array($data['seo_result'] ?? null) ? $data['seo_result'] : [];
 $currentSection = $currentSection ?? 'overview';
 $navItems = [
     'overview' => ['label' => 'Dashboard', 'url' => '/admin/ai-services'],
@@ -262,7 +264,7 @@ if (empty($summary['translation_ready'])) {
                             <li class="mb-2">✅ Translation, Content-Assist und SEO-Assist lassen sich auf Provider-Ebene getrennt schalten.</li>
                             <li class="mb-2">✅ Das AI-Dashboard zeigt jetzt request- und quota-nahe Nutzungsdaten sowie letzte Generierungsläufe aus dem Audit-Log, ohne Rohprompts oder Volltexte offenzulegen.</li>
                             <li class="mb-2">✅ Prompt-Vorlagen lassen sich je Bereich verwalten; die Translation-Vorlage wirkt direkt in der Live-Pipeline und bleibt durch serverseitige Pflicht-Leitplanken abgesichert.</li>
-                            <li class="mb-2">⚠️ Live-Generatoren für Content- und SEO-Outputs sind als nächster Ausbauschritt vorgesehen, derzeit aber noch Leitplanken-/Settings-getrieben.</li>
+                            <li class="mb-2">✅ Content- und SEO-Generatoren liefern serverseitige Preview-Ausgaben über dieselben Provider-Gates wie Translation.</li>
                             <li>⚠️ Feingranulare Daily-/Monthly-Quota-Erzwingung und echte providerübergreifende Tokenkosten bleiben Follow-up-Arbeit, solange Live-Provider ihre Usage-Daten nicht konsistent zurückmelden.</li>
                         </ul>
                     </div>
@@ -501,15 +503,91 @@ if (empty($summary['translation_ready'])) {
         </div>
 
         <div class="row row-cards">
+            <div class="col-12">
+                <form method="post" class="card">
+                    <?php $renderFormContext('generate_content'); ?>
+                    <div class="card-header d-flex justify-content-between align-items-center gap-3 flex-wrap">
+                        <div>
+                            <h3 class="card-title mb-1">Content-Preview generieren</h3>
+                            <div class="text-secondary small">Human-in-the-loop: Es wird nur eine Vorschau erzeugt, nichts automatisch veröffentlicht.</div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Preview generieren</button>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label class="form-label">Workflow</label>
+                                <select class="form-select" name="content_task">
+                                    <option value="summary">Zusammenfassung</option>
+                                    <option value="rewrite">Rewrite</option>
+                                    <option value="outline">Outline</option>
+                                    <option value="cta">CTA-Varianten</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Sprache</label>
+                                <input type="text" class="form-control" name="content_locale" maxlength="12" value="de">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Tonality</label>
+                                <input type="text" class="form-control" name="content_tone" maxlength="120" value="professionell, klar, hilfreich">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Format</label>
+                                <input type="text" class="form-control" name="content_format" maxlength="120" value="review-draft">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Briefing</label>
+                                <textarea class="form-control" name="content_brief" rows="4" maxlength="6000" required placeholder="Was soll die KI ausarbeiten, zusammenfassen oder umschreiben?"></textarea>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Kontext / Ausgangstext</label>
+                                <textarea class="form-control" name="content_context" rows="6" maxlength="6000" placeholder="Optionaler Seiten-/Beitragstext, Zielgruppe, Constraints, Quellenhinweise..."></textarea>
+                                <div class="form-hint">Secrets, API-Keys und personenbezogene Daten gehören nicht in Prompts. Die Ausgabe bleibt Preview.</div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <?php if ($contentGenerationResult !== []): ?>
+                <?php $contentResult = is_array($contentGenerationResult['content'] ?? null) ? $contentGenerationResult['content'] : []; ?>
+                <div class="col-12">
+                    <div class="card border-primary">
+                        <div class="card-header d-flex justify-content-between align-items-start gap-3 flex-wrap">
+                            <div>
+                                <h3 class="card-title mb-1">Generierte Content-Preview</h3>
+                                <div class="text-secondary small">Provider: <?php echo htmlspecialchars((string) ($contentGenerationResult['provider']['label'] ?? '—')); ?> · Modell: <?php echo htmlspecialchars((string) ($contentGenerationResult['provider']['model'] ?? '—')); ?> · <?php echo (int) ($contentGenerationResult['telemetry']['duration_ms'] ?? 0); ?> ms</div>
+                            </div>
+                            <span class="badge bg-primary-lt">Preview · keine Persistenz</span>
+                        </div>
+                        <div class="card-body">
+                            <h4><?php echo htmlspecialchars((string) ($contentResult['title'] ?? 'Content-Vorschlag')); ?></h4>
+                            <?php if (trim((string) ($contentResult['summary'] ?? '')) !== ''): ?>
+                                <p class="text-secondary"><?php echo nl2br(htmlspecialchars((string) $contentResult['summary'])); ?></p>
+                            <?php endif; ?>
+                            <?php if (trim((string) ($contentResult['draft'] ?? '')) !== ''): ?>
+                                <div class="border rounded p-3 bg-light-subtle mb-3"><?php echo nl2br(htmlspecialchars((string) $contentResult['draft'])); ?></div>
+                            <?php endif; ?>
+                            <?php $variants = array_values(array_filter(array_map('strval', (array) ($contentResult['variants'] ?? [])))); ?>
+                            <?php if ($variants !== []): ?>
+                                <div class="mb-3"><strong>Varianten</strong><ul class="mb-0 mt-2"><?php foreach ($variants as $variant): ?><li><?php echo htmlspecialchars($variant); ?></li><?php endforeach; ?></ul></div>
+                            <?php endif; ?>
+                            <?php if (trim((string) ($contentResult['rationale'] ?? '')) !== ''): ?>
+                                <div class="alert alert-info mb-0 small"><?php echo nl2br(htmlspecialchars((string) $contentResult['rationale'])); ?></div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+            <?php endif; ?>
             <div class="col-12 col-xl-7">
                 <div class="card h-100">
-                    <div class="card-header"><h3 class="card-title">Geplante Content-Workflows</h3></div>
+                    <div class="card-header"><h3 class="card-title">Verfügbare Content-Workflows</h3></div>
                     <div class="card-body text-secondary small">
                         <ul class="mb-0 ps-3">
                             <li>Absatz-Rewrite für Seiten- und Beitragsentwürfe</li>
                             <li>Zusammenfassungen, CTA-Textvarianten und Snippet-Ideen</li>
                             <li>Outline-/Briefing-Helfer für neue Inhalte</li>
-                            <li>Späterer Ausbau zu Formular- oder Modal-getriebenen Creator-Flows</li>
+                            <li>Serverseitige Preview-Generierung mit Provider-Readiness-Prüfung</li>
                         </ul>
                     </div>
                 </div>
@@ -518,7 +596,7 @@ if (empty($summary['translation_ready'])) {
                 <div class="card h-100">
                     <div class="card-header"><h3 class="card-title">Status</h3></div>
                     <div class="card-body text-secondary small">
-                        Der Bereich ist bereits im Modulvertrag und in den Provider-Profilen vorbereitet. Die eigentlichen Content-Creator-Generatoren folgen als nächster Funktionsschritt – ohne später wieder Routing oder Rechte umzubauen.
+                        Der Bereich erzeugt jetzt echte serverseitige Vorschauen über Provider mit Rewrite- oder Summary-Fähigkeit. Ausgaben bleiben bewusst Human-in-the-loop und werden nicht automatisch gespeichert.
                     </div>
                 </div>
             </div>
@@ -566,15 +644,75 @@ if (empty($summary['translation_ready'])) {
         </div>
 
         <div class="row row-cards">
+            <div class="col-12">
+                <form method="post" class="card">
+                    <?php $renderFormContext('generate_seo'); ?>
+                    <div class="card-header d-flex justify-content-between align-items-center gap-3 flex-wrap">
+                        <div>
+                            <h3 class="card-title mb-1">SEO-Preview generieren</h3>
+                            <div class="text-secondary small">Erzeugt Title-/Description-/Social-/Schema-Vorschläge zur redaktionellen Prüfung.</div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">SEO-Preview generieren</button>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label">Primäres Keyword</label>
+                                <input type="text" class="form-control" name="seo_keyword" maxlength="160" placeholder="z. B. Microsoft 365 Backup">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Sprache</label>
+                                <input type="text" class="form-control" name="seo_locale" maxlength="12" value="de">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Inhaltstyp</label>
+                                <select class="form-select" name="seo_content_type">
+                                    <option value="page">Seite</option>
+                                    <option value="post">Beitrag</option>
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Seiten-/Beitragskontext</label>
+                                <textarea class="form-control" name="seo_context" rows="7" maxlength="6000" required placeholder="Titel, Kurzbeschreibung, relevante Abschnitte, Zielgruppe, Suchintention..."></textarea>
+                                <div class="form-hint">Die KI darf keine Fakten erfinden; bei dünnem Kontext werden Warnungen erwartet.</div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <?php if ($seoGenerationResult !== []): ?>
+                <?php $seoResult = is_array($seoGenerationResult['seo'] ?? null) ? $seoGenerationResult['seo'] : []; ?>
+                <div class="col-12">
+                    <div class="card border-primary">
+                        <div class="card-header d-flex justify-content-between align-items-start gap-3 flex-wrap">
+                            <div>
+                                <h3 class="card-title mb-1">Generierte SEO-Preview</h3>
+                                <div class="text-secondary small">Provider: <?php echo htmlspecialchars((string) ($seoGenerationResult['provider']['label'] ?? '—')); ?> · Modell: <?php echo htmlspecialchars((string) ($seoGenerationResult['provider']['model'] ?? '—')); ?> · <?php echo (int) ($seoGenerationResult['telemetry']['duration_ms'] ?? 0); ?> ms</div>
+                            </div>
+                            <span class="badge bg-primary-lt">Review erforderlich</span>
+                        </div>
+                        <div class="card-body">
+                            <dl class="row mb-0">
+                                <dt class="col-md-3">Meta Title</dt><dd class="col-md-9"><?php echo htmlspecialchars((string) ($seoResult['meta_title'] ?? '')); ?></dd>
+                                <dt class="col-md-3">Meta Description</dt><dd class="col-md-9"><?php echo htmlspecialchars((string) ($seoResult['meta_description'] ?? '')); ?></dd>
+                                <dt class="col-md-3">Social Title</dt><dd class="col-md-9"><?php echo htmlspecialchars((string) ($seoResult['social_title'] ?? '')); ?></dd>
+                                <dt class="col-md-3">Social Description</dt><dd class="col-md-9"><?php echo htmlspecialchars((string) ($seoResult['social_description'] ?? '')); ?></dd>
+                                <dt class="col-md-3">Keywords</dt><dd class="col-md-9"><?php echo htmlspecialchars(implode(', ', (array) ($seoResult['keywords'] ?? []))); ?></dd>
+                                <dt class="col-md-3">Schema-Hinweise</dt><dd class="col-md-9"><?php echo htmlspecialchars(implode(', ', (array) ($seoResult['schema_hints'] ?? []))); ?></dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            <?php endif; ?>
             <div class="col-12 col-xl-7">
                 <div class="card h-100">
-                    <div class="card-header"><h3 class="card-title">Geplante SEO-Workflows</h3></div>
+                    <div class="card-header"><h3 class="card-title">Verfügbare SEO-Workflows</h3></div>
                     <div class="card-body text-secondary small">
                         <ul class="mb-0 ps-3">
                             <li>Title-/Meta-Description-Vorschläge pro Entwurf</li>
                             <li>Social Snippets, OpenGraph-Ideen und strukturierte Daten-Hinweise</li>
                             <li>Keyword- und Intent-basierte Outline-Verbesserungen</li>
-                            <li>Spätere Anbindung an SEO-Dashboard und Editor-Assist</li>
+                            <li>Serverseitige Preview-Generierung mit Review-Pflicht</li>
                         </ul>
                     </div>
                 </div>
@@ -583,7 +721,7 @@ if (empty($summary['translation_ready'])) {
                 <div class="card h-100">
                     <div class="card-header"><h3 class="card-title">Status</h3></div>
                     <div class="card-body text-secondary small">
-                        Der SEO Creator ist als eigenständiger Navigationspunkt vorbereitet und kann auf dem bereits vorhandenen SEO-Modul aufsetzen, ohne wieder unter „System“ zu verschwinden.
+                        Der SEO Creator ist als eigenständiger Navigationspunkt live nutzbar und erzeugt Preview-Vorschläge über Provider mit SEO-/Meta-Fähigkeit, ohne automatisch zu veröffentlichen.
                     </div>
                 </div>
             </div>

@@ -23,4 +23,9 @@ interface AiProviderInterface
      * @return list<string>
      */
     public function translateBatch(array $segments, array $context = []): array;
+
+    /**
+     * @param array<string, mixed> $context
+     */
+    public function generateText(string $systemPrompt, string $userPrompt, array $context = []): string;
 }

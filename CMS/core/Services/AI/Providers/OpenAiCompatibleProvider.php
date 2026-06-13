@@ -100,6 +100,61 @@ final class OpenAiCompatibleProvider extends AbstractPromptingAiProvider
         return $this->extractTranslationsFromResponse($content, $segments);
     }
 
+    /** @param array<string, mixed> $context */
+    public function generateText(string $systemPrompt, string $userPrompt, array $context = []): string
+    {
+        if ($this->endpoint === '') {
+            throw new \RuntimeException($this->providerLabel . ': Endpoint fehlt.');
+        }
+
+        if ($this->apiKey === '') {
+            throw new \RuntimeException($this->providerLabel . ': API-Key fehlt.');
+        }
+
+        $payload = [
+            'model' => $this->getDefaultModel(),
+            'messages' => [
+                ['role' => 'system', 'content' => $systemPrompt],
+                ['role' => 'user', 'content' => $userPrompt],
+            ],
+            'temperature' => max(0.0, min(1.0, (float) ($context['temperature'] ?? 0.2))),
+            'response_format' => ['type' => 'json_object'],
+        ];
+
+        $response = $this->httpClient->post(
+            $this->buildRequestUrl(),
+            (string) json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            [
+                'headers' => [
+                    'Content-Type: application/json',
+                    'Accept: application/json',
+                    'Authorization: Bearer ' . $this->apiKey,
+                ],
+                'timeout' => $this->timeoutSeconds,
+                'connectTimeout' => min(5, $this->timeoutSeconds),
+                'maxBytes' => 2 * 1024 * 1024,
+                'allowedContentTypes' => ['application/json', 'text/plain'],
+            ]
+        );
+
+        if (!$response['success']) {
+            throw new \RuntimeException($this->buildTransportError($response));
+        }
+
+        try {
+            $decoded = json_decode((string) $response['body'], true, 512, JSON_THROW_ON_ERROR);
+        } catch (\Throwable) {
+            throw new \RuntimeException($this->providerLabel . ' lieferte keine gültige JSON-Antwort zurück.');
+        }
+
+        $content = $this->extractAssistantContent($decoded);
+        if ($content === '') {
+            throw new \RuntimeException($this->providerLabel . ' lieferte keine verwertbare Generierungsantwort zurück.');
+        }
+
+        return $content;
+    }
+
     private function buildRequestUrl(): string
     {
         $endpoint = rtrim($this->endpoint, '/');
