@@ -5,7 +5,7 @@
 **Methodik:** Lokale Struktur-, Konfigurations- und Codeanalyse der 365CMS-Core-Codebasis. Für alle 365CMS-Hauptprojekt-Audits zählt ausschließlich `365CMS.DE/CMS/**`; `TESTS/**` wird nur als Validierungsnachweis herangezogen. Root-Ordner wie `ASSETS`, `BACKUP` oder externe Repositories zählen nicht als Core-Fundstelle. Keine Secrets wurden ausgegeben.
 
 ## Executive Summary
-Der technische Gesamtscore beträgt **88/100** (verbessert), der Sicherheitsbereich liegt nach dem Security-Abschlussgate bei **92/100**. 365CMS wirkt funktionsreich und enthält mehrere belegbare Schutzmechanismen (CSRF, Security Header, Upload-Prüfungen, SQL-Identifier-Guards, Header-first Cron-Token, Syntax-saubere PHP-Ausführung im fokussierten Scope). Zusätzlich wurden Performance-/SEO-Hotspots, DB-Wartungsgrenzen, Test-Orchestrierung, Dependency-Governance im `CMS`-Scope und AI/KI-Provider-Vollständigkeit reduziert. Die größten Restrisiken liegen weiterhin in fehlendem vollständigem Backup-Queue/Resume-Modell, physischer Trennung von `CMS`-Source/Release-Artefakten, breiter Wartbarkeitsmigration außerhalb der Security-Hotspots und fehlender CI-Vollverkabelung des manifestierten zentralen Test-Runners.
+Der technische Gesamtscore beträgt **88/100** (verbessert), der Sicherheitsbereich liegt nach dem Security-Abschlussgate bei **92/100**. 365CMS wirkt funktionsreich und enthält mehrere belegbare Schutzmechanismen (CSRF, Security Header, Upload-Prüfungen, SQL-Identifier-Guards, Header-first Cron-Token, Syntax-saubere PHP-Ausführung im fokussierten Scope). Zusätzlich wurden Performance-/SEO-Hotspots, DB-Wartungsgrenzen, Test-Orchestrierung, Dependency-Governance im `CMS`-Scope, AI/KI-Provider-Vollständigkeit sowie Content-/SEO-Preview-Generatoren reduziert. Die größten Restrisiken liegen weiterhin in fehlendem vollständigem Backup-Queue/Resume-Modell, physischer Trennung von `CMS`-Source/Release-Artefakten, breiter Wartbarkeitsmigration außerhalb der Security-Hotspots und fehlender CI-Vollverkabelung des manifestierten zentralen Test-Runners.
 
 ## Inventar-Zusammenfassung
 | ID | Typ | Name | Beschreibung/Zweck | Relevante Dateien | Einstiegspunkt/Aufrufpfad | Abhängigkeiten | Audit-Relevanz | Quelle |
@@ -32,7 +32,7 @@ Der technische Gesamtscore beträgt **88/100** (verbessert), der Sicherheitsbere
 | Performance | 88 |
 | SEO | 94 |
 | PHP 8.4 Best Practice und Kompatibilität | 80 |
-| Funktionsvollständigkeit | 97 |
+| Funktionsvollständigkeit | 98 |
 | Unvollständige Implementierungen | 98 |
 | Wartbarkeit | 75 |
 | **Gesamt** | **88** |
@@ -43,7 +43,7 @@ Der technische Gesamtscore beträgt **88/100** (verbessert), der Sicherheitsbere
 | Modul | MOD-CORE | 77 | Core ist strukturiert, aber generische Query- und Maintenance-Pfade erhöhen Risiko. |
 | Modul | MOD-ADMIN | 82 | Request-Zentralisierung in Admin-Modulen deutlich vorangeschritten; CSRF-Strukturen vorhanden. |
 | Modul | MOD-MEDIA | 88 | Funktional umfangreich, Alt-Text-Gate verbessert SEO-/A11y-Sichtbarkeit; Upload-/Import-Härtung ist per Security-Baseline abgesichert. |
-| Modul | MOD-AI | 91 | Logischer AI-Adminbereich und Live-Provider für Azure AI, Ollama, OpenAI, Mistral AI und OpenRouter vorhanden. |
+| Modul | MOD-AI | 95 | Logischer AI-Adminbereich, Live-Provider für Azure AI, Ollama, OpenAI, Mistral AI und OpenRouter sowie Content-/SEO-Preview-Generatoren vorhanden. |
 | Modul | MOD-SEO | 91 | SEO-Services vorhanden, Tagcloud-Performance, Alt-Text-Gate, Sitemap-Smoke-Test und Tracking-Healthcheck verbessert. |
 | Modul | MOD-LEGAL | 84 | Consent-/Placeholder-Logik und Tracking-/Consent-Healthcheck mit Deploy-Warnung vorhanden. |
 | Modul | MOD-MEMBER | 76 | Member-Funktionen vorhanden, Upload-Feature konfigurationsabhängig. |
@@ -55,7 +55,7 @@ Der technische Gesamtscore beträgt **88/100** (verbessert), der Sicherheitsbere
 | Feature | Datenbankzugriff | 75 | Prepared APIs existieren, generische Query-API bleibt Wartbarkeitsrisiko. |
 | Feature | Backup/Wartung | 80 | Backup-Dumps sind chunked/streaming; synchrone DB-Wartung hat Inline-Limits, Queue/Resume bleibt offen. |
 | Feature | Dependency Governance | 78 | Vendor-Wurzeln und Package-Manifeste sind inventarisiert und per Smoke-Test prüfbar; physische Artefakt-Trennung bleibt offen. |
-| Feature | AI/KI Provider | 93 | Azure AI, OpenAI, Mistral AI, OpenRouter, Ollama und Mock sind addable und gatewayseitig prüfbar. |
+| Feature | AI/KI Provider & Generatoren | 96 | Azure AI, OpenAI, Mistral AI, OpenRouter, Ollama und Mock sind addable, gatewayseitig prüfbar und für Translation/Content/SEO-Previews nutzbar. |
 | Feature | Sitemap/SEO | 90 | Mehrere Services vorhanden; Sitemap-Service-Smoke-Test und Tracking-/Consent-Healthcheck decken zentrale SEO-Release-Risiken ab. |
 | Funktion | Web-Cron Token | 92 | Header-first; Query-Fallback ist explizit gated, sunset-geschützt und auditierbar. |
 | Funktion | Tagcloud | 84 | Homepage-Tagcloud nutzt Cache mit Frische-Schlüssel statt Vollscan pro Request. |
@@ -83,7 +83,7 @@ Wartbarkeit                        75 | ##############################
 ## Top-Findings
 | ID | Schweregrad | Bereich | Beschreibung | Fundstelle |
 |---|---|---|---|---|
-| MAINT-001 | mittel | Wartbarkeit | Vendored Dependencies und Artefakte sind inventarisiert; physische Trennung von Source/Release-Artefakten bleibt offen. | docs\audit\dependency-governance.json, ASSETS, CMS\assets, CMS\vendor |
+| MAINT-001 | mittel | Wartbarkeit | Vendored Dependencies und Artefakte sind im `CMS`-Scope inventarisiert; physische Trennung von Source/Release-Artefakten bleibt offen. | docs\audit\dependency-governance.json, CMS\assets, CMS\vendor |
 | PERF-001 | mittel | Performance | Backup-Queue/Resume-Modell ist noch nicht vollständig persistiert. | CMS\core\Services\BackupService.php |
 | MAINT-002 | mittel | Wartbarkeit | Direkte Superglobal-Restmigration außerhalb des abgeschlossenen Security-Hotspots bleibt offen. | CMS\* |
 | PHP84-001 | hoch | PHP 8.4 | Kein zentrales Root-/CMS-Composer-Manifest/Lockfile gefunden. | Repository-Konfiguration |
@@ -92,7 +92,7 @@ Wartbarkeit                        75 | ##############################
 1. **P1:** Dependency-/Artifact-Governance im `CMS`-Scope weiterführen: Composer/NPM-Metadaten, SBOM, Lockfiles, Drittbibliotheken und Backups aus dem Core-Quellscope trennen.
 2. **P1:** Backup-/Wartungsjobs auf persistierte Queue/Resume-Modelle erweitern.
 3. **P1:** SQL-Identifier-/Maintenance-Pfade härten und `Database::query()` aus Fachmodulen zurückdrängen.
-4. **P2:** AI/KI-Content- und SEO-Livegeneratoren auf Basis der jetzt vorhandenen Provider-/Prompt-Gates ausbauen.
+4. **P2:** Providerbezogene Token-/Kostenmetriken für AI/KI normalisieren, sobald Live-Provider konsistente Usage-Daten liefern.
 5. **P2:** Manifestierte zentrale Test-Pipeline in CI verkabeln und PHP-8.4-Deprecation-Gate ergänzen.
 6. **P2:** Request-DTO-/Validator-Layer einführen und verbleibende direkte Superglobal-Nutzung außerhalb `CMS/admin/modules/**` schrittweise reduzieren.
 
@@ -163,6 +163,13 @@ Wartbarkeit                        75 | ##############################
 - `AiSettingsService` und `AiProviderGateway` markieren Azure AI, OpenAI, Mistral AI, OpenRouter, Ollama und Mock als logisch konfigurierbare Provider; Azure AI behält Endpoint/Deployment/API-Version-Prüfung.
 - `TESTS\ai-services\run.php` validiert Provider-Katalog, Live-Support, Autoloading, Gateway-Verdrahtung und Admin-Navigation; Ausführung → **PASS**.
 - Score-Auswirkung: **Funktionsvollständigkeit 95 → 97**, technischer Gesamtscore **87 → 88**.
+
+## Update 2026-06-13 (AI/KI Content-/SEO-Generatoren)
+- Provider-Interface und Live-Provider unterstützen jetzt generische strukturierte `generateText()`-Ausgaben.
+- `AiProviderGateway::generateContentDraft()` und `generateSeoDraft()` erzeugen Review-Previews über Capability-Gates (`rewrite`, `summary`, `seo_meta`) und Quota-Prüfung.
+- `AiServicesModule` ergänzt `generate_content` und `generate_seo`; die Admin-View zeigt Formulare und Ergebnis-Karten inline, ohne automatische Persistenz.
+- `TESTS\ai-services\run.php` validiert Generatorfähigkeit, Gateway-Methoden, Admin-Actions und Preview-UI; Ausführung → **PASS**.
+- Score-Auswirkung: **Funktionsvollständigkeit 97 → 98**, **MOD-AI 91 → 95**, technischer Gesamtscore bleibt gerundet bei **88**.
 
 ## Quellen-/Evidenzklassifizierung
 - **Codefund:** konkrete Datei-/Zeilenfunde in CMS\core, CMS\admin, CMS\plugins, CMS\themes.

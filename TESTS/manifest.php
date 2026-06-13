@@ -37,7 +37,7 @@ return [
     ],
     'ai-services' => [
         'script' => __DIR__ . DIRECTORY_SEPARATOR . 'ai-services' . DIRECTORY_SEPARATOR . 'run.php',
-        'description' => 'Prüft AI/KI-Provider-Katalog, Mistral/OpenAI-kompatible Live-Adapter und Admin-Navigation.',
+            'description' => 'Prüft AI/KI-Provider-Katalog, Mistral/OpenAI-kompatible Live-Adapter, Content-/SEO-Generatoren und Admin-Navigation.',
         'required' => true,
     ],
 ];

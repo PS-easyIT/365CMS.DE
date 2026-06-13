@@ -2,18 +2,18 @@
 
 **Audit-Scope:** ausschließlich `365CMS.DE/CMS/**` für 365CMS-Core-Bewertungen; `TESTS/**` dient nur als Validierungsnachweis.
 
-**Bereichsscore:** 91/100
+**Bereichsscore:** 95/100
 
 ## Kurzfazit
-Die AI/KI-Module sind jetzt logisch als eigener Adminbereich aufgebaut und für produktive Provider-Anbindungen vorbereitet. Der Adminbereich trennt Dashboard, Übersetzung, Inhaltsassistent, SEO-Assistent und Einstellungen. Azure AI, Ollama, OpenAI, Mistral AI und OpenRouter sind im Provider-Katalog sichtbar, addable und gatewayseitig als Live-Provider verdrahtet.
+Die AI/KI-Module sind jetzt logisch als eigener Adminbereich aufgebaut und für produktive Provider-Anbindungen nutzbar. Der Adminbereich trennt Dashboard, Übersetzung, Inhaltsassistent, SEO-Assistent und Einstellungen. Azure AI, Ollama, OpenAI, Mistral AI und OpenRouter sind im Provider-Katalog sichtbar, addable und gatewayseitig als Live-Provider verdrahtet; Inhalts- und SEO-Assistent erzeugen serverseitige Preview-Ausgaben mit Human-in-the-loop-Pflicht.
 
 ## Inventar
 | Modul | Zweck | Status | Dateien |
 |---|---|---|---|
 | AI Admin Routing | Einheitliche AI-Unterseiten und Actions | ✅ vollständig | `CMS/admin/ai-page.php`, `CMS/admin/ai-*.php` |
-| AI Services Admin | Provider, Gates, Quotas, Logging, Prompt-Vorlagen | ✅ vollständig | `CMS/admin/modules/system/AiServicesModule.php`, `CMS/admin/views/system/ai-services.php` |
+| AI Services Admin | Provider, Gates, Quotas, Logging, Prompt-Vorlagen, Preview-Generatoren | ✅ vollständig | `CMS/admin/modules/system/AiServicesModule.php`, `CMS/admin/views/system/ai-services.php` |
 | Editor.js Translation | Geschützter Übersetzungsendpunkt | ✅ vollständig | `CMS/admin/ai-translate-editorjs.php`, `CMS/admin/modules/system/AiEditorJsTranslationModule.php` |
-| Provider Gateway | Provider-Auswahl, Fallback, Readiness, Telemetrie | ✅ erweitert | `CMS/core/Services/AI/AiProviderGateway.php` |
+| Provider Gateway | Provider-Auswahl, Fallback, Readiness, Translation, Content-/SEO-Generierung, Telemetrie | ✅ erweitert | `CMS/core/Services/AI/AiProviderGateway.php` |
 | Provider Settings | Provider-Katalog, Secrets, Defaults, Feature-Gates | ✅ erweitert | `CMS/core/Services/AI/AiSettingsService.php` |
 | Live Provider | Azure AI, Ollama, OpenAI-kompatible APIs | ✅ erweitert | `CMS/core/Services/AI/Providers/*` |
 
@@ -31,11 +31,13 @@ Die AI/KI-Module sind jetzt logisch als eigener Adminbereich aufgebaut und für 
 - `OpenAiCompatibleProvider` ergänzt OpenAI-kompatible Chat-Completions für OpenAI, Mistral AI und OpenRouter.
 - `AiSettingsService` kennt `mistral`, setzt sinnvolle Defaults und markiert OpenAI/Mistral/OpenRouter als addable/live.
 - `AiProviderGateway` initialisiert OpenAI-kompatible Provider, validiert Endpoint/Modell/API-Key und behält Azure-spezifische Deployment-Prüfung bei.
+- `AiProviderGateway::generateContentDraft()` und `generateSeoDraft()` liefern strukturierte Preview-Ausgaben für Inhalts- und SEO-Assistenten.
+- Alle Provider implementieren `generateText()` für generische JSON-basierte Content-/SEO-Ausgaben; Mock liefert sichere Test-Previews.
+- `AiServicesModule` verarbeitet `generate_content` und `generate_seo` inline, protokolliert Audit-Metadaten und veröffentlicht keine Inhalte automatisch.
 - Admintexte und Provider-Hinweise nennen Azure AI, Mistral AI, OpenAI, OpenRouter und Ollama explizit.
-- `TESTS/ai-services/run.php` validiert Provider-Katalog, Live-Support, Autoloading, Gateway-Verdrahtung und logische Admin-Navigation.
+- `TESTS/ai-services/run.php` validiert Provider-Katalog, Live-Support, Autoloading, Gateway-Verdrahtung, Generatorfähigkeit und logische Admin-Navigation.
 
 ## Verbleibende Follow-ups
-- Live-Generatoren für Content- und SEO-Ausgaben sind weiterhin als nächster Feature-Ausbau vorgesehen; Prompt-Vorlagen und Provider-Gates sind bereits vorbereitet.
 - Echte Tokenkosten/Usage-Metriken hängen von Provider-Antworten ab und sollten später providerweise normalisiert werden.
 - CI-Verkabelung des manifestierten Test-Runners bleibt ein allgemeines Tooling-Follow-up.
 
