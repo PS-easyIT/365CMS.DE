@@ -4473,13 +4473,13 @@
                 quotePlaceholder: 'Zitat',
                 captionPlaceholder: 'Quelle'
             }
-        }, availableBlockTunes), true);
+        }, availableBlockTunes), false);
 
-        addTool(tools, 'code', withBlockTunes({}, availableBlockTunes), true);
+        addTool(tools, 'code', withBlockTunes({}, availableBlockTunes), false);
         addTool(tools, 'table', withBlockTunes({
             inlineToolbar: inlineToolbar,
             config: { rows: 3, cols: 3, maxRows: 20, maxCols: 10, maxrows: 20, maxcols: 10 }
-        }, availableBlockTunes), true);
+        }, availableBlockTunes), false);
         addTool(tools, 'delimiter', withBlockTunes({
             config: {
                 styleOptions: ['line', 'dash', 'star'],
@@ -4489,7 +4489,7 @@
                 lineThicknessOptions: [1, 2, 3, 4, 5, 6],
                 defaultLineThickness: 2
             }
-        }, availableBlockTunes), true);
+        }, availableBlockTunes), false);
         addTool(tools, 'spacer', withBlockTunes({}, availableBlockTunes), true);
 
         addTool(tools, 'embed', withBlockTunes({
@@ -4820,7 +4820,31 @@
     window.cmsNormalizeEditorJsData = normalizeInitialData;
     window.cmsEditorJsOrgAssetTools = TOOL_NAMES.slice();
     window.cmsEditorJsOrgAssetPlugins = PLUGIN_NAMES.slice();
-    window.cmsEditorJsCoreReady = Promise.resolve(typeof window.EditorJS === 'function');
+    window.cmsEditorJsCoreReady = new Promise(function (resolve, reject) {
+        var startedAt = Date.now();
+        var maxWaitMs = 7000;
+        var pollMs = 80;
+
+        function runtimeReady() {
+            return typeof window.EditorJS === 'function' && typeof window.createCmsEditor === 'function';
+        }
+
+        function pollRuntime() {
+            if (runtimeReady()) {
+                resolve(true);
+                return;
+            }
+
+            if (Date.now() - startedAt >= maxWaitMs) {
+                reject(new Error('EditorJS runtime incomplete: core=' + String(typeof window.EditorJS) + ', factory=' + String(typeof window.createCmsEditor)));
+                return;
+            }
+
+            window.setTimeout(pollRuntime, pollMs);
+        }
+
+        pollRuntime();
+    });
 
     if (!window.cmsEditorDebug || typeof window.cmsEditorDebug !== 'object') {
         window.cmsEditorDebug = {};

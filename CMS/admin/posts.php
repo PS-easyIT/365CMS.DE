@@ -113,7 +113,40 @@ function cms_admin_posts_normalize_view(mixed $view): string
 {
     $normalizedView = trim((string) $view);
 
+    if (in_array($normalizedView, ['new', 'create', 'add'], true)) {
+        return 'edit';
+    }
+
     return in_array($normalizedView, CMS_ADMIN_POSTS_ALLOWED_VIEWS, true) ? $normalizedView : 'list';
+}
+
+function cms_admin_posts_asset_url(string $relativePath): string
+{
+    if (function_exists('cms_asset_url')) {
+        return cms_asset_url($relativePath);
+    }
+
+    $normalizedPath = ltrim(str_replace('\\', '/', $relativePath), '/');
+    if (function_exists('cms_assets_url')) {
+        $url = cms_assets_url($normalizedPath);
+    } else {
+        $baseUrl = defined('ASSETS_URL')
+            ? (string) ASSETS_URL
+            : (defined('SITE_URL') ? rtrim((string) SITE_URL, '/') . '/assets' : (defined('BASE_URL') ? rtrim((string) BASE_URL, '/') . '/assets' : '/assets'));
+        $url = rtrim(str_replace('\\', '/', $baseUrl), '/') . '/' . $normalizedPath;
+    }
+    $assetPath = defined('ASSETS_PATH')
+        ? rtrim(str_replace(['/', '\\'], DIRECTORY_SEPARATOR, (string) ASSETS_PATH), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $normalizedPath)
+        : null;
+
+    if (is_string($assetPath) && is_file($assetPath)) {
+        $modified = filemtime($assetPath);
+        if ($modified !== false) {
+            $url .= '?v=' . rawurlencode((string) $modified);
+        }
+    }
+
+    return $url;
 }
 
 function cms_admin_posts_normalize_positive_id(mixed $id): int
@@ -325,9 +358,9 @@ function cms_admin_posts_view_config(object $module, string $view, ?array $overr
         $pageAssets['css'] = $pageAssets['css'] ?? [];
         $pageAssets['js'] = $pageAssets['js'] ?? [];
         if (!class_exists(CoreModuleService::class) || CoreModuleService::getInstance()->isModuleEnabled('seo')) {
-            $pageAssets['js'][] = cms_asset_url('js/admin-seo-editor.js');
+            $pageAssets['js'][] = cms_admin_posts_asset_url('js/admin-seo-editor.js');
         }
-        $pageAssets['js'][] = cms_asset_url('js/admin-content-editor.js');
+        $pageAssets['js'][] = cms_admin_posts_asset_url('js/admin-content-editor.js');
 
         return [
             'section' => 'edit',

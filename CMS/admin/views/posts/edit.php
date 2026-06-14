@@ -297,7 +297,7 @@ $additionalCategoryIds = array_values(array_filter(
             $activeEditorHolderId = $isEnglishEditorView ? 'editorjsEn' : 'editorjs';
             $activeContentFieldName = $isEnglishEditorView ? 'content_en' : 'content';
             $activeContentPlainTextValue = $isEnglishEditorView ? $postContentPlainEnValue : $postContentPlainValue;
-            $activeContentLabel = $isEnglishEditorView ? 'EditorJS Notfall-Fallback (EN)' : 'EditorJS Notfall-Fallback (DE)';
+            $activeContentLabel = $isEnglishEditorView ? 'Inhalt (EN) – Plain-Fallback' : 'Inhalt (DE) – Plain-Fallback';
             $activePostMetaTitleValue = $isEnglishEditorView ? $postMetaTitleEnValue : $postMetaTitleValue;
             $activePostMetaDescriptionValue = $isEnglishEditorView ? $postMetaDescriptionEnValue : $postMetaDescriptionValue;
             $postEditorHasValidActiveMapping = ($isEnglishEditorView && $activeContentInputId === 'postPlainEditorEn')
@@ -324,14 +324,14 @@ $additionalCategoryIds = array_values(array_filter(
                 <input type="hidden" name="meta_title" value="<?php echo htmlspecialchars($postMetaTitleValue); ?>">
                 <input type="hidden" name="meta_description" value="<?php echo htmlspecialchars($postMetaDescriptionValue); ?>">
                 <input type="hidden" id="contentInput" name="content" value="<?php echo htmlspecialchars($postContentValue); ?>">
-                <input type="hidden" id="contentInputEn" name="content_en" value="<?php echo htmlspecialchars($postContentEnValue); ?>">
+                <input type="hidden" id="contentInputEn" data-editor-submit-name="content_en" value="<?php echo htmlspecialchars($postContentEnValue); ?>">
             <?php else: ?>
                 <input type="hidden" name="title_en" id="titleEn" value="<?php echo htmlspecialchars($postTitleEnValue); ?>">
                 <input type="hidden" name="slug_en" id="slugEn" value="<?php echo htmlspecialchars($postSlugEnValue); ?>">
                 <input type="hidden" name="excerpt_en" id="excerptEn" value="<?php echo htmlspecialchars($postExcerptEnValue); ?>">
                 <input type="hidden" name="meta_title_en" value="<?php echo htmlspecialchars($postMetaTitleEnValue); ?>">
                 <input type="hidden" name="meta_description_en" value="<?php echo htmlspecialchars($postMetaDescriptionEnValue); ?>">
-                <input type="hidden" id="contentInput" name="content" value="<?php echo htmlspecialchars($postContentValue); ?>">
+                <input type="hidden" id="contentInput" data-editor-submit-name="content" value="<?php echo htmlspecialchars($postContentValue); ?>">
                 <input type="hidden" id="contentInputEn" name="content_en" value="<?php echo htmlspecialchars($postContentEnValue); ?>">
             <?php endif; ?>
             <input type="hidden" name="content_original" value="<?php echo htmlspecialchars($postContentValue); ?>">
@@ -599,17 +599,16 @@ $additionalCategoryIds = array_values(array_filter(
                             <?php endif; ?>
 
                             <div
-                                class="cms-editor-plain-wrap mb-3<?php echo !empty($useEditorJs) ? ' cms-editor-plain-wrap--enhanced' : ''; ?>"
+                                class="cms-editor-plain-wrap mb-3"
                                 id="<?php echo htmlspecialchars($isEnglishEditorView ? 'postPlainEditorWrapEn' : 'postPlainEditorWrapDe'); ?>"
-                                <?php echo !empty($useEditorJs) ? 'hidden' : ''; ?>
                             >
                                 <label class="form-label" for="<?php echo htmlspecialchars($activeContentInputId); ?>"><?php echo htmlspecialchars($activeContentLabel); ?></label>
+                                <div class="form-hint mb-2">Dieses Feld bleibt als sichere Speicherebene aktiv, bis der Block-Editor erfolgreich geladen wurde.</div>
                                 <textarea
                                     class="form-control cms-editor-plain-textarea"
                                     id="<?php echo htmlspecialchars($activeContentInputId); ?>"
                                     name="<?php echo htmlspecialchars($activeContentFieldName); ?>"
                                     rows="14"
-                                    <?php echo !empty($useEditorJs) ? 'disabled' : ''; ?>
                                 ><?php echo htmlspecialchars($activeContentPlainTextValue); ?></textarea>
                             </div>
                             <?php if (!empty($useEditorJs)): ?>
@@ -1050,5 +1049,9 @@ $additionalCategoryIds = array_values(array_filter(
         <input type="hidden" id="contentEditorUiConfig" value="<?php echo htmlspecialchars((string) json_encode($postContentUiConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), ENT_QUOTES); ?>">
         <input type="hidden" id="contentEditorSeoConfig" value="<?php echo htmlspecialchars((string) json_encode($postContentSeoConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), ENT_QUOTES); ?>">
         <input type="hidden" id="contentEditorEditorJsConfig" value="<?php echo htmlspecialchars((string) json_encode($postContentEditorJsConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), ENT_QUOTES); ?>">
+        <?php
+        $editorInlineBootConfig = $postContentEditorJsConfig;
+        require __DIR__ . '/../partials/editorjs-inline-boot.php';
+        ?>
     </div>
 </div>

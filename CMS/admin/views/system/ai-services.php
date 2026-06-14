@@ -67,6 +67,7 @@ $providerProfiles = [
     'content-assist' => 'Content Assist',
     'seo-assist' => 'SEO Assist',
 ];
+$providerCatalogJson = (string) json_encode($providerCatalog, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 $loggingModes = [
     'minimal' => 'Minimal',
     'technical' => 'Technical',
@@ -807,8 +808,8 @@ if (empty($summary['translation_ready'])) {
                         $providerLabel = (string) ($provider['label'] ?? $providerId);
                         $namePrefix = 'provider_entries[0]';
                         ?>
-                        <input type="hidden" name="active_provider_id" value="<?php echo htmlspecialchars($providerId, ENT_QUOTES); ?>">
-                        <input type="hidden" name="<?php echo htmlspecialchars($namePrefix . '[id]', ENT_QUOTES); ?>" value="<?php echo htmlspecialchars($providerId, ENT_QUOTES); ?>">
+                        <input type="hidden" id="aiActiveProviderIdInput" name="active_provider_id" value="<?php echo htmlspecialchars($providerId, ENT_QUOTES); ?>">
+                        <input type="hidden" id="aiProviderEntryIdInput" name="<?php echo htmlspecialchars($namePrefix . '[id]', ENT_QUOTES); ?>" value="<?php echo htmlspecialchars($providerId, ENT_QUOTES); ?>">
                         <input type="hidden" name="<?php echo htmlspecialchars($namePrefix . '[enabled]', ENT_QUOTES); ?>" value="1">
 
                         <div class="alert alert-info small">
@@ -818,7 +819,7 @@ if (empty($summary['translation_ready'])) {
                         <div class="row g-3">
                             <div class="col-md-4">
                                 <label class="form-label">Provider-Typ</label>
-                                <select class="form-select" name="<?php echo htmlspecialchars($namePrefix . '[type]', ENT_QUOTES); ?>">
+                                <select class="form-select" id="aiProviderTypeSelect" name="<?php echo htmlspecialchars($namePrefix . '[type]', ENT_QUOTES); ?>">
                                     <?php foreach ($providerCatalog as $catalogType => $catalogEntry): ?>
                                         <option value="<?php echo htmlspecialchars((string) $catalogType, ENT_QUOTES); ?>" <?php echo $isSelected($providerType, (string) $catalogType); ?>><?php echo htmlspecialchars((string) ($catalogEntry['label'] ?? $catalogType)); ?></option>
                                     <?php endforeach; ?>
@@ -828,9 +829,15 @@ if (empty($summary['translation_ready'])) {
                                 <label class="form-label">Anzeigename</label>
                                 <input type="text" class="form-control" name="<?php echo htmlspecialchars($namePrefix . '[label]', ENT_QUOTES); ?>" value="<?php echo htmlspecialchars($providerLabel); ?>">
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-4" data-ai-provider-field="model">
                                 <label class="form-label">Optionales Modell</label>
-                                <input type="text" class="form-control" name="<?php echo htmlspecialchars($namePrefix . '[default_model]', ENT_QUOTES); ?>" value="<?php echo htmlspecialchars((string) ($provider['default_model'] ?? '')); ?>" placeholder="z. B. gpt-4.1-mini / mistral-small-latest">
+                                <select class="form-select" id="aiProviderModelSelect" name="<?php echo htmlspecialchars($namePrefix . '[default_model]', ENT_QUOTES); ?>" data-current-model="<?php echo htmlspecialchars((string) ($provider['default_model'] ?? ''), ENT_QUOTES); ?>">
+                                    <?php $currentModelOptions = (array) ($providerCatalog[$providerType]['model_options'] ?? []); ?>
+                                    <?php foreach ($currentModelOptions as $modelValue => $modelLabel): ?>
+                                        <option value="<?php echo htmlspecialchars((string) $modelValue, ENT_QUOTES); ?>" <?php echo $isSelected((string) ($provider['default_model'] ?? ''), (string) $modelValue); ?>><?php echo htmlspecialchars((string) $modelLabel); ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <div class="form-hint">Modellauswahl ist providerabhängig und serverseitig validiert. Nicht freigegebene Legacy-Modelle sind nicht auswählbar.</div>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Betriebsprofil</label>
@@ -844,25 +851,123 @@ if (empty($summary['translation_ready'])) {
                                 <label class="form-label">Erlaubte Zielsprachen</label>
                                 <input type="text" class="form-control" name="<?php echo htmlspecialchars($namePrefix . '[allowed_locales]', ENT_QUOTES); ?>" value="<?php echo htmlspecialchars(implode(',', (array) ($provider['allowed_locales'] ?? ['en']))); ?>" placeholder="en">
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-4" data-ai-provider-field="secret">
                                 <label class="form-label">API-Key / Secret</label>
                                 <input type="password" class="form-control" name="provider_secret_value" value="" placeholder="Leer lassen = gespeichertes Secret behalten" autocomplete="new-password" spellcheck="false" autocapitalize="off" autocorrect="off">
                                 <div class="form-hint">Aktuell gespeichert: <?php echo !empty($provider['secret_configured']) ? 'Ja' : 'Nein'; ?> · Mock/Ollama benötigen keinen Key.</div>
                             </div>
-                            <div class="col-12">
+                            <div class="col-12" data-ai-provider-field="endpoint">
                                 <label class="form-label">Endpoint</label>
-                                <input type="url" class="form-control" name="<?php echo htmlspecialchars($namePrefix . '[endpoint]', ENT_QUOTES); ?>" value="<?php echo htmlspecialchars((string) ($provider['endpoint'] ?? '')); ?>" placeholder="https://...">
-                                <div class="form-hint">OpenAI/Mistral/OpenRouter verwenden OpenAI-kompatible Chat-Completions; Azure AI benötigt zusätzlich Deployment und API-Version.</div>
+                                <input type="url" class="form-control" id="aiProviderEndpointInput" name="<?php echo htmlspecialchars($namePrefix . '[endpoint]', ENT_QUOTES); ?>" value="<?php echo htmlspecialchars((string) ($provider['endpoint'] ?? '')); ?>" placeholder="https://..." data-current-default="<?php echo htmlspecialchars((string) ($providerCatalog[$providerType]['default_endpoint'] ?? ''), ENT_QUOTES); ?>">
+                                <div class="form-hint" id="aiProviderEndpointHint">OpenAI/Mistral/OpenRouter verwenden OpenAI-kompatible Chat-Completions; Azure AI benötigt zusätzlich Deployment und API-Version.</div>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-md-6" data-ai-provider-field="deployment">
                                 <label class="form-label">Azure Deployment</label>
                                 <input type="text" class="form-control" name="<?php echo htmlspecialchars($namePrefix . '[deployment]', ENT_QUOTES); ?>" value="<?php echo htmlspecialchars((string) ($provider['deployment'] ?? '')); ?>" placeholder="Nur für Azure AI erforderlich">
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-md-6" data-ai-provider-field="api_version">
                                 <label class="form-label">Azure API-Version</label>
                                 <input type="text" class="form-control" name="<?php echo htmlspecialchars($namePrefix . '[api_version]', ENT_QUOTES); ?>" value="<?php echo htmlspecialchars((string) ($provider['api_version'] ?? '')); ?>" placeholder="2024-10-21">
                             </div>
                         </div>
+
+                        <script type="application/json" id="aiProviderCatalogJson"><?php echo htmlspecialchars($providerCatalogJson, ENT_NOQUOTES, 'UTF-8'); ?></script>
+                        <script>
+                            (function () {
+                                var catalogNode = document.getElementById('aiProviderCatalogJson');
+                                var typeSelect = document.getElementById('aiProviderTypeSelect');
+                                var modelSelect = document.getElementById('aiProviderModelSelect');
+                                var endpointInput = document.getElementById('aiProviderEndpointInput');
+                                var endpointHint = document.getElementById('aiProviderEndpointHint');
+                                var activeProviderIdInput = document.getElementById('aiActiveProviderIdInput');
+                                var providerEntryIdInput = document.getElementById('aiProviderEntryIdInput');
+                                var catalog = {};
+                                var lastProviderType = typeSelect ? typeSelect.value : '';
+
+                                if (!catalogNode || !typeSelect || !modelSelect) {
+                                    return;
+                                }
+
+                                try {
+                                    catalog = JSON.parse(catalogNode.textContent || '{}');
+                                } catch (error) {
+                                    catalog = {};
+                                }
+
+                                function getProviderEntry(providerType) {
+                                    return catalog[providerType] || catalog.mock || {};
+                                }
+
+                                function renderModelOptions(providerType, preferredModel) {
+                                    var entry = getProviderEntry(providerType);
+                                    var options = entry.model_options || {};
+                                    var defaultModel = entry.default_model || Object.keys(options)[0] || '';
+                                    var selectedModel = Object.prototype.hasOwnProperty.call(options, preferredModel) ? preferredModel : defaultModel;
+
+                                    modelSelect.innerHTML = '';
+                                    Object.keys(options).forEach(function (modelValue) {
+                                        var option = document.createElement('option');
+                                        option.value = modelValue;
+                                        option.textContent = options[modelValue] || modelValue;
+                                        option.selected = modelValue === selectedModel;
+                                        modelSelect.appendChild(option);
+                                    });
+                                }
+
+                                function updateFieldVisibility(providerType) {
+                                    var entry = getProviderEntry(providerType);
+                                    var fields = entry.settings_fields || {};
+
+                                    document.querySelectorAll('[data-ai-provider-field]').forEach(function (fieldNode) {
+                                        var fieldName = fieldNode.getAttribute('data-ai-provider-field') || '';
+                                        var visible = fields[fieldName] !== false;
+                                        fieldNode.hidden = !visible;
+                                    });
+
+                                    if (endpointHint) {
+                                        if (providerType === 'azure_openai') {
+                                            endpointHint.textContent = 'Azure AI benötigt Resource-Endpoint, Deployment-Name, API-Version und API-Key.';
+                                        } else if (providerType === 'ollama') {
+                                            endpointHint.textContent = 'Ollama nutzt den lokalen/interneren Host, z. B. http://127.0.0.1:11434.';
+                                        } else if (providerType === 'mock') {
+                                            endpointHint.textContent = 'Mock läuft intern und benötigt keinen externen Endpoint.';
+                                        } else {
+                                            endpointHint.textContent = 'Dieser Provider nutzt einen OpenAI-kompatiblen /chat/completions Endpoint.';
+                                        }
+                                    }
+                                }
+
+                                function applyProviderDefaults(providerType) {
+                                    var entry = getProviderEntry(providerType);
+                                    var oldEntry = getProviderEntry(lastProviderType);
+                                    var oldDefaultEndpoint = oldEntry.default_endpoint || '';
+                                    var nextDefaultEndpoint = entry.default_endpoint || '';
+
+                                    if (activeProviderIdInput) {
+                                        activeProviderIdInput.value = providerType;
+                                    }
+
+                                    if (providerEntryIdInput) {
+                                        providerEntryIdInput.value = providerType;
+                                    }
+
+                                    renderModelOptions(providerType, providerType === lastProviderType ? (modelSelect.getAttribute('data-current-model') || modelSelect.value || '') : '');
+                                    updateFieldVisibility(providerType);
+
+                                    if (endpointInput && (endpointInput.value.trim() === '' || endpointInput.value.trim() === oldDefaultEndpoint)) {
+                                        endpointInput.value = nextDefaultEndpoint;
+                                    }
+
+                                    lastProviderType = providerType;
+                                }
+
+                                typeSelect.addEventListener('change', function () {
+                                    applyProviderDefaults(typeSelect.value || 'mock');
+                                });
+
+                                applyProviderDefaults(typeSelect.value || 'mock');
+                            }());
+                        </script>
 
                         <hr>
                         <div class="row g-2">

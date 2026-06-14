@@ -470,7 +470,9 @@ Gespeicherte Top-Level-Werte:
 | `active_provider_id` | `string` | ID des einzigen aktiven Providers |
 | `entries` | `array<provider-entry>` | normalisiert auf exakt einen aktiven Eintrag |
 
-Seit `2.9.708` werden geladene und gespeicherte Providerdaten auf genau einen aktiven Eintrag reduziert. Veraltete `fallback_provider_id`-/`fallback_provider`-Werte werden beim Speichern gelöscht und vom Gateway ignoriert.
+Seit `2.9.708` werden geladene und gespeicherte Providerdaten auf genau einen aktiven Eintrag reduziert. Veraltete `fallback_provider_id`-/`fallback_provider`-Werte werden beim Speichern gelöscht und vom Gateway ignoriert. Seit `2.9.709` werden Modellwerte zusätzlich gegen einen providerabhängigen Katalog normalisiert; Freitextmodelle und veraltete Legacy-GPT-Modelle werden nicht mehr übernommen.
+
+Seit `2.9.710` gilt `allowed_locales` ausschließlich für Translation-Zielsprachen. Content- und SEO-Generatoren verwenden ihre eigene Arbeitssprache (`content_locale` / `seo_locale`) und dürfen z. B. `de` nutzen, auch wenn die Übersetzungs-Zielsprachen auf `en` begrenzt sind.
 
 Zusätzliche verschlüsselte Secret-Keys:
 
@@ -487,7 +489,7 @@ Provider-Profilstruktur pro Eintrag:
 | `label` | `string` | frei lesbarer Anzeigename |
 | `enabled` | `bool` | Provider grundsätzlich aktiv |
 | `profile` | `string` | Betriebsprofil wie `beta` oder `editor-translation` |
-| `default_model` | `string` | bevorzugtes Modell |
+| `default_model` | `string` | bevorzugtes Modell aus providerabhängigem Katalog |
 | `endpoint` | `string` | Basis-Endpoint |
 | `deployment` | `string` | Azure-spezifischer Deployment-Name |
 | `api_version` | `string` | Azure-spezifische API-Version |
@@ -498,6 +500,24 @@ Provider-Profilstruktur pro Eintrag:
 | `editorjs_enabled` | `bool` | Provider darf Editor.js-Kontexte |
 | `allowed_locales` | `array<string>` | erlaubte Zielsprachen |
 | `beta_only` | `bool` | nur Pilot-/Beta-Betrieb |
+
+Providerabhängige Modelloptionen:
+
+| Provider | Modelloptionen |
+|---|---|
+| `mock` | `mock-local-v1` |
+| `openai` | `gpt-5.3`, `gpt-5.4`, `gpt-5.5` |
+| `azure_openai` | `gpt-5.3`, `gpt-5.4`, `gpt-5.5` |
+| `mistral` | `mistral-small-latest`, `mistral-large-latest`, `mistral-medium-latest`, `codestral-latest` |
+| `ollama` | `llama3.1:8b`, `llama3.2:3b`, `mistral:7b`, `qwen2.5:7b` |
+| `openrouter` | `openai/gpt-5.3`, `openai/gpt-5.4`, `openai/gpt-5.5`, `mistralai/mistral-small-latest`, `mistralai/mistral-large-latest`, `meta-llama/llama-3.1-70b-instruct` |
+
+Providerabhängige Settings-Felder:
+
+- Mock: nur Modellanzeige, keine externen Felder.
+- OpenAI/Mistral/OpenRouter: Modell, Endpoint und API-Key.
+- Azure AI: Modell, Endpoint, Deployment, API-Version und API-Key.
+- Ollama: Modell und lokaler/interner Endpoint, kein API-Key.
 
 ### 2. `ai.features`
 

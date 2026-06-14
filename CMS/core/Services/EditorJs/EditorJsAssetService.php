@@ -471,6 +471,42 @@ final class EditorJsAssetService
 
     private function buildAssetUrl(string $relativePath): string
     {
-        return \cms_asset_url($relativePath);
+        if (\function_exists('cms_asset_url')) {
+            return \cms_asset_url($relativePath);
+        }
+
+        $normalizedPath = ltrim(str_replace('\\', '/', $relativePath), '/');
+        $baseUrl = '';
+        $url = '';
+
+        if (\function_exists('cms_assets_url')) {
+            $url = \cms_assets_url($normalizedPath);
+            $baseUrl = '';
+        } elseif (defined('ASSETS_URL')) {
+            $baseUrl = (string) ASSETS_URL;
+        } elseif (defined('SITE_URL')) {
+            $baseUrl = rtrim((string) SITE_URL, '/') . '/assets';
+        } elseif (defined('BASE_URL')) {
+            $baseUrl = rtrim((string) BASE_URL, '/') . '/assets';
+        } else {
+            $baseUrl = '/assets';
+        }
+
+        if ($url === '') {
+            $url = rtrim(str_replace('\\', '/', $baseUrl), '/') . '/' . $normalizedPath;
+        }
+        $assetPath = defined('ASSETS_PATH')
+            ? rtrim(str_replace(['/', '\\'], DIRECTORY_SEPARATOR, (string) ASSETS_PATH), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR
+                . str_replace('/', DIRECTORY_SEPARATOR, $normalizedPath)
+            : null;
+
+        if (is_string($assetPath) && is_file($assetPath)) {
+            $modified = filemtime($assetPath);
+            if ($modified !== false) {
+                $url .= '?v=' . rawurlencode((string) $modified);
+            }
+        }
+
+        return $url;
     }
 }

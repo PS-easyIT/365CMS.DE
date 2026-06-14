@@ -113,13 +113,13 @@ class DashboardModule
             'label' => 'Neue Seite',
             'description' => 'Schnell in die Seitenerstellung springen.',
             'icon' => 'file-plus',
-            'url' => '/admin/pages?action=new',
+            'url' => '/admin/pages?action=edit',
         ],
         'new_post' => [
             'label' => 'Neuer Beitrag',
             'description' => 'Direkt einen neuen Beitrag anlegen.',
             'icon' => 'pencil-plus',
-            'url' => '/admin/posts?action=new',
+            'url' => '/admin/posts?action=edit',
         ],
         'comments' => [
             'label' => 'Kommentare',
@@ -1350,8 +1350,8 @@ class DashboardModule
     private function getQuickLinks(): array
     {
         return [
-            ['label' => 'Neue Seite',       'url' => '/admin/pages?action=new',  'icon' => 'file-plus',    'color' => 'blue'],
-            ['label' => 'Neuer Beitrag',     'url' => '/admin/posts?action=new',  'icon' => 'pencil-plus',  'color' => 'green'],
+            ['label' => 'Neue Seite',       'url' => '/admin/pages?action=edit',  'icon' => 'file-plus',    'color' => 'blue'],
+            ['label' => 'Neuer Beitrag',     'url' => '/admin/posts?action=edit',  'icon' => 'pencil-plus',  'color' => 'green'],
             ['label' => 'Medien hochladen',  'url' => '/admin/media',             'icon' => 'upload',       'color' => 'purple'],
             ['label' => 'Einstellungen',     'url' => '/admin/settings',          'icon' => 'settings',     'color' => 'orange'],
         ];

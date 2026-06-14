@@ -537,13 +537,15 @@ final class AiProviderGateway
             $issues[] = 'Editor.js-Scope ist deaktiviert.';
         }
 
-        $allowedLocales = array_values(array_unique(array_filter(array_map(
-            fn (string $locale): string => $this->normalizeLocale($locale, ''),
-            (array) ($providerConfig['allowed_locales'] ?? ['en'])
-        ))));
+        if ($capabilityKey === 'translation_enabled') {
+            $allowedLocales = array_values(array_unique(array_filter(array_map(
+                fn (string $locale): string => $this->normalizeLocale($locale, ''),
+                (array) ($providerConfig['allowed_locales'] ?? ['en'])
+            ))));
 
-        if ($allowedLocales !== [] && !in_array($targetLocale, $allowedLocales, true)) {
-            $issues[] = 'Zielsprache ' . strtoupper($targetLocale) . ' ist für diesen Provider nicht freigegeben.';
+            if ($allowedLocales !== [] && !in_array($targetLocale, $allowedLocales, true)) {
+                $issues[] = 'Zielsprache ' . strtoupper($targetLocale) . ' ist für diesen Provider nicht freigegeben.';
+            }
         }
 
         $definition = AiSettingsService::getProviderTypeDefinition($providerType);
@@ -799,7 +801,7 @@ final class AiProviderGateway
             'azure_openai' => new AzureOpenAiProvider(
                 $providerId,
                 $label,
-                $defaultModel !== '' ? $defaultModel : 'gpt-4.1-mini',
+                $defaultModel !== '' ? $defaultModel : 'gpt-5.3',
                 (string) ($providerConfig['endpoint'] ?? ''),
                 (string) ($providerConfig['deployment'] ?? ''),
                 (string) ($providerConfig['api_version'] ?? '2024-10-21'),
@@ -825,8 +827,8 @@ final class AiProviderGateway
     {
         return match ($providerType) {
             'mistral' => 'mistral-small-latest',
-            'openrouter' => 'openai/gpt-4.1-mini',
-            default => 'gpt-5-mini',
+            'openrouter' => 'openai/gpt-5.3',
+            default => 'gpt-5.3',
         };
     }
 

@@ -223,7 +223,7 @@ $isEnglishEditorView = $editorLocale === 'en';
             $activePageEditorHolderId = $isEnglishEditorView ? 'editorjsEn' : 'editorjs';
             $activePageContentFieldName = $isEnglishEditorView ? 'content_en' : 'content';
             $activePageContentPlainTextValue = $isEnglishEditorView ? $pageContentPlainEnValue : $pageContentPlainValue;
-            $activePageContentLabel = $isEnglishEditorView ? 'EditorJS Notfall-Fallback (EN)' : 'EditorJS Notfall-Fallback (DE)';
+            $activePageContentLabel = $isEnglishEditorView ? 'Inhalt (EN) – Plain-Fallback' : 'Inhalt (DE) – Plain-Fallback';
             $activePageMetaTitleValue = $isEnglishEditorView ? $pageMetaTitleEnValue : $pageMetaTitleValue;
             $activePageMetaDescriptionValue = $isEnglishEditorView ? $pageMetaDescriptionEnValue : $pageMetaDescriptionValue;
             $pageEditorHasValidActiveMapping = ($isEnglishEditorView && $activePageContentInputId === 'pagePlainEditorEn')
@@ -255,13 +255,13 @@ $isEnglishEditorView = $editorLocale === 'en';
                 <input type="hidden" name="meta_title" value="<?= htmlspecialchars($pageMetaTitleValue) ?>">
                 <input type="hidden" name="meta_description" value="<?= htmlspecialchars($pageMetaDescriptionValue) ?>">
                 <input type="hidden" id="editorContent" name="content" value="<?= htmlspecialchars($pageContentValue) ?>">
-                <input type="hidden" id="editorContentEn" name="content_en" value="<?= htmlspecialchars($pageContentEnValue) ?>">
+                <input type="hidden" id="editorContentEn" data-editor-submit-name="content_en" value="<?= htmlspecialchars($pageContentEnValue) ?>">
             <?php else: ?>
                 <input type="hidden" name="title_en" id="pageTitleEn" value="<?= htmlspecialchars($pageTitleEnValue) ?>">
                 <input type="hidden" name="slug_en" id="pageSlugEn" value="<?= htmlspecialchars($pageSlugEnValue) ?>">
                 <input type="hidden" name="meta_title_en" value="<?= htmlspecialchars($pageMetaTitleEnValue) ?>">
                 <input type="hidden" name="meta_description_en" value="<?= htmlspecialchars($pageMetaDescriptionEnValue) ?>">
-                <input type="hidden" id="editorContent" name="content" value="<?= htmlspecialchars($pageContentValue) ?>">
+                <input type="hidden" id="editorContent" data-editor-submit-name="content" value="<?= htmlspecialchars($pageContentValue) ?>">
                 <input type="hidden" id="editorContentEn" name="content_en" value="<?= htmlspecialchars($pageContentEnValue) ?>">
             <?php endif; ?>
             <input type="hidden" name="content_original" value="<?= htmlspecialchars($pageContentValue) ?>">
@@ -429,17 +429,16 @@ $isEnglishEditorView = $editorLocale === 'en';
                             <?php endif; ?>
 
                             <div
-                                class="cms-editor-plain-wrap mb-3<?= !empty($useEditorJs) ? ' cms-editor-plain-wrap--enhanced' : '' ?>"
+                                class="cms-editor-plain-wrap mb-3"
                                 id="<?= htmlspecialchars($isEnglishEditorView ? 'pagePlainEditorWrapEn' : 'pagePlainEditorWrapDe') ?>"
-                                <?= !empty($useEditorJs) ? 'hidden' : '' ?>
                             >
                                 <label class="form-label" for="<?= htmlspecialchars($activePageContentInputId) ?>"><?= htmlspecialchars($activePageContentLabel) ?></label>
+                                <div class="form-hint mb-2">Dieses Feld bleibt als sichere Speicherebene aktiv, bis der Block-Editor erfolgreich geladen wurde.</div>
                                 <textarea
                                     class="form-control cms-editor-plain-textarea"
                                     id="<?= htmlspecialchars($activePageContentInputId) ?>"
                                     name="<?= htmlspecialchars($activePageContentFieldName) ?>"
                                     rows="14"
-                                    <?= !empty($useEditorJs) ? 'disabled' : '' ?>
                                 ><?= htmlspecialchars($activePageContentPlainTextValue) ?></textarea>
                             </div>
                             <?php if (!empty($useEditorJs)): ?>
@@ -859,6 +858,10 @@ $isEnglishEditorView = $editorLocale === 'en';
         <input type="hidden" id="contentEditorUiConfig" value="<?= htmlspecialchars((string) json_encode($pageContentUiConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), ENT_QUOTES) ?>">
         <input type="hidden" id="contentEditorSeoConfig" value="<?= htmlspecialchars((string) json_encode($pageContentSeoConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), ENT_QUOTES) ?>">
         <input type="hidden" id="contentEditorEditorJsConfig" value="<?= htmlspecialchars((string) json_encode($pageContentEditorJsConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), ENT_QUOTES) ?>">
+        <?php
+        $editorInlineBootConfig = $pageContentEditorJsConfig;
+        require __DIR__ . '/../partials/editorjs-inline-boot.php';
+        ?>
 
     </div><!-- /.container-xl -->
 </div><!-- /.page-body -->

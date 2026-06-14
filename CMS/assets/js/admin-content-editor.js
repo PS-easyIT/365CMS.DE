@@ -466,10 +466,18 @@
         var editorInitWatchdogs = {};
         var editorEmergencyFallbackTimers = {};
         var editorRuntimeRetryQueue = {};
-        var EDITOR_INIT_WATCHDOG_MS = 5000;
-        var EDITOR_EMERGENCY_FALLBACK_MS = 1800;
+        var EDITOR_INIT_WATCHDOG_MS = 12000;
+        var EDITOR_EMERGENCY_FALLBACK_MS = 6000;
 
         if (!config) {
+            return;
+        }
+
+        if (window.cmsInlineEditorJsBootState || (window.cmsAdminEditorJsBridge && typeof window.cmsAdminEditorJsBridge.ownsEditor === 'function' && window.cmsAdminEditorJsBridge.ownsEditor())) {
+            logEditor('info', '[EJS-BRIDGE-DELEGATED] EditorJS boot is owned by the inline Page/Post bootstrap.');
+            if (window.cmsAdminEditorJsBridge && typeof window.cmsAdminEditorJsBridge.boot === 'function') {
+                window.cmsAdminEditorJsBridge.boot();
+            }
             return;
         }
 
@@ -803,12 +811,16 @@
         function setPlainEditorEnhancedState(definition, isEnhanced) {
             var input = getElement(definition && definition.inputId ? definition.inputId : '');
             var state = getPlainEditorState(definition, input);
+            var editorSubmitName = input && input.dataset ? String(input.dataset.editorSubmitName || '') : '';
 
             if (!state || !state.textarea) {
                 return;
             }
 
             if (isEnhanced) {
+                if (input && editorSubmitName) {
+                    input.setAttribute('name', editorSubmitName);
+                }
                 if (state.wrap) {
                     state.wrap.classList.add('cms-editor-plain-wrap--enhanced');
                     state.wrap.setAttribute('hidden', 'hidden');
@@ -822,6 +834,9 @@
                 return;
             }
 
+            if (input && editorSubmitName) {
+                input.removeAttribute('name');
+            }
             if (state.wrap) {
                 state.wrap.classList.remove('cms-editor-plain-wrap--enhanced');
                 state.wrap.removeAttribute('hidden');
@@ -3750,7 +3765,7 @@
             });
             clearHolderFallbackUi(definition);
             ensureHolderVisible(holder);
-            setPlainEditorEnhancedState(definition, true);
+            setPlainEditorEnhancedState(definition, false);
 
             if (!hasEditorRuntime()) {
                 setEditorStateMarker(definition, 'loading', 'runtime-missing-waiting');
@@ -3794,8 +3809,14 @@
             if (editors[definition.key] && !forceRecreate) {
                 setEditorStateMarker(definition, 'editor', 'reuse-existing-instance');
                 recordEditorBindingMilestone(definition, 'bindEnd', { finalState: 'editor', reason: 'reuse-existing-instance' });
-                clearHolderFallbackUi(definition);
-                setPlainEditorEnhancedState(definition, true);
+                if (editors[definition.key].ready) {
+                    clearHolderFallbackUi(definition);
+                    setPlainEditorEnhancedState(definition, true);
+                    ensureEditorUi(definition, editors[definition.key]);
+                    return editors[definition.key];
+                }
+
+                setPlainEditorEnhancedState(definition, false);
                 ensureEditorUi(definition, editors[definition.key]);
                 return editors[definition.key];
             }
@@ -3852,15 +3873,32 @@
 
             editorInitWatchdogs[definition.key] = window.setTimeout(function () {
                 var activeEntry = editors[definition.key];
+                var activeHolder = getElement(definition.holderId);
+                var hasRenderedEditor = !!(activeHolder && activeHolder.querySelector('.codex-editor, .ce-block, .codex-editor__redactor'));
 
                 if (!activeEntry || activeEntry !== entry || activeEntry.ready) {
                     return;
                 }
 
                 delete editorInitWatchdogs[definition.key];
+
+                if (hasRenderedEditor) {
+                    entry.ready = true;
+                    clearEditorEmergencyFallback(definition.key);
+                    clearHolderFallbackUi(definition);
+                    ensureHolderVisible(holder);
+                    setEditorStateMarker(definition, 'editor', 'rendered-before-ready');
+                    recordEditorBindingMilestone(definition, 'initTimeout', { fallbackActivated: false, renderedEditorDetected: true });
+                    logEditor('warn', 'EditorJS readiness promise timed out for "' + definition.holderId + '", but rendered editor DOM is present; keeping EditorJS active.');
+                    setPlainEditorEnhancedState(definition, true);
+                    return;
+                }
+
                 setEditorStateMarker(definition, 'loading', 'init-timeout');
-                recordEditorBindingMilestone(definition, 'initTimeout', { fallbackActivated: false });
-                logEditor('warn', 'EditorJS init watchdog timed out for "' + definition.holderId + '"; keeping live editor mounted instead of showing fallback.');
+                recordEditorBindingMilestone(definition, 'initTimeout', { fallbackActivated: true });
+                logEditor('warn', 'EditorJS init watchdog timed out for "' + definition.holderId + '"; restoring plain fallback.');
+                delete editors[definition.key];
+                renderEditorUnavailableFallback(definition, input, 'init-timeout');
             }, EDITOR_INIT_WATCHDOG_MS);
 
             if (createdInstance && createdInstance.isReady && typeof createdInstance.isReady.then === 'function') {
@@ -4615,12 +4653,21 @@
         });
     }
 
-    document.addEventListener('DOMContentLoaded', function () {
+    var contentEditorBootStarted = false;
+
+    function bootContentEditor() {
         var uiConfig = parseJsonInput('contentEditorUiConfig', null);
         var seoConfig = parseJsonInput('contentEditorSeoConfig', null);
         var editorJsConfig = parseJsonInput('contentEditorEditorJsConfig', null);
 
+        if (contentEditorBootStarted) {
+            return;
+        }
+
+        contentEditorBootStarted = true;
+
         if (!uiConfig) {
+            logEditor('warn', '[EJS-CHAIN-NO-UI-CONFIG] Content editor config was not found; EditorJS init skipped.');
             return;
         }
 
@@ -4637,5 +4684,15 @@
             initEditorJs(editorJsConfig);
             initLanguageTabCompleteness(editorJsConfig);
         });
-    });
+
+        if (window.cmsEditorDebug && typeof window.cmsEditorDebug === 'object') {
+            window.cmsEditorDebug.adminContentEditorBootedAt = new Date().toISOString();
+        }
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', bootContentEditor, { once: true });
+    } else {
+        bootContentEditor();
+    }
 })();

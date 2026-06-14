@@ -2,7 +2,7 @@
 
 Kurzbeschreibung: Admin-spezifische Einordnung des Bereichs `AI Services` als **eigener Admin-Hauptbereich**. Die führende Fach- und Architektur-Dokumentation liegt unter [`../../ai/AI-SERVICES.md`](../../ai/AI-SERVICES.md); die Admin-Seiten `/admin/ai-services`, `/admin/ai-translation`, `/admin/ai-content-creator`, `/admin/ai-seo-creator` und `/admin/ai-settings` sind als Settings- und Runtime-Steuerflächen im Core eingehängt.
 
-Letzte Aktualisierung: 2026-06-13 · Version 2.9.708
+Letzte Aktualisierung: 2026-06-13 · Version 2.9.710
 
 > **Wichtig:** Diese Datei ist bewusst nur der **Admin- und Routing-Kontext**. Die vollständige Konzeption, Provider-Logik, Editor.js-Übersetzungsphase und offene Punkte werden kanonisch in [`../../ai/AI-SERVICES.md`](../../ai/AI-SERVICES.md) gepflegt.
 
@@ -52,6 +52,8 @@ Aktueller Runtime-Hinweis:
 - seit `2.9.703` lassen sich Prompt-Vorlagen je Bereich verwalten; die Translation-Vorlage wird in der Editor.js-Live-Pipeline berücksichtigt, während Content- und SEO-Vorlagen den nächsten Generator-Ausbau vorbereiten
 - seit `2.9.705` nutzt das Admin-Modul wieder die korrekte `Database::instance()`-API und fällt bei Initialisierungsproblemen fail-soft mit sicheren Default-Daten sowie datensparsamer Logger-Ausgabe zurück, statt alle AI-Unterseiten als Full-Page-Fatal zu beenden
 - seit `2.9.708` gibt es keinen Fallback-Provider und keine Parallelprovider mehr; der Gateway nutzt ausschließlich `active_provider_id`, alte Fallback-Felder werden bereinigt und `/admin/ai-settings` bietet einen zentralen Speichern-&-Testen-Button
+- seit `2.9.709` zeigt `/admin/ai-settings` je Provider passende Felder und ein providerabhängiges Modell-Dropdown; Modelle werden serverseitig gegen den Katalog validiert und alte GPT-4.x-Defaults/Fallbacks sind entfernt
+- seit `2.9.710` blockieren Provider-Allowed-Locales nur noch echte Translation-Zielsprachen; Content Creator und SEO Creator können mit dem aktiven Provider weiterhin deutsche (`de`) Previews erzeugen
 - wenn `store_request_metrics` aktiv ist, protokolliert die Editor.js-Translation zusätzlich Zeichen- und Blockmetriken für nutzbare Verlauf-/Budgetanzeigen
 - echte Live-Provider sind aktuell für **Ollama**, **Azure AI**, **OpenAI**, **Mistral AI** und **OpenRouter** umgesetzt; aktiv ist aber immer nur der eine im Admin gewählte Provider
 
