@@ -4626,6 +4626,7 @@
         var changeSyncInFlight = false;
         var changeSyncPending = false;
         var changeSyncDestroyed = false;
+        var changeSyncSuspendCount = 0;
         var originalDestroy;
         var syncEditorChange;
         var runEditorChangeSync;
@@ -4663,6 +4664,11 @@
                 return;
             }
 
+            if (changeSyncSuspendCount > 0) {
+                changeSyncPending = true;
+                return;
+            }
+
             if (!editor || typeof editor.save !== 'function') {
                 changeSyncPending = true;
                 return;
@@ -4677,7 +4683,7 @@
             changeSyncPending = false;
 
             editor.save().then(function (output) {
-                if (!changeSyncDestroyed) {
+                if (!changeSyncDestroyed && changeSyncSuspendCount === 0) {
                     try {
                         resolvedOptions.onChange(normalizeInitialData(output));
                     } catch (callbackError) {
@@ -4690,7 +4696,7 @@
                 reportEditorError('change-sync', error);
             }).then(function () {
                 changeSyncInFlight = false;
-                if (changeSyncPending && !changeSyncDestroyed) {
+                if (changeSyncPending && !changeSyncDestroyed && changeSyncSuspendCount === 0) {
                     runEditorChangeSync();
                 }
             });
@@ -4762,6 +4768,27 @@
         }
         editor.cmsAvailableTools = Object.keys(tools);
         editor.cmsReadOnly = !!resolvedOptions.readOnly;
+        editor.cmsSuspendChangeSync = function () {
+            var released = false;
+
+            changeSyncSuspendCount += 1;
+            changeSyncPending = false;
+            if (toolChangeSyncTimer !== null) {
+                window.clearTimeout(toolChangeSyncTimer);
+                toolChangeSyncTimer = null;
+            }
+
+            return function releaseCmsChangeSync() {
+                if (released) {
+                    return;
+                }
+                released = true;
+                changeSyncSuspendCount = Math.max(0, changeSyncSuspendCount - 1);
+                if (changeSyncSuspendCount === 0 && changeSyncPending && !changeSyncDestroyed) {
+                    runEditorChangeSync();
+                }
+            };
+        };
 
         if (editor.isReady && typeof editor.isReady.then === 'function') {
             editor.isReady.catch(function (error) {

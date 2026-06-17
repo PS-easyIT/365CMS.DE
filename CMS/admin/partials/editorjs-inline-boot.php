@@ -265,6 +265,62 @@ if (!is_string($editorInlineBootJson) || $editorInlineBootJson === '') {
         return Promise.resolve(false);
     }
 
+    function acquireSubmitLocks(definitions) {
+        var releases = [];
+
+        definitions.forEach(function (definition) {
+            var entry = state.editors[definition.key];
+            var release;
+
+            if (!entry || !entry.editor || typeof entry.editor.cmsSuspendChangeSync !== 'function') {
+                return;
+            }
+
+            try {
+                release = entry.editor.cmsSuspendChangeSync();
+                if (typeof release === 'function') {
+                    releases.push(release);
+                }
+            } catch (error) {
+                log('warn', 'Editor change-sync lock failed.', error);
+            }
+        });
+
+        return function releaseSubmitLocks() {
+            while (releases.length > 0) {
+                try {
+                    releases.pop()();
+                } catch (error) {
+                    log('warn', 'Editor change-sync unlock failed.', error);
+                }
+            }
+        };
+    }
+
+    function formCanSubmit(form, submitter) {
+        if (form && form.noValidate) {
+            return true;
+        }
+        if (submitter && (submitter.formNoValidate || (typeof submitter.hasAttribute === 'function' && submitter.hasAttribute('formnovalidate')))) {
+            return true;
+        }
+        if (form && typeof form.reportValidity === 'function') {
+            return form.reportValidity();
+        }
+        if (form && typeof form.checkValidity === 'function') {
+            return form.checkValidity();
+        }
+
+        return true;
+    }
+
+    function resetSubmitState(releaseSubmitLocks) {
+        if (typeof releaseSubmitLocks === 'function') {
+            releaseSubmitLocks();
+        }
+        state.submitting = false;
+    }
+
     function initDefinition(definition) {
         var holder = getElement(definition.holderId);
         var input = getElement(definition.inputId);
@@ -373,6 +429,7 @@ if (!is_string($editorInlineBootJson) || $editorInlineBootJson === '') {
         form.addEventListener('submit', function (event) {
             var submitter = event.submitter || state.pendingSubmitter || null;
             var confirmText = submitter && submitter.dataset ? String(submitter.dataset.confirm || '') : '';
+            var releaseSubmitLocks;
 
             if (state.nativeSubmitPending) {
                 state.nativeSubmitPending = false;
@@ -389,10 +446,22 @@ if (!is_string($editorInlineBootJson) || $editorInlineBootJson === '') {
 
             event.preventDefault();
             state.submitting = true;
+            releaseSubmitLocks = acquireSubmitLocks(definitions);
             Promise.all(definitions.map(saveDefinition)).then(function () {
-                submitNative(form, submitter);
+                if (!formCanSubmit(form, submitter)) {
+                    resetSubmitState(releaseSubmitLocks);
+                    return;
+                }
+
+                try {
+                    submitNative(form, submitter);
+                } catch (error) {
+                    resetSubmitState(releaseSubmitLocks);
+                    log('error', 'Native submit failed.', error);
+                    window.alert('Das Formular konnte nicht abgeschickt werden. Bitte erneut versuchen.');
+                }
             }, function (error) {
-                state.submitting = false;
+                resetSubmitState(releaseSubmitLocks);
                 log('error', 'Submit serialization failed.', error);
                 window.alert('Der Block-Editor konnte den Inhalt nicht speichern. Bitte erneut versuchen.');
             });
