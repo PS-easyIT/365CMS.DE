@@ -373,14 +373,6 @@ final class AiSettingsService
             }
         }
 
-        foreach (self::PROVIDER_SLUGS as $providerSlug) {
-            if ($providerSlug === $activeProviderId) {
-                continue;
-            }
-
-            $this->settings->forget(self::GROUP_PROVIDERS, $this->buildProviderSecretKey($providerSlug));
-        }
-
         return true;
     }
 

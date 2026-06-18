@@ -43,6 +43,12 @@ $tests = [
         aiAssert(str_contains($settings, '$entries = [$activeEntry];'), 'Settings normalisieren geladene Provider nicht auf genau einen aktiven Provider.');
         aiAssert(str_contains($settings, "forget(self::GROUP_PROVIDERS, 'fallback_provider_id')"), 'Alte Fallback-Provider-Einstellungen werden nicht bereinigt.');
     },
+    'AI Provider-Speicherung bewahrt nicht aktive Provider-Secrets' => static function () use ($root): void {
+        $settings = aiReadFile($root . DIRECTORY_SEPARATOR . 'CMS' . DIRECTORY_SEPARATOR . 'core' . DIRECTORY_SEPARATOR . 'Services' . DIRECTORY_SEPARATOR . 'AI' . DIRECTORY_SEPARATOR . 'AiSettingsService.php');
+
+        aiAssert(!str_contains($settings, '$this->settings->forget(self::GROUP_PROVIDERS, $this->buildProviderSecretKey($providerSlug))'), 'Providerwechsel löscht weiterhin Secrets nicht aktiver Provider.');
+        aiAssert(str_contains($settings, 'foreach ($clearSecrets as $providerId)'), 'Explizites Löschen von Provider-Secrets ist nicht mehr verdrahtet.');
+    },
     'AI Provider-Katalog markiert Live-Provider korrekt' => static function (): void {
         foreach (['ollama', 'azure_openai', 'openai', 'mistral', 'openrouter'] as $providerType) {
             $definition = AiSettingsService::getProviderTypeDefinition($providerType);
@@ -156,6 +162,18 @@ $tests = [
         aiAssert(!str_contains($view, 'gpt-4'), 'Admin-View enthält noch GPT-4.x-Hinweise.');
         aiAssert(!str_contains($view, 'Provider-Liste'), 'Alte Provider-Liste ist noch sichtbar.');
         aiAssert(!str_contains($view, 'Expliziter Fallback-Provider'), 'Fallback-UI ist noch sichtbar.');
+    },
+    'EditorJS Inline-Boot erhält AI-Übersetzung und blockiert leere Serialisierungs-Fallbacks' => static function () use ($root): void {
+        $adminEditor = aiReadFile($root . DIRECTORY_SEPARATOR . 'CMS' . DIRECTORY_SEPARATOR . 'assets' . DIRECTORY_SEPARATOR . 'js' . DIRECTORY_SEPARATOR . 'admin-content-editor.js');
+        $inlineBoot = aiReadFile($root . DIRECTORY_SEPARATOR . 'CMS' . DIRECTORY_SEPARATOR . 'admin' . DIRECTORY_SEPARATOR . 'partials' . DIRECTORY_SEPARATOR . 'editorjs-inline-boot.php');
+
+        aiAssert(str_contains($adminEditor, 'var delegatedEditorBoot = false;'), 'Inline-Delegation wird im Admin-Editor nicht erkannt.');
+        aiAssert(str_contains($adminEditor, 'waitForDelegatedEditorEntry'), 'AI-Übersetzung kann nicht auf inline-owned EditorJS-Instanzen zugreifen.');
+        aiAssert(str_contains($adminEditor, 'if (!delegatedEditorBoot)'), 'Legacy-Submit-/Editor-Binding wird bei Inline-Delegation nicht übersprungen.');
+        aiAssert(str_contains($adminEditor, 'handleAiTranslation(config.aiTranslation);'), 'AI-Übersetzungsbutton wird nicht gebunden.');
+        aiAssert(!str_contains($adminEditor, "window.cmsAdminEditorJsBridge.boot();\n            }\n            return;\n        }\n\n        form = getElement(config.formId);"), 'Inline-Delegation bricht vor der AI-Übersetzungsverdrahtung ab.');
+        aiAssert(!str_contains($inlineBoot, "return JSON.stringify({ time: Date.now(), blocks: [], version: '2.31.0' });"), 'Inline-Boot ersetzt Serialisierungsfehler weiterhin durch ein leeres Dokument.');
+        aiAssert(str_contains($inlineBoot, "window.alert('Der Block-Editor konnte den Inhalt nicht speichern."), 'Inline-Boot blockiert Submit-Fehler nicht sichtbar.');
     },
 ];
 

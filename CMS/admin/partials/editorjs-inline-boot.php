@@ -79,11 +79,7 @@ if (!is_string($editorInlineBootJson) || $editorInlineBootJson === '') {
     }
 
     function stringifyData(data) {
-        try {
-            return JSON.stringify(normalizeData(data));
-        } catch (_error) {
-            return JSON.stringify({ time: Date.now(), blocks: [], version: '2.31.0' });
-        }
+        return JSON.stringify(normalizeData(data));
     }
 
     function getSubmitName(input) {
@@ -292,8 +288,12 @@ if (!is_string($editorInlineBootJson) || $editorInlineBootJson === '') {
                     });
                 },
                 onChange: function (output) {
-                    input.value = stringifyData(output);
-                    emitInputEvents(input);
+                    try {
+                        input.value = stringifyData(output);
+                        emitInputEvents(input);
+                    } catch (error) {
+                        log('error', 'Editor change serialization failed.', error);
+                    }
                 },
                 onError: function (error, context) {
                     log('error', 'Editor runtime error.', { error: error, context: context || {}, definition: definition });

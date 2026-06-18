@@ -468,17 +468,18 @@
         var editorRuntimeRetryQueue = {};
         var EDITOR_INIT_WATCHDOG_MS = 12000;
         var EDITOR_EMERGENCY_FALLBACK_MS = 6000;
+        var delegatedEditorBoot = false;
 
         if (!config) {
             return;
         }
 
-        if (window.cmsInlineEditorJsBootState || (window.cmsAdminEditorJsBridge && typeof window.cmsAdminEditorJsBridge.ownsEditor === 'function' && window.cmsAdminEditorJsBridge.ownsEditor())) {
+        delegatedEditorBoot = !!(window.cmsInlineEditorJsBootState || (window.cmsAdminEditorJsBridge && typeof window.cmsAdminEditorJsBridge.ownsEditor === 'function' && window.cmsAdminEditorJsBridge.ownsEditor()));
+        if (delegatedEditorBoot) {
             logEditor('info', '[EJS-BRIDGE-DELEGATED] EditorJS boot is owned by the inline Page/Post bootstrap.');
             if (window.cmsAdminEditorJsBridge && typeof window.cmsAdminEditorJsBridge.boot === 'function') {
                 window.cmsAdminEditorJsBridge.boot();
             }
-            return;
         }
 
         form = getElement(config.formId);
@@ -2165,6 +2166,103 @@
 
         function getDefinition(key) {
             return key && editorDefinitions[key] ? editorDefinitions[key] : null;
+        }
+
+        function getDelegatedEditorState() {
+            if (!delegatedEditorBoot) {
+                return null;
+            }
+
+            if (window.cmsInlineEditorJsBootState && typeof window.cmsInlineEditorJsBootState === 'object') {
+                return window.cmsInlineEditorJsBootState;
+            }
+
+            if (window.cmsAdminEditorJsBridgeState && typeof window.cmsAdminEditorJsBridgeState === 'object') {
+                return window.cmsAdminEditorJsBridgeState;
+            }
+
+            return null;
+        }
+
+        function getDelegatedEditorEntry(key) {
+            var definition = getDefinition(key);
+            var state = getDelegatedEditorState();
+            var inlineEntry = state && state.editors && key ? state.editors[key] : null;
+            var input = inlineEntry && inlineEntry.input ? inlineEntry.input : (definition ? getElement(definition.inputId) : null);
+
+            if (!definition && !inlineEntry) {
+                return null;
+            }
+
+            return {
+                input: input,
+                instance: inlineEntry ? (inlineEntry.editor || inlineEntry.instance || null) : null,
+                ready: !!(inlineEntry && inlineEntry.ready),
+                definition: definition || (inlineEntry ? inlineEntry.definition : null)
+            };
+        }
+
+        function waitForDelegatedEditorEntry(key) {
+            var startedAt = Date.now();
+            var definition = getDefinition(key);
+
+            if (!delegatedEditorBoot || !definition || definition.lazy) {
+                return Promise.resolve(getDelegatedEditorEntry(key));
+            }
+
+            return new Promise(function (resolve) {
+                function poll() {
+                    var entry = getDelegatedEditorEntry(key);
+
+                    if ((entry && entry.instance) || Date.now() - startedAt >= EDITOR_EMERGENCY_FALLBACK_MS) {
+                        resolve(entry);
+                        return;
+                    }
+
+                    window.setTimeout(poll, 60);
+                }
+
+                poll();
+            });
+        }
+
+        function waitForDelegatedEditorReady(entry) {
+            var instance = entry && entry.instance ? entry.instance : null;
+
+            if (!instance || !instance.isReady || typeof instance.isReady.then !== 'function') {
+                return Promise.resolve(entry);
+            }
+
+            return instance.isReady.then(function () {
+                return entry;
+            }).catch(function () {
+                return entry;
+            });
+        }
+
+        function renderDelegatedEditorData(entry, data) {
+            var instance = entry && entry.instance ? entry.instance : null;
+            var renderResult;
+
+            if (!instance) {
+                return Promise.resolve(entry);
+            }
+
+            if (instance.blocks && typeof instance.blocks.render === 'function') {
+                renderResult = instance.blocks.render(data);
+                return Promise.resolve(renderResult).then(function () {
+                    return entry;
+                });
+            }
+
+            if (typeof instance.render === 'function') {
+                renderResult = instance.render(data);
+                return Promise.resolve(renderResult).then(function () {
+                    return entry;
+                });
+            }
+
+            return Promise.resolve(entry);
         }
 
         function getNamedFormField(name) {
@@ -3971,6 +4069,22 @@
             var activeEntry = null;
 
             return waitForPendingLazyBinding(key).then(function () {
+                if (delegatedEditorBoot) {
+                    return waitForDelegatedEditorEntry(key).then(function (delegatedEntry) {
+                        activeEntry = delegatedEntry;
+
+                        if (!activeEntry || !activeEntry.instance) {
+                            return normalizeEditorData(safeParseEditorInput(input));
+                        }
+
+                        return waitForDelegatedEditorReady(activeEntry).then(function () {
+                            return waitForNextPaint();
+                        }).then(function () {
+                            return activeEntry.instance.save();
+                        });
+                    });
+                }
+
                 entry = editors[key];
 
                 if (!entry) {
@@ -4027,6 +4141,12 @@
                 return Promise.resolve(null);
             }
 
+            if (delegatedEditorBoot) {
+                return waitForDelegatedEditorEntry(key).then(function (delegatedEntry) {
+                    return waitForDelegatedEditorReady(delegatedEntry);
+                });
+            }
+
             entry = bindEditor(definition, forceRecreate);
             if (!entry || !entry.instance) {
                 return Promise.resolve(null);
@@ -4071,6 +4191,14 @@
 
             if (!definition) {
                 return Promise.resolve();
+            }
+
+            if (delegatedEditorBoot) {
+                return waitForDelegatedEditorEntry(key).then(function (entry) {
+                    return waitForDelegatedEditorReady(entry);
+                }).then(function (entry) {
+                    return renderDelegatedEditorData(entry, normalizedData);
+                });
             }
 
             if (applyOptions.recreateEditor) {
@@ -4486,6 +4614,11 @@
 
         (Array.isArray(config.editors) ? config.editors : []).forEach(function (definition) {
             editorDefinitions[definition.key] = definition;
+
+            if (delegatedEditorBoot) {
+                return;
+            }
+
             getPlainEditorState(definition, getElement(definition.inputId));
             setEditorStateMarker(definition, 'loading');
 
@@ -4540,64 +4673,66 @@
             handleAiTranslation(config.aiTranslation);
         }
 
-        form.addEventListener('click', function (event) {
-            var target = event && event.target && typeof event.target.closest === 'function'
-                ? event.target.closest('button, input[type="submit"], input[type="image"]')
-                : null;
+        if (!delegatedEditorBoot) {
+            form.addEventListener('click', function (event) {
+                var target = event && event.target && typeof event.target.closest === 'function'
+                    ? event.target.closest('button, input[type="submit"], input[type="image"]')
+                    : null;
 
-            if (isFormSubmitter(target)) {
-                pendingSubmitter = target;
-            }
-        }, true);
+                if (isFormSubmitter(target)) {
+                    pendingSubmitter = target;
+                }
+            }, true);
 
-        form.addEventListener('submit', function (event) {
-            var keys = Object.keys(editorDefinitions);
-            var submitter = event && event.submitter ? event.submitter : pendingSubmitter;
+            form.addEventListener('submit', function (event) {
+                var keys = Object.keys(editorDefinitions);
+                var submitter = event && event.submitter ? event.submitter : pendingSubmitter;
 
-            if (nativeSubmitPending) {
-                return;
-            }
-
-            if (keys.length === 0) {
-                pendingSubmitter = null;
-                return;
-            }
-
-            event.preventDefault();
-
-            if (submitLocked) {
-                return;
-            }
-
-            clearNotice();
-
-            submitLocked = true;
-            syncAllPlainEditors();
-
-            Promise.all(keys.map(function (key) {
-                return saveEditorContent(key, false);
-            })).then(function () {
-                submitLocked = false;
-                dispatchValidatedSubmit(submitter);
-            }).catch(function (error) {
-                var failedDefinition = error && error.editorDefinition ? error.editorDefinition : null;
-                var message = error && error.message
-                    ? error.message
-                    : 'Der Editor-Inhalt konnte nicht gespeichert werden. Bitte Eingaben prüfen und erneut versuchen.';
-
-                if (failedDefinition && failedDefinition.activateButtonId) {
-                    activateTargetPane(failedDefinition.activateButtonId, failedDefinition.key);
+                if (nativeSubmitPending) {
+                    return;
                 }
 
-                if (typeof console !== 'undefined' && typeof console.error === 'function') {
-                    console.error('Editor.js-Speichern vor Formular-Submit fehlgeschlagen.', error);
+                if (keys.length === 0) {
+                    pendingSubmitter = null;
+                    return;
                 }
 
-                submitLocked = false;
-                pendingSubmitter = null;
-                showNotice('danger', message);
+                event.preventDefault();
+
+                if (submitLocked) {
+                    return;
+                }
+
+                clearNotice();
+
+                submitLocked = true;
+                syncAllPlainEditors();
+
+                Promise.all(keys.map(function (key) {
+                    return saveEditorContent(key, false);
+                })).then(function () {
+                    submitLocked = false;
+                    dispatchValidatedSubmit(submitter);
+                }).catch(function (error) {
+                    var failedDefinition = error && error.editorDefinition ? error.editorDefinition : null;
+                    var message = error && error.message
+                        ? error.message
+                        : 'Der Editor-Inhalt konnte nicht gespeichert werden. Bitte Eingaben prüfen und erneut versuchen.';
+
+                    if (failedDefinition && failedDefinition.activateButtonId) {
+                        activateTargetPane(failedDefinition.activateButtonId, failedDefinition.key);
+                    }
+
+                    if (typeof console !== 'undefined' && typeof console.error === 'function') {
+                        console.error('Editor.js-Speichern vor Formular-Submit fehlgeschlagen.', error);
+                    }
+
+                    submitLocked = false;
+                    pendingSubmitter = null;
+                    showNotice('danger', message);
+                });
             });
-        });
+        }
     }
 
     function waitForEditorJsCore(editorJsConfig) {
