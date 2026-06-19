@@ -86,6 +86,25 @@ if (!is_string($editorInlineBootJson) || $editorInlineBootJson === '') {
         }
     }
 
+    function createPlaintextFallbackData(value) {
+        var normalizedValue = String(value || '').trim();
+
+        if (normalizedValue === '') {
+            return { blocks: [] };
+        }
+
+        return {
+            time: Date.now(),
+            version: 'cms-editor-fallback',
+            blocks: [
+                {
+                    type: 'paragraph',
+                    data: { text: normalizedValue.replace(/\n/g, '<br>') }
+                }
+            ]
+        };
+    }
+
     function getSubmitName(input) {
         if (!input || !input.dataset) {
             return '';
@@ -156,13 +175,11 @@ if (!is_string($editorInlineBootJson) || $editorInlineBootJson === '') {
         }
 
         if (input && submitName) {
-            input.removeAttribute('name');
+            input.setAttribute('name', submitName);
         }
         if (textarea) {
             textarea.disabled = false;
-            if (textarea.dataset && textarea.dataset.originalName) {
-                textarea.setAttribute('name', textarea.dataset.originalName);
-            }
+            textarea.removeAttribute('name');
         }
         if (wrap) {
             wrap.hidden = false;
@@ -228,12 +245,13 @@ if (!is_string($editorInlineBootJson) || $editorInlineBootJson === '') {
     }
 
     function getUploadContext() {
-        var titleInput = getElement(config.titleInputId || config.titleFallbackInputId || '');
-        var slugInput = getElement(config.slugInputId || config.slugFallbackInputId || '');
+        var uploadContext = config.uploadContext && typeof config.uploadContext === 'object' ? config.uploadContext : {};
+        var titleInput = getElement(uploadContext.titleInputId || uploadContext.titleFallbackInputId || config.titleInputId || config.titleFallbackInputId || '');
+        var slugInput = getElement(uploadContext.slugInputId || uploadContext.slugFallbackInputId || config.slugInputId || config.slugFallbackInputId || '');
         return {
-            contentType: String(config.contentType || ''),
-            contentId: Number(config.contentId || 0),
-            draftKey: String(config.draftKey || ''),
+            contentType: String(uploadContext.contentType || config.contentType || ''),
+            contentId: Number(uploadContext.contentId || config.contentId || 0),
+            draftKey: String(uploadContext.draftKey || config.draftKey || ''),
             title: titleInput ? titleInput.value : '',
             slug: slugInput ? slugInput.value : ''
         };
@@ -257,7 +275,12 @@ if (!is_string($editorInlineBootJson) || $editorInlineBootJson === '') {
         }
 
         if (textarea && !textarea.disabled) {
-            input.value = textarea.value || '';
+            var submitName = getSubmitName(input);
+            if (submitName) {
+                input.setAttribute('name', submitName);
+                textarea.removeAttribute('name');
+            }
+            input.value = stringifyData(createPlaintextFallbackData(textarea.value || ''));
             emitInputEvents(input);
             return Promise.resolve(true);
         }
@@ -423,6 +446,9 @@ if (!is_string($editorInlineBootJson) || $editorInlineBootJson === '') {
         window.cmsEditorDebug.inlineEditorJsBootedAt = state.bootedAt;
         window.cmsEditorDebug.editorJsBridgeBootedAt = state.bootedAt;
 
+        definitions.forEach(function (definition) {
+            setEnhanced(definition, false);
+        });
         bindSubmit(form, definitions);
         waitForRuntime().then(function (ready) {
             if (!ready) {

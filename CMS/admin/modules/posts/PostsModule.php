@@ -2451,18 +2451,17 @@ class PostsModule
     {
         $submitted = (string) $submittedValue;
         $original = (string) $originalValue;
+        $decodedSubmitted = json_decode(trim($submitted), true);
+        $submittedIsEditorPayload = is_array($decodedSubmitted) && isset($decodedSubmitted['blocks']) && is_array($decodedSubmitted['blocks']);
+        $submittedIsFallbackPayload = $submittedIsEditorPayload && (string) ($decodedSubmitted['version'] ?? '') === 'cms-editor-fallback';
 
         if ($original === '') {
-            return $submitted;
+            return $submittedIsEditorPayload ? $submitted : $this->encodePlaintextFallbackEditorContent($submitted);
         }
 
         if ($submitted === $original) {
             return $original;
         }
-
-        $decodedSubmitted = json_decode(trim($submitted), true);
-        $submittedIsEditorPayload = is_array($decodedSubmitted) && isset($decodedSubmitted['blocks']) && is_array($decodedSubmitted['blocks']);
-        $submittedIsFallbackPayload = $submittedIsEditorPayload && (string) ($decodedSubmitted['version'] ?? '') === 'cms-editor-fallback';
 
         if ($submittedIsEditorPayload && !$submittedIsFallbackPayload) {
             return $submitted;
@@ -2477,7 +2476,36 @@ class PostsModule
             return $original;
         }
 
+        if (!$submittedIsEditorPayload) {
+            return $this->encodePlaintextFallbackEditorContent($submitted);
+        }
+
         return $submitted;
+    }
+
+    private function encodePlaintextFallbackEditorContent(string $plainText): string
+    {
+        $plainText = trim(str_replace(["\r\n", "\r"], "\n", $plainText));
+        if ($plainText === '') {
+            return '{"blocks":[]}';
+        }
+
+        $payload = [
+            'time' => (int) floor(microtime(true) * 1000),
+            'version' => 'cms-editor-fallback',
+            'blocks' => [
+                [
+                    'type' => 'paragraph',
+                    'data' => [
+                        'text' => str_replace("\n", '<br>', $plainText),
+                    ],
+                ],
+            ],
+        ];
+
+        $encoded = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
+        return is_string($encoded) && $encoded !== '' ? $encoded : '{"blocks":[]}';
     }
 
     private function extractPlainTextFromContentPayload(string $rawContent): string
