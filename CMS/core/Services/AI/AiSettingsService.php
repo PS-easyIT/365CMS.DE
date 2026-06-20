@@ -337,6 +337,12 @@ final class AiSettingsService
         $selectedEntry['enabled'] = true;
         $sanitizedEntries = [$selectedEntry];
         $activeProviderId = (string) ($selectedEntry['id'] ?? 'mock');
+        $secretValues = $this->preserveSelectedProviderSecret(
+            $activeProviderId,
+            (string) ($selectedEntry['type'] ?? ''),
+            $secretValues,
+            $clearSecrets
+        );
 
         $payload = [
             'active_provider_id' => $activeProviderId,
@@ -373,15 +379,51 @@ final class AiSettingsService
             }
         }
 
-        foreach (self::PROVIDER_SLUGS as $providerSlug) {
-            if ($providerSlug === $activeProviderId) {
-                continue;
-            }
+        return true;
+    }
 
-            $this->settings->forget(self::GROUP_PROVIDERS, $this->buildProviderSecretKey($providerSlug));
+    /**
+     * @param array<string, string> $secretValues
+     * @param list<string> $clearSecrets
+     * @return array<string, string>
+     */
+    private function preserveSelectedProviderSecret(string $activeProviderId, string $providerType, array $secretValues, array $clearSecrets): array
+    {
+        $activeProviderId = $this->sanitizeProviderId($activeProviderId);
+        $providerType = strtolower(trim($providerType));
+        $clearSecrets = array_map(fn (mixed $providerId): string => $this->sanitizeProviderId((string) $providerId), $clearSecrets);
+
+        if (
+            $activeProviderId === ''
+            || $providerType === ''
+            || isset($secretValues[$activeProviderId])
+            || in_array($activeProviderId, $clearSecrets, true)
+            || $this->getProviderSecret($activeProviderId, $providerType) !== ''
+        ) {
+            return $secretValues;
         }
 
-        return true;
+        $storedProviders = $this->normalizeProviders($this->settings->getGroup(self::GROUP_PROVIDERS));
+        $currentEntry = is_array($storedProviders['entries'][0] ?? null) ? $storedProviders['entries'][0] : null;
+        if ($currentEntry === null || (string) ($currentEntry['type'] ?? '') !== $providerType) {
+            return $secretValues;
+        }
+
+        $previousProviderId = $this->sanitizeProviderId((string) ($currentEntry['id'] ?? ''));
+        if (
+            $previousProviderId === ''
+            || $previousProviderId === $activeProviderId
+            || in_array($previousProviderId, $clearSecrets, true)
+        ) {
+            return $secretValues;
+        }
+
+        $previousSecret = $this->getProviderSecret($previousProviderId, $providerType);
+        if ($previousSecret !== '') {
+            $secretValues[$activeProviderId] = $previousSecret;
+        }
+
+        return $secretValues;
     }
 
     /** @param array<string, mixed> $values */
