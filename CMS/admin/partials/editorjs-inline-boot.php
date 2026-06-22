@@ -227,6 +227,48 @@ if (!is_string($editorInlineBootJson) || $editorInlineBootJson === '') {
         }) : [];
     }
 
+    function getDefinitionByKey(key) {
+        var resolvedKey = String(key || '');
+        var definitions = getDefinitions();
+        var index;
+
+        for (index = 0; index < definitions.length; index += 1) {
+            if (String(definitions[index].key || '') === resolvedKey) {
+                return definitions[index];
+            }
+        }
+
+        return null;
+    }
+
+    function parseInputData(input) {
+        var value = input ? String(input.value || '') : '';
+
+        if (!input) {
+            return normalizeData(null);
+        }
+
+        try {
+            return normalizeData(JSON.parse(value || ''));
+        } catch (_error) {
+            value = value.trim();
+            if (value === '') {
+                return normalizeData(null);
+            }
+
+            return normalizeData({
+                time: Date.now(),
+                blocks: [
+                    {
+                        type: 'paragraph',
+                        data: { text: value }
+                    }
+                ],
+                version: '2.31.0'
+            });
+        }
+    }
+
     function getUploadContext() {
         var titleInput = getElement(config.titleInputId || config.titleFallbackInputId || '');
         var slugInput = getElement(config.slugInputId || config.slugFallbackInputId || '');
@@ -263,6 +305,63 @@ if (!is_string($editorInlineBootJson) || $editorInlineBootJson === '') {
         }
 
         return Promise.resolve(false);
+    }
+
+    function buildBridge() {
+        return {
+            ownsEditor: function () {
+                return true;
+            },
+            boot: function () {
+                return true;
+            },
+            saveEditorContent: function (key) {
+                var definition = getDefinitionByKey(key);
+                var input = definition ? getElement(definition.inputId) : null;
+
+                if (!definition || !input) {
+                    return Promise.resolve(normalizeData(null));
+                }
+
+                return saveDefinition(definition).then(function () {
+                    return parseInputData(input);
+                });
+            },
+            applyEditorData: function (key, data) {
+                var definition = getDefinitionByKey(key);
+                var input = definition ? getElement(definition.inputId) : null;
+                var entry = definition ? state.editors[definition.key] : null;
+                var normalized = normalizeData(data);
+                var renderResult = null;
+
+                if (!definition || !input) {
+                    return Promise.resolve(false);
+                }
+
+                input.value = stringifyData(normalized);
+                emitInputEvents(input);
+
+                if (!entry || !entry.editor) {
+                    return Promise.resolve(true);
+                }
+
+                if (entry.editor.blocks && typeof entry.editor.blocks.render === 'function') {
+                    renderResult = entry.editor.blocks.render(normalized);
+                    return Promise.resolve(renderResult).then(function () {
+                        return true;
+                    });
+                }
+
+                if (typeof entry.editor.render === 'function') {
+                    renderResult = entry.editor.render(normalized);
+                    return Promise.resolve(renderResult).then(function () {
+                        return true;
+                    });
+                }
+
+                return Promise.resolve(true);
+            }
+        };
     }
 
     function initDefinition(definition) {
@@ -417,6 +516,7 @@ if (!is_string($editorInlineBootJson) || $editorInlineBootJson === '') {
         state.bootedAt = new Date().toISOString();
         window.cmsInlineEditorJsBootState = state;
         window.cmsAdminEditorJsBridgeState = state;
+        window.cmsAdminEditorJsBridge = buildBridge();
         if (!window.cmsEditorDebug || typeof window.cmsEditorDebug !== 'object') {
             window.cmsEditorDebug = {};
         }

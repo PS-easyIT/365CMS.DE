@@ -157,6 +157,17 @@ $tests = [
         aiAssert(!str_contains($view, 'Provider-Liste'), 'Alte Provider-Liste ist noch sichtbar.');
         aiAssert(!str_contains($view, 'Expliziter Fallback-Provider'), 'Fallback-UI ist noch sichtbar.');
     },
+    'Inline EditorJS Bridge erhält AI-Übersetzungsworkflow' => static function () use ($root): void {
+        $inlineBoot = aiReadFile($root . DIRECTORY_SEPARATOR . 'CMS' . DIRECTORY_SEPARATOR . 'admin' . DIRECTORY_SEPARATOR . 'partials' . DIRECTORY_SEPARATOR . 'editorjs-inline-boot.php');
+        $contentEditor = aiReadFile($root . DIRECTORY_SEPARATOR . 'CMS' . DIRECTORY_SEPARATOR . 'assets' . DIRECTORY_SEPARATOR . 'js' . DIRECTORY_SEPARATOR . 'admin-content-editor.js');
+
+        aiAssert(str_contains($inlineBoot, 'window.cmsAdminEditorJsBridge = buildBridge();'), 'Inline-Boot stellt keinen EditorJS-Bridge bereit.');
+        aiAssert(str_contains($inlineBoot, 'saveEditorContent: function'), 'Inline-Boot kann EditorJS-Inhalte nicht für AI-Workflows serialisieren.');
+        aiAssert(str_contains($inlineBoot, 'applyEditorData: function'), 'Inline-Boot kann AI-Ergebnisse nicht zurück in den aktiven Editor rendern.');
+        aiAssert(str_contains($contentEditor, 'externalEditorBridge.saveEditorContent'), 'Shared Content Editor nutzt den Inline-Bridge nicht zum Speichern.');
+        aiAssert(str_contains($contentEditor, 'externalEditorBridge.applyEditorData'), 'Shared Content Editor nutzt den Inline-Bridge nicht zum Anwenden von AI-Ergebnissen.');
+        aiAssert(str_contains($contentEditor, 'if (!externalEditorBridge) {') && str_contains($contentEditor, 'handleAiTranslation(config.aiTranslation);'), 'Delegierter EditorJS-Boot darf AI-Übersetzungsbindung nicht überspringen.');
+    },
 ];
 
 $output = [];

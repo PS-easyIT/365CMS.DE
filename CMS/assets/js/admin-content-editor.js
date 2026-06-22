@@ -466,6 +466,7 @@
         var editorInitWatchdogs = {};
         var editorEmergencyFallbackTimers = {};
         var editorRuntimeRetryQueue = {};
+        var externalEditorBridge = null;
         var EDITOR_INIT_WATCHDOG_MS = 12000;
         var EDITOR_EMERGENCY_FALLBACK_MS = 6000;
 
@@ -473,12 +474,20 @@
             return;
         }
 
-        if (window.cmsInlineEditorJsBootState || (window.cmsAdminEditorJsBridge && typeof window.cmsAdminEditorJsBridge.ownsEditor === 'function' && window.cmsAdminEditorJsBridge.ownsEditor())) {
+        if (window.cmsAdminEditorJsBridge
+            && typeof window.cmsAdminEditorJsBridge.ownsEditor === 'function'
+            && window.cmsAdminEditorJsBridge.ownsEditor()) {
+            externalEditorBridge = window.cmsAdminEditorJsBridge;
+        }
+
+        if (window.cmsInlineEditorJsBootState || externalEditorBridge) {
             logEditor('info', '[EJS-BRIDGE-DELEGATED] EditorJS boot is owned by the inline Page/Post bootstrap.');
-            if (window.cmsAdminEditorJsBridge && typeof window.cmsAdminEditorJsBridge.boot === 'function') {
-                window.cmsAdminEditorJsBridge.boot();
+            if (externalEditorBridge && typeof externalEditorBridge.boot === 'function') {
+                externalEditorBridge.boot();
             }
-            return;
+            if (!externalEditorBridge) {
+                return;
+            }
         }
 
         form = getElement(config.formId);
@@ -3970,6 +3979,12 @@
             var input = definition ? getElement(definition.inputId) : null;
             var activeEntry = null;
 
+            if (externalEditorBridge && typeof externalEditorBridge.saveEditorContent === 'function') {
+                return externalEditorBridge.saveEditorContent(key, allowFallback).then(function (data) {
+                    return normalizeEditorData(data);
+                });
+            }
+
             return waitForPendingLazyBinding(key).then(function () {
                 entry = editors[key];
 
@@ -4023,6 +4038,10 @@
             var definition = getDefinition(key);
             var entry;
 
+            if (externalEditorBridge) {
+                return Promise.resolve(null);
+            }
+
             if (!definition) {
                 return Promise.resolve(null);
             }
@@ -4068,6 +4087,10 @@
 
             input.value = JSON.stringify(normalizedData);
             emitChangeEvents(input);
+
+            if (externalEditorBridge && typeof externalEditorBridge.applyEditorData === 'function') {
+                return externalEditorBridge.applyEditorData(key, normalizedData, applyOptions);
+            }
 
             if (!definition) {
                 return Promise.resolve();
@@ -4487,13 +4510,13 @@
         (Array.isArray(config.editors) ? config.editors : []).forEach(function (definition) {
             editorDefinitions[definition.key] = definition;
             getPlainEditorState(definition, getElement(definition.inputId));
-            setEditorStateMarker(definition, 'loading');
+            setEditorStateMarker(definition, externalEditorBridge ? 'editor' : 'loading', externalEditorBridge ? 'delegated-inline-boot' : '');
 
-            if (!definition.lazy) {
+            if (!externalEditorBridge && !definition.lazy) {
                 bindEditor(definition);
             }
 
-            if (definition.lazy && definition.activateButtonId) {
+            if (!externalEditorBridge && definition.lazy && definition.activateButtonId) {
                 var trigger = getElement(definition.activateButtonId);
                 if (trigger) {
                     trigger.addEventListener('click', function () {
@@ -4540,64 +4563,66 @@
             handleAiTranslation(config.aiTranslation);
         }
 
-        form.addEventListener('click', function (event) {
-            var target = event && event.target && typeof event.target.closest === 'function'
-                ? event.target.closest('button, input[type="submit"], input[type="image"]')
-                : null;
+        if (!externalEditorBridge) {
+            form.addEventListener('click', function (event) {
+                var target = event && event.target && typeof event.target.closest === 'function'
+                    ? event.target.closest('button, input[type="submit"], input[type="image"]')
+                    : null;
 
-            if (isFormSubmitter(target)) {
-                pendingSubmitter = target;
-            }
-        }, true);
+                if (isFormSubmitter(target)) {
+                    pendingSubmitter = target;
+                }
+            }, true);
 
-        form.addEventListener('submit', function (event) {
-            var keys = Object.keys(editorDefinitions);
-            var submitter = event && event.submitter ? event.submitter : pendingSubmitter;
+            form.addEventListener('submit', function (event) {
+                var keys = Object.keys(editorDefinitions);
+                var submitter = event && event.submitter ? event.submitter : pendingSubmitter;
 
-            if (nativeSubmitPending) {
-                return;
-            }
-
-            if (keys.length === 0) {
-                pendingSubmitter = null;
-                return;
-            }
-
-            event.preventDefault();
-
-            if (submitLocked) {
-                return;
-            }
-
-            clearNotice();
-
-            submitLocked = true;
-            syncAllPlainEditors();
-
-            Promise.all(keys.map(function (key) {
-                return saveEditorContent(key, false);
-            })).then(function () {
-                submitLocked = false;
-                dispatchValidatedSubmit(submitter);
-            }).catch(function (error) {
-                var failedDefinition = error && error.editorDefinition ? error.editorDefinition : null;
-                var message = error && error.message
-                    ? error.message
-                    : 'Der Editor-Inhalt konnte nicht gespeichert werden. Bitte Eingaben prüfen und erneut versuchen.';
-
-                if (failedDefinition && failedDefinition.activateButtonId) {
-                    activateTargetPane(failedDefinition.activateButtonId, failedDefinition.key);
+                if (nativeSubmitPending) {
+                    return;
                 }
 
-                if (typeof console !== 'undefined' && typeof console.error === 'function') {
-                    console.error('Editor.js-Speichern vor Formular-Submit fehlgeschlagen.', error);
+                if (keys.length === 0) {
+                    pendingSubmitter = null;
+                    return;
                 }
 
-                submitLocked = false;
-                pendingSubmitter = null;
-                showNotice('danger', message);
+                event.preventDefault();
+
+                if (submitLocked) {
+                    return;
+                }
+
+                clearNotice();
+
+                submitLocked = true;
+                syncAllPlainEditors();
+
+                Promise.all(keys.map(function (key) {
+                    return saveEditorContent(key, false);
+                })).then(function () {
+                    submitLocked = false;
+                    dispatchValidatedSubmit(submitter);
+                }).catch(function (error) {
+                    var failedDefinition = error && error.editorDefinition ? error.editorDefinition : null;
+                    var message = error && error.message
+                        ? error.message
+                        : 'Der Editor-Inhalt konnte nicht gespeichert werden. Bitte Eingaben prüfen und erneut versuchen.';
+
+                    if (failedDefinition && failedDefinition.activateButtonId) {
+                        activateTargetPane(failedDefinition.activateButtonId, failedDefinition.key);
+                    }
+
+                    if (typeof console !== 'undefined' && typeof console.error === 'function') {
+                        console.error('Editor.js-Speichern vor Formular-Submit fehlgeschlagen.', error);
+                    }
+
+                    submitLocked = false;
+                    pendingSubmitter = null;
+                    showNotice('danger', message);
+                });
             });
-        });
+        }
     }
 
     function waitForEditorJsCore(editorJsConfig) {
