@@ -174,6 +174,20 @@ $tests = [
         assertTrue($content !== false, 'CI-Workflow konnte nicht gelesen werden.');
         assertTrue(str_contains($content, 'php tests/release-smoke/run.php'), 'Release-Smoke-Suite fehlt im CI-Workflow.');
     },
+    'Inline-EditorJS-Fallback speichert aktive Plain-Textarea verlustfrei' => static function () use ($projectRoot): void {
+        $bootPath = $projectRoot . '/CMS/admin/partials/editorjs-inline-boot.php';
+        $content = file_get_contents($bootPath);
+        assertTrue($content !== false, 'EditorJS-Inline-Bootstrap konnte nicht gelesen werden.');
+
+        $fallbackPosition = strpos($content, 'if (textarea && !textarea.disabled)');
+        $editorSavePosition = strpos($content, "if (entry && entry.editor && typeof entry.editor.save === 'function')");
+
+        assertTrue(str_contains($content, "version: 'cms-editor-fallback'"), 'Plain-Fallback wird nicht als EditorJS-Fallback-Payload markiert.');
+        assertTrue(str_contains($content, 'plainTextareaChangedDuringBoot'), 'Plain-Textarea-Änderungen während des Bootens werden nicht erkannt.');
+        assertTrue(str_contains($content, "mark(definition, 'fallback', 'inline-plain-edited')"), 'Während des Bootens geänderte Plain-Textarea bleibt nicht im Fallback-Modus.');
+        assertTrue($fallbackPosition !== false && $editorSavePosition !== false && $fallbackPosition < $editorSavePosition, 'Aktive Plain-Textarea gewinnt beim Submit nicht vor EditorJS-save().');
+        assertTrue(str_contains($content, 'if (state.submitting)'), 'Submit-Serialisierung ist nicht gegen nachlaufende onChange-Syncs geschützt.');
+    },
 ];
 
 $output = [];

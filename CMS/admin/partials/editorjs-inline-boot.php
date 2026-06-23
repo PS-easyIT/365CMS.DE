@@ -86,6 +86,21 @@ if (!is_string($editorInlineBootJson) || $editorInlineBootJson === '') {
         }
     }
 
+    function createPlaintextFallbackData(value) {
+        var normalizedValue = String(value || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+        return {
+            time: Date.now(),
+            version: 'cms-editor-fallback',
+            blocks: normalizedValue.trim() === '' ? [] : [
+                {
+                    type: 'paragraph',
+                    data: { text: normalizedValue.replace(/\n/g, '<br>') }
+                }
+            ]
+        };
+    }
+
     function getSubmitName(input) {
         if (!input || !input.dataset) {
             return '';
@@ -138,6 +153,9 @@ if (!is_string($editorInlineBootJson) || $editorInlineBootJson === '') {
         if (textarea && textarea.dataset && !textarea.dataset.originalName && textarea.name) {
             textarea.dataset.originalName = textarea.name;
         }
+        if (textarea && textarea.dataset && typeof textarea.dataset.cmsInlineInitialValue === 'undefined') {
+            textarea.dataset.cmsInlineInitialValue = textarea.value || '';
+        }
 
         if (enhanced) {
             if (input && submitName) {
@@ -169,6 +187,29 @@ if (!is_string($editorInlineBootJson) || $editorInlineBootJson === '') {
             wrap.classList.remove('cms-editor-plain-wrap--enhanced');
         }
         mark(definition, 'fallback', 'inline-fallback');
+    }
+
+    function plainTextareaChangedDuringBoot(definition) {
+        var textarea = findTextarea(definition);
+
+        return !!(
+            textarea
+            && !textarea.disabled
+            && textarea.dataset
+            && typeof textarea.dataset.cmsInlineInitialValue !== 'undefined'
+            && textarea.value !== textarea.dataset.cmsInlineInitialValue
+        );
+    }
+
+    function activateEnhancedEditor(definition) {
+        if (plainTextareaChangedDuringBoot(definition)) {
+            setEnhanced(definition, false);
+            mark(definition, 'fallback', 'inline-plain-edited');
+            return false;
+        }
+
+        setEnhanced(definition, true);
+        return true;
     }
 
     function runtimeReady() {
@@ -248,18 +289,18 @@ if (!is_string($editorInlineBootJson) || $editorInlineBootJson === '') {
             return Promise.resolve(false);
         }
 
+        if (textarea && !textarea.disabled) {
+            input.value = stringifyData(createPlaintextFallbackData(textarea.value || ''));
+            emitInputEvents(input);
+            return Promise.resolve(true);
+        }
+
         if (entry && entry.editor && typeof entry.editor.save === 'function') {
             return entry.editor.save().then(function (output) {
                 input.value = stringifyData(output);
                 emitInputEvents(input);
                 return true;
             });
-        }
-
-        if (textarea && !textarea.disabled) {
-            input.value = textarea.value || '';
-            emitInputEvents(input);
-            return Promise.resolve(true);
         }
 
         return Promise.resolve(false);
@@ -286,12 +327,16 @@ if (!is_string($editorInlineBootJson) || $editorInlineBootJson === '') {
                     if (state.editors[definition.key]) {
                         state.editors[definition.key].ready = true;
                     }
-                    setEnhanced(definition, true);
-                    saveDefinition(definition).catch(function (error) {
-                        log('warn', 'Initial sync failed.', error);
-                    });
+                    if (activateEnhancedEditor(definition)) {
+                        saveDefinition(definition).catch(function (error) {
+                            log('warn', 'Initial sync failed.', error);
+                        });
+                    }
                 },
                 onChange: function (output) {
+                    if (state.submitting) {
+                        return;
+                    }
                     input.value = stringifyData(output);
                     emitInputEvents(input);
                 },
@@ -316,14 +361,15 @@ if (!is_string($editorInlineBootJson) || $editorInlineBootJson === '') {
         if (editor && editor.isReady && typeof editor.isReady.then === 'function') {
             return withTimeout(editor.isReady, readyTimeoutMs).then(function () {
                 state.editors[definition.key].ready = true;
-                setEnhanced(definition, true);
+                activateEnhancedEditor(definition);
                 return true;
             }, function (error) {
                 var rendered = !!holder.querySelector('.codex-editor, .ce-block, .codex-editor__redactor');
                 if (rendered) {
                     state.editors[definition.key].ready = true;
-                    setEnhanced(definition, true);
-                    mark(definition, 'editor', 'inline-rendered-before-ready');
+                    if (activateEnhancedEditor(definition)) {
+                        mark(definition, 'editor', 'inline-rendered-before-ready');
+                    }
                     log('warn', 'isReady timeout/rejection ignored because EditorJS DOM is rendered.', error);
                     return true;
                 }
@@ -334,7 +380,7 @@ if (!is_string($editorInlineBootJson) || $editorInlineBootJson === '') {
             });
         }
 
-        setEnhanced(definition, true);
+        activateEnhancedEditor(definition);
         return Promise.resolve(true);
     }
 
