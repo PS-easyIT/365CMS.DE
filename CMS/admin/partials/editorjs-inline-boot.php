@@ -408,6 +408,16 @@ if (!is_string($editorInlineBootJson) || $editorInlineBootJson === '') {
         }
         booted = true;
 
+        if (window.cmsAdminContentEditorOwnsEditorJs === true) {
+            state.mode = 'external-admin-content-editor';
+            if (!window.cmsEditorDebug || typeof window.cmsEditorDebug !== 'object') {
+                window.cmsEditorDebug = {};
+            }
+            window.cmsEditorDebug.inlineEditorJsSkippedAt = new Date().toISOString();
+            log('log', 'Inline EditorJS boot skipped; admin-content-editor.js owns this edit form.');
+            return;
+        }
+
         form = getElement(config.formId || '');
         definitions = getDefinitions();
         if (!form || definitions.length === 0) {

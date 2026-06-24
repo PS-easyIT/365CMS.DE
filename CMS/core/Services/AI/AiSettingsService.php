@@ -217,7 +217,26 @@ final class AiSettingsService
         $options = self::getProviderModelOptions($providerType);
         $model = trim($model);
 
-        return isset($options[$model]) ? $model : (string) array_key_first($options);
+        if ($model === '') {
+            return (string) array_key_first($options);
+        }
+
+        if (isset($options[$model])) {
+            return $model;
+        }
+
+        if (self::providerAllowsCustomModel($providerType)) {
+            return $model;
+        }
+
+        return (string) array_key_first($options);
+    }
+
+    public static function providerAllowsCustomModel(string $providerType): bool
+    {
+        $providerType = strtolower(trim($providerType));
+
+        return $providerType === 'ollama';
     }
 
     /** @return array<string, bool> */
@@ -371,14 +390,6 @@ final class AiSettingsService
             if (!$this->settings->forget(self::GROUP_PROVIDERS, $this->buildProviderSecretKey($providerId))) {
                 return false;
             }
-        }
-
-        foreach (self::PROVIDER_SLUGS as $providerSlug) {
-            if ($providerSlug === $activeProviderId) {
-                continue;
-            }
-
-            $this->settings->forget(self::GROUP_PROVIDERS, $this->buildProviderSecretKey($providerSlug));
         }
 
         return true;
@@ -1132,6 +1143,7 @@ final class AiSettingsService
                 'default_model' => (string) ($defaults['default_model'] ?? ''),
                 'default_endpoint' => (string) ($defaults['endpoint'] ?? ''),
                 'model_options' => self::getProviderModelOptions($providerType),
+                'allows_custom_model' => self::providerAllowsCustomModel($providerType),
                 'settings_fields' => self::getProviderSettingsFields($providerType),
             ];
         }

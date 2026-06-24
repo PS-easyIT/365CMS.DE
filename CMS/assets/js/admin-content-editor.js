@@ -4675,6 +4675,9 @@
         enforceAccordionDefaults();
         initUi(uiConfig);
         initSeo(seoConfig);
+        if (editorJsConfig && Array.isArray(editorJsConfig.editors) && editorJsConfig.editors.length > 0) {
+            window.cmsAdminContentEditorOwnsEditorJs = true;
+        }
         waitForEditorJsCore(editorJsConfig).then(function () {
             logEditor('info', '[EJS-CHAIN-INIT-START] Starting EditorJS init after wait.');
             initEditorJs(editorJsConfig);

@@ -832,7 +832,13 @@ if (empty($summary['translation_ready'])) {
                             <div class="col-md-4" data-ai-provider-field="model">
                                 <label class="form-label">Optionales Modell</label>
                                 <select class="form-select" id="aiProviderModelSelect" name="<?php echo htmlspecialchars($namePrefix . '[default_model]', ENT_QUOTES); ?>" data-current-model="<?php echo htmlspecialchars((string) ($provider['default_model'] ?? ''), ENT_QUOTES); ?>">
-                                    <?php $currentModelOptions = (array) ($providerCatalog[$providerType]['model_options'] ?? []); ?>
+                                    <?php
+                                    $currentModel = (string) ($provider['default_model'] ?? '');
+                                    $currentModelOptions = (array) ($providerCatalog[$providerType]['model_options'] ?? []);
+                                    if ($currentModel !== '' && !isset($currentModelOptions[$currentModel]) && !empty($providerCatalog[$providerType]['allows_custom_model'])) {
+                                        $currentModelOptions = [$currentModel => 'Benutzerdefiniert: ' . $currentModel] + $currentModelOptions;
+                                    }
+                                    ?>
                                     <?php foreach ($currentModelOptions as $modelValue => $modelLabel): ?>
                                         <option value="<?php echo htmlspecialchars((string) $modelValue, ENT_QUOTES); ?>" <?php echo $isSelected((string) ($provider['default_model'] ?? ''), (string) $modelValue); ?>><?php echo htmlspecialchars((string) $modelLabel); ?></option>
                                     <?php endforeach; ?>
@@ -902,9 +908,22 @@ if (empty($summary['translation_ready'])) {
                                     var entry = getProviderEntry(providerType);
                                     var options = entry.model_options || {};
                                     var defaultModel = entry.default_model || Object.keys(options)[0] || '';
-                                    var selectedModel = Object.prototype.hasOwnProperty.call(options, preferredModel) ? preferredModel : defaultModel;
+                                    var allowsCustomModel = !!entry.allows_custom_model;
+                                    var hasPreferredModel = Object.prototype.hasOwnProperty.call(options, preferredModel);
+                                    var selectedModel = hasPreferredModel ? preferredModel : defaultModel;
+
+                                    if (!hasPreferredModel && allowsCustomModel && String(preferredModel || '').trim() !== '') {
+                                        selectedModel = String(preferredModel).trim();
+                                    }
 
                                     modelSelect.innerHTML = '';
+                                    if (allowsCustomModel && selectedModel !== '' && !Object.prototype.hasOwnProperty.call(options, selectedModel)) {
+                                        var customOption = document.createElement('option');
+                                        customOption.value = selectedModel;
+                                        customOption.textContent = 'Benutzerdefiniert: ' + selectedModel;
+                                        customOption.selected = true;
+                                        modelSelect.appendChild(customOption);
+                                    }
                                     Object.keys(options).forEach(function (modelValue) {
                                         var option = document.createElement('option');
                                         option.value = modelValue;

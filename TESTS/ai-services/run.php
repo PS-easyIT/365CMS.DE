@@ -42,6 +42,7 @@ $tests = [
         aiAssert(str_contains($settings, '$sanitizedEntries = [$selectedEntry];'), 'Settings reduzieren Provider-Einträge nicht auf genau einen aktiven Provider.');
         aiAssert(str_contains($settings, '$entries = [$activeEntry];'), 'Settings normalisieren geladene Provider nicht auf genau einen aktiven Provider.');
         aiAssert(str_contains($settings, "forget(self::GROUP_PROVIDERS, 'fallback_provider_id')"), 'Alte Fallback-Provider-Einstellungen werden nicht bereinigt.');
+        aiAssert(!str_contains($settings, 'buildProviderSecretKey($providerSlug)'), 'Providerwechsel darf gespeicherte Secrets inaktiver Provider nicht löschen.');
     },
     'AI Provider-Katalog markiert Live-Provider korrekt' => static function (): void {
         foreach (['ollama', 'azure_openai', 'openai', 'mistral', 'openrouter'] as $providerType) {
@@ -73,6 +74,8 @@ $tests = [
 
         aiAssert(AiSettingsService::normalizeProviderModel('openai', 'gpt-4.1-mini') === 'gpt-5.3', 'GPT-4.x wird nicht auf erlaubtes OpenAI-Modell zurückgesetzt.');
         aiAssert(AiSettingsService::normalizeProviderModel('mistral', 'gpt-4.1-mini') === 'mistral-small-latest', 'Falsches Provider-Modell wird nicht auf Mistral-Default zurückgesetzt.');
+        aiAssert(AiSettingsService::normalizeProviderModel('ollama', 'codellama:13b') === 'codellama:13b', 'Custom-Ollama-Modelle dürfen nicht still auf den Katalog-Default fallen.');
+        aiAssert(AiSettingsService::providerAllowsCustomModel('ollama'), 'Ollama muss Custom-Modell-Tags für lokale Installationen erlauben.');
     },
     'OpenAI-kompatibler Live-Adapter ist autoloadbar' => static function (): void {
         aiAssert(class_exists(OpenAiCompatibleProvider::class), 'OpenAiCompatibleProvider ist nicht autoloadbar.');
