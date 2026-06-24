@@ -28,7 +28,7 @@ $tests = [
     'Admin-Editor beansprucht EditorJS vor dem Runtime-Wait' => static function () use ($root): void {
         $script = contentEditorReadFile($root . DIRECTORY_SEPARATOR . 'CMS' . DIRECTORY_SEPARATOR . 'assets' . DIRECTORY_SEPARATOR . 'js' . DIRECTORY_SEPARATOR . 'admin-content-editor.js');
         $ownershipPosition = strpos($script, 'window.cmsAdminContentEditorOwnsEditorJs = true;');
-        $runtimeWaitPosition = strpos($script, 'waitForEditorJsCore(editorJsConfig)');
+        $runtimeWaitPosition = strrpos($script, 'waitForEditorJsCore(editorJsConfig)');
 
         contentEditorAssert($ownershipPosition !== false, 'admin-content-editor.js setzt keinen EditorJS-Ownership-Marker.');
         contentEditorAssert($runtimeWaitPosition !== false, 'admin-content-editor.js wartet nicht mehr sichtbar auf EditorJS.');
@@ -37,8 +37,8 @@ $tests = [
     'Inline-EditorJS-Boot überspringt bei Admin-Ownership vor Submit-Binding' => static function () use ($root): void {
         $inlineBoot = contentEditorReadFile($root . DIRECTORY_SEPARATOR . 'CMS' . DIRECTORY_SEPARATOR . 'admin' . DIRECTORY_SEPARATOR . 'partials' . DIRECTORY_SEPARATOR . 'editorjs-inline-boot.php');
         $guardPosition = strpos($inlineBoot, 'window.cmsAdminContentEditorOwnsEditorJs === true');
-        $bindPosition = strpos($inlineBoot, 'bindSubmit(form, definitions)');
-        $editorInitPosition = strpos($inlineBoot, 'Promise.all(definitions.map(initDefinition))');
+        $bindPosition = strrpos($inlineBoot, 'bindSubmit(form, definitions)');
+        $editorInitPosition = strrpos($inlineBoot, 'Promise.all(definitions.map(initDefinition))');
 
         contentEditorAssert($guardPosition !== false, 'Inline-Boot prüft den Admin-Ownership-Marker nicht.');
         contentEditorAssert($bindPosition !== false, 'Inline-Boot enthält kein Submit-Binding mehr.');
