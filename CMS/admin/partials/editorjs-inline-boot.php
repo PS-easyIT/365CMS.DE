@@ -86,6 +86,15 @@ if (!is_string($editorInlineBootJson) || $editorInlineBootJson === '') {
         }
     }
 
+    function isEditorJsPayload(value) {
+        try {
+            var parsed = JSON.parse(String(value || ''));
+            return !!(parsed && typeof parsed === 'object' && Array.isArray(parsed.blocks));
+        } catch (_error) {
+            return false;
+        }
+    }
+
     function getSubmitName(input) {
         if (!input || !input.dataset) {
             return '';
@@ -239,6 +248,23 @@ if (!is_string($editorInlineBootJson) || $editorInlineBootJson === '') {
         };
     }
 
+    function preserveFallbackJson(definition, input, textarea) {
+        var submitName = getSubmitName(input);
+        if (!submitName || !isEditorJsPayload(input.value)) {
+            return false;
+        }
+
+        input.setAttribute('name', submitName);
+        if (textarea) {
+            textarea.disabled = true;
+            textarea.removeAttribute('name');
+        }
+        mark(definition, 'fallback', 'inline-preserve-json');
+        emitInputEvents(input);
+
+        return true;
+    }
+
     function saveDefinition(definition) {
         var entry = state.editors[definition.key];
         var input = getElement(definition.inputId);
@@ -257,6 +283,9 @@ if (!is_string($editorInlineBootJson) || $editorInlineBootJson === '') {
         }
 
         if (textarea && !textarea.disabled) {
+            if (preserveFallbackJson(definition, input, textarea)) {
+                return Promise.resolve(true);
+            }
             input.value = textarea.value || '';
             emitInputEvents(input);
             return Promise.resolve(true);

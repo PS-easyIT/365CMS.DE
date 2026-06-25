@@ -174,6 +174,20 @@ $tests = [
         assertTrue($content !== false, 'CI-Workflow konnte nicht gelesen werden.');
         assertTrue(str_contains($content, 'php tests/release-smoke/run.php'), 'Release-Smoke-Suite fehlt im CI-Workflow.');
     },
+    'EditorJS Inline-Fallback bewahrt vorhandene JSON-Inhalte beim Speichern' => static function () use ($projectRoot): void {
+        $inlineBootPath = $projectRoot . '/CMS/admin/partials/editorjs-inline-boot.php';
+        $inlineBoot = file_get_contents($inlineBootPath);
+        assertTrue($inlineBoot !== false, 'EditorJS Inline-Bootstrap konnte nicht gelesen werden.');
+
+        assertTrue(str_contains($inlineBoot, 'function isEditorJsPayload'), 'Inline-Bootstrap erkennt EditorJS-JSON nicht.');
+        assertTrue(str_contains($inlineBoot, 'function preserveFallbackJson'), 'Inline-Bootstrap bewahrt JSON-Fallbacks nicht.');
+        assertTrue(str_contains($inlineBoot, "input.setAttribute('name', submitName)"), 'Hidden-JSON-Feld wird im Fallback nicht submitfähig gemacht.');
+        assertTrue(str_contains($inlineBoot, 'textarea.disabled = true'), 'Plain-Fallback wird bei JSON-Erhalt nicht aus der Submission entfernt.');
+
+        $preservePosition = strpos($inlineBoot, 'preserveFallbackJson(definition, input, textarea)');
+        $plainCopyPosition = strpos($inlineBoot, "input.value = textarea.value || '';");
+        assertTrue($preservePosition !== false && $plainCopyPosition !== false && $preservePosition < $plainCopyPosition, 'Plain-Fallback überschreibt JSON weiterhin vor der Erhaltungsprüfung.');
+    },
 ];
 
 $output = [];
