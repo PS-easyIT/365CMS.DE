@@ -189,9 +189,9 @@ $tests = [
             assertTrue(str_contains($inlineBoot, $key), 'Inline Boot gibt Upload-Kontext-Key nicht weiter: ' . $key);
         }
 
-        foreach (['content_type', 'draft_key', 'content_slug', 'content_slug_fallback', 'content_title', 'content_title_fallback'] as $key) {
-            assertTrue(str_contains($editorInit, $key), 'EditorJS Initializer normalisiert Upload-Kontext-Key nicht: ' . $key);
-        }
+        assertTrue(str_contains($editorInit, 'function normalizeUploadContextKeys'), 'EditorJS Initializer normalisiert Upload-Kontext-Keys nicht zentral.');
+        assertTrue(str_contains($editorInit, 'key.replace(/[A-Z]/g'), 'EditorJS Initializer wandelt camelCase-Upload-Keys nicht in API-Felder um.');
+        assertTrue(str_contains($editorInit, 'normalized[normalizedKey]'), 'EditorJS Initializer übergibt normalisierte Upload-Kontext-Keys nicht.');
     },
 ];
 

@@ -45,10 +45,15 @@ $tests = [
     },
     'AI Settings bewahren gespeicherte Secrets beim Providerwechsel' => static function () use ($root): void {
         $settings = aiReadFile($root . DIRECTORY_SEPARATOR . 'CMS' . DIRECTORY_SEPARATOR . 'core' . DIRECTORY_SEPARATOR . 'Services' . DIRECTORY_SEPARATOR . 'AI' . DIRECTORY_SEPARATOR . 'AiSettingsService.php');
+        $saveProvidersStart = strpos($settings, 'public function saveProviders');
+        $saveProvidersEnd = strpos($settings, 'public function saveFeatures');
 
-        aiAssert(str_contains($settings, 'foreach ($clearSecrets as $providerId)'), 'Explizites Secret-Löschen fehlt.');
-        aiAssert(!str_contains($settings, 'foreach (self::PROVIDER_SLUGS as $providerSlug)'), 'Providerwechsel löscht weiterhin Secrets anderer Provider.');
-        aiAssert(!str_contains($settings, '$providerSlug === $activeProviderId'), 'Sibling-Secret-Bereinigung ist weiterhin an den aktiven Provider gekoppelt.');
+        aiAssert(is_int($saveProvidersStart) && is_int($saveProvidersEnd) && $saveProvidersEnd > $saveProvidersStart, 'saveProviders-Methode konnte nicht isoliert werden.');
+        $saveProviders = substr($settings, $saveProvidersStart, $saveProvidersEnd - $saveProvidersStart);
+
+        aiAssert(str_contains($saveProviders, 'foreach ($clearSecrets as $providerId)'), 'Explizites Secret-Löschen fehlt.');
+        aiAssert(!str_contains($saveProviders, 'self::PROVIDER_SLUGS'), 'Providerwechsel löscht weiterhin Secrets anderer Provider.');
+        aiAssert(!str_contains($saveProviders, '$providerSlug'), 'Sibling-Secret-Bereinigung ist weiterhin an den aktiven Provider gekoppelt.');
     },
     'AI Provider-Katalog markiert Live-Provider korrekt' => static function (): void {
         foreach (['ollama', 'azure_openai', 'openai', 'mistral', 'openrouter'] as $providerType) {
