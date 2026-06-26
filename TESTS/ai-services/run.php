@@ -43,6 +43,13 @@ $tests = [
         aiAssert(str_contains($settings, '$entries = [$activeEntry];'), 'Settings normalisieren geladene Provider nicht auf genau einen aktiven Provider.');
         aiAssert(str_contains($settings, "forget(self::GROUP_PROVIDERS, 'fallback_provider_id')"), 'Alte Fallback-Provider-Einstellungen werden nicht bereinigt.');
     },
+    'AI Settings bewahren gespeicherte Secrets beim Providerwechsel' => static function () use ($root): void {
+        $settings = aiReadFile($root . DIRECTORY_SEPARATOR . 'CMS' . DIRECTORY_SEPARATOR . 'core' . DIRECTORY_SEPARATOR . 'Services' . DIRECTORY_SEPARATOR . 'AI' . DIRECTORY_SEPARATOR . 'AiSettingsService.php');
+
+        aiAssert(str_contains($settings, 'foreach ($clearSecrets as $providerId)'), 'Explizites Secret-Löschen fehlt.');
+        aiAssert(!str_contains($settings, 'foreach (self::PROVIDER_SLUGS as $providerSlug)'), 'Providerwechsel löscht weiterhin Secrets anderer Provider.');
+        aiAssert(!str_contains($settings, '$providerSlug === $activeProviderId'), 'Sibling-Secret-Bereinigung ist weiterhin an den aktiven Provider gekoppelt.');
+    },
     'AI Provider-Katalog markiert Live-Provider korrekt' => static function (): void {
         foreach (['ollama', 'azure_openai', 'openai', 'mistral', 'openrouter'] as $providerType) {
             $definition = AiSettingsService::getProviderTypeDefinition($providerType);

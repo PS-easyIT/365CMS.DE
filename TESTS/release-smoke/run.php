@@ -174,6 +174,25 @@ $tests = [
         assertTrue($content !== false, 'CI-Workflow konnte nicht gelesen werden.');
         assertTrue(str_contains($content, 'php tests/release-smoke/run.php'), 'Release-Smoke-Suite fehlt im CI-Workflow.');
     },
+    'Inline EditorJS Boot übergibt Upload-Kontext für Content-Medienplatzierung' => static function () use ($projectRoot): void {
+        $inlineBootPath = $projectRoot . '/CMS/admin/partials/editorjs-inline-boot.php';
+        $editorInitPath = $projectRoot . '/CMS/assets/js/editor-init.js';
+
+        $inlineBoot = file_get_contents($inlineBootPath);
+        $editorInit = file_get_contents($editorInitPath);
+
+        assertTrue($inlineBoot !== false, 'Inline EditorJS Boot konnte nicht gelesen werden.');
+        assertTrue($editorInit !== false, 'EditorJS Initializer konnte nicht gelesen werden.');
+        assertTrue(str_contains($inlineBoot, 'config.uploadContext'), 'Inline Boot liest uploadContext nicht aus der View-Konfiguration.');
+
+        foreach (['contentType', 'isNew', 'draftKey', 'contentSlug', 'contentSlugFallback', 'contentTitle', 'contentTitleFallback'] as $key) {
+            assertTrue(str_contains($inlineBoot, $key), 'Inline Boot gibt Upload-Kontext-Key nicht weiter: ' . $key);
+        }
+
+        foreach (['content_type', 'draft_key', 'content_slug', 'content_slug_fallback', 'content_title', 'content_title_fallback'] as $key) {
+            assertTrue(str_contains($editorInit, $key), 'EditorJS Initializer normalisiert Upload-Kontext-Key nicht: ' . $key);
+        }
+    },
 ];
 
 $output = [];

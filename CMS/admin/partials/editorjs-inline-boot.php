@@ -228,14 +228,22 @@ if (!is_string($editorInlineBootJson) || $editorInlineBootJson === '') {
     }
 
     function getUploadContext() {
-        var titleInput = getElement(config.titleInputId || config.titleFallbackInputId || '');
-        var slugInput = getElement(config.slugInputId || config.slugFallbackInputId || '');
+        var uploadContext = config.uploadContext && typeof config.uploadContext === 'object'
+            ? config.uploadContext
+            : {};
+        var slugInput = getElement(uploadContext.slugInputId || '');
+        var slugFallbackInput = getElement(uploadContext.slugFallbackInputId || '');
+        var titleInput = getElement(uploadContext.titleInputId || '');
+        var titleFallbackInput = getElement(uploadContext.titleFallbackInputId || '');
+
         return {
-            contentType: String(config.contentType || ''),
-            contentId: Number(config.contentId || 0),
-            draftKey: String(config.draftKey || ''),
-            title: titleInput ? titleInput.value : '',
-            slug: slugInput ? slugInput.value : ''
+            contentType: String(uploadContext.contentType || ''),
+            isNew: !!uploadContext.isNew,
+            draftKey: String(uploadContext.draftKey || ''),
+            contentSlug: slugInput ? slugInput.value : '',
+            contentSlugFallback: slugFallbackInput ? slugFallbackInput.value : '',
+            contentTitle: titleInput ? titleInput.value : '',
+            contentTitleFallback: titleFallbackInput ? titleFallbackInput.value : ''
         };
     }
 
