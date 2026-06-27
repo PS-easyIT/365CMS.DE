@@ -228,15 +228,49 @@ if (!is_string($editorInlineBootJson) || $editorInlineBootJson === '') {
     }
 
     function getUploadContext() {
-        var titleInput = getElement(config.titleInputId || config.titleFallbackInputId || '');
-        var slugInput = getElement(config.slugInputId || config.slugFallbackInputId || '');
+        var uploadContext = config.uploadContext && typeof config.uploadContext === 'object'
+            ? config.uploadContext
+            : {};
+        var titleInput = getElement(uploadContext.titleInputId || config.titleInputId || '');
+        var titleFallbackInput = getElement(uploadContext.titleFallbackInputId || config.titleFallbackInputId || '');
+        var slugInput = getElement(uploadContext.slugInputId || config.slugInputId || '');
+        var slugFallbackInput = getElement(uploadContext.slugFallbackInputId || config.slugFallbackInputId || '');
+
         return {
-            contentType: String(config.contentType || ''),
-            contentId: Number(config.contentId || 0),
-            draftKey: String(config.draftKey || ''),
-            title: titleInput ? titleInput.value : '',
-            slug: slugInput ? slugInput.value : ''
+            contentType: String(uploadContext.contentType || config.contentType || ''),
+            isNew: !!uploadContext.isNew,
+            contentId: Number(uploadContext.contentId || config.contentId || 0),
+            draftKey: String(uploadContext.draftKey || config.draftKey || ''),
+            contentSlug: slugInput ? slugInput.value : '',
+            contentSlugFallback: slugFallbackInput ? slugFallbackInput.value : '',
+            contentTitle: titleInput ? titleInput.value : '',
+            contentTitleFallback: titleFallbackInput ? titleFallbackInput.value : ''
         };
+    }
+
+    function getDefinition(key) {
+        var definitions = getDefinitions();
+        var index;
+
+        for (index = 0; index < definitions.length; index += 1) {
+            if (definitions[index].key === key) {
+                return definitions[index];
+            }
+        }
+
+        return null;
+    }
+
+    function safeParseEditorInput(input) {
+        if (!input || !input.value) {
+            return { blocks: [] };
+        }
+
+        try {
+            return JSON.parse(input.value);
+        } catch (_error) {
+            return { blocks: [] };
+        }
     }
 
     function saveDefinition(definition) {
@@ -263,6 +297,77 @@ if (!is_string($editorInlineBootJson) || $editorInlineBootJson === '') {
         }
 
         return Promise.resolve(false);
+    }
+
+    function applyDefinitionData(definition, data) {
+        var entry = state.editors[definition.key];
+        var input = getElement(definition.inputId);
+        var normalizedData = normalizeData(data);
+        var renderResult;
+
+        if (!input) {
+            return Promise.resolve(false);
+        }
+
+        input.value = stringifyData(normalizedData);
+        emitInputEvents(input);
+
+        if (entry && entry.editor) {
+            if (entry.editor.blocks && typeof entry.editor.blocks.render === 'function') {
+                renderResult = entry.editor.blocks.render(normalizedData);
+                return Promise.resolve(renderResult).then(function () {
+                    return true;
+                });
+            }
+            if (typeof entry.editor.render === 'function') {
+                renderResult = entry.editor.render(normalizedData);
+                return Promise.resolve(renderResult).then(function () {
+                    return true;
+                });
+            }
+        }
+
+        return Promise.resolve(true);
+    }
+
+    function createBridge() {
+        return {
+            ownsEditor: function () {
+                return true;
+            },
+            boot: function () {
+                boot();
+            },
+            saveEditor: function (key) {
+                var definition = getDefinition(String(key || ''));
+                if (!definition) {
+                    return Promise.resolve({ blocks: [] });
+                }
+
+                return saveDefinition(definition).then(function () {
+                    return normalizeData(safeParseEditorInput(getElement(definition.inputId)));
+                });
+            },
+            applyEditorData: function (key, data) {
+                var definition = getDefinition(String(key || ''));
+                if (!definition) {
+                    return Promise.resolve(false);
+                }
+
+                return applyDefinitionData(definition, data);
+            },
+            getEditorData: function (key) {
+                var definition = getDefinition(String(key || ''));
+                if (!definition) {
+                    return { blocks: [] };
+                }
+
+                return normalizeData(safeParseEditorInput(getElement(definition.inputId)));
+            },
+            hasEditor: function (key) {
+                return !!state.editors[String(key || '')];
+            }
+        };
     }
 
     function initDefinition(definition) {
@@ -417,6 +522,7 @@ if (!is_string($editorInlineBootJson) || $editorInlineBootJson === '') {
         state.bootedAt = new Date().toISOString();
         window.cmsInlineEditorJsBootState = state;
         window.cmsAdminEditorJsBridgeState = state;
+        window.cmsAdminEditorJsBridge = createBridge();
         if (!window.cmsEditorDebug || typeof window.cmsEditorDebug !== 'object') {
             window.cmsEditorDebug = {};
         }
@@ -438,6 +544,8 @@ if (!is_string($editorInlineBootJson) || $editorInlineBootJson === '') {
             });
         });
     }
+
+    window.cmsAdminEditorJsBridge = window.cmsAdminEditorJsBridge || createBridge();
 
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', boot, { once: true });

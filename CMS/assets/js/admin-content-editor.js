@@ -466,6 +466,8 @@
         var editorInitWatchdogs = {};
         var editorEmergencyFallbackTimers = {};
         var editorRuntimeRetryQueue = {};
+        var delegatedEditorBoot = !!(window.cmsInlineEditorJsBootState
+            || (window.cmsAdminEditorJsBridge && typeof window.cmsAdminEditorJsBridge.ownsEditor === 'function' && window.cmsAdminEditorJsBridge.ownsEditor()));
         var EDITOR_INIT_WATCHDOG_MS = 12000;
         var EDITOR_EMERGENCY_FALLBACK_MS = 6000;
 
@@ -473,17 +475,16 @@
             return;
         }
 
-        if (window.cmsInlineEditorJsBootState || (window.cmsAdminEditorJsBridge && typeof window.cmsAdminEditorJsBridge.ownsEditor === 'function' && window.cmsAdminEditorJsBridge.ownsEditor())) {
+        form = getElement(config.formId);
+        if (!form) {
+            return;
+        }
+
+        if (delegatedEditorBoot) {
             logEditor('info', '[EJS-BRIDGE-DELEGATED] EditorJS boot is owned by the inline Page/Post bootstrap.');
             if (window.cmsAdminEditorJsBridge && typeof window.cmsAdminEditorJsBridge.boot === 'function') {
                 window.cmsAdminEditorJsBridge.boot();
             }
-            return;
-        }
-
-        form = getElement(config.formId);
-        if (!form) {
-            return;
         }
 
         function emitChangeEvents(element) {
@@ -2165,6 +2166,12 @@
 
         function getDefinition(key) {
             return key && editorDefinitions[key] ? editorDefinitions[key] : null;
+        }
+
+        function getInlineEditorBridge() {
+            return delegatedEditorBoot && window.cmsAdminEditorJsBridge && typeof window.cmsAdminEditorJsBridge === 'object'
+                ? window.cmsAdminEditorJsBridge
+                : null;
         }
 
         function getNamedFormField(name) {
@@ -3969,6 +3976,24 @@
             var definition = getDefinition(key);
             var input = definition ? getElement(definition.inputId) : null;
             var activeEntry = null;
+            var inlineBridge = getInlineEditorBridge();
+
+            if (inlineBridge && typeof inlineBridge.saveEditor === 'function') {
+                return Promise.resolve(inlineBridge.saveEditor(key)).then(function (output) {
+                    return normalizeEditorData(output);
+                }).catch(function (error) {
+                    if (allowFallback) {
+                        return normalizeEditorData(safeParseEditorInput(input));
+                    }
+
+                    var delegatedSaveError = new Error(getEditorSaveLabel(definition) + ' konnte vor dem Speichern nicht zuverlässig aus Editor.js serialisiert werden. Bitte problematische Blöcke prüfen und erneut speichern.');
+
+                    delegatedSaveError.editorDefinition = definition || null;
+                    delegatedSaveError.originalError = error || null;
+
+                    throw delegatedSaveError;
+                });
+            }
 
             return waitForPendingLazyBinding(key).then(function () {
                 entry = editors[key];
@@ -4061,6 +4086,7 @@
             var applyOptions = options && typeof options === 'object' ? options : {};
             var normalizedData = normalizeEditorData(data);
             var renderResult;
+            var inlineBridge = getInlineEditorBridge();
 
             if (!input) {
                 return Promise.resolve();
@@ -4068,6 +4094,10 @@
 
             input.value = JSON.stringify(normalizedData);
             emitChangeEvents(input);
+
+            if (inlineBridge && typeof inlineBridge.applyEditorData === 'function') {
+                return Promise.resolve(inlineBridge.applyEditorData(key, normalizedData));
+            }
 
             if (!definition) {
                 return Promise.resolve();
@@ -4487,6 +4517,11 @@
         (Array.isArray(config.editors) ? config.editors : []).forEach(function (definition) {
             editorDefinitions[definition.key] = definition;
             getPlainEditorState(definition, getElement(definition.inputId));
+
+            if (delegatedEditorBoot) {
+                return;
+            }
+
             setEditorStateMarker(definition, 'loading');
 
             if (!definition.lazy) {
@@ -4538,6 +4573,10 @@
         if (config.aiTranslation) {
             registerPreviewInvalidation(config.aiTranslation);
             handleAiTranslation(config.aiTranslation);
+        }
+
+        if (delegatedEditorBoot) {
+            return;
         }
 
         form.addEventListener('click', function (event) {

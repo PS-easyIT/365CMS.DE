@@ -157,6 +157,38 @@ $tests = [
         aiAssert(!str_contains($view, 'Provider-Liste'), 'Alte Provider-Liste ist noch sichtbar.');
         aiAssert(!str_contains($view, 'Expliziter Fallback-Provider'), 'Fallback-UI ist noch sichtbar.');
     },
+    'AI Provider-Speicherung löscht Secrets nur explizit' => static function () use ($root): void {
+        $settings = aiReadFile($root . DIRECTORY_SEPARATOR . 'CMS' . DIRECTORY_SEPARATOR . 'core' . DIRECTORY_SEPARATOR . 'Services' . DIRECTORY_SEPARATOR . 'AI' . DIRECTORY_SEPARATOR . 'AiSettingsService.php');
+        $module = aiReadFile($root . DIRECTORY_SEPARATOR . 'CMS' . DIRECTORY_SEPARATOR . 'admin' . DIRECTORY_SEPARATOR . 'modules' . DIRECTORY_SEPARATOR . 'system' . DIRECTORY_SEPARATOR . 'AiServicesModule.php');
+
+        aiAssert(!str_contains($settings, 'foreach (self::PROVIDER_SLUGS as $providerSlug)'), 'Provider-Speicherung löscht inaktive Provider-Secrets implizit.');
+        aiAssert(str_contains($settings, 'foreach ($clearSecrets as $providerId)'), 'Explizites Secret-Löschen fehlt.');
+        aiAssert(str_contains($module, 'clear_provider_secret_value'), 'Admin-Modul übergibt explizites Secret-Löschen nicht.');
+    },
+    'Inline EditorJS Upload-Kontext nutzt verschachtelte View-Konfiguration' => static function () use ($root): void {
+        $inlineBoot = aiReadFile($root . DIRECTORY_SEPARATOR . 'CMS' . DIRECTORY_SEPARATOR . 'admin' . DIRECTORY_SEPARATOR . 'partials' . DIRECTORY_SEPARATOR . 'editorjs-inline-boot.php');
+
+        aiAssert(str_contains($inlineBoot, 'config.uploadContext'), 'Inline Boot liest den verschachtelten uploadContext nicht.');
+        aiAssert(str_contains($inlineBoot, 'contentSlug: slugInput ? slugInput.value :'), 'Inline Boot sendet keinen content_slug-Kontext.');
+        aiAssert(str_contains($inlineBoot, 'contentSlugFallback: slugFallbackInput ? slugFallbackInput.value :'), 'Inline Boot sendet keinen content_slug_fallback-Kontext.');
+        aiAssert(str_contains($inlineBoot, 'contentTitle: titleInput ? titleInput.value :'), 'Inline Boot sendet keinen content_title-Kontext.');
+        aiAssert(str_contains($inlineBoot, 'contentTitleFallback: titleFallbackInput ? titleFallbackInput.value :'), 'Inline Boot sendet keinen content_title_fallback-Kontext.');
+        aiAssert(str_contains($inlineBoot, 'draftKey: String(uploadContext.draftKey'), 'Inline Boot sendet den Draft-Key nicht aus uploadContext.');
+    },
+    'Delegierter Inline EditorJS Boot hält AI-Übersetzung aktiv' => static function () use ($root): void {
+        $inlineBoot = aiReadFile($root . DIRECTORY_SEPARATOR . 'CMS' . DIRECTORY_SEPARATOR . 'admin' . DIRECTORY_SEPARATOR . 'partials' . DIRECTORY_SEPARATOR . 'editorjs-inline-boot.php');
+        $contentEditor = aiReadFile($root . DIRECTORY_SEPARATOR . 'CMS' . DIRECTORY_SEPARATOR . 'assets' . DIRECTORY_SEPARATOR . 'js' . DIRECTORY_SEPARATOR . 'admin-content-editor.js');
+
+        aiAssert(str_contains($inlineBoot, 'window.cmsAdminEditorJsBridge = createBridge();'), 'Inline Boot stellt keine EditorJS-Bridge bereit.');
+        aiAssert(str_contains($inlineBoot, 'saveEditor: function (key)'), 'Inline Bridge kann Editor-Inhalte nicht speichern.');
+        aiAssert(str_contains($inlineBoot, 'applyEditorData: function (key, data)'), 'Inline Bridge kann übersetzte Editor-Daten nicht anwenden.');
+        aiAssert(str_contains($contentEditor, 'var delegatedEditorBoot = !!'), 'Content-Editor erkennt delegierten Inline-Boot nicht.');
+        aiAssert(str_contains($contentEditor, 'function getInlineEditorBridge()'), 'Content-Editor löst die Inline-Bridge nicht auf.');
+        aiAssert(str_contains($contentEditor, 'inlineBridge.saveEditor(key)'), 'AI-Übersetzung speichert delegierte Editor-Inhalte nicht.');
+        aiAssert(str_contains($contentEditor, 'inlineBridge.applyEditorData(key, normalizedData)'), 'AI-Übersetzung rendert delegierte Übersetzungen nicht.');
+        aiAssert(str_contains($contentEditor, 'if (delegatedEditorBoot) {' . "\n" . '                return;' . "\n" . '            }' . "\n" . "\n" . '            setEditorStateMarker'), 'Delegierter Modus verhindert doppelte EditorJS-Bindings nicht.');
+        aiAssert(str_contains($contentEditor, 'handleAiTranslation(config.aiTranslation);' . "\n" . '        }' . "\n" . "\n" . '        if (delegatedEditorBoot)'), 'Delegierter Modus beendet erst nach Registrierung der AI-Übersetzung.');
+    },
 ];
 
 $output = [];
