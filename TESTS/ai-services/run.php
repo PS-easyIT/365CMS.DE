@@ -161,7 +161,10 @@ $tests = [
         $settings = aiReadFile($root . DIRECTORY_SEPARATOR . 'CMS' . DIRECTORY_SEPARATOR . 'core' . DIRECTORY_SEPARATOR . 'Services' . DIRECTORY_SEPARATOR . 'AI' . DIRECTORY_SEPARATOR . 'AiSettingsService.php');
         $module = aiReadFile($root . DIRECTORY_SEPARATOR . 'CMS' . DIRECTORY_SEPARATOR . 'admin' . DIRECTORY_SEPARATOR . 'modules' . DIRECTORY_SEPARATOR . 'system' . DIRECTORY_SEPARATOR . 'AiServicesModule.php');
 
-        aiAssert(!str_contains($settings, 'foreach (self::PROVIDER_SLUGS as $providerSlug)'), 'Provider-Speicherung löscht inaktive Provider-Secrets implizit.');
+        aiAssert(
+            preg_match('/foreach \\(self::PROVIDER_SLUGS as \\$providerSlug\\)\\s*\\{(?:(?!\\n\\s*\\}).)*forget\\(self::GROUP_PROVIDERS, \\$this->buildProviderSecretKey\\(\\$providerSlug\\)\\)/s', $settings) !== 1,
+            'Provider-Speicherung löscht inaktive Provider-Secrets implizit.'
+        );
         aiAssert(str_contains($settings, 'foreach ($clearSecrets as $providerId)'), 'Explizites Secret-Löschen fehlt.');
         aiAssert(str_contains($module, 'clear_provider_secret_value'), 'Admin-Modul übergibt explizites Secret-Löschen nicht.');
     },
