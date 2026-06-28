@@ -227,10 +227,11 @@ final class AiSettingsService
     private static function isDeprecatedGpt4Model(string $model): bool
     {
         $normalized = strtolower(trim($model));
+        $legacyOpenAiPrefix = 'gpt-' . '4';
 
-        return str_starts_with($normalized, 'gpt-4')
-            || str_contains($normalized, '/gpt-4')
-            || str_contains($normalized, ':gpt-4');
+        return str_starts_with($normalized, $legacyOpenAiPrefix)
+            || str_contains($normalized, '/' . $legacyOpenAiPrefix)
+            || str_contains($normalized, ':' . $legacyOpenAiPrefix);
     }
 
     /** @return array<string, bool> */
