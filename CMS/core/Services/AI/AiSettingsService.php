@@ -217,7 +217,20 @@ final class AiSettingsService
         $options = self::getProviderModelOptions($providerType);
         $model = trim($model);
 
-        return isset($options[$model]) ? $model : (string) array_key_first($options);
+        if ($model === '' || self::isDeprecatedGpt4Model($model)) {
+            return (string) array_key_first($options);
+        }
+
+        return $model;
+    }
+
+    private static function isDeprecatedGpt4Model(string $model): bool
+    {
+        $normalized = strtolower(trim($model));
+
+        return str_starts_with($normalized, 'gpt-4')
+            || str_contains($normalized, '/gpt-4')
+            || str_contains($normalized, ':gpt-4');
     }
 
     /** @return array<string, bool> */

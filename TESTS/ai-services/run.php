@@ -72,7 +72,9 @@ $tests = [
         }
 
         aiAssert(AiSettingsService::normalizeProviderModel('openai', 'gpt-4.1-mini') === 'gpt-5.3', 'GPT-4.x wird nicht auf erlaubtes OpenAI-Modell zurückgesetzt.');
-        aiAssert(AiSettingsService::normalizeProviderModel('mistral', 'gpt-4.1-mini') === 'mistral-small-latest', 'Falsches Provider-Modell wird nicht auf Mistral-Default zurückgesetzt.');
+        aiAssert(AiSettingsService::normalizeProviderModel('mistral', 'gpt-4.1-mini') === 'mistral-small-latest', 'GPT-4.x wird nicht auf Mistral-Default zurückgesetzt.');
+        aiAssert(AiSettingsService::normalizeProviderModel('ollama', 'llama3:latest') === 'llama3:latest', 'Benutzerdefiniertes Ollama-Modell wird nicht beibehalten.');
+        aiAssert(AiSettingsService::normalizeProviderModel('openrouter', 'anthropic/claude-3.7-sonnet') === 'anthropic/claude-3.7-sonnet', 'Benutzerdefiniertes OpenRouter-Modell wird nicht beibehalten.');
     },
     'OpenAI-kompatibler Live-Adapter ist autoloadbar' => static function (): void {
         aiAssert(class_exists(OpenAiCompatibleProvider::class), 'OpenAiCompatibleProvider ist nicht autoloadbar.');
@@ -149,6 +151,8 @@ $tests = [
         aiAssert(str_contains($view, 'Single AI Provider'), 'Single-Provider-UI fehlt.');
         aiAssert(str_contains($view, 'provider_secret_value'), 'Zentrales API-Key-Feld fehlt.');
         aiAssert(str_contains($view, 'aiProviderModelSelect'), 'Providerabhängiges Modell-Dropdown fehlt.');
+        aiAssert(str_contains($view, 'Benutzerdefiniert:'), 'Benutzerdefinierte Provider-Modelle werden in der Admin-UI nicht beibehalten.');
+        aiAssert(str_contains($view, 'selectedModel = preferredModel || defaultModel'), 'Admin-JS verwirft benutzerdefinierte Provider-Modelle.');
         aiAssert(str_contains($view, 'data-ai-provider-field="deployment"'), 'Providerabhängige Azure-Deployment-Feldsteuerung fehlt.');
         aiAssert(str_contains($view, 'aiProviderCatalogJson'), 'Provider-Katalog wird nicht an die Admin-UI übergeben.');
         aiAssert(str_contains($view, 'aiActiveProviderIdInput') && str_contains($view, 'aiProviderEntryIdInput'), 'Providerwechsel synchronisiert Hidden-Provider-IDs nicht.');

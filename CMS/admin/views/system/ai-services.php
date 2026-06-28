@@ -806,6 +806,7 @@ if (empty($summary['translation_ready'])) {
                         $providerId = (string) ($provider['id'] ?? 'mock');
                         $providerType = (string) ($provider['type'] ?? 'mock');
                         $providerLabel = (string) ($provider['label'] ?? $providerId);
+                        $providerModel = (string) ($provider['default_model'] ?? '');
                         $namePrefix = 'provider_entries[0]';
                         ?>
                         <input type="hidden" id="aiActiveProviderIdInput" name="active_provider_id" value="<?php echo htmlspecialchars($providerId, ENT_QUOTES); ?>">
@@ -831,13 +832,16 @@ if (empty($summary['translation_ready'])) {
                             </div>
                             <div class="col-md-4" data-ai-provider-field="model">
                                 <label class="form-label">Optionales Modell</label>
-                                <select class="form-select" id="aiProviderModelSelect" name="<?php echo htmlspecialchars($namePrefix . '[default_model]', ENT_QUOTES); ?>" data-current-model="<?php echo htmlspecialchars((string) ($provider['default_model'] ?? ''), ENT_QUOTES); ?>">
+                                <select class="form-select" id="aiProviderModelSelect" name="<?php echo htmlspecialchars($namePrefix . '[default_model]', ENT_QUOTES); ?>" data-current-model="<?php echo htmlspecialchars($providerModel, ENT_QUOTES); ?>">
                                     <?php $currentModelOptions = (array) ($providerCatalog[$providerType]['model_options'] ?? []); ?>
+                                    <?php if ($providerModel !== '' && !isset($currentModelOptions[$providerModel])): ?>
+                                        <option value="<?php echo htmlspecialchars($providerModel, ENT_QUOTES); ?>" selected>Benutzerdefiniert: <?php echo htmlspecialchars($providerModel); ?></option>
+                                    <?php endif; ?>
                                     <?php foreach ($currentModelOptions as $modelValue => $modelLabel): ?>
-                                        <option value="<?php echo htmlspecialchars((string) $modelValue, ENT_QUOTES); ?>" <?php echo $isSelected((string) ($provider['default_model'] ?? ''), (string) $modelValue); ?>><?php echo htmlspecialchars((string) $modelLabel); ?></option>
+                                        <option value="<?php echo htmlspecialchars((string) $modelValue, ENT_QUOTES); ?>" <?php echo $isSelected($providerModel, (string) $modelValue); ?>><?php echo htmlspecialchars((string) $modelLabel); ?></option>
                                     <?php endforeach; ?>
                                 </select>
-                                <div class="form-hint">Modellauswahl ist providerabhängig und serverseitig validiert. Nicht freigegebene Legacy-Modelle sind nicht auswählbar.</div>
+                                <div class="form-hint">Modellauswahl ist providerabhängig. Bestehende benutzerdefinierte Modell-IDs werden beibehalten; GPT-4-Legacy-Modelle werden serverseitig zurückgesetzt.</div>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Betriebsprofil</label>
@@ -902,9 +906,17 @@ if (empty($summary['translation_ready'])) {
                                     var entry = getProviderEntry(providerType);
                                     var options = entry.model_options || {};
                                     var defaultModel = entry.default_model || Object.keys(options)[0] || '';
-                                    var selectedModel = Object.prototype.hasOwnProperty.call(options, preferredModel) ? preferredModel : defaultModel;
+                                    var selectedModel = preferredModel || defaultModel;
 
                                     modelSelect.innerHTML = '';
+                                    if (selectedModel && !Object.prototype.hasOwnProperty.call(options, selectedModel)) {
+                                        var customOption = document.createElement('option');
+                                        customOption.value = selectedModel;
+                                        customOption.textContent = 'Benutzerdefiniert: ' + selectedModel;
+                                        customOption.selected = true;
+                                        modelSelect.appendChild(customOption);
+                                    }
+
                                     Object.keys(options).forEach(function (modelValue) {
                                         var option = document.createElement('option');
                                         option.value = modelValue;
