@@ -5,6 +5,7 @@ require dirname(__DIR__) . '/bootstrap.php';
 
 use CMS\Services\AI\AiSettingsService;
 use CMS\Services\AI\Providers\OpenAiCompatibleProvider;
+use CMS\Services\SettingsService;
 
 /**
  * @throws RuntimeException
@@ -25,6 +26,72 @@ function aiReadFile(string $path): string
     return $content;
 }
 
+final class AiServicesMemorySettingsService extends SettingsService
+{
+    /** @param array<string, array<string, mixed>> $groups */
+    public function __construct(private array $groups = [])
+    {
+    }
+
+    /** @return array<string, mixed> */
+    public function getGroup(string $group): array
+    {
+        return $this->groups[$group] ?? [];
+    }
+
+    public function getString(string $group, string $key, string $default = ''): string
+    {
+        $value = $this->groups[$group][$key] ?? $default;
+
+        return is_scalar($value) ? trim((string) $value) : $default;
+    }
+
+    public function set(string $group, string $key, mixed $value, bool $encrypted = false, int $autoload = 0): bool
+    {
+        $this->groups[$group][$key] = $value;
+
+        return true;
+    }
+
+    /**
+     * @param array<string, mixed> $values
+     * @param list<string> $encryptedKeys
+     */
+    public function setMany(string $group, array $values, array $encryptedKeys = [], int $autoload = 0): bool
+    {
+        foreach ($values as $key => $value) {
+            $this->set($group, (string) $key, $value, in_array((string) $key, $encryptedKeys, true), $autoload);
+        }
+
+        return true;
+    }
+
+    public function forget(string $group, string $key): bool
+    {
+        unset($this->groups[$group][$key]);
+
+        return true;
+    }
+
+    /** @return array<string, mixed> */
+    public function group(string $group): array
+    {
+        return $this->groups[$group] ?? [];
+    }
+}
+
+function aiSettingsServiceWithMemory(AiServicesMemorySettingsService $settings): AiSettingsService
+{
+    $reflection = new ReflectionClass(AiSettingsService::class);
+    /** @var AiSettingsService $service */
+    $service = $reflection->newInstanceWithoutConstructor();
+    $settingsProperty = $reflection->getProperty('settings');
+    $settingsProperty->setAccessible(true);
+    $settingsProperty->setValue($service, $settings);
+
+    return $service;
+}
+
 $root = dirname(__DIR__, 2);
 
 $tests = [
@@ -42,6 +109,41 @@ $tests = [
         aiAssert(str_contains($settings, '$sanitizedEntries = [$selectedEntry];'), 'Settings reduzieren Provider-Einträge nicht auf genau einen aktiven Provider.');
         aiAssert(str_contains($settings, '$entries = [$activeEntry];'), 'Settings normalisieren geladene Provider nicht auf genau einen aktiven Provider.');
         aiAssert(str_contains($settings, "forget(self::GROUP_PROVIDERS, 'fallback_provider_id')"), 'Alte Fallback-Provider-Einstellungen werden nicht bereinigt.');
+    },
+    'AI Settings übernehmen Secret beim Wechsel auf deterministische Provider-ID' => static function (): void {
+        $memorySettings = new AiServicesMemorySettingsService([
+            AiSettingsService::GROUP_PROVIDERS => [
+                'active_provider_id' => 'openai-a1b2c3d4',
+                'entries' => [
+                    [
+                        'id' => 'openai-a1b2c3d4',
+                        'type' => 'openai',
+                        'enabled' => true,
+                        'default_model' => 'gpt-5.3',
+                    ],
+                ],
+                'provider_secret_openai-a1b2c3d4' => 'sk-existing',
+            ],
+        ]);
+        $settings = aiSettingsServiceWithMemory($memorySettings);
+
+        aiAssert($settings->saveProviders(
+            ['active_provider_id' => 'openai'],
+            [
+                [
+                    'id' => 'openai',
+                    'type' => 'openai',
+                    'enabled' => true,
+                    'default_model' => 'gpt-5.3',
+                ],
+            ],
+            [],
+            []
+        ), 'Provider-Speicherung ist fehlgeschlagen.');
+
+        $storedProviders = $memorySettings->group(AiSettingsService::GROUP_PROVIDERS);
+        aiAssert(($storedProviders['provider_secret_openai'] ?? '') === 'sk-existing', 'Bestehendes OpenAI-Secret wurde nicht auf die deterministische Provider-ID übernommen.');
+        aiAssert($settings->getProviderSecret('openai', 'openai') === 'sk-existing', 'Migriertes OpenAI-Secret ist für den aktiven Provider nicht lesbar.');
     },
     'AI Provider-Katalog markiert Live-Provider korrekt' => static function (): void {
         foreach (['ollama', 'azure_openai', 'openai', 'mistral', 'openrouter'] as $providerType) {

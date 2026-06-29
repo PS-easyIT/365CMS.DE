@@ -337,6 +337,9 @@ final class AiSettingsService
         $selectedEntry['enabled'] = true;
         $sanitizedEntries = [$selectedEntry];
         $activeProviderId = (string) ($selectedEntry['id'] ?? 'mock');
+        $activeProviderType = strtolower(trim((string) ($selectedEntry['type'] ?? 'mock')));
+        $clearSecrets = $this->expandProviderSecretClearsForSelectedEntry($activeProviderId, $activeProviderType, $clearSecrets);
+        $secretValues = $this->carryForwardProviderSecretForSelectedEntry($activeProviderId, $activeProviderType, $secretValues, $clearSecrets);
 
         $payload = [
             'active_provider_id' => $activeProviderId,
@@ -382,6 +385,105 @@ final class AiSettingsService
         }
 
         return true;
+    }
+
+    /**
+     * @param array<string, string> $secretValues
+     * @param list<string> $clearSecrets
+     * @return array<string, string>
+     */
+    private function carryForwardProviderSecretForSelectedEntry(string $activeProviderId, string $providerType, array $secretValues, array $clearSecrets): array
+    {
+        $activeProviderId = $this->sanitizeProviderId($activeProviderId);
+        $providerType = strtolower(trim($providerType));
+
+        if ($activeProviderId === ''
+            || !self::isKnownProviderType($providerType)
+            || isset($secretValues[$activeProviderId])
+            || in_array($activeProviderId, $clearSecrets, true)) {
+            return $secretValues;
+        }
+
+        foreach ($this->collectStoredProviderSecretSourceIds($activeProviderId, $providerType) as $sourceProviderId) {
+            if ($sourceProviderId === $activeProviderId || in_array($sourceProviderId, $clearSecrets, true)) {
+                continue;
+            }
+
+            $secret = $this->getProviderSecret($sourceProviderId, $providerType);
+            if ($secret === '') {
+                continue;
+            }
+
+            $secretValues[$activeProviderId] = $secret;
+            break;
+        }
+
+        return $secretValues;
+    }
+
+    /**
+     * @param list<string> $clearSecrets
+     * @return list<string>
+     */
+    private function expandProviderSecretClearsForSelectedEntry(string $activeProviderId, string $providerType, array $clearSecrets): array
+    {
+        $activeProviderId = $this->sanitizeProviderId($activeProviderId);
+        $providerType = strtolower(trim($providerType));
+        $clearSecrets = array_values(array_unique(array_filter(array_map(
+            fn (string $providerId): string => $this->sanitizeProviderId($providerId),
+            $clearSecrets
+        ))));
+
+        if ($activeProviderId === ''
+            || !self::isKnownProviderType($providerType)
+            || !in_array($activeProviderId, $clearSecrets, true)) {
+            return $clearSecrets;
+        }
+
+        foreach ($this->collectStoredProviderSecretSourceIds($activeProviderId, $providerType) as $sourceProviderId) {
+            if ($sourceProviderId !== $activeProviderId) {
+                $clearSecrets[] = $sourceProviderId;
+            }
+        }
+
+        return array_values(array_unique($clearSecrets));
+    }
+
+    /** @return list<string> */
+    private function collectStoredProviderSecretSourceIds(string $activeProviderId, string $providerType): array
+    {
+        $activeProviderId = $this->sanitizeProviderId($activeProviderId);
+        $providerType = strtolower(trim($providerType));
+        if ($activeProviderId === '' || !self::isKnownProviderType($providerType)) {
+            return [];
+        }
+
+        $stored = $this->settings->getGroup(self::GROUP_PROVIDERS);
+        $storedActiveProviderId = $this->sanitizeProviderId((string) ($stored['active_provider_id'] ?? $stored['active_provider'] ?? ''));
+        $sourceProviderIds = [];
+
+        foreach ($this->extractStoredProviderEntries($stored) as $entry) {
+            $entryType = strtolower(trim((string) ($entry['type'] ?? '')));
+            $entryId = $this->sanitizeProviderId((string) ($entry['id'] ?? ''));
+            if ($entryId === '' || $entryType !== $providerType) {
+                continue;
+            }
+
+            if ($entryId === $storedActiveProviderId) {
+                array_unshift($sourceProviderIds, $entryId);
+                continue;
+            }
+
+            $sourceProviderIds[] = $entryId;
+        }
+
+        if ($storedActiveProviderId !== ''
+            && $storedActiveProviderId !== $activeProviderId
+            && str_starts_with($storedActiveProviderId, $providerType . '-')) {
+            array_unshift($sourceProviderIds, $storedActiveProviderId);
+        }
+
+        return array_values(array_unique($sourceProviderIds));
     }
 
     /** @param array<string, mixed> $values */

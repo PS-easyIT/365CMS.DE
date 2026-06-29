@@ -174,6 +174,18 @@ $tests = [
         assertTrue($content !== false, 'CI-Workflow konnte nicht gelesen werden.');
         assertTrue(str_contains($content, 'php tests/release-smoke/run.php'), 'Release-Smoke-Suite fehlt im CI-Workflow.');
     },
+    'EditorJS Inline-Boot schützt serialisierte Submit-Namen und löst Submit-Lock' => static function () use ($projectRoot): void {
+        $inlineBoot = resolveExistingPath([
+            $projectRoot . '/CMS/admin/partials/editorjs-inline-boot.php',
+        ]);
+        assertTrue($inlineBoot !== null, 'EditorJS Inline-Boot Partial fehlt.');
+
+        $content = file_get_contents($inlineBoot);
+        assertTrue($content !== false, 'EditorJS Inline-Boot konnte nicht gelesen werden.');
+        assertTrue(str_contains($content, 'function suppressPlainSubmitNames'), 'Inline-Boot unterdrückt Plain-Textarea-Submit-Namen nicht temporär.');
+        assertTrue(str_contains($content, 'submitNative(form, submitter, suppressPlainSubmitNames(definitions))'), 'Inline-Boot reicht die Submit-Name-Sicherung nicht an den nativen Submit weiter.');
+        assertTrue(str_contains($content, 'state.submitting = false;'), 'Inline-Boot löst den Submit-Lock nach dem nativen Submit nicht.');
+    },
 ];
 
 $output = [];

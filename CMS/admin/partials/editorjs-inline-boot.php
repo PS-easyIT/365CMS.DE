@@ -265,6 +265,56 @@ if (!is_string($editorInlineBootJson) || $editorInlineBootJson === '') {
         return Promise.resolve(false);
     }
 
+    function suppressPlainSubmitNames(definitions) {
+        var restoreCallbacks = [];
+
+        definitions.forEach(function (definition) {
+            var input = getElement(definition.inputId);
+            var textarea = findTextarea(definition);
+            var submitName = getSubmitName(input);
+            var inputHadName;
+            var inputName;
+            var textareaHadName;
+            var textareaName;
+
+            if (input && submitName) {
+                inputHadName = input.hasAttribute('name');
+                inputName = input.getAttribute('name') || '';
+                input.setAttribute('name', submitName);
+            }
+
+            if (textarea) {
+                textareaHadName = textarea.hasAttribute('name');
+                textareaName = textarea.getAttribute('name') || '';
+                textarea.removeAttribute('name');
+            }
+
+            restoreCallbacks.push(function () {
+                if (input && submitName) {
+                    if (inputHadName) {
+                        input.setAttribute('name', inputName);
+                    } else {
+                        input.removeAttribute('name');
+                    }
+                }
+
+                if (textarea) {
+                    if (textareaHadName) {
+                        textarea.setAttribute('name', textareaName);
+                    } else {
+                        textarea.removeAttribute('name');
+                    }
+                }
+            });
+        });
+
+        return function () {
+            restoreCallbacks.forEach(function (restore) {
+                restore();
+            });
+        };
+    }
+
     function initDefinition(definition) {
         var holder = getElement(definition.holderId);
         var input = getElement(definition.inputId);
@@ -338,7 +388,7 @@ if (!is_string($editorInlineBootJson) || $editorInlineBootJson === '') {
         return Promise.resolve(true);
     }
 
-    function submitNative(form, submitter) {
+    function submitNative(form, submitter, restoreSubmitNames) {
         state.nativeSubmitPending = true;
         window.setTimeout(function () {
             if (state.nativeSubmitPending) {
@@ -346,15 +396,23 @@ if (!is_string($editorInlineBootJson) || $editorInlineBootJson === '') {
             }
         }, 0);
 
-        if (submitter && submitter.form === form && typeof form.requestSubmit === 'function') {
-            form.requestSubmit(submitter);
-            return;
+        try {
+            if (submitter && submitter.form === form && typeof form.requestSubmit === 'function') {
+                form.requestSubmit(submitter);
+                return;
+            }
+            if (typeof form.requestSubmit === 'function') {
+                form.requestSubmit();
+                return;
+            }
+            form.submit();
+        } finally {
+            state.submitting = false;
+            state.pendingSubmitter = null;
+            if (typeof restoreSubmitNames === 'function') {
+                restoreSubmitNames();
+            }
         }
-        if (typeof form.requestSubmit === 'function') {
-            form.requestSubmit();
-            return;
-        }
-        form.submit();
     }
 
     function bindSubmit(form, definitions) {
@@ -390,9 +448,10 @@ if (!is_string($editorInlineBootJson) || $editorInlineBootJson === '') {
             event.preventDefault();
             state.submitting = true;
             Promise.all(definitions.map(saveDefinition)).then(function () {
-                submitNative(form, submitter);
+                submitNative(form, submitter, suppressPlainSubmitNames(definitions));
             }, function (error) {
                 state.submitting = false;
+                state.pendingSubmitter = null;
                 log('error', 'Submit serialization failed.', error);
                 window.alert('Der Block-Editor konnte den Inhalt nicht speichern. Bitte erneut versuchen.');
             });
