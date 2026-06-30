@@ -299,6 +299,7 @@ final class AiSettingsService
      */
     public function saveProviders(array $meta, array $entries, array $secretValues = [], array $clearSecrets = []): bool
     {
+        $storedProviders = $this->settings->getGroup(self::GROUP_PROVIDERS);
         $sanitizedEntries = [];
         $knownEntryIds = [];
 
@@ -337,6 +338,12 @@ final class AiSettingsService
         $selectedEntry['enabled'] = true;
         $sanitizedEntries = [$selectedEntry];
         $activeProviderId = (string) ($selectedEntry['id'] ?? 'mock');
+        $secretValues = $this->carryForwardCanonicalProviderSecrets(
+            $secretValues,
+            $clearSecrets,
+            $sanitizedEntries,
+            $storedProviders
+        );
 
         $payload = [
             'active_provider_id' => $activeProviderId,
@@ -1148,6 +1155,76 @@ final class AiSettingsService
             'openrouter' => 'openrouter_api_key',
             default => '',
         };
+    }
+
+    /**
+     * @param array<string, string> $secretValues
+     * @param list<string> $clearSecrets
+     * @param list<array<string, mixed>> $entries
+     * @param array<string, mixed> $stored
+     * @return array<string, string>
+     */
+    private function carryForwardCanonicalProviderSecrets(array $secretValues, array $clearSecrets, array $entries, array $stored): array
+    {
+        $clearedProviderIds = [];
+        foreach ($clearSecrets as $providerId) {
+            $providerId = $this->sanitizeProviderId((string) $providerId);
+            if ($providerId !== '') {
+                $clearedProviderIds[$providerId] = true;
+            }
+        }
+
+        foreach ($entries as $entry) {
+            $providerId = $this->sanitizeProviderId((string) ($entry['id'] ?? ''));
+            $providerType = strtolower(trim((string) ($entry['type'] ?? '')));
+            if (
+                $providerId === ''
+                || !self::isKnownProviderType($providerType)
+                || isset($clearedProviderIds[$providerId])
+                || trim((string) ($secretValues[$providerId] ?? '')) !== ''
+                || $this->hasProviderSecret($providerId, $providerType)
+            ) {
+                continue;
+            }
+
+            $secret = $this->findStoredSecretForProviderType($stored, $providerType, $providerId);
+            if ($secret !== '') {
+                $secretValues[$providerId] = $secret;
+            }
+        }
+
+        return $secretValues;
+    }
+
+    private function findStoredSecretForProviderType(array $stored, string $providerType, string $targetProviderId): string
+    {
+        $targetProviderId = $this->sanitizeProviderId($targetProviderId);
+        $candidateProviderIds = [];
+        $activeProviderId = $this->sanitizeProviderId((string) ($stored['active_provider_id'] ?? $stored['active_provider'] ?? ''));
+
+        foreach ($this->extractStoredProviderEntries($stored) as $entry) {
+            if (!is_array($entry) || strtolower(trim((string) ($entry['type'] ?? ''))) !== $providerType) {
+                continue;
+            }
+
+            $providerId = $this->sanitizeProviderId((string) ($entry['id'] ?? ''));
+            if ($providerId !== '' && $providerId !== $targetProviderId) {
+                if ($providerId === $activeProviderId) {
+                    array_unshift($candidateProviderIds, $providerId);
+                } else {
+                    $candidateProviderIds[] = $providerId;
+                }
+            }
+        }
+
+        foreach (array_values(array_unique($candidateProviderIds)) as $providerId) {
+            $secret = $this->getProviderSecret($providerId, $providerType);
+            if ($secret !== '') {
+                return $secret;
+            }
+        }
+
+        return '';
     }
 
     private function buildProviderSecretKey(string $providerId): string
