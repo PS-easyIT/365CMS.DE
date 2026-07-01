@@ -174,6 +174,19 @@ $tests = [
         assertTrue($content !== false, 'CI-Workflow konnte nicht gelesen werden.');
         assertTrue(str_contains($content, 'php tests/release-smoke/run.php'), 'Release-Smoke-Suite fehlt im CI-Workflow.');
     },
+    'Inline-EditorJS-Submit schützt serialisierte Inhalte vor Plaintext-Overwrite' => static function () use ($projectRoot): void {
+        $inlineBootPath = $projectRoot . '/CMS/admin/partials/editorjs-inline-boot.php';
+        $inlineBoot = file_get_contents($inlineBootPath);
+
+        assertTrue($inlineBoot !== false, 'Inline-EditorJS-Bootstrap konnte nicht gelesen werden.');
+        assertTrue(str_contains($inlineBoot, 'function createPlaintextFallbackData'), 'Plaintext-Fallback wird nicht in EditorJS-Daten gewrappt.');
+        assertTrue(str_contains($inlineBoot, 'input.value = stringifyData(createPlaintextFallbackData(textarea.value));'), 'Plaintext-Fallback schreibt nicht das EditorJS-JSON-Feld.');
+        assertTrue(!str_contains($inlineBoot, "input.value = textarea.value || '';"), 'Plaintext-Fallback schreibt weiterhin Rohtext in das EditorJS-Feld.');
+        assertTrue(str_contains($inlineBoot, 'function prepareSubmitFields(definitions)'), 'Submit-Felder werden vor Native-Submit nicht vorbereitet.');
+        assertTrue(str_contains($inlineBoot, "input.setAttribute('name', submitName);"), 'Serialisiertes Hidden-Feld übernimmt den Submit-Namen nicht.');
+        assertTrue(str_contains($inlineBoot, 'textarea.disabled = true;') && str_contains($inlineBoot, "textarea.removeAttribute('name');"), 'Plain-Textarea kann beim Submit weiterhin den serialisierten Inhalt überschreiben.');
+        assertTrue((bool) preg_match('/state\\.submitting\\s*=\\s*false;\\s*submitNative\\(form, submitter, definitions\\);/', $inlineBoot), 'Submit-Lock wird nach erfolgreicher Serialisierung nicht freigegeben.');
+    },
 ];
 
 $output = [];

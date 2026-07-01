@@ -39,6 +39,7 @@ if (!is_string($editorInlineBootJson) || $editorInlineBootJson === '') {
         editors: {},
         submitting: false,
         nativeSubmitPending: false,
+        nativeSubmitReached: false,
         pendingSubmitter: null,
         bootedAt: null,
         mode: 'inline-view-boot'
@@ -84,6 +85,25 @@ if (!is_string($editorInlineBootJson) || $editorInlineBootJson === '') {
         } catch (_error) {
             return JSON.stringify({ time: Date.now(), blocks: [], version: '2.31.0' });
         }
+    }
+
+    function createPlaintextFallbackData(value) {
+        var normalizedValue = String(value || '').trim();
+
+        if (normalizedValue === '') {
+            return { blocks: [] };
+        }
+
+        return {
+            time: Date.now(),
+            version: 'cms-editor-fallback',
+            blocks: [
+                {
+                    type: 'paragraph',
+                    data: { text: normalizedValue.replace(/\n/g, '<br>') }
+                }
+            ]
+        };
     }
 
     function getSubmitName(input) {
@@ -257,12 +277,76 @@ if (!is_string($editorInlineBootJson) || $editorInlineBootJson === '') {
         }
 
         if (textarea && !textarea.disabled) {
-            input.value = textarea.value || '';
+            input.value = stringifyData(createPlaintextFallbackData(textarea.value));
             emitInputEvents(input);
             return Promise.resolve(true);
         }
 
         return Promise.resolve(false);
+    }
+
+    function prepareSubmitFields(definitions) {
+        var restoreEntries = [];
+
+        definitions.forEach(function (definition) {
+            var input = getElement(definition.inputId);
+            var textarea = findTextarea(definition);
+            var submitName = getSubmitName(input);
+            var previousInputName = input ? input.getAttribute('name') : null;
+
+            if (input && submitName) {
+                input.setAttribute('name', submitName);
+            }
+
+            if (!textarea) {
+                if (input) {
+                    restoreEntries.push({
+                        input: input,
+                        inputName: previousInputName,
+                        textarea: null
+                    });
+                }
+                return;
+            }
+
+            if (textarea.dataset && !textarea.dataset.originalName && textarea.name) {
+                textarea.dataset.originalName = textarea.name;
+            }
+
+            restoreEntries.push({
+                input: input || null,
+                inputName: previousInputName,
+                textarea: textarea,
+                textareaName: textarea.getAttribute('name'),
+                textareaDisabled: textarea.disabled
+            });
+
+            textarea.disabled = true;
+            textarea.removeAttribute('name');
+        });
+
+        return function restoreSubmitFields() {
+            restoreEntries.forEach(function (entry) {
+                if (!entry) {
+                    return;
+                }
+                if (entry.input) {
+                    if (entry.inputName === null) {
+                        entry.input.removeAttribute('name');
+                    } else {
+                        entry.input.setAttribute('name', entry.inputName);
+                    }
+                }
+                if (entry.textarea) {
+                    entry.textarea.disabled = entry.textareaDisabled;
+                    if (entry.textareaName) {
+                        entry.textarea.setAttribute('name', entry.textareaName);
+                    } else {
+                        entry.textarea.removeAttribute('name');
+                    }
+                }
+            });
+        };
     }
 
     function initDefinition(definition) {
@@ -338,22 +422,40 @@ if (!is_string($editorInlineBootJson) || $editorInlineBootJson === '') {
         return Promise.resolve(true);
     }
 
-    function submitNative(form, submitter) {
+    function submitNative(form, submitter, definitions) {
+        var restoreSubmitFields = prepareSubmitFields(definitions);
+
+        state.nativeSubmitReached = false;
         state.nativeSubmitPending = true;
-        window.setTimeout(function () {
-            if (state.nativeSubmitPending) {
-                state.nativeSubmitPending = false;
-            }
-        }, 0);
 
         if (submitter && submitter.form === form && typeof form.requestSubmit === 'function') {
-            form.requestSubmit(submitter);
+            try {
+                form.requestSubmit(submitter);
+            } finally {
+                state.nativeSubmitPending = false;
+                if (!state.nativeSubmitReached) {
+                    restoreSubmitFields();
+                }
+            }
             return;
         }
         if (typeof form.requestSubmit === 'function') {
-            form.requestSubmit();
+            try {
+                form.requestSubmit();
+            } finally {
+                state.nativeSubmitPending = false;
+                if (!state.nativeSubmitReached) {
+                    restoreSubmitFields();
+                }
+            }
             return;
         }
+        if (typeof form.reportValidity === 'function' && !form.reportValidity()) {
+            state.nativeSubmitPending = false;
+            restoreSubmitFields();
+            return;
+        }
+        state.nativeSubmitPending = false;
         form.submit();
     }
 
@@ -376,6 +478,7 @@ if (!is_string($editorInlineBootJson) || $editorInlineBootJson === '') {
 
             if (state.nativeSubmitPending) {
                 state.nativeSubmitPending = false;
+                state.nativeSubmitReached = true;
                 return;
             }
             if (state.submitting) {
@@ -390,7 +493,8 @@ if (!is_string($editorInlineBootJson) || $editorInlineBootJson === '') {
             event.preventDefault();
             state.submitting = true;
             Promise.all(definitions.map(saveDefinition)).then(function () {
-                submitNative(form, submitter);
+                state.submitting = false;
+                submitNative(form, submitter, definitions);
             }, function (error) {
                 state.submitting = false;
                 log('error', 'Submit serialization failed.', error);
