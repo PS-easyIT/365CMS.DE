@@ -86,6 +86,25 @@ if (!is_string($editorInlineBootJson) || $editorInlineBootJson === '') {
         }
     }
 
+    function createPlaintextFallbackData(value) {
+        var normalizedValue = String(value || '').trim();
+
+        if (normalizedValue === '') {
+            return { blocks: [] };
+        }
+
+        return {
+            time: Date.now(),
+            version: 'cms-editor-fallback',
+            blocks: [
+                {
+                    type: 'paragraph',
+                    data: { text: normalizedValue.replace(/\n/g, '<br>') }
+                }
+            ]
+        };
+    }
+
     function getSubmitName(input) {
         if (!input || !input.dataset) {
             return '';
@@ -257,12 +276,54 @@ if (!is_string($editorInlineBootJson) || $editorInlineBootJson === '') {
         }
 
         if (textarea && !textarea.disabled) {
-            input.value = textarea.value || '';
+            input.value = stringifyData(createPlaintextFallbackData(textarea.value));
             emitInputEvents(input);
             return Promise.resolve(true);
         }
 
         return Promise.resolve(false);
+    }
+
+    function prepareSerializedSubmitFields(definitions) {
+        var restoreEntries = [];
+
+        definitions.forEach(function (definition) {
+            var input = getElement(definition.inputId);
+            var textarea = findTextarea(definition);
+            var submitName = getSubmitName(input);
+
+            if (!input || !textarea || !submitName) {
+                return;
+            }
+
+            restoreEntries.push({
+                input: input,
+                inputName: input.getAttribute('name') || '',
+                textarea: textarea,
+                textareaName: textarea.getAttribute('name') || '',
+                textareaDisabled: !!textarea.disabled
+            });
+
+            input.setAttribute('name', submitName);
+            textarea.disabled = true;
+            textarea.removeAttribute('name');
+        });
+
+        return function restoreSerializedSubmitFields() {
+            restoreEntries.forEach(function (entry) {
+                entry.textarea.disabled = entry.textareaDisabled;
+                if (entry.textareaName) {
+                    entry.textarea.setAttribute('name', entry.textareaName);
+                } else {
+                    entry.textarea.removeAttribute('name');
+                }
+                if (entry.inputName) {
+                    entry.input.setAttribute('name', entry.inputName);
+                } else {
+                    entry.input.removeAttribute('name');
+                }
+            });
+        };
     }
 
     function initDefinition(definition) {
@@ -338,23 +399,25 @@ if (!is_string($editorInlineBootJson) || $editorInlineBootJson === '') {
         return Promise.resolve(true);
     }
 
-    function submitNative(form, submitter) {
-        state.nativeSubmitPending = true;
-        window.setTimeout(function () {
-            if (state.nativeSubmitPending) {
-                state.nativeSubmitPending = false;
-            }
-        }, 0);
+    function submitNative(form, submitter, definitions) {
+        var restoreSerializedSubmitFields = prepareSerializedSubmitFields(definitions);
 
-        if (submitter && submitter.form === form && typeof form.requestSubmit === 'function') {
-            form.requestSubmit(submitter);
-            return;
+        state.nativeSubmitPending = true;
+        try {
+            if (submitter && submitter.form === form && typeof form.requestSubmit === 'function') {
+                form.requestSubmit(submitter);
+                return;
+            }
+            if (typeof form.requestSubmit === 'function') {
+                form.requestSubmit();
+                return;
+            }
+            form.submit();
+        } finally {
+            state.nativeSubmitPending = false;
+            state.pendingSubmitter = null;
+            restoreSerializedSubmitFields();
         }
-        if (typeof form.requestSubmit === 'function') {
-            form.requestSubmit();
-            return;
-        }
-        form.submit();
     }
 
     function bindSubmit(form, definitions) {
@@ -390,7 +453,8 @@ if (!is_string($editorInlineBootJson) || $editorInlineBootJson === '') {
             event.preventDefault();
             state.submitting = true;
             Promise.all(definitions.map(saveDefinition)).then(function () {
-                submitNative(form, submitter);
+                state.submitting = false;
+                submitNative(form, submitter, definitions);
             }, function (error) {
                 state.submitting = false;
                 log('error', 'Submit serialization failed.', error);
