@@ -45,4 +45,9 @@ return [
         'description' => 'Prüft den serverseitigen DE→EN-Copy-Flow für Seiten und Beiträge inklusive EditorJS, SEO, Metadaten und Admin-Actions.',
         'required' => true,
     ],
+    'editorjs-inline-boot' => [
+        'script' => __DIR__ . DIRECTORY_SEPARATOR . 'editorjs-inline-boot' . DIRECTORY_SEPARATOR . 'run.php',
+        'description' => 'Prüft verlustfreie Submit-Feldübergabe, Fallback-Serialisierung und Submit-Lock des Inline-EditorJS-Bootstraps.',
+        'required' => true,
+    ],
 ];
