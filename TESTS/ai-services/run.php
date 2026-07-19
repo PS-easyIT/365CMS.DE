@@ -122,8 +122,12 @@ $tests = [
         $settings = aiReadFile($root . DIRECTORY_SEPARATOR . 'CMS' . DIRECTORY_SEPARATOR . 'core' . DIRECTORY_SEPARATOR . 'Services' . DIRECTORY_SEPARATOR . 'AI' . DIRECTORY_SEPARATOR . 'AiSettingsService.php');
         $gateway = aiReadFile($root . DIRECTORY_SEPARATOR . 'CMS' . DIRECTORY_SEPARATOR . 'core' . DIRECTORY_SEPARATOR . 'Services' . DIRECTORY_SEPARATOR . 'AI' . DIRECTORY_SEPARATOR . 'AiProviderGateway.php');
 
-        aiAssert(!str_contains($settings, 'gpt-4'), 'Settings enthalten noch GPT-4.x-Modelle.');
         aiAssert(!str_contains($gateway, 'gpt-4'), 'Gateway enthält noch GPT-4.x-Fallbacks.');
+        foreach (AiSettingsService::PROVIDER_SLUGS as $providerType) {
+            foreach (array_keys(AiSettingsService::getProviderModelOptions($providerType)) as $model) {
+                aiAssert(!str_contains(strtolower((string) $model), 'gpt-4'), 'Provider-Katalog enthält noch GPT-4.x-Modell: ' . $model);
+            }
+        }
 
         foreach (['gpt-5.3', 'gpt-5.4', 'gpt-5.5'] as $model) {
             aiAssert(isset(AiSettingsService::getProviderModelOptions('openai')[$model]), 'OpenAI-Modell fehlt: ' . $model);
