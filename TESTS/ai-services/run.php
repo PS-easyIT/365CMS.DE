@@ -5,6 +5,58 @@ require dirname(__DIR__) . '/bootstrap.php';
 
 use CMS\Services\AI\AiSettingsService;
 use CMS\Services\AI\Providers\OpenAiCompatibleProvider;
+use CMS\Services\SettingsService;
+
+final class AiFakeSettingsService extends SettingsService
+{
+    /** @var array<string, array<string, mixed>> */
+    public array $groups;
+
+    /** @param array<string, array<string, mixed>> $groups */
+    public function __construct(array $groups)
+    {
+        $this->groups = $groups;
+    }
+
+    public function getString(string $group, string $key, string $default = ''): string
+    {
+        $value = $this->groups[$group][$key] ?? $default;
+
+        return is_scalar($value) ? trim((string) $value) : $default;
+    }
+
+    /** @return array<string, mixed> */
+    public function getGroup(string $group): array
+    {
+        return $this->groups[$group] ?? [];
+    }
+
+    /** @param array<string, mixed> $values
+     *  @param list<string> $encryptedKeys
+     */
+    public function setMany(string $group, array $values, array $encryptedKeys = [], int $autoload = 0): bool
+    {
+        foreach ($values as $key => $value) {
+            $this->groups[$group][(string) $key] = $value;
+        }
+
+        return true;
+    }
+
+    public function set(string $group, string $key, mixed $value, bool $encrypted = false, int $autoload = 0): bool
+    {
+        $this->groups[$group][$key] = $value;
+
+        return true;
+    }
+
+    public function forget(string $group, string $key): bool
+    {
+        unset($this->groups[$group][$key]);
+
+        return true;
+    }
+}
 
 /**
  * @throws RuntimeException
@@ -23,6 +75,17 @@ function aiReadFile(string $path): string
     aiAssert(is_string($content) && $content !== '', 'Datei ist leer oder nicht lesbar: ' . $path);
 
     return $content;
+}
+
+function aiSettingsWithFake(AiFakeSettingsService $fake): AiSettingsService
+{
+    $reflection = new ReflectionClass(AiSettingsService::class);
+    /** @var AiSettingsService $settings */
+    $settings = $reflection->newInstanceWithoutConstructor();
+    $property = $reflection->getProperty('settings');
+    $property->setValue($settings, $fake);
+
+    return $settings;
 }
 
 $root = dirname(__DIR__, 2);
@@ -73,6 +136,44 @@ $tests = [
 
         aiAssert(AiSettingsService::normalizeProviderModel('openai', 'gpt-4.1-mini') === 'gpt-5.3', 'GPT-4.x wird nicht auf erlaubtes OpenAI-Modell zurückgesetzt.');
         aiAssert(AiSettingsService::normalizeProviderModel('mistral', 'gpt-4.1-mini') === 'mistral-small-latest', 'Falsches Provider-Modell wird nicht auf Mistral-Default zurückgesetzt.');
+        aiAssert(AiSettingsService::normalizeProviderModel('ollama', 'phi3:14b') === 'phi3:14b', 'Benutzerdefiniertes Ollama-Modell wird überschrieben.');
+        aiAssert(AiSettingsService::normalizeProviderModel('openrouter', 'anthropic/claude-3.5-sonnet') === 'anthropic/claude-3.5-sonnet', 'Benutzerdefiniertes OpenRouter-Modell wird überschrieben.');
+        aiAssert(AiSettingsService::normalizeProviderModel('openai', '') === 'gpt-5.3', 'Leeres Modell fällt nicht auf den Provider-Default zurück.');
+    },
+    'AI Settings migrieren Secrets auf kanonische Provider-ID' => static function (): void {
+        $fake = new AiFakeSettingsService([
+            AiSettingsService::GROUP_PROVIDERS => [
+                'active_provider_id' => 'openai-a1b2c3d4',
+                'entries' => [[
+                    'id' => 'openai-a1b2c3d4',
+                    'type' => 'openai',
+                    'default_model' => 'custom-proxy-model',
+                    'enabled' => true,
+                ]],
+                'provider_secret_openai-a1b2c3d4' => 'existing-api-key',
+            ],
+        ]);
+        $settings = aiSettingsWithFake($fake);
+
+        $saved = $settings->saveProviders(
+            ['active_provider_id' => 'openai'],
+            [[
+                'id' => 'openai',
+                'type' => 'openai',
+                'default_model' => 'custom-proxy-model',
+                'enabled' => true,
+            ]]
+        );
+
+        aiAssert($saved, 'Provider-Speicherung ist fehlgeschlagen.');
+        aiAssert(
+            ($fake->groups[AiSettingsService::GROUP_PROVIDERS]['provider_secret_openai'] ?? '') === 'existing-api-key',
+            'Secret der bisherigen Provider-ID wurde nicht auf die kanonische ID migriert.'
+        );
+        aiAssert(
+            (($fake->groups[AiSettingsService::GROUP_PROVIDERS]['entries'][0]['default_model'] ?? '') === 'custom-proxy-model'),
+            'Benutzerdefiniertes Modell wurde beim Speichern verändert.'
+        );
     },
     'OpenAI-kompatibler Live-Adapter ist autoloadbar' => static function (): void {
         aiAssert(class_exists(OpenAiCompatibleProvider::class), 'OpenAiCompatibleProvider ist nicht autoloadbar.');
@@ -149,6 +250,7 @@ $tests = [
         aiAssert(str_contains($view, 'Single AI Provider'), 'Single-Provider-UI fehlt.');
         aiAssert(str_contains($view, 'provider_secret_value'), 'Zentrales API-Key-Feld fehlt.');
         aiAssert(str_contains($view, 'aiProviderModelSelect'), 'Providerabhängiges Modell-Dropdown fehlt.');
+        aiAssert(str_contains($view, '(benutzerdefiniert)'), 'Benutzerdefinierte Provider-Modelle werden im Dropdown nicht erhalten.');
         aiAssert(str_contains($view, 'data-ai-provider-field="deployment"'), 'Providerabhängige Azure-Deployment-Feldsteuerung fehlt.');
         aiAssert(str_contains($view, 'aiProviderCatalogJson'), 'Provider-Katalog wird nicht an die Admin-UI übergeben.');
         aiAssert(str_contains($view, 'aiActiveProviderIdInput') && str_contains($view, 'aiProviderEntryIdInput'), 'Providerwechsel synchronisiert Hidden-Provider-IDs nicht.');

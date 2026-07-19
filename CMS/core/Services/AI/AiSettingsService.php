@@ -217,7 +217,16 @@ final class AiSettingsService
         $options = self::getProviderModelOptions($providerType);
         $model = trim($model);
 
-        return isset($options[$model]) ? $model : (string) array_key_first($options);
+        if ($model === '' || self::isDeprecatedProviderModel($model)) {
+            return (string) array_key_first($options);
+        }
+
+        return $model;
+    }
+
+    private static function isDeprecatedProviderModel(string $model): bool
+    {
+        return preg_match('/(?:^|\/)gpt-4[a-z0-9._:-]*$/i', trim($model)) === 1;
     }
 
     /** @return array<string, bool> */
@@ -337,6 +346,37 @@ final class AiSettingsService
         $selectedEntry['enabled'] = true;
         $sanitizedEntries = [$selectedEntry];
         $activeProviderId = (string) ($selectedEntry['id'] ?? 'mock');
+        $activeProviderType = (string) ($selectedEntry['type'] ?? 'mock');
+
+        $activeSecretUpdated = false;
+        foreach ($secretValues as $providerId => $secretValue) {
+            if (
+                $this->sanitizeProviderId((string) $providerId) === $activeProviderId
+                && trim((string) $secretValue) !== ''
+            ) {
+                $activeSecretUpdated = true;
+                break;
+            }
+        }
+
+        $activeSecretCleared = false;
+        foreach ($clearSecrets as $providerId) {
+            if ($this->sanitizeProviderId((string) $providerId) === $activeProviderId) {
+                $activeSecretCleared = true;
+                break;
+            }
+        }
+
+        if (
+            !$activeSecretUpdated
+            && !$activeSecretCleared
+            && $this->getProviderSecret($activeProviderId, $activeProviderType) === ''
+        ) {
+            $migratedSecret = $this->findStoredProviderSecretForType($activeProviderId, $activeProviderType);
+            if ($migratedSecret !== '') {
+                $secretValues[$activeProviderId] = $migratedSecret;
+            }
+        }
 
         $payload = [
             'active_provider_id' => $activeProviderId,
@@ -1148,6 +1188,31 @@ final class AiSettingsService
             'openrouter' => 'openrouter_api_key',
             default => '',
         };
+    }
+
+    private function findStoredProviderSecretForType(string $activeProviderId, string $providerType): string
+    {
+        $stored = $this->settings->getGroup(self::GROUP_PROVIDERS);
+        foreach ($this->extractStoredProviderEntries($stored) as $entry) {
+            if (strtolower(trim((string) ($entry['type'] ?? ''))) !== $providerType) {
+                continue;
+            }
+
+            $storedProviderId = $this->sanitizeProviderId((string) ($entry['id'] ?? ''));
+            if ($storedProviderId === '' || $storedProviderId === $activeProviderId) {
+                continue;
+            }
+
+            $secret = $this->settings->getString(
+                self::GROUP_PROVIDERS,
+                $this->buildProviderSecretKey($storedProviderId)
+            );
+            if ($secret !== '') {
+                return $secret;
+            }
+        }
+
+        return '';
     }
 
     private function buildProviderSecretKey(string $providerId): string

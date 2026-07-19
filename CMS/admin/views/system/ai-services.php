@@ -832,12 +832,18 @@ if (empty($summary['translation_ready'])) {
                             <div class="col-md-4" data-ai-provider-field="model">
                                 <label class="form-label">Optionales Modell</label>
                                 <select class="form-select" id="aiProviderModelSelect" name="<?php echo htmlspecialchars($namePrefix . '[default_model]', ENT_QUOTES); ?>" data-current-model="<?php echo htmlspecialchars((string) ($provider['default_model'] ?? ''), ENT_QUOTES); ?>">
-                                    <?php $currentModelOptions = (array) ($providerCatalog[$providerType]['model_options'] ?? []); ?>
+                                    <?php
+                                    $currentModel = (string) ($provider['default_model'] ?? '');
+                                    $currentModelOptions = (array) ($providerCatalog[$providerType]['model_options'] ?? []);
+                                    ?>
+                                    <?php if ($currentModel !== '' && !array_key_exists($currentModel, $currentModelOptions)): ?>
+                                        <option value="<?php echo htmlspecialchars($currentModel, ENT_QUOTES); ?>" selected><?php echo htmlspecialchars($currentModel . ' (benutzerdefiniert)'); ?></option>
+                                    <?php endif; ?>
                                     <?php foreach ($currentModelOptions as $modelValue => $modelLabel): ?>
-                                        <option value="<?php echo htmlspecialchars((string) $modelValue, ENT_QUOTES); ?>" <?php echo $isSelected((string) ($provider['default_model'] ?? ''), (string) $modelValue); ?>><?php echo htmlspecialchars((string) $modelLabel); ?></option>
+                                        <option value="<?php echo htmlspecialchars((string) $modelValue, ENT_QUOTES); ?>" <?php echo $isSelected($currentModel, (string) $modelValue); ?>><?php echo htmlspecialchars((string) $modelLabel); ?></option>
                                     <?php endforeach; ?>
                                 </select>
-                                <div class="form-hint">Modellauswahl ist providerabhängig und serverseitig validiert. Nicht freigegebene Legacy-Modelle sind nicht auswählbar.</div>
+                                <div class="form-hint">Modellauswahl ist providerabhängig. Bereits konfigurierte benutzerdefinierte Modelle bleiben erhalten.</div>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Betriebsprofil</label>
@@ -902,9 +908,16 @@ if (empty($summary['translation_ready'])) {
                                     var entry = getProviderEntry(providerType);
                                     var options = entry.model_options || {};
                                     var defaultModel = entry.default_model || Object.keys(options)[0] || '';
-                                    var selectedModel = Object.prototype.hasOwnProperty.call(options, preferredModel) ? preferredModel : defaultModel;
+                                    var selectedModel = String(preferredModel || '').trim() || defaultModel;
 
                                     modelSelect.innerHTML = '';
+                                    if (selectedModel && !Object.prototype.hasOwnProperty.call(options, selectedModel)) {
+                                        var customOption = document.createElement('option');
+                                        customOption.value = selectedModel;
+                                        customOption.textContent = selectedModel + ' (benutzerdefiniert)';
+                                        customOption.selected = true;
+                                        modelSelect.appendChild(customOption);
+                                    }
                                     Object.keys(options).forEach(function (modelValue) {
                                         var option = document.createElement('option');
                                         option.value = modelValue;
