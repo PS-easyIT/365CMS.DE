@@ -4659,6 +4659,7 @@
         var uiConfig = parseJsonInput('contentEditorUiConfig', null);
         var seoConfig = parseJsonInput('contentEditorSeoConfig', null);
         var editorJsConfig = parseJsonInput('contentEditorEditorJsConfig', null);
+        var editorJsOwnerForm;
 
         if (contentEditorBootStarted) {
             return;
@@ -4669,6 +4670,13 @@
         if (!uiConfig) {
             logEditor('warn', '[EJS-CHAIN-NO-UI-CONFIG] Content editor config was not found; EditorJS init skipped.');
             return;
+        }
+
+        editorJsOwnerForm = editorJsConfig && editorJsConfig.formId
+            ? getElement(editorJsConfig.formId)
+            : null;
+        if (editorJsOwnerForm && editorJsOwnerForm.dataset) {
+            editorJsOwnerForm.dataset.cmsEditorJsPrimaryBootBound = '1';
         }
 
         initUnsavedChangesGuard(uiConfig);

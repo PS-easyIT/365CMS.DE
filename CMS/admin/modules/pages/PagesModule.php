@@ -700,11 +700,6 @@ class PagesModule
             return $submitted;
         }
 
-        $decodedOriginal = json_decode(trim($original), true);
-        if (!is_array($decodedOriginal) || !isset($decodedOriginal['blocks']) || !is_array($decodedOriginal['blocks'])) {
-            return $submitted;
-        }
-
         if ($this->extractPlainTextFromContentPayload($submitted) === $this->extractPlainTextFromContentPayload($original)) {
             return $original;
         }
