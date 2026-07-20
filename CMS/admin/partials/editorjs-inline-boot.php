@@ -344,15 +344,21 @@ if (!is_string($editorInlineBootJson) || $editorInlineBootJson === '') {
                 readOnly: !!(definition.readOnly || config.readOnly),
                 themeTypography: config.themeTypography || {},
                 onReady: function () {
-                    if (state.editors[definition.key]) {
-                        state.editors[definition.key].ready = true;
+                    var entry = state.editors[definition.key];
+                    if (!entry || entry.failed) {
+                        return;
                     }
+                    entry.ready = true;
                     setEnhanced(definition, true);
                     saveDefinition(definition).catch(function (error) {
                         log('warn', 'Initial sync failed.', error);
                     });
                 },
                 onChange: function (output) {
+                    var entry = state.editors[definition.key];
+                    if (!entry || entry.failed) {
+                        return;
+                    }
                     input.value = stringifyData(output);
                     emitInputEvents(input);
                 },
@@ -371,22 +377,42 @@ if (!is_string($editorInlineBootJson) || $editorInlineBootJson === '') {
             editor: editor,
             input: input,
             definition: definition,
-            ready: false
+            ready: false,
+            failed: false
         };
 
         if (editor && editor.isReady && typeof editor.isReady.then === 'function') {
             return withTimeout(editor.isReady, readyTimeoutMs).then(function () {
-                state.editors[definition.key].ready = true;
+                var entry = state.editors[definition.key];
+                if (!entry || entry.failed) {
+                    return false;
+                }
+                entry.ready = true;
                 setEnhanced(definition, true);
                 return true;
             }, function (error) {
                 var rendered = !!holder.querySelector('.codex-editor, .ce-block, .codex-editor__redactor');
+                var entry = state.editors[definition.key];
                 if (rendered) {
-                    state.editors[definition.key].ready = true;
+                    if (entry) {
+                        entry.ready = true;
+                    }
                     setEnhanced(definition, true);
                     mark(definition, 'editor', 'inline-rendered-before-ready');
                     log('warn', 'isReady timeout/rejection ignored because EditorJS DOM is rendered.', error);
                     return true;
+                }
+                if (entry) {
+                    entry.ready = false;
+                    entry.failed = true;
+                    entry.editor = null;
+                }
+                if (editor && typeof editor.destroy === 'function') {
+                    try {
+                        editor.destroy();
+                    } catch (destroyError) {
+                        log('warn', 'Failed editor cleanup failed.', destroyError);
+                    }
                 }
                 setEnhanced(definition, false);
                 mark(definition, 'fallback', 'inline-ready-failed');
@@ -475,6 +501,10 @@ if (!is_string($editorInlineBootJson) || $editorInlineBootJson === '') {
         form = getElement(config.formId || '');
         definitions = getDefinitions();
         if (!form || definitions.length === 0) {
+            return;
+        }
+        if (form.dataset && form.dataset.cmsEditorJsPrimaryBootBound === '1') {
+            log('log', 'External content editor owns EditorJS boot.');
             return;
         }
 
