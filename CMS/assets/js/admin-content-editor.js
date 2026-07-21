@@ -900,22 +900,31 @@
                 var state = getPlainEditorState(definition, input);
                 var textarea;
                 var currentName;
+                var inputName;
+                var submitName;
                 var wasDisabled;
 
-                if (!state || !state.textarea) {
+                if (!state || !state.textarea || !input) {
                     return;
                 }
 
                 textarea = state.textarea;
                 currentName = textarea.getAttribute('name') || '';
+                inputName = input.getAttribute('name') || '';
+                submitName = input.dataset ? String(input.dataset.editorSubmitName || '') : '';
                 wasDisabled = !!textarea.disabled;
 
                 restoreEntries.push({
+                    input: input,
+                    inputName: inputName,
                     textarea: textarea,
                     name: currentName,
                     disabled: wasDisabled
                 });
 
+                if (submitName) {
+                    input.setAttribute('name', submitName);
+                }
                 textarea.disabled = true;
                 textarea.removeAttribute('name');
             });
@@ -926,6 +935,13 @@
                         return;
                     }
 
+                    if (entry.input) {
+                        if (entry.inputName) {
+                            entry.input.setAttribute('name', entry.inputName);
+                        } else {
+                            entry.input.removeAttribute('name');
+                        }
+                    }
                     entry.textarea.disabled = entry.disabled;
                     if (entry.name) {
                         entry.textarea.setAttribute('name', entry.name);
