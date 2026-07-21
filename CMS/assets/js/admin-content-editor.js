@@ -787,10 +787,12 @@
                 input: input || null,
                 textarea: textarea,
                 wrap: wrap || null,
-                originalName: textarea.getAttribute('name') || ''
+                originalName: textarea.getAttribute('name') || '',
+                dirty: textarea.value !== textarea.defaultValue
             };
 
             textarea.addEventListener('input', function () {
+                plainEditorStates[stateKey].dirty = true;
                 syncPlainEditorState(plainEditorStates[stateKey], true);
             });
 
@@ -806,6 +808,26 @@
             if (shouldEmit) {
                 emitChangeEvents(state.input);
             }
+        }
+
+        function preserveDirtyPlainEditor(definition) {
+            var input = getElement(definition && definition.inputId ? definition.inputId : '');
+            var state = getPlainEditorState(definition, input);
+
+            if (!state || !state.dirty) {
+                return false;
+            }
+
+            syncPlainEditorState(state, true);
+            destroyEditor(definition.key);
+            setPlainEditorEnhancedState(definition, false);
+            setEditorStateMarker(definition, 'fallback', 'plain-edited-during-init');
+            recordEditorBindingMilestone(definition, 'bindEnd', {
+                finalState: 'fallback',
+                reason: 'plain-edited-during-init'
+            });
+
+            return true;
         }
 
         function setPlainEditorEnhancedState(definition, isEnhanced) {
@@ -3828,6 +3850,9 @@
             registerEditorMutationTracking(definition.key, holder);
 
             try {
+                if (plainState && plainState.dirty) {
+                    syncPlainEditorState(plainState, true);
+                }
                 logEditor('info', '[EJS-CHAIN-BIND-CREATE] Calling createCmsEditor for "' + definition.holderId + '".');
                 createdInstance = window.createCmsEditor(definition.holderId, input.value || '', config.mediaUploadUrl, config.csrfToken, {
                     getUploadContext: buildUploadContext,
@@ -3848,6 +3873,9 @@
                         if (!currentEntry || currentEntry.input !== input) {
                             return;
                         }
+                        if (plainState && plainState.dirty && !currentEntry.ready) {
+                            return;
+                        }
 
                         input.value = JSON.stringify(normalizeEditorData(output));
                         emitChangeEvents(input);
@@ -3858,6 +3886,9 @@
 
                 renderEditorUnavailableFallback(definition, input, 'init-failed');
                 return null;
+            }
+            if (plainState) {
+                plainState.dirty = false;
             }
 
             entry = {
@@ -3883,6 +3914,9 @@
                 delete editorInitWatchdogs[definition.key];
 
                 if (hasRenderedEditor) {
+                    if (preserveDirtyPlainEditor(definition)) {
+                        return;
+                    }
                     entry.ready = true;
                     clearEditorEmergencyFallback(definition.key);
                     clearHolderFallbackUi(definition);
@@ -3909,6 +3943,9 @@
                         delete editorInitWatchdogs[definition.key];
                     }
                     if (editors[definition.key] === entry) {
+                        if (preserveDirtyPlainEditor(definition)) {
+                            return;
+                        }
                         entry.ready = true;
                         clearHolderFallbackUi(definition);
                         ensureHolderVisible(holder);
@@ -3931,6 +3968,9 @@
                     renderEditorUnavailableFallback(definition, input, 'ready-rejected');
                 });
             } else {
+                if (preserveDirtyPlainEditor(definition)) {
+                    return null;
+                }
                 entry.ready = true;
                 clearEditorEmergencyFallback(definition.key);
                 if (editorInitWatchdogs[definition.key]) {
@@ -3968,11 +4008,16 @@
             var entry = editors[key];
             var definition = getDefinition(key);
             var input = definition ? getElement(definition.inputId) : null;
+            var plainState = getPlainEditorState(definition, input);
             var activeEntry = null;
 
             return waitForPendingLazyBinding(key).then(function () {
                 entry = editors[key];
 
+                if (plainState && plainState.dirty) {
+                    syncPlainEditorState(plainState, true);
+                    return normalizeEditorData(safeParseEditorInput(input));
+                }
                 if (!entry) {
                     return normalizeEditorData(safeParseEditorInput(input));
                 }

@@ -267,6 +267,12 @@ if (!is_string($editorInlineBootJson) || $editorInlineBootJson === '') {
             return Promise.resolve(false);
         }
 
+        if (entry && entry.plainDirty && textarea) {
+            input.value = stringifyData(createPlaintextFallbackData(textarea.value));
+            emitInputEvents(input);
+            return Promise.resolve(true);
+        }
+
         if (entry && entry.editor && typeof entry.editor.save === 'function') {
             return entry.editor.save().then(function (output) {
                 input.value = stringifyData(output);
@@ -282,6 +288,31 @@ if (!is_string($editorInlineBootJson) || $editorInlineBootJson === '') {
         }
 
         return Promise.resolve(false);
+    }
+
+    function preserveDirtyPlainEditor(definition) {
+        var entry = state.editors[definition.key];
+        var editor;
+
+        if (!entry || !entry.plainDirty) {
+            return false;
+        }
+
+        saveDefinition(definition);
+        editor = entry.editor;
+        entry.editor = null;
+        entry.failed = true;
+        if (editor && typeof editor.destroy === 'function') {
+            try {
+                editor.destroy();
+            } catch (_error) {
+                // Keep the visible plaintext fallback authoritative even if cleanup fails.
+            }
+        }
+        setEnhanced(definition, false);
+        mark(definition, 'fallback', 'inline-plain-edited-during-init');
+
+        return true;
     }
 
     function prepareSerializedSubmitFields(definitions) {
@@ -329,7 +360,9 @@ if (!is_string($editorInlineBootJson) || $editorInlineBootJson === '') {
     function initDefinition(definition) {
         var holder = getElement(definition.holderId);
         var input = getElement(definition.inputId);
+        var textarea = findTextarea(definition);
         var editor;
+        var entry;
 
         if (!holder || !input || definition.lazy) {
             return Promise.resolve(false);
@@ -337,6 +370,26 @@ if (!is_string($editorInlineBootJson) || $editorInlineBootJson === '') {
 
         setEnhanced(definition, false);
         mark(definition, 'loading', 'inline-create');
+        entry = {
+            editor: null,
+            input: input,
+            definition: definition,
+            ready: false,
+            failed: false,
+            plainDirty: !!(textarea && textarea.value !== textarea.defaultValue)
+        };
+        state.editors[definition.key] = entry;
+        if (textarea) {
+            textarea.addEventListener('input', function () {
+                entry.plainDirty = true;
+                input.value = stringifyData(createPlaintextFallbackData(textarea.value));
+                emitInputEvents(input);
+            });
+        }
+        if (entry.plainDirty && textarea) {
+            input.value = stringifyData(createPlaintextFallbackData(textarea.value));
+            emitInputEvents(input);
+        }
 
         try {
             editor = window.createCmsEditor(definition.holderId, input.value || '', config.mediaUploadUrl || '', config.csrfToken || '', {
@@ -344,15 +397,19 @@ if (!is_string($editorInlineBootJson) || $editorInlineBootJson === '') {
                 readOnly: !!(definition.readOnly || config.readOnly),
                 themeTypography: config.themeTypography || {},
                 onReady: function () {
-                    if (state.editors[definition.key]) {
-                        state.editors[definition.key].ready = true;
+                    if (preserveDirtyPlainEditor(definition)) {
+                        return;
                     }
+                    entry.ready = true;
                     setEnhanced(definition, true);
                     saveDefinition(definition).catch(function (error) {
                         log('warn', 'Initial sync failed.', error);
                     });
                 },
                 onChange: function (output) {
+                    if (entry.plainDirty && !entry.ready) {
+                        return;
+                    }
                     input.value = stringifyData(output);
                     emitInputEvents(input);
                 },
@@ -366,17 +423,15 @@ if (!is_string($editorInlineBootJson) || $editorInlineBootJson === '') {
             mark(definition, 'fallback', 'inline-create-failed');
             return Promise.resolve(false);
         }
-
-        state.editors[definition.key] = {
-            editor: editor,
-            input: input,
-            definition: definition,
-            ready: false
-        };
+        entry.editor = editor;
+        entry.plainDirty = false;
 
         if (editor && editor.isReady && typeof editor.isReady.then === 'function') {
             return withTimeout(editor.isReady, readyTimeoutMs).then(function () {
-                state.editors[definition.key].ready = true;
+                if (preserveDirtyPlainEditor(definition)) {
+                    return false;
+                }
+                entry.ready = true;
                 setEnhanced(definition, true);
                 return true;
             }, function (error) {
@@ -395,6 +450,9 @@ if (!is_string($editorInlineBootJson) || $editorInlineBootJson === '') {
             });
         }
 
+        if (preserveDirtyPlainEditor(definition)) {
+            return Promise.resolve(false);
+        }
         setEnhanced(definition, true);
         return Promise.resolve(true);
     }

@@ -19,8 +19,15 @@ $sourcePath = dirname(__DIR__, 2)
     . DIRECTORY_SEPARATOR . 'partials'
     . DIRECTORY_SEPARATOR . 'editorjs-inline-boot.php';
 $source = file_get_contents($sourcePath);
+$adminEditorSourcePath = dirname(__DIR__, 2)
+    . DIRECTORY_SEPARATOR . 'CMS'
+    . DIRECTORY_SEPARATOR . 'assets'
+    . DIRECTORY_SEPARATOR . 'js'
+    . DIRECTORY_SEPARATOR . 'admin-content-editor.js';
+$adminEditorSource = file_get_contents($adminEditorSourcePath);
 
 editorInlineAssert(is_string($source) && $source !== '', 'EditorJS-Inline-Boot ist nicht lesbar.');
+editorInlineAssert(is_string($adminEditorSource) && $adminEditorSource !== '', 'Admin-Content-Editor ist nicht lesbar.');
 
 $tests = [
     'Plain-Fallback wird als EditorJS-JSON serialisiert' => static function () use ($source): void {
@@ -57,6 +64,35 @@ $tests = [
         editorInlineAssert(
             str_contains($source, 'restoreSerializedSubmitFields();'),
             'Temporäre Submit-Feldzustände werden nicht wiederhergestellt.'
+        );
+    },
+    'Inline-Boot bewahrt Plaintext-Änderungen während der Initialisierung' => static function () use ($source): void {
+        editorInlineAssert(
+            str_contains($source, 'plainDirty: !!(textarea && textarea.value !== textarea.defaultValue)')
+                && str_contains($source, 'entry.plainDirty = true;'),
+            'Änderungen im sichtbaren Plaintextfeld werden während der Initialisierung nicht verfolgt.'
+        );
+        editorInlineAssert(
+            str_contains($source, 'if (entry && entry.plainDirty && textarea) {')
+                && str_contains($source, "mark(definition, 'fallback', 'inline-plain-edited-during-init');"),
+            'Der Inline-Boot kann ein geändertes Plaintextfeld beim Speichern oder Ready-Handoff überschreiben.'
+        );
+    },
+    'Externer Editor bewahrt Plaintext-Änderungen während der Initialisierung' => static function () use ($adminEditorSource): void {
+        $syncAt = strpos($adminEditorSource, 'if (plainState && plainState.dirty) {');
+        $createAt = strpos($adminEditorSource, "logEditor('info', '[EJS-CHAIN-BIND-CREATE]");
+        editorInlineAssert(
+            $syncAt !== false && $createAt !== false && $syncAt < $createAt,
+            'Vor EditorJS-Erzeugung geänderter Plaintext wird nicht in den Start-Payload übernommen.'
+        );
+        editorInlineAssert(
+            str_contains($adminEditorSource, 'function preserveDirtyPlainEditor(definition)')
+                && str_contains($adminEditorSource, "setEditorStateMarker(definition, 'fallback', 'plain-edited-during-init');"),
+            'Nach EditorJS-Erzeugung geänderter Plaintext wird beim Ready-Handoff nicht geschützt.'
+        );
+        editorInlineAssert(
+            str_contains($adminEditorSource, 'if (plainState && plainState.dirty && !currentEntry.ready) {'),
+            'EditorJS-onChange kann geänderten Plaintext vor dem Ready-Handoff überschreiben.'
         );
     },
 ];
