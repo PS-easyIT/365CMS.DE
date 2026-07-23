@@ -139,6 +139,18 @@ $tests = [
             );
         }
     },
+    'Externer Fallback übergibt den Submit-Namen an das JSON-Feld' => static function () use ($adminEditorSource): void {
+        editorInlineAssert(
+            str_contains($adminEditorSource, "submitName = input.dataset ? String(input.dataset.editorSubmitName || '') : '';")
+                && str_contains($adminEditorSource, "input.setAttribute('name', submitName);"),
+            'Das serialisierte JSON-Feld erhält im externen Fallback keinen Submit-Namen.'
+        );
+        editorInlineAssert(
+            str_contains($adminEditorSource, 'inputName: inputName')
+                && str_contains($adminEditorSource, "entry.input.removeAttribute('name');"),
+            'Der temporäre Name des JSON-Felds wird nach Browservalidierung nicht wiederhergestellt.'
+        );
+    },
 ];
 
 $failures = [];
