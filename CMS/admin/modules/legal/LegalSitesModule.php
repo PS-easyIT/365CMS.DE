@@ -20,7 +20,7 @@ class LegalSitesModule
     private const MAX_PROFILE_VALUE_LENGTH = 500;
     private const MAX_PROFILE_TEXTAREA_LENGTH = 4000;
     private const MAX_ERROR_CONTEXT_LENGTH = 180;
-    private const TEMPLATE_VERSION = '2026.05.11';
+    private const TEMPLATE_VERSION = '2026.07.27';
 
     private readonly \CMS\Database $db;
     private readonly \CMS\PageManager $pageManager;

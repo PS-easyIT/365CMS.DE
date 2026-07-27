@@ -274,13 +274,6 @@ $legalSitesConfig = [
                                         <label class="form-label">USt.-ID</label>
                                         <input type="text" name="legal_profile_vat_id" class="form-control" value="<?php echo htmlspecialchars($profile['legal_profile_vat_id'] ?? ''); ?>">
                                     </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label">Streitbeilegung</label>
-                                        <select name="legal_profile_dispute_participation" class="form-select">
-                                            <option value="no" <?php echo ($profile['legal_profile_dispute_participation'] ?? 'no') === 'no' ? 'selected' : ''; ?>>Nicht teilnehmend</option>
-                                            <option value="yes" <?php echo ($profile['legal_profile_dispute_participation'] ?? 'no') === 'yes' ? 'selected' : ''; ?>>Teilnahme vorgesehen</option>
-                                        </select>
-                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -346,8 +339,8 @@ $legalSitesConfig = [
 
                         <div class="col-12" data-legal-profile-section="features">
                             <div class="border rounded p-3 bg-light-subtle">
-                                <div class="subheader mb-2">Funktionsbezogene Datenschutz-Angaben</div>
-                                <div class="text-secondary small mb-3">Sobald du unter „Aktive Website-Funktionen“ etwas aktivierst, erscheinen hier passende Datenschutz-Bausteine und Zusatzangaben.</div>
+                                <div class="subheader mb-2">Funktionsbezogene Datenschutz- &amp; Impressum-Angaben</div>
+                                <div class="text-secondary small mb-3">Sobald du unter „Aktive Website-Funktionen“ etwas aktivierst, erscheinen hier passende Datenschutz- und Impressum-Bausteine sowie Zusatzangaben.</div>
 
                                 <div class="row g-3" id="legalPrivacyFeatureDetails">
                                     <div class="col-12 d-none" data-privacy-feature="legal_profile_has_cookies">
@@ -476,6 +469,26 @@ $legalSitesConfig = [
                                         ?>
                                     </div>
 
+                                    <div class="col-12 d-none" data-privacy-feature="legal_profile_has_editorial_content">
+                                        <div class="border rounded p-3 bg-white">
+                                            <div class="fw-semibold mb-2">Verantwortlicher nach § 18 Abs. 2 Medienstaatsvertrag (MStV)</div>
+                                            <div class="text-secondary small mb-2">Bei journalistisch-redaktionell gestalteten Angeboten (Magazin, Blog, News) muss im Impressum zusätzlich ein Verantwortlicher mit Namen und Anschrift benannt werden.</div>
+                                            <div class="row g-3">
+                                                <div class="col-md-6">
+                                                    <label class="form-label">Name (Vor- und Nachname)</label>
+                                                    <input type="text" name="legal_profile_mstv_responsible_name" class="form-control" value="<?php echo htmlspecialchars($profile['legal_profile_mstv_responsible_name'] ?? ''); ?>">
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label">Anschrift</label>
+                                                    <input type="text" name="legal_profile_mstv_responsible_address" class="form-control" value="<?php echo htmlspecialchars($profile['legal_profile_mstv_responsible_address'] ?? ''); ?>" placeholder="z. B. Musterstraße 1, 12345 Musterstadt">
+                                                </div>
+                                                <div class="col-12">
+                                                    <div class="text-secondary small">Bleiben Name oder Anschrift leer, greift das Impressum ersatzweise auf „Inhaltlich verantwortlich“ bzw. die oben hinterlegte Geschäftsanschrift zurück.</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
                                     <div class="col-12" id="legalPrivacyFeatureEmptyState">
                                         <div class="text-secondary small">Aktuell sind keine zusätzlichen Datenschutz-Bausteine aktiv.</div>
                                     </div>
@@ -536,6 +549,7 @@ $legalSitesConfig = [
                                         'legal_profile_has_external_media' => 'Externe Medien / Drittinhalte',
                                         'legal_profile_has_webfonts' => 'Externe oder besondere Webfonts',
                                         'legal_profile_has_shop' => 'Shop / Buchung / Zahlungsabwicklung',
+                                        'legal_profile_has_editorial_content' => 'Magazin / Blog / News (redaktionell-journalistische Inhalte)',
                                     ];
                                     foreach ($toggleFields as $fieldName => $label):
                                     ?>

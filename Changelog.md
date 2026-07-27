@@ -1,4 +1,4 @@
-﻿**Version:** 3.3.73
+﻿**Version:** 3.3.75
 
 # 365CMS Changelog
 
@@ -13,6 +13,22 @@
 | 🔵 | `docs` | Dokumentation |
 | ⬜ | `chore` | Wartungsarbeit / Release |
 | 🛡️ | `security` | Sicherheits- und Audit-Härtung |
+
+---
+
+### v3.3.75 — 27.07.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.3.75** | 🟢 feat | Admin / Kommentare – Papierkorb | **Der Papierkorb der Kommentarverwaltung hat jetzt einen eigenen „Papierkorb leeren“-Button, der alle Kommentare mit Status „trash“ in einem Klick endgültig löscht.** Neue `CommentService::deleteAllTrashed()`- und `CommentsModule::emptyTrash()`-Methoden sowie eine neue `empty_trash`-Aktion in `comments.php` ergänzen die bestehende Einzel-/Sammellöschung; der Button erscheint nur im Papierkorb-Tab (nur mit Löschrecht, nur wenn Einträge vorhanden sind) und nutzt denselben generischen `data-confirm-*`-Bestätigungsmechanismus wie die übrigen Aktionen. |
+
+---
+
+### v3.3.74 — 27.07.2026
+
+| Version | Typ | Bereich | Beschreibung |
+|---------|-----|---------|-------------|
+| **3.3.74** | 🟢 feat | Admin / Legal Sites – Impressum-Vorlage | **Die generierte Impressum-Vorlage enthält den seit 20.07.2025 abgeschalteten EU-Streitschlichtungs-/OS-Plattform-Hinweis (samt Verbraucherschlichtungs-Passus) nicht mehr und benennt für Magazin-, Blog- oder News-Angebote zusätzlich einen Verantwortlichen nach § 18 Abs. 2 Medienstaatsvertrag (MStV).** `LegalSitesModule::buildImprintTemplate()` entfernt den kompletten „EU-Streitschlichtung“-Block; das zugehörige `legal_profile_dispute_participation`-Feld wurde vollständig entfernt (Formular, Sanitizer, Defaults, POST-Allowlist). Neu: Toggle „Magazin / Blog / News“ (`legal_profile_has_editorial_content`) in den Website-Funktionen sowie die Felder `legal_profile_mstv_responsible_name`/`legal_profile_mstv_responsible_address`, die bei Aktivierung automatisch einen zusätzlichen, korrekt zitierten MStV-Abschnitt (Name + Anschrift, Fallback auf Firmenanschrift) ins Impressum einfügen. Vorlagenversion auf 2026.07.27 angehoben. |
 
 ---
 

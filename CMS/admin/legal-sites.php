@@ -45,7 +45,6 @@ const CMS_ADMIN_LEGAL_SITES_PROFILE_KEYS = [
     'legal_profile_register_court',
     'legal_profile_register_number',
     'legal_profile_vat_id',
-    'legal_profile_dispute_participation',
     'legal_profile_hosting_provider',
     'legal_profile_hosting_address',
     'legal_profile_privacy_contact_name',
@@ -64,6 +63,8 @@ const CMS_ADMIN_LEGAL_SITES_PROFILE_KEYS = [
     'legal_profile_terms_scope',
     'legal_profile_contract_type',
     'legal_profile_return_costs',
+    'legal_profile_mstv_responsible_name',
+    'legal_profile_mstv_responsible_address',
 ];
 const CMS_ADMIN_LEGAL_SITES_PROFILE_BOOLEAN_KEYS = [
     'legal_profile_analytics_self_hosted',
@@ -78,6 +79,7 @@ const CMS_ADMIN_LEGAL_SITES_PROFILE_BOOLEAN_KEYS = [
     'legal_profile_has_external_media',
     'legal_profile_has_webfonts',
     'legal_profile_has_shop',
+    'legal_profile_has_editorial_content',
 ];
 const CMS_ADMIN_LEGAL_SITES_MAX_LEGAL_HTML_LENGTH = 60000;
 const CMS_ADMIN_LEGAL_SITES_MAX_PROFILE_VALUE_LENGTH = 500;
@@ -91,6 +93,7 @@ const CMS_ADMIN_LEGAL_SITES_PROFILE_TEXTAREA_KEYS = [
     'legal_profile_hosting_address',
     'legal_profile_essential_cookie_purpose',
     'legal_profile_additional_service_purpose',
+    'legal_profile_mstv_responsible_address',
 ];
 
 function cms_admin_legal_sites_substring(string $value, int $start, ?int $length = null): string
